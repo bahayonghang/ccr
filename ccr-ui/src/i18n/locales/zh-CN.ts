@@ -1814,12 +1814,18 @@ export default {
       currentBadge: '当前',
       confirmApply: '确定应用 Profile "{name}" 吗？这会更新 Codex 本地配置。',
       confirmDelete: '确定删除 Profile "{name}" 吗？此操作不可撤销。',
-      extraHint: '示例：{"api_mode":"custom","wire_api":"responses","env_key":"DUCKCODING_API_KEY","requires_openai_auth":true}',
+      extraHint: '额外 JSON 仅用于没有单独表单项的少量 platform_data 字段。',
       fields: {
         name: 'Name',
         description: '描述',
         baseUrl: 'Base URL',
         authToken: 'Auth Token',
+        authMode: '认证模式',
+        openAiLoginMethod: 'OpenAI 登录方式',
+        authSource: '认证来源',
+        envKey: '环境变量 Key',
+        wireApi: 'Wire API',
+        requiresOpenaiAuth: '需要 OpenAI 认证',
         model: 'Model',
         smallFastModel: 'Small Fast Model',
         provider: 'Provider',
@@ -1848,14 +1854,36 @@ export default {
         description: '例如: OpenAI 兼容转发（gpt-5.1-codex）',
         authToken: '例如: ghp_... 或 sk-...',
         baseUrl: '例如: https://api.github.com/copilot 或 https://your-openai-compatible.com/v1',
+        envKey: '例如: MISTRAL_API_KEY',
+        wireApi: '例如: responses',
         model: '例如: gpt-5.1-codex',
         smallFastModel: '例如: gpt-4o-mini',
         provider: '例如: duckcoding',
         providerType: '例如: official_relay',
         account: '例如: dev{\'@\'}example.com',
         tags: '例如: free, stable, high-speed',
-        extraJson: '{\n  "api_mode": "custom",\n  "wire_api": "responses",\n  "env_key": "DUCKCODING_API_KEY"\n}'
+        extraJson: '{\n  "approval_policy": "on-request"\n}'
       },
+      authModes: {
+        openai_chatgpt: 'OpenAI ChatGPT 登录',
+        openai_api_key: 'OpenAI API Key',
+        provider_env_key: 'Provider 环境变量 Key',
+        no_auth: '无认证'
+      },
+      authTokenHints: {
+        openai_chatgpt: '官方 ChatGPT 登录型 profile 不需要 base_url，也不需要 secret。',
+        openai_api_key: '请提供 OpenAI API Key，用于 API Key 模式。',
+        provider_env_key: 'Provider env-key 模式必须同时提供 env_key 和 secret。',
+        no_auth: '本地或无需运行时认证的 profile 可以留空。'
+      },
+      officialBaseUrl: '官方 OpenAI 运行时',
+      notAvailable: '不可用',
+      baseUrlRequiredHint: '自定义中转、provider env-key 和 no-auth 运行时需要填写 Base URL。',
+      baseUrlOptionalHint: 'OpenAI-auth profile 可选。官方 ChatGPT 登录模式可留空。',
+      envKeyHint: '这个环境变量名会写入运行时导出和认证存储。',
+      envExportTitle: '运行时环境变量导出',
+      envExportHint: 'Provider/API Key profile 可以导出 shell 环境变量供复用。',
+      copyEnvExport: '复制导出',
       providers: {
         github: 'GitHub',
         azure: 'Azure',
@@ -1867,6 +1895,7 @@ export default {
         nameRequired: '请填写 Profile 名称',
         baseUrlRequired: '请填写 Base URL',
         authTokenRequired: '请填写 Auth Token',
+        envKeyRequired: 'Provider env-key 模式必须填写 env_key',
         modelRequired: '请填写 Model',
         extraJsonInvalid: '高级字段必须是合法 JSON 对象'
       },
@@ -1875,6 +1904,8 @@ export default {
         addSuccess: '✓ Profile 添加成功',
         updateSuccess: '✓ Profile 更新成功',
         deleteSuccess: '✓ Profile 删除成功',
+        envExportCopied: '环境变量导出已复制',
+        envExportCopyFailed: '复制环境变量导出失败',
         operationFailed: '操作失败: {error}',
         deleteFailed: '删除失败: {error}'
       },
@@ -2035,6 +2066,12 @@ export default {
       processDetected: '检测到 Codex 进程 (PIDs: {pids})，切换可能导致问题',
       confirmSwitch: '确定要切换到账户 "{name}" 吗？',
       confirmDelete: '确定要删除账户 "{name}" 吗？',
+      profileGuard: {
+        title: 'Profile 兼容性',
+        noCurrentProfile: '当前没有激活的 Codex profile。只有当前 profile 使用 OpenAI 认证时，才能保存或切换 Auth 账户。',
+        unsupportedProfile: '当前 profile “{name}” 的认证模式是 “{authMode}”。Codex Auth 账户保存/切换仅支持 OpenAI-auth 当前 profile。',
+        supportedProfile: '当前 profile “{name}” 的认证模式是 “{authMode}”，可以保存和切换 Auth 账户。'
+      },
       status: {
         loginState: '登录状态',
         totalAccounts: '账户总数',

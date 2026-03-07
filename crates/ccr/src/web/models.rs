@@ -116,6 +116,13 @@ pub struct CodexProfilesResponse {
     pub profiles: Vec<CodexProfileItem>,
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct CodexProfileEnvResponse {
+    pub profile_name: String,
+    pub env: std::collections::BTreeMap<String, String>,
+    pub shell_script: String,
+}
+
 /// Codex profile 项
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CodexProfileItem {
@@ -123,6 +130,8 @@ pub struct CodexProfileItem {
     pub description: Option<String>,
     pub base_url: Option<String>,
     pub auth_token: Option<String>,
+    pub auth_mode: Option<String>,
+    pub openai_login_method: Option<String>,
     pub model: Option<String>,
     pub small_fast_model: Option<String>,
     pub provider: Option<String>,
@@ -149,6 +158,8 @@ pub struct CodexProfileRequest {
     pub description: Option<String>,
     pub base_url: Option<String>,
     pub auth_token: Option<String>,
+    pub auth_mode: Option<String>,
+    pub openai_login_method: Option<String>,
     pub model: Option<String>,
     pub small_fast_model: Option<String>,
     pub provider: Option<String>,

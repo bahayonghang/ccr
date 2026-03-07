@@ -248,6 +248,7 @@ impl WebServer {
 
                 // Codex profiles
                 get  "/api/codex/profiles"              => crate::web::handlers::codex_handlers::handle_list_codex_profiles,
+                get  "/api/codex/profiles/{name}/env"   => crate::web::handlers::codex_handlers::handle_get_codex_profile_env,
                 post "/api/codex/profiles"              => crate::web::handlers::codex_handlers::handle_add_codex_profile,
                 put  "/api/codex/profiles/{name}"       => crate::web::handlers::codex_handlers::handle_update_codex_profile,
                 delete "/api/codex/profiles/{name}"     => crate::web::handlers::codex_handlers::handle_delete_codex_profile,

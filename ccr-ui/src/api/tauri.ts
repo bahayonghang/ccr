@@ -902,6 +902,11 @@ export const getCodexProfile = async <T = UnknownRecord>(name: string): Promise<
   return (found ?? null) as T
 }
 
+/** 获取 Codex Profile 的环境变量导出 */
+export const getCodexProfileEnv = async <T = UnknownRecord>(name: string): Promise<T> => {
+  return invoke('codex_get_profile_env', { name })
+}
+
 /** 应用 Codex Profile */
 export const applyCodexProfile = async <T = UnknownRecord>(name: string): Promise<T> => {
   return invoke('codex_apply_profile', { name })

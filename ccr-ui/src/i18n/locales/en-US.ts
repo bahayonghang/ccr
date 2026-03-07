@@ -1802,12 +1802,18 @@ export default {
       currentBadge: 'Current',
       confirmApply: 'Apply Profile "{name}"? This will update local Codex configuration.',
       confirmDelete: 'Delete Profile "{name}"? This action cannot be undone.',
-      extraHint: 'Example: {"api_mode":"custom","wire_api":"responses","env_key":"DUCKCODING_API_KEY","requires_openai_auth":true}',
+      extraHint: 'Extra JSON is for uncommon platform_data fields that do not have dedicated inputs.',
       fields: {
         name: 'Name',
         description: 'Description',
         baseUrl: 'Base URL',
         authToken: 'Auth Token',
+        authMode: 'Auth Mode',
+        openAiLoginMethod: 'OpenAI Login Method',
+        authSource: 'Auth Source',
+        envKey: 'Env Key',
+        wireApi: 'Wire API',
+        requiresOpenaiAuth: 'Requires OpenAI Auth',
         model: 'Model',
         smallFastModel: 'Small Fast Model',
         provider: 'Provider',
@@ -1836,14 +1842,36 @@ export default {
         description: 'e.g: OpenAI-compatible relay (gpt-5.1-codex)',
         authToken: 'e.g: ghp_... or sk-...',
         baseUrl: 'e.g: https://api.github.com/copilot or https://your-openai-compatible.com/v1',
+        envKey: 'e.g: MISTRAL_API_KEY',
+        wireApi: 'e.g: responses',
         model: 'e.g: gpt-5.1-codex',
         smallFastModel: 'e.g: gpt-4o-mini',
         provider: 'e.g: duckcoding',
         providerType: 'e.g: official_relay',
         account: 'e.g: dev{\'@\'}example.com',
         tags: 'e.g: free, stable, high-speed',
-        extraJson: '{\n  "api_mode": "custom",\n  "wire_api": "responses",\n  "env_key": "DUCKCODING_API_KEY"\n}'
+        extraJson: '{\n  "approval_policy": "on-request"\n}'
       },
+      authModes: {
+        openai_chatgpt: 'OpenAI ChatGPT Login',
+        openai_api_key: 'OpenAI API Key',
+        provider_env_key: 'Provider Env Key',
+        no_auth: 'No Auth'
+      },
+      authTokenHints: {
+        openai_chatgpt: 'Official ChatGPT login profiles do not require a base URL or secret.',
+        openai_api_key: 'Provide an OpenAI API key for API-key based OpenAI auth.',
+        provider_env_key: 'Provider env-key profiles require both env_key and a secret.',
+        no_auth: 'Leave this blank for profiles that do not need runtime auth.'
+      },
+      officialBaseUrl: 'Official OpenAI runtime',
+      notAvailable: 'N/A',
+      baseUrlRequiredHint: 'Required for custom relays, provider env-key profiles, and no-auth runtimes.',
+      baseUrlOptionalHint: 'Optional for OpenAI-auth profiles. Leave blank for the official ChatGPT login runtime.',
+      envKeyHint: 'This env var name is written to the runtime export and auth store.',
+      envExportTitle: 'Runtime Env Export',
+      envExportHint: 'Provider/API-key profiles can export shell env assignments for reuse.',
+      copyEnvExport: 'Copy Export',
       providers: {
         github: 'GitHub',
         azure: 'Azure',
@@ -1855,6 +1883,7 @@ export default {
         nameRequired: 'Profile name is required',
         baseUrlRequired: 'Base URL is required',
         authTokenRequired: 'Auth token is required',
+        envKeyRequired: 'Env key is required for provider env-key profiles',
         modelRequired: 'Model is required',
         extraJsonInvalid: 'Advanced fields must be a valid JSON object'
       },
@@ -1863,6 +1892,8 @@ export default {
         addSuccess: '✓ Profile added successfully',
         updateSuccess: '✓ Profile updated successfully',
         deleteSuccess: '✓ Profile deleted successfully',
+        envExportCopied: 'Environment export copied',
+        envExportCopyFailed: 'Failed to copy environment export',
         operationFailed: 'Operation failed: {error}',
         deleteFailed: 'Delete failed: {error}'
       },
@@ -2023,6 +2054,12 @@ export default {
       processDetected: 'Codex process detected (PIDs: {pids}), switching may cause issues',
       confirmSwitch: 'Are you sure you want to switch to account "{name}"?',
       confirmDelete: 'Are you sure you want to delete account "{name}"?',
+      profileGuard: {
+        title: 'Profile Compatibility',
+        noCurrentProfile: 'No current Codex profile is active. Auth account save/switch is only available when the current profile uses OpenAI auth.',
+        unsupportedProfile: 'Current profile "{name}" uses "{authMode}". Codex Auth account save/switch only works for OpenAI-auth current profiles.',
+        supportedProfile: 'Current profile "{name}" uses "{authMode}". Auth account save/switch is available.'
+      },
       status: {
         loginState: 'Login State',
         totalAccounts: 'Total Accounts',

@@ -9,7 +9,9 @@ use crate::web::{
         bad_request, empty_success_response, internal_server_error, spawn_blocking_string,
         success_response,
     },
-    models::{CodexProfileItem, CodexProfileRequest, CodexProfilesResponse},
+    models::{
+        CodexProfileEnvResponse, CodexProfileItem, CodexProfileRequest, CodexProfilesResponse,
+    },
 };
 use axum::{Json, extract::Path, response::Response};
 use indexmap::IndexMap;
@@ -107,12 +109,41 @@ pub async fn handle_delete_codex_profile(Path(name): Path<String>) -> Response {
     }
 }
 
+/// 获取指定 Codex profile 的环境变量导出
+pub async fn handle_get_codex_profile_env(Path(name): Path<String>) -> Response {
+    let result = spawn_blocking_string(move || {
+        let platform = CodexPlatform::new()?;
+        let env = platform.export_profile_env(&name)?;
+        let shell_script = platform.export_profile_shell_script(&name)?;
+        let env = env
+            .into_iter()
+            .collect::<std::collections::BTreeMap<_, _>>();
+        Ok::<CodexProfileEnvResponse, CcrError>(CodexProfileEnvResponse {
+            profile_name: name,
+            env,
+            shell_script,
+        })
+    })
+    .await;
+
+    match result {
+        Ok(payload) => success_response(payload),
+        Err(e) => bad_request(e),
+    }
+}
+
 fn build_profile_config(req: &CodexProfileRequest) -> crate::models::ProfileConfig {
     use crate::models::ProfileConfig;
 
     let mut platform_data: IndexMap<String, JsonValue> = IndexMap::new();
 
     insert_string(&mut platform_data, "api_mode", req.api_mode.as_ref());
+    insert_string(&mut platform_data, "auth_mode", req.auth_mode.as_ref());
+    insert_string(
+        &mut platform_data,
+        "openai_login_method",
+        req.openai_login_method.as_ref(),
+    );
     insert_string(&mut platform_data, "wire_api", req.wire_api.as_ref());
     insert_string(&mut platform_data, "env_key", req.env_key.as_ref());
     insert_bool(
@@ -170,6 +201,13 @@ fn build_profile_item(
 ) -> CodexProfileItem {
     let data = &profile.platform_data;
     let is_current = name == current_profile;
+    let auth_mode = CodexPlatform::profile_auth_mode(profile);
+    let openai_login_method =
+        CodexPlatform::profile_openai_login_method(profile).map(|method| match method {
+            crate::models::OpenAiAuthMethod::Chatgpt => "chatgpt".to_string(),
+            crate::models::OpenAiAuthMethod::Api => "api".to_string(),
+        });
+    let default_auth_source = CodexPlatform::profile_auth_source(profile);
     let auth_source = if is_current {
         auth_state.map(|state| match state.status {
             crate::models::AuthStateStatus::Unsupported => "unsupported".to_string(),
@@ -181,11 +219,11 @@ fn build_profile_item(
                 crate::models::AuthIntent::ProviderEnvKey { env_key } => {
                     format!("provider:{env_key}")
                 }
-                crate::models::AuthIntent::NoAuth => "none".to_string(),
+                crate::models::AuthIntent::NoAuth => default_auth_source.clone(),
             },
         })
     } else {
-        None
+        Some(default_auth_source)
     };
 
     CodexProfileItem {
@@ -193,6 +231,8 @@ fn build_profile_item(
         description: profile.description.clone(),
         base_url: profile.base_url.clone(),
         auth_token: profile.auth_token.clone(),
+        auth_mode: Some(auth_mode.as_str().to_string()),
+        openai_login_method,
         model: profile.model.clone(),
         small_fast_model: profile.small_fast_model.clone(),
         provider: profile.provider.clone(),
@@ -279,6 +319,8 @@ mod tests {
             description: Some("legacy github mode".to_string()),
             base_url: Some("https://api.github.com".to_string()),
             auth_token: Some("ghp_test".to_string()),
+            auth_mode: None,
+            openai_login_method: None,
             model: Some("gpt-4".to_string()),
             small_fast_model: None,
             provider: Some("github".to_string()),
@@ -310,6 +352,8 @@ mod tests {
             description: Some("official relay".to_string()),
             base_url: None,
             auth_token: None,
+            auth_mode: Some("openai_chatgpt".to_string()),
+            openai_login_method: Some("chatgpt".to_string()),
             model: Some("gpt-5-codex".to_string()),
             small_fast_model: None,
             provider: Some("openai".to_string()),
@@ -340,6 +384,8 @@ mod tests {
             description: Some("legacy provider type".to_string()),
             base_url: Some("https://api.example.com/v1".to_string()),
             auth_token: Some("sk-test".to_string()),
+            auth_mode: None,
+            openai_login_method: None,
             model: None,
             small_fast_model: None,
             provider: Some("mistral".to_string()),

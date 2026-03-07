@@ -32,12 +32,20 @@ export interface CodexMcpServersResponse {
 
 // ============ Codex Profile Types (CCR 平台：~/.ccr/platforms/codex/profiles.toml) ============
 
+export type CodexProfileAuthMode =
+  | 'openai_chatgpt'
+  | 'openai_api_key'
+  | 'provider_env_key'
+  | 'no_auth'
+
+export type OpenAiLoginMethod = 'chatgpt' | 'api'
+
 export interface CodexProfile {
   name: string;
   description?: string;
-  base_url: string;
-  auth_token: string;
-  model: string;
+  base_url?: string | null;
+  auth_token?: string | null;
+  model?: string | null;
   small_fast_model?: string;
   provider?: string;
   provider_type?: string;
@@ -45,21 +53,46 @@ export interface CodexProfile {
   tags?: string[];
   usage_count?: number;
   enabled?: boolean;
+  wire_api?: string;
+  env_key?: string | null;
+  requires_openai_auth?: boolean | null;
+  approval_policy?: string;
+  sandbox_mode?: string;
+  model_reasoning_effort?: string;
+  network_access?: string | boolean | null;
+  disable_response_storage?: boolean | null;
+  auth_mode?: CodexProfileAuthMode;
+  openai_login_method?: OpenAiLoginMethod | null;
+  credential_store?: string | null;
+  auth_source?: string | null;
+  env_export?: Record<string, string> | null;
+  shell_export_script?: string | null;
+  is_current?: boolean;
   extra?: Record<string, unknown>;
 }
 
 export interface CodexProfileRequest {
   name: string;
   description?: string;
-  base_url: string;
-  auth_token: string;
-  model: string;
+  base_url?: string;
+  auth_token?: string;
+  model?: string;
   small_fast_model?: string;
   provider?: string;
   provider_type?: string;
   account?: string;
   tags?: string[];
   enabled?: boolean;
+  wire_api?: string;
+  env_key?: string;
+  requires_openai_auth?: boolean;
+  approval_policy?: string;
+  sandbox_mode?: string;
+  model_reasoning_effort?: string;
+  network_access?: string | boolean;
+  disable_response_storage?: boolean;
+  auth_mode?: CodexProfileAuthMode;
+  openai_login_method?: OpenAiLoginMethod;
   extra?: Record<string, unknown>;
 }
 

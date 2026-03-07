@@ -7,3 +7,4 @@
 //! - [`auth`] - 账号管理子命令 (save/list/switch/delete/current)
 
 pub mod auth;
+pub mod env;

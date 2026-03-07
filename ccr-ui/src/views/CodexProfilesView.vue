@@ -280,7 +280,7 @@
                       {{ $t('codex.profiles.fields.baseUrl') }}
                     </span>
                     <code class="font-mono text-white truncate px-2 py-1 rounded glass-surface">
-                      {{ profile.base_url }}
+                      {{ profileBaseUrl(profile) }}
                     </code>
                   </div>
 
@@ -294,10 +294,79 @@
                       </span>
                     </div>
                   </div>
+
+                  <div class="flex flex-col gap-1">
+                    <span class="text-xs font-medium text-white/50 uppercase tracking-wider">
+                      {{ $t('codex.profiles.fields.authMode') }}
+                    </span>
+                    <div class="flex items-center gap-2 flex-wrap">
+                      <span class="px-2 py-0.5 rounded-md text-xs font-medium glass-surface text-white/80">
+                        {{ authModeLabel(profile.auth_mode) }}
+                      </span>
+                      <span
+                        v-if="profile.openai_login_method"
+                        class="px-2 py-0.5 rounded-md text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+                      >
+                        {{ profile.openai_login_method }}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div class="flex flex-col gap-1">
+                    <span class="text-xs font-medium text-white/50 uppercase tracking-wider">
+                      {{ $t('codex.profiles.fields.authSource') }}
+                    </span>
+                    <div class="flex items-center gap-2 flex-wrap">
+                      <code class="font-mono text-white truncate px-2 py-1 rounded glass-surface">
+                        {{ profile.auth_source || $t('codex.profiles.notAvailable') }}
+                      </code>
+                      <span
+                        v-if="profile.credential_store"
+                        class="px-2 py-0.5 rounded-md text-xs font-medium bg-sky-500/10 text-sky-300 border border-sky-500/20"
+                      >
+                        {{ profile.credential_store }}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div
+                    v-if="profile.env_key"
+                    class="flex flex-col gap-1"
+                  >
+                    <span class="text-xs font-medium text-white/50 uppercase tracking-wider">
+                      {{ $t('codex.profiles.fields.envKey') }}
+                    </span>
+                    <code class="font-mono text-white truncate px-2 py-1 rounded glass-surface">
+                      {{ profile.env_key }}
+                    </code>
+                  </div>
+                </div>
+
+                <div
+                  v-if="profile.shell_export_script"
+                  class="mt-4 rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-3"
+                >
+                  <div class="flex items-start justify-between gap-3">
+                    <div class="min-w-0">
+                      <p class="text-xs font-medium uppercase tracking-wider text-emerald-300">
+                        {{ $t('codex.profiles.envExportTitle') }}
+                      </p>
+                      <p class="mt-1 text-xs text-white/60">
+                        {{ $t('codex.profiles.envExportHint') }}
+                      </p>
+                    </div>
+                    <button
+                      class="btn btn-secondary btn-sm"
+                      @click.stop="copyProfileEnv(profile)"
+                    >
+                      {{ $t('codex.profiles.copyEnvExport') }}
+                    </button>
+                  </div>
+                  <pre class="mt-3 overflow-x-auto rounded-lg glass-surface p-3 text-xs text-white/80"><code>{{ profile.shell_export_script }}</code></pre>
                 </div>
                  
                 <div
-                  v-if="profile.tags?.length || profile.provider"
+                  v-if="profile.tags?.length || profile.provider || (profile.extra && Object.keys(profile.extra).length > 0)"
                   class="mt-4 flex items-center justify-between border-t border-white/5 pt-3"
                 >
                   <div class="flex flex-wrap gap-1.5">
@@ -381,10 +450,50 @@
                     </div>
                   </div>
                        
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="space-y-1.5">
+                      <label class="text-sm font-semibold text-white/80">
+                        {{ $t('codex.profiles.fields.authMode') }} <span class="text-red-500">*</span>
+                      </label>
+                      <select
+                        v-model="form.auth_mode"
+                        class="input"
+                      >
+                        <option value="openai_chatgpt">
+                          {{ $t('codex.profiles.authModes.openai_chatgpt') }}
+                        </option>
+                        <option value="openai_api_key">
+                          {{ $t('codex.profiles.authModes.openai_api_key') }}
+                        </option>
+                        <option value="provider_env_key">
+                          {{ $t('codex.profiles.authModes.provider_env_key') }}
+                        </option>
+                        <option value="no_auth">
+                          {{ $t('codex.profiles.authModes.no_auth') }}
+                        </option>
+                      </select>
+                    </div>
+                    <div class="space-y-1.5">
+                      <label class="text-sm font-semibold text-white/80">
+                        {{ $t('codex.profiles.fields.openAiLoginMethod') }}
+                      </label>
+                      <input
+                        :value="displayOpenAiLoginMethod"
+                        type="text"
+                        class="input font-mono text-sm"
+                        disabled
+                      >
+                    </div>
+                  </div>
+
                   <!-- URL & Token -->
                   <div class="space-y-1.5">
                     <label class="text-sm font-semibold text-white/80">
-                      {{ $t('codex.profiles.fields.baseUrl') }} <span class="text-red-500">*</span>
+                      {{ $t('codex.profiles.fields.baseUrl') }}
+                      <span
+                        v-if="requiresBaseUrl"
+                        class="text-red-500"
+                      >*</span>
                     </label>
                     <input
                       v-model="form.base_url"
@@ -392,11 +501,18 @@
                       class="input font-mono text-sm"
                       :placeholder="$t('codex.profiles.placeholders.baseUrl')"
                     >
+                    <p class="text-xs text-white/50">
+                      {{ requiresBaseUrl ? $t('codex.profiles.baseUrlRequiredHint') : $t('codex.profiles.baseUrlOptionalHint') }}
+                    </p>
                   </div>
 
                   <div class="space-y-1.5">
                     <label class="text-sm font-semibold text-white/80">
-                      {{ $t('codex.profiles.fields.authToken') }} <span class="text-red-500">*</span>
+                      {{ $t('codex.profiles.fields.authToken') }}
+                      <span
+                        v-if="requiresSecret"
+                        class="text-red-500"
+                      >*</span>
                     </label>
                     <input
                       v-model="form.auth_token"
@@ -404,6 +520,27 @@
                       class="input font-mono text-sm"
                       :placeholder="$t('codex.profiles.placeholders.authToken')"
                     >
+                    <p class="text-xs text-white/50">
+                      {{ authTokenHint }}
+                    </p>
+                  </div>
+
+                  <div
+                    v-if="requiresEnvKey"
+                    class="space-y-1.5"
+                  >
+                    <label class="text-sm font-semibold text-white/80">
+                      {{ $t('codex.profiles.fields.envKey') }} <span class="text-red-500">*</span>
+                    </label>
+                    <input
+                      v-model="form.env_key"
+                      type="text"
+                      class="input font-mono text-sm"
+                      :placeholder="$t('codex.profiles.placeholders.envKey')"
+                    >
+                    <p class="text-xs text-white/50">
+                      {{ $t('codex.profiles.envKeyHint') }}
+                    </p>
                   </div>
 
                   <!-- Models -->
@@ -429,6 +566,35 @@
                         class="input font-mono text-sm"
                         :placeholder="$t('codex.profiles.placeholders.smallFastModel')"
                       >
+                    </div>
+                  </div>
+
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="space-y-1.5">
+                      <label class="text-sm font-semibold text-white/80">
+                        {{ $t('codex.profiles.fields.wireApi') }}
+                      </label>
+                      <input
+                        v-model="form.wire_api"
+                        type="text"
+                        class="input font-mono text-sm"
+                        :placeholder="$t('codex.profiles.placeholders.wireApi')"
+                      >
+                    </div>
+                    <div class="flex items-center gap-3 p-3 rounded-lg glass-surface border border-white/5">
+                      <input
+                        id="requiresOpenAiAuth"
+                        :checked="requiresOpenAiAuth"
+                        type="checkbox"
+                        class="w-5 h-5 rounded border-white/10 text-accent-primary focus:ring-accent-primary/20"
+                        disabled
+                      >
+                      <label
+                        for="requiresOpenAiAuth"
+                        class="text-sm font-medium text-white/70 select-none"
+                      >
+                        {{ $t('codex.profiles.fields.requiresOpenaiAuth') }}
+                      </label>
                     </div>
                   </div>
                        
@@ -539,7 +705,7 @@ import { Breadcrumb } from '@/components/ui'
 import CollapsibleSidebar from '@/components/CollapsibleSidebar.vue'
 import GuofengCard from '@/components/common/GuofengCard.vue'
 import { addCodexProfile, applyCodexProfile, deleteCodexProfile, getCodexProfile, listCodexProfiles, updateCodexProfile } from '@/api'
-import type { CodexProfile, CodexProfileRequest, CodexProfilesResponse } from '@/types'
+import type { CodexProfile, CodexProfileAuthMode, CodexProfileRequest, CodexProfilesResponse, OpenAiLoginMethod } from '@/types'
 
 const { t } = useI18n()
 
@@ -555,9 +721,71 @@ const editingName = ref<string | null>(null)
 const tagsText = ref('')
 const extraText = ref('{}')
 
-// 判断是否为官方配置（无 base_url）
+const extractErrorMessage = (error: unknown) => {
+  if (typeof error === 'string') {
+    return error
+  }
+  if (error && typeof error === 'object') {
+    const candidate = error as { message?: unknown, error?: unknown, cause?: unknown }
+    for (const value of [candidate.message, candidate.error, candidate.cause]) {
+      if (typeof value === 'string' && value.trim()) {
+        return value
+      }
+    }
+  }
+  return null
+}
+
+const authModeToLoginMethod = (authMode: CodexProfileAuthMode): OpenAiLoginMethod | undefined => {
+  switch (authMode) {
+    case 'openai_chatgpt':
+      return 'chatgpt'
+    case 'openai_api_key':
+      return 'api'
+    default:
+      return undefined
+  }
+}
+
+const usesOpenAiAuthMode = (authMode: CodexProfileAuthMode) => {
+  return authMode === 'openai_chatgpt' || authMode === 'openai_api_key'
+}
+
 const isOfficialConfig = (profile: CodexProfile) => {
-  return !profile.base_url || profile.base_url.trim() === ''
+  return !profile.base_url?.trim()
+}
+
+const authModeLabel = (authMode?: CodexProfileAuthMode | null) => {
+  return t(`codex.profiles.authModes.${authMode || 'no_auth'}`)
+}
+
+const profileBaseUrl = (profile: CodexProfile) => {
+  return profile.base_url?.trim() || t('codex.profiles.officialBaseUrl')
+}
+
+const buildShellExportFallback = (profile: CodexProfile) => {
+  const envExport = profile.env_export
+  if (!envExport || Object.keys(envExport).length === 0) {
+    return ''
+  }
+  return Object.entries(envExport)
+    .map(([key, value]) => `export ${key}=${JSON.stringify(value)}`)
+    .join('\n')
+}
+
+const copyProfileEnv = async (profile: CodexProfile) => {
+  const script = profile.shell_export_script || buildShellExportFallback(profile)
+  if (!script) {
+    return
+  }
+
+  try {
+    await navigator.clipboard.writeText(script)
+    alert(t('codex.profiles.messages.envExportCopied'))
+  } catch (error) {
+    console.error('Failed to copy profile env export:', error)
+    alert(t('codex.profiles.messages.envExportCopyFailed'))
+  }
 }
 
 // 当前配置模式
@@ -567,7 +795,7 @@ const currentConfigMode = computed(() => {
   return profile && isOfficialConfig(profile) ? 'official' : 'custom'
 })
 
-const form = reactive<Required<Pick<CodexProfileRequest, 'name' | 'base_url' | 'auth_token' | 'model'>> & Partial<CodexProfileRequest>>({
+const form = reactive<Required<Pick<CodexProfileRequest, 'name' | 'model' | 'auth_mode'>> & Partial<CodexProfileRequest>>({
   name: '',
   description: '',
   base_url: '',
@@ -579,7 +807,30 @@ const form = reactive<Required<Pick<CodexProfileRequest, 'name' | 'base_url' | '
   account: '',
   tags: [],
   enabled: true,
+  wire_api: '',
+  env_key: '',
+  requires_openai_auth: true,
+  auth_mode: 'openai_chatgpt',
+  openai_login_method: 'chatgpt',
   extra: {},
+})
+
+const requiresBaseUrl = computed(() => !usesOpenAiAuthMode(form.auth_mode))
+const requiresSecret = computed(() => form.auth_mode === 'openai_api_key' || form.auth_mode === 'provider_env_key')
+const requiresEnvKey = computed(() => form.auth_mode === 'provider_env_key')
+const requiresOpenAiAuth = computed(() => usesOpenAiAuthMode(form.auth_mode))
+const displayOpenAiLoginMethod = computed(() => authModeToLoginMethod(form.auth_mode) || t('codex.profiles.notAvailable'))
+const authTokenHint = computed(() => {
+  if (form.auth_mode === 'openai_chatgpt') {
+    return t('codex.profiles.authTokenHints.openai_chatgpt')
+  }
+  if (form.auth_mode === 'openai_api_key') {
+    return t('codex.profiles.authTokenHints.openai_api_key')
+  }
+  if (form.auth_mode === 'provider_env_key') {
+    return t('codex.profiles.authTokenHints.provider_env_key')
+  }
+  return t('codex.profiles.authTokenHints.no_auth')
 })
 
 const loadProfiles = async () => {
@@ -608,6 +859,11 @@ const resetForm = () => {
   form.account = ''
   form.tags = []
   form.enabled = true
+  form.wire_api = ''
+  form.env_key = ''
+  form.requires_openai_auth = true
+  form.auth_mode = 'openai_chatgpt'
+  form.openai_login_method = 'chatgpt'
   form.extra = {}
   tagsText.value = ''
   extraText.value = JSON.stringify({}, null, 2)
@@ -637,13 +893,18 @@ const handleEdit = async (name: string) => {
     form.account = profile.account || ''
     form.tags = profile.tags || []
     form.enabled = profile.enabled !== false
+    form.wire_api = profile.wire_api || ''
+    form.env_key = profile.env_key || ''
+    form.requires_openai_auth = profile.requires_openai_auth ?? usesOpenAiAuthMode(profile.auth_mode || 'no_auth')
+    form.auth_mode = profile.auth_mode || 'no_auth'
+    form.openai_login_method = profile.openai_login_method || authModeToLoginMethod(form.auth_mode)
     form.extra = profile.extra || {}
 
     tagsText.value = (form.tags || []).join(', ')
     extraText.value = JSON.stringify(form.extra || {}, null, 2)
   } catch (error) {
     console.error('Failed to load codex profile:', error)
-    alert(t('codex.states.loadFailed'))
+    alert(extractErrorMessage(error) || t('codex.states.loadFailed'))
     showForm.value = false
   }
 }
@@ -671,17 +932,32 @@ const parseExtraJson = (raw: string): Record<string, unknown> | undefined => {
   return parsed
 }
 
+const syncDerivedAuthFields = () => {
+  form.openai_login_method = authModeToLoginMethod(form.auth_mode)
+  form.requires_openai_auth = usesOpenAiAuthMode(form.auth_mode)
+
+  if (!requiresEnvKey.value) {
+    form.env_key = ''
+  }
+}
+
 const handleSave = async () => {
+  syncDerivedAuthFields()
+
   if (!form.name.trim()) {
     alert(t('codex.profiles.validation.nameRequired'))
     return
   }
-  if (!form.base_url.trim()) {
+  if (requiresBaseUrl.value && !form.base_url?.trim()) {
     alert(t('codex.profiles.validation.baseUrlRequired'))
     return
   }
-  if (!form.auth_token.trim()) {
+  if (requiresSecret.value && !form.auth_token?.trim()) {
     alert(t('codex.profiles.validation.authTokenRequired'))
+    return
+  }
+  if (requiresEnvKey.value && !form.env_key?.trim()) {
+    alert(t('codex.profiles.validation.envKeyRequired'))
     return
   }
   if (!form.model.trim()) {
@@ -700,8 +976,8 @@ const handleSave = async () => {
   const request: CodexProfileRequest = {
     name: form.name.trim(),
     description: form.description?.trim() ? form.description.trim() : undefined,
-    base_url: form.base_url.trim(),
-    auth_token: form.auth_token.trim(),
+    base_url: form.base_url?.trim() ? form.base_url.trim() : undefined,
+    auth_token: form.auth_token?.trim() ? form.auth_token.trim() : undefined,
     model: form.model.trim(),
     small_fast_model: form.small_fast_model?.trim() ? form.small_fast_model.trim() : undefined,
     provider: form.provider?.trim() ? form.provider.trim() : undefined,
@@ -709,6 +985,11 @@ const handleSave = async () => {
     account: form.account?.trim() ? form.account.trim() : undefined,
     tags: parseTags(tagsText.value),
     enabled: form.enabled === true,
+    wire_api: form.wire_api?.trim() ? form.wire_api.trim() : undefined,
+    env_key: form.env_key?.trim() ? form.env_key.trim() : undefined,
+    requires_openai_auth: requiresOpenAiAuth.value,
+    auth_mode: form.auth_mode,
+    openai_login_method: form.openai_login_method,
     extra,
   }
 
@@ -723,7 +1004,7 @@ const handleSave = async () => {
     await loadProfiles()
   } catch (error) {
     console.error('Failed to save codex profile:', error)
-    alert(t('codex.states.saveFailed'))
+    alert(extractErrorMessage(error) || t('codex.states.saveFailed'))
   } finally {
     saving.value = false
   }
@@ -736,7 +1017,7 @@ const handleDelete = async (name: string) => {
     await loadProfiles()
   } catch (error) {
     console.error('Failed to delete codex profile:', error)
-    alert(t('codex.states.deleteFailed'))
+    alert(extractErrorMessage(error) || t('codex.states.deleteFailed'))
   }
 }
 
@@ -747,7 +1028,7 @@ const handleApply = async (name: string) => {
     await loadProfiles()
   } catch (error) {
     console.error('Failed to apply codex profile:', error)
-    alert(t('codex.states.saveFailed'))
+    alert(extractErrorMessage(error) || t('codex.states.saveFailed'))
   }
 }
 

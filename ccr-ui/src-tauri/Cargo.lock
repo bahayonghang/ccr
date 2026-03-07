@@ -521,7 +521,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-desktop"
-version = "5.0.1"
+version = "5.0.2"
 dependencies = [
  "aes-gcm",
  "async-trait",

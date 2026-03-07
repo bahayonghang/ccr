@@ -208,6 +208,35 @@
             </div>
           </GuofengCard>
 
+          <GuofengCard
+            variant="glass"
+            padding="lg"
+            :glow-color="canManageAuthAccounts ? 'success' : 'warning'"
+          >
+            <div class="flex items-start gap-3">
+              <div
+                class="mt-0.5 rounded-xl p-2"
+                :class="canManageAuthAccounts ? 'bg-emerald-500/10 text-emerald-400' : 'bg-yellow-500/10 text-yellow-400'"
+              >
+                <AlertTriangle class="w-5 h-5" />
+              </div>
+              <div class="min-w-0">
+                <p class="text-sm font-semibold text-white">
+                  {{ $t('codex.auth.profileGuard.title') }}
+                </p>
+                <p class="mt-1 text-sm text-white/70">
+                  {{ profileGuardMessage }}
+                </p>
+                <p
+                  v-if="authActionError"
+                  class="mt-3 rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-2 text-sm text-red-300"
+                >
+                  {{ authActionError }}
+                </p>
+              </div>
+            </div>
+          </GuofengCard>
+
           <!-- Quick Switch -->
           <GuofengCard
             v-if="accounts.length > 0"
@@ -225,9 +254,9 @@
                 v-for="account in accounts"
                 :key="account.name"
                 class="group relative px-4 py-2.5 rounded-xl font-medium text-sm transition-colors duration-300 border flex items-center gap-2.5"
-                :class="[ account.is_expired ? 'bg-red-500/10 border-red-500/30 text-red-500 cursor-not-allowed opacity-60' : account.is_current ? 'bg-platform-codex/10 border-platform-codex/50 text-platform-codex shadow-[0_0_15px_rgba(245,158,11,0.2)]' : 'glass-surface border-white/20 text-white/80 hover:border-platform-codex/30 hover:bg-white/10' ]"
-                :disabled="account.is_expired"
-                @click="!account.is_expired && handleSwitch(account.name)"
+                :class="[ account.is_expired || !canManageAuthAccounts ? 'bg-red-500/10 border-red-500/30 text-red-500 cursor-not-allowed opacity-60' : account.is_current ? 'bg-platform-codex/10 border-platform-codex/50 text-platform-codex shadow-[0_0_15px_rgba(245,158,11,0.2)]' : 'glass-surface border-white/20 text-white/80 hover:border-platform-codex/30 hover:bg-white/10' ]"
+                :disabled="account.is_expired || !canManageAuthAccounts"
+                @click="!account.is_expired && canManageAuthAccounts && handleSwitch(account.name)"
               >
                 <span>{{ account.freshness_icon }}</span>
                 <span>{{ account.name }}</span>
@@ -459,6 +488,7 @@ import CollapsibleSidebar from '@/components/CollapsibleSidebar.vue'
 import GuofengCard from '@/components/common/GuofengCard.vue'
 import AccountListTable from '@/components/usage/AccountListTable.vue'
 import {
+  listCodexProfiles,
   listCodexAuthAccounts,
   getCodexAuthCurrent,
   saveCodexAuth,
@@ -472,7 +502,10 @@ import type {
   CodexAuthCurrentResponse,
   CodexAuthListResponse,
   CodexAuthProcessResponse,
+  CodexProfile,
+  CodexProfilesResponse,
   CodexAuthSaveRequest,
+  CodexProfileAuthMode,
   LoginState,
   TokenFreshness
 } from '@/types'
@@ -485,6 +518,8 @@ const saving = ref(false)
 const accounts = ref<CodexAuthAccountItem[]>([])
 const loginState = ref<LoginState>({ type: 'NotLoggedIn' })
 const currentInfo = ref<CodexAuthCurrentInfo | null>(null)
+const currentProfile = ref<CodexProfile | null>(null)
+const authActionError = ref<string | null>(null)
 
 const showSaveForm = ref(false)
 const processWarning = ref<string | null>(null)
@@ -496,11 +531,46 @@ const saveForm = reactive({
   force: false,
 })
 
+const usesOpenAiAuthMode = (authMode?: CodexProfileAuthMode | null) => {
+  return authMode === 'openai_chatgpt' || authMode === 'openai_api_key'
+}
+
+const extractErrorMessage = (error: unknown) => {
+  if (typeof error === 'string') {
+    return error
+  }
+  if (error && typeof error === 'object') {
+    const candidate = error as { message?: unknown, error?: unknown, cause?: unknown }
+    for (const value of [candidate.message, candidate.error, candidate.cause]) {
+      if (typeof value === 'string' && value.trim()) {
+        return value
+      }
+    }
+  }
+  return null
+}
+
 // Computed properties
 const currentAccount = computed(() => accounts.value.find(a => a.is_current))
+const canManageAuthAccounts = computed(() => usesOpenAiAuthMode(currentProfile.value?.auth_mode))
+const profileGuardMessage = computed(() => {
+  if (!currentProfile.value) {
+    return t('codex.auth.profileGuard.noCurrentProfile')
+  }
+  if (!canManageAuthAccounts.value) {
+    return t('codex.auth.profileGuard.unsupportedProfile', {
+      name: currentProfile.value.name,
+      authMode: currentProfile.value.auth_mode || 'no_auth',
+    })
+  }
+  return t('codex.auth.profileGuard.supportedProfile', {
+    name: currentProfile.value.name,
+    authMode: currentProfile.value.auth_mode || 'openai_chatgpt',
+  })
+})
 
 const canSave = computed(() => {
-  return loginState.value.type === 'LoggedInUnsaved' || loginState.value.type === 'LoggedInSaved'
+  return canManageAuthAccounts.value && (loginState.value.type === 'LoggedInUnsaved' || loginState.value.type === 'LoggedInSaved')
 })
 
 const loginStateColor = computed(() => {
@@ -563,15 +633,26 @@ const formatExpiryDate = (dateStr: string) => {
 }
 
 // Data loading
+const loadCurrentProfile = async () => {
+  try {
+    const data = await listCodexProfiles<CodexProfilesResponse>()
+    currentProfile.value = data.profiles.find(profile => profile.name === data.current_profile) || null
+  } catch (error) {
+    console.error('Failed to load current codex profile:', error)
+    currentProfile.value = null
+  }
+}
+
 const loadAccounts = async () => {
   try {
     loading.value = true
+    authActionError.value = null
     const data = await listCodexAuthAccounts<CodexAuthListResponse>()
     accounts.value = data.accounts || []
     loginState.value = data.login_state
   } catch (error) {
     console.error('Failed to load codex auth accounts:', error)
-    alert(t('codex.states.loadFailed'))
+    alert(extractErrorMessage(error) || t('codex.states.loadFailed'))
   } finally {
     loading.value = false
   }
@@ -591,11 +672,17 @@ const loadCurrentInfo = async () => {
 }
 
 const handleRefresh = async () => {
-  await Promise.all([loadAccounts(), loadCurrentInfo()])
+  await Promise.all([loadAccounts(), loadCurrentInfo(), loadCurrentProfile()])
 }
 
 // Actions
 const handleSave = async () => {
+  authActionError.value = null
+  if (!canManageAuthAccounts.value) {
+    authActionError.value = profileGuardMessage.value
+    return
+  }
+
   // Check for running Codex processes
   try {
     const processInfo = await detectCodexProcess<CodexAuthProcessResponse>()
@@ -622,6 +709,7 @@ const handleCloseSaveForm = () => {
 }
 
 const handleConfirmSave = async () => {
+  authActionError.value = null
   if (!saveForm.name.trim()) {
     alert(t('codex.auth.validation.nameRequired'))
     return
@@ -647,31 +735,41 @@ const handleConfirmSave = async () => {
     await handleRefresh()
   } catch (error) {
     console.error('Failed to save auth:', error)
-    alert(t('codex.states.saveFailed'))
+    authActionError.value = extractErrorMessage(error) || t('codex.states.saveFailed')
+    alert(authActionError.value)
   } finally {
     saving.value = false
   }
 }
 
 const handleSwitch = async (name: string) => {
+  authActionError.value = null
+  if (!canManageAuthAccounts.value) {
+    authActionError.value = profileGuardMessage.value
+    alert(authActionError.value)
+    return
+  }
   if (!confirm(t('codex.auth.confirmSwitch', { name }))) return
   try {
     await switchCodexAuth(name)
     await handleRefresh()
   } catch (error) {
     console.error('Failed to switch auth:', error)
-    alert(t('codex.states.saveFailed'))
+    authActionError.value = extractErrorMessage(error) || t('codex.states.saveFailed')
+    alert(authActionError.value)
   }
 }
 
 const handleDelete = async (name: string) => {
+  authActionError.value = null
   if (!confirm(t('codex.auth.confirmDelete', { name }))) return
   try {
     await deleteCodexAuth(name)
     await handleRefresh()
   } catch (error) {
     console.error('Failed to delete auth:', error)
-    alert(t('codex.states.deleteFailed'))
+    authActionError.value = extractErrorMessage(error) || t('codex.states.deleteFailed')
+    alert(authActionError.value)
   }
 }
 

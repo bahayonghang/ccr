@@ -8,21 +8,27 @@
 // - ⏰ 计算 Token 新鲜度
 // - 🔄 进程检测与备份管理
 
+use super::codex_runtime_service::{
+    CodexAuthCacheAction, CodexRuntimeCommitPlan, CodexRuntimeService,
+};
 use crate::core::error::{CcrError, Result};
 use crate::core::lock::LockManager;
 use crate::managers::codex_config::CodexConfigManager;
+use crate::models::PlatformConfig;
 use crate::models::{
     AuthIntent, AuthState, AuthStateStatus, CodexAuthAccount, CodexAuthExport,
     CodexAuthExportAccount, CodexAuthItem, CodexAuthJson, CodexAuthRegistry, CredentialStoreKind,
-    CurrentAuthInfo, ImportMode, ImportResult, LoginState, OpenAiAuthMethod, TokenFreshness,
-    normalize_auth_map_for_intent,
+    CurrentAuthInfo, ImportMode, ImportResult, LoginState, OpenAiAuthMethod, Platform,
+    PlatformPaths, TokenFreshness, normalize_auth_map_for_intent,
 };
+use crate::platforms::codex::CodexPlatform;
 use chrono::{DateTime, Duration, Utc};
 use std::path::PathBuf;
 use std::{env, fs};
 use tracing::{debug, warn};
 
 /// 备份保留数量
+#[allow(dead_code)]
 const MAX_BACKUPS: usize = 10;
 
 /// Codex Auth 服务
@@ -84,6 +90,20 @@ impl CodexAuthService {
     /// 获取指定账号的 auth 文件路径
     fn account_auth_path(&self, name: &str) -> PathBuf {
         self.auth_storage_dir().join(format!("{}.json", name))
+    }
+
+    /// 创建使用当前 service 本地路径的 CodexConfigManager
+    fn codex_config_manager(&self) -> Result<CodexConfigManager> {
+        let lock_dir = env::var_os("CCR_LOCK_DIR")
+            .map(PathBuf::from)
+            .unwrap_or_else(|| self.codex_dir.join(".locks"));
+
+        Ok(CodexConfigManager::new(
+            self.codex_dir.join("config.toml"),
+            self.auth_json_path(),
+            self.codex_dir.join("backups"),
+            LockManager::new(lock_dir),
+        ))
     }
 
     /// 读取 auth.json 原始 JSON Map
@@ -241,18 +261,11 @@ impl CodexAuthService {
         format!("{prefix}..{suffix}:len{len}")
     }
 
-    fn codex_config_manager(&self) -> Result<CodexConfigManager> {
-        let lock_dir = if let Ok(custom_dir) = env::var("CCR_LOCK_DIR") {
-            PathBuf::from(custom_dir)
-        } else {
-            self.codex_dir.join(".locks")
-        };
-
-        Ok(CodexConfigManager::new(
-            self.codex_dir.join("config.toml"),
-            self.auth_json_path(),
-            self.codex_dir.join("backups"),
-            LockManager::new(lock_dir),
+    fn runtime_service(&self) -> Result<CodexRuntimeService> {
+        Ok(CodexRuntimeService::from_parts(
+            PlatformPaths::new(Platform::Codex)?,
+            self.codex_dir.clone(),
+            self.codex_config_manager()?,
         ))
     }
 
@@ -303,6 +316,29 @@ impl CodexAuthService {
         }
     }
 
+    /// 根据当前 runtime auth 对账 current_auth 指针
+    pub fn sync_current_auth_registry(&self) -> Result<Option<String>> {
+        let mut registry = self.load_registry()?;
+        let new_current = match self.get_auth_state().intent {
+            AuthIntent::OpenAiAuth { .. }
+                if matches!(self.get_auth_state().status, AuthStateStatus::Valid) =>
+            {
+                let info = self.get_current_auth_info()?;
+                registry.accounts.iter().find_map(|(name, account)| {
+                    (account.account_id == info.account_id).then(|| name.clone())
+                })
+            }
+            _ => None,
+        };
+
+        if registry.current_auth != new_current {
+            registry.current_auth = new_current.clone();
+            self.save_registry(&registry)?;
+        }
+
+        Ok(new_current)
+    }
+
     // ==================== 登录状态检测 ====================
 
     /// 检查用户是否已登录 Codex
@@ -316,6 +352,8 @@ impl CodexAuthService {
         if auth_state.status != AuthStateStatus::Valid {
             return Ok(LoginState::NotLoggedIn);
         }
+
+        let _ = self.sync_current_auth_registry();
 
         // 检查当前登录是否已保存
         let current_info = self.get_current_auth_info()?;
@@ -390,13 +428,91 @@ impl CodexAuthService {
 
         // 计算新鲜度
         let freshness = self.calculate_freshness(last_refresh);
+        let auth_method = match &auth_state.intent {
+            AuthIntent::OpenAiAuth { method } => Some(*method),
+            AuthIntent::ProviderEnvKey { .. } | AuthIntent::NoAuth => None,
+        };
 
         Ok(CurrentAuthInfo {
             account_id,
+            auth_method,
             email,
             last_refresh,
             freshness,
         })
+    }
+
+    fn ensure_current_runtime_supports_openai_switch(&self) -> Result<()> {
+        let platform = CodexPlatform::new()?;
+        let Some(current_profile) = platform.get_current_profile()? else {
+            return Ok(());
+        };
+        let profiles = platform.load_profiles()?;
+        let Some(profile) = profiles.get(&current_profile) else {
+            return Ok(());
+        };
+
+        let auth_mode = CodexPlatform::profile_auth_mode(profile);
+
+        if !auth_mode.uses_openai_auth() {
+            return Err(CcrError::ValidationError(
+                "当前 Profile 不使用 OpenAI 认证；请改用 Profile 切换来切换 URL + Key / Login 模式"
+                    .into(),
+            ));
+        }
+
+        Ok(())
+    }
+
+    fn sync_current_profile_openai_mode(
+        &self,
+        auth_method: OpenAiAuthMethod,
+        auth_data: &serde_json::Map<String, serde_json::Value>,
+    ) -> Result<()> {
+        let platform = CodexPlatform::new()?;
+        let Some(current_profile) = platform.get_current_profile()? else {
+            return Ok(());
+        };
+
+        let profiles = platform.load_profiles()?;
+        let Some(profile) = profiles.get(&current_profile) else {
+            return Ok(());
+        };
+
+        let mut updated = profile.clone();
+        let auth_mode = match auth_method {
+            OpenAiAuthMethod::Chatgpt => "openai_chatgpt",
+            OpenAiAuthMethod::Api => "openai_api_key",
+        };
+        updated.platform_data.insert(
+            "auth_mode".to_string(),
+            serde_json::Value::String(auth_mode.to_string()),
+        );
+        updated.platform_data.insert(
+            "openai_login_method".to_string(),
+            serde_json::Value::String(match auth_method {
+                OpenAiAuthMethod::Chatgpt => "chatgpt".to_string(),
+                OpenAiAuthMethod::Api => "api".to_string(),
+            }),
+        );
+        updated.platform_data.insert(
+            "forced_login_method".to_string(),
+            serde_json::Value::String(match auth_method {
+                OpenAiAuthMethod::Chatgpt => "chatgpt".to_string(),
+                OpenAiAuthMethod::Api => "api".to_string(),
+            }),
+        );
+
+        if matches!(auth_method, OpenAiAuthMethod::Api) {
+            updated.auth_token = auth_data
+                .get("OPENAI_API_KEY")
+                .and_then(serde_json::Value::as_str)
+                .map(str::to_string);
+        } else {
+            updated.auth_token = None;
+        }
+
+        platform.save_profile(&current_profile, &updated)
     }
 
     // ==================== 账号管理操作 ====================
@@ -410,13 +526,23 @@ impl CodexAuthService {
         force: bool,
     ) -> Result<()> {
         self.ensure_managed_auth_supported("保存账号")?;
+        let auth_state = self.get_auth_state();
 
         // 检查是否已登录
-        if !self.is_logged_in() {
+        if auth_state.status != AuthStateStatus::Valid {
             return Err(CcrError::ConfigError(
                 "未登录 Codex，请先运行 `codex login`".into(),
             ));
         }
+
+        let auth_method = match auth_state.intent {
+            AuthIntent::OpenAiAuth { method } => method,
+            AuthIntent::ProviderEnvKey { .. } | AuthIntent::NoAuth => {
+                return Err(CcrError::ValidationError(
+                    "当前 runtime 不是 OpenAI 登录态，不能保存为 Codex Auth 账号".into(),
+                ));
+            }
+        };
 
         // 验证名称
         self.validate_account_name(name)?;
@@ -456,6 +582,7 @@ impl CodexAuthService {
         let account = CodexAuthAccount {
             description,
             account_id: current_info.account_id,
+            auth_method: Some(auth_method),
             email: current_info.email.map(|e| self.mask_email(&e)),
             saved_at: Utc::now(),
             last_used: Some(Utc::now()),
@@ -504,6 +631,10 @@ impl CodexAuthService {
 
         // 添加所有已保存的账号
         for (name, account) in &registry.accounts {
+            if account.auth_method.is_none() && account.account_id.starts_with("provider:") {
+                continue;
+            }
+
             let is_current = match &login_state {
                 LoginState::LoggedInSaved(current_name) => current_name == name,
                 _ => false,
@@ -532,6 +663,7 @@ impl CodexAuthService {
     /// 切换到指定账号
     pub fn switch_account(&self, name: &str) -> Result<()> {
         self.ensure_managed_auth_supported("切换账号")?;
+        self.ensure_current_runtime_supports_openai_switch()?;
 
         // 检查账号是否存在
         let registry = self.load_registry()?;
@@ -553,21 +685,43 @@ impl CodexAuthService {
             )));
         }
 
-        // 备份当前 auth.json (如果存在)
-        if self.is_logged_in() {
-            self.backup_current_auth()?;
-        }
-
-        // 策略化迁移：按认证字段更新，避免整文件覆盖
         let src = self.account_auth_path(name);
         let incoming = self.load_auth_raw_map(&src)?;
         let (target_intent, _, _) = Self::infer_auth_intent(&incoming);
+        let auth_method = match target_intent {
+            AuthIntent::OpenAiAuth { method } => method,
+            AuthIntent::ProviderEnvKey { .. } | AuthIntent::NoAuth => {
+                return Err(CcrError::ValidationError(
+                    "Codex Auth 账号只支持 OpenAI 登录态".into(),
+                ));
+            }
+        };
         let normalized = normalize_auth_map_for_intent(&target_intent, &incoming);
+        let mut config = self.codex_config_manager()?.load_config()?;
+        if !matches!(config, toml::Value::Table(_)) {
+            config = toml::Value::Table(toml::map::Map::new());
+        }
+        let root = config
+            .as_table_mut()
+            .ok_or_else(|| CcrError::ConfigError("Codex config.toml 应为 table".into()))?;
+        root.insert(
+            "forced_login_method".into(),
+            toml::Value::String(match auth_method {
+                OpenAiAuthMethod::Chatgpt => "chatgpt".to_string(),
+                OpenAiAuthMethod::Api => "api".to_string(),
+            }),
+        );
 
-        let config_manager = self.codex_config_manager()?;
-        config_manager
-            .save_auth_atomic(&normalized)
-            .map_err(|e| CcrError::ConfigError(format!("切换账号失败: {}", e)))?;
+        let runtime_service = self.runtime_service()?;
+        runtime_service.commit_plan(CodexRuntimeCommitPlan {
+            config: Some(config),
+            auth_cache: if normalized.is_empty() {
+                CodexAuthCacheAction::Delete
+            } else {
+                CodexAuthCacheAction::Write(normalized.clone())
+            },
+        })?;
+        self.sync_current_profile_openai_mode(auth_method, &normalized)?;
 
         // 更新注册表
         let mut registry = self.load_registry()?;
@@ -576,6 +730,7 @@ impl CodexAuthService {
             account.last_used = Some(Utc::now());
         }
         self.save_registry(&registry)?;
+        let _ = self.sync_current_auth_registry();
 
         debug!("已切换到账号: {}", name);
         Ok(())
@@ -616,6 +771,7 @@ impl CodexAuthService {
     // ==================== 备份管理 ====================
 
     /// 备份当前 auth.json
+    #[allow(dead_code)]
     pub fn backup_current_auth(&self) -> Result<PathBuf> {
         let auth_path = self.auth_json_path();
         if !auth_path.exists() {
@@ -684,6 +840,7 @@ impl CodexAuthService {
     }
 
     /// 清理旧备份，保留最新的 MAX_BACKUPS 个
+    #[allow(dead_code)]
     fn cleanup_old_backups(&self) -> Result<()> {
         let backup_dir = self.backup_dir();
         if !backup_dir.exists() {
@@ -942,6 +1099,10 @@ impl CodexAuthService {
         let mut export_accounts = indexmap::IndexMap::new();
 
         for (name, account) in &registry.accounts {
+            if account.auth_method.is_none() && account.account_id.starts_with("provider:") {
+                continue;
+            }
+
             let auth_data = if include_secrets {
                 // 读取完整的 auth.json
                 let auth_path = self.account_auth_path(name);
@@ -966,6 +1127,7 @@ impl CodexAuthService {
                 CodexAuthExportAccount {
                     description: account.description.clone(),
                     account_id: account.account_id.clone(),
+                    auth_method: account.auth_method,
                     email: account.email.clone(),
                     saved_at: account.saved_at,
                     last_used: account.last_used,
@@ -1023,6 +1185,14 @@ impl CodexAuthService {
         for (name, import_account) in import_data.accounts {
             // 验证账号名称
             self.validate_account_name(&name)?;
+
+            if import_account.auth_method.is_none()
+                && import_account.account_id.starts_with("provider:")
+            {
+                debug!("跳过旧版 provider auth 账号: {}", name);
+                result.skipped += 1;
+                continue;
+            }
 
             let exists = registry.accounts.contains_key(&name);
 
@@ -1113,6 +1283,7 @@ impl CodexAuthService {
             let account = CodexAuthAccount {
                 description: import_account.description,
                 account_id: import_account.account_id,
+                auth_method: import_account.auth_method,
                 email: import_account.email,
                 saved_at: import_account.saved_at,
                 last_used: import_account.last_used,
@@ -1328,6 +1499,7 @@ mod tests {
             CodexAuthAccount {
                 description: Some("Test".to_string()),
                 account_id: "acc-123".to_string(),
+                auth_method: Some(OpenAiAuthMethod::Chatgpt),
                 email: Some("tes***@example.com".to_string()),
                 saved_at: Utc::now(),
                 last_used: None,
@@ -1560,7 +1732,6 @@ mod tests {
     fn test_switch_account_rewrites_auth_with_only_normalized_target_fields() {
         let (service, _ccr, codex) = create_test_service();
 
-        // 当前 auth.json 包含非认证字段
         let auth_path = codex.path().join("auth.json");
         fs::write(
             &auth_path,
@@ -1571,17 +1742,15 @@ mod tests {
         )
         .unwrap();
 
-        // 保存账号文件
         service
             .save_current("merged", Some("merge test".to_string()), None, false)
             .unwrap();
 
-        // 修改保存账号文件为 provider key 模式
         let account_path = service.account_auth_path("merged");
         fs::write(
             &account_path,
             r#"{
-                "MISTRAL_API_KEY": "mistral-new",
+                "OPENAI_API_KEY": "sk-new",
                 "last_refresh": "2026-01-08T03:09:53.894843900Z",
                 "custom_meta": "drop-me"
             }"#,
@@ -1593,10 +1762,9 @@ mod tests {
         let merged: serde_json::Map<String, serde_json::Value> =
             serde_json::from_str(&fs::read_to_string(&auth_path).unwrap()).unwrap();
         assert_eq!(
-            merged.get("MISTRAL_API_KEY").and_then(|v| v.as_str()),
-            Some("mistral-new")
+            merged.get("OPENAI_API_KEY").and_then(|v| v.as_str()),
+            Some("sk-new")
         );
-        assert!(!merged.contains_key("OPENAI_API_KEY"));
         assert!(!merged.contains_key("last_refresh"));
         assert!(!merged.contains_key("custom_meta"));
         assert_eq!(merged.len(), 1);
@@ -1803,6 +1971,7 @@ mod tests {
             CodexAuthAccount {
                 description: Some("Test".to_string()),
                 account_id: "acc-123".to_string(),
+                auth_method: Some(OpenAiAuthMethod::Chatgpt),
                 email: Some("tes***@example.com".to_string()),
                 saved_at: Utc::now(),
                 last_used: None,
@@ -1833,6 +2002,7 @@ mod tests {
             CodexAuthAccount {
                 description: Some("Test".to_string()),
                 account_id: "acc-123".to_string(),
+                auth_method: Some(OpenAiAuthMethod::Chatgpt),
                 email: Some("tes***@example.com".to_string()),
                 saved_at: Utc::now(),
                 last_used: None,

@@ -213,7 +213,7 @@ pub async fn current_command() -> Result<()> {
         ]);
         config_table.add_row(vec![
             Cell::new("认证来源").fg(TableColor::Yellow),
-            Cell::new(render_auth_source(auth_state)).fg(TableColor::Cyan),
+            Cell::new(render_auth_source(auth_state, profile)).fg(TableColor::Cyan),
         ]);
     }
 
@@ -401,7 +401,7 @@ pub async fn current_command() -> Result<()> {
     Ok(())
 }
 
-fn render_auth_source(auth_state: &AuthState) -> String {
+fn render_auth_source(auth_state: &AuthState, profile: &crate::models::ProfileConfig) -> String {
     if matches!(auth_state.status, AuthStateStatus::Unsupported) {
         return "unsupported".to_string();
     }
@@ -412,6 +412,14 @@ fn render_auth_source(auth_state: &AuthState) -> String {
             OpenAiAuthMethod::Api => "openai_api_key".to_string(),
         },
         AuthIntent::ProviderEnvKey { env_key } => format!("provider:{env_key}"),
-        AuthIntent::NoAuth => "none".to_string(),
+        AuthIntent::NoAuth => {
+            if crate::platforms::codex::CodexPlatform::profile_auth_mode(profile)
+                == crate::models::CodexProfileAuthMode::ProviderEnvKey
+            {
+                crate::platforms::codex::CodexPlatform::profile_auth_source(profile)
+            } else {
+                "none".to_string()
+            }
+        }
     }
 }

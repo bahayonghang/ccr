@@ -370,6 +370,9 @@ impl CommandDispatcher {
                 help::print_subcommand_help("codex");
                 Ok(())
             }
+            Some(CodexAction::Env { name }) => {
+                crate::commands::codex::env::env_command(name.as_deref()).await
+            }
             // auth 子命令
             Some(CodexAction::Auth { action }) => match action {
                 CodexAuthAction::Help => {

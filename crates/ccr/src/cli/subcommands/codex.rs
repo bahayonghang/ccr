@@ -25,6 +25,15 @@ pub enum CodexAction {
         #[command(subcommand)]
         action: CodexAuthAction,
     },
+
+    /// 输出当前或指定 profile 的环境变量导出脚本
+    ///
+    /// 示例: ccr codex env
+    ///       ccr codex env work
+    Env {
+        /// 可选的 profile 名称；省略时使用当前 profile
+        name: Option<String>,
+    },
 }
 
 /// Codex Auth 子命令

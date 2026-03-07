@@ -22,6 +22,65 @@ pub enum OpenAiAuthMethod {
     Api,
 }
 
+/// Codex profile 认证模式
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum CodexProfileAuthMode {
+    OpenAiChatgpt,
+    OpenAiApiKey,
+    ProviderEnvKey,
+    NoAuth,
+}
+
+impl CodexProfileAuthMode {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            CodexProfileAuthMode::OpenAiChatgpt => "openai_chatgpt",
+            CodexProfileAuthMode::OpenAiApiKey => "openai_api_key",
+            CodexProfileAuthMode::ProviderEnvKey => "provider_env_key",
+            CodexProfileAuthMode::NoAuth => "no_auth",
+        }
+    }
+
+    pub fn uses_openai_auth(&self) -> bool {
+        matches!(
+            self,
+            CodexProfileAuthMode::OpenAiChatgpt | CodexProfileAuthMode::OpenAiApiKey
+        )
+    }
+
+    pub fn openai_login_method(&self) -> Option<OpenAiAuthMethod> {
+        match self {
+            CodexProfileAuthMode::OpenAiChatgpt => Some(OpenAiAuthMethod::Chatgpt),
+            CodexProfileAuthMode::OpenAiApiKey => Some(OpenAiAuthMethod::Api),
+            CodexProfileAuthMode::ProviderEnvKey | CodexProfileAuthMode::NoAuth => None,
+        }
+    }
+}
+
+/// Profile 级别的 secret 记录
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct CodexProfileSecret {
+    pub auth_mode: CodexProfileAuthMode,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub env_key: Option<String>,
+    pub secret: String,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// CCR 管理的 Codex profile secret store
+#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq, Eq)]
+pub struct CodexProfileSecretStore {
+    #[serde(default = "default_secret_store_version")]
+    pub version: String,
+    #[serde(default)]
+    pub profiles: IndexMap<String, CodexProfileSecret>,
+}
+
+fn default_secret_store_version() -> String {
+    "1.0".to_string()
+}
+
 /// 认证意图
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(tag = "kind", rename_all = "snake_case")]
@@ -168,6 +227,10 @@ pub struct CodexAuthAccount {
     /// 账号 ID (从 auth.json 提取)
     pub account_id: String,
 
+    /// OpenAI 登录方式
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub auth_method: Option<OpenAiAuthMethod>,
+
     /// 邮箱 (脱敏后存储)
     #[serde(skip_serializing_if = "Option::is_none")]
     pub email: Option<String>,
@@ -261,6 +324,10 @@ pub struct CodexAuthItem {
 pub struct CurrentAuthInfo {
     /// 账号 ID
     pub account_id: String,
+
+    /// OpenAI 登录方式（如果适用）
+    #[allow(dead_code)]
+    pub auth_method: Option<OpenAiAuthMethod>,
 
     /// 邮箱 (原始)
     pub email: Option<String>,
@@ -356,6 +423,10 @@ pub struct CodexAuthExportAccount {
 
     /// 账号 ID (从 auth.json 提取)
     pub account_id: String,
+
+    /// OpenAI 登录方式
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub auth_method: Option<OpenAiAuthMethod>,
 
     /// 邮箱 (脱敏后存储)
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -562,6 +633,7 @@ mod tests {
         let account = CodexAuthAccount {
             description: Some("Test account".to_string()),
             account_id: "acc-123".to_string(),
+            auth_method: Some(OpenAiAuthMethod::Api),
             email: Some("t***@example.com".to_string()),
             saved_at: Utc::now(),
             last_used: None,
@@ -585,6 +657,7 @@ mod tests {
         let account = CodexAuthAccount {
             description: None,
             account_id: "acc-456".to_string(),
+            auth_method: None,
             email: None,
             saved_at: Utc::now(),
             last_used: None,
@@ -613,6 +686,7 @@ mod tests {
             CodexAuthAccount {
                 description: Some("Main account".to_string()),
                 account_id: "acc-main".to_string(),
+                auth_method: Some(OpenAiAuthMethod::Chatgpt),
                 email: Some("m***@example.com".to_string()),
                 saved_at: Utc::now(),
                 last_used: Some(Utc::now()),

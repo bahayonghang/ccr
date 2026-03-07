@@ -10,6 +10,7 @@ export {
   updateAgent,
   deleteAgent,
   listCodexProfiles,
+  getCodexProfileEnv,
   getCodexUsage,
   getCodexConfig,
   updateCodexConfig,

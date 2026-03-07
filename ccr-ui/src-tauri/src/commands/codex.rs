@@ -6,14 +6,17 @@
 //! Auth:         通过 `ccr::services::CodexAuthService` 管理
 //! Usage:        通过 `ccr::services::CodexUsageService` 管理
 
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value, json};
 use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
 
+use ccr::models::OpenAiAuthMethod;
+use ccr::platforms::CodexPlatform;
 use ccr::services::{CodexAuthService, CodexUsageService};
-use ccr::{Platform, ProfileConfig, create_platform};
+use ccr::{PlatformConfig, ProfileConfig};
 
 // ── 内部辅助类型 ──
 
@@ -228,12 +231,29 @@ fn parse_extra_field(
 fn parse_platform_data_update(obj: &Map<String, Value>) -> Result<Option<Map<String, Value>>, String> {
     let has_extra = obj.contains_key("extra");
     let has_platform_data = obj.contains_key("platform_data");
+    let has_explicit_platform_fields = [
+        "api_mode",
+        "wire_api",
+        "env_key",
+        "requires_openai_auth",
+        "auth_mode",
+        "openai_login_method",
+        "approval_policy",
+        "sandbox_mode",
+        "model_reasoning_effort",
+        "network_access",
+        "disable_response_storage",
+    ]
+    .iter()
+    .any(|field| obj.contains_key(*field));
 
-    if !has_extra && !has_platform_data {
+    if !has_extra && !has_platform_data && !has_explicit_platform_fields {
         return Ok(None);
     }
 
     let mut platform_data = Map::new();
+
+    merge_explicit_platform_fields(&mut platform_data, obj)?;
 
     if let Some(raw) = obj.get("extra")
         && let Some(extra) = parse_extra_field(raw, "extra")?
@@ -248,6 +268,59 @@ fn parse_platform_data_update(obj: &Map<String, Value>) -> Result<Option<Map<Str
     }
 
     Ok(Some(platform_data))
+}
+
+fn merge_optional_string_field(
+    platform_data: &mut Map<String, Value>,
+    obj: &Map<String, Value>,
+    field_name: &str,
+) -> Result<(), String> {
+    if let Some(raw) = obj.get(field_name)
+        && let Some(value) = parse_string_field(raw, field_name)?
+    {
+        platform_data.insert(field_name.to_string(), Value::String(value));
+    }
+
+    Ok(())
+}
+
+fn merge_optional_bool_field(
+    platform_data: &mut Map<String, Value>,
+    obj: &Map<String, Value>,
+    field_name: &str,
+) -> Result<(), String> {
+    if let Some(raw) = obj.get(field_name)
+        && let Some(value) = parse_bool_field(raw, field_name)?
+    {
+        platform_data.insert(field_name.to_string(), Value::Bool(value));
+    }
+
+    Ok(())
+}
+
+fn merge_explicit_platform_fields(
+    platform_data: &mut Map<String, Value>,
+    obj: &Map<String, Value>,
+) -> Result<(), String> {
+    for field_name in [
+        "api_mode",
+        "wire_api",
+        "env_key",
+        "auth_mode",
+        "openai_login_method",
+        "approval_policy",
+        "sandbox_mode",
+        "model_reasoning_effort",
+        "network_access",
+    ] {
+        merge_optional_string_field(platform_data, obj, field_name)?;
+    }
+
+    for field_name in ["requires_openai_auth", "disable_response_storage"] {
+        merge_optional_bool_field(platform_data, obj, field_name)?;
+    }
+
+    Ok(())
 }
 
 fn build_profile_from_config(config: &Value) -> Result<ProfileConfig, String> {
@@ -344,21 +417,80 @@ fn patch_profile_with_config(profile: &mut ProfileConfig, config: &Value) -> Res
     Ok(())
 }
 
-fn profile_to_json(name: String, profile: ProfileConfig) -> Value {
+fn openai_login_method_to_string(method: OpenAiAuthMethod) -> &'static str {
+    match method {
+        OpenAiAuthMethod::Chatgpt => "chatgpt",
+        OpenAiAuthMethod::Api => "api",
+    }
+}
+
+fn explicit_platform_field_names() -> &'static [&'static str] {
+    &[
+        "api_mode",
+        "wire_api",
+        "env_key",
+        "requires_openai_auth",
+        "auth_mode",
+        "openai_login_method",
+        "approval_policy",
+        "sandbox_mode",
+        "model_reasoning_effort",
+        "network_access",
+        "disable_response_storage",
+    ]
+}
+
+fn profile_to_json(
+    platform: &CodexPlatform,
+    current_profile: Option<&str>,
+    credential_store: Option<&str>,
+    name: String,
+    profile: ProfileConfig,
+) -> Value {
+    let is_current = current_profile == Some(name.as_str());
+    let auth_mode = CodexPlatform::profile_auth_mode(&profile);
+    let openai_login_method = CodexPlatform::profile_openai_login_method(&profile)
+        .map(openai_login_method_to_string);
+    let mut extra = profile.platform_data.clone();
+    for field_name in explicit_platform_field_names() {
+        extra.shift_remove(*field_name);
+    }
+
+    let env_export = platform.export_profile_env(&name).ok();
+    let shell_export_script = platform
+        .export_profile_shell_script(&name)
+        .ok()
+        .filter(|script| !script.trim().is_empty());
+
     json!({
         "name": name,
         "description": profile.description,
-        "base_url": profile.base_url.unwrap_or_default(),
-        "auth_token": profile.auth_token.unwrap_or_default(),
-        "model": profile.model.unwrap_or_default(),
+        "base_url": profile.base_url,
+        "auth_token": profile.auth_token,
+        "model": profile.model,
         "small_fast_model": profile.small_fast_model,
         "provider": profile.provider,
         "provider_type": profile.provider_type,
         "account": profile.account,
         "tags": profile.tags,
-        "usage_count": profile.usage_count.unwrap_or(0),
-        "enabled": profile.enabled.unwrap_or(true),
-        "extra": profile.platform_data,
+        "usage_count": profile.usage_count,
+        "enabled": profile.enabled,
+        "wire_api": profile.platform_data.get("wire_api").cloned(),
+        "env_key": profile.platform_data.get("env_key").cloned(),
+        "requires_openai_auth": profile.platform_data.get("requires_openai_auth").cloned(),
+        "approval_policy": profile.platform_data.get("approval_policy").cloned(),
+        "sandbox_mode": profile.platform_data.get("sandbox_mode").cloned(),
+        "model_reasoning_effort": profile.platform_data.get("model_reasoning_effort").cloned(),
+        "network_access": profile.platform_data.get("network_access").cloned(),
+        "disable_response_storage": profile.platform_data.get("disable_response_storage").cloned(),
+        "auth_mode": auth_mode.as_str(),
+        "openai_login_method": openai_login_method,
+        "credential_store": if is_current { credential_store } else { None },
+        "auth_source": CodexPlatform::profile_auth_source(&profile),
+        "env_export": env_export,
+        "shell_export_script": shell_export_script,
+        "is_current": is_current,
+        "extra": extra,
     })
 }
 
@@ -368,16 +500,26 @@ fn profile_to_json(name: String, profile: ProfileConfig) -> Value {
 #[tauri::command]
 pub async fn codex_list_profiles() -> Result<Value, String> {
     tokio::task::spawn_blocking(|| {
-        let platform =
-            create_platform(Platform::Codex).map_err(|e| format!("初始化 Codex 平台失败: {e}"))?;
+        let platform = CodexPlatform::new().map_err(|e| format!("初始化 Codex 平台失败: {e}"))?;
         let current_profile = platform
             .get_current_profile()
             .map_err(|e| format!("读取当前 Codex profile 失败: {e}"))?;
+        let credential_store = CodexAuthService::new()
+            .map(|service| service.get_auth_state().store.as_str().to_string())
+            .ok();
         let profiles: Vec<Value> = platform
             .load_profiles()
             .map_err(|e| format!("读取 Codex profiles 失败: {e}"))?
             .into_iter()
-            .map(|(name, profile)| profile_to_json(name, profile))
+            .map(|(name, profile)| {
+                profile_to_json(
+                    &platform,
+                    current_profile.as_deref(),
+                    credential_store.as_deref(),
+                    name,
+                    profile,
+                )
+            })
             .collect();
 
         Ok(json!({ "profiles": profiles, "current_profile": current_profile }))
@@ -390,8 +532,7 @@ pub async fn codex_list_profiles() -> Result<Value, String> {
 #[tauri::command]
 pub async fn codex_add_profile(name: String, config: Value) -> Result<Value, String> {
     tokio::task::spawn_blocking(move || {
-        let platform =
-            create_platform(Platform::Codex).map_err(|e| format!("初始化 Codex 平台失败: {e}"))?;
+        let platform = CodexPlatform::new().map_err(|e| format!("初始化 Codex 平台失败: {e}"))?;
         let profiles = platform
             .load_profiles()
             .map_err(|e| format!("读取 Codex profiles 失败: {e}"))?;
@@ -414,8 +555,7 @@ pub async fn codex_add_profile(name: String, config: Value) -> Result<Value, Str
 #[tauri::command]
 pub async fn codex_update_profile(name: String, config: Value) -> Result<Value, String> {
     tokio::task::spawn_blocking(move || {
-        let platform =
-            create_platform(Platform::Codex).map_err(|e| format!("初始化 Codex 平台失败: {e}"))?;
+        let platform = CodexPlatform::new().map_err(|e| format!("初始化 Codex 平台失败: {e}"))?;
         let profiles = platform
             .load_profiles()
             .map_err(|e| format!("读取 Codex profiles 失败: {e}"))?;
@@ -439,8 +579,7 @@ pub async fn codex_update_profile(name: String, config: Value) -> Result<Value, 
 #[tauri::command]
 pub async fn codex_delete_profile(name: String) -> Result<Value, String> {
     tokio::task::spawn_blocking(move || {
-        let platform =
-            create_platform(Platform::Codex).map_err(|e| format!("初始化 Codex 平台失败: {e}"))?;
+        let platform = CodexPlatform::new().map_err(|e| format!("初始化 Codex 平台失败: {e}"))?;
         platform
             .delete_profile(&name)
             .map_err(|e| format!("删除 Codex Profile 失败: {e}"))?;
@@ -454,8 +593,7 @@ pub async fn codex_delete_profile(name: String) -> Result<Value, String> {
 #[tauri::command]
 pub async fn codex_apply_profile(name: String) -> Result<Value, String> {
     tokio::task::spawn_blocking(move || {
-        let platform =
-            create_platform(Platform::Codex).map_err(|e| format!("初始化 Codex 平台失败: {e}"))?;
+        let platform = CodexPlatform::new().map_err(|e| format!("初始化 Codex 平台失败: {e}"))?;
         platform
             .apply_profile(&name)
             .map_err(|e| format!("应用 Codex Profile 失败: {e}"))?;
@@ -850,13 +988,27 @@ pub async fn codex_get_auth_current() -> Result<Value, String> {
 
 /// 保存当前登录到命名账号
 #[tauri::command]
-pub async fn codex_save_auth(name: String, description: Option<String>) -> Result<Value, String> {
+pub async fn codex_save_auth(
+    name: String,
+    description: Option<String>,
+    expires_at: Option<String>,
+    force: Option<bool>,
+) -> Result<Value, String> {
     tokio::task::spawn_blocking(move || {
         let service =
             CodexAuthService::new().map_err(|e| format!("初始化 Codex Auth 服务失败: {e}"))?;
 
+        let parsed_expires_at = expires_at
+            .as_deref()
+            .map(|value| {
+                DateTime::parse_from_rfc3339(value)
+                    .map(|dt| dt.with_timezone(&Utc))
+                    .map_err(|e| format!("expires_at 必须是 RFC3339 时间: {e}"))
+            })
+            .transpose()?;
+
         service
-            .save_current(&name, description, None, true)
+            .save_current(&name, description, parsed_expires_at, force.unwrap_or(false))
             .map_err(|e| format!("{e}"))?;
 
         Ok(json!({ "success": true, "message": format!("Codex Auth 账号 '{name}' 已成功保存") }))
@@ -1183,7 +1335,7 @@ model = "legacy-model"
             )
             .map_err(|e| format!("写入官方 config.toml 失败: {e}"))?;
 
-            let platform = create_platform(Platform::Codex)
+            let platform = ccr::create_platform(ccr::Platform::Codex)
                 .map_err(|e| format!("创建 Codex 平台失败: {e}"))?;
             let mut profile = ProfileConfig::new();
             profile.model = Some("real-model".to_string());
