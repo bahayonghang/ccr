@@ -9,6 +9,7 @@
 use chrono::{DateTime, Utc};
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
+use serde_json::{Map as JsonMap, Value as JsonValue};
 
 // Re-export shared types from ccr-types
 pub use ccr_types::{LoginState, TokenFreshness};
@@ -31,6 +32,82 @@ pub enum AuthIntent {
     ProviderEnvKey { env_key: String },
     /// 无认证（本地模型等）
     NoAuth,
+}
+
+/// 按认证意图规范化 auth.json 字段
+///
+/// 仅保留当前认证模式需要的字段，并丢弃历史/未知字段。
+pub fn normalize_auth_map_for_intent(
+    intent: &AuthIntent,
+    auth: &JsonMap<String, JsonValue>,
+) -> JsonMap<String, JsonValue> {
+    let mut normalized = JsonMap::new();
+
+    match intent {
+        AuthIntent::OpenAiAuth {
+            method: OpenAiAuthMethod::Api,
+        } => {
+            if let Some(api_key) = auth
+                .get("OPENAI_API_KEY")
+                .and_then(JsonValue::as_str)
+                .map(str::trim)
+                .filter(|value| !value.is_empty())
+            {
+                normalized.insert(
+                    "OPENAI_API_KEY".to_string(),
+                    JsonValue::String(api_key.to_string()),
+                );
+            }
+        }
+        AuthIntent::OpenAiAuth {
+            method: OpenAiAuthMethod::Chatgpt,
+        } => {
+            if let Some(tokens) = auth.get("tokens").and_then(JsonValue::as_object) {
+                let mut normalized_tokens = JsonMap::new();
+
+                for field in ["id_token", "access_token", "refresh_token", "account_id"] {
+                    if let Some(value) = tokens
+                        .get(field)
+                        .and_then(JsonValue::as_str)
+                        .map(str::trim)
+                        .filter(|value| !value.is_empty())
+                    {
+                        normalized_tokens
+                            .insert(field.to_string(), JsonValue::String(value.to_string()));
+                    }
+                }
+
+                if !normalized_tokens.is_empty() {
+                    normalized.insert("tokens".to_string(), JsonValue::Object(normalized_tokens));
+                }
+            }
+
+            if let Some(last_refresh) = auth
+                .get("last_refresh")
+                .and_then(JsonValue::as_str)
+                .map(str::trim)
+                .filter(|value| !value.is_empty())
+            {
+                normalized.insert(
+                    "last_refresh".to_string(),
+                    JsonValue::String(last_refresh.to_string()),
+                );
+            }
+        }
+        AuthIntent::ProviderEnvKey { env_key } => {
+            if let Some(value) = auth
+                .get(env_key)
+                .and_then(JsonValue::as_str)
+                .map(str::trim)
+                .filter(|value| !value.is_empty())
+            {
+                normalized.insert(env_key.clone(), JsonValue::String(value.to_string()));
+            }
+        }
+        AuthIntent::NoAuth => {}
+    }
+
+    normalized
 }
 
 /// 凭据存储类型（对齐 Codex cli_auth_credentials_store）
@@ -391,6 +468,112 @@ pub struct ImportResult {
 #[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_normalize_auth_map_for_openai_api_keeps_only_api_key() {
+        let auth = serde_json::json!({
+            "OPENAI_API_KEY": " sk-api ",
+            "tokens": {
+                "id_token": "id",
+                "access_token": "access",
+                "refresh_token": "refresh",
+                "account_id": "acc"
+            },
+            "last_refresh": "2026-01-08T03:09:53.894843900Z",
+            "MISTRAL_API_KEY": "mistral",
+            "custom_meta": "stale"
+        })
+        .as_object()
+        .unwrap()
+        .clone();
+
+        let normalized = normalize_auth_map_for_intent(
+            &AuthIntent::OpenAiAuth {
+                method: OpenAiAuthMethod::Api,
+            },
+            &auth,
+        );
+
+        let expected = serde_json::json!({
+            "OPENAI_API_KEY": "sk-api"
+        })
+        .as_object()
+        .unwrap()
+        .clone();
+        assert_eq!(normalized, expected);
+    }
+
+    #[test]
+    fn test_normalize_auth_map_for_chatgpt_keeps_only_tokens_and_last_refresh() {
+        let auth = serde_json::json!({
+            "OPENAI_API_KEY": "sk-api",
+            "tokens": {
+                "id_token": " id ",
+                "access_token": "access",
+                "refresh_token": " ",
+                "account_id": "acc"
+            },
+            "last_refresh": " 2026-01-08T03:09:53.894843900Z ",
+            "MISTRAL_API_KEY": "mistral",
+            "custom_meta": "stale"
+        })
+        .as_object()
+        .unwrap()
+        .clone();
+
+        let normalized = normalize_auth_map_for_intent(
+            &AuthIntent::OpenAiAuth {
+                method: OpenAiAuthMethod::Chatgpt,
+            },
+            &auth,
+        );
+
+        let expected = serde_json::json!({
+            "tokens": {
+                "id_token": "id",
+                "access_token": "access",
+                "account_id": "acc"
+            },
+            "last_refresh": "2026-01-08T03:09:53.894843900Z"
+        })
+        .as_object()
+        .unwrap()
+        .clone();
+        assert_eq!(normalized, expected);
+    }
+
+    #[test]
+    fn test_normalize_auth_map_for_provider_and_no_auth_drops_unrelated_fields() {
+        let auth = serde_json::json!({
+            "OPENAI_API_KEY": "sk-api",
+            "tokens": {
+                "id_token": "id"
+            },
+            "last_refresh": "2026-01-08T03:09:53.894843900Z",
+            "MISTRAL_API_KEY": " mistral ",
+            "custom_meta": "stale"
+        })
+        .as_object()
+        .unwrap()
+        .clone();
+
+        let provider_normalized = normalize_auth_map_for_intent(
+            &AuthIntent::ProviderEnvKey {
+                env_key: "MISTRAL_API_KEY".to_string(),
+            },
+            &auth,
+        );
+        let provider_expected = serde_json::json!({
+            "MISTRAL_API_KEY": "mistral"
+        })
+        .as_object()
+        .unwrap()
+        .clone();
+        assert_eq!(provider_normalized, provider_expected);
+
+        let no_auth_normalized = normalize_auth_map_for_intent(&AuthIntent::NoAuth, &auth);
+        assert!(no_auth_normalized.is_empty());
+    }
 
     #[test]
     fn test_token_freshness_icon() {

@@ -1894,7 +1894,8 @@ export default {
       model: {
         model: 'Default Model',
         modelPlaceholder: 'gpt-5 / gpt-5-codex',
-        modelProvider: 'Model Provider',
+        modelProvider: 'Runtime Namespace',
+        modelProviderPlaceholder: 'reserved namespace, e.g. custom',
         reasoningEffort: 'Reasoning Effort',
         reasoningSummary: 'Reasoning Summary',
         verbosity: 'Verbosity',

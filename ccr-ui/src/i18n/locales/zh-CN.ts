@@ -1906,7 +1906,8 @@ export default {
       model: {
         model: '默认模型',
         modelPlaceholder: 'gpt-5 / gpt-5-codex',
-        modelProvider: '模型提供者',
+        modelProvider: '运行时命名空间',
+        modelProviderPlaceholder: '保留命名空间，如 custom',
         reasoningEffort: '推理深度',
         reasoningSummary: '推理摘要模式',
         verbosity: '详细程度',

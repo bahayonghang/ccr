@@ -12,6 +12,8 @@ Switching uses two modes:
 1. `official_relay` (Official mode): reset `config.toml` and `auth.json`
 2. Any other type (Third-party mode): read-modify-write; only provider-related keys are updated
 
+CCR reserves `custom` as the runtime provider namespace for third-party Codex profiles. When writing a third-party profile, the top-level `model_provider` key is always set to `"custom"`, and the real upstream identity comes from the profile metadata or `[model_providers.custom].name` instead of the root field.
+
 ## Configuration Flow
 
 ### 1. Profile -> Codex write path
@@ -19,18 +21,18 @@ Switching uses two modes:
 After `ccr switch <profile>`, CCR writes:
 
 - Top-level keys in `~/.codex/config.toml`: `model`, `model_provider`, `model_reasoning_effort`, `approval_policy`, `sandbox_mode`, etc.
-- Provider table in `[model_providers.<id>]`: `name`, `base_url`, `wire_api`, `requires_openai_auth`, `env_key`
+- The active provider table is always `[model_providers.custom]`: `name`, `base_url`, `wire_api`, `requires_openai_auth`, `env_key`
 - Secrets in `~/.codex/auth.json`: `OPENAI_API_KEY` or `<env_key>`
 
-### 2. Provider ID resolution
+### 2. Runtime provider namespace
 
-`model_provider` is resolved by priority:
+For every third-party profile:
 
-1. `provider_id` (platform_data)
-2. `provider`
-3. profile name
+1. The root `model_provider` key is always written as `"custom"`
+2. The active provider config is always written to `[model_providers.custom]`
+3. The real upstream provider identity still comes from profile metadata (such as `provider_id` / `provider`) or `[model_providers.custom].name`
 
-The resolved id is normalized (lowercase + non-alphanumeric converted to `-`).
+That means `model_provider` represents CCR's reserved runtime namespace in third-party mode, not the upstream vendor name. Legacy `[model_providers.<legacy_id>]` tables may still remain in the file, but the active runtime path is `custom`.
 
 ## Key Fields (model / effort / url / key)
 
@@ -99,7 +101,7 @@ Auth intent rules:
 | `sandbox_mode` | platform_data | passed through to top-level `config.toml` |
 | `network_access` | platform_data | passed through to top-level `config.toml` |
 | `disable_response_storage` | platform_data | passed through to top-level `config.toml` (bool) |
-| `provider_model` | platform_data | optional; writes `[model_providers.<id>].model` |
+| `provider_model` | platform_data | optional; writes `[model_providers.custom].model` |
 
 ## Recommended Profiles
 
@@ -148,10 +150,10 @@ model_reasoning_effort = "medium"
 
 ## Generated Output Example
 
-For the `duckcoding` profile, expected `~/.codex/config.toml`:
+For the `duckcoding` profile, expected `~/.codex/config.toml` looks like this (note that the runtime namespace is fixed to `custom`):
 
 ```toml
-model_provider = "duckcoding"
+model_provider = "custom"
 model = "gpt-5-codex"
 model_reasoning_effort = "high"
 approval_policy = "on-request"
@@ -159,7 +161,7 @@ sandbox_mode = "workspace-write"
 network_access = "enabled"
 disable_response_storage = true
 
-[model_providers.duckcoding]
+[model_providers.custom]
 name = "DuckCoding OpenAI compatible"
 base_url = "https://jp.duckcoding.com/v1"
 wire_api = "responses"

@@ -9,10 +9,13 @@
 // - 🔄 进程检测与备份管理
 
 use crate::core::error::{CcrError, Result};
+use crate::core::lock::LockManager;
+use crate::managers::codex_config::CodexConfigManager;
 use crate::models::{
-    AuthIntent, AuthState, AuthStateStatus, CodexAuthAccount, CodexAuthExport,
-    CodexAuthExportAccount, CodexAuthItem, CodexAuthJson, CodexAuthRegistry, CredentialStoreKind,
-    CurrentAuthInfo, ImportMode, ImportResult, LoginState, OpenAiAuthMethod, TokenFreshness,
+    normalize_auth_map_for_intent, AuthIntent, AuthState, AuthStateStatus, CodexAuthAccount,
+    CodexAuthExport, CodexAuthExportAccount, CodexAuthItem, CodexAuthJson, CodexAuthRegistry,
+    CredentialStoreKind, CurrentAuthInfo, ImportMode, ImportResult, LoginState,
+    OpenAiAuthMethod, TokenFreshness,
 };
 use chrono::{DateTime, Duration, Utc};
 use std::path::PathBuf;
@@ -217,21 +220,19 @@ impl CodexAuthService {
         format!("{prefix}..{suffix}:len{len}")
     }
 
-    fn is_known_auth_field(field: &str) -> bool {
-        field == "OPENAI_API_KEY"
-            || field == "tokens"
-            || field == "last_refresh"
-            || field.ends_with("_API_KEY")
-    }
+    fn codex_config_manager(&self) -> Result<CodexConfigManager> {
+        let lock_dir = if let Ok(custom_dir) = env::var("CCR_LOCK_DIR") {
+            PathBuf::from(custom_dir)
+        } else {
+            self.codex_dir.join(".locks")
+        };
 
-    fn merge_auth_fields(
-        current: &mut serde_json::Map<String, serde_json::Value>,
-        incoming: &serde_json::Map<String, serde_json::Value>,
-    ) {
-        current.retain(|key, _| !Self::is_known_auth_field(key));
-        for (key, value) in incoming {
-            current.insert(key.clone(), value.clone());
-        }
+        Ok(CodexConfigManager::new(
+            self.codex_dir.join("config.toml"),
+            self.auth_json_path(),
+            self.codex_dir.join("backups"),
+            LockManager::new(lock_dir),
+        ))
     }
 
     /// 获取当前认证状态快照
@@ -522,26 +523,13 @@ impl CodexAuthService {
 
         // 策略化迁移：按认证字段更新，避免整文件覆盖
         let src = self.account_auth_path(name);
-        let dst = self.auth_json_path();
         let incoming = self.load_auth_raw_map(&src)?;
+        let (target_intent, _, _) = Self::infer_auth_intent(&incoming);
+        let normalized = normalize_auth_map_for_intent(&target_intent, &incoming);
 
-        // 确保目标目录存在
-        if let Some(parent) = dst.parent() {
-            fs::create_dir_all(parent)
-                .map_err(|e| CcrError::ConfigError(format!("创建 Codex 目录失败: {}", e)))?;
-        }
-
-        let mut current = if dst.exists() {
-            self.load_auth_raw_map(&dst)?
-        } else {
-            serde_json::Map::new()
-        };
-
-        Self::merge_auth_fields(&mut current, &incoming);
-
-        let merged = serde_json::to_string_pretty(&serde_json::Value::Object(current))
-            .map_err(|e| CcrError::ConfigError(format!("序列化切换后的 auth 失败: {}", e)))?;
-        fs::write(&dst, merged)
+        let config_manager = self.codex_config_manager()?;
+        config_manager
+            .save_auth_atomic(&normalized)
             .map_err(|e| CcrError::ConfigError(format!("切换账号失败: {}", e)))?;
 
         // 更新注册表
@@ -1496,7 +1484,7 @@ mod tests {
     }
 
     #[test]
-    fn test_switch_account_merges_without_overwriting_unrelated_fields() {
+    fn test_switch_account_rewrites_auth_with_only_normalized_target_fields() {
         let (service, _ccr, codex) = create_test_service();
 
         // 当前 auth.json 包含非认证字段
@@ -1521,17 +1509,24 @@ mod tests {
             &account_path,
             r#"{
                 "MISTRAL_API_KEY": "mistral-new",
-                "last_refresh": "2026-01-08T03:09:53.894843900Z"
+                "last_refresh": "2026-01-08T03:09:53.894843900Z",
+                "custom_meta": "drop-me"
             }"#,
         )
         .unwrap();
 
         service.switch_account("merged").unwrap();
 
-        let merged = fs::read_to_string(&auth_path).unwrap();
-        assert!(merged.contains("MISTRAL_API_KEY"));
-        assert!(!merged.contains("\"OPENAI_API_KEY\""));
-        assert!(merged.contains("custom_meta"));
+        let merged: serde_json::Map<String, serde_json::Value> =
+            serde_json::from_str(&fs::read_to_string(&auth_path).unwrap()).unwrap();
+        assert_eq!(
+            merged.get("MISTRAL_API_KEY").and_then(|v| v.as_str()),
+            Some("mistral-new")
+        );
+        assert!(!merged.contains_key("OPENAI_API_KEY"));
+        assert!(!merged.contains_key("last_refresh"));
+        assert!(!merged.contains_key("custom_meta"));
+        assert_eq!(merged.len(), 1);
     }
 
     #[test]

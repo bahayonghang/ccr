@@ -12,6 +12,8 @@ CCR 在 Codex 平台下会把统一 profile 配置转换为 Codex CLI 配置文�
 1. `official_relay`（官方模式）：重置 `config.toml` 和 `auth.json`
 2. 其他类型（第三方模式）：read-modify-write，仅更新 Provider 相关字段，保留其他已有配置
 
+CCR 保留 `custom` 作为第三方 Codex profile 的运行时 provider 命名空间；此类 profile 写入时，根字段 `model_provider` 始终固定为 `"custom"`，真实上游身份由 CCR profile metadata 或 `[model_providers.custom].name` 表示。
+
 ## 配置流程
 
 ### 1. Profile -> Codex 配置写入
@@ -19,18 +21,18 @@ CCR 在 Codex 平台下会把统一 profile 配置转换为 Codex CLI 配置文�
 执行 `ccr switch <profile>` 后，Codex 平台按以下规则写入：
 
 - 顶层字段（`~/.codex/config.toml`）：`model`、`model_provider`、`model_reasoning_effort`、`approval_policy`、`sandbox_mode` 等
-- Provider 表（`[model_providers.<id>]`）：`name`、`base_url`、`wire_api`、`requires_openai_auth`、`env_key`
+- 活跃 Provider 表固定为 `[model_providers.custom]`：`name`、`base_url`、`wire_api`、`requires_openai_auth`、`env_key`
 - 凭据文件（`~/.codex/auth.json`）：`OPENAI_API_KEY` 或 `<env_key>` 对应的 key
 
-### 2. Provider ID 解析
+### 2. 运行时 provider namespace
 
-`model_provider` 的值按优先级生成：
+对所有第三方 profile：
 
-1. `provider_id`（platform_data）
-2. `provider`
-3. profile 名称
+1. 根字段 `model_provider` 固定写入 `"custom"`
+2. 活跃 provider 配置固定写入 `[model_providers.custom]`
+3. 真实上游 provider 身份继续来自 profile metadata（例如 `provider_id` / `provider`）或 `[model_providers.custom].name`
 
-最终会做规范化（小写 + 非字母数字转 `-`）。
+这意味着 `model_provider` 在第三方模式下表示 CCR 保留的运行时命名空间，而不是上游厂商名。历史遗留的 `[model_providers.<legacy_id>]` 表可能继续存在，但当前运行时只使用 `custom`。
 
 ## 字段配置（重点）
 
@@ -101,7 +103,7 @@ base_url = "https://api.example.com/v1"
 | `sandbox_mode` | platform_data | 透传到 `config.toml` 顶层 |
 | `network_access` | platform_data | 透传到 `config.toml` 顶层 |
 | `disable_response_storage` | platform_data | 透传到 `config.toml` 顶层（bool） |
-| `provider_model` | platform_data | 可选；写入 `[model_providers.<id>].model` |
+| `provider_model` | platform_data | 可选；写入 `[model_providers.custom].model` |
 
 ## 推荐配置示例
 
@@ -150,10 +152,10 @@ model_reasoning_effort = "medium"
 
 ## 写入结果示例
 
-上面的 `duckcoding` 切换后，`~/.codex/config.toml` 典型结果：
+上面的 `duckcoding` 切换后，`~/.codex/config.toml` 典型结果（注意运行时命名空间固定为 `custom`）：
 
 ```toml
-model_provider = "duckcoding"
+model_provider = "custom"
 model = "gpt-5-codex"
 model_reasoning_effort = "high"
 approval_policy = "on-request"
@@ -161,7 +163,7 @@ sandbox_mode = "workspace-write"
 network_access = "enabled"
 disable_response_storage = true
 
-[model_providers.duckcoding]
+[model_providers.custom]
 name = "DuckCoding OpenAI 兼容"
 base_url = "https://jp.duckcoding.com/v1"
 wire_api = "responses"

@@ -10,14 +10,16 @@
 use crate::core::error::{CcrError, Result};
 use crate::managers::codex_config::CodexConfigManager;
 use crate::models::{
-    AuthIntent, AuthTransitionPolicy, CredentialStoreKind, OpenAiAuthMethod, Platform,
-    PlatformConfig, PlatformPaths, ProfileConfig,
+    normalize_auth_map_for_intent, AuthIntent, AuthTransitionPolicy, CredentialStoreKind,
+    OpenAiAuthMethod, Platform, PlatformConfig, PlatformPaths, ProfileConfig,
 };
 use crate::platforms::base;
 use indexmap::IndexMap;
 use serde_json::Value as JsonValue;
 use std::path::PathBuf;
 use tracing::debug;
+
+const THIRD_PARTY_RUNTIME_PROVIDER_KEY: &str = "custom";
 
 /// 💻 Codex Platform 实现
 ///
@@ -239,7 +241,17 @@ impl CodexPlatform {
             }
         };
 
-        let provider = match providers.get(provider_id).and_then(|v| v.as_table()) {
+        let provider = providers
+            .get(provider_id)
+            .and_then(|v| v.as_table())
+            .or_else(|| {
+                (provider_id != THIRD_PARTY_RUNTIME_PROVIDER_KEY)
+                    .then(|| providers.get(THIRD_PARTY_RUNTIME_PROVIDER_KEY))
+                    .flatten()
+                    .and_then(|v| v.as_table())
+            });
+
+        let provider = match provider {
             Some(provider) => provider,
             None => {
                 return AuthIntent::OpenAiAuth {
@@ -409,14 +421,17 @@ impl CodexPlatform {
 
     /// 🔧 应用第三方配置（read-modify-write，保留非 provider 字段）
     fn apply_third_party_profile(&self, name: &str, profile: &ProfileConfig) -> Result<()> {
-        let provider_id = Self::resolve_provider_id(name, profile);
+        let upstream_provider_id = Self::resolve_provider_id(name, profile);
         let provider_name = profile
             .description
             .clone()
             .or_else(|| profile.provider.clone())
-            .unwrap_or_else(|| provider_id.clone());
+            .unwrap_or_else(|| upstream_provider_id.clone());
         let base_url = profile.base_url.clone().unwrap_or_else(|| {
-            debug!("Codex profile {} 未配置 base_url，使用空字符串", name);
+            debug!(
+                "Codex profile {} 未配置 base_url，使用空字符串（runtime={}, upstream={})",
+                name, THIRD_PARTY_RUNTIME_PROVIDER_KEY, upstream_provider_id
+            );
             String::new()
         });
         let wire_api = Self::resolve_wire_api(profile)?;
@@ -450,7 +465,7 @@ impl CodexPlatform {
 
         root.insert(
             "model_provider".into(),
-            toml::Value::String(provider_id.clone()),
+            toml::Value::String(THIRD_PARTY_RUNTIME_PROVIDER_KEY.into()),
         );
 
         // 可选设置（来自 platform_data）
@@ -489,7 +504,7 @@ impl CodexPlatform {
         let providers_table = Self::ensure_toml_table(providers_value)?;
 
         let provider_value = providers_table
-            .entry(provider_id.clone())
+            .entry(THIRD_PARTY_RUNTIME_PROVIDER_KEY.to_string())
             .or_insert_with(|| toml::Value::Table(toml::map::Map::new()));
         let provider_table = Self::ensure_toml_table(provider_value)?;
 
@@ -542,6 +557,7 @@ impl CodexPlatform {
             AuthIntent::NoAuth => {}
         }
 
+        auth = normalize_auth_map_for_intent(&target_intent, &auth);
         self.persist_auth_with_store(auth_store, &auth)?;
 
         tracing::info!(
@@ -878,6 +894,82 @@ mod tests {
         );
     }
 
+    #[test]
+    fn test_parse_current_auth_intent_supports_legacy_and_custom_layouts() {
+        let legacy: toml::Value = toml::from_str(
+            r#"
+model_provider = "duckcoding"
+
+[model_providers.duckcoding]
+requires_openai_auth = false
+env_key = "DUCK_API_KEY"
+"#,
+        )
+        .unwrap();
+        assert_eq!(
+            CodexPlatform::parse_current_auth_intent(&legacy),
+            AuthIntent::ProviderEnvKey {
+                env_key: "DUCK_API_KEY".to_string()
+            }
+        );
+
+        let runtime_custom: toml::Value = toml::from_str(
+            r#"
+model_provider = "custom"
+
+[model_providers.custom]
+requires_openai_auth = false
+env_key = "MISTRAL_API_KEY"
+"#,
+        )
+        .unwrap();
+        assert_eq!(
+            CodexPlatform::parse_current_auth_intent(&runtime_custom),
+            AuthIntent::ProviderEnvKey {
+                env_key: "MISTRAL_API_KEY".to_string()
+            }
+        );
+
+        let migrated: toml::Value = toml::from_str(
+            r#"
+model_provider = "duckcoding"
+
+[model_providers.custom]
+requires_openai_auth = false
+env_key = "DUCK_API_KEY"
+"#,
+        )
+        .unwrap();
+        assert_eq!(
+            CodexPlatform::parse_current_auth_intent(&migrated),
+            AuthIntent::ProviderEnvKey {
+                env_key: "DUCK_API_KEY".to_string()
+            }
+        );
+    }
+
+    #[test]
+    fn test_resolve_current_auth_intent_falls_back_to_config_when_auth_missing() {
+        let config: toml::Value = toml::from_str(
+            r#"
+model_provider = "duckcoding"
+forced_login_method = "api"
+
+[model_providers.custom]
+requires_openai_auth = true
+"#,
+        )
+        .unwrap();
+        let auth = serde_json::Map::new();
+
+        assert_eq!(
+            CodexPlatform::resolve_current_auth_intent(&config, &auth),
+            AuthIntent::OpenAiAuth {
+                method: OpenAiAuthMethod::Api
+            }
+        );
+    }
+
     // ═══════════════════════════════════════════════════════════
     // 💾 写入测试
     // ═══════════════════════════════════════════════════════════
@@ -1002,9 +1094,7 @@ mod tests {
             let config_path = temp_dir.path().join("config.toml");
             if config_path.exists() {
                 let content = std::fs::read_to_string(&config_path).unwrap();
-                assert!(content.contains("packycode"));
 
-                // Verify: model at root level
                 let parsed: toml::Value = toml::from_str(&content).unwrap();
                 let root = parsed.as_table().unwrap();
                 assert_eq!(
@@ -1013,20 +1103,28 @@ mod tests {
                     "model should be at root level"
                 );
                 assert_eq!(
+                    root.get("model_provider").and_then(|v| v.as_str()),
+                    Some(THIRD_PARTY_RUNTIME_PROVIDER_KEY),
+                    "third-party runtime provider should always be custom"
+                );
+                assert_eq!(
                     root.get("model_reasoning_effort").and_then(|v| v.as_str()),
                     Some("high"),
                     "model_reasoning_effort should be normalized to lowercase"
                 );
 
-                // Verify: model NOT inside provider table (no provider_model set)
                 let providers = root
                     .get("model_providers")
                     .and_then(|v| v.as_table())
                     .unwrap();
                 let provider = providers
-                    .get("packycode")
+                    .get(THIRD_PARTY_RUNTIME_PROVIDER_KEY)
                     .and_then(|v| v.as_table())
                     .unwrap();
+                assert_eq!(
+                    provider.get("name").and_then(|v| v.as_str()),
+                    Some("PackyCode Relay")
+                );
                 assert!(
                     provider.get("model").is_none(),
                     "model should NOT be in provider table when provider_model is not set, got: {:?}",
@@ -1034,7 +1132,6 @@ mod tests {
                 );
             }
 
-            // 检查 auth.json
             let auth_path = temp_dir.path().join("auth.json");
             if auth_path.exists() {
                 let content = std::fs::read_to_string(&auth_path).unwrap();
@@ -1090,6 +1187,13 @@ mod tests {
                     "config.toml should contain env_key, got: {}",
                     content
                 );
+                let parsed: toml::Value = toml::from_str(&content).unwrap();
+                let root = parsed.as_table().unwrap();
+                assert_eq!(
+                    root.get("model_provider").and_then(|v| v.as_str()),
+                    Some(THIRD_PARTY_RUNTIME_PROVIDER_KEY),
+                    "third-party runtime provider should always be custom"
+                );
                 assert!(
                     content.contains("MISTRAL_API_KEY"),
                     "env_key should be MISTRAL_API_KEY, got: {}",
@@ -1113,6 +1217,91 @@ mod tests {
                 );
             }
         }
+
+        unsafe {
+            std::env::remove_var("CCR_CODEX_DIR");
+        }
+    }
+
+    #[test]
+    fn test_switching_from_openai_auth_to_provider_env_key_clears_openai_key() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        unsafe {
+            std::env::set_var("CCR_CODEX_DIR", temp_dir.path().to_str().unwrap());
+        }
+
+        let config_manager = CodexConfigManager::with_default().unwrap();
+
+        let mut auth = serde_json::Map::new();
+        auth.insert(
+            "OPENAI_API_KEY".to_string(),
+            serde_json::Value::String("openai-old-key".to_string()),
+        );
+        auth.insert(
+            "legacy_key".to_string(),
+            serde_json::Value::String("legacy".to_string()),
+        );
+        config_manager.save_auth_atomic(&auth).unwrap();
+
+        let platform = CodexPlatform::new().unwrap();
+        let mut profile = ProfileConfig {
+            description: Some("Mistral Provider".to_string()),
+            base_url: Some("https://api.mistral.ai/v1".to_string()),
+            auth_token: Some("mistral-key-123".to_string()),
+            model: Some("mistral-large".to_string()),
+            small_fast_model: None,
+            provider: Some("mistral".to_string()),
+            provider_type: None,
+            account: None,
+            tags: None,
+            usage_count: Some(0),
+            enabled: Some(true),
+            platform_data: IndexMap::new(),
+        };
+        profile
+            .platform_data
+            .insert("wire_api".into(), json!("chat"));
+        profile
+            .platform_data
+            .insert("env_key".into(), json!("MISTRAL_API_KEY"));
+        profile
+            .platform_data
+            .insert("requires_openai_auth".into(), json!(false));
+
+        platform
+            .apply_third_party_profile("mistral", &profile)
+            .unwrap();
+
+        let auth = config_manager.load_auth().unwrap();
+        assert!(
+            !auth.contains_key("OPENAI_API_KEY"),
+            "OPENAI_API_KEY should be cleared when switching to provider env key"
+        );
+        assert_eq!(
+            auth.get("MISTRAL_API_KEY").and_then(|v| v.as_str()),
+            Some("mistral-key-123")
+        );
+        assert_eq!(auth.len(), 1, "auth.json should only keep target provider key");
+
+        let config = config_manager.load_config().unwrap();
+        let root = config.as_table().unwrap();
+        assert_eq!(
+            root.get("model_provider").and_then(|v| v.as_str()),
+            Some(THIRD_PARTY_RUNTIME_PROVIDER_KEY),
+            "third-party runtime provider should always be custom"
+        );
+        let providers = root
+            .get("model_providers")
+            .and_then(|v| v.as_table())
+            .unwrap();
+        let provider = providers
+            .get(THIRD_PARTY_RUNTIME_PROVIDER_KEY)
+            .and_then(|v| v.as_table())
+            .unwrap();
+        assert_eq!(
+            provider.get("env_key").and_then(|v| v.as_str()),
+            Some("MISTRAL_API_KEY")
+        );
 
         unsafe {
             std::env::remove_var("CCR_CODEX_DIR");
@@ -1163,6 +1352,13 @@ mod tests {
             let config_path = temp_dir.path().join("config.toml");
             if config_path.exists() {
                 let content = std::fs::read_to_string(&config_path).unwrap();
+                let parsed: toml::Value = toml::from_str(&content).unwrap();
+                let root = parsed.as_table().unwrap();
+                assert_eq!(
+                    root.get("model_provider").and_then(|v| v.as_str()),
+                    Some(THIRD_PARTY_RUNTIME_PROVIDER_KEY),
+                    "third-party runtime provider should always be custom"
+                );
                 assert!(
                     !content.contains("env_key"),
                     "should not write env_key when not provided, got: {}",
@@ -1220,13 +1416,21 @@ mod tests {
                     Some("gpt-4"),
                     "root model should be profile.model"
                 );
+                assert_eq!(
+                    root.get("model_provider").and_then(|v| v.as_str()),
+                    Some(THIRD_PARTY_RUNTIME_PROVIDER_KEY),
+                    "third-party runtime provider should always be custom"
+                );
 
                 // Provider table model should be provider_model
                 let providers = root
                     .get("model_providers")
                     .and_then(|v| v.as_table())
                     .unwrap();
-                let provider = providers.get("custom").and_then(|v| v.as_table()).unwrap();
+                let provider = providers
+                    .get(THIRD_PARTY_RUNTIME_PROVIDER_KEY)
+                    .and_then(|v| v.as_table())
+                    .unwrap();
                 assert_eq!(
                     provider.get("model").and_then(|v| v.as_str()),
                     Some("custom-gpt-4-alias"),
@@ -1309,11 +1513,19 @@ mod tests {
 
         let config = config_manager.load_config().unwrap();
         let root = config.as_table().unwrap();
+        assert_eq!(
+            root.get("model_provider").and_then(|v| v.as_str()),
+            Some(THIRD_PARTY_RUNTIME_PROVIDER_KEY),
+            "third-party runtime provider should always be custom"
+        );
         let providers = root
             .get("model_providers")
             .and_then(|v| v.as_table())
             .unwrap();
-        let provider = providers.get("custom").and_then(|v| v.as_table()).unwrap();
+        let provider = providers
+            .get(THIRD_PARTY_RUNTIME_PROVIDER_KEY)
+            .and_then(|v| v.as_table())
+            .unwrap();
 
         assert!(
             provider.get("env_key").is_none(),
@@ -1345,6 +1557,10 @@ mod tests {
         auth.insert(
             "MISTRAL_API_KEY".to_string(),
             serde_json::Value::String("mistral-old-key".to_string()),
+        );
+        auth.insert(
+            "legacy_key".to_string(),
+            serde_json::Value::String("legacy".to_string()),
         );
         config_manager.save_auth_atomic(&auth).unwrap();
 
@@ -1389,15 +1605,24 @@ mod tests {
             !auth.contains_key("OPENAI_API_KEY"),
             "OPENAI_API_KEY should not be auto-populated when profile has no auth_token"
         );
+        assert!(auth.is_empty(), "auth.json should be empty after cleanup");
 
         // config.toml: env_key 被移除
         let config = config_manager.load_config().unwrap();
         let root = config.as_table().unwrap();
+        assert_eq!(
+            root.get("model_provider").and_then(|v| v.as_str()),
+            Some(THIRD_PARTY_RUNTIME_PROVIDER_KEY),
+            "third-party runtime provider should always be custom"
+        );
         let providers = root
             .get("model_providers")
             .and_then(|v| v.as_table())
             .unwrap();
-        let provider = providers.get("proxy").and_then(|v| v.as_table()).unwrap();
+        let provider = providers
+            .get(THIRD_PARTY_RUNTIME_PROVIDER_KEY)
+            .and_then(|v| v.as_table())
+            .unwrap();
         assert_eq!(
             provider
                 .get("requires_openai_auth")

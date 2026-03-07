@@ -97,7 +97,7 @@
               <input
                 v-model="form.model_provider"
                 type="text"
-                placeholder="openai / ollama"
+                :placeholder="$t('codex.settings.model.modelProviderPlaceholder')"
                 class="settings-input"
               >
             </div>
