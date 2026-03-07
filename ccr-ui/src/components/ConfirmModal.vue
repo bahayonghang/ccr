@@ -6,13 +6,21 @@
     :close-on-backdrop="false"
     :close-on-escape="true"
     :show-close="false"
+    :surface="surface"
     size="sm"
     @update:model-value="handleModalChange"
     @close="handleCancel"
   >
-    <!-- 图标和内容 -->
-    <div class="flex flex-col items-center text-center">
-      <!-- 图标 -->
+    <template #header="{ titleId }">
+      <h2
+        :id="titleId"
+        class="w-full text-center text-lg font-semibold text-text-primary"
+      >
+        {{ title }}
+      </h2>
+    </template>
+
+    <div class="flex flex-col items-center text-center pb-1">
       <div :class="iconContainerClasses">
         <slot name="icon">
           <component
@@ -22,27 +30,16 @@
         </slot>
       </div>
 
-      <!-- 标题 -->
-      <h3 class="mt-4 text-lg font-semibold text-white">
-        {{ title }}
-      </h3>
-
-      <!-- 消息 -->
-      <p class="mt-2 text-sm text-white/80 leading-relaxed">
+      <p class="mt-4 text-sm leading-relaxed text-text-secondary">
         {{ message }}
       </p>
     </div>
 
-    <!-- 按钮 -->
     <template #footer>
       <div class="flex w-full gap-3">
         <button
           type="button"
-          class="flex-1 px-4 py-2.5 rounded-xl text-sm font-medium
-                 bg-bg-tertiary text-white/80
-                 hover:bg-bg-hover hover:text-white
-                 focus:outline-none focus:ring-2 focus:ring-accent-primary/30
-                 transition-colors duration-150"
+          class="flex-1 rounded-xl border border-border-default bg-bg-surface px-4 py-2.5 text-sm font-medium text-text-secondary transition-colors duration-150 hover:bg-bg-overlay hover:text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/30"
           @click="handleCancel"
         >
           {{ cancelText || '取消' }}
@@ -64,73 +61,65 @@ import { computed } from 'vue'
 import { AlertTriangle, Info, AlertCircle } from 'lucide-vue-next'
 import BaseModal from '@/components/common/BaseModal.vue'
 
-// Props interface
 interface Props {
-  /** 是否显示 */
   isOpen: boolean
-  /** 标题 */
   title: string
-  /** 消息内容 */
   message: string
-  /** 确认按钮文本 */
   confirmText?: string
-  /** 取消按钮文本 */
   cancelText?: string
-  /** 类型变体 */
   type?: 'danger' | 'info' | 'warning'
+  surface?: 'glass' | 'solid'
 }
 
-// Emits
 const emit = defineEmits<{
   confirm: []
   cancel: []
   'update:isOpen': [value: boolean]
 }>()
 
-// Props with defaults
 const props = withDefaults(defineProps<Props>(), {
   type: 'info',
+  surface: 'glass',
   confirmText: '',
   cancelText: '',
 })
 
-// 图标组件映射
 const iconComponent = computed(() => {
   const icons = {
     danger: AlertTriangle,
     warning: AlertCircle,
     info: Info,
   }
+
   return icons[props.type]
 })
 
-// 图标容器样式
 const iconContainerClasses = computed(() => {
-  const baseClasses = 'w-14 h-14 rounded-full flex items-center justify-center'
+  const baseClasses = 'flex h-14 w-14 items-center justify-center rounded-full border shadow-sm'
   const typeClasses = {
-    danger: 'bg-accent-danger/10',
-    warning: 'bg-accent-warning/10',
-    info: 'bg-accent-info/10',
+    danger: 'border-accent-danger/20 bg-accent-danger/10',
+    warning: 'border-accent-warning/20 bg-accent-warning/10',
+    info: 'border-accent-info/20 bg-accent-info/10',
   }
+
   return [baseClasses, typeClasses[props.type]]
 })
 
-// 图标样式
 const iconClasses = computed(() => {
-  const baseClasses = 'w-7 h-7'
+  const baseClasses = 'h-7 w-7'
   const typeClasses = {
     danger: 'text-accent-danger',
     warning: 'text-accent-warning',
     info: 'text-accent-info',
   }
+
   return [baseClasses, typeClasses[props.type]]
 })
 
-// 确认按钮样式
 const confirmButtonClasses = computed(() => {
   const baseClasses = [
-    'flex-1 px-4 py-2.5 rounded-xl text-sm font-medium text-white',
-    'focus:outline-none focus:ring-2 focus:ring-offset-2',
+    'flex-1 rounded-xl px-4 py-2.5 text-sm font-medium text-white shadow-sm',
+    'focus:outline-none focus:ring-2',
     'transition-colors duration-150',
   ]
 
@@ -155,7 +144,6 @@ const confirmButtonClasses = computed(() => {
   return [...baseClasses, ...typeClasses[props.type]]
 })
 
-// 事件处理
 function handleModalChange(value: boolean) {
   emit('update:isOpen', value)
 }

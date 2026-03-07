@@ -17,7 +17,7 @@
       >
         <!-- 背景遮罩 -->
         <div
-          class="absolute inset-0 bg-black/30 dark:bg-black/50 backdrop-blur-md"
+          :class="backdropClasses"
           aria-hidden="true"
         />
 
@@ -44,10 +44,13 @@
               v-if="$slots.header || title"
               :class="headerClasses"
             >
-              <slot name="header">
+              <slot
+                name="header"
+                v-bind="{ titleId }"
+              >
                 <h2
                   :id="titleId"
-                  class="text-lg font-semibold text-white"
+                  class="text-lg font-semibold text-text-primary"
                 >
                   {{ title }}
                 </h2>
@@ -57,8 +60,8 @@
               <button
                 v-if="showClose"
                 type="button"
-                class="absolute top-4 right-4 p-1.5 rounded-lg text-white/50
-                       hover:text-white hover:bg-bg-hover
+                class="absolute top-4 right-4 p-1.5 rounded-lg text-text-secondary
+                       hover:text-text-primary hover:bg-bg-overlay
                        focus:outline-none focus:ring-2 focus:ring-accent-primary/30
                        transition-colors duration-150"
                 aria-label="关闭"
@@ -128,6 +131,7 @@ interface Props {
   closeOnEscape?: boolean
   /** 是否为持久模态框 (不可关闭) */
   persistent?: boolean
+  surface?: 'glass' | 'solid'
   /** 自定义类名 */
   contentClass?: string
 }
@@ -148,6 +152,7 @@ const props = withDefaults(defineProps<Props>(), {
   closeOnBackdrop: true,
   closeOnEscape: true,
   persistent: false,
+  surface: 'glass',
   contentClass: undefined,
 })
 
@@ -185,6 +190,19 @@ const sizeClasses = {
   full: 'max-w-[calc(100vw-2rem)] max-h-[calc(100vh-2rem)]',
 }
 
+const surfaceClasses: Record<NonNullable<Props['surface']>, string> = {
+  glass: '',
+  solid: '!bg-bg-elevated !backdrop-blur-none !backdrop-saturate-100 !border-border-default shadow-2xl shadow-black/10 dark:shadow-black/40',
+}
+
+
+const backdropClasses = computed(() => [
+  'absolute inset-0',
+  props.surface === 'solid'
+    ? 'bg-black/40 dark:bg-black/60'
+    : 'bg-black/30 dark:bg-black/50 backdrop-blur-md',
+])
+
 // 模态框容器类
 const modalClasses = computed(() => [
   // 基础样式
@@ -196,6 +214,7 @@ const modalClasses = computed(() => [
   // 暗黑模式调整
   'dark:bg-bg-card/90 dark:border-border-color/30',
   'dark:shadow-2xl dark:shadow-black/30',
+  surfaceClasses[props.surface],
   // 尺寸
   sizeClasses[props.size],
   // 自定义类
@@ -218,7 +237,7 @@ const bodyClasses = computed(() => [
 // Footer 类
 const footerClasses = computed(() => [
   'px-6 py-4',
-  'border-t border-border-color/50',
+  'border-t border-border-default',
   'flex items-center justify-end gap-3',
 ])
 

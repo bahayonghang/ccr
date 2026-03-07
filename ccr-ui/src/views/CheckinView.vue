@@ -1,6 +1,6 @@
 <template>
   <div class="checkin-view p-6 space-y-6">
-    <!-- 页面标题 -->
+    <!-- 页面标题与操作 -->
     <div class="flex items-center justify-between">
       <div>
         <h1 class="text-3xl font-bold text-white flex items-center gap-3">
@@ -8,7 +8,7 @@
           签到管理
         </h1>
         <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
-          管理中转站签到账号，执行一键签到并追踪余额
+          管理所有平台的自动签到任务和 Cookie
         </p>
       </div>
       <div class="flex items-center space-x-3">
@@ -93,7 +93,7 @@
       </div>
     </div>
 
-    <!-- 签到结果弹窗 -->
+    <!-- 签到结果汇总 -->
     <div
       v-if="checkinResult"
       ref="checkinResultRef"
@@ -130,10 +130,10 @@
                 ? 'text-amber-800 dark:text-amber-200'
                 : 'text-green-800 dark:text-green-200'"
             >
-              {{ checkinResult.summary.failed > 0 ? '签到完成（部分失败）' : '签到完成' }}
+              {{ checkinResult.summary.failed > 0 ? '签到完成，部分失败' : '签到完成' }}
             </h3>
           </div>
-          <!-- 汇总统计 -->
+          <!-- 结果统计 -->
           <div class="mt-3 flex flex-wrap items-center gap-2 text-xs">
             <span class="inline-flex items-center gap-1 rounded-full px-2 py-1 bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-200">
               <CheckCircle class="w-3.5 h-3.5" />
@@ -152,13 +152,13 @@
             </span>
           </div>
           <div class="mt-4 grid gap-4 md:grid-cols-2">
-            <!-- 成功账号详情 -->
+            <!-- 成功结果 -->
             <div
               v-if="successCheckinResults.length > 0"
               class="space-y-2"
             >
               <p class="text-xs font-medium text-green-700 dark:text-green-300">
-                成功账号 ({{ successCheckinResults.length }}):
+                成功结果（{{ successCheckinResults.length }}）
               </p>
               <div class="space-y-1.5">
                 <div
@@ -189,13 +189,13 @@
                 </div>
               </div>
             </div>
-            <!-- 失败账号详情 -->
+            <!-- 失败结果 -->
             <div
               v-if="failedCheckinResults.length > 0"
               class="space-y-2"
             >
               <p class="text-xs font-medium text-red-600 dark:text-red-400">
-                失败账号 ({{ failedCheckinResults.length }}):
+                失败结果（{{ failedCheckinResults.length }}）
               </p>
               <div class="space-y-1.5">
                 <div
@@ -221,13 +221,13 @@
               </div>
             </div>
           </div>
-          <!-- 已签到账号详情 -->
+          <!-- 已签到结果 -->
           <div
             v-if="alreadyCheckedInResults.length > 0"
             class="mt-4 space-y-2"
           >
             <p class="text-xs font-medium text-blue-700 dark:text-blue-300">
-              已签到账号 ({{ alreadyCheckedInResults.length }}):
+              已签到（{{ alreadyCheckedInResults.length }}）
             </p>
             <div class="space-y-1.5">
               <div
@@ -275,12 +275,12 @@
       </div>
     </div>
 
-    <!-- 主内容区域 -->
+    <!-- 页面主体 -->
     <div
       v-if="!loading && !error"
       class="space-y-6"
     >
-      <!-- 统计卡片（NeuraDock 风格） -->
+      <!-- 顶部统计卡片 -->
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
         <!-- 当前余额 -->
         <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 flex items-center justify-between transition-[box-shadow,transform] duration-200 hover:shadow-md hover:scale-[1.02] cursor-pointer">
@@ -308,7 +308,7 @@
             </svg>
           </div>
         </div>
-        <!-- 总额度 -->
+        <!-- 总额度-->
         <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 flex items-center justify-between transition-[box-shadow,transform] duration-200 hover:shadow-md hover:scale-[1.02] cursor-pointer">
           <div>
             <p class="text-sm font-medium text-gray-500 dark:text-gray-400">
@@ -334,11 +334,11 @@
             </svg>
           </div>
         </div>
-        <!-- 历史消耗 -->
+        <!-- 已消耗-->
         <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 flex items-center justify-between transition-[box-shadow,transform] duration-200 hover:shadow-md hover:scale-[1.02] cursor-pointer">
           <div>
             <p class="text-sm font-medium text-gray-500 dark:text-gray-400">
-              历史消耗
+              已消耗
             </p>
             <p class="mt-1 text-2xl font-bold text-orange-600 dark:text-orange-400 font-mono">
               ${{ totalStatistics.totalConsumed.toFixed(2) }}
@@ -362,7 +362,7 @@
         </div>
       </div>
 
-      <!-- Tab 切换 -->
+      <!-- Tab 导航 -->
       <div class="border-b border-gray-200 dark:border-gray-700">
         <nav class="-mb-px flex space-x-8">
           <button
@@ -383,7 +383,7 @@
         </nav>
       </div>
 
-      <!-- Tab 内容 - 使用子组件 -->
+      <!-- Tab 内容 -->
       <CheckinProvidersTab
         v-if="activeTab === 'providers'"
         :providers="providers"
@@ -415,7 +415,7 @@
       />
     </div>
 
-    <!-- 签到确认弹窗 -->
+    <!-- 一键签到确认弹窗 -->
     <ConfirmModal
       :is-open="showCheckinConfirm"
       title="确认一键签到"
@@ -423,6 +423,7 @@
       confirm-text="开始签到"
       cancel-text="取消"
       type="info"
+      surface="solid"
       @confirm="handleCheckinConfirm"
       @cancel="showCheckinConfirm = false"
       @update:is-open="showCheckinConfirm = $event"
@@ -439,7 +440,7 @@
       @close="closeCheckinModal"
     />
 
-    <!-- OAuth 引导登录弹窗 -->
+    <!-- OAuth 向导弹窗 -->
     <OAuthWizardModal
       :is-open="showOAuthWizard"
       :builtin-providers="builtinProviders"
@@ -455,16 +456,16 @@ defineOptions({ name: 'CheckinView' })
 
 import { useRouter } from 'vue-router'
 import { useCheckinState } from './checkin/composables/useCheckinState'
-// Tab 子组件
+// Tab 组件
 import CheckinProvidersTab from './checkin/tabs/CheckinProvidersTab.vue'
 import CheckinAccountsTab from './checkin/tabs/CheckinAccountsTab.vue'
 import CheckinRecordsTab from './checkin/tabs/CheckinRecordsTab.vue'
 import CheckinImportExportTab from './checkin/tabs/CheckinImportExportTab.vue'
-// 共享组件
+// 弹窗组件
 import ConfirmModal from '@/components/ConfirmModal.vue'
 import CheckinProgressModal from '@/components/CheckinProgressModal.vue'
 import OAuthWizardModal from '@/views/checkin/components/OAuthWizardModal.vue'
-// 图标（页面标题、统计卡片、签到结果区域用到的图标）
+// 图标：去除未使用项，仅保留当前界面需要的图标
 import {
   ClipboardList,
   CheckCircle,
@@ -515,7 +516,7 @@ const {
   refreshAccountBalance,
   // 内置提供商操作
   addBuiltinProvider,
-  // 辅助函数
+  // 结果详情格式化
   getSuccessDetail,
   getAlreadyCheckedInDetail,
   getFailedDetail,
