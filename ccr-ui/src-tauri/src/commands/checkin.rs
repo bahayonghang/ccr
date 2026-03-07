@@ -1,4 +1,4 @@
-//! CheckIn 閸涙垝鎶?閳?Provider/Account/閹笛嗩攽/Balance/Export/CDK/WAF Cookie閵?
+//! CheckIn 命令模块，涵盖 Provider/Account/签到/Balance/Export/CDK/WAF Cookie 等功能。
 
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
@@ -30,7 +30,7 @@ use crate::checkin_jobs::{CheckinJobLogEntry, CheckinJobSnapshot, CheckinJobStat
 use crate::monitoring::{checkin_job_entry, record_monitoring_entry, should_persist};
 use crate::state::AppState;
 
-/// Provider 濮掑倽顩?
+/// Provider 信息
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[allow(dead_code)]
 pub struct ProviderInfo {
@@ -40,7 +40,7 @@ pub struct ProviderInfo {
     pub enabled: bool,
 }
 
-/// Account 濮掑倽顩?
+/// Account 信息
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[allow(dead_code)]
 pub struct AccountInfo {
@@ -52,7 +52,7 @@ pub struct AccountInfo {
     pub last_checkin: Option<String>,
 }
 
-// 閳光偓閳光偓 鏉堝懎濮崙鑺ユ殶 閳光偓閳光偓
+// —— 通用辅助方法 ——
 
 fn checkin_dir_str() -> Result<std::path::PathBuf, String> {
     get_checkin_dir().map_err(|e| format!("Failed to get checkin dir: {}", e))
@@ -200,7 +200,7 @@ async fn execute_checkin_job_accounts(
             let result = match timeout(Duration::from_secs(90), service.checkin(&meta.account_id)).await {
                 Ok(Ok(result)) => result,
                 Ok(Err(error)) => build_failed_checkin_result(&meta, format!("Checkin failed: {}", error)),
-                Err(_) => build_failed_checkin_result(&meta, "????"),
+                Err(_) => build_failed_checkin_result(&meta, "签到超时"),
             };
 
             let state = app_handle.state::<AppState>();
@@ -234,7 +234,7 @@ async fn execute_checkin_job_accounts(
         let state = app_handle.state::<AppState>();
         if let Some(snapshot) = state
             .update_checkin_job(&job_id, |job| {
-                job.mark_pending_failed("????????");
+                job.mark_pending_failed("签到任务失败");
                 if !matches!(job.status, CheckinJobStatus::Finished | CheckinJobStatus::TimedOut) {
                     job.mark_finished(CheckinJobStatus::Finished);
                 }
@@ -274,7 +274,7 @@ async fn run_checkin_job(
             if let Some(snapshot) = app_handle
                 .state::<AppState>()
                 .update_checkin_job(&job_id, |job| {
-                    job.mark_pending_failed("????????");
+                    job.mark_pending_failed("签到任务失败");
                     if !matches!(job.status, CheckinJobStatus::Finished | CheckinJobStatus::TimedOut) {
                         job.mark_finished(CheckinJobStatus::Finished);
                     }
@@ -297,7 +297,7 @@ async fn run_checkin_job(
     }
 }
 
-// 閳光偓閳光偓 Provider 缁狅紕鎮?閳光偓閳光偓
+// —— Provider 管理 ——
 
 #[tauri::command]
 pub async fn list_providers(_state: State<'_, AppState>) -> Result<Value, String> {
@@ -386,7 +386,7 @@ pub async fn test_provider_connection(
     .await
 }
 
-// 閳光偓閳光偓 Account 缁狅紕鎮?閳光偓閳光偓
+// —— Account 管理 ——
 
 #[tauri::command]
 pub async fn list_accounts(
@@ -535,7 +535,7 @@ pub async fn batch_delete_accounts(
     .await
 }
 
-// 閳光偓閳光偓 缁涙儳鍩岄幍褑顢?閳光偓閳光偓
+// —— 签到执行 ——
 
 #[tauri::command]
 pub async fn execute_checkin(
@@ -668,7 +668,7 @@ pub async fn get_checkin_records(
     .await
 }
 
-// 閳光偓閳光偓 Balance 閳光偓閳光偓
+// —— Balance 查询 ——
 
 #[tauri::command]
 pub async fn get_balance(state: State<'_, AppState>, account_id: String) -> Result<Value, String> {
@@ -723,7 +723,7 @@ pub async fn get_balance_stats(_state: State<'_, AppState>) -> Result<Value, Str
     .await
 }
 
-// 閳光偓閳光偓 Export 閳光偓閳光偓
+// —— Export 导出 ——
 
 #[tauri::command]
 pub async fn export_checkin_data(
@@ -758,7 +758,7 @@ pub async fn export_checkin_stats(_state: State<'_, AppState>) -> Result<Value, 
     .await
 }
 
-// 閳光偓閳光偓 CDK 閸忓懎鈧?閳光偓閳光偓
+// —— CDK 充值 ——
 
 #[tauri::command]
 pub async fn execute_cdk_recharge(
@@ -918,7 +918,7 @@ pub async fn get_cdk_history(
     .await
 }
 
-// 閳光偓閳光偓 WAF Cookie 缁狅紕鎮?閳光偓閳光偓
+// —— WAF Cookie 管理 ——
 
 #[tauri::command]
 pub async fn list_waf_cookies(_state: State<'_, AppState>) -> Result<Value, String> {
@@ -1007,7 +1007,7 @@ pub async fn delete_waf_cookie(_state: State<'_, AppState>, id: String) -> Resul
     .await
 }
 
-// 閳光偓閳光偓 閸愬懐鐤?Provider + 鐎电厧鍙嗙€电厧鍤幍鈺佺潔 閳光偓閳光偓
+// —— 内置 Provider 与导入导出 ——
 
 #[tauri::command]
 pub async fn list_builtin_providers() -> Result<Value, String> {
@@ -1135,7 +1135,7 @@ pub async fn import_checkin_config(data: Value, options: Option<Value>) -> Resul
     .await
 }
 
-// 閳光偓閳光偓 Dashboard 閳光偓閳光偓
+// —— Dashboard ——
 
 #[tauri::command]
 pub async fn get_account_dashboard(

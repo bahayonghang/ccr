@@ -1,7 +1,7 @@
-//! Tauri Event 缁崵绮?閳?閺囧じ鍞?WebSocket 鐎圭偞妞傞幒銊┾偓浣碘偓?
+//! Tauri Event 系统，使用原生事件机制替代 WebSocket。
 //!
-//! 闁俺绻?`app_handle.emit(event, payload)` 閸氭垵澧犵粩顖涘腹闁椒绨ㄦ禒璁圭礉
-//! 閸撳秶顏担璺ㄦ暏 `listen(event, handler)` 閻╂垵鎯夐妴?
+//! 后端通过 `app_handle.emit(event, payload)` 广播事件，
+//! 前端通过 `listen(event, handler)` 订阅事件。
 
 use std::collections::VecDeque;
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -10,29 +10,29 @@ use ccr_types::MonitoringEntry;
 use serde::{Deserialize, Serialize};
 use tokio::sync::RwLock;
 
-/// 娴滃娆㈢猾璇茬€烽弸姘
+/// 应用事件联合枚举
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type", content = "data")]
 pub enum AppEvent {
-    /// 缁涙儳鍩岀€瑰本鍨?
+    /// 签到完成事件
     CheckinCompleted(CheckinEventPayload),
-    /// 缁涙儳鍩屾径杈Е
+    /// 签到失败事件
     CheckinFailed(CheckinEventPayload),
-    /// 閸氬本顒為悩鑸碘偓浣稿綁閺?
+    /// 同步状态变更事件
     SyncStatusChanged(SyncEventPayload),
-    /// 閸氬骸褰存禒璇插鏉╂稑瀹?
+    /// 任务进度更新事件
     TaskProgress(TaskProgressPayload),
-    /// 缁崵绮洪柅姘辩叀
+    /// 通知事件
     Notification(NotificationPayload),
-    /// 閻滎垰顣ㄩ悩鑸碘偓浣稿綁閺囪揪绱橶SL/SSH 鏉╃偞甯?閺傤厼绱戦敍?
+    /// 环境切换/状态变更事件（Local/WSL/SSH）
     EnvironmentChanged(EnvironmentEventPayload),
-    /// 閻劑鍣洪弫鐗堝祦鐎电厧鍙嗙€瑰本鍨?
+    /// 用量导入完成事件
     UsageImportCompleted(UsageImportPayload),
-    /// 缂佺喍绔撮惄鎴炲付閺夛紕娲?
+    /// 监控日志事件
     Monitoring(MonitoringEntry),
 }
 
-/// 缁涙儳鍩屾禍瀣╂鏉炲€熷祹
+/// 签到事件载荷
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CheckinEventPayload {
     pub account_id: i64,
@@ -41,7 +41,7 @@ pub struct CheckinEventPayload {
     pub message: String,
 }
 
-/// 閸氬本顒炴禍瀣╂鏉炲€熷祹
+/// 同步事件载荷
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SyncEventPayload {
     pub operation: String,
@@ -49,7 +49,7 @@ pub struct SyncEventPayload {
     pub message: String,
 }
 
-/// 娴犺濮熸潻娑樺鏉炲€熷祹
+/// 任务进度载荷
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TaskProgressPayload {
     pub task_id: String,
@@ -57,7 +57,7 @@ pub struct TaskProgressPayload {
     pub message: String,
 }
 
-/// 闁氨鐓℃潪鍊熷祹
+/// 通知载荷
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NotificationPayload {
     pub level: NotificationLevel,
@@ -65,7 +65,7 @@ pub struct NotificationPayload {
     pub message: String,
 }
 
-/// 闁氨鐓＄痪褍鍩?
+/// 通知级别
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum NotificationLevel {
     Info,
@@ -74,7 +74,7 @@ pub enum NotificationLevel {
     Success,
 }
 
-/// 閻滎垰顣ㄩ崣妯绘纯娴滃娆㈡潪鍊熷祹
+/// 环境事件载荷
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EnvironmentEventPayload {
     pub env_id: String,
@@ -82,14 +82,14 @@ pub struct EnvironmentEventPayload {
     pub status: String,
 }
 
-/// 閻劑鍣虹€电厧鍙嗙€瑰本鍨氭潪鍊熷祹
+/// 用量导入事件载荷
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UsageImportPayload {
     pub imported_count: usize,
     pub platform: String,
 }
 
-/// 娴滃娆㈤弮銉ョ箶缂佺喕顓?
+/// 事件日志统计信息
 #[derive(Debug, Clone, Serialize)]
 pub struct EventLogStats {
     pub entries: usize,
@@ -100,7 +100,7 @@ pub struct EventLogStats {
     pub dropped_events: u64,
 }
 
-// 閳光偓閳光偓 娴滃娆㈤弮銉ョ箶閻滎垰鑸扮紓鎾冲暱閸?閳光偓閳光偓
+// —— 内部事件日志缓冲结构 ——
 
 #[derive(Debug, Clone)]
 struct StoredEventLogEntry {
@@ -108,7 +108,7 @@ struct StoredEventLogEntry {
     size_bytes: usize,
 }
 
-/// 娴滃娆㈤弮銉ョ箶 閳?娣囨繄鏆€閺堚偓鏉?N 閺夆€茬皑娴犳湹绶甸崜宥囶伂閺屻儴顕?
+/// 事件日志，按环形缓冲保存最近 N 条事件并限制总内存占用
 pub struct EventLog {
     buffer: RwLock<VecDeque<StoredEventLogEntry>>,
     capacity: usize,
@@ -117,7 +117,7 @@ pub struct EventLog {
     dropped_events: AtomicU64,
 }
 
-/// 閺冦儱绻旈弶锛勬窗
+/// 事件日志条目
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EventLogEntry {
     pub id: u64,
@@ -126,13 +126,13 @@ pub struct EventLogEntry {
 }
 
 impl EventLog {
-    /// 閸掓稑缂撻幐鍥х暰鐎瑰綊鍣洪惃鍕皑娴犺埖妫╄箛?
+    /// 创建仅限制条目数量的事件日志
     #[allow(dead_code)]
     pub fn new(capacity: usize) -> Self {
         Self::with_limits(capacity, 10 * 1024, 5 * 1024 * 1024)
     }
 
-    /// 閸掓稑缂撶敮锕€銇囩亸蹇涙閸掑墎娈戞禍瀣╂閺冦儱绻?
+    /// 创建同时限制单条大小与总大小的事件日志
     pub fn with_limits(
         capacity: usize,
         max_event_size_bytes: usize,
@@ -147,7 +147,7 @@ impl EventLog {
         }
     }
 
-    /// 鏉╄棄濮炴禍瀣╂
+    /// 推入事件
     pub async fn push(&self, event: AppEvent) {
         let event_size_bytes = serde_json::to_vec(&event).map_or(0, |bytes| bytes.len());
         if event_size_bytes > self.max_event_size_bytes {
@@ -183,7 +183,7 @@ impl EventLog {
         });
     }
 
-    /// 閼惧嘲褰囬張鈧潻?N 閺夆€茬皑娴?
+    /// 获取最近 N 条事件
     pub async fn recent(&self, count: usize) -> Vec<EventLogEntry> {
         let buf = self.buffer.read().await;
         buf.iter()
@@ -193,7 +193,7 @@ impl EventLog {
             .collect()
     }
 
-    /// 缂佺喕顓告穱鈩冧紖
+    /// 获取日志统计
     pub async fn stats(&self) -> EventLogStats {
         let buf = self.buffer.read().await;
         EventLogStats {
@@ -207,7 +207,7 @@ impl EventLog {
     }
 }
 
-/// 娴滃娆㈤柅姘朵壕閸氬秶袨鐢悂鍣?
+/// 事件通道名称常量
 #[allow(dead_code)]
 pub mod channels {
     pub const CHECKIN_COMPLETED: &str = "checkin:completed";
@@ -219,4 +219,3 @@ pub mod channels {
     pub const USAGE_IMPORT: &str = "usage:import-completed";
     pub const MONITORING_ENTRY: &str = "app:monitoring";
 }
-

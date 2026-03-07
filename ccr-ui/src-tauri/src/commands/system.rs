@@ -1,4 +1,4 @@
-//! 缂備緡鍨靛畷鐢靛垝濞差亜宸濋柟瀛樺笚婵?闂?缂備緡鍨靛畷鐢靛垝閻戞鈹嶉柍鈺佸暕缁辨牠鏌曢崱鏇″厡濠⒀勵殜瀵敻顢楁笟鍥ㄢ挄闂佸搫琚崕顖炲焵椤戣法顦﹀ù鐘茬摠閹棃鏌ㄧ€ｅ灚鈷曢梺鍝勮閸庮垶鍩€椤戞寧顦风紒銊ｅ妽缁傛帡鎳滈悽闈涘绩闁荤姴娴傚鍧楀焵?
+//! 系统命令模块，提供系统信息、版本检查、健康检查、监控事件查询与运行时指标采样。
 
 use ccr_types::{FrontendLogInput, MonitoringEntry, MonitoringFeedQuery};
 
@@ -12,7 +12,7 @@ use crate::monitoring::{event_to_monitoring_entry, frontend_log_entry, record_mo
 use crate::process::tokio_command;
 use crate::state::AppState;
 
-/// 缂備緡鍨靛畷鐢靛垝閻戞鈹嶉柍鈺佸暕缁?
+/// 系统信息响应结构
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SystemInfo {
     pub os_name: String,
@@ -24,7 +24,7 @@ pub struct SystemInfo {
     pub ccr_version: String,
 }
 
-/// 闂佺粯顨呴悧濠傦耿閺夎娑㈠焵椤掑嫬钃熼柕澹懏灏濋梺?
+/// 版本检查结果
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct VersionInfo {
     pub current: String,
@@ -32,7 +32,7 @@ pub struct VersionInfo {
     pub update_available: bool,
 }
 
-/// 闁哄鏅滈崝姗€銆侀幋锕€绫嶉柤鎼佹涧閻﹀綊鏌?
+/// 运行时指标响应
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RuntimeMetricsResponse {
     pub cache_entries: usize,
@@ -124,7 +124,7 @@ pub async fn get_system_info() -> Result<SystemInfo, String> {
 #[tauri::command]
 pub async fn check_version() -> Result<VersionInfo, String> {
     let current = env!("CARGO_PKG_VERSION").to_string();
-    // TODO: Phase B4 闂?闂佸搫琚崕鎾敋?GitHub releases API
+    // TODO: Phase B4 接入 GitHub Releases API
     Ok(VersionInfo {
         current,
         latest: None,
@@ -134,7 +134,7 @@ pub async fn check_version() -> Result<VersionInfo, String> {
 
 #[tauri::command]
 pub async fn health_check(state: State<'_, AppState>) -> Result<serde_json::Value, String> {
-    // 濠碘槅鍋€閸嬫捇鏌＄仦璇插姕闁哄棛鍠栭獮鎴︻敊閼测晜鐨戦柡澶嗘櫇閸嬬偟鏁?
+    // 仅检查数据库连接是否可用
     let db_ok = state.db_pool.get().map(|_| true).unwrap_or(false);
 
     Ok(serde_json::json!({
@@ -422,7 +422,7 @@ mod tests {
         assert_eq!(payload.get("versions").and_then(|v| v.as_object()).map(|m| m.len()), Some(4));
         assert_eq!(payload.get("entries").and_then(|v| v.as_array()).map(|a| a.len()), Some(4));
 
-        // fast 濠碘槅鍨埀顒€纾涵鈧繛鎴炴尭椤戝懎鐣甸崱妯诲闁割煈鍠氶幗鐘绘煕閿斿搫濮€缂佸鎸冲顔炬媼閸︻厾顦繛鎴炴⒒閸犲秶绮径瀣劅闁哄啫娲ㄥ瓭闁哄鏅涘ú锝囩博鐎涙鈻旀い蹇撳鐠佹煡鏌熼幁鎺戝姎鐟滄澘鐗撻幆鍐礋椤愵偅鈷栭梻浣烘櫕閸犳牕危閸ヮ剙纾?
+        // fast 模式下应在合理时间内返回，避免回归导致探测超时
         assert!(started_at.elapsed() <= Duration::from_millis(5_000));
     }
 }

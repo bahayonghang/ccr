@@ -1,6 +1,6 @@
-//! 閻滎垰顣ㄧ粻锛勬倞閸涙垝鎶?閳?閹笛嗩攽閻滎垰顣ㄩ崚妤勩€冮妴浣稿瀼閹诡潿鈧礁鍩涢弬鑸偓?
+//! 环境管理命令模块，负责列出、切换与刷新执行环境。
 //!
-//! 闁俺绻?AppState 娑擃厾娈?EnvironmentRegistry 缁狅紕鎮?Local/WSL/SSH 閻滎垰顣ㄩ妴?
+//! 通过 AppState 中的 EnvironmentRegistry 管理 Local/WSL/SSH 环境。
 
 use std::sync::Arc;
 
@@ -18,14 +18,14 @@ use crate::platform::ssh::{SshEnvironment, SshHostConfig};
 use crate::platform::wsl::{WslEnvironment, detect_wsl_distros_with_cache};
 use crate::state::AppState;
 
-/// 閸掓鍤幍鈧張澶婂嚒濞夈劌鍞介惃鍕⒔鐞涘瞼骞嗘晶?
+/// 列出所有已注册的执行环境。
 #[tauri::command]
 pub async fn list_environments(state: State<'_, AppState>) -> Result<Vec<EnvironmentInfo>, String> {
     let registry = state.env_registry.read().await;
     Ok(registry.list())
 }
 
-/// 閼惧嘲褰囪ぐ鎾冲濞叉槒绌悳顖氼暔
+/// 获取当前激活的执行环境。
 #[tauri::command]
 pub async fn get_current_environment(
     state: State<'_, AppState>,
@@ -37,7 +37,7 @@ pub async fn get_current_environment(
         .ok_or_else(|| "No active environment".to_string())
 }
 
-/// 閸掑洦宕插ú鏄忕┈閻滎垰顣ㄩ敍鍫熷瘻 ID閿?
+/// 按环境 ID 切换当前执行环境。
 #[tauri::command]
 pub async fn switch_environment(
     app_handle: tauri::AppHandle,
@@ -57,7 +57,7 @@ pub async fn switch_environment(
 
     drop(registry);
 
-    // 楠炴寧鎸遍悳顖氼暔閸掑洦宕叉禍瀣╂閿涘牆銇戠拹銉ょ矌鐠佹澘缍嶉敍灞肩瑝瑜板崬鎼锋稉缁樼ウ缁嬪绱?
+    // 切换完成后广播环境变更事件，并写入监控日志。
     let payload = EnvironmentEventPayload {
         env_id: active_env.id.clone(),
         env_type: format!("{:?}", active_env.env_type).to_lowercase(),
@@ -77,10 +77,10 @@ pub async fn switch_environment(
     Ok(active_env)
 }
 
-/// 閸掗攱鏌婇悳顖氼暔閸掓銆?閳?闁插秵鏌婂Λ鈧ù瀣讲閻劎娈?WSL/SSH 閻滎垰顣?
+/// 刷新环境列表，并重新发现本地、WSL/SSH 执行环境。
 ///
-/// # 閸欏倹鏆?
-/// - `force_refresh`: 閺勵垰鎯佸鍝勫煑閸掗攱鏌?WSL 缂傛挸鐡?
+/// # 参数
+/// - `force_refresh`: 是否强制刷新 WSL 发行版缓存
 #[tauri::command]
 pub async fn refresh_environments(
     state: State<'_, AppState>,
@@ -113,8 +113,8 @@ pub async fn refresh_environments(
     let hosts = match tokio::task::spawn_blocking(move || {
         let conn = db_pool
             .get()
-            .map_err(|e| format!("閼惧嘲褰囬弫鐗堝祦鎼存捁绻涢幒銉ャ亼鐠? {e}"))?;
-        ssh_repo::list_hosts(&conn).map_err(|e| format!("鐠囪褰?SSH 娑撶粯婧€婢惰精瑙? {e}"))
+            .map_err(|e| format!("Failed to get database connection: {e}"))?;
+        ssh_repo::list_hosts(&conn).map_err(|e| format!("Failed to list SSH hosts: {e}"))
     })
     .await
     {
@@ -157,7 +157,7 @@ pub async fn refresh_environments(
     Ok(registry.list())
 }
 
-/// 闁俺绻冭ぐ鎾冲濞叉槒绌悳顖氼暔閸掓鍤獮鍐插酱
+/// 获取当前环境支持的平台列表。
 #[tauri::command]
 pub async fn env_list_platforms(state: State<'_, AppState>) -> Result<Value, String> {
     let registry = state.env_registry.read().await;
@@ -174,7 +174,7 @@ pub async fn env_list_platforms(state: State<'_, AppState>) -> Result<Value, Str
     serde_json::to_value(&platforms).map_err(|e| format!("Serialization error: {e}"))
 }
 
-/// 闁俺绻冭ぐ鎾冲濞叉槒绌悳顖氼暔濡偓濞?CLI 瀹搞儱鍙块悩鑸碘偓?
+/// 检测当前环境中的 CLI 状态。
 #[tauri::command]
 pub async fn env_detect_cli(state: State<'_, AppState>) -> Result<Value, String> {
     let registry = state.env_registry.read().await;

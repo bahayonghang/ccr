@@ -1,4 +1,4 @@
-//! Usage V2 閸涙垝鎶?閳?SQLite 閻劑鍣虹紒鐔活吀閺屻儴顕楁稉搴☆嚤閸忋儯鈧?
+//! Usage V2 命令模块，基于 SQLite 查询与导入用量数据。
 
 use std::time::Instant;
 
@@ -58,7 +58,7 @@ fn record_db_duration(state: &AppState, db_ms: f64) {
     state.record_db_query_duration_ms(db_ms);
 }
 
-/// 閼惧嘲褰囨担璺ㄦ暏闁插繑鐪归幀?
+/// 获取用量汇总数据
 #[tauri::command]
 pub async fn get_usage_summary_v2(
     state: State<'_, AppState>,
@@ -89,7 +89,7 @@ pub async fn get_usage_summary_v2(
     serde_json::to_value(summary).map_err(|e| format!("Serialize error: {e}"))
 }
 
-/// 閼惧嘲褰囧В蹇旀）鐡掑濞?
+/// 获取用量趋势数据
 #[tauri::command]
 pub async fn get_usage_trends_v2(
     state: State<'_, AppState>,
@@ -120,7 +120,7 @@ pub async fn get_usage_trends_v2(
     serde_json::to_value(trends).map_err(|e| format!("Serialize error: {e}"))
 }
 
-/// 閼惧嘲褰囧Ο鈥崇€风紒鐔活吀
+/// 获取按模型聚合的用量统计
 #[tauri::command]
 pub async fn get_usage_by_model_v2(
     state: State<'_, AppState>,
@@ -151,7 +151,7 @@ pub async fn get_usage_by_model_v2(
     serde_json::to_value(stats).map_err(|e| format!("Serialize error: {e}"))
 }
 
-/// 閼惧嘲褰囨い鍦窗缂佺喕顓?
+/// 获取按项目聚合的用量统计
 #[tauri::command]
 pub async fn get_usage_by_project_v2(
     state: State<'_, AppState>,
@@ -182,7 +182,7 @@ pub async fn get_usage_by_project_v2(
     serde_json::to_value(stats).map_err(|e| format!("Serialize error: {e}"))
 }
 
-/// 閼惧嘲褰囬崚鍡涖€夐弮銉ョ箶閿涘牏绮烘稉鈧弻銉嚄婵傛垹瀹抽敍?
+/// 获取用量日志列表，支持游标与分页两种模式
 #[tauri::command]
 pub async fn get_usage_logs_v2(
     state: State<'_, AppState>,
@@ -260,7 +260,7 @@ pub async fn get_usage_logs_v2(
     serde_json::to_value(normalized).map_err(|e| format!("Serialize error: {e}"))
 }
 
-/// 閼惧嘲褰囬懕姘値娴狀亣銆冮弶鍖＄礄濮瑰洦鈧?+ 鐡掑濞?+ 濡€崇€?+ 妞ゅ湱娲伴敍?
+/// 获取用量仪表盘数据，聚合汇总、趋势、模型与项目统计
 #[tauri::command]
 pub async fn get_usage_dashboard_v2(
     state: State<'_, AppState>,
@@ -324,7 +324,7 @@ pub async fn get_usage_dashboard_v2(
     Ok(dashboard)
 }
 
-/// 娴?JSONL 閺傚洣娆㈢€电厧鍙嗛幐鍥х暰楠炲啿褰撮惃鍕暏闁插繑鏆熼幑?
+/// 从 JSONL 文件导入单个平台的用量数据
 #[tauri::command]
 pub async fn import_usage_v2(
     app_handle: tauri::AppHandle,

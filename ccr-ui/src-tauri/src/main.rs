@@ -20,7 +20,7 @@ use tokio::sync::Notify;
 use platform::local::LocalEnvironment;
 use state::{AppState, DEFAULT_SSH_PASSWORD_TTL_SECS, DEFAULT_SSH_STATE_TTL_SECS};
 
-/// 閹煎瓨姊婚弫銈夋焻閳ь剟宕欐潪棰佺箚闁?闁?闁活潿鍔嬬花顒勬焻濮樿京鍙€闁告艾楠歌ぐ瀛樼鐠囨彃顫ら柛瀣矋椤?
+/// 退出流程标志，避免重复触发清理与关闭逻辑。
 static EXIT_REQUESTED: AtomicBool = AtomicBool::new(false);
 
 fn main() {
@@ -34,32 +34,31 @@ fn main() {
     let app = tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .setup(|app| {
-            // 闁冲厜鍋撻柍鍏夊亾 闁告帗绻傞～鎰板礌閺嶃劍娈堕柟璇″枛缁?闁冲厜鍋撻柍鍏夊亾
-            // 闁稿繐鐗嗛崹鍨叏鐎ｎ亜顕ч柛蹇嬪妼閻剚娼婚悙鏉戝婵湱濯寸槐娆戠驳閹冪厒缂佺媴绱曢幃濠囧闯閵娧呮惣闂侇偅淇虹换?with_connection() 濞达綀娉曢弫銈夋晬?
+            // 初始化全局数据库，并确保后续通过 with_connection() 的调用可用。
+            // 这里先启动全局连接池，再为 AppState 创建独立的应用连接池。
             ccr_db::database::initialize().map_err(|e| {
                 tracing::error!("[app] failed to initialize global database pool: {e}");
                 Box::new(e) as Box<dyn std::error::Error>
             })?;
-            // 闁告劕绉撮崹鍗烆嚈閾忕懓顏紒鏂款儓缁绘盯骞掗妷锔炬建缂?AppState闁挎稑婀疭H/闁绘粠鍨伴。銊х不閿涘嫭鍊炵紒娑橆槷婵炲洭鎮介…鎺旂
+            // 创建应用级连接池，供 AppState、SSH/环境注册和后台任务复用。
             let db_pool = ccr_db::database::create_app_pool().map_err(|e| {
                 tracing::error!("[app] failed to create app database pool: {e}");
                 Box::new(e) as Box<dyn std::error::Error>
             })?;
             tracing::info!("[app] database initialized (global + app pool)");
 
-            // 闁冲厜鍋撻柍鍏夊亾 闁哄瀚紓?AppState 闁冲厜鍋撻柍鍏夊亾
+            // 构建并注册全局 AppState。
             let app_state = AppState::new(db_pool);
 
-            // 婵炲鍔岄崬?Local 闁绘粠鍨伴。銊╂晬閸繍娼楃紓浣哥墕瑜版煡鎮介…鎺旂
-            // 婵炲鍔岄崬?managed state
+            // 先注册 Local 环境，其他环境在异步初始化完成后写入 managed state。
             app.manage(app_state);
 
-            // 鐎殿喖鍊归鐐哄礆濠靛棭娼楅柛鏍ㄧ墱楠炲棙鏅堕崘鈺傛殘闁告劕鐭侀妴?
+            // 异步初始化环境注册表，避免阻塞启动流程。
             let app_handle = app.handle().clone();
             tauri::async_runtime::spawn(async move {
                 let state = app_handle.state::<AppState>();
 
-                // Phase C1 闁?闁煎浜滄慨鈺佄涢埀顒€霉?WSL 闁告瑦鍨奸、鎴︽偋閸繆瀚欐繛澶堝妼閸炰粙鏁嶉崼婊呯煂 Windows闁?
+                // Phase C1：在 Windows 上探测 WSL 发行版，失败时仅记录日志。
                 #[cfg(target_os = "windows")]
                 let distros = {
                     use platform::wsl::detect_wsl_distros_with_cache;
@@ -77,14 +76,14 @@ fn main() {
                     }
                 };
 
-                // Phase C2 闁?闁告梻濮惧ù鍥ь啅闊厾绠介悗?SSH 濞戞挾绮┃鈧鐐跺煐閺佺偤宕?
+                // Phase C2：从数据库读取 SSH 主机配置并注册到环境列表。
                 use ccr_db::database::repositories::ssh_repo;
                 let db_pool = state.db_pool.clone();
                 let hosts = match tokio::task::spawn_blocking(move || {
                     let conn = db_pool
                         .get()
-                        .map_err(|e| format!("闁兼儳鍢茶ぐ鍥极閻楀牆绁﹂幖瀛樻崄缁绘盯骞掗妷銉ｄ杭閻? {e}"))?;
-                    ssh_repo::list_hosts(&conn).map_err(|e| format!("閻犲洩顕цぐ?SSH 濞戞挾绮┃鈧鎯扮簿鐟? {e}"))
+                        .map_err(|e| format!("获取 SSH 数据库连接失败: {e}"))?;
+                    ssh_repo::list_hosts(&conn).map_err(|e| format!("查询 SSH 主机列表失败: {e}"))
                 })
                 .await
                 {
@@ -101,7 +100,7 @@ fn main() {
 
                 let mut registry = state.env_registry.write().await;
 
-                // 婵炲鍔岄崬浠嬪嫉椤掆偓濠€鎾偝椤栨凹鏆?
+                // 注册本地环境。
                 registry.register(Arc::new(LocalEnvironment::new()));
                 tracing::info!("[app] local environment registered");
 
@@ -142,7 +141,7 @@ fn main() {
                 );
             });
 
-            // 闁冲厜鍋撻柍鍏夊亾 闁告凹鍨版慨鈺呭触鎼粹€抽叡濞寸姾顕ф慨?闁冲厜鍋撻柍鍏夊亾
+            // 启动后台维护任务。
             let app_handle = app.handle().clone();
             let shutdown_notify = Arc::new(Notify::new());
             let shutdown_clone = shutdown_notify.clone();
@@ -151,7 +150,7 @@ fn main() {
                 run_background_tasks(app_handle, shutdown_clone).await;
             });
 
-            // 濞ｅ洦绻傞悺?shutdown notify 濞寸姰鍎扮粚鍫曟焻閳ь剟宕欓悜妯活槯濞达綀娉曢弫?
+            // 注册 shutdown notify，供退出时通知后台任务收尾。
             app.manage(shutdown_notify);
 
             tracing::info!("[app] setup complete");
@@ -161,7 +160,7 @@ fn main() {
             if let WindowEvent::CloseRequested { api, .. } = event {
                 let state = window.state::<AppState>();
 
-                // 濠碘€冲€归悘澶婎啅閼碱剛鐥呯痪顓у枦椤撶粯娼婚崶顑藉亾閳ь剟宕欓悮瀵哥闁烩晛鐡ㄧ敮鎾绩閹规劦鏀介柨娑樼墛婢э箓鎯嶉弶鎴炲剷闁绘粠鍨界槐?
+                // 已确认退出时直接放行，避免再次弹窗造成循环。
                 if state
                     .exit_confirmed
                     .load(std::sync::atomic::Ordering::SeqCst)
@@ -169,7 +168,7 @@ fn main() {
                     return;
                 }
 
-                // 婵☆偀鍋撻柡灞诲劜濡叉悂宕ラ敃浣哄劜閺夆晛娲ㄩ垾妯兼媼?
+                // 允许用户通过设置跳过退出确认。
                 let skip_confirm = {
                     let settings = state.settings.lock().unwrap();
                     settings.skip_exit_confirm
@@ -179,7 +178,7 @@ fn main() {
                     return;
                 }
 
-                // 闂傚啰绮娑欘渶濡鍚囬柛蹇斿▕濡挳鏁嶇仦鐐枖缂佲偓閾忓厜鈧鎷嬮妶鍜佸殸閻犲洦绻冮、?
+                // 拦截默认关闭行为，弹出确认框后再决定是否真正退出。
                 api.prevent_close();
                 let window = window.clone();
                 window
@@ -193,7 +192,7 @@ fn main() {
                     ))
                     .show(move |confirmed| {
                         if confirmed {
-                            // 閻犱礁澧介悿鍡涘冀閸パ呯濞达絽绋勭槐婵嬫⒓閸欏鍓?window.close() 闁告劕绉甸鑲╂喆閿曗偓瑜板倻鈧數顢婇惁钘夘浖?
+                            // 先设置确认标志，再调用 window.close()，避免再次触发拦截逻辑。
                             let state = window.state::<AppState>();
                             state
                                 .exit_confirmed
@@ -212,19 +211,19 @@ fn main() {
             tracing::info!("[app] exit requested, shutting down...");
             EXIT_REQUESTED.store(true, Ordering::SeqCst);
 
-            // 闂侇偅姘ㄩ悡锟犲触鎼粹€抽叡濞寸姾顕ф慨鐔煎磻濠婂嫷鍓?
+            // 通知后台任务停止等待并尽快结束。
             if let Some(notify) = _app.try_state::<Arc<Notify>>() {
                 notify.notify_waiters();
             }
 
-            // 闁稿繑濞婂Λ鎾极閻楀牆绁﹂幖?
+            // 关闭数据库全局资源。
             ccr_db::database::shutdown();
             tracing::info!("[app] cleanup complete");
         }
     });
 }
 
-/// 闁告艾楠歌ぐ瀛樼鐠囨彃顫?闁?閻庤纰嶅﹢锟犲箥瑜戦、鎴犵磼鐎涙ê袘闁瑰灝绉崇紞?
+/// 后台维护任务循环，定期清理缓存并尝试刷新用量数据。
 async fn run_background_tasks(app_handle: tauri::AppHandle, shutdown: Arc<Notify>) {
     tracing::info!("[background] starting background tasks");
 
@@ -239,7 +238,7 @@ async fn run_background_tasks(app_handle: tauri::AppHandle, shutdown: Arc<Notify
                     break;
                 }
 
-                // 閻庤纰嶅﹢鈥炽€掗崨顖涘€為弶鈺佹处濠€锛勭磽閹惧磭鎽?
+                // 定期执行缓存、SSH 状态与监控日志清理。
                 let state = app_handle.state::<AppState>();
                 state.cache_cleanup().await;
                 state
@@ -250,7 +249,7 @@ async fn run_background_tasks(app_handle: tauri::AppHandle, shutdown: Arc<Notify
                     .await;
                 state.monitoring_logs.cleanup_old_logs().await;
 
-                // 闁活潿鍔戦崳娲极閻楀牆绁﹂悗鐢靛帶閸欏棝鏁嶉崼銉﹂ク濮掓稒锕槐婵囧緞鏉堫偉袝濞戞挸绉瑰Ο鍡樼箙閻戝洨绀?
+                // 尝试刷新 usage 数据；失败时仅记录调试日志，不影响后台循环。
                 if let Err(e) = import_usage_data().await {
                     tracing::debug!("[background] usage import skipped: {e}");
                 }
@@ -263,10 +262,10 @@ async fn run_background_tasks(app_handle: tauri::AppHandle, shutdown: Arc<Notify
     tracing::info!("[background] background tasks stopped");
 }
 
-/// 闁告艾楠歌ぐ鎾偨閵娾晛娅ら柡浣哄瀹撲胶鈧數鍘ч崣?闁?濞寸姴楠搁幃鍥嵁閸愭彃閰?JSONL 闁哄啨鍎辩换鏃傗偓鐢靛帶閸?cost 閻犱焦婢樼紞?
+/// 检查并准备 Usage 导入所需的 JSONL 存储目录。
 async fn import_usage_data() -> Result<(), String> {
-    // CostTracker 闁汇劌瀚弳鐔煎箲椤旂偓鏆?CLI 鐎规悶鍎遍崣鍧楁嚊椤忓浂鏀介悹浣规緲缂嶅秹宕?~/.ccr/costs/
-    // 閺夆晜鐟╅崳閿嬬閸涘宕ｉ悹?storage dir 闁告瑯鍨抽弫銈夊箑瑜岀紞鏃€绋夐崫鍕樊閹兼挳鏀遍ˉ鍛村蓟?
+    // CostTracker 默认使用与 CLI 一致的目录 `~/.ccr/costs/`。
+    // 这里只校验 storage dir 可访问，真正的导入由其他命令触发。
     tokio::task::spawn_blocking(|| {
         let _storage_dir =
             ccr::CostTracker::default_storage_dir().map_err(|e| format!("Storage dir: {e}"))?;
@@ -275,5 +274,3 @@ async fn import_usage_data() -> Result<(), String> {
     .await
     .map_err(|e| format!("Task join: {e}"))?
 }
-
-
