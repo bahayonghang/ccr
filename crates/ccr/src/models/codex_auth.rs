@@ -144,6 +144,7 @@ pub enum AuthStateStatus {
     Valid,
     Invalid,
     Missing,
+    Unsupported,
 }
 
 /// 认证状态快照
@@ -153,68 +154,6 @@ pub struct AuthState {
     pub store: CredentialStoreKind,
     pub status: AuthStateStatus,
     pub reason: String,
-}
-
-/// 认证迁移策略
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-pub struct AuthTransitionPolicy {
-    pub from: AuthIntent,
-    pub to: AuthIntent,
-    pub clear_openai_tokens: bool,
-    pub clear_openai_api_key: bool,
-    pub clear_provider_keys: bool,
-    pub keep_provider_key: Option<String>,
-    pub require_relogin: bool,
-}
-
-impl AuthTransitionPolicy {
-    pub fn between(from: AuthIntent, to: AuthIntent) -> Self {
-        let mut policy = Self {
-            from: from.clone(),
-            to: to.clone(),
-            clear_openai_tokens: false,
-            clear_openai_api_key: false,
-            clear_provider_keys: false,
-            keep_provider_key: None,
-            require_relogin: false,
-        };
-
-        match (&from, &to) {
-            (AuthIntent::ProviderEnvKey { .. }, AuthIntent::OpenAiAuth { .. })
-            | (AuthIntent::NoAuth, AuthIntent::OpenAiAuth { .. }) => {
-                policy.clear_openai_tokens = true;
-                policy.clear_openai_api_key = true;
-                policy.clear_provider_keys = true;
-                policy.require_relogin = true;
-            }
-            (AuthIntent::OpenAiAuth { .. }, AuthIntent::ProviderEnvKey { env_key }) => {
-                policy.clear_openai_tokens = true;
-                policy.clear_openai_api_key = true;
-                policy.clear_provider_keys = true;
-                policy.keep_provider_key = Some(env_key.clone());
-            }
-            (AuthIntent::ProviderEnvKey { .. }, AuthIntent::ProviderEnvKey { env_key }) => {
-                policy.clear_openai_tokens = true;
-                policy.clear_openai_api_key = true;
-                policy.clear_provider_keys = true;
-                policy.keep_provider_key = Some(env_key.clone());
-            }
-            (_, AuthIntent::NoAuth) => {
-                policy.clear_openai_tokens = true;
-                policy.clear_openai_api_key = true;
-                policy.clear_provider_keys = true;
-            }
-            (AuthIntent::OpenAiAuth { .. }, AuthIntent::OpenAiAuth { .. }) => {
-                // OpenAI -> OpenAI：保持 tokens，不做强制清理
-            }
-            (AuthIntent::NoAuth, AuthIntent::ProviderEnvKey { env_key }) => {
-                policy.clear_provider_keys = true;
-                policy.keep_provider_key = Some(env_key.clone());
-            }
-        }
-
-        policy
-    }
 }
 
 /// Codex 账号元数据

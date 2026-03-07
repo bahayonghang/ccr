@@ -3,6 +3,7 @@
 use crate::core::error::CcrError;
 use crate::models::platform::PlatformConfig;
 use crate::platforms::codex::CodexPlatform;
+use crate::services::CodexAuthService;
 use crate::web::{
     error_utils::{
         bad_request, empty_success_response, internal_server_error, spawn_blocking_string,
@@ -25,10 +26,18 @@ pub async fn handle_list_codex_profiles() -> Response {
             Some(current_name.clone())
         };
         let profiles = platform.load_profiles()?;
+        let auth_state = CodexAuthService::new()
+            .ok()
+            .map(|service| service.get_auth_state());
 
         let mut items = Vec::new();
         for (name, profile) in profiles.into_iter() {
-            items.push(build_profile_item(name, &profile, &current_name));
+            items.push(build_profile_item(
+                name,
+                &profile,
+                &current_name,
+                auth_state.as_ref(),
+            ));
         }
 
         Ok::<CodexProfilesResponse, CcrError>(CodexProfilesResponse {
@@ -139,12 +148,12 @@ fn build_profile_config(req: &CodexProfileRequest) -> crate::models::ProfileConf
 
     ProfileConfig {
         description: req.description.clone(),
-        base_url: Some(req.base_url.clone()),
-        auth_token: Some(req.auth_token.clone()),
+        base_url: trim_string(req.base_url.as_ref()),
+        auth_token: trim_string(req.auth_token.as_ref()),
         model: req.model.clone(),
         small_fast_model: req.small_fast_model.clone(),
         provider: req.provider.clone(),
-        provider_type: req.provider_type.clone(),
+        provider_type: normalize_provider_type(req.provider_type.as_deref()).map(str::to_string),
         account: req.account.clone(),
         tags: req.tags.clone(),
         usage_count: Some(0),
@@ -157,10 +166,29 @@ fn build_profile_item(
     name: String,
     profile: &crate::models::ProfileConfig,
     current_profile: &str,
+    auth_state: Option<&crate::models::AuthState>,
 ) -> CodexProfileItem {
     let data = &profile.platform_data;
+    let is_current = name == current_profile;
+    let auth_source = if is_current {
+        auth_state.map(|state| match state.status {
+            crate::models::AuthStateStatus::Unsupported => "unsupported".to_string(),
+            _ => match &state.intent {
+                crate::models::AuthIntent::OpenAiAuth { method } => match method {
+                    crate::models::OpenAiAuthMethod::Chatgpt => "openai_chatgpt".to_string(),
+                    crate::models::OpenAiAuthMethod::Api => "openai_api_key".to_string(),
+                },
+                crate::models::AuthIntent::ProviderEnvKey { env_key } => {
+                    format!("provider:{env_key}")
+                }
+                crate::models::AuthIntent::NoAuth => "none".to_string(),
+            },
+        })
+    } else {
+        None
+    };
 
-    let mut item = CodexProfileItem {
+    CodexProfileItem {
         name,
         description: profile.description.clone(),
         base_url: profile.base_url.clone(),
@@ -168,7 +196,8 @@ fn build_profile_item(
         model: profile.model.clone(),
         small_fast_model: profile.small_fast_model.clone(),
         provider: profile.provider.clone(),
-        provider_type: profile.provider_type.clone(),
+        provider_type: normalize_provider_type(profile.provider_type.as_deref())
+            .map(str::to_string),
         account: profile.account.clone(),
         tags: profile.tags.clone(),
         wire_api: get_string(data, "wire_api"),
@@ -179,10 +208,29 @@ fn build_profile_item(
         model_reasoning_effort: get_string(data, "model_reasoning_effort"),
         network_access: get_string(data, "network_access"),
         disable_response_storage: get_bool(data, "disable_response_storage"),
-        is_current: false,
-    };
-    item.is_current = item.name == current_profile;
-    item
+        credential_store: if is_current {
+            auth_state.map(|state| state.store.as_str().to_string())
+        } else {
+            None
+        },
+        auth_source,
+        is_current,
+    }
+}
+
+fn trim_string(value: Option<&String>) -> Option<String> {
+    value
+        .map(|text| text.trim())
+        .filter(|text| !text.is_empty())
+        .map(str::to_string)
+}
+
+fn normalize_provider_type(value: Option<&str>) -> Option<&'static str> {
+    match value?.trim().to_ascii_lowercase().as_str() {
+        "official_relay" => Some("official_relay"),
+        "third_party" | "third_party_model" => Some("third_party_model"),
+        _ => None,
+    }
 }
 
 fn insert_string(map: &mut IndexMap<String, JsonValue>, key: &str, value: Option<&String>) {
@@ -229,8 +277,8 @@ mod tests {
         let req = CodexProfileRequest {
             name: "legacy".to_string(),
             description: Some("legacy github mode".to_string()),
-            base_url: "https://api.github.com".to_string(),
-            auth_token: "ghp_test".to_string(),
+            base_url: Some("https://api.github.com".to_string()),
+            auth_token: Some("ghp_test".to_string()),
             model: Some("gpt-4".to_string()),
             small_fast_model: None,
             provider: Some("github".to_string()),
@@ -253,5 +301,63 @@ mod tests {
             profile.platform_data.get("api_mode"),
             Some(&JsonValue::String("github".to_string()))
         );
+    }
+
+    #[test]
+    fn test_build_profile_config_allows_official_empty_credentials() {
+        let req = CodexProfileRequest {
+            name: "official".to_string(),
+            description: Some("official relay".to_string()),
+            base_url: None,
+            auth_token: None,
+            model: Some("gpt-5-codex".to_string()),
+            small_fast_model: None,
+            provider: Some("openai".to_string()),
+            provider_type: Some("official_relay".to_string()),
+            account: None,
+            tags: None,
+            api_mode: None,
+            wire_api: None,
+            env_key: None,
+            requires_openai_auth: None,
+            approval_policy: None,
+            sandbox_mode: None,
+            model_reasoning_effort: None,
+            network_access: None,
+            disable_response_storage: None,
+        };
+
+        let profile = build_profile_config(&req);
+        assert!(profile.base_url.is_none());
+        assert!(profile.auth_token.is_none());
+        assert_eq!(profile.provider_type.as_deref(), Some("official_relay"));
+    }
+
+    #[test]
+    fn test_build_profile_config_normalizes_legacy_provider_type() {
+        let req = CodexProfileRequest {
+            name: "legacy-third-party".to_string(),
+            description: Some("legacy provider type".to_string()),
+            base_url: Some("https://api.example.com/v1".to_string()),
+            auth_token: Some("sk-test".to_string()),
+            model: None,
+            small_fast_model: None,
+            provider: Some("mistral".to_string()),
+            provider_type: Some("third_party".to_string()),
+            account: None,
+            tags: None,
+            api_mode: None,
+            wire_api: Some("chat".to_string()),
+            env_key: None,
+            requires_openai_auth: None,
+            approval_policy: None,
+            sandbox_mode: None,
+            model_reasoning_effort: None,
+            network_access: None,
+            disable_response_storage: None,
+        };
+
+        let profile = build_profile_config(&req);
+        assert_eq!(profile.provider_type.as_deref(), Some("third_party_model"));
     }
 }

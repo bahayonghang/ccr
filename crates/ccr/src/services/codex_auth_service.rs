@@ -12,10 +12,10 @@ use crate::core::error::{CcrError, Result};
 use crate::core::lock::LockManager;
 use crate::managers::codex_config::CodexConfigManager;
 use crate::models::{
-    normalize_auth_map_for_intent, AuthIntent, AuthState, AuthStateStatus, CodexAuthAccount,
-    CodexAuthExport, CodexAuthExportAccount, CodexAuthItem, CodexAuthJson, CodexAuthRegistry,
-    CredentialStoreKind, CurrentAuthInfo, ImportMode, ImportResult, LoginState,
-    OpenAiAuthMethod, TokenFreshness,
+    AuthIntent, AuthState, AuthStateStatus, CodexAuthAccount, CodexAuthExport,
+    CodexAuthExportAccount, CodexAuthItem, CodexAuthJson, CodexAuthRegistry, CredentialStoreKind,
+    CurrentAuthInfo, ImportMode, ImportResult, LoginState, OpenAiAuthMethod, TokenFreshness,
+    normalize_auth_map_for_intent,
 };
 use chrono::{DateTime, Duration, Utc};
 use std::path::PathBuf;
@@ -121,6 +121,27 @@ impl CodexAuthService {
             .and_then(|value| value.as_str());
 
         CredentialStoreKind::from_config_value(store)
+    }
+
+    fn supports_managed_auth_accounts(store: CredentialStoreKind) -> bool {
+        matches!(store, CredentialStoreKind::File)
+    }
+
+    fn unsupported_store_error(&self, operation: &str, store: CredentialStoreKind) -> CcrError {
+        CcrError::ConfigError(format!(
+            "当前 Codex 凭据存储为 {}，CCR 暂不支持{}；请使用 `codex login` / `codex logout`，或将 cli_auth_credentials_store 切换为 file",
+            store.as_str(),
+            operation
+        ))
+    }
+
+    fn ensure_managed_auth_supported(&self, operation: &str) -> Result<CredentialStoreKind> {
+        let store = self.detect_credential_store();
+        if Self::supports_managed_auth_accounts(store) {
+            Ok(store)
+        } else {
+            Err(self.unsupported_store_error(operation, store))
+        }
     }
 
     fn find_provider_api_key(
@@ -238,6 +259,18 @@ impl CodexAuthService {
     /// 获取当前认证状态快照
     pub fn get_auth_state(&self) -> AuthState {
         let store = self.detect_credential_store();
+        if !Self::supports_managed_auth_accounts(store) {
+            return AuthState {
+                intent: AuthIntent::NoAuth,
+                store,
+                status: AuthStateStatus::Unsupported,
+                reason: format!(
+                    "当前凭据存储为 {}，CCR 不读取系统钥匙串/自动存储中的实际凭据",
+                    store.as_str()
+                ),
+            };
+        }
+
         let auth_path = self.auth_json_path();
 
         if !auth_path.exists() {
@@ -376,6 +409,8 @@ impl CodexAuthService {
         expires_at: Option<DateTime<Utc>>,
         force: bool,
     ) -> Result<()> {
+        self.ensure_managed_auth_supported("保存账号")?;
+
         // 检查是否已登录
         if !self.is_logged_in() {
             return Err(CcrError::ConfigError(
@@ -496,6 +531,8 @@ impl CodexAuthService {
 
     /// 切换到指定账号
     pub fn switch_account(&self, name: &str) -> Result<()> {
+        self.ensure_managed_auth_supported("切换账号")?;
+
         // 检查账号是否存在
         let registry = self.load_registry()?;
         if !registry.accounts.contains_key(name) {
@@ -546,6 +583,8 @@ impl CodexAuthService {
 
     /// 删除指定账号
     pub fn delete_account(&self, name: &str) -> Result<()> {
+        self.ensure_managed_auth_supported("删除账号")?;
+
         let mut registry = self.load_registry()?;
 
         // 检查账号是否存在
@@ -896,6 +935,8 @@ impl CodexAuthService {
     /// * `Ok(String)` - JSON 格式的导出数据
     /// * `Err(CcrError)` - 导出失败
     pub fn export_accounts(&self, include_secrets: bool) -> Result<String> {
+        self.ensure_managed_auth_supported("导出账号")?;
+
         let registry = self.load_registry()?;
 
         let mut export_accounts = indexmap::IndexMap::new();
@@ -963,6 +1004,8 @@ impl CodexAuthService {
         mode: ImportMode,
         force: bool,
     ) -> Result<ImportResult> {
+        self.ensure_managed_auth_supported("导入账号")?;
+
         // 解析导入数据
         let import_data: CodexAuthExport = serde_json::from_str(content)
             .map_err(|e| CcrError::ConfigError(format!("解析导入数据失败: {}", e)))?;
@@ -1114,6 +1157,11 @@ mod tests {
     fn create_test_service() -> (CodexAuthService, TempDir, TempDir) {
         let ccr_dir = TempDir::new().unwrap();
         let codex_dir = TempDir::new().unwrap();
+        fs::write(
+            codex_dir.path().join("config.toml"),
+            "cli_auth_credentials_store = \"file\"\n",
+        )
+        .unwrap();
 
         let service = CodexAuthService {
             ccr_codex_dir: ccr_dir.path().to_path_buf(),
@@ -1379,6 +1427,31 @@ mod tests {
         let info = service.get_current_auth_info().unwrap();
         assert!(info.account_id.starts_with("api:"));
         assert_ne!(info.account_id, "unknown");
+    }
+
+    #[test]
+    fn test_keyring_store_is_reported_as_unsupported() {
+        let (service, _ccr, codex) = create_test_service();
+        fs::write(
+            codex.path().join("config.toml"),
+            "cli_auth_credentials_store = \"keyring\"\n",
+        )
+        .unwrap();
+        fs::write(
+            codex.path().join("auth.json"),
+            r#"{"OPENAI_API_KEY":"sk-test-api-key"}"#,
+        )
+        .unwrap();
+
+        let state = service.get_auth_state();
+        assert_eq!(state.store, CredentialStoreKind::Keyring);
+        assert_eq!(state.status, AuthStateStatus::Unsupported);
+
+        let err = service
+            .save_current("work", Some("unsupported".to_string()), None, false)
+            .unwrap_err()
+            .to_string();
+        assert!(err.contains("cli_auth_credentials_store"));
     }
 
     // ==================== 账号管理工作流测试 ====================

@@ -8,9 +8,11 @@ use crate::core::error::Result;
 use crate::core::logging::ColorOutput;
 use crate::managers::ConfigManager;
 use crate::managers::PlatformConfigManager;
-use crate::models::{Platform, PlatformPaths};
+use crate::models::{
+    AuthIntent, AuthState, AuthStateStatus, OpenAiAuthMethod, Platform, PlatformPaths,
+};
 use crate::platforms::{base::profile_to_section, create_platform};
-use crate::services::SettingsService;
+use crate::services::{CodexAuthService, SettingsService};
 use crate::utils::Validatable;
 use colored::Colorize;
 use comfy_table::{
@@ -112,39 +114,32 @@ pub async fn current_command() -> Result<()> {
     // 转换为 ConfigSection（统一复用平台公共转换逻辑）
     let mut current_section = profile_to_section(profile)?;
 
-    if platform == Platform::Codex {
-        use crate::managers::CodexConfigManager;
-        if let Ok(mgr) = CodexConfigManager::with_default()
-            && let Ok(auth) = mgr.load_auth()
-        {
-            let requires_auth = profile
-                .platform_data
-                .get("requires_openai_auth")
-                .and_then(|v| match v {
-                    serde_json::Value::Bool(b) => Some(*b),
-                    serde_json::Value::String(s) => match s.to_lowercase().as_str() {
-                        "true" | "1" => Some(true),
-                        "false" | "0" => Some(false),
-                        _ => None,
-                    },
+    let mut codex_auth_state = None;
+    if platform == Platform::Codex
+        && let Ok(service) = CodexAuthService::new()
+    {
+        let state = service.get_auth_state();
+        if matches!(state.store, crate::models::CredentialStoreKind::File) {
+            use crate::managers::CodexConfigManager;
+            if let Ok(mgr) = CodexConfigManager::with_default()
+                && let Ok(auth) = mgr.load_auth()
+            {
+                let auth_key_name = match &state.intent {
+                    AuthIntent::OpenAiAuth {
+                        method: OpenAiAuthMethod::Api,
+                    } => Some("OPENAI_API_KEY"),
+                    AuthIntent::ProviderEnvKey { env_key } => Some(env_key.as_str()),
                     _ => None,
-                })
-                .unwrap_or(true);
+                };
 
-            let env_key_name = if requires_auth {
-                "OPENAI_API_KEY"
-            } else {
-                profile
-                    .platform_data
-                    .get("env_key")
-                    .and_then(|v| v.as_str())
-                    .unwrap_or("OPENAI_API_KEY")
-            };
-
-            if let Some(token) = auth.get(env_key_name).and_then(|v| v.as_str()) {
-                current_section.auth_token = Some(token.to_string());
+                if let Some(auth_key_name) = auth_key_name
+                    && let Some(token) = auth.get(auth_key_name).and_then(|v| v.as_str())
+                {
+                    current_section.auth_token = Some(token.to_string());
+                }
             }
         }
+        codex_auth_state = Some(state);
     }
 
     let current_name = current_profile;
@@ -208,6 +203,17 @@ pub async fn current_command() -> Result<()> {
         config_table.add_row(vec![
             Cell::new("提供商").fg(TableColor::Yellow),
             Cell::new(provider).fg(TableColor::Cyan),
+        ]);
+    }
+
+    if let Some(auth_state) = &codex_auth_state {
+        config_table.add_row(vec![
+            Cell::new("凭据存储").fg(TableColor::Yellow),
+            Cell::new(auth_state.store.as_str()).fg(TableColor::Cyan),
+        ]);
+        config_table.add_row(vec![
+            Cell::new("认证来源").fg(TableColor::Yellow),
+            Cell::new(render_auth_source(auth_state)).fg(TableColor::Cyan),
         ]);
     }
 
@@ -393,4 +399,19 @@ pub async fn current_command() -> Result<()> {
     }
 
     Ok(())
+}
+
+fn render_auth_source(auth_state: &AuthState) -> String {
+    if matches!(auth_state.status, AuthStateStatus::Unsupported) {
+        return "unsupported".to_string();
+    }
+
+    match &auth_state.intent {
+        AuthIntent::OpenAiAuth { method } => match method {
+            OpenAiAuthMethod::Chatgpt => "openai_chatgpt".to_string(),
+            OpenAiAuthMethod::Api => "openai_api_key".to_string(),
+        },
+        AuthIntent::ProviderEnvKey { env_key } => format!("provider:{env_key}"),
+        AuthIntent::NoAuth => "none".to_string(),
+    }
 }

@@ -31,6 +31,21 @@ pub async fn save_command(
     force: bool,
 ) -> Result<()> {
     let service = CodexAuthService::new()?;
+    let auth_state = service.get_auth_state();
+
+    if matches!(
+        auth_state.status,
+        crate::models::AuthStateStatus::Unsupported
+    ) {
+        ColorOutput::error("当前凭据存储模式暂不支持 CCR 保存账号");
+        println!();
+        ColorOutput::info(&format!("凭据存储: {}", auth_state.store.as_str()));
+        ColorOutput::info(&format!("状态说明: {}", auth_state.reason));
+        ColorOutput::info(
+            "请使用 `codex login` / `codex logout`，或先把 cli_auth_credentials_store 切换为 file",
+        );
+        return Ok(());
+    }
 
     // 检查是否已登录
     if !service.is_logged_in() {

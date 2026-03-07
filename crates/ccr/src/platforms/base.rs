@@ -50,6 +50,7 @@ pub fn profile_to_section(profile: &ProfileConfig) -> Result<ConfigSection> {
         .as_ref()
         .and_then(|s| match s.as_str() {
             "official_relay" => Some(ProviderType::OfficialRelay),
+            "third_party" => Some(ProviderType::ThirdPartyModel),
             "third_party_model" => Some(ProviderType::ThirdPartyModel),
             _ => None,
         });

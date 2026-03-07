@@ -9,17 +9,53 @@
 
 use crate::core::error::{CcrError, Result};
 use crate::managers::codex_config::CodexConfigManager;
-use crate::models::{
-    normalize_auth_map_for_intent, AuthIntent, AuthTransitionPolicy, CredentialStoreKind,
-    OpenAiAuthMethod, Platform, PlatformConfig, PlatformPaths, ProfileConfig,
-};
+use crate::models::{CredentialStoreKind, Platform, PlatformConfig, PlatformPaths, ProfileConfig};
 use crate::platforms::base;
 use indexmap::IndexMap;
 use serde_json::Value as JsonValue;
 use std::path::PathBuf;
-use tracing::debug;
+
+#[cfg(test)]
+use crate::models::{AuthIntent, OpenAiAuthMethod};
 
 const THIRD_PARTY_RUNTIME_PROVIDER_KEY: &str = "custom";
+const OPENAI_PROVIDER_KEY: &str = "openai";
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum RouteSelection {
+    Official {
+        relay_base_url: Option<String>,
+    },
+    ThirdPartyCustom {
+        provider_name: String,
+        base_url: String,
+        wire_api: String,
+        requires_openai_auth: bool,
+        env_key: Option<String>,
+    },
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum AuthSelection {
+    PreserveOpenAi,
+    WriteOpenAiApiKey(String),
+    WriteProviderEnvKey { env_key: String, token: String },
+    NoAuth,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct SwitchSpec {
+    route: RouteSelection,
+    auth: AuthSelection,
+    model: Option<String>,
+    approval_policy: Option<String>,
+    sandbox_mode: Option<String>,
+    reasoning_effort: Option<String>,
+    network_access: Option<bool>,
+    disable_response_storage: Option<bool>,
+    forced_login_method: Option<String>,
+    credential_store_override: Option<CredentialStoreKind>,
+}
 
 /// 💻 Codex Platform 实现
 ///
@@ -29,8 +65,8 @@ const THIRD_PARTY_RUNTIME_PROVIDER_KEY: &str = "custom";
 /// - Auth: `~/.codex/auth.json`
 ///
 /// ## 分发模式
-/// - **Official**: 完全重置 config.toml + auth.json 到默认状态
-/// - **ThirdParty**: read-modify-write，仅更新 provider 相关字段
+/// - **Official**: 显式切到 openai provider，并按 profile 覆盖 CCR 管理字段
+/// - **ThirdParty**: 固定写入 model_provider = "custom"
 pub struct CodexPlatform {
     paths: PlatformPaths,
     config_manager: CodexConfigManager,
@@ -51,15 +87,35 @@ impl CodexPlatform {
     // 🔍 Profile 分类方法
     // ═══════════════════════════════════════════════════════════
 
+    fn canonical_provider_type(value: Option<&str>) -> Option<&'static str> {
+        match value?.trim().to_ascii_lowercase().as_str() {
+            "official_relay" => Some("official_relay"),
+            "third_party" | "third_party_model" => Some("third_party_model"),
+            _ => None,
+        }
+    }
+
+    fn normalize_profile_for_storage(profile: &ProfileConfig) -> ProfileConfig {
+        let mut normalized = profile.clone();
+        normalized.provider_type =
+            Self::canonical_provider_type(profile.provider_type.as_deref()).map(str::to_string);
+        normalized
+    }
+
+    fn trimmed(value: Option<&String>) -> Option<String> {
+        value
+            .map(|text| text.trim())
+            .filter(|text| !text.is_empty())
+            .map(str::to_string)
+    }
+
     /// 🔍 判断是否为官方配置
     ///
     /// 优先检查 provider_type 字段，回退检查 base_url
     fn is_official_profile(profile: &ProfileConfig) -> bool {
-        // provider_type 优先
-        if let Some(pt) = &profile.provider_type {
-            return pt == "official_relay";
+        if let Some(kind) = Self::canonical_provider_type(profile.provider_type.as_deref()) {
+            return kind == "official_relay";
         }
-        // 回退：无 base_url 视为官方
         profile
             .base_url
             .as_ref()
@@ -131,7 +187,7 @@ impl CodexPlatform {
     fn resolve_wire_api(profile: &ProfileConfig) -> Result<String> {
         let protocol = Self::platform_string(profile, "wire_api")
             .or_else(|| Self::platform_string(profile, "api_protocol"))
-            .unwrap_or_else(|| "responses".into());
+            .unwrap_or_else(|| "chat".into());
 
         let normalized = protocol.to_lowercase();
         if normalized == "responses" || normalized == "chat" {
@@ -157,11 +213,13 @@ impl CodexPlatform {
         }
     }
 
-    fn resolve_provider_id(name: &str, profile: &ProfileConfig) -> String {
-        let candidate = Self::platform_string(profile, "provider_id")
+    fn resolve_provider_name(name: &str, profile: &ProfileConfig) -> String {
+        profile
+            .description
+            .clone()
             .or_else(|| profile.provider.clone())
-            .unwrap_or_else(|| name.to_string());
-        Self::sanitize_identifier(&candidate)
+            .filter(|value| !value.trim().is_empty())
+            .unwrap_or_else(|| Self::sanitize_identifier(name))
     }
 
     fn ensure_toml_table(
@@ -175,34 +233,45 @@ impl CodexPlatform {
             .ok_or_else(|| CcrError::ConfigError("TOML table expected".into()))
     }
 
-    fn resolve_openai_auth_method(profile: &ProfileConfig) -> OpenAiAuthMethod {
-        let raw_method = Self::platform_string(profile, "openai_auth_method")
-            .or_else(|| Self::platform_string(profile, "login_method"))
-            .or_else(|| Self::platform_string(profile, "forced_login_method"))
-            .unwrap_or_else(|| "chatgpt".to_string());
+    fn resolve_requires_openai_auth(profile: &ProfileConfig) -> bool {
+        Self::platform_bool(profile, "requires_openai_auth").unwrap_or(false)
+    }
 
-        match raw_method.to_ascii_lowercase().as_str() {
-            "api" | "api_key" => OpenAiAuthMethod::Api,
-            _ => OpenAiAuthMethod::Chatgpt,
+    fn resolve_network_access(profile: &ProfileConfig) -> Result<Option<bool>> {
+        let Some(value) = profile.platform_data.get("network_access") else {
+            return Ok(None);
+        };
+
+        match value {
+            JsonValue::Bool(flag) => Ok(Some(*flag)),
+            JsonValue::String(text) => match text.trim().to_ascii_lowercase().as_str() {
+                "true" | "1" => Ok(Some(true)),
+                "false" | "0" => Ok(Some(false)),
+                invalid => Err(CcrError::ValidationError(format!(
+                    "network_access 必须为 true/false，当前值: {invalid}"
+                ))),
+            },
+            _ => Err(CcrError::ValidationError(
+                "network_access 必须为布尔值".into(),
+            )),
         }
     }
 
-    fn resolve_auth_intent(profile: &ProfileConfig) -> AuthIntent {
-        let env_key = Self::platform_string(profile, "env_key");
-        let requires_openai_auth = Self::platform_bool(profile, "requires_openai_auth")
-            .unwrap_or_else(|| env_key.is_none());
+    fn resolve_credential_store_override(
+        profile: &ProfileConfig,
+    ) -> Result<Option<CredentialStoreKind>> {
+        let Some(store) = Self::platform_string(profile, "cli_auth_credentials_store") else {
+            return Ok(None);
+        };
 
-        if requires_openai_auth {
-            return AuthIntent::OpenAiAuth {
-                method: Self::resolve_openai_auth_method(profile),
-            };
+        match store.to_ascii_lowercase().as_str() {
+            "file" => Ok(Some(CredentialStoreKind::File)),
+            "keyring" => Ok(Some(CredentialStoreKind::Keyring)),
+            "auto" => Ok(Some(CredentialStoreKind::Auto)),
+            _ => Err(CcrError::ValidationError(format!(
+                "cli_auth_credentials_store 必须为 file/keyring/auto，当前值: {store}"
+            ))),
         }
-
-        if let Some(env_key) = env_key {
-            return AuthIntent::ProviderEnvKey { env_key };
-        }
-
-        AuthIntent::NoAuth
     }
 
     fn detect_auth_store(config: &toml::Value) -> CredentialStoreKind {
@@ -213,6 +282,7 @@ impl CodexPlatform {
         CredentialStoreKind::from_config_value(store)
     }
 
+    #[cfg(test)]
     fn parse_current_auth_intent(config: &toml::Value) -> AuthIntent {
         let root = match config.as_table() {
             Some(root) => root,
@@ -231,6 +301,19 @@ impl CodexPlatform {
                 };
             }
         };
+
+        if provider_id == OPENAI_PROVIDER_KEY {
+            let forced = root
+                .get("forced_login_method")
+                .and_then(|v| v.as_str())
+                .map(str::to_string)
+                .unwrap_or_else(|| "chatgpt".to_string());
+            let method = match forced.to_ascii_lowercase().as_str() {
+                "api" => OpenAiAuthMethod::Api,
+                _ => OpenAiAuthMethod::Chatgpt,
+            };
+            return AuthIntent::OpenAiAuth { method };
+        }
 
         let providers = match root.get("model_providers").and_then(|v| v.as_table()) {
             Some(p) => p,
@@ -287,6 +370,7 @@ impl CodexPlatform {
         AuthIntent::NoAuth
     }
 
+    #[cfg(test)]
     fn parse_auth_intent_from_auth_map(
         auth: &serde_json::Map<String, serde_json::Value>,
     ) -> Option<AuthIntent> {
@@ -338,6 +422,7 @@ impl CodexPlatform {
         })
     }
 
+    #[cfg(test)]
     fn resolve_current_auth_intent(
         config: &toml::Value,
         auth: &serde_json::Map<String, serde_json::Value>,
@@ -350,226 +435,371 @@ impl CodexPlatform {
         key.ends_with("_API_KEY") && key != "OPENAI_API_KEY"
     }
 
-    fn apply_auth_transition_policy(
-        auth: &mut serde_json::Map<String, serde_json::Value>,
-        policy: &AuthTransitionPolicy,
-    ) {
-        if policy.clear_openai_tokens {
-            auth.remove("tokens");
-            auth.remove("last_refresh");
-        }
-
-        if policy.clear_openai_api_key {
-            auth.remove("OPENAI_API_KEY");
-        }
-
-        if policy.clear_provider_keys {
-            let keep_provider_key = policy.keep_provider_key.as_deref();
-            auth.retain(|key, _| {
-                if Self::is_provider_api_key_field(key) {
-                    return Some(key.as_str()) == keep_provider_key;
-                }
-                true
-            });
-        }
+    fn remove_openai_tokens(auth: &mut serde_json::Map<String, serde_json::Value>) {
+        auth.remove("tokens");
+        auth.remove("last_refresh");
     }
 
-    fn persist_auth_with_store(
-        &self,
-        store: CredentialStoreKind,
-        auth: &serde_json::Map<String, serde_json::Value>,
-    ) -> Result<()> {
-        match store {
-            CredentialStoreKind::File => self.config_manager.save_auth_atomic(auth),
-            CredentialStoreKind::Keyring | CredentialStoreKind::Auto => {
-                tracing::warn!(
-                    "检测到凭据存储模式为 {}，CCR 采用 auth.json 文件回退写入",
-                    store.as_str()
+    fn remove_openai_api_key(auth: &mut serde_json::Map<String, serde_json::Value>) {
+        auth.remove("OPENAI_API_KEY");
+    }
+
+    fn remove_provider_keys(auth: &mut serde_json::Map<String, serde_json::Value>) {
+        auth.retain(|key, _| !Self::is_provider_api_key_field(key));
+    }
+
+    fn auth_requires_file_write(auth: &AuthSelection) -> bool {
+        matches!(
+            auth,
+            AuthSelection::WriteOpenAiApiKey(_) | AuthSelection::WriteProviderEnvKey { .. }
+        )
+    }
+
+    fn resolve_forced_login_method(
+        profile: &ProfileConfig,
+        auth: &AuthSelection,
+    ) -> Option<String> {
+        if matches!(auth, AuthSelection::WriteOpenAiApiKey(_)) {
+            return Some("api".to_string());
+        }
+
+        Self::platform_string(profile, "forced_login_method")
+            .or_else(|| Self::platform_string(profile, "login_method"))
+            .or_else(|| Self::platform_string(profile, "openai_auth_method"))
+            .map(|method| match method.to_ascii_lowercase().as_str() {
+                "api" | "api_key" => "api".to_string(),
+                _ => "chatgpt".to_string(),
+            })
+    }
+
+    fn apply_auth_selection(
+        auth: &mut serde_json::Map<String, serde_json::Value>,
+        selection: &AuthSelection,
+    ) {
+        match selection {
+            AuthSelection::PreserveOpenAi => {
+                Self::remove_provider_keys(auth);
+            }
+            AuthSelection::WriteOpenAiApiKey(token) => {
+                Self::remove_provider_keys(auth);
+                Self::remove_openai_tokens(auth);
+                auth.insert(
+                    "OPENAI_API_KEY".to_string(),
+                    JsonValue::String(token.clone()),
                 );
-                self.config_manager.save_auth_atomic(auth)
+            }
+            AuthSelection::WriteProviderEnvKey { env_key, token } => {
+                Self::remove_provider_keys(auth);
+                Self::remove_openai_tokens(auth);
+                Self::remove_openai_api_key(auth);
+                auth.insert(env_key.clone(), JsonValue::String(token.clone()));
+            }
+            AuthSelection::NoAuth => {
+                Self::remove_provider_keys(auth);
+                Self::remove_openai_tokens(auth);
+                Self::remove_openai_api_key(auth);
             }
         }
     }
 
-    // ═══════════════════════════════════════════════════════════
-    // 🏛️ 官方模式 - 完全重置
-    // ═══════════════════════════════════════════════════════════
+    fn set_optional_root_string(
+        root: &mut toml::map::Map<String, toml::Value>,
+        key: &str,
+        value: Option<&String>,
+    ) {
+        if let Some(value) = value {
+            root.insert(key.to_string(), toml::Value::String(value.clone()));
+        } else {
+            root.remove(key);
+        }
+    }
 
-    /// 🏛️ 应用官方配置（备份后完全重置）
-    fn apply_official_profile(&self) -> Result<()> {
-        let current_config = self.config_manager.load_config()?;
-        let store = Self::detect_auth_store(&current_config);
-        self.config_manager.reset_to_defaults("pre_official")?;
+    fn set_optional_root_bool(
+        root: &mut toml::map::Map<String, toml::Value>,
+        key: &str,
+        value: Option<bool>,
+    ) {
+        if let Some(value) = value {
+            root.insert(key.to_string(), toml::Value::Boolean(value));
+        } else {
+            root.remove(key);
+        }
+    }
 
-        if matches!(
-            store,
-            CredentialStoreKind::Keyring | CredentialStoreKind::Auto
-        ) {
-            tracing::warn!(
-                "⚠️ 当前认证存储为 {}，已清空 auth.json；如系统钥匙串仍缓存凭据，请执行 codex logout",
-                store.as_str()
+    fn providers_table_mut(
+        root: &mut toml::map::Map<String, toml::Value>,
+        create: bool,
+    ) -> Result<Option<&mut toml::map::Map<String, toml::Value>>> {
+        if create {
+            let providers = root
+                .entry("model_providers")
+                .or_insert_with(|| toml::Value::Table(toml::map::Map::new()));
+            return Self::ensure_toml_table(providers).map(Some);
+        }
+
+        root.get_mut("model_providers")
+            .map(Self::ensure_toml_table)
+            .transpose()
+    }
+
+    fn cleanup_model_providers(root: &mut toml::map::Map<String, toml::Value>) {
+        let should_remove = root
+            .get("model_providers")
+            .and_then(|value| value.as_table())
+            .is_some_and(|table| table.is_empty());
+        if should_remove {
+            root.remove("model_providers");
+        }
+    }
+
+    fn set_network_access(
+        root: &mut toml::map::Map<String, toml::Value>,
+        value: Option<bool>,
+    ) -> Result<()> {
+        match value {
+            Some(flag) => {
+                let workspace = root
+                    .entry("sandbox_workspace_write")
+                    .or_insert_with(|| toml::Value::Table(toml::map::Map::new()));
+                let workspace = Self::ensure_toml_table(workspace)?;
+                workspace.insert("network_access".into(), toml::Value::Boolean(flag));
+            }
+            None => {
+                if let Some(workspace) = root.get_mut("sandbox_workspace_write") {
+                    let workspace = Self::ensure_toml_table(workspace)?;
+                    workspace.remove("network_access");
+                }
+            }
+        }
+
+        let remove_workspace = root
+            .get("sandbox_workspace_write")
+            .and_then(|value| value.as_table())
+            .is_some_and(|table| table.is_empty());
+        if remove_workspace {
+            root.remove("sandbox_workspace_write");
+        }
+
+        Ok(())
+    }
+
+    fn build_switch_spec(name: &str, profile: &ProfileConfig) -> Result<SwitchSpec> {
+        let auth_token = Self::trimmed(profile.auth_token.as_ref());
+        let model = Self::trimmed(profile.model.as_ref());
+        let approval_policy = Self::platform_string(profile, "approval_policy");
+        let sandbox_mode = Self::platform_string(profile, "sandbox_mode");
+        let reasoning_effort = Self::resolve_model_reasoning_effort(profile)?;
+        let network_access = Self::resolve_network_access(profile)?;
+        let disable_response_storage = Self::platform_bool(profile, "disable_response_storage");
+        let credential_store_override = Self::resolve_credential_store_override(profile)?;
+        let route = if Self::is_official_profile(profile) {
+            let relay_base_url = Self::trimmed(profile.base_url.as_ref());
+            RouteSelection::Official { relay_base_url }
+        } else {
+            let base_url = Self::trimmed(profile.base_url.as_ref()).ok_or_else(|| {
+                CcrError::ValidationError("Codex profile 缺少 base_url (api_endpoint)".into())
+            })?;
+            let wire_api = Self::resolve_wire_api(profile)?;
+            let requires_openai_auth = Self::resolve_requires_openai_auth(profile);
+            let env_key = Self::platform_string(profile, "env_key");
+            RouteSelection::ThirdPartyCustom {
+                provider_name: Self::resolve_provider_name(name, profile),
+                base_url,
+                wire_api,
+                requires_openai_auth,
+                env_key,
+            }
+        };
+
+        let auth = match &route {
+            RouteSelection::Official { .. } => match auth_token {
+                Some(token) => AuthSelection::WriteOpenAiApiKey(token),
+                None => AuthSelection::PreserveOpenAi,
+            },
+            RouteSelection::ThirdPartyCustom {
+                requires_openai_auth,
+                env_key,
+                ..
+            } => {
+                if *requires_openai_auth {
+                    match auth_token {
+                        Some(token) => AuthSelection::WriteOpenAiApiKey(token),
+                        None => AuthSelection::PreserveOpenAi,
+                    }
+                } else if let Some(env_key) = env_key.clone() {
+                    let token = auth_token.ok_or_else(|| {
+                        CcrError::ValidationError(format!(
+                            "Codex profile 缺少 auth_token（env_key={env_key}）"
+                        ))
+                    })?;
+                    AuthSelection::WriteProviderEnvKey { env_key, token }
+                } else {
+                    AuthSelection::NoAuth
+                }
+            }
+        };
+
+        let forced_login_method = Self::resolve_forced_login_method(profile, &auth);
+
+        Ok(SwitchSpec {
+            route,
+            auth,
+            model,
+            approval_policy,
+            sandbox_mode,
+            reasoning_effort,
+            network_access,
+            disable_response_storage,
+            forced_login_method,
+            credential_store_override,
+        })
+    }
+
+    fn apply_common_settings(
+        root: &mut toml::map::Map<String, toml::Value>,
+        spec: &SwitchSpec,
+    ) -> Result<()> {
+        Self::set_optional_root_string(root, "model", spec.model.as_ref());
+        Self::set_optional_root_string(root, "approval_policy", spec.approval_policy.as_ref());
+        Self::set_optional_root_string(root, "sandbox_mode", spec.sandbox_mode.as_ref());
+        Self::set_optional_root_string(
+            root,
+            "model_reasoning_effort",
+            spec.reasoning_effort.as_ref(),
+        );
+        Self::set_optional_root_string(
+            root,
+            "forced_login_method",
+            spec.forced_login_method.as_ref(),
+        );
+        Self::set_optional_root_bool(
+            root,
+            "disable_response_storage",
+            spec.disable_response_storage,
+        );
+        Self::set_network_access(root, spec.network_access)?;
+
+        if let Some(store) = spec.credential_store_override {
+            root.insert(
+                "cli_auth_credentials_store".into(),
+                toml::Value::String(store.as_str().to_string()),
             );
         }
 
-        tracing::info!("✅ 已切换到 Codex 官方配置（完全重置）");
         Ok(())
+    }
+
+    fn apply_switch_spec(&self, spec: &SwitchSpec) -> Result<()> {
+        let mut config = self.config_manager.load_config()?;
+        let root = Self::ensure_toml_table(&mut config)?;
+
+        Self::apply_common_settings(root, spec)?;
+
+        match &spec.route {
+            RouteSelection::Official { relay_base_url } => {
+                root.insert(
+                    "model_provider".into(),
+                    toml::Value::String(OPENAI_PROVIDER_KEY.into()),
+                );
+
+                if let Some(providers) = Self::providers_table_mut(root, true)? {
+                    providers.remove(THIRD_PARTY_RUNTIME_PROVIDER_KEY);
+
+                    match relay_base_url {
+                        Some(relay_base_url) => {
+                            let openai_provider = providers
+                                .entry(OPENAI_PROVIDER_KEY.to_string())
+                                .or_insert_with(|| toml::Value::Table(toml::map::Map::new()));
+                            let openai_provider = Self::ensure_toml_table(openai_provider)?;
+                            openai_provider.insert(
+                                "base_url".into(),
+                                toml::Value::String(relay_base_url.clone()),
+                            );
+                        }
+                        None => {
+                            if let Some(openai_provider) = providers.get_mut(OPENAI_PROVIDER_KEY) {
+                                let openai_provider = Self::ensure_toml_table(openai_provider)?;
+                                openai_provider.remove("base_url");
+                            }
+                        }
+                    }
+                }
+                Self::cleanup_model_providers(root);
+            }
+            RouteSelection::ThirdPartyCustom {
+                provider_name,
+                base_url,
+                wire_api,
+                requires_openai_auth,
+                env_key,
+            } => {
+                root.insert(
+                    "model_provider".into(),
+                    toml::Value::String(THIRD_PARTY_RUNTIME_PROVIDER_KEY.into()),
+                );
+
+                let providers = Self::providers_table_mut(root, true)?.expect("providers table");
+                if let Some(openai_provider) = providers.get_mut(OPENAI_PROVIDER_KEY) {
+                    let openai_provider = Self::ensure_toml_table(openai_provider)?;
+                    openai_provider.remove("base_url");
+                }
+
+                let mut provider_table = toml::map::Map::new();
+                provider_table.insert("name".into(), toml::Value::String(provider_name.clone()));
+                provider_table.insert("base_url".into(), toml::Value::String(base_url.clone()));
+                provider_table.insert("wire_api".into(), toml::Value::String(wire_api.clone()));
+                provider_table.insert(
+                    "requires_openai_auth".into(),
+                    toml::Value::Boolean(*requires_openai_auth),
+                );
+                if !requires_openai_auth && let Some(env_key) = env_key {
+                    provider_table.insert("env_key".into(), toml::Value::String(env_key.clone()));
+                }
+                providers.insert(
+                    THIRD_PARTY_RUNTIME_PROVIDER_KEY.to_string(),
+                    toml::Value::Table(provider_table),
+                );
+            }
+        }
+
+        Self::cleanup_model_providers(root);
+        self.config_manager.save_config_atomic(&config)?;
+
+        let auth_store = Self::detect_auth_store(&config);
+        if !matches!(auth_store, CredentialStoreKind::File) {
+            if Self::auth_requires_file_write(&spec.auth) {
+                return Err(CcrError::ValidationError(format!(
+                    "当前 Codex 凭据存储为 {}，CCR 暂不支持写入 auth.json；请先执行 `codex login` / `codex logout`，或将 cli_auth_credentials_store 切换为 file",
+                    auth_store.as_str()
+                )));
+            }
+            return Ok(());
+        }
+
+        let mut auth = self.config_manager.load_auth()?;
+        Self::apply_auth_selection(&mut auth, &spec.auth);
+        self.config_manager.save_auth_atomic(&auth)?;
+        Ok(())
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // 🏛️ 官方模式
+    // ═══════════════════════════════════════════════════════════
+
+    /// 🏛️ 应用官方配置（按 profile 覆盖 CCR 管理字段）
+    fn apply_official_profile(&self, profile: &ProfileConfig) -> Result<()> {
+        let spec = Self::build_switch_spec(OPENAI_PROVIDER_KEY, profile)?;
+        self.apply_switch_spec(&spec)
     }
 
     // ═══════════════════════════════════════════════════════════
     // 🔧 第三方模式 - read-modify-write
     // ═══════════════════════════════════════════════════════════
 
-    /// 🔧 应用第三方配置（read-modify-write，保留非 provider 字段）
+    /// 🔧 应用第三方配置（固定 model_provider = custom）
     fn apply_third_party_profile(&self, name: &str, profile: &ProfileConfig) -> Result<()> {
-        let upstream_provider_id = Self::resolve_provider_id(name, profile);
-        let provider_name = profile
-            .description
-            .clone()
-            .or_else(|| profile.provider.clone())
-            .unwrap_or_else(|| upstream_provider_id.clone());
-        let base_url = profile.base_url.clone().unwrap_or_else(|| {
-            debug!(
-                "Codex profile {} 未配置 base_url，使用空字符串（runtime={}, upstream={})",
-                name, THIRD_PARTY_RUNTIME_PROVIDER_KEY, upstream_provider_id
-            );
-            String::new()
-        });
-        let wire_api = Self::resolve_wire_api(profile)?;
-        let reasoning_effort = Self::resolve_model_reasoning_effort(profile)?;
-        let target_intent = Self::resolve_auth_intent(profile);
-        let requires_auth = matches!(target_intent, AuthIntent::OpenAiAuth { .. });
-        let env_key = match &target_intent {
-            AuthIntent::ProviderEnvKey { env_key } => Some(env_key.clone()),
-            _ => None,
-        };
-        // provider_model: 仅当用户在 platform_data 中显式设置时才写入 provider 表
-        // 不回退到 profile.model，避免 model 在 root 和 provider 表中重复
-        let provider_model = Self::platform_string(profile, "provider_model");
-        let token = profile
-            .auth_token
-            .as_ref()
-            .map(|t| t.trim().to_string())
-            .filter(|t| !t.is_empty());
-
-        // 读取现有配置（保留所有非 provider 字段）
-        let mut config = self.config_manager.load_config()?;
-        let mut auth = self.config_manager.load_auth()?;
-        let current_intent = Self::resolve_current_auth_intent(&config, &auth);
-        let auth_store = Self::detect_auth_store(&config);
-        let root = Self::ensure_toml_table(&mut config)?;
-
-        // 仅修改 provider 相关字段
-        if let Some(model) = profile.model.as_ref() {
-            root.insert("model".into(), toml::Value::String(model.clone()));
-        }
-
-        root.insert(
-            "model_provider".into(),
-            toml::Value::String(THIRD_PARTY_RUNTIME_PROVIDER_KEY.into()),
-        );
-
-        // 可选设置（来自 platform_data）
-        if let Some(policy) = Self::platform_string(profile, "approval_policy") {
-            root.insert("approval_policy".into(), toml::Value::String(policy));
-        }
-
-        if let Some(sandbox) = Self::platform_string(profile, "sandbox_mode") {
-            root.insert("sandbox_mode".into(), toml::Value::String(sandbox));
-        }
-
-        if let Some(reasoning) = reasoning_effort {
-            root.insert(
-                "model_reasoning_effort".into(),
-                toml::Value::String(reasoning),
-            );
-        }
-
-        if let Some(network_access) = Self::platform_string(profile, "network_access") {
-            root.insert("network_access".into(), toml::Value::String(network_access));
-        }
-
-        if let Some(disable_response_storage) =
-            Self::platform_bool(profile, "disable_response_storage")
-        {
-            root.insert(
-                "disable_response_storage".into(),
-                toml::Value::Boolean(disable_response_storage),
-            );
-        }
-
-        // 更新 model_providers 表
-        let providers_value = root
-            .entry("model_providers")
-            .or_insert_with(|| toml::Value::Table(toml::map::Map::new()));
-        let providers_table = Self::ensure_toml_table(providers_value)?;
-
-        let provider_value = providers_table
-            .entry(THIRD_PARTY_RUNTIME_PROVIDER_KEY.to_string())
-            .or_insert_with(|| toml::Value::Table(toml::map::Map::new()));
-        let provider_table = Self::ensure_toml_table(provider_value)?;
-
-        provider_table.insert("name".into(), toml::Value::String(provider_name));
-        provider_table.insert("base_url".into(), toml::Value::String(base_url));
-        provider_table.insert("wire_api".into(), toml::Value::String(wire_api));
-        provider_table.insert(
-            "requires_openai_auth".into(),
-            toml::Value::Boolean(requires_auth),
-        );
-
-        if let Some(ref ek) = env_key {
-            provider_table.insert("env_key".into(), toml::Value::String(ek.clone()));
-        } else {
-            // requires_openai_auth=true 时必须忽略 env_key
-            provider_table.remove("env_key");
-        }
-
-        if let Some(model) = provider_model {
-            provider_table.insert("model".into(), toml::Value::String(model));
-        } else {
-            // provider_model 是可选字段，未设置时应移除旧值
-            provider_table.remove("model");
-        }
-
-        // 原子写入 config.toml
-        self.config_manager.save_config_atomic(&config)?;
-
-        // 按迁移策略更新 auth.json（字段级迁移，避免整文件覆盖）
-        let transition_policy =
-            AuthTransitionPolicy::between(current_intent.clone(), target_intent.clone());
-        Self::apply_auth_transition_policy(&mut auth, &transition_policy);
-        let mut require_relogin_notice = transition_policy.require_relogin;
-
-        match &target_intent {
-            AuthIntent::OpenAiAuth { .. } => {
-                if let Some(token) = token {
-                    auth.insert("OPENAI_API_KEY".to_string(), JsonValue::String(token));
-                    require_relogin_notice = false;
-                }
-            }
-            AuthIntent::ProviderEnvKey { env_key } => {
-                let provider_token = token.ok_or_else(|| {
-                    CcrError::ValidationError(format!(
-                        "Codex profile 缺少 auth_token（env_key={env_key} 对应的 API key）"
-                    ))
-                })?;
-                auth.insert(env_key.clone(), JsonValue::String(provider_token));
-            }
-            AuthIntent::NoAuth => {}
-        }
-
-        auth = normalize_auth_map_for_intent(&target_intent, &auth);
-        self.persist_auth_with_store(auth_store, &auth)?;
-
-        tracing::info!(
-            "✅ 已写入 Codex config ({}) 并更新 auth.json",
-            self.config_manager.config_path().display()
-        );
-
-        if require_relogin_notice {
-            tracing::warn!("⚠️ 认证已按策略清理，请重新执行 codex login 完成 OpenAI 认证");
-        }
-
-        Ok(())
+        let spec = Self::build_switch_spec(name, profile)?;
+        self.apply_switch_spec(&spec)
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -601,14 +831,14 @@ impl PlatformConfig for CodexPlatform {
     }
 
     fn save_profile(&self, name: &str, profile: &ProfileConfig) -> Result<()> {
-        // 先验证
-        self.validate_profile(profile)?;
+        let normalized = Self::normalize_profile_for_storage(profile);
+        self.validate_profile(&normalized)?;
 
         // 加载现有 profiles
         let mut profiles = self.load_profiles()?;
 
         // 添加/更新 profile
-        profiles.insert(name.to_string(), profile.clone());
+        profiles.insert(name.to_string(), normalized);
 
         // 保存
         self.save_profiles_to_file(&profiles)
@@ -641,7 +871,7 @@ impl PlatformConfig for CodexPlatform {
 
         // 两路分发: Official / ThirdParty
         if Self::is_official_profile(profile) {
-            self.apply_official_profile()?;
+            self.apply_official_profile(profile)?;
         } else {
             self.apply_third_party_profile(name, profile)?;
         }
@@ -664,47 +894,32 @@ impl PlatformConfig for CodexPlatform {
             ));
         }
 
-        // 官方配置允许 base_url 和 auth_token 为空
-        if Self::is_official_profile(profile) {
-            return Ok(());
-        }
+        let spec = Self::build_switch_spec("validate", profile)?;
 
-        // 第三方配置：检查 base_url
-        let base_url = profile.base_url.as_ref().ok_or_else(|| {
-            CcrError::ValidationError("Codex profile 缺少 base_url (api_endpoint)".into())
-        })?;
-
-        if !base_url.starts_with("http://") && !base_url.starts_with("https://") {
+        if let Some(base_url) = profile.base_url.as_ref().map(|value| value.trim())
+            && !base_url.is_empty()
+            && !base_url.starts_with("http://")
+            && !base_url.starts_with("https://")
+        {
             return Err(CcrError::ValidationError(
                 "api_endpoint 必须以 http:// 或 https:// 开头".into(),
             ));
         }
 
-        // 验证 wire_api
-        Self::resolve_wire_api(profile)?;
-        Self::resolve_model_reasoning_effort(profile)?;
+        if let Some(token) = profile.auth_token.as_ref()
+            && token.trim().is_empty()
+        {
+            return Err(CcrError::ValidationError(
+                "auth_token 不能为空字符串".into(),
+            ));
+        }
 
-        // 认证约束按意图判断
-        match Self::resolve_auth_intent(profile) {
-            AuthIntent::ProviderEnvKey { env_key } => {
-                let token = profile.auth_token.as_ref().ok_or_else(|| {
-                    CcrError::ValidationError(format!(
-                        "Codex profile 缺少 auth_token（env_key={env_key}）"
-                    ))
-                })?;
-
-                if token.trim().is_empty() {
+        match spec.route {
+            RouteSelection::Official { .. } => {}
+            RouteSelection::ThirdPartyCustom { .. } => {
+                if Self::trimmed(profile.base_url.as_ref()).is_none() {
                     return Err(CcrError::ValidationError(
-                        "Codex profile 缺少有效的 API key".into(),
-                    ));
-                }
-            }
-            AuthIntent::OpenAiAuth { .. } | AuthIntent::NoAuth => {
-                if let Some(token) = profile.auth_token.as_ref()
-                    && token.trim().is_empty()
-                {
-                    return Err(CcrError::ValidationError(
-                        "auth_token 不能为空字符串".into(),
+                        "Codex profile 缺少 base_url (api_endpoint)".into(),
                     ));
                 }
             }
@@ -727,6 +942,14 @@ impl PlatformConfig for CodexPlatform {
 mod tests {
     use super::*;
     use serde_json::json;
+
+    fn write_file_store_config(temp_dir: &tempfile::TempDir) {
+        std::fs::write(
+            temp_dir.path().join("config.toml"),
+            "cli_auth_credentials_store = \"file\"\n",
+        )
+        .unwrap();
+    }
 
     // ═══════════════════════════════════════════════════════════
     // 🔍 Profile 分类测试
@@ -1010,6 +1233,153 @@ requires_openai_auth = true
     }
 
     #[test]
+    fn test_apply_official_profile_overlays_managed_fields() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        unsafe {
+            std::env::set_var("CCR_CODEX_DIR", temp_dir.path().to_str().unwrap());
+        }
+        write_file_store_config(&temp_dir);
+
+        let config_manager = CodexConfigManager::with_default().unwrap();
+        let initial_config: toml::Value = toml::from_str(
+            r#"
+cli_auth_credentials_store = "file"
+model_provider = "custom"
+approval_policy = "never"
+user_custom_field = "keep-me"
+
+[model_providers.custom]
+base_url = "https://api.example.com/v1"
+wire_api = "responses"
+requires_openai_auth = false
+env_key = "MISTRAL_API_KEY"
+"#,
+        )
+        .unwrap();
+        config_manager.save_config_atomic(&initial_config).unwrap();
+
+        let mut auth = serde_json::Map::new();
+        auth.insert(
+            "MISTRAL_API_KEY".to_string(),
+            serde_json::Value::String("mistral-old-key".to_string()),
+        );
+        auth.insert(
+            "legacy_key".to_string(),
+            serde_json::Value::String("keep-me".to_string()),
+        );
+        config_manager.save_auth_atomic(&auth).unwrap();
+
+        let platform = CodexPlatform::new().unwrap();
+        let mut profile = ProfileConfig {
+            description: Some("Official Relay".to_string()),
+            base_url: Some("https://relay.openai.example/v1".to_string()),
+            auth_token: None,
+            model: Some("gpt-5-codex".to_string()),
+            small_fast_model: None,
+            provider: Some("openai".to_string()),
+            provider_type: Some("official_relay".to_string()),
+            account: None,
+            tags: None,
+            usage_count: Some(0),
+            enabled: Some(true),
+            platform_data: IndexMap::new(),
+        };
+        profile
+            .platform_data
+            .insert("approval_policy".into(), json!("on-request"));
+
+        platform.apply_official_profile(&profile).unwrap();
+
+        let config = config_manager.load_config().unwrap();
+        let root = config.as_table().unwrap();
+        assert_eq!(
+            root.get("model_provider").and_then(|v| v.as_str()),
+            Some(OPENAI_PROVIDER_KEY)
+        );
+        assert_eq!(
+            root.get("approval_policy").and_then(|v| v.as_str()),
+            Some("on-request")
+        );
+        assert_eq!(
+            root.get("user_custom_field").and_then(|v| v.as_str()),
+            Some("keep-me")
+        );
+        let providers = root
+            .get("model_providers")
+            .and_then(|v| v.as_table())
+            .unwrap();
+        assert!(
+            !providers.contains_key(THIRD_PARTY_RUNTIME_PROVIDER_KEY),
+            "official switch should remove custom provider block"
+        );
+        let openai_provider = providers
+            .get(OPENAI_PROVIDER_KEY)
+            .and_then(|v| v.as_table())
+            .unwrap();
+        assert_eq!(
+            openai_provider.get("base_url").and_then(|v| v.as_str()),
+            Some("https://relay.openai.example/v1")
+        );
+
+        let auth = config_manager.load_auth().unwrap();
+        assert!(
+            !auth.contains_key("MISTRAL_API_KEY"),
+            "official switch should clear provider credentials"
+        );
+        assert!(
+            auth.contains_key("legacy_key"),
+            "official switch should preserve non-auth metadata"
+        );
+
+        unsafe {
+            std::env::remove_var("CCR_CODEX_DIR");
+        }
+    }
+
+    #[test]
+    fn test_apply_third_party_profile_requires_file_store_for_auth_write() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        unsafe {
+            std::env::set_var("CCR_CODEX_DIR", temp_dir.path().to_str().unwrap());
+        }
+
+        let platform = CodexPlatform::new().unwrap();
+        let mut profile = ProfileConfig {
+            description: Some("Mistral Provider".to_string()),
+            base_url: Some("https://api.mistral.ai/v1".to_string()),
+            auth_token: Some("mistral-key-123".to_string()),
+            model: Some("mistral-large".to_string()),
+            small_fast_model: None,
+            provider: Some("mistral".to_string()),
+            provider_type: None,
+            account: None,
+            tags: None,
+            usage_count: Some(0),
+            enabled: Some(true),
+            platform_data: IndexMap::new(),
+        };
+        profile
+            .platform_data
+            .insert("wire_api".into(), json!("chat"));
+        profile
+            .platform_data
+            .insert("env_key".into(), json!("MISTRAL_API_KEY"));
+
+        let result = platform.apply_third_party_profile("mistral", &profile);
+        assert!(result.is_err());
+        assert!(
+            result
+                .unwrap_err()
+                .to_string()
+                .contains("cli_auth_credentials_store")
+        );
+
+        unsafe {
+            std::env::remove_var("CCR_CODEX_DIR");
+        }
+    }
+
+    #[test]
     fn test_third_party_preserves_fields() {
         let temp_dir = tempfile::tempdir().unwrap();
         unsafe {
@@ -1066,6 +1436,7 @@ requires_openai_auth = true
         unsafe {
             std::env::set_var("CCR_CODEX_DIR", temp_dir.path().to_str().unwrap());
         }
+        write_file_store_config(&temp_dir);
 
         let platform = CodexPlatform::new().unwrap();
         let mut profile = ProfileConfig {
@@ -1090,6 +1461,10 @@ requires_openai_auth = true
             .insert("model_reasoning_effort".into(), json!("HIGH"));
 
         let result = platform.apply_third_party_profile("packy", &profile);
+        assert!(
+            result.is_ok(),
+            "third-party profile should apply successfully"
+        );
         if result.is_ok() {
             let config_path = temp_dir.path().join("config.toml");
             if config_path.exists() {
@@ -1135,7 +1510,12 @@ requires_openai_auth = true
             let auth_path = temp_dir.path().join("auth.json");
             if auth_path.exists() {
                 let content = std::fs::read_to_string(&auth_path).unwrap();
-                assert!(content.contains("sk-packy"));
+                let auth: serde_json::Map<String, serde_json::Value> =
+                    serde_json::from_str(&content).unwrap();
+                assert!(
+                    auth.is_empty(),
+                    "default third-party profile without env_key/requires_openai_auth should not write auth.json, got: {auth:?}"
+                );
             }
         }
 
@@ -1150,6 +1530,7 @@ requires_openai_auth = true
         unsafe {
             std::env::set_var("CCR_CODEX_DIR", temp_dir.path().to_str().unwrap());
         }
+        write_file_store_config(&temp_dir);
 
         let platform = CodexPlatform::new().unwrap();
         let mut profile = ProfileConfig {
@@ -1177,6 +1558,7 @@ requires_openai_auth = true
             .insert("requires_openai_auth".into(), json!(false));
 
         let result = platform.apply_third_party_profile("mistral", &profile);
+        assert!(result.is_ok(), "provider env-key profile should apply");
         if result.is_ok() {
             // 验证 config.toml 包含 env_key
             let config_path = temp_dir.path().join("config.toml");
@@ -1229,6 +1611,7 @@ requires_openai_auth = true
         unsafe {
             std::env::set_var("CCR_CODEX_DIR", temp_dir.path().to_str().unwrap());
         }
+        write_file_store_config(&temp_dir);
 
         let config_manager = CodexConfigManager::with_default().unwrap();
 
@@ -1281,7 +1664,10 @@ requires_openai_auth = true
             auth.get("MISTRAL_API_KEY").and_then(|v| v.as_str()),
             Some("mistral-key-123")
         );
-        assert_eq!(auth.len(), 1, "auth.json should only keep target provider key");
+        assert!(
+            auth.contains_key("legacy_key"),
+            "non-auth metadata should be preserved when rewriting auth.json"
+        );
 
         let config = config_manager.load_config().unwrap();
         let root = config.as_table().unwrap();
@@ -1314,6 +1700,7 @@ requires_openai_auth = true
         unsafe {
             std::env::set_var("CCR_CODEX_DIR", temp_dir.path().to_str().unwrap());
         }
+        write_file_store_config(&temp_dir);
 
         let platform = CodexPlatform::new().unwrap();
         let mut profile = ProfileConfig {
@@ -1336,15 +1723,20 @@ requires_openai_auth = true
         // 不设置 env_key，requires_openai_auth 默认 true
 
         let result = platform.apply_third_party_profile("proxy", &profile);
+        assert!(
+            result.is_ok(),
+            "third-party profile without auth hint should apply"
+        );
         if result.is_ok() {
-            // 验证 auth.json 使用默认的 OPENAI_API_KEY
+            // 新默认值：requires_openai_auth=false，因此不会默认写 OPENAI_API_KEY
             let auth_path = temp_dir.path().join("auth.json");
             if auth_path.exists() {
                 let content = std::fs::read_to_string(&auth_path).unwrap();
+                let auth: serde_json::Map<String, serde_json::Value> =
+                    serde_json::from_str(&content).unwrap();
                 assert!(
-                    content.contains("OPENAI_API_KEY"),
-                    "should default to OPENAI_API_KEY, got: {}",
-                    content
+                    auth.is_empty(),
+                    "default third-party profile should not write auth.json, got: {auth:?}"
                 );
             }
 
@@ -1373,11 +1765,12 @@ requires_openai_auth = true
     }
 
     #[test]
-    fn test_provider_model_explicit_writes_to_provider_table() {
+    fn test_provider_model_explicit_is_ignored() {
         let temp_dir = tempfile::tempdir().unwrap();
         unsafe {
             std::env::set_var("CCR_CODEX_DIR", temp_dir.path().to_str().unwrap());
         }
+        write_file_store_config(&temp_dir);
 
         let platform = CodexPlatform::new().unwrap();
         let mut profile = ProfileConfig {
@@ -1397,12 +1790,16 @@ requires_openai_auth = true
         profile
             .platform_data
             .insert("wire_api".into(), json!("responses"));
-        // Explicitly set provider_model — should appear in provider table
+        // 历史字段 provider_model 已弃用，本次应忽略
         profile
             .platform_data
             .insert("provider_model".into(), json!("custom-gpt-4-alias"));
 
         let result = platform.apply_third_party_profile("custom", &profile);
+        assert!(
+            result.is_ok(),
+            "profile with legacy provider_model should still apply"
+        );
         if result.is_ok() {
             let config_path = temp_dir.path().join("config.toml");
             if config_path.exists() {
@@ -1422,7 +1819,7 @@ requires_openai_auth = true
                     "third-party runtime provider should always be custom"
                 );
 
-                // Provider table model should be provider_model
+                // Provider table model 不应再写入 provider_model
                 let providers = root
                     .get("model_providers")
                     .and_then(|v| v.as_table())
@@ -1433,8 +1830,8 @@ requires_openai_auth = true
                     .unwrap();
                 assert_eq!(
                     provider.get("model").and_then(|v| v.as_str()),
-                    Some("custom-gpt-4-alias"),
-                    "provider table should have explicit provider_model"
+                    None,
+                    "provider table should ignore legacy provider_model"
                 );
             }
         }
@@ -1450,6 +1847,7 @@ requires_openai_auth = true
         unsafe {
             std::env::set_var("CCR_CODEX_DIR", temp_dir.path().to_str().unwrap());
         }
+        write_file_store_config(&temp_dir);
 
         let config_manager = CodexConfigManager::with_default().unwrap();
 
@@ -1549,6 +1947,7 @@ requires_openai_auth = true
         unsafe {
             std::env::set_var("CCR_CODEX_DIR", temp_dir.path().to_str().unwrap());
         }
+        write_file_store_config(&temp_dir);
 
         let config_manager = CodexConfigManager::with_default().unwrap();
 
@@ -1605,7 +2004,14 @@ requires_openai_auth = true
             !auth.contains_key("OPENAI_API_KEY"),
             "OPENAI_API_KEY should not be auto-populated when profile has no auth_token"
         );
-        assert!(auth.is_empty(), "auth.json should be empty after cleanup");
+        assert!(
+            !auth.contains_key("MISTRAL_API_KEY"),
+            "provider key should be removed after switching to openai-auth provider"
+        );
+        assert!(
+            auth.contains_key("legacy_key"),
+            "non-auth metadata should be preserved after cleanup"
+        );
 
         // config.toml: env_key 被移除
         let config = config_manager.load_config().unwrap();

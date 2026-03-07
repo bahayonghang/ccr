@@ -137,6 +137,8 @@ pub struct CodexProfileItem {
     pub model_reasoning_effort: Option<String>,
     pub network_access: Option<String>,
     pub disable_response_storage: Option<bool>,
+    pub credential_store: Option<String>,
+    pub auth_source: Option<String>,
     pub is_current: bool,
 }
 
@@ -145,8 +147,8 @@ pub struct CodexProfileItem {
 pub struct CodexProfileRequest {
     pub name: String,
     pub description: Option<String>,
-    pub base_url: String,
-    pub auth_token: String,
+    pub base_url: Option<String>,
+    pub auth_token: Option<String>,
     pub model: Option<String>,
     pub small_fast_model: Option<String>,
     pub provider: Option<String>,
