@@ -91,6 +91,7 @@ CREATE TABLE IF NOT EXISTS checkin_records (
     account_id TEXT NOT NULL,
     status TEXT NOT NULL,  -- success|failed|already_checked_in
     message TEXT,
+    error_code TEXT,
     reward TEXT,
     balance_before REAL,
     balance_after REAL,

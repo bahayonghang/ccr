@@ -37,6 +37,9 @@ pub struct CheckinRecord {
     /// 消息 (成功消息或错误信息)
     #[serde(skip_serializing_if = "Option::is_none")]
     pub message: Option<String>,
+    /// 错误分类代码 (仅失败时有值)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub error_code: Option<String>,
     /// 签到奖励信息
     #[serde(skip_serializing_if = "Option::is_none")]
     pub reward: Option<String>,
@@ -58,6 +61,7 @@ impl CheckinRecord {
             account_id,
             status: CheckinStatus::Success,
             message,
+            error_code: None,
             reward,
             balance_before: None,
             balance_after: None,
@@ -72,6 +76,7 @@ impl CheckinRecord {
             account_id,
             status: CheckinStatus::AlreadyCheckedIn,
             message,
+            error_code: None,
             reward: None,
             balance_before: None,
             balance_after: None,
@@ -80,12 +85,13 @@ impl CheckinRecord {
     }
 
     /// 创建失败的签到记录
-    pub fn failed(account_id: String, error: String) -> Self {
+    pub fn failed(account_id: String, error: String, error_code: Option<String>) -> Self {
         Self {
             id: uuid::Uuid::new_v4().to_string(),
             account_id,
             status: CheckinStatus::Failed,
             message: Some(error),
+            error_code,
             reward: None,
             balance_before: None,
             balance_after: None,
@@ -128,6 +134,9 @@ pub struct CheckinRecordInfo {
     /// 消息
     #[serde(skip_serializing_if = "Option::is_none")]
     pub message: Option<String>,
+    /// 错误分类代码
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub error_code: Option<String>,
     /// 奖励信息
     #[serde(skip_serializing_if = "Option::is_none")]
     pub reward: Option<String>,
@@ -154,6 +163,7 @@ impl From<CheckinRecord> for CheckinRecordInfo {
             provider_name: None,
             status: record.status,
             message: record.message,
+            error_code: record.error_code,
             reward: record.reward,
             balance_before: record.balance_before,
             balance_after: record.balance_after,

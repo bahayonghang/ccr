@@ -84,6 +84,42 @@ pub enum CheckinServiceError {
     Database(#[from] DbError),
 }
 
+impl CheckinServiceError {
+    /// 返回结构化错误分类代码，用于前端展示可操作的错误提示
+    pub fn error_code(&self) -> &'static str {
+        match self {
+            Self::Provider(_) => "provider_error",
+            Self::Account(_) => "account_error",
+            Self::Crypto(_) => "crypto_error",
+            Self::Network(_) => "network_error",
+            Self::Api(msg) => {
+                if msg.contains("WAF") || msg.contains("waf") {
+                    "waf_blocked"
+                } else if msg.contains("Cloudflare")
+                    || msg.contains("cf_clearance")
+                    || msg.contains("cloudflare")
+                {
+                    "cf_blocked"
+                } else if msg.contains("401")
+                    || msg.contains("403")
+                    || msg.contains("Unauthorized")
+                    || msg.contains("cookie")
+                    || msg.contains("Cookie")
+                    || msg.contains("token")
+                    || msg.contains("expired")
+                {
+                    "cookie_expired"
+                } else {
+                    "api_error"
+                }
+            }
+            Self::Record(_) => "api_error",
+            Self::Balance(_) => "api_error",
+            Self::Database(_) => "api_error",
+        }
+    }
+}
+
 /// 迁移错误
 #[derive(Debug, Error)]
 pub enum MigrationError {

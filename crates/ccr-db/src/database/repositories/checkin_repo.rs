@@ -293,14 +293,15 @@ pub fn insert_record(conn: &Connection, record: &CheckinRecord) -> Result<(), ru
     };
 
     conn.execute(
-        "INSERT INTO checkin_records (id, account_id, status, message, reward,
+        "INSERT INTO checkin_records (id, account_id, status, message, error_code, reward,
          balance_before, balance_after, checked_in_at)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
         params![
             record.id,
             record.account_id,
             status_str,
             record.message,
+            record.error_code,
             record.reward,
             record.balance_before,
             record.balance_after,
@@ -323,7 +324,7 @@ pub fn get_records_by_account(
     limit: usize,
 ) -> Result<Vec<CheckinRecord>, rusqlite::Error> {
     let mut stmt = conn.prepare(
-        "SELECT id, account_id, status, message, reward, balance_before, balance_after, checked_in_at
+        "SELECT id, account_id, status, message, error_code, reward, balance_before, balance_after, checked_in_at
          FROM checkin_records
          WHERE account_id = ?1
          ORDER BY checked_in_at DESC
@@ -344,7 +345,7 @@ pub fn get_all_records(
     limit: usize,
 ) -> Result<Vec<CheckinRecord>, rusqlite::Error> {
     let mut stmt = conn.prepare(
-        "SELECT id, account_id, status, message, reward, balance_before, balance_after, checked_in_at
+        "SELECT id, account_id, status, message, error_code, reward, balance_before, balance_after, checked_in_at
          FROM checkin_records
          ORDER BY checked_in_at DESC
          LIMIT ?1",
@@ -396,7 +397,7 @@ pub fn get_records_paginated(
     // Fetch page
     let offset = (page.saturating_sub(1)) * page_size;
     let select_sql = format!(
-        "SELECT id, account_id, status, message, reward, balance_before, balance_after, checked_in_at
+        "SELECT id, account_id, status, message, error_code, reward, balance_before, balance_after, checked_in_at
          FROM checkin_records {}
          ORDER BY checked_in_at DESC
          LIMIT ?{} OFFSET ?{}",
@@ -640,7 +641,7 @@ pub fn get_today_records(
     let today_start_str = today_start.and_utc().to_rfc3339();
 
     let mut stmt = conn.prepare(
-        "SELECT id, account_id, status, message, reward, balance_before, balance_after, checked_in_at
+        "SELECT id, account_id, status, message, error_code, reward, balance_before, balance_after, checked_in_at
          FROM checkin_records
          WHERE account_id = ?1 AND checked_in_at >= ?2
          ORDER BY checked_in_at DESC",
@@ -971,10 +972,11 @@ fn row_to_record(row: &rusqlite::Row) -> Result<CheckinRecord, rusqlite::Error> 
     let account_id: String = row.get(1)?;
     let status_str: String = row.get(2)?;
     let message: Option<String> = row.get(3)?;
-    let reward: Option<String> = row.get(4)?;
-    let balance_before: Option<f64> = row.get(5)?;
-    let balance_after: Option<f64> = row.get(6)?;
-    let checked_in_at_str: String = row.get(7)?;
+    let error_code: Option<String> = row.get(4)?;
+    let reward: Option<String> = row.get(5)?;
+    let balance_before: Option<f64> = row.get(6)?;
+    let balance_after: Option<f64> = row.get(7)?;
+    let checked_in_at_str: String = row.get(8)?;
 
     let status = match status_str.as_str() {
         "success" => CheckinStatus::Success,
@@ -991,6 +993,7 @@ fn row_to_record(row: &rusqlite::Row) -> Result<CheckinRecord, rusqlite::Error> 
         account_id,
         status,
         message,
+        error_code,
         reward,
         balance_before,
         balance_after,

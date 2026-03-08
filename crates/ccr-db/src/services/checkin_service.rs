@@ -41,6 +41,8 @@ pub struct CheckinExecutionResult {
     pub provider_name: String,
     pub status: CheckinStatus,
     pub message: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub error_code: Option<String>,
     pub reward: Option<String>,
     pub balance: Option<f64>,
 }
@@ -466,6 +468,7 @@ impl CheckinService {
                 provider_name: provider.name.clone(),
                 status: CheckinStatus::AlreadyCheckedIn,
                 message: Some("今日已签到".to_string()),
+                error_code: None,
                 reward: None,
                 balance: None,
             });
@@ -507,6 +510,7 @@ impl CheckinService {
                 provider_name: provider.name.clone(),
                 status: CheckinStatus::AlreadyCheckedIn,
                 message: Some("今日已签到（远程预查）".to_string()),
+                error_code: None,
                 reward: None,
                 balance: None,
             };
@@ -525,26 +529,42 @@ impl CheckinService {
         // 记录签到结果
         let (record, result) = match checkin_result {
             Ok((message, reward)) => {
+                // 检查 do_checkin 返回的"已签到"标记
+                let (actual_status, actual_message) =
+                    if let Some(stripped) = message.strip_prefix("[ALREADY_CHECKED_IN]") {
+                        (CheckinStatus::AlreadyCheckedIn, stripped.to_string())
+                    } else {
+                        (CheckinStatus::Success, message)
+                    };
+
                 tracing::info!(
-                    "[签到成功] 账号: {} | 提供商: {} | 消息: {} | 奖励: {}",
+                    "[签到结果] 账号: {} | 提供商: {} | 状态: {} | 消息: {} | 奖励: {}",
                     account.name,
                     provider.name,
-                    message,
+                    actual_status,
+                    actual_message,
                     reward.as_deref().unwrap_or("-")
                 );
 
-                let record = CheckinRecord::success(
-                    account_id.to_string(),
-                    Some(message.clone()),
-                    reward.clone(),
-                );
+                let record = match actual_status {
+                    CheckinStatus::AlreadyCheckedIn => CheckinRecord::already_checked_in(
+                        account_id.to_string(),
+                        Some(actual_message.clone()),
+                    ),
+                    _ => CheckinRecord::success(
+                        account_id.to_string(),
+                        Some(actual_message.clone()),
+                        reward.clone(),
+                    ),
+                };
 
                 let result = CheckinExecutionResult {
                     account_id: account_id.to_string(),
                     account_name: account.name.clone(),
                     provider_name: provider.name.clone(),
-                    status: CheckinStatus::Success,
-                    message: Some(message),
+                    status: actual_status,
+                    message: Some(actual_message),
+                    error_code: None,
                     reward,
                     balance: None,
                 };
@@ -552,15 +572,21 @@ impl CheckinService {
                 (record, result)
             }
             Err(e) => {
+                let error_code = e.error_code().to_string();
                 let error_msg = e.to_string();
                 tracing::error!(
-                    "[签到失败] 账号: {} | 提供商: {} | 错误: {}",
+                    "[签到失败] 账号: {} | 提供商: {} | 错误: {} | 分类: {}",
                     account.name,
                     provider.name,
-                    error_msg
+                    error_msg,
+                    error_code
                 );
 
-                let record = CheckinRecord::failed(account_id.to_string(), error_msg.clone());
+                let record = CheckinRecord::failed(
+                    account_id.to_string(),
+                    error_msg.clone(),
+                    Some(error_code.clone()),
+                );
 
                 let result = CheckinExecutionResult {
                     account_id: account_id.to_string(),
@@ -568,6 +594,7 @@ impl CheckinService {
                     provider_name: provider.name.clone(),
                     status: CheckinStatus::Failed,
                     message: Some(error_msg),
+                    error_code: Some(error_code),
                     reward: None,
                     balance: None,
                 };
@@ -834,7 +861,8 @@ impl CheckinService {
             };
 
             if !success && (message.contains("已") || message.contains("already")) {
-                return Ok((message, None));
+                // 返回特殊标记，让 caller 识别为 AlreadyCheckedIn
+                return Ok((format!("[ALREADY_CHECKED_IN]{}", message), None));
             }
 
             if !success {
@@ -1123,6 +1151,7 @@ impl CheckinService {
                             provider_name: "Unknown".to_string(),
                             status: CheckinStatus::Failed,
                             message: Some(e.to_string()),
+                            error_code: Some(e.error_code().to_string()),
                             reward: None,
                             balance: None,
                         },

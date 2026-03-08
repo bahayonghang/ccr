@@ -273,7 +273,7 @@ mod tests {
     fn test_get_by_account() {
         with_test_db(|conn| {
             let r1 = CheckinRecord::success("account-1".to_string(), None, None);
-            let r2 = CheckinRecord::failed("account-1".to_string(), "Error".to_string());
+            let r2 = CheckinRecord::failed("account-1".to_string(), "Error".to_string(), None);
             let r3 = CheckinRecord::success("account-2".to_string(), None, None);
 
             checkin_repo::insert_record(conn, &r1).unwrap();

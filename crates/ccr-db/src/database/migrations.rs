@@ -859,6 +859,32 @@ pub fn run_migration_v7(conn: &Connection) -> MigrationResult<()> {
     info!("Migration v7 completed successfully");
     Ok(())
 }
+
+/// Run migration v8: add error_code column to checkin_records
+pub fn run_migration_v8(conn: &Connection) -> MigrationResult<()> {
+    if is_migration_applied(conn, 8)? {
+        debug!("Migration v8 already applied, skipping");
+        return Ok(());
+    }
+
+    info!("Running migration v8: checkin_records error_code column");
+
+    if !table_has_column(conn, "checkin_records", "error_code")? {
+        conn.execute("ALTER TABLE checkin_records ADD COLUMN error_code TEXT", [])
+            .map_err(|e| MigrationError::Database(e.to_string()))?;
+    }
+
+    let now = Utc::now().to_rfc3339();
+    conn.execute(
+        INSERT_MIGRATION_SQL,
+        rusqlite::params![8, "checkin_records_error_code", now],
+    )
+    .map_err(|e| MigrationError::Database(e.to_string()))?;
+
+    info!("Migration v8 completed successfully");
+    Ok(())
+}
+
 /// Run all migrations (schema + legacy data import)
 /// This is the main entry point called during initialization
 pub fn run_all_migrations(conn: &Connection, home_dir: &Path) -> MigrationResult<()> {
@@ -882,6 +908,9 @@ pub fn run_all_migrations(conn: &Connection, home_dir: &Path) -> MigrationResult
 
     // Step 1.10: Run v7 migration (monitoring log columns)
     run_migration_v7(conn)?;
+
+    // Step 1.11: Run v8 migration (checkin_records error_code column)
+    run_migration_v8(conn)?;
 
     // Step 2: Import legacy data if not done and files exist
     if !is_legacy_migration_done(conn)? {
