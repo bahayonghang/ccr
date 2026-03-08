@@ -12,7 +12,6 @@
 // - 支持多平台配置
 
 use crate::core::error::{CcrError, Result};
-use crate::managers::PlatformConfigManager;
 use crate::managers::config::ConfigSection;
 use crate::managers::settings::{ClaudeSettings, SettingsManager};
 use crate::models::{Platform, PlatformConfig, PlatformPaths, ProfileConfig};
@@ -137,18 +136,7 @@ impl PlatformConfig for ClaudePlatform {
 
         // 🔧 更新 profiles.toml 中的 current_config
         self.update_current_config_in_profiles(name)?;
-
-        // 同步更新注册表中的 current_profile
-        let platform_config_mgr = PlatformConfigManager::with_default()?;
-        let mut unified_config = platform_config_mgr.load()?;
-
-        // 更新 Claude 平台的 current_profile
-        unified_config.set_platform_profile("claude", name)?;
-
-        // 保存注册表
-        platform_config_mgr.save(&unified_config)?;
-
-        tracing::debug!("✅ 已更新注册表 current_profile: {}", name);
+        base::update_registry_current_profile("claude", name)?;
 
         tracing::info!("✅ 已应用 Claude profile: {}", name);
         Ok(())
@@ -178,6 +166,20 @@ impl PlatformConfig for ClaudePlatform {
 #[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
+    use crate::managers::PlatformConfigManager;
+    use crate::managers::platform_config::{PlatformConfigEntry, UnifiedConfig};
+    use std::sync::{LazyLock, Mutex};
+
+    static ENV_LOCK: LazyLock<Mutex<()>> = LazyLock::new(|| Mutex::new(()));
+
+    fn restore_env_var(key: &str, previous: Option<String>) {
+        unsafe {
+            match previous {
+                Some(value) => std::env::set_var(key, value),
+                None => std::env::remove_var(key),
+            }
+        }
+    }
 
     #[test]
     fn test_section_to_profile_conversion() {
@@ -222,5 +224,68 @@ mod tests {
                     .contains("claude")
             );
         }
+    }
+
+    #[test]
+    fn test_apply_profile_auto_registers_missing_claude_platform() {
+        let _guard = ENV_LOCK.lock().unwrap();
+        let temp_dir = tempfile::tempdir().unwrap();
+        let settings_path = temp_dir.path().join("claude").join("settings.json");
+        let backup_dir = temp_dir.path().join("claude").join("backups");
+        let lock_dir = temp_dir.path().join("locks");
+
+        let previous_root = std::env::var("CCR_ROOT").ok();
+        let previous_settings = std::env::var("CCR_SETTINGS_PATH").ok();
+        let previous_backup = std::env::var("CCR_BACKUP_DIR").ok();
+        let previous_lock = std::env::var("CCR_LOCK_DIR").ok();
+
+        unsafe {
+            std::env::set_var("CCR_ROOT", temp_dir.path());
+            std::env::set_var("CCR_SETTINGS_PATH", &settings_path);
+            std::env::set_var("CCR_BACKUP_DIR", &backup_dir);
+            std::env::set_var("CCR_LOCK_DIR", &lock_dir);
+        }
+
+        let result = (|| -> Result<()> {
+            let manager = PlatformConfigManager::with_default()?;
+            let mut unified_config = UnifiedConfig::default();
+            unified_config.register_platform("codex".into(), PlatformConfigEntry::default())?;
+            unified_config.platforms.shift_remove("claude");
+            unified_config.current_platform = "codex".to_string();
+            manager.save(&unified_config)?;
+
+            let platform = ClaudePlatform::new()?;
+            let profile = ProfileConfig::new()
+                .with_base_url("https://api.example.com".to_string())
+                .with_auth_token("sk-test".to_string())
+                .with_model("claude-test".to_string());
+
+            platform.save_profile("repair-me", &profile)?;
+            platform.apply_profile("repair-me")?;
+
+            let reloaded = manager.load()?;
+            assert_eq!(
+                reloaded.get_platform("claude")?.current_profile.as_deref(),
+                Some("repair-me")
+            );
+
+            let settings = SettingsManager::with_default()?.load()?;
+            assert_eq!(
+                settings.env.get("ANTHROPIC_BASE_URL").map(String::as_str),
+                Some("https://api.example.com")
+            );
+            assert_eq!(
+                settings.env.get("ANTHROPIC_AUTH_TOKEN").map(String::as_str),
+                Some("sk-test")
+            );
+
+            Ok(())
+        })();
+
+        restore_env_var("CCR_ROOT", previous_root);
+        restore_env_var("CCR_SETTINGS_PATH", previous_settings);
+        restore_env_var("CCR_BACKUP_DIR", previous_backup);
+        restore_env_var("CCR_LOCK_DIR", previous_lock);
+        result.unwrap();
     }
 }
