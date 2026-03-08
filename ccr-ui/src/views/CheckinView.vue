@@ -212,6 +212,12 @@
                       <span class="text-xs px-1.5 py-0.5 bg-red-100 dark:bg-red-800 text-red-600 dark:text-red-300 rounded">
                         {{ item.provider_name }}
                       </span>
+                      <span
+                        v-if="item.error_code"
+                        class="text-xs px-1.5 py-0.5 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 rounded"
+                      >
+                        {{ getErrorLabel(item.error_code) }}
+                      </span>
                     </div>
                     <p class="text-xs text-red-600 dark:text-red-400 mt-0.5 break-all">
                       {{ getFailedDetail(item) }}
@@ -520,6 +526,7 @@ const {
   getSuccessDetail,
   getAlreadyCheckedInDetail,
   getFailedDetail,
+  getErrorLabel,
 } = useCheckinState()
 
 const openAccountDashboard = (accountId: string) => {

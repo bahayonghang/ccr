@@ -1,10 +1,5 @@
 import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
-import {
-  Building2,
-  Users,
-  FileText,
-  Package,
-} from 'lucide-vue-next'
+import { Building2, Users, FileText, Package } from 'lucide-vue-next'
 import {
   listCheckinProviders,
   listCheckinAccounts,
@@ -86,7 +81,7 @@ export function useCheckinState() {
 
   const cleanupCheckinJobListeners = async () => {
     const unlisteners = checkinJobUnlisteners.splice(0)
-    await Promise.all(unlisteners.map(unlisten => unlisten()))
+    await Promise.all(unlisteners.map((unlisten) => unlisten()))
   }
 
   const mapJobLogEntry = (entry: CheckinJobLogEntryPayload): CheckinLogEntry => ({
@@ -95,6 +90,7 @@ export function useCheckinState() {
     providerName: entry.provider_name,
     status: entry.status,
     message: entry.message,
+    errorCode: entry.error_code,
     reward: entry.reward,
     balance: entry.balance,
     timestamp: new Date(entry.timestamp),
@@ -145,8 +141,8 @@ export function useCheckinState() {
 
   // 过滤出尚未添加的内置提供商
   const availableBuiltinProviders = computed(() => {
-    const addedNames = new Set(providers.value.map(p => p.name))
-    return builtinProviders.value.filter(bp => !addedNames.has(bp.name))
+    const addedNames = new Set(providers.value.map((p) => p.name))
+    return builtinProviders.value.filter((bp) => !addedNames.has(bp.name))
   })
 
   // 汇总统计数据
@@ -172,23 +168,23 @@ export function useCheckinState() {
 
   // 启用的账号列表
   const enabledAccounts = computed(() => {
-    return accounts.value.filter(a => a.enabled)
+    return accounts.value.filter((a) => a.enabled)
   })
 
   // 签到结果分类
   const failedCheckinResults = computed(() => {
     if (!checkinResult.value) return []
-    return checkinResult.value.results.filter(r => r.status === 'failed')
+    return checkinResult.value.results.filter((r) => r.status === 'failed')
   })
 
   const successCheckinResults = computed(() => {
     if (!checkinResult.value) return []
-    return checkinResult.value.results.filter(r => r.status === 'success')
+    return checkinResult.value.results.filter((r) => r.status === 'success')
   })
 
   const alreadyCheckedInResults = computed(() => {
     if (!checkinResult.value) return []
-    return checkinResult.value.results.filter(r => r.status === 'already_checked_in')
+    return checkinResult.value.results.filter((r) => r.status === 'already_checked_in')
   })
 
   // ═══════════════════════════════════════════════════════════
@@ -236,7 +232,7 @@ export function useCheckinState() {
       }
 
       // 如果全部失败，显示错误
-      const allFailed = results.every(r => r.status === 'rejected')
+      const allFailed = results.every((r) => r.status === 'rejected')
       if (allFailed) {
         error.value = '加载签到数据失败'
       }
@@ -257,7 +253,7 @@ export function useCheckinState() {
     currency: string
     recorded_at: string
   }) => {
-    const index = accounts.value.findIndex(a => a.id === snapshot.account_id)
+    const index = accounts.value.findIndex((a) => a.id === snapshot.account_id)
     if (index < 0) return
     const account = accounts.value[index]
     accounts.value[index] = {
@@ -283,29 +279,39 @@ export function useCheckinState() {
     const tasks: Promise<unknown>[] = []
 
     if (reloadProviders) {
-      tasks.push(listCheckinProviders<ProvidersResponse>().then((res) => {
-        providers.value = res.providers
-      }))
+      tasks.push(
+        listCheckinProviders<ProvidersResponse>().then((res) => {
+          providers.value = res.providers
+        })
+      )
     }
     if (reloadAccounts) {
-      tasks.push(listCheckinAccounts<AccountsResponse>().then((res) => {
-        accounts.value = res.accounts
-      }))
+      tasks.push(
+        listCheckinAccounts<AccountsResponse>().then((res) => {
+          accounts.value = res.accounts
+        })
+      )
     }
     if (reloadRecords) {
-      tasks.push(listCheckinRecords<CheckinRecordsResponse>({ page: 1, page_size: 100 }).then((res) => {
-        records.value = res.records
-      }))
+      tasks.push(
+        listCheckinRecords<CheckinRecordsResponse>({ page: 1, page_size: 100 }).then((res) => {
+          records.value = res.records
+        })
+      )
     }
     if (reloadStats) {
-      tasks.push(getTodayCheckinStats<TodayCheckinStats>().then((res) => {
-        todayStats.value = res
-      }))
+      tasks.push(
+        getTodayCheckinStats<TodayCheckinStats>().then((res) => {
+          todayStats.value = res
+        })
+      )
     }
     if (reloadBuiltin) {
-      tasks.push(listBuiltinProviders<BuiltinProvidersResponse>().then((res) => {
-        builtinProviders.value = res.providers
-      }))
+      tasks.push(
+        listBuiltinProviders<BuiltinProvidersResponse>().then((res) => {
+          builtinProviders.value = res.providers
+        })
+      )
     }
 
     await Promise.all(tasks)
@@ -367,17 +373,17 @@ export function useCheckinState() {
       }
 
       checkinJobUnlisteners.push(
-        await listen<CheckinJobSnapshot>('checkin:job-progress', event => {
+        await listen<CheckinJobSnapshot>('checkin:job-progress', (event) => {
           handleProgressSnapshot(event.payload)
         })
       )
       checkinJobUnlisteners.push(
-        await listen<CheckinJobSnapshot>('checkin:job-finished', event => {
+        await listen<CheckinJobSnapshot>('checkin:job-finished', (event) => {
           handleTerminalSnapshot(event.payload)
         })
       )
       checkinJobUnlisteners.push(
-        await listen<CheckinJobSnapshot>('checkin:job-timeout', event => {
+        await listen<CheckinJobSnapshot>('checkin:job-timeout', (event) => {
           handleTerminalSnapshot(event.payload)
         })
       )
@@ -401,7 +407,7 @@ export function useCheckinState() {
   }
 
   const executeCheckinAll = async () => {
-    await startAndTrackCheckinJob(enabledAccounts.value.map(account => account.id))
+    await startAndTrackCheckinJob(enabledAccounts.value.map((account) => account.id))
   }
 
   const executeCheckinSingle = async (accountId: string) => {
@@ -412,11 +418,11 @@ export function useCheckinState() {
     if (accounts.value.length === 0) return
 
     balanceRefreshing.value = true
-    const enabledAccs = accounts.value.filter(a => a.enabled)
+    const enabledAccs = accounts.value.filter((a) => a.enabled)
 
     try {
       const results = await Promise.allSettled(
-        enabledAccs.map(account => queryCheckinBalance<BalanceSnapshot>(account.id))
+        enabledAccs.map((account) => queryCheckinBalance<BalanceSnapshot>(account.id))
       )
       for (const result of results) {
         if (result.status === 'fulfilled') {
@@ -469,11 +475,11 @@ export function useCheckinState() {
   // ═══════════════════════════════════════════════════════════
 
   const getProviderName = (providerId: string) => {
-    return providers.value.find(p => p.id === providerId)?.name || providerId
+    return providers.value.find((p) => p.id === providerId)?.name || providerId
   }
 
   const getAccountName = (accountId: string) => {
-    return accounts.value.find(a => a.id === accountId)?.name || accountId
+    return accounts.value.find((a) => a.id === accountId)?.name || accountId
   }
 
   const formatDate = (dateStr: string) => {
@@ -525,7 +531,45 @@ export function useCheckinState() {
   const getAlreadyCheckedInDetail = (item: CheckinExecutionResult) =>
     buildCheckinDetail(item, '今日已签到')
 
-  const getFailedDetail = (item: CheckinExecutionResult) => item.message || '未知原因'
+  const getErrorHint = (code?: string): string | null => {
+    if (!code) return null
+    const hints: Record<string, string> = {
+      cookie_expired: '建议：请更新 Cookie',
+      waf_blocked: '建议：检查代理/出口 IP 是否一致',
+      cf_blocked: '建议：在有 GUI 的环境中重试',
+      network_error: '建议：检查网络连接',
+      timeout: '建议：稍后重试',
+      crypto_error: '建议：重新导入 Cookie',
+      provider_error: '建议：检查提供商设置',
+      account_error: '建议：检查账号设置',
+      task_error: '建议：稍后重试',
+      api_error: '建议：查看详细信息',
+    }
+    return hints[code] ?? null
+  }
+
+  const getErrorLabel = (code?: string): string | null => {
+    if (!code) return null
+    const labels: Record<string, string> = {
+      cookie_expired: 'Cookie 过期',
+      waf_blocked: 'WAF 拦截',
+      cf_blocked: 'CF 挑战',
+      network_error: '网络错误',
+      timeout: '超时',
+      crypto_error: '解密失败',
+      provider_error: '提供商异常',
+      account_error: '账号异常',
+      task_error: '任务异常',
+      api_error: 'API 错误',
+    }
+    return labels[code] ?? code
+  }
+
+  const getFailedDetail = (item: CheckinExecutionResult) => {
+    const detail = item.message || '未知原因'
+    const hint = getErrorHint(item.error_code)
+    return hint ? `${detail}（${hint}）` : detail
+  }
 
   // ═══════════════════════════════════════════════════════════
   // 生命周期
@@ -602,5 +646,7 @@ export function useCheckinState() {
     getSuccessDetail,
     getAlreadyCheckedInDetail,
     getFailedDetail,
+    getErrorHint,
+    getErrorLabel,
   }
 }

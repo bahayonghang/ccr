@@ -97,7 +97,6 @@ export interface ProvidersResponse {
   total: number
 }
 
-
 // ═══════════════════════════════════════════════════════════
 // 账号类型
 // ═══════════════════════════════════════════════════════════
@@ -162,6 +161,7 @@ export interface CheckinExecutionResult {
   provider_name: string
   status: CheckinStatus
   message?: string
+  error_code?: string
   reward?: string
   balance?: number
 }
@@ -193,6 +193,7 @@ export interface CheckinJobLogEntryPayload {
   provider_name: string
   status: CheckinLogStatus
   message?: string
+  error_code?: string
   reward?: string
   balance?: number
   timestamp: string
@@ -228,6 +229,7 @@ export interface CheckinRecordInfo {
   provider_name?: string
   status: CheckinStatus
   message?: string
+  error_code?: string
   reward?: string
   balance_before?: number
   balance_after?: number
@@ -469,7 +471,12 @@ export interface TestConnectionResponse {
 // ═══════════════════════════════════════════════════════════
 
 /** 签到日志条目状态 */
-export type CheckinLogStatus = 'pending' | 'processing' | 'success' | 'already_checked_in' | 'failed'
+export type CheckinLogStatus =
+  | 'pending'
+  | 'processing'
+  | 'success'
+  | 'already_checked_in'
+  | 'failed'
 
 /** 签到日志条目 */
 export interface CheckinLogEntry {
@@ -478,6 +485,7 @@ export interface CheckinLogEntry {
   providerName: string
   status: CheckinLogStatus
   message?: string
+  errorCode?: string
   reward?: string
   balance?: number
   timestamp: Date
