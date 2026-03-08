@@ -18,8 +18,8 @@ use crate::models::PlatformConfig;
 use crate::models::{
     AuthIntent, AuthState, AuthStateStatus, CodexAuthAccount, CodexAuthExport,
     CodexAuthExportAccount, CodexAuthItem, CodexAuthJson, CodexAuthRegistry, CredentialStoreKind,
-    CurrentAuthInfo, ImportMode, ImportResult, LoginState, OpenAiAuthMethod, Platform,
-    PlatformPaths, TokenFreshness, normalize_auth_map_for_intent,
+    CurrentAuthInfo, ImportMode, ImportResult, LoginState, OpenAiAuthMethod, PlatformPaths,
+    TokenFreshness, normalize_auth_map_for_intent,
 };
 use crate::platforms::codex::CodexPlatform;
 use chrono::{DateTime, Duration, Utc};
@@ -63,6 +63,63 @@ impl CodexAuthService {
             ccr_codex_dir,
             codex_dir,
         })
+    }
+
+    fn ccr_root_dir(&self) -> PathBuf {
+        let is_standard_platform_dir = self
+            .ccr_codex_dir
+            .file_name()
+            .and_then(|name| name.to_str())
+            .is_some_and(|name| name.eq_ignore_ascii_case("codex"))
+            && self
+                .ccr_codex_dir
+                .parent()
+                .and_then(|parent| parent.file_name())
+                .and_then(|name| name.to_str())
+                .is_some_and(|name| name.eq_ignore_ascii_case("platforms"));
+
+        if is_standard_platform_dir {
+            self.ccr_codex_dir
+                .parent()
+                .and_then(|parent| parent.parent())
+                .map(|root| root.to_path_buf())
+                .unwrap_or_else(|| self.ccr_codex_dir.clone())
+        } else {
+            self.ccr_codex_dir.clone()
+        }
+    }
+
+    fn platform_paths(&self) -> PlatformPaths {
+        let root = self.ccr_root_dir();
+        PlatformPaths {
+            registry_file: root.join("config.toml"),
+            platform_dir: self.ccr_codex_dir.clone(),
+            profiles_file: self.ccr_codex_dir.join("profiles.toml"),
+            settings_file: self.ccr_codex_dir.join("settings.json"),
+            history_file: root.join("history").join("codex.json"),
+            backups_dir: root.join("backups").join("codex"),
+            root,
+        }
+    }
+
+    fn platform(&self) -> Result<CodexPlatform> {
+        Ok(CodexPlatform::from_parts(
+            self.platform_paths(),
+            self.codex_config_manager()?,
+            self.runtime_service()?,
+        ))
+    }
+
+    fn current_profile_name(&self) -> Result<Option<String>> {
+        let registry_path = self.platform_paths().registry_file;
+        let manager = crate::managers::PlatformConfigManager::new(registry_path);
+        let unified = manager.load_or_create_default()?;
+
+        match unified.get_platform_profile("codex") {
+            Ok(profile) => Ok(profile.map(str::to_string)),
+            Err(CcrError::PlatformNotFound(_)) => Ok(None),
+            Err(err) => Err(err),
+        }
     }
 
     // ==================== 路径辅助方法 ====================
@@ -263,7 +320,7 @@ impl CodexAuthService {
 
     fn runtime_service(&self) -> Result<CodexRuntimeService> {
         Ok(CodexRuntimeService::from_parts(
-            PlatformPaths::new(Platform::Codex)?,
+            self.platform_paths(),
             self.codex_dir.clone(),
             self.codex_config_manager()?,
         ))
@@ -443,10 +500,10 @@ impl CodexAuthService {
     }
 
     fn ensure_current_runtime_supports_openai_switch(&self) -> Result<()> {
-        let platform = CodexPlatform::new()?;
-        let Some(current_profile) = platform.get_current_profile()? else {
+        let Some(current_profile) = self.current_profile_name()? else {
             return Ok(());
         };
+        let platform = self.platform()?;
         let profiles = platform.load_profiles()?;
         let Some(profile) = profiles.get(&current_profile) else {
             return Ok(());
@@ -469,11 +526,11 @@ impl CodexAuthService {
         auth_method: OpenAiAuthMethod,
         auth_data: &serde_json::Map<String, serde_json::Value>,
     ) -> Result<()> {
-        let platform = CodexPlatform::new()?;
-        let Some(current_profile) = platform.get_current_profile()? else {
+        let Some(current_profile) = self.current_profile_name()? else {
             return Ok(());
         };
 
+        let platform = self.platform()?;
         let profiles = platform.load_profiles()?;
         let Some(profile) = profiles.get(&current_profile) else {
             return Ok(());
