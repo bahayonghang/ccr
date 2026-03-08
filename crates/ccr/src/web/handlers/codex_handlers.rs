@@ -393,7 +393,7 @@ mod tests {
             account: None,
             tags: None,
             api_mode: None,
-            wire_api: Some("chat".to_string()),
+            wire_api: Some("responses".to_string()),
             env_key: None,
             requires_openai_auth: None,
             approval_policy: None,
