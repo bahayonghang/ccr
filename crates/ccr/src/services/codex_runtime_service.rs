@@ -222,11 +222,13 @@ impl CodexRuntimeService {
             None => detect_auth_store(&self.config_manager.load_config()?),
         };
 
-        if !matches!(plan.auth_cache, CodexAuthCacheAction::Preserve)
+        // 非 file 凭据存储时，仅允许 Delete（清理旧 tokens）和 Preserve，
+        // 阻止 Write（避免干扰系统钥匙链等外部凭据管理）
+        if matches!(plan.auth_cache, CodexAuthCacheAction::Write(_))
             && !matches!(target_store, CredentialStoreKind::File)
         {
             return Err(CcrError::ValidationError(format!(
-                "当前 Codex 凭据存储为 {}，CCR 暂不支持管理 auth.json；请先执行 `codex login` / `codex logout`，或将 cli_auth_credentials_store 切换为 file",
+                "当前 Codex 凭据存储为 {}，CCR 暂不支持写入 auth.json；请先执行 `codex login` / `codex logout`，或将 cli_auth_credentials_store 切换为 file",
                 target_store.as_str()
             )));
         }
