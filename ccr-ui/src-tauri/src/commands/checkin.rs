@@ -85,12 +85,21 @@ fn build_failed_checkin_result(
     meta: &CheckinJobAccountMeta,
     message: impl Into<String>,
 ) -> CheckinExecutionResult {
+    build_failed_checkin_result_with_code(meta, message, "task_error")
+}
+
+fn build_failed_checkin_result_with_code(
+    meta: &CheckinJobAccountMeta,
+    message: impl Into<String>,
+    error_code: &str,
+) -> CheckinExecutionResult {
     CheckinExecutionResult {
         account_id: meta.account_id.clone(),
         account_name: meta.account_name.clone(),
         provider_name: meta.provider_name.clone(),
         status: CheckinStatus::Failed,
         message: Some(message.into()),
+        error_code: Some(error_code.to_string()),
         reward: None,
         balance: None,
     }
@@ -200,7 +209,7 @@ async fn execute_checkin_job_accounts(
             let result = match timeout(Duration::from_secs(90), service.checkin(&meta.account_id)).await {
                 Ok(Ok(result)) => result,
                 Ok(Err(error)) => build_failed_checkin_result(&meta, format!("Checkin failed: {}", error)),
-                Err(_) => build_failed_checkin_result(&meta, "签到超时"),
+                Err(_) => build_failed_checkin_result_with_code(&meta, "签到超时", "timeout"),
             };
 
             let state = app_handle.state::<AppState>();
@@ -234,7 +243,7 @@ async fn execute_checkin_job_accounts(
         let state = app_handle.state::<AppState>();
         if let Some(snapshot) = state
             .update_checkin_job(&job_id, |job| {
-                job.mark_pending_failed("签到任务失败");
+                job.mark_pending_failed("签到任务异常终止");
                 if !matches!(job.status, CheckinJobStatus::Finished | CheckinJobStatus::TimedOut) {
                     job.mark_finished(CheckinJobStatus::Finished);
                 }
@@ -274,7 +283,7 @@ async fn run_checkin_job(
             if let Some(snapshot) = app_handle
                 .state::<AppState>()
                 .update_checkin_job(&job_id, |job| {
-                    job.mark_pending_failed("签到任务失败");
+                    job.mark_pending_failed(&format!("签到任务失败: {}", error));
                     if !matches!(job.status, CheckinJobStatus::Finished | CheckinJobStatus::TimedOut) {
                         job.mark_finished(CheckinJobStatus::Finished);
                     }

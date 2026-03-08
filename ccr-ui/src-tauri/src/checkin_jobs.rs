@@ -31,6 +31,8 @@ pub struct CheckinJobLogEntry {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub message: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub error_code: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub reward: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub balance: Option<f64>,
@@ -68,6 +70,7 @@ impl CheckinJobLogEntry {
             provider_name,
             status: CheckinJobLogStatus::Pending,
             message: None,
+            error_code: None,
             reward: None,
             balance: None,
             timestamp: Utc::now().to_rfc3339(),
@@ -130,6 +133,7 @@ impl CheckinJobSnapshot {
                 ccr_db::models::checkin::CheckinStatus::Failed => CheckinJobLogStatus::Failed,
             };
             log.message = result.message.clone();
+            log.error_code = result.error_code.clone();
             log.reward = result.reward.clone();
             log.balance = result.balance;
             log.timestamp = Utc::now().to_rfc3339();
@@ -170,6 +174,7 @@ impl CheckinJobSnapshot {
             if matches!(log.status, CheckinJobLogStatus::Pending | CheckinJobLogStatus::Processing) {
                 log.status = CheckinJobLogStatus::Failed;
                 log.message = Some(message.to_string());
+                log.error_code = Some("task_error".to_string());
                 log.timestamp = now.clone();
                 failure_results.push(CheckinExecutionResult {
                     account_id: log.account_id.clone(),
@@ -177,6 +182,7 @@ impl CheckinJobSnapshot {
                     provider_name: log.provider_name.clone(),
                     status: ccr_db::models::checkin::CheckinStatus::Failed,
                     message: Some(message.to_string()),
+                    error_code: Some("task_error".to_string()),
                     reward: None,
                     balance: None,
                 });
@@ -203,6 +209,7 @@ impl CheckinJobSnapshot {
             if matches!(log.status, CheckinJobLogStatus::Pending | CheckinJobLogStatus::Processing) {
                 log.status = CheckinJobLogStatus::Failed;
                 log.message = Some("签到超时".to_string());
+                log.error_code = Some("timeout".to_string());
                 log.timestamp = now.clone();
                 timeout_results.push(CheckinExecutionResult {
                     account_id: log.account_id.clone(),
@@ -210,6 +217,7 @@ impl CheckinJobSnapshot {
                     provider_name: log.provider_name.clone(),
                     status: ccr_db::models::checkin::CheckinStatus::Failed,
                     message: Some("签到超时".to_string()),
+                    error_code: Some("timeout".to_string()),
                     reward: None,
                     balance: None,
                 });
