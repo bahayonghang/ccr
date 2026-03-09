@@ -1,31 +1,77 @@
 <template>
   <div
-    class="relative overflow-hidden transition-[transform,box-shadow] duration-500"
+    class="ui-card group relative overflow-hidden transition-[color,background-color,border-color,box-shadow,transform,opacity] duration-300"
     :class="[
       variantClasses,
-      hover ? 'hover:scale-[1.01] hover:shadow-glow-primary/20' : '',
-      className
+      interactiveClasses,
+      disabled ? 'opacity-50 cursor-not-allowed' : '',
+      className,
     ]"
+    :style="style"
+    :aria-disabled="disabled || undefined"
+    @click="handleClick"
+    @mouseenter="handleMouseEnter"
+    @mouseleave="handleMouseLeave"
   >
-    <!-- Neko Breathing Border Effect (Optional) -->
     <div
-      v-if="glow"
-      class="absolute inset-0 bg-gradient-to-tr from-accent-primary/20 via-transparent to-accent-secondary/20 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none"
+      v-if="pattern"
+      class="absolute inset-0 opacity-[0.08] pointer-events-none"
+      :style="{ backgroundImage: backgroundPattern }"
     />
 
-    <!-- Neko Ears for neko variant -->
-    <template v-if="variant === 'neko'">
+    <div
+      v-if="showGlow"
+      class="absolute inset-0 opacity-0 pointer-events-none transition-opacity duration-500 group-hover:opacity-100"
+      :style="glowStyle"
+    />
+
+    <div
+      v-if="gradientBorder"
+      class="absolute inset-0 rounded-[inherit] pointer-events-none overflow-hidden"
+    >
       <div
-        class="absolute -top-3 left-5 w-6 h-6 bg-accent-primary z-10 transition-transform duration-300 hover:scale-110"
+        class="absolute inset-0 rounded-[inherit] opacity-0 transition-opacity duration-300"
+        :class="{ 'opacity-100': isInteractive }"
+        :style="gradientBorderStyle"
+      />
+    </div>
+
+    <div
+      v-if="isInteractive"
+      class="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-[opacity,transform] duration-300 translate-x-1 group-hover:translate-x-0 pointer-events-none"
+    >
+      <div class="rounded-full bg-white/10 p-1.5 backdrop-blur-md text-text-primary">
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="M7 17L17 7M17 7H7M17 7V17" />
+        </svg>
+      </div>
+    </div>
+
+    <template v-if="normalizedVariant === 'neko'">
+      <div
+        class="absolute -top-3 left-5 z-10 h-6 w-6 bg-accent-primary transition-transform duration-300 hover:scale-110"
         style="clip-path: polygon(50% 0%, 0% 100%, 100% 100%); transform: rotate(-15deg);"
       />
       <div
-        class="absolute -top-3 right-5 w-6 h-6 bg-accent-primary z-10 transition-transform duration-300 hover:scale-110"
+        class="absolute -top-3 right-5 z-10 h-6 w-6 bg-accent-primary transition-transform duration-300 hover:scale-110"
         style="clip-path: polygon(50% 0%, 0% 100%, 100% 100%); transform: rotate(15deg);"
       />
     </template>
 
-    <div class="relative z-10 h-full">
+    <div
+      class="relative z-10 h-full"
+      :class="[paddingClasses, bodyClass]"
+    >
       <slot />
     </div>
   </div>
@@ -33,29 +79,137 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import type { CSSProperties } from 'vue'
+
+type CardVariant = 'default' | 'base' | 'elevated' | 'glass' | 'outline' | 'neko'
+type PaddingSize = 'none' | 'sm' | 'md' | 'lg'
+type GlowColor = 'primary' | 'secondary' | 'success' | 'warning' | 'danger'
 
 interface Props {
-  variant?: 'base' | 'elevated' | 'glass' | 'outline' | 'neko'
+  variant?: CardVariant
   hover?: boolean
-  glow?: boolean // Enable the inner glow effect
+  interactive?: boolean
+  glow?: boolean
+  glowEffect?: boolean
+  glowColor?: GlowColor
+  gradientBorder?: boolean
+  pattern?: boolean
+  padding?: PaddingSize
+  disabled?: boolean
   className?: string
+  bodyClass?: string
+  style?: Record<string, string | number>
 }
 
 const props = withDefaults(defineProps<Props>(), {
   variant: 'elevated',
   hover: true,
+  interactive: false,
   glow: false,
+  glowEffect: false,
+  glowColor: 'primary',
+  gradientBorder: false,
+  pattern: false,
+  padding: 'md',
+  disabled: false,
   className: '',
+  bodyClass: '',
+  style: () => ({}),
 })
 
+const emit = defineEmits<{
+  click: [event: MouseEvent]
+  mouseenter: [event: MouseEvent]
+  mouseleave: [event: MouseEvent]
+}>()
+
+const normalizedVariant = computed<Exclude<CardVariant, 'default'>>(() =>
+  props.variant === 'default' ? 'elevated' : props.variant
+)
+
+const isInteractive = computed(() => !props.disabled && (props.interactive || props.hover))
+const showGlow = computed(() => props.glow || props.glowEffect || normalizedVariant.value === 'neko')
+
 const variantClasses = computed(() => {
-  const map = {
-    base: 'rounded-xl bg-black/20 dark:bg-black/40 border border-white/10 backdrop-blur-xl',
-    elevated: 'rounded-2xl bg-black/20 dark:bg-black/40 border border-white/10 backdrop-blur-xl shadow-2xl',
-    glass: 'rounded-2xl bg-white/10 border border-white/20 backdrop-blur-md shadow-xl text-white',
-    outline: 'rounded-xl bg-transparent border border-white/20 backdrop-blur-md',
-    neko: 'rounded-2xl bg-black/30 dark:bg-black/50 border border-accent-primary/20 backdrop-blur-xl shadow-lg overflow-visible mt-4 neko-border-glow',
+  const map: Record<Exclude<CardVariant, 'default'>, string> = {
+    base: 'rounded-xl border border-white/10 bg-bg-elevated shadow-sm',
+    elevated: 'rounded-2xl glass-effect-strong border border-white/20 shadow-lg',
+    glass: 'rounded-2xl liquid-glass',
+    outline: 'rounded-xl border border-white/20 bg-transparent backdrop-blur-md',
+    neko: 'rounded-2xl liquid-glass border border-accent-primary/20 shadow-glow-primary overflow-visible mt-4 neko-border-glow',
   }
-  return map[props.variant]
+  return map[normalizedVariant.value]
 })
+
+const interactiveClasses = computed(() => {
+  if (!isInteractive.value) return ''
+  return 'cursor-pointer hover:-translate-y-1 hover:shadow-glow-primary'
+})
+
+const paddingClasses = computed(() => {
+  const map: Record<PaddingSize, string> = {
+    none: '',
+    sm: 'p-4',
+    md: 'p-6',
+    lg: 'p-8',
+  }
+  return map[props.padding]
+})
+
+const glowColors: Record<GlowColor, string> = {
+  primary: 'rgb(var(--color-accent-primary-rgb) / 0.18)',
+  secondary: 'rgb(var(--color-accent-secondary-rgb) / 0.18)',
+  success: 'rgb(var(--color-success-rgb) / 0.18)',
+  warning: 'rgb(var(--color-warning-rgb) / 0.18)',
+  danger: 'rgb(var(--color-danger-rgb) / 0.18)',
+}
+
+const glowStyle = computed<CSSProperties>(() => ({
+  background: `radial-gradient(circle at center, ${glowColors[props.glowColor]} 0%, transparent 70%)`,
+  mixBlendMode: 'overlay' as const,
+  filter: 'blur(20px)',
+}))
+
+const gradientBorderStyle = computed(() => ({
+  background: 'linear-gradient(135deg, var(--color-accent-primary), var(--color-accent-secondary))',
+  padding: '1px',
+  WebkitMask: 'linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)',
+  WebkitMaskComposite: 'xor',
+  maskComposite: 'exclude',
+}))
+
+const backgroundPattern = `url("data:image/svg+xml,%3Csvg width='20' height='20' viewBox='0 0 20 20' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%239C92AC' fill-opacity='0.2' fill-rule='evenodd'%3E%3Ccircle cx='3' cy='3' r='1'/%3E%3C/g%3E%3C/svg%3E")`
+
+const handleClick = (event: MouseEvent) => {
+  if (props.disabled) return
+  emit('click', event)
+}
+
+const handleMouseEnter = (event: MouseEvent) => {
+  if (!isInteractive.value) return
+  emit('mouseenter', event)
+}
+
+const handleMouseLeave = (event: MouseEvent) => {
+  if (!isInteractive.value) return
+  emit('mouseleave', event)
+}
 </script>
+
+<style scoped>
+.ui-card:focus-visible {
+  outline: 2px solid var(--color-accent-primary);
+  outline-offset: 2px;
+  border-radius: inherit;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ui-card {
+    transition: none;
+  }
+
+  .ui-card:hover {
+    transform: none;
+  }
+}
+</style>

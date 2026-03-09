@@ -355,11 +355,11 @@
 </template>
 
 <script setup lang="ts">
-/* eslint-disable no-console -- Development debugging, console output acceptable */
 import { ref, onMounted } from 'vue'
 import { ArrowLeft, Plus, Edit2, Trash2, Server, Globe, Zap, Inbox, X } from 'lucide-vue-next'
 import { listDroidModels, addDroidModel, updateDroidModel, deleteDroidModel } from '@/api'
 import { getErrorMessage } from '@/utils/errorHandler'
+import { logger } from '@/utils/logger'
 
 // 类型定义
 interface DroidCustomModel {
@@ -394,7 +394,7 @@ const loadModels = async () => {
     const data = await listDroidModels()
     models.value = Array.isArray(data) ? (data as DroidCustomModel[]) : []
   } catch (error) {
-    console.error('加载模型失败:', error)
+    logger.error('加载模型失败:', error)
     alert('加载模型失败，请检查配置文件是否可访问')
   } finally {
     loading.value = false
@@ -423,7 +423,7 @@ const saveModel = async () => {
     closeModal()
     await loadModels()
   } catch (error: unknown) {
-    console.error('保存模型失败:', error)
+    logger.error('保存模型失败:', error)
     alert(getErrorMessage(error) || '保存模型失败')
   } finally {
     saving.value = false
@@ -441,7 +441,7 @@ const deleteModel = async (modelId: string) => {
     alert('模型删除成功！')
     await loadModels()
   } catch (error: unknown) {
-    console.error('删除模型失败:', error)
+    logger.error('删除模型失败:', error)
     alert(getErrorMessage(error) || '删除模型失败')
   }
 }

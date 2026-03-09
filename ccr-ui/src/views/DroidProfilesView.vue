@@ -458,7 +458,6 @@
 </template>
 
 <script setup lang="ts">
-/* eslint-disable no-console -- Development debugging, console output acceptable */
 import { ref, onMounted } from 'vue'
 import { ArrowLeft, Plus, Edit2, Trash2, Server, Globe, Zap, Inbox, X } from 'lucide-vue-next'
 import {
@@ -469,6 +468,7 @@ import {
   switchDroidProfile,
 } from '@/api'
 import { getErrorMessage } from '@/utils/errorHandler'
+import { logger } from '@/utils/logger'
 
 // 类型定义
 interface DroidProfile {
@@ -517,7 +517,7 @@ const loadProfiles = async () => {
     const data = await listDroidProfiles()
     profiles.value = Array.isArray(data) ? (data as DroidProfile[]) : []
   } catch (error) {
-    console.error('加载 Profiles 失败:', error)
+    logger.error('加载 Profiles 失败:', error)
     alert('加载 Profiles 失败，请检查配置文件是否可访问')
   } finally {
     loading.value = false
@@ -559,7 +559,7 @@ const saveProfile = async () => {
     closeModal()
     await loadProfiles()
   } catch (error: unknown) {
-    console.error('保存 Profile 失败:', error)
+    logger.error('保存 Profile 失败:', error)
     alert(getErrorMessage(error) || '保存 Profile 失败')
   } finally {
     saving.value = false
@@ -577,7 +577,7 @@ const deleteProfile = async (name: string) => {
     alert('Profile 删除成功！')
     await loadProfiles()
   } catch (error: unknown) {
-    console.error('删除 Profile 失败:', error)
+    logger.error('删除 Profile 失败:', error)
     alert(getErrorMessage(error) || '删除 Profile 失败')
   }
 }
@@ -589,7 +589,7 @@ const switchProfile = async (name: string) => {
     alert(`已切换到 Profile "${name}"！`)
     await loadProfiles()
   } catch (error: unknown) {
-    console.error('切换 Profile 失败:', error)
+    logger.error('切换 Profile 失败:', error)
     alert(getErrorMessage(error) || '切换 Profile 失败')
   }
 }

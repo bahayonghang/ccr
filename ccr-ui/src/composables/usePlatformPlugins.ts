@@ -1,4 +1,3 @@
-/* eslint-disable no-console -- Development debugging, console output acceptable */
 /**
  * usePlatformPlugins - 通用平台插件管理 Composable
  *
@@ -15,6 +14,7 @@ import { listGeminiPlugins, addGeminiPlugin, updateGeminiPlugin, deleteGeminiPlu
 import { listQwenPlugins, addQwenPlugin, updateQwenPlugin, deleteQwenPlugin, toggleQwenPlugin } from '@/api'
 import { listIflowPlugins, addIflowPlugin, updateIflowPlugin, deleteIflowPlugin, toggleIflowPlugin } from '@/api'
 import type { Plugin as PluginType, PluginRequest } from '@/types'
+import { logger } from '@/utils/logger'
 
 // ============ 类型定义 ============
 
@@ -109,7 +109,7 @@ export function usePlatformPlugins(platform: PluginPlatformType) {
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : 'Unknown error'
             error.value = errorMessage
-            console.error(`Failed to load ${platform} plugins:`, err)
+            logger.error(`Failed to load ${platform} plugins:`, err)
             uiStore.showError(t(`${config.value.i18nPrefix}.messages.loadFailed`))
         } finally {
             loading.value = false

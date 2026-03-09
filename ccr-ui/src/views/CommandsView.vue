@@ -19,14 +19,14 @@
       <!-- 页面标题 -->
       <div class="mb-6 mt-6">
         <div class="flex items-center gap-3 mb-2">
-          <div class="p-2 rounded-lg bg-guofeng-bg-tertiary">
-            <Terminal class="w-6 h-6 text-guofeng-jade" />
+          <div class="p-2 rounded-lg bg-bg-surface">
+            <Terminal class="w-6 h-6 text-accent-secondary" />
           </div>
           <div>
-            <h1 class="text-2xl font-bold text-guofeng-text-primary">
+            <h1 class="text-2xl font-bold text-text-primary">
               {{ $t('commands.title') }}
             </h1>
-            <p class="text-sm text-guofeng-text-secondary">
+            <p class="text-sm text-text-secondary">
               {{ $t('commands.description') }}
             </p>
           </div>
@@ -37,12 +37,12 @@
         <!-- 左侧：工具与命令选择 -->
         <aside class="flex flex-col gap-6">
           <!-- 工具选择器 -->
-          <GuofengCard
+          <Card
             variant="glass"
             class="flex flex-col overflow-hidden"
           >
-            <div class="p-4 border-b border-guofeng-border/50">
-              <h2 class="text-xs font-bold uppercase tracking-wider text-guofeng-text-secondary">
+            <div class="p-4 border-b border-border-default/50">
+              <h2 class="text-xs font-bold uppercase tracking-wider text-text-secondary">
                 {{ $t('commands.selectClient') }}
               </h2>
             </div>
@@ -52,7 +52,7 @@
                 v-for="client in CLI_CLIENTS"
                 :key="client.id"
                 class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors relative group"
-                :class="selectedClient === client.id ? 'bg-guofeng-bg-secondary' : 'hover:bg-guofeng-bg-secondary/50'"
+                :class="selectedClient === client.id ? 'bg-bg-elevated' : 'hover:bg-bg-elevated/50'"
                 @click="setSelectedClient(client.id)"
               >
                 <div 
@@ -78,26 +78,26 @@
                 
                 <span 
                   class="text-sm font-medium"
-                  :class="selectedClient === client.id ? 'text-guofeng-text-primary' : 'text-guofeng-text-secondary'"
+                  :class="selectedClient === client.id ? 'text-text-primary' : 'text-text-secondary'"
                 >
                   {{ client.name }}
                 </span>
                 
                 <ChevronRight 
                   v-if="selectedClient === client.id"
-                  class="w-4 h-4 ml-auto text-guofeng-text-secondary"
+                  class="w-4 h-4 ml-auto text-text-secondary"
                 />
               </button>
             </div>
-          </GuofengCard>
+          </Card>
 
           <!-- 命令列表 -->
-          <GuofengCard
+          <Card
             variant="glass"
             class="flex-1 flex flex-col overflow-hidden min-h-[400px]"
           >
-            <div class="p-4 border-b border-guofeng-border/50">
-              <h2 class="text-xs font-bold uppercase tracking-wider text-guofeng-text-secondary">
+            <div class="p-4 border-b border-border-default/50">
+              <h2 class="text-xs font-bold uppercase tracking-wider text-text-secondary">
                 {{ $t('commands.availableCommands') }}
               </h2>
             </div>
@@ -107,11 +107,11 @@
                 v-for="cmd in commands"
                 :key="cmd.name"
                 class="w-full text-left px-4 py-3 rounded-lg transition-colors group relative overflow-hidden"
-                :class="selectedCommand === cmd.name ? 'bg-guofeng-bg-secondary' : 'hover:bg-guofeng-bg-secondary/50'"
+                :class="selectedCommand === cmd.name ? 'bg-bg-elevated' : 'hover:bg-bg-elevated/50'"
                 @click="setSelectedCommand(cmd.name)"
               >
                 <div 
-                  class="absolute left-0 top-0 bottom-0 w-1 transition-opacity bg-guofeng-jade"
+                  class="absolute left-0 top-0 bottom-0 w-1 transition-opacity bg-accent-secondary"
                   :style="{ 
                     opacity: selectedCommand === cmd.name ? 1 : 0
                   }"
@@ -119,44 +119,44 @@
                 <div class="flex items-center justify-between">
                   <span 
                     class="font-mono text-sm font-semibold"
-                    :class="selectedCommand === cmd.name ? 'text-guofeng-jade' : 'text-guofeng-text-primary'"
+                    :class="selectedCommand === cmd.name ? 'text-accent-secondary' : 'text-text-primary'"
                   >
                     {{ cmd.name }}
                   </span>
                   <ChevronRight 
                     v-if="selectedCommand === cmd.name"
-                    class="w-4 h-4 text-guofeng-jade"
+                    class="w-4 h-4 text-accent-secondary"
                   />
                 </div>
-                <p class="text-xs mt-1 line-clamp-1 text-guofeng-text-secondary">
+                <p class="text-xs mt-1 line-clamp-1 text-text-secondary">
                   {{ cmd.description }}
                 </p>
               </button>
             </div>
-          </GuofengCard>
+          </Card>
         </aside>
 
         <!-- 右侧：执行区域 -->
         <main class="flex flex-col gap-6 min-w-0">
           <!-- 命令详情与输入 -->
-          <GuofengCard
+          <Card
             variant="glass"
             class="p-6"
           >
             <!-- 头部信息 -->
             <div class="mb-6">
               <div class="flex items-center gap-3 mb-2">
-                <div class="p-2 rounded-lg bg-guofeng-bg-tertiary">
+                <div class="p-2 rounded-lg bg-bg-surface">
                   <component
                     :is="currentClientInfo?.icon"
-                    class="w-6 h-6 text-guofeng-text-primary"
+                    class="w-6 h-6 text-text-primary"
                   />
                 </div>
                 <div>
-                  <h1 class="text-2xl font-bold text-guofeng-text-primary">
+                  <h1 class="text-2xl font-bold text-text-primary">
                     {{ selectedCommandInfo?.name || 'Select a command' }}
                   </h1>
-                  <p class="text-sm text-guofeng-text-secondary">
+                  <p class="text-sm text-text-secondary">
                     {{ selectedCommandInfo?.description }}
                   </p>
                 </div>
@@ -165,7 +165,7 @@
 
             <!-- 终端输入框 -->
             <div 
-              class="rounded-lg p-4 font-mono text-sm transition-colors bg-[#1e1e1e] border border-guofeng-border/50 shadow-inner"
+              class="rounded-lg p-4 font-mono text-sm transition-colors bg-[#1e1e1e] border border-border-default/50 shadow-inner"
             >
               <div class="flex items-center gap-2 mb-2 text-xs opacity-50 select-none text-gray-400">
                 <Terminal class="w-3 h-3" />
@@ -184,7 +184,7 @@
                 >
                   <select
                     v-model="args"
-                    class="w-full bg-[#1e1e1e] border border-gray-700 rounded px-2 py-1 text-gray-200 focus:border-guofeng-jade focus:outline-none cursor-pointer hover:bg-[#2d2d2d] transition-colors"
+                    class="w-full bg-[#1e1e1e] border border-gray-700 rounded px-2 py-1 text-gray-200 focus:border-accent-secondary focus:outline-none cursor-pointer hover:bg-[#2d2d2d] transition-colors"
                     @keydown.enter="!loading && handleExecute()"
                   >
                     <option
@@ -220,7 +220,7 @@
             <!-- 执行按钮 -->
             <div class="mt-4 flex justify-end">
               <button
-                class="px-8 py-2.5 rounded-lg font-semibold text-sm text-white transition-transform hover:scale-[1.02] active:scale-[0.98] flex items-center gap-2 bg-gradient-to-r from-guofeng-jade to-guofeng-jade-dark shadow-lg shadow-guofeng-jade/20"
+                class="px-8 py-2.5 rounded-lg font-semibold text-sm text-white transition-transform hover:scale-[1.02] active:scale-[0.98] flex items-center gap-2 bg-gradient-to-r from-accent-secondary to-accent-primary shadow-lg shadow-accent-secondary/20"
                 :class="{ 'opacity-70 cursor-not-allowed': loading }"
                 :disabled="loading"
                 @click="handleExecute"
@@ -236,13 +236,13 @@
                 {{ loading ? $t('commands.executing') : $t('commands.executeCommand') }}
               </button>
             </div>
-          </GuofengCard>
+          </Card>
 
           <!-- 输出区域 -->
-          <GuofengCard
+          <Card
             v-if="output || loading"
             variant="glass"
-            class="flex-1 overflow-hidden flex flex-col min-h-[400px] border-guofeng-border/50"
+            class="flex-1 overflow-hidden flex flex-col min-h-[400px] border-border-default/50"
             :style="{ background: '#1e1e1e' }"
           >
             <!-- 终端头部 -->
@@ -286,7 +286,7 @@
                 class="absolute inset-0 flex items-center justify-center bg-black/20 backdrop-blur-md"
               >
                 <div class="flex flex-col items-center gap-3">
-                  <Loader2 class="w-8 h-8 text-guofeng-jade animate-spin" />
+                  <Loader2 class="w-8 h-8 text-accent-secondary animate-spin" />
                   <span class="text-gray-400 text-xs animate-pulse">Processing command...</span>
                 </div>
               </div>
@@ -322,7 +322,7 @@
                   </div>
                   <div class="flex items-center gap-2">
                     <span class="text-gray-500">Time:</span>
-                    <span class="text-guofeng-jade">{{ output.duration_ms }}ms</span>
+                    <span class="text-accent-secondary">{{ output.duration_ms }}ms</span>
                   </div>
                 </div>
               </template>
@@ -337,7 +337,7 @@
                 </p>
               </div>
             </div>
-          </GuofengCard>
+          </Card>
         </main>
       </div>
     </div>
@@ -345,7 +345,6 @@
 </template>
 
 <script setup lang="ts">
-/* eslint-disable no-console -- Development debugging, console output acceptable */
 import { ref, computed, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
@@ -365,8 +364,9 @@ import { listCommands, executeCommand, listConfigs } from '@/api'
 import type { CommandInfo, CommandResponse, ConfigItem } from '@/types'
 import { normalizeCliClient, type CliClient } from '@/types/router'
 import Navbar from '@/components/Navbar.vue'
-import GuofengCard from '@/components/common/GuofengCard.vue'
+import Card from '@/components/ui/Card.vue'
 import { sanitizeTerminal } from '@/utils/sanitize'
+import { logger } from '@/utils/logger'
 
 // Register languages
 hljs.registerLanguage('bash', bash)
@@ -452,7 +452,7 @@ const loadConfigs = async () => {
     const response = await listConfigs<{ configs: ConfigItem[] }>()
     configs.value = response.configs
   } catch (err) {
-    console.error('Failed to load configs:', err)
+    logger.error('Failed to load configs:', err)
   }
 }
 
@@ -489,7 +489,7 @@ const loadCommands = async () => {
       selectedCommand.value = 'help'
     }
   } catch (err) {
-    console.error('Failed to load commands:', err)
+    logger.error('Failed to load commands:', err)
   }
 }
 
@@ -588,7 +588,7 @@ const handleCopyOutput = async () => {
     await navigator.clipboard.writeText(text)
     // Could add a toast notification here
   } catch (err) {
-    console.error('Failed to copy:', err)
+    logger.error('Failed to copy:', err)
   }
 }
 

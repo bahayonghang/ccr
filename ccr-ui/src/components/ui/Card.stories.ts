@@ -1,54 +1,106 @@
-import type { Meta, StoryObj } from '@storybook/vue3-vite';
-import Card from './Card.vue';
+import type { Meta, StoryObj } from '@storybook/vue3-vite'
+import Card from './Card.vue'
 
 const meta = {
-    title: 'UI/Card',
-    component: Card,
-    tags: ['autodocs'],
-    argTypes: {
-        variant: {
-            control: 'select',
-            options: ['base', 'elevated', 'glass', 'outline']
-        },
-        hover: { control: 'boolean' },
-        glow: { control: 'boolean' },
+  title: 'UI/Card',
+  component: Card,
+  tags: ['autodocs'],
+  argTypes: {
+    variant: {
+      control: 'select',
+      options: ['default', 'base', 'elevated', 'glass', 'outline', 'neko'],
     },
-    args: {
-        variant: 'elevated',
-        hover: true,
-        glow: false,
+    padding: {
+      control: 'select',
+      options: ['none', 'sm', 'md', 'lg'],
     },
-} satisfies Meta<typeof Card>;
+    hover: { control: 'boolean' },
+    interactive: { control: 'boolean' },
+    glowEffect: { control: 'boolean' },
+    gradientBorder: { control: 'boolean' },
+    pattern: { control: 'boolean' },
+  },
+  args: {
+    variant: 'elevated',
+    padding: 'md',
+    hover: true,
+    interactive: true,
+    glowEffect: false,
+    gradientBorder: false,
+    pattern: false,
+  },
+} satisfies Meta<typeof Card>
 
-export default meta;
-type Story = StoryObj<typeof meta>;
+export default meta
+type Story = StoryObj<typeof meta>
 
 export const Default: Story = {
-    args: {
-        default: '<div class="p-6">Content goes here</div>',
+  render: (args) => ({
+    components: { Card },
+    setup() {
+      return { args }
     },
-};
+    template: `
+      <Card v-bind="args" class="w-72 min-h-44">
+        <div class="space-y-3">
+          <p class="text-xs uppercase tracking-[0.25em] text-text-muted">Neko Console</p>
+          <h3 class="text-xl font-bold text-text-primary">Liquid glass surface</h3>
+          <p class="text-sm text-text-secondary">A shared card primitive for dense control panels and playful command surfaces.</p>
+        </div>
+      </Card>
+    `,
+  }),
+}
 
 export const Glass: Story = {
-    args: {
-        variant: 'glass',
-        glow: true,
-        default: '<div class="p-6 text-white">Glass Card with Glow</div>',
+  args: {
+    variant: 'glass',
+    glowEffect: true,
+    gradientBorder: true,
+  },
+  render: (args) => ({
+    components: { Card },
+    setup() {
+      return { args }
     },
-    parameters: {
-        backgrounds: { default: 'dark' },
-    },
-};
-
-export const Neumorphic: Story = {
-    args: {
-        variant: 'elevated',
-        hover: true,
-        default: `
-      <div class="p-6 flex flex-col gap-2">
-        <h3 class="font-bold text-lg">Neo Card</h3>
-        <p class="text-sm opacity-80">Hover to see the elevation lift.</p>
+    template: `
+      <div class="p-10 bg-[#15091e]">
+        <Card v-bind="args" class="w-72 min-h-44">
+          <div class="space-y-2 text-text-primary">
+            <p class="text-xs uppercase tracking-[0.25em] text-text-muted">Overlay</p>
+            <h3 class="text-xl font-bold">Glass variant</h3>
+            <p class="text-sm text-text-secondary">Gradient borders and glow stay readable in the dark theme.</p>
+          </div>
+        </Card>
       </div>
     `,
+  }),
+  parameters: {
+    backgrounds: { default: 'dark' },
+  },
+}
+
+export const Neko: Story = {
+  args: {
+    variant: 'neko',
+    pattern: true,
+    glowEffect: true,
+  },
+  render: (args) => ({
+    components: { Card },
+    setup() {
+      return { args }
     },
-};
+    template: `
+      <div class="pt-4">
+        <Card v-bind="args" class="w-72 min-h-44">
+          <div class="space-y-3">
+            <p class="text-xs uppercase tracking-[0.25em] text-text-muted">NEKO Mode</p>
+            <h3 class="text-xl font-bold text-text-primary">Playful shell chrome</h3>
+            <p class="text-sm text-text-secondary">The cat-ear silhouette is reserved for high-affinity branded panels.</p>
+          </div>
+        </Card>
+      </div>
+    `,
+  }),
+}

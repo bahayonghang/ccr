@@ -1,4 +1,3 @@
-<!-- eslint-disable no-console -->
 <template>
   <div class="space-y-4">
     <div class="flex items-center justify-between flex-wrap gap-4">
@@ -490,7 +489,6 @@
 </template>
 
 <script setup lang="ts">
-/* eslint-disable no-console */
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { Users, Shield, Calendar } from 'lucide-vue-next'
 import {
@@ -505,6 +503,7 @@ import type {
   BuiltinProvider,
   CdkExtraConfig,
 } from '@/types/checkin'
+import { logger } from '@/utils/logger'
 
 const props = defineProps<{
   providers: CheckinProvider[]
@@ -657,7 +656,7 @@ const openAccountModal = async (account?: AccountInfo) => {
         x666_access_token: existingExtra.x666_access_token || '',
       }
     } catch (e: unknown) {
-      console.error('Failed to get cookies:', e)
+      logger.error('Failed to get cookies:', e)
       accountForm.value = {
         provider_id: account.provider_id,
         name: account.name,

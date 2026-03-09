@@ -301,8 +301,8 @@
 </template>
 
 <script setup lang="ts">
-/* eslint-disable no-console -- Development debugging, console output acceptable */
 import { ref, onMounted } from 'vue'
+import { logger } from '@/utils/logger'
 
 interface SessionSummary {
   id: string
@@ -352,7 +352,7 @@ const loadSessions = async () => {
     stats.value = await statsRes.json()
   } catch (e) {
     error.value = (e instanceof Error ? e.message : "Error") || '加载失败'
-    console.error('Failed to load sessions:', e)
+    logger.error('Failed to load sessions:', e)
   } finally {
     loading.value = false
   }

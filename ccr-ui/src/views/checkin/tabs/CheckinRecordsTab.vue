@@ -1,4 +1,3 @@
-<!-- eslint-disable no-console -->
 <template>
   <div class="space-y-4">
     <h2 class="text-xl font-semibold text-gray-900 dark:text-white">
@@ -276,7 +275,6 @@
 </template>
 
 <script setup lang="ts">
-/* eslint-disable no-console */
 import { ref, computed, onMounted, watch } from 'vue'
 import {
   XCircle,
@@ -295,6 +293,7 @@ import type {
   CheckinRecordsQuery,
   CheckinRecordsResponse,
 } from '@/types/checkin'
+import { logger } from '@/utils/logger'
 
 interface CheckinRecordsExportResponse {
   blob: Blob
@@ -417,7 +416,7 @@ const loadFailedHistory = async () => {
     failedHistoryRecords.value = response.records
     failedHistoryTotal.value = response.total
   } catch (e: unknown) {
-    console.error('Failed to load failed history:', e)
+    logger.error('Failed to load failed history:', e)
   } finally {
     failedHistoryLoading.value = false
   }

@@ -8,21 +8,21 @@
       <div class="terminal-status">
         <span
           v-if="isStreaming"
-          class="status-indicator streaming text-guofeng-jade"
+          class="status-indicator streaming text-accent-secondary"
         >
-          <span class="pulse bg-guofeng-jade" />
+          <span class="pulse bg-accent-secondary" />
           {{ $t('common.processing') || 'Processing...' }}
         </span>
         <span
           v-else-if="isComplete"
-          class="status-indicator complete text-guofeng-jade"
+          class="status-indicator complete text-accent-success"
         >
           <CheckCircle class="w-3.5 h-3.5" />
           {{ $t('common.completed') || 'Completed' }}
         </span>
         <span
           v-else
-          class="status-indicator text-guofeng-text-muted"
+          class="status-indicator text-text-muted"
         >
           <Terminal class="w-3.5 h-3.5" />
           {{ $t('common.ready') || 'Ready' }}

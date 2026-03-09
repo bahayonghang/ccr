@@ -210,7 +210,7 @@
             <!-- Version -->
             <div class="flex items-center justify-between">
               <span class="text-[10px] font-mono text-slate-500 bg-white/50 dark:bg-slate-800/50 px-2 py-0.5 rounded-md border border-slate-200 dark:border-slate-700/50">
-                CCR UI v5.0.3
+                CCR UI v5.0.4
               </span>
             </div>
           </div>
@@ -312,7 +312,6 @@
 </template>
 
 <script setup lang="ts">
-/* eslint-disable no-console -- Development debugging, console output acceptable */
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import {
   Home, Code2, Settings, Sparkles, Zap, Activity,
@@ -326,6 +325,7 @@ import ThemeToggle from '@/components/ThemeToggle.vue'
 import EnvironmentSwitcher from '@/components/EnvironmentSwitcher.vue'
 import { isTauriEnvironment, getSkipExitConfirm, setSkipExitConfirm } from '@/api/tauri'
 import { usePageTransition } from '@/composables/usePageTransition'
+import { logger } from '@/utils/logger'
 
 const route = useRoute()
 const router = useRouter()
@@ -415,7 +415,9 @@ onMounted(async () => {
     try {
       const skipConfirm = await getSkipExitConfirm()
       showExitConfirm.value = !skipConfirm
-    } catch (e) { console.error(e) }
+    } catch (e) {
+      logger.error('Failed to load exit confirmation preference', e)
+    }
   }
 })
 

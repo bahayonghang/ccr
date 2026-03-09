@@ -28,18 +28,18 @@ export default {
     extend: {
       colors: {
         bg: {
-          base: 'var(--color-bg-base)',
-          elevated: 'var(--color-bg-elevated)',
-          surface: 'var(--color-bg-surface)',
-          overlay: 'var(--color-bg-overlay)',
+          base: 'rgb(var(--color-bg-base-rgb) / <alpha-value>)',
+          elevated: 'rgb(var(--color-bg-elevated-rgb) / <alpha-value>)',
+          surface: 'rgb(var(--color-bg-surface-rgb) / <alpha-value>)',
+          overlay: 'rgb(var(--color-bg-overlay-rgb) / <alpha-value>)',
         },
         text: {
-          primary: 'var(--color-text-primary)',
-          secondary: 'var(--color-text-secondary)',
-          muted: 'var(--color-text-muted)',
-          ghost: 'var(--color-text-ghost)',
-          disabled: 'var(--color-text-disabled)',
-          inverted: 'var(--color-text-inverted)',
+          primary: 'rgb(var(--color-text-primary-rgb) / <alpha-value>)',
+          secondary: 'rgb(var(--color-text-secondary-rgb) / <alpha-value>)',
+          muted: 'rgb(var(--color-text-muted-rgb) / <alpha-value>)',
+          ghost: 'rgb(var(--color-text-ghost-rgb) / <alpha-value>)',
+          disabled: 'rgb(var(--color-text-disabled-rgb) / <alpha-value>)',
+          inverted: 'rgb(var(--color-text-inverted-rgb) / <alpha-value>)',
         },
         accent: {
           primary: 'rgb(var(--color-accent-primary-rgb) / <alpha-value>)',
@@ -50,10 +50,10 @@ export default {
           info: 'rgb(var(--color-info-rgb) / <alpha-value>)',
         },
         border: {
-          subtle: 'var(--color-border-subtle)',
-          default: 'var(--color-border-default)',
-          strong: 'var(--color-border-strong)',
-          interactive: 'var(--color-border-interactive)',
+          subtle: 'rgb(var(--color-border-subtle-rgb) / <alpha-value>)',
+          default: 'rgb(var(--color-border-default-rgb) / <alpha-value>)',
+          strong: 'rgb(var(--color-border-strong-rgb) / <alpha-value>)',
+          interactive: 'rgb(var(--color-border-interactive-rgb) / <alpha-value>)',
         },
         premium: {
           pink: 'var(--color-premium-pink)',

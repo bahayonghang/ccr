@@ -503,7 +503,6 @@
 </template>
 
 <script setup lang="ts">
-/* eslint-disable no-console -- Development debugging, console output acceptable */
 import { ref, computed, onMounted, reactive } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
@@ -517,6 +516,7 @@ import MarketplacePagination from '@/components/skills/MarketplacePagination.vue
 import SkillInstallToast from '@/components/skills/SkillInstallToast.vue'
 import { useUnifiedSkills } from '@/composables/useUnifiedSkills'
 import type { MarketplaceItem, ImportSource } from '@/types/skills'
+import { logger } from '@/utils/logger'
 
 const { t: _t } = useI18n()
 
@@ -848,7 +848,7 @@ onMounted(async () => {
     ])
     selectDetected()
   } catch (err) {
-    console.error('[AddSkillView] onMounted error:', err)
+    logger.error('[AddSkillView] onMounted error:', err)
   }
 })
 </script>

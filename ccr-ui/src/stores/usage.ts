@@ -1,4 +1,3 @@
-/* eslint-disable no-console -- Development debugging, console output acceptable */
 /**
  * Usage Analytics Store (V2)
  *
@@ -31,6 +30,7 @@ import {
   importAllUsageV2,
   importUsageV2,
 } from '@/api'
+import { logger } from '@/utils/logger'
 
 const REFRESH_INTERVAL = 30_000 // 30s
 const HEATMAP_REFRESH_INTERVAL = 10 * 60_000 // 10min
@@ -61,7 +61,7 @@ const recordPerfMetric = (
     window.dispatchEvent(new CustomEvent('ccr:perf', { detail }))
   }
   if (import.meta.env.DEV) {
-    console.debug('[usage-perf]', detail)
+    logger.debug('[usage-perf]', detail)
   }
 }
 
@@ -305,7 +305,7 @@ export const useUsageStore = defineStore('usage', () => {
           })
           logs.value = { ...offsetResult, page: logsPage.value, page_size: logsPageSize.value, mode: 'offset' }
           if (import.meta.env.DEV) {
-            console.warn('[usage] cursor logs failed, fallback to offset', cursorError)
+            logger.warn('[usage] cursor logs failed, fallback to offset', cursorError)
           }
         }
       } else {

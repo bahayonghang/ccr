@@ -9,47 +9,61 @@
 
     /* Background Hierarchy */
     --color-bg-base: #FFF5F7;
+    --color-bg-base-rgb: 255 245 247;
 
     /* Faint sakura pink */
     --color-bg-elevated: #FFF;
+    --color-bg-elevated-rgb: 255 255 255;
 
     /* Pure white */
     --color-bg-surface: #FFF0F5;
+    --color-bg-surface-rgb: 255 240 245;
 
     /* Light pink surface */
     --color-bg-overlay: #FFE4ED;
+    --color-bg-overlay-rgb: 255 228 237;
 
     /* Pink overlay */
 
     /* Text Hierarchy */
     --color-text-primary: #2D1B30;
+    --color-text-primary-rgb: 45 27 48;
 
     /* Deep purple-brown */
     --color-text-secondary: #6B4C6E;
+    --color-text-secondary-rgb: 107 76 110;
 
     /* Soft purple */
     --color-text-muted: #B591B8;
+    --color-text-muted-rgb: 181 145 184;
 
     /* Light purple */
     --color-text-ghost: #D4B8D8;
+    --color-text-ghost-rgb: 212 184 216;
 
     /* Faint purple */
     --color-text-disabled: #E8D0EC;
+    --color-text-disabled-rgb: 232 208 236;
 
     /* Disabled grey-purple */
     --color-text-inverted: #FFF;
+    --color-text-inverted-rgb: 255 255 255;
 
     /* Border */
     --color-border-subtle: #FFF0F5;
+    --color-border-subtle-rgb: 255 240 245;
 
     /* Lavender blush */
     --color-border-default: #F9D4E2;
+    --color-border-default-rgb: 249 212 226;
 
     /* Soft pink */
     --color-border-strong: #F0B4CC;
+    --color-border-strong-rgb: 240 180 204;
 
     /* Medium pink */
     --color-border-interactive: #F472B6;
+    --color-border-interactive-rgb: 244 114 182;
 
     /* Focus pink */
 
@@ -173,47 +187,61 @@
   [data-theme="dark"] {
     /* Background Hierarchy */
     --color-bg-base: #1A0A20;
+    --color-bg-base-rgb: 26 10 32;
 
     /* Deep purple night */
     --color-bg-elevated: #261232;
+    --color-bg-elevated-rgb: 38 18 50;
 
     /* Dark purple */
     --color-bg-surface: #321A40;
+    --color-bg-surface-rgb: 50 26 64;
 
     /* Medium purple */
     --color-bg-overlay: #44225A;
+    --color-bg-overlay-rgb: 68 34 90;
 
     /* Light purple overlay */
 
     /* Text Hierarchy */
     --color-text-primary: #FDF2F8;
+    --color-text-primary-rgb: 253 242 248;
 
     /* Pink-white */
     --color-text-secondary: #F9A8D4;
+    --color-text-secondary-rgb: 249 168 212;
 
     /* Pink-300 */
     --color-text-muted: #C084FC;
+    --color-text-muted-rgb: 192 132 252;
 
     /* Purple-400 */
     --color-text-ghost: #7E4C8A;
+    --color-text-ghost-rgb: 126 76 138;
 
     /* Dark purple */
     --color-text-disabled: #5A3268;
+    --color-text-disabled-rgb: 90 50 104;
 
     /* Disabled dark purple */
     --color-text-inverted: #1A0A20;
+    --color-text-inverted-rgb: 26 10 32;
 
     /* Border */
     --color-border-subtle: #321A40;
+    --color-border-subtle-rgb: 50 26 64;
 
     /* Medium purple */
     --color-border-default: #44225A;
+    --color-border-default-rgb: 68 34 90;
 
     /* Light purple */
     --color-border-strong: #5A3268;
+    --color-border-strong-rgb: 90 50 104;
 
     /* Strong purple */
     --color-border-interactive: #F9A8D4;
+    --color-border-interactive-rgb: 249 168 212;
 
     /* Pink-300 */
 

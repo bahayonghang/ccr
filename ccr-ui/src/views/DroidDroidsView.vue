@@ -424,11 +424,11 @@
 </template>
 
 <script setup lang="ts">
-/* eslint-disable no-console -- Development debugging, console output acceptable */
 import { ref, onMounted } from 'vue'
 import { ArrowLeft, Plus, Edit2, Trash2, Cpu, Zap, Wrench, Inbox, X } from 'lucide-vue-next'
 import { listDroidAgents, addDroidAgent, updateDroidAgent, deleteDroidAgent } from '@/api'
 import { getErrorMessage } from '@/utils/errorHandler'
+import { logger } from '@/utils/logger'
 
 // 类型定义
 interface Droid {
@@ -484,7 +484,7 @@ const loadDroids = async () => {
     const data = await listDroidAgents()
     droids.value = normalizeDroids(data)
   } catch (error) {
-    console.error('加载 Droids 失败:', error)
+    logger.error('加载 Droids 失败:', error)
     alert('加载 Droids 失败，请检查配置文件是否可访问')
   } finally {
     loading.value = false
@@ -546,7 +546,7 @@ const saveDroid = async () => {
     closeModal()
     await loadDroids()
   } catch (error: unknown) {
-    console.error('保存 Droid 失败:', error)
+    logger.error('保存 Droid 失败:', error)
     alert(getErrorMessage(error) || '保存 Droid 失败')
   } finally {
     saving.value = false
@@ -564,7 +564,7 @@ const deleteDroid = async (name: string) => {
     alert('Droid 删除成功！')
     await loadDroids()
   } catch (error: unknown) {
-    console.error('删除 Droid 失败:', error)
+    logger.error('删除 Droid 失败:', error)
     alert(getErrorMessage(error) || '删除 Droid 失败')
   }
 }

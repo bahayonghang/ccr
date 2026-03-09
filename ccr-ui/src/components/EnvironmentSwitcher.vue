@@ -1,4 +1,3 @@
-<!-- eslint-disable no-console -->
 <script setup lang="ts">
 /**
  * 环境切换器 — 显示当前执行环境，支持切换 Local/WSL/SSH
@@ -6,6 +5,7 @@
 import { ref, onMounted, computed } from 'vue'
 import { Monitor, ChevronDown, RefreshCw, Server, Terminal } from 'lucide-vue-next'
 import { invoke } from '@tauri-apps/api/core'
+import { logger } from '@/utils/logger'
 
 interface EnvironmentInfo {
   id: string
@@ -44,7 +44,7 @@ const fetchEnvironments = async () => {
   try {
     environments.value = await invoke<EnvironmentInfo[]>('list_environments')
   } catch (e) {
-    console.error('[EnvironmentSwitcher] Failed to list environments:', e)
+    logger.error('[EnvironmentSwitcher] Failed to list environments:', e)
   }
 }
 
@@ -59,7 +59,7 @@ const switchEnv = async (envId: string) => {
     await invoke('switch_environment', { envId })
     await fetchEnvironments()
   } catch (e) {
-    console.error('[EnvironmentSwitcher] Failed to switch:', e)
+    logger.error('[EnvironmentSwitcher] Failed to switch:', e)
   } finally {
     isLoading.value = false
     isOpen.value = false
@@ -71,7 +71,7 @@ const refreshEnvs = async () => {
   try {
     environments.value = await invoke<EnvironmentInfo[]>('refresh_environments')
   } catch (e) {
-    console.error('[EnvironmentSwitcher] Failed to refresh:', e)
+    logger.error('[EnvironmentSwitcher] Failed to refresh:', e)
   } finally {
     isRefreshing.value = false
   }

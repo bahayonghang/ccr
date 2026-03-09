@@ -3,20 +3,20 @@
     <!-- Header -->
     <div class="flex items-center justify-between mb-6">
       <div class="flex items-center gap-3">
-        <div class="p-2.5 rounded-xl bg-gradient-to-br from-guofeng-indigo/20 to-guofeng-purple/20 text-guofeng-indigo">
+        <div class="p-2.5 rounded-xl bg-gradient-to-br from-accent-secondary/20 to-accent-primary/20 text-accent-secondary">
           <Sparkles class="w-5 h-5" />
         </div>
         <div>
-          <h2 class="text-lg font-bold text-guofeng-text-primary">
+          <h2 class="text-lg font-bold text-text-primary">
             {{ $t('mcp.presets.title') }}
           </h2>
-          <p class="text-xs text-guofeng-text-muted">
+          <p class="text-xs text-text-muted">
             {{ $t('mcp.presets.subtitle') }}
           </p>
         </div>
       </div>
       <button
-        class="text-xs px-3 py-1.5 rounded-lg bg-guofeng-bg-tertiary hover:bg-guofeng-indigo/10 text-guofeng-text-secondary hover:text-guofeng-indigo transition-colors flex items-center gap-1.5"
+        class="text-xs px-3 py-1.5 rounded-lg bg-bg-surface hover:bg-accent-secondary/10 text-text-secondary hover:text-accent-secondary transition-colors flex items-center gap-1.5"
         @click="showPresetsPanel = !showPresetsPanel"
       >
         <component
@@ -37,7 +37,7 @@
         v-if="loading"
         class="col-span-full flex justify-center py-8"
       >
-        <div class="w-8 h-8 rounded-full border-3 border-guofeng-indigo/30 border-t-guofeng-indigo animate-spin" />
+        <div class="w-8 h-8 rounded-full border-3 border-accent-secondary/30 border-t-accent-secondary animate-spin" />
       </div>
 
       <!-- Preset Cards -->
@@ -45,7 +45,7 @@
         v-for="preset in presets"
         v-else
         :key="preset.id"
-        class="group relative rounded-2xl p-4 border border-white/10 bg-gradient-to-br from-white/5 to-white/10 hover:border-guofeng-indigo/30 hover:shadow-lg transition-[border-color,box-shadow] duration-300 cursor-pointer"
+        class="group relative rounded-2xl p-4 border border-white/10 bg-gradient-to-br from-white/5 to-white/10 hover:border-accent-secondary/30 hover:shadow-lg transition-[border-color,box-shadow] duration-300 cursor-pointer"
         @click="handlePresetClick(preset)"
       >
         <!-- Tags Badge -->
@@ -53,38 +53,38 @@
           <span
             v-for="tag in preset.tags.slice(0, 2)"
             :key="tag"
-            class="px-2 py-0.5 rounded-full text-[10px] font-medium bg-guofeng-indigo/10 text-guofeng-indigo"
+            class="px-2 py-0.5 rounded-full text-[10px] font-medium bg-accent-secondary/10 text-accent-secondary"
           >
             {{ tag }}
           </span>
           <span
             v-if="preset.requires_api_key"
-            class="px-2 py-0.5 rounded-full text-[10px] font-medium bg-guofeng-amber/10 text-guofeng-amber"
+            class="px-2 py-0.5 rounded-full text-[10px] font-medium bg-accent-warning/10 text-accent-warning"
           >
             🔑 API Key
           </span>
         </div>
 
         <!-- Name -->
-        <h3 class="font-bold text-sm text-guofeng-text-primary mb-1 truncate group-hover:text-guofeng-indigo transition-colors">
+        <h3 class="font-bold text-sm text-text-primary mb-1 truncate group-hover:text-accent-secondary transition-colors">
           {{ preset.name }}
         </h3>
 
         <!-- Description -->
-        <p class="text-xs text-guofeng-text-muted line-clamp-2 mb-3">
+        <p class="text-xs text-text-muted line-clamp-2 mb-3">
           {{ preset.description }}
         </p>
 
         <!-- Command Preview -->
-        <div class="flex items-center gap-1.5 text-[10px] font-mono text-guofeng-text-muted bg-guofeng-bg-tertiary/50 rounded-lg px-2 py-1.5 overflow-hidden">
+        <div class="flex items-center gap-1.5 text-[10px] font-mono text-text-muted bg-bg-surface/50 rounded-lg px-2 py-1.5 overflow-hidden">
           <Terminal class="w-3 h-3 flex-shrink-0" />
           <span class="truncate">{{ preset.command }} {{ (preset.args || []).join(' ') }}</span>
         </div>
 
         <!-- Hover Install Button -->
-        <div class="absolute inset-0 bg-gradient-to-t from-guofeng-ink/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl flex items-end justify-center pb-4">
+        <div class="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl flex items-end justify-center pb-4">
           <button
-            class="px-4 py-2 rounded-lg bg-guofeng-indigo text-white text-xs font-bold flex items-center gap-2 hover:bg-guofeng-indigo/90 transition-colors shadow-lg"
+            class="px-4 py-2 rounded-lg bg-accent-secondary text-white text-xs font-bold flex items-center gap-2 hover:bg-accent-secondary/90 transition-colors shadow-lg"
             @click.stop="handleInstall(preset)"
           >
             <Download class="w-3.5 h-3.5" />
@@ -97,7 +97,7 @@
     <!-- Install Modal -->
     <div
       v-if="showInstallModal && selectedPreset"
-      class="fixed inset-0 bg-guofeng-ink/40 backdrop-blur-md flex items-center justify-center p-4 z-50"
+      class="fixed inset-0 bg-black/40 backdrop-blur-md flex items-center justify-center p-4 z-50"
       @click="closeInstallModal"
     >
       <div
@@ -106,14 +106,14 @@
       >
         <!-- Header -->
         <div class="flex items-center gap-4 mb-6">
-          <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-guofeng-indigo to-guofeng-purple flex items-center justify-center text-white">
+          <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-accent-secondary to-accent-primary flex items-center justify-center text-white">
             <Sparkles class="w-6 h-6" />
           </div>
           <div>
-            <h3 class="text-xl font-bold text-guofeng-text-primary">
+            <h3 class="text-xl font-bold text-text-primary">
               {{ selectedPreset.name }}
             </h3>
-            <p class="text-sm text-guofeng-text-muted">
+            <p class="text-sm text-text-muted">
               {{ selectedPreset.description }}
             </p>
           </div>
@@ -121,7 +121,7 @@
 
         <!-- Platform Selection -->
         <div class="mb-6">
-          <label class="block text-xs font-bold text-guofeng-text-secondary uppercase tracking-wider mb-3">
+          <label class="block text-xs font-bold text-text-secondary uppercase tracking-wider mb-3">
             {{ $t('mcp.presets.selectPlatforms') }}
           </label>
           <div class="grid grid-cols-2 sm:grid-cols-5 gap-2">
@@ -130,8 +130,8 @@
               :key="platform.id"
               class="px-3 py-2 rounded-xl text-xs font-medium flex items-center justify-center gap-2 transition-colors border"
               :class="selectedPlatforms.includes(platform.id)
-                ? 'bg-guofeng-indigo/20 text-guofeng-indigo border-guofeng-indigo/30'
-                : 'bg-guofeng-bg-tertiary text-guofeng-text-muted border-transparent hover:border-guofeng-border'"
+                ? 'bg-accent-secondary/20 text-accent-secondary border-accent-secondary/30'
+                : 'bg-bg-surface text-text-muted border-transparent hover:border-border-default'"
               @click="togglePlatform(platform.id)"
             >
               <span>{{ platform.icon }}</span>
@@ -145,27 +145,27 @@
           v-if="selectedPreset.requires_api_key && selectedPreset.api_key_env"
           class="mb-6"
         >
-          <label class="block text-xs font-bold text-guofeng-text-secondary uppercase tracking-wider mb-2">
+          <label class="block text-xs font-bold text-text-secondary uppercase tracking-wider mb-2">
             {{ selectedPreset.api_key_env }}
-            <span class="text-guofeng-red">*</span>
+            <span class="text-accent-danger">*</span>
           </label>
           <input
             v-model="apiKeyValue"
             type="password"
-            class="w-full px-4 py-3 rounded-xl bg-white/50 border border-guofeng-border focus:border-guofeng-indigo focus:ring-4 focus:ring-guofeng-indigo/10 outline-none transition-[border-color,box-shadow] font-mono text-sm"
+            class="w-full px-4 py-3 rounded-xl bg-white/50 border border-border-default focus:border-accent-secondary focus:ring-4 focus:ring-accent-secondary/10 outline-none transition-[border-color,box-shadow] font-mono text-sm"
             :placeholder="`${$t('mcp.presets.enterApiKey')} ${selectedPreset.api_key_env}`"
           >
-          <p class="text-xs text-guofeng-text-muted mt-2">
+          <p class="text-xs text-text-muted mt-2">
             {{ $t('mcp.presets.apiKeyHint') }}
           </p>
         </div>
 
         <!-- Command Preview -->
-        <div class="mb-6 p-4 rounded-xl bg-guofeng-bg-tertiary/50 border border-guofeng-border/50">
-          <div class="text-xs font-medium text-guofeng-text-muted mb-2">
+        <div class="mb-6 p-4 rounded-xl bg-bg-surface/50 border border-border-default/50">
+          <div class="text-xs font-medium text-text-muted mb-2">
             {{ $t('mcp.presets.commandPreview') }}
           </div>
-          <code class="text-sm font-mono text-guofeng-indigo break-all">
+          <code class="text-sm font-mono text-accent-secondary break-all">
             {{ selectedPreset.command }} {{ (selectedPreset.args || []).join(' ') }}
           </code>
         </div>
@@ -179,7 +179,7 @@
             v-if="selectedPreset.homepage"
             :href="selectedPreset.homepage"
             target="_blank"
-            class="text-xs text-guofeng-indigo hover:underline flex items-center gap-1"
+            class="text-xs text-accent-secondary hover:underline flex items-center gap-1"
           >
             <ExternalLink class="w-3 h-3" />
             {{ $t('mcp.presets.homepage') }}
@@ -188,7 +188,7 @@
             v-if="selectedPreset.docs"
             :href="selectedPreset.docs"
             target="_blank"
-            class="text-xs text-guofeng-indigo hover:underline flex items-center gap-1"
+            class="text-xs text-accent-secondary hover:underline flex items-center gap-1"
           >
             <Book class="w-3 h-3" />
             {{ $t('mcp.presets.documentation') }}
@@ -198,13 +198,13 @@
         <!-- Actions -->
         <div class="flex gap-4">
           <button
-            class="flex-1 px-6 py-3.5 rounded-xl font-bold transition-colors bg-white text-guofeng-text-secondary hover:bg-guofeng-bg-tertiary border border-guofeng-border"
+            class="flex-1 px-6 py-3.5 rounded-xl font-bold transition-colors bg-white text-text-secondary hover:bg-bg-surface border border-border-default"
             @click="closeInstallModal"
           >
             {{ $t('common.cancel') }}
           </button>
           <button
-            class="flex-1 px-6 py-3.5 rounded-xl font-bold transition-[box-shadow,transform] bg-guofeng-indigo text-white shadow-lg shadow-guofeng-indigo/20 hover:shadow-xl hover:shadow-guofeng-indigo/30 hover:-translate-y-0.5 flex items-center justify-center gap-2"
+            class="flex-1 px-6 py-3.5 rounded-xl font-bold transition-[box-shadow,transform] bg-accent-secondary text-white shadow-lg shadow-accent-secondary/20 hover:shadow-xl hover:shadow-accent-secondary/30 hover:-translate-y-0.5 flex items-center justify-center gap-2"
             :disabled="installing || selectedPlatforms.length === 0"
             @click="confirmInstall"
           >
@@ -225,7 +225,6 @@
 </template>
 
 <script setup lang="ts">
-/* eslint-disable no-console -- Development debugging, console output acceptable */
 import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
@@ -244,6 +243,7 @@ import {
   type McpPreset,
   type SyncResult
 } from '@/api'
+import { logger } from '@/utils/logger'
 
 const { t } = useI18n({ useScope: 'global' })
 
@@ -276,7 +276,7 @@ const loadPresets = async () => {
     loading.value = true
     presets.value = await listMcpPresets()
   } catch (err) {
-    console.error('Failed to load MCP presets:', err)
+    logger.error('Failed to load MCP presets:', err)
   } finally {
     loading.value = false
   }
@@ -348,7 +348,7 @@ const confirmInstall = async () => {
     closeInstallModal()
     emit('installed')
   } catch (err) {
-    console.error('Failed to install preset:', err)
+    logger.error('Failed to install preset:', err)
     alert(`${t('mcp.presets.installFailed')}: ${err instanceof Error ? err.message : 'Unknown error'}`)
   } finally {
     installing.value = false

@@ -65,7 +65,7 @@
     <div class="flex-1 flex overflow-hidden p-4 gap-4 animate-fade-in">
       <!-- 👈 左侧侧边栏：命令/收藏/历史 -->
       <aside class="w-80 flex-none flex flex-col gap-4 animate-slide-in-left">
-        <GuofengCard 
+        <Card 
           variant="glass" 
           class="flex-1 flex flex-col !p-0 overflow-hidden neon-card"
           padding="none"
@@ -258,13 +258,13 @@
               </div>
             </Transition>
           </div>
-        </GuofengCard>
+        </Card>
       </aside>
 
       <!-- 👉 右侧主区域：参数配置 + 终端输出 -->
       <main class="flex-1 flex flex-col gap-4 overflow-hidden animate-slide-in-right">
         <!-- 1. 参数配置区 (高度自适应) -->
-        <GuofengCard 
+        <Card 
           variant="glass" 
           class="flex-none overflow-hidden neon-card"
           padding="none"
@@ -391,7 +391,7 @@
               </p>
             </div>
           </div>
-        </GuofengCard>
+        </Card>
 
         <!-- 2. 终端输出区 (剩余空间全部占满) -->
         <div class="flex-1 flex flex-col overflow-hidden min-h-0 rounded-xl border border-border-color bg-bg-primary/50 backdrop-blur-md shadow-2xl relative transition-[box-shadow] duration-300 hover:shadow-neon-jade-sm group">
@@ -499,7 +499,7 @@ import {
   List
 } from 'lucide-vue-next'
 
-import GuofengCard from '@/components/common/GuofengCard.vue'
+import Card from '@/components/ui/Card.vue'
 import ThemeToggle from '@/components/ThemeToggle.vue'
 import { useCcrControl } from '@/composables/useCcrControl'
 import type { CcrCommand } from '@/api/ccr-control'

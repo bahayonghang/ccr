@@ -325,7 +325,6 @@
 </template>
 
 <script setup lang="ts">
-/* eslint-disable no-console -- Development debugging, console output acceptable */
 import { ref, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
 import { Server, Plus, Edit2, Trash2, ArrowLeft, Home, Boxes } from 'lucide-vue-next'
@@ -341,6 +340,7 @@ import type {
 import CollapsibleSidebar from '@/components/CollapsibleSidebar.vue'
 import { Breadcrumb } from '@/components/ui'
 import { useI18n } from 'vue-i18n'
+import { logger } from '@/utils/logger'
 
 const { t } = useI18n()
 
@@ -369,9 +369,9 @@ const loadServers = async () => {
       totalConfigs.value = Array.isArray(configData.configs) ? configData.configs.length : 0
       const historyData = await getHistory<HistoryResponse>()
       historyCount.value = historyData.total
-    } catch (err) { console.error('Failed to load system info:', err) }
+    } catch (err) { logger.error('Failed to load system info:', err) }
   } catch (err) {
-    console.error('Failed to load Codex MCP servers:', err)
+    logger.error('Failed to load Codex MCP servers:', err)
     servers.value = []
     alert(t('codex.mcp.messages.loadFailed'))
   } finally { loading.value = false }

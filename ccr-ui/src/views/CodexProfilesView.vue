@@ -53,7 +53,7 @@
           <!-- Status Cards -->
           <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <!-- Current Config -->
-            <GuofengCard
+            <Card
               variant="glass"
               :gradient-border="true"
               glow-color="warning"
@@ -72,10 +72,10 @@
                   </p>
                 </div>
               </div>
-            </GuofengCard>
+            </Card>
 
             <!-- Total Profiles -->
-            <GuofengCard
+            <Card
               variant="glass"
               :interactive="true"
               glow-color="primary"
@@ -94,10 +94,10 @@
                   </p>
                 </div>
               </div>
-            </GuofengCard>
+            </Card>
 
             <!-- Config Mode -->
-            <GuofengCard
+            <Card
               variant="glass"
               :interactive="true"
               :glow-color="currentConfigMode === 'official' ? 'success' : 'secondary'"
@@ -122,11 +122,11 @@
                   </p>
                 </div>
               </div>
-            </GuofengCard>
+            </Card>
           </div>
 
           <!-- Quick Switch -->
-          <GuofengCard
+          <Card
             v-if="profiles.length > 0"
             variant="glass"
             padding="lg"
@@ -162,7 +162,7 @@
                 </div>
               </button>
             </div>
-          </GuofengCard>
+          </Card>
 
           <!-- Profile List Title -->
           <div class="flex items-center justify-between">
@@ -198,7 +198,7 @@
             v-else
             class="grid grid-cols-1 xl:grid-cols-2 gap-4"
           >
-            <GuofengCard 
+            <Card 
               v-for="profile in profiles" 
               :key="profile.name"
               variant="glass"
@@ -393,7 +393,7 @@
                   </div>
                 </div>
               </div>
-            </GuofengCard>
+            </Card>
           </div>
             
           <!-- Add/Edit Modal -->
@@ -401,7 +401,7 @@
             v-if="showForm"
             class="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center p-4 z-50"
           >
-            <GuofengCard
+            <Card
               variant="glass"
               class="w-full max-w-3xl max-h-[90vh] overflow-y-auto !p-0 shadow-2xl animate-in zoom-in-95 duration-200 glass-modal"
               :padding="'none'"
@@ -686,7 +686,7 @@
                   {{ saving ? $t('codex.states.saving') : $t('codex.actions.save') }}
                 </button>
               </div>
-            </GuofengCard>
+            </Card>
           </div>
         </main>
       </div>
@@ -695,7 +695,6 @@
 </template>
 
 <script setup lang="ts">
-/* eslint-disable no-console -- Development debugging, console output acceptable */
 import { computed, onMounted, reactive, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import { useI18n } from 'vue-i18n'
@@ -703,9 +702,10 @@ import { ArrowLeft, Boxes, Check, Edit2, Globe, Home, Layers, ListFilter, Plus, 
 
 import { Breadcrumb } from '@/components/ui'
 import CollapsibleSidebar from '@/components/CollapsibleSidebar.vue'
-import GuofengCard from '@/components/common/GuofengCard.vue'
+import Card from '@/components/ui/Card.vue'
 import { addCodexProfile, applyCodexProfile, deleteCodexProfile, getCodexProfile, listCodexProfiles, updateCodexProfile } from '@/api'
 import type { CodexProfile, CodexProfileAuthMode, CodexProfileRequest, CodexProfilesResponse, OpenAiLoginMethod } from '@/types'
+import { logger } from '@/utils/logger'
 
 const { t } = useI18n()
 
@@ -783,7 +783,7 @@ const copyProfileEnv = async (profile: CodexProfile) => {
     await navigator.clipboard.writeText(script)
     alert(t('codex.profiles.messages.envExportCopied'))
   } catch (error) {
-    console.error('Failed to copy profile env export:', error)
+    logger.error('Failed to copy profile env export:', error)
     alert(t('codex.profiles.messages.envExportCopyFailed'))
   }
 }
@@ -840,7 +840,7 @@ const loadProfiles = async () => {
     profiles.value = data.profiles || []
     currentProfile.value = data.current_profile ?? null
   } catch (error) {
-    console.error('Failed to load codex profiles:', error)
+    logger.error('Failed to load codex profiles:', error)
     alert(t('codex.states.loadFailed'))
   } finally {
     loading.value = false
@@ -903,7 +903,7 @@ const handleEdit = async (name: string) => {
     tagsText.value = (form.tags || []).join(', ')
     extraText.value = JSON.stringify(form.extra || {}, null, 2)
   } catch (error) {
-    console.error('Failed to load codex profile:', error)
+    logger.error('Failed to load codex profile:', error)
     alert(extractErrorMessage(error) || t('codex.states.loadFailed'))
     showForm.value = false
   }
@@ -1003,7 +1003,7 @@ const handleSave = async () => {
     handleCloseForm()
     await loadProfiles()
   } catch (error) {
-    console.error('Failed to save codex profile:', error)
+    logger.error('Failed to save codex profile:', error)
     alert(extractErrorMessage(error) || t('codex.states.saveFailed'))
   } finally {
     saving.value = false
@@ -1016,7 +1016,7 @@ const handleDelete = async (name: string) => {
     await deleteCodexProfile(name)
     await loadProfiles()
   } catch (error) {
-    console.error('Failed to delete codex profile:', error)
+    logger.error('Failed to delete codex profile:', error)
     alert(extractErrorMessage(error) || t('codex.states.deleteFailed'))
   }
 }
@@ -1027,7 +1027,7 @@ const handleApply = async (name: string) => {
     await applyCodexProfile(name)
     await loadProfiles()
   } catch (error) {
-    console.error('Failed to apply codex profile:', error)
+    logger.error('Failed to apply codex profile:', error)
     alert(extractErrorMessage(error) || t('codex.states.saveFailed'))
   }
 }

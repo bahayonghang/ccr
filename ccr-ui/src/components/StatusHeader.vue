@@ -215,7 +215,6 @@
 </template>
 
 <script setup lang="ts">
-/* eslint-disable no-console -- Development debugging, console output acceptable */
 import { ref, onMounted } from 'vue'
 import {
   Activity,
@@ -228,6 +227,7 @@ import {
 } from 'lucide-vue-next'
 import { getSystemInfo } from '@/api'
 import type { SystemInfo as SystemInfoType } from '@/types'
+import { logger } from '@/utils/logger'
 import VersionManager from './VersionManager.vue'
 import { usePolledData } from '@/composables/usePolledData'
 
@@ -247,7 +247,7 @@ const { data: systemInfo } = usePolledData<SystemInfoType>(
     intervalMs: 5000,
     pauseWhenHidden: true,
     pauseWhen: isCollapsed,
-    onError: (err) => console.error('Failed to load system info:', err),
+    onError: (err) => logger.error('Failed to load system info:', err),
   }
 )
 

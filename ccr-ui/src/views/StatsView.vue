@@ -513,11 +513,11 @@
 </template>
 
 <script setup lang="ts">
-/* eslint-disable no-console -- Development debugging, console output acceptable */
 import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { getCostOverview, getProviderUsage } from '@/api'
 import type { CostStats } from '@/types'
+import { logger } from '@/utils/logger'
 
 const { t } = useI18n()
 
@@ -542,7 +542,7 @@ const loadData = async () => {
   } catch (e: unknown) {
     const errorMessage = e instanceof Error ? e.message : t('stats.states.loadFailedMessage')
     error.value = errorMessage
-    console.error('Failed to load stats:', e)
+    logger.error('Failed to load stats:', e)
   } finally {
     loading.value = false
   }

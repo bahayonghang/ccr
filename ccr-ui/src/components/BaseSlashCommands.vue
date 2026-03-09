@@ -344,11 +344,11 @@
 </template>
 
 <script setup lang="ts">
-/* eslint-disable no-console -- Development debugging, console output acceptable */
 import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Command, Home, Code2, ArrowUpDown, List, FolderTree, EyeOff, Search, RefreshCw, Plus, ChevronDown } from 'lucide-vue-next'
 import { useCommandsViewStore } from '@/stores/commandsView'
+import { logger } from '@/utils/logger'
 
 // 组件导入
 import { Breadcrumb, EmptyState } from '@/components/ui'
@@ -590,7 +590,7 @@ const loadData = async () => {
     commands.value = result.commands
     folders.value = result.folders
   } catch (error) {
-    console.error('Failed to load slash commands:', error)
+    logger.error('Failed to load slash commands:', error)
   } finally {
     loading.value = false
   }
@@ -610,7 +610,7 @@ const handleDelete = async (name: string) => {
     await props.config.api.delete(name)
     await loadData()
   } catch (error) {
-    console.error('Failed to delete slash command:', error)
+    logger.error('Failed to delete slash command:', error)
   }
 }
 
@@ -619,7 +619,7 @@ const handleToggle = async (name: string) => {
     await props.config.api.toggle(name)
     await loadData()
   } catch (error) {
-    console.error('Failed to toggle slash command:', error)
+    logger.error('Failed to toggle slash command:', error)
   }
 }
 
@@ -635,7 +635,7 @@ const handleSubmit = async (data: SlashCommandRequest) => {
     editingCommand.value = null
     await loadData()
   } catch (error) {
-    console.error('Failed to save slash command:', error)
+    logger.error('Failed to save slash command:', error)
   }
 }
 

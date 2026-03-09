@@ -241,7 +241,6 @@
 </template>
 
 <script setup lang="ts">
-/* eslint-disable no-console -- Development debugging, console output acceptable */
 import { ref, computed, onMounted, watch, defineAsyncComponent } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
@@ -265,6 +264,7 @@ import SkillsFilterPanel from '@/components/skills/SkillsFilterPanel.vue'
 import SkillsStatsCards from '@/components/skills/SkillsStatsCards.vue'
 import SkillsInstalledTab from '@/components/skills/SkillsInstalledTab.vue'
 import SkillInstallToast from '@/components/skills/SkillInstallToast.vue'
+import { logger } from '@/utils/logger'
 
 // 懒加载: Tab 内容（按需加载，切换 tab 时才触发）
 const SkillsMarketplaceTab = defineAsyncComponent(
@@ -445,7 +445,7 @@ async function handleInstall(targetPlatforms: Platform[]) {
     })
     showInstallModal.value = false
   } catch (err) {
-    console.error('Failed to install skill:', err)
+    logger.error('Failed to install skill:', err)
   }
 }
 

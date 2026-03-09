@@ -3,21 +3,21 @@
     <!-- Header -->
     <div class="flex items-center justify-between mb-6">
       <div class="flex items-center gap-3">
-        <div class="p-2.5 rounded-xl bg-gradient-to-br from-guofeng-emerald/20 to-guofeng-cyan/20 text-guofeng-emerald">
+        <div class="p-2.5 rounded-xl bg-gradient-to-br from-accent-success/20 to-accent-primary/20 text-accent-success">
           <RefreshCw class="w-5 h-5" />
         </div>
         <div>
-          <h2 class="text-lg font-bold text-guofeng-text-primary">
+          <h2 class="text-lg font-bold text-text-primary">
             {{ $t('mcp.sync.title') }}
           </h2>
-          <p class="text-xs text-guofeng-text-muted">
+          <p class="text-xs text-text-muted">
             {{ $t('mcp.sync.subtitle') }}
           </p>
         </div>
       </div>
       <div class="flex items-center gap-2">
         <button
-          class="text-xs px-3 py-1.5 rounded-lg bg-guofeng-bg-tertiary hover:bg-guofeng-emerald/10 text-guofeng-text-secondary hover:text-guofeng-emerald transition-colors flex items-center gap-1.5"
+          class="text-xs px-3 py-1.5 rounded-lg bg-bg-surface hover:bg-accent-success/10 text-text-secondary hover:text-accent-success transition-colors flex items-center gap-1.5"
           :disabled="loading"
           @click="loadSourceServers"
         >
@@ -28,7 +28,7 @@
           {{ $t('common.refresh') }}
         </button>
         <button
-          class="px-4 py-2 rounded-xl font-bold text-sm text-white flex items-center gap-2 transition-transform hover:scale-105 bg-guofeng-emerald shadow-lg shadow-guofeng-emerald/20"
+          class="px-4 py-2 rounded-xl font-bold text-sm text-white flex items-center gap-2 transition-transform hover:scale-105 bg-accent-success shadow-lg shadow-accent-success/20"
           :disabled="syncing || sourceServers.length === 0"
           @click="handleSyncAll"
         >
@@ -47,7 +47,7 @@
 
     <!-- Platform Selection -->
     <div class="mb-6">
-      <label class="block text-xs font-bold text-guofeng-text-secondary uppercase tracking-wider mb-3">
+      <label class="block text-xs font-bold text-text-secondary uppercase tracking-wider mb-3">
         {{ $t('mcp.sync.targetPlatforms') }}
       </label>
       <div class="flex flex-wrap gap-2">
@@ -56,8 +56,8 @@
           :key="platform.id"
           class="px-3 py-2 rounded-xl text-xs font-medium flex items-center gap-2 transition-colors border"
           :class="selectedPlatforms.includes(platform.id)
-            ? 'bg-guofeng-emerald/20 text-guofeng-emerald border-guofeng-emerald/30'
-            : 'bg-guofeng-bg-tertiary text-guofeng-text-muted border-transparent hover:border-guofeng-border'"
+            ? 'bg-accent-success/20 text-accent-success border-accent-success/30'
+            : 'bg-bg-surface text-text-muted border-transparent hover:border-border-default'"
           @click="togglePlatform(platform.id)"
         >
           <span>{{ platform.icon }}</span>
@@ -69,10 +69,10 @@
     <!-- Source Servers List -->
     <div>
       <div class="flex items-center justify-between mb-3">
-        <label class="text-xs font-bold text-guofeng-text-secondary uppercase tracking-wider">
+        <label class="text-xs font-bold text-text-secondary uppercase tracking-wider">
           {{ $t('mcp.sync.sourceServers') }} (Claude)
         </label>
-        <span class="text-xs text-guofeng-text-muted">
+        <span class="text-xs text-text-muted">
           {{ sourceServers.length }} {{ $t('mcp.sync.servers') }}
         </span>
       </div>
@@ -82,19 +82,19 @@
         v-if="loading"
         class="flex justify-center py-8"
       >
-        <div class="w-8 h-8 rounded-full border-3 border-guofeng-emerald/30 border-t-guofeng-emerald animate-spin" />
+        <div class="w-8 h-8 rounded-full border-3 border-accent-success/30 border-t-accent-success animate-spin" />
       </div>
 
       <!-- Empty State -->
       <div
         v-else-if="sourceServers.length === 0"
-        class="text-center py-8 bg-guofeng-bg-tertiary/50 rounded-2xl border border-dashed border-guofeng-border"
+        class="text-center py-8 bg-bg-surface/50 rounded-2xl border border-dashed border-border-default"
       >
-        <Server class="w-10 h-10 mx-auto mb-2 text-guofeng-text-muted opacity-50" />
-        <p class="text-sm text-guofeng-text-muted">
+        <Server class="w-10 h-10 mx-auto mb-2 text-text-muted opacity-50" />
+        <p class="text-sm text-text-muted">
           {{ $t('mcp.sync.noServers') }}
         </p>
-        <p class="text-xs text-guofeng-text-muted mt-1">
+        <p class="text-xs text-text-muted mt-1">
           {{ $t('mcp.sync.noServersHint') }}
         </p>
       </div>
@@ -107,25 +107,25 @@
         <div
           v-for="server in sourceServers"
           :key="server.name"
-          class="group p-4 rounded-2xl bg-guofeng-bg-tertiary/50 border border-guofeng-border/50 hover:border-guofeng-emerald/30 transition-colors"
+          class="group p-4 rounded-2xl bg-bg-surface/50 border border-border-default/50 hover:border-accent-success/30 transition-colors"
         >
           <div class="flex items-center justify-between">
             <div class="flex-1 min-w-0">
               <div class="flex items-center gap-2 mb-1">
-                <h4 class="font-bold text-sm text-guofeng-text-primary truncate">
+                <h4 class="font-bold text-sm text-text-primary truncate">
                   {{ server.name }}
                 </h4>
-                <span class="px-2 py-0.5 rounded-full text-[10px] font-medium bg-guofeng-cyan/10 text-guofeng-cyan">
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-medium bg-accent-primary/10 text-accent-primary">
                   Claude
                 </span>
               </div>
-              <div class="flex items-center gap-1.5 text-xs font-mono text-guofeng-text-muted bg-guofeng-bg-tertiary rounded-lg px-2 py-1 overflow-hidden">
+              <div class="flex items-center gap-1.5 text-xs font-mono text-text-muted bg-bg-surface rounded-lg px-2 py-1 overflow-hidden">
                 <Terminal class="w-3 h-3 flex-shrink-0" />
                 <span class="truncate">{{ server.command }} {{ server.args.join(' ') }}</span>
               </div>
             </div>
             <button
-              class="ml-4 px-3 py-2 rounded-xl text-xs font-medium bg-guofeng-emerald/10 text-guofeng-emerald hover:bg-guofeng-emerald/20 transition-colors flex items-center gap-1.5"
+              class="ml-4 px-3 py-2 rounded-xl text-xs font-medium bg-accent-success/10 text-accent-success hover:bg-accent-success/20 transition-colors flex items-center gap-1.5"
               :disabled="syncing"
               @click="handleSyncServer(server.name)"
             >
@@ -140,7 +140,7 @@
           <!-- Sync Results (if any) -->
           <div
             v-if="syncResults[server.name]"
-            class="mt-3 pt-3 border-t border-guofeng-border/30"
+            class="mt-3 pt-3 border-t border-border-default/30"
           >
             <div class="flex flex-wrap gap-2">
               <span
@@ -148,8 +148,8 @@
                 :key="result.platform"
                 class="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-medium"
                 :class="result.success
-                  ? 'bg-guofeng-emerald/10 text-guofeng-emerald'
-                  : 'bg-guofeng-red/10 text-guofeng-red'"
+                  ? 'bg-accent-success/10 text-accent-success'
+                  : 'bg-accent-danger/10 text-accent-danger'"
               >
                 <component
                   :is="result.success ? Check : X"
@@ -166,7 +166,6 @@
 </template>
 
 <script setup lang="ts">
-/* eslint-disable no-console -- Development debugging, console output acceptable */
 import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
@@ -185,6 +184,7 @@ import {
   type McpServerInfo,
   type SyncResult
 } from '@/api'
+import { logger } from '@/utils/logger'
 
 const { t } = useI18n({ useScope: 'global' })
 
@@ -224,7 +224,7 @@ const loadSourceServers = async () => {
     loading.value = true
     sourceServers.value = await listSourceMcpServers()
   } catch (err) {
-    console.error('Failed to load source MCP servers:', err)
+    logger.error('Failed to load source MCP servers:', err)
   } finally {
     loading.value = false
   }
@@ -243,7 +243,7 @@ const handleSyncServer = async (serverName: string) => {
     syncResults.value[serverName] = response.results
     emit('synced')
   } catch (err) {
-    console.error('Failed to sync server:', err)
+    logger.error('Failed to sync server:', err)
     alert(`${t('mcp.sync.syncFailed')}: ${err instanceof Error ? err.message : 'Unknown error'}`)
   } finally {
     syncingServer.value = null
@@ -267,11 +267,11 @@ const handleSyncAll = async () => {
     for (const [serverName, results] of Object.entries(response.servers)) {
       syncResults.value[serverName] = results
     }
-    
+
     emit('synced')
     alert(t('mcp.sync.syncAllSuccess'))
   } catch (err) {
-    console.error('Failed to sync all servers:', err)
+    logger.error('Failed to sync all servers:', err)
     alert(`${t('mcp.sync.syncFailed')}: ${err instanceof Error ? err.message : 'Unknown error'}`)
   } finally {
     syncing.value = false

@@ -7,22 +7,22 @@
       <!-- Header -->
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div class="flex items-center gap-4">
-          <h2 class="text-xl sm:text-2xl font-bold text-guofeng-text-primary flex items-center">
+          <h2 class="text-xl sm:text-2xl font-bold text-text-primary flex items-center">
             <Palette
-              class="w-6 h-6 sm:w-7 sm:h-7 mr-2 text-guofeng-indigo"
+              class="w-6 h-6 sm:w-7 sm:h-7 mr-2 text-accent-secondary"
               aria-hidden="true"
             />
             {{ $t('outputStyles.pageTitle') }}
           </h2>
           <span
-            class="px-3 py-1 rounded-full text-sm font-medium bg-guofeng-indigo/10 text-guofeng-indigo border border-guofeng-indigo/20"
+            class="px-3 py-1 rounded-full text-sm font-medium bg-accent-secondary/10 text-accent-secondary border border-accent-secondary/20"
             :aria-label="$t('outputStyles.totalCount', { count: outputStyles.length })"
           >
             {{ outputStyles.length }}
           </span>
         </div>
         <button
-          class="w-full sm:w-auto px-4 py-2 rounded-lg font-medium transition-[color,background-color,border-color,transform] hover:scale-105 bg-guofeng-indigo text-white shadow-md hover:shadow-lg flex items-center justify-center min-h-[44px]"
+          class="w-full sm:w-auto px-4 py-2 rounded-lg font-medium transition-[color,background-color,border-color,transform] hover:scale-105 bg-accent-secondary text-white shadow-md hover:shadow-lg flex items-center justify-center min-h-[44px]"
           :aria-label="$t('outputStyles.addStyle')"
           @click="handleAdd"
         >
@@ -37,7 +37,7 @@
       <div class="mb-6">
         <div class="relative max-w-md">
           <Search
-            class="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-guofeng-text-muted"
+            class="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-text-muted"
             aria-hidden="true"
           />
           <input
@@ -45,11 +45,11 @@
             type="search"
             :placeholder="$t('outputStyles.searchPlaceholder')"
             :aria-label="$t('outputStyles.searchPlaceholder')"
-            class="w-full pl-10 pr-10 py-2.5 rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-guofeng-indigo/20 bg-guofeng-bg-tertiary/50 border border-guofeng-border hover:bg-guofeng-bg-tertiary text-guofeng-text-primary placeholder-guofeng-text-muted text-sm"
+            class="w-full pl-10 pr-10 py-2.5 rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-accent-secondary/20 bg-bg-surface/50 border border-border-default hover:bg-bg-surface text-text-primary placeholder-text-muted text-sm"
           >
           <button
             v-if="searchQuery"
-            class="absolute right-3 top-1/2 transform -translate-y-1/2 p-1 rounded-full hover:bg-black/10 text-guofeng-text-muted transition-colors min-h-[28px] min-w-[28px] flex items-center justify-center"
+            class="absolute right-3 top-1/2 transform -translate-y-1/2 p-1 rounded-full hover:bg-black/10 text-text-muted transition-colors min-h-[28px] min-w-[28px] flex items-center justify-center"
             :aria-label="$t('common.clearSearch')"
             @click="searchQuery = ''"
           >
@@ -64,12 +64,12 @@
       <!-- Loading State -->
       <div
         v-if="loading"
-        class="text-center py-20 text-guofeng-text-muted"
+        class="text-center py-20 text-text-muted"
         role="status"
         aria-live="polite"
       >
         <div
-          class="loading-spinner mx-auto mb-4 w-8 h-8 border-guofeng-indigo/30 border-t-guofeng-indigo"
+          class="loading-spinner mx-auto mb-4 w-8 h-8 border-accent-secondary/30 border-t-accent-secondary"
           aria-hidden="true"
         />
         <span>{{ $t('common.loading') }}</span>
@@ -78,11 +78,11 @@
       <!-- Empty State -->
       <div
         v-else-if="filteredStyles.length === 0"
-        class="text-center py-20 text-guofeng-text-muted"
+        class="text-center py-20 text-text-muted"
         role="status"
         aria-live="polite"
       >
-        <div class="bg-guofeng-bg-secondary w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
+        <div class="bg-bg-elevated w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
           <Palette
             class="w-10 h-10 opacity-50"
             aria-hidden="true"
@@ -93,7 +93,7 @@
         </p>
         <p
           v-if="!searchQuery"
-          class="text-sm mt-2 text-guofeng-text-muted"
+          class="text-sm mt-2 text-text-muted"
         >
           {{ $t('outputStyles.noStylesHint') }}
         </p>
@@ -106,33 +106,35 @@
         role="list"
         :aria-label="$t('outputStyles.stylesList')"
       >
-        <GuofengCard
+        <Card
           v-for="style in filteredStyles"
           :key="style.name"
           variant="glass"
           interactive
           pattern
-          role="listitem"
-          tabindex="0"
           @click="handleView(style)"
-          @keydown.enter="handleView(style)"
         >
-          <div class="relative z-10">
+          <div
+            class="relative z-10"
+            role="listitem"
+            tabindex="0"
+            @keydown.enter="handleView(style)"
+          >
             <div class="flex items-start justify-between mb-3">
               <div class="flex items-center gap-2">
-                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-guofeng-indigo/10 to-guofeng-blue/10 flex items-center justify-center text-lg shadow-sm border border-white/20">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-accent-secondary/10 to-accent-secondary/10 flex items-center justify-center text-lg shadow-sm border border-white/20">
                   <Palette
-                    class="w-5 h-5 text-guofeng-indigo"
+                    class="w-5 h-5 text-accent-secondary"
                     aria-hidden="true"
                   />
                 </div>
-                <h3 class="text-lg font-bold text-guofeng-text-primary">
+                <h3 class="text-lg font-bold text-text-primary">
                   {{ style.name }}
                 </h3>
               </div>
               <div class="flex gap-1">
                 <button
-                  class="p-1.5 rounded-md text-guofeng-text-secondary hover:text-guofeng-indigo hover:bg-guofeng-indigo/10 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
+                  class="p-1.5 rounded-md text-text-secondary hover:text-accent-secondary hover:bg-accent-secondary/10 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
                   :aria-label="$t('common.view') + ': ' + style.name"
                   @click.stop="handleView(style)"
                 >
@@ -142,7 +144,7 @@
                   />
                 </button>
                 <button
-                  class="p-1.5 rounded-md text-guofeng-text-secondary hover:text-guofeng-blue hover:bg-guofeng-blue/10 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
+                  class="p-1.5 rounded-md text-text-secondary hover:text-accent-secondary hover:bg-accent-secondary/10 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
                   :aria-label="$t('common.edit') + ': ' + style.name"
                   @click.stop="handleEdit(style)"
                 >
@@ -152,7 +154,7 @@
                   />
                 </button>
                 <button
-                  class="p-1.5 rounded-md text-guofeng-text-secondary hover:text-guofeng-red hover:bg-guofeng-red/10 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
+                  class="p-1.5 rounded-md text-text-secondary hover:text-accent-danger hover:bg-accent-danger/10 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
                   :aria-label="$t('common.delete') + ': ' + style.name"
                   @click.stop="handleDelete(style.name)"
                 >
@@ -165,19 +167,19 @@
             </div>
 
             <!-- Preview -->
-            <div class="bg-guofeng-bg-tertiary/50 rounded-lg p-3 border border-guofeng-border/30">
-              <p class="text-xs text-guofeng-text-muted mb-1 font-semibold">
+            <div class="bg-bg-surface/50 rounded-lg p-3 border border-border-default/30">
+              <p class="text-xs text-text-muted mb-1 font-semibold">
                 {{ $t('outputStyles.preview') }}:
               </p>
-              <pre class="text-xs font-mono text-guofeng-text-secondary line-clamp-4 whitespace-pre-wrap break-words">{{ style.content.slice(0, 300) }}{{ style.content.length > 300 ? '...' : '' }}</pre>
+              <pre class="text-xs font-mono text-text-secondary line-clamp-4 whitespace-pre-wrap break-words">{{ style.content.slice(0, 300) }}{{ style.content.length > 300 ? '...' : '' }}</pre>
             </div>
 
-            <div class="mt-3 flex items-center justify-between text-xs text-guofeng-text-muted">
+            <div class="mt-3 flex items-center justify-between text-xs text-text-muted">
               <span>{{ style.content.length }} {{ $t('outputStyles.characters') }}</span>
               <span>{{ style.content.split('\n').length }} {{ $t('outputStyles.lines') }}</span>
             </div>
           </div>
-        </GuofengCard>
+        </Card>
       </div>
     </div>
 
@@ -185,7 +187,7 @@
     <Teleport to="body">
       <div
         v-if="showViewModal && viewingStyle"
-        class="fixed inset-0 flex items-center justify-center z-50 bg-guofeng-ink/20 backdrop-blur-md transition-colors p-4"
+        class="fixed inset-0 flex items-center justify-center z-50 bg-black/20 backdrop-blur-md transition-colors p-4"
         role="dialog"
         aria-modal="true"
         :aria-labelledby="'view-modal-title'"
@@ -197,7 +199,7 @@
           @click.stop
         >
           <button
-            class="absolute top-4 right-4 p-2 rounded-full hover:bg-guofeng-bg-tertiary text-guofeng-text-muted transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
+            class="absolute top-4 right-4 p-2 rounded-full hover:bg-bg-surface text-text-muted transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
             :aria-label="$t('common.close')"
             @click="showViewModal = false"
           >
@@ -210,16 +212,16 @@
           <div class="flex items-center justify-between mb-6">
             <h3
               id="view-modal-title"
-              class="text-2xl font-bold text-guofeng-text-primary flex items-center"
+              class="text-2xl font-bold text-text-primary flex items-center"
             >
               <Palette
-                class="w-6 h-6 mr-2 text-guofeng-indigo"
+                class="w-6 h-6 mr-2 text-accent-secondary"
                 aria-hidden="true"
               />
               {{ viewingStyle.name }}
             </h3>
             <button
-              class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors bg-guofeng-bg-tertiary hover:bg-guofeng-bg-secondary text-guofeng-text-secondary flex items-center gap-1.5 min-h-[44px]"
+              class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors bg-bg-surface hover:bg-bg-elevated text-text-secondary flex items-center gap-1.5 min-h-[44px]"
               :aria-label="copied ? $t('common.copied') : $t('common.copy')"
               @click="copyContent"
             >
@@ -231,13 +233,13 @@
             </button>
           </div>
 
-          <pre class="bg-guofeng-bg-tertiary/50 rounded-xl p-4 overflow-auto max-h-[500px] border border-guofeng-border/30">
-            <code class="text-sm font-mono text-guofeng-text-primary whitespace-pre-wrap break-words leading-relaxed">{{ viewingStyle.content }}</code>
+          <pre class="bg-bg-surface/50 rounded-xl p-4 overflow-auto max-h-[500px] border border-border-default/30">
+            <code class="text-sm font-mono text-text-primary whitespace-pre-wrap break-words leading-relaxed">{{ viewingStyle.content }}</code>
           </pre>
 
-          <div class="flex gap-3 mt-6 pt-4 border-t border-guofeng-border/50">
+          <div class="flex gap-3 mt-6 pt-4 border-t border-border-default/50">
             <button
-              class="flex-1 px-4 py-2.5 rounded-xl font-medium transition-colors bg-guofeng-blue/10 text-guofeng-blue hover:bg-guofeng-blue/20 flex items-center justify-center gap-2 min-h-[44px]"
+              class="flex-1 px-4 py-2.5 rounded-xl font-medium transition-colors bg-accent-secondary/10 text-accent-secondary hover:bg-accent-secondary/20 flex items-center justify-center gap-2 min-h-[44px]"
               @click="handleEditFromView"
             >
               <Edit2
@@ -247,7 +249,7 @@
               {{ $t('common.edit') }}
             </button>
             <button
-              class="flex-1 px-4 py-2.5 rounded-xl font-medium transition-colors bg-white text-guofeng-text-secondary hover:bg-guofeng-bg-tertiary border border-guofeng-border min-h-[44px]"
+              class="flex-1 px-4 py-2.5 rounded-xl font-medium transition-colors bg-white text-text-secondary hover:bg-bg-surface border border-border-default min-h-[44px]"
               @click="showViewModal = false"
             >
               {{ $t('common.close') }}
@@ -262,7 +264,7 @@
       <div
         v-if="showModal"
         ref="editModalOverlay"
-        class="fixed inset-0 flex items-center justify-center z-50 bg-guofeng-ink/20 backdrop-blur-md transition-colors p-4"
+        class="fixed inset-0 flex items-center justify-center z-50 bg-black/20 backdrop-blur-md transition-colors p-4"
         role="dialog"
         aria-modal="true"
         :aria-labelledby="editingStyle ? 'edit-modal-title' : 'add-modal-title'"
@@ -275,7 +277,7 @@
           @click.stop
         >
           <button
-            class="absolute top-4 right-4 p-2 rounded-full hover:bg-guofeng-bg-tertiary text-guofeng-text-muted transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
+            class="absolute top-4 right-4 p-2 rounded-full hover:bg-bg-surface text-text-muted transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
             :aria-label="$t('common.close')"
             @click="closeEditModal"
           >
@@ -287,11 +289,11 @@
 
           <h3
             :id="editingStyle ? 'edit-modal-title' : 'add-modal-title'"
-            class="text-2xl font-bold mb-6 text-guofeng-text-primary flex items-center"
+            class="text-2xl font-bold mb-6 text-text-primary flex items-center"
           >
             <component
               :is="editingStyle ? Edit2 : Plus"
-              class="w-6 h-6 mr-2 text-guofeng-indigo"
+              class="w-6 h-6 mr-2 text-accent-secondary"
               aria-hidden="true"
             />
             {{ editingStyle ? $t('outputStyles.editStyle') : $t('outputStyles.addStyle') }}
@@ -301,7 +303,7 @@
             <div>
               <label
                 for="style-name"
-                class="block mb-1.5 text-sm font-semibold text-guofeng-text-secondary"
+                class="block mb-1.5 text-sm font-semibold text-text-secondary"
               >{{ $t('outputStyles.nameLabel') }}</label>
               <input
                 id="style-name"
@@ -309,7 +311,7 @@
                 v-model="formData.name"
                 type="text"
                 :disabled="!!editingStyle"
-                class="w-full px-4 py-2.5 rounded-lg bg-guofeng-bg-tertiary border border-guofeng-border focus:border-guofeng-indigo focus:ring-1 focus:ring-guofeng-indigo outline-none transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                class="w-full px-4 py-2.5 rounded-lg bg-bg-surface border border-border-default focus:border-accent-secondary focus:ring-1 focus:ring-accent-secondary outline-none transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                 :placeholder="$t('outputStyles.namePlaceholder')"
                 aria-required="true"
               >
@@ -318,28 +320,28 @@
             <div>
               <label
                 for="style-content"
-                class="block mb-1.5 text-sm font-semibold text-guofeng-text-secondary"
+                class="block mb-1.5 text-sm font-semibold text-text-secondary"
               >{{ $t('outputStyles.contentLabel') }}</label>
               <textarea
                 id="style-content"
                 v-model="formData.content"
                 rows="15"
-                class="w-full px-4 py-3 rounded-lg bg-guofeng-bg-tertiary border border-guofeng-border focus:border-guofeng-indigo focus:ring-1 focus:ring-guofeng-indigo outline-none transition-colors resize-y font-mono text-sm leading-relaxed"
+                class="w-full px-4 py-3 rounded-lg bg-bg-surface border border-border-default focus:border-accent-secondary focus:ring-1 focus:ring-accent-secondary outline-none transition-colors resize-y font-mono text-sm leading-relaxed"
                 :placeholder="$t('outputStyles.contentPlaceholder')"
                 aria-required="true"
               />
             </div>
           </div>
 
-          <div class="flex gap-4 mt-8 pt-6 border-t border-guofeng-border/50">
+          <div class="flex gap-4 mt-8 pt-6 border-t border-border-default/50">
             <button
-              class="flex-1 px-6 py-3 rounded-xl font-bold transition-colors bg-white text-guofeng-text-secondary hover:bg-guofeng-bg-tertiary border border-guofeng-border min-h-[44px]"
+              class="flex-1 px-6 py-3 rounded-xl font-bold transition-colors bg-white text-text-secondary hover:bg-bg-surface border border-border-default min-h-[44px]"
               @click="closeEditModal"
             >
               {{ $t('common.cancel') }}
             </button>
             <button
-              class="flex-1 px-6 py-3 rounded-xl font-bold transition-[color,background-color,border-color,transform] bg-guofeng-indigo text-white shadow-lg shadow-guofeng-indigo/20 hover:shadow-xl hover:shadow-guofeng-indigo/30 hover:-translate-y-0.5 min-h-[44px]"
+              class="flex-1 px-6 py-3 rounded-xl font-bold transition-[color,background-color,border-color,transform] bg-accent-secondary text-white shadow-lg shadow-accent-secondary/20 hover:shadow-xl hover:shadow-accent-secondary/30 hover:-translate-y-0.5 min-h-[44px]"
               :disabled="saving"
               @click="handleSubmit"
             >
@@ -363,12 +365,11 @@
 </template>
 
 <script setup lang="ts">
-/* eslint-disable no-console -- Development debugging, console output acceptable */
 import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Palette, Plus, Edit2, Trash2, Search, X, Eye, Copy, Home, Code2 } from 'lucide-vue-next'
-import Breadcrumb from '@/components/common/Breadcrumb.vue'
-import GuofengCard from '@/components/common/GuofengCard.vue'
+import Breadcrumb from '@/components/ui/Breadcrumb.vue'
+import Card from '@/components/ui/Card.vue'
 import {
   listOutputStyles,
   createOutputStyle,
@@ -377,6 +378,7 @@ import {
 } from '@/api'
 import { useUIStore } from '@/store'
 import type { OutputStyle } from '@/types'
+import { logger } from '@/utils/logger'
 
 const { t } = useI18n()
 const uiStore = useUIStore()
@@ -398,8 +400,8 @@ const editModalContent = ref<HTMLElement | null>(null)
 const firstInput = ref<HTMLInputElement | null>(null)
 
 const breadcrumbs = computed(() => [
-  { label: t('common.home'), to: '/', icon: Home },
-  { label: t('claudeCode.title'), to: '/claude-code', icon: Code2 },
+  { label: t('common.home'), path: '/', icon: Home },
+  { label: t('claudeCode.title'), path: '/claude-code', icon: Code2 },
   { label: t('outputStyles.pageTitle') }
 ])
 
@@ -423,7 +425,7 @@ const loadStyles = async () => {
   try {
     outputStyles.value = await listOutputStyles()
   } catch (err) {
-    console.error('Failed to load output styles:', err)
+    logger.error('Failed to load output styles:', err)
     uiStore.showError(t('common.loadFailed'))
   } finally {
     loading.value = false
@@ -462,7 +464,7 @@ const handleDelete = async (name: string) => {
     await loadStyles()
     uiStore.showSuccess(t('common.deleteSuccess'))
   } catch (err) {
-    console.error('Failed to delete output style:', err)
+    logger.error('Failed to delete output style:', err)
     uiStore.showError(t('common.deleteFailed'))
   }
 }
@@ -485,7 +487,7 @@ const handleSubmit = async () => {
     showModal.value = false
     await loadStyles()
   } catch (err) {
-    console.error('Failed to save output style:', err)
+    logger.error('Failed to save output style:', err)
     uiStore.showError(t('common.operationFailed'))
   } finally {
     saving.value = false
@@ -502,7 +504,7 @@ const copyContent = async () => {
       copied.value = false
     }, 2000)
   } catch (err) {
-    console.error('Failed to copy:', err)
+    logger.error('Failed to copy:', err)
   }
 }
 

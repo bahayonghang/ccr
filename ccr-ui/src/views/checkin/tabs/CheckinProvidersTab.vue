@@ -378,6 +378,7 @@ import {
   getWafCookieStatus,
 } from '@/api'
 import type { CheckinProvider, BuiltinProvider, WafCookieStatus } from '@/types/checkin'
+import { logger } from '@/utils/logger'
 
 const props = defineProps<{
   providers: CheckinProvider[]
@@ -429,7 +430,7 @@ const loadWafStatus = async (providerId: string) => {
       [providerId]: status,
     }
   } catch (error: unknown) {
-    console.error('Failed to load WAF status', error)
+    logger.warn('Failed to load WAF status', error)
   }
 }
 

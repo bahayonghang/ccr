@@ -175,14 +175,14 @@
 </template>
 
 <script setup lang="ts">
-/* eslint-disable no-console -- Development debugging, console output acceptable */
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter, RouterLink } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { Book, Edit2, Trash2, ArrowLeft, FolderOpen, FileText, Copy, X, AlertCircle, Home } from 'lucide-vue-next'
-import Breadcrumb from '@/components/common/Breadcrumb.vue'
+import Breadcrumb from '@/components/ui/Breadcrumb.vue'
 import { useSkills, type Skill } from '@/composables/useSkills'
 import { extractStringParam } from '@/types/router'
+import { logger } from '@/utils/logger'
 
 const route = useRoute()
 const router = useRouter()
@@ -196,8 +196,8 @@ const saving = ref(false)
 const copied = ref(false)
 
 const breadcrumbs = computed(() => [
-  { label: t('common.home'), to: '/', icon: Home },
-  { label: t('skills.title'), to: '/skills', icon: Book },
+  { label: t('common.home'), path: '/', icon: Home },
+  { label: t('skills.title'), path: '/skills', icon: Book },
   { label: skill.value?.name || t('common.loading') }
 ])
 
@@ -207,7 +207,7 @@ onMounted(async () => {
     try {
       skill.value = await getSkill(name)
     } catch (err) {
-      console.error('Failed to load skill:', err)
+      logger.error('Failed to load skill:', err)
     }
   }
 })
@@ -228,7 +228,7 @@ const handleSave = async () => {
     skill.value.instruction = editInstruction.value
     showEditModal.value = false
   } catch (err) {
-    console.error('Failed to update skill:', err)
+    logger.error('Failed to update skill:', err)
     alert(t('common.operationFailed'))
   } finally {
     saving.value = false
@@ -244,7 +244,7 @@ const handleDelete = async () => {
     await deleteSkill(skill.value.name)
     router.push('/skills')
   } catch (err) {
-    console.error('Failed to delete skill:', err)
+    logger.error('Failed to delete skill:', err)
     alert(t('common.deleteFailed'))
   }
 }
@@ -259,7 +259,7 @@ const copyInstruction = async () => {
       copied.value = false
     }, 2000)
   } catch (err) {
-    console.error('Failed to copy:', err)
+    logger.error('Failed to copy:', err)
   }
 }
 </script>

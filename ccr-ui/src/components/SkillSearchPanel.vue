@@ -3,14 +3,14 @@
     <!-- Header with Search -->
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
       <div class="flex items-center gap-3">
-        <div class="p-2.5 rounded-xl bg-gradient-to-br from-guofeng-purple/20 to-guofeng-indigo/20">
-          <Sparkles class="w-5 h-5 text-guofeng-purple" />
+        <div class="p-2.5 rounded-xl bg-gradient-to-br from-accent-primary/20 to-accent-secondary/20">
+          <Sparkles class="w-5 h-5 text-accent-primary" />
         </div>
         <div>
-          <h3 class="text-base font-bold text-guofeng-text-primary">
+          <h3 class="text-base font-bold text-text-primary">
             {{ $t('skills.search.title') }}
           </h3>
-          <p class="text-xs text-guofeng-text-muted">
+          <p class="text-xs text-text-muted">
             {{ skills.length }} {{ $t('skills.search.skillsFound') }}
           </p>
         </div>
@@ -19,17 +19,17 @@
       <!-- Search Input -->
       <div class="flex items-center gap-3">
         <div class="relative">
-          <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-guofeng-text-muted" />
+          <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
           <input
             v-model="searchQuery"
             type="text"
-            class="w-64 pl-9 pr-4 py-2 text-sm rounded-xl bg-guofeng-bg-tertiary border border-guofeng-border text-guofeng-text-primary placeholder:text-guofeng-text-muted focus:outline-none focus:border-guofeng-purple"
+            class="w-64 pl-9 pr-4 py-2 text-sm rounded-xl bg-bg-surface border border-border-default text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent-primary"
             :placeholder="$t('skills.search.placeholder')"
           >
         </div>
         <button
           v-if="searchQuery || selectedTags.length > 0 || selectedRepo"
-          class="p-2 rounded-lg hover:bg-guofeng-bg-tertiary text-guofeng-text-muted hover:text-guofeng-red transition-colors"
+          class="p-2 rounded-lg hover:bg-bg-surface text-text-muted hover:text-accent-danger transition-colors"
           @click="clearFilters"
         >
           <XCircle class="w-4 h-4" />
@@ -41,14 +41,14 @@
     <div class="flex flex-wrap gap-2 mb-6">
       <!-- Repository Filter -->
       <div class="flex items-center gap-2">
-        <span class="text-xs text-guofeng-text-muted">{{ $t('skills.search.repository') }}:</span>
+        <span class="text-xs text-text-muted">{{ $t('skills.search.repository') }}:</span>
         <button
           v-for="repo in availableRepos"
           :key="repo"
           class="px-2.5 py-1 text-xs rounded-lg transition-colors"
           :class="selectedRepo === repo 
-            ? 'bg-guofeng-purple/20 text-guofeng-purple border border-guofeng-purple/30' 
-            : 'bg-guofeng-bg-tertiary text-guofeng-text-muted hover:text-guofeng-text-primary border border-transparent'"
+            ? 'bg-accent-primary/20 text-accent-primary border border-accent-primary/30' 
+            : 'bg-bg-surface text-text-muted hover:text-text-primary border border-transparent'"
           @click="toggleRepo(repo)"
         >
           {{ repo || $t('skills.search.local') }}
@@ -60,21 +60,21 @@
         v-if="availableTags.length > 0"
         class="flex items-center gap-2 ml-4"
       >
-        <span class="text-xs text-guofeng-text-muted">{{ $t('skills.search.tags') }}:</span>
+        <span class="text-xs text-text-muted">{{ $t('skills.search.tags') }}:</span>
         <button
           v-for="tag in availableTags.slice(0, 8)"
           :key="tag"
           class="px-2.5 py-1 text-xs rounded-lg transition-colors"
           :class="selectedTags.includes(tag) 
-            ? 'bg-guofeng-indigo/20 text-guofeng-indigo border border-guofeng-indigo/30' 
-            : 'bg-guofeng-bg-tertiary text-guofeng-text-muted hover:text-guofeng-text-primary border border-transparent'"
+            ? 'bg-accent-secondary/20 text-accent-secondary border border-accent-secondary/30' 
+            : 'bg-bg-surface text-text-muted hover:text-text-primary border border-transparent'"
           @click="toggleTag(tag)"
         >
           {{ tag }}
         </button>
         <span
           v-if="availableTags.length > 8"
-          class="text-xs text-guofeng-text-muted"
+          class="text-xs text-text-muted"
         >
           +{{ availableTags.length - 8 }}
         </span>
@@ -86,7 +86,7 @@
       v-if="loading"
       class="flex justify-center py-8"
     >
-      <Loader2 class="w-6 h-6 animate-spin text-guofeng-purple" />
+      <Loader2 class="w-6 h-6 animate-spin text-accent-primary" />
     </div>
 
     <!-- Empty State -->
@@ -94,13 +94,13 @@
       v-else-if="filteredSkills.length === 0"
       class="text-center py-8"
     >
-      <Search class="w-12 h-12 mx-auto text-guofeng-text-muted/30 mb-3" />
-      <p class="text-sm text-guofeng-text-muted">
+      <Search class="w-12 h-12 mx-auto text-text-muted/30 mb-3" />
+      <p class="text-sm text-text-muted">
         {{ $t('skills.search.noResults') }}
       </p>
       <p
         v-if="searchQuery || selectedTags.length > 0"
-        class="text-xs text-guofeng-text-muted/70 mt-1"
+        class="text-xs text-text-muted/70 mt-1"
       >
         {{ $t('skills.search.tryDifferent') }}
       </p>
@@ -114,7 +114,7 @@
       <div
         v-for="skill in filteredSkills"
         :key="skill.name"
-        class="group p-4 rounded-xl bg-guofeng-bg-tertiary/50 border border-transparent hover:border-guofeng-purple/30 cursor-pointer transition-colors"
+        class="group p-4 rounded-xl bg-bg-surface/50 border border-transparent hover:border-accent-primary/30 cursor-pointer transition-colors"
         @click="selectSkill(skill)"
       >
         <div class="flex items-start justify-between mb-2">
@@ -122,20 +122,20 @@
             <component 
               :is="skill.is_remote ? Cloud : HardDrive" 
               class="w-4 h-4" 
-              :class="skill.is_remote ? 'text-guofeng-cyan' : 'text-guofeng-emerald'"
+              :class="skill.is_remote ? 'text-accent-primary' : 'text-accent-success'"
             />
-            <span class="text-sm font-bold text-guofeng-text-primary">{{ skill.name }}</span>
+            <span class="text-sm font-bold text-text-primary">{{ skill.name }}</span>
           </div>
           <button
             v-if="!skill.is_remote"
-            class="p-1 rounded opacity-0 group-hover:opacity-100 hover:bg-guofeng-red/10 text-guofeng-text-muted hover:text-guofeng-red transition-[color,background-color,opacity]"
+            class="p-1 rounded opacity-0 group-hover:opacity-100 hover:bg-accent-danger/10 text-text-muted hover:text-accent-danger transition-[color,background-color,opacity]"
             @click.stop="deleteSkill(skill.name)"
           >
             <Trash2 class="w-3.5 h-3.5" />
           </button>
         </div>
 
-        <p class="text-xs text-guofeng-text-muted line-clamp-2 mb-3">
+        <p class="text-xs text-text-muted line-clamp-2 mb-3">
           {{ skill.description || $t('skills.search.noDescription') }}
         </p>
 
@@ -143,20 +143,20 @@
         <div class="flex flex-wrap items-center gap-2">
           <span 
             v-if="skill.metadata?.author" 
-            class="text-[10px] px-1.5 py-0.5 rounded bg-guofeng-bg-primary text-guofeng-text-muted"
+            class="text-[10px] px-1.5 py-0.5 rounded bg-bg-base text-text-muted"
           >
             {{ skill.metadata.author }}
           </span>
           <span 
             v-for="tag in (skill.metadata?.tags || []).slice(0, 3)" 
             :key="tag"
-            class="text-[10px] px-1.5 py-0.5 rounded bg-guofeng-indigo/10 text-guofeng-indigo"
+            class="text-[10px] px-1.5 py-0.5 rounded bg-accent-secondary/10 text-accent-secondary"
           >
             {{ tag }}
           </span>
           <span 
             v-if="skill.repository" 
-            class="text-[10px] px-1.5 py-0.5 rounded bg-guofeng-cyan/10 text-guofeng-cyan"
+            class="text-[10px] px-1.5 py-0.5 rounded bg-accent-primary/10 text-accent-primary"
           >
             {{ skill.repository }}
           </span>
@@ -171,32 +171,32 @@
         class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md"
         @click.self="selectedSkillData = null"
       >
-        <div class="w-full max-w-2xl max-h-[80vh] m-4 bg-guofeng-bg-secondary rounded-2xl border border-white/10 overflow-hidden flex flex-col">
+        <div class="w-full max-w-2xl max-h-[80vh] m-4 bg-bg-elevated rounded-2xl border border-white/10 overflow-hidden flex flex-col">
           <div class="flex items-center justify-between p-4 border-b border-white/10">
             <div class="flex items-center gap-3">
               <component 
                 :is="selectedSkillData.is_remote ? Cloud : HardDrive" 
                 class="w-5 h-5"
-                :class="selectedSkillData.is_remote ? 'text-guofeng-cyan' : 'text-guofeng-emerald'"
+                :class="selectedSkillData.is_remote ? 'text-accent-primary' : 'text-accent-success'"
               />
               <div>
-                <h3 class="text-base font-bold text-guofeng-text-primary">
+                <h3 class="text-base font-bold text-text-primary">
                   {{ selectedSkillData.name }}
                 </h3>
-                <p class="text-xs text-guofeng-text-muted">
+                <p class="text-xs text-text-muted">
                   {{ selectedSkillData.path }}
                 </p>
               </div>
             </div>
             <button
-              class="p-2 rounded-lg hover:bg-guofeng-bg-tertiary"
+              class="p-2 rounded-lg hover:bg-bg-surface"
               @click="selectedSkillData = null"
             >
-              <X class="w-4 h-4 text-guofeng-text-muted" />
+              <X class="w-4 h-4 text-text-muted" />
             </button>
           </div>
           <div class="flex-1 overflow-y-auto p-4">
-            <pre class="text-xs text-guofeng-text-secondary whitespace-pre-wrap font-mono bg-guofeng-bg-primary/50 p-4 rounded-xl">{{ selectedSkillData.instruction }}</pre>
+            <pre class="text-xs text-text-secondary whitespace-pre-wrap font-mono bg-bg-base/50 p-4 rounded-xl">{{ selectedSkillData.instruction }}</pre>
           </div>
         </div>
       </div>
@@ -205,7 +205,6 @@
 </template>
 
 <script setup lang="ts">
-/* eslint-disable no-console -- Development debugging, console output acceptable */
 import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
@@ -219,6 +218,7 @@ import {
   X
 } from 'lucide-vue-next'
 import { listSkills, deleteSkill as apiDeleteSkill, type Skill } from '@/api'
+import { logger } from '@/utils/logger'
 
 const { t } = useI18n({ useScope: 'global' })
 
@@ -290,7 +290,7 @@ const loadSkills = async () => {
     loading.value = true
     skills.value = await listSkills()
   } catch (error) {
-    console.error('Failed to load skills:', error)
+    logger.error('Failed to load skills:', error)
   } finally {
     loading.value = false
   }
@@ -325,7 +325,7 @@ const deleteSkill = async (name: string) => {
     await apiDeleteSkill(name)
     await loadSkills()
   } catch (error) {
-    console.error('Failed to delete skill:', error)
+    logger.error('Failed to delete skill:', error)
   }
 }
 </script>

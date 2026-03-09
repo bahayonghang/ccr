@@ -1,8 +1,8 @@
 <script setup lang="ts">
-/* eslint-disable no-console -- Development debugging, console output acceptable */
 import { ref, onMounted } from 'vue'
 import { Monitor, Globe } from 'lucide-vue-next'
 import { isTauriEnvironment, TauriAPI } from '@/api'
+import { logger } from '@/utils/logger'
 
 const isTauri = ref(false)
 const tauriVersion = ref<string | null>(null)
@@ -14,7 +14,7 @@ onMounted(async () => {
     try {
       tauriVersion.value = await TauriAPI.getTauriVersion()
     } catch (error) {
-      console.error('Failed to get Tauri version:', error)
+      logger.error('Failed to get Tauri version:', error)
     }
   }
 })

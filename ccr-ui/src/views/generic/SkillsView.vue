@@ -394,7 +394,6 @@
 </template>
 
 <script setup lang="ts">
-/* eslint-disable no-console -- Development debugging, console output acceptable */
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
@@ -407,6 +406,7 @@ import AnimatedBackground from '@/components/common/AnimatedBackground.vue'
 import Card from '@/components/ui/Card.vue'
 import Button from '@/components/ui/Button.vue'
 import { useSkills, type Skill } from '@/composables/useSkills'
+import { logger } from '@/utils/logger'
 
 const router = useRouter()
 const { t } = useI18n()
@@ -553,7 +553,7 @@ const handleSubmit = async () => {
     }
     showModal.value = false
   } catch (err) {
-    console.error(err)
+    logger.error('Failed to submit skill form', err)
   }
 }
 

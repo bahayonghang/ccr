@@ -138,11 +138,11 @@
 </template>
 
 <script setup lang="ts">
-/* eslint-disable no-console -- Development debugging, console output acceptable */
 import { ref, onMounted } from 'vue'
 import { RefreshCw, Zap } from 'lucide-vue-next'
 import { getVersion, checkUpdate, updateCCR } from '@/api'
 import type { VersionInfo, UpdateCheckResponse } from '@/types'
+import { logger } from '@/utils/logger'
 import UpdateModal from './UpdateModal.vue'
 
 interface UpdateResult {
@@ -168,7 +168,7 @@ const loadVersionInfo = async () => {
     const data = await getVersion<VersionInfo>()
     versionInfo.value = data
   } catch (err) {
-    console.error('Failed to load version info:', err)
+    logger.error('Failed to load version info:', err)
   }
 }
 
@@ -178,7 +178,7 @@ const handleCheckUpdate = async () => {
     const data = await checkUpdate<UpdateCheckResponse>()
     updateInfo.value = data
   } catch (err) {
-    console.error('Failed to check for updates:', err)
+    logger.error('Failed to check for updates:', err)
   } finally {
     isCheckingUpdate.value = false
   }
@@ -211,7 +211,7 @@ const handleConfirmUpdate = async () => {
       updateStage.value = 'error'
     }
   } catch (err) {
-    console.error('Failed to update CCR:', err)
+    logger.error('Failed to update CCR:', err)
     updateError.value = err instanceof Error ? err.message : '更新过程中出现错误'
     updateStage.value = 'error'
   }

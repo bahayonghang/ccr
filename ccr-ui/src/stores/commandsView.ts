@@ -1,5 +1,5 @@
-/* eslint-disable no-console -- Development debugging, console output acceptable */
 import { defineStore } from 'pinia'
+import { logger } from '@/utils/logger'
 
 type SortKey = 'name' | 'usage' | 'modified'
 type SortDir = 'asc' | 'desc'
@@ -64,7 +64,7 @@ export const useCommandsViewStore = defineStore('commandsView', {
           const state = JSON.parse(saved)
           this.$patch(state)
         } catch (e) {
-          console.error('Failed to restore commands view state:', e)
+          logger.error('Failed to restore commands view state:', e)
         }
       }
     },

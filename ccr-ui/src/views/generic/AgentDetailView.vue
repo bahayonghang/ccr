@@ -8,9 +8,9 @@
       <!-- Loading State -->
       <div
         v-if="loading"
-        class="text-center py-20 text-guofeng-text-muted"
+        class="text-center py-20 text-text-muted"
       >
-        <div class="loading-spinner mx-auto mb-4 w-8 h-8 border-guofeng-jade/30 border-t-guofeng-jade" />
+        <div class="loading-spinner mx-auto mb-4 w-8 h-8 border-accent-secondary/30 border-t-accent-secondary" />
         {{ $t('common.loading') }}
       </div>
 
@@ -19,18 +19,18 @@
         v-else-if="error"
         class="text-center py-20"
       >
-        <div class="bg-guofeng-red/10 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
-          <AlertCircle class="w-10 h-10 text-guofeng-red" />
+        <div class="bg-accent-danger/10 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
+          <AlertCircle class="w-10 h-10 text-accent-danger" />
         </div>
-        <p class="text-lg font-medium text-guofeng-text-primary">
+        <p class="text-lg font-medium text-text-primary">
           {{ $t('agents.loadError') }}
         </p>
-        <p class="text-sm mt-2 text-guofeng-text-muted">
+        <p class="text-sm mt-2 text-text-muted">
           {{ error }}
         </p>
         <RouterLink
           to="/agents"
-          class="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-guofeng-bg-secondary hover:bg-guofeng-bg-tertiary transition-colors"
+          class="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-bg-elevated hover:bg-bg-surface transition-colors"
         >
           <ArrowLeft class="w-4 h-4" />
           {{ $t('common.back') }}
@@ -44,28 +44,28 @@
           <div class="flex items-start justify-between gap-4">
             <div class="flex-1 min-w-0">
               <div class="flex items-center gap-3 mb-2">
-                <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-guofeng-jade/10 to-guofeng-blue/10 flex items-center justify-center text-xl shadow-sm border border-white/20">
+                <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-accent-secondary/10 to-accent-secondary/10 flex items-center justify-center text-xl shadow-sm border border-white/20">
                   🤖
                 </div>
                 <div>
-                  <h1 class="text-2xl font-bold text-guofeng-text-primary">
+                  <h1 class="text-2xl font-bold text-text-primary">
                     {{ agent.name }}
                   </h1>
                   <div class="flex items-center gap-2 mt-1">
                     <span
                       v-if="agent.folder"
-                      class="flex items-center gap-1 text-xs text-guofeng-text-muted bg-guofeng-bg-tertiary px-2 py-0.5 rounded border border-guofeng-border/50"
+                      class="flex items-center gap-1 text-xs text-text-muted bg-bg-surface px-2 py-0.5 rounded border border-border-default/50"
                     >
                       <Folder class="w-3 h-3" /> {{ agent.folder }}
                     </span>
                     <span
                       v-if="agent.model"
-                      class="text-xs text-guofeng-indigo bg-guofeng-indigo/10 px-2 py-0.5 rounded"
+                      class="text-xs text-accent-secondary bg-accent-secondary/10 px-2 py-0.5 rounded"
                     >
                       {{ agent.model }}
                     </span>
                     <span
-                      :class="agent.disabled ? 'bg-guofeng-text-muted/20 text-guofeng-text-muted' : 'bg-guofeng-jade/10 text-guofeng-jade'"
+                      :class="agent.disabled ? 'bg-text-muted/20 text-text-muted' : 'bg-accent-secondary/10 text-accent-secondary'"
                       class="text-xs px-2 py-0.5 rounded font-medium"
                     >
                       {{ agent.disabled ? $t('agents.disabledBadge') : $t('agents.enabledBadge') }}
@@ -78,7 +78,7 @@
             <div class="flex items-center gap-2">
               <button
                 class="px-4 py-2 rounded-lg font-medium text-sm transition-colors flex items-center gap-2"
-                :class="agent.disabled ? 'bg-guofeng-jade/10 text-guofeng-jade hover:bg-guofeng-jade/20' : 'bg-guofeng-text-muted/10 text-guofeng-text-muted hover:bg-guofeng-text-muted/20'"
+                :class="agent.disabled ? 'bg-accent-secondary/10 text-accent-secondary hover:bg-accent-secondary/20' : 'bg-text-muted/10 text-text-muted hover:bg-text-muted/20'"
                 @click="handleToggle"
               >
                 <Power
@@ -92,14 +92,14 @@
                 {{ agent.disabled ? $t('agents.enable') : $t('agents.disable') }}
               </button>
               <button
-                class="px-4 py-2 rounded-lg font-medium text-sm transition-colors bg-guofeng-blue/10 text-guofeng-blue hover:bg-guofeng-blue/20 flex items-center gap-2"
+                class="px-4 py-2 rounded-lg font-medium text-sm transition-colors bg-accent-secondary/10 text-accent-secondary hover:bg-accent-secondary/20 flex items-center gap-2"
                 @click="handleEdit"
               >
                 <Edit2 class="w-4 h-4" />
                 {{ $t('common.edit') }}
               </button>
               <button
-                class="px-4 py-2 rounded-lg font-medium text-sm transition-colors bg-guofeng-red/10 text-guofeng-red hover:bg-guofeng-red/20 flex items-center gap-2"
+                class="px-4 py-2 rounded-lg font-medium text-sm transition-colors bg-accent-danger/10 text-accent-danger hover:bg-accent-danger/20 flex items-center gap-2"
                 @click="handleDelete"
               >
                 <Trash2 class="w-4 h-4" />
@@ -114,16 +114,16 @@
           v-if="agent.tools && agent.tools.length > 0"
           class="glass-effect rounded-2xl p-6 mb-6 border border-white/20 shadow-sm"
         >
-          <h2 class="text-lg font-bold text-guofeng-text-primary flex items-center gap-2 mb-4">
-            <Wrench class="w-5 h-5 text-guofeng-jade" />
+          <h2 class="text-lg font-bold text-text-primary flex items-center gap-2 mb-4">
+            <Wrench class="w-5 h-5 text-accent-secondary" />
             {{ $t('agents.toolsLabel') }}
-            <span class="text-sm font-normal text-guofeng-text-muted">({{ agent.tools.length }})</span>
+            <span class="text-sm font-normal text-text-muted">({{ agent.tools.length }})</span>
           </h2>
           <div class="flex flex-wrap gap-2">
             <span
               v-for="tool in agent.tools"
               :key="tool"
-              class="px-3 py-1.5 rounded-lg text-sm bg-guofeng-bg-tertiary border border-guofeng-border/50 text-guofeng-text-primary"
+              class="px-3 py-1.5 rounded-lg text-sm bg-bg-surface border border-border-default/50 text-text-primary"
             >
               {{ tool }}
             </span>
@@ -133,13 +133,13 @@
         <!-- System Prompt Section -->
         <div class="glass-effect rounded-2xl p-6 border border-white/20 shadow-sm">
           <div class="flex items-center justify-between mb-4">
-            <h2 class="text-lg font-bold text-guofeng-text-primary flex items-center gap-2">
-              <FileText class="w-5 h-5 text-guofeng-jade" />
+            <h2 class="text-lg font-bold text-text-primary flex items-center gap-2">
+              <FileText class="w-5 h-5 text-accent-secondary" />
               {{ $t('agents.systemPromptLabel') }}
             </h2>
             <button
               v-if="agent.system_prompt"
-              class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors bg-guofeng-bg-tertiary hover:bg-guofeng-bg-secondary text-guofeng-text-secondary flex items-center gap-1.5"
+              class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors bg-bg-surface hover:bg-bg-elevated text-text-secondary flex items-center gap-1.5"
               @click="copySystemPrompt"
             >
               <Copy class="w-3.5 h-3.5" />
@@ -151,13 +151,13 @@
             v-if="agent.system_prompt"
             class="relative"
           >
-            <pre class="bg-guofeng-bg-tertiary/50 rounded-xl p-4 overflow-auto max-h-[600px] border border-guofeng-border/30">
-              <code class="text-sm font-mono text-guofeng-text-primary whitespace-pre-wrap break-words leading-relaxed">{{ agent.system_prompt }}</code>
+            <pre class="bg-bg-surface/50 rounded-xl p-4 overflow-auto max-h-[600px] border border-border-default/30">
+              <code class="text-sm font-mono text-text-primary whitespace-pre-wrap break-words leading-relaxed">{{ agent.system_prompt }}</code>
             </pre>
           </div>
           <div
             v-else
-            class="text-center py-12 text-guofeng-text-muted"
+            class="text-center py-12 text-text-muted"
           >
             <FileText class="w-12 h-12 mx-auto mb-3 opacity-30" />
             <p>{{ $t('agents.noSystemPrompt') }}</p>
@@ -169,7 +169,7 @@
     <!-- Edit Modal -->
     <div
       v-if="showEditModal"
-      class="fixed inset-0 flex items-center justify-center z-50 bg-guofeng-ink/20 backdrop-blur-md transition-colors p-4"
+      class="fixed inset-0 flex items-center justify-center z-50 bg-black/20 backdrop-blur-md transition-colors p-4"
       @click="showEditModal = false"
     >
       <div
@@ -177,14 +177,14 @@
         @click.stop
       >
         <button
-          class="absolute top-4 right-4 p-2 rounded-full hover:bg-guofeng-bg-tertiary text-guofeng-text-muted transition-colors"
+          class="absolute top-4 right-4 p-2 rounded-full hover:bg-bg-surface text-text-muted transition-colors"
           @click="showEditModal = false"
         >
           <X class="w-5 h-5" />
         </button>
 
-        <h3 class="text-2xl font-bold mb-8 text-guofeng-text-primary flex items-center">
-          <div class="w-10 h-10 rounded-xl bg-guofeng-jade/10 flex items-center justify-center mr-3 text-guofeng-jade">
+        <h3 class="text-2xl font-bold mb-8 text-text-primary flex items-center">
+          <div class="w-10 h-10 rounded-xl bg-accent-secondary/10 flex items-center justify-center mr-3 text-accent-secondary">
             <Edit2 class="w-5 h-5" />
           </div>
           {{ $t('agents.editAgent') }}
@@ -193,21 +193,21 @@
         <div class="space-y-6">
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label class="block mb-2 text-xs font-bold text-guofeng-text-secondary uppercase tracking-wider">{{ $t('agents.nameLabel') }}</label>
+              <label class="block mb-2 text-xs font-bold text-text-secondary uppercase tracking-wider">{{ $t('agents.nameLabel') }}</label>
               <input
                 :value="agent?.name"
                 type="text"
                 disabled
-                class="w-full px-4 py-3 rounded-xl bg-guofeng-bg-tertiary/50 border border-guofeng-border opacity-60 cursor-not-allowed"
+                class="w-full px-4 py-3 rounded-xl bg-bg-surface/50 border border-border-default opacity-60 cursor-not-allowed"
               >
             </div>
 
             <div>
-              <label class="block mb-2 text-xs font-bold text-guofeng-text-secondary uppercase tracking-wider">{{ $t('agents.modelLabel') }}</label>
+              <label class="block mb-2 text-xs font-bold text-text-secondary uppercase tracking-wider">{{ $t('agents.modelLabel') }}</label>
               <div class="relative">
                 <select
                   v-model="formData.model"
-                  class="w-full px-4 py-3 rounded-xl bg-white/50 border border-guofeng-border focus:border-guofeng-jade focus:ring-4 focus:ring-guofeng-jade/10 outline-none transition-colors appearance-none"
+                  class="w-full px-4 py-3 rounded-xl bg-white/50 border border-border-default focus:border-accent-secondary focus:ring-4 focus:ring-accent-secondary/10 outline-none transition-colors appearance-none"
                 >
                   <option value="claude-sonnet-4-5-20250929">
                     Claude Sonnet 4.5
@@ -219,7 +219,7 @@
                     Claude 3.5 Sonnet
                   </option>
                 </select>
-                <div class="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-guofeng-text-muted">
+                <div class="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-text-muted">
                   <ChevronDown class="w-4 h-4" />
                 </div>
               </div>
@@ -227,35 +227,35 @@
           </div>
 
           <div>
-            <label class="block mb-2 text-xs font-bold text-guofeng-text-secondary uppercase tracking-wider">{{ $t('agents.toolsLabel') }}</label>
+            <label class="block mb-2 text-xs font-bold text-text-secondary uppercase tracking-wider">{{ $t('agents.toolsLabel') }}</label>
             <div class="flex gap-2 mb-3">
               <input
                 v-model="toolInput"
                 type="text"
                 :placeholder="$t('agents.toolPlaceholder')"
-                class="flex-1 px-4 py-3 rounded-xl bg-white/50 border border-guofeng-border focus:border-guofeng-jade focus:ring-4 focus:ring-guofeng-jade/10 outline-none transition-colors"
+                class="flex-1 px-4 py-3 rounded-xl bg-white/50 border border-border-default focus:border-accent-secondary focus:ring-4 focus:ring-accent-secondary/10 outline-none transition-colors"
                 @keyup.enter="addTool"
               >
               <button
-                class="px-6 py-3 rounded-xl font-bold text-white bg-guofeng-jade hover:bg-guofeng-jade/90 transition-colors shadow-lg shadow-guofeng-jade/20"
+                class="px-6 py-3 rounded-xl font-bold text-white bg-accent-secondary hover:bg-accent-secondary/90 transition-colors shadow-lg shadow-accent-secondary/20"
                 @click="addTool"
               >
                 {{ $t('agents.addTool') }}
               </button>
             </div>
-            <div class="flex flex-wrap gap-2 min-h-[50px] p-4 rounded-xl bg-guofeng-bg-secondary/50 border border-guofeng-border/50 border-dashed">
+            <div class="flex flex-wrap gap-2 min-h-[50px] p-4 rounded-xl bg-bg-elevated/50 border border-border-default/50 border-dashed">
               <span
                 v-if="!formData.tools || formData.tools.length === 0"
-                class="text-sm text-guofeng-text-muted italic w-full text-center py-2"
+                class="text-sm text-text-muted italic w-full text-center py-2"
               >{{ $t('agents.noTools') }}</span>
               <span
                 v-for="tool in (formData.tools || [])"
                 :key="tool"
-                class="px-3 py-1.5 rounded-lg text-sm flex items-center gap-2 bg-white border border-guofeng-border shadow-sm text-guofeng-text-primary group"
+                class="px-3 py-1.5 rounded-lg text-sm flex items-center gap-2 bg-white border border-border-default shadow-sm text-text-primary group"
               >
                 {{ tool }}
                 <button
-                  class="text-guofeng-text-muted group-hover:text-guofeng-red transition-colors"
+                  class="text-text-muted group-hover:text-accent-danger transition-colors"
                   @click="removeTool(tool)"
                 ><X class="w-3.5 h-3.5" /></button>
               </span>
@@ -263,25 +263,25 @@
           </div>
 
           <div>
-            <label class="block mb-2 text-xs font-bold text-guofeng-text-secondary uppercase tracking-wider">{{ $t('agents.systemPromptLabel') }}</label>
+            <label class="block mb-2 text-xs font-bold text-text-secondary uppercase tracking-wider">{{ $t('agents.systemPromptLabel') }}</label>
             <textarea
               v-model="formData.system_prompt"
               rows="8"
-              class="w-full px-4 py-3 rounded-xl bg-white/50 border border-guofeng-border focus:border-guofeng-jade focus:ring-4 focus:ring-guofeng-jade/10 outline-none transition-colors resize-y font-mono text-sm leading-relaxed"
+              class="w-full px-4 py-3 rounded-xl bg-white/50 border border-border-default focus:border-accent-secondary focus:ring-4 focus:ring-accent-secondary/10 outline-none transition-colors resize-y font-mono text-sm leading-relaxed"
               :placeholder="$t('agents.systemPromptPlaceholder')"
             />
           </div>
         </div>
 
-        <div class="flex gap-4 mt-10 pt-6 border-t border-guofeng-border/50">
+        <div class="flex gap-4 mt-10 pt-6 border-t border-border-default/50">
           <button
-            class="flex-1 px-6 py-3.5 rounded-xl font-bold transition-colors bg-white text-guofeng-text-secondary hover:bg-guofeng-bg-tertiary border border-guofeng-border"
+            class="flex-1 px-6 py-3.5 rounded-xl font-bold transition-colors bg-white text-text-secondary hover:bg-bg-surface border border-border-default"
             @click="showEditModal = false"
           >
             {{ $t('common.cancel') }}
           </button>
           <button
-            class="flex-1 px-6 py-3.5 rounded-xl font-bold transition-[color,background-color,border-color,transform] bg-guofeng-jade text-white shadow-lg shadow-guofeng-jade/20 hover:shadow-xl hover:shadow-guofeng-jade/30 hover:-translate-y-0.5"
+            class="flex-1 px-6 py-3.5 rounded-xl font-bold transition-[color,background-color,border-color,transform] bg-accent-secondary text-white shadow-lg shadow-accent-secondary/20 hover:shadow-xl hover:shadow-accent-secondary/30 hover:-translate-y-0.5"
             :disabled="saving"
             @click="handleSave"
           >
@@ -294,7 +294,6 @@
 </template>
 
 <script setup lang="ts">
-/* eslint-disable no-console -- Development debugging, console output acceptable */
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter, RouterLink } from 'vue-router'
 import { useI18n } from 'vue-i18n'
@@ -302,11 +301,12 @@ import {
   Edit2, Trash2, ArrowLeft, Folder, FileText, Copy, X,
   AlertCircle, Home, Bot, Power, PowerOff, Wrench, ChevronDown
 } from 'lucide-vue-next'
-import Breadcrumb from '@/components/common/Breadcrumb.vue'
+import Breadcrumb from '@/components/ui/Breadcrumb.vue'
 import { useAgents } from '@/composables/useAgents'
 import type { Agent, AgentRequest } from '@/types'
 import { extractStringParam } from '@/types/router'
 import { getErrorMessage } from '@/utils/errorHandler'
+import { logger } from '@/utils/logger'
 
 const route = useRoute()
 const router = useRouter()
@@ -324,8 +324,8 @@ const saving = ref(false)
 const copied = ref(false)
 
 const breadcrumbs = computed(() => [
-  { label: t('common.home'), to: '/', icon: Home },
-  { label: t('agents.pageTitle'), to: '/agents', icon: Bot },
+  { label: t('common.home'), path: '/', icon: Home },
+  { label: t('agents.pageTitle'), path: '/agents', icon: Bot },
   { label: agent.value?.name || t('common.loading') }
 ])
 
@@ -335,7 +335,7 @@ onMounted(async () => {
     try {
       agent.value = await getAgent(name)
     } catch (err: unknown) {
-      console.error('Failed to load agent:', err)
+      logger.error('Failed to load agent:', err)
       error.value = getErrorMessage(err) || 'Failed to load agent'
     }
   } else {
@@ -394,7 +394,7 @@ const handleSave = async () => {
     }
     showEditModal.value = false
   } catch (err) {
-    console.error('Failed to update agent:', err)
+    logger.error('Failed to update agent:', err)
     alert(t('common.operationFailed'))
   } finally {
     saving.value = false
@@ -408,7 +408,7 @@ const handleToggle = async () => {
     await toggleAgent(agent.value.name)
     agent.value.disabled = !agent.value.disabled
   } catch (err) {
-    console.error('Failed to toggle agent:', err)
+    logger.error('Failed to toggle agent:', err)
     alert(t('common.operationFailed'))
   }
 }
@@ -422,7 +422,7 @@ const handleDelete = async () => {
     await deleteAgent(agent.value.name)
     router.push('/agents')
   } catch (err) {
-    console.error('Failed to delete agent:', err)
+    logger.error('Failed to delete agent:', err)
     alert(t('common.deleteFailed'))
   }
 }
@@ -437,7 +437,7 @@ const copySystemPrompt = async () => {
       copied.value = false
     }, 2000)
   } catch (err) {
-    console.error('Failed to copy:', err)
+    logger.error('Failed to copy:', err)
   }
 }
 </script>

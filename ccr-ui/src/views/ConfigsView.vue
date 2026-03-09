@@ -1,4 +1,3 @@
-<!-- eslint-disable no-console -->
 <template>
   <div class="min-h-screen relative p-6">
     <AnimatedBackground complex />
@@ -152,7 +151,6 @@
 </template>
 
 <script setup lang="ts">
-/* eslint-disable no-console */
 import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
@@ -180,6 +178,7 @@ import {
 import { getProviderUsage } from '@/api'
 import type { ConfigItem, ConfigListResponse, HistoryEntry, HistoryResponse } from '@/types'
 import { useUIStore } from '@/stores/ui'
+import { logger } from '@/utils/logger'
 
 type FilterType = 'all' | 'official_relay' | 'third_party_model' | 'uncategorized'
 type SortType = 'name' | 'usage_count' | 'recent'
@@ -266,7 +265,7 @@ const loadHistory = async () => {
     const data = await getHistory<HistoryResponse>()
     historyEntries.value = data.entries
   } catch (e: unknown) {
-    console.error(e)
+    logger.error('Failed to load history', e)
     const message = e instanceof Error ? e.message : String(e)
     uiStore.showError(`Failed to load history: ${message}`)
   }

@@ -3,24 +3,24 @@
     <div class="absolute top-0 right-0 flex items-center gap-4 text-xs z-10">
       <div class="flex items-center gap-1.5">
         <span class="w-3 h-3 rounded-[2px] bg-orange-500" />
-        <span class="text-guofeng-text-secondary">Codex</span>
+        <span class="text-text-secondary">Codex</span>
       </div>
       <div class="flex items-center gap-1.5">
         <span class="w-3 h-3 rounded-[2px] bg-pink-400" />
-        <span class="text-guofeng-text-secondary">Claude</span>
+        <span class="text-text-secondary">Claude</span>
       </div>
       <div class="flex items-center gap-1.5">
         <span class="w-3 h-3 rounded-[2px] bg-blue-500" />
-        <span class="text-guofeng-text-secondary">Gemini</span>
+        <span class="text-text-secondary">Gemini</span>
       </div>
     </div>
 
     <div class="flex flex-col h-full pt-8 pb-6">
       <div class="flex-1 flex items-end justify-between relative gap-[2px]">
-        <div class="absolute bottom-[25%] left-0 right-0 h-px bg-guofeng-border/15 pointer-events-none" />
-        <div class="absolute bottom-[50%] left-0 right-0 h-px bg-guofeng-border/20 pointer-events-none" />
-        <div class="absolute bottom-[75%] left-0 right-0 h-px bg-guofeng-border/15 pointer-events-none" />
-        <div class="absolute bottom-0 left-0 right-0 h-px bg-guofeng-border/50" />
+        <div class="absolute bottom-[25%] left-0 right-0 h-px bg-border-default/15 pointer-events-none" />
+        <div class="absolute bottom-[50%] left-0 right-0 h-px bg-border-default/20 pointer-events-none" />
+        <div class="absolute bottom-[75%] left-0 right-0 h-px bg-border-default/15 pointer-events-none" />
+        <div class="absolute bottom-0 left-0 right-0 h-px bg-border-default/50" />
 
         <div
           v-for="(row, index) in chartRows"
@@ -30,7 +30,7 @@
           @mouseleave="setHoveredIndex(null)"
         >
           <div
-            class="absolute inset-x-0 top-0 bottom-0 bg-guofeng-text-primary/5 rounded opacity-0 transition-opacity duration-200"
+            class="absolute inset-x-0 top-0 bottom-0 bg-text-primary/5 rounded opacity-0 transition-opacity duration-200"
             :class="{ 'opacity-100': hoveredIndex === index }"
           />
 
@@ -56,22 +56,22 @@
           </div>
 
           <div
-            class="w-px bg-guofeng-border/50 mt-[1px]"
+            class="w-px bg-border-default/50 mt-[1px]"
             :class="row.showDate ? 'h-1.5' : 'h-1'"
           />
 
           <span
             v-if="row.showDate"
-            class="absolute top-[100%] mt-1 text-[10px] text-guofeng-text-muted font-mono"
+            class="absolute top-[100%] mt-1 text-[10px] text-text-muted font-mono"
           >
             {{ row.dayLabel }}
           </span>
 
           <div
             v-if="row.isMonthStart"
-            class="absolute top-[100%] mt-5 left-0 pl-1 border-l border-guofeng-jade/50 h-3 flex items-center"
+            class="absolute top-[100%] mt-5 left-0 pl-1 border-l border-accent-secondary/50 h-3 flex items-center"
           >
-            <span class="text-[10px] font-bold text-guofeng-jade ml-1 uppercase tracking-wider whitespace-nowrap">
+            <span class="text-[10px] font-bold text-accent-secondary ml-1 uppercase tracking-wider whitespace-nowrap">
               {{ row.monthLabel }}
             </span>
           </div>
@@ -82,37 +82,37 @@
     <Transition name="fade">
       <div
         v-if="hoveredRow"
-        class="absolute z-20 px-3 py-2 rounded-lg bg-guofeng-bg-primary/95 border border-guofeng-border shadow-xl backdrop-blur-md text-xs pointer-events-none transform -translate-x-1/2 transition-all duration-75"
+        class="absolute z-20 px-3 py-2 rounded-lg bg-bg-base/95 border border-border-default shadow-xl backdrop-blur-md text-xs pointer-events-none transform -translate-x-1/2 transition-all duration-75"
         :style="tooltipStyle"
       >
-        <div class="font-bold text-guofeng-text-primary mb-1.5 border-b border-guofeng-border/50 pb-1">
+        <div class="font-bold text-text-primary mb-1.5 border-b border-border-default/50 pb-1">
           {{ formatDateFull(hoveredRow.date) }}
         </div>
         <div class="space-y-1">
           <div class="flex items-center justify-between gap-6">
             <div class="flex items-center gap-1.5">
               <span class="w-2 h-2 rounded-[1px] bg-orange-500" />
-              <span class="text-guofeng-text-secondary">Codex</span>
+              <span class="text-text-secondary">Codex</span>
             </div>
-            <span class="text-guofeng-text-primary font-mono font-medium">
+            <span class="text-text-primary font-mono font-medium">
               {{ formatValue(hoveredRow.codex) }}
             </span>
           </div>
           <div class="flex items-center justify-between gap-6">
             <div class="flex items-center gap-1.5">
               <span class="w-2 h-2 rounded-[1px] bg-pink-400" />
-              <span class="text-guofeng-text-secondary">Claude</span>
+              <span class="text-text-secondary">Claude</span>
             </div>
-            <span class="text-guofeng-text-primary font-mono font-medium">
+            <span class="text-text-primary font-mono font-medium">
               {{ formatValue(hoveredRow.claude) }}
             </span>
           </div>
           <div class="flex items-center justify-between gap-6">
             <div class="flex items-center gap-1.5">
               <span class="w-2 h-2 rounded-[1px] bg-blue-500" />
-              <span class="text-guofeng-text-secondary">Gemini</span>
+              <span class="text-text-secondary">Gemini</span>
             </div>
-            <span class="text-guofeng-text-primary font-mono font-medium">
+            <span class="text-text-primary font-mono font-medium">
               {{ formatValue(hoveredRow.gemini) }}
             </span>
           </div>

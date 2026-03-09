@@ -310,8 +310,8 @@
 </template>
 
 <script setup lang="ts">
-/* eslint-disable no-console -- Development debugging, console output acceptable */
 import { ref, computed } from 'vue'
+import { logger } from '@/utils/logger'
 
 interface HealthCheckResult {
   provider_name: string
@@ -349,7 +349,7 @@ const testAll = async () => {
     results.value = data.results || []
     summary.value = data.summary || null
   } catch (e) {
-    console.error('Failed to test providers:', e)
+    logger.error('Failed to test providers:', e)
   } finally {
     testing.value = false
   }

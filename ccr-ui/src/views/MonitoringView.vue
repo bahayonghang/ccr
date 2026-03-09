@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-guofeng-bg-primary">
+  <div class="min-h-screen bg-bg-base">
     <Navbar />
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <!-- Header -->
@@ -12,17 +12,17 @@
           <div 
             class="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium"
             :class="isConnected 
-              ? 'bg-guofeng-emerald/10 text-guofeng-emerald' 
-              : 'bg-guofeng-red/10 text-guofeng-red'"
+              ? 'bg-accent-success/10 text-accent-success' 
+              : 'bg-accent-danger/10 text-accent-danger'"
           >
             <span
               class="w-2 h-2 rounded-full"
-              :class="isConnected ? 'bg-guofeng-emerald animate-pulse' : 'bg-guofeng-red'"
+              :class="isConnected ? 'bg-accent-success animate-pulse' : 'bg-accent-danger'"
             />
             {{ isConnected ? $t('monitoring.connected') : $t('monitoring.disconnected') }}
           </div>
           <button
-            class="text-xs px-3 py-1.5 rounded-lg bg-guofeng-bg-tertiary hover:bg-guofeng-indigo/10 text-guofeng-text-secondary hover:text-guofeng-indigo transition-colors flex items-center gap-1.5"
+            class="text-xs px-3 py-1.5 rounded-lg bg-bg-surface hover:bg-accent-secondary/10 text-text-secondary hover:text-accent-secondary transition-colors flex items-center gap-1.5"
             @click="clearLogs"
           >
             <Trash2 class="w-3.5 h-3.5" />
@@ -35,14 +35,14 @@
       <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <div class="glass-effect rounded-2xl p-4 border border-white/10">
           <div class="flex items-center gap-3">
-            <div class="p-2 rounded-xl bg-guofeng-indigo/10">
-              <MessageSquare class="w-5 h-5 text-guofeng-indigo" />
+            <div class="p-2 rounded-xl bg-accent-secondary/10">
+              <MessageSquare class="w-5 h-5 text-accent-secondary" />
             </div>
             <div>
-              <p class="text-xs text-guofeng-text-muted">
+              <p class="text-xs text-text-muted">
                 {{ $t('monitoring.totalLogs') }}
               </p>
-              <p class="text-lg font-bold text-guofeng-text-primary">
+              <p class="text-lg font-bold text-text-primary">
                 {{ logs.length }}
               </p>
             </div>
@@ -51,14 +51,14 @@
 
         <div class="glass-effect rounded-2xl p-4 border border-white/10">
           <div class="flex items-center gap-3">
-            <div class="p-2 rounded-xl bg-guofeng-emerald/10">
-              <ArrowUpCircle class="w-5 h-5 text-guofeng-emerald" />
+            <div class="p-2 rounded-xl bg-accent-success/10">
+              <ArrowUpCircle class="w-5 h-5 text-accent-success" />
             </div>
             <div>
-              <p class="text-xs text-guofeng-text-muted">
+              <p class="text-xs text-text-muted">
                 {{ $t('monitoring.inputTokens') }}
               </p>
-              <p class="text-lg font-bold text-guofeng-text-primary">
+              <p class="text-lg font-bold text-text-primary">
                 {{ formatNumber(tokenStats?.input_tokens || 0) }}
               </p>
             </div>
@@ -67,14 +67,14 @@
 
         <div class="glass-effect rounded-2xl p-4 border border-white/10">
           <div class="flex items-center gap-3">
-            <div class="p-2 rounded-xl bg-guofeng-cyan/10">
-              <ArrowDownCircle class="w-5 h-5 text-guofeng-cyan" />
+            <div class="p-2 rounded-xl bg-accent-primary/10">
+              <ArrowDownCircle class="w-5 h-5 text-accent-primary" />
             </div>
             <div>
-              <p class="text-xs text-guofeng-text-muted">
+              <p class="text-xs text-text-muted">
                 {{ $t('monitoring.outputTokens') }}
               </p>
-              <p class="text-lg font-bold text-guofeng-text-primary">
+              <p class="text-lg font-bold text-text-primary">
                 {{ formatNumber(tokenStats?.output_tokens || 0) }}
               </p>
             </div>
@@ -83,14 +83,14 @@
 
         <div class="glass-effect rounded-2xl p-4 border border-white/10">
           <div class="flex items-center gap-3">
-            <div class="p-2 rounded-xl bg-guofeng-gold/10">
-              <DollarSign class="w-5 h-5 text-guofeng-gold" />
+            <div class="p-2 rounded-xl bg-accent-warning/10">
+              <DollarSign class="w-5 h-5 text-accent-warning" />
             </div>
             <div>
-              <p class="text-xs text-guofeng-text-muted">
+              <p class="text-xs text-text-muted">
                 {{ $t('monitoring.estimatedCost') }}
               </p>
-              <p class="text-lg font-bold text-guofeng-text-primary">
+              <p class="text-lg font-bold text-text-primary">
                 ${{ formatCost(tokenStats?.estimated_cost_cents || 0) }}
               </p>
             </div>
@@ -101,14 +101,14 @@
       <!-- Logs Panel -->
       <div class="glass-effect rounded-3xl p-6 border border-white/20">
         <div class="flex items-center justify-between mb-4">
-          <h3 class="text-base font-bold text-guofeng-text-primary flex items-center gap-2">
+          <h3 class="text-base font-bold text-text-primary flex items-center gap-2">
             <Terminal class="w-4 h-4" />
             {{ $t('monitoring.realTimeLogs') }}
           </h3>
           <div class="flex items-center gap-2">
             <select
               v-model="filterLevel"
-              class="text-xs px-2 py-1 rounded-lg bg-guofeng-bg-tertiary text-guofeng-text-secondary border border-guofeng-border focus:outline-none focus:border-guofeng-indigo"
+              class="text-xs px-2 py-1 rounded-lg bg-bg-surface text-text-secondary border border-border-default focus:outline-none focus:border-accent-secondary"
             >
               <option value="all">
                 {{ $t('monitoring.allLevels') }}
@@ -137,25 +137,25 @@
           <div
             v-for="log in filteredLogs"
             :key="log.id"
-            class="flex items-start gap-2 px-3 py-2 rounded-lg hover:bg-guofeng-bg-tertiary/50 transition-colors"
+            class="flex items-start gap-2 px-3 py-2 rounded-lg hover:bg-bg-surface/50 transition-colors"
           >
-            <span class="text-guofeng-text-muted flex-shrink-0">{{ formatTime(log.timestamp) }}</span>
+            <span class="text-text-muted flex-shrink-0">{{ formatTime(log.timestamp) }}</span>
             <span
               class="px-1.5 py-0.5 rounded text-[10px] font-bold uppercase flex-shrink-0"
               :class="getLevelClass(log.level)"
             >
               {{ log.level }}
             </span>
-            <span class="px-1.5 py-0.5 rounded bg-guofeng-bg-tertiary text-guofeng-text-muted flex-shrink-0">
+            <span class="px-1.5 py-0.5 rounded bg-bg-surface text-text-muted flex-shrink-0">
               {{ log.source }}
             </span>
-            <span class="text-guofeng-text-secondary break-all">{{ log.message }}</span>
+            <span class="text-text-secondary break-all">{{ log.message }}</span>
           </div>
 
           <!-- Empty state -->
           <div
             v-if="logs.length === 0"
-            class="flex flex-col items-center justify-center h-full text-guofeng-text-muted"
+            class="flex flex-col items-center justify-center h-full text-text-muted"
           >
             <Monitor class="w-12 h-12 opacity-30 mb-2" />
             <p>{{ $t('monitoring.noLogs') }}</p>
@@ -240,11 +240,11 @@ const formatTime = (timestamp: string) => {
 
 const getLevelClass = (level: string) => {
   switch (level) {
-    case 'error': return 'bg-guofeng-red/20 text-guofeng-red'
-    case 'warn': return 'bg-guofeng-gold/20 text-guofeng-gold'
-    case 'info': return 'bg-guofeng-cyan/20 text-guofeng-cyan'
-    case 'debug': return 'bg-guofeng-text-muted/20 text-guofeng-text-muted'
-    default: return 'bg-guofeng-bg-tertiary text-guofeng-text-secondary'
+    case 'error': return 'bg-accent-danger/20 text-accent-danger'
+    case 'warn': return 'bg-accent-warning/20 text-accent-warning'
+    case 'info': return 'bg-accent-primary/20 text-accent-primary'
+    case 'debug': return 'bg-text-muted/20 text-text-muted'
+    default: return 'bg-bg-surface text-text-secondary'
   }
 }
 </script>

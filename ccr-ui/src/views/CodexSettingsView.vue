@@ -514,7 +514,6 @@
 </template>
 
 <script setup lang="ts">
-/* eslint-disable no-console -- Development debugging, console output acceptable */
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Settings2, ArrowLeft, Save, Brain, Shield, Wrench, Monitor, Zap } from 'lucide-vue-next'
@@ -628,7 +627,7 @@ async function loadConfig() {
     const config = await getCodexConfig()
     Object.assign(form, config)
   } catch (e) {
-    console.error('Failed to load codex config:', e)
+    logger.error('Failed to load codex config:', e)
     showToast(t('codex.settings.messages.loadFailed'), 'error')
   } finally {
     loading.value = false
@@ -643,7 +642,7 @@ async function handleSave() {
     await updateCodexConfig(payload as CodexConfig)
     showToast(t('codex.settings.messages.saveSuccess'))
   } catch (e) {
-    console.error('Failed to save codex config:', e)
+    logger.error('Failed to save codex config:', e)
     showToast(t('codex.settings.messages.saveFailed'), 'error')
   } finally {
     saving.value = false
@@ -657,6 +656,7 @@ onMounted(loadConfig)
 
 <script lang="ts">
 import { defineComponent, h } from 'vue'
+import { logger } from '@/utils/logger'
 
 const ToggleField = defineComponent({
   name: 'ToggleField',

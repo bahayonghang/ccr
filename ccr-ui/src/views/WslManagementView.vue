@@ -1,4 +1,3 @@
-<!-- eslint-disable no-console -->
 <script setup lang="ts">
 /**
  * WSL 管理视图 — WSL 发行版列表、配置浏览、同步操作
@@ -6,6 +5,7 @@
 import { ref, onMounted } from 'vue'
 import { Terminal, RefreshCw, Upload, Download, FileText, CheckCircle2, XCircle, Database, Trash2 } from 'lucide-vue-next'
 import { invoke } from '@tauri-apps/api/core'
+import { logger } from '@/utils/logger'
 
 interface WslDistro {
   name: string
@@ -60,7 +60,7 @@ const fetchCacheStatus = async () => {
   try {
     cacheStatus.value = await invoke<CacheStatus>('wsl_cache_status')
   } catch (e) {
-    console.error('[WSL] Failed to get cache status:', e)
+    logger.error('[WSL] Failed to get cache status:', e)
   }
 }
 
@@ -74,7 +74,7 @@ const fetchDistros = async (forceRefresh = false) => {
       await loadDistroDetails()
     }
   } catch (e) {
-    console.error('[WSL] Failed to list distros:', e)
+    logger.error('[WSL] Failed to list distros:', e)
   } finally {
     isLoading.value = false
   }
@@ -90,7 +90,7 @@ const loadDistroDetails = async () => {
     })
     cliStatus.value = status
   } catch (e) {
-    console.error('[WSL] Failed to detect CLI:', e)
+    logger.error('[WSL] Failed to detect CLI:', e)
   }
 
   await readConfig()
@@ -150,7 +150,7 @@ const forceRefresh = async () => {
       await loadDistroDetails()
     }
   } catch (e) {
-    console.error('[WSL] Failed to force refresh:', e)
+    logger.error('[WSL] Failed to force refresh:', e)
   } finally {
     isRefreshing.value = false
   }
@@ -161,7 +161,7 @@ const clearCache = async () => {
     await invoke('wsl_clear_cache')
     await fetchCacheStatus()
   } catch (e) {
-    console.error('[WSL] Failed to clear cache:', e)
+    logger.error('[WSL] Failed to clear cache:', e)
   }
 }
 

@@ -122,7 +122,7 @@
         v-else-if="filteredItems.length > 0"
         class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5"
       >
-        <GuofengCard
+        <Card
           v-for="item in filteredItems"
           :key="item.id"
           variant="glass"
@@ -230,7 +230,7 @@
               </button>
             </div>
           </div>
-        </GuofengCard>
+        </Card>
       </div>
 
       <!-- Empty State -->
@@ -338,7 +338,7 @@ import {
   ShoppingBag, Home, Search, Download, Star, Check, Loader2, Key, Trash2, AlertCircle,
   Sparkles, BookOpen, Plug, CheckCircle
 } from 'lucide-vue-next'
-import GuofengCard from '@/components/common/GuofengCard.vue'
+import Card from '@/components/ui/Card.vue'
 import Breadcrumb from '@/components/ui/Breadcrumb.vue'
 import { useMarketplace, type MarketItem, type MarketItemCategory } from '@/composables/useMarketplace'
 

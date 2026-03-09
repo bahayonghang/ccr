@@ -53,7 +53,7 @@
           <!-- Status Cards -->
           <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <!-- Login State -->
-            <GuofengCard
+            <Card
               variant="glass"
               :gradient-border="true"
               :glow-color="loginStateColor"
@@ -78,10 +78,10 @@
                   </p>
                 </div>
               </div>
-            </GuofengCard>
+            </Card>
 
             <!-- Total Accounts -->
-            <GuofengCard
+            <Card
               variant="glass"
               :interactive="true"
               glow-color="primary"
@@ -100,10 +100,10 @@
                   </p>
                 </div>
               </div>
-            </GuofengCard>
+            </Card>
 
             <!-- Current Account -->
-            <GuofengCard
+            <Card
               variant="glass"
               :interactive="true"
               :glow-color="currentAccount ? 'success' : 'secondary'"
@@ -125,11 +125,11 @@
                   </p>
                 </div>
               </div>
-            </GuofengCard>
+            </Card>
           </div>
 
           <!-- Current Session Info -->
-          <GuofengCard
+          <Card
             v-if="currentInfo"
             variant="glass"
             padding="lg"
@@ -206,9 +206,9 @@
                 </div>
               </div>
             </div>
-          </GuofengCard>
+          </Card>
 
-          <GuofengCard
+          <Card
             variant="glass"
             padding="lg"
             :glow-color="canManageAuthAccounts ? 'success' : 'warning'"
@@ -235,10 +235,10 @@
                 </p>
               </div>
             </div>
-          </GuofengCard>
+          </Card>
 
           <!-- Quick Switch -->
-          <GuofengCard
+          <Card
             v-if="accounts.length > 0"
             variant="glass"
             padding="lg"
@@ -283,7 +283,7 @@
                 </div>
               </button>
             </div>
-          </GuofengCard>
+          </Card>
 
           <!-- Account List Title -->
           <div class="flex items-center justify-between">
@@ -340,7 +340,7 @@
             v-if="showSaveForm"
             class="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center p-4 z-50"
           >
-            <GuofengCard
+            <Card
               variant="glass"
               class="w-full max-w-lg max-h-[90vh] overflow-y-auto !p-0 shadow-2xl animate-in zoom-in-95 duration-200"
               :padding="'none'"
@@ -451,7 +451,7 @@
                   {{ saving ? $t('codex.states.saving') : $t('codex.actions.save') }}
                 </button>
               </div>
-            </GuofengCard>
+            </Card>
           </div>
         </main>
       </div>
@@ -460,7 +460,6 @@
 </template>
 
 <script setup lang="ts">
-/* eslint-disable no-console -- Development debugging, console output acceptable */
 import { computed, onMounted, reactive, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import { useI18n } from 'vue-i18n'
@@ -485,7 +484,7 @@ import {
 
 import { Breadcrumb } from '@/components/ui'
 import CollapsibleSidebar from '@/components/CollapsibleSidebar.vue'
-import GuofengCard from '@/components/common/GuofengCard.vue'
+import Card from '@/components/ui/Card.vue'
 import AccountListTable from '@/components/usage/AccountListTable.vue'
 import {
   listCodexProfiles,
@@ -509,6 +508,7 @@ import type {
   LoginState,
   TokenFreshness
 } from '@/types'
+import { logger } from '@/utils/logger'
 
 const { t } = useI18n()
 
@@ -638,7 +638,7 @@ const loadCurrentProfile = async () => {
     const data = await listCodexProfiles<CodexProfilesResponse>()
     currentProfile.value = data.profiles.find(profile => profile.name === data.current_profile) || null
   } catch (error) {
-    console.error('Failed to load current codex profile:', error)
+    logger.error('Failed to load current codex profile:', error)
     currentProfile.value = null
   }
 }
@@ -651,7 +651,7 @@ const loadAccounts = async () => {
     accounts.value = data.accounts || []
     loginState.value = data.login_state
   } catch (error) {
-    console.error('Failed to load codex auth accounts:', error)
+    logger.error('Failed to load codex auth accounts:', error)
     alert(extractErrorMessage(error) || t('codex.states.loadFailed'))
   } finally {
     loading.value = false
@@ -667,7 +667,7 @@ const loadCurrentInfo = async () => {
       currentInfo.value = null
     }
   } catch (error) {
-    console.error('Failed to load current auth info:', error)
+    logger.error('Failed to load current auth info:', error)
   }
 }
 
@@ -734,7 +734,7 @@ const handleConfirmSave = async () => {
     handleCloseSaveForm()
     await handleRefresh()
   } catch (error) {
-    console.error('Failed to save auth:', error)
+    logger.error('Failed to save auth:', error)
     authActionError.value = extractErrorMessage(error) || t('codex.states.saveFailed')
     alert(authActionError.value)
   } finally {
@@ -754,7 +754,7 @@ const handleSwitch = async (name: string) => {
     await switchCodexAuth(name)
     await handleRefresh()
   } catch (error) {
-    console.error('Failed to switch auth:', error)
+    logger.error('Failed to switch auth:', error)
     authActionError.value = extractErrorMessage(error) || t('codex.states.saveFailed')
     alert(authActionError.value)
   }
@@ -767,7 +767,7 @@ const handleDelete = async (name: string) => {
     await deleteCodexAuth(name)
     await handleRefresh()
   } catch (error) {
-    console.error('Failed to delete auth:', error)
+    logger.error('Failed to delete auth:', error)
     authActionError.value = extractErrorMessage(error) || t('codex.states.deleteFailed')
     alert(authActionError.value)
   }

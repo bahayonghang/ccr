@@ -1,13 +1,13 @@
-/* eslint-disable no-console -- Error handling utility, console output for debugging */
 
 import { useUIStore } from '@/stores/ui'
 import { getErrorMessage } from '@/types/api'
+import { logger } from '@/utils/logger'
 
 /**
  * 统一错误处理 composable
  *
  * 桥接 getErrorMessage() 类型安全提取 + useUIStore toast 通知系统，
- * 提供一致的错误处理模式，替代分散的 alert() / console.error()。
+ * 提供一致的错误处理模式，替代分散的 alert() / logger.error()。
  *
  * @example
  * ```vue
@@ -33,7 +33,7 @@ export function useErrorHandler() {
   const ui = useUIStore()
 
   /**
-   * 处理错误：提取消息 → toast 通知 → console 记录
+   * 处理错误：提取消息 → toast 通知 → logger 记录
    * @param error - 任意类型的错误对象
    * @param context - 操作上下文描述（如"保存配置"）
    */
@@ -42,7 +42,7 @@ export function useErrorHandler() {
     const displayMessage = context ? `${context}失败: ${message}` : message
 
     ui.showError(displayMessage)
-    console.error(`[ErrorHandler]${context ? ` ${context}:` : ''}`, error)
+    logger.error(`[ErrorHandler]${context ? ` ${context}:` : ''}`, error)
   }
 
   /**

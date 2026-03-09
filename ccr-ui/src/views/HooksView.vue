@@ -6,22 +6,22 @@
       <!-- Header -->
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div class="flex items-center gap-4">
-          <h2 class="text-xl sm:text-2xl font-bold text-guofeng-text-primary flex items-center">
+          <h2 class="text-xl sm:text-2xl font-bold text-text-primary flex items-center">
             <Webhook
-              class="w-6 h-6 sm:w-7 sm:h-7 mr-2 text-guofeng-red"
+              class="w-6 h-6 sm:w-7 sm:h-7 mr-2 text-accent-secondary"
               aria-hidden="true"
             />
             Hooks Management
           </h2>
           <span
-            class="px-3 py-1 rounded-full text-sm font-medium bg-guofeng-red/10 text-guofeng-red border border-guofeng-red/20"
+            class="px-3 py-1 rounded-full text-sm font-medium bg-accent-secondary/10 text-accent-secondary border border-accent-secondary/20"
             aria-label="Total hooks count"
           >
             {{ hooks.length }}
           </span>
         </div>
         <button
-          class="w-full sm:w-auto px-4 py-2 rounded-lg font-medium transition-[color,background-color,border-color,transform] hover:scale-105 bg-guofeng-red text-white shadow-md hover:shadow-lg flex items-center justify-center min-h-[44px]"
+          class="w-full sm:w-auto px-4 py-2 rounded-lg font-medium transition-[color,background-color,border-color,transform] hover:scale-105 bg-accent-secondary text-white shadow-md hover:shadow-lg flex items-center justify-center min-h-[44px]"
           aria-label="Add new hook"
           @click="handleAdd"
         >
@@ -44,7 +44,7 @@
           role="tab"
           :aria-selected="selectedType === type"
           class="px-4 py-2 rounded-lg font-medium text-sm transition-colors min-h-[44px] whitespace-nowrap flex-shrink-0"
-          :class="selectedType === type ? 'bg-guofeng-red text-white shadow-md' : 'bg-guofeng-bg-secondary text-guofeng-text-secondary border border-guofeng-border hover:bg-guofeng-bg-tertiary'"
+          :class="selectedType === type ? 'bg-accent-secondary text-white shadow-md' : 'bg-bg-elevated text-text-secondary border border-border-default hover:bg-bg-surface'"
           @click="selectedType = type"
         >
           {{ type }}
@@ -55,12 +55,12 @@
       <!-- Hooks Grid -->
       <div
         v-if="loading"
-        class="text-center py-20 text-guofeng-text-muted"
+        class="text-center py-20 text-text-muted"
         role="status"
         aria-live="polite"
       >
         <div
-          class="loading-spinner mx-auto mb-4 w-8 h-8 border-guofeng-red/30 border-t-guofeng-red"
+          class="loading-spinner mx-auto mb-4 w-8 h-8 border-accent-secondary/30 border-t-accent-secondary"
           aria-hidden="true"
         />
         <span>Loading...</span>
@@ -68,11 +68,11 @@
 
       <div
         v-else-if="filteredHooks.length === 0"
-        class="text-center py-20 text-guofeng-text-muted"
+        class="text-center py-20 text-text-muted"
         role="status"
         aria-live="polite"
       >
-        <div class="bg-guofeng-bg-secondary w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
+        <div class="bg-bg-elevated w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
           <Webhook
             class="w-10 h-10 opacity-50"
             aria-hidden="true"
@@ -89,20 +89,22 @@
         role="list"
         aria-label="Hooks list"
       >
-        <GuofengCard
+        <Card
           v-for="hook in filteredHooks"
           :key="hook.name"
           variant="glass"
           interactive
           pattern
-          role="listitem"
-          tabindex="0"
-          @keydown.enter="handleEdit(hook)"
         >
-          <div class="relative z-10">
+          <div
+            class="relative z-10"
+            role="listitem"
+            tabindex="0"
+            @keydown.enter="handleEdit(hook)"
+          >
             <div class="flex items-start justify-between mb-3">
               <div class="flex items-center gap-2">
-                <h3 class="text-lg font-bold text-guofeng-text-primary">
+                <h3 class="text-lg font-bold text-text-primary">
                   {{ hook.name }}
                 </h3>
                 <span
@@ -115,7 +117,7 @@
               <div class="flex gap-1">
                 <button
                   class="p-1.5 rounded-md transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
-                  :class="hook.enabled !== false ? 'text-guofeng-green hover:bg-guofeng-green/10' : 'text-guofeng-text-muted hover:bg-guofeng-bg-tertiary'"
+                  :class="hook.enabled !== false ? 'text-accent-success hover:bg-accent-success/10' : 'text-text-muted hover:bg-bg-surface'"
                   :aria-label="hook.enabled !== false ? `Disable hook ${hook.name}` : `Enable hook ${hook.name}`"
                   :aria-pressed="hook.enabled !== false"
                   @click.stop="handleToggle(hook.name)"
@@ -127,7 +129,7 @@
                   <span class="sr-only">{{ hook.enabled !== false ? 'Enabled' : 'Disabled' }}</span>
                 </button>
                 <button
-                  class="p-1.5 rounded-md text-guofeng-blue hover:bg-guofeng-blue/10 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
+                  class="p-1.5 rounded-md text-accent-secondary hover:bg-accent-secondary/10 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
                   :aria-label="`Edit hook ${hook.name}`"
                   @click.stop="handleEdit(hook)"
                 >
@@ -137,7 +139,7 @@
                   />
                 </button>
                 <button
-                  class="p-1.5 rounded-md text-guofeng-red hover:bg-guofeng-red/10 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
+                  class="p-1.5 rounded-md text-accent-danger hover:bg-accent-danger/10 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
                   :aria-label="`Delete hook ${hook.name}`"
                   @click.stop="handleDelete(hook.name)"
                 >
@@ -150,19 +152,19 @@
             </div>
 
             <div class="space-y-2 text-sm">
-              <div class="bg-guofeng-bg-tertiary rounded-lg p-3 border border-guofeng-border/50">
-                <p class="text-xs text-guofeng-text-muted mb-1 font-semibold">
+              <div class="bg-bg-surface rounded-lg p-3 border border-border-default/50">
+                <p class="text-xs text-text-muted mb-1 font-semibold">
                   Command:
                 </p>
-                <code class="text-xs font-mono text-guofeng-text-primary block break-all">{{ hook.command }}</code>
+                <code class="text-xs font-mono text-text-primary block break-all">{{ hook.command }}</code>
                 <div
                   v-if="hook.args && hook.args.length > 0"
                   class="mt-2"
                 >
-                  <p class="text-xs text-guofeng-text-muted mb-1 font-semibold">
+                  <p class="text-xs text-text-muted mb-1 font-semibold">
                     Args:
                   </p>
-                  <code class="text-xs font-mono text-guofeng-text-secondary">{{ hook.args.join(' ') }}</code>
+                  <code class="text-xs font-mono text-text-secondary">{{ hook.args.join(' ') }}</code>
                 </div>
               </div>
             </div>
@@ -171,18 +173,18 @@
             <div class="mt-3 flex items-center gap-2">
               <span
                 class="w-2 h-2 rounded-full"
-                :class="hook.enabled !== false ? 'bg-guofeng-green' : 'bg-guofeng-text-muted'"
+                :class="hook.enabled !== false ? 'bg-accent-success' : 'bg-text-muted'"
                 aria-hidden="true"
               />
               <span
                 class="text-xs font-medium"
-                :class="hook.enabled !== false ? 'text-guofeng-green' : 'text-guofeng-text-muted'"
+                :class="hook.enabled !== false ? 'text-accent-success' : 'text-text-muted'"
               >
                 {{ hook.enabled !== false ? 'Enabled' : 'Disabled' }}
               </span>
             </div>
           </div>
-        </GuofengCard>
+        </Card>
       </div>
     </div>
 
@@ -191,7 +193,7 @@
       <div
         v-if="showModal"
         ref="modalOverlay"
-        class="fixed inset-0 flex items-center justify-center z-50 bg-guofeng-ink/20 backdrop-blur-md transition-colors"
+        class="fixed inset-0 flex items-center justify-center z-50 bg-black/20 backdrop-blur-md transition-colors"
         role="dialog"
         aria-modal="true"
         :aria-labelledby="editingHook ? 'modal-title-edit' : 'modal-title-add'"
@@ -200,12 +202,12 @@
       >
         <div
           ref="modalContent"
-          class="bg-guofeng-bg p-8 rounded-2xl w-full max-w-2xl max-h-[85vh] overflow-y-auto shadow-2xl border border-guofeng-border relative"
+          class="bg-bg-elevated p-8 rounded-2xl w-full max-w-2xl max-h-[85vh] overflow-y-auto shadow-2xl border border-border-default relative"
           @click.stop
         >
           <button
             ref="closeButton"
-            class="absolute top-4 right-4 p-2 rounded-full hover:bg-guofeng-bg-tertiary text-guofeng-text-muted transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
+            class="absolute top-4 right-4 p-2 rounded-full hover:bg-bg-surface text-text-muted transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
             aria-label="Close modal"
             @click="closeModal"
           >
@@ -217,11 +219,11 @@
 
           <h3
             :id="editingHook ? 'modal-title-edit' : 'modal-title-add'"
-            class="text-2xl font-bold mb-6 text-guofeng-text-primary flex items-center"
+            class="text-2xl font-bold mb-6 text-text-primary flex items-center"
           >
             <component
               :is="editingHook ? Edit2 : Plus"
-              class="w-6 h-6 mr-2 text-guofeng-red"
+              class="w-6 h-6 mr-2 text-accent-secondary"
               aria-hidden="true"
             />
             {{ editingHook ? 'Edit Hook' : 'Add Hook' }}
@@ -231,7 +233,7 @@
             <div>
               <label
                 for="hook-name"
-                class="block mb-1.5 text-sm font-semibold text-guofeng-text-secondary"
+                class="block mb-1.5 text-sm font-semibold text-text-secondary"
               >Name</label>
               <input
                 id="hook-name"
@@ -239,7 +241,7 @@
                 v-model="formData.name"
                 type="text"
                 :disabled="!!editingHook"
-                class="w-full px-4 py-2.5 rounded-lg bg-guofeng-bg-tertiary border border-guofeng-border focus:border-guofeng-red focus:ring-1 focus:ring-guofeng-red outline-none transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                class="w-full px-4 py-2.5 rounded-lg bg-bg-surface border border-border-default focus:border-accent-secondary focus:ring-1 focus:ring-accent-secondary outline-none transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                 placeholder="my-hook"
                 aria-required="true"
               >
@@ -248,12 +250,12 @@
             <div>
               <label
                 for="hook-type"
-                class="block mb-1.5 text-sm font-semibold text-guofeng-text-secondary"
+                class="block mb-1.5 text-sm font-semibold text-text-secondary"
               >Hook Type</label>
               <select
                 id="hook-type"
                 v-model="formData.hook_type"
-                class="w-full px-4 py-2.5 rounded-lg bg-guofeng-bg-tertiary border border-guofeng-border focus:border-guofeng-red focus:ring-1 focus:ring-guofeng-red outline-none transition-colors"
+                class="w-full px-4 py-2.5 rounded-lg bg-bg-surface border border-border-default focus:border-accent-secondary focus:ring-1 focus:ring-accent-secondary outline-none transition-colors"
                 aria-required="true"
               >
                 <option
@@ -269,13 +271,13 @@
             <div>
               <label
                 for="hook-command"
-                class="block mb-1.5 text-sm font-semibold text-guofeng-text-secondary"
+                class="block mb-1.5 text-sm font-semibold text-text-secondary"
               >Command</label>
               <input
                 id="hook-command"
                 v-model="formData.command"
                 type="text"
-                class="w-full px-4 py-2.5 rounded-lg bg-guofeng-bg-tertiary border border-guofeng-border focus:border-guofeng-red focus:ring-1 focus:ring-guofeng-red outline-none transition-colors font-mono text-sm"
+                class="w-full px-4 py-2.5 rounded-lg bg-bg-surface border border-border-default focus:border-accent-secondary focus:ring-1 focus:ring-accent-secondary outline-none transition-colors font-mono text-sm"
                 placeholder="/usr/bin/notify-send"
                 aria-required="true"
               >
@@ -284,19 +286,19 @@
             <div>
               <label
                 for="hook-args"
-                class="block mb-1.5 text-sm font-semibold text-guofeng-text-secondary"
+                class="block mb-1.5 text-sm font-semibold text-text-secondary"
               >Arguments (one per line)</label>
               <textarea
                 id="hook-args"
                 v-model="argsText"
                 rows="4"
-                class="w-full px-4 py-3 rounded-lg bg-guofeng-bg-tertiary border border-guofeng-border focus:border-guofeng-red focus:ring-1 focus:ring-guofeng-red outline-none transition-colors resize-y font-mono text-sm"
+                class="w-full px-4 py-3 rounded-lg bg-bg-surface border border-border-default focus:border-accent-secondary focus:ring-1 focus:ring-accent-secondary outline-none transition-colors resize-y font-mono text-sm"
                 placeholder="--urgency=normal&#10;Tool executed"
                 aria-describedby="hook-args-hint"
               />
               <p
                 id="hook-args-hint"
-                class="text-xs text-guofeng-text-muted mt-1"
+                class="text-xs text-text-muted mt-1"
               >
                 Enter each argument on a separate line
               </p>
@@ -307,25 +309,25 @@
                 id="hook-enabled"
                 v-model="formData.enabled"
                 type="checkbox"
-                class="w-4 h-4 rounded border-guofeng-border text-guofeng-red focus:ring-guofeng-red"
+                class="w-4 h-4 rounded border-border-default text-accent-secondary focus:ring-accent-secondary"
               >
               <label
                 for="hook-enabled"
-                class="text-sm font-semibold text-guofeng-text-secondary cursor-pointer"
+                class="text-sm font-semibold text-text-secondary cursor-pointer"
               >Enabled</label>
             </div>
           </div>
 
-          <div class="flex gap-4 mt-8 pt-6 border-t border-guofeng-border">
+          <div class="flex gap-4 mt-8 pt-6 border-t border-border-default">
             <button
-              class="flex-1 px-6 py-3 rounded-lg font-medium transition-colors bg-guofeng-bg-tertiary text-guofeng-text-secondary hover:bg-guofeng-bg-secondary border border-guofeng-border min-h-[44px]"
+              class="flex-1 px-6 py-3 rounded-lg font-medium transition-colors bg-bg-surface text-text-secondary hover:bg-bg-elevated border border-border-default min-h-[44px]"
               @click="closeModal"
             >
               Cancel
             </button>
             <button
               ref="lastButton"
-              class="flex-1 px-6 py-3 rounded-lg font-medium transition-[color,background-color,border-color,transform] bg-guofeng-red text-white shadow-md hover:shadow-lg hover:-translate-y-0.5 min-h-[44px]"
+              class="flex-1 px-6 py-3 rounded-lg font-medium transition-[color,background-color,border-color,transform] bg-accent-secondary text-white shadow-md hover:shadow-lg hover:-translate-y-0.5 min-h-[44px]"
               :disabled="saving"
               @click="handleSubmit"
             >
@@ -349,13 +351,13 @@
 </template>
 
 <script setup lang="ts">
-/* eslint-disable no-console -- Development debugging, console output acceptable */
 import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { Webhook, Plus, Edit2, Trash2, X, Power } from 'lucide-vue-next'
-import GuofengCard from '@/components/common/GuofengCard.vue'
+import Card from '@/components/ui/Card.vue'
 import { listHooks, addHook, updateHook, deleteHook, toggleHook } from '@/api'
 import { useUIStore } from '@/store'
 import type { Hook, HookType } from '@/types'
+import { logger } from '@/utils/logger'
 
 const uiStore = useUIStore()
 const hooks = ref<Hook[]>([])
@@ -396,14 +398,14 @@ const getHooksByType = (type: HookType | 'All') => {
 
 const getHookTypeColor = (type: HookType) => {
   const colors: Record<HookType, string> = {
-    PreToolUse: 'bg-guofeng-blue/10 text-guofeng-blue border border-guofeng-blue/20',
-    PostToolUse: 'bg-guofeng-green/10 text-guofeng-green border border-guofeng-green/20',
-    Stop: 'bg-guofeng-red/10 text-guofeng-red border border-guofeng-red/20',
-    SessionStart: 'bg-guofeng-purple/10 text-guofeng-purple border border-guofeng-purple/20',
-    SessionEnd: 'bg-guofeng-orange/10 text-guofeng-orange border border-guofeng-orange/20',
-    Error: 'bg-guofeng-red/10 text-guofeng-red border border-guofeng-red/20'
+    PreToolUse: 'bg-accent-secondary/10 text-accent-secondary border border-accent-secondary/20',
+    PostToolUse: 'bg-accent-success/10 text-accent-success border border-accent-success/20',
+    Stop: 'bg-accent-danger/10 text-accent-danger border border-accent-danger/20',
+    SessionStart: 'bg-accent-primary/10 text-accent-primary border border-accent-primary/20',
+    SessionEnd: 'bg-accent-warning/10 text-accent-warning border border-accent-warning/20',
+    Error: 'bg-accent-danger/10 text-accent-danger border border-accent-danger/20'
   }
-  return colors[type] || 'bg-guofeng-bg-secondary text-guofeng-text-secondary'
+  return colors[type] || 'bg-bg-elevated text-text-secondary'
 }
 
 const loadHooks = async () => {
@@ -411,7 +413,7 @@ const loadHooks = async () => {
   try {
     hooks.value = await listHooks()
   } catch (err) {
-    console.error('Failed to load hooks:', err)
+    logger.error('Failed to load hooks:', err)
     uiStore.showError('Failed to load hooks')
   } finally {
     loading.value = false
@@ -466,7 +468,7 @@ const handleSubmit = async () => {
     closeModal()
     await loadHooks()
   } catch (err) {
-    console.error('Operation failed:', err)
+    logger.error('Operation failed:', err)
     uiStore.showError('Operation failed')
   } finally {
     saving.value = false
@@ -525,7 +527,7 @@ const handleToggle = async (name: string) => {
     await loadHooks()
     uiStore.showSuccess('Hook toggled successfully')
   } catch (err) {
-    console.error('Toggle failed:', err)
+    logger.error('Toggle failed:', err)
     uiStore.showError('Toggle failed')
   }
 }
@@ -537,7 +539,7 @@ const handleDelete = async (name: string) => {
     await loadHooks()
     uiStore.showSuccess('Hook deleted successfully')
   } catch (err) {
-    console.error('Delete failed:', err)
+    logger.error('Delete failed:', err)
     uiStore.showError('Delete failed')
   }
 }

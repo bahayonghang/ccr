@@ -136,7 +136,7 @@
             v-else
             class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-5"
           >
-            <GuofengCard
+            <Card
               v-for="agent in filteredAgents"
               :key="agent.name"
               variant="glass"
@@ -262,7 +262,7 @@
                   {{ $t(`${tPrefix}.disabledBadge`) }}
                 </span>
               </div>
-            </GuofengCard>
+            </Card>
           </div>
         </div>
       </div>
@@ -398,16 +398,16 @@
 </template>
 
 <script setup lang="ts">
-/* eslint-disable no-console -- Development debugging, console output acceptable */
 import { ref, computed, onMounted, watch } from 'vue'
 import type { Component } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { Plus, Edit2, Trash2, Power, PowerOff, Search, X, Folder, Home, ChevronDown, Code2, Sparkles, Workflow, Eye } from 'lucide-vue-next'
-import Breadcrumb from '@/components/common/Breadcrumb.vue'
-import GuofengCard from '@/components/common/GuofengCard.vue'
+import Breadcrumb from '@/components/ui/Breadcrumb.vue'
+import Card from '@/components/ui/Card.vue'
 import { useAgents } from '@/composables/useAgents'
 import type { Agent, AgentRequest } from '@/types'
+import { logger } from '@/utils/logger'
 
 const props = defineProps<{
   module: 'codex' | 'gemini' | 'qwen' | 'iflow' | 'agents' | 'droid'
@@ -436,20 +436,20 @@ const toolInput = ref('')
 
 // Breadcrumbs
 const breadcrumbs = computed(() => {
-  const items: { label: string; to?: string; icon?: Component }[] = [
-    { label: t('common.home'), to: '/', icon: Home }
+  const items: { label: string; path?: string; icon?: Component }[] = [
+    { label: t('common.home'), path: '/', icon: Home }
   ]
 
   if (props.module === 'agents') {
-    items.push({ label: t('claudeCode.title'), to: '/claude-code', icon: Code2 })
+    items.push({ label: t('claudeCode.title'), path: '/claude-code', icon: Code2 })
   } else if (props.module === 'codex') {
-    items.push({ label: t('nav.codex'), to: '/codex', icon: Code2 })
+    items.push({ label: t('nav.codex'), path: '/codex', icon: Code2 })
   } else if (props.module === 'gemini') {
-    items.push({ label: t('nav.gemini'), to: '/gemini-cli', icon: Sparkles })
+    items.push({ label: t('nav.gemini'), path: '/gemini-cli', icon: Sparkles })
   } else if (props.module === 'qwen') {
-    items.push({ label: t('nav.qwen'), to: '/qwen', icon: Sparkles })
+    items.push({ label: t('nav.qwen'), path: '/qwen', icon: Sparkles })
   } else if (props.module === 'iflow') {
-    items.push({ label: t('nav.iflow'), to: '/iflow', icon: Workflow })
+    items.push({ label: t('nav.iflow'), path: '/iflow', icon: Workflow })
   }
 
   items.push({ label: t(`${tPrefix.value}.pageTitle`) })
@@ -562,7 +562,7 @@ const handleSubmit = async () => {
     showAddForm.value = false
     editingAgent.value = null
   } catch (err) {
-    console.error('Operation failed:', err)
+    logger.error('Operation failed:', err)
     alert(t(`${tPrefix.value}.messages.operationFailed`, { error: err instanceof Error ? err.message : 'Unknown error' }))
   }
 }
@@ -573,7 +573,7 @@ const handleDelete = async (agent: Agent) => {
   try {
     await deleteAgent(getAgentApiName(agent))
   } catch (err) {
-    console.error('Delete failed:', err)
+    logger.error('Delete failed:', err)
     alert(t(`${tPrefix.value}.messages.deleteFailed`, { error: err instanceof Error ? err.message : 'Unknown error' }))
   }
 }
@@ -582,7 +582,7 @@ const handleToggle = async (agent: Agent) => {
   try {
     await toggleAgent(getAgentApiName(agent))
   } catch (err) {
-    console.error('Toggle failed:', err)
+    logger.error('Toggle failed:', err)
     alert(t(`${tPrefix.value}.messages.toggleFailed`, { error: err instanceof Error ? err.message : 'Unknown error' }))
   }
 }

@@ -198,9 +198,9 @@
 </template>
 
 <script setup lang="ts">
-/* eslint-disable no-console -- Development debugging, console output acceptable */
 import { computed, ref, onMounted } from 'vue'
 import { getHeatmapData, type HeatmapData } from '@/api'
+import { logger } from '@/utils/logger'
 
 interface DayData {
   date: string
@@ -244,7 +244,7 @@ onMounted(async () => {
   try {
     heatmapData.value = await getHeatmapData()
   } catch (e) {
-    console.error('Failed to load heatmap data:', e)
+    logger.error('Failed to load heatmap data:', e)
     heatmapData.value = { data: {}, max_value: 0, total_tokens: 0, active_days: 0 }
   } finally {
     loading.value = false
