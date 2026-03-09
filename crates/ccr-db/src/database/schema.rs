@@ -4,7 +4,7 @@
 
 /// Current schema version for migration tracking
 #[allow(dead_code)]
-pub const SCHEMA_VERSION: i32 = 6;
+pub const SCHEMA_VERSION: i32 = 7;
 
 /// Database file path relative to user home directory
 pub const DB_RELATIVE_PATH: &str = ".ccr-ui/ccr-ui.db";
@@ -263,6 +263,25 @@ CREATE TABLE IF NOT EXISTS ssh_known_hosts (
 
 CREATE INDEX IF NOT EXISTS idx_ssh_known_hosts_confirmed_at
     ON ssh_known_hosts (confirmed_at DESC);
+
+-- Claude Profiles: configuration snapshots for Claude Code
+CREATE TABLE IF NOT EXISTS claude_profiles (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL UNIQUE,
+    description TEXT,
+    snapshot_json TEXT NOT NULL,
+    tags TEXT,
+    is_current INTEGER NOT NULL DEFAULT 0,
+    enabled INTEGER NOT NULL DEFAULT 1,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_claude_profiles_name
+    ON claude_profiles (name);
+
+CREATE INDEX IF NOT EXISTS idx_claude_profiles_is_current
+    ON claude_profiles (is_current);
 
 -- 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺?
 -- Migration Tracking Table

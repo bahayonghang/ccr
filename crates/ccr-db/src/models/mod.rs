@@ -1,6 +1,7 @@
-//! 数据模型 — CheckIn、UI State、Usage、Monitoring、Converter、Platforms。
+//! 数据模型 — CheckIn、UI State、Usage、Monitoring、Converter、Platforms、Claude Profile。
 
 pub mod checkin;
+pub mod claude_profile;
 pub mod converter;
 pub mod monitoring;
 pub mod platforms;

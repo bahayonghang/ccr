@@ -885,6 +885,47 @@ pub fn run_migration_v8(conn: &Connection) -> MigrationResult<()> {
     Ok(())
 }
 
+/// Run migration v9: Add claude_profiles table for Claude Code profile management
+pub fn run_migration_v9(conn: &Connection) -> MigrationResult<()> {
+    if is_migration_applied(conn, 9)? {
+        debug!("Migration v9 already applied, skipping");
+        return Ok(());
+    }
+
+    info!("Running migration v9: claude_profiles table");
+
+    conn.execute_batch(
+        "CREATE TABLE IF NOT EXISTS claude_profiles (
+            id TEXT PRIMARY KEY,
+            name TEXT NOT NULL UNIQUE,
+            description TEXT,
+            snapshot_json TEXT NOT NULL,
+            tags TEXT,
+            is_current INTEGER NOT NULL DEFAULT 0,
+            enabled INTEGER NOT NULL DEFAULT 1,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL
+        );
+
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_claude_profiles_name
+            ON claude_profiles (name);
+
+        CREATE INDEX IF NOT EXISTS idx_claude_profiles_is_current
+            ON claude_profiles (is_current);",
+    )
+    .map_err(|e| MigrationError::Database(e.to_string()))?;
+
+    let now = Utc::now().to_rfc3339();
+    conn.execute(
+        INSERT_MIGRATION_SQL,
+        rusqlite::params![9, "claude_profiles_table", now],
+    )
+    .map_err(|e| MigrationError::Database(e.to_string()))?;
+
+    info!("Migration v9 completed successfully");
+    Ok(())
+}
+
 /// Run all migrations (schema + legacy data import)
 /// This is the main entry point called during initialization
 pub fn run_all_migrations(conn: &Connection, home_dir: &Path) -> MigrationResult<()> {
@@ -911,6 +952,9 @@ pub fn run_all_migrations(conn: &Connection, home_dir: &Path) -> MigrationResult
 
     // Step 1.11: Run v8 migration (checkin_records error_code column)
     run_migration_v8(conn)?;
+
+    // Step 1.12: Run v9 migration (claude_profiles table)
+    run_migration_v9(conn)?;
 
     // Step 2: Import legacy data if not done and files exist
     if !is_legacy_migration_done(conn)? {
