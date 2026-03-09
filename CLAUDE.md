@@ -161,3 +161,49 @@ Integration tests in `crates/ccr/tests/`:
 
 Run specific test: `cargo test -p ccr --test <file_stem>`
 Run by name: `cargo test <keyword>`
+
+## Design Context
+
+### Users
+
+Independent developers who manage multiple AI CLI tools (Claude Code, Codex, Gemini, Qwen, iFlow, Droid, OpenCode) in their daily workflow. They switch configurations frequently, need quick access to status and settings, and value both efficiency and a pleasant visual experience. The tool runs as a Tauri v2 desktop application on their development machine.
+
+### Brand Personality
+
+**Cute + Professional + Refined** — A cat-girl (Nekomata) themed interface that is playful on the surface but deeply serious about engineering quality. The brand conveys warmth and approachability without sacrificing precision or trust. It should feel like a capable companion, not a toy.
+
+### Aesthetic Direction
+
+- **Visual Tone**: Kawaii meets Apple Liquid Glass — soft glassmorphism with cat-themed decorative accents (ears, paws, tails, bells). Lush gradients (pink-to-purple) with generous use of blur, glow, and translucency.
+- **Primary Reference**: Apple Liquid Glass design language (semi-transparent surfaces, frosted blur, light refraction, layered depth).
+- **Anti-References**: Enterprise dashboards with flat gray palettes; overly gamified UIs with excessive particle effects; brutalist or stark minimalist designs that lack warmth.
+- **Theme**: Dual-mode — Kawaii Light (sakura pink `#FFF5F7` base) and Deep Purple Night (`#1A0A20` base). Both themes share the same pink-purple accent palette but adjust intensity and contrast accordingly.
+- **Typography**: MapleBright (locally hosted woff2 subsets) as the primary typeface for both sans-serif and monospace contexts, with weights compressed to 400/500 for a clean, uniform aesthetic.
+- **Iconography**: Lucide Vue Next for UI icons; custom SVG cat-themed decorations (ears, paws, whiskers) for brand personality elements.
+
+### Color System
+
+| Role | Light Mode | Dark Mode |
+|------|-----------|-----------|
+| **Accent Primary (Neko Pink)** | `#F472B6` | `#F9A8D4` |
+| **Accent Secondary (Lavender)** | `#A78BFA` | `#C4B5FD` |
+| **Background Base** | `#FFF5F7` | `#1A0A20` |
+| **Text Primary** | `#2D1B30` | `#FDF2F8` |
+| **Success** | `#34D399` | `#6EE7B7` |
+| **Warning** | `#FBBF24` | `#FCD34D` |
+| **Danger** | `#FB7185` | `#FDA4AF` |
+| **Info** | `#C084FC` | `#D8B4FE` |
+
+Platform-specific colors: Claude `#FF6B35`, Codex `#10B981`, Gemini `#4285F4`, Qwen `#00B5E2`, iFlow `#FAAD14`.
+
+### Design Principles
+
+1. **Kawaii with Substance** — Every decorative element (cat ears, paw prints, glow effects) must serve a UX purpose: guiding attention, indicating state, or providing delight during routine tasks. Never add decoration that obscures function.
+
+2. **Glass-First Surfaces** — Prefer glassmorphism (`backdrop-filter: blur`) over opaque backgrounds for layered UI elements. Use the established token hierarchy (`glass-surface` → `glass-effect` → `glass-elevated` → `glass-modal` → `liquid-glass`) to communicate depth and importance.
+
+3. **Token-Driven Consistency** — All colors, spacing, radii, shadows, and animations must reference CSS custom properties from `tokens.css` / `theme.css`. Never hardcode values in components. Tailwind classes should bridge to these tokens via `tailwind.config.ts`.
+
+4. **Graceful Motion** — Animations should feel organic and spring-like (`ease-spring`, `ease-out-back`). Respect `prefers-reduced-motion` by disabling backdrop-filter and simplifying transitions. Neko-themed animations (breathe, ear-wiggle, paw-bounce) are reserved for personality moments, not core interactions.
+
+5. **Dual-Theme Parity** — Every UI element must look intentional in both light and dark themes. Dark mode is not an afterthought — it uses brighter accent variants and stronger glow effects to maintain visual richness against deep purple backgrounds.
