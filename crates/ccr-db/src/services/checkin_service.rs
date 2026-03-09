@@ -339,7 +339,8 @@ impl CheckinService {
 
         // Cloudflare 绕过尚未在当前版本实现，返回错误让调用方优雅降级
         Err(CheckinServiceError::Api(
-            "Cloudflare 绕过功能尚未在当前版本实现，请在有 GUI 的环境中手动获取 cf_clearance".to_string(),
+            "Cloudflare 绕过功能尚未在当前版本实现，请在有 GUI 的环境中手动获取 cf_clearance"
+                .to_string(),
         ))
     }
 
@@ -775,7 +776,8 @@ impl CheckinService {
                 Err(e) => {
                     tracing::warn!(
                         "[{}] WAF cookie refresh failed: {}, continuing with original response",
-                        account_name, e
+                        account_name,
+                        e
                     );
                 }
             }
@@ -810,7 +812,8 @@ impl CheckinService {
                 Err(e) => {
                     tracing::warn!(
                         "[{}] CF cookie refresh failed: {}, continuing with original response",
-                        account_name, e
+                        account_name,
+                        e
                     );
                 }
             }
@@ -894,7 +897,10 @@ impl CheckinService {
         }
 
         // JSON 解析失败：响应不是合法 JSON，检查是否为 WAF/CF 挑战页面
-        tracing::warn!("Failed to parse as JSON, raw response: {}", truncate_string(&body, 500));
+        tracing::warn!(
+            "Failed to parse as JSON, raw response: {}",
+            truncate_string(&body, 500)
+        );
 
         if !status.is_success() {
             if is_waf_challenge(&body) {
@@ -1033,7 +1039,8 @@ impl CheckinService {
                 Err(e) => {
                     tracing::warn!(
                         "[{}] WAF cookie refresh failed: {}, continuing with original response",
-                        account_name, e
+                        account_name,
+                        e
                     );
                 }
             }
@@ -1070,7 +1077,8 @@ impl CheckinService {
                 Err(e) => {
                     tracing::warn!(
                         "[{}] CF cookie refresh failed: {}, continuing with original response",
-                        account_name, e
+                        account_name,
+                        e
                     );
                 }
             }
