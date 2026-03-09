@@ -4,7 +4,8 @@
 
 param(
     [string]$BackendPort = "48081",
-    [string]$VitePort = "15173"
+    [string]$VitePort = "15173",
+    [switch]$StopTauriDesktop
 )
 
 # ========== UTF-8 Encoding Setup (Fix Chinese character display) ==========
@@ -29,6 +30,7 @@ $rootDir = $scriptRoot
 if ((Split-Path -Leaf $scriptRoot) -ieq "scripts") {
     $rootDir = Split-Path -Parent $scriptRoot
 }
+$tauriTargetRoot = Join-Path $rootDir "src-tauri\target"
 $frontendPortFile = Join-Path $rootDir "logs/frontend.port"
 $backendPidFile = Join-Path $rootDir ".backend.pid"
 $frontendPidFile = Join-Path $rootDir ".frontend.pid"
@@ -49,9 +51,9 @@ $excludedProcessNamePatterns = @(
 )
 
 function Get-ProcessDetailsSafely {
-    param([int]$Pid)
+    param([int]$ProcessId)
     try {
-        $p = Get-CimInstance Win32_Process -Filter "ProcessId=$Pid" -ErrorAction Stop
+        $p = Get-CimInstance Win32_Process -Filter "ProcessId=$ProcessId" -ErrorAction Stop
         return [pscustomobject]@{
             Name           = $p.Name
             ExecutablePath = $p.ExecutablePath
@@ -62,6 +64,58 @@ function Get-ProcessDetailsSafely {
             Name           = $null
             ExecutablePath = $null
             CommandLine    = $null
+        }
+    }
+}
+
+function Stop-CcrDesktopProcesses {
+    param([string]$TargetRoot)
+
+    $normalizedTargetRoot = [System.IO.Path]::GetFullPath($TargetRoot)
+    $desktopProcesses = Get-Process -Name "ccr-desktop" -ErrorAction SilentlyContinue
+
+    foreach ($proc in $desktopProcesses) {
+        $details = Get-ProcessDetailsSafely -ProcessId $proc.Id
+        $exePath = $details.ExecutablePath
+        if (-not $exePath) {
+            continue
+        }
+
+        $normalizedExePath = [System.IO.Path]::GetFullPath($exePath)
+        if (-not $normalizedExePath.StartsWith($normalizedTargetRoot, [System.StringComparison]::OrdinalIgnoreCase)) {
+            continue
+        }
+
+        $parentChain = New-Object System.Collections.Generic.List[int]
+        $currentProcessInfo = Get-CimInstance Win32_Process -Filter "ProcessId=$($proc.Id)" -ErrorAction SilentlyContinue
+        $currentParentId = $currentProcessInfo.ParentProcessId
+        while ($currentParentId -and $currentParentId -gt 0) {
+            $parentProcess = Get-CimInstance Win32_Process -Filter "ProcessId=$currentParentId" -ErrorAction SilentlyContinue
+            if (-not $parentProcess) {
+                break
+            }
+
+            if ($parentProcess.Name -notin @("cargo.exe", "rustup.exe")) {
+                break
+            }
+
+            $null = $parentChain.Add([int]$parentProcess.ProcessId)
+            $currentParentId = $parentProcess.ParentProcessId
+        }
+
+        $processIdsToStop = @($parentChain.ToArray())
+        [array]::Reverse($processIdsToStop)
+        $processIdsToStop = @($processIdsToStop | Select-Object -Unique) + $proc.Id
+
+        foreach ($processIdToStop in $processIdsToStop) {
+            $processToStop = Get-Process -Id $processIdToStop -ErrorAction SilentlyContinue
+            if (-not $processToStop) {
+                continue
+            }
+
+            Write-Output ("  - Terminating CCR desktop process tree node (" + $processToStop.ProcessName + ", PID: " + $processIdToStop + ") ...")
+            Stop-Process -Id $processIdToStop -Force -ErrorAction SilentlyContinue
+            Wait-Process -Id $processIdToStop -Timeout 2 -ErrorAction SilentlyContinue
         }
     }
 }
@@ -111,6 +165,11 @@ if (Test-Path $frontendPidFile) {
     Remove-Item -Path $frontendPidFile -Force -ErrorAction SilentlyContinue
 }
 
+if ($StopTauriDesktop) {
+    Write-Output "... Terminating leftover CCR desktop processes ..."
+    Stop-CcrDesktopProcesses -TargetRoot $tauriTargetRoot
+}
+
 foreach ($port in $ports) {
     try {
         $conns = Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction Stop 2>$null
@@ -124,7 +183,7 @@ foreach ($port in $ports) {
                 continue
             }
 
-            $details = Get-ProcessDetailsSafely -Pid $procId
+            $details = Get-ProcessDetailsSafely -ProcessId $procId
             $procName = $proc.ProcessName
             $cmd = $details.CommandLine
             $exe = $details.ExecutablePath

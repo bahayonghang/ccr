@@ -217,6 +217,12 @@ export interface StartCheckinJobResponse {
   snapshot: CheckinJobSnapshot
 }
 
+export interface WafCookieStatus {
+  provider_id: string
+  has_cookie: boolean
+  expires_at?: string
+}
+
 // ═══════════════════════════════════════════════════════════
 // 签到记录类型
 // ═══════════════════════════════════════════════════════════

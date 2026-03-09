@@ -1279,23 +1279,24 @@ tauri-dev:
 
 _tauri-dev-linux:
     @echo "🖥️  启动 Tauri 桌面应用开发模式..."
-    @echo "📍 Frontend: http://localhost:5173 (自动加载)"
+    @echo "📍 Frontend: http://localhost:{{vite_port}} (自动加载)"
     @echo "📍 Desktop: Tauri 窗口将自动打开"
     @echo ""
     bun run tauri:dev
 
 _tauri-dev-macos:
     @echo "🖥️  启动 Tauri 桌面应用开发模式..."
-    @echo "📍 Frontend: http://localhost:5173 (自动加载)"
+    @echo "📍 Frontend: http://localhost:{{vite_port}} (自动加载)"
     @echo "📍 Desktop: Tauri 窗口将自动打开"
     @echo ""
     bun run tauri:dev
 
 _tauri-dev-windows:
     @Write-Output '🖥️  启动 Tauri 桌面应用开发模式...'
-    @Write-Output '📍 Frontend: http://localhost:5173 (自动加载)'
+    @Write-Output '📍 Frontend: http://localhost:{{vite_port}} (自动加载)'
     @Write-Output '📍 Desktop: Tauri 窗口将自动打开'
     @Write-Output ''
+    @powershell -ExecutionPolicy Bypass -File scripts/clean_dev.ps1 -BackendPort "{{backend_port}}" -VitePort "{{vite_port}}" -StopTauriDesktop
     @bun run tauri:dev
 
 # 构建 Tauri 生产版本（桌面应用）

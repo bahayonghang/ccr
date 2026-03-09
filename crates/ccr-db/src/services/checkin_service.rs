@@ -308,8 +308,10 @@ impl CheckinService {
         let manager = WafCookieManager::new();
         let _ = manager.delete(&provider.id);
 
-        // WAF bypass will be implemented in Tauri
-        todo!("WAF bypass to be implemented in Tauri")
+        // WAF bypass 尚未在当前版本实现，返回错误让调用方优雅降级
+        Err(CheckinServiceError::Api(
+            "WAF 绕过功能尚未在当前版本实现，请检查是否有可用的缓存 WAF cookies".to_string(),
+        ))
     }
 
     /// CF cookies 缓存 key：使用 `cf-` 前缀区分 WAF cookies
@@ -335,8 +337,10 @@ impl CheckinService {
         let cache_key = Self::cf_cache_key(&provider.id);
         let _ = manager.delete(&cache_key);
 
-        // WAF bypass will be implemented in Tauri
-        todo!("WAF bypass to be implemented in Tauri")
+        // Cloudflare 绕过尚未在当前版本实现，返回错误让调用方优雅降级
+        Err(CheckinServiceError::Api(
+            "Cloudflare 绕过功能尚未在当前版本实现，请在有 GUI 的环境中手动获取 cf_clearance".to_string(),
+        ))
     }
 
     async fn send_balance_request(
@@ -702,15 +706,17 @@ impl CheckinService {
     }
 
     /// 尝试执行 CDK 充值（签到后自动触发）
-    #[allow(dead_code)]
+    ///
+    /// CDK 充值功能尚未在 Tauri WebView 中实现，当前为 no-op。
+    /// 不应阻塞签到主流程。
     async fn try_cdk_topup(
         &self,
         _provider: &CheckinProvider,
         _account: &crate::models::checkin::CheckinAccount,
         _cookies_json: &str,
     ) {
-        // CDK 充值功能将在 Tauri WebView 中重新实现
-        todo!("Reimplemented in Tauri WebView")
+        // CDK 充值功能尚未在 Tauri WebView 中实现，暂时跳过
+        tracing::debug!("CDK topup skipped: not yet implemented in Tauri WebView");
     }
 
     /// 执行签到 HTTP 请求（使用 Cookie 认证）
@@ -744,89 +750,94 @@ impl CheckinService {
         tracing::info!("Checkin response status: {}", status);
         tracing::info!("Checkin response body: {}", truncate_string(&body, 500));
 
-        // 检测 WAF 挑战页面：自动刷新 WAF cookies 后重试一次
+        // 检测 WAF 挑战页面：尝试刷新 WAF cookies 后重试（软失败模式）
         if is_waf_challenge(&body) {
             tracing::warn!(
                 "[{}] Detected WAF challenge, attempting auto bypass...",
                 account_name
             );
 
-            let waf_cookies = self.refresh_waf_cookies(provider, account_name).await?;
-            let merged = merge_cookies(&credentials.cookies, &waf_cookies);
-            cookie_string = cookie_header_string(&merged);
+            match self.refresh_waf_cookies(provider, account_name).await {
+                Ok(waf_cookies) => {
+                    let merged = merge_cookies(&credentials.cookies, &waf_cookies);
+                    cookie_string = cookie_header_string(&merged);
 
-            let (retry_status, retry_body) = self
-                .send_checkin_request(&url, domain, credentials, &cookie_string)
-                .await?;
+                    let (retry_status, retry_body) = self
+                        .send_checkin_request(&url, domain, credentials, &cookie_string)
+                        .await?;
 
-            status = retry_status;
-            body = retry_body;
+                    status = retry_status;
+                    body = retry_body;
 
-            tracing::info!("Checkin retry status: {}", status);
-            tracing::info!("Checkin retry response: {}", truncate_string(&body, 500));
+                    tracing::info!("Checkin retry status: {}", status);
+                    tracing::info!("Checkin retry response: {}", truncate_string(&body, 500));
+                }
+                Err(e) => {
+                    tracing::warn!(
+                        "[{}] WAF cookie refresh failed: {}, continuing with original response",
+                        account_name, e
+                    );
+                }
+            }
         }
 
-        // 检测 Cloudflare 挑战页面：自动获取 cf_clearance 后重试一次
+        // 检测 Cloudflare 挑战页面：尝试获取 cf_clearance 后重试（软失败模式）
         if is_cf_challenge(status, &body) {
             tracing::warn!(
                 "[{}] Detected CF challenge, attempting auto bypass...",
                 account_name
             );
 
-            let cf_cookies = self.refresh_cf_cookies(provider, account_name).await?;
-            let mut merged = merge_cookies(&credentials.cookies, &cf_cookies);
-            // 同时保留 WAF cookies（如有）
-            if let Some(waf_cookies) = self.get_cached_waf_cookies(&provider.id)? {
-                merged = merge_cookies(&merged, &waf_cookies);
+            match self.refresh_cf_cookies(provider, account_name).await {
+                Ok(cf_cookies) => {
+                    let mut merged = merge_cookies(&credentials.cookies, &cf_cookies);
+                    // 同时保留 WAF cookies（如有）
+                    if let Some(waf_cookies) = self.get_cached_waf_cookies(&provider.id)? {
+                        merged = merge_cookies(&merged, &waf_cookies);
+                    }
+                    cookie_string = cookie_header_string(&merged);
+
+                    let (retry_status, retry_body) = self
+                        .send_checkin_request(&url, domain, credentials, &cookie_string)
+                        .await?;
+
+                    status = retry_status;
+                    body = retry_body;
+
+                    tracing::info!("Checkin CF retry status: {}", status);
+                    tracing::info!("Checkin CF retry response: {}", truncate_string(&body, 500));
+                }
+                Err(e) => {
+                    tracing::warn!(
+                        "[{}] CF cookie refresh failed: {}, continuing with original response",
+                        account_name, e
+                    );
+                }
             }
-            cookie_string = cookie_header_string(&merged);
-
-            let (retry_status, retry_body) = self
-                .send_checkin_request(&url, domain, credentials, &cookie_string)
-                .await?;
-
-            status = retry_status;
-            body = retry_body;
-
-            tracing::info!("Checkin CF retry status: {}", status);
-            tracing::info!("Checkin CF retry response: {}", truncate_string(&body, 500));
         }
 
-        if !status.is_success() {
-            if is_waf_challenge(&body) {
-                return Err(CheckinServiceError::Api(
-                    "检测到 WAF 挑战页面，已尝试自动获取 WAF cookies 但仍失败。请检查代理/出口是否一致，或稍后重试。"
-                        .to_string(),
-                ));
-            }
-
-            if is_cf_challenge(status, &body) {
-                return Err(CheckinServiceError::Api(
-                    "检测到 Cloudflare 挑战页面，已尝试自动获取 cf_clearance 但仍失败。请检查网络环境，或在有 GUI 的环境中重试。"
-                        .to_string(),
-                ));
-            }
-
-            return Err(CheckinServiceError::Api(format!(
-                "HTTP {}: {}",
-                status.as_u16(),
-                truncate_string(&body, 200)
-            )));
-        }
-
-        if is_waf_challenge(&body) {
-            return Err(CheckinServiceError::Api(
-                "检测到 WAF 挑战页面，已尝试自动获取 WAF cookies 但仍失败。请检查代理/出口是否一致，或稍后重试。"
-                    .to_string(),
-            ));
-        }
-
-        // 尝试解析 JSON 响应（支持多种 API 格式）
+        // 优先尝试 JSON 解析：真正的 WAF 挑战页面是 HTML，不是 JSON。
+        // 如果响应是合法 JSON，即使包含 WAF 特征字符串也应按 API 响应处理。
         if let Ok(data) = serde_json::from_str::<serde_json::Value>(&body) {
             tracing::debug!(
                 "Parsed JSON response: {}",
                 serde_json::to_string_pretty(&data).unwrap_or_default()
             );
+
+            // HTTP 错误但返回了 JSON（API 级别的错误响应）
+            if !status.is_success() {
+                let message = data["msg"]
+                    .as_str()
+                    .or(data["message"].as_str())
+                    .or(data["error"].as_str())
+                    .unwrap_or("签到失败")
+                    .to_string();
+                return Err(CheckinServiceError::Api(format!(
+                    "HTTP {}: {}",
+                    status.as_u16(),
+                    message
+                )));
+            }
 
             let ret_value = data["ret"].as_i64();
             let code_value = data["code"].as_i64();
@@ -879,18 +890,48 @@ impl CheckinService {
                 }
             });
 
-            Ok((message, reward))
-        } else {
-            tracing::warn!("Failed to parse as JSON, raw response: {}", body);
+            return Ok((message, reward));
+        }
 
-            if body.to_lowercase().contains("success") || body.contains("成功") {
-                Ok(("签到成功".to_string(), None))
-            } else {
-                Err(CheckinServiceError::Api(format!(
-                    "无法解析响应: {}",
-                    truncate_string(&body, 100)
-                )))
+        // JSON 解析失败：响应不是合法 JSON，检查是否为 WAF/CF 挑战页面
+        tracing::warn!("Failed to parse as JSON, raw response: {}", truncate_string(&body, 500));
+
+        if !status.is_success() {
+            if is_waf_challenge(&body) {
+                return Err(CheckinServiceError::Api(
+                    "检测到 WAF 挑战页面，已尝试自动获取 WAF cookies 但仍失败。请检查代理/出口是否一致，或稍后重试。"
+                        .to_string(),
+                ));
             }
+
+            if is_cf_challenge(status, &body) {
+                return Err(CheckinServiceError::Api(
+                    "检测到 Cloudflare 挑战页面，已尝试自动获取 cf_clearance 但仍失败。请检查网络环境，或在有 GUI 的环境中重试。"
+                        .to_string(),
+                ));
+            }
+
+            return Err(CheckinServiceError::Api(format!(
+                "HTTP {}: {}",
+                status.as_u16(),
+                truncate_string(&body, 200)
+            )));
+        }
+
+        if is_waf_challenge(&body) {
+            return Err(CheckinServiceError::Api(
+                "检测到 WAF 挑战页面（响应为 HTML），已尝试自动获取 WAF cookies 但仍失败。请检查代理/出口是否一致，或稍后重试。"
+                    .to_string(),
+            ));
+        }
+
+        if body.to_lowercase().contains("success") || body.contains("成功") {
+            Ok(("签到成功".to_string(), None))
+        } else {
+            Err(CheckinServiceError::Api(format!(
+                "无法解析响应: {}",
+                truncate_string(&body, 100)
+            )))
         }
     }
 
@@ -964,57 +1005,75 @@ impl CheckinService {
         tracing::info!("Balance query response status: {}", status);
         tracing::info!("Balance query response: {}", truncate_string(&body, 500));
 
-        // 检测 WAF 挑战页面：自动刷新 WAF cookies 后重试一次
+        // 检测 WAF 挑战页面：尝试刷新 WAF cookies 后重试（软失败模式）
         if is_waf_challenge(&body) {
             tracing::warn!(
                 "[{}] Detected WAF challenge, attempting auto bypass...",
                 account_name
             );
 
-            let waf_cookies = self.refresh_waf_cookies(provider, account_name).await?;
-            let merged = merge_cookies(&credentials.cookies, &waf_cookies);
-            cookie_string = cookie_header_string(&merged);
+            match self.refresh_waf_cookies(provider, account_name).await {
+                Ok(waf_cookies) => {
+                    let merged = merge_cookies(&credentials.cookies, &waf_cookies);
+                    cookie_string = cookie_header_string(&merged);
 
-            let (retry_status, retry_body) = self
-                .send_balance_request(&url, domain, credentials, &cookie_string)
-                .await?;
+                    let (retry_status, retry_body) = self
+                        .send_balance_request(&url, domain, credentials, &cookie_string)
+                        .await?;
 
-            status = retry_status;
-            body = retry_body;
+                    status = retry_status;
+                    body = retry_body;
 
-            tracing::info!("Balance query retry status: {}", status);
-            tracing::info!(
-                "Balance query retry response: {}",
-                truncate_string(&body, 500)
-            );
+                    tracing::info!("Balance query retry status: {}", status);
+                    tracing::info!(
+                        "Balance query retry response: {}",
+                        truncate_string(&body, 500)
+                    );
+                }
+                Err(e) => {
+                    tracing::warn!(
+                        "[{}] WAF cookie refresh failed: {}, continuing with original response",
+                        account_name, e
+                    );
+                }
+            }
         }
 
-        // 检测 Cloudflare 挑战页面：自动获取 cf_clearance 后重试一次
+        // 检测 Cloudflare 挑战页面：尝试获取 cf_clearance 后重试（软失败模式）
         if is_cf_challenge(status, &body) {
             tracing::warn!(
                 "[{}] Detected CF challenge in balance query, attempting auto bypass...",
                 account_name
             );
 
-            let cf_cookies = self.refresh_cf_cookies(provider, account_name).await?;
-            let mut merged = merge_cookies(&credentials.cookies, &cf_cookies);
-            if let Some(waf_cookies) = self.get_cached_waf_cookies(&provider.id)? {
-                merged = merge_cookies(&merged, &waf_cookies);
+            match self.refresh_cf_cookies(provider, account_name).await {
+                Ok(cf_cookies) => {
+                    let mut merged = merge_cookies(&credentials.cookies, &cf_cookies);
+                    if let Some(waf_cookies) = self.get_cached_waf_cookies(&provider.id)? {
+                        merged = merge_cookies(&merged, &waf_cookies);
+                    }
+                    cookie_string = cookie_header_string(&merged);
+
+                    let (retry_status, retry_body) = self
+                        .send_balance_request(&url, domain, credentials, &cookie_string)
+                        .await?;
+
+                    status = retry_status;
+                    body = retry_body;
+
+                    tracing::info!("Balance query CF retry status: {}", status);
+                    tracing::info!(
+                        "Balance query CF retry response: {}",
+                        truncate_string(&body, 500)
+                    );
+                }
+                Err(e) => {
+                    tracing::warn!(
+                        "[{}] CF cookie refresh failed: {}, continuing with original response",
+                        account_name, e
+                    );
+                }
             }
-            cookie_string = cookie_header_string(&merged);
-
-            let (retry_status, retry_body) = self
-                .send_balance_request(&url, domain, credentials, &cookie_string)
-                .await?;
-
-            status = retry_status;
-            body = retry_body;
-
-            tracing::info!("Balance query CF retry status: {}", status);
-            tracing::info!(
-                "Balance query CF retry response: {}",
-                truncate_string(&body, 500)
-            );
         }
 
         if !status.is_success() {

@@ -198,6 +198,54 @@
           <div class="mt-3 flex items-center space-x-4 text-xs text-gray-500 dark:text-gray-400">
             <span>签到路径: {{ provider.checkin_path }}</span>
           </div>
+          <div
+            v-if="requiresWafBypass(provider)"
+            class="mt-4 rounded-lg border border-orange-200 bg-orange-50/90 dark:border-orange-800 dark:bg-orange-900/20 p-3"
+          >
+            <div class="flex items-start justify-between gap-3">
+              <div class="min-w-0">
+                <div class="flex items-center gap-2 flex-wrap">
+                  <ShieldCheck class="w-4 h-4 text-orange-600 dark:text-orange-300" />
+                  <p class="text-sm font-medium text-orange-900 dark:text-orange-100">
+                    WAF 验证
+                  </p>
+                  <span
+                    class="px-2 py-0.5 text-xs rounded-full"
+                    :class="hasCachedWafCookie(provider.id)
+                      ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-200'
+                      : 'bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-200'"
+                  >
+                    {{ hasCachedWafCookie(provider.id) ? '已缓存 Cookie' : '未缓存 Cookie' }}
+                  </span>
+                </div>
+                <p class="mt-2 text-xs leading-5 text-orange-800 dark:text-orange-200">
+                  AnyRouter 这类站点签到前需要先获取 WAF Cookie，且网页登录与签到请求必须使用同一代理/出口。
+                </p>
+                <p class="mt-1 text-xs leading-5 text-orange-700 dark:text-orange-300">
+                  参考流程：先保存 <code>session</code> 和 <code>api_user</code>，再打开登录页完成挑战，最后回到签到页重试。
+                </p>
+              </div>
+              <button
+                class="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg bg-orange-600 hover:bg-orange-700 text-white transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                :disabled="wafLoadingMap[provider.id] === true"
+                @click="startWafLogin(provider)"
+              >
+                <RefreshCw
+                  class="w-3.5 h-3.5"
+                  :class="{ 'animate-spin': wafLoadingMap[provider.id] === true }"
+                />
+                <span>
+                  {{
+                    wafLoadingMap[provider.id] === true
+                      ? '获取中...'
+                      : hasCachedWafCookie(provider.id)
+                        ? '重新获取'
+                        : '获取 Cookie'
+                  }}
+                </span>
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -310,7 +358,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import {
   Store,
   Building2,
@@ -319,13 +367,17 @@ import {
   AlertTriangle,
   XCircle,
   Shield,
+  ShieldCheck,
+  RefreshCw,
 } from 'lucide-vue-next'
 import {
   createCheckinProvider,
   updateCheckinProvider,
   deleteCheckinProvider as apiDeleteProvider,
+  openWafLogin,
+  getWafCookieStatus,
 } from '@/api'
-import type { CheckinProvider, BuiltinProvider } from '@/types/checkin'
+import type { CheckinProvider, BuiltinProvider, WafCookieStatus } from '@/types/checkin'
 
 const props = defineProps<{
   providers: CheckinProvider[]
@@ -345,6 +397,79 @@ const availableBuiltinProviders = computed(() => {
   const addedNames = new Set(props.providers.map(p => p.name))
   return props.builtinProviders.filter(bp => !addedNames.has(bp.name))
 })
+
+const builtinProviderMap = computed(() => {
+  return new Map(props.builtinProviders.map((provider) => [provider.name, provider]))
+})
+
+const wafStatusMap = ref<Record<string, WafCookieStatus | undefined>>({})
+const wafLoadingMap = ref<Record<string, boolean>>({})
+
+const getBuiltinProvider = (provider: CheckinProvider): BuiltinProvider | undefined => {
+  return builtinProviderMap.value.get(provider.name)
+}
+
+const requiresWafBypass = (provider: CheckinProvider) => {
+  return getBuiltinProvider(provider)?.requires_waf_bypass === true
+}
+
+const hasCachedWafCookie = (providerId: string) => {
+  return wafStatusMap.value[providerId]?.has_cookie === true
+}
+
+const getProviderLoginUrl = (provider: CheckinProvider) => {
+  return `${provider.base_url.replace(/\/+$/, '')}/login`
+}
+
+const loadWafStatus = async (providerId: string) => {
+  try {
+    const status = await getWafCookieStatus<WafCookieStatus>(providerId)
+    wafStatusMap.value = {
+      ...wafStatusMap.value,
+      [providerId]: status,
+    }
+  } catch (error: unknown) {
+    console.error('Failed to load WAF status', error)
+  }
+}
+
+const refreshWafStatuses = async () => {
+  const wafProviders = props.providers.filter((provider) => requiresWafBypass(provider))
+  if (wafProviders.length === 0) {
+    wafStatusMap.value = {}
+    return
+  }
+
+  await Promise.all(wafProviders.map((provider) => loadWafStatus(provider.id)))
+}
+
+const startWafLogin = async (provider: CheckinProvider) => {
+  wafLoadingMap.value = {
+    ...wafLoadingMap.value,
+    [provider.id]: true,
+  }
+
+  try {
+    await openWafLogin<string>(getProviderLoginUrl(provider), provider.id)
+    await loadWafStatus(provider.id)
+    alert(`${provider.name} 的 WAF Cookie 已更新，现在可以回到签到页重试。`)
+  } catch (error: unknown) {
+    alert('获取 WAF Cookie 失败: ' + getErrorMessage(error, '未知错误'))
+  } finally {
+    wafLoadingMap.value = {
+      ...wafLoadingMap.value,
+      [provider.id]: false,
+    }
+  }
+}
+
+watch(
+  () => props.providers.map((provider) => `${provider.id}:${provider.name}`).join('|'),
+  () => {
+    void refreshWafStatuses()
+  },
+  { immediate: true }
+)
 
 // 弹窗状态
 const showProviderModal = ref(false)

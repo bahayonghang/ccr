@@ -298,7 +298,7 @@
             <span
               v-if="!editingAccount"
               class="text-red-500"
-            >*</span> Session
+            >*</span> Session / Cookies
             <span
               v-if="editingAccount"
               class="text-gray-400 dark:text-gray-500 font-normal"
@@ -309,7 +309,7 @@
             :required="!editingAccount"
             rows="5"
             class="block w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 font-mono text-sm leading-relaxed resize-y min-h-[120px] placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:bg-white dark:focus:bg-gray-800 transition-colors"
-            placeholder="直接粘贴 session 值即可"
+            placeholder="可直接粘贴 session 值，或完整 cookies JSON"
           />
           <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
             <svg
@@ -325,25 +325,39 @@
                 d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
               />
             </svg>
-            直接粘贴 session 值，后台会自动处理格式
+            可直接粘贴 session 值，后台会自动包装为 cookies JSON；如果你已经拿到完整 cookies JSON，也可以直接粘贴
           </p>
         </div>
 
         <!-- API User -->
         <div>
           <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-            API User
-            <span class="text-gray-400 dark:text-gray-500 font-normal">(可选)</span>
+            <span class="text-red-500">*</span> API User
           </label>
           <input
             v-model="accountForm.api_user"
             type="text"
+            required
             class="block w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white font-mono placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
             placeholder="12345"
           >
           <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
-            通常为 5 位数字，可在 Network 标签的请求头中找到 "New-Api-User"
+            使用 session / cookies 登录时必须填写。优先从 Local Storage 的 <code>user.id</code> 获取，也可从请求头里的 <code>new-api-user</code> 找到
           </p>
+        </div>
+
+        <div
+          v-if="selectedBuiltinProvider?.requires_waf_bypass"
+          class="bg-gradient-to-r from-orange-50 to-amber-50 dark:from-orange-900/20 dark:to-amber-900/20 border border-orange-200 dark:border-orange-800/50 rounded-lg p-4"
+        >
+          <p class="text-sm font-medium text-orange-800 dark:text-orange-300 mb-2">
+            {{ selectedBuiltinProvider.name }} 需要额外的 WAF 步骤
+          </p>
+          <ol class="text-xs text-orange-700 dark:text-orange-300/90 space-y-1.5 list-decimal list-inside">
+            <li>先保存 <code>session / cookies</code> 和 <code>api_user</code></li>
+            <li>回到“提供商”页，为 {{ selectedBuiltinProvider.name }} 点击“获取 Cookie”</li>
+            <li>获取 WAF Cookie 的网页登录过程，必须与签到请求使用同一代理/出口</li>
+          </ol>
         </div>
 
         <!-- CDK 配置区域（仅当提供商支持 CDK 时显示） -->
@@ -434,6 +448,7 @@
             <li>转到 <span class="font-medium">Application</span> 标签页 → <span class="font-medium">Cookies</span></li>
             <li>选择目标站点，找到 <code class="px-1 py-0.5 bg-blue-100 dark:bg-blue-800/50 rounded font-mono">session</code> 这一行</li>
             <li>复制 session 的值，直接粘贴到上方输入框</li>
+            <li>再到 <span class="font-medium">Local Storage</span> → <code class="px-1 py-0.5 bg-blue-100 dark:bg-blue-800/50 rounded font-mono">user</code>，取其中的 <code class="px-1 py-0.5 bg-blue-100 dark:bg-blue-800/50 rounded font-mono">id</code> 作为 API User</li>
           </ol>
         </div>
 
@@ -536,6 +551,13 @@ const selectedProviderCdkConfig = computed(() => {
   if (!provider) return null
   const builtin = props.builtinProviders.find(bp => bp.name === provider.name)
   return builtin?.cdk_config || null
+})
+
+const selectedBuiltinProvider = computed(() => {
+  if (!accountForm.value.provider_id) return null
+  const provider = props.providers.find(p => p.id === accountForm.value.provider_id)
+  if (!provider) return null
+  return props.builtinProviders.find(bp => bp.name === provider.name) || null
 })
 
 // 过滤后的账号列表
@@ -665,6 +687,7 @@ const openAccountModal = async (account?: AccountInfo) => {
 const saveAccount = async () => {
   try {
     const cookiesJson = sessionToCookiesJson(accountForm.value.session)
+    const apiUser = accountForm.value.api_user.trim()
 
     // 构建 extra_config JSON
     const extraConfig: CdkExtraConfig = {}
@@ -689,17 +712,20 @@ const saveAccount = async () => {
     }
     const extraConfigJson = Object.keys(extraConfig).length > 0 ? JSON.stringify(extraConfig) : '{}'
 
+    if (!apiUser) {
+      alert('请输入 API User。使用 session / cookies 登录的站点必须提供该值。')
+      return
+    }
+
     if (editingAccount.value) {
       const updateData: { name?: string; cookies_json?: string; api_user?: string; enabled?: boolean; extra_config?: string } = {
         name: accountForm.value.name,
+        api_user: apiUser,
         enabled: accountForm.value.enabled,
         extra_config: extraConfigJson,
       }
       if (cookiesJson) {
         updateData.cookies_json = cookiesJson
-      }
-      if (accountForm.value.api_user) {
-        updateData.api_user = accountForm.value.api_user
       }
       await updateCheckinAccount(editingAccount.value.id, updateData)
     } else {
@@ -711,7 +737,7 @@ const saveAccount = async () => {
         provider_id: accountForm.value.provider_id,
         name: accountForm.value.name,
         cookies_json: cookiesJson,
-        api_user: accountForm.value.api_user || '',
+        api_user: apiUser,
         extra_config: extraConfigJson,
       })
     }

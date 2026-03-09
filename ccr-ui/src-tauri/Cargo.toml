@@ -9,7 +9,7 @@ edition = "2024"
 rust-version = "1.88"
 
 [build-dependencies]
-tauri-build = { version = "2.5.2", features = [] }
+tauri-build = { version = "=2.5.6", features = [] }
 
 [dependencies]
 # CCR 核心库 - 配置管理与平台适配
@@ -22,7 +22,7 @@ ccr-types = { path = "../../crates/ccr-types" }
 ccr-db = { path = "../../crates/ccr-db" }
 
 # Tauri framework
-tauri = { version = "2.9.3", features = [] }
+tauri = { version = "=2.10.3", features = [] }
 tauri-plugin-dialog = "2"
 
 # Serialization
@@ -99,7 +99,6 @@ winreg = "0.55"
 default = []
 # Custom protocol for production builds
 custom-protocol = ["tauri/custom-protocol"]
-
 
 
 

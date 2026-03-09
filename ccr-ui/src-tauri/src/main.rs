@@ -23,6 +23,10 @@ use state::{AppState, DEFAULT_SSH_PASSWORD_TTL_SECS, DEFAULT_SSH_STATE_TTL_SECS}
 /// 退出流程标志，避免重复触发清理与关闭逻辑。
 static EXIT_REQUESTED: AtomicBool = AtomicBool::new(false);
 
+fn should_confirm_app_exit(window_label: &str) -> bool {
+    window_label == "main"
+}
+
 fn main() {
     ccr::init_logger();
 
@@ -158,6 +162,10 @@ fn main() {
         })
         .on_window_event(|window, event| {
             if let WindowEvent::CloseRequested { api, .. } = event {
+                if !should_confirm_app_exit(window.label()) {
+                    return;
+                }
+
                 let state = window.state::<AppState>();
 
                 // 已确认退出时直接放行，避免再次弹窗造成循环。
@@ -221,6 +229,18 @@ fn main() {
             tracing::info!("[app] cleanup complete");
         }
     });
+}
+
+#[cfg(test)]
+mod tests {
+    use super::should_confirm_app_exit;
+
+    #[test]
+    fn only_main_window_requires_exit_confirmation() {
+        assert!(should_confirm_app_exit("main"));
+        assert!(!should_confirm_app_exit("waf-login-builtin-anyrouter"));
+        assert!(!should_confirm_app_exit("oauth-login"));
+    }
 }
 
 /// 后台维护任务循环，定期清理缓存并尝试刷新用量数据。

@@ -19,11 +19,12 @@ use tokio::sync::oneshot;
 
 /// 每个 provider_id 对应一个等待接收 cookie 的 oneshot sender。
 /// open_waf_login 注册后等待 waf_deliver_cookie 触发。
-static PENDING_COOKIES: Mutex<Option<HashMap<i64, oneshot::Sender<String>>>> = Mutex::new(None);
+static PENDING_COOKIES: Mutex<Option<HashMap<String, oneshot::Sender<String>>>> =
+    Mutex::new(None);
 
 fn with_pending<F, R>(f: F) -> R
 where
-    F: FnOnce(&mut HashMap<i64, oneshot::Sender<String>>) -> R,
+    F: FnOnce(&mut HashMap<String, oneshot::Sender<String>>) -> R,
 {
     let mut guard = PENDING_COOKIES.lock().unwrap_or_else(|e| e.into_inner());
     let map = guard.get_or_insert_with(HashMap::new);
@@ -34,7 +35,9 @@ where
 
 /// 在每次页面加载前注入，轮询 document.cookie 并通过 Tauri IPC 回传。
 /// provider_id 在构建时通过字符串插值写入脚本。
-fn build_cookie_script(provider_id: i64) -> String {
+fn build_cookie_script(provider_id: &str) -> String {
+    let provider_id_literal = serde_json::to_string(provider_id)
+        .unwrap_or_else(|_| "\"\"".to_string());
     format!(
         r#"
 (function() {{
@@ -42,7 +45,7 @@ fn build_cookie_script(provider_id: i64) -> String {
     if (window.__wafCookiePolling) return;
     window.__wafCookiePolling = true;
 
-    var _providerId = {provider_id};
+    var _providerId = {provider_id_literal};
 
     function trySend(cookies) {{
         // Tauri v2：通过 __TAURI_INTERNALS__.invoke 调用后端命令
@@ -71,7 +74,7 @@ fn build_cookie_script(provider_id: i64) -> String {
     window.__wafTimer = setInterval(poll, 500);
 }})();
 "#,
-        provider_id = provider_id
+        provider_id_literal = provider_id_literal
     )
 }
 
@@ -80,7 +83,7 @@ fn build_cookie_script(provider_id: i64) -> String {
 /// WAF Cookie 状态
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WafCookieStatus {
-    pub provider_id: i64,
+    pub provider_id: String,
     pub has_cookie: bool,
     pub expires_at: Option<String>,
 }
@@ -91,7 +94,7 @@ pub struct WafCookieStatus {
 ///
 /// 此命令由注入的 JS 脚本通过 Tauri IPC invoke 调用，不应由前端直接调用。
 #[tauri::command]
-pub async fn waf_deliver_cookie(provider_id: i64, cookie: String) -> Result<(), String> {
+pub async fn waf_deliver_cookie(provider_id: String, cookie: String) -> Result<(), String> {
     if cookie.trim().is_empty() {
         return Ok(());
     }
@@ -113,10 +116,14 @@ pub async fn waf_deliver_cookie(provider_id: i64, cookie: String) -> Result<(), 
 pub async fn open_waf_login(
     app: tauri::AppHandle,
     login_url: String,
-    provider_id: i64,
+    provider_id: String,
 ) -> Result<String, String> {
+    let safe_provider_id: String = provider_id
+        .chars()
+        .map(|ch| if ch.is_ascii_alphanumeric() { ch } else { '-' })
+        .collect();
     // 构造唯一窗口标签
-    let window_label = format!("waf-login-{}", provider_id);
+    let window_label = format!("waf-login-{}", safe_provider_id);
 
     // 若已有同名窗口则先关闭（避免重复打开）
     if let Some(existing) = app.get_webview_window(&window_label) {
@@ -127,7 +134,7 @@ pub async fn open_waf_login(
     // 注册 oneshot channel，供 waf_deliver_cookie 触发
     let (tx, rx) = oneshot::channel::<String>();
     with_pending(|map| {
-        map.insert(provider_id, tx);
+        map.insert(provider_id.clone(), tx);
     });
 
     // 解析登录 URL
@@ -136,7 +143,7 @@ pub async fn open_waf_login(
         .map_err(|e| format!("无效的登录 URL: {}", e))?;
 
     // 构建注入脚本（在每次页面加载前运行）
-    let init_script = build_cookie_script(provider_id);
+    let init_script = build_cookie_script(&provider_id);
 
     // 创建 WebView 窗口
     // initialization_script 确保脚本在页面 JS 执行前已注入
@@ -184,10 +191,9 @@ pub async fn open_waf_login(
             }
 
             if !cookies_map.is_empty() {
-                let provider_id_str = provider_id.to_string();
                 let waf_manager = WafCookieManager::new();
                 waf_manager
-                    .save(&provider_id_str, cookies_map)
+                    .save(&provider_id, cookies_map)
                     .map_err(|e| format!("保存 WAF cookie 失败: {}", e))?;
 
                 tracing::info!("[waf] provider {} 的 WAF cookie 已提取并缓存", provider_id);
@@ -208,11 +214,10 @@ pub async fn open_waf_login(
 
 /// 查询指定 provider 的 WAF cookie 缓存状态。
 #[tauri::command]
-pub async fn get_waf_cookie_status(provider_id: i64) -> Result<WafCookieStatus, String> {
-    let provider_id_str = provider_id.to_string();
+pub async fn get_waf_cookie_status(provider_id: String) -> Result<WafCookieStatus, String> {
     let waf_manager = WafCookieManager::new();
 
-    match waf_manager.get_valid(&provider_id_str) {
+    match waf_manager.get_valid(&provider_id) {
         Ok(Some(_cookies)) => {
             // 有效缓存存在（WafCookieManager 内部已处理过期清理）
             Ok(WafCookieStatus {

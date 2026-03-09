@@ -152,6 +152,28 @@
             </span>
           </div>
           <div class="mt-4 grid gap-4 md:grid-cols-2">
+            <div
+              v-if="failedCheckinResults.some((item) => item.error_code === 'waf_blocked')"
+              class="md:col-span-2 rounded-lg border border-orange-200 bg-orange-50/90 dark:border-orange-800 dark:bg-orange-900/20 p-3"
+            >
+              <div class="flex items-start justify-between gap-3">
+                <div>
+                  <p class="text-sm font-medium text-orange-900 dark:text-orange-100">
+                    检测到 WAF 挑战页
+                  </p>
+                  <p class="mt-1 text-xs leading-5 text-orange-800 dark:text-orange-200">
+                    这通常不是 Cookie 本身失效，而是 AnyRouter 这类站点先返回了阿里云 WAF 的 HTML 挑战页。
+                    先去“提供商”页获取 WAF Cookie，再确保网页登录与签到请求走同一代理/出口后重试。
+                  </p>
+                </div>
+                <button
+                  class="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg bg-orange-600 hover:bg-orange-700 text-white transition-colors"
+                  @click="activeTab = 'providers'"
+                >
+                  前往提供商页
+                </button>
+              </div>
+            </div>
             <!-- 成功结果 -->
             <div
               v-if="successCheckinResults.length > 0"

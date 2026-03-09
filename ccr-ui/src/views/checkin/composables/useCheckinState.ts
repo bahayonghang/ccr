@@ -535,8 +535,8 @@ export function useCheckinState() {
     if (!code) return null
     const hints: Record<string, string> = {
       cookie_expired: '建议：请更新 Cookie',
-      waf_blocked: '建议：检查代理/出口 IP 是否一致',
-      cf_blocked: '建议：在有 GUI 的环境中重试',
+      waf_blocked: '建议：先获取 WAF Cookie，再确认网页登录与签到请求的代理/出口一致',
+      cf_blocked: '建议：在有 GUI 的环境中获取 cf_clearance 后重试',
       network_error: '建议：检查网络连接',
       timeout: '建议：稍后重试',
       crypto_error: '建议：重新导入 Cookie',

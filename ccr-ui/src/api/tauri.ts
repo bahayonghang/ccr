@@ -2416,13 +2416,13 @@ export const clearRecentItems = async <T = UnknownRecord>(): Promise<T> => {
 /** 打开 WAF 登录窗口 */
 export const openWafLogin = async <T = UnknownRecord>(
   loginUrl: string,
-  providerId: number,
+  providerId: string,
 ): Promise<T> => {
   return invoke('open_waf_login', { loginUrl, providerId })
 }
 
 /** 获取 WAF Cookie 状态 */
-export const getWafCookieStatus = async <T = UnknownRecord>(providerId: number): Promise<T> => {
+export const getWafCookieStatus = async <T = UnknownRecord>(providerId: string): Promise<T> => {
   return invoke('get_waf_cookie_status', { providerId })
 }
 
