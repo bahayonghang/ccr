@@ -85,6 +85,13 @@ macro_rules! generate_handler_common {
         claude::claude_update_budgets,
         claude::claude_list_prompts,
         claude::claude_update_prompts,
+        // —— Claude Code Profiles ——
+        claude::claude_list_profiles,
+        claude::claude_get_profile,
+        claude::claude_add_profile,
+        claude::claude_update_profile,
+        claude::claude_delete_profile,
+        claude::claude_apply_profile,
         // —— Codex ——
         codex::codex_list_profiles,
         codex::codex_add_profile,
