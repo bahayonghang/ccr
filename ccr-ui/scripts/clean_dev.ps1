@@ -120,6 +120,44 @@ function Stop-CcrDesktopProcesses {
     }
 }
 
+function Get-ListeningProcessIdsByPort {
+    param([int]$Port)
+
+    $processIds = @()
+    $seen = @{}
+
+    try {
+        $conns = @(Get-NetTCPConnection -LocalPort $Port -ErrorAction SilentlyContinue |
+            Where-Object { $_.State -in @('Listen', 'Bound') })
+        foreach ($conn in $conns) {
+            $portProcessId = [int]$conn.OwningProcess
+            if (-not $seen.ContainsKey($portProcessId)) {
+                $seen[$portProcessId] = $true
+                $processIds += $portProcessId
+            }
+        }
+    } catch {
+        # Ignore and fall back to netstat.
+    }
+
+    if ($processIds.Count -eq 0) {
+        $pattern = "^\s*TCP\s+\S+:$Port\s+\S+\s+LISTENING\s+(\d+)\s*$"
+        $netstatLines = netstat -ano -p tcp | Select-String -Pattern $pattern
+        foreach ($line in $netstatLines) {
+            if ($line.Matches.Count -eq 0) {
+                continue
+            }
+            $portProcessId = [int]$line.Matches[0].Groups[1].Value
+            if (-not $seen.ContainsKey($portProcessId)) {
+                $seen[$portProcessId] = $true
+                $processIds += $portProcessId
+            }
+        }
+    }
+
+    return @($processIds)
+}
+
 $ports = @([int]$BackendPort, [int]$VitePort)
 if ($actualVitePort -and ($actualVitePort -ne $VitePort)) {
     $ports += [int]$actualVitePort
@@ -171,12 +209,14 @@ if ($StopTauriDesktop) {
 }
 
 foreach ($port in $ports) {
-    try {
-        $conns = Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction Stop 2>$null
-        if (-not $conns) { continue }
+    $owningPids = @(Get-ListeningProcessIdsByPort -Port $port)
+    if (-not $owningPids -or $owningPids.Count -eq 0) {
+        Write-Output ("  - Port " + $port + " is not in use. No action needed.")
+        continue
+    }
 
-        $owningPids = $conns | Select-Object -ExpandProperty OwningProcess -Unique
-        foreach ($procId in $owningPids) {
+    foreach ($procId in $owningPids) {
+        try {
             $proc = Get-Process -Id $procId -ErrorAction SilentlyContinue
             if (-not $proc) {
                 Write-Output ("  - Process on port " + $port + " (PID: " + $procId + ") no longer exists.")
@@ -231,10 +271,9 @@ foreach ($port in $ports) {
 
             Write-Output ("  - Terminating CCR dev process on port " + $port + " (" + $procName + ", PID: " + $procId + ") ...")
             Stop-Process -Id $procId -Force -ErrorAction SilentlyContinue
+        } catch {
+            Write-Output ("  - Failed to inspect process on port " + $port + " (PID: " + $procId + "): " + $_.Exception.Message)
         }
-    } catch {
-        # Port is not in use or other error - this is fine
-        Write-Output ("  - Port " + $port + " is not in use. No action needed.")
     }
 }
 

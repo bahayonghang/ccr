@@ -796,6 +796,28 @@ ui-update-frontend:
 ui-watch-backend:
     @just _ui-run watch-backend
 
+ui-dev-web:
+    @just _ui-dev-web-{{os()}}
+
+[private]
+_ui-dev-web-windows:
+    #!pwsh.exe
+    $ErrorActionPreference = 'Stop';
+    [Console]::OutputEncoding = [System.Text.Encoding]::UTF8;
+    $env:VITE_PORT = "5173";
+    $env:BACKEND_PORT = "38081";
+    just --justfile {{CCR_UI_JUSTFILE}} dev-web;
+
+[private]
+_ui-dev-web-linux:
+    #!/usr/bin/env bash
+    VITE_PORT=5173 BACKEND_PORT=38081 just --justfile {{CCR_UI_JUSTFILE}} dev-web
+
+[private]
+_ui-dev-web-macos:
+    #!/usr/bin/env bash
+    VITE_PORT=5173 BACKEND_PORT=38081 just --justfile {{CCR_UI_JUSTFILE}} dev-web
+
 # 迁移后的快捷别名（对应 ccr-ui/justfile 中的别名）
 alias ui-s := ui-dev
 alias ui-i := ui-install

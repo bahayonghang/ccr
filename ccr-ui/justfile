@@ -43,6 +43,7 @@ help:
     @echo "最常用命令:"
     @echo "  just quick-start    一键启动（检查 + 安装 + 开发）"
     @echo "  just dev            启动开发环境（Vue 3 前端 + 后端）"
+    @echo "  just dev-web        启动浏览器 Web 预览（仅前端，不启动 Tauri）"
     @echo "  just dev-fast       ⚡ 快速启动（使用 Release 构建，二次启动更快）"
     @echo "  just install        安装所有依赖"
     @echo "  just build          构建生产版本"
@@ -138,6 +139,37 @@ alias f := fmt
 # 启动开发环境（Vue 前端 + 后端）
 dev: dev-clean
     @just _dev-start-{{os()}}
+
+# 启动浏览器 Web 预览（仅前端，不启动 Tauri 桌面后端）
+dev-web:
+    @just _dev-web-{{os()}}
+
+_dev-web-linux:
+    @just dev-clean
+    @echo "🌐 启动浏览器 Web 开发预览..."
+    @echo "📍 前端: http://localhost:{{vite_port}}"
+    @echo "🌍 监听地址: 0.0.0.0:{{vite_port}}"
+    @echo "💡 提示: 这是浏览器预览模式，不会启动 Tauri 桌面壳"
+    @echo "⚠️  依赖 Tauri invoke() 的页面在纯 Web 运行时可能受限"
+    @echo ""
+    mkdir -p logs
+    echo "{{vite_port}}" > logs/frontend.port
+    BACKEND_PORT="${BACKEND_PORT:-{{backend_port}}}" bun run dev:web -- --host 0.0.0.0 --strictPort --port "{{vite_port}}"
+
+_dev-web-macos:
+    @just dev-clean
+    @echo "🌐 启动浏览器 Web 开发预览..."
+    @echo "📍 前端: http://localhost:{{vite_port}}"
+    @echo "🌍 监听地址: 0.0.0.0:{{vite_port}}"
+    @echo "💡 提示: 这是浏览器预览模式，不会启动 Tauri 桌面壳"
+    @echo "⚠️  依赖 Tauri invoke() 的页面在纯 Web 运行时可能受限"
+    @echo ""
+    mkdir -p logs
+    echo "{{vite_port}}" > logs/frontend.port
+    BACKEND_PORT="${BACKEND_PORT:-{{backend_port}}}" bun run dev:web -- --host 0.0.0.0 --strictPort --port "{{vite_port}}"
+
+_dev-web-windows:
+    @powershell -ExecutionPolicy Bypass -File scripts/dev-web-windows.ps1 -RootDir "{{justfile_directory()}}" -BackendPort "{{backend_port}}" -VitePort "{{vite_port}}"
 
 _dev-start-linux:
     @echo "🚀 启动开发环境..."
