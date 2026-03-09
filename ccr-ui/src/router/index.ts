@@ -42,6 +42,12 @@ const router = createRouter({
           meta: { depth: 2, group: 'claude-code' }
         },
         {
+          path: 'claude-code/profiles',
+          name: 'claude-code-profiles',
+          component: () => import('@/views/ClaudeCodeProfilesView.vue'),
+          meta: { depth: 2, group: 'claude-code' }
+        },
+        {
           path: 'codex',
           name: 'codex',
           component: () => import('@/views/CodexView.vue'),

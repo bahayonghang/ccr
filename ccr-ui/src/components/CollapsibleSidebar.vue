@@ -348,7 +348,7 @@ const allNavigationGroups: NavGroup[] = [
     defaultExpanded: true,
     module: 'claude-code',
     items: [
-      { name: '配置管理', href: '/configs', icon: Settings },
+      { name: 'Profiles 配置', href: '/claude-code/profiles', icon: Settings },
       { name: '☁️ 云同步', href: '/sync', icon: Cloud },
       { name: 'MCP 服务器', href: '/mcp', icon: Server },
       { name: 'Slash Commands', href: '/slash-commands', icon: Command },

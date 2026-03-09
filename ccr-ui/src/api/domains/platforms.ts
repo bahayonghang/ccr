@@ -1,6 +1,12 @@
 export {
   getClaudeSettings,
   updateClaudeSettings,
+  listClaudeProfiles,
+  getClaudeProfile,
+  addClaudeProfile,
+  updateClaudeProfile,
+  deleteClaudeProfile,
+  applyClaudeProfile,
   listMcpServers,
   addMcpServer,
   updateMcpServer,

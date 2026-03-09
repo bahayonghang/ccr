@@ -53,7 +53,7 @@
         style="animation-delay: 200ms"
       >
         <RouterLink
-          to="/configs"
+          to="/claude-code/profiles"
           class="group h-full"
         >
           <Card

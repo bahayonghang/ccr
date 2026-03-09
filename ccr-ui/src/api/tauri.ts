@@ -770,6 +770,38 @@ export const updatePrompts = async <T = UnknownRecord>(prompts: unknown): Promis
   return invoke('claude_update_prompts', { prompts })
 }
 
+// ── Claude Profiles ──
+
+/** 列出所有 Claude Profiles */
+export const listClaudeProfiles = async <T = UnknownRecord>(): Promise<T> => {
+  return invoke('claude_list_profiles')
+}
+
+/** 获取单个 Claude Profile */
+export const getClaudeProfile = async <T = UnknownRecord>(name: string): Promise<T> => {
+  return invoke('claude_get_profile', { name })
+}
+
+/** 创建 Claude Profile */
+export const addClaudeProfile = async <T = UnknownRecord>(request: unknown): Promise<T> => {
+  return invoke('claude_add_profile', { request })
+}
+
+/** 更新 Claude Profile */
+export const updateClaudeProfile = async <T = UnknownRecord>(name: string, request: unknown): Promise<T> => {
+  return invoke('claude_update_profile', { name, request })
+}
+
+/** 删除 Claude Profile */
+export const deleteClaudeProfile = async <T = UnknownRecord>(name: string): Promise<T> => {
+  return invoke('claude_delete_profile', { name })
+}
+
+/** 应用 Claude Profile */
+export const applyClaudeProfile = async <T = UnknownRecord>(name: string): Promise<T> => {
+  return invoke('claude_apply_profile', { name })
+}
+
 // ════════════════════════════════════════════════════════════
 // 5. Codex 平台
 // ════════════════════════════════════════════════════════════
