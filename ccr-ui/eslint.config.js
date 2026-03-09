@@ -17,6 +17,7 @@ export default [
     ignores: [
       '**/dist/**',
       '**/dist-ssr/**',
+      '**/storybook-static/**',
       '**/coverage/**',
       '**/node_modules/**',
       '**/src-tauri/target/**',
