@@ -102,6 +102,31 @@ pub async fn current_command() -> Result<()> {
                 display_auth_info(&service, &info, &auth_state, None);
             }
         }
+        LoginState::ApiKeyActive => {
+            ColorOutput::info("认证模式: API Key");
+
+            if let Ok(info) = service.get_current_auth_info() {
+                println!();
+                display_auth_info(&service, &info, &auth_state, None);
+            }
+
+            println!();
+            ColorOutput::info("提示:");
+            println!("  • API Key 模式无需保存账号");
+            println!("  • 使用 'ccr codex auth list' 查看已保存的 OAuth 账号");
+        }
+        LoginState::ProviderKeyActive { env_key } => {
+            ColorOutput::info(&format!("认证模式: Provider Key ({})", env_key));
+
+            if let Ok(info) = service.get_current_auth_info() {
+                println!();
+                display_auth_info(&service, &info, &auth_state, None);
+            }
+
+            println!();
+            ColorOutput::info("提示:");
+            println!("  • Provider Key 模式无需保存账号");
+        }
     }
 
     Ok(())

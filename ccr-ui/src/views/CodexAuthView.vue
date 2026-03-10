@@ -577,6 +577,8 @@ const loginStateColor = computed(() => {
   switch (loginState.value.type) {
     case 'LoggedInSaved': return 'success'
     case 'LoggedInUnsaved': return 'warning'
+    case 'ApiKeyActive': return 'primary'
+    case 'ProviderKeyActive': return 'primary'
     case 'Unknown': return 'warning'
     default: return 'danger'
   }
@@ -586,6 +588,8 @@ const loginStateIcon = computed(() => {
   switch (loginState.value.type) {
     case 'LoggedInSaved': return UserCheck
     case 'LoggedInUnsaved': return LogIn
+    case 'ApiKeyActive': return KeyRound
+    case 'ProviderKeyActive': return KeyRound
     case 'Unknown': return AlertTriangle
     default: return LogOut
   }
@@ -595,6 +599,8 @@ const loginStateIconClass = computed(() => {
   switch (loginState.value.type) {
     case 'LoggedInSaved': return 'bg-emerald-500/10 text-emerald-500'
     case 'LoggedInUnsaved': return 'bg-yellow-500/10 text-yellow-500'
+    case 'ApiKeyActive': return 'bg-blue-500/10 text-blue-500'
+    case 'ProviderKeyActive': return 'bg-blue-500/10 text-blue-500'
     case 'Unknown': return 'bg-yellow-500/10 text-yellow-500'
     default: return 'bg-red-500/10 text-red-500'
   }
@@ -606,6 +612,10 @@ const loginStateText = computed(() => {
       return t('codex.auth.loginState.loggedInSaved', { name: loginState.value.account_name })
     case 'LoggedInUnsaved':
       return t('codex.auth.loginState.loggedInUnsaved')
+    case 'ApiKeyActive':
+      return t('codex.auth.loginState.apiKeyActive')
+    case 'ProviderKeyActive':
+      return t('codex.auth.loginState.providerKeyActive', { envKey: loginState.value.env_key })
     case 'Unknown':
       return t('codex.auth.loginState.unknown', { type: loginState.value.raw_type })
     default:

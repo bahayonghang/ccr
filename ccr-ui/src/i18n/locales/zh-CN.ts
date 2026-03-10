@@ -170,7 +170,8 @@ export default {
       description: '配置各平台 Token',
       save: '保存配置',
       placeholder: '请输入 Token',
-      integrated_hint: 'Token 配置已集成在账号管理中。请在账号管理中配置每个账号的 Cookies 和 API User。',
+      integrated_hint:
+        'Token 配置已集成在账号管理中。请在账号管理中配置每个账号的 Cookies 和 API User。',
       go_account_manage_arrow: '前往账号管理 →',
     },
     history: {
@@ -192,7 +193,8 @@ export default {
   home: {
     title: 'CCR UI',
     subtitle: 'AI CLI 配置管理中心',
-    description: '现代化的多 CLI 工具配置管理解决方案，支持 Claude、Codex、Gemini 等多种 AI 平台。集成配置转换、云同步、命令执行等强大功能，让 AI 工具配置管理更简单高效喵~',
+    description:
+      '现代化的多 CLI 工具配置管理解决方案，支持 Claude、Codex、Gemini 等多种 AI 平台。集成配置转换、云同步、命令执行等强大功能，让 AI 工具配置管理更简单高效喵~',
     version: 'v',
     coreFeatures: '核心特性',
     feature1Title: '多平台支持',
@@ -315,7 +317,8 @@ export default {
     source: '来源',
     categories: '分类',
     help: {
-      description: '浏览和管理 Claude Code 的扩展技能，每个技能都是一个包含 SKILL.md 的可执行单元喵。',
+      description:
+        '浏览和管理 Claude Code 的扩展技能，每个技能都是一个包含 SKILL.md 的可执行单元喵。',
     },
     filter: {
       allSources: '全部来源',
@@ -412,13 +415,13 @@ export default {
     local: '本地',
     npx: 'npx',
     githubUrlPlaceholder: 'https://github.com/owner/repo 或 owner/repo',
-    githubFormats: '支持格式: owner/repo, owner/repo{\'@\'}skill, 完整 GitHub URL',
+    githubFormats: "支持格式: owner/repo, owner/repo{'@'}skill, 完整 GitHub URL",
     localPathPlaceholder: '输入 SKILL.md 所在的文件夹路径',
     localHint: '目录必须包含 SKILL.md 文件',
     browse: '浏览...',
     npxAvailable: 'npx 可用',
     npxNotAvailable: 'npx 不可用',
-    npxPackagePlaceholder: 'owner/repo 或 owner/repo{\'@\'}skill',
+    npxPackagePlaceholder: "owner/repo 或 owner/repo{'@'}skill",
     npxGlobal: '全局安装 (-g)',
     npxHint: '使用 npx skills CLI 安装，不可用时回退到 GitHub API',
     marketplaceHint: '从 skills.sh 市场搜索并安装技能',
@@ -475,12 +478,12 @@ export default {
       confirmDelete: '确定要删除仓库 "{name}" 吗？',
     },
     validation: {
-      required: '请填写必填项'
+      required: '请填写必填项',
     },
     messages: {
       loadFailed: '加载技能失败',
       operationFailed: '操作失败',
-      deleteFailed: '删除失败'
+      deleteFailed: '删除失败',
     },
   },
   claudeCode: {
@@ -696,7 +699,7 @@ export default {
     disableServer: '禁用此服务器',
     namePlaceholder: '例如: filesystem-server',
     commandPlaceholder: '例如: npx 或 node',
-    argsPlaceholder: '例如: -y {\'@\'}modelcontextprotocol/server-filesystem /path',
+    argsPlaceholder: "例如: -y {'@'}modelcontextprotocol/server-filesystem /path",
     argsHint: '用空格分隔多个参数',
     envKey: 'KEY',
     envValue: 'VALUE',
@@ -896,7 +899,17 @@ export default {
     disable: '禁用',
     edit: '编辑',
     delete: '删除',
-    form: { name: '名称', script: 'Command', description: '描述', folder: '文件夹', disableCommand: '禁用此命令', required: '*', save: '保存', add: '添加', cancel: '取消' },
+    form: {
+      name: '名称',
+      script: 'Command',
+      description: '描述',
+      folder: '文件夹',
+      disableCommand: '禁用此命令',
+      required: '*',
+      save: '保存',
+      add: '添加',
+      cancel: '取消',
+    },
     loadFailed: '加载 Slash Commands 失败',
     fillRequired: '请填写必填字段',
     deleteConfirm: '确定要删除命令 "{name}" 吗？',
@@ -1172,7 +1185,8 @@ export default {
   },
   converter: {
     title: '配置转换器',
-    description: '支持多种 CLI 配置格式之间的互相转换，包括 Claude Code、Codex、Gemini、Qwen、iFlow 等',
+    description:
+      '支持多种 CLI 配置格式之间的互相转换，包括 Claude Code、Codex、Gemini、Qwen、iFlow 等',
     backToHome: '返回首页',
     sourceFormat: '源格式',
     targetFormat: '目标格式',
@@ -1367,7 +1381,8 @@ export default {
       applyFailed: '✗ 应用失败',
       addSuccess: '✓ 成功添加自定义文件夹',
       addFailed: '✗ 添加失败',
-      deleteConfirm: '确定要删除文件夹 "{name}" 吗？\n\n注意：这只会移除同步配置，不会删除本地文件。',
+      deleteConfirm:
+        '确定要删除文件夹 "{name}" 吗？\n\n注意：这只会移除同步配置，不会删除本地文件。',
       deleteSuccess: '✓ 成功删除文件夹',
       deleteFailed: '✗ 删除失败',
       toggleSuccess: '✓ 成功{action}文件夹',
@@ -1409,8 +1424,6 @@ export default {
     copiedToClipboard: '已复制到剪贴板',
   },
 
-
-
   // Market module
   market: {
     title: '市场 (Market)',
@@ -1431,7 +1444,7 @@ export default {
       plugins: '插件',
       mcp: 'MCP 服务器',
       commands: '命令',
-      installed: '已安装'
+      installed: '已安装',
     },
     install: '安装',
     installed: '已安装',
@@ -1446,25 +1459,25 @@ export default {
       skill: '技能',
       mcp: 'MCP',
       plugin: '插件',
-      command: '命令'
+      command: '命令',
     },
     sources: {
       builtin: '内置',
       remote: '远程',
-      local: '本地'
+      local: '本地',
     },
     backToClaude: '返回 Claude Code',
     backToHome: '返回首页',
     breadcrumb: {
       home: '首页',
       claude: 'Claude Code',
-      market: '市场'
+      market: '市场',
     },
     installModal: {
       title: '安装 MCP 服务器',
       platforms: '选择目标平台',
       apiKeyPlaceholder: '输入 API Key...',
-    }
+    },
   },
 
   // Usage Statistics Module
@@ -1475,13 +1488,13 @@ export default {
     platforms: {
       claude: '🤖 Claude',
       codex: '💻 Codex',
-      gemini: '✨ Gemini'
+      gemini: '✨ Gemini',
     },
 
     actions: {
       loading: '加载中...',
       refresh: '刷新数据',
-      retry: '重试'
+      retry: '重试',
     },
 
     filters: {
@@ -1491,12 +1504,12 @@ export default {
         last7d: '最近 7 天',
         thisWeek: '本周',
         thisMonth: '本月',
-        allTime: '全部时间'
+        allTime: '全部时间',
       },
       model: {
-        all: '全部模型'
+        all: '全部模型',
       },
-      autoRefresh: '自动刷新'
+      autoRefresh: '自动刷新',
     },
 
     summaryCards: {
@@ -1504,11 +1517,11 @@ export default {
       outputTokens: '输出 Tokens',
       cacheRead: '缓存读取',
       cacheEfficiency: '缓存效率',
-      requests: '请求次数'
+      requests: '请求次数',
     },
 
     trends: {
-      vsLastPeriod: '较上期'
+      vsLastPeriod: '较上期',
     },
 
     states: {
@@ -1516,12 +1529,12 @@ export default {
       loadFailed: '加载使用数据失败',
       noData: '暂无使用数据',
       noDataHint: '开始使用 {platform} 后，此处将显示使用统计信息',
-      truncatedWarning: '显示前 10,000 条记录。共找到 {total} 条记录。'
+      truncatedWarning: '显示前 10,000 条记录。共找到 {total} 条记录。',
     },
 
     emptyState: {
       title: '暂无使用数据',
-      subtitle: '开始使用 {platform} 后，此处将显示使用统计信息'
+      subtitle: '开始使用 {platform} 后，此处将显示使用统计信息',
     },
 
     // Dashboard V2
@@ -1588,26 +1601,26 @@ export default {
     timeRange: {
       today: '今日',
       thisWeek: '本周',
-      thisMonth: '本月'
+      thisMonth: '本月',
     },
 
     actions: {
       providersStats: '提供商统计',
-      refresh: '刷新'
+      refresh: '刷新',
     },
 
     summaryCards: {
       totalCost: '总成本',
       apiCalls: 'API 调用次数',
       inputToken: '输入 Token',
-      outputToken: '输出 Token'
+      outputToken: '输出 Token',
     },
 
     tokenDetails: {
       title: '🎫 Token 使用详情',
       cacheToken: 'Cache Token',
       cacheEfficiency: 'Cache 效率',
-      totalToken: '总 Token'
+      totalToken: '总 Token',
     },
 
     sections: {
@@ -1615,11 +1628,11 @@ export default {
       byProject: '📁 按项目分组 (Top 10)',
       costTrend: '📈 成本趋势',
       providerUsage: '🏢 提供商使用次数',
-      providerUsageSubtitle: '按提供商聚类的调用次数'
+      providerUsageSubtitle: '按提供商聚类的调用次数',
     },
 
     units: {
-      times: '次'
+      times: '次',
     },
 
     states: {
@@ -1628,8 +1641,8 @@ export default {
       noData: '暂无数据',
       noStatsData: '暂无统计数据',
       noStatsHint: '开始使用 AI API 后，这里将显示统计信息',
-      loading: '加载中...'
-    }
+      loading: '加载中...',
+    },
   },
 
   // Activity Heatmap
@@ -1641,7 +1654,7 @@ export default {
     totalTokens: '总 Token 数',
     mon: '一',
     wed: '三',
-    fri: '五'
+    fri: '五',
   },
 
   // Codex Module
@@ -1655,57 +1668,57 @@ export default {
         mcpProtocol: '🔌 MCP 协议',
         agents: '🤖 Agents',
         profiles: '👤 Profiles',
-        configManagement: '⚙️ 配置管理'
+        configManagement: '⚙️ 配置管理',
       },
       modulesTitle: '功能模块',
       modules: {
         mcp: {
           title: 'MCP 服务器',
           description: 'Codex MCP 服务器配置管理（STDIO + HTTP）',
-          badge: '🔌 MCP'
+          badge: '🔌 MCP',
         },
         agents: {
           title: 'Agents',
           description: 'Codex Agent 智能体配置管理',
-          badge: '🤖 AI'
+          badge: '🤖 AI',
         },
         profiles: {
           title: 'Profiles',
           description: 'Codex Profile 配置和管理',
-          badge: '👤 Profile'
+          badge: '👤 Profile',
         },
         slashCommands: {
           title: 'Slash Commands',
           description: 'Codex 快捷命令管理',
-          badge: '⌨️ 命令'
+          badge: '⌨️ 命令',
         },
         auth: {
           title: '认证管理',
           description: 'Codex 认证账户切换和管理',
-          badge: '🔑 认证'
+          badge: '🔑 认证',
         },
         settings: {
           title: '设置',
           description: 'Codex 完整配置管理（模型、安全、工具、界面、功能开关）',
-          badge: '⚙️ 设置'
+          badge: '⚙️ 设置',
         },
         plugins: {
           title: '插件管理',
           description: 'Codex 插件配置管理',
-          badge: '🧩 插件'
+          badge: '🧩 插件',
         },
         config: {
           title: '基础配置',
           description: 'Model、Approval Policy、Sandbox 等基础设置',
-          badge: '🔧 配置'
-        }
+          badge: '🔧 配置',
+        },
       },
       tipsTitle: '💡 Codex 特性',
       tips: {
         mcpConnection: '支持 STDIO 和 HTTP 两种 MCP 连接方式',
         profileManagement: '通过 Profiles 管理不同工作环境的配置',
         agentsFeature: 'Agents 功能允许创建特定任务的 AI 助手',
-        pluginEcosystem: '丰富的插件生态系统扩展 Codex 能力'
+        pluginEcosystem: '丰富的插件生态系统扩展 Codex 能力',
       },
       // Usage panel
       usageTitle: '使用量统计',
@@ -1715,7 +1728,7 @@ export default {
       usageError: '加载使用量数据失败',
       noUsageData: '暂无使用量数据',
       usageTip: '在 Codex 使用量仪表板查看官方限制。',
-      usageStatusTip: '在活跃的 Codex 会话中运行 /status 查看实时限制。'
+      usageStatusTip: '在活跃的 Codex 会话中运行 /status 查看实时限制。',
     },
 
     // Common actions
@@ -1733,7 +1746,7 @@ export default {
       search: '搜索',
       filter: '筛选',
       viewDetails: '查看详情',
-      backToList: '返回列表'
+      backToList: '返回列表',
     },
 
     // Common states
@@ -1748,7 +1761,7 @@ export default {
       noData: '暂无数据',
       loadFailed: '加载失败',
       saveFailed: '保存失败',
-      deleteFailed: '删除失败'
+      deleteFailed: '删除失败',
     },
 
     // MCP module
@@ -1779,18 +1792,18 @@ export default {
       argsSeparatorHint: '用空格分隔多个参数',
       types: {
         stdio: 'STDIO',
-        http: 'HTTP'
+        http: 'HTTP',
       },
       placeholders: {
         url: '例如: http://localhost:3000',
         command: '例如: npx',
-        args: '例如: -y {\'@\'}modelcontextprotocol/server-filesystem',
+        args: "例如: -y {'@'}modelcontextprotocol/server-filesystem",
         envKey: 'KEY',
-        envValue: 'VALUE'
+        envValue: 'VALUE',
       },
       validation: {
         commandRequired: '请填写命令',
-        urlRequired: '请填写 URL'
+        urlRequired: '请填写 URL',
       },
       messages: {
         loadFailed: '加载 Codex MCP 服务器失败',
@@ -1798,8 +1811,8 @@ export default {
         updateSuccess: '✓ 服务器更新成功',
         deleteSuccess: '✓ 服务器删除成功',
         operationFailed: '操作失败: {error}',
-        deleteFailed: '删除失败: {error}'
-      }
+        deleteFailed: '删除失败: {error}',
+      },
     },
 
     // Agents module
@@ -1836,24 +1849,24 @@ export default {
       stats: {
         total: '总数',
         enabled: '已启用',
-        disabled: '已禁用'
+        disabled: '已禁用',
       },
       folders: {
         label: '文件夹',
         all: '全部',
         root: '根目录',
         enabled: '已启用',
-        disabled: '已禁用'
+        disabled: '已禁用',
       },
       validation: {
-        required: '请填写必填字段'
+        required: '请填写必填字段',
       },
       messages: {
         loadFailed: '加载 Agents 失败',
         operationFailed: '操作失败',
         deleteFailed: '删除失败',
-        toggleFailed: '切换状态失败'
-      }
+        toggleFailed: '切换状态失败',
+      },
     },
 
     // Profiles module
@@ -1889,7 +1902,7 @@ export default {
         tags: 'Tags',
         enabled: '启用',
         extra: '高级字段',
-        extraJson: '高级字段（JSON）'
+        extraJson: '高级字段（JSON）',
       },
       profileName: 'Profile 名称',
       description: '描述',
@@ -1915,21 +1928,21 @@ export default {
         smallFastModel: '例如: gpt-4o-mini',
         provider: '例如: duckcoding',
         providerType: '例如: official_relay',
-        account: '例如: dev{\'@\'}example.com',
+        account: "例如: dev{'@'}example.com",
         tags: '例如: free, stable, high-speed',
-        extraJson: '{\n  "approval_policy": "on-request"\n}'
+        extraJson: '{\n  "approval_policy": "on-request"\n}',
       },
       authModes: {
         openai_chatgpt: 'OpenAI ChatGPT 登录',
         openai_api_key: 'OpenAI API Key',
         provider_env_key: 'Provider 环境变量 Key',
-        no_auth: '无认证'
+        no_auth: '无认证',
       },
       authTokenHints: {
         openai_chatgpt: '官方 ChatGPT 登录型 profile 不需要 base_url，也不需要 secret。',
         openai_api_key: '请提供 OpenAI API Key，用于 API Key 模式。',
         provider_env_key: 'Provider env-key 模式必须同时提供 env_key 和 secret。',
-        no_auth: '本地或无需运行时认证的 profile 可以留空。'
+        no_auth: '本地或无需运行时认证的 profile 可以留空。',
       },
       officialBaseUrl: '官方 OpenAI 运行时',
       notAvailable: '不可用',
@@ -1943,7 +1956,7 @@ export default {
         github: 'GitHub',
         azure: 'Azure',
         openai: 'OpenAI',
-        custom: 'Custom'
+        custom: 'Custom',
       },
       validation: {
         required: '请填写所有必填字段（Profile 名称、Base URL、Auth Token、Model）',
@@ -1952,7 +1965,7 @@ export default {
         authTokenRequired: '请填写 Auth Token',
         envKeyRequired: 'Provider env-key 模式必须填写 env_key',
         modelRequired: '请填写 Model',
-        extraJsonInvalid: '高级字段必须是合法 JSON 对象'
+        extraJsonInvalid: '高级字段必须是合法 JSON 对象',
       },
       messages: {
         loadFailed: '加载 Codex Profiles 失败',
@@ -1962,7 +1975,7 @@ export default {
         envExportCopied: '环境变量导出已复制',
         envExportCopyFailed: '复制环境变量导出失败',
         operationFailed: '操作失败: {error}',
-        deleteFailed: '删除失败: {error}'
+        deleteFailed: '删除失败: {error}',
       },
       // 新增翻译 key
       officialConfig: '官方配置',
@@ -2081,17 +2094,17 @@ export default {
       folders: {
         label: '文件夹',
         all: '全部',
-        root: '根目录'
+        root: '根目录',
       },
       validation: {
-        required: '请填写必填字段'
+        required: '请填写必填字段',
       },
       messages: {
         loadFailed: '加载 Slash Commands 失败',
         operationFailed: '操作失败',
         deleteFailed: '删除失败',
-        toggleFailed: '切换状态失败'
-      }
+        toggleFailed: '切换状态失败',
+      },
     },
 
     // Auth module
@@ -2123,22 +2136,27 @@ export default {
       confirmDelete: '确定要删除账户 "{name}" 吗？',
       profileGuard: {
         title: 'Profile 兼容性',
-        noCurrentProfile: '当前没有激活的 Codex profile。只有当前 profile 使用 OpenAI 认证时，才能保存或切换 Auth 账户。',
-        unsupportedProfile: '当前 profile “{name}” 的认证模式是 “{authMode}”。Codex Auth 账户保存/切换仅支持 OpenAI-auth 当前 profile。',
-        supportedProfile: '当前 profile “{name}” 的认证模式是 “{authMode}”，可以保存和切换 Auth 账户。'
+        noCurrentProfile:
+          '当前没有激活的 Codex profile。只有当前 profile 使用 OpenAI 认证时，才能保存或切换 Auth 账户。',
+        unsupportedProfile:
+          '当前 profile “{name}” 的认证模式是 “{authMode}”。Codex Auth 账户保存/切换仅支持 OpenAI-auth 当前 profile。',
+        supportedProfile:
+          '当前 profile “{name}” 的认证模式是 “{authMode}”，可以保存和切换 Auth 账户。',
       },
       status: {
         loginState: '登录状态',
         totalAccounts: '账户总数',
         currentAccount: '当前账户',
         noAccount: '无',
-        notAvailable: '不可用'
+        notAvailable: '不可用',
       },
       loginState: {
         loggedInSaved: '已登录 ({name})',
         loggedInUnsaved: '已登录 (未保存)',
+        apiKeyActive: 'API Key 模式',
+        providerKeyActive: 'Provider Key ({envKey})',
         notLoggedIn: '未登录',
-        unknown: '未知状态 ({type})'
+        unknown: '未知状态 ({type})',
       },
       fields: {
         accountId: '账户 ID',
@@ -2148,21 +2166,21 @@ export default {
         lastUsed: '上次使用',
         expiresAt: '过期时间',
         accountName: '账户名称',
-        description: '描述'
+        description: '描述',
       },
       placeholders: {
         accountName: '输入账户名称',
-        description: '可选描述'
+        description: '可选描述',
       },
       validation: {
-        nameRequired: '请输入账户名称'
+        nameRequired: '请输入账户名称',
       },
       table: {
         name: '账户名称',
         email: '邮箱',
         tokenStatus: 'Token 状态',
         lastUsed: '上次使用',
-        actions: '操作'
+        actions: '操作',
       },
       messages: {
         loadFailed: '加载认证信息失败',
@@ -2171,8 +2189,8 @@ export default {
         deleteFailed: '删除账户失败',
         saveSuccess: '账户保存成功',
         switchSuccess: '账户切换成功',
-        deleteSuccess: '账户删除成功'
-      }
+        deleteSuccess: '账户删除成功',
+      },
     },
 
     // Plugins module
@@ -2215,11 +2233,11 @@ export default {
       folders: {
         label: '文件夹',
         all: '全部',
-        root: '根目录'
+        root: '根目录',
       },
       validation: {
         required: '请填写必填字段',
-        invalidJson: '配置 JSON 格式错误'
+        invalidJson: '配置 JSON 格式错误',
       },
       messages: {
         loadFailed: '加载 Plugins 失败',
@@ -2228,8 +2246,8 @@ export default {
         deleteSuccess: '✓ 插件删除成功',
         operationFailed: '操作失败: {error}',
         deleteFailed: '删除失败: {error}',
-        toggleFailed: '切换状态失败: {error}'
-      }
+        toggleFailed: '切换状态失败: {error}',
+      },
     },
 
     // Messages
@@ -2240,8 +2258,8 @@ export default {
       enableSuccess: '启用成功',
       disableSuccess: '禁用成功',
       operationSuccess: '操作成功',
-      operationFailed: '操作失败：{error}'
-    }
+      operationFailed: '操作失败：{error}',
+    },
   },
 
   // ===================================
@@ -2270,8 +2288,8 @@ export default {
         mcpServers: 'MCP 服务器',
         agents: 'Agents',
         commands: '命令',
-        plugins: '插件'
-      }
+        plugins: '插件',
+      },
     },
 
     // MCP module
@@ -2311,7 +2329,7 @@ export default {
       add: '添加',
       deleteConfirm: '确定要删除服务器 "{name}" 吗？',
       validation: {
-        required: '请填写必填字段'
+        required: '请填写必填字段',
       },
       messages: {
         loadFailed: '加载 MCP 服务器失败',
@@ -2320,8 +2338,8 @@ export default {
         deleteSuccess: '✓ 服务器删除成功',
         operationFailed: '操作失败: {error}',
         deleteFailed: '删除失败: {error}',
-        toggleFailed: '切换状态失败: {error}'
-      }
+        toggleFailed: '切换状态失败: {error}',
+      },
     },
 
     // Agents module
@@ -2356,10 +2374,10 @@ export default {
         all: '全部',
         root: '根目录',
         enabled: '已启用',
-        disabled: '已禁用'
+        disabled: '已禁用',
       },
       validation: {
-        required: '请填写必填字段'
+        required: '请填写必填字段',
       },
       messages: {
         loadFailed: '加载 Agents 失败',
@@ -2368,8 +2386,8 @@ export default {
         deleteSuccess: '✓ Agent 删除成功',
         operationFailed: '操作失败: {error}',
         deleteFailed: '删除失败: {error}',
-        toggleFailed: '切换状态失败: {error}'
-      }
+        toggleFailed: '切换状态失败: {error}',
+      },
     },
 
     // Slash Commands module
@@ -2401,10 +2419,10 @@ export default {
         all: '全部',
         root: '根目录',
         enabled: '已启用',
-        disabled: '已禁用'
+        disabled: '已禁用',
       },
       validation: {
-        required: '请填写必填字段'
+        required: '请填写必填字段',
       },
       messages: {
         loadFailed: '加载 Slash Commands 失败',
@@ -2413,8 +2431,8 @@ export default {
         deleteSuccess: '✓ 命令删除成功',
         operationFailed: '操作失败: {error}',
         deleteFailed: '删除失败: {error}',
-        toggleFailed: '切换状态失败: {error}'
-      }
+        toggleFailed: '切换状态失败: {error}',
+      },
     },
 
     // Plugins module
@@ -2450,7 +2468,7 @@ export default {
       deleteConfirm: '确定要删除插件 "{name}" 吗？',
       validation: {
         required: '请填写必填字段',
-        invalidJson: '配置 JSON 格式错误'
+        invalidJson: '配置 JSON 格式错误',
       },
       messages: {
         loadFailed: '加载 Plugins 失败',
@@ -2459,9 +2477,9 @@ export default {
         deleteSuccess: '✓ 插件删除成功',
         operationFailed: '操作失败: {error}',
         deleteFailed: '删除失败: {error}',
-        toggleFailed: '切换状态失败: {error}'
-      }
-    }
+        toggleFailed: '切换状态失败: {error}',
+      },
+    },
   },
 
   // Qwen Platform
@@ -2481,8 +2499,8 @@ export default {
         model: '🧠 大模型',
         dialog: '💬 对话系统',
         mcp: '🔌 MCP 支持',
-        chinese: '🇨🇳 中文优化'
-      }
+        chinese: '🇨🇳 中文优化',
+      },
     },
     mcp: {
       title: 'MCP 服务器',
@@ -2518,7 +2536,7 @@ export default {
       deleteConfirm: '确定要删除 MCP 服务器 "{name}" 吗？',
       validation: {
         required: '请填写必填字段',
-        invalidUrl: 'URL 格式不正确'
+        invalidUrl: 'URL 格式不正确',
       },
       messages: {
         loadFailed: '加载 MCP 服务器失败',
@@ -2527,8 +2545,8 @@ export default {
         deleteSuccess: '✓ MCP 服务器删除成功',
         operationFailed: '操作失败: {error}',
         deleteFailed: '删除失败: {error}',
-        toggleFailed: '切换状态失败: {error}'
-      }
+        toggleFailed: '切换状态失败: {error}',
+      },
     },
     agents: {
       title: 'Agents',
@@ -2539,12 +2557,12 @@ export default {
         all: '全部',
         root: '根目录',
         enabled: '已启用',
-        disabled: '已禁用'
+        disabled: '已禁用',
       },
       stats: {
         total: '总计',
         enabled: '已启用',
-        disabled: '已禁用'
+        disabled: '已禁用',
       },
       addAgent: '添加 Agent',
       editAgent: '编辑 Agent',
@@ -2570,7 +2588,7 @@ export default {
       add: '添加',
       deleteConfirm: '确定要删除 Agent "{name}" 吗？',
       validation: {
-        required: '请填写必填字段'
+        required: '请填写必填字段',
       },
       messages: {
         loadFailed: '加载 Agents 失败',
@@ -2579,8 +2597,8 @@ export default {
         deleteSuccess: '✓ Agent 删除成功',
         operationFailed: '操作失败: {error}',
         deleteFailed: '删除失败: {error}',
-        toggleFailed: '切换状态失败: {error}'
-      }
+        toggleFailed: '切换状态失败: {error}',
+      },
     },
     plugins: {
       title: '插件管理',
@@ -2612,7 +2630,7 @@ export default {
       deleteConfirm: '确定要删除插件 "{name}" 吗？',
       validation: {
         required: '请填写必填字段',
-        invalidJson: '配置 JSON 格式错误'
+        invalidJson: '配置 JSON 格式错误',
       },
       messages: {
         loadFailed: '加载插件失败',
@@ -2621,8 +2639,8 @@ export default {
         deleteSuccess: '✓ 插件删除成功',
         operationFailed: '操作失败: {error}',
         deleteFailed: '删除失败: {error}',
-        toggleFailed: '切换状态失败: {error}'
-      }
+        toggleFailed: '切换状态失败: {error}',
+      },
     },
     slashCommands: {
       title: 'Slash Commands',
@@ -2633,12 +2651,12 @@ export default {
         all: '全部',
         root: '根目录',
         enabled: '已启用',
-        disabled: '已禁用'
+        disabled: '已禁用',
       },
       stats: {
         total: '总计',
         enabled: '已启用',
-        disabled: '已禁用'
+        disabled: '已禁用',
       },
       addCommand: '添加命令',
       editCommand: '编辑命令',
@@ -2664,7 +2682,7 @@ export default {
       add: '添加',
       deleteConfirm: '确定要删除命令 "{name}" 吗？',
       validation: {
-        required: '请填写必填字段'
+        required: '请填写必填字段',
       },
       messages: {
         loadFailed: '加载命令失败',
@@ -2673,9 +2691,9 @@ export default {
         deleteSuccess: '✓ 命令删除成功',
         operationFailed: '操作失败: {error}',
         deleteFailed: '删除失败: {error}',
-        toggleFailed: '切换状态失败: {error}'
-      }
-    }
+        toggleFailed: '切换状态失败: {error}',
+      },
+    },
   },
 
   // Droid Platform
@@ -2695,8 +2713,8 @@ export default {
         multiProvider: '🔗 多 Provider',
         customModels: '🎛️ 自定义模型',
         mcp: '🔌 MCP 支持',
-        coding: '💻 编程助手'
-      }
+        coding: '💻 编程助手',
+      },
     },
     mcp: {
       title: 'MCP 服务器',
@@ -2735,7 +2753,7 @@ export default {
         required: '请填写必填字段',
         invalidUrl: 'URL 格式不正确',
         commandRequired: '请填写命令',
-        urlRequired: '请填写 URL'
+        urlRequired: '请填写 URL',
       },
       messages: {
         loadFailed: '加载 MCP 服务器失败',
@@ -2744,13 +2762,13 @@ export default {
         deleteSuccess: '✓ MCP 服务器删除成功',
         operationFailed: '操作失败: {error}',
         deleteFailed: '删除失败: {error}',
-        toggleFailed: '切换失败: {error}'
-      }
+        toggleFailed: '切换失败: {error}',
+      },
     },
     agents: {
       title: 'Agents',
       description: 'Droid Agent 配置和管理',
-      badge: '🤖 AI'
+      badge: '🤖 AI',
     },
     plugins: {
       title: '插件管理',
@@ -2773,13 +2791,13 @@ export default {
       deleteConfirm: '确定要删除插件 "{id}" 吗?',
       idRequired: '插件 ID 不能为空',
       invalidJson: 'JSON 格式无效',
-      emptyState: '暂无插件配置'
+      emptyState: '暂无插件配置',
     },
     slashCommands: {
       title: 'Slash Commands',
       description: 'Droid 自定义命令管理',
-      badge: '⌨️ 命令'
-    }
+      badge: '⌨️ 命令',
+    },
   },
 
   // iFlow Platform
@@ -2799,8 +2817,8 @@ export default {
         workflow: '🔄 自动化工作流',
         orchestration: '⚡ 流程编排',
         mcp: '🔌 MCP 集成',
-        agent: '🤖 智能代理'
-      }
+        agent: '🤖 智能代理',
+      },
     },
     mcp: {
       title: 'MCP 服务器',
@@ -2836,7 +2854,7 @@ export default {
       deleteConfirm: '确定要删除 MCP 服务器 "{name}" 吗？',
       validation: {
         required: '请填写必填字段',
-        invalidUrl: 'URL 格式不正确'
+        invalidUrl: 'URL 格式不正确',
       },
       messages: {
         loadFailed: '加载 MCP 服务器失败',
@@ -2845,8 +2863,8 @@ export default {
         deleteSuccess: '✓ MCP 服务器删除成功',
         operationFailed: '操作失败: {error}',
         deleteFailed: '删除失败: {error}',
-        toggleFailed: '切换状态失败: {error}'
-      }
+        toggleFailed: '切换状态失败: {error}',
+      },
     },
     agents: {
       title: 'Agents',
@@ -2857,12 +2875,12 @@ export default {
         all: '全部',
         root: '根目录',
         enabled: '已启用',
-        disabled: '已禁用'
+        disabled: '已禁用',
       },
       stats: {
         total: '总计',
         enabled: '已启用',
-        disabled: '已禁用'
+        disabled: '已禁用',
       },
       addAgent: '添加 Agent',
       editAgent: '编辑 Agent',
@@ -2888,7 +2906,7 @@ export default {
       add: '添加',
       deleteConfirm: '确定要删除 Agent "{name}" 吗？',
       validation: {
-        required: '请填写必填字段'
+        required: '请填写必填字段',
       },
       messages: {
         loadFailed: '加载 Agents 失败',
@@ -2897,8 +2915,8 @@ export default {
         deleteSuccess: '✓ Agent 删除成功',
         operationFailed: '操作失败: {error}',
         deleteFailed: '删除失败: {error}',
-        toggleFailed: '切换状态失败: {error}'
-      }
+        toggleFailed: '切换状态失败: {error}',
+      },
     },
     plugins: {
       title: '插件管理',
@@ -2930,7 +2948,7 @@ export default {
       deleteConfirm: '确定要删除插件 "{name}" 吗？',
       validation: {
         required: '请填写必填字段',
-        invalidJson: '配置 JSON 格式错误'
+        invalidJson: '配置 JSON 格式错误',
       },
       messages: {
         loadFailed: '加载插件失败',
@@ -2939,8 +2957,8 @@ export default {
         deleteSuccess: '✓ 插件删除成功',
         operationFailed: '操作失败: {error}',
         deleteFailed: '删除失败: {error}',
-        toggleFailed: '切换状态失败: {error}'
-      }
+        toggleFailed: '切换状态失败: {error}',
+      },
     },
     slashCommands: {
       title: 'Slash Commands',
@@ -2951,12 +2969,12 @@ export default {
         all: '全部',
         root: '根目录',
         enabled: '已启用',
-        disabled: '已禁用'
+        disabled: '已禁用',
       },
       stats: {
         total: '总计',
         enabled: '已启用',
-        disabled: '已禁用'
+        disabled: '已禁用',
       },
       addCommand: '添加命令',
       editCommand: '编辑命令',
@@ -2982,7 +3000,7 @@ export default {
       add: '添加',
       deleteConfirm: '确定要删除命令 "{name}" 吗？',
       validation: {
-        required: '请填写必填字段'
+        required: '请填写必填字段',
       },
       messages: {
         loadFailed: '加载命令失败',
@@ -2991,9 +3009,9 @@ export default {
         deleteSuccess: '✓ 命令删除成功',
         operationFailed: '操作失败: {error}',
         deleteFailed: '删除失败: {error}',
-        toggleFailed: '切换状态失败: {error}'
-      }
-    }
+        toggleFailed: '切换状态失败: {error}',
+      },
+    },
   },
 
   // Usage Stats Dashboard
@@ -3016,5 +3034,4 @@ export default {
     platforms: 'Platforms',
     trackedPlatforms: '已追踪平台',
   },
-
 }

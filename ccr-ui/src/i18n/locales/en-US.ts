@@ -167,7 +167,8 @@ export default {
       description: 'Configure tokens for each platform',
       save: 'Save Config',
       placeholder: 'Enter Token',
-      integrated_hint: 'Token configuration is integrated in Account Management. Please configure Cookies and API User for each account there.',
+      integrated_hint:
+        'Token configuration is integrated in Account Management. Please configure Cookies and API User for each account there.',
       go_account_manage_arrow: 'Go to Account Management →',
     },
     history: {
@@ -189,7 +190,8 @@ export default {
   home: {
     title: 'CCR UI',
     subtitle: 'AI CLI Configuration Center',
-    description: 'Modern multi-CLI tool configuration management solution supporting Claude, Codex, Gemini and other AI platforms. Integrated with configuration conversion, cloud sync, command execution and other powerful features to make AI tool configuration management simpler and more efficient Meow.',
+    description:
+      'Modern multi-CLI tool configuration management solution supporting Claude, Codex, Gemini and other AI platforms. Integrated with configuration conversion, cloud sync, command execution and other powerful features to make AI tool configuration management simpler and more efficient Meow.',
     version: 'v',
     coreFeatures: 'Core Features',
     feature1Title: 'Multi-Platform',
@@ -238,7 +240,8 @@ export default {
 
     // Config Tools
     commandsTitle: 'Command Center',
-    commandsDesc: 'Unified CLI command execution and management interface supporting multiple AI platforms',
+    commandsDesc:
+      'Unified CLI command execution and management interface supporting multiple AI platforms',
     commandsStats: 'Multi-CLI',
 
     converterTitle: 'Config Converter',
@@ -290,7 +293,8 @@ export default {
     source: 'Source',
     categories: 'Categories',
     help: {
-      description: 'Browse and manage Claude Code extension skills, each skill is an executable unit containing SKILL.md.',
+      description:
+        'Browse and manage Claude Code extension skills, each skill is an executable unit containing SKILL.md.',
     },
     filter: {
       allSources: 'All Sources',
@@ -387,13 +391,13 @@ export default {
     local: 'Local',
     npx: 'npx',
     githubUrlPlaceholder: 'https://github.com/owner/repo or owner/repo',
-    githubFormats: 'Formats: owner/repo, owner/repo{\'@\'}skill, full GitHub URL',
+    githubFormats: "Formats: owner/repo, owner/repo{'@'}skill, full GitHub URL",
     localPathPlaceholder: 'Enter folder path containing SKILL.md',
     localHint: 'Directory must contain a SKILL.md file',
     browse: 'Browse...',
     npxAvailable: 'npx available',
     npxNotAvailable: 'npx not available',
-    npxPackagePlaceholder: 'owner/repo or owner/repo{\'@\'}skill',
+    npxPackagePlaceholder: "owner/repo or owner/repo{'@'}skill",
     npxGlobal: 'Global install (-g)',
     npxHint: 'Install via npx skills CLI, falls back to GitHub API if unavailable',
     marketplaceHint: 'Search and install skills from the skills.sh marketplace',
@@ -450,12 +454,12 @@ export default {
       confirmDelete: 'Are you sure you want to delete repository "{name}"?',
     },
     validation: {
-      required: 'Please fill in required fields'
+      required: 'Please fill in required fields',
     },
     messages: {
       loadFailed: 'Failed to load skills',
       operationFailed: 'Operation failed',
-      deleteFailed: 'Delete failed'
+      deleteFailed: 'Delete failed',
     },
   },
   claudeCode: {
@@ -522,7 +526,7 @@ export default {
     tips: {
       title: 'Usage Tips',
       tip1: 'Claude Code supports multi-configuration management for different projects',
-      tip2: 'MCP servers extend Claude\'s capabilities by connecting to external tools and data sources',
+      tip2: "MCP servers extend Claude's capabilities by connecting to external tools and data sources",
       tip3: 'Cloud sync keeps your configurations synchronized across multiple devices',
       tip4: 'Agents allow you to create specialized AI assistants with specific tools and context',
       label: 'Tip',
@@ -579,7 +583,8 @@ export default {
     create: 'Create',
     // Confirm & Error
     confirmDelete: 'Are you sure you want to delete Profile "{name}"?',
-    confirmApply: 'Are you sure you want to apply Profile "{name}"? This will overwrite the current configuration.',
+    confirmApply:
+      'Are you sure you want to apply Profile "{name}"? This will overwrite the current configuration.',
     operationFailed: 'Operation failed',
     deleteFailed: 'Delete failed',
     applyFailed: 'Apply failed',
@@ -666,7 +671,7 @@ export default {
     disableServer: 'Disable this server',
     namePlaceholder: 'e.g., filesystem-server',
     commandPlaceholder: 'e.g., npx or node',
-    argsPlaceholder: 'e.g., -y {\'@\'}modelcontextprotocol/server-filesystem /path',
+    argsPlaceholder: "e.g., -y {'@'}modelcontextprotocol/server-filesystem /path",
     argsHint: 'Separate multiple arguments with spaces',
     envKey: 'KEY',
     envValue: 'VALUE',
@@ -682,7 +687,8 @@ export default {
     enableConfirmTitle: 'Enable Confirmation',
     enableConfirmMessage: 'Are you sure you want to enable MCP server "{name}"?',
     disableConfirmTitle: 'Disable Confirmation',
-    disableConfirmMessage: 'Are you sure you want to disable MCP server "{name}"? This server will be unavailable after disabling.',
+    disableConfirmMessage:
+      'Are you sure you want to disable MCP server "{name}"? This server will be unavailable after disabling.',
     loadFailed: 'Failed to load MCP servers',
     updateSuccess: '✓ MCP server updated successfully',
     addSuccess: '✓ MCP server added successfully',
@@ -854,7 +860,11 @@ export default {
     backToModule: 'Claude Code',
     backToHome: 'Back to Home',
     folders: { title: 'Folders', all: 'All', root: 'Root' },
-    search: { placeholder: 'Search command name, description or command...', found: 'Found', matches: 'matching commands' },
+    search: {
+      placeholder: 'Search command name, description or command...',
+      found: 'Found',
+      matches: 'matching commands',
+    },
     noCommands: 'No slash commands configured',
     noMatches: 'No matching commands found',
     tryOtherKeywords: 'Try using other keywords or switch folders',
@@ -864,7 +874,17 @@ export default {
     disable: 'Disable',
     edit: 'Edit',
     delete: 'Delete',
-    form: { name: 'Name', script: 'Command', description: 'Description', folder: 'Folder', disableCommand: 'Disable this command', required: '*', save: 'Save', add: 'Add', cancel: 'Cancel' },
+    form: {
+      name: 'Name',
+      script: 'Command',
+      description: 'Description',
+      folder: 'Folder',
+      disableCommand: 'Disable this command',
+      required: '*',
+      save: 'Save',
+      add: 'Add',
+      cancel: 'Cancel',
+    },
     loadFailed: 'Failed to load slash commands',
     fillRequired: 'Please fill in required fields',
     deleteConfirm: 'Confirm delete command "{name}"?',
@@ -973,7 +993,8 @@ export default {
       sortNameAsc: 'Provider A-Z',
       refreshStats: 'Refresh Statistics',
       loadFailed: 'Failed to load provider statistics',
-      noData: 'No provider usage data available. Once you start using AI APIs, usage statistics will be displayed here.',
+      noData:
+        'No provider usage data available. Once you start using AI APIs, usage statistics will be displayed here.',
       currentSort: 'Current Sort: {label}',
       sortModes: {
         countDesc: 'Usage Count (High to Low)',
@@ -1014,7 +1035,8 @@ export default {
     confirmDelete: 'Confirm delete configuration "{name}"?',
     confirmSwitch: 'Confirm switch to configuration "{name}"?',
     confirmEnable: 'Confirm enable configuration "{name}"?',
-    confirmDisable: 'Confirm disable configuration "{name}"? This configuration will not be usable after disabling.',
+    confirmDisable:
+      'Confirm disable configuration "{name}"? This configuration will not be usable after disabling.',
     deleteWarning: 'This operation cannot be undone!',
     deleteSuccess: '✓ Configuration deleted successfully',
     switchSuccess: '✓ Switched to configuration "{name}"',
@@ -1220,7 +1242,8 @@ export default {
       applying: 'Applying...',
       configRequired: 'Platforms Configuration',
       configRequiredBadge: 'Required',
-      configDescription: 'CCR provider configuration (API URLs, keys, etc.), mandatory sync for consistency',
+      configDescription:
+        'CCR provider configuration (API URLs, keys, etc.), mandatory sync for consistency',
       claudeCode: 'Claude Code',
       claudeDescription: 'Anthropic Claude Code CLI configuration and data',
       gemini: 'Gemini CLI',
@@ -1297,9 +1320,11 @@ export default {
     features: {
       title: 'Features',
       presetPlatform: '✅ Preset Platform Selection',
-      presetPlatformDesc: 'Config required, Claude/Gemini/Qwen optional, one-click setup for common platforms',
+      presetPlatformDesc:
+        'Config required, Claude/Gemini/Qwen optional, one-click setup for common platforms',
       independentManagement: '🔄 Independent Folder Management',
-      independentManagementDesc: 'Each folder syncs independently, can be enabled/disabled and operated individually',
+      independentManagementDesc:
+        'Each folder syncs independently, can be enabled/disabled and operated individually',
       smartFiltering: '💾 Smart Filtering',
       smartFilteringDesc: 'Automatically excludes backups/, .locks/, *.tmp, *.bak files',
       batchOperations: '⚡ Batch Operations',
@@ -1321,7 +1346,8 @@ export default {
       applyFailed: '✗ Application failed',
       addSuccess: '✓ Custom folder added successfully',
       addFailed: '✗ Addition failed',
-      deleteConfirm: 'Are you sure you want to delete folder "{name}"?\n\nNote: This will only remove the sync configuration, not delete local files.',
+      deleteConfirm:
+        'Are you sure you want to delete folder "{name}"?\n\nNote: This will only remove the sync configuration, not delete local files.',
       deleteSuccess: '✓ Folder deleted successfully',
       deleteFailed: '✗ Deletion failed',
       toggleSuccess: '✓ Successfully {action} folder',
@@ -1371,13 +1397,13 @@ export default {
     platforms: {
       claude: '🤖 Claude',
       codex: '💻 Codex',
-      gemini: '✨ Gemini'
+      gemini: '✨ Gemini',
     },
 
     actions: {
       loading: 'Loading...',
       refresh: 'Refresh Data',
-      retry: 'Retry'
+      retry: 'Retry',
     },
 
     filters: {
@@ -1387,12 +1413,12 @@ export default {
         last7d: 'Last 7 days',
         thisWeek: 'This week',
         thisMonth: 'This month',
-        allTime: 'All time'
+        allTime: 'All time',
       },
       model: {
-        all: 'All models'
+        all: 'All models',
       },
-      autoRefresh: 'Auto refresh'
+      autoRefresh: 'Auto refresh',
     },
 
     summaryCards: {
@@ -1400,11 +1426,11 @@ export default {
       outputTokens: 'Output Tokens',
       cacheRead: 'Cache Read',
       cacheEfficiency: 'Cache Efficiency',
-      requests: 'Requests'
+      requests: 'Requests',
     },
 
     trends: {
-      vsLastPeriod: 'vs last period'
+      vsLastPeriod: 'vs last period',
     },
 
     states: {
@@ -1412,14 +1438,14 @@ export default {
       loadFailed: 'Failed to load usage data',
       noData: 'No usage data available',
       noDataHint: 'Start using {platform} to see usage statistics here',
-      truncatedWarning: 'Showing first 10,000 records. Total {total} records found.'
+      truncatedWarning: 'Showing first 10,000 records. Total {total} records found.',
     },
 
     emptyState: {
       title: 'No Usage Data Available',
       subtitle: 'Start using {platform} to see usage statistics here',
       structure: 'Structure: ~/.claude/skills/<skill-name>/SKILL.md',
-      learnMore: 'Learn More'
+      learnMore: 'Learn More',
     },
 
     // Dashboard V2
@@ -1474,9 +1500,10 @@ export default {
 
     help: {
       title: 'What are Claude Code Skills?',
-      description: 'Skills are modular capabilities for Claude Code. Each Skill is a folder containing a SKILL.md file that defines reusable tasks Claude can perform.',
+      description:
+        'Skills are modular capabilities for Claude Code. Each Skill is a folder containing a SKILL.md file that defines reusable tasks Claude can perform.',
       structure: 'Structure: ~/.claude/skills/<skill-name>/SKILL.md',
-      learnMore: 'Learn more'
+      learnMore: 'Learn more',
     },
     repositories: {
       title: 'Skill Repositories',
@@ -1527,7 +1554,7 @@ export default {
       plugins: 'Plugins',
       mcp: 'MCP Servers',
       commands: 'Commands',
-      installed: 'Installed'
+      installed: 'Installed',
     },
     install: 'Install',
     installed: 'Installed',
@@ -1542,25 +1569,25 @@ export default {
       skill: 'Skill',
       mcp: 'MCP',
       plugin: 'Plugin',
-      command: 'Command'
+      command: 'Command',
     },
     sources: {
       builtin: 'Built-in',
       remote: 'Remote',
-      local: 'Local'
+      local: 'Local',
     },
     backToClaude: 'Back to Claude Code',
     backToHome: 'Back to Home',
     breadcrumb: {
       home: 'Home',
       claude: 'Claude Code',
-      market: 'Market'
+      market: 'Market',
     },
     installModal: {
       title: 'Install MCP Server',
       platforms: 'Select target platforms',
       apiKeyPlaceholder: 'Enter API Key...',
-    }
+    },
   },
 
   // Statistics Module
@@ -1571,26 +1598,26 @@ export default {
     timeRange: {
       today: 'Today',
       thisWeek: 'This week',
-      thisMonth: 'This month'
+      thisMonth: 'This month',
     },
 
     actions: {
       providersStats: 'Provider Statistics',
-      refresh: 'Refresh'
+      refresh: 'Refresh',
     },
 
     summaryCards: {
       totalCost: 'Total Cost',
       apiCalls: 'API Calls',
       inputToken: 'Input Token',
-      outputToken: 'Output Token'
+      outputToken: 'Output Token',
     },
 
     tokenDetails: {
       title: '🎫 Token Usage Details',
       cacheToken: 'Cache Token',
       cacheEfficiency: 'Cache Efficiency',
-      totalToken: 'Total Token'
+      totalToken: 'Total Token',
     },
 
     sections: {
@@ -1598,11 +1625,11 @@ export default {
       byProject: '📁 Group by Project (Top 10)',
       costTrend: '📈 Cost Trend',
       providerUsage: '🏢 Provider Usage Count',
-      providerUsageSubtitle: 'Calls grouped by provider'
+      providerUsageSubtitle: 'Calls grouped by provider',
     },
 
     units: {
-      times: 'times'
+      times: 'times',
     },
 
     states: {
@@ -1611,8 +1638,8 @@ export default {
       noData: 'No data',
       noStatsData: 'No statistics data',
       noStatsHint: 'Statistics will appear here after you start using AI API',
-      loading: 'Loading...'
-    }
+      loading: 'Loading...',
+    },
   },
 
   // Activity Heatmap
@@ -1624,7 +1651,7 @@ export default {
     totalTokens: 'Total Tokens',
     mon: 'Mon',
     wed: 'Wed',
-    fri: 'Fri'
+    fri: 'Fri',
   },
 
   // Codex Module
@@ -1638,62 +1665,62 @@ export default {
         mcpProtocol: '🔌 MCP Protocol',
         agents: '🤖 Agents',
         profiles: '👤 Profiles',
-        configManagement: '⚙️ Config Management'
+        configManagement: '⚙️ Config Management',
       },
       modulesTitle: 'Feature Modules',
       modules: {
         mcp: {
           title: 'MCP Servers',
           description: 'Codex MCP server configuration management (STDIO + HTTP)',
-          badge: '🔌 MCP'
+          badge: '🔌 MCP',
         },
         agents: {
           title: 'Agents',
           description: 'Codex Agent intelligent configuration management',
-          badge: '🤖 AI'
+          badge: '🤖 AI',
         },
         profiles: {
           title: 'Profiles',
           description: 'Codex Profile configuration and management',
-          badge: '👤 Profile'
+          badge: '👤 Profile',
         },
         slashCommands: {
           title: 'Slash Commands',
           description: 'Codex shortcut command management',
-          badge: '⌨️ Command'
+          badge: '⌨️ Command',
         },
         auth: {
           title: 'Auth Management',
           description: 'Codex authentication account switching and management',
-          badge: '🔑 Auth'
+          badge: '🔑 Auth',
         },
         settings: {
           title: 'Settings',
           description: 'Full Codex config management (model, security, tools, UI, features)',
-          badge: '⚙️ Settings'
+          badge: '⚙️ Settings',
         },
         plugins: {
           title: 'Plugin Management',
           description: 'Codex plugin configuration management',
-          badge: '🧩 Plugin'
+          badge: '🧩 Plugin',
         },
         config: {
           title: 'Basic Configuration',
           description: 'Model, Approval Policy, Sandbox and other basic settings',
-          badge: '🔧 Config'
+          badge: '🔧 Config',
         },
         skills: {
           title: 'Skills',
           description: 'Claude Code Skills management',
-          badge: 'Skill'
-        }
+          badge: 'Skill',
+        },
       },
       tipsTitle: '💡 Codex Features',
       tips: {
         mcpConnection: 'Supports both STDIO and HTTP MCP connection methods',
         profileManagement: 'Manage different work environment configurations through Profiles',
         agentsFeature: 'Agents feature allows creating AI assistants for specific tasks',
-        pluginEcosystem: 'Rich plugin ecosystem extends Codex capabilities'
+        pluginEcosystem: 'Rich plugin ecosystem extends Codex capabilities',
       },
       // Usage panel
       usageTitle: 'Usage Statistics',
@@ -1703,7 +1730,7 @@ export default {
       usageError: 'Failed to load usage data',
       noUsageData: 'No usage data available',
       usageTip: 'Check official limits at the Codex usage dashboard.',
-      usageStatusTip: 'Run /status in an active Codex session for real-time limits.'
+      usageStatusTip: 'Run /status in an active Codex session for real-time limits.',
     },
 
     // Common actions
@@ -1721,7 +1748,7 @@ export default {
       search: 'Search',
       filter: 'Filter',
       viewDetails: 'View Details',
-      backToList: 'Back to List'
+      backToList: 'Back to List',
     },
 
     // Common states
@@ -1736,7 +1763,7 @@ export default {
       noData: 'No data',
       loadFailed: 'Load failed',
       saveFailed: 'Save failed',
-      deleteFailed: 'Delete failed'
+      deleteFailed: 'Delete failed',
     },
 
     // MCP module
@@ -1767,18 +1794,18 @@ export default {
       argsSeparatorHint: 'Separate multiple arguments with spaces',
       types: {
         stdio: 'STDIO',
-        http: 'HTTP'
+        http: 'HTTP',
       },
       placeholders: {
         url: 'e.g: http://localhost:3000',
         command: 'e.g: npx',
-        args: 'e.g: -y {\'@\'}modelcontextprotocol/server-filesystem',
+        args: "e.g: -y {'@'}modelcontextprotocol/server-filesystem",
         envKey: 'KEY',
-        envValue: 'VALUE'
+        envValue: 'VALUE',
       },
       validation: {
         commandRequired: 'Please fill in the command',
-        urlRequired: 'Please fill in the URL'
+        urlRequired: 'Please fill in the URL',
       },
       messages: {
         loadFailed: 'Failed to load Codex MCP servers',
@@ -1786,8 +1813,8 @@ export default {
         updateSuccess: '✓ Server updated successfully',
         deleteSuccess: '✓ Server deleted successfully',
         operationFailed: 'Operation failed: {error}',
-        deleteFailed: 'Delete failed: {error}'
-      }
+        deleteFailed: 'Delete failed: {error}',
+      },
     },
 
     // Agents module
@@ -1824,24 +1851,24 @@ export default {
       stats: {
         total: 'Total',
         enabled: 'Enabled',
-        disabled: 'Disabled'
+        disabled: 'Disabled',
       },
       folders: {
         label: 'Folders',
         all: 'All',
         root: 'Root',
         enabled: 'Enabled',
-        disabled: 'Disabled'
+        disabled: 'Disabled',
       },
       validation: {
-        required: 'Please fill in required fields'
+        required: 'Please fill in required fields',
       },
       messages: {
         loadFailed: 'Failed to load Agents',
         operationFailed: 'Operation failed',
         deleteFailed: 'Delete failed',
-        toggleFailed: 'Toggle failed'
-      }
+        toggleFailed: 'Toggle failed',
+      },
     },
 
     // Profiles module
@@ -1857,7 +1884,8 @@ export default {
       currentBadge: 'Current',
       confirmApply: 'Apply Profile "{name}"? This will update local Codex configuration.',
       confirmDelete: 'Delete Profile "{name}"? This action cannot be undone.',
-      extraHint: 'Extra JSON is for uncommon platform_data fields that do not have dedicated inputs.',
+      extraHint:
+        'Extra JSON is for uncommon platform_data fields that do not have dedicated inputs.',
       fields: {
         name: 'Name',
         description: 'Description',
@@ -1877,7 +1905,7 @@ export default {
         tags: 'Tags',
         enabled: 'Enabled',
         extra: 'Advanced Fields',
-        extraJson: 'Advanced Fields (JSON)'
+        extraJson: 'Advanced Fields (JSON)',
       },
       profileName: 'Profile Name',
       description: 'Description',
@@ -1903,26 +1931,28 @@ export default {
         smallFastModel: 'e.g: gpt-4o-mini',
         provider: 'e.g: duckcoding',
         providerType: 'e.g: official_relay',
-        account: 'e.g: dev{\'@\'}example.com',
+        account: "e.g: dev{'@'}example.com",
         tags: 'e.g: free, stable, high-speed',
-        extraJson: '{\n  "approval_policy": "on-request"\n}'
+        extraJson: '{\n  "approval_policy": "on-request"\n}',
       },
       authModes: {
         openai_chatgpt: 'OpenAI ChatGPT Login',
         openai_api_key: 'OpenAI API Key',
         provider_env_key: 'Provider Env Key',
-        no_auth: 'No Auth'
+        no_auth: 'No Auth',
       },
       authTokenHints: {
         openai_chatgpt: 'Official ChatGPT login profiles do not require a base URL or secret.',
         openai_api_key: 'Provide an OpenAI API key for API-key based OpenAI auth.',
         provider_env_key: 'Provider env-key profiles require both env_key and a secret.',
-        no_auth: 'Leave this blank for profiles that do not need runtime auth.'
+        no_auth: 'Leave this blank for profiles that do not need runtime auth.',
       },
       officialBaseUrl: 'Official OpenAI runtime',
       notAvailable: 'N/A',
-      baseUrlRequiredHint: 'Required for custom relays, provider env-key profiles, and no-auth runtimes.',
-      baseUrlOptionalHint: 'Optional for OpenAI-auth profiles. Leave blank for the official ChatGPT login runtime.',
+      baseUrlRequiredHint:
+        'Required for custom relays, provider env-key profiles, and no-auth runtimes.',
+      baseUrlOptionalHint:
+        'Optional for OpenAI-auth profiles. Leave blank for the official ChatGPT login runtime.',
       envKeyHint: 'This env var name is written to the runtime export and auth store.',
       envExportTitle: 'Runtime Env Export',
       envExportHint: 'Provider/API-key profiles can export shell env assignments for reuse.',
@@ -1931,7 +1961,7 @@ export default {
         github: 'GitHub',
         azure: 'Azure',
         openai: 'OpenAI',
-        custom: 'Custom'
+        custom: 'Custom',
       },
       validation: {
         required: 'Please fill in all required fields (Profile Name, Base URL, Auth Token, Model)',
@@ -1940,7 +1970,7 @@ export default {
         authTokenRequired: 'Auth token is required',
         envKeyRequired: 'Env key is required for provider env-key profiles',
         modelRequired: 'Model is required',
-        extraJsonInvalid: 'Advanced fields must be a valid JSON object'
+        extraJsonInvalid: 'Advanced fields must be a valid JSON object',
       },
       messages: {
         loadFailed: 'Failed to load Codex Profiles',
@@ -1950,7 +1980,7 @@ export default {
         envExportCopied: 'Environment export copied',
         envExportCopyFailed: 'Failed to copy environment export',
         operationFailed: 'Operation failed: {error}',
-        deleteFailed: 'Delete failed: {error}'
+        deleteFailed: 'Delete failed: {error}',
       },
       // New translation keys
       officialConfig: 'Official Config',
@@ -2069,17 +2099,17 @@ export default {
       folders: {
         label: 'Folders',
         all: 'All',
-        root: 'Root'
+        root: 'Root',
       },
       validation: {
-        required: 'Please fill in required fields'
+        required: 'Please fill in required fields',
       },
       messages: {
         loadFailed: 'Failed to load Slash Commands',
         operationFailed: 'Operation failed',
         deleteFailed: 'Delete failed',
-        toggleFailed: 'Toggle failed'
-      }
+        toggleFailed: 'Toggle failed',
+      },
     },
 
     // Auth module
@@ -2111,22 +2141,27 @@ export default {
       confirmDelete: 'Are you sure you want to delete account "{name}"?',
       profileGuard: {
         title: 'Profile Compatibility',
-        noCurrentProfile: 'No current Codex profile is active. Auth account save/switch is only available when the current profile uses OpenAI auth.',
-        unsupportedProfile: 'Current profile "{name}" uses "{authMode}". Codex Auth account save/switch only works for OpenAI-auth current profiles.',
-        supportedProfile: 'Current profile "{name}" uses "{authMode}". Auth account save/switch is available.'
+        noCurrentProfile:
+          'No current Codex profile is active. Auth account save/switch is only available when the current profile uses OpenAI auth.',
+        unsupportedProfile:
+          'Current profile "{name}" uses "{authMode}". Codex Auth account save/switch only works for OpenAI-auth current profiles.',
+        supportedProfile:
+          'Current profile "{name}" uses "{authMode}". Auth account save/switch is available.',
       },
       status: {
         loginState: 'Login State',
         totalAccounts: 'Total Accounts',
         currentAccount: 'Current Account',
         noAccount: 'None',
-        notAvailable: 'N/A'
+        notAvailable: 'N/A',
       },
       loginState: {
         loggedInSaved: 'Logged in ({name})',
         loggedInUnsaved: 'Logged in (Unsaved)',
+        apiKeyActive: 'API Key Mode',
+        providerKeyActive: 'Provider Key ({envKey})',
         notLoggedIn: 'Not logged in',
-        unknown: 'Unknown state ({type})'
+        unknown: 'Unknown state ({type})',
       },
       fields: {
         accountId: 'Account ID',
@@ -2136,21 +2171,21 @@ export default {
         lastUsed: 'Last Used',
         expiresAt: 'Expires At',
         accountName: 'Account Name',
-        description: 'Description'
+        description: 'Description',
       },
       placeholders: {
         accountName: 'Enter account name',
-        description: 'Optional description'
+        description: 'Optional description',
       },
       validation: {
-        nameRequired: 'Please enter account name'
+        nameRequired: 'Please enter account name',
       },
       table: {
         name: 'Account Name',
         email: 'Email',
         tokenStatus: 'Token Status',
         lastUsed: 'Last Used',
-        actions: 'Actions'
+        actions: 'Actions',
       },
       messages: {
         loadFailed: 'Failed to load auth info',
@@ -2159,8 +2194,8 @@ export default {
         deleteFailed: 'Failed to delete account',
         saveSuccess: 'Account saved successfully',
         switchSuccess: 'Switched to account successfully',
-        deleteSuccess: 'Account deleted successfully'
-      }
+        deleteSuccess: 'Account deleted successfully',
+      },
     },
 
     // Plugins module
@@ -2203,11 +2238,11 @@ export default {
       folders: {
         label: 'Folders',
         all: 'All',
-        root: 'Root'
+        root: 'Root',
       },
       validation: {
         required: 'Please fill in required fields',
-        invalidJson: 'Invalid JSON format for configuration'
+        invalidJson: 'Invalid JSON format for configuration',
       },
       messages: {
         loadFailed: 'Failed to load Plugins',
@@ -2216,8 +2251,8 @@ export default {
         deleteSuccess: '✓ Plugin deleted successfully',
         operationFailed: 'Operation failed: {error}',
         deleteFailed: 'Delete failed: {error}',
-        toggleFailed: 'Toggle failed: {error}'
-      }
+        toggleFailed: 'Toggle failed: {error}',
+      },
     },
 
     // Messages
@@ -2228,8 +2263,8 @@ export default {
       enableSuccess: 'Enabled successfully',
       disableSuccess: 'Disabled successfully',
       operationSuccess: 'Operation successful',
-      operationFailed: 'Operation failed: {error}'
-    }
+      operationFailed: 'Operation failed: {error}',
+    },
   },
 
   // ===================================
@@ -2250,7 +2285,7 @@ export default {
       viewAgents: 'Manage Agents',
       viewCommands: 'Manage Commands',
       viewPlugins: 'Manage Plugins',
-      feature1: 'Google\'s latest multimodal AI model supporting text, images, audio and video',
+      feature1: "Google's latest multimodal AI model supporting text, images, audio and video",
       feature2: 'Powerful context understanding with long text processing and analysis',
       feature3: 'Deep integration with Google ecosystem accessing vast data and services',
       feature4: 'Extend capabilities via MCP protocol connecting external tools and data sources',
@@ -2258,8 +2293,8 @@ export default {
         mcpServers: 'MCP Servers',
         agents: 'Agents',
         commands: 'Commands',
-        plugins: 'Plugins'
-      }
+        plugins: 'Plugins',
+      },
     },
 
     // MCP module
@@ -2299,7 +2334,7 @@ export default {
       add: 'Add',
       deleteConfirm: 'Are you sure you want to delete server "{name}"?',
       validation: {
-        required: 'Please fill in required fields'
+        required: 'Please fill in required fields',
       },
       messages: {
         loadFailed: 'Failed to load MCP servers',
@@ -2308,8 +2343,8 @@ export default {
         deleteSuccess: '✓ Server deleted successfully',
         operationFailed: 'Operation failed: {error}',
         deleteFailed: 'Delete failed: {error}',
-        toggleFailed: 'Toggle failed: {error}'
-      }
+        toggleFailed: 'Toggle failed: {error}',
+      },
     },
 
     // Agents module
@@ -2344,10 +2379,10 @@ export default {
         all: 'All',
         root: 'Root',
         enabled: 'Enabled',
-        disabled: 'Disabled'
+        disabled: 'Disabled',
       },
       validation: {
-        required: 'Please fill in required fields'
+        required: 'Please fill in required fields',
       },
       messages: {
         loadFailed: 'Failed to load Agents',
@@ -2356,8 +2391,8 @@ export default {
         deleteSuccess: '✓ Agent deleted successfully',
         operationFailed: 'Operation failed: {error}',
         deleteFailed: 'Delete failed: {error}',
-        toggleFailed: 'Toggle failed: {error}'
-      }
+        toggleFailed: 'Toggle failed: {error}',
+      },
     },
 
     // Slash Commands module
@@ -2389,10 +2424,10 @@ export default {
         all: 'All',
         root: 'Root',
         enabled: 'Enabled',
-        disabled: 'Disabled'
+        disabled: 'Disabled',
       },
       validation: {
-        required: 'Please fill in required fields'
+        required: 'Please fill in required fields',
       },
       messages: {
         loadFailed: 'Failed to load Slash Commands',
@@ -2401,8 +2436,8 @@ export default {
         deleteSuccess: '✓ Command deleted successfully',
         operationFailed: 'Operation failed: {error}',
         deleteFailed: 'Delete failed: {error}',
-        toggleFailed: 'Toggle failed: {error}'
-      }
+        toggleFailed: 'Toggle failed: {error}',
+      },
     },
 
     // Plugins module
@@ -2438,7 +2473,7 @@ export default {
       deleteConfirm: 'Are you sure you want to delete plugin "{name}"?',
       validation: {
         required: 'Please fill in required fields',
-        invalidJson: 'Invalid JSON format for configuration'
+        invalidJson: 'Invalid JSON format for configuration',
       },
       messages: {
         loadFailed: 'Failed to load Plugins',
@@ -2447,9 +2482,9 @@ export default {
         deleteSuccess: '✓ Plugin deleted successfully',
         operationFailed: 'Operation failed: {error}',
         deleteFailed: 'Delete failed: {error}',
-        toggleFailed: 'Toggle failed: {error}'
-      }
-    }
+        toggleFailed: 'Toggle failed: {error}',
+      },
+    },
   },
 
   // Qwen Platform
@@ -2460,17 +2495,20 @@ export default {
       description: 'Alibaba Tongyi Qianwen · Large Language Model · Intelligent Dialogue',
       backToHome: 'Back to Home',
       features: 'Features',
-      feature1: 'Large language model developed by Alibaba DAMO Academy with excellent Chinese understanding',
-      feature2: 'Supports long text processing and multi-turn dialogue with strong contextual understanding',
-      feature3: 'Deep integration with Alibaba Cloud ecosystem, providing enterprise-level service guarantees',
+      feature1:
+        'Large language model developed by Alibaba DAMO Academy with excellent Chinese understanding',
+      feature2:
+        'Supports long text processing and multi-turn dialogue with strong contextual understanding',
+      feature3:
+        'Deep integration with Alibaba Cloud ecosystem, providing enterprise-level service guarantees',
       feature4: 'Extend functionality through plugins and MCP, connecting more tools and services',
       featureTitle: '💡 Qwen Features',
       tags: {
         model: '🧠 Large Model',
         dialog: '💬 Dialogue System',
         mcp: '🔌 MCP Support',
-        chinese: '🇨🇳 Chinese Optimized'
-      }
+        chinese: '🇨🇳 Chinese Optimized',
+      },
     },
     mcp: {
       title: 'MCP Servers',
@@ -2506,7 +2544,7 @@ export default {
       deleteConfirm: 'Are you sure you want to delete MCP server "{name}"?',
       validation: {
         required: 'Please fill in required fields',
-        invalidUrl: 'Invalid URL format'
+        invalidUrl: 'Invalid URL format',
       },
       messages: {
         loadFailed: 'Failed to load MCP servers',
@@ -2515,8 +2553,8 @@ export default {
         deleteSuccess: '✓ MCP server deleted successfully',
         operationFailed: 'Operation failed: {error}',
         deleteFailed: 'Delete failed: {error}',
-        toggleFailed: 'Toggle failed: {error}'
-      }
+        toggleFailed: 'Toggle failed: {error}',
+      },
     },
     agents: {
       title: 'Agents',
@@ -2527,12 +2565,12 @@ export default {
         all: 'All',
         root: 'Root',
         enabled: 'Enabled',
-        disabled: 'Disabled'
+        disabled: 'Disabled',
       },
       stats: {
         total: 'Total',
         enabled: 'Enabled',
-        disabled: 'Disabled'
+        disabled: 'Disabled',
       },
       addAgent: 'Add Agent',
       editAgent: 'Edit Agent',
@@ -2558,7 +2596,7 @@ export default {
       add: 'Add',
       deleteConfirm: 'Are you sure you want to delete agent "{name}"?',
       validation: {
-        required: 'Please fill in required fields'
+        required: 'Please fill in required fields',
       },
       messages: {
         loadFailed: 'Failed to load Agents',
@@ -2567,8 +2605,8 @@ export default {
         deleteSuccess: '✓ Agent deleted successfully',
         operationFailed: 'Operation failed: {error}',
         deleteFailed: 'Delete failed: {error}',
-        toggleFailed: 'Toggle failed: {error}'
-      }
+        toggleFailed: 'Toggle failed: {error}',
+      },
     },
     plugins: {
       title: 'Plugins Management',
@@ -2600,7 +2638,7 @@ export default {
       deleteConfirm: 'Are you sure you want to delete plugin "{name}"?',
       validation: {
         required: 'Please fill in required fields',
-        invalidJson: 'Invalid JSON format for configuration'
+        invalidJson: 'Invalid JSON format for configuration',
       },
       messages: {
         loadFailed: 'Failed to load plugins',
@@ -2609,8 +2647,8 @@ export default {
         deleteSuccess: '✓ Plugin deleted successfully',
         operationFailed: 'Operation failed: {error}',
         deleteFailed: 'Delete failed: {error}',
-        toggleFailed: 'Toggle failed: {error}'
-      }
+        toggleFailed: 'Toggle failed: {error}',
+      },
     },
     slashCommands: {
       title: 'Slash Commands',
@@ -2621,12 +2659,12 @@ export default {
         all: 'All',
         root: 'Root',
         enabled: 'Enabled',
-        disabled: 'Disabled'
+        disabled: 'Disabled',
       },
       stats: {
         total: 'Total',
         enabled: 'Enabled',
-        disabled: 'Disabled'
+        disabled: 'Disabled',
       },
       addCommand: 'Add Command',
       editCommand: 'Edit Command',
@@ -2652,7 +2690,7 @@ export default {
       add: 'Add',
       deleteConfirm: 'Are you sure you want to delete command "{name}"?',
       validation: {
-        required: 'Please fill in required fields'
+        required: 'Please fill in required fields',
       },
       messages: {
         loadFailed: 'Failed to load commands',
@@ -2661,9 +2699,9 @@ export default {
         deleteSuccess: '✓ Command deleted successfully',
         operationFailed: 'Operation failed: {error}',
         deleteFailed: 'Delete failed: {error}',
-        toggleFailed: 'Toggle failed: {error}'
-      }
-    }
+        toggleFailed: 'Toggle failed: {error}',
+      },
+    },
   },
 
   // Droid Platform
@@ -2683,8 +2721,8 @@ export default {
         multiProvider: '🔗 Multi Provider',
         customModels: '🎛️ Custom Models',
         mcp: '🔌 MCP Support',
-        coding: '💻 Coding Assistant'
-      }
+        coding: '💻 Coding Assistant',
+      },
     },
     mcp: {
       title: 'MCP Servers',
@@ -2723,7 +2761,7 @@ export default {
         required: 'Please fill in required fields',
         invalidUrl: 'Invalid URL format',
         commandRequired: 'Please enter a command',
-        urlRequired: 'Please enter a URL'
+        urlRequired: 'Please enter a URL',
       },
       messages: {
         loadFailed: 'Failed to load MCP servers',
@@ -2732,13 +2770,13 @@ export default {
         deleteSuccess: '✓ MCP server deleted successfully',
         operationFailed: 'Operation failed: {error}',
         deleteFailed: 'Delete failed: {error}',
-        toggleFailed: 'Toggle failed: {error}'
-      }
+        toggleFailed: 'Toggle failed: {error}',
+      },
     },
     agents: {
       title: 'Agents',
       description: 'Droid Agent configuration and management',
-      badge: '🤖 AI'
+      badge: '🤖 AI',
     },
     plugins: {
       title: 'Plugins',
@@ -2761,13 +2799,13 @@ export default {
       deleteConfirm: 'Are you sure you want to delete plugin "{id}"?',
       idRequired: 'Plugin ID is required',
       invalidJson: 'Invalid JSON format',
-      emptyState: 'No plugins configured'
+      emptyState: 'No plugins configured',
     },
     slashCommands: {
       title: 'Slash Commands',
       description: 'Droid custom command management',
-      badge: '⌨️ Commands'
-    }
+      badge: '⌨️ Commands',
+    },
   },
 
   // iFlow Platform
@@ -2778,17 +2816,21 @@ export default {
       description: 'Intelligent Workflow · Automation Engine · Process Orchestration',
       backToHome: 'Back to Home',
       features: 'Features',
-      feature1: 'Visual workflow orchestration with drag-and-drop design for complex automation processes',
-      feature2: 'Supports flow control including conditional branching, loops, and parallel execution',
-      feature3: 'Deep integration with AI Agents for intelligent decision-making and automated processing',
-      feature4: 'Connect various external services through MCP to build end-to-end automation solutions',
+      feature1:
+        'Visual workflow orchestration with drag-and-drop design for complex automation processes',
+      feature2:
+        'Supports flow control including conditional branching, loops, and parallel execution',
+      feature3:
+        'Deep integration with AI Agents for intelligent decision-making and automated processing',
+      feature4:
+        'Connect various external services through MCP to build end-to-end automation solutions',
       featureTitle: '💡 iFlow Features',
       tags: {
         workflow: '🔄 Automation Workflow',
         orchestration: '⚡ Process Orchestration',
         mcp: '🔌 MCP Integration',
-        agent: '🤖 Intelligent Agents'
-      }
+        agent: '🤖 Intelligent Agents',
+      },
     },
     mcp: {
       title: 'MCP Servers',
@@ -2824,7 +2866,7 @@ export default {
       deleteConfirm: 'Are you sure you want to delete MCP server "{name}"?',
       validation: {
         required: 'Please fill in required fields',
-        invalidUrl: 'Invalid URL format'
+        invalidUrl: 'Invalid URL format',
       },
       messages: {
         loadFailed: 'Failed to load MCP servers',
@@ -2833,8 +2875,8 @@ export default {
         deleteSuccess: '✓ MCP server deleted successfully',
         operationFailed: 'Operation failed: {error}',
         deleteFailed: 'Delete failed: {error}',
-        toggleFailed: 'Toggle failed: {error}'
-      }
+        toggleFailed: 'Toggle failed: {error}',
+      },
     },
     agents: {
       title: 'Agents',
@@ -2845,12 +2887,12 @@ export default {
         all: 'All',
         root: 'Root',
         enabled: 'Enabled',
-        disabled: 'Disabled'
+        disabled: 'Disabled',
       },
       stats: {
         total: 'Total',
         enabled: 'Enabled',
-        disabled: 'Disabled'
+        disabled: 'Disabled',
       },
       addAgent: 'Add Agent',
       editAgent: 'Edit Agent',
@@ -2876,7 +2918,7 @@ export default {
       add: 'Add',
       deleteConfirm: 'Are you sure you want to delete agent "{name}"?',
       validation: {
-        required: 'Please fill in required fields'
+        required: 'Please fill in required fields',
       },
       messages: {
         loadFailed: 'Failed to load Agents',
@@ -2885,8 +2927,8 @@ export default {
         deleteSuccess: '✓ Agent deleted successfully',
         operationFailed: 'Operation failed: {error}',
         deleteFailed: 'Delete failed: {error}',
-        toggleFailed: 'Toggle failed: {error}'
-      }
+        toggleFailed: 'Toggle failed: {error}',
+      },
     },
     plugins: {
       title: 'Plugins Management',
@@ -2918,7 +2960,7 @@ export default {
       deleteConfirm: 'Are you sure you want to delete plugin "{name}"?',
       validation: {
         required: 'Please fill in required fields',
-        invalidJson: 'Invalid JSON format for configuration'
+        invalidJson: 'Invalid JSON format for configuration',
       },
       messages: {
         loadFailed: 'Failed to load plugins',
@@ -2927,8 +2969,8 @@ export default {
         deleteSuccess: '✓ Plugin deleted successfully',
         operationFailed: 'Operation failed: {error}',
         deleteFailed: 'Delete failed: {error}',
-        toggleFailed: 'Toggle failed: {error}'
-      }
+        toggleFailed: 'Toggle failed: {error}',
+      },
     },
     slashCommands: {
       title: 'Slash Commands',
@@ -2939,12 +2981,12 @@ export default {
         all: 'All',
         root: 'Root',
         enabled: 'Enabled',
-        disabled: 'Disabled'
+        disabled: 'Disabled',
       },
       stats: {
         total: 'Total',
         enabled: 'Enabled',
-        disabled: 'Disabled'
+        disabled: 'Disabled',
       },
       addCommand: 'Add Command',
       editCommand: 'Edit Command',
@@ -2970,7 +3012,7 @@ export default {
       add: 'Add',
       deleteConfirm: 'Are you sure you want to delete command "{name}"?',
       validation: {
-        required: 'Please fill in required fields'
+        required: 'Please fill in required fields',
       },
       messages: {
         loadFailed: 'Failed to load commands',
@@ -2979,9 +3021,9 @@ export default {
         deleteSuccess: '✓ Command deleted successfully',
         operationFailed: 'Operation failed: {error}',
         deleteFailed: 'Delete failed: {error}',
-        toggleFailed: 'Toggle failed: {error}'
-      }
-    }
+        toggleFailed: 'Toggle failed: {error}',
+      },
+    },
   },
 
   // Usage Stats Dashboard
@@ -3004,5 +3046,4 @@ export default {
     platforms: 'Platforms',
     trackedPlatforms: 'Tracked platforms',
   },
-
 }

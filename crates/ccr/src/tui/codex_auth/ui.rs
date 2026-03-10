@@ -52,6 +52,10 @@ fn draw_title(f: &mut Frame, area: Rect, app: &CodexAuthApp) {
         crate::models::LoginState::NotLoggedIn => "未登录".to_string(),
         crate::models::LoginState::LoggedInUnsaved => "已登录 (未保存)".to_string(),
         crate::models::LoginState::LoggedInSaved(name) => format!("已登录: {}", name),
+        crate::models::LoginState::ApiKeyActive => "API Key 模式".to_string(),
+        crate::models::LoginState::ProviderKeyActive { env_key } => {
+            format!("Provider Key: {}", env_key)
+        }
         crate::models::LoginState::Unknown { type_name, .. } => format!("未知状态: {}", type_name),
     };
 
@@ -516,6 +520,10 @@ fn draw_account_list_with_status(f: &mut Frame, area: Rect, app: &CodexAuthApp) 
         crate::models::LoginState::NotLoggedIn => "未登录".to_string(),
         crate::models::LoginState::LoggedInUnsaved => "已登录 (未保存)".to_string(),
         crate::models::LoginState::LoggedInSaved(name) => format!("已登录: {}", name),
+        crate::models::LoginState::ApiKeyActive => "API Key 模式".to_string(),
+        crate::models::LoginState::ProviderKeyActive { env_key } => {
+            format!("Provider Key: {}", env_key)
+        }
         crate::models::LoginState::Unknown { type_name, .. } => format!("未知状态: {}", type_name),
     };
 

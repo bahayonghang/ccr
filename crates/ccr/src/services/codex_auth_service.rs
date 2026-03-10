@@ -410,9 +410,30 @@ impl CodexAuthService {
             return Ok(LoginState::NotLoggedIn);
         }
 
+        // 非 OAuth 模式：直接返回对应的 Key-based 状态
+        match &auth_state.intent {
+            AuthIntent::OpenAiAuth {
+                method: OpenAiAuthMethod::Api,
+            } => {
+                return Ok(LoginState::ApiKeyActive);
+            }
+            AuthIntent::ProviderEnvKey { env_key } => {
+                return Ok(LoginState::ProviderKeyActive {
+                    env_key: env_key.clone(),
+                });
+            }
+            AuthIntent::NoAuth => {
+                return Ok(LoginState::NotLoggedIn);
+            }
+            // 只有 Chatgpt 方式才走 registry 查找
+            AuthIntent::OpenAiAuth {
+                method: OpenAiAuthMethod::Chatgpt,
+            } => {}
+        }
+
+        // OAuth (Chatgpt) 流程：检查是否已保存
         let _ = self.sync_current_auth_registry();
 
-        // 检查当前登录是否已保存
         let current_info = self.get_current_auth_info()?;
         let registry = self.load_registry()?;
 

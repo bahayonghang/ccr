@@ -88,10 +88,14 @@ impl<'de> Deserialize<'de> for TokenFreshness {
 pub enum LoginState {
     /// Not logged in (auth.json does not exist)
     NotLoggedIn,
-    /// Logged in but not saved
+    /// Logged in via OAuth but not saved to registry
     LoggedInUnsaved,
-    /// Logged in and saved (account name)
+    /// Logged in via OAuth and saved (account name)
     LoggedInSaved(String),
+    /// Active via OPENAI_API_KEY (not an OAuth login)
+    ApiKeyActive,
+    /// Active via provider environment key (not an OAuth login)
+    ProviderKeyActive { env_key: String },
     /// Unknown/forward-compatible state from newer backend
     Unknown { type_name: String, raw: Value },
 }
@@ -106,6 +110,10 @@ impl Serialize for LoginState {
             LoginState::LoggedInUnsaved => json!({ "type": "LoggedInUnsaved" }),
             LoginState::LoggedInSaved(account_name) => {
                 json!({ "type": "LoggedInSaved", "account_name": account_name })
+            }
+            LoginState::ApiKeyActive => json!({ "type": "ApiKeyActive" }),
+            LoginState::ProviderKeyActive { env_key } => {
+                json!({ "type": "ProviderKeyActive", "env_key": env_key })
             }
             LoginState::Unknown { raw, .. } => raw.clone(),
         };
@@ -148,6 +156,19 @@ impl<'de> Deserialize<'de> for LoginState {
                     })?
                     .to_string();
                 Ok(LoginState::LoggedInSaved(account_name))
+            }
+            "ApiKeyActive" => Ok(LoginState::ApiKeyActive),
+            "ProviderKeyActive" => {
+                let env_key = map
+                    .get("env_key")
+                    .and_then(Value::as_str)
+                    .ok_or_else(|| {
+                        serde::de::Error::custom(
+                            "invalid LoginState::ProviderKeyActive: expected string field `env_key`",
+                        )
+                    })?
+                    .to_string();
+                Ok(LoginState::ProviderKeyActive { env_key })
             }
             _ => Ok(LoginState::Unknown {
                 type_name,
@@ -217,6 +238,18 @@ mod tests {
         let json = serde_json::to_string(&LoginState::LoggedInSaved("test".to_string())).unwrap();
         assert!(json.contains("\"type\":\"LoggedInSaved\""));
         assert!(json.contains("\"account_name\":\"test\""));
+
+        // ApiKeyActive
+        let json = serde_json::to_string(&LoginState::ApiKeyActive).unwrap();
+        assert!(json.contains("\"type\":\"ApiKeyActive\""));
+
+        // ProviderKeyActive
+        let json = serde_json::to_string(&LoginState::ProviderKeyActive {
+            env_key: "MISTRAL_API_KEY".to_string(),
+        })
+        .unwrap();
+        assert!(json.contains("\"type\":\"ProviderKeyActive\""));
+        assert!(json.contains("\"env_key\":\"MISTRAL_API_KEY\""));
     }
 
     #[test]
@@ -227,6 +260,19 @@ mod tests {
         let state: LoginState =
             serde_json::from_str(r#"{"type":"LoggedInSaved","account_name":"myaccount"}"#).unwrap();
         assert_eq!(state, LoginState::LoggedInSaved("myaccount".to_string()));
+
+        let state: LoginState = serde_json::from_str(r#"{"type":"ApiKeyActive"}"#).unwrap();
+        assert_eq!(state, LoginState::ApiKeyActive);
+
+        let state: LoginState =
+            serde_json::from_str(r#"{"type":"ProviderKeyActive","env_key":"MISTRAL_API_KEY"}"#)
+                .unwrap();
+        assert_eq!(
+            state,
+            LoginState::ProviderKeyActive {
+                env_key: "MISTRAL_API_KEY".to_string()
+            }
+        );
     }
 
     #[test]
