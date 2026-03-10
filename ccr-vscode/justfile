@@ -1,0 +1,71 @@
+# 🔌 CCR VSCode Extension Justfile
+
+# 🧭 跨平台 Shell 配置
+set windows-shell := ["pwsh.exe", "-NoLogo", "-NoProfile", "-Command", "[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; [Console]::InputEncoding = [System.Text.Encoding]::UTF8; $OutputEncoding = [System.Text.Encoding]::UTF8; chcp 65001 | Out-Null;"]
+set shell := ["bash", "-cu"]
+
+OUTPUTS_DIR := "../outputs/ccr-vscode"
+
+# 🎯 默认任务
+default:
+    @just --list
+
+# 📦 安装依赖
+install:
+    npm install
+
+# 🔨 构建扩展 — esbuild 打包 + vsce 生成 .vsix + 复制到 outputs/
+build:
+    npm run package
+    @just _copy-outputs-{{os()}}
+
+[private]
+_copy-outputs-linux:
+    @mkdir -p {{OUTPUTS_DIR}}
+    cp ccr-vscode.vsix {{OUTPUTS_DIR}}/
+    @echo "✅ ccr-vscode.vsix → {{OUTPUTS_DIR}}/"
+
+[private]
+_copy-outputs-macos:
+    @mkdir -p {{OUTPUTS_DIR}}
+    cp ccr-vscode.vsix {{OUTPUTS_DIR}}/
+    @echo "✅ ccr-vscode.vsix → {{OUTPUTS_DIR}}/"
+
+[private]
+_copy-outputs-windows:
+    @New-Item -ItemType Directory -Force -Path "{{OUTPUTS_DIR}}" | Out-Null
+    @Copy-Item "ccr-vscode.vsix" "{{OUTPUTS_DIR}}/" -Force
+    @Write-Host "✅ ccr-vscode.vsix → {{OUTPUTS_DIR}}/"
+
+# 👀 监控模式 (自动重新编译)
+watch:
+    npm run watch
+
+# 🔍 TypeScript 类型检查
+lint:
+    npm run lint
+
+# ✅ 运行测试
+test:
+    npm test
+
+# 🧹 清理构建产物
+clean:
+    @just _clean-{{os()}}
+
+[private]
+_clean-linux:
+    rm -rf dist node_modules
+
+[private]
+_clean-macos:
+    rm -rf dist node_modules
+
+[private]
+_clean-windows:
+    @if (Test-Path "dist") { Remove-Item "dist" -Recurse -Force }
+    @if (Test-Path "node_modules") { Remove-Item "node_modules" -Recurse -Force }
+
+# 🚀 完整 CI 流程 (安装 → 类型检查 → 测试 → 打包)
+ci: install lint test build
+    @echo "CCR VSCode Extension CI passed"
