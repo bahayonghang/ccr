@@ -813,6 +813,10 @@ impl CodexAuthService {
             }),
         );
 
+        // 清理 Profile 模式残留的 model_provider 和 model_providers
+        root.remove("model_provider");
+        root.remove("model_providers");
+
         let runtime_service = self.runtime_service()?;
         runtime_service.commit_plan(CodexRuntimeCommitPlan {
             config: Some(config),
