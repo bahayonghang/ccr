@@ -354,8 +354,8 @@ watch:
     @just info "📌 使用 cargo-watch (需要安装: cargo install cargo-watch)"
     cargo watch -x check -x test
 
-# 🎯 完整 CI 流程 (版本同步 + 自动格式化 + 格式检查 + 严格 Clippy + 测试 + 构建 + 安全审计 + 前端完整检查)
-ci: version-sync fmt fmt-check lint-strict test release audit frontend-check
+# 🎯 完整 CI 流程 (版本同步 + 自动格式化 + 格式检查 + 严格 Clippy + 测试 + 构建 + 安全审计 + 前端完整检查 + VSCode 扩展检查)
+ci: version-sync fmt fmt-check lint-strict test release audit frontend-check vscode-ci
     @just _ci-done-{{os()}}
 
 [private]
@@ -461,7 +461,7 @@ doc-open:
     @just info "📖 将在默认浏览器中打开"
     cargo doc -p {{BIN}} --no-deps --open
 
-outputs-collect: outputs-collect-cli outputs-collect-ui
+outputs-collect: outputs-collect-cli outputs-collect-ui outputs-collect-vscode
     @just success "Outputs collection completed"
 
 outputs-collect-cli: release
@@ -834,3 +834,54 @@ alias tclean := tauri-clean
 alias ttest := tauri-test
 
 # ===== End CCR UI Commands =====
+
+# ═══════════════════════════════════════════════════════════
+# 🔌 CCR VSCode Extension Commands
+# ═══════════════════════════════════════════════════════════
+
+CCR_VSCODE_JUSTFILE := "ccr-vscode/justfile"
+
+[private]
+[no-cd]
+_vscode-run recipe:
+    just --justfile {{CCR_VSCODE_JUSTFILE}} {{recipe}}
+
+# 📦 VSCode 扩展: 安装依赖
+vscode-install:
+    @just _vscode-run install
+
+# 🔨 VSCode 扩展: 构建 + 打包 .vsix + 复制到 outputs/
+vscode-build:
+    @just _vscode-run build
+
+# 👀 VSCode 扩展: 监控模式
+vscode-watch:
+    @just _vscode-run watch
+
+# 🔍 VSCode 扩展: 类型检查
+vscode-lint:
+    @just _vscode-run lint
+
+# ✅ VSCode 扩展: 运行测试
+vscode-test:
+    @just _vscode-run test
+
+# 🧹 VSCode 扩展: 清理
+vscode-clean:
+    @just _vscode-run clean
+
+# 🚀 VSCode 扩展: 完整 CI
+vscode-ci:
+    @just _vscode-run ci
+
+# 📦 收集 VSCode 扩展构建产物到 outputs/
+outputs-collect-vscode: vscode-install vscode-build
+    @just success "VSCode extension .vsix collected to {{OUTPUTS_DIR}}/ccr-vscode/"
+
+# VSCode 快捷别名
+alias vs-b := vscode-build
+alias vs-t := vscode-test
+alias vs-l := vscode-lint
+alias vs-c := vscode-ci
+
+# ===== End CCR VSCode Extension Commands =====
