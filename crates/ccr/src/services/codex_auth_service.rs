@@ -568,6 +568,13 @@ impl CodexAuthService {
             return Ok(());
         };
 
+        let current_auth_mode = CodexPlatform::profile_auth_mode(profile);
+
+        // 非 OpenAI 认证的 Profile 不需要同步元数据
+        if !current_auth_mode.uses_openai_auth() {
+            return Ok(());
+        }
+
         let mut updated = profile.clone();
         let auth_mode = match auth_method {
             OpenAiAuthMethod::Chatgpt => "openai_chatgpt",
@@ -592,13 +599,18 @@ impl CodexAuthService {
             }),
         );
 
-        if matches!(auth_method, OpenAiAuthMethod::Api) {
-            updated.auth_token = auth_data
-                .get("OPENAI_API_KEY")
-                .and_then(serde_json::Value::as_str)
-                .map(str::to_string);
-        } else {
-            updated.auth_token = None;
+        // 仅官方 Profile 同步 auth_token（即 OpenAI API Key）。
+        // 第三方 Profile 的 auth_token 是 Provider 自身的密钥，
+        // 与 OpenAI 认证无关，切换 Auth 账号时不应被覆盖或清除。
+        if CodexPlatform::is_official_profile(profile) {
+            if matches!(auth_method, OpenAiAuthMethod::Api) {
+                updated.auth_token = auth_data
+                    .get("OPENAI_API_KEY")
+                    .and_then(serde_json::Value::as_str)
+                    .map(str::to_string);
+            } else {
+                updated.auth_token = None;
+            }
         }
 
         platform.save_profile(&current_profile, &updated)

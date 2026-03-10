@@ -140,7 +140,7 @@ impl CodexPlatform {
     /// 🔍 判断是否为官方配置
     ///
     /// 优先检查 provider_type 字段，回退检查 base_url
-    fn is_official_profile(profile: &ProfileConfig) -> bool {
+    pub fn is_official_profile(profile: &ProfileConfig) -> bool {
         if let Some(kind) = Self::canonical_provider_type(profile.provider_type.as_deref()) {
             return kind == "official_relay";
         }
