@@ -532,14 +532,25 @@ impl CodexAuthService {
 
         let auth_mode = CodexPlatform::profile_auth_mode(profile);
 
-        if !auth_mode.uses_openai_auth() {
-            return Err(CcrError::ValidationError(
-                "当前 Profile 不使用 OpenAI 认证；请改用 Profile 切换来切换 URL + Key / Login 模式"
-                    .into(),
-            ));
+        if auth_mode.uses_openai_auth() {
+            return Ok(());
         }
 
-        Ok(())
+        // Profile 配置层未识别为 OpenAI 认证（可能缺少 auth_mode 元数据）；
+        // 回退检查运行时 auth.json 的实际凭据状态
+        let auth_state = self.get_auth_state();
+        if matches!(auth_state.intent, AuthIntent::OpenAiAuth { .. }) {
+            debug!(
+                "Profile '{}' 配置层 auth_mode={:?} 未标记 OpenAI，但运行时 auth.json 包含 OpenAI 凭据，允许切换",
+                current_profile, auth_mode
+            );
+            return Ok(());
+        }
+
+        Err(CcrError::ValidationError(
+            "当前 Profile 不使用 OpenAI 认证；请改用 Profile 切换来切换 URL + Key / Login 模式"
+                .into(),
+        ))
     }
 
     fn sync_current_profile_openai_mode(
