@@ -63,9 +63,9 @@ pub fn get_profile_by_name(
 /// 列出全部 Profile
 #[allow(dead_code)]
 pub fn get_all_profiles(conn: &Connection) -> Result<Vec<ClaudeProfile>, rusqlite::Error> {
-    let mut stmt = conn.prepare(
-        &format!("SELECT {PROFILE_COLUMNS} FROM claude_profiles ORDER BY created_at DESC"),
-    )?;
+    let mut stmt = conn.prepare(&format!(
+        "SELECT {PROFILE_COLUMNS} FROM claude_profiles ORDER BY created_at DESC"
+    ))?;
 
     let profiles = stmt
         .query_map([], row_to_profile)?
@@ -116,10 +116,7 @@ pub fn update_profile(
 /// 删除 Profile
 #[allow(dead_code)]
 pub fn delete_profile(conn: &Connection, name: &str) -> Result<bool, rusqlite::Error> {
-    let deleted = conn.execute(
-        "DELETE FROM claude_profiles WHERE name = ?1",
-        params![name],
-    )?;
+    let deleted = conn.execute("DELETE FROM claude_profiles WHERE name = ?1", params![name])?;
     Ok(deleted > 0)
 }
 

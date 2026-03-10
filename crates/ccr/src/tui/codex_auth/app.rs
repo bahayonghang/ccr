@@ -193,19 +193,17 @@ impl CodexAuthApp {
                     return Ok(true);
                 }
             }
-            KeyCode::Char('s') => {
-                match &self.login_state {
-                    LoginState::LoggedInUnsaved => {
-                        self.overlay = Some(Overlay::save_input());
-                    }
-                    LoginState::ApiKeyActive | LoginState::ProviderKeyActive { .. } => {
-                        self.toasts.push(Toast::info("API Key 模式无需保存账号"));
-                    }
-                    _ => {
-                        self.toasts.push(Toast::warning("当前登录已保存或未登录"));
-                    }
+            KeyCode::Char('s') => match &self.login_state {
+                LoginState::LoggedInUnsaved => {
+                    self.overlay = Some(Overlay::save_input());
                 }
-            }
+                LoginState::ApiKeyActive | LoginState::ProviderKeyActive { .. } => {
+                    self.toasts.push(Toast::info("API Key 模式无需保存账号"));
+                }
+                _ => {
+                    self.toasts.push(Toast::warning("当前登录已保存或未登录"));
+                }
+            },
             KeyCode::Char('d') | KeyCode::Delete => {
                 if let Some(account) = self.selected_account() {
                     if !account.is_virtual {
