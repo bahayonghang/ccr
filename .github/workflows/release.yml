@@ -152,6 +152,52 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+  # 🧩 VS Code 扩展构建（.vsix）
+  build-vscode:
+    name: Build VS Code Extension
+    runs-on: ubuntu-latest
+    needs: [build-and-release]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Get version from tag
+        id: get_version
+        run: echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+        shell: bash
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: ccr-vscode/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ccr-vscode
+        run: npm ci
+
+      - name: Build + package VSIX
+        working-directory: ccr-vscode
+        run: |
+          npm run build -- --minify
+          npx vsce package --no-dependencies -o ccr-vscode-${{ steps.get_version.outputs.version }}.vsix
+
+      - name: Generate SHA256
+        working-directory: ccr-vscode
+        run: |
+          sha256sum ccr-vscode-${{ steps.get_version.outputs.version }}.vsix > ccr-vscode-${{ steps.get_version.outputs.version }}.vsix.sha256
+
+      - name: Upload to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            ccr-vscode/ccr-vscode-${{ steps.get_version.outputs.version }}.vsix
+            ccr-vscode/ccr-vscode-${{ steps.get_version.outputs.version }}.vsix.sha256
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   # 🖥️ Tauri 桌面应用构建
   build-tauri:
     name: Build Tauri ${{ matrix.platform }}
@@ -211,7 +257,7 @@ jobs:
   # 📢 发布后汇总
   post-release:
     name: Post Release Summary
-    needs: [build-and-release, build-tauri]
+    needs: [build-and-release, build-vscode, build-tauri]
     runs-on: ubuntu-latest
     steps:
       - name: Get version from tag
@@ -229,6 +275,10 @@ jobs:
           echo "| 🐧 Linux | \`ccr-${{ steps.get_version.outputs.version }}-x86_64-unknown-linux-gnu.tar.gz\` | ✓ |" >> $GITHUB_STEP_SUMMARY
           echo "| 🪟 Windows | \`ccr-${{ steps.get_version.outputs.version }}-x86_64-pc-windows-msvc.zip\` | ✓ |" >> $GITHUB_STEP_SUMMARY
           echo "| 🍎 macOS ARM | \`ccr-${{ steps.get_version.outputs.version }}-aarch64-apple-darwin.tar.gz\` | ✓ |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🧩 VS Code 扩展" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- \`ccr-vscode-${{ steps.get_version.outputs.version }}.vsix\` (含 SHA256)" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 🖥️ 桌面应用 (Tauri)" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
