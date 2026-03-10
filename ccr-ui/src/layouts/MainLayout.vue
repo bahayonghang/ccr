@@ -1,6 +1,6 @@
 <template>
   <MainLayout />
-  <span class="hidden">CCR UI v5.0.4</span>
+  <span class="hidden">CCR UI v5.0.6</span>
 </template>
 
 <script setup lang="ts">
