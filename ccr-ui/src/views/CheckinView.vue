@@ -153,17 +153,45 @@
           </div>
           <div class="mt-4 grid gap-4 md:grid-cols-2">
             <div
+              v-if="wafRecoveryRunning && wafRecoveryMessage"
+              class="md:col-span-2 rounded-lg border border-sky-200 bg-sky-50/90 dark:border-sky-800 dark:bg-sky-900/20 p-3"
+            >
+              <div class="flex items-start gap-3">
+                <Loader2 class="mt-0.5 h-4 w-4 animate-spin text-sky-600 dark:text-sky-300" />
+                <div>
+                  <p class="text-sm font-medium text-sky-900 dark:text-sky-100">
+                    正在自动处理 WAF
+                  </p>
+                  <p class="mt-1 text-xs leading-5 text-sky-800 dark:text-sky-200">
+                    {{ wafRecoveryMessage }}
+                  </p>
+                  <p
+                    v-if="wafRecoveryProviderName"
+                    class="mt-1 text-xs text-sky-700 dark:text-sky-300"
+                  >
+                    当前提供商：{{ wafRecoveryProviderName }}
+                  </p>
+                </div>
+              </div>
+            </div>
+            <div
               v-if="failedCheckinResults.some((item) => item.error_code === 'waf_blocked')"
               class="md:col-span-2 rounded-lg border border-orange-200 bg-orange-50/90 dark:border-orange-800 dark:bg-orange-900/20 p-3"
             >
               <div class="flex items-start justify-between gap-3">
                 <div>
                   <p class="text-sm font-medium text-orange-900 dark:text-orange-100">
-                    检测到 WAF 挑战页
+                    {{ wafRecoveryRunning ? '自动补救中，若失败可手动处理' : '检测到 WAF 挑战页' }}
                   </p>
                   <p class="mt-1 text-xs leading-5 text-orange-800 dark:text-orange-200">
-                    这通常不是 Cookie 本身失效，而是 AnyRouter 这类站点先返回了阿里云 WAF 的 HTML 挑战页。
-                    先去“提供商”页获取 WAF Cookie，再确保网页登录与签到请求走同一代理/出口后重试。
+                    <template v-if="wafRecoveryRunning">
+                      系统正在尝试自动获取 WAF Cookie 并重试受影响账号。
+                      如果自动补救失败，再前往“提供商”页手动获取 Cookie 并重试。
+                    </template>
+                    <template v-else>
+                      这通常不是 Cookie 本身失效，而是 AnyRouter 这类站点先返回了阿里云 WAF 的 HTML 挑战页。
+                      先去“提供商”页获取 WAF Cookie，再确保网页登录与签到请求走同一代理/出口后重试。
+                    </template>
                   </p>
                 </div>
                 <button
@@ -203,6 +231,12 @@
                       >
                         奖励 {{ item.reward }}
                       </span>
+                      <span
+                        v-if="item.waf_recovery_attempted && item.waf_recovered"
+                        class="text-xs px-1.5 py-0.5 bg-sky-100 dark:bg-sky-900/40 text-sky-700 dark:text-sky-200 rounded"
+                      >
+                        自动补救后成功
+                      </span>
                     </div>
                     <p class="text-xs text-green-700 dark:text-green-300 mt-0.5 break-all">
                       {{ getSuccessDetail(item) }}
@@ -240,6 +274,12 @@
                       >
                         {{ getErrorLabel(item.error_code) }}
                       </span>
+                      <span
+                        v-if="item.waf_recovery_attempted && item.waf_recovered === false"
+                        class="text-xs px-1.5 py-0.5 bg-sky-100 dark:bg-sky-900/30 text-sky-700 dark:text-sky-200 rounded"
+                      >
+                        自动补救后仍失败
+                      </span>
                     </div>
                     <p class="text-xs text-red-600 dark:text-red-400 mt-0.5 break-all">
                       {{ getFailedDetail(item) }}
@@ -271,6 +311,12 @@
                     </span>
                     <span class="text-xs px-1.5 py-0.5 bg-blue-100 dark:bg-blue-800 text-blue-700 dark:text-blue-200 rounded">
                       {{ item.provider_name }}
+                    </span>
+                    <span
+                      v-if="item.waf_recovery_attempted && item.waf_recovered"
+                      class="text-xs px-1.5 py-0.5 bg-sky-100 dark:bg-sky-900/40 text-sky-700 dark:text-sky-200 rounded"
+                    >
+                      自动补救后完成
                     </span>
                   </div>
                   <p class="text-xs text-blue-700 dark:text-blue-300 mt-0.5 break-all">
@@ -422,6 +468,7 @@
       <CheckinAccountsTab
         v-if="activeTab === 'accounts'"
         :accounts="accounts"
+        :checkin-loading="checkinLoading"
         :providers="providers"
         :builtin-providers="builtinProviders"
         @refresh="loadAllData"
@@ -499,6 +546,7 @@ import {
   CheckCircle,
   XCircle,
   Calendar,
+  Loader2,
 } from 'lucide-vue-next'
 
 const router = useRouter()
@@ -517,6 +565,9 @@ const {
   isCheckinFinished,
   checkinProgress,
   checkinLogs,
+  wafRecoveryRunning,
+  wafRecoveryProviderName,
+  wafRecoveryMessage,
   // 数据
   providers,
   accounts,

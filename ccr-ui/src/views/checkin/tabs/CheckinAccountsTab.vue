@@ -183,7 +183,8 @@
             >
               <div class="flex items-center justify-center gap-2">
                 <button
-                  class="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-medium bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-sm transition-colors duration-200"
+                  :disabled="props.checkinLoading"
+                  class="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-medium bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-sm transition-colors duration-200 disabled:cursor-not-allowed disabled:opacity-50"
                   @click="emit('checkin', account.id)"
                 >
                   <Calendar class="w-3 h-3 mr-1 inline" /> 签到
@@ -509,6 +510,7 @@ const props = defineProps<{
   providers: CheckinProvider[]
   accounts: AccountInfo[]
   builtinProviders: BuiltinProvider[]
+  checkinLoading: boolean
 }>()
 
 const emit = defineEmits<{

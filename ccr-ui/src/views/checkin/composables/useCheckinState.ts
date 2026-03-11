@@ -10,6 +10,7 @@ import {
   queryCheckinBalance,
   startCheckinJob,
   getCheckinJobStatus,
+  openWafLogin,
 } from '@/api'
 import { listen, type UnlistenFn } from '@tauri-apps/api/event'
 import { logger } from '@/utils/logger'
@@ -24,6 +25,8 @@ import type {
   TodayCheckinStats,
   CheckinResponse,
   CheckinExecutionResult,
+  CheckinDisplayResponse,
+  CheckinDisplayResult,
   BuiltinProvider,
   CheckinJobLogEntryPayload,
   CheckinJobSnapshot,
@@ -40,6 +43,12 @@ export interface CheckinRefreshOptions {
   reloadStats?: boolean
   reloadBuiltin?: boolean
   reloadFailedHistory?: boolean
+}
+
+interface WafBlockedGroup {
+  providerName: string
+  provider: CheckinProvider | null
+  accountIds: string[]
 }
 
 /**
@@ -65,6 +74,9 @@ export function useCheckinState() {
   const isCheckinFinished = ref(false)
   const checkinProgress = ref({ total: 0, completed: 0, currentAccountName: '' })
   const checkinLogs = ref<CheckinLogEntry[]>([])
+  const wafRecoveryRunning = ref(false)
+  const wafRecoveryProviderName = ref<string | null>(null)
+  const wafRecoveryMessage = ref<string | null>(null)
 
   // ═══════════════════════════════════════════════════════════
   // 数据
@@ -73,7 +85,7 @@ export function useCheckinState() {
   const accounts = ref<AccountInfo[]>([])
   const records = ref<CheckinRecordInfo[]>([])
   const todayStats = ref<TodayCheckinStats | null>(null)
-  const checkinResult = ref<CheckinResponse | null>(null)
+  const checkinResult = ref<CheckinDisplayResponse | null>(null)
   const builtinProviders = ref<BuiltinProvider[]>([])
 
   const activeCheckinJobId = ref<string | null>(null)
@@ -96,6 +108,186 @@ export function useCheckinState() {
     timestamp: new Date(entry.timestamp),
   })
 
+  const getProviderLoginUrl = (provider: CheckinProvider) => {
+    return `${provider.base_url.replace(/\/+$/, '')}/login`
+  }
+
+  const toDisplayResponse = (response: CheckinResponse): CheckinDisplayResponse => ({
+    results: response.results.map((item) => ({ ...item })),
+    summary: { ...response.summary },
+  })
+
+  const buildCheckinSummary = (results: CheckinDisplayResult[]) => {
+    return results.reduce(
+      (summary, item) => {
+        summary.total += 1
+        if (item.status === 'success') {
+          summary.success += 1
+        } else if (item.status === 'already_checked_in') {
+          summary.already_checked_in += 1
+        } else {
+          summary.failed += 1
+        }
+        return summary
+      },
+      { total: 0, success: 0, already_checked_in: 0, failed: 0 }
+    )
+  }
+
+  const createDisplayResponse = (results: CheckinDisplayResult[]): CheckinDisplayResponse => ({
+    results,
+    summary: buildCheckinSummary(results),
+  })
+
+  const detectWafBlockedGroups = (result: CheckinDisplayResponse): WafBlockedGroup[] => {
+    const grouped = new Map<string, string[]>()
+    for (const item of result.results) {
+      if (item.status !== 'failed' || item.error_code !== 'waf_blocked') continue
+      const accountIds = grouped.get(item.provider_name) ?? []
+      if (!accountIds.includes(item.account_id)) {
+        accountIds.push(item.account_id)
+      }
+      grouped.set(item.provider_name, accountIds)
+    }
+
+    return Array.from(grouped.entries()).map(([providerName, accountIds]) => ({
+      providerName,
+      provider: providers.value.find((candidate) => candidate.name === providerName) ?? null,
+      accountIds,
+    }))
+  }
+
+  const markWafRecoveryFailure = (
+    result: CheckinDisplayResponse,
+    accountIds: string[],
+    recoveryError: string
+  ): CheckinDisplayResponse => {
+    return createDisplayResponse(
+      result.results.map((item) => {
+        if (!accountIds.includes(item.account_id)) return item
+        return {
+          ...item,
+          waf_recovery_attempted: true,
+          waf_recovered: false,
+          waf_recovery_error: recoveryError,
+        }
+      })
+    )
+  }
+
+  const mergeRetryResults = (
+    result: CheckinDisplayResponse,
+    retryResults: CheckinExecutionResult[],
+    retriedAccountIds: string[]
+  ): CheckinDisplayResponse => {
+    const retryMap = new Map(retryResults.map((item) => [item.account_id, item]))
+    return createDisplayResponse(
+      result.results.map((item) => {
+        const retried = retryMap.get(item.account_id)
+        if (!retried) {
+          if (!retriedAccountIds.includes(item.account_id)) return item
+          return {
+            ...item,
+            waf_recovery_attempted: true,
+            waf_recovered: false,
+            waf_recovery_error: '自动重试未返回结果',
+          }
+        }
+        return {
+          ...retried,
+          waf_recovery_attempted: true,
+          waf_recovered: retried.status !== 'failed',
+        }
+      })
+    )
+  }
+
+  const waitForCheckinJobResult = async (
+    jobId: string,
+    initialSnapshot: CheckinJobSnapshot
+  ): Promise<CheckinJobSnapshot> => {
+    let snapshot = initialSnapshot
+    for (let attempt = 0; attempt < 240; attempt += 1) {
+      if (snapshot.status === 'finished' || snapshot.status === 'timed_out') {
+        return snapshot
+      }
+      await new Promise((resolve) => setTimeout(resolve, 500))
+      snapshot = await getCheckinJobStatus<CheckinJobSnapshot>(jobId)
+    }
+    throw new Error('自动重试等待超时')
+  }
+
+  const retryAccountsAfterWaf = async (accountIds: string[]): Promise<CheckinJobSnapshot> => {
+    const response = await startCheckinJob<StartCheckinJobResponse>(accountIds)
+    return waitForCheckinJobResult(response.job_id, response.snapshot)
+  }
+
+  const runWafRecovery = async (initialResult: CheckinDisplayResponse): Promise<CheckinDisplayResponse> => {
+    const groups = detectWafBlockedGroups(initialResult)
+    if (groups.length === 0 || wafRecoveryRunning.value) {
+      return initialResult
+    }
+
+    wafRecoveryRunning.value = true
+    let mergedResult = initialResult
+
+    try {
+      for (const [index, group] of groups.entries()) {
+        wafRecoveryProviderName.value = group.providerName
+
+        if (!group.provider) {
+          mergedResult = markWafRecoveryFailure(
+            mergedResult,
+            group.accountIds,
+            '未找到对应的提供商配置，无法自动补救'
+          )
+          checkinResult.value = mergedResult
+          continue
+        }
+
+        wafRecoveryMessage.value = `正在为 ${group.providerName} 获取 WAF Cookie（${index + 1}/${groups.length}）`
+
+        try {
+          await openWafLogin<string>(getProviderLoginUrl(group.provider), group.provider.id)
+        } catch (error: unknown) {
+          mergedResult = markWafRecoveryFailure(
+            mergedResult,
+            group.accountIds,
+            `自动获取 WAF Cookie 失败：${getErrorMessage(error, '未知错误')}`
+          )
+          checkinResult.value = mergedResult
+          continue
+        }
+
+        wafRecoveryMessage.value = `已获取 ${group.providerName} 的 WAF Cookie，正在重试 ${group.accountIds.length} 个账号`
+
+        try {
+          const retrySnapshot = await retryAccountsAfterWaf(group.accountIds)
+          mergedResult = mergeRetryResults(mergedResult, retrySnapshot.results, group.accountIds)
+          checkinResult.value = mergedResult
+          await refreshCheckinData({
+            reloadAccounts: true,
+            reloadRecords: true,
+            reloadStats: true,
+          })
+        } catch (error: unknown) {
+          mergedResult = markWafRecoveryFailure(
+            mergedResult,
+            group.accountIds,
+            `自动重试失败：${getErrorMessage(error, '未知错误')}`
+          )
+          checkinResult.value = mergedResult
+        }
+      }
+    } finally {
+      wafRecoveryRunning.value = false
+      wafRecoveryProviderName.value = null
+      wafRecoveryMessage.value = null
+    }
+
+    return mergedResult
+  }
+
   const applyCheckinJobSnapshot = (snapshot: CheckinJobSnapshot) => {
     checkinProgress.value = {
       total: snapshot.total,
@@ -108,30 +300,39 @@ export function useCheckinState() {
     isCheckinFinished.value = isTerminal
 
     if (isTerminal) {
-      checkinResult.value = {
+      checkinResult.value = toDisplayResponse({
         results: snapshot.results,
         summary: snapshot.summary,
-      }
+      })
     }
   }
 
   const finalizeCheckinJob = async (snapshot: CheckinJobSnapshot) => {
     if (activeCheckinJobId.value !== snapshot.job_id) return
 
-    applyCheckinJobSnapshot(snapshot)
-    checkinLoading.value = false
-    activeCheckinJobId.value = null
-    await cleanupCheckinJobListeners()
+    try {
+      applyCheckinJobSnapshot(snapshot)
+      activeCheckinJobId.value = null
+      await cleanupCheckinJobListeners()
 
-    await refreshCheckinData({
-      reloadAccounts: true,
-      reloadRecords: true,
-      reloadStats: true,
-    })
+      await refreshCheckinData({
+        reloadAccounts: true,
+        reloadRecords: true,
+        reloadStats: true,
+      })
 
-    if (snapshot.summary.failed > 0) {
-      await nextTick()
-      checkinResultRef.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      if (snapshot.summary.failed > 0) {
+        await nextTick()
+        checkinResultRef.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      }
+
+      const currentResult = checkinResult.value ?? toDisplayResponse({
+        results: snapshot.results,
+        summary: snapshot.summary,
+      })
+      checkinResult.value = await runWafRecovery(currentResult)
+    } finally {
+      checkinLoading.value = false
     }
   }
 
@@ -347,6 +548,9 @@ export function useCheckinState() {
 
     checkinLoading.value = true
     checkinResult.value = null
+    wafRecoveryRunning.value = false
+    wafRecoveryProviderName.value = null
+    wafRecoveryMessage.value = null
     showProgressModal.value = true
     isCheckinFinished.value = false
     checkinProgress.value = {
@@ -526,9 +730,9 @@ export function useCheckinState() {
     return details.length > 0 ? details.join(' · ') : fallback
   }
 
-  const getSuccessDetail = (item: CheckinExecutionResult) => buildCheckinDetail(item, '签到成功')
+  const getSuccessDetail = (item: CheckinDisplayResult) => buildCheckinDetail(item, '签到成功')
 
-  const getAlreadyCheckedInDetail = (item: CheckinExecutionResult) =>
+  const getAlreadyCheckedInDetail = (item: CheckinDisplayResult) =>
     buildCheckinDetail(item, '今日已签到')
 
   const getErrorHint = (code?: string): string | null => {
@@ -565,10 +769,16 @@ export function useCheckinState() {
     return labels[code] ?? code
   }
 
-  const getFailedDetail = (item: CheckinExecutionResult) => {
-    const detail = item.message || '未知原因'
+  const getFailedDetail = (item: CheckinDisplayResult) => {
+    let detail = item.message || '未知原因'
     const hint = getErrorHint(item.error_code)
-    return hint ? `${detail}（${hint}）` : detail
+    if (hint) {
+      detail = `${detail}（${hint}）`
+    }
+    if (item.waf_recovery_attempted && item.waf_recovered === false && item.waf_recovery_error) {
+      detail = `${detail} · ${item.waf_recovery_error}`
+    }
+    return detail
   }
 
   // ═══════════════════════════════════════════════════════════
@@ -597,6 +807,9 @@ export function useCheckinState() {
     isCheckinFinished,
     checkinProgress,
     checkinLogs,
+    wafRecoveryRunning,
+    wafRecoveryProviderName,
+    wafRecoveryMessage,
 
     // 数据
     providers,

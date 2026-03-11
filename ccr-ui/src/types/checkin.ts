@@ -185,6 +185,19 @@ export interface CheckinResponse {
   summary: CheckinSummary
 }
 
+/** 前端签到结果视图模型（不影响后端返回结构） */
+export interface CheckinDisplayResult extends CheckinExecutionResult {
+  waf_recovery_attempted?: boolean
+  waf_recovered?: boolean
+  waf_recovery_error?: string
+}
+
+/** 前端签到响应视图模型 */
+export interface CheckinDisplayResponse {
+  results: CheckinDisplayResult[]
+  summary: CheckinSummary
+}
+
 export type CheckinJobStatus = 'pending' | 'running' | 'finished' | 'timed_out'
 
 export interface CheckinJobLogEntryPayload {
