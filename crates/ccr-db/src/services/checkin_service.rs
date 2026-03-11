@@ -155,10 +155,17 @@ fn get_proxy_url_from_windows_registry() -> Option<String> {
         r"HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Internet Settings";
 
     fn query_reg_value(key: &str, name: &str) -> Option<String> {
-        let output = std::process::Command::new("reg")
-            .args(["query", key, "/v", name])
-            .output()
-            .ok()?;
+        let mut cmd = std::process::Command::new("reg");
+        cmd.args(["query", key, "/v", name]);
+
+        #[cfg(target_os = "windows")]
+        {
+            use std::os::windows::process::CommandExt;
+            const CREATE_NO_WINDOW: u32 = 0x08000000;
+            cmd.creation_flags(CREATE_NO_WINDOW);
+        }
+
+        let output = cmd.output().ok()?;
         if !output.status.success() {
             return None;
         }
