@@ -120,10 +120,10 @@
       <!-- Content Grid -->
       <div
         v-else-if="filteredItems.length > 0"
-        class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5"
       >
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
         <Card
-          v-for="item in filteredItems"
+          v-for="item in paginatedItems"
           :key="item.id"
           variant="glass"
           interactive
@@ -231,6 +231,15 @@
             </div>
           </div>
         </Card>
+        </div>
+
+        <MarketplacePagination
+          :current-page="currentPage"
+          :total-items="filteredItems.length"
+          :page-size="PAGE_SIZE"
+          class="mt-6"
+          @page-change="currentPage = $event"
+        />
       </div>
 
       <!-- Empty State -->
@@ -332,7 +341,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
   ShoppingBag, Home, Search, Download, Star, Check, Loader2, Key, Trash2, AlertCircle,
@@ -340,6 +349,7 @@ import {
 } from 'lucide-vue-next'
 import Card from '@/components/ui/Card.vue'
 import Breadcrumb from '@/components/ui/Breadcrumb.vue'
+import MarketplacePagination from '@/components/skills/MarketplacePagination.vue'
 import { useMarketplace, type MarketItem, type MarketItemCategory } from '@/composables/useMarketplace'
 
 const { t } = useI18n()
@@ -353,6 +363,8 @@ const breadcrumbItems = computed(() => [
 
 const searchQuery = ref('')
 const activeTab = ref('featured')
+const currentPage = ref(1)
+const PAGE_SIZE = 20
 
 // 缓存全量数据用于统计
 const allItems = ref<MarketItem[]>([])
@@ -405,6 +417,7 @@ onMounted(async () => {
 
 const switchTab = (tabId: string) => {
   activeTab.value = tabId
+  currentPage.value = 1
   if (tabId === 'featured') {
     fetchMarketItems()
   } else if (tabId === 'installed') {
@@ -429,6 +442,22 @@ const filteredItems = computed(() => {
     )
   }
   return result
+})
+
+const paginatedItems = computed(() => {
+  const start = (currentPage.value - 1) * PAGE_SIZE
+  return filteredItems.value.slice(start, start + PAGE_SIZE)
+})
+
+watch(filteredItems, (itemsOnPage) => {
+  const totalPages = Math.max(1, Math.ceil(itemsOnPage.length / PAGE_SIZE))
+  if (currentPage.value > totalPages) {
+    currentPage.value = totalPages
+  }
+})
+
+watch(searchQuery, () => {
+  currentPage.value = 1
 })
 
 const getCategoryColor = (category: string) => {

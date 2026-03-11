@@ -37,19 +37,19 @@
           <div class="w-full max-w-[80%] flex flex-col-reverse items-center relative z-10 transition-transform duration-300">
             <div
               v-if="row.gemini > 0"
-              class="w-full bg-blue-500 transition-[height] duration-500 ease-out"
+              class="w-full bg-blue-500"
               :style="{ height: `${row.geminiHeight}px` }"
               :class="[{ 'opacity-90': hoveredIndex !== null && hoveredIndex !== index }, row.geminiCorner]"
             />
             <div
               v-if="row.claude > 0"
-              class="w-full bg-pink-400 transition-[height] duration-500 ease-out"
+              class="w-full bg-pink-400"
               :style="{ height: `${row.claudeHeight}px` }"
               :class="[{ 'opacity-90': hoveredIndex !== null && hoveredIndex !== index }, row.claudeCorner]"
             />
             <div
               v-if="row.codex > 0"
-              class="w-full bg-orange-500 transition-[height] duration-500 ease-out"
+              class="w-full bg-orange-500"
               :style="{ height: `${row.codexHeight}px` }"
               :class="[{ 'opacity-90': hoveredIndex !== null && hoveredIndex !== index }, row.codexCorner]"
             />

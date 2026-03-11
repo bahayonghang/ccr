@@ -209,13 +209,34 @@ const filteredLogs = computed(() => {
   return logs.value.filter((log: MonitoringEntry) => log.level === filterLevel.value)
 })
 
-// Auto-scroll to bottom on new logs
-watch(logs, async () => {
+const isNearBottom = (element: HTMLElement) => {
+  return element.scrollHeight - element.scrollTop - element.clientHeight < 24
+}
+
+const scrollToBottom = async () => {
   await nextTick()
   if (logContainer.value) {
     logContainer.value.scrollTop = logContainer.value.scrollHeight
   }
-}, { deep: true })
+}
+
+watch(
+  () => logs.value.length,
+  async (currentLength, previousLength) => {
+    if (currentLength <= previousLength) {
+      return
+    }
+
+    const container = logContainer.value
+    if (!container || previousLength === 0 || isNearBottom(container)) {
+      await scrollToBottom()
+    }
+  }
+)
+
+watch(filterLevel, async () => {
+  await scrollToBottom()
+})
 
 // Helpers
 const formatNumber = (num: number) => {

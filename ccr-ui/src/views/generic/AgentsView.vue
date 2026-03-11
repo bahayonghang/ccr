@@ -134,10 +134,10 @@
 
           <div
             v-else
-            class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-5"
           >
+            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-5">
             <Card
-              v-for="agent in filteredAgents"
+              v-for="agent in paginatedAgents"
               :key="agent.name"
               variant="glass"
               interactive
@@ -263,6 +263,15 @@
                 </span>
               </div>
             </Card>
+            </div>
+
+            <MarketplacePagination
+              :current-page="currentPage"
+              :total-items="filteredAgents.length"
+              :page-size="PAGE_SIZE"
+              class="mt-6"
+              @page-change="currentPage = $event"
+            />
           </div>
         </div>
       </div>
@@ -405,6 +414,7 @@ import { useRouter } from 'vue-router'
 import { Plus, Edit2, Trash2, Power, PowerOff, Search, X, Folder, Home, ChevronDown, Code2, Sparkles, Workflow, Eye } from 'lucide-vue-next'
 import Breadcrumb from '@/components/ui/Breadcrumb.vue'
 import Card from '@/components/ui/Card.vue'
+import MarketplacePagination from '@/components/skills/MarketplacePagination.vue'
 import { useAgents } from '@/composables/useAgents'
 import type { Agent, AgentRequest } from '@/types'
 import { logger } from '@/utils/logger'
@@ -429,10 +439,12 @@ const {
 
 const selectedFolder = ref('')
 const searchQuery = ref('')
+const currentPage = ref(1)
 const showAddForm = ref(false)
 const editingAgent = ref<Agent | null>(null)
 const formData = ref<AgentRequest>({ name: '', model: 'claude-sonnet-4-5-20250929', tools: [], system_prompt: '', disabled: false })
 const toolInput = ref('')
+const PAGE_SIZE = 20
 
 // Breadcrumbs
 const breadcrumbs = computed(() => {
@@ -461,6 +473,7 @@ watch(() => props.module, () => {
   loadAgents()
   selectedFolder.value = ''
   searchQuery.value = ''
+  currentPage.value = 1
 })
 
 onMounted(() => {
@@ -498,6 +511,22 @@ const filteredAgents = computed(() => {
     )
   }
   return filtered.sort((a, b) => a.name.localeCompare(b.name))
+})
+
+const paginatedAgents = computed(() => {
+  const start = (currentPage.value - 1) * PAGE_SIZE
+  return filteredAgents.value.slice(start, start + PAGE_SIZE)
+})
+
+watch([selectedFolder, searchQuery], () => {
+  currentPage.value = 1
+})
+
+watch(filteredAgents, (agentsOnPage) => {
+  const totalPages = Math.max(1, Math.ceil(agentsOnPage.length / PAGE_SIZE))
+  if (currentPage.value > totalPages) {
+    currentPage.value = totalPages
+  }
 })
 
 const handleAdd = () => {

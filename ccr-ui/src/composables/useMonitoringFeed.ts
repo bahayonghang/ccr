@@ -212,10 +212,39 @@ const buildEntryKey = (entry: MonitoringEntry): string => {
   ].join('|')
 }
 
-const sortByTimestamp = (entries: MonitoringEntry[]): MonitoringEntry[] => {
-  return [...entries].sort((left, right) => {
-    return new Date(left.timestamp).getTime() - new Date(right.timestamp).getTime()
-  })
+const compareEntriesByTimestamp = (left: MonitoringEntry, right: MonitoringEntry): number => {
+  return new Date(left.timestamp).getTime() - new Date(right.timestamp).getTime()
+}
+
+const trimEntries = (entries: MonitoringEntry[], maxEntries: number): MonitoringEntry[] => {
+  return entries.length > maxEntries ? entries.slice(-maxEntries) : entries
+}
+
+const insertEntryByTimestamp = (entries: MonitoringEntry[], entry: MonitoringEntry): MonitoringEntry[] => {
+  if (entries.length === 0) {
+    return [entry]
+  }
+
+  const lastEntry = entries[entries.length - 1]
+  if (compareEntriesByTimestamp(lastEntry, entry) <= 0) {
+    return [...entries, entry]
+  }
+
+  const nextEntries = [...entries]
+  let low = 0
+  let high = nextEntries.length
+
+  while (low < high) {
+    const mid = Math.floor((low + high) / 2)
+    if (compareEntriesByTimestamp(nextEntries[mid], entry) <= 0) {
+      low = mid + 1
+    } else {
+      high = mid
+    }
+  }
+
+  nextEntries.splice(low, 0, entry)
+  return nextEntries
 }
 
 const isTauriRuntime = (): boolean => {
@@ -238,7 +267,7 @@ export function useMonitoringFeed(options: MonitoringFeedOptions = {}) {
       return
     }
 
-    const merged = [...logs.value]
+    let merged = logs.value
     for (const entry of entries) {
       const entryKey = buildEntryKey(entry)
       if (seenEntries.has(entryKey)) {
@@ -246,16 +275,17 @@ export function useMonitoringFeed(options: MonitoringFeedOptions = {}) {
       }
 
       seenEntries.add(entryKey)
-      merged.push(entry)
+      merged = insertEntryByTimestamp(merged, entry)
     }
 
-    const sorted = sortByTimestamp(merged)
-    const trimmed = sorted.slice(-maxEntries)
+    const trimmed = trimEntries(merged, maxEntries)
     logs.value = trimmed
 
-    seenEntries.clear()
-    for (const entry of trimmed) {
-      seenEntries.add(buildEntryKey(entry))
+    if (trimmed !== merged) {
+      seenEntries.clear()
+      for (const entry of trimmed) {
+        seenEntries.add(buildEntryKey(entry))
+      }
     }
   }
 
