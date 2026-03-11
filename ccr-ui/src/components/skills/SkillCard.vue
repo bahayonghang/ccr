@@ -2,7 +2,11 @@
 <template>
   <div
     class="skill-card group"
+    role="button"
+    tabindex="0"
+    :aria-label="`Open skill ${skill.name}`"
     @click="$emit('click', skill)"
+    @keydown="handleKeydown"
   >
     <!-- Left: Platform Icon Area -->
     <div class="skill-card__platform">
@@ -198,7 +202,7 @@ const props = defineProps<{
   marketplaceItem?: MarketplaceItem
 }>()
 
-defineEmits<{
+const emit = defineEmits<{
   (e: 'click', skill: UnifiedSkill): void
   (e: 'edit', skill: UnifiedSkill): void
   (e: 'delete', skill: UnifiedSkill): void
@@ -210,7 +214,7 @@ const maxDescriptionLength = 300
 
 const platformColor = computed(() => {
   const config = PLATFORM_CONFIG[props.skill.platform as Platform]
-  return config?.color || '#A78BFA'
+  return config?.color || 'var(--color-accent-secondary)'
 })
 
 const platformIcon = computed(() => {
@@ -273,23 +277,32 @@ function formatRelativeTime(timestamp: number): string {
   if (minutes > 0) return `${minutes}m ago`
   return 'just now'
 }
+
+function handleKeydown(event: KeyboardEvent) {
+  if (event.target !== event.currentTarget) return
+  if (event.key === 'Enter' || event.key === ' ') {
+    event.preventDefault()
+    event.stopPropagation()
+    emit('click', props.skill)
+  }
+}
 </script>
 
 <style scoped>
 .skill-card {
   @apply relative flex flex-row items-start gap-4 p-4 pl-5 rounded-2xl cursor-pointer
-         backdrop-blur-xl border border-white/10 text-white
+         backdrop-blur-xl border border-border-default/40 text-text-primary
          transition-[color,background-color,border-color,box-shadow,transform] duration-200 ease-out
          overflow-hidden;
 
-  background: rgb(0 0 0 / 40%);
+  background: rgb(var(--color-bg-elevated-rgb) / 0.78);
 }
 
 .skill-card:hover {
-  @apply border-white/20 transform scale-[1.01];
+  @apply border-accent-primary/20 transform scale-[1.01];
 
-  background: rgb(0 0 0 / 50%);
-  box-shadow: 0 4px 20px rgb(0 0 0 / 20%);
+  background: rgb(var(--color-bg-surface-rgb) / 0.92);
+  box-shadow: 0 12px 30px rgb(0 0 0 / 10%);
 }
 
 /* Platform column */
@@ -317,21 +330,21 @@ function formatRelativeTime(timestamp: number): string {
 }
 
 .skill-card__name {
-  @apply text-base font-bold text-white;
+  @apply text-base font-bold text-text-primary;
 }
 
 .skill-card__category {
   @apply flex items-center gap-1 px-2 py-0.5 rounded-md
-         text-[10px] font-medium text-white/80
-         bg-white/10;
+         text-[10px] font-medium text-text-secondary
+         bg-bg-surface border border-border-default/40;
 }
 
 .skill-card__category--empty {
-  @apply text-white/50 italic;
+  @apply text-text-muted italic;
 }
 
 .skill-card__description {
-  @apply text-sm text-white/80 leading-relaxed;
+  @apply text-sm text-text-secondary leading-relaxed;
 }
 
 .skill-card__tags {
@@ -340,7 +353,7 @@ function formatRelativeTime(timestamp: number): string {
 
 .skill-card__tag {
   @apply px-2 py-0.5 rounded-md text-[10px] font-medium
-         glass-surface text-white/70 border border-white/5;
+         bg-bg-surface text-text-secondary border border-border-default/40;
 }
 
 .skill-card__tag--more {
@@ -353,7 +366,7 @@ function formatRelativeTime(timestamp: number): string {
 }
 
 .skill-card__meta-item {
-  @apply flex items-center gap-1.5 text-xs text-white/50 font-mono;
+  @apply flex items-center gap-1.5 text-xs text-text-muted font-mono;
 }
 
 /* Source badge */
@@ -373,7 +386,7 @@ function formatRelativeTime(timestamp: number): string {
 }
 
 .skill-card__source--local {
-  @apply bg-white/10 text-white/70 border border-white/10;
+  @apply bg-bg-surface text-text-secondary border border-border-default/40;
 }
 
 /* Actions column */
@@ -384,8 +397,9 @@ function formatRelativeTime(timestamp: number): string {
 }
 
 .skill-card__action {
-  @apply p-2 rounded-lg text-white/50
-         hover:bg-white/10 hover:text-white
+  @apply min-h-[44px] min-w-[44px] p-2 rounded-lg text-text-muted
+         hover:bg-bg-surface hover:text-text-primary
+         focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary/30
          transition-colors;
 }
 
@@ -408,7 +422,7 @@ function formatRelativeTime(timestamp: number): string {
   @apply absolute left-0 top-3 bottom-3 w-[3px] rounded-full
          transition-opacity duration-200 pointer-events-none;
 
-  background: var(--accent-color, #A78BFA);
+  background: var(--accent-color, var(--color-accent-secondary));
   opacity: 0.25;
 }
 
@@ -416,5 +430,10 @@ function formatRelativeTime(timestamp: number): string {
   @apply top-2 bottom-2;
 
   opacity: 0.7;
+}
+
+.skill-card:focus-visible {
+  outline: 2px solid rgb(var(--color-accent-primary-rgb) / 0.4);
+  outline-offset: 2px;
 }
 </style>

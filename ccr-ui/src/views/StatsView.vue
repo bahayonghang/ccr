@@ -1,12 +1,60 @@
 <template>
-  <div class="stats-view p-6 space-y-6 min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-950">
-    <!-- Page Header -->
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-      <div>
-        <h1 class="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
-          <div class="p-2 rounded-xl bg-gradient-to-br from-orange-500 to-red-500 text-white shadow-lg">
+  <div class="stats-view min-h-screen space-y-6 p-4 sm:p-6">
+    <div class="glass-effect rounded-3xl border border-white/20 p-5 shadow-sm sm:p-6">
+      <div class="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+        <div class="space-y-2">
+          <div class="flex items-center gap-3">
+            <div class="flex h-11 w-11 items-center justify-center rounded-2xl border border-accent-primary/20 bg-gradient-to-br from-violet-500/20 to-fuchsia-500/20 text-accent-primary">
+              <svg
+                class="h-6 w-6"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+                />
+              </svg>
+            </div>
+            <div>
+              <h1 class="text-2xl font-bold text-text-primary">
+                {{ $t('stats.title') }}
+              </h1>
+              <p class="mt-1 text-sm text-text-secondary">
+                {{ $t('stats.subtitle') }}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex flex-col gap-3 sm:flex-row sm:flex-wrap xl:justify-end">
+          <select
+            v-model="selectedRange"
+            class="min-h-[44px] rounded-xl border border-border-default bg-bg-surface px-4 py-2.5 text-sm font-medium text-text-primary shadow-sm transition-[border-color,box-shadow] hover:border-accent-primary/40 focus:outline-none focus:ring-2 focus:ring-accent-primary/20"
+            :aria-label="$t('stats.actions.refresh')"
+            @change="loadData"
+          >
+            <option value="today">
+              {{ $t('stats.timeRange.today') }}
+            </option>
+            <option value="week">
+              {{ $t('stats.timeRange.thisWeek') }}
+            </option>
+            <option value="month">
+              {{ $t('stats.timeRange.thisMonth') }}
+            </option>
+          </select>
+
+          <button
+            type="button"
+            class="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl border border-accent-primary/20 bg-accent-primary/10 px-4 py-2.5 text-sm font-medium text-accent-primary transition-colors hover:bg-accent-primary/15 focus:outline-none focus:ring-2 focus:ring-accent-primary/20"
+            @click="showProvidersModal = true"
+          >
             <svg
-              class="w-6 h-6"
+              class="h-4 w-4"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -15,102 +63,60 @@
                 stroke-linecap="round"
                 stroke-linejoin="round"
                 stroke-width="2"
-                d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+                d="M4 6h16M4 10h16M4 14h16M4 18h16"
               />
             </svg>
-          </div>
-          {{ $t('stats.title') }}
-        </h1>
-        <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
-          {{ $t('stats.subtitle') }}
-        </p>
-      </div>
-      <div class="flex items-center gap-3">
-        <!-- Time Range Selector -->
-        <select
-          v-model="selectedRange"
-          class="px-4 py-2.5 border border-gray-200 dark:border-gray-600 rounded-xl bg-white/80 dark:bg-gray-800/80 text-gray-900 dark:text-white text-sm font-medium shadow-sm hover:border-orange-300 dark:hover:border-orange-600 focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-[border-color,box-shadow] cursor-pointer"
-          @change="loadData"
-        >
-          <option value="today">
-            {{ $t('stats.timeRange.today') }}
-          </option>
-          <option value="week">
-            {{ $t('stats.timeRange.thisWeek') }}
-          </option>
-          <option value="month">
-            {{ $t('stats.timeRange.thisMonth') }}
-          </option>
-        </select>
+            <span>{{ $t('stats.actions.providersStats') }}</span>
+          </button>
 
-        <!-- Provider Stats Button -->
-        <button
-          class="px-4 py-2.5 border border-orange-200 dark:border-orange-700 text-orange-600 dark:text-orange-300 rounded-xl flex items-center gap-2 hover:bg-orange-50 dark:hover:bg-orange-900/30 font-medium text-sm transition-colors shadow-sm"
-          @click="showProvidersModal = true"
-        >
-          <svg
-            class="w-4 h-4"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
+          <button
+            :disabled="loading"
+            type="button"
+            class="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-violet-500 to-purple-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-violet-500/25 transition-[color,background-color,border-color,transform] hover:-translate-y-0.5 hover:shadow-violet-500/35 focus:outline-none focus:ring-2 focus:ring-accent-primary/30 disabled:cursor-not-allowed disabled:opacity-50"
+            @click="loadData"
           >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M4 6h16M4 10h16M4 14h16M4 18h16"
-            />
-          </svg>
-          <span>{{ $t('stats.actions.providersStats') }}</span>
-        </button>
-
-        <!-- Refresh Button -->
-        <button
-          :disabled="loading"
-          class="px-4 py-2.5 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white rounded-xl flex items-center gap-2 disabled:opacity-50 font-medium text-sm shadow-lg shadow-orange-500/25 transition-colors"
-          @click="loadData"
-        >
-          <svg
-            class="w-4 h-4"
-            :class="{ 'animate-spin': loading }"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-            />
-          </svg>
-          <span>{{ $t('stats.actions.refresh') }}</span>
-        </button>
+            <svg
+              class="h-4 w-4"
+              :class="{ 'animate-spin': loading }"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+              />
+            </svg>
+            <span>{{ $t('stats.actions.refresh') }}</span>
+          </button>
+        </div>
       </div>
     </div>
 
-    <!-- Loading State -->
     <div
       v-if="loading"
-      class="flex items-center justify-center py-16"
+      class="glass-effect flex items-center justify-center rounded-3xl border border-white/20 py-16"
+      aria-live="polite"
     >
       <div class="flex flex-col items-center gap-4">
-        <div class="animate-spin rounded-full h-12 w-12 border-4 border-orange-200 border-t-orange-500" />
-        <p class="text-sm text-gray-500 dark:text-gray-400">
+        <div class="h-12 w-12 animate-spin rounded-full border-4 border-accent-primary/15 border-t-accent-primary" />
+        <p class="text-sm text-text-secondary">
           {{ $t('stats.states.loading', '加载中...') }}
         </p>
       </div>
     </div>
 
-    <!-- Error State -->
     <div
       v-if="error"
-      class="rounded-2xl bg-red-50/80 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-6 backdrop-blur-md"
+      class="rounded-2xl border border-red-500/30 bg-red-500/10 p-6 backdrop-blur-md"
+      role="alert"
     >
       <div class="flex items-start gap-4">
-        <div class="p-2 rounded-lg bg-red-100 dark:bg-red-800/30">
+        <div class="rounded-xl bg-red-500/15 p-2">
           <svg
-            class="h-5 w-5 text-red-500"
+            class="h-5 w-5 text-red-300"
             fill="currentColor"
             viewBox="0 0 20 20"
           >
@@ -122,37 +128,34 @@
           </svg>
         </div>
         <div>
-          <h3 class="text-sm font-semibold text-red-800 dark:text-red-200">
+          <h2 class="text-sm font-semibold text-red-100">
             {{ $t('stats.states.loadFailed') }}
-          </h3>
-          <p class="mt-1 text-sm text-red-700 dark:text-red-300">
+          </h2>
+          <p class="mt-1 text-sm text-red-100/85">
             {{ error }}
           </p>
         </div>
       </div>
     </div>
 
-    <!-- Stats Content -->
     <div
       v-if="!loading && !error && stats"
       class="space-y-6"
     >
-      <!-- Overview Cards Grid -->
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <!-- Total Cost -->
-        <div class="p-5 rounded-2xl bg-white/80 dark:bg-gray-800/80 border border-gray-200/50 dark:border-gray-700/50 shadow-sm backdrop-blur-md hover:shadow-md transition-shadow">
-          <div class="flex items-center justify-between">
+      <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <article class="glass-effect rounded-3xl border border-white/20 p-5 shadow-sm">
+          <div class="flex items-start justify-between gap-4">
             <div>
-              <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+              <p class="text-xs font-medium uppercase tracking-[0.24em] text-text-muted">
                 {{ $t('stats.summaryCards.totalCost') }}
               </p>
-              <p class="mt-2 text-2xl font-bold text-gray-900 dark:text-white">
+              <p class="mt-2 text-2xl font-bold text-text-primary">
                 ${{ formatCost(stats.total_cost) }}
               </p>
             </div>
-            <div class="p-3 rounded-xl bg-gradient-to-br from-green-100 to-emerald-100 dark:from-green-900/30 dark:to-emerald-900/30">
+            <div class="flex h-12 w-12 items-center justify-center rounded-2xl border border-accent-success/20 bg-accent-success/10 text-accent-success">
               <svg
-                class="w-6 h-6 text-green-600 dark:text-green-400"
+                class="h-6 w-6"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -166,22 +169,21 @@
               </svg>
             </div>
           </div>
-        </div>
+        </article>
 
-        <!-- Record Count -->
-        <div class="p-5 rounded-2xl bg-white/80 dark:bg-gray-800/80 border border-gray-200/50 dark:border-gray-700/50 shadow-sm backdrop-blur-md hover:shadow-md transition-shadow">
-          <div class="flex items-center justify-between">
+        <article class="glass-effect rounded-3xl border border-white/20 p-5 shadow-sm">
+          <div class="flex items-start justify-between gap-4">
             <div>
-              <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+              <p class="text-xs font-medium uppercase tracking-[0.24em] text-text-muted">
                 {{ $t('stats.summaryCards.apiCalls') }}
               </p>
-              <p class="mt-2 text-2xl font-bold text-gray-900 dark:text-white">
+              <p class="mt-2 text-2xl font-bold text-text-primary">
                 {{ stats.record_count }}
               </p>
             </div>
-            <div class="p-3 rounded-xl bg-gradient-to-br from-blue-100 to-indigo-100 dark:from-blue-900/30 dark:to-indigo-900/30">
+            <div class="flex h-12 w-12 items-center justify-center rounded-2xl border border-accent-primary/20 bg-accent-primary/10 text-accent-primary">
               <svg
-                class="w-6 h-6 text-blue-600 dark:text-blue-400"
+                class="h-6 w-6"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -195,22 +197,21 @@
               </svg>
             </div>
           </div>
-        </div>
+        </article>
 
-        <!-- Input Tokens -->
-        <div class="p-5 rounded-2xl bg-white/80 dark:bg-gray-800/80 border border-gray-200/50 dark:border-gray-700/50 shadow-sm backdrop-blur-md hover:shadow-md transition-shadow">
-          <div class="flex items-center justify-between">
+        <article class="glass-effect rounded-3xl border border-white/20 p-5 shadow-sm">
+          <div class="flex items-start justify-between gap-4">
             <div>
-              <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+              <p class="text-xs font-medium uppercase tracking-[0.24em] text-text-muted">
                 {{ $t('stats.summaryCards.inputToken') }}
               </p>
-              <p class="mt-2 text-2xl font-bold text-gray-900 dark:text-white">
+              <p class="mt-2 text-2xl font-bold text-text-primary">
                 {{ formatNumber(stats.token_stats?.total_input_tokens ?? 0) }}
               </p>
             </div>
-            <div class="p-3 rounded-xl bg-gradient-to-br from-purple-100 to-violet-100 dark:from-purple-900/30 dark:to-violet-900/30">
+            <div class="flex h-12 w-12 items-center justify-center rounded-2xl border border-accent-primary/20 bg-accent-primary/10 text-accent-primary">
               <svg
-                class="w-6 h-6 text-purple-600 dark:text-purple-400"
+                class="h-6 w-6"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -224,22 +225,21 @@
               </svg>
             </div>
           </div>
-        </div>
+        </article>
 
-        <!-- Output Tokens -->
-        <div class="p-5 rounded-2xl bg-white/80 dark:bg-gray-800/80 border border-gray-200/50 dark:border-gray-700/50 shadow-sm backdrop-blur-md hover:shadow-md transition-shadow">
-          <div class="flex items-center justify-between">
+        <article class="glass-effect rounded-3xl border border-white/20 p-5 shadow-sm">
+          <div class="flex items-start justify-between gap-4">
             <div>
-              <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+              <p class="text-xs font-medium uppercase tracking-[0.24em] text-text-muted">
                 {{ $t('stats.summaryCards.outputToken') }}
               </p>
-              <p class="mt-2 text-2xl font-bold text-gray-900 dark:text-white">
+              <p class="mt-2 text-2xl font-bold text-text-primary">
                 {{ formatNumber(stats.token_stats?.total_output_tokens ?? 0) }}
               </p>
             </div>
-            <div class="p-3 rounded-xl bg-gradient-to-br from-orange-100 to-amber-100 dark:from-orange-900/30 dark:to-amber-900/30">
+            <div class="flex h-12 w-12 items-center justify-center rounded-2xl border border-fuchsia-400/20 bg-fuchsia-500/10 text-fuchsia-300">
               <svg
-                class="w-6 h-6 text-orange-600 dark:text-orange-400"
+                class="h-6 w-6"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -253,14 +253,13 @@
               </svg>
             </div>
           </div>
-        </div>
+        </article>
       </div>
 
-      <!-- Token Details Card -->
-      <div class="p-6 rounded-2xl bg-white/80 dark:bg-gray-800/80 border border-gray-200/50 dark:border-gray-700/50 shadow-sm backdrop-blur-md">
-        <h2 class="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+      <section class="glass-effect rounded-3xl border border-white/20 p-6 shadow-sm">
+        <h2 class="mb-4 flex items-center gap-2 text-lg font-bold text-text-primary">
           <svg
-            class="w-5 h-5 text-orange-500"
+            class="h-5 w-5 text-accent-primary"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -274,41 +273,39 @@
           </svg>
           {{ $t('stats.tokenDetails.title') }}
         </h2>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div class="p-4 rounded-xl bg-gray-50/50 dark:bg-gray-700/30">
-            <p class="text-sm text-gray-600 dark:text-gray-400">
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
+          <div class="rounded-2xl border border-white/10 bg-bg-surface/60 p-4">
+            <p class="text-sm text-text-secondary">
               {{ $t('stats.tokenDetails.cacheToken') }}
             </p>
-            <p class="text-xl font-bold text-gray-900 dark:text-white mt-1">
+            <p class="mt-1 text-xl font-bold text-text-primary">
               {{ formatNumber(stats.token_stats?.total_cache_tokens ?? 0) }}
             </p>
           </div>
-          <div class="p-4 rounded-xl bg-gray-50/50 dark:bg-gray-700/30">
-            <p class="text-sm text-gray-600 dark:text-gray-400">
+          <div class="rounded-2xl border border-white/10 bg-bg-surface/60 p-4">
+            <p class="text-sm text-text-secondary">
               {{ $t('stats.tokenDetails.cacheEfficiency') }}
             </p>
-            <p class="text-xl font-bold text-gray-900 dark:text-white mt-1">
+            <p class="mt-1 text-xl font-bold text-text-primary">
               {{ formatPercent(stats.token_stats?.cache_efficiency ?? 0) }}%
             </p>
           </div>
-          <div class="p-4 rounded-xl bg-gray-50/50 dark:bg-gray-700/30">
-            <p class="text-sm text-gray-600 dark:text-gray-400">
+          <div class="rounded-2xl border border-white/10 bg-bg-surface/60 p-4">
+            <p class="text-sm text-text-secondary">
               {{ $t('stats.tokenDetails.totalToken') }}
             </p>
-            <p class="text-xl font-bold text-gray-900 dark:text-white mt-1">
+            <p class="mt-1 text-xl font-bold text-text-primary">
               {{ formatNumber(getTotalTokens()) }}
             </p>
           </div>
         </div>
-      </div>
+      </section>
 
-      <!-- Two Column Layout: By Model & By Project -->
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <!-- By Model -->
-        <div class="p-6 rounded-2xl bg-white/80 dark:bg-gray-800/80 border border-gray-200/50 dark:border-gray-700/50 shadow-sm backdrop-blur-md">
-          <h2 class="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+      <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <section class="glass-effect rounded-3xl border border-white/20 p-6 shadow-sm">
+          <h2 class="mb-4 flex items-center gap-2 text-lg font-bold text-text-primary">
             <svg
-              class="w-5 h-5 text-blue-500"
+              class="h-5 w-5 text-accent-primary"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -322,29 +319,28 @@
             </svg>
             {{ $t('stats.sections.byModel') }}
           </h2>
-          <div class="space-y-2 max-h-64 overflow-y-auto scrollbar-thin">
+          <div class="scrollbar-thin space-y-2 max-h-64 overflow-y-auto pr-1">
             <div
               v-for="[model, cost] in sortedModels"
               :key="model"
-              class="flex items-center justify-between p-3 rounded-xl bg-gray-50/50 dark:bg-gray-700/30 hover:bg-gray-100/50 dark:hover:bg-gray-600/30 transition-colors"
+              class="flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-bg-surface/50 p-3 transition-colors hover:bg-bg-elevated/70"
             >
-              <span class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ shortenModelName(model) }}</span>
-              <span class="text-sm font-bold text-gray-900 dark:text-white">${{ formatCost(cost) }}</span>
+              <span class="text-sm font-medium text-text-secondary">{{ shortenModelName(model) }}</span>
+              <span class="text-sm font-bold text-text-primary">${{ formatCost(cost) }}</span>
             </div>
             <div
               v-if="Object.keys(stats.by_model || {}).length === 0"
-              class="text-center text-gray-500 dark:text-gray-400 py-8"
+              class="py-8 text-center text-sm text-text-muted"
             >
               {{ $t('stats.states.noData') }}
             </div>
           </div>
-        </div>
+        </section>
 
-        <!-- By Project -->
-        <div class="p-6 rounded-2xl bg-white/80 dark:bg-gray-800/80 border border-gray-200/50 dark:border-gray-700/50 shadow-sm backdrop-blur-md">
-          <h2 class="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+        <section class="glass-effect rounded-3xl border border-white/20 p-6 shadow-sm">
+          <h2 class="mb-4 flex items-center gap-2 text-lg font-bold text-text-primary">
             <svg
-              class="w-5 h-5 text-green-500"
+              class="h-5 w-5 text-accent-success"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -358,33 +354,32 @@
             </svg>
             {{ $t('stats.sections.byProject') }}
           </h2>
-          <div class="space-y-2 max-h-64 overflow-y-auto scrollbar-thin">
+          <div class="scrollbar-thin space-y-2 max-h-64 overflow-y-auto pr-1">
             <div
               v-for="[project, cost] in sortedProjects.slice(0, 10)"
               :key="project"
-              class="flex items-center justify-between p-3 rounded-xl bg-gray-50/50 dark:bg-gray-700/30 hover:bg-gray-100/50 dark:hover:bg-gray-600/30 transition-colors"
+              class="flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-bg-surface/50 p-3 transition-colors hover:bg-bg-elevated/70"
             >
-              <span class="text-sm font-medium text-gray-700 dark:text-gray-300 truncate flex-1 mr-4">{{ shortenPath(project) }}</span>
-              <span class="text-sm font-bold text-gray-900 dark:text-white">${{ formatCost(cost) }}</span>
+              <span class="mr-4 flex-1 truncate text-sm font-medium text-text-secondary">{{ shortenPath(project) }}</span>
+              <span class="text-sm font-bold text-text-primary">${{ formatCost(cost) }}</span>
             </div>
             <div
               v-if="Object.keys(stats.by_project || {}).length === 0"
-              class="text-center text-gray-500 dark:text-gray-400 py-8"
+              class="py-8 text-center text-sm text-text-muted"
             >
               {{ $t('stats.states.noData') }}
             </div>
           </div>
-        </div>
+        </section>
       </div>
 
-      <!-- Cost Trend -->
-      <div
+      <section
         v-if="stats.trend && stats.trend.length > 0"
-        class="p-6 rounded-2xl bg-white/80 dark:bg-gray-800/80 border border-gray-200/50 dark:border-gray-700/50 shadow-sm backdrop-blur-md"
+        class="glass-effect rounded-3xl border border-white/20 p-6 shadow-sm"
       >
-        <h2 class="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+        <h2 class="mb-4 flex items-center gap-2 text-lg font-bold text-text-primary">
           <svg
-            class="w-5 h-5 text-orange-500"
+            class="h-5 w-5 text-fuchsia-300"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -398,34 +393,33 @@
           </svg>
           {{ $t('stats.sections.costTrend') }}
         </h2>
-        <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
+        <div class="grid grid-cols-2 gap-3 sm:grid-cols-4 xl:grid-cols-7">
           <div
             v-for="daily in stats.trend.slice().reverse().slice(0, 7).reverse()"
             :key="daily.date"
-            class="p-3 rounded-xl bg-gradient-to-br from-gray-50/50 to-gray-100/50 dark:from-gray-700/30 dark:to-gray-600/30 border border-gray-200/30 dark:border-gray-600/30 text-center"
+            class="rounded-2xl border border-white/10 bg-bg-surface/60 p-3 text-center"
           >
-            <p class="text-xs font-medium text-gray-500 dark:text-gray-400">
+            <p class="text-xs font-medium text-text-muted">
               {{ daily.date }}
             </p>
-            <p class="text-lg font-bold text-gray-900 dark:text-white mt-1">
+            <p class="mt-1 text-lg font-bold text-text-primary">
               ${{ formatCost(daily.cost) }}
             </p>
-            <p class="text-xs text-gray-500 dark:text-gray-400">
+            <p class="text-xs text-text-secondary">
               {{ daily.count }} {{ $t('stats.units.times') }}
             </p>
           </div>
         </div>
-      </div>
+      </section>
     </div>
 
-    <!-- Empty State -->
     <div
       v-if="!loading && !error && stats && stats.record_count === 0"
-      class="p-16 rounded-2xl bg-white/80 dark:bg-gray-800/80 border border-gray-200/50 dark:border-gray-700/50 shadow-sm backdrop-blur-md text-center"
+      class="glass-effect rounded-3xl border border-white/20 p-10 text-center shadow-sm sm:p-16"
     >
-      <div class="p-4 rounded-full bg-gray-100 dark:bg-gray-700 w-16 h-16 mx-auto flex items-center justify-center mb-4">
+      <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full border border-white/10 bg-bg-surface/70">
         <svg
-          class="h-8 w-8 text-gray-400"
+          class="h-8 w-8 text-text-muted"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -438,83 +432,59 @@
           />
         </svg>
       </div>
-      <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+      <h3 class="text-lg font-semibold text-text-primary">
         {{ $t('stats.states.noStatsData') }}
       </h3>
-      <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">
+      <p class="mt-2 text-sm text-text-secondary">
         {{ $t('stats.states.noStatsHint') }}
       </p>
     </div>
 
-    <!-- Providers Modal -->
-    <Teleport to="body">
-      <div
-        v-if="showProvidersModal"
-        class="fixed inset-0 bg-black/50 backdrop-blur-md flex items-center justify-center z-50"
-        @click.self="showProvidersModal = false"
-      >
-        <div class="w-full max-w-xl bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-2xl m-4 border border-gray-200/50 dark:border-gray-700/50">
-          <div class="flex items-center justify-between mb-6">
-            <div>
-              <h3 class="text-xl font-bold text-gray-900 dark:text-white">
-                {{ $t('stats.sections.providerUsage') }}
-              </h3>
-              <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                {{ $t('stats.sections.providerUsageSubtitle') }}
-              </p>
+    <BaseModal
+      v-model="showProvidersModal"
+      :title="$t('stats.sections.providerUsage')"
+      :description="$t('stats.sections.providerUsageSubtitle')"
+      size="xl"
+      surface="solid"
+      content-class="stats-provider-modal"
+    >
+      <div class="space-y-4 py-2">
+        <p class="text-sm text-text-secondary">
+          {{ $t('stats.sections.providerUsageSubtitle') }}
+        </p>
+        <div class="scrollbar-thin space-y-4 max-h-[60vh] overflow-y-auto pr-1">
+          <div
+            v-for="[provider, count] in sortedProviders"
+            :key="provider"
+            class="space-y-2 rounded-2xl border border-white/10 bg-bg-surface/50 p-4"
+          >
+            <div class="flex items-center justify-between gap-3 text-sm">
+              <span class="truncate font-medium text-text-primary">{{ provider || 'unknown' }}</span>
+              <span class="font-bold text-accent-primary">{{ count }} {{ $t('stats.units.times') }}</span>
             </div>
-            <button
-              class="p-2 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-              @click="showProvidersModal = false"
-            >
-              <svg
-                class="w-5 h-5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
-            </button>
+            <div class="h-2 w-full overflow-hidden rounded-full bg-bg-surface">
+              <div
+                class="h-full rounded-full bg-gradient-to-r from-violet-500 to-fuchsia-500 transition-[width]"
+                :style="{ width: `${getProviderBarWidth(count)}%` }"
+              />
+            </div>
           </div>
-          <div class="space-y-4 max-h-[60vh] overflow-y-auto">
-            <div
-              v-for="[provider, count] in sortedProviders"
-              :key="provider"
-              class="space-y-2"
-            >
-              <div class="flex items-center justify-between text-sm">
-                <span class="font-medium text-gray-700 dark:text-gray-300 truncate">{{ provider || 'unknown' }}</span>
-                <span class="font-bold text-gray-900 dark:text-white">{{ count }} {{ $t('stats.units.times') }}</span>
-              </div>
-              <div class="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-2">
-                <div
-                  class="h-2 rounded-full bg-gradient-to-r from-orange-400 to-red-500 transition-[width]"
-                  :style="{ width: `${getProviderBarWidth(count)}%` }"
-                />
-              </div>
-            </div>
-            <div
-              v-if="sortedProviders.length === 0"
-              class="text-center text-gray-500 dark:text-gray-400 py-8"
-            >
-              {{ $t('stats.states.noData') }}
-            </div>
+          <div
+            v-if="sortedProviders.length === 0"
+            class="py-8 text-center text-sm text-text-muted"
+          >
+            {{ $t('stats.states.noData') }}
           </div>
         </div>
       </div>
-    </Teleport>
+    </BaseModal>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
+import BaseModal from '@/components/common/BaseModal.vue'
 import { getCostOverview, getProviderUsage } from '@/api'
 import type { CostStats } from '@/types'
 import { logger } from '@/utils/logger'
@@ -531,7 +501,7 @@ const providerUsage = ref<Record<string, number>>({})
 const loadData = async () => {
   loading.value = true
   error.value = null
-  
+
   try {
     const [statsData, providerData] = await Promise.all([
       getCostOverview<CostStats>(selectedRange.value),
@@ -552,7 +522,6 @@ onMounted(() => {
   loadData()
 })
 
-// Computed
 const sortedModels = computed(() => {
   if (!stats.value) return []
   return Object.entries(stats.value.by_model || {}).sort((a, b) => b[1] - a[1])
@@ -572,7 +541,6 @@ const sortedProjects = computed(() => {
   return Object.entries(stats.value.by_project || {}).sort((a, b) => b[1] - a[1])
 })
 
-// Utility functions
 const formatCost = (cost: number): string => {
   return cost.toFixed(4)
 }
@@ -616,7 +584,10 @@ const getProviderBarWidth = (count: number): number => {
   min-height: calc(100vh - 64px);
 }
 
-/* Custom scrollbar */
+:deep(.stats-provider-modal) {
+  max-width: min(52rem, calc(100vw - 2rem));
+}
+
 .scrollbar-thin::-webkit-scrollbar {
   width: 4px;
 }
@@ -626,11 +597,11 @@ const getProviderBarWidth = (count: number): number => {
 }
 
 .scrollbar-thin::-webkit-scrollbar-thumb {
-  background-color: #d1d5db;
-  border-radius: 2px;
+  background-color: rgb(168 85 247 / 0.45);
+  border-radius: 9999px;
 }
 
-.dark .scrollbar-thin::-webkit-scrollbar-thumb {
-  background-color: #4b5563;
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background-color: rgb(168 85 247 / 0.7);
 }
 </style>

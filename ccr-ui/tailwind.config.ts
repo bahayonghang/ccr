@@ -49,6 +49,13 @@ export default {
           danger: 'rgb(var(--color-danger-rgb) / <alpha-value>)',
           info: 'rgb(var(--color-info-rgb) / <alpha-value>)',
         },
+        platform: {
+          claude: 'rgb(var(--color-platform-claude-rgb) / <alpha-value>)',
+          codex: 'rgb(var(--color-platform-codex-rgb) / <alpha-value>)',
+          gemini: 'rgb(var(--color-platform-gemini-rgb) / <alpha-value>)',
+          qwen: 'rgb(var(--color-platform-qwen-rgb) / <alpha-value>)',
+          iflow: 'rgb(var(--color-platform-iflow-rgb) / <alpha-value>)',
+        },
         border: {
           subtle: 'rgb(var(--color-border-subtle-rgb) / <alpha-value>)',
           default: 'rgb(var(--color-border-default-rgb) / <alpha-value>)',

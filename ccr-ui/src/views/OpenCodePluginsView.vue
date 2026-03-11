@@ -4,26 +4,26 @@
 
     <div class="max-w-3xl mx-auto space-y-5">
       <!-- 页面标题 -->
-      <div class="flex items-center justify-between animate-slide-up">
+      <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between animate-slide-up">
         <div class="flex items-center gap-3">
           <RouterLink
             to="/opencode"
-            class="p-2 rounded-lg text-white/50 hover:text-white transition-colors"
+            class="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl border border-border-default/60 bg-bg-surface/70 text-text-secondary transition-colors hover:border-accent-success/30 hover:text-text-primary"
           >
             <ChevronLeft class="w-5 h-5" />
           </RouterLink>
           <div>
-            <h1 class="text-2xl font-bold text-white">
+            <h1 class="text-2xl font-bold text-text-primary">
               插件管理
             </h1>
-            <p class="text-white/50 text-sm">
+            <p class="text-sm text-text-secondary">
               管理 OpenCode npm 插件包
             </p>
           </div>
         </div>
         <button
-          class="flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-transform hover:scale-105"
-          style="background: var(--accent-primary); color: white;"
+          type="button"
+          class="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl bg-accent-success px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-accent-success/90 focus:outline-none focus:ring-2 focus:ring-accent-success/30"
           @click="showAddDialog = true"
         >
           <Plus class="w-4 h-4" />
@@ -36,7 +36,7 @@
         v-if="loading"
         class="flex items-center justify-center py-16"
       >
-        <div class="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+        <div class="w-8 h-8 rounded-full border-2 border-accent-success/30 border-t-accent-success animate-spin" />
       </div>
 
       <!-- 错误状态 -->
@@ -45,11 +45,12 @@
         variant="elevated"
         class="p-6 text-center"
       >
-        <p class="text-red-400 mb-3">
+        <p class="mb-3 text-accent-danger">
           {{ error }}
         </p>
         <button
-          class="text-sm text-accent-primary hover:underline"
+          type="button"
+          class="min-h-[44px] rounded-lg px-3 text-sm text-accent-success transition-colors hover:bg-accent-success/10 hover:underline"
           @click="loadPlugins"
         >
           重新加载
@@ -62,16 +63,18 @@
         variant="glass"
         class="p-10 text-center"
       >
-        <Package class="w-12 h-12 text-white/50 mx-auto mb-4" />
-        <h3 class="text-lg font-bold text-white mb-2">
+        <div class="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-accent-success/10 text-accent-success">
+          <Package class="w-7 h-7" />
+        </div>
+        <h3 class="mb-2 text-lg font-bold text-text-primary">
           暂无插件
         </h3>
-        <p class="text-white/50 text-sm mb-4">
+        <p class="mb-4 text-sm text-text-secondary">
           添加 npm 插件包来扩展 OpenCode 功能
         </p>
         <button
-          class="px-4 py-2 rounded-lg font-medium text-sm transition-transform hover:scale-105"
-          style="background: var(--accent-primary); color: white;"
+          type="button"
+          class="inline-flex min-h-[44px] items-center justify-center rounded-xl bg-accent-success px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-accent-success/90 focus:outline-none focus:ring-2 focus:ring-accent-success/30"
           @click="showAddDialog = true"
         >
           添加第一个插件
@@ -91,21 +94,22 @@
         >
           <div class="flex items-center justify-between gap-4">
             <div class="flex items-center gap-3 min-w-0">
-              <div class="w-9 h-9 rounded-lg bg-emerald-500/10 flex items-center justify-center shrink-0">
-                <Package class="w-4 h-4 text-emerald-500" />
+              <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-accent-success/10 text-accent-success">
+                <Package class="w-4 h-4" />
               </div>
               <div class="min-w-0">
-                <p class="font-mono font-medium text-white truncate text-sm">
+                <p class="truncate font-mono text-sm font-medium text-text-primary">
                   {{ plugin.npm }}
                 </p>
-                <p class="text-xs text-white/50">
+                <p class="text-xs text-text-secondary">
                   npm 包
                 </p>
               </div>
             </div>
 
             <button
-              class="p-2 rounded-lg text-white/50 hover:text-red-400 hover:bg-red-500/10 transition-colors shrink-0"
+              type="button"
+              class="flex min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-xl text-text-secondary transition-colors hover:bg-accent-danger/10 hover:text-accent-danger focus:outline-none focus:ring-2 focus:ring-accent-danger/20"
               title="删除"
               @click="confirmDelete(plugin.npm)"
             >
@@ -117,50 +121,41 @@
     </div>
 
     <!-- 添加插件弹窗 -->
-    <div
-      v-if="showAddDialog"
-      class="fixed inset-0 flex items-center justify-center z-50 p-4"
-      style="background: rgb(0 0 0 / 50%); backdrop-filter: blur(4px);"
-      @click.self="showAddDialog = false"
+    <BaseModal
+      v-model="showAddDialog"
+      title="添加插件"
+      description="输入要安装到 OpenCode 的 npm 插件包名。"
+      size="md"
+      content-class="max-w-md"
     >
-      <Card
-        variant="glass"
-        class="w-full max-w-md p-6 space-y-4"
-      >
-        <div class="flex items-center justify-between">
-          <h2 class="text-lg font-bold text-white">
-            添加插件
-          </h2>
-          <button
-            class="p-1 rounded text-white/50 hover:text-white"
-            @click="showAddDialog = false"
-          >
-            <X class="w-5 h-5" />
-          </button>
-        </div>
-
+      <div class="space-y-4">
         <div>
-          <label class="block text-xs font-bold text-white/50 uppercase tracking-wider mb-1">npm 包名 *</label>
+          <label
+            for="opencode-plugin-npm"
+            class="mb-2 block text-xs font-bold uppercase tracking-wider text-text-secondary"
+          >npm 包名 *</label>
           <input
+            id="opencode-plugin-npm"
             v-model="newNpm"
             type="text"
             placeholder="例：@opencode-ai/omo"
-            class="w-full px-3 py-2 rounded-lg text-sm glass-surface border border-white/20 text-white placeholder:text-white/50 focus:outline-none focus:border-emerald-500"
+            class="w-full rounded-xl border border-border-default bg-bg-surface px-4 py-3 text-sm text-text-primary placeholder:text-text-muted focus:border-accent-success focus:outline-none focus:ring-2 focus:ring-accent-success/20"
             @keyup.enter="doAdd"
           >
         </div>
 
-        <div class="flex justify-end gap-3">
+        <div class="flex justify-end gap-3 border-t border-border-default/50 pt-4">
           <button
-            class="px-4 py-2 rounded-lg text-sm text-white/50 hover:text-white"
+            type="button"
+            class="min-h-[44px] rounded-xl border border-border-default bg-bg-surface px-4 py-2.5 text-sm text-text-secondary transition-colors hover:bg-bg-overlay hover:text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-success/20"
             @click="showAddDialog = false"
           >
             取消
           </button>
           <button
             :disabled="!newNpm.trim() || saving"
-            class="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-transform hover:scale-105 disabled:opacity-50 disabled:hover:scale-100"
-            style="background: var(--accent-primary); color: white;"
+            type="button"
+            class="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl bg-accent-success px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-accent-success/90 focus:outline-none focus:ring-2 focus:ring-accent-success/30 disabled:cursor-not-allowed disabled:opacity-50"
             @click="doAdd"
           >
             <Loader2
@@ -170,36 +165,34 @@
             添加
           </button>
         </div>
-      </Card>
-    </div>
+      </div>
+    </BaseModal>
 
     <!-- 删除确认弹窗 -->
-    <div
-      v-if="deletingNpm"
-      class="fixed inset-0 flex items-center justify-center z-50 p-4"
-      style="background: rgb(0 0 0 / 50%); backdrop-filter: blur(4px);"
-      @click.self="deletingNpm = ''"
+    <BaseModal
+      :model-value="Boolean(deletingNpm)"
+      title="确认删除"
+      description="删除后插件会从 OpenCode 配置中移除。"
+      size="sm"
+      content-class="max-w-sm"
+      @update:model-value="(value) => !value && (deletingNpm = '')"
     >
-      <Card
-        variant="glass"
-        class="w-full max-w-sm p-6 space-y-4"
-      >
-        <h2 class="text-lg font-bold text-white">
-          确认删除
-        </h2>
-        <p class="text-white/80 text-sm">
+      <div class="space-y-4">
+        <p class="text-sm text-text-secondary">
           确定要删除插件 <strong class="font-mono">{{ deletingNpm }}</strong> 吗？
         </p>
-        <div class="flex justify-end gap-3">
+        <div class="flex justify-end gap-3 border-t border-border-default/50 pt-4">
           <button
-            class="px-4 py-2 rounded-lg text-sm text-white/50 hover:text-white"
+            type="button"
+            class="min-h-[44px] rounded-xl border border-border-default bg-bg-surface px-4 py-2.5 text-sm text-text-secondary transition-colors hover:bg-bg-overlay hover:text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-danger/20"
             @click="deletingNpm = ''"
           >
             取消
           </button>
           <button
             :disabled="saving"
-            class="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-red-500 text-white hover:bg-red-600 disabled:opacity-50"
+            type="button"
+            class="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl bg-accent-danger px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-accent-danger/90 focus:outline-none focus:ring-2 focus:ring-accent-danger/30 disabled:cursor-not-allowed disabled:opacity-50"
             @click="doDelete"
           >
             <Loader2
@@ -209,16 +202,17 @@
             删除
           </button>
         </div>
-      </Card>
-    </div>
+      </div>
+    </BaseModal>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { ChevronLeft, Plus, Package, Trash2, X, Loader2 } from 'lucide-vue-next'
+import { ChevronLeft, Plus, Package, Trash2, Loader2 } from 'lucide-vue-next'
 import AnimatedBackground from '@/components/common/AnimatedBackground.vue'
 import Card from '@/components/ui/Card.vue'
+import BaseModal from '@/components/common/BaseModal.vue'
 import {
   listOpenCodePlugins,
   addOpenCodePlugin,

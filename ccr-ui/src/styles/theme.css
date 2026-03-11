@@ -95,6 +95,42 @@
     --color-danger-rgb: 251 113 133;
     --color-info-rgb: 192 132 252;
 
+    /* --- Platform Accent Tokens --- */
+    --color-platform-claude: #FF6B35;
+    --color-platform-claude-rgb: 255 107 53;
+    --color-platform-codex: #10B981;
+    --color-platform-codex-rgb: 16 185 129;
+    --color-platform-gemini: #4285F4;
+    --color-platform-gemini-rgb: 66 133 244;
+    --color-platform-qwen: #00B5E2;
+    --color-platform-qwen-rgb: 0 181 226;
+    --color-platform-iflow: #FAAD14;
+    --color-platform-iflow-rgb: 250 173 20;
+
+    /* --- Legacy Compatibility Aliases --- */
+    --text-primary: var(--color-text-primary);
+    --text-secondary: var(--color-text-secondary);
+    --text-muted: var(--color-text-muted);
+    --text-ghost: var(--color-text-ghost);
+    --bg-primary: var(--color-bg-base);
+    --bg-secondary: var(--color-bg-elevated);
+    --bg-tertiary: var(--color-bg-surface);
+    --bg-surface: var(--color-bg-surface);
+    --bg-overlay: var(--color-bg-overlay);
+    --bg-card: var(--color-bg-elevated);
+    --border-color: var(--color-border-default);
+    --accent-primary: var(--color-accent-primary);
+    --accent-secondary: var(--color-accent-secondary);
+    --accent-success: var(--color-success);
+    --accent-warning: var(--color-warning);
+    --accent-danger: var(--color-danger);
+    --accent-info: var(--color-info);
+    --platform-claude: var(--color-platform-claude);
+    --platform-codex: var(--color-platform-codex);
+    --platform-gemini: var(--color-platform-gemini);
+    --platform-qwen: var(--color-platform-qwen);
+    --platform-iflow: var(--color-platform-iflow);
+
     /* --- Spacing System --- */
     --space-1: 0.25rem;
 

@@ -4,31 +4,32 @@
       <!-- HEADER -->
       <header class="flex flex-col md:flex-row md:items-center justify-between gap-4 animate-slide-up">
         <div>
-          <div class="flex items-center gap-2 text-white/50 text-sm mb-2">
+          <div class="mb-2 flex items-center gap-2 text-sm text-text-secondary">
             <RouterLink
               to="/claude-code"
-              class="hover:text-white/80 transition-colors"
+              class="transition-colors hover:text-text-primary"
             >
               Claude Code
             </RouterLink>
             <ChevronRight class="w-3 h-3" />
-            <span class="text-white/80">{{ $t('claudeProfiles.breadcrumbProfiles') }}</span>
+            <span class="text-text-primary">{{ $t('claudeProfiles.breadcrumbProfiles') }}</span>
           </div>
-          <h1 class="text-3xl font-bold font-display tracking-tight text-gradient-brand">
+          <h1 class="text-3xl font-bold font-display tracking-tight text-text-primary">
             {{ $t('claudeProfiles.title') }}
           </h1>
-          <p class="text-white/60 mt-1">
+          <p class="mt-1 text-text-secondary">
             {{ $t('claudeProfiles.subtitle') }}
           </p>
         </div>
         <div class="flex items-center gap-3">
           <RouterLink to="/claude-code">
-            <button class="px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-white/70 hover:bg-white/10 hover:text-white transition-all text-sm flex items-center gap-2">
+            <button class="flex min-h-[44px] items-center gap-2 rounded-xl border border-border-default bg-bg-surface px-4 py-2.5 text-sm text-text-secondary transition-colors hover:bg-bg-elevated hover:text-text-primary">
               <ArrowLeft class="w-4 h-4" /> {{ $t('claudeProfiles.back') }}
             </button>
           </RouterLink>
           <button
-            class="px-4 py-2 rounded-xl bg-[#FF6B35]/20 border border-[#FF6B35]/30 text-[#FF6B35] hover:bg-[#FF6B35]/30 transition-all text-sm font-medium flex items-center gap-2"
+            type="button"
+            class="flex min-h-[44px] items-center gap-2 rounded-xl border border-accent-secondary/30 bg-accent-secondary/10 px-4 py-2.5 text-sm font-medium text-accent-secondary transition-colors hover:bg-accent-secondary/15 focus:outline-none focus:ring-2 focus:ring-accent-secondary/20"
             @click="openAddForm()"
           >
             <Plus class="w-4 h-4" /> {{ $t('claudeProfiles.addProfile') }}
@@ -42,48 +43,48 @@
         style="animation-delay: 100ms"
       >
         <!-- 当前 Profile -->
-        <div class="rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md p-5">
+        <div class="rounded-2xl border border-border-default/50 bg-bg-surface/75 p-5">
           <div class="flex items-center gap-3 mb-2">
-            <div class="w-10 h-10 rounded-xl bg-[#FF6B35]/20 flex items-center justify-center">
-              <Zap class="w-5 h-5 text-[#FF6B35]" />
+            <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-accent-secondary/10 text-accent-secondary">
+              <Zap class="w-5 h-5" />
             </div>
             <div>
-              <p class="text-white/50 text-xs uppercase tracking-wider">
+              <p class="text-xs uppercase tracking-wider text-text-secondary">
                 {{ $t('claudeProfiles.currentProfile') }}
               </p>
-              <p class="text-white font-semibold text-lg">
+              <p class="text-lg font-semibold text-text-primary">
                 {{ currentProfileName || $t('claudeProfiles.notSet') }}
               </p>
             </div>
           </div>
         </div>
         <!-- 总数 -->
-        <div class="rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md p-5">
+        <div class="rounded-2xl border border-border-default/50 bg-bg-surface/75 p-5">
           <div class="flex items-center gap-3 mb-2">
-            <div class="w-10 h-10 rounded-xl bg-purple-500/20 flex items-center justify-center">
-              <Layers class="w-5 h-5 text-purple-400" />
+            <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-accent-primary/10 text-accent-primary">
+              <Layers class="w-5 h-5" />
             </div>
             <div>
-              <p class="text-white/50 text-xs uppercase tracking-wider">
+              <p class="text-xs uppercase tracking-wider text-text-secondary">
                 {{ $t('claudeProfiles.totalCount') }}
               </p>
-              <p class="text-white font-semibold text-lg">
+              <p class="text-lg font-semibold text-text-primary">
                 {{ profiles.length }}
               </p>
             </div>
           </div>
         </div>
         <!-- 快照范围 -->
-        <div class="rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md p-5">
+        <div class="rounded-2xl border border-border-default/50 bg-bg-surface/75 p-5">
           <div class="flex items-center gap-3 mb-2">
-            <div class="w-10 h-10 rounded-xl bg-cyan-500/20 flex items-center justify-center">
-              <Package class="w-5 h-5 text-cyan-400" />
+            <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-accent-info/10 text-accent-info">
+              <Package class="w-5 h-5" />
             </div>
             <div>
-              <p class="text-white/50 text-xs uppercase tracking-wider">
+              <p class="text-xs uppercase tracking-wider text-text-secondary">
                 {{ $t('claudeProfiles.snapshotScope') }}
               </p>
-              <p class="text-white font-semibold text-sm">
+              <p class="text-sm font-semibold text-text-primary">
                 {{ $t('claudeProfiles.snapshotScopeValue') }}
               </p>
             </div>
@@ -94,20 +95,21 @@
       <!-- QUICK SWITCH -->
       <div
         v-if="profiles.length > 0"
-        class="rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md p-5 animate-slide-up"
+        class="rounded-2xl border border-border-default/50 bg-bg-surface/75 p-5 animate-slide-up"
         style="animation-delay: 150ms"
       >
-        <h3 class="text-white/70 text-sm font-medium mb-3 flex items-center gap-2">
+        <h3 class="mb-3 flex items-center gap-2 text-sm font-medium text-text-secondary">
           <RefreshCw class="w-4 h-4" /> {{ $t('claudeProfiles.quickSwitch') }}
         </h3>
         <div class="flex flex-wrap gap-3">
           <button
             v-for="profile in profiles"
             :key="profile.name"
-            class="px-4 py-2 rounded-xl text-sm font-medium transition-all flex items-center gap-2"
+            type="button"
+            class="flex min-h-[44px] items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-medium transition-colors"
             :class="profile.is_current
-              ? 'bg-[#FF6B35]/20 border border-[#FF6B35]/40 text-[#FF6B35] shadow-lg shadow-[#FF6B35]/10'
-              : 'bg-white/5 border border-white/10 text-white/70 hover:bg-white/10 hover:text-white'"
+              ? 'border-accent-secondary/35 bg-accent-secondary/10 text-accent-secondary shadow-sm'
+              : 'border-border-default bg-bg-surface text-text-secondary hover:bg-bg-elevated hover:text-text-primary'"
             @click="handleApply(profile.name)"
           >
             <Check
@@ -124,7 +126,7 @@
         v-if="loading"
         class="flex items-center justify-center py-20"
       >
-        <div class="w-8 h-8 border-2 border-[#FF6B35]/30 border-t-[#FF6B35] rounded-full animate-spin" />
+        <div class="h-8 w-8 rounded-full border-2 border-accent-secondary/30 border-t-accent-secondary animate-spin" />
       </div>
 
       <!-- EMPTY STATE -->
@@ -133,17 +135,18 @@
         class="text-center py-20 animate-slide-up"
         style="animation-delay: 200ms"
       >
-        <div class="w-20 h-20 rounded-3xl bg-white/5 border border-white/10 flex items-center justify-center mx-auto mb-6">
-          <FolderOpen class="w-10 h-10 text-white/20" />
+        <div class="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-3xl border border-border-default/50 bg-bg-surface/75">
+          <FolderOpen class="w-10 h-10 text-text-muted" />
         </div>
-        <h3 class="text-white/80 text-xl font-semibold mb-2">
+        <h3 class="mb-2 text-xl font-semibold text-text-primary">
           {{ $t('claudeProfiles.emptyTitle') }}
         </h3>
-        <p class="text-white/50 mb-6">
+        <p class="mb-6 text-text-secondary">
           {{ $t('claudeProfiles.emptyDesc') }}
         </p>
         <button
-          class="px-6 py-3 rounded-xl bg-[#FF6B35]/20 border border-[#FF6B35]/30 text-[#FF6B35] hover:bg-[#FF6B35]/30 transition-all font-medium"
+          type="button"
+          class="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-accent-secondary/30 bg-accent-secondary/10 px-6 py-3 text-sm font-medium text-accent-secondary transition-colors hover:bg-accent-secondary/15 focus:outline-none focus:ring-2 focus:ring-accent-secondary/20"
           @click="openAddForm()"
         >
           <Plus class="w-4 h-4 inline mr-2" /> {{ $t('claudeProfiles.createProfile') }}
@@ -159,36 +162,33 @@
         <div
           v-for="profile in profiles"
           :key="profile.id"
-          class="rounded-2xl border backdrop-blur-md p-6 transition-all hover:shadow-lg group"
+          class="group rounded-2xl border p-6 transition-[border-color,box-shadow,transform] hover:-translate-y-0.5 hover:shadow-lg"
           :class="profile.is_current
-            ? 'bg-[#FF6B35]/5 border-[#FF6B35]/30 shadow-[#FF6B35]/5'
-            : 'bg-white/5 border-white/10 hover:border-white/20'"
+            ? 'border-accent-secondary/30 bg-accent-secondary/5 shadow-accent-secondary/5'
+            : 'border-border-default/50 bg-bg-surface/75 hover:border-border-default'"
         >
           <!-- Card Header -->
           <div class="flex items-start justify-between mb-4">
             <div class="flex items-center gap-3">
               <div
-                class="w-10 h-10 rounded-xl flex items-center justify-center"
-                :class="profile.is_current ? 'bg-[#FF6B35]/20' : 'bg-white/10'"
+                class="flex h-10 w-10 items-center justify-center rounded-xl"
+                :class="profile.is_current ? 'bg-accent-secondary/10 text-accent-secondary' : 'bg-bg-elevated text-text-secondary'"
               >
-                <User
-                  class="w-5 h-5"
-                  :class="profile.is_current ? 'text-[#FF6B35]' : 'text-white/50'"
-                />
+                <User class="w-5 h-5" />
               </div>
               <div>
-                <h3 class="text-white font-semibold flex items-center gap-2">
+                <h3 class="flex items-center gap-2 font-semibold text-text-primary">
                   {{ profile.name }}
                   <span
                     v-if="profile.is_current"
-                    class="text-xs px-2 py-0.5 rounded-full bg-[#FF6B35]/20 text-[#FF6B35]"
+                    class="rounded-full bg-accent-secondary/10 px-2 py-0.5 text-xs text-accent-secondary"
                   >
                     {{ $t('claudeProfiles.currentBadge') }}
                   </span>
                 </h3>
                 <p
                   v-if="profile.description"
-                  class="text-white/50 text-sm"
+                  class="text-sm text-text-secondary"
                 >
                   {{ profile.description }}
                 </p>
@@ -196,14 +196,16 @@
             </div>
             <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
               <button
-                class="p-2 rounded-lg hover:bg-white/10 text-white/50 hover:text-white transition-all"
+                type="button"
+                class="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg text-text-secondary transition-colors hover:bg-bg-elevated hover:text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-secondary/20"
                 :title="$t('claudeProfiles.editTooltip')"
                 @click="openEditForm(profile)"
               >
                 <Pencil class="w-4 h-4" />
               </button>
               <button
-                class="p-2 rounded-lg hover:bg-red-500/10 text-white/50 hover:text-red-400 transition-all"
+                type="button"
+                class="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg text-text-secondary transition-colors hover:bg-accent-danger/10 hover:text-accent-danger focus:outline-none focus:ring-2 focus:ring-accent-danger/20"
                 :title="$t('claudeProfiles.deleteTooltip')"
                 @click="handleDelete(profile.name)"
               >
@@ -214,18 +216,18 @@
 
           <!-- Snapshot Summary -->
           <div class="grid grid-cols-2 gap-2 mb-4">
-            <div class="text-xs text-white/40">
-              <span class="text-white/60">{{ $t('claudeProfiles.mcpLabel') }}:</span> {{ $t('claudeProfiles.countUnit', { n: profile.snapshot_stats?.mcp_count ?? 0 }) }}
+            <div class="text-xs text-text-secondary">
+              <span class="text-text-primary">{{ $t('claudeProfiles.mcpLabel') }}:</span> {{ $t('claudeProfiles.countUnit', { n: profile.snapshot_stats?.mcp_count ?? 0 }) }}
             </div>
-            <div class="text-xs text-white/40">
-              <span class="text-white/60">{{ $t('claudeProfiles.stylesLabel') }}:</span> {{ $t('claudeProfiles.countUnit', { n: profile.snapshot_stats?.style_count ?? 0 }) }}
+            <div class="text-xs text-text-secondary">
+              <span class="text-text-primary">{{ $t('claudeProfiles.stylesLabel') }}:</span> {{ $t('claudeProfiles.countUnit', { n: profile.snapshot_stats?.style_count ?? 0 }) }}
             </div>
-            <div class="text-xs text-white/40">
-              <span class="text-white/60">{{ $t('claudeProfiles.updatedLabel') }}:</span> {{ formatDate(profile.updated_at) }}
+            <div class="text-xs text-text-secondary">
+              <span class="text-text-primary">{{ $t('claudeProfiles.updatedLabel') }}:</span> {{ formatDate(profile.updated_at) }}
             </div>
-            <div class="text-xs text-white/40">
-              <span class="text-white/60">{{ $t('claudeProfiles.enabledLabel') }}:</span>
-              <span :class="profile.enabled ? 'text-green-400' : 'text-red-400'">
+            <div class="text-xs text-text-secondary">
+              <span class="text-text-primary">{{ $t('claudeProfiles.enabledLabel') }}:</span>
+              <span :class="profile.enabled ? 'text-accent-success' : 'text-accent-danger'">
                 {{ profile.enabled ? $t('claudeProfiles.yes') : $t('claudeProfiles.no') }}
               </span>
             </div>
@@ -234,14 +236,15 @@
           <!-- Actions -->
           <button
             v-if="!profile.is_current"
-            class="w-full px-4 py-2.5 rounded-xl bg-[#FF6B35]/10 border border-[#FF6B35]/20 text-[#FF6B35] hover:bg-[#FF6B35]/20 transition-all text-sm font-medium"
+            type="button"
+            class="w-full rounded-xl border border-accent-secondary/25 bg-accent-secondary/10 px-4 py-2.5 text-sm font-medium text-accent-secondary transition-colors hover:bg-accent-secondary/15 focus:outline-none focus:ring-2 focus:ring-accent-secondary/20"
             @click="handleApply(profile.name)"
           >
             {{ $t('claudeProfiles.applyProfile') }}
           </button>
           <div
             v-else
-            class="w-full px-4 py-2.5 rounded-xl bg-[#FF6B35]/5 border border-[#FF6B35]/10 text-[#FF6B35]/60 text-sm font-medium text-center"
+            class="w-full rounded-xl border border-accent-secondary/15 bg-accent-secondary/5 px-4 py-2.5 text-center text-sm font-medium text-accent-secondary/70"
           >
             {{ $t('claudeProfiles.currentlyActive') }}
           </div>
@@ -249,105 +252,114 @@
       </div>
 
       <!-- ADD/EDIT MODAL -->
-      <Teleport to="body">
-        <div
-          v-if="showForm"
-          class="fixed inset-0 z-50 flex items-center justify-center p-4"
-        >
+      <BaseModal
+        v-model="showForm"
+        :title="isEditing ? $t('claudeProfiles.editProfileTitle') : $t('claudeProfiles.newProfileTitle')"
+        :description="$t('claudeProfiles.subtitle')"
+        size="lg"
+        content-class="max-w-lg"
+      >
+        <div class="space-y-4">
+          <div>
+            <label
+              for="claude-profile-name"
+              class="mb-1.5 block text-sm font-medium text-text-secondary"
+            >{{ $t('claudeProfiles.nameLabel') }}</label>
+            <input
+              id="claude-profile-name"
+              v-model="form.name"
+              type="text"
+              :placeholder="$t('claudeProfiles.namePlaceholder')"
+              class="w-full rounded-xl border border-border-default bg-bg-surface px-4 py-3 text-text-primary placeholder:text-text-muted transition-colors focus:border-accent-secondary focus:outline-none focus:ring-2 focus:ring-accent-secondary/20"
+            >
+          </div>
+
+          <div>
+            <label
+              for="claude-profile-description"
+              class="mb-1.5 block text-sm font-medium text-text-secondary"
+            >{{ $t('claudeProfiles.descLabel') }}</label>
+            <input
+              id="claude-profile-description"
+              v-model="form.description"
+              type="text"
+              :placeholder="$t('claudeProfiles.descPlaceholder')"
+              class="w-full rounded-xl border border-border-default bg-bg-surface px-4 py-3 text-text-primary placeholder:text-text-muted transition-colors focus:border-accent-secondary focus:outline-none focus:ring-2 focus:ring-accent-secondary/20"
+            >
+          </div>
+
+          <div>
+            <label
+              for="claude-profile-tags"
+              class="mb-1.5 block text-sm font-medium text-text-secondary"
+            >{{ $t('claudeProfiles.tagsLabel') }}</label>
+            <input
+              id="claude-profile-tags"
+              v-model="form.tagsInput"
+              type="text"
+              :placeholder="$t('claudeProfiles.tagsPlaceholder')"
+              class="w-full rounded-xl border border-border-default bg-bg-surface px-4 py-3 text-text-primary placeholder:text-text-muted transition-colors focus:border-accent-secondary focus:outline-none focus:ring-2 focus:ring-accent-secondary/20"
+            >
+          </div>
+
           <div
-            class="absolute inset-0 bg-black/60 backdrop-blur-sm"
-            @click="showForm = false"
-          />
-          <div class="relative w-full max-w-lg rounded-3xl bg-[#1a1025] border border-white/10 p-8 shadow-2xl">
-            <h2 class="text-xl font-bold text-white mb-6">
-              {{ isEditing ? $t('claudeProfiles.editProfileTitle') : $t('claudeProfiles.newProfileTitle') }}
-            </h2>
-
-            <!-- Name -->
-            <div class="mb-4">
-              <label class="block text-white/60 text-sm mb-1.5">{{ $t('claudeProfiles.nameLabel') }}</label>
-              <input
-                v-model="form.name"
-                type="text"
-                :placeholder="$t('claudeProfiles.namePlaceholder')"
-                class="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-white/30 focus:border-[#FF6B35]/50 focus:outline-none transition-colors"
-              >
-            </div>
-
-            <!-- Description -->
-            <div class="mb-4">
-              <label class="block text-white/60 text-sm mb-1.5">{{ $t('claudeProfiles.descLabel') }}</label>
-              <input
-                v-model="form.description"
-                type="text"
-                :placeholder="$t('claudeProfiles.descPlaceholder')"
-                class="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-white/30 focus:border-[#FF6B35]/50 focus:outline-none transition-colors"
-              >
-            </div>
-
-            <!-- Tags -->
-            <div class="mb-4">
-              <label class="block text-white/60 text-sm mb-1.5">{{ $t('claudeProfiles.tagsLabel') }}</label>
-              <input
-                v-model="form.tagsInput"
-                type="text"
-                :placeholder="$t('claudeProfiles.tagsPlaceholder')"
-                class="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-white/30 focus:border-[#FF6B35]/50 focus:outline-none transition-colors"
-              >
-            </div>
-
-            <!-- Snapshot from current -->
-            <div
-              v-if="!isEditing"
-              class="mb-6"
+            v-if="!isEditing"
+            class="rounded-xl border border-border-default/50 bg-bg-surface/60 p-4"
+          >
+            <label
+              for="claude-profile-snapshot-new"
+              class="flex cursor-pointer items-start gap-3"
             >
-              <label class="flex items-center gap-3 cursor-pointer">
-                <input
-                  v-model="form.snapshotFromCurrent"
-                  type="checkbox"
-                  class="w-4 h-4 rounded accent-[#FF6B35]"
-                >
-                <span class="text-white/80 text-sm">{{ $t('claudeProfiles.snapshotFromCurrent') }}</span>
-              </label>
-              <p class="text-white/40 text-xs mt-1 ml-7">
-                {{ $t('claudeProfiles.snapshotHint') }}
-              </p>
-            </div>
+              <input
+                id="claude-profile-snapshot-new"
+                v-model="form.snapshotFromCurrent"
+                type="checkbox"
+                class="mt-1 h-4 w-4 rounded border-border-default text-accent-secondary focus:ring-accent-secondary/30"
+              >
+              <span>
+                <span class="block text-sm text-text-primary">{{ $t('claudeProfiles.snapshotFromCurrent') }}</span>
+                <span class="mt-1 block text-xs text-text-secondary">{{ $t('claudeProfiles.snapshotHint') }}</span>
+              </span>
+            </label>
+          </div>
 
-            <!-- Re-snapshot for edit -->
-            <div
-              v-if="isEditing"
-              class="mb-6"
+          <div
+            v-if="isEditing"
+            class="rounded-xl border border-border-default/50 bg-bg-surface/60 p-4"
+          >
+            <label
+              for="claude-profile-snapshot-edit"
+              class="flex cursor-pointer items-center gap-3"
             >
-              <label class="flex items-center gap-3 cursor-pointer">
-                <input
-                  v-model="form.snapshotFromCurrent"
-                  type="checkbox"
-                  class="w-4 h-4 rounded accent-[#FF6B35]"
-                >
-                <span class="text-white/80 text-sm">{{ $t('claudeProfiles.reSnapshot') }}</span>
-              </label>
-            </div>
+              <input
+                id="claude-profile-snapshot-edit"
+                v-model="form.snapshotFromCurrent"
+                type="checkbox"
+                class="h-4 w-4 rounded border-border-default text-accent-secondary focus:ring-accent-secondary/30"
+              >
+              <span class="text-sm text-text-primary">{{ $t('claudeProfiles.reSnapshot') }}</span>
+            </label>
+          </div>
 
-            <!-- Actions -->
-            <div class="flex items-center justify-end gap-3">
-              <button
-                class="px-5 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white/70 hover:bg-white/10 transition-all text-sm"
-                @click="showForm = false"
-              >
-                {{ $t('claudeProfiles.cancel') }}
-              </button>
-              <button
-                class="px-5 py-2.5 rounded-xl bg-[#FF6B35]/20 border border-[#FF6B35]/30 text-[#FF6B35] hover:bg-[#FF6B35]/30 transition-all text-sm font-medium disabled:opacity-50"
-                :disabled="!form.name.trim()"
-                @click="handleSave()"
-              >
-                {{ isEditing ? $t('claudeProfiles.save') : $t('claudeProfiles.create') }}
-              </button>
-            </div>
+          <div class="flex items-center justify-end gap-3 border-t border-border-default/50 pt-4">
+            <button
+              type="button"
+              class="min-h-[44px] rounded-xl border border-border-default bg-bg-surface px-5 py-2.5 text-sm text-text-secondary transition-colors hover:bg-bg-elevated hover:text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-secondary/20"
+              @click="showForm = false"
+            >
+              {{ $t('claudeProfiles.cancel') }}
+            </button>
+            <button
+              type="button"
+              class="min-h-[44px] rounded-xl border border-accent-secondary/30 bg-accent-secondary/10 px-5 py-2.5 text-sm font-medium text-accent-secondary transition-colors hover:bg-accent-secondary/15 focus:outline-none focus:ring-2 focus:ring-accent-secondary/20 disabled:cursor-not-allowed disabled:opacity-50"
+              :disabled="!form.name.trim()"
+              @click="handleSave()"
+            >
+              {{ isEditing ? $t('claudeProfiles.save') : $t('claudeProfiles.create') }}
+            </button>
           </div>
         </div>
-      </Teleport>
+      </BaseModal>
     </div>
   </div>
 </template>
@@ -369,6 +381,7 @@ import {
 } from '@/api'
 import { getErrorMessage } from '@/types/api'
 import type { ClaudeProfile, ClaudeProfilesResponse } from '@/types'
+import BaseModal from '@/components/common/BaseModal.vue'
 
 const { t } = useI18n()
 

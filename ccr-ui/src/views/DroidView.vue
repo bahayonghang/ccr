@@ -1,127 +1,71 @@
 <template>
   <div class="min-h-screen relative">
-    <!-- 🎨 彩色背景装饰 -->
-    <!-- Standard Animated Background -->
     <AnimatedBackground variant="orbs" />
 
-    <div class="relative z-10 p-6 max-w-7xl mx-auto">
-      <!-- Hero 区域 -->
-      <div class="mb-8">
-        <div class="flex items-center justify-between mb-6">
-          <div class="flex items-center gap-4">
-            <div
-              class="p-4 rounded-3xl glass-card"
-              :style="{ background: 'rgba(16, 185, 129, 0.1)' }"
-            >
-              <Factory
-                class="w-10 h-10"
-                :style="{ color: '#10b981' }"
-              />
+    <div class="relative z-10 mx-auto max-w-7xl p-6">
+      <div class="mb-8 space-y-6">
+        <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div class="flex items-start gap-4">
+            <div class="flex h-16 w-16 shrink-0 items-center justify-center rounded-3xl border border-accent-success/20 bg-accent-success/10 text-accent-success shadow-sm">
+              <Factory class="w-8 h-8" />
             </div>
             <div>
-              <h1 class="text-4xl md:text-5xl font-bold mb-2 bg-gradient-to-r from-[#10b981] via-[#3b82f6] to-[#8b5cf6] bg-clip-text text-transparent">
+              <h1 class="mb-2 text-4xl font-bold tracking-tight text-text-primary md:text-5xl">
                 {{ $t('droid.overview.title') }}
               </h1>
-              <p
-                class="text-lg"
-                :style="{ color: 'var(--text-secondary)' }"
-              >
+              <p class="max-w-2xl text-lg text-text-secondary">
                 {{ $t('droid.overview.description') }}
               </p>
             </div>
           </div>
           <RouterLink
             to="/"
-            class="glass-card flex items-center gap-2 px-5 py-3 hover:scale-105 transition-transform duration-300"
+            class="inline-flex min-h-[44px] items-center gap-2 self-start rounded-2xl border border-border-default/60 bg-bg-surface/80 px-5 py-3 text-text-secondary transition-colors hover:border-accent-success/30 hover:bg-bg-elevated/70 hover:text-text-primary"
           >
-            <Home
-              class="w-5 h-5"
-              :style="{ color: '#64748b' }"
-            />
-            <span
-              class="font-medium"
-              :style="{ color: 'var(--text-secondary)' }"
-            >{{ $t('droid.overview.backToHome') }}</span>
+            <Home class="w-5 h-5" />
+            <span class="font-medium">{{ $t('droid.overview.backToHome') }}</span>
           </RouterLink>
         </div>
 
-        <!-- 特性标签 -->
-        <div class="flex flex-wrap gap-3 mb-6">
-          <span
-            class="px-4 py-2 rounded-full text-sm font-medium glass-card"
-            :style="{ background: 'rgba(16, 185, 129, 0.1)', color: '#10b981' }"
-          >
+        <div class="flex flex-wrap gap-3">
+          <span class="inline-flex min-h-[40px] items-center rounded-full border border-accent-success/20 bg-accent-success/10 px-4 py-2 text-sm font-medium text-accent-success">
             {{ $t('droid.overview.tags.multiProvider') }}
           </span>
-          <span
-            class="px-4 py-2 rounded-full text-sm font-medium glass-card"
-            :style="{ background: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6' }"
-          >
+          <span class="inline-flex min-h-[40px] items-center rounded-full border border-accent-info/20 bg-accent-info/10 px-4 py-2 text-sm font-medium text-accent-info">
             {{ $t('droid.overview.tags.customModels') }}
           </span>
-          <span
-            class="px-4 py-2 rounded-full text-sm font-medium glass-card"
-            :style="{ background: 'rgba(139, 92, 246, 0.1)', color: '#8b5cf6' }"
-          >
+          <span class="inline-flex min-h-[40px] items-center rounded-full border border-accent-primary/20 bg-accent-primary/10 px-4 py-2 text-sm font-medium text-accent-primary">
             {{ $t('droid.overview.tags.mcp') }}
           </span>
-          <span
-            class="px-4 py-2 rounded-full text-sm font-medium glass-card"
-            :style="{ background: 'rgba(236, 72, 153, 0.1)', color: '#ec4899' }"
-          >
+          <span class="inline-flex min-h-[40px] items-center rounded-full border border-accent-warning/20 bg-accent-warning/10 px-4 py-2 text-sm font-medium text-accent-warning">
             {{ $t('droid.overview.tags.coding') }}
           </span>
         </div>
       </div>
 
-      <!-- 功能模块网格 -->
-      <div class="mb-8">
-        <h2
-          class="text-2xl font-bold mb-6 flex items-center gap-3"
-          :style="{ color: 'var(--text-primary)' }"
-        >
-          <Boxes
-            class="w-7 h-7"
-            :style="{ color: '#10b981' }"
-          />
+      <section class="mb-8">
+        <h2 class="mb-6 flex items-center gap-3 text-2xl font-bold text-text-primary">
+          <Boxes class="w-7 h-7 text-accent-success" />
           {{ $t('droid.overview.features') }}
         </h2>
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <RouterLink
             to="/droid/mcp"
-            class="block group"
+            class="group block"
           >
-            <div class="glass-card p-6 h-full hover:scale-105 transition-transform duration-300">
+            <div class="h-full rounded-3xl border border-border-default/50 bg-bg-surface/75 p-6 shadow-sm transition-[border-color,transform,box-shadow] duration-200 hover:-translate-y-0.5 hover:border-accent-success/35 hover:shadow-lg hover:shadow-accent-success/5">
               <div class="flex items-start gap-4">
-                <div
-                  class="p-3 rounded-2xl"
-                  :style="{ background: 'rgba(16, 185, 129, 0.15)' }"
-                >
-                  <Server
-                    class="w-7 h-7"
-                    :style="{ color: '#10b981' }"
-                  />
+                <div class="rounded-2xl border border-accent-success/15 bg-accent-success/10 p-3 text-accent-success">
+                  <Server class="w-7 h-7" />
                 </div>
                 <div class="flex-1">
-                  <h3
-                    class="text-xl font-bold mb-2"
-                    :style="{ color: 'var(--text-primary)' }"
-                  >
+                  <h3 class="mb-2 text-xl font-bold text-text-primary">
                     {{ $t('droid.mcp.title') }}
                   </h3>
-                  <p
-                    class="text-sm mb-3"
-                    :style="{ color: 'var(--text-secondary)' }"
-                  >
+                  <p class="mb-3 text-sm text-text-secondary">
                     {{ $t('droid.mcp.description') }}
                   </p>
-                  <span
-                    class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold"
-                    :style="{
-                      background: 'rgba(16, 185, 129, 0.15)',
-                      color: '#10b981'
-                    }"
-                  >
+                  <span class="inline-flex items-center rounded-full border border-accent-success/20 bg-accent-success/10 px-3 py-1.5 text-xs font-bold text-accent-success">
                     {{ $t('droid.mcp.badge') }}
                   </span>
                 </div>
@@ -131,39 +75,21 @@
 
           <RouterLink
             to="/droid/agents"
-            class="block group"
+            class="group block"
           >
-            <div class="glass-card p-6 h-full hover:scale-105 transition-transform duration-300">
+            <div class="h-full rounded-3xl border border-border-default/50 bg-bg-surface/75 p-6 shadow-sm transition-[border-color,transform,box-shadow] duration-200 hover:-translate-y-0.5 hover:border-accent-info/35 hover:shadow-lg hover:shadow-accent-info/5">
               <div class="flex items-start gap-4">
-                <div
-                  class="p-3 rounded-2xl"
-                  :style="{ background: 'rgba(59, 130, 246, 0.15)' }"
-                >
-                  <Bot
-                    class="w-7 h-7"
-                    :style="{ color: '#3b82f6' }"
-                  />
+                <div class="rounded-2xl border border-accent-info/15 bg-accent-info/10 p-3 text-accent-info">
+                  <Bot class="w-7 h-7" />
                 </div>
                 <div class="flex-1">
-                  <h3
-                    class="text-xl font-bold mb-2"
-                    :style="{ color: 'var(--text-primary)' }"
-                  >
+                  <h3 class="mb-2 text-xl font-bold text-text-primary">
                     {{ $t('droid.agents.title') }}
                   </h3>
-                  <p
-                    class="text-sm mb-3"
-                    :style="{ color: 'var(--text-secondary)' }"
-                  >
+                  <p class="mb-3 text-sm text-text-secondary">
                     {{ $t('droid.agents.description') }}
                   </p>
-                  <span
-                    class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold"
-                    :style="{
-                      background: 'rgba(59, 130, 246, 0.15)',
-                      color: '#3b82f6'
-                    }"
-                  >
+                  <span class="inline-flex items-center rounded-full border border-accent-info/20 bg-accent-info/10 px-3 py-1.5 text-xs font-bold text-accent-info">
                     {{ $t('droid.agents.badge') }}
                   </span>
                 </div>
@@ -173,39 +99,21 @@
 
           <RouterLink
             to="/droid/plugins"
-            class="block group"
+            class="group block"
           >
-            <div class="glass-card p-6 h-full hover:scale-105 transition-transform duration-300">
+            <div class="h-full rounded-3xl border border-border-default/50 bg-bg-surface/75 p-6 shadow-sm transition-[border-color,transform,box-shadow] duration-200 hover:-translate-y-0.5 hover:border-accent-primary/35 hover:shadow-lg hover:shadow-accent-primary/5">
               <div class="flex items-start gap-4">
-                <div
-                  class="p-3 rounded-2xl"
-                  :style="{ background: 'rgba(139, 92, 246, 0.15)' }"
-                >
-                  <Puzzle
-                    class="w-7 h-7"
-                    :style="{ color: '#8b5cf6' }"
-                  />
+                <div class="rounded-2xl border border-accent-primary/15 bg-accent-primary/10 p-3 text-accent-primary">
+                  <Puzzle class="w-7 h-7" />
                 </div>
                 <div class="flex-1">
-                  <h3
-                    class="text-xl font-bold mb-2"
-                    :style="{ color: 'var(--text-primary)' }"
-                  >
+                  <h3 class="mb-2 text-xl font-bold text-text-primary">
                     {{ $t('droid.plugins.title') }}
                   </h3>
-                  <p
-                    class="text-sm mb-3"
-                    :style="{ color: 'var(--text-secondary)' }"
-                  >
+                  <p class="mb-3 text-sm text-text-secondary">
                     {{ $t('droid.plugins.description') }}
                   </p>
-                  <span
-                    class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold"
-                    :style="{
-                      background: 'rgba(139, 92, 246, 0.15)',
-                      color: '#8b5cf6'
-                    }"
-                  >
+                  <span class="inline-flex items-center rounded-full border border-accent-primary/20 bg-accent-primary/10 px-3 py-1.5 text-xs font-bold text-accent-primary">
                     {{ $t('droid.plugins.badge') }}
                   </span>
                 </div>
@@ -215,39 +123,21 @@
 
           <RouterLink
             to="/droid/slash-commands"
-            class="block group"
+            class="group block"
           >
-            <div class="glass-card p-6 h-full hover:scale-105 transition-transform duration-300">
+            <div class="h-full rounded-3xl border border-border-default/50 bg-bg-surface/75 p-6 shadow-sm transition-[border-color,transform,box-shadow] duration-200 hover:-translate-y-0.5 hover:border-accent-warning/35 hover:shadow-lg hover:shadow-accent-warning/5">
               <div class="flex items-start gap-4">
-                <div
-                  class="p-3 rounded-2xl"
-                  :style="{ background: 'rgba(236, 72, 153, 0.15)' }"
-                >
-                  <Command
-                    class="w-7 h-7"
-                    :style="{ color: '#ec4899' }"
-                  />
+                <div class="rounded-2xl border border-accent-warning/15 bg-accent-warning/10 p-3 text-accent-warning">
+                  <Command class="w-7 h-7" />
                 </div>
                 <div class="flex-1">
-                  <h3
-                    class="text-xl font-bold mb-2"
-                    :style="{ color: 'var(--text-primary)' }"
-                  >
+                  <h3 class="mb-2 text-xl font-bold text-text-primary">
                     {{ $t('droid.slashCommands.title') }}
                   </h3>
-                  <p
-                    class="text-sm mb-3"
-                    :style="{ color: 'var(--text-secondary)' }"
-                  >
+                  <p class="mb-3 text-sm text-text-secondary">
                     {{ $t('droid.slashCommands.description') }}
                   </p>
-                  <span
-                    class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold"
-                    :style="{
-                      background: 'rgba(236, 72, 153, 0.15)',
-                      color: '#ec4899'
-                    }"
-                  >
+                  <span class="inline-flex items-center rounded-full border border-accent-warning/20 bg-accent-warning/10 px-3 py-1.5 text-xs font-bold text-accent-warning">
                     {{ $t('droid.slashCommands.badge') }}
                   </span>
                 </div>
@@ -257,39 +147,21 @@
 
           <RouterLink
             to="/droid/models"
-            class="block group"
+            class="group block"
           >
-            <div class="glass-card p-6 h-full hover:scale-105 transition-transform duration-300">
+            <div class="h-full rounded-3xl border border-border-default/50 bg-bg-surface/75 p-6 shadow-sm transition-[border-color,transform,box-shadow] duration-200 hover:-translate-y-0.5 hover:border-accent-warning/35 hover:shadow-lg hover:shadow-accent-warning/5">
               <div class="flex items-start gap-4">
-                <div
-                  class="p-3 rounded-2xl"
-                  :style="{ background: 'rgba(245, 158, 11, 0.15)' }"
-                >
-                  <Cpu
-                    class="w-7 h-7"
-                    :style="{ color: '#f59e0b' }"
-                  />
+                <div class="rounded-2xl border border-accent-warning/15 bg-accent-warning/10 p-3 text-accent-warning">
+                  <Cpu class="w-7 h-7" />
                 </div>
                 <div class="flex-1">
-                  <h3
-                    class="text-xl font-bold mb-2"
-                    :style="{ color: 'var(--text-primary)' }"
-                  >
+                  <h3 class="mb-2 text-xl font-bold text-text-primary">
                     Custom Models
                   </h3>
-                  <p
-                    class="text-sm mb-3"
-                    :style="{ color: 'var(--text-secondary)' }"
-                  >
+                  <p class="mb-3 text-sm text-text-secondary">
                     管理自定义 AI 模型配置
                   </p>
-                  <span
-                    class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold"
-                    :style="{
-                      background: 'rgba(245, 158, 11, 0.15)',
-                      color: '#f59e0b'
-                    }"
-                  >
+                  <span class="inline-flex items-center rounded-full border border-accent-warning/20 bg-accent-warning/10 px-3 py-1.5 text-xs font-bold text-accent-warning">
                     多提供商支持
                   </span>
                 </div>
@@ -299,39 +171,21 @@
 
           <RouterLink
             to="/droid/profiles"
-            class="block group"
+            class="group block"
           >
-            <div class="glass-card p-6 h-full hover:scale-105 transition-transform duration-300">
+            <div class="h-full rounded-3xl border border-border-default/50 bg-bg-surface/75 p-6 shadow-sm transition-[border-color,transform,box-shadow] duration-200 hover:-translate-y-0.5 hover:border-accent-info/35 hover:shadow-lg hover:shadow-accent-info/5">
               <div class="flex items-start gap-4">
-                <div
-                  class="p-3 rounded-2xl"
-                  :style="{ background: 'rgba(20, 184, 166, 0.15)' }"
-                >
-                  <Settings
-                    class="w-7 h-7"
-                    :style="{ color: '#14b8a6' }"
-                  />
+                <div class="rounded-2xl border border-accent-info/15 bg-accent-info/10 p-3 text-accent-info">
+                  <Settings class="w-7 h-7" />
                 </div>
                 <div class="flex-1">
-                  <h3
-                    class="text-xl font-bold mb-2"
-                    :style="{ color: 'var(--text-primary)' }"
-                  >
+                  <h3 class="mb-2 text-xl font-bold text-text-primary">
                     Profiles
                   </h3>
-                  <p
-                    class="text-sm mb-3"
-                    :style="{ color: 'var(--text-secondary)' }"
-                  >
+                  <p class="mb-3 text-sm text-text-secondary">
                     管理配置文件和环境设置
                   </p>
-                  <span
-                    class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold"
-                    :style="{
-                      background: 'rgba(20, 184, 166, 0.15)',
-                      color: '#14b8a6'
-                    }"
-                  >
+                  <span class="inline-flex items-center rounded-full border border-accent-info/20 bg-accent-info/10 px-3 py-1.5 text-xs font-bold text-accent-info">
                     快速切换
                   </span>
                 </div>
@@ -341,39 +195,21 @@
 
           <RouterLink
             to="/droid/droids"
-            class="block group"
+            class="group block"
           >
-            <div class="glass-card p-6 h-full hover:scale-105 transition-transform duration-300">
+            <div class="h-full rounded-3xl border border-border-default/50 bg-bg-surface/75 p-6 shadow-sm transition-[border-color,transform,box-shadow] duration-200 hover:-translate-y-0.5 hover:border-accent-primary/35 hover:shadow-lg hover:shadow-accent-primary/5">
               <div class="flex items-start gap-4">
-                <div
-                  class="p-3 rounded-2xl"
-                  :style="{ background: 'rgba(168, 85, 247, 0.15)' }"
-                >
-                  <Bot
-                    class="w-7 h-7"
-                    :style="{ color: '#a855f7' }"
-                  />
+                <div class="rounded-2xl border border-accent-primary/15 bg-accent-primary/10 p-3 text-accent-primary">
+                  <Bot class="w-7 h-7" />
                 </div>
                 <div class="flex-1">
-                  <h3
-                    class="text-xl font-bold mb-2"
-                    :style="{ color: 'var(--text-primary)' }"
-                  >
+                  <h3 class="mb-2 text-xl font-bold text-text-primary">
                     Droids (Subagents)
                   </h3>
-                  <p
-                    class="text-sm mb-3"
-                    :style="{ color: 'var(--text-secondary)' }"
-                  >
+                  <p class="mb-3 text-sm text-text-secondary">
                     管理自定义 AI Subagents
                   </p>
-                  <span
-                    class="inline-flex items-center px-3 py-1.5 rounded-full text-xs font-bold"
-                    :style="{
-                      background: 'rgba(168, 85, 247, 0.15)',
-                      color: '#a855f7'
-                    }"
-                  >
+                  <span class="inline-flex items-center rounded-full border border-accent-primary/20 bg-accent-primary/10 px-3 py-1.5 text-xs font-bold text-accent-primary">
                     Markdown 配置
                   </span>
                 </div>
@@ -381,51 +217,38 @@
             </div>
           </RouterLink>
         </div>
-      </div>
+      </section>
 
-      <!-- 提示卡片 -->
-      <div class="glass-card p-6">
+      <section class="rounded-3xl border border-border-default/50 bg-bg-surface/80 p-6 shadow-sm">
         <div class="flex items-start gap-4">
-          <div
-            class="p-3 rounded-2xl"
-            :style="{ background: 'rgba(16, 185, 129, 0.15)' }"
-          >
-            <Info
-              class="w-6 h-6"
-              :style="{ color: '#10b981' }"
-            />
+          <div class="rounded-2xl border border-accent-success/15 bg-accent-success/10 p-3 text-accent-success">
+            <Info class="w-6 h-6" />
           </div>
           <div class="flex-1">
-            <h3
-              class="text-lg font-bold mb-2"
-              :style="{ color: 'var(--text-primary)' }"
-            >
+            <h3 class="mb-2 text-lg font-bold text-text-primary">
               {{ $t('droid.overview.featureTitle') }}
             </h3>
-            <ul
-              class="space-y-2 text-sm"
-              :style="{ color: 'var(--text-secondary)' }"
-            >
+            <ul class="space-y-2 text-sm text-text-secondary">
               <li class="flex items-start gap-2">
-                <span class="text-lg">•</span>
+                <span class="text-lg leading-none text-accent-success">•</span>
                 <span>{{ $t('droid.overview.feature1') }}</span>
               </li>
               <li class="flex items-start gap-2">
-                <span class="text-lg">•</span>
+                <span class="text-lg leading-none text-accent-success">•</span>
                 <span>{{ $t('droid.overview.feature2') }}</span>
               </li>
               <li class="flex items-start gap-2">
-                <span class="text-lg">•</span>
+                <span class="text-lg leading-none text-accent-success">•</span>
                 <span>{{ $t('droid.overview.feature3') }}</span>
               </li>
               <li class="flex items-start gap-2">
-                <span class="text-lg">•</span>
+                <span class="text-lg leading-none text-accent-success">•</span>
                 <span>{{ $t('droid.overview.feature4') }}</span>
               </li>
             </ul>
           </div>
         </div>
-      </div>
+      </section>
     </div>
   </div>
 </template>

@@ -1,54 +1,80 @@
 <template>
-  <div class="budget-view p-6 space-y-6">
-    <!-- 页面标题 -->
-    <div class="flex items-center justify-between">
-      <div>
-        <h1 class="text-3xl font-bold text-gray-900 dark:text-white">
-          💰 预算管理
-        </h1>
-        <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
-          管理成本预算限制和警告阈值
-        </p>
-      </div>
-      <button
-        :disabled="loading"
-        class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center space-x-2 disabled:opacity-50"
-        @click="loadData"
-      >
-        <svg
-          class="w-5 h-5"
-          :class="{ 'animate-spin': loading }"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
+  <div class="budget-view min-h-screen space-y-6 p-4 sm:p-6">
+    <div class="glass-effect rounded-3xl border border-white/20 p-5 shadow-sm sm:p-6">
+      <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div class="space-y-2">
+          <div class="flex items-center gap-3">
+            <div class="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-500/20 to-fuchsia-500/20 text-accent-primary border border-accent-primary/20">
+              <svg
+                class="h-5 w-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+            </div>
+            <div>
+              <h1 class="text-2xl font-bold text-text-primary sm:text-3xl">
+                预算管理
+              </h1>
+              <p class="text-sm text-text-secondary">
+                管理成本预算限制和警告阈值
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <button
+          :disabled="loading"
+          class="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-violet-500 to-purple-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-violet-500/25 transition-[color,background-color,border-color,transform] hover:-translate-y-0.5 hover:shadow-violet-500/35 focus:outline-none focus:ring-2 focus:ring-accent-primary/30 disabled:cursor-not-allowed disabled:opacity-50"
+          @click="loadData"
         >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-          />
-        </svg>
-        <span>刷新</span>
-      </button>
+          <svg
+            class="h-4 w-4"
+            :class="{ 'animate-spin': loading }"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+            />
+          </svg>
+          <span>刷新</span>
+        </button>
+      </div>
     </div>
 
-    <!-- 加载状态 -->
     <div
       v-if="loading"
-      class="flex items-center justify-center py-12"
+      class="glass-effect flex items-center justify-center rounded-3xl border border-white/20 py-16"
+      aria-live="polite"
     >
-      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600" />
+      <div class="flex flex-col items-center gap-4">
+        <div class="h-12 w-12 animate-spin rounded-full border-4 border-accent-primary/15 border-t-accent-primary" />
+        <p class="text-sm text-text-secondary">
+          正在加载预算数据...
+        </p>
+      </div>
     </div>
 
-    <!-- 错误提示 -->
     <div
       v-if="error"
-      class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4"
+      class="rounded-2xl border border-red-500/30 bg-red-500/10 p-4 text-red-100 backdrop-blur-md"
+      role="alert"
     >
-      <div class="flex">
+      <div class="flex items-start gap-3">
         <svg
-          class="h-5 w-5 text-red-400"
+          class="mt-0.5 h-5 w-5 flex-none text-red-300"
           fill="currentColor"
           viewBox="0 0 20 20"
         >
@@ -58,212 +84,237 @@
             clip-rule="evenodd"
           />
         </svg>
-        <div class="ml-3">
-          <h3 class="text-sm font-medium text-red-800 dark:text-red-200">
+        <div>
+          <h2 class="text-sm font-semibold text-red-200">
             加载失败
-          </h3>
-          <p class="mt-2 text-sm text-red-700 dark:text-red-300">
+          </h2>
+          <p class="mt-1 text-sm text-red-100/90">
             {{ error }}
           </p>
         </div>
       </div>
     </div>
 
-    <!-- 预算内容 -->
     <div
       v-if="!loading && !error && budgetStatus"
       class="space-y-6"
     >
-      <!-- 状态卡片 -->
-      <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-        <div class="flex items-center justify-between mb-4">
-          <h2 class="text-xl font-semibold text-gray-900 dark:text-white">
-            预算状态
-          </h2>
-          <div class="flex items-center space-x-2">
-            <span
-              class="px-3 py-1 rounded-full text-sm font-medium"
-              :class="budgetStatus.enabled ? 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400' : 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-400'"
-            >
-              {{ budgetStatus.enabled ? '✅ 已启用' : '❌ 已禁用' }}
-            </span>
+      <section class="glass-effect rounded-3xl border border-white/20 p-5 shadow-sm sm:p-6">
+        <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 class="text-xl font-semibold text-text-primary">
+              预算状态
+            </h2>
+            <p class="mt-1 text-sm text-text-secondary">
+              当前预算开关与各周期成本总览
+            </p>
           </div>
+
+          <span
+            class="inline-flex min-h-[36px] items-center rounded-full border px-3 py-1 text-sm font-medium"
+            :class="budgetStatus.enabled ? 'border-accent-success/30 bg-accent-success/10 text-accent-success' : 'border-border-default bg-bg-surface text-text-secondary'"
+          >
+            {{ budgetStatus.enabled ? '已启用' : '已禁用' }}
+          </span>
         </div>
 
-        <!-- 当前成本 -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
-            <p class="text-sm text-gray-600 dark:text-gray-400">
+        <div class="mb-6 grid grid-cols-1 gap-4 md:grid-cols-3">
+          <div class="rounded-2xl border border-white/10 bg-bg-surface/60 p-4 backdrop-blur-sm">
+            <p class="text-sm text-text-secondary">
               今日成本
             </p>
-            <p class="mt-2 text-2xl font-bold text-gray-900 dark:text-white">
+            <p class="mt-2 text-2xl font-bold text-text-primary">
               ${{ budgetStatus.current_costs.today.toFixed(4) }}
             </p>
           </div>
-          <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
-            <p class="text-sm text-gray-600 dark:text-gray-400">
+          <div class="rounded-2xl border border-white/10 bg-bg-surface/60 p-4 backdrop-blur-sm">
+            <p class="text-sm text-text-secondary">
               本周成本
             </p>
-            <p class="mt-2 text-2xl font-bold text-gray-900 dark:text-white">
+            <p class="mt-2 text-2xl font-bold text-text-primary">
               ${{ budgetStatus.current_costs.this_week.toFixed(4) }}
             </p>
           </div>
-          <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
-            <p class="text-sm text-gray-600 dark:text-gray-400">
+          <div class="rounded-2xl border border-white/10 bg-bg-surface/60 p-4 backdrop-blur-sm">
+            <p class="text-sm text-text-secondary">
               本月成本
             </p>
-            <p class="mt-2 text-2xl font-bold text-gray-900 dark:text-white">
+            <p class="mt-2 text-2xl font-bold text-text-primary">
               ${{ budgetStatus.current_costs.this_month.toFixed(4) }}
             </p>
           </div>
         </div>
 
-        <!-- 预算限制 -->
         <div class="space-y-4">
-          <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+          <h3 class="text-lg font-semibold text-text-primary">
             预算限制
           </h3>
-          <div class="space-y-3">
+          <div class="grid grid-cols-1 gap-3 md:grid-cols-3">
             <div
               v-for="(limit, period) in budgetLimits"
               :key="period"
-              class="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg"
+              class="flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-bg-surface/50 p-4"
             >
-              <span class="text-sm font-medium text-gray-700 dark:text-gray-300">
+              <span class="text-sm font-medium text-text-secondary">
                 {{ period }}
               </span>
-              <span class="text-sm text-gray-900 dark:text-white font-semibold">
+              <span class="text-sm font-semibold text-text-primary">
                 {{ (limit !== null && limit !== undefined) ? `$${limit.toFixed(2)}` : '无限制' }}
               </span>
             </div>
           </div>
         </div>
 
-        <!-- 警告 -->
         <div
           v-if="budgetStatus.warnings.length > 0"
           class="mt-6 space-y-3"
         >
-          <h3 class="text-lg font-semibold text-red-600 dark:text-red-400">
-            ⚠️ 预算警告
+          <h3 class="text-lg font-semibold text-accent-danger">
+            预算警告
           </h3>
           <div
             v-for="(warning, index) in budgetStatus.warnings"
             :key="index"
-            class="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg"
+            class="rounded-2xl border border-red-500/25 bg-red-500/10 p-4"
           >
-            <p class="text-sm text-red-800 dark:text-red-300">
-              <strong>{{ warning.period }}</strong>:
+            <p class="text-sm leading-6 text-red-100/90">
+              <strong class="text-red-100">{{ warning.period }}</strong>:
               当前成本 ${{ warning.current_cost.toFixed(2) }}
               / 限制 ${{ warning.limit.toFixed(2) }}
               ({{ warning.usage_percent.toFixed(1) }}%)
             </p>
           </div>
         </div>
-      </div>
+      </section>
 
-      <!-- 配置面板 -->
-      <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-        <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">
-          配置预算
-        </h2>
+      <section class="glass-effect rounded-3xl border border-white/20 p-5 shadow-sm sm:p-6">
+        <div class="mb-5">
+          <h2 class="text-xl font-semibold text-text-primary">
+            配置预算
+          </h2>
+          <p class="mt-1 text-sm text-text-secondary">
+            调整预算开关、上限以及告警阈值
+          </p>
+        </div>
+
         <form
-          class="space-y-4"
+          class="space-y-5"
           @submit.prevent="saveBudget"
         >
-          <!-- 启用/禁用 -->
-          <div class="flex items-center">
-            <input
-              id="enabled"
-              v-model="form.enabled"
-              type="checkbox"
-              class="w-4 h-4 text-blue-600 border-gray-300 rounded"
-            >
+          <div class="rounded-2xl border border-white/10 bg-bg-surface/40 p-4">
             <label
               for="enabled"
-              class="ml-2 text-sm font-medium text-gray-700 dark:text-gray-300"
+              class="flex cursor-pointer items-center gap-3"
             >
-              启用预算控制
+              <input
+                id="enabled"
+                v-model="form.enabled"
+                type="checkbox"
+                class="h-4 w-4 rounded border-border-default bg-bg-surface text-accent-primary focus:ring-2 focus:ring-accent-primary/30"
+              >
+              <div>
+                <p class="text-sm font-medium text-text-primary">
+                  启用预算控制
+                </p>
+                <p class="text-xs text-text-secondary">
+                  开启后将根据下方限制进行预算提醒
+                </p>
+              </div>
             </label>
           </div>
 
-          <!-- 预算限制输入 -->
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
             <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              <label
+                for="daily_limit"
+                class="block text-sm font-medium text-text-secondary"
+              >
                 每日限制 ($)
               </label>
               <input
+                id="daily_limit"
                 v-model.number="form.daily_limit"
                 type="number"
                 step="0.01"
                 min="0"
-                class="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                class="mt-2 block w-full rounded-xl border border-border-default bg-bg-surface px-4 py-2.5 text-text-primary transition-[border-color,box-shadow] placeholder:text-text-muted focus:border-accent-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/20"
                 placeholder="留空表示无限制"
               >
             </div>
+
             <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              <label
+                for="weekly_limit"
+                class="block text-sm font-medium text-text-secondary"
+              >
                 每周限制 ($)
               </label>
               <input
+                id="weekly_limit"
                 v-model.number="form.weekly_limit"
                 type="number"
                 step="0.01"
                 min="0"
-                class="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                class="mt-2 block w-full rounded-xl border border-border-default bg-bg-surface px-4 py-2.5 text-text-primary transition-[border-color,box-shadow] placeholder:text-text-muted focus:border-accent-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/20"
                 placeholder="留空表示无限制"
               >
             </div>
+
             <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              <label
+                for="monthly_limit"
+                class="block text-sm font-medium text-text-secondary"
+              >
                 每月限制 ($)
               </label>
               <input
+                id="monthly_limit"
                 v-model.number="form.monthly_limit"
                 type="number"
                 step="0.01"
                 min="0"
-                class="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                class="mt-2 block w-full rounded-xl border border-border-default bg-bg-surface px-4 py-2.5 text-text-primary transition-[border-color,box-shadow] placeholder:text-text-muted focus:border-accent-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/20"
                 placeholder="留空表示无限制"
               >
             </div>
           </div>
 
-          <!-- 警告阈值 -->
           <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+            <label
+              for="warn_threshold"
+              class="block text-sm font-medium text-text-secondary"
+            >
               警告阈值 (%)
             </label>
             <input
+              id="warn_threshold"
               v-model.number="form.warn_threshold"
               type="number"
               min="0"
               max="100"
-              class="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+              class="mt-2 block w-full rounded-xl border border-border-default bg-bg-surface px-4 py-2.5 text-text-primary transition-[border-color,box-shadow] focus:border-accent-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/20"
             >
           </div>
 
-          <!-- 按钮 -->
-          <div class="flex items-center space-x-4">
+          <div class="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
             <button
               type="submit"
               :disabled="saving"
-              class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg disabled:opacity-50"
+              class="inline-flex min-h-[44px] items-center justify-center rounded-xl bg-gradient-to-r from-violet-500 to-purple-600 px-6 py-2.5 font-semibold text-white shadow-lg shadow-violet-500/25 transition-[color,background-color,border-color,transform] hover:-translate-y-0.5 hover:shadow-violet-500/35 focus:outline-none focus:ring-2 focus:ring-accent-primary/30 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {{ saving ? '保存中...' : '保存配置' }}
             </button>
             <button
               type="button"
               :disabled="saving"
-              class="px-6 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg disabled:opacity-50"
+              class="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-border-default bg-bg-surface px-6 py-2.5 font-medium text-text-secondary transition-colors hover:bg-bg-elevated hover:text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/20 disabled:cursor-not-allowed disabled:opacity-50"
               @click="handleReset"
             >
               重置所有限制
             </button>
           </div>
         </form>
-      </div>
+      </section>
     </div>
   </div>
 </template>
@@ -311,7 +362,6 @@ const loadData = async () => {
     const status = await getBudgetStatus<BudgetStatus>()
     budgetStatus.value = status
 
-    // 更新表单
     form.value.enabled = status.enabled
     form.value.daily_limit = status.daily_limit
     form.value.weekly_limit = status.weekly_limit

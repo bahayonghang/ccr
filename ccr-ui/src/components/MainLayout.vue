@@ -1,5 +1,5 @@
 <template>
-  <div class="flex h-screen text-white overflow-hidden font-sans selection:bg-accent-primary/30">
+  <div class="flex h-screen text-text-primary overflow-hidden font-sans selection:bg-accent-primary/30">
     <!-- Skip Link -->
     <a
       href="#main-content"
@@ -16,12 +16,16 @@
       :style="{ width: sidebarWidth + 'px' }"
     >
       <!-- Resize Handle -->
-      <div
-        class="absolute -right-1 top-0 w-2 h-full cursor-col-resize z-50 group outline-none"
+      <button
+        type="button"
+        class="absolute -right-2 top-0 w-5 h-full cursor-col-resize z-50 group rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary/30"
+        aria-label="调整侧边栏宽度"
+        title="调整侧边栏宽度"
         @mousedown.prevent="startResize"
+        @keydown="handleResizeKeydown"
       >
         <div class="absolute inset-y-0 right-1/2 w-[1px] bg-border-subtle group-hover:bg-accent-primary/50 transition-colors delay-75" />
-      </div>
+      </button>
 
       <!-- Logo Area -->
       <div class="h-16 flex items-center px-4 border-b border-pink-200/20 dark:border-pink-300/10">
@@ -30,7 +34,7 @@
             <Cat class="w-5 h-5 text-white" />
           </div>
           <div>
-            <h1 class="text-lg font-bold font-display tracking-tight leading-none text-slate-800 dark:text-white">
+            <h1 class="text-lg font-bold font-display tracking-tight leading-none text-text-primary">
               CCR <span class="text-accent-primary">UI</span>
             </h1>
             <p class="text-[10px] uppercase tracking-widest text-pink-400 dark:text-pink-300 font-bold mt-0.5">
@@ -55,7 +59,7 @@
 
         <!-- Section: Skills Hub -->
         <div>
-          <div class="px-3 mb-2 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 flex items-center gap-2">
+          <div class="px-3 mb-2 text-[10px] font-bold uppercase tracking-wider text-text-muted flex items-center gap-2">
             {{ $t('nav.skillsHub') }}
             <div class="h-px flex-1 bg-black/10 dark:bg-white/10" />
           </div>
@@ -79,7 +83,7 @@
 
         <!-- Section: Modules -->
         <div>
-          <div class="px-3 mb-2 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 flex items-center gap-2">
+          <div class="px-3 mb-2 text-[10px] font-bold uppercase tracking-wider text-text-muted flex items-center gap-2">
             {{ $t('nav.mainModules') }}
             <div class="h-px flex-1 bg-black/10 dark:bg-white/10" />
           </div>
@@ -88,42 +92,42 @@
               to="/claude-code"
               class="nav-item group"
             >
-              <Code2 class="w-4 h-4 text-purple-400 group-hover:text-purple-300 transition-colors" />
+              <Code2 class="w-4 h-4 text-platform-claude group-hover:text-platform-claude/80 transition-colors" />
               <span>{{ $t('nav.claudeCode') }}</span>
             </RouterLink>
             <RouterLink
               to="/codex"
               class="nav-item group"
             >
-              <Settings class="w-4 h-4 text-emerald-400 group-hover:text-emerald-300 transition-colors" />
+              <Settings class="w-4 h-4 text-platform-codex group-hover:text-platform-codex/80 transition-colors" />
               <span>{{ $t('nav.codex') }}</span>
             </RouterLink>
             <RouterLink
               to="/gemini-cli"
               class="nav-item group"
             >
-              <Sparkles class="w-4 h-4 text-sky-400 group-hover:text-sky-300 transition-colors" />
+              <Sparkles class="w-4 h-4 text-platform-gemini group-hover:text-platform-gemini/80 transition-colors" />
               <span>{{ $t('nav.gemini') }}</span>
             </RouterLink>
             <RouterLink
               to="/qwen"
               class="nav-item group"
             >
-              <Zap class="w-4 h-4 text-cyan-400 group-hover:text-cyan-300 transition-colors" />
+              <Zap class="w-4 h-4 text-platform-qwen group-hover:text-platform-qwen/80 transition-colors" />
               <span>{{ $t('nav.qwen') }}</span>
             </RouterLink>
             <RouterLink
               to="/iflow"
               class="nav-item group"
             >
-              <Activity class="w-4 h-4 text-amber-400 group-hover:text-amber-300 transition-colors" />
+              <Activity class="w-4 h-4 text-platform-iflow group-hover:text-platform-iflow/80 transition-colors" />
               <span>{{ $t('nav.iflow') }}</span>
             </RouterLink>
             <RouterLink
               to="/droid"
               class="nav-item group"
             >
-              <Bot class="w-4 h-4 text-pink-400 group-hover:text-pink-300 transition-colors" />
+              <Bot class="w-4 h-4 text-accent-secondary group-hover:text-accent-secondary/80 transition-colors" />
               <span>{{ $t('nav.droid') }}</span>
             </RouterLink>
           </div>
@@ -131,7 +135,7 @@
 
         <!-- Section: Tools -->
         <div>
-          <div class="px-3 mb-2 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 flex items-center gap-2">
+          <div class="px-3 mb-2 text-[10px] font-bold uppercase tracking-wider text-text-muted flex items-center gap-2">
             {{ $t('nav.toolsCenter') }}
             <div class="h-px flex-1 bg-black/10 dark:bg-white/10" />
           </div>
@@ -193,7 +197,7 @@
             <div class="flex items-center justify-between">
               <!-- Session Status -->
               <p class="text-[11px] font-mono uppercase tracking-wider flex items-center gap-2">
-                <span class="text-slate-400">Session:</span>
+                <span class="text-text-muted">Session:</span>
                 <span class="flex items-center gap-1.5 text-emerald-400 font-semibold">
                   <span class="relative flex h-2 w-2">
                     <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
@@ -209,7 +213,7 @@
 
             <!-- Version -->
             <div class="flex items-center justify-between">
-              <span class="text-[10px] font-mono text-slate-500 bg-white/50 dark:bg-slate-800/50 px-2 py-0.5 rounded-md border border-slate-200 dark:border-slate-700/50">
+              <span class="text-[10px] font-mono text-text-muted bg-bg-elevated/80 px-2 py-0.5 rounded-md border border-border-default/60">
                 CCR UI v5.0.6
               </span>
             </div>
@@ -227,24 +231,24 @@
       class="flex-1 relative overflow-hidden flex flex-col"
     >
       <!-- Top Bar -->
-      <div class="h-14 flex items-center px-6 border-b border-black/5 dark:border-white/10 bg-white/10 dark:bg-slate-900/40 backdrop-blur-md z-30 sticky top-0 justify-between">
+      <div class="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-border-default/40 bg-bg-elevated/70 px-6 backdrop-blur-md">
         <!-- Left: Breadcrumbs or Back + Title -->
-        <div class="flex items-center text-sm text-white/50">
+        <div class="flex items-center text-sm text-text-secondary">
           <template v-if="route.meta.hideSidebar">
             <button
-              class="flex items-center gap-1.5 px-2.5 py-1.5 -ml-2 rounded-lg text-white/80 hover:text-white hover:bg-black/5 dark:hover:bg-white/10 transition-colors duration-200"
+              class="flex items-center gap-1.5 px-2.5 py-1.5 -ml-2 rounded-lg text-text-secondary hover:text-text-primary hover:bg-black/5 dark:hover:bg-white/10 transition-colors duration-200"
               @click="router.back()"
             >
               <ArrowLeft class="w-4 h-4" />
               <span class="text-xs font-medium">返回</span>
             </button>
             <span class="mx-2 opacity-30">|</span>
-            <span class="text-white font-semibold">{{ currentPageTitle }}</span>
+            <span class="text-text-primary font-semibold">{{ currentPageTitle }}</span>
           </template>
           <template v-else>
             <span class="opacity-50">{{ $t('nav.mainModules') }}</span>
             <span class="mx-2 opacity-30">/</span>
-            <span class="text-white font-medium">{{ currentPageTitle }}</span>
+            <span class="text-text-primary font-medium">{{ currentPageTitle }}</span>
           </template>
         </div>
 
@@ -263,7 +267,7 @@
             :class="[
               showExitConfirm 
                 ? 'bg-accent-primary/10 border-accent-primary/30 text-accent-primary' 
-                : 'glass-surface border-white/20 text-white/80 hover:text-white hover:border-accent-primary/30 hover:bg-white/5'
+                : 'glass-surface border-white/20 text-text-secondary hover:text-text-primary hover:border-accent-primary/30 hover:bg-white/5'
             ]"
             :title="showExitConfirm ? $t('common.yes') : $t('common.no')"
             @click="toggleExitConfirm"
@@ -404,6 +408,27 @@ const stopResize = () => {
   localStorage.setItem('ccr-sidebar-width', sidebarWidth.value.toString())
   window.removeEventListener('mousemove', handleResize)
   window.removeEventListener('mouseup', stopResize)
+}
+
+const handleResizeKeydown = (event: KeyboardEvent) => {
+  const step = event.shiftKey ? 32 : 16
+  if (event.key === 'ArrowLeft') {
+    event.preventDefault()
+    sidebarWidth.value = Math.max(minWidth, sidebarWidth.value - step)
+  } else if (event.key === 'ArrowRight') {
+    event.preventDefault()
+    sidebarWidth.value = Math.min(maxWidth, sidebarWidth.value + step)
+  } else if (event.key === 'Home') {
+    event.preventDefault()
+    sidebarWidth.value = minWidth
+  } else if (event.key === 'End') {
+    event.preventDefault()
+    sidebarWidth.value = maxWidth
+  } else {
+    return
+  }
+
+  localStorage.setItem('ccr-sidebar-width', sidebarWidth.value.toString())
 }
 
 onMounted(async () => {

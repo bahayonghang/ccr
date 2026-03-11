@@ -1,10 +1,13 @@
 <template>
-  <div
-    class="config-item group cursor-pointer rounded-lg transition-colors duration-200"
+  <button
+    type="button"
+    class="config-item group w-full rounded-lg text-left transition-[color,background-color,border-color,box-shadow] duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary/30 focus-visible:ring-offset-2 focus-visible:ring-offset-bg-base"
     :class="{
       'config-item--active': config.is_current,
       'config-item--idle': !config.is_current,
     }"
+    :aria-pressed="config.is_current"
+    :aria-label="config.provider ? `${config.name} · ${config.provider}` : config.name"
     @click="$emit('click')"
   >
     <div class="flex items-center gap-2.5 px-2.5 py-2">
@@ -21,7 +24,7 @@
         <div class="flex items-center gap-1.5">
           <span
             class="text-xs font-semibold truncate transition-colors duration-200"
-            :class="config.is_current ? 'text-accent-primary' : 'text-white group-hover:text-white'"
+            :class="config.is_current ? 'text-accent-primary' : 'text-text-primary group-hover:text-accent-primary'"
             :title="config.name"
           >
             {{ config.name }}
@@ -35,7 +38,7 @@
         <!-- Provider 信息 -->
         <p
           v-if="config.provider"
-          class="text-[10px] text-white/50 truncate mt-0.5 leading-tight"
+          class="text-[10px] text-text-muted truncate mt-0.5 leading-tight"
         >
           {{ config.provider }}
         </p>
@@ -56,11 +59,11 @@
           默认
         </span>
         <ChevronRight
-          class="w-3 h-3 text-white/50 opacity-0 group-hover:opacity-70 transition-opacity shrink-0"
+          class="w-3 h-3 text-text-muted opacity-0 group-hover:opacity-70 transition-opacity shrink-0"
         />
       </div>
     </div>
-  </div>
+  </button>
 </template>
 
 <script setup lang="ts">
@@ -101,15 +104,18 @@ const avatarClass = computed(() => {
 <style scoped>
 .config-item--idle {
   background: transparent;
+  border: 1px solid transparent;
 }
 
 .config-item--idle:hover {
-  background: var(--color-bg-surface);
+  background: rgb(var(--color-bg-surface-rgb) / 0.8);
+  border-color: rgb(var(--color-border-default-rgb) / 0.45);
 }
 
 .config-item--active {
-  background: rgb(var(--color-accent-primary-rgb) / 8%);
-  backdrop-filter: blur(8px);
+  background: rgb(var(--color-accent-primary-rgb) / 0.1);
+  border: 1px solid rgb(var(--color-accent-primary-rgb) / 0.16);
+  backdrop-filter: blur(12px);
   box-shadow: inset 2px 0 0 var(--color-accent-primary);
 }
 </style>

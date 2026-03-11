@@ -1,97 +1,110 @@
 <template>
-  <div class="date-range-picker relative">
+  <div class="date-range-picker relative w-full sm:w-auto">
     <button
-      class="px-4 py-2 rounded-lg glass-card hover:scale-105 transition-[color,background-color,border-color,transform] duration-200 flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300"
+      type="button"
+      class="glass-card inline-flex min-h-[44px] w-full items-center justify-between gap-2 rounded-xl px-4 py-2.5 text-left text-sm font-medium text-text-primary transition-[color,background-color,border-color,transform] duration-200 hover:border-accent-primary/40 hover:text-accent-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/30 sm:w-auto sm:min-w-[17rem]"
+      :aria-expanded="isOpen"
+      aria-haspopup="dialog"
       @click="togglePicker"
     >
-      <Calendar class="w-4 h-4" />
-      <span v-if="!modelValue.startDate && !modelValue.endDate">
-        Select Date Range
-      </span>
-      <span v-else>
-        {{ formatDate(modelValue.startDate) }} - {{ formatDate(modelValue.endDate) }}
+      <span class="flex min-w-0 items-center gap-2">
+        <Calendar class="h-4 w-4 flex-none" />
+        <span class="truncate">
+          <span v-if="!modelValue.startDate && !modelValue.endDate">
+            Select Date Range
+          </span>
+          <span v-else>
+            {{ formatDate(modelValue.startDate) }} - {{ formatDate(modelValue.endDate) }}
+          </span>
+        </span>
       </span>
       <ChevronDown
-        class="w-4 h-4"
+        class="h-4 w-4 flex-none transition-transform duration-300"
         :class="{ 'rotate-180': isOpen }"
       />
     </button>
 
-    <!-- Picker Dropdown -->
     <div
       v-if="isOpen"
-      class="absolute top-full left-0 mt-2 z-50 glass-card rounded-lg shadow-2xl p-4 min-w-[320px]"
+      class="absolute left-0 right-0 top-full z-50 mt-2 w-full sm:right-auto sm:w-[22rem]"
       @click.stop
     >
-      <!-- Quick Presets -->
-      <div class="mb-4 pb-4 border-b border-gray-200 dark:border-gray-700">
-        <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-          Quick Select
-        </h4>
-        <div class="grid grid-cols-2 gap-2">
-          <button
-            v-for="preset in presets"
-            :key="preset.label"
-            class="px-3 py-2 text-sm rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 transition-colors"
-            @click="selectPreset(preset)"
-          >
-            {{ preset.label }}
-          </button>
-        </div>
-      </div>
-
-      <!-- Custom Range -->
-      <div class="space-y-3">
-        <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-300">
-          Custom Range
-        </h4>
-
-        <!-- Start Date -->
-        <div>
-          <label class="block text-xs text-gray-600 dark:text-gray-400 mb-1">
-            Start Date
-          </label>
-          <input
-            v-model="localStartDate"
-            type="date"
-            class="w-full px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white text-sm border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-            :max="localEndDate || today"
-          >
+      <div class="glass-effect rounded-2xl border border-white/20 p-4 shadow-2xl">
+        <div class="mb-4 border-b border-border-default/60 pb-4">
+          <h4 class="mb-3 text-sm font-semibold text-text-primary">
+            Quick Select
+          </h4>
+          <div class="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            <button
+              v-for="preset in presets"
+              :key="preset.label"
+              type="button"
+              class="min-h-[40px] rounded-xl border border-border-default bg-bg-surface px-3 py-2 text-sm text-text-secondary transition-colors hover:border-accent-primary/30 hover:bg-bg-elevated hover:text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/20"
+              @click="selectPreset(preset)"
+            >
+              {{ preset.label }}
+            </button>
+          </div>
         </div>
 
-        <!-- End Date -->
-        <div>
-          <label class="block text-xs text-gray-600 dark:text-gray-400 mb-1">
-            End Date
-          </label>
-          <input
-            v-model="localEndDate"
-            type="date"
-            class="w-full px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white text-sm border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-            :min="localStartDate"
-            :max="today"
-          >
-        </div>
+        <div class="space-y-4">
+          <h4 class="text-sm font-semibold text-text-primary">
+            Custom Range
+          </h4>
 
-        <!-- Action Buttons -->
-        <div class="flex gap-2 pt-2">
-          <button
-            class="flex-1 px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white rounded-lg text-sm font-medium transition-transform duration-300 hover:scale-105"
-            @click="applyCustomRange"
-          >
-            Apply
-          </button>
-          <button
-            class="px-4 py-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg text-sm font-medium transition-colors"
-            @click="clearRange"
-          >
-            Clear
-          </button>
+          <div>
+            <label
+              for="date-range-start"
+              class="mb-1 block text-xs font-medium text-text-secondary"
+            >
+              Start Date
+            </label>
+            <input
+              id="date-range-start"
+              v-model="localStartDate"
+              type="date"
+              class="w-full rounded-xl border border-border-default bg-bg-surface px-3 py-2.5 text-sm text-text-primary transition-[border-color,box-shadow] focus:border-accent-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/20"
+              :max="localEndDate || today"
+            >
+          </div>
+
+          <div>
+            <label
+              for="date-range-end"
+              class="mb-1 block text-xs font-medium text-text-secondary"
+            >
+              End Date
+            </label>
+            <input
+              id="date-range-end"
+              v-model="localEndDate"
+              type="date"
+              class="w-full rounded-xl border border-border-default bg-bg-surface px-3 py-2.5 text-sm text-text-primary transition-[border-color,box-shadow] focus:border-accent-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/20"
+              :min="localStartDate"
+              :max="today"
+            >
+          </div>
+
+          <div class="flex flex-col gap-2 pt-1 sm:flex-row">
+            <button
+              type="button"
+              class="inline-flex min-h-[44px] flex-1 items-center justify-center rounded-xl bg-gradient-to-r from-violet-500 to-purple-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-violet-500/20 transition-[color,background-color,border-color,transform] hover:-translate-y-0.5 hover:shadow-violet-500/30 focus:outline-none focus:ring-2 focus:ring-accent-primary/30"
+              @click="applyCustomRange"
+            >
+              Apply
+            </button>
+            <button
+              type="button"
+              class="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-border-default bg-bg-surface px-4 py-2.5 text-sm font-medium text-text-secondary transition-colors hover:bg-bg-elevated hover:text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/20"
+              @click="clearRange"
+            >
+              Clear
+            </button>
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- Backdrop -->
     <div
       v-if="isOpen"
       class="fixed inset-0 z-40"
@@ -126,7 +139,6 @@ const localEndDate = ref<string>('')
 
 const today = new Date().toISOString().split('T')[0]
 
-// Quick presets
 const presets = [
   {
     label: 'Last 7 days',
@@ -228,7 +240,6 @@ const formatDate = (date: string | null) => {
   })
 }
 
-// Sync local values with prop changes
 watch(() => props.modelValue, (newValue) => {
   if (!isOpen.value) {
     localStartDate.value = newValue.startDate || ''
@@ -242,8 +253,9 @@ watch(() => props.modelValue, (newValue) => {
   position: relative;
 }
 
-.rotate-180 {
-  transform: rotate(180deg);
-  transition: transform 0.3s ease;
+@media (max-width: 639px) {
+  .date-range-picker {
+    width: 100%;
+  }
 }
 </style>

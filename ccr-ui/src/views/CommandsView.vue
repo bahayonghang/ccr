@@ -51,28 +51,23 @@
               <button
                 v-for="client in CLI_CLIENTS"
                 :key="client.id"
-                class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors relative group"
+                class="group relative flex min-h-[48px] w-full items-center gap-3 rounded-lg px-3 py-2.5 transition-colors"
                 :class="selectedClient === client.id ? 'bg-bg-elevated' : 'hover:bg-bg-elevated/50'"
                 @click="setSelectedClient(client.id)"
               >
                 <div 
-                  class="absolute left-0 top-2 bottom-2 w-1 rounded-full transition-[background-color,opacity]"
-                  :style="{ 
-                    background: selectedClient === client.id ? client.color.replace('0.2', '1') : 'transparent',
-                    opacity: selectedClient === client.id ? 1 : 0
-                  }"
+                  class="absolute bottom-2 left-0 top-2 w-1 rounded-full transition-opacity"
+                  :class="[client.markerClass, selectedClient === client.id ? 'opacity-100' : 'opacity-0']"
                 />
                 
                 <div 
-                  class="p-1.5 rounded-md transition-colors"
-                  :style="{ 
-                    background: selectedClient === client.id ? client.color : 'var(--bg-tertiary)' 
-                  }"
+                  class="rounded-md p-1.5 transition-colors"
+                  :class="selectedClient === client.id ? client.surfaceClass : 'bg-bg-surface text-text-secondary'"
                 >
                   <component
                     :is="client.icon"
                     class="w-4 h-4"
-                    :style="{ color: selectedClient === client.id ? 'white' : 'var(--text-secondary)' }"
+                    :class="selectedClient === client.id ? client.textClass : 'text-text-secondary'"
                   />
                 </div>
                 
@@ -106,7 +101,7 @@
               <button
                 v-for="cmd in commands"
                 :key="cmd.name"
-                class="w-full text-left px-4 py-3 rounded-lg transition-colors group relative overflow-hidden"
+                class="group relative w-full overflow-hidden rounded-lg px-4 py-3 text-left transition-colors"
                 :class="selectedCommand === cmd.name ? 'bg-bg-elevated' : 'hover:bg-bg-elevated/50'"
                 @click="setSelectedCommand(cmd.name)"
               >
@@ -165,32 +160,37 @@
 
             <!-- 终端输入框 -->
             <div 
-              class="rounded-lg p-4 font-mono text-sm transition-colors bg-[#1e1e1e] border border-border-default/50 shadow-inner"
+              class="rounded-2xl border border-border-default/60 bg-bg-base/95 p-4 font-mono text-sm shadow-inner"
             >
-              <div class="flex items-center gap-2 mb-2 text-xs opacity-50 select-none text-gray-400">
+              <div class="mb-2 flex items-center gap-2 text-xs text-text-muted opacity-70 select-none">
                 <Terminal class="w-3 h-3" />
                 <span>COMMAND INPUT</span>
               </div>
               <div class="flex items-center gap-3 flex-wrap">
-                <span class="font-bold select-none text-green-500">➜</span>
-                <span class="font-bold select-none text-blue-400">~</span>
-                <span class="font-bold select-none text-gray-200">{{ selectedClient }}</span>
-                <span class="font-bold select-none text-yellow-500">{{ selectedCommand }}</span>
+                <span class="select-none font-bold text-accent-success">➜</span>
+                <span class="select-none font-bold text-accent-info">~</span>
+                <span class="select-none font-bold text-text-primary">{{ selectedClient }}</span>
+                <span class="select-none font-bold text-accent-warning">{{ selectedCommand }}</span>
                 
                 <!-- Switch Command Dropdown -->
                 <div
                   v-if="selectedCommand === 'switch'"
                   class="flex-1 min-w-[200px]"
                 >
+                  <label
+                    for="commands-switch-select"
+                    class="sr-only"
+                  >{{ $t('commands.argsPlaceholder') }}</label>
                   <select
+                    id="commands-switch-select"
                     v-model="args"
-                    class="w-full bg-[#1e1e1e] border border-gray-700 rounded px-2 py-1 text-gray-200 focus:border-accent-secondary focus:outline-none cursor-pointer hover:bg-[#2d2d2d] transition-colors"
+                    class="min-h-[44px] w-full cursor-pointer rounded-lg border border-border-default bg-bg-surface px-3 py-2 text-text-primary focus:border-accent-secondary focus:outline-none focus:ring-2 focus:ring-accent-secondary/20"
                     @keydown.enter="!loading && handleExecute()"
                   >
                     <option
                       value=""
                       disabled
-                      class="bg-[#1e1e1e] text-gray-500"
+                      class="bg-bg-surface text-text-muted"
                     >
                       Select a configuration
                     </option>
@@ -198,7 +198,7 @@
                       v-for="config in configs" 
                       :key="config.name" 
                       :value="config.name"
-                      class="bg-[#1e1e1e] text-gray-200 py-1"
+                      class="bg-bg-surface text-text-primary"
                     >
                       {{ config.name }}
                     </option>
@@ -206,21 +206,28 @@
                 </div>
 
                 <!-- Default Text Input -->
-                <input
-                  v-else
-                  v-model="args"
-                  type="text"
-                  :placeholder="$t('commands.argsPlaceholder')"
-                  class="flex-1 bg-transparent border-none outline-none font-mono text-gray-200 min-w-[200px]"
-                  @keydown.enter="!loading && handleExecute()"
-                >
+                <template v-else>
+                  <label
+                    for="commands-args"
+                    class="sr-only"
+                  >{{ $t('commands.argsPlaceholder') }}</label>
+                  <input
+                    id="commands-args"
+                    v-model="args"
+                    type="text"
+                    :placeholder="$t('commands.argsPlaceholder')"
+                    class="min-h-[44px] min-w-[200px] flex-1 rounded-lg border border-transparent bg-transparent px-2 text-text-primary placeholder:text-text-muted outline-none transition-colors focus:border-accent-secondary/30 focus:bg-bg-surface/40"
+                    @keydown.enter="!loading && handleExecute()"
+                  >
+                </template>
               </div>
             </div>
 
             <!-- 执行按钮 -->
             <div class="mt-4 flex justify-end">
               <button
-                class="px-8 py-2.5 rounded-lg font-semibold text-sm text-white transition-transform hover:scale-[1.02] active:scale-[0.98] flex items-center gap-2 bg-gradient-to-r from-accent-secondary to-accent-primary shadow-lg shadow-accent-secondary/20"
+                type="button"
+                class="flex min-h-[44px] items-center gap-2 rounded-xl bg-accent-secondary px-8 py-2.5 text-sm font-semibold text-white shadow-lg shadow-accent-secondary/20 transition-colors hover:bg-accent-secondary/90 active:scale-[0.98]"
                 :class="{ 'opacity-70 cursor-not-allowed': loading }"
                 :disabled="loading"
                 @click="handleExecute"
@@ -243,17 +250,17 @@
             v-if="output || loading"
             variant="glass"
             class="flex-1 overflow-hidden flex flex-col min-h-[400px] border-border-default/50"
-            :style="{ background: '#1e1e1e' }"
+            :class="'bg-bg-base/95'"
           >
             <!-- 终端头部 -->
-            <div class="flex items-center justify-between px-4 py-2 bg-[#2d2d2d] border-b border-[#333]">
+            <div class="flex items-center justify-between border-b border-border-default/50 bg-bg-surface/80 px-4 py-2">
               <div class="flex items-center gap-2">
                 <div class="flex gap-1.5">
-                  <div class="w-3 h-3 rounded-full bg-[#ff5f56]" />
-                  <div class="w-3 h-3 rounded-full bg-[#ffbd2e]" />
-                  <div class="w-3 h-3 rounded-full bg-[#27c93f]" />
+                  <div class="h-3 w-3 rounded-full bg-accent-danger" />
+                  <div class="h-3 w-3 rounded-full bg-accent-warning" />
+                  <div class="h-3 w-3 rounded-full bg-accent-success" />
                 </div>
-                <span class="ml-3 text-xs text-gray-400 font-mono">bash — 80x24</span>
+                <span class="ml-3 font-mono text-xs text-text-muted">bash - 80x24</span>
               </div>
               
               <div
@@ -261,7 +268,8 @@
                 class="flex items-center gap-2"
               >
                 <button
-                  class="p-1.5 rounded hover:bg-[#3e3e3e] transition-colors text-gray-400 hover:text-white"
+                  type="button"
+                  class="flex min-h-[36px] min-w-[36px] items-center justify-center rounded-lg text-text-muted transition-colors hover:bg-bg-elevated hover:text-text-primary"
                   :title="$t('commands.copyOutput')"
                   :aria-label="$t('commands.copyOutput')"
                   @click="handleCopyOutput"
@@ -269,7 +277,8 @@
                   <Copy class="w-3.5 h-3.5" />
                 </button>
                 <button
-                  class="p-1.5 rounded hover:bg-[#3e3e3e] transition-colors text-gray-400 hover:text-white"
+                  type="button"
+                  class="flex min-h-[36px] min-w-[36px] items-center justify-center rounded-lg text-text-muted transition-colors hover:bg-bg-elevated hover:text-text-primary"
                   :title="$t('commands.clearOutputButton')"
                   :aria-label="$t('commands.clearOutputButton')"
                   @click="handleClearOutput"
@@ -287,41 +296,41 @@
               >
                 <div class="flex flex-col items-center gap-3">
                   <Loader2 class="w-8 h-8 text-accent-secondary animate-spin" />
-                  <span class="text-gray-400 text-xs animate-pulse">Processing command...</span>
+                  <span class="animate-pulse text-xs text-text-muted">Processing command...</span>
                 </div>
               </div>
 
               <template v-if="output">
                 <!-- 命令行回显 -->
                 <div class="flex items-center gap-2 mb-4 opacity-50">
-                  <span class="text-green-500">➜</span>
-                  <span class="text-blue-400">~</span>
-                  <span class="text-gray-300">{{ selectedClient }} {{ selectedCommand }} {{ args }}</span>
+                  <span class="text-accent-success">➜</span>
+                  <span class="text-accent-info">~</span>
+                  <span class="text-text-secondary">{{ selectedClient }} {{ selectedCommand }} {{ args }}</span>
                 </div>
 
                 <!-- 实际输出 -->
                 <pre
                   class="whitespace-pre-wrap break-words leading-relaxed hljs"
-                  :class="output.success ? 'text-gray-200' : 'text-red-300'"
+                  :class="output.success ? 'text-text-primary' : 'text-accent-danger'"
                   v-html="highlightedContent"
                 />
 
                 <!-- 状态行 -->
-                <div class="mt-6 pt-4 border-t border-gray-800 flex items-center gap-4 text-xs font-mono">
+                <div class="mt-6 flex items-center gap-4 border-t border-border-default/40 pt-4 text-xs font-mono">
                   <div class="flex items-center gap-2">
-                    <span class="text-gray-500">Status:</span>
-                    <span :class="output.success ? 'text-green-500' : 'text-red-500'">
+                    <span class="text-text-muted">Status:</span>
+                    <span :class="output.success ? 'text-accent-success' : 'text-accent-danger'">
                       {{ output.success ? 'SUCCESS' : 'FAILED' }}
                     </span>
                   </div>
                   <div class="flex items-center gap-2">
-                    <span class="text-gray-500">Code:</span>
-                    <span :class="output.exit_code === 0 ? 'text-gray-300' : 'text-red-500'">
+                    <span class="text-text-muted">Code:</span>
+                    <span :class="output.exit_code === 0 ? 'text-text-primary' : 'text-accent-danger'">
                       {{ output.exit_code }}
                     </span>
                   </div>
                   <div class="flex items-center gap-2">
-                    <span class="text-gray-500">Time:</span>
+                    <span class="text-text-muted">Time:</span>
                     <span class="text-accent-secondary">{{ output.duration_ms }}ms</span>
                   </div>
                 </div>
@@ -329,7 +338,7 @@
               
               <div
                 v-else-if="!loading"
-                class="h-full flex flex-col items-center justify-center text-gray-600 gap-2"
+                class="flex h-full flex-col items-center justify-center gap-2 text-text-muted"
               >
                 <Terminal class="w-12 h-12 opacity-20" />
                 <p class="text-sm">
@@ -379,11 +388,11 @@ const route = useRoute()
 const router = useRouter()
 
 const CLI_CLIENTS = [
-  { id: 'ccr' as CliClient, name: 'CCR', icon: Zap, color: 'rgba(139, 92, 246, 0.2)' },
-  { id: 'claude' as CliClient, name: 'Claude Code', icon: Code2, color: 'rgba(234, 88, 12, 0.2)' },
-  { id: 'qwen' as CliClient, name: 'Qwen', icon: Sparkles, color: 'rgba(251, 191, 36, 0.2)' },
-  { id: 'gemini' as CliClient, name: 'Gemini', icon: Gem, color: 'rgba(59, 130, 246, 0.2)' },
-  { id: 'iflow' as CliClient, name: 'IFLOW', icon: Workflow, color: 'rgba(168, 85, 247, 0.2)' }
+  { id: 'ccr' as CliClient, name: 'CCR', icon: Zap, surfaceClass: 'bg-accent-primary/10', textClass: 'text-accent-primary', markerClass: 'bg-accent-primary' },
+  { id: 'claude' as CliClient, name: 'Claude Code', icon: Code2, surfaceClass: 'bg-accent-secondary/10', textClass: 'text-accent-secondary', markerClass: 'bg-accent-secondary' },
+  { id: 'qwen' as CliClient, name: 'Qwen', icon: Sparkles, surfaceClass: 'bg-accent-warning/10', textClass: 'text-accent-warning', markerClass: 'bg-accent-warning' },
+  { id: 'gemini' as CliClient, name: 'Gemini', icon: Gem, surfaceClass: 'bg-accent-info/10', textClass: 'text-accent-info', markerClass: 'bg-accent-info' },
+  { id: 'iflow' as CliClient, name: 'IFLOW', icon: Workflow, surfaceClass: 'bg-accent-primary/10', textClass: 'text-accent-primary', markerClass: 'bg-accent-primary' }
 ]
 
 const selectedClient = ref<CliClient>('ccr')
