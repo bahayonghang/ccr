@@ -122,115 +122,115 @@
         v-else-if="filteredItems.length > 0"
       >
         <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-        <Card
-          v-for="item in paginatedItems"
-          :key="item.id"
-          variant="glass"
-          interactive
-          glow-color="primary"
-          class="h-full flex flex-col group"
-        >
-          <!-- Header -->
-          <div class="flex items-start justify-between mb-3">
-            <div class="flex items-center gap-3">
-              <div
-                class="w-12 h-12 rounded-xl flex items-center justify-center text-2xl shadow-sm transition-transform group-hover:scale-110 duration-300"
-                :class="getCategoryColor(item.category)"
-              >
-                {{ getCategoryIcon(item) }}
-              </div>
-              <div>
-                <h3 class="font-bold text-[var(--color-text-primary)] group-hover:text-[var(--color-accent-primary)] transition-colors">
-                  {{ item.name }}
-                </h3>
-                <div class="flex items-center gap-2 text-xs text-[var(--color-text-muted)] mt-0.5">
-                  <span class="px-1.5 py-0.5 rounded bg-[var(--color-bg-surface)] border border-[var(--color-border-default)] font-medium">
-                    {{ $t(`market.categories.${item.category}`) }}
-                  </span>
-                  <span v-if="item.author">by {{ item.author }}</span>
+          <Card
+            v-for="item in paginatedItems"
+            :key="item.id"
+            variant="glass"
+            interactive
+            glow-color="primary"
+            class="h-full flex flex-col group"
+          >
+            <!-- Header -->
+            <div class="flex items-start justify-between mb-3">
+              <div class="flex items-center gap-3">
+                <div
+                  class="w-12 h-12 rounded-xl flex items-center justify-center text-2xl shadow-sm transition-transform group-hover:scale-110 duration-300"
+                  :class="getCategoryColor(item.category)"
+                >
+                  {{ getCategoryIcon(item) }}
+                </div>
+                <div>
+                  <h3 class="font-bold text-[var(--color-text-primary)] group-hover:text-[var(--color-accent-primary)] transition-colors">
+                    {{ item.name }}
+                  </h3>
+                  <div class="flex items-center gap-2 text-xs text-[var(--color-text-muted)] mt-0.5">
+                    <span class="px-1.5 py-0.5 rounded bg-[var(--color-bg-surface)] border border-[var(--color-border-default)] font-medium">
+                      {{ $t(`market.categories.${item.category}`) }}
+                    </span>
+                    <span v-if="item.author">by {{ item.author }}</span>
+                  </div>
                 </div>
               </div>
+              <span
+                v-if="item.source"
+                class="text-xs font-medium px-2 py-0.5 rounded-full"
+                :class="getSourceColor(item.source)"
+              >
+                {{ $t(`market.sources.${item.source}`) }}
+              </span>
             </div>
-            <span
-              v-if="item.source"
-              class="text-xs font-medium px-2 py-0.5 rounded-full"
-              :class="getSourceColor(item.source)"
+
+            <!-- Description -->
+            <p class="text-sm text-[var(--color-text-secondary)] mb-3 flex-1 line-clamp-3 leading-relaxed">
+              {{ item.description }}
+            </p>
+
+            <!-- Tags -->
+            <div
+              v-if="item.tags?.length"
+              class="flex flex-wrap gap-1.5 mb-3"
             >
-              {{ $t(`market.sources.${item.source}`) }}
-            </span>
-          </div>
+              <span
+                v-for="tag in item.tags.slice(0, 4)"
+                :key="tag"
+                class="px-2 py-0.5 text-xs rounded-md bg-[var(--color-bg-surface)] text-[var(--color-text-muted)] border border-[var(--color-border-subtle)]"
+              >
+                {{ tag }}
+              </span>
+            </div>
 
-          <!-- Description -->
-          <p class="text-sm text-[var(--color-text-secondary)] mb-3 flex-1 line-clamp-3 leading-relaxed">
-            {{ item.description }}
-          </p>
-
-          <!-- Tags -->
-          <div
-            v-if="item.tags?.length"
-            class="flex flex-wrap gap-1.5 mb-3"
-          >
-            <span
-              v-for="tag in item.tags.slice(0, 4)"
-              :key="tag"
-              class="px-2 py-0.5 text-xs rounded-md bg-[var(--color-bg-surface)] text-[var(--color-text-muted)] border border-[var(--color-border-subtle)]"
+            <!-- API Key hint -->
+            <div
+              v-if="item.requires_api_key"
+              class="flex items-center gap-1.5 mb-3 text-xs text-[var(--color-warning)]"
             >
-              {{ tag }}
-            </span>
-          </div>
-
-          <!-- API Key hint -->
-          <div
-            v-if="item.requires_api_key"
-            class="flex items-center gap-1.5 mb-3 text-xs text-[var(--color-warning)]"
-          >
-            <Key class="w-3.5 h-3.5" />
-            <span>{{ $t('market.requiresApiKey') }} {{ item.api_key_env }}</span>
-          </div>
-
-          <!-- Footer -->
-          <div class="mt-auto pt-3 border-t border-[var(--color-border-subtle)] flex items-center justify-between">
-            <div class="flex gap-0.5">
-              <template
-                v-for="i in 5"
-                :key="i"
-              >
-                <Star
-                  class="w-3.5 h-3.5"
-                  :class="i <= (item.rating || 0) ? 'text-[var(--color-warning)] fill-[var(--color-warning)]' : 'text-[var(--color-text-disabled)]'"
-                />
-              </template>
+              <Key class="w-3.5 h-3.5" />
+              <span>{{ $t('market.requiresApiKey') }} {{ item.api_key_env }}</span>
             </div>
-            <div class="flex items-center gap-2">
-              <button
-                v-if="item.installed && item.source !== 'builtin'"
-                class="px-3 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5 bg-[var(--color-danger)]/10 text-[var(--color-danger)] hover:bg-[var(--color-danger)]/20 border border-[var(--color-danger)]/20"
-                :disabled="isInstalling(item.id)"
-                @click="handleUninstall(item)"
-              >
-                <Trash2 class="w-3.5 h-3.5" />
-                {{ $t('market.uninstall') }}
-              </button>
-              <button
-                class="px-4 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5"
-                :class="item.installed
-                  ? 'bg-[var(--color-success)]/10 text-[var(--color-success)] border border-[var(--color-success)]/20 cursor-default'
-                  : isInstalling(item.id)
-                    ? 'bg-[var(--color-accent-primary)]/50 text-white cursor-wait'
-                    : 'bg-gradient-to-r from-[var(--color-accent-primary)] to-[var(--color-accent-secondary)] text-white shadow-md shadow-[var(--color-accent-primary)]/20 hover:shadow-lg hover:-translate-y-0.5'"
-                :disabled="item.installed || isInstalling(item.id)"
-                @click="!item.installed && !isInstalling(item.id) && onInstallClick(item)"
-              >
-                <component
-                  :is="isInstalling(item.id) ? Loader2 : (item.installed ? Check : Download)"
-                  class="w-3.5 h-3.5"
-                  :class="{ 'animate-spin': isInstalling(item.id) }"
-                />
-                {{ isInstalling(item.id) ? $t('market.installing') : (item.installed ? $t('market.installed') : $t('market.install')) }}
-              </button>
+
+            <!-- Footer -->
+            <div class="mt-auto pt-3 border-t border-[var(--color-border-subtle)] flex items-center justify-between">
+              <div class="flex gap-0.5">
+                <template
+                  v-for="i in 5"
+                  :key="i"
+                >
+                  <Star
+                    class="w-3.5 h-3.5"
+                    :class="i <= (item.rating || 0) ? 'text-[var(--color-warning)] fill-[var(--color-warning)]' : 'text-[var(--color-text-disabled)]'"
+                  />
+                </template>
+              </div>
+              <div class="flex items-center gap-2">
+                <button
+                  v-if="item.installed && item.source !== 'builtin'"
+                  class="px-3 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5 bg-[var(--color-danger)]/10 text-[var(--color-danger)] hover:bg-[var(--color-danger)]/20 border border-[var(--color-danger)]/20"
+                  :disabled="isInstalling(item.id)"
+                  @click="handleUninstall(item)"
+                >
+                  <Trash2 class="w-3.5 h-3.5" />
+                  {{ $t('market.uninstall') }}
+                </button>
+                <button
+                  class="px-4 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5"
+                  :class="item.installed
+                    ? 'bg-[var(--color-success)]/10 text-[var(--color-success)] border border-[var(--color-success)]/20 cursor-default'
+                    : isInstalling(item.id)
+                      ? 'bg-[var(--color-accent-primary)]/50 text-white cursor-wait'
+                      : 'bg-gradient-to-r from-[var(--color-accent-primary)] to-[var(--color-accent-secondary)] text-white shadow-md shadow-[var(--color-accent-primary)]/20 hover:shadow-lg hover:-translate-y-0.5'"
+                  :disabled="item.installed || isInstalling(item.id)"
+                  @click="!item.installed && !isInstalling(item.id) && onInstallClick(item)"
+                >
+                  <component
+                    :is="isInstalling(item.id) ? Loader2 : (item.installed ? Check : Download)"
+                    class="w-3.5 h-3.5"
+                    :class="{ 'animate-spin': isInstalling(item.id) }"
+                  />
+                  {{ isInstalling(item.id) ? $t('market.installing') : (item.installed ? $t('market.installed') : $t('market.install')) }}
+                </button>
+              </div>
             </div>
-          </div>
-        </Card>
+          </Card>
         </div>
 
         <MarketplacePagination

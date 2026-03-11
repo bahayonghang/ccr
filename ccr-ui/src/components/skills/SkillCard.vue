@@ -295,13 +295,13 @@ function handleKeydown(event: KeyboardEvent) {
          transition-[color,background-color,border-color,box-shadow,transform] duration-200 ease-out
          overflow-hidden;
 
-  background: rgb(var(--color-bg-elevated-rgb) / 0.78);
+  background: rgb(var(--color-bg-elevated-rgb) / 78%);
 }
 
 .skill-card:hover {
   @apply border-accent-primary/20 transform scale-[1.01];
 
-  background: rgb(var(--color-bg-surface-rgb) / 0.92);
+  background: rgb(var(--color-bg-surface-rgb) / 92%);
   box-shadow: 0 12px 30px rgb(0 0 0 / 10%);
 }
 
@@ -433,7 +433,7 @@ function handleKeydown(event: KeyboardEvent) {
 }
 
 .skill-card:focus-visible {
-  outline: 2px solid rgb(var(--color-accent-primary-rgb) / 0.4);
+  outline: 2px solid rgb(var(--color-accent-primary-rgb) / 40%);
   outline-offset: 2px;
 }
 </style>

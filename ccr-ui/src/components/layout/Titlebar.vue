@@ -1,11 +1,7 @@
 <template>
   <div
     data-tauri-drag-region
-    class="fixed top-0 left-0 right-0 h-9 z-50 flex items-center justify-between px-3 select-none text-white"
-    :class="[
-      isFocused ? 'bg-black/30' : 'bg-black/10',
-      'backdrop-blur-md border-b border-white/10 transition-colors duration-200'
-    ]"
+    class="fixed top-0 left-0 right-0 h-9 z-[60] flex items-center justify-between px-3 select-none text-white transition-colors duration-200"
   >
     <!-- Left: App Icon and Menu -->
     <div

@@ -253,7 +253,7 @@ watch(() => props.modelValue, (newValue) => {
   position: relative;
 }
 
-@media (max-width: 639px) {
+@media (width <= 639px) {
   .date-range-picker {
     width: 100%;
   }

@@ -136,133 +136,133 @@
             v-else
           >
             <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-5">
-            <Card
-              v-for="agent in paginatedAgents"
-              :key="agent.name"
-              variant="glass"
-              interactive
-              pattern
-              class="h-full flex flex-col group"
-              @click="navigateToDetail(agent)"
-            >
-              <div class="relative z-10 flex flex-col h-full">
-                <div class="flex items-start justify-between mb-3">
-                  <div class="flex items-center gap-3 overflow-hidden">
-                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--color-accent-primary)]/10 to-[var(--color-info)]/10 flex items-center justify-center text-lg shadow-sm border border-white/20 group-hover:scale-110 transition-transform duration-300">
-                      🤖
+              <Card
+                v-for="agent in paginatedAgents"
+                :key="agent.name"
+                variant="glass"
+                interactive
+                pattern
+                class="h-full flex flex-col group"
+                @click="navigateToDetail(agent)"
+              >
+                <div class="relative z-10 flex flex-col h-full">
+                  <div class="flex items-start justify-between mb-3">
+                    <div class="flex items-center gap-3 overflow-hidden">
+                      <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--color-accent-primary)]/10 to-[var(--color-info)]/10 flex items-center justify-center text-lg shadow-sm border border-white/20 group-hover:scale-110 transition-transform duration-300">
+                        🤖
+                      </div>
+                      <div class="min-w-0">
+                        <h3 class="text-base font-bold text-[var(--color-text-primary)] group-hover:text-[var(--color-accent-primary)] transition-colors truncate">
+                          {{ agent.name }}
+                        </h3>
+                        <div class="flex items-center gap-1.5 mt-0.5">
+                          <span
+                            v-if="agent.folder"
+                            class="flex items-center gap-1 text-[10px] text-[var(--color-text-muted)] bg-[var(--color-bg-surface)] px-1.5 py-0.5 rounded border border-[var(--color-border-default)]/50"
+                          >
+                            <Folder class="w-3 h-3" /> {{ agent.folder }}
+                          </span>
+                        </div>
+                      </div>
                     </div>
-                    <div class="min-w-0">
-                      <h3 class="text-base font-bold text-[var(--color-text-primary)] group-hover:text-[var(--color-accent-primary)] transition-colors truncate">
-                        {{ agent.name }}
-                      </h3>
-                      <div class="flex items-center gap-1.5 mt-0.5">
-                        <span
-                          v-if="agent.folder"
-                          class="flex items-center gap-1 text-[10px] text-[var(--color-text-muted)] bg-[var(--color-bg-surface)] px-1.5 py-0.5 rounded border border-[var(--color-border-default)]/50"
-                        >
-                          <Folder class="w-3 h-3" /> {{ agent.folder }}
-                        </span>
+                   
+                    <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                      <button
+                        class="p-1.5 rounded-lg transition-colors hover:bg-[var(--color-bg-surface)]"
+                        :class="agent.disabled ? 'text-[var(--color-text-muted)] hover:text-[var(--color-accent-primary)]' : 'text-[var(--color-accent-primary)] hover:text-[var(--color-text-muted)]'"
+                        :title="agent.disabled ? $t(`${tPrefix}.enable`) : $t(`${tPrefix}.disable`)"
+                        @click.stop="handleToggle(agent)"
+                      >
+                        <PowerOff
+                          v-if="agent.disabled"
+                          class="w-4 h-4"
+                        />
+                        <Power
+                          v-else
+                          class="w-4 h-4"
+                        />
+                      </button>
+                      <button
+                        v-if="module === 'agents'"
+                        class="p-1.5 rounded-lg text-[var(--color-text-secondary)] hover:text-[var(--color-accent-primary)] hover:bg-[var(--color-accent-primary)]/10 transition-colors"
+                        :title="$t('common.view')"
+                        @click.stop="navigateToDetail(agent)"
+                      >
+                        <Eye class="w-4 h-4" />
+                      </button>
+                      <button
+                        class="p-1.5 rounded-lg text-[var(--color-text-secondary)] hover:text-[var(--color-info)] hover:bg-[var(--color-info)]/10 transition-colors"
+                        :title="$t('common.edit')"
+                        @click.stop="handleEdit(agent)"
+                      >
+                        <Edit2 class="w-4 h-4" />
+                      </button>
+                      <button
+                        class="p-1.5 rounded-lg text-[var(--color-text-secondary)] hover:text-[var(--color-danger)] hover:bg-[var(--color-danger)]/10 transition-colors"
+                        :title="$t('common.delete')"
+                        @click.stop="handleDelete(agent)"
+                      >
+                        <Trash2 class="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div class="flex-1 space-y-3">
+                    <div
+                      v-if="agent.system_prompt"
+                      class="relative"
+                    >
+                      <div class="absolute left-0 top-0 bottom-0 w-0.5 bg-[var(--color-accent-primary)]/30 rounded-full" />
+                      <p class="pl-3 text-xs text-[var(--color-text-secondary)] line-clamp-3 leading-relaxed italic">
+                        {{ agent.system_prompt }}
+                      </p>
+                    </div>
+                    <div
+                      v-else
+                      class="text-xs text-[var(--color-text-muted)] italic pl-3"
+                    >
+                      No system prompt configured
+                    </div>
+                  </div>
+                 
+                  <div class="mt-4 pt-3 border-t border-[var(--color-border-default)]/30 flex items-center justify-between gap-2">
+                    <div class="flex items-center gap-1.5 text-[10px] text-[var(--color-text-muted)] bg-[var(--color-bg-surface)]/50 px-2 py-1 rounded-md border border-[var(--color-border-default)]/30">
+                      <span class="w-1.5 h-1.5 rounded-full bg-[var(--color-accent-secondary)]/50" />
+                      <span class="truncate max-w-[100px]">{{ agent.model }}</span>
+                    </div>
+
+                    <div
+                      v-if="agent.tools && agent.tools.length > 0"
+                      class="flex -space-x-1.5"
+                    >
+                      <div
+                        v-for="(tool, i) in agent.tools.slice(0, 3)"
+                        :key="i" 
+                        class="w-6 h-6 rounded-full bg-white border border-[var(--color-border-default)] flex items-center justify-center text-[10px] shadow-sm text-[var(--color-text-secondary)]"
+                        :title="tool"
+                      >
+                        {{ tool.charAt(0).toUpperCase() }}
+                      </div>
+                      <div
+                        v-if="agent.tools.length > 3"
+                        class="w-6 h-6 rounded-full bg-[var(--color-bg-surface)] border border-[var(--color-border-default)] flex items-center justify-center text-[9px] font-medium text-[var(--color-text-muted)]"
+                      >
+                        +{{ agent.tools.length - 3 }}
                       </div>
                     </div>
                   </div>
-                   
-                  <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                    <button
-                      class="p-1.5 rounded-lg transition-colors hover:bg-[var(--color-bg-surface)]"
-                      :class="agent.disabled ? 'text-[var(--color-text-muted)] hover:text-[var(--color-accent-primary)]' : 'text-[var(--color-accent-primary)] hover:text-[var(--color-text-muted)]'"
-                      :title="agent.disabled ? $t(`${tPrefix}.enable`) : $t(`${tPrefix}.disable`)"
-                      @click.stop="handleToggle(agent)"
-                    >
-                      <PowerOff
-                        v-if="agent.disabled"
-                        class="w-4 h-4"
-                      />
-                      <Power
-                        v-else
-                        class="w-4 h-4"
-                      />
-                    </button>
-                    <button
-                      v-if="module === 'agents'"
-                      class="p-1.5 rounded-lg text-[var(--color-text-secondary)] hover:text-[var(--color-accent-primary)] hover:bg-[var(--color-accent-primary)]/10 transition-colors"
-                      :title="$t('common.view')"
-                      @click.stop="navigateToDetail(agent)"
-                    >
-                      <Eye class="w-4 h-4" />
-                    </button>
-                    <button
-                      class="p-1.5 rounded-lg text-[var(--color-text-secondary)] hover:text-[var(--color-info)] hover:bg-[var(--color-info)]/10 transition-colors"
-                      :title="$t('common.edit')"
-                      @click.stop="handleEdit(agent)"
-                    >
-                      <Edit2 class="w-4 h-4" />
-                    </button>
-                    <button
-                      class="p-1.5 rounded-lg text-[var(--color-text-secondary)] hover:text-[var(--color-danger)] hover:bg-[var(--color-danger)]/10 transition-colors"
-                      :title="$t('common.delete')"
-                      @click.stop="handleDelete(agent)"
-                    >
-                      <Trash2 class="w-4 h-4" />
-                    </button>
-                  </div>
                 </div>
-
-                <div class="flex-1 space-y-3">
-                  <div
-                    v-if="agent.system_prompt"
-                    class="relative"
-                  >
-                    <div class="absolute left-0 top-0 bottom-0 w-0.5 bg-[var(--color-accent-primary)]/30 rounded-full" />
-                    <p class="pl-3 text-xs text-[var(--color-text-secondary)] line-clamp-3 leading-relaxed italic">
-                      {{ agent.system_prompt }}
-                    </p>
-                  </div>
-                  <div
-                    v-else
-                    class="text-xs text-[var(--color-text-muted)] italic pl-3"
-                  >
-                    No system prompt configured
-                  </div>
-                </div>
-                 
-                <div class="mt-4 pt-3 border-t border-[var(--color-border-default)]/30 flex items-center justify-between gap-2">
-                  <div class="flex items-center gap-1.5 text-[10px] text-[var(--color-text-muted)] bg-[var(--color-bg-surface)]/50 px-2 py-1 rounded-md border border-[var(--color-border-default)]/30">
-                    <span class="w-1.5 h-1.5 rounded-full bg-[var(--color-accent-secondary)]/50" />
-                    <span class="truncate max-w-[100px]">{{ agent.model }}</span>
-                  </div>
-
-                  <div
-                    v-if="agent.tools && agent.tools.length > 0"
-                    class="flex -space-x-1.5"
-                  >
-                    <div
-                      v-for="(tool, i) in agent.tools.slice(0, 3)"
-                      :key="i" 
-                      class="w-6 h-6 rounded-full bg-white border border-[var(--color-border-default)] flex items-center justify-center text-[10px] shadow-sm text-[var(--color-text-secondary)]"
-                      :title="tool"
-                    >
-                      {{ tool.charAt(0).toUpperCase() }}
-                    </div>
-                    <div
-                      v-if="agent.tools.length > 3"
-                      class="w-6 h-6 rounded-full bg-[var(--color-bg-surface)] border border-[var(--color-border-default)] flex items-center justify-center text-[9px] font-medium text-[var(--color-text-muted)]"
-                    >
-                      +{{ agent.tools.length - 3 }}
-                    </div>
-                  </div>
-                </div>
-              </div>
                
-              <!-- Disabled Overlay -->
-              <div
-                v-if="agent.disabled"
-                class="absolute inset-0 bg-[var(--color-bg-base)]/40 backdrop-blur-[2px] flex items-center justify-center z-20 rounded-xl border border-[var(--color-text-muted)]/10"
-              >
-                <span class="px-3 py-1 bg-[var(--color-text-muted)]/80 text-white text-xs font-bold rounded-full shadow-sm uppercase tracking-wider backdrop-blur-md">
-                  {{ $t(`${tPrefix}.disabledBadge`) }}
-                </span>
-              </div>
-            </Card>
+                <!-- Disabled Overlay -->
+                <div
+                  v-if="agent.disabled"
+                  class="absolute inset-0 bg-[var(--color-bg-base)]/40 backdrop-blur-[2px] flex items-center justify-center z-20 rounded-xl border border-[var(--color-text-muted)]/10"
+                >
+                  <span class="px-3 py-1 bg-[var(--color-text-muted)]/80 text-white text-xs font-bold rounded-full shadow-sm uppercase tracking-wider backdrop-blur-md">
+                    {{ $t(`${tPrefix}.disabledBadge`) }}
+                  </span>
+                </div>
+              </Card>
             </div>
 
             <MarketplacePagination

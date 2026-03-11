@@ -28,7 +28,7 @@
       </button>
 
       <!-- Logo Area -->
-      <div class="h-16 flex items-center px-4 border-b border-pink-200/20 dark:border-pink-300/10">
+      <div class="h-[100px] pt-9 flex items-center px-4 border-b border-pink-200/20 dark:border-pink-300/10 shrink-0">
         <div class="flex items-center gap-3">
           <div class="relative w-8 h-8 flex items-center justify-center rounded-lg bg-gradient-to-br from-pink-400 to-violet-400 shadow-lg shadow-pink-400/30">
             <Cat class="w-5 h-5 text-white" />
@@ -214,7 +214,7 @@
             <!-- Version -->
             <div class="flex items-center justify-between">
               <span class="text-[10px] font-mono text-text-muted bg-bg-elevated/80 px-2 py-0.5 rounded-md border border-border-default/60">
-                CCR UI v5.0.6
+                CCR UI v5.0.7
               </span>
             </div>
           </div>
@@ -231,7 +231,7 @@
       class="flex-1 relative overflow-hidden flex flex-col"
     >
       <!-- Top Bar -->
-      <div class="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-border-default/40 bg-bg-elevated/70 px-6 backdrop-blur-md">
+      <div class="sticky top-0 z-30 flex h-[92px] pt-9 items-center justify-between border-b border-border-default/40 bg-bg-elevated/70 px-6 backdrop-blur-md shrink-0">
         <!-- Left: Breadcrumbs or Back + Title -->
         <div class="flex items-center text-sm text-text-secondary">
           <template v-if="route.meta.hideSidebar">

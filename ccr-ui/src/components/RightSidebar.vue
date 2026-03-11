@@ -47,9 +47,9 @@
         
         <!-- Config icons (collapsed) -->
         <button
+          v-for="config in filteredConfigs.slice(0, 8)"
+          :key="config.name" 
           type="button"
-          v-for="config in filteredConfigs.slice(0, 8)" 
-          :key="config.name"
           class="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg hover:bg-bg-surface transition-colors duration-200 group relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary/30"
           :class="config.is_current ? 'bg-accent-primary/10' : ''"
           :aria-label="config.name"
@@ -378,9 +378,9 @@ const categories = computed(() => [
 <style scoped>
 /* 侧边栏 - 轻量玻璃容器 */
 .sidebar-container {
-  background: rgb(var(--color-bg-elevated-rgb) / 0.78);
+  background: rgb(var(--color-bg-elevated-rgb) / 78%);
   backdrop-filter: blur(20px);
-  border: 1px solid rgb(var(--color-border-default-rgb) / 0.4);
+  border: 1px solid rgb(var(--color-border-default-rgb) / 40%);
   max-height: calc(100vh - 160px);
   overflow-y: auto;
   color: var(--color-text-primary);

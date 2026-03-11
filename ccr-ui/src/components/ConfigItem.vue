@@ -108,13 +108,13 @@ const avatarClass = computed(() => {
 }
 
 .config-item--idle:hover {
-  background: rgb(var(--color-bg-surface-rgb) / 0.8);
-  border-color: rgb(var(--color-border-default-rgb) / 0.45);
+  background: rgb(var(--color-bg-surface-rgb) / 80%);
+  border-color: rgb(var(--color-border-default-rgb) / 45%);
 }
 
 .config-item--active {
-  background: rgb(var(--color-accent-primary-rgb) / 0.1);
-  border: 1px solid rgb(var(--color-accent-primary-rgb) / 0.16);
+  background: rgb(var(--color-accent-primary-rgb) / 10%);
+  border: 1px solid rgb(var(--color-accent-primary-rgb) / 16%);
   backdrop-filter: blur(12px);
   box-shadow: inset 2px 0 0 var(--color-accent-primary);
 }

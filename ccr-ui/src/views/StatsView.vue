@@ -597,11 +597,11 @@ const getProviderBarWidth = (count: number): number => {
 }
 
 .scrollbar-thin::-webkit-scrollbar-thumb {
-  background-color: rgb(168 85 247 / 0.45);
+  background-color: rgb(168 85 247 / 45%);
   border-radius: 9999px;
 }
 
 .scrollbar-thin::-webkit-scrollbar-thumb:hover {
-  background-color: rgb(168 85 247 / 0.7);
+  background-color: rgb(168 85 247 / 70%);
 }
 </style>

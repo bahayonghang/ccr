@@ -1,8 +1,8 @@
 <template>
   <AnimeBackground v-if="showGlobalBackground" />
   <Titlebar />
-  <div class="pt-9 h-screen overflow-hidden">
-    <RouterView />
+  <div class="flex flex-col h-screen w-screen overflow-hidden">
+    <RouterView class="flex-1 overflow-hidden" />
   </div>
   <ToastContainer />
 </template>
