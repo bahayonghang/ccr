@@ -1,6 +1,7 @@
-﻿# 版本同步脚本（PowerShell 版本）
+# 版本同步脚本（PowerShell 版本）
 # 以 crates/ccr/Cargo.toml 为主，同步到：
 # - crates/ccr-types/Cargo.toml
+# - crates/ccr-db/Cargo.toml
 # - ccr-ui/package.json
 # - ccr-ui/src-tauri/Cargo.toml
 # - ccr-ui/src-tauri/tauri.conf.json
@@ -24,6 +25,7 @@ $ROOT_DIR = Split-Path -Parent (Split-Path -Parent $PSCommandPath)
 # 配置文件路径
 $ROOT_CARGO = Join-Path $ROOT_DIR "Cargo.toml"
 $CCR_TYPES_CARGO = Join-Path $ROOT_DIR "crates\ccr-types\Cargo.toml"
+$CCR_DB_CARGO = Join-Path $ROOT_DIR "crates\ccr-db\Cargo.toml"
 $FRONTEND_PKG = Join-Path $ROOT_DIR "ccr-ui\package.json"
 $TAURI_CARGO = Join-Path $ROOT_DIR "ccr-ui\src-tauri\Cargo.toml"
 $TAURI_CONF = Join-Path $ROOT_DIR "ccr-ui\src-tauri\tauri.conf.json"
@@ -41,6 +43,7 @@ function Test-RequiredFile {
 
 Test-RequiredFile $ROOT_CARGO
 Test-RequiredFile $CCR_TYPES_CARGO
+Test-RequiredFile $CCR_DB_CARGO
 Test-RequiredFile $FRONTEND_PKG
 Test-RequiredFile $TAURI_CARGO
 Test-RequiredFile $TAURI_CONF
@@ -146,6 +149,7 @@ function Set-UiVersion {
 # 提取版本号
 $ROOT_VER = Get-CargoVersion $ROOT_CARGO
 $CCR_TYPES_VER = Get-CargoVersion $CCR_TYPES_CARGO $ROOT_VER
+$CCR_DB_VER = Get-CargoVersion $CCR_DB_CARGO $ROOT_VER
 $FRONTEND_VER = Get-JsonVersion $FRONTEND_PKG
 $TAURI_CARGO_VER = Get-CargoVersion $TAURI_CARGO $ROOT_VER
 $TAURI_CONF_VER = Get-JsonVersion $TAURI_CONF
@@ -155,6 +159,7 @@ $UI_LEGACY_VER = Get-UiVersion $LEGACY_MAIN_LAYOUT
 if ($Verbose) {
     Write-Host "🔧 根版本: $ROOT_VER"
     Write-Host "📦 ccr-types 版本: $CCR_TYPES_VER"
+    Write-Host "📦 ccr-db 版本: $CCR_DB_VER"
     Write-Host "⚛️  前端版本: $FRONTEND_VER"
     Write-Host "🖥️  Tauri Cargo 版本: $TAURI_CARGO_VER"
     Write-Host "🖥️  Tauri Conf 版本: $TAURI_CONF_VER"
@@ -165,6 +170,7 @@ if ($Verbose) {
 # 检查模式
 if ($Check) {
     if ($ROOT_VER -eq $CCR_TYPES_VER -and
+        $ROOT_VER -eq $CCR_DB_VER -and
         $ROOT_VER -eq $FRONTEND_VER -and
         $ROOT_VER -eq $TAURI_CARGO_VER -and
         $ROOT_VER -eq $TAURI_CONF_VER -and
@@ -176,6 +182,7 @@ if ($Check) {
         Write-Host "❌ 版本不一致："
         Write-Host "  root Cargo.toml:                        $ROOT_VER"
         Write-Host "  crates/ccr-types/Cargo.toml:            $CCR_TYPES_VER"
+        Write-Host "  crates/ccr-db/Cargo.toml:               $CCR_DB_VER"
         Write-Host "  ccr-ui/package.json:           $FRONTEND_VER"
         Write-Host "  ccr-ui/src-tauri/Cargo.toml:   $TAURI_CARGO_VER"
         Write-Host "  ccr-ui/src-tauri/tauri.conf.json: $TAURI_CONF_VER"
@@ -186,6 +193,7 @@ if ($Check) {
 }
 
 if ($ROOT_VER -eq $CCR_TYPES_VER -and
+    $ROOT_VER -eq $CCR_DB_VER -and
     $ROOT_VER -eq $FRONTEND_VER -and
     $ROOT_VER -eq $TAURI_CARGO_VER -and
     $ROOT_VER -eq $TAURI_CONF_VER -and
@@ -201,6 +209,12 @@ Write-Host "♻️  开始同步版本到 UI 文件..."
 if ($CCR_TYPES_VER -ne $ROOT_VER) {
     Write-Host "  - ccr-types: $CCR_TYPES_VER -> $ROOT_VER"
     Set-CargoVersion $CCR_TYPES_CARGO $ROOT_VER
+}
+
+# 更新 ccr-db
+if ($CCR_DB_VER -ne $ROOT_VER) {
+    Write-Host "  - ccr-db: $CCR_DB_VER -> $ROOT_VER"
+    Set-CargoVersion $CCR_DB_CARGO $ROOT_VER
 }
 
 # 更新前端

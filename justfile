@@ -126,6 +126,7 @@ _help-windows:
     @Write-Host "   🔧 版本相关命令（跨平台）："
     @Write-Host "     • just version-sync   同步版本号（以根 Cargo.toml 为主）"
     @Write-Host "                            → 更新 crates/ccr-types/Cargo.toml"
+    @Write-Host "                              和 crates/ccr-db/Cargo.toml"
     @Write-Host "                              和 ccr-ui/package.json"
     @Write-Host "                              和 ccr-ui/src-tauri/*"
     @Write-Host "                            → Windows: 使用 version-sync.ps1"
@@ -161,6 +162,7 @@ _help-linux:
     @printf '%s\n' "   🔧 版本相关命令（跨平台）："
     @printf '%s\n' "     • just version-sync   同步版本号（以根 Cargo.toml 为主）"
     @printf '%s\n' "                            → 更新 crates/ccr-types/Cargo.toml"
+    @printf '%s\n' "                              和 crates/ccr-db/Cargo.toml"
     @printf '%s\n' "                              和 ccr-ui/package.json"
     @printf '%s\n' "                              和 ccr-ui/src-tauri/*"
     @printf '%s\n' "                            → Windows: 使用 version-sync.ps1"
@@ -197,6 +199,7 @@ _help-macos:
     @printf '%s\n' "   🔧 版本相关命令（跨平台）："
     @printf '%s\n' "     • just version-sync   同步版本号（以根 Cargo.toml 为主）"
     @printf '%s\n' "                            → 更新 crates/ccr-types/Cargo.toml"
+    @printf '%s\n' "                              和 crates/ccr-db/Cargo.toml"
     @printf '%s\n' "                              和 ccr-ui/package.json"
     @printf '%s\n' "                              和 ccr-ui/src-tauri/*"
     @printf '%s\n' "                            → Windows: 使用 version-sync.ps1"
@@ -485,35 +488,39 @@ _outputs-collect-cli-windows:
     @Copy-Item "target/release/{{BIN}}.exe" "{{OUTPUTS_DIR}}/ccr/" -Force
     @just success "CLI artifacts collected to {{OUTPUTS_DIR}}/ccr/"
 
-outputs-collect-ui: ui-build
-    @just _outputs-collect-ui-{{os()}}
+outputs-collect-ui: ui-build _outputs-collect-ui-sync
+    @just success "CCR UI artifacts collection completed"
 
 [private]
-_outputs-collect-ui-linux:
+_outputs-collect-ui-sync:
+    @just _outputs-collect-ui-sync-{{os()}}
+
+[private]
+_outputs-collect-ui-sync-linux:
     @mkdir -p {{OUTPUTS_DIR}}/ccr-ui/src-tauri/target/release
     rm -rf {{OUTPUTS_DIR}}/ccr-ui/dist {{OUTPUTS_DIR}}/ccr-ui/src-tauri/target/release/bundle
     cp -R ccr-ui/dist {{OUTPUTS_DIR}}/ccr-ui/
     cp ccr-ui/src-tauri/target/release/ccr-desktop {{OUTPUTS_DIR}}/ccr-ui/src-tauri/target/release/
     if [ -d ccr-ui/src-tauri/target/release/bundle ]; then cp -R ccr-ui/src-tauri/target/release/bundle {{OUTPUTS_DIR}}/ccr-ui/src-tauri/target/release/; fi
-    @just success "CCR UI artifacts collected to {{OUTPUTS_DIR}}/ccr-ui/"
+    @just success "CCR UI artifacts synchronized to {{OUTPUTS_DIR}}/ccr-ui/"
 
 [private]
-_outputs-collect-ui-macos:
+_outputs-collect-ui-sync-macos:
     @mkdir -p {{OUTPUTS_DIR}}/ccr-ui/src-tauri/target/release
     rm -rf {{OUTPUTS_DIR}}/ccr-ui/dist {{OUTPUTS_DIR}}/ccr-ui/src-tauri/target/release/bundle
     cp -R ccr-ui/dist {{OUTPUTS_DIR}}/ccr-ui/
     cp ccr-ui/src-tauri/target/release/ccr-desktop {{OUTPUTS_DIR}}/ccr-ui/src-tauri/target/release/
     if [ -d ccr-ui/src-tauri/target/release/bundle ]; then cp -R ccr-ui/src-tauri/target/release/bundle {{OUTPUTS_DIR}}/ccr-ui/src-tauri/target/release/; fi
-    @just success "CCR UI artifacts collected to {{OUTPUTS_DIR}}/ccr-ui/"
+    @just success "CCR UI artifacts synchronized to {{OUTPUTS_DIR}}/ccr-ui/"
 
 [private]
-_outputs-collect-ui-windows:
+_outputs-collect-ui-sync-windows:
     @New-Item -ItemType Directory -Force -Path "{{OUTPUTS_DIR}}/ccr-ui/src-tauri/target/release" | Out-Null
     @if (Test-Path "{{OUTPUTS_DIR}}/ccr-ui/dist") { Remove-Item "{{OUTPUTS_DIR}}/ccr-ui/dist" -Recurse -Force }
     @Copy-Item "ccr-ui/dist" "{{OUTPUTS_DIR}}/ccr-ui/" -Recurse -Force
     @Copy-Item "ccr-ui/src-tauri/target/release/ccr-desktop.exe" "{{OUTPUTS_DIR}}/ccr-ui/src-tauri/target/release/" -Force
     @if (Test-Path "ccr-ui/src-tauri/target/release/bundle") { Copy-Item "ccr-ui/src-tauri/target/release/bundle" "{{OUTPUTS_DIR}}/ccr-ui/src-tauri/target/release/" -Recurse -Force }
-    @just success "CCR UI artifacts collected to {{OUTPUTS_DIR}}/ccr-ui/"
+    @just success "CCR UI artifacts synchronized to {{OUTPUTS_DIR}}/ccr-ui/"
 
 # ═══════════════════════════════════════════════════════════
 # 🧹 清理与维护命令
@@ -747,6 +754,7 @@ ui-serve-frontend:
 
 tauri-build:
     @just _ui-run tauri-build
+    @just _outputs-collect-ui-sync
 
 tauri-build-debug:
     @just _ui-run tauri-build-debug
