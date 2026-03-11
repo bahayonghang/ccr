@@ -2,7 +2,7 @@
 
 [package]
 name = "ccr-desktop"
-version = "5.0.6"
+version = "5.0.7"
 description = "CCR Desktop - Tauri Application"
 authors = ["CCR Team"]
 edition = "2024"
@@ -53,7 +53,7 @@ tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
 # System info
-sysinfo = "0.34"
+sysinfo = "0.38.4"
 
 # Encryption (for checkin account credentials)
 aes-gcm = "0.10"
@@ -72,17 +72,17 @@ async-trait = "0.1"
 dirs = "6"
 
 # TOML parsing (for slash commands)
-toml = "0.8"
+toml = "0.9.8"
 
 # Directory walking (for slash commands)
 walkdir = "2"
 
 # Atomic file writes
-tempfile = "3"
+tempfile = "3.27.0"
 
 # Error handling
 thiserror = "2"
-lru = "0.12"
+lru = "0.16.3"
 
 # File locking for cache
 fs4 = "0.13"

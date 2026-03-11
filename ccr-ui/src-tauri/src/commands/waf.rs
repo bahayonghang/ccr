@@ -152,6 +152,7 @@ pub async fn open_waf_login(
             .title("WAF 登录")
             .inner_size(900.0, 700.0)
             .resizable(true)
+            .visible(false) // 默认隐藏，实现无感绕过
             .initialization_script(&init_script)
             .build()
             .map_err(|e| {
@@ -161,6 +162,14 @@ pub async fn open_waf_login(
                 });
                 format!("创建 WebView 窗口失败: {}", e)
             })?;
+
+    // 如果 3 秒后仍未完成（可能需要真人点按或滑块），则显示窗口
+    let window_clone = webview_window.clone();
+    tokio::spawn(async move {
+        tokio::time::sleep(std::time::Duration::from_secs(3)).await;
+        // 如果窗口还没关，就显示出来给用户
+        let _ = window_clone.show();
+    });
 
     // 等待 cookie 或 60 秒超时
     let timeout_duration = std::time::Duration::from_secs(60);
