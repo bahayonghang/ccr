@@ -13,6 +13,7 @@ tokio = { version = "1.50.0", features = [
     "io-util",
     "macros",
     "net",
+    "process",
     "rt-multi-thread",
     "signal",
     "sync",
@@ -32,6 +33,8 @@ thiserror = "2.0.18"
 reqwest = { version = "0.13.2", default-features = false, features = [
     "json",
     "native-tls",
+    "cookies",
+    "gzip",
 ] }
 
 # Serialization
@@ -45,6 +48,29 @@ chrono = { version = "0.4.44", features = ["serde"] }
 # Utilities
 dirs = "6.0.0"
 tempfile = "3.26.0"
+
+# Database
+rusqlite = { version = "0.38.0" }
+r2d2 = "0.8"
+r2d2_sqlite = "0.32.0"
+
+# Logging
+tracing = "0.1.43"
+
+# Identity & Crypto
+uuid = { version = "1.21.0", features = ["serde", "v4"] }
+aes-gcm = "0.10"
+rand = "0.10.0"
+sha2 = "0.10.9"
+base64 = "0.22.1"
+blake3 = "1.8.3"
+
+# Extra utilities
+indexmap = { version = "2.13.0", features = ["serde"] }
+once_cell = "1.21"
+walkdir = "2.5"
+futures = "0.3"
+async-stream = "0.3"
 
 # Web framework
 axum = { version = "0.8.6", default-features = false, features = [
@@ -60,12 +86,17 @@ tower-http = { version = "0.6.8", default-features = false, features = [
 ] }
 
 [profile.dev]
+opt-level = 0
 debug = 1
 incremental = true
+
+[profile.dev.package."*"]
 opt-level = 1
 
 [profile.test]
 inherits = "dev"
+
+[profile.test.package."*"]
 opt-level = 1
 
 [profile.release]

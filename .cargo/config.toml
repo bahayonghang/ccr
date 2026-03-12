@@ -2,14 +2,17 @@
 # Profile 配置统一由根 Cargo.toml 管理，此处仅配置构建工具链。
 
 [build]
-# debuginfo=1：提供基本行号信息，平衡调试体验与编译速度。
-rustflags = ["-C", "debuginfo=1"]
 # 增量编译（默认已启用，显式声明以防意外关闭）
 incremental = true
 
 # MSVC 专属：让 Windows linker 生成快速 PDB（2~3x 链接加速）。
 [target.x86_64-pc-windows-msvc]
 rustflags = ["-C", "link-arg=/DEBUG:FASTLINK"]
+
+# 系统 SQLite 路径（开发时使用，CI/发布用 --features bundled-sqlite）
+[env]
+SQLITE3_LIB_DIR = "/opt/homebrew/opt/sqlite/lib"
+SQLITE3_INCLUDE_DIR = "/opt/homebrew/opt/sqlite/include"
 
 # 提示：快速开发命令
 # - cargo check                     # 快速语法检查（不生成二进制）
