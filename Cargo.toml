@@ -50,7 +50,7 @@ dirs = "6.0.0"
 tempfile = "3.26.0"
 
 # Database
-rusqlite = { version = "0.38.0" }
+rusqlite = { version = "0.38.0", features = ["bundled"] }
 r2d2 = "0.8"
 r2d2_sqlite = "0.32.0"
 
