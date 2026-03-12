@@ -214,7 +214,7 @@
             <!-- Version -->
             <div class="flex items-center justify-between">
               <span class="text-[10px] font-mono text-text-muted bg-bg-elevated/80 px-2 py-0.5 rounded-md border border-border-default/60">
-                CCR UI v5.0.7
+                CCR UI v5.0.8
               </span>
             </div>
           </div>
