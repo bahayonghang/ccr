@@ -230,19 +230,101 @@ _help-macos:
 # 🏗️  构建命令
 # ═══════════════════════════════════════════════════════════
 
-# 🔨 调试构建 (Debug 模式)
+# 🔨 调试构建 (Debug 模式，含计时)
 build:
     @just header "🔨 开始调试构建"
     @just info "📌 模式: Debug (包含调试符号)"
-    cargo build -p {{BIN}}
-    @just success "构建完成 → target/debug/{{BIN}}"
+    @just _build-timed-{{os()}}
 
-# ⚡ 发布构建 (Release 优化)
+[private]
+_build-timed-windows:
+    #!pwsh.exe
+    $ErrorActionPreference = 'Stop'
+    [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+    chcp 65001 | Out-Null
+    $sw = [System.Diagnostics.Stopwatch]::StartNew()
+    cargo build -p {{BIN}}
+    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+    $sw.Stop()
+    $elapsed = $sw.Elapsed
+    $ts = "{0:mm\:ss\.fff}" -f $elapsed
+    Write-Host ""
+    Write-Host "  ⏱️  cargo build    $ts" -ForegroundColor Cyan
+    Write-Host ""
+    Write-Host "✅ 构建完成 → target/debug/{{BIN}}" -ForegroundColor Green
+
+[private]
+_build-timed-linux:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    start=$(date +%s%N)
+    cargo build -p {{BIN}}
+    end=$(date +%s%N)
+    ms=$(( (end - start) / 1000000 ))
+    s=$((ms / 1000)); r=$((ms % 1000))
+    m=$((s / 60)); s=$((s % 60))
+    printf '\n  ⏱️  cargo build    %02d:%02d.%03d\n\n' "$m" "$s" "$r"
+    printf '\033[32m✅ 构建完成 → target/debug/{{BIN}}\033[0m\n'
+
+[private]
+_build-timed-macos:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    start=$(date +%s)
+    cargo build -p {{BIN}}
+    end=$(date +%s)
+    elapsed=$((end - start))
+    m=$((elapsed / 60)); s=$((elapsed % 60))
+    printf '\n  ⏱️  cargo build    %02d:%02d\n\n' "$m" "$s"
+    printf '\033[32m✅ 构建完成 → target/debug/{{BIN}}\033[0m\n'
+
+# ⚡ 发布构建 (Release 优化，含计时)
 release:
     @just header "⚡ 开始发布构建"
     @just info "📌 模式: Release (LTO优化 + 符号剥离)"
+    @just _release-timed-{{os()}}
+
+[private]
+_release-timed-windows:
+    #!pwsh.exe
+    $ErrorActionPreference = 'Stop'
+    [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+    chcp 65001 | Out-Null
+    $sw = [System.Diagnostics.Stopwatch]::StartNew()
     cargo build -p {{BIN}} --release
-    @just success "构建完成 → target/release/{{BIN}}"
+    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+    $sw.Stop()
+    $elapsed = $sw.Elapsed
+    $ts = "{0:mm\:ss\.fff}" -f $elapsed
+    Write-Host ""
+    Write-Host "  ⏱️  cargo build --release    $ts" -ForegroundColor Cyan
+    Write-Host ""
+    Write-Host "✅ 构建完成 → target/release/{{BIN}}" -ForegroundColor Green
+
+[private]
+_release-timed-linux:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    start=$(date +%s%N)
+    cargo build -p {{BIN}} --release
+    end=$(date +%s%N)
+    ms=$(( (end - start) / 1000000 ))
+    s=$((ms / 1000)); r=$((ms % 1000))
+    m=$((s / 60)); s=$((s % 60))
+    printf '\n  ⏱️  cargo build --release    %02d:%02d.%03d\n\n' "$m" "$s" "$r"
+    printf '\033[32m✅ 构建完成 → target/release/{{BIN}}\033[0m\n'
+
+[private]
+_release-timed-macos:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    start=$(date +%s)
+    cargo build -p {{BIN}} --release
+    end=$(date +%s)
+    elapsed=$((end - start))
+    m=$((elapsed / 60)); s=$((elapsed % 60))
+    printf '\n  ⏱️  cargo build --release    %02d:%02d\n\n' "$m" "$s"
+    printf '\033[32m✅ 构建完成 → target/release/{{BIN}}\033[0m\n'
 
 # 🔍 快速类型检查 (不生成可执行文件)
 check:
@@ -358,23 +440,197 @@ watch:
     cargo watch -x check -x test
 
 # 🎯 完整 CI 流程 (版本同步 + 自动格式化 + 格式检查 + 严格 Clippy + 测试 + 构建 + 安全审计 + 前端完整检查 + VSCode 扩展检查)
-ci: version-sync fmt fmt-check lint-strict test release audit frontend-check vscode-ci
-    @just _ci-done-{{os()}}
+# 每步计时，最后输出汇总表
+ci:
+    @just _ci-timed-{{os()}}
 
 [private]
-_ci-done-windows:
-    @Write-Host ""
-    @Write-Host "          🎉 CI 流程全部通过 - 代码质量优秀！"
+_ci-timed-windows:
+    #!pwsh.exe
+    $ErrorActionPreference = 'Stop'
+    [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+    chcp 65001 | Out-Null
+    $steps = @(
+        @{ Name = "version-sync";    Label = "Version Sync" },
+        @{ Name = "fmt";             Label = "Format" },
+        @{ Name = "fmt-check";       Label = "Format Check" },
+        @{ Name = "lint-strict";     Label = "Strict Clippy" },
+        @{ Name = "test";            Label = "Test" },
+        @{ Name = "release";         Label = "Release Build" },
+        @{ Name = "audit";           Label = "Security Audit" },
+        @{ Name = "frontend-check";  Label = "Frontend Check" },
+        @{ Name = "vscode-ci";       Label = "VSCode CI" }
+    )
+    $PAD = 20
+    $results = @()
+    $totalSw = [System.Diagnostics.Stopwatch]::StartNew()
+    foreach ($step in $steps) {
+        Write-Host ""
+        Write-Host "━━━ $($step.Label) ━━━" -ForegroundColor Cyan
+        $sw = [System.Diagnostics.Stopwatch]::StartNew()
+        just $step.Name
+        $code = $LASTEXITCODE
+        $sw.Stop()
+        $ts = "{0:mm\:ss\.fff}" -f $sw.Elapsed
+        $dots = '.' * ($PAD - $step.Label.Length)
+        if ($code -ne 0) {
+            Write-Host "  $($step.Label) $dots $ts  FAIL" -ForegroundColor Red
+            $results += [PSCustomObject]@{ Label = $step.Label; Time = $ts; Ok = $false }
+            $totalSw.Stop()
+            $totalTs = "{0:mm\:ss\.fff}" -f $totalSw.Elapsed
+            Write-Host ""
+            Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor Red
+            Write-Host "  CI Timing Summary (failed at: $($step.Label))" -ForegroundColor Red
+            Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor Red
+            foreach ($r in $results) {
+                $d = '.' * ($PAD - $r.Label.Length)
+                $mark = if ($r.Ok) { "OK" } else { "FAIL" }
+                $color = if ($r.Ok) { "Green" } else { "Red" }
+                Write-Host "  $($r.Label) $d $($r.Time)  $mark" -ForegroundColor $color
+            }
+            Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            Write-Host "  TOTAL .............. $totalTs" -ForegroundColor Yellow
+            exit $code
+        }
+        Write-Host "  $($step.Label) $dots $ts  OK" -ForegroundColor Green
+        $results += [PSCustomObject]@{ Label = $step.Label; Time = $ts; Ok = $true }
+    }
+    $totalSw.Stop()
+    $totalTs = "{0:mm\:ss\.fff}" -f $totalSw.Elapsed
+    Write-Host ""
+    Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor Cyan
+    Write-Host "  CI Timing Summary" -ForegroundColor Cyan
+    Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor Cyan
+    foreach ($r in $results) {
+        $d = '.' * ($PAD - $r.Label.Length)
+        Write-Host "  $($r.Label) $d $($r.Time)  OK" -ForegroundColor Green
+    }
+    Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    Write-Host "  TOTAL .............. $totalTs" -ForegroundColor Yellow
+    Write-Host ""
+    Write-Host "          CI passed - all steps green!" -ForegroundColor Green
 
 [private]
-_ci-done-linux:
-    @printf '\n'
-    @printf '%s\n' "          🎉 CI 流程全部通过 - 代码质量优秀！"
+_ci-timed-linux:
+    #!/usr/bin/env bash
+    set -uo pipefail
+    steps=("version-sync" "fmt" "fmt-check" "lint-strict" "test" "release" "audit" "frontend-check" "vscode-ci")
+    labels=("Version Sync" "Format" "Format Check" "Strict Clippy" "Test" "Release Build" "Security Audit" "Frontend Check" "VSCode CI")
+    PAD=20
+    times=()
+    statuses=()
+    pad_dots() { local n=$(( PAD - ${#1} )); printf '%*s' "$n" '' | tr ' ' '.'; }
+    total_start=$(date +%s%N)
+    for i in "${!steps[@]}"; do
+        printf '\n\033[36m━━━ %s ━━━\033[0m\n' "${labels[$i]}"
+        step_start=$(date +%s%N)
+        just "${steps[$i]}" && code=0 || code=$?
+        step_end=$(date +%s%N)
+        ms=$(( (step_end - step_start) / 1000000 ))
+        s=$((ms / 1000)); r=$((ms % 1000)); m=$((s / 60)); s=$((s % 60))
+        ts=$(printf '%02d:%02d.%03d' "$m" "$s" "$r")
+        times+=("$ts")
+        dots=$(pad_dots "${labels[$i]}")
+        if [ "$code" -ne 0 ]; then
+            statuses+=("FAIL")
+            printf '  \033[31m%s %s %s  FAIL\033[0m\n' "${labels[$i]}" "$dots" "$ts"
+            total_end=$(date +%s%N)
+            tms=$(( (total_end - total_start) / 1000000 ))
+            ts2=$((tms / 1000)); tr2=$((tms % 1000)); tm2=$((ts2 / 60)); ts2=$((ts2 % 60))
+            total_ts=$(printf '%02d:%02d.%03d' "$tm2" "$ts2" "$tr2")
+            printf '\n\033[31m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m\n'
+            printf '\033[31m  CI Timing Summary (failed at: %s)\033[0m\n' "${labels[$i]}"
+            printf '\033[31m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m\n'
+            for j in "${!times[@]}"; do
+                d=$(pad_dots "${labels[$j]}")
+                if [ "${statuses[$j]}" = "FAIL" ]; then
+                    printf '  \033[31m%s %s %s  %s\033[0m\n' "${labels[$j]}" "$d" "${times[$j]}" "${statuses[$j]}"
+                else
+                    printf '  \033[32m%s %s %s  %s\033[0m\n' "${labels[$j]}" "$d" "${times[$j]}" "${statuses[$j]}"
+                fi
+            done
+            printf '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n'
+            printf '\033[33m  TOTAL .............. %s\033[0m\n' "$total_ts"
+            exit "$code"
+        fi
+        statuses+=("OK")
+        printf '  \033[32m%s %s %s  OK\033[0m\n' "${labels[$i]}" "$dots" "$ts"
+    done
+    total_end=$(date +%s%N)
+    tms=$(( (total_end - total_start) / 1000000 ))
+    ts2=$((tms / 1000)); tr2=$((tms % 1000)); tm2=$((ts2 / 60)); ts2=$((ts2 % 60))
+    total_ts=$(printf '%02d:%02d.%03d' "$tm2" "$ts2" "$tr2")
+    printf '\n\033[36m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m\n'
+    printf '\033[36m  CI Timing Summary\033[0m\n'
+    printf '\033[36m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m\n'
+    for j in "${!times[@]}"; do
+        d=$(pad_dots "${labels[$j]}")
+        printf '  \033[32m%s %s %s  OK\033[0m\n' "${labels[$j]}" "$d" "${times[$j]}"
+    done
+    printf '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n'
+    printf '\033[33m  TOTAL .............. %s\033[0m\n' "$total_ts"
+    printf '\n          \033[32mCI passed - all steps green!\033[0m\n'
 
 [private]
-_ci-done-macos:
-    @printf '\n'
-    @printf '%s\n' "          🎉 CI 流程全部通过 - 代码质量优秀！"
+_ci-timed-macos:
+    #!/usr/bin/env bash
+    set -uo pipefail
+    steps=("version-sync" "fmt" "fmt-check" "lint-strict" "test" "release" "audit" "frontend-check" "vscode-ci")
+    labels=("Version Sync" "Format" "Format Check" "Strict Clippy" "Test" "Release Build" "Security Audit" "Frontend Check" "VSCode CI")
+    PAD=20
+    times=()
+    statuses=()
+    pad_dots() { local n=$(( PAD - ${#1} )); printf '%*s' "$n" '' | tr ' ' '.'; }
+    total_start=$(date +%s)
+    for i in "${!steps[@]}"; do
+        printf '\n\033[36m━━━ %s ━━━\033[0m\n' "${labels[$i]}"
+        step_start=$(date +%s)
+        just "${steps[$i]}" && code=0 || code=$?
+        step_end=$(date +%s)
+        elapsed=$((step_end - step_start))
+        m=$((elapsed / 60)); s=$((elapsed % 60))
+        ts=$(printf '%02d:%02d' "$m" "$s")
+        times+=("$ts")
+        dots=$(pad_dots "${labels[$i]}")
+        if [ "$code" -ne 0 ]; then
+            statuses+=("FAIL")
+            printf '  \033[31m%s %s %s  FAIL\033[0m\n' "${labels[$i]}" "$dots" "$ts"
+            total_end=$(date +%s)
+            total_elapsed=$((total_end - total_start))
+            tm=$((total_elapsed / 60)); tsec=$((total_elapsed % 60))
+            total_ts=$(printf '%02d:%02d' "$tm" "$tsec")
+            printf '\n\033[31m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m\n'
+            printf '\033[31m  CI Timing Summary (failed at: %s)\033[0m\n' "${labels[$i]}"
+            printf '\033[31m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m\n'
+            for j in "${!times[@]}"; do
+                d=$(pad_dots "${labels[$j]}")
+                if [ "${statuses[$j]}" = "FAIL" ]; then
+                    printf '  \033[31m%s %s %s  %s\033[0m\n' "${labels[$j]}" "$d" "${times[$j]}" "${statuses[$j]}"
+                else
+                    printf '  \033[32m%s %s %s  %s\033[0m\n' "${labels[$j]}" "$d" "${times[$j]}" "${statuses[$j]}"
+                fi
+            done
+            printf '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n'
+            printf '\033[33m  TOTAL .............. %s\033[0m\n' "$total_ts"
+            exit "$code"
+        fi
+        statuses+=("OK")
+        printf '  \033[32m%s %s %s  OK\033[0m\n' "${labels[$i]}" "$dots" "$ts"
+    done
+    total_end=$(date +%s)
+    total_elapsed=$((total_end - total_start))
+    tm=$((total_elapsed / 60)); tsec=$((total_elapsed % 60))
+    total_ts=$(printf '%02d:%02d' "$tm" "$tsec")
+    printf '\n\033[36m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m\n'
+    printf '\033[36m  CI Timing Summary\033[0m\n'
+    printf '\033[36m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m\n'
+    for j in "${!times[@]}"; do
+        d=$(pad_dots "${labels[$j]}")
+        printf '  \033[32m%s %s %s  OK\033[0m\n' "${labels[$j]}" "$d" "${times[$j]}"
+    done
+    printf '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n'
+    printf '\033[33m  TOTAL .............. %s\033[0m\n' "$total_ts"
+    printf '\n          \033[32mCI passed - all steps green!\033[0m\n'
 
 # ═══════════════════════════════════════════════════════════
 # 🌐 前端检查命令
