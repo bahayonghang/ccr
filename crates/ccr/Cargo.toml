@@ -21,7 +21,6 @@ path = "src/main.rs"
 
 [features]
 default = ["web", "tui"]
-bundled-sqlite = ["rusqlite/bundled"]
 tui = ["dep:crossterm", "dep:ratatui"]
 web = ["dep:axum", "dep:open", "dep:sysinfo", "dep:tower", "dep:tower-http"]
 
