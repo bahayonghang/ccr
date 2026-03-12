@@ -154,6 +154,7 @@ export default {
         '.glass-surface': {
           background: 'var(--glass-bg-light)',
           'backdrop-filter': 'var(--glass-blur-md)',
+          '-webkit-backdrop-filter': 'var(--glass-blur-md)',
           border: '1px solid var(--glass-border-light)',
         },
       })

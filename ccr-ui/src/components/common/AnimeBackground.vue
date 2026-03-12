@@ -8,7 +8,7 @@
       :style="{ backgroundImage: `url(${bgUrl})`, opacity: isLoaded ? 1 : 0 }"
     />
 
-    <div class="absolute inset-0 w-full h-full bg-black/60 z-0 pointer-events-none" />
+    <div class="absolute inset-0 w-full h-full bg-black/40 z-0 pointer-events-none" />
   </div>
 </template>
 

@@ -231,7 +231,7 @@
       class="flex-1 relative overflow-hidden flex flex-col"
     >
       <!-- Top Bar -->
-      <div class="sticky top-0 z-30 flex h-[92px] pt-9 items-center justify-between border-b border-border-default/40 bg-bg-elevated/70 px-6 backdrop-blur-md shrink-0">
+      <div class="sticky top-0 z-30 flex h-[92px] pt-9 items-center justify-between border-b border-border-default/40 topbar-glass px-6 shrink-0">
         <!-- Left: Breadcrumbs or Back + Title -->
         <div class="flex items-center text-sm text-text-secondary">
           <template v-if="route.meta.hideSidebar">
@@ -457,12 +457,19 @@ onUnmounted(() => {
 :root[data-theme="dark"] .sidebar-glass,
 .dark .sidebar-glass,
 .sidebar-glass {
-  background: rgb(0 0 0 / 40%);
-  backdrop-filter: blur(20px) saturate(180%);
-  border-right: 1px solid rgb(255 255 255 / 10%);
+  background: var(--liquid-glass-bg);
+  backdrop-filter: var(--liquid-glass-blur);
+  backdrop-filter: var(--liquid-glass-blur);
+  border-right: 1px solid var(--liquid-glass-border);
   box-shadow:
-    4px 0 24px rgb(0 0 0 / 30%),
-    inset -1px 0 0 rgb(255 255 255 / 5%);
+    var(--liquid-glass-shadow),
+    inset -1px 0 0 rgb(255 255 255 / 8%);
+}
+
+.topbar-glass {
+  background: var(--glass-bg-light);
+  backdrop-filter: var(--glass-blur-md);
+  backdrop-filter: var(--glass-blur-md);
 }
 
 /* Nav Item Styles */

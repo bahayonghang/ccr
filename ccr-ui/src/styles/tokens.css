@@ -383,21 +383,21 @@
 
 /* 暗色主题玻璃效果 */
 [data-theme="dark"]:where([data-theme="dark"]):where([data-theme="dark"]) {
-    --glass-bg-light: rgb(38 18 50 / 50%);
-    --glass-bg-medium: rgb(38 18 50 / 70%);
-    --glass-bg-strong: rgb(38 18 50 / 85%);
-    --glass-border-light: rgb(249 168 212 / 6%);
-    --glass-border-medium: rgb(249 168 212 / 12%);
-    --glass-border-strong: rgb(249 168 212 / 18%);
+    --glass-bg-light: rgb(38 18 50 / 28%);
+    --glass-bg-medium: rgb(38 18 50 / 42%);
+    --glass-bg-strong: rgb(38 18 50 / 56%);
+    --glass-border-light: rgb(249 168 212 / 12%);
+    --glass-border-medium: rgb(249 168 212 / 18%);
+    --glass-border-strong: rgb(249 168 212 / 26%);
     --glass-shadow: 0 4px 24px rgb(0 0 0 / 20%);
     --glass-shadow-elevated: 0 8px 32px rgb(0 0 0 / 30%);
-    --glass-inner-glow: inset 0 1px 0 rgb(255 255 255 / 4%);
+    --glass-inner-glow: inset 0 1px 0 rgb(255 255 255 / 10%);
 
     /* --- 液态玻璃效果 --- */
-    --liquid-glass-bg: rgb(38 18 50 / 60%);
+    --liquid-glass-bg: rgb(38 18 50 / 36%);
     --liquid-glass-blur: blur(24px) saturate(180%);
-    --liquid-glass-border: rgb(249 168 212 / 10%);
-    --liquid-glass-highlight: inset 0 1px 0 rgb(255 255 255 / 6%), inset 0 0 20px rgb(249 168 212 / 3%);
+    --liquid-glass-border: rgb(249 168 212 / 14%);
+    --liquid-glass-highlight: inset 0 1px 0 rgb(255 255 255 / 12%), inset 0 0 20px rgb(249 168 212 / 6%);
     --liquid-glass-shadow: 0 8px 32px rgb(0 0 0 / 25%), 0 2px 8px rgb(0 0 0 / 15%);
 }
 

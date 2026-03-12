@@ -12,6 +12,7 @@
     .glass-effect {
         background: var(--glass-bg-medium);
         backdrop-filter: var(--glass-blur-md);
+        backdrop-filter: var(--glass-blur-md);
         border: 1px solid var(--glass-border-medium);
     }
 
@@ -19,6 +20,7 @@
     .glass-effect-strong,
     .glass-elevated {
         background: var(--glass-bg-strong);
+        backdrop-filter: var(--glass-blur-lg);
         backdrop-filter: var(--glass-blur-lg);
         border: 1px solid var(--glass-border-strong);
         box-shadow: var(--glass-shadow);
@@ -28,6 +30,7 @@
     .glass-modal {
         background: var(--glass-bg-strong);
         backdrop-filter: var(--glass-blur-xl);
+        backdrop-filter: var(--glass-blur-xl);
         border: 1px solid var(--glass-border-strong);
         box-shadow: var(--glass-shadow-elevated), var(--glass-inner-glow);
     }
@@ -35,6 +38,7 @@
     /* 液态玻璃效果 - 高级折射感 */
     .liquid-glass {
         background: var(--liquid-glass-bg);
+        backdrop-filter: var(--liquid-glass-blur);
         backdrop-filter: var(--liquid-glass-blur);
         border: 1px solid var(--liquid-glass-border);
         box-shadow: var(--liquid-glass-shadow), var(--liquid-glass-highlight);
@@ -52,6 +56,7 @@
             0 8px 32px rgb(var(--color-accent-primary-rgb), 0.2),
             var(--glass-inner-glow),
             0 0 40px rgb(var(--color-accent-primary-rgb), 0.1);
+        backdrop-filter: var(--glass-blur-xl);
         backdrop-filter: var(--glass-blur-xl);
     }
 
@@ -185,6 +190,7 @@
                 rgb(var(--color-accent-primary-rgb), 0.95),
                 rgb(var(--color-accent-secondary-rgb), 0.95));
         backdrop-filter: blur(10px);
+        backdrop-filter: blur(10px);
         border: 2px solid rgb(var(--color-accent-primary-rgb), 0.8);
         box-shadow:
             0 4px 20px rgb(var(--color-accent-secondary-rgb), 0.5),
@@ -195,6 +201,7 @@
     /* 导航项非激活状态 */
     .nav-item-inactive {
         background: var(--glass-bg-light);
+        backdrop-filter: blur(10px);
         backdrop-filter: blur(10px);
         border: 1px solid rgb(var(--color-accent-primary-rgb), 0.2);
         box-shadow: 0 2px 8px rgb(0 0 0 / 10%);
@@ -848,21 +855,9 @@
 
 /* ========== 无障碍: 减少动画 & 性能降级 ========== */
 
-/* 当用户偏好减少动画时，禁用 backdrop-filter（GPU 密集型）并简化视觉效果。
- * 同时降级所有过渡动画，仅保留透明度过渡以维持基本反馈。 */
+/* 当用户偏好减少动画时，仅降级动画，不再一刀切关闭模糊。
+ * 这样能保留玻璃拟态层次，同时避免把 motion 偏好误判成 transparency 偏好。 */
 @media (prefers-reduced-motion: reduce) {
-    .glass-surface,
-    .glass-effect,
-    .glass-effect-strong,
-    .glass-elevated,
-    .glass-modal,
-    .liquid-glass,
-    .config-card-active,
-    .nav-item-active-glow,
-    .nav-item-inactive {
-        backdrop-filter: none !important;
-    }
-
     /* 降级过渡动画：仅保留 opacity */
     .neo-card,
     .neo-card-interactive,
@@ -893,5 +888,23 @@
 
     .neo-card-interactive:hover {
         transform: none !important;
+    }
+}
+
+/* 当用户明确要求减少透明度时，再关闭 blur。
+ * 当前 WebView/浏览器不支持时会自动忽略，不影响默认视觉。 */
+@media (prefers-reduced-transparency: reduce) {
+    .glass-surface,
+    .glass-effect,
+    .glass-effect-strong,
+    .glass-elevated,
+    .glass-modal,
+    .liquid-glass,
+    .config-card-active,
+    .nav-item-active-glow,
+    .nav-item-inactive {
+        backdrop-filter: none !important;
+        backdrop-filter: none !important;
+        background: var(--glass-bg-strong) !important;
     }
 }
