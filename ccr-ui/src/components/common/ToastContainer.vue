@@ -62,22 +62,27 @@ const getIcon = (type: 'success' | 'error' | 'warning' | 'info') => {
   align-items: center;
   gap: 0.75rem;
   padding: 0.875rem 1rem;
-  border-radius: 0.5rem;
-  background: rgb(var(--color-slate-dark-rgb), 0.95);
-  backdrop-filter: blur(8px);
-  color: var(--text-primary);
+  border-radius: 1rem;
+  background: var(--glass-bg-strong);
+  backdrop-filter: blur(16px);
+  color: var(--color-text-primary);
   box-shadow: var(--shadow-lg);
   cursor: pointer;
   pointer-events: auto;
   min-width: 280px;
   max-width: 400px;
+  border: 1px solid var(--color-border-default);
   border-left: 3px solid transparent;
-  transition: all 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    border-color 0.2s ease;
 }
 
 .toast:hover {
   transform: translateX(-4px);
   box-shadow: var(--shadow-xl);
+  border-color: var(--color-border-strong);
 }
 
 .toast-success {
@@ -122,6 +127,7 @@ const getIcon = (type: 'success' | 'error' | 'warning' | 'info') => {
   flex: 1;
   font-size: 0.875rem;
   line-height: 1.4;
+  color: inherit;
 }
 
 .toast-close {
@@ -164,6 +170,19 @@ const getIcon = (type: 'success' | 'error' | 'warning' | 'info') => {
   to {
     opacity: 0;
     transform: translateX(100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toast,
+  .toast-enter-active,
+  .toast-leave-active {
+    animation: none;
+    transition: none;
+  }
+
+  .toast:hover {
+    transform: none;
   }
 }
 </style>

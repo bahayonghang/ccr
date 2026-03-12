@@ -18,19 +18,20 @@
       <!-- Resize Handle -->
       <button
         type="button"
-        class="absolute -right-2 top-0 w-5 h-full cursor-col-resize z-50 group rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary/30"
-        aria-label="调整侧边栏宽度"
-        title="调整侧边栏宽度"
+        class="group absolute -right-2 top-0 z-50 h-full w-5 cursor-col-resize rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary/30"
+        :aria-label="t('common.resizeSidebar')"
+        aria-controls="primary-navigation"
+        :title="t('common.resizeSidebar')"
         @mousedown.prevent="startResize"
         @keydown="handleResizeKeydown"
       >
-        <div class="absolute inset-y-0 right-1/2 w-[1px] bg-border-subtle group-hover:bg-accent-primary/50 transition-colors delay-75" />
+        <div class="absolute inset-y-0 right-1/2 w-[1px] bg-border-default/70 transition-colors delay-75 group-hover:bg-accent-primary/50" />
       </button>
 
       <!-- Logo Area -->
       <div class="h-[100px] pt-9 flex items-center px-4 border-b border-pink-200/20 dark:border-pink-300/10 shrink-0">
         <div class="flex items-center gap-3">
-          <div class="relative w-8 h-8 flex items-center justify-center rounded-lg bg-gradient-to-br from-pink-400 to-violet-400 shadow-lg shadow-pink-400/30">
+          <div class="relative flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-pink-400 to-violet-400 shadow-lg shadow-pink-400/30">
             <Cat class="w-5 h-5 text-white" />
           </div>
           <div>
@@ -45,7 +46,10 @@
       </div>
 
       <!-- Navigation -->
-      <nav class="flex-1 overflow-y-auto p-3 space-y-6 scrollbar-hide">
+      <nav
+        id="primary-navigation"
+        class="flex-1 overflow-y-auto p-3 space-y-6 scrollbar-hide"
+      >
         <!-- Section: Main -->
         <div class="space-y-1">
           <RouterLink
@@ -61,7 +65,7 @@
         <div>
           <div class="px-3 mb-2 text-[10px] font-bold uppercase tracking-wider text-text-muted flex items-center gap-2">
             {{ $t('nav.skillsHub') }}
-            <div class="h-px flex-1 bg-black/10 dark:bg-white/10" />
+            <div class="h-px flex-1 bg-border-default/70" />
           </div>
           <div class="space-y-0.5">
             <RouterLink
@@ -85,7 +89,7 @@
         <div>
           <div class="px-3 mb-2 text-[10px] font-bold uppercase tracking-wider text-text-muted flex items-center gap-2">
             {{ $t('nav.mainModules') }}
-            <div class="h-px flex-1 bg-black/10 dark:bg-white/10" />
+            <div class="h-px flex-1 bg-border-default/70" />
           </div>
           <div class="space-y-0.5">
             <RouterLink
@@ -137,7 +141,7 @@
         <div>
           <div class="px-3 mb-2 text-[10px] font-bold uppercase tracking-wider text-text-muted flex items-center gap-2">
             {{ $t('nav.toolsCenter') }}
-            <div class="h-px flex-1 bg-black/10 dark:bg-white/10" />
+            <div class="h-px flex-1 bg-border-default/70" />
           </div>
           <div class="space-y-0.5">
             <RouterLink
@@ -181,7 +185,7 @@
 
       <!-- Footer: User Profile - Neko Kawaii Style -->
       <div class="p-3 pb-6 border-t border-pink-200/10 dark:border-pink-300/10">
-        <div class="user-card group relative rounded-2xl overflow-hidden transition-[color,background-color,box-shadow] duration-300">
+        <div class="user-card group relative overflow-hidden rounded-2xl transition-[color,background-color,box-shadow,border-color] duration-300">
           <!-- Animated gradient background -->
           <div class="absolute inset-0 bg-gradient-to-br from-pink-500/15 via-fuchsia-500/12 to-violet-500/15 opacity-80" />
           <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(244,114,182,0.12),transparent_50%)]" />
@@ -208,12 +212,12 @@
               </p>
               
               <!-- Theme Toggle -->
-              <ThemeToggle class="relative z-20 p-1.5 rounded-xl glass-surface hover:bg-white/10 border border-white/20 transition-colors duration-200" />
+              <ThemeToggle class="relative z-20" />
             </div>
 
             <!-- Version -->
             <div class="flex items-center justify-between">
-              <span class="text-[10px] font-mono text-text-muted bg-bg-elevated/80 px-2 py-0.5 rounded-md border border-border-default/60">
+              <span class="rounded-md border border-border-default/60 bg-bg-elevated/80 px-2 py-0.5 text-[10px] font-mono text-text-muted">
                 CCR UI v5.0.8
               </span>
             </div>
@@ -236,11 +240,11 @@
         <div class="flex items-center text-sm text-text-secondary">
           <template v-if="route.meta.hideSidebar">
             <button
-              class="flex items-center gap-1.5 px-2.5 py-1.5 -ml-2 rounded-lg text-text-secondary hover:text-text-primary hover:bg-black/5 dark:hover:bg-white/10 transition-colors duration-200"
+              class="flex items-center gap-1.5 px-2.5 py-1.5 -ml-2 rounded-lg text-text-secondary hover:text-text-primary hover:bg-bg-overlay/70 transition-colors duration-200"
               @click="router.back()"
             >
               <ArrowLeft class="w-4 h-4" />
-              <span class="text-xs font-medium">返回</span>
+              <span class="text-xs font-medium">{{ t('common.back') }}</span>
             </button>
             <span class="mx-2 opacity-30">|</span>
             <span class="text-text-primary font-semibold">{{ currentPageTitle }}</span>
@@ -258,7 +262,7 @@
           <LanguageSwitcher />
           <div
             v-if="isTauri"
-            class="h-4 w-px bg-black/10 dark:bg-white/10 mx-2"
+            class="h-4 w-px bg-border-default/80 mx-2"
           />
           <!-- Exit Toggle -->
           <button
@@ -267,7 +271,7 @@
             :class="[
               showExitConfirm 
                 ? 'bg-accent-primary/10 border-accent-primary/30 text-accent-primary' 
-                : 'glass-surface border-white/20 text-text-secondary hover:text-text-primary hover:border-accent-primary/30 hover:bg-white/5'
+                : 'border-border-default/70 bg-bg-elevated/75 text-text-secondary hover:text-text-primary hover:border-accent-primary/30 hover:bg-bg-surface/90 shadow-sm'
             ]"
             :title="showExitConfirm ? $t('common.yes') : $t('common.no')"
             @click="toggleExitConfirm"
@@ -470,22 +474,29 @@ onUnmounted(() => {
   background: var(--glass-bg-light);
   backdrop-filter: var(--glass-blur-md);
   backdrop-filter: var(--glass-blur-md);
+  box-shadow: inset 0 -1px 0 rgb(var(--color-border-default-rgb) / 0.45);
 }
 
 /* Nav Item Styles */
 .nav-item {
-  @apply flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium text-white/70
-         transition-colors duration-200 relative overflow-hidden;
+  @apply relative flex items-center gap-3 overflow-hidden rounded-xl px-3 py-2 text-sm font-medium text-text-secondary
+         transition-[color,background-color,box-shadow] duration-200;
+}
+
+.nav-item:focus-visible {
+  @apply outline-none ring-2 ring-accent-primary/25 ring-offset-2 ring-offset-bg-base;
 }
 
 .nav-item:hover {
-  @apply bg-white/10 text-white;
+  @apply bg-bg-overlay/75 text-text-primary shadow-sm;
 }
 
 .nav-item.router-link-active {
-  @apply bg-accent-primary/20 text-accent-primary shadow-sm;
+  @apply border border-accent-primary/15 bg-accent-primary/10 text-accent-primary shadow-sm;
 
-  box-shadow: 0 0 20px rgb(var(--color-accent-primary-rgb), 0.15);
+  box-shadow:
+    0 10px 24px rgb(var(--color-accent-primary-rgb) / 0.12),
+    0 0 20px rgb(var(--color-accent-primary-rgb) / 0.08);
 }
 
 /* Active indicator strip */

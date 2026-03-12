@@ -52,6 +52,7 @@ export default {
     clearFilters: '清除筛选',
     clearSelection: '清除选择',
     more: '更多',
+    resizeSidebar: '调整侧边栏宽度',
   },
   ccrControl: {
     title: 'CCR 控制中心',

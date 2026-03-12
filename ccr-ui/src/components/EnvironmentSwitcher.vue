@@ -2,7 +2,7 @@
 /**
  * 环境切换器 — 显示当前执行环境，支持切换 Local/WSL/SSH
  */
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { Monitor, ChevronDown, RefreshCw, Server, Terminal } from 'lucide-vue-next'
 import { invoke } from '@tauri-apps/api/core'
 import { logger } from '@/utils/logger'
@@ -86,13 +86,20 @@ onMounted(async () => {
   await fetchEnvironments()
   document.addEventListener('click', handleClickOutside)
 })
+
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside)
+})
 </script>
 
 <template>
   <div class="env-switcher relative">
     <!-- 触发按钮 -->
     <button
-      class="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors duration-200 border glass-surface border-white/20 text-white/80 hover:text-white hover:border-accent-primary/30 hover:bg-white/5"
+      type="button"
+      class="glass-surface flex items-center gap-2 rounded-lg border border-border-default/60 px-3 py-1.5 text-xs font-medium text-text-secondary transition-[color,background-color,border-color,box-shadow] duration-200 hover:border-accent-primary/35 hover:bg-bg-elevated/80 hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary/20"
+      :aria-expanded="isOpen"
+      aria-haspopup="listbox"
       @click.stop="isOpen = !isOpen"
     >
       <component
@@ -120,21 +127,23 @@ onMounted(async () => {
     >
       <div
         v-if="isOpen"
-        class="absolute right-0 top-full mt-1 w-64 rounded-xl border border-white/10 bg-white/5/95 backdrop-blur-lg shadow-xl z-50 overflow-hidden"
+        class="glass-surface absolute right-0 top-full z-50 mt-1 w-64 overflow-hidden rounded-xl border border-border-default/70 shadow-xl"
+        role="listbox"
       >
         <!-- 标题栏 -->
-        <div class="flex items-center justify-between px-3 py-2 border-b border-white/5">
-          <span class="text-[10px] font-bold uppercase tracking-wider text-white/50">
+        <div class="flex items-center justify-between border-b border-border-default/50 px-3 py-2">
+          <span class="text-[10px] font-bold uppercase tracking-wider text-text-muted">
             执行环境
           </span>
           <button
-            class="p-1 rounded-md hover:bg-white/5 transition-colors"
+            type="button"
+            class="rounded-md p-1 text-text-muted transition-colors hover:bg-bg-surface/70 hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary/20"
             :disabled="isRefreshing"
             title="刷新环境列表"
             @click.stop="refreshEnvs"
           >
             <RefreshCw
-              class="w-3 h-3 text-white/50"
+              class="w-3 h-3"
               :class="{ 'animate-spin': isRefreshing }"
             />
           </button>
@@ -145,13 +154,16 @@ onMounted(async () => {
           <button
             v-for="env in environments"
             :key="env.id"
+            type="button"
             class="w-full flex items-center gap-3 px-3 py-2 text-left text-sm transition-colors duration-150"
             :class="[
               env.is_active
                 ? 'bg-accent-primary/10 text-accent-primary'
-                : 'text-white/80 hover:bg-white/5 hover:text-white'
+                : 'text-text-secondary hover:bg-bg-surface/70 hover:text-text-primary'
             ]"
             :disabled="isLoading"
+            role="option"
+            :aria-selected="env.is_active"
             @click.stop="switchEnv(env.id)"
           >
             <component
@@ -163,7 +175,7 @@ onMounted(async () => {
               <div class="font-medium truncate">
                 {{ env.name }}
               </div>
-              <div class="text-[10px] text-white/50 truncate">
+              <div class="truncate text-[10px] text-text-muted">
                 {{ env.description }}
               </div>
             </div>
@@ -176,7 +188,7 @@ onMounted(async () => {
 
           <div
             v-if="environments.length === 0"
-            class="px-3 py-4 text-center text-xs text-white/50"
+            class="px-3 py-4 text-center text-xs text-text-muted"
           >
             未检测到可用环境
           </div>

@@ -1,7 +1,9 @@
 <template>
   <button
+    :type="type"
     :class="classes"
     :disabled="disabled || loading"
+    :aria-busy="loading || undefined"
     @click="handleClick"
   >
     <!-- Loading Spinner -->
@@ -54,6 +56,7 @@ import { computed } from 'vue'
 interface Props {
   variant?: 'primary' | 'secondary' | 'accent' | 'outline' | 'ghost' | 'glass' | 'danger'
   size?: 'sm' | 'md' | 'lg' | 'icon'
+  type?: 'button' | 'submit' | 'reset'
   disabled?: boolean
   loading?: boolean
   block?: boolean
@@ -62,6 +65,7 @@ interface Props {
 const props = withDefaults(defineProps<Props>(), {
   variant: 'primary',
   size: 'md',
+  type: 'button',
   disabled: false,
   loading: false,
   block: false,
@@ -77,28 +81,28 @@ const handleClick = (e: MouseEvent) => {
 
 const classes = computed(() => {
   const base = [
-    'inline-flex items-center justify-center rounded-xl font-medium transition-[color,background-color,border-color,transform,box-shadow] duration-300 ease-out',
-    'focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-bg-base',
+    'inline-flex min-h-[44px] items-center justify-center rounded-xl font-medium transition-[color,background-color,border-color,transform,box-shadow] duration-300 ease-out',
+    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary/30 focus-visible:ring-offset-2 focus-visible:ring-offset-bg-base',
     'disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none',
-    'transform active:scale-95', // Micro-interaction
+    'transform active:scale-95',
     props.block ? 'w-full' : '',
   ]
 
   const variants = {
-    primary: 'bg-accent-primary/90 text-white hover:bg-accent-primary shadow-glow-primary border border-white/10 backdrop-blur-md',
-    secondary: 'bg-white/10 text-white border border-white/10 hover:bg-white/20 backdrop-blur-md shadow-sm',
-    accent: 'bg-accent-secondary/90 text-white hover:bg-accent-secondary shadow-glow-primary border border-white/10 backdrop-blur-md',
-    outline: 'border border-white/30 text-white hover:border-white/60 hover:bg-white/10 backdrop-blur-md',
-    ghost: 'text-white/70 hover:text-white hover:bg-white/10',
-    glass: 'bg-white/10 backdrop-blur-md border border-white/20 text-white hover:bg-white/20 shadow-lg',
-    danger: 'bg-accent-danger/90 text-white hover:bg-accent-danger shadow-glow-danger border border-white/10 backdrop-blur-md',
+    primary: 'border border-accent-primary/20 bg-accent-primary/90 text-text-inverted shadow-glow-primary hover:bg-accent-primary',
+    secondary: 'border border-border-default/70 bg-bg-elevated/75 text-text-primary shadow-sm backdrop-blur-md hover:border-border-strong hover:bg-bg-surface',
+    accent: 'border border-accent-secondary/20 bg-accent-secondary/90 text-text-inverted shadow-glow-primary hover:bg-accent-secondary',
+    outline: 'border border-border-default/80 bg-transparent text-text-secondary hover:border-accent-primary/35 hover:bg-bg-surface/70 hover:text-text-primary',
+    ghost: 'text-text-secondary hover:bg-bg-surface/80 hover:text-text-primary',
+    glass: 'glass-surface border border-border-default/60 text-text-primary shadow-sm hover:border-accent-primary/30 hover:bg-bg-elevated/80',
+    danger: 'border border-accent-danger/20 bg-accent-danger/90 text-text-inverted shadow-glow-danger hover:bg-accent-danger',
   }
 
   const sizes = {
-    sm: 'text-xs px-2.5 py-1.5',
-    md: 'text-sm px-4 py-2',
-    lg: 'text-base px-6 py-3',
-    icon: 'p-2',
+    sm: 'px-3 py-2 text-xs',
+    md: 'px-4 py-2.5 text-sm',
+    lg: 'px-6 py-3 text-base',
+    icon: 'min-w-[44px] p-2.5',
   }
 
   return [...base, variants[props.variant], sizes[props.size]].join(' ')

@@ -2,19 +2,22 @@
   <div class="relative w-full">
     <!-- Language Switcher Button -->
     <button
-      class="w-full px-3 py-2 rounded-lg font-semibold text-sm transition-[color,background-color,border-color,transform] flex items-center justify-between gap-2 hover:scale-[1.02] glass-surface border border-white/5 hover:border-accent-primary/50"
+      type="button"
+      class="glass-surface flex w-full items-center justify-between gap-2 rounded-lg border border-border-default/60 px-3 py-2 text-sm font-semibold text-text-primary transition-[color,background-color,border-color,transform,box-shadow] hover:border-accent-primary/35 hover:bg-bg-elevated/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary/20"
       :aria-label="$t('common.language.switchLanguage')"
+      :aria-expanded="showDropdown"
+      aria-haspopup="listbox"
       :title="$t('common.language.switchLanguage')"
       @click="toggleDropdown"
     >
-      <span class="flex items-center gap-2 min-w-0 text-white">
+      <span class="flex min-w-0 items-center gap-2">
         <Languages class="w-4 h-4" />
         <span class="text-left whitespace-normal break-words">
           {{ currentLanguageName }} / {{ targetLanguageName }}
         </span>
       </span>
       <ChevronDown
-        class="w-3 h-3 transition-transform text-white/50"
+        class="w-3 h-3 text-text-muted transition-transform"
         :class="{ 'rotate-180': showDropdown }"
       />
     </button>
@@ -30,16 +33,20 @@
     >
       <div
         v-if="showDropdown"
-        class="absolute left-0 mt-2 w-44 rounded-xl overflow-hidden z-50 glass-surface border border-white/5 shadow-2xl"
+        class="glass-surface absolute left-0 z-50 mt-2 w-44 overflow-hidden rounded-xl border border-border-default/70 shadow-2xl"
+        role="listbox"
       >
         <button
           v-for="lang in languages"
           :key="lang.code"
+          type="button"
           class="lang-option w-full px-4 py-3 text-left text-sm font-medium transition-colors flex items-center justify-between"
           :class="{
             'lang-active': currentLocale === lang.code,
             'lang-inactive': currentLocale !== lang.code
           }"
+          role="option"
+          :aria-selected="currentLocale === lang.code"
           @click="switchLanguage(lang.code)"
         >
           <span class="flex items-center gap-3">
@@ -48,7 +55,7 @@
           </span>
           <Check
             v-if="currentLocale === lang.code"
-            class="w-4 h-4 text-white"
+            class="w-4 h-4 text-text-inverted"
           />
         </button>
       </div>
@@ -119,10 +126,13 @@ const switchLanguage = async (langCode: string) => {
 }
 
 .lang-active {
-  @apply bg-accent-primary text-white font-bold;
+  background: rgb(var(--color-accent-primary-rgb) / 0.12);
+  color: var(--color-accent-primary);
+  font-weight: var(--font-semibold);
+  box-shadow: var(--shadow-glow-primary);
 }
 
 .lang-inactive {
-  @apply text-white/80 hover:bg-white/5 hover:text-white;
+  @apply text-text-secondary hover:bg-bg-surface/80 hover:text-text-primary;
 }
 </style>

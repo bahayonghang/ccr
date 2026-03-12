@@ -49,6 +49,7 @@ export default {
     clearFilters: 'Clear Filters',
     clearSelection: 'Clear Selection',
     more: 'more',
+    resizeSidebar: 'Resize sidebar',
   },
   ccrControl: {
     title: 'CCR Control Center',
