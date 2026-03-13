@@ -126,7 +126,7 @@ const switchLanguage = async (langCode: string) => {
 }
 
 .lang-active {
-  background: rgb(var(--color-accent-primary-rgb) / 0.12);
+  background: rgb(var(--color-accent-primary-rgb) / 12%);
   color: var(--color-accent-primary);
   font-weight: var(--font-semibold);
   box-shadow: var(--shadow-glow-primary);

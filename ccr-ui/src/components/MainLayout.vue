@@ -463,7 +463,6 @@ onUnmounted(() => {
 .sidebar-glass {
   background: var(--liquid-glass-bg);
   backdrop-filter: var(--liquid-glass-blur);
-  backdrop-filter: var(--liquid-glass-blur);
   border-right: 1px solid var(--liquid-glass-border);
   box-shadow:
     var(--liquid-glass-shadow),
@@ -473,8 +472,7 @@ onUnmounted(() => {
 .topbar-glass {
   background: var(--glass-bg-light);
   backdrop-filter: var(--glass-blur-md);
-  backdrop-filter: var(--glass-blur-md);
-  box-shadow: inset 0 -1px 0 rgb(var(--color-border-default-rgb) / 0.45);
+  box-shadow: inset 0 -1px 0 rgb(var(--color-border-default-rgb) / 45%);
 }
 
 /* Nav Item Styles */
@@ -495,8 +493,8 @@ onUnmounted(() => {
   @apply border border-accent-primary/15 bg-accent-primary/10 text-accent-primary shadow-sm;
 
   box-shadow:
-    0 10px 24px rgb(var(--color-accent-primary-rgb) / 0.12),
-    0 0 20px rgb(var(--color-accent-primary-rgb) / 0.08);
+    0 10px 24px rgb(var(--color-accent-primary-rgb) / 12%),
+    0 0 20px rgb(var(--color-accent-primary-rgb) / 8%);
 }
 
 /* Active indicator strip */
