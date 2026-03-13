@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0066CC" />
+      <stop offset="50%" stop-color="#00468C" />
+      <stop offset="100%" stop-color="#001833" />
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="8" stdDeviation="8" flood-opacity="0.3" flood-color="#000000"/>
+    </filter>
+  </defs>
+
+  <!-- Base Squircle -->
+  <rect x="16" y="16" width="224" height="224" rx="56" ry="56" fill="url(#bgGrad)" />
+  
+  <!-- Subtle Inner Border for 3D feel -->
+  <rect x="16" y="16" width="224" height="224" rx="56" ry="56" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="2" />
+
+  <g filter="url(#shadow)">
+    <!-- Switcher Track -->
+    <rect x="48" y="88" width="160" height="80" rx="40" fill="rgba(255, 255, 255, 0.15)" stroke="rgba(255, 255, 255, 0.25)" stroke-width="3" />
+    
+    <!-- Track inner configuration dots indicating multi-platform -->
+    <circle cx="88" cy="128" r="5" fill="rgba(255, 255, 255, 0.3)" />
+    <circle cx="128" cy="128" r="5" fill="rgba(255, 255, 255, 0.3)" />
+
+    <!-- Active Switch Knob -->
+    <circle cx="168" cy="128" r="32" fill="#FFFFFF" />
+    
+    <!-- AI Sparkle on the Knob -->
+    <path d="M168 108 c 2 10, 10 18, 20 20 c -10 2, -18 10, -20 20 c -2 -10, -10 -18, -20 -20 c 10 -2, 18 -10, 20 -20 Z" fill="#00468C" />
+    <circle cx="186" cy="110" r="2.5" fill="#00468C" opacity="0.6" />
+  </g>
+
+  <!-- Typography -->
+  <text x="128" y="210" font-family="system-ui, -apple-system, sans-serif" font-size="28" font-weight="bold" fill="rgba(255,255,255,0.9)" letter-spacing="4" text-anchor="middle">CCR</text>
+</svg>

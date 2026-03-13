@@ -8,6 +8,7 @@ set -euo pipefail
 # - ccr-ui/package.json
 # - ccr-ui/src-tauri/Cargo.toml
 # - ccr-ui/src-tauri/tauri.conf.json
+# - ccr-vscode/package.json
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. && pwd)"
 
@@ -19,6 +20,7 @@ TAURI_CARGO="$ROOT_DIR/ccr-ui/src-tauri/Cargo.toml"
 TAURI_CONF="$ROOT_DIR/ccr-ui/src-tauri/tauri.conf.json"
 COMPONENT_MAIN_LAYOUT="$ROOT_DIR/ccr-ui/src/components/MainLayout.vue"
 LEGACY_MAIN_LAYOUT="$ROOT_DIR/ccr-ui/src/layouts/MainLayout.vue"
+VSCODE_PKG="$ROOT_DIR/ccr-vscode/package.json"
 
 die() {
   echo "❌ $1" >&2
@@ -54,6 +56,7 @@ require_file "$TAURI_CARGO"
 require_file "$TAURI_CONF"
 require_file "$COMPONENT_MAIN_LAYOUT"
 require_file "$LEGACY_MAIN_LAYOUT"
+require_file "$VSCODE_PKG"
 
 # 提取根 Cargo.toml 的 [package] 版本号
 extract_root_version() {
@@ -194,8 +197,24 @@ UI_COMPONENT_VER="$(extract_ui_footer_version "$COMPONENT_MAIN_LAYOUT")"
 UI_LEGACY_LAYOUT_VER="$(extract_ui_footer_version "$LEGACY_MAIN_LAYOUT")"
 [[ "$VERBOSE" == true ]] && echo "📐 MainLayout.vue (layouts) 版本: $UI_LEGACY_LAYOUT_VER"
 
+# 获取 VSCode 扩展版本
+extract_vscode_version() {
+  local ver
+  ver="$(jq -r '.version // empty' "$VSCODE_PKG" 2>/dev/null || true)"
+  if [[ -z "$ver" || "$ver" == "null" ]]; then
+    # 兼容没有 jq 的环境：用 sed 粗略解析
+    ver="$(sed -nE 's/"version"[[:space:]]*:[[:space:]]*"([^"]+)".*/\1/p' "$VSCODE_PKG" | head -n1)"
+  fi
+  [[ -n "$ver" ]] || die "VSCode package.json 缺少 version 字段或解析失败"
+  ver="$(printf "%s" "$ver" | tr -d '\r' | sed -e 's/^\s\+//' -e 's/\s\+$//')"
+  printf "%s" "$ver"
+}
+
+VSCODE_VER="$(extract_vscode_version)"
+[[ "$VERBOSE" == true ]] && echo "🔌 VSCode 扩展版本: $VSCODE_VER"
+
 if [[ "$CHECK_ONLY" == true ]]; then
-  if [[ "$ROOT_VER" == "$CCR_TYPES_VER" && "$ROOT_VER" == "$CCR_DB_VER" && "$ROOT_VER" == "$FRONTEND_VER" && "$ROOT_VER" == "$TAURI_CARGO_VER" && "$ROOT_VER" == "$TAURI_CONF_VER" && "$ROOT_VER" == "$UI_COMPONENT_VER" && "$ROOT_VER" == "$UI_LEGACY_LAYOUT_VER" ]]; then
+  if [[ "$ROOT_VER" == "$CCR_TYPES_VER" && "$ROOT_VER" == "$CCR_DB_VER" && "$ROOT_VER" == "$FRONTEND_VER" && "$ROOT_VER" == "$TAURI_CARGO_VER" && "$ROOT_VER" == "$TAURI_CONF_VER" && "$ROOT_VER" == "$UI_COMPONENT_VER" && "$ROOT_VER" == "$UI_LEGACY_LAYOUT_VER" && "$ROOT_VER" == "$VSCODE_VER" ]]; then
     echo "✅ 版本一致性检查通过"
     exit 0
   else
@@ -208,11 +227,12 @@ if [[ "$CHECK_ONLY" == true ]]; then
     echo "  ccr-ui/src-tauri/tauri.conf.json: $TAURI_CONF_VER"
     echo "  ccr-ui/src/components/MainLayout.vue: $UI_COMPONENT_VER"
     echo "  ccr-ui/src/layouts/MainLayout.vue:   $UI_LEGACY_LAYOUT_VER"
+    echo "  ccr-vscode/package.json:       $VSCODE_VER"
     exit 1
   fi
 fi
 
-if [[ "$ROOT_VER" == "$CCR_TYPES_VER" && "$ROOT_VER" == "$CCR_DB_VER" && "$ROOT_VER" == "$FRONTEND_VER" && "$ROOT_VER" == "$TAURI_CARGO_VER" && "$ROOT_VER" == "$TAURI_CONF_VER" && "$ROOT_VER" == "$UI_COMPONENT_VER" && "$ROOT_VER" == "$UI_LEGACY_LAYOUT_VER" ]]; then
+if [[ "$ROOT_VER" == "$CCR_TYPES_VER" && "$ROOT_VER" == "$CCR_DB_VER" && "$ROOT_VER" == "$FRONTEND_VER" && "$ROOT_VER" == "$TAURI_CARGO_VER" && "$ROOT_VER" == "$TAURI_CONF_VER" && "$ROOT_VER" == "$UI_COMPONENT_VER" && "$ROOT_VER" == "$UI_LEGACY_LAYOUT_VER" && "$ROOT_VER" == "$VSCODE_VER" ]]; then
   echo "✅ 版本一致，无需同步"
   exit 0
 fi
@@ -257,6 +277,29 @@ fi
 if [[ "$UI_LEGACY_LAYOUT_VER" != "$ROOT_VER" ]]; then
   echo "  - 前端 MainLayout (layouts): $UI_LEGACY_LAYOUT_VER -> $ROOT_VER"
   update_ui_footer_version "$LEGACY_MAIN_LAYOUT"
+fi
+
+# 更新 VSCode 扩展版本
+update_vscode_version() {
+  local tmp
+  tmp="$(mktemp)"
+  if command -v jq &>/dev/null; then
+    jq --arg ver "$ROOT_VER" '.version = $ver' "$VSCODE_PKG" > "$tmp" || {
+      rm -f "$tmp"
+      die "更新 VSCode package.json 版本失败"
+    }
+  else
+    sed -E "s/(\"version\"[[:space:]]*:[[:space:]]*\")[^\"]+\"/\1$ROOT_VER\"/" "$VSCODE_PKG" > "$tmp" || {
+      rm -f "$tmp"
+      die "更新 VSCode package.json 版本失败"
+    }
+  fi
+  mv "$tmp" "$VSCODE_PKG"
+}
+
+if [[ "$VSCODE_VER" != "$ROOT_VER" ]]; then
+  echo "  - VSCode 扩展: $VSCODE_VER -> $ROOT_VER"
+  update_vscode_version
 fi
 
 echo "✅ 同步完成"

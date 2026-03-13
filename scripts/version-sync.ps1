@@ -5,6 +5,7 @@
 # - ccr-ui/package.json
 # - ccr-ui/src-tauri/Cargo.toml
 # - ccr-ui/src-tauri/tauri.conf.json
+# - ccr-vscode/package.json
 
 param(
     [switch]$Check,
@@ -31,6 +32,7 @@ $TAURI_CARGO = Join-Path $ROOT_DIR "ccr-ui\src-tauri\Cargo.toml"
 $TAURI_CONF = Join-Path $ROOT_DIR "ccr-ui\src-tauri\tauri.conf.json"
 $COMPONENT_MAIN_LAYOUT = Join-Path $ROOT_DIR "ccr-ui\src\components\MainLayout.vue"
 $LEGACY_MAIN_LAYOUT = Join-Path $ROOT_DIR "ccr-ui\src\layouts\MainLayout.vue"
+$VSCODE_PKG = Join-Path $ROOT_DIR "ccr-vscode\package.json"
 
 # 检查文件是否存在
 function Test-RequiredFile {
@@ -49,6 +51,7 @@ Test-RequiredFile $TAURI_CARGO
 Test-RequiredFile $TAURI_CONF
 Test-RequiredFile $COMPONENT_MAIN_LAYOUT
 Test-RequiredFile $LEGACY_MAIN_LAYOUT
+Test-RequiredFile $VSCODE_PKG
 
 # 从 Cargo.toml 提取 [package] 区块中的 version
 function Get-CargoVersion {
@@ -155,6 +158,7 @@ $TAURI_CARGO_VER = Get-CargoVersion $TAURI_CARGO $ROOT_VER
 $TAURI_CONF_VER = Get-JsonVersion $TAURI_CONF
 $UI_COMPONENT_VER = Get-UiVersion $COMPONENT_MAIN_LAYOUT
 $UI_LEGACY_VER = Get-UiVersion $LEGACY_MAIN_LAYOUT
+$VSCODE_VER = Get-JsonVersion $VSCODE_PKG
 
 if ($Verbose) {
     Write-Host "🔧 根版本: $ROOT_VER"
@@ -165,6 +169,7 @@ if ($Verbose) {
     Write-Host "🖥️  Tauri Conf 版本: $TAURI_CONF_VER"
     Write-Host "🖼️  MainLayout.vue (components) 版本: $UI_COMPONENT_VER"
     Write-Host "📐 MainLayout.vue (layouts) 版本: $UI_LEGACY_VER"
+    Write-Host "🔌 VSCode 扩展版本: $VSCODE_VER"
 }
 
 # 检查模式
@@ -175,7 +180,8 @@ if ($Check) {
         $ROOT_VER -eq $TAURI_CARGO_VER -and
         $ROOT_VER -eq $TAURI_CONF_VER -and
         $ROOT_VER -eq $UI_COMPONENT_VER -and
-        $ROOT_VER -eq $UI_LEGACY_VER) {
+        $ROOT_VER -eq $UI_LEGACY_VER -and
+        $ROOT_VER -eq $VSCODE_VER) {
         Write-Host "✅ 版本一致性检查通过"
         exit 0
     } else {
@@ -188,6 +194,7 @@ if ($Check) {
         Write-Host "  ccr-ui/src-tauri/tauri.conf.json: $TAURI_CONF_VER"
         Write-Host "  ccr-ui/src/components/MainLayout.vue: $UI_COMPONENT_VER"
         Write-Host "  ccr-ui/src/layouts/MainLayout.vue:   $UI_LEGACY_VER"
+        Write-Host "  ccr-vscode/package.json:       $VSCODE_VER"
         exit 1
     }
 }
@@ -198,7 +205,8 @@ if ($ROOT_VER -eq $CCR_TYPES_VER -and
     $ROOT_VER -eq $TAURI_CARGO_VER -and
     $ROOT_VER -eq $TAURI_CONF_VER -and
     $ROOT_VER -eq $UI_COMPONENT_VER -and
-    $ROOT_VER -eq $UI_LEGACY_VER) {
+    $ROOT_VER -eq $UI_LEGACY_VER -and
+    $ROOT_VER -eq $VSCODE_VER) {
     Write-Host "✅ 版本一致，无需同步"
     exit 0
 }
@@ -243,6 +251,12 @@ if ($UI_COMPONENT_VER -ne $ROOT_VER) {
 if ($UI_LEGACY_VER -ne $ROOT_VER) {
     Write-Host "  - MainLayout (layouts): $UI_LEGACY_VER -> $ROOT_VER"
     Set-UiVersion $LEGACY_MAIN_LAYOUT $ROOT_VER
+}
+
+# 更新 VSCode 扩展
+if ($VSCODE_VER -ne $ROOT_VER) {
+    Write-Host "  - VSCode 扩展: $VSCODE_VER -> $ROOT_VER"
+    Set-JsonVersion $VSCODE_PKG $ROOT_VER
 }
 
 Write-Host "✅ 同步完成"
