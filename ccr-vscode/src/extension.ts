@@ -37,6 +37,14 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   watcher.onChange(refreshAll);
   context.subscriptions.push(watcher);
 
+  context.subscriptions.push(
+    vscode.workspace.onDidChangeConfiguration((event) => {
+      if (event.affectsConfiguration("ccr")) {
+        refreshAll();
+      }
+    }),
+  );
+
   // ── Check CCR availability (non-blocking) ──
   checkCcrAvailability();
 
@@ -60,6 +68,16 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         // Called from command palette or status bar — show QuickPick
         await showSwitchQuickPick(refreshAll);
       }
+    }),
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand("ccr.switchProfileForPlatform", async (platformName?: string) => {
+      if (typeof platformName === "string" && platformName.length > 0) {
+        await showSwitchQuickPick(refreshAll, platformName);
+        return;
+      }
+      await showSwitchQuickPick(refreshAll);
     }),
   );
 
@@ -141,6 +159,39 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       }
     }),
   );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand("ccr.selectStatusBarPlatform", async () => {
+      const registry = readRegistry();
+      if (!registry || registry.platforms.length === 0) {
+        vscode.window.showWarningMessage("No platforms available.");
+        return;
+      }
+
+      const picked = await vscode.window.showQuickPick(
+        registry.platforms.map((platform) => ({
+          label: `${platform.icon} ${platform.displayName}`,
+          description: platform.currentProfile ? `current: ${platform.currentProfile}` : undefined,
+          platformName: platform.name,
+        })),
+        {
+          placeHolder: "Select platform to pin in the CCR status bar",
+        },
+      );
+
+      if (!picked) {
+        return;
+      }
+
+      const config = vscode.workspace.getConfiguration("ccr");
+      await config.update("statusBar.platform", picked.platformName, vscode.ConfigurationTarget.Global);
+      await config.update("statusBar.mode", "pinned", vscode.ConfigurationTarget.Global);
+      refreshAll();
+      vscode.window.showInformationMessage(
+        `Pinned CCR status bar to ${picked.platformName}.`,
+      );
+    }),
+  );
 }
 
 export function deactivate(): void {
@@ -204,6 +255,7 @@ async function doSwitch(
 
 async function showSwitchQuickPick(
   refreshAll: () => void,
+  platformOverride?: string,
 ): Promise<void> {
   const registry = readRegistry();
   if (!registry || registry.platforms.length === 0) {
@@ -213,7 +265,14 @@ async function showSwitchQuickPick(
 
   // If only one platform, skip platform selection
   let platformName: string;
-  if (registry.platforms.length === 1) {
+  if (platformOverride) {
+    const exists = registry.platforms.some((platform) => platform.name === platformOverride);
+    if (!exists) {
+      vscode.window.showWarningMessage(`Platform '${platformOverride}' is not available.`);
+      return;
+    }
+    platformName = platformOverride;
+  } else if (registry.platforms.length === 1) {
     platformName = registry.platforms[0].name;
   } else {
     const picked = await vscode.window.showQuickPick(

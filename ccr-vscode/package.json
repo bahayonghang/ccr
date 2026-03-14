@@ -3,7 +3,7 @@
   "displayName": "CCR - Configuration Switcher",
   "icon": "icon.png",
   "description": "Manage AI CLI tool configurations (Claude, Codex, Gemini, etc.) directly from VSCode sidebar",
-  "version": "5.0.9",
+  "version": "5.1.0",
   "publisher": "ccr",
   "license": "MIT",
   "repository": {
@@ -79,6 +79,11 @@
         "command": "ccr.openProfilesFile",
         "title": "CCR: Open Profiles File",
         "icon": "$(go-to-file)"
+      },
+      {
+        "command": "ccr.selectStatusBarPlatform",
+        "title": "CCR: Select Status Bar Platform",
+        "icon": "$(pin)"
       }
     ],
     "menus": {
@@ -124,6 +129,48 @@
           "type": "boolean",
           "default": true,
           "description": "Show confirmation dialog before switching profiles"
+        },
+        "ccr.statusBar.mode": {
+          "type": "string",
+          "default": "pinned",
+          "enum": [
+            "pinned",
+            "current",
+            "hidden"
+          ],
+          "markdownDescription": "Control the CCR status bar item. `pinned` shows one selected platform, `current` follows the current platform, and `hidden` hides the item."
+        },
+        "ccr.statusBar.platform": {
+          "type": "string",
+          "default": "",
+          "enum": [
+            "",
+            "claude",
+            "codex",
+            "gemini",
+            "qwen",
+            "iflow",
+            "droid"
+          ],
+          "enumItemLabels": [
+            "Follow current platform",
+            "Claude Code",
+            "Codex",
+            "Gemini CLI",
+            "Qwen CLI",
+            "iFlow CLI",
+            "Factory Droid"
+          ],
+          "markdownEnumDescriptions": [
+            "Leave the pinned target empty and fall back to the current platform.",
+            "Pin the CCR status bar to **Claude Code**.",
+            "Pin the CCR status bar to **Codex**.",
+            "Pin the CCR status bar to **Gemini CLI**.",
+            "Pin the CCR status bar to **Qwen CLI**.",
+            "Pin the CCR status bar to **iFlow CLI**.",
+            "Pin the CCR status bar to **Factory Droid**."
+          ],
+          "description": "Platform to display when ccr.statusBar.mode is pinned."
         }
       }
     }
