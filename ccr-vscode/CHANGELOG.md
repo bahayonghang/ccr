@@ -1,5 +1,17 @@
 # Changelog
 
+## [Unreleased]
+
+### Added
+- Add configurable CCR status bar modes: pinned platform, current platform, or hidden
+- Add `CCR: Select Status Bar Platform` command for quick status bar pinning
+- Add copy actions for `base_url` and `auth_token` inside the visual profile editor
+
+### Changed
+- Redesign the profile editor as a dashboard-style control panel with platform accents and section headers
+- Treat `model` and `small_fast_model` as optional editor fields with clearer fallback copy
+- Replace the CCR sidebar icon with a route-toggle style glyph for clearer switcher semantics
+
 ## [5.0.9]
 
 ### Security

@@ -6,8 +6,9 @@ Manage AI CLI tool configurations (Claude, Codex, Gemini, Qwen, iFlow, Droid) di
 
 - **Profile Viewer** — TreeView showing all platforms and profiles with current-profile indicator
 - **Profile Switcher** — Switch profiles via TreeView click or QuickPick (uses `ccr` CLI)
-- **Profile Editor** — Edit profile fields directly from VSCode
-- **Status Bar** — Current platform and profile shown in status bar
+- **Profile Editor** — Control-panel style editor with copy actions for `base_url` and `auth_token`
+- **Optional Models** — Leave `model` overrides blank to fall back to platform defaults
+- **Status Bar** — Show a pinned platform, follow the current platform, or hide the item entirely
 - **Auto Refresh** — File watcher detects external config changes and updates UI
 
 ## Requirements
@@ -20,6 +21,14 @@ Manage AI CLI tool configurations (Claude, Codex, Gemini, Qwen, iFlow, Droid) di
 1. Install the `.vsix` file: `code --install-extension ccr-vscode-<version>.vsix`
 2. Open the CCR sidebar panel in the Activity Bar
 3. View, switch, and edit profiles
+
+## Configuration
+
+- `ccr.confirmBeforeSwitch` — show a confirmation dialog before switching profiles
+- `ccr.statusBar.mode` — `pinned`, `current`, or `hidden`
+- `ccr.statusBar.platform` — platform name used when the status bar is pinned
+
+Use the command palette entry `CCR: Select Status Bar Platform` to pin the status bar without editing settings manually.
 
 ## Development
 
