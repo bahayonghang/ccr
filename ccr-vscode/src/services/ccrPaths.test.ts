@@ -237,7 +237,7 @@ enabled = true
       fs.writeFileSync(filePath, profilesToml, "utf-8");
 
       const { writeProfileField, readProfiles } = await import("../services/tomlReader.js");
-      writeProfileField("write-test", "main", "model", "new-model");
+      await writeProfileField("write-test", "main", "model", "new-model");
 
       // Re-read and verify
       const profiles = readProfiles("write-test");
@@ -267,9 +267,32 @@ enabled = true
       fs.writeFileSync(path.join(platformDir, "profiles.toml"), profilesToml, "utf-8");
 
       const { writeProfileField, readProfiles } = await import("../services/tomlReader.js");
-      writeProfileField("delete-test", "main", "model", undefined);
+      await writeProfileField("delete-test", "main", "model", undefined);
 
       const profiles = readProfiles("delete-test");
+      const main = profiles.find((p) => p.name === "main");
+      assert.equal(main!.model, undefined);
+    });
+
+    it("deletes model when value is an empty string", async () => {
+      const platformDir = path.join(tmpDir, "platforms", "empty-model-test");
+      fs.mkdirSync(platformDir, { recursive: true });
+
+      const profilesToml = `
+default_config = "main"
+current_config = "main"
+
+[main]
+description = "Optional model"
+model = "to-be-cleared"
+enabled = true
+`;
+      fs.writeFileSync(path.join(platformDir, "profiles.toml"), profilesToml, "utf-8");
+
+      const { writeProfileField, readProfiles } = await import("../services/tomlReader.js");
+      await writeProfileField("empty-model-test", "main", "model", "");
+
+      const profiles = readProfiles("empty-model-test");
       const main = profiles.find((p) => p.name === "main");
       assert.equal(main!.model, undefined);
     });
@@ -288,9 +311,10 @@ description = "Exists"
       fs.writeFileSync(path.join(platformDir, "profiles.toml"), profilesToml, "utf-8");
 
       const { writeProfileField } = await import("../services/tomlReader.js");
-      assert.throws(() => {
-        writeProfileField("throw-test", "nonexistent", "model", "value");
-      }, /not found/);
+      await assert.rejects(
+        writeProfileField("throw-test", "nonexistent", "model", "value"),
+        /not found/,
+      );
     });
   });
 
@@ -310,7 +334,7 @@ enabled = true
       fs.writeFileSync(path.join(platformDir, "profiles.toml"), profilesToml, "utf-8");
 
       const { toggleProfileEnabled, readProfiles } = await import("../services/tomlReader.js");
-      const newState = toggleProfileEnabled("toggle-test", "main");
+      const newState = await toggleProfileEnabled("toggle-test", "main");
 
       assert.equal(newState, false);
 

@@ -1,18 +1,10 @@
-/**
- * Profile Editor — WebviewPanel-based visual editor
- *
- * Section-card layout with grouped fields, platform badges, and auto-save.
- * Each field auto-saves on blur, with inline status indicators.
- */
-
 import { randomBytes } from "crypto";
 import * as vscode from "vscode";
 import { EDITABLE_FIELDS } from "../models/types";
 import type { ProfileInfo } from "../models/types";
-import { writeProfileField, toggleProfileEnabled, maskToken } from "../services/tomlReader";
+import { toggleProfileEnabled, writeProfileField } from "../services/tomlReader";
 
 export class ProfileEditorPanel {
-  /** Active panels keyed by "platform/profile" */
   private static readonly activePanels = new Map<string, ProfileEditorPanel>();
 
   private readonly panel: vscode.WebviewPanel;
@@ -21,7 +13,6 @@ export class ProfileEditorPanel {
   private readonly onDidSave: () => void;
   private disposed = false;
 
-  /** Show an existing panel or create a new one */
   static createOrShow(
     extensionUri: vscode.Uri,
     profile: ProfileInfo,
@@ -39,7 +30,6 @@ export class ProfileEditorPanel {
     return new ProfileEditorPanel(extensionUri, profile, onDidSave);
   }
 
-  /** Dispose all active panels */
   static disposeAll(): void {
     for (const panel of ProfileEditorPanel.activePanels.values()) {
       panel.panel.dispose();
@@ -79,12 +69,10 @@ export class ProfileEditorPanel {
   }
 
   private sendProfileData(): void {
-    const data = { ...this.profile };
-    const hasAuthToken = !!data.authToken;
-    if (data.authToken) {
-      data.authToken = maskToken(data.authToken);
-    }
-    this.panel.webview.postMessage({ type: "profileData", profile: data, hasAuthToken });
+    this.panel.webview.postMessage({
+      type: "profileData",
+      profile: { ...this.profile },
+    });
   }
 
   private handleMessage(msg: { type: string; field?: string; value?: unknown }): void {
@@ -95,32 +83,45 @@ export class ProfileEditorPanel {
 
       case "saveField":
         if (typeof msg.field === "string") {
-          this.saveField(msg.field, msg.value as string);
+          void this.saveField(msg.field, typeof msg.value === "string" ? msg.value : "");
         }
         break;
 
       case "toggleEnabled":
-        this.doToggleEnabled();
+        void this.doToggleEnabled();
+        break;
+
+      case "copyField":
+        if (typeof msg.field === "string" && typeof msg.value === "string") {
+          void this.copyField(msg.field, msg.value);
+        }
         break;
     }
   }
 
-  private async saveField(field: string, value: string): Promise<void> {
-    // Build field mapping from EDITABLE_FIELDS (single source of truth)
-    const fieldMap = Object.fromEntries(EDITABLE_FIELDS.map(f => [f.key, f.tomlKey]));
-    const tomlKey = fieldMap[field] ?? field;
-
-    // Skip write if auth token was not actually changed (masked value sent back)
-    if (field === "authToken" && (!value || value.startsWith("****"))) {
-      this.panel.webview.postMessage({ type: "saveResult", field, success: true });
-      return;
+  private async copyField(field: string, value: string): Promise<void> {
+    try {
+      await vscode.env.clipboard.writeText(value);
+      this.panel.webview.postMessage({ type: "copyResult", field, success: true });
+    } catch (err) {
+      this.panel.webview.postMessage({
+        type: "copyResult",
+        field,
+        success: false,
+        error: String(err),
+      });
     }
+  }
+
+  private async saveField(field: string, value: string): Promise<void> {
+    const fieldMap = Object.fromEntries(EDITABLE_FIELDS.map((item) => [item.key, item.tomlKey]));
+    const tomlKey = fieldMap[field] ?? field;
 
     try {
       let writeValue: string | string[] | undefined;
       if (tomlKey === "tags") {
         writeValue = value
-          ? value.split(",").map((t) => t.trim()).filter(Boolean)
+          ? value.split(",").map((tag) => tag.trim()).filter(Boolean)
           : undefined;
       } else {
         writeValue = value || undefined;
@@ -128,8 +129,9 @@ export class ProfileEditorPanel {
 
       await writeProfileField(this.profile.platformName, this.profile.name, tomlKey, writeValue);
 
-      // Update local state
-      (this.profile as unknown as Record<string, unknown>)[field] = tomlKey === "tags" ? writeValue : (value || undefined);
+      (this.profile as unknown as Record<string, unknown>)[field] = tomlKey === "tags"
+        ? writeValue
+        : (value || undefined);
 
       this.panel.webview.postMessage({ type: "saveResult", field, success: true });
       this.onDidSave();
@@ -160,8 +162,6 @@ export class ProfileEditorPanel {
     }
   }
 
-  // ── HTML ──
-
   private getHtml(): string {
     const nonce = getNonce();
 
@@ -169,490 +169,964 @@ export class ProfileEditorPanel {
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta http-equiv="Content-Security-Policy"
-        content="default-src 'none'; style-src 'nonce-${nonce}'; script-src 'nonce-${nonce}';" />
+  <meta
+    http-equiv="Content-Security-Policy"
+    content="default-src 'none'; style-src 'nonce-${nonce}'; script-src 'nonce-${nonce}';"
+  />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Edit Profile</title>
   <style nonce="${nonce}">
     :root {
-      --editor-max-width: 640px;
-      --section-gap: 24px;
+      --editor-max-width: 860px;
+      --page-padding: 28px;
+      --section-gap: 22px;
       --field-gap: 18px;
-      --label-width: 150px;
-      --input-radius: 5px;
-      --card-bg: var(--vscode-editorWidget-background, var(--vscode-editor-background));
-      --card-border: var(--vscode-widget-border, transparent);
-      --subtle-border: var(--vscode-editorGroup-border, rgba(128,128,128,0.15));
+      --label-width: 190px;
+      --panel-radius: 16px;
+      --control-radius: 12px;
+      --platform-color: #8b5cf6;
+      --platform-soft: rgba(139, 92, 246, 0.16);
+      --platform-glow: rgba(139, 92, 246, 0.3);
+      --panel-bg: color-mix(in srgb, var(--vscode-editorWidget-background, var(--vscode-editor-background)) 94%, transparent);
+      --panel-border: color-mix(in srgb, var(--platform-color) 38%, var(--vscode-widget-border, rgba(128, 128, 128, 0.2)));
+      --panel-border-soft: color-mix(in srgb, var(--platform-color) 16%, rgba(128, 128, 128, 0.16));
+      --text-strong: var(--vscode-foreground);
+      --text-muted: var(--vscode-descriptionForeground);
+      --input-bg: var(--vscode-input-background);
+      --input-fg: var(--vscode-input-foreground);
+      --input-border: color-mix(in srgb, var(--platform-color) 24%, var(--vscode-input-border, rgba(128, 128, 128, 0.22)));
       --success-color: var(--vscode-testing-iconPassed, #73c991);
       --error-color: var(--vscode-testing-iconFailed, #f48771);
-      --focus-ring: var(--vscode-focusBorder);
+      --button-fg: var(--vscode-button-foreground, #ffffff);
     }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
     body {
+      min-height: 100vh;
       font-family: var(--vscode-font-family);
       font-size: var(--vscode-font-size);
-      color: var(--vscode-foreground);
-      background: var(--vscode-editor-background);
-      padding: 24px 32px;
+      color: var(--text-strong);
+      background:
+        radial-gradient(circle at top right, var(--platform-soft), transparent 32%),
+        linear-gradient(180deg, color-mix(in srgb, var(--vscode-editor-background) 94%, #06070a), var(--vscode-editor-background));
+      padding: var(--page-padding);
+    }
+
+    .page {
       max-width: var(--editor-max-width);
+      margin: 0 auto;
     }
 
-    /* ── Loading State ── */
     #loading {
-      text-align: center;
-      padding: 48px 0;
-      color: var(--vscode-descriptionForeground);
-      font-size: 1.1em;
+      display: grid;
+      place-items: center;
+      min-height: 240px;
+      border-radius: var(--panel-radius);
+      border: 1px solid var(--panel-border-soft);
+      background:
+        linear-gradient(160deg, color-mix(in srgb, var(--panel-bg) 94%, transparent), color-mix(in srgb, var(--vscode-editor-background) 86%, transparent));
+      color: var(--text-muted);
+      letter-spacing: 0.04em;
     }
-    #loading.hidden { display: none; }
 
-    /* ── Header Card ── */
+    #loading.hidden {
+      display: none;
+    }
+
+    #editor-content {
+      display: none;
+    }
+
     .header-card {
-      background: var(--card-bg);
-      border: 1px solid var(--card-border);
-      border-radius: 8px;
-      padding: 20px 24px;
+      position: relative;
+      overflow: hidden;
+      padding: 24px 24px 20px;
+      border-radius: 22px;
+      border: 1px solid var(--panel-border);
+      background:
+        linear-gradient(145deg, color-mix(in srgb, var(--panel-bg) 94%, transparent), color-mix(in srgb, var(--vscode-editor-background) 88%, transparent)),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent);
+      box-shadow: 0 18px 36px rgba(0, 0, 0, 0.18);
       margin-bottom: var(--section-gap);
     }
+
+    .header-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(circle at 100% 0%, var(--platform-glow), transparent 26%),
+        linear-gradient(90deg, transparent, color-mix(in srgb, var(--platform-color) 10%, transparent), transparent);
+      pointer-events: none;
+    }
+
     .header-top {
+      position: relative;
+      display: flex;
+      justify-content: space-between;
+      gap: 20px;
+      margin-bottom: 22px;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: color-mix(in srgb, var(--platform-color) 14%, transparent);
+      color: color-mix(in srgb, var(--platform-color) 68%, var(--text-strong));
+      font-size: 0.72em;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+
+    .title-row {
       display: flex;
       align-items: center;
+      flex-wrap: wrap;
       gap: 12px;
-      margin-bottom: 16px;
     }
-    .header-top h1 {
-      font-size: 1.4em;
-      font-weight: 600;
-      color: var(--vscode-foreground);
+
+    .title-row h1 {
+      font-size: 1.92em;
+      font-weight: 700;
+      line-height: 1.05;
+      color: var(--platform-color);
+      letter-spacing: -0.02em;
     }
+
     .platform-badge {
       display: inline-flex;
       align-items: center;
-      padding: 2px 10px;
-      border-radius: 12px;
-      font-size: 0.72em;
-      font-weight: 600;
-      letter-spacing: 0.03em;
-      color: #fff;
-      background: var(--badge-color, #888);
+      gap: 8px;
+      padding: 6px 12px;
+      border-radius: 999px;
+      background: color-mix(in srgb, var(--platform-color) 18%, transparent);
+      border: 1px solid color-mix(in srgb, var(--platform-color) 44%, transparent);
+      color: var(--text-strong);
+      font-size: 0.82em;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
       white-space: nowrap;
     }
-    .header-controls {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding-top: 14px;
-      border-top: 1px solid var(--subtle-border);
-    }
-    .autosave-indicator {
-      font-size: 0.8em;
-      color: var(--vscode-descriptionForeground);
-      transition: color 0.3s;
-    }
-    .autosave-indicator.saved { color: var(--success-color); }
 
-    /* ── Toggle Switch ── */
-    .toggle-wrap {
+    .subtitle {
+      margin-top: 10px;
+      color: var(--text-muted);
+      line-height: 1.55;
+      max-width: 620px;
+    }
+
+    .header-meta {
+      min-width: 220px;
       display: flex;
-      align-items: center;
+      flex-direction: column;
+      align-items: flex-end;
       gap: 10px;
     }
+
+    .autosave-indicator {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 112px;
+      padding: 7px 12px;
+      border-radius: 999px;
+      border: 1px solid var(--panel-border-soft);
+      background: rgba(255, 255, 255, 0.02);
+      color: var(--text-muted);
+      font-size: 0.78em;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      transition: border-color 0.2s ease, color 0.2s ease, background 0.2s ease;
+    }
+
+    .autosave-indicator.saved {
+      background: color-mix(in srgb, var(--success-color) 16%, transparent);
+      border-color: color-mix(in srgb, var(--success-color) 48%, transparent);
+      color: var(--success-color);
+    }
+
+    .header-controls {
+      position: relative;
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      padding-top: 16px;
+      border-top: 1px solid var(--panel-border-soft);
+    }
+
+    .header-note {
+      color: var(--text-muted);
+      font-size: 0.88em;
+    }
+
+    .toggle-wrap {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+    }
+
     .toggle {
       position: relative;
-      width: 44px;
-      height: 22px;
+      width: 52px;
+      height: 28px;
       cursor: pointer;
     }
-    .toggle input { display: none; }
+
+    .toggle input {
+      display: none;
+    }
+
     .toggle-track {
       position: absolute;
       inset: 0;
-      background: var(--vscode-input-background);
-      border: 1px solid var(--vscode-input-border, transparent);
-      border-radius: 11px;
-      transition: background 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      border-radius: 999px;
+      border: 1px solid color-mix(in srgb, var(--platform-color) 36%, var(--vscode-input-border, transparent));
+      background: color-mix(in srgb, var(--platform-color) 18%, var(--vscode-input-background));
+      transition: background 0.2s ease, border-color 0.2s ease;
     }
-    .toggle input:checked + .toggle-track {
-      background: var(--vscode-button-background);
-    }
+
     .toggle-thumb {
       position: absolute;
       top: 3px;
       left: 3px;
-      width: 16px;
-      height: 16px;
-      background: var(--vscode-button-foreground, #fff);
+      width: 20px;
+      height: 20px;
       border-radius: 50%;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
-      transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      background: var(--button-fg);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.22);
+      transition: transform 0.2s ease;
       pointer-events: none;
     }
-    .toggle input:checked ~ .toggle-thumb {
-      transform: translateX(22px);
-    }
-    .toggle-label {
-      color: var(--vscode-foreground);
-      font-size: 0.85em;
-      font-weight: 500;
+
+    .toggle input:checked + .toggle-track {
+      background: color-mix(in srgb, var(--platform-color) 26%, var(--vscode-input-background));
     }
 
-    /* ── Section Card ── */
+    .toggle input:checked ~ .toggle-thumb {
+      transform: translateX(24px);
+    }
+
+    .toggle-label {
+      font-weight: 600;
+      color: var(--text-strong);
+    }
+
     .section-card {
-      background: var(--card-bg);
-      border: 1px solid var(--card-border);
-      border-radius: 8px;
+      display: none;
       margin-bottom: var(--section-gap);
+      border-radius: var(--panel-radius);
+      border: 1px solid var(--panel-border-soft);
+      background:
+        linear-gradient(180deg, color-mix(in srgb, var(--panel-bg) 96%, transparent), color-mix(in srgb, var(--vscode-editor-background) 90%, transparent));
       overflow: hidden;
     }
+
     .section-header {
-      padding: 10px 20px;
-      border-bottom: 1px solid var(--subtle-border);
-      font-size: 0.72em;
-      font-weight: 600;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      color: var(--vscode-descriptionForeground);
-      user-select: none;
-    }
-    .section-body {
-      padding: 18px 20px;
+      padding: 16px 20px 14px;
+      border-bottom: 1px solid var(--panel-border-soft);
+      background: linear-gradient(90deg, color-mix(in srgb, var(--platform-color) 9%, transparent), transparent 68%);
     }
 
-    /* ── Field Row ── */
+    .section-title {
+      color: color-mix(in srgb, var(--platform-color) 70%, var(--text-strong));
+      font-size: 0.9em;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .section-subtitle {
+      margin-top: 6px;
+      color: var(--text-muted);
+      font-size: 0.88em;
+      line-height: 1.5;
+    }
+
+    .section-body {
+      padding: 20px;
+    }
+
     .field-row {
       display: grid;
-      grid-template-columns: var(--label-width) 1fr;
+      grid-template-columns: minmax(160px, var(--label-width)) minmax(0, 1fr);
+      gap: 16px;
       align-items: start;
-      gap: 12px;
       margin-bottom: var(--field-gap);
     }
-    .field-row:last-child { margin-bottom: 0; }
-    .field-label-wrap { padding-top: 4px; }
+
+    .field-row:last-child {
+      margin-bottom: 0;
+    }
+
+    .field-label-wrap {
+      padding-top: 8px;
+    }
+
     .field-label {
-      font-weight: 500;
-      color: var(--vscode-foreground);
-      user-select: none;
-    }
-    .field-label .required {
-      color: var(--error-color);
       font-weight: 700;
-      margin-left: 2px;
+      color: var(--text-strong);
+      letter-spacing: 0.01em;
     }
+
+    .required {
+      color: color-mix(in srgb, var(--error-color) 82%, #ffffff);
+      margin-left: 4px;
+    }
+
     .field-hint {
       display: block;
-      font-weight: 400;
-      font-size: 0.85em;
-      color: var(--vscode-descriptionForeground);
-      margin-top: 2px;
+      margin-top: 6px;
+      color: var(--text-muted);
+      font-size: 0.88em;
+      line-height: 1.45;
     }
-    .field-input-wrap { position: relative; }
-    input[type="text"],
-    input[type="password"] {
+
+    .field-input-wrap {
+      display: grid;
+      gap: 8px;
+    }
+
+    .input-shell {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 10px;
+      align-items: center;
+      padding: 10px;
+      border-radius: var(--control-radius);
+      border: 1px solid var(--input-border);
+      background:
+        linear-gradient(180deg, color-mix(in srgb, var(--input-bg) 96%, transparent), color-mix(in srgb, var(--panel-bg) 84%, transparent));
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .input-shell:focus-within {
+      border-color: color-mix(in srgb, var(--platform-color) 74%, #ffffff);
+      box-shadow: 0 0 0 1px color-mix(in srgb, var(--platform-color) 52%, transparent);
+    }
+
+    .field-input {
       width: 100%;
-      padding: 5px 32px 5px 8px;
-      border: 1px solid var(--vscode-input-border, transparent);
-      border-radius: var(--input-radius);
-      background: var(--vscode-input-background);
-      color: var(--vscode-input-foreground);
+      border: none;
+      background: transparent;
+      color: var(--input-fg);
       font-family: var(--vscode-editor-font-family, monospace);
       font-size: var(--vscode-font-size);
+      line-height: 1.45;
       outline: none;
-      transition: border-color 0.15s, box-shadow 0.15s;
-    }
-    input:hover {
-      border-color: var(--vscode-input-border, rgba(128,128,128,0.4));
-    }
-    input:focus {
-      border-color: var(--focus-ring);
-      box-shadow: 0 0 0 1px var(--focus-ring);
-    }
-    .field-input-wrap.has-toggle input {
-      padding-right: 72px;
     }
 
-    /* ── Status Icon ── */
-    .status-icon {
-      position: absolute;
-      right: 8px;
-      top: 50%;
-      transform: translateY(-50%) scale(0.8);
-      font-size: 14px;
-      opacity: 0;
-      transition: opacity 0.3s, transform 0.3s;
+    .field-input::placeholder {
+      color: color-mix(in srgb, var(--text-muted) 88%, transparent);
     }
-    .status-icon.visible {
-      opacity: 1;
-      transform: translateY(-50%) scale(1);
-    }
-    .status-icon.success { color: var(--success-color); }
-    .status-icon.error { color: var(--error-color); }
 
-    /* ── Password Toggle ── */
-    .pwd-toggle {
-      position: absolute;
-      right: 28px;
-      top: 50%;
-      transform: translateY(-50%);
-      background: none;
-      border: none;
-      color: var(--vscode-descriptionForeground);
-      cursor: pointer;
+    .field-actions {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .control-btn {
+      min-width: 58px;
+      border: 1px solid transparent;
+      border-radius: 999px;
+      background: color-mix(in srgb, var(--platform-color) 12%, transparent);
+      color: color-mix(in srgb, var(--platform-color) 74%, var(--text-strong));
+      padding: 6px 10px;
       font-size: 0.78em;
-      padding: 2px 6px;
-      border-radius: 3px;
-      transition: color 0.15s, background 0.15s;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+      cursor: pointer;
+      transition: transform 0.15s ease, background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
       font-family: var(--vscode-font-family);
     }
-    .pwd-toggle:hover {
-      color: var(--vscode-foreground);
-      background: var(--vscode-toolbar-hoverBackground, rgba(128,128,128,0.1));
+
+    .control-btn:hover:not(:disabled) {
+      background: color-mix(in srgb, var(--platform-color) 22%, transparent);
+      border-color: color-mix(in srgb, var(--platform-color) 38%, transparent);
+      transform: translateY(-1px);
+    }
+
+    .control-btn:focus-visible {
+      outline: 1px solid color-mix(in srgb, var(--platform-color) 60%, #ffffff);
+      outline-offset: 2px;
+    }
+
+    .control-btn:disabled {
+      cursor: not-allowed;
+      opacity: 0.45;
+      transform: none;
+    }
+
+    .field-feedback {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 68px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 0.76em;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      opacity: 0;
+      transform: translateY(4px);
+      transition: opacity 0.2s ease, transform 0.2s ease;
+      pointer-events: none;
+    }
+
+    .field-feedback.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .field-feedback.success {
+      color: var(--success-color);
+      background: color-mix(in srgb, var(--success-color) 16%, transparent);
+      border: 1px solid color-mix(in srgb, var(--success-color) 34%, transparent);
+    }
+
+    .field-feedback.error {
+      color: var(--error-color);
+      background: color-mix(in srgb, var(--error-color) 12%, transparent);
+      border: 1px solid color-mix(in srgb, var(--error-color) 28%, transparent);
+    }
+
+    @media (max-width: 900px) {
+      body {
+        padding: 20px;
+      }
+
+      .header-top {
+        flex-direction: column;
+      }
+
+      .header-meta {
+        align-items: flex-start;
+      }
+
+      .field-row {
+        grid-template-columns: 1fr;
+        gap: 10px;
+      }
+
+      .field-label-wrap {
+        padding-top: 0;
+      }
+    }
+
+    @media (max-width: 640px) {
+      body {
+        padding: 16px;
+      }
+
+      .header-card,
+      .section-body {
+        padding-left: 16px;
+        padding-right: 16px;
+      }
+
+      .section-header {
+        padding-left: 16px;
+        padding-right: 16px;
+      }
+
+      .input-shell {
+        grid-template-columns: 1fr;
+      }
+
+      .field-actions {
+        justify-content: flex-start;
+      }
     }
   </style>
 </head>
 <body>
+  <div class="page">
+    <div id="loading">Loading profile cockpit...</div>
 
-  <!-- Loading State -->
-  <div id="loading">Loading profile...</div>
+    <div id="editor-content">
+      <section class="header-card">
+        <div class="header-top">
+          <div>
+            <div class="eyebrow">⚙ Configuration Cockpit</div>
+            <div class="title-row">
+              <h1 id="title">Profile</h1>
+              <span class="platform-badge" id="platform-badge"></span>
+            </div>
+            <p class="subtitle" id="subtitle">
+              Tune routing, credentials and identity details for this profile.
+            </p>
+          </div>
+          <div class="header-meta">
+            <span class="autosave-indicator" id="autosave-indicator">Auto-save</span>
+            <span class="header-note">Changes save when you leave a field.</span>
+          </div>
+        </div>
 
-  <!-- Header Card -->
-  <div class="header-card" id="editor-content" style="display:none;">
-    <div class="header-top">
-      <h1 id="title">Edit Profile</h1>
-      <span class="platform-badge" id="platform-badge"></span>
+        <div class="header-controls">
+          <div class="toggle-wrap">
+            <label class="toggle">
+              <input type="checkbox" id="field-enabled" />
+              <span class="toggle-track"></span>
+              <span class="toggle-thumb"></span>
+            </label>
+            <span class="toggle-label" id="enabled-label">Enabled</span>
+          </div>
+          <span class="header-note">Pinned edits stay local to this profile.</span>
+        </div>
+      </section>
+
+      <section class="section-card" data-editor-section>
+        <div class="section-header">
+          <div class="section-title">🔌 Connection</div>
+          <div class="section-subtitle">Core access settings. Base URL and auth token stay required by CCR.</div>
+        </div>
+        <div class="section-body" id="section-connection"></div>
+      </section>
+
+      <section class="section-card" data-editor-section>
+        <div class="section-header">
+          <div class="section-title">🧠 Optional Models</div>
+          <div class="section-subtitle">Use overrides only when this profile needs explicit model routing. Leave blank to inherit defaults.</div>
+        </div>
+        <div class="section-body" id="section-model"></div>
+      </section>
+
+      <section class="section-card" data-editor-section>
+        <div class="section-header">
+          <div class="section-title">🪪 Identity</div>
+          <div class="section-subtitle">Provider identity and account metadata used to identify this endpoint.</div>
+        </div>
+        <div class="section-body" id="section-identity"></div>
+      </section>
+
+      <section class="section-card" data-editor-section>
+        <div class="section-header">
+          <div class="section-title">📝 Metadata</div>
+          <div class="section-subtitle">Human-readable notes and tags for faster recognition in the sidebar.</div>
+        </div>
+        <div class="section-body" id="section-metadata"></div>
+      </section>
     </div>
-    <div class="header-controls">
-      <div class="toggle-wrap">
-        <label class="toggle">
-          <input type="checkbox" id="field-enabled" />
-          <div class="toggle-track"></div>
-          <div class="toggle-thumb"></div>
-        </label>
-        <span class="toggle-label" id="enabled-label">Enabled</span>
-      </div>
-      <span class="autosave-indicator" id="autosave-indicator">Auto-save</span>
-    </div>
-  </div>
-
-  <!-- Section Cards (fields injected by JS) -->
-  <div class="section-card" style="display:none;" data-editor-section>
-    <div class="section-header">Connection</div>
-    <div class="section-body" id="section-connection"></div>
-  </div>
-  <div class="section-card" style="display:none;" data-editor-section>
-    <div class="section-header">Model</div>
-    <div class="section-body" id="section-model"></div>
-  </div>
-  <div class="section-card" style="display:none;" data-editor-section>
-    <div class="section-header">Identity</div>
-    <div class="section-body" id="section-identity"></div>
-  </div>
-  <div class="section-card" style="display:none;" data-editor-section>
-    <div class="section-header">Metadata</div>
-    <div class="section-body" id="section-metadata"></div>
   </div>
 
   <script nonce="${nonce}">
     const vscode = acquireVsCodeApi();
 
-    const PLATFORM_COLORS = {
-      claude: '#FF6B35',
-      codex: '#10B981',
-      gemini: '#4285F4',
-      qwen: '#00B5E2',
-      iflow: '#FAAD14',
-      droid: '#A78BFA',
+    const PLATFORM_ACCENTS = {
+      claude: { color: '#ff8a3d', soft: 'rgba(255, 138, 61, 0.16)', glow: 'rgba(255, 138, 61, 0.3)', icon: '🤖' },
+      codex: { color: '#22c55e', soft: 'rgba(34, 197, 94, 0.16)', glow: 'rgba(34, 197, 94, 0.28)', icon: '💻' },
+      gemini: { color: '#4f7cff', soft: 'rgba(79, 124, 255, 0.16)', glow: 'rgba(79, 124, 255, 0.3)', icon: '✨' },
+      qwen: { color: '#06b6d4', soft: 'rgba(6, 182, 212, 0.16)', glow: 'rgba(6, 182, 212, 0.28)', icon: '🌟' },
+      iflow: { color: '#f59e0b', soft: 'rgba(245, 158, 11, 0.16)', glow: 'rgba(245, 158, 11, 0.28)', icon: '🌊' },
+      droid: { color: '#a855f7', soft: 'rgba(168, 85, 247, 0.16)', glow: 'rgba(168, 85, 247, 0.3)', icon: '🏭' },
+      default: { color: '#8b5cf6', soft: 'rgba(139, 92, 246, 0.16)', glow: 'rgba(139, 92, 246, 0.3)', icon: '🧩' },
     };
 
     const FIELD_GROUPS = {
       connection: [
-        { key: 'baseUrl',   label: 'Base URL',   hint: 'API endpoint URL',  important: true },
-        { key: 'authToken', label: 'Auth Token',  hint: 'API key or token',  important: true, secret: true },
+        {
+          key: 'baseUrl',
+          label: 'Base URL',
+          hint: 'API endpoint URL',
+          required: true,
+          placeholder: 'https://api.example.com/v1',
+          actions: ['copy'],
+        },
+        {
+          key: 'authToken',
+          label: 'Auth Token',
+          hint: 'API key or token',
+          required: true,
+          secret: true,
+          placeholder: 'Paste the full credential here',
+          actions: ['toggle', 'copy'],
+        },
       ],
       model: [
-        { key: 'model',          label: 'Model',            hint: 'Default model name',               important: true },
-        { key: 'smallFastModel', label: 'Small/Fast Model', hint: 'Lightweight model for quick tasks' },
+        {
+          key: 'model',
+          label: 'Model',
+          hint: 'Optional default model override. Leave blank to use the platform default.',
+          placeholder: 'Optional',
+        },
+        {
+          key: 'smallFastModel',
+          label: 'Small/Fast Model',
+          hint: 'Optional lightweight model for quick tasks.',
+          placeholder: 'Optional',
+        },
       ],
       identity: [
-        { key: 'provider',     label: 'Provider',      hint: 'Provider identifier' },
-        { key: 'providerType', label: 'Provider Type', hint: 'Provider backend type' },
-        { key: 'account',      label: 'Account',       hint: 'Account or organization name' },
+        {
+          key: 'provider',
+          label: 'Provider',
+          hint: 'Provider identifier',
+        },
+        {
+          key: 'providerType',
+          label: 'Provider Type',
+          hint: 'Provider backend type',
+        },
+        {
+          key: 'account',
+          label: 'Account',
+          hint: 'Account or organization name',
+        },
       ],
       metadata: [
-        { key: 'description', label: 'Description', hint: 'Human-readable profile description' },
-        { key: 'tags',        label: 'Tags',        hint: 'Comma-separated tags' },
+        {
+          key: 'description',
+          label: 'Description',
+          hint: 'Human-readable profile description',
+        },
+        {
+          key: 'tags',
+          label: 'Tags',
+          hint: 'Comma-separated tags',
+          placeholder: 'free, backup, relay',
+        },
       ],
     };
 
     const fieldElements = {};
+    const fieldState = {};
+    const copyButtons = {};
+    const toggleButtons = {};
     const statusTimers = {};
-    let authTokenEdited = false;
+    const copyTimers = {};
+    let currentProfile = null;
 
-    // Build field DOM for each section
-    for (const [groupName, fields] of Object.entries(FIELD_GROUPS)) {
-      const container = document.getElementById('section-' + groupName);
-      if (!container) continue;
-
-      for (const f of fields) {
-        const row = document.createElement('div');
-        row.className = 'field-row';
-
-        const inputType = f.secret ? 'password' : 'text';
-        const requiredMark = f.important ? '<span class="required">*</span>' : '';
-        const wrapClass = f.secret ? 'field-input-wrap has-toggle' : 'field-input-wrap';
-        let toggleBtn = '';
-        if (f.secret) {
-          toggleBtn = '<button class="pwd-toggle" data-toggle-for="' + f.key + '" title="Show/Hide">Show</button>';
-        }
-
-        row.innerHTML =
-          '<div class="field-label-wrap">' +
-            '<div class="field-label">' + f.label + requiredMark + '</div>' +
-            '<span class="field-hint">' + f.hint + '</span>' +
-          '</div>' +
-          '<div class="' + wrapClass + '">' +
-            '<input type="' + inputType + '" id="field-' + f.key + '" data-field="' + f.key + '" spellcheck="false" autocomplete="off" />' +
-            toggleBtn +
-            '<span class="status-icon" id="status-' + f.key + '"></span>' +
-          '</div>';
-
-        container.appendChild(row);
-        fieldElements[f.key] = document.getElementById('field-' + f.key);
-      }
+    function cloneProfile(profile) {
+      return JSON.parse(JSON.stringify(profile));
     }
 
-    // Track auth token edits — only send value when user actually typed
-    if (fieldElements['authToken']) {
-      fieldElements['authToken'].addEventListener('input', () => {
-        authTokenEdited = true;
+    function getAccent(platformName) {
+      return PLATFORM_ACCENTS[platformName] || PLATFORM_ACCENTS.default;
+    }
+
+    function setPlatformAccent(platformName) {
+      const accent = getAccent(platformName);
+      const root = document.documentElement.style;
+      root.setProperty('--platform-color', accent.color);
+      root.setProperty('--platform-soft', accent.soft);
+      root.setProperty('--platform-glow', accent.glow);
+      return accent;
+    }
+
+    function getDisplayValue(field, value) {
+      if (field === 'tags' && Array.isArray(value)) {
+        return value.join(', ');
+      }
+      return value ?? '';
+    }
+
+    function getNormalizedFieldValue(field) {
+      const input = fieldElements[field];
+      if (!input) {
+        return undefined;
+      }
+
+      if (field === 'tags') {
+        return input.value
+          ? input.value.split(',').map((tag) => tag.trim()).filter(Boolean)
+          : undefined;
+      }
+
+      return input.value || undefined;
+    }
+
+    function syncFieldOriginal(field, value) {
+      if (!fieldState[field]) {
+        fieldState[field] = { original: '', dirty: false };
+      }
+      fieldState[field].original = value;
+      fieldState[field].dirty = false;
+    }
+
+    function updateCopyButtonState(field) {
+      const button = copyButtons[field];
+      const input = fieldElements[field];
+      if (!button || !input) {
+        return;
+      }
+      button.disabled = input.value.trim().length === 0;
+    }
+
+    function setFieldFeedback(field, success) {
+      const feedback = document.getElementById('status-' + field);
+      if (!feedback) {
+        return;
+      }
+
+      feedback.textContent = success ? 'Saved' : 'Error';
+      feedback.className = 'field-feedback visible ' + (success ? 'success' : 'error');
+
+      if (statusTimers[field]) {
+        clearTimeout(statusTimers[field]);
+      }
+
+      statusTimers[field] = setTimeout(() => {
+        feedback.className = 'field-feedback';
+      }, success ? 1800 : 2600);
+    }
+
+    function setCopyFeedback(field, success) {
+      const button = copyButtons[field];
+      if (!button) {
+        return;
+      }
+
+      const originalLabel = button.dataset.defaultLabel || 'Copy';
+      button.textContent = success ? 'Copied' : 'Failed';
+      button.disabled = true;
+
+      if (copyTimers[field]) {
+        clearTimeout(copyTimers[field]);
+      }
+
+      copyTimers[field] = setTimeout(() => {
+        button.textContent = originalLabel;
+        updateCopyButtonState(field);
+      }, success ? 1400 : 1800);
+    }
+
+    function flashAutosave() {
+      const autosaveEl = document.getElementById('autosave-indicator');
+      autosaveEl.textContent = 'Saved ✓';
+      autosaveEl.classList.add('saved');
+
+      window.clearTimeout(flashAutosave.timer);
+      flashAutosave.timer = window.setTimeout(() => {
+        autosaveEl.textContent = 'Auto-save';
+        autosaveEl.classList.remove('saved');
+      }, 1800);
+    }
+    flashAutosave.timer = 0;
+
+    function persistState() {
+      vscode.setState({
+        profile: currentProfile,
       });
     }
 
-    // Auto-save on blur
-    document.addEventListener('focusout', (e) => {
-      const input = e.target;
-      if (!input || !input.dataset || !input.dataset.field) return;
-      if (input.tagName !== 'INPUT' && input.tagName !== 'TEXTAREA') return;
-      const field = input.dataset.field;
-      // Skip sending masked auth token back if not edited
-      if (field === 'authToken' && !authTokenEdited) return;
-      vscode.postMessage({ type: 'saveField', field, value: input.value });
-    });
+    function saveFieldIfDirty(field) {
+      const input = fieldElements[field];
+      const state = fieldState[field];
 
-    // Enter key saves current field
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' && e.target.dataset && e.target.dataset.field) {
-        e.target.blur();
+      if (!input || !state || !state.dirty) {
+        return;
       }
-    });
 
-    // Password show/hide
-    document.addEventListener('click', (e) => {
-      if (!e.target.classList.contains('pwd-toggle')) return;
-      const field = e.target.dataset.toggleFor;
-      const input = document.getElementById('field-' + field);
-      if (input.type === 'password') {
-        input.type = 'text';
-        e.target.textContent = 'Hide';
-      } else {
-        input.type = 'password';
-        e.target.textContent = 'Show';
+      vscode.postMessage({
+        type: 'saveField',
+        field,
+        value: input.value,
+      });
+    }
+
+    function registerField(groupName, field) {
+      const container = document.getElementById('section-' + groupName);
+      if (!container) {
+        return;
       }
+
+      const row = document.createElement('div');
+      row.className = 'field-row';
+
+      const requiredMark = field.required ? '<span class="required">*</span>' : '';
+      const toggleButton = field.actions && field.actions.includes('toggle')
+        ? '<button type="button" class="control-btn" data-action="toggle" data-field="' + field.key + '">Show</button>'
+        : '';
+      const copyButton = field.actions && field.actions.includes('copy')
+        ? '<button type="button" class="control-btn" data-action="copy" data-field="' + field.key + '" data-default-label="Copy">Copy</button>'
+        : '';
+
+      row.innerHTML =
+        '<div class="field-label-wrap">' +
+          '<div class="field-label">' + field.label + requiredMark + '</div>' +
+          '<span class="field-hint">' + field.hint + '</span>' +
+        '</div>' +
+        '<div class="field-input-wrap">' +
+          '<div class="input-shell">' +
+            '<input class="field-input" type="' + (field.secret ? 'password' : 'text') + '" id="field-' + field.key + '" data-field="' + field.key + '" autocomplete="off" spellcheck="false" placeholder="' + (field.placeholder || '') + '" />' +
+            '<div class="field-actions">' +
+              toggleButton +
+              copyButton +
+              '<span class="field-feedback" id="status-' + field.key + '"></span>' +
+            '</div>' +
+          '</div>' +
+        '</div>';
+
+      container.appendChild(row);
+
+      const input = document.getElementById('field-' + field.key);
+      fieldElements[field.key] = input;
+      fieldState[field.key] = { original: '', dirty: false };
+
+      input.addEventListener('input', () => {
+        fieldState[field.key].dirty = input.value !== fieldState[field.key].original;
+        updateCopyButtonState(field.key);
+      });
+
+      input.addEventListener('blur', () => {
+        saveFieldIfDirty(field.key);
+      });
+
+      input.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') {
+          event.preventDefault();
+          input.blur();
+        }
+      });
+
+      const copyButtonElement = row.querySelector('[data-action="copy"]');
+      if (copyButtonElement) {
+        copyButtons[field.key] = copyButtonElement;
+        copyButtonElement.addEventListener('click', () => {
+          if (!input.value.trim()) {
+            return;
+          }
+          vscode.postMessage({
+            type: 'copyField',
+            field: field.key,
+            value: input.value,
+          });
+        });
+      }
+
+      const toggleButtonElement = row.querySelector('[data-action="toggle"]');
+      if (toggleButtonElement) {
+        toggleButtons[field.key] = toggleButtonElement;
+        toggleButtonElement.addEventListener('click', () => {
+          const isPassword = input.type === 'password';
+          input.type = isPassword ? 'text' : 'password';
+          toggleButtonElement.textContent = isPassword ? 'Hide' : 'Show';
+        });
+      }
+
+      updateCopyButtonState(field.key);
+    }
+
+    Object.entries(FIELD_GROUPS).forEach(([groupName, fields]) => {
+      fields.forEach((field) => registerField(groupName, field));
     });
 
-    // Enabled toggle
     const enabledCheckbox = document.getElementById('field-enabled');
     const enabledLabel = document.getElementById('enabled-label');
+
     enabledCheckbox.addEventListener('change', () => {
       vscode.postMessage({ type: 'toggleEnabled' });
     });
 
-    // Auto-save flash indicator
-    const autosaveEl = document.getElementById('autosave-indicator');
-    let autosaveTimer = null;
-    function flashAutosave() {
-      autosaveEl.textContent = 'Saved \\u2713';
-      autosaveEl.classList.add('saved');
-      if (autosaveTimer) clearTimeout(autosaveTimer);
-      autosaveTimer = setTimeout(() => {
-        autosaveEl.textContent = 'Auto-save';
-        autosaveEl.classList.remove('saved');
-      }, 2000);
-    }
+    function populateProfile(profile) {
+      currentProfile = cloneProfile(profile);
+      const accent = setPlatformAccent(profile.platformName);
 
-    // Populate profile data into the UI
-    function populateProfile(p, hasAuthToken) {
-      document.getElementById('title').textContent = p.name;
+      document.getElementById('title').textContent = profile.name;
+      document.getElementById('subtitle').textContent = profile.description
+        || 'Tune routing, credentials and identity details for this profile.';
 
-      // Platform badge with color
       const badge = document.getElementById('platform-badge');
-      badge.textContent = p.platformName;
-      badge.style.setProperty('--badge-color', PLATFORM_COLORS[p.platformName] || '#888');
+      badge.textContent = accent.icon + ' ' + profile.platformName;
 
-      enabledCheckbox.checked = p.enabled;
-      enabledLabel.textContent = p.enabled ? 'Enabled' : 'Disabled';
+      enabledCheckbox.checked = !!profile.enabled;
+      enabledLabel.textContent = profile.enabled ? 'Enabled' : 'Disabled';
 
-      // Populate all fields across groups
-      const allFields = Object.values(FIELD_GROUPS).flat();
-      for (const f of allFields) {
-        const val = p[f.key];
-        const el = fieldElements[f.key];
-        if (!el) continue;
-        if (f.key === 'tags' && Array.isArray(val)) {
-          el.value = val.join(', ');
-        } else {
-          el.value = val ?? '';
+      Object.values(FIELD_GROUPS).flat().forEach((field) => {
+        const input = fieldElements[field.key];
+        if (!input) {
+          return;
         }
-      }
 
-      // Reset auth token edit tracking
-      authTokenEdited = false;
+        const displayValue = getDisplayValue(field.key, profile[field.key]);
+        input.value = displayValue;
+        syncFieldOriginal(field.key, displayValue);
+        updateCopyButtonState(field.key);
 
-      // Show editor content, hide loading
+        if (field.secret) {
+          input.type = 'password';
+        }
+
+        if (toggleButtons[field.key]) {
+          toggleButtons[field.key].textContent = 'Show';
+        }
+      });
+
       document.getElementById('loading').classList.add('hidden');
-      document.getElementById('editor-content').style.display = '';
-      document.querySelectorAll('[data-editor-section]').forEach(el => el.style.display = '');
+      document.getElementById('editor-content').style.display = 'block';
+      document.querySelectorAll('[data-editor-section]').forEach((section) => {
+        section.style.display = 'block';
+      });
 
-      // Persist state for restore across hide/show cycles
-      vscode.setState({ profile: p, hasAuthToken });
+      persistState();
     }
 
-    // Restore state if available (for WebView re-creation after hide)
     const previousState = vscode.getState();
     if (previousState && previousState.profile) {
-      populateProfile(previousState.profile, previousState.hasAuthToken);
+      populateProfile(previousState.profile);
     }
 
-    // Receive messages from extension
     window.addEventListener('message', (event) => {
       const msg = event.data;
 
       if (msg.type === 'profileData') {
-        populateProfile(msg.profile, msg.hasAuthToken);
+        populateProfile(msg.profile);
+        return;
+      }
+
+      if (msg.type === 'copyResult') {
+        setCopyFeedback(msg.field, msg.success);
+        return;
       }
 
       if (msg.type === 'saveResult') {
         if (msg.field === 'enabled') {
-          enabledLabel.textContent = enabledCheckbox.checked ? 'Enabled' : 'Disabled';
-          if (msg.success) flashAutosave();
+          if (msg.success) {
+            if (currentProfile) {
+              currentProfile.enabled = enabledCheckbox.checked;
+              persistState();
+            }
+            flashAutosave();
+            enabledLabel.textContent = enabledCheckbox.checked ? 'Enabled' : 'Disabled';
+          } else if (currentProfile) {
+            enabledCheckbox.checked = !!currentProfile.enabled;
+            enabledLabel.textContent = currentProfile.enabled ? 'Enabled' : 'Disabled';
+          }
           return;
         }
 
-        const icon = document.getElementById('status-' + msg.field);
-        if (icon) {
-          icon.textContent = msg.success ? '\\u2713' : '\\u2717';
-          icon.className = 'status-icon visible ' + (msg.success ? 'success' : 'error');
-
-          if (statusTimers[msg.field]) clearTimeout(statusTimers[msg.field]);
-          statusTimers[msg.field] = setTimeout(() => {
-            icon.className = 'status-icon';
-          }, 2000);
+        if (msg.success) {
+          const input = fieldElements[msg.field];
+          if (input) {
+            syncFieldOriginal(msg.field, input.value);
+            if (currentProfile) {
+              currentProfile[msg.field] = getNormalizedFieldValue(msg.field);
+              persistState();
+            }
+          }
+          flashAutosave();
         }
 
-        if (msg.success) flashAutosave();
+        setFieldFeedback(msg.field, msg.success);
       }
     });
 
-    // Signal ready
     vscode.postMessage({ type: 'ready' });
   </script>
 </body>
