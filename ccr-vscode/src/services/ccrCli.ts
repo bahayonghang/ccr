@@ -83,7 +83,7 @@ export async function execCcr(args: string[]): Promise<CliResult> {
 
   return new Promise((resolve) => {
     execFile(ccrPath, args, { timeout: 30000 }, (err, stdout, stderr) => {
-      const exitCode = err && "code" in err ? (err.code as number) : err ? 1 : 0;
+      const exitCode = err ? (typeof err.code === "number" ? err.code : 1) : 0;
       resolve({
         success: !err,
         stdout: stdout?.trim() ?? "",

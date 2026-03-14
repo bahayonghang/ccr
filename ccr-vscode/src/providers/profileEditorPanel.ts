@@ -5,14 +5,16 @@
  * Each field auto-saves on blur, with inline status indicators.
  */
 
+import { randomBytes } from "crypto";
 import * as vscode from "vscode";
+import { EDITABLE_FIELDS } from "../models/types";
 import type { ProfileInfo } from "../models/types";
-import { writeProfileField, toggleProfileEnabled } from "../services/tomlReader";
-
-/** Active panels keyed by "platform/profile" */
-const activePanels = new Map<string, ProfileEditorPanel>();
+import { writeProfileField, toggleProfileEnabled, maskToken } from "../services/tomlReader";
 
 export class ProfileEditorPanel {
+  /** Active panels keyed by "platform/profile" */
+  private static readonly activePanels = new Map<string, ProfileEditorPanel>();
+
   private readonly panel: vscode.WebviewPanel;
   private readonly panelKey: string;
   private profile: ProfileInfo;
@@ -26,7 +28,7 @@ export class ProfileEditorPanel {
     onDidSave: () => void,
   ): ProfileEditorPanel {
     const key = `${profile.platformName}/${profile.name}`;
-    const existing = activePanels.get(key);
+    const existing = ProfileEditorPanel.activePanels.get(key);
     if (existing && !existing.disposed) {
       existing.profile = profile;
       existing.panel.reveal();
@@ -35,6 +37,14 @@ export class ProfileEditorPanel {
     }
 
     return new ProfileEditorPanel(extensionUri, profile, onDidSave);
+  }
+
+  /** Dispose all active panels */
+  static disposeAll(): void {
+    for (const panel of ProfileEditorPanel.activePanels.values()) {
+      panel.panel.dispose();
+    }
+    ProfileEditorPanel.activePanels.clear();
   }
 
   private constructor(
@@ -52,7 +62,6 @@ export class ProfileEditorPanel {
       vscode.ViewColumn.One,
       {
         enableScripts: true,
-        retainContextWhenHidden: true,
         localResourceRoots: [extensionUri],
       },
     );
@@ -63,14 +72,19 @@ export class ProfileEditorPanel {
     this.panel.webview.onDidReceiveMessage((msg) => this.handleMessage(msg));
     this.panel.onDidDispose(() => {
       this.disposed = true;
-      activePanels.delete(this.panelKey);
+      ProfileEditorPanel.activePanels.delete(this.panelKey);
     });
 
-    activePanels.set(this.panelKey, this);
+    ProfileEditorPanel.activePanels.set(this.panelKey, this);
   }
 
   private sendProfileData(): void {
-    this.panel.webview.postMessage({ type: "profileData", profile: this.profile });
+    const data = { ...this.profile };
+    const hasAuthToken = !!data.authToken;
+    if (data.authToken) {
+      data.authToken = maskToken(data.authToken);
+    }
+    this.panel.webview.postMessage({ type: "profileData", profile: data, hasAuthToken });
   }
 
   private handleMessage(msg: { type: string; field?: string; value?: unknown }): void {
@@ -80,7 +94,9 @@ export class ProfileEditorPanel {
         break;
 
       case "saveField":
-        this.saveField(msg.field!, msg.value as string);
+        if (typeof msg.field === "string") {
+          this.saveField(msg.field, msg.value as string);
+        }
         break;
 
       case "toggleEnabled":
@@ -89,21 +105,16 @@ export class ProfileEditorPanel {
     }
   }
 
-  private saveField(field: string, value: string): void {
-    // Map camelCase field names back to snake_case TOML keys
-    const fieldMap: Record<string, string> = {
-      description: "description",
-      baseUrl: "base_url",
-      authToken: "auth_token",
-      model: "model",
-      smallFastModel: "small_fast_model",
-      provider: "provider",
-      providerType: "provider_type",
-      account: "account",
-      tags: "tags",
-    };
-
+  private async saveField(field: string, value: string): Promise<void> {
+    // Build field mapping from EDITABLE_FIELDS (single source of truth)
+    const fieldMap = Object.fromEntries(EDITABLE_FIELDS.map(f => [f.key, f.tomlKey]));
     const tomlKey = fieldMap[field] ?? field;
+
+    // Skip write if auth token was not actually changed (masked value sent back)
+    if (field === "authToken" && (!value || value.startsWith("****"))) {
+      this.panel.webview.postMessage({ type: "saveResult", field, success: true });
+      return;
+    }
 
     try {
       let writeValue: string | string[] | undefined;
@@ -115,7 +126,7 @@ export class ProfileEditorPanel {
         writeValue = value || undefined;
       }
 
-      writeProfileField(this.profile.platformName, this.profile.name, tomlKey, writeValue);
+      await writeProfileField(this.profile.platformName, this.profile.name, tomlKey, writeValue);
 
       // Update local state
       (this.profile as unknown as Record<string, unknown>)[field] = tomlKey === "tags" ? writeValue : (value || undefined);
@@ -132,9 +143,9 @@ export class ProfileEditorPanel {
     }
   }
 
-  private doToggleEnabled(): void {
+  private async doToggleEnabled(): Promise<void> {
     try {
-      const newState = toggleProfileEnabled(this.profile.platformName, this.profile.name);
+      const newState = await toggleProfileEnabled(this.profile.platformName, this.profile.name);
       this.profile.enabled = newState;
       this.panel.webview.postMessage({ type: "saveResult", field: "enabled", success: true });
       this.sendProfileData();
@@ -185,6 +196,15 @@ export class ProfileEditorPanel {
       padding: 24px 32px;
       max-width: var(--editor-max-width);
     }
+
+    /* ── Loading State ── */
+    #loading {
+      text-align: center;
+      padding: 48px 0;
+      color: var(--vscode-descriptionForeground);
+      font-size: 1.1em;
+    }
+    #loading.hidden { display: none; }
 
     /* ── Header Card ── */
     .header-card {
@@ -391,8 +411,11 @@ export class ProfileEditorPanel {
 </head>
 <body>
 
+  <!-- Loading State -->
+  <div id="loading">Loading profile...</div>
+
   <!-- Header Card -->
-  <div class="header-card">
+  <div class="header-card" id="editor-content" style="display:none;">
     <div class="header-top">
       <h1 id="title">Edit Profile</h1>
       <span class="platform-badge" id="platform-badge"></span>
@@ -411,19 +434,19 @@ export class ProfileEditorPanel {
   </div>
 
   <!-- Section Cards (fields injected by JS) -->
-  <div class="section-card">
+  <div class="section-card" style="display:none;" data-editor-section>
     <div class="section-header">Connection</div>
     <div class="section-body" id="section-connection"></div>
   </div>
-  <div class="section-card">
+  <div class="section-card" style="display:none;" data-editor-section>
     <div class="section-header">Model</div>
     <div class="section-body" id="section-model"></div>
   </div>
-  <div class="section-card">
+  <div class="section-card" style="display:none;" data-editor-section>
     <div class="section-header">Identity</div>
     <div class="section-body" id="section-identity"></div>
   </div>
-  <div class="section-card">
+  <div class="section-card" style="display:none;" data-editor-section>
     <div class="section-header">Metadata</div>
     <div class="section-body" id="section-metadata"></div>
   </div>
@@ -462,6 +485,7 @@ export class ProfileEditorPanel {
 
     const fieldElements = {};
     const statusTimers = {};
+    let authTokenEdited = false;
 
     // Build field DOM for each section
     for (const [groupName, fields] of Object.entries(FIELD_GROUPS)) {
@@ -496,13 +520,29 @@ export class ProfileEditorPanel {
       }
     }
 
-    // Auto-save on blur (only for input/textarea, not buttons)
+    // Track auth token edits — only send value when user actually typed
+    if (fieldElements['authToken']) {
+      fieldElements['authToken'].addEventListener('input', () => {
+        authTokenEdited = true;
+      });
+    }
+
+    // Auto-save on blur
     document.addEventListener('focusout', (e) => {
       const input = e.target;
       if (!input || !input.dataset || !input.dataset.field) return;
       if (input.tagName !== 'INPUT' && input.tagName !== 'TEXTAREA') return;
       const field = input.dataset.field;
+      // Skip sending masked auth token back if not edited
+      if (field === 'authToken' && !authTokenEdited) return;
       vscode.postMessage({ type: 'saveField', field, value: input.value });
+    });
+
+    // Enter key saves current field
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && e.target.dataset && e.target.dataset.field) {
+        e.target.blur();
+      }
     });
 
     // Password show/hide
@@ -539,34 +579,55 @@ export class ProfileEditorPanel {
       }, 2000);
     }
 
+    // Populate profile data into the UI
+    function populateProfile(p, hasAuthToken) {
+      document.getElementById('title').textContent = p.name;
+
+      // Platform badge with color
+      const badge = document.getElementById('platform-badge');
+      badge.textContent = p.platformName;
+      badge.style.setProperty('--badge-color', PLATFORM_COLORS[p.platformName] || '#888');
+
+      enabledCheckbox.checked = p.enabled;
+      enabledLabel.textContent = p.enabled ? 'Enabled' : 'Disabled';
+
+      // Populate all fields across groups
+      const allFields = Object.values(FIELD_GROUPS).flat();
+      for (const f of allFields) {
+        const val = p[f.key];
+        const el = fieldElements[f.key];
+        if (!el) continue;
+        if (f.key === 'tags' && Array.isArray(val)) {
+          el.value = val.join(', ');
+        } else {
+          el.value = val ?? '';
+        }
+      }
+
+      // Reset auth token edit tracking
+      authTokenEdited = false;
+
+      // Show editor content, hide loading
+      document.getElementById('loading').classList.add('hidden');
+      document.getElementById('editor-content').style.display = '';
+      document.querySelectorAll('[data-editor-section]').forEach(el => el.style.display = '');
+
+      // Persist state for restore across hide/show cycles
+      vscode.setState({ profile: p, hasAuthToken });
+    }
+
+    // Restore state if available (for WebView re-creation after hide)
+    const previousState = vscode.getState();
+    if (previousState && previousState.profile) {
+      populateProfile(previousState.profile, previousState.hasAuthToken);
+    }
+
     // Receive messages from extension
     window.addEventListener('message', (event) => {
       const msg = event.data;
 
       if (msg.type === 'profileData') {
-        const p = msg.profile;
-        document.getElementById('title').textContent = p.name;
-
-        // Platform badge with color
-        const badge = document.getElementById('platform-badge');
-        badge.textContent = p.platformName;
-        badge.style.setProperty('--badge-color', PLATFORM_COLORS[p.platformName] || '#888');
-
-        enabledCheckbox.checked = p.enabled;
-        enabledLabel.textContent = p.enabled ? 'Enabled' : 'Disabled';
-
-        // Populate all fields across groups
-        const allFields = Object.values(FIELD_GROUPS).flat();
-        for (const f of allFields) {
-          const val = p[f.key];
-          const el = fieldElements[f.key];
-          if (!el) continue;
-          if (f.key === 'tags' && Array.isArray(val)) {
-            el.value = val.join(', ');
-          } else {
-            el.value = val ?? '';
-          }
-        }
+        populateProfile(msg.profile, msg.hasAuthToken);
       }
 
       if (msg.type === 'saveResult') {
@@ -600,10 +661,5 @@ export class ProfileEditorPanel {
 }
 
 function getNonce(): string {
-  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-  let result = "";
-  for (let i = 0; i < 32; i++) {
-    result += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return result;
+  return randomBytes(16).toString("hex");
 }

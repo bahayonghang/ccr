@@ -107,4 +107,5 @@ export const EDITABLE_FIELDS: { key: string; tomlKey: string; label: string }[] 
   { key: "provider",       tomlKey: "provider",         label: "provider" },
   { key: "providerType",   tomlKey: "provider_type",    label: "provider_type" },
   { key: "account",        tomlKey: "account",          label: "account" },
+  { key: "tags",           tomlKey: "tags",             label: "tags" },
 ];

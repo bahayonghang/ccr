@@ -140,12 +140,12 @@ function readRawProfiles(platformName: string): Record<string, unknown> | null {
  * Preserves all top-level fields (default_config, current_config, settings)
  * and all other profile sections.
  */
-export function writeProfileField(
+export async function writeProfileField(
   platformName: string,
   profileName: string,
   field: string,
   value: string | boolean | number | string[] | undefined
-): void {
+): Promise<void> {
   const profilesPath = getProfilesPath(platformName);
   const raw = readRawProfiles(platformName);
   if (!raw) {
@@ -168,13 +168,13 @@ export function writeProfileField(
 
   // Serialize and write back
   const tomlStr = TOML.stringify(raw as TOML.TomlPrimitive);
-  fs.writeFileSync(profilesPath, tomlStr, "utf-8");
+  await fs.promises.writeFile(profilesPath, tomlStr, "utf-8");
 }
 
 /**
  * Toggle the `enabled` field of a profile
  */
-export function toggleProfileEnabled(platformName: string, profileName: string): boolean {
+export async function toggleProfileEnabled(platformName: string, profileName: string): Promise<boolean> {
   const profilesPath = getProfilesPath(platformName);
   const raw = readRawProfiles(platformName);
   if (!raw) {
@@ -191,7 +191,7 @@ export function toggleProfileEnabled(platformName: string, profileName: string):
   profileObj["enabled"] = !currentEnabled;
 
   const tomlStr = TOML.stringify(raw as TOML.TomlPrimitive);
-  fs.writeFileSync(profilesPath, tomlStr, "utf-8");
+  await fs.promises.writeFile(profilesPath, tomlStr, "utf-8");
 
   return !currentEnabled;
 }

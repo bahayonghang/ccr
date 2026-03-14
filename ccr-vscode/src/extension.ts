@@ -26,12 +26,15 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   const statusBar = new StatusBarProvider();
   context.subscriptions.push(statusBar);
 
-  // ── File watcher ──
-  const watcher = new CcrWatcher();
-  watcher.onChange(() => {
+  /** Refresh both tree and status bar */
+  const refreshAll = () => {
     treeProvider.refresh();
     statusBar.update();
-  });
+  };
+
+  // ── File watcher ──
+  const watcher = new CcrWatcher();
+  watcher.onChange(refreshAll);
   context.subscriptions.push(watcher);
 
   // ── Check CCR availability (non-blocking) ──
@@ -41,10 +44,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 
   // Refresh profiles
   context.subscriptions.push(
-    vscode.commands.registerCommand("ccr.refreshProfiles", () => {
-      treeProvider.refresh();
-      statusBar.update();
-    }),
+    vscode.commands.registerCommand("ccr.refreshProfiles", refreshAll),
   );
 
   // Switch profile (via TreeView click or QuickPick)
@@ -55,10 +55,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         if (node.profile.isCurrent) {
           return; // Already current, no-op
         }
-        await doSwitch(node.profile.platformName, node.profile.name, treeProvider, statusBar);
+        await doSwitch(node.profile.platformName, node.profile.name, refreshAll);
       } else {
         // Called from command palette or status bar — show QuickPick
-        await showSwitchQuickPick(treeProvider, statusBar);
+        await showSwitchQuickPick(refreshAll);
       }
     }),
   );
@@ -70,7 +70,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         vscode.window.showWarningMessage("Please select a profile to edit.");
         return;
       }
-      await editProfileField(node, treeProvider, statusBar);
+      await editProfileField(node, refreshAll);
     }),
   );
 
@@ -82,12 +82,11 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         return;
       }
       try {
-        const newState = toggleProfileEnabled(node.profile.platformName, node.profile.name);
+        const newState = await toggleProfileEnabled(node.profile.platformName, node.profile.name);
         vscode.window.showInformationMessage(
           `Profile '${node.profile.name}' ${newState ? "enabled" : "disabled"}.`,
         );
-        treeProvider.refresh();
-        statusBar.update();
+        refreshAll();
       } catch (err) {
         vscode.window.showErrorMessage(`Failed to toggle profile: ${err}`);
       }
@@ -101,10 +100,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         vscode.window.showWarningMessage("Please select a profile to edit.");
         return;
       }
-      ProfileEditorPanel.createOrShow(context.extensionUri, node.profile, () => {
-        treeProvider.refresh();
-        statusBar.update();
-      });
+      ProfileEditorPanel.createOrShow(context.extensionUri, node.profile, refreshAll);
     }),
   );
 
@@ -148,7 +144,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 }
 
 export function deactivate(): void {
-  // All disposables are cleaned up via context.subscriptions
+  ProfileEditorPanel.disposeAll();
 }
 
 // ── Helpers ──
@@ -156,16 +152,17 @@ export function deactivate(): void {
 async function doSwitch(
   platform: string,
   profileName: string,
-  treeProvider: ProfileTreeProvider,
-  statusBar: StatusBarProvider,
+  refreshAll: () => void,
 ): Promise<void> {
-  // Issue 2: Confirmation dialog before switching
-  const confirm = await vscode.window.showWarningMessage(
-    `Switch to profile "${profileName}" on ${platform}?`,
-    { modal: true },
-    "Yes",
-  );
-  if (confirm !== "Yes") return;
+  const confirmEnabled = vscode.workspace.getConfiguration("ccr").get<boolean>("confirmBeforeSwitch", true);
+  if (confirmEnabled) {
+    const confirm = await vscode.window.showWarningMessage(
+      `Switch to profile "${profileName}" on ${platform}?`,
+      { modal: true },
+      "Yes",
+    );
+    if (confirm !== "Yes") return;
+  }
 
   const available = await checkCcrAvailability();
   if (!available) return;
@@ -202,13 +199,11 @@ async function doSwitch(
     },
   );
 
-  treeProvider.refresh();
-  statusBar.update();
+  refreshAll();
 }
 
 async function showSwitchQuickPick(
-  treeProvider: ProfileTreeProvider,
-  statusBar: StatusBarProvider,
+  refreshAll: () => void,
 ): Promise<void> {
   const registry = readRegistry();
   if (!registry || registry.platforms.length === 0) {
@@ -253,13 +248,12 @@ async function showSwitchQuickPick(
 
   if (!picked || picked.isCurrent) return;
 
-  await doSwitch(platformName, picked.profileName, treeProvider, statusBar);
+  await doSwitch(platformName, picked.profileName, refreshAll);
 }
 
 async function editProfileField(
   node: ProfileNode,
-  treeProvider: ProfileTreeProvider,
-  statusBar: StatusBarProvider,
+  refreshAll: () => void,
 ): Promise<void> {
   const profile = node.profile;
 
@@ -301,12 +295,11 @@ async function editProfileField(
 
   try {
     // Write using snake_case TOML key
-    writeProfileField(profile.platformName, profile.name, picked.field.tomlKey, newValue || undefined);
+    await writeProfileField(profile.platformName, profile.name, picked.field.tomlKey, newValue || undefined);
     vscode.window.showInformationMessage(
       `Updated ${picked.field.label} for '${profile.name}'.`,
     );
-    treeProvider.refresh();
-    statusBar.update();
+    refreshAll();
   } catch (err) {
     vscode.window.showErrorMessage(`Failed to update profile: ${err}`);
   }

@@ -30,13 +30,22 @@ const PLATFORM_THEME_COLORS: Record<string, string> = {
 
 export class PlatformNode extends vscode.TreeItem {
   constructor(public readonly platform: PlatformInfo) {
-    super(platform.displayName, vscode.TreeItemCollapsibleState.Expanded);
-    this.contextValue = "platform";
+    super(
+      platform.displayName,
+      platform.enabled
+        ? vscode.TreeItemCollapsibleState.Expanded
+        : vscode.TreeItemCollapsibleState.None,
+    );
+    this.contextValue = platform.enabled ? "platform" : "platform-disabled";
 
-    // Codicon icon with platform-specific color
+    // Codicon icon with platform-specific color (disabled gets eye-closed)
     const codiconId = getPlatformCodiconId(platform.name);
-    const themeColor = PLATFORM_THEME_COLORS[platform.name] ?? "foreground";
-    this.iconPath = new vscode.ThemeIcon(codiconId, new vscode.ThemeColor(themeColor));
+    if (!platform.enabled) {
+      this.iconPath = new vscode.ThemeIcon("eye-closed", new vscode.ThemeColor("disabledForeground"));
+    } else {
+      const themeColor = PLATFORM_THEME_COLORS[platform.name] ?? "foreground";
+      this.iconPath = new vscode.ThemeIcon(codiconId, new vscode.ThemeColor(themeColor));
+    }
 
     // Description: arrow indicator + current profile name
     if (!platform.enabled) {
@@ -187,7 +196,6 @@ export class ProfileTreeProvider implements vscode.TreeDataProvider<TreeNode> {
         return [new MessageNode("No platforms configured.")];
       }
       return registry.platforms
-        .filter((p) => p.enabled)
         .map((p) => new PlatformNode(p));
     }
 

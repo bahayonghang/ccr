@@ -13,8 +13,12 @@
   "engines": {
     "vscode": "^1.85.0"
   },
+  "extensionKind": [
+    "workspace"
+  ],
   "categories": [
-    "Other"
+    "Other",
+    "Configuration"
   ],
   "keywords": [
     "claude",
@@ -112,6 +116,16 @@
           "group": "2_open@1"
         }
       ]
+    },
+    "configuration": {
+      "title": "CCR",
+      "properties": {
+        "ccr.confirmBeforeSwitch": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show confirmation dialog before switching profiles"
+        }
+      }
     }
   },
   "scripts": {
