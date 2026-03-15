@@ -43,24 +43,33 @@
             :style="{ borderColor: 'var(--border-color)' }"
           >
             <div class="flex items-center space-x-3">
-              <AlertTriangle
+              <SIcon
                 v-if="stage === 'confirm'"
-                class="w-6 h-6"
+                name="AlertTriangle"
+                size="w-6 h-6"
+                
                 :style="{ color: 'var(--accent-warning)' }"
               />
-              <Loader2
+              <SIcon
                 v-if="stage === 'updating'"
-                class="w-6 h-6 animate-spin"
+                name="Loader2"
+                size="w-6 h-6"
+                class="animate-spin"
+                
                 :style="{ color: 'var(--accent-primary)' }"
               />
-              <CheckCircle
+              <SIcon
                 v-if="stage === 'success'"
-                class="w-6 h-6"
+                name="CheckCircle"
+                size="w-6 h-6"
+                
                 :style="{ color: 'var(--accent-success)' }"
               />
-              <AlertCircle
+              <SIcon
                 v-if="stage === 'error'"
-                class="w-6 h-6"
+                name="AlertCircle"
+                size="w-6 h-6"
+                
                 :style="{ color: 'var(--accent-danger)' }"
               />
 
@@ -83,7 +92,10 @@
               aria-label="关闭"
               @click="$emit('close')"
             >
-              <X class="w-5 h-5" />
+              <SIcon
+                name="X"
+                size="w-5 h-5"
+              />
             </button>
           </div>
 
@@ -131,8 +143,10 @@
               class="space-y-4"
             >
               <div class="flex items-center space-x-3">
-                <Loader2
-                  class="w-5 h-5 animate-spin"
+                <SIcon
+                  name="Loader2"
+                  size="w-5 h-5"
+                  class="animate-spin"
                   :style="{ color: 'var(--accent-primary)' }"
                 />
                 <p
@@ -184,8 +198,10 @@
                   border: '1px solid var(--accent-success)'
                 }"
               >
-                <CheckCircle
-                  class="w-5 h-5 mt-0.5 flex-shrink-0"
+                <SIcon
+                  name="CheckCircle"
+                  size="w-5 h-5"
+                  class="mt-0.5 flex-shrink-0"
                   :style="{ color: 'var(--accent-success)' }"
                 />
                 <div class="space-y-2 flex-1">
@@ -242,8 +258,10 @@
                   border: '1px solid var(--accent-danger)'
                 }"
               >
-                <AlertCircle
-                  class="w-5 h-5 mt-0.5 flex-shrink-0"
+                <SIcon
+                  name="AlertCircle"
+                  size="w-5 h-5"
+                  class="mt-0.5 flex-shrink-0"
                   :style="{ color: 'var(--accent-danger)' }"
                 />
                 <div class="space-y-2 flex-1">
@@ -379,14 +397,8 @@
 </template>
 
 <script setup lang="ts">
+import SIcon from '@/components/ui/SIcon.vue'
 import { ref, watch } from 'vue'
-import {
-  X,
-  AlertTriangle,
-  CheckCircle,
-  Loader2,
-  AlertCircle
-} from 'lucide-vue-next'
 import { useFocusTrap, useEscapeKey, useUniqueId } from '@/composables/useAccessibility'
 
 interface Props {

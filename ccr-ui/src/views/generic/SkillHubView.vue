@@ -22,7 +22,10 @@
             to="/skills"
             class="inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-colors bg-[var(--color-bg-elevated)] text-[var(--color-text-secondary)] border border-[var(--color-border-default)] hover:bg-[var(--color-bg-surface)]"
           >
-            <Book class="w-4 h-4" /><span>本地技能</span>
+            <SIcon
+              name="Book"
+              size="w-4 h-4"
+            /><span>本地技能</span>
           </RouterLink>
         </div>
       </div>
@@ -32,7 +35,11 @@
           <div class="glass-effect rounded-xl border border-white/20 shadow-sm overflow-hidden">
             <div class="p-4 border-b border-white/10">
               <div class="flex items-center gap-2 text-sm font-semibold text-[var(--color-text-primary)]">
-                <Boxes class="w-4 h-4 text-[var(--color-accent-primary)]" />
+                <SIcon
+                  name="Boxes"
+                  size="w-4 h-4"
+                  class="text-[var(--color-accent-primary)]"
+                />
                 Agents
               </div>
             </div>
@@ -85,7 +92,11 @@
           <div class="glass-effect rounded-xl border border-white/20 shadow-sm p-4">
             <div class="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
               <div class="relative flex-1">
-                <Search class="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-[var(--color-text-muted)]" />
+                <SIcon
+                  name="Search"
+                  size="w-5 h-5"
+                  class="absolute left-3 top-1/2 transform -translate-y-1/2 text-[var(--color-text-muted)]"
+                />
                 <input
                   v-model="searchQuery"
                   type="text"
@@ -98,7 +109,10 @@
                   class="absolute right-3 top-1/2 transform -translate-y-1/2 p-1 rounded-full hover:bg-[var(--color-bg-surface)] text-[var(--color-text-muted)] transition-colors"
                   @click="clearSearch"
                 >
-                  <X class="w-4 h-4" />
+                  <SIcon
+                    name="X"
+                    size="w-4 h-4"
+                  />
                 </button>
               </div>
 
@@ -121,18 +135,29 @@
 
             <div class="mt-3 flex items-center gap-3 text-xs text-[var(--color-text-muted)]">
               <span class="inline-flex items-center gap-1">
-                <Zap class="w-3.5 h-3.5 text-[var(--color-success)]" />
+                <SIcon
+                  name="Zap"
+                  size="w-3.5 h-3.5"
+                  class="text-[var(--color-success)]"
+                />
                 默认全局安装
               </span>
               <span class="inline-flex items-center gap-1">
-                <ShieldCheck class="w-3.5 h-3.5 text-[var(--color-accent-primary)]" />
+                <SIcon
+                  name="ShieldCheck"
+                  size="w-3.5 h-3.5"
+                  class="text-[var(--color-accent-primary)]"
+                />
                 解析 SKILL.md frontmatter
               </span>
               <span
                 v-if="marketplace.cached"
                 class="inline-flex items-center gap-1"
               >
-                <Clock class="w-3.5 h-3.5" />
+                <SIcon
+                  name="Clock"
+                  size="w-3.5 h-3.5"
+                />
                 缓存命中
               </span>
             </div>
@@ -141,7 +166,11 @@
           <div class="glass-effect rounded-xl border border-white/20 shadow-sm overflow-hidden">
             <div class="p-4 border-b border-white/10 flex items-center justify-between gap-3">
               <div class="flex items-center gap-2 text-sm font-semibold text-[var(--color-text-primary)]">
-                <Store class="w-4 h-4 text-[var(--color-success)]" />
+                <SIcon
+                  name="Store"
+                  size="w-4 h-4"
+                  class="text-[var(--color-success)]"
+                />
                 Marketplace
               </div>
               <div class="text-xs text-[var(--color-text-muted)] font-mono">
@@ -162,7 +191,11 @@
               class="p-10 text-center text-[var(--color-text-muted)]"
             >
               <div class="bg-[var(--color-bg-elevated)] w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Store class="w-10 h-10 opacity-50" />
+                <SIcon
+                  name="Store"
+                  size="w-10 h-10"
+                  class="opacity-50"
+                />
               </div>
               <p class="text-lg font-medium">
                 没有结果
@@ -221,7 +254,11 @@
           <div class="glass-effect rounded-xl border border-white/20 shadow-sm overflow-hidden">
             <div class="p-4 border-b border-white/10 flex items-center justify-between gap-3">
               <div class="flex items-center gap-2 text-sm font-semibold text-[var(--color-text-primary)]">
-                <Package class="w-4 h-4 text-[var(--color-accent-primary)]" />
+                <SIcon
+                  name="Package"
+                  size="w-4 h-4"
+                  class="text-[var(--color-accent-primary)]"
+                />
                 Installed
               </div>
               <div class="text-xs text-[var(--color-text-muted)] font-mono">
@@ -242,7 +279,11 @@
               class="p-10 text-center text-[var(--color-text-muted)]"
             >
               <div class="bg-[var(--color-bg-elevated)] w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Package class="w-10 h-10 opacity-50" />
+                <SIcon
+                  name="Package"
+                  size="w-10 h-10"
+                  class="opacity-50"
+                />
               </div>
               <p class="text-lg font-medium">
                 当前 Agent 没有安装技能
@@ -292,6 +333,7 @@
 </template>
 
 <script setup lang="ts">
+import SIcon from '@/components/ui/SIcon.vue'
 import { computed, onMounted, ref } from 'vue'
 import { useUIStore } from '@/stores/ui'
 import {
@@ -305,8 +347,6 @@ import {
   type SkillHubInstalledSkill,
   type SkillHubMarketplaceResponse
 } from '@/api'
-import { Book, Boxes, Clock, Package, Search, ShieldCheck, Store, X, Zap } from 'lucide-vue-next'
-
 const ui = useUIStore()
 
 const agents = ref<SkillHubAgentSummary[]>([])

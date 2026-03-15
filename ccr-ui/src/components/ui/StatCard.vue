@@ -6,10 +6,10 @@
       :class="iconContainerClasses"
     >
       <slot name="icon">
-        <component
-          :is="icon"
+        <SIcon
           v-if="icon"
-          class="w-6 h-6"
+          :name="icon"
+          size="w-6 h-6"
         />
       </slot>
     </div>
@@ -89,12 +89,11 @@
 </template>
 
 <script setup lang="ts">
+import SIcon from '@/components/ui/SIcon.vue'
 import { computed } from 'vue'
-import type { Component } from 'vue'
-
 interface Props {
   /** 图标组件 */
-  icon?: Component
+  icon?: string
   /** 标签文字 */
   label?: string
   /** 数值 */

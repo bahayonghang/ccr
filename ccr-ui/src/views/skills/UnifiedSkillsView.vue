@@ -22,7 +22,10 @@
           class="btn-add"
           @click="$router.push('/skills/add')"
         >
-          <Plus class="w-4 h-4" />
+          <SIcon
+            name="Plus"
+            size="w-4 h-4"
+          />
           <span class="hidden sm:inline">{{ $t('skills.addSkill') }}</span>
         </button>
         <!-- Mobile Filter Toggle -->
@@ -30,7 +33,10 @@
           class="btn-filter lg:hidden"
           @click="showMobileFilter = true"
         >
-          <Filter class="w-4 h-4" />
+          <SIcon
+            name="Filter"
+            size="w-4 h-4"
+          />
           <span
             v-if="hasActiveFilters"
             class="filter-badge"
@@ -42,15 +48,19 @@
           :title="$t('skills.operationLog')"
           @click="showLogModal = true"
         >
-          <ScrollText class="w-4 h-4" />
+          <SIcon
+            name="ScrollText"
+            size="w-4 h-4"
+          />
         </button>
         <button
           class="btn-refresh"
           :disabled="isLoading"
           @click="handleRefresh"
         >
-          <RefreshCw
-            class="w-4 h-4"
+          <SIcon
+            name="RefreshCw"
+            size="w-4 h-4"
             :class="{ 'animate-spin': isLoading }"
           />
         </button>
@@ -89,9 +99,9 @@
             :class="{ 'content-tab--active': activeTab === tab.id }"
             @click="setActiveTab(tab.id)"
           >
-            <component
-              :is="tab.icon"
-              class="w-4 h-4"
+            <SIcon
+              :name="tab.icon"
+              size="w-4 h-4"
             />
             <span>{{ $t(tab.label) }}</span>
             <span
@@ -108,7 +118,11 @@
             v-if="isLoading && filteredSkills.length === 0"
             class="loading-state"
           >
-            <Loader2 class="w-8 h-8 animate-spin text-accent-primary" />
+            <SIcon
+              name="Loader2"
+              size="w-8 h-8"
+              class="animate-spin text-accent-primary"
+            />
             <p class="text-white/80 mt-2">
               {{ $t('common.loading') }}
             </p>
@@ -119,7 +133,11 @@
             v-else-if="error"
             class="error-state"
           >
-            <AlertCircle class="w-8 h-8 text-danger" />
+            <SIcon
+              name="AlertCircle"
+              size="w-8 h-8"
+              class="text-danger"
+            />
             <p class="text-danger mt-2">
               {{ error }}
             </p>
@@ -158,7 +176,11 @@
             v-else-if="activeTab === 'repositories'"
             class="repositories-placeholder"
           >
-            <FolderGit2 class="w-12 h-12 text-white/50" />
+            <SIcon
+              name="FolderGit2"
+              size="w-12 h-12"
+              class="text-white/50"
+            />
             <p class="text-white/80 mt-2">
               {{ $t('skills.repositoriesComingSoon') }}
             </p>
@@ -188,7 +210,10 @@
                   class="p-2 rounded-lg text-white/50 hover:text-white hover:bg-white/5 transition-colors"
                   @click="showMobileFilter = false"
                 >
-                  <X class="w-5 h-5" />
+                  <SIcon
+                    name="X"
+                    size="w-5 h-5"
+                  />
                 </button>
               </div>
               <SkillsFilterPanel
@@ -241,20 +266,9 @@
 </template>
 
 <script setup lang="ts">
+import SIcon from '@/components/ui/SIcon.vue'
 import { ref, computed, onMounted, watch, defineAsyncComponent } from 'vue'
 import { useI18n } from 'vue-i18n'
-import {
-  RefreshCw,
-  Loader2,
-  AlertCircle,
-  Package,
-  Store,
-  FolderGit2,
-  Filter,
-  ScrollText,
-  Plus,
-  X
-} from 'lucide-vue-next'
 import { useUnifiedSkills } from '@/composables/useUnifiedSkills'
 import { useUIStore } from '@/stores/ui'
 import type { Platform, UnifiedSkill, MarketplaceItem, ContentTab, SkillFilters } from '@/types/skills'
@@ -376,19 +390,19 @@ const contentTabs = computed(() => [
   {
     id: 'installed' as ContentTab,
     label: 'skills.tabInstalled',
-    icon: Package,
+    icon: 'Package',
     count: filteredSkills.value.length
   },
   {
     id: 'marketplace' as ContentTab,
     label: 'skills.tabMarketplace',
-    icon: Store,
+    icon: 'Store',
     count: marketplaceItems.value.length
   },
   {
     id: 'repositories' as ContentTab,
     label: 'skills.tabRepositories',
-    icon: FolderGit2,
+    icon: 'FolderGit2',
     count: 0
   }
 ])

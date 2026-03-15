@@ -7,9 +7,10 @@
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div class="flex items-center gap-4">
           <h2 class="text-xl sm:text-2xl font-bold text-text-primary flex items-center">
-            <Webhook
-              class="w-6 h-6 sm:w-7 sm:h-7 mr-2 text-accent-secondary"
-              aria-hidden="true"
+            <SIcon
+              name="Webhook"
+              size="w-6 h-6"
+              class="sm:w-7 sm:h-7 mr-2 text-accent-secondary"
             />
             Hooks Management
           </h2>
@@ -25,9 +26,10 @@
           aria-label="Add new hook"
           @click="handleAdd"
         >
-          <Plus
-            class="w-5 h-5 mr-2"
-            aria-hidden="true"
+          <SIcon
+            name="Plus"
+            size="w-5 h-5"
+            class="mr-2"
           />Add Hook
         </button>
       </div>
@@ -73,9 +75,10 @@
         aria-live="polite"
       >
         <div class="bg-bg-elevated w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
-          <Webhook
-            class="w-10 h-10 opacity-50"
-            aria-hidden="true"
+          <SIcon
+            name="Webhook"
+            size="w-10 h-10"
+            class="opacity-50"
           />
         </div>
         <p class="text-lg font-medium">
@@ -122,9 +125,9 @@
                   :aria-pressed="hook.enabled !== false"
                   @click.stop="handleToggle(hook.name)"
                 >
-                  <Power
-                    class="w-4 h-4"
-                    aria-hidden="true"
+                  <SIcon
+                    name="Power"
+                    size="w-4 h-4"
                   />
                   <span class="sr-only">{{ hook.enabled !== false ? 'Enabled' : 'Disabled' }}</span>
                 </button>
@@ -133,9 +136,9 @@
                   :aria-label="`Edit hook ${hook.name}`"
                   @click.stop="handleEdit(hook)"
                 >
-                  <Edit2
-                    class="w-4 h-4"
-                    aria-hidden="true"
+                  <SIcon
+                    name="Edit2"
+                    size="w-4 h-4"
                   />
                 </button>
                 <button
@@ -143,9 +146,9 @@
                   :aria-label="`Delete hook ${hook.name}`"
                   @click.stop="handleDelete(hook.name)"
                 >
-                  <Trash2
-                    class="w-4 h-4"
-                    aria-hidden="true"
+                  <SIcon
+                    name="Trash2"
+                    size="w-4 h-4"
                   />
                 </button>
               </div>
@@ -211,9 +214,9 @@
             aria-label="Close modal"
             @click="closeModal"
           >
-            <X
-              class="w-5 h-5"
-              aria-hidden="true"
+            <SIcon
+              name="X"
+              size="w-5 h-5"
             />
           </button>
 
@@ -221,10 +224,10 @@
             :id="editingHook ? 'modal-title-edit' : 'modal-title-add'"
             class="text-2xl font-bold mb-6 text-text-primary flex items-center"
           >
-            <component
-              :is="editingHook ? Edit2 : Plus"
-              class="w-6 h-6 mr-2 text-accent-secondary"
-              aria-hidden="true"
+            <SIcon
+              :name="editingHook ? 'Edit2' : 'Plus'"
+              size="w-6 h-6"
+              class="mr-2 text-accent-secondary"
             />
             {{ editingHook ? 'Edit Hook' : 'Add Hook' }}
           </h3>
@@ -351,8 +354,8 @@
 </template>
 
 <script setup lang="ts">
+import SIcon from '@/components/ui/SIcon.vue'
 import { ref, computed, onMounted, watch, nextTick } from 'vue'
-import { Webhook, Plus, Edit2, Trash2, X, Power } from 'lucide-vue-next'
 import Card from '@/components/ui/Card.vue'
 import { listHooks, addHook, updateHook, deleteHook, toggleHook } from '@/api'
 import { useUIStore } from '@/store'

@@ -7,8 +7,8 @@
       <div class="flex items-center justify-between">
         <Breadcrumb
           :items="[
-            { label: $t('configs.breadcrumb.home'), path: '/', icon: Home },
-            { label: $t('configs.breadcrumb.configs'), path: '/configs', icon: Settings }
+            { label: $t('configs.breadcrumb.home'), path: '/', icon: 'Home' },
+            { label: $t('configs.breadcrumb.configs'), path: '/configs', icon: 'Settings' }
           ]"
         />
         <EnvironmentBadge />
@@ -25,9 +25,9 @@
             ? 'bg-accent-primary/20 text-accent-primary border-accent-primary/20 shadow-glow-primary' 
             : 'text-white/80 hover:text-white hover:bg-white/5'"
         >
-          <component
-            :is="navItem.icon"
-            class="w-4 h-4"
+          <SIcon
+            :name="navItem.icon || ''"
+            size="w-4 h-4"
           />
           <span>{{ navItem.label }}</span>
         </RouterLink>
@@ -66,9 +66,9 @@
                 : 'border-transparent text-white/50 hover:text-white/80'"
               @click="activeTab = tab.id"
             >
-              <component
-                :is="tab.icon"
-                class="w-4 h-4"
+              <SIcon
+                :name="tab.icon || ''"
+                size="w-4 h-4"
               />
               {{ tab.label }}
             </button>
@@ -94,8 +94,9 @@
                   variant="ghost"
                   @click="refreshData"
                 >
-                  <RefreshCw
-                    class="w-4 h-4"
+                  <SIcon
+                    name="RefreshCw"
+                    size="w-4 h-4"
                     :class="{ 'animate-spin': loading }"
                   />
                 </Button>
@@ -151,12 +152,9 @@
 </template>
 
 <script setup lang="ts">
+import SIcon from '@/components/ui/SIcon.vue'
 import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
-import {
-  Settings, Home, Cloud, Server, Command, Bot, History,
-  RefreshCw
-} from 'lucide-vue-next'
 import AnimatedBackground from '@/components/common/AnimatedBackground.vue'
 import Card from '@/components/ui/Card.vue'
 import Button from '@/components/ui/Button.vue'
@@ -209,17 +207,17 @@ const providerLoading = ref(false)
 const providerError = ref<string | null>(null)
 const providerSortMode = ref<SortMode>('count_desc')
 
-const tabs: Array<{ id: TabId; label: string; icon: typeof Settings | typeof History }> = [
-  { id: 'configs', label: t('configs.tabs.configList'), icon: Settings },
-  { id: 'history', label: t('configs.tabs.history'), icon: History },
+const tabs: Array<{ id: TabId; label: string; icon: string | string }> = [
+  { id: 'configs', label: t('configs.tabs.configList'), icon: 'Settings' },
+  { id: 'history', label: t('configs.tabs.history'), icon: 'History' },
 ]
 
 const moduleNavItems = [
-  { path: '/configs', label: 'Configs', icon: Settings },
-  { path: '/sync', label: 'Sync', icon: Cloud },
-  { path: '/mcp', label: 'MCP', icon: Server },
-  { path: '/slash-commands', label: 'Slash', icon: Command },
-  { path: '/agents', label: 'Agents', icon: Bot },
+  { path: '/configs', label: 'Configs', icon: 'Settings' },
+  { path: '/sync', label: 'Sync', icon: 'Cloud' },
+  { path: '/mcp', label: 'MCP', icon: 'Server' },
+  { path: '/slash-commands', label: 'Slash', icon: 'Command' },
+  { path: '/agents', label: 'Agents', icon: 'Bot' },
 ]
 
 // Computed

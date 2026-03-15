@@ -7,7 +7,10 @@
         <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div class="flex items-start gap-4">
             <div class="flex h-16 w-16 shrink-0 items-center justify-center rounded-3xl border border-accent-success/20 bg-accent-success/10 text-accent-success shadow-sm">
-              <Factory class="w-8 h-8" />
+              <SIcon
+                name="Factory"
+                size="w-8 h-8"
+              />
             </div>
             <div>
               <h1 class="mb-2 text-4xl font-bold tracking-tight text-text-primary md:text-5xl">
@@ -22,7 +25,10 @@
             to="/"
             class="inline-flex min-h-[44px] items-center gap-2 self-start rounded-2xl border border-border-default/60 bg-bg-surface/80 px-5 py-3 text-text-secondary transition-colors hover:border-accent-success/30 hover:bg-bg-elevated/70 hover:text-text-primary"
           >
-            <Home class="w-5 h-5" />
+            <SIcon
+              name="Home"
+              size="w-5 h-5"
+            />
             <span class="font-medium">{{ $t('droid.overview.backToHome') }}</span>
           </RouterLink>
         </div>
@@ -45,7 +51,11 @@
 
       <section class="mb-8">
         <h2 class="mb-6 flex items-center gap-3 text-2xl font-bold text-text-primary">
-          <Boxes class="w-7 h-7 text-accent-success" />
+          <SIcon
+            name="Boxes"
+            size="w-7 h-7"
+            class="text-accent-success"
+          />
           {{ $t('droid.overview.features') }}
         </h2>
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -56,7 +66,10 @@
             <div class="h-full rounded-3xl border border-border-default/50 bg-bg-surface/75 p-6 shadow-sm transition-[border-color,transform,box-shadow] duration-200 hover:-translate-y-0.5 hover:border-accent-success/35 hover:shadow-lg hover:shadow-accent-success/5">
               <div class="flex items-start gap-4">
                 <div class="rounded-2xl border border-accent-success/15 bg-accent-success/10 p-3 text-accent-success">
-                  <Server class="w-7 h-7" />
+                  <SIcon
+                    name="Server"
+                    size="w-7 h-7"
+                  />
                 </div>
                 <div class="flex-1">
                   <h3 class="mb-2 text-xl font-bold text-text-primary">
@@ -80,7 +93,10 @@
             <div class="h-full rounded-3xl border border-border-default/50 bg-bg-surface/75 p-6 shadow-sm transition-[border-color,transform,box-shadow] duration-200 hover:-translate-y-0.5 hover:border-accent-info/35 hover:shadow-lg hover:shadow-accent-info/5">
               <div class="flex items-start gap-4">
                 <div class="rounded-2xl border border-accent-info/15 bg-accent-info/10 p-3 text-accent-info">
-                  <Bot class="w-7 h-7" />
+                  <SIcon
+                    name="Bot"
+                    size="w-7 h-7"
+                  />
                 </div>
                 <div class="flex-1">
                   <h3 class="mb-2 text-xl font-bold text-text-primary">
@@ -104,7 +120,10 @@
             <div class="h-full rounded-3xl border border-border-default/50 bg-bg-surface/75 p-6 shadow-sm transition-[border-color,transform,box-shadow] duration-200 hover:-translate-y-0.5 hover:border-accent-primary/35 hover:shadow-lg hover:shadow-accent-primary/5">
               <div class="flex items-start gap-4">
                 <div class="rounded-2xl border border-accent-primary/15 bg-accent-primary/10 p-3 text-accent-primary">
-                  <Puzzle class="w-7 h-7" />
+                  <SIcon
+                    name="Puzzle"
+                    size="w-7 h-7"
+                  />
                 </div>
                 <div class="flex-1">
                   <h3 class="mb-2 text-xl font-bold text-text-primary">
@@ -128,7 +147,10 @@
             <div class="h-full rounded-3xl border border-border-default/50 bg-bg-surface/75 p-6 shadow-sm transition-[border-color,transform,box-shadow] duration-200 hover:-translate-y-0.5 hover:border-accent-warning/35 hover:shadow-lg hover:shadow-accent-warning/5">
               <div class="flex items-start gap-4">
                 <div class="rounded-2xl border border-accent-warning/15 bg-accent-warning/10 p-3 text-accent-warning">
-                  <Command class="w-7 h-7" />
+                  <SIcon
+                    name="Command"
+                    size="w-7 h-7"
+                  />
                 </div>
                 <div class="flex-1">
                   <h3 class="mb-2 text-xl font-bold text-text-primary">
@@ -152,7 +174,10 @@
             <div class="h-full rounded-3xl border border-border-default/50 bg-bg-surface/75 p-6 shadow-sm transition-[border-color,transform,box-shadow] duration-200 hover:-translate-y-0.5 hover:border-accent-warning/35 hover:shadow-lg hover:shadow-accent-warning/5">
               <div class="flex items-start gap-4">
                 <div class="rounded-2xl border border-accent-warning/15 bg-accent-warning/10 p-3 text-accent-warning">
-                  <Cpu class="w-7 h-7" />
+                  <SIcon
+                    name="Cpu"
+                    size="w-7 h-7"
+                  />
                 </div>
                 <div class="flex-1">
                   <h3 class="mb-2 text-xl font-bold text-text-primary">
@@ -176,7 +201,10 @@
             <div class="h-full rounded-3xl border border-border-default/50 bg-bg-surface/75 p-6 shadow-sm transition-[border-color,transform,box-shadow] duration-200 hover:-translate-y-0.5 hover:border-accent-info/35 hover:shadow-lg hover:shadow-accent-info/5">
               <div class="flex items-start gap-4">
                 <div class="rounded-2xl border border-accent-info/15 bg-accent-info/10 p-3 text-accent-info">
-                  <Settings class="w-7 h-7" />
+                  <SIcon
+                    name="Settings"
+                    size="w-7 h-7"
+                  />
                 </div>
                 <div class="flex-1">
                   <h3 class="mb-2 text-xl font-bold text-text-primary">
@@ -200,7 +228,10 @@
             <div class="h-full rounded-3xl border border-border-default/50 bg-bg-surface/75 p-6 shadow-sm transition-[border-color,transform,box-shadow] duration-200 hover:-translate-y-0.5 hover:border-accent-primary/35 hover:shadow-lg hover:shadow-accent-primary/5">
               <div class="flex items-start gap-4">
                 <div class="rounded-2xl border border-accent-primary/15 bg-accent-primary/10 p-3 text-accent-primary">
-                  <Bot class="w-7 h-7" />
+                  <SIcon
+                    name="Bot"
+                    size="w-7 h-7"
+                  />
                 </div>
                 <div class="flex-1">
                   <h3 class="mb-2 text-xl font-bold text-text-primary">
@@ -222,7 +253,10 @@
       <section class="rounded-3xl border border-border-default/50 bg-bg-surface/80 p-6 shadow-sm">
         <div class="flex items-start gap-4">
           <div class="rounded-2xl border border-accent-success/15 bg-accent-success/10 p-3 text-accent-success">
-            <Info class="w-6 h-6" />
+            <SIcon
+              name="Info"
+              size="w-6 h-6"
+            />
           </div>
           <div class="flex-1">
             <h3 class="mb-2 text-lg font-bold text-text-primary">
@@ -254,7 +288,7 @@
 </template>
 
 <script setup lang="ts">
+import SIcon from '@/components/ui/SIcon.vue'
 import { RouterLink } from 'vue-router'
 import AnimatedBackground from '@/components/common/AnimatedBackground.vue'
-import { Server, Bot, Puzzle, Command, Home, Factory, Boxes, Info, Cpu, Settings } from 'lucide-vue-next'
 </script>

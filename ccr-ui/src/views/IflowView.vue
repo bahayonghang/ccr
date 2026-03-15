@@ -13,8 +13,9 @@
               class="p-4 rounded-3xl glass-card"
               :style="{ background: 'rgba(16, 185, 129, 0.1)' }"
             >
-              <Workflow
-                class="w-10 h-10"
+              <SIcon
+                name="Workflow"
+                size="w-10 h-10"
                 :style="{ color: '#10b981' }"
               />
             </div>
@@ -34,8 +35,9 @@
             to="/"
             class="glass-card flex items-center gap-2 px-5 py-3 hover:scale-105 transition-transform duration-300"
           >
-            <Home
-              class="w-5 h-5"
+            <SIcon
+              name="Home"
+              size="w-5 h-5"
               :style="{ color: '#64748b' }"
             />
             <span
@@ -80,8 +82,9 @@
           class="text-2xl font-bold mb-6 flex items-center gap-3"
           :style="{ color: 'var(--text-primary)' }"
         >
-          <Boxes
-            class="w-7 h-7"
+          <SIcon
+            name="Boxes"
+            size="w-7 h-7"
             :style="{ color: '#10b981' }"
           />
           {{ $t('iflow.overview.features') }}
@@ -97,8 +100,9 @@
                   class="p-3 rounded-2xl"
                   :style="{ background: 'rgba(16, 185, 129, 0.15)' }"
                 >
-                  <Server
-                    class="w-7 h-7"
+                  <SIcon
+                    name="Server"
+                    size="w-7 h-7"
                     :style="{ color: '#10b981' }"
                   />
                 </div>
@@ -139,8 +143,9 @@
                   class="p-3 rounded-2xl"
                   :style="{ background: 'rgba(6, 182, 212, 0.15)' }"
                 >
-                  <Bot
-                    class="w-7 h-7"
+                  <SIcon
+                    name="Bot"
+                    size="w-7 h-7"
                     :style="{ color: '#06b6d4' }"
                   />
                 </div>
@@ -181,8 +186,9 @@
                   class="p-3 rounded-2xl"
                   :style="{ background: 'rgba(59, 130, 246, 0.15)' }"
                 >
-                  <Puzzle
-                    class="w-7 h-7"
+                  <SIcon
+                    name="Puzzle"
+                    size="w-7 h-7"
                     :style="{ color: '#3b82f6' }"
                   />
                 </div>
@@ -223,8 +229,9 @@
                   class="p-3 rounded-2xl"
                   :style="{ background: 'rgba(139, 92, 246, 0.15)' }"
                 >
-                  <Command
-                    class="w-7 h-7"
+                  <SIcon
+                    name="Command"
+                    size="w-7 h-7"
                     :style="{ color: '#8b5cf6' }"
                   />
                 </div>
@@ -264,8 +271,9 @@
             class="p-3 rounded-2xl"
             :style="{ background: 'rgba(16, 185, 129, 0.15)' }"
           >
-            <Info
-              class="w-6 h-6"
+            <SIcon
+              name="Info"
+              size="w-6 h-6"
               :style="{ color: '#10b981' }"
             />
           </div>
@@ -305,7 +313,7 @@
 </template>
 
 <script setup lang="ts">
+import SIcon from '@/components/ui/SIcon.vue'
 import { RouterLink } from 'vue-router'
 import AnimatedBackground from '@/components/common/AnimatedBackground.vue'
-import { Server, Bot, Puzzle, Command, Home, Workflow, Boxes, Info } from 'lucide-vue-next'
 </script>

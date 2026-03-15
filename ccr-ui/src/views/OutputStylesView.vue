@@ -8,9 +8,10 @@
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div class="flex items-center gap-4">
           <h2 class="text-xl sm:text-2xl font-bold text-text-primary flex items-center">
-            <Palette
-              class="w-6 h-6 sm:w-7 sm:h-7 mr-2 text-accent-secondary"
-              aria-hidden="true"
+            <SIcon
+              name="Palette"
+              size="w-6 h-6"
+              class="sm:w-7 sm:h-7 mr-2 text-accent-secondary"
             />
             {{ $t('outputStyles.pageTitle') }}
           </h2>
@@ -26,9 +27,10 @@
           :aria-label="$t('outputStyles.addStyle')"
           @click="handleAdd"
         >
-          <Plus
-            class="w-5 h-5 mr-2"
-            aria-hidden="true"
+          <SIcon
+            name="Plus"
+            size="w-5 h-5"
+            class="mr-2"
           />{{ $t('outputStyles.addStyle') }}
         </button>
       </div>
@@ -36,9 +38,10 @@
       <!-- Search Bar -->
       <div class="mb-6">
         <div class="relative max-w-md">
-          <Search
-            class="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-text-muted"
-            aria-hidden="true"
+          <SIcon
+            name="Search"
+            size="w-4 h-4"
+            class="absolute left-3 top-1/2 transform -translate-y-1/2 text-text-muted"
           />
           <input
             v-model="searchQuery"
@@ -53,9 +56,9 @@
             :aria-label="$t('common.clearSearch')"
             @click="searchQuery = ''"
           >
-            <X
-              class="w-3 h-3"
-              aria-hidden="true"
+            <SIcon
+              name="X"
+              size="w-3 h-3"
             />
           </button>
         </div>
@@ -83,9 +86,10 @@
         aria-live="polite"
       >
         <div class="bg-bg-elevated w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
-          <Palette
-            class="w-10 h-10 opacity-50"
-            aria-hidden="true"
+          <SIcon
+            name="Palette"
+            size="w-10 h-10"
+            class="opacity-50"
           />
         </div>
         <p class="text-lg font-medium">
@@ -123,9 +127,10 @@
             <div class="flex items-start justify-between mb-3">
               <div class="flex items-center gap-2">
                 <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-accent-secondary/10 to-accent-secondary/10 flex items-center justify-center text-lg shadow-sm border border-white/20">
-                  <Palette
-                    class="w-5 h-5 text-accent-secondary"
-                    aria-hidden="true"
+                  <SIcon
+                    name="Palette"
+                    size="w-5 h-5"
+                    class="text-accent-secondary"
                   />
                 </div>
                 <h3 class="text-lg font-bold text-text-primary">
@@ -138,9 +143,9 @@
                   :aria-label="$t('common.view') + ': ' + style.name"
                   @click.stop="handleView(style)"
                 >
-                  <Eye
-                    class="w-4 h-4"
-                    aria-hidden="true"
+                  <SIcon
+                    name="Eye"
+                    size="w-4 h-4"
                   />
                 </button>
                 <button
@@ -148,9 +153,9 @@
                   :aria-label="$t('common.edit') + ': ' + style.name"
                   @click.stop="handleEdit(style)"
                 >
-                  <Edit2
-                    class="w-4 h-4"
-                    aria-hidden="true"
+                  <SIcon
+                    name="Edit2"
+                    size="w-4 h-4"
                   />
                 </button>
                 <button
@@ -158,9 +163,9 @@
                   :aria-label="$t('common.delete') + ': ' + style.name"
                   @click.stop="handleDelete(style.name)"
                 >
-                  <Trash2
-                    class="w-4 h-4"
-                    aria-hidden="true"
+                  <SIcon
+                    name="Trash2"
+                    size="w-4 h-4"
                   />
                 </button>
               </div>
@@ -203,9 +208,9 @@
             :aria-label="$t('common.close')"
             @click="showViewModal = false"
           >
-            <X
-              class="w-5 h-5"
-              aria-hidden="true"
+            <SIcon
+              name="X"
+              size="w-5 h-5"
             />
           </button>
 
@@ -214,9 +219,10 @@
               id="view-modal-title"
               class="text-2xl font-bold text-text-primary flex items-center"
             >
-              <Palette
-                class="w-6 h-6 mr-2 text-accent-secondary"
-                aria-hidden="true"
+              <SIcon
+                name="Palette"
+                size="w-6 h-6"
+                class="mr-2 text-accent-secondary"
               />
               {{ viewingStyle.name }}
             </h3>
@@ -225,9 +231,9 @@
               :aria-label="copied ? $t('common.copied') : $t('common.copy')"
               @click="copyContent"
             >
-              <Copy
-                class="w-3.5 h-3.5"
-                aria-hidden="true"
+              <SIcon
+                name="Copy"
+                size="w-3.5 h-3.5"
               />
               {{ copied ? $t('common.copied') : $t('common.copy') }}
             </button>
@@ -242,9 +248,9 @@
               class="flex-1 px-4 py-2.5 rounded-xl font-medium transition-colors bg-accent-secondary/10 text-accent-secondary hover:bg-accent-secondary/20 flex items-center justify-center gap-2 min-h-[44px]"
               @click="handleEditFromView"
             >
-              <Edit2
-                class="w-4 h-4"
-                aria-hidden="true"
+              <SIcon
+                name="Edit2"
+                size="w-4 h-4"
               />
               {{ $t('common.edit') }}
             </button>
@@ -281,9 +287,9 @@
             :aria-label="$t('common.close')"
             @click="closeEditModal"
           >
-            <X
-              class="w-5 h-5"
-              aria-hidden="true"
+            <SIcon
+              name="X"
+              size="w-5 h-5"
             />
           </button>
 
@@ -291,10 +297,10 @@
             :id="editingStyle ? 'edit-modal-title' : 'add-modal-title'"
             class="text-2xl font-bold mb-6 text-text-primary flex items-center"
           >
-            <component
-              :is="editingStyle ? Edit2 : Plus"
-              class="w-6 h-6 mr-2 text-accent-secondary"
-              aria-hidden="true"
+            <SIcon
+              :name="editingStyle ? 'Edit2' : 'Plus'"
+              size="w-6 h-6"
+              class="mr-2 text-accent-secondary"
             />
             {{ editingStyle ? $t('outputStyles.editStyle') : $t('outputStyles.addStyle') }}
           </h3>
@@ -365,9 +371,9 @@
 </template>
 
 <script setup lang="ts">
+import SIcon from '@/components/ui/SIcon.vue'
 import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { Palette, Plus, Edit2, Trash2, Search, X, Eye, Copy, Home, Code2 } from 'lucide-vue-next'
 import Breadcrumb from '@/components/ui/Breadcrumb.vue'
 import Card from '@/components/ui/Card.vue'
 import {
@@ -400,8 +406,8 @@ const editModalContent = ref<HTMLElement | null>(null)
 const firstInput = ref<HTMLInputElement | null>(null)
 
 const breadcrumbs = computed(() => [
-  { label: t('common.home'), path: '/', icon: Home },
-  { label: t('claudeCode.title'), path: '/claude-code', icon: Code2 },
+  { label: t('common.home'), path: '/', icon: 'Home' },
+  { label: t('claudeCode.title'), path: '/claude-code', icon: 'Code2' },
   { label: t('outputStyles.pageTitle') }
 ])
 

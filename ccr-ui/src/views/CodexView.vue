@@ -17,7 +17,11 @@
           <div class="relative z-10">
             <div class="flex items-center gap-3 mb-3">
               <div class="w-12 h-12 rounded-xl bg-pink-500/10 flex items-center justify-center border border-pink-500/20 shadow-lg backdrop-blur-md">
-                <Code2 class="w-6 h-6 text-pink-500" />
+                <SIcon
+                  name="Code2"
+                  size="w-6 h-6"
+                  class="text-pink-500"
+                />
               </div>
               <div>
                 <h1 class="text-3xl font-bold font-display text-white tracking-tight">
@@ -31,7 +35,10 @@
              
             <div class="flex flex-wrap gap-2">
               <span class="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-pink-500/10 text-pink-500 border border-pink-500/20 flex items-center gap-2">
-                <Server class="w-3 h-3" /> {{ $t('codex.overview.features.mcpProtocol') }}
+                <SIcon
+                  name="Server"
+                  size="w-3 h-3"
+                /> {{ $t('codex.overview.features.mcpProtocol') }}
               </span>
               <span class="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-accent-secondary/10 text-accent-secondary border border-accent-secondary/20">
                 {{ codexVersionLabel }}
@@ -48,7 +55,10 @@
             class="p-3 flex items-center gap-3 border-l-4 border-l-yellow-500"
           >
             <div class="w-10 h-10 rounded-lg bg-yellow-500/10 flex items-center justify-center text-yellow-500 shrink-0">
-              <Zap class="w-5 h-5" />
+              <SIcon
+                name="Zap"
+                size="w-5 h-5"
+              />
             </div>
             <div class="min-w-0">
               <p class="text-xs font-bold text-white/50 uppercase tracking-wider mb-0.5">
@@ -69,7 +79,10 @@
             class="p-3 flex items-center gap-3 border-l-4 border-l-blue-500"
           >
             <div class="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-500 shrink-0">
-              <Settings class="w-5 h-5" />
+              <SIcon
+                name="Settings"
+                size="w-5 h-5"
+              />
             </div>
             <div>
               <p class="text-xs font-bold text-white/50 uppercase tracking-wider mb-0.5">
@@ -87,7 +100,10 @@
             class="p-3 flex items-center gap-3 border-l-4 border-l-emerald-500"
           >
             <div class="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-500 shrink-0">
-              <Activity class="w-5 h-5" />
+              <SIcon
+                name="Activity"
+                size="w-5 h-5"
+              />
             </div>
             <div>
               <p class="text-xs font-bold text-white/50 uppercase tracking-wider mb-0.5">
@@ -107,7 +123,11 @@
         style="animation-delay: 200ms"
       >
         <div class="flex items-center gap-3 mb-3">
-          <Boxes class="w-5 h-5 text-pink-500" />
+          <SIcon
+            name="Boxes"
+            size="w-5 h-5"
+            class="text-pink-500"
+          />
           <h2 class="text-lg font-bold uppercase tracking-widest text-white/50">
             {{ $t('codex.overview.modulesTitle') }}
           </h2>
@@ -132,9 +152,9 @@
                   class="w-10 h-10 rounded-lg flex items-center justify-center transition-transform duration-300 group-hover:scale-110 border border-white/5"
                   :class="module.bgClass"
                 >
-                  <component
-                    :is="module.icon"
-                    class="w-6 h-6"
+                  <SIcon
+                    :name="module.icon"
+                    size="w-6 h-6"
                     :class="module.textClass"
                   />
                 </div>
@@ -157,7 +177,11 @@
                 class="mt-2 flex items-center text-sm font-bold opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-[opacity,transform] duration-300"
                 :class="module.textClass"
               >
-                Open Module <ArrowRight class="w-4 h-4 ml-1" />
+                Open Module <SIcon
+                  name="ArrowRight"
+                  size="w-4 h-4"
+                  class="ml-1"
+                />
               </div>
             </Card>
           </RouterLink>
@@ -177,7 +201,10 @@
           <div class="flex items-center justify-between mb-3">
             <div class="flex items-center gap-3">
               <div class="p-2 rounded-lg bg-pink-500/10 text-pink-500">
-                <BarChart3 class="w-5 h-5" />
+                <SIcon
+                  name="BarChart3"
+                  size="w-5 h-5"
+                />
               </div>
               <h3 class="text-base font-bold text-white">
                 {{ $t('codex.overview.usageTitle') }}
@@ -189,8 +216,9 @@
               :disabled="usageLoading"
               @click="refreshUsage"
             >
-              <RefreshCw
-                class="w-4 h-4"
+              <SIcon
+                name="RefreshCw"
+                size="w-4 h-4"
                 :class="{ 'animate-spin': usageLoading }"
               />
             </Button>
@@ -208,7 +236,11 @@
             v-else-if="usageError"
             class="text-center py-6"
           >
-            <AlertCircle class="w-10 h-10 text-white/50 mx-auto mb-3" />
+            <SIcon
+              name="AlertCircle"
+              size="w-10 h-10"
+              class="text-white/50 mx-auto mb-3"
+            />
             <p class="text-sm text-white/50 mb-3">
               {{ $t('codex.overview.usageError') }}
             </p>
@@ -225,7 +257,11 @@
             v-else-if="!usageData || usageData.all_time.total_requests === 0"
             class="text-center py-6"
           >
-            <Clock class="w-10 h-10 text-white/50 mx-auto mb-3" />
+            <SIcon
+              name="Clock"
+              size="w-10 h-10"
+              class="text-white/50 mx-auto mb-3"
+            />
             <p class="text-sm text-white/50">
               {{ $t('codex.overview.noUsageData') }}
             </p>
@@ -281,7 +317,10 @@
           >
             <div class="flex items-center gap-3 mb-4">
               <div class="p-2 rounded-lg bg-pink-500/10 text-pink-500">
-                <Cpu class="w-5 h-5" />
+                <SIcon
+                  name="Cpu"
+                  size="w-5 h-5"
+                />
               </div>
               <h3 class="text-base font-bold text-white">
                 System Capabilities
@@ -304,7 +343,11 @@
             class="p-4 bg-amber-500/5 border-amber-500/20"
           >
             <div class="flex gap-3">
-              <Lightbulb class="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+              <SIcon
+                name="Lightbulb"
+                size="w-5 h-5"
+                class="text-amber-500 shrink-0 mt-0.5"
+              />
               <div class="space-y-1">
                 <h4 class="text-sm font-bold text-amber-500">
                   {{ $t('codex.overview.tipsTitle') }}
@@ -322,13 +365,9 @@
 </template>
 
 <script setup lang="ts">
+import SIcon from '@/components/ui/SIcon.vue'
 import { ref, onMounted, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import {
-  Settings, Settings2, Server, Command, Code2, Boxes,
-  Zap, Activity, ArrowRight, Lightbulb, Cpu, KeyRound,
-  BarChart3, RefreshCw, AlertCircle, Clock
-} from 'lucide-vue-next'
 import Card from '@/components/ui/Card.vue'
 import Button from '@/components/ui/Button.vue'
 import AnimatedBackground from '@/components/common/AnimatedBackground.vue'
@@ -397,7 +436,7 @@ const modules = computed(() => [
     title: t('codex.overview.modules.profiles.title'),
     description: t('codex.overview.modules.profiles.description'),
     badge: t('codex.overview.modules.profiles.badge'),
-    icon: Settings,
+    icon: 'Settings',
     textClass: 'text-pink-500', 
     bgClass: 'bg-pink-500/10',
     badgeBorderClass: 'border-pink-500/20 text-pink-500'
@@ -407,7 +446,7 @@ const modules = computed(() => [
     title: t('codex.overview.modules.mcp.title'),
     description: t('codex.overview.modules.mcp.description'),
     badge: t('codex.overview.modules.mcp.badge'),
-    icon: Server,
+    icon: 'Server',
     textClass: 'text-indigo-500',
     bgClass: 'bg-indigo-500/10',
     badgeBorderClass: 'border-indigo-500/20 text-indigo-500'
@@ -417,7 +456,7 @@ const modules = computed(() => [
     title: t('codex.overview.modules.slashCommands.title'),
     description: t('codex.overview.modules.slashCommands.description'),
     badge: t('codex.overview.modules.slashCommands.badge'),
-    icon: Command,
+    icon: 'Command',
     textClass: 'text-rose-500',
     bgClass: 'bg-rose-500/10',
     badgeBorderClass: 'border-rose-500/20 text-rose-500'
@@ -427,7 +466,7 @@ const modules = computed(() => [
     title: t('codex.overview.modules.auth.title'),
     description: t('codex.overview.modules.auth.description'),
     badge: t('codex.overview.modules.auth.badge'),
-    icon: KeyRound,
+    icon: 'KeyRound',
     textClass: 'text-amber-500',
     bgClass: 'bg-amber-500/10',
     badgeBorderClass: 'border-amber-500/20 text-amber-500'
@@ -437,7 +476,7 @@ const modules = computed(() => [
     title: t('codex.overview.modules.settings.title'),
     description: t('codex.overview.modules.settings.description'),
     badge: t('codex.overview.modules.settings.badge'),
-    icon: Settings2,
+    icon: 'Settings2',
     textClass: 'text-emerald-500',
     bgClass: 'bg-emerald-500/10',
     badgeBorderClass: 'border-emerald-500/20 text-emerald-500'

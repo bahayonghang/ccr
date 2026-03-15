@@ -26,8 +26,9 @@
               class="p-3 rounded-2xl glass-card hover:scale-105 transition-transform duration-300"
               :style="{ background: 'rgba(16, 185, 129, 0.1)' }"
             >
-              <ArrowLeft
-                class="w-6 h-6"
+              <SIcon
+                name="ArrowLeft"
+                size="w-6 h-6"
                 :style="{ color: '#10b981' }"
               />
             </RouterLink>
@@ -50,7 +51,10 @@
             :style="{ background: 'rgba(16, 185, 129, 0.1)', color: '#10b981' }"
             @click="showAddModal = true"
           >
-            <Plus class="w-5 h-5" />
+            <SIcon
+              name="Plus"
+              size="w-5 h-5"
+            />
             <span class="font-medium">添加模型</span>
           </button>
         </div>
@@ -99,14 +103,20 @@
                 :style="{ color: '#3b82f6' }"
                 @click="editModel(model)"
               >
-                <Edit2 class="w-4 h-4" />
+                <SIcon
+                  name="Edit2"
+                  size="w-4 h-4"
+                />
               </button>
               <button
                 class="p-2 rounded-lg hover:bg-red-500/10 transition-colors"
                 :style="{ color: '#ef4444' }"
                 @click="deleteModel(model.model)"
               >
-                <Trash2 class="w-4 h-4" />
+                <SIcon
+                  name="Trash2"
+                  size="w-4 h-4"
+                />
               </button>
             </div>
           </div>
@@ -114,8 +124,9 @@
           <!-- 模型信息 -->
           <div class="space-y-2">
             <div class="flex items-center gap-2">
-              <Server
-                class="w-4 h-4"
+              <SIcon
+                name="Server"
+                size="w-4 h-4"
                 :style="{ color: '#64748b' }"
               />
               <span
@@ -126,8 +137,9 @@
               </span>
             </div>
             <div class="flex items-center gap-2">
-              <Globe
-                class="w-4 h-4"
+              <SIcon
+                name="Globe"
+                size="w-4 h-4"
                 :style="{ color: '#64748b' }"
               />
               <span
@@ -141,8 +153,9 @@
               v-if="model.maxOutputTokens"
               class="flex items-center gap-2"
             >
-              <Zap
-                class="w-4 h-4"
+              <SIcon
+                name="Zap"
+                size="w-4 h-4"
                 :style="{ color: '#64748b' }"
               />
               <span
@@ -165,8 +178,9 @@
           class="inline-block p-6 rounded-3xl glass-card mb-6"
           :style="{ background: 'rgba(16, 185, 129, 0.1)' }"
         >
-          <Inbox
-            class="w-16 h-16"
+          <SIcon
+            name="Inbox"
+            size="w-16 h-16"
             :style="{ color: '#10b981' }"
           />
         </div>
@@ -202,8 +216,9 @@
               class="p-2 hover:bg-gray-500/10 rounded-lg transition-colors"
               @click="closeModal"
             >
-              <X
-                class="w-5 h-5"
+              <SIcon
+                name="X"
+                size="w-5 h-5"
                 :style="{ color: 'var(--text-secondary)' }"
               />
             </button>
@@ -355,8 +370,8 @@
 </template>
 
 <script setup lang="ts">
+import SIcon from '@/components/ui/SIcon.vue'
 import { ref, onMounted } from 'vue'
-import { ArrowLeft, Plus, Edit2, Trash2, Server, Globe, Zap, Inbox, X } from 'lucide-vue-next'
 import { listDroidModels, addDroidModel, updateDroidModel, deleteDroidModel } from '@/api'
 import { getErrorMessage } from '@/utils/errorHandler'
 import { logger } from '@/utils/logger'

@@ -11,7 +11,11 @@
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 class="text-xl font-bold text-text-primary flex items-center gap-2">
-            <BarChart3 class="w-5 h-5 text-accent-secondary" />
+            <SIcon
+              name="BarChart3"
+              size="w-5 h-5"
+              class="text-accent-secondary"
+            />
             {{ $t('usageStats.title') }}
           </h2>
           <p class="text-sm text-text-muted mt-1">
@@ -80,7 +84,11 @@
           <div class="absolute top-0 left-0 w-1 h-full bg-emerald-500/60 rounded-r" />
           <div class="flex items-start gap-3 ml-1">
             <div class="p-2 rounded-lg bg-emerald-500/10 shrink-0 group-hover:bg-emerald-500/20 transition-colors">
-              <Activity class="w-4 h-4 text-emerald-400" />
+              <SIcon
+                name="Activity"
+                size="w-4 h-4"
+                class="text-emerald-400"
+              />
             </div>
             <div class="flex-1 min-w-0">
               <p class="text-[11px] font-medium text-text-muted uppercase tracking-wider">
@@ -101,7 +109,11 @@
           <div class="absolute top-0 left-0 w-1 h-full bg-blue-500/60 rounded-r" />
           <div class="flex items-start gap-3 ml-1">
             <div class="p-2 rounded-lg bg-blue-500/10 shrink-0 group-hover:bg-blue-500/20 transition-colors">
-              <MessageSquare class="w-4 h-4 text-blue-400" />
+              <SIcon
+                name="MessageSquare"
+                size="w-4 h-4"
+                class="text-blue-400"
+              />
             </div>
             <div class="flex-1 min-w-0">
               <p class="text-[11px] font-medium text-text-muted uppercase tracking-wider">
@@ -122,7 +134,11 @@
           <div class="absolute top-0 left-0 w-1 h-full bg-amber-500/60 rounded-r" />
           <div class="flex items-start gap-3 ml-1">
             <div class="p-2 rounded-lg bg-amber-500/10 shrink-0 group-hover:bg-amber-500/20 transition-colors">
-              <Timer class="w-4 h-4 text-amber-400" />
+              <SIcon
+                name="Timer"
+                size="w-4 h-4"
+                class="text-amber-400"
+              />
             </div>
             <div class="flex-1 min-w-0">
               <p class="text-[11px] font-medium text-text-muted uppercase tracking-wider">
@@ -143,7 +159,11 @@
           <div class="absolute top-0 left-0 w-1 h-full bg-purple-500/60 rounded-r" />
           <div class="flex items-start gap-3 ml-1">
             <div class="p-2 rounded-lg bg-purple-500/10 shrink-0 group-hover:bg-purple-500/20 transition-colors">
-              <Layers class="w-4 h-4 text-purple-400" />
+              <SIcon
+                name="Layers"
+                size="w-4 h-4"
+                class="text-purple-400"
+              />
             </div>
             <div class="flex-1 min-w-0">
               <p class="text-[11px] font-medium text-text-muted uppercase tracking-wider">
@@ -176,11 +196,19 @@
           </div>
           <div class="space-y-1.5 text-xs text-text-secondary">
             <div class="flex items-center gap-1.5">
-              <Hash class="w-3 h-3 opacity-40" />
+              <SIcon
+                name="Hash"
+                size="w-3 h-3"
+                class="opacity-40"
+              />
               <span>{{ formatNumber(dailyStats?.summary?.total_messages || 0) }} messages</span>
             </div>
             <div class="flex items-center gap-1.5">
-              <Clock class="w-3 h-3 opacity-40" />
+              <SIcon
+                name="Clock"
+                size="w-3 h-3"
+                class="opacity-40"
+              />
               <span>{{ formatAvgDuration(dailyStats?.summary?.total_duration_seconds || 0, dailyStats?.summary?.total_sessions || 1) }}</span>
             </div>
           </div>
@@ -197,11 +225,19 @@
           </div>
           <div class="space-y-1.5 text-xs text-text-secondary">
             <div class="flex items-center gap-1.5">
-              <Hash class="w-3 h-3 opacity-40" />
+              <SIcon
+                name="Hash"
+                size="w-3 h-3"
+                class="opacity-40"
+              />
               <span>{{ formatNumber(getPlatformMessages('codex')) }} messages</span>
             </div>
             <div class="flex items-center gap-1.5">
-              <Clock class="w-3 h-3 opacity-40" />
+              <SIcon
+                name="Clock"
+                size="w-3 h-3"
+                class="opacity-40"
+              />
               <span>{{ formatAvgDuration(getPlatformDuration('codex'), getPlatformSessions('codex') || 1) }}</span>
             </div>
           </div>
@@ -218,11 +254,19 @@
           </div>
           <div class="space-y-1.5 text-xs text-text-secondary">
             <div class="flex items-center gap-1.5">
-              <Hash class="w-3 h-3 opacity-40" />
+              <SIcon
+                name="Hash"
+                size="w-3 h-3"
+                class="opacity-40"
+              />
               <span>{{ formatNumber(getPlatformMessages('claude')) }} messages</span>
             </div>
             <div class="flex items-center gap-1.5">
-              <Clock class="w-3 h-3 opacity-40" />
+              <SIcon
+                name="Clock"
+                size="w-3 h-3"
+                class="opacity-40"
+              />
               <span>{{ formatAvgDuration(getPlatformDuration('claude'), getPlatformSessions('claude') || 1) }}</span>
             </div>
           </div>
@@ -239,11 +283,19 @@
           </div>
           <div class="space-y-1.5 text-xs text-text-secondary">
             <div class="flex items-center gap-1.5">
-              <Hash class="w-3 h-3 opacity-40" />
+              <SIcon
+                name="Hash"
+                size="w-3 h-3"
+                class="opacity-40"
+              />
               <span>{{ formatNumber(getPlatformMessages('gemini')) }} messages</span>
             </div>
             <div class="flex items-center gap-1.5">
-              <Clock class="w-3 h-3 opacity-40" />
+              <SIcon
+                name="Clock"
+                size="w-3 h-3"
+                class="opacity-40"
+              />
               <span>{{ formatAvgDuration(getPlatformDuration('gemini'), getPlatformSessions('gemini') || 1) }}</span>
             </div>
           </div>
@@ -254,8 +306,8 @@
 </template>
 
 <script setup lang="ts">
+import SIcon from '@/components/ui/SIcon.vue'
 import { onMounted, ref } from 'vue'
-import { BarChart3, Hash, Clock, Activity, MessageSquare, Timer, Layers } from 'lucide-vue-next'
 import Card from '@/components/ui/Card.vue'
 import UsageStatsChart from '@/components/UsageStatsChart.vue'
 import { getDailyStats } from '@/api'

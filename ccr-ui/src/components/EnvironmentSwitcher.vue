@@ -2,8 +2,8 @@
 /**
  * 环境切换器 — 显示当前执行环境，支持切换 Local/WSL/SSH
  */
+import SIcon from '@/components/ui/SIcon.vue'
 import { ref, onMounted, onUnmounted, computed } from 'vue'
-import { Monitor, ChevronDown, RefreshCw, Server, Terminal } from 'lucide-vue-next'
 import { invoke } from '@tauri-apps/api/core'
 import { logger } from '@/utils/logger'
 
@@ -24,10 +24,10 @@ const currentEnv = computed(() => environments.value.find(e => e.is_active))
 
 const envIcon = (envType: string) => {
   switch (envType) {
-    case 'local': return Monitor
-    case 'wsl': return Terminal
-    case 'ssh': return Server
-    default: return Monitor
+    case 'local': return 'Monitor'
+    case 'wsl': return 'Terminal'
+    case 'ssh': return 'Server'
+    default: return 'Monitor'
   }
 }
 
@@ -102,16 +102,18 @@ onUnmounted(() => {
       aria-haspopup="listbox"
       @click.stop="isOpen = !isOpen"
     >
-      <component
-        :is="envIcon(currentEnv?.env_type || 'local')"
-        class="w-3.5 h-3.5"
+      <SIcon
+        :name="envIcon(currentEnv?.env_type || 'local')"
+        size="w-3.5 h-3.5"
         :class="envColor(currentEnv?.env_type || 'local')"
       />
       <span class="max-w-[120px] truncate">
         {{ currentEnv?.name || 'Local' }}
       </span>
-      <ChevronDown
-        class="w-3 h-3 transition-transform duration-200"
+      <SIcon
+        name="ChevronDown"
+        size="w-3 h-3"
+        class="transition-transform duration-200"
         :class="{ 'rotate-180': isOpen }"
       />
     </button>
@@ -142,8 +144,9 @@ onUnmounted(() => {
             title="刷新环境列表"
             @click.stop="refreshEnvs"
           >
-            <RefreshCw
-              class="w-3 h-3"
+            <SIcon
+              name="RefreshCw"
+              size="w-3 h-3"
               :class="{ 'animate-spin': isRefreshing }"
             />
           </button>
@@ -166,9 +169,10 @@ onUnmounted(() => {
             :aria-selected="env.is_active"
             @click.stop="switchEnv(env.id)"
           >
-            <component
-              :is="envIcon(env.env_type)"
-              class="w-4 h-4 flex-shrink-0"
+            <SIcon
+              :name="envIcon(env.env_type)"
+              size="w-4 h-4"
+              class="flex-shrink-0"
               :class="env.is_active ? 'text-accent-primary' : envColor(env.env_type)"
             />
             <div class="flex-1 min-w-0">

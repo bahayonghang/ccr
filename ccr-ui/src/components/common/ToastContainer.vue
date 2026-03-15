@@ -11,14 +11,15 @@
         :class="['toast', `toast-${toast.type}`]"
         @click="removeToast(toast.id)"
       >
-        <component
-          :is="getIcon(toast.type)"
+        <SIcon
+          :name="getIcon(toast.type)"
           class="toast-icon"
         />
         <span class="toast-message">{{ toast.message }}</span>
-        <X
+        <SIcon
+          name="X"
           class="toast-close"
-          :size="16"
+          size="w-4 h-4"
         />
       </div>
     </TransitionGroup>
@@ -26,20 +27,19 @@
 </template>
 
 <script setup lang="ts">
+import SIcon from '@/components/ui/SIcon.vue'
 import { storeToRefs } from 'pinia'
 import { useUIStore } from '@/store'
-import { CheckCircle, XCircle, AlertTriangle, Info, X } from 'lucide-vue-next'
-
 const uiStore = useUIStore()
 const { toasts } = storeToRefs(uiStore)
 const { removeToast } = uiStore
 
 const getIcon = (type: 'success' | 'error' | 'warning' | 'info') => {
   const icons = {
-    success: CheckCircle,
-    error: XCircle,
-    warning: AlertTriangle,
-    info: Info,
+    success: 'CheckCircle',
+    error: 'XCircle',
+    warning: 'AlertTriangle',
+    info: 'Info',
   }
   return icons[type]
 }

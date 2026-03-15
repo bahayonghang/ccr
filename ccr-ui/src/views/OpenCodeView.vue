@@ -15,7 +15,11 @@
           <div class="relative z-10">
             <div class="flex items-center gap-3 mb-3">
               <div class="w-12 h-12 rounded-xl bg-violet-500/10 flex items-center justify-center border border-violet-500/20 shadow-lg backdrop-blur-md">
-                <TerminalSquare class="w-6 h-6 text-violet-500" />
+                <SIcon
+                  name="TerminalSquare"
+                  size="w-6 h-6"
+                  class="text-violet-500"
+                />
               </div>
               <div>
                 <h1 class="text-3xl font-bold font-display text-white tracking-tight">
@@ -29,7 +33,10 @@
 
             <div class="flex flex-wrap gap-2">
               <span class="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-violet-500/10 text-violet-500 border border-violet-500/20 flex items-center gap-2">
-                <Layers class="w-3 h-3" /> npm AI SDK
+                <SIcon
+                  name="Layers"
+                  size="w-3 h-3"
+                /> npm AI SDK
               </span>
               <span class="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-accent-secondary/10 text-accent-secondary border border-accent-secondary/20">
                 opencode.json
@@ -46,7 +53,10 @@
             class="p-3 flex items-center gap-3 border-l-4 border-l-violet-500"
           >
             <div class="w-10 h-10 rounded-lg bg-violet-500/10 flex items-center justify-center text-violet-500 shrink-0">
-              <Layers class="w-5 h-5" />
+              <SIcon
+                name="Layers"
+                size="w-5 h-5"
+              />
             </div>
             <div>
               <p class="text-xs font-bold text-white/50 uppercase tracking-wider mb-0.5">
@@ -64,7 +74,10 @@
             class="p-3 flex items-center gap-3 border-l-4 border-l-blue-500"
           >
             <div class="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-500 shrink-0">
-              <Server class="w-5 h-5" />
+              <SIcon
+                name="Server"
+                size="w-5 h-5"
+              />
             </div>
             <div>
               <p class="text-xs font-bold text-white/50 uppercase tracking-wider mb-0.5">
@@ -82,7 +95,10 @@
             class="p-3 flex items-center gap-3 border-l-4 border-l-emerald-500"
           >
             <div class="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-500 shrink-0">
-              <Puzzle class="w-5 h-5" />
+              <SIcon
+                name="Puzzle"
+                size="w-5 h-5"
+              />
             </div>
             <div>
               <p class="text-xs font-bold text-white/50 uppercase tracking-wider mb-0.5">
@@ -119,9 +135,9 @@
                 class="w-10 h-10 rounded-lg flex items-center justify-center"
                 :class="mod.bgClass"
               >
-                <component
-                  :is="mod.icon"
-                  class="w-5 h-5"
+                <SIcon
+                  :name="mod.icon"
+                  size="w-5 h-5"
                   :class="mod.iconClass"
                 />
               </div>
@@ -148,7 +164,11 @@
           variant="elevated"
           class="p-4 flex items-center gap-3"
         >
-          <FileJson class="w-5 h-5 text-white/50 shrink-0" />
+          <SIcon
+            name="FileJson"
+            size="w-5 h-5"
+            class="text-white/50 shrink-0"
+          />
           <div>
             <p class="text-xs font-bold text-white/50 uppercase tracking-wider mb-0.5">
               配置文件路径
@@ -164,8 +184,8 @@
 </template>
 
 <script setup lang="ts">
+import SIcon from '@/components/ui/SIcon.vue'
 import { ref, onMounted } from 'vue'
-import { TerminalSquare, Layers, Server, Puzzle, FileJson } from 'lucide-vue-next'
 import AnimatedBackground from '@/components/common/AnimatedBackground.vue'
 import Card from '@/components/ui/Card.vue'
 import {
@@ -185,7 +205,7 @@ const modules = [
     title: 'Provider 管理',
     description: '管理 npm AI SDK Provider，配置 API Key 和模型列表',
     href: '/opencode/providers',
-    icon: Layers,
+    icon: 'Layers',
     bgClass: 'bg-violet-500/10',
     iconClass: 'text-violet-500',
   },
@@ -193,7 +213,7 @@ const modules = [
     title: 'MCP 服务器',
     description: '管理本地（local）和远程（remote）MCP 服务器',
     href: '/opencode/mcp',
-    icon: Server,
+    icon: 'Server',
     bgClass: 'bg-blue-500/10',
     iconClass: 'text-blue-500',
   },
@@ -201,7 +221,7 @@ const modules = [
     title: 'Skills',
     description: '管理 AI 技能库，跨平台共享 Skills 配置',
     href: '/skills',
-    icon: Puzzle,
+    icon: 'Puzzle',
     bgClass: 'bg-amber-500/10',
     iconClass: 'text-amber-500',
   },
@@ -209,7 +229,7 @@ const modules = [
     title: '插件管理',
     description: '管理 npm 插件包，扩展 OpenCode 功能',
     href: '/opencode/plugins',
-    icon: Puzzle,
+    icon: 'Puzzle',
     bgClass: 'bg-emerald-500/10',
     iconClass: 'text-emerald-500',
   },

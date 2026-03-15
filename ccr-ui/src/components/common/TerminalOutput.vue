@@ -17,14 +17,20 @@
           v-else-if="isComplete"
           class="status-indicator complete text-accent-success"
         >
-          <CheckCircle class="w-3.5 h-3.5" />
+          <SIcon
+            name="CheckCircle"
+            size="w-3.5 h-3.5"
+          />
           {{ $t('common.completed') || 'Completed' }}
         </span>
         <span
           v-else
           class="status-indicator text-text-muted"
         >
-          <Terminal class="w-3.5 h-3.5" />
+          <SIcon
+            name="Terminal"
+            size="w-3.5 h-3.5"
+          />
           {{ $t('common.ready') || 'Ready' }}
         </span>
       </div>
@@ -36,7 +42,11 @@
           :aria-label="$t('common.stop')"
           @click="handleStop"
         >
-          <Square class="w-3 h-3 fill-current" />
+          <SIcon
+            name="Square"
+            size="w-3 h-3"
+            class="fill-current"
+          />
         </button>
         <button 
           class="btn-action hover:bg-white/10 hover:text-white" 
@@ -45,7 +55,10 @@
           :aria-label="$t('common.clear')"
           @click="handleClear"
         >
-          <Trash2 class="w-3.5 h-3.5" />
+          <SIcon
+            name="Trash2"
+            size="w-3.5 h-3.5"
+          />
         </button>
         <button 
           class="btn-action hover:bg-white/10 hover:text-white" 
@@ -54,7 +67,10 @@
           :aria-label="$t('common.copy')"
           @click="handleCopy"
         >
-          <Copy class="w-3.5 h-3.5" />
+          <SIcon
+            name="Copy"
+            size="w-3.5 h-3.5"
+          />
         </button>
       </div>
     </div>
@@ -69,7 +85,11 @@
         v-if="error"
         class="terminal-error bg-red-500/10 text-red-400 border border-red-500/20"
       >
-        <AlertTriangle class="w-4 h-4 shrink-0" />
+        <SIcon
+          name="AlertTriangle"
+          size="w-4 h-4"
+          class="shrink-0"
+        />
         <span>{{ error }}</span>
       </div>
       
@@ -78,7 +98,11 @@
         class="terminal-empty text-[var(--color-text-muted)]/30"
       >
         <div class="empty-icon mb-3">
-          <Terminal class="w-12 h-12 opacity-20" />
+          <SIcon
+            name="Terminal"
+            size="w-12 h-12"
+            class="opacity-20"
+          />
         </div>
         <div class="empty-text text-sm">
           {{ emptyText }}
@@ -113,7 +137,10 @@
         v-if="lines.length >= maxLines"
         class="line-limit-warning text-amber-500 flex items-center gap-1"
       >
-        <AlertTriangle class="w-3 h-3" />
+        <SIcon
+          name="AlertTriangle"
+          size="w-3 h-3"
+        />
         Max lines reached
       </span>
     </div>
@@ -121,20 +148,12 @@
 </template>
 
 <script setup lang="ts">
+import SIcon from '@/components/ui/SIcon.vue'
 import { ref, watch, nextTick, onMounted } from 'vue'
 import { useStream } from '@/composables/useStream'
 import { useUIStore } from '@/store'
 import { AnsiUp } from 'ansi_up'
 import { sanitizeTerminal } from '@/utils/sanitize'
-import {
-  Terminal,
-  CheckCircle,
-  Square,
-  Trash2,
-  Copy,
-  AlertTriangle
-} from 'lucide-vue-next'
-
 interface Props {
   streamUrl?: string
   maxLines?: number

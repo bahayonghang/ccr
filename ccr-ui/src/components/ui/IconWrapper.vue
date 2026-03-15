@@ -4,9 +4,14 @@
     :style="{ '--icon-color': colorValue }"
   >
     <slot>
-      <component
-        :is="icon"
-        v-if="icon"
+      <SIcon
+        v-if="name"
+        :name="name"
+        :size="iconClasses.join(' ')"
+      />
+      <SIcon
+        v-else-if="icon"
+        :name="icon"
         :class="iconClasses"
       />
     </slot>
@@ -15,11 +20,14 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
-import type { Component } from 'vue'
+import SIcon from '@/components/ui/SIcon.vue'
+import type { IconName } from '@/config/icons'
 
 interface Props {
-  /** 图标组件 */
-  icon?: Component
+  /** 图标名称 (语义名称或 solar:xxx) */
+  name?: IconName | string
+  /** 图标名称 (向后兼容别名) */
+  icon?: string
   /** 图标大小 */
   size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl'
   /** 颜色变体 */
@@ -33,6 +41,7 @@ interface Props {
 }
 
 const props = withDefaults(defineProps<Props>(), {
+  name: undefined,
   icon: undefined,
   size: 'md',
   variant: 'default',

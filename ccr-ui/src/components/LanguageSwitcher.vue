@@ -11,13 +11,18 @@
       @click="toggleDropdown"
     >
       <span class="flex min-w-0 items-center gap-2">
-        <Languages class="w-4 h-4" />
+        <SIcon
+          name="Languages"
+          size="w-4 h-4"
+        />
         <span class="text-left whitespace-normal break-words">
           {{ currentLanguageName }} / {{ targetLanguageName }}
         </span>
       </span>
-      <ChevronDown
-        class="w-3 h-3 text-text-muted transition-transform"
+      <SIcon
+        name="ChevronDown"
+        size="w-3 h-3"
+        class="text-text-muted transition-transform"
         :class="{ 'rotate-180': showDropdown }"
       />
     </button>
@@ -53,9 +58,11 @@
             <span class="text-lg">{{ lang.flag }}</span>
             <span>{{ lang.name }}</span>
           </span>
-          <Check
+          <SIcon
             v-if="currentLocale === lang.code"
-            class="w-4 h-4 text-text-inverted"
+            name="Check"
+            size="w-4 h-4"
+            class="text-text-inverted"
           />
         </button>
       </div>
@@ -71,9 +78,9 @@
 </template>
 
 <script setup lang="ts">
+import SIcon from '@/components/ui/SIcon.vue'
 import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { Languages, ChevronDown, Check } from 'lucide-vue-next'
 import { setLocale } from '@/i18n'
 import { logger } from '@/utils/logger'
 

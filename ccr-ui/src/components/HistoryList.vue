@@ -29,7 +29,11 @@
       class="flex-1 flex flex-col items-center justify-center text-white/50"
     >
       <div class="p-6 rounded-full glass-surface mb-4">
-        <History class="w-8 h-8 opacity-20" />
+        <SIcon
+          name="History"
+          size="w-8 h-8"
+          class="opacity-20"
+        />
       </div>
       <p class="text-lg font-medium text-white/80">
         No history records
@@ -84,9 +88,9 @@
                     color: getOperationColor(entries[virtualRow.index].operation)
                   }"
                 >
-                  <component
-                    :is="getOperationIcon(entries[virtualRow.index].operation)"
-                    class="w-5 h-5"
+                  <SIcon
+                    :name="getOperationIcon(entries[virtualRow.index].operation)"
+                    size="w-5 h-5"
                   />
                 </div>
 
@@ -98,8 +102,14 @@
                         {{ getOperationLabel(entries[virtualRow.index].operation) }}
                       </h3>
                       <div class="flex items-center gap-3 text-xs text-white/80 mt-1">
-                        <span class="flex items-center gap-1"><Clock class="w-3 h-3" /> {{ formatRelativeTime(entries[virtualRow.index].timestamp) }}</span>
-                        <span class="flex items-center gap-1"><User class="w-3 h-3" /> {{ entries[virtualRow.index].actor }}</span>
+                        <span class="flex items-center gap-1"><SIcon
+                          name="Clock"
+                          size="w-3 h-3"
+                        /> {{ formatRelativeTime(entries[virtualRow.index].timestamp) }}</span>
+                        <span class="flex items-center gap-1"><SIcon
+                          name="User"
+                          size="w-3 h-3"
+                        /> {{ entries[virtualRow.index].actor }}</span>
                       </div>
                     </div>
                     <span 
@@ -119,7 +129,11 @@
                     class="flex items-center gap-2 p-2 rounded bg-white/5/50 border border-white/10 mb-2"
                   >
                     <code class="text-xs text-accent-danger bg-accent-danger/10 px-1.5 py-0.5 rounded">{{ entries[virtualRow.index].from_config }}</code>
-                    <ArrowRight class="w-3 h-3 text-white/50" />
+                    <SIcon
+                      name="ArrowRight"
+                      size="w-3 h-3"
+                      class="text-white/50"
+                    />
                     <code class="text-xs text-accent-success bg-accent-success/10 px-1.5 py-0.5 rounded">{{ entries[virtualRow.index].to_config }}</code>
                   </div>
 
@@ -162,10 +176,9 @@
 </template>
 
 <script setup lang="ts">
+import SIcon from '@/components/ui/SIcon.vue'
 import { ref, computed } from 'vue'
-import { ArrowRight, Clock, User, History, GitBranch, CheckCircle, RefreshCw, FileEdit, Trash2 } from 'lucide-vue-next'
 import { useVirtualizer } from '@tanstack/vue-virtual'
-import type { ComponentPublicInstance } from 'vue'
 import type { HistoryEntry } from '@/types'
 import { formatRelativeTime } from '@/utils/codexHelpers'
 import Spinner from '@/components/ui/Spinner.vue'
@@ -185,7 +198,7 @@ const rowVirtualizer = useVirtualizer(computed(() => ({
   overscan: 5,
 })))
 
-const measureElement = (el: Element | ComponentPublicInstance | null) => {
+const measureElement = (el: unknown) => {
   if (el instanceof Element) rowVirtualizer.value.measureElement(el)
 }
 
@@ -201,15 +214,15 @@ const getOperationLabel = (op: string) => ({
 }[op] || op)
 
 const getOperationIcon = (op: string) => ({
-  'switch': GitBranch,
-  'init': CheckCircle,
-  'update': FileEdit,
-  'delete': Trash2,
-  'validate': CheckCircle,
-  'clean': RefreshCw,
-  'import': ArrowRight,
-  'export': ArrowRight
-}[op] || GitBranch)
+  'switch': 'GitBranch',
+  'init': 'CheckCircle',
+  'update': 'FileEdit',
+  'delete': 'Trash2',
+  'validate': 'CheckCircle',
+  'clean': 'RefreshCw',
+  'import': 'ArrowRight',
+  'export': 'ArrowRight'
+}[op] || 'GitBranch')
 
 const getOperationColor = (op: string) => ({
   'switch': '#8b5cf6',

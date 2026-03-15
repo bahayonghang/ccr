@@ -1,13 +1,6 @@
 <script setup lang="ts">
+import SIcon from '@/components/ui/SIcon.vue'
 import { computed, ref, watch, nextTick } from 'vue'
-import {
-  FileText,
-  CheckCircle,
-  XCircle,
-  Clock,
-  Loader2,
-  Circle,
-} from 'lucide-vue-next'
 import BaseModal from '@/components/common/BaseModal.vue'
 import type { CheckinLogEntry } from '@/types/checkin'
 
@@ -105,7 +98,11 @@ watch(
           </svg>
           <span class="absolute text-2xl font-bold text-text-primary">
             <template v-if="isFinished">
-              <CheckCircle class="h-10 w-10 text-accent-success" />
+              <SIcon
+                name="CheckCircle"
+                size="h-10 w-10"
+                class="text-accent-success"
+              />
             </template>
             <template v-else>
               {{ progressPercent }}%
@@ -134,7 +131,10 @@ watch(
 
       <div class="space-y-2">
         <h4 class="flex items-center gap-2 text-sm font-medium text-text-secondary">
-          <FileText class="h-4 w-4" />
+          <SIcon
+            name="FileText"
+            size="h-4 w-4"
+          />
           签到日志
         </h4>
         <div
@@ -147,25 +147,35 @@ watch(
             class="flex items-start gap-2 text-sm"
           >
             <span class="mt-0.5 flex-shrink-0">
-              <Loader2
+              <SIcon
                 v-if="log.status === 'processing'"
-                class="h-4 w-4 animate-spin text-accent-info"
+                name="Loader2"
+                size="h-4 w-4"
+                class="animate-spin text-accent-info"
               />
-              <CheckCircle
+              <SIcon
                 v-else-if="log.status === 'success'"
-                class="h-4 w-4 text-accent-success"
+                name="CheckCircle"
+                size="h-4 w-4"
+                class="text-accent-success"
               />
-              <Clock
+              <SIcon
                 v-else-if="log.status === 'already_checked_in'"
-                class="h-4 w-4 text-accent-warning"
+                name="Clock"
+                size="h-4 w-4"
+                class="text-accent-warning"
               />
-              <XCircle
+              <SIcon
                 v-else-if="log.status === 'failed'"
-                class="h-4 w-4 text-accent-danger"
+                name="XCircle"
+                size="h-4 w-4"
+                class="text-accent-danger"
               />
-              <Circle
+              <SIcon
                 v-else
-                class="h-4 w-4 text-text-muted"
+                name="Circle"
+                size="h-4 w-4"
+                class="text-text-muted"
               />
             </span>
             <div class="min-w-0 flex-1">
@@ -204,7 +214,10 @@ watch(
           class="flex w-full items-center justify-center gap-2 rounded-lg bg-accent-primary px-4 py-2.5 font-medium text-white transition-colors hover:bg-accent-primary/90"
           @click="emit('close')"
         >
-          <CheckCircle class="h-5 w-5" />
+          <SIcon
+            name="CheckCircle"
+            size="h-5 w-5"
+          />
           确定
         </button>
       </div>

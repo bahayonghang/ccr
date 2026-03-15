@@ -1,6 +1,6 @@
 <script setup lang="ts">
+import SIcon from '@/components/ui/SIcon.vue'
 import { ref, onMounted } from 'vue'
-import { Monitor, Globe } from 'lucide-vue-next'
 import { isTauriEnvironment, TauriAPI } from '@/api'
 import { logger } from '@/utils/logger'
 
@@ -29,15 +29,17 @@ onMounted(async () => {
         : 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300'
     ]"
   >
-    <Monitor
+    <SIcon
       v-if="isTauri"
-      :size="16"
+      name="Monitor"
       class="opacity-70"
+      size="w-4 h-4"
     />
-    <Globe
+    <SIcon
       v-else
-      :size="16"
+      name="Globe"
       class="opacity-70"
+      size="w-4 h-4"
     />
 
     <span>

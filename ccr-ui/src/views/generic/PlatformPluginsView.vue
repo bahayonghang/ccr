@@ -16,8 +16,9 @@
           <!-- Header -->
           <div class="flex items-center justify-between mb-6">
             <div class="flex items-center gap-3">
-              <Puzzle
-                class="w-6 h-6"
+              <SIcon
+                name="Puzzle"
+                size="w-6 h-6"
                 :style="{ color: 'var(--color-accent-primary)' }"
               />
               <h1
@@ -37,14 +38,20 @@
                 class="inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-colors"
                 :style="{ background: 'var(--color-bg-elevated)', color: 'var(--color-text-secondary)', border: '1px solid var(--color-border-default)' }"
               >
-                <ArrowLeft class="w-4 h-4" /><span>{{ $t('common.back') }}</span>
+                <SIcon
+                  name="ArrowLeft"
+                  size="w-4 h-4"
+                /><span>{{ $t('common.back') }}</span>
               </RouterLink>
               <button
                 class="px-4 py-2 rounded-lg font-semibold text-sm text-white flex items-center gap-2"
                 :style="{ background: 'linear-gradient(135deg, var(--color-accent-primary), var(--color-accent-secondary))', boxShadow: '0 0 20px var(--glow-primary)' }"
                 @click="openAddForm"
               >
-                <Plus class="w-4 h-4" />{{ $t(`${i18nPrefix}.addPlugin`) }}
+                <SIcon
+                  name="Plus"
+                  size="w-4 h-4"
+                />{{ $t(`${i18nPrefix}.addPlugin`) }}
               </button>
             </div>
           </div>
@@ -134,13 +141,15 @@
                   :title="plugin.enabled ? $t('common.disable') : $t('common.enable')"
                   @click="togglePlugin(plugin)"
                 >
-                  <Power
+                  <SIcon
                     v-if="plugin.enabled"
-                    class="w-4 h-4"
+                    name="Power"
+                    size="w-4 h-4"
                   />
-                  <PowerOff
+                  <SIcon
                     v-else
-                    class="w-4 h-4"
+                    name="PowerOff"
+                    size="w-4 h-4"
                   />
                 </button>
                 <button
@@ -149,7 +158,10 @@
                   :title="$t('common.edit')"
                   @click="openEditForm(plugin)"
                 >
-                  <Edit2 class="w-4 h-4" />
+                  <SIcon
+                    name="Edit2"
+                    size="w-4 h-4"
+                  />
                 </button>
                 <button
                   class="p-2 rounded-lg transition-transform hover:scale-110"
@@ -157,7 +169,10 @@
                   :title="$t('common.delete')"
                   @click="deletePlugin(plugin)"
                 >
-                  <Trash2 class="w-4 h-4" />
+                  <SIcon
+                    name="Trash2"
+                    size="w-4 h-4"
+                  />
                 </button>
               </div>
             </div>
@@ -288,10 +303,10 @@
 </template>
 
 <script setup lang="ts">
+import SIcon from '@/components/ui/SIcon.vue'
 import { computed, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { Puzzle, Plus, Edit2, Trash2, Power, PowerOff, ArrowLeft, Home, Sparkles, Zap, Flame } from 'lucide-vue-next'
 import CollapsibleSidebar from '@/components/CollapsibleSidebar.vue'
 import { Breadcrumb } from '@/components/ui'
 import { usePlatformPlugins, type PluginPlatformType } from '@/composables/usePlatformPlugins'
@@ -332,10 +347,10 @@ const {
 
 /** 平台图标 */
 const platformIcon = computed(() => {
-  const iconMap: Record<PluginPlatformType, typeof Sparkles> = {
-    gemini: Sparkles,
-    qwen: Zap,
-    iflow: Flame,
+  const iconMap: Record<PluginPlatformType, string> = {
+    gemini: 'Sparkles',
+    qwen: 'Zap',
+    iflow: 'Flame',
   }
   return iconMap[props.platform]
 })
@@ -352,9 +367,9 @@ const platformName = computed(() => {
 
 /** 面包屑导航项 */
 const breadcrumbItems = computed(() => [
-  { label: t('common.home'), path: '/', icon: Home },
+  { label: t('common.home'), path: '/', icon: 'Home' },
   { label: platformName.value, path: parentPath.value, icon: platformIcon.value },
-  { label: t(`${i18nPrefix.value}.title`), path: `${parentPath.value}/plugins`, icon: Puzzle },
+  { label: t(`${i18nPrefix.value}.title`), path: `${parentPath.value}/plugins`, icon: 'Puzzle' },
 ])
 
 // ============ Lifecycle ============

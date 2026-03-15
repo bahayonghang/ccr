@@ -14,9 +14,9 @@
         class="skill-card__platform-icon"
         :style="{ backgroundColor: platformColor + '15', color: platformColor }"
       >
-        <component
-          :is="platformIcon"
-          class="w-5 h-5"
+        <SIcon
+          :name="platformIcon"
+          size="w-5 h-5"
         />
       </div>
       <div
@@ -39,9 +39,9 @@
           class="skill-card__source-badge"
           :class="`skill-card__source--${skill.source}`"
         >
-          <component
-            :is="sourceIcon"
-            class="w-3 h-3"
+          <SIcon
+            :name="sourceIcon"
+            size="w-3 h-3"
           />
           {{ sourceLabel }}
         </span>
@@ -49,14 +49,20 @@
           v-if="skill.category"
           class="skill-card__category"
         >
-          <Folder class="w-3 h-3" />
+          <SIcon
+            name="Folder"
+            size="w-3 h-3"
+          />
           {{ skill.category }}
         </span>
         <span
           v-else
           class="skill-card__category skill-card__category--empty"
         >
-          <Folder class="w-3 h-3" />
+          <SIcon
+            name="Folder"
+            size="w-3 h-3"
+          />
           {{ $t('skills.uncategorized') }}
         </span>
       </div>
@@ -95,7 +101,10 @@
           v-if="isMarketplace && marketplaceItem"
           class="skill-card__meta-item"
         >
-          <Github class="w-3 h-3" />
+          <SIcon
+            name="Github"
+            size="w-3 h-3"
+          />
           {{ marketplaceItem.owner }}/{{ marketplaceItem.repo }}
         </span>
         <template v-else>
@@ -103,21 +112,30 @@
             v-if="skill.version"
             class="skill-card__meta-item"
           >
-            <Tag class="w-3 h-3" />
+            <SIcon
+              name="Tag"
+              size="w-3 h-3"
+            />
             v{{ skill.version }}
           </span>
           <span
             v-if="skill.author"
             class="skill-card__meta-item"
           >
-            <User class="w-3 h-3" />
+            <SIcon
+              name="User"
+              size="w-3 h-3"
+            />
             {{ skill.author }}
           </span>
           <span
             v-if="skill.installDate"
             class="skill-card__meta-item"
           >
-            <Clock class="w-3 h-3" />
+            <SIcon
+              name="Clock"
+              size="w-3 h-3"
+            />
             {{ formatRelativeTime(skill.installDate) }}
           </span>
           <span
@@ -125,7 +143,10 @@
             class="skill-card__meta-item"
             :title="skill.skillDir"
           >
-            <FolderOpen class="w-3 h-3" />
+            <SIcon
+              name="FolderOpen"
+              size="w-3 h-3"
+            />
             {{ shortenPath(skill.skillDir) }}
           </span>
         </template>
@@ -140,7 +161,10 @@
         :title="$t('common.edit')"
         @click.stop="$emit('edit', skill)"
       >
-        <Edit3 class="w-4 h-4" />
+        <SIcon
+          name="Edit3"
+          size="w-4 h-4"
+        />
       </button>
       <button
         v-if="!isMarketplace"
@@ -148,7 +172,10 @@
         :title="$t('common.delete')"
         @click.stop="$emit('delete', skill)"
       >
-        <Trash2 class="w-4 h-4" />
+        <SIcon
+          name="Trash2"
+          size="w-4 h-4"
+        />
       </button>
       <button
         v-if="isMarketplace"
@@ -156,7 +183,10 @@
         :title="$t('skills.install')"
         @click.stop="$emit('install', skill)"
       >
-        <Download class="w-4 h-4" />
+        <SIcon
+          name="Download"
+          size="w-4 h-4"
+        />
       </button>
     </div>
 
@@ -169,31 +199,13 @@
 </template>
 
 <script setup lang="ts">
+import SIcon from '@/components/ui/SIcon.vue'
 import { computed } from 'vue'
-import {
-  Edit3,
-  Trash2,
-  Download,
-  Sparkles,
-  Folder,
-  FolderOpen,
-  Github,
-  Code2,
-  Settings,
-  Zap,
-  Activity,
-  Bot,
-  Tag,
-  User,
-  Clock,
-  Store,
-  HardDrive
-} from 'lucide-vue-next'
 import type { UnifiedSkill, MarketplaceItem, Platform } from '@/types/skills'
 import { PLATFORM_CONFIG } from '@/types/skills'
 
 // Use a custom Sparkles icon for Gemini since lucide has it
-const GeminiIcon = Sparkles
+const GeminiIcon = 'Sparkles'
 
 const props = defineProps<{
   skill: UnifiedSkill
@@ -218,15 +230,15 @@ const platformColor = computed(() => {
 })
 
 const platformIcon = computed(() => {
-  const iconMap: Record<string, unknown> = {
-    'claude-code': Code2,
-    'codex': Settings,
+  const iconMap: Record<string, string> = {
+    'claude-code': 'Code2',
+    'codex': 'Settings',
     'gemini': GeminiIcon,
-    'qwen': Zap,
-    'iflow': Activity,
-    'droid': Bot
+    'qwen': 'Zap',
+    'iflow': 'Activity',
+    'droid': 'Bot'
   }
-  return iconMap[props.skill.platform] || Code2
+  return iconMap[props.skill.platform] || 'Code2'
 })
 
 const displayTags = computed(() => {
@@ -249,9 +261,9 @@ function shortenPath(path: string): string {
 // Source display helpers
 const sourceIcon = computed(() => {
   switch (props.skill.source) {
-    case 'marketplace': return Store
-    case 'github': return Github
-    case 'local': return HardDrive
+    case 'marketplace': return 'Store'
+    case 'github': return 'Github'
+    case 'local': return 'HardDrive'
     default: return null
   }
 })

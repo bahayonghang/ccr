@@ -11,7 +11,10 @@
             >
               Claude Code
             </RouterLink>
-            <ChevronRight class="w-3 h-3" />
+            <SIcon
+              name="ChevronRight"
+              size="w-3 h-3"
+            />
             <span class="text-text-primary">{{ $t('claudeProfiles.breadcrumbProfiles') }}</span>
           </div>
           <h1 class="text-3xl font-bold font-display tracking-tight text-text-primary">
@@ -24,7 +27,10 @@
         <div class="flex items-center gap-3">
           <RouterLink to="/claude-code">
             <button class="flex min-h-[44px] items-center gap-2 rounded-xl border border-border-default bg-bg-surface px-4 py-2.5 text-sm text-text-secondary transition-colors hover:bg-bg-elevated hover:text-text-primary">
-              <ArrowLeft class="w-4 h-4" /> {{ $t('claudeProfiles.back') }}
+              <SIcon
+                name="ArrowLeft"
+                size="w-4 h-4"
+              /> {{ $t('claudeProfiles.back') }}
             </button>
           </RouterLink>
           <button
@@ -32,7 +38,10 @@
             class="flex min-h-[44px] items-center gap-2 rounded-xl border border-accent-secondary/30 bg-accent-secondary/10 px-4 py-2.5 text-sm font-medium text-accent-secondary transition-colors hover:bg-accent-secondary/15 focus:outline-none focus:ring-2 focus:ring-accent-secondary/20"
             @click="openAddForm()"
           >
-            <Plus class="w-4 h-4" /> {{ $t('claudeProfiles.addProfile') }}
+            <SIcon
+              name="Plus"
+              size="w-4 h-4"
+            /> {{ $t('claudeProfiles.addProfile') }}
           </button>
         </div>
       </header>
@@ -46,7 +55,10 @@
         <div class="rounded-2xl border border-border-default/50 bg-bg-surface/75 p-5">
           <div class="flex items-center gap-3 mb-2">
             <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-accent-secondary/10 text-accent-secondary">
-              <Zap class="w-5 h-5" />
+              <SIcon
+                name="Zap"
+                size="w-5 h-5"
+              />
             </div>
             <div>
               <p class="text-xs uppercase tracking-wider text-text-secondary">
@@ -62,7 +74,10 @@
         <div class="rounded-2xl border border-border-default/50 bg-bg-surface/75 p-5">
           <div class="flex items-center gap-3 mb-2">
             <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-accent-primary/10 text-accent-primary">
-              <Layers class="w-5 h-5" />
+              <SIcon
+                name="Layers"
+                size="w-5 h-5"
+              />
             </div>
             <div>
               <p class="text-xs uppercase tracking-wider text-text-secondary">
@@ -78,7 +93,10 @@
         <div class="rounded-2xl border border-border-default/50 bg-bg-surface/75 p-5">
           <div class="flex items-center gap-3 mb-2">
             <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-accent-info/10 text-accent-info">
-              <Package class="w-5 h-5" />
+              <SIcon
+                name="Package"
+                size="w-5 h-5"
+              />
             </div>
             <div>
               <p class="text-xs uppercase tracking-wider text-text-secondary">
@@ -99,7 +117,10 @@
         style="animation-delay: 150ms"
       >
         <h3 class="mb-3 flex items-center gap-2 text-sm font-medium text-text-secondary">
-          <RefreshCw class="w-4 h-4" /> {{ $t('claudeProfiles.quickSwitch') }}
+          <SIcon
+            name="RefreshCw"
+            size="w-4 h-4"
+          /> {{ $t('claudeProfiles.quickSwitch') }}
         </h3>
         <div class="flex flex-wrap gap-3">
           <button
@@ -112,9 +133,10 @@
               : 'border-border-default bg-bg-surface text-text-secondary hover:bg-bg-elevated hover:text-text-primary'"
             @click="handleApply(profile.name)"
           >
-            <Check
+            <SIcon
               v-if="profile.is_current"
-              class="w-3.5 h-3.5"
+              name="Check"
+              size="w-3.5 h-3.5"
             />
             {{ profile.name }}
           </button>
@@ -136,7 +158,11 @@
         style="animation-delay: 200ms"
       >
         <div class="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-3xl border border-border-default/50 bg-bg-surface/75">
-          <FolderOpen class="w-10 h-10 text-text-muted" />
+          <SIcon
+            name="FolderOpen"
+            size="w-10 h-10"
+            class="text-text-muted"
+          />
         </div>
         <h3 class="mb-2 text-xl font-semibold text-text-primary">
           {{ $t('claudeProfiles.emptyTitle') }}
@@ -149,7 +175,11 @@
           class="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-accent-secondary/30 bg-accent-secondary/10 px-6 py-3 text-sm font-medium text-accent-secondary transition-colors hover:bg-accent-secondary/15 focus:outline-none focus:ring-2 focus:ring-accent-secondary/20"
           @click="openAddForm()"
         >
-          <Plus class="w-4 h-4 inline mr-2" /> {{ $t('claudeProfiles.createProfile') }}
+          <SIcon
+            name="Plus"
+            size="w-4 h-4"
+            class="inline mr-2"
+          /> {{ $t('claudeProfiles.createProfile') }}
         </button>
       </div>
 
@@ -174,7 +204,10 @@
                 class="flex h-10 w-10 items-center justify-center rounded-xl"
                 :class="profile.is_current ? 'bg-accent-secondary/10 text-accent-secondary' : 'bg-bg-elevated text-text-secondary'"
               >
-                <User class="w-5 h-5" />
+                <SIcon
+                  name="User"
+                  size="w-5 h-5"
+                />
               </div>
               <div>
                 <h3 class="flex items-center gap-2 font-semibold text-text-primary">
@@ -201,7 +234,10 @@
                 :title="$t('claudeProfiles.editTooltip')"
                 @click="openEditForm(profile)"
               >
-                <Pencil class="w-4 h-4" />
+                <SIcon
+                  name="Pencil"
+                  size="w-4 h-4"
+                />
               </button>
               <button
                 type="button"
@@ -209,7 +245,10 @@
                 :title="$t('claudeProfiles.deleteTooltip')"
                 @click="handleDelete(profile.name)"
               >
-                <Trash2 class="w-4 h-4" />
+                <SIcon
+                  name="Trash2"
+                  size="w-4 h-4"
+                />
               </button>
             </div>
           </div>
@@ -365,13 +404,10 @@
 </template>
 
 <script setup lang="ts">
+import SIcon from '@/components/ui/SIcon.vue'
 import { ref, computed, onMounted, reactive } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { RouterLink } from 'vue-router'
-import {
-  ChevronRight, ArrowLeft, Plus, Zap, Layers, Package,
-  RefreshCw, Check, FolderOpen, User, Pencil, Trash2
-} from 'lucide-vue-next'
 import {
   listClaudeProfiles,
   addClaudeProfile,

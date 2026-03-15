@@ -6,9 +6,9 @@
       <!-- Breadcrumb Navigation -->
       <Breadcrumb
         :items="[
-          { label: $t('plugins.breadcrumb.home'), path: '/', icon: Home },
-          { label: $t('plugins.breadcrumb.claudeCode'), path: '/claude-code', icon: Code2 },
-          { label: $t('plugins.breadcrumb.plugins'), path: '/plugins', icon: Puzzle }
+          { label: $t('plugins.breadcrumb.home'), path: '/', icon: 'Home' },
+          { label: $t('plugins.breadcrumb.claudeCode'), path: '/claude-code', icon: 'Code2' },
+          { label: $t('plugins.breadcrumb.plugins'), path: '/plugins', icon: 'Puzzle' }
         ]"
         module-color="#6366f1"
         class="mb-6"
@@ -22,7 +22,10 @@
           <div class="glass-effect rounded-2xl p-6 mb-6 border border-white/20 flex flex-col md:flex-row items-center justify-between gap-4 sticky top-6 z-20 backdrop-blur-md shadow-sm">
             <div class="flex items-center gap-4">
               <div class="p-3 rounded-xl bg-accent-secondary/10 text-accent-secondary">
-                <Puzzle class="w-6 h-6" />
+                <SIcon
+                  name="Puzzle"
+                  size="w-6 h-6"
+                />
               </div>
               <div>
                 <div class="flex items-center gap-3">
@@ -47,7 +50,10 @@
                 class="px-5 py-2.5 rounded-xl font-bold text-sm text-white flex items-center gap-2 transition-[color,background-color,border-color,transform] hover:scale-105 bg-accent-secondary shadow-lg shadow-accent-secondary/20 hover:shadow-accent-secondary/30"
                 @click="handleAdd"
               >
-                <Plus class="w-5 h-5" />
+                <SIcon
+                  name="Plus"
+                  size="w-5 h-5"
+                />
                 {{ $t('plugins.addPlugin') }}
               </button>
             </div>
@@ -66,7 +72,11 @@
             class="text-center py-16 glass-effect rounded-3xl border border-white/20 border-dashed"
           >
             <div class="bg-bg-elevated w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Puzzle class="w-10 h-10 opacity-30 text-text-muted" />
+              <SIcon
+                name="Puzzle"
+                size="w-10 h-10"
+                class="opacity-30 text-text-muted"
+              />
             </div>
             <p class="text-lg font-bold text-text-primary">
               {{ $t('plugins.noPlugins') }}
@@ -118,13 +128,15 @@
                   :title="plugin.enabled ? $t('plugins.disable') : $t('plugins.enable')"
                   @click="handleToggle(plugin.id)"
                 >
-                  <PowerOff
+                  <SIcon
                     v-if="!plugin.enabled"
-                    class="w-4 h-4"
+                    name="PowerOff"
+                    size="w-4 h-4"
                   />
-                  <Power
+                  <SIcon
                     v-else
-                    class="w-4 h-4"
+                    name="Power"
+                    size="w-4 h-4"
                   />
                   <span>{{ plugin.enabled ? $t('plugins.disable') : $t('plugins.enable') }}</span>
                 </button>
@@ -133,14 +145,20 @@
                   :title="$t('plugins.edit')"
                   @click="handleEdit(plugin)"
                 >
-                  <Edit2 class="w-4 h-4" />
+                  <SIcon
+                    name="Edit2"
+                    size="w-4 h-4"
+                  />
                 </button>
                 <button
                   class="p-2 rounded-lg transition-[color,background-color,border-color,transform] hover:scale-110 text-text-secondary hover:text-accent-danger hover:bg-accent-danger/10"
                   :title="$t('plugins.delete')"
                   @click="handleDelete(plugin.id)"
                 >
-                  <Trash2 class="w-4 h-4" />
+                  <SIcon
+                    name="Trash2"
+                    size="w-4 h-4"
+                  />
                 </button>
               </div>
             </div>
@@ -160,14 +178,17 @@
                 class="absolute top-4 right-4 p-2 rounded-full hover:bg-bg-surface text-text-muted transition-colors"
                 @click="showAddForm = false"
               >
-                <X class="w-5 h-5" />
+                <SIcon
+                  name="X"
+                  size="w-5 h-5"
+                />
               </button>
 
               <h2 class="text-2xl font-bold mb-6 text-text-primary flex items-center gap-3">
                 <div class="w-10 h-10 rounded-xl bg-accent-secondary/10 flex items-center justify-center text-accent-secondary">
-                  <component
-                    :is="editingPlugin ? Edit2 : Plus"
-                    class="w-5 h-5"
+                  <SIcon
+                    :name="editingPlugin ? 'Edit2' : 'Plus'"
+                    size="w-5 h-5"
                   />
                 </div>
                 {{ editingPlugin ? $t('plugins.editPlugin') : $t('plugins.addPlugin') }}
@@ -264,9 +285,9 @@
 </template>
 
 <script setup lang="ts">
+import SIcon from '@/components/ui/SIcon.vue'
 import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { Puzzle, Plus, Edit2, Trash2, Power, PowerOff, Home, Code2, X } from 'lucide-vue-next'
 import { Breadcrumb } from '@/components/ui'
 import { listPlugins, addPlugin, updatePlugin, deletePlugin, togglePlugin } from '@/api'
 import type { Plugin as PluginType, PluginRequest } from '@/types'

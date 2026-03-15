@@ -52,9 +52,9 @@
                 v-if="account.is_current"
                 class="flex-shrink-0 inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-full bg-platform-codex/20 text-platform-codex der border-platform-codex/30"
               >
-                <Check
-                  class="w-2.5 h-2.5"
-                  stroke-width="3"
+                <SIcon
+                  name="Check"
+                  size="w-2.5 h-2.5"
                 />
                 {{ $t('codex.auth.currentBadge') }}
               </span>
@@ -69,9 +69,9 @@
                 v-if="account.is_expired"
                 class="flex-shrink-0 inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-full bg-red-500/20 text-red-500 border border-red-500/30"
               >
-                <AlertCircle
-                  class="w-2.5 h-2.5"
-                  stroke-width="3"
+                <SIcon
+                  name="AlertCircle"
+                  size="w-2.5 h-2.5"
                 />
                 {{ $t('codex.auth.expiredBadge') }}
               </span>
@@ -118,7 +118,10 @@
             :title="$t('codex.auth.switch')"
             @click="$emit('switch', account.name)"
           >
-            <ArrowRightCircle class="w-4 h-4" />
+            <SIcon
+              name="ArrowRightCircle"
+              size="w-4 h-4"
+            />
           </button>
 
           <!-- Expired Account Warning -->
@@ -127,7 +130,10 @@
             class="p-2 text-red-500"
             :title="$t('codex.auth.expiredCannotSwitch')"
           >
-            <AlertCircle class="w-4 h-4" />
+            <SIcon
+              name="AlertCircle"
+              size="w-4 h-4"
+            />
           </div>
 
           <!-- Current Account Indicator -->
@@ -136,7 +142,10 @@
             class="p-2 text-platform-codex"
             :title="$t('codex.auth.currentAccount')"
           >
-            <CheckCircle2 class="w-4 h-4" />
+            <SIcon
+              name="CheckCircle2"
+              size="w-4 h-4"
+            />
           </div>
 
           <!-- Delete Button (non-virtual accounts) -->
@@ -146,7 +155,10 @@
             :title="$t('codex.actions.delete')"
             @click="$emit('delete', account.name)"
           >
-            <Trash2 class="w-4 h-4" />
+            <SIcon
+              name="Trash2"
+              size="w-4 h-4"
+            />
           </button>
         </div>
       </div>
@@ -158,7 +170,11 @@
       class="flex flex-col items-center justify-center py-12 text-center"
     >
       <div class="p-4 rounded-full glass-surface mb-4">
-        <KeyRound class="w-8 h-8 text-white/50" />
+        <SIcon
+          name="KeyRound"
+          size="w-8 h-8"
+          class="text-white/50"
+        />
       </div>
       <p class="text-white/80">
         {{ $t('codex.auth.emptyState') }}
@@ -171,15 +187,8 @@
 </template>
 
 <script setup lang="ts">
+import SIcon from '@/components/ui/SIcon.vue'
 import { computed } from 'vue'
-import {
-  AlertCircle,
-  ArrowRightCircle,
-  Check,
-  CheckCircle2,
-  KeyRound,
-  Trash2
-} from 'lucide-vue-next'
 import type { CodexAuthAccountItem, TokenFreshness } from '@/types'
 
 interface Props {

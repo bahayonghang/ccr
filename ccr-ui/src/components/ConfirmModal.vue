@@ -23,8 +23,8 @@
     <div class="flex flex-col items-center text-center pb-1">
       <div :class="iconContainerClasses">
         <slot name="icon">
-          <component
-            :is="iconComponent"
+          <SIcon
+            :name="iconComponent"
             :class="iconClasses"
           />
         </slot>
@@ -57,8 +57,8 @@
 </template>
 
 <script setup lang="ts">
+import SIcon from '@/components/ui/SIcon.vue'
 import { computed } from 'vue'
-import { AlertTriangle, Info, AlertCircle } from 'lucide-vue-next'
 import BaseModal from '@/components/common/BaseModal.vue'
 
 interface Props {
@@ -86,9 +86,9 @@ const props = withDefaults(defineProps<Props>(), {
 
 const iconComponent = computed(() => {
   const icons = {
-    danger: AlertTriangle,
-    warning: AlertCircle,
-    info: Info,
+    danger: 'AlertTriangle',
+    warning: 'AlertCircle',
+    info: 'Info',
   }
 
   return icons[props.type]
@@ -123,7 +123,7 @@ const confirmButtonClasses = computed(() => {
     'transition-colors duration-150',
   ]
 
-  const typeClasses = {
+  const typeClasses: Record<string, string[]> = {
     danger: [
       'bg-accent-danger',
       'hover:bg-accent-danger/90',

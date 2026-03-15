@@ -16,7 +16,10 @@
           <div class="modal-header">
             <div class="flex items-center gap-2">
               <div class="header-icon">
-                <ScrollText class="w-5 h-5" />
+                <SIcon
+                  name="ScrollText"
+                  size="w-5 h-5"
+                />
               </div>
               <h2 class="text-lg font-bold text-white">
                 {{ $t('skills.operationLog') }}
@@ -26,7 +29,10 @@
               class="p-2 rounded-lg text-white/50 hover:text-white hover:bg-white/5 transition-colors"
               @click="close"
             >
-              <X class="w-5 h-5" />
+              <SIcon
+                name="X"
+                size="w-5 h-5"
+              />
             </button>
           </div>
 
@@ -37,7 +43,11 @@
               v-if="isLoading"
               class="flex flex-col items-center justify-center py-16"
             >
-              <Loader2 class="w-8 h-8 animate-spin text-accent-primary" />
+              <SIcon
+                name="Loader2"
+                size="w-8 h-8"
+                class="animate-spin text-accent-primary"
+              />
               <p class="text-white/80 text-sm mt-3">
                 {{ $t('common.loading') }}
               </p>
@@ -48,8 +58,9 @@
               v-else-if="loadError"
               class="flex flex-col items-center justify-center py-16"
             >
-              <AlertCircle
-                class="w-8 h-8"
+              <SIcon
+                name="AlertCircle"
+                size="w-8 h-8"
                 style="color: rgb(var(--color-danger-rgb));"
               />
               <p
@@ -71,7 +82,11 @@
               v-else-if="filteredLogs.length === 0"
               class="flex flex-col items-center justify-center py-16"
             >
-              <Inbox class="w-12 h-12 text-white/50 opacity-40" />
+              <SIcon
+                name="Inbox"
+                size="w-12 h-12"
+                class="text-white/50 opacity-40"
+              />
               <p class="text-sm text-white/50 mt-3">
                 {{ $t('skills.noOperationLog') }}
               </p>
@@ -92,9 +107,9 @@
                   class="log-icon"
                   :class="getActionClass(log)"
                 >
-                  <component
-                    :is="getActionIcon(log)"
-                    class="w-4 h-4"
+                  <SIcon
+                    :name="getActionIcon(log)"
+                    size="w-4 h-4"
                   />
                 </div>
 
@@ -128,17 +143,8 @@
 </template>
 
 <script setup lang="ts">
+import SIcon from '@/components/ui/SIcon.vue'
 import { ref, computed, watch } from 'vue'
-import {
-  X,
-  ScrollText,
-  Loader2,
-  AlertCircle,
-  Inbox,
-  Trash2,
-  Download,
-  Activity
-} from 'lucide-vue-next'
 import { useI18n } from 'vue-i18n'
 import { getRecentEvents } from '@/api'
 import { getErrorMessage } from '@/utils/errorHandler'
@@ -230,9 +236,9 @@ function getMeta(log: LogEntry): LogMetadata {
 
 function getActionIcon(log: LogEntry) {
   const action = getMeta(log).action
-  if (action === 'remove') return Trash2
-  if (action === 'install') return Download
-  return Activity
+  if (action === 'remove') return 'Trash2'
+  if (action === 'install') return 'Download'
+  return 'Activity'
 }
 
 function getActionClass(log: LogEntry): string {

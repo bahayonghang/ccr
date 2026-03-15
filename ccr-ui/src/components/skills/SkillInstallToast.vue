@@ -6,17 +6,23 @@
         class="install-toast"
       >
         <div class="install-toast__icon">
-          <Loader2
+          <SIcon
             v-if="progress.phase === 'downloading' || progress.phase === 'installing'"
-            class="w-5 h-5 animate-spin"
+            name="Loader2"
+            size="w-5 h-5"
+            class="animate-spin"
           />
-          <CheckCircle
+          <SIcon
             v-else-if="progress.phase === 'done'"
-            class="w-5 h-5 text-success"
+            name="CheckCircle"
+            size="w-5 h-5"
+            class="text-success"
           />
-          <XCircle
+          <SIcon
             v-else-if="progress.phase === 'error'"
-            class="w-5 h-5 text-danger"
+            name="XCircle"
+            size="w-5 h-5"
+            class="text-danger"
           />
         </div>
 
@@ -40,7 +46,10 @@
           class="install-toast__close"
           @click="dismiss"
         >
-          <X class="w-4 h-4" />
+          <SIcon
+            name="X"
+            size="w-4 h-4"
+          />
         </button>
       </div>
     </Transition>
@@ -48,9 +57,9 @@
 </template>
 
 <script setup lang="ts">
+import SIcon from '@/components/ui/SIcon.vue'
 import { computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { Loader2, CheckCircle, XCircle, X } from 'lucide-vue-next'
 import type { InstallProgress } from '@/types/skills'
 
 const props = defineProps<{

@@ -16,8 +16,9 @@
           <!-- Header -->
           <div class="flex items-center justify-between mb-6">
             <div class="flex items-center gap-3">
-              <Server
-                class="w-6 h-6"
+              <SIcon
+                name="Server"
+                size="w-6 h-6"
                 :style="{ color: 'var(--color-accent-primary)' }"
               />
               <h1
@@ -33,14 +34,20 @@
                 class="inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-colors"
                 :style="{ background: 'var(--color-bg-elevated)', color: 'var(--color-text-secondary)', border: '1px solid var(--color-border-default)' }"
               >
-                <ArrowLeft class="w-4 h-4" /><span>{{ $t('common.back') }}</span>
+                <SIcon
+                  name="ArrowLeft"
+                  size="w-4 h-4"
+                /><span>{{ $t('common.back') }}</span>
               </RouterLink>
               <button
                 class="px-4 py-2 rounded-lg font-semibold text-sm text-white flex items-center gap-2"
                 :style="{ background: 'linear-gradient(135deg, var(--color-accent-primary), var(--color-accent-secondary))', boxShadow: '0 0 20px var(--glow-primary)' }"
                 @click="openAddForm"
               >
-                <Plus class="w-4 h-4" />{{ $t(`${i18nPrefix}.addServer`) }}
+                <SIcon
+                  name="Plus"
+                  size="w-4 h-4"
+                />{{ $t(`${i18nPrefix}.addServer`) }}
               </button>
             </div>
           </div>
@@ -143,7 +150,10 @@
                     :title="$t('common.edit')"
                     @click="openEditForm(server)"
                   >
-                    <Edit2 class="w-4 h-4" />
+                    <SIcon
+                      name="Edit2"
+                      size="w-4 h-4"
+                    />
                   </button>
                   <button
                     class="p-2 rounded-lg transition-transform hover:scale-110"
@@ -151,7 +161,10 @@
                     :title="$t('common.delete')"
                     @click="deleteServer(server)"
                   >
-                    <Trash2 class="w-4 h-4" />
+                    <SIcon
+                      name="Trash2"
+                      size="w-4 h-4"
+                    />
                   </button>
                 </div>
               </div>
@@ -319,10 +332,10 @@
 </template>
 
 <script setup lang="ts">
+import SIcon from '@/components/ui/SIcon.vue'
 import { computed, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { Server, Plus, Edit2, Trash2, ArrowLeft, Home, Sparkles, Zap, Flame, Bot } from 'lucide-vue-next'
 import CollapsibleSidebar from '@/components/CollapsibleSidebar.vue'
 import { Breadcrumb } from '@/components/ui'
 import { usePlatformMcp, type PlatformType, getServerIdentifier } from '@/composables/usePlatformMcp'
@@ -377,11 +390,11 @@ const sidebarModule = computed(() => {
 
 /** 平台图标 */
 const platformIcon = computed(() => {
-  const iconMap: Record<PlatformType, typeof Sparkles> = {
-    gemini: Sparkles,
-    qwen: Zap,
-    iflow: Flame,
-    droid: Bot,
+  const iconMap: Record<PlatformType, string> = {
+    gemini: 'Sparkles',
+    qwen: 'Zap',
+    iflow: 'Flame',
+    droid: 'Bot',
   }
   return iconMap[props.platform]
 })
@@ -399,9 +412,9 @@ const platformName = computed(() => {
 
 /** 面包屑导航项 */
 const breadcrumbItems = computed(() => [
-  { label: t('common.home'), path: '/', icon: Home },
+  { label: t('common.home'), path: '/', icon: 'Home' },
   { label: platformName.value, path: parentPath.value, icon: platformIcon.value },
-  { label: t(`${i18nPrefix.value}.title`), path: `${parentPath.value}/mcp`, icon: Server },
+  { label: t(`${i18nPrefix.value}.title`), path: `${parentPath.value}/mcp`, icon: 'Server' },
 ])
 
 // ============ Lifecycle ============

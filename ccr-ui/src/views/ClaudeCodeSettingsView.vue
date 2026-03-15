@@ -7,9 +7,10 @@
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div class="flex items-center gap-4">
           <h2 class="text-xl sm:text-2xl font-bold text-text-primary flex items-center">
-            <Settings2
-              class="w-6 h-6 sm:w-7 sm:h-7 mr-2 text-accent-secondary"
-              aria-hidden="true"
+            <SIcon
+              name="Settings2"
+              size="w-6 h-6"
+              class="sm:w-7 sm:h-7 mr-2 text-accent-secondary"
             />
             {{ $t('claudeSettings.title') }}
           </h2>
@@ -19,9 +20,10 @@
             <button
               class="px-4 py-2 rounded-lg font-medium transition-colors bg-bg-elevated text-text-secondary border border-border-default hover:bg-bg-surface min-h-[44px] flex items-center"
             >
-              <ArrowLeft
-                class="w-4 h-4 mr-2"
-                aria-hidden="true"
+              <SIcon
+                name="ArrowLeft"
+                size="w-4 h-4"
+                class="mr-2"
               />
               {{ $t('claudeSettings.back') }}
             </button>
@@ -31,9 +33,10 @@
             :disabled="saving"
             @click="handleSave"
           >
-            <Save
-              class="w-4 h-4 mr-2"
-              aria-hidden="true"
+            <SIcon
+              name="Save"
+              size="w-4 h-4"
+              class="mr-2"
             />
             {{ saving ? $t('claudeSettings.saving') : $t('claudeSettings.save') }}
           </button>
@@ -64,9 +67,9 @@
             :class="activeTab === tab.key ? 'bg-accent-secondary text-white shadow-md' : 'bg-bg-elevated text-text-secondary border border-border-default hover:bg-bg-surface'"
             @click="activeTab = tab.key"
           >
-            <component
-              :is="tab.icon"
-              class="w-4 h-4"
+            <SIcon
+              :name="tab.icon"
+              size="w-4 h-4"
             />
             {{ tab.label }}
           </button>
@@ -173,7 +176,10 @@
                     <button
                       class="hover:text-red-400"
                       @click="form.availableModels.splice(i, 1)"
-                    ><XIcon class="w-3 h-3" /></button>
+                    ><SIcon
+                      name="X"
+                      size="w-3 h-3"
+                    /></button>
                   </span>
                 </div>
                 <div class="flex gap-2">
@@ -187,7 +193,10 @@
                     class="px-3 py-2 rounded-lg bg-accent-secondary text-white text-sm hover:scale-105 transition-[color,background-color,border-color,transform]"
                     @click="addTag('availableModels', form.availableModels)"
                   >
-                    <Plus class="w-4 h-4" />
+                    <SIcon
+                      name="Plus"
+                      size="w-4 h-4"
+                    />
                   </button>
                 </div>
               </div>
@@ -256,7 +265,10 @@
                     <button
                       class="hover:text-red-400"
                       @click="permAllow.splice(i, 1)"
-                    ><XIcon class="w-3 h-3" /></button>
+                    ><SIcon
+                      name="X"
+                      size="w-3 h-3"
+                    /></button>
                   </span>
                 </div>
                 <div class="flex gap-2">
@@ -270,7 +282,10 @@
                     class="px-3 py-2 rounded-lg bg-accent-secondary text-white text-sm hover:scale-105 transition-[color,background-color,border-color,transform]"
                     @click="addTag('permAllow', permAllow)"
                   >
-                    <Plus class="w-4 h-4" />
+                    <SIcon
+                      name="Plus"
+                      size="w-4 h-4"
+                    />
                   </button>
                 </div>
               </div>
@@ -291,7 +306,10 @@
                     <button
                       class="hover:text-red-400"
                       @click="permDeny.splice(i, 1)"
-                    ><XIcon class="w-3 h-3" /></button>
+                    ><SIcon
+                      name="X"
+                      size="w-3 h-3"
+                    /></button>
                   </span>
                 </div>
                 <div class="flex gap-2">
@@ -305,7 +323,10 @@
                     class="px-3 py-2 rounded-lg bg-accent-secondary text-white text-sm hover:scale-105 transition-[color,background-color,border-color,transform]"
                     @click="addTag('permDeny', permDeny)"
                   >
-                    <Plus class="w-4 h-4" />
+                    <SIcon
+                      name="Plus"
+                      size="w-4 h-4"
+                    />
                   </button>
                 </div>
               </div>
@@ -326,7 +347,10 @@
                     <button
                       class="hover:text-red-400"
                       @click="permAdditionalDirs.splice(i, 1)"
-                    ><XIcon class="w-3 h-3" /></button>
+                    ><SIcon
+                      name="X"
+                      size="w-3 h-3"
+                    /></button>
                   </span>
                 </div>
                 <div class="flex gap-2">
@@ -340,7 +364,10 @@
                     class="px-3 py-2 rounded-lg bg-accent-secondary text-white text-sm hover:scale-105 transition-[color,background-color,border-color,transform]"
                     @click="addTag('permAdditionalDirs', permAdditionalDirs)"
                   >
-                    <Plus class="w-4 h-4" />
+                    <SIcon
+                      name="Plus"
+                      size="w-4 h-4"
+                    />
                   </button>
                 </div>
               </div>
@@ -366,7 +393,10 @@
                   class="px-3 py-1.5 rounded-lg text-sm font-medium bg-accent-secondary text-white hover:scale-105 transition-[color,background-color,border-color,transform] flex items-center gap-1"
                   @click="addEnvVar"
                 >
-                  <Plus class="w-4 h-4" /> {{ $t('claudeSettings.env.add') }}
+                  <SIcon
+                    name="Plus"
+                    size="w-4 h-4"
+                  /> {{ $t('claudeSettings.env.add') }}
                 </button>
               </div>
 
@@ -397,7 +427,10 @@
                   class="p-2 rounded-lg text-red-400 hover:bg-red-500/10 transition-colors min-w-[36px] min-h-[36px] flex items-center justify-center"
                   @click="envEntries.splice(idx, 1)"
                 >
-                  <Trash2 class="w-4 h-4" />
+                  <SIcon
+                    name="Trash2"
+                    size="w-4 h-4"
+                  />
                 </button>
               </div>
             </div>
@@ -595,7 +628,10 @@
                     <button
                       class="hover:text-red-400"
                       @click="sandboxAllowedDomains.splice(i, 1)"
-                    ><XIcon class="w-3 h-3" /></button>
+                    ><SIcon
+                      name="X"
+                      size="w-3 h-3"
+                    /></button>
                   </span>
                 </div>
                 <div class="flex gap-2">
@@ -609,7 +645,10 @@
                     class="px-3 py-2 rounded-lg bg-accent-secondary text-white text-sm hover:scale-105 transition-[color,background-color,border-color,transform]"
                     @click="addTag('sandboxAllowedDomains', sandboxAllowedDomains)"
                   >
-                    <Plus class="w-4 h-4" />
+                    <SIcon
+                      name="Plus"
+                      size="w-4 h-4"
+                    />
                   </button>
                 </div>
               </div>
@@ -630,7 +669,10 @@
                     <button
                       class="hover:text-red-400"
                       @click="sandboxExcludedCmds.splice(i, 1)"
-                    ><XIcon class="w-3 h-3" /></button>
+                    ><SIcon
+                      name="X"
+                      size="w-3 h-3"
+                    /></button>
                   </span>
                 </div>
                 <div class="flex gap-2">
@@ -644,7 +686,10 @@
                     class="px-3 py-2 rounded-lg bg-accent-secondary text-white text-sm hover:scale-105 transition-[color,background-color,border-color,transform]"
                     @click="addTag('sandboxExcludedCmds', sandboxExcludedCmds)"
                   >
-                    <Plus class="w-4 h-4" />
+                    <SIcon
+                      name="Plus"
+                      size="w-4 h-4"
+                    />
                   </button>
                 </div>
               </div>
@@ -726,9 +771,9 @@
 </template>
 
 <script setup lang="ts">
+import SIcon from '@/components/ui/SIcon.vue'
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { Settings2, ArrowLeft, Save, Plus, Trash2, X as XIcon, Brain, Shield, Terminal, Palette, Lock, GitBranch } from 'lucide-vue-next'
 import Card from '@/components/ui/Card.vue'
 import { getClaudeSettings, updateClaudeSettings } from '@/api'
 import type { ClaudeSettingsData } from '@/api'
@@ -742,12 +787,12 @@ const saving = ref(false)
 const activeTab = ref('model')
 
 const tabs = computed(() => [
-  { key: 'model', label: t('claudeSettings.tabs.model'), icon: Brain },
-  { key: 'permissions', label: t('claudeSettings.tabs.permissions'), icon: Shield },
-  { key: 'env', label: t('claudeSettings.tabs.env'), icon: Terminal },
-  { key: 'ui', label: t('claudeSettings.tabs.ui'), icon: Palette },
-  { key: 'sandbox', label: t('claudeSettings.tabs.sandbox'), icon: Lock },
-  { key: 'git', label: t('claudeSettings.tabs.git'), icon: GitBranch },
+  { key: 'model', label: t('claudeSettings.tabs.model'), icon: 'Brain' },
+  { key: 'permissions', label: t('claudeSettings.tabs.permissions'), icon: 'Shield' },
+  { key: 'env', label: t('claudeSettings.tabs.env'), icon: 'Terminal' },
+  { key: 'ui', label: t('claudeSettings.tabs.ui'), icon: 'Palette' },
+  { key: 'sandbox', label: t('claudeSettings.tabs.sandbox'), icon: 'Lock' },
+  { key: 'git', label: t('claudeSettings.tabs.git'), icon: 'GitBranch' },
 ])
 
 const modelOptions = ['opus', 'sonnet', 'haiku', 'claude-opus-4-6', 'claude-sonnet-4-5-20250929', 'claude-haiku-4-5-20251001']

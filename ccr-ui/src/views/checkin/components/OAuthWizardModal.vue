@@ -26,17 +26,20 @@
                   : 'bg-zinc-800 border-zinc-600 text-zinc-500'
             "
           >
-            <CheckCircle
-              v-if="step > idx"
+            <SIcon
+              v-if="step> idx"
+              name="CheckCircle"
               class="w-4 h-4"
             />
             <span v-else>{{ idx + 1 }}</span>
           </div>
           <span class="text-xs hidden sm:inline">{{ stepLabel }}</span>
         </div>
-        <ChevronRight
+        <SIcon
           v-if="idx < stepLabels.length - 1"
-          class="w-4 h-4 text-zinc-600"
+          name="ChevronRight"
+          size="w-4 h-4"
+          class="text-zinc-600"
         />
       </template>
     </div>
@@ -83,7 +86,10 @@
             ]"
             @click="selectedOAuthType = 'linuxdo'"
           >
-            <Globe class="w-5 h-5" />
+            <SIcon
+              name="Globe"
+              size="w-5 h-5"
+            />
             LinuxDo
           </button>
           <button
@@ -96,7 +102,10 @@
             ]"
             @click="selectedOAuthType = 'github'"
           >
-            <Github class="w-5 h-5" />
+            <SIcon
+              name="Github"
+              size="w-5 h-5"
+            />
             GitHub
           </button>
         </div>
@@ -118,7 +127,11 @@
         v-if="loading"
         class="flex flex-col items-center gap-3 py-8"
       >
-        <Loader2 class="w-8 h-8 animate-spin text-blue-500" />
+        <SIcon
+          name="Loader2"
+          size="w-8 h-8"
+          class="animate-spin text-blue-500"
+        />
         <p class="text-sm text-zinc-400">
           正在获取授权链接...
         </p>
@@ -166,7 +179,10 @@
             rel="noopener noreferrer"
             class="inline-flex items-center gap-1 mt-2 text-sm text-blue-400 hover:text-blue-300 hover:underline"
           >
-            <ExternalLink class="w-3.5 h-3.5" />
+            <SIcon
+              name="ExternalLink"
+              size="w-3.5 h-3.5"
+            />
             在新标签页打开
           </a>
         </div>
@@ -246,7 +262,11 @@
         v-if="creatingAccount"
         class="flex flex-col items-center gap-3 py-8"
       >
-        <Loader2 class="w-8 h-8 animate-spin text-blue-500" />
+        <SIcon
+          name="Loader2"
+          size="w-8 h-8"
+          class="animate-spin text-blue-500"
+        />
         <p class="text-sm text-zinc-400">
           正在创建账号...
         </p>
@@ -256,7 +276,11 @@
         v-else-if="createSuccess"
         class="flex flex-col items-center gap-3 py-8"
       >
-        <CheckCircle class="w-12 h-12 text-green-500" />
+        <SIcon
+          name="CheckCircle"
+          size="w-12 h-12"
+          class="text-green-500"
+        />
         <p class="text-green-400 font-medium">
           账号创建成功！
         </p>
@@ -361,15 +385,8 @@
 </template>
 
 <script setup lang="ts">
+import SIcon from '@/components/ui/SIcon.vue'
 import { ref, computed, watch } from 'vue'
-import {
-  CheckCircle,
-  ChevronRight,
-  ExternalLink,
-  Github,
-  Globe,
-  Loader2,
-} from 'lucide-vue-next'
 import BaseModal from '@/components/common/BaseModal.vue'
 import { getOAuthAuthorizeUrl, createCheckinAccount } from '@/api'
 import type { BuiltinProvider } from '@/types/checkin'

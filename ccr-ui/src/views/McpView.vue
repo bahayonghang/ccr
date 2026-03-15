@@ -6,9 +6,9 @@
       <!-- Breadcrumb Navigation -->
       <Breadcrumb
         :items="[
-          { label: $t('mcp.breadcrumb.home'), path: '/', icon: Home },
-          { label: $t('mcp.breadcrumb.claudeCode'), path: '/claude-code', icon: Code2 },
-          { label: $t('mcp.breadcrumb.mcp'), path: '/mcp', icon: Server }
+          { label: $t('mcp.breadcrumb.home'), path: '/', icon: 'Home' },
+          { label: $t('mcp.breadcrumb.claudeCode'), path: '/claude-code', icon: 'Code2' },
+          { label: $t('mcp.breadcrumb.mcp'), path: '/mcp', icon: 'Server' }
         ]"
         module-color="#6366f1"
         class="mb-6"
@@ -22,7 +22,11 @@
           <div class="glass-effect rounded-2xl p-6 mb-6 border border-white/20 flex flex-col md:flex-row items-center justify-between gap-4 sticky top-6 z-20 backdrop-blur-md shadow-sm">
             <div class="flex items-center gap-4">
               <div class="p-3 rounded-xl bg-gradient-to-br from-violet-500/20 to-purple-600/20 border border-violet-500/30">
-                <Server class="w-6 h-6 text-violet-400" />
+                <SIcon
+                  name="Server"
+                  size="w-6 h-6"
+                  class="text-violet-400"
+                />
               </div>
               <div>
                 <div class="flex items-center gap-3">
@@ -43,7 +47,10 @@
               class="px-5 py-2.5 rounded-xl font-bold text-sm text-white flex items-center gap-2 transition-[color,background-color,border-color,transform] hover:scale-105 bg-gradient-to-r from-violet-500 to-purple-600 shadow-lg shadow-violet-500/25 hover:shadow-violet-500/40"
               @click="handleAdd"
             >
-              <Plus class="w-5 h-5" />
+              <SIcon
+                name="Plus"
+                size="w-5 h-5"
+              />
               {{ $t('mcp.addServer') }}
             </button>
           </div>
@@ -71,7 +78,11 @@
               class="text-center py-16 glass-effect rounded-3xl border border-white/20 border-dashed"
             >
               <div class="glass-surface w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Server class="w-10 h-10 opacity-30 text-white/50" />
+                <SIcon
+                  name="Server"
+                  size="w-10 h-10"
+                  class="opacity-30 text-white/50"
+                />
               </div>
               <p class="text-lg font-bold text-white">
                 {{ $t('mcp.noServers') }}
@@ -135,13 +146,15 @@
                     :title="server.disabled ? $t('mcp.enable') : $t('mcp.disable')"
                     @click="handleToggle(server.name)"
                   >
-                    <Power
+                    <SIcon
                       v-if="!server.disabled"
-                      class="w-4 h-4"
+                      name="Power"
+                      size="w-4 h-4"
                     />
-                    <PowerOff
+                    <SIcon
                       v-else
-                      class="w-4 h-4"
+                      name="PowerOff"
+                      size="w-4 h-4"
                     />
                   </button>
                   <button
@@ -149,14 +162,20 @@
                     :title="$t('mcp.edit')"
                     @click="handleEdit(server)"
                   >
-                    <Edit2 class="w-4 h-4" />
+                    <SIcon
+                      name="Edit2"
+                      size="w-4 h-4"
+                    />
                   </button>
                   <button
                     class="p-2 rounded-lg transition-[color,background-color,border-color,transform] hover:scale-110 text-white/80 hover:text-danger hover:bg-danger/10"
                     :title="$t('mcp.delete')"
                     @click="handleDelete(server.name)"
                   >
-                    <Trash2 class="w-4 h-4" />
+                    <SIcon
+                      name="Trash2"
+                      size="w-4 h-4"
+                    />
                   </button>
                 </div>
               </div>
@@ -177,14 +196,17 @@
                 class="absolute top-4 right-4 p-2 rounded-full hover:bg-white/5 text-white/50 transition-colors"
                 @click="showAddForm = false"
               >
-                <X class="w-5 h-5" />
+                <SIcon
+                  name="X"
+                  size="w-5 h-5"
+                />
               </button>
 
               <h2 class="text-2xl font-bold mb-6 text-white flex items-center gap-3">
                 <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500/20 to-purple-600/20 flex items-center justify-center text-violet-400 border border-violet-500/30">
-                  <component
-                    :is="editingServer ? Edit2 : Plus"
-                    class="w-5 h-5"
+                  <SIcon
+                    :name="editingServer ? 'Edit2' : 'Plus'"
+                    size="w-5 h-5"
                   />
                 </div>
                 <span class="text-gradient-purple">{{ editingServer ? $t('mcp.editServer') : $t('mcp.addServer') }}</span>
@@ -267,7 +289,10 @@
                         class="text-white/50 hover:text-danger transition-colors"
                         @click="removeEnvVar(key)"
                       >
-                        <X class="w-4 h-4" />
+                        <SIcon
+                          name="X"
+                          size="w-4 h-4"
+                        />
                       </button>
                     </div>
                   </div>
@@ -335,9 +360,9 @@
 </template>
 
 <script setup lang="ts">
+import SIcon from '@/components/ui/SIcon.vue'
 import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { Server, Plus, Edit2, Trash2, Power, PowerOff, Home, Code2, X } from 'lucide-vue-next'
 import {
   listMcpServers,
   addMcpServer,

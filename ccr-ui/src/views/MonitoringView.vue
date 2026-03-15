@@ -25,7 +25,10 @@
             class="text-xs px-3 py-1.5 rounded-lg bg-bg-surface hover:bg-accent-secondary/10 text-text-secondary hover:text-accent-secondary transition-colors flex items-center gap-1.5"
             @click="clearLogs"
           >
-            <Trash2 class="w-3.5 h-3.5" />
+            <SIcon
+              name="Trash2"
+              size="w-3.5 h-3.5"
+            />
             {{ $t('monitoring.clearLogs') }}
           </button>
         </div>
@@ -36,7 +39,11 @@
         <div class="glass-effect rounded-2xl p-4 border border-white/10">
           <div class="flex items-center gap-3">
             <div class="p-2 rounded-xl bg-accent-secondary/10">
-              <MessageSquare class="w-5 h-5 text-accent-secondary" />
+              <SIcon
+                name="MessageSquare"
+                size="w-5 h-5"
+                class="text-accent-secondary"
+              />
             </div>
             <div>
               <p class="text-xs text-text-muted">
@@ -52,7 +59,11 @@
         <div class="glass-effect rounded-2xl p-4 border border-white/10">
           <div class="flex items-center gap-3">
             <div class="p-2 rounded-xl bg-accent-success/10">
-              <ArrowUpCircle class="w-5 h-5 text-accent-success" />
+              <SIcon
+                name="ArrowUpCircle"
+                size="w-5 h-5"
+                class="text-accent-success"
+              />
             </div>
             <div>
               <p class="text-xs text-text-muted">
@@ -68,7 +79,11 @@
         <div class="glass-effect rounded-2xl p-4 border border-white/10">
           <div class="flex items-center gap-3">
             <div class="p-2 rounded-xl bg-accent-primary/10">
-              <ArrowDownCircle class="w-5 h-5 text-accent-primary" />
+              <SIcon
+                name="ArrowDownCircle"
+                size="w-5 h-5"
+                class="text-accent-primary"
+              />
             </div>
             <div>
               <p class="text-xs text-text-muted">
@@ -84,7 +99,11 @@
         <div class="glass-effect rounded-2xl p-4 border border-white/10">
           <div class="flex items-center gap-3">
             <div class="p-2 rounded-xl bg-accent-warning/10">
-              <DollarSign class="w-5 h-5 text-accent-warning" />
+              <SIcon
+                name="DollarSign"
+                size="w-5 h-5"
+                class="text-accent-warning"
+              />
             </div>
             <div>
               <p class="text-xs text-text-muted">
@@ -102,7 +121,10 @@
       <div class="glass-effect rounded-3xl p-6 border border-white/20">
         <div class="flex items-center justify-between mb-4">
           <h3 class="text-base font-bold text-text-primary flex items-center gap-2">
-            <Terminal class="w-4 h-4" />
+            <SIcon
+              name="Terminal"
+              size="w-4 h-4"
+            />
             {{ $t('monitoring.realTimeLogs') }}
           </h3>
           <div class="flex items-center gap-2">
@@ -157,7 +179,11 @@
             v-if="logs.length === 0"
             class="flex flex-col items-center justify-center h-full text-text-muted"
           >
-            <Monitor class="w-12 h-12 opacity-30 mb-2" />
+            <SIcon
+              name="Monitor"
+              size="w-12 h-12"
+              class="opacity-30 mb-2"
+            />
             <p>{{ $t('monitoring.noLogs') }}</p>
             <p class="text-xs mt-1">
               {{ $t('monitoring.waitingForLogs') }}
@@ -170,17 +196,9 @@
 </template>
 
 <script setup lang="ts">
+import SIcon from '@/components/ui/SIcon.vue'
 import { ref, computed, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
-import {
-  MessageSquare,
-  ArrowUpCircle,
-  ArrowDownCircle,
-  DollarSign,
-  Terminal,
-  Trash2,
-  Monitor
-} from 'lucide-vue-next'
 import Navbar from '@/components/Navbar.vue'
 import { Breadcrumb } from '@/components/ui'
 import {

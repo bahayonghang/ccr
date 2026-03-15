@@ -44,7 +44,11 @@
         style="animation-delay: 100ms"
       >
         <div class="flex items-center gap-2 mb-4">
-          <Terminal class="w-4 h-4 text-accent-primary" />
+          <SIcon
+            name="Terminal"
+            size="w-4 h-4"
+            class="text-accent-primary"
+          />
           <h2 class="text-xs font-bold uppercase tracking-widest text-text-muted">
             {{ $t('home.quickActions') }}
           </h2>
@@ -67,9 +71,10 @@
                 class="w-10 h-10 rounded-lg flex items-center justify-center transition-colors duration-300"
                 :class="action.bgClass"
               >
-                <component
-                  :is="action.icon"
-                  class="w-5 h-5 transition-transform group-hover:scale-110"
+                <SIcon
+                  :name="action.icon"
+                  size="w-5 h-5"
+                  class="transition-transform group-hover:scale-110"
                   :class="action.textClass"
                 />
               </div>
@@ -81,7 +86,11 @@
                   {{ action.desc }}
                 </p>
               </div>
-              <ArrowRight class="mt-auto h-4 w-4 self-end -translate-x-2 text-text-muted opacity-0 transition-[opacity,transform,color] group-hover:translate-x-0 group-hover:opacity-100 group-hover:text-accent-primary" />
+              <SIcon
+                name="ArrowRight"
+                size="h-4 w-4"
+                class="mt-auto self-end -translate-x-2 text-text-muted opacity-0 transition-[opacity,transform,color] group-hover:translate-x-0 group-hover:opacity-100 group-hover:text-accent-primary"
+              />
             </Card>
           </RouterLink>
         </div>
@@ -93,7 +102,11 @@
         style="animation-delay: 200ms"
       >
         <div class="flex items-center gap-2 mb-4">
-          <Grid class="w-4 h-4 text-accent-secondary" />
+          <SIcon
+            name="Grid"
+            size="w-4 h-4"
+            class="text-accent-secondary"
+          />
           <h2 class="text-xs font-bold uppercase tracking-widest text-text-muted">
             {{ $t('home.platformModules') }}
           </h2>
@@ -113,16 +126,17 @@
               class="h-full relative overflow-hidden p-6 flex flex-col gap-6"
             >
               <!-- Background Icon Watermark -->
-              <component
-                :is="module.icon"
-                class="absolute -right-6 -bottom-6 w-32 h-32 opacity-[0.03] group-hover:opacity-[0.07] transition-opacity rotate-12"
+              <SIcon
+                :name="module.icon"
+                size="w-32 h-32"
+                class="absolute -right-6 -bottom-6 opacity-[0.03] group-hover:opacity-[0.07] transition-opacity rotate-12"
               />
               
               <div class="flex justify-between items-start z-10">
                 <div class="rounded-xl border border-border-default/50 bg-bg-elevated/60 p-3 backdrop-blur-md">
-                  <component
-                    :is="module.icon"
-                    class="w-6 h-6"
+                  <SIcon
+                    :name="module.icon"
+                    size="w-6 h-6"
                     :style="{ color: module.color }"
                   />
                 </div>
@@ -159,7 +173,11 @@
       >
         <div class="flex items-center justify-between mb-4">
           <div class="flex items-center gap-2">
-            <Activity class="w-4 h-4 text-accent-info" />
+            <SIcon
+              name="Activity"
+              size="w-4 h-4"
+              class="text-accent-info"
+            />
             <h2 class="text-xs font-bold uppercase tracking-widest text-text-muted">
               {{ $t('home.systemActivity') }}
             </h2>
@@ -169,7 +187,11 @@
             size="sm"
             @click="$router.push('/usage')"
           >
-            {{ $t('home.fullReport') }} <ArrowRight class="w-3 h-3 ml-1" />
+            {{ $t('home.fullReport') }} <SIcon
+              name="ArrowRight"
+              size="w-3 h-3"
+              class="ml-1"
+            />
           </Button>
         </div>
         <UsageStatsDashboard />
@@ -179,13 +201,9 @@
 </template>
 
 <script setup lang="ts">
+import SIcon from '@/components/ui/SIcon.vue'
 import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import {
-  Terminal, ArrowRight, Grid, Activity,
-  Code2, Sparkles, Zap, Bot, Settings, Cloud,
-  Workflow
-} from 'lucide-vue-next'
 import Card from '@/components/ui/Card.vue'
 import Button from '@/components/ui/Button.vue'
 import UsageStatsDashboard from '@/components/UsageStatsDashboard.vue'
@@ -303,7 +321,7 @@ const quickActions = computed(() => [
     title: t('home.actionCommandRunner'), 
     desc: t('home.actionCommandRunnerDesc'), 
     path: '/commands', 
-    icon: Terminal, 
+    icon: 'Terminal', 
     bgClass: 'bg-blue-500/10',
     textClass: 'text-blue-500'
   },
@@ -311,7 +329,7 @@ const quickActions = computed(() => [
     title: t('home.actionConfigManager'), 
     desc: t('home.actionConfigManagerDesc'), 
     path: '/configs', 
-    icon: Settings, 
+    icon: 'Settings', 
     bgClass: 'bg-purple-500/10',
     textClass: 'text-purple-500'
   },
@@ -319,7 +337,7 @@ const quickActions = computed(() => [
     title: t('home.actionCloudSync'), 
     desc: t('home.actionCloudSyncDesc'), 
     path: '/sync', 
-    icon: Cloud, 
+    icon: 'Cloud', 
     bgClass: 'bg-cyan-500/10',
     textClass: 'text-cyan-500'
   },
@@ -327,7 +345,7 @@ const quickActions = computed(() => [
     title: t('home.actionUsageStats'), 
     desc: t('home.actionUsageStatsDesc'), 
     path: '/usage', 
-    icon: Activity, 
+    icon: 'Activity', 
     bgClass: 'bg-emerald-500/10',
     textClass: 'text-emerald-500'
   },
@@ -338,7 +356,7 @@ const mainModules = computed(() => [
     title: t('home.claudeCodeTitle'),
     desc: t('home.claudeCodeDesc'),
     path: '/claude-code',
-    icon: Code2,
+    icon: 'Code2',
     color: '#ef4444',
     gradientClass: 'from-red-400 to-orange-400',
     platformKey: 'claude-code'
@@ -347,7 +365,7 @@ const mainModules = computed(() => [
     title: t('home.codexTitle'),
     desc: t('home.codexDesc'),
     path: '/codex',
-    icon: Settings,
+    icon: 'Settings',
     color: '#10b981',
     gradientClass: 'from-emerald-400 to-green-300',
     platformKey: 'codex'
@@ -356,7 +374,7 @@ const mainModules = computed(() => [
     title: t('home.geminiTitle'),
     desc: t('home.geminiDesc'),
     path: '/gemini-cli',
-    icon: Sparkles,
+    icon: 'Sparkles',
     color: '#3b82f6',
     gradientClass: 'from-blue-400 to-cyan-400',
     platformKey: 'gemini-cli'
@@ -365,7 +383,7 @@ const mainModules = computed(() => [
     title: t('home.qwenTitle'),
     desc: t('home.qwenDesc'),
     path: '/qwen',
-    icon: Zap,
+    icon: 'Zap',
     color: '#f59e0b',
     gradientClass: 'from-amber-400 to-yellow-300',
     platformKey: 'qwen'
@@ -374,7 +392,7 @@ const mainModules = computed(() => [
     title: t('home.iflowTitle'),
     desc: t('home.iflowDesc'),
     path: '/iflow',
-    icon: Workflow,
+    icon: 'Workflow',
     color: '#8b5cf6',
     gradientClass: 'from-violet-400 to-fuchsia-400',
     platformKey: 'iflow'
@@ -383,7 +401,7 @@ const mainModules = computed(() => [
     title: t('home.factoryDroidTitle'),
     desc: t('home.factoryDroidDesc'),
     path: '/droid',
-    icon: Bot,
+    icon: 'Bot',
     color: '#ec4899',
     gradientClass: 'from-pink-400 to-rose-400',
     platformKey: 'droid'

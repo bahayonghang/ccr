@@ -6,22 +6,23 @@
     :aria-label="`切换到${currentTheme === 'dark' ? '明亮' : '深色'}模式`"
     @click.stop="toggleTheme"
   >
-    <Moon
+    <SIcon
       v-if="currentTheme === 'dark'"
-      class="w-4 h-4"
+      name="Moon"
+      size="w-4 h-4"
     />
-    <Sun
+    <SIcon
       v-else
-      class="w-4 h-4"
+      name="Sun"
+      size="w-4 h-4"
     />
   </button>
 </template>
 
 <script setup lang="ts">
+import SIcon from '@/components/ui/SIcon.vue'
 import { computed } from 'vue'
 import { useThemeStore } from '@/store'
-import { Moon, Sun } from 'lucide-vue-next'
-
 const themeStore = useThemeStore()
 
 const currentTheme = computed(() => themeStore.currentTheme)

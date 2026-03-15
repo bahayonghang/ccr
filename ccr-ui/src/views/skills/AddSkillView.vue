@@ -7,11 +7,17 @@
           to="/skills"
           class="add-skill-header__back"
         >
-          <ArrowLeft class="w-4 h-4" />
+          <SIcon
+            name="ArrowLeft"
+            size="w-4 h-4"
+          />
           <span>{{ $t('skills.backToSkills') }}</span>
         </RouterLink>
         <h1 class="add-skill-header__title">
-          <Plus class="w-5 h-5" />
+          <SIcon
+            name="Plus"
+            size="w-5 h-5"
+          />
           {{ $t('skills.addSkillPageTitle') }}
         </h1>
         <p class="add-skill-header__subtitle">
@@ -25,7 +31,11 @@
       <div class="section-header">
         <div class="section-header__left">
           <h2 class="section-title">
-            <TrendingUp class="w-5 h-5 text-accent-primary" />
+            <SIcon
+              name="TrendingUp"
+              size="w-5 h-5"
+              class="text-accent-primary"
+            />
             {{ $t('skills.browseTrending') }}
           </h2>
           <span class="section-hint">{{ $t('skills.browseTrendingHint') }}</span>
@@ -35,7 +45,10 @@
             v-if="marketplaceCached"
             class="cache-badge"
           >
-            <Database class="w-3 h-3" />
+            <SIcon
+              name="Database"
+              size="w-3 h-3"
+            />
             {{ $t('skills.cacheStatus') }}
           </span>
           <button
@@ -43,8 +56,9 @@
             :disabled="isRefreshing"
             @click="handleRefreshCache"
           >
-            <RefreshCw
-              class="w-4 h-4"
+            <SIcon
+              name="RefreshCw"
+              size="w-4 h-4"
               :class="{ 'animate-spin': isRefreshing }"
             />
             <span>{{ isRefreshing ? $t('skills.refreshingCache') : $t('skills.refreshCache') }}</span>
@@ -56,8 +70,10 @@
       <div class="browse-controls">
         <div class="browse-search">
           <div class="relative flex-1">
-            <Search
-              class="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/50"
+            <SIcon
+              name="Search"
+              size="w-5 h-5"
+              class="absolute left-4 top-1/2 -translate-y-1/2 text-white/50"
             />
             <input
               v-model="searchQuery"
@@ -73,13 +89,16 @@
             :disabled="isMarketplaceLoading"
             @click="handleSearch"
           >
-            <Loader2
+            <SIcon
               v-if="isMarketplaceLoading"
-              class="w-4 h-4 animate-spin"
+              name="Loader2"
+              size="w-4 h-4"
+              class="animate-spin"
             />
-            <Search
+            <SIcon
               v-else
-              class="w-4 h-4"
+              name="Search"
+              size="w-4 h-4"
             />
             <span>{{ $t('common.search') }}</span>
           </button>
@@ -96,7 +115,11 @@
           </div>
           <div class="toolbar-right">
             <div class="sort-select">
-              <ArrowUpDown class="w-3.5 h-3.5 text-white/50" />
+              <SIcon
+                name="ArrowUpDown"
+                size="w-3.5 h-3.5"
+                class="text-white/50"
+              />
               <select
                 v-model="sortBy"
                 class="sort-dropdown"
@@ -115,7 +138,10 @@
               :class="{ 'btn-batch--active': batchMode }"
               @click="batchMode = !batchMode; if (!batchMode) batchSelected.clear()"
             >
-              <CheckSquare class="w-4 h-4" />
+              <SIcon
+                name="CheckSquare"
+                size="w-4 h-4"
+              />
               <span>{{ $t('skills.batchMode') }}</span>
             </button>
           </div>
@@ -127,7 +153,11 @@
         v-if="marketplaceError"
         class="state-box state-box--error"
       >
-        <AlertCircle class="w-8 h-8 text-danger" />
+        <SIcon
+          name="AlertCircle"
+          size="w-8 h-8"
+          class="text-danger"
+        />
         <p class="text-danger mt-2">
           {{ marketplaceError }}
         </p>
@@ -138,7 +168,11 @@
         v-else-if="!isMarketplaceLoading && sortedItems.length === 0"
         class="state-box"
       >
-        <Store class="w-12 h-12 text-white/50" />
+        <SIcon
+          name="Store"
+          size="w-12 h-12"
+          class="text-white/50"
+        />
         <h3 class="text-lg font-semibold text-white mt-4">
           {{ $t('skills.noMarketplaceResults') }}
         </h3>
@@ -223,7 +257,10 @@
               class="batch-bar__install"
               @click="handleBatchInstall"
             >
-              <Download class="w-4 h-4" />
+              <SIcon
+                name="Download"
+                size="w-4 h-4"
+              />
               {{ $t('skills.batchInstall') }}
             </button>
           </div>
@@ -234,7 +271,11 @@
     <!-- Section 2: Manual Install -->
     <section class="manual-section">
       <h2 class="section-title">
-        <Terminal class="w-5 h-5 text-accent-primary" />
+        <SIcon
+          name="Terminal"
+          size="w-5 h-5"
+          class="text-accent-primary"
+        />
         {{ $t('skills.manualInstall') }}
       </h2>
 
@@ -247,9 +288,9 @@
           :class="{ 'manual-tab--active': activeSource === tab.id }"
           @click="activeSource = tab.id"
         >
-          <component
-            :is="tab.icon"
-            class="w-4 h-4"
+          <SIcon
+            :name="tab.icon"
+            size="w-4 h-4"
           />
           <span>{{ $t(tab.label) }}</span>
         </button>
@@ -262,7 +303,10 @@
           class="tab-content"
         >
           <div class="input-group">
-            <Github class="input-icon" />
+            <SIcon
+              name="Github"
+              class="input-icon"
+            />
             <input
               v-model="githubUrl"
               type="text"
@@ -281,7 +325,10 @@
           class="tab-content"
         >
           <div class="input-group">
-            <FolderOpen class="input-icon" />
+            <SIcon
+              name="FolderOpen"
+              class="input-icon"
+            />
             <input
               v-model="localPath"
               type="text"
@@ -292,7 +339,10 @@
               class="browse-btn"
               @click="handleBrowse"
             >
-              <Folder class="w-4 h-4" />
+              <SIcon
+                name="Folder"
+                size="w-4 h-4"
+              />
               {{ $t('skills.browse') }}
             </button>
           </div>
@@ -320,7 +370,10 @@
             </span>
           </div>
           <div class="input-group">
-            <Zap class="input-icon" />
+            <SIcon
+              name="Zap"
+              class="input-icon"
+            />
             <input
               v-model="npxPackage"
               type="text"
@@ -391,13 +444,16 @@
             :disabled="!canManualInstall || manualInstalling"
             @click="handleManualInstall"
           >
-            <Loader2
+            <SIcon
               v-if="manualInstalling"
-              class="w-4 h-4 animate-spin"
+              name="Loader2"
+              size="w-4 h-4"
+              class="animate-spin"
             />
-            <Download
+            <SIcon
               v-else
-              class="w-4 h-4"
+              name="Download"
+              size="w-4 h-4"
             />
             <span>
               {{ manualInstalling
@@ -431,7 +487,10 @@
                   class="platform-modal__close"
                   @click="showPlatformModal = false"
                 >
-                  <X class="w-5 h-5" />
+                  <SIcon
+                    name="X"
+                    size="w-5 h-5"
+                  />
                 </button>
               </div>
               <p class="platform-modal__pkg">
@@ -484,7 +543,10 @@
                   :disabled="modalSelectedPlatforms.length === 0"
                   @click="confirmMarketplaceInstall"
                 >
-                  <Download class="w-4 h-4" />
+                  <SIcon
+                    name="Download"
+                    size="w-4 h-4"
+                  />
                   {{ $t('skills.installTo', { count: modalSelectedPlatforms.length }) }}
                 </button>
               </div>
@@ -503,14 +565,9 @@
 </template>
 
 <script setup lang="ts">
+import SIcon from '@/components/ui/SIcon.vue'
 import { ref, computed, onMounted, reactive } from 'vue'
 import { useI18n } from 'vue-i18n'
-import {
-  Plus, ArrowLeft, TrendingUp, Database, RefreshCw,
-  Search, Loader2, AlertCircle, Store, Download,
-  ArrowUpDown, CheckSquare, Terminal,
-  Github, FolderOpen, Folder, Zap, X
-} from 'lucide-vue-next'
 import MarketplaceSkillCard from '@/components/skills/MarketplaceSkillCard.vue'
 import MarketplacePagination from '@/components/skills/MarketplacePagination.vue'
 import SkillInstallToast from '@/components/skills/SkillInstallToast.vue'
@@ -731,9 +788,9 @@ const npxAvailable = computed(() => npxStatus.value?.available ?? false)
 const npxVersion = computed(() => npxStatus.value?.version)
 
 const manualTabs = [
-  { id: 'github' as ManualSource, label: 'skills.github', icon: Github },
-  { id: 'local' as ManualSource, label: 'skills.local', icon: FolderOpen },
-  { id: 'npx' as ManualSource, label: 'skills.npx', icon: Zap },
+  { id: 'github' as ManualSource, label: 'skills.github', icon: 'Github' },
+  { id: 'local' as ManualSource, label: 'skills.local', icon: 'FolderOpen' },
+  { id: 'npx' as ManualSource, label: 'skills.npx', icon: 'Zap' },
 ]
 
 const canManualInstall = computed(() => {

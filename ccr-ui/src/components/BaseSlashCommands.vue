@@ -26,8 +26,9 @@
                 borderColor: 'color-mix(in srgb, var(--accent-primary) 30%, transparent)'
               }"
             >
-              <Command
-                class="w-6 h-6"
+              <SIcon
+                name="Command"
+                size="w-6 h-6"
                 :style="{ color: 'var(--accent-primary)' }"
               />
             </div>
@@ -76,8 +77,9 @@
               :disabled="loading"
               @click="loadData"
             >
-              <RefreshCw
-                class="w-4 h-4"
+              <SIcon
+                name="RefreshCw"
+                size="w-4 h-4"
                 :class="loading ? 'animate-spin' : ''"
               />
               {{ t('common.refresh') }}
@@ -91,7 +93,10 @@
               }"
               @click="showAddModal = true"
             >
-              <Plus class="w-5 h-5" />
+              <SIcon
+                name="Plus"
+                size="w-5 h-5"
+              />
               {{ t('common.add') }}
             </button>
           </div>
@@ -109,8 +114,10 @@
           <div class="flex items-center gap-3 flex-wrap">
             <!-- 搜索框 -->
             <div class="relative flex-1 min-w-[200px]">
-              <Search
-                class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4"
+              <SIcon
+                name="Search"
+                size="w-4 h-4"
+                class="absolute left-3 top-1/2 -translate-y-1/2"
                 :style="{ color: 'var(--text-muted)' }"
               />
               <input
@@ -158,10 +165,11 @@
               :title="viewStore.sortDir === 'asc' ? t('slashCommands.viewControls.sortAsc') : t('slashCommands.viewControls.sortDesc')"
               @click="viewStore.toggleSortDir()"
             >
-              <ArrowUpDown
-                :size="16"
-                :class="viewStore.sortDir === 'desc' ? 'rotate-180' : ''"
+              <SIcon
+                name="ArrowUpDown"
+                size="w-4 h-4"
                 class="transition-transform"
+                :class="viewStore.sortDir === 'desc' ? 'rotate-180' : ''"
               />
             </button>
 
@@ -179,7 +187,10 @@
                 :title="t('slashCommands.viewControls.flatView')"
                 @click="viewStore.setViewMode('flat')"
               >
-                <List :size="16" />
+                <SIcon
+                  name="List"
+                  size="w-4 h-4"
+                />
               </button>
               <button
                 class="p-2 transition-colors"
@@ -190,7 +201,10 @@
                 :title="t('slashCommands.viewControls.treeView')"
                 @click="viewStore.setViewMode('tree')"
               >
-                <FolderTree :size="16" />
+                <SIcon
+                  name="FolderTree"
+                  size="w-4 h-4"
+                />
               </button>
             </div>
 
@@ -204,7 +218,10 @@
               }"
               @click="viewStore.toggleShowDeprecated()"
             >
-              <EyeOff :size="14" />
+              <SIcon
+                name="EyeOff"
+                size="w-3.5 h-3.5"
+              />
               <span class="hidden sm:inline">{{ viewStore.showDeprecated ? t('slashCommands.viewControls.hideDeprecated') : t('slashCommands.viewControls.showDeprecated') }}</span>
             </button>
           </div>
@@ -279,8 +296,9 @@
                 }"
                 @click="viewStore.toggleFolder(folder.name)"
               >
-                <FolderTree
-                  :size="16"
+                <SIcon
+                  name="FolderTree"
+                  size="w-4 h-4"
                   :style="{ color: 'var(--accent-primary)' }"
                 />
                 <span
@@ -291,10 +309,11 @@
                   class="text-sm"
                   :style="{ color: 'var(--text-muted)' }"
                 >({{ folder.commands.length }})</span>
-                <ChevronDown
-                  :size="14"
-                  :class="viewStore.expandedFolders.includes(folder.name) ? 'rotate-180' : ''"
+                <SIcon
+                  name="ChevronDown"
+                  size="w-3.5 h-3.5"
                   class="ml-auto transition-transform"
+                  :class="viewStore.expandedFolders.includes(folder.name) ? 'rotate-180' : ''"
                   :style="{ color: 'var(--text-muted)' }"
                 />
               </button>
@@ -344,9 +363,9 @@
 </template>
 
 <script setup lang="ts">
+import SIcon from '@/components/ui/SIcon.vue'
 import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { Command, Home, Code2, ArrowUpDown, List, FolderTree, EyeOff, Search, RefreshCw, Plus, ChevronDown } from 'lucide-vue-next'
 import { useCommandsViewStore } from '@/stores/commandsView'
 import { logger } from '@/utils/logger'
 
@@ -514,9 +533,9 @@ const breadcrumbItems = computed(() => {
   }
 
   return [
-    { label: t(props.config.i18n.breadcrumb.home), path: '/', icon: Home },
-    { label: t(props.config.i18n.breadcrumb.platform), path: props.config.route.homePath, icon: Code2 },
-    { label: t(props.config.i18n.breadcrumb.current), path: '', icon: Command }
+    { label: t(props.config.i18n.breadcrumb.home), path: '/', icon: 'Home' },
+    { label: t(props.config.i18n.breadcrumb.platform), path: props.config.route.homePath, icon: 'Code2' },
+    { label: t(props.config.i18n.breadcrumb.current), path: '', icon: 'Command' }
   ]
 })
 

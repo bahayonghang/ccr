@@ -15,14 +15,20 @@
             <!-- Header -->
             <div class="add-skill-modal__header">
               <h2 class="add-skill-modal__title">
-                <Plus class="w-5 h-5" />
+                <SIcon
+                  name="Plus"
+                  size="w-5 h-5"
+                />
                 {{ $t('skills.addSkill') }}
               </h2>
               <button
                 class="add-skill-modal__close"
                 @click="close"
               >
-                <X class="w-5 h-5" />
+                <SIcon
+                  name="X"
+                  size="w-5 h-5"
+                />
               </button>
             </div>
 
@@ -35,9 +41,9 @@
                 :class="{ 'add-skill-tab--active': activeSource === tab.id }"
                 @click="activeSource = tab.id"
               >
-                <component
-                  :is="tab.icon"
-                  class="w-4 h-4"
+                <SIcon
+                  :name="tab.icon"
+                  size="w-4 h-4"
                 />
                 <span>{{ $t(tab.label) }}</span>
               </button>
@@ -51,7 +57,10 @@
                 class="tab-content"
               >
                 <div class="input-group">
-                  <Search class="input-icon" />
+                  <SIcon
+                    name="Search"
+                    class="input-icon"
+                  />
                   <input
                     v-model="marketplaceQuery"
                     type="text"
@@ -71,7 +80,10 @@
                 class="tab-content"
               >
                 <div class="input-group">
-                  <Github class="input-icon" />
+                  <SIcon
+                    name="Github"
+                    class="input-icon"
+                  />
                   <input
                     v-model="githubUrl"
                     type="text"
@@ -90,7 +102,10 @@
                 class="tab-content"
               >
                 <div class="input-group">
-                  <FolderOpen class="input-icon" />
+                  <SIcon
+                    name="FolderOpen"
+                    class="input-icon"
+                  />
                   <input
                     v-model="localPath"
                     type="text"
@@ -102,7 +117,10 @@
                     class="browse-btn"
                     @click="handleBrowse"
                   >
-                    <Folder class="w-4 h-4" />
+                    <SIcon
+                      name="Folder"
+                      size="w-4 h-4"
+                    />
                     {{ $t('skills.browse') }}
                   </button>
                 </div>
@@ -130,7 +148,10 @@
                   </span>
                 </div>
                 <div class="input-group">
-                  <Zap class="input-icon" />
+                  <SIcon
+                    name="Zap"
+                    class="input-icon"
+                  />
                   <input
                     v-model="npxPackage"
                     type="text"
@@ -208,13 +229,16 @@
                 :disabled="!canInstall || isInstalling"
                 @click="handleInstall"
               >
-                <Loader2
+                <SIcon
                   v-if="isInstalling"
-                  class="w-4 h-4 animate-spin"
+                  name="Loader2"
+                  size="w-4 h-4"
+                  class="animate-spin"
                 />
-                <Download
+                <SIcon
                   v-else
-                  class="w-4 h-4"
+                  name="Download"
+                  size="w-4 h-4"
                 />
                 <span>
                   {{ isInstalling
@@ -232,11 +256,9 @@
 </template>
 
 <script setup lang="ts">
+import SIcon from '@/components/ui/SIcon.vue'
 import { ref, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import {
-  Plus, X, Search, Github, FolderOpen, Folder, Zap, Download, Loader2, Store
-} from 'lucide-vue-next'
 import { useUnifiedSkills } from '@/composables/useUnifiedSkills'
 import type { ImportSource, PlatformSummary } from '@/types/skills'
 import { getErrorMessage } from '@/utils/errorHandler'
@@ -265,10 +287,10 @@ const {
 
 // Tab 定义
 const tabs = [
-  { id: 'marketplace' as ImportSource, label: 'skills.tabMarketplace', icon: Store },
-  { id: 'github' as ImportSource, label: 'skills.github', icon: Github },
-  { id: 'local' as ImportSource, label: 'skills.local', icon: FolderOpen },
-  { id: 'npx' as ImportSource, label: 'skills.npx', icon: Zap },
+  { id: 'marketplace' as ImportSource, label: 'skills.tabMarketplace', icon: 'Store' },
+  { id: 'github' as ImportSource, label: 'skills.github', icon: 'Github' },
+  { id: 'local' as ImportSource, label: 'skills.local', icon: 'FolderOpen' },
+  { id: 'npx' as ImportSource, label: 'skills.npx', icon: 'Zap' },
 ]
 
 // 状态

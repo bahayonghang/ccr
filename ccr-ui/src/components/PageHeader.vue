@@ -5,7 +5,11 @@
         class="text-2xl font-bold"
         :style="{ color: 'var(--text-primary)' }"
       >
-        <Command class="inline-block w-7 h-7 mr-2" />
+        <SIcon
+          name="Command"
+          size="w-7 h-7"
+          class="inline-block mr-2"
+        />
         {{ title }}
       </h2>
       <span
@@ -29,7 +33,10 @@
           border: '1px solid var(--border-color)'
         }"
       >
-        <Home class="w-4 h-4" />
+        <SIcon
+          name="Home"
+          size="w-4 h-4"
+        />
         <span>{{ $t('common.backToHome') }}</span>
       </RouterLink>
     </div>
@@ -37,8 +44,7 @@
 </template>
 
 <script setup lang="ts">
-import { Command, Home } from 'lucide-vue-next'
-
+import SIcon from '@/components/ui/SIcon.vue'
 // Props
 interface Props {
   title: string

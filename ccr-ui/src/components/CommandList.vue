@@ -5,7 +5,11 @@
     :style="{ color: 'var(--text-secondary)' }"
   >
     <div class="inline-flex items-center gap-2">
-      <RefreshCw class="w-4 h-4 animate-spin" />
+      <SIcon
+        name="RefreshCw"
+        size="w-4 h-4"
+        class="animate-spin"
+      />
       <span>{{ $t('common.loading') }}</span>
     </div>
   </div>
@@ -87,7 +91,10 @@
           :aria-label="command.enabled ? $t('common.disable') : $t('common.enable')"
           @click="$emit('toggle', command.name)"
         >
-          <Power class="w-4 h-4" />
+          <SIcon
+            name="Power"
+            size="w-4 h-4"
+          />
         </button>
         <button
           class="p-2 rounded-lg transition-colors hover:opacity-80"
@@ -99,7 +106,10 @@
           :aria-label="$t('common.edit')"
           @click="$emit('edit', command)"
         >
-          <Edit class="w-4 h-4" />
+          <SIcon
+            name="Edit"
+            size="w-4 h-4"
+          />
         </button>
         <button
           class="p-2 rounded-lg transition-colors hover:text-red-500"
@@ -111,7 +121,10 @@
           :aria-label="$t('common.delete')"
           @click="$emit('delete', command.name)"
         >
-          <Trash2 class="w-4 h-4" />
+          <SIcon
+            name="Trash2"
+            size="w-4 h-4"
+          />
         </button>
       </div>
     </div>
@@ -119,8 +132,7 @@
 </template>
 
 <script setup lang="ts">
-import { RefreshCw, Power, Edit, Trash2 } from 'lucide-vue-next'
-
+import SIcon from '@/components/ui/SIcon.vue'
 interface SlashCommand {
   name: string
   command: string

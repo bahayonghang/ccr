@@ -17,7 +17,11 @@
       v-else-if="error"
       class="p-4 rounded-xl bg-accent-danger/10 border border-accent-danger/20 flex items-center gap-3 text-accent-danger"
     >
-      <AlertCircle class="w-5 h-5 shrink-0" />
+      <SIcon
+        name="AlertCircle"
+        size="w-5 h-5"
+        class="shrink-0"
+      />
       <span>{{ $t('configs.operationFailed') }}: {{ error }}</span>
     </div>
 
@@ -27,7 +31,11 @@
       class="py-20 flex flex-col items-center justify-center text-white/50"
     >
       <div class="w-16 h-16 rounded-2xl glass-surface flex items-center justify-center mb-4">
-        <Settings class="w-8 h-8 opacity-20" />
+        <SIcon
+          name="Settings"
+          size="w-8 h-8"
+          class="opacity-20"
+        />
       </div>
       <p>{{ $t('configs.noConfigsInCategory') }}</p>
     </div>
@@ -52,7 +60,7 @@
 </template>
 
 <script setup lang="ts">
-import { AlertCircle, Settings } from 'lucide-vue-next'
+import SIcon from '@/components/ui/SIcon.vue'
 import type { ConfigItem } from '@/types'
 import ConfigCard from '@/components/ConfigCard.vue'
 import Spinner from '@/components/ui/Spinner.vue'

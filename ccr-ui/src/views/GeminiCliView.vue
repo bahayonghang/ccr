@@ -10,7 +10,11 @@
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
           <div class="flex items-center gap-5">
             <div class="w-16 h-16 rounded-2xl bg-platform-gemini/10 flex items-center justify-center border border-platform-gemini/20 shadow-lg backdrop-blur-md">
-              <Sparkles class="w-8 h-8 text-platform-gemini" />
+              <SIcon
+                name="Sparkles"
+                size="w-8 h-8"
+                class="text-platform-gemini"
+              />
             </div>
             <div>
               <h1 class="text-4xl font-bold font-display bg-gradient-to-r from-platform-gemini via-platform-iflow to-accent-success bg-clip-text text-transparent tracking-tight">
@@ -27,7 +31,10 @@
               variant="glass"
               class="gap-2"
             >
-              <Home class="w-4 h-4" />
+              <SIcon
+                name="Home"
+                size="w-4 h-4"
+              />
               {{ $t('common.backToHome') }}
             </Button>
           </RouterLink>
@@ -36,16 +43,28 @@
         <!-- Tags -->
         <div class="flex flex-wrap gap-3">
           <span class="px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider bg-platform-gemini/10 text-platform-gemini border border-platform-gemini/20 flex items-center gap-2">
-            <Server class="w-3 h-3" /> MCP Server
+            <SIcon
+              name="Server"
+              size="w-3 h-3"
+            /> MCP Server
           </span>
           <span class="px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider bg-accent-success/10 text-accent-success border border-accent-success/20 flex items-center gap-2">
-            <Bot class="w-3 h-3" /> Smart Agents
+            <SIcon
+              name="Bot"
+              size="w-3 h-3"
+            /> Smart Agents
           </span>
           <span class="px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider bg-platform-claude/10 text-platform-claude border border-platform-claude/20 flex items-center gap-2">
-            <Puzzle class="w-3 h-3" /> Plugin System
+            <SIcon
+              name="Puzzle"
+              size="w-3 h-3"
+            /> Plugin System
           </span>
           <span class="px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider bg-platform-iflow/10 text-platform-iflow border border-platform-iflow/20 flex items-center gap-2">
-            <Sparkles class="w-3 h-3" /> Multimodal
+            <SIcon
+              name="Sparkles"
+              size="w-3 h-3"
+            /> Multimodal
           </span>
         </div>
       </section>
@@ -56,7 +75,11 @@
         style="animation-delay: 100ms"
       >
         <div class="flex items-center gap-3 mb-6">
-          <Boxes class="w-5 h-5 text-platform-gemini" />
+          <SIcon
+            name="Boxes"
+            size="w-5 h-5"
+            class="text-platform-gemini"
+          />
           <h2 class="text-lg font-bold uppercase tracking-widest text-white/50">
             {{ $t('common.modules') }}
           </h2>
@@ -76,7 +99,10 @@
               class="h-full p-6 flex items-start gap-4"
             >
               <div class="p-3 rounded-xl bg-platform-gemini/10 text-platform-gemini group-hover:scale-110 transition-transform duration-300">
-                <Server class="w-6 h-6" />
+                <SIcon
+                  name="Server"
+                  size="w-6 h-6"
+                />
               </div>
               <div>
                 <h3 class="text-lg font-bold text-white mb-1 group-hover:text-platform-gemini transition-colors">
@@ -102,7 +128,10 @@
               class="h-full p-6 flex items-start gap-4"
             >
               <div class="p-3 rounded-xl bg-accent-success/10 text-accent-success group-hover:scale-110 transition-transform duration-300">
-                <Bot class="w-6 h-6" />
+                <SIcon
+                  name="Bot"
+                  size="w-6 h-6"
+                />
               </div>
               <div>
                 <h3 class="text-lg font-bold text-white mb-1 group-hover:text-accent-success transition-colors">
@@ -128,7 +157,10 @@
               class="h-full p-6 flex items-start gap-4"
             >
               <div class="p-3 rounded-xl bg-platform-claude/10 text-platform-claude group-hover:scale-110 transition-transform duration-300">
-                <Puzzle class="w-6 h-6" />
+                <SIcon
+                  name="Puzzle"
+                  size="w-6 h-6"
+                />
               </div>
               <div>
                 <h3 class="text-lg font-bold text-white mb-1 group-hover:text-platform-claude transition-colors">
@@ -154,7 +186,10 @@
               class="h-full p-6 flex items-start gap-4"
             >
               <div class="p-3 rounded-xl bg-platform-iflow/10 text-platform-iflow group-hover:scale-110 transition-transform duration-300">
-                <Command class="w-6 h-6" />
+                <SIcon
+                  name="Command"
+                  size="w-6 h-6"
+                />
               </div>
               <div>
                 <h3 class="text-lg font-bold text-white mb-1 group-hover:text-platform-iflow transition-colors">
@@ -181,7 +216,10 @@
         >
           <div class="flex items-start gap-4">
             <div class="p-3 rounded-xl bg-platform-gemini/10 text-platform-gemini shrink-0">
-              <Info class="w-6 h-6" />
+              <SIcon
+                name="Info"
+                size="w-6 h-6"
+              />
             </div>
             <div class="space-y-4">
               <h3 class="text-lg font-bold text-white">
@@ -214,8 +252,8 @@
 </template>
 
 <script setup lang="ts">
+import SIcon from '@/components/ui/SIcon.vue'
 import { RouterLink } from 'vue-router'
-import { Server, Bot, Puzzle, Command, Home, Sparkles, Boxes, Info } from 'lucide-vue-next'
 import AnimatedBackground from '@/components/common/AnimatedBackground.vue'
 import Card from '@/components/ui/Card.vue'
 import Button from '@/components/ui/Button.vue'

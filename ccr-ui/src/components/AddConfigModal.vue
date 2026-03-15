@@ -21,7 +21,10 @@
       <div class="sticky top-0 z-10 px-6 py-4 border-b border-white/5 glass-surface backdrop-blur-md flex items-center justify-between">
         <div class="flex items-center gap-3">
           <div class="p-2 rounded-lg bg-accent-success/10 text-accent-success">
-            <Plus class="w-5 h-5" />
+            <SIcon
+              name="Plus"
+              size="w-5 h-5"
+            />
           </div>
           <div>
             <h2
@@ -40,7 +43,10 @@
           size="icon"
           @click="handleClose"
         >
-          <X class="w-5 h-5" />
+          <SIcon
+            name="X"
+            size="w-5 h-5"
+          />
         </Button>
       </div>
 
@@ -231,9 +237,9 @@
 </template>
 
 <script setup lang="ts">
+import SIcon from '@/components/ui/SIcon.vue'
 import { ref, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { Plus, X } from 'lucide-vue-next'
 import { useFocusTrap, useEscapeKey, useUniqueId } from '@/composables/useAccessibility'
 import { addConfig } from '@/api'
 import Card from '@/components/ui/Card.vue'

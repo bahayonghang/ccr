@@ -32,7 +32,11 @@
         <div class="relative group">
           <div class="absolute inset-0 bg-accent-primary/30 blur-xl rounded-full group-hover:bg-accent-primary/50 transition-colors duration-500 animate-pulse-glow" />
           <div class="relative w-10 h-10 rounded-xl glass-effect flex items-center justify-center border border-accent-primary/30 shadow-neon-jade group-hover:scale-110 group-hover:border-accent-primary/60 transition-[color,background-color,border-color,transform] duration-300">
-            <Terminal class="w-5 h-5 text-accent-primary drop-shadow-neon" />
+            <SIcon
+              name="Terminal"
+              size="w-5 h-5"
+              class="text-accent-primary drop-shadow-neon"
+            />
           </div>
         </div>
         <div>
@@ -82,9 +86,9 @@
                 : 'text-white/50 hover:bg-bg-hover hover:text-white'"
               @click="activeTab = tab.id"
             >
-              <component
-                :is="tab.icon"
-                class="w-4 h-4"
+              <SIcon
+                :name="tab.icon || ''"
+                size="w-4 h-4"
               />
               <span>{{ tab.label }}</span>
               <!-- Tab 激活光效 -->
@@ -138,7 +142,10 @@
                         class="mt-0.5 w-7 h-7 rounded-lg bg-bg-secondary flex items-center justify-center group-hover:scale-110 transition-transform"
                         :class="selectedCommand?.command === cmd.command ? 'bg-accent-primary text-white' : 'text-white/50 group-hover:text-accent-primary'"
                       >
-                        <Terminal class="w-4 h-4" />
+                        <SIcon
+                          name="Terminal"
+                          size="w-4 h-4"
+                        />
                       </div>
                       <div class="flex-1 min-w-0">
                         <div class="flex items-center justify-between mb-0.5">
@@ -147,12 +154,16 @@
                             :class="selectedCommand?.command === cmd.command ? 'text-accent-primary' : 'text-white'"
                           >{{ cmd.name }}</span>
                           <div class="flex gap-1">
-                            <AlertTriangle
+                            <SIcon
                               v-if="cmd.dangerous"
-                              class="w-3 h-3 text-accent-danger animate-pulse"
+                              name="AlertTriangle"
+                              size="w-3 h-3"
+                              class="text-accent-danger animate-pulse"
                             />
-                            <Star 
-                              class="w-3 h-3 transition-transform cursor-pointer hover:scale-125"
+                            <SIcon
+                              name="Star"
+                              size="w-3 h-3"
+                              class="transition-transform cursor-pointer hover:scale-125"
                               :class="isFavorite(cmd.command) ? 'text-accent-warning fill-accent-warning' : 'text-transparent stroke-text-muted hover:stroke-accent-warning'"
                               @click.stop="toggleFavorite(cmd)"
                             />
@@ -180,7 +191,11 @@
                   v-if="favorites.length === 0"
                   class="h-full flex flex-col items-center justify-center text-white/50"
                 >
-                  <Star class="w-8 h-8 opacity-20 mb-2" />
+                  <SIcon
+                    name="Star"
+                    size="w-8 h-8"
+                    class="opacity-20 mb-2"
+                  />
                   <span class="text-xs">{{ $t('ccrControl.noFavorites') }}</span>
                 </div>
                 <div
@@ -195,7 +210,10 @@
                       class="text-white/50 hover:text-accent-danger transition-colors"
                       @click.stop="removeFromFavorites(fav.id)"
                     >
-                      <X class="w-3 h-3" />
+                      <SIcon
+                        name="X"
+                        size="w-3 h-3"
+                      />
                     </button>
                   </div>
                   <div class="text-[10px] font-mono text-white/80 mb-2">
@@ -203,7 +221,11 @@
                   </div>
                   <div class="flex justify-end">
                     <button class="p-1.5 rounded-lg bg-accent-warning/10 text-accent-warning hover:bg-accent-warning hover:text-white transition-colors">
-                      <Play class="w-3 h-3 fill-current" />
+                      <SIcon
+                        name="Play"
+                        size="w-3 h-3"
+                        class="fill-current"
+                      />
                     </button>
                   </div>
                 </div>
@@ -221,7 +243,10 @@
                     class="text-[10px] flex items-center gap-1 text-white/50 hover:text-accent-danger px-2 py-1 hover:bg-bg-hover rounded transition-colors"
                     @click="clearHistoryData"
                   >
-                    <Trash2 class="w-3 h-3" />
+                    <SIcon
+                      name="Trash2"
+                      size="w-3 h-3"
+                    />
                     {{ $t('ccrControl.clearHistory') }}
                   </button>
                 </div>
@@ -230,7 +255,11 @@
                     v-if="history.length === 0"
                     class="h-full flex flex-col items-center justify-center text-white/50"
                   >
-                    <History class="w-8 h-8 opacity-20 mb-2" />
+                    <SIcon
+                      name="History"
+                      size="w-8 h-8"
+                      class="opacity-20 mb-2"
+                    />
                     <span class="text-xs">{{ $t('ccrControl.noHistory') }}</span>
                   </div>
                   <div
@@ -252,7 +281,11 @@
                         <span>{{ item.duration_ms }}ms</span>
                       </div>
                     </div>
-                    <Play class="w-3 h-3 text-white/50 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <SIcon
+                      name="Play"
+                      size="w-3 h-3"
+                      class="text-white/50 opacity-0 group-hover:opacity-100 transition-opacity"
+                    />
                   </div>
                 </div>
               </div>
@@ -270,7 +303,11 @@
           padding="none"
         >
           <div class="p-3 border-b border-border-color bg-gradient-to-r from-accent-primary/5 to-transparent flex items-center gap-2">
-            <Settings class="w-4 h-4 text-accent-primary" />
+            <SIcon
+              name="Settings"
+              size="w-4 h-4"
+              class="text-accent-primary"
+            />
             <span class="text-xs font-bold text-white">{{ selectedCommand ? $t('ccrControl.commandParams') : $t('ccrControl.selectCommandFirst') }}</span>
           </div>
            
@@ -290,13 +327,17 @@
                   :disabled="isExecuting"
                   @click="executeCommand(selectedCommand)"
                 >
-                  <Loader2
+                  <SIcon
                     v-if="isExecuting"
-                    class="w-4 h-4 animate-spin"
+                    name="Loader2"
+                    size="w-4 h-4"
+                    class="animate-spin"
                   />
-                  <Play
+                  <SIcon
                     v-else
-                    class="w-4 h-4 fill-current"
+                    name="Play"
+                    size="w-4 h-4"
+                    class="fill-current"
                   />
                   {{ isExecuting ? $t('ccrControl.executing') : $t('ccrControl.execute') }}
                 </button>
@@ -385,7 +426,11 @@
               v-else
               class="py-8 flex flex-col items-center justify-center text-white/50 opacity-50"
             >
-              <Terminal class="w-12 h-12 mb-2" />
+              <SIcon
+                name="Terminal"
+                size="w-12 h-12"
+                class="mb-2"
+              />
               <p class="text-xs">
                 {{ $t('ccrControl.selectCommandHint') }}
               </p>
@@ -399,7 +444,11 @@
           <div class="flex-none px-4 py-3 border-b border-border-color bg-bg-secondary/50 flex items-center justify-between backdrop-blur-md">
             <div class="flex items-center gap-2">
               <div class="p-1 rounded bg-accent-primary/10">
-                <Monitor class="w-4 h-4 text-accent-primary" />
+                <SIcon
+                  name="Monitor"
+                  size="w-4 h-4"
+                  class="text-accent-primary"
+                />
               </div>
               <span class="text-xs font-bold text-white">{{ $t('ccrControl.output') }}</span>
               <span class="text-[10px] px-1.5 py-0.5 rounded-full bg-bg-tertiary text-white/50 font-mono">{{ outputLines.length }} lines</span>
@@ -411,9 +460,9 @@
                 class="flex items-center gap-1.5 px-2 py-1 rounded-md text-[10px] font-mono font-bold border transition-colors animate-fade-in"
                 :class="lastExitCode === 0 ? 'bg-accent-success/10 text-accent-success border-accent-success/30' : 'bg-accent-danger/10 text-accent-danger border-accent-danger/30'"
               >
-                <component
-                  :is="lastExitCode === 0 ? CheckCircle : XCircle"
-                  class="w-3.5 h-3.5"
+                <SIcon
+                  :name="lastExitCode === 0 ? 'CheckCircle' : 'XCircle'"
+                  size="w-3.5 h-3.5"
                 />
                 <span>Exited: {{ lastExitCode }}</span>
               </div>
@@ -423,7 +472,10 @@
                 :title="$t('ccrControl.clearOutput')"
                 @click="clearOutput"
               >
-                <Trash2 class="w-4 h-4" />
+                <SIcon
+                  name="Trash2"
+                  size="w-4 h-4"
+                />
               </button>
             </div>
           </div>
@@ -446,7 +498,11 @@
                 v-if="outputLines.length === 0"
                 class="h-full flex flex-col items-center justify-center text-gray-600 opacity-50"
               >
-                <Terminal class="w-16 h-16 mb-4" />
+                <SIcon
+                  name="Terminal"
+                  size="w-16 h-16"
+                  class="mb-4"
+                />
                 <span class="text-xs tracking-[0.2em] uppercase font-bold">Ready for Input</span>
               </div>
 
@@ -481,24 +537,9 @@
 </template>
 
 <script setup lang="ts">
+import SIcon from '@/components/ui/SIcon.vue'
 import { ref, watch, nextTick } from 'vue'
 import { AnsiUp } from 'ansi_up'
-import {
-  Terminal,
-  Star,
-  History,
-  Play,
-  X,
-  CheckCircle,
-  XCircle,
-  Settings,
-  AlertTriangle,
-  Monitor,
-  Trash2,
-  Loader2,
-  List
-} from 'lucide-vue-next'
-
 import Card from '@/components/ui/Card.vue'
 import ThemeToggle from '@/components/ThemeToggle.vue'
 import { useCcrControl } from '@/composables/useCcrControl'
@@ -537,10 +578,10 @@ const activeTab = ref<'commands' | 'favorites' | 'history'>('commands')
 const outputContainer = ref<HTMLElement | null>(null)
 
 // Sidebar Tabs Configuration
-const sidebarTabs: { id: 'commands' | 'favorites' | 'history'; label: string; icon: unknown }[] = [
-  { id: 'commands', label: 'Commands', icon: List },
-  { id: 'favorites', label: 'Favorites', icon: Star },
-  { id: 'history', label: 'History', icon: History }
+const sidebarTabs: { id: 'commands' | 'favorites' | 'history'; label: string; icon: string }[] = [
+  { id: 'commands', label: 'Commands', icon: 'List' },
+  { id: 'favorites', label: 'Favorites', icon: 'Star' },
+  { id: 'history', label: 'History', icon: 'History' }
 ]
 
 

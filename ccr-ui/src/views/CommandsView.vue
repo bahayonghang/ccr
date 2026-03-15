@@ -20,7 +20,11 @@
       <div class="mb-6 mt-6">
         <div class="flex items-center gap-3 mb-2">
           <div class="p-2 rounded-lg bg-bg-surface">
-            <Terminal class="w-6 h-6 text-accent-secondary" />
+            <SIcon
+              name="Terminal"
+              size="w-6 h-6"
+              class="text-accent-secondary"
+            />
           </div>
           <div>
             <h1 class="text-2xl font-bold text-text-primary">
@@ -64,9 +68,9 @@
                   class="rounded-md p-1.5 transition-colors"
                   :class="selectedClient === client.id ? client.surfaceClass : 'bg-bg-surface text-text-secondary'"
                 >
-                  <component
-                    :is="client.icon"
-                    class="w-4 h-4"
+                  <SIcon
+                    :name="client.icon || ''"
+                    size="w-4 h-4"
                     :class="selectedClient === client.id ? client.textClass : 'text-text-secondary'"
                   />
                 </div>
@@ -78,9 +82,11 @@
                   {{ client.name }}
                 </span>
                 
-                <ChevronRight 
+                <SIcon
                   v-if="selectedClient === client.id"
-                  class="w-4 h-4 ml-auto text-text-secondary"
+                  name="ChevronRight"
+                  size="w-4 h-4"
+                  class="ml-auto text-text-secondary"
                 />
               </button>
             </div>
@@ -118,9 +124,11 @@
                   >
                     {{ cmd.name }}
                   </span>
-                  <ChevronRight 
+                  <SIcon
                     v-if="selectedCommand === cmd.name"
-                    class="w-4 h-4 text-accent-secondary"
+                    name="ChevronRight"
+                    size="w-4 h-4"
+                    class="text-accent-secondary"
                   />
                 </div>
                 <p class="text-xs mt-1 line-clamp-1 text-text-secondary">
@@ -142,9 +150,10 @@
             <div class="mb-6">
               <div class="flex items-center gap-3 mb-2">
                 <div class="p-2 rounded-lg bg-bg-surface">
-                  <component
-                    :is="currentClientInfo?.icon"
-                    class="w-6 h-6 text-text-primary"
+                  <SIcon
+                    :name="currentClientInfo?.icon || ''"
+                    size="w-6 h-6"
+                    class="text-text-primary"
                   />
                 </div>
                 <div>
@@ -163,7 +172,10 @@
               class="rounded-2xl border border-border-default/60 bg-bg-base/95 p-4 font-mono text-sm shadow-inner"
             >
               <div class="mb-2 flex items-center gap-2 text-xs text-text-muted opacity-70 select-none">
-                <Terminal class="w-3 h-3" />
+                <SIcon
+                  name="Terminal"
+                  size="w-3 h-3"
+                />
                 <span>COMMAND INPUT</span>
               </div>
               <div class="flex items-center gap-3 flex-wrap">
@@ -232,13 +244,16 @@
                 :disabled="loading"
                 @click="handleExecute"
               >
-                <Loader2
+                <SIcon
                   v-if="loading"
-                  class="w-4 h-4 animate-spin"
+                  name="Loader2"
+                  size="w-4 h-4"
+                  class="animate-spin"
                 />
-                <Play
+                <SIcon
                   v-else
-                  class="w-4 h-4"
+                  name="Play"
+                  size="w-4 h-4"
                 />
                 {{ loading ? $t('commands.executing') : $t('commands.executeCommand') }}
               </button>
@@ -274,7 +289,10 @@
                   :aria-label="$t('commands.copyOutput')"
                   @click="handleCopyOutput"
                 >
-                  <Copy class="w-3.5 h-3.5" />
+                  <SIcon
+                    name="Copy"
+                    size="w-3.5 h-3.5"
+                  />
                 </button>
                 <button
                   type="button"
@@ -283,7 +301,10 @@
                   :aria-label="$t('commands.clearOutputButton')"
                   @click="handleClearOutput"
                 >
-                  <Trash2 class="w-3.5 h-3.5" />
+                  <SIcon
+                    name="Trash2"
+                    size="w-3.5 h-3.5"
+                  />
                 </button>
               </div>
             </div>
@@ -295,7 +316,11 @@
                 class="absolute inset-0 flex items-center justify-center bg-black/20 backdrop-blur-md"
               >
                 <div class="flex flex-col items-center gap-3">
-                  <Loader2 class="w-8 h-8 text-accent-secondary animate-spin" />
+                  <SIcon
+                    name="Loader2"
+                    size="w-8 h-8"
+                    class="text-accent-secondary animate-spin"
+                  />
                   <span class="animate-pulse text-xs text-text-muted">Processing command...</span>
                 </div>
               </div>
@@ -340,7 +365,11 @@
                 v-else-if="!loading"
                 class="flex h-full flex-col items-center justify-center gap-2 text-text-muted"
               >
-                <Terminal class="w-12 h-12 opacity-20" />
+                <SIcon
+                  name="Terminal"
+                  size="w-12 h-12"
+                  class="opacity-20"
+                />
                 <p class="text-sm">
                   Ready to execute commands
                 </p>
@@ -354,14 +383,10 @@
 </template>
 
 <script setup lang="ts">
+import SIcon from '@/components/ui/SIcon.vue'
 import { ref, computed, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
-import {
-  Zap, Sparkles, Gem, Workflow,
-  Play, Copy, Trash2, Terminal,
-  ChevronRight, Loader2, Code2
-} from 'lucide-vue-next'
 import hljs from 'highlight.js/lib/core'
 import bash from 'highlight.js/lib/languages/bash'
 import json from 'highlight.js/lib/languages/json'
@@ -388,11 +413,11 @@ const route = useRoute()
 const router = useRouter()
 
 const CLI_CLIENTS = [
-  { id: 'ccr' as CliClient, name: 'CCR', icon: Zap, surfaceClass: 'bg-accent-primary/10', textClass: 'text-accent-primary', markerClass: 'bg-accent-primary' },
-  { id: 'claude' as CliClient, name: 'Claude Code', icon: Code2, surfaceClass: 'bg-accent-secondary/10', textClass: 'text-accent-secondary', markerClass: 'bg-accent-secondary' },
-  { id: 'qwen' as CliClient, name: 'Qwen', icon: Sparkles, surfaceClass: 'bg-accent-warning/10', textClass: 'text-accent-warning', markerClass: 'bg-accent-warning' },
-  { id: 'gemini' as CliClient, name: 'Gemini', icon: Gem, surfaceClass: 'bg-accent-info/10', textClass: 'text-accent-info', markerClass: 'bg-accent-info' },
-  { id: 'iflow' as CliClient, name: 'IFLOW', icon: Workflow, surfaceClass: 'bg-accent-primary/10', textClass: 'text-accent-primary', markerClass: 'bg-accent-primary' }
+  { id: 'ccr' as CliClient, name: 'CCR', icon: 'Zap', surfaceClass: 'bg-accent-primary/10', textClass: 'text-accent-primary', markerClass: 'bg-accent-primary' },
+  { id: 'claude' as CliClient, name: 'Claude Code', icon: 'Code2', surfaceClass: 'bg-accent-secondary/10', textClass: 'text-accent-secondary', markerClass: 'bg-accent-secondary' },
+  { id: 'qwen' as CliClient, name: 'Qwen', icon: 'Sparkles', surfaceClass: 'bg-accent-warning/10', textClass: 'text-accent-warning', markerClass: 'bg-accent-warning' },
+  { id: 'gemini' as CliClient, name: 'Gemini', icon: 'Gem', surfaceClass: 'bg-accent-info/10', textClass: 'text-accent-info', markerClass: 'bg-accent-info' },
+  { id: 'iflow' as CliClient, name: 'IFLOW', icon: 'Workflow', surfaceClass: 'bg-accent-primary/10', textClass: 'text-accent-primary', markerClass: 'bg-accent-primary' }
 ]
 
 const selectedClient = ref<CliClient>('ccr')

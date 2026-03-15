@@ -6,7 +6,10 @@
       <!-- Installed Skills Card -->
       <div class="stats-card stats-card--primary">
         <div class="stats-card__icon">
-          <Package class="w-5 h-5" />
+          <SIcon
+            name="Package"
+            size="w-5 h-5"
+          />
         </div>
         <div class="stats-card__content">
           <span class="stats-card__value">{{ stats.installed }}</span>
@@ -16,14 +19,20 @@
           v-if="stats.installed > 0"
           class="stats-card__trend"
         >
-          <Sparkles class="w-3 h-3" />
+          <SIcon
+            name="Sparkles"
+            size="w-3 h-3"
+          />
         </div>
       </div>
 
       <!-- Available Skills Card -->
       <div class="stats-card stats-card--secondary">
         <div class="stats-card__icon">
-          <Globe class="w-5 h-5" />
+          <SIcon
+            name="Globe"
+            size="w-5 h-5"
+          />
         </div>
         <div class="stats-card__content">
           <span class="stats-card__value">
@@ -35,7 +44,10 @@
           v-if="cached"
           class="stats-card__badge"
         >
-          <Clock class="w-3 h-3" />
+          <SIcon
+            name="Clock"
+            size="w-3 h-3"
+          />
           <span>{{ $t('skills.cached') }}</span>
         </div>
       </div>
@@ -44,7 +56,11 @@
     <!-- Right: Platform Overview -->
     <div class="platform-overview">
       <div class="platform-overview__header">
-        <Cpu class="w-3.5 h-3.5 text-white/50" />
+        <SIcon
+          name="Cpu"
+          size="w-3.5 h-3.5"
+          class="text-white/50"
+        />
         <span class="text-xs font-bold uppercase tracking-wide text-white/80">
           {{ $t('skills.allPlatformStats') }}
         </span>
@@ -63,9 +79,9 @@
             'platform-chip--inactive': !platform.active
           }"
         >
-          <component
-            :is="getPlatformIcon(platform.id)"
-            class="w-3.5 h-3.5"
+          <SIcon
+            :name="getPlatformIcon(platform.id)"
+            size="w-3.5 h-3.5"
             :style="{ color: platform.active ? platform.color : undefined }"
           />
           <span class="platform-chip__name">{{ platform.name }}</span>
@@ -88,16 +104,13 @@
 </template>
 
 <script setup lang="ts">
+import SIcon from '@/components/ui/SIcon.vue'
 import { computed } from 'vue'
-import {
-  Package, Globe, Cpu, Sparkles, Clock,
-  Code2, Settings, Zap, Activity, Bot
-} from 'lucide-vue-next'
 import type { SkillsStats, PlatformSummary, Platform } from '@/types/skills'
 import { PLATFORM_CONFIG } from '@/types/skills'
 
 // Use Sparkles for Gemini icon
-const GeminiIcon = Sparkles
+const GeminiIcon = 'Sparkles'
 
 const props = defineProps<{
   stats: SkillsStats
@@ -118,15 +131,15 @@ const platformIndicators = computed(() => {
 })
 
 function getPlatformIcon(platformId: string) {
-  const iconMap: Record<string, unknown> = {
-    'claude-code': Code2,
-    'codex': Settings,
+  const iconMap: Record<string, string> = {
+    'claude-code': 'Code2',
+    'codex': 'Settings',
     'gemini': GeminiIcon,
-    'qwen': Zap,
-    'iflow': Activity,
-    'droid': Bot
+    'qwen': 'Zap',
+    'iflow': 'Activity',
+    'droid': 'Bot'
   }
-  return iconMap[platformId] || Code2
+  return iconMap[platformId] || 'Code2'
 }
 
 function formatNumber(num: number): string {

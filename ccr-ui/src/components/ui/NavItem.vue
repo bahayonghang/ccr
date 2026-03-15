@@ -19,10 +19,10 @@
       :class="iconClasses"
     >
       <slot name="icon">
-        <component
-          :is="icon"
+        <SIcon
           v-if="icon"
-          class="w-5 h-5"
+          :name="icon"
+          size="w-5 h-5"
         />
       </slot>
     </div>
@@ -60,15 +60,15 @@
 </template>
 
 <script setup lang="ts">
+import SIcon from '@/components/ui/SIcon.vue'
 import { computed } from 'vue'
-import type { Component } from 'vue'
 import type { RouteLocationRaw } from 'vue-router'
 
 interface Props {
   /** 路由链接地址 */
   to?: RouteLocationRaw
   /** 图标组件 */
-  icon?: Component
+  icon?: string
   /** 标签文字 */
   label?: string
   /** 是否为活跃状态 */

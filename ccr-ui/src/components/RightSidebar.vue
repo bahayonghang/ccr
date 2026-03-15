@@ -13,7 +13,10 @@
         title="收起侧边栏"
         @click="$emit('toggleCollapse')"
       >
-        <PanelLeftClose class="w-4 h-4" />
+        <SIcon
+          name="PanelLeftClose"
+          size="w-4 h-4"
+        />
       </button>
     </div>
 
@@ -25,7 +28,10 @@
           title="展开侧边栏"
           @click="$emit('toggleCollapse')"
         >
-          <PanelLeftOpen class="w-4 h-4" />
+          <SIcon
+            name="PanelLeftOpen"
+            size="w-4 h-4"
+          />
         </button>
         
         <div class="w-8 h-[1px] bg-border-subtle" />
@@ -34,13 +40,19 @@
           class="min-h-[44px] min-w-[44px] p-2 rounded-lg text-text-muted hover:bg-bg-surface hover:text-text-primary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary/30"
           :title="'搜索'"
         >
-          <Search class="w-4 h-4" />
+          <SIcon
+            name="Search"
+            size="w-4 h-4"
+          />
         </button>
         <button
           class="min-h-[44px] min-w-[44px] p-2 rounded-lg text-emerald-500 hover:bg-bg-surface transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary/30"
           :title="'筛选'"
         >
-          <Layers class="w-4 h-4" />
+          <SIcon
+            name="Layers"
+            size="w-4 h-4"
+          />
         </button>
         
         <div class="w-8 h-[1px] bg-border-subtle" />
@@ -77,7 +89,11 @@
         <h2
           class="text-sm font-bold flex items-center gap-2 text-primary"
         >
-          <Layers class="w-4 h-4 text-emerald-500" />
+          <SIcon
+            name="Layers"
+            size="w-4 h-4"
+            class="text-emerald-500"
+          />
           配置列表
         </h2>
         <div class="flex items-center gap-1.5 text-xs">
@@ -89,8 +105,10 @@
 
       <!-- 🔍 搜索框 -->
       <div class="relative mb-4">
-        <Search
-          class="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/50"
+        <SIcon
+          name="Search"
+          size="w-3.5 h-3.5"
+          class="absolute left-3 top-1/2 -translate-y-1/2 text-white/50"
         />
         <input
           v-model="searchQuery"
@@ -117,9 +135,10 @@
           @click="toggleCategory(category.key)"
         >
           <div class="flex items-center gap-1.5 min-w-0">
-            <component 
-              :is="category.icon" 
-              class="w-3.5 h-3.5 shrink-0"
+            <SIcon
+              :name="category.icon"
+              size="w-3.5 h-3.5"
+              class="shrink-0"
               :class="expandedCategory === category.key ? '' : category.iconColor"
             />
             <span class="truncate font-medium whitespace-nowrap">{{ category.label }}</span>
@@ -142,11 +161,17 @@
             class="flex items-center gap-1.5 mb-2 cursor-pointer select-none group"
             @click="toggleCategory('official_relay')"
           >
-            <ChevronDown
-              class="w-3 h-3 transition-transform text-cyan-400"
+            <SIcon
+              name="ChevronDown"
+              size="w-3 h-3"
+              class="transition-transform text-cyan-400"
               :class="{ 'rotate-[-90deg]': expandedCategory !== 'all' && expandedCategory !== 'official_relay' }"
             />
-            <Zap class="w-3.5 h-3.5 text-cyan-400" />
+            <SIcon
+              name="Zap"
+              size="w-3.5 h-3.5"
+              class="text-cyan-400"
+            />
             <span class="text-[10px] font-bold uppercase tracking-wide text-cyan-400 group-hover:text-cyan-300 transition-colors">
               官方中转
             </span>
@@ -170,11 +195,17 @@
             class="flex items-center gap-1.5 mb-2 cursor-pointer select-none group"
             @click="toggleCategory('third_party_model')"
           >
-            <ChevronDown
-              class="w-3 h-3 transition-transform text-violet-400"
+            <SIcon
+              name="ChevronDown"
+              size="w-3 h-3"
+              class="transition-transform text-violet-400"
               :class="{ 'rotate-[-90deg]': expandedCategory !== 'all' && expandedCategory !== 'third_party_model' }"
             />
-            <Cpu class="w-3.5 h-3.5 text-violet-400" />
+            <SIcon
+              name="Cpu"
+              size="w-3.5 h-3.5"
+              class="text-violet-400"
+            />
             <span class="text-[10px] font-bold uppercase tracking-wide text-violet-400 group-hover:text-violet-300 transition-colors">
               第三方模型
             </span>
@@ -198,11 +229,17 @@
             class="flex items-center gap-1.5 mb-2 cursor-pointer select-none group"
             @click="toggleCategory('uncategorized')"
           >
-            <ChevronDown
-              class="w-3 h-3 transition-transform text-amber-400"
+            <SIcon
+              name="ChevronDown"
+              size="w-3 h-3"
+              class="transition-transform text-amber-400"
               :class="{ 'rotate-[-90deg]': expandedCategory !== 'all' && expandedCategory !== 'uncategorized' }"
             />
-            <HelpCircle class="w-3.5 h-3.5 text-amber-400" />
+            <SIcon
+              name="HelpCircle"
+              size="w-3.5 h-3.5"
+              class="text-amber-400"
+            />
             <span class="text-[10px] font-bold uppercase tracking-wide text-amber-400 group-hover:text-amber-300 transition-colors">
               未分类
             </span>
@@ -226,8 +263,10 @@
         v-if="filteredConfigs.length === 0"
         class="text-center py-6"
       >
-        <Search
-          class="w-5 h-5 mx-auto mb-2 text-muted"
+        <SIcon
+          name="Search"
+          size="w-5 h-5"
+          class="mx-auto mb-2 text-muted"
         />
         <p
           class="text-xs text-muted"
@@ -240,8 +279,8 @@
 </template>
 
 <script setup lang="ts">
+import SIcon from '@/components/ui/SIcon.vue'
 import { computed, ref, watch } from 'vue'
-import { ChevronDown, Search, Layers, LayoutGrid, Zap, Cpu, HelpCircle, PanelLeftOpen, PanelLeftClose } from 'lucide-vue-next'
 import type { ConfigItem as ConfigItemType } from '@/types'
 import ConfigItem from './ConfigItem.vue'
 
@@ -336,7 +375,7 @@ const categories = computed(() => [
     key: 'all' as FilterType,
     label: '全部',
     count: props.configs.length,
-    icon: LayoutGrid,
+    icon: 'LayoutGrid',
     iconColor: 'text-emerald-400',
     activeBackground: 'linear-gradient(135deg, rgba(var(--color-success-rgb), 0.15), rgba(var(--color-cyan-rgb), 0.15))',
     activeColor: 'var(--color-success)',
@@ -346,7 +385,7 @@ const categories = computed(() => [
     key: 'official_relay' as FilterType,
     label: '官方中转',
     count: props.configs.filter(c => c.provider_type === 'OfficialRelay' || c.provider_type === 'official_relay').length,
-    icon: Zap,
+    icon: 'Zap',
     iconColor: 'text-cyan-400',
     activeBackground: 'linear-gradient(135deg, rgba(var(--color-cyan-rgb), 0.15), rgba(var(--color-info-rgb), 0.15))',
     activeColor: 'var(--color-cyan)',
@@ -356,7 +395,7 @@ const categories = computed(() => [
     key: 'third_party_model' as FilterType,
     label: '第三方',
     count: props.configs.filter(c => c.provider_type === 'ThirdPartyModel' || c.provider_type === 'third_party_model').length,
-    icon: Cpu,
+    icon: 'Cpu',
     iconColor: 'text-violet-400',
     activeBackground: 'linear-gradient(135deg, rgba(var(--color-teal-rgb), 0.15), rgba(var(--color-success-rgb), 0.15))',
     activeColor: 'var(--color-teal)',
@@ -366,7 +405,7 @@ const categories = computed(() => [
     key: 'uncategorized' as FilterType,
     label: '未分类',
     count: props.configs.filter(c => !c.provider_type).length,
-    icon: HelpCircle,
+    icon: 'HelpCircle',
     iconColor: 'text-amber-400',
     activeBackground: 'rgba(var(--color-gray-rgb), 0.12)',
     activeColor: 'var(--color-text-muted)',

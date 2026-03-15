@@ -28,7 +28,11 @@
         <div class="flex items-center justify-between">
           <div class="flex items-center space-x-4">
             <div class="flex items-center space-x-2">
-              <Zap class="w-6 h-6 text-accent-primary" />
+              <SIcon
+                name="Zap"
+                size="w-6 h-6"
+                class="text-accent-primary"
+              />
               <h1
                 class="text-xl font-bold"
                 :style="{ color: 'var(--text-primary)' }"
@@ -55,13 +59,15 @@
               :aria-label="`切换到${currentTheme === 'dark' ? '明亮' : '深色'}模式`"
               @click="toggleTheme"
             >
-              <Moon
+              <SIcon
                 v-if="currentTheme === 'dark'"
-                class="w-5 h-5"
+                name="Moon"
+                size="w-5 h-5"
               />
-              <Sun
+              <SIcon
                 v-else
-                class="w-5 h-5"
+                name="Sun"
+                size="w-5 h-5"
               />
             </button>
           </div>
@@ -93,8 +99,8 @@
 </template>
 
 <script setup lang="ts">
+import SIcon from '@/components/ui/SIcon.vue'
 import { computed } from 'vue'
-import { Zap, Moon, Sun } from 'lucide-vue-next'
 import { useThemeStore } from '@/store'
 
 const themeStore = useThemeStore()

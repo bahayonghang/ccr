@@ -58,8 +58,10 @@
         >
           默认
         </span>
-        <ChevronRight
-          class="w-3 h-3 text-text-muted opacity-0 group-hover:opacity-70 transition-opacity shrink-0"
+        <SIcon
+          name="ChevronRight"
+          size="w-3 h-3"
+          class="text-text-muted opacity-0 group-hover:opacity-70 transition-opacity shrink-0"
         />
       </div>
     </div>
@@ -67,8 +69,8 @@
 </template>
 
 <script setup lang="ts">
+import SIcon from '@/components/ui/SIcon.vue'
 import { computed } from 'vue'
-import { ChevronRight } from 'lucide-vue-next'
 import type { ConfigItem } from '@/types'
 
 interface Props {

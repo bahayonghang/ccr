@@ -10,7 +10,10 @@
             title="返回账号列表"
             @click="goBack"
           >
-            <ArrowLeft class="w-4 h-4" />
+            <SIcon
+              name="ArrowLeft"
+              size="w-4 h-4"
+            />
           </button>
           <div>
             <div class="header-title">
@@ -37,7 +40,10 @@
             :disabled="loading || !dashboard || checkinLoading"
             @click="handleCheckin"
           >
-            <CheckCircle2 class="w-4 h-4" />
+            <SIcon
+              name="CheckCircle2"
+              size="w-4 h-4"
+            />
             签到
           </button>
           <button
@@ -45,7 +51,10 @@
             :disabled="loading || !dashboard || balanceLoading"
             @click="handleBalanceRefresh"
           >
-            <Wallet class="w-4 h-4" />
+            <SIcon
+              name="Wallet"
+              size="w-4 h-4"
+            />
             刷新余额
           </button>
           <button
@@ -53,8 +62,9 @@
             :disabled="loading"
             @click="loadDashboard"
           >
-            <RefreshCw
-              class="w-4 h-4"
+            <SIcon
+              name="RefreshCw"
+              size="w-4 h-4"
               :class="{ 'animate-spin': loading }"
             />
             刷新
@@ -93,14 +103,20 @@
           <div class="stats-card-vertical">
             <div class="vertical-header">
               <div class="stats-icon purple">
-                <TrendingUp class="w-4 h-4" />
+                <SIcon
+                  name="TrendingUp"
+                  size="w-4 h-4"
+                />
               </div>
               <h2>账号统计</h2>
             </div>
             <div class="vertical-items">
               <div class="vertical-stat">
                 <div class="vertical-icon green">
-                  <Wallet class="w-4 h-4" />
+                  <SIcon
+                    name="Wallet"
+                    size="w-4 h-4"
+                  />
                 </div>
                 <span class="vertical-label">当前余额</span>
                 <span class="vertical-value green">
@@ -109,7 +125,10 @@
               </div>
               <div class="vertical-stat">
                 <div class="vertical-icon blue">
-                  <TrendingUp class="w-4 h-4" />
+                  <SIcon
+                    name="TrendingUp"
+                    size="w-4 h-4"
+                  />
                 </div>
                 <span class="vertical-label">总额度</span>
                 <span class="vertical-value blue">
@@ -118,7 +137,10 @@
               </div>
               <div class="vertical-stat">
                 <div class="vertical-icon orange">
-                  <History class="w-4 h-4" />
+                  <SIcon
+                    name="History"
+                    size="w-4 h-4"
+                  />
                 </div>
                 <span class="vertical-label">历史消耗</span>
                 <span class="vertical-value orange">
@@ -132,28 +154,40 @@
           <div class="stats-card-vertical">
             <div class="vertical-header">
               <div class="stats-icon orange">
-                <CalendarDays class="w-4 h-4" />
+                <SIcon
+                  name="CalendarDays"
+                  size="w-4 h-4"
+                />
               </div>
               <h2>签到统计</h2>
             </div>
             <div class="vertical-items">
               <div class="vertical-stat">
                 <div class="vertical-icon orange">
-                  <Flame class="w-4 h-4" />
+                  <SIcon
+                    name="Flame"
+                    size="w-4 h-4"
+                  />
                 </div>
                 <span class="vertical-label">当前连续</span>
                 <span class="vertical-value orange">{{ dashboard.streak.current_streak }} <small>天</small></span>
               </div>
               <div class="vertical-stat">
                 <div class="vertical-icon yellow">
-                  <Trophy class="w-4 h-4" />
+                  <SIcon
+                    name="Trophy"
+                    size="w-4 h-4"
+                  />
                 </div>
                 <span class="vertical-label">最长连续</span>
                 <span class="vertical-value">{{ dashboard.streak.longest_streak }} <small>天</small></span>
               </div>
               <div class="vertical-stat">
                 <div class="vertical-icon purple">
-                  <Calendar class="w-4 h-4" />
+                  <SIcon
+                    name="Calendar"
+                    size="w-4 h-4"
+                  />
                 </div>
                 <span class="vertical-label">总签到天数</span>
                 <span class="vertical-value purple">{{ dashboard.streak.total_check_in_days }} <small>天</small></span>
@@ -232,9 +266,9 @@
 </template>
 
 <script setup lang="ts">
+import SIcon from '@/components/ui/SIcon.vue'
 import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ArrowLeft, CheckCircle2, RefreshCw, Wallet, TrendingUp, History, CalendarDays, Flame, Trophy, Calendar } from 'lucide-vue-next'
 import { checkinAccount, getCheckinAccountDashboard, queryCheckinBalance } from '@/api'
 import type { BalanceSnapshot, CheckinAccountDashboardResponse } from '@/types/checkin'
 import { extractStringParam } from '@/types/router'

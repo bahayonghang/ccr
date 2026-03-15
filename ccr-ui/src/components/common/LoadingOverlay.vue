@@ -15,10 +15,10 @@
         v-if="mode === 'spinner'"
         class="loading-spinner"
       >
-        <Loader2
-          :size="48"
-          :stroke-width="2"
+        <SIcon
+          name="Loader2"
           class="spinner-icon"
+          size="w-12 h-12"
         />
         <span
           v-if="$slots.default"
@@ -54,8 +54,8 @@
 </template>
 
 <script setup lang="ts">
+import SIcon from '@/components/ui/SIcon.vue'
 import { computed } from 'vue'
-import { Loader2 } from 'lucide-vue-next'
 import Skeleton from './Skeleton.vue'
 
 // Props 定义

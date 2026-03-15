@@ -2,10 +2,11 @@
   <div class="mb-6 flex items-center justify-between">
     <!-- 搜索框 -->
     <div class="relative flex-1 max-w-md">
-      <Search
-        class="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4"
+      <SIcon
+        name="Search"
+        size="w-4 h-4"
+        class="absolute left-3 top-1/2 transform -translate-y-1/2"
         :style="{ color: 'var(--text-muted)' }"
-        aria-hidden="true"
       />
       <input
         v-model="searchQuery"
@@ -36,9 +37,12 @@
         :aria-label="$t('common.refresh')"
         @click="$emit('refresh')"
       >
-        <RefreshCw
+        <SIcon
+          name="RefreshCw"
+          size="h-4',"
+          class="['w-4 loading ? 'animate-spin' : '']"
           :class="['w-4 h-4', loading ? 'animate-spin' : '']"
-          aria-hidden="true"
+          :
         />
         {{ $t('common.refresh') }}
       </button>
@@ -54,9 +58,9 @@
         :aria-label="$t('common.add')"
         @click="$emit('add-command')"
       >
-        <Plus
-          class="w-4 h-4"
-          aria-hidden="true"
+        <SIcon
+          name="Plus"
+          size="w-4 h-4"
         />
         {{ $t('common.add') }}
       </button>
@@ -65,9 +69,8 @@
 </template>
 
 <script setup lang="ts">
+import SIcon from '@/components/ui/SIcon.vue'
 import { computed } from 'vue'
-import { Search, RefreshCw, Plus } from 'lucide-vue-next'
-
 // Props
 interface Props {
   modelValue: string

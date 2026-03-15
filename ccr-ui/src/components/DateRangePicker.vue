@@ -8,7 +8,11 @@
       @click="togglePicker"
     >
       <span class="flex min-w-0 items-center gap-2">
-        <Calendar class="h-4 w-4 flex-none" />
+        <SIcon
+          name="Calendar"
+          size="h-4 w-4"
+          class="flex-none"
+        />
         <span class="truncate">
           <span v-if="!modelValue.startDate && !modelValue.endDate">
             Select Date Range
@@ -18,8 +22,10 @@
           </span>
         </span>
       </span>
-      <ChevronDown
-        class="h-4 w-4 flex-none transition-transform duration-300"
+      <SIcon
+        name="ChevronDown"
+        size="h-4 w-4"
+        class="flex-none transition-transform duration-300"
         :class="{ 'rotate-180': isOpen }"
       />
     </button>
@@ -114,9 +120,8 @@
 </template>
 
 <script setup lang="ts">
+import SIcon from '@/components/ui/SIcon.vue'
 import { ref, watch } from 'vue'
-import { Calendar, ChevronDown } from 'lucide-vue-next'
-
 interface DateRange {
   startDate: string | null
   endDate: string | null

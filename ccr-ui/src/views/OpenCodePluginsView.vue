@@ -10,7 +10,10 @@
             to="/opencode"
             class="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl border border-border-default/60 bg-bg-surface/70 text-text-secondary transition-colors hover:border-accent-success/30 hover:text-text-primary"
           >
-            <ChevronLeft class="w-5 h-5" />
+            <SIcon
+              name="ChevronLeft"
+              size="w-5 h-5"
+            />
           </RouterLink>
           <div>
             <h1 class="text-2xl font-bold text-text-primary">
@@ -26,7 +29,10 @@
           class="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl bg-accent-success px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-accent-success/90 focus:outline-none focus:ring-2 focus:ring-accent-success/30"
           @click="showAddDialog = true"
         >
-          <Plus class="w-4 h-4" />
+          <SIcon
+            name="Plus"
+            size="w-4 h-4"
+          />
           添加插件
         </button>
       </div>
@@ -64,7 +70,10 @@
         class="p-10 text-center"
       >
         <div class="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-accent-success/10 text-accent-success">
-          <Package class="w-7 h-7" />
+          <SIcon
+            name="Package"
+            size="w-7 h-7"
+          />
         </div>
         <h3 class="mb-2 text-lg font-bold text-text-primary">
           暂无插件
@@ -95,7 +104,10 @@
           <div class="flex items-center justify-between gap-4">
             <div class="flex items-center gap-3 min-w-0">
               <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-accent-success/10 text-accent-success">
-                <Package class="w-4 h-4" />
+                <SIcon
+                  name="Package"
+                  size="w-4 h-4"
+                />
               </div>
               <div class="min-w-0">
                 <p class="truncate font-mono text-sm font-medium text-text-primary">
@@ -113,7 +125,10 @@
               title="删除"
               @click="confirmDelete(plugin.npm)"
             >
-              <Trash2 class="w-4 h-4" />
+              <SIcon
+                name="Trash2"
+                size="w-4 h-4"
+              />
             </button>
           </div>
         </Card>
@@ -158,9 +173,11 @@
             class="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl bg-accent-success px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-accent-success/90 focus:outline-none focus:ring-2 focus:ring-accent-success/30 disabled:cursor-not-allowed disabled:opacity-50"
             @click="doAdd"
           >
-            <Loader2
+            <SIcon
               v-if="saving"
-              class="w-4 h-4 animate-spin"
+              name="Loader2"
+              size="w-4 h-4"
+              class="animate-spin"
             />
             添加
           </button>
@@ -195,9 +212,11 @@
             class="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl bg-accent-danger px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-accent-danger/90 focus:outline-none focus:ring-2 focus:ring-accent-danger/30 disabled:cursor-not-allowed disabled:opacity-50"
             @click="doDelete"
           >
-            <Loader2
+            <SIcon
               v-if="saving"
-              class="w-4 h-4 animate-spin"
+              name="Loader2"
+              size="w-4 h-4"
+              class="animate-spin"
             />
             删除
           </button>
@@ -208,8 +227,8 @@
 </template>
 
 <script setup lang="ts">
+import SIcon from '@/components/ui/SIcon.vue'
 import { ref, onMounted } from 'vue'
-import { ChevronLeft, Plus, Package, Trash2, Loader2 } from 'lucide-vue-next'
 import AnimatedBackground from '@/components/common/AnimatedBackground.vue'
 import Card from '@/components/ui/Card.vue'
 import BaseModal from '@/components/common/BaseModal.vue'

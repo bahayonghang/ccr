@@ -8,11 +8,7 @@
       class="glass-surface mb-4 flex h-20 w-20 items-center justify-center rounded-full text-text-muted"
       aria-hidden="true"
     >
-      <component
-        :is="icon"
-        :size="48"
-        :stroke-width="1.5"
-      />
+      <SIcon :name="icon" />
     </div>
     <h3 class="mb-2 text-xl font-semibold text-text-primary">
       {{ title }}
@@ -28,11 +24,10 @@
       class="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-lg border border-accent-primary/20 bg-accent-primary/90 px-4 py-2 text-base font-medium text-text-inverted transition-[background-color,transform,box-shadow] duration-200 ease-out hover:-translate-y-px hover:bg-accent-primary hover:shadow-glow-primary active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary/30"
       @click="onAction"
     >
-      <component
-        :is="actionIcon"
+      <SIcon
         v-if="actionIcon"
-        class="w-[18px] h-[18px]"
-        aria-hidden="true"
+        :name="actionIcon"
+        size="w-[18px] h-[18px]"
       />
       {{ actionText }}
     </button>
@@ -40,19 +35,18 @@
 </template>
 
 <script setup lang="ts">
-import type { Component } from 'vue'
-import { FileX } from 'lucide-vue-next'
+import SIcon from '@/components/ui/SIcon.vue'
 
 interface Props {
-  icon?: Component
+  icon?: string
   title: string
   description?: string
   actionText?: string
-  actionIcon?: Component
+  actionIcon?: string
   onAction?: () => void
 }
 
 withDefaults(defineProps<Props>(), {
-  icon: () => FileX,
+  icon: () => 'FileX',
 })
 </script>

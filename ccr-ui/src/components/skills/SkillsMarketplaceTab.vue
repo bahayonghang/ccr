@@ -4,8 +4,10 @@
     <div class="marketplace-controls">
       <div class="marketplace-search">
         <div class="relative flex-1">
-          <Search
-            class="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/50"
+          <SIcon
+            name="Search"
+            size="w-5 h-5"
+            class="absolute left-4 top-1/2 -translate-y-1/2 text-white/50"
           />
           <input
             v-model="searchQuery"
@@ -21,13 +23,16 @@
           :disabled="isLoading"
           @click="handleSearch"
         >
-          <Loader2
+          <SIcon
             v-if="isLoading"
-            class="w-4 h-4 animate-spin"
+            name="Loader2"
+            size="w-4 h-4"
+            class="animate-spin"
           />
-          <Search
+          <SIcon
             v-else
-            class="w-4 h-4"
+            name="Search"
+            size="w-4 h-4"
           />
           <span>{{ $t('common.search') }}</span>
         </button>
@@ -48,7 +53,11 @@
         <div class="toolbar-right">
           <!-- Sort Dropdown -->
           <div class="sort-select">
-            <ArrowUpDown class="w-3.5 h-3.5 text-white/50" />
+            <SIcon
+              name="ArrowUpDown"
+              size="w-3.5 h-3.5"
+              class="text-white/50"
+            />
             <select
               v-model="sortBy"
               class="sort-dropdown"
@@ -68,7 +77,10 @@
             :class="{ 'btn-batch--active': batchMode }"
             @click="toggleBatchMode"
           >
-            <CheckSquare class="w-4 h-4" />
+            <SIcon
+              name="CheckSquare"
+              size="w-4 h-4"
+            />
             <span>{{ $t('skills.batchMode') }}</span>
           </button>
         </div>
@@ -80,7 +92,11 @@
       v-if="error"
       class="error-state"
     >
-      <AlertCircle class="w-8 h-8 text-danger" />
+      <SIcon
+        name="AlertCircle"
+        size="w-8 h-8"
+        class="text-danger"
+      />
       <p class="text-danger mt-2">
         {{ error }}
       </p>
@@ -91,7 +107,11 @@
       v-else-if="!isLoading && sortedItems.length === 0"
       class="empty-state"
     >
-      <Store class="w-12 h-12 text-white/50" />
+      <SIcon
+        name="Store"
+        size="w-12 h-12"
+        class="text-white/50"
+      />
       <h3 class="text-lg font-semibold text-white mt-4">
         {{ $t('skills.noMarketplaceResults') }}
       </h3>
@@ -177,7 +197,10 @@
             class="batch-bar__install"
             @click="handleBatchInstall"
           >
-            <Download class="w-4 h-4" />
+            <SIcon
+              name="Download"
+              size="w-4 h-4"
+            />
             {{ $t('skills.batchInstall') }}
           </button>
         </div>
@@ -187,16 +210,8 @@
 </template>
 
 <script setup lang="ts">
+import SIcon from '@/components/ui/SIcon.vue'
 import { ref, computed, watch } from 'vue'
-import {
-  Search,
-  Loader2,
-  AlertCircle,
-  Store,
-  Download,
-  ArrowUpDown,
-  CheckSquare
-} from 'lucide-vue-next'
 import MarketplaceSkillCard from './MarketplaceSkillCard.vue'
 import MarketplacePagination from './MarketplacePagination.vue'
 import type { MarketplaceItem } from '@/types/skills'

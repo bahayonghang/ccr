@@ -16,8 +16,9 @@
           <!-- Header -->
           <div class="flex items-center justify-between mb-6">
             <div class="flex items-center gap-3">
-              <Puzzle
-                class="w-6 h-6"
+              <SIcon
+                name="Puzzle"
+                size="w-6 h-6"
                 :style="{ color: 'var(--accent-primary)' }"
               />
               <h1
@@ -37,14 +38,20 @@
                 class="inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-colors"
                 :style="{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)', border: '1px solid var(--border-color)' }"
               >
-                <ArrowLeft class="w-4 h-4" /><span>{{ $t('common.back') }}</span>
+                <SIcon
+                  name="ArrowLeft"
+                  size="w-4 h-4"
+                /><span>{{ $t('common.back') }}</span>
               </RouterLink>
               <button
                 class="px-4 py-2 rounded-lg font-semibold text-sm text-white flex items-center gap-2"
                 :style="{ background: 'linear-gradient(135deg, var(--accent-primary), var(--accent-secondary))', boxShadow: '0 0 20px var(--glow-primary)' }"
                 @click="openAddForm"
               >
-                <Plus class="w-4 h-4" />{{ $t(`${i18nPrefix}.addPlugin`) }}
+                <SIcon
+                  name="Plus"
+                  size="w-4 h-4"
+                />{{ $t(`${i18nPrefix}.addPlugin`) }}
               </button>
             </div>
           </div>
@@ -97,8 +104,10 @@
                   :style="{ background: 'var(--bg-secondary)' }"
                   @click="toggleExpanded(plugin)"
                 >
-                  <ChevronDown
-                    class="w-4 h-4 transition-transform"
+                  <SIcon
+                    name="ChevronDown"
+                    size="w-4 h-4"
+                    class="transition-transform"
                     :style="{ transform: plugin._expanded ? 'rotate(180deg)' : 'rotate(0deg)', color: 'var(--text-secondary)' }"
                   />
                 </button>
@@ -125,7 +134,10 @@
                   :title="$t('common.expand')"
                   @click="toggleExpanded(plugin)"
                 >
-                  <Eye class="w-4 h-4" />
+                  <SIcon
+                    name="Eye"
+                    size="w-4 h-4"
+                  />
                 </button>
                 <button
                   class="p-2 rounded-lg transition-transform hover:scale-110"
@@ -133,7 +145,10 @@
                   :title="$t('common.edit')"
                   @click="openEditForm(plugin)"
                 >
-                  <Edit2 class="w-4 h-4" />
+                  <SIcon
+                    name="Edit2"
+                    size="w-4 h-4"
+                  />
                 </button>
                 <button
                   class="p-2 rounded-lg transition-transform hover:scale-110"
@@ -141,7 +156,10 @@
                   :title="$t('common.delete')"
                   @click="deletePlugin(plugin)"
                 >
-                  <Trash2 class="w-4 h-4" />
+                  <SIcon
+                    name="Trash2"
+                    size="w-4 h-4"
+                  />
                 </button>
               </div>
             </div>
@@ -227,10 +245,10 @@
 </template>
 
 <script setup lang="ts">
+import SIcon from '@/components/ui/SIcon.vue'
 import { computed, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { Puzzle, Plus, Edit2, Trash2, ArrowLeft, Home, Eye, ChevronDown } from 'lucide-vue-next'
 import CollapsibleSidebar from '@/components/CollapsibleSidebar.vue'
 import { Breadcrumb } from '@/components/ui'
 import { useDroidPlugins } from '@/composables/useDroidPlugins'
@@ -261,16 +279,16 @@ const {
 // ============ Computed ============
 
 /** 平台图标 */
-const platformIcon = computed(() => Puzzle)
+const platformIcon = computed(() => 'Puzzle')
 
 /** 平台显示名称 */
 const platformName = computed(() => 'Droid')
 
 /** 面包屑导航项 */
 const breadcrumbItems = computed(() => [
-  { label: t('common.home'), path: '/', icon: Home },
+  { label: t('common.home'), path: '/', icon: 'Home' },
   { label: platformName.value, path: parentPath.value, icon: platformIcon.value },
-  { label: t(`${i18nPrefix.value}.title`), path: `${parentPath.value}/plugins`, icon: Puzzle },
+  { label: t(`${i18nPrefix.value}.title`), path: `${parentPath.value}/plugins`, icon: 'Puzzle' },
 ])
 
 // ============ Lifecycle ============

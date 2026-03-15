@@ -12,9 +12,10 @@
             : 'bg-bg-surface text-text-muted hover:text-text-primary border border-transparent'"
           @click="currentMode = mode.value as 'edit' | 'preview' | 'split'"
         >
-          <component
-            :is="mode.icon"
-            class="w-3.5 h-3.5 inline mr-1"
+          <SIcon
+            :name="mode.icon"
+            size="w-3.5 h-3.5"
+            class="inline mr-1"
           />
           {{ mode.label }}
         </button>
@@ -77,9 +78,9 @@
 </template>
 
 <script setup lang="ts">
+import SIcon from '@/components/ui/SIcon.vue'
 import { ref, computed, watch, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { Code, Eye, Columns } from 'lucide-vue-next'
 import { marked } from 'marked'
 import { sanitizeMarkdown } from '@/utils/sanitize'
 
@@ -106,9 +107,9 @@ const currentMode = ref<'edit' | 'preview' | 'split'>('split')
 
 // 视图模式配置
 const viewModes = [
-  { value: 'edit', label: t('editor.edit'), icon: Code },
-  { value: 'split', label: t('editor.split'), icon: Columns },
-  { value: 'preview', label: t('editor.preview'), icon: Eye }
+  { value: 'edit', label: t('editor.edit'), icon: 'Code' },
+  { value: 'split', label: t('editor.split'), icon: 'Columns' },
+  { value: 'preview', label: t('editor.preview'), icon: 'Eye' }
 ]
 
 // 可用的变量占位符

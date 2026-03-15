@@ -16,7 +16,10 @@
           <div class="modal-header">
             <div class="flex items-center gap-3">
               <div class="modal-icon">
-                <Download class="w-5 h-5" />
+                <SIcon
+                  name="Download"
+                  size="w-5 h-5"
+                />
               </div>
               <div>
                 <h2 class="text-lg font-bold text-white">
@@ -31,7 +34,10 @@
               class="p-2 rounded-lg text-white/50 hover:text-white hover:bg-white/5 transition-colors"
               @click="close"
             >
-              <X class="w-5 h-5" />
+              <SIcon
+                name="X"
+                size="w-5 h-5"
+              />
             </button>
           </div>
 
@@ -43,7 +49,10 @@
               class="skill-info"
             >
               <div class="flex items-center gap-2 text-sm text-white/80">
-                <Github class="w-4 h-4" />
+                <SIcon
+                  name="Github"
+                  size="w-4 h-4"
+                />
                 <a
                   :href="`https://github.com/${marketplaceItem.owner}/${marketplaceItem.repo}`"
                   target="_blank"
@@ -73,9 +82,9 @@
                       class="w-3 h-3 rounded-full border-2 transition-colors"
                       :class="selectedPlatforms.includes(platform.id) ? 'border-accent-primary bg-accent-primary' : 'border-white/10'"
                     />
-                    <component
-                      :is="getPlatformIcon(platform.id)"
-                      class="w-4 h-4"
+                    <SIcon
+                      :name="getPlatformIcon(platform.id)"
+                      size="w-4 h-4"
                       :style="{ color: getPlatformColor(platform.id) }"
                     />
                     <span>{{ platform.display_name }}</span>
@@ -96,14 +105,20 @@
                 class="quick-action"
                 @click="selectAllDetected"
               >
-                <CheckSquare class="w-4 h-4" />
+                <SIcon
+                  name="CheckSquare"
+                  size="w-4 h-4"
+                />
                 {{ $t('skills.selectAllDetected') }}
               </button>
               <button
                 class="quick-action"
                 @click="selectedPlatforms = []"
               >
-                <Square class="w-4 h-4" />
+                <SIcon
+                  name="Square"
+                  size="w-4 h-4"
+                />
                 {{ $t('common.clearSelection') }}
               </button>
             </div>
@@ -113,7 +128,10 @@
               v-if="error"
               class="error-message"
             >
-              <AlertCircle class="w-4 h-4" />
+              <SIcon
+                name="AlertCircle"
+                size="w-4 h-4"
+              />
               <span>{{ error }}</span>
             </div>
           </div>
@@ -131,13 +149,16 @@
               :disabled="selectedPlatforms.length === 0 || isInstalling"
               @click="handleInstall"
             >
-              <Loader2
+              <SIcon
                 v-if="isInstalling"
-                class="w-4 h-4 animate-spin"
+                name="Loader2"
+                size="w-4 h-4"
+                class="animate-spin"
               />
-              <Download
+              <SIcon
                 v-else
-                class="w-4 h-4"
+                name="Download"
+                size="w-4 h-4"
               />
               <span>
                 {{ isInstalling ? $t('skills.installing') : $t('skills.installTo', { count: selectedPlatforms.length }) }}
@@ -151,22 +172,8 @@
 </template>
 
 <script setup lang="ts">
+import SIcon from '@/components/ui/SIcon.vue'
 import { ref, computed, watch } from 'vue'
-import {
-  Download,
-  X,
-  Github,
-  CheckSquare,
-  Square,
-  AlertCircle,
-  Loader2,
-  Code2,
-  Settings,
-  Sparkles,
-  Zap,
-  Activity,
-  Bot
-} from 'lucide-vue-next'
 import type { UnifiedSkill, MarketplaceItem, Platform, PlatformSummary } from '@/types/skills'
 import { PLATFORM_CONFIG } from '@/types/skills'
 import { getErrorMessage } from '@/utils/errorHandler'
@@ -227,15 +234,15 @@ function getPlatformColor(platformId: string): string {
 }
 
 function getPlatformIcon(platformId: string) {
-  const iconMap: Record<string, unknown> = {
-    'claude-code': Code2,
-    'codex': Settings,
-    'gemini': Sparkles,
-    'qwen': Zap,
-    'iflow': Activity,
-    'droid': Bot
+  const iconMap: Record<string, string> = {
+    'claude-code': 'Code2',
+    'codex': 'Settings',
+    'gemini': 'Sparkles',
+    'qwen': 'Zap',
+    'iflow': 'Activity',
+    'droid': 'Bot'
   }
-  return iconMap[platformId] || Code2
+  return iconMap[platformId] || 'Code2'
 }
 
 async function handleInstall() {

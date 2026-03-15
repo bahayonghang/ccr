@@ -6,10 +6,9 @@
   >
     <!-- 错误图标 -->
     <div class="error-state-icon">
-      <component
-        :is="iconComponent"
-        :size="iconSize"
-        :stroke-width="1.5"
+      <SIcon
+        :name="iconComponent"
+        :
       />
     </div>
 
@@ -32,9 +31,9 @@
         class="error-state-button"
         @click="handleRetry"
       >
-        <RotateCw
-          :size="16"
-          :stroke-width="2"
+        <SIcon
+          name="RotateCw"
+          size="w-4 h-4"
         />
         {{ retryLabel }}
       </button>
@@ -43,13 +42,12 @@
 </template>
 
 <script setup lang="ts">
-import { computed, type Component } from 'vue'
-import { AlertCircle, RotateCw } from 'lucide-vue-next'
-
+import SIcon from '@/components/ui/SIcon.vue'
+import { computed } from 'vue'
 // Props 定义
 interface Props {
   /** 图标组件 (Lucide 图标或自定义组件) */
-  icon?: Component
+  icon?: string
   /** 标题文本 (可选,默认 "出错了") */
   title?: string
   /** 错误消息 */
@@ -72,7 +70,7 @@ const props = withDefaults(defineProps<Props>(), {
 
 // 计算使用的图标组件 (默认为 AlertCircle)
 const iconComponent = computed(() => {
-  return props.icon || AlertCircle
+  return props.icon || 'AlertCircle'
 })
 
 // 计算标题文本 (默认 "出错了")

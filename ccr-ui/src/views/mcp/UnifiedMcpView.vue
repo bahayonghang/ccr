@@ -14,7 +14,11 @@
           </span>
         </div>
         <div class="command-bar__search">
-          <Search class="w-4 h-4 text-[var(--color-text-muted)]" />
+          <SIcon
+            name="Search"
+            size="w-4 h-4"
+            class="text-[var(--color-text-muted)]"
+          />
           <input
             v-model="filterKeyword"
             type="text"
@@ -26,7 +30,10 @@
             class="command-bar__search-clear"
             @click="filterKeyword = ''"
           >
-            <X class="w-3.5 h-3.5" />
+            <SIcon
+              name="X"
+              size="w-3.5 h-3.5"
+            />
           </button>
         </div>
         <div class="command-bar__actions">
@@ -34,7 +41,10 @@
             class="btn-add"
             @click="openAddForm()"
           >
-            <Plus class="w-4 h-4" />
+            <SIcon
+              name="Plus"
+              size="w-4 h-4"
+            />
             <span class="hidden sm:inline">添加</span>
           </button>
           <button
@@ -42,8 +52,9 @@
             :disabled="loading"
             @click="loadServers()"
           >
-            <RefreshCw
-              class="w-4 h-4"
+            <SIcon
+              name="RefreshCw"
+              size="w-4 h-4"
               :class="{ 'animate-spin': loading }"
             />
           </button>
@@ -95,7 +106,11 @@
       v-if="loading && servers.length === 0"
       class="loading-state"
     >
-      <RefreshCw class="w-6 h-6 animate-spin text-[var(--color-accent-primary)]" />
+      <SIcon
+        name="RefreshCw"
+        size="w-6 h-6"
+        class="animate-spin text-[var(--color-accent-primary)]"
+      />
       <p>加载中...</p>
     </div>
 
@@ -103,7 +118,11 @@
       v-else-if="error && servers.length === 0"
       class="error-state"
     >
-      <AlertCircle class="w-8 h-8 text-[var(--color-danger)]" />
+      <SIcon
+        name="AlertCircle"
+        size="w-8 h-8"
+        class="text-[var(--color-danger)]"
+      />
       <p>{{ error }}</p>
       <button
         class="btn-retry"
@@ -117,7 +136,11 @@
       v-else-if="filteredServers.length === 0"
       class="empty-state"
     >
-      <Server class="w-10 h-10 text-[var(--color-text-muted)]" />
+      <SIcon
+        name="Server"
+        size="w-10 h-10"
+        class="text-[var(--color-text-muted)]"
+      />
       <p v-if="hasActiveFilters">
         没有匹配的服务器
       </p>
@@ -161,21 +184,33 @@
             v-if="server.command"
             class="server-card__field"
           >
-            <Terminal class="w-3.5 h-3.5 shrink-0" />
+            <SIcon
+              name="Terminal"
+              size="w-3.5 h-3.5"
+              class="shrink-0"
+            />
             <code class="server-card__code">{{ server.command }}</code>
           </div>
           <div
             v-if="server.url"
             class="server-card__field"
           >
-            <Globe class="w-3.5 h-3.5 shrink-0" />
+            <SIcon
+              name="Globe"
+              size="w-3.5 h-3.5"
+              class="shrink-0"
+            />
             <code class="server-card__code">{{ server.url }}</code>
           </div>
           <div
             v-if="server.args && server.args.length > 0"
             class="server-card__field"
           >
-            <ChevronRight class="w-3.5 h-3.5 shrink-0" />
+            <SIcon
+              name="ChevronRight"
+              size="w-3.5 h-3.5"
+              class="shrink-0"
+            />
             <span class="server-card__args">{{ server.args.join(' ') }}</span>
           </div>
           <div
@@ -201,9 +236,9 @@
             :title="server.disabled ? '启用' : '禁用'"
             @click="toggleServer(server)"
           >
-            <component
-              :is="server.disabled ? ToggleLeft : ToggleRight"
-              class="w-4 h-4"
+            <SIcon
+              :name="server.disabled ? 'ToggleLeft' : 'ToggleRight'"
+              size="w-4 h-4"
             />
           </button>
           <button
@@ -211,14 +246,20 @@
             title="编辑"
             @click="openEditForm(server)"
           >
-            <Pencil class="w-4 h-4" />
+            <SIcon
+              name="Pencil"
+              size="w-4 h-4"
+            />
           </button>
           <button
             class="action-btn action-btn--danger"
             title="删除"
             @click="handleDelete(server)"
           >
-            <Trash2 class="w-4 h-4" />
+            <SIcon
+              name="Trash2"
+              size="w-4 h-4"
+            />
           </button>
         </div>
       </div>
@@ -238,7 +279,10 @@
               class="modal-close"
               @click="closeForm"
             >
-              <X class="w-5 h-5" />
+              <SIcon
+                name="X"
+                size="w-5 h-5"
+              />
             </button>
           </div>
 
@@ -286,7 +330,10 @@
                   :class="{ 'protocol-toggle__btn--active': !isHttpMode }"
                   @click="isHttpMode = false"
                 >
-                  <Terminal class="w-4 h-4" />
+                  <SIcon
+                    name="Terminal"
+                    size="w-4 h-4"
+                  />
                   STDIO
                 </button>
                 <button
@@ -295,7 +342,10 @@
                   :class="{ 'protocol-toggle__btn--active': isHttpMode }"
                   @click="isHttpMode = true"
                 >
-                  <Globe class="w-4 h-4" />
+                  <SIcon
+                    name="Globe"
+                    size="w-4 h-4"
+                  />
                   HTTP
                 </button>
               </div>
@@ -358,7 +408,10 @@
                     class="kv-remove"
                     @click="removeEnvVar(String(key))"
                   >
-                    <X class="w-3 h-3" />
+                    <SIcon
+                      name="X"
+                      size="w-3 h-3"
+                    />
                   </button>
                 </div>
               </div>
@@ -380,7 +433,10 @@
                   class="btn-kv-add"
                   @click="addEnvVar"
                 >
-                  <Plus class="w-3.5 h-3.5" />
+                  <SIcon
+                    name="Plus"
+                    size="w-3.5 h-3.5"
+                  />
                 </button>
               </div>
             </div>
@@ -403,7 +459,10 @@
                     class="kv-remove"
                     @click="removeHeader(String(key))"
                   >
-                    <X class="w-3 h-3" />
+                    <SIcon
+                      name="X"
+                      size="w-3 h-3"
+                    />
                   </button>
                 </div>
               </div>
@@ -425,7 +484,10 @@
                   class="btn-kv-add"
                   @click="addHeader"
                 >
-                  <Plus class="w-3.5 h-3.5" />
+                  <SIcon
+                    name="Plus"
+                    size="w-3.5 h-3.5"
+                  />
                 </button>
               </div>
             </div>
@@ -523,11 +585,18 @@
               class="modal-close"
               @click="showDeleteConfirm = false"
             >
-              <X class="w-5 h-5" />
+              <SIcon
+                name="X"
+                size="w-5 h-5"
+              />
             </button>
           </div>
           <div class="delete-confirm-body">
-            <AlertCircle class="w-10 h-10 text-[var(--color-danger)]" />
+            <SIcon
+              name="AlertCircle"
+              size="w-10 h-10"
+              class="text-[var(--color-danger)]"
+            />
             <p>
               确定要从 <strong>{{ getPlatformLabel(deletingServer?.platform ?? '') }}</strong>
               删除服务器 <strong>{{ deletingServer?.name }}</strong> 吗？
@@ -557,22 +626,8 @@
 </template>
 
 <script setup lang="ts">
+import SIcon from '@/components/ui/SIcon.vue'
 import { ref, onMounted } from 'vue'
-import {
-  Plus,
-  RefreshCw,
-  Search,
-  X,
-  AlertCircle,
-  Server,
-  Terminal,
-  Globe,
-  ChevronRight,
-  Pencil,
-  Trash2,
-  ToggleLeft,
-  ToggleRight,
-} from 'lucide-vue-next'
 import { useUnifiedMcp } from '@/composables/useUnifiedMcp'
 import type { UnifiedMcpServer, UnifiedMcpPlatform } from '@/types/unifiedMcp'
 

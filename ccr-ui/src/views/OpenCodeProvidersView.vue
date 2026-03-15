@@ -10,7 +10,10 @@
             to="/opencode"
             class="p-2 rounded-lg text-white/50 hover:text-white transition-colors"
           >
-            <ChevronLeft class="w-5 h-5" />
+            <SIcon
+              name="ChevronLeft"
+              size="w-5 h-5"
+            />
           </RouterLink>
           <div>
             <h1 class="text-2xl font-bold text-white">
@@ -26,7 +29,10 @@
           style="background: var(--accent-primary); color: white;"
           @click="showAddDialog = true"
         >
-          <Plus class="w-4 h-4" />
+          <SIcon
+            name="Plus"
+            size="w-4 h-4"
+          />
           添加 Provider
         </button>
       </div>
@@ -62,7 +68,11 @@
         variant="glass"
         class="p-10 text-center"
       >
-        <Layers class="w-12 h-12 text-white/50 mx-auto mb-4" />
+        <SIcon
+          name="Layers"
+          size="w-12 h-12"
+          class="text-white/50 mx-auto mb-4"
+        />
         <h3 class="text-lg font-bold text-white mb-2">
           暂无 Provider
         </h3>
@@ -93,7 +103,11 @@
             <div class="flex items-start gap-3 min-w-0">
               <!-- Provider 图标 -->
               <div class="w-10 h-10 rounded-lg bg-violet-500/10 flex items-center justify-center shrink-0">
-                <Layers class="w-5 h-5 text-violet-500" />
+                <SIcon
+                  name="Layers"
+                  size="w-5 h-5"
+                  class="text-violet-500"
+                />
               </div>
 
               <!-- Provider 信息 -->
@@ -112,18 +126,27 @@
                     v-if="provider.options?.apiKey"
                     class="flex items-center gap-1"
                   >
-                    <Key class="w-3 h-3" />
+                    <SIcon
+                      name="Key"
+                      size="w-3 h-3"
+                    />
                     {{ maskApiKey(provider.options.apiKey) }}
                   </span>
                   <span
                     v-if="provider.options?.baseURL"
                     class="flex items-center gap-1"
                   >
-                    <Globe class="w-3 h-3" />
+                    <SIcon
+                      name="Globe"
+                      size="w-3 h-3"
+                    />
                     {{ provider.options.baseURL }}
                   </span>
                   <span class="flex items-center gap-1">
-                    <Cpu class="w-3 h-3" />
+                    <SIcon
+                      name="Cpu"
+                      size="w-3 h-3"
+                    />
                     {{ Object.keys(provider.models || {}).length }} 个模型
                   </span>
                 </div>
@@ -137,14 +160,20 @@
                 title="编辑"
                 @click="editProvider(provider)"
               >
-                <Pencil class="w-4 h-4" />
+                <SIcon
+                  name="Pencil"
+                  size="w-4 h-4"
+                />
               </button>
               <button
                 class="p-2 rounded-lg text-white/50 hover:text-red-400 hover:bg-red-500/10 transition-colors"
                 title="删除"
                 @click="confirmDelete(provider)"
               >
-                <Trash2 class="w-4 h-4" />
+                <SIcon
+                  name="Trash2"
+                  size="w-4 h-4"
+                />
               </button>
             </div>
           </div>
@@ -171,7 +200,10 @@
             class="p-1 rounded text-white/50 hover:text-white transition-colors"
             @click="closeDialog"
           >
-            <X class="w-5 h-5" />
+            <SIcon
+              name="X"
+              size="w-5 h-5"
+            />
           </button>
         </div>
 
@@ -255,9 +287,11 @@
             style="background: var(--accent-primary); color: white;"
             @click="saveProvider"
           >
-            <Loader2
+            <SIcon
               v-if="saving"
-              class="w-4 h-4 animate-spin"
+              name="Loader2"
+              size="w-4 h-4"
+              class="animate-spin"
             />
             {{ editingProvider ? '更新' : '添加' }}
           </button>
@@ -294,9 +328,11 @@
             class="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-red-500 text-white hover:bg-red-600 transition-colors disabled:opacity-50"
             @click="doDelete"
           >
-            <Loader2
+            <SIcon
               v-if="saving"
-              class="w-4 h-4 animate-spin"
+              name="Loader2"
+              size="w-4 h-4"
+              class="animate-spin"
             />
             删除
           </button>
@@ -307,11 +343,8 @@
 </template>
 
 <script setup lang="ts">
+import SIcon from '@/components/ui/SIcon.vue'
 import { ref, onMounted, reactive } from 'vue'
-import {
-  ChevronLeft, Plus, Layers, Key, Globe, Cpu, Pencil, Trash2,
-  X, Loader2
-} from 'lucide-vue-next'
 import AnimatedBackground from '@/components/common/AnimatedBackground.vue'
 import Card from '@/components/ui/Card.vue'
 import {

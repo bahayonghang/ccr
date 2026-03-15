@@ -29,7 +29,11 @@
               variant="ghost"
               class="group"
             >
-              <ArrowLeft class="w-4 h-4 mr-2 group-hover:-translate-x-1 transition-transform" />
+              <SIcon
+                name="ArrowLeft"
+                size="w-4 h-4"
+                class="mr-2 group-hover:-translate-x-1 transition-transform"
+              />
               {{ $t('common.back') }}
             </Button>
           </RouterLink>
@@ -38,7 +42,11 @@
             class="shadow-lg shadow-accent-primary/20 hover:shadow-accent-primary/40"
             @click="handleAdd"
           >
-            <Plus class="w-5 h-5 mr-2" />
+            <SIcon
+              name="Plus"
+              size="w-5 h-5"
+              class="mr-2"
+            />
             <span class="font-bold">{{ $t('skills.addSkill') }}</span>
           </Button>
         </div>
@@ -50,7 +58,11 @@
         style="animation-delay: 100ms;"
       >
         <div class="relative flex-1 group min-w-[200px]">
-          <Search class="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-white/50 group-focus-within:text-accent-primary transition-colors" />
+          <SIcon
+            name="Search"
+            size="w-5 h-5"
+            class="absolute left-4 top-1/2 -translate-y-1/2 text-white/50 group-focus-within:text-accent-primary transition-colors"
+          />
           <input 
             v-model="searchQuery"
             type="text"
@@ -69,7 +81,10 @@
               class="p-1 hover:bg-white/5 rounded-full text-white/50 transition-colors"
               @click="searchQuery = ''"
             >
-              <X class="w-3 h-3" />
+              <SIcon
+                name="X"
+                size="w-3 h-3"
+              />
             </button>
           </div>
         </div>
@@ -117,7 +132,10 @@
               :class="selectedTags.length > 0 ? 'bg-accent-secondary/10 border-accent-secondary/30 text-accent-secondary' : 'bg-white/5/30 border-transparent hover:bg-white/5 text-white/80'"
               @click="showTagsFilter = !showTagsFilter"
             >
-              <Filter class="w-3.5 h-3.5" />
+              <SIcon
+                name="Filter"
+                size="w-3.5 h-3.5"
+              />
               {{ $t('skills.filter.tags') }}
               <span
                 v-if="selectedTags.length"
@@ -176,9 +194,10 @@
         class="py-20 text-center animate-fade-in"
       >
         <div class="w-20 h-20 rounded-full bg-white/5/50 flex items-center justify-center mx-auto mb-4 backdrop-blur-md border border-white/5">
-          <component
-            :is="searchQuery ? Search : Book"
-            class="w-8 h-8 text-white/50"
+          <SIcon
+            :name="searchQuery ? 'Search' : 'Book'"
+            size="w-8 h-8"
+            class="text-white/50"
           />
         </div>
         <h3 class="text-lg font-bold text-white">
@@ -218,9 +237,10 @@
             class="absolute top-0 right-0 p-3 opacity-20 group-hover:opacity-100 transition-opacity pointer-events-none"
             :class="skill.repository ? 'text-accent-secondary' : 'text-accent-primary'"
           >
-            <component
-              :is="getSkillIcon(skill.name)"
-              class="w-24 h-24 -mt-8 -mr-8 opacity-10 rotate-12 group-hover:rotate-0 transition-transform duration-500"
+            <SIcon
+              :name="getSkillIcon(skill.name)"
+              size="w-24 h-24"
+              class="-mt-8 -mr-8 opacity-10 rotate-12 group-hover:rotate-0 transition-transform duration-500"
             />
           </div>
 
@@ -265,14 +285,20 @@
                 class="p-1.5 rounded-lg hover:bg-white/5 text-white/50 hover:text-white transition-colors"
                 @click.stop="handleEdit(skill)"
               >
-                <Edit2 class="w-4 h-4" />
+                <SIcon
+                  name="Edit2"
+                  size="w-4 h-4"
+                />
               </button>
               <button
                 v-if="!skill.repository"
                 class="p-1.5 rounded-lg hover:bg-red-500/10 text-white/50 hover:text-red-500 transition-colors"
                 @click.stop="handleDelete(skill.name)"
               >
-                <Trash2 class="w-4 h-4" />
+                <SIcon
+                  name="Trash2"
+                  size="w-4 h-4"
+                />
               </button>
             </div>
           </div>
@@ -331,9 +357,9 @@
             <div class="p-6 border-b border-white/5 flex items-center justify-center justify-between">
               <h3 class="text-xl font-bold text-white flex items-center gap-3">
                 <div class="w-8 h-8 rounded-lg bg-accent-primary/20 flex items-center justify-center text-accent-primary">
-                  <component
-                    :is="editingSkill ? Edit2 : Plus"
-                    class="w-4 h-4"
+                  <SIcon
+                    :name="editingSkill ? 'Edit2' : 'Plus'"
+                    size="w-4 h-4"
                   />
                 </div>
                 {{ editingSkill ? $t('skills.editSkill') : $t('skills.addSkill') }}
@@ -342,7 +368,10 @@
                 class="text-white/50 hover:text-white transition-colors"
                 @click="showModal = false"
               >
-                <X class="w-5 h-5" />
+                <SIcon
+                  name="X"
+                  size="w-5 h-5"
+                />
               </button>
             </div>
 
@@ -394,14 +423,10 @@
 </template>
 
 <script setup lang="ts">
+import SIcon from '@/components/ui/SIcon.vue'
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { 
-  Book, Plus, Edit2, Trash2, X, ArrowLeft, Search, 
-  Code2, Zap, Box,
-  Globe, Database, PenTool, Filter
-} from 'lucide-vue-next'
 import AnimatedBackground from '@/components/common/AnimatedBackground.vue'
 import Card from '@/components/ui/Card.vue'
 import Button from '@/components/ui/Button.vue'
@@ -476,12 +501,12 @@ const toggleTag = (tag: string) => {
 // Icon mapper
 const getSkillIcon = (name: string) => {
    const n = name.toLowerCase()
-   if (n.includes('write') || n.includes('doc')) return PenTool
-   if (n.includes('data') || n.includes('sql')) return Database
-   if (n.includes('web') || n.includes('browser')) return Globe
-   if (n.includes('code') || n.includes('dev')) return Code2
-   if (n.includes('agent')) return Zap
-   return Box
+   if (n.includes('write') || n.includes('doc')) return 'PenTool'
+   if (n.includes('data') || n.includes('sql')) return 'Database'
+   if (n.includes('web') || n.includes('browser')) return 'Globe'
+   if (n.includes('code') || n.includes('dev')) return 'Code2'
+   if (n.includes('agent')) return 'Zap'
+   return 'Box'
 }
 
 // --- Filtering ---

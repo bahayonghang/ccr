@@ -19,7 +19,11 @@
         class="text-center py-20"
       >
         <div class="bg-[var(--color-danger)]/10 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
-          <AlertCircle class="w-10 h-10 text-[var(--color-danger)]" />
+          <SIcon
+            name="AlertCircle"
+            size="w-10 h-10"
+            class="text-[var(--color-danger)]"
+          />
         </div>
         <p class="text-lg font-medium text-[var(--color-text-primary)]">
           {{ $t('skills.loadError') }}
@@ -31,7 +35,10 @@
           to="/skills"
           class="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-[var(--color-bg-elevated)] hover:bg-[var(--color-bg-surface)] transition-colors"
         >
-          <ArrowLeft class="w-4 h-4" />
+          <SIcon
+            name="ArrowLeft"
+            size="w-4 h-4"
+          />
           {{ $t('common.back') }}
         </RouterLink>
       </div>
@@ -44,7 +51,11 @@
             <div class="flex-1 min-w-0">
               <div class="flex items-center gap-3 mb-2">
                 <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-[var(--color-danger)]/10 to-[var(--color-info)]/10 flex items-center justify-center text-xl shadow-sm border border-white/20">
-                  <Book class="w-6 h-6 text-[var(--color-danger)]" />
+                  <SIcon
+                    name="Book"
+                    size="w-6 h-6"
+                    class="text-[var(--color-danger)]"
+                  />
                 </div>
                 <div>
                   <h1 class="text-2xl font-bold text-[var(--color-text-primary)]">
@@ -61,7 +72,10 @@
 
               <div class="flex items-center gap-3 mt-4 text-xs text-[var(--color-text-muted)]">
                 <div class="flex items-center gap-1.5 bg-[var(--color-bg-surface)] px-2.5 py-1 rounded-md border border-[var(--color-border-default)]/50">
-                  <FolderOpen class="w-3.5 h-3.5" />
+                  <SIcon
+                    name="FolderOpen"
+                    size="w-3.5 h-3.5"
+                  />
                   <span class="font-mono truncate max-w-[300px]">{{ skill.path }}</span>
                 </div>
               </div>
@@ -72,14 +86,20 @@
                 class="px-4 py-2 rounded-lg font-medium text-sm transition-colors bg-[var(--color-info)]/10 text-[var(--color-info)] hover:bg-[var(--color-info)]/20 flex items-center gap-2"
                 @click="handleEdit"
               >
-                <Edit2 class="w-4 h-4" />
+                <SIcon
+                  name="Edit2"
+                  size="w-4 h-4"
+                />
                 {{ $t('common.edit') }}
               </button>
               <button
                 class="px-4 py-2 rounded-lg font-medium text-sm transition-colors bg-[var(--color-danger)]/10 text-[var(--color-danger)] hover:bg-[var(--color-danger)]/20 flex items-center gap-2"
                 @click="handleDelete"
               >
-                <Trash2 class="w-4 h-4" />
+                <SIcon
+                  name="Trash2"
+                  size="w-4 h-4"
+                />
                 {{ $t('common.delete') }}
               </button>
             </div>
@@ -90,14 +110,21 @@
         <div class="glass-effect rounded-2xl p-6 border border-white/20 shadow-sm">
           <div class="flex items-center justify-between mb-4">
             <h2 class="text-lg font-bold text-[var(--color-text-primary)] flex items-center gap-2">
-              <FileText class="w-5 h-5 text-[var(--color-danger)]" />
+              <SIcon
+                name="FileText"
+                size="w-5 h-5"
+                class="text-[var(--color-danger)]"
+              />
               {{ $t('skills.instructionLabel') }}
             </h2>
             <button
               class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors bg-[var(--color-bg-surface)] hover:bg-[var(--color-bg-elevated)] text-[var(--color-text-secondary)] flex items-center gap-1.5"
               @click="copyInstruction"
             >
-              <Copy class="w-3.5 h-3.5" />
+              <SIcon
+                name="Copy"
+                size="w-3.5 h-3.5"
+              />
               {{ copied ? $t('common.copied') : $t('common.copy') }}
             </button>
           </div>
@@ -125,11 +152,18 @@
           class="absolute top-4 right-4 p-2 rounded-full hover:bg-[var(--color-bg-surface)] text-[var(--color-text-muted)] transition-colors"
           @click="showEditModal = false"
         >
-          <X class="w-5 h-5" />
+          <SIcon
+            name="X"
+            size="w-5 h-5"
+          />
         </button>
 
         <h3 class="text-2xl font-bold mb-6 text-[var(--color-text-primary)] flex items-center">
-          <Edit2 class="w-6 h-6 mr-2 text-[var(--color-danger)]" />
+          <SIcon
+            name="Edit2"
+            size="w-6 h-6"
+            class="mr-2 text-[var(--color-danger)]"
+          />
           {{ $t('skills.editSkill') }}
         </h3>
 
@@ -175,10 +209,10 @@
 </template>
 
 <script setup lang="ts">
+import SIcon from '@/components/ui/SIcon.vue'
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter, RouterLink } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { Book, Edit2, Trash2, ArrowLeft, FolderOpen, FileText, Copy, X, AlertCircle, Home } from 'lucide-vue-next'
 import Breadcrumb from '@/components/ui/Breadcrumb.vue'
 import { useSkills, type Skill } from '@/composables/useSkills'
 import { extractStringParam } from '@/types/router'
@@ -196,8 +230,8 @@ const saving = ref(false)
 const copied = ref(false)
 
 const breadcrumbs = computed(() => [
-  { label: t('common.home'), path: '/', icon: Home },
-  { label: t('skills.title'), path: '/skills', icon: Book },
+  { label: t('common.home'), path: '/', icon: 'Home' },
+  { label: t('skills.title'), path: '/skills', icon: 'Book' },
   { label: skill.value?.name || t('common.loading') }
 ])
 

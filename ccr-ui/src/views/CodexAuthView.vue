@@ -3,9 +3,9 @@
     <div class="max-w-[1800px] mx-auto">
       <Breadcrumb
         :items="[
-          { label: $t('common.home'), path: '/', icon: Home },
-          { label: 'Codex', path: '/codex', icon: Boxes },
-          { label: $t('codex.auth.breadcrumb'), path: '/codex/auth', icon: KeyRound }
+          { label: $t('common.home'), path: '/', icon: 'Home' },
+          { label: 'Codex', path: '/codex', icon: 'Boxes' },
+          { label: $t('codex.auth.breadcrumb'), path: '/codex/auth', icon: 'KeyRound' }
         ]"
         module-color="#ec4899"
       />
@@ -18,7 +18,11 @@
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-3">
               <div class="p-2 rounded-xl bg-platform-codex/10">
-                <KeyRound class="w-6 h-6 text-platform-codex" />
+                <SIcon
+                  name="KeyRound"
+                  size="w-6 h-6"
+                  class="text-platform-codex"
+                />
               </div>
               <div>
                 <h1 class="text-2xl font-bold text-white">
@@ -35,7 +39,10 @@
                 to="/codex"
                 class="btn btn-secondary"
               >
-                <ArrowLeft class="w-4 h-4" />
+                <SIcon
+                  name="ArrowLeft"
+                  size="w-4 h-4"
+                />
                 <span>{{ $t('codex.auth.backToCodex') }}</span>
               </RouterLink>
 
@@ -44,7 +51,10 @@
                 :disabled="!canSave"
                 @click="handleSave"
               >
-                <Save class="w-4 h-4" />
+                <SIcon
+                  name="Save"
+                  size="w-4 h-4"
+                />
                 {{ $t('codex.auth.saveAccount') }}
               </button>
             </div>
@@ -64,9 +74,9 @@
                   class="p-3 rounded-xl group-hover:scale-110 transition-transform duration-300"
                   :class="loginStateIconClass"
                 >
-                  <component
-                    :is="loginStateIcon"
-                    class="w-6 h-6"
+                  <SIcon
+                    :name="loginStateIcon"
+                    size="w-6 h-6"
                   />
                 </div>
                 <div>
@@ -89,7 +99,10 @@
             >
               <div class="flex items-center gap-4">
                 <div class="p-3 rounded-xl bg-indigo-500/10 text-indigo-500 group-hover:scale-110 transition-transform duration-300">
-                  <Users class="w-6 h-6" />
+                  <SIcon
+                    name="Users"
+                    size="w-6 h-6"
+                  />
                 </div>
                 <div>
                   <p class="text-xs font-medium text-white/50 uppercase tracking-wider mb-1">
@@ -114,7 +127,10 @@
                   class="p-3 rounded-xl transition-colors duration-300 group-hover:scale-110 transition-transform"
                   :class="currentAccount ? 'bg-emerald-500/10 text-emerald-500' : 'bg-gray-500/10 text-gray-500'"
                 >
-                  <UserCheck class="w-6 h-6" />
+                  <SIcon
+                    name="UserCheck"
+                    size="w-6 h-6"
+                  />
                 </div>
                 <div>
                   <p class="text-xs font-medium text-white/50 uppercase tracking-wider mb-1">
@@ -135,7 +151,11 @@
             padding="lg"
           >
             <div class="flex items-center gap-2 mb-4">
-              <Info class="w-5 h-5 text-platform-codex" />
+              <SIcon
+                name="Info"
+                size="w-5 h-5"
+                class="text-platform-codex"
+              />
               <h3 class="text-base font-semibold text-white">
                 {{ $t('codex.auth.currentSession') }}
               </h3>
@@ -188,7 +208,10 @@
                     v-if="currentInfo.is_expired"
                     class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded bg-red-500/10 text-red-500 border border-red-500/20"
                   >
-                    <AlertTriangle class="w-3 h-3" />
+                    <SIcon
+                      name="AlertTriangle"
+                      size="w-3 h-3"
+                    />
                     {{ $t('codex.auth.expired') }}
                   </span>
                   <span
@@ -218,7 +241,10 @@
                 class="mt-0.5 rounded-xl p-2"
                 :class="canManageAuthAccounts ? 'bg-emerald-500/10 text-emerald-400' : 'bg-yellow-500/10 text-yellow-400'"
               >
-                <AlertTriangle class="w-5 h-5" />
+                <SIcon
+                  name="AlertTriangle"
+                  size="w-5 h-5"
+                />
               </div>
               <div class="min-w-0">
                 <p class="text-sm font-semibold text-white">
@@ -244,7 +270,11 @@
             padding="lg"
           >
             <div class="flex items-center gap-2 mb-4">
-              <Shuffle class="w-5 h-5 text-platform-codex" />
+              <SIcon
+                name="Shuffle"
+                size="w-5 h-5"
+                class="text-platform-codex"
+              />
               <h3 class="text-base font-semibold text-white">
                 {{ $t('codex.auth.quickSwitch') }}
               </h3>
@@ -276,9 +306,9 @@
                   v-if="account.is_current"
                   class="flex items-center justify-center w-4 h-4 rounded-full bg-platform-codex text-white text-[10px]"
                 >
-                  <Check
-                    class="w-2.5 h-2.5"
-                    stroke-width="3"
+                  <SIcon
+                    name="Check"
+                    size="w-2.5 h-2.5"
                   />
                 </div>
               </button>
@@ -288,15 +318,20 @@
           <!-- Account List Title -->
           <div class="flex items-center justify-between">
             <h2 class="text-xl font-bold text-white flex items-center gap-2">
-              <ListFilter class="w-5 h-5 text-platform-codex" />
+              <SIcon
+                name="ListFilter"
+                size="w-5 h-5"
+                class="text-platform-codex"
+              />
               {{ $t('codex.auth.listTitle') }}
             </h2>
             <button
               class="btn btn-secondary btn-sm"
               @click="handleRefresh"
             >
-              <RefreshCw
-                class="w-4 h-4"
+              <SIcon
+                name="RefreshCw"
+                size="w-4 h-4"
                 :class="{ 'animate-spin': loading }"
               />
               {{ $t('codex.auth.refresh') }}
@@ -317,7 +352,11 @@
             class="empty-state glass-effect rounded-2xl border border-white/5"
           >
             <div class="p-4 rounded-full glass-surface mb-4">
-              <KeyRound class="w-8 h-8 text-white/50" />
+              <SIcon
+                name="KeyRound"
+                size="w-8 h-8"
+                class="text-white/50"
+              />
             </div>
             <p class="text-white/80">
               {{ $t('codex.auth.emptyState') }}
@@ -354,7 +393,10 @@
                   class="p-1 rounded-lg hover:bg-white/10 text-white/50 transition-colors"
                   @click="handleCloseSaveForm"
                 >
-                  <X class="w-5 h-5" />
+                  <SIcon
+                    name="X"
+                    size="w-5 h-5"
+                  />
                 </button>
               </div>
 
@@ -366,7 +408,11 @@
                   class="p-4 rounded-lg bg-yellow-500/10 border border-yellow-500/30 text-yellow-600 dark:text-yellow-400"
                 >
                   <div class="flex items-start gap-3">
-                    <AlertTriangle class="w-5 h-5 flex-shrink-0 mt-0.5" />
+                    <SIcon
+                      name="AlertTriangle"
+                      size="w-5 h-5"
+                      class="flex-shrink-0 mt-0.5"
+                    />
                     <div>
                       <p class="font-medium">
                         {{ $t('codex.auth.processWarning') }}
@@ -460,28 +506,10 @@
 </template>
 
 <script setup lang="ts">
+import SIcon from '@/components/ui/SIcon.vue'
 import { computed, onMounted, reactive, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import {
-  AlertTriangle,
-  ArrowLeft,
-  Boxes,
-  Check,
-  Home,
-  Info,
-  KeyRound,
-  ListFilter,
-  LogIn,
-  LogOut,
-  RefreshCw,
-  Save,
-  Shuffle,
-  UserCheck,
-  Users,
-  X
-} from 'lucide-vue-next'
-
 import { Breadcrumb } from '@/components/ui'
 import CollapsibleSidebar from '@/components/CollapsibleSidebar.vue'
 import Card from '@/components/ui/Card.vue'
@@ -586,12 +614,12 @@ const loginStateColor = computed(() => {
 
 const loginStateIcon = computed(() => {
   switch (loginState.value.type) {
-    case 'LoggedInSaved': return UserCheck
-    case 'LoggedInUnsaved': return LogIn
-    case 'ApiKeyActive': return KeyRound
-    case 'ProviderKeyActive': return KeyRound
-    case 'Unknown': return AlertTriangle
-    default: return LogOut
+    case 'LoggedInSaved': return 'UserCheck'
+    case 'LoggedInUnsaved': return 'LogIn'
+    case 'ApiKeyActive': return 'KeyRound'
+    case 'ProviderKeyActive': return 'KeyRound'
+    case 'Unknown': return 'AlertTriangle'
+    default: return 'LogOut'
   }
 })
 

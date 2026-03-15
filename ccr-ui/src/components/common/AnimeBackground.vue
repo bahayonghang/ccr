@@ -1,6 +1,6 @@
 <template>
-  <div class="fixed inset-0 w-full h-full -z-50 overflow-hidden transition-colors duration-1000 bg-black">
-    <div class="absolute inset-0 w-full h-full bg-gradient-to-br from-gray-900 via-slate-900 to-black" />
+  <div class="fixed inset-0 w-full h-full -z-50 overflow-hidden transition-colors duration-1000 bg-white dark:bg-black">
+    <div class="absolute inset-0 w-full h-full bg-gradient-to-br from-pink-50 via-white to-purple-50 dark:from-gray-900 dark:via-slate-900 dark:to-black" />
 
     <div
       v-if="bgUrl"
@@ -8,7 +8,7 @@
       :style="{ backgroundImage: `url(${bgUrl})`, opacity: isLoaded ? 1 : 0 }"
     />
 
-    <div class="absolute inset-0 w-full h-full bg-black/40 z-0 pointer-events-none" />
+    <div class="absolute inset-0 w-full h-full bg-white/60 dark:bg-black/40 z-0 pointer-events-none" />
   </div>
 </template>
 

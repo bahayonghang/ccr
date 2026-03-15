@@ -2,8 +2,8 @@
 /**
  * WSL 管理视图 — WSL 发行版列表、配置浏览、同步操作
  */
+import SIcon from '@/components/ui/SIcon.vue'
 import { ref, onMounted } from 'vue'
-import { Terminal, RefreshCw, Upload, Download, FileText, CheckCircle2, XCircle, Database, Trash2 } from 'lucide-vue-next'
 import { invoke } from '@tauri-apps/api/core'
 import { logger } from '@/utils/logger'
 
@@ -174,7 +174,11 @@ onMounted(() => fetchDistros())
     <div class="flex items-center justify-between">
       <div class="flex items-center gap-3">
         <div class="p-2 rounded-xl bg-orange-500/10">
-          <Terminal class="w-6 h-6 text-orange-400" />
+          <SIcon
+            name="Terminal"
+            size="w-6 h-6"
+            class="text-orange-400"
+          />
         </div>
         <div>
           <h1 class="text-xl font-bold text-white">
@@ -191,8 +195,9 @@ onMounted(() => fetchDistros())
           :disabled="isRefreshing"
           @click="refresh"
         >
-          <RefreshCw
-            class="w-4 h-4"
+          <SIcon
+            name="RefreshCw"
+            size="w-4 h-4"
             :class="{ 'animate-spin': isRefreshing }"
           />
           刷新
@@ -202,8 +207,9 @@ onMounted(() => fetchDistros())
           :disabled="isRefreshing"
           @click="forceRefresh"
         >
-          <RefreshCw
-            class="w-4 h-4"
+          <SIcon
+            name="RefreshCw"
+            size="w-4 h-4"
             :class="{ 'animate-spin': isRefreshing }"
           />
           强制刷新
@@ -218,7 +224,11 @@ onMounted(() => fetchDistros())
     >
       <div class="flex items-center gap-4">
         <div class="flex items-center gap-2">
-          <Database class="w-4 h-4 text-white/50" />
+          <SIcon
+            name="Database"
+            size="w-4 h-4"
+            class="text-white/50"
+          />
           <span class="text-white/80">缓存状态:</span>
           <span
             :class="cacheStatus.has_disk_cache ? 'text-emerald-400' : 'text-slate-400'"
@@ -245,7 +255,10 @@ onMounted(() => fetchDistros())
         class="flex items-center gap-1.5 px-2 py-1 rounded text-xs text-white/50 hover:text-white/80 hover: transition-colors"
         @click="clearCache"
       >
-        <Trash2 class="w-3 h-3" />
+        <SIcon
+          name="Trash2"
+          size="w-3 h-3"
+        />
         清除缓存
       </button>
     </div>
@@ -263,7 +276,11 @@ onMounted(() => fetchDistros())
       v-else-if="distros.length === 0"
       class="rounded-xl border border-white/10 glass-surface p-8 text-center"
     >
-      <Terminal class="w-12 h-12 mx-auto text-white/50 mb-3" />
+      <SIcon
+        name="Terminal"
+        size="w-12 h-12"
+        class="mx-auto text-white/50 mb-3"
+      />
       <p class="text-white/80 font-medium">
         未检测到 WSL 发行版
       </p>
@@ -290,7 +307,11 @@ onMounted(() => fetchDistros())
             :class="[ selectedDistro === distro.name ? 'bg-accent-primary/10 border-accent-primary/30 text-accent-primary' : 'glass-surface border-white/20 text-white/80 hover:text-white hover:border-border-accent' ]"
             @click="selectDistro(distro.name)"
           >
-            <Terminal class="w-5 h-5 flex-shrink-0" />
+            <SIcon
+              name="Terminal"
+              size="w-5 h-5"
+              class="flex-shrink-0"
+            />
             <div class="flex-1 min-w-0">
               <div class="font-medium truncate">
                 {{ distro.name }}
@@ -323,13 +344,17 @@ onMounted(() => fetchDistros())
               :key="tool"
               class="flex items-center gap-2 px-3 py-2 rounded-lg text-sm"
             >
-              <CheckCircle2
+              <SIcon
                 v-if="installed"
-                class="w-4 h-4 text-emerald-400"
+                name="CheckCircle2"
+                size="w-4 h-4"
+                class="text-emerald-400"
               />
-              <XCircle
+              <SIcon
                 v-else
-                class="w-4 h-4 text-slate-400"
+                name="XCircle"
+                size="w-4 h-4"
+                class="text-slate-400"
               />
               <span :class="installed ? 'text-white' : 'text-white/50'">
                 {{ tool }}
@@ -342,7 +367,10 @@ onMounted(() => fetchDistros())
         <div class="rounded-xl border border-white/10 glass-surface p-4">
           <div class="flex items-center justify-between mb-3">
             <h3 class="text-sm font-semibold text-white flex items-center gap-2">
-              <FileText class="w-4 h-4" />
+              <SIcon
+                name="FileText"
+                size="w-4 h-4"
+              />
               配置文件
             </h3>
             <select
@@ -373,7 +401,10 @@ onMounted(() => fetchDistros())
               :disabled="isSyncing"
               @click="syncConfig('local_to_wsl')"
             >
-              <Upload class="w-4 h-4" />
+              <SIcon
+                name="Upload"
+                size="w-4 h-4"
+              />
               推送到 WSL
             </button>
             <button
@@ -381,7 +412,10 @@ onMounted(() => fetchDistros())
               :disabled="isSyncing"
               @click="syncConfig('wsl_to_local')"
             >
-              <Download class="w-4 h-4" />
+              <SIcon
+                name="Download"
+                size="w-4 h-4"
+              />
               从 WSL 拉取
             </button>
           </div>

@@ -4,7 +4,10 @@
     <div class="flex items-center justify-between mb-6">
       <div class="flex items-center gap-3">
         <div class="p-2.5 rounded-xl bg-gradient-to-br from-accent-secondary/20 to-accent-primary/20 text-accent-secondary">
-          <Sparkles class="w-5 h-5" />
+          <SIcon
+            name="Sparkles"
+            size="w-5 h-5"
+          />
         </div>
         <div>
           <h2 class="text-lg font-bold text-text-primary">
@@ -19,9 +22,9 @@
         class="text-xs px-3 py-1.5 rounded-lg bg-bg-surface hover:bg-accent-secondary/10 text-text-secondary hover:text-accent-secondary transition-colors flex items-center gap-1.5"
         @click="showPresetsPanel = !showPresetsPanel"
       >
-        <component
-          :is="showPresetsPanel ? ChevronUp : ChevronDown"
-          class="w-4 h-4"
+        <SIcon
+          :name="showPresetsPanel ? 'ChevronUp' : 'ChevronDown'"
+          size="w-4 h-4"
         />
         {{ showPresetsPanel ? $t('mcp.presets.collapse') : $t('mcp.presets.expand') }}
       </button>
@@ -77,7 +80,11 @@
 
         <!-- Command Preview -->
         <div class="flex items-center gap-1.5 text-[10px] font-mono text-text-muted bg-bg-surface/50 rounded-lg px-2 py-1.5 overflow-hidden">
-          <Terminal class="w-3 h-3 flex-shrink-0" />
+          <SIcon
+            name="Terminal"
+            size="w-3 h-3"
+            class="flex-shrink-0"
+          />
           <span class="truncate">{{ preset.command }} {{ (preset.args || []).join(' ') }}</span>
         </div>
 
@@ -87,7 +94,10 @@
             class="px-4 py-2 rounded-lg bg-accent-secondary text-white text-xs font-bold flex items-center gap-2 hover:bg-accent-secondary/90 transition-colors shadow-lg"
             @click.stop="handleInstall(preset)"
           >
-            <Download class="w-3.5 h-3.5" />
+            <SIcon
+              name="Download"
+              size="w-3.5 h-3.5"
+            />
             {{ $t('mcp.presets.install') }}
           </button>
         </div>
@@ -107,7 +117,10 @@
         <!-- Header -->
         <div class="flex items-center gap-4 mb-6">
           <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-accent-secondary to-accent-primary flex items-center justify-center text-white">
-            <Sparkles class="w-6 h-6" />
+            <SIcon
+              name="Sparkles"
+              size="w-6 h-6"
+            />
           </div>
           <div>
             <h3 class="text-xl font-bold text-text-primary">
@@ -181,7 +194,10 @@
             target="_blank"
             class="text-xs text-accent-secondary hover:underline flex items-center gap-1"
           >
-            <ExternalLink class="w-3 h-3" />
+            <SIcon
+              name="ExternalLink"
+              size="w-3 h-3"
+            />
             {{ $t('mcp.presets.homepage') }}
           </a>
           <a
@@ -190,7 +206,10 @@
             target="_blank"
             class="text-xs text-accent-secondary hover:underline flex items-center gap-1"
           >
-            <Book class="w-3 h-3" />
+            <SIcon
+              name="Book"
+              size="w-3 h-3"
+            />
             {{ $t('mcp.presets.documentation') }}
           </a>
         </div>
@@ -208,13 +227,16 @@
             :disabled="installing || selectedPlatforms.length === 0"
             @click="confirmInstall"
           >
-            <Loader2
+            <SIcon
               v-if="installing"
-              class="w-4 h-4 animate-spin"
+              name="Loader2"
+              size="w-4 h-4"
+              class="animate-spin"
             />
-            <Download
+            <SIcon
               v-else
-              class="w-4 h-4"
+              name="Download"
+              size="w-4 h-4"
             />
             {{ installing ? $t('mcp.presets.installing') : $t('mcp.presets.confirmInstall') }}
           </button>
@@ -225,18 +247,9 @@
 </template>
 
 <script setup lang="ts">
+import SIcon from '@/components/ui/SIcon.vue'
 import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import {
-  Sparkles,
-  ChevronUp,
-  ChevronDown,
-  Terminal,
-  Download,
-  ExternalLink,
-  Book,
-  Loader2
-} from 'lucide-vue-next'
 import {
   listMcpPresets,
   installMcpPreset,

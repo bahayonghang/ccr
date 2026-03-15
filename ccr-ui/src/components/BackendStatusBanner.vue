@@ -1,6 +1,6 @@
 <script setup lang="ts">
+import SIcon from '@/components/ui/SIcon.vue'
 import { computed } from 'vue'
-import { AlertTriangle } from 'lucide-vue-next'
 import { useBackendHealth } from '@/composables/useBackendHealth'
 import { isTauriEnvironment } from '@/api'
 
@@ -16,7 +16,11 @@ const shouldShow = computed(() => isTauri && status.value === 'error')
     class="mx-6 mt-4 rounded-xl border border-red-200/80 bg-red-50/80 px-4 py-3 text-sm text-red-800 shadow-sm dark:border-red-800/70 dark:bg-red-900/30 dark:text-red-200"
   >
     <div class="flex items-start gap-3">
-      <AlertTriangle class="mt-0.5 h-4 w-4" />
+      <SIcon
+        name="AlertTriangle"
+        size="h-4 w-4"
+        class="mt-0.5"
+      />
       <div class="flex-1">
         <div class="font-semibold">
           后端连接失败，请检查桌面后端是否启动

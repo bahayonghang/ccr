@@ -4,9 +4,9 @@
     <div class="max-w-[1800px] mx-auto">
       <Breadcrumb
         :items="[
-          { label: $t('common.home'), path: '/', icon: Home },
-          { label: 'Codex', path: '/codex', icon: Boxes },
-          { label: $t('codex.profiles.breadcrumb'), path: '/codex/profiles', icon: Settings }
+          { label: $t('common.home'), path: '/', icon: 'Home' },
+          { label: 'Codex', path: '/codex', icon: 'Boxes' },
+          { label: $t('codex.profiles.breadcrumb'), path: '/codex/profiles', icon: 'Settings' }
         ]"
         module-color="#ec4899"
       />
@@ -19,7 +19,11 @@
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-3">
               <div class="p-2 rounded-xl bg-platform-codex/10">
-                <Settings class="w-6 h-6 text-platform-codex" />
+                <SIcon
+                  name="Settings"
+                  size="w-6 h-6"
+                  class="text-platform-codex"
+                />
               </div>
               <div>
                 <h1 class="text-2xl font-bold text-white">
@@ -36,7 +40,10 @@
                 to="/codex"
                 class="btn btn-secondary"
               >
-                <ArrowLeft class="w-4 h-4" />
+                <SIcon
+                  name="ArrowLeft"
+                  size="w-4 h-4"
+                />
                 <span>{{ $t('codex.profiles.backToCodex') }}</span>
               </RouterLink>
 
@@ -44,7 +51,10 @@
                 class="btn btn-primary"
                 @click="handleAdd"
               >
-                <Plus class="w-4 h-4" />
+                <SIcon
+                  name="Plus"
+                  size="w-4 h-4"
+                />
                 {{ $t('codex.profiles.addProfile') }}
               </button>
             </div>
@@ -61,7 +71,10 @@
             >
               <div class="flex items-center gap-4">
                 <div class="p-3 rounded-xl bg-yellow-500/10 text-yellow-500 group-hover:scale-110 transition-transform duration-300">
-                  <Zap class="w-6 h-6" />
+                  <SIcon
+                    name="Zap"
+                    size="w-6 h-6"
+                  />
                 </div>
                 <div>
                   <p class="text-xs font-medium text-white/50 uppercase tracking-wider mb-1">
@@ -83,7 +96,10 @@
             >
               <div class="flex items-center gap-4">
                 <div class="p-3 rounded-xl bg-indigo-500/10 text-indigo-500 group-hover:scale-110 transition-transform duration-300">
-                  <Layers class="w-6 h-6" />
+                  <SIcon
+                    name="Layers"
+                    size="w-6 h-6"
+                  />
                 </div>
                 <div>
                   <p class="text-xs font-medium text-white/50 uppercase tracking-wider mb-1">
@@ -108,9 +124,9 @@
                   class="p-3 rounded-xl transition-colors duration-300 group-hover:scale-110 transition-transform"
                   :class="currentConfigMode === 'official' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-pink-500/10 text-pink-500'"
                 >
-                  <component
-                    :is="currentConfigMode === 'official' ? Globe : Server"
-                    class="w-6 h-6"
+                  <SIcon
+                    :name="currentConfigMode === 'official' ? 'Globe' : 'Server'"
+                    size="w-6 h-6"
                   />
                 </div>
                 <div>
@@ -132,7 +148,11 @@
             padding="lg"
           >
             <div class="flex items-center gap-2 mb-4">
-              <Shuffle class="w-5 h-5 text-platform-codex" />
+              <SIcon
+                name="Shuffle"
+                size="w-5 h-5"
+                class="text-platform-codex"
+              />
               <h3 class="text-base font-semibold text-white">
                 {{ $t('codex.profiles.quickSwitch') }}
               </h3>
@@ -145,9 +165,10 @@
                 :class="[ profile.name === currentProfile ? 'glass-effect-strong border border-platform-codex/50 text-platform-codex shadow-[0_0_15px_rgba(245,158,11,0.2)]' : 'glass-effect text-white/80 hover:border-platform-codex/30 hover:bg-white/10' ]"
                 @click="handleApply(profile.name)"
               >
-                <Star
+                <SIcon
                   v-if="isOfficialConfig(profile)"
-                  class="w-3.5 h-3.5"
+                  name="Star"
+                  size="w-3.5 h-3.5"
                   :class="profile.name === currentProfile ? 'text-platform-codex' : 'text-yellow-500'"
                 />
                 <span>{{ profile.name }}</span>
@@ -155,9 +176,9 @@
                   v-if="profile.name === currentProfile" 
                   class="flex items-center justify-center w-4 h-4 rounded-full bg-platform-codex text-white text-[10px]"
                 >
-                  <Check
-                    class="w-2.5 h-2.5"
-                    stroke-width="3"
+                  <SIcon
+                    name="Check"
+                    size="w-2.5 h-2.5"
                   />
                 </div>
               </button>
@@ -167,7 +188,11 @@
           <!-- Profile List Title -->
           <div class="flex items-center justify-between">
             <h2 class="text-xl font-bold text-white flex items-center gap-2">
-              <ListFilter class="w-5 h-5 text-platform-codex" />
+              <SIcon
+                name="ListFilter"
+                size="w-5 h-5"
+                class="text-platform-codex"
+              />
               {{ $t('codex.profiles.listTitle') }}
             </h2>
           </div>
@@ -186,7 +211,11 @@
             class="empty-state glass-effect rounded-2xl border border-white/5"
           >
             <div class="p-4 rounded-full glass-surface mb-4">
-              <Boxes class="w-8 h-8 text-white/50" />
+              <SIcon
+                name="Boxes"
+                size="w-8 h-8"
+                class="text-white/50"
+              />
             </div>
             <p class="text-white/80">
               {{ $t('codex.profiles.emptyState') }}
@@ -254,21 +283,30 @@
                       :title="$t('codex.profiles.apply')"
                       @click.stop="handleApply(profile.name)"
                     >
-                      <Check class="w-4 h-4" />
+                      <SIcon
+                        name="Check"
+                        size="w-4 h-4"
+                      />
                     </button>
                     <button 
                       class="p-2 rounded-lg hover:bg-white/10 text-accent-primary transition-colors"
                       :title="$t('codex.actions.edit')"
                       @click.stop="handleEdit(profile.name)"
                     >
-                      <Edit2 class="w-4 h-4" />
+                      <SIcon
+                        name="Edit2"
+                        size="w-4 h-4"
+                      />
                     </button>
                     <button 
                       class="p-2 rounded-lg hover:bg-white/10 text-accent-danger transition-colors"
                       :title="$t('codex.actions.delete')"
                       @click.stop="handleDelete(profile.name)"
                     >
-                      <Trash2 class="w-4 h-4" />
+                      <SIcon
+                        name="Trash2"
+                        size="w-4 h-4"
+                      />
                     </button>
                   </div>
                 </div>
@@ -415,7 +453,10 @@
                   class="p-1 rounded-lg hover:bg-white/10 text-white/50 transition-colors"
                   @click="handleCloseForm"
                 >
-                  <X class="w-5 h-5" />
+                  <SIcon
+                    name="X"
+                    size="w-5 h-5"
+                  />
                 </button>
               </div>
 
@@ -695,11 +736,10 @@
 </template>
 
 <script setup lang="ts">
+import SIcon from '@/components/ui/SIcon.vue'
 import { computed, onMounted, reactive, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { ArrowLeft, Boxes, Check, Edit2, Globe, Home, Layers, ListFilter, Plus, Server, Settings, Shuffle, Star, Trash2, Zap, X } from 'lucide-vue-next'
-
 import { Breadcrumb } from '@/components/ui'
 import CollapsibleSidebar from '@/components/CollapsibleSidebar.vue'
 import Card from '@/components/ui/Card.vue'

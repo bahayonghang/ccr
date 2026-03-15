@@ -33,7 +33,10 @@
           :aria-label="$t('common.close')"
           @click="close"
         >
-          <X class="w-5 h-5" />
+          <SIcon
+            name="X"
+            size="w-5 h-5"
+          />
         </button>
       </div>
 
@@ -174,9 +177,11 @@
               cursor: loading ? 'not-allowed' : 'pointer'
             }"
           >
-            <RefreshCw
+            <SIcon
               v-if="loading"
-              class="w-4 h-4 animate-spin mr-2"
+              name="RefreshCw"
+              size="w-4 h-4"
+              class="animate-spin mr-2"
             />
             {{ isEditing ? $t('common.update') : $t('common.create') }}
           </button>
@@ -187,8 +192,8 @@
 </template>
 
 <script setup lang="ts">
+import SIcon from '@/components/ui/SIcon.vue'
 import { ref, computed, watch } from 'vue'
-import { X, RefreshCw } from 'lucide-vue-next'
 import { useFocusTrap, useEscapeKey, useUniqueId } from '@/composables/useAccessibility'
 
 interface SlashCommand {

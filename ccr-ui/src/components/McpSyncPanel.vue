@@ -4,7 +4,10 @@
     <div class="flex items-center justify-between mb-6">
       <div class="flex items-center gap-3">
         <div class="p-2.5 rounded-xl bg-gradient-to-br from-accent-success/20 to-accent-primary/20 text-accent-success">
-          <RefreshCw class="w-5 h-5" />
+          <SIcon
+            name="RefreshCw"
+            size="w-5 h-5"
+          />
         </div>
         <div>
           <h2 class="text-lg font-bold text-text-primary">
@@ -21,8 +24,9 @@
           :disabled="loading"
           @click="loadSourceServers"
         >
-          <RefreshCw
-            class="w-3.5 h-3.5"
+          <SIcon
+            name="RefreshCw"
+            size="w-3.5 h-3.5"
             :class="{ 'animate-spin': loading }"
           />
           {{ $t('common.refresh') }}
@@ -32,13 +36,16 @@
           :disabled="syncing || sourceServers.length === 0"
           @click="handleSyncAll"
         >
-          <Loader2
+          <SIcon
             v-if="syncing"
-            class="w-4 h-4 animate-spin"
+            name="Loader2"
+            size="w-4 h-4"
+            class="animate-spin"
           />
-          <Zap
+          <SIcon
             v-else
-            class="w-4 h-4"
+            name="Zap"
+            size="w-4 h-4"
           />
           {{ $t('mcp.sync.syncAll') }}
         </button>
@@ -90,7 +97,11 @@
         v-else-if="sourceServers.length === 0"
         class="text-center py-8 bg-bg-surface/50 rounded-2xl border border-dashed border-border-default"
       >
-        <Server class="w-10 h-10 mx-auto mb-2 text-text-muted opacity-50" />
+        <SIcon
+          name="Server"
+          size="w-10 h-10"
+          class="mx-auto mb-2 text-text-muted opacity-50"
+        />
         <p class="text-sm text-text-muted">
           {{ $t('mcp.sync.noServers') }}
         </p>
@@ -120,7 +131,11 @@
                 </span>
               </div>
               <div class="flex items-center gap-1.5 text-xs font-mono text-text-muted bg-bg-surface rounded-lg px-2 py-1 overflow-hidden">
-                <Terminal class="w-3 h-3 flex-shrink-0" />
+                <SIcon
+                  name="Terminal"
+                  size="w-3 h-3"
+                  class="flex-shrink-0"
+                />
                 <span class="truncate">{{ server.command }} {{ server.args.join(' ') }}</span>
               </div>
             </div>
@@ -129,8 +144,9 @@
               :disabled="syncing"
               @click="handleSyncServer(server.name)"
             >
-              <RefreshCw
-                class="w-3.5 h-3.5"
+              <SIcon
+                name="RefreshCw"
+                size="w-3.5 h-3.5"
                 :class="{ 'animate-spin': syncingServer === server.name }"
               />
               {{ $t('mcp.sync.sync') }}
@@ -151,9 +167,9 @@
                   ? 'bg-accent-success/10 text-accent-success'
                   : 'bg-accent-danger/10 text-accent-danger'"
               >
-                <component
-                  :is="result.success ? Check : X"
-                  class="w-3 h-3"
+                <SIcon
+                  :name="result.success ? 'Check' : 'X'"
+                  size="w-3 h-3"
                 />
                 {{ result.platform }}
               </span>
@@ -166,17 +182,9 @@
 </template>
 
 <script setup lang="ts">
+import SIcon from '@/components/ui/SIcon.vue'
 import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import {
-  RefreshCw,
-  Zap,
-  Terminal,
-  Server,
-  Check,
-  X,
-  Loader2
-} from 'lucide-vue-next'
 import {
   listSourceMcpServers,
   syncMcpServer,

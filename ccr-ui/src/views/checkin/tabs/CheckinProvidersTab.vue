@@ -4,7 +4,11 @@
     <!-- 内置中转站区域 -->
     <div v-if="availableBuiltinProviders.length > 0">
       <div class="flex items-center space-x-2 mb-4">
-        <Store class="w-5 h-5 text-accent-primary" />
+        <SIcon
+          name="Store"
+          size="w-5 h-5"
+          class="text-accent-primary"
+        />
         <h2 class="text-lg font-semibold text-white">
           内置中转站
         </h2>
@@ -66,9 +70,10 @@
                 ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300'
                 : 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300'"
             >
-              <component
-                :is="bp.checkin_bugged ? AlertTriangle : CheckCircle"
-                class="w-3 h-3 mr-1 inline"
+              <SIcon
+                :name="bp.checkin_bugged ? 'AlertTriangle' : 'CheckCircle'"
+                size="w-3 h-3"
+                class="mr-1 inline"
               />
               {{ bp.checkin_bugged ? '自动签到' : '支持签到' }}
             </span>
@@ -76,13 +81,21 @@
               v-else
               class="px-2 py-0.5 text-xs bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400 rounded-full flex items-center"
             >
-              <XCircle class="w-3 h-3 mr-1" /> 无签到
+              <SIcon
+                name="XCircle"
+                size="w-3 h-3"
+                class="mr-1"
+              /> 无签到
             </span>
             <span
               v-if="bp.requires_waf_bypass"
               class="px-2 py-0.5 text-xs bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300 rounded-full flex items-center"
             >
-              <Shield class="w-3 h-3 mr-1" /> 需要 WAF 绕过
+              <SIcon
+                name="Shield"
+                size="w-3 h-3"
+                class="mr-1"
+              /> 需要 WAF 绕过
             </span>
           </div>
         </div>
@@ -93,7 +106,11 @@
     <div>
       <div class="flex items-center justify-between mb-4">
         <div class="flex items-center space-x-2">
-          <Building2 class="w-5 h-5 text-accent-secondary" />
+          <SIcon
+            name="Building2"
+            size="w-5 h-5"
+            class="text-accent-secondary"
+          />
           <h2 class="text-lg font-semibold text-white">
             已添加的提供商
           </h2>
@@ -128,7 +145,11 @@
         class="text-center py-12 text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800/50 rounded-lg"
       >
         <p class="text-4xl mb-3">
-          <Package class="w-12 h-12 mx-auto text-white/50" />
+          <SIcon
+            name="Package"
+            size="w-12 h-12"
+            class="mx-auto text-white/50"
+          />
         </p>
         <p>暂无提供商配置</p>
         <p class="text-sm mt-1">
@@ -205,7 +226,11 @@
             <div class="flex items-start justify-between gap-3">
               <div class="min-w-0">
                 <div class="flex items-center gap-2 flex-wrap">
-                  <ShieldCheck class="w-4 h-4 text-orange-600 dark:text-orange-300" />
+                  <SIcon
+                    name="ShieldCheck"
+                    size="w-4 h-4"
+                    class="text-orange-600 dark:text-orange-300"
+                  />
                   <p class="text-sm font-medium text-orange-900 dark:text-orange-100">
                     WAF 验证
                   </p>
@@ -230,8 +255,9 @@
                 :disabled="wafLoadingMap[provider.id] === true"
                 @click="startWafLogin(provider)"
               >
-                <RefreshCw
-                  class="w-3.5 h-3.5"
+                <SIcon
+                  name="RefreshCw"
+                  size="w-3.5 h-3.5"
                   :class="{ 'animate-spin': wafLoadingMap[provider.id] === true }"
                 />
                 <span>
@@ -358,18 +384,8 @@
 </template>
 
 <script setup lang="ts">
+import SIcon from '@/components/ui/SIcon.vue'
 import { ref, computed, watch } from 'vue'
-import {
-  Store,
-  Building2,
-  Package,
-  CheckCircle,
-  AlertTriangle,
-  XCircle,
-  Shield,
-  ShieldCheck,
-  RefreshCw,
-} from 'lucide-vue-next'
 import {
   createCheckinProvider,
   updateCheckinProvider,

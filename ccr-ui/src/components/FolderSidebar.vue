@@ -29,11 +29,11 @@
         role="option"
         @click="handleFolderClick(folder.value)"
       >
-        <component
-          :is="folder.icon"
-          class="w-4 h-4 transition-transform group-hover:scale-110"
+        <SIcon
+          :name="folder.icon || ''"
+          size="w-4 h-4"
+          class="transition-transform group-hover:scale-110"
           :style="iconStyle(folder.value)"
-          aria-hidden="true"
         />
         <span class="flex-1 truncate text-left">{{ folder.label }}</span>
         <span
@@ -49,10 +49,12 @@
 </template>
 
 <script setup lang="ts">
+import SIcon from '@/components/ui/SIcon.vue'
+
 interface FolderOption {
   label: string
   value: string
-  icon: unknown
+  icon: string
   count: number
 }
 

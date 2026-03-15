@@ -19,9 +19,9 @@
                 class="modal-icon shrink-0"
                 :style="{ backgroundColor: platformColor + '15', color: platformColor }"
               >
-                <component
-                  :is="platformIcon"
-                  class="w-5 h-5"
+                <SIcon
+                  :name="platformIcon"
+                  size="w-5 h-5"
                 />
               </div>
               <div class="min-w-0">
@@ -40,13 +40,15 @@
                 :title="isEditMode ? $t('skills.previewMode') : $t('skills.editMode')"
                 @click="toggleMode"
               >
-                <Eye
+                <SIcon
                   v-if="isEditMode"
-                  class="w-5 h-5"
+                  name="Eye"
+                  size="w-5 h-5"
                 />
-                <Edit3
+                <SIcon
                   v-else
-                  class="w-5 h-5"
+                  name="Edit3"
+                  size="w-5 h-5"
                 />
               </button>
               <!-- Close -->
@@ -54,7 +56,10 @@
                 class="p-2 rounded-lg text-white/50 hover:text-white hover:bg-white/5 transition-colors"
                 @click="close"
               >
-                <X class="w-5 h-5" />
+                <SIcon
+                  name="X"
+                  size="w-5 h-5"
+                />
               </button>
             </div>
           </div>
@@ -66,7 +71,11 @@
               v-if="isContentLoading"
               class="flex flex-col items-center justify-center py-16"
             >
-              <Loader2 class="w-8 h-8 animate-spin text-accent-primary" />
+              <SIcon
+                name="Loader2"
+                size="w-8 h-8"
+                class="animate-spin text-accent-primary"
+              />
               <p class="text-white/80 text-sm mt-3">
                 {{ $t('skills.loadingContent') }}
               </p>
@@ -77,7 +86,11 @@
               v-else-if="contentError"
               class="flex flex-col items-center justify-center py-16"
             >
-              <AlertCircle class="w-8 h-8 text-danger" />
+              <SIcon
+                name="AlertCircle"
+                size="w-8 h-8"
+                class="text-danger"
+              />
               <p
                 class="text-sm mt-2"
                 style="color: rgb(var(--color-danger-rgb));"
@@ -111,16 +124,21 @@
                     v-if="skillContent.category"
                     class="meta-item"
                   >
-                    <Folder class="w-3.5 h-3.5 text-white/50 shrink-0" />
+                    <SIcon
+                      name="Folder"
+                      size="w-3.5 h-3.5"
+                      class="text-white/50 shrink-0"
+                    />
                     <span class="meta-label">{{ $t('skills.categoryLabel') }}</span>
                     <span class="meta-value">{{ skillContent.category }}</span>
                   </div>
 
                   <!-- Platform -->
                   <div class="meta-item">
-                    <component
-                      :is="platformIcon"
-                      class="w-3.5 h-3.5 shrink-0"
+                    <SIcon
+                      :name="platformIcon"
+                      size="w-3.5 h-3.5"
+                      class="shrink-0"
                       :style="{ color: platformColor }"
                     />
                     <span class="meta-label">{{ $t('skills.platform') }}</span>
@@ -132,7 +150,11 @@
                     v-if="skill?.version"
                     class="meta-item"
                   >
-                    <Tag class="w-3.5 h-3.5 text-white/50 shrink-0" />
+                    <SIcon
+                      name="Tag"
+                      size="w-3.5 h-3.5"
+                      class="text-white/50 shrink-0"
+                    />
                     <span class="meta-label">{{ $t('skills.version') }}</span>
                     <span class="meta-value">v{{ skill.version }}</span>
                   </div>
@@ -142,7 +164,11 @@
                     v-if="skill?.author"
                     class="meta-item"
                   >
-                    <User class="w-3.5 h-3.5 text-white/50 shrink-0" />
+                    <SIcon
+                      name="User"
+                      size="w-3.5 h-3.5"
+                      class="text-white/50 shrink-0"
+                    />
                     <span class="meta-label">{{ $t('skills.author') }}</span>
                     <span class="meta-value">{{ skill.author }}</span>
                   </div>
@@ -152,9 +178,10 @@
                     v-if="skill?.source"
                     class="meta-item"
                   >
-                    <component
-                      :is="sourceIconMap[skill.source] || HardDrive"
-                      class="w-3.5 h-3.5 text-white/50 shrink-0"
+                    <SIcon
+                      :name="sourceIconMap[skill.source] || 'HardDrive'"
+                      size="w-3.5 h-3.5"
+                      class="text-white/50 shrink-0"
                     />
                     <span class="meta-label">{{ $t('skills.sourceLabel') }}</span>
                     <span class="meta-value flex items-center gap-1">
@@ -167,7 +194,10 @@
                         class="text-accent-primary hover:underline"
                         @click.stop
                       >
-                        <ExternalLink class="w-3 h-3" />
+                        <SIcon
+                          name="ExternalLink"
+                          size="w-3 h-3"
+                        />
                       </a>
                     </span>
                   </div>
@@ -177,14 +207,22 @@
                     v-if="skill?.installDate"
                     class="meta-item"
                   >
-                    <Clock class="w-3.5 h-3.5 text-white/50 shrink-0" />
+                    <SIcon
+                      name="Clock"
+                      size="w-3.5 h-3.5"
+                      class="text-white/50 shrink-0"
+                    />
                     <span class="meta-label">{{ $t('skills.installedAt') }}</span>
                     <span class="meta-value">{{ formatDate(skill.installDate) }}</span>
                   </div>
 
                   <!-- Directory -->
                   <div class="meta-item">
-                    <FolderOpen class="w-3.5 h-3.5 text-white/50 shrink-0" />
+                    <SIcon
+                      name="FolderOpen"
+                      size="w-3.5 h-3.5"
+                      class="text-white/50 shrink-0"
+                    />
                     <span class="meta-label">{{ $t('skills.directory') }}</span>
                     <span
                       class="meta-value font-mono text-[11px]"
@@ -267,13 +305,16 @@
               :disabled="isSaving"
               @click="handleSave"
             >
-              <Loader2
+              <SIcon
                 v-if="isSaving"
-                class="w-4 h-4 animate-spin"
+                name="Loader2"
+                size="w-4 h-4"
+                class="animate-spin"
               />
-              <Save
+              <SIcon
                 v-else
-                class="w-4 h-4"
+                name="Save"
+                size="w-4 h-4"
               />
               <span>{{ $t('skills.saveSkill') }}</span>
             </button>
@@ -285,30 +326,8 @@
 </template>
 
 <script setup lang="ts">
+import SIcon from '@/components/ui/SIcon.vue'
 import { ref, computed, watch, nextTick } from 'vue'
-import {
-  X,
-  Eye,
-  Edit3,
-  Save,
-  Loader2,
-  AlertCircle,
-  Folder,
-  FolderOpen,
-  Code2,
-  Settings,
-  Sparkles,
-  Zap,
-  Activity,
-  Bot,
-  Tag,
-  User,
-  Clock,
-  Store,
-  Github,
-  HardDrive,
-  ExternalLink
-} from 'lucide-vue-next'
 import { marked } from 'marked'
 import { sanitizeMarkdown } from '@/utils/sanitize'
 // highlight.js: 仅导入 core + 常用语言（从 ~900 kB 降至 ~60 kB）
@@ -356,7 +375,7 @@ import { useUnifiedSkills } from '@/composables/useUnifiedSkills'
 import type { UnifiedSkill, SkillContent, Platform } from '@/types/skills'
 import { PLATFORM_CONFIG } from '@/types/skills'
 
-const GeminiIcon = Sparkles
+const GeminiIcon = 'Sparkles'
 
 const props = defineProps<{
   modelValue: boolean
@@ -388,15 +407,15 @@ const platformColor = computed(() => {
 })
 
 const platformIcon = computed(() => {
-  const iconMap: Record<string, unknown> = {
-    'claude-code': Code2,
-    'codex': Settings,
+  const iconMap: Record<string, string> = {
+    'claude-code': 'Code2',
+    'codex': 'Settings',
     'gemini': GeminiIcon,
-    'qwen': Zap,
-    'iflow': Activity,
-    'droid': Bot
+    'qwen': 'Zap',
+    'iflow': 'Activity',
+    'droid': 'Bot'
   }
-  return iconMap[props.skill?.platform || ''] || Code2
+  return iconMap[props.skill?.platform || ''] || 'Code2'
 })
 
 // Rendered markdown HTML
@@ -494,10 +513,10 @@ function shortenPath(path: string): string {
 }
 
 // Source display helpers
-const sourceIconMap: Record<string, unknown> = {
-  marketplace: Store,
-  github: Github,
-  local: HardDrive,
+const sourceIconMap: Record<string, string> = {
+  marketplace: 'Store',
+  github: 'Github',
+  local: 'HardDrive',
 }
 
 const sourceLabelMap: Record<string, string> = {

@@ -5,7 +5,11 @@
       v-if="!isLoading && skills.length === 0"
       class="empty-state"
     >
-      <Package class="w-12 h-12 text-white/50" />
+      <SIcon
+        name="Package"
+        size="w-12 h-12"
+        class="text-white/50"
+      />
       <h3 class="text-lg font-semibold text-white mt-4">
         {{ $t('skills.noSkillsInstalled') }}
       </h3>
@@ -69,7 +73,7 @@
 </template>
 
 <script setup lang="ts">
-import { Package } from 'lucide-vue-next'
+import SIcon from '@/components/ui/SIcon.vue'
 import SkillCard from '@/components/skills/SkillCard.vue'
 import type { UnifiedSkill } from '@/types/skills'
 

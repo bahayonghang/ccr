@@ -16,7 +16,10 @@
       <details class="bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800/60 rounded-lg overflow-hidden">
         <summary class="cursor-pointer select-none px-4 py-3 text-sm font-medium text-red-700 dark:text-red-200 flex items-center justify-between">
           <div class="flex items-center gap-2">
-            <XCircle class="w-4 h-4" />
+            <SIcon
+              name="XCircle"
+              size="w-4 h-4"
+            />
             失败历史记录 ({{ failedHistoryTotal }})
           </div>
           <span class="text-xs text-red-600/80 dark:text-red-300/80">
@@ -191,13 +194,15 @@
                     :aria-expanded="isRecordExpanded(record.id)"
                     @click="toggleRecordExpanded(record.id)"
                   >
-                    <ChevronUp
+                    <SIcon
                       v-if="isRecordExpanded(record.id)"
-                      class="w-4 h-4"
+                      name="ChevronUp"
+                      size="w-4 h-4"
                     />
-                    <ChevronDown
+                    <SIcon
                       v-else
-                      class="w-4 h-4"
+                      name="ChevronDown"
+                      size="w-4 h-4"
                     />
                     详情
                   </button>
@@ -275,12 +280,8 @@
 </template>
 
 <script setup lang="ts">
+import SIcon from '@/components/ui/SIcon.vue'
 import { ref, computed, onMounted, watch } from 'vue'
-import {
-  XCircle,
-  ChevronDown,
-  ChevronUp,
-} from 'lucide-vue-next'
 import {
   listCheckinRecords,
   exportCheckinRecords,

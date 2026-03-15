@@ -28,7 +28,10 @@
                   border: '1px solid var(--border-color)'
                 }"
               >
-                <Home class="w-4 h-4" />
+                <SIcon
+                  name="Home"
+                  size="w-4 h-4"
+                />
                 <span>{{ $t('converter.backToHome') }}</span>
               </RouterLink>
             </div>
@@ -43,8 +46,10 @@
             class="rounded-lg p-4 flex items-start gap-3"
             :style="{ background: 'rgba(var(--color-danger-rgb), 0.1)', border: '1px solid var(--color-danger)' }"
           >
-            <AlertCircle
-              class="w-5 h-5 flex-shrink-0 mt-0.5"
+            <SIcon
+              name="AlertCircle"
+              size="w-5 h-5"
+              class="flex-shrink-0 mt-0.5"
               :style="{ color: 'var(--color-danger)' }"
             />
             <div :style="{ color: 'var(--color-danger)' }">
@@ -57,8 +62,10 @@
             class="rounded-lg p-4 flex items-start gap-3"
             :style="{ background: 'rgba(var(--color-success-rgb), 0.1)', border: '1px solid var(--color-success)' }"
           >
-            <Check
-              class="w-5 h-5 flex-shrink-0 mt-0.5"
+            <SIcon
+              name="Check"
+              size="w-5 h-5"
+              class="flex-shrink-0 mt-0.5"
               :style="{ color: 'var(--color-success)' }"
             />
             <div :style="{ color: 'var(--color-success)' }">
@@ -74,8 +81,9 @@
               :style="{ border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-small)' }"
             >
               <div class="flex items-center gap-2 mb-2">
-                <FileJson
-                  class="w-5 h-5"
+                <SIcon
+                  name="FileJson"
+                  size="w-5 h-5"
                   :style="{ color: 'var(--accent-primary)' }"
                 />
                 <h2
@@ -140,8 +148,9 @@
               :style="{ border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-small)' }"
             >
               <div class="flex items-center gap-2 mb-2">
-                <FileCode
-                  class="w-5 h-5"
+                <SIcon
+                  name="FileCode"
+                  size="w-5 h-5"
                   :style="{ color: 'var(--accent-secondary)' }"
                 />
                 <h2
@@ -293,7 +302,10 @@
                       border: '1px solid var(--border-color)'
                     }"
                   >
-                    <Upload class="w-4 h-4" />
+                    <SIcon
+                      name="Upload"
+                      size="w-4 h-4"
+                    />
                     {{ $t('converter.uploadFile') }}
                   </span>
                   <input
@@ -347,13 +359,16 @@
               :disabled="isConverting || !configData.trim() || sourceFormat === targetFormat"
               @click="handleConvert"
             >
-              <Loader2
+              <SIcon
                 v-if="isConverting"
-                class="w-5 h-5 animate-spin"
+                name="Loader2"
+                size="w-5 h-5"
+                class="animate-spin"
               />
-              <ArrowRight
+              <SIcon
                 v-else
-                class="w-5 h-5"
+                name="ArrowRight"
+                size="w-5 h-5"
               />
               {{ isConverting ? $t('converter.converting') : $t('converter.startConvert') }}
             </button>
@@ -500,7 +515,10 @@
                     }"
                     @click="handleCopyResult"
                   >
-                    <Copy class="w-4 h-4" />
+                    <SIcon
+                      name="Copy"
+                      size="w-4 h-4"
+                    />
                     {{ $t('converter.copy') }}
                   </button>
                   <button
@@ -512,7 +530,10 @@
                     }"
                     @click="handleDownloadResult"
                   >
-                    <Download class="w-4 h-4" />
+                    <SIcon
+                      name="Download"
+                      size="w-4 h-4"
+                    />
                     {{ $t('converter.download') }}
                   </button>
                 </div>
@@ -602,21 +623,10 @@
 </template>
 
 <script setup lang="ts">
+import SIcon from '@/components/ui/SIcon.vue'
 import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { RouterLink } from 'vue-router'
-import {
-  Home,
-  FileJson,
-  FileCode,
-  Upload,
-  ArrowRight,
-  Loader2,
-  Check,
-  AlertCircle,
-  Copy,
-  Download,
-} from 'lucide-vue-next'
 import { convertConfig } from '@/api'
 import type { ConverterRequest, ConverterResponse, CliType } from '@/types'
 import Navbar from '@/components/Navbar.vue'

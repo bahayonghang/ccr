@@ -22,7 +22,10 @@
       <div class="shrink-0 px-8 py-6 border-b border-white/5 glass-surface rounded-t-xl flex items-center justify-between">
         <div class="flex items-center gap-4">
           <div class="p-3 rounded-xl bg-accent-primary/10 text-accent-primary">
-            <Settings class="w-6 h-6" />
+            <SIcon
+              name="Settings"
+              size="w-6 h-6"
+            />
           </div>
           <div>
             <h2
@@ -41,7 +44,10 @@
           size="icon"
           @click="handleClose"
         >
-          <X class="w-5 h-5" />
+          <SIcon
+            name="X"
+            size="w-5 h-5"
+          />
         </Button>
       </div>
 
@@ -68,7 +74,11 @@
             <!-- Section: Description -->
             <div class="space-y-4">
               <div class="flex items-center gap-2 mb-1">
-                <FileText class="w-4 h-4 text-emerald-400" />
+                <SIcon
+                  name="FileText"
+                  size="w-4 h-4"
+                  class="text-emerald-400"
+                />
                 <h3 class="text-xs font-bold uppercase tracking-wider text-emerald-400">
                   Basic Info
                 </h3>
@@ -80,7 +90,11 @@
                 placeholder="Brief description of this config"
               >
                 <template #leading>
-                  <FileText class="w-4 h-4 text-emerald-400" />
+                  <SIcon
+                    name="FileText"
+                    size="w-4 h-4"
+                    class="text-emerald-400"
+                  />
                 </template>
               </Input>
             </div>
@@ -88,7 +102,11 @@
             <!-- Section: Connection -->
             <div class="space-y-4">
               <div class="flex items-center gap-2 mb-1">
-                <Globe class="w-4 h-4 text-cyan-400" />
+                <SIcon
+                  name="Globe"
+                  size="w-4 h-4"
+                  class="text-cyan-400"
+                />
                 <h3 class="text-xs font-bold uppercase tracking-wider text-cyan-400">
                   Connection
                 </h3>
@@ -101,7 +119,11 @@
                 placeholder="https://api.anthropic.com"
               >
                 <template #leading>
-                  <Globe class="w-4 h-4 text-cyan-400" />
+                  <SIcon
+                    name="Globe"
+                    size="w-4 h-4"
+                    class="text-cyan-400"
+                  />
                 </template>
               </Input>
 
@@ -113,7 +135,11 @@
                   :type="showToken ? 'text' : 'password'"
                 >
                   <template #leading>
-                    <KeyRound class="w-4 h-4 text-amber-400" />
+                    <SIcon
+                      name="KeyRound"
+                      size="w-4 h-4"
+                      class="text-amber-400"
+                    />
                   </template>
                 </Input>
                 <!-- Toggle visibility button -->
@@ -123,13 +149,15 @@
                   :title="showToken ? 'Hide token' : 'Show token'"
                   @click="showToken = !showToken"
                 >
-                  <Eye
+                  <SIcon
                     v-if="!showToken"
-                    class="w-4 h-4"
+                    name="Eye"
+                    size="w-4 h-4"
                   />
-                  <EyeOff
+                  <SIcon
                     v-else
-                    class="w-4 h-4"
+                    name="EyeOff"
+                    size="w-4 h-4"
                   />
                 </button>
               </div>
@@ -138,7 +166,11 @@
             <!-- Section: Models -->
             <div class="space-y-4">
               <div class="flex items-center gap-2 mb-1">
-                <Bot class="w-4 h-4 text-violet-400" />
+                <SIcon
+                  name="Bot"
+                  size="w-4 h-4"
+                  class="text-violet-400"
+                />
                 <h3 class="text-xs font-bold uppercase tracking-wider text-violet-400">
                   Models
                 </h3>
@@ -152,7 +184,11 @@
                   placeholder="claude-3-opus-20240229"
                 >
                   <template #leading>
-                    <Bot class="w-4 h-4 text-violet-400" />
+                    <SIcon
+                      name="Bot"
+                      size="w-4 h-4"
+                      class="text-violet-400"
+                    />
                   </template>
                 </Input>
 
@@ -162,7 +198,11 @@
                   placeholder="claude-3-haiku-20240307"
                 >
                   <template #leading>
-                    <Zap class="w-4 h-4 text-yellow-400" />
+                    <SIcon
+                      name="Zap"
+                      size="w-4 h-4"
+                      class="text-yellow-400"
+                    />
                   </template>
                 </Input>
               </div>
@@ -171,7 +211,11 @@
             <!-- Section: Provider -->
             <div class="space-y-4">
               <div class="flex items-center gap-2 mb-1">
-                <Building2 class="w-4 h-4 text-orange-400" />
+                <SIcon
+                  name="Building2"
+                  size="w-4 h-4"
+                  class="text-orange-400"
+                />
                 <h3 class="text-xs font-bold uppercase tracking-wider text-orange-400">
                   Provider
                 </h3>
@@ -184,7 +228,11 @@
                   <label class="block text-xs font-bold uppercase tracking-wider text-white/50 mb-1.5 ml-1">Provider Type</label>
                   <div class="relative">
                     <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <Tag class="w-4 h-4 text-orange-400" />
+                      <SIcon
+                        name="Tag"
+                        size="w-4 h-4"
+                        class="text-orange-400"
+                      />
                     </div>
                     <select
                       v-model="formData.provider_type"
@@ -201,7 +249,11 @@
                       </option>
                     </select>
                     <div class="absolute inset-y-0 right-3 flex items-center pointer-events-none">
-                      <ChevronDown class="w-3.5 h-3.5 text-white/50" />
+                      <SIcon
+                        name="ChevronDown"
+                        size="w-3.5 h-3.5"
+                        class="text-white/50"
+                      />
                     </div>
                   </div>
                 </div>
@@ -213,7 +265,11 @@
                   hint="Grouping identifier"
                 >
                   <template #leading>
-                    <Building2 class="w-4 h-4 text-orange-400" />
+                    <SIcon
+                      name="Building2"
+                      size="w-4 h-4"
+                      class="text-orange-400"
+                    />
                   </template>
                 </Input>
 
@@ -224,7 +280,11 @@
                   hint="Account differentiator"
                 >
                   <template #leading>
-                    <User class="w-4 h-4 text-pink-400" />
+                    <SIcon
+                      name="User"
+                      size="w-4 h-4"
+                      class="text-pink-400"
+                    />
                   </template>
                 </Input>
               </div>
@@ -233,7 +293,11 @@
             <!-- Section: Tags -->
             <div class="space-y-4">
               <div class="flex items-center gap-2 mb-1">
-                <Tags class="w-4 h-4 text-sky-400" />
+                <SIcon
+                  name="Tags"
+                  size="w-4 h-4"
+                  class="text-sky-400"
+                />
                 <h3 class="text-xs font-bold uppercase tracking-wider text-sky-400">
                   Tags
                 </h3>
@@ -247,7 +311,11 @@
                 hint="Comma separated"
               >
                 <template #leading>
-                  <Tags class="w-4 h-4 text-sky-400" />
+                  <SIcon
+                    name="Tags"
+                    size="w-4 h-4"
+                    class="text-sky-400"
+                  />
                 </template>
               </Input>
             </div>
@@ -278,11 +346,8 @@
 </template>
 
 <script setup lang="ts">
+import SIcon from '@/components/ui/SIcon.vue'
 import { ref, watch, onUnmounted } from 'vue'
-import {
-  Settings, X, FileText, Globe, KeyRound, Bot, Zap,
-  Building2, User, Tag, Tags, Eye, EyeOff, ChevronDown
-} from 'lucide-vue-next'
 import { useFocusTrap, useEscapeKey, useUniqueId } from '@/composables/useAccessibility'
 import { getConfig, updateConfig } from '@/api'
 import Button from '@/components/ui/Button.vue'

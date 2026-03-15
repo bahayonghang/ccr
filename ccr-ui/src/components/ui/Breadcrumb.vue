@@ -13,17 +13,18 @@
           :to="item.path || '/'"
           class="flex items-center gap-1.5 rounded-xl border border-white/10 px-3 py-1.5 text-sm font-medium text-text-secondary transition-[color,background-color,border-color,transform] hover:-translate-y-px hover:border-accent-secondary/30 hover:bg-white/10 hover:text-text-primary"
         >
-          <component
-            :is="item.icon"
-            v-if="item.icon"
-            class="w-4 h-4"
+          <SIcon
+            :name="item.icon || ''"
+            size="w-4 h-4"
           />
           <span>{{ item.label }}</span>
         </RouterLink>
         
         <!-- 分隔符 -->
-        <ChevronRight
-          class="w-4 h-4 text-text-muted/70"
+        <SIcon
+          name="ChevronRight"
+          size="w-4 h-4"
+          class="text-text-muted/70"
         />
       </template>
       
@@ -37,10 +38,10 @@
             borderColor: `color-mix(in srgb, ${moduleColor} 26%, transparent)`
           } : {}"
         >
-          <component
-            :is="item.icon"
+          <SIcon
             v-if="item.icon"
-            class="w-4 h-4"
+            :name="item.icon || ''"
+            size="w-4 h-4"
             :style="{ color: moduleColor || 'var(--color-accent-primary)' }"
           />
           <span>{{ item.label }}</span>
@@ -51,14 +52,12 @@
 </template>
 
 <script setup lang="ts">
+import SIcon from '@/components/ui/SIcon.vue'
 import { RouterLink } from 'vue-router'
-import { ChevronRight } from 'lucide-vue-next'
-import type { Component } from 'vue'
-
 interface BreadcrumbItem {
   label: string
   path?: string
-  icon?: Component
+  icon?: string
 }
 
 interface Props {

@@ -4,7 +4,11 @@
     <div class="flex items-center justify-between">
       <div>
         <h1 class="text-3xl font-bold text-white flex items-center gap-3">
-          <ClipboardList class="w-8 h-8 text-accent-primary" />
+          <SIcon
+            name="ClipboardList"
+            size="w-8 h-8"
+            class="text-accent-primary"
+          />
           签到管理
         </h1>
         <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
@@ -136,15 +140,24 @@
           <!-- 结果统计 -->
           <div class="mt-3 flex flex-wrap items-center gap-2 text-xs">
             <span class="inline-flex items-center gap-1 rounded-full px-2 py-1 bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-200">
-              <CheckCircle class="w-3.5 h-3.5" />
+              <SIcon
+                name="CheckCircle"
+                size="w-3.5 h-3.5"
+              />
               成功 {{ checkinResult.summary.success }}
             </span>
             <span class="inline-flex items-center gap-1 rounded-full px-2 py-1 bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-200">
-              <Calendar class="w-3.5 h-3.5" />
+              <SIcon
+                name="Calendar"
+                size="w-3.5 h-3.5"
+              />
               已签到 {{ checkinResult.summary.already_checked_in }}
             </span>
             <span class="inline-flex items-center gap-1 rounded-full px-2 py-1 bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-200">
-              <XCircle class="w-3.5 h-3.5" />
+              <SIcon
+                name="XCircle"
+                size="w-3.5 h-3.5"
+              />
               失败 {{ checkinResult.summary.failed }}
             </span>
             <span class="inline-flex items-center gap-1 rounded-full px-2 py-1 bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200">
@@ -157,7 +170,11 @@
               class="md:col-span-2 rounded-lg border border-sky-200 bg-sky-50/90 dark:border-sky-800 dark:bg-sky-900/20 p-3"
             >
               <div class="flex items-start gap-3">
-                <Loader2 class="mt-0.5 h-4 w-4 animate-spin text-sky-600 dark:text-sky-300" />
+                <SIcon
+                  name="Loader2"
+                  size="h-4 w-4"
+                  class="mt-0.5 animate-spin text-sky-600 dark:text-sky-300"
+                />
                 <div>
                   <p class="text-sm font-medium text-sky-900 dark:text-sky-100">
                     正在自动处理 WAF
@@ -216,7 +233,11 @@
                   :key="item.account_id"
                   class="flex items-start gap-2 p-2 bg-green-50 dark:bg-green-900/20 rounded-md border border-green-200 dark:border-green-800"
                 >
-                  <CheckCircle class="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
+                  <SIcon
+                    name="CheckCircle"
+                    size="w-4 h-4"
+                    class="text-green-500 flex-shrink-0 mt-0.5"
+                  />
                   <div class="flex-1 min-w-0">
                     <div class="flex items-center gap-2 flex-wrap">
                       <span class="text-sm font-medium text-green-800 dark:text-green-200">
@@ -259,7 +280,11 @@
                   :key="item.account_id"
                   class="flex items-start gap-2 p-2 bg-red-50 dark:bg-red-900/30 rounded-md border border-red-200 dark:border-red-800"
                 >
-                  <XCircle class="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" />
+                  <SIcon
+                    name="XCircle"
+                    size="w-4 h-4"
+                    class="text-red-500 flex-shrink-0 mt-0.5"
+                  />
                   <div class="flex-1 min-w-0">
                     <div class="flex items-center gap-2 flex-wrap">
                       <span class="text-sm font-medium text-red-800 dark:text-red-200">
@@ -303,7 +328,11 @@
                 :key="item.account_id"
                 class="flex items-start gap-2 p-2 bg-blue-50 dark:bg-blue-900/20 rounded-md border border-blue-200 dark:border-blue-800"
               >
-                <Calendar class="w-4 h-4 text-blue-500 flex-shrink-0 mt-0.5" />
+                <SIcon
+                  name="Calendar"
+                  size="w-4 h-4"
+                  class="text-blue-500 flex-shrink-0 mt-0.5"
+                />
                 <div class="flex-1 min-w-0">
                   <div class="flex items-center gap-2 flex-wrap">
                     <span class="text-sm font-medium text-blue-800 dark:text-blue-200">
@@ -448,9 +477,9 @@
               : 'border-transparent text-white/80 hover:text-white hover:border-white/10'"
             @click="activeTab = tab.id"
           >
-            <component
-              :is="tab.icon"
-              class="w-4 h-4"
+            <SIcon
+              :name="tab.icon"
+              size="w-4 h-4"
             />
             {{ tab.name }}
           </button>
@@ -529,6 +558,7 @@
 <script setup lang="ts">
 defineOptions({ name: 'CheckinView' })
 
+import SIcon from '@/components/ui/SIcon.vue'
 import { useRouter } from 'vue-router'
 import { useCheckinState } from './checkin/composables/useCheckinState'
 // Tab 组件
@@ -541,14 +571,6 @@ import ConfirmModal from '@/components/ConfirmModal.vue'
 import CheckinProgressModal from '@/components/CheckinProgressModal.vue'
 import OAuthWizardModal from '@/views/checkin/components/OAuthWizardModal.vue'
 // 图标：去除未使用项，仅保留当前界面需要的图标
-import {
-  ClipboardList,
-  CheckCircle,
-  XCircle,
-  Calendar,
-  Loader2,
-} from 'lucide-vue-next'
-
 const router = useRouter()
 
 const {

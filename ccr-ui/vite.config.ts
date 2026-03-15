@@ -30,8 +30,8 @@ export default defineConfig({
         manualChunks: {
           // 将 Vue 生态单独打包
           'vue-vendor': ['vue', 'vue-router', 'pinia'],
-          // 将 UI 库单独打包
-          'ui-vendor': ['lucide-vue-next'],
+          // 将 UI 图标库单独打包
+          'ui-vendor': ['@iconify/vue'],
           // 将图表库单独打包，避免业务路由 chunk 膨胀
           'charts-vendor': ['apexcharts', 'vue3-apexcharts'],
           // 将 i18n 单独打包
@@ -78,7 +78,7 @@ export default defineConfig({
       'vue',
       'vue-router',
       'pinia',
-      'lucide-vue-next', // MainLayout 中使用 13+ 图标，需预打包
+      '@iconify/vue',    // SIcon 组件使用，需预打包
       'vue-i18n',        // 多处导入的国际化库
       'marked',          // CJS→ESM 互操作需预打包
       // highlight.js 为 CJS 包，必须预打包以避免 ESM 链接错误

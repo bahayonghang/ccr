@@ -1,6 +1,6 @@
 <script setup lang="ts">
+import SIcon from '@/components/ui/SIcon.vue'
 import { computed } from 'vue'
-import { CheckCircle, AlertCircle, Loader2, Server } from 'lucide-vue-next'
 import { useBackendHealth } from '@/composables/useBackendHealth'
 import { isTauriEnvironment } from '@/api'
 
@@ -36,22 +36,27 @@ const tooltip = computed(() => {
     :title="tooltip"
     @click="checkHealth"
   >
-    <Server
+    <SIcon
       v-if="status === 'ok'"
-      class="w-3.5 h-3.5"
+      name="Server"
+      size="w-3.5 h-3.5"
     />
-    <AlertCircle
+    <SIcon
       v-else-if="status === 'error'"
-      class="w-3.5 h-3.5"
+      name="AlertCircle"
+      size="w-3.5 h-3.5"
     />
-    <Loader2
+    <SIcon
       v-else
-      class="w-3.5 h-3.5 animate-spin"
+      name="Loader2"
+      size="w-3.5 h-3.5"
+      class="animate-spin"
     />
     <span>{{ label }}</span>
-    <CheckCircle
+    <SIcon
       v-if="status === 'ok'"
-      class="w-3.5 h-3.5"
+      name="CheckCircle"
+      size="w-3.5 h-3.5"
     />
   </button>
 </template>

@@ -18,9 +18,10 @@
         class="mp-card__check"
         :class="{ 'mp-card__check--active': isSelected }"
       >
-        <Check
+        <SIcon
           v-if="isSelected"
-          class="w-3 h-3"
+          name="Check"
+          size="w-3 h-3"
         />
       </div>
     </div>
@@ -41,7 +42,10 @@
         v-if="item.stars != null"
         class="mp-card__stars"
       >
-        <Star class="w-3.5 h-3.5" />
+        <SIcon
+          name="Star"
+          size="w-3.5 h-3.5"
+        />
         <span>{{ formatStars(item.stars) }}</span>
       </div>
     </div>
@@ -74,7 +78,10 @@
         class="mp-card__source-link"
         @click.stop
       >
-        <Github class="w-3.5 h-3.5" />
+        <SIcon
+          name="Github"
+          size="w-3.5 h-3.5"
+        />
         <span>{{ $t('skills.source') }}</span>
       </a>
 
@@ -83,7 +90,10 @@
         class="mp-card__status mp-card__status--installed"
         disabled
       >
-        <CheckCircle class="w-4 h-4" />
+        <SIcon
+          name="CheckCircle"
+          size="w-4 h-4"
+        />
         <span>{{ $t('skills.installed') }}</span>
       </button>
       <button
@@ -91,7 +101,11 @@
         class="mp-card__status mp-card__status--installing"
         disabled
       >
-        <Loader2 class="w-4 h-4 animate-spin" />
+        <SIcon
+          name="Loader2"
+          size="w-4 h-4"
+          class="animate-spin"
+        />
         <span>{{ $t('skills.installing') }}</span>
       </button>
       <button
@@ -99,7 +113,10 @@
         class="mp-card__install-btn"
         @click.stop="$emit('install', item)"
       >
-        <Download class="w-4 h-4" />
+        <SIcon
+          name="Download"
+          size="w-4 h-4"
+        />
         <span>{{ $t('skills.install') }}</span>
       </button>
     </div>
@@ -107,15 +124,8 @@
 </template>
 
 <script setup lang="ts">
+import SIcon from '@/components/ui/SIcon.vue'
 import { computed, ref } from 'vue'
-import {
-  Star,
-  Github,
-  Download,
-  Loader2,
-  Check,
-  CheckCircle
-} from 'lucide-vue-next'
 import type { MarketplaceItem } from '@/types/skills'
 
 const props = defineProps<{

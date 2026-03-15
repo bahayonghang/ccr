@@ -4,7 +4,11 @@
     <div class="flex items-center justify-between mb-6">
       <div class="flex items-center gap-3">
         <div class="p-2.5 rounded-xl bg-gradient-to-br from-accent-success/20 to-accent-primary/20">
-          <GitFork class="w-5 h-5 text-accent-success" />
+          <SIcon
+            name="GitFork"
+            size="w-5 h-5"
+            class="text-accent-success"
+          />
         </div>
         <div>
           <h3 class="text-base font-bold text-text-primary">
@@ -19,7 +23,10 @@
         class="px-3 py-1.5 text-xs rounded-lg bg-gradient-to-r from-accent-success to-accent-primary text-white font-medium flex items-center gap-1.5"
         @click="showAddModal = true"
       >
-        <Plus class="w-3.5 h-3.5" />
+        <SIcon
+          name="Plus"
+          size="w-3.5 h-3.5"
+        />
         {{ $t('skills.repositories.add') }}
       </button>
     </div>
@@ -29,7 +36,11 @@
       v-if="loading"
       class="flex justify-center py-8"
     >
-      <Loader2 class="w-6 h-6 animate-spin text-accent-success" />
+      <SIcon
+        name="Loader2"
+        size="w-6 h-6"
+        class="animate-spin text-accent-success"
+      />
     </div>
 
     <!-- Empty State -->
@@ -37,7 +48,11 @@
       v-else-if="repositories.length === 0"
       class="text-center py-8"
     >
-      <GitFork class="w-12 h-12 mx-auto text-text-muted/30 mb-3" />
+      <SIcon
+        name="GitFork"
+        size="w-12 h-12"
+        class="mx-auto text-text-muted/30 mb-3"
+      />
       <p class="text-sm text-text-muted">
         {{ $t('skills.repositories.empty') }}
       </p>
@@ -62,9 +77,9 @@
               class="p-2 rounded-lg"
               :class="repo.is_official ? 'bg-accent-warning/10' : 'bg-bg-base'"
             >
-              <component
-                :is="repo.is_official ? Star : Github"
-                class="w-4 h-4"
+              <SIcon
+                :name="repo.is_official ? 'Star' : 'Github'"
+                size="w-4 h-4"
                 :class="repo.is_official ? 'text-accent-warning' : 'text-text-muted'"
               />
             </div>
@@ -90,8 +105,9 @@
               :title="$t('skills.repositories.scan')"
               @click="scanRepository(repo.name)"
             >
-              <RefreshCw
-                class="w-4 h-4"
+              <SIcon
+                name="RefreshCw"
+                size="w-4 h-4"
                 :class="{ 'animate-spin': scanningRepo === repo.name }"
               />
             </button>
@@ -101,7 +117,10 @@
               :title="$t('common.delete')"
               @click="removeRepository(repo.name)"
             >
-              <Trash2 class="w-4 h-4" />
+              <SIcon
+                name="Trash2"
+                size="w-4 h-4"
+              />
             </button>
           </div>
         </div>
@@ -109,18 +128,27 @@
         <!-- Stats Row -->
         <div class="flex items-center gap-4 mt-3 pt-3 border-t border-white/5">
           <div class="flex items-center gap-1.5 text-xs text-text-muted">
-            <GitBranch class="w-3.5 h-3.5" />
+            <SIcon
+              name="GitBranch"
+              size="w-3.5 h-3.5"
+            />
             <span>{{ repo.branch }}</span>
           </div>
           <div class="flex items-center gap-1.5 text-xs text-text-muted">
-            <Package class="w-3.5 h-3.5" />
+            <SIcon
+              name="Package"
+              size="w-3.5 h-3.5"
+            />
             <span>{{ repo.skill_count || 0 }} {{ $t('skills.repositories.skills') }}</span>
           </div>
           <div
             v-if="repo.last_synced"
             class="flex items-center gap-1.5 text-xs text-text-muted"
           >
-            <Clock class="w-3.5 h-3.5" />
+            <SIcon
+              name="Clock"
+              size="w-3.5 h-3.5"
+            />
             <span>{{ formatTime(repo.last_synced) }}</span>
           </div>
         </div>
@@ -143,7 +171,11 @@
               class="p-2 rounded-lg hover:bg-bg-surface"
               @click="showAddModal = false"
             >
-              <X class="w-4 h-4 text-text-muted" />
+              <SIcon
+                name="X"
+                size="w-4 h-4"
+                class="text-text-muted"
+              />
             </button>
           </div>
 
@@ -200,9 +232,11 @@
               :disabled="!newRepo.name || !newRepo.url || adding"
               @click="addRepository"
             >
-              <Loader2
+              <SIcon
                 v-if="adding"
-                class="w-3.5 h-3.5 inline animate-spin mr-1.5"
+                name="Loader2"
+                size="w-3.5 h-3.5"
+                class="inline animate-spin mr-1.5"
               />
               {{ $t('skills.repositories.add') }}
             </button>
@@ -214,21 +248,9 @@
 </template>
 
 <script setup lang="ts">
+import SIcon from '@/components/ui/SIcon.vue'
 import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import {
-  GitFork,
-  Plus,
-  Loader2,
-  Github,
-  Star,
-  RefreshCw,
-  Trash2,
-  GitBranch,
-  Package,
-  Clock,
-  X
-} from 'lucide-vue-next'
 import { listSkillRepositories, addSkillRepository, removeSkillRepository, type SkillRepository } from '@/api'
 import { logger } from '@/utils/logger'
 

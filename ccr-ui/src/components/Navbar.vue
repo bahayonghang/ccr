@@ -29,8 +29,9 @@
             class="flex items-center"
             :style="{ gap: 'var(--space-sm)' }"
           >
-            <Cat
-              class="w-7 h-7"
+            <SIcon
+              name="Cat"
+              size="w-7 h-7"
               :style="{ color: 'var(--accent-primary)' }"
             />
             <h1
@@ -120,7 +121,10 @@
           :title="$t('nav.refresh')"
           @click="onRefresh"
         >
-          <RefreshCw class="w-4 h-4" />
+          <SIcon
+            name="RefreshCw"
+            size="w-4 h-4"
+          />
           <span class="hidden md:inline">刷新</span>
         </button>
 
@@ -136,7 +140,10 @@
           title="验证配置"
           @click="onValidate"
         >
-          <CheckCircle class="w-4 h-4" />
+          <SIcon
+            name="CheckCircle"
+            size="w-4 h-4"
+          />
           <span class="hidden md:inline">验证</span>
         </button>
 
@@ -152,7 +159,10 @@
           title="清理备份"
           @click="onClean"
         >
-          <Trash2 class="w-4 h-4" />
+          <SIcon
+            name="Trash2"
+            size="w-4 h-4"
+          />
           <span class="hidden md:inline">清理</span>
         </button>
 
@@ -178,7 +188,10 @@
           title="导入配置"
           @click="onImport"
         >
-          <Upload class="w-4 h-4" />
+          <SIcon
+            name="Upload"
+            size="w-4 h-4"
+          />
           <span class="hidden md:inline">导入</span>
         </button>
 
@@ -194,7 +207,10 @@
           title="导出配置"
           @click="onExport"
         >
-          <Download class="w-4 h-4" />
+          <SIcon
+            name="Download"
+            size="w-4 h-4"
+          />
           <span class="hidden md:inline">导出</span>
         </button>
 
@@ -209,7 +225,10 @@
           title="添加新配置"
           @click="onAdd"
         >
-          <PlusCircle class="w-4 h-4" />
+          <SIcon
+            name="PlusCircle"
+            size="w-4 h-4"
+          />
           <span class="hidden md:inline">添加</span>
         </button>
       </div>
@@ -218,15 +237,7 @@
 </template>
 
 <script setup lang="ts">
-import {
-  Cat,
-  RefreshCw,
-  Upload,
-  Download,
-  PlusCircle,
-  CheckCircle,
-  Trash2
-} from 'lucide-vue-next'
+import SIcon from '@/components/ui/SIcon.vue'
 import ThemeToggle from './ThemeToggle.vue'
 
 interface Props {

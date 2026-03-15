@@ -4,7 +4,11 @@
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
       <div class="flex items-center gap-3">
         <div class="p-2.5 rounded-xl bg-gradient-to-br from-accent-primary/20 to-accent-secondary/20">
-          <Sparkles class="w-5 h-5 text-accent-primary" />
+          <SIcon
+            name="Sparkles"
+            size="w-5 h-5"
+            class="text-accent-primary"
+          />
         </div>
         <div>
           <h3 class="text-base font-bold text-text-primary">
@@ -19,7 +23,11 @@
       <!-- Search Input -->
       <div class="flex items-center gap-3">
         <div class="relative">
-          <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
+          <SIcon
+            name="Search"
+            size="w-4 h-4"
+            class="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted"
+          />
           <input
             v-model="searchQuery"
             type="text"
@@ -32,7 +40,10 @@
           class="p-2 rounded-lg hover:bg-bg-surface text-text-muted hover:text-accent-danger transition-colors"
           @click="clearFilters"
         >
-          <XCircle class="w-4 h-4" />
+          <SIcon
+            name="XCircle"
+            size="w-4 h-4"
+          />
         </button>
       </div>
     </div>
@@ -86,7 +97,11 @@
       v-if="loading"
       class="flex justify-center py-8"
     >
-      <Loader2 class="w-6 h-6 animate-spin text-accent-primary" />
+      <SIcon
+        name="Loader2"
+        size="w-6 h-6"
+        class="animate-spin text-accent-primary"
+      />
     </div>
 
     <!-- Empty State -->
@@ -94,7 +109,11 @@
       v-else-if="filteredSkills.length === 0"
       class="text-center py-8"
     >
-      <Search class="w-12 h-12 mx-auto text-text-muted/30 mb-3" />
+      <SIcon
+        name="Search"
+        size="w-12 h-12"
+        class="mx-auto text-text-muted/30 mb-3"
+      />
       <p class="text-sm text-text-muted">
         {{ $t('skills.search.noResults') }}
       </p>
@@ -119,9 +138,9 @@
       >
         <div class="flex items-start justify-between mb-2">
           <div class="flex items-center gap-2">
-            <component 
-              :is="skill.is_remote ? Cloud : HardDrive" 
-              class="w-4 h-4" 
+            <SIcon
+              :name="skill.is_remote ? 'Cloud' : 'HardDrive'"
+              size="w-4 h-4"
               :class="skill.is_remote ? 'text-accent-primary' : 'text-accent-success'"
             />
             <span class="text-sm font-bold text-text-primary">{{ skill.name }}</span>
@@ -131,7 +150,10 @@
             class="p-1 rounded opacity-0 group-hover:opacity-100 hover:bg-accent-danger/10 text-text-muted hover:text-accent-danger transition-[color,background-color,opacity]"
             @click.stop="deleteSkill(skill.name)"
           >
-            <Trash2 class="w-3.5 h-3.5" />
+            <SIcon
+              name="Trash2"
+              size="w-3.5 h-3.5"
+            />
           </button>
         </div>
 
@@ -174,9 +196,9 @@
         <div class="w-full max-w-2xl max-h-[80vh] m-4 bg-bg-elevated rounded-2xl border border-white/10 overflow-hidden flex flex-col">
           <div class="flex items-center justify-between p-4 border-b border-white/10">
             <div class="flex items-center gap-3">
-              <component 
-                :is="selectedSkillData.is_remote ? Cloud : HardDrive" 
-                class="w-5 h-5"
+              <SIcon
+                :name="selectedSkillData.is_remote ? 'Cloud' : 'HardDrive'"
+                size="w-5 h-5"
                 :class="selectedSkillData.is_remote ? 'text-accent-primary' : 'text-accent-success'"
               />
               <div>
@@ -192,7 +214,11 @@
               class="p-2 rounded-lg hover:bg-bg-surface"
               @click="selectedSkillData = null"
             >
-              <X class="w-4 h-4 text-text-muted" />
+              <SIcon
+                name="X"
+                size="w-4 h-4"
+                class="text-text-muted"
+              />
             </button>
           </div>
           <div class="flex-1 overflow-y-auto p-4">
@@ -205,18 +231,9 @@
 </template>
 
 <script setup lang="ts">
+import SIcon from '@/components/ui/SIcon.vue'
 import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import {
-  Sparkles,
-  Search,
-  XCircle,
-  Loader2,
-  Cloud,
-  HardDrive,
-  Trash2,
-  X
-} from 'lucide-vue-next'
 import { listSkills, deleteSkill as apiDeleteSkill, type Skill } from '@/api'
 import { logger } from '@/utils/logger'
 

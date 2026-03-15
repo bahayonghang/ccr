@@ -10,7 +10,10 @@
             to="/opencode"
             class="p-2 rounded-lg text-white/50 hover:text-white transition-colors"
           >
-            <ChevronLeft class="w-5 h-5" />
+            <SIcon
+              name="ChevronLeft"
+              size="w-5 h-5"
+            />
           </RouterLink>
           <div>
             <h1 class="text-2xl font-bold text-white">
@@ -26,7 +29,10 @@
           style="background: var(--accent-primary); color: white;"
           @click="showAddDialog = true"
         >
-          <Plus class="w-4 h-4" />
+          <SIcon
+            name="Plus"
+            size="w-4 h-4"
+          />
           添加服务器
         </button>
       </div>
@@ -62,7 +68,11 @@
         variant="glass"
         class="p-10 text-center"
       >
-        <Server class="w-12 h-12 text-white/50 mx-auto mb-4" />
+        <SIcon
+          name="Server"
+          size="w-12 h-12"
+          class="text-white/50 mx-auto mb-4"
+        />
         <h3 class="text-lg font-bold text-white mb-2">
           暂无 MCP 服务器
         </h3>
@@ -96,9 +106,9 @@
                 class="w-10 h-10 rounded-lg flex items-center justify-center shrink-0"
                 :class="server.type === 'local' ? 'bg-green-500/10' : 'bg-blue-500/10'"
               >
-                <component
-                  :is="server.type === 'local' ? Terminal : Globe"
-                  class="w-5 h-5"
+                <SIcon
+                  :name="server.type === 'local' ? 'Terminal' : 'Globe'"
+                  size="w-5 h-5"
                   :class="server.type === 'local' ? 'text-green-500' : 'text-blue-500'"
                 />
               </div>
@@ -152,14 +162,20 @@
                 title="编辑"
                 @click="editServer(server)"
               >
-                <Pencil class="w-4 h-4" />
+                <SIcon
+                  name="Pencil"
+                  size="w-4 h-4"
+                />
               </button>
               <button
                 class="p-2 rounded-lg text-white/50 hover:text-red-400 hover:bg-red-500/10 transition-colors"
                 title="删除"
                 @click="confirmDelete(server)"
               >
-                <Trash2 class="w-4 h-4" />
+                <SIcon
+                  name="Trash2"
+                  size="w-4 h-4"
+                />
               </button>
             </div>
           </div>
@@ -186,7 +202,10 @@
             class="p-1 rounded text-white/50 hover:text-white"
             @click="closeDialog"
           >
-            <X class="w-5 h-5" />
+            <SIcon
+              name="X"
+              size="w-5 h-5"
+            />
           </button>
         </div>
 
@@ -213,7 +232,11 @@
                 : 'glass-surface border-white/20 text-white/50 hover:border-green-500/50'"
               @click="form.type = 'local'"
             >
-              <Terminal class="w-4 h-4 mx-auto mb-1" />
+              <SIcon
+                name="Terminal"
+                size="w-4 h-4"
+                class="mx-auto mb-1"
+              />
               local（本地命令）
             </button>
             <button
@@ -223,7 +246,11 @@
                 : 'glass-surface border-white/20 text-white/50 hover:border-blue-500/50'"
               @click="form.type = 'remote'"
             >
-              <Globe class="w-4 h-4 mx-auto mb-1" />
+              <SIcon
+                name="Globe"
+                size="w-4 h-4"
+                class="mx-auto mb-1"
+              />
               remote（HTTP/SSE）
             </button>
           </div>
@@ -268,9 +295,11 @@
             style="background: var(--accent-primary); color: white;"
             @click="saveServer"
           >
-            <Loader2
+            <SIcon
               v-if="saving"
-              class="w-4 h-4 animate-spin"
+              name="Loader2"
+              size="w-4 h-4"
+              class="animate-spin"
             />
             {{ editingServer ? '更新' : '添加' }}
           </button>
@@ -307,9 +336,11 @@
             class="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-red-500 text-white hover:bg-red-600 disabled:opacity-50"
             @click="doDelete"
           >
-            <Loader2
+            <SIcon
               v-if="saving"
-              class="w-4 h-4 animate-spin"
+              name="Loader2"
+              size="w-4 h-4"
+              class="animate-spin"
             />
             删除
           </button>
@@ -320,8 +351,8 @@
 </template>
 
 <script setup lang="ts">
+import SIcon from '@/components/ui/SIcon.vue'
 import { ref, computed, onMounted, reactive } from 'vue'
-import { ChevronLeft, Plus, Server, Terminal, Globe, Pencil, Trash2, X, Loader2 } from 'lucide-vue-next'
 import AnimatedBackground from '@/components/common/AnimatedBackground.vue'
 import Card from '@/components/ui/Card.vue'
 import {

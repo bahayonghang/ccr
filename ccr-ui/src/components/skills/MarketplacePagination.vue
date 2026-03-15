@@ -13,14 +13,20 @@
         :disabled="currentPage <= 1"
         @click="goTo(1)"
       >
-        <ChevronsLeft class="w-4 h-4" />
+        <SIcon
+          name="ChevronsLeft"
+          size="w-4 h-4"
+        />
       </button>
       <button
         class="mp-pagination__btn"
         :disabled="currentPage <= 1"
         @click="goTo(currentPage - 1)"
       >
-        <ChevronLeft class="w-4 h-4" />
+        <SIcon
+          name="ChevronLeft"
+          size="w-4 h-4"
+        />
       </button>
 
       <template
@@ -49,28 +55,28 @@
         :disabled="currentPage >= totalPages"
         @click="goTo(currentPage + 1)"
       >
-        <ChevronRight class="w-4 h-4" />
+        <SIcon
+          name="ChevronRight"
+          size="w-4 h-4"
+        />
       </button>
       <button
         class="mp-pagination__btn"
         :disabled="currentPage >= totalPages"
         @click="goTo(totalPages)"
       >
-        <ChevronsRight class="w-4 h-4" />
+        <SIcon
+          name="ChevronsRight"
+          size="w-4 h-4"
+        />
       </button>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import SIcon from '@/components/ui/SIcon.vue'
 import { computed } from 'vue'
-import {
-  ChevronLeft,
-  ChevronRight,
-  ChevronsLeft,
-  ChevronsRight
-} from 'lucide-vue-next'
-
 const props = defineProps<{
   currentPage: number
   totalItems: number

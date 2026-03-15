@@ -20,7 +20,11 @@
         class="text-center py-20"
       >
         <div class="bg-accent-danger/10 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
-          <AlertCircle class="w-10 h-10 text-accent-danger" />
+          <SIcon
+            name="AlertCircle"
+            size="w-10 h-10"
+            class="text-accent-danger"
+          />
         </div>
         <p class="text-lg font-medium text-text-primary">
           {{ $t('agents.loadError') }}
@@ -32,7 +36,10 @@
           to="/agents"
           class="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-bg-elevated hover:bg-bg-surface transition-colors"
         >
-          <ArrowLeft class="w-4 h-4" />
+          <SIcon
+            name="ArrowLeft"
+            size="w-4 h-4"
+          />
           {{ $t('common.back') }}
         </RouterLink>
       </div>
@@ -56,7 +63,10 @@
                       v-if="agent.folder"
                       class="flex items-center gap-1 text-xs text-text-muted bg-bg-surface px-2 py-0.5 rounded border border-border-default/50"
                     >
-                      <Folder class="w-3 h-3" /> {{ agent.folder }}
+                      <SIcon
+                        name="Folder"
+                        size="w-3 h-3"
+                      /> {{ agent.folder }}
                     </span>
                     <span
                       v-if="agent.model"
@@ -81,13 +91,15 @@
                 :class="agent.disabled ? 'bg-accent-secondary/10 text-accent-secondary hover:bg-accent-secondary/20' : 'bg-text-muted/10 text-text-muted hover:bg-text-muted/20'"
                 @click="handleToggle"
               >
-                <Power
+                <SIcon
                   v-if="!agent.disabled"
-                  class="w-4 h-4"
+                  name="Power"
+                  size="w-4 h-4"
                 />
-                <PowerOff
+                <SIcon
                   v-else
-                  class="w-4 h-4"
+                  name="PowerOff"
+                  size="w-4 h-4"
                 />
                 {{ agent.disabled ? $t('agents.enable') : $t('agents.disable') }}
               </button>
@@ -95,14 +107,20 @@
                 class="px-4 py-2 rounded-lg font-medium text-sm transition-colors bg-accent-secondary/10 text-accent-secondary hover:bg-accent-secondary/20 flex items-center gap-2"
                 @click="handleEdit"
               >
-                <Edit2 class="w-4 h-4" />
+                <SIcon
+                  name="Edit2"
+                  size="w-4 h-4"
+                />
                 {{ $t('common.edit') }}
               </button>
               <button
                 class="px-4 py-2 rounded-lg font-medium text-sm transition-colors bg-accent-danger/10 text-accent-danger hover:bg-accent-danger/20 flex items-center gap-2"
                 @click="handleDelete"
               >
-                <Trash2 class="w-4 h-4" />
+                <SIcon
+                  name="Trash2"
+                  size="w-4 h-4"
+                />
                 {{ $t('common.delete') }}
               </button>
             </div>
@@ -115,7 +133,11 @@
           class="glass-effect rounded-2xl p-6 mb-6 border border-white/20 shadow-sm"
         >
           <h2 class="text-lg font-bold text-text-primary flex items-center gap-2 mb-4">
-            <Wrench class="w-5 h-5 text-accent-secondary" />
+            <SIcon
+              name="Wrench"
+              size="w-5 h-5"
+              class="text-accent-secondary"
+            />
             {{ $t('agents.toolsLabel') }}
             <span class="text-sm font-normal text-text-muted">({{ agent.tools.length }})</span>
           </h2>
@@ -134,7 +156,11 @@
         <div class="glass-effect rounded-2xl p-6 border border-white/20 shadow-sm">
           <div class="flex items-center justify-between mb-4">
             <h2 class="text-lg font-bold text-text-primary flex items-center gap-2">
-              <FileText class="w-5 h-5 text-accent-secondary" />
+              <SIcon
+                name="FileText"
+                size="w-5 h-5"
+                class="text-accent-secondary"
+              />
               {{ $t('agents.systemPromptLabel') }}
             </h2>
             <button
@@ -142,7 +168,10 @@
               class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors bg-bg-surface hover:bg-bg-elevated text-text-secondary flex items-center gap-1.5"
               @click="copySystemPrompt"
             >
-              <Copy class="w-3.5 h-3.5" />
+              <SIcon
+                name="Copy"
+                size="w-3.5 h-3.5"
+              />
               {{ copied ? $t('common.copied') : $t('common.copy') }}
             </button>
           </div>
@@ -159,7 +188,11 @@
             v-else
             class="text-center py-12 text-text-muted"
           >
-            <FileText class="w-12 h-12 mx-auto mb-3 opacity-30" />
+            <SIcon
+              name="FileText"
+              size="w-12 h-12"
+              class="mx-auto mb-3 opacity-30"
+            />
             <p>{{ $t('agents.noSystemPrompt') }}</p>
           </div>
         </div>
@@ -180,12 +213,18 @@
           class="absolute top-4 right-4 p-2 rounded-full hover:bg-bg-surface text-text-muted transition-colors"
           @click="showEditModal = false"
         >
-          <X class="w-5 h-5" />
+          <SIcon
+            name="X"
+            size="w-5 h-5"
+          />
         </button>
 
         <h3 class="text-2xl font-bold mb-8 text-text-primary flex items-center">
           <div class="w-10 h-10 rounded-xl bg-accent-secondary/10 flex items-center justify-center mr-3 text-accent-secondary">
-            <Edit2 class="w-5 h-5" />
+            <SIcon
+              name="Edit2"
+              size="w-5 h-5"
+            />
           </div>
           {{ $t('agents.editAgent') }}
         </h3>
@@ -220,7 +259,10 @@
                   </option>
                 </select>
                 <div class="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-text-muted">
-                  <ChevronDown class="w-4 h-4" />
+                  <SIcon
+                    name="ChevronDown"
+                    size="w-4 h-4"
+                  />
                 </div>
               </div>
             </div>
@@ -257,7 +299,10 @@
                 <button
                   class="text-text-muted group-hover:text-accent-danger transition-colors"
                   @click="removeTool(tool)"
-                ><X class="w-3.5 h-3.5" /></button>
+                ><SIcon
+                  name="X"
+                  size="w-3.5 h-3.5"
+                /></button>
               </span>
             </div>
           </div>
@@ -294,13 +339,10 @@
 </template>
 
 <script setup lang="ts">
+import SIcon from '@/components/ui/SIcon.vue'
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter, RouterLink } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import {
-  Edit2, Trash2, ArrowLeft, Folder, FileText, Copy, X,
-  AlertCircle, Home, Bot, Power, PowerOff, Wrench, ChevronDown
-} from 'lucide-vue-next'
 import Breadcrumb from '@/components/ui/Breadcrumb.vue'
 import { useAgents } from '@/composables/useAgents'
 import type { Agent, AgentRequest } from '@/types'
@@ -324,8 +366,8 @@ const saving = ref(false)
 const copied = ref(false)
 
 const breadcrumbs = computed(() => [
-  { label: t('common.home'), path: '/', icon: Home },
-  { label: t('agents.pageTitle'), path: '/agents', icon: Bot },
+  { label: t('common.home'), path: '/', icon: 'Home' },
+  { label: t('agents.pageTitle'), path: '/agents', icon: 'Bot' },
   { label: agent.value?.name || t('common.loading') }
 ])
 

@@ -71,8 +71,9 @@
             :disabled="loading"
             @click="$emit('refresh')"
           >
-            <RefreshCw
-              class="w-3.5 h-3.5"
+            <SIcon
+              name="RefreshCw"
+              size="w-3.5 h-3.5"
               :class="{ 'animate-spin': loading }"
             />
             <span>{{ $t('configs.provider.refreshStats') }}</span>
@@ -83,7 +84,10 @@
             :style="{ color: 'var(--text-muted)' }"
             @click="$emit('close')"
           >
-            <X class="w-4 h-4" />
+            <SIcon
+              name="X"
+              size="w-4 h-4"
+            />
           </button>
         </div>
       </div>
@@ -144,7 +148,10 @@
               color: 'var(--accent-primary)'
             }"
           >
-            <BarChart3 class="w-6 h-6" />
+            <SIcon
+              name="BarChart3"
+              size="w-6 h-6"
+            />
           </div>
           <div>
             <div
@@ -251,10 +258,9 @@
 </template>
 
 <script setup lang="ts">
+import SIcon from '@/components/ui/SIcon.vue'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { RefreshCw, X, BarChart3 } from 'lucide-vue-next'
-
 type SortMode = 'count_desc' | 'count_asc' | 'name_asc'
 
 interface Props {

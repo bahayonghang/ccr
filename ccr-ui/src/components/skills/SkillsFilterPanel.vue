@@ -15,7 +15,10 @@
           :title="$t('skills.expandPanel')"
           @click="$emit('toggle-collapse')"
         >
-          <PanelLeftOpen class="w-4 h-4" />
+          <SIcon
+            name="PanelLeftOpen"
+            size="w-4 h-4"
+          />
         </button>
 
         <div class="w-8 h-px bg-border-subtle" />
@@ -24,14 +27,22 @@
           class="p-2 rounded-lg hover:bg-white/5/50 transition-colors"
           :title="$t('skills.searchPlaceholder')"
         >
-          <Search class="w-4 h-4 text-white/50" />
+          <SIcon
+            name="Search"
+            size="w-4 h-4"
+            class="text-white/50"
+          />
         </button>
 
         <button
           class="p-2 rounded-lg hover:bg-white/5/50 transition-colors"
           :title="$t('skills.platforms')"
         >
-          <Layers class="w-4 h-4 text-fuchsia-400" />
+          <SIcon
+            name="Layers"
+            size="w-4 h-4"
+            class="text-fuchsia-400"
+          />
         </button>
 
         <div class="w-8 h-px bg-border-subtle" />
@@ -45,9 +56,9 @@
           :class="selectedPlatform === platform.id ? 'bg-accent-primary/10' : ''"
           @click="selectPlatform(platform.id)"
         >
-          <component
-            :is="getPlatformIcon(platform.id)"
-            class="w-4 h-4"
+          <SIcon
+            :name="getPlatformIcon(platform.id)"
+            size="w-4 h-4"
             :style="{ color: getPlatformColor(platform.id) }"
           />
           <!-- Tooltip -->
@@ -67,7 +78,11 @@
       <!-- Header with collapse button -->
       <div class="flex items-center justify-between mb-4">
         <h2 class="text-sm font-bold flex items-center gap-2 text-white">
-          <Layers class="w-4 h-4 text-fuchsia-400" />
+          <SIcon
+            name="Layers"
+            size="w-4 h-4"
+            class="text-fuchsia-400"
+          />
           {{ $t('skills.filters') }}
         </h2>
         <button
@@ -76,14 +91,19 @@
           :title="$t('skills.collapsePanel')"
           @click="$emit('toggle-collapse')"
         >
-          <PanelLeftClose class="w-4 h-4" />
+          <SIcon
+            name="PanelLeftClose"
+            size="w-4 h-4"
+          />
         </button>
       </div>
 
       <!-- Search Input -->
       <div class="relative mb-4">
-        <Search
-          class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/50"
+        <SIcon
+          name="Search"
+          size="w-4 h-4"
+          class="absolute left-3 top-1/2 -translate-y-1/2 text-white/50"
         />
         <input
           v-model="localSearch"
@@ -103,14 +123,21 @@
                  hover:bg-white/5 rounded-full text-white/50 transition-colors"
           @click="clearSearch"
         >
-          <X class="w-3 h-3" />
+          <SIcon
+            name="X"
+            size="w-3 h-3"
+          />
         </button>
       </div>
 
       <!-- Platforms Section -->
       <div class="filter-section">
         <div class="filter-section__header">
-          <Package class="w-3.5 h-3.5 text-fuchsia-400" />
+          <SIcon
+            name="Package"
+            size="w-3.5 h-3.5"
+            class="text-fuchsia-400"
+          />
           <span>{{ $t('skills.platforms') }}</span>
           <span class="filter-section__count">{{ totalInstalled }}</span>
         </div>
@@ -129,7 +156,11 @@
                   ? 'border-accent-primary bg-accent-primary'
                   : 'border-white/10'"
               />
-              <LayoutGrid class="w-4 h-4 text-emerald-400" />
+              <SIcon
+                name="LayoutGrid"
+                size="w-4 h-4"
+                class="text-emerald-400"
+              />
               <span>{{ $t('skills.allPlatforms') }}</span>
             </div>
             <span class="platform-item__count">{{ totalInstalled }}</span>
@@ -154,9 +185,9 @@
                   ? 'border-accent-primary bg-accent-primary'
                   : 'border-white/10'"
               />
-              <component
-                :is="getPlatformIcon(platform.id)"
-                class="w-4 h-4"
+              <SIcon
+                :name="getPlatformIcon(platform.id)"
+                size="w-4 h-4"
                 :style="{ color: getPlatformColor(platform.id) }"
               />
               <span>{{ platform.display_name }}</span>
@@ -177,7 +208,11 @@
       <!-- Source Section -->
       <div class="filter-section">
         <div class="filter-section__header">
-          <FolderOpen class="w-3.5 h-3.5 text-cyan-400" />
+          <SIcon
+            name="FolderOpen"
+            size="w-3.5 h-3.5"
+            class="text-cyan-400"
+          />
           <span>{{ $t('skills.source') }}</span>
         </div>
 
@@ -203,11 +238,17 @@
           class="filter-section__header cursor-pointer"
           @click="expandedSections.categories = !expandedSections.categories"
         >
-          <Folder class="w-3.5 h-3.5 text-violet-400" />
+          <SIcon
+            name="Folder"
+            size="w-3.5 h-3.5"
+            class="text-violet-400"
+          />
           <span>{{ $t('skills.categories') }}</span>
           <span class="filter-section__count">{{ categories.length }}</span>
-          <ChevronDown
-            class="w-3.5 h-3.5 ml-auto transition-transform"
+          <SIcon
+            name="ChevronDown"
+            size="w-3.5 h-3.5"
+            class="ml-auto transition-transform"
             :class="{ 'rotate-180': expandedSections.categories }"
           />
         </div>
@@ -247,7 +288,11 @@
           class="filter-section__header cursor-pointer"
           @click="expandedSections.tags = !expandedSections.tags"
         >
-          <Tag class="w-3.5 h-3.5 text-pink-400" />
+          <SIcon
+            name="Tag"
+            size="w-3.5 h-3.5"
+            class="text-pink-400"
+          />
           <span>{{ $t('skills.tags') }}</span>
           <span
             v-if="localTags.length > 0"
@@ -255,8 +300,10 @@
           >
             {{ localTags.length }}
           </span>
-          <ChevronDown
-            class="w-3.5 h-3.5 ml-auto transition-transform"
+          <SIcon
+            name="ChevronDown"
+            size="w-3.5 h-3.5"
+            class="ml-auto transition-transform"
             :class="{ 'rotate-180': expandedSections.tags }"
           />
         </div>
@@ -293,7 +340,10 @@
         class="clear-filters-btn"
         @click="clearAllFilters"
       >
-        <FilterX class="w-4 h-4" />
+        <SIcon
+          name="FilterX"
+          size="w-4 h-4"
+        />
         <span>{{ $t('common.clearFilters') }}</span>
       </button>
     </template>
@@ -301,28 +351,9 @@
 </template>
 
 <script setup lang="ts">
+import SIcon from '@/components/ui/SIcon.vue'
 import { ref, computed, watch, reactive } from 'vue'
 import { useI18n } from 'vue-i18n'
-import {
-  Search,
-  X,
-  Layers,
-  Package,
-  FolderOpen,
-  Folder,
-  Tag,
-  ChevronDown,
-  FilterX,
-  LayoutGrid,
-  PanelLeftOpen,
-  PanelLeftClose,
-  Code2,
-  Settings,
-  Sparkles,
-  Zap,
-  Activity,
-  Bot
-} from 'lucide-vue-next'
 import type { Platform, SkillSource, PlatformSummary, SkillFilters } from '@/types/skills'
 import { PLATFORM_CONFIG } from '@/types/skills'
 
@@ -393,15 +424,15 @@ const hasActiveFilters = computed(() => {
 
 // Get platform icon component
 function getPlatformIcon(platformId: string) {
-  const iconMap: Record<string, unknown> = {
-    'claude-code': Code2,
-    'codex': Settings,
-    'gemini': Sparkles,
-    'qwen': Zap,
-    'iflow': Activity,
-    'droid': Bot
+  const iconMap: Record<string, string> = {
+    'claude-code': 'Code2',
+    'codex': 'Settings',
+    'gemini': 'Sparkles',
+    'qwen': 'Zap',
+    'iflow': 'Activity',
+    'droid': 'Bot'
   }
-  return iconMap[platformId] || Code2
+  return iconMap[platformId] || 'Code2'
 }
 
 // Get platform color

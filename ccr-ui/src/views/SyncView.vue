@@ -8,9 +8,9 @@
       <!-- Breadcrumb Navigation -->
       <Breadcrumb
         :items="[
-          { label: $t('sync.breadcrumb.home'), path: '/', icon: Home },
-          { label: $t('sync.breadcrumb.claudeCode'), path: '/claude-code', icon: Code2 },
-          { label: $t('sync.breadcrumb.sync'), path: '/sync', icon: Cloud }
+          { label: $t('sync.breadcrumb.home'), path: '/', icon: 'Home' },
+          { label: $t('sync.breadcrumb.claudeCode'), path: '/claude-code', icon: 'Code2' },
+          { label: $t('sync.breadcrumb.sync'), path: '/sync', icon: 'Cloud' }
         ]"
         module-color="var(--color-accent-primary)"
       />
@@ -19,7 +19,11 @@
         <div class="flex items-center justify-between mb-6 animate-fade-in">
           <div class="flex items-center gap-4">
             <div class="p-4 rounded-3xl glass-effect border border-cyan-500/30 bg-gradient-to-br from-cyan-500/20 to-blue-500/20">
-              <Cloud class="w-10 h-10 text-cyan-400" />
+              <SIcon
+                name="Cloud"
+                size="w-10 h-10"
+                class="text-cyan-400"
+              />
             </div>
             <div>
               <h1 class="text-4xl md:text-5xl font-bold mb-2 text-gradient-cyan">
@@ -34,7 +38,11 @@
             to="/"
             class="group glass-effect flex items-center gap-2 px-5 py-3 hover:scale-105 transition-[color,background-color,border-color,transform] duration-300 border border-white/5 hover:border-cyan-500/30"
           >
-            <Home class="w-5 h-5 text-white/50 group-hover:text-cyan-400 transition-colors" />
+            <SIcon
+              name="Home"
+              size="w-5 h-5"
+              class="text-white/50 group-hover:text-cyan-400 transition-colors"
+            />
             <span class="font-medium text-white/80 group-hover:text-white transition-colors">{{ $t('sync.backHome') }}</span>
           </RouterLink>
         </div>
@@ -46,7 +54,11 @@
         class="flex items-center justify-center py-16"
       >
         <div class="p-8 glass-effect rounded-2xl border border-cyan-500/20">
-          <RefreshCw class="w-12 h-12 animate-spin text-cyan-400" />
+          <SIcon
+            name="RefreshCw"
+            size="w-12 h-12"
+            class="animate-spin text-cyan-400"
+          />
         </div>
       </div>
 
@@ -56,7 +68,11 @@
         class="glass-effect p-6 flex items-start gap-4 border border-danger/30 rounded-2xl"
       >
         <div class="p-3 rounded-2xl bg-danger/15">
-          <XCircle class="w-7 h-7 text-danger" />
+          <SIcon
+            name="XCircle"
+            size="w-7 h-7"
+            class="text-danger"
+          />
         </div>
         <div class="flex-1">
           <h3 class="font-bold text-xl mb-2 text-white">
@@ -81,7 +97,11 @@
             <div class="flex items-center justify-between mb-6">
               <div class="flex items-center gap-3">
                 <div class="p-3 rounded-2xl bg-success/15 border border-success/30">
-                  <CheckSquare class="w-6 h-6 text-success" />
+                  <SIcon
+                    name="CheckSquare"
+                    size="w-6 h-6"
+                    class="text-success"
+                  />
                 </div>
                 <h2 class="text-2xl font-bold text-white">
                   {{ $t('sync.platformSelection.title') }}
@@ -95,7 +115,10 @@
                   : 'bg-success/15 text-success border-success/30 hover:bg-success/20'"
                 @click="applySelection"
               >
-                <Save class="w-4 h-4" />
+                <SIcon
+                  name="Save"
+                  size="w-4 h-4"
+                />
                 <span>{{ applying ? $t('sync.platformSelection.applying') : $t('sync.platformSelection.applyButton') }}</span>
               </button>
             </div>
@@ -104,7 +127,11 @@
             <div class="mb-6 p-5 rounded-xl glass-effect bg-warning/5 border border-warning/30">
               <div class="flex items-center gap-4">
                 <div class="p-2 rounded-xl bg-warning/15">
-                  <CheckCircle class="w-6 h-6 text-warning" />
+                  <SIcon
+                    name="CheckCircle"
+                    size="w-6 h-6"
+                    class="text-warning"
+                  />
                 </div>
                 <div class="flex-1">
                   <div class="flex items-center gap-3 mb-2">
@@ -119,7 +146,11 @@
                     {{ $t('sync.platformSelection.configDescription') }}
                   </p>
                   <div class="flex items-center gap-2">
-                    <Folder class="w-4 h-4 text-white/50" />
+                    <SIcon
+                      name="Folder"
+                      size="w-4 h-4"
+                      class="text-white/50"
+                    />
                     <input
                       v-model="presetItems.config.localPath"
                       type="text"
@@ -152,9 +183,11 @@
                         border: item.selected ? '2px solid var(--color-accent-primary)' : '2px solid var(--border-color)'
                       }"
                     >
-                      <Check
+                      <SIcon
                         v-if="item.selected"
-                        class="w-4 h-4"
+                        name="Check"
+                        size="w-4 h-4"
+                        
                         :style="{ color: 'var(--color-accent-primary)' }"
                       />
                     </div>
@@ -165,9 +198,9 @@
                         class="p-2 rounded-lg"
                         :style="{ background: 'rgba(var(--color-accent-primary-rgb), 0.1)' }"
                       >
-                        <component
-                          :is="item.icon"
-                          class="w-5 h-5"
+                        <SIcon
+                          :name="item.icon"
+                          size="w-5 h-5"
                           :style="{ color: 'var(--color-accent-primary)' }"
                         />
                       </div>
@@ -190,8 +223,9 @@
                       @click.stop
                     >
                       <div class="flex items-center gap-2">
-                        <Folder
-                          class="w-4 h-4"
+                        <SIcon
+                          name="Folder"
+                          size="w-4 h-4"
                           :style="{ color: 'var(--text-muted)' }"
                         />
                         <input
@@ -203,8 +237,9 @@
                         >
                       </div>
                       <div class="flex items-center gap-2">
-                        <Cloud
-                          class="w-4 h-4"
+                        <SIcon
+                          name="Cloud"
+                          size="w-4 h-4"
                           :style="{ color: 'var(--text-muted)' }"
                         />
                         <input
@@ -231,8 +266,9 @@
                   class="p-2 rounded-xl"
                   :style="{ background: 'rgba(var(--color-accent-secondary-rgb), 0.15)' }"
                 >
-                  <Plus
-                    class="w-5 h-5"
+                  <SIcon
+                    name="Plus"
+                    size="w-5 h-5"
                     :style="{ color: 'var(--accent-secondary)' }"
                   />
                 </div>
@@ -279,7 +315,10 @@
                 :style="{ background: 'rgba(var(--color-accent-secondary-rgb), 0.1)', color: 'var(--accent-secondary)' }"
                 @click="addCustomFolder"
               >
-                <Plus class="w-5 h-5" />
+                <SIcon
+                  name="Plus"
+                  size="w-5 h-5"
+                />
                 {{ addingCustom ? $t('sync.customFolder.adding') : $t('sync.customFolder.addButton') }}
               </button>
             </div>
@@ -293,8 +332,9 @@
                   class="p-3 rounded-2xl"
                   :style="{ background: 'rgba(var(--color-info-rgb), 0.1)' }"
                 >
-                  <Folders
-                    class="w-6 h-6"
+                  <SIcon
+                    name="Folders"
+                    size="w-6 h-6"
                     :style="{ color: 'var(--accent-info)' }"
                   />
                 </div>
@@ -310,8 +350,9 @@
                 :style="{ background: 'rgba(var(--color-info-rgb), 0.1)', color: 'var(--accent-info)' }"
                 @click="refreshFolders"
               >
-                <RefreshCw
-                  class="w-4 h-4"
+                <SIcon
+                  name="RefreshCw"
+                  size="w-4 h-4"
                   :class="{ 'animate-spin': refreshingFolders }"
                 />
                 <span class="font-medium">{{ $t('sync.enabledFolders.refresh') }}</span>
@@ -325,8 +366,9 @@
                 class="p-4 rounded-2xl inline-block"
                 :style="{ background: 'rgba(var(--color-gray-rgb), 0.1)' }"
               >
-                <FolderOpen
-                  class="w-16 h-16"
+                <SIcon
+                  name="FolderOpen"
+                  size="w-16 h-16"
                   :style="{ color: 'var(--text-muted)' }"
                 />
               </div>
@@ -385,14 +427,20 @@
                         class="flex items-center gap-2"
                         :style="{ color: 'var(--text-secondary)' }"
                       >
-                        <Folder class="w-4 h-4" />
+                        <SIcon
+                          name="Folder"
+                          size="w-4 h-4"
+                        />
                         <span class="font-mono">{{ folder.localPath }}</span>
                       </div>
                       <div
                         class="flex items-center gap-2"
                         :style="{ color: 'var(--text-secondary)' }"
                       >
-                        <Cloud class="w-4 h-4" />
+                        <SIcon
+                          name="Cloud"
+                          size="w-4 h-4"
+                        />
                         <span class="font-mono">{{ folder.remotePath }}</span>
                       </div>
                     </div>
@@ -406,7 +454,10 @@
                     :style="{ background: 'rgba(var(--color-accent-primary-rgb), 0.1)', color: 'var(--accent-primary)' }"
                     @click="toggleFolder(folder.name, folder.enabled)"
                   >
-                    <ToggleLeft class="w-4 h-4" />
+                    <SIcon
+                      name="ToggleLeft"
+                      size="w-4 h-4"
+                    />
                     {{ folder.enabled ? $t('sync.operations.disable') : $t('sync.operations.enable') }}
                   </button>
                   <button
@@ -415,7 +466,10 @@
                     :style="{ background: 'rgba(var(--color-success-rgb), 0.1)', color: 'var(--accent-success)' }"
                     @click="pushFolder(folder.name)"
                   >
-                    <Upload class="w-4 h-4" />
+                    <SIcon
+                      name="Upload"
+                      size="w-4 h-4"
+                    />
                     {{ $t('sync.operations.upload') }}
                   </button>
                   <button
@@ -424,7 +478,10 @@
                     :style="{ background: 'rgba(var(--color-accent-secondary-rgb), 0.1)', color: 'var(--accent-secondary)' }"
                     @click="pullFolder(folder.name)"
                   >
-                    <Download class="w-4 h-4" />
+                    <SIcon
+                      name="Download"
+                      size="w-4 h-4"
+                    />
                     {{ $t('sync.operations.download') }}
                   </button>
                   <button
@@ -432,7 +489,10 @@
                     :style="{ background: 'rgba(var(--color-info-rgb), 0.1)', color: 'var(--accent-info)' }"
                     @click="getFolderStatus(folder.name)"
                   >
-                    <Info class="w-4 h-4" />
+                    <SIcon
+                      name="Info"
+                      size="w-4 h-4"
+                    />
                     {{ $t('sync.operations.status') }}
                   </button>
                   <button
@@ -440,7 +500,10 @@
                     :style="{ background: 'rgba(var(--color-danger-rgb), 0.1)', color: 'var(--accent-danger)' }"
                     @click="removeFolder(folder.name)"
                   >
-                    <Trash2 class="w-4 h-4" />
+                    <SIcon
+                      name="Trash2"
+                      size="w-4 h-4"
+                    />
                     {{ $t('sync.operations.delete') }}
                   </button>
                 </div>
@@ -455,8 +518,9 @@
                 class="p-3 rounded-2xl"
                 :style="{ background: 'rgba(var(--color-warning-rgb), 0.1)' }"
               >
-                <Layers
-                  class="w-6 h-6"
+                <SIcon
+                  name="Layers"
+                  size="w-6 h-6"
                   :style="{ color: 'var(--accent-warning)' }"
                 />
               </div>
@@ -481,7 +545,10 @@
                 :style="{ background: 'rgba(var(--color-success-rgb), 0.1)', color: 'var(--accent-success)' }"
                 @click="pushAllFolders"
               >
-                <Upload class="w-5 h-5" />
+                <SIcon
+                  name="Upload"
+                  size="w-5 h-5"
+                />
                 {{ $t('sync.batchOperations.uploadAll') }}
               </button>
               <button
@@ -490,7 +557,10 @@
                 :style="{ background: 'rgba(var(--color-accent-secondary-rgb), 0.1)', color: 'var(--accent-secondary)' }"
                 @click="pullAllFolders"
               >
-                <Download class="w-5 h-5" />
+                <SIcon
+                  name="Download"
+                  size="w-5 h-5"
+                />
                 {{ $t('sync.batchOperations.downloadAll') }}
               </button>
               <button
@@ -499,7 +569,10 @@
                 :style="{ background: 'rgba(var(--color-info-rgb), 0.1)', color: 'var(--accent-info)' }"
                 @click="getAllFoldersStatus"
               >
-                <Info class="w-5 h-5" />
+                <SIcon
+                  name="Info"
+                  size="w-5 h-5"
+                />
                 {{ $t('sync.batchOperations.viewStatus') }}
               </button>
             </div>
@@ -516,8 +589,9 @@
                   class="p-2 rounded-xl"
                   :style="{ background: 'rgba(var(--color-accent-primary-rgb), 0.1)' }"
                 >
-                  <Terminal
-                    class="w-5 h-5"
+                  <SIcon
+                    name="Terminal"
+                    size="w-5 h-5"
                     :style="{ color: 'var(--accent-primary)' }"
                   />
                 </div>
@@ -533,8 +607,9 @@
                 :style="{ background: 'rgba(var(--color-gray-rgb), 0.1)' }"
                 @click="operationOutput = ''"
               >
-                <XCircle
-                  class="w-4 h-4"
+                <SIcon
+                  name="XCircle"
+                  size="w-4 h-4"
                   :style="{ color: 'var(--text-muted)' }"
                 />
               </button>
@@ -555,8 +630,9 @@
                 class="p-3 rounded-2xl"
                 :style="{ background: 'rgba(var(--color-accent-primary-rgb), 0.1)' }"
               >
-                <Settings
-                  class="w-6 h-6"
+                <SIcon
+                  name="Settings"
+                  size="w-6 h-6"
                   :style="{ color: 'var(--accent-primary)' }"
                 />
               </div>
@@ -576,8 +652,9 @@
                 class="flex items-center gap-3 px-4 py-3 rounded-xl"
                 :style="{ background: 'rgba(var(--color-success-rgb), 0.1)' }"
               >
-                <CheckCircle
-                  class="w-5 h-5"
+                <SIcon
+                  name="CheckCircle"
+                  size="w-5 h-5"
                   :style="{ color: 'var(--accent-success)' }"
                 />
                 <span
@@ -640,8 +717,9 @@
                 class="flex items-center gap-3 px-4 py-3 rounded-xl"
                 :style="{ background: 'rgba(var(--color-warning-rgb), 0.1)' }"
               >
-                <AlertCircle
-                  class="w-5 h-5"
+                <SIcon
+                  name="AlertCircle"
+                  size="w-5 h-5"
                   :style="{ color: 'var(--accent-warning)' }"
                 />
                 <span
@@ -669,8 +747,9 @@
                 class="p-3 rounded-2xl"
                 :style="{ background: 'rgba(var(--color-accent-tertiary-rgb), 0.1)' }"
               >
-                <BookOpen
-                  class="w-6 h-6"
+                <SIcon
+                  name="BookOpen"
+                  size="w-6 h-6"
                   :style="{ color: 'var(--accent-tertiary)' }"
                 />
               </div>
@@ -732,8 +811,9 @@
                 class="p-3 rounded-2xl"
                 :style="{ background: 'rgba(var(--color-success-rgb), 0.1)' }"
               >
-                <Server
-                  class="w-6 h-6"
+                <SIcon
+                  name="Server"
+                  size="w-6 h-6"
                   :style="{ color: 'var(--accent-success)' }"
                 />
               </div>
@@ -750,29 +830,33 @@
               :style="{ color: 'var(--text-secondary)' }"
             >
               <div class="flex items-center gap-2">
-                <CheckCircle
-                  class="w-4 h-4"
+                <SIcon
+                  name="CheckCircle"
+                  size="w-4 h-4"
                   :style="{ color: 'var(--accent-success)' }"
                 />
                 <span>{{ $t('sync.supportedServices.nutstore') }}</span>
               </div>
               <div class="flex items-center gap-2">
-                <CheckCircle
-                  class="w-4 h-4"
+                <SIcon
+                  name="CheckCircle"
+                  size="w-4 h-4"
                   :style="{ color: 'var(--accent-success)' }"
                 />
                 <span>{{ $t('sync.supportedServices.nextcloud') }}</span>
               </div>
               <div class="flex items-center gap-2">
-                <CheckCircle
-                  class="w-4 h-4"
+                <SIcon
+                  name="CheckCircle"
+                  size="w-4 h-4"
                   :style="{ color: 'var(--accent-success)' }"
                 />
                 <span>{{ $t('sync.supportedServices.owncloud') }}</span>
               </div>
               <div class="flex items-center gap-2">
-                <CheckCircle
-                  class="w-4 h-4"
+                <SIcon
+                  name="CheckCircle"
+                  size="w-4 h-4"
                   :style="{ color: 'var(--accent-success)' }"
                 />
                 <span>{{ $t('sync.supportedServices.any') }}</span>
@@ -786,6 +870,7 @@
 </template>
 
 <script setup lang="ts">
+import SIcon from '@/components/ui/SIcon.vue'
 import { ref, onMounted, computed } from 'vue'
 import { RouterLink } from 'vue-router'
 import { useI18n } from 'vue-i18n'
@@ -801,32 +886,6 @@ import {
 import { logger } from '@/utils/logger'
 
 const { t } = useI18n()
-import {
-  Cloud,
-  Home,
-  RefreshCw,
-  XCircle,
-  CheckCircle,
-  AlertCircle,
-  Settings,
-  Server,
-  FolderOpen,
-  Folder,
-  Code2,
-  BookOpen,
-  Upload,
-  Download,
-  Info,
-  Plus,
-  Trash2,
-  ToggleLeft,
-  Folders,
-  Layers,
-  Terminal,
-  CheckSquare,
-  Check,
-  Save
-} from 'lucide-vue-next'
 import { Breadcrumb } from '@/components/ui'
 import AnimatedBackground from '@/components/common/AnimatedBackground.vue'
 
@@ -910,7 +969,7 @@ const optionalItems = ref([
     key: 'claude',
     name: 'Claude Code',
     description: 'Anthropic Claude Code CLI 配置和数据',
-    icon: Code2,
+    icon: 'Code2',
     localPath: '~/.claude/',
     remotePath: '',
     selected: false
@@ -919,7 +978,7 @@ const optionalItems = ref([
     key: 'gemini',
     name: 'Gemini CLI',
     description: 'Google Gemini CLI 配置和数据',
-    icon: Cloud,
+    icon: 'Cloud',
     localPath: '~/.gemini/',
     remotePath: '',
     selected: false
@@ -928,7 +987,7 @@ const optionalItems = ref([
     key: 'qwen',
     name: 'Qwen',
     description: '通义千问 CLI 配置和数据',
-    icon: Cloud,
+    icon: 'Cloud',
     localPath: '~/.qwen/',
     remotePath: '',
     selected: false
@@ -937,7 +996,7 @@ const optionalItems = ref([
     key: 'iflow',
     name: 'iFlow',
     description: 'iFlow CLI 配置和数据',
-    icon: Cloud,
+    icon: 'Cloud',
     localPath: '~/.iflow/',
     remotePath: '',
     selected: false

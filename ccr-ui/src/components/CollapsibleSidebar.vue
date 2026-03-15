@@ -19,13 +19,15 @@
         :aria-label="collapsed ? '展开菜单' : '收起菜单'"
         @click="toggleCollapsed"
       >
-        <ChevronRight
+        <SIcon
           v-if="collapsed"
-          class="w-4 h-4"
+          name="ChevronRight"
+          size="w-4 h-4"
         />
-        <ChevronLeft
+        <SIcon
           v-else
-          class="w-4 h-4"
+          name="ChevronLeft"
+          size="w-4 h-4"
         />
       </button>
     </div>
@@ -69,22 +71,25 @@
             class="flex items-center"
             :class="collapsed ? '' : 'space-x-3'"
           >
-            <component
-              :is="group.icon"
-              class="w-5 h-5 flex-shrink-0"
+            <SIcon
+              :name="group.icon || ''"
+              size="w-5 h-5"
+              class="flex-shrink-0"
             />
             <span
               v-if="!collapsed"
               class="font-semibold text-sm"
             >{{ group.title }}</span>
           </div>
-          <ChevronUp
+          <SIcon
             v-if="!collapsed && expandedGroups[group.title]"
-            class="w-4 h-4"
+            name="ChevronUp"
+            size="w-4 h-4"
           />
-          <ChevronDown
+          <SIcon
             v-else-if="!collapsed"
-            class="w-4 h-4"
+            name="ChevronDown"
+            size="w-4 h-4"
           />
         </button>
 
@@ -136,9 +141,10 @@
             />
 
             <!-- 图标 - 带动画 -->
-            <component
-              :is="item.icon"
-              class="w-5 h-5 flex-shrink-0 transition-transform duration-300"
+            <SIcon
+              :name="item.icon || ''"
+              size="w-5 h-5"
+              class="flex-shrink-0 transition-transform duration-300"
               :class="isActive(item.href) ? 'scale-110' : 'group-hover:scale-105'"
               :style="{
                 filter: isActive(item.href) ? 'drop-shadow(0 0 4px rgba(255, 255, 255, 0.5))' : undefined
@@ -196,9 +202,10 @@
               aria-hidden="true"
             />
             
-            <component
-              :is="item.icon"
-              class="w-5 h-5 flex-shrink-0 transition-transform duration-300"
+            <SIcon
+              :name="item.icon || ''"
+              size="w-5 h-5"
+              class="flex-shrink-0 transition-transform duration-300"
               :class="isActive(item.href) ? 'scale-110' : ''"
               :style="{
                 filter: isActive(item.href) ? 'drop-shadow(0 0 4px rgba(255, 255, 255, 0.5))' : undefined
@@ -231,50 +238,29 @@
         aria-label="展开菜单"
         @click="toggleCollapsed"
       >
-        <Menu class="w-4 h-4" />
+        <SIcon
+          name="Menu"
+          size="w-4 h-4"
+        />
       </button>
     </div>
   </aside>
 </template>
 
 <script setup lang="ts">
+import SIcon from '@/components/ui/SIcon.vue'
 import { ref, reactive, onMounted, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import type { PlatformCapabilitiesResponse, PlatformModuleCapabilities } from '@/types/platform'
-import {
-  Settings,
-  Book,
-  Terminal,
-  ChevronLeft,
-  ChevronRight,
-  Menu,
-  ChevronDown,
-  ChevronUp,
-  Zap,
-  Server,
-  Command,
-  Bot,
-  Puzzle,
-  Sparkles,
-  Gem,
-  Workflow,
-  Cloud,
-  Code2,
-  ArrowLeftRight,
-  Boxes,
-  Flame,
-  Layers
-} from 'lucide-vue-next'
-
 interface NavItem {
   name: string
   href: string
-  icon: unknown
+  icon: string
 }
 
 interface NavGroup {
   title: string
-  icon: unknown
+  icon: string
   defaultExpanded: boolean
   items: NavItem[]
   module?: string  // 添加模块标识
@@ -330,114 +316,114 @@ const isItemEnabled = (groupModule: string | undefined, href: string): boolean =
 const allNavigationGroups: NavGroup[] = [
   {
     title: 'CCR 命令执行',
-    icon: Terminal,
+    icon: 'Terminal',
     defaultExpanded: false,
     module: 'commands',
     items: [
-      { name: 'CCR 命令', href: '/commands/ccr', icon: Zap },
-      { name: 'Claude Code 命令', href: '/commands/claude-code', icon: Zap },
-      { name: 'Claude 命令', href: '/commands/claude', icon: Zap },
-      { name: 'Qwen 命令', href: '/commands/qwen', icon: Sparkles },
-      { name: 'Gemini 命令', href: '/commands/gemini', icon: Gem },
-      { name: 'IFLOW 命令', href: '/commands/iflow', icon: Workflow }
+      { name: 'CCR 命令', href: '/commands/ccr', icon: 'Zap' },
+      { name: 'Claude Code 命令', href: '/commands/claude-code', icon: 'Zap' },
+      { name: 'Claude 命令', href: '/commands/claude', icon: 'Zap' },
+      { name: 'Qwen 命令', href: '/commands/qwen', icon: 'Sparkles' },
+      { name: 'Gemini 命令', href: '/commands/gemini', icon: 'Gem' },
+      { name: 'IFLOW 命令', href: '/commands/iflow', icon: 'Workflow' }
     ]
   },
   {
     title: 'Claude Code',
-    icon: Code2,
+    icon: 'Code2',
     defaultExpanded: true,
     module: 'claude-code',
     items: [
-      { name: 'Profiles 配置', href: '/claude-code/profiles', icon: Settings },
-      { name: '☁️ 云同步', href: '/sync', icon: Cloud },
-      { name: 'MCP 服务器', href: '/mcp', icon: Server },
-      { name: 'Slash Commands', href: '/slash-commands', icon: Command },
-      { name: 'Agents', href: '/agents', icon: Bot },
-      { name: 'Skills', href: '/skills', icon: Book },
-      { name: 'Skill Hub', href: '/skills/hub', icon: Boxes },
-      { name: '插件管理', href: '/plugins', icon: Puzzle }
+      { name: 'Profiles 配置', href: '/claude-code/profiles', icon: 'Settings' },
+      { name: '☁️ 云同步', href: '/sync', icon: 'Cloud' },
+      { name: 'MCP 服务器', href: '/mcp', icon: 'Server' },
+      { name: 'Slash Commands', href: '/slash-commands', icon: 'Command' },
+      { name: 'Agents', href: '/agents', icon: 'Bot' },
+      { name: 'Skills', href: '/skills', icon: 'Book' },
+      { name: 'Skill Hub', href: '/skills/hub', icon: 'Boxes' },
+      { name: '插件管理', href: '/plugins', icon: 'Puzzle' }
     ]
   },
   {
     title: 'Codex',
-    icon: Boxes,
+    icon: 'Boxes',
     defaultExpanded: false,
     module: 'codex',
     items: [
-      { name: 'MCP 服务器', href: '/codex/mcp', icon: Server },
-      { name: 'Profiles 配置', href: '/codex/profiles', icon: Settings },
-      { name: 'Agents', href: '/codex/agents', icon: Bot },
-      { name: 'Slash Commands', href: '/codex/slash-commands', icon: Command },
-      { name: '插件管理', href: '/codex/plugins', icon: Puzzle }
+      { name: 'MCP 服务器', href: '/codex/mcp', icon: 'Server' },
+      { name: 'Profiles 配置', href: '/codex/profiles', icon: 'Settings' },
+      { name: 'Agents', href: '/codex/agents', icon: 'Bot' },
+      { name: 'Slash Commands', href: '/codex/slash-commands', icon: 'Command' },
+      { name: '插件管理', href: '/codex/plugins', icon: 'Puzzle' }
     ]
   },
   {
     title: 'Gemini CLI',
-    icon: Sparkles,
+    icon: 'Sparkles',
     defaultExpanded: false,
     module: 'gemini-cli',
     items: [
-      { name: 'MCP 服务器', href: '/gemini-cli/mcp', icon: Server },
-      { name: 'Agents', href: '/gemini-cli/agents', icon: Bot },
-      { name: 'Slash Commands', href: '/gemini-cli/slash-commands', icon: Command },
-      { name: '插件管理', href: '/gemini-cli/plugins', icon: Puzzle }
+      { name: 'MCP 服务器', href: '/gemini-cli/mcp', icon: 'Server' },
+      { name: 'Agents', href: '/gemini-cli/agents', icon: 'Bot' },
+      { name: 'Slash Commands', href: '/gemini-cli/slash-commands', icon: 'Command' },
+      { name: '插件管理', href: '/gemini-cli/plugins', icon: 'Puzzle' }
     ]
   },
   {
     title: 'Qwen',
-    icon: Zap,
+    icon: 'Zap',
     defaultExpanded: false,
     module: 'qwen',
     items: [
-      { name: 'MCP 服务器', href: '/qwen/mcp', icon: Server },
-      { name: 'Agents', href: '/qwen/agents', icon: Bot },
-      { name: 'Slash Commands', href: '/qwen/slash-commands', icon: Command },
-      { name: '插件管理', href: '/qwen/plugins', icon: Puzzle }
+      { name: 'MCP 服务器', href: '/qwen/mcp', icon: 'Server' },
+      { name: 'Agents', href: '/qwen/agents', icon: 'Bot' },
+      { name: 'Slash Commands', href: '/qwen/slash-commands', icon: 'Command' },
+      { name: '插件管理', href: '/qwen/plugins', icon: 'Puzzle' }
     ]
   },
   {
     title: 'iFlow',
-    icon: Flame,
+    icon: 'Flame',
     defaultExpanded: false,
     module: 'iflow',
     items: [
-      { name: 'MCP 服务器', href: '/iflow/mcp', icon: Server },
-      { name: 'Agents', href: '/iflow/agents', icon: Bot },
-      { name: 'Slash Commands', href: '/iflow/slash-commands', icon: Command },
-      { name: '插件管理', href: '/iflow/plugins', icon: Puzzle }
+      { name: 'MCP 服务器', href: '/iflow/mcp', icon: 'Server' },
+      { name: 'Agents', href: '/iflow/agents', icon: 'Bot' },
+      { name: 'Slash Commands', href: '/iflow/slash-commands', icon: 'Command' },
+      { name: '插件管理', href: '/iflow/plugins', icon: 'Puzzle' }
     ]
   },
   {
     title: 'Factory Droid',
-    icon: Bot,
+    icon: 'Bot',
     defaultExpanded: false,
     module: 'droid',
     items: [
-      { name: 'MCP 服务器', href: '/droid/mcp', icon: Server },
-      { name: 'Agents', href: '/droid/agents', icon: Bot },
-      { name: 'Slash Commands', href: '/droid/slash-commands', icon: Command },
-      { name: '插件管理', href: '/droid/plugins', icon: Puzzle }
+      { name: 'MCP 服务器', href: '/droid/mcp', icon: 'Server' },
+      { name: 'Agents', href: '/droid/agents', icon: 'Bot' },
+      { name: 'Slash Commands', href: '/droid/slash-commands', icon: 'Command' },
+      { name: '插件管理', href: '/droid/plugins', icon: 'Puzzle' }
     ]
   },
   {
     title: 'OpenCode',
-    icon: Layers,
+    icon: 'Layers',
     defaultExpanded: false,
     module: 'opencode',
     items: [
-      { name: 'Providers', href: '/opencode/providers', icon: Layers },
-      { name: 'MCP 服务器', href: '/opencode/mcp', icon: Server },
-      { name: 'Skills', href: '/skills', icon: Book },
-      { name: '插件管理', href: '/opencode/plugins', icon: Puzzle }
+      { name: 'Providers', href: '/opencode/providers', icon: 'Layers' },
+      { name: 'MCP 服务器', href: '/opencode/mcp', icon: 'Server' },
+      { name: 'Skills', href: '/skills', icon: 'Book' },
+      { name: '插件管理', href: '/opencode/plugins', icon: 'Puzzle' }
     ]
   },
   {
     title: '配置转换器',
-    icon: ArrowLeftRight,
+    icon: 'ArrowLeftRight',
     defaultExpanded: false,
     module: 'converter',
     items: [
-      { name: 'CLI 配置转换', href: '/converter', icon: ArrowLeftRight }
+      { name: 'CLI 配置转换', href: '/converter', icon: 'ArrowLeftRight' }
     ]
   }
 ]

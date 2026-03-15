@@ -1,5 +1,4 @@
 import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
-import { Building2, Users, FileText, Package } from 'lucide-vue-next'
 import {
   listCheckinProviders,
   listCheckinAccounts,
@@ -392,10 +391,10 @@ export function useCheckinState() {
   // Tab 配置
   // ═══════════════════════════════════════════════════════════
   const tabs = [
-    { id: 'accounts' as const, name: '账号管理', icon: Users },
-    { id: 'providers' as const, name: '提供商', icon: Building2 },
-    { id: 'records' as const, name: '签到记录', icon: FileText },
-    { id: 'import-export' as const, name: '导入导出', icon: Package },
+    { id: 'accounts' as const, name: '账号管理', icon: 'Users' },
+    { id: 'providers' as const, name: '提供商', icon: 'Building2' },
+    { id: 'records' as const, name: '签到记录', icon: 'FileText' },
+    { id: 'import-export' as const, name: '导入导出', icon: 'Package' },
   ]
 
   // ═══════════════════════════════════════════════════════════

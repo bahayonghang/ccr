@@ -70,7 +70,10 @@
         class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg flex items-center space-x-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         @click="emit('show-oauth-wizard')"
       >
-        <Shield class="w-5 h-5" />
+        <SIcon
+          name="Shield"
+          size="w-5 h-5"
+        />
         <span>OAuth 登录</span>
       </button>
     </div>
@@ -187,7 +190,11 @@
                   class="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-medium bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-sm transition-colors duration-200 disabled:cursor-not-allowed disabled:opacity-50"
                   @click="emit('checkin', account.id)"
                 >
-                  <Calendar class="w-3 h-3 mr-1 inline" /> 签到
+                  <SIcon
+                    name="Calendar"
+                    size="w-3 h-3"
+                    class="mr-1 inline"
+                  /> 签到
                 </button>
                 <div class="relative">
                   <button
@@ -245,7 +252,11 @@
       <!-- 标题栏 -->
       <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-800">
         <h3 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-          <Users class="w-5 h-5 text-blue-600 dark:text-blue-400" />
+          <SIcon
+            name="Users"
+            size="w-5 h-5"
+            class="text-blue-600 dark:text-blue-400"
+          />
           {{ editingAccount ? '编辑账号' : '添加账号' }}
         </h3>
       </div>
@@ -490,8 +501,8 @@
 </template>
 
 <script setup lang="ts">
+import SIcon from '@/components/ui/SIcon.vue'
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { Users, Shield, Calendar } from 'lucide-vue-next'
 import {
   createCheckinAccount,
   updateCheckinAccount,

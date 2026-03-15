@@ -32,7 +32,11 @@
       <div class="h-[100px] pt-9 flex items-center px-4 border-b border-pink-200/20 dark:border-pink-300/10 shrink-0">
         <div class="flex items-center gap-3">
           <div class="relative flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-pink-400 to-violet-400 shadow-lg shadow-pink-400/30">
-            <Cat class="w-5 h-5 text-white" />
+            <SIcon
+              name="Cat"
+              size="w-5 h-5"
+              class="text-white"
+            />
           </div>
           <div>
             <h1 class="text-lg font-bold font-display tracking-tight leading-none text-text-primary">
@@ -56,7 +60,10 @@
             to="/"
             class="nav-item"
           >
-            <Home class="w-4 h-4" />
+            <SIcon
+              name="Home"
+              size="w-4 h-4"
+            />
             <span>{{ $t('nav.home') }}</span>
           </RouterLink>
         </div>
@@ -72,14 +79,22 @@
               to="/skills"
               class="nav-item group"
             >
-              <Package class="w-4 h-4 text-fuchsia-400 group-hover:text-fuchsia-300 transition-colors" />
+              <SIcon
+                name="Package"
+                size="w-4 h-4"
+                class="text-fuchsia-400 group-hover:text-fuchsia-300 transition-colors"
+              />
               <span>{{ $t('nav.skills') }}</span>
             </RouterLink>
             <RouterLink
               to="/skills/add"
               class="nav-item group"
             >
-              <PlusCircle class="w-4 h-4 text-fuchsia-400 group-hover:text-fuchsia-300 transition-colors" />
+              <SIcon
+                name="PlusCircle"
+                size="w-4 h-4"
+                class="text-fuchsia-400 group-hover:text-fuchsia-300 transition-colors"
+              />
               <span>{{ $t('nav.addSkill') }}</span>
             </RouterLink>
           </div>
@@ -96,42 +111,66 @@
               to="/claude-code"
               class="nav-item group"
             >
-              <Code2 class="w-4 h-4 text-platform-claude group-hover:text-platform-claude/80 transition-colors" />
+              <SIcon
+                name="Code2"
+                size="w-4 h-4"
+                class="text-platform-claude group-hover:text-platform-claude/80 transition-colors"
+              />
               <span>{{ $t('nav.claudeCode') }}</span>
             </RouterLink>
             <RouterLink
               to="/codex"
               class="nav-item group"
             >
-              <Settings class="w-4 h-4 text-platform-codex group-hover:text-platform-codex/80 transition-colors" />
+              <SIcon
+                name="Settings"
+                size="w-4 h-4"
+                class="text-platform-codex group-hover:text-platform-codex/80 transition-colors"
+              />
               <span>{{ $t('nav.codex') }}</span>
             </RouterLink>
             <RouterLink
               to="/gemini-cli"
               class="nav-item group"
             >
-              <Sparkles class="w-4 h-4 text-platform-gemini group-hover:text-platform-gemini/80 transition-colors" />
+              <SIcon
+                name="Sparkles"
+                size="w-4 h-4"
+                class="text-platform-gemini group-hover:text-platform-gemini/80 transition-colors"
+              />
               <span>{{ $t('nav.gemini') }}</span>
             </RouterLink>
             <RouterLink
               to="/qwen"
               class="nav-item group"
             >
-              <Zap class="w-4 h-4 text-platform-qwen group-hover:text-platform-qwen/80 transition-colors" />
+              <SIcon
+                name="Zap"
+                size="w-4 h-4"
+                class="text-platform-qwen group-hover:text-platform-qwen/80 transition-colors"
+              />
               <span>{{ $t('nav.qwen') }}</span>
             </RouterLink>
             <RouterLink
               to="/iflow"
               class="nav-item group"
             >
-              <Activity class="w-4 h-4 text-platform-iflow group-hover:text-platform-iflow/80 transition-colors" />
+              <SIcon
+                name="Activity"
+                size="w-4 h-4"
+                class="text-platform-iflow group-hover:text-platform-iflow/80 transition-colors"
+              />
               <span>{{ $t('nav.iflow') }}</span>
             </RouterLink>
             <RouterLink
               to="/droid"
               class="nav-item group"
             >
-              <Bot class="w-4 h-4 text-accent-secondary group-hover:text-accent-secondary/80 transition-colors" />
+              <SIcon
+                name="Bot"
+                size="w-4 h-4"
+                class="text-accent-secondary group-hover:text-accent-secondary/80 transition-colors"
+              />
               <span>{{ $t('nav.droid') }}</span>
             </RouterLink>
           </div>
@@ -148,35 +187,50 @@
               to="/ccr-control"
               class="nav-item"
             >
-              <Terminal class="w-4 h-4" />
+              <SIcon
+                name="Terminal"
+                size="w-4 h-4"
+              />
               <span>{{ $t('nav.ccrControl') }}</span>
             </RouterLink>
             <RouterLink
               to="/commands"
               class="nav-item"
             >
-              <Terminal class="w-4 h-4" />
+              <SIcon
+                name="Terminal"
+                size="w-4 h-4"
+              />
               <span>{{ $t('nav.commands') }}</span>
             </RouterLink>
             <RouterLink
               to="/checkin"
               class="nav-item"
             >
-              <ClipboardList class="w-4 h-4" />
+              <SIcon
+                name="ClipboardList"
+                size="w-4 h-4"
+              />
               <span>{{ $t('nav.checkin') }}</span>
             </RouterLink>
             <RouterLink
               to="/sync"
               class="nav-item"
             >
-              <Cloud class="w-4 h-4" />
+              <SIcon
+                name="Cloud"
+                size="w-4 h-4"
+              />
               <span>{{ $t('nav.sync') }}</span>
             </RouterLink>
             <RouterLink
               to="/usage"
               class="nav-item"
             >
-              <Activity class="w-4 h-4" />
+              <SIcon
+                name="Activity"
+                size="w-4 h-4"
+              />
               <span>{{ $t('nav.usage') }}</span>
             </RouterLink>
           </div>
@@ -232,7 +286,7 @@
     <!-- Main Content Area -->
     <main
       id="main-content"
-      class="flex-1 relative overflow-hidden flex flex-col"
+      class="flex-1 relative overflow-hidden flex flex-col content-main"
     >
       <!-- Top Bar -->
       <div class="sticky top-0 z-30 flex h-[92px] pt-9 items-center justify-between border-b border-border-default/40 topbar-glass px-6 shrink-0">
@@ -243,7 +297,10 @@
               class="flex items-center gap-1.5 px-2.5 py-1.5 -ml-2 rounded-lg text-text-secondary hover:text-text-primary hover:bg-bg-overlay/70 transition-colors duration-200"
               @click="router.back()"
             >
-              <ArrowLeft class="w-4 h-4" />
+              <SIcon
+                name="ArrowLeft"
+                size="w-4 h-4"
+              />
               <span class="text-xs font-medium">{{ t('common.back') }}</span>
             </button>
             <span class="mx-2 opacity-30">|</span>
@@ -289,7 +346,7 @@
 
       <!-- Scrollable Content -->
       <div
-        class="flex-1 overflow-y-auto scroll-smooth p-6"
+        class="flex-1 overflow-y-auto scroll-smooth p-6 content-scroll-area"
       >
         <BackendStatusBanner class="mb-6" />
         <RouterView v-slot="{ Component }">
@@ -320,11 +377,8 @@
 </template>
 
 <script setup lang="ts">
+import SIcon from '@/components/ui/SIcon.vue'
 import { ref, computed, onMounted, onUnmounted } from 'vue'
-import {
-  Home, Code2, Settings, Sparkles, Zap, Activity,
-  Terminal, Cloud, Bot, ClipboardList, Cat, Package, PlusCircle, ArrowLeft
-} from 'lucide-vue-next'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import BackendStatusBanner from '@/components/BackendStatusBanner.vue'
@@ -462,6 +516,7 @@ onUnmounted(() => {
 .dark .sidebar-glass,
 .sidebar-glass {
   background: var(--liquid-glass-bg);
+  -webkit-backdrop-filter: var(--liquid-glass-blur);
   backdrop-filter: var(--liquid-glass-blur);
   border-right: 1px solid var(--liquid-glass-border);
   box-shadow:
@@ -471,8 +526,20 @@ onUnmounted(() => {
 
 .topbar-glass {
   background: var(--glass-bg-light);
+  -webkit-backdrop-filter: var(--glass-blur-md);
   backdrop-filter: var(--glass-blur-md);
   box-shadow: inset 0 -1px 0 rgb(var(--color-border-default-rgb) / 45%);
+}
+
+/* Content area compositing fix:
+ * Force main + scroll container onto GPU compositing layers so that
+ * children's backdrop-filter can blur through to the fixed AnimeBackground.
+ * Using backface-visibility instead of transform to avoid creating a
+ * containing block for fixed-positioned descendants. */
+.content-main,
+.content-scroll-area {
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
 }
 
 /* Nav Item Styles */
@@ -513,6 +580,7 @@ onUnmounted(() => {
     rgb(140 60 130 / 15%) 50%,
     rgb(100 50 150 / 20%) 100%
   );
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
   backdrop-filter: blur(16px) saturate(180%);
   border: 1px solid rgb(244 114 182 / 25%);
   box-shadow:
@@ -540,6 +608,7 @@ onUnmounted(() => {
     rgb(255 228 237 / 40%) 50%,
     rgb(243 232 255 / 30%) 100%
   );
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
   backdrop-filter: blur(16px) saturate(180%);
   border: 1px solid rgb(244 114 182 / 30%);
   box-shadow:

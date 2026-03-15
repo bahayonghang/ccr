@@ -4,9 +4,9 @@
       <!-- Breadcrumb Navigation -->
       <Breadcrumb
         :items="[
-          { label: $t('common.home'), path: '/', icon: Home },
-          { label: 'Codex', path: '/codex', icon: Boxes },
-          { label: $t('codex.mcp.breadcrumb'), path: '/codex/mcp', icon: Server }
+          { label: $t('common.home'), path: '/', icon: 'Home' },
+          { label: 'Codex', path: '/codex', icon: 'Boxes' },
+          { label: $t('codex.mcp.breadcrumb'), path: '/codex/mcp', icon: 'Server' }
         ]"
         module-color="#ec4899"
       />
@@ -19,8 +19,9 @@
         >
           <div class="flex items-center justify-between mb-6">
             <div class="flex items-center gap-3">
-              <Server
-                class="w-6 h-6"
+              <SIcon
+                name="Server"
+                size="w-6 h-6"
                 :style="{ color: 'var(--accent-primary)' }"
               />
               <h1
@@ -36,14 +37,20 @@
                 class="inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-colors"
                 :style="{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)', border: '1px solid var(--border-color)' }"
               >
-                <ArrowLeft class="w-4 h-4" /><span>{{ $t('codex.mcp.backToCodex') }}</span>
+                <SIcon
+                  name="ArrowLeft"
+                  size="w-4 h-4"
+                /><span>{{ $t('codex.mcp.backToCodex') }}</span>
               </RouterLink>
               <button
                 class="px-4 py-2 rounded-lg font-semibold text-sm text-white flex items-center gap-2"
                 :style="{ background: 'linear-gradient(135deg, var(--accent-primary), var(--accent-secondary))', boxShadow: '0 0 20px var(--glow-primary)' }"
                 @click="handleAdd"
               >
-                <Plus class="w-4 h-4" />{{ $t('codex.mcp.addServer') }}
+                <SIcon
+                  name="Plus"
+                  size="w-4 h-4"
+                />{{ $t('codex.mcp.addServer') }}
               </button>
             </div>
           </div>
@@ -142,7 +149,10 @@
                     :title="$t('codex.actions.edit')"
                     @click="handleEdit(server)"
                   >
-                    <Edit2 class="w-4 h-4" />
+                    <SIcon
+                      name="Edit2"
+                      size="w-4 h-4"
+                    />
                   </button>
                   <button
                     class="p-2 rounded-lg transition-transform hover:scale-110"
@@ -150,7 +160,10 @@
                     :title="$t('codex.actions.delete')"
                     @click="handleDelete(server.name)"
                   >
-                    <Trash2 class="w-4 h-4" />
+                    <SIcon
+                      name="Trash2"
+                      size="w-4 h-4"
+                    />
                   </button>
                 </div>
               </div>
@@ -325,9 +338,9 @@
 </template>
 
 <script setup lang="ts">
+import SIcon from '@/components/ui/SIcon.vue'
 import { ref, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
-import { Server, Plus, Edit2, Trash2, ArrowLeft, Home, Boxes } from 'lucide-vue-next'
 import { listCodexMcpServers, addCodexMcpServer, updateCodexMcpServer, deleteCodexMcpServer } from '@/api'
 import { listConfigs, getHistory } from '@/api'
 import type {

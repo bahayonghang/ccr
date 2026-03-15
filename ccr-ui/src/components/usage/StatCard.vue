@@ -104,10 +104,10 @@
         :class="iconBgClasses"
       >
         <slot name="icon">
-          <component
-            :is="iconComponent"
+          <SIcon
             v-if="iconComponent"
-            class="w-7 h-7"
+            :name="iconComponent"
+            size="w-7 h-7"
             :class="iconClasses"
           />
         </slot>
@@ -124,6 +124,7 @@
 </template>
 
 <script setup lang="ts">
+import SIcon from '@/components/ui/SIcon.vue'
 import { computed } from 'vue'
 import AnimatedCounter from './AnimatedCounter.vue'
 import SparkLine from './SparkLine.vue'
@@ -139,7 +140,7 @@ interface Props {
   trendLabel?: string
   sparklineData?: number[]
   pulse?: boolean
-  iconComponent?: object
+  iconComponent?: string
 }
 
 const props = withDefaults(defineProps<Props>(), {

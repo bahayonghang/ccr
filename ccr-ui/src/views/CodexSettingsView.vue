@@ -6,9 +6,10 @@
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div class="flex items-center gap-4">
           <h2 class="text-xl sm:text-2xl font-bold text-white flex items-center">
-            <Settings2
-              class="w-6 h-6 sm:w-7 sm:h-7 mr-2 text-emerald-500"
-              aria-hidden="true"
+            <SIcon
+              name="Settings2"
+              size="w-6 h-6"
+              class="sm:w-7 sm:h-7 mr-2 text-emerald-500"
             />
             {{ $t('codex.settings.title') }}
           </h2>
@@ -16,9 +17,10 @@
         <div class="flex gap-3">
           <RouterLink to="/codex">
             <button class="px-4 py-2 rounded-lg font-medium transition-colors glass-surface text-white/80 border border-white/20 hover:bg-white/5 min-h-[44px] flex items-center">
-              <ArrowLeft
-                class="w-4 h-4 mr-2"
-                aria-hidden="true"
+              <SIcon
+                name="ArrowLeft"
+                size="w-4 h-4"
+                class="mr-2"
               />
               {{ $t('common.back') }}
             </button>
@@ -28,9 +30,10 @@
             :disabled="saving"
             @click="handleSave"
           >
-            <Save
-              class="w-4 h-4 mr-2"
-              aria-hidden="true"
+            <SIcon
+              name="Save"
+              size="w-4 h-4"
+              class="mr-2"
             />
             {{ saving ? $t('codex.settings.saving') : $t('common.save') }}
           </button>
@@ -61,9 +64,9 @@
             :class="activeTab === tab.key ? 'bg-emerald-500 text-white shadow-md' : 'glass-surface text-white/80 border border-white/20 hover:bg-white/5'"
             @click="activeTab = tab.key"
           >
-            <component
-              :is="tab.icon"
-              class="w-4 h-4"
+            <SIcon
+              :name="tab.icon"
+              size="w-4 h-4"
             />
             {{ tab.label }}
           </button>
@@ -514,9 +517,9 @@
 </template>
 
 <script setup lang="ts">
+import SIcon from '@/components/ui/SIcon.vue'
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { Settings2, ArrowLeft, Save, Brain, Shield, Wrench, Monitor, Zap } from 'lucide-vue-next'
 import Card from '@/components/ui/Card.vue'
 import { getCodexConfig, updateCodexConfig } from '@/api'
 import type { CodexConfig } from '@/types'
@@ -533,11 +536,11 @@ const form = reactive<CodexConfig>({})
 
 // ============ Tabs ============
 const tabs = computed(() => [
-  { key: 'model', label: t('codex.settings.tabs.model'), icon: Brain },
-  { key: 'security', label: t('codex.settings.tabs.security'), icon: Shield },
-  { key: 'tools', label: t('codex.settings.tabs.tools'), icon: Wrench },
-  { key: 'ui', label: t('codex.settings.tabs.ui'), icon: Monitor },
-  { key: 'features', label: t('codex.settings.tabs.features'), icon: Zap },
+  { key: 'model', label: t('codex.settings.tabs.model'), icon: 'Brain' },
+  { key: 'security', label: t('codex.settings.tabs.security'), icon: 'Shield' },
+  { key: 'tools', label: t('codex.settings.tabs.tools'), icon: 'Wrench' },
+  { key: 'ui', label: t('codex.settings.tabs.ui'), icon: 'Monitor' },
+  { key: 'features', label: t('codex.settings.tabs.features'), icon: 'Zap' },
 ])
 
 // ============ Computed proxies for nested fields ============

@@ -59,13 +59,15 @@
         :aria-label="isCollapsed ? '展开' : '收起'"
         @click.stop="toggleCollapsed"
       >
-        <ChevronDown
+        <SIcon
           v-if="isCollapsed"
-          class="w-5 h-5"
+          name="ChevronDown"
+          size="w-5 h-5"
         />
-        <ChevronUp
+        <SIcon
           v-else
-          class="w-5 h-5"
+          name="ChevronUp"
+          size="w-5 h-5"
         />
       </button>
     </div>
@@ -139,12 +141,12 @@
             </div>
             <div class="space-y-3">
               <StatItem
-                :icon="Server"
+                icon="Server"
                 label="总配置"
                 :value="totalConfigs"
               />
               <StatItem
-                :icon="Activity"
+                icon="Activity"
                 label="历史记录"
                 :value="historyCount"
               />
@@ -181,29 +183,29 @@
           </div>
           <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
             <SystemMetric
-              :icon="Server"
+              icon="Server"
               label="主机"
               :value="systemInfo.hostname"
             />
             <SystemMetric
-              :icon="Cpu"
+              icon="Cpu"
               label="CPU"
               :value="`${systemInfo.cpu_cores} 核 · ${Math.round(systemInfo.cpu_usage)}%`"
               :progress="systemInfo.cpu_usage"
             />
             <SystemMetric
-              :icon="HardDrive"
+              icon="HardDrive"
               label="内存"
               :value="`${systemInfo.used_memory_gb.toFixed(1)}/${systemInfo.total_memory_gb.toFixed(1)} GB`"
               :progress="systemInfo.memory_usage_percent"
             />
             <SystemMetric
-              :icon="Activity"
+              icon="Activity"
               label="系统"
               :value="systemInfo.os"
             />
             <SystemMetric
-              :icon="Clock"
+              icon="Clock"
               label="运行时间"
               :value="formatUptime(systemInfo.uptime_seconds)"
             />
@@ -216,15 +218,6 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import {
-  Activity,
-  Cpu,
-  HardDrive,
-  Clock,
-  Server,
-  ChevronDown,
-  ChevronUp
-} from 'lucide-vue-next'
 import { getSystemInfo } from '@/api'
 import type { SystemInfo as SystemInfoType } from '@/types'
 import { logger } from '@/utils/logger'
@@ -281,11 +274,12 @@ const formatUptime = (seconds: number): string => {
 
 <script lang="ts">
 import { defineComponent, h } from 'vue'
+import SIcon from '@/components/ui/SIcon.vue'
 
 // StatItem 子组件
 const StatItem = defineComponent({
   props: {
-    icon: { type: Object, required: true },
+    icon: { type: String, required: true },
     label: { type: String, required: true },
     value: { type: Number, required: true }
   },
@@ -295,7 +289,7 @@ const StatItem = defineComponent({
         class: 'flex items-center gap-2',
         style: { color: 'var(--text-muted)' }
       }, [
-        h(props.icon, { class: 'w-4 h-4' }),
+        h(SIcon, { name: props.icon, size: 'w-4 h-4' }),
         h('span', { class: 'text-xs font-medium' }, props.label)
       ]),
       h('div', {
@@ -309,7 +303,7 @@ const StatItem = defineComponent({
 // SystemMetric 子组件
 const SystemMetric = defineComponent({
   props: {
-    icon: { type: Object, required: true },
+    icon: { type: String, required: true },
     label: { type: String, required: true },
     value: { type: String, required: true },
     progress: { type: Number, default: undefined }
@@ -363,7 +357,7 @@ const SystemMetric = defineComponent({
         class: 'flex items-center gap-1.5',
         style: { color: 'var(--text-muted)' }
       }, [
-        h(props.icon, { class: 'w-4 h-4' }),
+        h(SIcon, { name: props.icon, size: 'w-4 h-4' }),
         h('span', { class: 'text-xs font-medium uppercase tracking-wide' }, props.label)
       ]),
       props.progress !== undefined && h('div', {

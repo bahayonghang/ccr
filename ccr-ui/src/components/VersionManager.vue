@@ -14,8 +14,9 @@
       >
         版本管理
       </span>
-      <Zap
-        class="w-4 h-4"
+      <SIcon
+        name="Zap"
+        size="w-4 h-4"
         :style="{ color: 'var(--accent-primary)' }"
       />
     </div>
@@ -103,7 +104,13 @@
         }"
         @click="handleCheckUpdate"
       >
-        <RefreshCw :class="['w-3.5 h-3.5', { 'animate-spin': isCheckingUpdate }]" />
+        <SIcon
+          name="RefreshCw"
+          size="h-3.5',"
+          class="['w-3.5 { 'animate-spin': isCheckingUpdate }]"
+          :class="['w-3.5 h-3.5', { 'animate-spin': isCheckingUpdate }]"
+          :
+        />
         <span>{{ isCheckingUpdate ? '检查中' : '检查更新' }}</span>
       </button>
 
@@ -120,7 +127,10 @@
         }"
         @click="handleOpenUpdateModal"
       >
-        <Zap class="w-3.5 h-3.5" />
+        <SIcon
+          name="Zap"
+          size="w-3.5 h-3.5"
+        />
         <span>立即更新</span>
       </button>
     </div>
@@ -138,8 +148,8 @@
 </template>
 
 <script setup lang="ts">
+import SIcon from '@/components/ui/SIcon.vue'
 import { ref, onMounted } from 'vue'
-import { RefreshCw, Zap } from 'lucide-vue-next'
 import { getVersion, checkUpdate, updateCCR } from '@/api'
 import type { VersionInfo, UpdateCheckResponse } from '@/types'
 import { logger } from '@/utils/logger'

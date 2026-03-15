@@ -73,7 +73,11 @@
           class="meta-chip"
           :title="config.model"
         >
-          <Sparkles class="w-3 h-3 text-accent-primary opacity-70" />
+          <SIcon
+            name="Sparkles"
+            size="w-3 h-3"
+            class="text-accent-primary opacity-70"
+          />
           <span class="truncate max-w-[120px]">{{ config.model }}</span>
         </div>
 
@@ -82,7 +86,11 @@
           v-if="config.provider"
           class="meta-chip"
         >
-          <Building2 class="w-3 h-3 opacity-50" />
+          <SIcon
+            name="Building2"
+            size="w-3 h-3"
+            class="opacity-50"
+          />
           <span>{{ config.provider }}</span>
         </div>
 
@@ -91,7 +99,11 @@
           v-if="(config.usage_count ?? 0) > 0"
           class="meta-chip"
         >
-          <TrendingUp class="w-3 h-3 text-accent-secondary opacity-70" />
+          <SIcon
+            name="TrendingUp"
+            size="w-3 h-3"
+            class="text-accent-secondary opacity-70"
+          />
           <span class="font-bold text-accent-secondary">{{ config.usage_count }}</span>
         </div>
       </div>
@@ -105,14 +117,21 @@
         class="switch-btn px-3.5 py-1.5 rounded-lg text-xs font-bold transition-[color,background-color,opacity] duration-200 opacity-0 group-hover:opacity-100 focus:opacity-100"
         @click.stop="$emit('switch', config.name)"
       >
-        <ArrowRightLeft class="w-3.5 h-3.5 mr-1 inline-block" />
+        <SIcon
+          name="ArrowRightLeft"
+          size="w-3.5 h-3.5"
+          class="mr-1 inline-block"
+        />
         Switch
       </button>
       <span
         v-else
         class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold text-emerald-400/70 bg-emerald-400/5 cursor-default"
       >
-        <CheckCircle class="w-3.5 h-3.5" />
+        <SIcon
+          name="CheckCircle"
+          size="w-3.5 h-3.5"
+        />
         In Use
       </span>
 
@@ -122,18 +141,18 @@
         :class="config.is_current ? 'opacity-60' : ''"
         @click.stop="$emit('edit', config.name)"
       >
-        <Settings class="w-4 h-4" />
+        <SIcon
+          name="Settings"
+          size="w-4 h-4"
+        />
       </button>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import SIcon from '@/components/ui/SIcon.vue'
 import { computed } from 'vue'
-import {
-  Settings, Building2, ArrowRightLeft, CheckCircle,
-  Sparkles, TrendingUp
-} from 'lucide-vue-next'
 import type { ConfigItem } from '@/types'
 
 interface Props {

@@ -8,9 +8,10 @@
       <div class="flex items-center justify-between mb-6">
         <div class="flex items-center gap-4">
           <h2 class="text-2xl font-bold text-text-primary flex items-center">
-            <Monitor
-              class="w-7 h-7 mr-2 text-accent-secondary"
-              aria-hidden="true"
+            <SIcon
+              name="Monitor"
+              size="w-7 h-7"
+              class="mr-2 text-accent-secondary"
             />
             {{ $t('statusline.pageTitle') }}
           </h2>
@@ -39,9 +40,10 @@
         <!-- Status Card -->
         <div class="glass-effect rounded-2xl p-6 border border-white/20 shadow-sm">
           <h3 class="text-lg font-bold text-text-primary mb-4 flex items-center">
-            <Settings
-              class="w-5 h-5 mr-2 text-accent-secondary"
-              aria-hidden="true"
+            <SIcon
+              name="Settings"
+              size="w-5 h-5"
+              class="mr-2 text-accent-secondary"
             />
             {{ $t('statusline.configuration') }}
           </h3>
@@ -121,10 +123,11 @@
                 class="loading-spinner w-4 h-4 mr-2 border-white/30 border-t-white"
                 aria-hidden="true"
               />
-              <Save
+              <SIcon
                 v-else
-                class="w-4 h-4 mr-2"
-                aria-hidden="true"
+                name="Save"
+                size="w-4 h-4"
+                class="mr-2"
               />
               {{ saving ? $t('common.saving') : $t('common.save') }}
             </button>
@@ -141,9 +144,10 @@
             id="about-title"
             class="text-lg font-bold text-text-primary mb-4 flex items-center"
           >
-            <Info
-              class="w-5 h-5 mr-2 text-accent-secondary"
-              aria-hidden="true"
+            <SIcon
+              name="Info"
+              size="w-5 h-5"
+              class="mr-2 text-accent-secondary"
             />
             {{ $t('statusline.about') }}
           </h3>
@@ -183,9 +187,9 @@
 </template>
 
 <script setup lang="ts">
+import SIcon from '@/components/ui/SIcon.vue'
 import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { Monitor, Settings, Save, Info, Home, Code2 } from 'lucide-vue-next'
 import Breadcrumb from '@/components/ui/Breadcrumb.vue'
 import { getStatusline, updateStatusline } from '@/api'
 import { useUIStore } from '@/store'
@@ -203,8 +207,8 @@ const config = ref<StatuslineConfig>({
 })
 
 const breadcrumbs = [
-  { label: t('common.home'), path: '/', icon: Home },
-  { label: t('claudeCode.title'), path: '/claude-code', icon: Code2 },
+  { label: t('common.home'), path: '/', icon: 'Home' },
+  { label: t('claudeCode.title'), path: '/claude-code', icon: 'Code2' },
   { label: t('statusline.pageTitle') }
 ]
 

@@ -16,7 +16,11 @@
         <div class="relative z-10">
           <div class="flex items-center justify-center gap-3 mb-3">
             <div class="p-3 bg-gradient-to-br from-[var(--color-accent-primary)]/20 to-[var(--color-accent-secondary)]/20 rounded-2xl border border-[var(--color-accent-primary)]/30">
-              <ShoppingBag class="w-7 h-7 text-[var(--color-accent-primary)]" />
+              <SIcon
+                name="ShoppingBag"
+                size="w-7 h-7"
+                class="text-[var(--color-accent-primary)]"
+              />
             </div>
             <h1 class="text-3xl font-bold text-[var(--color-text-primary)]">
               {{ $t('market.title') }}
@@ -31,7 +35,11 @@
 
           <!-- Search -->
           <div class="max-w-lg mx-auto relative group">
-            <Search class="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-[var(--color-text-muted)] group-focus-within:text-[var(--color-accent-primary)] transition-colors" />
+            <SIcon
+              name="Search"
+              size="w-5 h-5"
+              class="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] group-focus-within:text-[var(--color-accent-primary)] transition-colors"
+            />
             <input
               v-model="searchQuery"
               type="text"
@@ -54,9 +62,10 @@
           @click="switchTab(stat.tab)"
         >
           <div class="flex items-center gap-2 mb-1">
-            <component
-              :is="stat.icon"
-              class="w-4 h-4 text-[var(--color-accent-primary)]"
+            <SIcon
+              :name="stat.icon"
+              size="w-4 h-4"
+              class="text-[var(--color-accent-primary)]"
             />
             <span class="text-xs font-medium text-[var(--color-text-muted)]">{{ $t(stat.label) }}</span>
           </div>
@@ -75,9 +84,9 @@
             : 'bg-[var(--color-bg-surface)] text-[var(--color-text-secondary)] border-transparent hover:border-[var(--color-border-default)]'"
           @click="switchTab(tab.id)"
         >
-          <component
-            :is="tab.icon"
-            class="w-4 h-4"
+          <SIcon
+            :name="tab.icon"
+            size="w-4 h-4"
           />
           {{ $t(`market.tabs.${tab.id}`) }}
           <span
@@ -96,7 +105,11 @@
         v-if="error"
         class="mb-6 p-4 rounded-xl bg-[var(--color-danger)]/10 border border-[var(--color-danger)]/20 flex items-center gap-3"
       >
-        <AlertCircle class="w-5 h-5 text-[var(--color-danger)] flex-shrink-0" />
+        <SIcon
+          name="AlertCircle"
+          size="w-5 h-5"
+          class="text-[var(--color-danger)] flex-shrink-0"
+        />
         <span class="text-sm text-[var(--color-danger)]">{{ error }}</span>
         <button
           class="ml-auto text-xs text-[var(--color-danger)] hover:underline font-medium"
@@ -184,7 +197,10 @@
               v-if="item.requires_api_key"
               class="flex items-center gap-1.5 mb-3 text-xs text-[var(--color-warning)]"
             >
-              <Key class="w-3.5 h-3.5" />
+              <SIcon
+                name="Key"
+                size="w-3.5 h-3.5"
+              />
               <span>{{ $t('market.requiresApiKey') }} {{ item.api_key_env }}</span>
             </div>
 
@@ -195,8 +211,9 @@
                   v-for="i in 5"
                   :key="i"
                 >
-                  <Star
-                    class="w-3.5 h-3.5"
+                  <SIcon
+                    name="Star"
+                    size="w-3.5 h-3.5"
                     :class="i <= (item.rating || 0) ? 'text-[var(--color-warning)] fill-[var(--color-warning)]' : 'text-[var(--color-text-disabled)]'"
                   />
                 </template>
@@ -208,7 +225,10 @@
                   :disabled="isInstalling(item.id)"
                   @click="handleUninstall(item)"
                 >
-                  <Trash2 class="w-3.5 h-3.5" />
+                  <SIcon
+                    name="Trash2"
+                    size="w-3.5 h-3.5"
+                  />
                   {{ $t('market.uninstall') }}
                 </button>
                 <button
@@ -221,9 +241,9 @@
                   :disabled="item.installed || isInstalling(item.id)"
                   @click="!item.installed && !isInstalling(item.id) && onInstallClick(item)"
                 >
-                  <component
-                    :is="isInstalling(item.id) ? Loader2 : (item.installed ? Check : Download)"
-                    class="w-3.5 h-3.5"
+                  <SIcon
+                    :name="isInstalling(item.id) ? 'Loader2' : (item.installed ? 'Check' : 'Download')"
+                    size="w-3.5 h-3.5"
                     :class="{ 'animate-spin': isInstalling(item.id) }"
                   />
                   {{ isInstalling(item.id) ? $t('market.installing') : (item.installed ? $t('market.installed') : $t('market.install')) }}
@@ -248,7 +268,11 @@
         class="text-center py-24"
       >
         <div class="bg-[var(--color-bg-surface)] w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6">
-          <Search class="w-10 h-10 text-[var(--color-text-muted)] opacity-30" />
+          <SIcon
+            name="Search"
+            size="w-10 h-10"
+            class="text-[var(--color-text-muted)] opacity-30"
+          />
         </div>
         <h3 class="text-lg font-bold text-[var(--color-text-primary)] mb-2">
           {{ $t('market.noResults') }}
@@ -341,12 +365,9 @@
 </template>
 
 <script setup lang="ts">
+import SIcon from '@/components/ui/SIcon.vue'
 import { ref, computed, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import {
-  ShoppingBag, Home, Search, Download, Star, Check, Loader2, Key, Trash2, AlertCircle,
-  Sparkles, BookOpen, Plug, CheckCircle
-} from 'lucide-vue-next'
 import Card from '@/components/ui/Card.vue'
 import Breadcrumb from '@/components/ui/Breadcrumb.vue'
 import MarketplacePagination from '@/components/skills/MarketplacePagination.vue'
@@ -356,9 +377,9 @@ const { t } = useI18n()
 const { items, loading, error, fetchMarketItems, fetchInstalledItems, installItem, uninstallItem, isInstalling } = useMarketplace()
 
 const breadcrumbItems = computed(() => [
-  { label: t('market.breadcrumb.home'), path: '/', icon: Home },
+  { label: t('market.breadcrumb.home'), path: '/', icon: 'Home' },
   { label: t('market.breadcrumb.claude'), path: '/claude-code' },
-  { label: t('market.breadcrumb.market'), path: '', icon: ShoppingBag }
+  { label: t('market.breadcrumb.market'), path: '', icon: 'ShoppingBag' }
 ])
 
 const searchQuery = ref('')
@@ -377,17 +398,17 @@ const stats = computed(() => ({
 }))
 
 const statCards = computed(() => [
-  { tab: 'featured', icon: ShoppingBag, label: 'market.stats.total', value: () => stats.value.total },
-  { tab: 'installed', icon: CheckCircle, label: 'market.stats.installed', value: () => stats.value.installed },
-  { tab: 'skills', icon: BookOpen, label: 'market.stats.skills', value: () => stats.value.skills },
-  { tab: 'mcp', icon: Plug, label: 'market.stats.mcp', value: () => stats.value.mcp },
+  { tab: 'featured', icon: 'ShoppingBag', label: 'market.stats.total', value: () => stats.value.total },
+  { tab: 'installed', icon: 'CheckCircle', label: 'market.stats.installed', value: () => stats.value.installed },
+  { tab: 'skills', icon: 'BookOpen', label: 'market.stats.skills', value: () => stats.value.skills },
+  { tab: 'mcp', icon: 'Plug', label: 'market.stats.mcp', value: () => stats.value.mcp },
 ])
 
 const tabs = computed(() => [
-  { id: 'featured', icon: Sparkles, count: () => stats.value.total },
-  { id: 'skills', icon: BookOpen, count: () => stats.value.skills },
-  { id: 'mcp', icon: Plug, count: () => stats.value.mcp },
-  { id: 'installed', icon: CheckCircle, count: () => stats.value.installed },
+  { id: 'featured', icon: 'Sparkles', count: () => stats.value.total },
+  { id: 'skills', icon: 'BookOpen', count: () => stats.value.skills },
+  { id: 'mcp', icon: 'Plug', count: () => stats.value.mcp },
+  { id: 'installed', icon: 'CheckCircle', count: () => stats.value.installed },
 ])
 
 // Install modal state

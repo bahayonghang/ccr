@@ -26,9 +26,10 @@
                 ]"
                 @click="selectedFolder = folder.value"
               >
-                <component 
-                  :is="folder.icon" 
-                  class="w-4 h-4 transition-transform group-hover:scale-110" 
+                <SIcon
+                  :name="folder.icon"
+                  size="w-4 h-4"
+                  class="transition-transform group-hover:scale-110"
                   :class="selectedFolder === folder.value ? 'text-[var(--color-accent-primary)]' : 'text-[var(--color-text-muted)]'"
                 />
                 <span class="flex-1 truncate">{{ folder.label }}</span>
@@ -75,7 +76,11 @@
           <div class="glass-effect rounded-2xl p-4 mb-6 border border-white/20 flex flex-col md:flex-row items-center justify-between gap-4 sticky top-6 z-20 backdrop-blur-md shadow-sm">
             <div class="flex items-center gap-3 w-full md:w-auto">
               <div class="relative flex-1 md:w-80">
-                <Search class="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-[var(--color-text-muted)]" />
+                <SIcon
+                  name="Search"
+                  size="w-4 h-4"
+                  class="absolute left-3 top-1/2 transform -translate-y-1/2 text-[var(--color-text-muted)]"
+                />
                 <input
                   v-model="searchQuery"
                   type="text"
@@ -87,7 +92,10 @@
                   class="absolute right-3 top-1/2 transform -translate-y-1/2 p-0.5 rounded-full hover:bg-black/10 text-[var(--color-text-muted)] transition-colors"
                   @click="searchQuery = ''"
                 >
-                  <X class="w-3 h-3" />
+                  <SIcon
+                    name="X"
+                    size="w-3 h-3"
+                  />
                 </button>
               </div>
             </div>
@@ -97,7 +105,11 @@
                 class="px-4 py-2.5 rounded-xl font-medium transition-[color,background-color,border-color,transform] hover:scale-105 bg-[var(--color-accent-primary)] text-white shadow-lg shadow-[var(--color-accent-primary)]/20 hover:shadow-[var(--color-accent-primary)]/30 flex items-center text-sm"
                 @click="handleAdd"
               >
-                <Plus class="w-4 h-4 mr-2" />{{ $t(`${tPrefix}.addAgent`) }}
+                <SIcon
+                  name="Plus"
+                  size="w-4 h-4"
+                  class="mr-2"
+                />{{ $t(`${tPrefix}.addAgent`) }}
               </button>
             </div>
           </div>
@@ -116,7 +128,11 @@
             class="text-center py-24 glass-effect rounded-3xl border border-white/20 border-dashed"
           >
             <div class="bg-[var(--color-bg-elevated)] w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Search class="w-10 h-10 opacity-30 text-[var(--color-text-muted)]" />
+              <SIcon
+                name="Search"
+                size="w-10 h-10"
+                class="opacity-30 text-[var(--color-text-muted)]"
+              />
             </div>
             <p class="text-lg font-bold text-[var(--color-text-primary)]">
               {{ $t(`${tPrefix}.noResults`) }}
@@ -160,7 +176,10 @@
                             v-if="agent.folder"
                             class="flex items-center gap-1 text-[10px] text-[var(--color-text-muted)] bg-[var(--color-bg-surface)] px-1.5 py-0.5 rounded border border-[var(--color-border-default)]/50"
                           >
-                            <Folder class="w-3 h-3" /> {{ agent.folder }}
+                            <SIcon
+                              name="Folder"
+                              size="w-3 h-3"
+                            /> {{ agent.folder }}
                           </span>
                         </div>
                       </div>
@@ -173,13 +192,15 @@
                         :title="agent.disabled ? $t(`${tPrefix}.enable`) : $t(`${tPrefix}.disable`)"
                         @click.stop="handleToggle(agent)"
                       >
-                        <PowerOff
+                        <SIcon
                           v-if="agent.disabled"
-                          class="w-4 h-4"
+                          name="PowerOff"
+                          size="w-4 h-4"
                         />
-                        <Power
+                        <SIcon
                           v-else
-                          class="w-4 h-4"
+                          name="Power"
+                          size="w-4 h-4"
                         />
                       </button>
                       <button
@@ -188,21 +209,30 @@
                         :title="$t('common.view')"
                         @click.stop="navigateToDetail(agent)"
                       >
-                        <Eye class="w-4 h-4" />
+                        <SIcon
+                          name="Eye"
+                          size="w-4 h-4"
+                        />
                       </button>
                       <button
                         class="p-1.5 rounded-lg text-[var(--color-text-secondary)] hover:text-[var(--color-info)] hover:bg-[var(--color-info)]/10 transition-colors"
                         :title="$t('common.edit')"
                         @click.stop="handleEdit(agent)"
                       >
-                        <Edit2 class="w-4 h-4" />
+                        <SIcon
+                          name="Edit2"
+                          size="w-4 h-4"
+                        />
                       </button>
                       <button
                         class="p-1.5 rounded-lg text-[var(--color-text-secondary)] hover:text-[var(--color-danger)] hover:bg-[var(--color-danger)]/10 transition-colors"
                         :title="$t('common.delete')"
                         @click.stop="handleDelete(agent)"
                       >
-                        <Trash2 class="w-4 h-4" />
+                        <SIcon
+                          name="Trash2"
+                          size="w-4 h-4"
+                        />
                       </button>
                     </div>
                   </div>
@@ -291,14 +321,17 @@
           class="absolute top-4 right-4 p-2 rounded-full hover:bg-[var(--color-bg-surface)] text-[var(--color-text-muted)] transition-colors"
           @click="showAddForm = false"
         >
-          <X class="w-5 h-5" />
+          <SIcon
+            name="X"
+            size="w-5 h-5"
+          />
         </button>
 
         <h3 class="text-2xl font-bold mb-8 text-[var(--color-text-primary)] flex items-center">
           <div class="w-10 h-10 rounded-xl bg-[var(--color-accent-primary)]/10 flex items-center justify-center mr-3 text-[var(--color-accent-primary)]">
-            <component
-              :is="editingAgent ? Edit2 : Plus"
-              class="w-5 h-5"
+            <SIcon
+              :name="editingAgent ? 'Edit2' : 'Plus'"
+              size="w-5 h-5"
             />
           </div>
           {{ editingAgent ? $t(`${tPrefix}.editAgent`) : $t(`${tPrefix}.addAgent`) }}
@@ -334,7 +367,10 @@
                   </option>
                 </select>
                 <div class="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-[var(--color-text-muted)]">
-                  <ChevronDown class="w-4 h-4" />
+                  <SIcon
+                    name="ChevronDown"
+                    size="w-4 h-4"
+                  />
                 </div>
               </div>
             </div>
@@ -371,7 +407,10 @@
                 <button
                   class="text-[var(--color-text-muted)] group-hover:text-[var(--color-danger)] transition-colors"
                   @click="removeTool(tool)"
-                ><X class="w-3.5 h-3.5" /></button>
+                ><SIcon
+                  name="X"
+                  size="w-3.5 h-3.5"
+                /></button>
               </span>
             </div>
           </div>
@@ -407,11 +446,10 @@
 </template>
 
 <script setup lang="ts">
+import SIcon from '@/components/ui/SIcon.vue'
 import { ref, computed, onMounted, watch } from 'vue'
-import type { Component } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
-import { Plus, Edit2, Trash2, Power, PowerOff, Search, X, Folder, Home, ChevronDown, Code2, Sparkles, Workflow, Eye } from 'lucide-vue-next'
 import Breadcrumb from '@/components/ui/Breadcrumb.vue'
 import Card from '@/components/ui/Card.vue'
 import MarketplacePagination from '@/components/skills/MarketplacePagination.vue'
@@ -448,20 +486,20 @@ const PAGE_SIZE = 20
 
 // Breadcrumbs
 const breadcrumbs = computed(() => {
-  const items: { label: string; path?: string; icon?: Component }[] = [
-    { label: t('common.home'), path: '/', icon: Home }
+  const items: { label: string; path?: string; icon?: string }[] = [
+    { label: t('common.home'), path: '/', icon: 'Home' }
   ]
 
   if (props.module === 'agents') {
-    items.push({ label: t('claudeCode.title'), path: '/claude-code', icon: Code2 })
+    items.push({ label: t('claudeCode.title'), path: '/claude-code', icon: 'Code2' })
   } else if (props.module === 'codex') {
-    items.push({ label: t('nav.codex'), path: '/codex', icon: Code2 })
+    items.push({ label: t('nav.codex'), path: '/codex', icon: 'Code2' })
   } else if (props.module === 'gemini') {
-    items.push({ label: t('nav.gemini'), path: '/gemini-cli', icon: Sparkles })
+    items.push({ label: t('nav.gemini'), path: '/gemini-cli', icon: 'Sparkles' })
   } else if (props.module === 'qwen') {
-    items.push({ label: t('nav.qwen'), path: '/qwen', icon: Sparkles })
+    items.push({ label: t('nav.qwen'), path: '/qwen', icon: 'Sparkles' })
   } else if (props.module === 'iflow') {
-    items.push({ label: t('nav.iflow'), path: '/iflow', icon: Workflow })
+    items.push({ label: t('nav.iflow'), path: '/iflow', icon: 'Workflow' })
   }
 
   items.push({ label: t(`${tPrefix.value}.pageTitle`) })
@@ -492,9 +530,9 @@ const stats = computed(() => {
 })
 
 const folderOptions = computed(() => [
-  { value: '', label: t(`${tPrefix.value}.folders.all`), icon: Folder, count: stats.value.total },
-  { value: '__root__', label: t(`${tPrefix.value}.folders.root`), icon: Home, count: stats.value.rootCount },
-  ...folders.value.map((f) => ({ value: f, label: f, icon: Folder, count: stats.value.folderCounts[f] || 0 }))
+  { value: '', label: t(`${tPrefix.value}.folders.all`), icon: 'Folder', count: stats.value.total },
+  { value: '__root__', label: t(`${tPrefix.value}.folders.root`), icon: 'Home', count: stats.value.rootCount },
+  ...folders.value.map((f) => ({ value: f, label: f, icon: 'Folder', count: stats.value.folderCounts[f] || 0 }))
 ])
 
 const filteredAgents = computed(() => {

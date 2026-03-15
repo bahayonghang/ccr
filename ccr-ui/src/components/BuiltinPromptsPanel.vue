@@ -4,7 +4,11 @@
     <div class="flex items-center justify-between mb-6">
       <div class="flex items-center gap-3">
         <div class="p-2.5 rounded-xl bg-gradient-to-br from-accent-secondary/20 to-accent-primary/20">
-          <FileText class="w-5 h-5 text-accent-secondary" />
+          <SIcon
+            name="FileText"
+            size="w-5 h-5"
+            class="text-accent-secondary"
+          />
         </div>
         <div>
           <h3 class="text-base font-bold text-text-primary">
@@ -22,9 +26,9 @@
           : 'bg-bg-surface text-text-secondary hover:text-accent-secondary'"
         @click="isExpanded = !isExpanded"
       >
-        <component
-          :is="isExpanded ? ChevronUp : ChevronDown"
-          class="w-3.5 h-3.5"
+        <SIcon
+          :name="isExpanded ? 'ChevronUp' : 'ChevronDown'"
+          size="w-3.5 h-3.5"
         />
         {{ isExpanded ? $t('common.collapse') : $t('common.expand') }}
       </button>
@@ -35,7 +39,11 @@
       v-if="loading"
       class="flex justify-center py-8"
     >
-      <Loader2 class="w-6 h-6 animate-spin text-accent-secondary" />
+      <SIcon
+        name="Loader2"
+        size="w-6 h-6"
+        class="animate-spin text-accent-secondary"
+      />
     </div>
 
     <!-- Prompts Grid (Collapsed View) -->
@@ -50,9 +58,10 @@
         @click="selectPrompt(prompt)"
       >
         <div class="flex items-center gap-2 mb-1.5">
-          <component
-            :is="getCategoryIcon(prompt.category)"
-            class="w-4 h-4 text-accent-secondary"
+          <SIcon
+            :name="getCategoryIcon(prompt.category)"
+            size="w-4 h-4"
+            class="text-accent-secondary"
           />
           <span class="text-xs font-medium text-text-primary truncate">{{ prompt.name }}</span>
         </div>
@@ -76,9 +85,10 @@
         >
           <div class="flex items-center justify-between mb-2">
             <div class="flex items-center gap-2">
-              <component
-                :is="getCategoryIcon(prompt.category)"
-                class="w-5 h-5 text-accent-secondary"
+              <SIcon
+                :name="getCategoryIcon(prompt.category)"
+                size="w-5 h-5"
+                class="text-accent-secondary"
               />
               <span class="text-sm font-bold text-text-primary">{{ prompt.name }}</span>
             </div>
@@ -113,9 +123,10 @@
           <!-- Modal Header -->
           <div class="flex items-center justify-between p-4 border-b border-white/10">
             <div class="flex items-center gap-3">
-              <component
-                :is="getCategoryIcon(selectedPrompt.category)"
-                class="w-5 h-5 text-accent-secondary"
+              <SIcon
+                :name="getCategoryIcon(selectedPrompt.category)"
+                size="w-5 h-5"
+                class="text-accent-secondary"
               />
               <div>
                 <h3 class="text-base font-bold text-text-primary">
@@ -130,7 +141,11 @@
               class="p-2 rounded-lg hover:bg-bg-surface transition-colors"
               @click="selectedPrompt = null"
             >
-              <X class="w-4 h-4 text-text-muted" />
+              <SIcon
+                name="X"
+                size="w-4 h-4"
+                class="text-text-muted"
+              />
             </button>
           </div>
 
@@ -145,14 +160,22 @@
               class="px-4 py-2 text-xs rounded-lg bg-bg-surface text-text-secondary hover:text-text-primary transition-colors"
               @click="copyToClipboard(selectedPrompt.content)"
             >
-              <Copy class="w-3.5 h-3.5 inline mr-1.5" />
+              <SIcon
+                name="Copy"
+                size="w-3.5 h-3.5"
+                class="inline mr-1.5"
+              />
               {{ $t('common.copy') }}
             </button>
             <button
               class="px-4 py-2 text-xs rounded-lg bg-gradient-to-r from-accent-secondary to-accent-primary text-white font-medium"
               @click="applyPrompt(selectedPrompt)"
             >
-              <Check class="w-3.5 h-3.5 inline mr-1.5" />
+              <SIcon
+                name="Check"
+                size="w-3.5 h-3.5"
+                class="inline mr-1.5"
+              />
               {{ $t('prompts.builtin.apply') }}
             </button>
           </div>
@@ -163,23 +186,9 @@
 </template>
 
 <script setup lang="ts">
+import SIcon from '@/components/ui/SIcon.vue'
 import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import {
-  FileText,
-  ChevronUp,
-  ChevronDown,
-  Loader2,
-  X,
-  Copy,
-  Check,
-  Code,
-  Bug,
-  RefreshCw,
-  TestTube,
-  FileCode,
-  Shield
-} from 'lucide-vue-next'
 import { listBuiltinPrompts, type BuiltinPrompt } from '@/api'
 import { copyToClipboard } from '@/utils/codexHelpers'
 import { logger } from '@/utils/logger'
@@ -206,15 +215,15 @@ onMounted(async () => {
 })
 
 const getCategoryIcon = (category: string) => {
-  const icons: Record<string, typeof Code> = {
-    code_review: Code,
-    debugging: Bug,
-    refactoring: RefreshCw,
-    testing: TestTube,
-    documentation: FileCode,
-    security: Shield
+  const icons: Record<string, string> = {
+    code_review: 'Code',
+    debugging: 'Bug',
+    refactoring: 'RefreshCw',
+    testing: 'TestTube',
+    documentation: 'FileCode',
+    security: 'Shield'
   }
-  return icons[category] || FileText
+  return icons[category] || 'FileText'
 }
 
 const getCategoryLabel = (category: string) => {

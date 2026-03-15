@@ -9,9 +9,9 @@
         :class="{ 'filter-btn-active': currentFilter === filter.type }"
         @click="$emit('update:currentFilter', filter.type)"
       >
-        <component
-          :is="filter.icon"
-          class="w-4 h-4"
+        <SIcon
+          :name="filter.icon"
+          size="w-4 h-4"
           :class="currentFilter === filter.type ? 'text-white' : filter.iconColor"
         />
         <span>{{ filter.label }}</span>
@@ -41,11 +41,16 @@
               {{ $t('configs.sort.recent') }}
             </option>
           </select>
-          <component
-            :is="sortIcons[currentSort]"
-            class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-accent-primary pointer-events-none"
+          <SIcon
+            :name="sortIcons[currentSort]"
+            size="w-4 h-4"
+            class="absolute left-3 top-1/2 -translate-y-1/2 text-accent-primary pointer-events-none"
           />
-          <ChevronDown class="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/50 pointer-events-none" />
+          <SIcon
+            name="ChevronDown"
+            size="w-4 h-4"
+            class="absolute right-2.5 top-1/2 -translate-y-1/2 text-white/50 pointer-events-none"
+          />
         </div>
       </div>
 
@@ -54,7 +59,10 @@
         class="stats-btn px-3 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors duration-200"
         @click="$emit('showProviderStats')"
       >
-        <BarChart3 class="w-4 h-4" />
+        <SIcon
+          name="BarChart3"
+          size="w-4 h-4"
+        />
         <span>{{ $t('configs.provider.title') }}</span>
       </button>
 
@@ -63,7 +71,10 @@
         class="add-btn px-4 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 text-white transition-[background-color,transform] duration-200 hover:scale-105"
         @click="$emit('addConfig')"
       >
-        <PlusCircle class="w-4 h-4" />
+        <SIcon
+          name="PlusCircle"
+          size="w-4 h-4"
+        />
         <span>{{ $t('configs.buttons.add') }}</span>
       </button>
     </div>
@@ -71,19 +82,8 @@
 </template>
 
 <script setup lang="ts">
+import SIcon from '@/components/ui/SIcon.vue'
 import { useI18n } from 'vue-i18n'
-import {
-  BarChart3,
-  PlusCircle,
-  ChevronDown,
-  LayoutGrid,
-  Zap,
-  Cpu,
-  HelpCircle,
-  FileText,
-  TrendingUp,
-  Clock
-} from 'lucide-vue-next'
 import { computed } from 'vue'
 
 type FilterType = 'all' | 'official_relay' | 'third_party_model' | 'uncategorized'
@@ -109,9 +109,9 @@ const { t } = useI18n()
 
 // Sort icons mapping
 const sortIcons = {
-  name: FileText,
-  usage_count: TrendingUp,
-  recent: Clock
+  name: 'FileText',
+  usage_count: 'TrendingUp',
+  recent: 'Clock'
 }
 
 // 筛选选项 - 使用 SVG 图标替代 emoji
@@ -119,25 +119,25 @@ const filters = computed(() => [
   {
     type: 'all' as FilterType,
     label: t('configs.filters.all'),
-    icon: LayoutGrid,
+    icon: 'LayoutGrid',
     iconColor: 'text-emerald-400'
   },
   {
     type: 'official_relay' as FilterType,
     label: t('configs.filters.officialRelay'),
-    icon: Zap,
+    icon: 'Zap',
     iconColor: 'text-cyan-400'
   },
   {
     type: 'third_party_model' as FilterType,
     label: t('configs.filters.thirdPartyModel'),
-    icon: Cpu,
+    icon: 'Cpu',
     iconColor: 'text-violet-400'
   },
   {
     type: 'uncategorized' as FilterType,
     label: t('configs.filters.uncategorized'),
-    icon: HelpCircle,
+    icon: 'HelpCircle',
     iconColor: 'text-amber-400'
   },
 ])

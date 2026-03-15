@@ -15,7 +15,10 @@
           <!-- Warning Icon -->
           <div class="modal-warning-icon">
             <div class="warning-icon-bg">
-              <AlertTriangle class="w-8 h-8" />
+              <SIcon
+                name="AlertTriangle"
+                size="w-8 h-8"
+              />
             </div>
           </div>
 
@@ -31,9 +34,9 @@
             </div>
             <div class="skill-info__meta">
               <span class="skill-info__platform">
-                <component
-                  :is="platformIcon"
-                  class="w-3.5 h-3.5"
+                <SIcon
+                  :name="platformIcon"
+                  size="w-3.5 h-3.5"
                   :style="{ color: platformColor }"
                 />
                 {{ skill.platformName }}
@@ -43,7 +46,10 @@
                 class="skill-info__dir"
                 :title="skill.skillDir"
               >
-                <FolderOpen class="w-3.5 h-3.5" />
+                <SIcon
+                  name="FolderOpen"
+                  size="w-3.5 h-3.5"
+                />
                 {{ shortenPath(skill.skillDir) }}
               </span>
             </div>
@@ -66,7 +72,10 @@
               class="btn-keep"
               @click="close"
             >
-              <Shield class="w-4 h-4" />
+              <SIcon
+                name="Shield"
+                size="w-4 h-4"
+              />
               {{ $t('skills.keepSkill') }}
             </button>
 
@@ -85,18 +94,8 @@
 </template>
 
 <script setup lang="ts">
+import SIcon from '@/components/ui/SIcon.vue'
 import { computed } from 'vue'
-import {
-  AlertTriangle,
-  Shield,
-  FolderOpen,
-  Code2,
-  Settings,
-  Sparkles,
-  Zap,
-  Activity,
-  Bot
-} from 'lucide-vue-next'
 import type { UnifiedSkill, Platform } from '@/types/skills'
 import { PLATFORM_CONFIG } from '@/types/skills'
 
@@ -117,15 +116,15 @@ const platformColor = computed(() => {
 })
 
 const platformIcon = computed(() => {
-  const iconMap: Record<string, unknown> = {
-    'claude-code': Code2,
-    'codex': Settings,
-    'gemini': Sparkles,
-    'qwen': Zap,
-    'iflow': Activity,
-    'droid': Bot
+  const iconMap: Record<string, string> = {
+    'claude-code': 'Code2',
+    'codex': 'Settings',
+    'gemini': 'Sparkles',
+    'qwen': 'Zap',
+    'iflow': 'Activity',
+    'droid': 'Bot'
   }
-  return iconMap[props.skill?.platform || ''] || Code2
+  return iconMap[props.skill?.platform || ''] || 'Code2'
 })
 
 function close() {
