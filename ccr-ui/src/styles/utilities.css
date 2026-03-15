@@ -3,6 +3,11 @@
    Utilities - Reusable Utility Classes
    ============================================ */
 
+/* ============================================
+   CCR-UI Nekomata Kawaii Design System
+   Utilities - Reusable Utility Classes
+   ============================================ */
+
 @layer components {
     /* ========== 玻璃拟态效果 (主题感知) ========== */
 
@@ -11,6 +16,7 @@
     /* 中等玻璃效果 */
     .glass-effect {
         background: var(--glass-bg-medium);
+        -webkit-backdrop-filter: var(--glass-blur-md);
         backdrop-filter: var(--glass-blur-md);
         border: 1px solid var(--glass-border-medium);
     }
@@ -19,6 +25,7 @@
     .glass-effect-strong,
     .glass-elevated {
         background: var(--glass-bg-strong);
+        -webkit-backdrop-filter: var(--glass-blur-lg);
         backdrop-filter: var(--glass-blur-lg);
         border: 1px solid var(--glass-border-strong);
         box-shadow: var(--glass-shadow);
@@ -27,6 +34,7 @@
     /* 超强玻璃效果 - 用于重要弹窗 */
     .glass-modal {
         background: var(--glass-bg-strong);
+        -webkit-backdrop-filter: var(--glass-blur-xl);
         backdrop-filter: var(--glass-blur-xl);
         border: 1px solid var(--glass-border-strong);
         box-shadow: var(--glass-shadow-elevated), var(--glass-inner-glow);
@@ -35,6 +43,7 @@
     /* 液态玻璃效果 - 高级折射感 */
     .liquid-glass {
         background: var(--liquid-glass-bg);
+        -webkit-backdrop-filter: var(--liquid-glass-blur);
         backdrop-filter: var(--liquid-glass-blur);
         border: 1px solid var(--liquid-glass-border);
         box-shadow: var(--liquid-glass-shadow), var(--liquid-glass-highlight);
@@ -52,6 +61,7 @@
             0 8px 32px rgb(var(--color-accent-primary-rgb), 0.2),
             var(--glass-inner-glow),
             0 0 40px rgb(var(--color-accent-primary-rgb), 0.1);
+        -webkit-backdrop-filter: var(--glass-blur-xl);
         backdrop-filter: var(--glass-blur-xl);
     }
 
@@ -184,6 +194,7 @@
         background: linear-gradient(135deg,
                 rgb(var(--color-accent-primary-rgb), 0.95),
                 rgb(var(--color-accent-secondary-rgb), 0.95));
+        -webkit-backdrop-filter: blur(10px);
         backdrop-filter: blur(10px);
         border: 2px solid rgb(var(--color-accent-primary-rgb), 0.8);
         box-shadow:
@@ -195,6 +206,7 @@
     /* 导航项非激活状态 */
     .nav-item-inactive {
         background: var(--glass-bg-light);
+        -webkit-backdrop-filter: blur(10px);
         backdrop-filter: blur(10px);
         border: 1px solid rgb(var(--color-accent-primary-rgb), 0.2);
         box-shadow: 0 2px 8px rgb(0 0 0 / 10%);
@@ -846,6 +858,59 @@
     .delay-500 { animation-delay: 500ms; }
 }
 
+/* ========== 玻璃 backdrop-filter（提升到 utilities 层以兼容 Tailwind CSS 变量系统）==========
+ * Tailwind 的 backdrop-filter 工具类在 @layer utilities 中通过 --tw-backdrop-* 变量运作。
+ * 当自定义 glass 类的 backdrop-filter 定义在 @layer components 时，
+ * 优先级低于 utilities 层导致被覆盖为空值。
+ * 将 backdrop-filter 声明提升到 @layer utilities 解决此优先级冲突。 */
+@layer utilities {
+    .glass-surface {
+        -webkit-backdrop-filter: var(--glass-blur-md);
+        backdrop-filter: var(--glass-blur-md);
+    }
+
+    .glass-effect {
+        -webkit-backdrop-filter: var(--glass-blur-md);
+        backdrop-filter: var(--glass-blur-md);
+    }
+
+    .glass-effect-strong,
+    .glass-elevated {
+        -webkit-backdrop-filter: var(--glass-blur-lg);
+        backdrop-filter: var(--glass-blur-lg);
+    }
+
+    .glass-modal {
+        -webkit-backdrop-filter: var(--glass-blur-xl);
+        backdrop-filter: var(--glass-blur-xl);
+    }
+
+    .liquid-glass {
+        -webkit-backdrop-filter: var(--liquid-glass-blur);
+        backdrop-filter: var(--liquid-glass-blur);
+    }
+
+    .config-card-active {
+        -webkit-backdrop-filter: var(--glass-blur-xl);
+        backdrop-filter: var(--glass-blur-xl);
+    }
+
+    .nav-item-active-glow {
+        -webkit-backdrop-filter: blur(10px);
+        backdrop-filter: blur(10px);
+    }
+
+    .nav-item-inactive {
+        -webkit-backdrop-filter: blur(10px);
+        backdrop-filter: blur(10px);
+    }
+
+    .glass-card {
+        -webkit-backdrop-filter: var(--liquid-glass-blur);
+        backdrop-filter: var(--liquid-glass-blur);
+    }
+}
+
 /* ========== 无障碍: 减少动画 & 性能降级 ========== */
 
 /* 当用户偏好减少动画时，仅降级动画，不再一刀切关闭模糊。
@@ -884,8 +949,8 @@
     }
 }
 
-/* 当用户明确要求减少透明度时，再关闭 blur。
- * 当前 WebView/浏览器不支持时会自动忽略，不影响默认视觉。 */
+/* 当用户明确要求减少透明度时，增加背景不透明度但保留模糊效果。
+ * backdrop-filter (blur) 属于视觉增强而非"透明度"，不应完全关闭。 */
 @media (prefers-reduced-transparency: reduce) {
     .glass-surface,
     .glass-effect,
@@ -896,7 +961,6 @@
     .config-card-active,
     .nav-item-active-glow,
     .nav-item-inactive {
-        backdrop-filter: none !important;
         background: var(--glass-bg-strong) !important;
     }
 }

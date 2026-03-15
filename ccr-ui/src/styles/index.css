@@ -6,7 +6,12 @@
 /* 本地字体声明 - 最先导入，消除 CDN 依赖 */
 @import './fonts.css';
 
-/* 设计令牌 - 必须首先导入 */
+/* 兼容旧版设计令牌：
+ * tokens.css 仍提供 glass/liquid-glass 等变量，但其中部分 RGB 变量格式较旧。
+ * 放在 theme.css 之前，让新版主题令牌覆盖重复项，仅保留缺失的 glass token。 */
+@import './tokens.css';
+
+/* 设计令牌 - 必须在 tokens.css 之后导入以覆盖旧格式重复项 */
 @import './theme.css';
 
 /* 基础样式和重置 */
