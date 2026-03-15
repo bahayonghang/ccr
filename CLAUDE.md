@@ -179,7 +179,7 @@ Independent developers who manage multiple AI CLI tools (Claude Code, Codex, Gem
 - **Anti-References**: Enterprise dashboards with flat gray palettes; overly gamified UIs with excessive particle effects; brutalist or stark minimalist designs that lack warmth.
 - **Theme**: Dual-mode — Kawaii Light (sakura pink `#FFF5F7` base) and Deep Purple Night (`#1A0A20` base). Both themes share the same pink-purple accent palette but adjust intensity and contrast accordingly.
 - **Typography**: MapleBright (locally hosted woff2 subsets) as the primary typeface for both sans-serif and monospace contexts, with weights compressed to 400/500 for a clean, uniform aesthetic.
-- **Iconography**: Lucide Vue Next for UI icons; custom SVG cat-themed decorations (ears, paws, whiskers) for brand personality elements.
+- **Iconography**: `@iconify/vue` with **Solar Bold Duotone** icon set (`@iconify-json/solar`) via centralized `SIcon` component and `src/config/icons.ts` registry; custom SVG cat-themed decorations (ears, paws, whiskers) for brand personality elements.
 
 ### Color System
 

@@ -102,7 +102,7 @@ ccr/ (workspace root)
 - 框架：`vue` 3.5.22 + `vue-router` 4.4
 - 状态管理：`pinia` 2.2.6
 - HTTP 客户端：`axios` 1.7.9
-- UI 组件：`lucide-vue-next` (图标)
+- UI 图标：`@iconify/vue` + `@iconify-json/solar` (Solar Bold Duotone)
 - 样式：`tailwindcss` 3.4.17
 - 构建工具：`vite` 7.1.11
 - 类型检查：`typescript` 5.7 + `vue-tsc` 2.2
