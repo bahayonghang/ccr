@@ -430,6 +430,7 @@ dependencies = [
  "dirs",
  "filetime",
  "fs4",
+ "futures",
  "indexmap 2.13.0",
  "once_cell",
  "r2d2",

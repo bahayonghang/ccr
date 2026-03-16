@@ -115,6 +115,8 @@ macro_rules! generate_handler_common {
         codex::codex_switch_auth,
         codex::codex_delete_auth,
         codex::codex_detect_process,
+        codex::codex_get_all_quotas,
+        codex::codex_get_quota,
         // —— Gemini ——
         gemini::gemini_get_settings,
         gemini::gemini_update_settings,

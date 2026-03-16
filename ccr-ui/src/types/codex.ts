@@ -259,3 +259,27 @@ export interface CodexUsageResponse {
   all_time: CodexUsageStats
   by_model: Record<string, CodexUsageStats>
 }
+
+// ============ Codex Quota Types ============
+
+/** Codex 配额信息 */
+export interface CodexQuota {
+  hourly_percentage: number
+  hourly_reset_time?: number
+  hourly_window_minutes?: number
+  hourly_window_present?: boolean
+  weekly_percentage: number
+  weekly_reset_time?: number
+  weekly_window_minutes?: number
+  weekly_window_present?: boolean
+  plan_type?: string
+}
+
+/** 单个账号的配额查询结果 */
+export interface CodexAccountQuota {
+  account_name: string
+  email?: string
+  quota?: CodexQuota
+  error?: string
+  fetched_at: string
+}

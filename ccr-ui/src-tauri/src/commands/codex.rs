@@ -1086,6 +1086,26 @@ pub async fn codex_detect_process() -> Result<Value, String> {
     .map_err(|e| format!("任务执行失败: {e}"))?
 }
 
+// ── Quota 配额查询 ──
+
+/// 查询所有 Codex 账号的配额余额
+#[tauri::command]
+pub async fn codex_get_all_quotas() -> Result<Value, String> {
+    let service =
+        ccr::services::CodexQuotaService::new().map_err(|e| format!("初始化配额服务失败: {e}"))?;
+    let quotas = service.fetch_all_quotas().await;
+    serde_json::to_value(&quotas).map_err(|e| format!("序列化配额数据失败: {e}"))
+}
+
+/// 查询指定 Codex 账号的配额余额
+#[tauri::command]
+pub async fn codex_get_quota(account: String) -> Result<Value, String> {
+    let service =
+        ccr::services::CodexQuotaService::new().map_err(|e| format!("初始化配额服务失败: {e}"))?;
+    let quota = service.fetch_account_quota(&account).await;
+    serde_json::to_value(&quota).map_err(|e| format!("序列化配额数据失败: {e}"))
+}
+
 // ── Usage 统计 ──
 
 /// 获取 Codex 使用量统计

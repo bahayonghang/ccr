@@ -981,6 +981,16 @@ export const getCodexUsage = async <T = UnknownRecord>(): Promise<T> => {
   return invoke('codex_get_usage')
 }
 
+/** 获取所有 Codex 账号的配额余额 */
+export const getCodexAllQuotas = async <T = UnknownRecord>(): Promise<T> => {
+  return invoke('codex_get_all_quotas')
+}
+
+/** 获取指定 Codex 账号的配额余额 */
+export const getCodexQuota = async <T = UnknownRecord>(account: string): Promise<T> => {
+  return invoke('codex_get_quota', { account })
+}
+
 /** 列出 Codex 斜杠命令（Codex 不支持） */
 export const listCodexSlashCommands = async <T = UnknownRecord>(): Promise<T> => {
   return { commands: [], folders: [] } as T

@@ -315,6 +315,9 @@
             </div>
           </Card>
 
+          <!-- Quota Card -->
+          <CodexQuotaCard />
+
           <!-- Account List Title -->
           <div class="flex items-center justify-between">
             <h2 class="text-xl font-bold text-white flex items-center gap-2">
@@ -514,6 +517,7 @@ import { Breadcrumb } from '@/components/ui'
 import CollapsibleSidebar from '@/components/CollapsibleSidebar.vue'
 import Card from '@/components/ui/Card.vue'
 import AccountListTable from '@/components/usage/AccountListTable.vue'
+import CodexQuotaCard from '@/components/codex/CodexQuotaCard.vue'
 import {
   listCodexProfiles,
   listCodexAuthAccounts,
