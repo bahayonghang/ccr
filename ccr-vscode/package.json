@@ -3,7 +3,7 @@
   "displayName": "CCR - Configuration Switcher",
   "icon": "icon.png",
   "description": "Manage AI CLI tool configurations (Claude, Codex, Gemini, etc.) directly from VSCode sidebar",
-  "version": "5.1.0",
+  "version": "5.1.1",
   "publisher": "ccr",
   "license": "MIT",
   "repository": {

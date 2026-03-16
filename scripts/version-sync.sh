@@ -242,12 +242,29 @@ echo "♻️  开始同步版本到 UI 文件..."
 if [[ "$CCR_DB_VER" != "$ROOT_VER" ]]; then
   echo "  - ccr-db: $CCR_DB_VER -> $ROOT_VER"
   tmp="$(mktemp)"
-  sed -E "s/^([[:space:]]*version[[:space:]]*=[[:space:]]*)\"[^\"]+\"/\"$ROOT_VER\"/" "$CCR_DB_CARGO" > "$tmp" || {
+  sed -E "s/^([[:space:]]*version[[:space:]]*=[[:space:]]*)\"[^\"]+\"/\1\"$ROOT_VER\"/" "$CCR_DB_CARGO" > "$tmp" || {
     rm -f "$tmp"
     die "更新 ccr-db Cargo.toml 版本失败"
   }
   mv "$tmp" "$CCR_DB_CARGO"
 fi
+
+update_frontend_version() {
+  local tmp
+  tmp="$(mktemp)"
+  if command -v jq &>/dev/null; then
+    jq --arg ver "$ROOT_VER" '.version = $ver' "$FRONTEND_PKG" > "$tmp" || {
+      rm -f "$tmp"
+      die "更新前端 package.json 版本失败"
+    }
+  else
+    sed -E "s/(\"version\"[[:space:]]*:[[:space:]]*\")[^\"]+\"/\1$ROOT_VER\"/" "$FRONTEND_PKG" > "$tmp" || {
+      rm -f "$tmp"
+      die "更新前端 package.json 版本失败"
+    }
+  fi
+  mv "$tmp" "$FRONTEND_PKG"
+}
 
 if [[ "$FRONTEND_VER" != "$ROOT_VER" ]]; then
   echo "  - 前端: $FRONTEND_VER -> $ROOT_VER"
@@ -263,6 +280,23 @@ if [[ "$TAURI_CARGO_VER" != "$ROOT_VER" ]]; then
   }
   mv "$tmp" "$TAURI_CARGO"
 fi
+
+update_tauri_conf_version() {
+  local tmp
+  tmp="$(mktemp)"
+  if command -v jq &>/dev/null; then
+    jq --arg ver "$ROOT_VER" '.version = $ver' "$TAURI_CONF" > "$tmp" || {
+      rm -f "$tmp"
+      die "更新 Tauri tauri.conf.json 版本失败"
+    }
+  else
+    sed -E "s/(\"version\"[[:space:]]*:[[:space:]]*\")[^\"]+\"/\1$ROOT_VER\"/" "$TAURI_CONF" > "$tmp" || {
+      rm -f "$tmp"
+      die "更新 Tauri tauri.conf.json 版本失败"
+    }
+  fi
+  mv "$tmp" "$TAURI_CONF"
+}
 
 if [[ "$TAURI_CONF_VER" != "$ROOT_VER" ]]; then
   echo "  - Tauri tauri.conf.json: $TAURI_CONF_VER -> $ROOT_VER"
