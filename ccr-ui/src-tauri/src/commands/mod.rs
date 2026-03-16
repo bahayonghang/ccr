@@ -279,6 +279,7 @@ macro_rules! generate_handler_common {
         usage::get_usage_trends_v2,
         usage::get_usage_by_model_v2,
         usage::get_usage_by_project_v2,
+        usage::get_usage_heatmap_v2,
         usage::get_usage_logs_v2,
         usage::get_usage_dashboard_v2,
         usage::import_usage_v2,
@@ -355,4 +356,3 @@ pub fn generate_handler() -> impl Fn(tauri::ipc::Invoke) -> bool {
         wsl::wsl_sync_config,
     )
 }
-

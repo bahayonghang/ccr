@@ -10,12 +10,14 @@ import { computed, ref } from 'vue'
 import type {
   DailyTrend,
   HeatmapResponse,
+  ImportAllUsageResponse,
   ImportResult,
   ModelStat,
   PaginatedLogs,
   Platform,
   ProjectStat,
   UsageDashboardResponse,
+  UsageImportSummary,
   UsageLogsQuery,
   UsageSummary,
 } from '@/types/usage'
@@ -68,12 +70,19 @@ const recordPerfMetric = (
 interface FetchOptions {
   includeHeatmap?: boolean
   reason?: string
+  preserveError?: boolean
 }
 
 type UsageDashboardPayload = Omit<UsageDashboardResponse, 'heatmap' | 'generated_at'> & {
   heatmap?: HeatmapResponse
   by_model?: ModelStat[]
   by_project?: ProjectStat[]
+}
+
+const isImportAllUsageResponse = (
+  payload: ImportResult | ImportAllUsageResponse,
+): payload is ImportAllUsageResponse => {
+  return 'results' in payload && Array.isArray(payload.results)
 }
 
 type IdleCapableWindow = Window & {
@@ -89,10 +98,16 @@ export const useUsageStore = defineStore('usage', () => {
   const heatmap = ref<HeatmapResponse | null>(null)
   const logs = ref<PaginatedLogs | null>(null)
 
-  const loading = ref(false)
+  const loading = ref(true)
   const logsLoading = ref(false)
   const error = ref<string | null>(null)
+  const warning = ref<string | null>(null)
   const lastUpdated = ref<Date | null>(null)
+  const importing = ref(false)
+  const isBootstrapping = ref(false)
+  const bootstrapAttempted = ref(false)
+  const lastImportSummary = ref<UsageImportSummary | null>(null)
+  const lastImportResults = ref<ImportResult[]>([])
 
   // 筛选条件
   const platform = ref<Platform | undefined>(undefined)
@@ -136,6 +151,9 @@ export const useUsageStore = defineStore('usage', () => {
     return logsPage.value < logsTotalPages.value
   })
 
+  const hasUsageData = computed(() => (summary.value?.total_requests ?? 0) > 0)
+  const hasNoUsageData = computed(() => !loading.value && !error.value && !hasUsageData.value)
+
   const buildFetchKey = (includeHeatmap: boolean) =>
     [
       platform.value ?? 'all',
@@ -153,6 +171,54 @@ export const useUsageStore = defineStore('usage', () => {
     projectStats.value = data.project_stats ?? data.by_project ?? []
     if (includeHeatmap && data.heatmap) {
       heatmap.value = data.heatmap
+    }
+  }
+
+  const applyFilters = (opts: { platform?: Platform; start?: string; end?: string }) => {
+    platform.value = opts.platform
+    timeRange.value = { start: opts.start, end: opts.end }
+  }
+
+  const clearImportFeedback = () => {
+    warning.value = null
+    lastImportSummary.value = null
+    lastImportResults.value = []
+  }
+
+  const buildImportSummary = (results: ImportResult[]): UsageImportSummary => {
+    const successCount = results.filter(result => !result.error).length
+    const failureCount = results.length - successCount
+    const importedRecords = results.reduce((sum, result) => sum + result.records_imported, 0)
+    const processedFiles = results.reduce((sum, result) => sum + result.files_processed, 0)
+    const hasPartial = results.some(result =>
+      Boolean(result.error)
+      || !result.completed
+      || (result.files_processed > 0 && result.records_imported === 0 && result.records_skipped > 0),
+    )
+
+    return {
+      success_count: successCount,
+      failure_count: failureCount,
+      imported_records: importedRecords,
+      processed_files: processedFiles,
+      has_partial: hasPartial,
+    }
+  }
+
+  const normalizeImportResponse = (
+    payload: ImportResult | ImportAllUsageResponse,
+    platformOverride?: Platform,
+  ): ImportAllUsageResponse => {
+    if (isImportAllUsageResponse(payload)) {
+      return payload
+    }
+
+    const result: ImportResult = platformOverride
+      ? { ...payload, platform: platformOverride }
+      : payload
+    return {
+      results: [result],
+      summary: buildImportSummary([result]),
     }
   }
 
@@ -179,6 +245,7 @@ export const useUsageStore = defineStore('usage', () => {
   async function fetchAll(options: FetchOptions = {}) {
     const includeHeatmap = options.includeHeatmap ?? !LAZY_HEATMAP_LOAD
     const reason = options.reason ?? 'manual'
+    const preserveError = options.preserveError ?? false
     const startedAt = nowMs()
     const key = buildFetchKey(includeHeatmap)
 
@@ -188,7 +255,9 @@ export const useUsageStore = defineStore('usage', () => {
 
     const requestId = ++requestSerial
     loading.value = true
-    error.value = null
+    if (!preserveError) {
+      error.value = null
+    }
 
     const promise = (async () => {
       try {
@@ -332,19 +401,105 @@ export const useUsageStore = defineStore('usage', () => {
     await fetchLogs('prev')
   }
 
-  /** 触发数据导入 */
-  async function triggerImport(p?: string): Promise<ImportResult[]> {
-    if (p) {
-      const r = await importUsageV2<ImportResult>(p)
-      return [r]
+  async function triggerImport(
+    requestedPlatform?: Platform,
+    reason: 'manual' | 'bootstrap' = 'manual',
+  ): Promise<ImportAllUsageResponse> {
+    importing.value = true
+    isBootstrapping.value = reason === 'bootstrap'
+    error.value = null
+
+    try {
+      const response = requestedPlatform
+        ? normalizeImportResponse(
+          await importUsageV2<ImportResult>(requestedPlatform),
+          requestedPlatform,
+        )
+        : normalizeImportResponse(await importAllUsageV2<ImportAllUsageResponse>())
+
+      lastImportSummary.value = response.summary
+      lastImportResults.value = response.results
+
+      const failedResults = response.results.filter(result => result.error)
+      const failedDetails = failedResults
+        .map(result => `${result.platform}: ${result.error}`)
+        .join('\n')
+
+      if (response.summary.failure_count === response.results.length && response.results.length > 0) {
+        error.value = failedDetails || '未能导入本地 usage 日志，请检查日志目录或导入错误'
+        warning.value = null
+        return response
+      }
+
+      if (response.summary.has_partial) {
+        warning.value = failedDetails || '仅导入部分 usage 数据，达到时间预算或部分平台失败，可重试继续导入'
+      } else if (response.summary.processed_files === 0 && response.summary.imported_records === 0) {
+        warning.value = null
+      } else {
+        warning.value = null
+      }
+
+      if (response.summary.success_count > 0 || response.summary.has_partial) {
+        await fetchAll({
+          includeHeatmap: !LAZY_HEATMAP_LOAD,
+          reason: `${reason}-import-refresh`,
+          preserveError: response.summary.failure_count === response.results.length,
+        })
+      }
+
+      return response
+    } catch (e) {
+      const message = e instanceof Error ? e.message : String(e)
+      const fallback: ImportAllUsageResponse = {
+        results: [{
+          platform: requestedPlatform ?? 'all',
+          files_processed: 0,
+          records_imported: 0,
+          records_skipped: 0,
+          duration_ms: 0,
+          completed: false,
+          error: message,
+        }],
+        summary: {
+          success_count: 0,
+          failure_count: 1,
+          imported_records: 0,
+          processed_files: 0,
+          has_partial: true,
+        },
+      }
+
+      lastImportSummary.value = fallback.summary
+      lastImportResults.value = fallback.results
+      warning.value = null
+      error.value = message
+      return fallback
+    } finally {
+      importing.value = false
+      isBootstrapping.value = false
     }
-    return importAllUsageV2<ImportResult[]>()
+  }
+
+  /** 初始化仪表盘并在空库时做一次自举导入 */
+  async function initializeDashboard(opts: { platform?: Platform; start?: string; end?: string }) {
+    applyFilters(opts)
+    await fetchAll({ includeHeatmap: !LAZY_HEATMAP_LOAD, reason: 'initialize' })
+
+    if ((summary.value?.total_requests ?? 0) > 0) {
+      return
+    }
+
+    if (bootstrapAttempted.value) {
+      return
+    }
+
+    bootstrapAttempted.value = true
+    await triggerImport(undefined, 'bootstrap')
   }
 
   /** 设置筛选条件并刷新（300ms 防抖） */
   function setFilters(opts: { platform?: Platform; start?: string; end?: string }) {
-    platform.value = opts.platform
-    timeRange.value = { start: opts.start, end: opts.end }
+    applyFilters(opts)
 
     if (filterDebounceTimer) {
       clearTimeout(filterDebounceTimer)
@@ -363,7 +518,11 @@ export const useUsageStore = defineStore('usage', () => {
   function startAutoRefresh() {
     stopAutoRefresh()
     coreRefreshTimer = setInterval(() => {
-      fetchAll({ includeHeatmap: false, reason: 'auto-refresh-core' })
+      fetchAll({
+        includeHeatmap: false,
+        reason: 'auto-refresh-core',
+        preserveError: Boolean(error.value && !hasUsageData.value),
+      })
     }, REFRESH_INTERVAL)
     if (!LAZY_HEATMAP_LOAD) {
       heatmapRefreshTimer = setInterval(() => {
@@ -399,7 +558,13 @@ export const useUsageStore = defineStore('usage', () => {
     loading,
     logsLoading,
     error,
+    warning,
     lastUpdated,
+    importing,
+    isBootstrapping,
+    bootstrapAttempted,
+    lastImportSummary,
+    lastImportResults,
     platform,
     timeRange,
     logsPage,
@@ -410,16 +575,20 @@ export const useUsageStore = defineStore('usage', () => {
     logsTotalPages,
     canPrevLogs,
     canNextLogs,
+    hasUsageData,
+    hasNoUsageData,
     // flags
     useCursorLogs: USE_CURSOR_LOGS,
     useDashboardApi: USE_DASHBOARD_API,
     // actions
+    initializeDashboard,
     fetchAll,
     fetchHeatmap,
     fetchLogs,
     nextLogsPage,
     prevLogsPage,
     triggerImport,
+    clearImportFeedback,
     setFilters,
     startAutoRefresh,
     stopAutoRefresh,

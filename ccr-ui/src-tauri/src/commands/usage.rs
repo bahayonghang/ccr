@@ -46,6 +46,32 @@ pub struct PaginatedLogsV2 {
     pub mode: UsageLogsMode,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UsageImportResultV2 {
+    pub platform: String,
+    pub files_processed: usize,
+    pub records_imported: usize,
+    pub records_skipped: usize,
+    pub duration_ms: u64,
+    pub completed: bool,
+    pub error: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct UsageImportSummary {
+    pub success_count: usize,
+    pub failure_count: usize,
+    pub imported_records: usize,
+    pub processed_files: usize,
+    pub has_partial: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ImportAllUsageResponse {
+    pub results: Vec<UsageImportResultV2>,
+    pub summary: UsageImportSummary,
+}
+
 fn elapsed_ms(started: Instant) -> f64 {
     started.elapsed().as_secs_f64() * 1000.0
 }
@@ -56,6 +82,42 @@ fn record_command_duration(state: &AppState, command_started: Instant) {
 
 fn record_db_duration(state: &AppState, db_ms: f64) {
     state.record_db_query_duration_ms(db_ms);
+}
+
+fn normalize_import_result(
+    result: ccr_db::services::usage_import_service::ImportResult,
+) -> UsageImportResultV2 {
+    UsageImportResultV2 {
+        platform: result.platform,
+        files_processed: result.files_processed,
+        records_imported: result.records_imported,
+        records_skipped: result.records_skipped,
+        duration_ms: result.duration_ms,
+        completed: result.completed,
+        error: None,
+    }
+}
+
+fn build_import_summary(results: &[UsageImportResultV2]) -> UsageImportSummary {
+    let success_count = results.iter().filter(|result| result.error.is_none()).count();
+    let failure_count = results.len().saturating_sub(success_count);
+    let imported_records = results.iter().map(|result| result.records_imported).sum();
+    let processed_files = results.iter().map(|result| result.files_processed).sum();
+    let has_partial = results.iter().any(|result| {
+        result.error.is_some()
+            || !result.completed
+            || (result.files_processed > 0
+                && result.records_imported == 0
+                && result.records_skipped > 0)
+    });
+
+    UsageImportSummary {
+        success_count,
+        failure_count,
+        imported_records,
+        processed_files,
+        has_partial,
+    }
 }
 
 /// 获取用量汇总数据
@@ -182,6 +244,41 @@ pub async fn get_usage_by_project_v2(
     serde_json::to_value(stats).map_err(|e| format!("Serialize error: {e}"))
 }
 
+/// 获取热力图数据（V2，来自 SQLite usage_daily_agg）
+#[tauri::command]
+pub async fn get_usage_heatmap_v2(
+    state: State<'_, AppState>,
+    platform: Option<String>,
+    days: Option<i64>,
+) -> Result<Value, String> {
+    let command_started = Instant::now();
+    let pool = state.db_pool.clone();
+    let days = days.unwrap_or(365).max(1);
+
+    let result = tokio::task::spawn_blocking(move || {
+        let db_started = Instant::now();
+        let conn = pool.get().map_err(|e| format!("DB error: {e}"))?;
+        let heatmap = ccr_db::database::repositories::usage_repo::get_heatmap_data(
+            &conn, &platform, days,
+        )
+        .map_err(|e| format!("Query error: {e}"))?;
+
+        Ok::<_, String>((
+            serde_json::json!({
+                "data": heatmap,
+            }),
+            elapsed_ms(db_started),
+        ))
+    })
+    .await
+    .map_err(|e| format!("Task join error: {e}"))?;
+
+    record_command_duration(&state, command_started);
+    let (heatmap, db_ms) = result?;
+    record_db_duration(&state, db_ms);
+    Ok(heatmap)
+}
+
 /// 获取用量日志列表，支持游标与分页两种模式
 #[tauri::command]
 pub async fn get_usage_logs_v2(
@@ -267,9 +364,13 @@ pub async fn get_usage_dashboard_v2(
     platform: Option<String>,
     start_date: Option<String>,
     end_date: Option<String>,
+    heatmap_days: Option<i64>,
+    include_heatmap: Option<bool>,
 ) -> Result<Value, String> {
     let command_started = Instant::now();
     let pool = state.db_pool.clone();
+    let heatmap_days = heatmap_days.unwrap_or(365).max(1);
+    let include_heatmap = include_heatmap.unwrap_or(false);
     let result = tokio::task::spawn_blocking(move || {
         let db_started = Instant::now();
         let conn = pool.get().map_err(|e| format!("DB error: {e}"))?;
@@ -306,11 +407,23 @@ pub async fn get_usage_dashboard_v2(
         )
         .map_err(|e| format!("Project stats query error: {e}"))?;
 
+        let heatmap = if include_heatmap {
+            Some(ccr_db::database::repositories::usage_repo::get_heatmap_data(
+                &conn,
+                &platform,
+                heatmap_days,
+            )
+            .map_err(|e| format!("Heatmap query error: {e}"))?)
+        } else {
+            None
+        };
+
         Ok::<Value, String>(serde_json::json!({
             "summary": summary,
             "trends": trends,
             "model_stats": by_model,
             "project_stats": by_project,
+            "heatmap": heatmap.map(|data| serde_json::json!({ "data": data })),
             "generated_at": chrono::Utc::now().to_rfc3339(),
         }))
         .map(|payload| (payload, elapsed_ms(db_started)))
@@ -357,7 +470,8 @@ pub async fn import_usage_v2(
     )
     .await;
 
-    serde_json::to_value(result).map_err(|e| format!("Serialize error: {e}"))
+    serde_json::to_value(normalize_import_result(result))
+        .map_err(|e| format!("Serialize error: {e}"))
 }
 #[tauri::command]
 pub async fn import_all_usage_v2(
@@ -376,21 +490,25 @@ pub async fn import_all_usage_v2(
             let _permit = sem
                 .acquire_owned()
                 .await
-                .map_err(|e| format!("Semaphore error: {e}"))?;
+                .map_err(|e| (platform_name.clone(), format!("Semaphore error: {e}")))?;
 
+            let import_platform = platform_name.clone();
             tokio::task::spawn_blocking(move || {
                 let service = ccr_db::services::usage_import_service::UsageImportService::new(
                     ccr_db::services::usage_import_service::ImportConfig::default(),
                 );
-                service.import_platform(&platform_name)
+                service
+                    .import_platform(&import_platform)
+                    .map(normalize_import_result)
+                    .map_err(|e| (import_platform, e))
             })
             .await
-            .map_err(|e| format!("Task join error: {e}"))?
-            .map_err(|e| e.to_string())
+            .map_err(|e| (platform_name.clone(), format!("Task join error: {e}")))?
+            .map_err(|(platform, error)| (platform, error.to_string()))
         });
     }
 
-    let mut results = Vec::new();
+    let mut results: Vec<UsageImportResultV2> = Vec::new();
     while let Some(result) = tasks.join_next().await {
         match result {
             Ok(Ok(import_result)) => {
@@ -409,18 +527,40 @@ pub async fn import_all_usage_v2(
                 )
                 .await;
 
-                results.push(serde_json::to_value(import_result).unwrap_or(Value::Null));
+                results.push(import_result);
             }
-            Ok(Err(e)) => {
-                results.push(serde_json::json!({ "error": e }));
+            Ok(Err((platform, error))) => {
+                results.push(UsageImportResultV2 {
+                    platform,
+                    files_processed: 0,
+                    records_imported: 0,
+                    records_skipped: 0,
+                    duration_ms: 0,
+                    completed: false,
+                    error: Some(error),
+                });
             }
             Err(e) => {
-                results.push(serde_json::json!({ "error": format!("Join error: {e}") }));
+                results.push(UsageImportResultV2 {
+                    platform: "unknown".to_string(),
+                    files_processed: 0,
+                    records_imported: 0,
+                    records_skipped: 0,
+                    duration_ms: 0,
+                    completed: false,
+                    error: Some(format!("Join error: {e}")),
+                });
             }
         }
     }
 
-    Ok(serde_json::json!({ "results": results }))
+    results.sort_by(|left, right| left.platform.cmp(&right.platform));
+    let response = ImportAllUsageResponse {
+        summary: build_import_summary(&results),
+        results,
+    };
+
+    serde_json::to_value(response).map_err(|e| format!("Serialize error: {e}"))
 }
 #[cfg(test)]
 mod tests {
@@ -462,5 +602,65 @@ mod tests {
         };
 
         assert_eq!(query.mode.unwrap_or_default(), UsageLogsMode::Cursor);
+    }
+
+    #[test]
+    fn import_summary_marks_partial_and_failures() {
+        let summary = build_import_summary(&[
+            UsageImportResultV2 {
+                platform: "claude".into(),
+                files_processed: 3,
+                records_imported: 12,
+                records_skipped: 0,
+                duration_ms: 10,
+                completed: true,
+                error: None,
+            },
+            UsageImportResultV2 {
+                platform: "codex".into(),
+                files_processed: 0,
+                records_imported: 0,
+                records_skipped: 0,
+                duration_ms: 0,
+                completed: false,
+                error: Some("boom".into()),
+            },
+        ]);
+
+        assert_eq!(summary.success_count, 1);
+        assert_eq!(summary.failure_count, 1);
+        assert_eq!(summary.imported_records, 12);
+        assert_eq!(summary.processed_files, 3);
+        assert!(summary.has_partial);
+    }
+
+    #[test]
+    fn import_summary_detects_no_importable_logs() {
+        let summary = build_import_summary(&[
+            UsageImportResultV2 {
+                platform: "claude".into(),
+                files_processed: 0,
+                records_imported: 0,
+                records_skipped: 0,
+                duration_ms: 3,
+                completed: true,
+                error: None,
+            },
+            UsageImportResultV2 {
+                platform: "gemini".into(),
+                files_processed: 0,
+                records_imported: 0,
+                records_skipped: 0,
+                duration_ms: 4,
+                completed: true,
+                error: None,
+            },
+        ]);
+
+        assert_eq!(summary.success_count, 2);
+        assert_eq!(summary.failure_count, 0);
+        assert_eq!(summary.imported_records, 0);
+        assert_eq!(summary.processed_files, 0);
+        assert!(!summary.has_partial);
     }
 }

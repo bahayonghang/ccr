@@ -1458,6 +1458,7 @@ export default {
       days365: '365 Days',
       import: 'Import',
       importing: 'Importing...',
+      bootstrapping: 'Bootstrapping...',
       tabs: {
         overview: 'Overview',
         models: 'Models',
@@ -1496,6 +1497,11 @@ export default {
         prev: 'Prev',
         next: 'Next',
         noLogs: 'No logs',
+      },
+
+      status: {
+        noLogsTitle: 'No usage logs found',
+        noLogs: 'No local usage logs were found',
       },
     },
 

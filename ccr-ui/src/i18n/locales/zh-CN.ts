@@ -1547,6 +1547,7 @@ export default {
       days365: '近 365 天',
       import: '导入',
       importing: '导入中...',
+      bootstrapping: '自动导入中...',
 
       tabs: {
         overview: '总览',
@@ -1590,6 +1591,11 @@ export default {
         prev: '上一页',
         next: '下一页',
         noLogs: '暂无日志',
+      },
+
+      status: {
+        noLogsTitle: '未发现使用日志',
+        noLogs: '未发现本地 usage 日志',
       },
     },
   },

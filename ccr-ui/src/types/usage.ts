@@ -97,6 +97,22 @@ export interface ImportResult {
   records_skipped: number
   duration_ms: number
   completed: boolean
+  error?: string | null
+}
+
+/** 导入摘要 */
+export interface UsageImportSummary {
+  success_count: number
+  failure_count: number
+  imported_records: number
+  processed_files: number
+  has_partial: boolean
+}
+
+/** 全量导入响应 */
+export interface ImportAllUsageResponse {
+  results: ImportResult[]
+  summary: UsageImportSummary
 }
 
 /** 平台类型 */

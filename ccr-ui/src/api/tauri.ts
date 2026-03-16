@@ -2182,7 +2182,7 @@ export const getUsageHeatmapV2 = async <T = UnknownRecord>(
   platform?: string,
   days?: number,
 ): Promise<T> => {
-  return getHeatmapData(platform, days)
+  return invoke('get_usage_heatmap_v2', { platform, days })
 }
 
 /** V2: 获取日志 */
@@ -2226,10 +2226,16 @@ export const getUsageDashboardV2 = async <T = UnknownRecord>(
   platform?: string,
   startDate?: string,
   endDate?: string,
-  _heatmapDays?: number,
-  _includeHeatmap?: boolean,
+  heatmapDays?: number,
+  includeHeatmap?: boolean,
 ): Promise<T> => {
-  return invoke('get_usage_dashboard_v2', { platform, startDate, endDate })
+  return invoke('get_usage_dashboard_v2', {
+    platform,
+    startDate,
+    endDate,
+    heatmapDays,
+    includeHeatmap,
+  })
 }
 
 /** V2: 导入单平台 usage */

@@ -53,10 +53,10 @@
           </select>
           <button
             class="px-3 py-1.5 rounded-lg text-xs font-medium bg-accent-primary/20 text-accent-primary hover:bg-accent-primary/30 transition-colors"
-            :disabled="importing"
+            :disabled="store.importing"
             @click="doImport"
           >
-            {{ importing ? $t('usage.dashboard.importing') : $t('usage.dashboard.import') }}
+            {{ importButtonLabel }}
           </button>
           <span
             v-if="store.lastUpdated"
@@ -93,9 +93,40 @@
       >
         {{ store.error }}
       </div>
+      <div
+        v-else
+        class="space-y-4"
+      >
+        <div
+          v-if="warningMessage"
+          class="rounded-2xl border border-amber-400/30 bg-amber-400/10 px-4 py-3 text-sm text-amber-100"
+        >
+          <div class="font-medium">
+            {{ warningMessage }}
+          </div>
+          <div
+            v-for="detail in importDetails"
+            :key="detail"
+            class="mt-1 text-xs text-amber-100/75"
+          >
+            {{ detail }}
+          </div>
+        </div>
 
-      <!-- Overview -->
-      <template v-else-if="activeTab === 'overview'">
+        <div
+          v-if="showEmptyState"
+          class="glass-panel rounded-2xl p-8 text-center"
+        >
+          <div class="text-lg font-semibold text-white">
+            {{ emptyStateTitle }}
+          </div>
+          <div class="mt-2 text-sm text-white/60">
+            {{ emptyStateDescription }}
+          </div>
+        </div>
+
+        <!-- Overview -->
+        <template v-else-if="activeTab === 'overview'">
         <!-- 汇总卡片 -->
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <div
@@ -244,10 +275,10 @@
             </div>
           </div>
         </div>
-      </template>
+        </template>
 
-      <!-- Models -->
-      <template v-else-if="activeTab === 'models'">
+        <!-- Models -->
+        <template v-else-if="activeTab === 'models'">
         <div class="glass-panel p-4 rounded-xl">
           <h3 class="text-sm font-medium text-white/80 mb-3">
             {{ $t('usage.dashboard.chart.costByModel') }}
@@ -312,10 +343,10 @@
             {{ $t('usage.dashboard.table.noData') }}
           </div>
         </div>
-      </template>
+        </template>
 
-      <!-- Projects -->
-      <template v-else-if="activeTab === 'projects'">
+        <!-- Projects -->
+        <template v-else-if="activeTab === 'projects'">
         <div class="glass-panel rounded-xl overflow-hidden">
           <table class="w-full text-sm">
             <thead>
@@ -365,10 +396,10 @@
             {{ $t('usage.dashboard.table.noData') }}
           </div>
         </div>
-      </template>
+        </template>
 
-      <!-- Logs -->
-      <template v-else-if="activeTab === 'logs'">
+        <!-- Logs -->
+        <template v-else-if="activeTab === 'logs'">
         <div class="flex items-center gap-2">
           <input
             v-model="logModelFilter"
@@ -474,7 +505,8 @@
             {{ $t('usage.dashboard.logs.next') }}
           </button>
         </div>
-      </template>
+        </template>
+      </div>
     </div>
   </div>
 </template>
@@ -500,7 +532,6 @@ const tabKeys = ['overview', 'models', 'projects', 'logs'] as const
 const activeTab = ref<string>('overview')
 const selectedPlatform = ref('')
 const selectedDays = ref(30)
-const importing = ref(false)
 const logModelFilter = ref('')
 const logsScrollRef = ref<HTMLElement | null>(null)
 const shouldLoadCharts = computed(() => activeTab.value === 'overview' || activeTab.value === 'models')
@@ -529,13 +560,7 @@ function onFilterChange() {
 
 // 导入
 async function doImport() {
-  importing.value = true
-  try {
-    await store.triggerImport()
-    await store.fetchAll({ includeHeatmap: true, reason: 'import' })
-  } finally {
-    importing.value = false
-  }
+  await store.triggerImport(undefined, 'manual')
 }
 
 // 加载日志
@@ -616,10 +641,48 @@ const logsVirtualizer = useVirtualizer(computed(() => ({
   overscan: 10,
 })))
 
+const importButtonLabel = computed(() => {
+  if (store.isBootstrapping) return t('usage.dashboard.bootstrapping')
+  if (store.importing) return t('usage.dashboard.importing')
+  return t('usage.dashboard.import')
+})
+
+const importDetails = computed(() =>
+  store.lastImportResults
+    .filter(result => result.error)
+    .map(result => `${result.platform}: ${result.error}`),
+)
+
+const warningMessage = computed(() => {
+  if (!store.warning) return null
+  return store.warning
+})
+
+const showEmptyState = computed(() => store.hasNoUsageData)
+
+const emptyStateTitle = computed(() => {
+  if (store.lastImportSummary && store.lastImportSummary.processed_files === 0 && store.lastImportSummary.imported_records === 0) {
+    return t('usage.dashboard.status.noLogsTitle')
+  }
+  return t('usage.states.noData')
+})
+
+const emptyStateDescription = computed(() => {
+  if (store.lastImportSummary && store.lastImportSummary.processed_files === 0 && store.lastImportSummary.imported_records === 0) {
+    return t('usage.dashboard.status.noLogs')
+  }
+  return t('usage.states.noDataHint', { platform: selectedPlatform.value || 'AI' })
+})
+
 // 生命周期
 onMounted(async () => {
+  const { start, end } = getTimeRange(selectedDays.value)
+  await store.initializeDashboard({
+    platform: (selectedPlatform.value || undefined) as Platform | undefined,
+    start,
+    end,
+  })
   store.startAutoRefresh()
-  onFilterChange()
   document.addEventListener('visibilitychange', onVisibilityChange)
 })
 
