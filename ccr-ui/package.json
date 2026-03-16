@@ -1,6 +1,6 @@
 {
   "name": "ccr-ui-frontend-vue",
-  "version": "5.1.1",
+  "version": "5.1.2",
   "private": true,
   "type": "module",
   "packageManager": "npm@10.9.2",
