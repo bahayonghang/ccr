@@ -93,7 +93,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="env-switcher relative">
+  <div class="env-switcher shrink-0 relative">
     <!-- 触发按钮 -->
     <button
       type="button"

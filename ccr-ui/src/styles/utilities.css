@@ -17,7 +17,6 @@
     .glass-effect {
         background: var(--glass-bg-medium);
         backdrop-filter: var(--glass-blur-md);
-        backdrop-filter: var(--glass-blur-md);
         border: 1px solid var(--glass-border-medium);
     }
 
@@ -25,7 +24,6 @@
     .glass-effect-strong,
     .glass-elevated {
         background: var(--glass-bg-strong);
-        backdrop-filter: var(--glass-blur-lg);
         backdrop-filter: var(--glass-blur-lg);
         border: 1px solid var(--glass-border-strong);
         box-shadow: var(--glass-shadow);
@@ -35,7 +33,6 @@
     .glass-modal {
         background: var(--glass-bg-strong);
         backdrop-filter: var(--glass-blur-xl);
-        backdrop-filter: var(--glass-blur-xl);
         border: 1px solid var(--glass-border-strong);
         box-shadow: var(--glass-shadow-elevated), var(--glass-inner-glow);
     }
@@ -43,7 +40,6 @@
     /* 液态玻璃效果 - 高级折射感 */
     .liquid-glass {
         background: var(--liquid-glass-bg);
-        backdrop-filter: var(--liquid-glass-blur);
         backdrop-filter: var(--liquid-glass-blur);
         border: 1px solid var(--liquid-glass-border);
         box-shadow: var(--liquid-glass-shadow), var(--liquid-glass-highlight);
@@ -61,7 +57,6 @@
             0 8px 32px rgb(var(--color-accent-primary-rgb), 0.2),
             var(--glass-inner-glow),
             0 0 40px rgb(var(--color-accent-primary-rgb), 0.1);
-        backdrop-filter: var(--glass-blur-xl);
         backdrop-filter: var(--glass-blur-xl);
     }
 
@@ -195,7 +190,6 @@
                 rgb(var(--color-accent-primary-rgb), 0.95),
                 rgb(var(--color-accent-secondary-rgb), 0.95));
         backdrop-filter: blur(10px);
-        backdrop-filter: blur(10px);
         border: 2px solid rgb(var(--color-accent-primary-rgb), 0.8);
         box-shadow:
             0 4px 20px rgb(var(--color-accent-secondary-rgb), 0.5),
@@ -206,7 +200,6 @@
     /* 导航项非激活状态 */
     .nav-item-inactive {
         background: var(--glass-bg-light);
-        backdrop-filter: blur(10px);
         backdrop-filter: blur(10px);
         border: 1px solid rgb(var(--color-accent-primary-rgb), 0.2);
         box-shadow: 0 2px 8px rgb(0 0 0 / 10%);
@@ -866,47 +859,38 @@
 @layer utilities {
     .glass-surface {
         backdrop-filter: var(--glass-blur-md);
-        backdrop-filter: var(--glass-blur-md);
     }
 
     .glass-effect {
-        backdrop-filter: var(--glass-blur-md);
         backdrop-filter: var(--glass-blur-md);
     }
 
     .glass-effect-strong,
     .glass-elevated {
         backdrop-filter: var(--glass-blur-lg);
-        backdrop-filter: var(--glass-blur-lg);
     }
 
     .glass-modal {
-        backdrop-filter: var(--glass-blur-xl);
         backdrop-filter: var(--glass-blur-xl);
     }
 
     .liquid-glass {
         backdrop-filter: var(--liquid-glass-blur);
-        backdrop-filter: var(--liquid-glass-blur);
     }
 
     .config-card-active {
-        backdrop-filter: var(--glass-blur-xl);
         backdrop-filter: var(--glass-blur-xl);
     }
 
     .nav-item-active-glow {
         backdrop-filter: blur(10px);
-        backdrop-filter: blur(10px);
     }
 
     .nav-item-inactive {
         backdrop-filter: blur(10px);
-        backdrop-filter: blur(10px);
     }
 
     .glass-card {
-        backdrop-filter: var(--liquid-glass-blur);
         backdrop-filter: var(--liquid-glass-blur);
     }
 }

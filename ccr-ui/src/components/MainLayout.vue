@@ -272,7 +272,7 @@
             <!-- Version -->
             <div class="flex items-center justify-between">
               <span class="rounded-md border border-border-default/60 bg-bg-elevated/80 px-2 py-0.5 text-[10px] font-mono text-text-muted">
-                CCR UI v5.1.1
+                CCR UI v5.1.2
               </span>
             </div>
           </div>
@@ -517,7 +517,6 @@ onUnmounted(() => {
 .sidebar-glass {
   background: var(--liquid-glass-bg);
   backdrop-filter: var(--liquid-glass-blur);
-  backdrop-filter: var(--liquid-glass-blur);
   border-right: 1px solid var(--liquid-glass-border);
   box-shadow:
     var(--liquid-glass-shadow),
@@ -526,7 +525,6 @@ onUnmounted(() => {
 
 .topbar-glass {
   background: var(--glass-bg-light);
-  backdrop-filter: var(--glass-blur-md);
   backdrop-filter: var(--glass-blur-md);
   box-shadow: inset 0 -1px 0 rgb(var(--color-border-default-rgb) / 45%);
 }
@@ -546,7 +544,6 @@ onUnmounted(() => {
  * containing block for fixed-positioned descendants. */
 .content-main,
 .content-scroll-area {
-  backface-visibility: hidden;
   backface-visibility: hidden;
 }
 
@@ -589,7 +586,6 @@ onUnmounted(() => {
     rgb(100 50 150 / 20%) 100%
   );
   backdrop-filter: blur(16px) saturate(180%);
-  backdrop-filter: blur(16px) saturate(180%);
   border: 1px solid rgb(244 114 182 / 25%);
   box-shadow:
     0 4px 24px rgb(0 0 0 / 20%),
@@ -616,7 +612,6 @@ onUnmounted(() => {
     rgb(255 228 237 / 80%) 50%,
     rgb(243 232 255 / 72%) 100%
   );
-  backdrop-filter: blur(16px) saturate(180%);
   backdrop-filter: blur(16px) saturate(180%);
   border: 1px solid rgb(244 114 182 / 35%);
   box-shadow:
