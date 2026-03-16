@@ -1,6 +1,6 @@
 [package]
 name = "ccr-db"
-version = "5.1.1"
+version = "5.1.2"
 edition = "2024"
 rust-version = "1.88"
 description = "CCR Desktop database layer - SQLite storage, CheckIn services, and data models"
@@ -46,7 +46,7 @@ sha2 = { workspace = true }
 # ═══════════════════════════════════════════════════════════
 # 📦 异步运行时与 HTTP
 # ═══════════════════════════════════════════════════════════
-tokio = { workspace = true }
+tokio = { workspace = true, features = ["process"] }
 async-stream = { workspace = true }
 futures = { workspace = true }
 reqwest = { workspace = true }
