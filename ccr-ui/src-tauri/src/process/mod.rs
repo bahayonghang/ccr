@@ -13,6 +13,7 @@ fn apply_no_window_to_std(cmd: &mut std::process::Command) {
 }
 
 #[cfg(not(all(target_os = "windows", not(debug_assertions))))]
+#[allow(dead_code)]
 fn apply_no_window_to_std(_cmd: &mut std::process::Command) {}
 
 #[cfg(all(target_os = "windows", not(debug_assertions)))]
@@ -24,6 +25,7 @@ fn apply_no_window_to_tokio(cmd: &mut tokio::process::Command) {
 fn apply_no_window_to_tokio(_cmd: &mut tokio::process::Command) {}
 
 /// 创建并配置标准库进程命令。
+#[allow(dead_code)]
 pub fn std_command(program: impl AsRef<OsStr>) -> std::process::Command {
     let mut cmd = std::process::Command::new(program);
     configure_std_command(&mut cmd);
@@ -31,6 +33,7 @@ pub fn std_command(program: impl AsRef<OsStr>) -> std::process::Command {
 }
 
 /// 为现有标准库进程命令应用统一配置。
+#[allow(dead_code)]
 pub fn configure_std_command(cmd: &mut std::process::Command) -> &mut std::process::Command {
     apply_no_window_to_std(cmd);
     cmd
