@@ -100,17 +100,20 @@ install-backend:
 
 _install-backend-linux:
     @echo "📦 安装后端依赖..."
-    cd src-tauri && cargo build
+    cd src-tauri && CARGO_INCREMENTAL=1 cargo build --timings
+    @echo "📈 cargo timings: src-tauri/target/cargo-timings/cargo-timing.html"
     @echo "✅ 后端依赖安装完成"
 
 _install-backend-macos:
     @echo "📦 安装后端依赖..."
-    cd src-tauri && cargo build
+    cd src-tauri && CARGO_INCREMENTAL=1 cargo build --timings
+    @echo "📈 cargo timings: src-tauri/target/cargo-timings/cargo-timing.html"
     @echo "✅ 后端依赖安装完成"
 
 _install-backend-windows:
     @Write-Output '📦 安装后端依赖...'
-    @Set-Location src-tauri; cargo build
+    @Set-Location src-tauri; $env:CARGO_INCREMENTAL = '1'; cargo build --timings
+    @Write-Output '📈 cargo timings: src-tauri/target/cargo-timings/cargo-timing.html'
     @Write-Output '✅ 后端依赖安装完成'
 
 # ===== 简化命令（别名） =====
@@ -211,11 +214,12 @@ _dev-parallel-linux:
 
     # ========== 预编译后端（避免健康检查超时） ==========
     echo "🔧 [Backend] Pre-compiling..."
-    cd "$JDIR/src-tauri" && cargo build
+    cd "$JDIR/src-tauri" && CARGO_INCREMENTAL=1 cargo build --timings
     if [ $? -ne 0 ]; then
       echo "❌ [ERROR] Backend compilation failed"
       exit 1
     fi
+    echo "📈 [Backend] cargo timings: src-tauri/target/cargo-timings/cargo-timing.html"
     echo "✅ [Backend] Compilation successful"
 
     # ========== 启动后端（已预编译，直接运行） ==========
@@ -283,11 +287,12 @@ _dev-parallel-macos:
 
     # ========== 预编译后端（避免健康检查超时） ==========
     echo "🔧 [Backend] Pre-compiling..."
-    cd "$JDIR/src-tauri" && cargo build
+    cd "$JDIR/src-tauri" && CARGO_INCREMENTAL=1 cargo build --timings
     if [ $? -ne 0 ]; then
       echo "❌ [ERROR] Backend compilation failed"
       exit 1
     fi
+    echo "📈 [Backend] cargo timings: src-tauri/target/cargo-timings/cargo-timing.html"
     echo "✅ [Backend] Compilation successful"
 
     # ========== 启动后端（已预编译，直接运行） ==========
@@ -527,17 +532,20 @@ build-backend:
 
 _build-backend-linux:
     @echo "🏗️  构建后端（Release）..."
-    cd src-tauri && cargo build --release
+    cd src-tauri && CARGO_INCREMENTAL=1 cargo build --release --timings
+    @echo "📈 cargo timings: src-tauri/target/cargo-timings/cargo-timing.html"
     @echo "✅ 后端构建完成"
 
 _build-backend-macos:
     @echo "🏗️  构建后端（Release）..."
-    cd src-tauri && cargo build --release
+    cd src-tauri && CARGO_INCREMENTAL=1 cargo build --release --timings
+    @echo "📈 cargo timings: src-tauri/target/cargo-timings/cargo-timing.html"
     @echo "✅ 后端构建完成"
 
 _build-backend-windows:
     @Write-Output '🏗️  构建后端（Release）...'
-    @Set-Location src-tauri; cargo build --release
+    @Set-Location src-tauri; $env:CARGO_INCREMENTAL = '1'; cargo build --release --timings
+    @Write-Output '📈 cargo timings: src-tauri/target/cargo-timings/cargo-timing.html'
     @Write-Output '✅ 后端构建完成'
 
 # 构建前端生产版本
@@ -603,7 +611,8 @@ _dev-fast-parallel-linux:
     # 检查是否已有 Release 构建，没有则先构建
     if [ ! -f "$JDIR/src-tauri/target/release/ccr-desktop" ]; then
         echo "🏗️  首次运行，正在构建 Release 版本..."
-        cd "$JDIR/src-tauri" && cargo build --release
+        cd "$JDIR/src-tauri" && CARGO_INCREMENTAL=1 cargo build --release --timings
+        echo "📈 cargo timings: src-tauri/target/cargo-timings/cargo-timing.html"
         echo "✅ Release 构建完成"
     fi
     # 启动后端（直接运行二进制，无需编译）
@@ -650,7 +659,8 @@ _dev-fast-parallel-macos:
     # 检查是否已有 Release 构建，没有则先构建
     if [ ! -f "$JDIR/src-tauri/target/release/ccr-desktop" ]; then
         echo "🏗️  首次运行，正在构建 Release 版本..."
-        cd "$JDIR/src-tauri" && cargo build --release
+        cd "$JDIR/src-tauri" && CARGO_INCREMENTAL=1 cargo build --release --timings
+        echo "📈 cargo timings: src-tauri/target/cargo-timings/cargo-timing.html"
         echo "✅ Release 构建完成"
     fi
     # 启动后端（直接运行二进制，无需编译）
@@ -1364,30 +1374,36 @@ _ensure-frontend-deps-windows:
 
 _tauri-build-linux:
     @echo "🏗️  构建 Tauri 桌面应用（生产版本）..."
-    bun run build:desktop
+    bun run build
+    CARGO_INCREMENTAL=1 bun run tauri:build -- --timings
     @echo ""
     @echo "✅ Tauri 构建完成"
+    @echo "📈 cargo timings: src-tauri/target/cargo-timings/cargo-timing.html"
     @echo "📦 产物位置: src-tauri/target/release/bundle/"
     @echo "   - .deb (Debian/Ubuntu)"
     @echo "   - .AppImage (通用 Linux)"
 
 _tauri-build-macos:
     @echo "🏗️  构建 Tauri 桌面应用（生产版本）..."
-    bun run build:desktop
+    bun run build
+    CARGO_INCREMENTAL=1 bun run tauri:build -- --timings
     @echo ""
     @echo "🧹 清理自动挂载的 DMG..."
     @hdiutil detach "/Volumes/CCR Desktop" 2>/dev/null || true
     @echo ""
     @echo "✅ Tauri 构建完成"
+    @echo "📈 cargo timings: src-tauri/target/cargo-timings/cargo-timing.html"
     @echo "📦 产物位置: src-tauri/target/release/bundle/"
     @echo "   - .dmg (安装镜像)"
     @echo "   - .app (应用程序包)"
 
 _tauri-build-windows:
     @Write-Output '🏗️  构建 Tauri 桌面应用（生产版本）...'
-    @bun run build:desktop
+    @bun run build
+    @$env:CARGO_INCREMENTAL = '1'; bun run tauri:build -- --timings
     @Write-Output ''
     @Write-Output '✅ Tauri 构建完成'
+    @Write-Output '📈 cargo timings: src-tauri/target/cargo-timings/cargo-timing.html'
     @Write-Output '📦 产物位置: src-tauri/target/release/bundle/'
     @Write-Output '   - .msi (安装程序)'
     @Write-Output '   - .exe (可执行文件)'
@@ -1398,23 +1414,29 @@ tauri-build-debug:
 
 _tauri-build-debug-linux:
     @echo "🏗️  构建 Tauri 桌面应用（调试版本）..."
-    bun run tauri:build:debug
+    bun run build
+    CARGO_INCREMENTAL=1 bun run tauri:build:debug -- --timings
     @echo ""
     @echo "✅ Tauri 调试版本构建完成"
+    @echo "📈 cargo timings: src-tauri/target/cargo-timings/cargo-timing.html"
     @echo "📦 产物位置: src-tauri/target/debug/bundle/"
 
 _tauri-build-debug-macos:
     @echo "🏗️  构建 Tauri 桌面应用（调试版本）..."
-    bun run tauri:build:debug
+    bun run build
+    CARGO_INCREMENTAL=1 bun run tauri:build:debug -- --timings
     @echo ""
     @echo "✅ Tauri 调试版本构建完成"
+    @echo "📈 cargo timings: src-tauri/target/cargo-timings/cargo-timing.html"
     @echo "📦 产物位置: src-tauri/target/debug/bundle/"
 
 _tauri-build-debug-windows:
     @Write-Output '🏗️  构建 Tauri 桌面应用（调试版本）...'
-    @bun run tauri:build:debug
+    @bun run build
+    @$env:CARGO_INCREMENTAL = '1'; bun run tauri:build:debug -- --timings
     @Write-Output ''
     @Write-Output '✅ Tauri 调试版本构建完成'
+    @Write-Output '📈 cargo timings: src-tauri/target/cargo-timings/cargo-timing.html'
     @Write-Output '📦 产物位置: src-tauri/target/debug/bundle/'
 
 # 检查 Tauri 环境和配置

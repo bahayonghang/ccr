@@ -246,13 +246,15 @@ _build-timed-windows:
     [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
     chcp 65001 | Out-Null
     $sw = [System.Diagnostics.Stopwatch]::StartNew()
-    cargo build -p {{BIN}}
+    $env:CARGO_INCREMENTAL = '1'
+    cargo build -p {{BIN}} --timings
     if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
     $sw.Stop()
     $elapsed = $sw.Elapsed
     $ts = "{0:mm\:ss\.fff}" -f $elapsed
     Write-Host ""
     Write-Host "  ⏱️  cargo build    $ts" -ForegroundColor Cyan
+    Write-Host "  📈 cargo timings  target/cargo-timings/cargo-timing.html" -ForegroundColor DarkCyan
     Write-Host ""
     Write-Host "✅ 构建完成 → target/debug/{{BIN}}" -ForegroundColor Green
 
@@ -261,12 +263,13 @@ _build-timed-linux:
     #!/usr/bin/env bash
     set -euo pipefail
     start=$(date +%s%N)
-    cargo build -p {{BIN}}
+    CARGO_INCREMENTAL=1 cargo build -p {{BIN}} --timings
     end=$(date +%s%N)
     ms=$(( (end - start) / 1000000 ))
     s=$((ms / 1000)); r=$((ms % 1000))
     m=$((s / 60)); s=$((s % 60))
     printf '\n  ⏱️  cargo build    %02d:%02d.%03d\n\n' "$m" "$s" "$r"
+    printf '\033[36m  📈 cargo timings  target/cargo-timings/cargo-timing.html\033[0m\n'
     printf '\033[32m✅ 构建完成 → target/debug/{{BIN}}\033[0m\n'
 
 [private]
@@ -274,11 +277,12 @@ _build-timed-macos:
     #!/usr/bin/env bash
     set -euo pipefail
     start=$(date +%s)
-    cargo build -p {{BIN}}
+    CARGO_INCREMENTAL=1 cargo build -p {{BIN}} --timings
     end=$(date +%s)
     elapsed=$((end - start))
     m=$((elapsed / 60)); s=$((elapsed % 60))
     printf '\n  ⏱️  cargo build    %02d:%02d\n\n' "$m" "$s"
+    printf '\033[36m  📈 cargo timings  target/cargo-timings/cargo-timing.html\033[0m\n'
     printf '\033[32m✅ 构建完成 → target/debug/{{BIN}}\033[0m\n'
 
 # ⚡ 发布构建 (Release 优化，含计时)
@@ -294,13 +298,15 @@ _release-timed-windows:
     [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
     chcp 65001 | Out-Null
     $sw = [System.Diagnostics.Stopwatch]::StartNew()
-    cargo build -p {{BIN}} --release
+    $env:CARGO_INCREMENTAL = '1'
+    cargo build -p {{BIN}} --release --timings
     if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
     $sw.Stop()
     $elapsed = $sw.Elapsed
     $ts = "{0:mm\:ss\.fff}" -f $elapsed
     Write-Host ""
     Write-Host "  ⏱️  cargo build --release    $ts" -ForegroundColor Cyan
+    Write-Host "  📈 cargo timings  target/cargo-timings/cargo-timing.html" -ForegroundColor DarkCyan
     Write-Host ""
     Write-Host "✅ 构建完成 → target/release/{{BIN}}" -ForegroundColor Green
 
@@ -309,12 +315,13 @@ _release-timed-linux:
     #!/usr/bin/env bash
     set -euo pipefail
     start=$(date +%s%N)
-    cargo build -p {{BIN}} --release
+    CARGO_INCREMENTAL=1 cargo build -p {{BIN}} --release --timings
     end=$(date +%s%N)
     ms=$(( (end - start) / 1000000 ))
     s=$((ms / 1000)); r=$((ms % 1000))
     m=$((s / 60)); s=$((s % 60))
     printf '\n  ⏱️  cargo build --release    %02d:%02d.%03d\n\n' "$m" "$s" "$r"
+    printf '\033[36m  📈 cargo timings  target/cargo-timings/cargo-timing.html\033[0m\n'
     printf '\033[32m✅ 构建完成 → target/release/{{BIN}}\033[0m\n'
 
 [private]
@@ -322,11 +329,12 @@ _release-timed-macos:
     #!/usr/bin/env bash
     set -euo pipefail
     start=$(date +%s)
-    cargo build -p {{BIN}} --release
+    CARGO_INCREMENTAL=1 cargo build -p {{BIN}} --release --timings
     end=$(date +%s)
     elapsed=$((end - start))
     m=$((elapsed / 60)); s=$((elapsed % 60))
     printf '\n  ⏱️  cargo build --release    %02d:%02d\n\n' "$m" "$s"
+    printf '\033[36m  📈 cargo timings  target/cargo-timings/cargo-timing.html\033[0m\n'
     printf '\033[32m✅ 构建完成 → target/release/{{BIN}}\033[0m\n'
 
 # 🔍 快速类型检查 (不生成可执行文件)
