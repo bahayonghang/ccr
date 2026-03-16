@@ -353,13 +353,13 @@
 /* ========== 玻璃效果系统 ========== */
 :root:where(:root):where(:root):where(:root):where(:root):where(:root) {
     /* --- 玻璃背景 (粉色调 · 亮色模式需高不透明度以保证对比) --- */
-    --glass-bg-light: rgb(255 240 245 / 55%);
-    --glass-bg-medium: rgb(255 240 245 / 72%);
-    --glass-bg-strong: rgb(255 255 255 / 88%);
+    --glass-bg-light: rgb(255 240 245 / 68%);
+    --glass-bg-medium: rgb(255 240 245 / 82%);
+    --glass-bg-strong: rgb(255 255 255 / 92%);
 
     /* --- 玻璃边框 (粉色调 · 亮色模式下加粗以增强辨识) --- */
-    --glass-border-light: rgb(244 114 182 / 15%);
-    --glass-border-medium: rgb(244 114 182 / 25%);
+    --glass-border-light: rgb(244 114 182 / 20%);
+    --glass-border-medium: rgb(244 114 182 / 30%);
     --glass-border-strong: rgb(244 114 182 / 35%);
 
     /* --- 玻璃模糊 --- */
@@ -374,7 +374,7 @@
     --glass-inner-glow: inset 0 1px 0 rgb(255 255 255 / 60%);
 
     /* --- 液态玻璃效果 --- */
-    --liquid-glass-bg: rgb(255 240 245 / 62%);
+    --liquid-glass-bg: rgb(255 240 245 / 75%);
     --liquid-glass-blur: blur(24px) saturate(180%);
     --liquid-glass-border: rgb(244 114 182 / 20%);
     --liquid-glass-highlight: inset 0 1px 0 rgb(255 255 255 / 80%), inset 0 0 20px rgb(255 240 245 / 20%);

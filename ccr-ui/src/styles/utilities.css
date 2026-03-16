@@ -16,7 +16,7 @@
     /* 中等玻璃效果 */
     .glass-effect {
         background: var(--glass-bg-medium);
-        -webkit-backdrop-filter: var(--glass-blur-md);
+        backdrop-filter: var(--glass-blur-md);
         backdrop-filter: var(--glass-blur-md);
         border: 1px solid var(--glass-border-medium);
     }
@@ -25,7 +25,7 @@
     .glass-effect-strong,
     .glass-elevated {
         background: var(--glass-bg-strong);
-        -webkit-backdrop-filter: var(--glass-blur-lg);
+        backdrop-filter: var(--glass-blur-lg);
         backdrop-filter: var(--glass-blur-lg);
         border: 1px solid var(--glass-border-strong);
         box-shadow: var(--glass-shadow);
@@ -34,7 +34,7 @@
     /* 超强玻璃效果 - 用于重要弹窗 */
     .glass-modal {
         background: var(--glass-bg-strong);
-        -webkit-backdrop-filter: var(--glass-blur-xl);
+        backdrop-filter: var(--glass-blur-xl);
         backdrop-filter: var(--glass-blur-xl);
         border: 1px solid var(--glass-border-strong);
         box-shadow: var(--glass-shadow-elevated), var(--glass-inner-glow);
@@ -43,7 +43,7 @@
     /* 液态玻璃效果 - 高级折射感 */
     .liquid-glass {
         background: var(--liquid-glass-bg);
-        -webkit-backdrop-filter: var(--liquid-glass-blur);
+        backdrop-filter: var(--liquid-glass-blur);
         backdrop-filter: var(--liquid-glass-blur);
         border: 1px solid var(--liquid-glass-border);
         box-shadow: var(--liquid-glass-shadow), var(--liquid-glass-highlight);
@@ -61,7 +61,7 @@
             0 8px 32px rgb(var(--color-accent-primary-rgb), 0.2),
             var(--glass-inner-glow),
             0 0 40px rgb(var(--color-accent-primary-rgb), 0.1);
-        -webkit-backdrop-filter: var(--glass-blur-xl);
+        backdrop-filter: var(--glass-blur-xl);
         backdrop-filter: var(--glass-blur-xl);
     }
 
@@ -194,7 +194,7 @@
         background: linear-gradient(135deg,
                 rgb(var(--color-accent-primary-rgb), 0.95),
                 rgb(var(--color-accent-secondary-rgb), 0.95));
-        -webkit-backdrop-filter: blur(10px);
+        backdrop-filter: blur(10px);
         backdrop-filter: blur(10px);
         border: 2px solid rgb(var(--color-accent-primary-rgb), 0.8);
         box-shadow:
@@ -206,7 +206,7 @@
     /* 导航项非激活状态 */
     .nav-item-inactive {
         background: var(--glass-bg-light);
-        -webkit-backdrop-filter: blur(10px);
+        backdrop-filter: blur(10px);
         backdrop-filter: blur(10px);
         border: 1px solid rgb(var(--color-accent-primary-rgb), 0.2);
         box-shadow: 0 2px 8px rgb(0 0 0 / 10%);
@@ -865,48 +865,48 @@
  * 将 backdrop-filter 声明提升到 @layer utilities 解决此优先级冲突。 */
 @layer utilities {
     .glass-surface {
-        -webkit-backdrop-filter: var(--glass-blur-md);
+        backdrop-filter: var(--glass-blur-md);
         backdrop-filter: var(--glass-blur-md);
     }
 
     .glass-effect {
-        -webkit-backdrop-filter: var(--glass-blur-md);
+        backdrop-filter: var(--glass-blur-md);
         backdrop-filter: var(--glass-blur-md);
     }
 
     .glass-effect-strong,
     .glass-elevated {
-        -webkit-backdrop-filter: var(--glass-blur-lg);
+        backdrop-filter: var(--glass-blur-lg);
         backdrop-filter: var(--glass-blur-lg);
     }
 
     .glass-modal {
-        -webkit-backdrop-filter: var(--glass-blur-xl);
+        backdrop-filter: var(--glass-blur-xl);
         backdrop-filter: var(--glass-blur-xl);
     }
 
     .liquid-glass {
-        -webkit-backdrop-filter: var(--liquid-glass-blur);
+        backdrop-filter: var(--liquid-glass-blur);
         backdrop-filter: var(--liquid-glass-blur);
     }
 
     .config-card-active {
-        -webkit-backdrop-filter: var(--glass-blur-xl);
+        backdrop-filter: var(--glass-blur-xl);
         backdrop-filter: var(--glass-blur-xl);
     }
 
     .nav-item-active-glow {
-        -webkit-backdrop-filter: blur(10px);
+        backdrop-filter: blur(10px);
         backdrop-filter: blur(10px);
     }
 
     .nav-item-inactive {
-        -webkit-backdrop-filter: blur(10px);
+        backdrop-filter: blur(10px);
         backdrop-filter: blur(10px);
     }
 
     .glass-card {
-        -webkit-backdrop-filter: var(--liquid-glass-blur);
+        backdrop-filter: var(--liquid-glass-blur);
         backdrop-filter: var(--liquid-glass-blur);
     }
 }

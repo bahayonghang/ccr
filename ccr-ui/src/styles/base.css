@@ -198,7 +198,7 @@
     /* 统一玻璃卡片样式 (全局可用) */
     .glass-card {
         background: var(--liquid-glass-bg);
-        -webkit-backdrop-filter: var(--liquid-glass-blur);
+        backdrop-filter: var(--liquid-glass-blur);
         backdrop-filter: var(--liquid-glass-blur);
         border: 1px solid var(--liquid-glass-border);
         box-shadow: var(--liquid-glass-shadow), var(--liquid-glass-highlight);

@@ -122,6 +122,11 @@
     opacity: 0.8;
 }
 
+[data-theme="light"] .premium-bg-orb {
+    opacity: 0.5;
+    filter: blur(100px);
+}
+
 .orb-1 {
     top: -10%;
     left: -10%;

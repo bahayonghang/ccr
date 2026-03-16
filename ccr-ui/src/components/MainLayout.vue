@@ -272,7 +272,7 @@
             <!-- Version -->
             <div class="flex items-center justify-between">
               <span class="rounded-md border border-border-default/60 bg-bg-elevated/80 px-2 py-0.5 text-[10px] font-mono text-text-muted">
-                CCR UI v5.1.0
+                CCR UI v5.1.1
               </span>
             </div>
           </div>
@@ -516,7 +516,7 @@ onUnmounted(() => {
 .dark .sidebar-glass,
 .sidebar-glass {
   background: var(--liquid-glass-bg);
-  -webkit-backdrop-filter: var(--liquid-glass-blur);
+  backdrop-filter: var(--liquid-glass-blur);
   backdrop-filter: var(--liquid-glass-blur);
   border-right: 1px solid var(--liquid-glass-border);
   box-shadow:
@@ -526,9 +526,17 @@ onUnmounted(() => {
 
 .topbar-glass {
   background: var(--glass-bg-light);
-  -webkit-backdrop-filter: var(--glass-blur-md);
+  backdrop-filter: var(--glass-blur-md);
   backdrop-filter: var(--glass-blur-md);
   box-shadow: inset 0 -1px 0 rgb(var(--color-border-default-rgb) / 45%);
+}
+
+[data-theme="light"] .sidebar-glass {
+  background: rgb(255 240 245 / 80%);
+}
+
+[data-theme="light"] .topbar-glass {
+  background: rgb(255 245 247 / 82%);
 }
 
 /* Content area compositing fix:
@@ -538,7 +546,7 @@ onUnmounted(() => {
  * containing block for fixed-positioned descendants. */
 .content-main,
 .content-scroll-area {
-  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
   backface-visibility: hidden;
 }
 
@@ -580,7 +588,7 @@ onUnmounted(() => {
     rgb(140 60 130 / 15%) 50%,
     rgb(100 50 150 / 20%) 100%
   );
-  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  backdrop-filter: blur(16px) saturate(180%);
   backdrop-filter: blur(16px) saturate(180%);
   border: 1px solid rgb(244 114 182 / 25%);
   box-shadow:
@@ -604,23 +612,23 @@ onUnmounted(() => {
 /* User Card - Light Mode Override */
 [data-theme="light"] .user-card {
   background: linear-gradient(135deg,
-    rgb(255 240 245 / 30%) 0%,
-    rgb(255 228 237 / 40%) 50%,
-    rgb(243 232 255 / 30%) 100%
+    rgb(255 240 245 / 72%) 0%,
+    rgb(255 228 237 / 80%) 50%,
+    rgb(243 232 255 / 72%) 100%
   );
-  -webkit-backdrop-filter: blur(16px) saturate(180%);
   backdrop-filter: blur(16px) saturate(180%);
-  border: 1px solid rgb(244 114 182 / 30%);
+  backdrop-filter: blur(16px) saturate(180%);
+  border: 1px solid rgb(244 114 182 / 35%);
   box-shadow:
-    0 4px 15px rgb(244 114 182 / 8%),
-    inset 0 1px 0 rgb(255 255 255 / 80%);
+    0 4px 15px rgb(244 114 182 / 10%),
+    inset 0 1px 0 rgb(255 255 255 / 90%);
 }
 
 [data-theme="light"] .user-card:hover {
   background: linear-gradient(135deg,
-    rgb(255 240 245 / 70%) 0%,
-    rgb(255 228 237 / 80%) 50%,
-    rgb(243 232 255 / 70%) 100%
+    rgb(255 240 245 / 82%) 0%,
+    rgb(255 228 237 / 88%) 50%,
+    rgb(243 232 255 / 82%) 100%
   );
   box-shadow: 0 8px 25px rgb(244 114 182 / 12%);
 }
