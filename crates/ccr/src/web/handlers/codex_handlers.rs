@@ -132,6 +132,38 @@ pub async fn handle_get_codex_profile_env(Path(name): Path<String>) -> Response 
     }
 }
 
+/// 查询所有 Codex 账号的配额余额
+pub async fn handle_get_all_quotas() -> Response {
+    let result = async {
+        let service = crate::services::CodexQuotaService::new()
+            .map_err(|e| format!("初始化配额服务失败: {}", e))?;
+        let quotas = service.fetch_all_quotas().await;
+        Ok::<Vec<crate::models::CodexAccountQuota>, String>(quotas)
+    }
+    .await;
+
+    match result {
+        Ok(quotas) => success_response(quotas),
+        Err(e) => internal_server_error(e),
+    }
+}
+
+/// 查询指定 Codex 账号的配额余额
+pub async fn handle_get_account_quota(Path(account): Path<String>) -> Response {
+    let result = async {
+        let service = crate::services::CodexQuotaService::new()
+            .map_err(|e| format!("初始化配额服务失败: {}", e))?;
+        let quota = service.fetch_account_quota(&account).await;
+        Ok::<crate::models::CodexAccountQuota, String>(quota)
+    }
+    .await;
+
+    match result {
+        Ok(quota) => success_response(quota),
+        Err(e) => internal_server_error(e),
+    }
+}
+
 fn build_profile_config(req: &CodexProfileRequest) -> crate::models::ProfileConfig {
     use crate::models::ProfileConfig;
 

@@ -253,6 +253,10 @@ impl WebServer {
                 put  "/api/codex/profiles/{name}"       => crate::web::handlers::codex_handlers::handle_update_codex_profile,
                 delete "/api/codex/profiles/{name}"     => crate::web::handlers::codex_handlers::handle_delete_codex_profile,
 
+                // Codex 配额
+                get  "/api/codex/quota"                 => crate::web::handlers::codex_handlers::handle_get_all_quotas,
+                get  "/api/codex/quota/{account}"       => crate::web::handlers::codex_handlers::handle_get_account_quota,
+
                 // 系统和设置
                 get  "/api/history"                     => crate::web::handlers::system_handlers::handle_get_history,
                 post "/api/validate"                    => crate::web::handlers::system_handlers::handle_validate,

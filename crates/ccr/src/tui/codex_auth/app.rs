@@ -2,7 +2,7 @@
 // Manages the Codex multi-account selector state
 
 use crate::core::error::Result;
-use crate::models::{CodexAuthItem, LoginState, TokenFreshness};
+use crate::models::{CodexAccountQuota, CodexAuthItem, LoginState, TokenFreshness};
 use crate::services::{CodexAuthService, CodexRollingUsage};
 use crate::tui::overlay::Overlay;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
@@ -33,6 +33,19 @@ pub enum UsageState {
     NoData,
 }
 
+/// Quota query state
+#[derive(Debug, Clone)]
+pub enum QuotaState {
+    /// 未查询
+    Idle,
+    /// 查询中
+    Loading,
+    /// 已加载
+    Loaded(Vec<CodexAccountQuota>),
+    /// 查询失败
+    Error(String),
+}
+
 /// Codex Auth TUI application
 pub struct CodexAuthApp {
     /// Account list
@@ -55,6 +68,10 @@ pub struct CodexAuthApp {
     pub last_action: Option<(String, String, bool, Option<String>)>,
     /// Usage data state
     pub usage_state: UsageState,
+    /// Quota query state
+    pub quota_state: QuotaState,
+    /// Quota async result receiver
+    quota_rx: Option<std::sync::mpsc::Receiver<std::result::Result<Vec<CodexAccountQuota>, String>>>,
     /// Codex directory
     #[allow(dead_code)]
     codex_dir: Option<PathBuf>,
@@ -90,6 +107,8 @@ impl CodexAuthApp {
             service,
             last_action: None,
             usage_state,
+            quota_state: QuotaState::Idle,
+            quota_rx: None,
             codex_dir,
             list_area: Cell::new(None),
         })
@@ -216,6 +235,10 @@ impl CodexAuthApp {
             KeyCode::Char('r') => {
                 self.reload_accounts()?;
                 self.toasts.push(Toast::info("已刷新账号列表"));
+            }
+            KeyCode::Char('b') => {
+                self.start_quota_fetch();
+                self.toasts.push(Toast::info("正在查询配额余额..."));
             }
             _ => {}
         }
@@ -406,6 +429,40 @@ impl CodexAuthApp {
             TokenFreshness::Unknown(_) => "⚪ 未知",
         }
     }
+
+    /// Start async quota fetch in background thread
+    fn start_quota_fetch(&mut self) {
+        // 避免重复查询
+        if matches!(self.quota_state, QuotaState::Loading) {
+            return;
+        }
+
+        self.quota_state = QuotaState::Loading;
+        let (tx, rx) = std::sync::mpsc::channel();
+        self.quota_rx = Some(rx);
+
+        // 在后台线程中执行异步配额查询
+        std::thread::spawn(move || {
+            let rt = match tokio::runtime::Runtime::new() {
+                Ok(rt) => rt,
+                Err(e) => {
+                    let _ = tx.send(Err(format!("创建运行时失败: {}", e)));
+                    return;
+                }
+            };
+            rt.block_on(async {
+                match crate::services::CodexQuotaService::new() {
+                    Ok(service) => {
+                        let quotas = service.fetch_all_quotas().await;
+                        let _ = tx.send(Ok(quotas));
+                    }
+                    Err(e) => {
+                        let _ = tx.send(Err(format!("初始化配额服务失败: {}", e)));
+                    }
+                }
+            });
+        });
+    }
 }
 
 // -- TuiApp trait implementation --
@@ -448,7 +505,31 @@ impl TuiApp for CodexAuthApp {
     }
 
     fn on_tick(&mut self) -> bool {
-        self.toasts.tick()
+        let mut needs_redraw = self.toasts.tick();
+
+        // 检查配额查询结果
+        if let Some(rx) = &self.quota_rx {
+            match rx.try_recv() {
+                Ok(Ok(quotas)) => {
+                    self.quota_state = QuotaState::Loaded(quotas);
+                    self.quota_rx = None;
+                    needs_redraw = true;
+                }
+                Ok(Err(e)) => {
+                    self.quota_state = QuotaState::Error(e);
+                    self.quota_rx = None;
+                    needs_redraw = true;
+                }
+                Err(std::sync::mpsc::TryRecvError::Empty) => {}
+                Err(std::sync::mpsc::TryRecvError::Disconnected) => {
+                    self.quota_state = QuotaState::Error("配额查询通道已断开".to_string());
+                    self.quota_rx = None;
+                    needs_redraw = true;
+                }
+            }
+        }
+
+        needs_redraw
     }
 
     fn render(&self, frame: &mut Frame) {

@@ -474,6 +474,74 @@ pub struct ImportResult {
     pub overwritten: Vec<String>,
 }
 
+// ==================== 配额查询数据结构 ====================
+
+/// Codex 配额信息（从 wham/usage API 解析）
+///
+/// 记录 5 小时窗口和周限额的使用情况
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CodexQuota {
+    /// 5h 窗口剩余百分比 (0-100)
+    pub hourly_percentage: i32,
+    /// 5h 窗口重置时间 (Unix timestamp)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub hourly_reset_time: Option<i64>,
+    /// 5h 窗口时长（分钟）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub hourly_window_minutes: Option<i64>,
+    /// 是否存在 5h 窗口
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub hourly_window_present: Option<bool>,
+    /// 周限剩余百分比 (0-100)
+    pub weekly_percentage: i32,
+    /// 周限重置时间 (Unix timestamp)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub weekly_reset_time: Option<i64>,
+    /// 周限窗口时长（分钟）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub weekly_window_minutes: Option<i64>,
+    /// 是否存在周限窗口
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub weekly_window_present: Option<bool>,
+    /// 订阅类型 (FREE/PLUS/PRO/TEAM)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub plan_type: Option<String>,
+    /// 原始 API 响应（用于调试）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub raw_data: Option<serde_json::Value>,
+}
+
+/// 单个账号的配额查询结果
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CodexAccountQuota {
+    /// 账号名称
+    pub account_name: String,
+    /// 邮箱
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub email: Option<String>,
+    /// 配额信息（成功时存在）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub quota: Option<CodexQuota>,
+    /// 错误信息（失败时存在）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub error: Option<String>,
+    /// 查询时间
+    pub fetched_at: DateTime<Utc>,
+}
+
+/// 配额查询错误信息
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(dead_code)]
+pub struct CodexQuotaError {
+    /// 错误代码
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub code: Option<String>,
+    /// 错误消息
+    pub message: String,
+    /// 错误时间戳
+    pub timestamp: i64,
+}
+
 #[cfg(test)]
 #[allow(clippy::unwrap_used)]
 mod tests {

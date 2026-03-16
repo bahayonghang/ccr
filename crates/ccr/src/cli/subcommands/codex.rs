@@ -34,6 +34,26 @@ pub enum CodexAction {
         /// 可选的 profile 名称；省略时使用当前 profile
         name: Option<String>,
     },
+
+    /// 查询账号配额余额
+    ///
+    /// 查询 Codex 账号的 API 配额使用情况（5h窗口/周限额）
+    /// 示例: ccr codex quota
+    ///       ccr codex quota --account my-account
+    ///       ccr codex quota --json
+    Quota {
+        /// 指定查询的账号名称（省略时查询所有账号）
+        #[arg(short, long)]
+        account: Option<String>,
+
+        /// 以 JSON 格式输出
+        #[arg(long)]
+        json: bool,
+
+        /// 强制刷新 token 后查询
+        #[arg(long)]
+        refresh: bool,
+    },
 }
 
 /// Codex Auth 子命令
