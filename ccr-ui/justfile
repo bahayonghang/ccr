@@ -1383,10 +1383,9 @@ _ensure-frontend-deps-windows:
 _tauri-build-linux:
     @echo "🏗️  构建 Tauri 桌面应用（生产版本）..."
     @if command -v bun >/dev/null 2>&1; then bun run build; else npm run build; fi
-    @if command -v bun >/dev/null 2>&1; then CARGO_INCREMENTAL=1 bun run tauri:build -- --timings; else CARGO_INCREMENTAL=1 npx tauri build -- --timings; fi
+    @if command -v bun >/dev/null 2>&1; then CARGO_INCREMENTAL=1 bun run tauri:build; else CARGO_INCREMENTAL=1 npx tauri build; fi
     @echo ""
     @echo "✅ Tauri 构建完成"
-    @echo "📈 cargo timings: src-tauri/target/cargo-timings/cargo-timing.html"
     @echo "📦 产物位置: src-tauri/target/release/bundle/"
     @echo "   - .deb (Debian/Ubuntu)"
     @echo "   - .AppImage (通用 Linux)"
@@ -1394,13 +1393,12 @@ _tauri-build-linux:
 _tauri-build-macos:
     @echo "🏗️  构建 Tauri 桌面应用（生产版本）..."
     @if command -v bun >/dev/null 2>&1; then bun run build; else npm run build; fi
-    @if command -v bun >/dev/null 2>&1; then CARGO_INCREMENTAL=1 bun run tauri:build -- --timings; else CARGO_INCREMENTAL=1 npx tauri build -- --timings; fi
+    @if command -v bun >/dev/null 2>&1; then CARGO_INCREMENTAL=1 bun run tauri:build; else CARGO_INCREMENTAL=1 npx tauri build; fi
     @echo ""
     @echo "🧹 清理自动挂载的 DMG..."
     @hdiutil detach "/Volumes/CCR Desktop" 2>/dev/null || true
     @echo ""
     @echo "✅ Tauri 构建完成"
-    @echo "📈 cargo timings: src-tauri/target/cargo-timings/cargo-timing.html"
     @echo "📦 产物位置: src-tauri/target/release/bundle/"
     @echo "   - .dmg (安装镜像)"
     @echo "   - .app (应用程序包)"
@@ -1408,10 +1406,9 @@ _tauri-build-macos:
 _tauri-build-windows:
     @Write-Output '🏗️  构建 Tauri 桌面应用（生产版本）...'
     @if (Get-Command bun -ErrorAction SilentlyContinue) { bun run build } else { npm run build }
-    @$env:CARGO_INCREMENTAL = '1'; if (Get-Command bun -ErrorAction SilentlyContinue) { bun run tauri:build -- --timings } else { npx tauri build -- --timings }
+    @$env:CARGO_INCREMENTAL = '1'; if (Get-Command bun -ErrorAction SilentlyContinue) { bun run tauri:build } else { npx tauri build }
     @Write-Output ''
     @Write-Output '✅ Tauri 构建完成'
-    @Write-Output '📈 cargo timings: src-tauri/target/cargo-timings/cargo-timing.html'
     @Write-Output '📦 产物位置: src-tauri/target/release/bundle/'
     @Write-Output '   - .msi (安装程序)'
     @Write-Output '   - .exe (可执行文件)'
@@ -1423,28 +1420,25 @@ tauri-build-debug:
 _tauri-build-debug-linux:
     @echo "🏗️  构建 Tauri 桌面应用（调试版本）..."
     @if command -v bun >/dev/null 2>&1; then bun run build; else npm run build; fi
-    @if command -v bun >/dev/null 2>&1; then CARGO_INCREMENTAL=1 bun run tauri:build:debug -- --timings; else CARGO_INCREMENTAL=1 npx tauri build --debug -- --timings; fi
+    @if command -v bun >/dev/null 2>&1; then CARGO_INCREMENTAL=1 bun run tauri:build:debug; else CARGO_INCREMENTAL=1 npx tauri build --debug; fi
     @echo ""
     @echo "✅ Tauri 调试版本构建完成"
-    @echo "📈 cargo timings: src-tauri/target/cargo-timings/cargo-timing.html"
     @echo "📦 产物位置: src-tauri/target/debug/bundle/"
 
 _tauri-build-debug-macos:
     @echo "🏗️  构建 Tauri 桌面应用（调试版本）..."
     @if command -v bun >/dev/null 2>&1; then bun run build; else npm run build; fi
-    @if command -v bun >/dev/null 2>&1; then CARGO_INCREMENTAL=1 bun run tauri:build:debug -- --timings; else CARGO_INCREMENTAL=1 npx tauri build --debug -- --timings; fi
+    @if command -v bun >/dev/null 2>&1; then CARGO_INCREMENTAL=1 bun run tauri:build:debug; else CARGO_INCREMENTAL=1 npx tauri build --debug; fi
     @echo ""
     @echo "✅ Tauri 调试版本构建完成"
-    @echo "📈 cargo timings: src-tauri/target/cargo-timings/cargo-timing.html"
     @echo "📦 产物位置: src-tauri/target/debug/bundle/"
 
 _tauri-build-debug-windows:
     @Write-Output '🏗️  构建 Tauri 桌面应用（调试版本）...'
     @bun run build
-    @$env:CARGO_INCREMENTAL = '1'; bun run tauri:build:debug -- --timings
+    @$env:CARGO_INCREMENTAL = '1'; bun run tauri:build:debug
     @Write-Output ''
     @Write-Output '✅ Tauri 调试版本构建完成'
-    @Write-Output '📈 cargo timings: src-tauri/target/cargo-timings/cargo-timing.html'
     @Write-Output '📦 产物位置: src-tauri/target/debug/bundle/'
 
 # 检查 Tauri 环境和配置
