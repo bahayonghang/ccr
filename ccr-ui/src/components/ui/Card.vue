@@ -103,7 +103,7 @@ interface Props {
 
 const props = withDefaults(defineProps<Props>(), {
   variant: 'elevated',
-  hover: true,
+  hover: false,
   interactive: false,
   glow: false,
   glowEffect: false,
