@@ -1,22 +1,24 @@
-# CCR (Claude Code Configuration Switcher)
+# CCR
 
-**Rust 编写的高性能多平台配置管理工具。**  
-统一管理 **Claude Code**、**Codex**、**Gemini**、**Qwen** 等多种 AI CLI 工具的配置。
+**Rust 编写的 AI CLI 配置与工作入口。**  
+以 CLI 为主线，配套 TUI、Legacy Web API 和完整 CCR UI，统一管理 Claude Code、Codex、Gemini、Qwen、Droid 等多种 AI CLI 平台。
 
-![Version](https://img.shields.io/badge/version-3.17.3-blue.svg) ![License](https://img.shields.io/badge/license-MIT-green.svg) ![Build](https://img.shields.io/badge/build-passing-brightgreen.svg)
+> 历史说明：CCR 最早来自 `Claude Code Configuration Switcher`。现在仓库已经演进为多平台 AI CLI 工作区。
+
+![Version](https://img.shields.io/badge/version-5.1.4-blue.svg) ![License](https://img.shields.io/badge/license-MIT-green.svg) ![Build](https://img.shields.io/badge/build-passing-brightgreen.svg)
 
 ---
 
 ## ✨ 核心特性
 
-- **多平台支持**：统一管理 Claude、Codex、Gemini、Qwen 和 iFlow。每个平台拥有独立的配置档案、历史记录和备份。
+- **统一平台注册表**：统一管理 Claude、Codex、Gemini、Qwen、iFlow、Droid 等 AI CLI 平台的独立 profile、历史和备份。
 - **企业级安全**：支持原子写入、文件锁 (`fs4`)、完整审计日志，且在每次修改前自动备份。
 - **多端接口**：
   - **CLI**：功能强大的命令行接口。
   - **TUI**：交互式终端配置选择器，支持Tab切换。
-  - **Web API**：内置 Axum 服务，便于外部集成。
-  - **Desktop UI**：基于 Vue 3 + Tauri 构建的全栈桌面应用。
-- **智能同步**：基于 WebDAV 的多文件夹同步（`web` 特性），保持多机配置一致。
+  - **Legacy Web API**：面向脚本、CI 和兼容场景的嵌入式 Axum 服务。
+  - **CCR UI**：基于 Vue 3 + Tauri 的浏览器/桌面图形入口。
+- **智能同步**：基于 WebDAV 的多文件夹同步能力，保持多机配置一致。
 - **隐私保护**：输出时自动掩码 API Key 等敏感数据。
 
 ## 📦 安装
@@ -41,8 +43,9 @@ cargo install --path crates/ccr
 > 工作区说明：当前可安装的 CLI crate 位于 `crates/ccr`。旧路径到新路径的映射请参考 `docs/reference/migration.md`。
 
 ### 构建要求
-- **Rust**: 1.88+ (2024 版本)
-- **Node.js**: 18+（默认启用 `web` 特性时，安装/更新需用于构建内嵌 Web 资源）
+- **Rust**: 1.90+（面向可安装 CLI crate）
+- **Node.js**: 18+
+- **Bun**: 1.3+（`ccr-ui` 与内嵌 Web 资源构建的推荐路径；若无 Bun，Legacy 内嵌 Web 构建仍可兼容回退到 npm）
 
 ## 🚀 快速开始
 
@@ -193,7 +196,7 @@ ccr codex
 
 CCR 支持从 GitHub 自动更新到最新版本。
 
-> 注意：`ccr update` 会编译默认 `web` 特性，需要 Node.js 18+ 和 npm。
+> 注意：`ccr update` 在构建内嵌 Web 资源时会优先使用 Bun；如果系统没有 Bun，仍可兼容回退到 Node.js 18+ 与 npm。
 
 ```bash
 # 从 main 分支更新（稳定版）

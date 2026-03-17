@@ -1,22 +1,24 @@
-# CCR (Claude Code Configuration Switcher)
+# CCR
 
-**High-performance, multi-platform configuration management tool written in Rust.**  
-Unified management for specific AI CLI tools including **Claude Code**, **Codex**, **Gemini**, **Qwen**, and more.
+**Unified entrypoint for AI CLI configuration management, written in Rust.**  
+CLI-first workflow with TUI, legacy Web API, and the full CCR UI for Claude Code, Codex, Gemini, Qwen, Droid, and more.
 
-![Version](https://img.shields.io/badge/version-3.17.3-blue.svg) ![License](https://img.shields.io/badge/license-MIT-green.svg) ![Build](https://img.shields.io/badge/build-passing-brightgreen.svg)
+> Historical note: CCR started as `Claude Code Configuration Switcher`. The repository now tracks a broader multi-platform AI CLI workspace.
+
+![Version](https://img.shields.io/badge/version-5.1.4-blue.svg) ![License](https://img.shields.io/badge/license-MIT-green.svg) ![Build](https://img.shields.io/badge/build-passing-brightgreen.svg)
 
 ---
 
 ## ✨ Features
 
-- **Multi-Platform Support**: Unified management for Claude, Codex, Gemini, Qwen, and iFlow. Each platform has independent profiles, history, and backups.
+- **Unified Platform Registry**: Manage Claude, Codex, Gemini, Qwen, iFlow, Droid, and related AI CLI platforms with isolated profiles, history, and backups.
 - **Enterprise-Grade Safety**: Atomic writes, file locking (`fs4`), comprehensive audit logs, and automatic backups before every modification.
-- **Multi-Interface**: 
+- **Multi-Interface**:
   - **CLI**: Powerful command-line interface for all operations.
   - **TUI**: Interactive terminal configuration selector with Tab navigation.
-  - **Web API**: Embedded Axum server for external integration.
-  - **Desktop UI**: Full-stack application built with Vue 3 + Tauri.
-- **Smart Sync**: WebDAV-based multi-folder synchronization (`web` feature) to keep your configs consistent across machines.
+  - **Legacy Web API**: Embedded Axum server for automation, CI, and compatibility workflows.
+  - **CCR UI**: Full-stack browser/desktop experience built with Vue 3 + Tauri.
+- **Smart Sync**: WebDAV-based multi-folder synchronization keeps your configs consistent across machines.
 - **Secure**: Sensitive data (API keys, tokens) is automatically masked in outputs.
 
 ## 📦 Installation
@@ -41,8 +43,9 @@ cargo install --path crates/ccr
 > Workspace note: the installable CLI crate now lives in `crates/ccr`. See `docs/reference/migration.md` for the old-to-new path map.
 
 ### Build Requirements
-- **Rust**: 1.88+ (Edition 2024)
-- **Node.js**: 18+ (Required for install/update with default `web` feature to build embedded web assets)
+- **Rust**: 1.90+ (Edition 2024, for the installable CLI crate)
+- **Node.js**: 18+
+- **Bun**: 1.3+ (recommended for `ccr-ui` and embedded web asset builds; npm remains a compatibility fallback only for the legacy embedded web build)
 
 ## 🚀 Quick Start
 
@@ -193,7 +196,7 @@ ccr codex
 
 CCR supports automatic updates from GitHub to the latest version.
 
-> Note: `ccr update` compiles the default `web` feature and requires Node.js 18+ with npm.
+> Note: `ccr update` compiles the default `web` feature and prefers Bun when building embedded web assets. Node.js 18+ with npm remains a compatibility fallback if Bun is unavailable.
 
 ```bash
 # Update from main branch (stable)

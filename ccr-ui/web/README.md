@@ -1,31 +1,29 @@
-# CCR Web Frontend
+# CCR Web Frontend (Legacy)
 
-This directory contains the source code for the CCR web interface.
+This directory contains the legacy web frontend used by `ccr web`.
+
+If you want the primary graphical experience, use `ccr ui` / the main `ccr-ui/` app instead. Keep this directory for compatibility, automation, embedded legacy browser flows, and the Rust binary's built-in web assets.
 
 ## Development
 
-The project uses [Vite](https://vitejs.dev/) for development and building.
+The project uses [Vite](https://vitejs.dev/) and follows the repository's Bun-first frontend workflow.
 
 ### Prerequisites
 
-- Node.js (Latest LTS recommended)
-- npm (comes with Node.js)
+- Node.js 18+
+- Bun 1.3+
 
 ### Setup
 
-Install dependencies:
-
 ```bash
 cd web
-npm install
+bun install --frozen-lockfile
 ```
 
 ### Development Server
 
-Start the development server with hot module replacement (HMR):
-
 ```bash
-npm run dev
+bun run dev
 ```
 
 The dev server proxies API requests to `http://localhost:19527` (the Rust backend) by default.
@@ -34,15 +32,15 @@ If you start the backend on a different port, set `CCR_WEB_PORT`:
 ```bash
 # PowerShell
 $env:CCR_WEB_PORT=5645
-npm run dev
+bun run dev
 ```
 
-### Building for Production
+### Building for Embedded Use
 
-To build the frontend for embedding into the Rust binary:
+To build the legacy frontend for embedding into the Rust binary:
 
 ```bash
-npm run build
+bun run build
 ```
 
 This command generates the following files in `dist/`:
@@ -50,7 +48,7 @@ This command generates the following files in `dist/`:
 - `script.js`
 - `style.css`
 
-**Important**: You MUST run `npm run build` before compiling the Rust project if you have made changes to the frontend code. The Rust server (`src/web/server.rs`) embeds these built files at compile time.
+**Important**: Run `bun run build` before compiling the Rust project if you changed this frontend. The Rust server (`src/web/server.rs`) embeds these built files at compile time.
 
 ## Port Binding Notes (Windows)
 
