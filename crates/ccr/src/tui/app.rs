@@ -237,6 +237,7 @@ impl App {
                     self.active_tab = (self.active_tab + 1) % self.tabs.len();
                     self.current_page = 0;
                     self.selected_index = 0;
+                    self.notify_tab_activated();
                 }
             }
             Action::SwitchTab(idx) => {
@@ -244,6 +245,7 @@ impl App {
                     self.active_tab = idx;
                     self.current_page = 0;
                     self.selected_index = 0;
+                    self.notify_tab_activated();
                 }
             }
             Action::SelectPrev => {
@@ -369,8 +371,21 @@ impl App {
             .position(|t| t.platform == Platform::Codex && t.variant == TabVariant::CodexAuth)
         {
             self.active_tab = idx;
+            // 触发延迟配额查询
+            if let Some(ref mut codex_app) = self.codex_auth_app {
+                codex_app.on_activated();
+            }
         }
         self
+    }
+
+    /// Notify the active tab's sub-app that it became active
+    fn notify_tab_activated(&mut self) {
+        if self.is_codex_auth_tab()
+            && let Some(ref mut codex_app) = self.codex_auth_app
+        {
+            codex_app.on_activated();
+        }
     }
 
     /// 🖱️ Delegate mouse event to embedded CodexAuthApp

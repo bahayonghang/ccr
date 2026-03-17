@@ -242,6 +242,16 @@ fn draw_usage_panel(f: &mut Frame, area: Rect, app: &CodexAuthApp) {
 
     let mut content: Vec<Line> = Vec::new();
 
+    // ── 配额刷新确认提示 ──
+    if app.pending_quota_confirm {
+        content.push(Line::from(Span::styled(
+            "  确认查询配额？按 y 确认 / 其他键取消",
+            Style::default()
+                .fg(Color::Yellow)
+                .add_modifier(ratatui::style::Modifier::BOLD),
+        )));
+    }
+
     // ── 配额余额区域 ──
     match &app.quota_state {
         QuotaState::Idle => {
@@ -302,7 +312,16 @@ fn draw_usage_panel(f: &mut Frame, area: Rect, app: &CodexAuthApp) {
                     let w_bar = progress_bar(quota.weekly_percentage, 10);
                     let w_reset = quota
                         .weekly_reset_time
-                        .map(|t| format!("  重置: {}", CodexQuotaService::format_reset_duration(t)))
+                        .map(|t| {
+                            let relative = CodexQuotaService::format_reset_duration(t);
+                            let dt = chrono::DateTime::from_timestamp(t, 0)
+                                .map(|d| d.with_timezone(&chrono::Local));
+                            if let Some(local) = dt {
+                                format!("  重置: {} ({})", relative, local.format("%m/%d %H:%M"))
+                            } else {
+                                format!("  重置: {}", relative)
+                            }
+                        })
                         .unwrap_or_default();
                     content.push(Line::from(vec![
                         Span::styled("  周限额: ", Style::default().fg(Color::White)),

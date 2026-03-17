@@ -78,6 +78,10 @@ pub struct CodexAuthApp {
     codex_dir: Option<PathBuf>,
     /// 🖱️ Cached account list area for mouse hit-testing
     pub list_area: Cell<Option<Rect>>,
+    /// Delayed quota fetch timer (tick countdown, None = inactive)
+    delayed_quota_ticks: Option<u32>,
+    /// Whether a quota refresh confirmation is pending
+    pub pending_quota_confirm: bool,
 }
 
 #[allow(dead_code)]
@@ -112,6 +116,8 @@ impl CodexAuthApp {
             quota_rx: None,
             codex_dir,
             list_area: Cell::new(None),
+            delayed_quota_ticks: None,
+            pending_quota_confirm: false,
         })
     }
 
@@ -187,6 +193,22 @@ impl CodexAuthApp {
 
     /// Handle normal mode key events
     fn handle_normal_mode(&mut self, key: KeyEvent) -> Result<bool> {
+        // 配额刷新确认拦截
+        if self.pending_quota_confirm {
+            match key.code {
+                KeyCode::Char('y') | KeyCode::Char('Y') => {
+                    self.pending_quota_confirm = false;
+                    self.start_quota_fetch();
+                    self.toasts.push(Toast::info("正在查询配额余额..."));
+                }
+                _ => {
+                    self.pending_quota_confirm = false;
+                    self.toasts.push(Toast::info("已取消配额查询"));
+                }
+            }
+            return Ok(false);
+        }
+
         match key.code {
             KeyCode::Char('q') | KeyCode::Esc => {
                 self.should_quit = true;
@@ -238,8 +260,7 @@ impl CodexAuthApp {
                 self.toasts.push(Toast::info("已刷新账号列表"));
             }
             KeyCode::Char('b') => {
-                self.start_quota_fetch();
-                self.toasts.push(Toast::info("正在查询配额余额..."));
+                self.pending_quota_confirm = true;
             }
             _ => {}
         }
@@ -431,6 +452,14 @@ impl CodexAuthApp {
         }
     }
 
+    /// Called when this tab becomes active (e.g., tab switch)
+    /// Schedules a delayed quota fetch after ~1 second (4 ticks at 250ms)
+    pub fn on_activated(&mut self) {
+        if matches!(self.quota_state, QuotaState::Idle) {
+            self.delayed_quota_ticks = Some(4);
+        }
+    }
+
     /// Start async quota fetch in background thread
     fn start_quota_fetch(&mut self) {
         // 避免重复查询
@@ -507,6 +536,17 @@ impl TuiApp for CodexAuthApp {
 
     fn on_tick(&mut self) -> bool {
         let mut needs_redraw = self.toasts.tick();
+
+        // 延迟配额查询计时器
+        if let Some(ref mut ticks) = self.delayed_quota_ticks {
+            if *ticks == 0 {
+                self.delayed_quota_ticks = None;
+                self.start_quota_fetch();
+                needs_redraw = true;
+            } else {
+                *ticks -= 1;
+            }
+        }
 
         // 检查配额查询结果
         if let Some(rx) = &self.quota_rx {
