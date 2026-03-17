@@ -162,7 +162,8 @@
                 v-for="profile in profiles"
                 :key="profile.name"
                 class="group relative px-4 py-2.5 rounded-xl font-medium text-sm transition-all duration-300 flex items-center gap-2.5"
-                :class="[ profile.name === currentProfile ? 'glass-effect-strong border border-platform-codex/50 text-platform-codex shadow-[0_0_15px_rgba(245,158,11,0.2)]' : 'glass-effect text-white/80 hover:border-platform-codex/30 hover:bg-white/10' ]"
+                :class="[ profile.name === currentProfile ? 'glass-effect-strong border border-platform-codex/50 text-platform-codex shadow-[0_0_15px_rgba(245,158,11,0.2)]' : 'glass-effect text-white/80 hover:border-platform-codex/30 hover:bg-white/10', actionLoading ? 'opacity-60 cursor-not-allowed' : '' ]"
+                :disabled="actionLoading"
                 @click="handleApply(profile.name)"
               >
                 <SIcon
@@ -170,6 +171,12 @@
                   name="Star"
                   size="w-3.5 h-3.5"
                   :class="profile.name === currentProfile ? 'text-platform-codex' : 'text-yellow-500'"
+                />
+                <SIcon
+                  v-if="busyProfileName === profile.name && busyAction === 'apply'"
+                  name="RefreshCw"
+                  size="w-3.5 h-3.5"
+                  class="animate-spin"
                 />
                 <span>{{ profile.name }}</span>
                 <div 
@@ -281,11 +288,13 @@
                     <button 
                       class="p-2 rounded-lg hover:bg-white/10 text-accent-success transition-colors"
                       :title="$t('codex.profiles.apply')"
+                      :disabled="actionLoading"
                       @click.stop="handleApply(profile.name)"
                     >
                       <SIcon
-                        name="Check"
+                        :name="busyProfileName === profile.name && busyAction === 'apply' ? 'RefreshCw' : 'Check'"
                         size="w-4 h-4"
+                        :class="{ 'animate-spin': busyProfileName === profile.name && busyAction === 'apply' }"
                       />
                     </button>
                     <button 
@@ -301,11 +310,13 @@
                     <button 
                       class="p-2 rounded-lg hover:bg-white/10 text-accent-danger transition-colors"
                       :title="$t('codex.actions.delete')"
+                      :disabled="actionLoading"
                       @click.stop="handleDelete(profile.name)"
                     >
                       <SIcon
-                        name="Trash2"
+                        :name="busyProfileName === profile.name && busyAction === 'delete' ? 'RefreshCw' : 'Trash2'"
                         size="w-4 h-4"
+                        :class="{ 'animate-spin': busyProfileName === profile.name && busyAction === 'delete' }"
                       />
                     </button>
                   </div>
@@ -729,6 +740,16 @@
               </div>
             </Card>
           </div>
+
+          <ConfirmModal
+            v-model:is-open="showConfirmModal"
+            :type="confirmDialog.type"
+            :title="confirmDialog.title"
+            :message="confirmDialog.message"
+            :confirm-text="confirmDialog.confirmText"
+            :cancel-text="$t('common.cancel')"
+            @confirm="executeConfirmedAction"
+          />
         </main>
       </div>
     </div>
@@ -737,26 +758,50 @@
 
 <script setup lang="ts">
 import SIcon from '@/components/ui/SIcon.vue'
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onActivated, onMounted, reactive, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { Breadcrumb } from '@/components/ui'
 import CollapsibleSidebar from '@/components/CollapsibleSidebar.vue'
 import Card from '@/components/ui/Card.vue'
+import ConfirmModal from '@/components/ConfirmModal.vue'
 import { addCodexProfile, applyCodexProfile, deleteCodexProfile, getCodexProfile, listCodexProfiles, updateCodexProfile } from '@/api'
 import type { CodexProfile, CodexProfileAuthMode, CodexProfileRequest, CodexProfilesResponse, OpenAiLoginMethod } from '@/types'
 import { logger } from '@/utils/logger'
+import { useUIStore } from '@/stores/ui'
+
+defineOptions({ name: 'CodexProfilesView' })
 
 const { t } = useI18n()
+const uiStore = useUIStore()
 
 const loading = ref(false)
 const saving = ref(false)
+const actionLoading = ref(false)
 
 const profiles = ref<CodexProfile[]>([])
 const currentProfile = ref<string | null>(null)
 
 const showForm = ref(false)
 const editingName = ref<string | null>(null)
+const busyProfileName = ref<string | null>(null)
+const busyAction = ref<'apply' | 'delete' | null>(null)
+const showConfirmModal = ref(false)
+const lastLoadedAt = ref(0)
+const confirmDialog = reactive<{
+  title: string
+  message: string
+  confirmText: string
+  type: 'danger' | 'info' | 'warning'
+}>({
+  title: '',
+  message: '',
+  confirmText: '',
+  type: 'warning',
+})
+let confirmedAction: (() => Promise<void>) | null = null
+
+const REFRESH_TTL_MS = 30_000
 
 const tagsText = ref('')
 const extraText = ref('{}')
@@ -821,10 +866,10 @@ const copyProfileEnv = async (profile: CodexProfile) => {
 
   try {
     await navigator.clipboard.writeText(script)
-    alert(t('codex.profiles.messages.envExportCopied'))
+    uiStore.showSuccess(t('codex.profiles.messages.envExportCopied'))
   } catch (error) {
     logger.error('Failed to copy profile env export:', error)
-    alert(t('codex.profiles.messages.envExportCopyFailed'))
+    uiStore.showError(t('codex.profiles.messages.envExportCopyFailed'))
   }
 }
 
@@ -879,11 +924,46 @@ const loadProfiles = async () => {
     const data = await listCodexProfiles<CodexProfilesResponse>()
     profiles.value = data.profiles || []
     currentProfile.value = data.current_profile ?? null
+    lastLoadedAt.value = Date.now()
   } catch (error) {
     logger.error('Failed to load codex profiles:', error)
-    alert(t('codex.states.loadFailed'))
+    uiStore.showError(t('codex.states.loadFailed'))
   } finally {
     loading.value = false
+  }
+}
+
+const ensureLoaded = async (force = false) => {
+  if (loading.value) return
+  if (!force && lastLoadedAt.value && Date.now() - lastLoadedAt.value < REFRESH_TTL_MS) {
+    return
+  }
+  await loadProfiles()
+}
+
+const openConfirmDialog = (options: {
+  title: string
+  message: string
+  confirmText: string
+  type: 'danger' | 'info' | 'warning'
+  action: () => Promise<void>
+}) => {
+  confirmDialog.title = options.title
+  confirmDialog.message = options.message
+  confirmDialog.confirmText = options.confirmText
+  confirmDialog.type = options.type
+  confirmedAction = options.action
+  showConfirmModal.value = true
+}
+
+const executeConfirmedAction = async () => {
+  if (!confirmedAction) return
+  actionLoading.value = true
+  try {
+    await confirmedAction()
+  } finally {
+    actionLoading.value = false
+    confirmedAction = null
   }
 }
 
@@ -944,7 +1024,7 @@ const handleEdit = async (name: string) => {
     extraText.value = JSON.stringify(form.extra || {}, null, 2)
   } catch (error) {
     logger.error('Failed to load codex profile:', error)
-    alert(extractErrorMessage(error) || t('codex.states.loadFailed'))
+    uiStore.showError(extractErrorMessage(error) || t('codex.states.loadFailed'))
     showForm.value = false
   }
 }
@@ -985,23 +1065,23 @@ const handleSave = async () => {
   syncDerivedAuthFields()
 
   if (!form.name.trim()) {
-    alert(t('codex.profiles.validation.nameRequired'))
+    uiStore.showError(t('codex.profiles.validation.nameRequired'))
     return
   }
   if (requiresBaseUrl.value && !form.base_url?.trim()) {
-    alert(t('codex.profiles.validation.baseUrlRequired'))
+    uiStore.showError(t('codex.profiles.validation.baseUrlRequired'))
     return
   }
   if (requiresSecret.value && !form.auth_token?.trim()) {
-    alert(t('codex.profiles.validation.authTokenRequired'))
+    uiStore.showError(t('codex.profiles.validation.authTokenRequired'))
     return
   }
   if (requiresEnvKey.value && !form.env_key?.trim()) {
-    alert(t('codex.profiles.validation.envKeyRequired'))
+    uiStore.showError(t('codex.profiles.validation.envKeyRequired'))
     return
   }
   if (!form.model.trim()) {
-    alert(t('codex.profiles.validation.modelRequired'))
+    uiStore.showError(t('codex.profiles.validation.modelRequired'))
     return
   }
 
@@ -1009,7 +1089,7 @@ const handleSave = async () => {
   try {
     extra = parseExtraJson(extraText.value) || undefined
   } catch {
-    alert(t('codex.profiles.validation.extraJsonInvalid'))
+    uiStore.showError(t('codex.profiles.validation.extraJsonInvalid'))
     return
   }
 
@@ -1035,6 +1115,7 @@ const handleSave = async () => {
 
   try {
     saving.value = true
+    const isEditing = Boolean(editingName.value)
     if (editingName.value) {
       await updateCodexProfile(editingName.value, request)
     } else {
@@ -1042,37 +1123,70 @@ const handleSave = async () => {
     }
     handleCloseForm()
     await loadProfiles()
+    uiStore.showSuccess(
+      isEditing ? t('codex.profiles.updateProfile') : t('codex.profiles.addProfile')
+    )
   } catch (error) {
     logger.error('Failed to save codex profile:', error)
-    alert(extractErrorMessage(error) || t('codex.states.saveFailed'))
+    uiStore.showError(extractErrorMessage(error) || t('codex.states.saveFailed'))
   } finally {
     saving.value = false
   }
 }
 
 const handleDelete = async (name: string) => {
-  if (!confirm(t('codex.profiles.confirmDelete', { name }))) return
-  try {
-    await deleteCodexProfile(name)
-    await loadProfiles()
-  } catch (error) {
-    logger.error('Failed to delete codex profile:', error)
-    alert(extractErrorMessage(error) || t('codex.states.deleteFailed'))
-  }
+  openConfirmDialog({
+    title: t('codex.actions.delete'),
+    message: t('codex.profiles.confirmDelete', { name }),
+    confirmText: t('codex.actions.delete'),
+    type: 'danger',
+    action: async () => {
+      busyProfileName.value = name
+      busyAction.value = 'delete'
+      try {
+        await deleteCodexProfile(name)
+        await loadProfiles()
+        uiStore.showSuccess(t('codex.actions.delete'))
+      } catch (error) {
+        logger.error('Failed to delete codex profile:', error)
+        uiStore.showError(extractErrorMessage(error) || t('codex.states.deleteFailed'))
+      } finally {
+        busyProfileName.value = null
+        busyAction.value = null
+      }
+    },
+  })
 }
 
 const handleApply = async (name: string) => {
-  if (!confirm(t('codex.profiles.confirmApply', { name }))) return
-  try {
-    await applyCodexProfile(name)
-    await loadProfiles()
-  } catch (error) {
-    logger.error('Failed to apply codex profile:', error)
-    alert(extractErrorMessage(error) || t('codex.states.saveFailed'))
-  }
+  openConfirmDialog({
+    title: t('codex.profiles.apply'),
+    message: t('codex.profiles.confirmApply', { name }),
+    confirmText: t('codex.profiles.apply'),
+    type: 'warning',
+    action: async () => {
+      busyProfileName.value = name
+      busyAction.value = 'apply'
+      try {
+        await applyCodexProfile(name)
+        await loadProfiles()
+        uiStore.showSuccess(t('codex.profiles.apply'))
+      } catch (error) {
+        logger.error('Failed to apply codex profile:', error)
+        uiStore.showError(extractErrorMessage(error) || t('codex.states.saveFailed'))
+      } finally {
+        busyProfileName.value = null
+        busyAction.value = null
+      }
+    },
+  })
 }
 
 onMounted(async () => {
-  await loadProfiles()
+  await ensureLoaded(true)
+})
+
+onActivated(() => {
+  void ensureLoaded(false)
 })
 </script>

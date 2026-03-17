@@ -44,6 +44,13 @@ export function usePageTransition() {
     const toGroup = (to.meta.group as string) ?? ''
     const fromGroup = (from.meta.group as string) ?? ''
 
+    // 顶层大页面统一使用轻量淡入淡出，避免复杂滑动动画拖慢切换
+    if (toDepth === 1 && fromDepth === 1) {
+      transitionName.value = 'page-fade'
+      isBack = false
+      return
+    }
+
     if (isBack) {
       // 浏览器后退 → 反向动画
       if (fromDepth > toDepth) {

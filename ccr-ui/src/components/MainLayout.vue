@@ -353,7 +353,6 @@
           <transition
             :name="transitionName"
             mode="out-in"
-            appear
           >
             <!-- 懒加载路由 Suspense 边界，防止异步组件加载时出现空白闪烁 -->
             <keep-alive
@@ -397,7 +396,8 @@ const { transitionName } = usePageTransition()
 // keep-alive 缓存列表（仅缓存高频访问页面）
 const cachedViews = [
   'HomeView', 'ConfigsView', 'CommandsView', 'ClaudeCodeView',
-  'CodexView', 'GeminiCliView', 'QwenView', 'IflowView',
+  'CodexView', 'CodexAuthView', 'CodexProfilesView', 'CodexMcpView',
+  'GeminiCliView', 'QwenView', 'IflowView',
 ]
 
 // 路由名 → i18n 键映射

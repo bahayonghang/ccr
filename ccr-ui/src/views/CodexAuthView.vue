@@ -284,11 +284,18 @@
                 v-for="account in accounts"
                 :key="account.name"
                 class="group relative px-4 py-2.5 rounded-xl font-medium text-sm transition-colors duration-300 border flex items-center gap-2.5"
-                :class="[ account.is_expired || !canManageAuthAccounts ? 'bg-red-500/10 border-red-500/30 text-red-500 cursor-not-allowed opacity-60' : account.is_current ? 'bg-platform-codex/10 border-platform-codex/50 text-platform-codex shadow-[0_0_15px_rgba(245,158,11,0.2)]' : 'glass-surface border-white/20 text-white/80 hover:border-platform-codex/30 hover:bg-white/10' ]"
-                :disabled="account.is_expired || !canManageAuthAccounts"
+                :class="[ account.is_expired || !canManageAuthAccounts || actionLoading ? 'bg-red-500/10 border-red-500/30 text-red-500 cursor-not-allowed opacity-60' : account.is_current ? 'bg-platform-codex/10 border-platform-codex/50 text-platform-codex shadow-[0_0_15px_rgba(245,158,11,0.2)]' : 'glass-surface border-white/20 text-white/80 hover:border-platform-codex/30 hover:bg-white/10' ]"
+                :disabled="account.is_expired || !canManageAuthAccounts || actionLoading"
                 @click="!account.is_expired && canManageAuthAccounts && handleSwitch(account.name)"
               >
-                <span>{{ account.freshness_icon }}</span>
+                <span v-if="busyName === account.name && busyAction === 'switch'">
+                  <SIcon
+                    name="RefreshCw"
+                    size="w-3.5 h-3.5"
+                    class="animate-spin"
+                  />
+                </span>
+                <span v-else>{{ account.freshness_icon }}</span>
                 <span>{{ account.name }}</span>
                 <span
                   v-if="account.is_virtual"
@@ -373,6 +380,9 @@
           <AccountListTable
             v-else
             :accounts="accounts"
+            :busy-name="busyName"
+            :busy-action="busyAction"
+            :disabled="actionLoading"
             @switch="handleSwitch"
             @delete="handleDelete"
           />
@@ -502,6 +512,16 @@
               </div>
             </Card>
           </div>
+
+          <ConfirmModal
+            v-model:is-open="showConfirmModal"
+            :type="confirmDialog.type"
+            :title="confirmDialog.title"
+            :message="confirmDialog.message"
+            :confirm-text="confirmDialog.confirmText"
+            :cancel-text="$t('common.cancel')"
+            @confirm="executeConfirmedAction"
+          />
         </main>
       </div>
     </div>
@@ -510,7 +530,7 @@
 
 <script setup lang="ts">
 import SIcon from '@/components/ui/SIcon.vue'
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onActivated, onMounted, reactive, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { Breadcrumb } from '@/components/ui'
@@ -518,6 +538,7 @@ import CollapsibleSidebar from '@/components/CollapsibleSidebar.vue'
 import Card from '@/components/ui/Card.vue'
 import AccountListTable from '@/components/usage/AccountListTable.vue'
 import CodexQuotaCard from '@/components/codex/CodexQuotaCard.vue'
+import ConfirmModal from '@/components/ConfirmModal.vue'
 import {
   listCodexProfiles,
   listCodexAuthAccounts,
@@ -541,11 +562,16 @@ import type {
   TokenFreshness
 } from '@/types'
 import { logger } from '@/utils/logger'
+import { useUIStore } from '@/stores/ui'
+
+defineOptions({ name: 'CodexAuthView' })
 
 const { t } = useI18n()
+const uiStore = useUIStore()
 
 const loading = ref(false)
 const saving = ref(false)
+const actionLoading = ref(false)
 
 const accounts = ref<CodexAuthAccountItem[]>([])
 const loginState = ref<LoginState>({ type: 'NotLoggedIn' })
@@ -555,6 +581,24 @@ const authActionError = ref<string | null>(null)
 
 const showSaveForm = ref(false)
 const processWarning = ref<string | null>(null)
+const busyName = ref<string | null>(null)
+const busyAction = ref<'switch' | 'delete' | null>(null)
+const showConfirmModal = ref(false)
+const lastLoadedAt = ref(0)
+const confirmDialog = reactive<{
+  title: string
+  message: string
+  confirmText: string
+  type: 'danger' | 'info' | 'warning'
+}>({
+  title: '',
+  message: '',
+  confirmText: '',
+  type: 'warning',
+})
+let confirmedAction: (() => Promise<void>) | null = null
+
+const REFRESH_TTL_MS = 30_000
 
 const saveForm = reactive({
   name: '',
@@ -694,7 +738,7 @@ const loadAccounts = async () => {
     loginState.value = data.login_state
   } catch (error) {
     logger.error('Failed to load codex auth accounts:', error)
-    alert(extractErrorMessage(error) || t('codex.states.loadFailed'))
+    uiStore.showError(extractErrorMessage(error) || t('codex.states.loadFailed'))
   } finally {
     loading.value = false
   }
@@ -715,6 +759,41 @@ const loadCurrentInfo = async () => {
 
 const handleRefresh = async () => {
   await Promise.all([loadAccounts(), loadCurrentInfo(), loadCurrentProfile()])
+  lastLoadedAt.value = Date.now()
+}
+
+const ensureLoaded = async (force = false) => {
+  if (loading.value) return
+  if (!force && lastLoadedAt.value && Date.now() - lastLoadedAt.value < REFRESH_TTL_MS) {
+    return
+  }
+  await handleRefresh()
+}
+
+const openConfirmDialog = (options: {
+  title: string
+  message: string
+  confirmText: string
+  type: 'danger' | 'info' | 'warning'
+  action: () => Promise<void>
+}) => {
+  confirmDialog.title = options.title
+  confirmDialog.message = options.message
+  confirmDialog.confirmText = options.confirmText
+  confirmDialog.type = options.type
+  confirmedAction = options.action
+  showConfirmModal.value = true
+}
+
+const executeConfirmedAction = async () => {
+  if (!confirmedAction) return
+  actionLoading.value = true
+  try {
+    await confirmedAction()
+  } finally {
+    actionLoading.value = false
+    confirmedAction = null
+  }
 }
 
 // Actions
@@ -753,7 +832,7 @@ const handleCloseSaveForm = () => {
 const handleConfirmSave = async () => {
   authActionError.value = null
   if (!saveForm.name.trim()) {
-    alert(t('codex.auth.validation.nameRequired'))
+    uiStore.showError(t('codex.auth.validation.nameRequired'))
     return
   }
 
@@ -775,10 +854,11 @@ const handleConfirmSave = async () => {
     await saveCodexAuth(payload)
     handleCloseSaveForm()
     await handleRefresh()
+    uiStore.showSuccess(t('codex.auth.saveAccount'))
   } catch (error) {
     logger.error('Failed to save auth:', error)
     authActionError.value = extractErrorMessage(error) || t('codex.states.saveFailed')
-    alert(authActionError.value)
+    uiStore.showError(authActionError.value)
   } finally {
     saving.value = false
   }
@@ -788,34 +868,64 @@ const handleSwitch = async (name: string) => {
   authActionError.value = null
   if (!canManageAuthAccounts.value) {
     authActionError.value = profileGuardMessage.value
-    alert(authActionError.value)
+    uiStore.showError(authActionError.value)
     return
   }
-  if (!confirm(t('codex.auth.confirmSwitch', { name }))) return
-  try {
-    await switchCodexAuth(name)
-    await handleRefresh()
-  } catch (error) {
-    logger.error('Failed to switch auth:', error)
-    authActionError.value = extractErrorMessage(error) || t('codex.states.saveFailed')
-    alert(authActionError.value)
-  }
+  openConfirmDialog({
+    title: t('codex.auth.switch'),
+    message: t('codex.auth.confirmSwitch', { name }),
+    confirmText: t('codex.auth.switch'),
+    type: 'warning',
+    action: async () => {
+      busyName.value = name
+      busyAction.value = 'switch'
+      try {
+        await switchCodexAuth(name)
+        await handleRefresh()
+        uiStore.showSuccess(t('codex.auth.switch'))
+      } catch (error) {
+        logger.error('Failed to switch auth:', error)
+        authActionError.value = extractErrorMessage(error) || t('codex.states.saveFailed')
+        uiStore.showError(authActionError.value)
+      } finally {
+        busyName.value = null
+        busyAction.value = null
+      }
+    },
+  })
 }
 
 const handleDelete = async (name: string) => {
   authActionError.value = null
-  if (!confirm(t('codex.auth.confirmDelete', { name }))) return
-  try {
-    await deleteCodexAuth(name)
-    await handleRefresh()
-  } catch (error) {
-    logger.error('Failed to delete auth:', error)
-    authActionError.value = extractErrorMessage(error) || t('codex.states.deleteFailed')
-    alert(authActionError.value)
-  }
+  openConfirmDialog({
+    title: t('codex.actions.delete'),
+    message: t('codex.auth.confirmDelete', { name }),
+    confirmText: t('codex.actions.delete'),
+    type: 'danger',
+    action: async () => {
+      busyName.value = name
+      busyAction.value = 'delete'
+      try {
+        await deleteCodexAuth(name)
+        await handleRefresh()
+        uiStore.showSuccess(t('codex.actions.delete'))
+      } catch (error) {
+        logger.error('Failed to delete auth:', error)
+        authActionError.value = extractErrorMessage(error) || t('codex.states.deleteFailed')
+        uiStore.showError(authActionError.value)
+      } finally {
+        busyName.value = null
+        busyAction.value = null
+      }
+    },
+  })
 }
 
 onMounted(async () => {
-  await handleRefresh()
+  await ensureLoaded(true)
+})
+
+onActivated(() => {
+  void ensureLoaded(false)
 })
 </script>

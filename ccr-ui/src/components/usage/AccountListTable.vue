@@ -116,11 +116,13 @@
             v-if="!account.is_current && !account.is_expired"
             class="p-2 rounded-lg text-white/50 hover:text-accent-success hover:bg-accent-success/10 transition-colors duration-200 opacity-0 group-hover:opacity-100 focus:opacity-100"
             :title="$t('codex.auth.switch')"
+            :disabled="props.disabled"
             @click="$emit('switch', account.name)"
           >
             <SIcon
-              name="ArrowRightCircle"
+              :name="props.busyName === account.name && props.busyAction === 'switch' ? 'RefreshCw' : 'ArrowRightCircle'"
               size="w-4 h-4"
+              :class="{ 'animate-spin': props.busyName === account.name && props.busyAction === 'switch' }"
             />
           </button>
 
@@ -153,11 +155,13 @@
             v-if="!account.is_virtual"
             class="p-2 rounded-lg text-white/50 hover:text-accent-danger hover:bg-accent-danger/10 transition-colors duration-200 opacity-0 group-hover:opacity-100 focus:opacity-100"
             :title="$t('codex.actions.delete')"
+            :disabled="props.disabled"
             @click="$emit('delete', account.name)"
           >
             <SIcon
-              name="Trash2"
+              :name="props.busyName === account.name && props.busyAction === 'delete' ? 'RefreshCw' : 'Trash2'"
               size="w-4 h-4"
+              :class="{ 'animate-spin': props.busyName === account.name && props.busyAction === 'delete' }"
             />
           </button>
         </div>
@@ -193,9 +197,16 @@ import type { CodexAuthAccountItem, TokenFreshness } from '@/types'
 
 interface Props {
   accounts: CodexAuthAccountItem[]
+  busyName?: string | null
+  busyAction?: 'switch' | 'delete' | null
+  disabled?: boolean
 }
 
-defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), {
+  busyName: null,
+  busyAction: null,
+  disabled: false,
+})
 
 defineEmits<{
   switch: [name: string]

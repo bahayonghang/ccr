@@ -45,6 +45,7 @@
               <button
                 class="px-4 py-2 rounded-lg font-semibold text-sm text-white flex items-center gap-2"
                 :style="{ background: 'linear-gradient(135deg, var(--accent-primary), var(--accent-secondary))', boxShadow: '0 0 20px var(--glow-primary)' }"
+                :disabled="submitting"
                 @click="handleAdd"
               >
                 <SIcon
@@ -147,6 +148,7 @@
                     class="p-2 rounded-lg transition-transform hover:scale-110"
                     :style="{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', color: 'var(--accent-primary)' }"
                     :title="$t('codex.actions.edit')"
+                    :disabled="submitting"
                     @click="handleEdit(server)"
                   >
                     <SIcon
@@ -158,11 +160,13 @@
                     class="p-2 rounded-lg transition-transform hover:scale-110"
                     :style="{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', color: 'var(--accent-danger)' }"
                     :title="$t('codex.actions.delete')"
+                    :disabled="submitting"
                     @click="handleDelete(server.name)"
                   >
                     <SIcon
-                      name="Trash2"
+                      :name="deletingName === server.name ? 'RefreshCw' : 'Trash2'"
                       size="w-4 h-4"
+                      :class="{ 'animate-spin': deletingName === server.name }"
                     />
                   </button>
                 </div>
@@ -317,6 +321,7 @@
                 <button
                   class="flex-1 px-4 py-2 rounded-lg font-semibold text-white"
                   :style="{ background: 'linear-gradient(135deg, var(--accent-primary), var(--accent-secondary))' }"
+                  :disabled="submitting"
                   @click="handleSubmit"
                 >
                   {{ editingServer ? $t('codex.mcp.updateServer') : $t('codex.mcp.addServer') }}
@@ -331,6 +336,16 @@
               </div>
             </div>
           </div>
+
+          <ConfirmModal
+            v-model:is-open="showDeleteModal"
+            type="danger"
+            :title="$t('codex.actions.delete')"
+            :message="$t('codex.mcp.deleteConfirm', { name: deletingName || '' })"
+            :confirm-text="$t('codex.actions.delete')"
+            :cancel-text="$t('codex.actions.cancel')"
+            @confirm="confirmDelete"
+          />
         </main>
       </div>
     </div>
@@ -339,29 +354,28 @@
 
 <script setup lang="ts">
 import SIcon from '@/components/ui/SIcon.vue'
-import { ref, onMounted } from 'vue'
+import { onActivated, onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import { listCodexMcpServers, addCodexMcpServer, updateCodexMcpServer, deleteCodexMcpServer } from '@/api'
-import { listConfigs, getHistory } from '@/api'
 import type {
   CodexMcpServer,
   CodexMcpServersResponse,
-  CodexMcpServerRequest,
-  ConfigListResponse,
-  HistoryResponse
+  CodexMcpServerRequest
 } from '@/types'
 import CollapsibleSidebar from '@/components/CollapsibleSidebar.vue'
 import { Breadcrumb } from '@/components/ui'
 import { useI18n } from 'vue-i18n'
 import { logger } from '@/utils/logger'
+import ConfirmModal from '@/components/ConfirmModal.vue'
+import { useUIStore } from '@/stores/ui'
+
+defineOptions({ name: 'CodexMcpView' })
 
 const { t } = useI18n()
+const uiStore = useUIStore()
 
 const servers = ref<CodexMcpServer[]>([])
 const loading = ref(true)
-const currentConfig = ref<string>('')
-const totalConfigs = ref(0)
-const historyCount = ref(0)
 const showAddForm = ref(false)
 const editingServer = ref<CodexMcpServer | null>(null)
 const isHttpServer = ref(false)
@@ -369,28 +383,41 @@ const formData = ref<CodexMcpServerRequest>({ name: '', command: undefined, url:
 const argInput = ref('')
 const envKey = ref('')
 const envValue = ref('')
+const submitting = ref(false)
+const deletingName = ref<string | null>(null)
+const showDeleteModal = ref(false)
+const lastLoadedAt = ref(0)
+
+const REFRESH_TTL_MS = 30_000
 
 const loadServers = async () => {
   try {
     loading.value = true
     const data = await listCodexMcpServers<CodexMcpServersResponse>()
     servers.value = Array.isArray(data.servers) ? data.servers : []
-
-    try {
-      const configData = await listConfigs<ConfigListResponse>()
-      currentConfig.value = configData.current_config
-      totalConfigs.value = Array.isArray(configData.configs) ? configData.configs.length : 0
-      const historyData = await getHistory<HistoryResponse>()
-      historyCount.value = historyData.total
-    } catch (err) { logger.error('Failed to load system info:', err) }
+    lastLoadedAt.value = Date.now()
   } catch (err) {
     logger.error('Failed to load Codex MCP servers:', err)
     servers.value = []
-    alert(t('codex.mcp.messages.loadFailed'))
+    uiStore.showError(t('codex.mcp.messages.loadFailed'))
   } finally { loading.value = false }
 }
 
-onMounted(() => { loadServers() })
+const ensureLoaded = async (force = false) => {
+  if (loading.value) return
+  if (!force && lastLoadedAt.value && Date.now() - lastLoadedAt.value < REFRESH_TTL_MS) {
+    return
+  }
+  await loadServers()
+}
+
+onMounted(() => {
+  void ensureLoaded(true)
+})
+
+onActivated(() => {
+  void ensureLoaded(false)
+})
 
 const handleAdd = () => {
   showAddForm.value = true
@@ -409,8 +436,8 @@ const handleEdit = (server: CodexMcpServer) => {
 }
 
 const handleSubmit = async () => {
-  if (!isHttpServer.value && !formData.value.command) { alert(t('codex.mcp.validation.commandRequired')); return }
-  if (isHttpServer.value && !formData.value.url) { alert(t('codex.mcp.validation.urlRequired')); return }
+  if (!isHttpServer.value && !formData.value.command) { uiStore.showError(t('codex.mcp.validation.commandRequired')); return }
+  if (isHttpServer.value && !formData.value.url) { uiStore.showError(t('codex.mcp.validation.urlRequired')); return }
 
   const args = argInput.value.split(' ').filter((a) => a.trim())
   const request: CodexMcpServerRequest = { ...formData.value, args }
@@ -419,25 +446,42 @@ const handleSubmit = async () => {
   else request.url = undefined
 
   try {
+    submitting.value = true
     if (editingServer.value) {
       await updateCodexMcpServer(editingServer.value.name, request)
-      alert(t('codex.mcp.messages.updateSuccess'))
+      uiStore.showSuccess(t('codex.mcp.messages.updateSuccess'))
     } else {
       await addCodexMcpServer(request)
-      alert(t('codex.mcp.messages.addSuccess'))
+      uiStore.showSuccess(t('codex.mcp.messages.addSuccess'))
     }
     showAddForm.value = false
     await loadServers()
-  } catch (err) { alert(t('codex.mcp.messages.operationFailed', { error: err instanceof Error ? err.message : 'Unknown error' })) }
+  } catch (err) {
+    uiStore.showError(t('codex.mcp.messages.operationFailed', { error: err instanceof Error ? err.message : 'Unknown error' }))
+  } finally {
+    submitting.value = false
+  }
 }
 
 const handleDelete = async (name: string) => {
-  if (!confirm(t('codex.mcp.deleteConfirm', { name }))) return
+  deletingName.value = name
+  showDeleteModal.value = true
+}
+
+const confirmDelete = async () => {
+  if (!deletingName.value) return
   try {
-    await deleteCodexMcpServer(name)
-    alert(t('codex.mcp.messages.deleteSuccess'))
+    submitting.value = true
+    await deleteCodexMcpServer(deletingName.value)
+    uiStore.showSuccess(t('codex.mcp.messages.deleteSuccess'))
     await loadServers()
-  } catch (err) { alert(t('codex.mcp.messages.deleteFailed', { error: err instanceof Error ? err.message : 'Unknown error' })) }
+  } catch (err) {
+    uiStore.showError(t('codex.mcp.messages.deleteFailed', { error: err instanceof Error ? err.message : 'Unknown error' }))
+  } finally {
+    submitting.value = false
+    showDeleteModal.value = false
+    deletingName.value = null
+  }
 }
 
 const addEnvVar = () => {

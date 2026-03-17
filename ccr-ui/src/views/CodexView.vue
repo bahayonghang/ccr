@@ -1,12 +1,8 @@
 <template>
   <div class="min-h-full p-6 lg:p-10 relative overflow-hidden">
-    <!-- Background Mesh -->
-    <!-- Standard Animated Background -->
-    <AnimatedBackground variant="complex" />
-
     <div class="max-w-7xl mx-auto space-y-5">
       <!-- HEADER -->
-      <section class="grid grid-cols-1 lg:grid-cols-3 gap-4 animate-slide-up">
+      <section class="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <!-- Hero Card -->
         <Card
           variant="glass"
@@ -118,10 +114,7 @@
       </section>
 
       <!-- MODULES GRID -->
-      <section
-        class="animate-slide-up"
-        style="animation-delay: 200ms"
-      >
+      <section>
         <div class="flex items-center gap-3 mb-3">
           <SIcon
             name="Boxes"
@@ -144,7 +137,6 @@
             <Card
               variant="glass"
               hover
-              glow
               class="h-full p-4 flex flex-col relative overflow-hidden"
             >
               <div class="flex items-start justify-between mb-2">
@@ -189,10 +181,7 @@
       </section>
 
       <!-- USAGE AND TIPS -->
-      <section
-        class="grid grid-cols-1 lg:grid-cols-2 gap-4 animate-slide-up"
-        style="animation-delay: 300ms"
-      >
+      <section class="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <!-- Usage Panel -->
         <Card
           variant="glass"
@@ -214,7 +203,7 @@
               variant="ghost"
               size="icon"
               :disabled="usageLoading"
-              @click="refreshUsage"
+              @click="refreshUsage(true)"
             >
               <SIcon
                 name="RefreshCw"
@@ -247,7 +236,7 @@
             <Button
               variant="outline"
               size="sm"
-              @click="refreshUsage"
+              @click="refreshUsage(true)"
             >
               {{ $t('common.retry') }}
             </Button>
@@ -366,11 +355,10 @@
 
 <script setup lang="ts">
 import SIcon from '@/components/ui/SIcon.vue'
-import { ref, onMounted, computed } from 'vue'
+import { computed, onActivated, onDeactivated, onMounted, onUnmounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import Card from '@/components/ui/Card.vue'
 import Button from '@/components/ui/Button.vue'
-import AnimatedBackground from '@/components/common/AnimatedBackground.vue'
 import { listCodexProfiles, getCodexUsage, getCliVersions } from '@/api'
 import { logger } from '@/utils/logger'
 import type {
@@ -379,6 +367,8 @@ import type {
   CodexProfilesResponse,
   CodexUsageResponse
 } from '@/types'
+
+defineOptions({ name: 'CodexView' })
 
 const { t } = useI18n()
 
@@ -408,6 +398,14 @@ const usageData = ref<CodexUsageResponse | null>(null)
 const usageLoading = ref(false)
 const usageError = ref(false)
 
+const VERSION_REFRESH_TTL_MS = 60_000
+const USAGE_REFRESH_TTL_MS = 30_000
+
+let heavyLoadTimer: ReturnType<typeof setTimeout> | null = null
+let destroyed = false
+let lastVersionLoadedAt = 0
+let lastUsageLoadedAt = 0
+
 const formatTokens = (tokens: number): string => {
   if (tokens >= 1_000_000) {
     return `${(tokens / 1_000_000).toFixed(1)}M`
@@ -417,11 +415,42 @@ const formatTokens = (tokens: number): string => {
   return tokens.toString()
 }
 
-const refreshUsage = async () => {
+const loadProfileStatus = async () => {
+  try {
+    const data = await listCodexProfiles<CodexProfilesResponse>()
+    if (destroyed) return
+
+    if (Array.isArray(data.profiles)) {
+      profilesCount.value = data.profiles.length
+      currentProfile.value = data.current_profile ?? null
+    }
+  } catch (error) {
+    logger.error('[CodexView] failed to load profile status', error)
+  }
+}
+
+const loadCodexVersion = async () => {
+  try {
+    const versions = await getCliVersions<CliVersionsResponse>({ mode: 'fast', timeoutMs: 3500, parallelism: 4 })
+    if (destroyed) return
+
+    const codex = versions.versions.find((v: CliVersionEntry) => v.platform === 'codex')
+    applyCodexVersionEntry(codex)
+    lastVersionLoadedAt = Date.now()
+  } catch (error) {
+    logger.error('[CodexView] failed to load codex version', error)
+    if (!destroyed) {
+      codexVersionStatus.value = 'error'
+    }
+  }
+}
+
+const refreshUsage = async (force = false) => {
   usageLoading.value = true
   usageError.value = false
   try {
-    usageData.value = await getCodexUsage<CodexUsageResponse>()
+    usageData.value = await getCodexUsage<CodexUsageResponse>({ force })
+    lastUsageLoadedAt = Date.now()
   } catch (error) {
     logger.error('[CodexView] failed to load usage data', error)
     usageError.value = true
@@ -519,22 +548,48 @@ const applyCodexVersionEntry = (entry?: CliVersionEntry) => {
   codexVersion.value = entry.version ? `v${entry.version}` : 'Installed'
 }
 
-onMounted(async () => {
-  try {
-    const data = await listCodexProfiles<CodexProfilesResponse>()
-    if (Array.isArray(data.profiles)) {
-      profilesCount.value = data.profiles.length
-      currentProfile.value = data.current_profile ?? null
-    }
-    
-    // Fetch Codex version
-    const versions = await getCliVersions<CliVersionsResponse>({ mode: 'fast', timeoutMs: 3500, parallelism: 4 })
-    const codex = versions.versions.find((v: CliVersionEntry) => v.platform === 'codex')
-    applyCodexVersionEntry(codex)
-  } catch (error) {
-    logger.error('[CodexView] failed to load profile status or version', error)
-    codexVersionStatus.value = 'error'
+const clearHeavyLoadTimer = () => {
+  if (heavyLoadTimer) {
+    clearTimeout(heavyLoadTimer)
+    heavyLoadTimer = null
   }
-  refreshUsage()
+}
+
+const scheduleHeavyLoads = () => {
+  clearHeavyLoadTimer()
+  heavyLoadTimer = setTimeout(() => {
+    if (destroyed) return
+
+    const now = Date.now()
+    if (now - lastVersionLoadedAt >= VERSION_REFRESH_TTL_MS) {
+      void loadCodexVersion()
+    }
+    if (now - lastUsageLoadedAt >= USAGE_REFRESH_TTL_MS) {
+      void refreshUsage(false)
+    }
+  }, 32)
+}
+
+const activateView = async () => {
+  await loadProfileStatus()
+  scheduleHeavyLoads()
+}
+
+onMounted(async () => {
+  destroyed = false
+  await activateView()
+})
+
+onActivated(() => {
+  void activateView()
+})
+
+onDeactivated(() => {
+  clearHeavyLoadTimer()
+})
+
+onUnmounted(() => {
+  destroyed = true
+  clearHeavyLoadTimer()
 })
 </script>
