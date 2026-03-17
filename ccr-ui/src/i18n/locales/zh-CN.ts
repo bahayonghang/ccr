@@ -2202,6 +2202,16 @@ export default {
         switchSuccess: '账户切换成功',
         deleteSuccess: '账户删除成功',
       },
+      accountOverview: '账号总览',
+      featureComingSoon: '功能开发中',
+      quotaNotQueried: '配额未加载',
+      noQuotaData: '无配额数据',
+      resetDone: '已重置',
+      hourlyQuota: '5h 限额',
+      weeklyQuota: '周限额',
+      refreshQuota: '刷新配额',
+      exportAccount: '导出账户',
+      tagAccount: '标签管理',
     },
 
     // Plugins module

@@ -2207,6 +2207,16 @@ export default {
         switchSuccess: 'Switched to account successfully',
         deleteSuccess: 'Account deleted successfully',
       },
+      accountOverview: 'Account Overview',
+      featureComingSoon: 'Feature coming soon',
+      quotaNotQueried: 'Quota not loaded',
+      noQuotaData: 'No quota data',
+      resetDone: 'Reset',
+      hourlyQuota: '5h Limit',
+      weeklyQuota: 'Weekly',
+      refreshQuota: 'Refresh Quota',
+      exportAccount: 'Export Account',
+      tagAccount: 'Manage Tags',
     },
 
     // Plugins module

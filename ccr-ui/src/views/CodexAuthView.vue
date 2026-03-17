@@ -263,77 +263,15 @@
             </div>
           </Card>
 
-          <!-- Quick Switch -->
-          <Card
-            v-if="accounts.length > 0"
-            variant="glass"
-            padding="lg"
-          >
-            <div class="flex items-center gap-2 mb-4">
-              <SIcon
-                name="Shuffle"
-                size="w-5 h-5"
-                class="text-platform-codex"
-              />
-              <h3 class="text-base font-semibold text-white">
-                {{ $t('codex.auth.quickSwitch') }}
-              </h3>
-            </div>
-            <div class="flex flex-wrap gap-3">
-              <button
-                v-for="account in accounts"
-                :key="account.name"
-                class="group relative px-4 py-2.5 rounded-xl font-medium text-sm transition-colors duration-300 border flex items-center gap-2.5"
-                :class="[ account.is_expired || !canManageAuthAccounts || actionLoading ? 'bg-red-500/10 border-red-500/30 text-red-500 cursor-not-allowed opacity-60' : account.is_current ? 'bg-platform-codex/10 border-platform-codex/50 text-platform-codex shadow-[0_0_15px_rgba(245,158,11,0.2)]' : 'glass-surface border-white/20 text-white/80 hover:border-platform-codex/30 hover:bg-white/10' ]"
-                :disabled="account.is_expired || !canManageAuthAccounts || actionLoading"
-                @click="!account.is_expired && canManageAuthAccounts && handleSwitch(account.name)"
-              >
-                <span v-if="busyName === account.name && busyAction === 'switch'">
-                  <SIcon
-                    name="RefreshCw"
-                    size="w-3.5 h-3.5"
-                    class="animate-spin"
-                  />
-                </span>
-                <span v-else>{{ account.freshness_icon }}</span>
-                <span>{{ account.name }}</span>
-                <span
-                  v-if="account.is_virtual"
-                  class="text-xs text-white/50"
-                >
-                  ({{ $t('codex.auth.virtual') }})
-                </span>
-                <span
-                  v-if="account.is_expired"
-                  class="text-xs"
-                >
-                  ({{ $t('codex.auth.expired') }})
-                </span>
-                <div
-                  v-if="account.is_current"
-                  class="flex items-center justify-center w-4 h-4 rounded-full bg-platform-codex text-white text-[10px]"
-                >
-                  <SIcon
-                    name="Check"
-                    size="w-2.5 h-2.5"
-                  />
-                </div>
-              </button>
-            </div>
-          </Card>
-
-          <!-- Quota Card -->
-          <CodexQuotaCard />
-
-          <!-- Account List Title -->
+          <!-- Account Overview -->
           <div class="flex items-center justify-between">
             <h2 class="text-xl font-bold text-white flex items-center gap-2">
               <SIcon
-                name="ListFilter"
+                name="LayoutGrid"
                 size="w-5 h-5"
                 class="text-platform-codex"
               />
-              {{ $t('codex.auth.listTitle') }}
+              {{ $t('codex.auth.accountOverview') }}
             </h2>
             <button
               class="btn btn-secondary btn-sm"
@@ -348,7 +286,7 @@
             </button>
           </div>
 
-          <!-- Loading State -->
+          <!-- Loading -->
           <div
             v-if="loading"
             class="flex justify-center py-20"
@@ -376,16 +314,27 @@
             </p>
           </div>
 
-          <!-- Account Table -->
-          <AccountListTable
+          <!-- Account Card Grid -->
+          <div
             v-else
-            :accounts="accounts"
-            :busy-name="busyName"
-            :busy-action="busyAction"
-            :disabled="actionLoading"
-            @switch="handleSwitch"
-            @delete="handleDelete"
-          />
+            class="grid grid-cols-1 md:grid-cols-2 gap-4"
+          >
+            <CodexAccountCard
+              v-for="account in accounts"
+              :key="account.name"
+              :account="account"
+              :quota="quotaMap.get(account.name) ?? null"
+              :quota-loading="quotaLoading"
+              :is-current="account.is_current"
+              :busy-action="busyName === account.name ? busyAction : null"
+              :disabled="actionLoading"
+              @switch="handleSwitch"
+              @delete="handleDelete"
+              @refresh="handleRefreshSingle"
+              @tag="handleTag"
+              @export="handleExport"
+            />
+          </div>
 
           <!-- Save Modal -->
           <div
@@ -536,8 +485,7 @@ import { useI18n } from 'vue-i18n'
 import { Breadcrumb } from '@/components/ui'
 import CollapsibleSidebar from '@/components/CollapsibleSidebar.vue'
 import Card from '@/components/ui/Card.vue'
-import AccountListTable from '@/components/usage/AccountListTable.vue'
-import CodexQuotaCard from '@/components/codex/CodexQuotaCard.vue'
+import CodexAccountCard from '@/components/codex/CodexAccountCard.vue'
 import ConfirmModal from '@/components/ConfirmModal.vue'
 import {
   listCodexProfiles,
@@ -546,7 +494,8 @@ import {
   saveCodexAuth,
   switchCodexAuth,
   deleteCodexAuth,
-  detectCodexProcess
+  detectCodexProcess,
+  getCodexAllQuotas
 } from '@/api'
 import type {
   CodexAuthAccountItem,
@@ -559,7 +508,8 @@ import type {
   CodexAuthSaveRequest,
   CodexProfileAuthMode,
   LoginState,
-  TokenFreshness
+  TokenFreshness,
+  CodexAccountQuota
 } from '@/types'
 import { logger } from '@/utils/logger'
 import { useUIStore } from '@/stores/ui'
@@ -578,6 +528,8 @@ const loginState = ref<LoginState>({ type: 'NotLoggedIn' })
 const currentInfo = ref<CodexAuthCurrentInfo | null>(null)
 const currentProfile = ref<CodexProfile | null>(null)
 const authActionError = ref<string | null>(null)
+const quotaMap = ref<Map<string, CodexAccountQuota>>(new Map())
+const quotaLoading = ref(false)
 
 const showSaveForm = ref(false)
 const processWarning = ref<string | null>(null)
@@ -757,8 +709,24 @@ const loadCurrentInfo = async () => {
   }
 }
 
+const loadQuotas = async () => {
+  try {
+    quotaLoading.value = true
+    const data = await getCodexAllQuotas<CodexAccountQuota[]>()
+    const map = new Map<string, CodexAccountQuota>()
+    for (const q of data) {
+      map.set(q.account_name, q)
+    }
+    quotaMap.value = map
+  } catch (e) {
+    logger.error('Failed to fetch codex quotas:', e)
+  } finally {
+    quotaLoading.value = false
+  }
+}
+
 const handleRefresh = async () => {
-  await Promise.all([loadAccounts(), loadCurrentInfo(), loadCurrentProfile()])
+  await Promise.all([loadAccounts(), loadCurrentInfo(), loadCurrentProfile(), loadQuotas()])
   lastLoadedAt.value = Date.now()
 }
 
@@ -919,6 +887,18 @@ const handleDelete = async (name: string) => {
       }
     },
   })
+}
+
+const handleRefreshSingle = async (_name: string) => {
+  await loadQuotas()
+}
+
+const handleTag = (_name: string) => {
+  uiStore.showInfo(t('codex.auth.featureComingSoon'))
+}
+
+const handleExport = (_name: string) => {
+  uiStore.showInfo(t('codex.auth.featureComingSoon'))
 }
 
 onMounted(async () => {
