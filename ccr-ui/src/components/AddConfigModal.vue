@@ -51,34 +51,12 @@
       </div>
 
       <div class="p-6">
-        <!-- Template Selection -->
-        <section class="mb-8">
-          <label class="block text-xs font-bold uppercase tracking-wider text-white/50 mb-4">
-            🚀 {{ $t('configs.addConfig.selectTemplate') }}
-          </label>
-          <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
-            <button
-              v-for="template in templates"
-              :key="template.id"
-              class="group relative p-3 rounded-xl border transition-[color,background-color,border-color,box-shadow,transform] duration-300 text-left hover:shadow-lg hover:-translate-y-1"
-              :class="selectedTemplate === template.id ? 'bg-accent-primary/10 border-accent-primary ring-1 ring-accent-primary/50' : 'bg-white/5/50 border-white/10 hover:border-accent-primary/50'"
-              @click="applyTemplate(template)"
-            >
-              <div class="text-2xl mb-2 grayscale group-hover:grayscale-0 transition-[filter]">
-                {{ template.icon }}
-              </div>
-              <h3
-                class="font-bold text-sm text-white"
-                :class="selectedTemplate === template.id ? 'text-accent-primary' : ''"
-              >
-                {{ template.label }}
-              </h3>
-              <p class="text-[10px] text-white/80 line-clamp-2 mt-1 opacity-80">
-                {{ template.description }}
-              </p>
-            </button>
-          </div>
-        </section>
+        <!-- Preset Provider Selection -->
+        <ProviderPresetSelector
+          :presets="claudePresets"
+          :selected-id="selectedTemplate"
+          @select="applyPreset"
+        />
 
         <div class="h-px bg-border-subtle mb-8" />
 
@@ -245,8 +223,11 @@ import { addConfig } from '@/api'
 import Card from '@/components/ui/Card.vue'
 import Button from '@/components/ui/Button.vue'
 import Input from '@/components/ui/Input.vue'
+import ProviderPresetSelector from '@/components/configs/ProviderPresetSelector.vue'
 import { useUIStore } from '@/stores/ui'
 import type { UpdateConfigRequest } from '@/types'
+import type { ProviderPreset } from '@/types/providerPresets'
+import { claudePresets } from '@/configs/providerPresets'
 
 const props = defineProps<{ isOpen: boolean }>()
 const emit = defineEmits(['close', 'saved'])
@@ -274,24 +255,35 @@ const formData = ref<UpdateConfigRequest>({
   provider_type: '', account: '', tags: []
 })
 
-const templates = [
-  { id: 'cc_relay', label: 'CC Relay', description: 'Official Relay', icon: '🔄', base_url: 'https://api.claudecc.com', model: 'claude-sonnet-4-20250514', provider_type: 'official_relay' },
-  { id: 'kimi', label: 'Moonshot', description: 'Kimi AI', icon: '🌙', base_url: 'https://api.moonshot.cn/v1', model: 'moonshot-v1-128k', provider_type: 'third_party_model' },
-  { id: 'zhipu', label: 'Zhipu GLM', description: 'ChatGLM', icon: '🧠', base_url: 'https://open.bigmodel.cn/api/paas/v4', model: 'glm-4.6', provider_type: 'third_party_model' },
-  { id: 'deepseek', label: 'DeepSeek', description: 'DeepSeek Chat', icon: '🔍', base_url: 'https://api.deepseek.com/v1', model: 'deepseek-chat', provider_type: 'third_party_model' },
-  { id: 'qwen', label: 'Qwen', description: 'Tongyi Qianwen', icon: '☁️', base_url: 'https://dashscope.aliyuncs.com/compatible-mode/v1', model: 'qwen-max', provider_type: 'third_party_model' }
-]
-
-type ConfigTemplate = (typeof templates)[number]
-
-const isFormValid = computed(() => 
+const isFormValid = computed(() =>
   formData.value.name.trim() && formData.value.base_url.trim() && formData.value.auth_token.trim()
 )
 
-const applyTemplate = (tpl: ConfigTemplate) => {
-  selectedTemplate.value = tpl.id
-  formData.value = { ...formData.value, ...tpl }
-  if(!formData.value.name) formData.value.name = tpl.id.replace(/_/g, '-')
+const applyPreset = (preset: ProviderPreset | null) => {
+  if (!preset) {
+    // 自定义配置 - 清空所有字段
+    selectedTemplate.value = null
+    formData.value = {
+      name: '', description: '', base_url: '', auth_token: '',
+      model: '', small_fast_model: '', provider: '',
+      provider_type: '', account: '', tags: [],
+    }
+    return
+  }
+  selectedTemplate.value = preset.id
+  formData.value = {
+    ...formData.value,
+    base_url: preset.base_url,
+    model: preset.model || '',
+    small_fast_model: preset.small_fast_model || '',
+    provider: preset.provider || preset.name,
+    provider_type: preset.provider_type || '',
+    description: preset.description || '',
+  }
+  // 自动填充 name 建议（用户可修改）
+  if (!formData.value.name) {
+    formData.value.name = preset.id
+  }
 }
 
 const handleSave = async () => {
