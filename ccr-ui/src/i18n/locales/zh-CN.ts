@@ -1941,7 +1941,7 @@ export default {
         providerType: '例如: official_relay',
         account: "例如: dev{'@'}example.com",
         tags: '例如: free, stable, high-speed',
-        extraJson: '{\n  "approval_policy": "on-request"\n}',
+        extraJson: '{\'{\'}\n  "approval_policy": "on-request"\n{\'}\'}',
       },
       authModes: {
         openai_chatgpt: 'OpenAI ChatGPT 登录',

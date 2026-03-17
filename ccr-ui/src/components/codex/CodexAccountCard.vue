@@ -11,8 +11,8 @@
     <!-- 头部：账户信息 + 徽章 -->
     <div class="flex items-start justify-between gap-2 mb-2">
       <div class="flex items-center gap-2 min-w-0">
-        <span class="text-base flex-shrink-0">{{ account.freshness_icon }}</span>
-        <span class="text-sm font-semibold text-white truncate">
+        <span class="text-lg flex-shrink-0">{{ account.freshness_icon }}</span>
+        <span class="text-base font-semibold text-white truncate">
           {{ account.email || account.name }}
         </span>
       </div>
@@ -45,7 +45,7 @@
 
     <!-- 账户名与描述 -->
     <div class="mb-3 space-y-0.5">
-      <div class="flex items-center gap-2 text-xs text-white/50">
+      <div class="flex items-center gap-2 text-sm text-white/50">
         <span class="font-mono font-medium">{{ account.name }}</span>
         <span
           v-if="account.is_virtual"
@@ -106,10 +106,10 @@
               size="w-3 h-3"
               class="text-white/40"
             />
-            <span class="text-[11px] text-white/50">{{ $t('codex.auth.hourlyQuota') }}</span>
+            <span class="text-xs text-white/50">{{ $t('codex.auth.hourlyQuota') }}</span>
           </div>
           <span
-            class="text-[11px] font-mono font-semibold"
+            class="text-xs font-mono font-semibold"
             :class="textColorClass(quota.quota.hourly_percentage)"
           >{{ quota.quota.hourly_percentage }}%</span>
         </div>
@@ -124,7 +124,7 @@
           v-if="quota.quota.hourly_reset_time"
           class="flex justify-end mt-0.5"
         >
-          <span class="text-[10px] text-white/25">
+          <span class="text-[11px] text-white/25">
             {{ formatReset(quota.quota.hourly_reset_time) }}
           </span>
         </div>
@@ -139,10 +139,10 @@
               size="w-3 h-3"
               class="text-white/40"
             />
-            <span class="text-[11px] text-white/50">{{ $t('codex.auth.weeklyQuota') }}</span>
+            <span class="text-xs text-white/50">{{ $t('codex.auth.weeklyQuota') }}</span>
           </div>
           <span
-            class="text-[11px] font-mono font-semibold"
+            class="text-xs font-mono font-semibold"
             :class="textColorClass(quota.quota.weekly_percentage)"
           >{{ quota.quota.weekly_percentage }}%</span>
         </div>
@@ -157,7 +157,7 @@
           v-if="quota.quota.weekly_reset_time"
           class="flex justify-end mt-0.5"
         >
-          <span class="text-[10px] text-white/25">
+          <span class="text-[11px] text-white/25">
             {{ formatResetDetailed(quota.quota.weekly_reset_time) }}
           </span>
         </div>
@@ -167,7 +167,7 @@
     <!-- 配额错误 -->
     <div
       v-else-if="quota?.error"
-      class="mb-3 px-2 py-1.5 rounded-lg bg-red-500/10 border border-red-500/20 text-[11px] text-red-400 truncate"
+      class="mb-3 px-2 py-1.5 rounded-lg bg-red-500/10 border border-red-500/20 text-xs text-red-400 truncate"
     >
       {{ quota.error }}
     </div>
@@ -175,15 +175,15 @@
     <!-- 配额未加载 -->
     <div
       v-else-if="!quotaLoading"
-      class="mb-3 text-[11px] text-white/25 italic"
+      class="mb-3 text-xs text-white/25 italic"
     >
       {{ $t('codex.auth.quotaNotQueried') }}
     </div>
 
     <!-- 底部：最后使用 + 操作按钮 -->
     <div class="flex items-center justify-between pt-2 border-t border-white/5">
-      <span class="text-[11px] text-white/25 truncate mr-2">
-        {{ account.last_used || '—' }}
+      <span class="text-xs text-white/25 truncate mr-2">
+        {{ formatLastUsed(account.last_used) }}
       </span>
       <div class="flex items-center gap-1">
         <!-- 标签管理 -->
@@ -373,6 +373,22 @@ const formatResetDetailed = (timestamp: number) => {
   const mi = String(date.getMinutes()).padStart(2, '0')
 
   return `${relative} (${mm}/${dd} ${hh}:${mi})`
+}
+
+const formatLastUsed = (raw?: string | null) => {
+  if (!raw) return '—'
+  try {
+    const date = new Date(raw)
+    if (isNaN(date.getTime())) return raw
+    const y = date.getFullYear()
+    const mm = String(date.getMonth() + 1).padStart(2, '0')
+    const dd = String(date.getDate()).padStart(2, '0')
+    const hh = String(date.getHours()).padStart(2, '0')
+    const mi = String(date.getMinutes()).padStart(2, '0')
+    return `${y}-${mm}-${dd} ${hh}:${mi}`
+  } catch {
+    return raw
+  }
 }
 </script>
 

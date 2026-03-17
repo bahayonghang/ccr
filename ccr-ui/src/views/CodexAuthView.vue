@@ -834,11 +834,6 @@ const handleConfirmSave = async () => {
 
 const handleSwitch = async (name: string) => {
   authActionError.value = null
-  if (!canManageAuthAccounts.value) {
-    authActionError.value = profileGuardMessage.value
-    uiStore.showError(authActionError.value)
-    return
-  }
   openConfirmDialog({
     title: t('codex.auth.switch'),
     message: t('codex.auth.confirmSwitch', { name }),

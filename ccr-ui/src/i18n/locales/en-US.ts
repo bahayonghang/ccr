@@ -1944,7 +1944,7 @@ export default {
         providerType: 'e.g: official_relay',
         account: "e.g: dev{'@'}example.com",
         tags: 'e.g: free, stable, high-speed',
-        extraJson: '{\n  "approval_policy": "on-request"\n}',
+        extraJson: '{\'{\'}\n  "approval_policy": "on-request"\n{\'}\'}',
       },
       authModes: {
         openai_chatgpt: 'OpenAI ChatGPT Login',
