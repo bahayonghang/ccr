@@ -1353,7 +1353,11 @@ _ensure-frontend-deps-linux:
     #!/usr/bin/env bash
     if [ ! -d "node_modules" ] || [ ! -d "node_modules/vue-i18n" ]; then
         echo "📦 检测到依赖缺失，正在安装前端依赖..."
-        bun install
+        if command -v bun >/dev/null 2>&1; then
+            bun install
+        else
+            npm install
+        fi
         echo "✅ 前端依赖安装完成"
     else
         echo "✅ 前端依赖已就绪"
@@ -1363,19 +1367,23 @@ _ensure-frontend-deps-macos:
     #!/usr/bin/env bash
     if [ ! -d "node_modules" ] || [ ! -d "node_modules/vue-i18n" ]; then
         echo "📦 检测到依赖缺失，正在安装前端依赖..."
-        bun install
+        if command -v bun >/dev/null 2>&1; then
+            bun install
+        else
+            npm install
+        fi
         echo "✅ 前端依赖安装完成"
     else
         echo "✅ 前端依赖已就绪"
     fi
 
 _ensure-frontend-deps-windows:
-    @if (-not (Test-Path 'node_modules') -or -not (Test-Path 'node_modules/vue-i18n')) { Write-Output '📦 检测到依赖缺失，正在安装前端依赖...'; bun install; Write-Output '✅ 前端依赖安装完成' } else { Write-Output '✅ 前端依赖已就绪' }
+    @if (-not (Test-Path 'node_modules') -or -not (Test-Path 'node_modules/vue-i18n')) { Write-Output '📦 检测到依赖缺失，正在安装前端依赖...'; if (Get-Command bun -ErrorAction SilentlyContinue) { bun install } else { npm install }; Write-Output '✅ 前端依赖安装完成' } else { Write-Output '✅ 前端依赖已就绪' }
 
 _tauri-build-linux:
     @echo "🏗️  构建 Tauri 桌面应用（生产版本）..."
-    bun run build
-    CARGO_INCREMENTAL=1 bun run tauri:build -- --timings
+    @if command -v bun >/dev/null 2>&1; then bun run build; else npm run build; fi
+    @if command -v bun >/dev/null 2>&1; then CARGO_INCREMENTAL=1 bun run tauri:build -- --timings; else CARGO_INCREMENTAL=1 npx tauri build -- --timings; fi
     @echo ""
     @echo "✅ Tauri 构建完成"
     @echo "📈 cargo timings: src-tauri/target/cargo-timings/cargo-timing.html"
@@ -1385,8 +1393,8 @@ _tauri-build-linux:
 
 _tauri-build-macos:
     @echo "🏗️  构建 Tauri 桌面应用（生产版本）..."
-    bun run build
-    CARGO_INCREMENTAL=1 bun run tauri:build -- --timings
+    @if command -v bun >/dev/null 2>&1; then bun run build; else npm run build; fi
+    @if command -v bun >/dev/null 2>&1; then CARGO_INCREMENTAL=1 bun run tauri:build -- --timings; else CARGO_INCREMENTAL=1 npx tauri build -- --timings; fi
     @echo ""
     @echo "🧹 清理自动挂载的 DMG..."
     @hdiutil detach "/Volumes/CCR Desktop" 2>/dev/null || true
@@ -1399,8 +1407,8 @@ _tauri-build-macos:
 
 _tauri-build-windows:
     @Write-Output '🏗️  构建 Tauri 桌面应用（生产版本）...'
-    @bun run build
-    @$env:CARGO_INCREMENTAL = '1'; bun run tauri:build -- --timings
+    @if (Get-Command bun -ErrorAction SilentlyContinue) { bun run build } else { npm run build }
+    @$env:CARGO_INCREMENTAL = '1'; if (Get-Command bun -ErrorAction SilentlyContinue) { bun run tauri:build -- --timings } else { npx tauri build -- --timings }
     @Write-Output ''
     @Write-Output '✅ Tauri 构建完成'
     @Write-Output '📈 cargo timings: src-tauri/target/cargo-timings/cargo-timing.html'
@@ -1414,8 +1422,8 @@ tauri-build-debug:
 
 _tauri-build-debug-linux:
     @echo "🏗️  构建 Tauri 桌面应用（调试版本）..."
-    bun run build
-    CARGO_INCREMENTAL=1 bun run tauri:build:debug -- --timings
+    @if command -v bun >/dev/null 2>&1; then bun run build; else npm run build; fi
+    @if command -v bun >/dev/null 2>&1; then CARGO_INCREMENTAL=1 bun run tauri:build:debug -- --timings; else CARGO_INCREMENTAL=1 npx tauri build --debug -- --timings; fi
     @echo ""
     @echo "✅ Tauri 调试版本构建完成"
     @echo "📈 cargo timings: src-tauri/target/cargo-timings/cargo-timing.html"
@@ -1423,8 +1431,8 @@ _tauri-build-debug-linux:
 
 _tauri-build-debug-macos:
     @echo "🏗️  构建 Tauri 桌面应用（调试版本）..."
-    bun run build
-    CARGO_INCREMENTAL=1 bun run tauri:build:debug -- --timings
+    @if command -v bun >/dev/null 2>&1; then bun run build; else npm run build; fi
+    @if command -v bun >/dev/null 2>&1; then CARGO_INCREMENTAL=1 bun run tauri:build:debug -- --timings; else CARGO_INCREMENTAL=1 npx tauri build --debug -- --timings; fi
     @echo ""
     @echo "✅ Tauri 调试版本构建完成"
     @echo "📈 cargo timings: src-tauri/target/cargo-timings/cargo-timing.html"
