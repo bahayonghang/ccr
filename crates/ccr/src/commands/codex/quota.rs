@@ -7,11 +7,7 @@ use crate::core::logging::ColorOutput;
 use crate::services::CodexQuotaService;
 
 /// 执行配额查询命令
-pub async fn quota_command(
-    account: Option<&str>,
-    json_output: bool,
-    _refresh: bool,
-) -> Result<()> {
+pub async fn quota_command(account: Option<&str>, json_output: bool, _refresh: bool) -> Result<()> {
     let service = CodexQuotaService::new()?;
 
     let quotas = if let Some(name) = account {

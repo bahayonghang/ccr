@@ -9,7 +9,7 @@
 use crate::core::error::{CcrError, Result};
 use crate::models::{CodexAccountQuota, CodexAuthJson, CodexAuthRegistry, CodexQuota};
 use chrono::Utc;
-use reqwest::header::{HeaderMap, HeaderValue, ACCEPT, AUTHORIZATION};
+use reqwest::header::{ACCEPT, AUTHORIZATION, HeaderMap, HeaderValue};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use tracing::{debug, warn};
@@ -87,8 +87,8 @@ pub struct CodexQuotaService {
 impl CodexQuotaService {
     /// 创建新的配额查询服务
     pub fn new() -> Result<Self> {
-        let home = dirs::home_dir()
-            .ok_or_else(|| CcrError::ConfigError("无法获取用户主目录".into()))?;
+        let home =
+            dirs::home_dir().ok_or_else(|| CcrError::ConfigError("无法获取用户主目录".into()))?;
 
         let ccr_codex_dir = if let Ok(custom) = std::env::var("CCR_DATA_DIR") {
             PathBuf::from(custom).join("platforms/codex")
@@ -142,9 +142,7 @@ impl CodexQuotaService {
                     account_name: account_name.to_string(),
                     email: None,
                     quota: None,
-                    error: Some(
-                        "账号缺少 OAuth tokens（可能是 API Key 模式）".to_string(),
-                    ),
+                    error: Some("账号缺少 OAuth tokens（可能是 API Key 模式）".to_string()),
                     fetched_at: now,
                 };
             }
@@ -253,9 +251,7 @@ impl CodexQuotaService {
                 let name = name.clone();
                 async move {
                     let _permit = semaphore.acquire().await;
-                    let service = CodexQuotaService {
-                        ccr_codex_dir: dir,
-                    };
+                    let service = CodexQuotaService { ccr_codex_dir: dir };
                     service.fetch_account_quota(&name).await
                 }
             })
@@ -355,7 +351,9 @@ impl CodexQuotaService {
 
     /// 账号 auth 文件路径
     fn account_auth_path(&self, name: &str) -> PathBuf {
-        self.ccr_codex_dir.join("auth").join(format!("{}.json", name))
+        self.ccr_codex_dir
+            .join("auth")
+            .join(format!("{}.json", name))
     }
 
     /// 加载注册表
@@ -491,14 +489,10 @@ impl CodexQuotaService {
             } else {
                 &body
             };
-            return Err(format!(
-                "Token 刷新失败 ({}): {}",
-                status, body_preview
-            ));
+            return Err(format!("Token 刷新失败 ({}): {}", status, body_preview));
         }
 
-        serde_json::from_str(&body)
-            .map_err(|e| format!("解析 Token 刷新响应失败: {}", e))
+        serde_json::from_str(&body).map_err(|e| format!("解析 Token 刷新响应失败: {}", e))
     }
 
     /// 从 JWT 中提取邮箱
@@ -525,8 +519,8 @@ impl CodexQuotaService {
 
     /// Base64 URL-safe 解码
     fn decode_base64_url(input: &str) -> Option<Vec<u8>> {
-        use base64::engine::general_purpose::URL_SAFE_NO_PAD;
         use base64::Engine;
+        use base64::engine::general_purpose::URL_SAFE_NO_PAD;
 
         // 添加填充
         let padded = match input.len() % 4 {

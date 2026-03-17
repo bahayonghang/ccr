@@ -421,10 +421,14 @@ impl CodexAuthService {
             None
         };
 
-        let current_account_name = Self::matched_saved_account_name(&registry, current_info.as_ref());
-        let current_expires_at = current_account_name
-            .as_ref()
-            .and_then(|name| registry.accounts.get(name).and_then(|account| account.expires_at));
+        let current_account_name =
+            Self::matched_saved_account_name(&registry, current_info.as_ref());
+        let current_expires_at = current_account_name.as_ref().and_then(|name| {
+            registry
+                .accounts
+                .get(name)
+                .and_then(|account| account.expires_at)
+        });
         let login_state = Self::compute_login_state(
             &auth_state,
             current_info.as_ref(),
@@ -576,9 +580,9 @@ impl CodexAuthService {
 
     /// 获取当前 auth.json 的解析信息
     pub fn get_current_auth_info(&self) -> Result<CurrentAuthInfo> {
-        self.read_auth_snapshot()?.current_info.ok_or_else(|| {
-            CcrError::ConfigError("未检测到有效登录状态".into())
-        })
+        self.read_auth_snapshot()?
+            .current_info
+            .ok_or_else(|| CcrError::ConfigError("未检测到有效登录状态".into()))
     }
 
     fn ensure_current_runtime_supports_openai_switch(&self) -> Result<()> {

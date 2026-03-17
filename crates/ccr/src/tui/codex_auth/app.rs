@@ -71,7 +71,8 @@ pub struct CodexAuthApp {
     /// Quota query state
     pub quota_state: QuotaState,
     /// Quota async result receiver
-    quota_rx: Option<std::sync::mpsc::Receiver<std::result::Result<Vec<CodexAccountQuota>, String>>>,
+    quota_rx:
+        Option<std::sync::mpsc::Receiver<std::result::Result<Vec<CodexAccountQuota>, String>>>,
     /// Codex directory
     #[allow(dead_code)]
     codex_dir: Option<PathBuf>,

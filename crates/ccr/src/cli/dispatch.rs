@@ -378,12 +378,8 @@ impl CommandDispatcher {
                 json,
                 refresh,
             }) => {
-                crate::commands::codex::quota::quota_command(
-                    account.as_deref(),
-                    *json,
-                    *refresh,
-                )
-                .await
+                crate::commands::codex::quota::quota_command(account.as_deref(), *json, *refresh)
+                    .await
             }
             // auth 子命令
             Some(CodexAction::Auth { action }) => match action {
