@@ -12,11 +12,14 @@ use serde_json::{Map, Value, json};
 use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
+use tauri::State;
 
 use ccr::models::OpenAiAuthMethod;
 use ccr::platforms::CodexPlatform;
 use ccr::services::{CodexAuthService, CodexUsageService};
 use ccr::{PlatformConfig, ProfileConfig};
+
+use crate::state::{AppState, CacheFillRegistration};
 
 // ── 内部辅助类型 ──
 
@@ -905,13 +908,12 @@ pub async fn codex_list_auth_accounts() -> Result<Value, String> {
         let service =
             CodexAuthService::new().map_err(|e| format!("初始化 Codex Auth 服务失败: {e}"))?;
 
+        let snapshot = service
+            .read_auth_snapshot()
+            .map_err(|e| format!("读取认证快照失败: {e}"))?;
         let accounts = service
-            .list_accounts()
+            .build_account_items(&snapshot)
             .map_err(|e| format!("列出账号失败: {e}"))?;
-
-        let login_state = service
-            .get_login_state()
-            .map_err(|e| format!("获取登录状态失败: {e}"))?;
 
         let accounts: Vec<Value> = accounts
             .into_iter()
@@ -935,7 +937,7 @@ pub async fn codex_list_auth_accounts() -> Result<Value, String> {
             })
             .collect();
 
-        Ok(json!({ "accounts": accounts, "login_state": login_state }))
+        Ok(json!({ "accounts": accounts, "login_state": snapshot.login_state }))
     })
     .await
     .map_err(|e| format!("任务执行失败: {e}"))?
@@ -948,17 +950,14 @@ pub async fn codex_get_auth_current() -> Result<Value, String> {
         let service =
             CodexAuthService::new().map_err(|e| format!("初始化 Codex Auth 服务失败: {e}"))?;
 
-        let login_state = service
-            .get_login_state()
-            .map_err(|e| format!("获取登录状态失败: {e}"))?;
+        let snapshot = service
+            .read_auth_snapshot()
+            .map_err(|e| format!("读取认证快照失败: {e}"))?;
 
-        let info = match service.get_current_auth_info() {
-            Ok(current) => {
+        let info = match snapshot.current_info.as_ref() {
+            Some(current) => {
                 let freshness = &current.freshness;
-                let expires_at = service.load_registry().ok().and_then(|reg| {
-                    reg.current_auth
-                        .and_then(|name| reg.accounts.get(&name).and_then(|a| a.expires_at))
-                });
+                let expires_at = snapshot.current_expires_at;
                 let is_expired = CodexAuthService::is_expired(expires_at);
                 Some(json!({
                     "account_id": current.account_id,
@@ -971,7 +970,7 @@ pub async fn codex_get_auth_current() -> Result<Value, String> {
                     "is_expired": is_expired,
                 }))
             }
-            Err(_) => None,
+            None => None,
         };
 
         let logged_in = info.is_some();
@@ -979,7 +978,7 @@ pub async fn codex_get_auth_current() -> Result<Value, String> {
         Ok(json!({
             "logged_in": logged_in,
             "info": info,
-            "login_state": login_state,
+            "login_state": snapshot.login_state,
         }))
     })
     .await
@@ -1108,64 +1107,109 @@ pub async fn codex_get_quota(account: String) -> Result<Value, String> {
 
 // ── Usage 统计 ──
 
+fn build_codex_usage_payload(rolling: ccr::services::CodexRollingUsage) -> Value {
+    let by_model: serde_json::Map<String, Value> = rolling
+        .by_model
+        .into_iter()
+        .map(|(model, stats)| {
+            (
+                model,
+                json!({
+                    "total_input_tokens": stats.total_input_tokens,
+                    "total_output_tokens": stats.total_output_tokens,
+                    "total_requests": stats.total_requests,
+                    "window_start": stats.window_start.map(|dt| dt.to_rfc3339()),
+                    "window_end": stats.window_end.map(|dt| dt.to_rfc3339()),
+                }),
+            )
+        })
+        .collect();
+
+    json!({
+        "five_hour": {
+            "total_input_tokens": rolling.five_hour.total_input_tokens,
+            "total_output_tokens": rolling.five_hour.total_output_tokens,
+            "total_requests": rolling.five_hour.total_requests,
+            "window_start": rolling.five_hour.window_start.map(|dt| dt.to_rfc3339()),
+            "window_end": rolling.five_hour.window_end.map(|dt| dt.to_rfc3339()),
+        },
+        "seven_day": {
+            "total_input_tokens": rolling.seven_day.total_input_tokens,
+            "total_output_tokens": rolling.seven_day.total_output_tokens,
+            "total_requests": rolling.seven_day.total_requests,
+            "window_start": rolling.seven_day.window_start.map(|dt| dt.to_rfc3339()),
+            "window_end": rolling.seven_day.window_end.map(|dt| dt.to_rfc3339()),
+        },
+        "all_time": {
+            "total_input_tokens": rolling.all_time.total_input_tokens,
+            "total_output_tokens": rolling.all_time.total_output_tokens,
+            "total_requests": rolling.all_time.total_requests,
+            "window_start": rolling.all_time.window_start.map(|dt| dt.to_rfc3339()),
+            "window_end": rolling.all_time.window_end.map(|dt| dt.to_rfc3339()),
+        },
+        "by_model": Value::Object(by_model),
+    })
+}
+
+fn compute_codex_usage_payload() -> Result<Value, String> {
+    let codex_dir = dirs::home_dir()
+        .ok_or_else(|| "无法获取用户主目录".to_string())?
+        .join(".codex");
+
+    let service = CodexUsageService::new(codex_dir);
+    let rolling = service
+        .compute_rolling_usage()
+        .map_err(|e| format!("计算使用量失败: {e}"))?;
+
+    Ok(build_codex_usage_payload(rolling))
+}
+
 /// 获取 Codex 使用量统计
 #[tauri::command]
-pub async fn codex_get_usage() -> Result<Value, String> {
-    tokio::task::spawn_blocking(|| {
-        let codex_dir = dirs::home_dir()
-            .ok_or_else(|| "无法获取用户主目录".to_string())?
-            .join(".codex");
+pub async fn codex_get_usage(
+    state: State<'_, AppState>,
+    force: Option<bool>,
+) -> Result<Value, String> {
+    let force = force.unwrap_or(false);
+    let cache_key = "codex:rolling_usage";
 
-        let service = CodexUsageService::new(codex_dir);
-        let rolling = service
-            .compute_rolling_usage()
-            .map_err(|e| format!("计算使用量失败: {e}"))?;
+    if !force {
+        if let Some(cached) = state.cache_get(cache_key).await {
+            return Ok(cached);
+        }
 
-        // 将 by_model HashMap 转为 JSON object
-        let by_model: serde_json::Map<String, Value> = rolling
-            .by_model
-            .into_iter()
-            .map(|(model, stats)| {
-                (
-                    model,
-                    json!({
-                        "total_input_tokens": stats.total_input_tokens,
-                        "total_output_tokens": stats.total_output_tokens,
-                        "total_requests": stats.total_requests,
-                        "window_start": stats.window_start.map(|dt| dt.to_rfc3339()),
-                        "window_end": stats.window_end.map(|dt| dt.to_rfc3339()),
-                    }),
-                )
-            })
-            .collect();
+        match state.begin_cache_fill(cache_key).await {
+            CacheFillRegistration::Wait(notify) => {
+                notify.notified().await;
+                if let Some(cached) = state.cache_get(cache_key).await {
+                    return Ok(cached);
+                }
+            }
+            CacheFillRegistration::Leader => {
+                let result = tokio::task::spawn_blocking(compute_codex_usage_payload)
+                    .await
+                    .map_err(|e| format!("任务执行失败: {e}"))?;
 
-        Ok(json!({
-            "five_hour": {
-                "total_input_tokens": rolling.five_hour.total_input_tokens,
-                "total_output_tokens": rolling.five_hour.total_output_tokens,
-                "total_requests": rolling.five_hour.total_requests,
-                "window_start": rolling.five_hour.window_start.map(|dt| dt.to_rfc3339()),
-                "window_end": rolling.five_hour.window_end.map(|dt| dt.to_rfc3339()),
-            },
-            "seven_day": {
-                "total_input_tokens": rolling.seven_day.total_input_tokens,
-                "total_output_tokens": rolling.seven_day.total_output_tokens,
-                "total_requests": rolling.seven_day.total_requests,
-                "window_start": rolling.seven_day.window_start.map(|dt| dt.to_rfc3339()),
-                "window_end": rolling.seven_day.window_end.map(|dt| dt.to_rfc3339()),
-            },
-            "all_time": {
-                "total_input_tokens": rolling.all_time.total_input_tokens,
-                "total_output_tokens": rolling.all_time.total_output_tokens,
-                "total_requests": rolling.all_time.total_requests,
-                "window_start": rolling.all_time.window_start.map(|dt| dt.to_rfc3339()),
-                "window_end": rolling.all_time.window_end.map(|dt| dt.to_rfc3339()),
-            },
-            "by_model": Value::Object(by_model),
-        }))
-    })
-    .await
-    .map_err(|e| format!("任务执行失败: {e}"))?
+                match result {
+                    Ok(payload) => {
+                        state
+                            .cache_set(cache_key.to_string(), payload.clone(), 30)
+                            .await;
+                        state.finish_cache_fill(cache_key).await;
+                        return Ok(payload);
+                    }
+                    Err(error) => {
+                        state.finish_cache_fill(cache_key).await;
+                        return Err(error);
+                    }
+                }
+            }
+        }
+    }
+
+    tokio::task::spawn_blocking(compute_codex_usage_payload)
+        .await
+        .map_err(|e| format!("任务执行失败: {e}"))?
 }
 
 // ── 私有辅助函数 ──

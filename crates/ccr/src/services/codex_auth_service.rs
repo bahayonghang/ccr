@@ -41,6 +41,21 @@ pub struct CodexAuthService {
     codex_dir: PathBuf,
 }
 
+struct CurrentAuthDocuments {
+    raw: serde_json::Map<String, serde_json::Value>,
+    auth: CodexAuthJson,
+}
+
+#[allow(dead_code)]
+pub struct AuthReadSnapshot {
+    pub auth_state: AuthState,
+    pub login_state: LoginState,
+    pub current_info: Option<CurrentAuthInfo>,
+    pub registry: CodexAuthRegistry,
+    pub current_account_name: Option<String>,
+    pub current_expires_at: Option<DateTime<Utc>>,
+}
+
 impl CodexAuthService {
     /// 创建新的 CodexAuthService 实例
     pub fn new() -> Result<Self> {
@@ -175,6 +190,21 @@ impl CodexAuthService {
             .map_err(|e| CcrError::ConfigError(format!("解析 auth.json 失败: {}", e)))
     }
 
+    fn load_current_auth_documents(&self) -> Result<CurrentAuthDocuments> {
+        let auth_path = self.auth_json_path();
+        if !auth_path.exists() {
+            return Err(CcrError::ConfigError(
+                "未登录 Codex，请先运行 `codex login`".into(),
+            ));
+        }
+
+        let raw = self.load_auth_raw_map(&auth_path)?;
+        let auth: CodexAuthJson = serde_json::from_value(serde_json::Value::Object(raw.clone()))
+            .map_err(|e| CcrError::ConfigError(format!("解析 auth.json 失败: {}", e)))?;
+
+        Ok(CurrentAuthDocuments { raw, auth })
+    }
+
     /// 检测 Codex 凭据存储模式
     fn detect_credential_store(&self) -> CredentialStoreKind {
         let config_path = self.codex_dir.join("config.toml");
@@ -235,6 +265,19 @@ impl CodexAuthService {
                 .filter(|v| !v.is_empty())
                 .map(|v| (key.as_str(), v))
         })
+    }
+
+    fn build_auth_state_from_raw(
+        store: CredentialStoreKind,
+        raw: &serde_json::Map<String, serde_json::Value>,
+    ) -> AuthState {
+        let (intent, status, reason) = Self::infer_auth_intent(raw);
+        AuthState {
+            intent,
+            store,
+            status,
+            reason,
+        }
     }
 
     fn infer_auth_intent(
@@ -364,12 +407,135 @@ impl CodexAuthService {
             }
         };
 
-        let (intent, status, reason) = Self::infer_auth_intent(&raw);
-        AuthState {
-            intent,
-            store,
-            status,
-            reason,
+        Self::build_auth_state_from_raw(store, &raw)
+    }
+
+    pub fn read_auth_snapshot(&self) -> Result<AuthReadSnapshot> {
+        let auth_state = self.get_auth_state();
+        let registry = self.load_registry()?;
+
+        let current_info = if auth_state.status == AuthStateStatus::Valid {
+            let docs = self.load_current_auth_documents()?;
+            Some(self.build_current_auth_info_from_documents(&auth_state, &docs)?)
+        } else {
+            None
+        };
+
+        let current_account_name = Self::matched_saved_account_name(&registry, current_info.as_ref());
+        let current_expires_at = current_account_name
+            .as_ref()
+            .and_then(|name| registry.accounts.get(name).and_then(|account| account.expires_at));
+        let login_state = Self::compute_login_state(
+            &auth_state,
+            current_info.as_ref(),
+            current_account_name.as_deref(),
+        );
+
+        Ok(AuthReadSnapshot {
+            auth_state,
+            login_state,
+            current_info,
+            registry,
+            current_account_name,
+            current_expires_at,
+        })
+    }
+
+    fn build_current_auth_info_from_documents(
+        &self,
+        auth_state: &AuthState,
+        docs: &CurrentAuthDocuments,
+    ) -> Result<CurrentAuthInfo> {
+        if auth_state.status != AuthStateStatus::Valid {
+            return Err(CcrError::ConfigError(format!(
+                "未检测到有效登录状态: {}",
+                auth_state.reason
+            )));
+        }
+
+        let mut account_id = docs
+            .auth
+            .tokens
+            .as_ref()
+            .and_then(|t| t.account_id.clone())
+            .unwrap_or_else(|| "unknown".to_string());
+
+        if account_id == "unknown" {
+            if let Some(openai_key) = docs.raw.get("OPENAI_API_KEY").and_then(|v| v.as_str())
+                && !openai_key.trim().is_empty()
+            {
+                account_id = format!("api:{}", Self::key_fingerprint(openai_key));
+            }
+
+            if account_id == "unknown"
+                && let Some((env_key, provider_key)) = Self::find_provider_api_key(&docs.raw)
+            {
+                account_id = format!("provider:{env_key}:{}", Self::key_fingerprint(provider_key));
+            }
+        }
+
+        let email = self.extract_email_from_jwt(&docs.auth);
+
+        let last_refresh = docs
+            .auth
+            .last_refresh
+            .as_ref()
+            .and_then(|s| DateTime::parse_from_rfc3339(s).ok())
+            .map(|dt| dt.with_timezone(&Utc));
+
+        let freshness = self.calculate_freshness(last_refresh);
+        let auth_method = match &auth_state.intent {
+            AuthIntent::OpenAiAuth { method } => Some(*method),
+            AuthIntent::ProviderEnvKey { .. } | AuthIntent::NoAuth => None,
+        };
+
+        Ok(CurrentAuthInfo {
+            account_id,
+            auth_method,
+            email,
+            last_refresh,
+            freshness,
+        })
+    }
+
+    fn matched_saved_account_name(
+        registry: &CodexAuthRegistry,
+        current_info: Option<&CurrentAuthInfo>,
+    ) -> Option<String> {
+        let info = current_info?;
+        registry.accounts.iter().find_map(|(name, account)| {
+            (account.account_id == info.account_id).then(|| name.clone())
+        })
+    }
+
+    fn compute_login_state(
+        auth_state: &AuthState,
+        current_info: Option<&CurrentAuthInfo>,
+        matched_account_name: Option<&str>,
+    ) -> LoginState {
+        if auth_state.status != AuthStateStatus::Valid {
+            return LoginState::NotLoggedIn;
+        }
+
+        match &auth_state.intent {
+            AuthIntent::OpenAiAuth {
+                method: OpenAiAuthMethod::Api,
+            } => LoginState::ApiKeyActive,
+            AuthIntent::ProviderEnvKey { env_key } => LoginState::ProviderKeyActive {
+                env_key: env_key.clone(),
+            },
+            AuthIntent::NoAuth => LoginState::NotLoggedIn,
+            AuthIntent::OpenAiAuth {
+                method: OpenAiAuthMethod::Chatgpt,
+            } => {
+                if current_info.is_none() {
+                    return LoginState::NotLoggedIn;
+                }
+
+                matched_account_name
+                    .map(|name| LoginState::LoggedInSaved(name.to_string()))
+                    .unwrap_or(LoginState::LoggedInUnsaved)
+            }
         }
     }
 
@@ -405,118 +571,13 @@ impl CodexAuthService {
 
     /// 获取当前登录状态
     pub fn get_login_state(&self) -> Result<LoginState> {
-        let auth_state = self.get_auth_state();
-        if auth_state.status != AuthStateStatus::Valid {
-            return Ok(LoginState::NotLoggedIn);
-        }
-
-        // 非 OAuth 模式：直接返回对应的 Key-based 状态
-        match &auth_state.intent {
-            AuthIntent::OpenAiAuth {
-                method: OpenAiAuthMethod::Api,
-            } => {
-                return Ok(LoginState::ApiKeyActive);
-            }
-            AuthIntent::ProviderEnvKey { env_key } => {
-                return Ok(LoginState::ProviderKeyActive {
-                    env_key: env_key.clone(),
-                });
-            }
-            AuthIntent::NoAuth => {
-                return Ok(LoginState::NotLoggedIn);
-            }
-            // 只有 Chatgpt 方式才走 registry 查找
-            AuthIntent::OpenAiAuth {
-                method: OpenAiAuthMethod::Chatgpt,
-            } => {}
-        }
-
-        // OAuth (Chatgpt) 流程：检查是否已保存
-        let _ = self.sync_current_auth_registry();
-
-        let current_info = self.get_current_auth_info()?;
-        let registry = self.load_registry()?;
-
-        // 查找匹配的已保存账号
-        for (name, account) in &registry.accounts {
-            if account.account_id == current_info.account_id {
-                return Ok(LoginState::LoggedInSaved(name.clone()));
-            }
-        }
-
-        Ok(LoginState::LoggedInUnsaved)
+        Ok(self.read_auth_snapshot()?.login_state)
     }
 
     /// 获取当前 auth.json 的解析信息
     pub fn get_current_auth_info(&self) -> Result<CurrentAuthInfo> {
-        let auth_state = self.get_auth_state();
-        if auth_state.status != AuthStateStatus::Valid {
-            return Err(CcrError::ConfigError(format!(
-                "未检测到有效登录状态: {}",
-                auth_state.reason
-            )));
-        }
-
-        let auth_path = self.auth_json_path();
-        if !auth_path.exists() {
-            return Err(CcrError::ConfigError(
-                "未登录 Codex，请先运行 `codex login`".into(),
-            ));
-        }
-
-        let content = fs::read_to_string(&auth_path)
-            .map_err(|e| CcrError::ConfigError(format!("读取 auth.json 失败: {}", e)))?;
-
-        let raw: serde_json::Map<String, serde_json::Value> = serde_json::from_str(&content)
-            .map_err(|e| CcrError::ConfigError(format!("解析 auth.json 失败: {}", e)))?;
-
-        let auth: CodexAuthJson = serde_json::from_str(&content)
-            .map_err(|e| CcrError::ConfigError(format!("解析 auth.json 失败: {}", e)))?;
-
-        // 提取 account_id
-        let mut account_id = auth
-            .tokens
-            .as_ref()
-            .and_then(|t| t.account_id.clone())
-            .unwrap_or_else(|| "unknown".to_string());
-
-        if account_id == "unknown" {
-            if let Some(openai_key) = raw.get("OPENAI_API_KEY").and_then(|v| v.as_str())
-                && !openai_key.trim().is_empty()
-            {
-                account_id = format!("api:{}", Self::key_fingerprint(openai_key));
-            }
-
-            if account_id == "unknown"
-                && let Some((env_key, provider_key)) = Self::find_provider_api_key(&raw)
-            {
-                account_id = format!("provider:{env_key}:{}", Self::key_fingerprint(provider_key));
-            }
-        }
-
-        // 从 JWT 提取邮箱
-        let email = self.extract_email_from_jwt(&auth);
-
-        // 解析 last_refresh
-        let last_refresh = auth
-            .last_refresh
-            .as_ref()
-            .and_then(|s| DateTime::parse_from_rfc3339(s).ok())
-            .map(|dt| dt.with_timezone(&Utc));
-
-        // 计算新鲜度
-        let freshness = self.calculate_freshness(last_refresh);
-        let auth_method = match &auth_state.intent {
-            AuthIntent::OpenAiAuth { method } => Some(*method),
-            AuthIntent::ProviderEnvKey { .. } | AuthIntent::NoAuth => None,
-        };
-
-        Ok(CurrentAuthInfo {
-            account_id,
-            auth_method,
-            email,
-            last_refresh,
-            freshness,
+        self.read_auth_snapshot()?.current_info.ok_or_else(|| {
+            CcrError::ConfigError("未检测到有效登录状态".into())
         })
     }
 
@@ -701,20 +762,16 @@ impl CodexAuthService {
 
     /// 列出所有账号
     pub fn list_accounts(&self) -> Result<Vec<CodexAuthItem>> {
-        let registry = self.load_registry()?;
+        let snapshot = self.read_auth_snapshot()?;
+        self.build_account_items(&snapshot)
+    }
+
+    pub fn build_account_items(&self, snapshot: &AuthReadSnapshot) -> Result<Vec<CodexAuthItem>> {
         let mut items = Vec::new();
 
-        // 检查当前登录状态
-        let login_state = self.get_login_state()?;
-        let current_info = if self.is_logged_in() {
-            self.get_current_auth_info().ok()
-        } else {
-            None
-        };
-
         // 如果已登录但未保存，添加虚拟 "default" 项
-        if let LoginState::LoggedInUnsaved = login_state
-            && let Some(info) = &current_info
+        if let LoginState::LoggedInUnsaved = snapshot.login_state
+            && let Some(info) = &snapshot.current_info
         {
             items.push(CodexAuthItem {
                 name: "default".to_string(),
@@ -731,12 +788,12 @@ impl CodexAuthService {
         }
 
         // 添加所有已保存的账号
-        for (name, account) in &registry.accounts {
+        for (name, account) in &snapshot.registry.accounts {
             if account.auth_method.is_none() && account.account_id.starts_with("provider:") {
                 continue;
             }
 
-            let is_current = match &login_state {
+            let is_current = match &snapshot.login_state {
                 LoginState::LoggedInSaved(current_name) => current_name == name,
                 _ => false,
             };
@@ -1685,6 +1742,22 @@ mod tests {
 
         let state = service.get_login_state().unwrap();
         assert_eq!(state, LoginState::LoggedInUnsaved);
+    }
+
+    #[test]
+    fn test_get_login_state_does_not_create_registry_side_effects() {
+        let (service, _ccr, codex) = create_test_service();
+
+        let auth_path = codex.path().join("auth.json");
+        let auth_content = create_test_auth_json("test-id", "2026-01-08T03:09:53.894843900Z");
+        fs::write(&auth_path, auth_content).unwrap();
+
+        let registry_path = service.registry_path();
+        assert!(!registry_path.exists());
+
+        let state = service.get_login_state().unwrap();
+        assert_eq!(state, LoginState::LoggedInUnsaved);
+        assert!(!registry_path.exists());
     }
 
     #[test]

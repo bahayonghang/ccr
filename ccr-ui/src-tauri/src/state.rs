@@ -4,6 +4,7 @@
 
 use std::collections::{HashMap, VecDeque};
 use std::num::NonZeroUsize;
+use std::sync::Arc;
 use std::sync::Mutex;
 use std::sync::atomic::AtomicBool;
 use std::time::{Duration, Instant};
@@ -12,7 +13,7 @@ use ccr_db::database::pool::DbPool;
 use ccr_db::services::log_persistence::{LogPersistenceService, LogStorageConfig};
 use chrono::{DateTime, Utc};
 use lru::LruCache;
-use tokio::sync::RwLock;
+use tokio::sync::{Notify, RwLock};
 
 use crate::checkin_jobs::CheckinJobSnapshot;
 use crate::events::{EventLog, EventLogStats};
@@ -50,6 +51,9 @@ pub struct AppState {
 
     /// 内存缓存层（LRU + TTL）
     pub cache: RwLock<LruCache<String, CacheEntry>>,
+
+    /// 缓存填充中的请求去重表
+    inflight_cache_keys: RwLock<HashMap<String, Arc<Notify>>>,
 
     /// 执行环境注册表（Local / WSL / SSH）
     pub env_registry: RwLock<EnvironmentRegistry>,
@@ -121,6 +125,7 @@ impl AppState {
             db_pool,
             http_client,
             cache: RwLock::new(LruCache::new(cache_cap)),
+            inflight_cache_keys: RwLock::new(HashMap::new()),
             env_registry: RwLock::new(EnvironmentRegistry::new()),
             ssh_runtime_states: RwLock::new(HashMap::new()),
             ssh_password_cache: RwLock::new(HashMap::new()),
@@ -163,6 +168,27 @@ impl AppState {
                 expires_at: Instant::now() + Duration::from_secs(ttl_secs),
             },
         );
+    }
+
+    /// 注册缓存填充任务；已存在时返回等待中的 notifier。
+    pub async fn begin_cache_fill(&self, key: &str) -> CacheFillRegistration {
+        let mut inflight = self.inflight_cache_keys.write().await;
+
+        if let Some(notify) = inflight.get(key) {
+            return CacheFillRegistration::Wait(Arc::clone(notify));
+        }
+
+        let notify = Arc::new(Notify::new());
+        inflight.insert(key.to_string(), notify);
+        CacheFillRegistration::Leader
+    }
+
+    /// 结束缓存填充任务并唤醒等待者。
+    pub async fn finish_cache_fill(&self, key: &str) {
+        let mut inflight = self.inflight_cache_keys.write().await;
+        if let Some(notify) = inflight.remove(key) {
+            notify.notify_waiters();
+        }
     }
 
     /// 清理过期缓存
@@ -275,6 +301,11 @@ impl AppState {
             db_query_p95_ms,
         }
     }
+}
+
+pub enum CacheFillRegistration {
+    Leader,
+    Wait(Arc<Notify>),
 }
 
 fn push_sample(samples: &mut VecDeque<f64>, value: f64) {

@@ -976,9 +976,13 @@ export const detectCodexProcess = async <T = UnknownRecord>(): Promise<T> => {
   return invoke('codex_detect_process')
 }
 
+export interface CodexUsageCommandOptions {
+  force?: boolean
+}
+
 /** 获取 Codex 使用量 */
-export const getCodexUsage = async <T = UnknownRecord>(): Promise<T> => {
-  return invoke('codex_get_usage')
+export const getCodexUsage = async <T = UnknownRecord>(options?: CodexUsageCommandOptions): Promise<T> => {
+  return invoke('codex_get_usage', { force: options?.force })
 }
 
 /** 获取所有 Codex 账号的配额余额 */

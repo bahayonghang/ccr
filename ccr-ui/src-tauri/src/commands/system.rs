@@ -10,7 +10,7 @@ use tokio::time::{Duration, timeout};
 
 use crate::monitoring::{event_to_monitoring_entry, frontend_log_entry, record_monitoring_entry, should_persist};
 use crate::process::tokio_command;
-use crate::state::AppState;
+use crate::state::{AppState, CacheFillRegistration};
 
 /// 系统信息响应结构
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -318,41 +318,49 @@ async fn probe_cli_version(tool: &'static str, timeout_ms: u64) -> CliVersionEnt
     }
 }
 
-#[tauri::command]
-pub async fn update_ccr() -> Result<serde_json::Value, String> {
-    let output = run_command_with_timeout("cargo", &["install", "ccr"], 60).await?;
-
-    let success = output.status.success();
-    let stdout = String::from_utf8_lossy(&output.stdout).to_string();
-    let stderr = String::from_utf8_lossy(&output.stderr).to_string();
-
-    Ok(serde_json::json!({
-        "success": success,
-        "stdout": stdout,
-        "stderr": stderr,
-    }))
+fn legacy_versions_map(entries: &[CliVersionEntry]) -> serde_json::Map<String, serde_json::Value> {
+    let mut versions = serde_json::Map::new();
+    for entry in entries {
+        let legacy_value = if entry.installed {
+            entry
+                .version
+                .clone()
+                .unwrap_or_else(|| "installed".to_string())
+        } else {
+            "not found".to_string()
+        };
+        versions.insert(
+            entry.platform.clone(),
+            serde_json::Value::String(legacy_value),
+        );
+    }
+    versions
 }
 
-#[tauri::command]
-pub async fn get_cli_versions(
-    options: Option<CliVersionsOptions>,
-) -> Result<serde_json::Value, String> {
-    let options = options.unwrap_or(CliVersionsOptions {
-        mode: None,
-        timeout_ms: None,
-        parallelism: None,
-    });
-    let mode = CliProbeMode::from_options(&options);
-    let timeout_ms = options.timeout_ms.unwrap_or(mode.default_timeout_ms());
-    let tools = ["ccr", "claude", "codex", "gemini"];
-    let parallelism = options
-        .parallelism
-        .unwrap_or(mode.default_parallelism())
-        .max(1)
-        .min(tools.len());
+fn cli_versions_payload(
+    entries: Vec<CliVersionEntry>,
+    mode: CliProbeMode,
+    timeout_ms: u64,
+    parallelism: usize,
+) -> serde_json::Value {
+    serde_json::json!({
+        "versions": legacy_versions_map(&entries),
+        "entries": entries,
+        "mode": mode.as_str(),
+        "timeout_ms": timeout_ms,
+        "parallelism": parallelism,
+    })
+}
 
-    let semaphore = Arc::new(Semaphore::new(parallelism));
+async fn compute_cli_versions(
+    timeout_ms: u64,
+    parallelism: usize,
+) -> Result<Vec<CliVersionEntry>, String> {
+    let tools = ["ccr", "claude", "codex", "gemini"];
+    let effective_parallelism = parallelism.max(1).min(tools.len());
+    let semaphore = Arc::new(Semaphore::new(effective_parallelism));
     let mut handles = Vec::with_capacity(tools.len());
+
     for tool in tools {
         let permit_pool = Arc::clone(&semaphore);
         handles.push(tokio::spawn(async move {
@@ -372,30 +380,87 @@ pub async fn get_cli_versions(
         entries.push(entry);
     }
     entries.sort_by(|a, b| a.platform.cmp(&b.platform));
+    Ok(entries)
+}
 
-    let mut versions = serde_json::Map::new();
-    for entry in &entries {
-        let legacy_value = if entry.installed {
-            entry
-                .version
-                .clone()
-                .unwrap_or_else(|| "installed".to_string())
-        } else {
-            "not found".to_string()
-        };
-        versions.insert(
-            entry.platform.clone(),
-            serde_json::Value::String(legacy_value),
-        );
-    }
+#[tauri::command]
+pub async fn update_ccr() -> Result<serde_json::Value, String> {
+    let output = run_command_with_timeout("cargo", &["install", "ccr"], 60).await?;
+
+    let success = output.status.success();
+    let stdout = String::from_utf8_lossy(&output.stdout).to_string();
+    let stderr = String::from_utf8_lossy(&output.stderr).to_string();
 
     Ok(serde_json::json!({
-        "versions": versions,
-        "entries": entries,
-        "mode": mode.as_str(),
-        "timeout_ms": timeout_ms,
-        "parallelism": parallelism,
+        "success": success,
+        "stdout": stdout,
+        "stderr": stderr,
     }))
+}
+
+#[tauri::command]
+pub async fn get_cli_versions(
+    state: State<'_, AppState>,
+    options: Option<CliVersionsOptions>,
+) -> Result<serde_json::Value, String> {
+    let options = options.unwrap_or(CliVersionsOptions {
+        mode: None,
+        timeout_ms: None,
+        parallelism: None,
+    });
+    let mode = CliProbeMode::from_options(&options);
+    let timeout_ms = options.timeout_ms.unwrap_or(mode.default_timeout_ms());
+    let parallelism = options
+        .parallelism
+        .unwrap_or(mode.default_parallelism())
+        .max(1);
+
+    let should_cache = matches!(mode, CliProbeMode::Fast);
+    let cache_key = "system:cli_versions:fast";
+
+    if should_cache {
+        if let Some(cached) = state.cache_get(cache_key).await {
+            let entries: Vec<CliVersionEntry> = serde_json::from_value(cached)
+                .map_err(|e| format!("CLI version cache decode failed: {e}"))?;
+            return Ok(cli_versions_payload(entries, mode, timeout_ms, parallelism));
+        }
+
+        match state.begin_cache_fill(cache_key).await {
+            CacheFillRegistration::Wait(notify) => {
+                notify.notified().await;
+                if let Some(cached) = state.cache_get(cache_key).await {
+                    let entries: Vec<CliVersionEntry> = serde_json::from_value(cached)
+                        .map_err(|e| format!("CLI version cache decode failed: {e}"))?;
+                    return Ok(cli_versions_payload(entries, mode, timeout_ms, parallelism));
+                }
+            }
+            CacheFillRegistration::Leader => {
+                let result = compute_cli_versions(timeout_ms, parallelism).await;
+                let entries = match result {
+                    Ok(entries) => entries,
+                    Err(error) => {
+                        state.finish_cache_fill(cache_key).await;
+                        return Err(error);
+                    }
+                };
+                let cached_entries = match serde_json::to_value(&entries) {
+                    Ok(value) => value,
+                    Err(error) => {
+                        state.finish_cache_fill(cache_key).await;
+                        return Err(format!("CLI version cache encode failed: {error}"));
+                    }
+                };
+                state
+                    .cache_set(cache_key.to_string(), cached_entries, 60)
+                    .await;
+                state.finish_cache_fill(cache_key).await;
+                return Ok(cli_versions_payload(entries, mode, timeout_ms, parallelism));
+            }
+        }
+    }
+
+    let entries = compute_cli_versions(timeout_ms, parallelism).await?;
+    Ok(cli_versions_payload(entries, mode, timeout_ms, parallelism))
 }
 
 #[cfg(test)]
@@ -406,13 +471,13 @@ mod tests {
     #[tokio::test]
     async fn cli_versions_fast_mode_returns_expected_shape() {
         let started_at = Instant::now();
-        let payload = get_cli_versions(Some(CliVersionsOptions {
-            mode: Some("fast".to_string()),
-            timeout_ms: Some(3_500),
-            parallelism: Some(4),
-        }))
-        .await
-        .expect("get_cli_versions should succeed");
+        let mode = CliProbeMode::Fast;
+        let timeout_ms = 3_500;
+        let parallelism = 4;
+        let entries = compute_cli_versions(timeout_ms, parallelism)
+            .await
+            .expect("compute_cli_versions should succeed");
+        let payload = cli_versions_payload(entries, mode, timeout_ms, parallelism);
 
         assert_eq!(payload.get("mode").and_then(|v| v.as_str()), Some("fast"));
         assert_eq!(
