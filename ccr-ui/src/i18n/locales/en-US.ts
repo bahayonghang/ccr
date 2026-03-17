@@ -893,6 +893,19 @@ export default {
     deleteFailed: 'Delete failed',
     toggleFailed: 'Toggle failed',
     breadcrumb: { home: 'Home', claudeCode: 'Claude Code', slashCommands: 'Slash Commands' },
+    viewControls: {
+      sort: 'Sort',
+      sortByName: 'Name',
+      sortByUsage: 'Usage',
+      sortByModified: 'Modified Time',
+      sortAsc: 'Ascending',
+      sortDesc: 'Descending',
+      view: 'View',
+      flatView: 'Flat View',
+      treeView: 'Tree View',
+      hideDeprecated: 'Hide Deprecated',
+      showDeprecated: 'Show Deprecated',
+    },
   },
   plugins: {
     // Plugins Management

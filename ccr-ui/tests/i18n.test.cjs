@@ -16,12 +16,12 @@
  * - Coverage statistics and reporting
  *
  * Exit Codes:
- * - 0: All tests passed
+ * - 0: No critical failures (warnings / non-critical mismatches may still exist)
  * - 1: Critical tests failed (missing files, syntax errors, missing required namespaces)
  *
  * Usage:
  *   node tests/i18n.test.cjs
- *   npm test
+ *   bun run test:i18n
  *
  * @author CCR Development Team
  * @version 1.0.0
@@ -752,8 +752,10 @@ function main() {
 
   console.log('\n' + info('─'.repeat(80)));
 
-  if (exitCode === 0) {
+  if (exitCode === 0 && testResults.failed === 0 && testResults.warnings === 0) {
     console.log(success('\n✓ All tests passed! i18n files are valid and consistent.\n'));
+  } else if (exitCode === 0) {
+    console.log(warning('\n⚠ Completed without critical failures, but non-blocking issues were found.\n'));
   } else {
     console.log(error('\n✗ Critical tests failed. Please fix the issues above.\n'));
   }

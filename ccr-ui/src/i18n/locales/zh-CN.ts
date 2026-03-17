@@ -1602,6 +1602,41 @@ export default {
         noLogs: '未发现本地 usage 日志',
       },
     },
+
+    help: {
+      title: '什么是 Claude Code Skills？',
+      description:
+        'Skills 是 Claude Code 的模块化能力。每个 Skill 都是一个包含 SKILL.md 文件的文件夹，用于定义 Claude 可复用执行的任务。',
+      structure: '结构：~/.claude/skills/<skill-name>/SKILL.md',
+      learnMore: '了解更多',
+    },
+    repositories: {
+      title: 'Skill 仓库',
+      subtitle: '管理远程 Skill 仓库',
+      add: '添加仓库',
+      addTitle: '添加 Skill 仓库',
+      name: '仓库名称',
+      url: 'GitHub 地址',
+      branch: '分支',
+      description: '描述',
+      empty: '暂无已配置仓库',
+      emptyHint: '添加仓库后即可下载远程 Skills',
+      skills: '个技能',
+      official: '官方',
+      scan: '扫描',
+      confirmDelete: '确定要删除仓库 "{name}" 吗？',
+    },
+    search: {
+      title: 'Skill 搜索',
+      skillsFound: '个技能',
+      placeholder: '按名称、标签、作者搜索技能...',
+      repository: '仓库',
+      tags: '标签',
+      local: '本地',
+      noResults: '未找到匹配的技能',
+      tryDifferent: '请尝试其他搜索条件',
+      noDescription: '暂无描述',
+    },
   },
 
   // Statistics Module
