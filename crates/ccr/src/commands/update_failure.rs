@@ -5,7 +5,7 @@ const FAILURE_LOG_LINES: usize = 20;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum UpdateFailureKind {
     MissingEmbeddedWebAssets,
-    MissingNodeOrNpm,
+    MissingPackageManager,
     CompilationFailed,
 }
 
@@ -24,8 +24,8 @@ fn classify_update_failure(stderr: &str) -> UpdateFailureKind {
     if is_missing_web_assets_error(&stderr_lower) {
         return UpdateFailureKind::MissingEmbeddedWebAssets;
     }
-    if is_missing_npm_error(&stderr_lower) {
-        return UpdateFailureKind::MissingNodeOrNpm;
+    if is_missing_package_manager_error(&stderr_lower) {
+        return UpdateFailureKind::MissingPackageManager;
     }
     UpdateFailureKind::CompilationFailed
 }
@@ -38,11 +38,14 @@ fn is_missing_web_assets_error(stderr_lower: &str) -> bool {
             && stderr_lower.contains("dist/script.js"))
 }
 
-fn is_missing_npm_error(stderr_lower: &str) -> bool {
+fn is_missing_package_manager_error(stderr_lower: &str) -> bool {
     stderr_lower.contains("[ccr-build]")
+        || stderr_lower.contains("bun: command not found")
+        || stderr_lower.contains("'bun' is not recognized")
         || stderr_lower.contains("npm: command not found")
         || stderr_lower.contains("'npm' is not recognized")
         || (stderr_lower.contains("npm") && stderr_lower.contains("不是内部或外部命令"))
+        || (stderr_lower.contains("bun") && stderr_lower.contains("不是内部或外部命令"))
 }
 
 fn print_failure_guidance(kind: UpdateFailureKind, repo_url: &str, branch: &str, package: &str) {
@@ -50,7 +53,9 @@ fn print_failure_guidance(kind: UpdateFailureKind, repo_url: &str, branch: &str,
         UpdateFailureKind::MissingEmbeddedWebAssets => {
             ColorOutput::info("已识别原因: 缺少嵌入式 Web 构建产物 (ccr-ui/web/dist/*)");
             ColorOutput::info("解决方案:");
-            println!("  1. 在仓库根目录执行: cd ccr-ui/web && npm ci && npm run build");
+            println!(
+                "  1. 在仓库根目录执行: cd ccr-ui/web && bun install --frozen-lockfile && bun run build"
+            );
             println!("  2. 重新执行更新命令: ccr update {}", branch);
             println!(
                 "  3. 手动安装: cargo install --git {} {} --branch {} --force",
@@ -58,14 +63,15 @@ fn print_failure_guidance(kind: UpdateFailureKind, repo_url: &str, branch: &str,
             );
             println!();
         }
-        UpdateFailureKind::MissingNodeOrNpm => {
-            ColorOutput::info("已识别原因: 当前环境缺少 Node.js/npm，无法构建内嵌 Web 资源");
+        UpdateFailureKind::MissingPackageManager => {
+            ColorOutput::info("已识别原因: 当前环境缺少可用的前端包管理器，无法构建内嵌 Web 资源");
             ColorOutput::info("解决方案:");
-            println!("  1. 检查命令: node --version && npm --version");
-            println!("  2. 安装 Node.js 18+（需包含 npm）");
-            println!("  3. 重新执行更新命令: ccr update {}", branch);
+            println!("  1. 优先检查 Bun: bun --version");
+            println!("  2. 如无 Bun，再检查兼容回退: node --version && npm --version");
+            println!("  3. 安装 Bun 1.3+（推荐）或 Node.js 18+（兼容回退）");
+            println!("  4. 重新执行更新命令: ccr update {}", branch);
             println!(
-                "  4. 手动安装: cargo install --git {} {} --branch {} --force",
+                "  5. 手动安装: cargo install --git {} {} --branch {} --force",
                 repo_url, package, branch
             );
             println!();
@@ -120,11 +126,11 @@ mod tests {
     }
 
     #[test]
-    fn test_classify_update_failure_missing_npm() {
+    fn test_classify_update_failure_missing_package_manager() {
         let stderr = "[ccr-build] 无法执行 npm: No such file or directory (os error 2)";
         assert_eq!(
             classify_update_failure(stderr),
-            UpdateFailureKind::MissingNodeOrNpm
+            UpdateFailureKind::MissingPackageManager
         );
     }
 

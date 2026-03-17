@@ -5,9 +5,9 @@ These notes apply to everything under `ccr-ui/` and supplement the repository-le
 ## Playwright And Browser Automation
 
 - For Playwright work, prefer the web version instead of the Tauri desktop shell.
-- Start the frontend from `ccr-ui/` with `npm run dev:web -- --host 127.0.0.1 --strictPort`.
+- Start the frontend from `ccr-ui/` with `bun run dev:web -- --host 127.0.0.1 --strictPort`.
 - Use `http://127.0.0.1:5173/` as the default target URL for browser automation.
-- Do not use `npm run tauri:dev` or `just tauri-dev` for Playwright tasks unless the task explicitly requires Tauri window APIs.
+- Do not use `bun run tauri:dev` or `just tauri-dev` for Playwright tasks unless the task explicitly requires Tauri window APIs.
 - When validating UI in web mode, note that Tauri-only `invoke()` paths may not work in a plain browser runtime; treat those as runtime-environment limitations rather than Playwright failures.
 
 ## Design Context

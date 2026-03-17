@@ -5,14 +5,12 @@ on:
     branches: [ main, develop ]
     paths:
       - 'ccr-ui/**'
-      - 'ccr-ui/docs/**'
       - 'docs/**'
       - '.github/workflows/frontend-ci.yml'
   pull_request:
     branches: [ main, develop ]
     paths:
       - 'ccr-ui/**'
-      - 'ccr-ui/docs/**'
       - 'docs/**'
       - '.github/workflows/frontend-ci.yml'
 
@@ -35,7 +33,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.bun/install/cache
-          key: ${{ runner.os }}-bun-${{ hashFiles('ccr-ui/bun.lockb') }}
+          key: ${{ runner.os }}-bun-${{ hashFiles('ccr-ui/bun.lock') }}
           restore-keys: |
             ${{ runner.os }}-bun-
 
@@ -47,6 +45,9 @@ jobs:
 
       - name: Lint
         run: bun run lint
+
+      - name: Smoke tests
+        run: bun run test
 
   build-frontend:
     name: Build Frontend
@@ -67,7 +68,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.bun/install/cache
-          key: ${{ runner.os }}-bun-${{ hashFiles('ccr-ui/bun.lockb') }}
+          key: ${{ runner.os }}-bun-${{ hashFiles('ccr-ui/bun.lock') }}
           restore-keys: |
             ${{ runner.os }}-bun-
 
@@ -89,7 +90,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        docs-dir: ['docs', 'ccr-ui/docs']
+        docs-dir: ['docs']
     steps:
       - uses: actions/checkout@v4
 
@@ -102,7 +103,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.bun/install/cache
-          key: ${{ runner.os }}-bun-docs-${{ matrix.docs-dir }}-${{ hashFiles(format('{0}/bun.lockb', matrix.docs-dir)) }}
+          key: ${{ runner.os }}-bun-docs-${{ matrix.docs-dir }}-${{ hashFiles(format('{0}/bun.lock', matrix.docs-dir)) }}
           restore-keys: |
             ${{ runner.os }}-bun-docs-${{ matrix.docs-dir }}-
 

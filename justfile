@@ -659,6 +659,12 @@ frontend-lint:
     cd ccr-ui && bun install --frozen-lockfile && bun run lint
     @just success "前端 Lint 检查通过"
 
+# 🧪 前端 Smoke Tests
+frontend-test:
+    @just header "🧪 前端 Smoke Tests"
+    cd ccr-ui && bun install --frozen-lockfile && bun run test
+    @just success "前端 Smoke Tests 通过"
+
 # 🏗️ 前端构建
 frontend-build:
     @just header "🏗️ 前端构建"
@@ -670,16 +676,14 @@ docs-check:
     @just header "📚 文档构建检查"
     @just warn "注意: 若有 dead links 会失败，可在 .vitepress/config 中配置 ignoreDeadLinks"
     cd docs && npm install && npm run build
-    @just info "⏭️  跳过 ccr-ui/docs 构建 (VitePress+Mermaid 插件问题)"
-    # cd ccr-ui/docs && bun install && bun run build
     @just success "文档构建检查完成"
 
 # 🌐 前端完整检查 (类型检查 + Lint + 构建 + 文档构建)
-frontend-check: frontend-typecheck frontend-lint frontend-build docs-check
+frontend-check: frontend-typecheck frontend-lint frontend-test frontend-build docs-check
     @just success "前端检查全部通过"
 
 # 🌐 前端快速检查 (类型检查 + Lint，不含构建和文档)
-frontend-check-quick: frontend-typecheck frontend-lint
+frontend-check-quick: frontend-typecheck frontend-lint frontend-test
     @just success "前端快速检查通过"
 
 # ═══════════════════════════════════════════════════════════

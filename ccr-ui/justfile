@@ -766,8 +766,8 @@ _check-backend-windows:
     @Write-Output '🔍 检查后端代码...'
     @Set-Location src-tauri; cargo check
 
-# 检查前端代码（Lint + TypeScript）
-check-frontend: check-frontend-lint check-frontend-types
+# 检查前端代码（Lint + TypeScript + Smoke Tests）
+check-frontend: check-frontend-lint check-frontend-types test-frontend
     @just _check-frontend-summary-{{os()}}
 
 _check-frontend-summary-linux:
@@ -868,15 +868,15 @@ test-frontend:
 
 _test-frontend-linux:
     @echo "🧪 运行前端测试..."
-    bun run test || echo "ℹ️  前端测试跳过（未配置测试框架）"
+    bun run test
 
 _test-frontend-macos:
     @echo "🧪 运行前端测试..."
-    bun run test || echo "ℹ️  前端测试跳过（未配置测试框架）"
+    bun run test
 
 _test-frontend-windows:
     @Write-Output '🧪 运行前端测试...'
-    @bun run test; if (-not $?) { Write-Host 'ℹ️  前端测试跳过（未配置测试框架）' -ForegroundColor Cyan }
+    @bun run test
 
 # ===== 代码质量 =====
 
@@ -1367,23 +1367,19 @@ _ensure-frontend-deps-macos:
     #!/usr/bin/env bash
     if [ ! -d "node_modules" ] || [ ! -d "node_modules/vue-i18n" ]; then
         echo "📦 检测到依赖缺失，正在安装前端依赖..."
-        if command -v bun >/dev/null 2>&1; then
-            bun install
-        else
-            npm install
-        fi
+        bun install
         echo "✅ 前端依赖安装完成"
     else
         echo "✅ 前端依赖已就绪"
     fi
 
 _ensure-frontend-deps-windows:
-    @if (-not (Test-Path 'node_modules') -or -not (Test-Path 'node_modules/vue-i18n')) { Write-Output '📦 检测到依赖缺失，正在安装前端依赖...'; if (Get-Command bun -ErrorAction SilentlyContinue) { bun install } else { npm install }; Write-Output '✅ 前端依赖安装完成' } else { Write-Output '✅ 前端依赖已就绪' }
+    @if (-not (Test-Path 'node_modules') -or -not (Test-Path 'node_modules/vue-i18n')) { Write-Output '📦 检测到依赖缺失，正在安装前端依赖...'; bun install; Write-Output '✅ 前端依赖安装完成' } else { Write-Output '✅ 前端依赖已就绪' }
 
 _tauri-build-linux:
     @echo "🏗️  构建 Tauri 桌面应用（生产版本）..."
-    @if command -v bun >/dev/null 2>&1; then bun run build; else npm run build; fi
-    @if command -v bun >/dev/null 2>&1; then CARGO_INCREMENTAL=1 bun run tauri:build; else CARGO_INCREMENTAL=1 npx tauri build; fi
+    @bun run build
+    @CARGO_INCREMENTAL=1 bun run tauri:build
     @echo ""
     @echo "✅ Tauri 构建完成"
     @echo "📦 产物位置: src-tauri/target/release/bundle/"
@@ -1392,8 +1388,8 @@ _tauri-build-linux:
 
 _tauri-build-macos:
     @echo "🏗️  构建 Tauri 桌面应用（生产版本）..."
-    @if command -v bun >/dev/null 2>&1; then bun run build; else npm run build; fi
-    @if command -v bun >/dev/null 2>&1; then CARGO_INCREMENTAL=1 bun run tauri:build; else CARGO_INCREMENTAL=1 npx tauri build; fi
+    @bun run build
+    @CARGO_INCREMENTAL=1 bun run tauri:build
     @echo ""
     @echo "🧹 清理自动挂载的 DMG..."
     @hdiutil detach "/Volumes/CCR Desktop" 2>/dev/null || true
@@ -1405,8 +1401,8 @@ _tauri-build-macos:
 
 _tauri-build-windows:
     @Write-Output '🏗️  构建 Tauri 桌面应用（生产版本）...'
-    @if (Get-Command bun -ErrorAction SilentlyContinue) { bun run build } else { npm run build }
-    @$env:CARGO_INCREMENTAL = '1'; if (Get-Command bun -ErrorAction SilentlyContinue) { bun run tauri:build } else { npx tauri build }
+    @bun run build
+    @$env:CARGO_INCREMENTAL = '1'; bun run tauri:build
     @Write-Output ''
     @Write-Output '✅ Tauri 构建完成'
     @Write-Output '📦 产物位置: src-tauri/target/release/bundle/'
@@ -1419,16 +1415,16 @@ tauri-build-debug:
 
 _tauri-build-debug-linux:
     @echo "🏗️  构建 Tauri 桌面应用（调试版本）..."
-    @if command -v bun >/dev/null 2>&1; then bun run build; else npm run build; fi
-    @if command -v bun >/dev/null 2>&1; then CARGO_INCREMENTAL=1 bun run tauri:build:debug; else CARGO_INCREMENTAL=1 npx tauri build --debug; fi
+    @bun run build
+    @CARGO_INCREMENTAL=1 bun run tauri:build:debug
     @echo ""
     @echo "✅ Tauri 调试版本构建完成"
     @echo "📦 产物位置: src-tauri/target/debug/bundle/"
 
 _tauri-build-debug-macos:
     @echo "🏗️  构建 Tauri 桌面应用（调试版本）..."
-    @if command -v bun >/dev/null 2>&1; then bun run build; else npm run build; fi
-    @if command -v bun >/dev/null 2>&1; then CARGO_INCREMENTAL=1 bun run tauri:build:debug; else CARGO_INCREMENTAL=1 npx tauri build --debug; fi
+    @bun run build
+    @CARGO_INCREMENTAL=1 bun run tauri:build:debug
     @echo ""
     @echo "✅ Tauri 调试版本构建完成"
     @echo "📦 产物位置: src-tauri/target/debug/bundle/"

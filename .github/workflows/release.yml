@@ -221,8 +221,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'npm'
-          cache-dependency-path: ccr-ui/package-lock.json
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
@@ -240,7 +238,7 @@ jobs:
 
       - name: Install frontend dependencies
         working-directory: ccr-ui
-        run: npm ci
+        run: bun install --frozen-lockfile
 
       - name: Build Tauri app
         uses: tauri-apps/tauri-action@v0

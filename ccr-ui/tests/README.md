@@ -1,8 +1,11 @@
-# i18n Translation Tests
+# CCR UI Tests
 
 ## Overview
 
-This directory contains test scripts for validating the consistency and completeness of i18n translation files.
+This directory now hosts the CCR UI baseline test suite:
+
+- `i18n.test.cjs`: translation consistency checks
+- `*.smoke.test.ts`: lightweight Vitest smoke coverage for the router and key Pinia stores
 
 ## Test Files
 
@@ -23,16 +26,28 @@ A comprehensive Node.js CommonJS test script that validates the i18n translation
 - `0`: All critical tests passed
 - `1`: Critical tests failed (missing files, syntax errors, missing required namespaces)
 
+### Smoke tests
+
+The smoke suite validates a minimal but high-value UI baseline without introducing a full browser E2E stack:
+
+- Router manifest coverage for critical named routes
+- `/stats -> /usage` redirect protection
+- `skills` store filter/reset behavior
+- `usage` store default/computed state behavior
+
 ## Usage
 
-### Run via npm
+### Run via Bun
 
 ```bash
-# Run the default test
-npm test
+# Run the full frontend baseline
+bun run test
 
-# Run i18n test specifically
-npm run test:i18n
+# Run the i18n test only
+bun run test:i18n
+
+# Run smoke tests only
+bun run test:smoke
 ```
 
 ### Run directly with Node.js
@@ -175,8 +190,8 @@ Add to your CI pipeline:
 
 ```yaml
 # .github/workflows/test.yml
-- name: Run i18n tests
-  run: npm run test:i18n
+- name: Run frontend baseline
+  run: bun run test
 ```
 
 The script exits with code 0 on success and code 1 on critical failures, making it suitable for CI/CD integration.
