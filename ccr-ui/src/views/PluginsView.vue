@@ -278,6 +278,16 @@
               </div>
             </div>
           </div>
+
+          <ConfirmModal
+            v-model:is-open="showDeleteModal"
+            type="danger"
+            :title="$t('plugins.delete')"
+            :message="$t('plugins.deleteConfirm', { id: pluginToDelete || '' })"
+            :confirm-text="$t('common.delete')"
+            :cancel-text="$t('common.cancel')"
+            @confirm="confirmDelete"
+          />
         </main>
       </div>
     </div>
@@ -294,8 +304,11 @@ import type { Plugin as PluginType, PluginRequest } from '@/types'
 import Navbar from '@/components/Navbar.vue'
 import CollapsibleSidebar from '@/components/CollapsibleSidebar.vue'
 import { logger } from '@/utils/logger'
+import ConfirmModal from '@/components/ConfirmModal.vue'
+import { useUIStore } from '@/stores/ui'
 
 const { t } = useI18n({ useScope: 'global' })
+const uiStore = useUIStore()
 
 const plugins = ref<PluginType[]>([])
 const loading = ref(true)
@@ -303,6 +316,8 @@ const showAddForm = ref(false)
 const editingPlugin = ref<PluginType | null>(null)
 const formData = ref<PluginRequest>({ id: '', name: '', version: '', enabled: true, config: undefined })
 const configJson = ref('')
+const showDeleteModal = ref(false)
+const pluginToDelete = ref('')
 
 const loadPlugins = async () => {
   try {
@@ -312,7 +327,7 @@ const loadPlugins = async () => {
   } catch (err) {
     logger.error('Failed to load plugins:', err)
     plugins.value = []
-    alert(t('plugins.loadFailed'))
+    uiStore.showError(t('plugins.loadFailed'))
   } finally {
     loading.value = false
   }
@@ -338,7 +353,7 @@ const handleEdit = (plugin: PluginType) => {
 
 const handleSubmit = async () => {
   if (!formData.value.id || !formData.value.name || !formData.value.version) {
-    alert(t('plugins.fillRequired'))
+    uiStore.showError(t('plugins.fillRequired'))
     return
   }
 
@@ -347,7 +362,7 @@ const handleSubmit = async () => {
     try {
       config = JSON.parse(configJson.value)
     } catch (err) {
-      alert(t('plugins.configJsonError'))
+      uiStore.showError(t('plugins.configJsonError'))
       return
     }
   }
@@ -357,27 +372,34 @@ const handleSubmit = async () => {
   try {
     if (editingPlugin.value) {
       await updatePlugin(editingPlugin.value.id, request)
-      alert(t('plugins.updateSuccess'))
+      uiStore.showSuccess(t('plugins.updateSuccess'))
     } else {
       await addPlugin(request)
-      alert(t('plugins.addSuccess'))
+      uiStore.showSuccess(t('plugins.addSuccess'))
     }
     showAddForm.value = false
     await loadPlugins()
   } catch (err) {
-    alert(`${t('plugins.operationFailed')}: ${err instanceof Error ? err.message : t('commands.unknownError')}`)
+    uiStore.showError(`${t('plugins.operationFailed')}: ${err instanceof Error ? err.message : t('commands.unknownError')}`)
   }
 }
 
 const handleDelete = async (id: string) => {
-  if (!confirm(t('plugins.deleteConfirm', { id }))) return
+  pluginToDelete.value = id
+  showDeleteModal.value = true
+}
 
+const confirmDelete = async () => {
+  if (!pluginToDelete.value) return
   try {
-    await deletePlugin(id)
-    alert(t('plugins.deleteSuccess'))
+    await deletePlugin(pluginToDelete.value)
+    uiStore.showSuccess(t('plugins.deleteSuccess'))
     await loadPlugins()
   } catch (err) {
-    alert(`${t('plugins.deleteFailed')}: ${err instanceof Error ? err.message : t('commands.unknownError')}`)
+    uiStore.showError(`${t('plugins.deleteFailed')}: ${err instanceof Error ? err.message : t('commands.unknownError')}`)
+  } finally {
+    showDeleteModal.value = false
+    pluginToDelete.value = ''
   }
 }
 
@@ -386,7 +408,7 @@ const handleToggle = async (id: string) => {
     await togglePlugin(id)
     await loadPlugins()
   } catch (err) {
-    alert(`${t('plugins.toggleFailed')}: ${err instanceof Error ? err.message : t('commands.unknownError')}`)
+    uiStore.showError(`${t('plugins.toggleFailed')}: ${err instanceof Error ? err.message : t('commands.unknownError')}`)
   }
 }
 </script>

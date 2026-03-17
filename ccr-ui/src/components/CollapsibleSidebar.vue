@@ -121,8 +121,7 @@
               v-if="isActive(item.href)"
               class="absolute inset-0 rounded-lg pointer-events-none"
               :style="{
-                background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0.05) 50%, rgba(255, 255, 255, 0.15) 100%)',
-                animation: 'shimmer 3s infinite'
+                background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.05) 100%)'
               }"
               aria-hidden="true"
             />
@@ -160,7 +159,7 @@
             <!-- 激活状态右侧光点 -->
             <span
               v-if="isActive(item.href)"
-              class="ml-auto w-2 h-2 rounded-full animate-pulse"
+              class="ml-auto w-2 h-2 rounded-full"
               :style="{
                 background: 'white',
                 boxShadow: '0 0 8px white'
@@ -196,8 +195,7 @@
               v-if="isActive(item.href)"
               class="absolute inset-0 rounded-lg pointer-events-none"
               :style="{
-                background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0.05) 50%, rgba(255, 255, 255, 0.15) 100%)',
-                animation: 'shimmer 3s infinite'
+                background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.05) 100%)'
               }"
               aria-hidden="true"
             />
@@ -215,7 +213,7 @@
             <!-- 激活指示器 -->
             <span
               v-if="isActive(item.href)"
-              class="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-1/2 h-0.5 animate-pulse"
+              class="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-1/2 h-0.5"
               :style="{
                 background: 'white',
                 boxShadow: '0 0 8px white'

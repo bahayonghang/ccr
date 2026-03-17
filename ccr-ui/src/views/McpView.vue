@@ -378,9 +378,11 @@ import ConfirmModal from '@/components/ConfirmModal.vue'
 import McpPresetsPanel from '@/components/McpPresetsPanel.vue'
 import McpSyncPanel from '@/components/McpSyncPanel.vue'
 import { logger } from '@/utils/logger'
+import { useUIStore } from '@/stores/ui'
 
 
 const { t } = useI18n({ useScope: 'global' })
+const uiStore = useUIStore()
 
 const servers = ref<McpServer[]>([])
 const loading = ref(true)
@@ -409,7 +411,7 @@ const loadServers = async () => {
   } catch (err) {
     logger.error('Failed to load MCP servers:', err)
     servers.value = []
-    alert(t('mcp.loadFailed'))
+    uiStore.showError(t('mcp.loadFailed'))
   } finally {
     loading.value = false
   }
@@ -447,7 +449,7 @@ const handleEdit = (server: McpServer) => {
 
 const handleSubmit = async () => {
   if (!formData.value.name || !formData.value.command) {
-    alert(t('mcp.fillRequired'))
+    uiStore.showError(t('mcp.fillRequired'))
     return
   }
 
@@ -462,15 +464,15 @@ const handleSubmit = async () => {
   try {
     if (editingServer.value) {
       await updateMcpServer(editingServer.value.name, request)
-      alert(t('mcp.updateSuccess'))
+      uiStore.showSuccess(t('mcp.updateSuccess'))
     } else {
       await addMcpServer(request)
-      alert(t('mcp.addSuccess'))
+      uiStore.showSuccess(t('mcp.addSuccess'))
     }
     showAddForm.value = false
     await loadServers()
   } catch (err) {
-    alert(`${t('mcp.operationFailed')}: ${err instanceof Error ? err.message : t('commands.unknownError')}`)
+    uiStore.showError(`${t('mcp.operationFailed')}: ${err instanceof Error ? err.message : t('commands.unknownError')}`)
   }
 }
 
@@ -484,10 +486,10 @@ const confirmDelete = async () => {
   
   try {
     await deleteMcpServer(serverToDelete.value)
-    alert(t('mcp.deleteSuccess'))
+    uiStore.showSuccess(t('mcp.deleteSuccess'))
     await loadServers()
   } catch (err) {
-    alert(`${t('mcp.deleteFailed')}: ${err instanceof Error ? err.message : t('commands.unknownError')}`)
+    uiStore.showError(`${t('mcp.deleteFailed')}: ${err instanceof Error ? err.message : t('commands.unknownError')}`)
   } finally {
     showDeleteModal.value = false
     serverToDelete.value = ''
@@ -509,7 +511,7 @@ const confirmToggle = async () => {
     await toggleMcpServer(serverToToggle.value.name)
     await loadServers()
   } catch (err) {
-    alert(`${t('mcp.toggleFailed')}: ${err instanceof Error ? err.message : t('commands.unknownError')}`)
+    uiStore.showError(`${t('mcp.toggleFailed')}: ${err instanceof Error ? err.message : t('commands.unknownError')}`)
   } finally {
     showToggleModal.value = false
     serverToToggle.value = null

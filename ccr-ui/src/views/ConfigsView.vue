@@ -1,6 +1,6 @@
 <template>
   <div class="min-h-screen relative p-6">
-    <AnimatedBackground complex />
+    <AnimatedBackground variant="minimal" />
 
     <div class="max-w-[1800px] mx-auto space-y-6">
       <!-- Breadcrumb & Nav Header -->
@@ -148,12 +148,21 @@
       @close="showProviderModal = false"
       @refresh="loadProviderUsage"
     />
+    <ConfirmModal
+      v-model:is-open="showConfirmModal"
+      :type="confirmDialog.type"
+      :title="confirmDialog.title"
+      :message="confirmDialog.message"
+      :confirm-text="confirmDialog.confirmText"
+      :cancel-text="$t('common.cancel')"
+      @confirm="executeConfirmedAction"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
 import SIcon from '@/components/ui/SIcon.vue'
-import { ref, computed, onMounted, watch, nextTick } from 'vue'
+import { ref, reactive, computed, onMounted, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import AnimatedBackground from '@/components/common/AnimatedBackground.vue'
 import Card from '@/components/ui/Card.vue'
@@ -167,6 +176,7 @@ import ConfigList from '@/components/configs/ConfigList.vue'
 import EditConfigModal from '@/components/EditConfigModal.vue'
 import AddConfigModal from '@/components/AddConfigModal.vue'
 import ProviderStatsModal from '@/components/configs/ProviderStatsModal.vue'
+import ConfirmModal from '@/components/ConfirmModal.vue'
 
 // API Imports
 import {
@@ -177,6 +187,8 @@ import { getProviderUsage } from '@/api'
 import type { ConfigItem, ConfigListResponse, HistoryEntry, HistoryResponse } from '@/types'
 import { useUIStore } from '@/stores/ui'
 import { logger } from '@/utils/logger'
+
+defineOptions({ name: 'ConfigsView' })
 
 type FilterType = 'all' | 'official_relay' | 'third_party_model' | 'uncategorized'
 type SortType = 'name' | 'usage_count' | 'recent'
@@ -206,6 +218,19 @@ const providerUsage = ref<Record<string, number>>({})
 const providerLoading = ref(false)
 const providerError = ref<string | null>(null)
 const providerSortMode = ref<SortMode>('count_desc')
+const showConfirmModal = ref(false)
+const confirmDialog = reactive<{
+  title: string
+  message: string
+  confirmText: string
+  type: 'danger' | 'info' | 'warning'
+}>({
+  title: '',
+  message: '',
+  confirmText: '',
+  type: 'warning',
+})
+let confirmedAction: (() => Promise<void>) | null = null
 
 const tabs: Array<{ id: TabId; label: string; icon: string | string }> = [
   { id: 'configs', label: t('configs.tabs.configList'), icon: 'Settings' },
@@ -286,31 +311,67 @@ const refreshData = async () => {
   if (activeTab.value === 'history') await loadHistory()
 }
 
+const openConfirmDialog = (options: {
+  title: string
+  message: string
+  confirmText: string
+  type: 'danger' | 'info' | 'warning'
+  action: () => Promise<void>
+}) => {
+  confirmDialog.title = options.title
+  confirmDialog.message = options.message
+  confirmDialog.confirmText = options.confirmText
+  confirmDialog.type = options.type
+  confirmedAction = options.action
+  showConfirmModal.value = true
+}
+
+const executeConfirmedAction = async () => {
+  if (!confirmedAction) return
+  try {
+    await confirmedAction()
+  } finally {
+    confirmedAction = null
+  }
+}
+
 // Handlers (Simplified for brevity, logic same as before)
 const handleSwitch = async (name: string) => {
-  if (confirm(`Switch to ${name}?`)) {
-    try {
-      await switchConfig(name)
-      uiStore.showSuccess(`Switched to configuration ${name}`)
-      refreshData()
-    } catch (e: unknown) {
-      uiStore.showError(e instanceof Error ? e.message : 'Failed to switch configuration')
-    }
-  }
+  openConfirmDialog({
+    title: t('configs.switchConfig'),
+    message: t('configs.confirmSwitch', { name }),
+    confirmText: t('configs.switchConfig'),
+    type: 'warning',
+    action: async () => {
+      try {
+        await switchConfig(name)
+        uiStore.showSuccess(`Switched to configuration ${name}`)
+        refreshData()
+      } catch (e: unknown) {
+        uiStore.showError(e instanceof Error ? e.message : 'Failed to switch configuration')
+      }
+    },
+  })
 }
 
 const handleEdit = (name: string) => { editingConfigName.value = name; isEditModalOpen.value = true }
 
-const handleDelete = async (name: string) => { 
-  if(confirm('Delete?')) { 
-    try {
-      await deleteConfig(name); 
-      uiStore.showSuccess(`Configuration ${name} deleted`)
-      refreshData() 
-    } catch (e: unknown) {
-      uiStore.showError(e instanceof Error ? e.message : 'Failed to delete configuration')
-    }
-  } 
+const handleDelete = async (name: string) => {
+  openConfirmDialog({
+    title: t('common.delete'),
+    message: t('configs.confirmDelete', { name }),
+    confirmText: t('common.delete'),
+    type: 'danger',
+    action: async () => {
+      try {
+        await deleteConfig(name)
+        uiStore.showSuccess(`Configuration ${name} deleted`)
+        refreshData()
+      } catch (e: unknown) {
+        uiStore.showError(e instanceof Error ? e.message : 'Failed to delete configuration')
+      }
+    },
+  })
 }
 
 const handleEnable = async (name: string) => { 
