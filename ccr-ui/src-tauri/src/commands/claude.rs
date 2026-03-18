@@ -9,17 +9,12 @@ use std::fs;
 use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
+use serde_json::{json, Map, Value};
 
 use ccr::managers::prompts_manager::PromptsManager;
 use ccr::models::prompt::PromptPreset;
-use ccr::{BudgetManager, CostTracker, SettingsManager};
-
-use tauri::State;
-
-use crate::state::AppState;
-use ccr_db::database::repositories::claude_profile_repo;
-use ccr_db::models::claude_profile::ClaudeProfile;
+use ccr::platforms::ClaudePlatform;
+use ccr::{BudgetManager, CostTracker, PlatformConfig, ProfileConfig, SettingsManager};
 
 // ── 内联 ClaudeConfigManager（读写 ~/.claude.json 的 MCP 服务器）──
 
@@ -838,429 +833,416 @@ pub async fn claude_update_prompts(prompts: Value) -> Result<Value, String> {
 }
 
 // ═══════════════════════════════════════════════════════════
-// ── Profiles（SQLite via ccr-db）──
+// ── Profiles（CCR Core）──
 // ═══════════════════════════════════════════════════════════
 
-/// 列出所有 Claude Code Profiles。
+fn parse_string_field(raw: &Value, field_name: &str) -> Result<Option<String>, String> {
+    match raw {
+        Value::Null => Ok(None),
+        Value::String(text) => {
+            let trimmed = text.trim();
+            if trimmed.is_empty() {
+                Ok(None)
+            } else {
+                Ok(Some(trimmed.to_string()))
+            }
+        }
+        _ => Err(format!("字段 '{field_name}' 必须是字符串")),
+    }
+}
+
+fn parse_tags_field(raw: &Value) -> Result<Option<Vec<String>>, String> {
+    match raw {
+        Value::Null => Ok(None),
+        Value::String(text) => {
+            let tags: Vec<String> = text
+                .split(',')
+                .map(|item| item.trim())
+                .filter(|item| !item.is_empty())
+                .map(ToString::to_string)
+                .collect();
+            if tags.is_empty() {
+                Ok(None)
+            } else {
+                Ok(Some(tags))
+            }
+        }
+        Value::Array(items) => {
+            let mut tags: Vec<String> = Vec::new();
+            for item in items {
+                let Value::String(tag) = item else {
+                    return Err("字段 'tags' 必须是字符串数组".to_string());
+                };
+                let trimmed = tag.trim();
+                if !trimmed.is_empty() {
+                    tags.push(trimmed.to_string());
+                }
+            }
+            if tags.is_empty() {
+                Ok(None)
+            } else {
+                Ok(Some(tags))
+            }
+        }
+        _ => Err("字段 'tags' 必须是字符串或字符串数组".to_string()),
+    }
+}
+
+fn parse_bool_field(raw: &Value, field_name: &str) -> Result<Option<bool>, String> {
+    match raw {
+        Value::Null => Ok(None),
+        Value::Bool(flag) => Ok(Some(*flag)),
+        _ => Err(format!("字段 '{field_name}' 必须是布尔值")),
+    }
+}
+
+fn parse_usage_count_field(raw: &Value) -> Result<Option<u32>, String> {
+    match raw {
+        Value::Null => Ok(None),
+        Value::Number(number) => {
+            let value = number
+                .as_u64()
+                .ok_or_else(|| "字段 'usage_count' 必须是非负整数".to_string())?;
+            let count =
+                u32::try_from(value).map_err(|_| "字段 'usage_count' 超出范围".to_string())?;
+            Ok(Some(count))
+        }
+        _ => Err("字段 'usage_count' 必须是数字".to_string()),
+    }
+}
+
+fn parse_extra_field(
+    raw: &Value,
+    field_name: &str,
+) -> Result<Option<serde_json::Map<String, Value>>, String> {
+    match raw {
+        Value::Null => Ok(None),
+        Value::Object(map) => Ok(Some(map.clone())),
+        _ => Err(format!("字段 '{field_name}' 必须是对象")),
+    }
+}
+
+fn parse_platform_data_update(obj: &Map<String, Value>) -> Result<Option<Map<String, Value>>, String> {
+    let has_extra = obj.contains_key("extra");
+    let has_platform_data = obj.contains_key("platform_data");
+
+    if !has_extra && !has_platform_data {
+        return Ok(None);
+    }
+
+    let mut platform_data = Map::new();
+
+    if let Some(raw) = obj.get("extra")
+        && let Some(extra) = parse_extra_field(raw, "extra")?
+    {
+        platform_data.extend(extra);
+    }
+
+    if let Some(raw) = obj.get("platform_data")
+        && let Some(extra) = parse_extra_field(raw, "platform_data")?
+    {
+        platform_data.extend(extra);
+    }
+
+    Ok(Some(platform_data))
+}
+
+fn build_profile_from_config(config: &Value) -> Result<ProfileConfig, String> {
+    let obj = config
+        .as_object()
+        .ok_or_else(|| "profile config 必须是对象".to_string())?;
+
+    let mut profile = ProfileConfig::new();
+    patch_profile_with_config(&mut profile, config)?;
+
+    if let Some(platform_data) = parse_platform_data_update(obj)? {
+        profile.platform_data = platform_data.into_iter().collect();
+    }
+
+    Ok(profile)
+}
+
+fn patch_profile_with_config(profile: &mut ProfileConfig, config: &Value) -> Result<(), String> {
+    let obj = config
+        .as_object()
+        .ok_or_else(|| "profile config 必须是对象".to_string())?;
+
+    if let Some(raw) = obj.get("description") {
+        profile.description = parse_string_field(raw, "description")?;
+    }
+    if let Some(raw) = obj.get("base_url") {
+        profile.base_url = parse_string_field(raw, "base_url")?;
+    }
+    if let Some(raw) = obj.get("auth_token") {
+        profile.auth_token = parse_string_field(raw, "auth_token")?;
+    }
+    if let Some(raw) = obj.get("model") {
+        profile.model = parse_string_field(raw, "model")?;
+    }
+    if let Some(raw) = obj.get("small_fast_model") {
+        profile.small_fast_model = parse_string_field(raw, "small_fast_model")?;
+    }
+    if let Some(raw) = obj.get("provider") {
+        profile.provider = parse_string_field(raw, "provider")?;
+    }
+    if let Some(raw) = obj.get("provider_type") {
+        profile.provider_type = parse_string_field(raw, "provider_type")?;
+    }
+    if let Some(raw) = obj.get("account") {
+        profile.account = parse_string_field(raw, "account")?;
+    }
+    if let Some(raw) = obj.get("tags") {
+        profile.tags = parse_tags_field(raw)?;
+    }
+    if let Some(raw) = obj.get("usage_count") {
+        profile.usage_count = parse_usage_count_field(raw)?;
+    }
+    if let Some(raw) = obj.get("enabled") {
+        profile.enabled = parse_bool_field(raw, "enabled")?;
+    }
+
+    if let Some(platform_data) = parse_platform_data_update(obj)? {
+        profile.platform_data = platform_data.into_iter().collect();
+    }
+
+    Ok(())
+}
+
+fn profile_to_json(current_profile: Option<&str>, name: String, profile: ProfileConfig) -> Value {
+    let is_current = current_profile == Some(name.as_str());
+
+    json!({
+        "name": name,
+        "description": profile.description,
+        "base_url": profile.base_url,
+        "auth_token": profile.auth_token,
+        "model": profile.model,
+        "small_fast_model": profile.small_fast_model,
+        "provider": profile.provider,
+        "provider_type": profile.provider_type,
+        "account": profile.account,
+        "tags": profile.tags,
+        "usage_count": profile.usage_count,
+        "enabled": profile.enabled,
+        "platform_data": profile.platform_data,
+        "is_current": is_current,
+    })
+}
+
+/// 列出所有 Claude Code Profiles（~/.ccr/platforms/claude/profiles.toml）。
 #[tauri::command]
-pub async fn claude_list_profiles(state: State<'_, AppState>) -> Result<Value, String> {
-    let pool = state.db_pool.clone();
-    tokio::task::spawn_blocking(move || {
-        let conn = pool.get().map_err(|e| format!("DB pool error: {e}"))?;
-        let profiles = claude_profile_repo::get_all_profiles(&conn)
-            .map_err(|e| format!("Query error: {e}"))?;
-        let current_name = profiles.iter().find(|p| p.is_current).map(|p| p.name.clone());
-
-        // 返回摘要而非完整快照，避免将 secrets 暴露给前端
-        let summaries: Vec<Value> = profiles
-            .iter()
-            .map(|p| {
-                // 从快照中提取统计信息
-                let (mcp_count, style_count) = serde_json::from_str::<Value>(&p.snapshot_json)
-                    .map(|snap| {
-                        let mc = snap
-                            .get("mcp_servers")
-                            .and_then(|v| v.as_object())
-                            .map(|o| o.len())
-                            .unwrap_or(0);
-                        let sc = snap
-                            .get("output_styles")
-                            .and_then(|v| v.as_array())
-                            .map(|a| a.len())
-                            .unwrap_or(0);
-                        (mc, sc)
-                    })
-                    .unwrap_or((0, 0));
-
-                serde_json::json!({
-                    "id": p.id,
-                    "name": p.name,
-                    "description": p.description,
-                    "tags": p.tags,
-                    "is_current": p.is_current,
-                    "enabled": p.enabled,
-                    "created_at": p.created_at.to_rfc3339(),
-                    "updated_at": p.updated_at.to_rfc3339(),
-                    "snapshot_stats": {
-                        "mcp_count": mcp_count,
-                        "style_count": style_count,
-                    }
-                })
-            })
+pub async fn claude_list_profiles() -> Result<Value, String> {
+    tokio::task::spawn_blocking(|| {
+        let platform = ClaudePlatform::new().map_err(|e| format!("初始化 Claude 平台失败: {e}"))?;
+        let current_profile = platform
+            .get_current_profile()
+            .map_err(|e| format!("读取当前 Claude profile 失败: {e}"))?;
+        let profiles: Vec<Value> = platform
+            .load_profiles()
+            .map_err(|e| format!("读取 Claude profiles 失败: {e}"))?
+            .into_iter()
+            .map(|(name, profile)| profile_to_json(current_profile.as_deref(), name, profile))
             .collect();
 
-        Ok(serde_json::json!({
-            "profiles": summaries,
-            "current_profile": current_name
+        Ok(json!({
+            "profiles": profiles,
+            "current_profile": current_profile,
         }))
     })
     .await
-    .map_err(|e| format!("Task join error: {e}"))?
+    .map_err(|e| format!("任务执行失败: {e}"))?
 }
 
 /// 获取单个 Profile 详情。
 #[tauri::command]
-pub async fn claude_get_profile(
-    state: State<'_, AppState>,
-    name: String,
-) -> Result<Value, String> {
-    let pool = state.db_pool.clone();
+pub async fn claude_get_profile(name: String) -> Result<Value, String> {
     tokio::task::spawn_blocking(move || {
-        let conn = pool.get().map_err(|e| format!("DB pool error: {e}"))?;
-        let profile = claude_profile_repo::get_profile_by_name(&conn, &name)
-            .map_err(|e| format!("Query error: {e}"))?
-            .ok_or_else(|| format!("Profile '{}' not found", name))?;
-        serde_json::to_value(&profile).map_err(|e| format!("Serialization error: {e}"))
+        let platform = ClaudePlatform::new().map_err(|e| format!("初始化 Claude 平台失败: {e}"))?;
+        let current_profile = platform
+            .get_current_profile()
+            .map_err(|e| format!("读取当前 Claude profile 失败: {e}"))?;
+        let profile = platform
+            .load_profiles()
+            .map_err(|e| format!("读取 Claude profiles 失败: {e}"))?
+            .shift_remove(&name)
+            .ok_or_else(|| format!("Claude Profile '{name}' 不存在"))?;
+
+        Ok(profile_to_json(current_profile.as_deref(), name, profile))
     })
     .await
-    .map_err(|e| format!("Task join error: {e}"))?
+    .map_err(|e| format!("任务执行失败: {e}"))?
 }
 
-/// 从当前活跃配置捕获快照 JSON。
-fn capture_current_snapshot() -> Result<String, String> {
-    // 1. 读取 settings.json
-    let settings = load_settings().unwrap_or_default();
-    let settings_value =
-        serde_json::to_value(&settings).map_err(|e| format!("Settings serialize error: {e}"))?;
-
-    // 2. 读取 .claude.json (MCP servers)
-    let mcp_servers = read_claude_config()
-        .map(|c| {
-            serde_json::to_value(&c.mcp_servers)
-                .unwrap_or_else(|_| serde_json::json!({}))
-        })
-        .unwrap_or_else(|_| serde_json::json!({}));
-
-    // 3. 扫描 output-styles/*.md
-    let output_styles: Vec<Value> = output_styles_dir()
-        .and_then(|dir| {
-            if !dir.exists() {
-                return Ok(Vec::new());
-            }
-            let mut styles = Vec::new();
-            for entry in fs::read_dir(&dir)?.flatten() {
-                let path = entry.path();
-                if path.extension().and_then(|s| s.to_str()) != Some("md") {
-                    continue;
-                }
-                if let (Some(stem), Ok(content)) =
-                    (path.file_stem().and_then(|s| s.to_str()), fs::read_to_string(&path))
-                {
-                    styles.push(serde_json::json!({
-                        "name": stem,
-                        "content": content,
-                    }));
-                }
-            }
-            Ok(styles)
-        })
-        .unwrap_or_default();
-
-    // 4. 读取 budget 配置（可选）
-    let budget = BudgetManager::with_default()
-        .ok()
-        .map(|m| {
-            let config = m.get_config();
-            serde_json::json!({
-                "enabled": config.enabled,
-                "dailyLimit": config.daily_limit,
-                "weeklyLimit": config.weekly_limit,
-                "monthlyLimit": config.monthly_limit,
-                "warnAtPercent": config.warn_at_percent,
-            })
-        });
-
-    // 组合为完整快照
-    let snapshot = serde_json::json!({
-        "settings": settings_value,
-        "mcp_servers": mcp_servers,
-        "output_styles": output_styles,
-        "budget": budget,
-    });
-
-    serde_json::to_string(&snapshot).map_err(|e| format!("Snapshot serialize error: {e}"))
-}
-
-/// 创建新 Profile（可从当前配置自动快照）。
+/// 创建新 Profile。
 #[tauri::command]
-pub async fn claude_add_profile(
-    state: State<'_, AppState>,
-    request: Value,
-) -> Result<Value, String> {
-    let pool = state.db_pool.clone();
+pub async fn claude_add_profile(request: Value) -> Result<Value, String> {
     tokio::task::spawn_blocking(move || {
         let name = request
             .get("name")
             .and_then(|v| v.as_str())
+            .map(str::trim)
+            .filter(|v| !v.is_empty())
             .ok_or_else(|| "Missing 'name' field".to_string())?
             .to_string();
-        let description = request
-            .get("description")
-            .and_then(|v| v.as_str())
-            .map(|s| s.to_string());
-        let tags = request
-            .get("tags")
-            .map(|v| v.to_string());
-        let enabled = request
-            .get("enabled")
-            .and_then(|v| v.as_bool())
-            .unwrap_or(true);
-        let snapshot_from_current = request
-            .get("snapshot_from_current")
-            .and_then(|v| v.as_bool())
-            .unwrap_or(false);
 
-        // 确定快照内容
-        let snapshot_json = if snapshot_from_current {
-            capture_current_snapshot()?
-        } else {
-            request
-                .get("snapshot_json")
-                .and_then(|v| v.as_str())
-                .unwrap_or("{}")
-                .to_string()
-        };
+        let platform = ClaudePlatform::new().map_err(|e| format!("初始化 Claude 平台失败: {e}"))?;
+        let profiles = platform
+            .load_profiles()
+            .map_err(|e| format!("读取 Claude profiles 失败: {e}"))?;
+        if profiles.contains_key(&name) {
+            return Err(format!("Claude Profile '{name}' 已存在"));
+        }
 
-        let mut profile = ClaudeProfile::new(name, snapshot_json);
-        profile.description = description;
-        profile.tags = tags;
-        profile.enabled = enabled;
+        let profile = build_profile_from_config(&request)?;
 
-        let conn = pool.get().map_err(|e| format!("DB pool error: {e}"))?;
-        claude_profile_repo::insert_profile(&conn, &profile)
-            .map_err(|e| format!("Insert error: {e}"))?;
+        platform
+            .save_profile(&name, &profile)
+            .map_err(|e| format!("保存 Claude Profile 失败: {e}"))?;
 
-        serde_json::to_value(&profile).map_err(|e| format!("Serialization error: {e}"))
+        let current_profile = platform
+            .get_current_profile()
+            .map_err(|e| format!("读取当前 Claude profile 失败: {e}"))?;
+
+        Ok(profile_to_json(current_profile.as_deref(), name, profile))
     })
     .await
-    .map_err(|e| format!("Task join error: {e}"))?
+    .map_err(|e| format!("任务执行失败: {e}"))?
 }
 
 /// 更新 Profile。
 #[tauri::command]
-pub async fn claude_update_profile(
-    state: State<'_, AppState>,
-    name: String,
-    request: Value,
-) -> Result<Value, String> {
-    let pool = state.db_pool.clone();
+pub async fn claude_update_profile(name: String, request: Value) -> Result<Value, String> {
     tokio::task::spawn_blocking(move || {
-        let conn = pool.get().map_err(|e| format!("DB pool error: {e}"))?;
-        let mut profile = claude_profile_repo::get_profile_by_name(&conn, &name)
-            .map_err(|e| format!("Query error: {e}"))?
-            .ok_or_else(|| format!("Profile '{}' not found", name))?;
+        let platform = ClaudePlatform::new().map_err(|e| format!("初始化 Claude 平台失败: {e}"))?;
+        let profiles = platform
+            .load_profiles()
+            .map_err(|e| format!("读取 Claude profiles 失败: {e}"))?;
+        let current_profile = platform
+            .get_current_profile()
+            .map_err(|e| format!("读取当前 Claude profile 失败: {e}"))?;
+        let existing = profiles
+            .get(&name)
+            .cloned()
+            .ok_or_else(|| format!("Claude Profile '{name}' 不存在"))?;
 
-        // 合并更新字段
-        if let Some(new_name) = request.get("name").and_then(|v| v.as_str()) {
-            profile.name = new_name.to_string();
-        }
-        if let Some(desc) = request.get("description") {
-            profile.description = desc.as_str().map(|s| s.to_string());
-        }
-        if let Some(tags) = request.get("tags") {
-            profile.tags = Some(tags.to_string());
-        }
-        if let Some(enabled) = request.get("enabled").and_then(|v| v.as_bool()) {
-            profile.enabled = enabled;
-        }
-        if let Some(snapshot) = request.get("snapshot_json").and_then(|v| v.as_str()) {
-            profile.snapshot_json = snapshot.to_string();
-        }
-        // 支持重新从当前配置快照
-        if request
-            .get("snapshot_from_current")
-            .and_then(|v| v.as_bool())
-            .unwrap_or(false)
-        {
-            profile.snapshot_json = capture_current_snapshot()?;
+        let target_name = request
+            .get("name")
+            .and_then(|v| v.as_str())
+            .map(str::trim)
+            .filter(|v| !v.is_empty())
+            .unwrap_or(name.as_str())
+            .to_string();
+        if target_name != name && profiles.contains_key(&target_name) {
+            return Err(format!("Claude Profile '{target_name}' 已存在"));
         }
 
-        claude_profile_repo::update_profile(&conn, &name, &profile)
-            .map_err(|e| format!("Update error: {e}"))?;
+        let mut profile = existing;
+        patch_profile_with_config(&mut profile, &request)?;
 
-        serde_json::to_value(&profile).map_err(|e| format!("Serialization error: {e}"))
+        platform
+            .save_profile(&target_name, &profile)
+            .map_err(|e| format!("更新 Claude Profile 失败: {e}"))?;
+
+        if target_name != name {
+            platform
+                .delete_profile(&name)
+                .map_err(|e| format!("删除旧 Claude Profile 失败: {e}"))?;
+
+            if current_profile.as_deref() == Some(name.as_str()) {
+                platform
+                    .apply_profile(&target_name)
+                    .map_err(|e| format!("同步当前 Claude Profile 失败: {e}"))?;
+            }
+        }
+
+        let latest_current = platform
+            .get_current_profile()
+            .map_err(|e| format!("读取当前 Claude profile 失败: {e}"))?;
+
+        Ok(profile_to_json(latest_current.as_deref(), target_name, profile))
     })
     .await
-    .map_err(|e| format!("Task join error: {e}"))?
+    .map_err(|e| format!("任务执行失败: {e}"))?
 }
 
 /// 删除 Profile。
 #[tauri::command]
-pub async fn claude_delete_profile(
-    state: State<'_, AppState>,
-    name: String,
-) -> Result<String, String> {
-    let pool = state.db_pool.clone();
+pub async fn claude_delete_profile(name: String) -> Result<Value, String> {
     tokio::task::spawn_blocking(move || {
-        let conn = pool.get().map_err(|e| format!("DB pool error: {e}"))?;
-
-        // 单事务：条件清除 current 标记 + 删除
-        let tx = conn.unchecked_transaction().map_err(|e| format!("TX error: {e}"))?;
-        tx.execute(
-            "UPDATE claude_profiles SET is_current = 0 WHERE name = ?1 AND is_current = 1",
-            [&name],
-        )
-        .map_err(|e| format!("Clear current error: {e}"))?;
-
-        let deleted = tx
-            .execute(
-                "DELETE FROM claude_profiles WHERE name = ?1",
-                [&name],
-            )
-            .map_err(|e| format!("Delete error: {e}"))?;
-        tx.commit().map_err(|e| format!("Commit error: {e}"))?;
-
-        if deleted > 0 {
-            Ok(format!("Profile '{}' deleted", name))
-        } else {
-            Err(format!("Profile '{}' not found", name))
-        }
+        let platform = ClaudePlatform::new().map_err(|e| format!("初始化 Claude 平台失败: {e}"))?;
+        platform
+            .delete_profile(&name)
+            .map_err(|e| format!("删除 Claude Profile 失败: {e}"))?;
+        Ok(json!({ "message": format!("Claude Profile '{name}' 已删除") }))
     })
     .await
-    .map_err(|e| format!("Task join error: {e}"))?
+    .map_err(|e| format!("任务执行失败: {e}"))?
 }
 
-/// 应用 Profile — 将快照写回文件系统并设为当前。
+/// 应用 Profile。
 #[tauri::command]
-pub async fn claude_apply_profile(
-    state: State<'_, AppState>,
-    name: String,
-) -> Result<Value, String> {
-    let pool = state.db_pool.clone();
+pub async fn claude_apply_profile(name: String) -> Result<Value, String> {
     tokio::task::spawn_blocking(move || {
-        let conn = pool.get().map_err(|e| format!("DB pool error: {e}"))?;
-
-        let profile = claude_profile_repo::get_profile_by_name(&conn, &name)
-            .map_err(|e| format!("Query error: {e}"))?
-            .ok_or_else(|| format!("Profile '{}' not found", name))?;
-
-        let snapshot: Value = serde_json::from_str(&profile.snapshot_json)
-            .map_err(|e| format!("Snapshot parse error: {e}"))?;
-
-        // 1. 写入 settings.json
-        if let Some(settings_val) = snapshot.get("settings") {
-            let settings: ccr_types::ClaudeSettings =
-                serde_json::from_value(settings_val.clone())
-                    .map_err(|e| format!("Settings parse error: {e}"))?;
-            save_settings(&settings)?;
-        }
-
-        // 2. 写入 .claude.json (MCP servers)
-        if let Some(mcp_val) = snapshot.get("mcp_servers") {
-            let mut config = read_claude_config()
-                .map_err(|e| format!("Read .claude.json error: {e}"))?;
-            let servers: HashMap<String, McpServerEntry> =
-                serde_json::from_value(mcp_val.clone())
-                    .map_err(|e| format!("Malformed mcp_servers in snapshot: {e}"))?;
-            config.mcp_servers = servers;
-            write_claude_config(&config)
-                .map_err(|e| format!("Write .claude.json error: {e}"))?;
-        }
-
-        // 3. 同步 output-styles 目录
-        if let Some(styles_arr) = snapshot.get("output_styles").and_then(|v| v.as_array()) {
-            let dir = output_styles_dir()
-                .map_err(|e| format!("Output styles dir error: {e}"))?;
-            fs::create_dir_all(&dir)
-                .map_err(|e| format!("Create output-styles dir error: {e}"))?;
-
-            // 清空现有 .md 文件后写入快照中的文件
-            if let Ok(entries) = fs::read_dir(&dir) {
-                for entry in entries.flatten() {
-                    let path = entry.path();
-                    if path.extension().and_then(|s| s.to_str()) == Some("md") {
-                        let _ = fs::remove_file(&path);
-                    }
-                }
-            }
-
-            for style in styles_arr {
-                if let (Some(sname), Some(content)) =
-                    (style.get("name").and_then(|v| v.as_str()),
-                     style.get("content").and_then(|v| v.as_str()))
-                {
-                    // 安全校验：拒绝含路径分隔符或 ".." 的文件名，防止路径穿越
-                    if sname.contains('/')
-                        || sname.contains('\\')
-                        || sname.contains("..")
-                        || sname.is_empty()
-                    {
-                        return Err(format!(
-                            "Invalid output style name '{}': must not contain path separators or '..'",
-                            sname
-                        ));
-                    }
-                    let path = dir.join(format!("{}.md", sname));
-                    // 二次校验：规范路径必须在目标目录内
-                    let canonical_dir = dir.canonicalize()
-                        .map_err(|e| format!("Canonicalize dir error: {e}"))?;
-                    // 写入后再 canonicalize 需要文件存在，先用 starts_with 检查 parent
-                    if !path.starts_with(&dir) {
-                        return Err(format!(
-                            "Output style '{}' resolves outside target directory",
-                            sname
-                        ));
-                    }
-                    fs::write(&path, content)
-                        .map_err(|e| format!("Write style '{}' error: {e}", sname))?;
-                    // 写入后验证规范路径仍在目录内
-                    if let Ok(canonical_path) = path.canonicalize()
-                        && !canonical_path.starts_with(&canonical_dir)
-                    {
-                        let _ = fs::remove_file(&path);
-                        return Err(format!(
-                            "Output style '{}' resolved outside target directory after write",
-                            sname
-                        ));
-                    }
-                }
-            }
-        }
-
-        // 4. 更新 budget 配置（可选）— 完整 round-trip
-        if let Some(budget_val) = snapshot.get("budget")
-            && !budget_val.is_null()
-            && let Ok(mut budget_manager) = BudgetManager::with_default()
-        {
-            if let Some(enabled) = budget_val.get("enabled").and_then(|v| v.as_bool()) {
-                let _ = if enabled {
-                    budget_manager.enable()
-                } else {
-                    budget_manager.disable()
-                };
-            }
-            // 处理 limit 字段：数值 → Some，null/缺失 → None（清除旧值）
-            if let Some(daily_val) = budget_val.get("dailyLimit") {
-                let _ = budget_manager
-                    .set_daily_limit(daily_val.as_f64());
-            }
-            if let Some(weekly_val) = budget_val.get("weeklyLimit") {
-                let _ = budget_manager
-                    .set_weekly_limit(weekly_val.as_f64());
-            }
-            if let Some(monthly_val) = budget_val.get("monthlyLimit") {
-                let _ = budget_manager
-                    .set_monthly_limit(monthly_val.as_f64());
-            }
-            // 恢复 warnAtPercent
-            if let Some(warn_pct) = budget_val
-                .get("warnAtPercent")
-                .and_then(|v| v.as_u64())
-            {
-                let _ = budget_manager
-                    .set_warn_threshold(warn_pct as u8);
-            }
-        }
-
-        // 5. 设为当前 Profile
-        claude_profile_repo::set_current_profile(&conn, &name)
-            .map_err(|e| format!("Set current error: {e}"))?;
-
-        Ok(serde_json::json!({
+        let platform = ClaudePlatform::new().map_err(|e| format!("初始化 Claude 平台失败: {e}"))?;
+        platform
+            .apply_profile(&name)
+            .map_err(|e| format!("应用 Claude Profile 失败: {e}"))?;
+        Ok(json!({
             "success": true,
             "applied_profile": name,
+            "message": format!("Claude Profile 已应用"),
         }))
     })
     .await
-    .map_err(|e| format!("Task join error: {e}"))?
+    .map_err(|e| format!("任务执行失败: {e}"))?
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn patch_profile_with_config_clears_platform_data_when_extra_is_null() {
+        let mut profile = ProfileConfig::new();
+        profile
+            .platform_data
+            .insert("provider_model".into(), json!("claude-sonnet-4-5"));
+
+        patch_profile_with_config(
+            &mut profile,
+            &json!({
+                "extra": null
+            }),
+        )
+        .unwrap();
+
+        assert!(profile.platform_data.is_empty());
+    }
+
+    #[test]
+    fn patch_profile_with_config_prefers_platform_data_over_extra() {
+        let mut profile = ProfileConfig::new();
+
+        patch_profile_with_config(
+            &mut profile,
+            &json!({
+                "extra": {
+                    "provider_model": "claude-3-5-sonnet",
+                    "budget": "small"
+                },
+                "platform_data": {
+                    "provider_model": "claude-sonnet-4-5",
+                    "workspace": "team-a"
+                }
+            }),
+        )
+        .unwrap();
+
+        assert_eq!(
+            profile.platform_data.get("provider_model"),
+            Some(&json!("claude-sonnet-4-5"))
+        );
+        assert_eq!(profile.platform_data.get("budget"), Some(&json!("small")));
+        assert_eq!(profile.platform_data.get("workspace"), Some(&json!("team-a")));
+    }
 }

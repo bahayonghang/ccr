@@ -49,40 +49,40 @@ export interface StatuslineConfig {
 
 // ============ Claude Profile Management Types ============
 
-/** Claude Profile 快照内容 */
-export interface ClaudeProfileSnapshot {
-  settings: Record<string, unknown>;
-  mcp_servers: Record<string, unknown>;
-  output_styles: { name: string; content: string }[];
-  budget?: Record<string, unknown>;
-}
-
-/** Claude Profile 列表项 */
+/** Claude Profile（对齐 CCR Core ProfileConfig） */
 export interface ClaudeProfile {
-  id: string;
   name: string;
-  description?: string;
-  /** 列表接口不再返回 snapshot_json，改为统计摘要 */
-  snapshot_json?: string;
-  snapshot_stats?: {
-    mcp_count: number;
-    style_count: number;
-  };
-  tags?: string;
+  description?: string | null;
+  base_url?: string | null;
+  auth_token?: string | null;
+  model?: string | null;
+  small_fast_model?: string | null;
+  provider?: string | null;
+  provider_type?: string | null;
+  account?: string | null;
+  tags?: string[] | null;
+  usage_count?: number | null;
+  enabled?: boolean | null;
+  platform_data?: Record<string, unknown>;
   is_current: boolean;
-  enabled: boolean;
-  created_at: string;
-  updated_at: string;
 }
 
 /** 创建/更新 Profile 请求 */
 export interface ClaudeProfileRequest {
   name: string;
   description?: string;
-  snapshot_from_current?: boolean;
-  snapshot_json?: string;
+  base_url?: string;
+  auth_token?: string;
+  model?: string;
+  small_fast_model?: string;
+  provider?: string;
+  provider_type?: string;
+  account?: string;
   tags?: string[];
+  usage_count?: number;
   enabled?: boolean;
+  platform_data?: Record<string, unknown>;
+  extra?: Record<string, unknown>;
 }
 
 /** Profile 列表响应 */
