@@ -895,6 +895,18 @@ export const toggleCodexAgent = async <T = UnknownRecord>(
   return invoke('codex_update_agent', { name, config: { enabled: resolvedEnabled } })
 }
 
+// ── Codex Models ──
+
+/** 列出 Codex 可选模型（内置 + 自定义） */
+export const listCodexModels = async <T = UnknownRecord>(): Promise<T> => {
+  return invoke('codex_list_models')
+}
+
+/** 保存 Codex 自定义模型 */
+export const addCodexCustomModel = async <T = UnknownRecord>(model: string): Promise<T> => {
+  return invoke('codex_add_custom_model', { model })
+}
+
 // ── Codex Profile 管理（CCR profiles.toml） ──
 
 /** 添加 Codex Profile */

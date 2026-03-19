@@ -511,19 +511,20 @@
                         v-model="form.auth_mode"
                         class="input"
                       >
-                        <option value="openai_chatgpt">
-                          {{ $t('codex.profiles.authModes.openai_chatgpt') }}
-                        </option>
-                        <option value="openai_api_key">
-                          {{ $t('codex.profiles.authModes.openai_api_key') }}
-                        </option>
-                        <option value="provider_env_key">
-                          {{ $t('codex.profiles.authModes.provider_env_key') }}
-                        </option>
-                        <option value="no_auth">
-                          {{ $t('codex.profiles.authModes.no_auth') }}
+                        <option
+                          v-for="authMode in availableAuthModeOptions"
+                          :key="authMode"
+                          :value="authMode"
+                        >
+                          {{ authModeLabel(authMode) }}
                         </option>
                       </select>
+                      <p
+                        v-if="isDeprecatedAuthMode(form.auth_mode)"
+                        class="text-xs text-amber-300"
+                      >
+                        {{ $t('codex.profiles.deprecatedAuthModeHint', { mode: authModeLabel(form.auth_mode) }) }}
+                      </p>
                     </div>
                     <div class="space-y-1.5">
                       <label class="text-sm font-semibold text-white/80">
@@ -601,12 +602,31 @@
                       <label class="text-sm font-semibold text-white/80">
                         {{ $t('codex.profiles.fields.model') }} <span class="text-red-500">*</span>
                       </label>
-                      <input
-                        v-model="form.model"
-                        type="text"
+                      <select
+                        v-model="selectedModelOption"
                         class="input font-mono text-sm"
-                        :placeholder="$t('codex.profiles.placeholders.model')"
                       >
+                        <option
+                          v-for="model in modelCatalog"
+                          :key="model"
+                          :value="model"
+                        >
+                          {{ model }}
+                        </option>
+                        <option :value="CUSTOM_MODEL_OPTION">
+                          {{ $t('codex.profiles.customModelOption') }}
+                        </option>
+                      </select>
+                      <input
+                        v-if="selectedModelOption === CUSTOM_MODEL_OPTION"
+                        v-model="customModelInput"
+                        type="text"
+                        class="input font-mono text-sm mt-2"
+                        :placeholder="$t('codex.profiles.placeholders.customModel')"
+                      >
+                      <p class="text-xs text-white/50">
+                        {{ selectedModelOption === CUSTOM_MODEL_OPTION ? $t('codex.profiles.customModelHint') : $t('codex.profiles.modelPresetHint') }}
+                      </p>
                     </div>
                     <div class="space-y-1.5">
                       <label class="text-sm font-semibold text-white/80">
@@ -765,8 +785,16 @@ import { Breadcrumb } from '@/components/ui'
 import CollapsibleSidebar from '@/components/CollapsibleSidebar.vue'
 import Card from '@/components/ui/Card.vue'
 import ConfirmModal from '@/components/ConfirmModal.vue'
-import { addCodexProfile, applyCodexProfile, deleteCodexProfile, getCodexProfile, listCodexProfiles, updateCodexProfile } from '@/api'
-import type { CodexProfile, CodexProfileAuthMode, CodexProfileRequest, CodexProfilesResponse, OpenAiLoginMethod } from '@/types'
+import { addCodexCustomModel, addCodexProfile, applyCodexProfile, deleteCodexProfile, getCodexProfile, listCodexModels, listCodexProfiles, updateCodexProfile } from '@/api'
+import type {
+  CodexAddCustomModelResponse,
+  CodexModelsResponse,
+  CodexProfile,
+  CodexProfileAuthMode,
+  CodexProfileRequest,
+  CodexProfilesResponse,
+  OpenAiLoginMethod,
+} from '@/types'
 import { logger } from '@/utils/logger'
 import { useUIStore } from '@/stores/ui'
 
@@ -779,8 +807,16 @@ const loading = ref(false)
 const saving = ref(false)
 const actionLoading = ref(false)
 
+const AVAILABLE_AUTH_MODES: CodexProfileAuthMode[] = ['openai_api_key', 'no_auth']
+const DEPRECATED_AUTH_MODES: CodexProfileAuthMode[] = ['openai_chatgpt', 'provider_env_key']
+const CUSTOM_MODEL_OPTION = '__custom__'
+
 const profiles = ref<CodexProfile[]>([])
 const currentProfile = ref<string | null>(null)
+const codexBuiltinModels = ref<string[]>([])
+const codexCustomModels = ref<string[]>([])
+const selectedModelOption = ref<string>('')
+const customModelInput = ref('')
 
 const showForm = ref(false)
 const editingName = ref<string | null>(null)
@@ -831,6 +867,25 @@ const authModeToLoginMethod = (authMode: CodexProfileAuthMode): OpenAiLoginMetho
       return undefined
   }
 }
+
+const normalizeModelName = (value?: string | null) => value?.trim() || ''
+
+const modelCatalog = computed(() => {
+  const merged = [...codexBuiltinModels.value, ...codexCustomModels.value]
+  return merged.filter((model, index) => merged.indexOf(model) === index)
+})
+
+const isDeprecatedAuthMode = (authMode?: CodexProfileAuthMode | null) => {
+  return authMode ? DEPRECATED_AUTH_MODES.includes(authMode) : false
+}
+
+const availableAuthModeOptions = computed(() => {
+  const options = [...AVAILABLE_AUTH_MODES]
+  if (isDeprecatedAuthMode(form.auth_mode) && !options.includes(form.auth_mode)) {
+    options.push(form.auth_mode)
+  }
+  return options
+})
 
 const usesOpenAiAuthMode = (authMode: CodexProfileAuthMode) => {
   return authMode === 'openai_chatgpt' || authMode === 'openai_api_key'
@@ -894,17 +949,22 @@ const form = reactive<Required<Pick<CodexProfileRequest, 'name' | 'model' | 'aut
   enabled: true,
   wire_api: '',
   env_key: '',
-  requires_openai_auth: true,
-  auth_mode: 'openai_chatgpt',
-  openai_login_method: 'chatgpt',
+  requires_openai_auth: false,
+  auth_mode: 'no_auth',
+  openai_login_method: undefined,
   extra: {},
 })
 
 const requiresBaseUrl = computed(() => !usesOpenAiAuthMode(form.auth_mode))
-const requiresSecret = computed(() => form.auth_mode === 'openai_api_key' || form.auth_mode === 'provider_env_key')
+const requiresSecret = computed(() => form.auth_mode === 'openai_api_key')
 const requiresEnvKey = computed(() => form.auth_mode === 'provider_env_key')
 const requiresOpenAiAuth = computed(() => usesOpenAiAuthMode(form.auth_mode))
 const displayOpenAiLoginMethod = computed(() => authModeToLoginMethod(form.auth_mode) || t('codex.profiles.notAvailable'))
+const resolvedModelValue = computed(() => {
+  return selectedModelOption.value === CUSTOM_MODEL_OPTION
+    ? normalizeModelName(customModelInput.value)
+    : normalizeModelName(selectedModelOption.value)
+})
 const authTokenHint = computed(() => {
   if (form.auth_mode === 'openai_chatgpt') {
     return t('codex.profiles.authTokenHints.openai_chatgpt')
@@ -918,12 +978,25 @@ const authTokenHint = computed(() => {
   return t('codex.profiles.authTokenHints.no_auth')
 })
 
+const loadModels = async () => {
+  try {
+    const data = await listCodexModels<CodexModelsResponse>()
+    codexBuiltinModels.value = data.builtin_models || []
+    codexCustomModels.value = data.custom_models || []
+  } catch (error) {
+    logger.error('Failed to load codex models:', error)
+  }
+}
+
 const loadProfiles = async () => {
   try {
     loading.value = true
-    const data = await listCodexProfiles<CodexProfilesResponse>()
-    profiles.value = data.profiles || []
-    currentProfile.value = data.current_profile ?? null
+    const [profilesData] = await Promise.all([
+      listCodexProfiles<CodexProfilesResponse>(),
+      loadModels(),
+    ])
+    profiles.value = profilesData.profiles || []
+    currentProfile.value = profilesData.current_profile ?? null
     lastLoadedAt.value = Date.now()
   } catch (error) {
     logger.error('Failed to load codex profiles:', error)
@@ -968,60 +1041,112 @@ const executeConfirmedAction = async () => {
 }
 
 const resetForm = () => {
-  form.name = ''
-  form.description = ''
-  form.base_url = ''
-  form.auth_token = ''
-  form.model = ''
-  form.small_fast_model = ''
-  form.provider = ''
-  form.provider_type = ''
-  form.account = ''
-  form.tags = []
-  form.enabled = true
-  form.wire_api = ''
-  form.env_key = ''
-  form.requires_openai_auth = true
-  form.auth_mode = 'openai_chatgpt'
-  form.openai_login_method = 'chatgpt'
-  form.extra = {}
+  Object.assign(form, {
+    name: '',
+    description: '',
+    base_url: '',
+    auth_token: '',
+    model: '',
+    small_fast_model: '',
+    provider: '',
+    provider_type: '',
+    account: '',
+    tags: [],
+    enabled: true,
+    wire_api: '',
+    env_key: '',
+    requires_openai_auth: false,
+    auth_mode: 'no_auth',
+    openai_login_method: undefined,
+    extra: {},
+  })
+  selectedModelOption.value = modelCatalog.value[0] || CUSTOM_MODEL_OPTION
+  customModelInput.value = ''
   tagsText.value = ''
   extraText.value = JSON.stringify({}, null, 2)
 }
 
-const handleAdd = () => {
-  editingName.value = null
+const applyProfileToForm = (profile: CodexProfile) => {
+  Object.assign(form, {
+    name: profile.name,
+    description: profile.description || '',
+    base_url: profile.base_url || '',
+    auth_token: profile.auth_token || '',
+    model: profile.model || '',
+    small_fast_model: profile.small_fast_model || '',
+    provider: profile.provider || '',
+    provider_type: profile.provider_type || '',
+    account: profile.account || '',
+    tags: profile.tags || [],
+    enabled: profile.enabled !== false,
+    wire_api: profile.wire_api || '',
+    env_key: profile.env_key || '',
+    requires_openai_auth: profile.requires_openai_auth ?? usesOpenAiAuthMode(profile.auth_mode || 'no_auth'),
+    auth_mode: profile.auth_mode || 'no_auth',
+    openai_login_method: profile.openai_login_method || authModeToLoginMethod(profile.auth_mode || 'no_auth'),
+    extra: profile.extra || {},
+  })
+
+  const normalizedModel = normalizeModelName(profile.model)
+  if (normalizedModel && modelCatalog.value.includes(normalizedModel)) {
+    selectedModelOption.value = normalizedModel
+    customModelInput.value = ''
+  } else {
+    selectedModelOption.value = CUSTOM_MODEL_OPTION
+    customModelInput.value = normalizedModel
+  }
+
+  tagsText.value = (form.tags || []).join(', ')
+  extraText.value = JSON.stringify(form.extra || {}, null, 2)
+}
+
+const openFormModal = async (name?: string) => {
+  editingName.value = name ?? null
+  await loadModels()
   resetForm()
   showForm.value = true
+
+  if (!name) {
+    return
+  }
+
+  const profile = await getCodexProfile<CodexProfile>(name)
+  applyProfileToForm(profile)
+}
+
+const resetBusyState = () => {
+  busyProfileName.value = null
+  busyAction.value = null
+}
+
+const handleProfileAction = async (
+  name: string,
+  action: 'apply' | 'delete',
+  task: () => Promise<void>,
+  successMessage: string,
+  errorMessage: string,
+) => {
+  busyProfileName.value = name
+  busyAction.value = action
+  try {
+    await task()
+    await loadProfiles()
+    uiStore.showSuccess(successMessage)
+  } catch (error) {
+    logger.error(`Failed to ${action} codex profile:`, error)
+    uiStore.showError(extractErrorMessage(error) || errorMessage)
+  } finally {
+    resetBusyState()
+  }
+}
+
+const handleAdd = async () => {
+  await openFormModal()
 }
 
 const handleEdit = async (name: string) => {
   try {
-    editingName.value = name
-    resetForm()
-    showForm.value = true
-
-    const profile = await getCodexProfile<CodexProfile>(name)
-    form.name = profile.name
-    form.description = profile.description || ''
-    form.base_url = profile.base_url || ''
-    form.auth_token = profile.auth_token || ''
-    form.model = profile.model || ''
-    form.small_fast_model = profile.small_fast_model || ''
-    form.provider = profile.provider || ''
-    form.provider_type = profile.provider_type || ''
-    form.account = profile.account || ''
-    form.tags = profile.tags || []
-    form.enabled = profile.enabled !== false
-    form.wire_api = profile.wire_api || ''
-    form.env_key = profile.env_key || ''
-    form.requires_openai_auth = profile.requires_openai_auth ?? usesOpenAiAuthMode(profile.auth_mode || 'no_auth')
-    form.auth_mode = profile.auth_mode || 'no_auth'
-    form.openai_login_method = profile.openai_login_method || authModeToLoginMethod(form.auth_mode)
-    form.extra = profile.extra || {}
-
-    tagsText.value = (form.tags || []).join(', ')
-    extraText.value = JSON.stringify(form.extra || {}, null, 2)
+    await openFormModal(name)
   } catch (error) {
     logger.error('Failed to load codex profile:', error)
     uiStore.showError(extractErrorMessage(error) || t('codex.states.loadFailed'))
@@ -1055,6 +1180,7 @@ const parseExtraJson = (raw: string): Record<string, unknown> | undefined => {
 const syncDerivedAuthFields = () => {
   form.openai_login_method = authModeToLoginMethod(form.auth_mode)
   form.requires_openai_auth = usesOpenAiAuthMode(form.auth_mode)
+  form.model = resolvedModelValue.value
 
   if (!requiresEnvKey.value) {
     form.env_key = ''
@@ -1080,7 +1206,7 @@ const handleSave = async () => {
     uiStore.showError(t('codex.profiles.validation.envKeyRequired'))
     return
   }
-  if (!form.model.trim()) {
+  if (!resolvedModelValue.value) {
     uiStore.showError(t('codex.profiles.validation.modelRequired'))
     return
   }
@@ -1098,7 +1224,7 @@ const handleSave = async () => {
     description: form.description?.trim() ? form.description.trim() : undefined,
     base_url: form.base_url?.trim() ? form.base_url.trim() : undefined,
     auth_token: form.auth_token?.trim() ? form.auth_token.trim() : undefined,
-    model: form.model.trim(),
+    model: resolvedModelValue.value,
     small_fast_model: form.small_fast_model?.trim() ? form.small_fast_model.trim() : undefined,
     provider: form.provider?.trim() ? form.provider.trim() : undefined,
     provider_type: form.provider_type?.trim() ? form.provider_type.trim() : undefined,
@@ -1116,6 +1242,11 @@ const handleSave = async () => {
   try {
     saving.value = true
     const isEditing = Boolean(editingName.value)
+    if (selectedModelOption.value === CUSTOM_MODEL_OPTION) {
+      const response = await addCodexCustomModel<CodexAddCustomModelResponse>(resolvedModelValue.value)
+      const models = response.models || []
+      codexCustomModels.value = models.filter(model => !codexBuiltinModels.value.includes(model))
+    }
     if (editingName.value) {
       await updateCodexProfile(editingName.value, request)
     } else {
@@ -1141,19 +1272,13 @@ const handleDelete = async (name: string) => {
     confirmText: t('codex.actions.delete'),
     type: 'danger',
     action: async () => {
-      busyProfileName.value = name
-      busyAction.value = 'delete'
-      try {
-        await deleteCodexProfile(name)
-        await loadProfiles()
-        uiStore.showSuccess(t('codex.actions.delete'))
-      } catch (error) {
-        logger.error('Failed to delete codex profile:', error)
-        uiStore.showError(extractErrorMessage(error) || t('codex.states.deleteFailed'))
-      } finally {
-        busyProfileName.value = null
-        busyAction.value = null
-      }
+      await handleProfileAction(
+        name,
+        'delete',
+        () => deleteCodexProfile(name),
+        t('codex.actions.delete'),
+        t('codex.states.deleteFailed'),
+      )
     },
   })
 }
@@ -1165,19 +1290,13 @@ const handleApply = async (name: string) => {
     confirmText: t('codex.profiles.apply'),
     type: 'warning',
     action: async () => {
-      busyProfileName.value = name
-      busyAction.value = 'apply'
-      try {
-        await applyCodexProfile(name)
-        await loadProfiles()
-        uiStore.showSuccess(t('codex.profiles.apply'))
-      } catch (error) {
-        logger.error('Failed to apply codex profile:', error)
-        uiStore.showError(extractErrorMessage(error) || t('codex.states.saveFailed'))
-      } finally {
-        busyProfileName.value = null
-        busyAction.value = null
-      }
+      await handleProfileAction(
+        name,
+        'apply',
+        () => applyCodexProfile(name),
+        t('codex.profiles.apply'),
+        t('codex.states.saveFailed'),
+      )
     },
   })
 }

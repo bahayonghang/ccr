@@ -105,6 +105,22 @@ export interface CodexProfileResponse {
   profile: CodexProfile
 }
 
+export interface CodexModelsResponse {
+  builtin_models: string[]
+  custom_models: string[]
+  models: string[]
+}
+
+export interface CodexAddCustomModelRequest {
+  model: string
+}
+
+export interface CodexAddCustomModelResponse {
+  model: string
+  models: string[]
+  message?: string
+}
+
 // ============ Codex Base Config Types ============
 // 说明：这是 Codex CLI 的 ~/.codex/config.toml，不同于 CCR 的 profiles.toml
 

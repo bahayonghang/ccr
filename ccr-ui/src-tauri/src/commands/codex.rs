@@ -109,6 +109,29 @@ struct CodexProfile {
     pub other: HashMap<String, toml::Value>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+struct CodexCustomModelsFile {
+    #[serde(default)]
+    pub models: Vec<String>,
+}
+
+const CODEX_BUILTIN_MODELS: &[&str] = &["gpt-5.3-codex", "gpt-5.4"];
+const EXPLICIT_PLATFORM_STRING_FIELDS: &[&str] = &[
+    "api_mode",
+    "wire_api",
+    "env_key",
+    "auth_mode",
+    "openai_login_method",
+    "approval_policy",
+    "sandbox_mode",
+    "model_reasoning_effort",
+    "network_access",
+];
+const EXPLICIT_PLATFORM_BOOL_FIELDS: &[&str] = &[
+    "requires_openai_auth",
+    "disable_response_storage",
+];
+
 // ── 文件 I/O 辅助函数 ──
 
 fn codex_config_path() -> Result<PathBuf, String> {
@@ -119,6 +142,89 @@ fn codex_config_path() -> Result<PathBuf, String> {
 fn codex_agents_dir() -> Result<PathBuf, String> {
     let home = dirs::home_dir().ok_or_else(|| "无法获取用户主目录".to_string())?;
     Ok(home.join(".codex").join("agents"))
+}
+
+fn codex_custom_models_path() -> Result<PathBuf, String> {
+    let home = dirs::home_dir().ok_or_else(|| "无法获取用户主目录".to_string())?;
+    Ok(home
+        .join(".ccr")
+        .join("platforms")
+        .join("codex")
+        .join("custom-models.toml"))
+}
+
+fn read_codex_custom_models(path: &PathBuf) -> Result<CodexCustomModelsFile, String> {
+    if !path.exists() {
+        return Ok(CodexCustomModelsFile::default());
+    }
+    let content = fs::read_to_string(path).map_err(|e| format!("读取 Codex 自定义模型失败: {e}"))?;
+    toml::from_str(&content).map_err(|e| format!("解析 Codex 自定义模型失败: {e}"))
+}
+
+fn write_codex_custom_models(path: &PathBuf, models: &CodexCustomModelsFile) -> Result<(), String> {
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent).map_err(|e| format!("创建模型目录失败: {e}"))?;
+    }
+    let content = toml::to_string_pretty(models).map_err(|e| format!("序列化 Codex 自定义模型失败: {e}"))?;
+    let parent = path.parent().ok_or("无效的文件路径")?;
+    let tmp = tempfile::NamedTempFile::new_in(parent).map_err(|e| format!("创建临时文件失败: {e}"))?;
+    fs::write(tmp.path(), &content).map_err(|e| format!("写入临时文件失败: {e}"))?;
+    tmp.persist(path)
+        .map_err(|e| format!("持久化模型文件失败: {e}"))?;
+    Ok(())
+}
+
+fn normalize_model_name(model: &str) -> Option<String> {
+    let trimmed = model.trim();
+    if trimmed.is_empty() {
+        None
+    } else {
+        Some(trimmed.to_string())
+    }
+}
+
+fn codex_builtin_models() -> Vec<String> {
+    CODEX_BUILTIN_MODELS.iter().map(|model| (*model).to_string()).collect()
+}
+
+fn merge_codex_models(custom_models: &[String]) -> Vec<String> {
+    let mut merged = codex_builtin_models();
+    for model in custom_models {
+        if !merged.iter().any(|item| item == model) {
+            merged.push(model.clone());
+        }
+    }
+    merged
+}
+
+fn sanitize_custom_models(models: Vec<String>) -> Vec<String> {
+    let mut sanitized = Vec::new();
+    for model in models {
+        if let Some(normalized) = normalize_model_name(&model)
+            && !CODEX_BUILTIN_MODELS.iter().any(|builtin| *builtin == normalized)
+            && !sanitized.iter().any(|item| item == &normalized)
+        {
+            sanitized.push(normalized);
+        }
+    }
+    sanitized
+}
+
+fn read_codex_model_catalog() -> Result<(Vec<String>, Vec<String>, Vec<String>), String> {
+    let builtin_models = codex_builtin_models();
+    let path = codex_custom_models_path()?;
+    let custom_models = sanitize_custom_models(read_codex_custom_models(&path)?.models);
+    let models = merge_codex_models(&custom_models);
+    Ok((builtin_models, custom_models, models))
+}
+
+fn codex_list_models_payload() -> Result<Value, String> {
+    let (builtin_models, custom_models, models) = read_codex_model_catalog()?;
+    Ok(json!({
+        "builtin_models": builtin_models,
+        "custom_models": custom_models,
+        "models": models,
+    }))
 }
 
 fn read_codex_config(path: &PathBuf) -> Result<CodexConfig, String> {
@@ -234,21 +340,10 @@ fn parse_extra_field(
 fn parse_platform_data_update(obj: &Map<String, Value>) -> Result<Option<Map<String, Value>>, String> {
     let has_extra = obj.contains_key("extra");
     let has_platform_data = obj.contains_key("platform_data");
-    let has_explicit_platform_fields = [
-        "api_mode",
-        "wire_api",
-        "env_key",
-        "requires_openai_auth",
-        "auth_mode",
-        "openai_login_method",
-        "approval_policy",
-        "sandbox_mode",
-        "model_reasoning_effort",
-        "network_access",
-        "disable_response_storage",
-    ]
-    .iter()
-    .any(|field| obj.contains_key(*field));
+    let has_explicit_platform_fields = EXPLICIT_PLATFORM_STRING_FIELDS
+        .iter()
+        .chain(EXPLICIT_PLATFORM_BOOL_FIELDS.iter())
+        .any(|field| obj.contains_key(*field));
 
     if !has_extra && !has_platform_data && !has_explicit_platform_fields {
         return Ok(None);
@@ -305,22 +400,54 @@ fn merge_explicit_platform_fields(
     platform_data: &mut Map<String, Value>,
     obj: &Map<String, Value>,
 ) -> Result<(), String> {
-    for field_name in [
-        "api_mode",
-        "wire_api",
-        "env_key",
-        "auth_mode",
-        "openai_login_method",
-        "approval_policy",
-        "sandbox_mode",
-        "model_reasoning_effort",
-        "network_access",
-    ] {
+    for field_name in EXPLICIT_PLATFORM_STRING_FIELDS {
         merge_optional_string_field(platform_data, obj, field_name)?;
     }
 
-    for field_name in ["requires_openai_auth", "disable_response_storage"] {
+    for field_name in EXPLICIT_PLATFORM_BOOL_FIELDS {
         merge_optional_bool_field(platform_data, obj, field_name)?;
+    }
+
+    Ok(())
+}
+
+fn apply_profile_config(profile: &mut ProfileConfig, obj: &Map<String, Value>) -> Result<(), String> {
+    if let Some(raw) = obj.get("description") {
+        profile.description = parse_string_field(raw, "description")?;
+    }
+    if let Some(raw) = obj.get("base_url") {
+        profile.base_url = parse_string_field(raw, "base_url")?;
+    }
+    if let Some(raw) = obj.get("auth_token") {
+        profile.auth_token = parse_string_field(raw, "auth_token")?;
+    }
+    if let Some(raw) = obj.get("model") {
+        profile.model = parse_string_field(raw, "model")?;
+    }
+    if let Some(raw) = obj.get("small_fast_model") {
+        profile.small_fast_model = parse_string_field(raw, "small_fast_model")?;
+    }
+    if let Some(raw) = obj.get("provider") {
+        profile.provider = parse_string_field(raw, "provider")?;
+    }
+    if let Some(raw) = obj.get("provider_type") {
+        profile.provider_type = parse_string_field(raw, "provider_type")?;
+    }
+    if let Some(raw) = obj.get("account") {
+        profile.account = parse_string_field(raw, "account")?;
+    }
+    if let Some(raw) = obj.get("tags") {
+        profile.tags = parse_tags_field(raw)?;
+    }
+    if let Some(raw) = obj.get("usage_count") {
+        profile.usage_count = parse_usage_count_field(raw)?;
+    }
+    if let Some(raw) = obj.get("enabled") {
+        profile.enabled = parse_bool_field(raw, "enabled")?;
+    }
+
+    if let Some(platform_data) = parse_platform_data_update(obj)? {
+        profile.platform_data = platform_data.into_iter().collect();
     }
 
     Ok(())
@@ -332,45 +459,7 @@ fn build_profile_from_config(config: &Value) -> Result<ProfileConfig, String> {
         .ok_or_else(|| "profile config 必须是对象".to_string())?;
 
     let mut profile = ProfileConfig::new();
-
-    if let Some(raw) = obj.get("description") {
-        profile.description = parse_string_field(raw, "description")?;
-    }
-    if let Some(raw) = obj.get("base_url") {
-        profile.base_url = parse_string_field(raw, "base_url")?;
-    }
-    if let Some(raw) = obj.get("auth_token") {
-        profile.auth_token = parse_string_field(raw, "auth_token")?;
-    }
-    if let Some(raw) = obj.get("model") {
-        profile.model = parse_string_field(raw, "model")?;
-    }
-    if let Some(raw) = obj.get("small_fast_model") {
-        profile.small_fast_model = parse_string_field(raw, "small_fast_model")?;
-    }
-    if let Some(raw) = obj.get("provider") {
-        profile.provider = parse_string_field(raw, "provider")?;
-    }
-    if let Some(raw) = obj.get("provider_type") {
-        profile.provider_type = parse_string_field(raw, "provider_type")?;
-    }
-    if let Some(raw) = obj.get("account") {
-        profile.account = parse_string_field(raw, "account")?;
-    }
-    if let Some(raw) = obj.get("tags") {
-        profile.tags = parse_tags_field(raw)?;
-    }
-    if let Some(raw) = obj.get("usage_count") {
-        profile.usage_count = parse_usage_count_field(raw)?;
-    }
-    if let Some(raw) = obj.get("enabled") {
-        profile.enabled = parse_bool_field(raw, "enabled")?;
-    }
-
-    if let Some(platform_data) = parse_platform_data_update(obj)? {
-        profile.platform_data = platform_data.into_iter().collect();
-    }
-
+    apply_profile_config(&mut profile, obj)?;
     Ok(profile)
 }
 
@@ -379,45 +468,7 @@ fn patch_profile_with_config(profile: &mut ProfileConfig, config: &Value) -> Res
         .as_object()
         .ok_or_else(|| "profile config 必须是对象".to_string())?;
 
-    if let Some(raw) = obj.get("description") {
-        profile.description = parse_string_field(raw, "description")?;
-    }
-    if let Some(raw) = obj.get("base_url") {
-        profile.base_url = parse_string_field(raw, "base_url")?;
-    }
-    if let Some(raw) = obj.get("auth_token") {
-        profile.auth_token = parse_string_field(raw, "auth_token")?;
-    }
-    if let Some(raw) = obj.get("model") {
-        profile.model = parse_string_field(raw, "model")?;
-    }
-    if let Some(raw) = obj.get("small_fast_model") {
-        profile.small_fast_model = parse_string_field(raw, "small_fast_model")?;
-    }
-    if let Some(raw) = obj.get("provider") {
-        profile.provider = parse_string_field(raw, "provider")?;
-    }
-    if let Some(raw) = obj.get("provider_type") {
-        profile.provider_type = parse_string_field(raw, "provider_type")?;
-    }
-    if let Some(raw) = obj.get("account") {
-        profile.account = parse_string_field(raw, "account")?;
-    }
-    if let Some(raw) = obj.get("tags") {
-        profile.tags = parse_tags_field(raw)?;
-    }
-    if let Some(raw) = obj.get("usage_count") {
-        profile.usage_count = parse_usage_count_field(raw)?;
-    }
-    if let Some(raw) = obj.get("enabled") {
-        profile.enabled = parse_bool_field(raw, "enabled")?;
-    }
-
-    if let Some(platform_data) = parse_platform_data_update(obj)? {
-        profile.platform_data = platform_data.into_iter().collect();
-    }
-
-    Ok(())
+    apply_profile_config(profile, obj)
 }
 
 fn openai_login_method_to_string(method: OpenAiAuthMethod) -> &'static str {
@@ -425,22 +476,6 @@ fn openai_login_method_to_string(method: OpenAiAuthMethod) -> &'static str {
         OpenAiAuthMethod::Chatgpt => "chatgpt",
         OpenAiAuthMethod::Api => "api",
     }
-}
-
-fn explicit_platform_field_names() -> &'static [&'static str] {
-    &[
-        "api_mode",
-        "wire_api",
-        "env_key",
-        "requires_openai_auth",
-        "auth_mode",
-        "openai_login_method",
-        "approval_policy",
-        "sandbox_mode",
-        "model_reasoning_effort",
-        "network_access",
-        "disable_response_storage",
-    ]
 }
 
 fn profile_to_json(
@@ -455,7 +490,10 @@ fn profile_to_json(
     let openai_login_method = CodexPlatform::profile_openai_login_method(&profile)
         .map(openai_login_method_to_string);
     let mut extra = profile.platform_data.clone();
-    for field_name in explicit_platform_field_names() {
+    for field_name in EXPLICIT_PLATFORM_STRING_FIELDS
+        .iter()
+        .chain(EXPLICIT_PLATFORM_BOOL_FIELDS.iter())
+    {
         extra.shift_remove(*field_name);
     }
 
@@ -526,6 +564,40 @@ pub async fn codex_list_profiles() -> Result<Value, String> {
             .collect();
 
         Ok(json!({ "profiles": profiles, "current_profile": current_profile }))
+    })
+    .await
+    .map_err(|e| format!("任务执行失败: {e}"))?
+}
+
+/// 列出 Codex 可选模型（内置 + 自定义）
+#[tauri::command]
+pub async fn codex_list_models() -> Result<Value, String> {
+    tokio::task::spawn_blocking(codex_list_models_payload)
+        .await
+        .map_err(|e| format!("任务执行失败: {e}"))?
+}
+
+/// 保存 Codex 自定义模型
+#[tauri::command]
+pub async fn codex_add_custom_model(model: String) -> Result<Value, String> {
+    tokio::task::spawn_blocking(move || {
+        let normalized = normalize_model_name(&model)
+            .ok_or_else(|| "模型名称不能为空".to_string())?;
+        let path = codex_custom_models_path()?;
+        let mut file = read_codex_custom_models(&path)?;
+        let mut custom_models = sanitize_custom_models(std::mem::take(&mut file.models));
+        if !custom_models.iter().any(|item| item == &normalized)
+            && !CODEX_BUILTIN_MODELS.iter().any(|builtin| *builtin == normalized)
+        {
+            custom_models.push(normalized.clone());
+        }
+        file.models = custom_models.clone();
+        write_codex_custom_models(&path, &file)?;
+        Ok(json!({
+            "model": normalized,
+            "models": merge_codex_models(&custom_models),
+            "message": "Codex 自定义模型已保存",
+        }))
     })
     .await
     .map_err(|e| format!("任务执行失败: {e}"))?

@@ -94,6 +94,8 @@ macro_rules! generate_handler_common {
         claude::claude_apply_profile,
         // —— Codex ——
         codex::codex_list_profiles,
+        codex::codex_list_models,
+        codex::codex_add_custom_model,
         codex::codex_add_profile,
         codex::codex_update_profile,
         codex::codex_delete_profile,

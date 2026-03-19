@@ -2060,12 +2060,13 @@ export default {
       currentActive: 'Current Active',
       placeholders: {
         name: 'e.g: duckcoding',
-        description: 'e.g: OpenAI-compatible relay (gpt-5.1-codex)',
+        description: 'e.g: OpenAI-compatible relay (gpt-5.3-codex / gpt-5.4)',
         authToken: 'e.g: ghp_... or sk-...',
         baseUrl: 'e.g: https://api.github.com/copilot or https://your-openai-compatible.com/v1',
         envKey: 'e.g: MISTRAL_API_KEY',
         wireApi: 'e.g: responses',
-        model: 'e.g: gpt-5.1-codex',
+        model: 'e.g: gpt-5.3-codex or gpt-5.4',
+        customModel: 'Enter a custom model name',
         smallFastModel: 'e.g: gpt-4o-mini',
         provider: 'e.g: duckcoding',
         providerType: 'e.g: official_relay',
@@ -2074,9 +2075,9 @@ export default {
         extraJson: '{\'{\'}\n  "approval_policy": "on-request"\n{\'}\'}',
       },
       authModes: {
-        openai_chatgpt: 'OpenAI ChatGPT Login',
+        openai_chatgpt: 'OpenAI ChatGPT Login (Deprecated)',
         openai_api_key: 'OpenAI API Key',
-        provider_env_key: 'Provider Env Key',
+        provider_env_key: 'Provider Env Key (Deprecated)',
         no_auth: 'No Auth',
       },
       authTokenHints: {
@@ -2085,6 +2086,10 @@ export default {
         provider_env_key: 'Provider env-key profiles require both env_key and a secret.',
         no_auth: 'Leave this blank for profiles that do not need runtime auth.',
       },
+      customModelOption: 'Custom model…',
+      customModelHint: 'The model will be written to a dedicated custom-models.toml for reuse by future profiles.',
+      modelPresetHint: 'Use the conservative built-in presets first; choose custom for anything else.',
+      deprecatedAuthModeHint: 'This profile is still using a legacy auth mode: {mode}. You can inspect it and migrate on save.',
       officialBaseUrl: 'Official OpenAI runtime',
       notAvailable: 'N/A',
       baseUrlRequiredHint:
