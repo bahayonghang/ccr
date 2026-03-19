@@ -304,7 +304,7 @@ const getVersionLabel = (platformKey: string) => {
   if (!entry) return '...'
   if (entry.status === 'timeout' || entry.status === 'error') return '...'
   if (entry.status === 'not_installed' || !entry.installed) return t('home.notInstalled')
-  return entry.version ? `v${entry.version}` : 'installed'
+  return entry.version ? `v${entry.version}` : t('common.installed')
 }
 
 const getVersionClass = (platformKey: string) => {

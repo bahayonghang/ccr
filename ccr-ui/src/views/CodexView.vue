@@ -103,10 +103,10 @@
             </div>
             <div>
               <p class="text-xs font-bold text-white/50 uppercase tracking-wider mb-0.5">
-                System Status
+                {{ $t('codex.status.systemStatus') }}
               </p>
               <p class="text-base font-bold text-white">
-                Online
+                {{ $t('codex.status.connected') }}
               </p>
             </div>
           </Card>
@@ -169,7 +169,7 @@
                 class="mt-2 flex items-center text-sm font-bold opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-[opacity,transform] duration-300"
                 :class="module.textClass"
               >
-                Open Module <SIcon
+                {{ $t('common.openModule') }} <SIcon
                   name="ArrowRight"
                   size="w-4 h-4"
                   class="ml-1"
@@ -264,11 +264,11 @@
             <div class="p-3 rounded-xl bg-white/5/50 border border-white/5">
               <div class="flex justify-between items-center mb-2">
                 <span class="text-xs font-bold text-white/50 uppercase tracking-wider">{{ $t('codex.overview.usage5h') }}</span>
-                <span class="text-xs font-mono text-white/80">{{ usageData.five_hour.total_requests }} reqs</span>
+                <span class="text-xs font-mono text-white/80">{{ usageData.five_hour.total_requests }} {{ $t('codex.overview.requests') }}</span>
               </div>
               <div class="flex items-baseline gap-2">
                 <span class="text-xl font-bold text-white font-mono">{{ formatTokens(usageData.five_hour.total_input_tokens + usageData.five_hour.total_output_tokens) }}</span>
-                <span class="text-xs text-white/50">tokens</span>
+                <span class="text-xs text-white/50">{{ $t('codex.overview.tokens') }}</span>
               </div>
               <div class="w-full rounded-full h-1.5 mt-2 overflow-hidden">
                 <div
@@ -282,11 +282,11 @@
             <div class="p-3 rounded-xl bg-white/5/50 border border-white/5">
               <div class="flex justify-between items-center mb-2">
                 <span class="text-xs font-bold text-white/50 uppercase tracking-wider">{{ $t('codex.overview.usage7d') }}</span>
-                <span class="text-xs font-mono text-white/80">{{ usageData.seven_day.total_requests }} reqs</span>
+                <span class="text-xs font-mono text-white/80">{{ usageData.seven_day.total_requests }} {{ $t('codex.overview.requests') }}</span>
               </div>
               <div class="flex items-baseline gap-2">
                 <span class="text-xl font-bold text-white font-mono">{{ formatTokens(usageData.seven_day.total_input_tokens + usageData.seven_day.total_output_tokens) }}</span>
-                <span class="text-xs text-white/50">tokens</span>
+                <span class="text-xs text-white/50">{{ $t('codex.overview.tokens') }}</span>
               </div>
               <div class="w-full rounded-full h-1.5 mt-2 overflow-hidden">
                 <div
@@ -312,12 +312,12 @@
                 />
               </div>
               <h3 class="text-base font-bold text-white">
-                System Capabilities
+                {{ $t('codex.overview.capabilitiesTitle') }}
               </h3>
             </div>
             <div class="space-y-2">
               <div
-                v-for="(feature, index) in features"
+                v-for="(feature, index) in capabilities"
                 :key="index"
                 class="flex items-center gap-2 p-2 rounded-lg bg-white/5/30 border border-white/5/50"
               >
@@ -381,11 +381,11 @@ const codexVersionStatus = ref<'loading' | 'ok' | 'timeout' | 'error' | 'not_ins
 const codexVersionLabel = computed(() => {
   switch (codexVersionStatus.value) {
     case 'timeout':
-      return '检测中...'
+      return t('codex.status.checkingVersion')
     case 'error':
-      return '重试检测'
+      return t('codex.status.retryVersionCheck')
     case 'not_installed':
-      return 'Not Installed'
+      return t('codex.status.notInstalled')
     case 'ok':
       return codexVersion.value
     default:
@@ -512,12 +512,12 @@ const modules = computed(() => [
   }
 ])
 
-const features = [
-  'Advanced MCP Protocol Integration (Stdio & SSE)',
-  'Multi-Profile Configuration Management',
-  'Custom Slash Commands Support',
-  'Context-Aware AI Coding Assistance'
-]
+const capabilities = computed(() => [
+  t('codex.overview.capabilities.mcp'),
+  t('codex.overview.capabilities.profiles'),
+  t('codex.overview.capabilities.slashCommands'),
+  t('codex.overview.capabilities.auth'),
+])
 
 const applyCodexVersionEntry = (entry?: CliVersionEntry) => {
   if (!entry) {
@@ -540,12 +540,12 @@ const applyCodexVersionEntry = (entry?: CliVersionEntry) => {
 
   if (entry.status === 'not_installed' || !entry.installed) {
     codexVersionStatus.value = 'not_installed'
-    codexVersion.value = 'Not Installed'
+    codexVersion.value = t('codex.status.notInstalled')
     return
   }
 
   codexVersionStatus.value = 'ok'
-  codexVersion.value = entry.version ? `v${entry.version}` : 'Installed'
+  codexVersion.value = entry.version ? `v${entry.version}` : t('codex.status.installed')
 }
 
 const clearHeavyLoadTimer = () => {

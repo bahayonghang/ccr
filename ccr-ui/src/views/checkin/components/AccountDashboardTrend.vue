@@ -2,10 +2,11 @@
   <div>
     <div
       v-if="chartData.length === 0"
-      class="text-sm text-gray-400 dark:text-gray-500 text-center py-16"
+      class="trend-empty"
     >
       暂无趋势数据
     </div>
+
     <div
       v-else
       class="trend-chart-container"
@@ -15,30 +16,29 @@
         class="trend-svg"
         preserveAspectRatio="xMidYMid meet"
       >
-        <!-- 网格线 -->
         <line
-          v-for="(_, i) in 5"
-          :key="`grid-${i}`"
+          v-for="(_, index) in 5"
+          :key="`grid-${index}`"
           :x1="padding"
-          :y1="padding + (chartHeight / 4) * i"
+          :y1="padding + (chartHeight / 4) * index"
           :x2="width - padding"
-          :y2="padding + (chartHeight / 4) * i"
+          :y2="padding + (chartHeight / 4) * index"
           class="grid-line"
         />
-        <!-- Y轴刻度 -->
+
         <text
-          v-for="(_, i) in 5"
-          :key="`label-${i}`"
+          v-for="(_, index) in 5"
+          :key="`label-${index}`"
           :x="padding - 8"
-          :y="padding + (chartHeight / 4) * i + 4"
+          :y="padding + (chartHeight / 4) * index + 4"
           class="axis-label"
         >
-          {{ formatAxisValue(maxValue - (maxValue - minValue) / 4 * i) }}
+          {{ formatAxisValue(maxValue - ((maxValue - minValue) / 4) * index) }}
         </text>
-        <!-- 面积填充 -->
+
         <defs>
           <linearGradient
-            id="areaGradient"
+            id="checkin-trend-area-gradient"
             x1="0"
             y1="0"
             x2="0"
@@ -46,36 +46,37 @@
           >
             <stop
               offset="0%"
-              stop-color="rgba(var(--color-info-rgb), 0.25)"
+              stop-color="rgba(var(--color-platform-gemini-rgb), 0.30)"
             />
             <stop
               offset="100%"
-              stop-color="rgba(var(--color-info-rgb), 0.02)"
+              stop-color="rgba(var(--color-platform-gemini-rgb), 0.04)"
             />
           </linearGradient>
         </defs>
+
         <path
           :d="areaPath"
-          fill="url(#areaGradient)"
+          fill="url(#checkin-trend-area-gradient)"
         />
-        <!-- 折线 -->
+
         <path
           :d="linePath"
           class="trend-line"
         />
-        <!-- 数据点 -->
+
         <circle
           v-for="(point, index) in chartData"
           :key="`point-${index}`"
           :cx="getX(index)"
           :cy="getY(point.total_quota)"
-          r="5"
+          r="4.5"
           class="data-point"
           @mouseenter="hoveredIndex = index"
           @mouseleave="hoveredIndex = null"
         />
       </svg>
-      <!-- Tooltip -->
+
       <div
         v-if="hoveredIndex !== null"
         class="chart-tooltip"
@@ -85,21 +86,22 @@
           {{ chartData[hoveredIndex].date }}
         </div>
         <div class="tooltip-row">
-          <span>总额度:</span>
+          <span>总额度</span>
           <span class="tooltip-value">${{ chartData[hoveredIndex].total_quota.toFixed(2) }}</span>
         </div>
         <div class="tooltip-row">
-          <span>当日余额:</span>
+          <span>当日余额</span>
           <span class="tooltip-value">${{ chartData[hoveredIndex].current_balance.toFixed(2) }}</span>
         </div>
         <div
           v-if="chartData[hoveredIndex].income_increment > 0"
           class="tooltip-row"
         >
-          <span>增量:</span>
+          <span>增量</span>
           <span class="tooltip-increment">+${{ chartData[hoveredIndex].income_increment.toFixed(2) }}</span>
         </div>
       </div>
+
       <div class="chart-axis">
         <span>{{ trend?.start_date }}</span>
         <span>{{ trend?.end_date }}</span>
@@ -128,12 +130,12 @@ const chartData = computed(() => props.trend?.data_points ?? [])
 
 const minValue = computed(() => {
   if (chartData.value.length === 0) return 0
-  return Math.min(...chartData.value.map(p => p.total_quota)) * 0.95
+  return Math.min(...chartData.value.map((point) => point.total_quota)) * 0.95
 })
 
 const maxValue = computed(() => {
   if (chartData.value.length === 0) return 1
-  return Math.max(...chartData.value.map(p => p.total_quota)) * 1.05
+  return Math.max(...chartData.value.map((point) => point.total_quota)) * 1.05
 })
 
 const getX = (index: number) => {
@@ -154,136 +156,164 @@ const formatAxisValue = (value: number) => {
 
 const linePath = computed(() => {
   if (chartData.value.length === 0) return ''
+
   return chartData.value
-    .map((point, i) => `${i === 0 ? 'M' : 'L'} ${getX(i)} ${getY(point.total_quota)}`)
+    .map((point, index) => `${index === 0 ? 'M' : 'L'} ${getX(index)} ${getY(point.total_quota)}`)
     .join(' ')
 })
 
 const areaPath = computed(() => {
   if (chartData.value.length === 0) return ''
+
   const start = `M ${getX(0)} ${padding + chartHeight}`
-  const line = chartData.value.map((point, i) => `L ${getX(i)} ${getY(point.total_quota)}`).join(' ')
+  const line = chartData.value
+    .map((point, index) => `L ${getX(index)} ${getY(point.total_quota)}`)
+    .join(' ')
   const end = `L ${getX(chartData.value.length - 1)} ${padding + chartHeight} Z`
+
   return `${start} ${line} ${end}`
 })
 
 const tooltipStyle = computed(() => {
   if (hoveredIndex.value === null) return {}
+
   const x = getX(hoveredIndex.value)
   const left = x < width / 2 ? `${(x / width) * 100 + 2}%` : `${(x / width) * 100 - 22}%`
-  return { left, top: '30px' }
+
+  return {
+    left,
+    top: '28px',
+  }
 })
 </script>
 
 <style scoped>
+.trend-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 14rem;
+  border-radius: 1.1rem;
+  background: rgb(var(--color-bg-elevated-rgb) / 52%);
+  border: 1px dashed rgb(var(--color-border-default-rgb) / 78%);
+  color: var(--text-secondary);
+  font-size: 0.92rem;
+}
+
 .trend-chart-container {
   position: relative;
   width: 100%;
-  min-height: 220px;
+  min-height: 13.75rem;
 }
 
 .trend-svg {
   width: 100%;
-  height: 220px;
+  height: 13.75rem;
 }
 
 .grid-line {
-  stroke: rgb(var(--color-gray-rgb), 0.15);
+  stroke: rgb(var(--color-border-default-rgb) / 88%);
   stroke-width: 1;
 }
 
 .axis-label {
+  fill: var(--text-secondary);
   font-size: 10px;
-  fill: var(--text-muted);
+  font-weight: 700;
   text-anchor: end;
 }
 
 .trend-line {
   fill: none;
-  stroke: var(--accent-info);
+  stroke: var(--platform-gemini);
   stroke-width: 3;
   stroke-linecap: round;
   stroke-linejoin: round;
+  filter: drop-shadow(0 8px 16px rgb(var(--color-platform-gemini-rgb) / 22%));
 }
 
 .data-point {
-  fill: var(--accent-info);
+  fill: var(--platform-gemini);
   stroke: white;
-  stroke-width: 2;
+  stroke-width: 2.5;
   cursor: pointer;
   transform-box: fill-box;
   transform-origin: center;
-  transition: transform 0.15s ease;
+  transition:
+    transform 0.18s ease,
+    filter 0.18s ease;
 }
 
 .data-point:hover {
-  transform: scale(1.4);
+  transform: scale(1.3);
+  filter: drop-shadow(0 6px 14px rgb(var(--color-platform-gemini-rgb) / 30%));
 }
 
 .chart-axis {
   display: flex;
   justify-content: space-between;
-  font-size: 0.75rem;
-  color: var(--text-muted);
-  padding: 0.5rem 45px 0;
+  padding: 0.6rem 45px 0;
+  color: var(--text-secondary);
+  font-size: 0.76rem;
+  font-weight: 600;
 }
 
 .chart-tooltip {
   position: absolute;
-  background: var(--glass-bg-heavy);
-  border: 1px solid var(--border-color);
-  border-radius: 0.6rem;
-  padding: 0.85rem;
-  box-shadow: var(--shadow-medium);
-  font-size: 0.8rem;
-  min-width: 160px;
+  min-width: 11rem;
+  padding: 0.9rem 0.95rem;
+  border-radius: 0.95rem;
+  background: rgb(var(--color-bg-base-rgb) / 96%);
+  border: 1px solid rgb(var(--color-border-default-rgb) / 90%);
+  box-shadow: 0 20px 40px rgb(45 27 48 / 18%);
+  backdrop-filter: blur(18px) saturate(145%);
   pointer-events: none;
-  z-index: 10;
+  z-index: 5;
 }
 
 .tooltip-date {
-  font-weight: 500;
+  margin-bottom: 0.65rem;
+  padding-bottom: 0.45rem;
+  border-bottom: 1px solid rgb(var(--color-border-default-rgb) / 72%);
   color: var(--text-primary);
-  margin-bottom: 0.6rem;
-  padding-bottom: 0.4rem;
-  border-bottom: 1px solid var(--border-color);
+  font-size: 0.82rem;
+  font-weight: 700;
 }
 
 .tooltip-row {
   display: flex;
+  align-items: center;
   justify-content: space-between;
-  margin-top: 0.3rem;
+  gap: 0.75rem;
+  margin-top: 0.35rem;
   color: var(--text-secondary);
+  font-size: 0.78rem;
+  font-weight: 600;
 }
 
 .tooltip-value {
-  font-weight: 500;
-  color: var(--accent-info);
+  color: var(--platform-gemini);
+  font-weight: 700;
 }
 
 .tooltip-increment {
-  font-weight: 500;
   color: var(--accent-success);
+  font-weight: 700;
 }
 
 :global(.dark) .chart-tooltip {
-  background: rgb(var(--color-slate-dark-rgb), 0.98);
-  border-color: rgb(var(--color-slate-rgb), 0.8);
+  background: rgb(var(--color-bg-surface-rgb) / 96%);
+  border-color: rgb(var(--color-border-default-rgb) / 90%);
+  box-shadow: 0 24px 48px rgb(0 0 0 / 34%);
 }
 
-:global(.dark) .tooltip-date {
-  color: var(--text-primary);
-}
+@media (width <= 768px) {
+  .chart-axis {
+    padding-inline: 0.25rem;
+  }
 
-:global(.dark) .tooltip-row {
-  color: var(--text-muted);
-}
-
-:global(.dark) .grid-line {
-  stroke: rgb(var(--color-slate-rgb), 0.4);
-}
-
-:global(.dark) .axis-label {
-  fill: var(--text-secondary);
+  .chart-tooltip {
+    min-width: 10rem;
+  }
 }
 </style>

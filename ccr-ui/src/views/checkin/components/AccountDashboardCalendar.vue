@@ -1,10 +1,10 @@
 <template>
   <div class="calendar-wrapper">
-    <div class="grid grid-cols-7 gap-1.5 text-xs text-gray-500 dark:text-gray-400 mb-2">
+    <div class="calendar-weekdays">
       <div
         v-for="label in weekLabels"
         :key="label"
-        class="text-center font-medium"
+        class="weekday-label"
       >
         {{ label }}
       </div>
@@ -12,13 +12,14 @@
 
     <div
       v-if="cells.length === 0"
-      class="text-sm text-gray-400 dark:text-gray-500 text-center py-6"
+      class="calendar-empty"
     >
       暂无日历数据
     </div>
+
     <div
       v-else
-      class="grid grid-cols-7 gap-1.5"
+      class="calendar-grid"
     >
       <div
         v-for="(cell, index) in cells"
@@ -27,29 +28,28 @@
         :class="cellClass(cell)"
         :title="cell ? buildTitle(cell) : ''"
       >
-        <span
-          v-if="cell"
-          class="day-number"
-        >{{ getDayNumber(cell.date) }}</span>
-        <span
-          v-if="cell && cell.income_increment"
-          class="day-increment"
-        >
-          +{{ cell.income_increment.toFixed(1) }}
-        </span>
+        <template v-if="cell">
+          <span class="day-number">{{ getDayNumber(cell.date) }}</span>
+          <span
+            v-if="cell.income_increment"
+            class="day-increment"
+          >
+            +{{ cell.income_increment.toFixed(1) }}
+          </span>
+        </template>
       </div>
     </div>
 
-    <div class="flex items-center gap-3 text-xs text-gray-500 dark:text-gray-400 mt-3">
-      <div class="flex items-center gap-1">
+    <div class="calendar-legend">
+      <div class="legend-item">
         <span class="legend-dot checked" />
         已签到
       </div>
-      <div class="flex items-center gap-1">
+      <div class="legend-item">
         <span class="legend-dot unchecked" />
         未签到
       </div>
-      <div class="flex items-center gap-1">
+      <div class="legend-item">
         <span class="legend-dot today" />
         今天
       </div>
@@ -93,14 +93,13 @@ const getDayNumber = (date: string) => Number(date.slice(8, 10))
 
 const cellClass = (cell: CheckinDashboardDay | null) => {
   if (!cell) return 'cell-empty'
-  const isToday = cell.date === todayString.value
-  const classes = []
-  if (cell.is_checked_in) {
-    classes.push('cell-checked')
-  } else {
-    classes.push('cell-unchecked')
+
+  const classes = [cell.is_checked_in ? 'cell-checked' : 'cell-unchecked']
+
+  if (cell.date === todayString.value) {
+    classes.push('cell-today')
   }
-  if (isToday) classes.push('cell-today')
+
   return classes.join(' ')
 }
 
@@ -112,45 +111,98 @@ const buildTitle = (cell: CheckinDashboardDay) => {
 </script>
 
 <style scoped>
+.calendar-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.calendar-weekdays,
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+
+.calendar-weekdays {
+  gap: 0.45rem;
+}
+
+.weekday-label {
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-align: center;
+}
+
+.calendar-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 11rem;
+  border-radius: 1rem;
+  background: rgb(var(--color-bg-elevated-rgb) / 56%);
+  border: 1px dashed rgb(var(--color-border-default-rgb) / 78%);
+  color: var(--text-secondary);
+  font-size: 0.92rem;
+}
+
+.calendar-grid {
+  gap: 0.55rem;
+}
+
 .calendar-cell {
-  height: 2.25rem;
-  border-radius: 0.375rem;
+  min-height: 4.2rem;
+  border-radius: 1rem;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 0.1rem;
+  gap: 0.28rem;
   border: 1px solid transparent;
-  transition: all 0.15s ease;
+  transition:
+    transform 0.18s ease,
+    border-color 0.18s ease,
+    background-color 0.18s ease,
+    box-shadow 0.18s ease;
 }
 
-.calendar-cell:hover {
-  transform: scale(1.02);
+.calendar-cell:hover:not(.cell-empty) {
+  transform: translateY(-1px);
 }
 
 .cell-empty {
   background: transparent;
+  border-color: transparent;
 }
 
 .cell-checked {
-  background: rgb(var(--color-success-rgb), 0.12);
-  border-color: rgb(var(--color-success-rgb), 0.3);
+  background:
+    linear-gradient(180deg, rgb(var(--color-success-rgb) / 16%), rgb(var(--color-success-rgb) / 10%)),
+    rgb(var(--color-bg-elevated-rgb) / 50%);
+  border-color: rgb(var(--color-success-rgb) / 38%);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 30%),
+    0 10px 18px rgb(var(--color-success-rgb) / 8%);
 }
 
 .cell-unchecked {
-  background: rgb(var(--color-gray-rgb), 0.08);
-  border-color: rgb(var(--color-gray-rgb), 0.2);
+  background: rgb(var(--color-bg-elevated-rgb) / 48%);
+  border-color: rgb(var(--color-border-default-rgb) / 72%);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 22%);
 }
 
 .cell-today {
-  border-color: var(--accent-info) !important;
-  box-shadow: 0 0 0 2px rgb(var(--color-info-rgb), 0.3);
+  border-color: rgb(var(--color-platform-gemini-rgb) / 58%) !important;
+  box-shadow:
+    0 0 0 3px rgb(var(--color-platform-gemini-rgb) / 12%),
+    0 14px 28px rgb(var(--color-platform-gemini-rgb) / 12%);
 }
 
 .day-number {
-  font-size: 0.85rem;
-  font-weight: 500;
   color: var(--text-primary);
+  font-size: 0.96rem;
+  font-weight: 700;
   line-height: 1;
 }
 
@@ -159,16 +211,32 @@ const buildTitle = (cell: CheckinDashboardDay) => {
 }
 
 .day-increment {
-  font-size: 0.55rem;
-  font-weight: 500;
   color: var(--accent-success);
+  font-size: 0.62rem;
+  font-weight: 700;
   line-height: 1;
 }
 
+.calendar-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.9rem;
+  color: var(--text-secondary);
+  font-size: 0.76rem;
+  font-weight: 600;
+}
+
+.legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
 .legend-dot {
-  width: 0.5rem;
-  height: 0.5rem;
-  border-radius: 50%;
+  width: 0.65rem;
+  height: 0.65rem;
+  border-radius: 999px;
+  flex-shrink: 0;
 }
 
 .legend-dot.checked {
@@ -176,28 +244,27 @@ const buildTitle = (cell: CheckinDashboardDay) => {
 }
 
 .legend-dot.unchecked {
-  background: var(--border-color);
+  background: rgb(var(--color-border-default-rgb) / 94%);
 }
 
 .legend-dot.today {
-  border: 2px solid var(--accent-info);
+  background: white;
+  border: 2px solid var(--platform-gemini);
+  box-shadow: 0 0 0 2px rgb(var(--color-platform-gemini-rgb) / 14%);
 }
 
-:global(.dark) .day-number {
-  color: var(--text-primary);
-}
+@media (width <= 768px) {
+  .calendar-cell {
+    min-height: 3.35rem;
+    border-radius: 0.9rem;
+  }
 
-:global(.dark) .cell-checked .day-number {
-  color: var(--accent-success);
-}
+  .day-number {
+    font-size: 0.88rem;
+  }
 
-:global(.dark) .cell-checked {
-  background: rgb(var(--color-success-rgb), 0.2);
-  border-color: rgb(var(--color-success-rgb), 0.4);
-}
-
-:global(.dark) .cell-unchecked {
-  background: rgb(var(--color-slate-rgb), 0.4);
-  border-color: rgb(var(--color-slate-rgb), 0.6);
+  .day-increment {
+    font-size: 0.56rem;
+  }
 }
 </style>

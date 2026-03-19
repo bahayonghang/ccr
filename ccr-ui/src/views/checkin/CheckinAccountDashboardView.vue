@@ -1,10 +1,20 @@
 <template>
   <div class="checkin-account-dashboard">
-    <div class="dashboard-glow" />
+    <div
+      class="dashboard-scene"
+      aria-hidden="true"
+    >
+      <div class="dashboard-scrim" />
+      <div class="dashboard-vignette" />
+      <div class="dashboard-glow glow-primary" />
+      <div class="dashboard-glow glow-secondary" />
+    </div>
+
     <div class="dashboard-shell">
-      <div class="dashboard-header">
+      <section class="dashboard-header dashboard-surface">
         <div class="header-left">
           <button
+            type="button"
             class="icon-button"
             aria-label="返回账号列表"
             title="返回账号列表"
@@ -15,10 +25,13 @@
               size="w-4 h-4"
             />
           </button>
-          <div>
-            <div class="header-title">
+
+          <div class="header-copy">
+            <div class="header-title-row">
               <h1>{{ dashboard?.account.name || '账号 Dashboard' }}</h1>
-              <span class="provider-pill">{{ dashboard?.account.provider_name || '未知提供商' }}</span>
+              <span class="provider-pill">
+                {{ dashboard?.account.provider_name || '未知提供商' }}
+              </span>
               <span
                 v-if="dashboard"
                 class="status-pill"
@@ -27,15 +40,29 @@
                 {{ accountEnabled ? '启用' : '已禁用' }}
               </span>
             </div>
-            <div class="header-sub">
-              <span>最后签到：{{ dashboard?.streak.last_check_in_date || '-' }}</span>
-              <span>余额更新：{{ formatDateTime(dashboard?.account.last_balance_check_at) }}</span>
+
+            <div class="header-meta">
+              <span class="meta-chip">
+                <SIcon
+                  name="CalendarDays"
+                  size="w-3.5 h-3.5"
+                />
+                最后签到：{{ dashboard?.streak.last_check_in_date || '-' }}
+              </span>
+              <span class="meta-chip">
+                <SIcon
+                  name="Wallet"
+                  size="w-3.5 h-3.5"
+                />
+                余额更新：{{ formatDateTime(dashboard?.account.last_balance_check_at) }}
+              </span>
             </div>
           </div>
         </div>
 
         <div class="header-actions">
           <button
+            type="button"
             class="action-btn"
             :disabled="loading || !dashboard || checkinLoading"
             @click="handleCheckin"
@@ -47,6 +74,7 @@
             签到
           </button>
           <button
+            type="button"
             class="action-btn"
             :disabled="loading || !dashboard || balanceLoading"
             @click="handleBalanceRefresh"
@@ -58,6 +86,7 @@
             刷新余额
           </button>
           <button
+            type="button"
             class="action-btn primary"
             :disabled="loading"
             @click="loadDashboard"
@@ -70,14 +99,15 @@
             刷新
           </button>
         </div>
-      </div>
+      </section>
 
       <div
         v-if="error"
-        class="state-card state-error"
+        class="state-card dashboard-surface state-error"
       >
         <p>{{ error }}</p>
         <button
+          type="button"
           class="ghost-link"
           @click="loadDashboard"
         >
@@ -87,7 +117,7 @@
 
       <div
         v-else-if="loading"
-        class="state-card state-loading"
+        class="state-card dashboard-surface state-loading"
       >
         <div class="loader" />
         加载中...
@@ -95,112 +125,145 @@
 
       <div
         v-else-if="dashboard"
-        class="space-y-6"
+        class="dashboard-stack"
       >
-        <!-- 新布局：三列 - 账号统计 | 签到统计 | 日历 -->
         <div class="dashboard-main-grid">
-          <!-- 账号统计卡片 - 垂直布局 -->
-          <div class="stats-card-vertical">
-            <div class="vertical-header">
+          <section class="stats-card-vertical dashboard-surface">
+            <div class="card-lead">
               <div class="stats-icon purple">
                 <SIcon
                   name="TrendingUp"
                   size="w-4 h-4"
                 />
               </div>
-              <h2>账号统计</h2>
+              <div class="card-copy">
+                <p class="card-overline">
+                  Account overview
+                </p>
+                <h2>账号统计</h2>
+              </div>
             </div>
+
             <div class="vertical-items">
-              <div class="vertical-stat">
+              <article class="vertical-stat">
                 <div class="vertical-icon green">
                   <SIcon
                     name="Wallet"
                     size="w-4 h-4"
                   />
                 </div>
-                <span class="vertical-label">当前余额</span>
-                <span class="vertical-value green">
-                  {{ formatCurrency(dashboard.account.latest_balance, dashboard.account.balance_currency) }}
-                </span>
-              </div>
-              <div class="vertical-stat">
+                <div class="vertical-copy">
+                  <span class="vertical-label">当前余额</span>
+                  <span class="vertical-value green">
+                    {{ formatCurrency(dashboard.account.latest_balance, dashboard.account.balance_currency) }}
+                  </span>
+                </div>
+              </article>
+
+              <article class="vertical-stat">
                 <div class="vertical-icon blue">
                   <SIcon
                     name="TrendingUp"
                     size="w-4 h-4"
                   />
                 </div>
-                <span class="vertical-label">总额度</span>
-                <span class="vertical-value blue">
-                  {{ formatCurrency(dashboard.account.total_quota, dashboard.account.balance_currency) }}
-                </span>
-              </div>
-              <div class="vertical-stat">
+                <div class="vertical-copy">
+                  <span class="vertical-label">总额度</span>
+                  <span class="vertical-value blue">
+                    {{ formatCurrency(dashboard.account.total_quota, dashboard.account.balance_currency) }}
+                  </span>
+                </div>
+              </article>
+
+              <article class="vertical-stat">
                 <div class="vertical-icon orange">
                   <SIcon
                     name="History"
                     size="w-4 h-4"
                   />
                 </div>
-                <span class="vertical-label">历史消耗</span>
-                <span class="vertical-value orange">
-                  {{ formatCurrency(dashboard.account.used_quota, dashboard.account.balance_currency) }}
-                </span>
-              </div>
+                <div class="vertical-copy">
+                  <span class="vertical-label">历史消耗</span>
+                  <span class="vertical-value orange">
+                    {{ formatCurrency(dashboard.account.used_quota, dashboard.account.balance_currency) }}
+                  </span>
+                </div>
+              </article>
             </div>
-          </div>
+          </section>
 
-          <!-- 签到统计卡片 - 垂直布局 -->
-          <div class="stats-card-vertical">
-            <div class="vertical-header">
+          <section class="stats-card-vertical dashboard-surface">
+            <div class="card-lead">
               <div class="stats-icon orange">
                 <SIcon
                   name="CalendarDays"
                   size="w-4 h-4"
                 />
               </div>
-              <h2>签到统计</h2>
+              <div class="card-copy">
+                <p class="card-overline">
+                  Streak snapshot
+                </p>
+                <h2>签到统计</h2>
+              </div>
             </div>
+
             <div class="vertical-items">
-              <div class="vertical-stat">
+              <article class="vertical-stat">
                 <div class="vertical-icon orange">
                   <SIcon
                     name="Flame"
                     size="w-4 h-4"
                   />
                 </div>
-                <span class="vertical-label">当前连续</span>
-                <span class="vertical-value orange">{{ dashboard.streak.current_streak }} <small>天</small></span>
-              </div>
-              <div class="vertical-stat">
+                <div class="vertical-copy">
+                  <span class="vertical-label">当前连续</span>
+                  <span class="vertical-value orange">
+                    {{ dashboard.streak.current_streak }} <small>天</small>
+                  </span>
+                </div>
+              </article>
+
+              <article class="vertical-stat">
                 <div class="vertical-icon yellow">
                   <SIcon
                     name="Trophy"
                     size="w-4 h-4"
                   />
                 </div>
-                <span class="vertical-label">最长连续</span>
-                <span class="vertical-value">{{ dashboard.streak.longest_streak }} <small>天</small></span>
-              </div>
-              <div class="vertical-stat">
+                <div class="vertical-copy">
+                  <span class="vertical-label">最长连续</span>
+                  <span class="vertical-value">
+                    {{ dashboard.streak.longest_streak }} <small>天</small>
+                  </span>
+                </div>
+              </article>
+
+              <article class="vertical-stat">
                 <div class="vertical-icon purple">
                   <SIcon
                     name="Calendar"
                     size="w-4 h-4"
                   />
                 </div>
-                <span class="vertical-label">总签到天数</span>
-                <span class="vertical-value purple">{{ dashboard.streak.total_check_in_days }} <small>天</small></span>
-              </div>
+                <div class="vertical-copy">
+                  <span class="vertical-label">总签到天数</span>
+                  <span class="vertical-value purple">
+                    {{ dashboard.streak.total_check_in_days }} <small>天</small>
+                  </span>
+                </div>
+              </article>
             </div>
-            <!-- 签到率进度条 -->
+
             <div class="checkin-progress">
               <div class="progress-info">
                 <span>签到率</span>
-                <span class="progress-percent">{{ dashboard.calendar.month_stats.check_in_rate.toFixed(1) }}%</span>
+                <span class="progress-percent">
+                  {{ dashboard.calendar.month_stats.check_in_rate.toFixed(1) }}%
+                </span>
               </div>
               <div class="progress-bar-track">
-                <div 
+                <div
                   class="progress-bar-fill"
                   :style="{ transform: `scaleX(${dashboard.calendar.month_stats.check_in_rate / 100})` }"
                 />
@@ -209,23 +272,32 @@
                 {{ dashboard.calendar.month_stats.checked_in_days }} / {{ dashboard.calendar.month_stats.total_days }} 天
               </div>
             </div>
-          </div>
+          </section>
 
-          <!-- 右侧：签到日历卡片 -->
-          <div class="calendar-card">
+          <section class="calendar-card dashboard-surface">
             <div class="card-header">
-              <h2>签到日历</h2>
+              <div class="card-copy">
+                <p class="card-overline">
+                  Monthly history
+                </p>
+                <h2>签到日历</h2>
+              </div>
+
               <div class="calendar-picker">
                 <div class="calendar-nav">
                   <button
+                    type="button"
                     class="nav-btn"
+                    aria-label="上个月"
                     @click="prevMonth"
                   >
                     ‹
                   </button>
                   <span class="calendar-month">{{ calendarYear }}年{{ calendarMonth }}月</span>
                   <button
+                    type="button"
                     class="nav-btn"
+                    aria-label="下个月"
                     @click="nextMonth"
                   >
                     ›
@@ -233,21 +305,28 @@
                 </div>
               </div>
             </div>
+
             <AccountDashboardCalendar :calendar="dashboard.calendar" />
-          </div>
+          </section>
         </div>
 
-        <!-- 签到趋势卡片 -->
-        <div class="trend-card">
+        <section class="trend-card dashboard-surface">
           <div class="trend-header">
-            <div class="trend-title">
-              <h2>签到趋势</h2>
-              <span class="trend-tag">近 {{ trendDays }} 天</span>
+            <div class="card-copy">
+              <p class="card-overline">
+                Rolling changes
+              </p>
+              <div class="trend-title-row">
+                <h2>签到趋势</h2>
+                <span class="trend-tag">近 {{ trendDays }} 天</span>
+              </div>
             </div>
+
             <div class="trend-actions">
               <button
                 v-for="option in trendOptions"
                 :key="option"
+                type="button"
                 class="trend-btn"
                 :class="{ active: trendDays === option }"
                 @click="trendDays = option"
@@ -256,10 +335,11 @@
               </button>
             </div>
           </div>
+
           <div class="trend-body">
             <AccountDashboardTrend :trend="dashboard.trend" />
           </div>
-        </div>
+        </section>
       </div>
     </div>
   </div>
@@ -292,8 +372,8 @@ const trendDays = ref(30)
 const trendOptions = [7, 30, 90]
 
 const accountEnabled = computed(() => dashboard.value?.account.enabled ?? false)
-const getErrorMessage = (error: unknown, fallback: string) =>
-  error instanceof Error ? error.message : fallback
+const getErrorMessage = (currentError: unknown, fallback: string) =>
+  currentError instanceof Error ? currentError.message : fallback
 
 const loadDashboard = async () => {
   if (!accountId.value) return
@@ -306,8 +386,8 @@ const loadDashboard = async () => {
       month: calendarMonth.value,
       days: trendDays.value,
     })
-  } catch (e: unknown) {
-    error.value = getErrorMessage(e, '加载失败')
+  } catch (currentError: unknown) {
+    error.value = getErrorMessage(currentError, '加载失败')
   } finally {
     loading.value = false
   }
@@ -316,13 +396,13 @@ const loadDashboard = async () => {
 const handleCheckin = async () => {
   if (!accountId.value) return
   checkinLoading.value = true
+
   try {
     const result = await checkinAccount(accountId.value)
-    // 注意：后端使用 snake_case 序列化枚举
     alert(`签到${result.status === 'success' ? '成功' : result.status === 'already_checked_in' ? '：今日已签到' : '失败'}: ${result.message || ''}`)
     await loadDashboard()
-  } catch (e: unknown) {
-    alert('签到失败: ' + getErrorMessage(e, '未知错误'))
+  } catch (currentError: unknown) {
+    alert('签到失败: ' + getErrorMessage(currentError, '未知错误'))
   } finally {
     checkinLoading.value = false
   }
@@ -331,12 +411,13 @@ const handleCheckin = async () => {
 const handleBalanceRefresh = async () => {
   if (!accountId.value) return
   balanceLoading.value = true
+
   try {
     const result = await queryCheckinBalance<BalanceSnapshot>(accountId.value)
     alert(`余额: ${result.currency}${result.remaining_quota.toFixed(2)} (已用: ${result.usage_percentage.toFixed(1)}%)`)
     await loadDashboard()
-  } catch (e: unknown) {
-    alert('刷新余额失败: ' + getErrorMessage(e, '未知错误'))
+  } catch (currentError: unknown) {
+    alert('刷新余额失败: ' + getErrorMessage(currentError, '未知错误'))
   } finally {
     balanceLoading.value = false
   }
@@ -368,7 +449,6 @@ const nextMonth = () => {
   }
 }
 
-
 const formatCurrency = (value?: number, currency?: string) => {
   if (value === undefined || value === null) return '-'
   const symbol = currency === 'CNY' ? '¥' : currency === 'USD' ? '$' : currency ? `${currency} ` : '$'
@@ -385,118 +465,217 @@ watch([accountId, calendarYear, calendarMonth, trendDays], loadDashboard, { imme
 
 <style scoped>
 .checkin-account-dashboard {
+  --dashboard-surface-bg: rgb(var(--color-bg-elevated-rgb) / 86%);
+  --dashboard-surface-muted: rgb(var(--color-bg-surface-rgb) / 72%);
+  --dashboard-surface-strong: rgb(var(--color-bg-base-rgb) / 94%);
+  --dashboard-border: rgb(var(--color-border-default-rgb) / 82%);
+  --dashboard-border-soft: rgb(var(--color-border-default-rgb) / 56%);
+  --dashboard-shadow: 0 24px 64px rgb(74 36 78 / 18%);
+  --dashboard-shadow-soft: 0 14px 38px rgb(74 36 78 / 10%);
+
   position: relative;
   min-height: 100vh;
-  background: radial-gradient(circle at top left, rgb(var(--color-info-rgb), 0.15), transparent 45%),
-    radial-gradient(circle at 20% 20%, rgb(var(--color-success-rgb), 0.12), transparent 40%),
-    radial-gradient(circle at 80% 0%, rgb(var(--color-accent-secondary-rgb), 0.15), transparent 40%),
-    var(--bg-secondary);
   overflow: hidden;
+  isolation: isolate;
+  background:
+    radial-gradient(circle at top left, rgb(var(--color-info-rgb) / 18%), transparent 40%),
+    radial-gradient(circle at 80% 18%, rgb(var(--color-accent-secondary-rgb) / 16%), transparent 32%),
+    linear-gradient(180deg, rgb(var(--color-bg-base-rgb) / 18%), rgb(var(--color-bg-elevated-rgb) / 58%));
+}
+
+.dashboard-scene {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.dashboard-scrim {
+  position: absolute;
+  inset: 0;
+  backdrop-filter: blur(16px) saturate(135%);
+  background:
+    linear-gradient(180deg, rgb(255 252 253 / 18%), rgb(255 245 247 / 44%)),
+    radial-gradient(circle at 18% 15%, rgb(var(--color-accent-primary-rgb) / 10%), transparent 28%);
+}
+
+.dashboard-vignette {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgb(255 255 255 / 0%), rgb(255 248 251 / 32%) 55%, rgb(255 244 247 / 54%) 100%),
+    linear-gradient(90deg, rgb(255 248 251 / 36%), rgb(255 255 255 / 0%) 24%, rgb(255 255 255 / 0%) 76%, rgb(255 248 251 / 34%));
 }
 
 .dashboard-glow {
   position: absolute;
-  top: -120px;
-  right: -80px;
-  width: 280px;
-  height: 280px;
-  background: radial-gradient(circle, rgb(var(--color-accent-primary-rgb), 0.25), transparent 70%);
-  filter: blur(10px);
-  pointer-events: none;
+  border-radius: 999px;
+  filter: blur(18px);
+  opacity: 0.72;
+}
+
+.dashboard-glow.glow-primary {
+  top: 4rem;
+  right: -4rem;
+  width: 18rem;
+  height: 18rem;
+  background: radial-gradient(circle, rgb(var(--color-accent-primary-rgb) / 30%), transparent 72%);
+}
+
+.dashboard-glow.glow-secondary {
+  bottom: 8rem;
+  left: -5rem;
+  width: 20rem;
+  height: 20rem;
+  background: radial-gradient(circle, rgb(var(--color-info-rgb) / 18%), transparent 72%);
 }
 
 .dashboard-shell {
   position: relative;
   z-index: 1;
-  padding: 1.5rem;
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
-  max-width: 1600px;
-  margin: 0 auto;
   width: 100%;
+  max-width: 1520px;
+  margin: 0 auto;
+  padding: 1.5rem;
+}
+
+.dashboard-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.dashboard-surface {
+  background: var(--dashboard-surface-bg);
+  border: 1px solid var(--dashboard-border);
+  box-shadow: var(--dashboard-shadow);
+  backdrop-filter: blur(22px) saturate(150%);
 }
 
 .dashboard-header {
   display: flex;
   flex-wrap: wrap;
-  gap: 1rem;
   align-items: center;
   justify-content: space-between;
+  gap: 1rem 1.5rem;
+  padding: 1.35rem 1.5rem;
+  border-radius: 1.5rem;
 }
 
 .header-left {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 1rem;
+  min-width: 0;
 }
 
-.header-title {
+.header-copy {
+  display: grid;
+  gap: 0.85rem;
+  min-width: 0;
+}
+
+.header-title-row {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 0.75rem;
 }
 
-.header-title h1 {
+.header-title-row h1 {
   margin: 0;
-  font-size: 1.75rem;
-  font-weight: 500;
   color: var(--text-primary);
+  font-size: clamp(1.65rem, 2vw, 2.15rem);
+  font-weight: 700;
+  letter-spacing: -0.03em;
 }
 
-.header-sub {
+.header-meta {
   display: flex;
-  gap: 1rem;
-  font-size: 0.8rem;
-  color: var(--text-muted);
-  margin-top: 0.25rem;
+  flex-wrap: wrap;
+  gap: 0.65rem;
 }
 
 .provider-pill,
 .status-pill,
-.card-tag {
+.meta-chip,
+.trend-tag {
   display: inline-flex;
   align-items: center;
-  padding: 0.2rem 0.6rem;
+  gap: 0.35rem;
   border-radius: 999px;
-  font-size: 0.75rem;
-  font-weight: 500;
-  background: rgb(var(--color-accent-primary-rgb), 0.1);
+  font-size: 0.76rem;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.provider-pill,
+.status-pill,
+.trend-tag {
+  padding: 0.42rem 0.8rem;
+}
+
+.provider-pill {
+  background: rgb(var(--color-platform-gemini-rgb) / 10%);
+  border: 1px solid rgb(var(--color-platform-gemini-rgb) / 22%);
   color: var(--platform-gemini);
 }
 
 .status-pill.status-on {
-  background: rgb(var(--color-success-rgb), 0.15);
+  background: rgb(var(--color-success-rgb) / 12%);
+  border: 1px solid rgb(var(--color-success-rgb) / 24%);
   color: var(--accent-success);
 }
 
 .status-pill.status-off {
-  background: rgb(var(--color-danger-rgb), 0.15);
+  background: rgb(var(--color-danger-rgb) / 12%);
+  border: 1px solid rgb(var(--color-danger-rgb) / 22%);
   color: var(--accent-danger);
 }
 
+.meta-chip {
+  padding: 0.5rem 0.8rem;
+  background: var(--dashboard-surface-muted);
+  border: 1px solid var(--dashboard-border-soft);
+  color: var(--text-secondary);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 35%);
+}
+
+.icon-button,
+.action-btn,
+.nav-btn,
+.trend-btn {
+  border: 1px solid var(--dashboard-border-soft);
+  backdrop-filter: blur(18px) saturate(135%);
+  transition:
+    border-color 0.2s ease,
+    background-color 0.2s ease,
+    box-shadow 0.2s ease,
+    color 0.2s ease,
+    transform 0.2s ease;
+}
+
 .icon-button {
-  height: 2.25rem;
-  width: 2.25rem;
-  border-radius: 999px;
-  border: 1px solid rgb(var(--color-gray-rgb), 0.35);
-  background: var(--glass-bg-heavy);
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 999px;
+  background: var(--dashboard-surface-muted);
   color: var(--text-secondary);
-  transition: all 0.2s ease;
+  box-shadow: var(--dashboard-shadow-soft);
 }
 
 .icon-button:hover {
-  background: var(--bg-primary);
   transform: translateY(-1px);
-}
-
-.icon-button.small {
-  height: 1.75rem;
-  width: 1.75rem;
+  background: var(--dashboard-surface-strong);
+  border-color: var(--dashboard-border);
+  color: var(--text-primary);
 }
 
 .header-actions {
@@ -508,224 +687,89 @@ watch([accountId, calendarYear, calendarMonth, trendDays], loadDashboard, { imme
 .action-btn {
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
-  padding: 0.5rem 0.9rem;
-  border-radius: 0.8rem;
-  border: 1px solid rgb(var(--color-gray-rgb), 0.35);
-  background: var(--glass-bg-heavy);
+  justify-content: center;
+  gap: 0.45rem;
+  min-height: 2.8rem;
+  padding: 0.7rem 1rem;
+  border-radius: 1rem;
+  background: var(--dashboard-surface-muted);
   color: var(--text-primary);
-  font-size: 0.85rem;
-  font-weight: 500;
-  transition: all 0.2s ease;
+  font-size: 0.88rem;
+  font-weight: 600;
+  box-shadow: var(--dashboard-shadow-soft);
 }
 
-.action-btn:hover {
+.action-btn:hover:not(:disabled),
+.nav-btn:hover,
+.trend-btn:hover {
   transform: translateY(-1px);
-  background: var(--bg-primary);
+  border-color: var(--dashboard-border);
+  background: var(--dashboard-surface-strong);
 }
 
 .action-btn.primary {
-  background: var(--gradient-secondary);
+  border-color: transparent;
+  background: linear-gradient(135deg, rgb(var(--color-platform-gemini-rgb) / 92%), rgb(var(--color-info-rgb) / 88%));
   color: white;
-  border: none;
+  box-shadow: 0 16px 32px rgb(var(--color-platform-gemini-rgb) / 28%);
 }
 
-.action-btn:disabled {
-  opacity: 0.6;
+.action-btn.primary:hover:not(:disabled) {
+  background: linear-gradient(135deg, rgb(var(--color-platform-gemini-rgb) / 100%), rgb(var(--color-info-rgb) / 96%));
+}
+
+.action-btn:disabled,
+.nav-btn:disabled,
+.trend-btn:disabled {
+  opacity: 0.55;
   cursor: not-allowed;
   transform: none;
-}
-
-.dashboard-card {
-  background: var(--glass-bg-heavy);
-  border: 1px solid var(--glass-border-medium);
-  border-radius: 1rem;
-  padding: 1.5rem;
-  box-shadow: var(--shadow-medium);
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 1rem;
-}
-
-.card-header h2 {
-  margin: 0;
-  font-size: 1rem;
-  color: var(--text-secondary);
-}
-
-.card-body {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.metric-large {
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-}
-
-.metric-label {
-  font-size: 0.75rem;
-  color: var(--text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-}
-
-.metric-value {
-  font-size: 1.75rem;
-  font-weight: 500;
-}
-
-.metric-green {
-  color: var(--accent-success);
-}
-
-.metric-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-  gap: 0.75rem;
-  font-size: 0.85rem;
-  color: var(--text-secondary);
-}
-
-.metric-grid strong {
-  display: block;
-  margin-top: 0.15rem;
-  font-size: 1rem;
-  color: var(--text-primary);
-}
-
-.metric-grid.highlight strong {
-  font-size: 1.05rem;
-}
-
-.metric-orange {
-  color: var(--accent-warning);
-}
-
-.metric-blue {
-  color: var(--platform-gemini);
-}
-
-.progress-block {
-  display: flex;
-  flex-direction: column;
-  gap: 0.4rem;
-}
-
-.progress-track {
-  height: 0.45rem;
-  border-radius: 999px;
-  background: rgb(var(--color-gray-rgb), 0.2);
-  overflow: hidden;
-}
-
-.progress-track.soft {
-  height: 0.35rem;
-}
-
-.progress-bar {
-  height: 100%;
-  background: linear-gradient(90deg, var(--accent-success), var(--platform-iflow));
-  border-radius: inherit;
-  width: 100%;
-  transform-origin: left center;
-  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.progress-bar.accent {
-  background: var(--gradient-secondary);
-}
-
-.progress-meta {
-  font-size: 0.75rem;
-  color: var(--text-muted);
-}
-
-.calendar-meta {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-  gap: 0.75rem;
-  font-size: 0.85rem;
-  color: var(--text-secondary);
-}
-
-.calendar-meta strong {
-  display: block;
-  margin-top: 0.2rem;
-  font-size: 1.1rem;
-  color: var(--text-primary);
-}
-
-.calendar-actions {
-  display: flex;
-  gap: 0.5rem;
-}
-
-.trend-actions {
-  display: flex;
-  gap: 0.4rem;
-}
-
-.trend-btn {
-  padding: 0.3rem 0.6rem;
-  border-radius: 0.6rem;
-  border: 1px solid rgb(var(--color-gray-rgb), 0.35);
-  background: var(--glass-bg-medium);
-  font-size: 0.75rem;
-  color: var(--text-muted);
-}
-
-.trend-btn.active {
-  background: rgb(var(--color-info-rgb), 0.12);
-  color: var(--platform-gemini);
-  border-color: rgb(var(--color-info-rgb), 0.4);
+  box-shadow: none;
 }
 
 .state-card {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 1rem;
-  padding: 1rem 1.25rem;
-  border-radius: 1rem;
-  background: var(--glass-bg-heavy);
-  border: 1px solid var(--glass-border-medium);
-  color: var(--text-muted);
+  min-height: 6rem;
+  padding: 1.1rem 1.35rem;
+  border-radius: 1.25rem;
+  color: var(--text-secondary);
+}
+
+.state-card p {
+  margin: 0;
 }
 
 .state-error {
-  border-color: rgb(var(--color-danger-rgb), 0.4);
-  color: var(--accent-danger);
   justify-content: space-between;
+  color: var(--accent-danger);
+  border-color: rgb(var(--color-danger-rgb) / 34%);
 }
 
 .state-loading {
-  justify-content: center;
+  color: var(--text-primary);
 }
 
 .ghost-link {
-  background: none;
+  padding: 0;
   border: none;
+  background: none;
   color: inherit;
-  font-size: 0.85rem;
-  text-decoration: underline;
   cursor: pointer;
+  font-size: 0.88rem;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
 }
 
 .loader {
-  width: 1.5rem;
-  height: 1.5rem;
-  border-radius: 999px;
-  border: 2px solid rgb(var(--color-gray-rgb), 0.4);
+  width: 1.45rem;
+  height: 1.45rem;
+  border: 2px solid rgb(var(--color-border-default-rgb) / 55%);
   border-top-color: var(--platform-gemini);
+  border-radius: 999px;
   animation: spin 0.8s linear infinite;
 }
 
@@ -735,702 +779,431 @@ watch([accountId, calendarYear, calendarMonth, trendDays], loadDashboard, { imme
   }
 }
 
-:global(.dark) .checkin-account-dashboard {
-  background: radial-gradient(circle at top left, rgb(var(--color-cyan-rgb), 0.12), transparent 45%),
-    radial-gradient(circle at 60% 20%, rgb(var(--color-accent-secondary-rgb), 0.18), transparent 40%),
-    var(--bg-primary);
+.dashboard-main-grid {
+  display: grid;
+  grid-template-columns: minmax(18rem, 0.95fr) minmax(18rem, 0.95fr) minmax(26rem, 1.4fr);
+  gap: 1.25rem;
 }
 
-:global(.dark) .dashboard-card,
-:global(.dark) .state-card,
-:global(.dark) .icon-button,
-:global(.dark) .action-btn,
-:global(.dark) .trend-btn {
-  background: rgb(var(--color-slate-dark-rgb), 0.85);
-  border-color: rgb(var(--color-slate-rgb), 0.8);
-  color: var(--text-secondary);
+.stats-card-vertical,
+.calendar-card,
+.trend-card {
+  border-radius: 1.4rem;
 }
 
-:global(.dark) .header-title h1,
-:global(.dark) .metric-grid strong,
-:global(.dark) .calendar-meta strong {
-  color: var(--text-primary);
+.stats-card-vertical {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1.35rem;
 }
 
-:global(.dark) .card-header h2,
-:global(.dark) .metric-grid,
-:global(.dark) .calendar-meta,
-:global(.dark) .progress-meta,
-:global(.dark) .header-sub {
-  color: var(--text-muted);
-}
-
-/* 横排统计卡片样式 */
-.stats-card-row {
-  background: var(--glass-bg-heavy);
-  border: 1px solid var(--glass-border-medium);
-  border-radius: 1rem;
-  padding: 1rem 1.25rem;
-  box-shadow: var(--shadow-small);
-}
-
-.row-header {
+.card-lead,
+.card-header,
+.trend-header {
   display: flex;
   align-items: center;
-  gap: 0.6rem;
-  margin-bottom: 0.75rem;
-  padding-bottom: 0.6rem;
-  border-bottom: 1px solid rgb(var(--color-gray-rgb), 0.2);
-}
-
-.row-header h2 {
-  margin: 0;
-  font-size: 0.9rem;
-  font-weight: 500;
-  color: var(--text-secondary);
-  flex: 1;
-}
-
-.row-rate {
-  font-size: 0.8rem;
-  font-weight: 500;
-  color: var(--accent-success);
-  background: rgb(var(--color-success-rgb), 0.1);
-  padding: 0.2rem 0.5rem;
-  border-radius: 0.4rem;
-}
-
-.row-items {
-  display: flex;
+  justify-content: space-between;
   gap: 1rem;
 }
 
-.row-stat {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  flex: 1;
+.card-copy {
+  display: grid;
+  gap: 0.22rem;
 }
 
-.row-icon {
-  width: 2rem;
-  height: 2rem;
-  border-radius: 0.5rem;
+.card-overline {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.card-copy h2,
+.trend-title-row h2 {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.stats-icon,
+.vertical-icon {
   display: flex;
   align-items: center;
   justify-content: center;
+  border-radius: 0.95rem;
   flex-shrink: 0;
-}
-
-.row-icon.purple {
-  background: rgb(var(--color-accent-secondary-rgb), 0.12);
-  color: var(--platform-claude);
-}
-
-.row-icon.green {
-  background: rgb(var(--color-success-rgb), 0.12);
-  color: var(--accent-success);
-}
-
-.row-icon.blue {
-  background: rgb(var(--color-info-rgb), 0.12);
-  color: var(--platform-gemini);
-}
-
-.row-icon.orange {
-  background: rgb(var(--color-warning-rgb), 0.12);
-  color: var(--accent-warning);
-}
-
-.row-icon.yellow {
-  background: rgb(var(--color-warning-rgb), 0.12);
-  color: var(--platform-codex);
-}
-
-.row-content {
-  display: flex;
-  flex-direction: column;
-}
-
-.row-label {
-  font-size: 0.7rem;
-  color: var(--text-muted);
-}
-
-.row-value {
-  font-size: 1.1rem;
-  font-weight: 500;
-  color: var(--text-primary);
-}
-
-.row-value.green { color: var(--accent-success); }
-.row-value.blue { color: var(--platform-gemini); }
-.row-value.orange { color: var(--accent-warning); }
-.row-value.purple { color: var(--platform-claude); }
-
-.row-value small {
-  font-size: 0.65rem;
-  font-weight: 500;
-  color: var(--text-muted);
-}
-
-/* 月份选择器 */
-.calendar-picker {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.month-input {
-  font-size: 0.8rem;
-  padding: 0.25rem 0.5rem;
-  border: 1px solid rgb(var(--color-gray-rgb), 0.35);
-  border-radius: 0.5rem;
-  background: var(--glass-bg-heavy);
-  color: var(--text-secondary);
-  cursor: pointer;
-}
-
-.month-input:focus {
-  outline: none;
-  border-color: var(--platform-gemini);
-}
-
-.calendar-nav {
-  display: flex;
-  gap: 0.25rem;
-}
-
-:global(.dark) .stats-card-row {
-  background: rgb(var(--color-slate-dark-rgb), 0.9);
-  border-color: rgb(var(--color-slate-rgb), 0.8);
-}
-
-:global(.dark) .row-header {
-  border-color: rgb(var(--color-slate-rgb), 0.6);
-}
-
-:global(.dark) .row-header h2 {
-  color: var(--text-secondary);
-}
-
-:global(.dark) .row-value {
-  color: var(--text-primary);
-}
-
-:global(.dark) .row-label {
-  color: var(--text-muted);
-}
-
-:global(.dark) .month-input {
-  background: rgb(var(--color-slate-dark-rgb), 0.8);
-  border-color: rgb(var(--color-slate-rgb), 0.8);
-  color: var(--text-secondary);
-}
-
-/* 新版统计卡片样式 */
-.stats-card {
-  background: var(--glass-bg-heavy);
-  border: 1px solid var(--glass-border-medium);
-  border-radius: 1rem;
-  padding: 1.25rem;
-  box-shadow: var(--shadow-small);
-}
-
-.stats-header {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  margin-bottom: 1rem;
-  padding-bottom: 0.75rem;
-  border-bottom: 1px solid rgb(var(--color-gray-rgb), 0.2);
-}
-
-.stats-header h2 {
-  margin: 0;
-  font-size: 1rem;
-  font-weight: 500;
-  color: var(--text-secondary);
 }
 
 .stats-icon {
-  width: 2rem;
-  height: 2rem;
-  border-radius: 0.5rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border: 1px solid rgb(var(--color-border-default-rgb) / 58%);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 32%);
 }
 
-.stats-icon.purple {
-  background: rgb(var(--color-accent-secondary-rgb), 0.12);
+.vertical-icon {
+  width: 2.75rem;
+  height: 2.75rem;
+}
+
+.stats-icon.purple,
+.vertical-icon.purple {
+  background: rgb(var(--color-accent-secondary-rgb) / 12%);
   color: var(--platform-claude);
 }
 
-.stats-icon.green {
-  background: rgb(var(--color-success-rgb), 0.12);
+.stats-icon.green,
+.vertical-icon.green {
+  background: rgb(var(--color-success-rgb) / 12%);
   color: var(--accent-success);
 }
 
-.stats-icon.blue {
-  background: rgb(var(--color-info-rgb), 0.12);
+.stats-icon.blue,
+.vertical-icon.blue {
+  background: rgb(var(--color-platform-gemini-rgb) / 12%);
   color: var(--platform-gemini);
 }
 
-.stats-icon.orange {
-  background: rgb(var(--color-warning-rgb), 0.12);
+.stats-icon.orange,
+.vertical-icon.orange {
+  background: rgb(var(--color-warning-rgb) / 12%);
   color: var(--accent-warning);
 }
 
-.stats-icon.yellow {
-  background: rgb(var(--color-warning-rgb), 0.12);
+.stats-icon.yellow,
+.vertical-icon.yellow {
+  background: rgb(var(--color-warning-rgb) / 14%);
   color: var(--platform-codex);
-}
-
-.stats-body {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.stat-item {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.stat-icon {
-  width: 1.75rem;
-  height: 1.75rem;
-  border-radius: 0.5rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.stat-content {
-  display: flex;
-  flex-direction: column;
-  gap: 0.15rem;
-}
-
-.stat-label {
-  font-size: 0.75rem;
-  color: var(--text-muted);
-}
-
-.stat-value {
-  font-size: 1.35rem;
-  font-weight: 500;
-  color: var(--text-primary);
-}
-
-.stat-value.green { color: var(--accent-success); }
-.stat-value.blue { color: var(--platform-gemini); }
-.stat-value.orange { color: var(--accent-warning); }
-.stat-value.purple { color: var(--platform-claude); }
-
-.stat-value small {
-  font-size: 0.75rem;
-  font-weight: 500;
-  color: var(--text-muted);
-}
-
-.stat-progress {
-  margin-top: 0.5rem;
-  padding-top: 0.75rem;
-  border-top: 1px solid rgb(var(--color-gray-rgb), 0.2);
-}
-
-.stat-progress-header {
-  display: flex;
-  justify-content: space-between;
-  font-size: 0.8rem;
-  color: var(--text-secondary);
-  margin-bottom: 0.4rem;
-}
-
-.stat-progress-footer {
-  font-size: 0.75rem;
-  color: var(--text-muted);
-  margin-top: 0.35rem;
-}
-
-:global(.dark) .stats-card {
-  background: rgb(var(--color-slate-dark-rgb), 0.9);
-  border-color: rgb(var(--color-slate-rgb), 0.8);
-}
-
-:global(.dark) .stats-header {
-  border-color: rgb(var(--color-slate-rgb), 0.6);
-}
-
-:global(.dark) .stats-header h2 {
-  color: var(--text-secondary);
-}
-
-:global(.dark) .stat-value {
-  color: var(--text-primary);
-}
-
-:global(.dark) .stat-label,
-:global(.dark) .stat-progress-header,
-:global(.dark) .stat-progress-footer {
-  color: var(--text-muted);
-}
-
-/* 新布局样式 - 三列布局 */
-.dashboard-main-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr 2fr;
-  gap: 1.25rem;
-  width: 100%;
-}
-
-/* 垂直统计卡片样式 */
-.stats-card-vertical {
-  background: var(--glass-bg-heavy);
-  border: 1px solid var(--glass-border-medium);
-  border-radius: 1rem;
-  padding: 1.5rem;
-  box-shadow: var(--shadow-small);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  height: 100%;
-  justify-content: space-between;
-}
-
-.vertical-header {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  margin-bottom: 1.25rem;
-  width: 100%;
-}
-
-.vertical-header h2 {
-  margin: 0;
-  font-size: 0.9rem;
-  font-weight: 500;
-  color: var(--text-secondary);
 }
 
 .vertical-items {
   display: flex;
   flex-direction: column;
-  gap: 1.25rem;
-  flex: 1;
-  width: 100%;
-  justify-content: center;
+  gap: 0.9rem;
 }
 
 .vertical-stat {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.9rem;
   align-items: center;
-  gap: 0.15rem;
+  padding: 0.9rem 1rem;
+  border-radius: 1.05rem;
+  background: rgb(var(--color-bg-elevated-rgb) / 52%);
+  border: 1px solid rgb(var(--color-border-default-rgb) / 60%);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 36%),
+    0 10px 22px rgb(74 36 78 / 7%);
 }
 
-.vertical-icon {
-  width: 1.5rem;
-  height: 1.5rem;
-  border-radius: 0.375rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 0.15rem;
-}
-
-.vertical-icon.purple {
-  background: rgb(var(--color-accent-secondary-rgb), 0.12);
-  color: var(--platform-claude);
-}
-
-.vertical-icon.green {
-  background: rgb(var(--color-success-rgb), 0.12);
-  color: var(--accent-success);
-}
-
-.vertical-icon.blue {
-  background: rgb(var(--color-info-rgb), 0.12);
-  color: var(--platform-gemini);
-}
-
-.vertical-icon.orange {
-  background: rgb(var(--color-warning-rgb), 0.12);
-  color: var(--accent-warning);
-}
-
-.vertical-icon.yellow {
-  background: rgb(var(--color-warning-rgb), 0.12);
-  color: var(--platform-codex);
+.vertical-copy {
+  display: grid;
+  gap: 0.25rem;
+  min-width: 0;
 }
 
 .vertical-label {
-  font-size: 0.7rem;
   color: var(--text-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
 }
 
 .vertical-value {
-  font-size: 1.35rem;
-  font-weight: 500;
   color: var(--text-primary);
+  font-size: 1.35rem;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
 }
 
-.vertical-value.green { color: var(--accent-success); }
-.vertical-value.blue { color: var(--platform-gemini); }
-.vertical-value.orange { color: var(--accent-warning); }
-.vertical-value.purple { color: var(--platform-claude); }
+.vertical-value.green {
+  color: var(--accent-success);
+}
+
+.vertical-value.blue {
+  color: var(--platform-gemini);
+}
+
+.vertical-value.orange {
+  color: var(--accent-warning);
+}
+
+.vertical-value.purple {
+  color: var(--platform-claude);
+}
 
 .vertical-value small {
-  font-size: 0.8rem;
-  font-weight: 500;
-  color: var(--text-muted);
+  color: var(--text-secondary);
+  font-size: 0.84rem;
+  font-weight: 600;
 }
 
-/* 签到进度条 */
 .checkin-progress {
   margin-top: auto;
-  padding-top: 0.75rem;
-  border-top: 1px solid rgb(var(--color-gray-rgb), 0.2);
-  width: 100%;
+  padding: 1rem 1rem 0;
+  border-top: 1px solid rgb(var(--color-border-default-rgb) / 62%);
+}
+
+.progress-info,
+.progress-days {
+  color: var(--text-secondary);
+  font-size: 0.76rem;
 }
 
 .progress-info {
   display: flex;
+  align-items: center;
   justify-content: space-between;
-  font-size: 0.7rem;
-  color: var(--text-muted);
-  margin-bottom: 0.4rem;
+  margin-bottom: 0.45rem;
 }
 
 .progress-percent {
-  font-weight: 500;
   color: var(--accent-success);
+  font-weight: 700;
 }
 
 .progress-bar-track {
-  height: 5px;
-  background: rgb(var(--color-gray-rgb), 0.3);
-  border-radius: 3px;
+  height: 0.42rem;
   overflow: hidden;
+  border-radius: 999px;
+  background: rgb(var(--color-border-default-rgb) / 72%);
+  box-shadow: inset 0 1px 2px rgb(0 0 0 / 8%);
 }
 
 .progress-bar-fill {
-  height: 100%;
-  background: linear-gradient(90deg, var(--platform-gemini), var(--accent-info));
-  border-radius: 3px;
   width: 100%;
+  height: 100%;
   transform-origin: left center;
+  background: linear-gradient(90deg, var(--platform-gemini), var(--accent-info));
+  box-shadow: 0 0 12px rgb(var(--color-platform-gemini-rgb) / 24%);
   transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .progress-days {
-  font-size: 0.65rem;
-  color: var(--text-muted);
-  margin-top: 0.25rem;
-  text-align: center;
+  margin-top: 0.35rem;
 }
 
-/* 日历卡片样式 */
 .calendar-card {
-  background: var(--glass-bg-heavy);
-  border: 1px solid var(--glass-border-medium);
-  border-radius: 1rem;
-  padding: 1.25rem;
-  box-shadow: var(--shadow-small);
   display: flex;
   flex-direction: column;
+  gap: 1rem;
+  padding: 1.35rem;
 }
 
-.calendar-card .card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1rem;
-}
-
-.calendar-card .card-header h2 {
-  margin: 0;
-  font-size: 0.9rem;
-  font-weight: 500;
-  color: var(--text-secondary);
-}
-
-.calendar-card .calendar-picker {
+.calendar-picker {
   display: flex;
   align-items: center;
 }
 
-.calendar-card .calendar-nav {
-  display: flex;
+.calendar-nav {
+  display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.45rem;
+  padding: 0.3rem;
+  border-radius: 999px;
+  background: var(--dashboard-surface-muted);
+  border: 1px solid var(--dashboard-border-soft);
 }
 
 .nav-btn {
-  width: 1.75rem;
-  height: 1.75rem;
-  border-radius: 0.375rem;
-  border: 1px solid rgb(var(--color-gray-rgb), 0.35);
-  background: var(--glass-bg-heavy);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: var(--text-secondary);
-  font-size: 1rem;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.nav-btn:hover {
-  background: var(--bg-primary);
-  border-color: var(--platform-gemini);
-  color: var(--platform-gemini);
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border-radius: 999px;
+  background: rgb(var(--color-bg-elevated-rgb) / 72%);
+  color: var(--text-primary);
+  font-size: 1.05rem;
+  box-shadow: var(--dashboard-shadow-soft);
 }
 
 .calendar-month {
-  font-size: 0.85rem;
-  font-weight: 500;
-  color: var(--text-secondary);
-  min-width: 5.5rem;
+  min-width: 6.5rem;
+  color: var(--text-primary);
+  font-size: 0.84rem;
+  font-weight: 700;
   text-align: center;
 }
 
-/* 趋势卡片优化样式 */
 .trend-card {
-  background: var(--glass-bg-heavy);
-  border: 1px solid var(--glass-border-medium);
-  border-radius: 1rem;
-  padding: 1.25rem;
-  box-shadow: var(--shadow-small);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1.35rem;
 }
 
 .trend-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1rem;
-  padding-bottom: 0.75rem;
-  border-bottom: 1px solid rgb(var(--color-gray-rgb), 0.2);
+  padding-bottom: 0.95rem;
+  border-bottom: 1px solid rgb(var(--color-border-default-rgb) / 62%);
 }
 
-.trend-title {
+.trend-title-row {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 0.75rem;
 }
 
-.trend-title h2 {
-  margin: 0;
-  font-size: 1rem;
-  font-weight: 500;
-  color: var(--text-secondary);
+.trend-tag {
+  background: rgb(var(--color-platform-gemini-rgb) / 10%);
+  border: 1px solid rgb(var(--color-platform-gemini-rgb) / 22%);
+  color: var(--platform-gemini);
 }
 
-.trend-tag {
+.trend-actions {
   display: inline-flex;
   align-items: center;
-  padding: 0.2rem 0.6rem;
+  gap: 0.45rem;
+  padding: 0.3rem;
   border-radius: 999px;
-  font-size: 0.75rem;
-  font-weight: 500;
-  background: rgb(var(--color-accent-primary-rgb), 0.1);
+  background: var(--dashboard-surface-muted);
+  border: 1px solid var(--dashboard-border-soft);
+}
+
+.trend-btn {
+  min-width: 2.75rem;
+  padding: 0.45rem 0.8rem;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.trend-btn.active {
+  border-color: rgb(var(--color-platform-gemini-rgb) / 24%);
+  background: rgb(var(--color-bg-elevated-rgb) / 82%);
   color: var(--platform-gemini);
+  box-shadow: 0 10px 24px rgb(var(--color-platform-gemini-rgb) / 14%);
 }
 
 .trend-body {
-  min-height: 200px;
+  min-height: 15rem;
 }
 
-:global(.dark) .stats-card-vertical,
-:global(.dark) .calendar-card,
-:global(.dark) .trend-card {
-  background: rgb(var(--color-slate-dark-rgb), 0.9);
-  border-color: rgb(var(--color-slate-rgb), 0.8);
+:global(.dark) .checkin-account-dashboard {
+  --dashboard-surface-bg: rgb(var(--color-bg-elevated-rgb) / 84%);
+  --dashboard-surface-muted: rgb(var(--color-bg-surface-rgb) / 76%);
+  --dashboard-surface-strong: rgb(var(--color-bg-surface-rgb) / 92%);
+  --dashboard-border: rgb(var(--color-border-default-rgb) / 88%);
+  --dashboard-border-soft: rgb(var(--color-border-default-rgb) / 68%);
+  --dashboard-shadow: 0 28px 72px rgb(0 0 0 / 42%);
+  --dashboard-shadow-soft: 0 16px 34px rgb(0 0 0 / 24%);
+
+  background:
+    radial-gradient(circle at top left, rgb(var(--color-info-rgb) / 20%), transparent 40%),
+    radial-gradient(circle at 82% 16%, rgb(var(--color-accent-secondary-rgb) / 16%), transparent 34%),
+    linear-gradient(180deg, rgb(var(--color-bg-base-rgb) / 24%), rgb(var(--color-bg-base-rgb) / 66%));
 }
 
-:global(.dark) .vertical-header h2,
-:global(.dark) .calendar-card .card-header h2,
-:global(.dark) .trend-title h2 {
-  color: var(--text-secondary);
+:global(.dark) .dashboard-scrim {
+  background:
+    linear-gradient(180deg, rgb(12 6 18 / 18%), rgb(15 8 20 / 42%)),
+    radial-gradient(circle at 18% 15%, rgb(var(--color-accent-primary-rgb) / 10%), transparent 28%);
 }
 
-:global(.dark) .vertical-value {
-  color: var(--text-primary);
+:global(.dark) .dashboard-vignette {
+  background:
+    linear-gradient(180deg, rgb(12 6 18 / 0%), rgb(15 8 20 / 26%) 55%, rgb(15 8 20 / 48%) 100%),
+    linear-gradient(90deg, rgb(12 6 18 / 24%), rgb(12 6 18 / 0%) 24%, rgb(12 6 18 / 0%) 76%, rgb(12 6 18 / 22%));
 }
 
-:global(.dark) .vertical-label,
-:global(.dark) .progress-info,
-:global(.dark) .progress-days {
-  color: var(--text-muted);
-}
-
-:global(.dark) .calendar-month {
-  color: var(--text-secondary);
-}
-
-:global(.dark) .nav-btn {
-  background: rgb(var(--color-slate-dark-rgb), 0.8);
-  border-color: rgb(var(--color-slate-rgb), 0.8);
-  color: var(--text-secondary);
-}
-
-:global(.dark) .nav-btn:hover {
-  background: rgb(var(--color-slate-rgb), 0.9);
-  border-color: var(--platform-gemini);
-  color: var(--platform-gemini);
-}
-
-:global(.dark) .checkin-progress {
-  border-color: rgb(var(--color-slate-rgb), 0.6);
-}
-
-:global(.dark) .progress-bar-track {
-  background: rgb(var(--color-slate-rgb), 0.6);
-}
-
-:global(.dark) .trend-header {
-  border-color: rgb(var(--color-slate-rgb), 0.6);
+:global(.dark) .meta-chip,
+:global(.dark) .vertical-stat,
+:global(.dark) .nav-btn,
+:global(.dark) .trend-btn.active {
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 6%);
 }
 
 @media (width <= 1280px) {
   .dashboard-main-grid {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
-  
+
   .calendar-card {
-    grid-column: span 2;
+    grid-column: 1 / -1;
   }
 }
 
-@media (width <= 768px) {
-  .dashboard-main-grid {
-    grid-template-columns: 1fr;
-    gap: 1rem;
-  }
-  
-  .calendar-card {
-    grid-column: span 1;
-  }
-
-  .dashboard-shell {
-    padding: 1rem;
-  }
-
-  .header-sub {
-    flex-direction: column;
-    gap: 0.2rem;
+@media (width <= 960px) {
+  .dashboard-header {
+    padding: 1.2rem;
   }
 
   .header-actions {
     width: 100%;
-    justify-content: flex-start;
+  }
+
+  .action-btn {
+    flex: 1 1 12rem;
+  }
+
+  .trend-header {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }
 
+@media (width <= 768px) {
+  .dashboard-shell {
+    padding: 1rem;
+  }
+
+  .dashboard-main-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .calendar-card {
+    grid-column: auto;
+  }
+
+  .header-left {
+    width: 100%;
+  }
+
+  .header-meta {
+    flex-direction: column;
+  }
+
+  .meta-chip {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .header-actions {
+    flex-direction: column;
+  }
+
+  .action-btn {
+    width: 100%;
+  }
+
+  .card-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .calendar-picker,
+  .calendar-nav,
+  .trend-actions {
+    width: 100%;
+  }
+
+  .calendar-nav,
+  .trend-actions {
+    justify-content: space-between;
+  }
+
+  .trend-btn {
+    flex: 1 1 0;
+    text-align: center;
+  }
+}
 </style>
