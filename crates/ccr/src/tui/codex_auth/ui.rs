@@ -509,6 +509,67 @@ pub fn draw_embedded(
     }
 }
 
+pub fn draw_loading_placeholder(
+    f: &mut Frame,
+    content_area: Rect,
+    footer_area: Rect,
+    compact: bool,
+    error: Option<&str>,
+) {
+    let message = error
+        .map(|err| format!("Codex Auth 初始化失败\n\n{}", err))
+        .unwrap_or_else(|| "正在初始化 Codex Auth...".to_string());
+
+    let panel = Paragraph::new(message)
+        .block(
+            Block::default()
+                .borders(Borders::ALL)
+                .border_style(Style::default().fg(theme::BORDER))
+                .title(" 🔐 Codex Auth ")
+                .title_style(Style::default().fg(theme::ACCENT)),
+        )
+        .alignment(Alignment::Center)
+        .wrap(Wrap { trim: true });
+    f.render_widget(panel, content_area);
+
+    if compact {
+        let help = Paragraph::new("Tab 切换")
+            .style(Style::default().fg(Color::DarkGray))
+            .alignment(Alignment::Center);
+        f.render_widget(help, footer_area);
+    } else {
+        let footer_chunks = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([Constraint::Length(3), Constraint::Length(2)])
+            .split(footer_area);
+
+        let status_text = if error.is_some() {
+            "初始化失败"
+        } else {
+            "加载中"
+        };
+        let status_style = if error.is_some() {
+            Style::default().fg(Color::Red)
+        } else {
+            Style::default().fg(Color::Cyan)
+        };
+
+        let status = Paragraph::new(status_text).style(status_style).block(
+            Block::default()
+                .borders(Borders::ALL)
+                .border_style(Style::default().fg(theme::BORDER))
+                .title(" 状态 ")
+                .title_style(Style::default().fg(theme::ACCENT)),
+        );
+        f.render_widget(status, footer_chunks[0]);
+
+        let help = Paragraph::new("Tab 切换")
+            .style(Style::default().fg(Color::DarkGray))
+            .alignment(Alignment::Center);
+        f.render_widget(help, footer_chunks[1]);
+    }
+}
+
 /// Draw account list with login status merged into the title
 fn draw_account_list_with_status(f: &mut Frame, area: Rect, app: &CodexAuthApp) {
     // 🖱️ 缓存列表区域供鼠标点击使用

@@ -3,6 +3,7 @@
 
 use crate::core::error::Result;
 use crate::models::{CodexAccountQuota, CodexAuthItem, LoginState, TokenFreshness};
+use crate::services::codex_auth_service::AuthReadSnapshot;
 use crate::services::{CodexAuthService, CodexRollingUsage};
 use crate::tui::overlay::Overlay;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
@@ -10,6 +11,7 @@ use dirs::home_dir;
 use ratatui::Frame;
 use ratatui::layout::Rect;
 use std::cell::Cell;
+use std::sync::mpsc::TryRecvError;
 
 use crate::tui::app::list_hit_test;
 use crate::tui::runtime::TuiApp;
@@ -73,6 +75,8 @@ pub struct CodexAuthApp {
     /// Quota async result receiver
     quota_rx:
         Option<std::sync::mpsc::Receiver<std::result::Result<Vec<CodexAccountQuota>, String>>>,
+    /// Usage async result receiver
+    usage_rx: Option<std::sync::mpsc::Receiver<UsageState>>,
     /// Codex directory
     #[allow(dead_code)]
     codex_dir: Option<PathBuf>,
@@ -80,6 +84,8 @@ pub struct CodexAuthApp {
     pub list_area: Cell<Option<Rect>>,
     /// Delayed quota fetch timer (tick countdown, None = inactive)
     delayed_quota_ticks: Option<u32>,
+    /// Delayed usage fetch timer (tick countdown, None = inactive)
+    delayed_usage_ticks: Option<u32>,
     /// Whether a quota refresh confirmation is pending
     pub pending_quota_confirm: bool,
 }
@@ -89,17 +95,15 @@ impl CodexAuthApp {
     /// Create a new application instance
     pub fn new() -> Result<Self> {
         let service = CodexAuthService::new()?;
-        let login_state = service.get_login_state()?;
-        let accounts = service.list_accounts()?;
+        let snapshot = service.read_auth_snapshot()?;
+        let login_state = snapshot.login_state.clone();
+        let accounts = service.build_account_items(&snapshot)?;
 
         // Find the current account index
         let selected_index = accounts.iter().position(|a| a.is_current).unwrap_or(0);
 
         // Codex directory
         let codex_dir = home_dir().map(|d| d.join(".codex"));
-
-        // Load usage data
-        let usage_state = Self::load_usage_data(&codex_dir);
 
         Ok(Self {
             accounts,
@@ -111,14 +115,27 @@ impl CodexAuthApp {
             login_state,
             service,
             last_action: None,
-            usage_state,
+            usage_state: UsageState::Loading,
             quota_state: QuotaState::Idle,
             quota_rx: None,
+            usage_rx: None,
             codex_dir,
             list_area: Cell::new(None),
             delayed_quota_ticks: None,
+            delayed_usage_ticks: None,
             pending_quota_confirm: false,
         })
+    }
+
+    fn apply_snapshot(&mut self, snapshot: AuthReadSnapshot) -> Result<()> {
+        self.login_state = snapshot.login_state.clone();
+        self.accounts = self.service.build_account_items(&snapshot)?;
+
+        if self.selected_index >= self.accounts.len() {
+            self.selected_index = self.accounts.len().saturating_sub(1);
+        }
+
+        Ok(())
     }
 
     /// Load usage data
@@ -145,20 +162,13 @@ impl CodexAuthApp {
     /// Refresh usage data
     #[allow(dead_code)]
     pub fn refresh_usage(&mut self) {
-        self.usage_state = Self::load_usage_data(&self.codex_dir);
+        self.start_usage_fetch();
     }
 
     /// Reload account list
     pub fn reload_accounts(&mut self) -> Result<()> {
-        self.login_state = self.service.get_login_state()?;
-        self.accounts = self.service.list_accounts()?;
-
-        // Ensure selected index is valid
-        if self.selected_index >= self.accounts.len() {
-            self.selected_index = self.accounts.len().saturating_sub(1);
-        }
-
-        Ok(())
+        let snapshot = self.service.read_auth_snapshot()?;
+        self.apply_snapshot(snapshot)
     }
 
     /// Get current page accounts
@@ -453,11 +463,31 @@ impl CodexAuthApp {
     }
 
     /// Called when this tab becomes active (e.g., tab switch)
-    /// Schedules a delayed quota fetch after ~1 second (4 ticks at 250ms)
+    /// Schedules delayed usage/quota fetches after ~1 second (4 ticks at 250ms)
     pub fn on_activated(&mut self) {
+        if matches!(self.usage_state, UsageState::Loading) && self.usage_rx.is_none() {
+            self.delayed_usage_ticks = Some(1);
+        }
         if matches!(self.quota_state, QuotaState::Idle) {
             self.delayed_quota_ticks = Some(4);
         }
+    }
+
+    /// Start async usage fetch in background thread
+    fn start_usage_fetch(&mut self) {
+        if self.usage_rx.is_some() {
+            return;
+        }
+
+        self.usage_state = UsageState::Loading;
+        let codex_dir = self.codex_dir.clone();
+        let (tx, rx) = std::sync::mpsc::channel();
+        self.usage_rx = Some(rx);
+
+        std::thread::spawn(move || {
+            let state = Self::load_usage_data(&codex_dir);
+            let _ = tx.send(state);
+        });
     }
 
     /// Start async quota fetch in background thread
@@ -492,6 +522,68 @@ impl CodexAuthApp {
                 }
             });
         });
+    }
+
+    /// Run a delayed fetch timer and return whether it is ready to trigger
+    fn delayed_fetch_ready(ticks: &mut Option<u32>) -> bool {
+        let Some(remaining) = ticks.as_mut() else {
+            return false;
+        };
+
+        if *remaining == 0 {
+            *ticks = None;
+            true
+        } else {
+            *remaining -= 1;
+            false
+        }
+    }
+
+    /// Poll local usage fetch result and return whether it changed visible state
+    fn poll_usage_result(&mut self) -> bool {
+        let Some(rx) = &self.usage_rx else {
+            return false;
+        };
+
+        match rx.try_recv() {
+            Ok(state) => {
+                self.usage_state = state;
+                self.usage_rx = None;
+                true
+            }
+            Err(TryRecvError::Empty) => false,
+            Err(TryRecvError::Disconnected) => {
+                self.usage_state = UsageState::Error("本地统计通道已断开".to_string());
+                self.usage_rx = None;
+                true
+            }
+        }
+    }
+
+    /// Poll remote quota fetch result and return whether it changed visible state
+    fn poll_quota_result(&mut self) -> bool {
+        let Some(rx) = &self.quota_rx else {
+            return false;
+        };
+
+        match rx.try_recv() {
+            Ok(Ok(quotas)) => {
+                self.quota_state = QuotaState::Loaded(quotas);
+                self.quota_rx = None;
+                true
+            }
+            Ok(Err(e)) => {
+                self.quota_state = QuotaState::Error(e);
+                self.quota_rx = None;
+                true
+            }
+            Err(TryRecvError::Empty) => false,
+            Err(TryRecvError::Disconnected) => {
+                self.quota_state = QuotaState::Error("配额查询通道已断开".to_string());
+                self.quota_rx = None;
+                true
+            }
+        }
     }
 }
 
@@ -537,38 +629,16 @@ impl TuiApp for CodexAuthApp {
     fn on_tick(&mut self) -> bool {
         let mut needs_redraw = self.toasts.tick();
 
-        // 延迟配额查询计时器
-        if let Some(ref mut ticks) = self.delayed_quota_ticks {
-            if *ticks == 0 {
-                self.delayed_quota_ticks = None;
-                self.start_quota_fetch();
-                needs_redraw = true;
-            } else {
-                *ticks -= 1;
-            }
+        if Self::delayed_fetch_ready(&mut self.delayed_usage_ticks) {
+            self.start_usage_fetch();
+            needs_redraw = true;
         }
-
-        // 检查配额查询结果
-        if let Some(rx) = &self.quota_rx {
-            match rx.try_recv() {
-                Ok(Ok(quotas)) => {
-                    self.quota_state = QuotaState::Loaded(quotas);
-                    self.quota_rx = None;
-                    needs_redraw = true;
-                }
-                Ok(Err(e)) => {
-                    self.quota_state = QuotaState::Error(e);
-                    self.quota_rx = None;
-                    needs_redraw = true;
-                }
-                Err(std::sync::mpsc::TryRecvError::Empty) => {}
-                Err(std::sync::mpsc::TryRecvError::Disconnected) => {
-                    self.quota_state = QuotaState::Error("配额查询通道已断开".to_string());
-                    self.quota_rx = None;
-                    needs_redraw = true;
-                }
-            }
+        if Self::delayed_fetch_ready(&mut self.delayed_quota_ticks) {
+            self.start_quota_fetch();
+            needs_redraw = true;
         }
+        needs_redraw |= self.poll_usage_result();
+        needs_redraw |= self.poll_quota_result();
 
         needs_redraw
     }

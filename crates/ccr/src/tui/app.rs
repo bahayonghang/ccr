@@ -59,8 +59,10 @@ pub struct App {
     pub toasts: ToastManager,
     /// Last applied profile info (platform_name, profile_name, success, error)
     pub last_applied: Option<(String, String, bool, Option<String>)>,
-    /// Embedded Codex Auth app (eagerly initialized)
+    /// Embedded Codex Auth app (lazy initialized)
     pub codex_auth_app: Option<CodexAuthApp>,
+    /// Last Codex Auth initialization error for placeholder rendering
+    pub codex_auth_error: Option<String>,
     /// Last codex auth action info (action_type, account_name, success, error)
     pub last_codex_action: Option<(String, String, bool, Option<String>)>,
     /// 🖱️ Cached header (tab bar) area for mouse hit-testing
@@ -146,15 +148,6 @@ impl App {
             });
         }
 
-        // Eagerly initialize CodexAuthApp
-        let codex_auth_app = match CodexAuthApp::new() {
-            Ok(app) => Some(app),
-            Err(e) => {
-                tracing::warn!("Failed to init CodexAuthApp: {}", e);
-                None
-            }
-        };
-
         Ok(Self {
             tabs,
             active_tab: 0,
@@ -162,7 +155,8 @@ impl App {
             current_page: 0,
             toasts: ToastManager::new(),
             last_applied: None,
-            codex_auth_app,
+            codex_auth_app: None,
+            codex_auth_error: None,
             last_codex_action: None,
             header_area: Cell::new(None),
             list_area: Cell::new(None),
@@ -358,6 +352,33 @@ impl App {
 
     // -- Tab helpers --
 
+    /// Ensure Codex Auth app is initialized before interaction/rendering
+    fn ensure_codex_auth_app(&mut self) {
+        if self.codex_auth_app.is_some() {
+            return;
+        }
+
+        match CodexAuthApp::new() {
+            Ok(app) => {
+                self.codex_auth_app = Some(app);
+                self.codex_auth_error = None;
+            }
+            Err(e) => {
+                let err = e.to_string();
+                tracing::warn!("Failed to init CodexAuthApp: {}", err);
+                self.codex_auth_error = Some(err.clone());
+                self.toasts
+                    .push(Toast::error(format!("Codex Auth 初始化失败: {}", err)));
+            }
+        }
+    }
+
+    /// Get mutable Codex Auth app, initializing it on demand
+    fn codex_auth_app_mut(&mut self) -> Option<&mut CodexAuthApp> {
+        self.ensure_codex_auth_app();
+        self.codex_auth_app.as_mut()
+    }
+
     /// Check if the currently active tab is the Codex Auth variant
     pub fn is_codex_auth_tab(&self) -> bool {
         self.tabs[self.active_tab].variant == TabVariant::CodexAuth
@@ -371,26 +392,25 @@ impl App {
             .position(|t| t.platform == Platform::Codex && t.variant == TabVariant::CodexAuth)
         {
             self.active_tab = idx;
-            // 触发延迟配额查询
-            if let Some(ref mut codex_app) = self.codex_auth_app {
-                codex_app.on_activated();
-            }
+            self.notify_tab_activated();
         }
         self
     }
 
     /// Notify the active tab's sub-app that it became active
     fn notify_tab_activated(&mut self) {
-        if self.is_codex_auth_tab()
-            && let Some(ref mut codex_app) = self.codex_auth_app
-        {
+        if !self.is_codex_auth_tab() {
+            return;
+        }
+
+        if let Some(codex_app) = self.codex_auth_app_mut() {
             codex_app.on_activated();
         }
     }
 
     /// 🖱️ Delegate mouse event to embedded CodexAuthApp
     fn delegate_mouse_to_codex(&mut self, mouse: MouseEvent) -> Result<bool> {
-        if let Some(ref mut codex_app) = self.codex_auth_app {
+        if let Some(codex_app) = self.codex_auth_app_mut() {
             codex_app.handle_mouse(mouse)
         } else {
             Ok(false)
@@ -457,7 +477,7 @@ impl TuiApp for App {
                 return self.dispatch(Action::NextTab);
             }
             // Delegate all other keys to CodexAuthApp
-            if let Some(ref mut codex_app) = self.codex_auth_app {
+            if let Some(codex_app) = self.codex_auth_app_mut() {
                 let quit = codex_app.handle_key(key)?;
                 if quit {
                     self.last_codex_action = codex_app.last_action.clone();

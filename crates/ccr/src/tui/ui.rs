@@ -41,6 +41,14 @@ pub fn draw(f: &mut Frame, app: &App) {
         // Codex tab: delegate content + footer to codex_auth embedded renderer
         if let Some(ref codex_app) = app.codex_auth_app {
             codex_auth::ui::draw_embedded(f, codex_app, chunks[1], chunks[2], compact);
+        } else {
+            codex_auth::ui::draw_loading_placeholder(
+                f,
+                chunks[1],
+                chunks[2],
+                compact,
+                app.codex_auth_error.as_deref(),
+            );
         }
     } else {
         // Claude tab: profile list + footer
