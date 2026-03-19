@@ -1,18 +1,20 @@
 <script setup lang="ts">
 import SIcon from '@/components/ui/SIcon.vue'
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useBackendHealth } from '@/composables/useBackendHealth'
 import { isTauriEnvironment } from '@/api'
 
 const { status, lastCheckedAt, checkHealth } = useBackendHealth()
 const isTauri = isTauriEnvironment()
+const { t, locale } = useI18n()
 
 const label = computed(() => {
-  if (!isTauri) return '后端：Web'
-  if (status.value === 'checking' || status.value === 'unknown') return '后端：检测中'
-  if (status.value === 'ok') return '后端：运行中'
-  if (status.value === 'error') return '后端：不可用'
-  return '后端：未知'
+  if (!isTauri) return t('common.backend.web')
+  if (status.value === 'checking' || status.value === 'unknown') return t('common.backend.checking')
+  if (status.value === 'ok') return t('common.backend.ok')
+  if (status.value === 'error') return t('common.backend.error')
+  return t('common.backend.unknown')
 })
 
 const badgeClass = computed(() => {
@@ -23,8 +25,9 @@ const badgeClass = computed(() => {
 })
 
 const tooltip = computed(() => {
-  if (!lastCheckedAt.value) return '点击重试'
-  return `上次检测：${lastCheckedAt.value.toLocaleTimeString('zh-CN')}`
+  if (!lastCheckedAt.value) return t('common.backend.retryHint')
+  const time = lastCheckedAt.value.toLocaleTimeString(locale.value === 'zh-CN' ? 'zh-CN' : 'en-US')
+  return t('common.backend.lastChecked', { time })
 })
 </script>
 

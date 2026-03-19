@@ -4,6 +4,7 @@
  */
 import SIcon from '@/components/ui/SIcon.vue'
 import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { invoke } from '@tauri-apps/api/core'
 import { logger } from '@/utils/logger'
 
@@ -19,6 +20,7 @@ const environments = ref<EnvironmentInfo[]>([])
 const isOpen = ref(false)
 const isLoading = ref(false)
 const isRefreshing = ref(false)
+const { t } = useI18n()
 
 const currentEnv = computed(() => environments.value.find(e => e.is_active))
 
@@ -108,7 +110,7 @@ onUnmounted(() => {
         :class="envColor(currentEnv?.env_type || 'local')"
       />
       <span class="max-w-[120px] truncate">
-        {{ currentEnv?.name || 'Local' }}
+        {{ currentEnv?.name || t('common.environment.local') }}
       </span>
       <SIcon
         name="ChevronDown"
@@ -135,13 +137,13 @@ onUnmounted(() => {
         <!-- 标题栏 -->
         <div class="flex items-center justify-between border-b border-border-default/50 px-3 py-2">
           <span class="text-[10px] font-bold uppercase tracking-wider text-text-muted">
-            执行环境
+            {{ t('common.environment.title') }}
           </span>
           <button
             type="button"
             class="rounded-md p-1 text-text-muted transition-colors hover:bg-bg-surface/70 hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary/20"
             :disabled="isRefreshing"
-            title="刷新环境列表"
+            :title="t('common.environment.refresh')"
             @click.stop="refreshEnvs"
           >
             <SIcon
@@ -194,7 +196,7 @@ onUnmounted(() => {
             v-if="environments.length === 0"
             class="px-3 py-4 text-center text-xs text-text-muted"
           >
-            未检测到可用环境
+            {{ t('common.environment.empty') }}
           </div>
         </div>
       </div>

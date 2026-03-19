@@ -48,20 +48,20 @@
               v-if="config.is_current"
               class="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-emerald-400 bg-emerald-400/10 px-2 py-0.5 rounded-full ring-1 ring-emerald-400/20"
             >
-              Active
+              {{ t('configs.currentBadge') }}
             </span>
             <span
               v-if="config.is_default"
               class="inline-flex items-center text-[10px] font-bold uppercase tracking-wider text-amber-400 bg-amber-400/10 px-2 py-0.5 rounded-full ring-1 ring-amber-400/20"
             >
-              Default
+              {{ t('configs.defaultBadge') }}
             </span>
           </div>
         </div>
 
         <!-- Description -->
         <p class="text-xs text-white/80 truncate leading-relaxed">
-          {{ config.description || 'No description provided.' }}
+          {{ config.description || t('configs.noDescription') }}
         </p>
       </div>
 
@@ -122,7 +122,7 @@
           size="w-3.5 h-3.5"
           class="mr-1 inline-block"
         />
-        Switch
+        {{ t('configs.switch') }}
       </button>
       <span
         v-else
@@ -132,7 +132,7 @@
           name="CheckCircle"
           size="w-3.5 h-3.5"
         />
-        In Use
+        {{ t('configs.inUse') }}
       </span>
 
       <!-- Edit Button -->
@@ -153,6 +153,7 @@
 <script setup lang="ts">
 import SIcon from '@/components/ui/SIcon.vue'
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import type { ConfigItem } from '@/types'
 
 interface Props {
@@ -160,6 +161,7 @@ interface Props {
 }
 
 const props = defineProps<Props>()
+const { t } = useI18n()
 
 defineEmits<{
   switch: [name: string]

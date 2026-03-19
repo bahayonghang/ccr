@@ -43,7 +43,7 @@
               CCR <span class="text-accent-primary">UI</span>
             </h1>
             <p class="text-[10px] uppercase tracking-widest text-pink-400 dark:text-pink-300 font-bold mt-0.5">
-              Neko Console
+              {{ t('common.shell.tagline') }}
             </p>
           </div>
         </div>
@@ -255,13 +255,13 @@
             <div class="flex items-center justify-between">
               <!-- Session Status -->
               <p class="text-[11px] font-mono uppercase tracking-wider flex items-center gap-2">
-                <span class="text-text-muted">Session:</span>
+                <span class="text-text-muted">{{ t('common.shell.session') }}:</span>
                 <span class="flex items-center gap-1.5 text-emerald-400 font-semibold">
                   <span class="relative flex h-2 w-2">
                     <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
                     <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.8)]" />
                   </span>
-                  Active
+                  {{ t('common.shell.active') }}
                 </span>
               </p>
               
@@ -272,7 +272,7 @@
             <!-- Version -->
             <div class="flex items-center justify-between">
               <span class="rounded-md border border-border-default/60 bg-bg-elevated/80 px-2 py-0.5 text-[10px] font-mono text-text-muted">
-                CCR UI v5.1.5
+                CCR UI v5.1.6
               </span>
             </div>
           </div>
@@ -307,9 +307,11 @@
             <span class="text-text-primary font-semibold">{{ currentPageTitle }}</span>
           </template>
           <template v-else>
-            <span class="opacity-50">{{ $t('nav.mainModules') }}</span>
-            <span class="mx-2 opacity-30">/</span>
-            <span class="text-text-primary font-medium">{{ currentPageTitle }}</span>
+            <span class="opacity-50">{{ currentSectionTitle }}</span>
+            <template v-if="currentSectionTitle !== currentPageTitle">
+              <span class="mx-2 opacity-30">/</span>
+              <span class="text-text-primary font-medium">{{ currentPageTitle }}</span>
+            </template>
           </template>
         </div>
 
@@ -403,26 +405,98 @@ const cachedViews = [
 // 路由名 → i18n 键映射
 const routeTitleMap: Record<string, string> = {
   home: 'nav.home',
+  configs: 'nav.configs',
   skills: 'nav.skills',
   'skills-add': 'nav.addSkill',
+  market: 'nav.market',
+  'skill-detail': 'nav.skills',
   'claude-code': 'nav.claudeCode',
+  'claude-code-settings': 'common.settings',
+  'claude-code-profiles': 'nav.profiles',
   codex: 'nav.codex',
+  'codex-mcp': 'nav.mcp',
+  'codex-profiles': 'nav.profiles',
+  'codex-slash-commands': 'nav.slashCommands',
+  'codex-auth': 'nav.auth',
+  'codex-settings': 'common.settings',
   'gemini-cli': 'nav.gemini',
+  'gemini-mcp': 'nav.mcp',
+  'gemini-agents': 'nav.agents',
+  'gemini-slash-commands': 'nav.slashCommands',
+  'gemini-plugins': 'nav.plugins',
   qwen: 'nav.qwen',
+  'qwen-mcp': 'nav.mcp',
+  'qwen-agents': 'nav.agents',
+  'qwen-slash-commands': 'nav.slashCommands',
+  'qwen-plugins': 'nav.plugins',
   iflow: 'nav.iflow',
+  'iflow-mcp': 'nav.mcp',
+  'iflow-agents': 'nav.agents',
+  'iflow-slash-commands': 'nav.slashCommands',
+  'iflow-plugins': 'nav.plugins',
   droid: 'nav.droid',
+  'droid-mcp': 'nav.mcp',
+  'droid-agents': 'nav.agents',
+  'droid-slash-commands': 'nav.slashCommands',
+  'droid-plugins': 'nav.plugins',
+  'droid-models': 'nav.models',
+  'droid-profiles': 'nav.profiles',
+  'droid-droids': 'nav.droids',
+  opencode: 'nav.opencode',
+  'opencode-providers': 'nav.providers',
+  'opencode-mcp': 'nav.mcp',
+  'opencode-plugins': 'nav.plugins',
   'ccr-control': 'nav.ccrControl',
   commands: 'nav.commands',
-  checkin: 'nav.checkin',
+  converter: 'nav.converter',
   sync: 'nav.sync',
+  budget: 'nav.budget',
+  pricing: 'nav.pricing',
+  monitoring: 'nav.monitoring',
+  mcp: 'nav.mcp',
+  'mcp-unified': 'nav.unifiedMcp',
+  'slash-commands': 'nav.slashCommands',
+  agents: 'nav.agents',
+  'agent-detail': 'nav.agents',
+  plugins: 'nav.plugins',
+  sessions: 'nav.sessions',
+  hooks: 'nav.hooks',
+  'output-styles': 'nav.outputStyles',
+  statusline: 'nav.statusline',
+  'provider-health': 'nav.providerHealth',
+  checkin: 'nav.checkin',
+  'checkin-account-dashboard': 'checkin.account_manager.dashboard',
   usage: 'nav.usage',
-  'mcp-unified': 'MCP 统一管理',
+  'wsl-management': 'nav.wsl',
+  'ssh-management': 'nav.ssh',
 }
 
 const currentPageTitle = computed(() => {
   const name = route.name as string
   const key = routeTitleMap[name]
-  return key ? t(key) : name || 'Home'
+  return key ? t(key) : t('nav.home')
+})
+
+const groupTitleMap: Record<string, string> = {
+  skills: 'nav.skillsHub',
+  tools: 'nav.toolsCenter',
+  config: 'nav.configCenter',
+  data: 'nav.dataCenter',
+  environment: 'nav.environments',
+  'claude-code': 'nav.claudeCode',
+  codex: 'nav.codex',
+  gemini: 'nav.gemini',
+  qwen: 'nav.qwen',
+  iflow: 'nav.iflow',
+  droid: 'nav.droid',
+  opencode: 'nav.opencode',
+}
+
+const currentSectionTitle = computed(() => {
+  const group = route.meta.group as string | undefined
+  if (!group) return t('nav.home')
+  const key = groupTitleMap[group]
+  return key ? t(key) : t('nav.home')
 })
 
 // Sidebar State

@@ -56,7 +56,7 @@
               marginTop: 'var(--space-xs)'
             }"
           >
-            Neko Console
+            {{ t('common.shell.tagline') }}
           </div>
         </div>
 
@@ -73,7 +73,7 @@
             class="text-sm font-semibold"
             :style="{ color: 'var(--text-primary)' }"
           >
-            Claude Code Configuration Switcher
+            {{ t('nav.brandName') }}
           </div>
           <div class="flex items-center space-x-3 mt-1">
             <span
@@ -84,7 +84,7 @@
                 class="w-1 h-1 rounded-full"
                 :style="{ background: 'var(--text-muted)' }"
               />
-              <span>MIT License</span>
+              <span>{{ t('nav.license') }}</span>
             </span>
           </div>
         </div>
@@ -117,15 +117,15 @@
             color: 'var(--text-primary)',
             border: '1px solid var(--border-color)'
           }"
-          :aria-label="$t('nav.refresh')"
-          :title="$t('nav.refresh')"
+          :aria-label="t('common.refresh')"
+          :title="t('common.refresh')"
           @click="onRefresh"
         >
           <SIcon
             name="RefreshCw"
             size="w-4 h-4"
           />
-          <span class="hidden md:inline">刷新</span>
+          <span class="hidden md:inline">{{ t('common.refresh') }}</span>
         </button>
 
         <button
@@ -136,15 +136,15 @@
             color: 'var(--text-primary)',
             border: '1px solid var(--border-color)'
           }"
-          aria-label="验证配置"
-          title="验证配置"
+          :aria-label="t('common.validateConfig')"
+          :title="t('common.validateConfig')"
           @click="onValidate"
         >
           <SIcon
             name="CheckCircle"
             size="w-4 h-4"
           />
-          <span class="hidden md:inline">验证</span>
+          <span class="hidden md:inline">{{ t('common.validate') }}</span>
         </button>
 
         <button
@@ -155,15 +155,15 @@
             color: 'var(--accent-warning)',
             border: '1px solid var(--border-color)'
           }"
-          aria-label="清理备份"
-          title="清理备份"
+          :aria-label="t('common.cleanBackups')"
+          :title="t('common.cleanBackups')"
           @click="onClean"
         >
           <SIcon
             name="Trash2"
             size="w-4 h-4"
           />
-          <span class="hidden md:inline">清理</span>
+          <span class="hidden md:inline">{{ t('common.clean') }}</span>
         </button>
 
         <!-- 分隔线 -->
@@ -184,15 +184,15 @@
             color: 'var(--text-primary)',
             border: '1px solid var(--border-color)'
           }"
-          aria-label="导入配置"
-          title="导入配置"
+          :aria-label="t('common.importConfig')"
+          :title="t('common.importConfig')"
           @click="onImport"
         >
           <SIcon
             name="Upload"
             size="w-4 h-4"
           />
-          <span class="hidden md:inline">导入</span>
+          <span class="hidden md:inline">{{ t('common.import') }}</span>
         </button>
 
         <button
@@ -203,15 +203,15 @@
             color: 'var(--text-primary)',
             border: '1px solid var(--border-color)'
           }"
-          aria-label="导出配置"
-          title="导出配置"
+          :aria-label="t('common.exportConfig')"
+          :title="t('common.exportConfig')"
           @click="onExport"
         >
           <SIcon
             name="Download"
             size="w-4 h-4"
           />
-          <span class="hidden md:inline">导出</span>
+          <span class="hidden md:inline">{{ t('common.export') }}</span>
         </button>
 
         <button
@@ -221,15 +221,15 @@
             background: 'linear-gradient(135deg, var(--accent-primary), var(--accent-secondary))',
             boxShadow: '0 0 20px var(--glow-primary)'
           }"
-          aria-label="添加新配置"
-          title="添加新配置"
+          :aria-label="t('common.addConfig')"
+          :title="t('common.addConfig')"
           @click="onAdd"
         >
           <SIcon
             name="PlusCircle"
             size="w-4 h-4"
           />
-          <span class="hidden md:inline">添加</span>
+          <span class="hidden md:inline">{{ t('common.add') }}</span>
         </button>
       </div>
     </div>
@@ -238,6 +238,7 @@
 
 <script setup lang="ts">
 import SIcon from '@/components/ui/SIcon.vue'
+import { useI18n } from 'vue-i18n'
 import ThemeToggle from './ThemeToggle.vue'
 
 interface Props {
@@ -250,4 +251,5 @@ interface Props {
 }
 
 defineProps<Props>()
+const { t } = useI18n()
 </script>
