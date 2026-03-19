@@ -2,8 +2,8 @@
   "name": "ccr-vscode",
   "displayName": "CCR - Configuration Switcher",
   "icon": "icon.png",
-  "description": "Manage AI CLI tool configurations (Claude, Codex, Gemini, etc.) directly from VSCode sidebar",
-  "version": "5.2.0",
+  "description": "Manage Claude and Codex configurations directly from the VSCode sidebar",
+  "version": "5.2.1",
   "publisher": "ccr",
   "license": "MIT",
   "repository": {
@@ -23,7 +23,6 @@
   "keywords": [
     "claude",
     "codex",
-    "gemini",
     "ai",
     "configuration"
   ],
@@ -61,6 +60,16 @@
         "title": "CCR: Switch Profile"
       },
       {
+        "command": "ccr.addProfile",
+        "title": "CCR: Add Profile",
+        "icon": "$(add)"
+      },
+      {
+        "command": "ccr.addProfileForPlatform",
+        "title": "CCR: Add Profile For Platform",
+        "icon": "$(add)"
+      },
+      {
         "command": "ccr.editProfileVisual",
         "title": "CCR: Edit Profile",
         "icon": "$(notebook-edit)"
@@ -74,6 +83,25 @@
         "command": "ccr.toggleProfileEnabled",
         "title": "CCR: Toggle Profile Enabled",
         "icon": "$(eye)"
+      },
+      {
+        "command": "ccr.deleteProfile",
+        "title": "CCR: Delete Profile",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "ccr.switchCodexAuth",
+        "title": "CCR: Switch Codex Auth"
+      },
+      {
+        "command": "ccr.editCodexAuth",
+        "title": "CCR: Edit Codex Auth",
+        "icon": "$(edit)"
+      },
+      {
+        "command": "ccr.deleteCodexAuth",
+        "title": "CCR: Delete Codex Auth",
+        "icon": "$(trash)"
       },
       {
         "command": "ccr.openProfilesFile",
@@ -92,12 +120,27 @@
           "command": "ccr.refreshProfiles",
           "when": "view == ccr-profiles",
           "group": "navigation"
+        },
+        {
+          "command": "ccr.addProfile",
+          "when": "view == ccr-profiles",
+          "group": "navigation@1"
         }
       ],
       "view/item/context": [
         {
           "command": "ccr.switchProfile",
-          "when": "view == ccr-profiles && viewItem == profile",
+          "when": "view == ccr-profiles && viewItem =~ /^profile/",
+          "group": "inline@1"
+        },
+        {
+          "command": "ccr.addProfileForPlatform",
+          "when": "view == ccr-profiles && viewItem == platform-create-supported",
+          "group": "inline@2"
+        },
+        {
+          "command": "ccr.switchCodexAuth",
+          "when": "view == ccr-profiles && viewItem =~ /^codex-auth/",
           "group": "inline@1"
         },
         {
@@ -114,6 +157,26 @@
           "command": "ccr.toggleProfileEnabled",
           "when": "view == ccr-profiles && viewItem =~ /^profile/",
           "group": "1_edit@2"
+        },
+        {
+          "command": "ccr.deleteProfile",
+          "when": "view == ccr-profiles && viewItem =~ /^profile/",
+          "group": "1_edit@3"
+        },
+        {
+          "command": "ccr.addProfileForPlatform",
+          "when": "view == ccr-profiles && viewItem == section-profiles-create-supported",
+          "group": "1_edit@0"
+        },
+        {
+          "command": "ccr.editCodexAuth",
+          "when": "view == ccr-profiles && viewItem =~ /^codex-auth/",
+          "group": "1_edit@0"
+        },
+        {
+          "command": "ccr.deleteCodexAuth",
+          "when": "view == ccr-profiles && viewItem =~ /^codex-auth/",
+          "group": "1_edit@1"
         },
         {
           "command": "ccr.openProfilesFile",
@@ -146,29 +209,17 @@
           "enum": [
             "",
             "claude",
-            "codex",
-            "gemini",
-            "qwen",
-            "iflow",
-            "droid"
+            "codex"
           ],
           "enumItemLabels": [
             "Follow current platform",
             "Claude Code",
-            "Codex",
-            "Gemini CLI",
-            "Qwen CLI",
-            "iFlow CLI",
-            "Factory Droid"
+            "Codex"
           ],
           "markdownEnumDescriptions": [
             "Leave the pinned target empty and fall back to the current platform.",
             "Pin the CCR status bar to **Claude Code**.",
-            "Pin the CCR status bar to **Codex**.",
-            "Pin the CCR status bar to **Gemini CLI**.",
-            "Pin the CCR status bar to **Qwen CLI**.",
-            "Pin the CCR status bar to **iFlow CLI**.",
-            "Pin the CCR status bar to **Factory Droid**."
+            "Pin the CCR status bar to **Codex**."
           ],
           "description": "Platform to display when ccr.statusBar.mode is pinned."
         }

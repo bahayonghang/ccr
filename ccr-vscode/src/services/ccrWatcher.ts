@@ -47,6 +47,17 @@ export class CcrWatcher implements vscode.Disposable {
     profilesWatcher.onDidCreate(() => this.debouncedNotify());
     profilesWatcher.onDidDelete(() => this.debouncedNotify());
     this.watchers.push(profilesWatcher);
+
+    // Watch Codex auth registry
+    const codexAuthRegistryPattern = new vscode.RelativePattern(
+      vscode.Uri.file(root),
+      "platforms/codex/auth_registry.toml",
+    );
+    const codexAuthRegistryWatcher = vscode.workspace.createFileSystemWatcher(codexAuthRegistryPattern);
+    codexAuthRegistryWatcher.onDidChange(() => this.debouncedNotify());
+    codexAuthRegistryWatcher.onDidCreate(() => this.debouncedNotify());
+    codexAuthRegistryWatcher.onDidDelete(() => this.debouncedNotify());
+    this.watchers.push(codexAuthRegistryWatcher);
   }
 
   /** Debounce rapid file change events into a single refresh */

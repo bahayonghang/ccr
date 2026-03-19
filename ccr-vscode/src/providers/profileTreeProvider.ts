@@ -1,15 +1,17 @@
 /**
  * TreeDataProvider for CCR profiles sidebar
  *
- * Two-level hierarchy:
- * - Platform nodes (top-level, collapsible) with codicon icons
- *   - Profile nodes (children, leaf) with semantic status icons
+ * Three-level hierarchy:
+ * - Platform nodes (top-level)
+ *   - Section nodes (Profiles/Auth)
+ *     - Profile/Auth leaf nodes
  */
 
 import * as vscode from "vscode";
 import { ccrRootExists, getPlatformCodiconId } from "../services/ccrPaths";
 import { readRegistry, readProfiles, maskToken } from "../services/tomlReader";
-import type { PlatformInfo, ProfileInfo } from "../models/types";
+import { readCodexAuthAccounts } from "../services/codexAuthReader";
+import type { CodexAuthInfo, PlatformInfo, ProfileInfo, TreeSectionInfo, TreeSectionKind } from "../models/types";
 
 /** Escape user-controlled strings to prevent Markdown injection */
 function escapeMarkdown(str: string): string {
@@ -20,13 +22,50 @@ function escapeMarkdown(str: string): string {
 const PLATFORM_THEME_COLORS: Record<string, string> = {
   claude: "charts.orange",
   codex: "charts.green",
-  gemini: "charts.blue",
-  qwen: "foreground",
-  iflow: "charts.yellow",
-  droid: "charts.purple",
 };
 
-// ── Tree item types ──
+function getSectionInfo(platformName: string, kind: TreeSectionKind): TreeSectionInfo {
+  if (platformName === "claude") {
+    return {
+      kind,
+      platformName,
+      label: "Claude Profiles",
+      description: "Switch and manage Claude profiles",
+    };
+  }
+
+  if (kind === "auth") {
+    return {
+      kind,
+      platformName,
+      label: "Codex Auth",
+      description: "Switch and manage saved Codex auth accounts",
+    };
+  }
+
+  return {
+    kind,
+    platformName,
+    label: "Codex Profiles",
+    description: "Switch and manage Codex profiles",
+  };
+}
+
+function sortProfiles(profiles: ProfileInfo[]): ProfileInfo[] {
+  return [...profiles].sort((a, b) => {
+    if (a.isCurrent !== b.isCurrent) return a.isCurrent ? -1 : 1;
+    if (a.enabled !== b.enabled) return a.enabled ? -1 : 1;
+    return a.name.localeCompare(b.name);
+  });
+}
+
+function sortAuthAccounts(accounts: CodexAuthInfo[]): CodexAuthInfo[] {
+  return [...accounts].sort((a, b) => {
+    if (a.isCurrent !== b.isCurrent) return a.isCurrent ? -1 : 1;
+    if (a.isVirtual !== b.isVirtual) return a.isVirtual ? -1 : 1;
+    return a.name.localeCompare(b.name);
+  });
+}
 
 export class PlatformNode extends vscode.TreeItem {
   constructor(public readonly platform: PlatformInfo) {
@@ -36,9 +75,12 @@ export class PlatformNode extends vscode.TreeItem {
         ? vscode.TreeItemCollapsibleState.Expanded
         : vscode.TreeItemCollapsibleState.None,
     );
-    this.contextValue = platform.enabled ? "platform" : "platform-disabled";
+    this.contextValue = platform.enabled && (platform.name === "claude" || platform.name === "codex")
+      ? "platform-create-supported"
+      : platform.enabled
+        ? "platform"
+        : "platform-disabled";
 
-    // Codicon icon with platform-specific color (disabled gets eye-closed)
     const codiconId = getPlatformCodiconId(platform.name);
     if (!platform.enabled) {
       this.iconPath = new vscode.ThemeIcon("eye-closed", new vscode.ThemeColor("disabledForeground"));
@@ -47,14 +89,12 @@ export class PlatformNode extends vscode.TreeItem {
       this.iconPath = new vscode.ThemeIcon(codiconId, new vscode.ThemeColor(themeColor));
     }
 
-    // Description: arrow indicator + current profile name
     if (!platform.enabled) {
       this.description = "(disabled)";
     } else if (platform.currentProfile) {
-      this.description = `\u25B8 ${platform.currentProfile}`;
+      this.description = `▸ ${platform.currentProfile}`;
     }
 
-    // Rich markdown tooltip
     const md = new vscode.MarkdownString();
     md.appendMarkdown(`### $(${codiconId}) ${escapeMarkdown(platform.displayName)}\n\n`);
     md.appendMarkdown(`**Status:** ${platform.enabled ? "Enabled" : "Disabled"}\n\n`);
@@ -62,8 +102,23 @@ export class PlatformNode extends vscode.TreeItem {
       md.appendMarkdown(`**Current Profile:** \`${escapeMarkdown(platform.currentProfile)}\`\n\n`);
     }
     md.appendMarkdown(`---\n\n`);
-    md.appendMarkdown(`*Click to expand \u00B7 Right-click to open config file*`);
+    md.appendMarkdown(`*Expand to manage grouped resources*`);
     this.tooltip = md;
+  }
+}
+
+export class SectionNode extends vscode.TreeItem {
+  constructor(public readonly section: TreeSectionInfo) {
+    super(section.label, vscode.TreeItemCollapsibleState.Expanded);
+    this.contextValue = section.kind === "profiles" && (section.platformName === "claude" || section.platformName === "codex")
+      ? "section-profiles-create-supported"
+      : `section-${section.kind}`;
+    this.description = section.kind === "auth" ? "saved accounts" : "profiles";
+    this.iconPath = new vscode.ThemeIcon(
+      section.kind === "auth" ? "key" : "files",
+      new vscode.ThemeColor(section.kind === "auth" ? "charts.green" : "foreground"),
+    );
+    this.tooltip = new vscode.MarkdownString(`**${escapeMarkdown(section.label)}**\n\n${escapeMarkdown(section.description)}`);
   }
 }
 
@@ -71,21 +126,17 @@ export class ProfileNode extends vscode.TreeItem {
   constructor(public readonly profile: ProfileInfo) {
     super(profile.name, vscode.TreeItemCollapsibleState.None);
 
-    // Context value for menu contributions
     this.contextValue = profile.isCurrent ? "profile-current" : "profile";
 
-    // Description: provider · model (middle dot separator)
     const parts: string[] = [];
     if (profile.provider) parts.push(profile.provider);
     if (profile.model) parts.push(profile.model);
-    this.description = parts.join(" \u00B7 ") || undefined;
+    this.description = parts.join(" · ") || undefined;
 
-    // Append disabled indicator with em dash
     if (!profile.enabled) {
-      this.description = `${this.description ?? ""} \u2014 disabled`.trim();
+      this.description = `${this.description ?? ""} — disabled`.trim();
     }
 
-    // Icons with clear semantic meaning
     if (profile.isCurrent) {
       this.iconPath = new vscode.ThemeIcon("pass-filled", new vscode.ThemeColor("testing.iconPassed"));
     } else if (!profile.enabled) {
@@ -94,10 +145,7 @@ export class ProfileNode extends vscode.TreeItem {
       this.iconPath = new vscode.ThemeIcon("circle-large-outline", new vscode.ThemeColor("foreground"));
     }
 
-    // Rich markdown tooltip with structured sections
     const md = new vscode.MarkdownString();
-
-    // Header with status icon
     const statusIcon = profile.isCurrent
       ? "$(pass-filled)"
       : profile.enabled
@@ -109,7 +157,6 @@ export class ProfileNode extends vscode.TreeItem {
       md.appendMarkdown(`*${escapeMarkdown(profile.description)}*\n\n`);
     }
 
-    // Connection section
     if (profile.baseUrl || profile.authToken) {
       md.appendMarkdown(`**Connection**\n\n`);
       if (profile.baseUrl) md.appendMarkdown(`- Base URL: \`${escapeMarkdown(profile.baseUrl)}\`\n`);
@@ -117,7 +164,6 @@ export class ProfileNode extends vscode.TreeItem {
       md.appendMarkdown(`\n`);
     }
 
-    // Model section
     if (profile.model || profile.smallFastModel) {
       md.appendMarkdown(`**Model**\n\n`);
       if (profile.model) md.appendMarkdown(`- Model: \`${escapeMarkdown(profile.model)}\`\n`);
@@ -125,7 +171,6 @@ export class ProfileNode extends vscode.TreeItem {
       md.appendMarkdown(`\n`);
     }
 
-    // Identity section
     if (profile.provider || profile.providerType || profile.account) {
       md.appendMarkdown(`**Identity**\n\n`);
       if (profile.provider) md.appendMarkdown(`- Provider: ${escapeMarkdown(profile.provider)}\n`);
@@ -134,23 +179,63 @@ export class ProfileNode extends vscode.TreeItem {
       md.appendMarkdown(`\n`);
     }
 
-    // Footer: status, usage, tags
     md.appendMarkdown(`---\n\n`);
     const status = profile.isCurrent ? "Active" : profile.enabled ? "Available" : "Disabled";
     md.appendMarkdown(`**Status:** ${status}`);
-    if (profile.usageCount > 0) md.appendMarkdown(` \u00B7 **Usage:** ${profile.usageCount}`);
+    if (profile.usageCount > 0) md.appendMarkdown(` · **Usage:** ${profile.usageCount}`);
     if (profile.tags && profile.tags.length > 0) {
-      md.appendMarkdown(` \u00B7 **Tags:** ${profile.tags.map((t) => escapeMarkdown(t)).join(", ")}`);
+      md.appendMarkdown(` · **Tags:** ${profile.tags.map((t) => escapeMarkdown(t)).join(", ")}`);
     }
     md.appendMarkdown(`\n\n`);
-    md.appendMarkdown(`*Click to switch \u00B7 Right-click for more*`);
+    md.appendMarkdown(`*Click to switch · Right-click for more*`);
 
     this.tooltip = md;
-
-    // Click to switch
     this.command = {
       command: "ccr.switchProfile",
       title: "Switch Profile",
+      arguments: [this],
+    };
+  }
+}
+
+export class CodexAuthNode extends vscode.TreeItem {
+  constructor(public readonly auth: CodexAuthInfo) {
+    super(auth.name, vscode.TreeItemCollapsibleState.None);
+
+    this.contextValue = auth.isCurrent ? "codex-auth-current" : "codex-auth";
+    this.description = [auth.email, auth.description].filter(Boolean).join(" · ") || undefined;
+
+    if (auth.isCurrent) {
+      this.iconPath = new vscode.ThemeIcon("pass-filled", new vscode.ThemeColor("testing.iconPassed"));
+    } else {
+      this.iconPath = new vscode.ThemeIcon("key", new vscode.ThemeColor("charts.green"));
+    }
+
+    const md = new vscode.MarkdownString();
+    md.appendMarkdown(`### $(key) ${escapeMarkdown(auth.name)}\n\n`);
+    if (auth.description) {
+      md.appendMarkdown(`*${escapeMarkdown(auth.description)}*\n\n`);
+    }
+    if (auth.email) {
+      md.appendMarkdown(`- Email: ${escapeMarkdown(auth.email)}\n`);
+    }
+    if (auth.savedAt) {
+      md.appendMarkdown(`- Saved At: \`${escapeMarkdown(auth.savedAt)}\`\n`);
+    }
+    if (auth.expiresAt) {
+      md.appendMarkdown(`- Expires At: \`${escapeMarkdown(auth.expiresAt)}\`\n`);
+    }
+    md.appendMarkdown(`\n---\n\n`);
+    md.appendMarkdown(`**Status:** ${auth.isCurrent ? "Active" : "Saved"}`);
+    if (auth.isVirtual) {
+      md.appendMarkdown(` · **Type:** Virtual`);
+    }
+    md.appendMarkdown(`\n\n*Click to switch auth account · Right-click for more*`);
+    this.tooltip = md;
+
+    this.command = {
+      command: "ccr.switchCodexAuth",
+      title: "Switch Codex Auth",
       arguments: [this],
     };
   }
@@ -164,9 +249,7 @@ export class MessageNode extends vscode.TreeItem {
   }
 }
 
-type TreeNode = PlatformNode | ProfileNode | MessageNode;
-
-// ── Provider ──
+export type TreeNode = PlatformNode | SectionNode | ProfileNode | CodexAuthNode | MessageNode;
 
 export class ProfileTreeProvider implements vscode.TreeDataProvider<TreeNode> {
   private _onDidChangeTreeData = new vscode.EventEmitter<TreeNode | undefined | null>();
@@ -181,7 +264,6 @@ export class ProfileTreeProvider implements vscode.TreeDataProvider<TreeNode> {
   }
 
   getChildren(element?: TreeNode): TreeNode[] {
-    // Check if CCR is initialized
     if (!ccrRootExists()) {
       if (!element) {
         return [new MessageNode("CCR is not initialized. Run 'ccr init' to get started.")];
@@ -189,29 +271,37 @@ export class ProfileTreeProvider implements vscode.TreeDataProvider<TreeNode> {
       return [];
     }
 
-    // Top level: platform nodes
     if (!element) {
       const registry = readRegistry();
       if (!registry || registry.platforms.length === 0) {
         return [new MessageNode("No platforms configured.")];
       }
-      return registry.platforms
-        .map((p) => new PlatformNode(p));
+      return registry.platforms.map((platform) => new PlatformNode(platform));
     }
 
-    // Second level: profile nodes under a platform
     if (element instanceof PlatformNode) {
-      const profiles = readProfiles(element.platform.name);
-      if (profiles.length === 0) {
-        return [new MessageNode("No profiles configured.")];
+      if (element.platform.name === "codex") {
+        return [
+          new SectionNode(getSectionInfo("codex", "profiles")),
+          new SectionNode(getSectionInfo("codex", "auth")),
+        ];
       }
-      // Sort: current first, then enabled, then alphabetical
-      profiles.sort((a, b) => {
-        if (a.isCurrent !== b.isCurrent) return a.isCurrent ? -1 : 1;
-        if (a.enabled !== b.enabled) return a.enabled ? -1 : 1;
-        return a.name.localeCompare(b.name);
-      });
-      return profiles.map((p) => new ProfileNode(p));
+
+      return [new SectionNode(getSectionInfo(element.platform.name, "profiles"))];
+    }
+
+    if (element instanceof SectionNode) {
+      if (element.section.kind === "profiles") {
+        const profiles = sortProfiles(readProfiles(element.section.platformName));
+        return profiles.length > 0
+          ? profiles.map((profile) => new ProfileNode(profile))
+          : [new MessageNode("No profiles configured.")];
+      }
+
+      const authAccounts = sortAuthAccounts(readCodexAuthAccounts());
+      return authAccounts.length > 0
+        ? authAccounts.map((auth) => new CodexAuthNode(auth))
+        : [new MessageNode("No Codex auth accounts configured.")];
     }
 
     return [];

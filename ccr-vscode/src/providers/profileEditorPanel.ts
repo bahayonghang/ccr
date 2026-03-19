@@ -1,16 +1,49 @@
 import { randomBytes } from "crypto";
 import * as vscode from "vscode";
-import { EDITABLE_FIELDS } from "../models/types";
-import type { ProfileInfo } from "../models/types";
+import { EDITABLE_FIELDS, PROFILE_EDITABLE_FIELDS_BY_PLATFORM, getEditableProfileFields } from "../models/types";
+import type { ProfileCreationPlatform, ProfileEditorDraft, ProfileEditorMode, ProfileInfo } from "../models/types";
 import { toggleProfileEnabled, writeProfileField } from "../services/tomlReader";
+
+const TOML_KEY_BY_EDITABLE_FIELD = Object.fromEntries(
+  EDITABLE_FIELDS.map((item) => [item.key, item.tomlKey]),
+) as Record<string, string>;
+
+function getPanelKey(mode: ProfileEditorMode, profile: ProfileInfo | ProfileEditorDraft): string {
+  return mode === "create"
+    ? `create/${(profile as ProfileEditorDraft).platformName}`
+    : `${(profile as ProfileInfo).platformName}/${(profile as ProfileInfo).name}`;
+}
+
+function getPanelTitle(mode: ProfileEditorMode, profile: ProfileInfo | ProfileEditorDraft): string {
+  return mode === "create"
+    ? `Add Profile: ${profile.platformName}`
+    : `Edit: ${profile.name} (${profile.platformName})`;
+}
+
+function normalizeFieldValue(tomlKey: string, value: string): string | string[] | undefined {
+  if (tomlKey === "tags") {
+    return value
+      ? value.split(",").map((tag) => tag.trim()).filter(Boolean)
+      : undefined;
+  }
+
+  return value || undefined;
+}
+
+type EditorMessage =
+  | { type: "ready" | "toggleEnabled" | "cancelCreate" }
+  | { type: "saveField" | "copyField"; field: string; value: unknown }
+  | { type: "createProfile"; draft: ProfileEditorDraft };
 
 export class ProfileEditorPanel {
   private static readonly activePanels = new Map<string, ProfileEditorPanel>();
 
   private readonly panel: vscode.WebviewPanel;
   private readonly panelKey: string;
-  private profile: ProfileInfo;
-  private readonly onDidSave: () => void;
+  private readonly mode: ProfileEditorMode;
+  private profile: ProfileInfo | ProfileEditorDraft;
+  private readonly onDidSave?: () => void;
+  private readonly onDidCreate?: (draft: ProfileEditorDraft) => Promise<void>;
   private disposed = false;
 
   static createOrShow(
@@ -18,7 +51,7 @@ export class ProfileEditorPanel {
     profile: ProfileInfo,
     onDidSave: () => void,
   ): ProfileEditorPanel {
-    const key = `${profile.platformName}/${profile.name}`;
+    const key = getPanelKey("edit", profile);
     const existing = ProfileEditorPanel.activePanels.get(key);
     if (existing && !existing.disposed) {
       existing.profile = profile;
@@ -27,7 +60,29 @@ export class ProfileEditorPanel {
       return existing;
     }
 
-    return new ProfileEditorPanel(extensionUri, profile, onDidSave);
+    return new ProfileEditorPanel(extensionUri, "edit", profile, onDidSave);
+  }
+
+  static createForNewProfile(
+    extensionUri: vscode.Uri,
+    platformName: ProfileCreationPlatform,
+    onDidCreate: (draft: ProfileEditorDraft) => Promise<void>,
+  ): ProfileEditorPanel {
+    const key = getPanelKey("create", { name: "", platformName, enabled: true });
+    const existing = ProfileEditorPanel.activePanels.get(key);
+    if (existing && !existing.disposed) {
+      existing.panel.reveal();
+      existing.sendProfileData();
+      return existing;
+    }
+
+    const draft: ProfileEditorDraft = {
+      name: "",
+      platformName,
+      enabled: true,
+    };
+
+    return new ProfileEditorPanel(extensionUri, "create", draft, undefined, onDidCreate);
   }
 
   static disposeAll(): void {
@@ -39,16 +94,20 @@ export class ProfileEditorPanel {
 
   private constructor(
     extensionUri: vscode.Uri,
-    profile: ProfileInfo,
-    onDidSave: () => void,
+    mode: ProfileEditorMode,
+    profile: ProfileInfo | ProfileEditorDraft,
+    onDidSave?: () => void,
+    onDidCreate?: (draft: ProfileEditorDraft) => Promise<void>,
   ) {
+    this.mode = mode;
     this.profile = profile;
     this.onDidSave = onDidSave;
-    this.panelKey = `${profile.platformName}/${profile.name}`;
+    this.onDidCreate = onDidCreate;
+    this.panelKey = getPanelKey(mode, profile);
 
     this.panel = vscode.window.createWebviewPanel(
       "ccrProfileEditor",
-      `Edit: ${profile.name} (${profile.platformName})`,
+      getPanelTitle(mode, profile),
       vscode.ViewColumn.One,
       {
         enableScripts: true,
@@ -56,10 +115,10 @@ export class ProfileEditorPanel {
       },
     );
 
-    this.panel.iconPath = new vscode.ThemeIcon("notebook-edit");
+    this.panel.iconPath = new vscode.ThemeIcon(mode === "create" ? "add" : "notebook-edit");
     this.panel.webview.html = this.getHtml();
 
-    this.panel.webview.onDidReceiveMessage((msg) => this.handleMessage(msg));
+    this.panel.webview.onDidReceiveMessage((msg) => this.handleMessage(msg as EditorMessage));
     this.panel.onDidDispose(() => {
       this.disposed = true;
       ProfileEditorPanel.activePanels.delete(this.panelKey);
@@ -71,29 +130,39 @@ export class ProfileEditorPanel {
   private sendProfileData(): void {
     this.panel.webview.postMessage({
       type: "profileData",
+      mode: this.mode,
       profile: { ...this.profile },
     });
   }
 
-  private handleMessage(msg: { type: string; field?: string; value?: unknown }): void {
+  private handleMessage(msg: EditorMessage): void {
     switch (msg.type) {
       case "ready":
         this.sendProfileData();
         break;
-
       case "saveField":
-        if (typeof msg.field === "string") {
+        if (this.mode === "edit" && typeof msg.field === "string") {
           void this.saveField(msg.field, typeof msg.value === "string" ? msg.value : "");
         }
         break;
-
       case "toggleEnabled":
-        void this.doToggleEnabled();
+        if (this.mode === "edit") {
+          void this.doToggleEnabled();
+        }
         break;
-
       case "copyField":
         if (typeof msg.field === "string" && typeof msg.value === "string") {
           void this.copyField(msg.field, msg.value);
+        }
+        break;
+      case "createProfile":
+        if (this.mode === "create") {
+          void this.doCreateProfile(msg.draft);
+        }
+        break;
+      case "cancelCreate":
+        if (this.mode === "create") {
+          this.panel.dispose();
         }
         break;
     }
@@ -114,27 +183,30 @@ export class ProfileEditorPanel {
   }
 
   private async saveField(field: string, value: string): Promise<void> {
-    const fieldMap = Object.fromEntries(EDITABLE_FIELDS.map((item) => [item.key, item.tomlKey]));
-    const tomlKey = fieldMap[field] ?? field;
+    const profile = this.profile as ProfileInfo;
+    const allowedFields = new Set(getEditableProfileFields(profile.platformName));
+    const tomlKey = TOML_KEY_BY_EDITABLE_FIELD[field] ?? field;
+
+    if (!allowedFields.has(field)) {
+      this.panel.webview.postMessage({
+        type: "saveResult",
+        field,
+        success: false,
+        error: `Field '${field}' is not editable for ${profile.platformName}.`,
+      });
+      return;
+    }
 
     try {
-      let writeValue: string | string[] | undefined;
-      if (tomlKey === "tags") {
-        writeValue = value
-          ? value.split(",").map((tag) => tag.trim()).filter(Boolean)
-          : undefined;
-      } else {
-        writeValue = value || undefined;
-      }
+      const writeValue = normalizeFieldValue(tomlKey, value);
 
-      await writeProfileField(this.profile.platformName, this.profile.name, tomlKey, writeValue);
-
-      (this.profile as unknown as Record<string, unknown>)[field] = tomlKey === "tags"
+      await writeProfileField(profile.platformName, profile.name, tomlKey, writeValue);
+      (profile as unknown as Record<string, unknown>)[field] = tomlKey === "tags"
         ? writeValue
         : (value || undefined);
 
       this.panel.webview.postMessage({ type: "saveResult", field, success: true });
-      this.onDidSave();
+      this.onDidSave?.();
     } catch (err) {
       this.panel.webview.postMessage({
         type: "saveResult",
@@ -146,12 +218,14 @@ export class ProfileEditorPanel {
   }
 
   private async doToggleEnabled(): Promise<void> {
+    const profile = this.profile as ProfileInfo;
+
     try {
-      const newState = await toggleProfileEnabled(this.profile.platformName, this.profile.name);
-      this.profile.enabled = newState;
+      const newState = await toggleProfileEnabled(profile.platformName, profile.name);
+      profile.enabled = newState;
       this.panel.webview.postMessage({ type: "saveResult", field: "enabled", success: true });
       this.sendProfileData();
-      this.onDidSave();
+      this.onDidSave?.();
     } catch (err) {
       this.panel.webview.postMessage({
         type: "saveResult",
@@ -162,8 +236,23 @@ export class ProfileEditorPanel {
     }
   }
 
+  private async doCreateProfile(draft: ProfileEditorDraft): Promise<void> {
+    try {
+      await this.onDidCreate?.(draft);
+      this.panel.webview.postMessage({ type: "createResult", success: true });
+      this.panel.dispose();
+    } catch (err) {
+      this.panel.webview.postMessage({
+        type: "createResult",
+        success: false,
+        error: String(err),
+      });
+    }
+  }
+
   private getHtml(): string {
     const nonce = getNonce();
+    const serializedAllowedEditableFields = JSON.stringify(PROFILE_EDITABLE_FIELDS_BY_PLATFORM);
 
     return /* html */ `<!DOCTYPE html>
 <html lang="en">
@@ -174,7 +263,7 @@ export class ProfileEditorPanel {
     content="default-src 'none'; style-src 'nonce-${nonce}'; script-src 'nonce-${nonce}';"
   />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Edit Profile</title>
+  <title>Profile Editor</title>
   <style nonce="${nonce}">
     :root {
       --editor-max-width: 860px;
@@ -198,14 +287,12 @@ export class ProfileEditorPanel {
       --success-color: var(--vscode-testing-iconPassed, #73c991);
       --error-color: var(--vscode-testing-iconFailed, #f48771);
       --button-fg: var(--vscode-button-foreground, #ffffff);
+      --button-bg: var(--vscode-button-background, #0e639c);
+      --button-bg-hover: var(--vscode-button-hoverBackground, #1177bb);
+      --button-secondary-bg: color-mix(in srgb, var(--platform-color) 12%, transparent);
     }
 
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-
+    * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       min-height: 100vh;
       font-family: var(--vscode-font-family);
@@ -216,449 +303,178 @@ export class ProfileEditorPanel {
         linear-gradient(180deg, color-mix(in srgb, var(--vscode-editor-background) 94%, #06070a), var(--vscode-editor-background));
       padding: var(--page-padding);
     }
-
-    .page {
-      max-width: var(--editor-max-width);
-      margin: 0 auto;
-    }
-
+    .page { max-width: var(--editor-max-width); margin: 0 auto; }
     #loading {
-      display: grid;
-      place-items: center;
-      min-height: 240px;
-      border-radius: var(--panel-radius);
+      display: grid; place-items: center; min-height: 240px; border-radius: var(--panel-radius);
       border: 1px solid var(--panel-border-soft);
-      background:
-        linear-gradient(160deg, color-mix(in srgb, var(--panel-bg) 94%, transparent), color-mix(in srgb, var(--vscode-editor-background) 86%, transparent));
-      color: var(--text-muted);
-      letter-spacing: 0.04em;
+      background: linear-gradient(160deg, color-mix(in srgb, var(--panel-bg) 94%, transparent), color-mix(in srgb, var(--vscode-editor-background) 86%, transparent));
+      color: var(--text-muted); letter-spacing: 0.04em;
     }
-
-    #loading.hidden {
-      display: none;
-    }
-
-    #editor-content {
-      display: none;
-    }
-
+    #loading.hidden { display: none; }
+    #editor-content { display: none; }
     .header-card {
-      position: relative;
-      overflow: hidden;
-      padding: 24px 24px 20px;
-      border-radius: 22px;
+      position: relative; overflow: hidden; padding: 24px 24px 20px; border-radius: 22px;
       border: 1px solid var(--panel-border);
       background:
         linear-gradient(145deg, color-mix(in srgb, var(--panel-bg) 94%, transparent), color-mix(in srgb, var(--vscode-editor-background) 88%, transparent)),
         linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent);
-      box-shadow: 0 18px 36px rgba(0, 0, 0, 0.18);
-      margin-bottom: var(--section-gap);
+      box-shadow: 0 18px 36px rgba(0, 0, 0, 0.18); margin-bottom: var(--section-gap);
     }
-
     .header-card::before {
-      content: '';
-      position: absolute;
-      inset: 0;
+      content: ''; position: absolute; inset: 0;
       background:
         radial-gradient(circle at 100% 0%, var(--platform-glow), transparent 26%),
         linear-gradient(90deg, transparent, color-mix(in srgb, var(--platform-color) 10%, transparent), transparent);
       pointer-events: none;
     }
-
-    .header-top {
-      position: relative;
-      display: flex;
-      justify-content: space-between;
-      gap: 20px;
-      margin-bottom: 22px;
-    }
-
+    .header-top { position: relative; display: flex; justify-content: space-between; gap: 20px; margin-bottom: 22px; }
     .eyebrow {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 6px 10px;
-      border-radius: 999px;
+      display: inline-flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 999px;
       background: color-mix(in srgb, var(--platform-color) 14%, transparent);
       color: color-mix(in srgb, var(--platform-color) 68%, var(--text-strong));
-      font-size: 0.72em;
-      font-weight: 700;
-      letter-spacing: 0.14em;
-      text-transform: uppercase;
-      margin-bottom: 12px;
+      font-size: 0.72em; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; margin-bottom: 12px;
     }
-
-    .title-row {
-      display: flex;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 12px;
-    }
-
+    .title-row { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; }
     .title-row h1 {
-      font-size: 1.92em;
-      font-weight: 700;
-      line-height: 1.05;
-      color: var(--platform-color);
-      letter-spacing: -0.02em;
+      font-size: 1.92em; font-weight: 700; line-height: 1.05; color: var(--platform-color); letter-spacing: -0.02em;
     }
-
     .platform-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 6px 12px;
-      border-radius: 999px;
+      display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px;
       background: color-mix(in srgb, var(--platform-color) 18%, transparent);
       border: 1px solid color-mix(in srgb, var(--platform-color) 44%, transparent);
-      color: var(--text-strong);
-      font-size: 0.82em;
-      font-weight: 700;
-      letter-spacing: 0.05em;
-      text-transform: uppercase;
-      white-space: nowrap;
+      color: var(--text-strong); font-size: 0.82em; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase;
     }
-
-    .subtitle {
-      margin-top: 10px;
-      color: var(--text-muted);
-      line-height: 1.55;
-      max-width: 620px;
-    }
-
-    .header-meta {
-      min-width: 220px;
-      display: flex;
-      flex-direction: column;
-      align-items: flex-end;
-      gap: 10px;
-    }
-
+    .subtitle { margin-top: 10px; color: var(--text-muted); line-height: 1.55; max-width: 620px; }
+    .header-meta { min-width: 220px; display: flex; flex-direction: column; align-items: flex-end; gap: 10px; }
     .autosave-indicator {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      min-width: 112px;
-      padding: 7px 12px;
-      border-radius: 999px;
-      border: 1px solid var(--panel-border-soft);
-      background: rgba(255, 255, 255, 0.02);
-      color: var(--text-muted);
-      font-size: 0.78em;
-      font-weight: 600;
-      letter-spacing: 0.05em;
-      text-transform: uppercase;
+      display: inline-flex; align-items: center; justify-content: center; min-width: 112px; padding: 7px 12px;
+      border-radius: 999px; border: 1px solid var(--panel-border-soft); background: rgba(255,255,255,0.02);
+      color: var(--text-muted); font-size: 0.78em; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase;
       transition: border-color 0.2s ease, color 0.2s ease, background 0.2s ease;
     }
-
     .autosave-indicator.saved {
       background: color-mix(in srgb, var(--success-color) 16%, transparent);
       border-color: color-mix(in srgb, var(--success-color) 48%, transparent);
       color: var(--success-color);
     }
-
     .header-controls {
-      position: relative;
-      display: flex;
-      justify-content: space-between;
-      gap: 12px;
-      align-items: center;
-      padding-top: 16px;
-      border-top: 1px solid var(--panel-border-soft);
+      position: relative; display: flex; justify-content: space-between; gap: 12px; align-items: center;
+      padding-top: 16px; border-top: 1px solid var(--panel-border-soft);
     }
-
-    .header-note {
-      color: var(--text-muted);
-      font-size: 0.88em;
-    }
-
-    .toggle-wrap {
-      display: inline-flex;
-      align-items: center;
-      gap: 12px;
-    }
-
-    .toggle {
-      position: relative;
-      width: 52px;
-      height: 28px;
-      cursor: pointer;
-    }
-
-    .toggle input {
-      display: none;
-    }
-
+    .header-note { color: var(--text-muted); font-size: 0.88em; }
+    .toggle-wrap { display: inline-flex; align-items: center; gap: 12px; }
+    .toggle { position: relative; width: 52px; height: 28px; cursor: pointer; }
+    .toggle input { display: none; }
     .toggle-track {
-      position: absolute;
-      inset: 0;
-      border-radius: 999px;
+      position: absolute; inset: 0; border-radius: 999px;
       border: 1px solid color-mix(in srgb, var(--platform-color) 36%, var(--vscode-input-border, transparent));
       background: color-mix(in srgb, var(--platform-color) 18%, var(--vscode-input-background));
       transition: background 0.2s ease, border-color 0.2s ease;
     }
-
     .toggle-thumb {
-      position: absolute;
-      top: 3px;
-      left: 3px;
-      width: 20px;
-      height: 20px;
-      border-radius: 50%;
-      background: var(--button-fg);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.22);
-      transition: transform 0.2s ease;
-      pointer-events: none;
+      position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: var(--button-fg);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.22); transition: transform 0.2s ease; pointer-events: none;
     }
-
-    .toggle input:checked + .toggle-track {
-      background: color-mix(in srgb, var(--platform-color) 26%, var(--vscode-input-background));
-    }
-
-    .toggle input:checked ~ .toggle-thumb {
-      transform: translateX(24px);
-    }
-
-    .toggle-label {
-      font-weight: 600;
-      color: var(--text-strong);
-    }
-
+    .toggle input:checked + .toggle-track { background: color-mix(in srgb, var(--platform-color) 26%, var(--vscode-input-background)); }
+    .toggle input:checked ~ .toggle-thumb { transform: translateX(24px); }
+    .toggle-label { font-weight: 600; color: var(--text-strong); }
     .section-card {
-      display: none;
-      margin-bottom: var(--section-gap);
-      border-radius: var(--panel-radius);
-      border: 1px solid var(--panel-border-soft);
-      background:
-        linear-gradient(180deg, color-mix(in srgb, var(--panel-bg) 96%, transparent), color-mix(in srgb, var(--vscode-editor-background) 90%, transparent));
+      display: none; margin-bottom: var(--section-gap); border-radius: var(--panel-radius); border: 1px solid var(--panel-border-soft);
+      background: linear-gradient(180deg, color-mix(in srgb, var(--panel-bg) 96%, transparent), color-mix(in srgb, var(--vscode-editor-background) 90%, transparent));
       overflow: hidden;
     }
-
     .section-header {
-      padding: 16px 20px 14px;
-      border-bottom: 1px solid var(--panel-border-soft);
+      padding: 16px 20px 14px; border-bottom: 1px solid var(--panel-border-soft);
       background: linear-gradient(90deg, color-mix(in srgb, var(--platform-color) 9%, transparent), transparent 68%);
     }
-
-    .section-title {
-      color: color-mix(in srgb, var(--platform-color) 70%, var(--text-strong));
-      font-size: 0.9em;
-      font-weight: 700;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-    }
-
-    .section-subtitle {
-      margin-top: 6px;
-      color: var(--text-muted);
-      font-size: 0.88em;
-      line-height: 1.5;
-    }
-
-    .section-body {
-      padding: 20px;
-    }
-
+    .section-title { color: color-mix(in srgb, var(--platform-color) 70%, var(--text-strong)); font-size: 0.9em; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
+    .section-subtitle { margin-top: 6px; color: var(--text-muted); font-size: 0.88em; line-height: 1.5; }
+    .section-body { padding: 20px; }
     .field-row {
-      display: grid;
-      grid-template-columns: minmax(160px, var(--label-width)) minmax(0, 1fr);
-      gap: 16px;
-      align-items: start;
-      margin-bottom: var(--field-gap);
+      display: grid; grid-template-columns: minmax(160px, var(--label-width)) minmax(0, 1fr);
+      gap: 16px; align-items: start; margin-bottom: var(--field-gap);
     }
-
-    .field-row:last-child {
-      margin-bottom: 0;
-    }
-
-    .field-label-wrap {
-      padding-top: 8px;
-    }
-
-    .field-label {
-      font-weight: 700;
-      color: var(--text-strong);
-      letter-spacing: 0.01em;
-    }
-
-    .required {
-      color: color-mix(in srgb, var(--error-color) 82%, #ffffff);
-      margin-left: 4px;
-    }
-
-    .field-hint {
-      display: block;
-      margin-top: 6px;
-      color: var(--text-muted);
-      font-size: 0.88em;
-      line-height: 1.45;
-    }
-
-    .field-input-wrap {
-      display: grid;
-      gap: 8px;
-    }
-
+    .field-row:last-child { margin-bottom: 0; }
+    .field-label-wrap { padding-top: 8px; }
+    .field-label { font-weight: 700; color: var(--text-strong); letter-spacing: 0.01em; }
+    .required { color: color-mix(in srgb, var(--error-color) 82%, #ffffff); margin-left: 4px; }
+    .field-hint { display: block; margin-top: 6px; color: var(--text-muted); font-size: 0.88em; line-height: 1.45; }
+    .field-input-wrap { display: grid; gap: 8px; }
     .input-shell {
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) auto;
-      gap: 10px;
-      align-items: center;
-      padding: 10px;
-      border-radius: var(--control-radius);
-      border: 1px solid var(--input-border);
-      background:
-        linear-gradient(180deg, color-mix(in srgb, var(--input-bg) 96%, transparent), color-mix(in srgb, var(--panel-bg) 84%, transparent));
+      display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 10px;
+      border-radius: var(--control-radius); border: 1px solid var(--input-border);
+      background: linear-gradient(180deg, color-mix(in srgb, var(--input-bg) 96%, transparent), color-mix(in srgb, var(--panel-bg) 84%, transparent));
       transition: border-color 0.15s ease, box-shadow 0.15s ease;
     }
-
     .input-shell:focus-within {
       border-color: color-mix(in srgb, var(--platform-color) 74%, #ffffff);
       box-shadow: 0 0 0 1px color-mix(in srgb, var(--platform-color) 52%, transparent);
     }
-
     .field-input {
-      width: 100%;
-      border: none;
-      background: transparent;
-      color: var(--input-fg);
-      font-family: var(--vscode-editor-font-family, monospace);
-      font-size: var(--vscode-font-size);
-      line-height: 1.45;
-      outline: none;
+      width: 100%; border: none; background: transparent; color: var(--input-fg);
+      font-family: var(--vscode-editor-font-family, monospace); font-size: var(--vscode-font-size); line-height: 1.45; outline: none;
     }
-
-    .field-input::placeholder {
-      color: color-mix(in srgb, var(--text-muted) 88%, transparent);
-    }
-
-    .field-actions {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      flex-wrap: wrap;
-      justify-content: flex-end;
-    }
-
+    .field-input::placeholder { color: color-mix(in srgb, var(--text-muted) 88%, transparent); }
+    .field-actions { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
     .control-btn {
-      min-width: 58px;
-      border: 1px solid transparent;
-      border-radius: 999px;
-      background: color-mix(in srgb, var(--platform-color) 12%, transparent);
-      color: color-mix(in srgb, var(--platform-color) 74%, var(--text-strong));
-      padding: 6px 10px;
-      font-size: 0.78em;
-      font-weight: 700;
-      letter-spacing: 0.03em;
-      cursor: pointer;
-      transition: transform 0.15s ease, background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+      min-width: 58px; border: 1px solid transparent; border-radius: 999px; background: color-mix(in srgb, var(--platform-color) 12%, transparent);
+      color: color-mix(in srgb, var(--platform-color) 74%, var(--text-strong)); padding: 6px 10px; font-size: 0.78em;
+      font-weight: 700; letter-spacing: 0.03em; cursor: pointer; transition: transform 0.15s ease, background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
       font-family: var(--vscode-font-family);
     }
-
     .control-btn:hover:not(:disabled) {
       background: color-mix(in srgb, var(--platform-color) 22%, transparent);
       border-color: color-mix(in srgb, var(--platform-color) 38%, transparent);
       transform: translateY(-1px);
     }
-
-    .control-btn:focus-visible {
-      outline: 1px solid color-mix(in srgb, var(--platform-color) 60%, #ffffff);
-      outline-offset: 2px;
+    .control-btn:focus-visible { outline: 1px solid color-mix(in srgb, var(--platform-color) 60%, #ffffff); outline-offset: 2px; }
+    .control-btn:disabled { cursor: not-allowed; opacity: 0.45; transform: none; }
+    .submit-actions { display: none; gap: 12px; justify-content: flex-end; margin-top: 22px; }
+    .submit-actions.visible { display: flex; }
+    .submit-btn {
+      border: none; border-radius: 999px; padding: 10px 18px; font-weight: 700; cursor: pointer;
+      transition: transform 0.15s ease, background 0.15s ease, opacity 0.15s ease;
+      font-family: var(--vscode-font-family);
     }
-
-    .control-btn:disabled {
-      cursor: not-allowed;
-      opacity: 0.45;
-      transform: none;
-    }
-
+    .submit-btn.primary { color: var(--button-fg); background: var(--button-bg); }
+    .submit-btn.primary:hover:not(:disabled) { background: var(--button-bg-hover); transform: translateY(-1px); }
+    .submit-btn.secondary { color: var(--text-strong); background: var(--button-secondary-bg); }
+    .submit-btn.secondary:hover:not(:disabled) { transform: translateY(-1px); }
+    .submit-btn:disabled { opacity: 0.55; cursor: not-allowed; transform: none; }
     .field-feedback {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      min-width: 68px;
-      padding: 6px 10px;
-      border-radius: 999px;
-      font-size: 0.76em;
-      font-weight: 700;
-      letter-spacing: 0.04em;
-      text-transform: uppercase;
-      opacity: 0;
-      transform: translateY(4px);
-      transition: opacity 0.2s ease, transform 0.2s ease;
-      pointer-events: none;
+      display: inline-flex; align-items: center; justify-content: center; min-width: 68px; padding: 6px 10px; border-radius: 999px;
+      font-size: 0.76em; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; opacity: 0; transform: translateY(4px);
+      transition: opacity 0.2s ease, transform 0.2s ease; pointer-events: none;
     }
-
-    .field-feedback.visible {
-      opacity: 1;
-      transform: translateY(0);
-    }
-
+    .field-feedback.visible { opacity: 1; transform: translateY(0); }
     .field-feedback.success {
-      color: var(--success-color);
-      background: color-mix(in srgb, var(--success-color) 16%, transparent);
+      color: var(--success-color); background: color-mix(in srgb, var(--success-color) 16%, transparent);
       border: 1px solid color-mix(in srgb, var(--success-color) 34%, transparent);
     }
-
     .field-feedback.error {
-      color: var(--error-color);
-      background: color-mix(in srgb, var(--error-color) 12%, transparent);
+      color: var(--error-color); background: color-mix(in srgb, var(--error-color) 12%, transparent);
       border: 1px solid color-mix(in srgb, var(--error-color) 28%, transparent);
     }
-
     @media (max-width: 900px) {
-      body {
-        padding: 20px;
-      }
-
-      .header-top {
-        flex-direction: column;
-      }
-
-      .header-meta {
-        align-items: flex-start;
-      }
-
-      .field-row {
-        grid-template-columns: 1fr;
-        gap: 10px;
-      }
-
-      .field-label-wrap {
-        padding-top: 0;
-      }
+      body { padding: 20px; }
+      .header-top { flex-direction: column; }
+      .header-meta { align-items: flex-start; }
+      .field-row { grid-template-columns: 1fr; gap: 10px; }
+      .field-label-wrap { padding-top: 0; }
     }
-
     @media (max-width: 640px) {
-      body {
-        padding: 16px;
-      }
-
-      .header-card,
-      .section-body {
-        padding-left: 16px;
-        padding-right: 16px;
-      }
-
-      .section-header {
-        padding-left: 16px;
-        padding-right: 16px;
-      }
-
-      .input-shell {
-        grid-template-columns: 1fr;
-      }
-
-      .field-actions {
-        justify-content: flex-start;
-      }
+      body { padding: 16px; }
+      .header-card, .section-body { padding-left: 16px; padding-right: 16px; }
+      .section-header { padding-left: 16px; padding-right: 16px; }
+      .input-shell { grid-template-columns: 1fr; }
+      .field-actions { justify-content: flex-start; }
+      .submit-actions { flex-direction: column-reverse; }
     }
   </style>
 </head>
 <body>
   <div class="page">
     <div id="loading">Loading profile cockpit...</div>
-
     <div id="editor-content">
       <section class="header-card">
         <div class="header-top">
@@ -668,16 +484,13 @@ export class ProfileEditorPanel {
               <h1 id="title">Profile</h1>
               <span class="platform-badge" id="platform-badge"></span>
             </div>
-            <p class="subtitle" id="subtitle">
-              Tune routing, credentials and identity details for this profile.
-            </p>
+            <p class="subtitle" id="subtitle">Tune routing, credentials and identity details for this profile.</p>
           </div>
           <div class="header-meta">
             <span class="autosave-indicator" id="autosave-indicator">Auto-save</span>
-            <span class="header-note">Changes save when you leave a field.</span>
+            <span class="header-note" id="mode-note">Changes save when you leave a field.</span>
           </div>
         </div>
-
         <div class="header-controls">
           <div class="toggle-wrap">
             <label class="toggle">
@@ -687,10 +500,9 @@ export class ProfileEditorPanel {
             </label>
             <span class="toggle-label" id="enabled-label">Enabled</span>
           </div>
-          <span class="header-note">Pinned edits stay local to this profile.</span>
+          <span class="header-note" id="header-note">Pinned edits stay local to this profile.</span>
         </div>
       </section>
-
       <section class="section-card" data-editor-section>
         <div class="section-header">
           <div class="section-title">🔌 Connection</div>
@@ -698,7 +510,6 @@ export class ProfileEditorPanel {
         </div>
         <div class="section-body" id="section-connection"></div>
       </section>
-
       <section class="section-card" data-editor-section>
         <div class="section-header">
           <div class="section-title">🧠 Optional Models</div>
@@ -706,7 +517,6 @@ export class ProfileEditorPanel {
         </div>
         <div class="section-body" id="section-model"></div>
       </section>
-
       <section class="section-card" data-editor-section>
         <div class="section-header">
           <div class="section-title">🪪 Identity</div>
@@ -714,7 +524,6 @@ export class ProfileEditorPanel {
         </div>
         <div class="section-body" id="section-identity"></div>
       </section>
-
       <section class="section-card" data-editor-section>
         <div class="section-header">
           <div class="section-title">📝 Metadata</div>
@@ -722,88 +531,40 @@ export class ProfileEditorPanel {
         </div>
         <div class="section-body" id="section-metadata"></div>
       </section>
+      <div class="submit-actions" id="submit-actions">
+        <button type="button" class="submit-btn secondary" id="cancel-create">Cancel</button>
+        <button type="button" class="submit-btn primary" id="submit-create">Create Profile</button>
+      </div>
     </div>
   </div>
-
   <script nonce="${nonce}">
     const vscode = acquireVsCodeApi();
-
     const PLATFORM_ACCENTS = {
       claude: { color: '#ff8a3d', soft: 'rgba(255, 138, 61, 0.16)', glow: 'rgba(255, 138, 61, 0.3)', icon: '🤖' },
       codex: { color: '#22c55e', soft: 'rgba(34, 197, 94, 0.16)', glow: 'rgba(34, 197, 94, 0.28)', icon: '💻' },
-      gemini: { color: '#4f7cff', soft: 'rgba(79, 124, 255, 0.16)', glow: 'rgba(79, 124, 255, 0.3)', icon: '✨' },
-      qwen: { color: '#06b6d4', soft: 'rgba(6, 182, 212, 0.16)', glow: 'rgba(6, 182, 212, 0.28)', icon: '🌟' },
-      iflow: { color: '#f59e0b', soft: 'rgba(245, 158, 11, 0.16)', glow: 'rgba(245, 158, 11, 0.28)', icon: '🌊' },
-      droid: { color: '#a855f7', soft: 'rgba(168, 85, 247, 0.16)', glow: 'rgba(168, 85, 247, 0.3)', icon: '🏭' },
       default: { color: '#8b5cf6', soft: 'rgba(139, 92, 246, 0.16)', glow: 'rgba(139, 92, 246, 0.3)', icon: '🧩' },
     };
-
     const FIELD_GROUPS = {
       connection: [
-        {
-          key: 'baseUrl',
-          label: 'Base URL',
-          hint: 'API endpoint URL',
-          required: true,
-          placeholder: 'https://api.example.com/v1',
-          actions: ['copy'],
-        },
-        {
-          key: 'authToken',
-          label: 'Auth Token',
-          hint: 'API key or token',
-          required: true,
-          secret: true,
-          placeholder: 'Paste the full credential here',
-          actions: ['toggle', 'copy'],
-        },
+        { key: 'baseUrl', label: 'Base URL', hint: 'API endpoint URL', required: true, placeholder: 'https://api.example.com/v1', actions: ['copy'] },
+        { key: 'authToken', label: 'Auth Token', hint: 'API key or token', required: true, secret: true, placeholder: 'Paste the full credential here', actions: ['toggle', 'copy'] },
       ],
       model: [
-        {
-          key: 'model',
-          label: 'Model',
-          hint: 'Optional default model override. Leave blank to use the platform default.',
-          placeholder: 'Optional',
-        },
-        {
-          key: 'smallFastModel',
-          label: 'Small/Fast Model',
-          hint: 'Optional lightweight model for quick tasks.',
-          placeholder: 'Optional',
-        },
+        { key: 'model', label: 'Model', hint: 'Optional default model override. Leave blank to use the platform default.', placeholder: 'Optional' },
+        { key: 'smallFastModel', label: 'Small/Fast Model', hint: 'Optional lightweight model for quick tasks.', placeholder: 'Optional' },
       ],
       identity: [
-        {
-          key: 'provider',
-          label: 'Provider',
-          hint: 'Provider identifier',
-        },
-        {
-          key: 'providerType',
-          label: 'Provider Type',
-          hint: 'Provider backend type',
-        },
-        {
-          key: 'account',
-          label: 'Account',
-          hint: 'Account or organization name',
-        },
+        { key: 'provider', label: 'Provider', hint: 'Provider identifier' },
+        { key: 'providerType', label: 'Provider Type', hint: 'Provider backend type' },
+        { key: 'account', label: 'Account', hint: 'Account or organization name' },
       ],
       metadata: [
-        {
-          key: 'description',
-          label: 'Description',
-          hint: 'Human-readable profile description',
-        },
-        {
-          key: 'tags',
-          label: 'Tags',
-          hint: 'Comma-separated tags',
-          placeholder: 'free, backup, relay',
-        },
+        { key: 'name', label: 'Profile Name', hint: 'Unique profile identifier', required: true, placeholder: 'new-profile', createOnly: true },
+        { key: 'description', label: 'Description', hint: 'Human-readable profile description' },
+        { key: 'tags', label: 'Tags', hint: 'Comma-separated tags', placeholder: 'free, backup, relay' },
       ],
     };
-
+    const allowedEditableFields = ${serializedAllowedEditableFields};
     const fieldElements = {};
     const fieldState = {};
     const copyButtons = {};
@@ -811,15 +572,10 @@ export class ProfileEditorPanel {
     const statusTimers = {};
     const copyTimers = {};
     let currentProfile = null;
+    let currentMode = 'edit';
 
-    function cloneProfile(profile) {
-      return JSON.parse(JSON.stringify(profile));
-    }
-
-    function getAccent(platformName) {
-      return PLATFORM_ACCENTS[platformName] || PLATFORM_ACCENTS.default;
-    }
-
+    function cloneProfile(profile) { return JSON.parse(JSON.stringify(profile)); }
+    function getAccent(platformName) { return PLATFORM_ACCENTS[platformName] || PLATFORM_ACCENTS.default; }
     function setPlatformAccent(platformName) {
       const accent = getAccent(platformName);
       const root = document.documentElement.style;
@@ -828,29 +584,27 @@ export class ProfileEditorPanel {
       root.setProperty('--platform-glow', accent.glow);
       return accent;
     }
-
+    function isFieldVisible(platformName, fieldKey) {
+      if (fieldKey === 'name') {
+        return currentMode === 'create';
+      }
+      const allowed = allowedEditableFields[platformName] || Object.values(FIELD_GROUPS).flat().map((field) => field.key);
+      return allowed.includes(fieldKey);
+    }
     function getDisplayValue(field, value) {
       if (field === 'tags' && Array.isArray(value)) {
         return value.join(', ');
       }
       return value ?? '';
     }
-
     function getNormalizedFieldValue(field) {
       const input = fieldElements[field];
-      if (!input) {
-        return undefined;
-      }
-
+      if (!input) return undefined;
       if (field === 'tags') {
-        return input.value
-          ? input.value.split(',').map((tag) => tag.trim()).filter(Boolean)
-          : undefined;
+        return input.value ? input.value.split(',').map((tag) => tag.trim()).filter(Boolean) : undefined;
       }
-
       return input.value || undefined;
     }
-
     function syncFieldOriginal(field, value) {
       if (!fieldState[field]) {
         fieldState[field] = { original: '', dirty: false };
@@ -858,97 +612,66 @@ export class ProfileEditorPanel {
       fieldState[field].original = value;
       fieldState[field].dirty = false;
     }
-
     function updateCopyButtonState(field) {
       const button = copyButtons[field];
       const input = fieldElements[field];
-      if (!button || !input) {
-        return;
-      }
+      if (!button || !input) return;
       button.disabled = input.value.trim().length === 0;
     }
-
     function setFieldFeedback(field, success) {
       const feedback = document.getElementById('status-' + field);
-      if (!feedback) {
-        return;
-      }
-
+      if (!feedback) return;
       feedback.textContent = success ? 'Saved' : 'Error';
       feedback.className = 'field-feedback visible ' + (success ? 'success' : 'error');
-
-      if (statusTimers[field]) {
-        clearTimeout(statusTimers[field]);
-      }
-
-      statusTimers[field] = setTimeout(() => {
-        feedback.className = 'field-feedback';
-      }, success ? 1800 : 2600);
+      if (statusTimers[field]) clearTimeout(statusTimers[field]);
+      statusTimers[field] = setTimeout(() => { feedback.className = 'field-feedback'; }, success ? 1800 : 2600);
     }
-
+    function setCreateFeedback(success, error) {
+      const autosaveEl = document.getElementById('autosave-indicator');
+      autosaveEl.textContent = success ? 'Created ✓' : 'Create failed';
+      autosaveEl.classList.toggle('saved', !!success);
+      if (!success && error) {
+        document.getElementById('header-note').textContent = error;
+      }
+      document.getElementById('submit-create').disabled = false;
+      document.getElementById('cancel-create').disabled = false;
+    }
     function setCopyFeedback(field, success) {
       const button = copyButtons[field];
-      if (!button) {
-        return;
-      }
-
+      if (!button) return;
       const originalLabel = button.dataset.defaultLabel || 'Copy';
       button.textContent = success ? 'Copied' : 'Failed';
       button.disabled = true;
-
-      if (copyTimers[field]) {
-        clearTimeout(copyTimers[field]);
-      }
-
+      if (copyTimers[field]) clearTimeout(copyTimers[field]);
       copyTimers[field] = setTimeout(() => {
         button.textContent = originalLabel;
         updateCopyButtonState(field);
       }, success ? 1400 : 1800);
     }
-
     function flashAutosave() {
       const autosaveEl = document.getElementById('autosave-indicator');
       autosaveEl.textContent = 'Saved ✓';
       autosaveEl.classList.add('saved');
-
       window.clearTimeout(flashAutosave.timer);
       flashAutosave.timer = window.setTimeout(() => {
-        autosaveEl.textContent = 'Auto-save';
+        autosaveEl.textContent = currentMode === 'create' ? 'Create mode' : 'Auto-save';
         autosaveEl.classList.remove('saved');
       }, 1800);
     }
     flashAutosave.timer = 0;
-
-    function persistState() {
-      vscode.setState({
-        profile: currentProfile,
-      });
-    }
-
+    function persistState() { vscode.setState({ profile: currentProfile, mode: currentMode }); }
     function saveFieldIfDirty(field) {
+      if (currentMode !== 'edit') return;
       const input = fieldElements[field];
       const state = fieldState[field];
-
-      if (!input || !state || !state.dirty) {
-        return;
-      }
-
-      vscode.postMessage({
-        type: 'saveField',
-        field,
-        value: input.value,
-      });
+      if (!input || !state || !state.dirty) return;
+      vscode.postMessage({ type: 'saveField', field, value: input.value });
     }
-
     function registerField(groupName, field) {
       const container = document.getElementById('section-' + groupName);
-      if (!container) {
-        return;
-      }
-
+      if (!container) return;
       const row = document.createElement('div');
       row.className = 'field-row';
-
       const requiredMark = field.required ? '<span class="required">*</span>' : '';
       const toggleButton = field.actions && field.actions.includes('toggle')
         ? '<button type="button" class="control-btn" data-action="toggle" data-field="' + field.key + '">Show</button>'
@@ -956,7 +679,6 @@ export class ProfileEditorPanel {
       const copyButton = field.actions && field.actions.includes('copy')
         ? '<button type="button" class="control-btn" data-action="copy" data-field="' + field.key + '" data-default-label="Copy">Copy</button>'
         : '';
-
       row.innerHTML =
         '<div class="field-label-wrap">' +
           '<div class="field-label">' + field.label + requiredMark + '</div>' +
@@ -965,51 +687,34 @@ export class ProfileEditorPanel {
         '<div class="field-input-wrap">' +
           '<div class="input-shell">' +
             '<input class="field-input" type="' + (field.secret ? 'password' : 'text') + '" id="field-' + field.key + '" data-field="' + field.key + '" autocomplete="off" spellcheck="false" placeholder="' + (field.placeholder || '') + '" />' +
-            '<div class="field-actions">' +
-              toggleButton +
-              copyButton +
-              '<span class="field-feedback" id="status-' + field.key + '"></span>' +
-            '</div>' +
+            '<div class="field-actions">' + toggleButton + copyButton + '<span class="field-feedback" id="status-' + field.key + '"></span></div>' +
           '</div>' +
         '</div>';
-
+      row.dataset.fieldKey = field.key;
+      row.dataset.createOnly = field.createOnly ? 'true' : 'false';
       container.appendChild(row);
-
       const input = document.getElementById('field-' + field.key);
       fieldElements[field.key] = input;
       fieldState[field.key] = { original: '', dirty: false };
-
       input.addEventListener('input', () => {
         fieldState[field.key].dirty = input.value !== fieldState[field.key].original;
         updateCopyButtonState(field.key);
       });
-
-      input.addEventListener('blur', () => {
-        saveFieldIfDirty(field.key);
-      });
-
+      input.addEventListener('blur', () => { saveFieldIfDirty(field.key); });
       input.addEventListener('keydown', (event) => {
-        if (event.key === 'Enter') {
+        if (event.key === 'Enter' && currentMode === 'edit') {
           event.preventDefault();
           input.blur();
         }
       });
-
       const copyButtonElement = row.querySelector('[data-action="copy"]');
       if (copyButtonElement) {
         copyButtons[field.key] = copyButtonElement;
         copyButtonElement.addEventListener('click', () => {
-          if (!input.value.trim()) {
-            return;
-          }
-          vscode.postMessage({
-            type: 'copyField',
-            field: field.key,
-            value: input.value,
-          });
+          if (!input.value.trim()) return;
+          vscode.postMessage({ type: 'copyField', field: field.key, value: input.value });
         });
       }
-
       const toggleButtonElement = row.querySelector('[data-action="toggle"]');
       if (toggleButtonElement) {
         toggleButtons[field.key] = toggleButtonElement;
@@ -1019,82 +724,107 @@ export class ProfileEditorPanel {
           toggleButtonElement.textContent = isPassword ? 'Hide' : 'Show';
         });
       }
-
       updateCopyButtonState(field.key);
     }
-
     Object.entries(FIELD_GROUPS).forEach(([groupName, fields]) => {
       fields.forEach((field) => registerField(groupName, field));
     });
-
     const enabledCheckbox = document.getElementById('field-enabled');
     const enabledLabel = document.getElementById('enabled-label');
-
+    const submitActions = document.getElementById('submit-actions');
+    const submitCreate = document.getElementById('submit-create');
+    const cancelCreate = document.getElementById('cancel-create');
     enabledCheckbox.addEventListener('change', () => {
+      if (currentMode === 'create') {
+        enabledLabel.textContent = enabledCheckbox.checked ? 'Enabled' : 'Disabled';
+        if (currentProfile) {
+          currentProfile.enabled = enabledCheckbox.checked;
+          persistState();
+        }
+        return;
+      }
       vscode.postMessage({ type: 'toggleEnabled' });
     });
-
-    function populateProfile(profile) {
+    submitCreate.addEventListener('click', () => {
+      const draft = {
+        name: fieldElements.name.value.trim(),
+        platformName: currentProfile.platformName,
+        description: getNormalizedFieldValue('description'),
+        baseUrl: getNormalizedFieldValue('baseUrl'),
+        authToken: getNormalizedFieldValue('authToken'),
+        model: getNormalizedFieldValue('model'),
+        smallFastModel: getNormalizedFieldValue('smallFastModel'),
+        provider: getNormalizedFieldValue('provider'),
+        providerType: getNormalizedFieldValue('providerType'),
+        account: getNormalizedFieldValue('account'),
+        tags: getNormalizedFieldValue('tags'),
+        enabled: enabledCheckbox.checked,
+      };
+      submitCreate.disabled = true;
+      cancelCreate.disabled = true;
+      vscode.postMessage({ type: 'createProfile', draft });
+    });
+    cancelCreate.addEventListener('click', () => vscode.postMessage({ type: 'cancelCreate' }));
+    function populateProfile(profile, mode) {
+      currentMode = mode;
       currentProfile = cloneProfile(profile);
       const accent = setPlatformAccent(profile.platformName);
-
-      document.getElementById('title').textContent = profile.name;
-      document.getElementById('subtitle').textContent = profile.description
-        || 'Tune routing, credentials and identity details for this profile.';
-
+      document.getElementById('title').textContent = mode === 'create' ? 'New Profile' : profile.name;
+      document.getElementById('subtitle').textContent = mode === 'create'
+        ? 'Fill in all profile details here, then create it in one step.'
+        : (profile.description || 'Tune routing, credentials and identity details for this profile.');
+      document.getElementById('mode-note').textContent = mode === 'create'
+        ? 'Review all fields, then submit once.'
+        : 'Changes save when you leave a field.';
+      document.getElementById('header-note').textContent = mode === 'create'
+        ? 'Nothing is written until you click Create Profile.'
+        : 'Pinned edits stay local to this profile.';
+      const autosave = document.getElementById('autosave-indicator');
+      autosave.textContent = mode === 'create' ? 'Create mode' : 'Auto-save';
+      autosave.classList.remove('saved');
       const badge = document.getElementById('platform-badge');
       badge.textContent = accent.icon + ' ' + profile.platformName;
-
       enabledCheckbox.checked = !!profile.enabled;
       enabledLabel.textContent = profile.enabled ? 'Enabled' : 'Disabled';
-
+      submitActions.classList.toggle('visible', mode === 'create');
+      document.querySelectorAll('[data-field-key]').forEach((row) => {
+        const fieldKey = row.getAttribute('data-field-key');
+        row.style.display = isFieldVisible(profile.platformName, fieldKey) ? '' : 'none';
+      });
       Object.values(FIELD_GROUPS).flat().forEach((field) => {
         const input = fieldElements[field.key];
-        if (!input) {
-          return;
-        }
-
+        if (!input) return;
         const displayValue = getDisplayValue(field.key, profile[field.key]);
         input.value = displayValue;
         syncFieldOriginal(field.key, displayValue);
         updateCopyButtonState(field.key);
-
-        if (field.secret) {
-          input.type = 'password';
-        }
-
-        if (toggleButtons[field.key]) {
-          toggleButtons[field.key].textContent = 'Show';
-        }
+        if (field.secret) input.type = 'password';
+        if (toggleButtons[field.key]) toggleButtons[field.key].textContent = 'Show';
+        input.readOnly = false;
       });
-
       document.getElementById('loading').classList.add('hidden');
       document.getElementById('editor-content').style.display = 'block';
-      document.querySelectorAll('[data-editor-section]').forEach((section) => {
-        section.style.display = 'block';
-      });
-
+      document.querySelectorAll('[data-editor-section]').forEach((section) => { section.style.display = 'block'; });
       persistState();
     }
-
     const previousState = vscode.getState();
-    if (previousState && previousState.profile) {
-      populateProfile(previousState.profile);
+    if (previousState && previousState.profile && previousState.mode) {
+      populateProfile(previousState.profile, previousState.mode);
     }
-
     window.addEventListener('message', (event) => {
       const msg = event.data;
-
       if (msg.type === 'profileData') {
-        populateProfile(msg.profile);
+        populateProfile(msg.profile, msg.mode);
         return;
       }
-
       if (msg.type === 'copyResult') {
         setCopyFeedback(msg.field, msg.success);
         return;
       }
-
+      if (msg.type === 'createResult') {
+        setCreateFeedback(msg.success, msg.error);
+        return;
+      }
       if (msg.type === 'saveResult') {
         if (msg.field === 'enabled') {
           if (msg.success) {
@@ -1110,7 +840,6 @@ export class ProfileEditorPanel {
           }
           return;
         }
-
         if (msg.success) {
           const input = fieldElements[msg.field];
           if (input) {
@@ -1122,11 +851,9 @@ export class ProfileEditorPanel {
           }
           flashAutosave();
         }
-
         setFieldFeedback(msg.field, msg.success);
       }
     });
-
     vscode.postMessage({ type: 'ready' });
   </script>
 </body>

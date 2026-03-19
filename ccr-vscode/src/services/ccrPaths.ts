@@ -30,6 +30,16 @@ export function getProfilesPath(platformName: string): string {
   return path.join(getCcrRoot(), "platforms", platformName, "profiles.toml");
 }
 
+/** Path to Codex auth registry: ~/.ccr/platforms/codex/auth_registry.toml */
+export function getCodexAuthRegistryPath(): string {
+  return path.join(getCcrRoot(), "platforms", "codex", "auth_registry.toml");
+}
+
+/** Path to Codex auth directory: ~/.ccr/platforms/codex/auth/ */
+export function getCodexAuthDir(): string {
+  return path.join(getCcrRoot(), "platforms", "codex", "auth");
+}
+
 /** Path to the platforms directory: ~/.ccr/platforms/ */
 export function getPlatformsDir(): string {
   return path.join(getCcrRoot(), "platforms");
@@ -39,6 +49,9 @@ export function getPlatformsDir(): string {
 export function getProfilesGlob(): string {
   return path.join(getCcrRoot(), "platforms", "*", "profiles.toml");
 }
+
+/** Supported platforms exposed by the VSCode extension */
+export const SUPPORTED_PLATFORMS = ["claude", "codex"] as const;
 
 /** Known platform metadata — aligned with Rust Platform enum */
 export const PLATFORM_META: Record<
@@ -56,30 +69,6 @@ export const PLATFORM_META: Record<
     icon: "\u{1F4BB}",
     shortName: "codex",
     codiconId: "terminal",
-  },
-  gemini: {
-    displayName: "Gemini CLI",
-    icon: "\u{2728}",
-    shortName: "gemini",
-    codiconId: "sparkle",
-  },
-  qwen: {
-    displayName: "Qwen CLI",
-    icon: "\u{1F31F}",
-    shortName: "qwen",
-    codiconId: "cloud",
-  },
-  iflow: {
-    displayName: "iFlow CLI",
-    icon: "\u{1F30A}",
-    shortName: "iflow",
-    codiconId: "pulse",
-  },
-  droid: {
-    displayName: "Factory Droid",
-    icon: "\u{1F3ED}",
-    shortName: "droid",
-    codiconId: "server",
   },
 };
 

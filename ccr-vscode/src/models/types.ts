@@ -50,6 +50,22 @@ export interface ProfileConfig {
   [key: string]: unknown;
 }
 
+export interface ProfileCreateRequest {
+  description?: string;
+  base_url?: string;
+  auth_token?: string;
+  model?: string;
+  small_fast_model?: string;
+  provider?: string;
+  provider_type?: string;
+  account?: string;
+  tags?: string[];
+  enabled?: boolean;
+}
+
+export const PROFILE_CREATION_PLATFORMS = ["claude", "codex"] as const;
+export type ProfileCreationPlatform = typeof PROFILE_CREATION_PLATFORMS[number];
+
 /** Global settings in profiles.toml (optional) */
 export interface GlobalSettings {
   [key: string]: unknown;
@@ -97,8 +113,52 @@ export interface ProfileInfo {
   isCurrent: boolean;
 }
 
+export type TreeSectionKind = "profiles" | "auth";
+
+export interface TreeSectionInfo {
+  kind: TreeSectionKind;
+  platformName: string;
+  label: string;
+  description: string;
+}
+
+export interface CodexAuthInfo {
+  name: string;
+  description?: string;
+  email?: string;
+  savedAt?: string;
+  lastUsed?: string;
+  lastRefresh?: string;
+  expiresAt?: string;
+  isCurrent: boolean;
+  isVirtual: boolean;
+}
+
+export type ProfileEditorMode = "edit" | "create";
+
+export interface ProfileEditorDraft {
+  name: string;
+  platformName: ProfileCreationPlatform;
+  description?: string;
+  baseUrl?: string;
+  authToken?: string;
+  model?: string;
+  smallFastModel?: string;
+  provider?: string;
+  providerType?: string;
+  account?: string;
+  tags?: string[];
+  enabled: boolean;
+}
+
+export type EditableFieldDefinition = {
+  key: string;
+  tomlKey: string;
+  label: string;
+};
+
 /** Editable fields of a profile (key = camelCase matching ProfileInfo, tomlKey = TOML snake_case) */
-export const EDITABLE_FIELDS: { key: string; tomlKey: string; label: string }[] = [
+export const EDITABLE_FIELDS: EditableFieldDefinition[] = [
   { key: "description",    tomlKey: "description",      label: "description" },
   { key: "baseUrl",        tomlKey: "base_url",         label: "base_url" },
   { key: "authToken",      tomlKey: "auth_token",       label: "auth_token" },
@@ -109,3 +169,18 @@ export const EDITABLE_FIELDS: { key: string; tomlKey: string; label: string }[] 
   { key: "account",        tomlKey: "account",          label: "account" },
   { key: "tags",           tomlKey: "tags",             label: "tags" },
 ];
+
+export const DEFAULT_PROFILE_EDITABLE_FIELDS = EDITABLE_FIELDS.map((field) => field.key);
+
+export const PROFILE_EDITABLE_FIELDS_BY_PLATFORM: Record<string, string[]> = {
+  claude: DEFAULT_PROFILE_EDITABLE_FIELDS,
+  codex: ["description", "model", "smallFastModel", "provider", "providerType", "account", "tags"],
+};
+
+export function getEditableProfileFields(platformName: string): string[] {
+  return PROFILE_EDITABLE_FIELDS_BY_PLATFORM[platformName] ?? DEFAULT_PROFILE_EDITABLE_FIELDS;
+}
+
+export function isProfileCreationPlatform(platformName: string): platformName is ProfileCreationPlatform {
+  return PROFILE_CREATION_PLATFORMS.includes(platformName as ProfileCreationPlatform);
+}

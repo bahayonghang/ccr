@@ -5,17 +5,29 @@
  */
 
 import * as vscode from "vscode";
-import { ProfileTreeProvider, ProfileNode, PlatformNode } from "./providers/profileTreeProvider";
+import { CodexAuthNode, PlatformNode, ProfileNode, ProfileTreeProvider, SectionNode } from "./providers/profileTreeProvider";
 import { StatusBarProvider } from "./providers/statusBarProvider";
 import { CcrWatcher } from "./services/ccrWatcher";
-import { checkCcrAvailability, execPlatformSwitch, execProfileSwitch } from "./services/ccrCli";
-import { readProfiles, readRegistry, writeProfileField, toggleProfileEnabled } from "./services/tomlReader";
+import {
+  checkCcrAvailability,
+  execCodexAuthDelete,
+  execCodexAuthSwitch,
+  execPlatformSwitch,
+  execProfileSwitch,
+} from "./services/ccrCli";
+import { readCodexAuthAccounts, writeCodexAuthDescription } from "./services/codexAuthReader";
+import { createProfile, deleteProfile, readProfiles, readRegistry, toggleProfileEnabled, writeProfileField } from "./services/tomlReader";
 import { getProfilesPath } from "./services/ccrPaths";
-import { EDITABLE_FIELDS } from "./models/types";
+import {
+  EDITABLE_FIELDS,
+  getEditableProfileFields,
+  isProfileCreationPlatform,
+  type ProfileCreateRequest,
+  type ProfileCreationPlatform,
+} from "./models/types";
 import { ProfileEditorPanel } from "./providers/profileEditorPanel";
 
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
-  // ── Providers ──
   const treeProvider = new ProfileTreeProvider();
   const treeView = vscode.window.createTreeView("ccr-profiles", {
     treeDataProvider: treeProvider,
@@ -26,13 +38,11 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   const statusBar = new StatusBarProvider();
   context.subscriptions.push(statusBar);
 
-  /** Refresh both tree and status bar */
   const refreshAll = () => {
     treeProvider.refresh();
     statusBar.update();
   };
 
-  // ── File watcher ──
   const watcher = new CcrWatcher();
   watcher.onChange(refreshAll);
   context.subscriptions.push(watcher);
@@ -45,29 +55,23 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     }),
   );
 
-  // ── Check CCR availability (non-blocking) ──
   checkCcrAvailability();
 
-  // ── Commands ──
-
-  // Refresh profiles
   context.subscriptions.push(
     vscode.commands.registerCommand("ccr.refreshProfiles", refreshAll),
   );
 
-  // Switch profile (via TreeView click or QuickPick)
   context.subscriptions.push(
     vscode.commands.registerCommand("ccr.switchProfile", async (node?: ProfileNode) => {
       if (node instanceof ProfileNode) {
-        // Called from TreeView click
         if (node.profile.isCurrent) {
-          return; // Already current, no-op
+          return;
         }
         await doSwitch(node.profile.platformName, node.profile.name, refreshAll);
-      } else {
-        // Called from command palette or status bar — show QuickPick
-        await showSwitchQuickPick(refreshAll);
+        return;
       }
+
+      await showSwitchQuickPick(refreshAll);
     }),
   );
 
@@ -81,7 +85,18 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     }),
   );
 
-  // Edit profile field
+  context.subscriptions.push(
+    vscode.commands.registerCommand("ccr.addProfile", async (node?: PlatformNode | SectionNode) => {
+      await showAddProfileFlow(context, refreshAll, node);
+    }),
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand("ccr.addProfileForPlatform", async (node?: PlatformNode | SectionNode | string) => {
+      await showAddProfileFlow(context, refreshAll, node);
+    }),
+  );
+
   context.subscriptions.push(
     vscode.commands.registerCommand("ccr.editProfileField", async (node?: ProfileNode) => {
       if (!(node instanceof ProfileNode)) {
@@ -92,7 +107,6 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     }),
   );
 
-  // Toggle profile enabled
   context.subscriptions.push(
     vscode.commands.registerCommand("ccr.toggleProfileEnabled", async (node?: ProfileNode) => {
       if (!(node instanceof ProfileNode)) {
@@ -111,7 +125,36 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     }),
   );
 
-  // Visual profile editor (Webview)
+  context.subscriptions.push(
+    vscode.commands.registerCommand("ccr.deleteProfile", async (node?: ProfileNode) => {
+      if (!(node instanceof ProfileNode)) {
+        vscode.window.showWarningMessage("Please select a profile to delete.");
+        return;
+      }
+
+      const confirm = await vscode.window.showWarningMessage(
+        `Delete profile '${node.profile.name}' from ${node.profile.platformName}?`,
+        { modal: true },
+        "Delete",
+      );
+      if (confirm !== "Delete") {
+        return;
+      }
+
+      try {
+        const nextCurrent = await deleteProfile(node.profile.platformName, node.profile.name);
+        vscode.window.showInformationMessage(
+          nextCurrent
+            ? `Deleted '${node.profile.name}'. Current profile is now '${nextCurrent}'.`
+            : `Deleted '${node.profile.name}'. No profiles remain.`,
+        );
+        refreshAll();
+      } catch (err) {
+        vscode.window.showErrorMessage(`Failed to delete profile: ${err}`);
+      }
+    }),
+  );
+
   context.subscriptions.push(
     vscode.commands.registerCommand("ccr.editProfileVisual", async (node?: ProfileNode) => {
       if (!(node instanceof ProfileNode)) {
@@ -122,7 +165,78 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
     }),
   );
 
-  // Open profiles.toml in editor
+  context.subscriptions.push(
+    vscode.commands.registerCommand("ccr.switchCodexAuth", async (node?: CodexAuthNode) => {
+      if (node instanceof CodexAuthNode) {
+        if (node.auth.isCurrent) {
+          return;
+        }
+        await doSwitchCodexAuth(node.auth.name, refreshAll);
+        return;
+      }
+
+      await showCodexAuthQuickPick(refreshAll);
+    }),
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand("ccr.editCodexAuth", async (node?: CodexAuthNode) => {
+      if (!(node instanceof CodexAuthNode)) {
+        vscode.window.showWarningMessage("Please select a Codex auth account to edit.");
+        return;
+      }
+
+      const newDescription = await vscode.window.showInputBox({
+        prompt: `Edit description for Codex auth '${node.auth.name}'`,
+        value: node.auth.description ?? "",
+        placeHolder: "Optional description",
+      });
+
+      if (newDescription === undefined) {
+        return;
+      }
+
+      try {
+        await writeCodexAuthDescription(node.auth.name, newDescription || undefined);
+        vscode.window.showInformationMessage(`Updated Codex auth '${node.auth.name}'.`);
+        refreshAll();
+      } catch (err) {
+        vscode.window.showErrorMessage(`Failed to update Codex auth: ${err}`);
+      }
+    }),
+  );
+
+  context.subscriptions.push(
+    vscode.commands.registerCommand("ccr.deleteCodexAuth", async (node?: CodexAuthNode) => {
+      if (!(node instanceof CodexAuthNode)) {
+        vscode.window.showWarningMessage("Please select a Codex auth account to delete.");
+        return;
+      }
+
+      const confirm = await vscode.window.showWarningMessage(
+        `Delete Codex auth '${node.auth.name}'?`,
+        { modal: true },
+        "Delete",
+      );
+      if (confirm !== "Delete") {
+        return;
+      }
+
+      const available = await checkCcrAvailability();
+      if (!available) {
+        return;
+      }
+
+      const result = await execCodexAuthDelete(node.auth.name);
+      if (result.success) {
+        vscode.window.showInformationMessage(`Deleted Codex auth '${node.auth.name}'.`);
+        refreshAll();
+      } else {
+        vscode.window.showErrorMessage(`Failed to delete Codex auth: ${result.stderr || "Unknown error"}`);
+      }
+    }),
+  );
+
   context.subscriptions.push(
     vscode.commands.registerCommand("ccr.openProfilesFile", async (node?: PlatformNode | ProfileNode) => {
       let platformName: string | undefined;
@@ -133,16 +247,15 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       }
 
       if (!platformName) {
-        // Fallback: ask user to pick a platform
         const registry = readRegistry();
         if (!registry || registry.platforms.length === 0) {
           vscode.window.showWarningMessage("No platforms available.");
           return;
         }
         const picked = await vscode.window.showQuickPick(
-          registry.platforms.map((p) => ({
-            label: `${p.icon} ${p.displayName}`,
-            platformName: p.name,
+          registry.platforms.map((platform) => ({
+            label: `${platform.icon} ${platform.displayName}`,
+            platformName: platform.name,
           })),
           { placeHolder: "Select platform to open profiles.toml" },
         );
@@ -198,8 +311,6 @@ export function deactivate(): void {
   ProfileEditorPanel.disposeAll();
 }
 
-// ── Helpers ──
-
 async function doSwitch(
   platform: string,
   profileName: string,
@@ -225,7 +336,6 @@ async function doSwitch(
       cancellable: false,
     },
     async () => {
-      // Issue 1: Correct CLI syntax — switch platform first if needed
       const registry = readRegistry();
       const currentPlatform = registry?.currentPlatform ?? "";
 
@@ -253,6 +363,29 @@ async function doSwitch(
   refreshAll();
 }
 
+async function doSwitchCodexAuth(name: string, refreshAll: () => void): Promise<void> {
+  const available = await checkCcrAvailability();
+  if (!available) return;
+
+  const confirmEnabled = vscode.workspace.getConfiguration("ccr").get<boolean>("confirmBeforeSwitch", true);
+  if (confirmEnabled) {
+    const confirm = await vscode.window.showWarningMessage(
+      `Switch Codex auth to "${name}"?`,
+      { modal: true },
+      "Yes",
+    );
+    if (confirm !== "Yes") return;
+  }
+
+  const result = await execCodexAuthSwitch(name);
+  if (result.success) {
+    vscode.window.showInformationMessage(`Switched Codex auth to '${name}'.`);
+    refreshAll();
+  } else {
+    vscode.window.showErrorMessage(`Codex auth switch failed: ${result.stderr || "Unknown error"}`);
+  }
+}
+
 async function showSwitchQuickPick(
   refreshAll: () => void,
   platformOverride?: string,
@@ -263,7 +396,6 @@ async function showSwitchQuickPick(
     return;
   }
 
-  // If only one platform, skip platform selection
   let platformName: string;
   if (platformOverride) {
     const exists = registry.platforms.some((platform) => platform.name === platformOverride);
@@ -276,10 +408,10 @@ async function showSwitchQuickPick(
     platformName = registry.platforms[0].name;
   } else {
     const picked = await vscode.window.showQuickPick(
-      registry.platforms.map((p) => ({
-        label: `${p.icon} ${p.displayName}`,
-        description: p.currentProfile ? `current: ${p.currentProfile}` : undefined,
-        platformName: p.name,
+      registry.platforms.map((platform) => ({
+        label: `${platform.icon} ${platform.displayName}`,
+        description: platform.currentProfile ? `current: ${platform.currentProfile}` : undefined,
+        platformName: platform.name,
       })),
       { placeHolder: "Select platform" },
     );
@@ -293,12 +425,12 @@ async function showSwitchQuickPick(
     return;
   }
 
-  const items = profiles.map((p) => ({
-    label: p.isCurrent ? `$(check) ${p.name}` : `     ${p.name}`,
-    description: [p.provider, p.model].filter(Boolean).join(" | ") || undefined,
-    detail: p.description,
-    profileName: p.name,
-    isCurrent: p.isCurrent,
+  const items = profiles.map((profile) => ({
+    label: profile.isCurrent ? `$(check) ${profile.name}` : `     ${profile.name}`,
+    description: [profile.provider, profile.model].filter(Boolean).join(" | ") || undefined,
+    detail: profile.description,
+    profileName: profile.name,
+    isCurrent: profile.isCurrent,
   }));
 
   const picked = await vscode.window.showQuickPick(items, {
@@ -310,32 +442,158 @@ async function showSwitchQuickPick(
   await doSwitch(platformName, picked.profileName, refreshAll);
 }
 
+async function showCodexAuthQuickPick(refreshAll: () => void): Promise<void> {
+  const accounts = readCodexAuthAccounts();
+  if (accounts.length === 0) {
+    vscode.window.showWarningMessage("No Codex auth accounts available.");
+    return;
+  }
+
+  const picked = await vscode.window.showQuickPick(
+    accounts.map((auth) => ({
+      label: auth.isCurrent ? `$(check) ${auth.name}` : auth.name,
+      description: auth.email,
+      detail: auth.description,
+      name: auth.name,
+      isCurrent: auth.isCurrent,
+    })),
+    { placeHolder: "Select Codex auth account" },
+  );
+
+  if (!picked || picked.isCurrent) {
+    return;
+  }
+
+  await doSwitchCodexAuth(picked.name, refreshAll);
+}
+
+async function showAddProfileFlow(
+  context: vscode.ExtensionContext,
+  refreshAll: () => void,
+  source?: PlatformNode | SectionNode | ProfileCreationPlatform | string,
+): Promise<void> {
+  const platformName = await resolveProfileCreationPlatform(source);
+  if (!platformName) {
+    return;
+  }
+
+  ProfileEditorPanel.createForNewProfile(context.extensionUri, platformName, async (draft) => {
+    try {
+      const trimmedName = draft.name.trim();
+      if (!trimmedName) {
+        throw new Error("Profile name cannot be empty.");
+      }
+
+      const config: ProfileCreateRequest = {
+        description: normalizeOptionalText(draft.description),
+        model: normalizeOptionalText(draft.model),
+        small_fast_model: normalizeOptionalText(draft.smallFastModel),
+        provider: normalizeOptionalText(draft.provider),
+        provider_type: normalizeOptionalText(draft.providerType),
+        account: normalizeOptionalText(draft.account),
+        tags: normalizeTags(draft.tags),
+        enabled: draft.enabled,
+      };
+
+      if (platformName === "claude") {
+        config.base_url = normalizeOptionalText(draft.baseUrl);
+        config.auth_token = normalizeOptionalText(draft.authToken);
+      }
+
+      await createProfile(platformName, trimmedName, config);
+      refreshAll();
+      vscode.window.showInformationMessage(`Created ${platformName} profile '${trimmedName}'.`);
+    } catch (err) {
+      throw err;
+    }
+  });
+}
+
+async function resolveProfileCreationPlatform(
+  source?: PlatformNode | SectionNode | ProfileCreationPlatform | string,
+): Promise<ProfileCreationPlatform | undefined> {
+  if (source instanceof PlatformNode) {
+    return isProfileCreationPlatform(source.platform.name) ? source.platform.name : undefined;
+  }
+
+  if (source instanceof SectionNode) {
+    return source.section.kind === "profiles" && isProfileCreationPlatform(source.section.platformName)
+      ? source.section.platformName
+      : undefined;
+  }
+
+  if (typeof source === "string" && isProfileCreationPlatform(source)) {
+    return source;
+  }
+
+  const registry = readRegistry();
+  const items = (registry?.platforms ?? [])
+    .filter((platform): platform is typeof platform & { name: ProfileCreationPlatform } => (
+      platform.enabled && isProfileCreationPlatform(platform.name)
+    ))
+    .map((platform) => ({
+      label: `${platform.icon} ${platform.displayName}`,
+      description: platform.currentProfile ? `current: ${platform.currentProfile}` : undefined,
+      platformName: platform.name,
+    }));
+
+  if (items.length === 0) {
+    vscode.window.showWarningMessage("Claude and Codex profile creation is not available.");
+    return undefined;
+  }
+
+  if (items.length === 1) {
+    return items[0].platformName;
+  }
+
+  const picked = await vscode.window.showQuickPick(items, {
+    placeHolder: "Select platform for the new profile",
+  });
+
+  return picked?.platformName;
+}
+
+function normalizeOptionalText(value: string | undefined): string | undefined {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed : undefined;
+}
+
+function normalizeTags(tags: string[] | undefined): string[] | undefined {
+  if (!tags || tags.length === 0) {
+    return undefined;
+  }
+
+  const normalized = tags.map((tag) => tag.trim()).filter(Boolean);
+  return normalized.length > 0 ? normalized : undefined;
+}
+
 async function editProfileField(
   node: ProfileNode,
   refreshAll: () => void,
 ): Promise<void> {
   const profile = node.profile;
 
-  // Pick which field to edit
-  const fieldItems = EDITABLE_FIELDS.map((f) => {
-    const currentVal = profile[f.key as keyof typeof profile];
-    return {
-      label: f.label,
-      description: typeof currentVal === "string"
-        ? (f.key === "authToken" ? "****" : currentVal)
-        : currentVal !== undefined
-          ? String(currentVal)
-          : "(empty)",
-      field: f,
-    };
-  });
+  const editableFieldKeys = getEditableProfileFields(profile.platformName);
+  const fieldItems = EDITABLE_FIELDS
+    .filter((field) => editableFieldKeys.includes(field.key))
+    .map((field) => {
+      const currentVal = profile[field.key as keyof typeof profile];
+      return {
+        label: field.label,
+        description: typeof currentVal === "string"
+          ? (field.key === "authToken" ? "****" : currentVal)
+          : currentVal !== undefined
+            ? String(currentVal)
+            : "(empty)",
+        field,
+      };
+    });
 
   const picked = await vscode.window.showQuickPick(fieldItems, {
     placeHolder: `Edit field for profile '${profile.name}'`,
   });
   if (!picked) return;
 
-  // Get current value using camelCase key
   const currentValue = profile[picked.field.key as keyof typeof profile];
   const currentStr = typeof currentValue === "string"
     ? currentValue
@@ -343,17 +601,15 @@ async function editProfileField(
       ? String(currentValue)
       : "";
 
-  // Input new value
   const newValue = await vscode.window.showInputBox({
     prompt: `Edit ${picked.field.label} for '${profile.name}'`,
     value: currentStr,
     placeHolder: `Enter new value for ${picked.field.label}`,
   });
 
-  if (newValue === undefined) return; // Cancelled
+  if (newValue === undefined) return;
 
   try {
-    // Write using snake_case TOML key
     await writeProfileField(profile.platformName, profile.name, picked.field.tomlKey, newValue || undefined);
     vscode.window.showInformationMessage(
       `Updated ${picked.field.label} for '${profile.name}'.`,

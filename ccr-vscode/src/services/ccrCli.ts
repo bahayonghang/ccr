@@ -69,6 +69,21 @@ export async function execProfileSwitch(profileName: string): Promise<CliResult>
   return execCcr(["switch", profileName]);
 }
 
+/** Execute `ccr codex auth switch <name>` — switch active Codex auth account */
+export async function execCodexAuthSwitch(name: string): Promise<CliResult> {
+  return execCcr(["codex", "auth", "switch", name]);
+}
+
+/** Execute `ccr codex auth delete <name> --force` — delete a saved Codex auth account */
+export async function execCodexAuthDelete(name: string): Promise<CliResult> {
+  return execCcr(["codex", "auth", "delete", name, "--force"]);
+}
+
+/** Execute `ccr codex auth current` — inspect current Codex auth account */
+export async function execCodexAuthCurrent(): Promise<CliResult> {
+  return execCcr(["codex", "auth", "current"]);
+}
+
 /** Execute an arbitrary ccr command */
 export async function execCcr(args: string[]): Promise<CliResult> {
   const ccrPath = await findCcrBinary();
