@@ -119,14 +119,14 @@ export const iconMap = {
   Filter:         'solar:filter-bold-duotone',
   FilterX:        'solar:filter-bold-duotone',
   ListFilter:     'solar:filter-bold-duotone',
-  ToggleLeft:     'solar:toggle-off-bold-duotone',
-  ToggleRight:    'solar:toggle-on-bold-duotone',
+  ToggleLeft:     'solar:close-circle-bold-duotone',
+  ToggleRight:    'solar:check-circle-bold-duotone',
 
   // People
   User:       'solar:user-bold-duotone',
   UserCheck:  'solar:user-check-bold-duotone',
   Users:      'solar:users-group-two-rounded-bold-duotone',
-  Bot:        'solar:bot-bold-duotone',
+  Bot:        'solar:cpu-bolt-bold-duotone',
 
   // Communication
   MessageSquare: 'solar:chat-square-bold-duotone',
@@ -171,7 +171,7 @@ export const iconMap = {
   Boxes:      'solar:box-bold-duotone',
   Puzzle:     'solar:widget-2-bold-duotone',
   Workflow:   'solar:branching-paths-down-bold-duotone',
-  Wrench:     'solar:wrench-bold-duotone',
+  Wrench:     'solar:sledgehammer-bold-duotone',
   Factory:    'solar:server-2-bold-duotone',
   Building2:  'solar:buildings-bold-duotone',
   Gem:        'solar:star-ring-bold-duotone',

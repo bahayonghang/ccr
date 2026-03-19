@@ -72,7 +72,6 @@
       <!-- MODULES -->
       <section
         class="animate-slide-up"
-        style="animation-delay: 100ms"
       >
         <div class="flex items-center gap-3 mb-6">
           <SIcon

@@ -115,7 +115,6 @@
       <!-- MODULE NAVIGATION -->
       <section
         class="animate-slide-up"
-        style="animation-delay: 0.1s"
       >
         <h2 class="text-lg font-bold text-white mb-3">
           功能模块

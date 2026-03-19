@@ -330,7 +330,7 @@ export default {
 
     // New Keys for HomeView Redesign
     welcomeBack: '欢迎回来',
-    roleEngineer: '指挥官',
+      roleEngineer: '舰长',
     statusMsg: '核心服务已就绪，可以继续配置、同步或排查问题。',
     platformModules: '平台模块',
     systemActivity: '系统活动',

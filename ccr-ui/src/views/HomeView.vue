@@ -168,6 +168,7 @@
 
       <!-- STATS DASHBOARD -->
       <section
+        ref="usageStatsSection"
         class="animate-slide-up"
         style="animation-delay: 300ms"
       >
@@ -194,7 +195,24 @@
             />
           </Button>
         </div>
-        <UsageStatsDashboard />
+        <UsageStatsDashboard v-if="shouldRenderUsageStats" />
+        <Card
+          v-else
+          variant="glass"
+          class="min-h-[420px] p-6 flex items-center justify-center"
+        >
+          <div class="flex flex-col items-center gap-3 text-center">
+            <div class="h-8 w-8 rounded-full border-2 border-accent-info/20 border-t-accent-info animate-spin" />
+            <div>
+              <p class="text-sm font-semibold text-text-primary">
+                {{ $t('usageStats.title') }}
+              </p>
+              <p class="mt-1 text-xs text-text-muted">
+                {{ $t('common.loading') }}
+              </p>
+            </div>
+          </div>
+        </Card>
       </section>
     </div>
   </div>
@@ -202,19 +220,26 @@
 
 <script setup lang="ts">
 import SIcon from '@/components/ui/SIcon.vue'
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, defineAsyncComponent } from 'vue'
 import { useI18n } from 'vue-i18n'
 import Card from '@/components/ui/Card.vue'
 import Button from '@/components/ui/Button.vue'
-import UsageStatsDashboard from '@/components/UsageStatsDashboard.vue'
 import { getSystemInfo, getCliVersions } from '@/api'
+import { scheduleWhenIdle } from '@/utils/scheduling'
 import { logger } from '@/utils/logger'
 import type { CliVersionEntry, CliVersionsResponse, SystemInfo } from '@/types'
+
+const UsageStatsDashboard = defineAsyncComponent({
+  loader: () => import('@/components/UsageStatsDashboard.vue'),
+  suspensible: false,
+})
 
 const { t } = useI18n()
 
 const systemInfo = ref<SystemInfo | null>(null)
 const cliVersions = ref<Map<string, CliVersionEntry>>(new Map())
+const usageStatsSection = ref<HTMLElement | null>(null)
+const shouldRenderUsageStats = ref(false)
 
 const markPerf = (name: string) => {
   if (!import.meta.env.DEV || typeof performance === 'undefined') return
@@ -249,21 +274,45 @@ const loadCliVersions = async () => {
   }
 }
 
-const scheduleCliVersionsLoad = () => {
-  const requestIdle = (window as Window & {
-    requestIdleCallback?: (callback: () => void, options?: { timeout: number }) => number
-  }).requestIdleCallback
+let cancelHomeDeferredTasks: (() => void) | null = null
+let usageStatsObserver: IntersectionObserver | null = null
+let usageStatsFallbackTimer: number | null = null
 
-  if (typeof requestIdle === 'function') {
-    requestIdle(() => {
-      void loadCliVersions()
-    }, { timeout: 300 })
+const revealUsageStats = () => {
+  if (shouldRenderUsageStats.value) return
+
+  shouldRenderUsageStats.value = true
+  markPerf('home:usage-dashboard-revealed')
+
+  if (usageStatsObserver) {
+    usageStatsObserver.disconnect()
+    usageStatsObserver = null
+  }
+  if (usageStatsFallbackTimer !== null) {
+    window.clearTimeout(usageStatsFallbackTimer)
+    usageStatsFallbackTimer = null
+  }
+}
+
+const scheduleUsageStatsLoad = () => {
+  if (typeof window === 'undefined') {
+    revealUsageStats()
     return
   }
 
-  setTimeout(() => {
-    void loadCliVersions()
-  }, 0)
+  if (typeof IntersectionObserver === 'function' && usageStatsSection.value) {
+    usageStatsObserver = new IntersectionObserver((entries) => {
+      if (entries.some((entry) => entry.isIntersecting)) {
+        revealUsageStats()
+      }
+    }, { rootMargin: '240px 0px' })
+
+    usageStatsObserver.observe(usageStatsSection.value)
+  }
+
+  usageStatsFallbackTimer = window.setTimeout(() => {
+    revealUsageStats()
+  }, 1800)
 }
 
 const logHomePerfSnapshot = () => {
@@ -294,9 +343,26 @@ const logHomePerfSnapshot = () => {
 }
 
 onMounted(() => {
-  void loadSystemInfo()
-  scheduleCliVersionsLoad()
+  cancelHomeDeferredTasks = scheduleWhenIdle(() => {
+    void loadSystemInfo()
+    void loadCliVersions()
+    scheduleUsageStatsLoad()
+  }, { timeout: 1400, fallbackDelay: 280 })
   logHomePerfSnapshot()
+})
+
+onBeforeUnmount(() => {
+  cancelHomeDeferredTasks?.()
+  cancelHomeDeferredTasks = null
+
+  if (usageStatsObserver) {
+    usageStatsObserver.disconnect()
+    usageStatsObserver = null
+  }
+  if (usageStatsFallbackTimer !== null) {
+    window.clearTimeout(usageStatsFallbackTimer)
+    usageStatsFallbackTimer = null
+  }
 })
 
 const getVersionLabel = (platformKey: string) => {

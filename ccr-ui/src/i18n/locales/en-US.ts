@@ -306,7 +306,7 @@ export default {
 
     // New Keys for HomeView Redesign
     welcomeBack: 'Welcome back',
-    roleEngineer: 'Operator',
+      roleEngineer: 'Captain',
     statusMsg: 'Core services are ready. Jump into config, sync, or troubleshooting.',
     platformModules: 'Platform Modules',
     systemActivity: 'System Activity',

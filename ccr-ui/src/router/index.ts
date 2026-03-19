@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import MainLayout from '@/components/MainLayout.vue'
 
 // RouteMeta 类型扩展
 declare module 'vue-router' {
@@ -20,7 +21,7 @@ const router = createRouter({
   routes: [
     {
       path: '/',
-      component: () => import('@/components/MainLayout.vue'),
+      component: MainLayout,
       children: [
         {
           path: '',

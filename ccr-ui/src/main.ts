@@ -2,11 +2,17 @@ import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import App from './App.vue'
 import router from './router'
-import i18n from './i18n'
+import i18n, { hydratePreferredLocale } from './i18n'
 import { useUIStore } from '@/stores/ui'
 import { logger } from '@/utils/logger'
+import { scheduleAfterPaint, scheduleWhenIdle } from '@/utils/scheduling'
 import { showCurrentWindowIfTauri } from '@/utils/tauriWindow'
+import { applyInitialTheme } from '@/utils/themeBootstrap'
+import { registerAppIcons } from '@/config/iconRegistry'
 import './styles/index.css'
+
+applyInitialTheme()
+registerAppIcons()
 
 const app = createApp(App)
 
@@ -30,5 +36,11 @@ app.config.errorHandler = (err, _instance, info) => {
 
 app.mount('#app')
 
-// Tauri 模式：Vue 挂载完成后再显示窗口，避免启动黑屏
-void showCurrentWindowIfTauri()
+// 非关键初始化推迟到首帧之后，优先让主界面完成首次绘制。
+scheduleAfterPaint(() => {
+  void showCurrentWindowIfTauri()
+})
+
+scheduleWhenIdle(() => {
+  void hydratePreferredLocale()
+}, { timeout: 1600, fallbackDelay: 320 })

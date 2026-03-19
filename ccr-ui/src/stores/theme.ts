@@ -1,16 +1,16 @@
 import { defineStore } from 'pinia'
+import { applyThemeToDocument, persistTheme, readStoredTheme, type ThemeMode } from '@/utils/themeBootstrap'
 
 export const useThemeStore = defineStore('theme', {
   state: () => ({
-    currentTheme: 'light' as 'light' | 'dark',
+    currentTheme: readStoredTheme() as ThemeMode,
   }),
 
   actions: {
-    setTheme(theme: 'light' | 'dark') {
+    setTheme(theme: ThemeMode) {
       this.currentTheme = theme
-      document.documentElement.classList.toggle('dark', theme === 'dark')
-      document.documentElement.setAttribute('data-theme', theme)
-      localStorage.setItem('ccr-theme', theme)
+      applyThemeToDocument(theme)
+      persistTheme(theme)
     },
 
     toggleTheme() {
@@ -19,9 +19,8 @@ export const useThemeStore = defineStore('theme', {
     },
 
     initializeTheme() {
-      const savedTheme = localStorage.getItem('ccr-theme') as 'light' | 'dark' | null
-      const theme = savedTheme || 'light'
-      this.setTheme(theme)
+      this.currentTheme = readStoredTheme()
+      applyThemeToDocument(this.currentTheme)
     },
   },
 })

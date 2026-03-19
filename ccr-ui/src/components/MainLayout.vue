@@ -272,7 +272,7 @@
             <!-- Version -->
             <div class="flex items-center justify-between">
               <span class="rounded-md border border-border-default/60 bg-bg-elevated/80 px-2 py-0.5 text-[10px] font-mono text-text-muted">
-                CCR UI v5.1.6
+                CCR UI v5.2.0
               </span>
             </div>
           </div>
@@ -379,16 +379,32 @@
 
 <script setup lang="ts">
 import SIcon from '@/components/ui/SIcon.vue'
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, defineAsyncComponent } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import BackendStatusBanner from '@/components/BackendStatusBanner.vue'
-import LanguageSwitcher from '@/components/LanguageSwitcher.vue'
-import ThemeToggle from '@/components/ThemeToggle.vue'
-import EnvironmentSwitcher from '@/components/EnvironmentSwitcher.vue'
 import { isTauriEnvironment, getSkipExitConfirm, setSkipExitConfirm } from '@/api/tauri'
 import { usePageTransition } from '@/composables/usePageTransition'
 import { logger } from '@/utils/logger'
+
+const BackendStatusBanner = defineAsyncComponent({
+  loader: () => import('@/components/BackendStatusBanner.vue'),
+  suspensible: false,
+})
+
+const LanguageSwitcher = defineAsyncComponent({
+  loader: () => import('@/components/LanguageSwitcher.vue'),
+  suspensible: false,
+})
+
+const ThemeToggle = defineAsyncComponent({
+  loader: () => import('@/components/ThemeToggle.vue'),
+  suspensible: false,
+})
+
+const EnvironmentSwitcher = defineAsyncComponent({
+  loader: () => import('@/components/EnvironmentSwitcher.vue'),
+  suspensible: false,
+})
 
 const route = useRoute()
 const router = useRouter()

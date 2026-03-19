@@ -67,7 +67,6 @@
       <!-- CORE MODULES (Grid) -->
       <section
         class="grid grid-cols-1 md:grid-cols-2 gap-6 animate-slide-up"
-        style="animation-delay: 200ms"
       >
         <RouterLink
           to="/claude-code/profiles"
@@ -151,10 +150,7 @@
       </section>
 
       <!-- MARKET BANNER -->
-      <section
-        class="animate-slide-up"
-        style="animation-delay: 300ms"
-      >
+      <section class="animate-slide-up">
         <RouterLink
           to="/market"
           class="block group"
@@ -198,10 +194,7 @@
       </section>
 
       <!-- EXTENDED MODULES -->
-      <section
-        class="animate-slide-up"
-        style="animation-delay: 400ms"
-      >
+      <section class="animate-slide-up">
         <div class="flex items-center gap-3 mb-6">
           <SIcon
             name="Boxes"
