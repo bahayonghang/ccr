@@ -131,8 +131,6 @@ jobs:
         include:
           - name: no-default-features
             command: cargo build -p ccr --no-default-features
-          - name: web
-            command: cargo build -p ccr --features web
           - name: tui
             command: cargo build -p ccr --features tui
           - name: all-features

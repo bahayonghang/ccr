@@ -74,6 +74,7 @@ impl BudgetManager {
     }
 
     /// 获取当前配置
+    #[allow(dead_code)]
     pub fn get_config(&self) -> &BudgetConfig {
         &self.config
     }

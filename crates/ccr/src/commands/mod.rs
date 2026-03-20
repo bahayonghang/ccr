@@ -26,9 +26,7 @@ pub mod prompts_cmd;
 pub mod provider_cmd;
 pub mod sessions_cmd;
 pub mod skills_cmd;
-#[cfg(feature = "web")]
 pub mod sync_cmd;
-#[cfg(feature = "web")]
 pub mod sync_content_selector;
 pub mod temp_cmd;
 pub mod temp_token;
@@ -66,17 +64,13 @@ pub use lifecycle::validate_command;
 // 📦 Data 命令
 pub use data::export_command;
 pub use data::history_command;
-#[cfg(feature = "web")]
 pub use data::{BudgetArgs, budget_command};
 pub use data::{ImportMode, import_command};
-#[cfg(feature = "web")]
 pub use data::{PricingArgs, pricing_command};
-#[cfg(feature = "web")]
 pub use data::{StatsArgs, stats_command};
 
 // 🔧 其他命令
 pub use check_cmd::check_conflicts_command;
-#[cfg(feature = "web")]
 pub use sync_content_selector::SyncContentSelector;
 pub use temp_cmd::temp_command;
 pub use temp_token::{temp_token_clear, temp_token_set, temp_token_show};

@@ -71,6 +71,7 @@ impl BackupService {
     }
 
     /// 🧹 异步清理旧备份文件
+    #[allow(dead_code)]
     pub async fn clean_old_backups_async(&self, days: u64, dry_run: bool) -> Result<CleanResult> {
         let exists = async_fs::try_exists(&self.backup_dir)
             .await
@@ -173,6 +174,7 @@ impl BackupService {
     }
 
     /// 🔍 异步扫描并清理备份文件
+    #[allow(dead_code)]
     async fn scan_and_clean_async(
         &self,
         cutoff_time: SystemTime,

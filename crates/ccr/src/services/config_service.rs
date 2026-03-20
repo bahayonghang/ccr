@@ -11,6 +11,7 @@ use std::time::Duration;
 
 /// 📋 配置信息(用于展示)
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct ConfigInfo {
     pub name: String,
     pub description: String,
@@ -170,6 +171,7 @@ impl ConfigService {
     }
 
     /// 🔍 获取指定配置信息
+    #[allow(dead_code)]
     pub fn get_config(&self, name: &str) -> Result<ConfigInfo> {
         let (_file_lock, _guard) = self.lock_config()?;
         let config = self.config_manager.load_with_autofix()?;
@@ -220,6 +222,7 @@ impl ConfigService {
     /// ✏️ 更新现有配置
     ///
     /// 🔐 **并发安全**: 使用跨进程锁 + CONFIG_LOCK 保护整个 RMW 序列
+    #[allow(dead_code)]
     pub fn update_config(
         &self,
         old_name: &str,

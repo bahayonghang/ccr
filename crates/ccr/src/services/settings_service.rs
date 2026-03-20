@@ -10,6 +10,7 @@ use tokio::fs as async_fs;
 
 /// 📦 备份信息
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct BackupInfo {
     pub filename: String,
     pub path: PathBuf,

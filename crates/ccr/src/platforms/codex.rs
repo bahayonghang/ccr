@@ -10,6 +10,7 @@
 use crate::core::error::{CcrError, Result};
 use crate::managers::PlatformConfigManager;
 use crate::managers::codex_config::CodexConfigManager;
+use crate::managers::config::CcsConfig;
 use crate::models::{
     AuthIntent, CodexProfileAuthMode, CredentialStoreKind, OpenAiAuthMethod, Platform,
     PlatformConfig, PlatformPaths, ProfileConfig,
@@ -1023,6 +1024,7 @@ impl CodexPlatform {
         }
     }
 
+    #[allow(dead_code)]
     pub fn export_profile_env(&self, name: &str) -> Result<IndexMap<String, String>> {
         let profiles = self.load_profiles()?;
         let profile = profiles
@@ -1177,27 +1179,51 @@ impl CodexPlatform {
         manager.save(&unified)
     }
 
-    fn reconcile_current_profile_registry(&self) -> Result<Option<String>> {
-        let Some(current) = base::get_current_profile_from_registry("codex")? else {
+    fn fallback_current_profile_from_file(&self) -> Result<Option<String>> {
+        if !self.paths.profiles_file.exists() {
             return Ok(None);
+        }
+
+        let content = match std::fs::read_to_string(&self.paths.profiles_file) {
+            Ok(content) => content,
+            Err(_) => return Ok(None),
         };
 
-        let profiles = self.load_profiles()?;
-        let Some(profile) = profiles.get(&current) else {
-            self.clear_current_profile_registry()?;
-            return Ok(None);
+        let parsed = match toml::from_str::<CcsConfig>(&content) {
+            Ok(parsed) => parsed,
+            Err(_) => return Ok(None),
         };
 
-        let config = self.config_manager.load_config()?;
-        let auth = self.config_manager.load_auth()?;
-        let auth_intent = Self::resolve_current_auth_intent(&config, &auth);
-        let spec = Self::build_switch_spec(&current, profile, &auth_intent)?;
+        let current = parsed.current_config.trim();
+        if current.is_empty() || !parsed.sections.contains_key(current) {
+            return Ok(None);
+        }
 
-        if Self::spec_matches_runtime(&spec, &config, &auth_intent) {
-            Ok(Some(current))
-        } else {
-            self.clear_current_profile_registry()?;
-            Ok(None)
+        Ok(Some(current.to_string()))
+    }
+
+    fn stable_current_profile(&self) -> Result<Option<String>> {
+        match base::get_current_profile_from_registry("codex")? {
+            Some(current) => {
+                let profiles = self.load_profiles()?;
+                let Some(profile) = profiles.get(&current) else {
+                    self.clear_current_profile_registry()?;
+                    return self.fallback_current_profile_from_file();
+                };
+
+                let config = self.config_manager.load_config()?;
+                let auth = self.config_manager.load_auth()?;
+                let auth_intent = Self::resolve_current_auth_intent(&config, &auth);
+                let spec = Self::build_switch_spec(&current, profile, &auth_intent)?;
+
+                if Self::spec_matches_runtime(&spec, &config, &auth_intent) {
+                    Ok(Some(current))
+                } else {
+                    self.clear_current_profile_registry()?;
+                    self.fallback_current_profile_from_file()
+                }
+            }
+            None => self.fallback_current_profile_from_file(),
         }
     }
 }
@@ -1368,7 +1394,7 @@ impl PlatformConfig for CodexPlatform {
     }
 
     fn get_current_profile(&self) -> Result<Option<String>> {
-        self.reconcile_current_profile_registry()
+        self.stable_current_profile()
     }
 
     fn get_env_var_names(&self) -> Vec<String> {

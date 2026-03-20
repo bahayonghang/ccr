@@ -1044,7 +1044,6 @@ impl CodexAuthService {
     // ==================== 进程检测 ====================
 
     /// 检测是否有 Codex 进程正在运行
-    #[cfg(feature = "web")]
     pub fn detect_codex_process(&self) -> Vec<u32> {
         use sysinfo::System;
 
@@ -1059,13 +1058,6 @@ impl CodexAuthService {
             })
             .map(|(pid, _)| pid.as_u32())
             .collect()
-    }
-
-    /// 检测是否有 Codex 进程正在运行 (无 sysinfo 时的 fallback)
-    #[cfg(not(feature = "web"))]
-    pub fn detect_codex_process(&self) -> Vec<u32> {
-        // 无 sysinfo 依赖时返回空
-        Vec::new()
     }
 
     // ==================== Token 新鲜度 ====================

@@ -22,7 +22,7 @@
 //! ## 架构层次
 //!
 //! ```text
-//! CLI/Web Layer → Services → Managers → Core/Utils
+//! CLI/TUI Layer → Services → Managers → Core/Utils
 //! ```
 //!
 //! ### 模块组织
@@ -33,7 +33,6 @@
 //! - [`managers`] - 数据访问和持久化层
 //! - [`services`] - 业务逻辑和编排层
 //! - [`commands`] - CLI 命令实现
-//! - [`web`] - Web API 服务器
 //! - [`tui`] - 终端用户界面
 //! - [`utils`] - 工具函数和辅助类型
 //!
@@ -142,9 +141,6 @@ pub mod utils;
 // 可选功能模块
 #[cfg(feature = "tui")]
 pub mod tui;
-
-#[cfg(feature = "web")]
-pub mod web;
 
 // ═══════════════════════════════════════════════════════════
 // 核心类型导出

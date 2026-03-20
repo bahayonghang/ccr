@@ -110,9 +110,8 @@ Core Layer (core/) - Error handling, file locking, atomic writes
 
 ```toml
 [features]
-default = ["web", "tui"]
+default = ["tui"]
 tui = ["dep:crossterm", "dep:ratatui"]      # Terminal UI
-web = ["dep:axum", "dep:tower", ...]        # Web API server
 ```
 
 ## Code Style

@@ -11,6 +11,5 @@ pub mod ui;
 pub use check::CheckAction;
 pub use codex::{CodexAction, CodexAuthAction};
 pub use platform::PlatformAction;
-#[cfg(feature = "web")]
 pub use sync::{AllSyncAction, FolderAction, SyncAction};
 pub use ui::{TempTokenAction, UiAction};

@@ -5,7 +5,7 @@
 // - ⚙️  配置切换与管理
 // - 📝 操作历史追踪
 // - 🔒 文件锁保证并发安全
-// - 🌐 Web 管理界面
+// - 🖥️ TUI 与 CCR UI 启动入口
 
 mod application;
 mod commands;
@@ -22,9 +22,6 @@ mod utils;
 
 #[cfg(feature = "tui")]
 mod tui;
-
-#[cfg(feature = "web")]
-mod web;
 
 // CLI 模块 - 命令行结构定义和命令分发
 mod cli;

@@ -3,6 +3,7 @@ use crate::models::Platform;
 use std::collections::HashMap;
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct SwitchProfileRequest {
     pub config_name: String,
     pub platform_name: Option<String>,
@@ -25,6 +26,7 @@ pub struct SwitchPlatformRequest {
 }
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct SwitchPlatformResult {
     pub old_platform: String,
     pub new_platform: String,

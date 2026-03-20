@@ -174,27 +174,6 @@ pub enum Commands {
         filter_type: Option<String>,
     },
 
-    /// 启动轻量级 Legacy Web 界面 / Web API
-    ///
-    /// 主要用于兼容旧版 Web 界面和脚本/CI 等编程访问场景
-    /// 示例: ccr web -p 3000
-    ///       ccr web --no-browser
-    /// 提示：如需在浏览器中使用完整图形界面，推荐改用 `ccr ui` 启动 CCR UI 应用
-    #[cfg(feature = "web")]
-    Web {
-        /// 指定 Web 服务器监听地址（默认: 127.0.0.1，仅本机访问）
-        #[arg(long, default_value = "127.0.0.1")]
-        host: std::net::IpAddr,
-
-        /// 指定 Web 服务器监听端口(默认: 19527)
-        #[arg(short, long, default_value_t = 19527)]
-        port: u16,
-
-        /// 不自动打开浏览器
-        #[arg(long)]
-        no_browser: bool,
-    },
-
     /// 从 GitHub 更新到最新版本
     ///
     /// 检查并安装 CCR 的最新版本
@@ -309,7 +288,6 @@ pub enum Commands {
     ///       ccr sync status  # 查看状态
     ///       ccr sync push    # 上传配置
     ///       ccr sync pull    # 下载配置
-    #[cfg(feature = "web")]
     Sync {
         #[command(subcommand)]
         action: super::subcommands::sync::SyncAction,
@@ -376,7 +354,6 @@ pub enum Commands {
     /// 示例: ccr stats cost --today
     ///       ccr stats cost --by-model
     ///       ccr stats cost --top 10
-    #[cfg(feature = "web")]
     Stats(crate::commands::StatsArgs),
 
     /// 💰 预算管理
@@ -385,7 +362,6 @@ pub enum Commands {
     /// 示例: ccr budget status
     ///       ccr budget set --daily 10.0 --monthly 200.0
     ///       ccr budget reset
-    #[cfg(feature = "web")]
     Budget(crate::commands::BudgetArgs),
 
     /// 💲 价格表管理
@@ -394,7 +370,6 @@ pub enum Commands {
     /// 示例: ccr pricing list
     ///       ccr pricing set my-model --input 3.0 --output 15.0
     ///       ccr pricing remove my-model
-    #[cfg(feature = "web")]
     Pricing(crate::commands::PricingArgs),
 
     /// 🛠️ 技能管理

@@ -20,8 +20,8 @@
 1. **CLI 接口** - 30+ 命令的完整命令行接口
 2. **服务层** - 业务逻辑编排 (7 services)
 3. **管理层** - 数据访问与持久化 (6+ managers)
-4. **Web API** - 轻量级 Axum REST API (14 endpoints)
-5. **TUI** - 交互式终端用户界面
+4. **TUI** - 交互式终端用户界面
+5. **CCR UI Launcher** - 启动与更新独立 `ccr-ui` 图形界面
 6. **核心基础设施** - 错误处理、文件锁定、原子写入、日志
 7. **Session 管理** - AI 会话解析、索引、搜索 (SQLite)
 8. **平台抽象** - 6 平台支持 (Claude/Codex/Gemini/Qwen/IFlow/Droid)
@@ -29,7 +29,7 @@
 
 **设计特点**:
 - 既是独立二进制 (`ccr`),也是可复用库
-- 严格分层架构: CLI/Web → Services → Managers → Core/Utils
+- 严格分层架构: CLI/TUI → Services → Managers → Core/Utils
 - 所有文件操作使用原子写入(临时文件 + 原子重命名)
 - 文件锁定防止并发损坏
 - 完整审计跟踪(UUID, 时间戳, 操作者)
@@ -38,12 +38,11 @@
 
 ```
 src/
-├── CLI/Web Layer (命令层)
+├── CLI/TUI Layer (命令层)
 │   ├── main.rs              - CLI 入口 (Clap 解析)
 │   ├── cli/                 - CLI 定义和分发
 │   │   └── subcommands/     - 子命令模块 (check, codex, platform, sync, ui)
 │   ├── commands/            - 30+ CLI 命令实现
-│   ├── web/                 - Axum Web 服务器 (14 端点)
 │   └── tui/                 - 终端 UI (Ratatui)
 │
 ├── Service Layer (服务层)
@@ -122,7 +121,6 @@ src/
 | **Rust** | Edition 2024 | 编程语言 (需要 1.88+) |
 | **Clap** | 4.5+ | CLI 参数解析 (derive 宏) |
 | **Tokio** | 1.48+ | 异步运行时 |
-| **Axum** | 0.8+ | Web 框架 |
 
 ### 序列化与文件 I/O
 
@@ -146,14 +144,13 @@ src/
 | **env_logger** | 0.11+ | 环境变量日志 |
 | **colored** | 3.0+ | 彩色终端输出 |
 
-### TUI 与 Web
+### TUI 与终端
 
 | 技术 | 版本 | 用途 |
 |------|------|------|
 | **Ratatui** | 0.29+ | TUI 框架 |
 | **Crossterm** | 0.29+ | 终端控制 |
 | **comfy-table** | 7.2+ | 表格格式化 |
-| **Tower-HTTP** | 0.6+ | CORS 中间件 |
 
 ### 工具库
 
@@ -202,7 +199,6 @@ src/
 │   ├── export_import.rs       - 导入/导出
 │   ├── clean.rs               - 清理备份
 │   ├── sync_cmd.rs            - WebDAV 同步
-│   ├── web_cmd.rs             - Web 服务器
 │   ├── ui_cmd.rs              - UI 启动
 │   ├── tui_cmd.rs             - TUI 启动
 │   ├── stats_cmd.rs           - 成本统计
@@ -257,7 +253,7 @@ src/
 │   ├── config.rs              - 同步配置管理
 │   ├── folder_manager.rs      - 多文件夹管理
 │   ├── service.rs             - WebDAV 同步服务
-│   ├── commands.rs            - 同步命令 (feature = "web")
+│   ├── commands.rs            - 同步命令
 │   └── content_selector.rs    - 内容选择器
 │
 ├── models/                    # 数据模型
@@ -299,7 +295,6 @@ src/
 |----------|------|------|
 | **CLI 入口** | `src/main.rs` | Clap 解析 + 命令路由 |
 | **库入口** | `src/lib.rs` | 公开 API 导出 |
-| **Web 入口** | `src/web/server.rs` | Axum 服务器 (port 19527) |
 | **TUI 入口** | `src/tui/mod.rs` | 终端 UI 入口 |
 | **Session 入口** | `src/sessions/mod.rs` | 会话解析和索引 |
 | **Storage 入口** | `src/storage/mod.rs` | SQLite 数据库访问 |

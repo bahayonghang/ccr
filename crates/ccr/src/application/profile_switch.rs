@@ -10,6 +10,7 @@ use crate::platforms::{base::profile_to_section, create_platform};
 use std::collections::HashMap;
 use std::str::FromStr;
 
+#[allow(dead_code)]
 pub async fn switch_profile(request: SwitchProfileRequest) -> Result<SwitchProfileResult> {
     let platform_name = match request.platform_name {
         Some(name) => name,

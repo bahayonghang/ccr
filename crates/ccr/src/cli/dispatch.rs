@@ -2,7 +2,6 @@
 //
 // 将 CLI 命令路由到对应的处理函数
 
-#[cfg(feature = "web")]
 use crate::cli::subcommands::{AllSyncAction, FolderAction};
 use crate::cli::{Cli, Commands};
 use crate::core::error::CcrError;
@@ -83,34 +82,22 @@ impl CommandDispatcher {
                 crate::commands::clear_command(auto_yes || *force).await
             }
 
-            // 带特性的命令
-            #[cfg(feature = "web")]
-            Some(Commands::Web {
-                host,
-                port,
-                no_browser,
-            }) => crate::web::web_command(Some(*host), Some(*port), *no_browser).await,
-
             Some(Commands::Ui {
                 action,
                 port,
                 backend_port,
             }) => Self::dispatch_ui(action, *port, *backend_port, auto_yes).await,
 
-            #[cfg(feature = "web")]
             Some(Commands::Sync { action }) => Self::dispatch_sync(action, auto_yes).await,
 
             Some(Commands::TempToken { action }) => Self::dispatch_temp_token(action).await,
 
             Some(Commands::Platform { action }) => Self::dispatch_platform(action).await,
 
-            #[cfg(feature = "web")]
             Some(Commands::Stats(args)) => Self::dispatch_stats(args.clone()).await,
 
-            #[cfg(feature = "web")]
             Some(Commands::Budget(args)) => Self::dispatch_budget(args.clone()).await,
 
-            #[cfg(feature = "web")]
             Some(Commands::Pricing(args)) => Self::dispatch_pricing(args.clone()).await,
 
             Some(Commands::Skills(args)) => {
@@ -187,7 +174,6 @@ impl CommandDispatcher {
     }
 
     /// Sync 命令分发
-    #[cfg(feature = "web")]
     async fn dispatch_sync(
         action: &crate::cli::subcommands::SyncAction,
         _auto_yes: bool,
@@ -230,7 +216,6 @@ impl CommandDispatcher {
     }
 
     /// Folder 命令分发
-    #[cfg(feature = "web")]
     fn dispatch_folder(action: &FolderAction) -> Result<(), CcrError> {
         match action {
             FolderAction::Help => {
@@ -265,7 +250,6 @@ impl CommandDispatcher {
     }
 
     /// AllSync 命令分发
-    #[cfg(feature = "web")]
     async fn dispatch_all_sync(action: &AllSyncAction) -> Result<(), CcrError> {
         match action {
             AllSyncAction::Help => {
@@ -420,7 +404,6 @@ impl CommandDispatcher {
     }
 
     /// Stats 命令分发
-    #[cfg(feature = "web")]
     async fn dispatch_stats(args: crate::commands::StatsArgs) -> Result<(), CcrError> {
         use crate::core::ColorOutput;
         let mut color_output = ColorOutput;
@@ -428,13 +411,11 @@ impl CommandDispatcher {
     }
 
     /// Budget 命令分发
-    #[cfg(feature = "web")]
     async fn dispatch_budget(args: crate::commands::BudgetArgs) -> Result<(), CcrError> {
         crate::commands::budget_command(args).await
     }
 
     /// Pricing 命令分发
-    #[cfg(feature = "web")]
     async fn dispatch_pricing(args: crate::commands::PricingArgs) -> Result<(), CcrError> {
         crate::commands::pricing_command(args).await
     }

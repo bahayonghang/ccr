@@ -1,11 +1,12 @@
 // TUI application state — Tab-based dispatch (Claude + Codex only)
 
 use crate::core::error::Result;
-use crate::models::platform::{Platform, PlatformConfig};
+use crate::models::platform::{Platform, PlatformConfig, ProfileConfig};
 use crate::platforms::create_platform;
 use crate::tui::action::Action;
 use crate::tui::toast::{Toast, ToastManager};
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
+use indexmap::IndexMap;
 use ratatui::Frame;
 use ratatui::layout::Rect;
 use ratatui::widgets::{Block, Borders};
@@ -17,7 +18,7 @@ use super::runtime::TuiApp;
 use super::ui;
 
 /// Maximum profiles per page
-pub const PAGE_SIZE: usize = 20;
+pub const PAGE_SIZE: usize = 10;
 
 /// A single profile entry for display
 #[derive(Debug, Clone)]
@@ -42,6 +43,7 @@ pub struct PlatformTab {
     pub variant: TabVariant,
     pub label: String,
     pub profiles: Vec<ProfileItem>,
+    pub profile_configs: IndexMap<String, ProfileConfig>,
     pub instance: Option<Arc<dyn PlatformConfig>>,
 }
 
@@ -55,6 +57,8 @@ pub struct App {
     pub selected_index: usize,
     /// Current page number (0-based)
     pub current_page: usize,
+    /// 当前选中的 profile 名称（跨刷新保持同步）
+    pub selected_profile_name: Option<String>,
     /// Toast notification manager
     pub toasts: ToastManager,
     /// Last applied profile info (platform_name, profile_name, success, error)
@@ -72,6 +76,113 @@ pub struct App {
 }
 
 impl App {
+    fn build_profile_tab_data(
+        instance: &Arc<dyn PlatformConfig>,
+    ) -> (Vec<ProfileItem>, IndexMap<String, ProfileConfig>) {
+        let current = instance.get_current_profile().ok().flatten();
+        match instance.load_profiles() {
+            Ok(profile_configs) => {
+                let profiles = profile_configs
+                    .iter()
+                    .map(|(name, config)| ProfileItem {
+                        is_current: current.as_ref() == Some(name),
+                        description: config.description.clone(),
+                        name: name.clone(),
+                    })
+                    .collect();
+                (profiles, profile_configs)
+            }
+            Err(e) => {
+                tracing::warn!(
+                    "Failed to load {} profiles: {}",
+                    instance.platform_name(),
+                    e
+                );
+                (Vec::new(), IndexMap::new())
+            }
+        }
+    }
+
+    fn remember_selected_profile(&mut self) {
+        self.selected_profile_name = self.selected_profile().map(|profile| profile.name.clone());
+    }
+
+    fn current_profile_global_index(&self) -> Option<usize> {
+        self.current_profiles()
+            .iter()
+            .position(|profile| profile.is_current)
+    }
+
+    fn selected_profile_global_index(&self) -> Option<usize> {
+        let page_len = self.current_page_profiles().len();
+        if page_len == 0 {
+            return None;
+        }
+
+        let clamped_index = self.selected_index.min(page_len.saturating_sub(1));
+        let index = self.current_page * PAGE_SIZE + clamped_index;
+        (index < self.current_profiles().len()).then_some(index)
+    }
+
+    fn move_to_page(&mut self, new_page: usize) {
+        let old_relative_index = self.selected_index;
+        self.current_page = new_page;
+        let page_len = self.current_page_profiles().len();
+        self.selected_index = if page_len == 0 {
+            0
+        } else {
+            old_relative_index.min(page_len.saturating_sub(1))
+        };
+        self.remember_selected_profile();
+    }
+
+    pub fn selected_profile(&self) -> Option<&ProfileItem> {
+        self.selected_profile_global_index()
+            .and_then(|idx| self.current_profiles().get(idx))
+    }
+
+    pub fn selected_profile_config(&self) -> Option<&ProfileConfig> {
+        let profile_name = self.selected_profile()?.name.as_str();
+        self.tabs[self.active_tab].profile_configs.get(profile_name)
+    }
+
+    fn sync_selection_to_profile_name(&mut self) {
+        let total = self.current_profiles().len();
+        if total == 0 {
+            self.current_page = 0;
+            self.selected_index = 0;
+            self.selected_profile_name = None;
+            return;
+        }
+
+        let preferred_index = if self.current_platform() == Platform::Codex {
+            self.current_profile_global_index()
+                .or_else(|| {
+                    self.selected_profile_name.as_ref().and_then(|name| {
+                        self.current_profiles()
+                            .iter()
+                            .position(|profile| profile.name == *name)
+                    })
+                })
+                .unwrap_or(0)
+        } else {
+            self.selected_profile_name
+                .as_ref()
+                .and_then(|name| {
+                    self.current_profiles()
+                        .iter()
+                        .position(|profile| profile.name == *name)
+                })
+                .or_else(|| self.selected_profile_global_index())
+                .unwrap_or(0)
+                .min(total.saturating_sub(1))
+        };
+
+        self.current_page = preferred_index / PAGE_SIZE;
+        self.selected_index = preferred_index % PAGE_SIZE;
+        self.remember_selected_profile();
+    }
+
     /// Build the app with Claude + Codex tabs only.
     pub fn new() -> Result<Self> {
         let mut tabs = Vec::new();
@@ -84,21 +195,7 @@ impl App {
 
             match create_platform(platform) {
                 Ok(instance) => {
-                    let current = instance.get_current_profile().ok().flatten();
-                    let items = match instance.load_profiles() {
-                        Ok(profiles) => profiles
-                            .into_iter()
-                            .map(|(name, config)| ProfileItem {
-                                is_current: current.as_ref() == Some(&name),
-                                description: config.description.clone(),
-                                name,
-                            })
-                            .collect(),
-                        Err(e) => {
-                            tracing::warn!("Failed to load {} profiles: {}", platform, e);
-                            Vec::new()
-                        }
-                    };
+                    let (items, profile_configs) = Self::build_profile_tab_data(&instance);
 
                     match platform {
                         Platform::Claude => {
@@ -107,6 +204,7 @@ impl App {
                                 variant: TabVariant::Profile,
                                 label: platform.display_name().to_string(),
                                 profiles: items,
+                                profile_configs,
                                 instance: Some(instance),
                             });
                         }
@@ -117,6 +215,7 @@ impl App {
                                 variant: TabVariant::CodexAuth,
                                 label: "Codex Auth".to_string(),
                                 profiles: Vec::new(),
+                                profile_configs: IndexMap::new(),
                                 instance: Some(Arc::clone(&instance)),
                             });
                             // Codex Profile tab (profile switching)
@@ -125,6 +224,7 @@ impl App {
                                 variant: TabVariant::Profile,
                                 label: "Codex Profile".to_string(),
                                 profiles: items,
+                                profile_configs,
                                 instance: Some(instance),
                             });
                         }
@@ -144,15 +244,17 @@ impl App {
                 variant: TabVariant::Profile,
                 label: Platform::Claude.display_name().to_string(),
                 profiles: Vec::new(),
+                profile_configs: IndexMap::new(),
                 instance: None,
             });
         }
 
-        Ok(Self {
+        let mut app = Self {
             tabs,
             active_tab: 0,
             selected_index: 0,
             current_page: 0,
+            selected_profile_name: None,
             toasts: ToastManager::new(),
             last_applied: None,
             codex_auth_app: None,
@@ -160,7 +262,9 @@ impl App {
             last_codex_action: None,
             header_area: Cell::new(None),
             list_area: Cell::new(None),
-        })
+        };
+        app.sync_selection_to_profile_name();
+        Ok(app)
     }
 
     // -- Accessors --
@@ -228,47 +332,48 @@ impl App {
             Action::Quit => return Ok(true),
             Action::NextTab => {
                 if self.tabs.len() > 1 {
+                    self.remember_selected_profile();
                     self.active_tab = (self.active_tab + 1) % self.tabs.len();
-                    self.current_page = 0;
-                    self.selected_index = 0;
+                    self.sync_selection_to_profile_name();
                     self.notify_tab_activated();
                 }
             }
             Action::SwitchTab(idx) => {
                 if idx < self.tabs.len() {
+                    self.remember_selected_profile();
                     self.active_tab = idx;
-                    self.current_page = 0;
-                    self.selected_index = 0;
+                    self.sync_selection_to_profile_name();
                     self.notify_tab_activated();
                 }
             }
             Action::SelectPrev => {
                 if self.selected_index > 0 {
                     self.selected_index -= 1;
+                    self.remember_selected_profile();
                 }
             }
             Action::SelectNext => {
                 let page_len = self.current_page_profiles().len();
                 if page_len > 0 && self.selected_index < page_len - 1 {
                     self.selected_index += 1;
+                    self.remember_selected_profile();
                 }
             }
             Action::SelectAt(idx) => {
                 let page_len = self.current_page_profiles().len();
                 if idx < page_len {
                     self.selected_index = idx;
+                    self.remember_selected_profile();
                 }
             }
             Action::PrevPage => {
                 if self.current_page > 0 {
-                    self.current_page -= 1;
-                    self.selected_index = 0;
+                    self.move_to_page(self.current_page - 1);
                 }
             }
             Action::NextPage => {
                 if self.current_page < self.total_pages() - 1 {
-                    self.current_page += 1;
-                    self.selected_index = 0;
+                    self.move_to_page(self.current_page + 1);
                 }
             }
             Action::ApplySelected => {
@@ -287,17 +392,15 @@ impl App {
     }
 
     fn apply_selected(&mut self) {
-        let page_profiles = self.current_page_profiles();
-        if page_profiles.is_empty() {
+        let Some(selected) = self.selected_profile() else {
             self.toasts.push(Toast::warning("没有可用的配置"));
             return;
-        }
+        };
 
-        let selected = &page_profiles[self.selected_index];
         let tab = &self.tabs[self.active_tab];
-        // Use tab.label to distinguish Codex Auth vs Codex Profile in exit info
         let platform_label = tab.label.clone();
         let profile_name = selected.name.clone();
+        self.selected_profile_name = Some(profile_name.clone());
 
         if let Some(instance) = &tab.instance {
             match instance.apply_profile(&profile_name) {
@@ -306,7 +409,6 @@ impl App {
                         .push(Toast::success(format!("✅ 已切换到: {}", profile_name)));
                     self.last_applied = Some((platform_label, profile_name.clone(), true, None));
 
-                    // Increment usage_count (best-effort, don't fail on error)
                     if let Ok(profiles) = instance.load_profiles()
                         && let Some(mut profile) = profiles.get(&profile_name).cloned()
                     {
@@ -330,24 +432,16 @@ impl App {
 
     fn reload_profiles(&mut self) {
         for tab in &mut self.tabs {
-            // Only reload Profile tabs (CodexAuth has no profile data)
             if tab.variant != TabVariant::Profile {
                 continue;
             }
             if let Some(instance) = &tab.instance {
-                let current = instance.get_current_profile().ok().flatten();
-                if let Ok(profiles) = instance.load_profiles() {
-                    tab.profiles = profiles
-                        .into_iter()
-                        .map(|(name, config)| ProfileItem {
-                            is_current: current.as_ref() == Some(&name),
-                            description: config.description.clone(),
-                            name,
-                        })
-                        .collect();
-                }
+                let (profiles, profile_configs) = Self::build_profile_tab_data(instance);
+                tab.profiles = profiles;
+                tab.profile_configs = profile_configs;
             }
         }
+        self.sync_selection_to_profile_name();
     }
 
     // -- Tab helpers --
@@ -391,7 +485,9 @@ impl App {
             .iter()
             .position(|t| t.platform == Platform::Codex && t.variant == TabVariant::CodexAuth)
         {
+            self.remember_selected_profile();
             self.active_tab = idx;
+            self.sync_selection_to_profile_name();
             self.notify_tab_activated();
         }
         self
@@ -400,6 +496,7 @@ impl App {
     /// Notify the active tab's sub-app that it became active
     fn notify_tab_activated(&mut self) {
         if !self.is_codex_auth_tab() {
+            self.sync_selection_to_profile_name();
             return;
         }
 

@@ -5,6 +5,8 @@ use super::app::App;
 use super::codex_auth;
 use super::theme;
 use super::toast::ToastKind;
+use crate::models::{OpenAiAuthMethod, Platform, ProfileConfig};
+use crate::platforms::codex::CodexPlatform;
 use ratatui::{
     Frame,
     layout::{Alignment, Constraint, Direction, Layout, Rect},
@@ -33,12 +35,10 @@ pub fn draw(f: &mut Frame, app: &App) {
 
     render_header(f, app, chunks[0]);
 
-    // 🖱️ 缓存区域信息供鼠标点击使用
-    app.header_area.set(Some(chunks[0]));
-    app.list_area.set(Some(chunks[1]));
-
     if app.is_codex_auth_tab() {
-        // Codex tab: delegate content + footer to codex_auth embedded renderer
+        app.header_area.set(Some(chunks[0]));
+        app.list_area.set(Some(chunks[1]));
+
         if let Some(ref codex_app) = app.codex_auth_app {
             codex_auth::ui::draw_embedded(f, codex_app, chunks[1], chunks[2], compact);
         } else {
@@ -51,8 +51,24 @@ pub fn draw(f: &mut Frame, app: &App) {
             );
         }
     } else {
-        // Claude tab: profile list + footer
-        render_profile_list(f, app, chunks[1]);
+        let content_chunks = if compact {
+            vec![chunks[1]]
+        } else {
+            Layout::default()
+                .direction(Direction::Vertical)
+                .constraints([Constraint::Percentage(52), Constraint::Percentage(48)])
+                .split(chunks[1])
+                .to_vec()
+        };
+
+        app.header_area.set(Some(chunks[0]));
+        app.list_area.set(Some(content_chunks[0]));
+
+        render_profile_list(f, app, content_chunks[0]);
+        if !compact {
+            render_profile_details(f, app, content_chunks[1]);
+        }
+
         if compact {
             render_toast(f, app, chunks[2]);
         } else {
@@ -161,6 +177,10 @@ fn render_header(f: &mut Frame, app: &App, area: Rect) {
 
 /// Render profile list with platform-aware accent color
 fn render_profile_list(f: &mut Frame, app: &App, area: Rect) {
+    render_profile_list_panel(f, app, area);
+}
+
+fn render_profile_list_panel(f: &mut Frame, app: &App, area: Rect) {
     let profiles = app.current_page_profiles();
     let all_profiles = app.current_profiles();
     let platform = app.current_platform();
@@ -194,20 +214,33 @@ fn render_profile_list(f: &mut Frame, app: &App, area: Rect) {
         out
     }
 
-    // Title with profile count and pagination
     let total_pages = app.total_pages();
+    let total_profiles = all_profiles.len();
+    let visible_start = if total_profiles == 0 {
+        0
+    } else {
+        app.current_page * super::app::PAGE_SIZE + 1
+    };
+    let visible_end = if total_profiles == 0 {
+        0
+    } else {
+        app.current_page * super::app::PAGE_SIZE + profiles.len()
+    };
     let title = if all_profiles.is_empty() {
         format!(" {} Profiles ", platform_name)
     } else if total_pages > 1 {
         format!(
-            " {} Profiles ({})  Page {}/{} ",
+            " {} Profiles ({})  {}-{} / {}  Page {}/{} ",
             platform_name,
-            all_profiles.len(),
+            total_profiles,
+            visible_start,
+            visible_end,
+            total_profiles,
             app.current_page + 1,
             total_pages
         )
     } else {
-        format!(" {} Profiles ({}) ", platform_name, all_profiles.len())
+        format!(" {} Profiles ({}) ", platform_name, total_profiles)
     };
 
     let block = Block::default()
@@ -225,8 +258,6 @@ fn render_profile_list(f: &mut Frame, app: &App, area: Rect) {
     }
 
     let (name_width, desc_width) = column_widths(area.width);
-
-    // Platform-aware selection highlight
     let selected_style = Style::default()
         .fg(theme::BG_PRIMARY)
         .bg(accent)
@@ -237,38 +268,36 @@ fn render_profile_list(f: &mut Frame, app: &App, area: Rect) {
         .enumerate()
         .map(|(i, profile)| {
             let is_selected = i == app.selected_index;
-
             let selector = if is_selected { "▶ " } else { "  " };
             let current_marker = if profile.is_current { "●" } else { "○" };
-
             let name = &profile.name;
-            let desc = profile.description.as_deref().unwrap_or("");
+            let desc = profile.description.as_deref().unwrap_or("").trim();
             let current_tag = if profile.is_current { " ✓" } else { "" };
-
             let name_raw = format!("{}{} {}{}", selector, current_marker, name, current_tag);
             let name_cell = pad_text(&truncate_text(&name_raw, name_width), name_width);
 
             let name_style = if is_selected {
                 selected_style
             } else if profile.is_current {
-                theme::list_current_style()
+                theme::list_current_style().add_modifier(Modifier::BOLD)
             } else {
                 theme::list_normal_style()
             };
 
-            // Responsive: hide description column when narrow
-            let line_spans = if desc_width > 0 {
+            let line_spans = if desc_width > 0 && !desc.is_empty() {
                 let desc_cell = pad_text(&truncate_text(desc, desc_width), desc_width);
                 let desc_style = if is_selected {
                     selected_style
                 } else if profile.is_current {
-                    theme::list_current_style()
+                    Style::default()
+                        .fg(theme::FG_SECONDARY)
+                        .add_modifier(Modifier::BOLD)
                 } else {
                     Style::default().fg(theme::FG_MUTED)
                 };
                 vec![
                     Span::styled(name_cell, name_style),
-                    Span::raw("  "),
+                    Span::styled("  ", Style::default().fg(theme::BORDER)),
                     Span::styled(desc_cell, desc_style),
                 ]
             } else {
@@ -281,6 +310,185 @@ fn render_profile_list(f: &mut Frame, app: &App, area: Rect) {
 
     let list = List::new(items).block(block);
     f.render_widget(list, area);
+}
+
+fn render_profile_details(f: &mut Frame, app: &App, area: Rect) {
+    let platform = app.current_platform();
+    let accent = theme::platform_color_for(platform);
+    let block = Block::default()
+        .borders(Borders::ALL)
+        .border_set(symbols::border::ROUNDED)
+        .border_style(Style::default().fg(accent))
+        .title(" Details ")
+        .title_style(theme::platform_style_for(platform))
+        .padding(Padding::horizontal(1));
+
+    let Some(profile) = app.selected_profile() else {
+        let paragraph = Paragraph::new("No profile selected")
+            .block(block)
+            .alignment(Alignment::Center);
+        f.render_widget(paragraph, area);
+        return;
+    };
+
+    let Some(config) = app.selected_profile_config() else {
+        let paragraph = Paragraph::new("No profile details available")
+            .block(block)
+            .alignment(Alignment::Center);
+        f.render_widget(paragraph, area);
+        return;
+    };
+
+    let lines = if platform == Platform::Codex {
+        codex_profile_detail_lines(profile.name.as_str(), config, profile.is_current)
+    } else {
+        generic_profile_detail_lines(profile.name.as_str(), config, profile.is_current)
+    };
+
+    let paragraph = Paragraph::new(lines).block(block);
+    f.render_widget(paragraph, area);
+}
+
+fn generic_profile_detail_lines(
+    name: &str,
+    config: &ProfileConfig,
+    is_current: bool,
+) -> Vec<Line<'static>> {
+    vec![
+        detail_line("name", name.to_string()),
+        detail_line("current", yes_no(is_current)),
+        detail_line("description", opt_text(config.description.as_deref())),
+        detail_line("base_url", opt_text(config.base_url.as_deref())),
+        detail_line("model", opt_text(config.model.as_deref())),
+        detail_line("account", opt_text(config.account.as_deref())),
+        detail_line("enabled", yes_no(config.is_enabled())),
+        detail_line("usage_count", config.usage_count().to_string()),
+        detail_line("tags", tags_text(config)),
+    ]
+}
+
+fn codex_profile_detail_lines(
+    name: &str,
+    config: &ProfileConfig,
+    is_current: bool,
+) -> Vec<Line<'static>> {
+    let auth_mode = CodexPlatform::profile_auth_mode(config);
+    let login_method =
+        CodexPlatform::profile_openai_login_method(config).map(|method| match method {
+            OpenAiAuthMethod::Chatgpt => "chatgpt".to_string(),
+            OpenAiAuthMethod::Api => "api".to_string(),
+        });
+    let token_state = match auth_mode.as_str() {
+        "openai_api_key" | "provider_env_key" => {
+            if config
+                .auth_token
+                .as_ref()
+                .is_some_and(|token| !token.trim().is_empty())
+            {
+                "configured".to_string()
+            } else {
+                "missing".to_string()
+            }
+        }
+        _ => "-".to_string(),
+    };
+
+    vec![
+        detail_line("name", name.to_string()),
+        detail_line("current", yes_no(is_current)),
+        detail_line("description", opt_text(config.description.as_deref())),
+        detail_line("provider_type", opt_text(config.provider_type.as_deref())),
+        detail_line("provider", opt_text(config.provider.as_deref())),
+        detail_line("auth_mode", auth_mode.as_str().to_string()),
+        detail_line("auth_source", CodexPlatform::profile_auth_source(config)),
+        detail_line(
+            "openai_login",
+            login_method.unwrap_or_else(|| "-".to_string()),
+        ),
+        detail_line(
+            "env_key",
+            opt_text(codex_platform_value(config, "env_key").as_deref()),
+        ),
+        detail_line(
+            "wire_api",
+            opt_text(codex_platform_value(config, "wire_api").as_deref()),
+        ),
+        detail_line(
+            "requires_openai",
+            bool_text(
+                codex_platform_value(config, "requires_openai_auth")
+                    .as_deref()
+                    .and_then(|value| match value {
+                        "true" => Some(true),
+                        "false" => Some(false),
+                        _ => None,
+                    }),
+            )
+            .to_string(),
+        ),
+        detail_line("base_url", opt_text(config.base_url.as_deref())),
+        detail_line("model", opt_text(config.model.as_deref())),
+        detail_line("small_fast", opt_text(config.small_fast_model.as_deref())),
+        detail_line("account", opt_text(config.account.as_deref())),
+        detail_line("enabled", yes_no(config.is_enabled())),
+        detail_line("usage_count", config.usage_count().to_string()),
+        detail_line("tags", tags_text(config)),
+        detail_line("token", token_state),
+    ]
+}
+
+fn detail_line(label: &str, value: String) -> Line<'static> {
+    Line::from(vec![
+        Span::styled(
+            format!("{label:<16}"),
+            Style::default()
+                .fg(theme::FG_SECONDARY)
+                .add_modifier(Modifier::BOLD),
+        ),
+        Span::styled(value, Style::default().fg(theme::FG_PRIMARY)),
+    ])
+}
+
+fn opt_text(value: Option<&str>) -> String {
+    value
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .unwrap_or("-")
+        .to_string()
+}
+
+fn yes_no(value: bool) -> String {
+    if value {
+        "yes".to_string()
+    } else {
+        "no".to_string()
+    }
+}
+
+fn bool_text(value: Option<bool>) -> &'static str {
+    match value {
+        Some(true) => "yes",
+        Some(false) => "no",
+        None => "-",
+    }
+}
+
+fn tags_text(config: &ProfileConfig) -> String {
+    config
+        .tags
+        .as_ref()
+        .filter(|tags| !tags.is_empty())
+        .map(|tags| tags.join(", "))
+        .unwrap_or_else(|| "-".to_string())
+}
+
+fn codex_platform_value(config: &ProfileConfig, key: &str) -> Option<String> {
+    config.platform_data.get(key).and_then(|value| match value {
+        serde_json::Value::String(text) if !text.trim().is_empty() => Some(text.trim().to_string()),
+        serde_json::Value::Bool(flag) => Some(flag.to_string()),
+        serde_json::Value::Number(num) => Some(num.to_string()),
+        _ => None,
+    })
 }
 
 /// Render empty state for current platform
@@ -336,7 +544,7 @@ fn render_shortcuts(f: &mut Frame, app: &App, area: Rect) {
     let page_hint = if app.total_pages() > 1 {
         vec![
             Span::styled("←→", theme::shortcut_key_style()),
-            Span::styled(" Page", theme::shortcut_desc_style()),
+            Span::styled(" Prev/Next page", theme::shortcut_desc_style()),
             sep.clone(),
         ]
     } else {

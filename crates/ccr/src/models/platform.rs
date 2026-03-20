@@ -454,6 +454,7 @@ pub trait PlatformConfig: Send + Sync {
     ///
     /// # 参数
     /// - `name`: 要删除的 profile 名称
+    #[allow(dead_code)]
     fn delete_profile(&self, name: &str) -> Result<()>;
 
     /// 获取设置文件路径

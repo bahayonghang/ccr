@@ -4,7 +4,6 @@ const FAILURE_LOG_LINES: usize = 20;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum UpdateFailureKind {
-    MissingEmbeddedWebAssets,
     MissingPackageManager,
     CompilationFailed,
 }
@@ -21,21 +20,10 @@ pub(crate) fn handle_update_failure(repo_url: &str, branch: &str, package: &str,
 
 fn classify_update_failure(stderr: &str) -> UpdateFailureKind {
     let stderr_lower = stderr.to_ascii_lowercase();
-    if is_missing_web_assets_error(&stderr_lower) {
-        return UpdateFailureKind::MissingEmbeddedWebAssets;
-    }
     if is_missing_package_manager_error(&stderr_lower) {
         return UpdateFailureKind::MissingPackageManager;
     }
     UpdateFailureKind::CompilationFailed
-}
-
-fn is_missing_web_assets_error(stderr_lower: &str) -> bool {
-    stderr_lower.contains("ccr-ui/web/dist")
-        || (stderr_lower.contains("couldn't read")
-            && stderr_lower.contains("dist/index.html")
-            && stderr_lower.contains("dist/style.css")
-            && stderr_lower.contains("dist/script.js"))
 }
 
 fn is_missing_package_manager_error(stderr_lower: &str) -> bool {
@@ -50,21 +38,8 @@ fn is_missing_package_manager_error(stderr_lower: &str) -> bool {
 
 fn print_failure_guidance(kind: UpdateFailureKind, repo_url: &str, branch: &str, package: &str) {
     match kind {
-        UpdateFailureKind::MissingEmbeddedWebAssets => {
-            ColorOutput::info("已识别原因: 缺少嵌入式 Web 构建产物 (ccr-ui/web/dist/*)");
-            ColorOutput::info("解决方案:");
-            println!(
-                "  1. 在仓库根目录执行: cd ccr-ui/web && bun install --frozen-lockfile && bun run build"
-            );
-            println!("  2. 重新执行更新命令: ccr update {}", branch);
-            println!(
-                "  3. 手动安装: cargo install --git {} {} --branch {} --force",
-                repo_url, package, branch
-            );
-            println!();
-        }
         UpdateFailureKind::MissingPackageManager => {
-            ColorOutput::info("已识别原因: 当前环境缺少可用的前端包管理器，无法构建内嵌 Web 资源");
+            ColorOutput::info("已识别原因: 当前环境缺少可用的前端包管理器，无法构建相关前端资源");
             ColorOutput::info("解决方案:");
             println!("  1. 优先检查 Bun: bun --version");
             println!("  2. 如无 Bun，再检查兼容回退: node --version && npm --version");
@@ -115,15 +90,6 @@ fn tail_lines(text: &str, max_lines: usize) -> Vec<&str> {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn test_classify_update_failure_missing_dist() {
-        let stderr = "error: couldn't read `src/web/../../ccr-ui/web/dist/index.html`";
-        assert_eq!(
-            classify_update_failure(stderr),
-            UpdateFailureKind::MissingEmbeddedWebAssets
-        );
-    }
 
     #[test]
     fn test_classify_update_failure_missing_package_manager() {
