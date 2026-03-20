@@ -348,11 +348,11 @@ const allNavigationGroups: NavGroup[] = [
     defaultExpanded: false,
     module: 'codex',
     items: [
+      { name: '账号与 Auth', href: '/codex/auth', icon: 'KeyRound' },
+      { name: 'Profiles 配置', href: '/codex/profiles', icon: 'Folders' },
+      { name: 'CLI 设置', href: '/codex/settings', icon: 'SlidersHorizontal' },
       { name: 'MCP 服务器', href: '/codex/mcp', icon: 'Server' },
-      { name: 'Profiles 配置', href: '/codex/profiles', icon: 'Settings' },
-      { name: 'Agents', href: '/codex/agents', icon: 'Bot' },
-      { name: 'Slash Commands', href: '/codex/slash-commands', icon: 'Command' },
-      { name: '插件管理', href: '/codex/plugins', icon: 'Puzzle' }
+      { name: 'Slash Commands', href: '/codex/slash-commands', icon: 'Command' }
     ]
   },
   {

@@ -239,7 +239,7 @@ npm run tauri dev
 # 或
 cargo tauri dev
 
-# 前端独立开发 (仅 Web 预览，无 Tauri IPC)
+# 前端独立开发 (仅 Web 预览，无 Tauri IPC，也不依赖 legacy ccr web)
 npm run dev
 
 # 类型检查

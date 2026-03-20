@@ -1,5 +1,5 @@
 <template>
-  <div class="flex h-screen text-text-primary overflow-hidden font-sans selection:bg-accent-primary/30">
+  <div class="relative flex h-screen overflow-hidden font-sans text-text-primary selection:bg-accent-primary/30">
     <!-- Skip Link -->
     <a
       href="#main-content"
@@ -9,14 +9,31 @@
     </a>
 
     <!-- Sidebar (Glassmorphism + Resize) -->
+    <button
+      v-if="showMobileBackdrop"
+      type="button"
+      class="fixed inset-0 z-40 bg-slate-950/55 backdrop-blur-[2px] lg:hidden"
+      :aria-label="closeNavigationLabel"
+      @click="closeSidebar"
+    />
+
     <div
-      v-if="!route.meta.hideSidebar"
-      class="flex flex-col relative flex-shrink-0 z-40 transition-all duration-300 ease-out will-change-[width] sidebar-glass"
-      :class="[isResizing ? 'select-none' : '']"
-      :style="{ width: sidebarWidth + 'px' }"
+      v-if="hasSidebar"
+      id="primary-navigation-panel"
+      class="sidebar-glass flex flex-col transition-all duration-300 ease-out will-change-[width,transform]"
+      :class="[
+        isResizing ? 'select-none' : '',
+        isMobileSidebar
+          ? 'fixed inset-y-0 left-0 z-50 w-[min(86vw,320px)] max-w-[320px] border-r border-white/10 shadow-2xl shadow-slate-950/30'
+          : 'relative z-40 flex-shrink-0',
+        isMobileSidebar && !isSidebarOpen ? '-translate-x-full pointer-events-none' : 'translate-x-0',
+        isMobileSidebar && isSidebarOpen ? 'pointer-events-auto' : ''
+      ]"
+      :style="sidebarShellStyle"
     >
       <!-- Resize Handle -->
       <button
+        v-if="!isMobileSidebar"
         type="button"
         class="group absolute -right-2 top-0 z-50 h-full w-5 cursor-col-resize rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary/30"
         :aria-label="t('common.resizeSidebar')"
@@ -29,7 +46,7 @@
       </button>
 
       <!-- Logo Area -->
-      <div class="h-[100px] pt-9 flex items-center px-4 border-b border-pink-200/20 dark:border-pink-300/10 shrink-0">
+      <div class="h-[100px] pt-9 flex items-center justify-between px-4 border-b border-pink-200/20 dark:border-pink-300/10 shrink-0">
         <div class="flex items-center gap-3">
           <div class="relative flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-pink-400 to-violet-400 shadow-lg shadow-pink-400/30">
             <SIcon
@@ -47,12 +64,27 @@
             </p>
           </div>
         </div>
+        <button
+          v-if="isMobileSidebar"
+          type="button"
+          class="inline-flex h-11 w-11 flex-none items-center justify-center rounded-2xl border border-border-default/70 bg-bg-surface/80 text-text-primary shadow-sm transition-colors hover:border-accent-primary/30 hover:bg-bg-elevated/90 lg:hidden"
+          :aria-label="closeNavigationLabel"
+          :title="closeNavigationLabel"
+          @click="closeSidebar"
+        >
+          <SIcon
+            name="X"
+            size="w-4 h-4"
+          />
+        </button>
       </div>
 
       <!-- Navigation -->
       <nav
         id="primary-navigation"
         class="flex-1 overflow-y-auto p-3 space-y-6 scrollbar-hide"
+        aria-label="Primary navigation"
+        @click="isMobileSidebar ? closeSidebar() : undefined"
       >
         <!-- Section: Main -->
         <div class="space-y-1">
@@ -272,7 +304,7 @@
             <!-- Version -->
             <div class="flex items-center justify-between">
               <span class="rounded-md border border-border-default/60 bg-bg-elevated/80 px-2 py-0.5 text-[10px] font-mono text-text-muted">
-                CCR UI v5.2.1
+                CCR UI v5.2.2
               </span>
             </div>
           </div>
@@ -286,12 +318,27 @@
     <!-- Main Content Area -->
     <main
       id="main-content"
-      class="flex-1 relative overflow-hidden flex flex-col content-main"
+      class="relative flex min-w-0 flex-1 flex-col overflow-hidden content-main"
     >
       <!-- Top Bar -->
-      <div class="sticky top-0 z-30 flex h-[92px] pt-9 items-center justify-between border-b border-border-default/40 topbar-glass px-6 shrink-0">
+      <div class="topbar-glass sticky top-0 z-30 flex min-h-[92px] shrink-0 items-center justify-between border-b border-border-default/40 px-4 pt-7 sm:px-6 sm:pt-9">
         <!-- Left: Breadcrumbs or Back + Title -->
-        <div class="flex items-center text-sm text-text-secondary">
+        <div class="flex min-w-0 items-center gap-3 text-sm text-text-secondary">
+          <button
+            v-if="hasSidebar && isMobileSidebar"
+            type="button"
+            class="inline-flex h-11 w-11 flex-none items-center justify-center rounded-2xl border border-border-default/70 bg-bg-surface/80 text-text-primary shadow-sm transition-colors hover:border-accent-primary/30 hover:bg-bg-elevated/90 lg:hidden"
+            :aria-expanded="isSidebarOpen"
+            aria-controls="primary-navigation-panel"
+            :aria-label="sidebarToggleLabel"
+            :title="sidebarToggleLabel"
+            @click="toggleSidebar"
+          >
+            <SIcon
+              :name="isSidebarOpen ? 'X' : 'Menu'"
+              size="w-5 h-5"
+            />
+          </button>
           <template v-if="route.meta.hideSidebar">
             <button
               class="flex items-center gap-1.5 px-2.5 py-1.5 -ml-2 rounded-lg text-text-secondary hover:text-text-primary hover:bg-bg-overlay/70 transition-colors duration-200"
@@ -307,20 +354,22 @@
             <span class="text-text-primary font-semibold">{{ currentPageTitle }}</span>
           </template>
           <template v-else>
-            <span class="opacity-50">{{ currentSectionTitle }}</span>
+            <span class="truncate opacity-50">{{ currentSectionTitle }}</span>
             <template v-if="currentSectionTitle !== currentPageTitle">
               <span class="mx-2 opacity-30">/</span>
-              <span class="text-text-primary font-medium">{{ currentPageTitle }}</span>
+              <span class="truncate text-text-primary font-medium">{{ currentPageTitle }}</span>
             </template>
           </template>
         </div>
 
-        <div class="flex items-center gap-4">
+        <div class="ml-4 flex items-center gap-2 sm:gap-4">
           <!-- 环境切换器 (仅 Tauri 桌面模式) -->
-          <EnvironmentSwitcher v-if="isTauri" />
+          <EnvironmentSwitcher
+            v-if="isTauri && !isMobileSidebar"
+          />
           <LanguageSwitcher />
           <div
-            v-if="isTauri"
+            v-if="isTauri && !isMobileSidebar"
             class="h-4 w-px bg-border-default/80 mx-2"
           />
           <!-- Exit Toggle -->
@@ -348,7 +397,7 @@
 
       <!-- Scrollable Content -->
       <div
-        class="flex-1 overflow-y-auto scroll-smooth p-6 content-scroll-area"
+        class="flex-1 overflow-y-auto scroll-smooth p-4 sm:p-6 content-scroll-area"
       >
         <BackendStatusBanner class="mb-6" />
         <RouterView v-slot="{ Component }">
@@ -379,7 +428,7 @@
 
 <script setup lang="ts">
 import SIcon from '@/components/ui/SIcon.vue'
-import { ref, computed, onMounted, onUnmounted, defineAsyncComponent } from 'vue'
+import { ref, computed, onMounted, onUnmounted, defineAsyncComponent, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { isTauriEnvironment, getSkipExitConfirm, setSkipExitConfirm } from '@/api/tauri'
@@ -475,11 +524,9 @@ const routeTitleMap: Record<string, string> = {
   agents: 'nav.agents',
   'agent-detail': 'nav.agents',
   plugins: 'nav.plugins',
-  sessions: 'nav.sessions',
   hooks: 'nav.hooks',
   'output-styles': 'nav.outputStyles',
   statusline: 'nav.statusline',
-  'provider-health': 'nav.providerHealth',
   checkin: 'nav.checkin',
   'checkin-account-dashboard': 'checkin.account_manager.dashboard',
   usage: 'nav.usage',
@@ -518,8 +565,27 @@ const currentSectionTitle = computed(() => {
 // Sidebar State
 const sidebarWidth = ref(240)
 const isResizing = ref(false)
+const isMobileSidebar = ref(false)
+const isSidebarOpen = ref(false)
 const minWidth = 200
 const maxWidth = 480
+let mobileMediaQuery: MediaQueryList | null = null
+const closeNavigationLabel = computed(() => t('common.closeNavigation'))
+const openNavigationLabel = computed(() => t('common.openNavigation'))
+const sidebarToggleLabel = computed(() => (
+  isSidebarOpen.value ? closeNavigationLabel.value : openNavigationLabel.value
+))
+const handleMobileMediaChange = (event: MediaQueryListEvent) => {
+  handleViewportChange(event.matches)
+}
+
+const hasSidebar = computed(() => !route.meta.hideSidebar)
+const showMobileBackdrop = computed(() => hasSidebar.value && isMobileSidebar.value && isSidebarOpen.value)
+const sidebarShellStyle = computed(() => (
+  isMobileSidebar.value
+    ? undefined
+    : { width: `${sidebarWidth.value}px` }
+))
 
 // Tauri State
 const isTauri = ref(false)
@@ -532,8 +598,31 @@ const toggleExitConfirm = async () => {
   }
 }
 
+const closeSidebar = () => {
+  isSidebarOpen.value = false
+}
+
+const toggleSidebar = () => {
+  isSidebarOpen.value = !isSidebarOpen.value
+}
+
+const handleViewportChange = (matches: boolean) => {
+  isMobileSidebar.value = matches
+  if (!matches) {
+    isSidebarOpen.value = false
+    isResizing.value = false
+  }
+}
+
+const handleEscapeKey = (event: KeyboardEvent) => {
+  if (event.key === 'Escape' && isMobileSidebar.value && isSidebarOpen.value) {
+    closeSidebar()
+  }
+}
+
 // Resizing Logic
 const startResize = () => {
+  if (isMobileSidebar.value) return
   isResizing.value = true
   document.body.style.cursor = 'col-resize'
   document.body.style.userSelect = 'none'
@@ -559,6 +648,8 @@ const stopResize = () => {
 }
 
 const handleResizeKeydown = (event: KeyboardEvent) => {
+  if (isMobileSidebar.value) return
+
   const step = event.shiftKey ? 32 : 16
   if (event.key === 'ArrowLeft') {
     event.preventDefault()
@@ -582,6 +673,11 @@ const handleResizeKeydown = (event: KeyboardEvent) => {
 onMounted(async () => {
   const savedWidth = localStorage.getItem('ccr-sidebar-width')
   if (savedWidth) sidebarWidth.value = Number(savedWidth) || 240
+
+  mobileMediaQuery = window.matchMedia('(max-width: 1023px)')
+  handleViewportChange(mobileMediaQuery.matches)
+  mobileMediaQuery.addEventListener('change', handleMobileMediaChange)
+  window.addEventListener('keydown', handleEscapeKey)
   
   isTauri.value = isTauriEnvironment()
   if (isTauri.value) {
@@ -597,6 +693,23 @@ onMounted(async () => {
 onUnmounted(() => {
   window.removeEventListener('mousemove', handleResize)
   window.removeEventListener('mouseup', stopResize)
+  window.removeEventListener('keydown', handleEscapeKey)
+  mobileMediaQuery?.removeEventListener('change', handleMobileMediaChange)
+  document.body.style.overflow = ''
+})
+
+watch(() => route.fullPath, () => {
+  closeSidebar()
+})
+
+watch(hasSidebar, (value) => {
+  if (!value) {
+    closeSidebar()
+  }
+})
+
+watch([isMobileSidebar, isSidebarOpen], ([mobile, open]) => {
+  document.body.style.overflow = mobile && open ? 'hidden' : ''
 })
 </script>
 

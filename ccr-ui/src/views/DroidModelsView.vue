@@ -23,32 +23,24 @@
           <div class="flex items-center gap-4">
             <RouterLink
               to="/droid"
-              class="p-3 rounded-2xl glass-card hover:scale-105 transition-transform duration-300"
-              :style="{ background: 'rgba(16, 185, 129, 0.1)' }"
+              class="glass-card rounded-2xl bg-accent-success/10 p-3 text-accent-success transition-colors duration-300 hover:bg-bg-overlay/70"
             >
               <SIcon
                 name="ArrowLeft"
                 size="w-6 h-6"
-                :style="{ color: '#10b981' }"
               />
             </RouterLink>
             <div>
-              <h1
-                class="text-3xl md:text-4xl font-bold mb-2 bg-gradient-to-r from-[#10b981] via-[#3b82f6] to-[#8b5cf6] bg-clip-text text-transparent"
-              >
+              <h1 class="mb-2 text-3xl font-bold text-text-primary md:text-4xl">
                 Custom Models 管理
               </h1>
-              <p
-                class="text-lg"
-                :style="{ color: 'var(--text-secondary)' }"
-              >
+              <p class="text-lg text-text-secondary">
                 管理 Droid 的自定义模型配置
               </p>
             </div>
           </div>
           <button
-            class="glass-card flex items-center gap-2 px-5 py-3 hover:scale-105 transition-transform duration-300"
-            :style="{ background: 'rgba(16, 185, 129, 0.1)', color: '#10b981' }"
+            class="glass-card flex min-h-[44px] items-center gap-2 bg-accent-success/10 px-5 py-3 text-accent-success transition-colors duration-300 hover:bg-accent-success/15"
             @click="showAddModal = true"
           >
             <SIcon
@@ -66,8 +58,7 @@
         class="flex justify-center items-center py-20"
       >
         <div
-          class="animate-spin rounded-full h-12 w-12 border-b-2"
-          :style="{ borderColor: '#10b981' }"
+          class="h-12 w-12 animate-spin rounded-full border-b-2 border-accent-success"
         />
       </div>
 
@@ -79,7 +70,7 @@
         <div
           v-for="model in models"
           :key="model.model"
-          class="glass-card p-6 hover:scale-105 transition-transform duration-300"
+          class="glass-card p-6 transition-[transform,box-shadow,border-color] duration-300 hover:-translate-y-1 hover:border-white/30"
         >
           <!-- 模型头部 -->
           <div class="flex items-start justify-between mb-4">
@@ -99,8 +90,7 @@
             </div>
             <div class="flex gap-2">
               <button
-                class="p-2 rounded-lg hover:bg-blue-500/10 transition-colors"
-                :style="{ color: '#3b82f6' }"
+                class="rounded-lg p-2 text-accent-primary transition-colors hover:bg-accent-primary/10"
                 @click="editModel(model)"
               >
                 <SIcon
@@ -109,8 +99,7 @@
                 />
               </button>
               <button
-                class="p-2 rounded-lg hover:bg-red-500/10 transition-colors"
-                :style="{ color: '#ef4444' }"
+                class="rounded-lg p-2 text-accent-danger transition-colors hover:bg-accent-danger/10"
                 @click="deleteModel(model.model)"
               >
                 <SIcon
@@ -127,7 +116,7 @@
               <SIcon
                 name="Server"
                 size="w-4 h-4"
-                :style="{ color: '#64748b' }"
+                class="text-text-muted"
               />
               <span
                 class="text-sm"
@@ -140,7 +129,7 @@
               <SIcon
                 name="Globe"
                 size="w-4 h-4"
-                :style="{ color: '#64748b' }"
+                class="text-text-muted"
               />
               <span
                 class="text-sm truncate"
@@ -156,7 +145,7 @@
               <SIcon
                 name="Zap"
                 size="w-4 h-4"
-                :style="{ color: '#64748b' }"
+                class="text-text-muted"
               />
               <span
                 class="text-sm"
@@ -175,25 +164,18 @@
         class="text-center py-20"
       >
         <div
-          class="inline-block p-6 rounded-3xl glass-card mb-6"
-          :style="{ background: 'rgba(16, 185, 129, 0.1)' }"
+          class="glass-card mb-6 inline-block rounded-3xl bg-accent-success/10 p-6"
         >
           <SIcon
             name="Inbox"
             size="w-16 h-16"
-            :style="{ color: '#10b981' }"
+            class="text-accent-success"
           />
         </div>
-        <h3
-          class="text-2xl font-bold mb-2"
-          :style="{ color: 'var(--text-primary)' }"
-        >
+        <h3 class="mb-2 text-2xl font-bold text-text-primary">
           还没有自定义模型
         </h3>
-        <p
-          class="text-lg mb-6"
-          :style="{ color: 'var(--text-secondary)' }"
-        >
+        <p class="mb-6 text-lg text-text-secondary">
           点击"添加模型"按钮创建第一个自定义模型
         </p>
       </div>

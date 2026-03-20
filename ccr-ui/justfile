@@ -1295,15 +1295,23 @@ ci-security:
 
 _ci-security-linux:
     @echo "🔒 检查安全漏洞..."
-    bunx better-npm-audit audit || echo "⚠️  安全检查有警告，但不阻断 CI"
+    @if [ -f "package-lock.json" ]; then \
+        bunx better-npm-audit audit || echo "⚠️  安全检查有警告，但不阻断 CI"; \
+    else \
+        echo "ℹ️  未检测到 package-lock.json，跳过 better-npm-audit（当前使用 bun.lock）"; \
+    fi
 
 _ci-security-macos:
     @echo "🔒 检查安全漏洞..."
-    bunx better-npm-audit audit || echo "⚠️  安全检查有警告，但不阻断 CI"
+    @if [ -f "package-lock.json" ]; then \
+        bunx better-npm-audit audit || echo "⚠️  安全检查有警告，但不阻断 CI"; \
+    else \
+        echo "ℹ️  未检测到 package-lock.json，跳过 better-npm-audit（当前使用 bun.lock）"; \
+    fi
 
 _ci-security-windows:
     @Write-Output '🔒 检查安全漏洞...'
-    @bunx better-npm-audit audit; if (-not $?) { Write-Host '⚠️  安全检查有警告，但不阻断 CI' -ForegroundColor Yellow }
+    @if (Test-Path 'package-lock.json') { bunx better-npm-audit audit; if (-not $?) { Write-Host '⚠️  安全检查有警告，但不阻断 CI' -ForegroundColor Yellow } } else { Write-Host 'ℹ️  未检测到 package-lock.json，跳过 better-npm-audit（当前使用 bun.lock）' -ForegroundColor Cyan }
 
 # 准备发布
 prepare-release: clean build

@@ -52,7 +52,7 @@
           >
           <button
             v-if="searchQuery"
-            class="absolute right-3 top-1/2 transform -translate-y-1/2 p-1 rounded-full hover:bg-black/10 text-text-muted transition-colors min-h-[28px] min-w-[28px] flex items-center justify-center"
+            class="absolute right-2 top-1/2 transform -translate-y-1/2 rounded-full hover:bg-black/10 text-text-muted transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
             :aria-label="$t('common.clearSearch')"
             @click="searchQuery = ''"
           >
@@ -114,15 +114,11 @@
           v-for="style in filteredStyles"
           :key="style.name"
           variant="glass"
-          interactive
           pattern
-          @click="handleView(style)"
         >
-          <div
-            class="relative z-10"
+          <article
+            class="relative z-10 h-full"
             role="listitem"
-            tabindex="0"
-            @keydown.enter="handleView(style)"
           >
             <div class="flex items-start justify-between mb-3">
               <div class="flex items-center gap-2">
@@ -171,19 +167,25 @@
               </div>
             </div>
 
-            <!-- Preview -->
-            <div class="bg-bg-surface/50 rounded-lg p-3 border border-border-default/30">
-              <p class="text-xs text-text-muted mb-1 font-semibold">
-                {{ $t('outputStyles.preview') }}:
-              </p>
-              <pre class="text-xs font-mono text-text-secondary line-clamp-4 whitespace-pre-wrap break-words">{{ style.content.slice(0, 300) }}{{ style.content.length > 300 ? '...' : '' }}</pre>
-            </div>
+            <button
+              type="button"
+              class="block w-full rounded-2xl text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-secondary/30"
+              :aria-label="$t('common.view') + ': ' + style.name"
+              @click="handleView(style)"
+            >
+              <div class="bg-bg-surface/50 rounded-lg p-3 border border-border-default/30">
+                <p class="text-xs text-text-muted mb-1 font-semibold">
+                  {{ $t('outputStyles.preview') }}:
+                </p>
+                <pre class="text-xs font-mono text-text-secondary line-clamp-4 whitespace-pre-wrap break-words">{{ style.content.slice(0, 300) }}{{ style.content.length > 300 ? '...' : '' }}</pre>
+              </div>
 
-            <div class="mt-3 flex items-center justify-between text-xs text-text-muted">
-              <span>{{ style.content.length }} {{ $t('outputStyles.characters') }}</span>
-              <span>{{ style.content.split('\n').length }} {{ $t('outputStyles.lines') }}</span>
-            </div>
-          </div>
+              <div class="mt-3 flex items-center justify-between text-xs text-text-muted">
+                <span>{{ style.content.length }} {{ $t('outputStyles.characters') }}</span>
+                <span>{{ style.content.split('\n').length }} {{ $t('outputStyles.lines') }}</span>
+              </div>
+            </button>
+          </article>
         </Card>
       </div>
     </div>
@@ -463,7 +465,14 @@ const handleEditFromView = () => {
 }
 
 const handleDelete = async (name: string) => {
-  if (!confirm(t('outputStyles.deleteConfirm', { name }))) return
+  const confirmed = await uiStore.requestConfirm({
+    title: t('common.delete'),
+    message: t('outputStyles.deleteConfirm', { name }),
+    confirmText: t('common.delete'),
+    cancelText: t('common.cancel'),
+    type: 'danger'
+  })
+  if (!confirmed) return
 
   try {
     await deleteOutputStyle(name)

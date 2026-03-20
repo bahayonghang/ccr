@@ -1,595 +1,447 @@
 <template>
   <div class="min-h-full p-6 lg:p-10 relative overflow-hidden">
     <div class="max-w-7xl mx-auto space-y-5">
-      <!-- HEADER -->
-      <section class="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <!-- Hero Card -->
+      <section class="grid grid-cols-1 xl:grid-cols-3 gap-4">
         <Card
           variant="glass"
-          class="lg:col-span-2 relative overflow-hidden p-5 flex flex-col"
+          class="xl:col-span-2 relative overflow-hidden p-6"
         >
-          <div class="absolute top-0 right-0 w-48 h-48 bg-gradient-to-bl from-pink-500/10 to-transparent -mr-12 -mt-12 rounded-bl-full pointer-events-none" />
-           
-          <div class="relative z-10">
-            <div class="flex items-center gap-3 mb-3">
-              <div class="w-12 h-12 rounded-xl bg-pink-500/10 flex items-center justify-center border border-pink-500/20 shadow-lg backdrop-blur-md">
-                <SIcon
-                  name="Code2"
-                  size="w-6 h-6"
-                  class="text-pink-500"
-                />
+          <div class="absolute inset-y-0 right-0 w-72 bg-gradient-to-l from-pink-500/10 via-purple-500/5 to-transparent pointer-events-none" />
+
+          <div class="relative z-10 space-y-5">
+            <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+              <div class="space-y-3">
+                <div class="flex items-center gap-3">
+                  <div class="w-12 h-12 rounded-2xl bg-pink-500/10 border border-pink-500/20 flex items-center justify-center shadow-lg backdrop-blur-md">
+                    <SIcon
+                      name="Code2"
+                      size="w-6 h-6"
+                      class="text-pink-400"
+                    />
+                  </div>
+                  <div>
+                    <h1 class="text-3xl font-bold font-display text-white tracking-tight">
+                      Codex
+                    </h1>
+                    <p class="text-sm text-white/70">
+                      先看当前账号、配置健康度和下一步，再进入细项管理。
+                    </p>
+                  </div>
+                </div>
+
+                <div class="flex flex-wrap gap-2">
+                  <span class="px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider bg-pink-500/10 text-pink-300 border border-pink-500/20">
+                    workflow first
+                  </span>
+                  <span class="px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider border border-white/10 bg-white/5 text-white/75">
+                    {{ versionLabel }}
+                  </span>
+                  <span class="px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider border border-emerald-500/20 bg-emerald-500/10 text-emerald-300">
+                    {{ currentProfileLabel }}
+                  </span>
+                </div>
               </div>
-              <div>
-                <h1 class="text-3xl font-bold font-display text-white tracking-tight">
-                  Codex
-                </h1>
-                <p class="text-white/80 text-base max-w-md">
-                  {{ $t('codex.overview.subtitle') }}
-                </p>
+
+              <div class="flex flex-wrap gap-2 lg:justify-end">
+                <RouterLink to="/codex/auth">
+                  <Button
+                    variant="glass"
+                    size="sm"
+                  >
+                    <SIcon
+                      name="KeyRound"
+                      size="w-4 h-4"
+                      class="mr-2"
+                    />
+                    账号
+                  </Button>
+                </RouterLink>
+                <RouterLink to="/codex/profiles">
+                  <Button
+                    variant="glass"
+                    size="sm"
+                  >
+                    <SIcon
+                      name="Folders"
+                      size="w-4 h-4"
+                      class="mr-2"
+                    />
+                    Profiles
+                  </Button>
+                </RouterLink>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  :disabled="loading"
+                  @click="refresh(true)"
+                >
+                  <SIcon
+                    name="RefreshCw"
+                    size="w-4 h-4"
+                    class="mr-2"
+                    :class="{ 'animate-spin': loading }"
+                  />
+                  刷新
+                </Button>
               </div>
             </div>
-             
-            <div class="flex flex-wrap gap-2">
-              <span class="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-pink-500/10 text-pink-500 border border-pink-500/20 flex items-center gap-2">
-                <SIcon
-                  name="Server"
-                  size="w-3 h-3"
-                /> {{ $t('codex.overview.features.mcpProtocol') }}
-              </span>
-              <span class="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-accent-secondary/10 text-accent-secondary border border-accent-secondary/20">
-                {{ codexVersionLabel }}
-              </span>
+
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div class="rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
+                <p class="text-xs uppercase tracking-[0.2em] text-white/45 mb-1">
+                  当前账号
+                </p>
+                <p
+                  class="text-lg font-semibold text-white truncate"
+                  :title="currentAccountLabel"
+                >
+                  {{ currentAccountLabel }}
+                </p>
+              </div>
+              <div class="rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
+                <p class="text-xs uppercase tracking-[0.2em] text-white/45 mb-1">
+                  累计请求
+                </p>
+                <p class="text-lg font-semibold text-white">
+                  {{ summary?.usage.all_time.total_requests ?? 0 }}
+                </p>
+              </div>
+              <div class="rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
+                <p class="text-xs uppercase tracking-[0.2em] text-white/45 mb-1">
+                  累计 Tokens
+                </p>
+                <p class="text-lg font-semibold text-white">
+                  {{ usageTotalTokens }}
+                </p>
+              </div>
             </div>
           </div>
         </Card>
 
-        <!-- Status Grid -->
-        <div class="grid grid-cols-1 gap-3">
-          <!-- Active Profile -->
-          <Card
-            variant="elevated"
-            class="p-3 flex items-center gap-3 border-l-4 border-l-yellow-500"
-          >
-            <div class="w-10 h-10 rounded-lg bg-yellow-500/10 flex items-center justify-center text-yellow-500 shrink-0">
-              <SIcon
-                name="Zap"
-                size="w-5 h-5"
-              />
-            </div>
-            <div class="min-w-0">
-              <p class="text-xs font-bold text-white/50 uppercase tracking-wider mb-0.5">
-                {{ $t('codex.status.currentConfig') }}
-              </p>
-              <p
-                class="text-base font-bold text-white truncate"
-                :title="currentProfile || ''"
-              >
-                {{ currentProfile || $t('codex.status.notSet') }}
-              </p>
-            </div>
-          </Card>
-
-          <!-- Total Profiles -->
-          <Card
-            variant="elevated"
-            class="p-3 flex items-center gap-3 border-l-4 border-l-blue-500"
-          >
-            <div class="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-500 shrink-0">
-              <SIcon
-                name="Settings"
-                size="w-5 h-5"
-              />
-            </div>
-            <div>
-              <p class="text-xs font-bold text-white/50 uppercase tracking-wider mb-0.5">
-                {{ $t('codex.status.totalProfiles') }}
-              </p>
-              <p class="text-base font-bold text-white">
-                {{ profilesCount }}
-              </p>
-            </div>
-          </Card>
-
-          <!-- System Status -->
-          <Card
-            variant="elevated"
-            class="p-3 flex items-center gap-3 border-l-4 border-l-emerald-500"
-          >
-            <div class="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-500 shrink-0">
-              <SIcon
-                name="Activity"
-                size="w-5 h-5"
-              />
-            </div>
-            <div>
-              <p class="text-xs font-bold text-white/50 uppercase tracking-wider mb-0.5">
-                {{ $t('codex.status.systemStatus') }}
-              </p>
-              <p class="text-base font-bold text-white">
-                {{ $t('codex.status.connected') }}
-              </p>
-            </div>
-          </Card>
-        </div>
-      </section>
-
-      <!-- MODULES GRID -->
-      <section>
-        <div class="flex items-center gap-3 mb-3">
-          <SIcon
-            name="Boxes"
-            size="w-5 h-5"
-            class="text-pink-500"
-          />
-          <h2 class="text-lg font-bold uppercase tracking-widest text-white/50">
-            {{ $t('codex.overview.modulesTitle') }}
-          </h2>
-          <div class="h-px flex-1 bg-border-subtle" />
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-3">
-          <RouterLink 
-            v-for="module in modules" 
-            :key="module.path" 
-            :to="module.path"
-            class="group h-full"
-          >
-            <Card
-              variant="glass"
-              hover
-              class="h-full p-4 flex flex-col relative overflow-hidden"
-            >
-              <div class="flex items-start justify-between mb-2">
-                <div
-                  class="w-10 h-10 rounded-lg flex items-center justify-center transition-transform duration-300 group-hover:scale-110 border border-white/5"
-                  :class="module.bgClass"
-                >
-                  <SIcon
-                    :name="module.icon"
-                    size="w-6 h-6"
-                    :class="module.textClass"
-                  />
-                </div>
-                <span
-                  class="px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wide border /50"
-                  :class="module.badgeBorderClass"
-                >
-                  {{ module.badge }}
-                </span>
-              </div>
-                  
-              <h3 class="text-base font-bold text-white mb-1 group-hover:text-pink-500 transition-colors">
-                {{ module.title }}
-              </h3>
-              <p class="text-sm text-white/80 leading-relaxed flex-grow">
-                {{ module.description }}
-              </p>
-
-              <div
-                class="mt-2 flex items-center text-sm font-bold opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-[opacity,transform] duration-300"
-                :class="module.textClass"
-              >
-                {{ $t('common.openModule') }} <SIcon
-                  name="ArrowRight"
-                  size="w-4 h-4"
-                  class="ml-1"
-                />
-              </div>
-            </Card>
-          </RouterLink>
-        </div>
-      </section>
-
-      <!-- USAGE AND TIPS -->
-      <section class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <!-- Usage Panel -->
         <Card
           variant="glass"
-          class="p-4"
+          class="p-5"
         >
-          <div class="flex items-center justify-between mb-3">
-            <div class="flex items-center gap-3">
-              <div class="p-2 rounded-lg bg-pink-500/10 text-pink-500">
+          <div class="flex items-center gap-3 mb-4">
+            <div class="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center">
+              <SIcon
+                name="Route"
+                size="w-5 h-5"
+                class="text-amber-300"
+              />
+            </div>
+            <div>
+              <h2 class="text-base font-semibold text-white">
+                下一步
+              </h2>
+              <p class="text-xs text-white/55">
+                只保留最该先做的动作
+              </p>
+            </div>
+          </div>
+
+          <div class="space-y-3">
+            <RouterLink
+              v-for="action in nextActions"
+              :key="action.title"
+              :to="action.to"
+              class="block rounded-2xl border border-white/10 bg-white/5 p-4 transition-all duration-200 hover:border-pink-500/30 hover:bg-white/10"
+            >
+              <div class="flex items-start gap-3">
+                <div
+                  class="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border"
+                  :class="toneClassMap[action.tone]"
+                >
+                  <SIcon
+                    :name="action.icon"
+                    size="w-5 h-5"
+                  />
+                </div>
+                <div class="min-w-0 flex-1">
+                  <div class="flex items-center justify-between gap-3">
+                    <h3 class="text-sm font-semibold text-white">
+                      {{ action.title }}
+                    </h3>
+                    <SIcon
+                      name="ArrowRight"
+                      size="w-4 h-4"
+                      class="text-white/35 shrink-0"
+                    />
+                  </div>
+                  <p class="mt-1 text-sm leading-6 text-white/65">
+                    {{ action.description }}
+                  </p>
+                </div>
+              </div>
+            </RouterLink>
+          </div>
+        </Card>
+      </section>
+
+      <section class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
+        <RouterLink
+          v-for="item in healthItems"
+          :key="item.key"
+          :to="item.to"
+          class="group"
+        >
+          <Card
+            variant="elevated"
+            hover
+            class="h-full p-4 border border-white/10"
+          >
+            <div class="flex items-start justify-between gap-3">
+              <div
+                class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border"
+                :class="toneClassMap[item.tone]"
+              >
                 <SIcon
-                  name="BarChart3"
+                  :name="item.icon"
                   size="w-5 h-5"
                 />
               </div>
-              <h3 class="text-base font-bold text-white">
-                {{ $t('codex.overview.usageTitle') }}
-              </h3>
+              <span class="text-[11px] uppercase tracking-[0.18em] text-white/35">
+                状态
+              </span>
             </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              :disabled="usageLoading"
-              @click="refreshUsage(true)"
+            <p class="mt-4 text-xs uppercase tracking-[0.2em] text-white/45">
+              {{ item.title }}
+            </p>
+            <p class="mt-1 text-lg font-semibold text-white break-words">
+              {{ item.value }}
+            </p>
+            <p class="mt-2 text-sm leading-6 text-white/60">
+              {{ item.detail }}
+            </p>
+          </Card>
+        </RouterLink>
+      </section>
+
+      <section class="grid grid-cols-1 xl:grid-cols-3 gap-4">
+        <Card
+          variant="glass"
+          class="xl:col-span-2 p-5"
+        >
+          <div class="flex items-center justify-between gap-3 mb-4">
+            <div>
+              <h2 class="text-base font-semibold text-white">
+                管理入口
+              </h2>
+              <p class="text-sm text-white/55">
+                把细项管理降级成次级入口，需要时再深入。
+              </p>
+            </div>
+            <RouterLink
+              to="/codex/settings"
+              class="text-sm text-pink-300 hover:text-pink-200 transition-colors"
             >
+              打开设置
+            </RouterLink>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+            <RouterLink
+              v-for="link in managementLinks"
+              :key="link.to"
+              :to="link.to"
+              class="group"
+            >
+              <Card
+                variant="glass"
+                hover
+                class="h-full p-4 border border-white/10"
+              >
+                <div class="flex items-start justify-between gap-3 mb-3">
+                  <div
+                    class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border"
+                    :class="toneClassMap[link.tone]"
+                  >
+                    <SIcon
+                      :name="link.icon"
+                      size="w-5 h-5"
+                    />
+                  </div>
+                  <span class="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] text-white/55">
+                    {{ link.badge }}
+                  </span>
+                </div>
+                <h3 class="text-sm font-semibold text-white group-hover:text-pink-200 transition-colors">
+                  {{ link.title }}
+                </h3>
+                <p class="mt-2 text-sm leading-6 text-white/60">
+                  {{ link.description }}
+                </p>
+              </Card>
+            </RouterLink>
+          </div>
+        </Card>
+
+        <Card
+          variant="glass"
+          class="p-5"
+        >
+          <div class="flex items-center gap-3 mb-4">
+            <div class="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center">
               <SIcon
-                name="RefreshCw"
-                size="w-4 h-4"
-                :class="{ 'animate-spin': usageLoading }"
+                name="Sparkles"
+                size="w-5 h-5"
+                class="text-indigo-300"
               />
-            </Button>
+            </div>
+            <div>
+              <h2 class="text-base font-semibold text-white">
+                工作流摘要
+              </h2>
+              <p class="text-xs text-white/55">
+                一眼确认是否可以直接开工
+              </p>
+            </div>
           </div>
 
           <div
-            v-if="usageLoading"
-            class="space-y-4"
+            v-if="error"
+            class="rounded-2xl border border-rose-500/20 bg-rose-500/10 p-4 text-sm text-rose-200"
           >
-            <div class="h-20 glass-surface animate-pulse rounded-xl" />
-            <div class="h-20 glass-surface animate-pulse rounded-xl" />
-          </div>
-
-          <div
-            v-else-if="usageError"
-            class="text-center py-6"
-          >
-            <SIcon
-              name="AlertCircle"
-              size="w-10 h-10"
-              class="text-white/50 mx-auto mb-3"
-            />
-            <p class="text-sm text-white/50 mb-3">
-              {{ $t('codex.overview.usageError') }}
+            <p class="font-medium mb-2">
+              仪表盘数据加载失败
             </p>
-            <Button
-              variant="outline"
-              size="sm"
-              @click="refreshUsage(true)"
-            >
-              {{ $t('common.retry') }}
-            </Button>
-          </div>
-
-          <div
-            v-else-if="!usageData || usageData.all_time.total_requests === 0"
-            class="text-center py-6"
-          >
-            <SIcon
-              name="Clock"
-              size="w-10 h-10"
-              class="text-white/50 mx-auto mb-3"
-            />
-            <p class="text-sm text-white/50">
-              {{ $t('codex.overview.noUsageData') }}
+            <p class="text-rose-100/80 break-words">
+              {{ error }}
             </p>
           </div>
+
+          <div
+            v-else-if="!summary && loading"
+            class="space-y-3"
+          >
+            <div class="h-20 rounded-2xl bg-white/5 animate-pulse" />
+            <div class="h-20 rounded-2xl bg-white/5 animate-pulse" />
+            <div class="h-20 rounded-2xl bg-white/5 animate-pulse" />
+          </div>
+
+          <EmptyState
+            v-else-if="!summary"
+            icon="Inbox"
+            title="暂时还没有仪表盘数据"
+            description="可以先刷新一次，或者进入 Auth / Profiles 页面补齐基础配置。"
+            action-text="立即刷新"
+            action-icon="RefreshCw"
+            :on-action="() => refresh(true)"
+          />
 
           <div
             v-else
             class="space-y-3"
           >
-            <!-- 5H Usage -->
-            <div class="p-3 rounded-xl bg-white/5/50 border border-white/5">
-              <div class="flex justify-between items-center mb-2">
-                <span class="text-xs font-bold text-white/50 uppercase tracking-wider">{{ $t('codex.overview.usage5h') }}</span>
-                <span class="text-xs font-mono text-white/80">{{ usageData.five_hour.total_requests }} {{ $t('codex.overview.requests') }}</span>
-              </div>
-              <div class="flex items-baseline gap-2">
-                <span class="text-xl font-bold text-white font-mono">{{ formatTokens(usageData.five_hour.total_input_tokens + usageData.five_hour.total_output_tokens) }}</span>
-                <span class="text-xs text-white/50">{{ $t('codex.overview.tokens') }}</span>
-              </div>
-              <div class="w-full rounded-full h-1.5 mt-2 overflow-hidden">
-                <div
-                  class="bg-pink-500 h-full rounded-full"
-                  style="width: 45%"
-                /> <!-- Mock width for visual -->
+            <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
+              <p class="text-xs uppercase tracking-[0.2em] text-white/45 mb-1">
+                活跃模型
+              </p>
+              <p class="text-lg font-semibold text-white">
+                {{ summary.usage.top_model?.model || summary.config.model || '未识别' }}
+              </p>
+              <p class="mt-1 text-sm text-white/60 leading-6">
+                {{ summary.usage.top_model
+                  ? `近阶段请求 ${summary.usage.top_model.total_requests} 次，输出 ${formatTokens(summary.usage.top_model.total_output_tokens)} tokens`
+                  : '暂无按模型维度的活跃数据' }}
+              </p>
+            </div>
+
+            <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
+              <p class="text-xs uppercase tracking-[0.2em] text-white/45 mb-1">
+                扩展能力库存
+              </p>
+              <div class="grid grid-cols-2 gap-3 mt-3 text-sm">
+                <div>
+                  <p class="text-white/40">
+                    MCP
+                  </p>
+                  <p class="text-white font-semibold">
+                    {{ summary.inventory.mcp_servers_total }}
+                  </p>
+                </div>
+                <div>
+                  <p class="text-white/40">
+                    Config Profiles
+                  </p>
+                  <p class="text-white font-semibold">
+                    {{ summary.inventory.config_profiles_total }}
+                  </p>
+                </div>
+                <div>
+                  <p class="text-white/40">
+                    Agents
+                  </p>
+                  <p class="text-white font-semibold">
+                    {{ summary.inventory.agents_total }}
+                  </p>
+                </div>
+                <div>
+                  <p class="text-white/40">
+                    Slash Commands
+                  </p>
+                  <p class="text-white font-semibold">
+                    {{ summary.inventory.slash_commands_total }}
+                  </p>
+                </div>
               </div>
             </div>
-               
-            <!-- 7D Usage -->
-            <div class="p-3 rounded-xl bg-white/5/50 border border-white/5">
-              <div class="flex justify-between items-center mb-2">
-                <span class="text-xs font-bold text-white/50 uppercase tracking-wider">{{ $t('codex.overview.usage7d') }}</span>
-                <span class="text-xs font-mono text-white/80">{{ usageData.seven_day.total_requests }} {{ $t('codex.overview.requests') }}</span>
-              </div>
-              <div class="flex items-baseline gap-2">
-                <span class="text-xl font-bold text-white font-mono">{{ formatTokens(usageData.seven_day.total_input_tokens + usageData.seven_day.total_output_tokens) }}</span>
-                <span class="text-xs text-white/50">{{ $t('codex.overview.tokens') }}</span>
-              </div>
-              <div class="w-full rounded-full h-1.5 mt-2 overflow-hidden">
-                <div
-                  class="bg-purple-500 h-full rounded-full"
-                  style="width: 75%"
-                /> <!-- Mock width -->
-              </div>
+
+            <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
+              <p class="text-xs uppercase tracking-[0.2em] text-white/45 mb-1">
+                最近活动
+              </p>
+              <p class="text-sm text-white/70 leading-6">
+                {{ summary.usage.last_activity_at
+                  ? `最近活动时间 ${formatDateTime(summary.usage.last_activity_at)}`
+                  : '尚未发现最近活动记录' }}
+              </p>
             </div>
           </div>
         </Card>
-
-        <!-- Capabilities & Tips -->
-        <div class="space-y-3">
-          <Card
-            variant="glass"
-            class="p-4"
-          >
-            <div class="flex items-center gap-3 mb-4">
-              <div class="p-2 rounded-lg bg-pink-500/10 text-pink-500">
-                <SIcon
-                  name="Cpu"
-                  size="w-5 h-5"
-                />
-              </div>
-              <h3 class="text-base font-bold text-white">
-                {{ $t('codex.overview.capabilitiesTitle') }}
-              </h3>
-            </div>
-            <div class="space-y-2">
-              <div
-                v-for="(feature, index) in capabilities"
-                :key="index"
-                class="flex items-center gap-2 p-2 rounded-lg bg-white/5/30 border border-white/5/50"
-              >
-                <div class="w-2 h-2 rounded-full bg-pink-500 shadow-[0_0_8px_rgba(236,72,153,0.5)]" />
-                <span class="text-sm text-white/80">{{ feature }}</span>
-              </div>
-            </div>
-          </Card>
-
-          <Card
-            variant="outline"
-            class="p-4 bg-amber-500/5 border-amber-500/20"
-          >
-            <div class="flex gap-3">
-              <SIcon
-                name="Lightbulb"
-                size="w-5 h-5"
-                class="text-amber-500 shrink-0 mt-0.5"
-              />
-              <div class="space-y-1">
-                <h4 class="text-sm font-bold text-amber-500">
-                  {{ $t('codex.overview.tipsTitle') }}
-                </h4>
-                <p class="text-xs text-white/80 leading-relaxed opacity-80">
-                  {{ $t('codex.overview.tips.mcpConnection') }}
-                </p>
-              </div>
-            </div>
-          </Card>
-        </div>
       </section>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import SIcon from '@/components/ui/SIcon.vue'
-import { computed, onActivated, onDeactivated, onMounted, onUnmounted, ref } from 'vue'
-import { useI18n } from 'vue-i18n'
-import Card from '@/components/ui/Card.vue'
+import { onActivated, onMounted } from 'vue'
 import Button from '@/components/ui/Button.vue'
-import { listCodexProfiles, getCodexUsage, getCliVersions } from '@/api'
-import { logger } from '@/utils/logger'
-import type {
-  CliVersionEntry,
-  CliVersionsResponse,
-  CodexProfilesResponse,
-  CodexUsageResponse
-} from '@/types'
+import Card from '@/components/ui/Card.vue'
+import EmptyState from '@/components/ui/EmptyState.vue'
+import SIcon from '@/components/ui/SIcon.vue'
+import { useCodexDashboard } from '@/composables/useCodexDashboard'
 
 defineOptions({ name: 'CodexView' })
 
-const { t } = useI18n()
+const {
+  summary,
+  loading,
+  error,
+  versionLabel,
+  currentAccountLabel,
+  currentProfileLabel,
+  usageTotalTokens,
+  healthItems,
+  nextActions,
+  managementLinks,
+  formatTokens,
+  formatDateTime,
+  refresh
+} = useCodexDashboard()
 
-// State
-const profilesCount = ref(0)
-const currentProfile = ref<string | null>(null)
-const codexVersion = ref('...')
-const codexVersionStatus = ref<'loading' | 'ok' | 'timeout' | 'error' | 'not_installed'>('loading')
+const toneClassMap = {
+  success: 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300',
+  warning: 'bg-amber-500/10 border-amber-500/20 text-amber-300',
+  danger: 'bg-rose-500/10 border-rose-500/20 text-rose-300',
+  neutral: 'bg-white/5 border-white/10 text-white/75'
+} as const
 
-const codexVersionLabel = computed(() => {
-  switch (codexVersionStatus.value) {
-    case 'timeout':
-      return t('codex.status.checkingVersion')
-    case 'error':
-      return t('codex.status.retryVersionCheck')
-    case 'not_installed':
-      return t('codex.status.notInstalled')
-    case 'ok':
-      return codexVersion.value
-    default:
-      return '...'
-  }
-})
-
-// Usage State
-const usageData = ref<CodexUsageResponse | null>(null)
-const usageLoading = ref(false)
-const usageError = ref(false)
-
-const VERSION_REFRESH_TTL_MS = 60_000
-const USAGE_REFRESH_TTL_MS = 30_000
-
-let heavyLoadTimer: ReturnType<typeof setTimeout> | null = null
-let destroyed = false
-let lastVersionLoadedAt = 0
-let lastUsageLoadedAt = 0
-
-const formatTokens = (tokens: number): string => {
-  if (tokens >= 1_000_000) {
-    return `${(tokens / 1_000_000).toFixed(1)}M`
-  } else if (tokens >= 1_000) {
-    return `${(tokens / 1_000).toFixed(1)}K`
-  }
-  return tokens.toString()
-}
-
-const loadProfileStatus = async () => {
-  try {
-    const data = await listCodexProfiles<CodexProfilesResponse>()
-    if (destroyed) return
-
-    if (Array.isArray(data.profiles)) {
-      profilesCount.value = data.profiles.length
-      currentProfile.value = data.current_profile ?? null
-    }
-  } catch (error) {
-    logger.error('[CodexView] failed to load profile status', error)
-  }
-}
-
-const loadCodexVersion = async () => {
-  try {
-    const versions = await getCliVersions<CliVersionsResponse>({ mode: 'fast', timeoutMs: 3500, parallelism: 4 })
-    if (destroyed) return
-
-    const codex = versions.versions.find((v: CliVersionEntry) => v.platform === 'codex')
-    applyCodexVersionEntry(codex)
-    lastVersionLoadedAt = Date.now()
-  } catch (error) {
-    logger.error('[CodexView] failed to load codex version', error)
-    if (!destroyed) {
-      codexVersionStatus.value = 'error'
-    }
-  }
-}
-
-const refreshUsage = async (force = false) => {
-  usageLoading.value = true
-  usageError.value = false
-  try {
-    usageData.value = await getCodexUsage<CodexUsageResponse>({ force })
-    lastUsageLoadedAt = Date.now()
-  } catch (error) {
-    logger.error('[CodexView] failed to load usage data', error)
-    usageError.value = true
-  } finally {
-    usageLoading.value = false
-  }
-}
-
-const modules = computed(() => [
-  {
-    path: '/codex/profiles',
-    title: t('codex.overview.modules.profiles.title'),
-    description: t('codex.overview.modules.profiles.description'),
-    badge: t('codex.overview.modules.profiles.badge'),
-    icon: 'Settings',
-    textClass: 'text-pink-500', 
-    bgClass: 'bg-pink-500/10',
-    badgeBorderClass: 'border-pink-500/20 text-pink-500'
-  },
-  {
-    path: '/codex/mcp',
-    title: t('codex.overview.modules.mcp.title'),
-    description: t('codex.overview.modules.mcp.description'),
-    badge: t('codex.overview.modules.mcp.badge'),
-    icon: 'Server',
-    textClass: 'text-indigo-500',
-    bgClass: 'bg-indigo-500/10',
-    badgeBorderClass: 'border-indigo-500/20 text-indigo-500'
-  },
-  {
-    path: '/codex/slash-commands',
-    title: t('codex.overview.modules.slashCommands.title'),
-    description: t('codex.overview.modules.slashCommands.description'),
-    badge: t('codex.overview.modules.slashCommands.badge'),
-    icon: 'Command',
-    textClass: 'text-rose-500',
-    bgClass: 'bg-rose-500/10',
-    badgeBorderClass: 'border-rose-500/20 text-rose-500'
-  },
-  {
-    path: '/codex/auth',
-    title: t('codex.overview.modules.auth.title'),
-    description: t('codex.overview.modules.auth.description'),
-    badge: t('codex.overview.modules.auth.badge'),
-    icon: 'KeyRound',
-    textClass: 'text-amber-500',
-    bgClass: 'bg-amber-500/10',
-    badgeBorderClass: 'border-amber-500/20 text-amber-500'
-  },
-  {
-    path: '/codex/settings',
-    title: t('codex.overview.modules.settings.title'),
-    description: t('codex.overview.modules.settings.description'),
-    badge: t('codex.overview.modules.settings.badge'),
-    icon: 'Settings2',
-    textClass: 'text-emerald-500',
-    bgClass: 'bg-emerald-500/10',
-    badgeBorderClass: 'border-emerald-500/20 text-emerald-500'
-  }
-])
-
-const capabilities = computed(() => [
-  t('codex.overview.capabilities.mcp'),
-  t('codex.overview.capabilities.profiles'),
-  t('codex.overview.capabilities.slashCommands'),
-  t('codex.overview.capabilities.auth'),
-])
-
-const applyCodexVersionEntry = (entry?: CliVersionEntry) => {
-  if (!entry) {
-    codexVersionStatus.value = 'error'
-    codexVersion.value = '...'
-    return
-  }
-
-  if (entry.status === 'timeout') {
-    codexVersionStatus.value = 'timeout'
-    codexVersion.value = '...'
-    return
-  }
-
-  if (entry.status === 'error') {
-    codexVersionStatus.value = 'error'
-    codexVersion.value = '...'
-    return
-  }
-
-  if (entry.status === 'not_installed' || !entry.installed) {
-    codexVersionStatus.value = 'not_installed'
-    codexVersion.value = t('codex.status.notInstalled')
-    return
-  }
-
-  codexVersionStatus.value = 'ok'
-  codexVersion.value = entry.version ? `v${entry.version}` : t('codex.status.installed')
-}
-
-const clearHeavyLoadTimer = () => {
-  if (heavyLoadTimer) {
-    clearTimeout(heavyLoadTimer)
-    heavyLoadTimer = null
-  }
-}
-
-const scheduleHeavyLoads = () => {
-  clearHeavyLoadTimer()
-  heavyLoadTimer = setTimeout(() => {
-    if (destroyed) return
-
-    const now = Date.now()
-    if (now - lastVersionLoadedAt >= VERSION_REFRESH_TTL_MS) {
-      void loadCodexVersion()
-    }
-    if (now - lastUsageLoadedAt >= USAGE_REFRESH_TTL_MS) {
-      void refreshUsage(false)
-    }
-  }, 32)
-}
-
-const activateView = async () => {
-  await loadProfileStatus()
-  scheduleHeavyLoads()
-}
-
-onMounted(async () => {
-  destroyed = false
-  await activateView()
+onMounted(() => {
+  void refresh(false)
 })
 
 onActivated(() => {
-  void activateView()
-})
-
-onDeactivated(() => {
-  clearHeavyLoadTimer()
-})
-
-onUnmounted(() => {
-  destroyed = true
-  clearHeavyLoadTimer()
+  void refresh(false)
 })
 </script>

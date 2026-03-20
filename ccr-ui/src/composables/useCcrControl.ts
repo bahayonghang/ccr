@@ -15,7 +15,7 @@ import {
   type CcrCommand,
   type AddFavoriteRequest,
 } from '@/api/ccr-control'
-import { getVersion, checkUpdate } from '@/api'
+import { getVersion, checkUpdate, executeCommand as executeCcrCommand } from '@/api'
 import type { VersionInfo, UpdateCheckResponse } from '@/types'
 import { logger } from '@/utils/logger'
 
@@ -209,86 +209,34 @@ export function useCcrControl() {
 
       logger.debug('[CCR] Executing command', { command: mainCommand, args: fullArgs })
 
-      // 使用流式 API 执行（支持取消）
-      const response = await fetch('/api/command/execute/stream', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          command: mainCommand,
-          args: fullArgs,
-        }),
-        signal: abortController.value.signal,
-      })
-
-      logger.debug('[CCR] Response status', {
-        status: response.status,
-        contentType: response.headers.get('content-type'),
-      })
-
-      if (!response.ok) {
-        throw new Error(`请求失败: ${response.status}`)
+      // 使用 Tauri 命令执行 API（非流式）
+      const response = await executeCcrCommand({
+        command: mainCommand,
+        args: fullArgs,
+      }) as {
+        success?: boolean
+        stdout?: string
+        stderr?: string
+        exit_code?: number
       }
 
-      if (!response.body) {
-        throw new Error('响应体为空')
+      const stdoutLines = String(response?.stdout ?? '')
+        .split('\n')
+        .map(line => line.trimEnd())
+        .filter(line => line.length > 0)
+      const stderrLines = String(response?.stderr ?? '')
+        .split('\n')
+        .map(line => line.trimEnd())
+        .filter(line => line.length > 0)
+
+      if (stdoutLines.length > 0) {
+        outputLines.value.push(...stdoutLines)
+      }
+      if (stderrLines.length > 0) {
+        outputLines.value.push(...stderrLines.map(line => `[stderr] ${line}`))
       }
 
-      const reader = response.body.getReader()
-      const decoder = new TextDecoder()
-      let buffer = ''
-
-      const processSseLine = (line: string) => {
-        if (line.startsWith('data:')) {
-          try {
-            const data = JSON.parse(line.slice(5).trim())
-            logger.debug('[CCR] Parsed SSE data', data)
-            // 处理 StreamChunk 格式
-            if (data.type === 'stdout' && data.data != null) {
-              outputLines.value.push(data.data)
-              logger.debug('[CCR] Added stdout line', { totalLines: outputLines.value.length })
-            } else if (data.type === 'stderr' && data.data != null) {
-              outputLines.value.push(`[stderr] ${data.data}`)
-            } else if (data.type === 'completion') {
-              lastExitCode.value = data.exit_code ?? 0
-              logger.info('[CCR] Command completed', { exitCode: data.exit_code })
-            } else if (data.type === 'error' && data.message) {
-              outputLines.value.push(`[error] ${data.message}`)
-              lastExitCode.value = 1
-            }
-          } catch (e) {
-            logger.error('[CCR] Failed to parse SSE line', { line, error: e })
-          }
-        }
-      }
-
-      while (true) {
-        const { value, done } = await reader.read()
-
-        if (done) {
-          logger.debug('[CCR] Stream ended, processing remaining buffer')
-          // 处理剩余 buffer
-          buffer += decoder.decode()
-          if (buffer) {
-            const lines = buffer.split('\n')
-            for (const line of lines) {
-              processSseLine(line)
-            }
-          }
-          break
-        }
-
-        const chunk = decoder.decode(value, { stream: true })
-        logger.debug('[CCR] Received chunk', { chunk: chunk.substring(0, 100) })
-        buffer += chunk
-
-        // 处理 SSE 格式数据
-        const lines = buffer.split('\n')
-        buffer = lines.pop() || ''
-
-        for (const line of lines) {
-          processSseLine(line)
-        }
-      }
+      lastExitCode.value = response?.exit_code ?? (response?.success ? 0 : 1)
 
       const duration = Date.now() - startTime
       const success = lastExitCode.value === 0

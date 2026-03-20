@@ -51,6 +51,8 @@ export default {
     more: 'more',
     resizeSidebar: 'Resize sidebar',
     skipToContent: 'Skip to main content',
+    openNavigation: 'Open navigation',
+    closeNavigation: 'Close navigation',
     openModule: 'Open module',
     installed: 'Installed',
     shell: {

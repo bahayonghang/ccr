@@ -227,6 +227,108 @@ fn codex_list_models_payload() -> Result<Value, String> {
     }))
 }
 
+fn count_codex_agents(path: &PathBuf) -> Result<usize, String> {
+    if !path.exists() {
+        return Ok(0);
+    }
+
+    let mut count = 0usize;
+    for entry in fs::read_dir(path).map_err(|e| format!("读取 agents 目录失败: {e}"))? {
+        let entry = entry.map_err(|e| format!("遍历 agents 目录失败: {e}"))?;
+        let path = entry.path();
+        if path.extension().and_then(|value| value.to_str()) == Some("md") {
+            count += 1;
+        }
+    }
+
+    Ok(count)
+}
+
+fn usage_number(usage: &Value, section: &str, field: &str) -> u64 {
+    usage
+        .get(section)
+        .and_then(|value| value.get(field))
+        .and_then(Value::as_u64)
+        .unwrap_or(0)
+}
+
+fn usage_datetime(usage: &Value, section: &str, field: &str) -> Option<DateTime<Utc>> {
+    usage
+        .get(section)
+        .and_then(|value| value.get(field))
+        .and_then(Value::as_str)
+        .and_then(|value| DateTime::parse_from_rfc3339(value).ok())
+        .map(|dt| dt.with_timezone(&Utc))
+}
+
+fn codex_usage_freshness(last_activity_at: Option<DateTime<Utc>>) -> (&'static str, &'static str) {
+    let Some(last_activity_at) = last_activity_at else {
+        return ("empty", "暂无使用记录");
+    };
+
+    let age = Utc::now().signed_duration_since(last_activity_at);
+    if age <= chrono::Duration::hours(6) {
+        ("fresh", "最近 6 小时内有使用记录")
+    } else if age <= chrono::Duration::days(7) {
+        ("stale", "最近 7 天内有使用记录")
+    } else {
+        ("old", "最近使用记录已较久")
+    }
+}
+
+fn build_codex_usage_summary(usage: &Value) -> Value {
+    let last_activity_at = ["five_hour", "seven_day", "all_time"]
+        .into_iter()
+        .filter_map(|section| usage_datetime(usage, section, "window_end"))
+        .max();
+    let (freshness, freshness_description) = codex_usage_freshness(last_activity_at);
+
+    let top_model = usage
+        .get("by_model")
+        .and_then(Value::as_object)
+        .and_then(|models| {
+            models
+                .iter()
+                .max_by_key(|(_, stats)| {
+                    stats
+                        .get("total_requests")
+                        .and_then(Value::as_u64)
+                        .unwrap_or(0)
+                })
+                .map(|(model, stats)| {
+                    json!({
+                        "model": model,
+                        "total_requests": stats.get("total_requests").and_then(Value::as_u64).unwrap_or(0),
+                        "total_input_tokens": stats.get("total_input_tokens").and_then(Value::as_u64).unwrap_or(0),
+                        "total_output_tokens": stats.get("total_output_tokens").and_then(Value::as_u64).unwrap_or(0),
+                        "window_end": stats.get("window_end").cloned().unwrap_or(Value::Null),
+                    })
+                })
+        });
+
+    json!({
+        "last_activity_at": last_activity_at.map(|dt| dt.to_rfc3339()),
+        "freshness": freshness,
+        "freshness_description": freshness_description,
+        "five_hour": {
+            "total_requests": usage_number(usage, "five_hour", "total_requests"),
+            "total_input_tokens": usage_number(usage, "five_hour", "total_input_tokens"),
+            "total_output_tokens": usage_number(usage, "five_hour", "total_output_tokens"),
+        },
+        "seven_day": {
+            "total_requests": usage_number(usage, "seven_day", "total_requests"),
+            "total_input_tokens": usage_number(usage, "seven_day", "total_input_tokens"),
+            "total_output_tokens": usage_number(usage, "seven_day", "total_output_tokens"),
+        },
+        "all_time": {
+            "total_requests": usage_number(usage, "all_time", "total_requests"),
+            "total_input_tokens": usage_number(usage, "all_time", "total_input_tokens"),
+            "total_output_tokens": usage_number(usage, "all_time", "total_output_tokens"),
+        },
+        "top_model": top_model,
+    })
+}
+
 fn read_codex_config(path: &PathBuf) -> Result<CodexConfig, String> {
     if !path.exists() {
         return Ok(CodexConfig::default());
@@ -1282,6 +1384,114 @@ pub async fn codex_get_usage(
     tokio::task::spawn_blocking(compute_codex_usage_payload)
         .await
         .map_err(|e| format!("任务执行失败: {e}"))?
+}
+
+/// 获取 Codex 仪表盘摘要
+#[tauri::command]
+pub async fn codex_get_dashboard_summary() -> Result<Value, String> {
+    tokio::task::spawn_blocking(|| {
+        let path = codex_config_path()?;
+        let config = read_codex_config(&path)?;
+        let platform = CodexPlatform::new().map_err(|e| format!("初始化 Codex 平台失败: {e}"))?;
+        let current_profile = platform
+            .get_current_profile()
+            .map_err(|e| format!("读取当前 Codex profile 失败: {e}"))?;
+        let profiles = platform
+            .load_profiles()
+            .map_err(|e| format!("读取 Codex profiles 失败: {e}"))?;
+
+        let auth_service =
+            CodexAuthService::new().map_err(|e| format!("初始化 Codex Auth 服务失败: {e}"))?;
+        let auth_state = auth_service.get_auth_state();
+        let auth_snapshot = auth_service
+            .read_auth_snapshot()
+            .map_err(|e| format!("读取认证快照失败: {e}"))?;
+        let auth_accounts = auth_service
+            .build_account_items(&auth_snapshot)
+            .map_err(|e| format!("列出账号失败: {e}"))?;
+
+        let current_auth_name = auth_accounts
+            .iter()
+            .find(|item| item.is_current)
+            .map(|item| item.name.clone());
+        let expired_accounts = auth_accounts
+            .iter()
+            .filter(|item| CodexAuthService::is_expired(item.expires_at))
+            .count();
+        let current_auth = auth_snapshot.current_info.as_ref().map(|current| {
+            let freshness = &current.freshness;
+            let expires_at = auth_snapshot.current_expires_at;
+            json!({
+                "name": current_auth_name,
+                "account_id": current.account_id,
+                "email": current.email,
+                "last_refresh": current.last_refresh.map(|dt| dt.to_rfc3339()),
+                "freshness": freshness,
+                "freshness_icon": freshness.icon(),
+                "freshness_description": freshness.description(),
+                "expires_at": expires_at.map(|dt| dt.to_rfc3339()),
+                "is_expired": CodexAuthService::is_expired(expires_at),
+            })
+        });
+
+        let current_profile_summary = current_profile.as_ref().and_then(|name| {
+            profiles.get(name).cloned().map(|profile| {
+                profile_to_json(
+                    &platform,
+                    current_profile.as_deref(),
+                    Some(auth_state.store.as_str()),
+                    name.clone(),
+                    profile,
+                )
+            })
+        });
+        let enabled_profiles = profiles
+            .values()
+            .filter(|profile| profile.enabled.unwrap_or(true))
+            .count();
+
+        let usage_payload = compute_codex_usage_payload()?;
+        let agents_count = count_codex_agents(&codex_agents_dir()?)?;
+        let mcp_servers_total = config.mcp_servers.as_ref().map(|servers| servers.len()).unwrap_or(0);
+        let config_profiles_total = config.profiles.as_ref().map(|items| items.len()).unwrap_or(0);
+
+        Ok(json!({
+            "auth": {
+                "logged_in": current_auth.is_some(),
+                "login_state": auth_snapshot.login_state,
+                "store": auth_state.store.as_str(),
+                "saved_accounts_total": auth_accounts.len(),
+                "expired_accounts_total": expired_accounts,
+                "current": current_auth,
+            },
+            "profiles": {
+                "current_profile": current_profile,
+                "total": profiles.len(),
+                "enabled_total": enabled_profiles,
+                "disabled_total": profiles.len().saturating_sub(enabled_profiles),
+                "current": current_profile_summary,
+            },
+            "config": {
+                "model": config.model,
+                "model_provider": config.model_provider,
+                "approval_policy": config.approval_policy,
+                "sandbox_mode": config.sandbox_mode,
+                "model_reasoning_effort": config.model_reasoning_effort,
+                "model_reasoning_summary": config.model_reasoning_summary,
+                "web_search": config.web_search,
+                "disable_response_storage": config.disable_response_storage,
+            },
+            "usage": build_codex_usage_summary(&usage_payload),
+            "inventory": {
+                "mcp_servers_total": mcp_servers_total,
+                "agents_total": agents_count,
+                "slash_commands_total": 0,
+                "config_profiles_total": config_profiles_total,
+            }
+        }))
+    })
+    .await
+    .map_err(|e| format!("任务执行失败: {e}"))?
 }
 
 // ── 私有辅助函数 ──

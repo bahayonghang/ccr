@@ -111,6 +111,7 @@ macro_rules! generate_handler_common {
         codex::codex_update_agent,
         codex::codex_delete_agent,
         codex::codex_get_usage,
+        codex::codex_get_dashboard_summary,
         codex::codex_list_auth_accounts,
         codex::codex_get_auth_current,
         codex::codex_save_auth,

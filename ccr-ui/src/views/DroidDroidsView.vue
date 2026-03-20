@@ -23,32 +23,24 @@
           <div class="flex items-center gap-4">
             <RouterLink
               to="/droid"
-              class="p-3 rounded-2xl glass-card hover:scale-105 transition-transform duration-300"
-              :style="{ background: 'rgba(139, 92, 246, 0.1)' }"
+              class="glass-card rounded-2xl bg-accent-secondary/10 p-3 text-accent-secondary transition-colors duration-300 hover:bg-bg-overlay/70"
             >
               <SIcon
                 name="ArrowLeft"
                 size="w-6 h-6"
-                :style="{ color: '#8b5cf6' }"
               />
             </RouterLink>
             <div>
-              <h1
-                class="text-3xl md:text-4xl font-bold mb-2 bg-gradient-to-r from-[#8b5cf6] via-[#ec4899] to-[#f59e0b] bg-clip-text text-transparent"
-              >
+              <h1 class="mb-2 text-3xl font-bold text-text-primary md:text-4xl">
                 Droids 管理
               </h1>
-              <p
-                class="text-lg"
-                :style="{ color: 'var(--text-secondary)' }"
-              >
+              <p class="text-lg text-text-secondary">
                 管理自定义 AI Subagents (Droids)
               </p>
             </div>
           </div>
           <button
-            class="glass-card flex items-center gap-2 px-5 py-3 hover:scale-105 transition-transform duration-300"
-            :style="{ background: 'rgba(139, 92, 246, 0.1)', color: '#8b5cf6' }"
+            class="glass-card flex min-h-[44px] items-center gap-2 bg-accent-secondary/10 px-5 py-3 text-accent-secondary transition-colors duration-300 hover:bg-accent-secondary/15"
             @click="showAddModal = true"
           >
             <SIcon
@@ -66,8 +58,7 @@
         class="flex justify-center items-center py-20"
       >
         <div
-          class="animate-spin rounded-full h-12 w-12 border-b-2"
-          :style="{ borderColor: '#8b5cf6' }"
+          class="h-12 w-12 animate-spin rounded-full border-b-2 border-accent-secondary"
         />
       </div>
 
@@ -79,7 +70,7 @@
         <div
           v-for="droid in droids"
           :key="droid.name"
-          class="glass-card p-6 hover:scale-105 transition-transform duration-300"
+          class="glass-card p-6 transition-[transform,box-shadow,border-color] duration-300 hover:-translate-y-1 hover:border-white/30"
         >
           <!-- Droid 头部 -->
           <div class="flex items-start justify-between mb-4">
@@ -100,8 +91,7 @@
             </div>
             <div class="flex gap-2">
               <button
-                class="p-2 rounded-lg hover:bg-blue-500/10 transition-colors"
-                :style="{ color: '#3b82f6' }"
+                class="rounded-lg p-2 text-accent-primary transition-colors hover:bg-accent-primary/10"
                 @click="editDroid(droid)"
               >
                 <SIcon
@@ -110,8 +100,7 @@
                 />
               </button>
               <button
-                class="p-2 rounded-lg hover:bg-red-500/10 transition-colors"
-                :style="{ color: '#ef4444' }"
+                class="rounded-lg p-2 text-accent-danger transition-colors hover:bg-accent-danger/10"
                 @click="deleteDroid(droid.name)"
               >
                 <SIcon
@@ -128,7 +117,7 @@
               <SIcon
                 name="Cpu"
                 size="w-4 h-4"
-                :style="{ color: '#64748b' }"
+                class="text-text-muted"
               />
               <span
                 class="text-sm"
@@ -144,7 +133,7 @@
               <SIcon
                 name="Zap"
                 size="w-4 h-4"
-                :style="{ color: '#64748b' }"
+                class="text-text-muted"
               />
               <span
                 class="text-sm"
@@ -160,7 +149,7 @@
               <SIcon
                 name="Wrench"
                 size="w-4 h-4"
-                :style="{ color: '#64748b' }"
+                class="text-text-muted"
               />
               <span
                 class="text-sm"
@@ -173,8 +162,7 @@
 
           <!-- 系统提示预览 -->
           <div
-            class="mt-4 p-3 rounded-lg"
-            :style="{ background: 'rgba(139, 92, 246, 0.05)' }"
+            class="mt-4 rounded-lg bg-accent-secondary/5 p-3"
           >
             <p
               class="text-xs font-mono line-clamp-3"
@@ -192,25 +180,18 @@
         class="text-center py-20"
       >
         <div
-          class="inline-block p-6 rounded-3xl glass-card mb-6"
-          :style="{ background: 'rgba(139, 92, 246, 0.1)' }"
+          class="glass-card mb-6 inline-block rounded-3xl bg-accent-secondary/10 p-6"
         >
           <SIcon
             name="Inbox"
             size="w-16 h-16"
-            :style="{ color: '#8b5cf6' }"
+            class="text-accent-secondary"
           />
         </div>
-        <h3
-          class="text-2xl font-bold mb-2"
-          :style="{ color: 'var(--text-primary)' }"
-        >
+        <h3 class="mb-2 text-2xl font-bold text-text-primary">
           还没有 Droid
         </h3>
-        <p
-          class="text-lg mb-6"
-          :style="{ color: 'var(--text-secondary)' }"
-        >
+        <p class="mb-6 text-lg text-text-secondary">
           点击"添加 Droid"按钮创建第一个自定义 Subagent
         </p>
       </div>

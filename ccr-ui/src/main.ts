@@ -5,14 +5,18 @@ import router from './router'
 import i18n, { hydratePreferredLocale } from './i18n'
 import { useUIStore } from '@/stores/ui'
 import { logger } from '@/utils/logger'
-import { scheduleAfterPaint, scheduleWhenIdle } from '@/utils/scheduling'
+import { scheduleAfterPaint } from '@/utils/scheduling'
 import { showCurrentWindowIfTauri } from '@/utils/tauriWindow'
 import { applyInitialTheme } from '@/utils/themeBootstrap'
-import { registerAppIcons } from '@/config/iconRegistry'
 import './styles/index.css'
 
 applyInitialTheme()
-registerAppIcons()
+await Promise.all([
+  hydratePreferredLocale(),
+  import('@/config/iconRegistry').then(({ registerAppIcons }) => {
+    registerAppIcons()
+  }),
+])
 
 const app = createApp(App)
 
@@ -40,7 +44,3 @@ app.mount('#app')
 scheduleAfterPaint(() => {
   void showCurrentWindowIfTauri()
 })
-
-scheduleWhenIdle(() => {
-  void hydratePreferredLocale()
-}, { timeout: 1600, fallbackDelay: 320 })

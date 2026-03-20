@@ -96,14 +96,11 @@
           v-for="hook in filteredHooks"
           :key="hook.name"
           variant="glass"
-          interactive
           pattern
         >
-          <div
-            class="relative z-10"
+          <article
+            class="relative z-10 h-full"
             role="listitem"
-            tabindex="0"
-            @keydown.enter="handleEdit(hook)"
           >
             <div class="flex items-start justify-between mb-3">
               <div class="flex items-center gap-2">
@@ -154,39 +151,45 @@
               </div>
             </div>
 
-            <div class="space-y-2 text-sm">
-              <div class="bg-bg-surface rounded-lg p-3 border border-border-default/50">
-                <p class="text-xs text-text-muted mb-1 font-semibold">
-                  Command:
-                </p>
-                <code class="text-xs font-mono text-text-primary block break-all">{{ hook.command }}</code>
-                <div
-                  v-if="hook.args && hook.args.length > 0"
-                  class="mt-2"
-                >
+            <button
+              type="button"
+              class="block w-full rounded-2xl text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-secondary/30"
+              :aria-label="`Edit hook ${hook.name}`"
+              @click="handleEdit(hook)"
+            >
+              <div class="space-y-2 text-sm">
+                <div class="bg-bg-surface rounded-lg p-3 border border-border-default/50">
                   <p class="text-xs text-text-muted mb-1 font-semibold">
-                    Args:
+                    Command:
                   </p>
-                  <code class="text-xs font-mono text-text-secondary">{{ hook.args.join(' ') }}</code>
+                  <code class="text-xs font-mono text-text-primary block break-all">{{ hook.command }}</code>
+                  <div
+                    v-if="hook.args && hook.args.length > 0"
+                    class="mt-2"
+                  >
+                    <p class="text-xs text-text-muted mb-1 font-semibold">
+                      Args:
+                    </p>
+                    <code class="text-xs font-mono text-text-secondary">{{ hook.args.join(' ') }}</code>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <!-- Status indicator with text -->
-            <div class="mt-3 flex items-center gap-2">
-              <span
-                class="w-2 h-2 rounded-full"
-                :class="hook.enabled !== false ? 'bg-accent-success' : 'bg-text-muted'"
-                aria-hidden="true"
-              />
-              <span
-                class="text-xs font-medium"
-                :class="hook.enabled !== false ? 'text-accent-success' : 'text-text-muted'"
-              >
-                {{ hook.enabled !== false ? 'Enabled' : 'Disabled' }}
-              </span>
-            </div>
-          </div>
+              <div class="mt-3 flex items-center gap-2">
+                <span
+                  class="w-2 h-2 rounded-full"
+                  :class="hook.enabled !== false ? 'bg-accent-success' : 'bg-text-muted'"
+                  aria-hidden="true"
+                />
+                <span
+                  class="text-xs font-medium"
+                  :class="hook.enabled !== false ? 'text-accent-success' : 'text-text-muted'"
+                >
+                  {{ hook.enabled !== false ? 'Enabled' : 'Disabled' }}
+                </span>
+              </div>
+            </button>
+          </article>
         </Card>
       </div>
     </div>
@@ -536,7 +539,14 @@ const handleToggle = async (name: string) => {
 }
 
 const handleDelete = async (name: string) => {
-  if (!confirm(`Delete hook "${name}"?`)) return
+  const confirmed = await uiStore.requestConfirm({
+    title: 'Delete hook',
+    message: `Delete hook "${name}"?`,
+    confirmText: 'Delete',
+    cancelText: 'Cancel',
+    type: 'danger'
+  })
+  if (!confirmed) return
   try {
     await deleteHook(name)
     await loadHooks()

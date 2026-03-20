@@ -20,7 +20,7 @@
       </div>
       <div class="flex items-center gap-2">
         <button
-          class="text-xs px-3 py-1.5 rounded-lg bg-bg-surface hover:bg-accent-success/10 text-text-secondary hover:text-accent-success transition-colors flex items-center gap-1.5"
+          class="min-h-[44px] text-xs px-3 py-1.5 rounded-lg bg-bg-surface hover:bg-accent-success/10 text-text-secondary hover:text-accent-success transition-colors flex items-center gap-1.5"
           :disabled="loading"
           @click="loadSourceServers"
         >
@@ -32,7 +32,7 @@
           {{ $t('common.refresh') }}
         </button>
         <button
-          class="px-4 py-2 rounded-xl font-bold text-sm text-white flex items-center gap-2 transition-transform hover:scale-105 bg-accent-success shadow-lg shadow-accent-success/20"
+          class="min-h-[44px] px-4 py-2 rounded-xl font-bold text-sm text-white flex items-center gap-2 transition-transform hover:scale-105 bg-accent-success shadow-lg shadow-accent-success/20"
           :disabled="syncing || sourceServers.length === 0"
           @click="handleSyncAll"
         >
@@ -61,7 +61,7 @@
         <button
           v-for="platform in platforms"
           :key="platform.id"
-          class="px-3 py-2 rounded-xl text-xs font-medium flex items-center gap-2 transition-colors border"
+          class="min-h-[44px] px-3 py-2 rounded-xl text-xs font-medium flex items-center gap-2 transition-colors border"
           :class="selectedPlatforms.includes(platform.id)
             ? 'bg-accent-success/20 text-accent-success border-accent-success/30'
             : 'bg-bg-surface text-text-muted border-transparent hover:border-border-default'"
@@ -140,7 +140,7 @@
               </div>
             </div>
             <button
-              class="ml-4 px-3 py-2 rounded-xl text-xs font-medium bg-accent-success/10 text-accent-success hover:bg-accent-success/20 transition-colors flex items-center gap-1.5"
+              class="ml-4 min-h-[44px] px-3 py-2 rounded-xl text-xs font-medium bg-accent-success/10 text-accent-success hover:bg-accent-success/20 transition-colors flex items-center gap-1.5"
               :disabled="syncing"
               @click="handleSyncServer(server.name)"
             >
@@ -185,6 +185,7 @@
 import SIcon from '@/components/ui/SIcon.vue'
 import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useUIStore } from '@/stores/ui'
 import {
   listSourceMcpServers,
   syncMcpServer,
@@ -195,6 +196,7 @@ import {
 import { logger } from '@/utils/logger'
 
 const { t } = useI18n({ useScope: 'global' })
+const uiStore = useUIStore()
 
 const emit = defineEmits<{
   (e: 'synced'): void
@@ -241,7 +243,7 @@ const loadSourceServers = async () => {
 // Sync single server
 const handleSyncServer = async (serverName: string) => {
   if (selectedPlatforms.value.length === 0) {
-    alert(t('mcp.sync.selectPlatformFirst'))
+    uiStore.showWarning(t('mcp.sync.selectPlatformFirst'))
     return
   }
 
@@ -252,7 +254,7 @@ const handleSyncServer = async (serverName: string) => {
     emit('synced')
   } catch (err) {
     logger.error('Failed to sync server:', err)
-    alert(`${t('mcp.sync.syncFailed')}: ${err instanceof Error ? err.message : 'Unknown error'}`)
+    uiStore.showError(`${t('mcp.sync.syncFailed')}: ${err instanceof Error ? err.message : 'Unknown error'}`)
   } finally {
     syncingServer.value = null
   }
@@ -261,7 +263,7 @@ const handleSyncServer = async (serverName: string) => {
 // Sync all servers
 const handleSyncAll = async () => {
   if (selectedPlatforms.value.length === 0) {
-    alert(t('mcp.sync.selectPlatformFirst'))
+    uiStore.showWarning(t('mcp.sync.selectPlatformFirst'))
     return
   }
 
@@ -277,10 +279,10 @@ const handleSyncAll = async () => {
     }
 
     emit('synced')
-    alert(t('mcp.sync.syncAllSuccess'))
+    uiStore.showSuccess(t('mcp.sync.syncAllSuccess'))
   } catch (err) {
     logger.error('Failed to sync all servers:', err)
-    alert(`${t('mcp.sync.syncFailed')}: ${err instanceof Error ? err.message : 'Unknown error'}`)
+    uiStore.showError(`${t('mcp.sync.syncFailed')}: ${err instanceof Error ? err.message : 'Unknown error'}`)
   } finally {
     syncing.value = false
   }

@@ -14,6 +14,8 @@ const zhCNBootMessages = {
     retry: '重试',
     resizeSidebar: '调整侧边栏宽度',
     skipToContent: '跳到主要内容',
+    openNavigation: '打开导航',
+    closeNavigation: '关闭导航',
     installed: '已安装',
     shell: {
       tagline: 'Neko Console',
@@ -155,6 +157,8 @@ const enUSBootMessages = {
     retry: 'Retry',
     resizeSidebar: 'Resize sidebar',
     skipToContent: 'Skip to main content',
+    openNavigation: 'Open navigation',
+    closeNavigation: 'Close navigation',
     installed: 'Installed',
     shell: {
       tagline: 'Neko Console',

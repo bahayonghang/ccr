@@ -54,6 +54,8 @@ export default {
     more: '更多',
     resizeSidebar: '调整侧边栏宽度',
     skipToContent: '跳到主要内容',
+    openNavigation: '打开导航',
+    closeNavigation: '关闭导航',
     openModule: '打开模块',
     installed: '已安装',
     shell: {

@@ -139,6 +139,12 @@ const router = createRouter({
           component: () => import('@/views/MonitoringView.vue'),
           meta: { depth: 1, group: 'data' }
         },
+        {
+          path: 'sessions',
+          name: 'sessions',
+          component: () => import('@/views/SessionsView.vue'),
+          meta: { depth: 1, group: 'data' }
+        },
         // MCP 管理
         {
           path: 'mcp',
@@ -209,12 +215,6 @@ const router = createRouter({
           meta: { depth: 1, group: 'config' }
         },
         {
-          path: 'sessions',
-          name: 'sessions',
-          component: () => import('@/views/SessionsView.vue'),
-          meta: { depth: 1, group: 'config' }
-        },
-        {
           path: 'hooks',
           name: 'hooks',
           component: () => import('@/views/HooksView.vue'),
@@ -230,12 +230,6 @@ const router = createRouter({
           path: 'statusline',
           name: 'statusline',
           component: () => import('@/views/StatuslineView.vue'),
-          meta: { depth: 1, group: 'config' }
-        },
-        {
-          path: 'provider-health',
-          name: 'provider-health',
-          component: () => import('@/views/ProviderHealthView.vue'),
           meta: { depth: 1, group: 'config' }
         },
         // 工具组 - checkin (depth: 1, group: 'tools')

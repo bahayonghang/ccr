@@ -5,6 +5,7 @@
     <RouterView class="flex-1 overflow-hidden" />
   </div>
   <ToastContainer />
+  <GlobalConfirmDialog />
 </template>
 
 <script setup lang="ts">
@@ -13,6 +14,7 @@ import { useRoute } from 'vue-router'
 import Titlebar from '@/components/layout/Titlebar.vue'
 import ToastContainer from '@/components/common/ToastContainer.vue'
 import AnimeBackground from '@/components/common/AnimeBackground.vue'
+import GlobalConfirmDialog from '@/components/common/GlobalConfirmDialog.vue'
 
 const route = useRoute()
 

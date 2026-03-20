@@ -322,10 +322,12 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { getBudgetStatus, setBudget, resetBudget } from '@/api'
+import { useUIStore } from '@/stores/ui'
 import type { BudgetStatus, SetBudgetRequest } from '@/types'
 import { getErrorMessage } from '@/utils/errorHandler'
 import { logger } from '@/utils/logger'
 
+const uiStore = useUIStore()
 const budgetStatus = ref<BudgetStatus | null>(null)
 const loading = ref(false)
 const saving = ref(false)
@@ -390,9 +392,9 @@ const saveBudget = async () => {
     await setBudget(request)
     await loadData()
 
-    alert('配置已保存')
+    uiStore.showSuccess('配置已保存')
   } catch (e: unknown) {
-    alert(`保存失败: ${getErrorMessage(e) || '未知错误'}`)
+    uiStore.showError(`保存失败: ${getErrorMessage(e) || '未知错误'}`)
     logger.error('Failed to save budget:', e)
   } finally {
     saving.value = false
@@ -400,7 +402,14 @@ const saveBudget = async () => {
 }
 
 const handleReset = async () => {
-  if (!confirm('确定要重置所有预算限制吗？')) return
+  const confirmed = await uiStore.requestConfirm({
+    title: '重置预算限制',
+    message: '确定要重置所有预算限制吗？',
+    confirmText: '重置',
+    cancelText: '取消',
+    type: 'danger'
+  })
+  if (!confirmed) return
 
   saving.value = true
 
@@ -408,9 +417,9 @@ const handleReset = async () => {
     await resetBudget()
     await loadData()
 
-    alert('预算限制已重置')
+    uiStore.showSuccess('预算限制已重置')
   } catch (e: unknown) {
-    alert(`重置失败: ${getErrorMessage(e) || '未知错误'}`)
+    uiStore.showError(`重置失败: ${getErrorMessage(e) || '未知错误'}`)
     logger.error('Failed to reset budget:', e)
   } finally {
     saving.value = false

@@ -416,7 +416,7 @@ dependencies = [
 
 [[package]]
 name = "ccr"
-version = "5.2.1"
+version = "5.2.2"
 dependencies = [
  "anyhow",
  "base64 0.22.1",
@@ -441,6 +441,7 @@ dependencies = [
  "rusqlite",
  "serde",
  "serde_json",
+ "sysinfo",
  "tempfile",
  "thiserror 2.0.18",
  "tokio",
@@ -456,7 +457,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-db"
-version = "5.2.1"
+version = "5.2.2"
 dependencies = [
  "aes-gcm",
  "anyhow",
@@ -488,7 +489,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-desktop"
-version = "5.2.1"
+version = "5.2.2"
 dependencies = [
  "aes-gcm",
  "async-trait",
@@ -520,7 +521,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-types"
-version = "5.2.1"
+version = "5.2.2"
 dependencies = [
  "chrono",
  "serde",

@@ -15,10 +15,11 @@
             </h3>
              
             <div class="space-y-1">
-              <div
+              <button
                 v-for="folder in folderOptions"
                 :key="folder.value"
-                class="flex items-center gap-2 px-3 py-2 rounded-xl cursor-pointer text-sm transition-colors duration-200 group"
+                type="button"
+                class="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm transition-colors duration-200 group min-h-[44px]"
                 :class="[
                   selectedFolder === folder.value 
                     ? 'bg-[var(--color-accent-primary)]/10 text-[var(--color-accent-primary)] font-medium shadow-sm border border-[var(--color-accent-primary)]/20' 
@@ -39,7 +40,7 @@
                 >
                   {{ folder.count }}
                 </span>
-              </div>
+              </button>
             </div>
           </div>
 
@@ -89,7 +90,8 @@
                 >
                 <button
                   v-if="searchQuery"
-                  class="absolute right-3 top-1/2 transform -translate-y-1/2 p-0.5 rounded-full hover:bg-black/10 text-[var(--color-text-muted)] transition-colors"
+                  class="absolute right-2 top-1/2 transform -translate-y-1/2 rounded-full hover:bg-black/10 text-[var(--color-text-muted)] transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
+                  :aria-label="$t('common.clearSearch')"
                   @click="searchQuery = ''"
                 >
                   <SIcon
@@ -102,7 +104,7 @@
 
             <div class="flex items-center gap-3 w-full md:w-auto justify-end">
               <button
-                class="px-4 py-2.5 rounded-xl font-medium transition-[color,background-color,border-color,transform] hover:scale-105 bg-[var(--color-accent-primary)] text-white shadow-lg shadow-[var(--color-accent-primary)]/20 hover:shadow-[var(--color-accent-primary)]/30 flex items-center text-sm"
+                class="min-h-[44px] px-4 py-2.5 rounded-xl font-medium transition-[color,background-color,border-color,transform] hover:scale-105 bg-[var(--color-accent-primary)] text-white shadow-lg shadow-[var(--color-accent-primary)]/20 hover:shadow-[var(--color-accent-primary)]/30 flex items-center text-sm"
                 @click="handleAdd"
               >
                 <SIcon
@@ -141,7 +143,7 @@
               {{ $t(`${tPrefix}.noResultsHint`) }}
             </p>
             <button 
-              class="mt-6 px-4 py-2 text-sm text-[var(--color-accent-primary)] hover:bg-[var(--color-accent-primary)]/5 rounded-lg transition-colors"
+              class="mt-6 min-h-[44px] px-4 py-2 text-sm text-[var(--color-accent-primary)] hover:bg-[var(--color-accent-primary)]/5 rounded-lg transition-colors"
               @click="searchQuery = ''; selectedFolder = ''"
             >
               {{ $t(`${tPrefix}.tryOtherKeywords`) }}
@@ -156,10 +158,8 @@
                 v-for="agent in paginatedAgents"
                 :key="agent.name"
                 variant="glass"
-                interactive
                 pattern
                 class="h-full flex flex-col group"
-                @click="navigateToDetail(agent)"
               >
                 <div class="relative z-10 flex flex-col h-full">
                   <div class="flex items-start justify-between mb-3">
@@ -187,7 +187,7 @@
                    
                     <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                       <button
-                        class="p-1.5 rounded-lg transition-colors hover:bg-[var(--color-bg-surface)]"
+                        class="min-h-[44px] min-w-[44px] rounded-lg transition-colors hover:bg-[var(--color-bg-surface)] flex items-center justify-center"
                         :class="agent.disabled ? 'text-[var(--color-text-muted)] hover:text-[var(--color-accent-primary)]' : 'text-[var(--color-accent-primary)] hover:text-[var(--color-text-muted)]'"
                         :title="agent.disabled ? $t(`${tPrefix}.enable`) : $t(`${tPrefix}.disable`)"
                         @click.stop="handleToggle(agent)"
@@ -205,7 +205,7 @@
                       </button>
                       <button
                         v-if="module === 'agents'"
-                        class="p-1.5 rounded-lg text-[var(--color-text-secondary)] hover:text-[var(--color-accent-primary)] hover:bg-[var(--color-accent-primary)]/10 transition-colors"
+                        class="min-h-[44px] min-w-[44px] rounded-lg text-[var(--color-text-secondary)] hover:text-[var(--color-accent-primary)] hover:bg-[var(--color-accent-primary)]/10 transition-colors flex items-center justify-center"
                         :title="$t('common.view')"
                         @click.stop="navigateToDetail(agent)"
                       >
@@ -215,7 +215,7 @@
                         />
                       </button>
                       <button
-                        class="p-1.5 rounded-lg text-[var(--color-text-secondary)] hover:text-[var(--color-info)] hover:bg-[var(--color-info)]/10 transition-colors"
+                        class="min-h-[44px] min-w-[44px] rounded-lg text-[var(--color-text-secondary)] hover:text-[var(--color-info)] hover:bg-[var(--color-info)]/10 transition-colors flex items-center justify-center"
                         :title="$t('common.edit')"
                         @click.stop="handleEdit(agent)"
                       >
@@ -225,7 +225,7 @@
                         />
                       </button>
                       <button
-                        class="p-1.5 rounded-lg text-[var(--color-text-secondary)] hover:text-[var(--color-danger)] hover:bg-[var(--color-danger)]/10 transition-colors"
+                        class="min-h-[44px] min-w-[44px] rounded-lg text-[var(--color-text-secondary)] hover:text-[var(--color-danger)] hover:bg-[var(--color-danger)]/10 transition-colors flex items-center justify-center"
                         :title="$t('common.delete')"
                         @click.stop="handleDelete(agent)"
                       >
@@ -237,50 +237,57 @@
                     </div>
                   </div>
 
-                  <div class="flex-1 space-y-3">
-                    <div
-                      v-if="agent.system_prompt"
-                      class="relative"
-                    >
-                      <div class="absolute left-0 top-0 bottom-0 w-0.5 bg-[var(--color-accent-primary)]/30 rounded-full" />
-                      <p class="pl-3 text-xs text-[var(--color-text-secondary)] line-clamp-3 leading-relaxed italic">
-                        {{ agent.system_prompt }}
-                      </p>
+                  <button
+                    type="button"
+                    class="flex h-full flex-col text-left rounded-2xl transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent-primary)]/25"
+                    :aria-label="$t('common.view') + ': ' + agent.name"
+                    @click="navigateToDetail(agent)"
+                  >
+                    <div class="flex-1 space-y-3">
+                      <div
+                        v-if="agent.system_prompt"
+                        class="relative"
+                      >
+                        <div class="absolute left-0 top-0 bottom-0 w-0.5 bg-[var(--color-accent-primary)]/30 rounded-full" />
+                        <p class="pl-3 text-xs text-[var(--color-text-secondary)] line-clamp-3 leading-relaxed italic">
+                          {{ agent.system_prompt }}
+                        </p>
+                      </div>
+                      <div
+                        v-else
+                        class="text-xs text-[var(--color-text-muted)] italic pl-3"
+                      >
+                        No system prompt configured
+                      </div>
                     </div>
-                    <div
-                      v-else
-                      class="text-xs text-[var(--color-text-muted)] italic pl-3"
-                    >
-                      No system prompt configured
-                    </div>
-                  </div>
-                 
-                  <div class="mt-4 pt-3 border-t border-[var(--color-border-default)]/30 flex items-center justify-between gap-2">
-                    <div class="flex items-center gap-1.5 text-[10px] text-[var(--color-text-muted)] bg-[var(--color-bg-surface)]/50 px-2 py-1 rounded-md border border-[var(--color-border-default)]/30">
-                      <span class="w-1.5 h-1.5 rounded-full bg-[var(--color-accent-secondary)]/50" />
-                      <span class="truncate max-w-[100px]">{{ agent.model }}</span>
-                    </div>
+                   
+                    <div class="mt-4 pt-3 border-t border-[var(--color-border-default)]/30 flex items-center justify-between gap-2">
+                      <div class="flex items-center gap-1.5 text-[10px] text-[var(--color-text-muted)] bg-[var(--color-bg-surface)]/50 px-2 py-1 rounded-md border border-[var(--color-border-default)]/30">
+                        <span class="w-1.5 h-1.5 rounded-full bg-[var(--color-accent-secondary)]/50" />
+                        <span class="truncate max-w-[100px]">{{ agent.model }}</span>
+                      </div>
 
-                    <div
-                      v-if="agent.tools && agent.tools.length > 0"
-                      class="flex -space-x-1.5"
-                    >
                       <div
-                        v-for="(tool, i) in agent.tools.slice(0, 3)"
-                        :key="i" 
-                        class="w-6 h-6 rounded-full bg-white border border-[var(--color-border-default)] flex items-center justify-center text-[10px] shadow-sm text-[var(--color-text-secondary)]"
-                        :title="tool"
+                        v-if="agent.tools && agent.tools.length > 0"
+                        class="flex -space-x-1.5"
                       >
-                        {{ tool.charAt(0).toUpperCase() }}
-                      </div>
-                      <div
-                        v-if="agent.tools.length > 3"
-                        class="w-6 h-6 rounded-full bg-[var(--color-bg-surface)] border border-[var(--color-border-default)] flex items-center justify-center text-[9px] font-medium text-[var(--color-text-muted)]"
-                      >
-                        +{{ agent.tools.length - 3 }}
+                        <div
+                          v-for="(tool, i) in agent.tools.slice(0, 3)"
+                          :key="i" 
+                          class="w-6 h-6 rounded-full bg-white border border-[var(--color-border-default)] flex items-center justify-center text-[10px] shadow-sm text-[var(--color-text-secondary)]"
+                          :title="tool"
+                        >
+                          {{ tool.charAt(0).toUpperCase() }}
+                        </div>
+                        <div
+                          v-if="agent.tools.length > 3"
+                          class="w-6 h-6 rounded-full bg-[var(--color-bg-surface)] border border-[var(--color-border-default)] flex items-center justify-center text-[9px] font-medium text-[var(--color-text-muted)]"
+                        >
+                          +{{ agent.tools.length - 3 }}
+                        </div>
                       </div>
                     </div>
-                  </div>
+                  </button>
                 </div>
                
                 <!-- Disabled Overlay -->
@@ -454,6 +461,7 @@ import Breadcrumb from '@/components/ui/Breadcrumb.vue'
 import Card from '@/components/ui/Card.vue'
 import MarketplacePagination from '@/components/skills/MarketplacePagination.vue'
 import { useAgents } from '@/composables/useAgents'
+import { useUIStore } from '@/stores/ui'
 import type { Agent, AgentRequest } from '@/types'
 import { logger } from '@/utils/logger'
 
@@ -463,6 +471,7 @@ const props = defineProps<{
 
 const { t } = useI18n()
 const router = useRouter()
+const uiStore = useUIStore()
 const tPrefix = computed(() => props.module === 'agents' ? 'agents' : `${props.module}.agents`)
 const {
   agents,
@@ -610,7 +619,7 @@ const getAgentApiName = (agent: Agent) => {
 
 const handleSubmit = async () => {
   if (!formData.value.name || !formData.value.model) {
-    alert(t(`${tPrefix.value}.validation.required`))
+    uiStore.showWarning(t(`${tPrefix.value}.validation.required`))
     return
   }
 
@@ -623,34 +632,49 @@ const handleSubmit = async () => {
   try {
     if (editingAgent.value) {
       await updateAgent(getAgentApiName(editingAgent.value), request)
+      uiStore.showSuccess(t('common.saveSuccess'))
     } else {
       await addAgent(request)
+      uiStore.showSuccess(t(`${tPrefix.value}.addSuccess`))
     }
     showAddForm.value = false
     editingAgent.value = null
   } catch (err) {
     logger.error('Operation failed:', err)
-    alert(t(`${tPrefix.value}.messages.operationFailed`, { error: err instanceof Error ? err.message : 'Unknown error' }))
+    uiStore.showError(t(`${tPrefix.value}.messages.operationFailed`, { error: err instanceof Error ? err.message : 'Unknown error' }))
   }
 }
 
 const handleDelete = async (agent: Agent) => {
   const displayName = getAgentApiName(agent)
-  if (!confirm(t(`${tPrefix.value}.deleteConfirm`, { name: displayName }))) return
+  const confirmed = await uiStore.requestConfirm({
+    title: t('common.delete'),
+    message: t(`${tPrefix.value}.deleteConfirm`, { name: displayName }),
+    confirmText: t('common.delete'),
+    cancelText: t('common.cancel'),
+    type: 'danger'
+  })
+  if (!confirmed) return
   try {
     await deleteAgent(getAgentApiName(agent))
+    uiStore.showSuccess(t(`${tPrefix.value}.deleteSuccess`))
   } catch (err) {
     logger.error('Delete failed:', err)
-    alert(t(`${tPrefix.value}.messages.deleteFailed`, { error: err instanceof Error ? err.message : 'Unknown error' }))
+    uiStore.showError(t(`${tPrefix.value}.messages.deleteFailed`, { error: err instanceof Error ? err.message : 'Unknown error' }))
   }
 }
 
 const handleToggle = async (agent: Agent) => {
   try {
     await toggleAgent(getAgentApiName(agent))
+    uiStore.showSuccess(
+      agent.disabled
+        ? t(`${tPrefix.value}.enableSuccess`, { name: agent.name })
+        : t(`${tPrefix.value}.disableSuccess`, { name: agent.name })
+    )
   } catch (err) {
     logger.error('Toggle failed:', err)
-    alert(t(`${tPrefix.value}.messages.toggleFailed`, { error: err instanceof Error ? err.message : 'Unknown error' }))
+    uiStore.showError(t(`${tPrefix.value}.messages.toggleFailed`, { error: err instanceof Error ? err.message : 'Unknown error' }))
   }
 }
 

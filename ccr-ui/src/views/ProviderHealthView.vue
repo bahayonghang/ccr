@@ -311,6 +311,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { healthCheck } from '@/api'
 import { logger } from '@/utils/logger'
 
 interface HealthCheckResult {
@@ -335,21 +336,53 @@ const results = ref<HealthCheckResult[]>([])
 const summary = ref<HealthSummary | null>(null)
 const testing = ref(false)
 
-const API_BASE = '/api'
-
 const testAll = async () => {
   testing.value = true
   results.value = []
   summary.value = null
-  
+
   try {
-    const res = await fetch(`${API_BASE}/provider-health/test-all`)
-    if (!res.ok) throw new Error('Test failed')
-    const data = await res.json()
-    results.value = data.results || []
-    summary.value = data.summary || null
+    const data = await healthCheck<{
+      status?: string
+      database?: boolean
+      version?: string
+    }>()
+
+    const status = data?.status === 'healthy' ? 'healthy' : 'degraded'
+    results.value = [{
+      provider_name: 'system',
+      base_url: 'tauri://health_check',
+      status,
+      status_color: status === 'healthy' ? 'green' : 'yellow',
+      latency_ms: null,
+      error: data?.database ? null : 'Database unavailable',
+      model_available: false,
+      available_models: [],
+    }]
+    summary.value = {
+      total: 1,
+      healthy: status === 'healthy' ? 1 : 0,
+      degraded: status === 'degraded' ? 1 : 0,
+      unhealthy: 0,
+    }
   } catch (e) {
     logger.error('Failed to test providers:', e)
+    results.value = [{
+      provider_name: 'system',
+      base_url: 'tauri://health_check',
+      status: 'unhealthy',
+      status_color: 'red',
+      latency_ms: null,
+      error: e instanceof Error ? e.message : 'Unknown error',
+      model_available: false,
+      available_models: [],
+    }]
+    summary.value = {
+      total: 1,
+      healthy: 0,
+      degraded: 0,
+      unhealthy: 1,
+    }
   } finally {
     testing.value = false
   }

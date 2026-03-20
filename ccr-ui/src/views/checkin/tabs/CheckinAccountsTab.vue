@@ -1,122 +1,126 @@
 <template>
   <div class="space-y-4">
-    <div class="flex items-center justify-between flex-wrap gap-4">
-      <h2 class="text-xl font-semibold text-gray-900 dark:text-white">
-        签到账号
-      </h2>
-      <!-- 搜索和过滤区域 -->
-      <div class="flex items-center gap-3 flex-1 justify-end">
-        <!-- 搜索框 -->
-        <div class="relative">
-          <input
-            v-model="searchQuery"
-            type="text"
-            placeholder="搜索账号..."
-            class="w-48 pl-9 pr-4 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+    <div class="glass-effect rounded-3xl border border-white/20 p-4 shadow-sm">
+      <div class="flex flex-wrap items-center justify-between gap-4">
+        <h2 class="text-xl font-semibold text-text-primary">
+          签到账号
+        </h2>
+        <!-- 搜索和过滤区域 -->
+        <div class="flex flex-1 items-center justify-end gap-3">
+          <!-- 搜索框 -->
+          <div class="relative">
+            <input
+              v-model="searchQuery"
+              type="text"
+              placeholder="搜索账号..."
+              class="w-48 rounded-xl border border-border-default bg-bg-surface/70 py-2.5 pl-9 pr-4 text-sm text-text-primary transition-[border-color,box-shadow] placeholder:text-text-muted focus:border-accent-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/20"
+            >
+            <svg
+              class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+              />
+            </svg>
+          </div>
+          <!-- 提供商过滤 -->
+          <select
+            v-model="providerFilter"
+            class="rounded-xl border border-border-default bg-bg-surface/70 px-3 py-2.5 text-sm text-text-primary transition-[border-color,box-shadow] focus:border-accent-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/20"
           >
-          <svg
-            class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-            />
-          </svg>
+            <option value="all">
+              全部提供商
+            </option>
+            <option
+              v-for="p in providers"
+              :key="p.id"
+              :value="p.id"
+            >
+              {{ p.name }}
+            </option>
+          </select>
         </div>
-        <!-- 提供商过滤 -->
-        <select
-          v-model="providerFilter"
-          class="px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
-        >
-          <option value="all">
-            全部提供商
-          </option>
-          <option
-            v-for="p in providers"
-            :key="p.id"
-            :value="p.id"
+        <div class="flex flex-wrap items-center gap-3">
+          <button
+            :disabled="providers.length === 0"
+            class="inline-flex min-h-[44px] items-center space-x-2 rounded-xl bg-accent-primary px-4 py-2 text-white shadow-lg shadow-accent-primary/20 transition-colors hover:bg-accent-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
+            @click="openAccountModal()"
           >
-            {{ p.name }}
-          </option>
-        </select>
+            <svg
+              class="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M12 4v16m8-8H4"
+              />
+            </svg>
+            <span>添加账号</span>
+          </button>
+          <button
+            :disabled="builtinProviders.filter(p => p.oauth_config).length === 0"
+            class="inline-flex min-h-[44px] items-center space-x-2 rounded-xl bg-accent-secondary px-4 py-2 text-white shadow-lg shadow-accent-secondary/20 transition-colors hover:bg-accent-secondary/90 disabled:cursor-not-allowed disabled:opacity-50"
+            @click="emit('show-oauth-wizard')"
+          >
+            <SIcon
+              name="Shield"
+              size="w-5 h-5"
+            />
+            <span>OAuth 登录</span>
+          </button>
+        </div>
       </div>
-      <button
-        :disabled="providers.length === 0"
-        class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center space-x-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-        @click="openAccountModal()"
-      >
-        <svg
-          class="w-5 h-5"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M12 4v16m8-8H4"
-          />
-        </svg>
-        <span>添加账号</span>
-      </button>
-      <button
-        :disabled="builtinProviders.filter(p => p.oauth_config).length === 0"
-        class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg flex items-center space-x-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-        @click="emit('show-oauth-wizard')"
-      >
-        <SIcon
-          name="Shield"
-          size="w-5 h-5"
-        />
-        <span>OAuth 登录</span>
-      </button>
     </div>
 
     <!-- 账号列表 -->
     <div
       v-if="accounts.length === 0"
-      class="text-center py-12 text-gray-500 dark:text-gray-400"
+      class="glass-effect rounded-3xl border border-white/20 py-12 text-center text-text-muted"
     >
       {{ providers.length === 0 ? '请先添加提供商' : '暂无账号，点击上方按钮添加' }}
     </div>
     <div
       v-else
-      class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700"
+      class="glass-effect overflow-hidden rounded-3xl border border-white/20 shadow-sm"
     >
-      <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-        <thead class="bg-gray-50/80 dark:bg-gray-700/50 backdrop-blur-md sticky top-0 rounded-t-xl">
+      <table class="min-w-full divide-y divide-border-default/60">
+        <thead class="sticky top-0 rounded-t-xl bg-bg-surface/80 backdrop-blur-md">
           <tr>
-            <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-text-muted">
               账号名
             </th>
-            <th class="px-4 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+            <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-text-muted">
               余额
             </th>
-            <th class="px-4 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+            <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-text-muted">
               总额度
             </th>
-            <th class="px-4 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+            <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wider text-text-muted">
               历史消耗
             </th>
-            <th class="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-text-muted">
               最后签到
             </th>
-            <th class="px-4 py-3 text-center text-xs font-semibold text-gray-500 dark:text-gray-300 uppercase tracking-wider w-36">
+            <th class="w-36 px-4 py-3 text-center text-xs font-semibold uppercase tracking-wider text-text-muted">
               操作
             </th>
           </tr>
         </thead>
-        <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+        <tbody class="divide-y divide-border-default/60">
           <tr
             v-for="account in filteredAccounts"
             :key="account.id"
-            class="hover:bg-gray-50/60 dark:hover:bg-gray-700/50 transition-colors duration-200 cursor-pointer"
+            class="cursor-pointer transition-colors duration-200 hover:bg-bg-overlay/50"
             @click="emit('navigate', account.id)"
           >
             <!-- 账号名 + 提供商 -->
@@ -125,13 +129,13 @@
                 <div class="flex items-center gap-2">
                   <div
                     class="w-2 h-2 rounded-full flex-shrink-0"
-                    :class="account.enabled ? 'bg-green-500' : 'bg-gray-400'"
+                    :class="account.enabled ? 'bg-accent-success' : 'bg-text-muted'"
                   />
-                  <span class="text-sm font-semibold text-gray-900 dark:text-white">
+                  <span class="text-sm font-semibold text-text-primary">
                     {{ account.name }}
                   </span>
                 </div>
-                <span class="px-2 py-0.5 text-xs bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 rounded-md w-fit">
+                <span class="w-fit rounded-md bg-bg-surface px-2 py-0.5 text-xs text-text-muted">
                   {{ account.provider_name || getProviderName(account.provider_id) }}
                 </span>
               </div>
@@ -146,20 +150,20 @@
               </span>
               <span
                 v-else
-                class="text-xs text-gray-400"
+                class="text-xs text-text-muted"
               >-</span>
             </td>
             <!-- 总额度 -->
             <td class="px-4 py-3 text-right">
               <span
                 v-if="account.total_quota !== undefined && account.total_quota !== null"
-                class="font-mono text-sm font-semibold text-blue-600 dark:text-blue-400"
+                class="font-mono text-sm font-semibold text-accent-primary"
               >
                 ${{ account.total_quota.toFixed(2) }}
               </span>
               <span
                 v-else
-                class="text-xs text-gray-400"
+                class="text-xs text-text-muted"
               >-</span>
             </td>
             <!-- 历史消耗 -->
@@ -172,11 +176,11 @@
               </span>
               <span
                 v-else
-                class="text-xs text-gray-400"
+                class="text-xs text-text-muted"
               >-</span>
             </td>
             <!-- 最后签到 -->
-            <td class="px-4 py-3 text-sm text-gray-500 dark:text-gray-400 font-mono text-xs">
+            <td class="px-4 py-3 font-mono text-xs text-text-muted">
               {{ account.last_checkin_at ? formatDate(account.last_checkin_at) : '-' }}
             </td>
             <!-- 操作 -->
@@ -187,7 +191,7 @@
               <div class="flex items-center justify-center gap-2">
                 <button
                   :disabled="props.checkinLoading"
-                  class="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-medium bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-sm transition-colors duration-200 disabled:cursor-not-allowed disabled:opacity-50"
+                  class="inline-flex min-h-[40px] items-center rounded-lg bg-accent-primary px-3 py-1.5 text-xs font-medium text-white shadow-sm transition-colors duration-200 hover:bg-accent-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
                   @click="emit('checkin', account.id)"
                 >
                   <SIcon
@@ -198,7 +202,7 @@
                 </button>
                 <div class="relative">
                   <button
-                    class="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 dark:hover:text-gray-300 transition-colors"
+                    class="min-h-[40px] min-w-[40px] rounded-lg text-text-muted transition-colors hover:bg-bg-surface hover:text-text-primary"
                     @click="toggleAccountMenu(account.id)"
                   >
                     <svg
@@ -212,10 +216,10 @@
                   <!-- 下拉菜单 (向上弹出) -->
                   <div
                     v-if="openMenuAccountId === account.id"
-                    class="absolute right-0 bottom-full mb-1 w-32 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-50"
+                    class="absolute bottom-full right-0 z-50 mb-1 w-32 rounded-lg border border-border-default bg-bg-elevated shadow-lg"
                   >
                     <button
-                      class="w-full px-3 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-t-lg"
+                      class="w-full rounded-t-lg px-3 py-2 text-left text-sm text-text-secondary transition-colors hover:bg-bg-surface"
                       @click="emit('refresh-balance', account.id); openMenuAccountId = null"
                     >
                       刷新余额

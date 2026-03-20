@@ -988,6 +988,82 @@ export const detectCodexProcess = async <T = UnknownRecord>(): Promise<T> => {
   return invoke('codex_detect_process')
 }
 
+export interface CodexDashboardSummary {
+  auth: {
+    logged_in: boolean
+    login_state?: string
+    store?: string
+    saved_accounts_total: number
+    expired_accounts_total: number
+    current?: {
+      name?: string | null
+      account_id?: string
+      email?: string
+      last_refresh?: string | null
+      freshness?: string
+      freshness_icon?: string
+      freshness_description?: string
+      expires_at?: string | null
+      is_expired?: boolean
+    } | null
+  }
+  profiles: {
+    current_profile?: string | null
+    total: number
+    enabled_total: number
+    disabled_total: number
+    current?: UnknownRecord | null
+  }
+  config: {
+    model?: string | null
+    model_provider?: string | null
+    approval_policy?: string | null
+    sandbox_mode?: string | null
+    model_reasoning_effort?: string | null
+    model_reasoning_summary?: string | null
+    web_search?: string | null
+    disable_response_storage?: boolean | null
+  }
+  usage: {
+    last_activity_at?: string | null
+    freshness: 'fresh' | 'stale' | 'old' | 'empty'
+    freshness_description: string
+    five_hour: {
+      total_requests: number
+      total_input_tokens: number
+      total_output_tokens: number
+    }
+    seven_day: {
+      total_requests: number
+      total_input_tokens: number
+      total_output_tokens: number
+    }
+    all_time: {
+      total_requests: number
+      total_input_tokens: number
+      total_output_tokens: number
+    }
+    top_model?: {
+      model: string
+      total_requests: number
+      total_input_tokens: number
+      total_output_tokens: number
+      window_end?: string | null
+    } | null
+  }
+  inventory: {
+    mcp_servers_total: number
+    agents_total: number
+    slash_commands_total: number
+    config_profiles_total: number
+  }
+}
+
+/** 获取 Codex 仪表盘摘要 */
+export const getCodexDashboardSummary = async <T = CodexDashboardSummary>(): Promise<T> => {
+  return invoke('codex_get_dashboard_summary')
+}
+
 export interface CodexUsageCommandOptions {
   force?: boolean
 }

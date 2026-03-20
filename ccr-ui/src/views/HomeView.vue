@@ -3,38 +3,59 @@
   <div class="min-h-full p-6 lg:p-10 relative overflow-hidden">
     <div class="max-w-7xl mx-auto space-y-10">
       <!-- HEADER SECTION -->
-      <header class="flex flex-col md:flex-row md:items-center justify-between gap-6 animate-slide-up">
-        <div class="space-y-1">
-          <h1 class="text-4xl font-bold font-display tracking-tight text-text-primary">
-            {{ $t('home.welcomeBack') }}, <span class="bg-gradient-to-r from-accent-primary to-accent-secondary bg-clip-text text-transparent">{{ $t('home.roleEngineer') }}</span>
-          </h1>
-          <p class="text-lg text-text-secondary">
-            {{ $t('home.statusMsg') }}
-          </p>
-        </div>
-        
-        <!-- System Stats (Mock or Real) -->
-        <div class="flex items-center gap-3">
-          <Card
-            variant="glass"
-            class="flex items-center gap-3 !rounded-full px-4 py-2"
-          >
-            <div class="w-2 h-2 rounded-full bg-accent-success shadow-glow-success animate-pulse" />
-            <div class="text-xs font-mono">
-              <span class="text-text-muted">{{ $t('home.cpuUsage') }}</span>
-              <span class="ml-2 font-bold text-text-primary">{{ systemInfo?.cpu_usage?.toFixed(1) || '12.4' }}%</span>
+      <header class="animate-slide-up">
+        <div class="relative overflow-hidden rounded-[2rem] border border-white/25 bg-[linear-gradient(145deg,rgba(16,18,36,0.74),rgba(56,27,77,0.62))] p-6 shadow-2xl shadow-slate-950/20 backdrop-blur-xl md:p-8">
+          <div class="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(244,114,182,0.2),transparent_42%),radial-gradient(circle_at_bottom_right,rgba(168,85,247,0.16),transparent_38%)]" />
+          <div class="absolute inset-0 bg-[linear-gradient(120deg,rgba(8,10,24,0.46),transparent_55%)]" />
+
+          <div class="relative flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+            <div class="max-w-3xl space-y-4">
+              <span class="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/8 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.28em] text-pink-100/90">
+                <span class="h-2 w-2 rounded-full bg-accent-primary shadow-[0_0_12px_rgba(var(--color-accent-primary-rgb),0.75)]" />
+                {{ $t('common.shell.tagline') }}
+              </span>
+              <div class="space-y-2">
+                <h1 class="text-4xl font-bold font-display tracking-tight text-white md:text-5xl">
+                  {{ $t('home.welcomeBack') }},
+                  <span class="text-pink-100">{{ $t('home.roleEngineer') }}</span>
+                </h1>
+                <p class="max-w-2xl text-base leading-7 text-slate-100/88 md:text-lg">
+                  {{ $t('home.statusMsg') }}
+                </p>
+              </div>
             </div>
-          </Card>
-          <Card
-            variant="glass"
-            class="flex items-center gap-3 !rounded-full px-4 py-2"
-          >
-            <div class="w-2 h-2 rounded-full bg-accent-info shadow-glow-info" />
-            <div class="text-xs font-mono">
-              <span class="text-text-muted">{{ $t('home.memoryUsage') }}</span>
-              <span class="ml-2 font-bold text-text-primary">{{ systemInfo?.memory_usage_percent?.toFixed(1) || '42.8' }}%</span>
+
+            <div class="grid gap-3 sm:grid-cols-2">
+              <Card
+                variant="glass"
+                class="min-h-[72px] min-w-[150px] border-white/15 bg-white/10 px-4 py-3"
+              >
+                <div class="flex items-center gap-3">
+                  <div class="flex h-10 w-10 items-center justify-center rounded-2xl bg-accent-success/15 text-accent-success">
+                    <div class="h-2.5 w-2.5 rounded-full bg-accent-success shadow-glow-success animate-pulse" />
+                  </div>
+                  <div class="text-xs font-mono">
+                    <span class="block text-slate-200/70">{{ $t('home.cpuUsage') }}</span>
+                    <span class="mt-1 block text-xl font-bold text-white">{{ systemInfo?.cpu_usage?.toFixed(1) || '12.4' }}%</span>
+                  </div>
+                </div>
+              </Card>
+              <Card
+                variant="glass"
+                class="min-h-[72px] min-w-[150px] border-white/15 bg-white/10 px-4 py-3"
+              >
+                <div class="flex items-center gap-3">
+                  <div class="flex h-10 w-10 items-center justify-center rounded-2xl bg-accent-info/15 text-accent-info">
+                    <div class="h-2.5 w-2.5 rounded-full bg-accent-info shadow-glow-info" />
+                  </div>
+                  <div class="text-xs font-mono">
+                    <span class="block text-slate-200/70">{{ $t('home.memoryUsage') }}</span>
+                    <span class="mt-1 block text-xl font-bold text-white">{{ systemInfo?.memory_usage_percent?.toFixed(1) || '42.8' }}%</span>
+                  </div>
+                </div>
+              </Card>
             </div>
-          </Card>
+          </div>
         </div>
       </header>
 
@@ -133,11 +154,11 @@
               />
               
               <div class="flex justify-between items-start z-10">
-                <div class="rounded-xl border border-border-default/50 bg-bg-elevated/60 p-3 backdrop-blur-md">
+                <div class="rounded-xl border border-border-default/50 bg-bg-elevated/70 p-3 backdrop-blur-md">
                   <SIcon
                     :name="module.icon"
                     size="w-6 h-6"
-                    :style="{ color: module.color }"
+                    :class="module.iconClass"
                   />
                 </div>
                 <div class="flex items-center gap-2">
@@ -151,10 +172,7 @@
               </div>
 
               <div class="z-10">
-                <h3
-                  class="mb-2 text-xl font-bold text-text-primary group-hover:bg-gradient-to-r group-hover:bg-clip-text group-hover:text-transparent"
-                  :class="module.gradientClass"
-                >
+                <h3 class="mb-2 text-xl font-bold text-text-primary transition-colors group-hover:text-accent-primary">
                   {{ module.title }}
                 </h3>
                 <p class="text-sm leading-relaxed text-text-secondary">
@@ -322,9 +340,9 @@ const logHomePerfSnapshot = () => {
     const resources = performance.getEntriesByType('resource') as PerformanceResourceTiming[]
     const relevant = resources
       .filter((entry) =>
-        entry.name.includes('/api/system') ||
-        entry.name.includes('/api/version/cli-versions') ||
-        entry.name.includes('/api/sessions/stats/daily')
+        entry.name.includes('get_system_info') ||
+        entry.name.includes('get_cli_versions') ||
+        entry.name.includes('get_daily_stats')
       )
       .map((entry) => ({
         name: entry.name,
@@ -423,8 +441,7 @@ const mainModules = computed(() => [
     desc: t('home.claudeCodeDesc'),
     path: '/claude-code',
     icon: 'Code2',
-    color: '#ef4444',
-    gradientClass: 'from-red-400 to-orange-400',
+    iconClass: 'text-platform-claude',
     platformKey: 'claude-code'
   },
   {
@@ -432,8 +449,7 @@ const mainModules = computed(() => [
     desc: t('home.codexDesc'),
     path: '/codex',
     icon: 'Settings',
-    color: '#10b981',
-    gradientClass: 'from-emerald-400 to-green-300',
+    iconClass: 'text-platform-codex',
     platformKey: 'codex'
   },
   {
@@ -441,8 +457,7 @@ const mainModules = computed(() => [
     desc: t('home.geminiDesc'),
     path: '/gemini-cli',
     icon: 'Sparkles',
-    color: '#3b82f6',
-    gradientClass: 'from-blue-400 to-cyan-400',
+    iconClass: 'text-platform-gemini',
     platformKey: 'gemini-cli'
   },
   {
@@ -450,8 +465,7 @@ const mainModules = computed(() => [
     desc: t('home.qwenDesc'),
     path: '/qwen',
     icon: 'Zap',
-    color: '#f59e0b',
-    gradientClass: 'from-amber-400 to-yellow-300',
+    iconClass: 'text-platform-qwen',
     platformKey: 'qwen'
   },
   {
@@ -459,8 +473,7 @@ const mainModules = computed(() => [
     desc: t('home.iflowDesc'),
     path: '/iflow',
     icon: 'Workflow',
-    color: '#8b5cf6',
-    gradientClass: 'from-violet-400 to-fuchsia-400',
+    iconClass: 'text-platform-iflow',
     platformKey: 'iflow'
   },
   {
@@ -468,8 +481,7 @@ const mainModules = computed(() => [
     desc: t('home.factoryDroidDesc'),
     path: '/droid',
     icon: 'Bot',
-    color: '#ec4899',
-    gradientClass: 'from-pink-400 to-rose-400',
+    iconClass: 'text-accent-secondary',
     platformKey: 'droid'
   }
 ])
