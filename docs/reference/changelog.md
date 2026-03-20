@@ -265,8 +265,8 @@ http://localhost:3000/checkin
   - Complements existing file-level locking
   - Prevents race conditions within single process
   - Zero-cost abstraction with `std::sync::LazyLock`
-- **Feature Gates**: Implemented Cargo feature flags
-  - `default = ["web", "tui"]` for backward compatibility
+- **Feature Gates**: 简化 Cargo feature flags
+  - `default = ["tui"]`
   - Optional dependencies: tokio, axum, ratatui, crossterm
   - Faster compilation with `--no-default-features`
 - **Enhanced Error Handling**: Maintained 17 error types with 3 `#[from]` conversions
@@ -396,8 +396,7 @@ http://localhost:3000/checkin
 
 - **命令行界面增强**
   - 主帮助信息中添加 `ccr ui` 命令说明
-  - 区分 `ccr web`（轻量级 API）和 `ccr ui`（完整应用）
-  - 更新命令描述，明确不同界面的用途
+  - 更新命令描述，明确 `ccr ui` 为推荐图形入口
 
 ### 📚 文档
 
@@ -473,8 +472,7 @@ ccr ui -p 8080 --backend-port 9000
 
 **界面选择：**
 - `ccr tui`：终端交互界面（键盘导航）
-- `ccr web`：轻量级 API 服务器（8080 端口）
-- `ccr ui`：完整 Web 应用（3000/8081 端口，可视化仪表板）
+- `ccr ui`：完整图形应用入口（前端 / Tauri 桌面）
 
 ### 💡 技术亮点
 

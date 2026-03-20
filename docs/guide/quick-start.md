@@ -1,6 +1,6 @@
 # 快速开始
 
-本页只做第一次上手必需的事情：安装、初始化、创建首个 profile，并明确 `ccr ui` 与 `ccr web` 的定位。
+本页只做第一次上手必需的事情：安装、初始化、创建首个 profile，并说明 `ccr` / `ccr ui` / `ccr-ui` 的关系。
 
 ## 环境要求
 - Rust 1.90+
@@ -76,18 +76,17 @@ ccr validate
 ccr history -l 20
 ```
 
-## 浏览器与桌面入口
+## 图形入口
 
 ```bash
 ccr ui -p 15173 --backend-port 38081
-ccr web --host 127.0.0.1 --port 19527 --no-browser
 ```
 
-- `ccr ui`：推荐浏览器入口，适合日常可视化管理
-- `ccr web`：Legacy 轻量 API，适合脚本、CI、兼容场景
+- `ccr`：CLI/TUI 主入口
+- `ccr ui`：启动独立 `ccr-ui` 图形界面
+- `ccr-ui`：前端开发与 Tauri 桌面运行工程
 
 ## 接下来读什么
 - 日常命令组织：[`CLI 工作流`](/guide/cli-workflows)
 - 图形界面运行方式：[`UI 概览`](/guide/ui-overview)
-- `ccr ui` vs `ccr web`：[`Web 指南`](/guide/web-guide)
 - 全量命令：[`命令参考`](/reference/commands/)

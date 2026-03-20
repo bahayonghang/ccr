@@ -1,48 +1,13 @@
-# web - Legacy Web API
+# web - 已移除的 Legacy 命令
 
-`ccr web` 启动内置的轻量 HTTP 服务。它的定位是兼容旧流程和编程式访问，而不是主图形界面。
+`ccr web` 已从当前 CLI 中移除。
 
-## 用法
+## 替代方案
 
-```bash
-ccr web [--host <host>] [--port <port>] [--no-browser]
-```
+- 图形界面：使用 [`ccr ui`](/reference/commands/ui)
+- 桌面运行：使用 `ccr-ui` 的 Tauri 模式
+- 自动化：继续直接使用 `ccr` CLI 命令
 
-## 默认值
+## 迁移说明
 
-- Host：`127.0.0.1`
-- Port：`19527`
-
-## 常见示例
-
-```bash
-# 默认仅本机监听
-ccr web
-
-# 显式指定 host / port
-ccr web --host 127.0.0.1 --port 19527 --no-browser
-
-# 在可信内网暴露
-ccr web --host 0.0.0.0 --port 19527 --no-browser
-```
-
-## 适用场景
-
-- `curl`、CI、脚本调用
-- 兼容旧版 Web/HTTP 使用方式
-- 需要轻量 API，但不需要完整 `ccr-ui`
-
-## 不再承担的职责
-
-以下内容不应再由 `ccr web` 文档承担：
-
-- “现代完整 Web 界面”的产品叙事
-- `ccr-ui` 页面地图
-- 桌面壳或前端模块说明
-
-这些内容统一放在 [UI 概览](/guide/ui-overview) 和 [UI 模块地图](/guide/ui-modules)。
-
-## 相关文档
-
-- [Web API 参考](/reference/api)
-- [接口选择：ccr ui vs ccr web](/guide/web-guide)
+旧的内置 HTTP 服务与嵌入式前端不再参与编译，也不再作为受支持接口保留。

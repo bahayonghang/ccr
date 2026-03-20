@@ -1,55 +1,22 @@
-# Web Guide
+# Legacy Web Migration
 
-CCR has two browser-related entrypoints, but they are not equal:
+The built-in legacy Web API / Web UI from `crates/ccr` has been removed and is no longer a supported entrypoint.
 
-| Command | Role | Recommendation |
-|---------|------|----------------|
-| `ccr ui` | full graphical interface | default recommendation |
-| `ccr web` | legacy lightweight API / compatibility surface | use only for scripting, CI, or compatibility |
+## What to use now
 
-## Prefer `ccr ui`
+| Entry | Role | Best for |
+|------|------|----------|
+| `ccr` | primary CLI / TUI entrypoint | scripting, automation, daily command workflows |
+| `ccr ui` | recommended graphical entrypoint | day-to-day visual management and module browsing |
+| `ccr-ui` | standalone graphical app project | frontend development and Tauri desktop runtime |
 
-```bash
-ccr ui -p 15173 --backend-port 38081
-```
+## Migration guidance
 
-Use it for:
-- daily browser-based management
-- platform module navigation
-- usage / monitoring / skills / provider health style views
-- the complete CCR module map
+- If you used `ccr web` for UI access, move to `ccr ui`
+- If you relied on the embedded browser pages, move to `ccr-ui`
+- If you relied on command automation, keep using `ccr` directly
 
-See [UI Overview](/en/guide/ui-overview) for the runtime model.
-
-## Use `ccr web` only when needed
-
-```bash
-ccr web --host 127.0.0.1 --port 19527 --no-browser
-```
-
-Use it for:
-- scripting against the HTTP API
-- CI or automation
-- legacy compatibility flows
-
-Defaults:
-- host: `127.0.0.1`
-- port: `19527`
-- port binding falls back automatically when occupied
-
-## How to choose
-
-Choose `ccr ui` when:
-- you want CCR to be the main browser experience
-- you need the full module surface and visual workflows
-
-Choose `ccr web` when:
-- you only need HTTP endpoints
-- you are working in CI, shell automation, or remote environments
-- you must preserve older scripts
-
-## Related Pages
+## Related pages
 - [UI Overview](/en/guide/ui-overview)
 - [UI Modules](/en/guide/ui-modules)
-- [Web API Reference](/en/reference/api)
-- [`web` command](/en/reference/commands/web)
+- [`ccr ui` command](/en/reference/commands/ui)

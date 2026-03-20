@@ -17,7 +17,7 @@ CCR's CLI currently falls into five groups: platform and initialization, profile
 | [`history`](./history) / [`export`](./export) / [`import`](./import) / [`clean`](./clean) | Audit, export, import, cleanup | |
 | [`sync`](./sync) | WebDAV sync | folder registry, push/pull/status |
 | [`sessions`](./sessions) / [`provider`](./provider) / [`check`](./check) | Session search, provider health, conflict checks | Diagnostic command groups |
-| [`ui`](./ui) / [`web`](./web) / [`tui`](./tui) | Full UI, legacy web API, terminal UI | `ui` is the recommended browser entry |
+| [`ui`](./ui) / [`tui`](./tui) | Full UI and terminal UI | `ui` is the recommended graphical entry |
 | [`stats`](./stats) / [`budget`](./budget) / [`pricing`](./pricing) | Cost and budget controls | Built on usage and pricing data |
 | [`skills`](./skills) / [`prompts`](./prompts) | Extension management | |
 | [`update`](./update) / [`version`](./version) | Version maintenance | |
@@ -37,12 +37,6 @@ If you prefer a browser entrypoint:
 
 ```bash
 ccr ui -p 15173 --backend-port 38081
-```
-
-If you only need the compatibility API:
-
-```bash
-ccr web --host 127.0.0.1 --port 19527 --no-browser
 ```
 
 ## Commands by Task
@@ -82,7 +76,6 @@ ccr web --host 127.0.0.1 --port 19527 --no-browser
 ### Interfaces and cost controls
 
 - [`ui`](./ui)
-- [`web`](./web)
 - [`tui`](./tui)
 - [`stats`](./stats)
 - [`budget`](./budget)
@@ -99,5 +92,4 @@ ccr web --host 127.0.0.1 --port 19527 --no-browser
 ## Related Docs
 
 - [CLI Workflows](/en/guide/cli-workflows)
-- [Choosing `ccr ui` vs `ccr web`](/en/guide/web-guide)
-- [Web API Reference](/en/reference/api)
+- [UI Overview](/en/guide/ui-overview)

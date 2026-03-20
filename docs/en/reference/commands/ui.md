@@ -1,6 +1,6 @@
 # ui - Launch CCR UI
 
-`ccr ui` is the recommended browser-oriented entrypoint for CCR.
+`ccr ui` is the recommended graphical entrypoint for CCR.
 
 ## Usage
 
@@ -31,13 +31,7 @@ ccr ui update
 
 ## When To Use It
 
-- You want the main browser-based CCR experience
-- You need the full module surface: skills, sessions, monitoring, statusline, provider health, checkin, opencode, and more
+- You want the main CCR graphical experience
+- You need the full module surface: skills, monitoring, statusline, checkin, opencode, and more
 - You want CCR to auto-detect a local `ccr-ui/` checkout during development
 
-## How It Differs from `ccr web`
-
-- `ccr ui`: recommended entrypoint tied to the full `ccr-ui` product surface
-- `ccr web`: legacy/programmatic path kept for compatibility and HTTP automation
-
-See [Choosing `ccr ui` vs `ccr web`](/en/guide/web-guide).

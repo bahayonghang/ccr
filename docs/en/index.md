@@ -4,7 +4,7 @@ layout: home
 hero:
   name: "CCR"
   text: "Unified entrypoint for AI CLI configuration management"
-  tagline: "CLI-first workflow, with TUI, legacy Web API, and the full CCR UI"
+  tagline: "CLI-first workflow, with TUI and the full CCR UI"
   image:
     src: /logo.svg
     alt: CCR
@@ -30,15 +30,9 @@ const choosePaths = [
   },
   {
     icon: '🖥️',
-    title: 'Use CCR UI for browser workflows',
+    title: 'Use CCR UI for visual workflows',
     details: 'CCR UI is the recommended visual entrypoint for module browsing, dashboards, and platform-oriented management.',
     link: '/en/guide/ui-overview'
-  },
-  {
-    icon: '🌐',
-    title: '`ccr web` is legacy',
-    details: 'Keep `ccr web` for automation, CI, or compatibility. Do not treat it as the default browser experience.',
-    link: '/en/guide/web-guide'
   }
 ]
 
@@ -110,7 +104,6 @@ ccr validate
 Then continue with:
 - [CLI Workflows](/en/guide/cli-workflows)
 - [UI Overview](/en/guide/ui-overview)
-- [Web Guide](/en/guide/web-guide)
 - [Command Reference](/en/reference/commands/)
 
 ## Support Matrix
@@ -130,7 +123,6 @@ See [Platform Support](/en/reference/platforms/) for the detailed matrix.
 
 ```bash
 ccr ui -p 15173 --backend-port 38081
-ccr web --host 127.0.0.1 --port 19527
 ccr sync config
 ccr sessions list
 ccr provider test --all
@@ -142,7 +134,6 @@ ccr stats summary --range week --details
 - [CLI Workflows](/en/guide/cli-workflows)
 - [UI Overview](/en/guide/ui-overview)
 - [UI Modules](/en/guide/ui-modules)
-- [Web API Reference](/en/reference/api)
 - [Architecture](/en/reference/architecture)
 
 ## License

@@ -1,6 +1,6 @@
 # Quick Start
 
-Use this page for the first-run path only: install CCR, initialize the workspace, create one profile, and understand when to choose `ccr ui` or `ccr web`.
+Use this page for the first-run path only: install CCR, initialize the workspace, create one profile, and understand how `ccr`, `ccr ui`, and `ccr-ui` fit together.
 
 ## Requirements
 - Rust 1.90+
@@ -76,18 +76,17 @@ ccr validate
 ccr history -l 20
 ```
 
-## Browser and Desktop Entry Points
+## Graphical Entry Point
 
 ```bash
 ccr ui -p 15173 --backend-port 38081
-ccr web --host 127.0.0.1 --port 19527 --no-browser
 ```
 
-- `ccr ui`: recommended visual entrypoint for normal browser-based management
-- `ccr web`: legacy lightweight API for CI, scripting, and compatibility
+- `ccr`: primary CLI/TUI entrypoint
+- `ccr ui`: launches the standalone `ccr-ui` graphical interface
+- `ccr-ui`: project directory for frontend development and Tauri desktop runtime
 
 ## Where To Go Next
 - Day-to-day command organization: [CLI Workflows](/en/guide/cli-workflows)
 - Runtime modes and startup chain: [UI Overview](/en/guide/ui-overview)
-- `ccr ui` vs `ccr web`: [Web Guide](/en/guide/web-guide)
 - Full command surface: [Command Reference](/en/reference/commands/)

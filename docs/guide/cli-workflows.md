@@ -101,15 +101,12 @@ ccr pricing set my-model --input 3.0 --output 15.0
 ```bash
 ccr ui -p 15173 --backend-port 38081
 ccr tui
-ccr web --host 127.0.0.1 --port 19527 --no-browser
 ```
 
 - `ccr ui`：推荐的图形界面入口
 - `ccr tui`：纯终端环境下的交互界面
-- `ccr web`：Legacy API，不是默认浏览器体验
 
 ## 相关页面
 - [`快速开始`](/guide/quick-start)
 - [`UI 概览`](/guide/ui-overview)
-- [`Web 指南`](/guide/web-guide)
 - [`命令参考`](/reference/commands/)

@@ -106,4 +106,3 @@ Move from CLI to UI when:
 
 - [Command Overview](/en/reference/commands/)
 - [UI Overview](/en/guide/ui-overview)
-- [Choosing `ccr ui` vs `ccr web`](/en/guide/web-guide)

@@ -1,55 +1,22 @@
-# Web 指南
+# Legacy Web 迁移说明
 
-CCR 有两个与浏览器相关的入口，但它们不是同一等级：
+`crates/ccr` 内置的 legacy Web API / Web UI 已移除，不再作为受支持入口。
 
-| 命令 | 角色 | 推荐程度 |
+## 现在应该使用什么
+
+| 入口 | 角色 | 适合场景 |
 |------|------|----------|
-| `ccr ui` | 完整图形界面 | 默认推荐 |
-| `ccr web` | Legacy 轻量 API / 兼容界面 | 仅在脚本、CI、兼容场景使用 |
+| `ccr` | CLI / TUI 主入口 | 脚本、自动化、日常命令操作 |
+| `ccr ui` | 推荐图形入口 | 日常图形化管理、模块浏览 |
+| `ccr-ui` | 独立图形应用工程 | 前端开发、Tauri 桌面运行 |
 
-## 首选：`ccr ui`
+## 迁移建议
 
-```bash
-ccr ui -p 15173 --backend-port 38081
-```
-
-适合：
-- 日常浏览器管理
-- 平台模块导航
-- usage / monitoring / skills / provider health 一类可视化能力
-- 需要完整模块地图时
-
-更多见 [`UI 概览`](/guide/ui-overview)。
-
-## 次选：`ccr web`
-
-```bash
-ccr web --host 127.0.0.1 --port 19527 --no-browser
-```
-
-适合：
-- 脚本化调用 REST API
-- CI / 自动化
-- 兼容旧流程
-
-默认行为：
-- 默认 host：`127.0.0.1`
-- 默认 port：`19527`
-- 端口占用时会尝试自动回退
-
-## 如何选择
-
-选择 `ccr ui`：
-- 你想在浏览器中把 CCR 当作主界面使用
-- 你需要完整模块导航和可视化页面
-
-选择 `ccr web`：
-- 你只需要 HTTP API
-- 你在 CI、shell、远程机器上运行
-- 你在兼容已有脚本
+- 原先依赖 `ccr web` 做图形管理：改用 `ccr ui`
+- 原先依赖内置浏览器页面：改用 `ccr-ui` 的前端/Tauri 形态
+- 原先依赖命令自动化：继续直接调用 `ccr` CLI
 
 ## 相关页面
 - [`UI 概览`](/guide/ui-overview)
 - [`UI 模块地图`](/guide/ui-modules)
-- [`Web API 参考`](/reference/api)
-- [`web 命令`](/reference/commands/web)
+- [`ui 命令`](/reference/commands/ui)

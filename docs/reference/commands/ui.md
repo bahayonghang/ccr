@@ -1,6 +1,6 @@
 # ui - 启动 CCR UI
 
-`ccr ui` 是当前推荐的浏览器入口，用于启动完整 CCR UI 栈。
+`ccr ui` 是当前推荐的图形入口，用于启动完整 CCR UI 栈。
 
 ## 用法
 
@@ -31,13 +31,7 @@ ccr ui update
 
 ## 适用场景
 
-- 用浏览器查看完整模块地图
-- 集中管理 skills、sessions、monitoring、statusline、provider health 等 UI 能力
+- 用图形界面查看完整模块地图
+- 集中管理 skills、monitoring、statusline 等 UI 能力
 - 本地存在 `ccr-ui/` 时，希望直接走开发版
 
-## 与 `ccr web` 的区别
-
-- `ccr ui`：推荐入口，指向完整 `ccr-ui` 产品面
-- `ccr web`：legacy/programmatic path，保留为兼容和脚本场景
-
-参见：[接口选择：ccr ui vs ccr web](/guide/web-guide)

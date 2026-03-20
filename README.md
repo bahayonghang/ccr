@@ -1,7 +1,7 @@
 # CCR
 
 **Unified entrypoint for AI CLI configuration management, written in Rust.**  
-CLI-first workflow with TUI, legacy Web API, and the full CCR UI for Claude Code, Codex, Gemini, Qwen, Droid, and more.
+CLI-first workflow with TUI and the full CCR UI for Claude Code, Codex, Gemini, Qwen, Droid, and more.
 
 > Historical note: CCR started as `Claude Code Configuration Switcher`. The repository now tracks a broader multi-platform AI CLI workspace.
 
@@ -16,7 +16,6 @@ CLI-first workflow with TUI, legacy Web API, and the full CCR UI for Claude Code
 - **Multi-Interface**:
   - **CLI**: Powerful command-line interface for all operations.
   - **TUI**: Interactive terminal configuration selector with Tab navigation.
-  - **Legacy Web API**: Embedded Axum server for automation, CI, and compatibility workflows.
   - **CCR UI**: Full-stack browser/desktop experience built with Vue 3 + Tauri.
 - **Smart Sync**: WebDAV-based multi-folder synchronization keeps your configs consistent across machines.
 - **Secure**: Sensitive data (API keys, tokens) is automatically masked in outputs.
@@ -45,7 +44,7 @@ cargo install --path crates/ccr
 ### Build Requirements
 - **Rust**: 1.90+ (Edition 2024, for the installable CLI crate)
 - **Node.js**: 18+
-- **Bun**: 1.3+ (recommended for `ccr-ui` and embedded web asset builds; npm remains a compatibility fallback only for the legacy embedded web build)
+- **Bun**: 1.3+ (recommended for `ccr-ui`; npm remains a compatibility fallback)
 
 ## 🚀 Quick Start
 
@@ -196,7 +195,7 @@ ccr codex
 
 CCR supports automatic updates from GitHub to the latest version.
 
-> Note: `ccr update` compiles the default `web` feature and prefers Bun when building embedded web assets. Node.js 18+ with npm remains a compatibility fallback if Bun is unavailable.
+> Note: `ccr update` updates the CLI itself. `ccr ui update` manages the separate `ccr-ui` application. Bun is recommended for UI-related workflows, with Node.js 18+ and npm as a compatibility fallback.
 
 ```bash
 # Update from main branch (stable)

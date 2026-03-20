@@ -4,7 +4,7 @@ layout: home
 hero:
   name: "CCR"
   text: "统一管理 AI CLI 配置与工作入口"
-  tagline: "CLI 主线，配套 TUI、Legacy Web API 与完整 CCR UI"
+  tagline: "CLI 主线，配套 TUI 与完整 CCR UI"
   image:
     src: /logo.svg
     alt: CCR
@@ -30,15 +30,9 @@ const choosePaths = [
   },
   {
     icon: '🖥️',
-    title: 'CCR UI 为推荐浏览器入口',
-    details: '完整 Vue 3 + Axum + Tauri 体验，适合日常图形化管理和模块浏览。',
+    title: 'CCR UI 为推荐图形入口',
+    details: '完整 Vue 3 + Tauri 体验，适合日常图形化管理和模块浏览。',
     link: '/guide/ui-overview'
-  },
-  {
-    icon: '🌐',
-    title: '`ccr web` 为 Legacy API',
-    details: '保留给脚本、CI 与兼容场景，不再作为默认浏览器管理入口。',
-    link: '/guide/web-guide'
   }
 ]
 
@@ -110,7 +104,6 @@ ccr validate
 下一步：
 - 日常 CLI 路径：[`CLI 工作流`](/guide/cli-workflows)
 - 浏览器与桌面路径：[`UI 概览`](/guide/ui-overview)
-- `ccr ui` vs `ccr web`：[`Web 指南`](/guide/web-guide)
 - 所有命令：[`命令参考`](/reference/commands/)
 
 ## 支持矩阵
@@ -130,7 +123,6 @@ ccr validate
 
 ```bash
 ccr ui -p 15173 --backend-port 38081
-ccr web --host 127.0.0.1 --port 19527
 ccr sync config
 ccr sessions list
 ccr provider test --all
@@ -142,7 +134,6 @@ ccr stats summary --range week --details
 - [`CLI 工作流`](/guide/cli-workflows)：按日常任务组织命令
 - [`UI 概览`](/guide/ui-overview)：`ccr ui` 的运行模式与推荐使用方式
 - [`UI 模块地图`](/guide/ui-modules)：平台模块与工具模块的能力分组
-- [`Web API 参考`](/reference/api)：`ccr web` 的 Legacy 路由面
 - [`架构设计`](/reference/architecture)：workspace 与分层设计
 
 ## 许可证与贡献

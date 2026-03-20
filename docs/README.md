@@ -137,7 +137,7 @@ When adding new documentation:
 - `.vitepress/config.mjs` 中 nav/sidebar 的内部链接是否都存在
 - 中文与英文文档页集合是否保持镜像对齐
 - 英文核心页是否仍保留 “translation in progress” 一类占位文案
-- `ccr ui` / `ccr web` 默认值与 `crates/ccr/src/cli/definitions.rs` 是否同步
+- `ccr ui` 默认值与 `crates/ccr/src/cli/definitions.rs` 是否同步
 - `/reference/api` 是否覆盖关键 API 路由，且不再引用已过时的 provider-health 路由
 
 ## VitePress Features

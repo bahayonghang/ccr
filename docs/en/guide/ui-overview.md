@@ -4,9 +4,9 @@
 
 ## Boundaries You Should Keep in Mind
 
-- `ccr ui`: the CLI entrypoint that launches the recommended browser-oriented UI workflow
+- `ccr`: the CLI/TUI entrypoint for configuration management
+- `ccr ui`: the CLI entrypoint that launches the recommended graphical workflow
 - `ccr-ui/`: the standalone Vue 3 + Tauri project directory
-- `ccr web`: the legacy lightweight API path, documented separately
 
 ## How To Start It
 
@@ -46,9 +46,8 @@ Startup discovery order:
 
 ## Suggested Reading Order
 
-1. [Choosing `ccr ui` vs `ccr web`](/en/guide/web-guide)
-2. [UI Module Map](/en/guide/ui-modules)
-3. [`ccr ui` command](/en/reference/commands/ui)
+1. [UI Module Map](/en/guide/ui-modules)
+2. [`ccr ui` command](/en/reference/commands/ui)
 
 ## Relationship to the Configuration Model
 
