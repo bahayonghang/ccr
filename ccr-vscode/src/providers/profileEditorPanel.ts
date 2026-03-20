@@ -2,33 +2,12 @@ import { randomBytes } from "crypto";
 import * as vscode from "vscode";
 import { EDITABLE_FIELDS, PROFILE_EDITABLE_FIELDS_BY_PLATFORM, getEditableProfileFields } from "../models/types";
 import type { ProfileCreationPlatform, ProfileEditorDraft, ProfileEditorMode, ProfileInfo } from "../models/types";
+import { getPanelKey, getPanelTitle, normalizeFieldValue } from "./profileEditorPanel.helpers";
 import { toggleProfileEnabled, writeProfileField } from "../services/tomlReader";
 
 const TOML_KEY_BY_EDITABLE_FIELD = Object.fromEntries(
   EDITABLE_FIELDS.map((item) => [item.key, item.tomlKey]),
 ) as Record<string, string>;
-
-function getPanelKey(mode: ProfileEditorMode, profile: ProfileInfo | ProfileEditorDraft): string {
-  return mode === "create"
-    ? `create/${(profile as ProfileEditorDraft).platformName}`
-    : `${(profile as ProfileInfo).platformName}/${(profile as ProfileInfo).name}`;
-}
-
-function getPanelTitle(mode: ProfileEditorMode, profile: ProfileInfo | ProfileEditorDraft): string {
-  return mode === "create"
-    ? `Add Profile: ${profile.platformName}`
-    : `Edit: ${profile.name} (${profile.platformName})`;
-}
-
-function normalizeFieldValue(tomlKey: string, value: string): string | string[] | undefined {
-  if (tomlKey === "tags") {
-    return value
-      ? value.split(",").map((tag) => tag.trim()).filter(Boolean)
-      : undefined;
-  }
-
-  return value || undefined;
-}
 
 type EditorMessage =
   | { type: "ready" | "toggleEnabled" | "cancelCreate" }
@@ -266,30 +245,33 @@ export class ProfileEditorPanel {
   <title>Profile Editor</title>
   <style nonce="${nonce}">
     :root {
-      --editor-max-width: 860px;
-      --page-padding: 28px;
-      --section-gap: 22px;
-      --field-gap: 18px;
-      --label-width: 190px;
-      --panel-radius: 16px;
-      --control-radius: 12px;
-      --platform-color: #8b5cf6;
-      --platform-soft: rgba(139, 92, 246, 0.16);
-      --platform-glow: rgba(139, 92, 246, 0.3);
-      --panel-bg: color-mix(in srgb, var(--vscode-editorWidget-background, var(--vscode-editor-background)) 94%, transparent);
-      --panel-border: color-mix(in srgb, var(--platform-color) 38%, var(--vscode-widget-border, rgba(128, 128, 128, 0.2)));
-      --panel-border-soft: color-mix(in srgb, var(--platform-color) 16%, rgba(128, 128, 128, 0.16));
+      --editor-max-width: 820px;
+      --page-padding: 24px;
+      --section-gap: 18px;
+      --field-gap: 16px;
+      --label-width: 180px;
+      --panel-radius: 12px;
+      --control-radius: 8px;
+      --platform-color: var(--vscode-textLink-foreground, #8b5cf6);
+      --platform-soft: color-mix(in srgb, var(--platform-color) 8%, transparent);
+      --platform-border: color-mix(in srgb, var(--platform-color) 20%, var(--vscode-widget-border, transparent));
+      --panel-bg: var(--vscode-editorWidget-background, var(--vscode-editor-background));
+      --panel-muted-bg: color-mix(in srgb, var(--panel-bg) 92%, var(--vscode-sideBar-background, transparent));
+      --panel-border: var(--vscode-widget-border, rgba(128, 128, 128, 0.24));
+      --panel-border-soft: color-mix(in srgb, var(--panel-border) 72%, transparent);
       --text-strong: var(--vscode-foreground);
       --text-muted: var(--vscode-descriptionForeground);
       --input-bg: var(--vscode-input-background);
       --input-fg: var(--vscode-input-foreground);
-      --input-border: color-mix(in srgb, var(--platform-color) 24%, var(--vscode-input-border, rgba(128, 128, 128, 0.22)));
+      --input-border: var(--vscode-input-border, rgba(128, 128, 128, 0.28));
+      --focus-ring: var(--vscode-focusBorder, var(--platform-color));
       --success-color: var(--vscode-testing-iconPassed, #73c991);
-      --error-color: var(--vscode-testing-iconFailed, #f48771);
+      --error-color: var(--vscode-errorForeground, var(--vscode-testing-iconFailed, #f48771));
       --button-fg: var(--vscode-button-foreground, #ffffff);
       --button-bg: var(--vscode-button-background, #0e639c);
       --button-bg-hover: var(--vscode-button-hoverBackground, #1177bb);
-      --button-secondary-bg: color-mix(in srgb, var(--platform-color) 12%, transparent);
+      --button-secondary-bg: color-mix(in srgb, var(--platform-color) 8%, var(--panel-bg));
+      --button-secondary-border: color-mix(in srgb, var(--platform-color) 18%, var(--panel-border));
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -298,149 +280,145 @@ export class ProfileEditorPanel {
       font-family: var(--vscode-font-family);
       font-size: var(--vscode-font-size);
       color: var(--text-strong);
-      background:
-        radial-gradient(circle at top right, var(--platform-soft), transparent 32%),
-        linear-gradient(180deg, color-mix(in srgb, var(--vscode-editor-background) 94%, #06070a), var(--vscode-editor-background));
+      background: var(--vscode-editor-background);
       padding: var(--page-padding);
+      line-height: 1.5;
     }
     .page { max-width: var(--editor-max-width); margin: 0 auto; }
     #loading {
-      display: grid; place-items: center; min-height: 240px; border-radius: var(--panel-radius);
+      display: grid; place-items: center; min-height: 220px; border-radius: var(--panel-radius);
       border: 1px solid var(--panel-border-soft);
-      background: linear-gradient(160deg, color-mix(in srgb, var(--panel-bg) 94%, transparent), color-mix(in srgb, var(--vscode-editor-background) 86%, transparent));
-      color: var(--text-muted); letter-spacing: 0.04em;
+      background: var(--panel-muted-bg);
+      color: var(--text-muted);
     }
     #loading.hidden { display: none; }
     #editor-content { display: none; }
     .header-card {
-      position: relative; overflow: hidden; padding: 24px 24px 20px; border-radius: 22px;
-      border: 1px solid var(--panel-border);
-      background:
-        linear-gradient(145deg, color-mix(in srgb, var(--panel-bg) 94%, transparent), color-mix(in srgb, var(--vscode-editor-background) 88%, transparent)),
-        linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent);
-      box-shadow: 0 18px 36px rgba(0, 0, 0, 0.18); margin-bottom: var(--section-gap);
+      padding: 20px; border-radius: var(--panel-radius);
+      border: 1px solid var(--platform-border);
+      background: var(--panel-bg);
+      margin-bottom: var(--section-gap);
     }
-    .header-card::before {
-      content: ''; position: absolute; inset: 0;
-      background:
-        radial-gradient(circle at 100% 0%, var(--platform-glow), transparent 26%),
-        linear-gradient(90deg, transparent, color-mix(in srgb, var(--platform-color) 10%, transparent), transparent);
-      pointer-events: none;
-    }
-    .header-top { position: relative; display: flex; justify-content: space-between; gap: 20px; margin-bottom: 22px; }
+    .header-top { display: flex; justify-content: space-between; gap: 20px; margin-bottom: 18px; }
     .eyebrow {
-      display: inline-flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 999px;
-      background: color-mix(in srgb, var(--platform-color) 14%, transparent);
-      color: color-mix(in srgb, var(--platform-color) 68%, var(--text-strong));
-      font-size: 0.72em; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; margin-bottom: 12px;
+      display: inline-flex; align-items: center; gap: 8px; padding: 4px 8px; border-radius: 999px;
+      background: var(--platform-soft);
+      color: color-mix(in srgb, var(--platform-color) 72%, var(--text-strong));
+      font-size: 0.72em; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 10px;
     }
-    .title-row { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; }
+    .title-row { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
     .title-row h1 {
-      font-size: 1.92em; font-weight: 700; line-height: 1.05; color: var(--platform-color); letter-spacing: -0.02em;
+      font-size: 1.7em; font-weight: 700; line-height: 1.1; color: var(--text-strong); letter-spacing: -0.01em;
     }
     .platform-badge {
-      display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px;
-      background: color-mix(in srgb, var(--platform-color) 18%, transparent);
-      border: 1px solid color-mix(in srgb, var(--platform-color) 44%, transparent);
-      color: var(--text-strong); font-size: 0.82em; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase;
+      display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px;
+      background: var(--platform-soft);
+      border: 1px solid var(--platform-border);
+      color: var(--text-strong); font-size: 0.8em; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase;
     }
-    .subtitle { margin-top: 10px; color: var(--text-muted); line-height: 1.55; max-width: 620px; }
-    .header-meta { min-width: 220px; display: flex; flex-direction: column; align-items: flex-end; gap: 10px; }
+    .subtitle { margin-top: 8px; color: var(--text-muted); max-width: 620px; }
+    .header-meta { min-width: 220px; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
     .autosave-indicator {
-      display: inline-flex; align-items: center; justify-content: center; min-width: 112px; padding: 7px 12px;
-      border-radius: 999px; border: 1px solid var(--panel-border-soft); background: rgba(255,255,255,0.02);
-      color: var(--text-muted); font-size: 0.78em; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase;
+      display: inline-flex; align-items: center; justify-content: center; min-width: 120px; padding: 6px 10px;
+      border-radius: 999px; border: 1px solid var(--panel-border-soft); background: var(--panel-muted-bg);
+      color: var(--text-muted); font-size: 0.78em; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase;
       transition: border-color 0.2s ease, color 0.2s ease, background 0.2s ease;
     }
     .autosave-indicator.saved {
-      background: color-mix(in srgb, var(--success-color) 16%, transparent);
-      border-color: color-mix(in srgb, var(--success-color) 48%, transparent);
+      background: color-mix(in srgb, var(--success-color) 14%, var(--panel-bg));
+      border-color: color-mix(in srgb, var(--success-color) 30%, var(--panel-border));
       color: var(--success-color);
     }
     .header-controls {
-      position: relative; display: flex; justify-content: space-between; gap: 12px; align-items: center;
-      padding-top: 16px; border-top: 1px solid var(--panel-border-soft);
+      display: flex; justify-content: space-between; gap: 12px; align-items: center;
+      padding-top: 14px; border-top: 1px solid var(--panel-border-soft);
     }
     .header-note { color: var(--text-muted); font-size: 0.88em; }
     .toggle-wrap { display: inline-flex; align-items: center; gap: 12px; }
-    .toggle { position: relative; width: 52px; height: 28px; cursor: pointer; }
-    .toggle input { display: none; }
+    .toggle { position: relative; display: inline-flex; align-items: center; width: 52px; height: 28px; }
+    .sr-only {
+      position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden;
+      clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+    }
+    .toggle-input:focus-visible + .toggle-track {
+      outline: 2px solid var(--focus-ring);
+      outline-offset: 2px;
+    }
     .toggle-track {
       position: absolute; inset: 0; border-radius: 999px;
-      border: 1px solid color-mix(in srgb, var(--platform-color) 36%, var(--vscode-input-border, transparent));
-      background: color-mix(in srgb, var(--platform-color) 18%, var(--vscode-input-background));
+      border: 1px solid var(--input-border);
+      background: color-mix(in srgb, var(--platform-soft) 70%, var(--input-bg));
       transition: background 0.2s ease, border-color 0.2s ease;
     }
     .toggle-thumb {
       position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; border-radius: 50%; background: var(--button-fg);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.22); transition: transform 0.2s ease; pointer-events: none;
+      transition: transform 0.2s ease; pointer-events: none;
     }
-    .toggle input:checked + .toggle-track { background: color-mix(in srgb, var(--platform-color) 26%, var(--vscode-input-background)); }
-    .toggle input:checked ~ .toggle-thumb { transform: translateX(24px); }
+    .toggle-input:checked + .toggle-track { background: color-mix(in srgb, var(--platform-color) 18%, var(--input-bg)); border-color: var(--platform-border); }
+    .toggle-input:checked + .toggle-track + .toggle-thumb { transform: translateX(24px); }
     .toggle-label { font-weight: 600; color: var(--text-strong); }
     .section-card {
       display: none; margin-bottom: var(--section-gap); border-radius: var(--panel-radius); border: 1px solid var(--panel-border-soft);
-      background: linear-gradient(180deg, color-mix(in srgb, var(--panel-bg) 96%, transparent), color-mix(in srgb, var(--vscode-editor-background) 90%, transparent));
+      background: var(--panel-bg);
       overflow: hidden;
     }
     .section-header {
-      padding: 16px 20px 14px; border-bottom: 1px solid var(--panel-border-soft);
-      background: linear-gradient(90deg, color-mix(in srgb, var(--platform-color) 9%, transparent), transparent 68%);
+      padding: 14px 18px 12px; border-bottom: 1px solid var(--panel-border-soft);
+      background: var(--panel-muted-bg);
     }
-    .section-title { color: color-mix(in srgb, var(--platform-color) 70%, var(--text-strong)); font-size: 0.9em; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; }
-    .section-subtitle { margin-top: 6px; color: var(--text-muted); font-size: 0.88em; line-height: 1.5; }
-    .section-body { padding: 20px; }
+    .section-title { color: var(--text-strong); font-size: 0.88em; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; }
+    .section-subtitle { margin-top: 4px; color: var(--text-muted); font-size: 0.88em; line-height: 1.5; }
+    .section-body { padding: 18px; }
     .field-row {
       display: grid; grid-template-columns: minmax(160px, var(--label-width)) minmax(0, 1fr);
-      gap: 16px; align-items: start; margin-bottom: var(--field-gap);
+      gap: 14px; align-items: start; margin-bottom: var(--field-gap);
     }
     .field-row:last-child { margin-bottom: 0; }
     .field-label-wrap { padding-top: 8px; }
-    .field-label { font-weight: 700; color: var(--text-strong); letter-spacing: 0.01em; }
-    .required { color: color-mix(in srgb, var(--error-color) 82%, #ffffff); margin-left: 4px; }
+    .field-label { display: inline-flex; align-items: center; gap: 4px; font-weight: 700; color: var(--text-strong); letter-spacing: 0.01em; }
+    .required { color: color-mix(in srgb, var(--error-color) 82%, #ffffff); margin-left: 0; }
     .field-hint { display: block; margin-top: 6px; color: var(--text-muted); font-size: 0.88em; line-height: 1.45; }
-    .field-input-wrap { display: grid; gap: 8px; }
+    .field-input-wrap { display: grid; gap: 8px; min-width: 0; }
     .input-shell {
       display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 10px;
       border-radius: var(--control-radius); border: 1px solid var(--input-border);
-      background: linear-gradient(180deg, color-mix(in srgb, var(--input-bg) 96%, transparent), color-mix(in srgb, var(--panel-bg) 84%, transparent));
+      background: var(--input-bg);
       transition: border-color 0.15s ease, box-shadow 0.15s ease;
     }
     .input-shell:focus-within {
-      border-color: color-mix(in srgb, var(--platform-color) 74%, #ffffff);
-      box-shadow: 0 0 0 1px color-mix(in srgb, var(--platform-color) 52%, transparent);
+      border-color: var(--focus-ring);
+      box-shadow: 0 0 0 1px var(--focus-ring);
     }
     .field-input {
-      width: 100%; border: none; background: transparent; color: var(--input-fg);
+      width: 100%; min-width: 0; border: none; background: transparent; color: var(--input-fg);
       font-family: var(--vscode-editor-font-family, monospace); font-size: var(--vscode-font-size); line-height: 1.45; outline: none;
     }
     .field-input::placeholder { color: color-mix(in srgb, var(--text-muted) 88%, transparent); }
     .field-actions { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
     .control-btn {
-      min-width: 58px; border: 1px solid transparent; border-radius: 999px; background: color-mix(in srgb, var(--platform-color) 12%, transparent);
-      color: color-mix(in srgb, var(--platform-color) 74%, var(--text-strong)); padding: 6px 10px; font-size: 0.78em;
-      font-weight: 700; letter-spacing: 0.03em; cursor: pointer; transition: transform 0.15s ease, background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+      min-width: 58px; border: 1px solid var(--button-secondary-border); border-radius: 999px; background: var(--button-secondary-bg);
+      color: var(--text-strong); padding: 6px 10px; font-size: 0.78em;
+      font-weight: 700; letter-spacing: 0.03em; cursor: pointer; transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
       font-family: var(--vscode-font-family);
     }
     .control-btn:hover:not(:disabled) {
-      background: color-mix(in srgb, var(--platform-color) 22%, transparent);
-      border-color: color-mix(in srgb, var(--platform-color) 38%, transparent);
-      transform: translateY(-1px);
+      background: color-mix(in srgb, var(--platform-color) 12%, var(--panel-bg));
+      border-color: color-mix(in srgb, var(--platform-color) 26%, var(--panel-border));
     }
-    .control-btn:focus-visible { outline: 1px solid color-mix(in srgb, var(--platform-color) 60%, #ffffff); outline-offset: 2px; }
-    .control-btn:disabled { cursor: not-allowed; opacity: 0.45; transform: none; }
+    .control-btn:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+    .control-btn:disabled { cursor: not-allowed; opacity: 0.45; }
     .submit-actions { display: none; gap: 12px; justify-content: flex-end; margin-top: 22px; }
     .submit-actions.visible { display: flex; }
     .submit-btn {
-      border: none; border-radius: 999px; padding: 10px 18px; font-weight: 700; cursor: pointer;
-      transition: transform 0.15s ease, background 0.15s ease, opacity 0.15s ease;
+      border: 1px solid transparent; border-radius: 999px; padding: 10px 18px; font-weight: 700; cursor: pointer;
+      transition: background 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
       font-family: var(--vscode-font-family);
     }
     .submit-btn.primary { color: var(--button-fg); background: var(--button-bg); }
-    .submit-btn.primary:hover:not(:disabled) { background: var(--button-bg-hover); transform: translateY(-1px); }
-    .submit-btn.secondary { color: var(--text-strong); background: var(--button-secondary-bg); }
-    .submit-btn.secondary:hover:not(:disabled) { transform: translateY(-1px); }
-    .submit-btn:disabled { opacity: 0.55; cursor: not-allowed; transform: none; }
+    .submit-btn.primary:hover:not(:disabled) { background: var(--button-bg-hover); }
+    .submit-btn.secondary { color: var(--text-strong); background: var(--button-secondary-bg); border-color: var(--button-secondary-border); }
+    .submit-btn:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+    .submit-btn:disabled { opacity: 0.55; cursor: not-allowed; }
     .field-feedback {
       display: inline-flex; align-items: center; justify-content: center; min-width: 68px; padding: 6px 10px; border-radius: 999px;
       font-size: 0.76em; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; opacity: 0; transform: translateY(4px);
@@ -448,12 +426,16 @@ export class ProfileEditorPanel {
     }
     .field-feedback.visible { opacity: 1; transform: translateY(0); }
     .field-feedback.success {
-      color: var(--success-color); background: color-mix(in srgb, var(--success-color) 16%, transparent);
-      border: 1px solid color-mix(in srgb, var(--success-color) 34%, transparent);
+      color: var(--success-color); background: color-mix(in srgb, var(--success-color) 12%, var(--panel-bg));
+      border: 1px solid color-mix(in srgb, var(--success-color) 24%, var(--panel-border));
     }
     .field-feedback.error {
-      color: var(--error-color); background: color-mix(in srgb, var(--error-color) 12%, transparent);
-      border: 1px solid color-mix(in srgb, var(--error-color) 28%, transparent);
+      color: var(--error-color); background: color-mix(in srgb, var(--error-color) 10%, var(--panel-bg));
+      border: 1px solid color-mix(in srgb, var(--error-color) 22%, var(--panel-border));
+    }
+    .live-region {
+      position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden;
+      clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
     }
     @media (max-width: 900px) {
       body { padding: 20px; }
@@ -474,17 +456,18 @@ export class ProfileEditorPanel {
 </head>
 <body>
   <div class="page">
-    <div id="loading">Loading profile cockpit...</div>
+    <div id="loading">Loading profile editor...</div>
     <div id="editor-content">
+      <div id="editor-status" class="live-region" role="status" aria-live="polite" aria-atomic="true"></div>
       <section class="header-card">
         <div class="header-top">
           <div>
-            <div class="eyebrow">⚙ Configuration Cockpit</div>
+            <div class="eyebrow">Configuration editor</div>
             <div class="title-row">
               <h1 id="title">Profile</h1>
               <span class="platform-badge" id="platform-badge"></span>
             </div>
-            <p class="subtitle" id="subtitle">Tune routing, credentials and identity details for this profile.</p>
+            <p class="subtitle" id="subtitle">Review and update connection, model, and identity settings for this profile.</p>
           </div>
           <div class="header-meta">
             <span class="autosave-indicator" id="autosave-indicator">Auto-save</span>
@@ -493,41 +476,41 @@ export class ProfileEditorPanel {
         </div>
         <div class="header-controls">
           <div class="toggle-wrap">
-            <label class="toggle">
-              <input type="checkbox" id="field-enabled" />
-              <span class="toggle-track"></span>
-              <span class="toggle-thumb"></span>
+            <label class="toggle" for="field-enabled">
+              <input type="checkbox" class="toggle-input sr-only" id="field-enabled" />
+              <span class="toggle-track" aria-hidden="true"></span>
+              <span class="toggle-thumb" aria-hidden="true"></span>
             </label>
             <span class="toggle-label" id="enabled-label">Enabled</span>
           </div>
-          <span class="header-note" id="header-note">Pinned edits stay local to this profile.</span>
+          <span class="header-note" id="header-note">Edits apply only to this saved profile.</span>
         </div>
       </section>
       <section class="section-card" data-editor-section>
         <div class="section-header">
-          <div class="section-title">🔌 Connection</div>
-          <div class="section-subtitle">Core access settings. Base URL and auth token stay required by CCR.</div>
+          <div class="section-title">Connection</div>
+          <div class="section-subtitle">Core access settings used when CCR applies this profile.</div>
         </div>
         <div class="section-body" id="section-connection"></div>
       </section>
       <section class="section-card" data-editor-section>
         <div class="section-header">
-          <div class="section-title">🧠 Optional Models</div>
-          <div class="section-subtitle">Use overrides only when this profile needs explicit model routing. Leave blank to inherit defaults.</div>
+          <div class="section-title">Optional models</div>
+          <div class="section-subtitle">Use explicit overrides only when this profile should bypass inherited defaults.</div>
         </div>
         <div class="section-body" id="section-model"></div>
       </section>
       <section class="section-card" data-editor-section>
         <div class="section-header">
-          <div class="section-title">🪪 Identity</div>
-          <div class="section-subtitle">Provider identity and account metadata used to identify this endpoint.</div>
+          <div class="section-title">Identity</div>
+          <div class="section-subtitle">Provider and account metadata that help distinguish this endpoint.</div>
         </div>
         <div class="section-body" id="section-identity"></div>
       </section>
       <section class="section-card" data-editor-section>
         <div class="section-header">
-          <div class="section-title">📝 Metadata</div>
-          <div class="section-subtitle">Human-readable notes and tags for faster recognition in the sidebar.</div>
+          <div class="section-title">Metadata</div>
+          <div class="section-subtitle">Descriptions and tags that make the profile easier to recognize later.</div>
         </div>
         <div class="section-body" id="section-metadata"></div>
       </section>
@@ -564,6 +547,10 @@ export class ProfileEditorPanel {
         { key: 'tags', label: 'Tags', hint: 'Comma-separated tags', placeholder: 'free, backup, relay' },
       ],
     };
+    const fieldLabels = Object.values(FIELD_GROUPS).flat().reduce((map, field) => {
+      map[field.key] = field.label;
+      return map;
+    }, {});
     const allowedEditableFields = ${serializedAllowedEditableFields};
     const fieldElements = {};
     const fieldState = {};
@@ -576,12 +563,18 @@ export class ProfileEditorPanel {
 
     function cloneProfile(profile) { return JSON.parse(JSON.stringify(profile)); }
     function getAccent(platformName) { return PLATFORM_ACCENTS[platformName] || PLATFORM_ACCENTS.default; }
+    function setStatusMessage(message) {
+      const statusEl = document.getElementById('editor-status');
+      if (statusEl) {
+        statusEl.textContent = message;
+      }
+    }
     function setPlatformAccent(platformName) {
       const accent = getAccent(platformName);
       const root = document.documentElement.style;
       root.setProperty('--platform-color', accent.color);
       root.setProperty('--platform-soft', accent.soft);
-      root.setProperty('--platform-glow', accent.glow);
+      root.setProperty('--platform-border', 'color-mix(in srgb, ' + accent.color + ' 20%, var(--vscode-widget-border, transparent))');
       return accent;
     }
     function isFieldVisible(platformName, fieldKey) {
@@ -621,8 +614,10 @@ export class ProfileEditorPanel {
     function setFieldFeedback(field, success) {
       const feedback = document.getElementById('status-' + field);
       if (!feedback) return;
-      feedback.textContent = success ? 'Saved' : 'Error';
+      const message = success ? 'Saved' : 'Error';
+      feedback.textContent = message;
       feedback.className = 'field-feedback visible ' + (success ? 'success' : 'error');
+      setStatusMessage((fieldLabels[field] || field) + ' ' + (success ? 'saved.' : 'failed to save.'));
       if (statusTimers[field]) clearTimeout(statusTimers[field]);
       statusTimers[field] = setTimeout(() => { feedback.className = 'field-feedback'; }, success ? 1800 : 2600);
     }
@@ -633,6 +628,7 @@ export class ProfileEditorPanel {
       if (!success && error) {
         document.getElementById('header-note').textContent = error;
       }
+      setStatusMessage(success ? 'Profile created successfully.' : ('Profile creation failed. ' + (error || '')));
       document.getElementById('submit-create').disabled = false;
       document.getElementById('cancel-create').disabled = false;
     }
@@ -642,6 +638,7 @@ export class ProfileEditorPanel {
       const originalLabel = button.dataset.defaultLabel || 'Copy';
       button.textContent = success ? 'Copied' : 'Failed';
       button.disabled = true;
+      setStatusMessage((fieldLabels[field] || field) + ' ' + (success ? 'copied to clipboard.' : 'copy failed.'));
       if (copyTimers[field]) clearTimeout(copyTimers[field]);
       copyTimers[field] = setTimeout(() => {
         button.textContent = originalLabel;
@@ -652,6 +649,7 @@ export class ProfileEditorPanel {
       const autosaveEl = document.getElementById('autosave-indicator');
       autosaveEl.textContent = 'Saved ✓';
       autosaveEl.classList.add('saved');
+      setStatusMessage('Profile changes saved.');
       window.clearTimeout(flashAutosave.timer);
       flashAutosave.timer = window.setTimeout(() => {
         autosaveEl.textContent = currentMode === 'create' ? 'Create mode' : 'Auto-save';
@@ -672,7 +670,7 @@ export class ProfileEditorPanel {
       if (!container) return;
       const row = document.createElement('div');
       row.className = 'field-row';
-      const requiredMark = field.required ? '<span class="required">*</span>' : '';
+      const requiredMark = field.required ? '<span class="required" aria-hidden="true">*</span>' : '';
       const toggleButton = field.actions && field.actions.includes('toggle')
         ? '<button type="button" class="control-btn" data-action="toggle" data-field="' + field.key + '">Show</button>'
         : '';
@@ -681,13 +679,13 @@ export class ProfileEditorPanel {
         : '';
       row.innerHTML =
         '<div class="field-label-wrap">' +
-          '<div class="field-label">' + field.label + requiredMark + '</div>' +
-          '<span class="field-hint">' + field.hint + '</span>' +
+          '<label class="field-label" for="field-' + field.key + '">' + field.label + requiredMark + '</label>' +
+          '<span class="field-hint" id="hint-' + field.key + '">' + field.hint + '</span>' +
         '</div>' +
         '<div class="field-input-wrap">' +
           '<div class="input-shell">' +
-            '<input class="field-input" type="' + (field.secret ? 'password' : 'text') + '" id="field-' + field.key + '" data-field="' + field.key + '" autocomplete="off" spellcheck="false" placeholder="' + (field.placeholder || '') + '" />' +
-            '<div class="field-actions">' + toggleButton + copyButton + '<span class="field-feedback" id="status-' + field.key + '"></span></div>' +
+            '<input class="field-input" type="' + (field.secret ? 'password' : 'text') + '" id="field-' + field.key + '" data-field="' + field.key + '" autocomplete="off" spellcheck="false" placeholder="' + (field.placeholder || '') + '" aria-describedby="hint-' + field.key + '"' + (field.required ? ' aria-required="true"' : '') + ' />' +
+            '<div class="field-actions">' + toggleButton + copyButton + '<span class="field-feedback" id="status-' + field.key + '" aria-hidden="true"></span></div>' +
           '</div>' +
         '</div>';
       row.dataset.fieldKey = field.key;

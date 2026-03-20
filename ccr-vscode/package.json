@@ -3,7 +3,7 @@
   "displayName": "CCR - Configuration Switcher",
   "icon": "icon.png",
   "description": "Manage Claude and Codex configurations directly from the VSCode sidebar",
-  "version": "5.2.1",
+  "version": "5.2.2",
   "publisher": "ccr",
   "license": "MIT",
   "repository": {
