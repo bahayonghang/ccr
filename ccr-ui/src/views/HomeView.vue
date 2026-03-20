@@ -342,7 +342,7 @@ const logHomePerfSnapshot = () => {
       .filter((entry) =>
         entry.name.includes('get_system_info') ||
         entry.name.includes('get_cli_versions') ||
-        entry.name.includes('get_daily_stats')
+        entry.name.includes('get_home_usage_overview_v2')
       )
       .map((entry) => ({
         name: entry.name,

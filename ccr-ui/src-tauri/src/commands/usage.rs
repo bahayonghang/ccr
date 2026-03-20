@@ -1,7 +1,9 @@
 //! Usage V2 命令模块，基于 SQLite 查询与导入用量数据。
 
+use std::collections::BTreeMap;
 use std::time::Instant;
 
+use chrono::{Duration, Utc};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use tauri::State;
@@ -72,6 +74,76 @@ pub struct ImportAllUsageResponse {
     pub summary: UsageImportSummary,
 }
 
+const HOME_USAGE_PLATFORMS: [&str; 3] = ["claude", "codex", "gemini"];
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
+pub struct HomeOverviewPlatformStats {
+    pub sessions: u64,
+    pub requests: u64,
+    pub tokens: u64,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
+pub struct HomeOverviewSummary {
+    pub total_sessions: u64,
+    pub total_requests: u64,
+    pub total_tokens: u64,
+    pub active_days: u64,
+    pub platforms: u64,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
+pub struct HomeOverviewBootstrap {
+    pub usage_import_attempted: bool,
+    pub usage_imported_records: usize,
+    pub session_reindex_attempted: bool,
+    pub indexed_sessions: u64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct HomeOverviewSeriesItem {
+    pub date: String,
+    pub claude: HomeOverviewPlatformStats,
+    pub codex: HomeOverviewPlatformStats,
+    pub gemini: HomeOverviewPlatformStats,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct HomeUsageOverviewResponse {
+    pub summary: HomeOverviewSummary,
+    pub by_platform: BTreeMap<String, HomeOverviewPlatformStats>,
+    pub series: Vec<HomeOverviewSeriesItem>,
+    pub bootstrap: HomeOverviewBootstrap,
+    pub empty_reason: Option<String>,
+    pub last_updated: String,
+}
+
+struct HomeUsageSnapshot {
+    summary: ccr_db::database::repositories::usage_repo::UsageSummary,
+    active_days: u64,
+    by_platform: BTreeMap<String, HomeOverviewPlatformStats>,
+    daily_by_platform: BTreeMap<String, BTreeMap<String, HomeOverviewPlatformStats>>,
+}
+
+fn list_home_sessions(
+    indexer: &ccr::sessions::SessionIndexer,
+    from_date: Option<chrono::DateTime<Utc>>,
+    to_date: Option<chrono::DateTime<Utc>>,
+    limit: Option<usize>,
+) -> Vec<ccr::sessions::SessionSummary> {
+    let filter = ccr::sessions::SessionFilter {
+        platform: None,
+        from_date,
+        to_date,
+        cwd_prefix: None,
+        limit,
+        offset: None,
+        today_only: false,
+    };
+
+    indexer.list(filter).unwrap_or_default()
+}
+
 fn elapsed_ms(started: Instant) -> f64 {
     started.elapsed().as_secs_f64() * 1000.0
 }
@@ -99,7 +171,10 @@ fn normalize_import_result(
 }
 
 fn build_import_summary(results: &[UsageImportResultV2]) -> UsageImportSummary {
-    let success_count = results.iter().filter(|result| result.error.is_none()).count();
+    let success_count = results
+        .iter()
+        .filter(|result| result.error.is_none())
+        .count();
     let failure_count = results.len().saturating_sub(success_count);
     let imported_records = results.iter().map(|result| result.records_imported).sum();
     let processed_files = results.iter().map(|result| result.files_processed).sum();
@@ -118,6 +193,165 @@ fn build_import_summary(results: &[UsageImportResultV2]) -> UsageImportSummary {
         processed_files,
         has_partial,
     }
+}
+
+fn empty_home_platform_map() -> BTreeMap<String, HomeOverviewPlatformStats> {
+    let mut map = BTreeMap::new();
+    for platform in HOME_USAGE_PLATFORMS {
+        map.insert(platform.to_string(), HomeOverviewPlatformStats::default());
+    }
+    map
+}
+
+fn normalize_home_platform(raw: &str) -> Option<&'static str> {
+    match raw.trim().to_lowercase().as_str() {
+        "claude" | "claude-code" | "claude code" => Some("claude"),
+        "codex" | "openai-codex" | "openai codex" => Some("codex"),
+        "gemini" | "gemini-cli" | "gemini cli" | "google-gemini" | "google gemini" => {
+            Some("gemini")
+        }
+        _ => None,
+    }
+}
+
+fn non_negative_i64(value: i64) -> u64 {
+    value.max(0) as u64
+}
+
+fn build_home_date_range(days: usize) -> Vec<String> {
+    let safe_days = days.max(1);
+    let end = Utc::now().date_naive();
+    let start = end - Duration::days((safe_days - 1) as i64);
+
+    (0..safe_days)
+        .map(|offset| {
+            (start + Duration::days(offset as i64))
+                .format("%Y-%m-%d")
+                .to_string()
+        })
+        .collect()
+}
+
+fn detect_home_empty_reason(
+    total_requests: u64,
+    total_sessions: u64,
+    has_any_usage: bool,
+    has_any_sessions: bool,
+) -> Option<String> {
+    if total_requests == 0 && !has_any_usage && total_sessions == 0 && !has_any_sessions {
+        return Some("no_usage_and_sessions".to_string());
+    }
+    if total_requests == 0 && !has_any_usage {
+        return Some("no_usage_logs".to_string());
+    }
+    if total_sessions == 0 && !has_any_sessions {
+        return Some("no_session_index".to_string());
+    }
+
+    None
+}
+
+fn import_all_usage_for_home() -> ImportAllUsageResponse {
+    let service = ccr_db::services::usage_import_service::UsageImportService::new(
+        ccr_db::services::usage_import_service::ImportConfig::default(),
+    );
+
+    let mut results = Vec::new();
+    for platform in HOME_USAGE_PLATFORMS {
+        let result = match service.import_platform(platform) {
+            Ok(import_result) => normalize_import_result(import_result),
+            Err(error) => UsageImportResultV2 {
+                platform: platform.to_string(),
+                files_processed: 0,
+                records_imported: 0,
+                records_skipped: 0,
+                duration_ms: 0,
+                completed: false,
+                error: Some(error),
+            },
+        };
+        results.push(result);
+    }
+
+    ImportAllUsageResponse {
+        summary: build_import_summary(&results),
+        results,
+    }
+}
+
+fn load_home_usage_snapshot(
+    pool: &ccr_db::database::pool::DbPool,
+    start_date: &str,
+    end_date: &str,
+) -> Result<HomeUsageSnapshot, String> {
+    let conn = pool.get().map_err(|e| format!("DB error: {e}"))?;
+    let start = Some(start_date.to_string());
+    let end = Some(end_date.to_string());
+    let summary =
+        ccr_db::database::repositories::usage_repo::get_usage_summary(&conn, &None, &start, &end)
+            .map_err(|e| format!("Summary query error: {e}"))?;
+
+    let trends =
+        ccr_db::database::repositories::usage_repo::get_daily_trends(&conn, &None, &start, &end)
+            .map_err(|e| format!("Trend query error: {e}"))?;
+
+    let mut by_platform = empty_home_platform_map();
+    let mut daily_by_platform = BTreeMap::new();
+
+    for platform in HOME_USAGE_PLATFORMS {
+        let platform_filter = Some(platform.to_string());
+        let platform_summary = ccr_db::database::repositories::usage_repo::get_usage_summary(
+            &conn,
+            &platform_filter,
+            &Some(start_date.to_string()),
+            &Some(end_date.to_string()),
+        )
+        .map_err(|e| format!("Platform summary query error for {platform}: {e}"))?;
+
+        if let Some(stats) = by_platform.get_mut(platform) {
+            stats.requests = non_negative_i64(platform_summary.total_requests);
+            stats.tokens = non_negative_i64(
+                platform_summary.total_input_tokens + platform_summary.total_output_tokens,
+            );
+        }
+
+        let platform_trends = ccr_db::database::repositories::usage_repo::get_daily_trends(
+            &conn,
+            &platform_filter,
+            &Some(start_date.to_string()),
+            &Some(end_date.to_string()),
+        )
+        .map_err(|e| format!("Platform trend query error for {platform}: {e}"))?;
+
+        for trend in platform_trends {
+            let day_entry = daily_by_platform
+                .entry(trend.date.clone())
+                .or_insert_with(empty_home_platform_map);
+            if let Some(stats) = day_entry.get_mut(platform) {
+                stats.requests = non_negative_i64(trend.request_count);
+                stats.tokens = non_negative_i64(trend.input_tokens + trend.output_tokens);
+            }
+        }
+    }
+
+    Ok(HomeUsageSnapshot {
+        summary,
+        active_days: trends
+            .iter()
+            .filter(|trend| trend.request_count > 0)
+            .count() as u64,
+        by_platform,
+        daily_by_platform,
+    })
+}
+
+fn load_home_usage_presence(pool: &ccr_db::database::pool::DbPool) -> Result<bool, String> {
+    let conn = pool.get().map_err(|e| format!("DB error: {e}"))?;
+    let summary =
+        ccr_db::database::repositories::usage_repo::get_usage_summary(&conn, &None, &None, &None)
+            .map_err(|e| format!("Presence query error: {e}"))?;
+
+    Ok(summary.total_requests > 0)
 }
 
 /// 获取用量汇总数据
@@ -258,10 +492,9 @@ pub async fn get_usage_heatmap_v2(
     let result = tokio::task::spawn_blocking(move || {
         let db_started = Instant::now();
         let conn = pool.get().map_err(|e| format!("DB error: {e}"))?;
-        let heatmap = ccr_db::database::repositories::usage_repo::get_heatmap_data(
-            &conn, &platform, days,
-        )
-        .map_err(|e| format!("Query error: {e}"))?;
+        let heatmap =
+            ccr_db::database::repositories::usage_repo::get_heatmap_data(&conn, &platform, days)
+                .map_err(|e| format!("Query error: {e}"))?;
 
         Ok::<_, String>((
             serde_json::json!({
@@ -408,12 +641,14 @@ pub async fn get_usage_dashboard_v2(
         .map_err(|e| format!("Project stats query error: {e}"))?;
 
         let heatmap = if include_heatmap {
-            Some(ccr_db::database::repositories::usage_repo::get_heatmap_data(
-                &conn,
-                &platform,
-                heatmap_days,
+            Some(
+                ccr_db::database::repositories::usage_repo::get_heatmap_data(
+                    &conn,
+                    &platform,
+                    heatmap_days,
+                )
+                .map_err(|e| format!("Heatmap query error: {e}"))?,
             )
-            .map_err(|e| format!("Heatmap query error: {e}"))?)
         } else {
             None
         };
@@ -435,6 +670,140 @@ pub async fn get_usage_dashboard_v2(
     let (dashboard, db_ms) = result?;
     record_db_duration(&state, db_ms);
     Ok(dashboard)
+}
+
+/// 获取首页工作区概览数据，统一 usage + session 统计链路。
+#[tauri::command]
+pub async fn get_home_usage_overview_v2(
+    state: State<'_, AppState>,
+    days: Option<usize>,
+) -> Result<Value, String> {
+    let command_started = Instant::now();
+    let pool = state.db_pool.clone();
+    let days = days.unwrap_or(30).max(1);
+
+    let result = tokio::task::spawn_blocking(move || {
+        let db_started = Instant::now();
+        let end_day = Utc::now().date_naive();
+        let start_day = end_day - Duration::days((days - 1) as i64);
+        let start_date = start_day.format("%Y-%m-%d").to_string();
+        let end_date = end_day.format("%Y-%m-%d").to_string();
+        let mut bootstrap = HomeOverviewBootstrap::default();
+
+        let mut has_any_usage = load_home_usage_presence(&pool)?;
+        let mut usage_snapshot = load_home_usage_snapshot(&pool, &start_date, &end_date)?;
+
+        if !has_any_usage {
+            bootstrap.usage_import_attempted = true;
+            let import_result = import_all_usage_for_home();
+            bootstrap.usage_imported_records = import_result.summary.imported_records;
+            has_any_usage = load_home_usage_presence(&pool)?;
+            usage_snapshot = load_home_usage_snapshot(&pool, &start_date, &end_date)?;
+        }
+
+        let session_start = start_day
+            .and_hms_opt(0, 0, 0)
+            .ok_or_else(|| "Invalid session start date".to_string())?
+            .and_utc();
+        let session_end = end_day
+            .and_hms_opt(23, 59, 59)
+            .ok_or_else(|| "Invalid session end date".to_string())?
+            .and_utc();
+
+        let mut sessions: Vec<ccr::sessions::SessionSummary> = Vec::new();
+        let mut has_any_sessions = false;
+        if let Ok(indexer) = ccr::sessions::SessionIndexer::new() {
+            has_any_sessions = !list_home_sessions(&indexer, None, None, Some(1)).is_empty();
+            sessions = list_home_sessions(&indexer, Some(session_start), Some(session_end), None);
+            if !has_any_sessions {
+                bootstrap.session_reindex_attempted = true;
+                if let Ok(index_stats) = indexer.index_all() {
+                    bootstrap.indexed_sessions =
+                        index_stats.sessions_added + index_stats.sessions_updated;
+                }
+                has_any_sessions = !list_home_sessions(&indexer, None, None, Some(1)).is_empty();
+                sessions = list_home_sessions(&indexer, Some(session_start), Some(session_end), None);
+            }
+        }
+
+        for session in &sessions {
+            let platform_name = session.platform.to_string();
+            let Some(platform) = normalize_home_platform(&platform_name) else {
+                continue;
+            };
+            let date = session.created_at.format("%Y-%m-%d").to_string();
+
+            if let Some(stats) = usage_snapshot.by_platform.get_mut(platform) {
+                stats.sessions += 1;
+            }
+
+            let day_entry = usage_snapshot
+                .daily_by_platform
+                .entry(date)
+                .or_insert_with(empty_home_platform_map);
+            if let Some(stats) = day_entry.get_mut(platform) {
+                stats.sessions += 1;
+            }
+        }
+
+        let date_range = build_home_date_range(days);
+        let series = date_range
+            .into_iter()
+            .map(|date| {
+                let mut day_stats = usage_snapshot
+                    .daily_by_platform
+                    .remove(&date)
+                    .unwrap_or_else(empty_home_platform_map);
+
+                HomeOverviewSeriesItem {
+                    date,
+                    claude: day_stats.remove("claude").unwrap_or_default(),
+                    codex: day_stats.remove("codex").unwrap_or_default(),
+                    gemini: day_stats.remove("gemini").unwrap_or_default(),
+                }
+            })
+            .collect::<Vec<_>>();
+
+        let total_sessions = sessions.len() as u64;
+        let total_requests = non_negative_i64(usage_snapshot.summary.total_requests);
+        let total_tokens = non_negative_i64(
+            usage_snapshot.summary.total_input_tokens + usage_snapshot.summary.total_output_tokens,
+        );
+        let platforms = usage_snapshot
+            .by_platform
+            .values()
+            .filter(|stats| stats.sessions > 0 || stats.requests > 0 || stats.tokens > 0)
+            .count() as u64;
+
+        let payload = HomeUsageOverviewResponse {
+            summary: HomeOverviewSummary {
+                total_sessions,
+                total_requests,
+                total_tokens,
+                active_days: usage_snapshot.active_days,
+                platforms,
+            },
+            by_platform: usage_snapshot.by_platform,
+            series,
+            bootstrap,
+            empty_reason: detect_home_empty_reason(
+                total_requests,
+                total_sessions,
+                has_any_usage,
+                has_any_sessions,
+            ),
+            last_updated: Utc::now().to_rfc3339(),
+        };
+
+        Ok::<_, String>((payload, elapsed_ms(db_started)))
+    })
+    .await
+    .map_err(|e| format!("Task join error: {e}"))?;
+
+    record_command_duration(&state, command_started);
+    let (payload, db_ms) = result?;
+    record_db_duration(&state, db_ms);
+    serde_json::to_value(payload).map_err(|e| format!("Serialize error: {e}"))
 }
 
 /// 从 JSONL 文件导入单个平台的用量数据
@@ -565,6 +934,32 @@ pub async fn import_all_usage_v2(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn normalize_home_platform_supports_common_aliases() {
+        assert_eq!(normalize_home_platform("Claude Code"), Some("claude"));
+        assert_eq!(normalize_home_platform("openai-codex"), Some("codex"));
+        assert_eq!(normalize_home_platform("gemini-cli"), Some("gemini"));
+        assert_eq!(normalize_home_platform("unknown"), None);
+    }
+
+    #[test]
+    fn detect_home_empty_reason_distinguishes_usage_and_sessions() {
+        assert_eq!(
+            detect_home_empty_reason(0, 0, false, false),
+            Some("no_usage_and_sessions".to_string())
+        );
+        assert_eq!(
+            detect_home_empty_reason(0, 3, false, true),
+            Some("no_usage_logs".to_string())
+        );
+        assert_eq!(
+            detect_home_empty_reason(5, 0, true, false),
+            Some("no_session_index".to_string())
+        );
+        assert_eq!(detect_home_empty_reason(5, 3, true, true), None);
+        assert_eq!(detect_home_empty_reason(0, 0, true, true), None);
+    }
 
     #[test]
     fn usage_logs_query_supports_camel_case_aliases() {

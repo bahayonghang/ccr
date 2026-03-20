@@ -17,9 +17,15 @@
 
     <div class="flex flex-col h-full pt-8 pb-6">
       <div class="flex-1 flex items-end justify-between relative gap-[2px]">
-        <div class="absolute bottom-[25%] left-0 right-0 h-px bg-border-default/15 pointer-events-none" />
-        <div class="absolute bottom-[50%] left-0 right-0 h-px bg-border-default/20 pointer-events-none" />
-        <div class="absolute bottom-[75%] left-0 right-0 h-px bg-border-default/15 pointer-events-none" />
+        <div
+          class="absolute bottom-[25%] left-0 right-0 h-px bg-border-default/15 pointer-events-none"
+        />
+        <div
+          class="absolute bottom-[50%] left-0 right-0 h-px bg-border-default/20 pointer-events-none"
+        />
+        <div
+          class="absolute bottom-[75%] left-0 right-0 h-px bg-border-default/15 pointer-events-none"
+        />
         <div class="absolute bottom-0 left-0 right-0 h-px bg-border-default/50" />
 
         <div
@@ -34,24 +40,35 @@
             :class="{ 'opacity-100': hoveredIndex === index }"
           />
 
-          <div class="w-full max-w-[80%] flex flex-col-reverse items-center relative z-10 transition-transform duration-300">
+          <div
+            class="w-full max-w-[80%] flex flex-col-reverse items-center relative z-10 transition-transform duration-300"
+          >
             <div
               v-if="row.gemini > 0"
               class="w-full bg-blue-500"
               :style="{ height: `${row.geminiHeight}px` }"
-              :class="[{ 'opacity-90': hoveredIndex !== null && hoveredIndex !== index }, row.geminiCorner]"
+              :class="[
+                { 'opacity-90': hoveredIndex !== null && hoveredIndex !== index },
+                row.geminiCorner,
+              ]"
             />
             <div
               v-if="row.claude > 0"
               class="w-full bg-pink-400"
               :style="{ height: `${row.claudeHeight}px` }"
-              :class="[{ 'opacity-90': hoveredIndex !== null && hoveredIndex !== index }, row.claudeCorner]"
+              :class="[
+                { 'opacity-90': hoveredIndex !== null && hoveredIndex !== index },
+                row.claudeCorner,
+              ]"
             />
             <div
               v-if="row.codex > 0"
               class="w-full bg-orange-500"
               :style="{ height: `${row.codexHeight}px` }"
-              :class="[{ 'opacity-90': hoveredIndex !== null && hoveredIndex !== index }, row.codexCorner]"
+              :class="[
+                { 'opacity-90': hoveredIndex !== null && hoveredIndex !== index },
+                row.codexCorner,
+              ]"
             />
           </div>
 
@@ -71,7 +88,9 @@
             v-if="row.isMonthStart"
             class="absolute top-[100%] mt-5 left-0 pl-1 border-l border-accent-secondary/50 h-3 flex items-center"
           >
-            <span class="text-[10px] font-bold text-accent-secondary ml-1 uppercase tracking-wider whitespace-nowrap">
+            <span
+              class="text-[10px] font-bold text-accent-secondary ml-1 uppercase tracking-wider whitespace-nowrap"
+            >
               {{ row.monthLabel }}
             </span>
           </div>
@@ -124,32 +143,42 @@
 
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref } from 'vue'
-import type { DailyStatsItem, StatsViewMode } from '@/types'
+import type { HomeOverviewSeriesItem, HomeOverviewViewMode } from '@/types/usage'
 
-const props = withDefaults(defineProps<{
-  data?: DailyStatsItem[]
-  viewMode?: StatsViewMode
-}>(), {
-  data: () => [],
-  viewMode: 'sessions',
-})
+const props = withDefaults(
+  defineProps<{
+    data?: HomeOverviewSeriesItem[]
+    viewMode?: HomeOverviewViewMode
+  }>(),
+  {
+    data: () => [],
+    viewMode: 'sessions',
+  }
+)
 
 const hoveredIndex = ref<number | null>(null)
 const pendingHoverIndex = ref<number | null>(null)
 let hoverRafId: number | null = null
 
-const getValue = (item: DailyStatsItem, platform: 'claude' | 'codex' | 'gemini'): number => {
+const getValue = (
+  item: HomeOverviewSeriesItem,
+  platform: 'claude' | 'codex' | 'gemini'
+): number => {
   const stats = item?.[platform]
   if (!stats) return 0
   switch (props.viewMode) {
-    case 'sessions': return stats.sessions ?? 0
-    case 'duration': return stats.duration_seconds ?? 0
-    case 'tokens': return stats.tokens ?? 0
-    default: return stats.sessions ?? 0
+    case 'sessions':
+      return stats.sessions ?? 0
+    case 'requests':
+      return stats.requests ?? 0
+    case 'tokens':
+      return stats.tokens ?? 0
+    default:
+      return stats.sessions ?? 0
   }
 }
 
-const chartData = computed(() => (props.data ?? []).slice(-30))
+const chartData = computed(() => props.data ?? [])
 
 const maxValue = computed(() => {
   let max = 0
@@ -167,6 +196,7 @@ const getBarHeight = (value: number): number => {
 
 const chartRows = computed(() => {
   const rows = chartData.value
+  const labelInterval = rows.length > 60 ? 7 : rows.length > 30 ? 5 : 2
   return rows.map((item, index) => {
     const codex = getValue(item, 'codex')
     const claude = getValue(item, 'claude')
@@ -180,7 +210,7 @@ const chartRows = computed(() => {
     const prevDate = index > 0 ? new Date(rows[index - 1].date) : null
     const isMonthStart = index === 0 || (prevDate ? date.getMonth() !== prevDate.getMonth() : false)
     const isLast = index === rows.length - 1
-    const showDate = isMonthStart || isLast || date.getDate() % 2 === 0
+    const showDate = isMonthStart || isLast || index % labelInterval === 0
 
     return {
       date: item.date,
@@ -228,11 +258,6 @@ const formatDateFull = (dateStr: string): string => {
 }
 
 const formatValue = (value: number): string => {
-  if (props.viewMode === 'duration') {
-    if (value < 60) return `${value}s`
-    if (value < 3600) return `${Math.floor(value / 60)}m`
-    return `${(value / 3600).toFixed(1)}h`
-  }
   return value.toLocaleString()
 }
 
@@ -266,7 +291,9 @@ const tooltipStyle = computed(() => {
 <style scoped>
 .fade-enter-active,
 .fade-leave-active {
-  transition: opacity 0.15s ease, transform 0.15s ease;
+  transition:
+    opacity 0.15s ease,
+    transform 0.15s ease;
 }
 
 .fade-enter-from,

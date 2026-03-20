@@ -287,6 +287,7 @@ macro_rules! generate_handler_common {
         usage::get_usage_heatmap_v2,
         usage::get_usage_logs_v2,
         usage::get_usage_dashboard_v2,
+        usage::get_home_usage_overview_v2,
         usage::import_usage_v2,
         usage::import_all_usage_v2,
         // —— 命令执行 ——

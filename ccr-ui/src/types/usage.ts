@@ -89,6 +89,51 @@ export interface UsageDashboardResponse {
   generated_at: string
 }
 
+/** 首页概览视图模式 */
+export type HomeOverviewViewMode = 'sessions' | 'requests' | 'tokens'
+
+/** 首页平台统计 */
+export interface HomeOverviewPlatformStats {
+  sessions: number
+  requests: number
+  tokens: number
+}
+
+/** 首页趋势项 */
+export interface HomeOverviewSeriesItem {
+  date: string
+  claude: HomeOverviewPlatformStats
+  codex: HomeOverviewPlatformStats
+  gemini: HomeOverviewPlatformStats
+}
+
+/** 首页概览汇总 */
+export interface HomeOverviewSummary {
+  total_sessions: number
+  total_requests: number
+  total_tokens: number
+  active_days: number
+  platforms: number
+}
+
+/** 首页自举信息 */
+export interface HomeOverviewBootstrap {
+  usage_import_attempted: boolean
+  usage_imported_records: number
+  session_reindex_attempted: boolean
+  indexed_sessions: number
+}
+
+/** 首页概览响应 */
+export interface HomeUsageOverviewResponse {
+  summary: HomeOverviewSummary
+  by_platform: Record<string, HomeOverviewPlatformStats>
+  series: HomeOverviewSeriesItem[]
+  bootstrap: HomeOverviewBootstrap
+  empty_reason?: 'no_usage_logs' | 'no_session_index' | 'no_usage_and_sessions'
+  last_updated: string
+}
+
 /** 导入结果 */
 export interface ImportResult {
   platform: string

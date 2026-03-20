@@ -2350,6 +2350,11 @@ export const importAllUsageV2 = async <T = UnknownRecord>(): Promise<T> => {
   return invoke('import_all_usage_v2')
 }
 
+/** V2: 首页工作区概览 */
+export const getHomeUsageOverviewV2 = async <T = UnknownRecord>(days?: number): Promise<T> => {
+  return invoke('get_home_usage_overview_v2', { days })
+}
+
 /** 获取会话统计 */
 export const getSessionStats = async <T = UnknownRecord>(platform?: string): Promise<T> => {
   return invoke('get_session_stats', { platform })

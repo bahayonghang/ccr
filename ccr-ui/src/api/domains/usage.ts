@@ -5,6 +5,7 @@ export {
   getUsageByProjectV2,
   getUsageLogsV2,
   getUsageDashboardV2,
+  getHomeUsageOverviewV2,
   importUsageV2,
   importAllUsageV2,
   getCostOverview,
