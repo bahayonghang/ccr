@@ -296,7 +296,7 @@ dependencies = [
 
 [[package]]
 name = "ccr"
-version = "5.2.3"
+version = "5.2.4"
 dependencies = [
  "anyhow",
  "base64",
@@ -339,7 +339,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-db"
-version = "5.2.3"
+version = "5.2.4"
 dependencies = [
  "aes-gcm",
  "anyhow",
@@ -371,7 +371,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-types"
-version = "5.2.3"
+version = "5.2.4"
 dependencies = [
  "chrono",
  "serde",
