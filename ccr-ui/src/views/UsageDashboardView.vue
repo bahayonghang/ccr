@@ -772,6 +772,11 @@ onUnmounted(() => {
   box-shadow: 0 0 0 3px var(--color-accent-primary-glow);
 }
 
+.toolbar-select:focus-visible {
+  outline: 2px solid rgb(var(--color-accent-primary-rgb) / 50%);
+  outline-offset: 2px;
+}
+
 /* 表格数值等宽对齐 */
 td {
   font-variant-numeric: tabular-nums;

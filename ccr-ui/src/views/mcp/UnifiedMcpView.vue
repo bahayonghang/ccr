@@ -786,6 +786,11 @@ onMounted(() => {
   outline: none;
   font-size: 0.8125rem;
   color: var(--color-text-primary);
+
+  &:focus-visible {
+    outline: 2px solid rgb(var(--color-accent-primary-rgb) / 50%);
+    outline-offset: 2px;
+  }
 }
 
 .command-bar__search-input::placeholder {
@@ -1180,6 +1185,11 @@ onMounted(() => {
   color: var(--color-text-primary);
   outline: none;
   transition: border-color var(--duration-fast);
+
+  &:focus-visible {
+    outline: 2px solid rgb(var(--color-accent-primary-rgb) / 50%);
+    outline-offset: 2px;
+  }
 }
 
 .form-input:focus,

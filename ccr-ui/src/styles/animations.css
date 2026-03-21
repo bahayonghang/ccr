@@ -448,6 +448,24 @@
         animation: scale-out var(--duration-normal) var(--ease-out) forwards;
     }
 
+    /* GPU 提升提示 - 核心动画 */
+    .animate-fade-in,
+    .animate-fade-out {
+        will-change: opacity;
+    }
+
+    .animate-slide-up,
+    .animate-slide-down,
+    .animate-slide-in-left,
+    .animate-slide-in-right {
+        will-change: transform, opacity;
+    }
+
+    .animate-scale-in,
+    .animate-scale-out {
+        will-change: transform, opacity;
+    }
+
     /* Neo-Terminal 特色动画类 */
     .animate-pulse-subtle {
         animation: pulse-subtle 2s var(--ease-in-out) infinite;

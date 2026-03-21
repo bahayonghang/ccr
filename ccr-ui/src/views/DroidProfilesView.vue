@@ -634,6 +634,12 @@ select:focus {
   border-color: #3b82f6;
 }
 
+input:focus-visible,
+select:focus-visible {
+  outline: 2px solid rgb(var(--color-accent-primary-rgb) / 50%);
+  outline-offset: 2px;
+}
+
 input:disabled {
   opacity: 0.5;
   cursor: not-allowed;

@@ -115,9 +115,9 @@
         </div>
         <div class="h-1.5 rounded-full bg-white/5 overflow-hidden">
           <div
-            class="h-full rounded-full transition-all duration-500"
+            class="h-full w-full rounded-full origin-left transition-transform duration-500"
             :class="barColorClass(quota.quota.hourly_percentage)"
-            :style="{ width: `${Math.min(quota.quota.hourly_percentage, 100)}%` }"
+            :style="{ transform: `scaleX(${Math.min(quota.quota.hourly_percentage, 100) / 100})` }"
           />
         </div>
         <div
@@ -148,9 +148,9 @@
         </div>
         <div class="h-1.5 rounded-full bg-white/5 overflow-hidden">
           <div
-            class="h-full rounded-full transition-all duration-500"
+            class="h-full w-full rounded-full origin-left transition-transform duration-500"
             :class="barColorClass(quota.quota.weekly_percentage)"
-            :style="{ width: `${Math.min(quota.quota.weekly_percentage, 100)}%` }"
+            :style="{ transform: `scaleX(${Math.min(quota.quota.weekly_percentage, 100) / 100})` }"
           />
         </div>
         <div

@@ -503,14 +503,17 @@ function clearAllFilters() {
   emitUpdate()
 }
 
-// Watch for external changes
-watch(() => props.modelValue, (newVal) => {
-  localSearch.value = newVal.search
-  localSource.value = newVal.source
-  localCategory.value = newVal.category
-  localTags.value = [...newVal.tags]
-  selectedPlatform.value = newVal.platform
-}, { deep: true })
+// Watch for external changes (individual properties instead of deep watch)
+watch(
+  () => [props.modelValue.search, props.modelValue.source, props.modelValue.category, props.modelValue.tags, props.modelValue.platform] as const,
+  ([search, source, category, tags, platform]) => {
+    localSearch.value = search
+    localSource.value = source
+    localCategory.value = category
+    localTags.value = [...tags]
+    selectedPlatform.value = platform
+  }
+)
 </script>
 
 <style scoped>

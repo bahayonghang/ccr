@@ -99,6 +99,15 @@
         cursor: not-allowed;
     }
 
+    /* 表单元素焦点指示器 (高优先级覆盖) */
+    button:focus-visible,
+    input:focus-visible,
+    textarea:focus-visible,
+    select:focus-visible {
+        outline: 2px solid rgb(var(--color-accent-primary-rgb) / 50%);
+        outline-offset: 2px;
+    }
+
     /* 表格重置 */
     table {
         border-collapse: collapse;
@@ -281,5 +290,10 @@
         animation-iteration-count: 1 !important;
         transition-duration: 0.01ms !important;
         scroll-behavior: auto !important;
+    }
+
+    .premium-background,
+    .anime-background {
+        display: none !important;
     }
 }

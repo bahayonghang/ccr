@@ -1535,7 +1535,8 @@ onBeforeUnmount(teardownSectionObserver)
 .claude-profile-editor-modal .editor-button:focus-visible,
 .claude-profile-editor-modal .editor-input:focus-visible,
 .claude-profile-editor-modal .editor-nav-button:focus-visible {
-  outline: none;
+  outline: 2px solid rgb(var(--color-accent-primary-rgb) / 50%);
+  outline-offset: 2px;
   box-shadow: var(--editor-ring);
 }
 
@@ -1654,6 +1655,11 @@ onBeforeUnmount(teardownSectionObserver)
   background: var(--editor-input-bg-focus);
   outline: none;
   box-shadow: var(--editor-ring);
+}
+
+.claude-profile-editor-modal .editor-input:focus-visible {
+  outline: 2px solid rgb(var(--color-accent-primary-rgb) / 50%);
+  outline-offset: 2px;
 }
 
 .claude-profile-editor-modal .editor-input:disabled,
