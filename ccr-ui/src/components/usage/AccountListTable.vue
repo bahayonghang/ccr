@@ -60,7 +60,7 @@
               </span>
               <span
                 v-if="account.is_virtual"
-                class="flex-shrink-0 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider rounded-full bg-gray-500/10 text-gray-500 border border-gray-500/20"
+                class="flex-shrink-0 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider rounded-full bg-gray-500/10 text-text-muted border border-gray-500/20"
               >
                 {{ $t('codex.auth.virtualBadge') }}
               </span>
@@ -228,7 +228,7 @@ const freshnessClasses = (freshness: TokenFreshness) => {
     case 'Old':
       return 'bg-orange-500/10 text-orange-500 border border-orange-500/20'
     default:
-      return 'bg-gray-500/10 text-gray-500 border border-gray-500/20'
+      return 'bg-gray-500/10 text-text-muted border border-gray-500/20'
   }
 }
 

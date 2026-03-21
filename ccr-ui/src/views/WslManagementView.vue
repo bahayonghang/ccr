@@ -43,7 +43,7 @@ const platforms = ['claude', 'codex', 'gemini', 'qwen', 'iflow', 'droid']
 const stateColor = (state: string) => {
   switch (state.toLowerCase()) {
     case 'running': return 'text-emerald-400'
-    case 'stopped': return 'text-slate-400'
+    case 'stopped': return 'text-text-muted'
     default: return 'text-amber-400'
   }
 }
@@ -231,7 +231,7 @@ onMounted(() => fetchDistros())
           />
           <span class="text-white/80">缓存状态:</span>
           <span
-            :class="cacheStatus.has_disk_cache ? 'text-emerald-400' : 'text-slate-400'"
+            :class="cacheStatus.has_disk_cache ? 'text-emerald-400' : 'text-text-muted'"
           >
             {{ cacheStatus.has_disk_cache ? '已缓存' : '未缓存' }}
           </span>
@@ -354,7 +354,7 @@ onMounted(() => fetchDistros())
                 v-else
                 name="XCircle"
                 size="w-4 h-4"
-                class="text-slate-400"
+                class="text-text-muted"
               />
               <span :class="installed ? 'text-white' : 'text-white/50'">
                 {{ tool }}

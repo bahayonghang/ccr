@@ -4,7 +4,7 @@
     <!-- Header -->
     <div class="flex items-center justify-between mb-6 flex-wrap gap-3">
       <div class="flex items-center gap-4">
-        <h3 class="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+        <h3 class="text-xl font-bold text-text-primary flex items-center gap-2">
           <span class="text-2xl">📈</span>
           <span>Token 使用趋势</span>
         </h3>
@@ -30,7 +30,7 @@
           @click="toggleSeries('input')"
         >
           <div class="w-4 h-4 rounded-full bg-blue-500 dark:bg-blue-400 shadow-lg" />
-          <span class="text-sm font-bold text-gray-900 dark:text-gray-100">输入</span>
+          <span class="text-sm font-bold text-text-primary">输入</span>
         </button>
 
         <button
@@ -39,7 +39,7 @@
           @click="toggleSeries('output')"
         >
           <div class="w-4 h-4 rounded-full bg-green-500 dark:bg-green-400 shadow-lg" />
-          <span class="text-sm font-bold text-gray-900 dark:text-gray-100">输出</span>
+          <span class="text-sm font-bold text-text-primary">输出</span>
         </button>
 
         <button
@@ -48,7 +48,7 @@
           @click="toggleSeries('cache')"
         >
           <div class="w-4 h-4 rounded-full bg-amber-500 dark:bg-amber-400 shadow-lg" />
-          <span class="text-sm font-bold text-gray-900 dark:text-gray-100">缓存</span>
+          <span class="text-sm font-bold text-text-primary">缓存</span>
         </button>
       </div>
     </div>
@@ -132,7 +132,7 @@
             :x2="940"
             :y2="chartBottom - (i * yStepSize)"
             stroke="currentColor"
-            class="text-gray-400 dark:text-gray-500"
+            class="text-text-muted"
             stroke-dasharray="5,5"
             stroke-width="1.5"
           />
@@ -143,7 +143,7 @@
             :x2="940"
             :y2="chartBottom"
             stroke="currentColor"
-            class="text-gray-400 dark:text-gray-500"
+            class="text-text-muted"
             stroke-width="1.5"
           />
         </g>
@@ -183,7 +183,7 @@
 
         <!-- X-axis labels -->
         <g
-          class="x-axis text-gray-600 dark:text-gray-400"
+          class="x-axis text-text-secondary"
           font-size="12"
           fill="currentColor"
           font-weight="500"
@@ -201,7 +201,7 @@
 
         <!-- Y-axis labels -->
         <g
-          class="y-axis text-gray-600 dark:text-gray-400"
+          class="y-axis text-text-secondary"
           font-size="12"
           fill="currentColor"
           font-weight="500"
@@ -226,7 +226,7 @@
             :x2="getXPos(hoveredIndex)"
             :y2="chartBottom"
             stroke="currentColor"
-            class="text-gray-400 dark:text-gray-500"
+            class="text-text-muted"
             stroke-width="1"
             stroke-dasharray="4,4"
             opacity="0.5"
@@ -286,30 +286,30 @@
           transform: 'translate(-50%, -110%)'
         }"
       >
-        <p class="font-bold text-gray-900 dark:text-white mb-2">
+        <p class="font-bold text-text-primary mb-2">
           {{ hoveredData.time }}
         </p>
         <div class="space-y-1">
           <div
             v-if="activeSeriesSet.has('input')"
-            class="flex items-center gap-2 text-gray-600 dark:text-gray-300"
+            class="flex items-center gap-2 text-text-secondary"
           >
             <div class="w-2 h-2 rounded-full bg-blue-500" />
-            <span>输入: <span class="font-mono font-bold text-gray-900 dark:text-white">{{ formatNumber(hoveredData.input) }}</span></span>
+            <span>输入: <span class="font-mono font-bold text-text-primary">{{ formatNumber(hoveredData.input) }}</span></span>
           </div>
           <div
             v-if="activeSeriesSet.has('output')"
-            class="flex items-center gap-2 text-gray-600 dark:text-gray-300"
+            class="flex items-center gap-2 text-text-secondary"
           >
             <div class="w-2 h-2 rounded-full bg-green-500" />
-            <span>输出: <span class="font-mono font-bold text-gray-900 dark:text-white">{{ formatNumber(hoveredData.output) }}</span></span>
+            <span>输出: <span class="font-mono font-bold text-text-primary">{{ formatNumber(hoveredData.output) }}</span></span>
           </div>
           <div
             v-if="activeSeriesSet.has('cache')"
-            class="flex items-center gap-2 text-gray-600 dark:text-gray-300"
+            class="flex items-center gap-2 text-text-secondary"
           >
             <div class="w-2 h-2 rounded-full bg-amber-500" />
-            <span>缓存: <span class="font-mono font-bold text-gray-900 dark:text-white">{{ formatNumber(hoveredData.cache) }}</span></span>
+            <span>缓存: <span class="font-mono font-bold text-text-primary">{{ formatNumber(hoveredData.cache) }}</span></span>
           </div>
         </div>
       </div>
@@ -322,7 +322,7 @@
     >
       <div class="text-center">
         <svg
-          class="w-20 h-20 mx-auto mb-4 text-gray-400 dark:text-gray-500"
+          class="w-20 h-20 mx-auto mb-4 text-text-muted"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -334,7 +334,7 @@
             d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
           />
         </svg>
-        <p class="text-base font-semibold text-gray-600 dark:text-gray-400">
+        <p class="text-base font-semibold text-text-secondary">
           所选筛选条件下无可用数据
         </p>
       </div>

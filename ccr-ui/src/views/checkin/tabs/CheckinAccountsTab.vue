@@ -225,7 +225,7 @@
                       刷新余额
                     </button>
                     <button
-                      class="w-full px-3 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                      class="w-full px-3 py-2 text-left text-sm text-text-secondary hover:bg-gray-100 dark:hover:bg-gray-700"
                       @click="openAccountModal(account); openMenuAccountId = null"
                     >
                       编辑
@@ -255,7 +255,7 @@
     <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-xl mx-4 overflow-hidden">
       <!-- 标题栏 -->
       <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-800">
-        <h3 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+        <h3 class="text-lg font-semibold text-text-primary flex items-center gap-2">
           <SIcon
             name="Users"
             size="w-5 h-5"
@@ -271,7 +271,7 @@
       >
         <!-- 提供商选择 -->
         <div>
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+          <label class="block text-sm font-medium text-text-secondary mb-1.5">
             <span class="text-red-500">*</span> 提供商
           </label>
           <select
@@ -295,7 +295,7 @@
 
         <!-- 账号名称 -->
         <div>
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+          <label class="block text-sm font-medium text-text-secondary mb-1.5">
             <span class="text-red-500">*</span> 账号名称
           </label>
           <input
@@ -309,14 +309,14 @@
 
         <!-- Session 输入 -->
         <div>
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+          <label class="block text-sm font-medium text-text-secondary mb-1.5">
             <span
               v-if="!editingAccount"
               class="text-red-500"
             >*</span> Session / Cookies
             <span
               v-if="editingAccount"
-              class="text-gray-400 dark:text-gray-500 font-normal"
+              class="text-text-muted font-normal"
             >(留空不修改)</span>
           </label>
           <textarea
@@ -326,7 +326,7 @@
             class="block w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 font-mono text-sm leading-relaxed resize-y min-h-[120px] placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:bg-white dark:focus:bg-gray-800 transition-colors"
             placeholder="可直接粘贴 session 值，或完整 cookies JSON"
           />
-          <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
+          <p class="mt-1.5 text-xs text-text-muted flex items-center gap-1">
             <svg
               class="w-3.5 h-3.5"
               fill="none"
@@ -346,7 +346,7 @@
 
         <!-- API User -->
         <div>
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+          <label class="block text-sm font-medium text-text-secondary mb-1.5">
             <span class="text-red-500">*</span> API User
           </label>
           <input
@@ -356,7 +356,7 @@
             class="block w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white font-mono placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
             placeholder="12345"
           >
-          <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+          <p class="mt-1.5 text-xs text-text-muted">
             使用 session / cookies 登录时必须填写。优先从 Local Storage 的 <code>user.id</code> 获取，也可从请求头里的 <code>new-api-user</code> 找到
           </p>
         </div>
@@ -477,7 +477,7 @@
           >
           <label
             for="account-enabled"
-            class="ml-2.5 text-sm text-gray-700 dark:text-gray-300 cursor-pointer select-none"
+            class="ml-2.5 text-sm text-text-secondary cursor-pointer select-none"
           >
             启用此账号
           </label>
@@ -487,7 +487,7 @@
         <div class="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
           <button
             type="button"
-            class="px-4 py-2 text-sm font-medium border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600 transition-colors"
+            class="px-4 py-2 text-sm font-medium border border-gray-300 dark:border-gray-600 text-text-secondary rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600 transition-colors"
             @click="showAccountModal = false"
           >
             取消

@@ -3,10 +3,10 @@
     <!-- 页面标题 -->
     <div class="flex items-center justify-between">
       <div>
-        <h1 class="text-3xl font-bold text-gray-900 dark:text-white">
+        <h1 class="text-3xl font-bold text-text-primary">
           💲 定价管理
         </h1>
-        <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
+        <p class="mt-2 text-sm text-text-secondary">
           配置各个模型的价格和默认定价策略
         </p>
       </div>
@@ -76,51 +76,51 @@
     >
       <!-- 默认定价卡片 -->
       <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-        <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+        <h2 class="text-xl font-semibold text-text-primary mb-4">
           默认定价策略
         </h2>
         <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div class="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
-            <p class="text-sm text-gray-600 dark:text-gray-400">
+            <p class="text-sm text-text-secondary">
               输入价格
             </p>
-            <p class="mt-2 text-2xl font-bold text-gray-900 dark:text-white">
+            <p class="mt-2 text-2xl font-bold text-text-primary">
               ${{ pricingData.default_pricing.input_price.toFixed(4) }}
             </p>
-            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+            <p class="text-xs text-text-muted mt-1">
               / 1K tokens
             </p>
           </div>
           <div class="bg-green-50 dark:bg-green-900/20 rounded-lg p-4">
-            <p class="text-sm text-gray-600 dark:text-gray-400">
+            <p class="text-sm text-text-secondary">
               输出价格
             </p>
-            <p class="mt-2 text-2xl font-bold text-gray-900 dark:text-white">
+            <p class="mt-2 text-2xl font-bold text-text-primary">
               ${{ pricingData.default_pricing.output_price.toFixed(4) }}
             </p>
-            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+            <p class="text-xs text-text-muted mt-1">
               / 1K tokens
             </p>
           </div>
           <div class="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-4">
-            <p class="text-sm text-gray-600 dark:text-gray-400">
+            <p class="text-sm text-text-secondary">
               缓存读取
             </p>
-            <p class="mt-2 text-2xl font-bold text-gray-900 dark:text-white">
+            <p class="mt-2 text-2xl font-bold text-text-primary">
               ${{ (pricingData.default_pricing.cache_read_price || 0).toFixed(4) }}
             </p>
-            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+            <p class="text-xs text-text-muted mt-1">
               / 1K tokens
             </p>
           </div>
           <div class="bg-orange-50 dark:bg-orange-900/20 rounded-lg p-4">
-            <p class="text-sm text-gray-600 dark:text-gray-400">
+            <p class="text-sm text-text-secondary">
               缓存写入
             </p>
-            <p class="mt-2 text-2xl font-bold text-gray-900 dark:text-white">
+            <p class="mt-2 text-2xl font-bold text-text-primary">
               ${{ (pricingData.default_pricing.cache_write_price || 0).toFixed(4) }}
             </p>
-            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+            <p class="text-xs text-text-muted mt-1">
               / 1K tokens
             </p>
           </div>
@@ -130,7 +130,7 @@
       <!-- 模型定价列表 -->
       <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
         <div class="flex items-center justify-between mb-4">
-          <h2 class="text-xl font-semibold text-gray-900 dark:text-white">
+          <h2 class="text-xl font-semibold text-text-primary">
             模型定价配置
           </h2>
           <button
@@ -152,31 +152,31 @@
             class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg"
           >
             <div class="flex-1">
-              <h3 class="text-lg font-medium text-gray-900 dark:text-white">
+              <h3 class="text-lg font-medium text-text-primary">
                 {{ pricing.model }}
               </h3>
               <div class="mt-2 grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
                 <div>
-                  <span class="text-gray-600 dark:text-gray-400">输入:</span>
-                  <span class="ml-2 font-semibold text-gray-900 dark:text-white">
+                  <span class="text-text-secondary">输入:</span>
+                  <span class="ml-2 font-semibold text-text-primary">
                     ${{ pricing.input_price.toFixed(4) }}
                   </span>
                 </div>
                 <div>
-                  <span class="text-gray-600 dark:text-gray-400">输出:</span>
-                  <span class="ml-2 font-semibold text-gray-900 dark:text-white">
+                  <span class="text-text-secondary">输出:</span>
+                  <span class="ml-2 font-semibold text-text-primary">
                     ${{ pricing.output_price.toFixed(4) }}
                   </span>
                 </div>
                 <div>
-                  <span class="text-gray-600 dark:text-gray-400">缓存读:</span>
-                  <span class="ml-2 font-semibold text-gray-900 dark:text-white">
+                  <span class="text-text-secondary">缓存读:</span>
+                  <span class="ml-2 font-semibold text-text-primary">
                     ${{ (pricing.cache_read_price || 0).toFixed(4) }}
                   </span>
                 </div>
                 <div>
-                  <span class="text-gray-600 dark:text-gray-400">缓存写:</span>
-                  <span class="ml-2 font-semibold text-gray-900 dark:text-white">
+                  <span class="text-text-secondary">缓存写:</span>
+                  <span class="ml-2 font-semibold text-text-primary">
                     ${{ (pricing.cache_write_price || 0).toFixed(4) }}
                   </span>
                 </div>
@@ -202,7 +202,7 @@
         <!-- 空状态 -->
         <div
           v-else
-          class="text-center py-8 text-gray-500 dark:text-gray-400"
+          class="text-center py-8 text-text-muted"
         >
           暂无模型定价配置，点击上方按钮添加
         </div>
@@ -213,7 +213,7 @@
         v-if="showForm"
         class="bg-white dark:bg-gray-800 rounded-lg shadow p-6"
       >
-        <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+        <h2 class="text-xl font-semibold text-text-primary mb-4">
           {{ isEditing ? '编辑模型定价' : '添加模型定价' }}
         </h2>
         <form
@@ -222,7 +222,7 @@
         >
           <!-- 模型名称 -->
           <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+            <label class="block text-sm font-medium text-text-secondary">
               模型名称 *
             </label>
             <input
@@ -238,7 +238,7 @@
           <!-- 价格输入 -->
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              <label class="block text-sm font-medium text-text-secondary">
                 输入价格 ($) *
               </label>
               <input
@@ -252,7 +252,7 @@
               >
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              <label class="block text-sm font-medium text-text-secondary">
                 输出价格 ($) *
               </label>
               <input
@@ -269,7 +269,7 @@
 
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              <label class="block text-sm font-medium text-text-secondary">
                 缓存读取价格 ($)
               </label>
               <input
@@ -282,7 +282,7 @@
               >
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              <label class="block text-sm font-medium text-text-secondary">
                 缓存写入价格 ($)
               </label>
               <input
@@ -319,7 +319,7 @@
 
       <!-- 操作按钮 -->
       <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-        <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+        <h2 class="text-xl font-semibold text-text-primary mb-4">
           批量操作
         </h2>
         <button

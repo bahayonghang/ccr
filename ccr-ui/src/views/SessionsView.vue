@@ -3,10 +3,10 @@
     <!-- 页面标题 -->
     <div class="flex items-center justify-between">
       <div>
-        <h1 class="text-3xl font-bold text-gray-900 dark:text-white">
+        <h1 class="text-3xl font-bold text-text-primary">
           📚 Sessions
         </h1>
-        <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
+        <p class="mt-2 text-sm text-text-secondary">
           管理和浏览 AI CLI 会话记录
         </p>
       </div>
@@ -84,10 +84,10 @@
       <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
         <div class="flex items-center justify-between">
           <div>
-            <p class="text-sm font-medium text-gray-600 dark:text-gray-400">
+            <p class="text-sm font-medium text-text-secondary">
               总会话数
             </p>
-            <p class="mt-2 text-3xl font-bold text-gray-900 dark:text-white">
+            <p class="mt-2 text-3xl font-bold text-text-primary">
               {{ stats?.total || 0 }}
             </p>
           </div>
@@ -115,10 +115,10 @@
       >
         <div class="flex items-center justify-between">
           <div>
-            <p class="text-sm font-medium text-gray-600 dark:text-gray-400">
+            <p class="text-sm font-medium text-text-secondary">
               {{ platform }}
             </p>
-            <p class="mt-2 text-3xl font-bold text-gray-900 dark:text-white">
+            <p class="mt-2 text-3xl font-bold text-text-primary">
               {{ count }}
             </p>
           </div>
@@ -176,19 +176,19 @@
       <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
         <thead class="bg-gray-50 dark:bg-gray-900/50">
           <tr>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+            <th class="px-6 py-3 text-left text-xs font-medium text-text-muted uppercase tracking-wider">
               平台
             </th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+            <th class="px-6 py-3 text-left text-xs font-medium text-text-muted uppercase tracking-wider">
               标题/ID
             </th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+            <th class="px-6 py-3 text-left text-xs font-medium text-text-muted uppercase tracking-wider">
               目录
             </th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+            <th class="px-6 py-3 text-left text-xs font-medium text-text-muted uppercase tracking-wider">
               消息数
             </th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+            <th class="px-6 py-3 text-left text-xs font-medium text-text-muted uppercase tracking-wider">
               更新时间
             </th>
           </tr>
@@ -204,13 +204,13 @@
               <span class="text-2xl">{{ getPlatformIcon(session.platform) }}</span>
             </td>
             <td class="px-6 py-4">
-              <div class="text-sm font-medium text-gray-900 dark:text-white">
+              <div class="text-sm font-medium text-text-primary">
                 {{ session.title || session.id.substring(0, 16) + '...' }}
               </div>
             </td>
             <td class="px-6 py-4">
               <div
-                class="text-sm text-gray-500 dark:text-gray-400 truncate max-w-xs"
+                class="text-sm text-text-muted truncate max-w-xs"
                 :title="session.cwd"
               >
                 {{ shortenPath(session.cwd) }}
@@ -221,14 +221,14 @@
                 {{ session.message_count }}
               </span>
             </td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-text-muted">
               {{ formatDate(session.updated_at) }}
             </td>
           </tr>
           <tr v-if="sessions.length === 0">
             <td
               colspan="5"
-              class="px-6 py-12 text-center text-gray-500 dark:text-gray-400"
+              class="px-6 py-12 text-center text-text-muted"
             >
               暂无会话记录
             </td>
@@ -245,11 +245,11 @@
     >
       <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full mx-4 p-6">
         <div class="flex items-center justify-between mb-4">
-          <h3 class="text-xl font-bold text-gray-900 dark:text-white">
+          <h3 class="text-xl font-bold text-text-primary">
             Session 详情
           </h3>
           <button
-            class="text-gray-500 hover:text-gray-800 dark:hover:text-white"
+            class="text-text-muted hover:text-text-primary dark:hover:text-white"
             @click="selectedSession = null"
           >
             ✕
@@ -257,39 +257,39 @@
         </div>
         <div class="space-y-4">
           <div>
-            <label class="text-sm font-medium text-gray-600 dark:text-gray-400">ID</label>
-            <p class="text-gray-900 dark:text-white font-mono text-sm">
+            <label class="text-sm font-medium text-text-secondary">ID</label>
+            <p class="text-text-primary font-mono text-sm">
               {{ selectedSession.id }}
             </p>
           </div>
           <div>
-            <label class="text-sm font-medium text-gray-600 dark:text-gray-400">平台</label>
-            <p class="text-gray-900 dark:text-white">
+            <label class="text-sm font-medium text-text-secondary">平台</label>
+            <p class="text-text-primary">
               {{ selectedSession.platform }}
             </p>
           </div>
           <div v-if="selectedSession.title">
-            <label class="text-sm font-medium text-gray-600 dark:text-gray-400">标题</label>
-            <p class="text-gray-900 dark:text-white">
+            <label class="text-sm font-medium text-text-secondary">标题</label>
+            <p class="text-text-primary">
               {{ selectedSession.title }}
             </p>
           </div>
           <div>
-            <label class="text-sm font-medium text-gray-600 dark:text-gray-400">工作目录</label>
-            <p class="text-gray-900 dark:text-white font-mono text-sm break-all">
+            <label class="text-sm font-medium text-text-secondary">工作目录</label>
+            <p class="text-text-primary font-mono text-sm break-all">
               {{ selectedSession.cwd }}
             </p>
           </div>
           <div class="grid grid-cols-2 gap-4">
             <div>
-              <label class="text-sm font-medium text-gray-600 dark:text-gray-400">消息数</label>
-              <p class="text-gray-900 dark:text-white">
+              <label class="text-sm font-medium text-text-secondary">消息数</label>
+              <p class="text-text-primary">
                 {{ selectedSession.message_count }}
               </p>
             </div>
             <div>
-              <label class="text-sm font-medium text-gray-600 dark:text-gray-400">更新时间</label>
-              <p class="text-gray-900 dark:text-white">
+              <label class="text-sm font-medium text-text-secondary">更新时间</label>
+              <p class="text-text-primary">
                 {{ formatDate(selectedSession.updated_at) }}
               </p>
             </div>

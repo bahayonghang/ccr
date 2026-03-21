@@ -181,7 +181,7 @@
               </h2>
               <div class="flex items-center space-x-2 text-xs mb-4">
                 <span class="px-2 py-0.5 rounded-full bg-primary-100 dark:bg-primary-500/20 text-primary-600 dark:text-primary-300 border border-primary-200 dark:border-primary-500/30">Neko Console</span>
-                <span class="text-slate-500 dark:text-secondary-400">v4.1.4</span>
+                <span class="text-text-muted dark:text-secondary-400">v4.1.4</span>
               </div>
               
               <p class="text-slate-600 dark:text-secondary-300 text-sm text-center mb-6 leading-relaxed">
@@ -190,11 +190,11 @@
               
               <div class="w-full space-y-2 mb-6">
                 <div class="flex justify-between items-center text-xs p-2 rounded-lg bg-slate-50 dark:glass-surface border border-slate-100 dark:border-white/5">
-                  <span class="text-slate-500 dark:text-secondary-400">Owner</span>
+                  <span class="text-text-muted dark:text-secondary-400">Owner</span>
                   <span class="text-slate-800 dark:text-white font-medium">李永航</span>
                 </div>
                 <div class="flex justify-between items-center text-xs p-2 rounded-lg bg-slate-50 dark:glass-surface border border-slate-100 dark:border-white/5">
-                  <span class="text-slate-500 dark:text-secondary-400">Engine</span>
+                  <span class="text-text-muted dark:text-secondary-400">Engine</span>
                   <span class="text-slate-800 dark:text-white font-medium">Tauri 2.0 & Vue 3</span>
                 </div>
               </div>
@@ -208,7 +208,7 @@
             </div>
             
             <button
-              class="absolute top-3 right-3 p-1.5 rounded-full text-slate-400 hover:text-slate-800 hover:bg-slate-100 dark:text-secondary-400 dark:hover:text-white dark:hover:bg-white/10 transition-colors"
+              class="absolute top-3 right-3 p-1.5 rounded-full text-text-muted hover:text-slate-800 hover:bg-slate-100 dark:text-secondary-400 dark:hover:text-white dark:hover:bg-white/10 transition-colors"
               @click="showAboutDialog = false"
             >
               <svg
@@ -329,6 +329,11 @@ onUnmounted(() => {
   transition: color 150ms, background-color 150ms;
   cursor: default;
   outline: none;
+
+  &:focus-visible {
+    outline: 2px solid rgb(var(--color-accent-primary-rgb) / 50%);
+    outline-offset: 2px;
+  }
 }
 
 .titlebar-menu-btn {
@@ -340,6 +345,11 @@ onUnmounted(() => {
   border-radius: 0.375rem;
   transition: color 150ms, background-color 150ms;
   outline: none;
+
+  &:focus-visible {
+    outline: 2px solid rgb(var(--color-accent-primary-rgb) / 50%);
+    outline-offset: 2px;
+  }
 }
 
 .titlebar-menu-btn:hover {

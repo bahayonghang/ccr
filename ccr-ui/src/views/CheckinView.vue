@@ -11,7 +11,7 @@
           />
           签到管理
         </h1>
-        <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
+        <p class="mt-2 text-sm text-text-secondary">
           管理所有平台的自动签到任务和 Cookie
         </p>
       </div>
@@ -388,7 +388,7 @@
         <!-- 当前余额 -->
         <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 flex items-center justify-between transition-[box-shadow,transform] duration-200 hover:shadow-md hover:scale-[1.02] cursor-pointer">
           <div>
-            <p class="text-sm font-medium text-gray-500 dark:text-gray-400">
+            <p class="text-sm font-medium text-text-muted">
               当前余额
             </p>
             <p class="mt-1 text-2xl font-bold text-green-600 dark:text-green-400 font-mono">
@@ -414,7 +414,7 @@
         <!-- 总额度-->
         <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 flex items-center justify-between transition-[box-shadow,transform] duration-200 hover:shadow-md hover:scale-[1.02] cursor-pointer">
           <div>
-            <p class="text-sm font-medium text-gray-500 dark:text-gray-400">
+            <p class="text-sm font-medium text-text-muted">
               总额度
             </p>
             <p class="mt-1 text-2xl font-bold text-blue-600 dark:text-blue-400 font-mono">
@@ -440,7 +440,7 @@
         <!-- 已消耗-->
         <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 flex items-center justify-between transition-[box-shadow,transform] duration-200 hover:shadow-md hover:scale-[1.02] cursor-pointer">
           <div>
-            <p class="text-sm font-medium text-gray-500 dark:text-gray-400">
+            <p class="text-sm font-medium text-text-muted">
               已消耗
             </p>
             <p class="mt-1 text-2xl font-bold text-orange-600 dark:text-orange-400 font-mono">

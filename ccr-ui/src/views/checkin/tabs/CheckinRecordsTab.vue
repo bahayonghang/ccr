@@ -1,11 +1,11 @@
 <template>
   <div class="space-y-4">
-    <h2 class="text-xl font-semibold text-gray-900 dark:text-white">
+    <h2 class="text-xl font-semibold text-text-primary">
       签到记录
     </h2>
     <div
       v-if="records.length === 0"
-      class="text-center py-12 text-gray-500 dark:text-gray-400"
+      class="text-center py-12 text-text-muted"
     >
       暂无签到记录
     </div>
@@ -136,25 +136,25 @@
         <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
           <thead class="bg-gray-50 dark:bg-gray-700/50">
             <tr>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+              <th class="px-6 py-3 text-left text-xs font-medium text-text-muted uppercase tracking-wider">
                 时间
               </th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+              <th class="px-6 py-3 text-left text-xs font-medium text-text-muted uppercase tracking-wider">
                 账号
               </th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+              <th class="px-6 py-3 text-left text-xs font-medium text-text-muted uppercase tracking-wider">
                 状态
               </th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+              <th class="px-6 py-3 text-left text-xs font-medium text-text-muted uppercase tracking-wider">
                 奖励
               </th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+              <th class="px-6 py-3 text-left text-xs font-medium text-text-muted uppercase tracking-wider">
                 余额
               </th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+              <th class="px-6 py-3 text-left text-xs font-medium text-text-muted uppercase tracking-wider">
                 原因
               </th>
-              <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+              <th class="px-6 py-3 text-right text-xs font-medium text-text-muted uppercase tracking-wider">
                 详情
               </th>
             </tr>
@@ -165,10 +165,10 @@
               :key="record.id"
             >
               <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50">
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-text-muted">
                   {{ formatDate(record.checked_in_at) }}
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-text-primary">
                   {{ getAccountName(record.account_id) }}
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
@@ -182,10 +182,10 @@
                 <td class="px-6 py-4 whitespace-nowrap text-sm text-green-600 dark:text-green-400">
                   {{ record.reward || '-' }}
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-text-muted">
                   {{ record.balance_after !== undefined && record.balance_after !== null ? `$${record.balance_after.toFixed(2)}` : '-' }}
                 </td>
-                <td class="px-6 py-4 text-sm text-gray-500 dark:text-gray-400 max-w-xs truncate">
+                <td class="px-6 py-4 text-sm text-text-muted max-w-xs truncate">
                   {{ getRecordReason(record) }}
                 </td>
                 <td class="px-6 py-4 text-right">
@@ -214,11 +214,11 @@
               >
                 <td
                   colspan="7"
-                  class="px-6 py-4 text-sm text-gray-600 dark:text-gray-300"
+                  class="px-6 py-4 text-sm text-text-secondary"
                 >
                   <div class="grid gap-3 md:grid-cols-3">
                     <div class="space-y-1">
-                      <div class="text-xs text-gray-500 dark:text-gray-400">
+                      <div class="text-xs text-text-muted">
                         提供商
                       </div>
                       <div class="text-sm">
@@ -226,7 +226,7 @@
                       </div>
                     </div>
                     <div class="space-y-1">
-                      <div class="text-xs text-gray-500 dark:text-gray-400">
+                      <div class="text-xs text-text-muted">
                         账号ID
                       </div>
                       <div class="text-sm break-all">
@@ -234,7 +234,7 @@
                       </div>
                     </div>
                     <div class="space-y-1">
-                      <div class="text-xs text-gray-500 dark:text-gray-400">
+                      <div class="text-xs text-text-muted">
                         原因
                       </div>
                       <div class="text-sm break-all">
@@ -242,7 +242,7 @@
                       </div>
                     </div>
                     <div class="space-y-1">
-                      <div class="text-xs text-gray-500 dark:text-gray-400">
+                      <div class="text-xs text-text-muted">
                         原始消息
                       </div>
                       <div class="text-sm break-all">
@@ -250,7 +250,7 @@
                       </div>
                     </div>
                     <div class="space-y-1">
-                      <div class="text-xs text-gray-500 dark:text-gray-400">
+                      <div class="text-xs text-text-muted">
                         奖励 / 余额变化
                       </div>
                       <div class="text-sm">
@@ -259,7 +259,7 @@
                       </div>
                     </div>
                     <div class="space-y-1">
-                      <div class="text-xs text-gray-500 dark:text-gray-400">
+                      <div class="text-xs text-text-muted">
                         余额前 / 后
                       </div>
                       <div class="text-sm">

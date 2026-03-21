@@ -125,7 +125,7 @@
               <div class="flex items-center gap-4">
                 <div
                   class="p-3 rounded-xl transition-colors duration-300 group-hover:scale-110 transition-transform"
-                  :class="currentAccount ? 'bg-emerald-500/10 text-emerald-500' : 'bg-gray-500/10 text-gray-500'"
+                  :class="currentAccount ? 'bg-emerald-500/10 text-emerald-500' : 'bg-gray-500/10 text-text-muted'"
                 >
                   <SIcon
                     name="UserCheck"
@@ -657,7 +657,7 @@ const freshnessClass = (freshness: TokenFreshness) => {
     case 'Fresh': return 'text-emerald-500'
     case 'Stale': return 'text-yellow-500'
     case 'Old': return 'text-orange-500'
-    default: return 'text-gray-500'
+    default: return 'text-text-muted'
   }
 }
 

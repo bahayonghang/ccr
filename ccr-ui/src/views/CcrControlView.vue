@@ -496,7 +496,7 @@
               <!-- Empty State -->
               <div
                 v-if="outputLines.length === 0"
-                class="h-full flex flex-col items-center justify-center text-gray-600 opacity-50"
+                class="h-full flex flex-col items-center justify-center text-text-muted opacity-50"
               >
                 <SIcon
                   name="Terminal"
@@ -514,9 +514,9 @@
                 <div
                   v-for="(line, idx) in outputLines"
                   :key="idx" 
-                  class="break-all whitespace-pre-wrap py-[1px] font-mono text-gray-300 hover:bg-white/5 transition-colors border-l-2 border-transparent hover:border-accent-primary pl-2 -ml-2"
+                  class="break-all whitespace-pre-wrap py-[1px] font-mono text-text-secondary hover:bg-white/5 transition-colors border-l-2 border-transparent hover:border-accent-primary pl-2 -ml-2"
                 >
-                  <span class="inline-block w-8 text-right mr-4 text-[10px] text-gray-700 select-none opacity-50">{{ idx + 1 }}</span>
+                  <span class="inline-block w-8 text-right mr-4 text-[10px] text-text-muted select-none opacity-50">{{ idx + 1 }}</span>
                   <span v-html="renderAnsi(line)" />
                 </div>
                     
@@ -619,7 +619,7 @@ watch(outputLines, async () => {
   if (outputContainer.value) {
     outputContainer.value.scrollTop = outputContainer.value.scrollHeight
   }
-}, { deep: true })
+})
 
 // Init
 loadVersionInfo()

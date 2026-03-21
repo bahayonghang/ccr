@@ -38,7 +38,7 @@ const envColor = (envType: string) => {
     case 'local': return 'text-emerald-400'
     case 'wsl': return 'text-orange-400'
     case 'ssh': return 'text-sky-400'
-    default: return 'text-slate-400'
+    default: return 'text-text-muted'
   }
 }
 

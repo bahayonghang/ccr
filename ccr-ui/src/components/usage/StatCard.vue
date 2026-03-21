@@ -28,14 +28,14 @@
       <!-- Left: Text content -->
       <div class="flex-1 min-w-0">
         <!-- Label -->
-        <p class="text-xs font-semibold uppercase tracking-wider mb-2 text-gray-500 dark:text-gray-400">
+        <p class="text-xs font-semibold uppercase tracking-wider mb-2 text-text-muted">
           {{ label }}
         </p>
 
         <!-- Value with animation -->
         <div class="flex items-baseline gap-2 mb-2">
           <span
-            class="text-3xl font-black text-gray-900 dark:text-white tracking-tight"
+            class="text-3xl font-black text-text-primary tracking-tight"
             :class="{ 'font-mono tabular-nums': isNumeric }"
           >
             <AnimatedCounter
@@ -49,7 +49,7 @@
           </span>
           <span
             v-if="suffix"
-            class="text-sm font-medium text-gray-500 dark:text-gray-400"
+            class="text-sm font-medium text-text-muted"
           >
             {{ suffix }}
           </span>
@@ -94,7 +94,7 @@
             </svg>
             {{ Math.abs(trend).toFixed(1) }}%
           </span>
-          <span class="text-xs text-gray-500 dark:text-gray-400">{{ trendLabel }}</span>
+          <span class="text-xs text-text-muted">{{ trendLabel }}</span>
         </div>
       </div>
 
@@ -213,7 +213,7 @@ const trendClasses = computed(() => {
   } else if (props.trend < 0) {
     return 'bg-red-500/10 text-red-600 dark:text-red-400'
   }
-  return 'bg-gray-500/10 text-gray-600 dark:text-gray-400'
+  return 'bg-gray-500/10 text-text-secondary'
 })
 </script>
 

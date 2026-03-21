@@ -3,10 +3,10 @@
     <!-- 页面标题 -->
     <div class="flex items-center justify-between">
       <div>
-        <h1 class="text-3xl font-bold text-gray-900 dark:text-white">
+        <h1 class="text-3xl font-bold text-text-primary">
           🏥 Provider 健康检查
         </h1>
-        <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
+        <p class="mt-2 text-sm text-text-secondary">
           检测 API 端点连通性和 Key 有效性
         </p>
       </div>
@@ -44,16 +44,16 @@
       <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
         <div class="flex items-center justify-between">
           <div>
-            <p class="text-sm font-medium text-gray-600 dark:text-gray-400">
+            <p class="text-sm font-medium text-text-secondary">
               总计
             </p>
-            <p class="mt-2 text-3xl font-bold text-gray-900 dark:text-white">
+            <p class="mt-2 text-3xl font-bold text-text-primary">
               {{ summary.total }}
             </p>
           </div>
           <div class="p-3 bg-gray-100 dark:bg-gray-700 rounded-full">
             <svg
-              class="w-8 h-8 text-gray-600 dark:text-gray-400"
+              class="w-8 h-8 text-text-secondary"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -71,7 +71,7 @@
       <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
         <div class="flex items-center justify-between">
           <div>
-            <p class="text-sm font-medium text-gray-600 dark:text-gray-400">
+            <p class="text-sm font-medium text-text-secondary">
               健康
             </p>
             <p class="mt-2 text-3xl font-bold text-green-600 dark:text-green-400">
@@ -98,7 +98,7 @@
       <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
         <div class="flex items-center justify-between">
           <div>
-            <p class="text-sm font-medium text-gray-600 dark:text-gray-400">
+            <p class="text-sm font-medium text-text-secondary">
               降级
             </p>
             <p class="mt-2 text-3xl font-bold text-yellow-600 dark:text-yellow-400">
@@ -125,7 +125,7 @@
       <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
         <div class="flex items-center justify-between">
           <div>
-            <p class="text-sm font-medium text-gray-600 dark:text-gray-400">
+            <p class="text-sm font-medium text-text-secondary">
               不可用
             </p>
             <p class="mt-2 text-3xl font-bold text-red-600 dark:text-red-400">
@@ -158,7 +158,7 @@
     >
       <div class="text-center space-y-4">
         <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto" />
-        <p class="text-gray-600 dark:text-gray-400">
+        <p class="text-text-secondary">
           正在检测所有 Provider...
         </p>
       </div>
@@ -172,19 +172,19 @@
       <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
         <thead class="bg-gray-50 dark:bg-gray-900/50">
           <tr>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+            <th class="px-6 py-3 text-left text-xs font-medium text-text-muted uppercase tracking-wider">
               状态
             </th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+            <th class="px-6 py-3 text-left text-xs font-medium text-text-muted uppercase tracking-wider">
               名称
             </th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+            <th class="px-6 py-3 text-left text-xs font-medium text-text-muted uppercase tracking-wider">
               端点
             </th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+            <th class="px-6 py-3 text-left text-xs font-medium text-text-muted uppercase tracking-wider">
               延迟
             </th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+            <th class="px-6 py-3 text-left text-xs font-medium text-text-muted uppercase tracking-wider">
               可用模型
             </th>
           </tr>
@@ -204,13 +204,13 @@
               </span>
             </td>
             <td class="px-6 py-4 whitespace-nowrap">
-              <div class="text-sm font-medium text-gray-900 dark:text-white">
+              <div class="text-sm font-medium text-text-primary">
                 {{ result.provider_name }}
               </div>
             </td>
             <td class="px-6 py-4">
               <div
-                class="text-sm text-gray-500 dark:text-gray-400 truncate max-w-xs"
+                class="text-sm text-text-muted truncate max-w-xs"
                 :title="result.base_url"
               >
                 {{ result.base_url || '-' }}
@@ -219,13 +219,13 @@
             <td class="px-6 py-4 whitespace-nowrap">
               <span
                 v-if="result.latency_ms"
-                class="text-sm text-gray-900 dark:text-white"
+                class="text-sm text-text-primary"
               >
                 {{ result.latency_ms }}ms
               </span>
               <span
                 v-else
-                class="text-sm text-gray-400"
+                class="text-sm text-text-muted"
               >-</span>
             </td>
             <td class="px-6 py-4">
@@ -242,14 +242,14 @@
                 </span>
                 <span
                   v-if="result.available_models.length > 3"
-                  class="text-xs text-gray-400"
+                  class="text-xs text-text-muted"
                 >
                   +{{ result.available_models.length - 3 }}
                 </span>
               </div>
               <span
                 v-else
-                class="text-sm text-gray-400"
+                class="text-sm text-text-muted"
               >-</span>
             </td>
           </tr>
@@ -271,7 +271,7 @@
           :key="result.provider_name"
           class="p-3 bg-white dark:bg-gray-800 rounded border border-red-200 dark:border-red-800"
         >
-          <p class="font-medium text-gray-900 dark:text-white">
+          <p class="font-medium text-text-primary">
             {{ result.provider_name }}
           </p>
           <p class="text-sm text-red-600 dark:text-red-400 mt-1">
@@ -287,7 +287,7 @@
       class="bg-white dark:bg-gray-800 rounded-lg shadow p-12 text-center"
     >
       <svg
-        class="mx-auto h-12 w-12 text-gray-400"
+        class="mx-auto h-12 w-12 text-text-muted"
         fill="none"
         stroke="currentColor"
         viewBox="0 0 24 24"
@@ -299,10 +299,10 @@
           d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
         />
       </svg>
-      <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-white">
+      <h3 class="mt-2 text-sm font-medium text-text-primary">
         尚未检测
       </h3>
-      <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+      <p class="mt-1 text-sm text-text-muted">
         点击"检测所有"按钮开始健康检查
       </p>
     </div>

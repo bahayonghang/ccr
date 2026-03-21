@@ -1,13 +1,13 @@
 <!-- -->
 <template>
   <div class="space-y-6">
-    <h2 class="text-xl font-semibold text-gray-900 dark:text-white">
+    <h2 class="text-xl font-semibold text-text-primary">
       导入 / 导出
     </h2>
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
       <!-- 导出 -->
       <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+        <h3 class="text-lg font-semibold text-text-primary mb-4">
           导出配置
         </h3>
         <div class="space-y-4">
@@ -17,7 +17,7 @@
               type="checkbox"
               class="w-4 h-4 text-blue-600 border-gray-300 rounded"
             >
-            <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">
+            <span class="ml-2 text-sm text-text-secondary">
               包含明文 API Key (危险)
             </span>
           </label>
@@ -27,7 +27,7 @@
               type="checkbox"
               class="w-4 h-4 text-blue-600 border-gray-300 rounded"
             >
-            <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">
+            <span class="ml-2 text-sm text-text-secondary">
               仅导出提供商
             </span>
           </label>
@@ -42,7 +42,7 @@
 
       <!-- 导入 -->
       <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+        <h3 class="text-lg font-semibold text-text-primary mb-4">
           导入配置
         </h3>
         <div class="space-y-4">
@@ -55,7 +55,7 @@
               @change="handleFileSelect"
             >
             <button
-              class="w-full text-center text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+              class="w-full text-center text-text-muted hover:text-text-secondary"
               @click="($refs.importFileInput as HTMLInputElement).click()"
             >
               点击选择 JSON 文件
@@ -63,7 +63,7 @@
           </div>
           <div
             v-if="importPreview"
-            class="text-sm text-gray-600 dark:text-gray-400"
+            class="text-sm text-text-secondary"
           >
             <p>新提供商: {{ importPreview.new_providers }}</p>
             <p>新账号: {{ importPreview.new_accounts }}</p>

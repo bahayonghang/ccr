@@ -12,7 +12,7 @@
         <h2 class="text-lg font-semibold text-white">
           内置中转站
         </h2>
-        <span class="text-sm text-gray-500 dark:text-gray-400">
+        <span class="text-sm text-text-muted">
           ({{ availableBuiltinProviders.length }})
         </span>
       </div>
@@ -27,14 +27,14 @@
               <span class="text-2xl">{{ bp.icon }}</span>
               <div>
                 <div class="flex items-center space-x-2">
-                  <h3 class="font-semibold text-gray-900 dark:text-white">
+                  <h3 class="font-semibold text-text-primary">
                     {{ bp.name }}
                   </h3>
                   <span class="px-1.5 py-0.5 text-xs bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300 rounded">
                     内置
                   </span>
                 </div>
-                <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+                <p class="text-sm text-text-muted mt-0.5">
                   {{ bp.domain }}
                 </p>
               </div>
@@ -59,7 +59,7 @@
               <span>添加</span>
             </button>
           </div>
-          <p class="mt-3 text-sm text-gray-600 dark:text-gray-300">
+          <p class="mt-3 text-sm text-text-secondary">
             {{ bp.description }}
           </p>
           <div class="mt-3 flex flex-wrap gap-2">
@@ -79,7 +79,7 @@
             </span>
             <span
               v-else
-              class="px-2 py-0.5 text-xs bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400 rounded-full flex items-center"
+              class="px-2 py-0.5 text-xs bg-gray-100 text-text-secondary dark:bg-gray-700 dark:text-gray-400 rounded-full flex items-center"
             >
               <SIcon
                 name="XCircle"
@@ -114,7 +114,7 @@
           <h2 class="text-lg font-semibold text-white">
             已添加的提供商
           </h2>
-          <span class="text-sm text-gray-500 dark:text-gray-400">
+          <span class="text-sm text-text-muted">
             ({{ providers.length }})
           </span>
         </div>
@@ -142,7 +142,7 @@
       <!-- 提供商列表 -->
       <div
         v-if="providers.length === 0"
-        class="text-center py-12 text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800/50 rounded-lg"
+        class="text-center py-12 text-text-muted bg-gray-50 dark:bg-gray-800/50 rounded-lg"
       >
         <p class="text-4xl mb-3">
           <SIcon
@@ -168,10 +168,10 @@
         >
           <div class="flex items-start justify-between">
             <div>
-              <h3 class="font-semibold text-gray-900 dark:text-white">
+              <h3 class="font-semibold text-text-primary">
                 {{ provider.name }}
               </h3>
-              <p class="text-sm text-gray-500 dark:text-gray-400 mt-1 truncate">
+              <p class="text-sm text-text-muted mt-1 truncate">
                 {{ provider.base_url }}
               </p>
             </div>
@@ -216,7 +216,7 @@
               </button>
             </div>
           </div>
-          <div class="mt-3 flex items-center space-x-4 text-xs text-gray-500 dark:text-gray-400">
+          <div class="mt-3 flex items-center space-x-4 text-xs text-text-muted">
             <span>签到路径: {{ provider.checkin_path }}</span>
           </div>
           <div
@@ -284,7 +284,7 @@
     @click.self="showProviderModal = false"
   >
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-lg mx-4">
-      <h3 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+      <h3 class="text-xl font-semibold text-text-primary mb-4">
         {{ editingProvider ? '编辑提供商' : '添加提供商' }}
       </h3>
       <form
@@ -292,7 +292,7 @@
         @submit.prevent="saveProvider"
       >
         <div>
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+          <label class="block text-sm font-medium text-text-secondary">
             名称 *
           </label>
           <input
@@ -304,7 +304,7 @@
           >
         </div>
         <div>
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+          <label class="block text-sm font-medium text-text-secondary">
             Base URL *
           </label>
           <input
@@ -317,7 +317,7 @@
         </div>
         <div class="grid grid-cols-2 gap-4">
           <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+            <label class="block text-sm font-medium text-text-secondary">
               签到路径
             </label>
             <input
@@ -328,7 +328,7 @@
             >
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+            <label class="block text-sm font-medium text-text-secondary">
               余额路径
             </label>
             <input
@@ -341,7 +341,7 @@
         </div>
         <div class="grid grid-cols-2 gap-4">
           <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+            <label class="block text-sm font-medium text-text-secondary">
               认证 Header
             </label>
             <input
@@ -352,7 +352,7 @@
             >
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+            <label class="block text-sm font-medium text-text-secondary">
               认证前缀
             </label>
             <input
@@ -366,7 +366,7 @@
         <div class="flex justify-end space-x-3 pt-4">
           <button
             type="button"
-            class="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700"
+            class="px-4 py-2 border border-gray-300 dark:border-gray-600 text-text-secondary rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700"
             @click="showProviderModal = false"
           >
             取消
