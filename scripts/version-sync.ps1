@@ -129,6 +129,9 @@ function Get-UiVersion {
     if ($content -match 'CCR UI v([0-9A-Za-z._-]+)') {
         return $matches[1].Trim()
     }
+    if ($content -match 'APP_VERSION_LABEL' -or $content -match 'APP_VERSION' -or $content -match 'packageJson\.version') {
+        return Get-JsonVersion $FRONTEND_PKG
+    }
     Write-Error "❌ 无法从 $Path 提取 CCR UI 版本号"
     exit 1
 }
@@ -141,6 +144,9 @@ function Set-UiVersion {
     )
 
     $content = Get-Content $Path -Raw
+    if ($content -match 'APP_VERSION_LABEL' -or $content -match 'APP_VERSION' -or $content -match 'packageJson\.version') {
+        return
+    }
     if ($content -notmatch 'CCR UI v[0-9A-Za-z._-]+') {
         Write-Error "❌ 在 $Path 中找不到 CCR UI 版本标记"
         exit 1
