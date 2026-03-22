@@ -200,10 +200,15 @@ pub async fn open_waf_login(
             }
 
             if !cookies_map.is_empty() {
-                let waf_manager = WafCookieManager::new();
-                waf_manager
-                    .save(&provider_id, cookies_map)
-                    .map_err(|e| format!("保存 WAF cookie 失败: {}", e))?;
+                let provider_id_for_save = provider_id.clone();
+                tokio::task::spawn_blocking(move || {
+                    let waf_manager = WafCookieManager::new();
+                    waf_manager
+                        .save(&provider_id_for_save, cookies_map)
+                        .map_err(|e| format!("保存 WAF cookie 失败: {}", e))
+                })
+                .await
+                .map_err(|e| format!("Task join error: {}", e))??;
 
                 tracing::info!("[waf] provider {} 的 WAF cookie 已提取并缓存", provider_id);
             }
@@ -224,25 +229,31 @@ pub async fn open_waf_login(
 /// 查询指定 provider 的 WAF cookie 缓存状态。
 #[tauri::command]
 pub async fn get_waf_cookie_status(provider_id: String) -> Result<WafCookieStatus, String> {
-    let waf_manager = WafCookieManager::new();
+    let provider_id_for_query = provider_id.clone();
 
-    match waf_manager.get_valid(&provider_id) {
-        Ok(Some(_cookies)) => {
-            // 有效缓存存在（WafCookieManager 内部已处理过期清理）
-            Ok(WafCookieStatus {
-                provider_id,
-                has_cookie: true,
-                expires_at: None,
-            })
+    tokio::task::spawn_blocking(move || {
+        let waf_manager = WafCookieManager::new();
+
+        match waf_manager.get_valid(&provider_id_for_query) {
+            Ok(Some(_cookies)) => {
+                // 有效缓存存在（WafCookieManager 内部已处理过期清理）
+                Ok(WafCookieStatus {
+                    provider_id: provider_id_for_query,
+                    has_cookie: true,
+                    expires_at: None,
+                })
+            }
+            Ok(None) => {
+                // 无缓存或已过期
+                Ok(WafCookieStatus {
+                    provider_id: provider_id_for_query,
+                    has_cookie: false,
+                    expires_at: None,
+                })
+            }
+            Err(e) => Err(format!("查询 WAF cookie 状态失败: {}", e)),
         }
-        Ok(None) => {
-            // 无缓存或已过期
-            Ok(WafCookieStatus {
-                provider_id,
-                has_cookie: false,
-                expires_at: None,
-            })
-        }
-        Err(e) => Err(format!("查询 WAF cookie 状态失败: {}", e)),
-    }
+    })
+    .await
+    .map_err(|e| format!("Task join error: {}", e))?
 }

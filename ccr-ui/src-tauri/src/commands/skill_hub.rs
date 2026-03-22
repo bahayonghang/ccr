@@ -1037,9 +1037,20 @@ pub async fn skill_hub_install(
     } else {
         file_name
     };
+    let file_name_for_write = file_name.clone();
 
-    let installed_path = install_dir.join(&file_name);
-    std::fs::write(&installed_path, &content).map_err(|e| format!("写入文件失败: {e}"))?;
+    let installed_path = tokio::task::spawn_blocking(move || {
+        if !install_dir.exists() {
+            std::fs::create_dir_all(&install_dir).map_err(|e| format!("创建目录失败: {e}"))?;
+        }
+
+        let installed_path = install_dir.join(&file_name_for_write);
+        std::fs::write(&installed_path, &content).map_err(|e| format!("写入文件失败: {e}"))?;
+
+        Ok::<_, String>(installed_path)
+    })
+    .await
+    .map_err(|e| format!("安装任务失败: {e}"))??;
 
     Ok(serde_json::json!({
         "success": true,

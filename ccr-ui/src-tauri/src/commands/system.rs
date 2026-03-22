@@ -105,20 +105,24 @@ impl CliProbeMode {
 
 #[tauri::command]
 pub async fn get_system_info() -> Result<SystemInfo, String> {
-    use sysinfo::System;
+    tokio::task::spawn_blocking(|| {
+        use sysinfo::System;
 
-    let mut sys = System::new_all();
-    sys.refresh_all();
+        let mut sys = System::new_all();
+        sys.refresh_all();
 
-    Ok(SystemInfo {
-        os_name: System::name().unwrap_or_else(|| "Unknown".to_string()),
-        os_version: System::os_version().unwrap_or_else(|| "Unknown".to_string()),
-        arch: std::env::consts::ARCH.to_string(),
-        hostname: System::host_name().unwrap_or_else(|| "Unknown".to_string()),
-        cpu_count: sys.cpus().len(),
-        total_memory_mb: sys.total_memory() / 1024 / 1024,
-        ccr_version: env!("CARGO_PKG_VERSION").to_string(),
+        Ok::<_, String>(SystemInfo {
+            os_name: System::name().unwrap_or_else(|| "Unknown".to_string()),
+            os_version: System::os_version().unwrap_or_else(|| "Unknown".to_string()),
+            arch: std::env::consts::ARCH.to_string(),
+            hostname: System::host_name().unwrap_or_else(|| "Unknown".to_string()),
+            cpu_count: sys.cpus().len(),
+            total_memory_mb: sys.total_memory() / 1024 / 1024,
+            ccr_version: env!("CARGO_PKG_VERSION").to_string(),
+        })
     })
+    .await
+    .map_err(|e| format!("Task join error: {e}"))?
 }
 
 #[tauri::command]
@@ -134,8 +138,10 @@ pub async fn check_version() -> Result<VersionInfo, String> {
 
 #[tauri::command]
 pub async fn health_check(state: State<'_, AppState>) -> Result<serde_json::Value, String> {
-    // 仅检查数据库连接是否可用
-    let db_ok = state.db_pool.get().map(|_| true).unwrap_or(false);
+    let pool = state.db_pool.clone();
+    let db_ok = tokio::task::spawn_blocking(move || pool.get().map(|_| true).unwrap_or(false))
+        .await
+        .map_err(|e| format!("Task join error: {e}"))?;
 
     Ok(serde_json::json!({
         "status": if db_ok { "healthy" } else { "degraded" },

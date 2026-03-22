@@ -25,8 +25,12 @@ pub struct ConvertStats {
 
 #[tauri::command]
 pub async fn convert_config(request: ConverterRequest) -> Result<ConvertResult, String> {
-    let result = ccr_db::services::converter_service::ConfigConverter::convert(request)
-        .map_err(|e| format!("Config conversion failed: {e}"))?;
+    let result = tokio::task::spawn_blocking(move || {
+        ccr_db::services::converter_service::ConfigConverter::convert(request)
+            .map_err(|e| format!("Config conversion failed: {e}"))
+    })
+    .await
+    .map_err(|e| format!("Task join error: {e}"))??;
 
     Ok(ConvertResult {
         success: result.success,

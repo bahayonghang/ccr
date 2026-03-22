@@ -8,7 +8,7 @@
 //
 // 设计目标: 减少 80% 的重复文件读取
 
-use std::sync::RwLock;
+use std::sync::{Arc, Mutex, RwLock};
 use std::time::{Duration, Instant};
 
 /// 🗄️ 通用配置缓存
@@ -30,13 +30,15 @@ use std::time::{Duration, Instant};
 #[allow(dead_code)]
 pub struct ConfigCache<T> {
     /// 缓存数据和时间戳
-    data: RwLock<Option<(T, Instant)>>,
+    data: RwLock<Option<(Arc<T>, Instant)>>,
     /// 缓存有效期 (TTL)
     ttl: Duration,
+    /// 单航班加载锁，避免并发 miss 时重复执行昂贵 loader
+    load_lock: Mutex<()>,
 }
 
 #[allow(dead_code)]
-impl<T: Clone> ConfigCache<T> {
+impl<T> ConfigCache<T> {
     /// 🏗️ 创建新的缓存实例
     ///
     /// # 参数
@@ -46,6 +48,7 @@ impl<T: Clone> ConfigCache<T> {
         Self {
             data: RwLock::new(None),
             ttl,
+            load_lock: Mutex::new(()),
         }
     }
 
@@ -54,6 +57,67 @@ impl<T: Clone> ConfigCache<T> {
         Self::new(Duration::from_secs(30))
     }
 
+    /// 🔍 尝试获取共享缓存数据（不触发加载）
+    ///
+    /// 如果缓存有效，返回 `Arc<T>`，避免命中缓存时发生深拷贝。
+    pub fn get_shared(&self) -> Option<Arc<T>> {
+        let guard = self
+            .data
+            .read()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        if let Some((cached, cached_at)) = guard.as_ref()
+            && cached_at.elapsed() < self.ttl
+        {
+            return Some(Arc::clone(cached));
+        }
+        None
+    }
+
+    /// 📖 获取共享缓存数据或通过加载器加载
+    ///
+    /// 在并发 miss 场景下，只允许一个线程执行 loader，其余线程复用同一批新鲜数据。
+    pub fn get_or_load_shared<F, E>(&self, loader: F) -> Result<Arc<T>, E>
+    where
+        F: FnOnce() -> Result<T, E>,
+    {
+        if let Some(cached) = self.get_shared() {
+            return Ok(cached);
+        }
+
+        let _load_guard = self
+            .load_lock
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+
+        if let Some(cached) = self.get_shared() {
+            return Ok(cached);
+        }
+
+        let new_data = Arc::new(loader()?);
+
+        {
+            let mut guard = self
+                .data
+                .write()
+                .unwrap_or_else(|poisoned| poisoned.into_inner());
+            *guard = Some((Arc::clone(&new_data), Instant::now()));
+        }
+
+        Ok(new_data)
+    }
+
+    /// 🔄 更新共享缓存数据
+    pub fn set_shared(&self, data: Arc<T>) {
+        let mut guard = self
+            .data
+            .write()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        *guard = Some((data, Instant::now()));
+    }
+}
+
+#[allow(dead_code)]
+impl<T: Clone> ConfigCache<T> {
     /// 📖 获取缓存数据或通过加载器加载
     ///
     /// 如果缓存有效，直接返回缓存数据
@@ -69,32 +133,8 @@ impl<T: Clone> ConfigCache<T> {
     where
         F: FnOnce() -> Result<T, E>,
     {
-        // 先尝试读取缓存
-        {
-            let guard = self
-                .data
-                .read()
-                .unwrap_or_else(|poisoned| poisoned.into_inner());
-            if let Some((ref cached, cached_at)) = *guard
-                && cached_at.elapsed() < self.ttl
-            {
-                return Ok(cached.clone());
-            }
-        }
-
-        // 缓存无效，需要加载
-        let new_data = loader()?;
-
-        // 写入缓存
-        {
-            let mut guard = self
-                .data
-                .write()
-                .unwrap_or_else(|poisoned| poisoned.into_inner());
-            *guard = Some((new_data.clone(), Instant::now()));
-        }
-
-        Ok(new_data)
+        self.get_or_load_shared(loader)
+            .map(|cached| cached.as_ref().clone())
     }
 
     /// 🔍 尝试获取缓存数据（不触发加载）
@@ -102,16 +142,7 @@ impl<T: Clone> ConfigCache<T> {
     /// 如果缓存有效，返回 Some(T)
     /// 如果缓存无效或过期，返回 None
     pub fn get(&self) -> Option<T> {
-        let guard = self
-            .data
-            .read()
-            .unwrap_or_else(|poisoned| poisoned.into_inner());
-        if let Some((ref cached, cached_at)) = *guard
-            && cached_at.elapsed() < self.ttl
-        {
-            return Some(cached.clone());
-        }
-        None
+        self.get_shared().map(|cached| cached.as_ref().clone())
     }
 
     /// 🧹 手动失效缓存
@@ -129,11 +160,7 @@ impl<T: Clone> ConfigCache<T> {
     ///
     /// 直接设置缓存数据，而不通过 loader
     pub fn set(&self, data: T) {
-        let mut guard = self
-            .data
-            .write()
-            .unwrap_or_else(|poisoned| poisoned.into_inner());
-        *guard = Some((data, Instant::now()));
+        self.set_shared(Arc::new(data));
     }
 
     /// ⏰ 检查缓存是否有效
@@ -278,8 +305,9 @@ mod tests {
             handle.join().unwrap();
         }
 
-        // 因为并发，可能会有多次调用，但最终缓存应该有效
+        // 并发 miss 只应触发一次真实加载
         assert!(cache.is_valid());
+        assert_eq!(call_count.load(Ordering::SeqCst), 1);
     }
 
     #[test]
@@ -311,5 +339,17 @@ mod tests {
 
         // 应该有效
         matches!(cache.status(), CacheStatus::Valid { .. });
+    }
+
+    #[test]
+    fn test_cache_shared_hits_reuse_arc() {
+        let cache: ConfigCache<String> = ConfigCache::new(Duration::from_secs(60));
+
+        let first = cache
+            .get_or_load_shared(|| Ok::<_, ()>("shared".to_string()))
+            .unwrap();
+        let second = cache.get_shared().unwrap();
+
+        assert!(Arc::ptr_eq(&first, &second));
     }
 }
