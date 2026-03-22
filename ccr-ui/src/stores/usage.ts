@@ -32,6 +32,7 @@ import {
   importAllUsageV2,
   importUsageV2,
 } from '@/api'
+import { usePolledData } from '@/composables/usePolledData'
 import { logger } from '@/utils/logger'
 
 const REFRESH_INTERVAL = 30_000 // 30s
@@ -118,8 +119,6 @@ export const useUsageStore = defineStore('usage', () => {
   const logsCursor = ref<string | undefined>(undefined)
   const logsCursorHistory = ref<string[]>([])
 
-  let coreRefreshTimer: ReturnType<typeof setInterval> | null = null
-  let heatmapRefreshTimer: ReturnType<typeof setInterval> | null = null
   let filterDebounceTimer: ReturnType<typeof setTimeout> | null = null
 
   let requestSerial = 0
@@ -515,32 +514,48 @@ export const useUsageStore = defineStore('usage', () => {
   }
 
   /** 启动自动刷新 */
-  function startAutoRefresh() {
-    stopAutoRefresh()
-    coreRefreshTimer = setInterval(() => {
-      fetchAll({
+  const coreAutoRefresh = usePolledData(
+    async () => {
+      await fetchAll({
         includeHeatmap: false,
         reason: 'auto-refresh-core',
         preserveError: Boolean(error.value && !hasUsageData.value),
       })
-    }, REFRESH_INTERVAL)
-    if (!LAZY_HEATMAP_LOAD) {
-      heatmapRefreshTimer = setInterval(() => {
-        fetchHeatmap('auto-refresh-heatmap')
-      }, HEATMAP_REFRESH_INTERVAL)
-    }
+      return lastUpdated.value?.toISOString() ?? null
+    },
+    {
+      key: 'usage:auto-refresh:core',
+      intervalMs: REFRESH_INTERVAL,
+      pauseWhenHidden: true,
+      immediate: false,
+    },
+  )
+
+  const heatmapAutoRefresh = LAZY_HEATMAP_LOAD
+    ? null
+    : usePolledData(
+        async () => {
+          await fetchHeatmap('auto-refresh-heatmap')
+          return heatmap.value?.data ?? null
+        },
+        {
+          key: 'usage:auto-refresh:heatmap',
+          intervalMs: HEATMAP_REFRESH_INTERVAL,
+          pauseWhenHidden: true,
+          immediate: false,
+        },
+      )
+
+  function startAutoRefresh() {
+    stopAutoRefresh()
+    coreAutoRefresh.resume()
+    heatmapAutoRefresh?.resume()
   }
 
   /** 停止自动刷新 */
   function stopAutoRefresh() {
-    if (coreRefreshTimer) {
-      clearInterval(coreRefreshTimer)
-      coreRefreshTimer = null
-    }
-    if (heatmapRefreshTimer) {
-      clearInterval(heatmapRefreshTimer)
-      heatmapRefreshTimer = null
-    }
+    coreAutoRefresh.pause()
+    heatmapAutoRefresh?.pause()
     if (filterDebounceTimer) {
       clearTimeout(filterDebounceTimer)
       filterDebounceTimer = null

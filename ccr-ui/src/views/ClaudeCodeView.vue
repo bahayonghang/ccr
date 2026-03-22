@@ -1,9 +1,12 @@
 <template>
   <div class="min-h-full p-6 lg:p-10 relative overflow-hidden">
     <!-- Enhanced Animated Background -->
-    <AnimatedBackground variant="aurora" />
+    <AnimatedBackground
+      contained
+      variant="aurora"
+    />
 
-    <div class="max-w-7xl mx-auto space-y-10">
+    <div class="relative z-10 mx-auto max-w-7xl space-y-10">
       <!-- HEADER -->
       <header class="flex flex-col md:flex-row md:items-center justify-between gap-6 animate-slide-up">
         <div class="flex items-center gap-5">

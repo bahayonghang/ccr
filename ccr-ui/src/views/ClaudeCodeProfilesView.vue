@@ -91,114 +91,15 @@
             @navigate="scrollToSection"
           />
 
-          <div
-            class="grid grid-cols-1 gap-4 md:grid-cols-3 animate-slide-up"
-            style="animation-delay: 80ms"
-          >
-            <div class="rounded-[28px] border border-border-default/50 bg-bg-surface/78 p-5 shadow-lg shadow-black/5">
-              <div class="flex items-center gap-4">
-                <div class="flex h-11 w-11 items-center justify-center rounded-2xl bg-accent-secondary/12 text-accent-secondary">
-                  <SIcon
-                    name="Zap"
-                    size="w-5 h-5"
-                  />
-                </div>
-                <div class="min-w-0">
-                  <p class="text-xs font-semibold uppercase tracking-[0.24em] text-text-muted">
-                    {{ $t('claudeProfiles.currentProfile') }}
-                  </p>
-                  <p
-                    class="mt-2 truncate text-lg font-semibold text-text-primary"
-                    :title="currentProfileName || $t('claudeProfiles.notSet')"
-                  >
-                    {{ currentProfileName || $t('claudeProfiles.notSet') }}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div class="rounded-[28px] border border-border-default/50 bg-bg-surface/78 p-5 shadow-lg shadow-black/5">
-              <div class="flex items-center gap-4">
-                <div class="flex h-11 w-11 items-center justify-center rounded-2xl bg-accent-primary/12 text-accent-primary">
-                  <SIcon
-                    name="Layers"
-                    size="w-5 h-5"
-                  />
-                </div>
-                <div>
-                  <p class="text-xs font-semibold uppercase tracking-[0.24em] text-text-muted">
-                    {{ $t('claudeProfiles.totalCount') }}
-                  </p>
-                  <p class="mt-2 text-lg font-semibold text-text-primary">
-                    {{ profiles.length }}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div class="rounded-[28px] border border-border-default/50 bg-bg-surface/78 p-5 shadow-lg shadow-black/5">
-              <div class="flex items-center gap-4">
-                <div class="flex h-11 w-11 items-center justify-center rounded-2xl bg-accent-success/12 text-accent-success">
-                  <SIcon
-                    name="CheckCircle2"
-                    size="w-5 h-5"
-                  />
-                </div>
-                <div>
-                  <p class="text-xs font-semibold uppercase tracking-[0.24em] text-text-muted">
-                    {{ $t('claudeProfiles.enabledCount') }}
-                  </p>
-                  <p class="mt-2 text-lg font-semibold text-text-primary">
-                    {{ enabledProfilesCount }}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div
-            v-if="showNavigation"
-            class="rounded-[28px] border border-border-default/50 bg-bg-surface/78 p-4 shadow-lg shadow-black/5 animate-slide-up"
-            style="animation-delay: 120ms"
-          >
-            <div class="mb-3 flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
-              <div>
-                <p class="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.24em] text-text-muted">
-                  <SIcon
-                    name="Shuffle"
-                    size="w-3.5 h-3.5"
-                  />
-                  {{ $t('claudeProfiles.quickSwitch') }}
-                </p>
-                <p class="mt-1 text-sm text-text-secondary">
-                  {{ $t('claudeProfiles.quickSwitchHint') }}
-                </p>
-              </div>
-              <span class="rounded-full bg-bg-elevated px-3 py-1 text-xs font-medium text-text-muted">
-                {{ $t('claudeProfiles.providerSectionsCount', { count: providerSections.length }) }}
-              </span>
-            </div>
-
-            <div class="flex flex-wrap gap-2.5">
-              <button
-                v-for="profile in profiles"
-                :key="profile.name"
-                type="button"
-                class="flex min-h-[40px] items-center gap-2 rounded-2xl border px-3.5 py-2 text-sm font-medium transition-colors"
-                :class="profile.is_current
-                  ? 'border-accent-secondary/35 bg-accent-secondary/12 text-accent-secondary'
-                  : 'border-border-default/50 bg-bg-surface/60 text-text-secondary hover:border-border-default hover:bg-bg-elevated hover:text-text-primary'"
-                @click="handleApply(profile.name)"
-              >
-                <SIcon
-                  v-if="profile.is_current"
-                  name="Check"
-                  size="w-3.5 h-3.5"
-                />
-                <span>{{ profile.name }}</span>
-              </button>
-            </div>
-          </div>
+          <ClaudeProfilesOverview
+            :current-profile-name="currentProfileName"
+            :enabled-profiles-count="enabledProfilesCount"
+            :profiles="profiles"
+            :provider-sections-count="providerSections.length"
+            :show-navigation="showNavigation"
+            :total-profiles="profiles.length"
+            @apply="handleApply"
+          />
           <div
             v-if="loading"
             class="flex items-center justify-center py-20"
@@ -268,61 +169,14 @@
             </button>
           </div>
 
-          <div
+          <ClaudeProfilesSectionList
             v-else
-            class="space-y-8 animate-slide-up"
-            style="animation-delay: 200ms"
-          >
-            <section
-              v-for="section in providerSections"
-              :id="section.id"
-              :key="section.id"
-              :ref="element => registerSectionRef(section.id, element)"
-              class="scroll-mt-28 space-y-4"
-            >
-              <div class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-                <div>
-                  <p class="text-xs font-semibold uppercase tracking-[0.24em] text-text-muted">
-                    {{ $t('claudeProfiles.providerSectionEyebrow') }}
-                  </p>
-                  <div class="mt-2 flex flex-wrap items-center gap-3">
-                    <h2 class="text-2xl font-semibold tracking-tight text-text-primary">
-                      {{ section.title }}
-                    </h2>
-                    <span
-                      v-if="section.isCurrentProvider"
-                      class="rounded-full bg-accent-secondary/10 px-3 py-1 text-xs font-medium text-accent-secondary"
-                    >
-                      {{ $t('claudeProfiles.currentProviderBadge') }}
-                    </span>
-                  </div>
-                  <p class="mt-2 text-sm text-text-secondary">
-                    {{ $t('claudeProfiles.providerSectionSummary', { count: section.count, enabled: section.enabledCount }) }}
-                  </p>
-                </div>
-
-                <div class="flex flex-wrap items-center gap-2">
-                  <span class="rounded-full bg-bg-elevated px-3 py-1 text-xs font-medium text-text-secondary">
-                    {{ $t('claudeProfiles.providerNavCount', { count: section.count }) }}
-                  </span>
-                  <span class="rounded-full bg-accent-success/10 px-3 py-1 text-xs font-medium text-accent-success">
-                    {{ $t('claudeProfiles.providerEnabledCount', { count: section.enabledCount }) }}
-                  </span>
-                </div>
-              </div>
-
-              <div class="space-y-4">
-                <ClaudeProfileRow
-                  v-for="profile in section.profiles"
-                  :key="profile.name"
-                  :profile="profile"
-                  @apply="handleApply(profile.name)"
-                  @edit="openEditForm(profile)"
-                  @delete="handleDelete(profile.name)"
-                />
-              </div>
-            </section>
-          </div>
+            :provider-sections="providerSections"
+            :register-section-ref="registerSectionRef"
+            @apply="handleApply"
+            @delete="handleDelete"
+            @edit="openEditForm"
+          />
         </main>
       </div>
 
@@ -389,528 +243,35 @@
             @scroll="syncActiveFormSection"
           >
             <div class="grid gap-5 xl:grid-cols-[320px_minmax(0,1fr)]">
-              <aside class="space-y-4 xl:sticky xl:top-0 xl:self-start">
-                <section class="editor-panel editor-panel--summary overflow-hidden rounded-[28px]">
-                  <div class="editor-panel-head editor-panel-head--summary border-b px-5 py-5">
-                    <p class="text-xs font-semibold uppercase tracking-[0.24em] text-text-muted">
-                      {{ $t('claudeProfiles.editorSummaryTitle') }}
-                    </p>
-                    <div class="mt-4 flex items-start gap-3">
-                      <div class="editor-summary-icon flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl">
-                        <SIcon
-                          name="Layers"
-                          size="w-5 h-5"
-                        />
-                      </div>
-                      <div class="min-w-0">
-                        <h3 class="truncate text-lg font-semibold text-text-primary">
-                          {{ modalPreviewTitle }}
-                        </h3>
-                        <p class="mt-1 text-sm leading-6 text-text-secondary">
-                          {{ modalPreviewDescription }}
-                        </p>
-                      </div>
-                    </div>
+              <ClaudeProfileEditorSidebar
+                :active-form-section-id="activeFormSectionId"
+                :enabled-badge-class="enabledBadgeClass"
+                :form-enabled="form.enabled"
+                :modal-preview-description="modalPreviewDescription"
+                :modal-preview-title="modalPreviewTitle"
+                :modal-section-items="modalSectionItems"
+                :modal-status="modalStatus"
+                :modal-status-class="modalStatusClass"
+                :modal-summary-items="modalSummaryItems"
+                :parsed-form-tags="parsedFormTags"
+                @navigate="scrollToFormSection"
+              />
 
-                    <div class="mt-4 flex flex-wrap items-center gap-2">
-                      <span
-                        class="editor-pill px-3 py-1 text-xs font-medium"
-                        :class="modalStatusClass"
-                      >
-                        {{ modalStatus }}
-                      </span>
-                      <span
-                        class="editor-pill px-3 py-1 text-xs font-medium"
-                        :class="enabledBadgeClass"
-                      >
-                        {{ form.enabled ? $t('claudeProfiles.enabledText') : $t('claudeProfiles.disabledText') }}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div class="space-y-3 px-5 py-5">
-                    <div
-                      v-for="item in modalSummaryItems"
-                      :key="item.label"
-                      class="editor-info-card rounded-2xl px-4 py-3"
-                    >
-                      <div class="flex items-start gap-3">
-                        <div class="editor-info-icon mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl">
-                          <SIcon
-                            :name="item.icon"
-                            size="w-4 h-4"
-                          />
-                        </div>
-                        <div class="min-w-0">
-                          <p class="text-[11px] font-semibold uppercase tracking-[0.2em] text-text-muted">
-                            {{ item.label }}
-                          </p>
-                          <p
-                            class="mt-1 break-words text-sm text-text-primary"
-                            :class="item.mono ? 'font-mono text-[13px]' : ''"
-                          >
-                            {{ item.value }}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </section>
-
-                <section class="editor-panel editor-panel--nav rounded-[28px] p-4">
-                  <div class="mb-3">
-                    <p class="text-xs font-semibold uppercase tracking-[0.24em] text-text-muted">
-                      {{ $t('claudeProfiles.editorSectionsTitle') }}
-                    </p>
-                    <p class="mt-1 text-sm leading-6 text-text-secondary">
-                      {{ $t('claudeProfiles.editorSectionsHint') }}
-                    </p>
-                  </div>
-
-                  <div class="space-y-2">
-                    <button
-                      v-for="section in modalSectionItems"
-                      :key="section.id"
-                      type="button"
-                      class="editor-nav-button flex min-h-[56px] w-full items-start gap-3 rounded-2xl px-3.5 py-3 text-left transition-[background-color,border-color,transform] duration-200 hover:-translate-y-px"
-                      :class="activeFormSectionId === section.id
-                        ? 'editor-nav-button--active'
-                        : 'editor-nav-button--idle'"
-                      @click="scrollToFormSection(section.id)"
-                    >
-                      <div
-                        class="editor-nav-button__icon mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl"
-                      >
-                        <SIcon
-                          :name="section.icon"
-                          size="w-4 h-4"
-                        />
-                      </div>
-                      <div class="min-w-0">
-                        <p class="font-medium text-inherit">
-                          {{ section.title }}
-                        </p>
-                        <p class="mt-1 text-xs leading-5 text-text-muted">
-                          {{ section.description }}
-                        </p>
-                      </div>
-                    </button>
-                  </div>
-                </section>
-
-                <section class="editor-panel editor-panel--tags rounded-[28px] p-4">
-                  <div class="flex items-center gap-3">
-                    <div class="editor-section-icon flex h-10 w-10 items-center justify-center rounded-2xl">
-                      <SIcon
-                        name="Tags"
-                        size="w-4 h-4"
-                      />
-                    </div>
-                    <div>
-                      <p class="text-sm font-medium text-text-primary">
-                        {{ $t('claudeProfiles.tagsLabel') }}
-                      </p>
-                      <p class="text-xs leading-5 text-text-muted">
-                        {{ $t('claudeProfiles.tagsHelper') }}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div
-                    v-if="parsedFormTags.length > 0"
-                    class="mt-4 flex flex-wrap gap-2"
-                  >
-                    <span
-                      v-for="tag in parsedFormTags"
-                      :key="tag"
-                      class="editor-tag rounded-full px-3 py-1 text-xs text-text-secondary"
-                    >
-                      #{{ tag }}
-                    </span>
-                  </div>
-                  <p
-                    v-else
-                    class="editor-empty-hint mt-4 rounded-2xl px-4 py-3 text-sm text-text-muted"
-                  >
-                    {{ $t('claudeProfiles.tagsPreviewEmpty') }}
-                  </p>
-                </section>
-              </aside>
-
-              <div class="space-y-5">
-                <div
-                  v-if="saveError"
-                  class="editor-banner editor-banner--error rounded-[24px] px-5 py-4"
-                >
-                  <div class="flex items-start gap-3">
-                    <div class="editor-banner__icon flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl">
-                      <SIcon
-                        name="AlertTriangle"
-                        size="w-4 h-4"
-                      />
-                    </div>
-                    <div class="min-w-0">
-                      <p class="text-sm font-semibold text-text-primary">
-                        {{ $t('claudeProfiles.operationFailed') }}
-                      </p>
-                      <p class="mt-1 break-words text-sm leading-6 text-text-secondary">
-                        {{ saveError }}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <section
-                  :ref="target => registerModalSectionRef('basic', target)"
-                  class="editor-panel editor-panel--section rounded-[28px] p-5 lg:p-6"
-                >
-                  <div class="mb-5 flex items-start gap-3">
-                    <div class="editor-section-icon flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl">
-                      <SIcon
-                        name="Layers"
-                        size="w-5 h-5"
-                      />
-                    </div>
-                    <div class="min-w-0">
-                      <h3 class="text-base font-semibold text-text-primary">
-                        {{ $t('claudeProfiles.sections.basic.title') }}
-                      </h3>
-                      <p class="mt-1 text-sm leading-6 text-text-secondary">
-                        {{ $t('claudeProfiles.sections.basic.description') }}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
-                    <div>
-                      <label
-                        for="claude-profile-name"
-                        class="mb-2 block text-sm font-medium text-text-secondary"
-                      >
-                        {{ $t('claudeProfiles.nameLabel') }}
-                      </label>
-                      <input
-                        id="claude-profile-name"
-                        v-model="form.name"
-                        type="text"
-                        :disabled="isEditing"
-                        :placeholder="$t('claudeProfiles.namePlaceholder')"
-                        :class="textFieldClass"
-                      >
-                      <p class="mt-1.5 text-xs text-text-muted">
-                        {{ isEditing ? $t('claudeProfiles.readonlyNameHint') : $t('claudeProfiles.nameHelper') }}
-                      </p>
-                    </div>
-
-                    <div class="editor-panel-muted rounded-[24px] p-4">
-                      <p class="text-xs font-semibold uppercase tracking-[0.2em] text-text-muted">
-                        {{ modalStatus }}
-                      </p>
-                      <p class="mt-2 text-sm leading-6 text-text-secondary">
-                        {{ modalDescription }}
-                      </p>
-                      <div class="mt-4 flex flex-wrap items-center gap-2">
-                        <span
-                          class="editor-pill px-3 py-1 text-xs font-medium"
-                          :class="modalStatusClass"
-                        >
-                          {{ modalStatus }}
-                        </span>
-                        <span class="editor-inline-chip px-3 py-1 text-xs text-text-secondary">
-                          {{ isEditing ? editingName : $t('claudeProfiles.newProfileTitle') }}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div class="lg:col-span-2">
-                      <label
-                        for="claude-profile-description"
-                        class="mb-2 block text-sm font-medium text-text-secondary"
-                      >
-                        {{ $t('claudeProfiles.descLabel') }}
-                      </label>
-                      <textarea
-                        id="claude-profile-description"
-                        v-model="form.description"
-                        rows="4"
-                        :placeholder="$t('claudeProfiles.descPlaceholder')"
-                        :class="textareaClass"
-                      />
-                      <p class="mt-1.5 text-xs text-text-muted">
-                        {{ $t('claudeProfiles.descriptionHelper') }}
-                      </p>
-                    </div>
-                  </div>
-                </section>
-
-                <section
-                  :ref="target => registerModalSectionRef('connection', target)"
-                  class="editor-panel editor-panel--section rounded-[28px] p-5 lg:p-6"
-                >
-                  <div class="mb-5 flex items-start gap-3">
-                    <div class="editor-section-icon flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl">
-                      <SIcon
-                        name="Globe"
-                        size="w-5 h-5"
-                      />
-                    </div>
-                    <div class="min-w-0">
-                      <h3 class="text-base font-semibold text-text-primary">
-                        {{ $t('claudeProfiles.sections.connection.title') }}
-                      </h3>
-                      <p class="mt-1 text-sm leading-6 text-text-secondary">
-                        {{ $t('claudeProfiles.sections.connection.description') }}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
-                    <div class="lg:col-span-2">
-                      <label
-                        for="claude-profile-base-url"
-                        class="mb-2 block text-sm font-medium text-text-secondary"
-                      >
-                        {{ $t('claudeProfiles.baseUrlLabel') }}
-                      </label>
-                      <input
-                        id="claude-profile-base-url"
-                        v-model="form.base_url"
-                        type="text"
-                        :placeholder="$t('claudeProfiles.baseUrlPlaceholder')"
-                        :class="monospaceFieldClass"
-                      >
-                      <p class="mt-1.5 text-xs text-text-muted">
-                        {{ $t('claudeProfiles.baseUrlHelper') }}
-                      </p>
-                    </div>
-
-                    <div>
-                      <label
-                        for="claude-profile-model"
-                        class="mb-2 block text-sm font-medium text-text-secondary"
-                      >
-                        {{ $t('claudeProfiles.modelLabel') }}
-                      </label>
-                      <input
-                        id="claude-profile-model"
-                        v-model="form.model"
-                        type="text"
-                        :placeholder="$t('claudeProfiles.modelPlaceholder')"
-                        :class="monospaceFieldClass"
-                      >
-                      <p class="mt-1.5 text-xs text-text-muted">
-                        {{ $t('claudeProfiles.modelHelper') }}
-                      </p>
-                    </div>
-
-                    <div>
-                      <label
-                        for="claude-profile-small-fast-model"
-                        class="mb-2 block text-sm font-medium text-text-secondary"
-                      >
-                        {{ $t('claudeProfiles.smallFastModelLabel') }}
-                      </label>
-                      <input
-                        id="claude-profile-small-fast-model"
-                        v-model="form.small_fast_model"
-                        type="text"
-                        :placeholder="$t('claudeProfiles.smallFastModelPlaceholder')"
-                        :class="monospaceFieldClass"
-                      >
-                      <p class="mt-1.5 text-xs text-text-muted">
-                        {{ $t('claudeProfiles.smallFastModelHelper') }}
-                      </p>
-                    </div>
-
-                    <div>
-                      <label
-                        for="claude-profile-provider"
-                        class="mb-2 block text-sm font-medium text-text-secondary"
-                      >
-                        {{ $t('claudeProfiles.providerLabel') }}
-                      </label>
-                      <input
-                        id="claude-profile-provider"
-                        v-model="form.provider"
-                        type="text"
-                        :placeholder="$t('claudeProfiles.providerPlaceholder')"
-                        :class="textFieldClass"
-                      >
-                      <p class="mt-1.5 text-xs text-text-muted">
-                        {{ $t('claudeProfiles.providerHelper') }}
-                      </p>
-                    </div>
-                  </div>
-                </section>
-
-                <section
-                  :ref="target => registerModalSectionRef('auth', target)"
-                  class="editor-panel editor-panel--section rounded-[28px] p-5 lg:p-6"
-                >
-                  <div class="mb-5 flex items-start gap-3">
-                    <div class="editor-section-icon flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl">
-                      <SIcon
-                        name="ShieldCheck"
-                        size="w-5 h-5"
-                      />
-                    </div>
-                    <div class="min-w-0">
-                      <h3 class="text-base font-semibold text-text-primary">
-                        {{ $t('claudeProfiles.sections.auth.title') }}
-                      </h3>
-                      <p class="mt-1 text-sm leading-6 text-text-secondary">
-                        {{ $t('claudeProfiles.sections.auth.description') }}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
-                    <div>
-                      <label
-                        for="claude-profile-account"
-                        class="mb-2 block text-sm font-medium text-text-secondary"
-                      >
-                        {{ $t('claudeProfiles.accountLabel') }}
-                      </label>
-                      <input
-                        id="claude-profile-account"
-                        v-model="form.account"
-                        type="text"
-                        :placeholder="$t('claudeProfiles.accountPlaceholder')"
-                        :class="textFieldClass"
-                      >
-                      <p class="mt-1.5 text-xs text-text-muted">
-                        {{ $t('claudeProfiles.accountHelper') }}
-                      </p>
-                    </div>
-
-                    <div>
-                      <label
-                        for="claude-profile-provider-type"
-                        class="mb-2 block text-sm font-medium text-text-secondary"
-                      >
-                        {{ $t('claudeProfiles.providerTypeLabel') }}
-                      </label>
-                      <input
-                        id="claude-profile-provider-type"
-                        v-model="form.provider_type"
-                        type="text"
-                        :placeholder="$t('claudeProfiles.providerTypePlaceholder')"
-                        :class="textFieldClass"
-                      >
-                      <p class="mt-1.5 text-xs text-text-muted">
-                        {{ $t('claudeProfiles.providerTypeHelper') }}
-                      </p>
-                    </div>
-
-                    <div class="lg:col-span-2">
-                      <label
-                        for="claude-profile-auth-token"
-                        class="mb-2 block text-sm font-medium text-text-secondary"
-                      >
-                        {{ $t('claudeProfiles.authTokenLabel') }}
-                      </label>
-                      <input
-                        id="claude-profile-auth-token"
-                        v-model="form.auth_token"
-                        type="password"
-                        :placeholder="$t('claudeProfiles.authTokenPlaceholder')"
-                        :class="monospaceFieldClass"
-                      >
-                      <p class="mt-1.5 text-xs text-text-muted">
-                        {{ $t('claudeProfiles.authTokenHelper') }}
-                      </p>
-                    </div>
-                  </div>
-                </section>
-
-                <section
-                  :ref="target => registerModalSectionRef('status', target)"
-                  class="editor-panel editor-panel--section rounded-[28px] p-5 lg:p-6"
-                >
-                  <div class="mb-5 flex items-start gap-3">
-                    <div class="editor-section-icon flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl">
-                      <SIcon
-                        name="SlidersHorizontal"
-                        size="w-5 h-5"
-                      />
-                    </div>
-                    <div class="min-w-0">
-                      <h3 class="text-base font-semibold text-text-primary">
-                        {{ $t('claudeProfiles.sections.status.title') }}
-                      </h3>
-                      <p class="mt-1 text-sm leading-6 text-text-secondary">
-                        {{ $t('claudeProfiles.sections.status.description') }}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div class="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_280px]">
-                    <div>
-                      <label
-                        for="claude-profile-tags"
-                        class="mb-2 block text-sm font-medium text-text-secondary"
-                      >
-                        {{ $t('claudeProfiles.tagsLabel') }}
-                      </label>
-                      <input
-                        id="claude-profile-tags"
-                        v-model="form.tagsInput"
-                        type="text"
-                        :placeholder="$t('claudeProfiles.tagsPlaceholder')"
-                        :class="textFieldClass"
-                      >
-                      <p class="mt-1.5 text-xs text-text-muted">
-                        {{ $t('claudeProfiles.tagsHelper') }}
-                      </p>
-
-                      <div
-                        v-if="parsedFormTags.length > 0"
-                        class="mt-3 flex flex-wrap gap-2"
-                      >
-                        <span
-                          v-for="tag in parsedFormTags"
-                          :key="tag"
-                          class="editor-tag rounded-full px-3 py-1 text-xs text-text-secondary"
-                        >
-                          #{{ tag }}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div class="editor-panel-muted rounded-[24px] p-4">
-                      <label
-                        for="claude-profile-enabled"
-                        class="flex cursor-pointer items-start gap-3"
-                      >
-                        <input
-                          id="claude-profile-enabled"
-                          v-model="form.enabled"
-                          type="checkbox"
-                          class="mt-1 h-4 w-4 rounded border-border-default text-accent-secondary focus:ring-accent-secondary/30"
-                        >
-                        <div class="min-w-0">
-                          <span class="block text-sm font-medium text-text-primary">
-                            {{ $t('claudeProfiles.enabledProfile') }}
-                          </span>
-                          <span class="mt-1 block text-xs leading-5 text-text-muted">
-                            {{ $t('claudeProfiles.enabledHelper') }}
-                          </span>
-                        </div>
-                      </label>
-
-                      <div class="editor-inline-card mt-4 rounded-2xl px-4 py-3">
-                        <p class="text-xs font-semibold uppercase tracking-[0.2em] text-text-muted">
-                          {{ modalStatus }}
-                        </p>
-                        <p class="mt-2 text-sm text-text-primary">
-                          {{ form.enabled ? $t('claudeProfiles.enabledText') : $t('claudeProfiles.disabledText') }}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </section>
-              </div>
+              <ClaudeProfileEditorSections
+                :editing-name="editingName"
+                :form="form"
+                :is-editing="isEditing"
+                :modal-description="modalDescription"
+                :modal-status="modalStatus"
+                :modal-status-class="modalStatusClass"
+                :monospace-field-class="monospaceFieldClass"
+                :parsed-form-tags="parsedFormTags"
+                :register-modal-section-ref="registerModalSectionRef"
+                :save-error="saveError"
+                :textarea-class="textareaClass"
+                :text-field-class="textFieldClass"
+                :update-form-field="updateFormField"
+              />
             </div>
           </div>
 
@@ -962,18 +323,24 @@ import {
   listClaudeProfiles,
   updateClaudeProfile,
 } from '@/api'
-import ClaudeProfileRow from '@/components/claude/ClaudeProfileRow.vue'
+import ClaudeProfileEditorSections from '@/components/claude/ClaudeProfileEditorSections.vue'
+import ClaudeProfileEditorSidebar from '@/components/claude/ClaudeProfileEditorSidebar.vue'
+import ClaudeProfilesOverview from '@/components/claude/ClaudeProfilesOverview.vue'
 import ClaudeProfilesProviderNav from '@/components/claude/ClaudeProfilesProviderNav.vue'
+import ClaudeProfilesSectionList from '@/components/claude/ClaudeProfilesSectionList.vue'
 import BaseModal from '@/components/common/BaseModal.vue'
 import SIcon from '@/components/ui/SIcon.vue'
 import type { ClaudeProfile, ClaudeProfileRequest, ClaudeProfilesResponse } from '@/types'
+import type {
+  ClaudeProfileEditorForm,
+  ClaudeProfileEditorSectionItem,
+  ClaudeProfileEditorSummaryItem,
+  ClaudeProfileFormSectionId,
+} from '@/types/claudeProfileEditor'
 import { getErrorMessage } from '@/types/api'
 import { createClaudeProfileSections } from '@/utils/claudeProfiles'
 import { logger } from '@/utils/logger'
-
-const FORM_SECTION_IDS = ['basic', 'connection', 'auth', 'status'] as const
-
-type FormSectionId = (typeof FORM_SECTION_IDS)[number]
+import { CLAUDE_PROFILE_FORM_SECTION_IDS } from '@/types/claudeProfileEditor'
 
 const { t } = useI18n()
 
@@ -990,15 +357,15 @@ const currentSectionId = ref<string | null>(null)
 const sectionRefs = ref<Record<string, HTMLElement | null>>({})
 const sectionObserver = ref<IntersectionObserver | null>(null)
 const modalScrollRef = ref<HTMLElement | null>(null)
-const activeFormSectionId = ref<FormSectionId>('basic')
-const modalSectionRefs = ref<Record<FormSectionId, HTMLElement | null>>({
+const activeFormSectionId = ref<ClaudeProfileFormSectionId>('basic')
+const modalSectionRefs = ref<Record<ClaudeProfileFormSectionId, HTMLElement | null>>({
   basic: null,
   connection: null,
   auth: null,
   status: null,
 })
 
-const form = reactive({
+const form = reactive<ClaudeProfileEditorForm>({
   name: '',
   description: '',
   base_url: '',
@@ -1074,7 +441,7 @@ const parseTags = (input: string): string[] | undefined => {
 const parsedFormTags = computed(() => parseTags(form.tagsInput) ?? [])
 const modalPreviewTitle = computed(() => displayFormValue(form.name, modalTitle.value))
 const modalPreviewDescription = computed(() => displayFormValue(form.description, t('claudeProfiles.descriptionFallback')))
-const modalSummaryItems = computed(() => [
+const modalSummaryItems = computed<ClaudeProfileEditorSummaryItem[]>(() => [
   {
     label: t('claudeProfiles.providerLabel'),
     value: displayFormValue(form.provider, t('claudeProfiles.providerUnset')),
@@ -1104,7 +471,7 @@ const modalSummaryItems = computed(() => [
     mono: true,
   },
 ])
-const modalSectionItems = computed(() => ([
+const modalSectionItems = computed<ClaudeProfileEditorSectionItem[]>(() => ([
   {
     id: 'basic' as const,
     title: t('claudeProfiles.sections.basic.title'),
@@ -1130,6 +497,15 @@ const modalSectionItems = computed(() => ([
     icon: 'SlidersHorizontal',
   },
 ]))
+
+function updateFormField(field: keyof ClaudeProfileEditorForm, value: string | boolean) {
+  if (field === 'enabled') {
+    form.enabled = Boolean(value)
+    return
+  }
+
+  form[field] = String(value) as ClaudeProfileEditorForm[typeof field]
+}
 
 const buildRequest = (): ClaudeProfileRequest => ({
   name: form.name.trim(),
@@ -1226,7 +602,7 @@ const registerSectionRef = (sectionId: string, target: Element | ComponentPublic
   delete sectionRefs.value[sectionId]
 }
 
-const registerModalSectionRef = (sectionId: FormSectionId, target: Element | ComponentPublicInstance | null) => {
+const registerModalSectionRef = (sectionId: ClaudeProfileFormSectionId, target: Element | ComponentPublicInstance | null) => {
   const resolvedElement = resolveSectionElement(target)
 
   modalSectionRefs.value[sectionId] = resolvedElement
@@ -1283,9 +659,9 @@ const syncActiveFormSection = () => {
 
   if (!container) return
 
-  let nextSection: FormSectionId = 'basic'
+  let nextSection: ClaudeProfileFormSectionId = 'basic'
 
-  FORM_SECTION_IDS.forEach((sectionId) => {
+  CLAUDE_PROFILE_FORM_SECTION_IDS.forEach((sectionId) => {
     const element = modalSectionRefs.value[sectionId]
 
     if (element && element.offsetTop - container.scrollTop <= 140) {
@@ -1296,7 +672,7 @@ const syncActiveFormSection = () => {
   activeFormSectionId.value = nextSection
 }
 
-const scrollToFormSection = (sectionId: FormSectionId) => {
+const scrollToFormSection = (sectionId: ClaudeProfileFormSectionId) => {
   const container = modalScrollRef.value
   const element = modalSectionRefs.value[sectionId]
 

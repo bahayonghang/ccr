@@ -151,7 +151,7 @@
 import SIcon from '@/components/ui/SIcon.vue'
 import { ref, watch, nextTick, onMounted } from 'vue'
 import { useStream } from '@/composables/useStream'
-import { useUIStore } from '@/store'
+import { useUIStore } from '@/stores/ui'
 import { AnsiUp } from 'ansi_up'
 import { sanitizeTerminal } from '@/utils/sanitize'
 interface Props {

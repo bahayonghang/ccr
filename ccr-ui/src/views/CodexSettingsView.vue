@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen p-5 transition-colors duration-300">
+  <div class="min-h-full p-5 transition-colors duration-300">
     <div class="mb-6" />
     <div class="max-w-[1200px] mx-auto">
       <!-- Header -->

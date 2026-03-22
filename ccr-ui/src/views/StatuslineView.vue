@@ -1,22 +1,17 @@
 <template>
-  <div class="min-h-screen p-5 transition-colors duration-300">
+  <div class="min-h-full p-5 transition-colors duration-300">
     <div class="max-w-[1200px] mx-auto">
-      <!-- Breadcrumb -->
-      <Breadcrumb :items="breadcrumbs" />
+      <ModuleSubnav
+        module="claude-code"
+        class="mb-6"
+      />
 
-      <!-- Header -->
-      <div class="flex items-center justify-between mb-6">
-        <div class="flex items-center gap-4">
-          <h2 class="text-2xl font-bold text-text-primary flex items-center">
-            <SIcon
-              name="Monitor"
-              size="w-7 h-7"
-              class="mr-2 text-accent-secondary"
-            />
-            {{ $t('statusline.pageTitle') }}
-          </h2>
-        </div>
-      </div>
+      <PageHeaderCard
+        :title="$t('statusline.pageTitle')"
+        icon="Monitor"
+        tone="secondary"
+        class="mb-6"
+      />
 
       <!-- Loading State -->
       <div
@@ -190,9 +185,10 @@
 import SIcon from '@/components/ui/SIcon.vue'
 import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import Breadcrumb from '@/components/ui/Breadcrumb.vue'
+import ModuleSubnav from '@/components/ModuleSubnav.vue'
+import PageHeaderCard from '@/components/PageHeaderCard.vue'
 import { getStatusline, updateStatusline } from '@/api'
-import { useUIStore } from '@/store'
+import { useUIStore } from '@/stores/ui'
 import type { StatuslineConfig } from '@/types'
 import { logger } from '@/utils/logger'
 
@@ -205,12 +201,6 @@ const config = ref<StatuslineConfig>({
   command: '',
   enabled: false
 })
-
-const breadcrumbs = [
-  { label: t('common.home'), path: '/', icon: 'Home' },
-  { label: t('claudeCode.title'), path: '/claude-code', icon: 'Code2' },
-  { label: t('statusline.pageTitle') }
-]
 
 onMounted(async () => {
   await loadConfig()

@@ -24,6 +24,15 @@ app.use(createPinia())
 app.use(router)
 app.use(i18n)
 
+// 等待初始路由完成匹配后再挂载，避免 web 模式首屏停留在空 RouterView。
+await router.isReady()
+
+if (import.meta.env.DEV && router.currentRoute.value.matched.length === 0) {
+  logger.warn('[router] initial navigation resolved without matched records', {
+    path: router.currentRoute.value.fullPath,
+  })
+}
+
 // 全局错误处理：兜底未捕获的 Vue 组件异常
 app.config.errorHandler = (err, _instance, info) => {
   logger.error(`[Vue Error] ${info}`, err)

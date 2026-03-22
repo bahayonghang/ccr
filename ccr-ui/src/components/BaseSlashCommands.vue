@@ -3,21 +3,13 @@
     :class="themeClasses.container"
     :style="themeStyles.container"
   >
-    <!-- 面包屑导航 (可选) -->
-    <Breadcrumb
-      v-if="props.config.features.breadcrumb"
-      :items="breadcrumbItems"
-      class="mb-6"
-    />
-
     <div :class="themeClasses.layout">
-      <!-- 左侧折叠边栏 -->
-      <CollapsibleSidebar :module="props.config.route.module" />
+      <ModuleSubnav :module="props.config.route.module" />
 
       <!-- 主内容区 -->
       <main class="min-w-0">
         <!-- Sticky Header: 标题 + 添加按钮 -->
-        <div class="glass-effect rounded-2xl p-6 mb-6 border border-white/20 flex flex-col md:flex-row items-center justify-between gap-4 sticky top-6 z-20 backdrop-blur-md shadow-sm">
+        <div class="glass-effect rounded-2xl p-6 mb-6 border border-white/20 flex flex-col md:flex-row items-center justify-between gap-4 backdrop-blur-md shadow-sm">
           <div class="flex items-center gap-4">
             <div
               class="p-3 rounded-xl border"
@@ -370,8 +362,8 @@ import { useCommandsViewStore } from '@/stores/commandsView'
 import { logger } from '@/utils/logger'
 
 // 组件导入
-import { Breadcrumb, EmptyState } from '@/components/ui'
-import CollapsibleSidebar from './CollapsibleSidebar.vue'
+import { EmptyState } from '@/components/ui'
+import ModuleSubnav from './ModuleSubnav.vue'
 import CommandList from './CommandList.vue'
 import CommandFormModal from './CommandFormModal.vue'
 
@@ -527,18 +519,6 @@ const groupedCommands = computed(() => {
   }))
 })
 
-const breadcrumbItems = computed(() => {
-  if (!props.config.features.breadcrumb || !props.config.i18n.breadcrumb) {
-    return []
-  }
-
-  return [
-    { label: t(props.config.i18n.breadcrumb.home), path: '/', icon: 'Home' },
-    { label: t(props.config.i18n.breadcrumb.platform), path: props.config.route.homePath, icon: 'Code2' },
-    { label: t(props.config.i18n.breadcrumb.current), path: '', icon: 'Command' }
-  ]
-})
-
 const pageTitle = computed(() => t(`${props.config.i18n.prefix}.pageTitle`))
 
 const pageSubtitle = computed(() => {
@@ -551,13 +531,13 @@ const pageSubtitle = computed(() => {
 const themeClasses = computed(() => {
   if (props.config.theme === 'claude-code') {
     return {
-      container: 'min-h-screen p-6 transition-colors duration-300',
-      layout: 'grid grid-cols-[auto_1fr] gap-6'
+      container: 'min-h-full p-6 transition-colors duration-300',
+      layout: 'space-y-6'
     }
   } else {
     return {
-      container: '',
-      layout: 'display: flex; gap: 0'
+      container: 'min-h-full transition-colors duration-300',
+      layout: 'space-y-4'
     }
   }
 })
@@ -569,7 +549,6 @@ const themeStyles = computed(() => {
     return {
       container: {
         background: 'var(--bg-primary)',
-        minHeight: '100vh',
         padding: '20px'
       }
     }

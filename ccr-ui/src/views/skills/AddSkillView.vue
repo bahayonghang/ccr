@@ -26,535 +26,70 @@
       </div>
     </header>
 
-    <!-- Section 1: Browse Trending -->
-    <section class="browse-section">
-      <div class="section-header">
-        <div class="section-header__left">
-          <h2 class="section-title">
-            <SIcon
-              name="TrendingUp"
-              size="w-5 h-5"
-              class="text-accent-primary"
-            />
-            {{ $t('skills.browseTrending') }}
-          </h2>
-          <span class="section-hint">{{ $t('skills.browseTrendingHint') }}</span>
-        </div>
-        <div class="section-header__right">
-          <span
-            v-if="marketplaceCached"
-            class="cache-badge"
-          >
-            <SIcon
-              name="Database"
-              size="w-3 h-3"
-            />
-            {{ $t('skills.cacheStatus') }}
-          </span>
-          <button
-            class="btn-refresh"
-            :disabled="isRefreshing"
-            @click="handleRefreshCache"
-          >
-            <SIcon
-              name="RefreshCw"
-              size="w-4 h-4"
-              :class="{ 'animate-spin': isRefreshing }"
-            />
-            <span>{{ isRefreshing ? $t('skills.refreshingCache') : $t('skills.refreshCache') }}</span>
-          </button>
-        </div>
-      </div>
+    <SkillMarketplaceBrowsePanel
+      :batch-mode="batchMode"
+      :batch-selected-count="batchSelected.size"
+      :current-page="currentPage"
+      :is-batch-selected="isBatchSelected"
+      :is-installing="isInstallingPackage"
+      :is-marketplace-loading="isMarketplaceLoading"
+      :is-refreshing="isRefreshing"
+      :is-skill-installed="isSkillInstalled"
+      :marketplace-cached="marketplaceCached"
+      :marketplace-error="marketplaceError"
+      :marketplace-items="marketplaceItems"
+      :page-size="pageSize"
+      :paged-items="pagedItems"
+      :search-query="searchQuery"
+      :sort-by="sortBy"
+      :sorted-items="sortedItems"
+      @batch-install="handleBatchInstall"
+      @batch-select="handleBatchSelect"
+      @clear-batch-selected="clearBatchSelected"
+      @marketplace-install="handleMarketplaceInstall"
+      @refresh-cache="handleRefreshCache"
+      @search="handleSearch"
+      @update:batch-mode="updateBatchMode"
+      @update:current-page="currentPage = $event"
+      @update:search-query="searchQuery = $event"
+      @update:sort-by="sortBy = $event"
+    />
 
-      <!-- Search + Sort controls -->
-      <div class="browse-controls">
-        <div class="browse-search">
-          <div class="relative flex-1">
-            <SIcon
-              name="Search"
-              size="w-5 h-5"
-              class="absolute left-4 top-1/2 -translate-y-1/2 text-white/50"
-            />
-            <input
-              v-model="searchQuery"
-              type="text"
-              class="search-input"
-              :placeholder="$t('skills.searchMarketplace')"
-              @input="onSearchInput"
-              @keyup.enter="handleSearch"
-            >
-          </div>
-          <button
-            class="btn-search"
-            :disabled="isMarketplaceLoading"
-            @click="handleSearch"
-          >
-            <SIcon
-              v-if="isMarketplaceLoading"
-              name="Loader2"
-              size="w-4 h-4"
-              class="animate-spin"
-            />
-            <SIcon
-              v-else
-              name="Search"
-              size="w-4 h-4"
-            />
-            <span>{{ $t('common.search') }}</span>
-          </button>
-        </div>
+    <SkillManualInstallPanel
+      :active-source="activeSource"
+      :can-manual-install="canManualInstall"
+      :clear-selected-platforms="clearSelectedPlatforms"
+      :github-url="githubUrl"
+      :handle-browse="handleBrowse"
+      :handle-manual-install="handleManualInstall"
+      :local-path="localPath"
+      :manual-installing="manualInstalling"
+      :manual-tabs="manualTabs"
+      :npx-available="npxAvailable"
+      :npx-global="npxGlobal"
+      :npx-package="npxPackage"
+      :npx-version="npxVersion"
+      :platforms="platforms"
+      :selected-platforms="selectedPlatforms"
+      :select-detected="selectDetected"
+      :set-active-source="setActiveSource"
+      :update-github-url="updateGithubUrl"
+      :update-local-path="updateLocalPath"
+      :update-npx-global="updateNpxGlobal"
+      :update-npx-package="updateNpxPackage"
+      :update-selected-platforms="updateSelectedPlatforms"
+    />
 
-        <div class="browse-toolbar">
-          <div class="toolbar-left">
-            <span
-              v-if="marketplaceItems.length > 0"
-              class="result-badge"
-            >
-              {{ marketplaceItems.length }} {{ $t('skills.resultCount') }}
-            </span>
-          </div>
-          <div class="toolbar-right">
-            <div class="sort-select">
-              <SIcon
-                name="ArrowUpDown"
-                size="w-3.5 h-3.5"
-                class="text-white/50"
-              />
-              <select
-                v-model="sortBy"
-                class="sort-dropdown"
-              >
-                <option value="stars">
-                  {{ $t('skills.sortStars') }}
-                </option>
-                <option value="name">
-                  {{ $t('skills.sortName') }}
-                </option>
-              </select>
-            </div>
-
-            <button
-              class="btn-batch"
-              :class="{ 'btn-batch--active': batchMode }"
-              @click="batchMode = !batchMode; if (!batchMode) batchSelected.clear()"
-            >
-              <SIcon
-                name="CheckSquare"
-                size="w-4 h-4"
-              />
-              <span>{{ $t('skills.batchMode') }}</span>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Error State -->
-      <div
-        v-if="marketplaceError"
-        class="state-box state-box--error"
-      >
-        <SIcon
-          name="AlertCircle"
-          size="w-8 h-8"
-          class="text-danger"
-        />
-        <p class="text-danger mt-2">
-          {{ marketplaceError }}
-        </p>
-      </div>
-
-      <!-- Empty State -->
-      <div
-        v-else-if="!isMarketplaceLoading && sortedItems.length === 0"
-        class="state-box"
-      >
-        <SIcon
-          name="Store"
-          size="w-12 h-12"
-          class="text-white/50"
-        />
-        <h3 class="text-lg font-semibold text-white mt-4">
-          {{ $t('skills.noMarketplaceResults') }}
-        </h3>
-        <p class="text-sm text-white/80 mt-1">
-          {{ $t('skills.tryDifferentSearch') }}
-        </p>
-      </div>
-
-      <!-- Loading Skeleton -->
-      <div
-        v-else-if="isMarketplaceLoading"
-        class="marketplace-grid"
-      >
-        <div
-          v-for="i in 8"
-          :key="i"
-          class="skeleton-card"
-        >
-          <div class="skeleton-header">
-            <div class="flex items-center gap-2">
-              <div class="skeleton-avatar" />
-              <div class="skeleton-owner" />
-            </div>
-            <div class="skeleton-stars" />
-          </div>
-          <div class="skeleton-name" />
-          <div class="skeleton-desc">
-            <div class="skeleton-line w-full" />
-            <div class="skeleton-line w-3/4" />
-          </div>
-          <div class="skeleton-footer">
-            <div class="skeleton-link" />
-            <div class="skeleton-btn" />
-          </div>
-        </div>
-      </div>
-
-      <!-- Marketplace Grid -->
-      <div
-        v-else
-        class="marketplace-grid"
-      >
-        <MarketplaceSkillCard
-          v-for="item in pagedItems"
-          :key="item.package"
-          :item="item"
-          :is-installed="isSkillInstalled(item)"
-          :is-installing="installingPackages.has(item.package)"
-          :batch-mode="batchMode"
-          :is-selected="batchSelected.has(item.package)"
-          @install="handleMarketplaceInstall"
-          @select="handleBatchSelect"
-        />
-      </div>
-
-      <!-- Pagination -->
-      <MarketplacePagination
-        v-if="!isMarketplaceLoading && sortedItems.length > 0"
-        :current-page="currentPage"
-        :total-items="sortedItems.length"
-        :page-size="pageSize"
-        @page-change="currentPage = $event"
-      />
-
-      <!-- Batch Action Bar -->
-      <Transition name="batch-bar">
-        <div
-          v-if="batchMode && batchSelected.size > 0"
-          class="batch-bar"
-        >
-          <span class="batch-bar__count">
-            {{ $t('skills.selectedCount', { count: batchSelected.size }) }}
-          </span>
-          <div class="batch-bar__actions">
-            <button
-              class="batch-bar__clear"
-              @click="batchSelected.clear()"
-            >
-              {{ $t('skills.clearAll') }}
-            </button>
-            <button
-              class="batch-bar__install"
-              @click="handleBatchInstall"
-            >
-              <SIcon
-                name="Download"
-                size="w-4 h-4"
-              />
-              {{ $t('skills.batchInstall') }}
-            </button>
-          </div>
-        </div>
-      </Transition>
-    </section>
-
-    <!-- Section 2: Manual Install -->
-    <section class="manual-section">
-      <h2 class="section-title">
-        <SIcon
-          name="Terminal"
-          size="w-5 h-5"
-          class="text-accent-primary"
-        />
-        {{ $t('skills.manualInstall') }}
-      </h2>
-
-      <!-- Tab 切换 -->
-      <div class="manual-tabs">
-        <button
-          v-for="tab in manualTabs"
-          :key="tab.id"
-          class="manual-tab"
-          :class="{ 'manual-tab--active': activeSource === tab.id }"
-          @click="activeSource = tab.id"
-        >
-          <SIcon
-            :name="tab.icon"
-            size="w-4 h-4"
-          />
-          <span>{{ $t(tab.label) }}</span>
-        </button>
-      </div>
-
-      <div class="manual-body">
-        <!-- GitHub Tab -->
-        <div
-          v-if="activeSource === 'github'"
-          class="tab-content"
-        >
-          <div class="input-group">
-            <SIcon
-              name="Github"
-              class="input-icon"
-            />
-            <input
-              v-model="githubUrl"
-              type="text"
-              class="text-input"
-              :placeholder="$t('skills.githubUrlPlaceholder')"
-            >
-          </div>
-          <p class="tab-hint">
-            {{ $t('skills.githubFormats') }}
-          </p>
-        </div>
-
-        <!-- 本地 Tab -->
-        <div
-          v-if="activeSource === 'local'"
-          class="tab-content"
-        >
-          <div class="input-group">
-            <SIcon
-              name="FolderOpen"
-              class="input-icon"
-            />
-            <input
-              v-model="localPath"
-              type="text"
-              class="text-input"
-              :placeholder="$t('skills.localPathPlaceholder')"
-            >
-            <button
-              class="browse-btn"
-              @click="handleBrowse"
-            >
-              <SIcon
-                name="Folder"
-                size="w-4 h-4"
-              />
-              {{ $t('skills.browse') }}
-            </button>
-          </div>
-          <p class="tab-hint">
-            {{ $t('skills.localHint') }}
-          </p>
-        </div>
-
-        <!-- npx Tab -->
-        <div
-          v-if="activeSource === 'npx'"
-          class="tab-content"
-        >
-          <div class="npx-status">
-            <div
-              class="npx-indicator"
-              :class="npxAvailable ? 'npx-indicator--ok' : 'npx-indicator--no'"
-            />
-            <span class="text-xs">
-              {{ npxAvailable ? $t('skills.npxAvailable') : $t('skills.npxNotAvailable') }}
-              <span
-                v-if="npxVersion"
-                class="text-white/50"
-              >(v{{ npxVersion }})</span>
-            </span>
-          </div>
-          <div class="input-group">
-            <SIcon
-              name="Zap"
-              class="input-icon"
-            />
-            <input
-              v-model="npxPackage"
-              type="text"
-              class="text-input"
-              :placeholder="$t('skills.npxPackagePlaceholder')"
-            >
-          </div>
-          <label class="checkbox-label">
-            <input
-              v-model="npxGlobal"
-              type="checkbox"
-              class="checkbox-input"
-            >
-            <span>{{ $t('skills.npxGlobal') }}</span>
-          </label>
-          <p class="tab-hint">
-            {{ $t('skills.npxHint') }}
-          </p>
-        </div>
-
-        <!-- 目标平台选择 -->
-        <div class="platform-section">
-          <div class="platform-section__header">
-            <h3 class="platform-section__title">
-              {{ $t('skills.targetPlatforms') }}
-            </h3>
-            <div class="platform-section__actions">
-              <button
-                class="platform-action"
-                @click="selectDetected"
-              >
-                {{ $t('skills.selectDetected') }}
-              </button>
-              <button
-                class="platform-action"
-                @click="selectedPlatforms = []"
-              >
-                {{ $t('skills.clearAll') }}
-              </button>
-            </div>
-          </div>
-          <div class="platform-grid">
-            <label
-              v-for="p in platforms"
-              :key="p.id"
-              class="platform-item"
-              :class="{ 'platform-item--disabled': !p.detected }"
-            >
-              <input
-                v-model="selectedPlatforms"
-                type="checkbox"
-                :value="p.id"
-                class="checkbox-input"
-              >
-              <span class="platform-item__name">{{ p.display_name }}</span>
-              <span
-                v-if="!p.detected"
-                class="platform-item__badge"
-              >{{ $t('skills.notDetected') }}</span>
-            </label>
-          </div>
-        </div>
-
-        <!-- 安装按钮 -->
-        <div class="manual-footer">
-          <button
-            class="btn-install"
-            :disabled="!canManualInstall || manualInstalling"
-            @click="handleManualInstall"
-          >
-            <SIcon
-              v-if="manualInstalling"
-              name="Loader2"
-              size="w-4 h-4"
-              class="animate-spin"
-            />
-            <SIcon
-              v-else
-              name="Download"
-              size="w-4 h-4"
-            />
-            <span>
-              {{ manualInstalling
-                ? $t('skills.installing')
-                : $t('skills.installTo', { count: selectedPlatforms.length })
-              }}
-            </span>
-          </button>
-        </div>
-      </div>
-    </section>
-
-    <!-- Platform Selection Modal (for marketplace card installs) -->
-    <Teleport to="body">
-      <Transition name="modal-fade">
-        <div
-          v-if="showPlatformModal"
-          class="platform-modal-overlay"
-          @click.self="showPlatformModal = false"
-        >
-          <Transition name="modal-scale">
-            <div
-              v-if="showPlatformModal"
-              class="platform-modal"
-            >
-              <div class="platform-modal__header">
-                <h3 class="platform-modal__title">
-                  {{ $t('skills.installSkill') }}
-                </h3>
-                <button
-                  class="platform-modal__close"
-                  @click="showPlatformModal = false"
-                >
-                  <SIcon
-                    name="X"
-                    size="w-5 h-5"
-                  />
-                </button>
-              </div>
-              <p class="platform-modal__pkg">
-                {{ pendingInstallItem?.package }}
-              </p>
-              <div class="platform-section">
-                <div class="platform-section__header">
-                  <h3 class="platform-section__title">
-                    {{ $t('skills.selectPlatforms') }}
-                  </h3>
-                  <div class="platform-section__actions">
-                    <button
-                      class="platform-action"
-                      @click="selectDetectedForModal"
-                    >
-                      {{ $t('skills.selectAllDetected') }}
-                    </button>
-                  </div>
-                </div>
-                <div class="platform-grid">
-                  <label
-                    v-for="p in platforms"
-                    :key="p.id"
-                    class="platform-item"
-                    :class="{ 'platform-item--disabled': !p.detected }"
-                  >
-                    <input
-                      v-model="modalSelectedPlatforms"
-                      type="checkbox"
-                      :value="p.id"
-                      class="checkbox-input"
-                    >
-                    <span class="platform-item__name">{{ p.display_name }}</span>
-                    <span
-                      v-if="!p.detected"
-                      class="platform-item__badge"
-                    >{{ $t('skills.notDetected') }}</span>
-                  </label>
-                </div>
-              </div>
-              <div class="platform-modal__footer">
-                <button
-                  class="btn-cancel"
-                  @click="showPlatformModal = false"
-                >
-                  {{ $t('common.cancel') }}
-                </button>
-                <button
-                  class="btn-install"
-                  :disabled="modalSelectedPlatforms.length === 0"
-                  @click="confirmMarketplaceInstall"
-                >
-                  <SIcon
-                    name="Download"
-                    size="w-4 h-4"
-                  />
-                  {{ $t('skills.installTo', { count: modalSelectedPlatforms.length }) }}
-                </button>
-              </div>
-            </div>
-          </Transition>
-        </div>
-      </Transition>
-    </Teleport>
+    <SkillPlatformSelectModal
+      :close-modal="closePlatformModal"
+      :confirm-install="confirmMarketplaceInstall"
+      :pending-package="pendingInstallPackage"
+      :platforms="platforms"
+      :selected-platforms="modalSelectedPlatforms"
+      :select-detected="selectDetectedForModal"
+      :show="showPlatformModal"
+      :update-selected-platforms="updateModalSelectedPlatforms"
+    />
 
     <!-- Install Progress Toast -->
     <SkillInstallToast
@@ -568,14 +103,15 @@
 import SIcon from '@/components/ui/SIcon.vue'
 import { ref, computed, onMounted, reactive } from 'vue'
 import { useI18n } from 'vue-i18n'
-import MarketplaceSkillCard from '@/components/skills/MarketplaceSkillCard.vue'
-import MarketplacePagination from '@/components/skills/MarketplacePagination.vue'
+import SkillManualInstallPanel from '@/components/skills/SkillManualInstallPanel.vue'
+import SkillMarketplaceBrowsePanel from '@/components/skills/SkillMarketplaceBrowsePanel.vue'
+import SkillPlatformSelectModal from '@/components/skills/SkillPlatformSelectModal.vue'
 import SkillInstallToast from '@/components/skills/SkillInstallToast.vue'
 import { useUnifiedSkills } from '@/composables/useUnifiedSkills'
 import type { MarketplaceItem, ImportSource } from '@/types/skills'
 import { logger } from '@/utils/logger'
 
-const { t: _t } = useI18n()
+useI18n()
 
 const {
   platforms,
@@ -638,17 +174,7 @@ function isSkillInstalled(item: MarketplaceItem): boolean {
   return installedSkillNameSet.value.has(skillName)
 }
 
-// Search with debounce
-let searchTimer: ReturnType<typeof setTimeout> | null = null
-function onSearchInput() {
-  if (searchTimer) clearTimeout(searchTimer)
-  searchTimer = setTimeout(() => {
-    handleSearch()
-  }, 300)
-}
-
 function handleSearch() {
-  if (searchTimer) clearTimeout(searchTimer)
   currentPage.value = 1
   if (searchQuery.value.trim()) {
     searchMarketplace(searchQuery.value.trim())
@@ -676,6 +202,22 @@ function handleBatchSelect(item: MarketplaceItem) {
   }
 }
 
+function clearBatchSelected() {
+  batchSelected.clear()
+}
+
+function updateBatchMode(value: boolean) {
+  batchMode.value = value
+}
+
+function isInstallingPackage(pkg: string) {
+  return installingPackages.has(pkg)
+}
+
+function isBatchSelected(pkg: string) {
+  return batchSelected.has(pkg)
+}
+
 async function handleBatchInstall() {
   // Open platform modal for batch install
   pendingBatchPackages.value = [...batchSelected]
@@ -701,6 +243,16 @@ function selectDetectedForModal() {
     .filter(p => p.detected)
     .map(p => p.id)
 }
+
+function updateModalSelectedPlatforms(value: string[]) {
+  modalSelectedPlatforms.value = value
+}
+
+function closePlatformModal() {
+  showPlatformModal.value = false
+}
+
+const pendingInstallPackage = computed(() => pendingInstallItem.value?.package || '')
 
 async function confirmMarketplaceInstall() {
   showPlatformModal.value = false
@@ -793,6 +345,30 @@ const manualTabs = [
   { id: 'npx' as ManualSource, label: 'skills.npx', icon: 'Zap' },
 ]
 
+const setActiveSource = (source: ManualSource) => {
+  activeSource.value = source
+}
+
+const updateGithubUrl = (value: string) => {
+  githubUrl.value = value
+}
+
+const updateLocalPath = (value: string) => {
+  localPath.value = value
+}
+
+const updateNpxPackage = (value: string) => {
+  npxPackage.value = value
+}
+
+const updateNpxGlobal = (value: boolean) => {
+  npxGlobal.value = value
+}
+
+const updateSelectedPlatforms = (value: string[]) => {
+  selectedPlatforms.value = value
+}
+
 const canManualInstall = computed(() => {
   if (selectedPlatforms.value.length === 0) return false
   switch (activeSource.value) {
@@ -807,6 +383,10 @@ function selectDetected() {
   selectedPlatforms.value = platforms.value
     .filter(p => p.detected)
     .map(p => p.id)
+}
+
+function clearSelectedPlatforms() {
+  selectedPlatforms.value = []
 }
 
 async function handleBrowse() {
@@ -933,350 +513,10 @@ onMounted(async () => {
   @apply text-sm text-white/80;
 }
 
-/* Section */
-.browse-section,
-.manual-section {
-  @apply flex flex-col gap-4 p-5 rounded-2xl
-         border border-white/5;
-
-  background: rgb(0 0 0 / 30%);
-}
-
-.section-header {
-  @apply flex items-center justify-between flex-wrap gap-3;
-}
-
-.section-header__left {
-  @apply flex items-center gap-3;
-}
-
-.section-header__right {
-  @apply flex items-center gap-2;
-}
-
-.section-title {
-  @apply flex items-center gap-2 text-lg font-bold text-white;
-}
-
-.section-hint {
-  @apply text-xs text-white/50;
-}
-
-/* Cache Badge */
-.cache-badge {
-  @apply flex items-center gap-1 px-2.5 py-1 rounded-lg
-         text-xs font-medium;
-
-  color: rgb(var(--color-success-rgb));
-  background: rgb(var(--color-success-rgb) / 10%);
-}
-
-.btn-refresh {
-  @apply flex items-center gap-1.5 px-3 py-1.5 rounded-lg
-         text-xs font-medium text-white/80
-         glass-surface border border-white/5
-         hover:text-white hover:border-white/10
-         disabled:opacity-50 transition-colors;
-}
-
-/* Browse Controls */
-.browse-controls {
-  @apply flex flex-col gap-3;
-}
-
-.browse-search {
-  @apply flex gap-2;
-}
-
-.search-input {
-  @apply w-full glass-surface border border-white/5 rounded-xl
-         text-white
-         pl-12 pr-4 py-3 text-sm font-medium
-         focus:outline-none focus:ring-2 focus:ring-accent-primary/30
-         focus:border-accent-primary/50 transition-[border-color,box-shadow];
-
-  &::placeholder {
-    color: rgb(var(--color-text-muted-rgb) / 50%);
-  }
-}
-
-.btn-search {
-  @apply flex items-center gap-2 px-4 py-3 rounded-xl
-         text-sm font-semibold text-white
-         bg-accent-primary hover:bg-accent-primary/90
-         disabled:opacity-50 transition-colors;
-}
-
-.browse-toolbar {
-  @apply flex items-center justify-between;
-}
-
-.toolbar-left,
-.toolbar-right {
-  @apply flex items-center gap-2;
-}
-
-.result-badge {
-  @apply px-2.5 py-1 rounded-lg text-xs font-semibold
-         bg-accent-primary/10 text-accent-primary;
-}
-
-.sort-select {
-  @apply flex items-center gap-1.5 px-3 py-2 rounded-lg
-         glass-surface border border-white/5
-         text-sm text-white/80;
-}
-
-.sort-dropdown {
-  @apply bg-transparent border-none outline-none text-sm
-         text-white cursor-pointer;
-}
-
-.btn-batch {
-  @apply flex items-center gap-1.5 px-3 py-2 rounded-lg
-         text-sm font-medium text-white/80
-         glass-surface border border-white/5
-         hover:text-white hover:border-white/10
-         transition-colors;
-}
-
-.btn-batch--active {
-  @apply text-accent-primary border-accent-primary/30;
-
-  background: rgb(var(--color-accent-primary-rgb) / 8%);
-}
-
-/* State boxes */
-.state-box {
-  @apply flex flex-col items-center justify-center py-16
-         rounded-2xl border border-white/5;
-
-  background: rgb(0 0 0 / 20%);
-}
-
-/* Grid Layout */
-.marketplace-grid {
-  @apply grid gap-4;
-
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-}
-
-/* Skeleton */
-.skeleton-card {
-  @apply flex flex-col gap-3 p-4 rounded-2xl border border-white/5;
-
-  background: rgb(0 0 0 / 30%);
-}
-
-.skeleton-header { @apply flex items-center justify-between; }
-.skeleton-avatar { @apply w-6 h-6 rounded-full glass-surface animate-pulse; }
-.skeleton-owner { @apply w-16 h-4 rounded glass-surface animate-pulse; }
-.skeleton-stars { @apply w-12 h-4 rounded glass-surface animate-pulse; }
-.skeleton-name { @apply w-32 h-5 rounded glass-surface animate-pulse; }
-.skeleton-desc { @apply flex flex-col gap-1.5; }
-.skeleton-line { @apply h-3.5 rounded glass-surface animate-pulse; }
-.skeleton-footer { @apply flex items-center justify-between mt-auto pt-3 border-t border-white/5; }
-.skeleton-link { @apply w-20 h-4 rounded glass-surface animate-pulse; }
-.skeleton-btn { @apply w-16 h-7 rounded-lg glass-surface animate-pulse; }
-
-/* Batch Bar */
-.batch-bar {
-  @apply fixed bottom-6 left-1/2 -translate-x-1/2 z-40
-         flex items-center gap-4 px-6 py-3 rounded-2xl
-         border border-white/5 shadow-2xl;
-
-  background: rgb(0 0 0 / 30%);
-  backdrop-filter: blur(16px);
-}
-
-.batch-bar__count { @apply text-sm font-semibold text-white; }
-.batch-bar__actions { @apply flex items-center gap-2; }
-
-.batch-bar__clear {
-  @apply px-3 py-1.5 rounded-lg text-sm text-white/80
-         hover:text-white hover:bg-white/5 transition-colors;
-}
-
-.batch-bar__install {
-  @apply flex items-center gap-1.5 px-4 py-1.5 rounded-lg
-         text-sm font-semibold text-white
-         bg-accent-primary hover:bg-accent-primary/90 transition-colors;
-}
-
-.batch-bar-enter-active,
-.batch-bar-leave-active {
-  transition: all 0.3s ease;
-}
-
-.batch-bar-enter-from {
-  opacity: 0;
-  transform: translateX(-50%) translateY(20px);
-}
-
-.batch-bar-leave-to {
-  opacity: 0;
-  transform: translateX(-50%) translateY(20px);
-}
-
-/* Manual Install */
-.manual-tabs {
-  @apply flex gap-1;
-}
-
-.manual-tab {
-  @apply flex items-center gap-1.5 px-4 py-2.5 rounded-xl
-         text-sm font-medium text-white/80
-         hover:text-white hover:bg-white/5
-         transition-colors duration-200;
-}
-
-.manual-tab--active {
-  @apply text-white;
-
-  background: rgb(var(--color-accent-primary-rgb) / 10%);
-  color: rgb(var(--color-accent-primary-rgb));
-}
-
-.manual-body {
-  @apply flex flex-col gap-4;
-}
-
-.tab-content { @apply flex flex-col gap-3; }
-
-.input-group { @apply relative flex items-center; }
-
-.input-icon {
-  @apply absolute left-3 w-4 h-4 text-white/50 pointer-events-none;
-}
-
-.text-input {
-  @apply w-full pl-10 pr-4 py-2.5 rounded-xl
-         text-sm text-white
-         glass-surface border border-white/5
-         focus:border-accent-primary focus:outline-none
-         placeholder:text-white/50 transition-colors;
-}
-
-.browse-btn {
-  @apply ml-2 flex items-center gap-1.5 px-3 py-2.5 rounded-xl shrink-0
-         text-sm font-medium text-white/80
-         glass-surface border border-white/5
-         hover:border-white/10 hover:text-white transition-colors;
-}
-
-.tab-hint { @apply text-xs text-white/50 leading-relaxed; }
-
-/* npx */
-.npx-status {
-  @apply flex items-center gap-2 px-3 py-2 rounded-lg glass-surface;
-}
-
-.npx-indicator { @apply w-2 h-2 rounded-full; }
-
-.npx-indicator--ok {
-  background: rgb(var(--color-success-rgb));
-  box-shadow: 0 0 6px rgb(var(--color-success-rgb) / 50%);
-}
-.npx-indicator--no { background: rgb(var(--color-danger-rgb)); }
-
-.checkbox-label {
-  @apply flex items-center gap-2 text-sm text-white/80 cursor-pointer;
-}
-
-.checkbox-input {
-  @apply rounded border-white/10 text-accent-primary focus:ring-accent-primary/20;
-}
-
-/* Platform Selection */
-.platform-section {
-  @apply flex flex-col gap-3 pt-3 border-t border-white/5;
-}
-.platform-section__header { @apply flex items-center justify-between; }
-.platform-section__title { @apply text-sm font-semibold text-white; }
-.platform-section__actions { @apply flex items-center gap-2; }
-.platform-action { @apply text-xs text-accent-primary hover:underline cursor-pointer; }
-.platform-grid { @apply grid grid-cols-2 sm:grid-cols-3 gap-2; }
-
-.platform-item {
-  @apply flex items-center gap-2 px-3 py-2 rounded-lg
-         glass-surface text-sm cursor-pointer
-         hover:bg-white/5 transition-colors;
-}
-.platform-item--disabled { @apply opacity-50; }
-.platform-item__name { @apply text-white font-medium; }
-.platform-item__badge { @apply ml-auto text-[10px] text-white/50; }
-
-/* Manual footer */
-.manual-footer {
-  @apply flex justify-end pt-3 border-t border-white/5;
-}
-
 .btn-install {
   @apply flex items-center gap-2 px-5 py-2.5 rounded-xl
          text-sm font-semibold text-white
          bg-accent-primary hover:bg-accent-primary/90
          disabled:opacity-50 disabled:cursor-not-allowed transition-colors;
-}
-
-.btn-cancel {
-  @apply px-4 py-2 rounded-xl text-sm font-medium
-         text-white/80 hover:text-white
-         hover:bg-white/5 transition-colors;
-}
-
-/* Platform Modal */
-.platform-modal-overlay {
-  @apply fixed inset-0 z-50 flex items-center justify-center
-         bg-black/50 backdrop-blur-md;
-}
-
-.platform-modal {
-  @apply flex flex-col gap-4 w-full max-w-md mx-4 p-6 rounded-2xl
-         border border-white/5 shadow-2xl;
-
-  background: rgb(var(--color-bg-base-rgb));
-}
-
-.platform-modal__header { @apply flex items-center justify-between; }
-.platform-modal__title { @apply text-lg font-bold text-white; }
-
-.platform-modal__close {
-  @apply p-2 rounded-lg text-white/50
-         hover:text-white hover:bg-white/5 transition-colors;
-}
-
-.platform-modal__pkg {
-  @apply text-sm text-white/80 font-mono truncate
-         px-3 py-2 rounded-lg glass-surface;
-}
-
-.platform-modal__footer {
-  @apply flex items-center justify-end gap-3 pt-3 border-t border-white/5;
-}
-
-/* Modal animations */
-.modal-fade-enter-active,
-.modal-fade-leave-active {
-  transition: opacity 0.2s ease;
-}
-
-.modal-fade-enter-from,
-.modal-fade-leave-to {
-  opacity: 0;
-}
-
-.modal-scale-enter-active,
-.modal-scale-leave-active {
-  transition: all 0.25s ease;
-}
-
-.modal-scale-enter-from {
-  opacity: 0;
-  transform: scale(0.95);
-}
-
-.modal-scale-leave-to {
-  opacity: 0;
-  transform: scale(0.95);
 }
 </style>

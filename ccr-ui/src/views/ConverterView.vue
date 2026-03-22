@@ -1,10 +1,11 @@
 <template>
-  <div :style="{ background: 'var(--bg-primary)', minHeight: '100vh', padding: '20px' }">
+  <div
+    class="min-h-full p-5 transition-colors duration-300"
+    :style="{ background: 'var(--bg-primary)' }"
+  >
     <div class="max-w-[1800px] mx-auto">
-      <Navbar />
-
-      <div class="grid grid-cols-[auto_1fr] gap-4">
-        <CollapsibleSidebar module="converter" />
+      <div class="space-y-4">
+        <ModuleSubnav module="converter" />
 
         <main class="space-y-6">
           <!-- Header -->
@@ -629,8 +630,7 @@ import { useI18n } from 'vue-i18n'
 import { RouterLink } from 'vue-router'
 import { convertConfig } from '@/api'
 import type { ConverterRequest, ConverterResponse, CliType } from '@/types'
-import Navbar from '@/components/Navbar.vue'
-import CollapsibleSidebar from '@/components/CollapsibleSidebar.vue'
+import ModuleSubnav from '@/components/ModuleSubnav.vue'
 
 const { t } = useI18n({ useScope: 'global' })
 

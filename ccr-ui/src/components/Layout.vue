@@ -101,7 +101,7 @@
 <script setup lang="ts">
 import SIcon from '@/components/ui/SIcon.vue'
 import { computed } from 'vue'
-import { useThemeStore } from '@/store'
+import { useThemeStore } from '@/stores/theme'
 
 const themeStore = useThemeStore()
 

@@ -29,7 +29,7 @@
 <script setup lang="ts">
 import SIcon from '@/components/ui/SIcon.vue'
 import { storeToRefs } from 'pinia'
-import { useUIStore } from '@/store'
+import { useUIStore } from '@/stores/ui'
 const uiStore = useUIStore()
 const { toasts } = storeToRefs(uiStore)
 const { removeToast } = uiStore

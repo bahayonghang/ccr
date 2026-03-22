@@ -1,12 +1,9 @@
 <template>
-  <div class="min-h-screen bg-bg-base">
-    <Navbar />
+  <div class="min-h-full bg-bg-base">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <!-- Header -->
       <div class="flex items-center justify-between mb-8">
-        <div class="flex items-center gap-4">
-          <Breadcrumb :items="breadcrumbs" />
-        </div>
+        <div />
         <div class="flex items-center gap-3">
           <!-- Connection Status -->
           <div 
@@ -198,28 +195,17 @@
 <script setup lang="ts">
 import SIcon from '@/components/ui/SIcon.vue'
 import { ref, computed, watch, nextTick } from 'vue'
-import { useI18n } from 'vue-i18n'
-import Navbar from '@/components/Navbar.vue'
-import { Breadcrumb } from '@/components/ui'
 import {
   useMonitoringFeed,
   type MonitoringEntry,
   type MonitoringLevel,
 } from '@/composables/useMonitoringFeed'
 
-const { t } = useI18n({ useScope: 'global' })
-
 const { isConnected, logs, tokenStats, clearLogs } = useMonitoringFeed()
 
 // Filter state
 const filterLevel = ref<'all' | MonitoringLevel>('all')
 const logContainer = ref<HTMLElement | null>(null)
-
-// Breadcrumbs
-const breadcrumbs = computed(() => [
-  { label: t('common.home'), path: '/' },
-  { label: t('monitoring.title'), path: '/monitoring' }
-])
 
 // Filtered logs
 const filteredLogs = computed(() => {

@@ -1,8 +1,11 @@
 <template>
   <div class="min-h-full p-6 lg:p-10 relative overflow-hidden">
-    <AnimatedBackground variant="minimal" />
+    <AnimatedBackground
+      contained
+      variant="minimal"
+    />
 
-    <div class="max-w-5xl mx-auto space-y-5">
+    <div class="relative z-10 mx-auto max-w-5xl space-y-5">
       <!-- 页面标题 -->
       <div class="flex items-center justify-between animate-slide-up">
         <div class="flex items-center gap-3">

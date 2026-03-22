@@ -1,6 +1,9 @@
 <template>
-  <div class="min-h-screen relative">
-    <AnimatedBackground variant="orbs" />
+  <div class="min-h-full relative overflow-hidden">
+    <AnimatedBackground
+      contained
+      variant="orbs"
+    />
 
     <div class="relative z-10 mx-auto max-w-7xl p-6">
       <div class="mb-8 space-y-6">

@@ -379,6 +379,28 @@
     --liquid-glass-border: rgb(244 114 182 / 20%);
     --liquid-glass-highlight: inset 0 1px 0 rgb(255 255 255 / 80%), inset 0 0 20px rgb(255 240 245 / 20%);
     --liquid-glass-shadow: 0 8px 32px rgb(244 114 182 / 12%), 0 2px 8px rgb(0 0 0 / 8%);
+
+    /* --- 语义化 Surface Contract --- */
+    --surface-shell-bg: var(--liquid-glass-bg);
+    --surface-shell-blur: var(--liquid-glass-blur);
+    --surface-shell-border: var(--liquid-glass-border);
+    --surface-shell-shadow: var(--liquid-glass-shadow);
+    --surface-workspace-bg: var(--glass-bg-medium);
+    --surface-workspace-blur: var(--glass-blur-md);
+    --surface-workspace-border: var(--glass-border-medium);
+    --surface-workspace-shadow: var(--glass-shadow);
+    --surface-card-bg: var(--glass-bg-strong);
+    --surface-card-blur: var(--glass-blur-lg);
+    --surface-card-border: var(--glass-border-strong);
+    --surface-card-shadow: var(--glass-shadow);
+    --surface-modal-bg: var(--glass-bg-strong);
+    --surface-modal-blur: var(--glass-blur-xl);
+    --surface-modal-border: var(--glass-border-strong);
+    --surface-modal-shadow: var(--glass-shadow-elevated);
+    --surface-status-bg: var(--glass-bg-light);
+    --surface-status-blur: var(--glass-blur-md);
+    --surface-status-border: var(--glass-border-light);
+    --surface-status-shadow: var(--shadow-sm);
 }
 
 /* 暗色主题玻璃效果 */

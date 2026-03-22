@@ -88,37 +88,22 @@
     </div>
 
     <!-- Error State -->
-    <div
+    <AsyncStatePanel
       v-if="error"
-      class="error-state"
-    >
-      <SIcon
-        name="AlertCircle"
-        size="w-8 h-8"
-        class="text-danger"
-      />
-      <p class="text-danger mt-2">
-        {{ error }}
-      </p>
-    </div>
+      state="error"
+      :title="$t('stats.states.loadFailed')"
+      :description="error"
+      compact
+    />
 
-    <!-- Empty State -->
-    <div
+    <AsyncStatePanel
       v-else-if="!isLoading && sortedItems.length === 0"
-      class="empty-state"
-    >
-      <SIcon
-        name="Store"
-        size="w-12 h-12"
-        class="text-white/50"
-      />
-      <h3 class="text-lg font-semibold text-white mt-4">
-        {{ $t('skills.noMarketplaceResults') }}
-      </h3>
-      <p class="text-sm text-white/80 mt-1">
-        {{ $t('skills.tryDifferentSearch') }}
-      </p>
-    </div>
+      state="empty"
+      icon="Store"
+      :title="$t('skills.noMarketplaceResults')"
+      :description="$t('skills.tryDifferentSearch')"
+      compact
+    />
 
     <!-- Marketplace Grid (Card Layout) -->
     <div
@@ -211,6 +196,7 @@
 
 <script setup lang="ts">
 import SIcon from '@/components/ui/SIcon.vue'
+import { AsyncStatePanel } from '@/components/ui'
 import { ref, computed, watch } from 'vue'
 import MarketplaceSkillCard from './MarketplaceSkillCard.vue'
 import MarketplacePagination from './MarketplacePagination.vue'
@@ -396,15 +382,6 @@ function handleViewSource(item: MarketplaceItem) {
   @apply text-accent-primary border-accent-primary/30;
 
   background: rgb(var(--color-accent-primary-rgb) / 8%);
-}
-
-/* States */
-.error-state,
-.empty-state {
-  @apply flex flex-col items-center justify-center py-16
-         rounded-2xl border border-white/5;
-
-  background: rgb(0 0 0 / 20%);
 }
 
 /* Grid Layout */

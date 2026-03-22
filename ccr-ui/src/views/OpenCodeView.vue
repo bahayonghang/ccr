@@ -1,8 +1,11 @@
 <template>
   <div class="min-h-full p-6 lg:p-10 relative overflow-hidden">
-    <AnimatedBackground variant="complex" />
+    <AnimatedBackground
+      contained
+      variant="complex"
+    />
 
-    <div class="max-w-7xl mx-auto space-y-5">
+    <div class="relative z-10 mx-auto max-w-7xl space-y-5">
       <!-- HEADER -->
       <section class="grid grid-cols-1 lg:grid-cols-3 gap-4 animate-slide-up">
         <!-- Hero Card -->

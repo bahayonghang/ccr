@@ -1,17 +1,11 @@
 <template>
-  <div :style="{ background: 'var(--bg-primary)', minHeight: '100vh', padding: '20px' }">
+  <div
+    class="min-h-full p-5 transition-colors duration-300"
+    :style="{ background: 'var(--bg-primary)' }"
+  >
     <div class="max-w-[1800px] mx-auto">
-      <!-- Breadcrumb Navigation -->
-      <Breadcrumb
-        :items="[
-          { label: $t('common.home'), path: '/', icon: 'Home' },
-          { label: 'Codex', path: '/codex', icon: 'Boxes' },
-          { label: $t('codex.mcp.breadcrumb'), path: '/codex/mcp', icon: 'Server' }
-        ]"
-        module-color="#ec4899"
-      />
-      <div class="grid grid-cols-[auto_1fr] gap-4">
-        <CollapsibleSidebar module="codex" />
+      <div class="space-y-4">
+        <ModuleSubnav module="codex" />
 
         <main
           class="rounded-xl p-6 glass-effect"
@@ -362,8 +356,7 @@ import type {
   CodexMcpServersResponse,
   CodexMcpServerRequest
 } from '@/types'
-import CollapsibleSidebar from '@/components/CollapsibleSidebar.vue'
-import { Breadcrumb } from '@/components/ui'
+import ModuleSubnav from '@/components/ModuleSubnav.vue'
 import { useI18n } from 'vue-i18n'
 import { logger } from '@/utils/logger'
 import ConfirmModal from '@/components/ConfirmModal.vue'

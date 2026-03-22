@@ -7,318 +7,45 @@
         class="fixed inset-0 z-50 flex items-center justify-center p-4"
         @click.self="close"
       >
-        <!-- Backdrop -->
         <div class="absolute inset-0 bg-black/50 backdrop-blur-md" />
 
-        <!-- Modal Content -->
-        <div class="modal-content relative w-full max-w-3xl max-h-[85vh] flex flex-col">
-          <!-- Header -->
-          <div class="modal-header">
-            <div class="flex items-center gap-3 min-w-0">
-              <div
-                class="modal-icon shrink-0"
-                :style="{ backgroundColor: platformColor + '15', color: platformColor }"
-              >
-                <SIcon
-                  :name="platformIcon"
-                  size="w-5 h-5"
-                />
-              </div>
-              <div class="min-w-0">
-                <h2 class="text-lg font-bold text-white truncate">
-                  {{ skillContent?.name || skill?.name }}
-                </h2>
-                <p class="text-xs text-white/50 truncate">
-                  {{ skill?.platformName }}
-                </p>
-              </div>
-            </div>
-            <div class="flex items-center gap-1 shrink-0">
-              <!-- Mode Toggle -->
-              <button
-                class="p-2 rounded-lg text-white/50 hover:text-white hover:bg-white/5 transition-colors"
-                :title="isEditMode ? $t('skills.previewMode') : $t('skills.editMode')"
-                @click="toggleMode"
-              >
-                <SIcon
-                  v-if="isEditMode"
-                  name="Eye"
-                  size="w-5 h-5"
-                />
-                <SIcon
-                  v-else
-                  name="Edit3"
-                  size="w-5 h-5"
-                />
-              </button>
-              <!-- Close -->
-              <button
-                class="p-2 rounded-lg text-white/50 hover:text-white hover:bg-white/5 transition-colors"
-                @click="close"
-              >
-                <SIcon
-                  name="X"
-                  size="w-5 h-5"
-                />
-              </button>
-            </div>
-          </div>
+        <div class="modal-content relative flex max-h-[85vh] w-full max-w-3xl flex-col">
+          <SkillDetailModalHeader
+            :title="skillContent?.name || skill?.name || ''"
+            :subtitle="skill?.platformName || ''"
+            :platform-color="platformColor"
+            :platform-icon="platformIcon"
+            :is-edit-mode="isEditMode"
+            :preview-title="t('skills.previewMode')"
+            :edit-title="t('skills.editMode')"
+            @toggle-mode="toggleMode"
+            @close="close"
+          />
 
-          <!-- Body (Scrollable) -->
-          <div class="modal-body flex-1 overflow-y-auto">
-            <!-- Loading State -->
-            <div
-              v-if="isContentLoading"
-              class="flex flex-col items-center justify-center py-16"
-            >
-              <SIcon
-                name="Loader2"
-                size="w-8 h-8"
-                class="animate-spin text-accent-primary"
-              />
-              <p class="text-white/80 text-sm mt-3">
-                {{ $t('skills.loadingContent') }}
-              </p>
-            </div>
+          <SkillDetailContentPanel
+            :is-content-loading="isContentLoading"
+            :content-error="contentError"
+            :skill-content="skillContent"
+            :metadata-items="metadataItems"
+            :is-edit-mode="isEditMode"
+            :edit-buffer="editBuffer"
+            :loading-label="t('skills.loadingContent')"
+            :retry-label="t('common.retry')"
+            :skill-content-label="t('skills.skillContent')"
+            :no-content-label="t('skills.noContent')"
+            :edit-placeholder="t('skills.instructionLabel')"
+            @retry="loadContent"
+            @update:edit-buffer="editBuffer = $event"
+          />
 
-            <!-- Error State -->
-            <div
-              v-else-if="contentError"
-              class="flex flex-col items-center justify-center py-16"
-            >
-              <SIcon
-                name="AlertCircle"
-                size="w-8 h-8"
-                class="text-danger"
-              />
-              <p
-                class="text-sm mt-2"
-                style="color: rgb(var(--color-danger-rgb));"
-              >
-                {{ contentError }}
-              </p>
-              <button
-                class="btn-retry mt-4"
-                @click="loadContent"
-              >
-                {{ $t('common.retry') }}
-              </button>
-            </div>
-
-            <!-- Content Loaded -->
-            <template v-else-if="skillContent">
-              <!-- Metadata Section -->
-              <div class="metadata-section">
-                <!-- Description -->
-                <p
-                  v-if="skillContent.description"
-                  class="text-sm text-white/80 leading-relaxed"
-                >
-                  {{ skillContent.description }}
-                </p>
-
-                <!-- Meta Grid -->
-                <div class="meta-grid">
-                  <!-- Category -->
-                  <div
-                    v-if="skillContent.category"
-                    class="meta-item"
-                  >
-                    <SIcon
-                      name="Folder"
-                      size="w-3.5 h-3.5"
-                      class="text-white/50 shrink-0"
-                    />
-                    <span class="meta-label">{{ $t('skills.categoryLabel') }}</span>
-                    <span class="meta-value">{{ skillContent.category }}</span>
-                  </div>
-
-                  <!-- Platform -->
-                  <div class="meta-item">
-                    <SIcon
-                      :name="platformIcon"
-                      size="w-3.5 h-3.5"
-                      class="shrink-0"
-                      :style="{ color: platformColor }"
-                    />
-                    <span class="meta-label">{{ $t('skills.platform') }}</span>
-                    <span class="meta-value">{{ skill?.platformName }}</span>
-                  </div>
-
-                  <!-- Version -->
-                  <div
-                    v-if="skill?.version"
-                    class="meta-item"
-                  >
-                    <SIcon
-                      name="Tag"
-                      size="w-3.5 h-3.5"
-                      class="text-white/50 shrink-0"
-                    />
-                    <span class="meta-label">{{ $t('skills.version') }}</span>
-                    <span class="meta-value">v{{ skill.version }}</span>
-                  </div>
-
-                  <!-- Author -->
-                  <div
-                    v-if="skill?.author"
-                    class="meta-item"
-                  >
-                    <SIcon
-                      name="User"
-                      size="w-3.5 h-3.5"
-                      class="text-white/50 shrink-0"
-                    />
-                    <span class="meta-label">{{ $t('skills.author') }}</span>
-                    <span class="meta-value">{{ skill.author }}</span>
-                  </div>
-
-                  <!-- Source -->
-                  <div
-                    v-if="skill?.source"
-                    class="meta-item"
-                  >
-                    <SIcon
-                      :name="sourceIconMap[skill.source] || 'HardDrive'"
-                      size="w-3.5 h-3.5"
-                      class="text-white/50 shrink-0"
-                    />
-                    <span class="meta-label">{{ $t('skills.sourceLabel') }}</span>
-                    <span class="meta-value flex items-center gap-1">
-                      {{ sourceLabelMap[skill.source] || skill.source }}
-                      <a
-                        v-if="skill.sourceUrl"
-                        :href="skill.sourceUrl"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        class="text-accent-primary hover:underline"
-                        @click.stop
-                      >
-                        <SIcon
-                          name="ExternalLink"
-                          size="w-3 h-3"
-                        />
-                      </a>
-                    </span>
-                  </div>
-
-                  <!-- Install Date -->
-                  <div
-                    v-if="skill?.installDate"
-                    class="meta-item"
-                  >
-                    <SIcon
-                      name="Clock"
-                      size="w-3.5 h-3.5"
-                      class="text-white/50 shrink-0"
-                    />
-                    <span class="meta-label">{{ $t('skills.installedAt') }}</span>
-                    <span class="meta-value">{{ formatDate(skill.installDate) }}</span>
-                  </div>
-
-                  <!-- Directory -->
-                  <div class="meta-item">
-                    <SIcon
-                      name="FolderOpen"
-                      size="w-3.5 h-3.5"
-                      class="text-white/50 shrink-0"
-                    />
-                    <span class="meta-label">{{ $t('skills.directory') }}</span>
-                    <span
-                      class="meta-value font-mono text-[11px]"
-                      :title="skillContent.skillDir"
-                    >
-                      {{ shortenPath(skillContent.skillDir) }}
-                    </span>
-                  </div>
-                </div>
-
-                <!-- Tags -->
-                <div
-                  v-if="skillContent.tags && skillContent.tags.length > 0"
-                  class="flex flex-wrap gap-1 mt-2"
-                >
-                  <span
-                    v-for="tag in skillContent.tags"
-                    :key="tag"
-                    class="tag-badge"
-                  >
-                    #{{ tag }}
-                  </span>
-                </div>
-              </div>
-
-              <!-- Divider -->
-              <div class="content-divider">
-                <span class="content-divider__label">
-                  {{ $t('skills.skillContent') }}
-                </span>
-              </div>
-
-              <!-- View Mode: Rendered Markdown -->
-              <div
-                v-if="!isEditMode"
-                class="markdown-content"
-              >
-                <div
-                  v-if="renderedHtml"
-                  ref="markdownRef"
-                  class="prose"
-                  v-html="renderedHtml"
-                />
-                <p
-                  v-else
-                  class="text-sm text-white/50 italic py-8 text-center"
-                >
-                  {{ $t('skills.noContent') }}
-                </p>
-              </div>
-
-              <!-- Edit Mode: Textarea -->
-              <div
-                v-else
-                class="edit-content"
-              >
-                <textarea
-                  v-model="editBuffer"
-                  class="edit-textarea"
-                  spellcheck="false"
-                  :placeholder="$t('skills.instructionLabel')"
-                />
-              </div>
-            </template>
-          </div>
-
-          <!-- Footer (only in edit mode) -->
-          <div
+          <SkillDetailEditFooter
             v-if="isEditMode && skillContent"
-            class="modal-footer"
-          >
-            <button
-              class="btn-secondary"
-              @click="cancelEdit"
-            >
-              {{ $t('common.cancel') }}
-            </button>
-            <button
-              class="btn-primary"
-              :disabled="isSaving"
-              @click="handleSave"
-            >
-              <SIcon
-                v-if="isSaving"
-                name="Loader2"
-                size="w-4 h-4"
-                class="animate-spin"
-              />
-              <SIcon
-                v-else
-                name="Save"
-                size="w-4 h-4"
-              />
-              <span>{{ $t('skills.saveSkill') }}</span>
-            </button>
-          </div>
+            :is-saving="isSaving"
+            :cancel-label="t('common.cancel')"
+            :save-label="t('skills.saveSkill')"
+            @cancel="cancelEdit"
+            @save="handleSave"
+          />
         </div>
       </div>
     </Transition>
@@ -326,54 +53,16 @@
 </template>
 
 <script setup lang="ts">
-import SIcon from '@/components/ui/SIcon.vue'
-import { ref, computed, watch, nextTick } from 'vue'
-import { marked } from 'marked'
-import { sanitizeMarkdown } from '@/utils/sanitize'
-// highlight.js: 仅导入 core + 常用语言（从 ~900 kB 降至 ~60 kB）
-import hljs from 'highlight.js/lib/core'
-import javascript from 'highlight.js/lib/languages/javascript'
-import typescript from 'highlight.js/lib/languages/typescript'
-import python from 'highlight.js/lib/languages/python'
-import bash from 'highlight.js/lib/languages/bash'
-import json from 'highlight.js/lib/languages/json'
-import yaml from 'highlight.js/lib/languages/yaml'
-import xml from 'highlight.js/lib/languages/xml'
-import css from 'highlight.js/lib/languages/css'
-import rust from 'highlight.js/lib/languages/rust'
-import go from 'highlight.js/lib/languages/go'
-import sql from 'highlight.js/lib/languages/sql'
-import markdown from 'highlight.js/lib/languages/markdown'
-import diff from 'highlight.js/lib/languages/diff'
-import { getErrorMessage } from '@/utils/errorHandler'
-
-// 注册语言
-hljs.registerLanguage('javascript', javascript)
-hljs.registerLanguage('js', javascript)
-hljs.registerLanguage('typescript', typescript)
-hljs.registerLanguage('ts', typescript)
-hljs.registerLanguage('python', python)
-hljs.registerLanguage('py', python)
-hljs.registerLanguage('bash', bash)
-hljs.registerLanguage('sh', bash)
-hljs.registerLanguage('shell', bash)
-hljs.registerLanguage('json', json)
-hljs.registerLanguage('yaml', yaml)
-hljs.registerLanguage('yml', yaml)
-hljs.registerLanguage('xml', xml)
-hljs.registerLanguage('html', xml)
-hljs.registerLanguage('css', css)
-hljs.registerLanguage('rust', rust)
-hljs.registerLanguage('rs', rust)
-hljs.registerLanguage('go', go)
-hljs.registerLanguage('golang', go)
-hljs.registerLanguage('sql', sql)
-hljs.registerLanguage('markdown', markdown)
-hljs.registerLanguage('md', markdown)
-hljs.registerLanguage('diff', diff)
+import SkillDetailContentPanel from '@/components/skills/SkillDetailContentPanel.vue'
+import SkillDetailEditFooter from '@/components/skills/SkillDetailEditFooter.vue'
+import SkillDetailModalHeader from '@/components/skills/SkillDetailModalHeader.vue'
 import { useUnifiedSkills } from '@/composables/useUnifiedSkills'
-import type { UnifiedSkill, SkillContent, Platform } from '@/types/skills'
+import type { SkillDetailMetaItem } from '@/types/skillDetailModal'
+import type { Platform, SkillContent, UnifiedSkill } from '@/types/skills'
 import { PLATFORM_CONFIG } from '@/types/skills'
+import { getErrorMessage } from '@/utils/errorHandler'
+import { computed, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 
 const GeminiIcon = 'Sparkles'
 
@@ -389,17 +78,15 @@ const emit = defineEmits<{
 }>()
 
 const { fetchSkillContent, saveSkillContent } = useUnifiedSkills()
+const { t } = useI18n()
 
-// State
 const skillContent = ref<SkillContent | null>(null)
 const isContentLoading = ref(false)
 const contentError = ref<string | null>(null)
 const isEditMode = ref(false)
 const editBuffer = ref('')
 const isSaving = ref(false)
-const markdownRef = ref<HTMLElement | null>(null)
 
-// Platform styling
 const platformColor = computed(() => {
   if (!props.skill) return '#A78BFA'
   const config = PLATFORM_CONFIG[props.skill.platform as Platform]
@@ -409,44 +96,111 @@ const platformColor = computed(() => {
 const platformIcon = computed(() => {
   const iconMap: Record<string, string> = {
     'claude-code': 'Code2',
-    'codex': 'Settings',
-    'gemini': GeminiIcon,
-    'qwen': 'Zap',
-    'iflow': 'Activity',
-    'droid': 'Bot'
+    codex: 'Settings',
+    gemini: GeminiIcon,
+    qwen: 'Zap',
+    iflow: 'Activity',
+    droid: 'Bot',
   }
   return iconMap[props.skill?.platform || ''] || 'Code2'
 })
 
-// Rendered markdown HTML
-const renderedHtml = computed(() => {
-  if (!skillContent.value?.content) return ''
-  const html = marked.parse(skillContent.value.content) as string
-  return sanitizeMarkdown(html)
-})
+const sourceIconMap: Record<string, string> = {
+  marketplace: 'Store',
+  github: 'Github',
+  local: 'HardDrive',
+}
 
-// Watch for modal open
-watch(() => props.modelValue, (isOpen) => {
-  if (isOpen && props.skill) {
-    isEditMode.value = props.initialMode === 'edit'
-    contentError.value = null
-    skillContent.value = null
-    loadContent()
-  }
-})
+const sourceLabelMap: Record<string, string> = {
+  marketplace: 'Marketplace',
+  github: 'GitHub',
+  local: 'Local',
+}
 
-// Apply syntax highlighting after markdown renders
-watch(renderedHtml, () => {
-  if (!isEditMode.value && renderedHtml.value) {
-    nextTick(() => {
-      if (markdownRef.value) {
-        markdownRef.value.querySelectorAll('pre code').forEach((block) => {
-          hljs.highlightElement(block as HTMLElement)
-        })
-      }
+const metadataItems = computed<SkillDetailMetaItem[]>(() => {
+  const items: SkillDetailMetaItem[] = []
+
+  if (skillContent.value?.category) {
+    items.push({
+      id: 'category',
+      icon: 'Folder',
+      label: t('skills.categoryLabel'),
+      value: skillContent.value.category,
     })
   }
+
+  if (props.skill?.platformName) {
+    items.push({
+      id: 'platform',
+      icon: platformIcon.value,
+      label: t('skills.platform'),
+      value: props.skill.platformName,
+      iconColor: platformColor.value,
+    })
+  }
+
+  if (props.skill?.version) {
+    items.push({
+      id: 'version',
+      icon: 'Tag',
+      label: t('skills.version'),
+      value: `v${props.skill.version}`,
+    })
+  }
+
+  if (props.skill?.author) {
+    items.push({
+      id: 'author',
+      icon: 'User',
+      label: t('skills.author'),
+      value: props.skill.author,
+    })
+  }
+
+  if (props.skill?.source) {
+    items.push({
+      id: 'source',
+      icon: sourceIconMap[props.skill.source] || 'HardDrive',
+      label: t('skills.sourceLabel'),
+      value: sourceLabelMap[props.skill.source] || props.skill.source,
+      linkUrl: props.skill.sourceUrl,
+    })
+  }
+
+  if (props.skill?.installDate) {
+    items.push({
+      id: 'installDate',
+      icon: 'Clock',
+      label: t('skills.installedAt'),
+      value: formatDate(props.skill.installDate),
+    })
+  }
+
+  if (skillContent.value?.skillDir) {
+    items.push({
+      id: 'directory',
+      icon: 'FolderOpen',
+      label: t('skills.directory'),
+      value: shortenPath(skillContent.value.skillDir),
+      valueTitle: skillContent.value.skillDir,
+      monospace: true,
+    })
+  }
+
+  return items
 })
+
+watch(
+  () => props.modelValue,
+  (isOpen) => {
+    if (isOpen && props.skill) {
+      isEditMode.value = props.initialMode === 'edit'
+      contentError.value = null
+      skillContent.value = null
+      loadContent()
+    }
+  }
+)
 
 async function loadContent() {
   if (!props.skill) return
@@ -466,15 +220,14 @@ async function loadContent() {
 
 function toggleMode() {
   if (isEditMode.value) {
-    // Switching from edit to view: reset buffer if unchanged
     isEditMode.value = false
-  } else {
-    // Switching from view to edit
-    if (skillContent.value) {
-      editBuffer.value = skillContent.value.raw
-    }
-    isEditMode.value = true
+    return
   }
+
+  if (skillContent.value) {
+    editBuffer.value = skillContent.value.raw
+  }
+  isEditMode.value = true
 }
 
 function cancelEdit() {
@@ -490,7 +243,6 @@ async function handleSave() {
   isSaving.value = true
   try {
     await saveSkillContent(props.skill.skillDir, editBuffer.value)
-    // Reload to reflect changes
     skillContent.value = await fetchSkillContent(props.skill.skillDir)
     editBuffer.value = skillContent.value.raw
     isEditMode.value = false
@@ -509,20 +261,7 @@ function close() {
 function shortenPath(path: string): string {
   const segments = path.replace(/\\/g, '/').split('/')
   if (segments.length <= 3) return path
-  return '.../' + segments.slice(-3).join('/')
-}
-
-// Source display helpers
-const sourceIconMap: Record<string, string> = {
-  marketplace: 'Store',
-  github: 'Github',
-  local: 'HardDrive',
-}
-
-const sourceLabelMap: Record<string, string> = {
-  marketplace: 'Marketplace',
-  github: 'GitHub',
-  local: 'Local',
+  return `.../${segments.slice(-3).join('/')}`
 }
 
 function formatDate(timestamp: number): string {
@@ -536,197 +275,9 @@ function formatDate(timestamp: number): string {
 
 <style scoped>
 .modal-content {
-  @apply bg-black/40 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl
-         shadow-2xl overflow-hidden;
+  @apply overflow-hidden rounded-2xl border border-white/10 bg-black/40 shadow-2xl backdrop-blur-xl;
 }
 
-.modal-header {
-  @apply flex items-center justify-between p-4
-         border-b border-white/5 shrink-0;
-}
-
-.modal-icon {
-  @apply flex items-center justify-center w-10 h-10 rounded-xl;
-}
-
-.modal-body {
-  @apply p-4 space-y-4;
-}
-
-/* Metadata */
-.metadata-section {
-  @apply p-4 rounded-xl border border-white/5 space-y-3;
-
-  background: rgb(0 0 0 / 20%);
-}
-
-.meta-grid {
-  @apply grid grid-cols-1 sm:grid-cols-3 gap-2;
-}
-
-.meta-item {
-  @apply flex items-center gap-2 text-sm;
-}
-
-.meta-label {
-  @apply text-white/50 text-xs;
-}
-
-.meta-value {
-  @apply text-white font-medium text-xs;
-}
-
-.tag-badge {
-  @apply px-2 py-0.5 rounded-md text-[10px] font-medium
-         glass-surface text-white/50;
-}
-
-/* Content Divider */
-.content-divider {
-  @apply flex items-center gap-3;
-}
-
-.content-divider__label {
-  @apply text-xs font-bold uppercase tracking-wide text-white/50 whitespace-nowrap;
-}
-
-.content-divider::after {
-  content: '';
-
-  @apply flex-1 h-px;
-
-  background: rgb(var(--color-border-subtle-rgb) / 50%);
-}
-
-/* Markdown Content */
-.markdown-content {
-  @apply rounded-xl border border-white/5 p-4 overflow-x-auto;
-
-  background: rgb(0 0 0 / 30%);
-}
-
-.markdown-content .prose {
-  @apply text-sm text-white leading-relaxed max-w-none;
-}
-
-.markdown-content .prose :deep(h1) {
-  @apply text-xl font-bold text-white mt-4 mb-2;
-}
-
-.markdown-content .prose :deep(h2) {
-  @apply text-lg font-bold text-white mt-4 mb-2;
-}
-
-.markdown-content .prose :deep(h3) {
-  @apply text-base font-semibold text-white mt-3 mb-1.5;
-}
-
-.markdown-content .prose :deep(p) {
-  @apply my-2;
-}
-
-.markdown-content .prose :deep(ul),
-.markdown-content .prose :deep(ol) {
-  @apply my-2 pl-5;
-}
-
-.markdown-content .prose :deep(li) {
-  @apply my-0.5;
-}
-
-.markdown-content .prose :deep(code) {
-  @apply px-1.5 py-0.5 rounded text-xs font-mono
-         glass-surface text-accent-primary;
-}
-
-.markdown-content .prose :deep(pre) {
-  @apply my-3 p-3 rounded-lg overflow-x-auto text-xs;
-
-  background: rgb(0 0 0 / 40%);
-}
-
-.markdown-content .prose :deep(pre code) {
-  @apply bg-transparent p-0 text-white;
-}
-
-.markdown-content .prose :deep(blockquote) {
-  @apply my-3 pl-4 border-l-2 text-white/80 italic;
-
-  border-color: rgb(var(--color-accent-primary-rgb) / 30%);
-}
-
-.markdown-content .prose :deep(a) {
-  @apply text-accent-primary hover:underline;
-}
-
-.markdown-content .prose :deep(hr) {
-  @apply my-4;
-
-  border-color: rgb(var(--color-border-subtle-rgb) / 50%);
-}
-
-.markdown-content .prose :deep(table) {
-  @apply w-full my-3 text-xs;
-}
-
-.markdown-content .prose :deep(th) {
-  @apply px-3 py-2 text-left font-semibold border-b border-white/5;
-}
-
-.markdown-content .prose :deep(td) {
-  @apply px-3 py-2 border-b border-white/5;
-}
-
-/* Edit Mode */
-.edit-content {
-  @apply rounded-xl border border-white/5 overflow-hidden;
-
-  background: rgb(0 0 0 / 30%);
-}
-
-.edit-textarea {
-  @apply w-full min-h-[400px] p-4 text-sm font-mono leading-relaxed
-         text-white bg-transparent
-         border-0 outline-none resize-y;
-}
-
-.edit-textarea::placeholder {
-  color: rgb(var(--color-text-muted-rgb) / 50%);
-}
-
-/* Footer */
-.modal-footer {
-  @apply flex items-center justify-end gap-2 p-4
-         border-t border-white/5 shrink-0;
-
-  background: rgb(0 0 0 / 20%);
-}
-
-.btn-secondary {
-  @apply px-4 py-2 rounded-xl text-sm font-semibold
-         text-white/80 hover:text-white
-         hover:bg-white/5 transition-colors;
-}
-
-.btn-primary {
-  @apply flex items-center gap-2 px-4 py-2 rounded-xl
-         text-sm font-bold text-white
-         bg-accent-primary
-         disabled:opacity-50 disabled:cursor-not-allowed
-         transition-colors;
-}
-
-.btn-primary:hover {
-  background: rgb(var(--color-accent-primary-rgb) / 90%);
-}
-
-.btn-retry {
-  @apply px-4 py-2 rounded-xl text-sm font-semibold
-         bg-accent-primary text-white hover:bg-accent-primary/90
-         transition-colors;
-}
-
-/* Modal Transition */
 .modal-fade-enter-active,
 .modal-fade-leave-active {
   transition: opacity 0.2s ease;

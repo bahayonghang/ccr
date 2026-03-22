@@ -1,22 +1,14 @@
 <template>
   <div class="installed-tab">
     <!-- Empty State -->
-    <div
+    <AsyncStatePanel
       v-if="!isLoading && skills.length === 0"
-      class="empty-state"
-    >
-      <SIcon
-        name="Package"
-        size="w-12 h-12"
-        class="text-white/50"
-      />
-      <h3 class="text-lg font-semibold text-white mt-4">
-        {{ $t('skills.noSkillsInstalled') }}
-      </h3>
-      <p class="text-sm text-white/80 mt-1">
-        {{ $t('skills.noSkillsInstalledHint') }}
-      </p>
-    </div>
+      state="empty"
+      icon="Package"
+      :title="$t('skills.noSkillsInstalled')"
+      :description="$t('skills.noSkillsInstalledHint')"
+      compact
+    />
 
     <!-- Skills List (single column) -->
     <div
@@ -73,7 +65,7 @@
 </template>
 
 <script setup lang="ts">
-import SIcon from '@/components/ui/SIcon.vue'
+import { AsyncStatePanel } from '@/components/ui'
 import SkillCard from '@/components/skills/SkillCard.vue'
 import type { UnifiedSkill } from '@/types/skills'
 
@@ -92,13 +84,6 @@ defineEmits<{
 <style scoped>
 .installed-tab {
   @apply mt-4;
-}
-
-.empty-state {
-  @apply flex flex-col items-center justify-center py-16
-         rounded-2xl border border-white/5;
-
-  background: rgb(0 0 0 / 20%);
 }
 
 .skills-list {

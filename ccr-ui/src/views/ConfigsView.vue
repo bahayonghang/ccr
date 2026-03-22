@@ -1,85 +1,128 @@
 <template>
-  <div class="min-h-screen relative p-6">
-    <AnimatedBackground variant="minimal" />
+  <div class="min-h-full relative p-6">
+    <AnimatedBackground
+      contained
+      variant="minimal"
+    />
 
-    <div class="max-w-[1800px] mx-auto space-y-6">
-      <!-- Breadcrumb & Nav Header -->
-      <div class="flex items-center justify-between">
-        <Breadcrumb
-          :items="[
-            { label: $t('configs.breadcrumb.home'), path: '/', icon: 'Home' },
-            { label: $t('configs.breadcrumb.configs'), path: '/configs', icon: 'Settings' }
-          ]"
+    <div class="relative z-10 mx-auto max-w-[1800px] space-y-6">
+      <div class="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+        <ModuleSubnav
+          module="claude-code"
+          class="flex-1"
         />
-        <EnvironmentBadge />
+        <div class="flex justify-end">
+          <EnvironmentBadge />
+        </div>
       </div>
 
-      <!-- Module Navigation (Glass Pills) -->
-      <nav class="flex flex-wrap gap-2 p-1.5 rounded-full bg-white/5/40 backdrop-blur-md border border-white/10 w-fit">
-        <RouterLink
-          v-for="navItem in moduleNavItems"
-          :key="navItem.path"
-          :to="navItem.path"
-          class="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-colors duration-300 border border-transparent"
-          :class="$route.path === navItem.path 
-            ? 'bg-accent-primary/20 text-accent-primary border-accent-primary/20 shadow-glow-primary' 
-            : 'text-white/80 hover:text-white hover:bg-white/5'"
-        >
-          <SIcon
-            :name="navItem.icon || ''"
-            size="w-4 h-4"
-          />
-          <span>{{ navItem.label }}</span>
-        </RouterLink>
-      </nav>
-
-      <!-- Main Content Layout -->
-      <div 
-        class="grid grid-cols-1 gap-6 transition-all duration-300"
-        :class="sidebarCollapsed ? 'lg:grid-cols-[48px_1fr]' : 'lg:grid-cols-[280px_1fr]'"
+      <Card
+        variant="glass"
+        glow
+        class="p-6 h-fit min-h-[600px] flex flex-col"
       >
-        <!-- Left Panel: Sidebar -->
-        <div class="lg:order-first">
-          <RightSidebar
-            :configs="configs"
-            :current-filter="currentFilter"
-            :collapsed="sidebarCollapsed"
-            @config-click="handleConfigClick"
-            @toggle-collapse="sidebarCollapsed = !sidebarCollapsed"
-          />
-        </div>
+        <div class="space-y-6">
+          <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            <button
+              v-for="summary in configSummary"
+              :key="summary.key"
+              type="button"
+              class="rounded-2xl border px-4 py-4 text-left transition-[border-color,background-color,transform] duration-200 hover:-translate-y-0.5"
+              :class="summary.key === currentFilter ? summary.activeClass : summary.idleClass"
+              @click="currentFilter = summary.key"
+            >
+              <p class="text-xs font-semibold uppercase tracking-[0.18em] opacity-70">
+                {{ summary.label }}
+              </p>
+              <div class="mt-3 flex items-end justify-between gap-3">
+                <span class="text-3xl font-bold leading-none">{{ summary.count }}</span>
+                <SIcon
+                  :name="summary.icon"
+                  size="w-5 h-5"
+                  class="shrink-0 opacity-80"
+                />
+              </div>
+            </button>
+          </div>
 
-        <!-- Right Panel: Main Content -->
-        <Card
-          variant="glass"
-          glow
-          class="p-6 h-fit min-h-[600px] flex flex-col lg:order-last"
-        >
-          <!-- Tab Navigation -->
-          <div class="flex gap-4 border-b border-white/5 pb-4 mb-6">
+          <div class="rounded-2xl border border-border-default/50 bg-bg-elevated/70 p-4 backdrop-blur-md">
+            <div class="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+              <div class="space-y-2">
+                <p class="text-xs font-semibold uppercase tracking-[0.18em] text-text-muted">
+                  {{ t('configs.description') }}
+                </p>
+                <div class="flex flex-wrap items-center gap-2 text-sm text-text-secondary">
+                  <span class="rounded-full border border-accent-primary/20 bg-accent-primary/10 px-3 py-1 font-medium text-accent-primary">
+                    {{ t('configs.currentConfig') }}: {{ currentConfigName }}
+                  </span>
+                  <span class="rounded-full border border-border-default/50 bg-bg-surface/70 px-3 py-1 font-medium">
+                    {{ filteredConfigs.length }} / {{ configs.length }} {{ t('configs.availableConfigs') }}
+                  </span>
+                </div>
+              </div>
+
+              <label class="relative block w-full xl:max-w-md">
+                <SIcon
+                  name="Search"
+                  size="w-4 h-4"
+                  class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-text-muted"
+                />
+                <input
+                  v-model="searchQuery"
+                  type="text"
+                  :placeholder="t('common.search')"
+                  class="w-full rounded-xl border border-border-default/60 bg-bg-primary/80 py-2.5 pl-10 pr-4 text-sm text-text-primary outline-none transition-[border-color,box-shadow] duration-200 placeholder:text-text-muted focus:border-accent-primary/50 focus:ring-2 focus:ring-accent-primary/20"
+                >
+              </label>
+            </div>
+
+            <div
+              v-if="quickJumpConfigs.length > 0"
+              class="mt-4 flex flex-wrap gap-2"
+            >
+              <button
+                v-for="config in quickJumpConfigs"
+                :key="config.name"
+                type="button"
+                class="inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm transition-[border-color,background-color,color] duration-200"
+                :class="config.is_current
+                  ? 'border-accent-primary/30 bg-accent-primary/10 text-accent-primary'
+                  : 'border-border-default/50 bg-bg-surface/60 text-text-secondary hover:border-accent-primary/20 hover:text-text-primary'"
+                @click="handleConfigClick(config.name)"
+              >
+                <span class="truncate max-w-[180px]">{{ config.name }}</span>
+                <span
+                  class="rounded-full px-1.5 py-0.5 text-[11px] font-semibold"
+                  :class="config.is_current ? 'bg-accent-primary/15 text-accent-primary' : 'bg-bg-elevated/80 text-text-muted'"
+                >
+                  {{ config.usage_count || 0 }}
+                </span>
+              </button>
+            </div>
+          </div>
+
+          <div class="flex gap-4 border-b border-white/5 pb-4">
             <button
               v-for="tab in tabs"
               :key="tab.id"
               class="flex items-center gap-2 pb-2 px-2 text-sm font-bold border-b-2 transition-colors duration-300"
-              :class="activeTab === tab.id 
-                ? 'border-accent-primary text-accent-primary' 
+              :class="activeTab === tab.id
+                ? 'border-accent-primary text-accent-primary'
                 : 'border-transparent text-white/50 hover:text-white/80'"
               @click="activeTab = tab.id"
             >
               <SIcon
-                :name="tab.icon || ''"
+                :name="tab.icon"
                 size="w-4 h-4"
               />
               {{ tab.label }}
             </button>
           </div>
 
-          <!-- Configs View -->
           <div
             v-show="activeTab === 'configs'"
             class="space-y-6"
           >
-            <!-- Actions & Filters -->
             <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
               <ConfigFilters
                 v-model:current-filter="currentFilter"
@@ -87,7 +130,7 @@
                 @show-provider-stats="showProviderModal = true"
                 @add-config="isAddModalOpen = true"
               />
-               
+
               <div class="flex gap-2">
                 <Button
                   size="sm"
@@ -103,7 +146,6 @@
               </div>
             </div>
 
-            <!-- List -->
             <ConfigList
               :configs="filteredConfigs"
               :loading="loading"
@@ -116,15 +158,14 @@
             />
           </div>
 
-          <!-- History View -->
           <div v-show="activeTab === 'history'">
             <HistoryList
               :entries="historyEntries"
               :loading="historyLoading"
             />
           </div>
-        </Card>
-      </div>
+        </div>
+      </Card>
     </div>
 
     <!-- Modals -->
@@ -167,10 +208,9 @@ import { useI18n } from 'vue-i18n'
 import AnimatedBackground from '@/components/common/AnimatedBackground.vue'
 import Card from '@/components/ui/Card.vue'
 import Button from '@/components/ui/Button.vue'
-import { Breadcrumb } from '@/components/ui'
 import EnvironmentBadge from '@/components/EnvironmentBadge.vue'
+import ModuleSubnav from '@/components/ModuleSubnav.vue'
 import HistoryList from '@/components/HistoryList.vue'
-import RightSidebar from '@/components/RightSidebar.vue'
 import ConfigFilters from '@/components/configs/ConfigFilters.vue'
 import ConfigList from '@/components/configs/ConfigList.vue'
 import EditConfigModal from '@/components/EditConfigModal.vue'
@@ -207,7 +247,7 @@ const error = ref<string | null>(null)
 const activeTab = ref<TabId>('configs')
 const currentFilter = ref<FilterType>('all')
 const currentSort = ref<SortType>('name')
-const sidebarCollapsed = ref(false)
+const searchQuery = ref('')
 
 // Modals
 const isEditModalOpen = ref(false)
@@ -237,14 +277,6 @@ const tabs: Array<{ id: TabId; label: string; icon: string | string }> = [
   { id: 'history', label: t('configs.tabs.history'), icon: 'History' },
 ]
 
-const moduleNavItems = [
-  { path: '/configs', label: 'Configs', icon: 'Settings' },
-  { path: '/sync', label: 'Sync', icon: 'Cloud' },
-  { path: '/mcp', label: 'MCP', icon: 'Server' },
-  { path: '/slash-commands', label: 'Slash', icon: 'Command' },
-  { path: '/agents', label: 'Agents', icon: 'Bot' },
-]
-
 // Computed
 const filteredConfigs = computed(() => {
   let list = [...configs.value]
@@ -257,6 +289,15 @@ const filteredConfigs = computed(() => {
     })
   }
 
+  if (searchQuery.value.trim()) {
+    const query = searchQuery.value.toLowerCase().trim()
+    list = list.filter(config =>
+      config.name.toLowerCase().includes(query) ||
+      config.provider?.toLowerCase().includes(query) ||
+      config.model?.toLowerCase().includes(query)
+    )
+  }
+
   if (currentSort.value === 'usage_count') {
     list.sort((a, b) => (b.usage_count || 0) - (a.usage_count || 0))
   } else if (currentSort.value === 'recent') {
@@ -267,6 +308,51 @@ const filteredConfigs = computed(() => {
   
   return list
 })
+
+const currentConfigName = computed(() => {
+  return configs.value.find(config => config.is_current)?.name ?? t('configs.noCurrentConfig')
+})
+
+const quickJumpConfigs = computed(() => {
+  const current = filteredConfigs.value.filter(config => config.is_current)
+  const rest = filteredConfigs.value.filter(config => !config.is_current)
+  return [...current, ...rest].slice(0, 8)
+})
+
+const configSummary = computed(() => [
+  {
+    key: 'all' as FilterType,
+    label: t('configs.filters.all'),
+    count: configs.value.length,
+    icon: 'LayoutGrid',
+    activeClass: 'border-emerald-400/30 bg-emerald-400/10 text-emerald-300',
+    idleClass: 'border-border-default/50 bg-bg-surface/60 text-text-secondary hover:border-emerald-400/20 hover:text-text-primary',
+  },
+  {
+    key: 'official_relay' as FilterType,
+    label: t('configs.filters.officialRelay'),
+    count: configs.value.filter(config => config.provider_type?.toLowerCase().includes('official')).length,
+    icon: 'Zap',
+    activeClass: 'border-cyan-400/30 bg-cyan-400/10 text-cyan-300',
+    idleClass: 'border-border-default/50 bg-bg-surface/60 text-text-secondary hover:border-cyan-400/20 hover:text-text-primary',
+  },
+  {
+    key: 'third_party_model' as FilterType,
+    label: t('configs.filters.thirdPartyModel'),
+    count: configs.value.filter(config => config.provider_type?.toLowerCase().includes('third')).length,
+    icon: 'Cpu',
+    activeClass: 'border-violet-400/30 bg-violet-400/10 text-violet-300',
+    idleClass: 'border-border-default/50 bg-bg-surface/60 text-text-secondary hover:border-violet-400/20 hover:text-text-primary',
+  },
+  {
+    key: 'uncategorized' as FilterType,
+    label: t('configs.filters.uncategorized'),
+    count: configs.value.filter(config => !config.provider_type).length,
+    icon: 'HelpCircle',
+    activeClass: 'border-amber-400/30 bg-amber-400/10 text-amber-300',
+    idleClass: 'border-border-default/50 bg-bg-surface/60 text-text-secondary hover:border-amber-400/20 hover:text-text-primary',
+  },
+])
 
 // Methods
 const loadConfigs = async () => {

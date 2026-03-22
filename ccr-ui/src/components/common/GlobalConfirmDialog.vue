@@ -16,7 +16,7 @@
 
 <script setup lang="ts">
 import { storeToRefs } from 'pinia'
-import { useUIStore } from '@/store'
+import { useUIStore } from '@/stores/ui'
 import ConfirmModal from '@/components/ConfirmModal.vue'
 
 const uiStore = useUIStore()

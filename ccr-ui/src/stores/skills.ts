@@ -4,6 +4,7 @@
  */
 import { defineStore } from 'pinia'
 import { ref, computed, watch, shallowRef, triggerRef } from 'vue'
+import { useCachedFetch } from '@/composables/useCachedFetch'
 import type {
   SkillFilters,
   UnifiedSkill,
@@ -16,10 +17,21 @@ import type {
 } from '@/types/skills'
 
 export const useSkillsStore = defineStore('skills', () => {
+  const skillsCache = useCachedFetch<UnifiedSkill[]>({
+    ttlMs: 5 * 60 * 1000,
+    initialValue: [],
+    isEmpty: (value) => value.length === 0,
+  })
+  const marketplaceCache = useCachedFetch<MarketplaceItem[]>({
+    ttlMs: 5 * 60 * 1000,
+    initialValue: [],
+    isEmpty: (value) => value.length === 0,
+  })
+
   // State
-  const skills = ref<UnifiedSkill[]>([])
+  const skills = skillsCache.data
   const platforms = ref<PlatformSummary[]>([])
-  const marketplaceItems = ref<MarketplaceItem[]>([])
+  const marketplaceItems = marketplaceCache.data
   const isLoading = ref(false)
   const isMarketplaceLoading = ref(false)
   const error = ref<string | null>(null)
@@ -27,8 +39,8 @@ export const useSkillsStore = defineStore('skills', () => {
   const marketplaceCached = ref(false)
 
   // 缓存时间戳（0 表示从未加载）
-  const skillsLastFetchedAt = ref(0)
-  const marketplaceLastFetchedAt = ref(0)
+  const skillsLastFetchedAt = skillsCache.lastFetchedAt
+  const marketplaceLastFetchedAt = marketplaceCache.lastFetchedAt
 
   // === 新增状态 ===
   // 安装状态
@@ -142,16 +154,10 @@ export const useSkillsStore = defineStore('skills', () => {
   })
 
   // Computed: skills 缓存是否有效（5分钟 TTL）
-  const isSkillsCacheValid = computed(() => {
-    if (skills.value.length === 0 || skillsLastFetchedAt.value === 0) return false
-    return Date.now() - skillsLastFetchedAt.value < 5 * 60 * 1000
-  })
+  const isSkillsCacheValid = skillsCache.isCacheValid
 
   // Computed: marketplace 缓存是否有效（5分钟 TTL）
-  const isMarketplaceCacheValid = computed(() => {
-    if (marketplaceItems.value.length === 0 || marketplaceLastFetchedAt.value === 0) return false
-    return Date.now() - marketplaceLastFetchedAt.value < 5 * 60 * 1000
-  })
+  const isMarketplaceCacheValid = marketplaceCache.isCacheValid
 
   // Computed: skills grouped by platform
   const skillsByPlatform = computed(() => {
@@ -196,8 +202,7 @@ export const useSkillsStore = defineStore('skills', () => {
   }
 
   function setSkills(newSkills: UnifiedSkill[]) {
-    skills.value = newSkills
-    skillsLastFetchedAt.value = Date.now()
+    skillsCache.setData(newSkills)
   }
 
   function setPlatforms(newPlatforms: PlatformSummary[]) {
@@ -205,9 +210,8 @@ export const useSkillsStore = defineStore('skills', () => {
   }
 
   function setMarketplaceItems(items: MarketplaceItem[], cached: boolean) {
-    marketplaceItems.value = items
+    marketplaceCache.setData(items)
     marketplaceCached.value = cached
-    marketplaceLastFetchedAt.value = Date.now()
   }
 
   function setLoading(loading: boolean) {

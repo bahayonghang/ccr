@@ -114,40 +114,23 @@
         <!-- Main Content Area -->
         <div class="skills-content">
           <!-- Loading State -->
-          <div
+          <AsyncStatePanel
             v-if="isLoading && filteredSkills.length === 0"
-            class="loading-state"
-          >
-            <SIcon
-              name="Loader2"
-              size="w-8 h-8"
-              class="animate-spin text-accent-primary"
-            />
-            <p class="text-white/80 mt-2">
-              {{ $t('common.loading') }}
-            </p>
-          </div>
+            state="loading"
+            :title="$t('common.loading')"
+            compact
+          />
 
-          <!-- Error State -->
-          <div
+          <AsyncStatePanel
             v-else-if="error"
-            class="error-state"
-          >
-            <SIcon
-              name="AlertCircle"
-              size="w-8 h-8"
-              class="text-danger"
-            />
-            <p class="text-danger mt-2">
-              {{ error }}
-            </p>
-            <button
-              class="btn-retry mt-4"
-              @click="handleRefresh"
-            >
-              {{ $t('common.retry') }}
-            </button>
-          </div>
+            state="error"
+            :title="$t('stats.states.loadFailed')"
+            :description="error"
+            :action-label="$t('common.retry')"
+            action-icon="RefreshCw"
+            compact
+            @action="handleRefresh"
+          />
 
           <!-- Installed Tab -->
           <SkillsInstalledTab
@@ -172,19 +155,13 @@
           />
 
           <!-- Repositories Tab (Placeholder) -->
-          <div
+          <AsyncStatePanel
             v-else-if="activeTab === 'repositories'"
-            class="repositories-placeholder"
-          >
-            <SIcon
-              name="FolderGit2"
-              size="w-12 h-12"
-              class="text-white/50"
-            />
-            <p class="text-white/80 mt-2">
-              {{ $t('skills.repositoriesComingSoon') }}
-            </p>
-          </div>
+            state="empty"
+            icon="FolderGit2"
+            :title="$t('skills.repositoriesComingSoon')"
+            compact
+          />
         </div>
       </div>
     </div>
@@ -267,6 +244,7 @@
 
 <script setup lang="ts">
 import SIcon from '@/components/ui/SIcon.vue'
+import { AsyncStatePanel } from '@/components/ui'
 import { ref, computed, onMounted, watch, defineAsyncComponent } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useUnifiedSkills } from '@/composables/useUnifiedSkills'
@@ -609,18 +587,6 @@ watch(activeTab, (newTab) => {
 
 .skills-content {
   @apply min-h-[400px];
-}
-
-.loading-state,
-.error-state,
-.repositories-placeholder {
-  @apply flex flex-col items-center justify-center py-16;
-}
-
-.btn-retry {
-  @apply px-4 py-2 rounded-xl text-sm font-semibold
-         bg-accent-primary text-white hover:bg-accent-primary/90
-         transition-colors;
 }
 
 /* Mobile Filter Drawer */

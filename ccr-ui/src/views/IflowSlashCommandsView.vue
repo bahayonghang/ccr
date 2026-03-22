@@ -1,10 +1,8 @@
 <template>
   <div
-    class="min-h-screen"
+    class="min-h-full"
     :style="{ background: 'var(--bg-primary)' }"
   >
-    <Navbar />
-
     <!-- 使用重构后的BaseSlashCommands组件 -->
     <BaseSlashCommands :config="iflowConfig" />
   </div>
@@ -13,5 +11,4 @@
 <script setup lang="ts">
 import { iflowConfig } from '@/configs/slashCommands'
 import BaseSlashCommands from '@/components/BaseSlashCommands.vue'
-import Navbar from '@/components/Navbar.vue'
 </script>

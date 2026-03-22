@@ -1,9 +1,11 @@
 <!-- -->
 <template>
-  <div class="min-h-screen p-6 transition-colors duration-300">
+  <div class="min-h-full p-6 transition-colors duration-300">
     <div class="max-w-[1800px] mx-auto">
-      <!-- Breadcrumbs -->
-      <Breadcrumb :items="breadcrumbs" />
+      <ModuleSubnav
+        :module="moduleNavModule"
+        class="mb-6"
+      />
 
       <div class="flex gap-6 items-start">
         <!-- Left Sidebar (Folders) -->
@@ -73,36 +75,23 @@
 
         <!-- Main Content -->
         <div class="flex-1 min-w-0">
-          <!-- Header Bar -->
-          <div class="glass-effect rounded-2xl p-4 mb-6 border border-white/20 flex flex-col md:flex-row items-center justify-between gap-4 sticky top-6 z-20 backdrop-blur-md shadow-sm">
-            <div class="flex items-center gap-3 w-full md:w-auto">
-              <div class="relative flex-1 md:w-80">
-                <SIcon
-                  name="Search"
-                  size="w-4 h-4"
-                  class="absolute left-3 top-1/2 transform -translate-y-1/2 text-[var(--color-text-muted)]"
-                />
-                <input
-                  v-model="searchQuery"
-                  type="text"
-                  :placeholder="$t(`${tPrefix}.searchPlaceholder`)"
-                  class="w-full pl-10 pr-10 py-2.5 rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--color-accent-primary)]/20 bg-[var(--color-bg-surface)]/50 border border-[var(--color-border-default)] hover:bg-[var(--color-bg-surface)] text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)] text-sm"
-                >
-                <button
-                  v-if="searchQuery"
-                  class="absolute right-2 top-1/2 transform -translate-y-1/2 rounded-full hover:bg-black/10 text-[var(--color-text-muted)] transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
-                  :aria-label="$t('common.clearSearch')"
-                  @click="searchQuery = ''"
-                >
-                  <SIcon
-                    name="X"
-                    size="w-3 h-3"
-                  />
-                </button>
-              </div>
-            </div>
+          <PageHeaderCard
+            :title="$t(`${tPrefix}.pageTitle`)"
+            icon="Bot"
+            :badge="String(stats.total)"
+            tone="primary"
+            class="mb-6"
+          >
+            <template #meta>
+              <span class="inline-flex items-center gap-2 rounded-full border border-[var(--color-accent-primary)]/20 bg-[var(--color-accent-primary)]/10 px-3 py-1 text-sm font-medium text-[var(--color-accent-primary)]">
+                {{ stats.active }} Active
+              </span>
+              <span class="inline-flex items-center gap-2 rounded-full border border-[var(--color-border-default)]/50 bg-[var(--color-bg-surface)]/70 px-3 py-1 text-sm font-medium text-[var(--color-text-secondary)]">
+                {{ stats.disabled }} Disabled
+              </span>
+            </template>
 
-            <div class="flex items-center gap-3 w-full md:w-auto justify-end">
+            <template #actions>
               <button
                 class="min-h-[44px] px-4 py-2.5 rounded-xl font-medium transition-[color,background-color,border-color,transform] hover:scale-105 bg-[var(--color-accent-primary)] text-white shadow-lg shadow-[var(--color-accent-primary)]/20 hover:shadow-[var(--color-accent-primary)]/30 flex items-center text-sm"
                 @click="handleAdd"
@@ -113,8 +102,33 @@
                   class="mr-2"
                 />{{ $t(`${tPrefix}.addAgent`) }}
               </button>
+            </template>
+
+            <div class="relative max-w-md">
+              <SIcon
+                name="Search"
+                size="w-4 h-4"
+                class="absolute left-3 top-1/2 transform -translate-y-1/2 text-[var(--color-text-muted)]"
+              />
+              <input
+                v-model="searchQuery"
+                type="text"
+                :placeholder="$t(`${tPrefix}.searchPlaceholder`)"
+                class="w-full pl-10 pr-10 py-2.5 rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--color-accent-primary)]/20 bg-[var(--color-bg-surface)]/50 border border-[var(--color-border-default)] hover:bg-[var(--color-bg-surface)] text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)] text-sm"
+              >
+              <button
+                v-if="searchQuery"
+                class="absolute right-2 top-1/2 transform -translate-y-1/2 rounded-full hover:bg-black/10 text-[var(--color-text-muted)] transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
+                :aria-label="$t('common.clearSearch')"
+                @click="searchQuery = ''"
+              >
+                <SIcon
+                  name="X"
+                  size="w-3 h-3"
+                />
+              </button>
             </div>
-          </div>
+          </PageHeaderCard>
 
           <!-- Agent Grid -->
           <div
@@ -457,8 +471,9 @@ import SIcon from '@/components/ui/SIcon.vue'
 import { ref, computed, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
-import Breadcrumb from '@/components/ui/Breadcrumb.vue'
 import Card from '@/components/ui/Card.vue'
+import PageHeaderCard from '@/components/PageHeaderCard.vue'
+import ModuleSubnav from '@/components/ModuleSubnav.vue'
 import MarketplacePagination from '@/components/skills/MarketplacePagination.vue'
 import { useAgents } from '@/composables/useAgents'
 import { useUIStore } from '@/stores/ui'
@@ -493,26 +508,10 @@ const formData = ref<AgentRequest>({ name: '', model: 'claude-sonnet-4-5-2025092
 const toolInput = ref('')
 const PAGE_SIZE = 20
 
-// Breadcrumbs
-const breadcrumbs = computed(() => {
-  const items: { label: string; path?: string; icon?: string }[] = [
-    { label: t('common.home'), path: '/', icon: 'Home' }
-  ]
-
-  if (props.module === 'agents') {
-    items.push({ label: t('claudeCode.title'), path: '/claude-code', icon: 'Code2' })
-  } else if (props.module === 'codex') {
-    items.push({ label: t('nav.codex'), path: '/codex', icon: 'Code2' })
-  } else if (props.module === 'gemini') {
-    items.push({ label: t('nav.gemini'), path: '/gemini-cli', icon: 'Sparkles' })
-  } else if (props.module === 'qwen') {
-    items.push({ label: t('nav.qwen'), path: '/qwen', icon: 'Sparkles' })
-  } else if (props.module === 'iflow') {
-    items.push({ label: t('nav.iflow'), path: '/iflow', icon: 'Workflow' })
-  }
-
-  items.push({ label: t(`${tPrefix.value}.pageTitle`) })
-  return items
+const moduleNavModule = computed(() => {
+  if (props.module === 'agents') return 'claude-code'
+  if (props.module === 'gemini') return 'gemini-cli'
+  return props.module
 })
 
 // Reload agents when module changes

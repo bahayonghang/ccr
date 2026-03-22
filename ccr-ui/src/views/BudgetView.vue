@@ -1,5 +1,5 @@
 <template>
-  <div class="budget-view min-h-screen space-y-6 p-4 sm:p-6">
+  <div class="budget-view min-h-full space-y-6 p-4 sm:p-6">
     <div class="glass-effect rounded-3xl border border-white/20 p-5 shadow-sm sm:p-6">
       <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div class="space-y-2">

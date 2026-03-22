@@ -94,7 +94,7 @@ const classes = computed(() => {
     accent: 'border border-accent-secondary/20 bg-accent-secondary/90 text-text-inverted shadow-glow-primary hover:bg-accent-secondary',
     outline: 'border border-border-default/80 bg-transparent text-text-secondary hover:border-accent-primary/35 hover:bg-bg-surface/70 hover:text-text-primary',
     ghost: 'text-text-secondary hover:bg-bg-surface/80 hover:text-text-primary',
-    glass: 'glass-surface border border-border-default/60 text-text-primary shadow-sm hover:border-accent-primary/30 hover:bg-bg-elevated/80',
+    glass: 'surface-status border border-border-default/60 text-text-primary shadow-sm hover:border-accent-primary/30 hover:bg-bg-elevated/80',
     danger: 'border border-accent-danger/20 bg-accent-danger/90 text-text-inverted shadow-glow-danger hover:bg-accent-danger',
   }
 

@@ -1,6 +1,8 @@
 import { ref, watch, onMounted, onBeforeUnmount, getCurrentInstance, type Ref, type WatchSource } from 'vue'
 
 export interface UsePolledDataOptions {
+  /** 去重 key；相同 key 的轮询请求共用同一个 in-flight Promise */
+  key?: string
   /** 轮询间隔（毫秒） */
   intervalMs: number
   /** 页面隐藏时暂停轮询（默认 true） */
@@ -35,6 +37,7 @@ export function usePolledData<T>(
   options: UsePolledDataOptions
 ): UsePolledDataReturn<T> {
   const {
+    key,
     intervalMs,
     pauseWhenHidden = true,
     pauseWhen,
@@ -49,6 +52,9 @@ export function usePolledData<T>(
 
   let timer: ReturnType<typeof setInterval> | null = null
   let inFlight = false
+  let visibilityListenerAttached = false
+
+  const inFlightByKey = usePolledDataInflightMap
 
   const shouldPause = (): boolean => {
     if (pauseWhenHidden && typeof document !== 'undefined' && document.hidden) {
@@ -73,12 +79,23 @@ export function usePolledData<T>(
     loading.value = true
     error.value = null
     try {
-      data.value = await fetcher()
+      if (key) {
+        const sharedPromise = (inFlightByKey.get(key) as Promise<T> | undefined) ?? fetcher()
+        if (!inFlightByKey.has(key)) {
+          inFlightByKey.set(key, sharedPromise as Promise<unknown>)
+        }
+        data.value = await sharedPromise
+      } else {
+        data.value = await fetcher()
+      }
     } catch (err) {
       const e = err instanceof Error ? err : new Error(String(err))
       error.value = e
       onError?.(e)
     } finally {
+      if (key) {
+        inFlightByKey.delete(key)
+      }
       loading.value = false
       inFlight = false
     }
@@ -100,12 +117,30 @@ export function usePolledData<T>(
     }
   }
 
+  const attachVisibilityListener = (): void => {
+    if (!pauseWhenHidden || typeof document === 'undefined' || visibilityListenerAttached) {
+      return
+    }
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    visibilityListenerAttached = true
+  }
+
+  const detachVisibilityListener = (): void => {
+    if (!pauseWhenHidden || typeof document === 'undefined' || !visibilityListenerAttached) {
+      return
+    }
+    document.removeEventListener('visibilitychange', handleVisibilityChange)
+    visibilityListenerAttached = false
+  }
+
   const pause = (): void => {
     isActive.value = false
     stopTimer()
+    detachVisibilityListener()
   }
 
   const resume = (): void => {
+    attachVisibilityListener()
     if (shouldPause()) return
     isActive.value = true
     void doFetch()
@@ -141,9 +176,7 @@ export function usePolledData<T>(
 
   if (instance) {
     onMounted(() => {
-      if (pauseWhenHidden && typeof document !== 'undefined') {
-        document.addEventListener('visibilitychange', handleVisibilityChange)
-      }
+      attachVisibilityListener()
       if (immediate) {
         isActive.value = true
         if (!shouldPause()) {
@@ -155,17 +188,13 @@ export function usePolledData<T>(
 
     onBeforeUnmount(() => {
       stopTimer()
-      if (pauseWhenHidden && typeof document !== 'undefined') {
-        document.removeEventListener('visibilitychange', handleVisibilityChange)
-      }
+      detachVisibilityListener()
     })
   } else {
     // Called outside component context — auto-start if immediate
     if (immediate) {
       isActive.value = true
-      if (pauseWhenHidden && typeof document !== 'undefined') {
-        document.addEventListener('visibilitychange', handleVisibilityChange)
-      }
+      attachVisibilityListener()
       if (!shouldPause()) {
         void doFetch()
         startTimer()
@@ -175,3 +204,5 @@ export function usePolledData<T>(
 
   return { data, loading, error, refresh, pause, resume, isActive }
 }
+
+const usePolledDataInflightMap = new Map<string, Promise<unknown>>()

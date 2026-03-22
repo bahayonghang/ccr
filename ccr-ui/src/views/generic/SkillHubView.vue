@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen p-5 transition-colors duration-300">
+  <div class="min-h-full p-5 transition-colors duration-300">
     <div class="max-w-[1600px] mx-auto space-y-6">
       <div class="flex items-start justify-between gap-4">
         <div class="min-w-0">

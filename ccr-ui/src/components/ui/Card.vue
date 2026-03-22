@@ -133,10 +133,10 @@ const showGlow = computed(() => props.glow || props.glowEffect || normalizedVari
 const variantClasses = computed(() => {
   const map: Record<Exclude<CardVariant, 'default'>, string> = {
     base: 'rounded-xl border border-white/10 bg-bg-elevated shadow-sm',
-    elevated: 'rounded-2xl glass-effect-strong border border-white/20 shadow-lg',
-    glass: 'rounded-2xl liquid-glass',
+    elevated: 'rounded-2xl surface-card',
+    glass: 'rounded-2xl surface-workspace',
     outline: 'rounded-xl border border-white/20 bg-transparent backdrop-blur-md',
-    neko: 'rounded-2xl liquid-glass border border-accent-primary/20 shadow-glow-primary overflow-visible mt-4 neko-border-glow',
+    neko: 'rounded-2xl surface-card border border-accent-primary/20 shadow-glow-primary overflow-visible mt-4 neko-border-glow',
   }
   return map[normalizedVariant.value]
 })

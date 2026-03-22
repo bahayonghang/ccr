@@ -1,21 +1,8 @@
 <template>
-  <div class="min-h-screen p-6 transition-colors duration-300">
+  <div class="min-h-full p-6 transition-colors duration-300">
     <div class="max-w-[1800px] mx-auto">
-      <Navbar />
-      
-      <!-- Breadcrumb Navigation -->
-      <Breadcrumb
-        :items="[
-          { label: $t('plugins.breadcrumb.home'), path: '/', icon: 'Home' },
-          { label: $t('plugins.breadcrumb.claudeCode'), path: '/claude-code', icon: 'Code2' },
-          { label: $t('plugins.breadcrumb.plugins'), path: '/plugins', icon: 'Puzzle' }
-        ]"
-        module-color="#6366f1"
-        class="mb-6"
-      />
-
-      <div class="grid grid-cols-[auto_1fr] gap-6">
-        <CollapsibleSidebar module="claude-code" />
+      <div class="space-y-6">
+        <ModuleSubnav module="claude-code" />
 
         <main class="min-w-0">
           <!-- Header -->
@@ -298,11 +285,9 @@
 import SIcon from '@/components/ui/SIcon.vue'
 import { ref, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { Breadcrumb } from '@/components/ui'
 import { listPlugins, addPlugin, updatePlugin, deletePlugin, togglePlugin } from '@/api'
 import type { Plugin as PluginType, PluginRequest } from '@/types'
-import Navbar from '@/components/Navbar.vue'
-import CollapsibleSidebar from '@/components/CollapsibleSidebar.vue'
+import ModuleSubnav from '@/components/ModuleSubnav.vue'
 import { logger } from '@/utils/logger'
 import ConfirmModal from '@/components/ConfirmModal.vue'
 import { useUIStore } from '@/stores/ui'

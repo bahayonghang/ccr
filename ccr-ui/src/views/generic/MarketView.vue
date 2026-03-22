@@ -1,54 +1,33 @@
 <template>
-  <div class="min-h-screen p-6 transition-colors duration-300">
+  <div class="min-h-full p-6 transition-colors duration-300">
     <div class="max-w-7xl mx-auto">
-      <!-- Breadcrumb -->
-      <Breadcrumb
-        :items="breadcrumbItems"
-        module-color="var(--color-accent-primary)"
-        class="mb-6 animate-fade-in"
+      <ModuleSubnav
+        module="skills"
+        class="mb-6"
       />
 
-      <!-- Hero Banner -->
-      <div class="relative mb-8 p-8 md:p-10 rounded-3xl overflow-hidden glass-effect border border-[var(--color-border-default)] shadow-lg text-center">
-        <div class="absolute top-0 left-1/4 w-72 h-72 bg-[var(--color-accent-primary)]/10 rounded-full blur-3xl pointer-events-none" />
-        <div class="absolute bottom-0 right-1/4 w-64 h-64 bg-[var(--color-accent-secondary)]/10 rounded-full blur-3xl pointer-events-none" />
-
-        <div class="relative z-10">
-          <div class="flex items-center justify-center gap-3 mb-3">
-            <div class="p-3 bg-gradient-to-br from-[var(--color-accent-primary)]/20 to-[var(--color-accent-secondary)]/20 rounded-2xl border border-[var(--color-accent-primary)]/30">
-              <SIcon
-                name="ShoppingBag"
-                size="w-7 h-7"
-                class="text-[var(--color-accent-primary)]"
-              />
-            </div>
-            <h1 class="text-3xl font-bold text-[var(--color-text-primary)]">
-              {{ $t('market.title') }}
-            </h1>
-            <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-[var(--color-accent-primary)]/15 text-[var(--color-accent-primary)] border border-[var(--color-accent-primary)]/30">
-              {{ $t('market.badge') }}
-            </span>
-          </div>
-          <p class="text-[var(--color-text-secondary)] mb-6 max-w-xl mx-auto">
-            {{ $t('market.description') }}
-          </p>
-
-          <!-- Search -->
-          <div class="max-w-lg mx-auto relative group">
-            <SIcon
-              name="Search"
-              size="w-5 h-5"
-              class="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] group-focus-within:text-[var(--color-accent-primary)] transition-colors"
-            />
-            <input
-              v-model="searchQuery"
-              type="text"
-              :placeholder="$t('market.searchPlaceholder')"
-              class="w-full pl-12 pr-4 py-3.5 rounded-xl bg-[var(--color-bg-elevated)] border border-[var(--color-border-default)] focus:border-[var(--color-accent-primary)] focus:ring-4 focus:ring-[var(--color-accent-primary)]/10 outline-none transition-[border-color,box-shadow] text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)]"
-            >
-          </div>
+      <PageHeaderCard
+        :title="$t('market.title')"
+        :description="$t('market.description')"
+        :badge="$t('market.badge')"
+        icon="ShoppingBag"
+        tone="primary"
+        class="mb-8"
+      >
+        <div class="max-w-lg relative group">
+          <SIcon
+            name="Search"
+            size="w-5 h-5"
+            class="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)] group-focus-within:text-[var(--color-accent-primary)] transition-colors"
+          />
+          <input
+            v-model="searchQuery"
+            type="text"
+            :placeholder="$t('market.searchPlaceholder')"
+            class="w-full pl-12 pr-4 py-3.5 rounded-xl bg-[var(--color-bg-elevated)] border border-[var(--color-border-default)] focus:border-[var(--color-accent-primary)] focus:ring-4 focus:ring-[var(--color-accent-primary)]/10 outline-none transition-[border-color,box-shadow] text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)]"
+          >
         </div>
-      </div>
+      </PageHeaderCard>
 
       <!-- Stats Row -->
       <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
@@ -367,20 +346,13 @@
 <script setup lang="ts">
 import SIcon from '@/components/ui/SIcon.vue'
 import { ref, computed, onMounted, watch } from 'vue'
-import { useI18n } from 'vue-i18n'
 import Card from '@/components/ui/Card.vue'
-import Breadcrumb from '@/components/ui/Breadcrumb.vue'
+import ModuleSubnav from '@/components/ModuleSubnav.vue'
+import PageHeaderCard from '@/components/PageHeaderCard.vue'
 import MarketplacePagination from '@/components/skills/MarketplacePagination.vue'
 import { useMarketplace, type MarketItem, type MarketItemCategory } from '@/composables/useMarketplace'
 
-const { t } = useI18n()
 const { items, loading, error, fetchMarketItems, fetchInstalledItems, installItem, uninstallItem, isInstalling } = useMarketplace()
-
-const breadcrumbItems = computed(() => [
-  { label: t('market.breadcrumb.home'), path: '/', icon: 'Home' },
-  { label: t('market.breadcrumb.claude'), path: '/claude-code' },
-  { label: t('market.breadcrumb.market'), path: '', icon: 'ShoppingBag' }
-])
 
 const searchQuery = ref('')
 const activeTab = ref('featured')

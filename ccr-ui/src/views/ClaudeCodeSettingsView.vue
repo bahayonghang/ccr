@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen p-5 transition-colors duration-300">
+  <div class="min-h-full p-5 transition-colors duration-300">
     <div class="mb-6" />
 
     <div class="max-w-[1200px] mx-auto">
@@ -777,7 +777,7 @@ import { useI18n } from 'vue-i18n'
 import Card from '@/components/ui/Card.vue'
 import { getClaudeSettings, updateClaudeSettings } from '@/api'
 import type { ClaudeSettingsData } from '@/api'
-import { useUIStore } from '@/store'
+import { useUIStore } from '@/stores/ui'
 
 const { t } = useI18n()
 const uiStore = useUIStore()

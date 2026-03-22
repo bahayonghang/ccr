@@ -1,9 +1,27 @@
 <!-- -->
 <template>
-  <div class="min-h-screen p-5 transition-colors duration-300">
+  <div class="min-h-full p-5 transition-colors duration-300">
     <div class="max-w-[1200px] mx-auto">
-      <!-- Breadcrumb -->
-      <Breadcrumb :items="breadcrumbs" />
+      <ModuleSubnav
+        module="claude-code"
+        class="mb-6"
+      />
+
+      <div class="mb-6 flex items-center gap-3">
+        <RouterLink
+          to="/agents"
+          class="inline-flex min-h-[44px] items-center gap-2 rounded-xl border border-border-default/60 bg-bg-surface/70 px-4 py-2 text-sm font-medium text-text-secondary transition-colors hover:border-accent-secondary/30 hover:bg-bg-elevated hover:text-text-primary"
+        >
+          <SIcon
+            name="ArrowLeft"
+            size="w-4 h-4"
+          />
+          {{ $t('common.back') }}
+        </RouterLink>
+        <span class="text-sm text-text-muted">
+          {{ agent?.name || $t('common.loading') }}
+        </span>
+      </div>
 
       <!-- Loading State -->
       <div
@@ -46,86 +64,76 @@
 
       <!-- Agent Detail -->
       <div v-else-if="agent">
-        <!-- Header -->
-        <div class="glass-effect rounded-2xl p-6 mb-6 border border-white/20 shadow-sm">
-          <div class="flex items-start justify-between gap-4">
-            <div class="flex-1 min-w-0">
-              <div class="flex items-center gap-3 mb-2">
-                <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-accent-secondary/10 to-accent-secondary/10 flex items-center justify-center text-xl shadow-sm border border-white/20">
-                  🤖
-                </div>
-                <div>
-                  <h1 class="text-2xl font-bold text-text-primary">
-                    {{ agent.name }}
-                  </h1>
-                  <div class="flex items-center gap-2 mt-1">
-                    <span
-                      v-if="agent.folder"
-                      class="flex items-center gap-1 text-xs text-text-muted bg-bg-surface px-2 py-0.5 rounded border border-border-default/50"
-                    >
-                      <SIcon
-                        name="Folder"
-                        size="w-3 h-3"
-                      /> {{ agent.folder }}
-                    </span>
-                    <span
-                      v-if="agent.model"
-                      class="text-xs text-accent-secondary bg-accent-secondary/10 px-2 py-0.5 rounded"
-                    >
-                      {{ agent.model }}
-                    </span>
-                    <span
-                      :class="agent.disabled ? 'bg-text-muted/20 text-text-muted' : 'bg-accent-secondary/10 text-accent-secondary'"
-                      class="text-xs px-2 py-0.5 rounded font-medium"
-                    >
-                      {{ agent.disabled ? $t('agents.disabledBadge') : $t('agents.enabledBadge') }}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
+        <PageHeaderCard
+          :title="agent.name"
+          icon="Bot"
+          tone="secondary"
+          class="mb-6"
+        >
+          <template #meta>
+            <span
+              v-if="agent.folder"
+              class="inline-flex items-center gap-1 rounded-full border border-border-default/50 bg-bg-surface px-3 py-1 text-xs text-text-muted"
+            >
+              <SIcon
+                name="Folder"
+                size="w-3 h-3"
+              /> {{ agent.folder }}
+            </span>
+            <span
+              v-if="agent.model"
+              class="inline-flex items-center rounded-full border border-accent-secondary/20 bg-accent-secondary/10 px-3 py-1 text-xs text-accent-secondary"
+            >
+              {{ agent.model }}
+            </span>
+            <span
+              :class="agent.disabled ? 'border-border-default/50 bg-bg-surface text-text-muted' : 'border-accent-secondary/20 bg-accent-secondary/10 text-accent-secondary'"
+              class="inline-flex items-center rounded-full border px-3 py-1 text-xs font-medium"
+            >
+              {{ agent.disabled ? $t('agents.disabledBadge') : $t('agents.enabledBadge') }}
+            </span>
+          </template>
 
-            <div class="flex items-center gap-2">
-              <button
-                class="px-4 py-2 rounded-lg font-medium text-sm transition-colors flex items-center gap-2"
-                :class="agent.disabled ? 'bg-accent-secondary/10 text-accent-secondary hover:bg-accent-secondary/20' : 'bg-text-muted/10 text-text-muted hover:bg-text-muted/20'"
-                @click="handleToggle"
-              >
-                <SIcon
-                  v-if="!agent.disabled"
-                  name="Power"
-                  size="w-4 h-4"
-                />
-                <SIcon
-                  v-else
-                  name="PowerOff"
-                  size="w-4 h-4"
-                />
-                {{ agent.disabled ? $t('agents.enable') : $t('agents.disable') }}
-              </button>
-              <button
-                class="px-4 py-2 rounded-lg font-medium text-sm transition-colors bg-accent-secondary/10 text-accent-secondary hover:bg-accent-secondary/20 flex items-center gap-2"
-                @click="handleEdit"
-              >
-                <SIcon
-                  name="Edit2"
-                  size="w-4 h-4"
-                />
-                {{ $t('common.edit') }}
-              </button>
-              <button
-                class="px-4 py-2 rounded-lg font-medium text-sm transition-colors bg-accent-danger/10 text-accent-danger hover:bg-accent-danger/20 flex items-center gap-2"
-                @click="handleDelete"
-              >
-                <SIcon
-                  name="Trash2"
-                  size="w-4 h-4"
-                />
-                {{ $t('common.delete') }}
-              </button>
-            </div>
-          </div>
-        </div>
+          <template #actions>
+            <button
+              class="px-4 py-2 rounded-lg font-medium text-sm transition-colors flex items-center gap-2"
+              :class="agent.disabled ? 'bg-accent-secondary/10 text-accent-secondary hover:bg-accent-secondary/20' : 'bg-text-muted/10 text-text-muted hover:bg-text-muted/20'"
+              @click="handleToggle"
+            >
+              <SIcon
+                v-if="!agent.disabled"
+                name="Power"
+                size="w-4 h-4"
+              />
+              <SIcon
+                v-else
+                name="PowerOff"
+                size="w-4 h-4"
+              />
+              {{ agent.disabled ? $t('agents.enable') : $t('agents.disable') }}
+            </button>
+            <button
+              class="px-4 py-2 rounded-lg font-medium text-sm transition-colors bg-accent-secondary/10 text-accent-secondary hover:bg-accent-secondary/20 flex items-center gap-2"
+              @click="handleEdit"
+            >
+              <SIcon
+                name="Edit2"
+                size="w-4 h-4"
+              />
+              {{ $t('common.edit') }}
+            </button>
+            <button
+              class="px-4 py-2 rounded-lg font-medium text-sm transition-colors bg-accent-danger/10 text-accent-danger hover:bg-accent-danger/20 flex items-center gap-2"
+              @click="handleDelete"
+            >
+              <SIcon
+                name="Trash2"
+                size="w-4 h-4"
+              />
+              {{ $t('common.delete') }}
+            </button>
+          </template>
+        </PageHeaderCard>
 
         <!-- Tools Section -->
         <div
@@ -340,10 +348,11 @@
 
 <script setup lang="ts">
 import SIcon from '@/components/ui/SIcon.vue'
-import { ref, computed, onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRoute, useRouter, RouterLink } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import Breadcrumb from '@/components/ui/Breadcrumb.vue'
+import PageHeaderCard from '@/components/PageHeaderCard.vue'
+import ModuleSubnav from '@/components/ModuleSubnav.vue'
 import { useAgents } from '@/composables/useAgents'
 import type { Agent, AgentRequest } from '@/types'
 import { extractStringParam } from '@/types/router'
@@ -364,12 +373,6 @@ const formData = ref<AgentRequest>({ name: '', model: '', tools: [], system_prom
 const toolInput = ref('')
 const saving = ref(false)
 const copied = ref(false)
-
-const breadcrumbs = computed(() => [
-  { label: t('common.home'), path: '/', icon: 'Home' },
-  { label: t('agents.pageTitle'), path: '/agents', icon: 'Bot' },
-  { label: agent.value?.name || t('common.loading') }
-])
 
 onMounted(async () => {
   const name = extractStringParam(route.params.name)

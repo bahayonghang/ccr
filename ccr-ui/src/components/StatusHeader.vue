@@ -237,6 +237,7 @@ const isCollapsed = ref(false)
 const { data: systemInfo } = usePolledData<SystemInfoType>(
   getSystemInfo,
   {
+    key: 'status-header-system-info',
     intervalMs: 5000,
     pauseWhenHidden: true,
     pauseWhen: isCollapsed,

@@ -16,7 +16,7 @@
         <img
           src="/icons/icon.png"
           class="w-full h-full object-cover transition-transform group-hover:scale-110"
-          alt="CCR Desktop"
+          :alt="appName"
         >
       </div>
 
@@ -42,7 +42,7 @@
             class="w-full text-left px-3 py-1.5 text-xs text-slate-700 dark:text-white/80 hover:text-slate-900 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 transition-colors flex items-center"
             @click="openAbout"
           >
-            <i class="i-carbon-information mr-2" /> 关于 CCR Neko
+            <i class="i-carbon-information mr-2" /> {{ t('common.about.menu', { name: appName }) }}
           </button>
           <div class="h-px bg-black/10 dark:bg-white/10 my-1" />
           <button
@@ -58,10 +58,10 @@
     <!-- Center: Window Title -->
     <div
       data-tauri-drag-region
-      class="absolute left-1/2 -translate-x-1/2 text-xs font-medium text-secondary-400 tracking-wider flex items-center space-x-2"
+      class="absolute left-1/2 -translate-x-1/2 flex items-center space-x-2 text-xs font-medium tracking-wider text-white/70"
     >
       <span class="opacity-50">✦</span>
-      <span>CCR DESKTOP</span>
+      <span>{{ windowTitle }}</span>
       <span class="opacity-50">✦</span>
     </div>
 
@@ -73,7 +73,7 @@
         @click="minimizeWindow"
       >
         <svg
-          class="w-3.5 h-3.5 transition-colors text-secondary-400 group-hover:text-white"
+          class="w-3.5 h-3.5 transition-colors text-white/70 group-hover:text-white"
           fill="currentColor"
           viewBox="0 0 16 16"
         >
@@ -94,7 +94,7 @@
       >
         <svg
           v-if="!isMaximized"
-          class="w-3.5 h-3.5 transition-colors text-secondary-400 group-hover:text-white"
+          class="w-3.5 h-3.5 transition-colors text-white/70 group-hover:text-white"
           fill="none"
           viewBox="0 0 16 16"
         >
@@ -110,7 +110,7 @@
         </svg>
         <svg
           v-else
-          class="w-3.5 h-3.5 transition-colors text-secondary-400 group-hover:text-white"
+          class="w-3.5 h-3.5 transition-colors text-white/70 group-hover:text-white"
           fill="none"
           viewBox="0 0 16 16"
         >
@@ -138,7 +138,7 @@
         @click="closeWindow"
       >
         <svg
-          class="w-3.5 h-3.5 transition-colors text-secondary-400 control-close-icon"
+          class="control-close-icon w-3.5 h-3.5 text-white/70 transition-colors"
           fill="currentColor"
           viewBox="0 0 16 16"
         >
@@ -162,40 +162,42 @@
           class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/20 dark:bg-black/60 backdrop-blur-md"
           @click.self="showAboutDialog = false"
         >
-          <div class="relative bg-white/95 dark:bg-surface-800/90 border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden overflow-y-auto">
+          <div class="surface-modal relative w-full max-w-sm overflow-hidden overflow-y-auto rounded-2xl border border-border-default/70">
             <!-- Glitch / Cyber effect top bar -->
-            <div class="h-1 w-full bg-gradient-to-r from-primary-500 via-secondary-500 to-cyan-500" />
+            <div class="h-1 w-full bg-gradient-to-r from-accent-primary via-accent-secondary to-cyan-400" />
             
             <div class="p-6 flex flex-col items-center">
               <div class="w-24 h-24 rounded-2xl mb-4 relative overflow-hidden shadow-lg border border-slate-100 dark:border-white/5 ring-4 ring-slate-50 dark:ring-white/5">
                 <img
                   src="/icons/icon.png"
-                  alt="CCR Desktop Logo"
+                  :alt="`${appName} logo`"
                   class="w-full h-full object-cover"
                 >
-                <div class="absolute inset-0 bg-gradient-to-tr from-primary-500/20 to-transparent mix-blend-overlay" />
+                <div class="absolute inset-0 bg-gradient-to-tr from-accent-primary/20 to-transparent mix-blend-overlay" />
               </div>
               
               <h2 class="text-2xl font-bold text-slate-800 dark:text-white tracking-tight mb-1">
-                CCR Desktop
+                {{ appName }}
               </h2>
               <div class="flex items-center space-x-2 text-xs mb-4">
-                <span class="px-2 py-0.5 rounded-full bg-primary-100 dark:bg-primary-500/20 text-primary-600 dark:text-primary-300 border border-primary-200 dark:border-primary-500/30">Neko Console</span>
-                <span class="text-text-muted dark:text-secondary-400">v4.1.4</span>
+                <span class="rounded-full border border-accent-primary/20 bg-accent-primary/10 px-2 py-0.5 text-accent-primary">
+                  {{ appTagline }}
+                </span>
+                <span class="text-text-muted">{{ appVersionText }}</span>
               </div>
               
-              <p class="text-slate-600 dark:text-secondary-300 text-sm text-center mb-6 leading-relaxed">
-                A sleek, powerful configuration manager for Claude Code, Codex, and Gemini. Designed with cyber-glass aesthetics and cat girl energy. (*/ω＼*)
+              <p class="mb-6 text-center text-sm leading-relaxed text-text-secondary">
+                {{ t('common.about.description') }}
               </p>
               
               <div class="w-full space-y-2 mb-6">
-                <div class="flex justify-between items-center text-xs p-2 rounded-lg bg-slate-50 dark:glass-surface border border-slate-100 dark:border-white/5">
-                  <span class="text-text-muted dark:text-secondary-400">Owner</span>
-                  <span class="text-slate-800 dark:text-white font-medium">李永航</span>
+                <div class="surface-status flex items-center justify-between rounded-lg border border-border-default/60 p-2 text-xs">
+                  <span class="text-text-muted">{{ t('common.about.owner') }}</span>
+                  <span class="font-medium text-text-primary">{{ appOwner }}</span>
                 </div>
-                <div class="flex justify-between items-center text-xs p-2 rounded-lg bg-slate-50 dark:glass-surface border border-slate-100 dark:border-white/5">
-                  <span class="text-text-muted dark:text-secondary-400">Engine</span>
-                  <span class="text-slate-800 dark:text-white font-medium">Tauri 2.0 & Vue 3</span>
+                <div class="surface-status flex items-center justify-between rounded-lg border border-border-default/60 p-2 text-xs">
+                  <span class="text-text-muted">{{ t('common.about.engine') }}</span>
+                  <span class="font-medium text-text-primary">{{ appEngine }}</span>
                 </div>
               </div>
 
@@ -203,12 +205,12 @@
                 class="w-full py-2 bg-slate-100 hover:bg-slate-200 dark:bg-white/10 dark:hover:bg-white/20 border border-slate-200 dark:border-white/10 rounded-xl text-sm font-medium text-slate-800 dark:text-white transition-[color,background-color,transform] transform hover:scale-[1.02] active:scale-95 flex items-center justify-center focus:outline-none"
                 @click="showAboutDialog = false"
               >
-                我知道了喵～
+                {{ t('common.about.close') }}
               </button>
             </div>
             
             <button
-              class="absolute top-3 right-3 p-1.5 rounded-full text-text-muted hover:text-slate-800 hover:bg-slate-100 dark:text-secondary-400 dark:hover:text-white dark:hover:bg-white/10 transition-colors"
+              class="absolute top-3 right-3 rounded-full p-1.5 text-text-muted transition-colors hover:bg-slate-100 hover:text-slate-800 dark:hover:bg-white/10 dark:hover:text-white"
               @click="showAboutDialog = false"
             >
               <svg
@@ -227,15 +229,25 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { APP_ENGINE, APP_NAME, APP_OWNER, APP_TAGLINE, APP_VERSION } from '@/config/appMeta'
 import { logger } from '@/utils/logger'
 import { getCurrentWindowSafe } from '@/utils/tauriWindow'
+
+const { t } = useI18n()
 
 const isMaximized = ref(false)
 const isFocused = ref(true)
 const isMenuOpen = ref(false)
 const showAboutDialog = ref(false)
 const menuRef = ref<HTMLElement | null>(null)
+const appName = APP_NAME
+const appTagline = APP_TAGLINE
+const appOwner = APP_OWNER
+const appEngine = APP_ENGINE
+const windowTitle = computed(() => appName.toUpperCase())
+const appVersionText = computed(() => `v${APP_VERSION}`)
 
 // Actions
 const minimizeWindow = async () => {
@@ -341,7 +353,7 @@ onUnmounted(() => {
   font-size: 0.75rem;
   line-height: 1rem;
   font-weight: 500;
-  color: var(--color-secondary-400, #9ca3af);
+  color: rgb(var(--color-text-muted-rgb) / 85%);
   border-radius: 0.375rem;
   transition: color 150ms, background-color 150ms;
   outline: none;

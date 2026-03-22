@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen p-5 transition-colors duration-300">
+  <div class="min-h-full p-5 transition-colors duration-300">
     <div class="mb-6" />
 
     <div class="max-w-[1600px] mx-auto">
@@ -361,7 +361,7 @@ import SIcon from '@/components/ui/SIcon.vue'
 import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import Card from '@/components/ui/Card.vue'
 import { listHooks, addHook, updateHook, deleteHook, toggleHook } from '@/api'
-import { useUIStore } from '@/store'
+import { useUIStore } from '@/stores/ui'
 import type { Hook, HookType } from '@/types'
 import { logger } from '@/utils/logger'
 

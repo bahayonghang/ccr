@@ -1,8 +1,8 @@
 <!-- -->
 <template>
-  <div class="min-h-screen relative">
+  <div class="min-h-full relative overflow-hidden">
     <!-- 🎨 彩色背景装饰 -->
-    <div class="fixed inset-0 overflow-hidden pointer-events-none -z-10">
+    <div class="absolute inset-0 overflow-hidden pointer-events-none -z-10">
       <div
         class="absolute top-20 right-20 w-96 h-96 rounded-full opacity-15 blur-3xl animate-pulse"
         :style="{ background: 'linear-gradient(135deg, #10b981 0%, #3b82f6 100%)' }"

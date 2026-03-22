@@ -1,45 +1,80 @@
-import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { ref } from 'vue'
+import { healthCheck, isTauriEnvironment } from '@/api'
+import { usePolledData } from '@/composables/usePolledData'
 
 export type BackendHealthStatus = 'unsupported' | 'unknown' | 'checking' | 'ok' | 'error'
 
 const status = ref<BackendHealthStatus>('unknown')
 const errorMessage = ref<string | null>(null)
 const lastCheckedAt = ref<Date | null>(null)
+const isTauri = isTauriEnvironment()
+
+interface BackendHealthPayload {
+  status?: string
+  database?: boolean
+}
 
 /**
  * 原生 Tauri 模式下，后端内嵌在应用中，始终可用。
- * 健康检查直接返回 ok，无需 HTTP 轮询。
+ * web 模式下返回 unsupported；Tauri 模式下走共享轮询器。
  */
 const checkHealth = async () => {
-  // 在 Tauri 原生模式下，后端是内嵌的，始终可用
-  status.value = 'ok'
-  errorMessage.value = null
-  lastCheckedAt.value = new Date()
+  if (!isTauri) {
+    status.value = 'unsupported'
+    errorMessage.value = null
+    lastCheckedAt.value = null
+    return
+  }
+
+  status.value = 'checking'
+
+  try {
+    const result = await healthCheck<BackendHealthPayload>()
+    status.value = result.status === 'healthy' && result.database !== false ? 'ok' : 'error'
+    errorMessage.value =
+      status.value === 'error' ? 'Backend health check reported degraded status.' : null
+    lastCheckedAt.value = new Date()
+  } catch (error) {
+    status.value = 'error'
+    errorMessage.value = error instanceof Error ? error.message : String(error)
+    lastCheckedAt.value = new Date()
+    throw error
+  }
 }
 
-let subscribers = 0
-let pollerTimer: ReturnType<typeof setInterval> | null = null
+if (!isTauri) {
+  status.value = 'unsupported'
+}
+
+const backendHealthPoller = isTauri
+  ? usePolledData<BackendHealthPayload>(async () => {
+      const result = await healthCheck<BackendHealthPayload>()
+      status.value = result.status === 'healthy' && result.database !== false ? 'ok' : 'error'
+      errorMessage.value =
+        status.value === 'error' ? 'Backend health check reported degraded status.' : null
+      lastCheckedAt.value = new Date()
+      return result
+    }, {
+      key: 'backend-health',
+      intervalMs: 30_000,
+      pauseWhenHidden: true,
+      immediate: true,
+      onError: (error) => {
+        status.value = 'error'
+        errorMessage.value = error.message
+        lastCheckedAt.value = new Date()
+      },
+    })
+  : null
 
 export const useBackendHealth = (options?: { auto?: boolean; intervalMs?: number }) => {
-  const auto = options?.auto ?? true
-
-  onMounted(() => {
-    if (!auto) return
-    subscribers += 1
-    if (subscribers === 1) {
-      // 立即检查一次
-      checkHealth()
-    }
-  })
-
-  onBeforeUnmount(() => {
-    if (!auto) return
-    subscribers = Math.max(0, subscribers - 1)
-    if (subscribers === 0 && pollerTimer) {
-      clearInterval(pollerTimer)
-      pollerTimer = null
-    }
-  })
+  if (!isTauri) {
+    status.value = 'unsupported'
+  } else if (options?.auto === false && status.value === 'unknown') {
+    status.value = 'checking'
+  } else if (backendHealthPoller?.loading.value) {
+    status.value = 'checking'
+  }
 
   return {
     status,

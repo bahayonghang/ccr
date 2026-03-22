@@ -1,8 +1,11 @@
 <template>
-  <div class="min-h-screen relative">
+  <div class="min-h-full relative overflow-hidden">
     <!-- 🎨 彩色背景装饰 -->
     <!-- Standard Animated Background -->
-    <AnimatedBackground variant="mesh" />
+    <AnimatedBackground
+      contained
+      variant="mesh"
+    />
 
     <div class="relative z-10 p-6 max-w-7xl mx-auto">
       <!-- Hero 区域 -->

@@ -1,20 +1,13 @@
 <!-- -->
 <template>
-  <div class="min-h-screen relative">
+  <div class="min-h-full relative">
     <!-- Enhanced Animated Background -->
-    <AnimatedBackground variant="mesh" />
+    <AnimatedBackground
+      contained
+      variant="mesh"
+    />
 
-    <main class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8 pb-8">
-      <!-- Breadcrumb Navigation -->
-      <Breadcrumb
-        :items="[
-          { label: $t('sync.breadcrumb.home'), path: '/', icon: 'Home' },
-          { label: $t('sync.breadcrumb.claudeCode'), path: '/claude-code', icon: 'Code2' },
-          { label: $t('sync.breadcrumb.sync'), path: '/sync', icon: 'Cloud' }
-        ]"
-        module-color="var(--color-accent-primary)"
-      />
-
+    <main class="relative z-10 mx-auto max-w-7xl px-4 pb-8 pt-8 sm:px-6 lg:px-8">
       <div class="mb-12">
         <div class="flex items-center justify-between mb-6 animate-fade-in">
           <div class="flex items-center gap-4">
@@ -91,779 +84,50 @@
       >
         <!-- 左侧主内容区 (2 columns) -->
         <div class="lg:col-span-2 space-y-6">
-          <!-- Platform selection -->
-          <div class="glass-effect p-6 hover:scale-[1.01] transition-[transform,box-shadow] duration-300 rounded-2xl border border-white/5 hover:border-cyan-500/30">
-            <!-- Header -->
-            <div class="flex items-center justify-between mb-6">
-              <div class="flex items-center gap-3">
-                <div class="p-3 rounded-2xl bg-success/15 border border-success/30">
-                  <SIcon
-                    name="CheckSquare"
-                    size="w-6 h-6"
-                    class="text-success"
-                  />
-                </div>
-                <h2 class="text-2xl font-bold text-white">
-                  {{ $t('sync.platformSelection.title') }}
-                </h2>
-              </div>
-              <button
-                :disabled="applying || !hasChanges"
-                class="flex items-center gap-2 px-4 py-2.5 rounded-xl glass-effect font-medium transition-[color,background-color,border-color,transform] duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed border"
-                :class="applying || !hasChanges
-                  ? 'glass-surface text-white/50 border-white/5'
-                  : 'bg-success/15 text-success border-success/30 hover:bg-success/20'"
-                @click="applySelection"
-              >
-                <SIcon
-                  name="Save"
-                  size="w-4 h-4"
-                />
-                <span>{{ applying ? $t('sync.platformSelection.applying') : $t('sync.platformSelection.applyButton') }}</span>
-              </button>
-            </div>
+          <SyncSelectionPanel
+            :add-custom-folder="addCustomFolder"
+            :adding-custom="addingCustom"
+            :applying="applying"
+            :apply-selection="applySelection"
+            :custom-folder="customFolder"
+            :has-changes="hasChanges"
+            :optional-items="optionalItems"
+            :preset-config="presetItems.config"
+            :toggle-item="toggleItem"
+            :update-custom-field="updateCustomField"
+            :update-optional-local-path="updateOptionalLocalPath"
+            :update-optional-remote-path="updateOptionalRemotePath"
+            :update-preset-local-path="updatePresetLocalPath"
+          />
 
-            <!-- Config (required) -->
-            <div class="mb-6 p-5 rounded-xl glass-effect bg-warning/5 border border-warning/30">
-              <div class="flex items-center gap-4">
-                <div class="p-2 rounded-xl bg-warning/15">
-                  <SIcon
-                    name="CheckCircle"
-                    size="w-6 h-6"
-                    class="text-warning"
-                  />
-                </div>
-                <div class="flex-1">
-                  <div class="flex items-center gap-3 mb-2">
-                    <h3 class="text-lg font-bold text-white">
-                      {{ $t('sync.platformSelection.configRequired') }}
-                    </h3>
-                    <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-warning/20 text-warning border border-warning/30">
-                      {{ $t('sync.platformSelection.configRequiredBadge') }}
-                    </span>
-                  </div>
-                  <p class="text-sm mb-3 text-white/80">
-                    {{ $t('sync.platformSelection.configDescription') }}
-                  </p>
-                  <div class="flex items-center gap-2">
-                    <SIcon
-                      name="Folder"
-                      size="w-4 h-4"
-                      class="text-white/50"
-                    />
-                    <input
-                      v-model="presetItems.config.localPath"
-                      type="text"
-                      class="flex-1 px-3 py-2 rounded-lg glass-effect text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500/30 glass-surface border border-white/5 text-white"
-                      :placeholder="$t('sync.customFolder.localPathPlaceholder')"
-                    >
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- 可选平台列表 -->
-            <div class="space-y-4">
-              <div
-                v-for="(item, index) in optionalItems"
-                :key="item.key"
-                class="p-5 rounded-xl glass-card cursor-pointer hover:scale-[1.02] transition-[transform,box-shadow] duration-300"
-                :style="{
-                  background: item.selected ? 'rgba(var(--color-accent-primary-rgb), 0.05)' : 'transparent',
-                  animationDelay: `${index * 0.05}s`
-                }"
-                @click="toggleItem(item.key)"
-              >
-                <div class="flex items-start gap-4">
-                  <div class="flex-shrink-0">
-                    <div
-                      class="w-7 h-7 rounded-lg flex items-center justify-center transition-colors duration-300"
-                      :style="{
-                        background: item.selected ? 'rgba(var(--color-accent-primary-rgb), 0.15)' : 'rgba(var(--color-gray-rgb), 0.1)',
-                        border: item.selected ? '2px solid var(--color-accent-primary)' : '2px solid var(--border-color)'
-                      }"
-                    >
-                      <SIcon
-                        v-if="item.selected"
-                        name="Check"
-                        size="w-4 h-4"
-                        
-                        :style="{ color: 'var(--color-accent-primary)' }"
-                      />
-                    </div>
-                  </div>
-                  <div class="flex-1">
-                    <div class="flex items-center gap-3 mb-2">
-                      <div
-                        class="p-2 rounded-lg"
-                        :style="{ background: 'rgba(var(--color-accent-primary-rgb), 0.1)' }"
-                      >
-                        <SIcon
-                          :name="item.icon"
-                          size="w-5 h-5"
-                          :style="{ color: 'var(--color-accent-primary)' }"
-                        />
-                      </div>
-                      <h3
-                        class="text-lg font-bold"
-                        :style="{ color: 'var(--text-primary)' }"
-                      >
-                        {{ item.name }}
-                      </h3>
-                    </div>
-                    <p
-                      class="text-sm mb-3"
-                      :style="{ color: 'var(--text-secondary)' }"
-                    >
-                      {{ item.description }}
-                    </p>
-                    <div
-                      v-if="item.selected"
-                      class="space-y-2"
-                      @click.stop
-                    >
-                      <div class="flex items-center gap-2">
-                        <SIcon
-                          name="Folder"
-                          size="w-4 h-4"
-                          :style="{ color: 'var(--text-muted)' }"
-                        />
-                        <input
-                          v-model="item.localPath"
-                          type="text"
-                          class="flex-1 px-3 py-2 rounded-lg glass-card text-sm focus:outline-none focus:ring-2"
-                          :style="{ color: 'var(--text-primary)', background: 'rgba(255, 255, 255, 0.5)' }"
-                          :placeholder="$t('sync.customFolder.localPathPlaceholder')"
-                        >
-                      </div>
-                      <div class="flex items-center gap-2">
-                        <SIcon
-                          name="Cloud"
-                          size="w-4 h-4"
-                          :style="{ color: 'var(--text-muted)' }"
-                        />
-                        <input
-                          v-model="item.remotePath"
-                          type="text"
-                          class="flex-1 px-3 py-2 rounded-lg glass-card text-sm focus:outline-none focus:ring-2"
-                          :style="{ color: 'var(--text-primary)', background: 'rgba(255, 255, 255, 0.5)' }"
-                          :placeholder="$t('sync.customFolder.remotePathPlaceholder')"
-                        >
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Custom folder -->
-            <div
-              class="mt-6 p-5 rounded-xl glass-card"
-              :style="{ background: 'rgba(var(--color-accent-secondary-rgb), 0.05)' }"
-            >
-              <div class="flex items-center gap-3 mb-4">
-                <div
-                  class="p-2 rounded-xl"
-                  :style="{ background: 'rgba(var(--color-accent-secondary-rgb), 0.15)' }"
-                >
-                  <SIcon
-                    name="Plus"
-                    size="w-5 h-5"
-                    :style="{ color: 'var(--accent-secondary)' }"
-                  />
-                </div>
-                <h3
-                  class="text-lg font-bold"
-                  :style="{ color: 'var(--text-primary)' }"
-                >
-                  {{ $t('sync.customFolder.title') }}
-                </h3>
-              </div>
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                <input
-                  v-model="customFolder.name"
-                  type="text"
-                  :placeholder="$t('sync.customFolder.namePlaceholder')"
-                  class="px-4 py-2 rounded-lg glass-card text-sm focus:outline-none focus:ring-2"
-                  :style="{ color: 'var(--text-primary)', background: 'rgba(255, 255, 255, 0.5)' }"
-                >
-                <input
-                  v-model="customFolder.localPath"
-                  type="text"
-                  :placeholder="$t('sync.customFolder.localPathPlaceholder')"
-                  class="px-4 py-2 rounded-lg glass-card text-sm focus:outline-none focus:ring-2"
-                  :style="{ color: 'var(--text-primary)', background: 'rgba(255, 255, 255, 0.5)' }"
-                >
-                <input
-                  v-model="customFolder.remotePath"
-                  type="text"
-                  :placeholder="$t('sync.customFolder.remotePathPlaceholder')"
-                  class="px-4 py-2 rounded-lg glass-card text-sm focus:outline-none focus:ring-2"
-                  :style="{ color: 'var(--text-primary)', background: 'rgba(255, 255, 255, 0.5)' }"
-                >
-                <input
-                  v-model="customFolder.description"
-                  type="text"
-                  :placeholder="$t('sync.customFolder.descriptionPlaceholder')"
-                  class="px-4 py-2 rounded-lg glass-card text-sm focus:outline-none focus:ring-2"
-                  :style="{ color: 'var(--text-primary)', background: 'rgba(255, 255, 255, 0.5)' }"
-                >
-              </div>
-              <button
-                :disabled="!customFolder.name || !customFolder.localPath || addingCustom"
-                class="w-full px-4 py-2.5 rounded-lg glass-card font-medium transition-[color,background-color,border-color,transform] duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                :style="{ background: 'rgba(var(--color-accent-secondary-rgb), 0.1)', color: 'var(--accent-secondary)' }"
-                @click="addCustomFolder"
-              >
-                <SIcon
-                  name="Plus"
-                  size="w-5 h-5"
-                />
-                {{ addingCustom ? $t('sync.customFolder.adding') : $t('sync.customFolder.addButton') }}
-              </button>
-            </div>
-          </div>
-
-          <!-- Enabled folders list -->
-          <div class="glass-card p-6 hover:scale-[1.01] transition-[transform,box-shadow] duration-300">
-            <div class="flex items-center justify-between mb-6">
-              <div class="flex items-center gap-3">
-                <div
-                  class="p-3 rounded-2xl"
-                  :style="{ background: 'rgba(var(--color-info-rgb), 0.1)' }"
-                >
-                  <SIcon
-                    name="Folders"
-                    size="w-6 h-6"
-                    :style="{ color: 'var(--accent-info)' }"
-                  />
-                </div>
-                <h2
-                  class="text-2xl font-bold"
-                  :style="{ color: 'var(--text-primary)' }"
-                >
-                  {{ $t('sync.enabledFolders.title') }}
-                </h2>
-              </div>
-              <button
-                class="flex items-center gap-2 px-4 py-2.5 rounded-xl glass-card transition-[color,background-color,border-color,transform] duration-300 hover:scale-105"
-                :style="{ background: 'rgba(var(--color-info-rgb), 0.1)', color: 'var(--accent-info)' }"
-                @click="refreshFolders"
-              >
-                <SIcon
-                  name="RefreshCw"
-                  size="w-4 h-4"
-                  :class="{ 'animate-spin': refreshingFolders }"
-                />
-                <span class="font-medium">{{ $t('sync.enabledFolders.refresh') }}</span>
-              </button>
-            </div>
-            <div
-              v-if="enabledFolders.length === 0"
-              class="text-center py-12"
-            >
-              <div
-                class="p-4 rounded-2xl inline-block"
-                :style="{ background: 'rgba(var(--color-gray-rgb), 0.1)' }"
-              >
-                <SIcon
-                  name="FolderOpen"
-                  size="w-16 h-16"
-                  :style="{ color: 'var(--text-muted)' }"
-                />
-              </div>
-              <p
-                class="text-lg mt-4"
-                :style="{ color: 'var(--text-secondary)' }"
-              >
-                {{ $t('sync.enabledFolders.noFolders') }}
-              </p>
-              <p
-                class="text-sm mt-2"
-                :style="{ color: 'var(--text-muted)' }"
-              >
-                {{ $t('sync.enabledFolders.noFoldersHint') }}
-              </p>
-            </div>
-
-            <div
-              v-else
-              class="space-y-4"
-            >
-              <div
-                v-for="(folder, index) in enabledFolders"
-                :key="folder.name"
-                class="p-5 rounded-xl glass-card hover:scale-[1.01] transition-[transform,box-shadow] duration-300"
-                :style="{ animationDelay: `${index * 0.05}s` }"
-              >
-                <div class="flex items-start justify-between mb-4">
-                  <div class="flex-1">
-                    <div class="flex items-center gap-3 mb-2">
-                      <h4
-                        class="text-xl font-bold"
-                        :style="{ color: 'var(--text-primary)' }"
-                      >
-                        {{ folder.name }}
-                      </h4>
-                      <span
-                        class="px-3 py-1 rounded-full text-sm font-medium"
-                        :style="{
-                          background: folder.enabled ? 'rgba(var(--color-success-rgb), 0.15)' : 'rgba(var(--color-gray-rgb), 0.15)',
-                          color: folder.enabled ? 'var(--accent-success)' : 'var(--text-muted)'
-                        }"
-                      >
-                        {{ folder.enabled ? $t('sync.enabledFolders.enabled') : $t('sync.enabledFolders.disabled') }}
-                      </span>
-                    </div>
-                    <p
-                      v-if="folder.description"
-                      class="text-sm mb-2"
-                      :style="{ color: 'var(--text-secondary)' }"
-                    >
-                      {{ folder.description }}
-                    </p>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
-                      <div
-                        class="flex items-center gap-2"
-                        :style="{ color: 'var(--text-secondary)' }"
-                      >
-                        <SIcon
-                          name="Folder"
-                          size="w-4 h-4"
-                        />
-                        <span class="font-mono">{{ folder.localPath }}</span>
-                      </div>
-                      <div
-                        class="flex items-center gap-2"
-                        :style="{ color: 'var(--text-secondary)' }"
-                      >
-                        <SIcon
-                          name="Cloud"
-                          size="w-4 h-4"
-                        />
-                        <span class="font-mono">{{ folder.remotePath }}</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Action buttons -->
-                <div class="flex flex-wrap gap-2">
-                  <button
-                    class="px-4 py-2 rounded-lg glass-card font-medium transition-[color,background-color,border-color,transform] duration-300 hover:scale-105 flex items-center gap-2"
-                    :style="{ background: 'rgba(var(--color-accent-primary-rgb), 0.1)', color: 'var(--accent-primary)' }"
-                    @click="toggleFolder(folder.name, folder.enabled)"
-                  >
-                    <SIcon
-                      name="ToggleLeft"
-                      size="w-4 h-4"
-                    />
-                    {{ folder.enabled ? $t('sync.operations.disable') : $t('sync.operations.enable') }}
-                  </button>
-                  <button
-                    :disabled="!folder.enabled"
-                    class="px-4 py-2 rounded-lg glass-card font-medium transition-[color,background-color,border-color,transform] duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                    :style="{ background: 'rgba(var(--color-success-rgb), 0.1)', color: 'var(--accent-success)' }"
-                    @click="pushFolder(folder.name)"
-                  >
-                    <SIcon
-                      name="Upload"
-                      size="w-4 h-4"
-                    />
-                    {{ $t('sync.operations.upload') }}
-                  </button>
-                  <button
-                    :disabled="!folder.enabled"
-                    class="px-4 py-2 rounded-lg glass-card font-medium transition-[color,background-color,border-color,transform] duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                    :style="{ background: 'rgba(var(--color-accent-secondary-rgb), 0.1)', color: 'var(--accent-secondary)' }"
-                    @click="pullFolder(folder.name)"
-                  >
-                    <SIcon
-                      name="Download"
-                      size="w-4 h-4"
-                    />
-                    {{ $t('sync.operations.download') }}
-                  </button>
-                  <button
-                    class="px-4 py-2 rounded-lg glass-card font-medium transition-[color,background-color,border-color,transform] duration-300 hover:scale-105 flex items-center gap-2"
-                    :style="{ background: 'rgba(var(--color-info-rgb), 0.1)', color: 'var(--accent-info)' }"
-                    @click="getFolderStatus(folder.name)"
-                  >
-                    <SIcon
-                      name="Info"
-                      size="w-4 h-4"
-                    />
-                    {{ $t('sync.operations.status') }}
-                  </button>
-                  <button
-                    class="px-4 py-2 rounded-lg glass-card font-medium transition-[color,background-color,border-color,transform] duration-300 hover:scale-105 flex items-center gap-2"
-                    :style="{ background: 'rgba(var(--color-danger-rgb), 0.1)', color: 'var(--accent-danger)' }"
-                    @click="removeFolder(folder.name)"
-                  >
-                    <SIcon
-                      name="Trash2"
-                      size="w-4 h-4"
-                    />
-                    {{ $t('sync.operations.delete') }}
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
+          <SyncEnabledFoldersPanel
+            :folders="enabledFolders"
+            :get-folder-status="getFolderStatus"
+            :pull-folder="pullFolder"
+            :push-folder="pushFolder"
+            :refresh-folders="refreshFolders"
+            :refreshing-folders="refreshingFolders"
+            :remove-folder="removeFolder"
+            :toggle-folder="toggleFolder"
+          />
 
           <!-- Batch operations card -->
-          <div class="glass-card p-6 hover:scale-[1.01] transition-[transform,box-shadow] duration-300">
-            <div class="flex items-center gap-3 mb-4">
-              <div
-                class="p-3 rounded-2xl"
-                :style="{ background: 'rgba(var(--color-warning-rgb), 0.1)' }"
-              >
-                <SIcon
-                  name="Layers"
-                  size="w-6 h-6"
-                  :style="{ color: 'var(--accent-warning)' }"
-                />
-              </div>
-              <h2
-                class="text-2xl font-bold"
-                :style="{ color: 'var(--text-primary)' }"
-              >
-                {{ $t('sync.batchOperations.title') }}
-              </h2>
-            </div>
+          <SyncBatchOperationsPanel
+            :batch-operating="batchOperating"
+            :folders-count="enabledFolders.length"
+            :get-all-folders-status="getAllFoldersStatus"
+            :pull-all-folders="pullAllFolders"
+            :push-all-folders="pushAllFolders"
+          />
 
-            <p
-              class="text-sm mb-4"
-              :style="{ color: 'var(--text-secondary)' }"
-            >
-              {{ $t('sync.batchOperations.description') }}
-            </p>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <button
-                :disabled="batchOperating || enabledFolders.length === 0"
-                class="px-6 py-4 rounded-xl glass-card font-bold transition-[color,background-color,border-color,transform] duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
-                :style="{ background: 'rgba(var(--color-success-rgb), 0.1)', color: 'var(--accent-success)' }"
-                @click="pushAllFolders"
-              >
-                <SIcon
-                  name="Upload"
-                  size="w-5 h-5"
-                />
-                {{ $t('sync.batchOperations.uploadAll') }}
-              </button>
-              <button
-                :disabled="batchOperating || enabledFolders.length === 0"
-                class="px-6 py-4 rounded-xl glass-card font-bold transition-[color,background-color,border-color,transform] duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
-                :style="{ background: 'rgba(var(--color-accent-secondary-rgb), 0.1)', color: 'var(--accent-secondary)' }"
-                @click="pullAllFolders"
-              >
-                <SIcon
-                  name="Download"
-                  size="w-5 h-5"
-                />
-                {{ $t('sync.batchOperations.downloadAll') }}
-              </button>
-              <button
-                :disabled="batchOperating || enabledFolders.length === 0"
-                class="px-6 py-4 rounded-xl glass-card font-bold transition-[color,background-color,border-color,transform] duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
-                :style="{ background: 'rgba(var(--color-info-rgb), 0.1)', color: 'var(--accent-info)' }"
-                @click="getAllFoldersStatus"
-              >
-                <SIcon
-                  name="Info"
-                  size="w-5 h-5"
-                />
-                {{ $t('sync.batchOperations.viewStatus') }}
-              </button>
-            </div>
-          </div>
-
-          <!-- Operation output card -->
-          <div
-            v-if="operationOutput"
-            class="glass-card p-6"
-          >
-            <div class="flex items-center justify-between mb-4">
-              <div class="flex items-center gap-3">
-                <div
-                  class="p-2 rounded-xl"
-                  :style="{ background: 'rgba(var(--color-accent-primary-rgb), 0.1)' }"
-                >
-                  <SIcon
-                    name="Terminal"
-                    size="w-5 h-5"
-                    :style="{ color: 'var(--accent-primary)' }"
-                  />
-                </div>
-                <h2
-                  class="text-xl font-bold"
-                  :style="{ color: 'var(--text-primary)' }"
-                >
-                  {{ $t('sync.output.title') }}
-                </h2>
-              </div>
-              <button
-                class="p-2 rounded-lg glass-card transition-[color,background-color,border-color,transform] duration-300 hover:scale-110"
-                :style="{ background: 'rgba(var(--color-gray-rgb), 0.1)' }"
-                @click="operationOutput = ''"
-              >
-                <SIcon
-                  name="XCircle"
-                  size="w-4 h-4"
-                  :style="{ color: 'var(--text-muted)' }"
-                />
-              </button>
-            </div>
-            <pre
-              class="text-sm font-mono whitespace-pre-wrap overflow-x-auto glass-card p-4 rounded-lg"
-              :style="{ color: 'var(--text-primary)', background: 'rgba(255, 255, 255, 0.5)' }"
-            >{{ operationOutput }}</pre>
-          </div>
+          <SyncOperationOutputPanel
+            :clear-output="clearOperationOutput"
+            :output="operationOutput"
+          />
         </div>
 
         <!-- 右侧信息区 (1 column) -->
-        <div class="space-y-6">
-          <!-- WebDAV configuration status -->
-          <div class="glass-card p-6 hover:scale-[1.01] transition-[transform,box-shadow] duration-300">
-            <div class="flex items-center gap-3 mb-6">
-              <div
-                class="p-3 rounded-2xl"
-                :style="{ background: 'rgba(var(--color-accent-primary-rgb), 0.1)' }"
-              >
-                <SIcon
-                  name="Settings"
-                  size="w-6 h-6"
-                  :style="{ color: 'var(--accent-primary)' }"
-                />
-              </div>
-              <h2
-                class="text-xl font-bold"
-                :style="{ color: 'var(--text-primary)' }"
-              >
-                {{ $t('sync.webdav.title') }}
-              </h2>
-            </div>
-
-            <div
-              v-if="syncStatus?.configured && syncStatus.config"
-              class="space-y-4"
-            >
-              <div
-                class="flex items-center gap-3 px-4 py-3 rounded-xl"
-                :style="{ background: 'rgba(var(--color-success-rgb), 0.1)' }"
-              >
-                <SIcon
-                  name="CheckCircle"
-                  size="w-5 h-5"
-                  :style="{ color: 'var(--accent-success)' }"
-                />
-                <span
-                  class="font-medium"
-                  :style="{ color: 'var(--text-primary)' }"
-                >{{ $t('sync.webdav.configured') }}</span>
-              </div>
-
-              <div class="space-y-3">
-                <div>
-                  <div
-                    class="text-xs mb-1"
-                    :style="{ color: 'var(--text-muted)' }"
-                  >
-                    {{ $t('sync.webdav.server') }}
-                  </div>
-                  <div
-                    class="text-sm font-mono break-all"
-                    :style="{ color: 'var(--text-primary)' }"
-                  >
-                    {{ syncStatus.config.webdav_url }}
-                  </div>
-                </div>
-                <div>
-                  <div
-                    class="text-xs mb-1"
-                    :style="{ color: 'var(--text-muted)' }"
-                  >
-                    {{ $t('sync.webdav.username') }}
-                  </div>
-                  <div
-                    class="text-sm font-mono"
-                    :style="{ color: 'var(--text-primary)' }"
-                  >
-                    {{ syncStatus.config.username }}
-                  </div>
-                </div>
-                <div>
-                  <div
-                    class="text-xs mb-1"
-                    :style="{ color: 'var(--text-muted)' }"
-                  >
-                    {{ $t('sync.webdav.remotePath') }}
-                  </div>
-                  <div
-                    class="text-sm font-mono break-all"
-                    :style="{ color: 'var(--text-primary)' }"
-                  >
-                    {{ syncStatus.config.remote_path }}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div
-              v-else
-              class="space-y-4"
-            >
-              <div
-                class="flex items-center gap-3 px-4 py-3 rounded-xl"
-                :style="{ background: 'rgba(var(--color-warning-rgb), 0.1)' }"
-              >
-                <SIcon
-                  name="AlertCircle"
-                  size="w-5 h-5"
-                  :style="{ color: 'var(--accent-warning)' }"
-                />
-                <span
-                  class="font-medium"
-                  :style="{ color: 'var(--text-primary)' }"
-                >{{ $t('sync.webdav.notConfigured') }}</span>
-              </div>
-              <p
-                class="text-sm"
-                :style="{ color: 'var(--text-secondary)' }"
-              >
-                {{ $t('sync.webdav.configureHint') }}
-              </p>
-              <code
-                class="block text-sm font-mono glass-card p-3 rounded-lg"
-                :style="{ color: 'var(--text-primary)', background: 'rgba(255, 255, 255, 0.5)' }"
-              >{{ $t('sync.webdav.configureCommand') }}</code>
-            </div>
-          </div>
-
-          <!-- Features description -->
-          <div class="glass-card p-6 hover:scale-[1.01] transition-[transform,box-shadow] duration-300">
-            <div class="flex items-center gap-3 mb-6">
-              <div
-                class="p-3 rounded-2xl"
-                :style="{ background: 'rgba(var(--color-accent-tertiary-rgb), 0.1)' }"
-              >
-                <SIcon
-                  name="BookOpen"
-                  size="w-6 h-6"
-                  :style="{ color: 'var(--accent-tertiary)' }"
-                />
-              </div>
-              <h2
-                class="text-xl font-bold"
-                :style="{ color: 'var(--text-primary)' }"
-              >
-                {{ $t('sync.features.title') }}
-              </h2>
-            </div>
-
-            <div
-              class="space-y-4 text-sm"
-              :style="{ color: 'var(--text-secondary)' }"
-            >
-              <div>
-                <h4
-                  class="font-bold mb-2"
-                  :style="{ color: 'var(--text-primary)' }"
-                >
-                  {{ $t('sync.features.presetPlatform') }}
-                </h4>
-                <p>{{ $t('sync.features.presetPlatformDesc') }}</p>
-              </div>
-              <div>
-                <h4
-                  class="font-bold mb-2"
-                  :style="{ color: 'var(--text-primary)' }"
-                >
-                  {{ $t('sync.features.independentManagement') }}
-                </h4>
-                <p>{{ $t('sync.features.independentManagementDesc') }}</p>
-              </div>
-              <div>
-                <h4
-                  class="font-bold mb-2"
-                  :style="{ color: 'var(--text-primary)' }"
-                >
-                  {{ $t('sync.features.smartFiltering') }}
-                </h4>
-                <p>{{ $t('sync.features.smartFilteringDesc') }}</p>
-              </div>
-              <div>
-                <h4
-                  class="font-bold mb-2"
-                  :style="{ color: 'var(--text-primary)' }"
-                >
-                  {{ $t('sync.features.batchOperations') }}
-                </h4>
-                <p>{{ $t('sync.features.batchOperationsDesc') }}</p>
-              </div>
-            </div>
-          </div>
-
-          <!-- Supported services -->
-          <div class="glass-card p-6 hover:scale-[1.01] transition-[transform,box-shadow] duration-300">
-            <div class="flex items-center gap-3 mb-6">
-              <div
-                class="p-3 rounded-2xl"
-                :style="{ background: 'rgba(var(--color-success-rgb), 0.1)' }"
-              >
-                <SIcon
-                  name="Server"
-                  size="w-6 h-6"
-                  :style="{ color: 'var(--accent-success)' }"
-                />
-              </div>
-              <h2
-                class="text-xl font-bold"
-                :style="{ color: 'var(--text-primary)' }"
-              >
-                {{ $t('sync.supportedServices.title') }}
-              </h2>
-            </div>
-
-            <div
-              class="space-y-3 text-sm"
-              :style="{ color: 'var(--text-secondary)' }"
-            >
-              <div class="flex items-center gap-2">
-                <SIcon
-                  name="CheckCircle"
-                  size="w-4 h-4"
-                  :style="{ color: 'var(--accent-success)' }"
-                />
-                <span>{{ $t('sync.supportedServices.nutstore') }}</span>
-              </div>
-              <div class="flex items-center gap-2">
-                <SIcon
-                  name="CheckCircle"
-                  size="w-4 h-4"
-                  :style="{ color: 'var(--accent-success)' }"
-                />
-                <span>{{ $t('sync.supportedServices.nextcloud') }}</span>
-              </div>
-              <div class="flex items-center gap-2">
-                <SIcon
-                  name="CheckCircle"
-                  size="w-4 h-4"
-                  :style="{ color: 'var(--accent-success)' }"
-                />
-                <span>{{ $t('sync.supportedServices.owncloud') }}</span>
-              </div>
-              <div class="flex items-center gap-2">
-                <SIcon
-                  name="CheckCircle"
-                  size="w-4 h-4"
-                  :style="{ color: 'var(--accent-success)' }"
-                />
-                <span>{{ $t('sync.supportedServices.any') }}</span>
-              </div>
-            </div>
-          </div>
-        </div>
+        <SyncInfoSidebar :sync-status="syncStatus" />
       </div>
     </main>
   </div>
@@ -883,32 +147,18 @@ import {
   pushSync,
   pullSync,
 } from '@/api'
+import AnimatedBackground from '@/components/common/AnimatedBackground.vue'
+import SyncBatchOperationsPanel from '@/components/sync/SyncBatchOperationsPanel.vue'
+import SyncEnabledFoldersPanel from '@/components/sync/SyncEnabledFoldersPanel.vue'
+import SyncInfoSidebar from '@/components/sync/SyncInfoSidebar.vue'
+import SyncOperationOutputPanel from '@/components/sync/SyncOperationOutputPanel.vue'
+import SyncSelectionPanel from '@/components/sync/SyncSelectionPanel.vue'
 import { logger } from '@/utils/logger'
+import type { CustomSyncFolderForm, SyncManagedFolder, SyncSelectableItem, SyncStatusView } from '@/types/syncSelection'
 
 const { t } = useI18n()
-import { Breadcrumb } from '@/components/ui'
-import AnimatedBackground from '@/components/common/AnimatedBackground.vue'
 
 // 使用 Tauri invoke API
-
-interface SyncFolder {
-  name: string
-  enabled: boolean
-  description?: string
-  localPath: string
-  remotePath: string
-}
-
-interface SyncStatusConfig {
-  webdav_url?: string
-  username?: string
-  remote_path?: string
-}
-
-interface SyncStatus {
-  configured?: boolean
-  config?: SyncStatusConfig
-}
 
 interface CommandResultLike {
   success?: boolean
@@ -940,8 +190,8 @@ const toErrorMessage = (error: unknown, fallback = 'unknown error'): string => {
 // 状态
 const loading = ref(true)
 const error = ref('')
-const syncStatus = ref<SyncStatus | null>(null)
-const enabledFolders = ref<SyncFolder[]>([])
+const syncStatus = ref<SyncStatusView | null>(null)
+const enabledFolders = ref<SyncManagedFolder[]>([])
 const operationOutput = ref('')
 
 // 操作状态
@@ -951,7 +201,7 @@ const addingCustom = ref(false)
 const batchOperating = ref(false)
 
 // 预设项目配置
-const presetItems = ref({
+const presetItems = ref<{ config: SyncSelectableItem }>({
   config: {
     key: 'config',
     name: 'Platforms 平台配置',
@@ -964,7 +214,7 @@ const presetItems = ref({
 })
 
 // 可选平台列表
-const optionalItems = ref([
+const optionalItems = ref<SyncSelectableItem[]>([
   {
     key: 'claude',
     name: 'Claude Code',
@@ -1004,7 +254,7 @@ const optionalItems = ref([
 ])
 
 // 自定义文件夹表单
-const customFolder = ref({
+const customFolder = ref<CustomSyncFolderForm>({
   name: '',
   localPath: '',
   remotePath: '',
@@ -1026,6 +276,32 @@ const toggleItem = (key: string) => {
   if (item) {
     item.selected = !item.selected
   }
+}
+
+const updatePresetLocalPath = (value: string) => {
+  presetItems.value.config.localPath = value
+}
+
+const updateOptionalLocalPath = (key: string, value: string) => {
+  const item = optionalItems.value.find((entry) => entry.key === key)
+  if (item) {
+    item.localPath = value
+  }
+}
+
+const updateOptionalRemotePath = (key: string, value: string) => {
+  const item = optionalItems.value.find((entry) => entry.key === key)
+  if (item) {
+    item.remotePath = value
+  }
+}
+
+const updateCustomField = (field: keyof CustomSyncFolderForm, value: string) => {
+  customFolder.value[field] = value
+}
+
+const clearOperationOutput = () => {
+  operationOutput.value = ''
 }
 
 // 应用选择 - 将选中的项目注册为同步文件夹
@@ -1083,7 +359,7 @@ const addCustomFolder = async () => {
 // 获取同步状态
 const fetchSyncStatus = async () => {
   try {
-    syncStatus.value = await getSyncStatus<SyncStatus>()
+    syncStatus.value = await getSyncStatus<SyncStatusView>()
   } catch (err: unknown) {
     logger.error('Failed to fetch sync status:', err)
   }
@@ -1092,7 +368,7 @@ const fetchSyncStatus = async () => {
 // 获取文件夹列表
 const fetchFolders = async () => {
   try {
-    const response = await listSyncFolders<SyncFolder[] | { output?: string; data?: { output?: string } }>()
+    const response = await listSyncFolders<SyncManagedFolder[] | { output?: string; data?: { output?: string } }>()
     if (Array.isArray(response)) {
       enabledFolders.value = response
       return
@@ -1207,7 +483,7 @@ const pullFolder = async (name: string) => {
 const getFolderStatus = async (name: string) => {
   try {
     // TODO: 当前 Tauri API 暂无按文件夹状态查询，回退为全局状态
-    const status = await getSyncStatus<SyncStatus>()
+    const status = await getSyncStatus<SyncStatusView>()
     operationOutput.value = `[${name}] ${JSON.stringify(status, null, 2)}`
   } catch (err: unknown) {
     operationOutput.value = `${t('sync.messages.statusFailed')}: ${toErrorMessage(err)}`
@@ -1254,7 +530,7 @@ const pullAllFolders = async () => {
 const getAllFoldersStatus = async () => {
   batchOperating.value = true
   try {
-    const status = await getSyncStatus<SyncStatus>()
+    const status = await getSyncStatus<SyncStatusView>()
     operationOutput.value = JSON.stringify(status, null, 2)
   } catch (err: unknown) {
     operationOutput.value = `${t('sync.messages.statusFailed')}: ${toErrorMessage(err)}`

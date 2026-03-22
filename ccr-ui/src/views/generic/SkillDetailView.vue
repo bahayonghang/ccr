@@ -1,8 +1,26 @@
 <template>
-  <div class="min-h-screen p-5 transition-colors duration-300">
+  <div class="min-h-full p-5 transition-colors duration-300">
     <div class="max-w-[1200px] mx-auto">
-      <!-- Breadcrumb -->
-      <Breadcrumb :items="breadcrumbs" />
+      <ModuleSubnav
+        module="skills"
+        class="mb-6"
+      />
+
+      <div class="mb-6 flex items-center gap-3">
+        <RouterLink
+          to="/skills"
+          class="inline-flex min-h-[44px] items-center gap-2 rounded-xl border border-border-default/60 bg-[var(--color-bg-surface)]/70 px-4 py-2 text-sm font-medium text-[var(--color-text-secondary)] transition-colors hover:border-[var(--color-danger)]/30 hover:bg-[var(--color-bg-elevated)] hover:text-[var(--color-text-primary)]"
+        >
+          <SIcon
+            name="ArrowLeft"
+            size="w-4 h-4"
+          />
+          {{ $t('common.back') }}
+        </RouterLink>
+        <span class="text-sm text-[var(--color-text-muted)]">
+          {{ skill?.name || $t('common.loading') }}
+        </span>
+      </div>
 
       <!-- Loading State -->
       <div
@@ -45,66 +63,46 @@
 
       <!-- Skill Detail -->
       <div v-else-if="skill">
-        <!-- Header -->
-        <div class="glass-effect rounded-2xl p-6 mb-6 border border-white/20 shadow-sm">
-          <div class="flex items-start justify-between gap-4">
-            <div class="flex-1 min-w-0">
-              <div class="flex items-center gap-3 mb-2">
-                <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-[var(--color-danger)]/10 to-[var(--color-info)]/10 flex items-center justify-center text-xl shadow-sm border border-white/20">
-                  <SIcon
-                    name="Book"
-                    size="w-6 h-6"
-                    class="text-[var(--color-danger)]"
-                  />
-                </div>
-                <div>
-                  <h1 class="text-2xl font-bold text-[var(--color-text-primary)]">
-                    {{ skill.name }}
-                  </h1>
-                  <p
-                    v-if="skill.description"
-                    class="text-sm text-[var(--color-text-secondary)] mt-1"
-                  >
-                    {{ skill.description }}
-                  </p>
-                </div>
-              </div>
+        <PageHeaderCard
+          :title="skill.name"
+          :description="skill.description || undefined"
+          icon="Book"
+          tone="danger"
+          class="mb-6"
+        >
+          <template #meta>
+            <span class="inline-flex items-center gap-1.5 rounded-full border border-[var(--color-border-default)]/50 bg-[var(--color-bg-surface)] px-3 py-1 text-xs text-[var(--color-text-muted)]">
+              <SIcon
+                name="FolderOpen"
+                size="w-3.5 h-3.5"
+              />
+              <span class="font-mono truncate max-w-[300px]">{{ skill.path }}</span>
+            </span>
+          </template>
 
-              <div class="flex items-center gap-3 mt-4 text-xs text-[var(--color-text-muted)]">
-                <div class="flex items-center gap-1.5 bg-[var(--color-bg-surface)] px-2.5 py-1 rounded-md border border-[var(--color-border-default)]/50">
-                  <SIcon
-                    name="FolderOpen"
-                    size="w-3.5 h-3.5"
-                  />
-                  <span class="font-mono truncate max-w-[300px]">{{ skill.path }}</span>
-                </div>
-              </div>
-            </div>
-
-            <div class="flex items-center gap-2">
-              <button
-                class="px-4 py-2 rounded-lg font-medium text-sm transition-colors bg-[var(--color-info)]/10 text-[var(--color-info)] hover:bg-[var(--color-info)]/20 flex items-center gap-2"
-                @click="handleEdit"
-              >
-                <SIcon
-                  name="Edit2"
-                  size="w-4 h-4"
-                />
-                {{ $t('common.edit') }}
-              </button>
-              <button
-                class="px-4 py-2 rounded-lg font-medium text-sm transition-colors bg-[var(--color-danger)]/10 text-[var(--color-danger)] hover:bg-[var(--color-danger)]/20 flex items-center gap-2"
-                @click="handleDelete"
-              >
-                <SIcon
-                  name="Trash2"
-                  size="w-4 h-4"
-                />
-                {{ $t('common.delete') }}
-              </button>
-            </div>
-          </div>
-        </div>
+          <template #actions>
+            <button
+              class="px-4 py-2 rounded-lg font-medium text-sm transition-colors bg-[var(--color-info)]/10 text-[var(--color-info)] hover:bg-[var(--color-info)]/20 flex items-center gap-2"
+              @click="handleEdit"
+            >
+              <SIcon
+                name="Edit2"
+                size="w-4 h-4"
+              />
+              {{ $t('common.edit') }}
+            </button>
+            <button
+              class="px-4 py-2 rounded-lg font-medium text-sm transition-colors bg-[var(--color-danger)]/10 text-[var(--color-danger)] hover:bg-[var(--color-danger)]/20 flex items-center gap-2"
+              @click="handleDelete"
+            >
+              <SIcon
+                name="Trash2"
+                size="w-4 h-4"
+              />
+              {{ $t('common.delete') }}
+            </button>
+          </template>
+        </PageHeaderCard>
 
         <!-- Instruction Content -->
         <div class="glass-effect rounded-2xl p-6 border border-white/20 shadow-sm">
@@ -210,10 +208,11 @@
 
 <script setup lang="ts">
 import SIcon from '@/components/ui/SIcon.vue'
-import { ref, computed, onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRoute, useRouter, RouterLink } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import Breadcrumb from '@/components/ui/Breadcrumb.vue'
+import PageHeaderCard from '@/components/PageHeaderCard.vue'
+import ModuleSubnav from '@/components/ModuleSubnav.vue'
 import { useSkills, type Skill } from '@/composables/useSkills'
 import { extractStringParam } from '@/types/router'
 import { logger } from '@/utils/logger'
@@ -228,12 +227,6 @@ const showEditModal = ref(false)
 const editInstruction = ref('')
 const saving = ref(false)
 const copied = ref(false)
-
-const breadcrumbs = computed(() => [
-  { label: t('common.home'), path: '/', icon: 'Home' },
-  { label: t('skills.title'), path: '/skills', icon: 'Book' },
-  { label: skill.value?.name || t('common.loading') }
-])
 
 onMounted(async () => {
   const name = extractStringParam(route.params.name)

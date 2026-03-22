@@ -2,9 +2,12 @@
   <div class="min-h-full p-6 lg:p-10 relative overflow-hidden">
     <!-- Background Mesh -->
     <!-- Standard Animated Background -->
-    <AnimatedBackground variant="complex" />
+    <AnimatedBackground
+      contained
+      variant="complex"
+    />
 
-    <div class="max-w-7xl mx-auto space-y-8">
+    <div class="relative z-10 mx-auto max-w-7xl space-y-8">
       <!-- HEADER -->
       <section class="animate-slide-up">
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">

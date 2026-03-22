@@ -1,39 +1,32 @@
 <template>
-  <div class="min-h-screen p-5 transition-colors duration-300">
+  <div class="min-h-full p-5 transition-colors duration-300">
     <div class="max-w-[1600px] mx-auto">
-      <!-- Breadcrumb -->
-      <Breadcrumb :items="breadcrumbs" />
+      <ModuleSubnav
+        module="claude-code"
+        class="mb-6"
+      />
 
-      <!-- Header -->
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-        <div class="flex items-center gap-4">
-          <h2 class="text-xl sm:text-2xl font-bold text-text-primary flex items-center">
-            <SIcon
-              name="Palette"
-              size="w-6 h-6"
-              class="sm:w-7 sm:h-7 mr-2 text-accent-secondary"
-            />
-            {{ $t('outputStyles.pageTitle') }}
-          </h2>
-          <span
-            class="px-3 py-1 rounded-full text-sm font-medium bg-accent-secondary/10 text-accent-secondary border border-accent-secondary/20"
-            :aria-label="$t('outputStyles.totalCount', { count: outputStyles.length })"
+      <PageHeaderCard
+        :title="$t('outputStyles.pageTitle')"
+        icon="Palette"
+        :badge="String(outputStyles.length)"
+        tone="secondary"
+        class="mb-6"
+      >
+        <template #actions>
+          <button
+            class="w-full sm:w-auto px-4 py-2 rounded-lg font-medium transition-[color,background-color,border-color,transform] hover:scale-105 bg-accent-secondary text-white shadow-md hover:shadow-lg flex items-center justify-center min-h-[44px]"
+            :aria-label="$t('outputStyles.addStyle')"
+            @click="handleAdd"
           >
-            {{ outputStyles.length }}
-          </span>
-        </div>
-        <button
-          class="w-full sm:w-auto px-4 py-2 rounded-lg font-medium transition-[color,background-color,border-color,transform] hover:scale-105 bg-accent-secondary text-white shadow-md hover:shadow-lg flex items-center justify-center min-h-[44px]"
-          :aria-label="$t('outputStyles.addStyle')"
-          @click="handleAdd"
-        >
-          <SIcon
-            name="Plus"
-            size="w-5 h-5"
-            class="mr-2"
-          />{{ $t('outputStyles.addStyle') }}
-        </button>
-      </div>
+            <SIcon
+              name="Plus"
+              size="w-5 h-5"
+              class="mr-2"
+            />{{ $t('outputStyles.addStyle') }}
+          </button>
+        </template>
+      </PageHeaderCard>
 
       <!-- Search Bar -->
       <div class="mb-6">
@@ -376,15 +369,16 @@
 import SIcon from '@/components/ui/SIcon.vue'
 import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
-import Breadcrumb from '@/components/ui/Breadcrumb.vue'
 import Card from '@/components/ui/Card.vue'
+import ModuleSubnav from '@/components/ModuleSubnav.vue'
+import PageHeaderCard from '@/components/PageHeaderCard.vue'
 import {
   listOutputStyles,
   createOutputStyle,
   updateOutputStyle,
   deleteOutputStyle
 } from '@/api'
-import { useUIStore } from '@/store'
+import { useUIStore } from '@/stores/ui'
 import type { OutputStyle } from '@/types'
 import { logger } from '@/utils/logger'
 
@@ -406,12 +400,6 @@ const copied = ref(false)
 const editModalOverlay = ref<HTMLElement | null>(null)
 const editModalContent = ref<HTMLElement | null>(null)
 const firstInput = ref<HTMLInputElement | null>(null)
-
-const breadcrumbs = computed(() => [
-  { label: t('common.home'), path: '/', icon: 'Home' },
-  { label: t('claudeCode.title'), path: '/claude-code', icon: 'Code2' },
-  { label: t('outputStyles.pageTitle') }
-])
 
 const filteredStyles = computed(() => {
   if (!searchQuery.value.trim()) {

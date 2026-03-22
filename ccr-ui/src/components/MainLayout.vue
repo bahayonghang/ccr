@@ -57,7 +57,7 @@
           </div>
           <div>
             <h1 class="text-lg font-bold font-display tracking-tight leading-none text-text-primary">
-              CCR <span class="text-accent-primary">UI</span>
+              {{ appNamePrefix }} <span class="text-accent-primary">{{ appNameSuffix }}</span>
             </h1>
             <p class="text-[10px] uppercase tracking-widest text-pink-400 dark:text-pink-300 font-bold mt-0.5">
               {{ t('common.shell.tagline') }}
@@ -86,184 +86,30 @@
         aria-label="Primary navigation"
         @click="isMobileSidebar ? closeSidebar() : undefined"
       >
-        <!-- Section: Main -->
-        <div class="space-y-1">
-          <RouterLink
-            to="/"
-            class="nav-item"
+        <div
+          v-for="section in navSections"
+          :key="section.id"
+        >
+          <div
+            v-if="section.titleKey"
+            class="px-3 mb-2 text-[10px] font-bold uppercase tracking-wider text-text-muted flex items-center gap-2"
           >
-            <SIcon
-              name="Home"
-              size="w-4 h-4"
-            />
-            <span>{{ $t('nav.home') }}</span>
-          </RouterLink>
-        </div>
-
-        <!-- Section: Skills Hub -->
-        <div>
-          <div class="px-3 mb-2 text-[10px] font-bold uppercase tracking-wider text-text-muted flex items-center gap-2">
-            {{ $t('nav.skillsHub') }}
+            {{ $t(section.titleKey) }}
             <div class="h-px flex-1 bg-border-default/70" />
           </div>
-          <div class="space-y-0.5">
+          <div :class="section.titleKey ? 'space-y-0.5' : 'space-y-1'">
             <RouterLink
-              to="/skills"
+              v-for="item in section.items"
+              :key="item.to"
+              :to="item.to"
               class="nav-item group"
             >
               <SIcon
-                name="Package"
+                :name="item.icon"
                 size="w-4 h-4"
-                class="text-fuchsia-400 group-hover:text-fuchsia-300 transition-colors"
+                :class="item.iconClass"
               />
-              <span>{{ $t('nav.skills') }}</span>
-            </RouterLink>
-            <RouterLink
-              to="/skills/add"
-              class="nav-item group"
-            >
-              <SIcon
-                name="PlusCircle"
-                size="w-4 h-4"
-                class="text-fuchsia-400 group-hover:text-fuchsia-300 transition-colors"
-              />
-              <span>{{ $t('nav.addSkill') }}</span>
-            </RouterLink>
-          </div>
-        </div>
-
-        <!-- Section: Modules -->
-        <div>
-          <div class="px-3 mb-2 text-[10px] font-bold uppercase tracking-wider text-text-muted flex items-center gap-2">
-            {{ $t('nav.mainModules') }}
-            <div class="h-px flex-1 bg-border-default/70" />
-          </div>
-          <div class="space-y-0.5">
-            <RouterLink
-              to="/claude-code"
-              class="nav-item group"
-            >
-              <SIcon
-                name="Code2"
-                size="w-4 h-4"
-                class="text-platform-claude group-hover:text-platform-claude/80 transition-colors"
-              />
-              <span>{{ $t('nav.claudeCode') }}</span>
-            </RouterLink>
-            <RouterLink
-              to="/codex"
-              class="nav-item group"
-            >
-              <SIcon
-                name="Settings"
-                size="w-4 h-4"
-                class="text-platform-codex group-hover:text-platform-codex/80 transition-colors"
-              />
-              <span>{{ $t('nav.codex') }}</span>
-            </RouterLink>
-            <RouterLink
-              to="/gemini-cli"
-              class="nav-item group"
-            >
-              <SIcon
-                name="Sparkles"
-                size="w-4 h-4"
-                class="text-platform-gemini group-hover:text-platform-gemini/80 transition-colors"
-              />
-              <span>{{ $t('nav.gemini') }}</span>
-            </RouterLink>
-            <RouterLink
-              to="/qwen"
-              class="nav-item group"
-            >
-              <SIcon
-                name="Zap"
-                size="w-4 h-4"
-                class="text-platform-qwen group-hover:text-platform-qwen/80 transition-colors"
-              />
-              <span>{{ $t('nav.qwen') }}</span>
-            </RouterLink>
-            <RouterLink
-              to="/iflow"
-              class="nav-item group"
-            >
-              <SIcon
-                name="Activity"
-                size="w-4 h-4"
-                class="text-platform-iflow group-hover:text-platform-iflow/80 transition-colors"
-              />
-              <span>{{ $t('nav.iflow') }}</span>
-            </RouterLink>
-            <RouterLink
-              to="/droid"
-              class="nav-item group"
-            >
-              <SIcon
-                name="Bot"
-                size="w-4 h-4"
-                class="text-accent-secondary group-hover:text-accent-secondary/80 transition-colors"
-              />
-              <span>{{ $t('nav.droid') }}</span>
-            </RouterLink>
-          </div>
-        </div>
-
-        <!-- Section: Tools -->
-        <div>
-          <div class="px-3 mb-2 text-[10px] font-bold uppercase tracking-wider text-text-muted flex items-center gap-2">
-            {{ $t('nav.toolsCenter') }}
-            <div class="h-px flex-1 bg-border-default/70" />
-          </div>
-          <div class="space-y-0.5">
-            <RouterLink
-              to="/ccr-control"
-              class="nav-item"
-            >
-              <SIcon
-                name="Terminal"
-                size="w-4 h-4"
-              />
-              <span>{{ $t('nav.ccrControl') }}</span>
-            </RouterLink>
-            <RouterLink
-              to="/commands"
-              class="nav-item"
-            >
-              <SIcon
-                name="Terminal"
-                size="w-4 h-4"
-              />
-              <span>{{ $t('nav.commands') }}</span>
-            </RouterLink>
-            <RouterLink
-              to="/checkin"
-              class="nav-item"
-            >
-              <SIcon
-                name="ClipboardList"
-                size="w-4 h-4"
-              />
-              <span>{{ $t('nav.checkin') }}</span>
-            </RouterLink>
-            <RouterLink
-              to="/sync"
-              class="nav-item"
-            >
-              <SIcon
-                name="Cloud"
-                size="w-4 h-4"
-              />
-              <span>{{ $t('nav.sync') }}</span>
-            </RouterLink>
-            <RouterLink
-              to="/usage"
-              class="nav-item"
-            >
-              <SIcon
-                name="Activity"
-                size="w-4 h-4"
-              />
-              <span>{{ $t('nav.usage') }}</span>
+              <span>{{ $t(item.labelKey) }}</span>
             </RouterLink>
           </div>
         </div>
@@ -304,7 +150,7 @@
             <!-- Version -->
             <div class="flex items-center justify-between">
               <span class="rounded-md border border-border-default/60 bg-bg-elevated/80 px-2 py-0.5 text-[10px] font-mono text-text-muted">
-                CCR UI v5.2.4
+                {{ appVersionLabel }}
               </span>
             </div>
           </div>
@@ -428,12 +274,18 @@
 
 <script setup lang="ts">
 import SIcon from '@/components/ui/SIcon.vue'
-import { ref, computed, onMounted, onUnmounted, defineAsyncComponent, watch } from 'vue'
+import { computed, defineAsyncComponent } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { isTauriEnvironment, getSkipExitConfirm, setSkipExitConfirm } from '@/api/tauri'
+import { APP_NAME, APP_VERSION_LABEL } from '@/config/appMeta'
+import {
+  mainLayoutCachedViews,
+  mainLayoutGroupTitleMap,
+  mainLayoutNavSections,
+  mainLayoutRouteTitleMap,
+} from '@/config/mainLayoutShell'
 import { usePageTransition } from '@/composables/usePageTransition'
-import { logger } from '@/utils/logger'
+import { useMainLayoutShell } from '@/composables/useMainLayoutShell'
 
 const BackendStatusBanner = defineAsyncComponent({
   loader: () => import('@/components/BackendStatusBanner.vue'),
@@ -459,257 +311,44 @@ const route = useRoute()
 const router = useRouter()
 const { t } = useI18n()
 const { transitionName } = usePageTransition()
-
-// keep-alive 缓存列表（仅缓存高频访问页面）
-const cachedViews = [
-  'HomeView', 'ConfigsView', 'CommandsView', 'ClaudeCodeView',
-  'CodexView', 'CodexAuthView', 'CodexProfilesView', 'CodexMcpView',
-  'GeminiCliView', 'QwenView', 'IflowView',
-]
-
-// 路由名 → i18n 键映射
-const routeTitleMap: Record<string, string> = {
-  home: 'nav.home',
-  configs: 'nav.configs',
-  skills: 'nav.skills',
-  'skills-add': 'nav.addSkill',
-  market: 'nav.market',
-  'skill-detail': 'nav.skills',
-  'claude-code': 'nav.claudeCode',
-  'claude-code-settings': 'common.settings',
-  'claude-code-profiles': 'nav.profiles',
-  codex: 'nav.codex',
-  'codex-mcp': 'nav.mcp',
-  'codex-profiles': 'nav.profiles',
-  'codex-slash-commands': 'nav.slashCommands',
-  'codex-auth': 'nav.auth',
-  'codex-settings': 'common.settings',
-  'gemini-cli': 'nav.gemini',
-  'gemini-mcp': 'nav.mcp',
-  'gemini-agents': 'nav.agents',
-  'gemini-slash-commands': 'nav.slashCommands',
-  'gemini-plugins': 'nav.plugins',
-  qwen: 'nav.qwen',
-  'qwen-mcp': 'nav.mcp',
-  'qwen-agents': 'nav.agents',
-  'qwen-slash-commands': 'nav.slashCommands',
-  'qwen-plugins': 'nav.plugins',
-  iflow: 'nav.iflow',
-  'iflow-mcp': 'nav.mcp',
-  'iflow-agents': 'nav.agents',
-  'iflow-slash-commands': 'nav.slashCommands',
-  'iflow-plugins': 'nav.plugins',
-  droid: 'nav.droid',
-  'droid-mcp': 'nav.mcp',
-  'droid-agents': 'nav.agents',
-  'droid-slash-commands': 'nav.slashCommands',
-  'droid-plugins': 'nav.plugins',
-  'droid-models': 'nav.models',
-  'droid-profiles': 'nav.profiles',
-  'droid-droids': 'nav.droids',
-  opencode: 'nav.opencode',
-  'opencode-providers': 'nav.providers',
-  'opencode-mcp': 'nav.mcp',
-  'opencode-plugins': 'nav.plugins',
-  'ccr-control': 'nav.ccrControl',
-  commands: 'nav.commands',
-  converter: 'nav.converter',
-  sync: 'nav.sync',
-  budget: 'nav.budget',
-  pricing: 'nav.pricing',
-  monitoring: 'nav.monitoring',
-  mcp: 'nav.mcp',
-  'mcp-unified': 'nav.unifiedMcp',
-  'slash-commands': 'nav.slashCommands',
-  agents: 'nav.agents',
-  'agent-detail': 'nav.agents',
-  plugins: 'nav.plugins',
-  hooks: 'nav.hooks',
-  'output-styles': 'nav.outputStyles',
-  statusline: 'nav.statusline',
-  checkin: 'nav.checkin',
-  'checkin-account-dashboard': 'checkin.account_manager.dashboard',
-  usage: 'nav.usage',
-  'wsl-management': 'nav.wsl',
-  'ssh-management': 'nav.ssh',
-}
+const [appNamePrefix = APP_NAME, appNameSuffix = ''] = APP_NAME.split(' ')
+const appVersionLabel = APP_VERSION_LABEL
+const navSections = mainLayoutNavSections
+const cachedViews = mainLayoutCachedViews
 
 const currentPageTitle = computed(() => {
   const name = route.name as string
-  const key = routeTitleMap[name]
+  const key = mainLayoutRouteTitleMap[name]
   return key ? t(key) : t('nav.home')
 })
-
-const groupTitleMap: Record<string, string> = {
-  skills: 'nav.skillsHub',
-  tools: 'nav.toolsCenter',
-  config: 'nav.configCenter',
-  data: 'nav.dataCenter',
-  environment: 'nav.environments',
-  'claude-code': 'nav.claudeCode',
-  codex: 'nav.codex',
-  gemini: 'nav.gemini',
-  qwen: 'nav.qwen',
-  iflow: 'nav.iflow',
-  droid: 'nav.droid',
-  opencode: 'nav.opencode',
-}
 
 const currentSectionTitle = computed(() => {
   const group = route.meta.group as string | undefined
   if (!group) return t('nav.home')
-  const key = groupTitleMap[group]
+  const key = mainLayoutGroupTitleMap[group]
   return key ? t(key) : t('nav.home')
 })
 
-// Sidebar State
-const sidebarWidth = ref(240)
-const isResizing = ref(false)
-const isMobileSidebar = ref(false)
-const isSidebarOpen = ref(false)
-const minWidth = 200
-const maxWidth = 480
-let mobileMediaQuery: MediaQueryList | null = null
-const closeNavigationLabel = computed(() => t('common.closeNavigation'))
-const openNavigationLabel = computed(() => t('common.openNavigation'))
-const sidebarToggleLabel = computed(() => (
-  isSidebarOpen.value ? closeNavigationLabel.value : openNavigationLabel.value
-))
-const handleMobileMediaChange = (event: MediaQueryListEvent) => {
-  handleViewportChange(event.matches)
-}
-
 const hasSidebar = computed(() => !route.meta.hideSidebar)
-const showMobileBackdrop = computed(() => hasSidebar.value && isMobileSidebar.value && isSidebarOpen.value)
-const sidebarShellStyle = computed(() => (
-  isMobileSidebar.value
-    ? undefined
-    : { width: `${sidebarWidth.value}px` }
-))
-
-// Tauri State
-const isTauri = ref(false)
-const showExitConfirm = ref(true)
-
-const toggleExitConfirm = async () => {
-  showExitConfirm.value = !showExitConfirm.value
-  if (isTauri.value) {
-    await setSkipExitConfirm(!showExitConfirm.value)
-  }
-}
-
-const closeSidebar = () => {
-  isSidebarOpen.value = false
-}
-
-const toggleSidebar = () => {
-  isSidebarOpen.value = !isSidebarOpen.value
-}
-
-const handleViewportChange = (matches: boolean) => {
-  isMobileSidebar.value = matches
-  if (!matches) {
-    isSidebarOpen.value = false
-    isResizing.value = false
-  }
-}
-
-const handleEscapeKey = (event: KeyboardEvent) => {
-  if (event.key === 'Escape' && isMobileSidebar.value && isSidebarOpen.value) {
-    closeSidebar()
-  }
-}
-
-// Resizing Logic
-const startResize = () => {
-  if (isMobileSidebar.value) return
-  isResizing.value = true
-  document.body.style.cursor = 'col-resize'
-  document.body.style.userSelect = 'none'
-  window.addEventListener('mousemove', handleResize)
-  window.addEventListener('mouseup', stopResize)
-}
-
-const handleResize = (e: MouseEvent) => {
-  if (!isResizing.value) return
-  let newWidth = e.clientX
-  if (newWidth < minWidth) newWidth = minWidth
-  if (newWidth > maxWidth) newWidth = maxWidth
-  sidebarWidth.value = newWidth
-}
-
-const stopResize = () => {
-  isResizing.value = false
-  document.body.style.cursor = ''
-  document.body.style.userSelect = ''
-  localStorage.setItem('ccr-sidebar-width', sidebarWidth.value.toString())
-  window.removeEventListener('mousemove', handleResize)
-  window.removeEventListener('mouseup', stopResize)
-}
-
-const handleResizeKeydown = (event: KeyboardEvent) => {
-  if (isMobileSidebar.value) return
-
-  const step = event.shiftKey ? 32 : 16
-  if (event.key === 'ArrowLeft') {
-    event.preventDefault()
-    sidebarWidth.value = Math.max(minWidth, sidebarWidth.value - step)
-  } else if (event.key === 'ArrowRight') {
-    event.preventDefault()
-    sidebarWidth.value = Math.min(maxWidth, sidebarWidth.value + step)
-  } else if (event.key === 'Home') {
-    event.preventDefault()
-    sidebarWidth.value = minWidth
-  } else if (event.key === 'End') {
-    event.preventDefault()
-    sidebarWidth.value = maxWidth
-  } else {
-    return
-  }
-
-  localStorage.setItem('ccr-sidebar-width', sidebarWidth.value.toString())
-}
-
-onMounted(async () => {
-  const savedWidth = localStorage.getItem('ccr-sidebar-width')
-  if (savedWidth) sidebarWidth.value = Number(savedWidth) || 240
-
-  mobileMediaQuery = window.matchMedia('(max-width: 1023px)')
-  handleViewportChange(mobileMediaQuery.matches)
-  mobileMediaQuery.addEventListener('change', handleMobileMediaChange)
-  window.addEventListener('keydown', handleEscapeKey)
-  
-  isTauri.value = isTauriEnvironment()
-  if (isTauri.value) {
-    try {
-      const skipConfirm = await getSkipExitConfirm()
-      showExitConfirm.value = !skipConfirm
-    } catch (e) {
-      logger.error('Failed to load exit confirmation preference', e)
-    }
-  }
-})
-
-onUnmounted(() => {
-  window.removeEventListener('mousemove', handleResize)
-  window.removeEventListener('mouseup', stopResize)
-  window.removeEventListener('keydown', handleEscapeKey)
-  mobileMediaQuery?.removeEventListener('change', handleMobileMediaChange)
-  document.body.style.overflow = ''
-})
-
-watch(() => route.fullPath, () => {
-  closeSidebar()
-})
-
-watch(hasSidebar, (value) => {
-  if (!value) {
-    closeSidebar()
-  }
-})
-
-watch([isMobileSidebar, isSidebarOpen], ([mobile, open]) => {
-  document.body.style.overflow = mobile && open ? 'hidden' : ''
+const {
+  closeNavigationLabel,
+  closeSidebar,
+  handleResizeKeydown,
+  isMobileSidebar,
+  isResizing,
+  isSidebarOpen,
+  isTauri,
+  showExitConfirm,
+  showMobileBackdrop,
+  sidebarShellStyle,
+  sidebarToggleLabel,
+  startResize,
+  toggleExitConfirm,
+  toggleSidebar,
+} = useMainLayoutShell({
+  hasSidebar,
+  routeFullPath: computed(() => route.fullPath),
+  t,
 })
 </script>
 
@@ -718,26 +357,20 @@ watch([isMobileSidebar, isSidebarOpen], ([mobile, open]) => {
 :root[data-theme="dark"] .sidebar-glass,
 .dark .sidebar-glass,
 .sidebar-glass {
-  background: var(--liquid-glass-bg);
-  backdrop-filter: var(--liquid-glass-blur);
-  border-right: 1px solid var(--liquid-glass-border);
+  background: var(--surface-shell-bg);
+  backdrop-filter: var(--surface-shell-blur);
+  border-right: 1px solid var(--surface-shell-border);
   box-shadow:
-    var(--liquid-glass-shadow),
+    var(--surface-shell-shadow),
     inset -1px 0 0 rgb(255 255 255 / 8%);
 }
 
 .topbar-glass {
-  background: var(--glass-bg-light);
-  backdrop-filter: var(--glass-blur-md);
-  box-shadow: inset 0 -1px 0 rgb(var(--color-border-default-rgb) / 45%);
-}
-
-[data-theme="light"] .sidebar-glass {
-  background: rgb(255 240 245 / 80%);
-}
-
-[data-theme="light"] .topbar-glass {
-  background: rgb(255 245 247 / 82%);
+  background: var(--surface-status-bg);
+  backdrop-filter: var(--surface-status-blur);
+  box-shadow:
+    inset 0 -1px 0 rgb(var(--color-border-default-rgb) / 45%),
+    var(--surface-status-shadow);
 }
 
 /* Content area compositing fix:

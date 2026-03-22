@@ -1,13 +1,11 @@
 <template>
-  <div :style="{ background: 'var(--color-bg-base)', minHeight: '100vh', padding: '20px' }">
+  <div
+    class="min-h-full p-5 transition-colors duration-300"
+    :style="{ background: 'var(--color-bg-base)' }"
+  >
     <div class="max-w-[1800px] mx-auto">
-      <!-- Breadcrumb Navigation -->
-      <Breadcrumb
-        :items="breadcrumbItems"
-        :module-color="moduleColor"
-      />
-      <div class="grid grid-cols-[auto_1fr] gap-4">
-        <CollapsibleSidebar :module="sidebarModule" />
+      <div class="space-y-4">
+        <ModuleSubnav :module="sidebarModule" />
 
         <main
           class="rounded-xl p-6 glass-effect"
@@ -335,9 +333,7 @@
 import SIcon from '@/components/ui/SIcon.vue'
 import { computed, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
-import { useI18n } from 'vue-i18n'
-import CollapsibleSidebar from '@/components/CollapsibleSidebar.vue'
-import { Breadcrumb } from '@/components/ui'
+import ModuleSubnav from '@/components/ModuleSubnav.vue'
 import { usePlatformMcp, type PlatformType, getServerIdentifier } from '@/composables/usePlatformMcp'
 
 // ============ Props ============
@@ -350,10 +346,7 @@ const props = defineProps<Props>()
 
 // ============ Composable ============
 
-const { t } = useI18n()
-
 const {
-  moduleColor,
   i18nPrefix,
   parentPath,
   servers,
@@ -387,35 +380,6 @@ const sidebarModule = computed(() => {
   }
   return moduleMap[props.platform]
 })
-
-/** 平台图标 */
-const platformIcon = computed(() => {
-  const iconMap: Record<PlatformType, string> = {
-    gemini: 'Sparkles',
-    qwen: 'Zap',
-    iflow: 'Flame',
-    droid: 'Bot',
-  }
-  return iconMap[props.platform]
-})
-
-/** 平台显示名称 */
-const platformName = computed(() => {
-  const nameMap: Record<PlatformType, string> = {
-    gemini: 'Gemini CLI',
-    qwen: 'Qwen',
-    iflow: 'iFlow',
-    droid: 'Factory Droid',
-  }
-  return nameMap[props.platform]
-})
-
-/** 面包屑导航项 */
-const breadcrumbItems = computed(() => [
-  { label: t('common.home'), path: '/', icon: 'Home' },
-  { label: platformName.value, path: parentPath.value, icon: platformIcon.value },
-  { label: t(`${i18nPrefix.value}.title`), path: `${parentPath.value}/mcp`, icon: 'Server' },
-])
 
 // ============ Lifecycle ============
 

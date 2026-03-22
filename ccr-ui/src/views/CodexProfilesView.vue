@@ -1,18 +1,9 @@
 <!-- -->
 <template>
-  <div class="min-h-screen p-6">
+  <div class="min-h-full p-6">
     <div class="max-w-[1800px] mx-auto">
-      <Breadcrumb
-        :items="[
-          { label: $t('common.home'), path: '/', icon: 'Home' },
-          { label: 'Codex', path: '/codex', icon: 'Boxes' },
-          { label: $t('codex.profiles.breadcrumb'), path: '/codex/profiles', icon: 'Settings' }
-        ]"
-        module-color="#ec4899"
-      />
-
-      <div class="grid grid-cols-[auto_1fr] gap-6 mt-6">
-        <CollapsibleSidebar module="codex" />
+      <div class="mt-6 space-y-6">
+        <ModuleSubnav module="codex" />
 
         <main class="flex flex-col gap-6 w-full min-w-0">
           <!-- Header Section -->
@@ -781,8 +772,7 @@ import SIcon from '@/components/ui/SIcon.vue'
 import { computed, onActivated, onMounted, reactive, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { Breadcrumb } from '@/components/ui'
-import CollapsibleSidebar from '@/components/CollapsibleSidebar.vue'
+import ModuleSubnav from '@/components/ModuleSubnav.vue'
 import Card from '@/components/ui/Card.vue'
 import ConfirmModal from '@/components/ConfirmModal.vue'
 import { addCodexCustomModel, addCodexProfile, applyCodexProfile, deleteCodexProfile, getCodexProfile, listCodexModels, listCodexProfiles, updateCodexProfile } from '@/api'

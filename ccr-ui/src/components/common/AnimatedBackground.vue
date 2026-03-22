@@ -1,7 +1,7 @@
 <template>
   <div
     ref="bgRef"
-    class="fixed inset-0 overflow-hidden pointer-events-none -z-10 transition-colors duration-500"
+    :class="backgroundLayerClass"
     :style="{ '--animation-state': shouldAnimate ? 'running' : 'paused' }"
   >
     <!-- Variant: Default / Complex - Multi-layer mesh gradient -->
@@ -81,11 +81,14 @@ const props = withDefaults(defineProps<{
   variant?: BackgroundVariant
   /** Spotlight color (only for spotlight variant) */
   spotlightColor?: SpotlightColor
+  /** Render inside the route container instead of owning the viewport */
+  contained?: boolean
   /** Legacy prop for backward compatibility */
   complex?: boolean
 }>(), {
   variant: 'default',
   spotlightColor: 'primary',
+  contained: false,
   complex: false
 })
 
@@ -103,6 +106,12 @@ const effectiveVariant = computed<BackgroundVariant>(() => {
   if (prefersReducedMotion.value) return 'minimal'
   return variant.value
 })
+
+const backgroundLayerClass = computed(() => (
+  props.contained
+    ? 'absolute inset-0 overflow-hidden pointer-events-none -z-10 transition-colors duration-500'
+    : 'fixed inset-0 overflow-hidden pointer-events-none -z-10 transition-colors duration-500'
+))
 
 // Spotlight color class mapping
 const spotlightColorClass = computed(() => {

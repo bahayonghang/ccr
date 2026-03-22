@@ -1,7 +1,7 @@
 <template>
-  <div class="min-h-screen p-6 transition-colors duration-300">
+  <div class="min-h-full relative overflow-hidden p-6 transition-colors duration-300">
     <!-- 🎨 动态背景装饰 -->
-    <div class="fixed inset-0 overflow-hidden pointer-events-none -z-10">
+    <div class="absolute inset-0 overflow-hidden pointer-events-none -z-10">
       <div
         class="absolute top-0 right-0 w-[600px] h-[600px] rounded-full opacity-10 blur-3xl"
         :style="{ background: 'radial-gradient(circle, var(--accent-primary) 0%, transparent 70%)' }"
@@ -12,10 +12,7 @@
       />
     </div>
 
-    <div class="max-w-[1800px] mx-auto">
-      <!-- 导航栏 -->
-      <Navbar />
-
+    <div class="relative z-10 mx-auto max-w-[1800px]">
       <!-- 页面标题 -->
       <div class="mb-6 mt-6">
         <div class="flex items-center gap-3 mb-2">
@@ -397,7 +394,6 @@ import 'highlight.js/styles/atom-one-dark.css'
 import { listCommands, executeCommand, listConfigs } from '@/api'
 import type { CommandInfo, CommandResponse, ConfigItem } from '@/types'
 import { normalizeCliClient, type CliClient } from '@/types/router'
-import Navbar from '@/components/Navbar.vue'
 import Card from '@/components/ui/Card.vue'
 import { sanitizeTerminal } from '@/utils/sanitize'
 import { logger } from '@/utils/logger'

@@ -1,114 +1,86 @@
 import { defineStore } from 'pinia'
-import { listCommands, executeCommand } from '@/api'
-import type { CommandInfo, CommandRequest, CommandResponse } from '@/types'
+import { computed, ref } from 'vue'
+import { executeCommand, listCommands } from '@/api'
+import { useCachedFetch } from '@/composables/useCachedFetch'
 import { getErrorMessage } from '@/types'
+import type { CommandInfo, CommandRequest, CommandResponse } from '@/types'
 
-interface CommandsState {
-  list: CommandInfo[]
-  lastFetchedAt: number
-  running: boolean
-  currentCommand: string | null
-  lastOutput: CommandResponse | null
-  error: string | null
-}
+export const useCommandsStore = defineStore('commands', () => {
+  const commandsCache = useCachedFetch<CommandInfo[]>({
+    ttlMs: 2 * 60 * 1000,
+    initialValue: [],
+    isEmpty: (value) => value.length === 0,
+  })
 
-export const useCommandsStore = defineStore('commands', {
-  state: (): CommandsState => ({
-    list: [],
-    lastFetchedAt: 0,
-    running: false,
-    currentCommand: null,
-    lastOutput: null,
-    error: null
-  }),
+  const running = ref(false)
+  const currentCommand = ref<string | null>(null)
+  const lastOutput = ref<CommandResponse | null>(null)
+  const error = ref<string | null>(null)
 
-  getters: {
-    /**
-     * 是否有可用命令
-     */
-    hasCommands: (state) => state.list.length > 0,
+  const hasCommands = computed(() => commandsCache.data.value.length > 0)
+  const commandsByCategory = computed<Record<string, CommandInfo[]>>(() => {
+    return commandsCache.data.value.reduce((groups, cmd) => {
+      const category = cmd.category || 'Other'
+      if (!groups[category]) {
+        groups[category] = []
+      }
+      groups[category].push(cmd)
+      return groups
+    }, {} as Record<string, CommandInfo[]>)
+  })
 
-    /**
-     * 缓存是否有效（2分钟内）
-     */
-    isCacheValid: (state) => {
-      const cacheAge = Date.now() - state.lastFetchedAt
-      return cacheAge < 2 * 60 * 1000 && state.list.length > 0
-    },
-    
-    /**
-     * 按类别分组的命令
-     */
-    commandsByCategory: (state): Record<string, CommandInfo[]> => {
-      return state.list.reduce((groups, cmd) => {
-        const category = cmd.category || 'Other'
-        if (!groups[category]) {
-          groups[category] = []
-        }
-        groups[category].push(cmd)
-        return groups
-      }, {} as Record<string, CommandInfo[]>)
+  async function loadList(force = false) {
+    try {
+      error.value = null
+      return await commandsCache.fetch(() => listCommands<CommandInfo[]>(), force)
+    } catch (err: unknown) {
+      error.value = getErrorMessage(err, '加载命令列表失败')
+      throw err
     }
-  },
+  }
 
-  actions: {
-    /**
-     * 加载命令列表
-     * @param force 是否强制刷新（忽略缓存）
-     */
-    async loadList(force = false) {
-      // 缓存有效且不是强制刷新，直接返回
-      if (!force && this.isCacheValid) {
-        return this.list
-      }
+  function clearCache() {
+    commandsCache.data.value = []
+    commandsCache.invalidate()
+    error.value = null
+  }
 
-      try {
-        this.list = await listCommands<CommandInfo[]>()
-        this.lastFetchedAt = Date.now()
-        return this.list
-      } catch (err: unknown) {
-        this.error = getErrorMessage(err, '加载命令列表失败')
-        throw err
-      }
-    },
+  async function run(payload: CommandRequest): Promise<CommandResponse> {
+    running.value = true
+    currentCommand.value = payload.command
+    error.value = null
 
-    /**
-     * 清除命令列表缓存
-     */
-    clearCache() {
-      this.list = []
-      this.lastFetchedAt = 0
-      this.error = null
-    },
-
-    /**
-     * 执行命令
-     * @param payload 命令请求参数
-     */
-    async run(payload: CommandRequest): Promise<CommandResponse> {
-      this.running = true
-      this.currentCommand = payload.command
-      this.error = null
-
-      try {
-        const result = await executeCommand(payload) as CommandResponse
-        this.lastOutput = result
-        return result
-      } catch (err: unknown) {
-        this.error = getErrorMessage(err, '命令执行失败')
-        throw err
-      } finally {
-        this.running = false
-        this.currentCommand = null
-      }
-    },
-
-    /**
-     * 清除上次输出
-     */
-    clearOutput() {
-      this.lastOutput = null
-      this.error = null
+    try {
+      const result = await executeCommand(payload) as CommandResponse
+      lastOutput.value = result
+      return result
+    } catch (err: unknown) {
+      error.value = getErrorMessage(err, '命令执行失败')
+      throw err
+    } finally {
+      running.value = false
+      currentCommand.value = null
     }
+  }
+
+  function clearOutput() {
+    lastOutput.value = null
+    error.value = null
+  }
+
+  return {
+    list: commandsCache.data,
+    lastFetchedAt: commandsCache.lastFetchedAt,
+    running,
+    currentCommand,
+    lastOutput,
+    error,
+    hasCommands,
+    isCacheValid: commandsCache.isCacheValid,
+    commandsByCategory,
+    loadList,
+    clearCache,
+    run,
+    clearOutput,
   }
 })
