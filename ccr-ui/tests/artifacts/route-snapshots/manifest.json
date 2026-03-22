@@ -1,0 +1,157 @@
+{
+  "generatedAt": "2026-03-22T10:16:34.065Z",
+  "baseUrl": "http://127.0.0.1:5173",
+  "routes": [
+    {
+      "slug": "home",
+      "path": "/"
+    },
+    {
+      "slug": "skills",
+      "path": "/skills"
+    },
+    {
+      "slug": "skills-add",
+      "path": "/skills/add"
+    },
+    {
+      "slug": "usage",
+      "path": "/usage"
+    },
+    {
+      "slug": "sync",
+      "path": "/sync"
+    },
+    {
+      "slug": "commands",
+      "path": "/commands"
+    }
+  ],
+  "modes": [
+    {
+      "name": "light",
+      "theme": "light",
+      "reducedMotion": "no-preference"
+    },
+    {
+      "name": "dark",
+      "theme": "dark",
+      "reducedMotion": "no-preference"
+    },
+    {
+      "name": "light-reduced-motion",
+      "theme": "light",
+      "reducedMotion": "reduce"
+    }
+  ],
+  "captures": [
+    {
+      "mode": "light",
+      "route": "/",
+      "file": "tests/artifacts/route-snapshots/light/home.png",
+      "ok": true
+    },
+    {
+      "mode": "light",
+      "route": "/skills",
+      "file": "tests/artifacts/route-snapshots/light/skills.png",
+      "ok": true
+    },
+    {
+      "mode": "light",
+      "route": "/skills/add",
+      "file": "tests/artifacts/route-snapshots/light/skills-add.png",
+      "ok": true
+    },
+    {
+      "mode": "light",
+      "route": "/usage",
+      "file": "tests/artifacts/route-snapshots/light/usage.png",
+      "ok": true
+    },
+    {
+      "mode": "light",
+      "route": "/sync",
+      "file": "tests/artifacts/route-snapshots/light/sync.png",
+      "ok": true
+    },
+    {
+      "mode": "light",
+      "route": "/commands",
+      "file": "tests/artifacts/route-snapshots/light/commands.png",
+      "ok": true
+    },
+    {
+      "mode": "dark",
+      "route": "/",
+      "file": "tests/artifacts/route-snapshots/dark/home.png",
+      "ok": true
+    },
+    {
+      "mode": "dark",
+      "route": "/skills",
+      "file": "tests/artifacts/route-snapshots/dark/skills.png",
+      "ok": true
+    },
+    {
+      "mode": "dark",
+      "route": "/skills/add",
+      "file": "tests/artifacts/route-snapshots/dark/skills-add.png",
+      "ok": true
+    },
+    {
+      "mode": "dark",
+      "route": "/usage",
+      "file": "tests/artifacts/route-snapshots/dark/usage.png",
+      "ok": true
+    },
+    {
+      "mode": "dark",
+      "route": "/sync",
+      "file": "tests/artifacts/route-snapshots/dark/sync.png",
+      "ok": true
+    },
+    {
+      "mode": "dark",
+      "route": "/commands",
+      "file": "tests/artifacts/route-snapshots/dark/commands.png",
+      "ok": true
+    },
+    {
+      "mode": "light-reduced-motion",
+      "route": "/",
+      "file": "tests/artifacts/route-snapshots/light-reduced-motion/home.png",
+      "ok": true
+    },
+    {
+      "mode": "light-reduced-motion",
+      "route": "/skills",
+      "file": "tests/artifacts/route-snapshots/light-reduced-motion/skills.png",
+      "ok": true
+    },
+    {
+      "mode": "light-reduced-motion",
+      "route": "/skills/add",
+      "file": "tests/artifacts/route-snapshots/light-reduced-motion/skills-add.png",
+      "ok": true
+    },
+    {
+      "mode": "light-reduced-motion",
+      "route": "/usage",
+      "file": "tests/artifacts/route-snapshots/light-reduced-motion/usage.png",
+      "ok": true
+    },
+    {
+      "mode": "light-reduced-motion",
+      "route": "/sync",
+      "file": "tests/artifacts/route-snapshots/light-reduced-motion/sync.png",
+      "ok": true
+    },
+    {
+      "mode": "light-reduced-motion",
+      "route": "/commands",
+      "file": "tests/artifacts/route-snapshots/light-reduced-motion/commands.png",
+      "ok": true
+    }
+  ]
+}
