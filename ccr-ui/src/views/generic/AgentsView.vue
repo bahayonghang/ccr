@@ -201,6 +201,7 @@
                    
                     <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                       <button
+                        v-if="!isQoderSubagents"
                         class="min-h-[44px] min-w-[44px] rounded-lg transition-colors hover:bg-[var(--color-bg-surface)] flex items-center justify-center"
                         :class="agent.disabled ? 'text-[var(--color-text-muted)] hover:text-[var(--color-accent-primary)]' : 'text-[var(--color-accent-primary)] hover:text-[var(--color-text-muted)]'"
                         :title="agent.disabled ? $t(`${tPrefix}.enable`) : $t(`${tPrefix}.disable`)"
@@ -278,7 +279,9 @@
                     <div class="mt-4 pt-3 border-t border-[var(--color-border-default)]/30 flex items-center justify-between gap-2">
                       <div class="flex items-center gap-1.5 text-[10px] text-[var(--color-text-muted)] bg-[var(--color-bg-surface)]/50 px-2 py-1 rounded-md border border-[var(--color-border-default)]/30">
                         <span class="w-1.5 h-1.5 rounded-full bg-[var(--color-accent-secondary)]/50" />
-                        <span class="truncate max-w-[100px]">{{ agent.model }}</span>
+                        <span class="truncate max-w-[120px]">
+                          {{ isQoderSubagents ? 'Subagent' : agent.model }}
+                        </span>
                       </div>
 
                       <div
@@ -370,7 +373,7 @@
               >
             </div>
 
-            <div>
+            <div v-if="!isQoderSubagents">
               <label class="block mb-2 text-xs font-bold text-[var(--color-text-secondary)] uppercase tracking-wider">{{ $t(`${tPrefix}.modelLabel`) }}</label>
               <div class="relative">
                 <select
@@ -481,13 +484,14 @@ import type { Agent, AgentRequest } from '@/types'
 import { logger } from '@/utils/logger'
 
 const props = defineProps<{
-  module: 'codex' | 'gemini' | 'qwen' | 'iflow' | 'agents' | 'droid'
+  module: 'codex' | 'gemini' | 'qwen' | 'qoder' | 'agents' | 'droid'
 }>()
 
 const { t } = useI18n()
 const router = useRouter()
 const uiStore = useUIStore()
 const tPrefix = computed(() => props.module === 'agents' ? 'agents' : `${props.module}.agents`)
+const isQoderSubagents = computed(() => props.module === 'qoder')
 const {
   agents,
   folders,
@@ -504,7 +508,15 @@ const searchQuery = ref('')
 const currentPage = ref(1)
 const showAddForm = ref(false)
 const editingAgent = ref<Agent | null>(null)
-const formData = ref<AgentRequest>({ name: '', model: 'claude-sonnet-4-5-20250929', tools: [], system_prompt: '', disabled: false })
+const defaultAgentRequest = (): AgentRequest => ({
+  name: '',
+  model: props.module === 'qoder' ? 'qoder-subagent' : 'claude-sonnet-4-5-20250929',
+  tools: [],
+  system_prompt: '',
+  disabled: false,
+})
+
+const formData = ref<AgentRequest>(defaultAgentRequest())
 const toolInput = ref('')
 const PAGE_SIZE = 20
 
@@ -552,6 +564,7 @@ const filteredAgents = computed(() => {
     const query = searchQuery.value.toLowerCase()
     filtered = filtered.filter((agent) => 
       agent.name.toLowerCase().includes(query) || 
+      (agent.description && agent.description.toLowerCase().includes(query)) ||
       (agent.system_prompt && agent.system_prompt.toLowerCase().includes(query)) || 
       (agent.tools && agent.tools.some(tool => tool.toLowerCase().includes(query)))
     )
@@ -578,7 +591,7 @@ watch(filteredAgents, (agentsOnPage) => {
 const handleAdd = () => {
   showAddForm.value = true
   editingAgent.value = null
-  formData.value = { name: '', model: 'claude-sonnet-4-5-20250929', tools: [], system_prompt: '', disabled: false }
+  formData.value = defaultAgentRequest()
   toolInput.value = ''
 }
 
@@ -587,7 +600,8 @@ const handleEdit = (agent: Agent) => {
   showAddForm.value = true
   formData.value = { 
     name: agent.name, 
-    model: agent.model, 
+    model: agent.model || (props.module === 'qoder' ? 'qoder-subagent' : 'claude-sonnet-4-5-20250929'),
+    description: agent.description,
     tools: [...(agent.tools || [])], 
     system_prompt: agent.system_prompt || '', 
     disabled: agent.disabled || false 
@@ -617,7 +631,7 @@ const getAgentApiName = (agent: Agent) => {
 }
 
 const handleSubmit = async () => {
-  if (!formData.value.name || !formData.value.model) {
+  if (!formData.value.name || (!isQoderSubagents.value && !formData.value.model)) {
     uiStore.showWarning(t(`${tPrefix.value}.validation.required`))
     return
   }

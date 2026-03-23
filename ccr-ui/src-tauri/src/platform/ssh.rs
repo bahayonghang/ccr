@@ -81,7 +81,7 @@ impl SshEnvironment {
             "codex" => format!("{home}/.codex"),
             "gemini" => format!("{home}/.gemini"),
             "qwen" => format!("{home}/.qwen"),
-            "iflow" => format!("{home}/.iflow"),
+            "qoder" => format!("{home}/.qoder"),
             "droid" => format!("{home}/.droid"),
             "opencode" => format!("{home}/.opencode"),
             _ => return Err(EnvError::PlatformNotSupported(platform.to_string())),
@@ -144,7 +144,7 @@ impl ExecutionEnvironment for SshEnvironment {
                     "codex" => "Codex CLI",
                     "gemini" => "Gemini CLI",
                     "qwen" => "Qwen",
-                    "iflow" => "iFlow",
+                    "qoder" => "Qoder CLI",
                     _ => s.name.as_str(),
                 }
                 .to_string(),
@@ -241,7 +241,7 @@ impl ExecutionEnvironment for SshEnvironment {
     }
 
     async fn detect_cli_status(&self) -> Result<Vec<CliStatus>, EnvError> {
-        let tools = ["claude", "codex", "gemini", "qwen", "iflow"];
+        let tools = ["claude", "codex", "gemini", "qwen", "qodercli"];
         let mut result = Vec::new();
 
         for tool in tools {
@@ -249,7 +249,11 @@ impl ExecutionEnvironment for SshEnvironment {
 
             let path = String::from_utf8_lossy(&output.stdout).trim().to_string();
             result.push(CliStatus {
-                name: tool.to_string(),
+                name: if tool == "qodercli" {
+                    "qoder".to_string()
+                } else {
+                    tool.to_string()
+                },
                 installed: !path.is_empty(),
                 path: if path.is_empty() { None } else { Some(path) },
                 version: None,

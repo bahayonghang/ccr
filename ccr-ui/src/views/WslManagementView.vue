@@ -38,7 +38,7 @@ const cliStatus = ref<CliStatus>({})
 const selectedPlatform = ref('claude')
 const cacheStatus = ref<CacheStatus | null>(null)
 
-const platforms = ['claude', 'codex', 'gemini', 'qwen', 'iflow', 'droid']
+const platforms = ['claude', 'codex', 'gemini', 'qwen', 'qoder', 'droid']
 
 const stateColor = (state: string) => {
   switch (state.toLowerCase()) {

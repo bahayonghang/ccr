@@ -146,7 +146,7 @@ export function useUnifiedSkills() {
     if (normalized === 'codex') return 'codex'
     if (normalized === 'gemini') return 'gemini'
     if (normalized === 'qwen') return 'qwen'
-    if (normalized === 'iflow') return 'iflow'
+    if (normalized === 'qoder') return 'qoder'
     return 'droid'
   }
 

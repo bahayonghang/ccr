@@ -2,7 +2,7 @@ import { ref } from 'vue'
 import { listCodexAgents, addCodexAgent, updateCodexAgent, deleteCodexAgent, toggleCodexAgent } from '@/api'
 import { listGeminiAgents, addGeminiAgent, updateGeminiAgent, deleteGeminiAgent, toggleGeminiAgent } from '@/api'
 import { listQwenAgents, addQwenAgent, updateQwenAgent, deleteQwenAgent, toggleQwenAgent } from '@/api'
-import { listIflowAgents, addIflowAgent, updateIflowAgent, deleteIflowAgent, toggleIflowAgent } from '@/api'
+import { listQoderAgents, addQoderAgent, updateQoderAgent, deleteQoderAgent, toggleQoderAgent } from '@/api'
 import { listDroidAgents, addDroidAgent, updateDroidAgent, deleteDroidAgent } from '@/api'
 import { listConfigs, getHistory } from '@/api'
 import { listAgents, getAgent as apiGetAgent, addAgent, updateAgent, deleteAgent, toggleAgent } from '@/api'
@@ -10,7 +10,7 @@ import { logger } from '@/utils/logger'
 import type { Agent, AgentRequest } from '@/types'
 import type { ConfigListResponse, HistoryResponse } from '@/types'
 
-type ModuleType = 'codex' | 'gemini' | 'qwen' | 'iflow' | 'droid' | 'agents'
+type ModuleType = 'codex' | 'gemini' | 'qwen' | 'qoder' | 'droid' | 'agents'
 
 interface AgentApi {
     list: () => Promise<{ agents: Agent[], folders?: string[] }>
@@ -46,12 +46,12 @@ const apiMap: Record<ModuleType, AgentApi> = {
         delete: deleteQwenAgent,
         toggle: toggleQwenAgent
     },
-    iflow: {
-        list: listIflowAgents,
-        add: addIflowAgent,
-        update: updateIflowAgent,
-        delete: deleteIflowAgent,
-        toggle: toggleIflowAgent
+    qoder: {
+        list: listQoderAgents,
+        add: addQoderAgent,
+        update: updateQoderAgent,
+        delete: deleteQoderAgent,
+        toggle: toggleQoderAgent
     },
     droid: {
         list: listDroidAgents,

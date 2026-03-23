@@ -639,7 +639,7 @@ const CLI_DEFINITIONS: { value: CliType; label: string; descriptionKey: string }
   { value: 'codex', label: 'Codex', descriptionKey: 'converter.formatDescriptions.codex' },
   { value: 'gemini', label: 'Gemini', descriptionKey: 'converter.formatDescriptions.gemini' },
   { value: 'qwen', label: 'Qwen', descriptionKey: 'converter.formatDescriptions.qwen' },
-  { value: 'iflow', label: 'iFlow', descriptionKey: 'converter.formatDescriptions.iflow' }
+  { value: 'qoder', label: 'Qoder', descriptionKey: 'converter.formatDescriptions.qoder' }
 ]
 
 const cliTypes = computed(() =>

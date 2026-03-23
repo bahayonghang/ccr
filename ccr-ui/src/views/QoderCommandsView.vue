@@ -4,11 +4,11 @@
     :style="{ background: 'var(--bg-primary)' }"
   >
     <!-- 使用重构后的BaseSlashCommands组件 -->
-    <BaseSlashCommands :config="iflowConfig" />
+    <BaseSlashCommands :config="qoderConfig" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { iflowConfig } from '@/configs/slashCommands'
+import { qoderConfig } from '@/configs/slashCommands'
 import BaseSlashCommands from '@/components/BaseSlashCommands.vue'
 </script>

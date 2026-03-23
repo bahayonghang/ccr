@@ -99,7 +99,7 @@ const platformIcon = computed(() => {
     codex: 'Settings',
     gemini: GeminiIcon,
     qwen: 'Zap',
-    iflow: 'Activity',
+    qoder: 'Activity',
     droid: 'Bot',
   }
   return iconMap[props.skill?.platform || ''] || 'Code2'

@@ -214,7 +214,7 @@ export const CCR_MODULES: CcrModule[] = [
     id: 'platform',
     name: '平台管理',
     icon: 'Layers',
-    description: '管理和切换 AI CLI 平台 (Claude/Codex/Gemini/Qwen/iFlow)',
+    description: '管理和切换 AI CLI 平台 (Claude/Codex/Gemini/Qwen/Qoder)',
     commands: [
       {
         name: '列出平台',
@@ -230,7 +230,7 @@ export const CCR_MODULES: CcrModule[] = [
           description: '平台名称',
           required: true,
           type: 'select',
-          options: ['claude', 'codex', 'gemini', 'qwen', 'iflow']
+          options: ['claude', 'codex', 'gemini', 'qwen', 'qoder']
         }]
       },
       {
@@ -247,7 +247,7 @@ export const CCR_MODULES: CcrModule[] = [
           description: '平台名称',
           required: true,
           type: 'select',
-          options: ['claude', 'codex', 'gemini', 'qwen', 'iflow']
+          options: ['claude', 'codex', 'gemini', 'qwen', 'qoder']
         }]
       },
       {
@@ -259,7 +259,7 @@ export const CCR_MODULES: CcrModule[] = [
           description: '平台名称',
           required: true,
           type: 'select',
-          options: ['claude', 'codex', 'gemini', 'qwen', 'iflow']
+          options: ['claude', 'codex', 'gemini', 'qwen', 'qoder']
         }]
       }
     ]
@@ -330,7 +330,7 @@ export const CCR_MODULES: CcrModule[] = [
           description: '平台名称',
           required: true,
           type: 'select',
-          options: ['claude', 'codex', 'gemini', 'qwen', 'iflow']
+          options: ['claude', 'codex', 'gemini', 'qwen', 'qoder']
         }],
         dangerous: true
       }

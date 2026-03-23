@@ -394,7 +394,7 @@ const availablePlatforms = [
   { id: 'codex', label: 'Codex', icon: '💻' },
   { id: 'gemini', label: 'Gemini', icon: '✨' },
   { id: 'qwen', label: 'Qwen', icon: '🌐' },
-  { id: 'iflow', label: 'iFlow', icon: '🔄' },
+  { id: 'qoder', label: 'Qoder', icon: '🔄' },
 ]
 
 const categoryMap: Record<string, MarketItemCategory> = {

@@ -1,7 +1,7 @@
 /**
  * usePlatformPlugins - 通用平台插件管理 Composable
  *
- * 消除各平台 Plugins 视图中的重复代码（GeminiPluginsView、QwenPluginsView、IflowPluginsView）
+ * 消除各平台 Plugins 视图中的重复代码（GeminiPluginsView、QwenPluginsView、QoderPluginsView）
  *
  * @example
  * const { plugins, loading, loadPlugins, addPlugin, updatePlugin, deletePlugin, togglePlugin } = usePlatformPlugins('gemini')
@@ -12,14 +12,14 @@ import { useI18n } from 'vue-i18n'
 import { useUIStore } from '@/stores/ui'
 import { listGeminiPlugins, addGeminiPlugin, updateGeminiPlugin, deleteGeminiPlugin, toggleGeminiPlugin } from '@/api'
 import { listQwenPlugins, addQwenPlugin, updateQwenPlugin, deleteQwenPlugin, toggleQwenPlugin } from '@/api'
-import { listIflowPlugins, addIflowPlugin, updateIflowPlugin, deleteIflowPlugin, toggleIflowPlugin } from '@/api'
+import { listQoderPlugins, addQoderPlugin, updateQoderPlugin, deleteQoderPlugin, toggleQoderPlugin } from '@/api'
 import type { Plugin as PluginType, PluginRequest } from '@/types'
 import { logger } from '@/utils/logger'
 
 // ============ 类型定义 ============
 
 /** 支持的平台类型 */
-export type PluginPlatformType = 'gemini' | 'qwen' | 'iflow'
+export type PluginPlatformType = 'gemini' | 'qwen' | 'qoder'
 
 /** 平台配置 */
 interface PlatformPluginConfig {
@@ -59,16 +59,16 @@ const platformConfigs: Record<PluginPlatformType, PlatformPluginConfig> = {
         deleteApi: deleteQwenPlugin,
         toggleApi: toggleQwenPlugin,
     },
-    iflow: {
+    qoder: {
         color: '#f97316',
-        i18nPrefix: 'iflow.plugins',
-        parentPath: '/iflow',
-        sidebarModule: 'iflow',
-        listApi: listIflowPlugins,
-        addApi: addIflowPlugin,
-        updateApi: updateIflowPlugin,
-        deleteApi: deleteIflowPlugin,
-        toggleApi: toggleIflowPlugin,
+        i18nPrefix: 'qoder.plugins',
+        parentPath: '/qoder',
+        sidebarModule: 'qoder',
+        listApi: listQoderPlugins,
+        addApi: addQoderPlugin,
+        updateApi: updateQoderPlugin,
+        deleteApi: deleteQoderPlugin,
+        toggleApi: toggleQoderPlugin,
     },
 }
 

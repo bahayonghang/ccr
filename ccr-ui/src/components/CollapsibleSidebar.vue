@@ -266,7 +266,7 @@ interface NavGroup {
 
 // Props: 接受一个可选的 module 参数来过滤菜单
 interface Props {
-  module?: string  // 'claude-code' | 'codex' | 'gemini-cli' | 'qwen' | 'iflow' | 'droid' | 'opencode' | 'commands' | 'converter'
+  module?: string  // 'claude-code' | 'codex' | 'gemini-cli' | 'qwen' | 'qoder' | 'droid' | 'opencode' | 'commands' | 'converter'
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -323,7 +323,7 @@ const allNavigationGroups: NavGroup[] = [
       { name: 'Claude 命令', href: '/commands/claude', icon: 'Zap' },
       { name: 'Qwen 命令', href: '/commands/qwen', icon: 'Sparkles' },
       { name: 'Gemini 命令', href: '/commands/gemini', icon: 'Gem' },
-      { name: 'IFLOW 命令', href: '/commands/iflow', icon: 'Workflow' }
+      { name: 'QODER 命令', href: '/commands/qoder', icon: 'Workflow' }
     ]
   },
   {
@@ -380,15 +380,15 @@ const allNavigationGroups: NavGroup[] = [
     ]
   },
   {
-    title: 'iFlow',
+    title: 'Qoder',
     icon: 'Flame',
     defaultExpanded: false,
-    module: 'iflow',
+    module: 'qoder',
     items: [
-      { name: 'MCP 服务器', href: '/iflow/mcp', icon: 'Server' },
-      { name: 'Agents', href: '/iflow/agents', icon: 'Bot' },
-      { name: 'Slash Commands', href: '/iflow/slash-commands', icon: 'Command' },
-      { name: '插件管理', href: '/iflow/plugins', icon: 'Puzzle' }
+      { name: 'MCP 服务器', href: '/qoder/mcp', icon: 'Server' },
+      { name: 'Subagents', href: '/qoder/subagents', icon: 'Bot' },
+      { name: 'Commands', href: '/qoder/commands', icon: 'Command' },
+      { name: 'Hooks', href: '/qoder/hooks', icon: 'Webhook' }
     ]
   },
   {

@@ -6,7 +6,7 @@ import {
   listCodexSlashCommands, addCodexSlashCommand, updateCodexSlashCommand, deleteCodexSlashCommand, toggleCodexSlashCommand,
   listGeminiSlashCommands, addGeminiSlashCommand, updateGeminiSlashCommand, deleteGeminiSlashCommand, toggleGeminiSlashCommand,
   listQwenSlashCommands, addQwenSlashCommand, updateQwenSlashCommand, deleteQwenSlashCommand, toggleQwenSlashCommand,
-  listIflowSlashCommands, addIflowSlashCommand, updateIflowSlashCommand, deleteIflowSlashCommand, toggleIflowSlashCommand
+  listQoderCommands, addQoderCommand, updateQoderCommand, deleteQoderCommand, toggleQoderCommand
 } from '@/api'
 
 type UnknownRecord = Record<string, unknown>
@@ -199,36 +199,36 @@ export const qwenConfig: PlatformConfig = {
   }
 }
 
-// iFlow 平台配置
-export const iflowConfig: PlatformConfig = {
+// Qoder 平台配置
+export const qoderConfig: PlatformConfig = {
   api: {
     list: async () => {
-      return await listIflowSlashCommands<{ commands: SlashCommand[]; folders: string[] }>()
+      return await listQoderCommands<{ commands: SlashCommand[]; folders: string[] }>()
     },
     add: async (cmd: SlashCommandRequest) => {
-      await addIflowSlashCommand(getRequestName(cmd), cmd)
+      await addQoderCommand(getRequestName(cmd), cmd)
     },
     update: async (name: string, cmd: SlashCommandRequest) => {
-      await updateIflowSlashCommand(name, cmd)
+      await updateQoderCommand(name, cmd)
     },
     delete: async (name: string) => {
-      await deleteIflowSlashCommand(name)
+      await deleteQoderCommand(name)
     },
     toggle: async (name: string) => {
-      await toggleIflowSlashCommand(name, true)
+      await toggleQoderCommand(name, true)
     }
   },
   i18n: {
-    prefix: 'iflow.slashCommands'
+    prefix: 'qoder.slashCommands'
   },
   theme: 'css-variable',
   route: {
-    homePath: '/iflow',
-    module: 'iflow'
+    homePath: '/qoder',
+    module: 'qoder'
   },
   platform: {
-    name: 'iflow',
-    displayName: 'iFlow'
+    name: 'qoder',
+    displayName: 'Qoder'
   },
   features: {
     breadcrumb: false,
@@ -242,7 +242,7 @@ export const platformConfigs = {
   'codex': codexConfig,
   'gemini-cli': geminiConfig,
   'qwen': qwenConfig,
-  'iflow': iflowConfig
+  'qoder': qoderConfig
 } as const
 
 // 类型导出

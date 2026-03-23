@@ -239,7 +239,7 @@ function getPlatformIcon(platformId: string) {
     'codex': 'Settings',
     'gemini': 'Sparkles',
     'qwen': 'Zap',
-    'iflow': 'Activity',
+    'qoder': 'Activity',
     'droid': 'Bot'
   }
   return iconMap[platformId] || 'Code2'

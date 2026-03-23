@@ -469,12 +469,12 @@ const mainModules = computed(() => [
     platformKey: 'qwen'
   },
   {
-    title: t('home.iflowTitle'),
-    desc: t('home.iflowDesc'),
-    path: '/iflow',
+    title: t('home.qoderTitle'),
+    desc: t('home.qoderDesc'),
+    path: '/qoder',
     icon: 'Workflow',
-    iconClass: 'text-platform-iflow',
-    platformKey: 'iflow'
+    iconClass: 'text-platform-qoder',
+    platformKey: 'qoder'
   },
   {
     title: t('home.factoryDroidTitle'),

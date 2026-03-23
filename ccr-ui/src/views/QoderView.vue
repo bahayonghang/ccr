@@ -23,10 +23,10 @@
             </div>
             <div>
               <h1 class="mb-2 text-4xl font-bold text-text-primary md:text-5xl">
-                {{ $t('iflow.overview.title') }}
+                {{ $t('qoder.overview.title') }}
               </h1>
               <p class="text-lg text-text-secondary">
-                {{ $t('iflow.overview.description') }}
+                {{ $t('qoder.overview.description') }}
               </p>
             </div>
           </div>
@@ -39,7 +39,7 @@
               size="w-5 h-5"
               class="text-text-muted"
             />
-            <span class="font-medium">{{ $t('iflow.overview.backToHome') }}</span>
+            <span class="font-medium">{{ $t('qoder.overview.backToHome') }}</span>
           </RouterLink>
         </div>
 
@@ -48,22 +48,22 @@
           <span
             class="glass-card rounded-full bg-accent-success/10 px-4 py-2 text-sm font-medium text-accent-success"
           >
-            {{ $t('iflow.overview.tags.workflow') }}
+            {{ $t('qoder.overview.tags.workflow') }}
           </span>
           <span
             class="glass-card rounded-full bg-accent-info/10 px-4 py-2 text-sm font-medium text-accent-info"
           >
-            {{ $t('iflow.overview.tags.orchestration') }}
+            {{ $t('qoder.overview.tags.orchestration') }}
           </span>
           <span
             class="glass-card rounded-full bg-accent-primary/10 px-4 py-2 text-sm font-medium text-accent-primary"
           >
-            {{ $t('iflow.overview.tags.mcp') }}
+            {{ $t('qoder.overview.tags.mcp') }}
           </span>
           <span
             class="glass-card rounded-full bg-accent-secondary/10 px-4 py-2 text-sm font-medium text-accent-secondary"
           >
-            {{ $t('iflow.overview.tags.agent') }}
+            {{ $t('qoder.overview.tags.agent') }}
           </span>
         </div>
       </div>
@@ -76,11 +76,11 @@
             size="w-7 h-7"
             class="text-accent-success"
           />
-          {{ $t('iflow.overview.features') }}
+          {{ $t('qoder.overview.features') }}
         </h2>
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           <RouterLink
-            to="/iflow/mcp"
+            to="/qoder/mcp"
             class="block group"
           >
             <div class="glass-card h-full p-6 transition-[transform,box-shadow,border-color] duration-300 hover:-translate-y-1 hover:border-white/30">
@@ -94,13 +94,13 @@
                 </div>
                 <div class="flex-1">
                   <h3 class="mb-2 text-xl font-bold text-text-primary">
-                    {{ $t('iflow.mcp.title') }}
+                    {{ $t('qoder.mcp.title') }}
                   </h3>
                   <p class="mb-3 text-sm text-text-secondary">
-                    {{ $t('iflow.mcp.description') }}
+                    {{ $t('qoder.mcp.description') }}
                   </p>
                   <span class="inline-flex items-center rounded-full bg-accent-success/15 px-3 py-1.5 text-xs font-bold text-accent-success">
-                    {{ $t('iflow.mcp.badge') }}
+                    {{ $t('qoder.mcp.badge') }}
                   </span>
                 </div>
               </div>
@@ -108,7 +108,7 @@
           </RouterLink>
 
           <RouterLink
-            to="/iflow/agents"
+            to="/qoder/subagents"
             class="block group"
           >
             <div class="glass-card h-full p-6 transition-[transform,box-shadow,border-color] duration-300 hover:-translate-y-1 hover:border-white/30">
@@ -122,13 +122,13 @@
                 </div>
                 <div class="flex-1">
                   <h3 class="mb-2 text-xl font-bold text-text-primary">
-                    {{ $t('iflow.agents.title') }}
+                    {{ $t('qoder.agents.title') }}
                   </h3>
                   <p class="mb-3 text-sm text-text-secondary">
-                    {{ $t('iflow.agents.description') }}
+                    {{ $t('qoder.agents.description') }}
                   </p>
                   <span class="inline-flex items-center rounded-full bg-accent-info/15 px-3 py-1.5 text-xs font-bold text-accent-info">
-                    {{ $t('iflow.agents.badge') }}
+                    {{ $t('qoder.agents.badge') }}
                   </span>
                 </div>
               </div>
@@ -136,7 +136,7 @@
           </RouterLink>
 
           <RouterLink
-            to="/iflow/plugins"
+            to="/qoder/hooks"
             class="block group"
           >
             <div class="glass-card h-full p-6 transition-[transform,box-shadow,border-color] duration-300 hover:-translate-y-1 hover:border-white/30">
@@ -150,13 +150,13 @@
                 </div>
                 <div class="flex-1">
                   <h3 class="mb-2 text-xl font-bold text-text-primary">
-                    {{ $t('iflow.plugins.title') }}
+                    {{ $t('qoder.plugins.title') }}
                   </h3>
                   <p class="mb-3 text-sm text-text-secondary">
-                    {{ $t('iflow.plugins.description') }}
+                    {{ $t('qoder.plugins.description') }}
                   </p>
                   <span class="inline-flex items-center rounded-full bg-accent-primary/15 px-3 py-1.5 text-xs font-bold text-accent-primary">
-                    {{ $t('iflow.plugins.badge') }}
+                    {{ $t('qoder.plugins.badge') }}
                   </span>
                 </div>
               </div>
@@ -164,7 +164,7 @@
           </RouterLink>
 
           <RouterLink
-            to="/iflow/slash-commands"
+            to="/qoder/commands"
             class="block group"
           >
             <div class="glass-card h-full p-6 transition-[transform,box-shadow,border-color] duration-300 hover:-translate-y-1 hover:border-white/30">
@@ -178,13 +178,13 @@
                 </div>
                 <div class="flex-1">
                   <h3 class="mb-2 text-xl font-bold text-text-primary">
-                    {{ $t('iflow.slashCommands.title') }}
+                    {{ $t('qoder.slashCommands.title') }}
                   </h3>
                   <p class="mb-3 text-sm text-text-secondary">
-                    {{ $t('iflow.slashCommands.description') }}
+                    {{ $t('qoder.slashCommands.description') }}
                   </p>
                   <span class="inline-flex items-center rounded-full bg-accent-secondary/15 px-3 py-1.5 text-xs font-bold text-accent-secondary">
-                    {{ $t('iflow.slashCommands.badge') }}
+                    {{ $t('qoder.slashCommands.badge') }}
                   </span>
                 </div>
               </div>
@@ -211,7 +211,7 @@
               class="text-lg font-bold mb-2"
               :style="{ color: 'var(--text-primary)' }"
             >
-              {{ $t('iflow.overview.featureTitle') }}
+              {{ $t('qoder.overview.featureTitle') }}
             </h3>
             <ul
               class="space-y-2 text-sm"
@@ -219,19 +219,19 @@
             >
               <li class="flex items-start gap-2">
                 <span class="text-lg">•</span>
-                <span>{{ $t('iflow.overview.feature1') }}</span>
+                <span>{{ $t('qoder.overview.feature1') }}</span>
               </li>
               <li class="flex items-start gap-2">
                 <span class="text-lg">•</span>
-                <span>{{ $t('iflow.overview.feature2') }}</span>
+                <span>{{ $t('qoder.overview.feature2') }}</span>
               </li>
               <li class="flex items-start gap-2">
                 <span class="text-lg">•</span>
-                <span>{{ $t('iflow.overview.feature3') }}</span>
+                <span>{{ $t('qoder.overview.feature3') }}</span>
               </li>
               <li class="flex items-start gap-2">
                 <span class="text-lg">•</span>
-                <span>{{ $t('iflow.overview.feature4') }}</span>
+                <span>{{ $t('qoder.overview.feature4') }}</span>
               </li>
             </ul>
           </div>

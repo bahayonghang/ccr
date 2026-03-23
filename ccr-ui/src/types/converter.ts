@@ -1,6 +1,6 @@
 // Config converter type definitions
 
-export type CliType = 'claude-code' | 'codex' | 'gemini' | 'qwen' | 'iflow';
+export type CliType = 'claude-code' | 'codex' | 'gemini' | 'qwen' | 'qoder';
 
 export interface ConverterRequest {
   source_format: CliType;

@@ -280,7 +280,7 @@ const platforms = [
   { id: 'codex', name: 'Codex', icon: '💻' },
   { id: 'gemini', name: 'Gemini', icon: '✨' },
   { id: 'qwen', name: 'Qwen', icon: '🌟' },
-  { id: 'iflow', name: 'iFlow', icon: '🌊' }
+  { id: 'qoder', name: 'Qoder', icon: '🌊' }
 ]
 
 // Load presets

@@ -91,7 +91,7 @@
           class="text-xs"
           :style="{ color: 'var(--text-muted)' }"
         >
-          Claude Code • Codex • Gemini • Qwen • IFLOW
+          Claude Code • Codex • Gemini • Qwen • QODER
         </p>
       </footer>
     </div>

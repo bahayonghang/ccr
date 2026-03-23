@@ -399,7 +399,7 @@ const CLI_CLIENTS = [
   { id: 'claude' as CliClient, name: 'Claude Code', icon: 'Code2', surfaceClass: 'bg-accent-secondary/10', textClass: 'text-accent-secondary', markerClass: 'bg-accent-secondary' },
   { id: 'qwen' as CliClient, name: 'Qwen', icon: 'Sparkles', surfaceClass: 'bg-accent-warning/10', textClass: 'text-accent-warning', markerClass: 'bg-accent-warning' },
   { id: 'gemini' as CliClient, name: 'Gemini', icon: 'Gem', surfaceClass: 'bg-accent-info/10', textClass: 'text-accent-info', markerClass: 'bg-accent-info' },
-  { id: 'iflow' as CliClient, name: 'IFLOW', icon: 'Workflow', surfaceClass: 'bg-accent-primary/10', textClass: 'text-accent-primary', markerClass: 'bg-accent-primary' }
+  { id: 'qoder' as CliClient, name: 'Qoder CLI', icon: 'Workflow', surfaceClass: 'bg-accent-primary/10', textClass: 'text-accent-primary', markerClass: 'bg-accent-primary' }
 ]
 
 const selectedClient = ref<CliClient>('ccr')
@@ -533,6 +533,11 @@ const setSelectedCommand = (cmd: string) => {
   args.value = '' // Clear args when switching commands
 }
 
+const resolveClientBinary = (client: CliClient): string => {
+  if (client === 'qoder') return 'qodercli'
+  return client
+}
+
 const handleExecute = async () => {
   if (!selectedCommand.value) return
 
@@ -563,7 +568,7 @@ const handleExecute = async () => {
       }
 
       const result = await executeCommand({
-        command: selectedClient.value,
+        command: resolveClientBinary(selectedClient.value),
         args: finalArgs
       })
       output.value = normalizeCommandResponse(result)

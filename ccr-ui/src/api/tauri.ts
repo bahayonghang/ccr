@@ -12,7 +12,7 @@
  *   5. Codex 平台
  *   6. Gemini 平台
  *   7. Qwen 平台
- *   8. iFlow 平台
+ *   8. Qoder 平台
  *   9. Droid 平台
  *  10. OpenCode 平台
  *  11. 签到 (CheckIn)
@@ -679,66 +679,14 @@ export const updateStatusline = async <T = UnknownRecord>(statusline: unknown): 
 
 /** 列出 Claude Code Hooks */
 export const listHooks = async <T = UnknownRecord>(): Promise<T> => {
-  return invoke('claude_list_hooks')
+  const response = asRecord(await invoke<unknown>('claude_list_hooks'))
+  return asRecord(response.hooks) as T
 }
 
 /** 更新 Claude Code Hooks（批量更新） */
 export const updateHooks = async <T = UnknownRecord>(hooks: unknown): Promise<T> => {
-  return invoke('claude_update_hooks', { hooks })
-}
-
-/** 添加单个 Hook（通过读取后合并实现） */
-export const addHook = async <T = UnknownRecord>(
-  nameOrConfig: string | object,
-  config?: unknown,
-): Promise<T> => {
-  const payload = typeof nameOrConfig === 'string'
-    ? { [nameOrConfig]: config ?? null }
-    : nameOrConfig
-  const current = asRecord(await invoke<unknown>('claude_list_hooks'))
-  const merged = { ...current, ...payload }
-  return invoke('claude_update_hooks', { hooks: merged })
-}
-
-/** 更新单个 Hook（通过读取后合并实现） */
-export const updateHook = async <T = UnknownRecord>(
-  nameOrConfig: string | object,
-  config?: unknown,
-): Promise<T> => {
-  const payload = typeof nameOrConfig === 'string'
-    ? { [nameOrConfig]: config ?? null }
-    : nameOrConfig
-  const current = asRecord(await invoke<unknown>('claude_list_hooks'))
-  const merged = { ...current, ...payload }
-  return invoke('claude_update_hooks', { hooks: merged })
-}
-
-/** 删除单个 Hook */
-export const deleteHook = async <T = UnknownRecord>(name: string): Promise<T> => {
-  const current = asRecord(await invoke<unknown>('claude_list_hooks'))
-  delete current[name]
-  return invoke('claude_update_hooks', { hooks: current })
-}
-
-/** 切换 Hook 启用/禁用状态 */
-export const toggleHook = async <T = UnknownRecord>(
-  nameOrRequest: string | object,
-  enabled?: boolean,
-): Promise<T> => {
-  const name = resolveName(nameOrRequest)
-  const request = asRecord(nameOrRequest)
-  const resolvedEnabled =
-    typeof enabled === 'boolean'
-      ? enabled
-      : typeof request.enabled === 'boolean'
-        ? request.enabled
-        : true
-  const current = asRecord(await invoke<unknown>('claude_list_hooks'))
-  const target = asRecord(current[name])
-  if (Object.keys(target).length > 0) {
-    current[name] = { ...target, enabled: resolvedEnabled }
-  }
-  return invoke('claude_update_hooks', { hooks: current })
+  const response = asRecord(await invoke<unknown>('claude_update_hooks', { hooks }))
+  return asRecord(response.hooks) as T
 }
 
 // ── Claude Budgets ──
@@ -1427,144 +1375,172 @@ export const toggleQwenPlugin = async <T = UnknownRecord>(
 }
 
 // ════════════════════════════════════════════════════════════
-// 8. iFlow 平台
+// 8. Qoder 平台
 // ════════════════════════════════════════════════════════════
 
-/** 获取 iFlow 设置 */
-export const getIflowConfig = async <T = UnknownRecord>(): Promise<T> => {
-  return invoke('iflow_get_settings')
+/** 获取 Qoder 设置 */
+export const getQoderConfig = async <T = UnknownRecord>(): Promise<T> => {
+  return invoke('qoder_get_settings')
 }
 
-/** 更新 iFlow 设置 */
-export const updateIflowConfig = async <T = UnknownRecord>(settings: unknown): Promise<T> => {
-  return invoke('iflow_update_settings', { settings })
+/** 更新 Qoder 设置 */
+export const updateQoderConfig = async <T = UnknownRecord>(settings: unknown): Promise<T> => {
+  return invoke('qoder_update_settings', { settings })
 }
 
-/** 列出 iFlow MCP 服务器 */
-export const listIflowMcpServers = async <T = UnknownRecord>(): Promise<T> => {
-  return invoke('iflow_list_mcp_servers')
+/** 列出 Qoder MCP 服务器 */
+export const listQoderMcpServers = async <T = UnknownRecord>(): Promise<T> => {
+  return invoke('qoder_list_mcp_servers')
 }
 
-/** 添加 iFlow MCP 服务器 */
-export const addIflowMcpServer = async <T = UnknownRecord>(
+/** 添加 Qoder MCP 服务器 */
+export const addQoderMcpServer = async <T = UnknownRecord>(
   nameOrRequest: string | object,
   config?: unknown,
 ): Promise<T> => {
   const { name, config: resolvedConfig } = resolveNameAndConfig(nameOrRequest, config)
-  return invoke('iflow_add_mcp_server', { name, config: resolvedConfig })
+  return invoke('qoder_add_mcp_server', { name, config: resolvedConfig })
 }
 
-/** 更新 iFlow MCP 服务器 */
-export const updateIflowMcpServer = async <T = UnknownRecord>(
+/** 更新 Qoder MCP 服务器 */
+export const updateQoderMcpServer = async <T = UnknownRecord>(
   nameOrRequest: string | object,
   config?: unknown,
 ): Promise<T> => {
   const { name, config: resolvedConfig } = resolveNameAndConfig(nameOrRequest, config)
-  return invoke('iflow_update_mcp_server', { name, config: resolvedConfig })
+  return invoke('qoder_update_mcp_server', { name, config: resolvedConfig })
 }
 
-/** 删除 iFlow MCP 服务器 */
-export const deleteIflowMcpServer = async <T = UnknownRecord>(nameOrRequest: string | object): Promise<T> => {
+/** 删除 Qoder MCP 服务器 */
+export const deleteQoderMcpServer = async <T = UnknownRecord>(nameOrRequest: string | object): Promise<T> => {
   const name = resolveName(nameOrRequest)
-  return invoke('iflow_delete_mcp_server', { name })
+  return invoke('qoder_delete_mcp_server', { name })
 }
 
-/** 列出 iFlow 斜杠命令 */
-export const listIflowSlashCommands = async <T = UnknownRecord>(): Promise<T> => {
-  return invoke('iflow_list_slash_commands')
+/** 列出 Qoder Commands */
+export const listQoderCommands = async <T = UnknownRecord>(): Promise<T> => {
+  return invoke('qoder_list_commands')
 }
 
-// ── iFlow 平台限制 — 安全默认值 ──
-
-/** 添加 iFlow 斜杠命令（暂不支持） */
-export const addIflowSlashCommand = async <T = UnknownRecord>(_name: string, _config: unknown): Promise<T> => {
-  return { success: false, message: 'iFlow 平台暂不支持此操作' } as T
+/** 添加 Qoder Command */
+export const addQoderCommand = async <T = UnknownRecord>(name: string, config: unknown): Promise<T> => {
+  return invoke('qoder_add_command', { name, config })
 }
 
-/** 更新 iFlow 斜杠命令（暂不支持） */
-export const updateIflowSlashCommand = async <T = UnknownRecord>(_name: string, _config: unknown): Promise<T> => {
-  return { success: false, message: 'iFlow 平台暂不支持此操作' } as T
+/** 更新 Qoder Command */
+export const updateQoderCommand = async <T = UnknownRecord>(name: string, config: unknown): Promise<T> => {
+  return invoke('qoder_update_command', { name, config })
 }
 
-/** 删除 iFlow 斜杠命令（暂不支持） */
-export const deleteIflowSlashCommand = async <T = UnknownRecord>(_name: string): Promise<T> => {
-  return { success: false, message: 'iFlow 平台暂不支持此操作' } as T
+/** 删除 Qoder Command */
+export const deleteQoderCommand = async <T = UnknownRecord>(name: string): Promise<T> => {
+  return invoke('qoder_delete_command', { name })
 }
 
-/** 切换 iFlow 斜杠命令（暂不支持） */
-export const toggleIflowSlashCommand = async <T = UnknownRecord>(
-  _name: string,
-  _enabled: boolean,
+/** 切换 Qoder Command 启用状态（Qoder Commands 无显式 enabled 状态，保持兼容 no-op） */
+export const toggleQoderCommand = async <T = UnknownRecord>(_name: string, _enabled: boolean): Promise<T> => {
+  return { success: true, message: 'Qoder Commands 始终启用' } as T
+}
+
+/** 兼容旧命名：Qoder Slash Commands */
+export const listQoderSlashCommands = listQoderCommands
+export const addQoderSlashCommand = addQoderCommand
+export const updateQoderSlashCommand = updateQoderCommand
+export const deleteQoderSlashCommand = deleteQoderCommand
+export const toggleQoderSlashCommand = toggleQoderCommand
+
+/** 列出 Qoder Subagents */
+export const listQoderAgents = async <T = UnknownRecord>(): Promise<T> => {
+  return invoke('qoder_list_agents')
+}
+
+/** 添加 Qoder Subagent */
+export const addQoderAgent = async <T = UnknownRecord>(
+  nameOrRequest: string | object,
+  config?: unknown,
 ): Promise<T> => {
-  return { success: false, message: 'iFlow 平台暂不支持此操作' } as T
+  const { name, config: resolvedConfig } = resolveNameAndConfig(nameOrRequest, config)
+  return invoke('qoder_add_agent', { name, config: resolvedConfig })
 }
 
-/** 列出 iFlow Agents（暂不支持） */
-export const listIflowAgents = async <T = UnknownRecord>(): Promise<T> => {
-  return { agents: [] } as T
-}
-
-/** 添加 iFlow Agent（暂不支持） */
-export const addIflowAgent = async <T = UnknownRecord>(
-  _nameOrRequest: string | object,
-  _config?: unknown,
+/** 更新 Qoder Subagent */
+export const updateQoderAgent = async <T = UnknownRecord>(
+  nameOrRequest: string | object,
+  config?: unknown,
 ): Promise<T> => {
-  return { success: false, message: 'iFlow 平台暂不支持 Agents' } as T
+  const { name, config: resolvedConfig } = resolveNameAndConfig(nameOrRequest, config)
+  return invoke('qoder_update_agent', { name, config: resolvedConfig })
 }
 
-/** 更新 iFlow Agent（暂不支持） */
-export const updateIflowAgent = async <T = UnknownRecord>(
-  _nameOrRequest: string | object,
-  _config?: unknown,
+/** 删除 Qoder Subagent */
+export const deleteQoderAgent = async <T = UnknownRecord>(nameOrRequest: string | object): Promise<T> => {
+  const name = resolveName(nameOrRequest)
+  return invoke('qoder_delete_agent', { name })
+}
+
+/** 切换 Qoder Subagent（Qoder 不支持 enabled 状态，返回兼容错误） */
+export const toggleQoderAgent = async <T = UnknownRecord>(
+  nameOrRequest: string | object,
+  enabled?: boolean,
 ): Promise<T> => {
-  return { success: false, message: 'iFlow 平台暂不支持 Agents' } as T
+  const name = resolveName(nameOrRequest)
+  return invoke('qoder_toggle_agent', { name, enabled: enabled ?? false })
 }
 
-/** 删除 iFlow Agent（暂不支持） */
-export const deleteIflowAgent = async <T = UnknownRecord>(_nameOrRequest: string | object): Promise<T> => {
-  return { success: false, message: 'iFlow 平台暂不支持 Agents' } as T
+/** 列出 Qoder Hooks */
+export const listQoderHooks = async <T = UnknownRecord>(): Promise<T> => {
+  return invoke('qoder_list_hooks')
 }
 
-/** 切换 iFlow Agent（暂不支持） */
-export const toggleIflowAgent = async <T = UnknownRecord>(
-  _nameOrRequest: string | object,
-  _enabled?: boolean,
-): Promise<T> => {
-  return { success: false, message: 'iFlow 平台暂不支持 Agents' } as T
+/** 添加 Qoder Hook */
+export const addQoderHook = async <T = UnknownRecord>(config: unknown): Promise<T> => {
+  return invoke('qoder_add_hook', { config })
 }
 
-/** 列出 iFlow 插件（暂不支持） */
-export const listIflowPlugins = async <T = UnknownRecord>(): Promise<T> => {
+/** 更新 Qoder Hook */
+export const updateQoderHook = async <T = UnknownRecord>(index: number, config: unknown): Promise<T> => {
+  return invoke('qoder_update_hook', { index, config })
+}
+
+/** 删除 Qoder Hook */
+export const deleteQoderHook = async <T = UnknownRecord>(index: number): Promise<T> => {
+  return invoke('qoder_delete_hook', { index })
+}
+
+// ── Qoder 未实现能力 — 安全默认值 ──
+
+/** 列出 Qoder 插件（暂不支持） */
+export const listQoderPlugins = async <T = UnknownRecord>(): Promise<T> => {
   return { plugins: [] } as T
 }
 
-/** 添加 iFlow 插件（暂不支持） */
-export const addIflowPlugin = async <T = UnknownRecord>(
+/** 添加 Qoder 插件（暂不支持） */
+export const addQoderPlugin = async <T = UnknownRecord>(
   _nameOrRequest: string | object,
   _config?: unknown,
 ): Promise<T> => {
-  return { success: false, message: 'iFlow 平台暂不支持 Plugins' } as T
+  return { success: false, message: 'Qoder 平台暂不支持 Plugins' } as T
 }
 
-/** 更新 iFlow 插件（暂不支持） */
-export const updateIflowPlugin = async <T = UnknownRecord>(
+/** 更新 Qoder 插件（暂不支持） */
+export const updateQoderPlugin = async <T = UnknownRecord>(
   _nameOrRequest: string | object,
   _config?: unknown,
 ): Promise<T> => {
-  return { success: false, message: 'iFlow 平台暂不支持 Plugins' } as T
+  return { success: false, message: 'Qoder 平台暂不支持 Plugins' } as T
 }
 
-/** 删除 iFlow 插件（暂不支持） */
-export const deleteIflowPlugin = async <T = UnknownRecord>(_nameOrRequest: string | object): Promise<T> => {
-  return { success: false, message: 'iFlow 平台暂不支持 Plugins' } as T
+/** 删除 Qoder 插件（暂不支持） */
+export const deleteQoderPlugin = async <T = UnknownRecord>(_nameOrRequest: string | object): Promise<T> => {
+  return { success: false, message: 'Qoder 平台暂不支持 Plugins' } as T
 }
 
-/** 切换 iFlow 插件（暂不支持） */
-export const toggleIflowPlugin = async <T = UnknownRecord>(
+/** 切换 Qoder 插件（暂不支持） */
+export const toggleQoderPlugin = async <T = UnknownRecord>(
   _nameOrRequest: string | object,
   _enabled?: boolean,
 ): Promise<T> => {
-  return { success: false, message: 'iFlow 平台暂不支持 Plugins' } as T
+  return { success: false, message: 'Qoder 平台暂不支持 Plugins' } as T
 }
 
 // ════════════════════════════════════════════════════════════

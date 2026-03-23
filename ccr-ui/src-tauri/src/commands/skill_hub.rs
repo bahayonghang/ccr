@@ -15,7 +15,7 @@ const PLATFORM_SKILLS_DIRS: &[(&str, &str, &str)] = &[
     ("codex", "Codex", ".codex/skills"),
     ("gemini", "Gemini CLI", ".gemini/skills"),
     ("qwen", "Qwen", ".qwen/skills"),
-    ("iflow", "iFlow", ".iflow/skills"),
+    ("qoder", "Qoder", ".qoder/skills"),
     ("droid", "Droid", ".gemini/antigravity/skills"),
 ];
 

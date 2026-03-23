@@ -1,7 +1,7 @@
 // Router parameter type definitions for CCR UI
 
 // CLI client type
-export type CliClient = 'ccr' | 'claude' | 'qwen' | 'gemini' | 'iflow'
+export type CliClient = 'ccr' | 'claude' | 'qwen' | 'gemini' | 'qoder'
 
 // Route parameter interfaces
 export interface AgentDetailRouteParams {
@@ -50,6 +50,6 @@ export function normalizeCliClient(clientParam: string | string[] | undefined): 
   if (client === 'claude-code') return 'claude'
 
   // Validate
-  const validClients: CliClient[] = ['ccr', 'claude', 'qwen', 'gemini', 'iflow']
+  const validClients: CliClient[] = ['ccr', 'claude', 'qwen', 'gemini', 'qoder']
   return validClients.includes(client as CliClient) ? (client as CliClient) : null
 }

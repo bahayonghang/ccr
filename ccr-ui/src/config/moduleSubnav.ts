@@ -34,11 +34,11 @@ const moduleSubnavMap: Record<string, ModuleSubnavItem[]> = {
     { label: 'Slash Commands', href: '/qwen/slash-commands', icon: 'Command' },
     { label: 'Plugins', href: '/qwen/plugins', icon: 'Puzzle' },
   ],
-  iflow: [
-    { label: 'MCP', href: '/iflow/mcp', icon: 'Server' },
-    { label: 'Agents', href: '/iflow/agents', icon: 'Bot' },
-    { label: 'Slash Commands', href: '/iflow/slash-commands', icon: 'Command' },
-    { label: 'Plugins', href: '/iflow/plugins', icon: 'Puzzle' },
+  qoder: [
+    { label: 'MCP', href: '/qoder/mcp', icon: 'Server' },
+    { label: 'Subagents', href: '/qoder/subagents', icon: 'Bot' },
+    { label: 'Commands', href: '/qoder/commands', icon: 'Command' },
+    { label: 'Hooks', href: '/qoder/hooks', icon: 'Webhook' },
   ],
   droid: [
     { label: 'MCP', href: '/droid/mcp', icon: 'Server' },

@@ -243,11 +243,11 @@ const optionalItems = ref<SyncSelectableItem[]>([
     selected: false
   },
   {
-    key: 'iflow',
-    name: 'iFlow',
-    description: 'iFlow CLI 配置和数据',
+    key: 'qoder',
+    name: 'Qoder',
+    description: 'Qoder CLI 配置和数据',
     icon: 'Cloud',
-    localPath: '~/.iflow/',
+    localPath: '~/.qoder/',
     remotePath: '',
     selected: false
   }

@@ -72,7 +72,7 @@ interface Props {
   /** 是否为圆角药丸形状 */
   pill?: boolean
   /** 平台专属颜色 */
-  platform?: 'claude' | 'codex' | 'gemini' | 'qwen' | 'iflow'
+  platform?: 'claude' | 'codex' | 'gemini' | 'qwen' | 'qoder'
 }
 
 // Emits
@@ -109,7 +109,7 @@ const platformClasses = {
   codex: 'bg-platform-codex/10 text-platform-codex border-platform-codex/20',
   gemini: 'bg-platform-gemini/10 text-platform-gemini border-platform-gemini/20',
   qwen: 'bg-platform-qwen/10 text-platform-qwen border-platform-qwen/20',
-  iflow: 'bg-platform-iflow/10 text-platform-iflow border-platform-iflow/20',
+  qoder: 'bg-platform-qoder/10 text-platform-qoder border-platform-qoder/20',
 }
 
 // Size classes
@@ -174,7 +174,7 @@ const dotClasses = computed(() => {
     codex: 'bg-platform-codex',
     gemini: 'bg-platform-gemini',
     qwen: 'bg-platform-qwen',
-    iflow: 'bg-platform-iflow',
+    qoder: 'bg-platform-qoder',
   }
 
   return [

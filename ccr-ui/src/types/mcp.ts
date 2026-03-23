@@ -50,7 +50,8 @@ export interface SlashCommandsResponse {
 
 export interface Agent {
   name: string;
-  model: string;
+  model?: string;
+  description?: string;
   tools: string[];
   system_prompt?: string;
   disabled?: boolean;
@@ -59,7 +60,8 @@ export interface Agent {
 
 export interface AgentRequest {
   name: string;
-  model: string;
+  model?: string;
+  description?: string;
   tools?: string[];
   system_prompt?: string;
   disabled?: boolean;

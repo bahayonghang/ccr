@@ -436,8 +436,8 @@ defineExpose({ sshListKeys, discoveredKeys })
           <option value="qwen">
             qwen
           </option>
-          <option value="iflow">
-            iflow
+          <option value="qoder">
+            qoder
           </option>
           <option value="droid">
             droid

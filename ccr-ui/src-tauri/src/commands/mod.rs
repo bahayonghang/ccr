@@ -12,7 +12,7 @@ pub mod converter;
 pub mod droid;
 pub mod environment;
 pub mod gemini;
-pub mod iflow;
+pub mod qoder;
 pub mod mcp_presets;
 pub mod opencode;
 pub mod pricing;
@@ -143,14 +143,30 @@ macro_rules! generate_handler_common {
         qwen::qwen_add_slash_command,
         qwen::qwen_update_slash_command,
         qwen::qwen_delete_slash_command,
-        // —— iFlow ——
-        iflow::iflow_get_settings,
-        iflow::iflow_update_settings,
-        iflow::iflow_list_mcp_servers,
-        iflow::iflow_add_mcp_server,
-        iflow::iflow_update_mcp_server,
-        iflow::iflow_delete_mcp_server,
-        iflow::iflow_list_slash_commands,
+        // —— Qoder ——
+        qoder::qoder_get_settings,
+        qoder::qoder_update_settings,
+        qoder::qoder_list_mcp_servers,
+        qoder::qoder_add_mcp_server,
+        qoder::qoder_update_mcp_server,
+        qoder::qoder_delete_mcp_server,
+        qoder::qoder_list_commands,
+        qoder::qoder_add_command,
+        qoder::qoder_update_command,
+        qoder::qoder_delete_command,
+        qoder::qoder_list_slash_commands,
+        qoder::qoder_add_slash_command,
+        qoder::qoder_update_slash_command,
+        qoder::qoder_delete_slash_command,
+        qoder::qoder_list_agents,
+        qoder::qoder_add_agent,
+        qoder::qoder_update_agent,
+        qoder::qoder_delete_agent,
+        qoder::qoder_toggle_agent,
+        qoder::qoder_list_hooks,
+        qoder::qoder_add_hook,
+        qoder::qoder_update_hook,
+        qoder::qoder_delete_hook,
         // —— Droid ——
         droid::droid_get_settings,
         droid::droid_update_settings,

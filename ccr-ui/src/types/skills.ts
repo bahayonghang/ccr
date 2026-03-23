@@ -4,7 +4,7 @@
  */
 
 // Platform identifiers
-export type Platform = 'claude-code' | 'codex' | 'gemini' | 'qwen' | 'iflow' | 'droid'
+export type Platform = 'claude-code' | 'codex' | 'gemini' | 'qwen' | 'qoder' | 'droid'
 
 // Source type for filtering
 export type SkillSource = 'all' | 'user' | 'plugin' | 'remote'
@@ -46,8 +46,8 @@ export const PLATFORM_CONFIG: Record<Platform, { displayName: string; icon: stri
     color: '#22D3EE',
     tailwindColor: 'cyan-400'
   },
-  'iflow': {
-    displayName: 'iFlow',
+  'qoder': {
+    displayName: 'Qoder',
     icon: 'Activity',
     color: '#FBBF24',
     tailwindColor: 'amber-400'

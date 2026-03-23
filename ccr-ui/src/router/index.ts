@@ -66,10 +66,10 @@ const router = createRouter({
           meta: { depth: 1, group: 'qwen', hideGlobalBackground: true }
         },
         {
-          path: 'iflow',
-          name: 'iflow',
-          component: () => import('@/views/IflowView.vue'),
-          meta: { depth: 1, group: 'iflow', hideGlobalBackground: true }
+          path: 'qoder',
+          name: 'qoder',
+          component: () => import('@/views/QoderView.vue'),
+          meta: { depth: 1, group: 'qoder', hideGlobalBackground: true }
         },
         {
           path: 'droid',
@@ -332,33 +332,32 @@ const router = createRouter({
           props: { platform: 'qwen' },
           meta: { depth: 2, group: 'qwen' }
         },
-        // iFlow 子页面 (depth: 2, group: 'iflow')
+        // Qoder 子页面 (depth: 2, group: 'qoder')
         {
-          path: 'iflow/mcp',
-          name: 'iflow-mcp',
+          path: 'qoder/mcp',
+          name: 'qoder-mcp',
           component: () => import('@/views/generic/PlatformMcpView.vue'),
-          props: { platform: 'iflow' },
-          meta: { depth: 2, group: 'iflow' }
+          props: { platform: 'qoder' },
+          meta: { depth: 2, group: 'qoder' }
         },
         {
-          path: 'iflow/agents',
-          name: 'iflow-agents',
+          path: 'qoder/subagents',
+          name: 'qoder-subagents',
           component: () => import('@/views/generic/AgentsView.vue'),
-          props: { module: 'iflow' },
-          meta: { depth: 2, group: 'iflow' }
+          props: { module: 'qoder' },
+          meta: { depth: 2, group: 'qoder' }
         },
         {
-          path: 'iflow/slash-commands',
-          name: 'iflow-slash-commands',
-          component: () => import('@/views/IflowSlashCommandsView.vue'),
-          meta: { depth: 2, group: 'iflow' }
+          path: 'qoder/commands',
+          name: 'qoder-commands',
+          component: () => import('@/views/QoderCommandsView.vue'),
+          meta: { depth: 2, group: 'qoder' }
         },
         {
-          path: 'iflow/plugins',
-          name: 'iflow-plugins',
-          component: () => import('@/views/generic/PlatformPluginsView.vue'),
-          props: { platform: 'iflow' },
-          meta: { depth: 2, group: 'iflow' }
+          path: 'qoder/hooks',
+          name: 'qoder-hooks',
+          component: () => import('@/views/QoderHooksView.vue'),
+          meta: { depth: 2, group: 'qoder' }
         },
         // Droid 子页面 (depth: 2, group: 'droid')
         {

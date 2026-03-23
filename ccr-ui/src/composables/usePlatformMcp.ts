@@ -1,7 +1,7 @@
 /**
  * usePlatformMcp - 通用平台 MCP 服务器管理 Composable
  * 
- * 消除各平台 MCP 视图中的重复代码（GeminiMcpView、QwenMcpView、IflowMcpView）
+ * 消除各平台 MCP 视图中的重复代码（GeminiMcpView、QwenMcpView、QoderMcpView）
  * 
  * @example
  * const { servers, loading, loadServers, addServer, updateServer, deleteServer } = usePlatformMcp('gemini')
@@ -12,7 +12,7 @@ import { useI18n } from 'vue-i18n'
 import { useUIStore } from '@/stores/ui'
 import { listGeminiMcpServers, addGeminiMcpServer, updateGeminiMcpServer, deleteGeminiMcpServer } from '@/api'
 import { listQwenMcpServers, addQwenMcpServer, updateQwenMcpServer, deleteQwenMcpServer } from '@/api'
-import { listIflowMcpServers, addIflowMcpServer, updateIflowMcpServer, deleteIflowMcpServer } from '@/api'
+import { listQoderMcpServers, addQoderMcpServer, updateQoderMcpServer, deleteQoderMcpServer } from '@/api'
 import { listDroidMcpServers, addDroidMcpServer, updateDroidMcpServer, deleteDroidMcpServer } from '@/api'
 import { logger } from '@/utils/logger'
 import type {
@@ -20,8 +20,8 @@ import type {
     GeminiMcpServerRequest,
     QwenMcpServer,
     QwenMcpServerRequest,
-    IflowMcpServer,
-    IflowMcpServerRequest,
+    QoderMcpServer,
+    QoderMcpServerRequest,
     DroidMcpServer,
     DroidMcpServerRequest,
 } from '@/types'
@@ -29,7 +29,7 @@ import type {
 // ============ 类型定义 ============
 
 /** 支持的平台类型 */
-export type PlatformType = 'gemini' | 'qwen' | 'iflow' | 'droid'
+export type PlatformType = 'gemini' | 'qwen' | 'qoder' | 'droid'
 
 /** 统一的 MCP 服务器类型（合并各平台差异） */
 export interface UnifiedMcpServer {
@@ -145,14 +145,14 @@ const platformConfigs: Record<PlatformType, PlatformConfig> = {
         },
         deleteApi: deleteQwenMcpServer,
     },
-    iflow: {
+    qoder: {
         color: '#f97316',
-        i18nPrefix: 'iflow.mcp',
-        parentPath: '/iflow',
+        i18nPrefix: 'qoder.mcp',
+        parentPath: '/qoder',
         listApi: async () => {
-            const servers = await listIflowMcpServers<IflowMcpServer[]>()
-            return servers.map((s: IflowMcpServer) => ({
-                name: s.command || s.url || 'unknown',
+            const servers = await listQoderMcpServers<QoderMcpServer[]>()
+            return servers.map((s: QoderMcpServer) => ({
+                name: s.name || s.command || s.url || 'unknown',
                 command: s.command,
                 url: s.url,
                 args: s.args,
@@ -160,24 +160,26 @@ const platformConfigs: Record<PlatformType, PlatformConfig> = {
             }))
         },
         addApi: async (req) => {
-            const iflowReq: IflowMcpServerRequest = {
+            const qoderReq: QoderMcpServerRequest = {
+                name: req.name,
                 command: req.command,
                 url: req.url,
                 args: req.args,
                 env: req.env,
             }
-            return addIflowMcpServer(iflowReq)
+            return addQoderMcpServer(qoderReq)
         },
         updateApi: async (name, req) => {
-            const iflowReq: IflowMcpServerRequest = {
+            const qoderReq: QoderMcpServerRequest = {
+                name: req.name,
                 command: req.command,
                 url: req.url,
                 args: req.args,
                 env: req.env,
             }
-            return updateIflowMcpServer(name, iflowReq)
+            return updateQoderMcpServer(name, qoderReq)
         },
-        deleteApi: deleteIflowMcpServer,
+        deleteApi: deleteQoderMcpServer,
     },
     droid: {
         color: '#ec4899',
@@ -440,7 +442,7 @@ export function usePlatformMcp(platform: PlatformType) {
             request.url = undefined
         }
 
-        // 设置 name（iFlow 平台特殊处理）
+        // 设置 name（Qoder 平台特殊处理）
         if (!request.name) {
             request.name = request.command || request.url || 'unknown'
         }

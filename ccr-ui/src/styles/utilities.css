@@ -499,8 +499,8 @@
         color: var(--color-platform-qwen);
     }
 
-    .platform-iflow {
-        color: var(--color-platform-iflow);
+    .platform-qoder {
+        color: var(--color-platform-qoder);
     }
 
     .bg-platform-claude {
@@ -519,8 +519,8 @@
         background: var(--color-platform-qwen);
     }
 
-    .bg-platform-iflow {
-        background: var(--color-platform-iflow);
+    .bg-platform-qoder {
+        background: var(--color-platform-qoder);
     }
 
     /* ========== 表格样式 ========== */

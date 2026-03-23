@@ -104,8 +104,8 @@
     --color-platform-gemini-rgb: 66 133 244;
     --color-platform-qwen: #00B5E2;
     --color-platform-qwen-rgb: 0 181 226;
-    --color-platform-iflow: #FAAD14;
-    --color-platform-iflow-rgb: 250 173 20;
+    --color-platform-qoder: #FAAD14;
+    --color-platform-qoder-rgb: 250 173 20;
 
     /* --- Legacy Compatibility Aliases --- */
     --text-primary: var(--color-text-primary);
@@ -129,7 +129,7 @@
     --platform-codex: var(--color-platform-codex);
     --platform-gemini: var(--color-platform-gemini);
     --platform-qwen: var(--color-platform-qwen);
-    --platform-iflow: var(--color-platform-iflow);
+    --platform-qoder: var(--color-platform-qoder);
 
     /* --- Spacing System --- */
     --space-1: 0.25rem;

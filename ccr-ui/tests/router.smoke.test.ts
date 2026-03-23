@@ -6,6 +6,7 @@ describe('router smoke', () => {
     const requiredRoutes = [
       'home',
       'codex',
+      'qoder',
       'usage',
       'monitoring',
       'mcp',
@@ -32,7 +33,7 @@ describe('router smoke', () => {
       'claude-code',
       'gemini-cli',
       'qwen',
-      'iflow',
+      'qoder',
       'droid',
       'sync',
       'configs',

@@ -20,7 +20,7 @@
               />
             </div>
             <div>
-              <h1 class="text-4xl font-bold font-display bg-gradient-to-r from-platform-gemini via-platform-iflow to-accent-success bg-clip-text text-transparent tracking-tight">
+              <h1 class="text-4xl font-bold font-display bg-gradient-to-r from-platform-gemini via-platform-qoder to-accent-success bg-clip-text text-transparent tracking-tight">
                 Gemini CLI
               </h1>
               <p class="text-white/80 text-lg mt-1 max-w-xl">
@@ -63,7 +63,7 @@
               size="w-3 h-3"
             /> Plugin System
           </span>
-          <span class="px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider bg-platform-iflow/10 text-platform-iflow border border-platform-iflow/20 flex items-center gap-2">
+          <span class="px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider bg-platform-qoder/10 text-platform-qoder border border-platform-qoder/20 flex items-center gap-2">
             <SIcon
               name="Sparkles"
               size="w-3 h-3"
@@ -187,20 +187,20 @@
               glow
               class="h-full p-6 flex items-start gap-4"
             >
-              <div class="p-3 rounded-xl bg-platform-iflow/10 text-platform-iflow group-hover:scale-110 transition-transform duration-300">
+              <div class="p-3 rounded-xl bg-platform-qoder/10 text-platform-qoder group-hover:scale-110 transition-transform duration-300">
                 <SIcon
                   name="Command"
                   size="w-6 h-6"
                 />
               </div>
               <div>
-                <h3 class="text-lg font-bold text-white mb-1 group-hover:text-platform-iflow transition-colors">
+                <h3 class="text-lg font-bold text-white mb-1 group-hover:text-platform-qoder transition-colors">
                   {{ $t('gemini.slashCommands.title') }}
                 </h3>
                 <p class="text-sm text-white/80 mb-3 leading-relaxed">
                   {{ $t('gemini.slashCommands.subtitle') }}
                 </p>
-                <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded bg-platform-iflow/10 text-platform-iflow border border-platform-iflow/20">Commands</span>
+                <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded bg-platform-qoder/10 text-platform-qoder border border-platform-qoder/20">Commands</span>
               </div>
             </Card>
           </RouterLink>

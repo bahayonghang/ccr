@@ -533,7 +533,7 @@ impl WslEnvironment {
             "codex" => format!("{home}/.codex"),
             "gemini" => format!("{home}/.gemini"),
             "qwen" => format!("{home}/.qwen"),
-            "iflow" => format!("{home}/.iflow"),
+            "qoder" => format!("{home}/.qoder"),
             "droid" => format!("{home}/.droid"),
             "opencode" => format!("{home}/.opencode"),
             _ => return Err(EnvError::PlatformNotSupported(platform.to_string())),
@@ -566,7 +566,7 @@ impl ExecutionEnvironment for WslEnvironment {
                     "-d", &distro,
                     "--",
                     "sh", "-c",
-                    "which claude 2>/dev/null; which codex 2>/dev/null; which gemini 2>/dev/null; which qwen 2>/dev/null; which iflow 2>/dev/null",
+                    "which claude 2>/dev/null; which codex 2>/dev/null; which gemini 2>/dev/null; which qwen 2>/dev/null; which qodercli 2>/dev/null",
                 ])
                 .output()
         })
@@ -582,7 +582,7 @@ impl ExecutionEnvironment for WslEnvironment {
             ("codex", "Codex CLI"),
             ("gemini", "Gemini CLI"),
             ("qwen", "Qwen"),
-            ("iflow", "iFlow"),
+            ("qodercli", "Qoder CLI"),
         ];
 
         let result = platforms
@@ -590,7 +590,11 @@ impl ExecutionEnvironment for WslEnvironment {
             .map(|(name, display)| {
                 let installed = found_paths.iter().any(|p| p.contains(name));
                 PlatformInfo {
-                    name: name.to_string(),
+                    name: if *name == "qodercli" {
+                        "qoder".to_string()
+                    } else {
+                        name.to_string()
+                    },
                     display_name: display.to_string(),
                     installed,
                     version: None,
@@ -697,7 +701,7 @@ impl ExecutionEnvironment for WslEnvironment {
 
     async fn detect_cli_status(&self) -> Result<Vec<CliStatus>, EnvError> {
         let distro = self.distro.name.clone();
-        let tools = ["claude", "codex", "gemini", "qwen", "iflow"];
+        let tools = ["claude", "codex", "gemini", "qwen", "qodercli"];
 
         let mut statuses = Vec::new();
 
@@ -722,7 +726,11 @@ impl ExecutionEnvironment for WslEnvironment {
             };
 
             statuses.push(CliStatus {
-                name: tool.to_string(),
+                name: if *tool == "qodercli" {
+                    "qoder".to_string()
+                } else {
+                    tool.to_string()
+                },
                 installed,
                 path,
                 version: None,
@@ -762,7 +770,7 @@ pub fn sync_config_blocking(
         "codex" => local_home.join(".codex"),
         "gemini" => local_home.join(".gemini"),
         "qwen" => local_home.join(".qwen"),
-        "iflow" => local_home.join(".iflow"),
+        "qoder" => local_home.join(".qoder"),
         "droid" => local_home.join(".droid"),
         "opencode" => local_home.join(".opencode"),
         _ => return Err(EnvError::PlatformNotSupported(platform.to_string())),
