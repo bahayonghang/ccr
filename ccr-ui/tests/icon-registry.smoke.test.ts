@@ -19,4 +19,15 @@ describe('icon registry smoke', () => {
 
     expect(missingIcons).toEqual([])
   })
+
+  it('keeps configured solar icons on the expected 24x24 canvas', async () => {
+    await registerAppIcons()
+
+    const invalidCanvasIcons = configuredSolarIconNames.filter((iconName) => {
+      const icon = getIcon(`solar:${iconName}`)
+      return !icon || icon.width !== 24 || icon.height !== 24
+    })
+
+    expect(invalidCanvasIcons).toEqual([])
+  })
 })
