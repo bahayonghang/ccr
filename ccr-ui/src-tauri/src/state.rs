@@ -246,7 +246,11 @@ impl AppState {
         jobs.get(job_id).cloned()
     }
 
-    pub async fn update_checkin_job<F>(&self, job_id: &str, mutator: F) -> Option<CheckinJobSnapshot>
+    pub async fn update_checkin_job<F>(
+        &self,
+        job_id: &str,
+        mutator: F,
+    ) -> Option<CheckinJobSnapshot>
     where
         F: FnOnce(&mut CheckinJobSnapshot),
     {

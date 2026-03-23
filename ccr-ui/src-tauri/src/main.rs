@@ -1,8 +1,8 @@
 // Prevents additional console window on Windows in release builds
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-mod commands;
 mod checkin_jobs;
+mod commands;
 mod events;
 mod monitoring;
 mod platform;

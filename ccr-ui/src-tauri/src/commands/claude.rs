@@ -7,14 +7,20 @@
 use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
+use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Map, Value};
+use serde_json::{Map, Value, json};
+use tauri::State;
 
 use ccr::managers::prompts_manager::PromptsManager;
 use ccr::models::prompt::PromptPreset;
 use ccr::platforms::ClaudePlatform;
-use ccr::{BudgetManager, CostTracker, PlatformConfig, ProfileConfig, SettingsManager};
+use ccr::{BudgetManager, CostTracker, PlatformConfig, ProfileConfig};
+
+use crate::platform::local::LocalEnvironment;
+use crate::platform::{CliStatus, EnvError, EnvironmentType, ExecutionEnvironment, PlatformInfo};
+use crate::state::AppState;
 
 // ── 内联 ClaudeConfigManager（读写 ~/.claude.json 的 MCP 服务器）──
 
@@ -89,31 +95,99 @@ fn write_claude_config(config: &ClaudeConfig) -> std::io::Result<()> {
 // 使用 ccr_types::ClaudeSettings（带有 agents/plugins/hooks 等 typed fields），
 // 而非 ccr::ClaudeSettings（仅 env + other flatten）。
 
-fn load_settings() -> Result<ccr_types::ClaudeSettings, String> {
-    let manager =
-        SettingsManager::with_default().map_err(|e| format!("Failed to init manager: {}", e))?;
-    let path = manager.settings_path();
-    if !path.exists() {
-        return Ok(ccr_types::ClaudeSettings::default());
-    }
-    let content =
-        fs::read_to_string(path).map_err(|e| format!("Failed to read settings: {}", e))?;
-    let settings: ccr_types::ClaudeSettings =
-        serde_json::from_str(&content).map_err(|e| format!("Failed to parse settings: {}", e))?;
-    Ok(settings)
+async fn active_environment(state: &AppState) -> Arc<dyn ExecutionEnvironment> {
+    let registry = state.env_registry.read().await;
+    registry
+        .active()
+        .unwrap_or_else(|| Arc::new(LocalEnvironment::new()))
 }
 
-fn save_settings(settings: &ccr_types::ClaudeSettings) -> Result<(), String> {
-    let manager =
-        SettingsManager::with_default().map_err(|e| format!("Failed to init manager: {}", e))?;
-    let path = manager.settings_path();
+async fn read_claude_settings_from_env(
+    env: Arc<dyn ExecutionEnvironment>,
+) -> Result<Value, String> {
+    match env.read_config("claude", "settings.json").await {
+        Ok(content) => {
+            if content.trim().is_empty() {
+                return Ok(json!({}));
+            }
+
+            let value: Value = serde_json::from_str(&content)
+                .map_err(|e| format!("Failed to parse Claude settings JSON: {e}"))?;
+            if !value.is_object() {
+                return Err("Claude settings must be a JSON object".to_string());
+            }
+            Ok(value)
+        }
+        Err(EnvError::ConfigNotFound(_)) => Ok(json!({})),
+        Err(EnvError::Io(err)) if err.kind() == std::io::ErrorKind::NotFound => Ok(json!({})),
+        Err(err) => Err(format!(
+            "Failed to read Claude settings from {}: {err}",
+            env.display_name()
+        )),
+    }
+}
+
+async fn read_active_claude_settings_raw(state: &AppState) -> Result<Value, String> {
+    let env = active_environment(state).await;
+    read_claude_settings_from_env(env).await
+}
+
+async fn write_claude_settings_to_env(
+    env: Arc<dyn ExecutionEnvironment>,
+    settings: &Value,
+) -> Result<(), String> {
+    if !settings.is_object() {
+        return Err("Claude settings must be a JSON object".to_string());
+    }
+
     let content = serde_json::to_string_pretty(settings)
-        .map_err(|e| format!("Failed to serialize settings: {}", e))?;
-    // 原子写入：先写临时文件，再重命名
-    let tmp_path = path.with_extension("json.tmp");
-    fs::write(&tmp_path, &content).map_err(|e| format!("Failed to write temp file: {}", e))?;
-    fs::rename(&tmp_path, path).map_err(|e| format!("Failed to rename settings file: {}", e))?;
+        .map_err(|e| format!("Failed to serialize Claude settings: {e}"))?;
+
+    env.write_config("claude", "settings.json", &content)
+        .await
+        .map_err(|e| {
+            format!(
+                "Failed to write Claude settings to {}: {e}",
+                env.display_name()
+            )
+        })
+}
+
+async fn write_active_claude_settings_raw(
+    state: &AppState,
+    settings: &Value,
+) -> Result<(), String> {
+    let env = active_environment(state).await;
+    write_claude_settings_to_env(env, settings).await
+}
+
+fn merge_settings_patch(current: &mut Value, patch: Value) -> Result<(), String> {
+    let current_obj = current
+        .as_object_mut()
+        .ok_or_else(|| "Current Claude settings must be a JSON object".to_string())?;
+    let patch_obj = patch
+        .as_object()
+        .ok_or_else(|| "Claude settings patch must be a JSON object".to_string())?;
+
+    for (key, value) in patch_obj {
+        current_obj.insert(key.clone(), value.clone());
+    }
+
     Ok(())
+}
+
+async fn load_settings(state: &AppState) -> Result<ccr_types::ClaudeSettings, String> {
+    let raw = read_active_claude_settings_raw(state).await?;
+    serde_json::from_value(raw).map_err(|e| format!("Failed to parse settings: {e}"))
+}
+
+async fn save_settings(
+    state: &AppState,
+    settings: &ccr_types::ClaudeSettings,
+) -> Result<(), String> {
+    let raw =
+        serde_json::to_value(settings).map_err(|e| format!("Failed to serialize settings: {e}"))?;
+    write_active_claude_settings_raw(state, &raw).await
 }
 
 // ── Output Styles directory ──
@@ -133,28 +207,26 @@ fn output_styles_dir() -> std::io::Result<PathBuf> {
 
 /// 读取 ~/.claude/settings.json，以 JSON Value 返回完整内容。
 #[tauri::command]
-pub async fn claude_get_settings() -> Result<Value, String> {
-    tokio::task::spawn_blocking(|| {
-        let settings = load_settings()?;
-        serde_json::to_value(settings).map_err(|e| format!("Serialization error: {}", e))
-    })
-    .await
-    .map_err(|e| format!("Task join error: {}", e))?
+pub async fn claude_get_settings(state: State<'_, AppState>) -> Result<Value, String> {
+    read_active_claude_settings_raw(state.inner()).await
 }
 
 /// 将调用方提供的 JSON 合并写入 ~/.claude/settings.json。
 #[tauri::command]
-pub async fn claude_update_settings(settings: Value) -> Result<Value, String> {
-    tokio::task::spawn_blocking(move || {
-        let parsed: ccr_types::ClaudeSettings = serde_json::from_value(settings)
-            .map_err(|e| format!("Invalid settings payload: {}", e))?;
-        save_settings(&parsed)?;
-        let result =
-            serde_json::to_value(&parsed).map_err(|e| format!("Serialization error: {}", e))?;
-        Ok(result)
-    })
-    .await
-    .map_err(|e| format!("Task join error: {}", e))?
+pub async fn claude_update_settings(
+    state: State<'_, AppState>,
+    settings: Value,
+) -> Result<Value, String> {
+    let mut current = read_active_claude_settings_raw(state.inner()).await?;
+    merge_settings_patch(&mut current, settings)?;
+
+    let validated: ccr_types::ClaudeSettings =
+        serde_json::from_value(current).map_err(|e| format!("Invalid settings payload: {e}"))?;
+    let result =
+        serde_json::to_value(&validated).map_err(|e| format!("Serialization error: {e}"))?;
+
+    write_active_claude_settings_raw(state.inner(), &result).await?;
+    Ok(result)
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -255,80 +327,75 @@ pub async fn claude_delete_mcp_server(name: String) -> Result<String, String> {
 // ═══════════════════════════════════════════════════════════
 
 #[tauri::command]
-pub async fn claude_list_agents() -> Result<Value, String> {
-    tokio::task::spawn_blocking(|| {
-        let settings = load_settings()?;
-        let agents = serde_json::to_value(&settings.agents)
-            .map_err(|e| format!("Serialization error: {}", e))?;
-        Ok(serde_json::json!({ "agents": agents }))
-    })
-    .await
-    .map_err(|e| format!("Task join error: {}", e))?
+pub async fn claude_list_agents(state: State<'_, AppState>) -> Result<Value, String> {
+    let settings = load_settings(state.inner()).await?;
+    let agents = serde_json::to_value(&settings.agents)
+        .map_err(|e| format!("Serialization error: {}", e))?;
+    Ok(serde_json::json!({ "agents": agents }))
 }
 
 #[tauri::command]
-pub async fn claude_add_agent(name: String, config: Value) -> Result<Value, String> {
-    tokio::task::spawn_blocking(move || {
-        let mut settings = load_settings()?;
+pub async fn claude_add_agent(
+    state: State<'_, AppState>,
+    name: String,
+    config: Value,
+) -> Result<Value, String> {
+    let mut settings = load_settings(state.inner()).await?;
 
-        let mut agent: ccr_types::Agent =
-            serde_json::from_value(config).map_err(|e| format!("Invalid agent config: {}", e))?;
-        // Ensure the name from the parameter takes precedence
-        agent.name = name;
+    let mut agent: ccr_types::Agent =
+        serde_json::from_value(config).map_err(|e| format!("Invalid agent config: {}", e))?;
+    // Ensure the name from the parameter takes precedence
+    agent.name = name;
 
-        settings.agents.push(agent);
-        save_settings(&settings)?;
+    settings.agents.push(agent);
+    save_settings(state.inner(), &settings).await?;
 
-        let result = serde_json::to_value(&settings.agents)
-            .map_err(|e| format!("Serialization error: {}", e))?;
-        Ok(serde_json::json!({ "agents": result }))
-    })
-    .await
-    .map_err(|e| format!("Task join error: {}", e))?
+    let result = serde_json::to_value(&settings.agents)
+        .map_err(|e| format!("Serialization error: {}", e))?;
+    Ok(serde_json::json!({ "agents": result }))
 }
 
 #[tauri::command]
-pub async fn claude_update_agent(name: String, config: Value) -> Result<Value, String> {
-    tokio::task::spawn_blocking(move || {
-        let mut settings = load_settings()?;
+pub async fn claude_update_agent(
+    state: State<'_, AppState>,
+    name: String,
+    config: Value,
+) -> Result<Value, String> {
+    let mut settings = load_settings(state.inner()).await?;
 
-        let pos = settings
-            .agents
-            .iter()
-            .position(|a| a.name == name)
-            .ok_or_else(|| format!("Agent '{}' not found", name))?;
+    let pos = settings
+        .agents
+        .iter()
+        .position(|a| a.name == name)
+        .ok_or_else(|| format!("Agent '{}' not found", name))?;
 
-        let updated: ccr_types::Agent =
-            serde_json::from_value(config).map_err(|e| format!("Invalid agent config: {}", e))?;
-        settings.agents[pos] = updated;
+    let updated: ccr_types::Agent =
+        serde_json::from_value(config).map_err(|e| format!("Invalid agent config: {}", e))?;
+    settings.agents[pos] = updated;
 
-        save_settings(&settings)?;
+    save_settings(state.inner(), &settings).await?;
 
-        let result = serde_json::to_value(&settings.agents)
-            .map_err(|e| format!("Serialization error: {}", e))?;
-        Ok(serde_json::json!({ "agents": result }))
-    })
-    .await
-    .map_err(|e| format!("Task join error: {}", e))?
+    let result = serde_json::to_value(&settings.agents)
+        .map_err(|e| format!("Serialization error: {}", e))?;
+    Ok(serde_json::json!({ "agents": result }))
 }
 
 #[tauri::command]
-pub async fn claude_delete_agent(name: String) -> Result<String, String> {
-    tokio::task::spawn_blocking(move || {
-        let mut settings = load_settings()?;
+pub async fn claude_delete_agent(
+    state: State<'_, AppState>,
+    name: String,
+) -> Result<String, String> {
+    let mut settings = load_settings(state.inner()).await?;
 
-        let original_len = settings.agents.len();
-        settings.agents.retain(|a| a.name != name);
+    let original_len = settings.agents.len();
+    settings.agents.retain(|a| a.name != name);
 
-        if settings.agents.len() >= original_len {
-            return Err(format!("Agent '{}' not found", name));
-        }
+    if settings.agents.len() >= original_len {
+        return Err(format!("Agent '{}' not found", name));
+    }
 
-        save_settings(&settings)?;
-        Ok(format!("Agent '{}' deleted", name))
-    })
-    .await
-    .map_err(|e| format!("Task join error: {}", e))?
+    save_settings(state.inner(), &settings).await?;
+    Ok(format!("Agent '{}' deleted", name))
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -336,79 +403,74 @@ pub async fn claude_delete_agent(name: String) -> Result<String, String> {
 // ═══════════════════════════════════════════════════════════
 
 #[tauri::command]
-pub async fn claude_list_slash_commands() -> Result<Value, String> {
-    tokio::task::spawn_blocking(|| {
-        let settings = load_settings()?;
-        let commands = serde_json::to_value(&settings.slash_commands)
-            .map_err(|e| format!("Serialization error: {}", e))?;
-        Ok(serde_json::json!({ "commands": commands }))
-    })
-    .await
-    .map_err(|e| format!("Task join error: {}", e))?
+pub async fn claude_list_slash_commands(state: State<'_, AppState>) -> Result<Value, String> {
+    let settings = load_settings(state.inner()).await?;
+    let commands = serde_json::to_value(&settings.slash_commands)
+        .map_err(|e| format!("Serialization error: {}", e))?;
+    Ok(serde_json::json!({ "commands": commands }))
 }
 
 #[tauri::command]
-pub async fn claude_add_slash_command(name: String, config: Value) -> Result<Value, String> {
-    tokio::task::spawn_blocking(move || {
-        let mut settings = load_settings()?;
+pub async fn claude_add_slash_command(
+    state: State<'_, AppState>,
+    name: String,
+    config: Value,
+) -> Result<Value, String> {
+    let mut settings = load_settings(state.inner()).await?;
 
-        let mut cmd: ccr_types::SlashCommand = serde_json::from_value(config)
-            .map_err(|e| format!("Invalid slash command config: {}", e))?;
-        cmd.name = name;
+    let mut cmd: ccr_types::SlashCommand = serde_json::from_value(config)
+        .map_err(|e| format!("Invalid slash command config: {}", e))?;
+    cmd.name = name;
 
-        settings.slash_commands.push(cmd);
-        save_settings(&settings)?;
+    settings.slash_commands.push(cmd);
+    save_settings(state.inner(), &settings).await?;
 
-        let result = serde_json::to_value(&settings.slash_commands)
-            .map_err(|e| format!("Serialization error: {}", e))?;
-        Ok(serde_json::json!({ "commands": result }))
-    })
-    .await
-    .map_err(|e| format!("Task join error: {}", e))?
+    let result = serde_json::to_value(&settings.slash_commands)
+        .map_err(|e| format!("Serialization error: {}", e))?;
+    Ok(serde_json::json!({ "commands": result }))
 }
 
 #[tauri::command]
-pub async fn claude_update_slash_command(name: String, config: Value) -> Result<Value, String> {
-    tokio::task::spawn_blocking(move || {
-        let mut settings = load_settings()?;
+pub async fn claude_update_slash_command(
+    state: State<'_, AppState>,
+    name: String,
+    config: Value,
+) -> Result<Value, String> {
+    let mut settings = load_settings(state.inner()).await?;
 
-        let pos = settings
-            .slash_commands
-            .iter()
-            .position(|c| c.name == name)
-            .ok_or_else(|| format!("Slash command '{}' not found", name))?;
+    let pos = settings
+        .slash_commands
+        .iter()
+        .position(|c| c.name == name)
+        .ok_or_else(|| format!("Slash command '{}' not found", name))?;
 
-        let updated: ccr_types::SlashCommand = serde_json::from_value(config)
-            .map_err(|e| format!("Invalid slash command config: {}", e))?;
-        settings.slash_commands[pos] = updated;
+    let updated: ccr_types::SlashCommand = serde_json::from_value(config)
+        .map_err(|e| format!("Invalid slash command config: {}", e))?;
+    settings.slash_commands[pos] = updated;
 
-        save_settings(&settings)?;
+    save_settings(state.inner(), &settings).await?;
 
-        let result = serde_json::to_value(&settings.slash_commands)
-            .map_err(|e| format!("Serialization error: {}", e))?;
-        Ok(serde_json::json!({ "commands": result }))
-    })
-    .await
-    .map_err(|e| format!("Task join error: {}", e))?
+    let result = serde_json::to_value(&settings.slash_commands)
+        .map_err(|e| format!("Serialization error: {}", e))?;
+    Ok(serde_json::json!({ "commands": result }))
 }
 
 #[tauri::command]
-pub async fn claude_delete_slash_command(name: String) -> Result<String, String> {
-    tokio::task::spawn_blocking(move || {
-        let mut settings = load_settings()?;
+pub async fn claude_delete_slash_command(
+    state: State<'_, AppState>,
+    name: String,
+) -> Result<String, String> {
+    let mut settings = load_settings(state.inner()).await?;
 
-        let original_len = settings.slash_commands.len();
-        settings.slash_commands.retain(|c| c.name != name);
+    let original_len = settings.slash_commands.len();
+    settings.slash_commands.retain(|c| c.name != name);
 
-        if settings.slash_commands.len() >= original_len {
-            return Err(format!("Slash command '{}' not found", name));
-        }
+    if settings.slash_commands.len() >= original_len {
+        return Err(format!("Slash command '{}' not found", name));
+    }
 
-        save_settings(&settings)?;
-        Ok(format!("Slash command '{}' deleted", name))
-    })
-    .await
-    .map_err(|e| format!("Task join error: {}", e))?
+    save_settings(state.inner(), &settings).await?;
+    Ok(format!("Slash command '{}' deleted", name))
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -416,79 +478,74 @@ pub async fn claude_delete_slash_command(name: String) -> Result<String, String>
 // ═══════════════════════════════════════════════════════════
 
 #[tauri::command]
-pub async fn claude_list_plugins() -> Result<Value, String> {
-    tokio::task::spawn_blocking(|| {
-        let settings = load_settings()?;
-        let plugins = serde_json::to_value(&settings.plugins)
-            .map_err(|e| format!("Serialization error: {}", e))?;
-        Ok(serde_json::json!({ "plugins": plugins }))
-    })
-    .await
-    .map_err(|e| format!("Task join error: {}", e))?
+pub async fn claude_list_plugins(state: State<'_, AppState>) -> Result<Value, String> {
+    let settings = load_settings(state.inner()).await?;
+    let plugins = serde_json::to_value(&settings.plugins)
+        .map_err(|e| format!("Serialization error: {}", e))?;
+    Ok(serde_json::json!({ "plugins": plugins }))
 }
 
 #[tauri::command]
-pub async fn claude_add_plugin(name: String, config: Value) -> Result<Value, String> {
-    tokio::task::spawn_blocking(move || {
-        let mut settings = load_settings()?;
+pub async fn claude_add_plugin(
+    state: State<'_, AppState>,
+    name: String,
+    config: Value,
+) -> Result<Value, String> {
+    let mut settings = load_settings(state.inner()).await?;
 
-        let mut plugin: ccr_types::Plugin =
-            serde_json::from_value(config).map_err(|e| format!("Invalid plugin config: {}", e))?;
-        plugin.name = name;
+    let mut plugin: ccr_types::Plugin =
+        serde_json::from_value(config).map_err(|e| format!("Invalid plugin config: {}", e))?;
+    plugin.name = name;
 
-        settings.plugins.push(plugin);
-        save_settings(&settings)?;
+    settings.plugins.push(plugin);
+    save_settings(state.inner(), &settings).await?;
 
-        let result = serde_json::to_value(&settings.plugins)
-            .map_err(|e| format!("Serialization error: {}", e))?;
-        Ok(serde_json::json!({ "plugins": result }))
-    })
-    .await
-    .map_err(|e| format!("Task join error: {}", e))?
+    let result = serde_json::to_value(&settings.plugins)
+        .map_err(|e| format!("Serialization error: {}", e))?;
+    Ok(serde_json::json!({ "plugins": result }))
 }
 
 #[tauri::command]
-pub async fn claude_update_plugin(name: String, config: Value) -> Result<Value, String> {
-    tokio::task::spawn_blocking(move || {
-        let mut settings = load_settings()?;
+pub async fn claude_update_plugin(
+    state: State<'_, AppState>,
+    name: String,
+    config: Value,
+) -> Result<Value, String> {
+    let mut settings = load_settings(state.inner()).await?;
 
-        let pos = settings
-            .plugins
-            .iter()
-            .position(|p| p.name == name)
-            .ok_or_else(|| format!("Plugin '{}' not found", name))?;
+    let pos = settings
+        .plugins
+        .iter()
+        .position(|p| p.name == name)
+        .ok_or_else(|| format!("Plugin '{}' not found", name))?;
 
-        let updated: ccr_types::Plugin =
-            serde_json::from_value(config).map_err(|e| format!("Invalid plugin config: {}", e))?;
-        settings.plugins[pos] = updated;
+    let updated: ccr_types::Plugin =
+        serde_json::from_value(config).map_err(|e| format!("Invalid plugin config: {}", e))?;
+    settings.plugins[pos] = updated;
 
-        save_settings(&settings)?;
+    save_settings(state.inner(), &settings).await?;
 
-        let result = serde_json::to_value(&settings.plugins)
-            .map_err(|e| format!("Serialization error: {}", e))?;
-        Ok(serde_json::json!({ "plugins": result }))
-    })
-    .await
-    .map_err(|e| format!("Task join error: {}", e))?
+    let result = serde_json::to_value(&settings.plugins)
+        .map_err(|e| format!("Serialization error: {}", e))?;
+    Ok(serde_json::json!({ "plugins": result }))
 }
 
 #[tauri::command]
-pub async fn claude_delete_plugin(name: String) -> Result<String, String> {
-    tokio::task::spawn_blocking(move || {
-        let mut settings = load_settings()?;
+pub async fn claude_delete_plugin(
+    state: State<'_, AppState>,
+    name: String,
+) -> Result<String, String> {
+    let mut settings = load_settings(state.inner()).await?;
 
-        let original_len = settings.plugins.len();
-        settings.plugins.retain(|p| p.name != name);
+    let original_len = settings.plugins.len();
+    settings.plugins.retain(|p| p.name != name);
 
-        if settings.plugins.len() >= original_len {
-            return Err(format!("Plugin '{}' not found", name));
-        }
+    if settings.plugins.len() >= original_len {
+        return Err(format!("Plugin '{}' not found", name));
+    }
 
-        save_settings(&settings)?;
-        Ok(format!("Plugin '{}' deleted", name))
-    })
-    .await
-    .map_err(|e| format!("Task join error: {}", e))?
+    save_settings(state.inner(), &settings).await?;
+    Ok(format!("Plugin '{}' deleted", name))
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -573,32 +630,27 @@ pub async fn claude_update_output_styles(styles: Value) -> Result<Value, String>
 // ═══════════════════════════════════════════════════════════
 
 #[tauri::command]
-pub async fn claude_get_statusline() -> Result<Value, String> {
-    tokio::task::spawn_blocking(|| {
-        let settings = load_settings()?;
-        let statusline = settings
-            .other
-            .get("statusline")
-            .cloned()
-            .unwrap_or(Value::Null);
-        Ok(statusline)
-    })
-    .await
-    .map_err(|e| format!("Task join error: {}", e))?
+pub async fn claude_get_statusline(state: State<'_, AppState>) -> Result<Value, String> {
+    let settings = load_settings(state.inner()).await?;
+    let statusline = settings
+        .other
+        .get("statusline")
+        .cloned()
+        .unwrap_or(Value::Null);
+    Ok(statusline)
 }
 
 #[tauri::command]
-pub async fn claude_update_statusline(config: Value) -> Result<Value, String> {
-    tokio::task::spawn_blocking(move || {
-        let mut settings = load_settings()?;
-        settings
-            .other
-            .insert("statusline".to_string(), config.clone());
-        save_settings(&settings)?;
-        Ok(config)
-    })
-    .await
-    .map_err(|e| format!("Task join error: {}", e))?
+pub async fn claude_update_statusline(
+    state: State<'_, AppState>,
+    config: Value,
+) -> Result<Value, String> {
+    let mut settings = load_settings(state.inner()).await?;
+    settings
+        .other
+        .insert("statusline".to_string(), config.clone());
+    save_settings(state.inner(), &settings).await?;
+    Ok(config)
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -606,35 +658,30 @@ pub async fn claude_update_statusline(config: Value) -> Result<Value, String> {
 // ═══════════════════════════════════════════════════════════
 
 #[tauri::command]
-pub async fn claude_list_hooks() -> Result<Value, String> {
-    tokio::task::spawn_blocking(|| {
-        let settings = load_settings()?;
-        let hooks = serde_json::to_value(&settings.hooks)
-            .map_err(|e| format!("Serialization error: {}", e))?;
-        Ok(serde_json::json!({ "hooks": hooks }))
-    })
-    .await
-    .map_err(|e| format!("Task join error: {}", e))?
+pub async fn claude_list_hooks(state: State<'_, AppState>) -> Result<Value, String> {
+    let settings = load_settings(state.inner()).await?;
+    let hooks =
+        serde_json::to_value(&settings.hooks).map_err(|e| format!("Serialization error: {}", e))?;
+    Ok(serde_json::json!({ "hooks": hooks }))
 }
 
 /// 整体替换 hooks 列表（hooks 是 [{event, command, enabled, description}] 数组）。
 #[tauri::command]
-pub async fn claude_update_hooks(hooks: Value) -> Result<Value, String> {
-    tokio::task::spawn_blocking(move || {
-        let mut settings = load_settings()?;
+pub async fn claude_update_hooks(
+    state: State<'_, AppState>,
+    hooks: Value,
+) -> Result<Value, String> {
+    let mut settings = load_settings(state.inner()).await?;
 
-        let new_hooks: Vec<ccr_types::Hook> =
-            serde_json::from_value(hooks).map_err(|e| format!("Invalid hooks payload: {}", e))?;
-        settings.hooks = new_hooks;
+    let new_hooks: Vec<ccr_types::Hook> =
+        serde_json::from_value(hooks).map_err(|e| format!("Invalid hooks payload: {}", e))?;
+    settings.hooks = new_hooks;
 
-        save_settings(&settings)?;
+    save_settings(state.inner(), &settings).await?;
 
-        let result = serde_json::to_value(&settings.hooks)
-            .map_err(|e| format!("Serialization error: {}", e))?;
-        Ok(serde_json::json!({ "hooks": result }))
-    })
-    .await
-    .map_err(|e| format!("Task join error: {}", e))?
+    let result =
+        serde_json::to_value(&settings.hooks).map_err(|e| format!("Serialization error: {}", e))?;
+    Ok(serde_json::json!({ "hooks": result }))
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -922,7 +969,9 @@ fn parse_extra_field(
     }
 }
 
-fn parse_platform_data_update(obj: &Map<String, Value>) -> Result<Option<Map<String, Value>>, String> {
+fn parse_platform_data_update(
+    obj: &Map<String, Value>,
+) -> Result<Option<Map<String, Value>>, String> {
     let has_extra = obj.contains_key("extra");
     let has_platform_data = obj.contains_key("platform_data");
 
@@ -1159,7 +1208,11 @@ pub async fn claude_update_profile(name: String, request: Value) -> Result<Value
             .get_current_profile()
             .map_err(|e| format!("读取当前 Claude profile 失败: {e}"))?;
 
-        Ok(profile_to_json(latest_current.as_deref(), target_name, profile))
+        Ok(profile_to_json(
+            latest_current.as_deref(),
+            target_name,
+            profile,
+        ))
     })
     .await
     .map_err(|e| format!("任务执行失败: {e}"))?
@@ -1200,6 +1253,90 @@ pub async fn claude_apply_profile(name: String) -> Result<Value, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::sync::Mutex;
+
+    #[derive(Clone)]
+    enum MockReadBehavior {
+        Content(String),
+        Missing,
+        Error(String),
+    }
+
+    struct MockEnvironment {
+        behavior: MockReadBehavior,
+        writes: Mutex<Vec<String>>,
+    }
+
+    impl MockEnvironment {
+        fn with_content(content: impl Into<String>) -> Self {
+            Self {
+                behavior: MockReadBehavior::Content(content.into()),
+                writes: Mutex::new(Vec::new()),
+            }
+        }
+
+        fn missing() -> Self {
+            Self {
+                behavior: MockReadBehavior::Missing,
+                writes: Mutex::new(Vec::new()),
+            }
+        }
+
+        fn error(message: impl Into<String>) -> Self {
+            Self {
+                behavior: MockReadBehavior::Error(message.into()),
+                writes: Mutex::new(Vec::new()),
+            }
+        }
+
+        fn last_written_json(&self) -> Option<Value> {
+            let guard = self.writes.lock().unwrap();
+            guard
+                .last()
+                .and_then(|content| serde_json::from_str::<Value>(content).ok())
+        }
+    }
+
+    #[async_trait::async_trait]
+    impl ExecutionEnvironment for MockEnvironment {
+        fn env_type(&self) -> EnvironmentType {
+            EnvironmentType::Local
+        }
+
+        fn display_name(&self) -> String {
+            "Mock".to_string()
+        }
+
+        fn env_id(&self) -> String {
+            "mock".to_string()
+        }
+
+        async fn list_platforms(&self) -> Result<Vec<PlatformInfo>, EnvError> {
+            Ok(Vec::new())
+        }
+
+        async fn read_config(&self, _platform: &str, path: &str) -> Result<String, EnvError> {
+            match &self.behavior {
+                MockReadBehavior::Content(content) => Ok(content.clone()),
+                MockReadBehavior::Missing => Err(EnvError::ConfigNotFound(path.to_string())),
+                MockReadBehavior::Error(message) => Err(EnvError::Other(message.clone())),
+            }
+        }
+
+        async fn write_config(
+            &self,
+            _platform: &str,
+            _path: &str,
+            content: &str,
+        ) -> Result<(), EnvError> {
+            self.writes.lock().unwrap().push(content.to_string());
+            Ok(())
+        }
+
+        async fn detect_cli_status(&self) -> Result<Vec<CliStatus>, EnvError> {
+            Ok(Vec::new())
+        }
+    }
 
     #[test]
     fn patch_profile_with_config_clears_platform_data_when_extra_is_null() {
@@ -1243,6 +1380,151 @@ mod tests {
             Some(&json!("claude-sonnet-4-5"))
         );
         assert_eq!(profile.platform_data.get("budget"), Some(&json!("small")));
-        assert_eq!(profile.platform_data.get("workspace"), Some(&json!("team-a")));
+        assert_eq!(
+            profile.platform_data.get("workspace"),
+            Some(&json!("team-a"))
+        );
+    }
+
+    #[tokio::test]
+    async fn read_claude_settings_from_env_reads_top_level_env() {
+        let env = Arc::new(MockEnvironment::with_content(
+            json!({
+                "$schema": "https://example.com/schema",
+                "env": {
+                    "ANTHROPIC_BASE_URL": "https://example.com",
+                    "ANTHROPIC_AUTH_TOKEN": "sk-test"
+                },
+                "statusLine": {
+                    "type": "command",
+                    "command": "echo ok"
+                }
+            })
+            .to_string(),
+        ));
+
+        let result = read_claude_settings_from_env(env).await.unwrap();
+
+        assert_eq!(
+            result
+                .get("env")
+                .and_then(Value::as_object)
+                .and_then(|env| env.get("ANTHROPIC_BASE_URL"))
+                .and_then(Value::as_str),
+            Some("https://example.com")
+        );
+        assert_eq!(
+            result
+                .get("statusLine")
+                .and_then(Value::as_object)
+                .is_some(),
+            true
+        );
+    }
+
+    #[tokio::test]
+    async fn read_claude_settings_from_env_returns_empty_object_when_missing() {
+        let env = Arc::new(MockEnvironment::missing());
+        let result = read_claude_settings_from_env(env).await.unwrap();
+
+        assert_eq!(result, json!({}));
+    }
+
+    #[tokio::test]
+    async fn read_claude_settings_from_env_surfaces_non_missing_errors() {
+        let env = Arc::new(MockEnvironment::error("permission denied"));
+        let error = read_claude_settings_from_env(env).await.unwrap_err();
+
+        assert!(error.contains("permission denied"));
+    }
+
+    #[test]
+    fn merge_settings_patch_replaces_env_and_preserves_unknown_fields() {
+        let mut current = json!({
+            "$schema": "https://example.com/schema",
+            "env": {
+                "OLD_KEY": "old",
+                "KEEP_ME": "stale"
+            },
+            "statusLine": {
+                "type": "command",
+                "command": "echo old"
+            },
+            "enabledPlugins": ["alpha"]
+        });
+
+        merge_settings_patch(
+            &mut current,
+            json!({
+                "env": {
+                    "NEW_KEY": "new"
+                },
+                "model": "claude-sonnet-4-5-20250929"
+            }),
+        )
+        .unwrap();
+
+        assert_eq!(current["env"], json!({ "NEW_KEY": "new" }));
+        assert_eq!(
+            current["statusLine"],
+            json!({
+                "type": "command",
+                "command": "echo old"
+            })
+        );
+        assert_eq!(current["enabledPlugins"], json!(["alpha"]));
+        assert_eq!(current["$schema"], json!("https://example.com/schema"));
+        assert_eq!(current["model"], json!("claude-sonnet-4-5-20250929"));
+    }
+
+    #[tokio::test]
+    async fn typed_save_roundtrips_unknown_top_level_fields() {
+        let env = Arc::new(MockEnvironment::with_content(
+            json!({
+                "$schema": "https://example.com/schema",
+                "env": {
+                    "ANTHROPIC_BASE_URL": "https://example.com"
+                },
+                "enabledPlugins": ["alpha"],
+                "statusLine": {
+                    "type": "command",
+                    "command": "echo before"
+                },
+                "agents": []
+            })
+            .to_string(),
+        ));
+
+        let raw = read_claude_settings_from_env(env.clone()).await.unwrap();
+        let mut settings: ccr_types::ClaudeSettings = serde_json::from_value(raw).unwrap();
+        settings
+            .env
+            .insert("ANTHROPIC_AUTH_TOKEN".into(), "sk-test".into());
+        settings.agents.push(ccr_types::Agent {
+            name: "reviewer".into(),
+            model: "opus".into(),
+            tools: vec!["Read".into()],
+            system_prompt: Some("check".into()),
+            disabled: false,
+            other: HashMap::new(),
+        });
+
+        let serialized = serde_json::to_value(settings).unwrap();
+        write_claude_settings_to_env(env.clone(), &serialized)
+            .await
+            .unwrap();
+
+        let written = env.last_written_json().unwrap();
+        assert_eq!(written["$schema"], json!("https://example.com/schema"));
+        assert_eq!(written["enabledPlugins"], json!(["alpha"]));
+        assert_eq!(
+            written["statusLine"],
+            json!({
+                "type": "command",
+                "command": "echo before"
+            })
+        );
+        assert_eq!(written["env"]["ANTHROPIC_AUTH_TOKEN"], json!("sk-test"));
+        assert_eq!(written["agents"][0]["name"], json!("reviewer"));
     }
 }

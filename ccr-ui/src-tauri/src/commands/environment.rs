@@ -10,7 +10,9 @@ use tauri::State;
 use ccr_db::database::repositories::ssh_repo;
 
 use crate::events::{self, EnvironmentEventPayload};
-use crate::monitoring::{emit_and_record_monitoring_event, environment_changed_entry, should_persist};
+use crate::monitoring::{
+    emit_and_record_monitoring_event, environment_changed_entry, should_persist,
+};
 use crate::platform::EnvironmentInfo;
 use crate::platform::local::LocalEnvironment;
 use crate::platform::ssh::{SshEnvironment, SshHostConfig};
@@ -190,4 +192,3 @@ pub async fn env_detect_cli(state: State<'_, AppState>) -> Result<Value, String>
 
     serde_json::to_value(&status).map_err(|e| format!("Serialization error: {e}"))
 }
-

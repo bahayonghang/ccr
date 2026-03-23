@@ -8,7 +8,9 @@ use tauri::State;
 use tokio::sync::Semaphore;
 use tokio::time::{Duration, timeout};
 
-use crate::monitoring::{event_to_monitoring_entry, frontend_log_entry, record_monitoring_entry, should_persist};
+use crate::monitoring::{
+    event_to_monitoring_entry, frontend_log_entry, record_monitoring_entry, should_persist,
+};
 use crate::process::tokio_command;
 use crate::state::{AppState, CacheFillRegistration};
 
@@ -149,7 +151,6 @@ pub async fn health_check(state: State<'_, AppState>) -> Result<serde_json::Valu
         "version": env!("CARGO_PKG_VERSION"),
     }))
 }
-
 
 fn monitoring_matches_query(entry: &MonitoringEntry, query: &MonitoringFeedQuery) -> bool {
     let level_matches = query
@@ -490,15 +491,25 @@ mod tests {
             payload.get("timeout_ms").and_then(|v| v.as_u64()),
             Some(3_500)
         );
-        assert_eq!(payload.get("versions").and_then(|v| v.as_object()).map(|m| m.len()), Some(4));
-        assert_eq!(payload.get("entries").and_then(|v| v.as_array()).map(|a| a.len()), Some(4));
+        assert_eq!(
+            payload
+                .get("versions")
+                .and_then(|v| v.as_object())
+                .map(|m| m.len()),
+            Some(4)
+        );
+        assert_eq!(
+            payload
+                .get("entries")
+                .and_then(|v| v.as_array())
+                .map(|a| a.len()),
+            Some(4)
+        );
 
         // fast 模式下应在合理时间内返回，避免回归导致探测超时
         assert!(started_at.elapsed() <= Duration::from_millis(5_000));
     }
 }
-
-
 
 #[cfg(test)]
 mod monitoring_query_tests {
@@ -515,7 +526,10 @@ mod monitoring_query_tests {
             "started",
         );
 
-        assert!(monitoring_matches_query(&entry, &MonitoringFeedQuery::default()));
+        assert!(monitoring_matches_query(
+            &entry,
+            &MonitoringFeedQuery::default()
+        ));
     }
 
     #[test]
