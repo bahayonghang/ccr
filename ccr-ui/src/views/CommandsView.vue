@@ -332,10 +332,9 @@
 
                 <!-- 实际输出 -->
                 <pre
-                  class="whitespace-pre-wrap break-words leading-relaxed hljs"
+                  class="whitespace-pre-wrap break-words leading-relaxed"
                   :class="output.success ? 'text-text-primary' : 'text-accent-danger'"
-                  v-html="highlightedContent"
-                />
+                >{{ commandOutputText }}</pre>
 
                 <!-- 状态行 -->
                 <div class="mt-6 flex items-center gap-4 border-t border-border-default/40 pt-4 text-xs font-mono">
@@ -384,25 +383,12 @@ import SIcon from '@/components/ui/SIcon.vue'
 import { ref, computed, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
-import hljs from 'highlight.js/lib/core'
-import bash from 'highlight.js/lib/languages/bash'
-import json from 'highlight.js/lib/languages/json'
-import markdown from 'highlight.js/lib/languages/markdown'
-import plaintext from 'highlight.js/lib/languages/plaintext'
-import 'highlight.js/styles/atom-one-dark.css'
 
 import { listCommands, executeCommand, listConfigs } from '@/api'
 import type { CommandInfo, CommandResponse, ConfigItem } from '@/types'
 import { normalizeCliClient, type CliClient } from '@/types/router'
 import Card from '@/components/ui/Card.vue'
-import { sanitizeTerminal } from '@/utils/sanitize'
 import { logger } from '@/utils/logger'
-
-// Register languages
-hljs.registerLanguage('bash', bash)
-hljs.registerLanguage('json', json)
-hljs.registerLanguage('markdown', markdown)
-hljs.registerLanguage('plaintext', plaintext)
 
 const { t } = useI18n({ useScope: 'global' })
 const route = useRoute()
@@ -421,7 +407,6 @@ const commands = ref<CommandInfo[]>([])
 const selectedCommand = ref<string>('')
 const args = ref<string>('')
 const output = ref<CommandResponse | null>(null)
-const streamingOutput = ref<string>('')
 const loading = ref(false)
 const configs = ref<ConfigItem[]>([])
 
@@ -433,23 +418,8 @@ const currentClientInfo = computed(() =>
   CLI_CLIENTS.find((c) => c.id === selectedClient.value)
 )
 
-const highlightedContent = computed(() => {
-  // Prefer streamingOutput during active streaming
-  const content = streamingOutput.value || (output.value?.output || output.value?.error) || ''
-  if (!content) return ''
-
-  try {
-    // If it's an error, just return plain text or wrap in error style
-    if (output.value && !output.value.success) {
-      return `<span class="text-red-300">${sanitizeTerminal(content)}</span>`
-    }
-
-    // Auto-detect language and sanitize
-    const result = hljs.highlightAuto(content)
-    return sanitizeTerminal(result.value)
-  } catch (e) {
-    return sanitizeTerminal(content)
-  }
+const commandOutputText = computed(() => {
+  return output.value?.output || output.value?.error || ''
 })
 
 const isCommandResponse = (value: unknown): value is CommandResponse => {
@@ -644,11 +614,5 @@ const handleClearOutput = () => {
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: rgb(255 255 255 / 20%);
-}
-
-/* Override highlight.js background to match our theme */
-:deep(.hljs) {
-  background: transparent !important;
-  padding: 0 !important;
 }
 </style>

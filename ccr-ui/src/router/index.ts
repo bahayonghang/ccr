@@ -1,5 +1,4 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import MainLayout from '@/components/MainLayout.vue'
 
 // RouteMeta 类型扩展
 declare module 'vue-router' {
@@ -21,7 +20,7 @@ const router = createRouter({
   routes: [
     {
       path: '/',
-      component: MainLayout,
+      component: () => import('@/components/MainLayout.vue'),
       children: [
         {
           path: '',
@@ -34,7 +33,7 @@ const router = createRouter({
           path: 'claude-code',
           name: 'claude-code',
           component: () => import('@/views/ClaudeCodeView.vue'),
-          meta: { depth: 1, group: 'claude-code' }
+          meta: { depth: 1, group: 'claude-code', hideGlobalBackground: true }
         },
         {
           path: 'claude-code/settings',
@@ -58,25 +57,25 @@ const router = createRouter({
           path: 'gemini-cli',
           name: 'gemini-cli',
           component: () => import('@/views/GeminiCliView.vue'),
-          meta: { depth: 1, group: 'gemini' }
+          meta: { depth: 1, group: 'gemini', hideGlobalBackground: true }
         },
         {
           path: 'qwen',
           name: 'qwen',
           component: () => import('@/views/QwenView.vue'),
-          meta: { depth: 1, group: 'qwen' }
+          meta: { depth: 1, group: 'qwen', hideGlobalBackground: true }
         },
         {
           path: 'iflow',
           name: 'iflow',
           component: () => import('@/views/IflowView.vue'),
-          meta: { depth: 1, group: 'iflow' }
+          meta: { depth: 1, group: 'iflow', hideGlobalBackground: true }
         },
         {
           path: 'droid',
           name: 'droid',
           component: () => import('@/views/DroidView.vue'),
-          meta: { depth: 1, group: 'droid' }
+          meta: { depth: 1, group: 'droid', hideGlobalBackground: true }
         },
         // 工具中心 (depth: 1, group: 'tools')
         {
@@ -101,14 +100,14 @@ const router = createRouter({
           path: 'sync',
           name: 'sync',
           component: () => import('@/views/SyncView.vue'),
-          meta: { depth: 1, group: 'tools' }
+          meta: { depth: 1, group: 'tools', hideGlobalBackground: true }
         },
         // 配置组 (depth: 1, group: 'config')
         {
           path: 'configs',
           name: 'configs',
           component: () => import('@/views/ConfigsView.vue'),
-          meta: { cache: true, depth: 1, group: 'config' }
+          meta: { cache: true, depth: 1, group: 'config', hideGlobalBackground: true }
         },
         {
           path: 'stats',
@@ -131,7 +130,7 @@ const router = createRouter({
           path: 'usage',
           name: 'usage',
           component: () => import('@/views/UsageDashboardView.vue'),
-          meta: { cache: true, depth: 1, group: 'data' }
+          meta: { cache: true, depth: 1, group: 'data', hideGlobalBackground: true }
         },
         {
           path: 'monitoring',
@@ -411,25 +410,25 @@ const router = createRouter({
           path: 'opencode',
           name: 'opencode',
           component: () => import('@/views/OpenCodeView.vue'),
-          meta: { depth: 1, group: 'opencode' }
+          meta: { depth: 1, group: 'opencode', hideGlobalBackground: true }
         },
         {
           path: 'opencode/providers',
           name: 'opencode-providers',
           component: () => import('@/views/OpenCodeProvidersView.vue'),
-          meta: { depth: 2, group: 'opencode' }
+          meta: { depth: 2, group: 'opencode', hideGlobalBackground: true }
         },
         {
           path: 'opencode/mcp',
           name: 'opencode-mcp',
           component: () => import('@/views/OpenCodeMcpView.vue'),
-          meta: { depth: 2, group: 'opencode' }
+          meta: { depth: 2, group: 'opencode', hideGlobalBackground: true }
         },
         {
           path: 'opencode/plugins',
           name: 'opencode-plugins',
           component: () => import('@/views/OpenCodePluginsView.vue'),
-          meta: { depth: 2, group: 'opencode' }
+          meta: { depth: 2, group: 'opencode', hideGlobalBackground: true }
         },
         // 环境管理 (depth: 1, group: 'environment')
         {

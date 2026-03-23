@@ -314,7 +314,9 @@ const { transitionName } = usePageTransition()
 const [appNamePrefix = APP_NAME, appNameSuffix = ''] = APP_NAME.split(' ')
 const appVersionLabel = APP_VERSION_LABEL
 const navSections = mainLayoutNavSections
-const cachedViews = mainLayoutCachedViews
+const cachedViews = [
+  'ConfigsView', 'CommandsView', 'CodexAuthView', 'CodexProfilesView', 'CodexMcpView',
+]
 
 const currentPageTitle = computed(() => {
   const name = route.name as string

@@ -12,8 +12,8 @@ const configuredSolarIconNames = [...new Set(
 )]
 
 describe('icon registry smoke', () => {
-  it('registers every configured solar icon in the local Iconify cache', () => {
-    registerAppIcons()
+  it('registers every configured solar icon in the local Iconify cache', async () => {
+    await registerAppIcons()
 
     const missingIcons = configuredSolarIconNames.filter((iconName) => !getIcon(`solar:${iconName}`))
 

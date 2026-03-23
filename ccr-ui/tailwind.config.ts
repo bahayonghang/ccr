@@ -5,7 +5,17 @@ export default {
   darkMode: ['class', '[data-theme="dark"]'],
   content: [
     './index.html',
-    './src/**/*.{vue,js,ts,jsx,tsx}',
+    './src/App.vue',
+    './src/main.ts',
+    './src/api/**/*.{js,ts}',
+    './src/components/**/*.{vue,js,ts,jsx,tsx}',
+    './src/composables/**/*.{js,ts,jsx,tsx}',
+    './src/config/**/*.{js,ts}',
+    './src/layouts/**/*.{vue,js,ts,jsx,tsx}',
+    './src/router/**/*.{js,ts}',
+    './src/stores/**/*.{js,ts}',
+    './src/utils/**/*.{js,ts}',
+    './src/views/**/*.{vue,js,ts,jsx,tsx}',
   ],
   theme: {
     // Override default font family to use our tokens

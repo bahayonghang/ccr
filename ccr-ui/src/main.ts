@@ -3,20 +3,37 @@ import { createPinia } from 'pinia'
 import App from './App.vue'
 import router from './router'
 import i18n, { hydratePreferredLocale } from './i18n'
+import { registerDeferredIcons, registerShellIcons } from '@/config/iconRegistry'
 import { useUIStore } from '@/stores/ui'
 import { logger } from '@/utils/logger'
-import { scheduleAfterPaint } from '@/utils/scheduling'
+import { scheduleAfterPaint, scheduleWhenIdle } from '@/utils/scheduling'
 import { showCurrentWindowIfTauri } from '@/utils/tauriWindow'
 import { applyInitialTheme } from '@/utils/themeBootstrap'
 import './styles/index.css'
 
+const deferredStylesheets = [
+  '/fonts/maplebright/MapleBright-Medium/result.css',
+  '/fonts/maplebright/MapleBright-Italic/result.css',
+  '/fonts/maplebright/MapleBright-MediumItalic/result.css',
+]
+
+const appendStylesheet = (href: string) => {
+  if (typeof document === 'undefined') {
+    return
+  }
+
+  if (document.querySelector(`link[rel="stylesheet"][href="${href}"]`)) {
+    return
+  }
+
+  const link = document.createElement('link')
+  link.rel = 'stylesheet'
+  link.href = href
+  document.head.appendChild(link)
+}
+
 applyInitialTheme()
-await Promise.all([
-  hydratePreferredLocale(),
-  import('@/config/iconRegistry').then(({ registerAppIcons }) => {
-    registerAppIcons()
-  }),
-])
+registerShellIcons()
 
 const app = createApp(App)
 
@@ -52,4 +69,22 @@ app.mount('#app')
 // 非关键初始化推迟到首帧之后，优先让主界面完成首次绘制。
 scheduleAfterPaint(() => {
   void showCurrentWindowIfTauri()
+
+  void hydratePreferredLocale().catch((error) => {
+    logger.warn('[startup] failed to hydrate preferred locale after first paint', error)
+  })
+
+  void registerDeferredIcons().catch((error) => {
+    logger.warn('[startup] failed to register deferred icons', error)
+  })
+
+  scheduleWhenIdle(() => {
+    for (const href of deferredStylesheets) {
+      appendStylesheet(href)
+    }
+
+    void import('./styles/decorative.css').catch((error) => {
+      logger.warn('[startup] failed to load decorative styles', error)
+    })
+  }, { timeout: 1200, fallbackDelay: 320 })
 })

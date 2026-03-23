@@ -8,7 +8,8 @@ export function sanitizeTerminal(dirty: string): string {
   if (!dirty) return ''
 
   return DOMPurify.sanitize(dirty, {
-    ALLOWED_TAGS: ['#text'],
+    ALLOWED_TAGS: ['#text', 'span', 'br'],
+    ALLOWED_ATTR: ['class'],
     ALLOW_DATA_ATTR: false,
     ALLOW_UNKNOWN_PROTOCOLS: false,
   })

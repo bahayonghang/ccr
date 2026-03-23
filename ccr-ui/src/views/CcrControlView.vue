@@ -512,12 +512,12 @@
                 class="flex flex-col pb-4"
               >
                 <div
-                  v-for="(line, idx) in outputLines"
+                  v-for="(_, idx) in outputLines"
                   :key="idx" 
                   class="break-all whitespace-pre-wrap py-[1px] font-mono text-text-secondary hover:bg-white/5 transition-colors border-l-2 border-transparent hover:border-accent-primary pl-2 -ml-2"
                 >
                   <span class="inline-block w-8 text-right mr-4 text-[10px] text-text-muted select-none opacity-50">{{ idx + 1 }}</span>
-                  <span v-html="renderAnsi(line)" />
+                  <span v-html="renderedOutputLines[idx] ?? ''" />
                 </div>
                     
                 <!-- Typing Cursor (Visual Only) -->
@@ -539,12 +539,11 @@
 <script setup lang="ts">
 import SIcon from '@/components/ui/SIcon.vue'
 import { ref, watch, nextTick } from 'vue'
-import { AnsiUp } from 'ansi_up'
 import Card from '@/components/ui/Card.vue'
 import ThemeToggle from '@/components/ThemeToggle.vue'
 import { useCcrControl } from '@/composables/useCcrControl'
 import type { CcrCommand } from '@/api/ccr-control'
-import { sanitizeTerminal } from '@/utils/sanitize'
+import { createAnsiRenderer } from '@/utils/ansiRenderer'
 
 // Use Composables
 const {
@@ -576,6 +575,9 @@ const {
 // UI State
 const activeTab = ref<'commands' | 'favorites' | 'history'>('commands')
 const outputContainer = ref<HTMLElement | null>(null)
+const ansiRenderer = createAnsiRenderer()
+const renderedOutputLines = ref<string[]>([])
+let previousOutputLines: string[] = []
 
 // Sidebar Tabs Configuration
 const sidebarTabs: { id: 'commands' | 'favorites' | 'history'; label: string; icon: string }[] = [
@@ -585,11 +587,26 @@ const sidebarTabs: { id: 'commands' | 'favorites' | 'history'; label: string; ic
 ]
 
 
-// Render ANSI
-const ansiUp = new AnsiUp()
-const renderAnsi = (text: string) => {
-  const html = ansiUp.ansi_to_html(text || '')
-  return sanitizeTerminal(html)
+const syncRenderedOutputLines = (nextLines: string[]) => {
+  const shouldRebuild = previousOutputLines.length === 0
+    || nextLines.length < previousOutputLines.length
+    || nextLines[0] !== previousOutputLines[0]
+
+  if (shouldRebuild) {
+    renderedOutputLines.value = nextLines.map((line) => ansiRenderer.renderLine(line))
+    previousOutputLines = [...nextLines]
+    return
+  }
+
+  const appended = nextLines.slice(previousOutputLines.length)
+  if (appended.length > 0) {
+    renderedOutputLines.value = [
+      ...renderedOutputLines.value,
+      ...appended.map((line) => ansiRenderer.renderLine(line)),
+    ]
+  }
+
+  previousOutputLines = [...nextLines]
 }
 
 // Toggle Favorite
@@ -614,12 +631,20 @@ const formatTime = (dateStr: string) => {
 }
 
 // Auto Scroll
-watch(outputLines, async () => {
+watch(outputLines, async (nextLines) => {
+  if (nextLines.length === 0) {
+    ansiRenderer.clear()
+    renderedOutputLines.value = []
+    previousOutputLines = []
+  } else {
+    syncRenderedOutputLines(nextLines)
+  }
+
   await nextTick()
   if (outputContainer.value) {
     outputContainer.value.scrollTop = outputContainer.value.scrollHeight
   }
-})
+}, { deep: true, immediate: true })
 
 // Init
 loadVersionInfo()

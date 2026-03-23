@@ -58,6 +58,79 @@ export function useStream(url: string, maxLines = 2000) {
   const isComplete = ref(false)
 
   let abortController: AbortController | null = null
+  let pendingBuffer = ''
+  let queuedLines: string[] = []
+  let frameHandle: number | null = null
+  let timeoutHandle: ReturnType<typeof setTimeout> | null = null
+
+  const cancelScheduledFlush = () => {
+    if (frameHandle !== null && typeof window !== 'undefined') {
+      window.cancelAnimationFrame(frameHandle)
+      frameHandle = null
+    }
+
+    if (timeoutHandle !== null) {
+      clearTimeout(timeoutHandle)
+      timeoutHandle = null
+    }
+  }
+
+  const flushQueuedLines = () => {
+    cancelScheduledFlush()
+
+    if (queuedLines.length === 0) {
+      return
+    }
+
+    const nextLines = [...lines.value, ...queuedLines]
+    queuedLines = []
+    lines.value = nextLines.length > maxLines
+      ? nextLines.slice(nextLines.length - maxLines)
+      : nextLines
+  }
+
+  const scheduleFlush = () => {
+    if (frameHandle !== null || timeoutHandle !== null) {
+      return
+    }
+
+    if (typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function') {
+      frameHandle = window.requestAnimationFrame(() => {
+        flushQueuedLines()
+      })
+      return
+    }
+
+    timeoutHandle = setTimeout(() => {
+      flushQueuedLines()
+    }, 0)
+  }
+
+  const enqueueChunk = (chunk: string) => {
+    if (!chunk) {
+      return
+    }
+
+    pendingBuffer += chunk.replace(/\r\n/g, '\n')
+    const parts = pendingBuffer.split('\n')
+    pendingBuffer = parts.pop() ?? ''
+
+    if (parts.length === 0) {
+      return
+    }
+
+    queuedLines.push(...parts)
+    scheduleFlush()
+  }
+
+  const flushPendingBuffer = () => {
+    if (pendingBuffer.length > 0) {
+      queuedLines.push(pendingBuffer)
+      pendingBuffer = ''
+    }
+
+    flushQueuedLines()
+  }
 
   /**
    * 开始读取流
@@ -72,6 +145,9 @@ export function useStream(url: string, maxLines = 2000) {
     error.value = null
     isComplete.value = false
     lines.value = []
+    pendingBuffer = ''
+    queuedLines = []
+    cancelScheduledFlush()
 
     abortController = new AbortController()
 
@@ -102,20 +178,10 @@ export function useStream(url: string, maxLines = 2000) {
           break
         }
 
-        const chunk = decoder.decode(value, { stream: true })
-
-        // 按行分割
-        const newLines = chunk.split('\n').filter((line) => line.trim())
-
-        for (const line of newLines) {
-          lines.value.push(line)
-
-          // 限制行数，移除最旧的行
-          if (lines.value.length > maxLines) {
-            lines.value.splice(0, lines.value.length - maxLines)
-          }
-        }
+        enqueueChunk(decoder.decode(value, { stream: true }))
       }
+
+      flushPendingBuffer()
     } catch (err: unknown) {
       if (!isAbortError(err)) {
         error.value = getErrorMessage(err) || 'Stream error'
@@ -142,6 +208,9 @@ export function useStream(url: string, maxLines = 2000) {
    * 清除内容
    */
   const clear = () => {
+    cancelScheduledFlush()
+    pendingBuffer = ''
+    queuedLines = []
     lines.value = []
     error.value = null
     isComplete.value = false

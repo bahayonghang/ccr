@@ -26,4 +26,26 @@ describe('router smoke', () => {
 
     expect(statsRoute?.redirect).toBe('/usage')
   })
+
+  it('hides the global background on routes with page-level decorative backgrounds', () => {
+    const routeNames = [
+      'claude-code',
+      'gemini-cli',
+      'qwen',
+      'iflow',
+      'droid',
+      'sync',
+      'configs',
+      'usage',
+      'opencode',
+      'opencode-providers',
+      'opencode-mcp',
+      'opencode-plugins',
+    ]
+
+    for (const routeName of routeNames) {
+      const route = router.getRoutes().find((candidate) => candidate.name === routeName)
+      expect(route?.meta.hideGlobalBackground).toBe(true)
+    }
+  })
 })

@@ -7,12 +7,12 @@
     <!-- Variant: Default / Complex - Multi-layer mesh gradient -->
     <template v-if="effectiveVariant === 'default' || effectiveVariant === 'complex'">
       <!-- 1. Base Mesh Gradient (Subtle shifting colors) -->
-      <div class="absolute inset-0 opacity-30 dark:opacity-20">
-        <div class="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_0%,var(--color-accent-primary)_0%,transparent_50%)] animate-pulse-slow" />
-        <div class="absolute bottom-0 right-0 w-full h-full bg-[radial-gradient(circle_at_100%_100%,var(--color-accent-secondary)_0%,transparent_50%)] animate-pulse-slow delay-1000" />
+      <div class="absolute inset-0 opacity-24 dark:opacity-18">
+        <div class="absolute top-0 left-0 h-full w-full bg-[radial-gradient(circle_at_50%_0%,rgb(var(--color-accent-primary-rgb)/18%),transparent_46%)] animate-pulse-slow" />
+        <div class="absolute bottom-0 right-0 h-full w-full bg-[radial-gradient(circle_at_100%_100%,rgb(var(--color-accent-secondary-rgb)/14%),transparent_46%)] animate-pulse-slow delay-1000" />
         <div
           v-if="effectiveVariant === 'complex'"
-          class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full bg-[radial-gradient(circle_at_50%_50%,var(--color-info)_0%,transparent_60%)] opacity-50 animate-pulse-slower"
+          class="absolute top-1/2 left-1/2 h-full w-full -translate-x-1/2 -translate-y-1/2 bg-[radial-gradient(circle_at_50%_50%,rgb(var(--color-info-rgb)/10%),transparent_56%)] opacity-40 animate-pulse-slower"
         />
       </div>
 
@@ -29,7 +29,6 @@
         <!-- Aurora waves -->
         <div class="aurora-wave aurora-wave-1" />
         <div class="aurora-wave aurora-wave-2" />
-        <div class="aurora-wave aurora-wave-3" />
       </div>
       <div class="noise-overlay" />
     </template>
@@ -55,7 +54,6 @@
       <div class="absolute inset-0">
         <div class="orb orb-1" />
         <div class="orb orb-2" />
-        <div class="orb orb-3" />
       </div>
       <div class="absolute inset-0 cyber-grid opacity-30" />
       <div class="noise-overlay" />
@@ -63,8 +61,7 @@
 
     <!-- Variant: Minimal - Subtle single gradient -->
     <template v-else-if="effectiveVariant === 'minimal'">
-      <div class="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,rgb(var(--color-accent-primary-rgb)/12%),transparent)]" />
-      <div class="noise-overlay opacity-[0.02]" />
+      <div class="absolute inset-0 bg-[radial-gradient(ellipse_78%_46%_at_50%_-18%,rgb(var(--color-accent-primary-rgb)/10%),transparent)]" />
     </template>
   </div>
 </template>
@@ -243,13 +240,13 @@ const spotlightColorClass = computed(() => {
 .noise-overlay {
   position: absolute;
   inset: 0;
-  opacity: 0.03;
+  opacity: 0.02;
   mix-blend-mode: overlay;
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='1'/%3E%3C/svg%3E");
 }
 
 [data-theme="dark"] .noise-overlay {
-  opacity: 0.05;
+  opacity: 0.035;
 }
 
 /* ========== Aurora Waves ========== */
@@ -259,26 +256,20 @@ const spotlightColorClass = computed(() => {
   height: 60%;
   top: -20%;
   left: -50%;
-  filter: blur(40px);
-  animation: aurora-flow 8s ease-in-out infinite;
+  filter: blur(28px);
+  animation: aurora-flow 10s ease-in-out infinite;
   animation-play-state: var(--animation-state);
 }
 
 .aurora-wave-1 {
-  background: linear-gradient(180deg, rgb(var(--color-accent-primary-rgb) / 20%) 0%, transparent 100%);
+  background: linear-gradient(180deg, rgb(var(--color-accent-primary-rgb) / 16%) 0%, transparent 100%);
   animation-delay: 0s;
 }
 
 .aurora-wave-2 {
-  background: linear-gradient(180deg, rgb(var(--color-accent-secondary-rgb) / 15%) 0%, transparent 100%);
+  background: linear-gradient(180deg, rgb(var(--color-accent-secondary-rgb) / 12%) 0%, transparent 100%);
   animation-delay: 2s;
   top: -10%;
-}
-
-.aurora-wave-3 {
-  background: linear-gradient(180deg, rgb(var(--color-info-rgb) / 12%) 0%, transparent 100%);
-  animation-delay: 4s;
-  top: 0%;
 }
 
 /* ========== Mesh Gradient ========== */
@@ -303,7 +294,7 @@ const spotlightColorClass = computed(() => {
 .orb {
   position: absolute;
   border-radius: 50%;
-  filter: blur(50px);
+  filter: blur(34px);
 }
 
 .orb-1 {
@@ -311,8 +302,8 @@ const spotlightColorClass = computed(() => {
   left: -10%;
   width: 35vw;
   height: 35vw;
-  background: rgb(var(--color-accent-primary-rgb) / 15%);
-  animation: orb-float-1 20s ease-in-out infinite;
+  background: rgb(var(--color-accent-primary-rgb) / 12%);
+  animation: orb-float-1 24s ease-in-out infinite;
   animation-play-state: var(--animation-state);
 }
 
@@ -321,33 +312,18 @@ const spotlightColorClass = computed(() => {
   right: -10%;
   width: 30vw;
   height: 30vw;
-  background: rgb(var(--color-accent-secondary-rgb) / 12%);
-  animation: orb-float-2 25s ease-in-out infinite;
-  animation-play-state: var(--animation-state);
-}
-
-.orb-3 {
-  top: 40%;
-  left: 40%;
-  width: 20vw;
-  height: 20vw;
-  background: rgb(var(--color-info-rgb) / 10%);
-  animation: orb-float-3 30s linear infinite;
+  background: rgb(var(--color-accent-secondary-rgb) / 10%);
+  animation: orb-float-2 28s ease-in-out infinite;
   animation-play-state: var(--animation-state);
 }
 
 [data-theme="dark"] .orb-1 {
-  background: rgb(var(--color-accent-primary-rgb) / 20%);
+  background: rgb(var(--color-accent-primary-rgb) / 16%);
   mix-blend-mode: screen;
 }
 
 [data-theme="dark"] .orb-2 {
-  background: rgb(var(--color-accent-secondary-rgb) / 18%);
-  mix-blend-mode: screen;
-}
-
-[data-theme="dark"] .orb-3 {
-  background: rgb(var(--color-info-rgb) / 15%);
+  background: rgb(var(--color-accent-secondary-rgb) / 14%);
   mix-blend-mode: screen;
 }
 </style>

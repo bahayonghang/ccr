@@ -114,14 +114,14 @@
         class="terminal-lines font-mono text-sm"
       >
         <div
-          v-for="(line, index) in lines"
+          v-for="(_, index) in lines"
           :key="index"
           class="terminal-line hover:bg-white/5 transition-colors"
         >
           <span class="line-number text-[var(--color-text-muted)]/30 select-none w-8 text-right mr-3 text-xs">{{ index + 1 }}</span>
           <span
             class="line-content"
-            v-html="renderAnsi(line)"
+            v-html="renderedLines[index] ?? ''"
           />
         </div>
       </div>
@@ -152,8 +152,7 @@ import SIcon from '@/components/ui/SIcon.vue'
 import { ref, watch, nextTick, onMounted } from 'vue'
 import { useStream } from '@/composables/useStream'
 import { useUIStore } from '@/stores/ui'
-import { AnsiUp } from 'ansi_up'
-import { sanitizeTerminal } from '@/utils/sanitize'
+import { createAnsiRenderer } from '@/utils/ansiRenderer'
 interface Props {
   streamUrl?: string
   maxLines?: number
@@ -175,6 +174,9 @@ const emit = defineEmits<{
 
 const uiStore = useUIStore()
 const terminalRef = ref<HTMLElement | null>(null)
+const ansiRenderer = createAnsiRenderer()
+const renderedLines = ref<string[]>([])
+let previousLines: string[] = []
 
 // 使用流式 composable
 const { lines, isStreaming, isComplete, error, start, stop, clear } = useStream(
@@ -182,13 +184,26 @@ const { lines, isStreaming, isComplete, error, start, stop, clear } = useStream(
   props.maxLines
 )
 
-// Render ANSI to HTML
-// Create a new instance for each line to prevent state leakage between renders
-const renderAnsi = (text: string) => {
-  const ansiUp = new AnsiUp()
-  ansiUp.use_classes = true
-  const html = ansiUp.ansi_to_html(text)
-  return sanitizeTerminal(html)
+const syncRenderedLines = (nextLines: string[]) => {
+  const shouldRebuild = previousLines.length === 0
+    || nextLines.length < previousLines.length
+    || nextLines[0] !== previousLines[0]
+
+  if (shouldRebuild) {
+    renderedLines.value = nextLines.map((line) => ansiRenderer.renderLine(line))
+    previousLines = [...nextLines]
+    return
+  }
+
+  const appended = nextLines.slice(previousLines.length)
+  if (appended.length > 0) {
+    renderedLines.value = [
+      ...renderedLines.value,
+      ...appended.map((line) => ansiRenderer.renderLine(line)),
+    ]
+  }
+
+  previousLines = [...nextLines]
 }
 
 // 自动启动流式读取
@@ -212,6 +227,21 @@ watch(error, (err) => {
   }
 })
 
+watch(
+  () => lines.value.slice(),
+  (nextLines) => {
+    if (nextLines.length === 0) {
+      ansiRenderer.clear()
+      renderedLines.value = []
+      previousLines = []
+      return
+    }
+
+    syncRenderedLines(nextLines)
+  },
+  { immediate: true }
+)
+
 // 自动滚动到底部
 watch(
   () => lines.value.length,
@@ -231,6 +261,9 @@ const handleStop = () => {
 
 // 清空输出
 const handleClear = () => {
+  ansiRenderer.clear()
+  renderedLines.value = []
+  previousLines = []
   clear()
   uiStore.showInfo('Output cleared')
 }

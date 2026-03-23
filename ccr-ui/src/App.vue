@@ -9,12 +9,28 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, defineAsyncComponent } from 'vue'
 import { useRoute } from 'vue-router'
-import Titlebar from '@/components/layout/Titlebar.vue'
-import ToastContainer from '@/components/common/ToastContainer.vue'
-import AnimeBackground from '@/components/common/AnimeBackground.vue'
-import GlobalConfirmDialog from '@/components/common/GlobalConfirmDialog.vue'
+
+const Titlebar = defineAsyncComponent({
+  loader: () => import('@/components/layout/Titlebar.vue'),
+  suspensible: false,
+})
+
+const ToastContainer = defineAsyncComponent({
+  loader: () => import('@/components/common/ToastContainer.vue'),
+  suspensible: false,
+})
+
+const AnimeBackground = defineAsyncComponent({
+  loader: () => import('@/components/common/AnimeBackground.vue'),
+  suspensible: false,
+})
+
+const GlobalConfirmDialog = defineAsyncComponent({
+  loader: () => import('@/components/common/GlobalConfirmDialog.vue'),
+  suspensible: false,
+})
 
 const route = useRoute()
 

@@ -363,10 +363,10 @@
     --glass-border-strong: rgb(244 114 182 / 35%);
 
     /* --- 玻璃模糊 --- */
-    --glass-blur-sm: blur(8px);
-    --glass-blur-md: blur(12px);
-    --glass-blur-lg: blur(20px);
-    --glass-blur-xl: blur(24px) saturate(180%);
+    --glass-blur-sm: blur(6px);
+    --glass-blur-md: blur(10px);
+    --glass-blur-lg: blur(14px);
+    --glass-blur-xl: blur(18px) saturate(165%);
 
     /* --- 玻璃阴影 (亮色模式增强可见性) --- */
     --glass-shadow: 0 4px 24px rgb(244 114 182 / 12%);
@@ -375,7 +375,7 @@
 
     /* --- 液态玻璃效果 --- */
     --liquid-glass-bg: rgb(255 240 245 / 75%);
-    --liquid-glass-blur: blur(24px) saturate(180%);
+    --liquid-glass-blur: blur(18px) saturate(165%);
     --liquid-glass-border: rgb(244 114 182 / 20%);
     --liquid-glass-highlight: inset 0 1px 0 rgb(255 255 255 / 80%), inset 0 0 20px rgb(255 240 245 / 20%);
     --liquid-glass-shadow: 0 8px 32px rgb(244 114 182 / 12%), 0 2px 8px rgb(0 0 0 / 8%);
@@ -417,7 +417,7 @@
 
     /* --- 液态玻璃效果 --- */
     --liquid-glass-bg: rgb(38 18 50 / 36%);
-    --liquid-glass-blur: blur(24px) saturate(180%);
+    --liquid-glass-blur: blur(18px) saturate(165%);
     --liquid-glass-border: rgb(249 168 212 / 14%);
     --liquid-glass-highlight: inset 0 1px 0 rgb(255 255 255 / 12%), inset 0 0 20px rgb(249 168 212 / 6%);
     --liquid-glass-shadow: 0 8px 32px rgb(0 0 0 / 25%), 0 2px 8px rgb(0 0 0 / 15%);
