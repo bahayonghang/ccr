@@ -84,8 +84,8 @@
             <!-- Decorative bg icon -->
             <SIcon
               name="Settings"
-              size="w-32 h-32"
-              class="absolute -right-4 -bottom-4 text-accent-primary/5 rotate-12 group-hover:text-accent-primary/10 transition-colors"
+              size="w-24 h-24 lg:w-28 lg:h-28"
+              class="absolute bottom-4 right-4 text-accent-primary/5 rotate-12 group-hover:text-accent-primary/10 transition-colors"
             />
 
             <div class="w-12 h-12 rounded-xl bg-accent-primary/15 flex items-center justify-center shrink-0 border border-accent-primary/30 group-hover:scale-110 transition-transform duration-300">
@@ -124,8 +124,8 @@
             <!-- Decorative bg icon -->
             <SIcon
               name="Cloud"
-              size="w-32 h-32"
-              class="absolute -right-4 -bottom-4 text-accent-secondary/5 rotate-12 group-hover:text-accent-secondary/10 transition-colors"
+              size="w-24 h-24 lg:w-28 lg:h-28"
+              class="absolute bottom-4 right-4 text-accent-secondary/5 rotate-12 group-hover:text-accent-secondary/10 transition-colors"
             />
 
             <div class="w-12 h-12 rounded-xl bg-accent-secondary/15 flex items-center justify-center shrink-0 border border-accent-secondary/30 group-hover:scale-110 transition-transform duration-300">

@@ -1,5 +1,8 @@
 <template>
-  <div class="relative flex h-screen overflow-hidden font-sans text-text-primary selection:bg-accent-primary/30">
+  <div
+    class="layout-shell relative flex h-screen overflow-hidden font-sans text-text-primary selection:bg-accent-primary/30"
+    :class="{ 'layout-shell--theme-stage': shouldUseThemeStage }"
+  >
     <!-- Skip Link -->
     <a
       href="#main-content"
@@ -165,6 +168,7 @@
     <main
       id="main-content"
       class="relative flex min-w-0 flex-1 flex-col overflow-hidden content-main"
+      :class="{ 'content-main--theme-stage': shouldUseThemeStage }"
     >
       <!-- Top Bar -->
       <div class="topbar-glass sticky top-0 z-30 flex min-h-[92px] shrink-0 items-center justify-between border-b border-border-default/40 px-4 pt-7 sm:px-6 sm:pt-9">
@@ -244,6 +248,7 @@
       <!-- Scrollable Content -->
       <div
         class="flex-1 overflow-y-auto scroll-smooth p-4 sm:p-6 content-scroll-area"
+        :class="{ 'content-scroll-area--theme-stage': shouldUseThemeStage }"
       >
         <BackendStatusBanner class="mb-6" />
         <RouterView v-slot="{ Component }">
@@ -330,6 +335,8 @@ const currentSectionTitle = computed(() => {
   return key ? t(key) : t('nav.home')
 })
 
+const shouldUseThemeStage = computed(() => Boolean(route.meta.hideGlobalBackground))
+
 const hasSidebar = computed(() => !route.meta.hideSidebar)
 const {
   closeNavigationLabel,
@@ -354,6 +361,13 @@ const {
 </script>
 
 <style scoped>
+.layout-shell--theme-stage {
+  background:
+    radial-gradient(circle at top left, rgb(var(--color-accent-secondary-rgb) / 12%) 0%, transparent 24%),
+    radial-gradient(circle at bottom left, rgb(var(--color-accent-primary-rgb) / 10%) 0%, transparent 22%),
+    linear-gradient(180deg, rgb(var(--color-bg-base-rgb) / 100%), rgb(var(--color-bg-base-rgb) / 96%));
+}
+
 /* Sidebar Glass Effect - Unified Transparent Mode */
 :root[data-theme="dark"] .sidebar-glass,
 .dark .sidebar-glass,
@@ -382,6 +396,18 @@ const {
 .content-main,
 .content-scroll-area {
   backface-visibility: hidden;
+}
+
+.content-main--theme-stage {
+  background:
+    radial-gradient(circle at top right, rgb(var(--color-accent-primary-rgb) / 12%) 0%, transparent 28%),
+    radial-gradient(circle at top left, rgb(var(--color-accent-secondary-rgb) / 10%) 0%, transparent 24%),
+    linear-gradient(180deg, rgb(var(--color-bg-base-rgb) / 98%), rgb(var(--color-bg-base-rgb) / 94%));
+}
+
+.content-scroll-area--theme-stage {
+  background:
+    linear-gradient(180deg, rgb(var(--color-bg-base-rgb) / 10%), transparent 14rem);
 }
 
 /* Nav Item Styles */
