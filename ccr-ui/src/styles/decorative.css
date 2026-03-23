@@ -1,0 +1,7 @@
+/* ============================================
+   CCR-UI Decorative Style Entry
+   首帧之后按需加载，避免装饰样式阻塞关键渲染
+   ============================================ */
+
+@import './backgrounds.css';
+@import './neko-decorations.css';

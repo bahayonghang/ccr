@@ -1,0 +1,16 @@
+/* ============================================
+   CCR-UI Core Style Entry
+   首屏关键样式只保留基础布局、主题、常用工具类
+   ============================================ */
+
+@import './fonts.css';
+@import './tokens.css';
+@import './theme.css';
+@import './base.css';
+@import './animations.css';
+@import './utilities.css';
+@import './chart-colors.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;

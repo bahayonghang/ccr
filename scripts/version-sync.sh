@@ -32,6 +32,10 @@ update_ui_footer_version() {
   local file="$1"
   local tmp
   tmp="$(mktemp)"
+  if grep -Eq 'APP_VERSION_LABEL|APP_VERSION|packageJson\.version' "$file"; then
+    rm -f "$tmp"
+    return
+  fi
   if ! grep -q "CCR UI v" "$file"; then
     rm -f "$tmp"
     die "在 $file 中找不到 CCR UI 版本标记"
@@ -186,7 +190,13 @@ extract_ui_footer_version() {
   local target="$1"
   local ver
   ver="$(sed -nE 's/.*CCR UI v([0-9A-Za-z._-]+).*/\1/p' "$target" | head -n1)"
-  [[ -n "$ver" ]] || die "无法在 $target 中解析 CCR UI 版本号"
+  if [[ -z "$ver" ]]; then
+    if grep -Eq 'APP_VERSION_LABEL|APP_VERSION|packageJson\.version' "$target"; then
+      printf "%s" "$FRONTEND_VER"
+      return
+    fi
+    die "无法在 $target 中解析 CCR UI 版本号"
+  fi
   ver="$(printf "%s" "$ver" | tr -d '\r' | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
   printf "%s" "$ver"
 }

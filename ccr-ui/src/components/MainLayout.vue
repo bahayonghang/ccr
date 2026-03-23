@@ -279,7 +279,6 @@ import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { APP_NAME, APP_VERSION_LABEL } from '@/config/appMeta'
 import {
-  mainLayoutCachedViews,
   mainLayoutGroupTitleMap,
   mainLayoutNavSections,
   mainLayoutRouteTitleMap,
