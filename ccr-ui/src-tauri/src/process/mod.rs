@@ -47,9 +47,7 @@ pub fn tokio_command(program: impl AsRef<OsStr>) -> tokio::process::Command {
 }
 
 /// 为现有 Tokio 异步进程命令应用统一配置。
-pub fn configure_tokio_command(
-    cmd: &mut tokio::process::Command,
-) -> &mut tokio::process::Command {
+pub fn configure_tokio_command(cmd: &mut tokio::process::Command) -> &mut tokio::process::Command {
     apply_no_window_to_tokio(cmd);
     cmd
 }

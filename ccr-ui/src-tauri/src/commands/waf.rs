@@ -19,8 +19,7 @@ use tokio::sync::oneshot;
 
 /// 每个 provider_id 对应一个等待接收 cookie 的 oneshot sender。
 /// open_waf_login 注册后等待 waf_deliver_cookie 触发。
-static PENDING_COOKIES: Mutex<Option<HashMap<String, oneshot::Sender<String>>>> =
-    Mutex::new(None);
+static PENDING_COOKIES: Mutex<Option<HashMap<String, oneshot::Sender<String>>>> = Mutex::new(None);
 
 fn with_pending<F, R>(f: F) -> R
 where
@@ -36,8 +35,8 @@ where
 /// 在每次页面加载前注入，轮询 document.cookie 并通过 Tauri IPC 回传。
 /// provider_id 在构建时通过字符串插值写入脚本。
 fn build_cookie_script(provider_id: &str) -> String {
-    let provider_id_literal = serde_json::to_string(provider_id)
-        .unwrap_or_else(|_| "\"\"".to_string());
+    let provider_id_literal =
+        serde_json::to_string(provider_id).unwrap_or_else(|_| "\"\"".to_string());
     format!(
         r#"
 (function() {{

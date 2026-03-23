@@ -124,14 +124,18 @@ async fn load_checkin_job_accounts(
         let accounts = account_manager
             .load_all()
             .map_err(|e| format!("Failed to load accounts: {}", e))?;
-        let account_map: HashMap<String, _> =
-            accounts.into_iter().map(|account| (account.id.clone(), account)).collect();
+        let account_map: HashMap<String, _> = accounts
+            .into_iter()
+            .map(|account| (account.id.clone(), account))
+            .collect();
 
         let providers = provider_manager
             .load_all()
             .map_err(|e| format!("Failed to load providers: {}", e))?;
-        let provider_map: HashMap<String, String> =
-            providers.into_iter().map(|provider| (provider.id, provider.name)).collect();
+        let provider_map: HashMap<String, String> = providers
+            .into_iter()
+            .map(|provider| (provider.id, provider.name))
+            .collect();
 
         let mut metas = Vec::with_capacity(deduped_ids.len());
         let mut missing = Vec::new();
@@ -206,11 +210,14 @@ async fn execute_checkin_job_accounts(
             }
 
             let service = CheckinService::with_client(checkin_dir, http_client);
-            let result = match timeout(Duration::from_secs(90), service.checkin(&meta.account_id)).await {
-                Ok(Ok(result)) => result,
-                Ok(Err(error)) => build_failed_checkin_result(&meta, format!("Checkin failed: {}", error)),
-                Err(_) => build_failed_checkin_result_with_code(&meta, "签到超时", "timeout"),
-            };
+            let result =
+                match timeout(Duration::from_secs(90), service.checkin(&meta.account_id)).await {
+                    Ok(Ok(result)) => result,
+                    Ok(Err(error)) => {
+                        build_failed_checkin_result(&meta, format!("Checkin failed: {}", error))
+                    }
+                    Err(_) => build_failed_checkin_result_with_code(&meta, "签到超时", "timeout"),
+                };
 
             let state = app_handle.state::<AppState>();
             if let Some(snapshot) = state
@@ -244,7 +251,10 @@ async fn execute_checkin_job_accounts(
         if let Some(snapshot) = state
             .update_checkin_job(&job_id, |job| {
                 job.mark_pending_failed("签到任务异常终止");
-                if !matches!(job.status, CheckinJobStatus::Finished | CheckinJobStatus::TimedOut) {
+                if !matches!(
+                    job.status,
+                    CheckinJobStatus::Finished | CheckinJobStatus::TimedOut
+                ) {
                     job.mark_finished(CheckinJobStatus::Finished);
                 }
             })
@@ -274,7 +284,11 @@ async fn run_checkin_job(
 
     match timeout(Duration::from_secs(600), execution).await {
         Ok(Ok(())) => {
-            if let Some(snapshot) = app_handle.state::<AppState>().get_checkin_job(&job_id).await {
+            if let Some(snapshot) = app_handle
+                .state::<AppState>()
+                .get_checkin_job(&job_id)
+                .await
+            {
                 emit_checkin_job_snapshot(&app_handle, "checkin:job-finished", &snapshot).await;
             }
         }
@@ -284,7 +298,10 @@ async fn run_checkin_job(
                 .state::<AppState>()
                 .update_checkin_job(&job_id, |job| {
                     job.mark_pending_failed(&format!("签到任务失败: {}", error));
-                    if !matches!(job.status, CheckinJobStatus::Finished | CheckinJobStatus::TimedOut) {
+                    if !matches!(
+                        job.status,
+                        CheckinJobStatus::Finished | CheckinJobStatus::TimedOut
+                    ) {
                         job.mark_finished(CheckinJobStatus::Finished);
                     }
                 })

@@ -127,10 +127,8 @@ const EXPLICIT_PLATFORM_STRING_FIELDS: &[&str] = &[
     "model_reasoning_effort",
     "network_access",
 ];
-const EXPLICIT_PLATFORM_BOOL_FIELDS: &[&str] = &[
-    "requires_openai_auth",
-    "disable_response_storage",
-];
+const EXPLICIT_PLATFORM_BOOL_FIELDS: &[&str] =
+    &["requires_openai_auth", "disable_response_storage"];
 
 // ── 文件 I/O 辅助函数 ──
 
@@ -157,7 +155,8 @@ fn read_codex_custom_models(path: &PathBuf) -> Result<CodexCustomModelsFile, Str
     if !path.exists() {
         return Ok(CodexCustomModelsFile::default());
     }
-    let content = fs::read_to_string(path).map_err(|e| format!("读取 Codex 自定义模型失败: {e}"))?;
+    let content =
+        fs::read_to_string(path).map_err(|e| format!("读取 Codex 自定义模型失败: {e}"))?;
     toml::from_str(&content).map_err(|e| format!("解析 Codex 自定义模型失败: {e}"))
 }
 
@@ -165,9 +164,11 @@ fn write_codex_custom_models(path: &PathBuf, models: &CodexCustomModelsFile) -> 
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent).map_err(|e| format!("创建模型目录失败: {e}"))?;
     }
-    let content = toml::to_string_pretty(models).map_err(|e| format!("序列化 Codex 自定义模型失败: {e}"))?;
+    let content =
+        toml::to_string_pretty(models).map_err(|e| format!("序列化 Codex 自定义模型失败: {e}"))?;
     let parent = path.parent().ok_or("无效的文件路径")?;
-    let tmp = tempfile::NamedTempFile::new_in(parent).map_err(|e| format!("创建临时文件失败: {e}"))?;
+    let tmp =
+        tempfile::NamedTempFile::new_in(parent).map_err(|e| format!("创建临时文件失败: {e}"))?;
     fs::write(tmp.path(), &content).map_err(|e| format!("写入临时文件失败: {e}"))?;
     tmp.persist(path)
         .map_err(|e| format!("持久化模型文件失败: {e}"))?;
@@ -184,7 +185,10 @@ fn normalize_model_name(model: &str) -> Option<String> {
 }
 
 fn codex_builtin_models() -> Vec<String> {
-    CODEX_BUILTIN_MODELS.iter().map(|model| (*model).to_string()).collect()
+    CODEX_BUILTIN_MODELS
+        .iter()
+        .map(|model| (*model).to_string())
+        .collect()
 }
 
 fn merge_codex_models(custom_models: &[String]) -> Vec<String> {
@@ -201,7 +205,9 @@ fn sanitize_custom_models(models: Vec<String>) -> Vec<String> {
     let mut sanitized = Vec::new();
     for model in models {
         if let Some(normalized) = normalize_model_name(&model)
-            && !CODEX_BUILTIN_MODELS.iter().any(|builtin| *builtin == normalized)
+            && !CODEX_BUILTIN_MODELS
+                .iter()
+                .any(|builtin| *builtin == normalized)
             && !sanitized.iter().any(|item| item == &normalized)
         {
             sanitized.push(normalized);
@@ -439,7 +445,9 @@ fn parse_extra_field(
     }
 }
 
-fn parse_platform_data_update(obj: &Map<String, Value>) -> Result<Option<Map<String, Value>>, String> {
+fn parse_platform_data_update(
+    obj: &Map<String, Value>,
+) -> Result<Option<Map<String, Value>>, String> {
     let has_extra = obj.contains_key("extra");
     let has_platform_data = obj.contains_key("platform_data");
     let has_explicit_platform_fields = EXPLICIT_PLATFORM_STRING_FIELDS
@@ -513,7 +521,10 @@ fn merge_explicit_platform_fields(
     Ok(())
 }
 
-fn apply_profile_config(profile: &mut ProfileConfig, obj: &Map<String, Value>) -> Result<(), String> {
+fn apply_profile_config(
+    profile: &mut ProfileConfig,
+    obj: &Map<String, Value>,
+) -> Result<(), String> {
     if let Some(raw) = obj.get("description") {
         profile.description = parse_string_field(raw, "description")?;
     }
@@ -589,8 +600,8 @@ fn profile_to_json(
 ) -> Value {
     let is_current = current_profile == Some(name.as_str());
     let auth_mode = CodexPlatform::profile_auth_mode(&profile);
-    let openai_login_method = CodexPlatform::profile_openai_login_method(&profile)
-        .map(openai_login_method_to_string);
+    let openai_login_method =
+        CodexPlatform::profile_openai_login_method(&profile).map(openai_login_method_to_string);
     let mut extra = profile.platform_data.clone();
     for field_name in EXPLICIT_PLATFORM_STRING_FIELDS
         .iter()
@@ -683,13 +694,15 @@ pub async fn codex_list_models() -> Result<Value, String> {
 #[tauri::command]
 pub async fn codex_add_custom_model(model: String) -> Result<Value, String> {
     tokio::task::spawn_blocking(move || {
-        let normalized = normalize_model_name(&model)
-            .ok_or_else(|| "模型名称不能为空".to_string())?;
+        let normalized =
+            normalize_model_name(&model).ok_or_else(|| "模型名称不能为空".to_string())?;
         let path = codex_custom_models_path()?;
         let mut file = read_codex_custom_models(&path)?;
         let mut custom_models = sanitize_custom_models(std::mem::take(&mut file.models));
         if !custom_models.iter().any(|item| item == &normalized)
-            && !CODEX_BUILTIN_MODELS.iter().any(|builtin| *builtin == normalized)
+            && !CODEX_BUILTIN_MODELS
+                .iter()
+                .any(|builtin| *builtin == normalized)
         {
             custom_models.push(normalized.clone());
         }
@@ -1181,7 +1194,12 @@ pub async fn codex_save_auth(
             .transpose()?;
 
         service
-            .save_current(&name, description, parsed_expires_at, force.unwrap_or(false))
+            .save_current(
+                &name,
+                description,
+                parsed_expires_at,
+                force.unwrap_or(false),
+            )
             .map_err(|e| format!("{e}"))?;
 
         Ok(json!({ "success": true, "message": format!("Codex Auth 账号 '{name}' 已成功保存") }))
@@ -1452,8 +1470,16 @@ pub async fn codex_get_dashboard_summary() -> Result<Value, String> {
 
         let usage_payload = compute_codex_usage_payload()?;
         let agents_count = count_codex_agents(&codex_agents_dir()?)?;
-        let mcp_servers_total = config.mcp_servers.as_ref().map(|servers| servers.len()).unwrap_or(0);
-        let config_profiles_total = config.profiles.as_ref().map(|items| items.len()).unwrap_or(0);
+        let mcp_servers_total = config
+            .mcp_servers
+            .as_ref()
+            .map(|servers| servers.len())
+            .unwrap_or(0);
+        let config_profiles_total = config
+            .profiles
+            .as_ref()
+            .map(|items| items.len())
+            .unwrap_or(0);
 
         Ok(json!({
             "auth": {
@@ -1580,11 +1606,14 @@ mod tests {
             .platform_data
             .insert("provider_model".into(), json!("gpt-5"));
 
-        patch_profile_with_config(&mut profile, &json!({
-            "extra": {
-                "provider_model": "gpt-4.1"
-            }
-        }))
+        patch_profile_with_config(
+            &mut profile,
+            &json!({
+                "extra": {
+                    "provider_model": "gpt-4.1"
+                }
+            }),
+        )
         .unwrap();
 
         assert_eq!(profile.platform_data.len(), 1);
@@ -1602,9 +1631,12 @@ mod tests {
             .platform_data
             .insert("provider_model".into(), json!("gpt-5"));
 
-        patch_profile_with_config(&mut profile, &json!({
-            "extra": {}
-        }))
+        patch_profile_with_config(
+            &mut profile,
+            &json!({
+                "extra": {}
+            }),
+        )
         .unwrap();
 
         assert!(profile.platform_data.is_empty());
@@ -1617,9 +1649,12 @@ mod tests {
             .platform_data
             .insert("provider_model".into(), json!("gpt-5"));
 
-        patch_profile_with_config(&mut profile, &json!({
-            "extra": null
-        }))
+        patch_profile_with_config(
+            &mut profile,
+            &json!({
+                "extra": null
+            }),
+        )
         .unwrap();
 
         assert!(profile.platform_data.is_empty());
@@ -1629,16 +1664,19 @@ mod tests {
     fn patch_profile_with_config_prefers_platform_data_over_extra() {
         let mut profile = ProfileConfig::new();
 
-        patch_profile_with_config(&mut profile, &json!({
-            "extra": {
-                "provider_model": "gpt-4.1",
-                "wire_api": "responses"
-            },
-            "platform_data": {
-                "provider_model": "gpt-5",
-                "model_reasoning_effort": "high"
-            }
-        }))
+        patch_profile_with_config(
+            &mut profile,
+            &json!({
+                "extra": {
+                    "provider_model": "gpt-4.1",
+                    "wire_api": "responses"
+                },
+                "platform_data": {
+                    "provider_model": "gpt-5",
+                    "model_reasoning_effort": "high"
+                }
+            }),
+        )
         .unwrap();
 
         assert_eq!(
@@ -1696,10 +1734,15 @@ model = "legacy-model"
                 .ok_or_else(|| "profiles 字段缺失".to_string())?;
 
             assert_eq!(profiles.len(), 1);
-            assert_eq!(profiles[0].get("name").and_then(Value::as_str), Some("real"));
-            assert!(profiles.iter().all(|entry| {
-                entry.get("name").and_then(Value::as_str) != Some("legacy")
-            }));
+            assert_eq!(
+                profiles[0].get("name").and_then(Value::as_str),
+                Some("real")
+            );
+            assert!(
+                profiles
+                    .iter()
+                    .all(|entry| { entry.get("name").and_then(Value::as_str) != Some("legacy") })
+            );
 
             Ok::<(), String>(())
         }

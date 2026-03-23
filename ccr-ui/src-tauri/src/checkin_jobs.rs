@@ -99,12 +99,19 @@ impl CheckinJobSnapshot {
     }
 
     pub fn mark_processing(&mut self, account_id: &str) {
-        if matches!(self.status, CheckinJobStatus::Finished | CheckinJobStatus::TimedOut) {
+        if matches!(
+            self.status,
+            CheckinJobStatus::Finished | CheckinJobStatus::TimedOut
+        ) {
             return;
         }
 
         self.status = CheckinJobStatus::Running;
-        if let Some(log) = self.logs.iter_mut().find(|entry| entry.account_id == account_id) {
+        if let Some(log) = self
+            .logs
+            .iter_mut()
+            .find(|entry| entry.account_id == account_id)
+        {
             log.status = CheckinJobLogStatus::Processing;
             log.timestamp = Utc::now().to_rfc3339();
             self.current_account_name = log.account_name.clone();
@@ -116,7 +123,11 @@ impl CheckinJobSnapshot {
             return;
         }
 
-        if self.results.iter().any(|existing| existing.account_id == result.account_id) {
+        if self
+            .results
+            .iter()
+            .any(|existing| existing.account_id == result.account_id)
+        {
             return;
         }
 
@@ -171,7 +182,10 @@ impl CheckinJobSnapshot {
         let mut failure_results = Vec::new();
 
         for log in &mut self.logs {
-            if matches!(log.status, CheckinJobLogStatus::Pending | CheckinJobLogStatus::Processing) {
+            if matches!(
+                log.status,
+                CheckinJobLogStatus::Pending | CheckinJobLogStatus::Processing
+            ) {
                 log.status = CheckinJobLogStatus::Failed;
                 log.message = Some(message.to_string());
                 log.error_code = Some("task_error".to_string());
@@ -206,7 +220,10 @@ impl CheckinJobSnapshot {
         let mut timeout_results = Vec::new();
 
         for log in &mut self.logs {
-            if matches!(log.status, CheckinJobLogStatus::Pending | CheckinJobLogStatus::Processing) {
+            if matches!(
+                log.status,
+                CheckinJobLogStatus::Pending | CheckinJobLogStatus::Processing
+            ) {
                 log.status = CheckinJobLogStatus::Failed;
                 log.message = Some("签到超时".to_string());
                 log.error_code = Some("timeout".to_string());

@@ -722,7 +722,8 @@ pub async fn get_home_usage_overview_v2(
                         index_stats.sessions_added + index_stats.sessions_updated;
                 }
                 has_any_sessions = !list_home_sessions(&indexer, None, None, Some(1)).is_empty();
-                sessions = list_home_sessions(&indexer, Some(session_start), Some(session_end), None);
+                sessions =
+                    list_home_sessions(&indexer, Some(session_start), Some(session_end), None);
             }
         }
 

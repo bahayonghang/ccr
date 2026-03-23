@@ -18,9 +18,16 @@ pub fn should_persist(level: MonitoringLevel, event_type: &str) -> bool {
         )
 }
 
-pub async fn record_monitoring_entry(app_handle: &AppHandle, entry: MonitoringEntry, persist: bool) {
+pub async fn record_monitoring_entry(
+    app_handle: &AppHandle,
+    entry: MonitoringEntry,
+    persist: bool,
+) {
     let state = app_handle.state::<crate::state::AppState>();
-    state.event_log.push(AppEvent::Monitoring(entry.clone())).await;
+    state
+        .event_log
+        .push(AppEvent::Monitoring(entry.clone()))
+        .await;
 
     if persist {
         state.monitoring_logs.append_entry(&entry).await;
@@ -54,7 +61,10 @@ pub fn environment_changed_entry(payload: &EnvironmentEventPayload) -> Monitorin
         "environment",
         "environment.changed",
         payload.env_type.clone(),
-        format!("Environment switched to {} ({})", payload.env_id, payload.status),
+        format!(
+            "Environment switched to {} ({})",
+            payload.env_id, payload.status
+        ),
     )
     .with_fields(serde_json::json!({
         "envId": payload.env_id,
@@ -69,7 +79,10 @@ pub fn usage_import_entry(payload: &UsageImportPayload) -> MonitoringEntry {
         "usage",
         "usage.import.completed",
         payload.platform.clone(),
-        format!("Imported {} usage records for {}", payload.imported_count, payload.platform),
+        format!(
+            "Imported {} usage records for {}",
+            payload.imported_count, payload.platform
+        ),
     )
     .with_fields(serde_json::json!({
         "platform": payload.platform,
@@ -124,7 +137,12 @@ pub fn checkin_job_entry(event: &str, snapshot: &CheckinJobSnapshot) -> Monitori
         .iter()
         .rev()
         .find_map(|entry| entry.message.clone())
-        .unwrap_or_else(|| format!("Processed {}/{} accounts", snapshot.completed, snapshot.total));
+        .unwrap_or_else(|| {
+            format!(
+                "Processed {}/{} accounts",
+                snapshot.completed, snapshot.total
+            )
+        });
 
     MonitoringEntry::new(level, "checkin", event_type, "checkin", latest_message)
         .with_correlation_id(snapshot.job_id.clone())
