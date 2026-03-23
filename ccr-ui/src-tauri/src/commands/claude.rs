@@ -19,7 +19,7 @@ use ccr::platforms::ClaudePlatform;
 use ccr::{BudgetManager, CostTracker, PlatformConfig, ProfileConfig};
 
 use crate::platform::local::LocalEnvironment;
-use crate::platform::{CliStatus, EnvError, EnvironmentType, ExecutionEnvironment, PlatformInfo};
+use crate::platform::{EnvError, ExecutionEnvironment};
 use crate::state::AppState;
 
 // ── 内联 ClaudeConfigManager（读写 ~/.claude.json 的 MCP 服务器）──
@@ -654,7 +654,7 @@ pub async fn claude_update_statusline(
 }
 
 // ═══════════════════════════════════════════════════════════
-// ── Hooks（~/.claude/settings.json .hooks[]）──
+// ── Hooks（~/.claude/settings.json .hooks.{event}[].hooks[]）──
 // ═══════════════════════════════════════════════════════════
 
 #[tauri::command]
@@ -665,7 +665,7 @@ pub async fn claude_list_hooks(state: State<'_, AppState>) -> Result<Value, Stri
     Ok(serde_json::json!({ "hooks": hooks }))
 }
 
-/// 整体替换 hooks 列表（hooks 是 [{event, command, enabled, description}] 数组）。
+/// 整体替换 hooks 配置（官方 grouped hooks 对象）。
 #[tauri::command]
 pub async fn claude_update_hooks(
     state: State<'_, AppState>,
@@ -673,7 +673,7 @@ pub async fn claude_update_hooks(
 ) -> Result<Value, String> {
     let mut settings = load_settings(state.inner()).await?;
 
-    let new_hooks: Vec<ccr_types::Hook> =
+    let new_hooks: ccr_types::HooksConfig =
         serde_json::from_value(hooks).map_err(|e| format!("Invalid hooks payload: {}", e))?;
     settings.hooks = new_hooks;
 
@@ -1255,6 +1255,8 @@ mod tests {
     use super::*;
     use std::sync::Mutex;
 
+    use crate::platform::{CliStatus, EnvironmentType, PlatformInfo};
+
     #[derive(Clone)]
     enum MockReadBehavior {
         Content(String),
@@ -1485,6 +1487,18 @@ mod tests {
                 "env": {
                     "ANTHROPIC_BASE_URL": "https://example.com"
                 },
+                "hooks": {
+                    "UserPromptSubmit": [
+                        {
+                            "hooks": [
+                                {
+                                    "type": "command",
+                                    "command": "echo before"
+                                }
+                            ]
+                        }
+                    ]
+                },
                 "enabledPlugins": ["alpha"],
                 "statusLine": {
                     "type": "command",
@@ -1524,7 +1538,74 @@ mod tests {
                 "command": "echo before"
             })
         );
+        assert_eq!(
+            written["hooks"],
+            json!({
+                "UserPromptSubmit": [
+                    {
+                        "hooks": [
+                            {
+                                "type": "command",
+                                "command": "echo before"
+                            }
+                        ]
+                    }
+                ]
+            })
+        );
         assert_eq!(written["env"]["ANTHROPIC_AUTH_TOKEN"], json!("sk-test"));
         assert_eq!(written["agents"][0]["name"], json!("reviewer"));
+    }
+
+    #[tokio::test]
+    async fn claude_update_settings_accepts_official_grouped_hooks() {
+        let env = Arc::new(MockEnvironment::with_content(
+            json!({
+                "env": {
+                    "ANTHROPIC_BASE_URL": "https://example.com",
+                    "ANTHROPIC_AUTH_TOKEN": "sk-test"
+                },
+                "hooks": {
+                    "PreToolUse": [
+                        {
+                            "matcher": "Bash",
+                            "hooks": [
+                                {
+                                    "type": "command",
+                                    "command": "./security-check.sh"
+                                }
+                            ]
+                        }
+                    ]
+                }
+            })
+            .to_string(),
+        ));
+
+        let raw = read_claude_settings_from_env(env.clone()).await.unwrap();
+        let mut current = raw;
+        merge_settings_patch(
+            &mut current,
+            json!({
+                "env": {
+                    "ANTHROPIC_BASE_URL": "https://example.com",
+                    "ANTHROPIC_AUTH_TOKEN": "sk-updated"
+                }
+            }),
+        )
+        .unwrap();
+
+        let validated: ccr_types::ClaudeSettings = serde_json::from_value(current).unwrap();
+        let serialized = serde_json::to_value(validated).unwrap();
+        write_claude_settings_to_env(env.clone(), &serialized)
+            .await
+            .unwrap();
+
+        let written = env.last_written_json().unwrap();
+        assert_eq!(written["env"]["ANTHROPIC_AUTH_TOKEN"], json!("sk-updated"));
+        assert_eq!(
+            written["hooks"]["PreToolUse"][0]["hooks"][0]["command"],
+            json!("./security-check.sh")
+        );
     }
 }

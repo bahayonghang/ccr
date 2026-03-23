@@ -165,4 +165,63 @@ describe('ClaudeCodeSettingsView smoke', () => {
       unmount()
     }
   })
+
+  it('submits env updates even when settings contain official object hooks', async () => {
+    apiMocks.getClaudeSettings.mockResolvedValue({
+      model: 'opus',
+      env: {
+        ANTHROPIC_BASE_URL: 'https://example.com',
+      },
+      hooks: {
+        PreToolUse: [
+          {
+            matcher: 'Bash',
+            hooks: [
+              {
+                type: 'command',
+                command: './security-check.sh',
+              },
+            ],
+          },
+        ],
+      },
+    })
+    apiMocks.updateClaudeSettings.mockResolvedValue({})
+
+    const { el, unmount } = await mountView()
+
+    try {
+      const envTab = Array.from(el.querySelectorAll('button')).find(
+        button => button.textContent?.includes('Environment Variables'),
+      )
+      envTab?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      await nextTick()
+
+      const valueInput = el.querySelector<HTMLInputElement>('input[placeholder="value"]')
+      expect(valueInput).not.toBeNull()
+
+      valueInput!.value = 'https://updated.example.com'
+      valueInput!.dispatchEvent(new Event('input', { bubbles: true }))
+      await nextTick()
+
+      const saveButton = Array.from(el.querySelectorAll('button')).find(
+        button => button.textContent?.includes('Save'),
+      )
+      saveButton?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      await Promise.resolve()
+      await nextTick()
+
+      expect(apiMocks.updateClaudeSettings).toHaveBeenCalledTimes(1)
+      expect(apiMocks.updateClaudeSettings).toHaveBeenCalledWith(
+        expect.objectContaining({
+          model: 'opus',
+          env: {
+            ANTHROPIC_BASE_URL: 'https://updated.example.com',
+          },
+        }),
+      )
+    } finally {
+      unmount()
+    }
+  })
 })

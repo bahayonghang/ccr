@@ -11,14 +11,15 @@
 //! - Use `#[serde(default)]` for backward compatibility
 //! - Use `#[serde(skip_serializing_if = "...")]` for clean JSON output
 //! - `ClaudeSettings.output_style` serializes as `outputStyle` and accepts legacy `output_style`
-//! - `hooks` must be an array; invalid types return deserialization errors
+//! - `hooks` serializes as the official grouped object format and accepts legacy arrays on input
 
 mod claude_settings;
 mod codex_auth;
 mod monitoring;
 
 pub use claude_settings::{
-    Agent, ClaudeSettings, Hook, McpServer, Plugin, SlashCommand, default_true, is_false,
+    Agent, ClaudeSettings, Hook, HookMatcherGroup, HooksConfig, McpServer, Plugin, SlashCommand,
+    default_true, is_false,
 };
 pub use codex_auth::{LoginState, TokenFreshness};
 pub use monitoring::{FrontendLogInput, MonitoringEntry, MonitoringFeedQuery, MonitoringLevel};

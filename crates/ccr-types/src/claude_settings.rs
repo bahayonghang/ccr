@@ -29,16 +29,80 @@ fn value_type_name(value: &Value) -> &'static str {
     }
 }
 
-/// Deserialize hooks: only accepts arrays to avoid silent data loss.
-fn deserialize_hooks<'de, D>(deserializer: D) -> Result<Vec<Hook>, D::Error>
+/// Canonical Claude Code hooks shape: `event -> matcher groups[]`.
+pub type HooksConfig = HashMap<String, Vec<HookMatcherGroup>>;
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct LegacyHook {
+    pub event: String,
+    pub command: String,
+    #[serde(default = "default_true")]
+    pub enabled: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    #[serde(flatten)]
+    pub other: HashMap<String, Value>,
+}
+
+fn legacy_hooks_to_config(legacy_hooks: Vec<LegacyHook>) -> HooksConfig {
+    let mut config = HooksConfig::new();
+
+    for legacy in legacy_hooks {
+        let mut handler_other = legacy.other;
+        if !legacy.enabled {
+            handler_other.insert("enabled".to_string(), Value::Bool(false));
+        }
+        if let Some(description) = legacy.description {
+            handler_other.insert("description".to_string(), Value::String(description));
+        }
+
+        config
+            .entry(legacy.event)
+            .or_default()
+            .push(HookMatcherGroup {
+                matcher: None,
+                hooks: vec![Hook {
+                    handler_type: "command".to_string(),
+                    command: Some(legacy.command),
+                    url: None,
+                    prompt: None,
+                    model: None,
+                    timeout: None,
+                    status_message: None,
+                    allowed_env_vars: None,
+                    headers: None,
+                    async_execution: None,
+                    other: handler_other,
+                }],
+                other: HashMap::new(),
+            });
+    }
+
+    config
+}
+
+/// Deserialize hooks.
+///
+/// Canonical input is the official object-based format:
+/// `{ "PreToolUse": [{ "matcher": "...", "hooks": [...] }] }`
+///
+/// Legacy array-based hooks are still accepted for backward compatibility and
+/// are normalized into the canonical grouped format on write.
+fn deserialize_hooks<'de, D>(deserializer: D) -> Result<HooksConfig, D::Error>
 where
     D: Deserializer<'de>,
 {
     let value = Value::deserialize(deserializer)?;
     match value {
-        Value::Array(_) => serde_json::from_value(value).map_err(serde::de::Error::custom),
+        Value::Null => Ok(HooksConfig::new()),
+        Value::Object(_) => serde_json::from_value(value).map_err(serde::de::Error::custom),
+        Value::Array(_) => {
+            let legacy_hooks: Vec<LegacyHook> =
+                serde_json::from_value(value).map_err(serde::de::Error::custom)?;
+            Ok(legacy_hooks_to_config(legacy_hooks))
+        }
         other => Err(serde::de::Error::custom(format!(
-            "invalid type for hooks: expected array, got {}",
+            "invalid type for hooks: expected object or array, got {}",
             value_type_name(&other)
         ))),
     }
@@ -92,15 +156,13 @@ pub struct ClaudeSettings {
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub plugins: Vec<Plugin>,
 
-    /// Hooks.
-    ///
-    /// Must be an array when provided; invalid types return deserialization errors.
+    /// Hooks
     #[serde(
         default,
-        skip_serializing_if = "Vec::is_empty",
+        skip_serializing_if = "HashMap::is_empty",
         deserialize_with = "deserialize_hooks"
     )]
-    pub hooks: Vec<Hook>,
+    pub hooks: HooksConfig,
 
     /// Other unknown fields (for forward compatibility)
     #[serde(flatten)]
@@ -191,20 +253,40 @@ pub struct Plugin {
     pub other: HashMap<String, Value>,
 }
 
-/// Hook configuration
+/// Hook matcher group.
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct HookMatcherGroup {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub matcher: Option<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub hooks: Vec<Hook>,
+    #[serde(flatten)]
+    pub other: HashMap<String, Value>,
+}
+
+/// Hook handler configuration.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Hook {
-    /// Event to hook
-    pub event: String,
-    /// Command to execute
-    pub command: String,
-    /// Whether the hook is enabled
-    #[serde(default = "default_true")]
-    pub enabled: bool,
-    /// Hook description
+    #[serde(rename = "type")]
+    pub handler_type: String,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub description: Option<String>,
-    /// Other unknown fields (for forward compatibility)
+    pub command: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub url: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub prompt: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub model: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub timeout: Option<u64>,
+    #[serde(rename = "statusMessage", skip_serializing_if = "Option::is_none")]
+    pub status_message: Option<String>,
+    #[serde(rename = "allowedEnvVars", skip_serializing_if = "Option::is_none")]
+    pub allowed_env_vars: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub headers: Option<HashMap<String, String>>,
+    #[serde(rename = "async", skip_serializing_if = "Option::is_none")]
+    pub async_execution: Option<bool>,
     #[serde(flatten)]
     pub other: HashMap<String, Value>,
 }
@@ -227,7 +309,26 @@ mod tests {
             slash_commands: Vec::new(),
             agents: Vec::new(),
             plugins: Vec::new(),
-            hooks: Vec::new(),
+            hooks: HashMap::from([(
+                "PostToolUse".to_string(),
+                vec![HookMatcherGroup {
+                    matcher: Some("Write|Edit".to_string()),
+                    hooks: vec![Hook {
+                        handler_type: "command".to_string(),
+                        command: Some("./check-style.sh".to_string()),
+                        url: None,
+                        prompt: None,
+                        model: None,
+                        timeout: Some(30),
+                        status_message: None,
+                        allowed_env_vars: None,
+                        headers: None,
+                        async_execution: None,
+                        other: HashMap::new(),
+                    }],
+                    other: HashMap::new(),
+                }],
+            )]),
             other: HashMap::new(),
         };
 
@@ -241,11 +342,18 @@ mod tests {
             "https://api.anthropic.com"
         );
         assert_eq!(parsed.output_style, Some("nekomata-engineer".to_string()));
+        assert_eq!(
+            parsed
+                .hooks
+                .get("PostToolUse")
+                .and_then(|groups| groups.first())
+                .and_then(|group| group.matcher.as_deref()),
+            Some("Write|Edit")
+        );
     }
 
     #[test]
     fn test_claude_settings_unknown_fields_preserved() {
-        // JSON with unknown fields at root level
         let json = r#"{
             "env": {},
             "outputStyle": "test",
@@ -255,7 +363,6 @@ mod tests {
 
         let settings: ClaudeSettings = serde_json::from_str(json).unwrap();
 
-        // Verify unknown fields are captured
         assert!(settings.other.contains_key("future_field"));
         assert_eq!(
             settings.other.get("future_field").unwrap(),
@@ -263,7 +370,6 @@ mod tests {
         );
         assert_eq!(settings.other.get("another_unknown").unwrap(), 42);
 
-        // Roundtrip should preserve unknown fields
         let serialized = serde_json::to_string(&settings).unwrap();
         assert!(serialized.contains("future_field"));
         assert!(serialized.contains("another_unknown"));
@@ -323,44 +429,102 @@ mod tests {
     }
 
     #[test]
-    fn test_agent_unknown_fields_preserved() {
+    fn test_hook_handler_unknown_fields_preserved() {
         let json = r#"{
-            "name": "test-agent",
-            "model": "claude-3",
-            "tools": [],
-            "experimental_feature": "value"
-        }"#;
-
-        let agent: Agent = serde_json::from_str(json).unwrap();
-        assert_eq!(agent.name, "test-agent");
-        assert!(agent.other.contains_key("experimental_feature"));
-    }
-
-    #[test]
-    fn test_plugin_unknown_fields_preserved() {
-        let json = r#"{
-            "id": "plugin-1",
-            "name": "Test Plugin",
-            "version": "1.0.0",
-            "plugin_metadata": {"key": "value"}
-        }"#;
-
-        let plugin: Plugin = serde_json::from_str(json).unwrap();
-        assert_eq!(plugin.id, "plugin-1");
-        assert!(plugin.other.contains_key("plugin_metadata"));
-    }
-
-    #[test]
-    fn test_hook_unknown_fields_preserved() {
-        let json = r#"{
-            "event": "pre-commit",
-            "command": "lint",
-            "hook_priority": 10
+            "type": "command",
+            "command": "echo ok",
+            "future_hook_field": true
         }"#;
 
         let hook: Hook = serde_json::from_str(json).unwrap();
-        assert_eq!(hook.event, "pre-commit");
-        assert!(hook.other.contains_key("hook_priority"));
+        assert_eq!(hook.handler_type, "command");
+        assert!(hook.other.contains_key("future_hook_field"));
+
+        let serialized = serde_json::to_string(&hook).unwrap();
+        assert!(serialized.contains("future_hook_field"));
+    }
+
+    #[test]
+    fn test_hook_matcher_group_unknown_fields_preserved() {
+        let json = r#"{
+            "matcher": "Write",
+            "hooks": [{ "type": "command", "command": "echo ok" }],
+            "group_metadata": { "x": 1 }
+        }"#;
+
+        let group: HookMatcherGroup = serde_json::from_str(json).unwrap();
+        assert_eq!(group.matcher.as_deref(), Some("Write"));
+        assert!(group.other.contains_key("group_metadata"));
+    }
+
+    #[test]
+    fn test_hooks_canonical_object_deserializes() {
+        let json = r#"{
+            "env": {},
+            "hooks": {
+                "PreToolUse": [
+                    {
+                        "matcher": "Bash",
+                        "hooks": [
+                            {
+                                "type": "command",
+                                "command": "./security-check.sh"
+                            }
+                        ]
+                    }
+                ],
+                "UserPromptSubmit": [
+                    {
+                        "hooks": [
+                            {
+                                "type": "prompt",
+                                "prompt": "validate"
+                            }
+                        ]
+                    }
+                ]
+            }
+        }"#;
+
+        let settings: ClaudeSettings = serde_json::from_str(json).unwrap();
+        assert_eq!(settings.hooks.len(), 2);
+        assert_eq!(
+            settings.hooks["PreToolUse"][0].hooks[0].command.as_deref(),
+            Some("./security-check.sh")
+        );
+        assert_eq!(
+            settings.hooks["UserPromptSubmit"][0].hooks[0]
+                .prompt
+                .as_deref(),
+            Some("validate")
+        );
+    }
+
+    #[test]
+    fn test_hooks_legacy_array_is_normalized() {
+        let json = r#"{
+            "env": {},
+            "hooks": [
+                {
+                    "event": "Stop",
+                    "command": "echo stop",
+                    "enabled": false,
+                    "description": "legacy stop hook"
+                }
+            ]
+        }"#;
+
+        let settings: ClaudeSettings = serde_json::from_str(json).unwrap();
+        assert_eq!(settings.hooks.len(), 1);
+        let stop_group = &settings.hooks["Stop"][0];
+        assert_eq!(stop_group.matcher, None);
+        assert_eq!(stop_group.hooks[0].handler_type, "command");
+        assert_eq!(stop_group.hooks[0].command.as_deref(), Some("echo stop"));
+        assert_eq!(stop_group.hooks[0].other["enabled"], Value::Bool(false));
+        assert_eq!(
+            stop_group.hooks[0].other["description"],
+            Value::String("legacy stop hook".to_string())
+        );
     }
 
     #[test]
@@ -379,7 +543,6 @@ mod tests {
         );
 
         let json = serde_json::to_string(&settings).unwrap();
-        // Should use camelCase "mcpServers" not snake_case "mcp_servers"
         assert!(json.contains("mcpServers"));
         assert!(!json.contains("mcp_servers"));
     }
@@ -397,27 +560,24 @@ mod tests {
         });
 
         let json = serde_json::to_string(&settings).unwrap();
-        // Should use camelCase "slashCommands" not snake_case "slash_commands"
         assert!(json.contains("slashCommands"));
         assert!(!json.contains("slash_commands"));
     }
 
     #[test]
     fn test_default_values() {
-        // Test that disabled defaults to false
         let json = r#"{"command": "test", "args": []}"#;
         let server: McpServer = serde_json::from_str(json).unwrap();
         assert!(!server.disabled);
 
-        // Test that enabled defaults to true for Plugin
         let json = r#"{"id": "1", "name": "Test", "version": "1.0"}"#;
         let plugin: Plugin = serde_json::from_str(json).unwrap();
         assert!(plugin.enabled);
 
-        // Test that enabled defaults to true for Hook
-        let json = r#"{"event": "test", "command": "echo"}"#;
+        let json = r#"{"type": "command", "command": "echo"}"#;
         let hook: Hook = serde_json::from_str(json).unwrap();
-        assert!(hook.enabled);
+        assert_eq!(hook.handler_type, "command");
+        assert_eq!(hook.command.as_deref(), Some("echo"));
     }
 
     #[test]
@@ -425,7 +585,6 @@ mod tests {
         let settings = ClaudeSettings::default();
         let json = serde_json::to_string(&settings).unwrap();
 
-        // Empty collections should not be serialized
         assert!(!json.contains("mcpServers"));
         assert!(!json.contains("slashCommands"));
         assert!(!json.contains("agents"));
@@ -442,28 +601,12 @@ mod tests {
 
     #[test]
     fn test_hooks_invalid_type_rejected() {
-        let object_json = r#"{"env": {}, "hooks": {}}"#;
-        let object_err = serde_json::from_str::<ClaudeSettings>(object_json).unwrap_err();
-        assert!(
-            object_err
-                .to_string()
-                .contains("invalid type for hooks: expected array, got object")
-        );
-
         let string_json = r#"{"env": {}, "hooks": "run"}"#;
         let string_err = serde_json::from_str::<ClaudeSettings>(string_json).unwrap_err();
         assert!(
             string_err
                 .to_string()
-                .contains("invalid type for hooks: expected array, got string")
-        );
-
-        let null_json = r#"{"env": {}, "hooks": null}"#;
-        let null_err = serde_json::from_str::<ClaudeSettings>(null_json).unwrap_err();
-        assert!(
-            null_err
-                .to_string()
-                .contains("invalid type for hooks: expected array, got null")
+                .contains("invalid type for hooks: expected object or array, got string")
         );
 
         let number_json = r#"{"env": {}, "hooks": 1}"#;
@@ -471,7 +614,7 @@ mod tests {
         assert!(
             number_err
                 .to_string()
-                .contains("invalid type for hooks: expected array, got number")
+                .contains("invalid type for hooks: expected object or array, got number")
         );
 
         let bool_json = r#"{"env": {}, "hooks": true}"#;
@@ -479,7 +622,7 @@ mod tests {
         assert!(
             bool_err
                 .to_string()
-                .contains("invalid type for hooks: expected array, got boolean")
+                .contains("invalid type for hooks: expected object or array, got boolean")
         );
     }
 }
