@@ -200,6 +200,8 @@ export interface CheckinDisplayResponse {
 
 export type CheckinJobStatus = 'pending' | 'running' | 'finished' | 'timed_out'
 
+export type CheckinFlowPhase = 'running' | 'recovering' | 'finished'
+
 export interface CheckinJobLogEntryPayload {
   account_id: string
   account_name: string
@@ -507,6 +509,9 @@ export interface CheckinLogEntry {
   errorCode?: string
   reward?: string
   balance?: number
+  wafRecoveryAttempted?: boolean
+  wafRecovered?: boolean
+  wafRecoveryError?: string
   timestamp: Date
 }
 

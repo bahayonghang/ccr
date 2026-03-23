@@ -2,7 +2,7 @@
 import SIcon from '@/components/ui/SIcon.vue'
 import { computed, ref, watch, nextTick } from 'vue'
 import BaseModal from '@/components/common/BaseModal.vue'
-import type { CheckinLogEntry } from '@/types/checkin'
+import type { CheckinFlowPhase, CheckinLogEntry } from '@/types/checkin'
 
 interface Props {
   isOpen: boolean
@@ -10,7 +10,9 @@ interface Props {
   current: number
   currentAccountName: string
   logs: CheckinLogEntry[]
-  isFinished?: boolean
+  phase: CheckinFlowPhase
+  recoveryMessage?: string | null
+  recoveryProviderName?: string | null
 }
 
 const props = defineProps<Props>()
@@ -22,6 +24,13 @@ const logContainerRef = ref<HTMLElement | null>(null)
 
 const radius = 42
 const circumference = 2 * Math.PI * radius
+const isRecovering = computed(() => props.phase === 'recovering')
+const isFinished = computed(() => props.phase === 'finished')
+
+const modalTitle = computed(() => {
+  if (isRecovering.value) return '正在自动处理 WAF'
+  return isFinished.value ? '签到完成' : '正在执行签到'
+})
 
 const progressPercent = computed(() => {
   if (props.total === 0) return 0
@@ -48,6 +57,14 @@ const getLogTextClass = (status: CheckinLogEntry['status']) => {
   }
 }
 
+const getRecoveryBadgeLabel = (log: CheckinLogEntry) => {
+  if (!log.wafRecoveryAttempted) return null
+  if (log.wafRecovered) {
+    return log.status === 'already_checked_in' ? '自动补救后完成' : '自动补救后成功'
+  }
+  return '自动补救失败'
+}
+
 watch(
   () => props.logs.length,
   async () => {
@@ -62,11 +79,11 @@ watch(
 <template>
   <BaseModal
     :model-value="isOpen"
-    :title="isFinished ? '签到完成' : '正在执行签到'"
+    :title="modalTitle"
     :close-on-backdrop="isFinished"
     :close-on-escape="isFinished"
     :show-close="false"
-    :persistent="true"
+    :persistent="!isFinished"
     surface="solid"
     size="md"
   >
@@ -104,6 +121,13 @@ watch(
                 class="text-accent-success"
               />
             </template>
+            <template v-else-if="isRecovering">
+              <SIcon
+                name="Loader2"
+                size="h-10 w-10"
+                class="animate-spin text-accent-info"
+              />
+            </template>
             <template v-else>
               {{ progressPercent }}%
             </template>
@@ -115,16 +139,28 @@ watch(
             {{ current }} / {{ total }} 个账号
           </p>
           <p
-            v-if="currentAccountName && !isFinished"
+            v-if="currentAccountName && !isFinished && !isRecovering"
             class="text-sm font-medium text-accent-primary"
           >
             正在签到：{{ currentAccountName }}
           </p>
           <p
-            v-if="isFinished"
+            v-else-if="isRecovering && recoveryMessage"
+            class="text-sm font-medium text-accent-info"
+          >
+            {{ recoveryMessage }}
+          </p>
+          <p
+            v-else-if="isFinished"
             class="text-sm font-medium text-accent-success"
           >
             全部任务执行完毕
+          </p>
+          <p
+            v-if="isRecovering && recoveryProviderName"
+            class="text-xs text-text-secondary"
+          >
+            当前提供商：{{ recoveryProviderName }}
           </p>
         </div>
       </div>
@@ -188,12 +224,27 @@ watch(
               <span class="ml-1 text-text-muted">
                 ({{ log.providerName }})
               </span>
+              <span
+                v-if="getRecoveryBadgeLabel(log)"
+                class="ml-2 inline-flex rounded-full px-2 py-0.5 text-[11px] font-medium"
+                :class="log.wafRecovered
+                  ? 'bg-sky-100 text-sky-700 dark:bg-sky-900/40 dark:text-sky-200'
+                  : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-200'"
+              >
+                {{ getRecoveryBadgeLabel(log) }}
+              </span>
               <p
                 v-if="log.message"
                 class="mt-0.5 break-all text-xs"
                 :class="log.status === 'failed' ? 'text-accent-danger' : 'text-text-secondary'"
               >
                 {{ log.message }}
+              </p>
+              <p
+                v-if="log.wafRecoveryAttempted && log.wafRecovered === false && log.wafRecoveryError"
+                class="mt-0.5 break-all text-xs text-amber-700 dark:text-amber-300"
+              >
+                {{ log.wafRecoveryError }}
               </p>
             </div>
           </div>

@@ -102,21 +102,31 @@
       v-if="checkinResult"
       ref="checkinResultRef"
       class="rounded-lg p-4 border shadow-sm"
-      :class="checkinResult.summary.failed > 0
-        ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800'
-        : 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'"
+      :class="checkinFlowPhase === 'recovering'
+        ? 'bg-sky-50 dark:bg-sky-900/20 border-sky-200 dark:border-sky-800'
+        : checkinResult.summary.failed > 0
+          ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800'
+          : 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'"
     >
       <div class="flex items-start justify-between">
         <div class="flex-1">
           <div class="flex items-center gap-2">
             <svg
               class="h-5 w-5"
-              :class="checkinResult.summary.failed > 0 ? 'text-amber-500' : 'text-green-400'"
+              :class="checkinFlowPhase === 'recovering'
+                ? 'text-sky-500'
+                : checkinResult.summary.failed > 0 ? 'text-amber-500' : 'text-green-400'"
               fill="currentColor"
               viewBox="0 0 20 20"
             >
               <path
-                v-if="checkinResult.summary.failed > 0"
+                v-if="checkinFlowPhase === 'recovering'"
+                fill-rule="evenodd"
+                d="M10 18a8 8 0 100-16 8 8 0 000 16zm1.53-11.53a.75.75 0 011.06 1.06L10.06 10l2.53 2.47a.75.75 0 01-1.06 1.06l-3.06-3a.75.75 0 010-1.06l3.06-3z"
+                clip-rule="evenodd"
+              />
+              <path
+                v-else-if="checkinResult.summary.failed > 0"
                 fill-rule="evenodd"
                 d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
                 clip-rule="evenodd"
@@ -130,11 +140,17 @@
             </svg>
             <h3
               class="text-sm font-medium"
-              :class="checkinResult.summary.failed > 0
-                ? 'text-amber-800 dark:text-amber-200'
-                : 'text-green-800 dark:text-green-200'"
+              :class="checkinFlowPhase === 'recovering'
+                ? 'text-sky-800 dark:text-sky-200'
+                : checkinResult.summary.failed > 0
+                  ? 'text-amber-800 dark:text-amber-200'
+                  : 'text-green-800 dark:text-green-200'"
             >
-              {{ checkinResult.summary.failed > 0 ? '签到完成，部分失败' : '签到完成' }}
+              {{
+                checkinFlowPhase === 'recovering'
+                  ? '正在自动处理 WAF'
+                  : checkinResult.summary.failed > 0 ? '签到完成，部分失败' : '签到完成'
+              }}
             </h3>
           </div>
           <!-- 结果统计 -->
@@ -540,7 +556,9 @@
       :current="checkinProgress.completed"
       :current-account-name="checkinProgress.currentAccountName"
       :logs="checkinLogs"
-      :is-finished="isCheckinFinished"
+      :phase="checkinFlowPhase"
+      :recovery-message="wafRecoveryMessage"
+      :recovery-provider-name="wafRecoveryProviderName"
       @close="closeCheckinModal"
     />
 
@@ -584,7 +602,7 @@ const {
   showCheckinConfirm,
   showProgressModal,
   showOAuthWizard,
-  isCheckinFinished,
+  checkinFlowPhase,
   checkinProgress,
   checkinLogs,
   wafRecoveryRunning,
