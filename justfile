@@ -1023,6 +1023,9 @@ tauri-build:
 tauri-build-debug:
     @just _ui-run tauri-build-debug
 
+tauri-verify-release-window:
+    @just _ui-run tauri-verify-release-window
+
 tauri-check:
     @just _ui-run tauri-check
 
@@ -1101,6 +1104,7 @@ alias ui-f := ui-fmt
 # Tauri 快捷别名（无 ui 前缀）
 alias tdev := tauri-dev
 alias tbuild := tauri-build
+alias tverify := tauri-verify-release-window
 alias tcheck := tauri-check
 alias tclean := tauri-clean
 alias ttest := tauri-test

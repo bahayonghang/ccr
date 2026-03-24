@@ -1445,6 +1445,18 @@ _tauri-build-debug-windows:
     @Write-Output '✅ Tauri 调试版本构建完成'
     @Write-Output '📦 产物位置: src-tauri/target/debug/bundle/'
 
+tauri-verify-release-window:
+    @just _tauri-verify-release-window-{{os()}}
+
+_tauri-verify-release-window-linux:
+    @echo "⚠️ 该校验仅在 Windows 上可用"
+
+_tauri-verify-release-window-macos:
+    @echo "⚠️ 该校验仅在 Windows 上可用"
+
+_tauri-verify-release-window-windows:
+    @pwsh.exe -NoLogo -NoProfile -File scripts/verify-release-window.ps1
+
 # 检查 Tauri 环境和配置
 tauri-check:
     @just _tauri-check-{{os()}}
