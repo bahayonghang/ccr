@@ -1,24 +1,24 @@
 <template>
-  <div class="checkin-view p-6 space-y-6">
+  <div class="checkin-view">
     <!-- 页面标题与操作 -->
-    <div class="flex items-center justify-between">
+    <div class="checkin-view__header">
       <div>
-        <h1 class="text-3xl font-bold text-white flex items-center gap-3">
+        <h1 class="checkin-view__title">
           <SIcon
             name="ClipboardList"
             size="w-8 h-8"
-            class="text-accent-primary"
+            class="checkin-view__title-icon"
           />
           签到管理
         </h1>
-        <p class="mt-2 text-sm text-text-secondary">
+        <p class="checkin-view__subtitle">
           管理所有平台的自动签到任务和 Cookie
         </p>
       </div>
-      <div class="flex items-center space-x-3">
+      <div class="checkin-view__actions">
         <button
           :disabled="loading || checkinLoading || enabledAccounts.length === 0"
-          class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg flex items-center space-x-2 disabled:opacity-50 transition-colors"
+          class="checkin-view__action-button checkin-view__action-button--checkin"
           @click="showCheckinConfirm = true"
         >
           <svg
@@ -39,7 +39,7 @@
         </button>
         <button
           :disabled="balanceRefreshing || accounts.length === 0"
-          class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center space-x-2 disabled:opacity-50 transition-colors"
+          class="checkin-view__action-button checkin-view__action-button--balance"
           @click="refreshAllBalances"
         >
           <svg
@@ -64,19 +64,19 @@
     <!-- 加载状态 -->
     <div
       v-if="loading"
-      class="flex items-center justify-center py-12"
+      class="checkin-view__loading"
     >
-      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600" />
+      <div class="checkin-view__loading-spinner" />
     </div>
 
     <!-- 错误提示 -->
     <div
       v-if="error"
-      class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4"
+      class="checkin-view__error"
     >
-      <div class="flex">
+      <div class="checkin-view__error-content">
         <svg
-          class="h-5 w-5 text-red-400"
+          class="checkin-view__error-icon"
           fill="currentColor"
           viewBox="0 0 20 20"
         >
@@ -86,11 +86,11 @@
             clip-rule="evenodd"
           />
         </svg>
-        <div class="ml-3">
-          <h3 class="text-sm font-medium text-red-800 dark:text-red-200">
+        <div class="checkin-view__error-body">
+          <h3 class="checkin-view__error-title">
             加载失败
           </h3>
-          <p class="mt-2 text-sm text-red-700 dark:text-red-300">
+          <p class="checkin-view__error-message">
             {{ error }}
           </p>
         </div>
@@ -101,21 +101,27 @@
     <div
       v-if="checkinResult"
       ref="checkinResultRef"
-      class="rounded-lg p-4 border shadow-sm"
-      :class="checkinFlowPhase === 'recovering'
-        ? 'bg-sky-50 dark:bg-sky-900/20 border-sky-200 dark:border-sky-800'
-        : checkinResult.summary.failed > 0
-          ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800'
-          : 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'"
+      :class="[
+        'checkin-view__result',
+        checkinFlowPhase === 'recovering'
+          ? 'checkin-view__result--recovering'
+          : checkinResult.summary.failed > 0
+            ? 'checkin-view__result--warning'
+            : 'checkin-view__result--success',
+      ]"
     >
-      <div class="flex items-start justify-between">
-        <div class="flex-1">
-          <div class="flex items-center gap-2">
+      <div class="checkin-view__result-header">
+        <div class="checkin-view__result-main">
+          <div class="checkin-view__result-status">
             <svg
-              class="h-5 w-5"
-              :class="checkinFlowPhase === 'recovering'
-                ? 'text-sky-500'
-                : checkinResult.summary.failed > 0 ? 'text-amber-500' : 'text-green-400'"
+              :class="[
+                'checkin-view__result-status-icon',
+                checkinFlowPhase === 'recovering'
+                  ? 'checkin-view__result-status-icon--recovering'
+                  : checkinResult.summary.failed > 0
+                    ? 'checkin-view__result-status-icon--warning'
+                    : 'checkin-view__result-status-icon--success',
+              ]"
               fill="currentColor"
               viewBox="0 0 20 20"
             >
@@ -139,12 +145,14 @@
               />
             </svg>
             <h3
-              class="text-sm font-medium"
-              :class="checkinFlowPhase === 'recovering'
-                ? 'text-sky-800 dark:text-sky-200'
-                : checkinResult.summary.failed > 0
-                  ? 'text-amber-800 dark:text-amber-200'
-                  : 'text-green-800 dark:text-green-200'"
+              :class="[
+                'checkin-view__result-status-title',
+                checkinFlowPhase === 'recovering'
+                  ? 'checkin-view__result-status-title--recovering'
+                  : checkinResult.summary.failed > 0
+                    ? 'checkin-view__result-status-title--warning'
+                    : 'checkin-view__result-status-title--success',
+              ]"
             >
               {{
                 checkinFlowPhase === 'recovering'
@@ -154,53 +162,53 @@
             </h3>
           </div>
           <!-- 结果统计 -->
-          <div class="mt-3 flex flex-wrap items-center gap-2 text-xs">
-            <span class="inline-flex items-center gap-1 rounded-full px-2 py-1 bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-200">
+          <div class="checkin-view__result-summary">
+            <span class="checkin-view__result-badge checkin-view__result-badge--success">
               <SIcon
                 name="CheckCircle"
                 size="w-3.5 h-3.5"
               />
               成功 {{ checkinResult.summary.success }}
             </span>
-            <span class="inline-flex items-center gap-1 rounded-full px-2 py-1 bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-200">
+            <span class="checkin-view__result-badge checkin-view__result-badge--info">
               <SIcon
                 name="Calendar"
                 size="w-3.5 h-3.5"
               />
               已签到 {{ checkinResult.summary.already_checked_in }}
             </span>
-            <span class="inline-flex items-center gap-1 rounded-full px-2 py-1 bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-200">
+            <span class="checkin-view__result-badge checkin-view__result-badge--danger">
               <SIcon
                 name="XCircle"
                 size="w-3.5 h-3.5"
               />
               失败 {{ checkinResult.summary.failed }}
             </span>
-            <span class="inline-flex items-center gap-1 rounded-full px-2 py-1 bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200">
+            <span class="checkin-view__result-badge checkin-view__result-badge--neutral">
               总计 {{ checkinResult.summary.total }}
             </span>
           </div>
-          <div class="mt-4 grid gap-4 md:grid-cols-2">
+          <div class="checkin-view__result-grid">
             <div
               v-if="wafRecoveryRunning && wafRecoveryMessage"
-              class="md:col-span-2 rounded-lg border border-sky-200 bg-sky-50/90 dark:border-sky-800 dark:bg-sky-900/20 p-3"
+              class="checkin-view__callout checkin-view__callout--recovery"
             >
-              <div class="flex items-start gap-3">
+              <div class="checkin-view__callout-layout">
                 <SIcon
                   name="Loader2"
                   size="h-4 w-4"
-                  class="mt-0.5 animate-spin text-sky-600 dark:text-sky-300"
+                  class="checkin-view__callout-icon checkin-view__callout-icon--recovery animate-spin"
                 />
                 <div>
-                  <p class="text-sm font-medium text-sky-900 dark:text-sky-100">
+                  <p class="checkin-view__callout-title checkin-view__callout-title--recovery">
                     正在自动处理 WAF
                   </p>
-                  <p class="mt-1 text-xs leading-5 text-sky-800 dark:text-sky-200">
+                  <p class="checkin-view__callout-message checkin-view__callout-message--recovery">
                     {{ wafRecoveryMessage }}
                   </p>
                   <p
                     v-if="wafRecoveryProviderName"
-                    class="mt-1 text-xs text-sky-700 dark:text-sky-300"
+                    class="checkin-view__callout-meta checkin-view__callout-meta--recovery"
                   >
                     当前提供商：{{ wafRecoveryProviderName }}
                   </p>
@@ -209,14 +217,14 @@
             </div>
             <div
               v-if="failedCheckinResults.some((item) => item.error_code === 'waf_blocked')"
-              class="md:col-span-2 rounded-lg border border-orange-200 bg-orange-50/90 dark:border-orange-800 dark:bg-orange-900/20 p-3"
+              class="checkin-view__callout checkin-view__callout--waf"
             >
-              <div class="flex items-start justify-between gap-3">
+              <div class="checkin-view__callout-layout checkin-view__callout-layout--split">
                 <div>
-                  <p class="text-sm font-medium text-orange-900 dark:text-orange-100">
+                  <p class="checkin-view__callout-title checkin-view__callout-title--waf">
                     {{ wafRecoveryRunning ? '自动补救中，若失败可手动处理' : '检测到 WAF 挑战页' }}
                   </p>
-                  <p class="mt-1 text-xs leading-5 text-orange-800 dark:text-orange-200">
+                  <p class="checkin-view__callout-message checkin-view__callout-message--waf">
                     <template v-if="wafRecoveryRunning">
                       系统正在尝试自动获取 WAF Cookie 并重试受影响账号。
                       如果自动补救失败，再前往“提供商”页手动获取 Cookie 并重试。
@@ -228,7 +236,7 @@
                   </p>
                 </div>
                 <button
-                  class="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg bg-orange-600 hover:bg-orange-700 text-white transition-colors"
+                  class="checkin-view__callout-action"
                   @click="activeTab = 'providers'"
                 >
                   前往提供商页
@@ -238,44 +246,44 @@
             <!-- 成功结果 -->
             <div
               v-if="successCheckinResults.length > 0"
-              class="space-y-2"
+              class="checkin-view__result-section"
             >
-              <p class="text-xs font-medium text-green-700 dark:text-green-300">
+              <p class="checkin-view__result-section-title checkin-view__result-section-title--success">
                 成功结果（{{ successCheckinResults.length }}）
               </p>
-              <div class="space-y-1.5">
+              <div class="checkin-view__result-list">
                 <div
                   v-for="item in successCheckinResults"
                   :key="item.account_id"
-                  class="flex items-start gap-2 p-2 bg-green-50 dark:bg-green-900/20 rounded-md border border-green-200 dark:border-green-800"
+                  class="checkin-view__result-item checkin-view__result-item--success"
                 >
                   <SIcon
                     name="CheckCircle"
                     size="w-4 h-4"
-                    class="text-green-500 flex-shrink-0 mt-0.5"
+                    class="checkin-view__result-item-icon checkin-view__result-item-icon--success"
                   />
-                  <div class="flex-1 min-w-0">
-                    <div class="flex items-center gap-2 flex-wrap">
-                      <span class="text-sm font-medium text-green-800 dark:text-green-200">
+                  <div class="checkin-view__result-item-body">
+                    <div class="checkin-view__result-item-meta">
+                      <span class="checkin-view__result-item-name checkin-view__result-item-name--success">
                         {{ item.account_name }}
                       </span>
-                      <span class="text-xs px-1.5 py-0.5 bg-green-100 dark:bg-green-800 text-green-700 dark:text-green-200 rounded">
+                      <span class="checkin-view__result-tag checkin-view__result-tag--success">
                         {{ item.provider_name }}
                       </span>
                       <span
                         v-if="item.reward"
-                        class="text-xs px-1.5 py-0.5 bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-200 rounded"
+                        class="checkin-view__result-tag checkin-view__result-tag--reward"
                       >
                         奖励 {{ item.reward }}
                       </span>
                       <span
                         v-if="item.waf_recovery_attempted && item.waf_recovered"
-                        class="text-xs px-1.5 py-0.5 bg-sky-100 dark:bg-sky-900/40 text-sky-700 dark:text-sky-200 rounded"
+                        class="checkin-view__result-tag checkin-view__result-tag--recovery"
                       >
                         自动补救后成功
                       </span>
                     </div>
-                    <p class="text-xs text-green-700 dark:text-green-300 mt-0.5 break-all">
+                    <p class="checkin-view__result-message checkin-view__result-message--success">
                       {{ getSuccessDetail(item) }}
                     </p>
                   </div>
@@ -285,44 +293,44 @@
             <!-- 失败结果 -->
             <div
               v-if="failedCheckinResults.length > 0"
-              class="space-y-2"
+              class="checkin-view__result-section"
             >
-              <p class="text-xs font-medium text-red-600 dark:text-red-400">
+              <p class="checkin-view__result-section-title checkin-view__result-section-title--danger">
                 失败结果（{{ failedCheckinResults.length }}）
               </p>
-              <div class="space-y-1.5">
+              <div class="checkin-view__result-list">
                 <div
                   v-for="item in failedCheckinResults"
                   :key="item.account_id"
-                  class="flex items-start gap-2 p-2 bg-red-50 dark:bg-red-900/30 rounded-md border border-red-200 dark:border-red-800"
+                  class="checkin-view__result-item checkin-view__result-item--danger"
                 >
                   <SIcon
                     name="XCircle"
                     size="w-4 h-4"
-                    class="text-red-500 flex-shrink-0 mt-0.5"
+                    class="checkin-view__result-item-icon checkin-view__result-item-icon--danger"
                   />
-                  <div class="flex-1 min-w-0">
-                    <div class="flex items-center gap-2 flex-wrap">
-                      <span class="text-sm font-medium text-red-800 dark:text-red-200">
+                  <div class="checkin-view__result-item-body">
+                    <div class="checkin-view__result-item-meta">
+                      <span class="checkin-view__result-item-name checkin-view__result-item-name--danger">
                         {{ item.account_name }}
                       </span>
-                      <span class="text-xs px-1.5 py-0.5 bg-red-100 dark:bg-red-800 text-red-600 dark:text-red-300 rounded">
+                      <span class="checkin-view__result-tag checkin-view__result-tag--danger">
                         {{ item.provider_name }}
                       </span>
                       <span
                         v-if="item.error_code"
-                        class="text-xs px-1.5 py-0.5 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 rounded"
+                        class="checkin-view__result-tag checkin-view__result-tag--warning"
                       >
                         {{ getErrorLabel(item.error_code) }}
                       </span>
                       <span
                         v-if="item.waf_recovery_attempted && item.waf_recovered === false"
-                        class="text-xs px-1.5 py-0.5 bg-sky-100 dark:bg-sky-900/30 text-sky-700 dark:text-sky-200 rounded"
+                        class="checkin-view__result-tag checkin-view__result-tag--recovery"
                       >
                         自动补救后仍失败
                       </span>
                     </div>
-                    <p class="text-xs text-red-600 dark:text-red-400 mt-0.5 break-all">
+                    <p class="checkin-view__result-message checkin-view__result-message--danger">
                       {{ getFailedDetail(item) }}
                     </p>
                   </div>
@@ -333,38 +341,38 @@
           <!-- 已签到结果 -->
           <div
             v-if="alreadyCheckedInResults.length > 0"
-            class="mt-4 space-y-2"
+            class="checkin-view__result-section checkin-view__result-section--spaced"
           >
-            <p class="text-xs font-medium text-blue-700 dark:text-blue-300">
+            <p class="checkin-view__result-section-title checkin-view__result-section-title--info">
               已签到（{{ alreadyCheckedInResults.length }}）
             </p>
-            <div class="space-y-1.5">
+            <div class="checkin-view__result-list">
               <div
                 v-for="item in alreadyCheckedInResults"
                 :key="item.account_id"
-                class="flex items-start gap-2 p-2 bg-blue-50 dark:bg-blue-900/20 rounded-md border border-blue-200 dark:border-blue-800"
+                class="checkin-view__result-item checkin-view__result-item--info"
               >
                 <SIcon
                   name="Calendar"
                   size="w-4 h-4"
-                  class="text-blue-500 flex-shrink-0 mt-0.5"
+                  class="checkin-view__result-item-icon checkin-view__result-item-icon--info"
                 />
-                <div class="flex-1 min-w-0">
-                  <div class="flex items-center gap-2 flex-wrap">
-                    <span class="text-sm font-medium text-blue-800 dark:text-blue-200">
+                <div class="checkin-view__result-item-body">
+                  <div class="checkin-view__result-item-meta">
+                    <span class="checkin-view__result-item-name checkin-view__result-item-name--info">
                       {{ item.account_name }}
                     </span>
-                    <span class="text-xs px-1.5 py-0.5 bg-blue-100 dark:bg-blue-800 text-blue-700 dark:text-blue-200 rounded">
+                    <span class="checkin-view__result-tag checkin-view__result-tag--info">
                       {{ item.provider_name }}
                     </span>
                     <span
                       v-if="item.waf_recovery_attempted && item.waf_recovered"
-                      class="text-xs px-1.5 py-0.5 bg-sky-100 dark:bg-sky-900/40 text-sky-700 dark:text-sky-200 rounded"
+                      class="checkin-view__result-tag checkin-view__result-tag--recovery"
                     >
                       自动补救后完成
                     </span>
                   </div>
-                  <p class="text-xs text-blue-700 dark:text-blue-300 mt-0.5 break-all">
+                  <p class="checkin-view__result-message checkin-view__result-message--info">
                     {{ getAlreadyCheckedInDetail(item) }}
                   </p>
                 </div>
@@ -373,10 +381,12 @@
           </div>
         </div>
         <button
-          class="ml-3 flex-shrink-0"
-          :class="checkinResult.summary.failed > 0
-            ? 'text-amber-400 hover:text-amber-500'
-            : 'text-green-400 hover:text-green-500'"
+          :class="[
+            'checkin-view__result-close',
+            checkinResult.summary.failed > 0
+              ? 'checkin-view__result-close--warning'
+              : 'checkin-view__result-close--success',
+          ]"
           @click="checkinResult = null"
         >
           <svg
@@ -397,21 +407,21 @@
     <!-- 页面主体 -->
     <div
       v-if="!loading && !error"
-      class="space-y-6"
+      class="checkin-view__content"
     >
       <!-- 顶部统计卡片 -->
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div class="checkin-view__stats">
         <!-- 当前余额 -->
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 flex items-center justify-between transition-[box-shadow,transform] duration-200 hover:shadow-md hover:scale-[1.02] cursor-pointer">
+        <div class="checkin-view__stat-card">
           <div>
-            <p class="text-sm font-medium text-text-muted">
+            <p class="checkin-view__stat-label">
               当前余额
             </p>
-            <p class="mt-1 text-2xl font-bold text-green-600 dark:text-green-400 font-mono">
+            <p class="checkin-view__stat-value checkin-view__stat-value--success">
               ${{ totalStatistics.currentBalance.toFixed(2) }}
             </p>
           </div>
-          <div class="p-3 rounded-full bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400">
+          <div class="checkin-view__stat-icon checkin-view__stat-icon--success">
             <svg
               class="w-5 h-5"
               fill="none"
@@ -428,16 +438,16 @@
           </div>
         </div>
         <!-- 总额度-->
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 flex items-center justify-between transition-[box-shadow,transform] duration-200 hover:shadow-md hover:scale-[1.02] cursor-pointer">
+        <div class="checkin-view__stat-card">
           <div>
-            <p class="text-sm font-medium text-text-muted">
+            <p class="checkin-view__stat-label">
               总额度
             </p>
-            <p class="mt-1 text-2xl font-bold text-blue-600 dark:text-blue-400 font-mono">
+            <p class="checkin-view__stat-value checkin-view__stat-value--info">
               ${{ totalStatistics.totalQuota.toFixed(2) }}
             </p>
           </div>
-          <div class="p-3 rounded-full bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400">
+          <div class="checkin-view__stat-icon checkin-view__stat-icon--info">
             <svg
               class="w-5 h-5"
               fill="none"
@@ -454,16 +464,16 @@
           </div>
         </div>
         <!-- 已消耗-->
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 p-6 flex items-center justify-between transition-[box-shadow,transform] duration-200 hover:shadow-md hover:scale-[1.02] cursor-pointer">
+        <div class="checkin-view__stat-card">
           <div>
-            <p class="text-sm font-medium text-text-muted">
+            <p class="checkin-view__stat-label">
               已消耗
             </p>
-            <p class="mt-1 text-2xl font-bold text-orange-600 dark:text-orange-400 font-mono">
+            <p class="checkin-view__stat-value checkin-view__stat-value--warning">
               ${{ totalStatistics.totalConsumed.toFixed(2) }}
             </p>
           </div>
-          <div class="p-3 rounded-full bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400">
+          <div class="checkin-view__stat-icon checkin-view__stat-icon--warning">
             <svg
               class="w-5 h-5"
               fill="none"
@@ -482,15 +492,17 @@
       </div>
 
       <!-- Tab 导航 -->
-      <div class="border-b border-gray-200 dark:border-gray-700">
-        <nav class="-mb-px flex space-x-8">
+      <div class="checkin-view__tabs-shell">
+        <nav class="checkin-view__tabs">
           <button
             v-for="tab in tabs"
             :key="tab.id"
-            class="py-4 px-1 border-b-2 font-medium text-sm transition-colors flex items-center gap-2"
-            :class="activeTab === tab.id
-              ? 'border-accent-primary text-accent-primary'
-              : 'border-transparent text-white/80 hover:text-white hover:border-white/10'"
+            :class="[
+              'checkin-view__tab-button',
+              activeTab === tab.id
+                ? 'checkin-view__tab-button--active'
+                : 'checkin-view__tab-button--inactive',
+            ]"
             @click="activeTab = tab.id"
           >
             <SIcon
@@ -646,3 +658,872 @@ const openAccountDashboard = (accountId: string) => {
   router.push({ name: 'checkin-account-dashboard', params: { accountId } })
 }
 </script>
+
+<style scoped>
+.checkin-view {
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.checkin-view__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.checkin-view__title {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: rgb(255 255 255 / 100%);
+  font-size: 1.875rem;
+  line-height: 2.25rem;
+  font-weight: 700;
+}
+
+.checkin-view__title-icon {
+  color: var(--accent-primary);
+}
+
+.checkin-view__subtitle {
+  margin-top: 0.5rem;
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+
+.checkin-view__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.checkin-view__action-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-radius: 0.5rem;
+  padding: 0.5rem 1rem;
+  color: rgb(255 255 255 / 100%);
+  transition: background-color 0.2s ease, opacity 0.2s ease;
+}
+
+.checkin-view__action-button:disabled {
+  opacity: 0.5;
+}
+
+.checkin-view__action-button--checkin {
+  background: rgb(22 163 74 / 100%);
+}
+
+.checkin-view__action-button--checkin:hover:not(:disabled) {
+  background: rgb(21 128 61 / 100%);
+}
+
+.checkin-view__action-button--balance {
+  background: rgb(37 99 235 / 100%);
+}
+
+.checkin-view__action-button--balance:hover:not(:disabled) {
+  background: rgb(29 78 216 / 100%);
+}
+
+.checkin-view__loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 0;
+}
+
+.checkin-view__loading-spinner {
+  width: 3rem;
+  height: 3rem;
+  border-radius: 9999px;
+  border-bottom: 2px solid rgb(37 99 235 / 100%);
+  animation: spin 1s linear infinite;
+}
+
+.checkin-view__error {
+  border-radius: 0.5rem;
+  border: 1px solid rgb(254 202 202 / 100%);
+  background: rgb(254 242 242 / 100%);
+  padding: 1rem;
+}
+
+.dark .checkin-view__error {
+  border-color: rgb(153 27 27 / 100%);
+  background: rgb(127 29 29 / 20%);
+}
+
+.checkin-view__error-content {
+  display: flex;
+}
+
+.checkin-view__error-icon {
+  width: 1.25rem;
+  height: 1.25rem;
+  color: rgb(248 113 113 / 100%);
+}
+
+.checkin-view__error-body {
+  margin-left: 0.75rem;
+}
+
+.checkin-view__error-title {
+  color: rgb(153 27 27 / 100%);
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  font-weight: 500;
+}
+
+.dark .checkin-view__error-title {
+  color: rgb(254 202 202 / 100%);
+}
+
+.checkin-view__error-message {
+  margin-top: 0.5rem;
+  color: rgb(185 28 28 / 100%);
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+
+.dark .checkin-view__error-message {
+  color: rgb(252 165 165 / 100%);
+}
+
+.checkin-view__result {
+  border-radius: 0.5rem;
+  border-width: 1px;
+  padding: 1rem;
+  box-shadow: 0 1px 2px rgb(15 23 42 / 8%);
+}
+
+.checkin-view__result--recovering {
+  border-color: rgb(186 230 253 / 100%);
+  background: rgb(240 249 255 / 100%);
+}
+
+.dark .checkin-view__result--recovering {
+  border-color: rgb(7 89 133 / 100%);
+  background: rgb(12 74 110 / 20%);
+}
+
+.checkin-view__result--warning {
+  border-color: rgb(253 230 138 / 100%);
+  background: rgb(255 251 235 / 100%);
+}
+
+.dark .checkin-view__result--warning {
+  border-color: rgb(146 64 14 / 100%);
+  background: rgb(120 53 15 / 20%);
+}
+
+.checkin-view__result--success {
+  border-color: rgb(187 247 208 / 100%);
+  background: rgb(240 253 244 / 100%);
+}
+
+.dark .checkin-view__result--success {
+  border-color: rgb(21 128 61 / 100%);
+  background: rgb(20 83 45 / 20%);
+}
+
+.checkin-view__result-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.checkin-view__result-main {
+  flex: 1 1 auto;
+}
+
+.checkin-view__result-status {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.checkin-view__result-status-icon {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.checkin-view__result-status-icon--recovering {
+  color: rgb(14 165 233 / 100%);
+}
+
+.checkin-view__result-status-icon--warning {
+  color: rgb(245 158 11 / 100%);
+}
+
+.checkin-view__result-status-icon--success {
+  color: rgb(74 222 128 / 100%);
+}
+
+.checkin-view__result-status-title {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  font-weight: 500;
+}
+
+.checkin-view__result-status-title--recovering {
+  color: rgb(7 89 133 / 100%);
+}
+
+.dark .checkin-view__result-status-title--recovering {
+  color: rgb(186 230 253 / 100%);
+}
+
+.checkin-view__result-status-title--warning {
+  color: rgb(146 64 14 / 100%);
+}
+
+.dark .checkin-view__result-status-title--warning {
+  color: rgb(253 230 138 / 100%);
+}
+
+.checkin-view__result-status-title--success {
+  color: rgb(22 101 52 / 100%);
+}
+
+.dark .checkin-view__result-status-title--success {
+  color: rgb(187 247 208 / 100%);
+}
+
+.checkin-view__result-summary {
+  margin-top: 0.75rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  line-height: 1rem;
+}
+
+.checkin-view__result-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  border-radius: 9999px;
+  padding: 0.25rem 0.5rem;
+}
+
+.checkin-view__result-badge--success {
+  background: rgb(220 252 231 / 100%);
+  color: rgb(21 128 61 / 100%);
+}
+
+.dark .checkin-view__result-badge--success {
+  background: rgb(20 83 45 / 40%);
+  color: rgb(187 247 208 / 100%);
+}
+
+.checkin-view__result-badge--info {
+  background: rgb(219 234 254 / 100%);
+  color: rgb(29 78 216 / 100%);
+}
+
+.dark .checkin-view__result-badge--info {
+  background: rgb(30 64 175 / 40%);
+  color: rgb(191 219 254 / 100%);
+}
+
+.checkin-view__result-badge--danger {
+  background: rgb(254 226 226 / 100%);
+  color: rgb(185 28 28 / 100%);
+}
+
+.dark .checkin-view__result-badge--danger {
+  background: rgb(127 29 29 / 40%);
+  color: rgb(254 202 202 / 100%);
+}
+
+.checkin-view__result-badge--neutral {
+  background: rgb(241 245 249 / 100%);
+  color: rgb(51 65 85 / 100%);
+}
+
+.dark .checkin-view__result-badge--neutral {
+  background: rgb(30 41 59 / 100%);
+  color: rgb(226 232 240 / 100%);
+}
+
+.checkin-view__result-grid {
+  margin-top: 1rem;
+  display: grid;
+  gap: 1rem;
+}
+
+@media (width >= 768px) {
+  .checkin-view__result-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.checkin-view__callout {
+  border-radius: 0.5rem;
+  border: 1px solid;
+  padding: 0.75rem;
+}
+
+.checkin-view__callout--recovery,
+.checkin-view__callout--waf {
+  grid-column: 1 / -1;
+}
+
+.checkin-view__callout--recovery {
+  border-color: rgb(186 230 253 / 100%);
+  background: rgb(240 249 255 / 90%);
+}
+
+.dark .checkin-view__callout--recovery {
+  border-color: rgb(7 89 133 / 100%);
+  background: rgb(12 74 110 / 20%);
+}
+
+.checkin-view__callout--waf {
+  border-color: rgb(254 215 170 / 100%);
+  background: rgb(255 247 237 / 90%);
+}
+
+.dark .checkin-view__callout--waf {
+  border-color: rgb(154 52 18 / 100%);
+  background: rgb(124 45 18 / 20%);
+}
+
+.checkin-view__callout-layout {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.checkin-view__callout-layout--split {
+  justify-content: space-between;
+}
+
+.checkin-view__callout-icon {
+  margin-top: 0.125rem;
+}
+
+.checkin-view__callout-icon--recovery {
+  color: rgb(2 132 199 / 100%);
+}
+
+.dark .checkin-view__callout-icon--recovery {
+  color: rgb(125 211 252 / 100%);
+}
+
+.checkin-view__callout-title {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  font-weight: 500;
+}
+
+.checkin-view__callout-title--recovery {
+  color: rgb(12 74 110 / 100%);
+}
+
+.dark .checkin-view__callout-title--recovery {
+  color: rgb(224 242 254 / 100%);
+}
+
+.checkin-view__callout-title--waf {
+  color: rgb(124 45 18 / 100%);
+}
+
+.dark .checkin-view__callout-title--waf {
+  color: rgb(255 237 213 / 100%);
+}
+
+.checkin-view__callout-message,
+.checkin-view__callout-meta,
+.checkin-view__result-message {
+  font-size: 0.75rem;
+  line-height: 1.25rem;
+}
+
+.checkin-view__callout-message {
+  margin-top: 0.25rem;
+}
+
+.checkin-view__callout-message--recovery,
+.checkin-view__callout-meta--recovery {
+  color: rgb(7 89 133 / 100%);
+}
+
+.dark .checkin-view__callout-message--recovery,
+.dark .checkin-view__callout-meta--recovery {
+  color: rgb(186 230 253 / 100%);
+}
+
+.checkin-view__callout-message--waf {
+  color: rgb(154 52 18 / 100%);
+}
+
+.dark .checkin-view__callout-message--waf {
+  color: rgb(254 215 170 / 100%);
+}
+
+.checkin-view__callout-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  border-radius: 0.5rem;
+  background: rgb(234 88 12 / 100%);
+  padding: 0.5rem 0.75rem;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  font-weight: 500;
+  color: rgb(255 255 255 / 100%);
+  transition: background-color 0.2s ease;
+}
+
+.checkin-view__callout-action:hover {
+  background: rgb(194 65 12 / 100%);
+}
+
+.checkin-view__result-section,
+.checkin-view__result-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.checkin-view__result-section {
+  gap: 0.5rem;
+}
+
+.checkin-view__result-section--spaced {
+  margin-top: 1rem;
+}
+
+.checkin-view__result-section-title {
+  font-size: 0.75rem;
+  line-height: 1rem;
+  font-weight: 500;
+}
+
+.checkin-view__result-section-title--success {
+  color: rgb(21 128 61 / 100%);
+}
+
+.dark .checkin-view__result-section-title--success {
+  color: rgb(134 239 172 / 100%);
+}
+
+.checkin-view__result-section-title--danger {
+  color: rgb(220 38 38 / 100%);
+}
+
+.dark .checkin-view__result-section-title--danger {
+  color: rgb(248 113 113 / 100%);
+}
+
+.checkin-view__result-section-title--info {
+  color: rgb(29 78 216 / 100%);
+}
+
+.dark .checkin-view__result-section-title--info {
+  color: rgb(147 197 253 / 100%);
+}
+
+.checkin-view__result-list {
+  gap: 0.375rem;
+}
+
+.checkin-view__result-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  border-radius: 0.375rem;
+  border: 1px solid;
+  padding: 0.5rem;
+}
+
+.checkin-view__result-item--success {
+  border-color: rgb(187 247 208 / 100%);
+  background: rgb(240 253 244 / 100%);
+}
+
+.dark .checkin-view__result-item--success {
+  border-color: rgb(21 128 61 / 100%);
+  background: rgb(20 83 45 / 20%);
+}
+
+.checkin-view__result-item--danger {
+  border-color: rgb(254 202 202 / 100%);
+  background: rgb(254 242 242 / 100%);
+}
+
+.dark .checkin-view__result-item--danger {
+  border-color: rgb(153 27 27 / 100%);
+  background: rgb(127 29 29 / 30%);
+}
+
+.checkin-view__result-item--info {
+  border-color: rgb(191 219 254 / 100%);
+  background: rgb(239 246 255 / 100%);
+}
+
+.dark .checkin-view__result-item--info {
+  border-color: rgb(30 64 175 / 100%);
+  background: rgb(30 58 138 / 20%);
+}
+
+.checkin-view__result-item-icon {
+  margin-top: 0.125rem;
+  flex-shrink: 0;
+}
+
+.checkin-view__result-item-icon--success {
+  color: rgb(34 197 94 / 100%);
+}
+
+.checkin-view__result-item-icon--danger {
+  color: rgb(239 68 68 / 100%);
+}
+
+.checkin-view__result-item-icon--info {
+  color: rgb(59 130 246 / 100%);
+}
+
+.checkin-view__result-item-body {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.checkin-view__result-item-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.checkin-view__result-item-name {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  font-weight: 500;
+}
+
+.checkin-view__result-item-name--success {
+  color: rgb(22 101 52 / 100%);
+}
+
+.dark .checkin-view__result-item-name--success {
+  color: rgb(187 247 208 / 100%);
+}
+
+.checkin-view__result-item-name--danger {
+  color: rgb(153 27 27 / 100%);
+}
+
+.dark .checkin-view__result-item-name--danger {
+  color: rgb(254 202 202 / 100%);
+}
+
+.checkin-view__result-item-name--info {
+  color: rgb(30 64 175 / 100%);
+}
+
+.dark .checkin-view__result-item-name--info {
+  color: rgb(191 219 254 / 100%);
+}
+
+.checkin-view__result-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  border-radius: 0.25rem;
+  padding: 0.125rem 0.375rem;
+  font-size: 0.75rem;
+  line-height: 1rem;
+}
+
+.checkin-view__result-tag--success {
+  background: rgb(220 252 231 / 100%);
+  color: rgb(21 128 61 / 100%);
+}
+
+.dark .checkin-view__result-tag--success {
+  background: rgb(22 101 52 / 100%);
+  color: rgb(220 252 231 / 100%);
+}
+
+.checkin-view__result-tag--reward {
+  background: rgb(209 250 229 / 100%);
+  color: rgb(4 120 87 / 100%);
+}
+
+.dark .checkin-view__result-tag--reward {
+  background: rgb(6 78 59 / 100%);
+  color: rgb(209 250 229 / 100%);
+}
+
+.checkin-view__result-tag--danger {
+  background: rgb(254 226 226 / 100%);
+  color: rgb(220 38 38 / 100%);
+}
+
+.dark .checkin-view__result-tag--danger {
+  background: rgb(153 27 27 / 100%);
+  color: rgb(254 202 202 / 100%);
+}
+
+.checkin-view__result-tag--warning {
+  background: rgb(255 237 213 / 100%);
+  color: rgb(194 65 12 / 100%);
+}
+
+.dark .checkin-view__result-tag--warning {
+  background: rgb(124 45 18 / 100%);
+  color: rgb(255 237 213 / 100%);
+}
+
+.checkin-view__result-tag--info {
+  background: rgb(219 234 254 / 100%);
+  color: rgb(29 78 216 / 100%);
+}
+
+.dark .checkin-view__result-tag--info {
+  background: rgb(30 64 175 / 100%);
+  color: rgb(219 234 254 / 100%);
+}
+
+.checkin-view__result-tag--recovery {
+  background: rgb(224 242 254 / 100%);
+  color: rgb(3 105 161 / 100%);
+}
+
+.dark .checkin-view__result-tag--recovery {
+  background: rgb(12 74 110 / 100%);
+  color: rgb(224 242 254 / 100%);
+}
+
+.checkin-view__result-message {
+  margin-top: 0.125rem;
+  word-break: break-all;
+}
+
+.checkin-view__result-message--success {
+  color: rgb(21 128 61 / 100%);
+}
+
+.dark .checkin-view__result-message--success {
+  color: rgb(134 239 172 / 100%);
+}
+
+.checkin-view__result-message--danger {
+  color: rgb(220 38 38 / 100%);
+}
+
+.dark .checkin-view__result-message--danger {
+  color: rgb(248 113 113 / 100%);
+}
+
+.checkin-view__result-message--info {
+  color: rgb(29 78 216 / 100%);
+}
+
+.dark .checkin-view__result-message--info {
+  color: rgb(147 197 253 / 100%);
+}
+
+.checkin-view__result-close {
+  margin-left: 0.75rem;
+  flex-shrink: 0;
+  transition: color 0.2s ease;
+}
+
+.checkin-view__result-close--warning {
+  color: rgb(251 191 36 / 100%);
+}
+
+.checkin-view__result-close--warning:hover {
+  color: rgb(245 158 11 / 100%);
+}
+
+.checkin-view__result-close--success {
+  color: rgb(74 222 128 / 100%);
+}
+
+.checkin-view__result-close--success:hover {
+  color: rgb(34 197 94 / 100%);
+}
+
+.checkin-view__content {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.checkin-view__stats {
+  display: grid;
+  gap: 1rem;
+}
+
+@media (width >= 768px) {
+  .checkin-view__stats {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.checkin-view__stat-card {
+  display: flex;
+  cursor: pointer;
+  align-items: center;
+  justify-content: space-between;
+  border-radius: 0.75rem;
+  border: 1px solid rgb(243 244 246 / 100%);
+  background: rgb(255 255 255 / 100%);
+  padding: 1.5rem;
+  box-shadow: 0 1px 2px rgb(15 23 42 / 8%);
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.checkin-view__stat-card:hover {
+  transform: scale(1.02);
+  box-shadow: 0 10px 24px rgb(15 23 42 / 12%);
+}
+
+.dark .checkin-view__stat-card {
+  border-color: rgb(55 65 81 / 100%);
+  background: rgb(31 41 55 / 100%);
+}
+
+.checkin-view__stat-label {
+  color: var(--text-muted);
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  font-weight: 500;
+}
+
+.checkin-view__stat-value {
+  margin-top: 0.25rem;
+  font-family: var(--font-mono, 'Maple Mono', monospace);
+  font-size: 1.5rem;
+  line-height: 2rem;
+  font-weight: 700;
+}
+
+.checkin-view__stat-value--success {
+  color: rgb(22 163 74 / 100%);
+}
+
+.dark .checkin-view__stat-value--success {
+  color: rgb(74 222 128 / 100%);
+}
+
+.checkin-view__stat-value--info {
+  color: rgb(37 99 235 / 100%);
+}
+
+.dark .checkin-view__stat-value--info {
+  color: rgb(96 165 250 / 100%);
+}
+
+.checkin-view__stat-value--warning {
+  color: rgb(234 88 12 / 100%);
+}
+
+.dark .checkin-view__stat-value--warning {
+  color: rgb(251 146 60 / 100%);
+}
+
+.checkin-view__stat-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  padding: 0.75rem;
+}
+
+.checkin-view__stat-icon--success {
+  background: rgb(240 253 244 / 100%);
+  color: rgb(22 163 74 / 100%);
+}
+
+.dark .checkin-view__stat-icon--success {
+  background: rgb(20 83 45 / 20%);
+  color: rgb(74 222 128 / 100%);
+}
+
+.checkin-view__stat-icon--info {
+  background: rgb(239 246 255 / 100%);
+  color: rgb(37 99 235 / 100%);
+}
+
+.dark .checkin-view__stat-icon--info {
+  background: rgb(30 64 175 / 20%);
+  color: rgb(96 165 250 / 100%);
+}
+
+.checkin-view__stat-icon--warning {
+  background: rgb(255 247 237 / 100%);
+  color: rgb(234 88 12 / 100%);
+}
+
+.dark .checkin-view__stat-icon--warning {
+  background: rgb(154 52 18 / 20%);
+  color: rgb(251 146 60 / 100%);
+}
+
+.checkin-view__tabs-shell {
+  border-bottom: 1px solid rgb(229 231 235 / 100%);
+}
+
+.dark .checkin-view__tabs-shell {
+  border-color: rgb(55 65 81 / 100%);
+}
+
+.checkin-view__tabs {
+  margin-bottom: -1px;
+  display: flex;
+  gap: 2rem;
+}
+
+.checkin-view__tab-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-bottom-width: 2px;
+  padding: 1rem 0.25rem;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  font-weight: 500;
+  transition: color 0.2s ease, border-color 0.2s ease;
+}
+
+.checkin-view__tab-button--active {
+  border-color: var(--accent-primary);
+  color: var(--accent-primary);
+}
+
+.checkin-view__tab-button--inactive {
+  border-color: transparent;
+  color: rgb(255 255 255 / 80%);
+}
+
+.checkin-view__tab-button--inactive:hover {
+  border-color: rgb(255 255 255 / 10%);
+  color: rgb(255 255 255 / 100%);
+}
+
+@media (width <= 900px) {
+  .checkin-view__header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .checkin-view__actions {
+    flex-wrap: wrap;
+  }
+
+  .checkin-view__tabs {
+    gap: 1rem;
+    overflow-x: auto;
+  }
+}
+</style>

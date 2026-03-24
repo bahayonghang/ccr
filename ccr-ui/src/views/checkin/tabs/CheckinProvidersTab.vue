@@ -1,46 +1,46 @@
 <!-- -->
 <template>
-  <div class="space-y-6">
+  <div class="checkin-providers">
     <!-- 内置中转站区域 -->
     <div v-if="availableBuiltinProviders.length > 0">
-      <div class="flex items-center space-x-2 mb-4">
+      <div class="checkin-providers__section-header">
         <SIcon
           name="Store"
           size="w-5 h-5"
-          class="text-accent-primary"
+          class="checkin-providers__section-icon checkin-providers__section-icon--primary"
         />
-        <h2 class="text-lg font-semibold text-white">
+        <h2 class="checkin-providers__section-title">
           内置中转站
         </h2>
-        <span class="text-sm text-text-muted">
+        <span class="checkin-providers__section-count">
           ({{ availableBuiltinProviders.length }})
         </span>
       </div>
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div class="checkin-providers__builtin-grid">
         <div
           v-for="bp in availableBuiltinProviders"
           :key="bp.id"
-          class="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-gray-800 dark:to-gray-700 rounded-xl shadow-sm p-4 border border-blue-100 dark:border-gray-600 hover:shadow-md transition-[box-shadow]"
+          class="checkin-providers__builtin-card"
         >
-          <div class="flex items-start justify-between">
-            <div class="flex items-center space-x-3">
-              <span class="text-2xl">{{ bp.icon }}</span>
+          <div class="checkin-providers__builtin-card-header">
+            <div class="checkin-providers__builtin-card-main">
+              <span class="checkin-providers__builtin-card-emoji">{{ bp.icon }}</span>
               <div>
-                <div class="flex items-center space-x-2">
-                  <h3 class="font-semibold text-text-primary">
+                <div class="checkin-providers__builtin-card-title-row">
+                  <h3 class="checkin-providers__builtin-card-title">
                     {{ bp.name }}
                   </h3>
-                  <span class="px-1.5 py-0.5 text-xs bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300 rounded">
+                  <span class="checkin-providers__builtin-badge">
                     内置
                   </span>
                 </div>
-                <p class="text-sm text-text-muted mt-0.5">
+                <p class="checkin-providers__builtin-domain">
                   {{ bp.domain }}
                 </p>
               </div>
             </div>
             <button
-              class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-lg transition-colors flex items-center space-x-1"
+              class="checkin-providers__primary-button checkin-providers__primary-button--compact"
               @click="emit('add-builtin', bp.id)"
             >
               <svg
@@ -59,16 +59,16 @@
               <span>添加</span>
             </button>
           </div>
-          <p class="mt-3 text-sm text-text-secondary">
+          <p class="checkin-providers__builtin-description">
             {{ bp.description }}
           </p>
-          <div class="mt-3 flex flex-wrap gap-2">
+          <div class="checkin-providers__tag-list">
             <span
               v-if="bp.supports_checkin"
-              class="px-2 py-0.5 text-xs rounded-full"
+              class="checkin-providers__tag"
               :class="bp.checkin_bugged
-                ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300'
-                : 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300'"
+                ? 'checkin-providers__tag--warning'
+                : 'checkin-providers__tag--success'"
             >
               <SIcon
                 :name="bp.checkin_bugged ? 'AlertTriangle' : 'CheckCircle'"
@@ -79,7 +79,7 @@
             </span>
             <span
               v-else
-              class="px-2 py-0.5 text-xs bg-gray-100 text-text-secondary dark:bg-gray-700 dark:text-gray-400 rounded-full flex items-center"
+              class="checkin-providers__tag checkin-providers__tag--muted"
             >
               <SIcon
                 name="XCircle"
@@ -89,7 +89,7 @@
             </span>
             <span
               v-if="bp.requires_waf_bypass"
-              class="px-2 py-0.5 text-xs bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300 rounded-full flex items-center"
+              class="checkin-providers__tag checkin-providers__tag--warning"
             >
               <SIcon
                 name="Shield"
@@ -104,22 +104,22 @@
 
     <!-- 已添加的提供商 -->
     <div>
-      <div class="flex items-center justify-between mb-4">
-        <div class="flex items-center space-x-2">
+      <div class="checkin-providers__section-header checkin-providers__section-header--split">
+        <div class="checkin-providers__section-heading">
           <SIcon
             name="Building2"
             size="w-5 h-5"
-            class="text-accent-secondary"
+            class="checkin-providers__section-icon checkin-providers__section-icon--secondary"
           />
-          <h2 class="text-lg font-semibold text-white">
+          <h2 class="checkin-providers__section-title">
             已添加的提供商
           </h2>
-          <span class="text-sm text-text-muted">
+          <span class="checkin-providers__section-count">
             ({{ providers.length }})
           </span>
         </div>
         <button
-          class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center space-x-2 transition-colors"
+          class="checkin-providers__primary-button"
           @click="openProviderModal()"
         >
           <svg
@@ -142,42 +142,46 @@
       <!-- 提供商列表 -->
       <div
         v-if="providers.length === 0"
-        class="text-center py-12 text-text-muted bg-gray-50 dark:bg-gray-800/50 rounded-lg"
+        class="checkin-providers__empty-state"
       >
-        <p class="text-4xl mb-3">
+        <p class="checkin-providers__empty-icon">
           <SIcon
             name="Package"
             size="w-12 h-12"
-            class="mx-auto text-white/50"
+            class="checkin-providers__empty-icon-symbol"
           />
         </p>
         <p>暂无提供商配置</p>
-        <p class="text-sm mt-1">
+        <p class="checkin-providers__empty-subtitle">
           点击上方内置中转站快速添加，或自定义添加
         </p>
       </div>
       <div
         v-else
-        class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
+        class="checkin-providers__provider-grid"
       >
         <div
           v-for="provider in providers"
           :key="provider.id"
-          class="bg-white dark:bg-gray-800 rounded-lg shadow p-4 border-l-4"
-          :class="provider.enabled ? 'border-l-green-500' : 'border-l-gray-400'"
+          :class="[
+            'checkin-providers__provider-card',
+            provider.enabled
+              ? 'checkin-providers__provider-card--enabled'
+              : 'checkin-providers__provider-card--disabled',
+          ]"
         >
-          <div class="flex items-start justify-between">
+          <div class="checkin-providers__provider-card-header">
             <div>
-              <h3 class="font-semibold text-text-primary">
+              <h3 class="checkin-providers__provider-title">
                 {{ provider.name }}
               </h3>
-              <p class="text-sm text-text-muted mt-1 truncate">
+              <p class="checkin-providers__provider-url">
                 {{ provider.base_url }}
               </p>
             </div>
-            <div class="flex items-center space-x-2">
+            <div class="checkin-providers__provider-actions">
               <button
-                class="text-blue-600 hover:text-blue-700 dark:text-blue-400"
+                class="checkin-providers__icon-button checkin-providers__icon-button--edit"
                 title="编辑"
                 @click="openProviderModal(provider)"
               >
@@ -196,7 +200,7 @@
                 </svg>
               </button>
               <button
-                class="text-red-600 hover:text-red-700 dark:text-red-400"
+                class="checkin-providers__icon-button checkin-providers__icon-button--delete"
                 title="删除"
                 @click="deleteProvider(provider.id)"
               >
@@ -216,42 +220,42 @@
               </button>
             </div>
           </div>
-          <div class="mt-3 flex items-center space-x-4 text-xs text-text-muted">
+          <div class="checkin-providers__provider-meta">
             <span>签到路径: {{ provider.checkin_path }}</span>
           </div>
           <div
             v-if="requiresWafBypass(provider)"
-            class="mt-4 rounded-lg border border-orange-200 bg-orange-50/90 dark:border-orange-800 dark:bg-orange-900/20 p-3"
+            class="checkin-providers__waf-card"
           >
-            <div class="flex items-start justify-between gap-3">
-              <div class="min-w-0">
-                <div class="flex items-center gap-2 flex-wrap">
+            <div class="checkin-providers__waf-card-layout">
+              <div class="checkin-providers__waf-card-body">
+                <div class="checkin-providers__waf-card-header">
                   <SIcon
                     name="ShieldCheck"
                     size="w-4 h-4"
-                    class="text-orange-600 dark:text-orange-300"
+                    class="checkin-providers__waf-icon"
                   />
-                  <p class="text-sm font-medium text-orange-900 dark:text-orange-100">
+                  <p class="checkin-providers__waf-title">
                     WAF 验证
                   </p>
                   <span
-                    class="px-2 py-0.5 text-xs rounded-full"
+                    class="checkin-providers__tag"
                     :class="hasCachedWafCookie(provider.id)
-                      ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-200'
-                      : 'bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-200'"
+                      ? 'checkin-providers__tag--success'
+                      : 'checkin-providers__tag--warning'"
                   >
                     {{ hasCachedWafCookie(provider.id) ? '已缓存 Cookie' : '未缓存 Cookie' }}
                   </span>
                 </div>
-                <p class="mt-2 text-xs leading-5 text-orange-800 dark:text-orange-200">
+                <p class="checkin-providers__waf-message">
                   AnyRouter 这类站点签到前需要先获取 WAF Cookie，且网页登录与签到请求必须使用同一代理/出口。
                 </p>
-                <p class="mt-1 text-xs leading-5 text-orange-700 dark:text-orange-300">
+                <p class="checkin-providers__waf-hint">
                   参考流程：先保存 <code>session</code> 和 <code>api_user</code>，再打开登录页完成挑战，最后回到签到页重试。
                 </p>
               </div>
               <button
-                class="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg bg-orange-600 hover:bg-orange-700 text-white transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                class="checkin-providers__waf-action"
                 :disabled="wafLoadingMap[provider.id] === true"
                 @click="startWafLogin(provider)"
               >
@@ -280,100 +284,100 @@
   <!-- 提供商编辑弹窗 -->
   <div
     v-if="showProviderModal"
-    class="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+    class="checkin-providers__modal-overlay"
     @click.self="showProviderModal = false"
   >
-    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 w-full max-w-lg mx-4">
-      <h3 class="text-xl font-semibold text-text-primary mb-4">
+    <div class="checkin-providers__modal-panel">
+      <h3 class="checkin-providers__modal-title">
         {{ editingProvider ? '编辑提供商' : '添加提供商' }}
       </h3>
       <form
-        class="space-y-4"
+        class="checkin-providers__modal-form"
         @submit.prevent="saveProvider"
       >
         <div>
-          <label class="block text-sm font-medium text-text-secondary">
+          <label class="checkin-providers__field-label">
             名称 *
           </label>
           <input
             v-model="providerForm.name"
             type="text"
             required
-            class="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+            class="checkin-providers__field-input"
             placeholder="例如: OpenRouter"
           >
         </div>
         <div>
-          <label class="block text-sm font-medium text-text-secondary">
+          <label class="checkin-providers__field-label">
             Base URL *
           </label>
           <input
             v-model="providerForm.base_url"
             type="url"
             required
-            class="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+            class="checkin-providers__field-input"
             placeholder="https://api.example.com"
           >
         </div>
-        <div class="grid grid-cols-2 gap-4">
+        <div class="checkin-providers__field-grid">
           <div>
-            <label class="block text-sm font-medium text-text-secondary">
+            <label class="checkin-providers__field-label">
               签到路径
             </label>
             <input
               v-model="providerForm.checkin_path"
               type="text"
-              class="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+              class="checkin-providers__field-input"
               placeholder="/api/user/checkin"
             >
           </div>
           <div>
-            <label class="block text-sm font-medium text-text-secondary">
+            <label class="checkin-providers__field-label">
               余额路径
             </label>
             <input
               v-model="providerForm.balance_path"
               type="text"
-              class="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+              class="checkin-providers__field-input"
               placeholder="/api/user/dashboard"
             >
           </div>
         </div>
-        <div class="grid grid-cols-2 gap-4">
+        <div class="checkin-providers__field-grid">
           <div>
-            <label class="block text-sm font-medium text-text-secondary">
+            <label class="checkin-providers__field-label">
               认证 Header
             </label>
             <input
               v-model="providerForm.auth_header"
               type="text"
-              class="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+              class="checkin-providers__field-input"
               placeholder="Authorization"
             >
           </div>
           <div>
-            <label class="block text-sm font-medium text-text-secondary">
+            <label class="checkin-providers__field-label">
               认证前缀
             </label>
             <input
               v-model="providerForm.auth_prefix"
               type="text"
-              class="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+              class="checkin-providers__field-input"
               placeholder="Bearer "
             >
           </div>
         </div>
-        <div class="flex justify-end space-x-3 pt-4">
+        <div class="checkin-providers__modal-actions">
           <button
             type="button"
-            class="px-4 py-2 border border-gray-300 dark:border-gray-600 text-text-secondary rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700"
+            class="checkin-providers__secondary-button"
             @click="showProviderModal = false"
           >
             取消
           </button>
           <button
             type="submit"
-            class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg"
+            class="checkin-providers__primary-button"
           >
             保存
           </button>
@@ -386,6 +390,7 @@
 <script setup lang="ts">
 import SIcon from '@/components/ui/SIcon.vue'
 import { ref, computed, watch } from 'vue'
+import { useUIStore } from '@/stores/ui'
 import {
   createCheckinProvider,
   updateCheckinProvider,
@@ -405,6 +410,7 @@ const emit = defineEmits<{
   (e: 'add-builtin', builtinId: string): void
   (e: 'refresh'): void
 }>()
+const uiStore = useUIStore()
 
 const getErrorMessage = (error: unknown, fallback: string) =>
   error instanceof Error ? error.message : fallback
@@ -469,9 +475,9 @@ const startWafLogin = async (provider: CheckinProvider) => {
   try {
     await openWafLogin<string>(getProviderLoginUrl(provider), provider.id)
     await loadWafStatus(provider.id)
-    alert(`${provider.name} 的 WAF Cookie 已更新，现在可以回到签到页重试。`)
+    uiStore.showSuccess(`${provider.name} 的 WAF Cookie 已更新，现在可以回到签到页重试。`)
   } catch (error: unknown) {
-    alert('获取 WAF Cookie 失败: ' + getErrorMessage(error, '未知错误'))
+    uiStore.showError('获取 WAF Cookie 失败: ' + getErrorMessage(error, '未知错误'))
   } finally {
     wafLoadingMap.value = {
       ...wafLoadingMap.value,
@@ -538,19 +544,528 @@ const saveProvider = async () => {
       await createCheckinProvider(providerForm.value)
     }
     showProviderModal.value = false
+    uiStore.showSuccess(editingProvider.value ? '提供商已更新' : '提供商已添加')
     emit('refresh')
   } catch (e: unknown) {
-    alert('保存失败: ' + getErrorMessage(e, '未知错误'))
+    uiStore.showError('保存失败: ' + getErrorMessage(e, '未知错误'))
   }
 }
 
 const deleteProvider = async (id: string) => {
-  if (!confirm('确定要删除此提供商吗？相关账号也会被删除。')) return
+  const confirmed = await uiStore.requestConfirm({
+    title: '删除提供商',
+    message: '确定要删除此提供商吗？相关账号也会被删除。',
+    confirmText: '删除',
+    cancelText: '取消',
+    type: 'danger',
+    surface: 'solid',
+  })
+  if (!confirmed) return
   try {
     await apiDeleteProvider(id)
+    uiStore.showSuccess('提供商已删除')
     emit('refresh')
   } catch (e: unknown) {
-    alert('删除失败: ' + getErrorMessage(e, '未知错误'))
+    uiStore.showError('删除失败: ' + getErrorMessage(e, '未知错误'))
   }
 }
 </script>
+
+<style scoped>
+.checkin-providers,
+.checkin-providers__modal-form {
+  display: flex;
+  flex-direction: column;
+}
+
+.checkin-providers {
+  gap: 1.5rem;
+}
+
+.checkin-providers__section-header,
+.checkin-providers__section-heading,
+.checkin-providers__builtin-card-header,
+.checkin-providers__builtin-card-main,
+.checkin-providers__builtin-card-title-row,
+.checkin-providers__provider-card-header,
+.checkin-providers__provider-actions,
+.checkin-providers__provider-meta,
+.checkin-providers__waf-card-layout,
+.checkin-providers__waf-card-header,
+.checkin-providers__primary-button,
+.checkin-providers__secondary-button,
+.checkin-providers__modal-overlay,
+.checkin-providers__modal-actions,
+.checkin-providers__tag {
+  display: flex;
+  align-items: center;
+}
+
+.checkin-providers__section-header,
+.checkin-providers__provider-card-header,
+.checkin-providers__waf-card-layout,
+.checkin-providers__modal-actions {
+  justify-content: space-between;
+}
+
+.checkin-providers__section-header {
+  margin-bottom: 1rem;
+  gap: 0.5rem;
+}
+
+.checkin-providers__section-header--split {
+  align-items: center;
+}
+
+.checkin-providers__section-heading {
+  gap: 0.5rem;
+}
+
+.checkin-providers__section-title {
+  font-size: 1.125rem;
+  line-height: 1.75rem;
+  font-weight: 600;
+  color: white;
+}
+
+.checkin-providers__section-count {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+}
+
+.checkin-providers__section-icon--primary {
+  color: var(--accent-primary);
+}
+
+.checkin-providers__section-icon--secondary {
+  color: var(--accent-secondary);
+}
+
+.checkin-providers__builtin-grid,
+.checkin-providers__provider-grid,
+.checkin-providers__field-grid {
+  display: grid;
+  gap: 1rem;
+}
+
+.checkin-providers__builtin-grid,
+.checkin-providers__provider-grid {
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+}
+
+.checkin-providers__builtin-card,
+.checkin-providers__provider-card {
+  border-radius: 0.75rem;
+  padding: 1rem;
+}
+
+.checkin-providers__builtin-card {
+  border: 1px solid rgb(191 219 254 / 100%);
+  background: linear-gradient(135deg, rgb(239 246 255 / 100%), rgb(238 242 255 / 100%));
+  box-shadow: 0 1px 2px rgb(15 23 42 / 6%);
+  transition: box-shadow 0.2s ease;
+}
+
+.checkin-providers__builtin-card:hover {
+  box-shadow: 0 10px 24px rgb(15 23 42 / 12%);
+}
+
+.dark .checkin-providers__builtin-card {
+  border-color: rgb(75 85 99 / 100%);
+  background: linear-gradient(135deg, rgb(31 41 55 / 100%), rgb(55 65 81 / 100%));
+}
+
+.checkin-providers__builtin-card-main {
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.checkin-providers__builtin-card-emoji {
+  font-size: 1.5rem;
+  line-height: 2rem;
+}
+
+.checkin-providers__builtin-card-title-row {
+  gap: 0.5rem;
+}
+
+.checkin-providers__builtin-card-title,
+.checkin-providers__provider-title {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.checkin-providers__builtin-badge,
+.checkin-providers__tag {
+  border-radius: 9999px;
+  padding: 0.125rem 0.5rem;
+  font-size: 0.75rem;
+  line-height: 1rem;
+}
+
+.checkin-providers__builtin-badge {
+  background: rgb(219 234 254 / 100%);
+  color: rgb(29 78 216 / 100%);
+}
+
+.dark .checkin-providers__builtin-badge {
+  background: rgb(30 64 175 / 100%);
+  color: rgb(147 197 253 / 100%);
+}
+
+.checkin-providers__builtin-domain,
+.checkin-providers__builtin-description,
+.checkin-providers__provider-url,
+.checkin-providers__provider-meta,
+.checkin-providers__empty-subtitle {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+}
+
+.checkin-providers__builtin-domain {
+  margin-top: 0.125rem;
+}
+
+.checkin-providers__builtin-description {
+  margin-top: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.checkin-providers__tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.checkin-providers__tag {
+  gap: 0.25rem;
+}
+
+.checkin-providers__tag--success {
+  background: rgb(220 252 231 / 100%);
+  color: rgb(21 128 61 / 100%);
+}
+
+.dark .checkin-providers__tag--success {
+  background: rgb(20 83 45 / 40%);
+  color: rgb(187 247 208 / 100%);
+}
+
+.checkin-providers__tag--warning {
+  background: rgb(254 243 199 / 100%);
+  color: rgb(161 98 7 / 100%);
+}
+
+.dark .checkin-providers__tag--warning {
+  background: rgb(113 63 18 / 100%);
+  color: rgb(253 224 71 / 100%);
+}
+
+.checkin-providers__tag--muted {
+  background: rgb(243 244 246 / 100%);
+  color: var(--text-secondary);
+}
+
+.dark .checkin-providers__tag--muted {
+  background: rgb(55 65 81 / 100%);
+  color: rgb(156 163 175 / 100%);
+}
+
+.checkin-providers__primary-button,
+.checkin-providers__secondary-button,
+.checkin-providers__waf-action {
+  gap: 0.5rem;
+  border-radius: 0.5rem;
+  padding: 0.5rem 1rem;
+  transition: background-color 0.2s ease, color 0.2s ease, opacity 0.2s ease;
+}
+
+.checkin-providers__primary-button {
+  background: rgb(37 99 235 / 100%);
+  color: white;
+}
+
+.checkin-providers__primary-button:hover {
+  background: rgb(29 78 216 / 100%);
+}
+
+.checkin-providers__primary-button--compact {
+  padding: 0.375rem 0.75rem;
+  font-size: 0.875rem;
+}
+
+.checkin-providers__empty-state {
+  border-radius: 0.5rem;
+  background: rgb(249 250 251 / 100%);
+  padding: 3rem 1rem;
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.dark .checkin-providers__empty-state {
+  background: rgb(31 41 55 / 50%);
+}
+
+.checkin-providers__empty-icon {
+  margin-bottom: 0.75rem;
+  font-size: 2.25rem;
+}
+
+.checkin-providers__empty-icon-symbol {
+  margin-inline: auto;
+  color: rgb(255 255 255 / 50%);
+}
+
+.checkin-providers__provider-card {
+  border-left: 4px solid;
+  background: rgb(255 255 255 / 100%);
+  box-shadow: 0 1px 2px rgb(15 23 42 / 8%);
+}
+
+.dark .checkin-providers__provider-card {
+  background: rgb(31 41 55 / 100%);
+}
+
+.checkin-providers__provider-card--enabled {
+  border-left-color: rgb(34 197 94 / 100%);
+}
+
+.checkin-providers__provider-card--disabled {
+  border-left-color: rgb(156 163 175 / 100%);
+}
+
+.checkin-providers__provider-url {
+  margin-top: 0.25rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.checkin-providers__provider-actions {
+  gap: 0.5rem;
+}
+
+.checkin-providers__icon-button--edit {
+  color: rgb(37 99 235 / 100%);
+}
+
+.dark .checkin-providers__icon-button--edit {
+  color: rgb(96 165 250 / 100%);
+}
+
+.checkin-providers__icon-button--delete {
+  color: rgb(220 38 38 / 100%);
+}
+
+.dark .checkin-providers__icon-button--delete {
+  color: rgb(248 113 113 / 100%);
+}
+
+.checkin-providers__provider-meta {
+  margin-top: 0.75rem;
+  gap: 1rem;
+  font-size: 0.75rem;
+}
+
+.checkin-providers__waf-card {
+  margin-top: 1rem;
+  border-radius: 0.5rem;
+  border: 1px solid rgb(254 215 170 / 100%);
+  background: rgb(255 247 237 / 90%);
+  padding: 0.75rem;
+}
+
+.dark .checkin-providers__waf-card {
+  border-color: rgb(154 52 18 / 100%);
+  background: rgb(124 45 18 / 20%);
+}
+
+.checkin-providers__waf-card-layout {
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.checkin-providers__waf-card-body {
+  min-width: 0;
+}
+
+.checkin-providers__waf-card-header {
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.checkin-providers__waf-icon {
+  color: rgb(234 88 12 / 100%);
+}
+
+.dark .checkin-providers__waf-icon {
+  color: rgb(253 186 116 / 100%);
+}
+
+.checkin-providers__waf-title {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: rgb(124 45 18 / 100%);
+}
+
+.dark .checkin-providers__waf-title {
+  color: rgb(255 237 213 / 100%);
+}
+
+.checkin-providers__waf-message,
+.checkin-providers__waf-hint {
+  font-size: 0.75rem;
+  line-height: 1.25rem;
+}
+
+.checkin-providers__waf-message {
+  margin-top: 0.5rem;
+  color: rgb(154 52 18 / 100%);
+}
+
+.checkin-providers__waf-hint {
+  margin-top: 0.25rem;
+  color: rgb(194 65 12 / 100%);
+}
+
+.dark .checkin-providers__waf-message {
+  color: rgb(254 215 170 / 100%);
+}
+
+.dark .checkin-providers__waf-hint {
+  color: rgb(253 186 116 / 100%);
+}
+
+.checkin-providers__waf-action {
+  background: rgb(234 88 12 / 100%);
+  color: white;
+}
+
+.checkin-providers__waf-action:hover:not(:disabled) {
+  background: rgb(194 65 12 / 100%);
+}
+
+.checkin-providers__waf-action:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.checkin-providers__modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  justify-content: center;
+  background: rgb(0 0 0 / 50%);
+  padding: 1rem;
+}
+
+.checkin-providers__modal-panel {
+  width: 100%;
+  max-width: 32rem;
+  border-radius: 0.5rem;
+  background: white;
+  padding: 1.5rem;
+  box-shadow: 0 24px 48px rgb(15 23 42 / 24%);
+}
+
+.dark .checkin-providers__modal-panel {
+  background: rgb(31 41 55 / 100%);
+}
+
+.checkin-providers__modal-title {
+  margin-bottom: 1rem;
+  font-size: 1.25rem;
+  line-height: 1.75rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.checkin-providers__modal-form {
+  gap: 1rem;
+}
+
+.checkin-providers__field-label {
+  display: block;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.checkin-providers__field-input {
+  display: block;
+  width: 100%;
+  margin-top: 0.25rem;
+  border: 1px solid rgb(209 213 219 / 100%);
+  border-radius: 0.5rem;
+  background: white;
+  padding: 0.5rem 0.75rem;
+  color: rgb(17 24 39 / 100%);
+}
+
+.dark .checkin-providers__field-input {
+  border-color: rgb(75 85 99 / 100%);
+  background: rgb(55 65 81 / 100%);
+  color: white;
+}
+
+.checkin-providers__modal-actions {
+  gap: 0.75rem;
+  padding-top: 1rem;
+}
+
+.checkin-providers__secondary-button {
+  border: 1px solid rgb(209 213 219 / 100%);
+  color: var(--text-secondary);
+}
+
+.checkin-providers__secondary-button:hover {
+  background: rgb(249 250 251 / 100%);
+}
+
+.dark .checkin-providers__secondary-button {
+  border-color: rgb(75 85 99 / 100%);
+}
+
+.dark .checkin-providers__secondary-button:hover {
+  background: rgb(55 65 81 / 100%);
+}
+
+@media (width >= 768px) {
+  .checkin-providers__builtin-grid,
+  .checkin-providers__provider-grid,
+  .checkin-providers__field-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (width >= 1024px) {
+  .checkin-providers__builtin-grid,
+  .checkin-providers__provider-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (width <= 767px) {
+  .checkin-providers__section-header--split,
+  .checkin-providers__builtin-card-header,
+  .checkin-providers__provider-card-header,
+  .checkin-providers__waf-card-layout {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .checkin-providers__primary-button,
+  .checkin-providers__secondary-button,
+  .checkin-providers__waf-action {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .checkin-providers__provider-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+}
+</style>

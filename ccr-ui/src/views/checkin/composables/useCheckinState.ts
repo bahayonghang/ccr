@@ -1,122 +1,35 @@
-import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import {
-  listCheckinProviders,
-  listCheckinAccounts,
-  listCheckinRecords,
-  getTodayCheckinStats,
-  listBuiltinProviders,
   addBuiltinProvider as apiAddBuiltinProvider,
   queryCheckinBalance,
-  startCheckinJob,
-  getCheckinJobStatus,
-  openWafLogin,
 } from '@/api'
-import { listen, type UnlistenFn } from '@tauri-apps/api/event'
 import { logger } from '@/utils/logger'
 import type {
-  AccountsResponse,
   BalanceSnapshot,
-  BuiltinProvidersResponse,
   CheckinProvider,
   AccountInfo,
-  CheckinFlowPhase,
   CheckinRecordInfo,
-  CheckinRecordsResponse,
   TodayCheckinStats,
-  CheckinResponse,
-  CheckinExecutionResult,
   CheckinDisplayResponse,
   CheckinDisplayResult,
+  CheckinExecutionResult,
   BuiltinProvider,
-  CheckinJobLogEntryPayload,
-  CheckinJobSnapshot,
   CheckinLogEntry,
-  ProvidersResponse,
-  StartCheckinJobResponse,
+  CheckinFlowPhase,
 } from '@/types/checkin'
+import { createCheckinDataState } from './checkinDataState'
+import { createCheckinJobRuntime } from './checkinJobRuntime'
+import {
+  applyRecoveryFailureToLogs,
+  createCheckinWafRecovery,
+  mapCheckinJobLogEntry,
+  mergeRetryLogsIntoProgress,
+} from './checkinWafRecovery'
 
-/** 签到数据刷新选项 */
-export interface CheckinRefreshOptions {
-  reloadProviders?: boolean
-  reloadAccounts?: boolean
-  reloadRecords?: boolean
-  reloadStats?: boolean
-  reloadBuiltin?: boolean
-  reloadFailedHistory?: boolean
-}
-
-interface WafBlockedGroup {
-  providerName: string
-  provider: CheckinProvider | null
-  accountIds: string[]
-}
-
-const CHECKIN_RECOVERY_MISSING_LOG = '自动重试未返回日志'
-
-export const mapCheckinJobLogEntry = (entry: CheckinJobLogEntryPayload): CheckinLogEntry => ({
-  accountId: entry.account_id,
-  accountName: entry.account_name,
-  providerName: entry.provider_name,
-  status: entry.status,
-  message: entry.message,
-  errorCode: entry.error_code,
-  reward: entry.reward,
-  balance: entry.balance,
-  timestamp: new Date(entry.timestamp),
-})
-
-const withRecoveryMeta = (
-  log: CheckinLogEntry,
-  recovered: boolean,
-  recoveryError?: string
-): CheckinLogEntry => ({
-  ...log,
-  wafRecoveryAttempted: true,
-  wafRecovered: recovered,
-  wafRecoveryError: recoveryError,
-})
-
-export const applyRecoveryFailureToLogs = (
-  logs: CheckinLogEntry[],
-  accountIds: string[],
-  recoveryError: string
-): CheckinLogEntry[] => {
-  const accountIdSet = new Set(accountIds)
-  return logs.map((log) => {
-    if (!accountIdSet.has(log.accountId)) return log
-    return withRecoveryMeta(log, false, recoveryError)
-  })
-}
-
-export const mergeRetryLogsIntoProgress = (
-  logs: CheckinLogEntry[],
-  retrySnapshot: CheckinJobSnapshot,
-  retriedAccountIds: string[]
-): CheckinLogEntry[] => {
-  const retriedSet = new Set(retriedAccountIds)
-  const retryLogMap = new Map(
-    retrySnapshot.logs
-      .map(mapCheckinJobLogEntry)
-      .filter((log) => retriedSet.has(log.accountId))
-      .map((log) => [log.accountId, withRecoveryMeta(log, log.status !== 'failed')])
-  )
-
-  const seen = new Set<string>()
-  const mergedLogs = logs.map((log) => {
-    if (!retriedSet.has(log.accountId)) return log
-    seen.add(log.accountId)
-    const retryLog = retryLogMap.get(log.accountId)
-    if (retryLog) return retryLog
-    return withRecoveryMeta(log, false, CHECKIN_RECOVERY_MISSING_LOG)
-  })
-
-  for (const [accountId, retryLog] of retryLogMap.entries()) {
-    if (!seen.has(accountId)) {
-      mergedLogs.push(retryLog)
-    }
-  }
-
-  return mergedLogs
+export {
+  applyRecoveryFailureToLogs,
+  mergeRetryLogsIntoProgress,
+  mapCheckinJobLogEntry,
 }
 
 /**
@@ -157,262 +70,59 @@ export function useCheckinState() {
   const builtinProviders = ref<BuiltinProvider[]>([])
 
   const activeCheckinJobId = ref<string | null>(null)
-  const checkinJobUnlisteners: UnlistenFn[] = []
-
-  const cleanupCheckinJobListeners = async () => {
-    const unlisteners = checkinJobUnlisteners.splice(0)
-    await Promise.all(unlisteners.map((unlisten) => unlisten()))
-  }
 
   const getProviderLoginUrl = (provider: CheckinProvider) => {
     return `${provider.base_url.replace(/\/+$/, '')}/login`
   }
 
-  const toDisplayResponse = (response: CheckinResponse): CheckinDisplayResponse => ({
-    results: response.results.map((item) => ({ ...item })),
-    summary: { ...response.summary },
-  })
+  const { loadAllData, refreshCheckinData, applyBalanceSnapshot } = createCheckinDataState(
+    {
+      loading,
+      error,
+      providers,
+      accounts,
+      records,
+      todayStats,
+      builtinProviders,
+    },
+    getErrorMessage
+  )
 
-  const buildCheckinSummary = (results: CheckinDisplayResult[]) => {
-    return results.reduce(
-      (summary, item) => {
-        summary.total += 1
-        if (item.status === 'success') {
-          summary.success += 1
-        } else if (item.status === 'already_checked_in') {
-          summary.already_checked_in += 1
-        } else {
-          summary.failed += 1
-        }
-        return summary
+  const { runWafRecovery } = createCheckinWafRecovery(
+    {
+      providers,
+      checkinResult,
+      checkinLogs,
+      checkinFlowPhase,
+      wafRecoveryRunning,
+      wafRecoveryProviderName,
+      wafRecoveryMessage,
+    },
+    refreshCheckinData,
+    getErrorMessage,
+    getProviderLoginUrl
+  )
+
+  const { cleanupCheckinJobListeners, executeCheckinAll, executeCheckinSingle } =
+    createCheckinJobRuntime(
+      {
+        accounts,
+        checkinLoading,
+        checkinResult,
+        checkinResultRef,
+        showProgressModal,
+        checkinFlowPhase,
+        checkinProgress,
+        checkinLogs,
+        wafRecoveryRunning,
+        wafRecoveryProviderName,
+        wafRecoveryMessage,
+        activeCheckinJobId,
       },
-      { total: 0, success: 0, already_checked_in: 0, failed: 0 }
+      refreshCheckinData,
+      runWafRecovery,
+      getErrorMessage
     )
-  }
-
-  const createDisplayResponse = (results: CheckinDisplayResult[]): CheckinDisplayResponse => ({
-    results,
-    summary: buildCheckinSummary(results),
-  })
-
-  const detectWafBlockedGroups = (result: CheckinDisplayResponse): WafBlockedGroup[] => {
-    const grouped = new Map<string, string[]>()
-    for (const item of result.results) {
-      if (item.status !== 'failed' || item.error_code !== 'waf_blocked') continue
-      const accountIds = grouped.get(item.provider_name) ?? []
-      if (!accountIds.includes(item.account_id)) {
-        accountIds.push(item.account_id)
-      }
-      grouped.set(item.provider_name, accountIds)
-    }
-
-    return Array.from(grouped.entries()).map(([providerName, accountIds]) => ({
-      providerName,
-      provider: providers.value.find((candidate) => candidate.name === providerName) ?? null,
-      accountIds,
-    }))
-  }
-
-  const markWafRecoveryFailure = (
-    result: CheckinDisplayResponse,
-    accountIds: string[],
-    recoveryError: string
-  ): CheckinDisplayResponse => {
-    return createDisplayResponse(
-      result.results.map((item) => {
-        if (!accountIds.includes(item.account_id)) return item
-        return {
-          ...item,
-          waf_recovery_attempted: true,
-          waf_recovered: false,
-          waf_recovery_error: recoveryError,
-        }
-      })
-    )
-  }
-
-  const mergeRetryResults = (
-    result: CheckinDisplayResponse,
-    retryResults: CheckinExecutionResult[],
-    retriedAccountIds: string[]
-  ): CheckinDisplayResponse => {
-    const retryMap = new Map(retryResults.map((item) => [item.account_id, item]))
-    return createDisplayResponse(
-      result.results.map((item) => {
-        const retried = retryMap.get(item.account_id)
-        if (!retried) {
-          if (!retriedAccountIds.includes(item.account_id)) return item
-          return {
-            ...item,
-            waf_recovery_attempted: true,
-            waf_recovered: false,
-            waf_recovery_error: '自动重试未返回结果',
-          }
-        }
-        return {
-          ...retried,
-          waf_recovery_attempted: true,
-          waf_recovered: retried.status !== 'failed',
-        }
-      })
-    )
-  }
-
-  const waitForCheckinJobResult = async (
-    jobId: string,
-    initialSnapshot: CheckinJobSnapshot
-  ): Promise<CheckinJobSnapshot> => {
-    let snapshot = initialSnapshot
-    for (let attempt = 0; attempt < 240; attempt += 1) {
-      if (snapshot.status === 'finished' || snapshot.status === 'timed_out') {
-        return snapshot
-      }
-      await new Promise((resolve) => setTimeout(resolve, 500))
-      snapshot = await getCheckinJobStatus<CheckinJobSnapshot>(jobId)
-    }
-    throw new Error('自动重试等待超时')
-  }
-
-  const retryAccountsAfterWaf = async (accountIds: string[]): Promise<CheckinJobSnapshot> => {
-    const response = await startCheckinJob<StartCheckinJobResponse>(accountIds)
-    return waitForCheckinJobResult(response.job_id, response.snapshot)
-  }
-
-  const runWafRecovery = async (initialResult: CheckinDisplayResponse): Promise<CheckinDisplayResponse> => {
-    const groups = detectWafBlockedGroups(initialResult)
-    if (groups.length === 0 || wafRecoveryRunning.value) {
-      return initialResult
-    }
-
-    wafRecoveryRunning.value = true
-    checkinFlowPhase.value = 'recovering'
-    let mergedResult = initialResult
-
-    try {
-      for (const [index, group] of groups.entries()) {
-        wafRecoveryProviderName.value = group.providerName
-
-        if (!group.provider) {
-          const recoveryError = '未找到对应的提供商配置，无法自动补救'
-          mergedResult = markWafRecoveryFailure(
-            mergedResult,
-            group.accountIds,
-            recoveryError
-          )
-          checkinResult.value = mergedResult
-          checkinLogs.value = applyRecoveryFailureToLogs(
-            checkinLogs.value,
-            group.accountIds,
-            recoveryError
-          )
-          continue
-        }
-
-        wafRecoveryMessage.value = `正在为 ${group.providerName} 获取 WAF Cookie（${index + 1}/${groups.length}）`
-
-        try {
-          await openWafLogin<string>(getProviderLoginUrl(group.provider), group.provider.id)
-        } catch (error: unknown) {
-          const recoveryError = `自动获取 WAF Cookie 失败：${getErrorMessage(error, '未知错误')}`
-          mergedResult = markWafRecoveryFailure(
-            mergedResult,
-            group.accountIds,
-            recoveryError
-          )
-          checkinResult.value = mergedResult
-          checkinLogs.value = applyRecoveryFailureToLogs(
-            checkinLogs.value,
-            group.accountIds,
-            recoveryError
-          )
-          continue
-        }
-
-        wafRecoveryMessage.value = `已获取 ${group.providerName} 的 WAF Cookie，正在重试 ${group.accountIds.length} 个账号`
-
-        try {
-          const retrySnapshot = await retryAccountsAfterWaf(group.accountIds)
-          mergedResult = mergeRetryResults(mergedResult, retrySnapshot.results, group.accountIds)
-          checkinResult.value = mergedResult
-          checkinLogs.value = mergeRetryLogsIntoProgress(
-            checkinLogs.value,
-            retrySnapshot,
-            group.accountIds
-          )
-          await refreshCheckinData({
-            reloadAccounts: true,
-            reloadRecords: true,
-            reloadStats: true,
-          })
-        } catch (error: unknown) {
-          const recoveryError = `自动重试失败：${getErrorMessage(error, '未知错误')}`
-          mergedResult = markWafRecoveryFailure(
-            mergedResult,
-            group.accountIds,
-            recoveryError
-          )
-          checkinResult.value = mergedResult
-          checkinLogs.value = applyRecoveryFailureToLogs(
-            checkinLogs.value,
-            group.accountIds,
-            recoveryError
-          )
-        }
-      }
-    } finally {
-      wafRecoveryRunning.value = false
-      wafRecoveryProviderName.value = null
-      wafRecoveryMessage.value = null
-    }
-
-    return mergedResult
-  }
-
-  const applyCheckinJobSnapshot = (snapshot: CheckinJobSnapshot) => {
-    checkinProgress.value = {
-      total: snapshot.total,
-      completed: snapshot.completed,
-      currentAccountName: snapshot.current_account_name,
-    }
-    checkinLogs.value = snapshot.logs.map(mapCheckinJobLogEntry)
-
-    if (snapshot.status === 'finished' || snapshot.status === 'timed_out') {
-      checkinResult.value = toDisplayResponse({
-        results: snapshot.results,
-        summary: snapshot.summary,
-      })
-    }
-  }
-
-  const finalizeCheckinJob = async (snapshot: CheckinJobSnapshot) => {
-    if (activeCheckinJobId.value !== snapshot.job_id) return
-
-    try {
-      applyCheckinJobSnapshot(snapshot)
-      activeCheckinJobId.value = null
-      await cleanupCheckinJobListeners()
-
-      await refreshCheckinData({
-        reloadAccounts: true,
-        reloadRecords: true,
-        reloadStats: true,
-      })
-
-      if (snapshot.summary.failed > 0) {
-        await nextTick()
-        checkinResultRef.value?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-      }
-
-      const currentResult = checkinResult.value ?? toDisplayResponse({
-        results: snapshot.results,
-        summary: snapshot.summary,
-      })
-      checkinResult.value = await runWafRecovery(currentResult)
-    } finally {
-      checkinFlowPhase.value = 'finished'
-      checkinLoading.value = false
-    }
-  }
 
   // ═══════════════════════════════════════════════════════════
   // 计算属性
@@ -477,126 +187,6 @@ export function useCheckinState() {
   ]
 
   // ═══════════════════════════════════════════════════════════
-  // 数据加载
-  // ═══════════════════════════════════════════════════════════
-
-  // 加载所有数据
-  const loadAllData = async () => {
-    loading.value = true
-    error.value = null
-
-    try {
-      const results = await Promise.allSettled([
-        listCheckinProviders<ProvidersResponse>(),
-        listCheckinAccounts<AccountsResponse>(),
-        listCheckinRecords<CheckinRecordsResponse>({ page: 1, page_size: 100 }),
-        getTodayCheckinStats<TodayCheckinStats>(),
-        listBuiltinProviders<BuiltinProvidersResponse>(),
-      ])
-
-      if (results[0].status === 'fulfilled') {
-        providers.value = results[0].value.providers ?? []
-      }
-      if (results[1].status === 'fulfilled') {
-        accounts.value = results[1].value.accounts ?? []
-      }
-      if (results[2].status === 'fulfilled') {
-        records.value = results[2].value.records ?? []
-      }
-      if (results[3].status === 'fulfilled') {
-        todayStats.value = results[3].value
-      }
-      if (results[4].status === 'fulfilled') {
-        builtinProviders.value = results[4].value.providers ?? []
-      }
-
-      // 如果全部失败，显示错误
-      const allFailed = results.every((r) => r.status === 'rejected')
-      if (allFailed) {
-        error.value = '加载签到数据失败'
-      }
-    } catch (e: unknown) {
-      error.value = getErrorMessage(e, '加载失败')
-      logger.error('Failed to load checkin data', e)
-    } finally {
-      loading.value = false
-    }
-  }
-
-  // 应用余额快照到本地账号数据
-  const applyBalanceSnapshot = (snapshot: {
-    account_id: string
-    remaining_quota: number
-    total_quota: number
-    used_quota: number
-    currency: string
-    recorded_at: string
-  }) => {
-    const index = accounts.value.findIndex((a) => a.id === snapshot.account_id)
-    if (index < 0) return
-    const account = accounts.value[index]
-    accounts.value[index] = {
-      ...account,
-      latest_balance: snapshot.remaining_quota,
-      total_quota: snapshot.total_quota,
-      total_consumed: snapshot.used_quota,
-      balance_currency: snapshot.currency,
-      last_balance_check_at: snapshot.recorded_at,
-    }
-  }
-
-  // 按需刷新签到数据
-  const refreshCheckinData = async (options: CheckinRefreshOptions = {}) => {
-    const {
-      reloadProviders = false,
-      reloadAccounts = true,
-      reloadRecords = true,
-      reloadStats = true,
-      reloadBuiltin = false,
-    } = options
-
-    const tasks: Promise<unknown>[] = []
-
-    if (reloadProviders) {
-      tasks.push(
-        listCheckinProviders<ProvidersResponse>().then((res) => {
-          providers.value = res.providers
-        })
-      )
-    }
-    if (reloadAccounts) {
-      tasks.push(
-        listCheckinAccounts<AccountsResponse>().then((res) => {
-          accounts.value = res.accounts
-        })
-      )
-    }
-    if (reloadRecords) {
-      tasks.push(
-        listCheckinRecords<CheckinRecordsResponse>({ page: 1, page_size: 100 }).then((res) => {
-          records.value = res.records
-        })
-      )
-    }
-    if (reloadStats) {
-      tasks.push(
-        getTodayCheckinStats<TodayCheckinStats>().then((res) => {
-          todayStats.value = res
-        })
-      )
-    }
-    if (reloadBuiltin) {
-      tasks.push(
-        listBuiltinProviders<BuiltinProvidersResponse>().then((res) => {
-          builtinProviders.value = res.providers
-        })
-      )
-    }
-
-    await Promise.all(tasks)
-  }
-
-  // ═══════════════════════════════════════════════════════════
   // 签到操作
   // ═══════════════════════════════════════════════════════════
 
@@ -615,83 +205,6 @@ export function useCheckinState() {
   const handleOAuthSuccess = async () => {
     showOAuthWizard.value = false
     await loadAllData()
-  }
-
-  // 执行全部签到（逐个签到模式，实现实时进度）
-  const startAndTrackCheckinJob = async (accountIds: string[]) => {
-    if (accountIds.length === 0) return
-
-    checkinLoading.value = true
-    checkinResult.value = null
-    wafRecoveryRunning.value = false
-    wafRecoveryProviderName.value = null
-    wafRecoveryMessage.value = null
-    checkinFlowPhase.value = 'running'
-    showProgressModal.value = true
-    checkinProgress.value = {
-      total: accountIds.length,
-      completed: 0,
-      currentAccountName: '',
-    }
-    checkinLogs.value = []
-
-    await cleanupCheckinJobListeners()
-
-    try {
-      const response = await startCheckinJob<StartCheckinJobResponse>(accountIds)
-      activeCheckinJobId.value = response.job_id
-      applyCheckinJobSnapshot(response.snapshot)
-
-      const handleProgressSnapshot = (snapshot: CheckinJobSnapshot) => {
-        if (activeCheckinJobId.value !== snapshot.job_id) return
-        applyCheckinJobSnapshot(snapshot)
-      }
-
-      const handleTerminalSnapshot = (snapshot: CheckinJobSnapshot) => {
-        void finalizeCheckinJob(snapshot)
-      }
-
-      checkinJobUnlisteners.push(
-        await listen<CheckinJobSnapshot>('checkin:job-progress', (event) => {
-          handleProgressSnapshot(event.payload)
-        })
-      )
-      checkinJobUnlisteners.push(
-        await listen<CheckinJobSnapshot>('checkin:job-finished', (event) => {
-          handleTerminalSnapshot(event.payload)
-        })
-      )
-      checkinJobUnlisteners.push(
-        await listen<CheckinJobSnapshot>('checkin:job-timeout', (event) => {
-          handleTerminalSnapshot(event.payload)
-        })
-      )
-
-      const latestSnapshot = await getCheckinJobStatus<CheckinJobSnapshot>(response.job_id)
-      if (latestSnapshot.job_id === response.job_id) {
-        if (latestSnapshot.status === 'finished' || latestSnapshot.status === 'timed_out') {
-          await finalizeCheckinJob(latestSnapshot)
-        } else {
-          applyCheckinJobSnapshot(latestSnapshot)
-        }
-      }
-    } catch (e: unknown) {
-      checkinLoading.value = false
-      showProgressModal.value = false
-      activeCheckinJobId.value = null
-      checkinFlowPhase.value = 'finished'
-      await cleanupCheckinJobListeners()
-      alert('签到失败: ' + getErrorMessage(e, '未知错误'))
-      logger.error('Checkin job failed', e)
-    }
-  }
-
-  const executeCheckinAll = async () => {
-    await startAndTrackCheckinJob(enabledAccounts.value.map((account) => account.id))
-  }
-
-  const executeCheckinSingle = async (accountId: string) => {
-    await startAndTrackCheckinJob([accountId])
   }
 
   const refreshAllBalances = async () => {

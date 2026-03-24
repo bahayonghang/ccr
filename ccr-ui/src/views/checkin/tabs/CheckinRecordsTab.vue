@@ -1,36 +1,36 @@
 <template>
-  <div class="space-y-4">
-    <h2 class="text-xl font-semibold text-text-primary">
+  <div class="checkin-records">
+    <h2 class="checkin-records__title">
       签到记录
     </h2>
     <div
       v-if="records.length === 0"
-      class="text-center py-12 text-text-muted"
+      class="checkin-records__empty"
     >
       暂无签到记录
     </div>
     <div
       v-else
-      class="space-y-4"
+      class="checkin-records__content"
     >
-      <details class="bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800/60 rounded-lg overflow-hidden">
-        <summary class="cursor-pointer select-none px-4 py-3 text-sm font-medium text-red-700 dark:text-red-200 flex items-center justify-between">
-          <div class="flex items-center gap-2">
+      <details class="checkin-records__history">
+        <summary class="checkin-records__history-summary">
+          <div class="checkin-records__history-summary-label">
             <SIcon
               name="XCircle"
               size="w-4 h-4"
             />
             失败历史记录 ({{ failedHistoryTotal }})
           </div>
-          <span class="text-xs text-red-600/80 dark:text-red-300/80">
+          <span class="checkin-records__history-summary-hint">
             点击展开详情
           </span>
         </summary>
-        <div class="px-4 pb-4 pt-2">
-          <div class="flex flex-wrap items-center gap-2 pb-3">
+        <div class="checkin-records__history-body">
+          <div class="checkin-records__history-filters">
             <select
               v-model="failedHistoryProviderFilter"
-              class="px-2 py-1 rounded border border-red-200 dark:border-red-800 bg-white/80 dark:bg-red-950/30 text-xs text-red-700 dark:text-red-200"
+              class="checkin-records__history-input"
             >
               <option value="all">
                 全部提供商
@@ -47,24 +47,24 @@
               v-model="failedHistoryKeyword"
               type="text"
               placeholder="账号 / ID / 消息"
-              class="px-2 py-1 rounded border border-red-200 dark:border-red-800 bg-white/80 dark:bg-red-950/30 text-xs text-red-700 dark:text-red-200"
+              class="checkin-records__history-input"
             >
             <button
-              class="px-2 py-1 rounded border border-red-200 dark:border-red-800 text-xs text-red-700 dark:text-red-200 hover:bg-red-100 dark:hover:bg-red-900/30"
+              class="checkin-records__history-button"
               :disabled="failedHistoryLoading"
               @click="applyFailedHistoryFilters"
             >
               筛选
             </button>
             <button
-              class="px-2 py-1 rounded border border-red-200 dark:border-red-800 text-xs text-red-700 dark:text-red-200 hover:bg-red-100 dark:hover:bg-red-900/30"
+              class="checkin-records__history-button"
               :disabled="failedHistoryLoading"
               @click="resetFailedHistoryFilters"
             >
               重置
             </button>
             <button
-              class="px-2 py-1 rounded border border-red-200 dark:border-red-800 text-xs text-red-700 dark:text-red-200 hover:bg-red-100 dark:hover:bg-red-900/30"
+              class="checkin-records__history-button"
               :disabled="failedHistoryLoading"
               @click="exportFailedHistory"
             >
@@ -73,54 +73,54 @@
           </div>
           <div
             v-if="failedHistoryLoading"
-            class="text-sm text-red-500/80 dark:text-red-300/80"
+            class="checkin-records__history-state"
           >
             加载中...
           </div>
           <div
             v-else-if="failedHistoryTotal === 0"
-            class="text-sm text-red-500/80 dark:text-red-300/80"
+            class="checkin-records__history-state"
           >
             暂无失败记录
           </div>
           <div
             v-else
-            class="space-y-2"
+            class="checkin-records__history-list"
           >
             <div
               v-for="record in failedHistoryRecords"
               :key="record.id"
-              class="p-3 rounded-md border border-red-200 dark:border-red-800 bg-white/70 dark:bg-red-950/30"
+              class="checkin-records__history-item"
             >
-              <div class="flex items-start justify-between gap-4 flex-wrap">
-                <div class="text-sm font-medium text-red-800 dark:text-red-200">
+              <div class="checkin-records__history-item-head">
+                <div class="checkin-records__history-item-name">
                   {{ getAccountName(record.account_id) }}
                 </div>
-                <div class="text-xs text-red-600 dark:text-red-300">
+                <div class="checkin-records__history-item-time">
                   {{ formatDate(record.checked_in_at) }}
                 </div>
               </div>
-              <div class="mt-1 text-xs text-red-600 dark:text-red-300">
+              <div class="checkin-records__history-item-meta">
                 提供商: {{ getRecordProviderName(record) }} · 账号ID: {{ record.account_id }}
               </div>
-              <div class="mt-2 text-xs text-red-600 dark:text-red-300 break-all">
+              <div class="checkin-records__history-item-reason">
                 原因: {{ getRecordReason(record) }}
               </div>
             </div>
-            <div class="flex items-center justify-between pt-2 text-xs text-red-600 dark:text-red-300">
+            <div class="checkin-records__history-pagination">
               <span>
                 第 {{ failedHistoryPage }} / {{ failedHistoryTotalPages }} 页
               </span>
-              <div class="flex items-center gap-2">
+              <div class="checkin-records__history-pagination-actions">
                 <button
-                  class="px-2 py-1 rounded border border-red-200 dark:border-red-800 hover:bg-red-100 dark:hover:bg-red-900/30 disabled:opacity-50"
+                  class="checkin-records__history-button"
                   :disabled="failedHistoryPage === 1"
                   @click="goToFailedHistoryPage(failedHistoryPage - 1)"
                 >
                   上一页
                 </button>
                 <button
-                  class="px-2 py-1 rounded border border-red-200 dark:border-red-800 hover:bg-red-100 dark:hover:bg-red-900/30 disabled:opacity-50"
+                  class="checkin-records__history-button"
                   :disabled="failedHistoryPage === failedHistoryTotalPages"
                   @click="goToFailedHistoryPage(failedHistoryPage + 1)"
                 >
@@ -132,65 +132,65 @@
         </div>
       </details>
 
-      <div class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
-        <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-          <thead class="bg-gray-50 dark:bg-gray-700/50">
+      <div class="checkin-records__table-shell">
+        <table class="checkin-records__table">
+          <thead class="checkin-records__table-head">
             <tr>
-              <th class="px-6 py-3 text-left text-xs font-medium text-text-muted uppercase tracking-wider">
+              <th class="checkin-records__table-heading">
                 时间
               </th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-text-muted uppercase tracking-wider">
+              <th class="checkin-records__table-heading">
                 账号
               </th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-text-muted uppercase tracking-wider">
+              <th class="checkin-records__table-heading">
                 状态
               </th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-text-muted uppercase tracking-wider">
+              <th class="checkin-records__table-heading">
                 奖励
               </th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-text-muted uppercase tracking-wider">
+              <th class="checkin-records__table-heading">
                 余额
               </th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-text-muted uppercase tracking-wider">
+              <th class="checkin-records__table-heading">
                 原因
               </th>
-              <th class="px-6 py-3 text-right text-xs font-medium text-text-muted uppercase tracking-wider">
+              <th class="checkin-records__table-heading checkin-records__table-heading--right">
                 详情
               </th>
             </tr>
           </thead>
-          <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+          <tbody class="checkin-records__table-body">
             <template
               v-for="record in records"
               :key="record.id"
             >
-              <tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50">
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-text-muted">
+              <tr class="checkin-records__table-row">
+                <td class="checkin-records__table-cell checkin-records__table-cell--muted checkin-records__table-cell--nowrap">
                   {{ formatDate(record.checked_in_at) }}
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-text-primary">
+                <td class="checkin-records__table-cell checkin-records__table-cell--primary checkin-records__table-cell--nowrap">
                   {{ getAccountName(record.account_id) }}
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap">
+                <td class="checkin-records__table-cell checkin-records__table-cell--nowrap">
                   <span
-                    class="px-2 py-1 text-xs font-medium rounded-full"
+                    class="checkin-records__status-badge"
                     :class="getStatusClass(record.status)"
                   >
                     {{ getStatusText(record.status) }}
                   </span>
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-green-600 dark:text-green-400">
+                <td class="checkin-records__table-cell checkin-records__table-cell--success checkin-records__table-cell--nowrap">
                   {{ record.reward || '-' }}
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-text-muted">
+                <td class="checkin-records__table-cell checkin-records__table-cell--muted checkin-records__table-cell--nowrap">
                   {{ record.balance_after !== undefined && record.balance_after !== null ? `$${record.balance_after.toFixed(2)}` : '-' }}
                 </td>
-                <td class="px-6 py-4 text-sm text-text-muted max-w-xs truncate">
+                <td class="checkin-records__table-cell checkin-records__table-cell--muted checkin-records__table-cell--truncate">
                   {{ getRecordReason(record) }}
                 </td>
-                <td class="px-6 py-4 text-right">
+                <td class="checkin-records__table-cell checkin-records__table-cell--right">
                   <button
-                    class="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 dark:text-blue-300 dark:hover:text-blue-200"
+                    class="checkin-records__detail-toggle"
                     :aria-expanded="isRecordExpanded(record.id)"
                     @click="toggleRecordExpanded(record.id)"
                   >
@@ -210,59 +210,59 @@
               </tr>
               <tr
                 v-if="isRecordExpanded(record.id)"
-                class="bg-gray-50/70 dark:bg-gray-800/60"
+                class="checkin-records__detail-row"
               >
                 <td
                   colspan="7"
-                  class="px-6 py-4 text-sm text-text-secondary"
+                  class="checkin-records__detail-cell"
                 >
-                  <div class="grid gap-3 md:grid-cols-3">
-                    <div class="space-y-1">
-                      <div class="text-xs text-text-muted">
+                  <div class="checkin-records__detail-grid">
+                    <div class="checkin-records__detail-item">
+                      <div class="checkin-records__detail-label">
                         提供商
                       </div>
-                      <div class="text-sm">
+                      <div class="checkin-records__detail-value">
                         {{ getRecordProviderName(record) }}
                       </div>
                     </div>
-                    <div class="space-y-1">
-                      <div class="text-xs text-text-muted">
+                    <div class="checkin-records__detail-item">
+                      <div class="checkin-records__detail-label">
                         账号ID
                       </div>
-                      <div class="text-sm break-all">
+                      <div class="checkin-records__detail-value checkin-records__detail-value--break">
                         {{ record.account_id }}
                       </div>
                     </div>
-                    <div class="space-y-1">
-                      <div class="text-xs text-text-muted">
+                    <div class="checkin-records__detail-item">
+                      <div class="checkin-records__detail-label">
                         原因
                       </div>
-                      <div class="text-sm break-all">
+                      <div class="checkin-records__detail-value checkin-records__detail-value--break">
                         {{ getRecordReason(record) }}
                       </div>
                     </div>
-                    <div class="space-y-1">
-                      <div class="text-xs text-text-muted">
+                    <div class="checkin-records__detail-item">
+                      <div class="checkin-records__detail-label">
                         原始消息
                       </div>
-                      <div class="text-sm break-all">
+                      <div class="checkin-records__detail-value checkin-records__detail-value--break">
                         {{ getRecordRawMessage(record) }}
                       </div>
                     </div>
-                    <div class="space-y-1">
-                      <div class="text-xs text-text-muted">
+                    <div class="checkin-records__detail-item">
+                      <div class="checkin-records__detail-label">
                         奖励 / 余额变化
                       </div>
-                      <div class="text-sm">
+                      <div class="checkin-records__detail-value">
                         {{ record.reward || '-' }} ·
                         {{ record.balance_change !== undefined && record.balance_change !== null ? `$${record.balance_change.toFixed(2)}` : '-' }}
                       </div>
                     </div>
-                    <div class="space-y-1">
-                      <div class="text-xs text-text-muted">
+                    <div class="checkin-records__detail-item">
+                      <div class="checkin-records__detail-label">
                         余额前 / 后
                       </div>
-                      <div class="text-sm">
+                      <div class="checkin-records__detail-value">
                         {{ record.balance_before !== undefined && record.balance_before !== null ? `$${record.balance_before.toFixed(2)}` : '-' }}
                         →
                         {{ record.balance_after !== undefined && record.balance_after !== null ? `$${record.balance_after.toFixed(2)}` : '-' }}
@@ -282,6 +282,7 @@
 <script setup lang="ts">
 import SIcon from '@/components/ui/SIcon.vue'
 import { ref, computed, onMounted, watch } from 'vue'
+import { useUIStore } from '@/stores/ui'
 import {
   listCheckinRecords,
   exportCheckinRecords,
@@ -307,6 +308,8 @@ const props = defineProps<{
   accounts: AccountInfo[]
   todayStats: TodayCheckinStats | null
 }>()
+
+const uiStore = useUIStore()
 
 // 记录展开状态
 const expandedRecordIds = ref<string[]>([])
@@ -343,13 +346,13 @@ const formatDate = (dateStr: string) => {
 const getStatusClass = (status: string) => {
   switch (status) {
     case 'success':
-      return 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400'
+      return 'checkin-records__status-badge--success'
     case 'already_checked_in':
-      return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400'
+      return 'checkin-records__status-badge--warning'
     case 'failed':
-      return 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400'
+      return 'checkin-records__status-badge--danger'
     default:
-      return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-400'
+      return 'checkin-records__status-badge--neutral'
   }
 }
 
@@ -461,7 +464,7 @@ const exportFailedHistory = async () => {
     link.remove()
     URL.revokeObjectURL(url)
   } catch (e: unknown) {
-    alert('导出失败: ' + getErrorMessage(e, '未知错误'))
+    uiStore.showError('导出失败: ' + getErrorMessage(e, '未知错误'))
   }
 }
 
@@ -479,3 +482,419 @@ onMounted(() => {
   loadFailedHistory()
 })
 </script>
+
+<style scoped>
+.checkin-records,
+.checkin-records__content,
+.checkin-records__history-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.checkin-records {
+  gap: 1rem;
+}
+
+.checkin-records__title {
+  font-size: 1.25rem;
+  line-height: 1.75rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.checkin-records__empty {
+  padding: 3rem 0;
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.checkin-records__content {
+  gap: 1rem;
+}
+
+.checkin-records__history {
+  overflow: hidden;
+  border: 1px solid rgb(254 226 226 / 100%);
+  border-radius: 0.5rem;
+  background: rgb(254 242 242 / 100%);
+}
+
+.dark .checkin-records__history {
+  border-color: rgb(153 27 27 / 60%);
+  background: rgb(127 29 29 / 20%);
+}
+
+.checkin-records__history-summary,
+.checkin-records__history-summary-label,
+.checkin-records__history-filters,
+.checkin-records__history-item-head,
+.checkin-records__history-pagination,
+.checkin-records__history-pagination-actions,
+.checkin-records__detail-toggle {
+  display: flex;
+  align-items: center;
+}
+
+.checkin-records__history-summary {
+  justify-content: space-between;
+  cursor: pointer;
+  user-select: none;
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  font-weight: 500;
+  color: rgb(185 28 28 / 100%);
+}
+
+.dark .checkin-records__history-summary {
+  color: rgb(254 202 202 / 100%);
+}
+
+.checkin-records__history-summary-label {
+  gap: 0.5rem;
+}
+
+.checkin-records__history-summary-hint,
+.checkin-records__history-item-time,
+.checkin-records__history-item-meta,
+.checkin-records__history-item-reason,
+.checkin-records__history-pagination,
+.checkin-records__history-state,
+.checkin-records__history-input,
+.checkin-records__history-button {
+  font-size: 0.75rem;
+  line-height: 1rem;
+  color: rgb(220 38 38 / 80%);
+}
+
+.dark .checkin-records__history-summary-hint,
+.dark .checkin-records__history-state,
+.dark .checkin-records__history-item-time,
+.dark .checkin-records__history-item-meta,
+.dark .checkin-records__history-item-reason,
+.dark .checkin-records__history-pagination,
+.dark .checkin-records__history-input,
+.dark .checkin-records__history-button {
+  color: rgb(252 165 165 / 80%);
+}
+
+.checkin-records__history-body {
+  padding: 0.5rem 1rem 1rem;
+}
+
+.checkin-records__history-filters {
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding-bottom: 0.75rem;
+}
+
+.checkin-records__history-input,
+.checkin-records__history-button {
+  border: 1px solid rgb(254 202 202 / 100%);
+  border-radius: 0.375rem;
+  background: rgb(255 255 255 / 80%);
+  padding: 0.25rem 0.5rem;
+}
+
+.dark .checkin-records__history-input,
+.dark .checkin-records__history-button {
+  border-color: rgb(153 27 27 / 100%);
+  background: rgb(69 10 10 / 30%);
+}
+
+.checkin-records__history-button {
+  transition: background-color 0.2s ease, opacity 0.2s ease;
+}
+
+.checkin-records__history-button:hover:not(:disabled) {
+  background: rgb(254 226 226 / 100%);
+}
+
+.dark .checkin-records__history-button:hover:not(:disabled) {
+  background: rgb(127 29 29 / 30%);
+}
+
+.checkin-records__history-button:disabled {
+  opacity: 0.5;
+}
+
+.checkin-records__history-list {
+  gap: 0.5rem;
+}
+
+.checkin-records__history-item {
+  border: 1px solid rgb(254 202 202 / 100%);
+  border-radius: 0.375rem;
+  background: rgb(255 255 255 / 70%);
+  padding: 0.75rem;
+}
+
+.dark .checkin-records__history-item {
+  border-color: rgb(153 27 27 / 100%);
+  background: rgb(69 10 10 / 30%);
+}
+
+.checkin-records__history-item-head,
+.checkin-records__history-pagination {
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.checkin-records__history-item-head {
+  flex-wrap: wrap;
+}
+
+.checkin-records__history-item-name {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  font-weight: 500;
+  color: rgb(153 27 27 / 100%);
+}
+
+.dark .checkin-records__history-item-name {
+  color: rgb(254 202 202 / 100%);
+}
+
+.checkin-records__history-item-meta {
+  margin-top: 0.25rem;
+}
+
+.checkin-records__history-item-reason {
+  margin-top: 0.5rem;
+  word-break: break-all;
+}
+
+.checkin-records__history-pagination {
+  padding-top: 0.5rem;
+}
+
+.checkin-records__history-pagination-actions {
+  gap: 0.5rem;
+}
+
+.checkin-records__table-shell {
+  overflow: hidden;
+  border-radius: 0.5rem;
+  background: white;
+  box-shadow: 0 1px 2px rgb(15 23 42 / 8%);
+}
+
+.dark .checkin-records__table-shell {
+  background: rgb(31 41 55 / 100%);
+}
+
+.checkin-records__table {
+  min-width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.checkin-records__table-head {
+  background: rgb(249 250 251 / 100%);
+}
+
+.dark .checkin-records__table-head {
+  background: rgb(55 65 81 / 50%);
+}
+
+.checkin-records__table-heading,
+.checkin-records__table-cell {
+  padding: 0.75rem 1.5rem;
+}
+
+.checkin-records__table-heading {
+  text-align: left;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.checkin-records__table-heading--right,
+.checkin-records__table-cell--right {
+  text-align: right;
+}
+
+.checkin-records__table-body > tr + tr > td {
+  border-top: 1px solid rgb(229 231 235 / 100%);
+}
+
+.dark .checkin-records__table-body > tr + tr > td {
+  border-top-color: rgb(55 65 81 / 100%);
+}
+
+.checkin-records__table-row {
+  transition: background-color 0.2s ease;
+}
+
+.checkin-records__table-row:hover {
+  background: rgb(249 250 251 / 100%);
+}
+
+.dark .checkin-records__table-row:hover {
+  background: rgb(55 65 81 / 50%);
+}
+
+.checkin-records__table-cell {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+
+.checkin-records__table-cell--muted {
+  color: var(--text-muted);
+}
+
+.checkin-records__table-cell--primary {
+  color: var(--text-primary);
+}
+
+.checkin-records__table-cell--success {
+  color: rgb(22 163 74 / 100%);
+}
+
+.dark .checkin-records__table-cell--success {
+  color: rgb(74 222 128 / 100%);
+}
+
+.checkin-records__table-cell--nowrap {
+  white-space: nowrap;
+}
+
+.checkin-records__table-cell--truncate {
+  max-width: 20rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.checkin-records__status-badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 9999px;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  font-weight: 500;
+}
+
+.checkin-records__status-badge--success {
+  background: rgb(220 252 231 / 100%);
+  color: rgb(22 101 52 / 100%);
+}
+
+.dark .checkin-records__status-badge--success {
+  background: rgb(20 83 45 / 20%);
+  color: rgb(74 222 128 / 100%);
+}
+
+.checkin-records__status-badge--warning {
+  background: rgb(254 249 195 / 100%);
+  color: rgb(161 98 7 / 100%);
+}
+
+.dark .checkin-records__status-badge--warning {
+  background: rgb(113 63 18 / 30%);
+  color: rgb(250 204 21 / 100%);
+}
+
+.checkin-records__status-badge--danger {
+  background: rgb(254 226 226 / 100%);
+  color: rgb(153 27 27 / 100%);
+}
+
+.dark .checkin-records__status-badge--danger {
+  background: rgb(127 29 29 / 20%);
+  color: rgb(248 113 113 / 100%);
+}
+
+.checkin-records__status-badge--neutral {
+  background: rgb(243 244 246 / 100%);
+  color: rgb(31 41 55 / 100%);
+}
+
+.dark .checkin-records__status-badge--neutral {
+  background: rgb(55 65 81 / 100%);
+  color: rgb(156 163 175 / 100%);
+}
+
+.checkin-records__detail-toggle {
+  gap: 0.25rem;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  color: rgb(37 99 235 / 100%);
+  transition: color 0.2s ease;
+}
+
+.checkin-records__detail-toggle:hover {
+  color: rgb(29 78 216 / 100%);
+}
+
+.dark .checkin-records__detail-toggle {
+  color: rgb(147 197 253 / 100%);
+}
+
+.dark .checkin-records__detail-toggle:hover {
+  color: rgb(191 219 254 / 100%);
+}
+
+.checkin-records__detail-row {
+  background: rgb(249 250 251 / 70%);
+}
+
+.dark .checkin-records__detail-row {
+  background: rgb(31 41 55 / 60%);
+}
+
+.checkin-records__detail-cell {
+  padding: 1rem 1.5rem;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  color: var(--text-secondary);
+}
+
+.checkin-records__detail-grid {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.checkin-records__detail-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.checkin-records__detail-label {
+  font-size: 0.75rem;
+  line-height: 1rem;
+  color: var(--text-muted);
+}
+
+.checkin-records__detail-value {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+
+.checkin-records__detail-value--break {
+  word-break: break-all;
+}
+
+@media (width >= 768px) {
+  .checkin-records__detail-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (width <= 767px) {
+  .checkin-records__table-shell {
+    overflow-x: auto;
+  }
+
+  .checkin-records__history-summary,
+  .checkin-records__history-pagination {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+</style>
