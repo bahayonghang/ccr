@@ -262,6 +262,7 @@ import { useI18n } from 'vue-i18n'
 import { useUnifiedSkills } from '@/composables/useUnifiedSkills'
 import type { ImportSource, PlatformSummary } from '@/types/skills'
 import { getErrorMessage } from '@/utils/errorHandler'
+import { isTauriRuntime } from '@/utils/tauriRuntime'
 
 const props = defineProps<{
   modelValue: boolean
@@ -312,10 +313,7 @@ const npxPackage = ref('')
 const npxGlobal = ref(false)
 
 // Tauri 环境检测
-const isTauri = computed(() => {
-  const tauriWindow = window as Window & { __TAURI__?: unknown }
-  return Boolean(tauriWindow.__TAURI__)
-})
+const isTauri = computed(() => isTauriRuntime())
 
 // npx 状态
 const npxAvailable = computed(() => npxStatus.value?.available ?? false)

@@ -1,9 +1,10 @@
 import { invoke } from '@tauri-apps/api/core'
+import { isTauriRuntime } from '@/utils/tauriRuntime'
 
 const SKIP_EXIT_CONFIRM_KEY = 'ccr_skip_exit_confirm'
 
 export const isTauriEnvironment = (): boolean => {
-  return typeof window !== 'undefined' && '__TAURI__' in window
+  return isTauriRuntime()
 }
 
 export const getEnvironmentName = (): 'tauri' | 'web' => {

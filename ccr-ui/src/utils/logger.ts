@@ -1,5 +1,6 @@
 /* eslint-disable no-console -- This is a logger utility, console output is expected */
 import { invoke } from '@tauri-apps/api/core'
+import { isTauriRuntime } from '@/utils/tauriRuntime'
 
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error'
 
@@ -69,10 +70,6 @@ class Logger {
     }
   }
 
-  private isTauriRuntime(): boolean {
-    return typeof window !== 'undefined' && '__TAURI__' in window
-  }
-
   private normalizeFields(data: unknown): unknown {
     if (typeof data === 'undefined') {
       return undefined
@@ -94,7 +91,7 @@ class Logger {
   }
 
   private enqueueNativeBridge(entry: LoggerEntry): void {
-    if (!this.isTauriRuntime() || this.nativeBridgeStatus === 'disabled') {
+    if (!isTauriRuntime() || this.nativeBridgeStatus === 'disabled') {
       return
     }
 
@@ -126,7 +123,7 @@ class Logger {
       this.nativeBridgeInFlight
       || this.nativeBridgeStatus === 'disabled'
       || this.nativeBridgeQueue.length === 0
-      || !this.isTauriRuntime()
+      || !isTauriRuntime()
     ) {
       return
     }

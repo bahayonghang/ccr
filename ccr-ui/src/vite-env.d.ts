@@ -2,6 +2,7 @@
 
 // Tauri v2 运行时注入的全局变量
 interface Window {
+    __TAURI__?: Record<string, unknown>
     __TAURI_INTERNALS__?: Record<string, unknown>
 }
 

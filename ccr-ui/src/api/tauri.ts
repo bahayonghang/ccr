@@ -28,6 +28,7 @@
  */
 
 import { invoke } from '@tauri-apps/api/core'
+import { isTauriRuntime } from '@/utils/tauriRuntime'
 
 type UnknownRecord = Record<string, unknown>
 
@@ -274,7 +275,7 @@ function resolveName(
 
 /** 检查是否在 Tauri 桌面应用环境中运行 */
 export const isTauriEnvironment = (): boolean => {
-  return '__TAURI__' in window
+  return isTauriRuntime()
 }
 
 /** 获取当前运行环境名称 */

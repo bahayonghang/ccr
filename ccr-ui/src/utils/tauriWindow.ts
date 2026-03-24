@@ -1,11 +1,8 @@
 import type { Window as TauriWindow } from '@tauri-apps/api/window'
 import { logger } from '@/utils/logger'
+import { isTauriRuntime } from '@/utils/tauriRuntime'
 
 let windowPromise: Promise<TauriWindow | null> | null = null
-
-const isTauriRuntime = (): boolean => {
-  return typeof window !== 'undefined' && Boolean((window as Window & { __TAURI_INTERNALS__?: unknown }).__TAURI_INTERNALS__)
-}
 
 export const getCurrentWindowSafe = async (): Promise<TauriWindow | null> => {
   if (!isTauriRuntime()) {
@@ -29,5 +26,10 @@ export const showCurrentWindowIfTauri = async (): Promise<void> => {
   if (!win) {
     return
   }
-  await win.show()
+
+  try {
+    await win.show()
+  } catch (error) {
+    logger.warn('[tauriWindow] failed to show current window', error)
+  }
 }

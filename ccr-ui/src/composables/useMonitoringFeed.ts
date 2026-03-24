@@ -2,6 +2,7 @@ import { onMounted, onUnmounted, ref, type Ref } from 'vue'
 import { invoke } from '@tauri-apps/api/core'
 import { listen, type UnlistenFn } from '@tauri-apps/api/event'
 import { logger, type LoggerEntry, type LogLevel } from '@/utils/logger'
+import { isTauriRuntime } from '@/utils/tauriRuntime'
 
 export type MonitoringLevel = LogLevel
 
@@ -245,10 +246,6 @@ const insertEntryByTimestamp = (entries: MonitoringEntry[], entry: MonitoringEnt
 
   nextEntries.splice(low, 0, entry)
   return nextEntries
-}
-
-const isTauriRuntime = (): boolean => {
-  return typeof window !== 'undefined' && '__TAURI__' in window
 }
 
 export function useMonitoringFeed(options: MonitoringFeedOptions = {}) {
