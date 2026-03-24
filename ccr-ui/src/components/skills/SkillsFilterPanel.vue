@@ -521,8 +521,7 @@ watch(
 .skills-filter-panel {
   @apply sticky top-6 h-fit rounded-2xl overflow-hidden;
 
-  background: var(--glass-bg-light, rgb(255 255 255 / 25%));
-  backdrop-filter: blur(16px) saturate(180%);
+  background: rgb(var(--color-bg-elevated-rgb) / 92%);
   border: 1px solid rgb(244 114 182 / 15%);
   max-height: calc(100vh - 180px);
   overflow-y: auto;
@@ -555,7 +554,9 @@ watch(
 
 .filter-section__count {
   @apply px-1.5 py-0.5 rounded text-[10px] font-bold font-mono
-         glass-surface text-white/50;
+         text-white/50 border border-white/10;
+
+  background: rgb(var(--color-bg-overlay-rgb) / 72%);
 }
 
 /* Platform Item */
@@ -588,7 +589,9 @@ watch(
 
 .platform-item__count {
   @apply text-xs font-mono font-bold px-1.5 py-0.5 rounded
-         glass-surface text-white/50;
+         text-white/50 border border-white/10;
+
+  background: rgb(var(--color-bg-overlay-rgb) / 72%);
 }
 
 .platform-item--active .platform-item__count {
@@ -606,7 +609,9 @@ watch(
 }
 
 .source-btn--active {
-  @apply text-white glass-surface shadow-sm;
+  @apply text-white shadow-sm border border-accent-primary/20;
+
+  background: rgb(var(--color-accent-primary-rgb) / 10%);
 }
 
 /* Category Item */
@@ -627,9 +632,11 @@ watch(
 /* Tag Item */
 .tag-item {
   @apply px-2 py-1 rounded-md text-xs font-medium
-         glass-surface text-white/80
+         text-white/80 border border-white/10
          hover:bg-white/5 hover:text-white
          transition-colors duration-200;
+
+  background: rgb(var(--color-bg-overlay-rgb) / 72%);
 }
 
 .tag-item--active {

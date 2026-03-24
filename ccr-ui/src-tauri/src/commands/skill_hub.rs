@@ -1,10 +1,16 @@
 //! SkillHub 市场命令 — 技能市场浏览、搜索、安装与多平台管理。
 
-use std::{collections::HashMap, sync::Arc};
+use std::{
+    collections::HashMap,
+    path::{Path, PathBuf},
+    sync::Arc,
+    time::{Instant, UNIX_EPOCH},
+};
 
 use serde_json::Value;
 use tauri::State;
 use tokio::{sync::Semaphore, task::JoinSet};
+use tracing::{debug, warn};
 
 use crate::process::tokio_command;
 use crate::state::AppState;
@@ -19,90 +25,299 @@ const PLATFORM_SKILLS_DIRS: &[(&str, &str, &str)] = &[
     ("droid", "Droid", ".gemini/antigravity/skills"),
 ];
 
+const SKILL_SUMMARY_CACHE_VERSION: u32 = 1;
+const SKILL_SUMMARY_CACHE_FILENAME: &str = "skill-hub-summary-cache.json";
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, Default)]
+struct SkillSummaryCacheFile {
+    version: u32,
+    entries: HashMap<String, SkillSummaryCacheEntry>,
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+struct SkillSummaryCacheEntry {
+    name: String,
+    description: Option<String>,
+    skill_dir: String,
+    platform: String,
+    platform_name: String,
+    category: Option<String>,
+    tags: Vec<String>,
+    version: Option<String>,
+    author: Option<String>,
+    source: Option<String>,
+    source_url: Option<String>,
+    install_date: Option<i64>,
+    commit_hash: Option<String>,
+    skill_mtime_ms: u64,
+    meta_mtime_ms: Option<u64>,
+}
+
+impl SkillSummaryCacheEntry {
+    fn matches(&self, skill_mtime_ms: u64, meta_mtime_ms: Option<u64>) -> bool {
+        self.skill_mtime_ms == skill_mtime_ms && self.meta_mtime_ms == meta_mtime_ms
+    }
+
+    fn to_json(&self) -> Value {
+        serde_json::json!({
+            "name": self.name,
+            "description": self.description,
+            "skill_dir": self.skill_dir,
+            "platform": self.platform,
+            "platform_name": self.platform_name,
+            "category": self.category,
+            "tags": self.tags,
+            "version": self.version,
+            "author": self.author,
+            "source": self.source,
+            "source_url": self.source_url,
+            "install_date": self.install_date,
+            "commit_hash": self.commit_hash,
+        })
+    }
+}
+
+#[derive(Debug)]
+struct PlatformScanResult {
+    index: usize,
+    platform_summary: Value,
+    skills: Vec<Value>,
+    cache_entries: HashMap<String, SkillSummaryCacheEntry>,
+    cache_hits: usize,
+    reparsed: usize,
+    duration_ms: u128,
+}
+
 // ── 内部辅助 ──
 
-/// 扫描指定目录下的 skills（每个含 SKILL.md 的子目录为一个技能）。
-/// 返回 JSON 数组，每项包含 name/description/skill_dir/platform/platform_name/category/tags 等。
-fn scan_platform_skills(
-    base: &std::path::Path,
-    platform_id: &str,
-    platform_name: &str,
-) -> Vec<Value> {
+fn skill_summary_cache_path() -> Result<PathBuf, String> {
+    let cache_dir = dirs::cache_dir()
+        .ok_or_else(|| "无法获取缓存目录".to_string())?
+        .join("ccr-desktop")
+        .join("cache");
+    std::fs::create_dir_all(&cache_dir).map_err(|e| format!("创建缓存目录失败: {e}"))?;
+    Ok(cache_dir.join(SKILL_SUMMARY_CACHE_FILENAME))
+}
+
+fn load_skill_summary_cache(cache_path: &Path) -> SkillSummaryCacheFile {
+    let raw = match std::fs::read_to_string(cache_path) {
+        Ok(raw) => raw,
+        Err(_) => return SkillSummaryCacheFile::default(),
+    };
+
+    match serde_json::from_str::<SkillSummaryCacheFile>(&raw) {
+        Ok(cache) if cache.version == SKILL_SUMMARY_CACHE_VERSION => cache,
+        Ok(_) | Err(_) => SkillSummaryCacheFile::default(),
+    }
+}
+
+fn save_skill_summary_cache(
+    cache_path: &Path,
+    entries: HashMap<String, SkillSummaryCacheEntry>,
+) -> Result<(), String> {
+    let cache_dir = cache_path
+        .parent()
+        .ok_or_else(|| "缓存路径无效".to_string())?;
+    std::fs::create_dir_all(cache_dir).map_err(|e| format!("创建缓存目录失败: {e}"))?;
+
+    let temp_file =
+        tempfile::NamedTempFile::new_in(cache_dir).map_err(|e| format!("创建缓存临时文件失败: {e}"))?;
+    let payload = SkillSummaryCacheFile {
+        version: SKILL_SUMMARY_CACHE_VERSION,
+        entries,
+    };
+    std::fs::write(
+        temp_file.path(),
+        serde_json::to_vec_pretty(&payload).map_err(|e| format!("序列化缓存失败: {e}"))?,
+    )
+    .map_err(|e| format!("写入缓存文件失败: {e}"))?;
+    temp_file
+        .persist(cache_path)
+        .map_err(|e| format!("保存缓存文件失败: {e}"))?;
+
+    Ok(())
+}
+
+fn file_mtime_ms(path: &Path) -> Option<u64> {
+    path.metadata()
+        .ok()?
+        .modified()
+        .ok()?
+        .duration_since(UNIX_EPOCH)
+        .ok()
+        .map(|duration| duration.as_millis() as u64)
+}
+
+fn enumerate_skill_dirs(base: &Path) -> Vec<PathBuf> {
     if !base.is_dir() {
         return Vec::new();
     }
-    let entries = match std::fs::read_dir(base) {
-        Ok(e) => e,
-        Err(_) => return Vec::new(),
-    };
 
-    let mut skills = Vec::new();
-    for entry in entries.flatten() {
-        let path = entry.path();
-        if !path.is_dir() {
-            continue;
-        }
-        let skill_file = path.join("SKILL.md");
-        if !skill_file.exists() {
-            continue;
-        }
-        let name = match path.file_name() {
-            Some(n) => n.to_string_lossy().to_string(),
-            None => continue,
-        };
-        if name.is_empty() {
-            continue;
-        }
-
-        let instruction = std::fs::read_to_string(&skill_file).unwrap_or_default();
-        let (metadata, description) = ccr::models::skill::Skill::parse_with_fallback(&instruction);
-
-        // 可选：读取 .skill-meta.json 元数据
-        let meta_path = path.join(".skill-meta.json");
-        let meta: serde_json::Value = if meta_path.exists() {
-            std::fs::read_to_string(&meta_path)
-                .ok()
-                .and_then(|s| serde_json::from_str(&s).ok())
-                .unwrap_or_default()
-        } else {
-            serde_json::Value::Null
-        };
-
-        let skill_dir = path.to_string_lossy().to_string();
-
-        skills.push(serde_json::json!({
-            "name": name,
-            "description": description,
-            "skill_dir": skill_dir,
-            "platform": platform_id,
-            "platform_name": platform_name,
-            "category": metadata.category,
-            "tags": metadata.tags,
-            "version": metadata.version,
-            "author": metadata.author,
-            // .skill-meta.json 中的安装元数据
-            "source": meta.get("source").and_then(|v| v.as_str()),
-            "source_url": meta.get("source_url").and_then(|v| v.as_str()),
-            "install_date": meta.get("install_date").and_then(|v| v.as_i64()),
-            "commit_hash": meta.get("commit_hash").and_then(|v| v.as_str()),
-        }));
-    }
-    skills
-}
-
-/// 统计目录下含 SKILL.md 的子目录数量。
-fn count_skills_in_dir(dir: &std::path::Path) -> usize {
-    if !dir.is_dir() {
-        return 0;
-    }
-    std::fs::read_dir(dir)
+    let mut skill_dirs: Vec<PathBuf> = std::fs::read_dir(base)
         .map(|entries| {
             entries
                 .flatten()
-                .filter(|e| e.path().is_dir() && e.path().join("SKILL.md").exists())
-                .count()
+                .map(|entry| entry.path())
+                .filter(|path| path.is_dir() && path.join("SKILL.md").exists())
+                .collect()
         })
-        .unwrap_or(0)
+        .unwrap_or_default();
+
+    skill_dirs.sort_by(|left, right| {
+        left.file_name()
+            .and_then(|name| name.to_str())
+            .cmp(&right.file_name().and_then(|name| name.to_str()))
+    });
+
+    skill_dirs
+}
+
+fn read_skill_meta(meta_path: &Path) -> serde_json::Value {
+    if !meta_path.exists() {
+        return serde_json::Value::Null;
+    }
+
+    std::fs::read_to_string(meta_path)
+        .ok()
+        .and_then(|raw| serde_json::from_str(&raw).ok())
+        .unwrap_or(serde_json::Value::Null)
+}
+
+fn summarize_skill_dir(
+    skill_dir: &Path,
+    platform_id: &str,
+    platform_name: &str,
+    skill_mtime_ms: u64,
+    meta_mtime_ms: Option<u64>,
+) -> Option<SkillSummaryCacheEntry> {
+    let skill_file = skill_dir.join("SKILL.md");
+    let name = skill_dir.file_name()?.to_string_lossy().to_string();
+    if name.is_empty() {
+        return None;
+    }
+
+    let instruction = std::fs::read_to_string(&skill_file).ok()?;
+    let (metadata, description) = ccr::models::skill::Skill::parse_with_fallback(&instruction);
+    let meta = read_skill_meta(&skill_dir.join(".skill-meta.json"));
+
+    Some(SkillSummaryCacheEntry {
+        name,
+        description,
+        skill_dir: skill_dir.to_string_lossy().to_string(),
+        platform: platform_id.to_string(),
+        platform_name: platform_name.to_string(),
+        category: metadata.category,
+        tags: metadata.tags,
+        version: metadata.version,
+        author: metadata.author,
+        source: meta
+            .get("source")
+            .and_then(|value| value.as_str())
+            .map(|value| value.to_string()),
+        source_url: meta
+            .get("source_url")
+            .and_then(|value| value.as_str())
+            .map(|value| value.to_string()),
+        install_date: meta.get("install_date").and_then(|value| value.as_i64()),
+        commit_hash: meta
+            .get("commit_hash")
+            .and_then(|value| value.as_str())
+            .map(|value| value.to_string()),
+        skill_mtime_ms,
+        meta_mtime_ms,
+    })
+}
+
+fn skill_cache_key(platform_id: &str, skill_dir: &Path) -> String {
+    format!("{}:{}", platform_id, skill_dir.to_string_lossy())
+}
+
+/// 扫描指定目录下的 skills（每个含 SKILL.md 的子目录为一个技能）。
+/// 返回 JSON 数组，每项包含 name/description/skill_dir/platform/platform_name/category/tags 等。
+fn scan_platform_skills(base: &Path, platform_id: &str, platform_name: &str) -> Vec<Value> {
+    enumerate_skill_dirs(base)
+        .into_iter()
+        .filter_map(|skill_dir| {
+            let skill_mtime_ms = file_mtime_ms(&skill_dir.join("SKILL.md"))?;
+            let meta_mtime_ms = file_mtime_ms(&skill_dir.join(".skill-meta.json"));
+            summarize_skill_dir(
+                &skill_dir,
+                platform_id,
+                platform_name,
+                skill_mtime_ms,
+                meta_mtime_ms,
+            )
+            .map(|entry| entry.to_json())
+        })
+        .collect()
+}
+
+fn scan_platform_skills_with_cache(
+    index: usize,
+    base: &Path,
+    platform_id: &str,
+    platform_name: &str,
+    cache: &HashMap<String, SkillSummaryCacheEntry>,
+) -> Result<PlatformScanResult, String> {
+    let started_at = Instant::now();
+    let detected = base.exists();
+    let mut skills = Vec::new();
+    let mut cache_entries = HashMap::new();
+    let mut cache_hits = 0;
+    let mut reparsed = 0;
+
+    for skill_dir in enumerate_skill_dirs(base) {
+        let skill_file = skill_dir.join("SKILL.md");
+        let skill_mtime_ms = match file_mtime_ms(&skill_file) {
+            Some(value) => value,
+            None => continue,
+        };
+        let meta_mtime_ms = file_mtime_ms(&skill_dir.join(".skill-meta.json"));
+        let cache_key = skill_cache_key(platform_id, &skill_dir);
+
+        if let Some(cached_entry) = cache
+            .get(&cache_key)
+            .filter(|entry| entry.matches(skill_mtime_ms, meta_mtime_ms))
+        {
+            cache_entries.insert(cache_key, cached_entry.clone());
+            skills.push(cached_entry.to_json());
+            cache_hits += 1;
+            continue;
+        }
+
+        if let Some(entry) = summarize_skill_dir(
+            &skill_dir,
+            platform_id,
+            platform_name,
+            skill_mtime_ms,
+            meta_mtime_ms,
+        ) {
+            skills.push(entry.to_json());
+            cache_entries.insert(cache_key, entry);
+            reparsed += 1;
+        }
+    }
+
+    Ok(PlatformScanResult {
+        index,
+        platform_summary: serde_json::json!({
+            "id": platform_id,
+            "display_name": platform_name,
+            "global_skills_dir": base.to_string_lossy(),
+            "detected": detected,
+            "installed_count": skills.len(),
+        }),
+        skills,
+        cache_entries,
+        cache_hits,
+        reparsed,
+        duration_ms: started_at.elapsed().as_millis(),
+    })
+}
+
+/// 统计目录下含 SKILL.md 的子目录数量。
+fn count_skills_in_dir(dir: &Path) -> usize {
+    enumerate_skill_dirs(dir).len()
 }
 
 /// 查找平台配置。
@@ -191,44 +406,104 @@ pub async fn skill_hub_agent_skills(agent_name: String) -> Result<Value, String>
 
 #[tauri::command]
 pub async fn skill_hub_unified(platform: Option<String>) -> Result<Value, String> {
-    let result = tokio::task::spawn_blocking(move || {
-        let home = dirs::home_dir().ok_or_else(|| "无法获取主目录".to_string())?;
-        let mut all_skills: Vec<Value> = Vec::new();
-        let mut platform_list: Vec<Value> = Vec::new();
+    let home = dirs::home_dir().ok_or_else(|| "无法获取主目录".to_string())?;
+    let cache_path = skill_summary_cache_path()?;
+    let cache_snapshot = Arc::new(load_skill_summary_cache(&cache_path).entries);
+    let semaphore = Arc::new(Semaphore::new(4));
+    let mut jobs = JoinSet::new();
 
-        let targets: Vec<(&str, &str, &str)> = if let Some(ref pid) = platform {
-            find_platform(pid).map(|p| vec![p]).unwrap_or_default()
-        } else {
-            PLATFORM_SKILLS_DIRS.to_vec()
-        };
+    let targets: Vec<(&str, &str, &str)> = if let Some(ref pid) = platform {
+        find_platform(pid).map(|entry| vec![entry]).unwrap_or_default()
+    } else {
+        PLATFORM_SKILLS_DIRS.to_vec()
+    };
 
-        for (id, display_name, rel_path) in &targets {
-            let dir = home.join(rel_path);
-            let detected = dir.exists();
-            let skills = scan_platform_skills(&dir, id, display_name);
-            let installed_count = skills.len();
+    for (index, (id, display_name, rel_path)) in targets.iter().copied().enumerate() {
+        let permit_pool = Arc::clone(&semaphore);
+        let base_dir = home.join(rel_path);
+        let cache_snapshot = Arc::clone(&cache_snapshot);
 
-            platform_list.push(serde_json::json!({
-                "id": id,
-                "display_name": display_name,
-                "global_skills_dir": dir.to_string_lossy(),
-                "detected": detected,
-                "installed_count": installed_count,
-            }));
-            all_skills.extend(skills);
-        }
+        jobs.spawn(async move {
+            let permit = permit_pool
+                .acquire_owned()
+                .await
+                .map_err(|e| format!("并发控制失败: {e}"))?;
 
-        let total = all_skills.len();
-        Ok::<_, String>(serde_json::json!({
-            "skills": all_skills,
-            "platforms": platform_list,
-            "total": total,
-        }))
-    })
-    .await
-    .map_err(|e| format!("Task join error: {e}"))??;
+            let task_result = tokio::task::spawn_blocking(move || {
+                scan_platform_skills_with_cache(
+                    index,
+                    &base_dir,
+                    id,
+                    display_name,
+                    cache_snapshot.as_ref(),
+                )
+            })
+            .await
+            .map_err(|e| format!("Task join error: {e}"))?;
 
-    Ok(result)
+            drop(permit);
+            task_result
+        });
+    }
+
+    let unified_started_at = Instant::now();
+    let mut results = Vec::new();
+    while let Some(joined) = jobs.join_next().await {
+        results.push(joined.map_err(|e| format!("Task join error: {e}"))??);
+    }
+    results.sort_by_key(|entry| entry.index);
+
+    let mut all_skills = Vec::new();
+    let mut platform_list = Vec::new();
+    let mut next_cache_entries = HashMap::new();
+    let mut total_cache_hits = 0usize;
+    let mut total_reparsed = 0usize;
+
+    for result in results {
+        debug!(
+            target: "ccr_ui::skill_hub",
+            platform = %result
+                .platform_summary
+                .get("id")
+                .and_then(|value| value.as_str())
+                .unwrap_or("unknown"),
+            installed_count = result.skills.len(),
+            cache_hits = result.cache_hits,
+            reparsed = result.reparsed,
+            duration_ms = result.duration_ms,
+            "completed platform skill scan"
+        );
+
+        platform_list.push(result.platform_summary);
+        all_skills.extend(result.skills);
+        next_cache_entries.extend(result.cache_entries);
+        total_cache_hits += result.cache_hits;
+        total_reparsed += result.reparsed;
+    }
+
+    if let Err(error) = save_skill_summary_cache(&cache_path, next_cache_entries) {
+        warn!(
+            target: "ccr_ui::skill_hub",
+            error = %error,
+            "failed to persist skill summary cache"
+        );
+    }
+
+    let total = all_skills.len();
+    debug!(
+        target: "ccr_ui::skill_hub",
+        total_skills = total,
+        total_cache_hits,
+        total_reparsed,
+        duration_ms = unified_started_at.elapsed().as_millis(),
+        "completed unified skill scan"
+    );
+
+    Ok(serde_json::json!({
+        "skills": all_skills,
+        "platforms": platform_list,
+        "total": total,
+    }))
 }
 
 // ── Step 4a: 读取 Skill 内容（新增） ──
@@ -1076,4 +1351,160 @@ pub async fn skill_hub_remove(skill_path: String) -> Result<Value, String> {
     })
     .await
     .map_err(|e| format!("Task join error: {e}"))?
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{
+        load_skill_summary_cache, save_skill_summary_cache, scan_platform_skills_with_cache,
+        SkillSummaryCacheEntry,
+    };
+    use std::{collections::HashMap, fs, path::Path, thread, time::Duration};
+
+    fn write_skill(
+        base: &Path,
+        name: &str,
+        content: &str,
+        meta: Option<&str>,
+    ) -> tempfile::TempDir {
+        let temp = tempfile::tempdir().expect("temp dir");
+        let skill_dir = temp.path().join(base).join(name);
+        fs::create_dir_all(&skill_dir).expect("create skill dir");
+        fs::write(skill_dir.join("SKILL.md"), content).expect("write skill");
+        if let Some(meta_content) = meta {
+            fs::write(skill_dir.join(".skill-meta.json"), meta_content).expect("write meta");
+        }
+        temp
+    }
+
+    fn cache_entries_of(
+        cache: &HashMap<String, SkillSummaryCacheEntry>,
+    ) -> HashMap<String, SkillSummaryCacheEntry> {
+        cache.clone()
+    }
+
+    #[test]
+    fn skill_summary_cache_reuses_unchanged_entries() {
+        let temp = write_skill(
+            Path::new(".codex/skills"),
+            "alpha",
+            "---\ndescription: Alpha desc\ncategory: ops\ntags: [sync]\nversion: 1.0.0\nauthor: CCR\n---\nBody",
+            Some(r#"{"source":"github","source_url":"https://example.com/alpha","install_date":123}"#),
+        );
+        let base = temp.path().join(".codex/skills");
+        let cache_path = temp.path().join("cache.json");
+
+        let cold = scan_platform_skills_with_cache(0, &base, "codex", "Codex", &HashMap::new())
+            .expect("cold scan");
+        assert_eq!(cold.skills.len(), 1);
+        assert_eq!(cold.cache_hits, 0);
+        assert_eq!(cold.reparsed, 1);
+
+        save_skill_summary_cache(&cache_path, cache_entries_of(&cold.cache_entries))
+            .expect("save cache");
+        let warm_cache = load_skill_summary_cache(&cache_path);
+        let warm = scan_platform_skills_with_cache(0, &base, "codex", "Codex", &warm_cache.entries)
+            .expect("warm scan");
+
+        assert_eq!(warm.skills.len(), 1);
+        assert_eq!(warm.cache_hits, 1);
+        assert_eq!(warm.reparsed, 0);
+    }
+
+    #[test]
+    fn skill_summary_cache_reparses_changed_skill_file_and_meta() {
+        let temp = write_skill(
+            Path::new(".codex/skills"),
+            "alpha",
+            "---\ndescription: Alpha desc\ncategory: ops\ntags: [sync]\n---\nBody",
+            Some(r#"{"source":"github","source_url":"https://example.com/alpha"}"#),
+        );
+        let base = temp.path().join(".codex/skills");
+        let cache_path = temp.path().join("cache.json");
+
+        let first = scan_platform_skills_with_cache(0, &base, "codex", "Codex", &HashMap::new())
+            .expect("initial scan");
+        save_skill_summary_cache(&cache_path, cache_entries_of(&first.cache_entries))
+            .expect("save cache");
+
+        let skill_dir = base.join("alpha");
+        thread::sleep(Duration::from_millis(20));
+        fs::write(
+            skill_dir.join("SKILL.md"),
+            "---\ndescription: Alpha changed\ncategory: ops\ntags: [sync, shell]\n---\nBody",
+        )
+        .expect("rewrite skill");
+
+        let cached_after_skill_change = load_skill_summary_cache(&cache_path);
+        let reparsed_skill = scan_platform_skills_with_cache(
+            0,
+            &base,
+            "codex",
+            "Codex",
+            &cached_after_skill_change.entries,
+        )
+        .expect("rescan after skill change");
+        assert_eq!(reparsed_skill.cache_hits, 0);
+        assert_eq!(reparsed_skill.reparsed, 1);
+        assert_eq!(
+            reparsed_skill.skills[0]
+                .get("description")
+                .and_then(|value| value.as_str()),
+            Some("Alpha changed")
+        );
+
+        save_skill_summary_cache(&cache_path, cache_entries_of(&reparsed_skill.cache_entries))
+            .expect("save reparsed cache");
+        thread::sleep(Duration::from_millis(20));
+        fs::write(
+            skill_dir.join(".skill-meta.json"),
+            r#"{"source":"marketplace","source_url":"https://skills.sh/alpha"}"#,
+        )
+        .expect("rewrite meta");
+
+        let cached_after_meta_change = load_skill_summary_cache(&cache_path);
+        let reparsed_meta = scan_platform_skills_with_cache(
+            0,
+            &base,
+            "codex",
+            "Codex",
+            &cached_after_meta_change.entries,
+        )
+        .expect("rescan after meta change");
+        assert_eq!(reparsed_meta.cache_hits, 0);
+        assert_eq!(reparsed_meta.reparsed, 1);
+        assert_eq!(
+            reparsed_meta.skills[0]
+                .get("source")
+                .and_then(|value| value.as_str()),
+            Some("marketplace")
+        );
+    }
+
+    #[test]
+    fn skill_summary_cache_drops_deleted_directories() {
+        let temp = write_skill(
+            Path::new(".codex/skills"),
+            "alpha",
+            "---\ndescription: Alpha desc\n---\nBody",
+            None,
+        );
+        let base = temp.path().join(".codex/skills");
+        let cache_path = temp.path().join("cache.json");
+
+        let first = scan_platform_skills_with_cache(0, &base, "codex", "Codex", &HashMap::new())
+            .expect("initial scan");
+        save_skill_summary_cache(&cache_path, cache_entries_of(&first.cache_entries))
+            .expect("save cache");
+
+        fs::remove_dir_all(base.join("alpha")).expect("remove skill dir");
+
+        let loaded = load_skill_summary_cache(&cache_path);
+        let after_delete =
+            scan_platform_skills_with_cache(0, &base, "codex", "Codex", &loaded.entries)
+                .expect("scan after delete");
+
+        assert!(after_delete.skills.is_empty());
+        assert!(after_delete.cache_entries.is_empty());
+    }
 }

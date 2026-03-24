@@ -10,25 +10,40 @@
       compact
     />
 
-    <!-- Skills List (single column) -->
+    <!-- Skills List (virtualized) -->
     <div
-      v-else
-      class="skills-list"
+      v-else-if="skills.length > 0"
+      ref="scrollRef"
+      class="skills-viewport"
+      data-testid="skills-installed-viewport"
     >
-      <SkillCard
-        v-for="skill in skills"
-        :key="`${skill.platform}-${skill.name}`"
-        :skill="skill"
-        @click="$emit('click', skill)"
-        @edit="$emit('edit', skill)"
-        @delete="$emit('delete', skill)"
-      />
+      <div
+        class="skills-list"
+        :style="{ height: `${rowVirtualizer.getTotalSize()}px` }"
+      >
+        <div
+          v-for="virtualRow in virtualItems"
+          :key="`${skills[virtualRow.index]?.platform}-${skills[virtualRow.index]?.name}`"
+          class="skills-list__item"
+          data-testid="skills-installed-row"
+          :style="{ transform: `translateY(${virtualRow.start}px)` }"
+        >
+          <div :ref="measureElement">
+            <SkillCard
+              :skill="skills[virtualRow.index]"
+              @click="$emit('click', skills[virtualRow.index])"
+              @edit="$emit('edit', skills[virtualRow.index])"
+              @delete="$emit('delete', skills[virtualRow.index])"
+            />
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Loading Skeleton (single column list) -->
     <div
       v-if="isLoading && skills.length === 0"
-      class="skills-list"
+      class="skills-skeleton-list"
     >
       <div
         v-for="i in 4"
@@ -67,9 +82,11 @@
 <script setup lang="ts">
 import { AsyncStatePanel } from '@/components/ui'
 import SkillCard from '@/components/skills/SkillCard.vue'
+import { useVirtualizer } from '@tanstack/vue-virtual'
+import { computed, ref } from 'vue'
 import type { UnifiedSkill } from '@/types/skills'
 
-defineProps<{
+const props = defineProps<{
   skills: UnifiedSkill[]
   isLoading: boolean
 }>()
@@ -79,6 +96,23 @@ defineEmits<{
   (e: 'edit', skill: UnifiedSkill): void
   (e: 'delete', skill: UnifiedSkill): void
 }>()
+
+const scrollRef = ref<HTMLElement | null>(null)
+
+const rowVirtualizer = useVirtualizer(computed(() => ({
+  count: props.skills.length,
+  getScrollElement: () => scrollRef.value,
+  estimateSize: () => 184,
+  overscan: 8,
+})))
+
+const virtualItems = computed(() => rowVirtualizer.value.getVirtualItems())
+
+const measureElement = (el: unknown) => {
+  if (el instanceof Element) {
+    rowVirtualizer.value.measureElement(el)
+  }
+}
 </script>
 
 <style scoped>
@@ -86,7 +120,21 @@ defineEmits<{
   @apply mt-4;
 }
 
+.skills-viewport {
+  @apply overflow-y-auto pr-1;
+
+  height: clamp(26rem, calc(100vh - 20rem), 64rem);
+}
+
 .skills-list {
+  @apply relative w-full;
+}
+
+.skills-list__item {
+  @apply absolute left-0 top-0 w-full pb-3;
+}
+
+.skills-skeleton-list {
   @apply flex flex-col gap-3;
 }
 
@@ -94,7 +142,7 @@ defineEmits<{
 .skeleton-row {
   @apply flex flex-row items-start gap-4 p-4 rounded-2xl border border-white/5;
 
-  background: rgb(0 0 0 / 30%);
+  background: rgb(var(--color-bg-elevated-rgb) / 88%);
 }
 
 .skeleton-platform {
@@ -102,11 +150,15 @@ defineEmits<{
 }
 
 .skeleton-icon {
-  @apply w-12 h-12 rounded-xl glass-surface animate-pulse;
+  @apply w-12 h-12 rounded-xl animate-pulse border border-white/10;
+
+  background: rgb(var(--color-bg-overlay-rgb) / 72%);
 }
 
 .skeleton-badge {
-  @apply w-14 h-4 rounded-full glass-surface animate-pulse;
+  @apply w-14 h-4 rounded-full animate-pulse border border-white/10;
+
+  background: rgb(var(--color-bg-overlay-rgb) / 72%);
 }
 
 .skeleton-body {
@@ -118,15 +170,21 @@ defineEmits<{
 }
 
 .skeleton-name {
-  @apply w-36 h-5 rounded glass-surface animate-pulse;
+  @apply w-36 h-5 rounded animate-pulse border border-white/10;
+
+  background: rgb(var(--color-bg-overlay-rgb) / 72%);
 }
 
 .skeleton-category {
-  @apply w-20 h-4 rounded-md glass-surface animate-pulse;
+  @apply w-20 h-4 rounded-md animate-pulse border border-white/10;
+
+  background: rgb(var(--color-bg-overlay-rgb) / 72%);
 }
 
 .skeleton-description {
-  @apply w-full h-10 rounded glass-surface animate-pulse;
+  @apply w-full h-10 rounded animate-pulse border border-white/10;
+
+  background: rgb(var(--color-bg-overlay-rgb) / 72%);
 }
 
 .skeleton-tags {
@@ -134,11 +192,15 @@ defineEmits<{
 }
 
 .skeleton-tag {
-  @apply w-14 h-5 rounded-md glass-surface animate-pulse;
+  @apply w-14 h-5 rounded-md animate-pulse border border-white/10;
+
+  background: rgb(var(--color-bg-overlay-rgb) / 72%);
 }
 
 .skeleton-path {
-  @apply w-48 h-4 rounded glass-surface animate-pulse;
+  @apply w-48 h-4 rounded animate-pulse border border-white/10;
+
+  background: rgb(var(--color-bg-overlay-rgb) / 72%);
 }
 
 .skeleton-actions {
@@ -146,6 +208,8 @@ defineEmits<{
 }
 
 .skeleton-action-btn {
-  @apply w-8 h-8 rounded-lg glass-surface animate-pulse;
+  @apply w-8 h-8 rounded-lg animate-pulse border border-white/10;
+
+  background: rgb(var(--color-bg-overlay-rgb) / 72%);
 }
 </style>

@@ -87,6 +87,7 @@
           :stats="stats"
           :platforms="platforms"
           :cached="marketplaceCached"
+          :marketplace-loaded="marketplaceLoaded"
           :active-platform="filters.platform"
         />
 
@@ -257,6 +258,11 @@ import SkillsStatsCards from '@/components/skills/SkillsStatsCards.vue'
 import SkillsInstalledTab from '@/components/skills/SkillsInstalledTab.vue'
 import SkillInstallToast from '@/components/skills/SkillInstallToast.vue'
 import { logger } from '@/utils/logger'
+import { toInstalledPackageSet } from '@/utils/skills'
+
+defineOptions({
+  name: 'UnifiedSkillsView',
+})
 
 // 懒加载: Tab 内容（按需加载，切换 tab 时才触发）
 const SkillsMarketplaceTab = defineAsyncComponent(
@@ -281,8 +287,10 @@ const { t } = useI18n()
 const uiStore = useUIStore()
 
 const {
+  skills,
   platforms,
   marketplaceItems,
+  marketplaceLoaded,
   isLoading,
   isMarketplaceLoading,
   error,
@@ -295,7 +303,7 @@ const {
   availableTags,
   stats,
   installProgress,
-  setFilter,
+  setFilters,
   setActiveTab,
   initialize,
   refresh,
@@ -329,11 +337,7 @@ const showMobileFilter = ref(false)
 
 // Installed packages set (for marketplace installed detection)
 const installedPackageSet = computed(() => {
-  const set = new Set<string>()
-  for (const skill of filteredSkills.value) {
-    set.add(skill.name)
-  }
-  return set
+  return toInstalledPackageSet(skills.value)
 })
 
 // Filter panel v-model binding (includes platform)
@@ -346,11 +350,7 @@ const filterPanelValue = computed({
     platform: filters.value.platform
   }),
   set: (value: SkillFilters) => {
-    setFilter('search', value.search)
-    setFilter('source', value.source)
-    setFilter('category', value.category)
-    setFilter('tags', value.tags)
-    setFilter('platform', value.platform)
+    setFilters(value)
   }
 })
 
@@ -387,7 +387,7 @@ const contentTabs = computed(() => [
 
 // Event handlers
 async function handleRefresh() {
-  await refresh()
+  await refresh(activeTab.value === 'marketplace')
 }
 
 function handleSkillClick(skill: UnifiedSkill) {
@@ -410,7 +410,7 @@ function handleDeleteSkill(skill: UnifiedSkill) {
 async function confirmDeleteSkill(skill: UnifiedSkill) {
   try {
     await removeSkill({
-      skill: skill.name,
+      skill: skill.skillDir,
       agents: [skill.platform]
     })
     showDeleteModal.value = false
@@ -468,13 +468,13 @@ async function handleBatchInstall(packages: string[]) {
 
 // Initialize on mount
 onMounted(() => {
-  initialize()
+  void initialize(false)
 })
 
 // Watch for tab changes to fetch marketplace data
 watch(activeTab, (newTab) => {
-  if (newTab === 'marketplace' && marketplaceItems.value.length === 0) {
-    fetchMarketplaceTrending()
+  if (newTab === 'marketplace' && !marketplaceLoaded.value && !isMarketplaceLoading.value) {
+    void fetchMarketplaceTrending()
   }
 })
 </script>

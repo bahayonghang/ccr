@@ -183,17 +183,18 @@ function handleClick() {
 <style scoped>
 .mp-card {
   @apply relative flex flex-col gap-3 p-4 rounded-2xl cursor-default
-         border border-white/10 text-white backdrop-blur-xl
+         border border-white/10 text-white
          transition-[color,background-color,border-color,box-shadow,transform] duration-200 ease-out
          overflow-hidden;
 
-  background: rgb(0 0 0 / 40%);
+  background: rgb(var(--color-bg-elevated-rgb) / 92%);
+  contain: layout paint;
 }
 
 .mp-card:hover {
   @apply border-white/20 transform scale-[1.01];
 
-  background: rgb(0 0 0 / 50%);
+  background: rgb(var(--color-bg-surface-rgb) / 96%);
   box-shadow: 0 4px 20px rgb(0 0 0 / 20%);
 }
 

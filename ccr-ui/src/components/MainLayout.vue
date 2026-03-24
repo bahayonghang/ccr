@@ -320,6 +320,7 @@ const appVersionLabel = APP_VERSION_LABEL
 const navSections = mainLayoutNavSections
 const cachedViews = [
   'ConfigsView', 'CommandsView', 'CodexAuthView', 'CodexProfilesView', 'CodexMcpView',
+  'UnifiedSkillsView',
 ]
 
 const currentPageTitle = computed(() => {

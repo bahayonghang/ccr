@@ -116,6 +116,7 @@ export function useUnifiedSkills() {
     skills,
     platforms,
     marketplaceItems,
+    marketplaceLoaded,
     isLoading,
     isMarketplaceLoading,
     error,
@@ -420,16 +421,24 @@ export function useUnifiedSkills() {
   }
 
   let initPromise: Promise<void> | null = null
-  async function initialize() {
-    if (isSkillsCacheValid.value && isMarketplaceCacheValid.value) return
+  async function initialize(preloadMarketplace = false) {
+    if (isSkillsCacheValid.value && (!preloadMarketplace || isMarketplaceCacheValid.value)) return
     if (initPromise) return initPromise
-    initPromise = Promise.all([fetchAllSkills(), fetchMarketplaceTrending()]).then(() => {})
+    const tasks: Array<Promise<unknown>> = [fetchAllSkills()]
+    if (preloadMarketplace) {
+      tasks.push(fetchMarketplaceTrending())
+    }
+    initPromise = Promise.all(tasks).then(() => {})
     return initPromise
   }
 
-  async function refresh() {
+  async function refresh(includeMarketplace = false) {
     initPromise = null
-    await Promise.all([fetchAllSkills(true), fetchMarketplaceTrending(30, 1, true)])
+    const tasks: Array<Promise<unknown>> = [fetchAllSkills(true)]
+    if (includeMarketplace) {
+      tasks.push(fetchMarketplaceTrending(30, 1, true))
+    }
+    await Promise.all(tasks)
   }
 
   async function refreshMarketplaceCache() {
@@ -542,6 +551,7 @@ export function useUnifiedSkills() {
     skills,
     platforms,
     marketplaceItems,
+    marketplaceLoaded,
     isLoading,
     isMarketplaceLoading,
     error,
@@ -565,6 +575,7 @@ export function useUnifiedSkills() {
     skillsByPlatform,
 
     setFilter: store.setFilter,
+    setFilters: store.setFilters,
     resetFilters: store.resetFilters,
     setActiveTab: store.setActiveTab,
     toggleBatchMode: store.toggleBatchMode,

@@ -303,11 +303,12 @@ function handleKeydown(event: KeyboardEvent) {
 <style scoped>
 .skill-card {
   @apply relative flex flex-row items-start gap-4 p-4 pl-5 rounded-2xl cursor-pointer
-         backdrop-blur-xl border border-border-default/40 text-text-primary
+         border border-border-default/40 text-text-primary
          transition-[color,background-color,border-color,box-shadow,transform] duration-200 ease-out
          overflow-hidden;
 
-  background: rgb(var(--color-bg-elevated-rgb) / 78%);
+  background: rgb(var(--color-bg-elevated-rgb) / 92%);
+  contain: layout paint;
 }
 
 .skill-card:hover {

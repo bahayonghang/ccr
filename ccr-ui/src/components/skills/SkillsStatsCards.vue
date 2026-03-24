@@ -35,13 +35,20 @@
           />
         </div>
         <div class="stats-card__content">
-          <span class="stats-card__value">
-            {{ stats.available > 1000 ? formatNumber(stats.available) : stats.available }}
+          <span
+            class="stats-card__value"
+            :class="{ 'stats-card__value--placeholder': !marketplaceLoaded }"
+          >
+            {{
+              marketplaceLoaded
+                ? (stats.available > 1000 ? formatNumber(stats.available) : stats.available)
+                : '…'
+            }}
           </span>
           <span class="stats-card__label">{{ $t('skills.statsAvailable') }}</span>
         </div>
         <div
-          v-if="cached"
+          v-if="cached && marketplaceLoaded"
           class="stats-card__badge"
         >
           <SIcon
@@ -116,6 +123,7 @@ const props = defineProps<{
   stats: SkillsStats
   platforms: PlatformSummary[]
   cached?: boolean
+  marketplaceLoaded?: boolean
   activePlatform?: Platform | 'all'
 }>()
 
@@ -162,12 +170,11 @@ function formatNumber(num: number): string {
 
 .stats-card {
   @apply relative flex items-center gap-3 px-4 py-3 rounded-xl
-         backdrop-blur-md
          border border-white/5
          transition-[border-color,box-shadow] duration-300
          hover:border-white/10 hover:shadow-lg;
 
-  background: rgb(0 0 0 / 30%);
+  background: rgb(var(--color-bg-elevated-rgb) / 88%);
   min-width: 140px;
 }
 
@@ -209,22 +216,28 @@ function formatNumber(num: number): string {
   @apply text-[10px] text-white/80 uppercase tracking-wide;
 }
 
+.stats-card__value--placeholder {
+  @apply text-white/55;
+}
+
 .stats-card__trend {
   @apply absolute top-2 right-2 text-accent-primary animate-pulse;
 }
 
 .stats-card__badge {
   @apply absolute top-2 right-2 flex items-center gap-1
-         px-1.5 py-0.5 rounded-full text-[9px] font-medium
-         glass-surface text-white/50;
+         px-1.5 py-0.5 rounded-full text-[9px] font-medium text-white/50
+         border border-white/10;
+
+  background: rgb(var(--color-bg-overlay-rgb) / 80%);
 }
 
 /* Right platform overview */
 .platform-overview {
   @apply flex-1 flex flex-col gap-2 px-4 py-3 rounded-xl
-         backdrop-blur-md border border-white/5;
+         border border-white/5;
 
-  background: rgb(0 0 0 / 30%);
+  background: rgb(var(--color-bg-elevated-rgb) / 88%);
 }
 
 .platform-overview__header {
@@ -233,7 +246,9 @@ function formatNumber(num: number): string {
 
 .platform-overview__count {
   @apply ml-auto px-1.5 py-0.5 rounded text-[10px] font-bold font-mono
-         glass-surface text-white/50;
+         text-white/50 border border-white/10;
+
+  background: rgb(var(--color-bg-overlay-rgb) / 80%);
 }
 
 .platform-chips {
@@ -274,7 +289,9 @@ function formatNumber(num: number): string {
 
 .platform-chip__count {
   @apply px-1.5 py-0.5 rounded text-[10px] font-bold font-mono
-         glass-surface text-white/50;
+         text-white/50 border border-white/10;
+
+  background: rgb(var(--color-bg-overlay-rgb) / 80%);
 }
 
 .platform-chip__count--highlight {

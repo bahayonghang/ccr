@@ -3,7 +3,7 @@
  * Pinia 状态管理 for Skills Hub
  */
 import { defineStore } from 'pinia'
-import { ref, computed, watch, shallowRef, triggerRef } from 'vue'
+import { ref, computed, shallowRef, triggerRef } from 'vue'
 import { useCachedFetch } from '@/composables/useCachedFetch'
 import type {
   SkillFilters,
@@ -37,6 +37,7 @@ export const useSkillsStore = defineStore('skills', () => {
   const error = ref<string | null>(null)
   const marketplaceError = ref<string | null>(null)
   const marketplaceCached = ref(false)
+  const marketplaceLoaded = ref(false)
 
   // 缓存时间戳（0 表示从未加载）
   const skillsLastFetchedAt = skillsCache.lastFetchedAt
@@ -68,14 +69,6 @@ export const useSkillsStore = defineStore('skills', () => {
     platform: 'all'
   })
 
-  // 防抖搜索值（250ms 延迟）
-  const debouncedSearch = ref('')
-  let searchTimer: ReturnType<typeof setTimeout> | null = null
-  watch(() => filters.value.search, (val) => {
-    if (searchTimer) clearTimeout(searchTimer)
-    searchTimer = setTimeout(() => { debouncedSearch.value = val }, 250)
-  })
-
   // Active content tab
   const activeTab = ref<ContentTab>('installed')
 
@@ -88,9 +81,9 @@ export const useSkillsStore = defineStore('skills', () => {
       result = result.filter(s => s.platform === filters.value.platform)
     }
 
-    // Filter by search query (debounced)
-    if (debouncedSearch.value) {
-      const query = debouncedSearch.value.toLowerCase()
+    // Filter by search query
+    if (filters.value.search.trim()) {
+      const query = filters.value.search.trim().toLowerCase()
       result = result.filter(s =>
         s.name.toLowerCase().includes(query) ||
         s.description?.toLowerCase().includes(query) ||
@@ -170,31 +163,67 @@ export const useSkillsStore = defineStore('skills', () => {
     return grouped
   })
 
-  // Actions
-  function setFilter<K extends keyof SkillFilters>(key: K, value: SkillFilters[K]) {
-    filters.value[key] = value
+  function getFacetOptionsForPlatform(platform: SkillFilters['platform']) {
+    const baseSkills = platform === 'all'
+      ? skills.value
+      : skills.value.filter((skill) => skill.platform === platform)
 
-    // When platform changes, clear category and tags that may not exist in the new platform
-    if (key === 'platform') {
-      // Clear category if it no longer exists in the new platform's categories
-      if (filters.value.category && !availableCategories.value.includes(filters.value.category)) {
-        filters.value.category = null
-      }
-      // Clear tags that no longer exist in the new platform's tags
-      if (filters.value.tags.length > 0) {
-        filters.value.tags = filters.value.tags.filter(t => availableTags.value.includes(t))
-      }
+    const categories = new Set<string>()
+    const tags = new Set<string>()
+
+    for (const skill of baseSkills) {
+      if (skill.category) categories.add(skill.category)
+      for (const tag of skill.tags) tags.add(tag)
+    }
+
+    return {
+      categories,
+      tags,
     }
   }
 
+  function normalizeFilters(nextFilters: SkillFilters): SkillFilters {
+    const normalized: SkillFilters = {
+      search: nextFilters.search,
+      source: nextFilters.source,
+      category: nextFilters.category,
+      tags: [...nextFilters.tags],
+      platform: nextFilters.platform,
+    }
+
+    const { categories, tags } = getFacetOptionsForPlatform(normalized.platform)
+
+    if (normalized.category && !categories.has(normalized.category)) {
+      normalized.category = null
+    }
+
+    if (normalized.tags.length > 0) {
+      normalized.tags = normalized.tags.filter((tag) => tags.has(tag))
+    }
+
+    return normalized
+  }
+
+  // Actions
+  function setFilter<K extends keyof SkillFilters>(key: K, value: SkillFilters[K]) {
+    setFilters({
+      ...filters.value,
+      [key]: value
+    })
+  }
+
+  function setFilters(nextFilters: SkillFilters) {
+    filters.value = normalizeFilters(nextFilters)
+  }
+
   function resetFilters() {
-    filters.value = {
+    setFilters({
       search: '',
       source: 'all',
       category: null,
       tags: [],
       platform: 'all'
-    }
+    })
   }
 
   function setActiveTab(tab: ContentTab) {
@@ -212,6 +241,7 @@ export const useSkillsStore = defineStore('skills', () => {
   function setMarketplaceItems(items: MarketplaceItem[], cached: boolean) {
     marketplaceCache.setData(items)
     marketplaceCached.value = cached
+    marketplaceLoaded.value = true
   }
 
   function setLoading(loading: boolean) {
@@ -288,6 +318,7 @@ export const useSkillsStore = defineStore('skills', () => {
     error,
     marketplaceError,
     marketplaceCached,
+    marketplaceLoaded,
     filters,
     activeTab,
     // 新增状态
@@ -315,6 +346,7 @@ export const useSkillsStore = defineStore('skills', () => {
 
     // Actions
     setFilter,
+    setFilters,
     resetFilters,
     setActiveTab,
     setSkills,
