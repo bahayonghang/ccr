@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-full p-5 transition-colors duration-300">
+  <div class="hooks-view">
     <div class="mb-6" />
     <div class="mx-auto max-w-[1600px]">
       <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -17,7 +17,7 @@
           </span>
         </div>
         <button
-          class="flex min-h-[44px] w-full items-center justify-center rounded-lg bg-accent-secondary px-4 py-2 font-medium text-white shadow-md transition-[color,background-color,border-color,transform] hover:scale-105 hover:shadow-lg sm:w-auto"
+          class="hooks-primary-button"
           @click="openCreateGroup()"
         >
           <SIcon
@@ -111,7 +111,7 @@
                 </p>
               </div>
               <button
-                class="inline-flex min-h-[44px] items-center justify-center rounded-lg border border-accent-secondary/20 bg-accent-secondary/10 px-3 py-2 text-sm font-medium text-accent-secondary transition-colors hover:bg-accent-secondary/15"
+                class="hooks-secondary-button"
                 @click="openCreateGroup(eventName)"
               >
                 <SIcon
@@ -147,7 +147,7 @@
 
                   <div class="flex items-center gap-2">
                     <button
-                      class="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-md text-accent-secondary transition-colors hover:bg-accent-secondary/10"
+                      class="hooks-icon-button hooks-icon-button--accent"
                       @click="openEditGroup(eventName, groupIndex)"
                     >
                       <SIcon
@@ -156,7 +156,7 @@
                       />
                     </button>
                     <button
-                      class="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-md text-accent-danger transition-colors hover:bg-accent-danger/10"
+                      class="hooks-icon-button hooks-icon-button--danger"
                       @click="handleDeleteGroup(eventName, groupIndex)"
                     >
                       <SIcon
@@ -200,7 +200,7 @@
                       </div>
 
                       <button
-                        class="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-md text-accent-danger transition-colors hover:bg-accent-danger/10"
+                        class="hooks-icon-button hooks-icon-button--danger"
                         @click="handleDeleteHandler(eventName, groupIndex, handlerIndex)"
                       >
                         <SIcon
@@ -219,15 +219,15 @@
       <Teleport to="body">
         <div
           v-if="showModal"
-          class="fixed inset-0 z-50 flex items-center justify-center bg-black/20 p-4 backdrop-blur-md"
+          class="hooks-modal-overlay"
           @click="closeModal"
         >
           <div
-            class="relative max-h-[88vh] w-full max-w-4xl overflow-y-auto rounded-2xl border border-border-default bg-bg-elevated p-8 shadow-2xl"
+            class="hooks-modal-panel"
             @click.stop
           >
             <button
-              class="absolute right-4 top-4 flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full text-text-muted transition-colors hover:bg-bg-surface"
+              class="hooks-modal-close"
               @click="closeModal"
             >
               <SIcon
@@ -248,32 +248,32 @@
             <div class="space-y-6">
               <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div>
-                  <label class="mb-1.5 block text-sm font-semibold text-text-secondary">Event</label>
+                  <label class="hooks-field-label">Event</label>
                   <input
                     v-model="groupForm.event"
                     list="known-hook-events"
                     type="text"
-                    class="w-full rounded-lg border border-border-default bg-bg-surface px-4 py-2.5 outline-none transition-colors focus:border-accent-secondary focus:ring-1 focus:ring-accent-secondary"
+                    class="hooks-input"
                     placeholder="PreToolUse"
                   >
                 </div>
                 <div>
-                  <label class="mb-1.5 block text-sm font-semibold text-text-secondary">Matcher</label>
+                  <label class="hooks-field-label">Matcher</label>
                   <input
                     v-model="groupForm.matcher"
                     type="text"
-                    class="w-full rounded-lg border border-border-default bg-bg-surface px-4 py-2.5 outline-none transition-colors focus:border-accent-secondary focus:ring-1 focus:ring-accent-secondary"
+                    class="hooks-input"
                     placeholder="Write|Edit"
                   >
                 </div>
               </div>
 
               <div>
-                <label class="mb-1.5 block text-sm font-semibold text-text-secondary">Group Advanced JSON</label>
+                <label class="hooks-field-label">Group Advanced JSON</label>
                 <textarea
                   v-model="groupForm.groupExtraJson"
                   rows="4"
-                  class="w-full resize-y rounded-lg border border-border-default bg-bg-surface px-4 py-3 font-mono text-sm outline-none transition-colors focus:border-accent-secondary focus:ring-1 focus:ring-accent-secondary"
+                  class="hooks-input hooks-input--mono hooks-input--textarea"
                   placeholder="{&#10;  &quot;source&quot;: &quot;user&quot;&#10;}"
                 />
               </div>
@@ -284,7 +284,7 @@
                     Handlers
                   </h4>
                   <button
-                    class="inline-flex min-h-[44px] items-center justify-center rounded-lg border border-accent-secondary/20 bg-accent-secondary/10 px-3 py-2 text-sm font-medium text-accent-secondary transition-colors hover:bg-accent-secondary/15"
+                    class="hooks-secondary-button"
                     @click="addHandlerForm()"
                   >
                     <SIcon
@@ -306,7 +306,7 @@
                       Handler {{ handlerIndex + 1 }}
                     </h5>
                     <button
-                      class="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-md text-accent-danger transition-colors hover:bg-accent-danger/10"
+                      class="hooks-icon-button hooks-icon-button--danger"
                       :disabled="groupForm.handlers.length === 1"
                       @click="removeHandlerForm(handlerIndex)"
                     >
@@ -319,21 +319,21 @@
 
                   <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
                     <div>
-                      <label class="mb-1.5 block text-sm font-semibold text-text-secondary">Type</label>
+                      <label class="hooks-field-label">Type</label>
                       <input
                         v-model="handler.type"
                         list="known-handler-types"
                         type="text"
-                        class="w-full rounded-lg border border-border-default bg-bg-surface px-4 py-2.5 outline-none transition-colors focus:border-accent-secondary focus:ring-1 focus:ring-accent-secondary"
+                        class="hooks-input"
                         placeholder="command"
                       >
                     </div>
                     <div>
-                      <label class="mb-1.5 block text-sm font-semibold text-text-secondary">Timeout (seconds)</label>
+                      <label class="hooks-field-label">Timeout (seconds)</label>
                       <input
                         v-model="handler.timeout"
                         type="text"
-                        class="w-full rounded-lg border border-border-default bg-bg-surface px-4 py-2.5 outline-none transition-colors focus:border-accent-secondary focus:ring-1 focus:ring-accent-secondary"
+                        class="hooks-input"
                         placeholder="30"
                       >
                     </div>
@@ -344,21 +344,21 @@
                     class="space-y-4"
                   >
                     <div>
-                      <label class="mb-1.5 block text-sm font-semibold text-text-secondary">Command</label>
+                      <label class="hooks-field-label">Command</label>
                       <input
                         v-model="handler.command"
                         type="text"
-                        class="w-full rounded-lg border border-border-default bg-bg-surface px-4 py-2.5 font-mono text-sm outline-none transition-colors focus:border-accent-secondary focus:ring-1 focus:ring-accent-secondary"
+                        class="hooks-input hooks-input--mono"
                         placeholder="./scripts/check-style.sh"
                       >
                     </div>
-                    <label class="flex cursor-pointer items-center gap-3">
+                    <label class="hooks-checkbox">
                       <input
                         v-model="handler.asyncEnabled"
                         type="checkbox"
                         class="h-4 w-4 rounded border-border-default text-accent-secondary focus:ring-accent-secondary"
                       >
-                      <span class="text-sm font-semibold text-text-secondary">Run asynchronously</span>
+                      <span class="hooks-checkbox__label">Run asynchronously</span>
                     </label>
                   </div>
 
@@ -367,41 +367,41 @@
                     class="space-y-4"
                   >
                     <div>
-                      <label class="mb-1.5 block text-sm font-semibold text-text-secondary">URL</label>
+                      <label class="hooks-field-label">URL</label>
                       <input
                         v-model="handler.url"
                         type="text"
-                        class="w-full rounded-lg border border-border-default bg-bg-surface px-4 py-2.5 font-mono text-sm outline-none transition-colors focus:border-accent-secondary focus:ring-1 focus:ring-accent-secondary"
+                        class="hooks-input hooks-input--mono"
                         placeholder="https://example.com/hooks"
                       >
                     </div>
                     <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
                       <div>
-                        <label class="mb-1.5 block text-sm font-semibold text-text-secondary">Headers JSON</label>
+                        <label class="hooks-field-label">Headers JSON</label>
                         <textarea
                           v-model="handler.headersJson"
                           rows="4"
-                          class="w-full resize-y rounded-lg border border-border-default bg-bg-surface px-4 py-3 font-mono text-sm outline-none transition-colors focus:border-accent-secondary focus:ring-1 focus:ring-accent-secondary"
+                          class="hooks-input hooks-input--mono hooks-input--textarea"
                           placeholder="{&#10;  &quot;Authorization&quot;: &quot;Bearer ...&quot;&#10;}"
                         />
                       </div>
                       <div>
-                        <label class="mb-1.5 block text-sm font-semibold text-text-secondary">Allowed Env Vars</label>
+                        <label class="hooks-field-label">Allowed Env Vars</label>
                         <textarea
                           v-model="handler.allowedEnvVarsText"
                           rows="4"
-                          class="w-full resize-y rounded-lg border border-border-default bg-bg-surface px-4 py-3 font-mono text-sm outline-none transition-colors focus:border-accent-secondary focus:ring-1 focus:ring-accent-secondary"
+                          class="hooks-input hooks-input--mono hooks-input--textarea"
                           placeholder="OPENAI_API_KEY, GITHUB_TOKEN"
                         />
                       </div>
                     </div>
-                    <label class="flex cursor-pointer items-center gap-3">
+                    <label class="hooks-checkbox">
                       <input
                         v-model="handler.asyncEnabled"
                         type="checkbox"
                         class="h-4 w-4 rounded border-border-default text-accent-secondary focus:ring-accent-secondary"
                       >
-                      <span class="text-sm font-semibold text-text-secondary">Run asynchronously</span>
+                      <span class="hooks-checkbox__label">Run asynchronously</span>
                     </label>
                   </div>
 
@@ -410,56 +410,56 @@
                     class="space-y-4"
                   >
                     <div>
-                      <label class="mb-1.5 block text-sm font-semibold text-text-secondary">Prompt</label>
+                      <label class="hooks-field-label">Prompt</label>
                       <textarea
                         v-model="handler.prompt"
                         rows="4"
-                        class="w-full resize-y rounded-lg border border-border-default bg-bg-surface px-4 py-3 font-mono text-sm outline-none transition-colors focus:border-accent-secondary focus:ring-1 focus:ring-accent-secondary"
+                        class="hooks-input hooks-input--mono hooks-input--textarea"
                         placeholder="Evaluate this action and return JSON"
                       />
                     </div>
                     <div>
-                      <label class="mb-1.5 block text-sm font-semibold text-text-secondary">Model</label>
+                      <label class="hooks-field-label">Model</label>
                       <input
                         v-model="handler.model"
                         type="text"
-                        class="w-full rounded-lg border border-border-default bg-bg-surface px-4 py-2.5 outline-none transition-colors focus:border-accent-secondary focus:ring-1 focus:ring-accent-secondary"
+                        class="hooks-input"
                         placeholder="claude-haiku-4-5"
                       >
                     </div>
                   </div>
 
                   <div>
-                    <label class="mb-1.5 block text-sm font-semibold text-text-secondary">Status Message</label>
+                    <label class="hooks-field-label">Status Message</label>
                     <input
                       v-model="handler.statusMessage"
                       type="text"
-                      class="w-full rounded-lg border border-border-default bg-bg-surface px-4 py-2.5 outline-none transition-colors focus:border-accent-secondary focus:ring-1 focus:ring-accent-secondary"
+                      class="hooks-input"
                       placeholder="Checking style..."
                     >
                   </div>
 
                   <div>
-                    <label class="mb-1.5 block text-sm font-semibold text-text-secondary">Handler Advanced JSON</label>
+                    <label class="hooks-field-label">Handler Advanced JSON</label>
                     <textarea
                       v-model="handler.extraJson"
                       rows="4"
-                      class="w-full resize-y rounded-lg border border-border-default bg-bg-surface px-4 py-3 font-mono text-sm outline-none transition-colors focus:border-accent-secondary focus:ring-1 focus:ring-accent-secondary"
+                      class="hooks-input hooks-input--mono hooks-input--textarea"
                       placeholder="{&#10;  &quot;custom&quot;: true&#10;}"
                     />
                   </div>
                 </div>
               </div>
 
-              <div class="mt-8 flex gap-4 border-t border-border-default pt-6">
+              <div class="hooks-footer-actions">
                 <button
-                  class="min-h-[44px] flex-1 rounded-lg border border-border-default bg-bg-surface px-6 py-3 font-medium text-text-secondary transition-colors hover:bg-bg-elevated"
+                  class="hooks-footer-button"
                   @click="closeModal"
                 >
                   Cancel
                 </button>
                 <button
-                  class="min-h-[44px] flex-1 rounded-lg bg-accent-secondary px-6 py-3 font-medium text-white shadow-md transition-[color,background-color,border-color,transform] hover:-translate-y-0.5 hover:shadow-lg"
+                  class="hooks-footer-button hooks-footer-button--primary"
                   :disabled="saving"
                   @click="saveGroup"
                 >
@@ -817,3 +817,93 @@ onMounted(() => {
   loadHooks()
 })
 </script>
+
+<style scoped>
+.hooks-view {
+  @apply min-h-full p-5 transition-colors duration-300;
+}
+
+.hooks-primary-button {
+  @apply flex w-full items-center justify-center rounded-lg bg-accent-secondary px-4 py-2 font-medium text-white shadow-md;
+  @apply transition-[color,background-color,border-color,transform] hover:scale-105 hover:shadow-lg sm:w-auto;
+
+  min-height: 44px;
+}
+
+.hooks-secondary-button {
+  @apply inline-flex items-center justify-center rounded-lg border border-accent-secondary/20 bg-accent-secondary/10 px-3 py-2 text-sm font-medium text-accent-secondary;
+  @apply transition-colors hover:bg-accent-secondary/15;
+
+  min-height: 44px;
+}
+
+.hooks-icon-button {
+  @apply flex items-center justify-center rounded-md transition-colors;
+
+  min-height: 44px;
+  min-width: 44px;
+}
+
+.hooks-icon-button--accent {
+  @apply text-accent-secondary hover:bg-accent-secondary/10;
+}
+
+.hooks-icon-button--danger {
+  @apply text-accent-danger hover:bg-accent-danger/10;
+}
+
+.hooks-modal-overlay {
+  @apply fixed inset-0 z-50 flex items-center justify-center bg-black/20 p-4 backdrop-blur-md;
+}
+
+.hooks-modal-panel {
+  @apply relative max-h-[88vh] w-full max-w-4xl overflow-y-auto rounded-2xl border border-border-default bg-bg-elevated p-8 shadow-2xl;
+}
+
+.hooks-modal-close {
+  @apply absolute right-4 top-4 flex items-center justify-center rounded-full text-text-muted transition-colors hover:bg-bg-surface;
+
+  min-height: 44px;
+  min-width: 44px;
+}
+
+.hooks-field-label {
+  @apply mb-1.5 block text-sm font-semibold text-text-secondary;
+}
+
+.hooks-input {
+  @apply w-full rounded-lg border border-border-default bg-bg-surface px-4 py-2.5 outline-none transition-colors;
+  @apply focus:border-accent-secondary focus:ring-1 focus:ring-accent-secondary;
+}
+
+.hooks-input--mono {
+  @apply font-mono text-sm;
+}
+
+.hooks-input--textarea {
+  @apply resize-y py-3;
+}
+
+.hooks-checkbox {
+  @apply flex cursor-pointer items-center gap-3;
+}
+
+.hooks-checkbox__label {
+  @apply text-sm font-semibold text-text-secondary;
+}
+
+.hooks-footer-actions {
+  @apply mt-8 flex gap-4 border-t border-border-default pt-6;
+}
+
+.hooks-footer-button {
+  @apply flex-1 rounded-lg border border-border-default bg-bg-surface px-6 py-3 font-medium text-text-secondary transition-colors hover:bg-bg-elevated;
+
+  min-height: 44px;
+}
+
+.hooks-footer-button--primary {
+  @apply border-transparent bg-accent-secondary text-white shadow-md;
+  @apply transition-[color,background-color,border-color,transform] hover:-translate-y-0.5 hover:shadow-lg;
+}
+</style>

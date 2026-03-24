@@ -1,15 +1,15 @@
 <!-- -->
 <template>
-  <div class="min-h-full p-6">
-    <div class="max-w-[1800px] mx-auto">
-      <div class="mt-6 space-y-6">
+  <div class="codex-profiles-view">
+    <div class="codex-profiles-shell">
+      <div class="codex-profiles-stack">
         <ModuleSubnav module="codex" />
 
-        <main class="flex flex-col gap-6 w-full min-w-0">
+        <main class="codex-profiles-main">
           <!-- Header Section -->
-          <div class="flex items-center justify-between">
-            <div class="flex items-center gap-3">
-              <div class="p-2 rounded-xl bg-platform-codex/10">
+          <div class="codex-profiles-header">
+            <div class="codex-profiles-header__intro">
+              <div class="codex-profiles-header__icon">
                 <SIcon
                   name="Settings"
                   size="w-6 h-6"
@@ -26,7 +26,7 @@
               </div>
             </div>
 
-            <div class="flex items-center gap-3">
+            <div class="codex-profiles-header__actions">
               <RouterLink
                 to="/codex"
                 class="btn btn-secondary"
@@ -52,16 +52,16 @@
           </div>
 
           <!-- Status Cards -->
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div class="codex-profiles-status-grid">
             <!-- Current Config -->
             <Card
               variant="glass"
               :gradient-border="true"
               glow-color="warning"
-              class="relative overflow-hidden group"
+              class="group codex-profiles-status-card"
             >
               <div class="flex items-center gap-4">
-                <div class="p-3 rounded-xl bg-yellow-500/10 text-yellow-500 group-hover:scale-110 transition-transform duration-300">
+                <div class="codex-profiles-status-icon codex-profiles-status-icon--warning">
                   <SIcon
                     name="Zap"
                     size="w-6 h-6"
@@ -83,10 +83,10 @@
               variant="glass"
               :interactive="true"
               glow-color="primary"
-              class="group"
+              class="group codex-profiles-status-card"
             >
               <div class="flex items-center gap-4">
-                <div class="p-3 rounded-xl bg-indigo-500/10 text-indigo-500 group-hover:scale-110 transition-transform duration-300">
+                <div class="codex-profiles-status-icon codex-profiles-status-icon--primary">
                   <SIcon
                     name="Layers"
                     size="w-6 h-6"
@@ -108,12 +108,12 @@
               variant="glass"
               :interactive="true"
               :glow-color="currentConfigMode === 'official' ? 'success' : 'secondary'"
-              class="group"
+              class="group codex-profiles-status-card"
             >
               <div class="flex items-center gap-4">
                 <div 
-                  class="p-3 rounded-xl transition-colors duration-300 group-hover:scale-110 transition-transform"
-                  :class="currentConfigMode === 'official' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-pink-500/10 text-pink-500'"
+                  class="codex-profiles-status-icon"
+                  :class="currentConfigMode === 'official' ? 'codex-profiles-status-icon--official' : 'codex-profiles-status-icon--relay'"
                 >
                   <SIcon
                     :name="currentConfigMode === 'official' ? 'Globe' : 'Server'"
@@ -148,12 +148,15 @@
                 {{ $t('codex.profiles.quickSwitch') }}
               </h3>
             </div>
-            <div class="flex flex-wrap gap-3">
+            <div class="codex-profiles-switches">
               <button
                 v-for="profile in profiles"
                 :key="profile.name"
-                class="group relative px-4 py-2.5 rounded-xl font-medium text-sm transition-all duration-300 flex items-center gap-2.5"
-                :class="[ profile.name === currentProfile ? 'glass-effect-strong border border-platform-codex/50 text-platform-codex shadow-[0_0_15px_rgba(245,158,11,0.2)]' : 'glass-effect text-white/80 hover:border-platform-codex/30 hover:bg-white/10', actionLoading ? 'opacity-60 cursor-not-allowed' : '' ]"
+                class="codex-profiles-switch"
+                :class="[
+                  profile.name === currentProfile ? 'codex-profiles-switch--active' : 'codex-profiles-switch--idle',
+                  actionLoading ? 'codex-profiles-switch--busy' : '',
+                ]"
                 :disabled="actionLoading"
                 @click="handleApply(profile.name)"
               >
@@ -172,7 +175,7 @@
                 <span>{{ profile.name }}</span>
                 <div 
                   v-if="profile.name === currentProfile" 
-                  class="flex items-center justify-center w-4 h-4 rounded-full bg-platform-codex text-white text-[10px]"
+                  class="codex-profiles-switch__active-indicator"
                 >
                   <SIcon
                     name="Check"
@@ -184,8 +187,8 @@
           </Card>
 
           <!-- Profile List Title -->
-          <div class="flex items-center justify-between">
-            <h2 class="text-xl font-bold text-white flex items-center gap-2">
+          <div class="codex-profiles-section-heading">
+            <h2 class="codex-profiles-section-heading__title">
               <SIcon
                 name="ListFilter"
                 size="w-5 h-5"
@@ -198,9 +201,9 @@
           <!-- Loading State -->
           <div
             v-if="loading"
-            class="flex justify-center py-20"
+            class="codex-profiles-loading"
           >
-            <div class="w-12 h-12 rounded-full border-4 border-transparent border-t-accent-primary border-r-accent-secondary animate-spin" />
+            <div class="codex-profiles-loading__spinner" />
           </div>
 
           <!-- Empty State -->
@@ -223,13 +226,13 @@
           <!-- Profile Grid -->
           <div
             v-else
-            class="grid grid-cols-1 xl:grid-cols-2 gap-4"
+            class="codex-profiles-grid"
           >
             <Card 
               v-for="profile in profiles" 
               :key="profile.name"
               variant="glass"
-              class="group relative overflow-hidden transition-[box-shadow,transform] duration-300 hover:-translate-y-1 hover:shadow-xl"
+              class="group codex-profiles-card"
               :class="[currentProfile && profile.name === currentProfile ? 'config-card-active' : '']"
               :glow-color="currentProfile && profile.name === currentProfile ? 'warning' : 'primary'"
               padding="lg"
@@ -275,9 +278,9 @@
                   </div>
                    
                   <!-- Actions -->
-                  <div class="flex items-center gap-1 opacity-100 xl:opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                  <div class="codex-profiles-card__actions">
                     <button 
-                      class="p-2 rounded-lg hover:bg-white/10 text-accent-success transition-colors"
+                      class="codex-profiles-action-button codex-profiles-action-button--success"
                       :title="$t('codex.profiles.apply')"
                       :disabled="actionLoading"
                       @click.stop="handleApply(profile.name)"
@@ -289,7 +292,7 @@
                       />
                     </button>
                     <button 
-                      class="p-2 rounded-lg hover:bg-white/10 text-accent-primary transition-colors"
+                      class="codex-profiles-action-button codex-profiles-action-button--primary"
                       :title="$t('codex.actions.edit')"
                       @click.stop="handleEdit(profile.name)"
                     >
@@ -299,7 +302,7 @@
                       />
                     </button>
                     <button 
-                      class="p-2 rounded-lg hover:bg-white/10 text-accent-danger transition-colors"
+                      class="codex-profiles-action-button codex-profiles-action-button--danger"
                       :title="$t('codex.actions.delete')"
                       :disabled="actionLoading"
                       @click.stop="handleDelete(profile.name)"
@@ -314,33 +317,33 @@
                 </div>
 
                 <!-- Info Grid -->
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-y-3 gap-x-6 text-sm">
-                  <div class="flex flex-col gap-1">
+                <div class="codex-profiles-card__info-grid">
+                  <div class="codex-profiles-card__info-item">
                     <span class="text-xs font-medium text-white/50 uppercase tracking-wider">
                       {{ $t('codex.profiles.fields.baseUrl') }}
                     </span>
-                    <code class="font-mono text-white truncate px-2 py-1 rounded glass-surface">
+                    <code class="codex-profiles-card__code">
                       {{ profileBaseUrl(profile) }}
                     </code>
                   </div>
 
-                  <div class="flex flex-col gap-1">
+                  <div class="codex-profiles-card__info-item">
                     <span class="text-xs font-medium text-white/50 uppercase tracking-wider">
                       {{ $t('codex.profiles.fields.model') }}
                     </span>
                     <div class="flex items-center gap-2">
-                      <span class="font-mono text-accent-primary bg-accent-primary/5 px-2 py-0.5 rounded">
+                      <span class="codex-profiles-card__model-pill">
                         {{ profile.model }}
                       </span>
                     </div>
                   </div>
 
-                  <div class="flex flex-col gap-1">
+                  <div class="codex-profiles-card__info-item">
                     <span class="text-xs font-medium text-white/50 uppercase tracking-wider">
                       {{ $t('codex.profiles.fields.authMode') }}
                     </span>
                     <div class="flex items-center gap-2 flex-wrap">
-                      <span class="px-2 py-0.5 rounded-md text-xs font-medium glass-surface text-white/80">
+                      <span class="codex-profiles-card__meta-pill">
                         {{ authModeLabel(profile.auth_mode) }}
                       </span>
                       <span
@@ -352,12 +355,12 @@
                     </div>
                   </div>
 
-                  <div class="flex flex-col gap-1">
+                  <div class="codex-profiles-card__info-item">
                     <span class="text-xs font-medium text-white/50 uppercase tracking-wider">
                       {{ $t('codex.profiles.fields.authSource') }}
                     </span>
                     <div class="flex items-center gap-2 flex-wrap">
-                      <code class="font-mono text-white truncate px-2 py-1 rounded glass-surface">
+                      <code class="codex-profiles-card__code">
                         {{ profile.auth_source || $t('codex.profiles.notAvailable') }}
                       </code>
                       <span
@@ -371,12 +374,12 @@
 
                   <div
                     v-if="profile.env_key"
-                    class="flex flex-col gap-1"
+                    class="codex-profiles-card__info-item"
                   >
                     <span class="text-xs font-medium text-white/50 uppercase tracking-wider">
                       {{ $t('codex.profiles.fields.envKey') }}
                     </span>
-                    <code class="font-mono text-white truncate px-2 py-1 rounded glass-surface">
+                    <code class="codex-profiles-card__code">
                       {{ profile.env_key }}
                     </code>
                   </div>
@@ -439,20 +442,20 @@
           <!-- Add/Edit Modal -->
           <div
             v-if="showForm"
-            class="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center p-4 z-50"
+            class="codex-profiles-modal-overlay"
           >
             <Card
               variant="glass"
-              class="w-full max-w-3xl max-h-[90vh] overflow-y-auto !p-0 shadow-2xl animate-in zoom-in-95 duration-200 glass-modal"
+              class="codex-profiles-modal-card animate-in zoom-in-95 duration-200"
               :padding="'none'"
             >
               <!-- Modal Header -->
-              <div class="px-6 py-4 border-b border-white/5 flex items-center justify-between sticky top-0 glass-effect-strong z-10">
+              <div class="codex-profiles-modal-header">
                 <h2 class="text-xl font-bold text-white">
                   {{ editingName ? $t('codex.profiles.editProfile') : $t('codex.profiles.addProfile') }}
                 </h2>
                 <button
-                  class="p-1 rounded-lg hover:bg-white/10 text-white/50 transition-colors"
+                  class="codex-profiles-modal-close"
                   @click="handleCloseForm"
                 >
                   <SIcon
@@ -463,44 +466,44 @@
               </div>
 
               <!-- Modal Content -->
-              <div class="p-6 space-y-6">
+              <div class="codex-profiles-modal-body">
                 <!-- Use generic grid for form -->
-                <div class="grid grid-cols-1 gap-6">
+                <div class="codex-profiles-form-grid">
                   <!-- Name & Desc -->
-                  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div class="space-y-1.5">
-                      <label class="text-sm font-semibold text-white/80">
+                  <div class="codex-profiles-form-grid--two-col">
+                    <div class="codex-profiles-field">
+                      <label class="codex-profiles-field__label">
                         {{ $t('codex.profiles.fields.name') }} <span class="text-red-500">*</span>
                       </label>
                       <input
                         v-model="form.name"
                         :disabled="!!editingName"
                         type="text"
-                        class="input"
+                        class="codex-profiles-input"
                         :placeholder="$t('codex.profiles.placeholders.name')"
                       >
                     </div>
-                    <div class="space-y-1.5">
-                      <label class="text-sm font-semibold text-white/80">
+                    <div class="codex-profiles-field">
+                      <label class="codex-profiles-field__label">
                         {{ $t('codex.profiles.fields.description') }}
                       </label>
                       <input
                         v-model="form.description"
                         type="text"
-                        class="input"
+                        class="codex-profiles-input"
                         :placeholder="$t('codex.profiles.placeholders.description')"
                       >
                     </div>
                   </div>
                        
-                  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div class="space-y-1.5">
-                      <label class="text-sm font-semibold text-white/80">
+                  <div class="codex-profiles-form-grid--two-col">
+                    <div class="codex-profiles-field">
+                      <label class="codex-profiles-field__label">
                         {{ $t('codex.profiles.fields.authMode') }} <span class="text-red-500">*</span>
                       </label>
                       <select
                         v-model="form.auth_mode"
-                        class="input"
+                        class="codex-profiles-input"
                       >
                         <option
                           v-for="authMode in availableAuthModeOptions"
@@ -517,22 +520,22 @@
                         {{ $t('codex.profiles.deprecatedAuthModeHint', { mode: authModeLabel(form.auth_mode) }) }}
                       </p>
                     </div>
-                    <div class="space-y-1.5">
-                      <label class="text-sm font-semibold text-white/80">
+                    <div class="codex-profiles-field">
+                      <label class="codex-profiles-field__label">
                         {{ $t('codex.profiles.fields.openAiLoginMethod') }}
                       </label>
                       <input
                         :value="displayOpenAiLoginMethod"
                         type="text"
-                        class="input font-mono text-sm"
+                        class="codex-profiles-input codex-profiles-input--mono"
                         disabled
                       >
                     </div>
                   </div>
 
                   <!-- URL & Token -->
-                  <div class="space-y-1.5">
-                    <label class="text-sm font-semibold text-white/80">
+                  <div class="codex-profiles-field">
+                    <label class="codex-profiles-field__label">
                       {{ $t('codex.profiles.fields.baseUrl') }}
                       <span
                         v-if="requiresBaseUrl"
@@ -542,7 +545,7 @@
                     <input
                       v-model="form.base_url"
                       type="text"
-                      class="input font-mono text-sm"
+                      class="codex-profiles-input codex-profiles-input--mono"
                       :placeholder="$t('codex.profiles.placeholders.baseUrl')"
                     >
                     <p class="text-xs text-white/50">
@@ -550,8 +553,8 @@
                     </p>
                   </div>
 
-                  <div class="space-y-1.5">
-                    <label class="text-sm font-semibold text-white/80">
+                  <div class="codex-profiles-field">
+                    <label class="codex-profiles-field__label">
                       {{ $t('codex.profiles.fields.authToken') }}
                       <span
                         v-if="requiresSecret"
@@ -561,7 +564,7 @@
                     <input
                       v-model="form.auth_token"
                       type="password"
-                      class="input font-mono text-sm"
+                      class="codex-profiles-input codex-profiles-input--mono"
                       :placeholder="$t('codex.profiles.placeholders.authToken')"
                     >
                     <p class="text-xs text-white/50">
@@ -571,15 +574,15 @@
 
                   <div
                     v-if="requiresEnvKey"
-                    class="space-y-1.5"
+                    class="codex-profiles-field"
                   >
-                    <label class="text-sm font-semibold text-white/80">
+                    <label class="codex-profiles-field__label">
                       {{ $t('codex.profiles.fields.envKey') }} <span class="text-red-500">*</span>
                     </label>
                     <input
                       v-model="form.env_key"
                       type="text"
-                      class="input font-mono text-sm"
+                      class="codex-profiles-input codex-profiles-input--mono"
                       :placeholder="$t('codex.profiles.placeholders.envKey')"
                     >
                     <p class="text-xs text-white/50">
@@ -588,14 +591,14 @@
                   </div>
 
                   <!-- Models -->
-                  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div class="space-y-1.5">
-                      <label class="text-sm font-semibold text-white/80">
+                  <div class="codex-profiles-form-grid--two-col">
+                    <div class="codex-profiles-field">
+                      <label class="codex-profiles-field__label">
                         {{ $t('codex.profiles.fields.model') }} <span class="text-red-500">*</span>
                       </label>
                       <select
                         v-model="selectedModelOption"
-                        class="input font-mono text-sm"
+                        class="codex-profiles-input codex-profiles-input--mono"
                       >
                         <option
                           v-for="model in modelCatalog"
@@ -612,49 +615,49 @@
                         v-if="selectedModelOption === CUSTOM_MODEL_OPTION"
                         v-model="customModelInput"
                         type="text"
-                        class="input font-mono text-sm mt-2"
+                        class="codex-profiles-input codex-profiles-input--mono codex-profiles-input--spaced"
                         :placeholder="$t('codex.profiles.placeholders.customModel')"
                       >
                       <p class="text-xs text-white/50">
                         {{ selectedModelOption === CUSTOM_MODEL_OPTION ? $t('codex.profiles.customModelHint') : $t('codex.profiles.modelPresetHint') }}
                       </p>
                     </div>
-                    <div class="space-y-1.5">
-                      <label class="text-sm font-semibold text-white/80">
+                    <div class="codex-profiles-field">
+                      <label class="codex-profiles-field__label">
                         {{ $t('codex.profiles.fields.smallFastModel') }}
                       </label>
                       <input
                         v-model="form.small_fast_model"
                         type="text"
-                        class="input font-mono text-sm"
+                        class="codex-profiles-input codex-profiles-input--mono"
                         :placeholder="$t('codex.profiles.placeholders.smallFastModel')"
                       >
                     </div>
                   </div>
 
-                  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div class="space-y-1.5">
-                      <label class="text-sm font-semibold text-white/80">
+                  <div class="codex-profiles-form-grid--two-col">
+                    <div class="codex-profiles-field">
+                      <label class="codex-profiles-field__label">
                         {{ $t('codex.profiles.fields.wireApi') }}
                       </label>
                       <input
                         v-model="form.wire_api"
                         type="text"
-                        class="input font-mono text-sm"
+                        class="codex-profiles-input codex-profiles-input--mono"
                         :placeholder="$t('codex.profiles.placeholders.wireApi')"
                       >
                     </div>
-                    <div class="flex items-center gap-3 p-3 rounded-lg glass-surface border border-white/5">
+                    <div class="codex-profiles-checkbox-row">
                       <input
                         id="requiresOpenAiAuth"
                         :checked="requiresOpenAiAuth"
                         type="checkbox"
-                        class="w-5 h-5 rounded border-white/10 text-accent-primary focus:ring-accent-primary/20"
+                        class="codex-profiles-checkbox"
                         disabled
                       >
                       <label
                         for="requiresOpenAiAuth"
-                        class="text-sm font-medium text-white/70 select-none"
+                        class="codex-profiles-checkbox-label codex-profiles-checkbox-label--muted"
                       >
                         {{ $t('codex.profiles.fields.requiresOpenaiAuth') }}
                       </label>
@@ -662,67 +665,67 @@
                   </div>
                        
                   <!-- Metadata -->
-                  <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div class="space-y-1.5">
-                      <label class="text-sm font-semibold text-white/80">
+                  <div class="codex-profiles-form-grid--three-col">
+                    <div class="codex-profiles-field">
+                      <label class="codex-profiles-field__label">
                         {{ $t('codex.profiles.fields.provider') }}
                       </label>
                       <input
                         v-model="form.provider"
                         type="text"
-                        class="input"
+                        class="codex-profiles-input"
                         :placeholder="$t('codex.profiles.placeholders.provider')"
                       >
                     </div>
-                    <div class="space-y-1.5">
-                      <label class="text-sm font-semibold text-white/80">
+                    <div class="codex-profiles-field">
+                      <label class="codex-profiles-field__label">
                         {{ $t('codex.profiles.fields.providerType') }}
                       </label>
                       <input
                         v-model="form.provider_type"
                         type="text"
-                        class="input"
+                        class="codex-profiles-input"
                         :placeholder="$t('codex.profiles.placeholders.providerType')"
                       >
                     </div>
-                    <div class="space-y-1.5">
-                      <label class="text-sm font-semibold text-white/80">
+                    <div class="codex-profiles-field">
+                      <label class="codex-profiles-field__label">
                         {{ $t('codex.profiles.fields.tags') }}
                       </label>
                       <input
                         v-model="tagsText"
                         type="text"
-                        class="input"
+                        class="codex-profiles-input"
                         :placeholder="$t('codex.profiles.placeholders.tags')"
                       >
                     </div>
                   </div>
                        
-                  <div class="flex items-center gap-3 p-3 rounded-lg glass-surface border border-white/5">
+                  <div class="codex-profiles-checkbox-row">
                     <input
                       id="profileEnabled"
                       v-model="form.enabled"
                       type="checkbox"
-                      class="w-5 h-5 rounded border-white/10 text-accent-primary focus:ring-accent-primary/20"
+                      class="codex-profiles-checkbox"
                     >
                     <label
                       for="profileEnabled"
-                      class="text-sm font-medium text-white cursor-pointer select-none"
+                      class="codex-profiles-checkbox-label"
                     >
                       {{ $t('codex.profiles.fields.enabled') }}
                     </label>
                   </div>
                        
                   <!-- Extra JSON -->
-                  <div class="space-y-1.5">
-                    <label class="text-sm font-semibold text-white/80 flex justify-between">
+                  <div class="codex-profiles-field">
+                    <label class="codex-profiles-field__label codex-profiles-field__label--between">
                       <span>{{ $t('codex.profiles.fields.extraJson') }}</span>
                       <span class="text-xs font-normal text-white/50">{{ $t('codex.profiles.extraHint') }}</span>
                     </label>
                     <textarea
                       v-model="extraText"
                       rows="6"
-                      class="input font-mono text-xs leading-relaxed"
+                      class="codex-profiles-input codex-profiles-input--mono codex-profiles-textarea"
                       :placeholder="$t('codex.profiles.placeholders.extraJson')"
                     />
                   </div>
@@ -730,7 +733,7 @@
               </div>
 
               <!-- Footer -->
-              <div class="px-6 py-4 border-t border-white/5 flex justify-end gap-3 glass-surface">
+              <div class="codex-profiles-modal-footer">
                 <button
                   class="btn btn-secondary"
                   @click="handleCloseForm"
@@ -1299,3 +1302,238 @@ onActivated(() => {
   void ensureLoaded(false)
 })
 </script>
+
+<style scoped>
+.codex-profiles-view {
+  @apply min-h-full p-6;
+}
+
+.codex-profiles-shell {
+  @apply mx-auto max-w-[1800px];
+}
+
+.codex-profiles-stack {
+  @apply mt-6 space-y-6;
+}
+
+.codex-profiles-main {
+  @apply flex w-full min-w-0 flex-col gap-6;
+}
+
+.codex-profiles-header {
+  @apply flex items-center justify-between;
+}
+
+.codex-profiles-header__intro,
+.codex-profiles-header__actions,
+.codex-profiles-section-heading__title,
+.codex-profiles-switches {
+  @apply flex items-center gap-3;
+}
+
+.codex-profiles-header__icon {
+  @apply rounded-xl bg-platform-codex/10 p-2;
+}
+
+.codex-profiles-status-grid {
+  @apply grid grid-cols-1 gap-4 md:grid-cols-3;
+}
+
+.codex-profiles-status-card {
+  @apply overflow-hidden;
+}
+
+.codex-profiles-status-icon {
+  @apply rounded-xl p-3 transition-transform duration-300;
+}
+
+.group:hover .codex-profiles-status-icon {
+  transform: scale(1.1);
+}
+
+.codex-profiles-status-icon--warning {
+  @apply bg-yellow-500/10 text-yellow-500;
+}
+
+.codex-profiles-status-icon--primary {
+  @apply bg-indigo-500/10 text-indigo-500;
+}
+
+.codex-profiles-status-icon--official {
+  @apply bg-emerald-500/10 text-emerald-500;
+}
+
+.codex-profiles-status-icon--relay {
+  @apply bg-pink-500/10 text-pink-500;
+}
+
+.codex-profiles-switch {
+  @apply relative flex items-center gap-2.5 rounded-xl px-4 py-2.5 text-sm font-medium transition-all duration-300;
+}
+
+.codex-profiles-switch--active {
+  @apply glass-effect-strong border border-platform-codex/50 text-platform-codex;
+
+  box-shadow: 0 0 15px rgb(245 158 11 / 20%);
+}
+
+.codex-profiles-switch--idle {
+  @apply glass-effect text-white/80 hover:border-platform-codex/30 hover:bg-white/10;
+}
+
+.codex-profiles-switch--busy {
+  @apply cursor-not-allowed opacity-60;
+}
+
+.codex-profiles-switch__active-indicator {
+  @apply flex h-4 w-4 items-center justify-center rounded-full bg-platform-codex text-[10px] text-white;
+}
+
+.codex-profiles-section-heading {
+  @apply flex items-center justify-between;
+}
+
+.codex-profiles-section-heading__title {
+  @apply text-xl font-bold text-white;
+}
+
+.codex-profiles-loading {
+  @apply flex justify-center py-20;
+}
+
+.codex-profiles-loading__spinner {
+  @apply h-12 w-12 animate-spin rounded-full border-4 border-transparent border-r-accent-secondary border-t-accent-primary;
+}
+
+.codex-profiles-grid {
+  @apply grid grid-cols-1 gap-4 xl:grid-cols-2;
+}
+
+.codex-profiles-card {
+  @apply relative overflow-hidden transition-[box-shadow,transform] duration-300 hover:-translate-y-1 hover:shadow-xl;
+}
+
+.codex-profiles-card__actions {
+  @apply flex items-center gap-1 opacity-100 transition-opacity duration-200 xl:opacity-0;
+}
+
+.group:hover .codex-profiles-card__actions {
+  opacity: 1;
+}
+
+.codex-profiles-action-button {
+  @apply rounded-lg p-2 transition-colors hover:bg-white/10;
+}
+
+.codex-profiles-action-button--success {
+  @apply text-accent-success;
+}
+
+.codex-profiles-action-button--primary {
+  @apply text-accent-primary;
+}
+
+.codex-profiles-action-button--danger {
+  @apply text-accent-danger;
+}
+
+.codex-profiles-card__info-grid {
+  @apply grid grid-cols-1 gap-x-6 gap-y-3 text-sm sm:grid-cols-2;
+}
+
+.codex-profiles-card__info-item {
+  @apply flex flex-col gap-1;
+}
+
+.codex-profiles-card__code {
+  @apply truncate rounded px-2 py-1 font-mono text-white glass-surface;
+}
+
+.codex-profiles-card__model-pill {
+  @apply rounded bg-accent-primary/5 px-2 py-0.5 font-mono text-accent-primary;
+}
+
+.codex-profiles-card__meta-pill {
+  @apply rounded-md px-2 py-0.5 text-xs font-medium text-white/80 glass-surface;
+}
+
+.codex-profiles-modal-overlay {
+  @apply fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-md;
+}
+
+.codex-profiles-modal-card {
+  @apply glass-modal max-h-[90vh] w-full max-w-3xl overflow-y-auto shadow-2xl;
+}
+
+.codex-profiles-modal-header {
+  @apply sticky top-0 z-10 flex items-center justify-between border-b border-white/5 px-6 py-4 glass-effect-strong;
+}
+
+.codex-profiles-modal-close {
+  @apply rounded-lg p-1 text-white/50 transition-colors hover:bg-white/10;
+}
+
+.codex-profiles-modal-body {
+  @apply space-y-6 p-6;
+}
+
+.codex-profiles-form-grid {
+  @apply grid grid-cols-1 gap-6;
+}
+
+.codex-profiles-form-grid--two-col {
+  @apply grid grid-cols-1 gap-4 md:grid-cols-2;
+}
+
+.codex-profiles-form-grid--three-col {
+  @apply grid grid-cols-1 gap-4 md:grid-cols-3;
+}
+
+.codex-profiles-field {
+  @apply space-y-1.5;
+}
+
+.codex-profiles-field__label {
+  @apply text-sm font-semibold text-white/80;
+}
+
+.codex-profiles-field__label--between {
+  @apply flex justify-between;
+}
+
+.codex-profiles-input {
+  @apply input;
+}
+
+.codex-profiles-input--mono {
+  @apply font-mono text-sm;
+}
+
+.codex-profiles-input--spaced {
+  @apply mt-2;
+}
+
+.codex-profiles-textarea {
+  @apply text-xs leading-relaxed;
+}
+
+.codex-profiles-checkbox-row {
+  @apply flex items-center gap-3 rounded-lg border border-white/5 p-3 glass-surface;
+}
+
+.codex-profiles-checkbox {
+  @apply h-5 w-5 rounded border-white/10 text-accent-primary focus:ring-accent-primary/20;
+}
+
+.codex-profiles-checkbox-label {
+  @apply cursor-pointer select-none text-sm font-medium text-white;
+}
+
+.codex-profiles-checkbox-label--muted {
+  @apply cursor-default text-white/70;
+}
+
+.codex-profiles-modal-footer {
+  @apply flex justify-end gap-3 border-t border-white/5 px-6 py-4 glass-surface;
+}
+</style>

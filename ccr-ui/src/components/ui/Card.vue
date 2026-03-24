@@ -2,9 +2,9 @@
   <div
     class="ui-card group relative overflow-hidden transition-[color,background-color,border-color,box-shadow,transform,opacity] duration-300"
     :class="[
-      variantClasses,
-      interactiveClasses,
-      disabled ? 'opacity-50 cursor-not-allowed' : '',
+      `ui-card--${normalizedVariant}`,
+      isInteractive ? 'ui-card--interactive' : '',
+      disabled ? 'ui-card--disabled' : '',
       className,
     ]"
     :style="style"
@@ -130,22 +130,6 @@ const normalizedVariant = computed<Exclude<CardVariant, 'default'>>(() =>
 const isInteractive = computed(() => !props.disabled && (props.interactive || props.hover))
 const showGlow = computed(() => props.glow || props.glowEffect || normalizedVariant.value === 'neko')
 
-const variantClasses = computed(() => {
-  const map: Record<Exclude<CardVariant, 'default'>, string> = {
-    base: 'rounded-xl border border-white/10 bg-bg-elevated shadow-sm',
-    elevated: 'rounded-2xl surface-card',
-    glass: 'rounded-2xl surface-workspace',
-    outline: 'rounded-xl border border-white/20 bg-transparent backdrop-blur-md',
-    neko: 'rounded-2xl surface-card border border-accent-primary/20 shadow-glow-primary overflow-visible mt-4 neko-border-glow',
-  }
-  return map[normalizedVariant.value]
-})
-
-const interactiveClasses = computed(() => {
-  if (!isInteractive.value) return ''
-  return 'cursor-pointer hover:-translate-y-1 hover:shadow-glow-primary'
-})
-
 const paddingClasses = computed(() => {
   const map: Record<PaddingSize, string> = {
     none: '',
@@ -197,6 +181,61 @@ const handleMouseLeave = (event: MouseEvent) => {
 </script>
 
 <style scoped>
+.ui-card--disabled {
+  @apply cursor-not-allowed opacity-50;
+}
+
+.ui-card--base {
+  @apply rounded-xl border border-white/10 shadow-sm;
+
+  background: var(--color-bg-elevated);
+}
+
+.ui-card--elevated {
+  @apply rounded-2xl;
+
+  background: var(--surface-card-bg);
+  border: 1px solid var(--surface-card-border);
+  backdrop-filter: var(--surface-card-blur);
+  box-shadow: var(--surface-card-shadow), var(--glass-inner-glow);
+}
+
+.ui-card--glass {
+  @apply rounded-2xl;
+
+  background: var(--surface-workspace-bg);
+  border: 1px solid var(--surface-workspace-border);
+  backdrop-filter: var(--surface-workspace-blur);
+  box-shadow: var(--surface-workspace-shadow);
+}
+
+.ui-card--outline {
+  @apply rounded-xl border border-white/20 bg-transparent backdrop-blur-md;
+}
+
+.ui-card--neko {
+  @apply mt-4 overflow-visible rounded-2xl border border-accent-primary/20;
+
+  background: var(--surface-card-bg);
+  border-color: rgb(var(--color-accent-primary-rgb) / 20%);
+  backdrop-filter: var(--surface-card-blur);
+  box-shadow:
+    var(--surface-card-shadow),
+    var(--glass-inner-glow),
+    0 0 24px rgb(var(--color-accent-primary-rgb) / 18%);
+}
+
+.ui-card--interactive {
+  @apply cursor-pointer;
+}
+
+.ui-card--interactive:hover {
+  transform: translateY(-0.25rem);
+  box-shadow:
+    var(--surface-card-shadow),
+    0 0 24px rgb(var(--color-accent-primary-rgb) / 20%);
+}
+
 .ui-card:focus-visible {
   outline: 2px solid var(--color-accent-primary);
   outline-offset: 2px;

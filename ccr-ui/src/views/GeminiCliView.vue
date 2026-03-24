@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-full p-6 lg:p-10 relative overflow-hidden">
+  <div class="gemini-view">
     <!-- Background Mesh -->
     <!-- Standard Animated Background -->
     <AnimatedBackground
@@ -7,32 +7,31 @@
       variant="complex"
     />
 
-    <div class="relative z-10 mx-auto max-w-7xl space-y-8">
+    <div class="gemini-shell">
       <!-- HEADER -->
       <section class="animate-slide-up">
-        <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
-          <div class="flex items-center gap-5">
-            <div class="w-16 h-16 rounded-2xl bg-platform-gemini/10 flex items-center justify-center border border-platform-gemini/20 shadow-lg backdrop-blur-md">
+        <div class="gemini-header">
+          <div class="gemini-brand">
+            <div class="gemini-brand__icon">
               <SIcon
                 name="Sparkles"
                 size="w-8 h-8"
-                class="text-platform-gemini"
               />
             </div>
             <div>
-              <h1 class="text-4xl font-bold font-display bg-gradient-to-r from-platform-gemini via-platform-qoder to-accent-success bg-clip-text text-transparent tracking-tight">
+              <h1 class="gemini-brand__title">
                 Gemini CLI
               </h1>
-              <p class="text-white/80 text-lg mt-1 max-w-xl">
+              <p class="gemini-brand__subtitle">
                 {{ $t('gemini.overview.description') }}
               </p>
             </div>
           </div>
-          
+
           <RouterLink to="/">
             <Button
               variant="glass"
-              class="gap-2"
+              class="gemini-home-button"
             >
               <SIcon
                 name="Home"
@@ -44,26 +43,26 @@
         </div>
 
         <!-- Tags -->
-        <div class="flex flex-wrap gap-3">
-          <span class="px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider bg-platform-gemini/10 text-platform-gemini border border-platform-gemini/20 flex items-center gap-2">
+        <div class="gemini-tag-row">
+          <span class="gemini-tag gemini-tag--gemini">
             <SIcon
               name="Server"
               size="w-3 h-3"
             /> MCP Server
           </span>
-          <span class="px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider bg-accent-success/10 text-accent-success border border-accent-success/20 flex items-center gap-2">
+          <span class="gemini-tag gemini-tag--success">
             <SIcon
               name="Bot"
               size="w-3 h-3"
             /> Smart Agents
           </span>
-          <span class="px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider bg-platform-claude/10 text-platform-claude border border-platform-claude/20 flex items-center gap-2">
+          <span class="gemini-tag gemini-tag--claude">
             <SIcon
               name="Puzzle"
               size="w-3 h-3"
             /> Plugin System
           </span>
-          <span class="px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider bg-platform-qoder/10 text-platform-qoder border border-platform-qoder/20 flex items-center gap-2">
+          <span class="gemini-tag gemini-tag--qoder">
             <SIcon
               name="Sparkles"
               size="w-3 h-3"
@@ -73,47 +72,45 @@
       </section>
 
       <!-- MODULES -->
-      <section
-        class="animate-slide-up"
-      >
-        <div class="flex items-center gap-3 mb-6">
+      <section class="animate-slide-up">
+        <div class="gemini-section-heading">
           <SIcon
             name="Boxes"
             size="w-5 h-5"
-            class="text-platform-gemini"
+            class="gemini-section-heading__icon"
           />
-          <h2 class="text-lg font-bold uppercase tracking-widest text-white/50">
+          <h2 class="gemini-section-heading__title">
             {{ $t('common.modules') }}
           </h2>
-          <div class="h-px flex-1 bg-border-subtle" />
+          <div class="gemini-section-heading__rule" />
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div class="gemini-module-grid">
           <!-- MCP -->
           <RouterLink
             to="/gemini-cli/mcp"
-            class="group h-full"
+            class="gemini-module-link"
           >
             <Card
               variant="glass"
               hover
               glow
-              class="h-full p-6 flex items-start gap-4"
+              class="gemini-module-card"
             >
-              <div class="p-3 rounded-xl bg-platform-gemini/10 text-platform-gemini group-hover:scale-110 transition-transform duration-300">
+              <div class="gemini-module-card__icon gemini-module-card__icon--gemini">
                 <SIcon
                   name="Server"
                   size="w-6 h-6"
                 />
               </div>
               <div>
-                <h3 class="text-lg font-bold text-white mb-1 group-hover:text-platform-gemini transition-colors">
+                <h3 class="gemini-module-card__title gemini-module-card__title--gemini">
                   {{ $t('gemini.mcp.title') }}
                 </h3>
-                <p class="text-sm text-white/80 mb-3 leading-relaxed">
+                <p class="gemini-module-card__desc">
                   {{ $t('gemini.mcp.subtitle') }}
                 </p>
-                <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded bg-platform-gemini/10 text-platform-gemini border border-platform-gemini/20">MCP</span>
+                <span class="gemini-module-card__badge gemini-module-card__badge--gemini">MCP</span>
               </div>
             </Card>
           </RouterLink>
@@ -121,28 +118,28 @@
           <!-- Agents -->
           <RouterLink
             to="/gemini-cli/agents"
-            class="group h-full"
+            class="gemini-module-link"
           >
             <Card
               variant="glass"
               hover
               glow
-              class="h-full p-6 flex items-start gap-4"
+              class="gemini-module-card"
             >
-              <div class="p-3 rounded-xl bg-accent-success/10 text-accent-success group-hover:scale-110 transition-transform duration-300">
+              <div class="gemini-module-card__icon gemini-module-card__icon--success">
                 <SIcon
                   name="Bot"
                   size="w-6 h-6"
                 />
               </div>
               <div>
-                <h3 class="text-lg font-bold text-white mb-1 group-hover:text-accent-success transition-colors">
+                <h3 class="gemini-module-card__title gemini-module-card__title--success">
                   {{ $t('gemini.agents.title') }}
                 </h3>
-                <p class="text-sm text-white/80 mb-3 leading-relaxed">
+                <p class="gemini-module-card__desc">
                   {{ $t('gemini.agents.subtitle') }}
                 </p>
-                <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded bg-accent-success/10 text-accent-success border border-accent-success/20">AI Agents</span>
+                <span class="gemini-module-card__badge gemini-module-card__badge--success">AI Agents</span>
               </div>
             </Card>
           </RouterLink>
@@ -150,28 +147,28 @@
           <!-- Plugins -->
           <RouterLink
             to="/gemini-cli/plugins"
-            class="group h-full"
+            class="gemini-module-link"
           >
             <Card
               variant="glass"
               hover
               glow
-              class="h-full p-6 flex items-start gap-4"
+              class="gemini-module-card"
             >
-              <div class="p-3 rounded-xl bg-platform-claude/10 text-platform-claude group-hover:scale-110 transition-transform duration-300">
+              <div class="gemini-module-card__icon gemini-module-card__icon--claude">
                 <SIcon
                   name="Puzzle"
                   size="w-6 h-6"
                 />
               </div>
               <div>
-                <h3 class="text-lg font-bold text-white mb-1 group-hover:text-platform-claude transition-colors">
+                <h3 class="gemini-module-card__title gemini-module-card__title--claude">
                   {{ $t('gemini.plugins.title') }}
                 </h3>
-                <p class="text-sm text-white/80 mb-3 leading-relaxed">
+                <p class="gemini-module-card__desc">
                   {{ $t('gemini.plugins.subtitle') }}
                 </p>
-                <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded bg-platform-claude/10 text-platform-claude border border-platform-claude/20">Plugins</span>
+                <span class="gemini-module-card__badge gemini-module-card__badge--claude">Plugins</span>
               </div>
             </Card>
           </RouterLink>
@@ -179,28 +176,28 @@
           <!-- Slash Commands -->
           <RouterLink
             to="/gemini-cli/slash-commands"
-            class="group h-full md:col-span-2 lg:col-span-1"
+            class="gemini-module-link gemini-module-link--wide"
           >
             <Card
               variant="glass"
               hover
               glow
-              class="h-full p-6 flex items-start gap-4"
+              class="gemini-module-card"
             >
-              <div class="p-3 rounded-xl bg-platform-qoder/10 text-platform-qoder group-hover:scale-110 transition-transform duration-300">
+              <div class="gemini-module-card__icon gemini-module-card__icon--qoder">
                 <SIcon
                   name="Command"
                   size="w-6 h-6"
                 />
               </div>
               <div>
-                <h3 class="text-lg font-bold text-white mb-1 group-hover:text-platform-qoder transition-colors">
+                <h3 class="gemini-module-card__title gemini-module-card__title--qoder">
                   {{ $t('gemini.slashCommands.title') }}
                 </h3>
-                <p class="text-sm text-white/80 mb-3 leading-relaxed">
+                <p class="gemini-module-card__desc">
                   {{ $t('gemini.slashCommands.subtitle') }}
                 </p>
-                <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded bg-platform-qoder/10 text-platform-qoder border border-platform-qoder/20">Commands</span>
+                <span class="gemini-module-card__badge gemini-module-card__badge--qoder">Commands</span>
               </div>
             </Card>
           </RouterLink>
@@ -214,35 +211,35 @@
       >
         <Card
           variant="glass"
-          class="p-6"
+          class="gemini-info-card"
         >
-          <div class="flex items-start gap-4">
-            <div class="p-3 rounded-xl bg-platform-gemini/10 text-platform-gemini shrink-0">
+          <div class="gemini-info-card__content">
+            <div class="gemini-info-card__icon">
               <SIcon
                 name="Info"
                 size="w-6 h-6"
               />
             </div>
-            <div class="space-y-4">
-              <h3 class="text-lg font-bold text-white">
+            <div class="gemini-info-card__body">
+              <h3 class="gemini-info-card__title">
                 💡 {{ $t('gemini.overview.welcome') }}
               </h3>
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div class="flex items-center gap-3 p-3 rounded-lg bg-white/5/30 border border-white/5/50">
-                  <div class="w-2 h-2 rounded-full bg-platform-gemini shadow-[0_0_8px_var(--platform-gemini)]" />
-                  <span class="text-sm text-white/80">{{ $t('gemini.overview.feature1') }}</span>
+              <div class="gemini-info-grid">
+                <div class="gemini-info-feature">
+                  <div class="gemini-info-dot" />
+                  <span class="gemini-info-feature__text">{{ $t('gemini.overview.feature1') }}</span>
                 </div>
-                <div class="flex items-center gap-3 p-3 rounded-lg bg-white/5/30 border border-white/5/50">
-                  <div class="w-2 h-2 rounded-full bg-platform-gemini shadow-[0_0_8px_var(--platform-gemini)]" />
-                  <span class="text-sm text-white/80">{{ $t('gemini.overview.feature2') }}</span>
+                <div class="gemini-info-feature">
+                  <div class="gemini-info-dot" />
+                  <span class="gemini-info-feature__text">{{ $t('gemini.overview.feature2') }}</span>
                 </div>
-                <div class="flex items-center gap-3 p-3 rounded-lg bg-white/5/30 border border-white/5/50">
-                  <div class="w-2 h-2 rounded-full bg-platform-gemini shadow-[0_0_8px_var(--platform-gemini)]" />
-                  <span class="text-sm text-white/80">{{ $t('gemini.overview.feature3') }}</span>
+                <div class="gemini-info-feature">
+                  <div class="gemini-info-dot" />
+                  <span class="gemini-info-feature__text">{{ $t('gemini.overview.feature3') }}</span>
                 </div>
-                <div class="flex items-center gap-3 p-3 rounded-lg bg-white/5/30 border border-white/5/50">
-                  <div class="w-2 h-2 rounded-full bg-platform-gemini shadow-[0_0_8px_var(--platform-gemini)]" />
-                  <span class="text-sm text-white/80">{{ $t('gemini.overview.feature4') }}</span>
+                <div class="gemini-info-feature">
+                  <div class="gemini-info-dot" />
+                  <span class="gemini-info-feature__text">{{ $t('gemini.overview.feature4') }}</span>
                 </div>
               </div>
             </div>
@@ -260,3 +257,232 @@ import AnimatedBackground from '@/components/common/AnimatedBackground.vue'
 import Card from '@/components/ui/Card.vue'
 import Button from '@/components/ui/Button.vue'
 </script>
+
+<style scoped>
+.gemini-view {
+  @apply relative min-h-full overflow-hidden p-6 lg:p-10;
+}
+
+.gemini-shell {
+  @apply relative z-10 mx-auto max-w-7xl space-y-8;
+}
+
+.gemini-header {
+  @apply mb-8 flex flex-col justify-between gap-6 md:flex-row md:items-center;
+}
+
+.gemini-brand {
+  @apply flex items-center gap-5;
+}
+
+.gemini-brand__icon {
+  @apply flex h-16 w-16 items-center justify-center rounded-2xl border shadow-lg backdrop-blur-md;
+
+  color: var(--platform-gemini);
+  background: rgb(var(--color-platform-gemini-rgb) / 10%);
+  border-color: rgb(var(--color-platform-gemini-rgb) / 20%);
+}
+
+.gemini-brand__title {
+  @apply text-4xl font-bold tracking-tight;
+
+  font-family: MapleBright, 'Microsoft YaHei UI', system-ui, sans-serif;
+  background: linear-gradient(90deg, var(--platform-gemini) 0%, var(--platform-qoder) 55%, var(--color-success) 100%);
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.gemini-brand__subtitle {
+  @apply mt-1 max-w-xl text-lg text-white/80;
+}
+
+.gemini-home-button {
+  @apply gap-2;
+}
+
+.gemini-tag-row {
+  @apply flex flex-wrap gap-3;
+}
+
+.gemini-tag {
+  @apply flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-bold uppercase;
+
+  letter-spacing: 0.1em;
+}
+
+.gemini-tag--gemini {
+  color: var(--platform-gemini);
+  background: rgb(var(--color-platform-gemini-rgb) / 10%);
+  border: 1px solid rgb(var(--color-platform-gemini-rgb) / 20%);
+}
+
+.gemini-tag--success {
+  @apply border border-accent-success/20 bg-accent-success/10 text-accent-success;
+}
+
+.gemini-tag--claude {
+  @apply border border-platform-claude/20 bg-platform-claude/10 text-platform-claude;
+}
+
+.gemini-tag--qoder {
+  color: var(--platform-qoder);
+  background: rgb(var(--color-platform-qoder-rgb) / 10%);
+  border: 1px solid rgb(var(--color-platform-qoder-rgb) / 20%);
+}
+
+.gemini-section-heading {
+  @apply mb-6 flex items-center gap-3;
+}
+
+.gemini-section-heading__icon {
+  color: var(--platform-gemini);
+}
+
+.gemini-section-heading__title {
+  @apply text-lg font-bold uppercase text-white/50;
+
+  letter-spacing: 0.2em;
+}
+
+.gemini-section-heading__rule {
+  @apply h-px flex-1 bg-border-subtle;
+}
+
+.gemini-module-grid {
+  @apply grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3;
+}
+
+.gemini-module-link {
+  @apply block h-full;
+}
+
+.gemini-module-link--wide {
+  @apply md:col-span-2 lg:col-span-1;
+}
+
+.gemini-module-card {
+  @apply flex h-full items-start gap-4 p-6;
+}
+
+.gemini-module-card__icon {
+  @apply rounded-xl p-3 transition-transform duration-300;
+}
+
+.gemini-module-link:hover .gemini-module-card__icon {
+  transform: scale(1.1);
+}
+
+.gemini-module-card__icon--gemini {
+  color: var(--platform-gemini);
+  background: rgb(var(--color-platform-gemini-rgb) / 10%);
+}
+
+.gemini-module-card__icon--success {
+  @apply bg-accent-success/10 text-accent-success;
+}
+
+.gemini-module-card__icon--claude {
+  @apply bg-platform-claude/10 text-platform-claude;
+}
+
+.gemini-module-card__icon--qoder {
+  color: var(--platform-qoder);
+  background: rgb(var(--color-platform-qoder-rgb) / 10%);
+}
+
+.gemini-module-card__title {
+  @apply mb-1 text-lg font-bold text-white transition-colors;
+}
+
+.gemini-module-card__desc {
+  @apply mb-3 text-sm leading-relaxed text-white/80;
+}
+
+.gemini-module-card__badge {
+  @apply inline-flex rounded border px-2 py-1 font-bold uppercase;
+
+  font-size: 10px;
+  letter-spacing: 0.1em;
+}
+
+.gemini-module-link:hover .gemini-module-card__title--gemini {
+  color: var(--platform-gemini);
+}
+
+.gemini-module-link:hover .gemini-module-card__title--success {
+  @apply text-accent-success;
+}
+
+.gemini-module-link:hover .gemini-module-card__title--claude {
+  @apply text-platform-claude;
+}
+
+.gemini-module-link:hover .gemini-module-card__title--qoder {
+  color: var(--platform-qoder);
+}
+
+.gemini-module-card__badge--gemini {
+  color: var(--platform-gemini);
+  background: rgb(var(--color-platform-gemini-rgb) / 10%);
+  border-color: rgb(var(--color-platform-gemini-rgb) / 20%);
+}
+
+.gemini-module-card__badge--success {
+  @apply border-accent-success/20 bg-accent-success/10 text-accent-success;
+}
+
+.gemini-module-card__badge--claude {
+  @apply border-platform-claude/20 bg-platform-claude/10 text-platform-claude;
+}
+
+.gemini-module-card__badge--qoder {
+  color: var(--platform-qoder);
+  background: rgb(var(--color-platform-qoder-rgb) / 10%);
+  border-color: rgb(var(--color-platform-qoder-rgb) / 20%);
+}
+
+.gemini-info-card {
+  @apply p-6;
+}
+
+.gemini-info-card__content {
+  @apply flex items-start gap-4;
+}
+
+.gemini-info-card__icon {
+  @apply shrink-0 rounded-xl p-3;
+
+  color: var(--platform-gemini);
+  background: rgb(var(--color-platform-gemini-rgb) / 10%);
+}
+
+.gemini-info-card__body {
+  @apply space-y-4;
+}
+
+.gemini-info-card__title {
+  @apply text-lg font-bold text-white;
+}
+
+.gemini-info-grid {
+  @apply grid grid-cols-1 gap-4 md:grid-cols-2;
+}
+
+.gemini-info-feature {
+  @apply flex items-center gap-3 rounded-lg p-3;
+
+  background: rgb(255 255 255 / 5%);
+  border: 1px solid rgb(255 255 255 / 10%);
+}
+
+.gemini-info-dot {
+  @apply h-2 w-2 rounded-full;
+
+  background: var(--platform-gemini);
+  box-shadow: 0 0 8px var(--platform-gemini);
+}
+
+.gemini-info-feature__text {
+  @apply text-sm text-white/80;
+}
+</style>

@@ -1,28 +1,28 @@
 <template>
   <div
-    class="min-h-full p-5 transition-colors duration-300"
+    class="converter-view"
     :style="{ background: 'var(--bg-primary)' }"
   >
-    <div class="max-w-[1800px] mx-auto">
-      <div class="space-y-4">
+    <div class="converter-view__container">
+      <div class="converter-view__stack">
         <ModuleSubnav module="converter" />
 
-        <main class="space-y-6">
+        <main class="converter-view__main">
           <!-- Header -->
           <div
-            class="rounded-xl p-6 glass-effect"
+            class="converter-card converter-card--header glass-effect"
             :style="{ border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-small)' }"
           >
-            <div class="flex items-center justify-between mb-2">
+            <div class="converter-header">
               <h1
-                class="text-3xl font-bold"
+                class="converter-title"
                 :style="{ color: 'var(--text-primary)' }"
               >
                 {{ $t('converter.title') }}
               </h1>
               <RouterLink
                 to="/"
-                class="inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-colors"
+                class="converter-chip-button"
                 :style="{
                   background: 'var(--bg-secondary)',
                   color: 'var(--text-secondary)',
@@ -36,7 +36,10 @@
                 <span>{{ $t('converter.backToHome') }}</span>
               </RouterLink>
             </div>
-            <p :style="{ color: 'var(--text-muted)' }">
+            <p
+              class="converter-muted-text"
+              :style="{ color: 'var(--text-muted)' }"
+            >
               {{ $t('converter.description') }}
             </p>
           </div>
@@ -44,13 +47,13 @@
           <!-- Error/Success Messages -->
           <div
             v-if="error"
-            class="rounded-lg p-4 flex items-start gap-3"
+            class="converter-alert converter-alert--error"
             :style="{ background: 'rgba(var(--color-danger-rgb), 0.1)', border: '1px solid var(--color-danger)' }"
           >
             <SIcon
               name="AlertCircle"
               size="w-5 h-5"
-              class="flex-shrink-0 mt-0.5"
+              class="converter-alert__icon"
               :style="{ color: 'var(--color-danger)' }"
             />
             <div :style="{ color: 'var(--color-danger)' }">
@@ -60,13 +63,13 @@
 
           <div
             v-if="successMessage"
-            class="rounded-lg p-4 flex items-start gap-3"
+            class="converter-alert converter-alert--success"
             :style="{ background: 'rgba(var(--color-success-rgb), 0.1)', border: '1px solid var(--color-success)' }"
           >
             <SIcon
               name="Check"
               size="w-5 h-5"
-              class="flex-shrink-0 mt-0.5"
+              class="converter-alert__icon"
               :style="{ color: 'var(--color-success)' }"
             />
             <div :style="{ color: 'var(--color-success)' }">
@@ -75,37 +78,37 @@
           </div>
 
           <!-- Format Selection -->
-          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div class="converter-selection-grid">
             <!-- Source Format -->
             <div
-              class="rounded-xl p-6 glass-effect"
+              class="converter-card glass-effect"
               :style="{ border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-small)' }"
             >
-              <div class="flex items-center gap-2 mb-2">
+              <div class="converter-section-heading">
                 <SIcon
                   name="FileJson"
                   size="w-5 h-5"
                   :style="{ color: 'var(--accent-primary)' }"
                 />
                 <h2
-                  class="text-xl font-bold"
+                  class="converter-card__title"
                   :style="{ color: 'var(--text-primary)' }"
                 >
                   {{ $t('converter.sourceFormat') }}
                 </h2>
               </div>
               <p
-                class="mb-4"
+                class="converter-section-copy"
                 :style="{ color: 'var(--text-muted)', fontSize: '14px' }"
               >
                 {{ $t('converter.selectSource') }}
               </p>
 
-              <div class="space-y-2">
+              <div class="converter-option-list">
                 <div
                   v-for="type in cliTypes"
                   :key="type.value"
-                  class="p-4 rounded-lg cursor-pointer transition-colors"
+                  class="converter-option-card"
                   :style="{
                     border:
                       sourceFormat === type.value
@@ -118,23 +121,23 @@
                   }"
                   @click="sourceFormat = type.value"
                 >
-                  <div class="flex items-center justify-between mb-1">
+                  <div class="converter-option-card__header">
                     <span
-                      class="font-medium"
+                      class="converter-option-card__title"
                       :style="{ color: 'var(--text-primary)' }"
                     >{{
                       type.label
                     }}</span>
                     <span
                       v-if="sourceFormat === type.value"
-                      class="px-2 py-0.5 rounded text-xs font-semibold"
+                      class="converter-option-badge"
                       :style="{ background: 'var(--accent-primary)', color: 'white' }"
                     >
                       {{ $t('converter.selected') }}
                     </span>
                   </div>
                   <p
-                    class="text-sm"
+                    class="converter-option-card__description"
                     :style="{ color: 'var(--text-muted)' }"
                   >
                     {{ type.description }}
@@ -145,34 +148,34 @@
 
             <!-- Target Format -->
             <div
-              class="rounded-xl p-6 glass-effect"
+              class="converter-card glass-effect"
               :style="{ border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-small)' }"
             >
-              <div class="flex items-center gap-2 mb-2">
+              <div class="converter-section-heading">
                 <SIcon
                   name="FileCode"
                   size="w-5 h-5"
                   :style="{ color: 'var(--accent-secondary)' }"
                 />
                 <h2
-                  class="text-xl font-bold"
+                  class="converter-card__title"
                   :style="{ color: 'var(--text-primary)' }"
                 >
                   {{ $t('converter.targetFormat') }}
                 </h2>
               </div>
               <p
-                class="mb-4"
+                class="converter-section-copy"
                 :style="{ color: 'var(--text-muted)', fontSize: '14px' }"
               >
                 {{ $t('converter.selectTarget') }}
               </p>
 
-              <div class="space-y-2">
+              <div class="converter-option-list">
                 <div
                   v-for="type in cliTypes"
                   :key="type.value"
-                  class="p-4 rounded-lg cursor-pointer transition-colors"
+                  class="converter-option-card"
                   :style="{
                     border:
                       targetFormat === type.value && sourceFormat !== type.value
@@ -193,23 +196,23 @@
                     }
                   "
                 >
-                  <div class="flex items-center justify-between mb-1">
+                  <div class="converter-option-card__header">
                     <span
-                      class="font-medium"
+                      class="converter-option-card__title"
                       :style="{ color: 'var(--text-primary)' }"
                     >{{
                       type.label
                     }}</span>
                     <span
                       v-if="targetFormat === type.value && sourceFormat !== type.value"
-                      class="px-2 py-0.5 rounded text-xs font-semibold"
+                      class="converter-option-badge"
                       :style="{ background: 'var(--accent-secondary)', color: 'white' }"
                     >
                       {{ $t('converter.selected') }}
                     </span>
                   </div>
                   <p
-                    class="text-sm"
+                    class="converter-option-card__description"
                     :style="{ color: 'var(--text-muted)' }"
                   >
                     {{ type.description }}
@@ -221,44 +224,44 @@
 
           <!-- Conversion Options -->
           <div
-            class="rounded-xl p-6 glass-effect"
+            class="converter-card glass-effect"
             :style="{ border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-small)' }"
           >
             <h2
-              class="text-xl font-bold mb-2"
+              class="converter-card__title converter-card__title--with-gap"
               :style="{ color: 'var(--text-primary)' }"
             >
               {{ $t('converter.convertOptions') }}
             </h2>
             <p
-              class="mb-4"
+              class="converter-section-copy"
               :style="{ color: 'var(--text-muted)', fontSize: '14px' }"
             >
               {{ $t('converter.convertOptionsDesc') }}
             </p>
 
-            <div class="flex flex-wrap gap-6">
-              <label class="flex items-center gap-2 cursor-pointer">
+            <div class="converter-toggle-list">
+              <label class="converter-toggle">
                 <input
                   v-model="convertMcp"
                   type="checkbox"
-                  class="w-4 h-4 cursor-pointer"
+                  class="converter-checkbox"
                 >
                 <span :style="{ color: 'var(--text-secondary)' }">{{ $t('converter.mcpServers') }}</span>
               </label>
-              <label class="flex items-center gap-2 cursor-pointer">
+              <label class="converter-toggle">
                 <input
                   v-model="convertCommands"
                   type="checkbox"
-                  class="w-4 h-4 cursor-pointer"
+                  class="converter-checkbox"
                 >
                 <span :style="{ color: 'var(--text-secondary)' }">{{ $t('converter.slashCommands') }}</span>
               </label>
-              <label class="flex items-center gap-2 cursor-pointer">
+              <label class="converter-toggle">
                 <input
                   v-model="convertAgents"
                   type="checkbox"
-                  class="w-4 h-4 cursor-pointer"
+                  class="converter-checkbox"
                 >
                 <span :style="{ color: 'var(--text-secondary)' }">{{ $t('converter.agentsConfig') }}</span>
               </label>
@@ -267,24 +270,27 @@
 
           <!-- Config Input -->
           <div
-            class="rounded-xl p-6 glass-effect"
+            class="converter-card glass-effect"
             :style="{ border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-small)' }"
           >
-            <div class="flex items-center justify-between mb-4">
+            <div class="converter-toolbar">
               <div>
                 <h2
-                  class="text-xl font-bold mb-1"
+                  class="converter-card__title converter-card__title--compact"
                   :style="{ color: 'var(--text-primary)' }"
                 >
                   {{ $t('converter.configInput') }}
                 </h2>
-                <p :style="{ color: 'var(--text-muted)', fontSize: '14px' }">
+                <p
+                  class="converter-section-copy converter-section-copy--compact"
+                  :style="{ color: 'var(--text-muted)', fontSize: '14px' }"
+                >
                   {{ $t('converter.configInputDesc') }}
                 </p>
               </div>
-              <div class="flex gap-2">
+              <div class="converter-toolbar__actions">
                 <button
-                  class="px-3 py-1.5 rounded-lg font-medium text-sm"
+                  class="converter-toolbar-button"
                   :style="{
                     background: 'var(--bg-tertiary)',
                     color: 'var(--text-primary)',
@@ -296,7 +302,7 @@
                 </button>
                 <label>
                   <span
-                    class="px-3 py-1.5 rounded-lg font-medium text-sm cursor-pointer flex items-center gap-2"
+                    class="converter-toolbar-button converter-toolbar-button--label"
                     :style="{
                       background: 'var(--bg-tertiary)',
                       color: 'var(--text-primary)',
@@ -322,7 +328,7 @@
             <textarea
               v-model="configData"
               :placeholder="$t('converter.inputPlaceholder')"
-              class="w-full px-3 py-2 rounded-lg font-mono text-sm resize-none"
+              class="converter-textarea"
               :style="{
                 background: 'var(--bg-tertiary)',
                 border: '1px solid var(--border-color)',
@@ -331,7 +337,7 @@
               }"
             />
             <div
-              class="mt-2 text-sm"
+              class="converter-help-text"
               :style="{ color: 'var(--text-muted)' }"
             >
               {{ $t('converter.supportedFormats') }}
@@ -339,9 +345,9 @@
           </div>
 
           <!-- Convert Button -->
-          <div class="flex justify-center">
+          <div class="converter-action-row">
             <button
-              class="px-8 py-3 rounded-lg font-semibold text-white flex items-center gap-2"
+              class="converter-primary-action"
               :style="{
                 background:
                   isConverting || !configData.trim() || sourceFormat === targetFormat
@@ -378,86 +384,86 @@
           <!-- Conversion Result -->
           <div
             v-if="result"
-            class="space-y-6"
+            class="converter-results"
           >
             <!-- Statistics -->
             <div
-              class="rounded-xl p-6 glass-effect"
+              class="converter-card glass-effect"
               :style="{ border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-small)' }"
             >
               <h2
-                class="text-xl font-bold mb-4"
+                class="converter-card__title converter-card__title--section"
                 :style="{ color: 'var(--text-primary)' }"
               >
                 {{ $t('converter.conversionStats') }}
               </h2>
 
-              <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-4">
-                <div class="text-center">
+              <div class="converter-stats-grid">
+                <div class="converter-stat">
                   <div
-                    class="text-3xl font-bold"
+                    class="converter-stat__value"
                     :style="{ color: 'var(--accent-primary)' }"
                   >
                     {{ result.stats?.mcp_servers || 0 }}
                   </div>
                   <div
-                    class="text-sm mt-1"
+                    class="converter-stat__label"
                     :style="{ color: 'var(--text-muted)' }"
                   >
                     {{ $t('converter.mcpServersCount') }}
                   </div>
                 </div>
-                <div class="text-center">
+                <div class="converter-stat">
                   <div
-                    class="text-3xl font-bold"
+                    class="converter-stat__value"
                     :style="{ color: 'var(--accent-primary)' }"
                   >
                     {{ result.stats?.slash_commands || 0 }}
                   </div>
                   <div
-                    class="text-sm mt-1"
+                    class="converter-stat__label"
                     :style="{ color: 'var(--text-muted)' }"
                   >
                     {{ $t('converter.slashCommandsCount') }}
                   </div>
                 </div>
-                <div class="text-center">
+                <div class="converter-stat">
                   <div
-                    class="text-3xl font-bold"
+                    class="converter-stat__value"
                     :style="{ color: 'var(--accent-primary)' }"
                   >
                     {{ result.stats?.agents || 0 }}
                   </div>
                   <div
-                    class="text-sm mt-1"
+                    class="converter-stat__label"
                     :style="{ color: 'var(--text-muted)' }"
                   >
                     {{ $t('converter.agentsCount') }}
                   </div>
                 </div>
-                <div class="text-center">
+                <div class="converter-stat">
                   <div
-                    class="text-3xl font-bold"
+                    class="converter-stat__value"
                     :style="{ color: 'var(--accent-primary)' }"
                   >
                     {{ result.stats?.profiles || 0 }}
                   </div>
                   <div
-                    class="text-sm mt-1"
+                    class="converter-stat__label"
                     :style="{ color: 'var(--text-muted)' }"
                   >
                     {{ $t('converter.profilesCount') }}
                   </div>
                 </div>
-                <div class="text-center">
+                <div class="converter-stat">
                   <div
-                    class="text-3xl font-bold"
+                    class="converter-stat__value"
                     :style="{ color: 'var(--accent-primary)' }"
                   >
                     {{ result.stats?.base_config ? '✓' : '✗' }}
                   </div>
                   <div
-                    class="text-sm mt-1"
+                    class="converter-stat__label"
                     :style="{ color: 'var(--text-muted)' }"
                   >
                     {{ $t('converter.baseConfig') }}
@@ -467,20 +473,20 @@
 
               <div
                 v-if="result.warnings && result.warnings.length > 0"
-                class="rounded-lg p-4"
+                class="converter-warning-panel"
                 :style="{ background: 'rgba(var(--color-warning-rgb), 0.1)', border: '1px solid var(--color-warning)' }"
               >
                 <div
-                  class="font-medium mb-2"
+                  class="converter-warning-panel__title"
                   :style="{ color: 'var(--color-warning)' }"
                 >
                   {{ $t('converter.warnings') }}
                 </div>
-                <ul class="list-disc list-inside space-y-1">
+                <ul class="converter-warning-list">
                   <li
                     v-for="(warning, index) in result.warnings"
                     :key="index"
-                    class="text-sm"
+                    class="converter-warning-list__item"
                     :style="{ color: 'var(--color-warning)' }"
                   >
                     {{ warning }}
@@ -491,24 +497,27 @@
 
             <!-- Result Display -->
             <div
-              class="rounded-xl p-6 glass-effect"
+              class="converter-card glass-effect"
               :style="{ border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-small)' }"
             >
-              <div class="flex items-center justify-between mb-4">
+              <div class="converter-toolbar">
                 <div>
                   <h2
-                    class="text-xl font-bold mb-1"
+                    class="converter-card__title converter-card__title--compact"
                     :style="{ color: 'var(--text-primary)' }"
                   >
                     {{ $t('converter.conversionResult') }}
                   </h2>
-                  <p :style="{ color: 'var(--text-muted)', fontSize: '14px' }">
+                  <p
+                    class="converter-section-copy converter-section-copy--compact"
+                    :style="{ color: 'var(--text-muted)', fontSize: '14px' }"
+                  >
                     {{ $t('converter.resultFormat', { format: result.format?.toUpperCase() || '' }) }}
                   </p>
                 </div>
-                <div class="flex gap-2">
+                <div class="converter-toolbar__actions">
                   <button
-                    class="px-3 py-1.5 rounded-lg font-medium text-sm flex items-center gap-2"
+                    class="converter-toolbar-button converter-toolbar-button--label"
                     :style="{
                       background: 'var(--bg-tertiary)',
                       color: 'var(--text-primary)',
@@ -523,7 +532,7 @@
                     {{ $t('converter.copy') }}
                   </button>
                   <button
-                    class="px-3 py-1.5 rounded-lg font-medium text-sm flex items-center gap-2"
+                    class="converter-toolbar-button converter-toolbar-button--label"
                     :style="{
                       background: 'var(--bg-tertiary)',
                       color: 'var(--text-primary)',
@@ -543,7 +552,7 @@
               <textarea
                 :value="result.converted_data"
                 readonly
-                class="w-full px-3 py-2 rounded-lg font-mono text-sm resize-none"
+                class="converter-textarea converter-textarea--result"
                 :style="{
                   background: 'var(--bg-tertiary)',
                   border: '1px solid var(--border-color)',
@@ -556,26 +565,26 @@
 
           <!-- Usage Guide -->
           <div
-            class="rounded-xl p-6 glass-effect"
+            class="converter-card glass-effect"
             :style="{ border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-small)' }"
           >
             <h2
-              class="text-xl font-bold mb-4"
+              class="converter-card__title converter-card__title--section"
               :style="{ color: 'var(--text-primary)' }"
             >
               {{ $t('converter.usageGuide') }}
             </h2>
 
-            <div class="space-y-4">
+            <div class="converter-guide">
               <div>
                 <h4
-                  class="font-medium mb-2"
+                  class="converter-guide__title"
                   :style="{ color: 'var(--text-secondary)' }"
                 >
                   {{ $t('converter.usageNotes.supportedPathsTitle') }}
                 </h4>
                 <ul
-                  class="list-disc list-inside space-y-1 text-sm"
+                  class="converter-guide__list"
                   :style="{ color: 'var(--text-muted)' }"
                 >
                   <li>{{ $t('converter.usageNotes.claudeCodex') }}</li>
@@ -584,13 +593,13 @@
               </div>
               <div>
                 <h4
-                  class="font-medium mb-2"
+                  class="converter-guide__title"
                   :style="{ color: 'var(--text-secondary)' }"
                 >
                   {{ $t('converter.usageNotes.conversionNotesTitle') }}
                 </h4>
                 <ul
-                  class="list-disc list-inside space-y-1 text-sm"
+                  class="converter-guide__list"
                   :style="{ color: 'var(--text-muted)' }"
                 >
                   <li>{{ $t('converter.usageNotes.note1') }}</li>
@@ -601,13 +610,13 @@
               </div>
               <div>
                 <h4
-                  class="font-medium mb-2"
+                  class="converter-guide__title"
                   :style="{ color: 'var(--text-secondary)' }"
                 >
                   {{ $t('converter.usageNotes.importantNotesTitle') }}
                 </h4>
                 <ul
-                  class="list-disc list-inside space-y-1 text-sm"
+                  class="converter-guide__list"
                   :style="{ color: 'var(--text-muted)' }"
                 >
                   <li>{{ $t('converter.usageNotes.caution1') }}</li>
@@ -770,3 +779,322 @@ const handleLoadExample = () => {
   setTimeout(() => (successMessage.value = null), 3000)
 }
 </script>
+
+<style scoped>
+.converter-view {
+  min-height: 100%;
+  padding: 1.25rem;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.converter-view__container {
+  max-width: 1800px;
+  margin: 0 auto;
+}
+
+.converter-view__stack,
+.converter-view__main,
+.converter-results,
+.converter-guide,
+.converter-option-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.converter-view__stack {
+  gap: 1rem;
+}
+
+.converter-view__main,
+.converter-results {
+  gap: 1.5rem;
+}
+
+.converter-guide {
+  gap: 1rem;
+}
+
+.converter-option-list {
+  gap: 0.5rem;
+}
+
+.converter-card {
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+}
+
+.converter-card--header {
+  overflow: hidden;
+}
+
+.converter-header,
+.converter-toolbar,
+.converter-option-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.converter-header {
+  margin-bottom: 0.5rem;
+}
+
+.converter-title,
+.converter-card__title {
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.converter-title {
+  font-size: 1.875rem;
+}
+
+.converter-card__title {
+  font-size: 1.25rem;
+}
+
+.converter-card__title--with-gap {
+  margin-bottom: 0.5rem;
+}
+
+.converter-card__title--section {
+  margin-bottom: 1rem;
+}
+
+.converter-card__title--compact {
+  margin-bottom: 0.25rem;
+}
+
+.converter-muted-text,
+.converter-section-copy {
+  line-height: 1.6;
+}
+
+.converter-section-copy {
+  margin-bottom: 1rem;
+}
+
+.converter-section-copy--compact {
+  margin-bottom: 0;
+}
+
+.converter-chip-button,
+.converter-toolbar-button,
+.converter-primary-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.converter-chip-button {
+  padding: 0.5rem 1rem;
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+.converter-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  border-radius: 0.5rem;
+  padding: 1rem;
+}
+
+.converter-alert__icon {
+  flex-shrink: 0;
+  margin-top: 0.125rem;
+}
+
+.converter-selection-grid,
+.converter-stats-grid {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.converter-selection-grid {
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+}
+
+.converter-section-heading {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.converter-option-card {
+  border-radius: 0.5rem;
+  padding: 1rem;
+  transition: background-color 0.2s ease, border-color 0.2s ease, opacity 0.2s ease;
+}
+
+.converter-option-card__header {
+  margin-bottom: 0.25rem;
+}
+
+.converter-option-card__title,
+.converter-warning-panel__title,
+.converter-guide__title {
+  font-weight: 500;
+}
+
+.converter-option-card__description,
+.converter-warning-list__item,
+.converter-guide__list {
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+
+.converter-option-badge {
+  border-radius: 0.25rem;
+  padding: 0.125rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.converter-toggle-list,
+.converter-toolbar__actions,
+.converter-action-row {
+  display: flex;
+  gap: 1rem;
+}
+
+.converter-toggle-list {
+  flex-wrap: wrap;
+  gap: 1.5rem;
+}
+
+.converter-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+}
+
+.converter-checkbox {
+  width: 1rem;
+  height: 1rem;
+  cursor: pointer;
+}
+
+.converter-toolbar {
+  margin-bottom: 1rem;
+}
+
+.converter-toolbar__actions {
+  gap: 0.5rem;
+}
+
+.converter-toolbar-button {
+  padding: 0.375rem 0.75rem;
+}
+
+.converter-toolbar-button--label {
+  cursor: pointer;
+}
+
+.converter-textarea {
+  width: 100%;
+  resize: none;
+  border-radius: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New',
+    monospace;
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+
+.converter-textarea--result {
+  min-height: 400px;
+}
+
+.converter-help-text {
+  margin-top: 0.5rem;
+  font-size: 0.875rem;
+}
+
+.converter-action-row {
+  justify-content: center;
+}
+
+.converter-primary-action {
+  padding: 0.75rem 2rem;
+  color: white;
+  font-weight: 600;
+}
+
+.converter-stats-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-bottom: 1rem;
+  gap: 1rem;
+}
+
+.converter-stat {
+  text-align: center;
+}
+
+.converter-stat__value {
+  font-size: 1.875rem;
+  font-weight: 700;
+}
+
+.converter-stat__label {
+  margin-top: 0.25rem;
+  font-size: 0.875rem;
+}
+
+.converter-warning-panel {
+  border-radius: 0.5rem;
+  padding: 1rem;
+}
+
+.converter-warning-panel__title {
+  margin-bottom: 0.5rem;
+}
+
+.converter-warning-list,
+.converter-guide__list {
+  padding-left: 1.25rem;
+}
+
+.converter-warning-list {
+  list-style: disc;
+}
+
+.converter-guide__title {
+  margin-bottom: 0.5rem;
+}
+
+.converter-guide__list {
+  list-style: disc;
+}
+
+@media (width >= 1024px) {
+  .converter-selection-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (width >= 768px) {
+  .converter-stats-grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+}
+
+@media (width <= 767px) {
+  .converter-header,
+  .converter-toolbar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .converter-toolbar__actions {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+}
+</style>

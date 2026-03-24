@@ -1,0 +1,11 @@
+/* ============================================
+   Deferred App Styles
+   首屏后补充加载的大体积样式
+   ============================================ */
+
+@import './animations.css';
+@import './utilities.css';
+@import './chart-colors.css';
+
+@tailwind components;
+@tailwind utilities;

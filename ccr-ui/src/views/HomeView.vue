@@ -1,56 +1,56 @@
 <!-- -->
 <template>
-  <div class="min-h-full p-6 lg:p-10 relative overflow-hidden">
-    <div class="max-w-7xl mx-auto space-y-10">
+  <div class="home-view">
+    <div class="home-shell">
       <!-- HEADER SECTION -->
-      <header class="animate-slide-up">
-        <div class="relative overflow-hidden rounded-[2rem] border border-white/25 bg-[linear-gradient(145deg,rgba(16,18,36,0.74),rgba(56,27,77,0.62))] p-6 shadow-2xl shadow-slate-950/20 backdrop-blur-xl md:p-8">
-          <div class="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(244,114,182,0.2),transparent_42%),radial-gradient(circle_at_bottom_right,rgba(168,85,247,0.16),transparent_38%)]" />
-          <div class="absolute inset-0 bg-[linear-gradient(120deg,rgba(8,10,24,0.46),transparent_55%)]" />
+      <header class="home-section animate-slide-up">
+        <div class="home-hero">
+          <div class="hero-overlay hero-overlay--accent" />
+          <div class="hero-overlay hero-overlay--shade" />
 
-          <div class="relative flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-            <div class="max-w-3xl space-y-4">
-              <span class="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/8 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.28em] text-pink-100/90">
-                <span class="h-2 w-2 rounded-full bg-accent-primary shadow-[0_0_12px_rgba(var(--color-accent-primary-rgb),0.75)]" />
+          <div class="hero-content">
+            <div class="hero-copy">
+              <span class="hero-badge">
+                <span class="hero-badge__dot" />
                 {{ $t('common.shell.tagline') }}
               </span>
-              <div class="space-y-2">
-                <h1 class="text-4xl font-bold font-display tracking-tight text-white md:text-5xl">
+              <div class="hero-copy__body">
+                <h1 class="hero-title">
                   {{ $t('home.welcomeBack') }},
-                  <span class="text-pink-100">{{ $t('home.roleEngineer') }}</span>
+                  <span class="hero-title__accent">{{ $t('home.roleEngineer') }}</span>
                 </h1>
-                <p class="max-w-2xl text-base leading-7 text-slate-100/88 md:text-lg">
+                <p class="hero-description">
                   {{ $t('home.statusMsg') }}
                 </p>
               </div>
             </div>
 
-            <div class="grid gap-3 sm:grid-cols-2">
+            <div class="hero-stats">
               <Card
                 variant="glass"
-                class="min-h-[72px] min-w-[150px] border-white/15 bg-white/10 px-4 py-3"
+                class="hero-metric"
               >
                 <div class="flex items-center gap-3">
-                  <div class="flex h-10 w-10 items-center justify-center rounded-2xl bg-accent-success/15 text-accent-success">
-                    <div class="h-2.5 w-2.5 rounded-full bg-accent-success shadow-glow-success animate-pulse" />
+                  <div class="hero-metric__icon hero-metric__icon--success">
+                    <div class="hero-metric__dot hero-metric__dot--success animate-pulse" />
                   </div>
-                  <div class="text-xs font-mono">
-                    <span class="block text-slate-200/70">{{ $t('home.cpuUsage') }}</span>
-                    <span class="mt-1 block text-xl font-bold text-white">{{ systemInfo?.cpu_usage?.toFixed(1) || '12.4' }}%</span>
+                  <div class="hero-metric__body">
+                    <span class="hero-metric__label">{{ $t('home.cpuUsage') }}</span>
+                    <span class="hero-metric__value">{{ systemInfo?.cpu_usage?.toFixed(1) || '12.4' }}%</span>
                   </div>
                 </div>
               </Card>
               <Card
                 variant="glass"
-                class="min-h-[72px] min-w-[150px] border-white/15 bg-white/10 px-4 py-3"
+                class="hero-metric"
               >
                 <div class="flex items-center gap-3">
-                  <div class="flex h-10 w-10 items-center justify-center rounded-2xl bg-accent-info/15 text-accent-info">
-                    <div class="h-2.5 w-2.5 rounded-full bg-accent-info shadow-glow-info" />
+                  <div class="hero-metric__icon hero-metric__icon--info">
+                    <div class="hero-metric__dot hero-metric__dot--info" />
                   </div>
-                  <div class="text-xs font-mono">
-                    <span class="block text-slate-200/70">{{ $t('home.memoryUsage') }}</span>
-                    <span class="mt-1 block text-xl font-bold text-white">{{ systemInfo?.memory_usage_percent?.toFixed(1) || '42.8' }}%</span>
+                  <div class="hero-metric__body">
+                    <span class="hero-metric__label">{{ $t('home.memoryUsage') }}</span>
+                    <span class="hero-metric__value">{{ systemInfo?.memory_usage_percent?.toFixed(1) || '42.8' }}%</span>
                   </div>
                 </div>
               </Card>
@@ -61,21 +61,21 @@
 
       <!-- QUICK ACTIONS GRID -->
       <section
-        class="animate-slide-up"
+        class="home-section animate-slide-up"
         style="animation-delay: 100ms"
       >
-        <div class="flex items-center gap-2 mb-4">
+        <div class="section-heading">
           <SIcon
             name="Terminal"
             size="w-4 h-4"
             class="text-accent-primary"
           />
-          <h2 class="text-xs font-bold uppercase tracking-widest text-text-muted">
+          <h2 class="section-eyebrow">
             {{ $t('home.quickActions') }}
           </h2>
         </div>
         
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="quick-actions-grid">
           <RouterLink
             v-for="action in quickActions"
             :key="action.path"
@@ -86,10 +86,10 @@
               variant="elevated"
               hover
               glow
-              class="h-full p-4 flex flex-col items-start gap-4 transition-colors"
+              class="quick-action-card"
             >
               <div 
-                class="w-10 h-10 rounded-lg flex items-center justify-center transition-colors duration-300"
+                class="quick-action-icon"
                 :class="action.bgClass"
               >
                 <SIcon
@@ -100,17 +100,17 @@
                 />
               </div>
               <div>
-                <h3 class="mb-1 font-bold text-text-primary">
+                <h3 class="quick-action-title">
                   {{ action.title }}
                 </h3>
-                <p class="line-clamp-2 text-xs leading-relaxed text-text-secondary">
+                <p class="quick-action-desc">
                   {{ action.desc }}
                 </p>
               </div>
               <SIcon
                 name="ArrowRight"
                 size="h-4 w-4"
-                class="mt-auto self-end -translate-x-2 text-text-muted opacity-0 transition-[opacity,transform,color] group-hover:translate-x-0 group-hover:opacity-100 group-hover:text-accent-primary"
+                class="quick-action-arrow"
               />
             </Card>
           </RouterLink>
@@ -119,21 +119,21 @@
 
       <!-- MAIN MODULES -->
       <section
-        class="animate-slide-up"
+        class="home-section animate-slide-up"
         style="animation-delay: 200ms"
       >
-        <div class="flex items-center gap-2 mb-4">
+        <div class="section-heading">
           <SIcon
             name="Grid"
             size="w-4 h-4"
             class="text-accent-secondary"
           />
-          <h2 class="text-xs font-bold uppercase tracking-widest text-text-muted">
+          <h2 class="section-eyebrow">
             {{ $t('home.platformModules') }}
           </h2>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="modules-grid">
           <RouterLink
             v-for="module in mainModules"
             :key="module.path"
@@ -144,17 +144,17 @@
               variant="glass"
               hover
               glow
-              class="h-full relative overflow-hidden p-6 flex flex-col gap-6"
+              class="module-card"
             >
               <!-- Background Icon Watermark -->
               <SIcon
                 :name="module.icon"
                 size="w-32 h-32"
-                class="absolute -right-6 -bottom-6 opacity-[0.03] group-hover:opacity-[0.07] transition-opacity rotate-12"
+                class="module-watermark"
               />
               
-              <div class="flex justify-between items-start z-10">
-                <div class="rounded-xl border border-border-default/50 bg-bg-elevated/70 p-3 backdrop-blur-md">
+              <div class="module-card__header">
+                <div class="module-icon-shell">
                   <SIcon
                     :name="module.icon"
                     size="w-6 h-6"
@@ -163,7 +163,7 @@
                 </div>
                 <div class="flex items-center gap-2">
                   <div
-                    class="rounded-md border border-border-default/50 px-2 py-1 text-[10px] font-bold uppercase"
+                    class="module-version-badge"
                     :class="getVersionClass(module.platformKey)"
                   >
                     {{ getVersionLabel(module.platformKey) }}
@@ -171,11 +171,11 @@
                 </div>
               </div>
 
-              <div class="z-10">
-                <h3 class="mb-2 text-xl font-bold text-text-primary transition-colors group-hover:text-accent-primary">
+              <div class="module-copy">
+                <h3 class="module-title">
                   {{ module.title }}
                 </h3>
-                <p class="text-sm leading-relaxed text-text-secondary">
+                <p class="module-desc">
                   {{ module.desc }}
                 </p>
               </div>
@@ -187,17 +187,17 @@
       <!-- STATS DASHBOARD -->
       <section
         ref="usageStatsSection"
-        class="animate-slide-up"
+        class="home-section animate-slide-up"
         style="animation-delay: 300ms"
       >
-        <div class="flex items-center justify-between mb-4">
-          <div class="flex items-center gap-2">
+        <div class="section-header">
+          <div class="section-heading">
             <SIcon
               name="Activity"
               size="w-4 h-4"
               class="text-accent-info"
             />
-            <h2 class="text-xs font-bold uppercase tracking-widest text-text-muted">
+            <h2 class="section-eyebrow">
               {{ $t('home.systemActivity') }}
             </h2>
           </div>
@@ -217,15 +217,15 @@
         <Card
           v-else
           variant="glass"
-          class="min-h-[420px] p-6 flex items-center justify-center"
+          class="usage-placeholder"
         >
-          <div class="flex flex-col items-center gap-3 text-center">
-            <div class="h-8 w-8 rounded-full border-2 border-accent-info/20 border-t-accent-info animate-spin" />
+          <div class="usage-placeholder__content">
+            <div class="usage-placeholder__spinner" />
             <div>
-              <p class="text-sm font-semibold text-text-primary">
+              <p class="usage-placeholder__title">
                 {{ $t('usageStats.title') }}
               </p>
-              <p class="mt-1 text-xs text-text-muted">
+              <p class="usage-placeholder__subtitle">
                 {{ $t('common.loading') }}
               </p>
             </div>
@@ -242,7 +242,7 @@ import { ref, computed, onMounted, onBeforeUnmount, defineAsyncComponent } from 
 import { useI18n } from 'vue-i18n'
 import Card from '@/components/ui/Card.vue'
 import Button from '@/components/ui/Button.vue'
-import { getSystemInfo, getCliVersions } from '@/api'
+import { getSystemInfo, getCliVersions } from '@/api/runtime/system'
 import { scheduleWhenIdle } from '@/utils/scheduling'
 import { logger } from '@/utils/logger'
 import type { CliVersionEntry, CliVersionsResponse, SystemInfo } from '@/types'
@@ -486,3 +486,238 @@ const mainModules = computed(() => [
   }
 ])
 </script>
+
+<style scoped>
+.home-view {
+  @apply relative min-h-full overflow-hidden p-6 lg:p-10;
+}
+
+.home-shell {
+  @apply mx-auto max-w-7xl space-y-10;
+}
+
+.home-section {
+  @apply relative;
+}
+
+.home-hero {
+  @apply relative overflow-hidden border border-white/25 p-6 shadow-2xl shadow-slate-950/20 backdrop-blur-xl md:p-8;
+
+  border-radius: 2rem;
+  background: linear-gradient(145deg, rgb(16 18 36 / 74%), rgb(56 27 77 / 62%));
+}
+
+.hero-overlay {
+  @apply absolute inset-0;
+}
+
+.hero-overlay--accent {
+  background:
+    radial-gradient(circle at top left, rgb(244 114 182 / 20%), transparent 42%),
+    radial-gradient(circle at bottom right, rgb(168 85 247 / 16%), transparent 38%);
+}
+
+.hero-overlay--shade {
+  background: linear-gradient(120deg, rgb(8 10 24 / 46%), transparent 55%);
+}
+
+.hero-content {
+  @apply relative flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between;
+}
+
+.hero-copy {
+  @apply max-w-3xl space-y-4;
+}
+
+.hero-copy__body {
+  @apply space-y-2;
+}
+
+.hero-badge {
+  @apply inline-flex items-center gap-2 rounded-full border border-white/15 px-3 py-1 font-semibold uppercase text-pink-100/90;
+
+  background: rgb(255 255 255 / 8%);
+  font-size: 11px;
+  letter-spacing: 0.28em;
+}
+
+.hero-badge__dot {
+  @apply h-2 w-2 rounded-full bg-accent-primary;
+
+  box-shadow: 0 0 12px rgb(var(--color-accent-primary-rgb) / 75%);
+}
+
+.hero-title {
+  @apply text-4xl font-bold tracking-tight text-white md:text-5xl;
+
+  font-family: MapleBright, 'Microsoft YaHei UI', system-ui, sans-serif;
+}
+
+.hero-title__accent {
+  @apply text-pink-100;
+}
+
+.hero-description {
+  @apply max-w-2xl text-base leading-7 md:text-lg;
+
+  color: rgb(241 245 249 / 88%);
+}
+
+.hero-stats {
+  @apply grid gap-3 sm:grid-cols-2;
+}
+
+.hero-metric {
+  @apply border-white/15 bg-white/10 px-4 py-3;
+
+  min-height: 72px;
+  min-width: 150px;
+}
+
+.hero-metric__icon {
+  @apply flex h-10 w-10 items-center justify-center rounded-2xl;
+}
+
+.hero-metric__icon--success {
+  @apply bg-accent-success/15 text-accent-success;
+}
+
+.hero-metric__icon--info {
+  @apply bg-accent-info/15 text-accent-info;
+}
+
+.hero-metric__dot {
+  @apply h-2.5 w-2.5 rounded-full;
+}
+
+.hero-metric__dot--success {
+  @apply bg-accent-success;
+
+  box-shadow: 0 0 12px rgb(var(--color-success-rgb) / 65%);
+}
+
+.hero-metric__dot--info {
+  @apply bg-accent-info;
+
+  box-shadow: 0 0 12px rgb(var(--color-info-rgb) / 65%);
+}
+
+.hero-metric__body {
+  @apply font-mono text-xs;
+}
+
+.hero-metric__label {
+  @apply block text-slate-200/70;
+}
+
+.hero-metric__value {
+  @apply mt-1 block text-xl font-bold text-white;
+}
+
+.section-header {
+  @apply mb-4 flex items-center justify-between;
+}
+
+.section-heading {
+  @apply mb-4 flex items-center gap-2;
+}
+
+.section-eyebrow {
+  @apply text-xs font-bold uppercase tracking-widest text-text-muted;
+}
+
+.quick-actions-grid {
+  @apply grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4;
+}
+
+.quick-action-card {
+  @apply flex h-full flex-col items-start gap-4 p-4 transition-colors;
+}
+
+.quick-action-icon {
+  @apply flex h-10 w-10 items-center justify-center rounded-lg transition-colors duration-300;
+}
+
+.quick-action-title {
+  @apply mb-1 font-bold text-text-primary;
+}
+
+.quick-action-desc {
+  @apply line-clamp-2 text-xs leading-relaxed text-text-secondary;
+}
+
+.quick-action-arrow {
+  @apply mt-auto self-end -translate-x-2 text-text-muted opacity-0 group-hover:translate-x-0 group-hover:opacity-100 group-hover:text-accent-primary;
+
+  transition:
+    opacity 200ms ease,
+    transform 200ms ease,
+    color 200ms ease;
+}
+
+.modules-grid {
+  @apply grid grid-cols-1 gap-6 md:grid-cols-3;
+}
+
+.module-card {
+  @apply relative flex h-full flex-col gap-6 overflow-hidden p-6;
+}
+
+.module-watermark {
+  @apply absolute -bottom-6 -right-6 rotate-12 transition-opacity;
+
+  opacity: 0.03;
+}
+
+.module-card__header {
+  @apply z-10 flex items-start justify-between;
+}
+
+.module-icon-shell {
+  @apply rounded-xl border border-border-default/50 bg-bg-elevated/70 p-3 backdrop-blur-md;
+}
+
+.module-version-badge {
+  @apply rounded-md border border-border-default/50 px-2 py-1 font-bold uppercase;
+
+  font-size: 10px;
+}
+
+.module-copy {
+  @apply z-10;
+}
+
+.module-title {
+  @apply mb-2 text-xl font-bold text-text-primary transition-colors group-hover:text-accent-primary;
+}
+
+.module-desc {
+  @apply text-sm leading-relaxed text-text-secondary;
+}
+
+.usage-placeholder {
+  @apply flex items-center justify-center p-6;
+
+  min-height: 420px;
+}
+
+.group:hover .module-watermark {
+  opacity: 0.07;
+}
+
+.usage-placeholder__content {
+  @apply flex flex-col items-center gap-3 text-center;
+}
+
+.usage-placeholder__spinner {
+  @apply h-8 w-8 animate-spin rounded-full border-2 border-accent-info/20 border-t-accent-info;
+}
+
+.usage-placeholder__title {
+  @apply text-sm font-semibold text-text-primary;
+}
+
+.usage-placeholder__subtitle {
+  @apply mt-1 text-xs text-text-muted;
+}
+</style>

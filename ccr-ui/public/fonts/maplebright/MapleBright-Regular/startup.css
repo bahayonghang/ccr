@@ -1,0 +1,35 @@
+@font-face {
+  font-family: 'MapleBright';
+  src: local('MapleBright'), url('./0.woff2') format('woff2');
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400;
+  unicode-range: U+0, U+D, U+20-7E;
+}
+
+@font-face {
+  font-family: 'MapleBright';
+  src: local('MapleBright'), url('./1.woff2') format('woff2');
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400;
+  unicode-range: U+A0-AC, U+AE-FF;
+}
+
+@font-face {
+  font-family: 'MapleBright';
+  src: local('MapleBright'), url('./2.woff2') format('woff2');
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400;
+  unicode-range: U+100-17F;
+}
+
+@font-face {
+  font-family: 'MapleBright';
+  src: local('MapleBright'), url('./7.woff2') format('woff2');
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400;
+  unicode-range: U+2013-2014, U+2018-2019, U+201C-201D, U+2022, U+2026-2027, U+203C, U+25CF, U+3001-3002, U+3008-3011, U+3014-3019, U+FE41-FE44, U+FE4F, U+FF01, U+FF08-FF09, U+FF0C-FF0F, U+FF1A-FF1B, U+FF1F, U+FF3B, U+FF3D, U+FF3F, U+FF5B-FF5E;
+}

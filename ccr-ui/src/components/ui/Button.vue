@@ -2,6 +2,8 @@
   <button
     :type="type"
     :class="classes"
+    :data-variant="variant"
+    :data-size="size"
     :disabled="disabled || loading"
     :aria-busy="loading || undefined"
     @click="handleClick"
@@ -80,31 +82,117 @@ const handleClick = (e: MouseEvent) => {
 }
 
 const classes = computed(() => {
-  const base = [
-    'inline-flex min-h-[44px] items-center justify-center rounded-xl font-medium transition-[color,background-color,border-color,transform,box-shadow] duration-300 ease-out',
-    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary/30 focus-visible:ring-offset-2 focus-visible:ring-offset-bg-base',
-    'disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none',
-    'transform active:scale-95',
-    props.block ? 'w-full' : '',
-  ]
-
-  const variants = {
-    primary: 'border border-accent-primary/20 bg-accent-primary/90 text-text-inverted shadow-glow-primary hover:bg-accent-primary',
-    secondary: 'border border-border-default/70 bg-bg-elevated/75 text-text-primary shadow-sm backdrop-blur-md hover:border-border-strong hover:bg-bg-surface',
-    accent: 'border border-accent-secondary/20 bg-accent-secondary/90 text-text-inverted shadow-glow-primary hover:bg-accent-secondary',
-    outline: 'border border-border-default/80 bg-transparent text-text-secondary hover:border-accent-primary/35 hover:bg-bg-surface/70 hover:text-text-primary',
-    ghost: 'text-text-secondary hover:bg-bg-surface/80 hover:text-text-primary',
-    glass: 'surface-status border border-border-default/60 text-text-primary shadow-sm hover:border-accent-primary/30 hover:bg-bg-elevated/80',
-    danger: 'border border-accent-danger/20 bg-accent-danger/90 text-text-inverted shadow-glow-danger hover:bg-accent-danger',
-  }
-
-  const sizes = {
-    sm: 'px-3 py-2 text-xs',
-    md: 'px-4 py-2.5 text-sm',
-    lg: 'px-6 py-3 text-base',
-    icon: 'min-w-[44px] p-2.5',
-  }
-
-  return [...base, variants[props.variant], sizes[props.size]].join(' ')
+  return [
+    'ui-button',
+    `ui-button--${props.variant}`,
+    `ui-button--${props.size}`,
+    props.block ? 'ui-button--block' : '',
+  ].join(' ')
 })
 </script>
+
+<style scoped>
+.ui-button {
+  @apply inline-flex min-h-[44px] items-center justify-center rounded-xl font-medium;
+  @apply transition-[color,background-color,border-color,transform,box-shadow] duration-300 ease-out;
+  @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary/30 focus-visible:ring-offset-2 focus-visible:ring-offset-bg-base;
+
+  transform: translateZ(0);
+}
+
+.ui-button:active {
+  transform: scale(0.95);
+}
+
+.ui-button:disabled {
+  @apply cursor-not-allowed opacity-50;
+
+  box-shadow: none;
+}
+
+.ui-button--block {
+  @apply w-full;
+}
+
+.ui-button--sm {
+  @apply px-3 py-2 text-xs;
+}
+
+.ui-button--md {
+  @apply px-4 py-2.5 text-sm;
+}
+
+.ui-button--lg {
+  @apply px-6 py-3 text-base;
+}
+
+.ui-button--icon {
+  @apply min-w-[44px] p-2.5;
+}
+
+.ui-button--primary {
+  @apply border border-accent-primary/20 bg-accent-primary/90 text-text-inverted;
+
+  box-shadow: 0 0 20px rgb(var(--color-accent-primary-rgb) / 24%);
+}
+
+.ui-button--primary:hover:not(:disabled) {
+  @apply bg-accent-primary;
+}
+
+.ui-button--secondary {
+  @apply border border-border-default/70 bg-bg-elevated/75 text-text-primary shadow-sm backdrop-blur-md;
+}
+
+.ui-button--secondary:hover:not(:disabled) {
+  @apply border-border-strong bg-bg-surface;
+}
+
+.ui-button--accent {
+  @apply border border-accent-secondary/20 bg-accent-secondary/90 text-text-inverted;
+
+  box-shadow: 0 0 20px rgb(var(--color-accent-secondary-rgb) / 24%);
+}
+
+.ui-button--accent:hover:not(:disabled) {
+  @apply bg-accent-secondary;
+}
+
+.ui-button--outline {
+  @apply border border-border-default/80 bg-transparent text-text-secondary;
+}
+
+.ui-button--outline:hover:not(:disabled) {
+  @apply border-accent-primary/35 bg-bg-surface/70 text-text-primary;
+}
+
+.ui-button--ghost {
+  @apply text-text-secondary;
+}
+
+.ui-button--ghost:hover:not(:disabled) {
+  @apply bg-bg-surface/80 text-text-primary;
+}
+
+.ui-button--glass {
+  @apply border border-border-default/60 text-text-primary shadow-sm;
+
+  background: var(--surface-status-bg);
+  backdrop-filter: var(--surface-status-blur);
+  box-shadow: var(--surface-status-shadow);
+}
+
+.ui-button--glass:hover:not(:disabled) {
+  @apply border-accent-primary/30 bg-bg-elevated/80;
+}
+
+.ui-button--danger {
+  @apply border border-accent-danger/20 bg-accent-danger/90 text-text-inverted;
+
+  box-shadow: 0 0 20px rgb(var(--color-danger-rgb) / 24%);
+}
+
+.ui-button--danger:hover:not(:disabled) {
+  @apply bg-accent-danger;
+}
+</style>

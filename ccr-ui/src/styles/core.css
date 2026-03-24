@@ -7,9 +7,7 @@
 @import './tokens.css';
 @import './theme.css';
 @import './base.css';
-@import './animations.css';
-@import './utilities.css';
-@import './chart-colors.css';
+@import './shell-critical.css';
 
 @tailwind base;
 @tailwind components;

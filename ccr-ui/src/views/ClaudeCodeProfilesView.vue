@@ -1,12 +1,12 @@
 <template>
-  <div class="relative min-h-full overflow-hidden p-6 lg:p-10">
-    <div class="mx-auto max-w-[1680px] space-y-8">
-      <header class="flex flex-col justify-between gap-5 xl:flex-row xl:items-end animate-slide-up">
-        <div class="space-y-3">
-          <div class="flex items-center gap-2 text-sm text-text-secondary">
+  <div class="claude-profiles-view">
+    <div class="claude-profiles-view__shell">
+      <header class="claude-profiles-view__header animate-slide-up">
+        <div class="claude-profiles-view__hero">
+          <div class="claude-profiles-view__breadcrumb">
             <RouterLink
               to="/claude-code"
-              class="transition-colors hover:text-text-primary"
+              class="claude-profiles-view__breadcrumb-link"
             >
               Claude Code
             </RouterLink>
@@ -14,34 +14,34 @@
               name="ChevronRight"
               size="w-3 h-3"
             />
-            <span class="text-text-primary">{{ $t('claudeProfiles.breadcrumbProfiles') }}</span>
+            <span class="claude-profiles-view__breadcrumb-current">{{ $t('claudeProfiles.breadcrumbProfiles') }}</span>
           </div>
 
-          <div class="flex flex-wrap items-center gap-3">
-            <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-accent-secondary/12 text-accent-secondary shadow-[0_10px_25px_rgba(96,70,160,0.18)]">
+          <div class="claude-profiles-view__hero-title-row">
+            <div class="claude-profiles-view__hero-icon">
               <SIcon
                 name="Layers"
                 size="w-6 h-6"
               />
             </div>
             <div>
-              <p class="text-xs font-semibold uppercase tracking-[0.28em] text-text-muted">
+              <p class="claude-profiles-view__eyebrow">
                 {{ $t('claudeProfiles.consoleEyebrow') }}
               </p>
-              <h1 class="mt-1 text-3xl font-bold tracking-tight text-text-primary lg:text-4xl">
+              <h1 class="claude-profiles-view__title">
                 {{ $t('claudeProfiles.title') }}
               </h1>
             </div>
           </div>
 
-          <p class="max-w-3xl text-sm leading-6 text-text-secondary lg:text-base">
+          <p class="claude-profiles-view__subtitle">
             {{ $t('claudeProfiles.subtitle') }}
           </p>
         </div>
 
-        <div class="flex flex-wrap items-center gap-3 xl:justify-end">
+        <div class="claude-profiles-view__header-actions">
           <RouterLink to="/claude-code">
-            <button class="flex min-h-[44px] items-center gap-2 rounded-2xl border border-border-default/60 bg-bg-surface/75 px-4 py-2.5 text-sm text-text-secondary transition-colors hover:bg-bg-elevated hover:text-text-primary">
+            <button class="claude-profiles-view__header-button claude-profiles-view__header-button--secondary">
               <SIcon
                 name="ArrowLeft"
                 size="w-4 h-4"
@@ -52,7 +52,7 @@
 
           <button
             type="button"
-            class="flex min-h-[44px] items-center gap-2 rounded-2xl border border-accent-secondary/35 bg-accent-secondary/12 px-4 py-2.5 text-sm font-medium text-accent-secondary transition-colors hover:bg-accent-secondary/18 focus:outline-none focus:ring-2 focus:ring-accent-secondary/20"
+            class="claude-profiles-view__header-button claude-profiles-view__header-button--primary"
             @click="openAddForm()"
           >
             <SIcon
@@ -66,13 +66,13 @@
 
       <div
         :class="[
-          'grid gap-6',
-          showNavigation ? 'lg:grid-cols-[18rem_minmax(0,1fr)]' : '',
+          'claude-profiles-view__layout',
+          showNavigation ? 'claude-profiles-view__layout--with-nav' : '',
         ]"
       >
         <aside
           v-if="showNavigation"
-          class="hidden lg:block"
+          class="claude-profiles-view__sidebar"
         >
           <ClaudeProfilesProviderNav
             :sections="providerSections"
@@ -81,13 +81,13 @@
           />
         </aside>
 
-        <main class="min-w-0 space-y-6">
+        <main class="claude-profiles-view__main">
           <ClaudeProfilesProviderNav
             v-if="showNavigation"
             mobile
             :sections="providerSections"
             :active-section-id="currentSectionId"
-            class="lg:hidden"
+            class="claude-profiles-view__mobile-nav"
             @navigate="scrollToSection"
           />
 
@@ -1134,5 +1134,205 @@ onBeforeUnmount(teardownSectionObserver)
 
 .claude-profile-editor-modal .editor-button--primary:hover {
   background: linear-gradient(180deg, rgb(var(--color-accent-secondary-rgb) / 20%), rgb(var(--color-accent-secondary-rgb) / 14%));
+}
+
+.claude-profiles-view {
+  position: relative;
+  min-height: 100%;
+  overflow: hidden;
+  padding: 1.5rem;
+}
+
+.claude-profiles-view__shell,
+.claude-profiles-view__hero,
+.claude-profiles-view__main {
+  display: flex;
+  flex-direction: column;
+}
+
+.claude-profiles-view__shell {
+  max-width: 1680px;
+  margin: 0 auto;
+  gap: 2rem;
+}
+
+.claude-profiles-view__header,
+.claude-profiles-view__breadcrumb,
+.claude-profiles-view__hero-title-row,
+.claude-profiles-view__header-actions,
+.claude-profiles-view__header-button {
+  display: flex;
+  align-items: center;
+}
+
+.claude-profiles-view__header {
+  justify-content: space-between;
+  gap: 1.25rem;
+}
+
+.claude-profiles-view__hero {
+  gap: 0.75rem;
+}
+
+.claude-profiles-view__breadcrumb {
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  color: var(--text-secondary);
+}
+
+.claude-profiles-view__breadcrumb-link {
+  transition: color 0.2s ease;
+}
+
+.claude-profiles-view__breadcrumb-link:hover {
+  color: var(--text-primary);
+}
+
+.claude-profiles-view__breadcrumb-current {
+  color: var(--text-primary);
+}
+
+.claude-profiles-view__hero-title-row {
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.claude-profiles-view__hero-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 3rem;
+  height: 3rem;
+  border-radius: 1rem;
+  background: rgb(var(--color-accent-secondary-rgb) / 12%);
+  color: rgb(var(--color-accent-secondary-rgb) / 100%);
+  box-shadow: 0 10px 25px rgb(96 70 160 / 18%);
+}
+
+.claude-profiles-view__eyebrow {
+  font-size: 0.75rem;
+  line-height: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.claude-profiles-view__title {
+  margin-top: 0.25rem;
+  font-size: 1.875rem;
+  line-height: 2.25rem;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  color: var(--text-primary);
+}
+
+.claude-profiles-view__subtitle {
+  max-width: 48rem;
+  font-size: 0.875rem;
+  line-height: 1.5rem;
+  color: var(--text-secondary);
+}
+
+.claude-profiles-view__header-actions {
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.claude-profiles-view__header-button {
+  gap: 0.5rem;
+  min-height: 44px;
+  border: 1px solid;
+  border-radius: 1rem;
+  padding: 0.625rem 1rem;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.claude-profiles-view__header-button--secondary {
+  border-color: rgb(var(--color-border-default-rgb) / 60%);
+  background: rgb(var(--color-bg-surface-rgb) / 75%);
+  color: var(--text-secondary);
+}
+
+.claude-profiles-view__header-button--secondary:hover {
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+}
+
+.claude-profiles-view__header-button--primary {
+  border-color: rgb(var(--color-accent-secondary-rgb) / 35%);
+  background: rgb(var(--color-accent-secondary-rgb) / 12%);
+  color: rgb(var(--color-accent-secondary-rgb) / 100%);
+  font-weight: 500;
+}
+
+.claude-profiles-view__header-button--primary:hover {
+  background: rgb(var(--color-accent-secondary-rgb) / 18%);
+}
+
+.claude-profiles-view__header-button--primary:focus-visible {
+  outline: 2px solid rgb(var(--color-accent-secondary-rgb) / 20%);
+  outline-offset: 2px;
+}
+
+.claude-profiles-view__layout {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.claude-profiles-view__main {
+  min-width: 0;
+  gap: 1.5rem;
+}
+
+.claude-profiles-view__sidebar {
+  display: none;
+}
+
+.claude-profiles-view__mobile-nav {
+  display: block;
+}
+
+@media (width >= 1024px) {
+  .claude-profiles-view {
+    padding: 2.5rem;
+  }
+}
+
+@media (width >= 1280px) {
+  .claude-profiles-view__header {
+    align-items: flex-end;
+    flex-direction: row;
+  }
+
+  .claude-profiles-view__header-actions {
+    justify-content: flex-end;
+  }
+
+  .claude-profiles-view__layout--with-nav {
+    grid-template-columns: 18rem minmax(0, 1fr);
+  }
+
+  .claude-profiles-view__sidebar {
+    display: block;
+  }
+
+  .claude-profiles-view__mobile-nav {
+    display: none;
+  }
+}
+
+@media (width >= 1024px) {
+  .claude-profiles-view__title {
+    font-size: 2.25rem;
+    line-height: 2.5rem;
+  }
+
+  .claude-profiles-view__subtitle {
+    font-size: 1rem;
+  }
 }
 </style>

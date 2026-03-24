@@ -1,22 +1,22 @@
 <template>
-  <div class="pricing-view p-6 space-y-6">
+  <div class="pricing-view">
     <!-- 页面标题 -->
-    <div class="flex items-center justify-between">
+    <div class="pricing-header">
       <div>
-        <h1 class="text-3xl font-bold text-text-primary">
+        <h1 class="pricing-title text-text-primary">
           💲 定价管理
         </h1>
-        <p class="mt-2 text-sm text-text-secondary">
+        <p class="pricing-subtitle text-text-secondary">
           配置各个模型的价格和默认定价策略
         </p>
       </div>
       <button
         :disabled="loading"
-        class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center space-x-2 disabled:opacity-50"
+        class="pricing-action-button pricing-action-button--primary"
         @click="loadData"
       >
         <svg
-          class="w-5 h-5"
+          class="pricing-action-button__icon"
           :class="{ 'animate-spin': loading }"
           fill="none"
           stroke="currentColor"
@@ -36,19 +36,19 @@
     <!-- 加载状态 -->
     <div
       v-if="loading"
-      class="flex items-center justify-center py-12"
+      class="pricing-loading"
     >
-      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600" />
+      <div class="pricing-loading__spinner animate-spin" />
     </div>
 
     <!-- 错误提示 -->
     <div
       v-if="error"
-      class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4"
+      class="pricing-error"
     >
-      <div class="flex">
+      <div class="pricing-error__layout">
         <svg
-          class="h-5 w-5 text-red-400"
+          class="pricing-error__icon"
           fill="currentColor"
           viewBox="0 0 20 20"
         >
@@ -58,11 +58,11 @@
             clip-rule="evenodd"
           />
         </svg>
-        <div class="ml-3">
-          <h3 class="text-sm font-medium text-red-800 dark:text-red-200">
+        <div class="pricing-error__content">
+          <h3 class="pricing-error__title">
             加载失败
           </h3>
-          <p class="mt-2 text-sm text-red-700 dark:text-red-300">
+          <p class="pricing-error__message">
             {{ error }}
           </p>
         </div>
@@ -72,55 +72,55 @@
     <!-- 定价内容 -->
     <div
       v-if="!loading && !error && pricingData"
-      class="space-y-6"
+      class="pricing-content"
     >
       <!-- 默认定价卡片 -->
-      <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-        <h2 class="text-xl font-semibold text-text-primary mb-4">
+      <div class="pricing-card">
+        <h2 class="pricing-section-title text-text-primary">
           默认定价策略
         </h2>
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div class="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
-            <p class="text-sm text-text-secondary">
+        <div class="pricing-default-grid">
+          <div class="pricing-metric-card pricing-metric-card--blue">
+            <p class="pricing-metric-card__label text-text-secondary">
               输入价格
             </p>
-            <p class="mt-2 text-2xl font-bold text-text-primary">
+            <p class="pricing-metric-card__value text-text-primary">
               ${{ pricingData.default_pricing.input_price.toFixed(4) }}
             </p>
-            <p class="text-xs text-text-muted mt-1">
+            <p class="pricing-metric-card__meta text-text-muted">
               / 1K tokens
             </p>
           </div>
-          <div class="bg-green-50 dark:bg-green-900/20 rounded-lg p-4">
-            <p class="text-sm text-text-secondary">
+          <div class="pricing-metric-card pricing-metric-card--green">
+            <p class="pricing-metric-card__label text-text-secondary">
               输出价格
             </p>
-            <p class="mt-2 text-2xl font-bold text-text-primary">
+            <p class="pricing-metric-card__value text-text-primary">
               ${{ pricingData.default_pricing.output_price.toFixed(4) }}
             </p>
-            <p class="text-xs text-text-muted mt-1">
+            <p class="pricing-metric-card__meta text-text-muted">
               / 1K tokens
             </p>
           </div>
-          <div class="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-4">
-            <p class="text-sm text-text-secondary">
+          <div class="pricing-metric-card pricing-metric-card--purple">
+            <p class="pricing-metric-card__label text-text-secondary">
               缓存读取
             </p>
-            <p class="mt-2 text-2xl font-bold text-text-primary">
+            <p class="pricing-metric-card__value text-text-primary">
               ${{ (pricingData.default_pricing.cache_read_price || 0).toFixed(4) }}
             </p>
-            <p class="text-xs text-text-muted mt-1">
+            <p class="pricing-metric-card__meta text-text-muted">
               / 1K tokens
             </p>
           </div>
-          <div class="bg-orange-50 dark:bg-orange-900/20 rounded-lg p-4">
-            <p class="text-sm text-text-secondary">
+          <div class="pricing-metric-card pricing-metric-card--orange">
+            <p class="pricing-metric-card__label text-text-secondary">
               缓存写入
             </p>
-            <p class="mt-2 text-2xl font-bold text-text-primary">
+            <p class="pricing-metric-card__value text-text-primary">
               ${{ (pricingData.default_pricing.cache_write_price || 0).toFixed(4) }}
             </p>
-            <p class="text-xs text-text-muted mt-1">
+            <p class="pricing-metric-card__meta text-text-muted">
               / 1K tokens
             </p>
           </div>
@@ -128,13 +128,13 @@
       </div>
 
       <!-- 模型定价列表 -->
-      <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-        <div class="flex items-center justify-between mb-4">
-          <h2 class="text-xl font-semibold text-text-primary">
+      <div class="pricing-card">
+        <div class="pricing-section-header">
+          <h2 class="pricing-section-title text-text-primary">
             模型定价配置
           </h2>
           <button
-            class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm"
+            class="pricing-action-button pricing-action-button--success pricing-action-button--compact"
             @click="showAddForm"
           >
             ➕ 添加模型定价
@@ -144,53 +144,53 @@
         <!-- 定价列表 -->
         <div
           v-if="pricingData.pricings.length > 0"
-          class="space-y-3"
+          class="pricing-list"
         >
           <div
             v-for="pricing in pricingData.pricings"
             :key="pricing.model"
-            class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg"
+            class="pricing-list-item"
           >
-            <div class="flex-1">
-              <h3 class="text-lg font-medium text-text-primary">
+            <div class="pricing-list-item__body">
+              <h3 class="pricing-list-item__title text-text-primary">
                 {{ pricing.model }}
               </h3>
-              <div class="mt-2 grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
+              <div class="pricing-list-item__metrics">
                 <div>
                   <span class="text-text-secondary">输入:</span>
-                  <span class="ml-2 font-semibold text-text-primary">
+                  <span class="pricing-list-item__value text-text-primary">
                     ${{ pricing.input_price.toFixed(4) }}
                   </span>
                 </div>
                 <div>
                   <span class="text-text-secondary">输出:</span>
-                  <span class="ml-2 font-semibold text-text-primary">
+                  <span class="pricing-list-item__value text-text-primary">
                     ${{ pricing.output_price.toFixed(4) }}
                   </span>
                 </div>
                 <div>
                   <span class="text-text-secondary">缓存读:</span>
-                  <span class="ml-2 font-semibold text-text-primary">
+                  <span class="pricing-list-item__value text-text-primary">
                     ${{ (pricing.cache_read_price || 0).toFixed(4) }}
                   </span>
                 </div>
                 <div>
                   <span class="text-text-secondary">缓存写:</span>
-                  <span class="ml-2 font-semibold text-text-primary">
+                  <span class="pricing-list-item__value text-text-primary">
                     ${{ (pricing.cache_write_price || 0).toFixed(4) }}
                   </span>
                 </div>
               </div>
             </div>
-            <div class="flex items-center space-x-2 ml-4">
+            <div class="pricing-list-item__actions">
               <button
-                class="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm"
+                class="pricing-action-button pricing-action-button--primary pricing-action-button--small"
                 @click="editPricing(pricing)"
               >
                 编辑
               </button>
               <button
-                class="px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded text-sm"
+                class="pricing-action-button pricing-action-button--danger pricing-action-button--small"
                 @click="deletePricing(pricing.model)"
               >
                 删除
@@ -202,7 +202,7 @@
         <!-- 空状态 -->
         <div
           v-else
-          class="text-center py-8 text-text-muted"
+          class="pricing-empty text-text-muted"
         >
           暂无模型定价配置，点击上方按钮添加
         </div>
@@ -211,18 +211,18 @@
       <!-- 添加/编辑表单 -->
       <div
         v-if="showForm"
-        class="bg-white dark:bg-gray-800 rounded-lg shadow p-6"
+        class="pricing-card"
       >
-        <h2 class="text-xl font-semibold text-text-primary mb-4">
+        <h2 class="pricing-section-title text-text-primary">
           {{ isEditing ? '编辑模型定价' : '添加模型定价' }}
         </h2>
         <form
-          class="space-y-4"
+          class="pricing-form"
           @submit.prevent="savePricing"
         >
           <!-- 模型名称 -->
           <div>
-            <label class="block text-sm font-medium text-text-secondary">
+            <label class="pricing-label text-text-secondary">
               模型名称 *
             </label>
             <input
@@ -230,15 +230,15 @@
               :disabled="isEditing"
               type="text"
               required
-              class="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white disabled:opacity-50"
+              class="pricing-input"
               placeholder="例如: claude-sonnet-4-5"
             >
           </div>
 
           <!-- 价格输入 -->
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="pricing-form-grid">
             <div>
-              <label class="block text-sm font-medium text-text-secondary">
+              <label class="pricing-label text-text-secondary">
                 输入价格 ($) *
               </label>
               <input
@@ -247,12 +247,12 @@
                 step="0.000001"
                 min="0"
                 required
-                class="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                class="pricing-input"
                 placeholder="每1K tokens价格"
               >
             </div>
             <div>
-              <label class="block text-sm font-medium text-text-secondary">
+              <label class="pricing-label text-text-secondary">
                 输出价格 ($) *
               </label>
               <input
@@ -261,15 +261,15 @@
                 step="0.000001"
                 min="0"
                 required
-                class="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                class="pricing-input"
                 placeholder="每1K tokens价格"
               >
             </div>
           </div>
 
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="pricing-form-grid">
             <div>
-              <label class="block text-sm font-medium text-text-secondary">
+              <label class="pricing-label text-text-secondary">
                 缓存读取价格 ($)
               </label>
               <input
@@ -277,12 +277,12 @@
                 type="number"
                 step="0.000001"
                 min="0"
-                class="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                class="pricing-input"
                 placeholder="可选"
               >
             </div>
             <div>
-              <label class="block text-sm font-medium text-text-secondary">
+              <label class="pricing-label text-text-secondary">
                 缓存写入价格 ($)
               </label>
               <input
@@ -290,25 +290,25 @@
                 type="number"
                 step="0.000001"
                 min="0"
-                class="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                class="pricing-input"
                 placeholder="可选"
               >
             </div>
           </div>
 
           <!-- 按钮 -->
-          <div class="flex items-center space-x-4">
+          <div class="pricing-form-actions">
             <button
               type="submit"
               :disabled="saving"
-              class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg disabled:opacity-50"
+              class="pricing-action-button pricing-action-button--primary pricing-action-button--wide"
             >
               {{ saving ? '保存中...' : '保存' }}
             </button>
             <button
               type="button"
               :disabled="saving"
-              class="px-6 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg disabled:opacity-50"
+              class="pricing-action-button pricing-action-button--neutral pricing-action-button--wide"
               @click="cancelForm"
             >
               取消
@@ -318,13 +318,13 @@
       </div>
 
       <!-- 操作按钮 -->
-      <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-        <h2 class="text-xl font-semibold text-text-primary mb-4">
+      <div class="pricing-card">
+        <h2 class="pricing-section-title text-text-primary">
           批量操作
         </h2>
         <button
           :disabled="saving"
-          class="px-6 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg disabled:opacity-50"
+          class="pricing-action-button pricing-action-button--danger pricing-action-button--wide"
           @click="handleReset"
         >
           重置所有定价为默认值
@@ -468,3 +468,372 @@ onMounted(() => {
   loadData()
 })
 </script>
+
+<style scoped>
+.pricing-view,
+.pricing-content,
+.pricing-form,
+.pricing-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.pricing-view {
+  gap: 1.5rem;
+  padding: 1.5rem;
+}
+
+.pricing-content,
+.pricing-form,
+.pricing-list {
+  gap: 1.5rem;
+}
+
+.pricing-header,
+.pricing-section-header,
+.pricing-list-item,
+.pricing-list-item__actions,
+.pricing-form-actions,
+.pricing-action-button {
+  display: flex;
+  align-items: center;
+}
+
+.pricing-header,
+.pricing-section-header,
+.pricing-list-item {
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.pricing-title,
+.pricing-section-title,
+.pricing-list-item__title {
+  font-weight: 700;
+}
+
+.pricing-title {
+  font-size: 1.875rem;
+}
+
+.pricing-subtitle {
+  margin-top: 0.5rem;
+  font-size: 0.875rem;
+}
+
+.pricing-card {
+  border-radius: 0.75rem;
+  background: white;
+  padding: 1.5rem;
+  box-shadow: 0 8px 24px rgb(15 23 42 / 8%);
+}
+
+:global(.dark) .pricing-card {
+  background: rgb(31 41 55);
+}
+
+.pricing-section-title {
+  margin-bottom: 1rem;
+  font-size: 1.25rem;
+  line-height: 1.3;
+}
+
+.pricing-action-button {
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 0.5rem;
+  color: white;
+  font-weight: 500;
+  transition: background-color 0.2s ease, opacity 0.2s ease;
+}
+
+.pricing-action-button:disabled {
+  opacity: 0.5;
+}
+
+.pricing-action-button--primary {
+  background: rgb(37 99 235);
+}
+
+.pricing-action-button--primary:hover:not(:disabled) {
+  background: rgb(29 78 216);
+}
+
+.pricing-action-button--success {
+  background: rgb(22 163 74);
+}
+
+.pricing-action-button--success:hover:not(:disabled) {
+  background: rgb(21 128 61);
+}
+
+.pricing-action-button--danger {
+  background: rgb(220 38 38);
+}
+
+.pricing-action-button--danger:hover:not(:disabled) {
+  background: rgb(185 28 28);
+}
+
+.pricing-action-button--neutral {
+  background: rgb(107 114 128);
+}
+
+.pricing-action-button--neutral:hover:not(:disabled) {
+  background: rgb(75 85 99);
+}
+
+.pricing-action-button--primary,
+.pricing-action-button--success,
+.pricing-action-button--neutral,
+.pricing-action-button--danger {
+  padding: 0.5rem 1rem;
+}
+
+.pricing-action-button--compact {
+  font-size: 0.875rem;
+}
+
+.pricing-action-button--small {
+  padding: 0.25rem 0.75rem;
+  font-size: 0.875rem;
+}
+
+.pricing-action-button--wide {
+  padding: 0.5rem 1.5rem;
+}
+
+.pricing-action-button__icon {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.pricing-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 0;
+}
+
+.pricing-loading__spinner {
+  width: 3rem;
+  height: 3rem;
+  border-radius: 9999px;
+  border-bottom: 2px solid rgb(37 99 235);
+}
+
+.pricing-error {
+  border: 1px solid rgb(254 202 202);
+  border-radius: 0.5rem;
+  background: rgb(254 242 242);
+  padding: 1rem;
+}
+
+:global(.dark) .pricing-error {
+  border-color: rgb(153 27 27);
+  background: rgb(127 29 29 / 20%);
+}
+
+.pricing-error__layout {
+  display: flex;
+}
+
+.pricing-error__icon {
+  width: 1.25rem;
+  height: 1.25rem;
+  color: rgb(248 113 113);
+}
+
+.pricing-error__content {
+  margin-left: 0.75rem;
+}
+
+.pricing-error__title {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: rgb(153 27 27);
+}
+
+:global(.dark) .pricing-error__title {
+  color: rgb(254 202 202);
+}
+
+.pricing-error__message {
+  margin-top: 0.5rem;
+  font-size: 0.875rem;
+  color: rgb(185 28 28);
+}
+
+:global(.dark) .pricing-error__message {
+  color: rgb(252 165 165);
+}
+
+.pricing-default-grid,
+.pricing-form-grid,
+.pricing-list-item__metrics {
+  display: grid;
+  gap: 1rem;
+}
+
+.pricing-default-grid {
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+}
+
+.pricing-metric-card,
+.pricing-list-item {
+  border-radius: 0.5rem;
+  padding: 1rem;
+}
+
+.pricing-metric-card--blue {
+  background: rgb(239 246 255);
+}
+
+.pricing-metric-card--green {
+  background: rgb(240 253 244);
+}
+
+.pricing-metric-card--purple {
+  background: rgb(250 245 255);
+}
+
+.pricing-metric-card--orange {
+  background: rgb(255 247 237);
+}
+
+:global(.dark) .pricing-metric-card--blue {
+  background: rgb(30 58 138 / 20%);
+}
+
+:global(.dark) .pricing-metric-card--green {
+  background: rgb(20 83 45 / 20%);
+}
+
+:global(.dark) .pricing-metric-card--purple {
+  background: rgb(88 28 135 / 20%);
+}
+
+:global(.dark) .pricing-metric-card--orange {
+  background: rgb(154 52 18 / 20%);
+}
+
+.pricing-metric-card__label {
+  font-size: 0.875rem;
+}
+
+.pricing-metric-card__value {
+  margin-top: 0.5rem;
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.pricing-metric-card__meta {
+  margin-top: 0.25rem;
+  font-size: 0.75rem;
+}
+
+.pricing-list {
+  gap: 0.75rem;
+}
+
+.pricing-list-item {
+  background: rgb(249 250 251);
+}
+
+:global(.dark) .pricing-list-item {
+  background: rgb(55 65 81 / 50%);
+}
+
+.pricing-list-item__body {
+  flex: 1;
+}
+
+.pricing-list-item__title {
+  font-size: 1.125rem;
+}
+
+.pricing-list-item__metrics {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 0.5rem;
+  gap: 0.75rem;
+  font-size: 0.875rem;
+}
+
+.pricing-list-item__value {
+  margin-left: 0.5rem;
+  font-weight: 600;
+}
+
+.pricing-list-item__actions,
+.pricing-form-actions {
+  gap: 0.5rem;
+}
+
+.pricing-list-item__actions {
+  margin-left: 1rem;
+}
+
+.pricing-empty {
+  padding: 2rem 0;
+  text-align: center;
+}
+
+.pricing-label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.pricing-input {
+  display: block;
+  width: 100%;
+  margin-top: 0.25rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid rgb(209 213 219);
+  border-radius: 0.5rem;
+  background: white;
+  color: rgb(17 24 39);
+}
+
+:global(.dark) .pricing-input {
+  border-color: rgb(75 85 99);
+  background: rgb(55 65 81);
+  color: white;
+}
+
+.pricing-input:disabled {
+  opacity: 0.5;
+}
+
+@media (width >= 768px) {
+  .pricing-default-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .pricing-form-grid,
+  .pricing-list-item__metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (width >= 900px) {
+  .pricing-list-item__metrics {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (width <= 767px) {
+  .pricing-header,
+  .pricing-section-header,
+  .pricing-list-item {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .pricing-list-item__actions,
+  .pricing-form-actions {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+}
+</style>

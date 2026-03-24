@@ -1,42 +1,40 @@
 <template>
-  <div class="min-h-full p-5 transition-colors duration-300">
-    <div class="mb-6" />
+  <div class="claude-settings-page">
+    <div class="claude-settings-spacer" />
 
-    <div class="max-w-[1200px] mx-auto">
+    <div class="claude-settings-shell">
       <!-- Header -->
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-        <div class="flex items-center gap-4">
-          <h2 class="text-xl sm:text-2xl font-bold text-text-primary flex items-center">
+      <div class="claude-settings-header">
+        <div class="claude-settings-title-row">
+          <h2 class="claude-settings-title">
             <SIcon
               name="Settings2"
               size="w-6 h-6"
-              class="sm:w-7 sm:h-7 mr-2 text-accent-secondary"
+              class="claude-settings-title-icon"
             />
             {{ $t('claudeSettings.title') }}
           </h2>
         </div>
-        <div class="flex gap-3">
+        <div class="claude-settings-actions">
           <RouterLink to="/claude-code">
-            <button
-              class="px-4 py-2 rounded-lg font-medium transition-colors bg-bg-elevated text-text-secondary border border-border-default hover:bg-bg-surface min-h-[44px] flex items-center"
-            >
+            <button class="claude-settings-button claude-settings-button--secondary">
               <SIcon
                 name="ArrowLeft"
                 size="w-4 h-4"
-                class="mr-2"
+                class="claude-settings-button__icon"
               />
               {{ $t('claudeSettings.back') }}
             </button>
           </RouterLink>
           <button
-            class="px-4 py-2 rounded-lg font-medium transition-[color,background-color,border-color,transform] hover:scale-105 bg-accent-secondary text-white shadow-md hover:shadow-lg flex items-center min-h-[44px]"
+            class="claude-settings-button claude-settings-button--primary"
             :disabled="saving"
             @click="handleSave"
           >
             <SIcon
               name="Save"
               size="w-4 h-4"
-              class="mr-2"
+              class="claude-settings-button__icon"
             />
             {{ saving ? $t('claudeSettings.saving') : $t('claudeSettings.save') }}
           </button>
@@ -46,16 +44,16 @@
       <!-- Loading -->
       <div
         v-if="loading"
-        class="text-center py-20 text-text-muted"
+        class="claude-settings-loading"
       >
-        <div class="loading-spinner mx-auto mb-4 w-8 h-8 border-accent-secondary/30 border-t-accent-secondary" />
+        <div class="loading-spinner claude-settings-loading__spinner" />
         <span>Loading...</span>
       </div>
 
       <template v-else>
         <!-- Tab Navigation -->
         <div
-          class="mb-6 flex gap-2 overflow-x-auto pb-2 scrollbar-thin md:flex-wrap md:overflow-x-visible md:pb-0"
+          class="claude-settings-tabs"
           role="tablist"
         >
           <button
@@ -63,8 +61,8 @@
             :key="tab.key"
             role="tab"
             :aria-selected="activeTab === tab.key"
-            class="px-4 py-2 rounded-lg font-medium text-sm transition-colors min-h-[44px] whitespace-nowrap flex-shrink-0 flex items-center gap-2"
-            :class="activeTab === tab.key ? 'bg-accent-secondary text-white shadow-md' : 'bg-bg-elevated text-text-secondary border border-border-default hover:bg-bg-surface'"
+            class="claude-settings-tab"
+            :class="activeTab === tab.key ? 'claude-settings-tab--active' : 'claude-settings-tab--inactive'"
             @click="activeTab = tab.key"
           >
             <SIcon
@@ -78,22 +76,22 @@
         <!-- Tab: 模型与推理 -->
         <div
           v-show="activeTab === 'model'"
-          class="space-y-6"
+          class="claude-settings-panel"
         >
           <Card
             variant="glass"
             pattern
           >
-            <div class="p-5 space-y-5">
-              <h3 class="text-lg font-bold text-text-primary">
+            <div class="claude-settings-panel-body">
+              <h3 class="claude-settings-section-title">
                 {{ $t('claudeSettings.tabs.model') }}
               </h3>
 
               <div>
-                <label class="block mb-1.5 text-sm font-semibold text-text-primary">{{ $t('claudeSettings.model.defaultModel') }}</label>
+                <label class="claude-settings-field-label">{{ $t('claudeSettings.model.defaultModel') }}</label>
                 <select
                   v-model="form.model"
-                  class="w-full px-4 py-2.5 rounded-lg bg-bg-surface border border-border-default focus:border-accent-secondary focus:ring-1 focus:ring-accent-secondary outline-none transition-colors text-text-primary"
+                  class="claude-settings-control"
                 >
                   <option value="">
                     {{ $t('claudeSettings.model.noOverride') }}
@@ -109,10 +107,10 @@
               </div>
 
               <div>
-                <label class="block mb-1.5 text-sm font-semibold text-text-primary">{{ $t('claudeSettings.model.effortLevel') }}</label>
+                <label class="claude-settings-field-label">{{ $t('claudeSettings.model.effortLevel') }}</label>
                 <select
                   v-model="form.effortLevel"
-                  class="w-full px-4 py-2.5 rounded-lg bg-bg-surface border border-border-default focus:border-accent-secondary focus:ring-1 focus:ring-accent-secondary outline-none transition-colors text-text-primary"
+                  class="claude-settings-control"
                 >
                   <option value="">
                     {{ $t('claudeSettings.model.noOverride') }}
@@ -130,51 +128,51 @@
               </div>
 
               <!-- Toggle: alwaysThinkingEnabled -->
-              <label class="flex items-center gap-3 cursor-pointer">
+              <label class="claude-settings-checkbox">
                 <input
                   v-model="form.alwaysThinkingEnabled"
                   type="checkbox"
-                  class="w-4 h-4 rounded border-border-default text-accent-secondary focus:ring-accent-secondary"
+                  class="claude-settings-checkbox__input"
                 >
-                <span class="text-sm font-semibold text-text-primary">{{ $t('claudeSettings.model.alwaysThinking') }}</span>
+                <span class="claude-settings-checkbox__label">{{ $t('claudeSettings.model.alwaysThinking') }}</span>
               </label>
 
-              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div class="claude-settings-grid">
                 <div>
-                  <label class="block mb-1.5 text-sm font-semibold text-text-primary">{{ $t('claudeSettings.model.maxThinkingTokens') }}</label>
+                  <label class="claude-settings-field-label">{{ $t('claudeSettings.model.maxThinkingTokens') }}</label>
                   <input
                     v-model="form.maxThinkingTokens"
                     type="text"
                     placeholder="31999"
-                    class="w-full px-4 py-2.5 rounded-lg bg-bg-surface border border-border-default focus:border-accent-secondary focus:ring-1 focus:ring-accent-secondary outline-none transition-colors text-text-primary"
+                    class="claude-settings-control"
                   >
                 </div>
                 <div>
-                  <label class="block mb-1.5 text-sm font-semibold text-text-primary">{{ $t('claudeSettings.model.maxOutputTokens') }}</label>
+                  <label class="claude-settings-field-label">{{ $t('claudeSettings.model.maxOutputTokens') }}</label>
                   <input
                     v-model="form.maxOutputTokens"
                     type="text"
                     placeholder="64000"
-                    class="w-full px-4 py-2.5 rounded-lg bg-bg-surface border border-border-default focus:border-accent-secondary focus:ring-1 focus:ring-accent-secondary outline-none transition-colors text-text-primary"
+                    class="claude-settings-control"
                   >
                 </div>
               </div>
 
               <!-- TagList: availableModels -->
               <div>
-                <label class="block mb-1.5 text-sm font-semibold text-text-primary">{{ $t('claudeSettings.model.availableModels') }}</label>
+                <label class="claude-settings-field-label">{{ $t('claudeSettings.model.availableModels') }}</label>
                 <div
                   v-if="form.availableModels.length > 0"
-                  class="flex flex-wrap gap-2 mb-2"
+                  class="claude-settings-chip-list"
                 >
                   <span
                     v-for="(item, i) in form.availableModels"
                     :key="i"
-                    class="px-2.5 py-1 rounded-lg bg-accent-secondary/10 text-accent-secondary text-sm flex items-center gap-1.5 border border-accent-secondary/20"
+                    class="claude-settings-chip"
                   >
                     {{ item }}
                     <button
-                      class="hover:text-red-400"
+                      class="claude-settings-chip-remove"
                       @click="form.availableModels.splice(i, 1)"
                     ><SIcon
                       name="X"
@@ -182,15 +180,15 @@
                     /></button>
                   </span>
                 </div>
-                <div class="flex gap-2">
+                <div class="claude-settings-chip-entry">
                   <input
                     v-model="tagInputs.availableModels"
                     :placeholder="$t('claudeSettings.model.addModel')"
-                    class="flex-1 px-3 py-2 rounded-lg bg-bg-surface border border-border-default focus:border-accent-secondary focus:ring-1 focus:ring-accent-secondary outline-none transition-colors text-text-primary text-sm"
+                    class="claude-settings-chip-input"
                     @keydown.enter.prevent="addTag('availableModels', form.availableModels)"
                   >
                   <button
-                    class="px-3 py-2 rounded-lg bg-accent-secondary text-white text-sm hover:scale-105 transition-[color,background-color,border-color,transform]"
+                    class="claude-settings-chip-button"
                     @click="addTag('availableModels', form.availableModels)"
                   >
                     <SIcon
@@ -207,22 +205,22 @@
         <!-- Tab: 权限管理 -->
         <div
           v-show="activeTab === 'permissions'"
-          class="space-y-6"
+          class="claude-settings-panel"
         >
           <Card
             variant="glass"
             pattern
           >
-            <div class="p-5 space-y-5">
-              <h3 class="text-lg font-bold text-text-primary">
+            <div class="claude-settings-panel-body">
+              <h3 class="claude-settings-section-title">
                 {{ $t('claudeSettings.tabs.permissions') }}
               </h3>
 
               <div>
-                <label class="block mb-1.5 text-sm font-semibold text-text-primary">{{ $t('claudeSettings.permissions.defaultMode') }}</label>
+                <label class="claude-settings-field-label">{{ $t('claudeSettings.permissions.defaultMode') }}</label>
                 <select
                   v-model="permDefaultMode"
-                  class="w-full px-4 py-2.5 rounded-lg bg-bg-surface border border-border-default focus:border-accent-secondary focus:ring-1 focus:ring-accent-secondary outline-none transition-colors text-text-primary"
+                  class="claude-settings-control"
                 >
                   <option value="">
                     {{ $t('claudeSettings.model.noOverride') }}
@@ -240,30 +238,30 @@
               </div>
 
               <!-- Toggle: skipDangerousModePermissionPrompt -->
-              <label class="flex items-center gap-3 cursor-pointer">
+              <label class="claude-settings-checkbox">
                 <input
                   v-model="form.skipDangerousModePermissionPrompt"
                   type="checkbox"
-                  class="w-4 h-4 rounded border-border-default text-accent-secondary focus:ring-accent-secondary"
+                  class="claude-settings-checkbox__input"
                 >
-                <span class="text-sm font-semibold text-text-primary">{{ $t('claudeSettings.permissions.skipDangerous') }}</span>
+                <span class="claude-settings-checkbox__label">{{ $t('claudeSettings.permissions.skipDangerous') }}</span>
               </label>
 
               <!-- TagList: permAllow -->
               <div>
-                <label class="block mb-1.5 text-sm font-semibold text-text-primary">{{ $t('claudeSettings.permissions.allow') }}</label>
+                <label class="claude-settings-field-label">{{ $t('claudeSettings.permissions.allow') }}</label>
                 <div
                   v-if="permAllow.length > 0"
-                  class="flex flex-wrap gap-2 mb-2"
+                  class="claude-settings-chip-list"
                 >
                   <span
                     v-for="(item, i) in permAllow"
                     :key="i"
-                    class="px-2.5 py-1 rounded-lg bg-accent-secondary/10 text-accent-secondary text-sm flex items-center gap-1.5 border border-accent-secondary/20"
+                    class="claude-settings-chip"
                   >
                     {{ item }}
                     <button
-                      class="hover:text-red-400"
+                      class="claude-settings-chip-remove"
                       @click="permAllow.splice(i, 1)"
                     ><SIcon
                       name="X"
@@ -271,15 +269,15 @@
                     /></button>
                   </span>
                 </div>
-                <div class="flex gap-2">
+                <div class="claude-settings-chip-entry">
                   <input
                     v-model="tagInputs.permAllow"
                     placeholder="Bash, Read, Write..."
-                    class="flex-1 px-3 py-2 rounded-lg bg-bg-surface border border-border-default focus:border-accent-secondary focus:ring-1 focus:ring-accent-secondary outline-none transition-colors text-text-primary text-sm"
+                    class="claude-settings-chip-input"
                     @keydown.enter.prevent="addTag('permAllow', permAllow)"
                   >
                   <button
-                    class="px-3 py-2 rounded-lg bg-accent-secondary text-white text-sm hover:scale-105 transition-[color,background-color,border-color,transform]"
+                    class="claude-settings-chip-button"
                     @click="addTag('permAllow', permAllow)"
                   >
                     <SIcon
@@ -292,19 +290,19 @@
 
               <!-- TagList: permDeny -->
               <div>
-                <label class="block mb-1.5 text-sm font-semibold text-text-primary">{{ $t('claudeSettings.permissions.deny') }}</label>
+                <label class="claude-settings-field-label">{{ $t('claudeSettings.permissions.deny') }}</label>
                 <div
                   v-if="permDeny.length > 0"
-                  class="flex flex-wrap gap-2 mb-2"
+                  class="claude-settings-chip-list"
                 >
                   <span
                     v-for="(item, i) in permDeny"
                     :key="i"
-                    class="px-2.5 py-1 rounded-lg bg-accent-secondary/10 text-accent-secondary text-sm flex items-center gap-1.5 border border-accent-secondary/20"
+                    class="claude-settings-chip"
                   >
                     {{ item }}
                     <button
-                      class="hover:text-red-400"
+                      class="claude-settings-chip-remove"
                       @click="permDeny.splice(i, 1)"
                     ><SIcon
                       name="X"
@@ -312,15 +310,15 @@
                     /></button>
                   </span>
                 </div>
-                <div class="flex gap-2">
+                <div class="claude-settings-chip-entry">
                   <input
                     v-model="tagInputs.permDeny"
                     placeholder="mcp__dangerous..."
-                    class="flex-1 px-3 py-2 rounded-lg bg-bg-surface border border-border-default focus:border-accent-secondary focus:ring-1 focus:ring-accent-secondary outline-none transition-colors text-text-primary text-sm"
+                    class="claude-settings-chip-input"
                     @keydown.enter.prevent="addTag('permDeny', permDeny)"
                   >
                   <button
-                    class="px-3 py-2 rounded-lg bg-accent-secondary text-white text-sm hover:scale-105 transition-[color,background-color,border-color,transform]"
+                    class="claude-settings-chip-button"
                     @click="addTag('permDeny', permDeny)"
                   >
                     <SIcon
@@ -333,19 +331,19 @@
 
               <!-- TagList: permAdditionalDirs -->
               <div>
-                <label class="block mb-1.5 text-sm font-semibold text-text-primary">{{ $t('claudeSettings.permissions.additionalDirs') }}</label>
+                <label class="claude-settings-field-label">{{ $t('claudeSettings.permissions.additionalDirs') }}</label>
                 <div
                   v-if="permAdditionalDirs.length > 0"
-                  class="flex flex-wrap gap-2 mb-2"
+                  class="claude-settings-chip-list"
                 >
                   <span
                     v-for="(item, i) in permAdditionalDirs"
                     :key="i"
-                    class="px-2.5 py-1 rounded-lg bg-accent-secondary/10 text-accent-secondary text-sm flex items-center gap-1.5 border border-accent-secondary/20"
+                    class="claude-settings-chip"
                   >
                     {{ item }}
                     <button
-                      class="hover:text-red-400"
+                      class="claude-settings-chip-remove"
                       @click="permAdditionalDirs.splice(i, 1)"
                     ><SIcon
                       name="X"
@@ -353,15 +351,15 @@
                     /></button>
                   </span>
                 </div>
-                <div class="flex gap-2">
+                <div class="claude-settings-chip-entry">
                   <input
                     v-model="tagInputs.permAdditionalDirs"
                     placeholder="/path/to/dir"
-                    class="flex-1 px-3 py-2 rounded-lg bg-bg-surface border border-border-default focus:border-accent-secondary focus:ring-1 focus:ring-accent-secondary outline-none transition-colors text-text-primary text-sm"
+                    class="claude-settings-chip-input"
                     @keydown.enter.prevent="addTag('permAdditionalDirs', permAdditionalDirs)"
                   >
                   <button
-                    class="px-3 py-2 rounded-lg bg-accent-secondary text-white text-sm hover:scale-105 transition-[color,background-color,border-color,transform]"
+                    class="claude-settings-chip-button"
                     @click="addTag('permAdditionalDirs', permAdditionalDirs)"
                   >
                     <SIcon
@@ -378,19 +376,19 @@
         <!-- Tab: 环境变量 -->
         <div
           v-show="activeTab === 'env'"
-          class="space-y-6"
+          class="claude-settings-panel"
         >
           <Card
             variant="glass"
             pattern
           >
-            <div class="p-5 space-y-5">
-              <div class="flex items-center justify-between">
-                <h3 class="text-lg font-bold text-text-primary">
+            <div class="claude-settings-panel-body">
+              <div class="claude-settings-panel-header">
+                <h3 class="claude-settings-section-title">
                   {{ $t('claudeSettings.tabs.env') }}
                 </h3>
                 <button
-                  class="px-3 py-1.5 rounded-lg text-sm font-medium bg-accent-secondary text-white hover:scale-105 transition-[color,background-color,border-color,transform] flex items-center gap-1"
+                  class="claude-settings-chip-button claude-settings-chip-button--wide"
                   @click="addEnvVar"
                 >
                   <SIcon
@@ -402,7 +400,7 @@
 
               <div
                 v-if="envEntries.length === 0"
-                class="text-center py-8 text-text-muted"
+                class="claude-settings-empty"
               >
                 {{ $t('claudeSettings.env.empty') }}
               </div>
@@ -410,21 +408,21 @@
               <div
                 v-for="(entry, idx) in envEntries"
                 :key="idx"
-                class="flex gap-2 items-start"
+                class="claude-settings-env-row"
               >
                 <input
                   v-model="entry.key"
                   placeholder="KEY"
-                  class="flex-1 px-3 py-2 rounded-lg bg-bg-surface border border-border-default focus:border-accent-secondary focus:ring-1 focus:ring-accent-secondary outline-none transition-colors text-text-primary text-sm font-mono"
+                  class="claude-settings-chip-input claude-settings-control--mono"
                 >
                 <input
                   v-model="entry.value"
                   placeholder="value"
                   :type="entry.key.includes('TOKEN') || entry.key.includes('KEY') || entry.key.includes('SECRET') ? 'password' : 'text'"
-                  class="flex-[2] px-3 py-2 rounded-lg bg-bg-surface border border-border-default focus:border-accent-secondary focus:ring-1 focus:ring-accent-secondary outline-none transition-colors text-text-primary text-sm font-mono"
+                  class="claude-settings-chip-input claude-settings-control--mono claude-settings-control--value"
                 >
                 <button
-                  class="p-2 rounded-lg text-red-400 hover:bg-red-500/10 transition-colors min-w-[36px] min-h-[36px] flex items-center justify-center"
+                  class="claude-settings-delete-button"
                   @click="envEntries.splice(idx, 1)"
                 >
                   <SIcon
@@ -440,78 +438,78 @@
         <!-- Tab: UI 体验 -->
         <div
           v-show="activeTab === 'ui'"
-          class="space-y-6"
+          class="claude-settings-panel"
         >
           <Card
             variant="glass"
             pattern
           >
-            <div class="p-5 space-y-5">
-              <h3 class="text-lg font-bold text-text-primary">
+            <div class="claude-settings-panel-body">
+              <h3 class="claude-settings-section-title">
                 {{ $t('claudeSettings.tabs.ui') }}
               </h3>
 
-              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div class="claude-settings-grid">
                 <div>
-                  <label class="block mb-1.5 text-sm font-semibold text-text-primary">{{ $t('claudeSettings.ui.theme') }}</label>
+                  <label class="claude-settings-field-label">{{ $t('claudeSettings.ui.theme') }}</label>
                   <input
                     v-model="form.theme"
                     type="text"
                     placeholder="dark, light, dark-daltonized..."
-                    class="w-full px-4 py-2.5 rounded-lg bg-bg-surface border border-border-default focus:border-accent-secondary focus:ring-1 focus:ring-accent-secondary outline-none transition-colors text-text-primary"
+                    class="claude-settings-control"
                   >
                 </div>
                 <div>
-                  <label class="block mb-1.5 text-sm font-semibold text-text-primary">{{ $t('claudeSettings.ui.language') }}</label>
+                  <label class="claude-settings-field-label">{{ $t('claudeSettings.ui.language') }}</label>
                   <input
                     v-model="form.language"
                     type="text"
                     placeholder="zh-CN, en, ja..."
-                    class="w-full px-4 py-2.5 rounded-lg bg-bg-surface border border-border-default focus:border-accent-secondary focus:ring-1 focus:ring-accent-secondary outline-none transition-colors text-text-primary"
+                    class="claude-settings-control"
                   >
                 </div>
               </div>
 
-              <div class="space-y-3">
-                <label class="flex items-center gap-3 cursor-pointer">
+              <div class="claude-settings-checkbox-group">
+                <label class="claude-settings-checkbox">
                   <input
                     v-model="form.showTurnDuration"
                     type="checkbox"
-                    class="w-4 h-4 rounded border-border-default text-accent-secondary focus:ring-accent-secondary"
+                    class="claude-settings-checkbox__input"
                   >
-                  <span class="text-sm font-semibold text-text-primary">{{ $t('claudeSettings.ui.showTurnDuration') }}</span>
+                  <span class="claude-settings-checkbox__label">{{ $t('claudeSettings.ui.showTurnDuration') }}</span>
                 </label>
-                <label class="flex items-center gap-3 cursor-pointer">
+                <label class="claude-settings-checkbox">
                   <input
                     v-model="form.spinnerTipsEnabled"
                     type="checkbox"
-                    class="w-4 h-4 rounded border-border-default text-accent-secondary focus:ring-accent-secondary"
+                    class="claude-settings-checkbox__input"
                   >
-                  <span class="text-sm font-semibold text-text-primary">{{ $t('claudeSettings.ui.spinnerTips') }}</span>
+                  <span class="claude-settings-checkbox__label">{{ $t('claudeSettings.ui.spinnerTips') }}</span>
                 </label>
-                <label class="flex items-center gap-3 cursor-pointer">
+                <label class="claude-settings-checkbox">
                   <input
                     v-model="form.terminalProgressBarEnabled"
                     type="checkbox"
-                    class="w-4 h-4 rounded border-border-default text-accent-secondary focus:ring-accent-secondary"
+                    class="claude-settings-checkbox__input"
                   >
-                  <span class="text-sm font-semibold text-text-primary">{{ $t('claudeSettings.ui.progressBar') }}</span>
+                  <span class="claude-settings-checkbox__label">{{ $t('claudeSettings.ui.progressBar') }}</span>
                 </label>
-                <label class="flex items-center gap-3 cursor-pointer">
+                <label class="claude-settings-checkbox">
                   <input
                     v-model="form.showSpinnerTree"
                     type="checkbox"
-                    class="w-4 h-4 rounded border-border-default text-accent-secondary focus:ring-accent-secondary"
+                    class="claude-settings-checkbox__input"
                   >
-                  <span class="text-sm font-semibold text-text-primary">{{ $t('claudeSettings.ui.spinnerTree') }}</span>
+                  <span class="claude-settings-checkbox__label">{{ $t('claudeSettings.ui.spinnerTree') }}</span>
                 </label>
-                <label class="flex items-center gap-3 cursor-pointer">
+                <label class="claude-settings-checkbox">
                   <input
                     v-model="form.prefersReducedMotion"
                     type="checkbox"
-                    class="w-4 h-4 rounded border-border-default text-accent-secondary focus:ring-accent-secondary"
+                    class="claude-settings-checkbox__input"
                   >
-                  <span class="text-sm font-semibold text-text-primary">{{ $t('claudeSettings.ui.reducedMotion') }}</span>
+                  <span class="claude-settings-checkbox__label">{{ $t('claudeSettings.ui.reducedMotion') }}</span>
                 </label>
               </div>
             </div>
@@ -521,16 +519,16 @@
             variant="glass"
             pattern
           >
-            <div class="p-5 space-y-5">
-              <h3 class="text-lg font-bold text-text-primary">
+            <div class="claude-settings-panel-body">
+              <h3 class="claude-settings-section-title">
                 {{ $t('claudeSettings.ui.misc') }}
               </h3>
-              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div class="claude-settings-grid">
                 <div>
-                  <label class="block mb-1.5 text-sm font-semibold text-text-primary">{{ $t('claudeSettings.ui.updateChannel') }}</label>
+                  <label class="claude-settings-field-label">{{ $t('claudeSettings.ui.updateChannel') }}</label>
                   <select
                     v-model="form.autoUpdatesChannel"
-                    class="w-full px-4 py-2.5 rounded-lg bg-bg-surface border border-border-default focus:border-accent-secondary focus:ring-1 focus:ring-accent-secondary outline-none transition-colors text-text-primary"
+                    class="claude-settings-control"
                   >
                     <option value="">
                       {{ $t('claudeSettings.model.noOverride') }}
@@ -544,30 +542,30 @@
                   </select>
                 </div>
                 <div>
-                  <label class="block mb-1.5 text-sm font-semibold text-text-primary">{{ $t('claudeSettings.ui.cleanupDays') }}</label>
+                  <label class="claude-settings-field-label">{{ $t('claudeSettings.ui.cleanupDays') }}</label>
                   <input
                     v-model.number="form.cleanupPeriodDays"
                     type="number"
                     placeholder="30"
-                    class="w-full px-4 py-2.5 rounded-lg bg-bg-surface border border-border-default focus:border-accent-secondary focus:ring-1 focus:ring-accent-secondary outline-none transition-colors text-text-primary"
+                    class="claude-settings-control"
                   >
                 </div>
               </div>
-              <label class="flex items-center gap-3 cursor-pointer">
+              <label class="claude-settings-checkbox">
                 <input
                   v-model="form.autoUpdates"
                   type="checkbox"
-                  class="w-4 h-4 rounded border-border-default text-accent-secondary focus:ring-accent-secondary"
+                  class="claude-settings-checkbox__input"
                 >
-                <span class="text-sm font-semibold text-text-primary">{{ $t('claudeSettings.ui.autoUpdates') }}</span>
+                <span class="claude-settings-checkbox__label">{{ $t('claudeSettings.ui.autoUpdates') }}</span>
               </label>
-              <label class="flex items-center gap-3 cursor-pointer">
+              <label class="claude-settings-checkbox">
                 <input
                   v-model="form.respectGitignore"
                   type="checkbox"
-                  class="w-4 h-4 rounded border-border-default text-accent-secondary focus:ring-accent-secondary"
+                  class="claude-settings-checkbox__input"
                 >
-                <span class="text-sm font-semibold text-text-primary">{{ $t('claudeSettings.ui.respectGitignore') }}</span>
+                <span class="claude-settings-checkbox__label">{{ $t('claudeSettings.ui.respectGitignore') }}</span>
               </label>
             </div>
           </Card>
@@ -576,57 +574,57 @@
         <!-- Tab: 沙箱安全 -->
         <div
           v-show="activeTab === 'sandbox'"
-          class="space-y-6"
+          class="claude-settings-panel"
         >
           <Card
             variant="glass"
             pattern
           >
-            <div class="p-5 space-y-5">
-              <h3 class="text-lg font-bold text-text-primary">
+            <div class="claude-settings-panel-body">
+              <h3 class="claude-settings-section-title">
                 {{ $t('claudeSettings.tabs.sandbox') }}
               </h3>
 
-              <label class="flex items-center gap-3 cursor-pointer">
+              <label class="claude-settings-checkbox">
                 <input
                   v-model="sandboxEnabled"
                   type="checkbox"
-                  class="w-4 h-4 rounded border-border-default text-accent-secondary focus:ring-accent-secondary"
+                  class="claude-settings-checkbox__input"
                 >
-                <span class="text-sm font-semibold text-text-primary">{{ $t('claudeSettings.sandbox.enabled') }}</span>
+                <span class="claude-settings-checkbox__label">{{ $t('claudeSettings.sandbox.enabled') }}</span>
               </label>
-              <label class="flex items-center gap-3 cursor-pointer">
+              <label class="claude-settings-checkbox">
                 <input
                   v-model="sandboxAutoAllow"
                   type="checkbox"
-                  class="w-4 h-4 rounded border-border-default text-accent-secondary focus:ring-accent-secondary"
+                  class="claude-settings-checkbox__input"
                 >
-                <span class="text-sm font-semibold text-text-primary">{{ $t('claudeSettings.sandbox.autoAllowBash') }}</span>
+                <span class="claude-settings-checkbox__label">{{ $t('claudeSettings.sandbox.autoAllowBash') }}</span>
               </label>
-              <label class="flex items-center gap-3 cursor-pointer">
+              <label class="claude-settings-checkbox">
                 <input
                   v-model="sandboxAllowLocal"
                   type="checkbox"
-                  class="w-4 h-4 rounded border-border-default text-accent-secondary focus:ring-accent-secondary"
+                  class="claude-settings-checkbox__input"
                 >
-                <span class="text-sm font-semibold text-text-primary">{{ $t('claudeSettings.sandbox.allowLocalBinding') }}</span>
+                <span class="claude-settings-checkbox__label">{{ $t('claudeSettings.sandbox.allowLocalBinding') }}</span>
               </label>
 
               <!-- TagList: sandboxAllowedDomains -->
               <div>
-                <label class="block mb-1.5 text-sm font-semibold text-text-primary">{{ $t('claudeSettings.sandbox.allowedDomains') }}</label>
+                <label class="claude-settings-field-label">{{ $t('claudeSettings.sandbox.allowedDomains') }}</label>
                 <div
                   v-if="sandboxAllowedDomains.length > 0"
-                  class="flex flex-wrap gap-2 mb-2"
+                  class="claude-settings-chip-list"
                 >
                   <span
                     v-for="(item, i) in sandboxAllowedDomains"
                     :key="i"
-                    class="px-2.5 py-1 rounded-lg bg-accent-secondary/10 text-accent-secondary text-sm flex items-center gap-1.5 border border-accent-secondary/20"
+                    class="claude-settings-chip"
                   >
                     {{ item }}
                     <button
-                      class="hover:text-red-400"
+                      class="claude-settings-chip-remove"
                       @click="sandboxAllowedDomains.splice(i, 1)"
                     ><SIcon
                       name="X"
@@ -634,15 +632,15 @@
                     /></button>
                   </span>
                 </div>
-                <div class="flex gap-2">
+                <div class="claude-settings-chip-entry">
                   <input
                     v-model="tagInputs.sandboxAllowedDomains"
                     placeholder="api.anthropic.com"
-                    class="flex-1 px-3 py-2 rounded-lg bg-bg-surface border border-border-default focus:border-accent-secondary focus:ring-1 focus:ring-accent-secondary outline-none transition-colors text-text-primary text-sm"
+                    class="claude-settings-chip-input"
                     @keydown.enter.prevent="addTag('sandboxAllowedDomains', sandboxAllowedDomains)"
                   >
                   <button
-                    class="px-3 py-2 rounded-lg bg-accent-secondary text-white text-sm hover:scale-105 transition-[color,background-color,border-color,transform]"
+                    class="claude-settings-chip-button"
                     @click="addTag('sandboxAllowedDomains', sandboxAllowedDomains)"
                   >
                     <SIcon
@@ -655,19 +653,19 @@
 
               <!-- TagList: sandboxExcludedCmds -->
               <div>
-                <label class="block mb-1.5 text-sm font-semibold text-text-primary">{{ $t('claudeSettings.sandbox.excludedCommands') }}</label>
+                <label class="claude-settings-field-label">{{ $t('claudeSettings.sandbox.excludedCommands') }}</label>
                 <div
                   v-if="sandboxExcludedCmds.length > 0"
-                  class="flex flex-wrap gap-2 mb-2"
+                  class="claude-settings-chip-list"
                 >
                   <span
                     v-for="(item, i) in sandboxExcludedCmds"
                     :key="i"
-                    class="px-2.5 py-1 rounded-lg bg-accent-secondary/10 text-accent-secondary text-sm flex items-center gap-1.5 border border-accent-secondary/20"
+                    class="claude-settings-chip"
                   >
                     {{ item }}
                     <button
-                      class="hover:text-red-400"
+                      class="claude-settings-chip-remove"
                       @click="sandboxExcludedCmds.splice(i, 1)"
                     ><SIcon
                       name="X"
@@ -675,15 +673,15 @@
                     /></button>
                   </span>
                 </div>
-                <div class="flex gap-2">
+                <div class="claude-settings-chip-entry">
                   <input
                     v-model="tagInputs.sandboxExcludedCmds"
                     placeholder="docker, npm..."
-                    class="flex-1 px-3 py-2 rounded-lg bg-bg-surface border border-border-default focus:border-accent-secondary focus:ring-1 focus:ring-accent-secondary outline-none transition-colors text-text-primary text-sm"
+                    class="claude-settings-chip-input"
                     @keydown.enter.prevent="addTag('sandboxExcludedCmds', sandboxExcludedCmds)"
                   >
                   <button
-                    class="px-3 py-2 rounded-lg bg-accent-secondary text-white text-sm hover:scale-105 transition-[color,background-color,border-color,transform]"
+                    class="claude-settings-chip-button"
                     @click="addTag('sandboxExcludedCmds', sandboxExcludedCmds)"
                   >
                     <SIcon
@@ -700,23 +698,23 @@
         <!-- Tab: Git 归属 -->
         <div
           v-show="activeTab === 'git'"
-          class="space-y-6"
+          class="claude-settings-panel"
         >
           <Card
             variant="glass"
             pattern
           >
-            <div class="p-5 space-y-5">
-              <h3 class="text-lg font-bold text-text-primary">
+            <div class="claude-settings-panel-body">
+              <h3 class="claude-settings-section-title">
                 {{ $t('claudeSettings.tabs.git') }}
               </h3>
 
-              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div class="claude-settings-grid">
                 <div>
-                  <label class="block mb-1.5 text-sm font-semibold text-text-primary">{{ $t('claudeSettings.git.commitAttribution') }}</label>
+                  <label class="claude-settings-field-label">{{ $t('claudeSettings.git.commitAttribution') }}</label>
                   <select
                     v-model="attrCommit"
-                    class="w-full px-4 py-2.5 rounded-lg bg-bg-surface border border-border-default focus:border-accent-secondary focus:ring-1 focus:ring-accent-secondary outline-none transition-colors text-text-primary"
+                    class="claude-settings-control"
                   >
                     <option value="">
                       {{ $t('claudeSettings.model.noOverride') }}
@@ -733,10 +731,10 @@
                   </select>
                 </div>
                 <div>
-                  <label class="block mb-1.5 text-sm font-semibold text-text-primary">{{ $t('claudeSettings.git.prAttribution') }}</label>
+                  <label class="claude-settings-field-label">{{ $t('claudeSettings.git.prAttribution') }}</label>
                   <select
                     v-model="attrPr"
-                    class="w-full px-4 py-2.5 rounded-lg bg-bg-surface border border-border-default focus:border-accent-secondary focus:ring-1 focus:ring-accent-secondary outline-none transition-colors text-text-primary"
+                    class="claude-settings-control"
                   >
                     <option value="">
                       {{ $t('claudeSettings.model.noOverride') }}
@@ -754,13 +752,13 @@
                 </div>
               </div>
 
-              <label class="flex items-center gap-3 cursor-pointer">
+              <label class="claude-settings-checkbox">
                 <input
                   v-model="form.includeCoAuthoredBy"
                   type="checkbox"
-                  class="w-4 h-4 rounded border-border-default text-accent-secondary focus:ring-accent-secondary"
+                  class="claude-settings-checkbox__input"
                 >
-                <span class="text-sm font-semibold text-text-primary">{{ $t('claudeSettings.git.includeCoAuthored') }}</span>
+                <span class="claude-settings-checkbox__label">{{ $t('claudeSettings.git.includeCoAuthored') }}</span>
               </label>
             </div>
           </Card>
@@ -989,3 +987,373 @@ function addEnvVar() {
 
 onMounted(loadSettings)
 </script>
+
+<style scoped>
+.claude-settings-page {
+  min-height: 100%;
+  padding: 1.25rem;
+  transition: color 0.3s ease, background-color 0.3s ease, border-color 0.3s ease;
+}
+
+.claude-settings-spacer {
+  margin-bottom: 1.5rem;
+}
+
+.claude-settings-shell {
+  width: 100%;
+  max-width: 75rem;
+  margin: 0 auto;
+}
+
+.claude-settings-header {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.claude-settings-title-row,
+.claude-settings-title,
+.claude-settings-actions,
+.claude-settings-panel-header,
+.claude-settings-chip-entry,
+.claude-settings-env-row,
+.claude-settings-checkbox,
+.claude-settings-tab,
+.claude-settings-button {
+  display: flex;
+  align-items: center;
+}
+
+.claude-settings-title-row {
+  gap: 1rem;
+}
+
+.claude-settings-title {
+  gap: 0.5rem;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.claude-settings-title-icon {
+  margin-right: 0.5rem;
+  color: var(--color-accent-secondary);
+}
+
+.claude-settings-actions {
+  gap: 0.75rem;
+}
+
+.claude-settings-button {
+  min-height: 2.75rem;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-weight: 500;
+  transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.claude-settings-button:disabled,
+.claude-settings-tab:disabled,
+.claude-settings-chip-button:disabled,
+.claude-settings-delete-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.claude-settings-button__icon {
+  margin-right: 0.5rem;
+}
+
+.claude-settings-button--secondary {
+  background: var(--color-bg-elevated);
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border-default);
+}
+
+.claude-settings-button--secondary:hover {
+  background: var(--color-bg-surface);
+}
+
+.claude-settings-button--primary,
+.claude-settings-chip-button,
+.claude-settings-chip-button--wide {
+  background: var(--color-accent-secondary);
+  color: #fff;
+}
+
+.claude-settings-button--primary {
+  box-shadow: var(--shadow-md);
+}
+
+.claude-settings-button--primary:hover,
+.claude-settings-chip-button:hover,
+.claude-settings-chip-button--wide:hover {
+  transform: scale(1.05);
+}
+
+.claude-settings-button--primary:hover {
+  box-shadow: var(--shadow-lg);
+}
+
+.claude-settings-loading,
+.claude-settings-empty {
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
+.claude-settings-loading {
+  padding: 5rem 0;
+}
+
+.claude-settings-loading__spinner {
+  width: 2rem;
+  height: 2rem;
+  margin: 0 auto 1rem;
+  border-color: color-mix(in srgb, var(--color-accent-secondary) 30%, transparent);
+  border-top-color: var(--color-accent-secondary);
+}
+
+.claude-settings-tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+  padding-bottom: 0.5rem;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.claude-settings-tab {
+  gap: 0.5rem;
+  flex-shrink: 0;
+  min-height: 2.75rem;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  white-space: nowrap;
+  transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.claude-settings-tab--active {
+  background: var(--color-accent-secondary);
+  color: #fff;
+  box-shadow: var(--shadow-md);
+}
+
+.claude-settings-tab--inactive {
+  background: var(--color-bg-elevated);
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border-default);
+}
+
+.claude-settings-tab--inactive:hover {
+  background: var(--color-bg-surface);
+}
+
+.claude-settings-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.claude-settings-panel-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  padding: 1.25rem;
+}
+
+.claude-settings-panel-header {
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.claude-settings-section-title {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.claude-settings-field-label {
+  display: block;
+  margin-bottom: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.claude-settings-control,
+.claude-settings-chip-input {
+  width: 100%;
+  border: 1px solid var(--color-border-default);
+  border-radius: 0.5rem;
+  outline: none;
+  background: var(--color-bg-surface);
+  color: var(--color-text-primary);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+}
+
+.claude-settings-control {
+  padding: 0.625rem 1rem;
+}
+
+.claude-settings-control:focus,
+.claude-settings-chip-input:focus {
+  border-color: var(--color-accent-secondary);
+  box-shadow: 0 0 0 1px var(--color-accent-secondary);
+}
+
+.claude-settings-chip-input {
+  flex: 1;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+}
+
+.claude-settings-control--mono,
+.claude-settings-control--value {
+  font-family: var(--font-family-mono);
+  font-size: 0.875rem;
+}
+
+.claude-settings-control--value {
+  flex: 2;
+}
+
+.claude-settings-grid {
+  display: grid;
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.claude-settings-checkbox-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.claude-settings-checkbox {
+  gap: 0.75rem;
+  cursor: pointer;
+}
+
+.claude-settings-checkbox__input {
+  width: 1rem;
+  height: 1rem;
+  border-radius: 0.25rem;
+  border-color: var(--color-border-default);
+  color: var(--color-accent-secondary);
+}
+
+.claude-settings-checkbox__input:focus {
+  box-shadow: 0 0 0 1px var(--color-accent-secondary);
+}
+
+.claude-settings-checkbox__label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.claude-settings-chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.claude-settings-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.25rem 0.625rem;
+  border: 1px solid color-mix(in srgb, var(--color-accent-secondary) 20%, transparent);
+  border-radius: 0.5rem;
+  background: color-mix(in srgb, var(--color-accent-secondary) 10%, transparent);
+  color: var(--color-accent-secondary);
+  font-size: 0.875rem;
+}
+
+.claude-settings-chip-remove {
+  transition: color 0.2s ease;
+}
+
+.claude-settings-chip-remove:hover {
+  color: #f87171;
+}
+
+.claude-settings-chip-entry {
+  gap: 0.5rem;
+}
+
+.claude-settings-chip-button,
+.claude-settings-chip-button--wide {
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+}
+
+.claude-settings-chip-button {
+  padding: 0.5rem 0.75rem;
+}
+
+.claude-settings-chip-button--wide {
+  gap: 0.25rem;
+  padding: 0.375rem 0.75rem;
+  font-weight: 500;
+}
+
+.claude-settings-empty {
+  padding: 2rem 0;
+}
+
+.claude-settings-env-row {
+  gap: 0.5rem;
+  align-items: flex-start;
+}
+
+.claude-settings-delete-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.25rem;
+  min-height: 2.25rem;
+  padding: 0.5rem;
+  border-radius: 0.5rem;
+  color: #f87171;
+  transition: color 0.2s ease, background-color 0.2s ease;
+}
+
+.claude-settings-delete-button:hover {
+  background: rgb(239 68 68 / 10%);
+}
+
+@media (width >= 640px) {
+  .claude-settings-header {
+    flex-direction: row;
+    align-items: center;
+  }
+
+  .claude-settings-title {
+    font-size: 1.5rem;
+  }
+
+  .claude-settings-title-icon {
+    width: 1.75rem;
+    height: 1.75rem;
+  }
+
+  .claude-settings-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (width >= 768px) {
+  .claude-settings-tabs {
+    flex-wrap: wrap;
+    overflow-x: visible;
+    padding-bottom: 0;
+  }
+}
+</style>

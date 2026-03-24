@@ -1,37 +1,37 @@
 <template>
-  <div class="min-h-full p-6 transition-colors duration-300">
-    <div class="max-w-[1800px] mx-auto">
-      <div class="space-y-6">
+  <div class="mcp-view">
+    <div class="mcp-view__container">
+      <div class="mcp-view__stack">
         <ModuleSubnav module="claude-code" />
 
-        <main class="min-w-0">
+        <main class="mcp-view__main">
           <!-- Header -->
-          <div class="glass-effect rounded-2xl p-6 mb-6 border border-white/20 flex flex-col md:flex-row items-center justify-between gap-4 sticky top-6 z-20 backdrop-blur-md shadow-sm">
-            <div class="flex items-center gap-4">
-              <div class="p-3 rounded-xl bg-gradient-to-br from-violet-500/20 to-purple-600/20 border border-violet-500/30">
+          <div class="mcp-view__hero">
+            <div class="mcp-view__hero-main">
+              <div class="mcp-view__hero-icon-shell">
                 <SIcon
                   name="Server"
                   size="w-6 h-6"
-                  class="text-violet-400"
+                  class="mcp-view__hero-icon"
                 />
               </div>
               <div>
-                <div class="flex items-center gap-3">
-                  <h1 class="text-2xl font-bold text-gradient-purple">
+                <div class="mcp-view__hero-title-row">
+                  <h1 class="mcp-view__hero-title">
                     {{ $t('mcp.title') }}
                   </h1>
-                  <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-violet-500/15 text-violet-400 border border-violet-500/30">
+                  <span class="mcp-view__hero-badge">
                     {{ $t('mcp.badge') }}
                   </span>
                 </div>
-                <p class="text-sm mt-1 text-white/80">
+                <p class="mcp-view__hero-subtitle">
                   {{ $t('mcp.subtitle') }}
                 </p>
               </div>
             </div>
             
             <button
-              class="px-5 py-2.5 rounded-xl font-bold text-sm text-white flex items-center gap-2 transition-[color,background-color,border-color,transform] hover:scale-105 bg-gradient-to-r from-violet-500 to-purple-600 shadow-lg shadow-violet-500/25 hover:shadow-violet-500/40"
+              class="mcp-view__primary-button"
               @click="handleAdd"
             >
               <SIcon
@@ -51,27 +51,27 @@
           <!-- Content -->
           <div
             v-if="loading"
-            class="flex justify-center py-20"
+            class="mcp-view__loading"
           >
-            <div class="w-10 h-10 rounded-full border-4 border-violet-500/30 border-t-violet-500 animate-spin" />
+            <div class="mcp-view__loading-spinner" />
           </div>
 
           <div
             v-else
-            class="space-y-4"
+            class="mcp-view__content"
           >
             <div
               v-if="!servers || servers.length === 0"
-              class="text-center py-16 glass-effect rounded-3xl border border-white/20 border-dashed"
+              class="mcp-view__empty"
             >
-              <div class="glass-surface w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
+              <div class="mcp-view__empty-icon-shell">
                 <SIcon
                   name="Server"
                   size="w-10 h-10"
-                  class="opacity-30 text-white/50"
+                  class="mcp-view__empty-icon"
                 />
               </div>
-              <p class="text-lg font-bold text-white">
+              <p class="mcp-view__empty-title">
                 {{ $t('mcp.noServers') }}
               </p>
             </div>
@@ -79,45 +79,45 @@
             <div
               v-for="server in servers"
               :key="server.name"
-              class="group glass-effect rounded-2xl p-5 border border-white/20 transition-[color,background-color,box-shadow] duration-300 hover:shadow-lg hover:shadow-violet-500/10 hover:border-violet-500/30"
+              class="mcp-view__server-card"
             >
-              <div class="flex items-start justify-between">
-                <div class="flex-1">
-                  <div class="flex items-center gap-3 mb-3">
-                    <h3 class="text-lg font-bold font-mono text-white group-hover:text-violet-400 transition-colors">
+              <div class="mcp-view__server-card-header">
+                <div class="mcp-view__server-card-body">
+                  <div class="mcp-view__server-title-row">
+                    <h3 class="mcp-view__server-title">
                       {{ server.name }}
                     </h3>
                     <span
                       v-if="server.disabled"
-                      class="px-2 py-0.5 rounded text-xs font-semibold uppercase bg-danger/15 text-danger border border-danger/30"
+                      class="mcp-view__server-state"
                     >
                       {{ $t('mcp.disabled') }}
                     </span>
                   </div>
 
-                  <div class="space-y-2 text-sm">
-                    <div class="flex items-center gap-2">
-                      <span class="text-white/50 w-20">{{ $t('mcp.command') }}:</span>
-                      <code class="px-2 py-1 rounded font-mono glass-surface text-violet-400 border border-white/5">
+                  <div class="mcp-view__server-meta">
+                    <div class="mcp-view__server-meta-row">
+                      <span class="mcp-view__server-meta-label">{{ $t('mcp.command') }}:</span>
+                      <code class="mcp-view__server-code mcp-view__server-code--accent">
                         {{ server.command }}
                       </code>
                     </div>
-                    <div class="flex items-start gap-2">
-                      <span class="text-white/50 w-20 mt-1">{{ $t('mcp.args') }}:</span>
-                      <code class="px-2 py-1 rounded font-mono glass-surface text-white border border-white/5 break-all">
+                    <div class="mcp-view__server-meta-row mcp-view__server-meta-row--top">
+                      <span class="mcp-view__server-meta-label mcp-view__server-meta-label--top">{{ $t('mcp.args') }}:</span>
+                      <code class="mcp-view__server-code mcp-view__server-code--wrap">
                         {{ (server.args || []).join(' ') }}
                       </code>
                     </div>
                     <div
                       v-if="server.env && Object.keys(server.env).length > 0"
-                      class="flex items-start gap-2"
+                      class="mcp-view__server-meta-row mcp-view__server-meta-row--top"
                     >
-                      <span class="text-white/50 w-20 mt-1">{{ $t('mcp.envVars') }}:</span>
-                      <div class="space-y-1">
+                      <span class="mcp-view__server-meta-label mcp-view__server-meta-label--top">{{ $t('mcp.envVars') }}:</span>
+                      <div class="mcp-view__server-env-list">
                         <div
                           v-for="[key, value] in Object.entries(server.env)"
                           :key="key"
-                          class="text-xs font-mono px-2 py-1 rounded glass-surface border border-white/5"
+                          class="mcp-view__server-env-item"
                         >
                           <span class="text-violet-400">{{ key }}</span>=<span class="text-white">{{ value }}</span>
                         </div>
@@ -126,10 +126,14 @@
                   </div>
                 </div>
 
-                <div class="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                <div class="mcp-view__server-actions">
                   <button
-                    class="p-2 rounded-lg transition-[color,background-color,border-color,transform] hover:scale-110 border border-transparent"
-                    :class="server.disabled ? 'text-white/50 hover:text-success hover:bg-success/10' : 'text-success hover:text-white/50 hover:bg-white/5'"
+                    :class="[
+                      'mcp-view__icon-button',
+                      server.disabled
+                        ? 'mcp-view__icon-button--enable'
+                        : 'mcp-view__icon-button--disable',
+                    ]"
                     :title="server.disabled ? $t('mcp.enable') : $t('mcp.disable')"
                     @click="handleToggle(server.name)"
                   >
@@ -145,7 +149,7 @@
                     />
                   </button>
                   <button
-                    class="p-2 rounded-lg transition-[color,background-color,border-color,transform] hover:scale-110 text-white/80 hover:text-violet-400 hover:bg-violet-500/10"
+                    class="mcp-view__icon-button mcp-view__icon-button--edit"
                     :title="$t('mcp.edit')"
                     @click="handleEdit(server)"
                   >
@@ -155,7 +159,7 @@
                     />
                   </button>
                   <button
-                    class="p-2 rounded-lg transition-[color,background-color,border-color,transform] hover:scale-110 text-white/80 hover:text-danger hover:bg-danger/10"
+                    class="mcp-view__icon-button mcp-view__icon-button--delete"
                     :title="$t('mcp.delete')"
                     @click="handleDelete(server.name)"
                   >
@@ -172,15 +176,15 @@
           <!-- Add/Edit Form Modal -->
           <div
             v-if="showAddForm"
-            class="fixed inset-0 bg-black/40 backdrop-blur-md flex items-center justify-center p-4 z-50 transition-colors"
+            class="mcp-view__modal-overlay"
             @click="showAddForm = false"
           >
             <div
-              class="glass-effect rounded-3xl p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-white/30 relative"
+              class="mcp-view__modal"
               @click.stop
             >
               <button
-                class="absolute top-4 right-4 p-2 rounded-full hover:bg-white/5 text-white/50 transition-colors"
+                class="mcp-view__modal-close"
                 @click="showAddForm = false"
               >
                 <SIcon
@@ -189,91 +193,91 @@
                 />
               </button>
 
-              <h2 class="text-2xl font-bold mb-6 text-white flex items-center gap-3">
-                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500/20 to-purple-600/20 flex items-center justify-center text-violet-400 border border-violet-500/30">
+              <h2 class="mcp-view__modal-title">
+                <div class="mcp-view__modal-title-icon">
                   <SIcon
                     :name="editingServer ? 'Edit2' : 'Plus'"
                     size="w-5 h-5"
                   />
                 </div>
-                <span class="text-gradient-purple">{{ editingServer ? $t('mcp.editServer') : $t('mcp.addServer') }}</span>
+                <span class="mcp-view__modal-title-text">{{ editingServer ? $t('mcp.editServer') : $t('mcp.addServer') }}</span>
               </h2>
 
-              <div class="space-y-5">
+              <div class="mcp-view__form">
                 <div>
-                  <label class="block text-xs font-bold text-white/80 uppercase tracking-wider mb-2">
+                  <label class="mcp-view__field-label">
                     {{ $t('mcp.serverName') }} <span class="text-danger">*</span>
                   </label>
                   <input
                     v-model="formData.name"
                     type="text"
-                    class="w-full px-4 py-3 rounded-xl glass-surface border border-white/20 focus:border-violet-500 focus:ring-4 focus:ring-violet-500/10 outline-none transition-colors text-white"
+                    class="mcp-view__input"
                     :placeholder="$t('mcp.namePlaceholder')"
                   >
                 </div>
 
                 <div>
-                  <label class="block text-xs font-bold text-white/80 uppercase tracking-wider mb-2">
+                  <label class="mcp-view__field-label">
                     {{ $t('mcp.command') }} <span class="text-danger">*</span>
                   </label>
                   <input
                     v-model="formData.command"
                     type="text"
-                    class="w-full px-4 py-3 rounded-xl font-mono text-sm glass-surface border border-white/20 focus:border-violet-500 focus:ring-4 focus:ring-violet-500/10 outline-none transition-colors text-white"
+                    class="mcp-view__input mcp-view__input--mono"
                     :placeholder="$t('mcp.commandPlaceholder')"
                   >
                 </div>
 
                 <div>
-                  <label class="block text-xs font-bold text-white/80 uppercase tracking-wider mb-2">
+                  <label class="mcp-view__field-label">
                     {{ $t('mcp.args') }} <span class="text-danger">*</span>
                   </label>
                   <input
                     v-model="argInput"
                     type="text"
-                    class="w-full px-4 py-3 rounded-xl font-mono text-sm glass-surface border border-white/20 focus:border-violet-500 focus:ring-4 focus:ring-violet-500/10 outline-none transition-colors text-white"
+                    class="mcp-view__input mcp-view__input--mono"
                     :placeholder="$t('mcp.argsPlaceholder')"
                   >
-                  <div class="text-xs mt-1.5 text-white/50">
+                  <div class="mcp-view__hint">
                     {{ $t('mcp.argsHint') }}
                   </div>
                 </div>
 
                 <div>
-                  <label class="block text-xs font-bold text-white/80 uppercase tracking-wider mb-2">
+                  <label class="mcp-view__field-label">
                     {{ $t('mcp.envVars') }}
                   </label>
-                  <div class="flex gap-2 mb-3">
+                  <div class="mcp-view__env-inputs">
                     <input
                       v-model="envKey"
                       type="text"
-                      class="flex-1 px-4 py-3 rounded-xl font-mono text-sm glass-surface border border-white/20 focus:border-violet-500 focus:ring-4 focus:ring-violet-500/10 outline-none transition-colors text-white"
+                      class="mcp-view__input mcp-view__input--mono"
                       :placeholder="$t('mcp.envKey')"
                     >
                     <input
                       v-model="envValue"
                       type="text"
-                      class="flex-1 px-4 py-3 rounded-xl font-mono text-sm glass-surface border border-white/20 focus:border-violet-500 focus:ring-4 focus:ring-violet-500/10 outline-none transition-colors text-white"
+                      class="mcp-view__input mcp-view__input--mono"
                       :placeholder="$t('mcp.envValue')"
                     >
                     <button
-                      class="px-4 py-2 rounded-xl font-bold text-sm text-white bg-gradient-to-r from-violet-500 to-purple-600 hover:opacity-90 transition-opacity shadow-lg shadow-violet-500/20"
+                      class="mcp-view__secondary-button"
                       @click="addEnvVar"
                     >
                       {{ $t('mcp.addEnv') }}
                     </button>
                   </div>
-                  <div class="space-y-2">
+                  <div class="mcp-view__env-list">
                     <div
                       v-for="[key, value] in Object.entries(formData.env || {})"
                       :key="key"
-                      class="flex items-center justify-between px-4 py-2 rounded-lg glass-surface border border-white/5"
+                      class="mcp-view__env-row"
                     >
-                      <code class="text-sm font-mono text-white">
+                      <code class="mcp-view__env-code">
                         <span class="text-violet-400">{{ key }}</span>=<span>{{ value }}</span>
                       </code>
                       <button
-                        class="text-white/50 hover:text-danger transition-colors"
+                        class="mcp-view__env-remove"
                         @click="removeEnvVar(key)"
                       >
                         <SIcon
@@ -285,31 +289,31 @@
                   </div>
                 </div>
 
-                <div class="flex items-center gap-3 p-4 rounded-xl bg-white/5/50 border border-white/5">
+                <div class="mcp-view__toggle">
                   <input
                     id="disabled"
                     v-model="formData.disabled"
                     type="checkbox"
-                    class="w-5 h-5 rounded text-violet-500 focus:ring-violet-500/20 border-white/10"
+                    class="mcp-view__toggle-input"
                   >
                   <label
                     for="disabled"
-                    class="text-sm font-medium text-white/80 cursor-pointer"
+                    class="mcp-view__toggle-label"
                   >
                     {{ $t('mcp.disableServer') }}
                   </label>
                 </div>
               </div>
 
-              <div class="flex gap-4 mt-8 pt-6 border-t border-white/5">
+              <div class="mcp-view__modal-actions">
                 <button
-                  class="flex-1 px-6 py-3.5 rounded-xl font-bold transition-colors glass-surface text-white/80 hover:bg-white/10 border border-white/20"
+                  class="mcp-view__modal-button mcp-view__modal-button--ghost"
                   @click="showAddForm = false"
                 >
                   {{ $t('mcp.cancel') }}
                 </button>
                 <button
-                  class="flex-1 px-6 py-3.5 rounded-xl font-bold transition-[color,background-color,border-color,transform] bg-gradient-to-r from-violet-500 to-purple-600 text-white shadow-lg shadow-violet-500/25 hover:shadow-xl hover:shadow-violet-500/35 hover:-translate-y-0.5"
+                  class="mcp-view__modal-button mcp-view__modal-button--primary"
                   @click="handleSubmit"
                 >
                   {{ editingServer ? $t('mcp.update') : $t('mcp.add') }}
@@ -517,3 +521,573 @@ const removeEnvVar = (key: string) => {
   formData.value.env = newEnv
 }
 </script>
+
+<style scoped>
+.mcp-view {
+  min-height: 100%;
+  padding: 1.5rem;
+  transition: color 0.3s ease, background-color 0.3s ease;
+}
+
+.mcp-view__container {
+  max-width: 1800px;
+  margin: 0 auto;
+}
+
+.mcp-view__stack {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.mcp-view__main {
+  min-width: 0;
+}
+
+.mcp-view__hero {
+  position: sticky;
+  top: 1.5rem;
+  z-index: 20;
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  border: 1px solid rgb(255 255 255 / 20%);
+  border-radius: 1rem;
+  padding: 1.5rem;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 1px 2px rgb(15 23 42 / 8%);
+}
+
+.mcp-view__hero-main {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.mcp-view__hero-icon-shell,
+.mcp-view__modal-title-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgb(139 92 246 / 30%);
+  border-radius: 0.75rem;
+  background: linear-gradient(135deg, rgb(139 92 246 / 20%), rgb(147 51 234 / 20%));
+  color: rgb(192 132 252 / 100%);
+}
+
+.mcp-view__hero-icon-shell {
+  padding: 0.75rem;
+}
+
+.mcp-view__modal-title-icon {
+  width: 2.5rem;
+  height: 2.5rem;
+}
+
+.mcp-view__hero-icon {
+  color: rgb(192 132 252 / 100%);
+}
+
+.mcp-view__hero-title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.mcp-view__hero-title,
+.mcp-view__modal-title {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: rgb(255 255 255 / 100%);
+  font-weight: 700;
+}
+
+.mcp-view__hero-title {
+  font-size: 1.5rem;
+  line-height: 2rem;
+}
+
+.mcp-view__modal-title {
+  margin-bottom: 1.5rem;
+  font-size: 1.5rem;
+  line-height: 2rem;
+}
+
+.mcp-view__modal-title-text {
+  background: linear-gradient(90deg, rgb(216 180 254 / 100%), rgb(167 139 250 / 100%));
+  background-clip: text;
+  color: transparent;
+}
+
+.mcp-view__hero-badge {
+  border: 1px solid rgb(139 92 246 / 30%);
+  border-radius: 9999px;
+  background: rgb(139 92 246 / 15%);
+  padding: 0.125rem 0.625rem;
+  color: rgb(192 132 252 / 100%);
+  font-size: 0.75rem;
+  line-height: 1rem;
+  font-weight: 700;
+}
+
+.mcp-view__hero-subtitle {
+  margin-top: 0.25rem;
+  color: rgb(255 255 255 / 80%);
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+
+.mcp-view__primary-button,
+.mcp-view__secondary-button,
+.mcp-view__modal-button--primary {
+  background: linear-gradient(90deg, rgb(139 92 246 / 100%), rgb(147 51 234 / 100%));
+  color: rgb(255 255 255 / 100%);
+  box-shadow: 0 18px 40px rgb(139 92 246 / 22%);
+}
+
+.mcp-view__primary-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-radius: 0.75rem;
+  padding: 0.625rem 1.25rem;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  font-weight: 700;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.mcp-view__primary-button:hover {
+  transform: scale(1.05);
+  box-shadow: 0 22px 44px rgb(139 92 246 / 32%);
+}
+
+.mcp-view__loading {
+  display: flex;
+  justify-content: center;
+  padding: 5rem 0;
+}
+
+.mcp-view__loading-spinner {
+  width: 2.5rem;
+  height: 2.5rem;
+  border: 4px solid rgb(139 92 246 / 30%);
+  border-top-color: rgb(139 92 246 / 100%);
+  border-radius: 9999px;
+  animation: spin 1s linear infinite;
+}
+
+.mcp-view__content {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.mcp-view__empty,
+.mcp-view__server-card,
+.mcp-view__modal {
+  border: 1px solid rgb(255 255 255 / 20%);
+}
+
+.mcp-view__empty {
+  border-style: dashed;
+  border-radius: 1.5rem;
+  padding: 4rem 1.5rem;
+  text-align: center;
+}
+
+.mcp-view__empty-icon-shell {
+  display: inline-flex;
+  width: 5rem;
+  height: 5rem;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1rem;
+  border-radius: 9999px;
+}
+
+.mcp-view__empty-icon {
+  color: rgb(255 255 255 / 50%);
+  opacity: 0.3;
+}
+
+.mcp-view__empty-title {
+  color: rgb(255 255 255 / 100%);
+  font-size: 1.125rem;
+  line-height: 1.75rem;
+  font-weight: 700;
+}
+
+.mcp-view__server-card {
+  border-radius: 1rem;
+  padding: 1.25rem;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.mcp-view__server-card:hover {
+  border-color: rgb(139 92 246 / 30%);
+  box-shadow: 0 18px 40px rgb(139 92 246 / 10%);
+}
+
+.mcp-view__server-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.mcp-view__server-card-body {
+  flex: 1 1 auto;
+}
+
+.mcp-view__server-title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.mcp-view__server-title {
+  font-family: var(--font-mono, 'Maple Mono', monospace);
+  color: rgb(255 255 255 / 100%);
+  font-size: 1.125rem;
+  line-height: 1.75rem;
+  font-weight: 700;
+  transition: color 0.2s ease;
+}
+
+.mcp-view__server-card:hover .mcp-view__server-title {
+  color: rgb(192 132 252 / 100%);
+}
+
+.mcp-view__server-state {
+  border: 1px solid rgb(var(--danger-rgb, 239 68 68) / 30%);
+  border-radius: 0.25rem;
+  background: rgb(var(--danger-rgb, 239 68 68) / 15%);
+  padding: 0.125rem 0.5rem;
+  color: var(--color-danger, #ef4444);
+  font-size: 0.75rem;
+  line-height: 1rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.mcp-view__server-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+
+.mcp-view__server-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.mcp-view__server-meta-row--top {
+  align-items: flex-start;
+}
+
+.mcp-view__server-meta-label {
+  width: 5rem;
+  color: rgb(255 255 255 / 50%);
+}
+
+.mcp-view__server-meta-label--top {
+  margin-top: 0.25rem;
+}
+
+.mcp-view__server-code,
+.mcp-view__server-env-item,
+.mcp-view__env-row,
+.mcp-view__input,
+.mcp-view__modal-button--ghost {
+  border: 1px solid rgb(255 255 255 / 20%);
+}
+
+.mcp-view__server-code {
+  border-color: rgb(255 255 255 / 5%);
+  border-radius: 0.5rem;
+  padding: 0.25rem 0.5rem;
+  font-family: var(--font-mono, 'Maple Mono', monospace);
+  color: rgb(255 255 255 / 100%);
+}
+
+.mcp-view__server-code--accent {
+  color: rgb(192 132 252 / 100%);
+}
+
+.mcp-view__server-code--wrap {
+  word-break: break-all;
+}
+
+.mcp-view__server-env-list,
+.mcp-view__env-list,
+.mcp-view__form {
+  display: flex;
+  flex-direction: column;
+}
+
+.mcp-view__server-env-list,
+.mcp-view__env-list {
+  gap: 0.5rem;
+}
+
+.mcp-view__server-env-item {
+  border-color: rgb(255 255 255 / 5%);
+  border-radius: 0.5rem;
+  padding: 0.25rem 0.5rem;
+  font-family: var(--font-mono, 'Maple Mono', monospace);
+  font-size: 0.75rem;
+  line-height: 1rem;
+}
+
+.mcp-view__server-actions {
+  display: flex;
+  gap: 0.5rem;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.mcp-view__server-card:hover .mcp-view__server-actions {
+  opacity: 1;
+}
+
+.mcp-view__icon-button {
+  border: 1px solid transparent;
+  border-radius: 0.5rem;
+  padding: 0.5rem;
+  color: rgb(255 255 255 / 80%);
+  transition: transform 0.2s ease, color 0.2s ease, background-color 0.2s ease;
+}
+
+.mcp-view__icon-button:hover {
+  transform: scale(1.1);
+}
+
+.mcp-view__icon-button--enable {
+  color: rgb(255 255 255 / 50%);
+}
+
+.mcp-view__icon-button--enable:hover {
+  color: var(--color-success, #22c55e);
+  background: rgb(var(--success-rgb, 34 197 94) / 10%);
+}
+
+.mcp-view__icon-button--disable {
+  color: var(--color-success, #22c55e);
+}
+
+.mcp-view__icon-button--disable:hover {
+  color: rgb(255 255 255 / 50%);
+  background: rgb(255 255 255 / 5%);
+}
+
+.mcp-view__icon-button--edit:hover {
+  color: rgb(192 132 252 / 100%);
+  background: rgb(139 92 246 / 10%);
+}
+
+.mcp-view__icon-button--delete:hover,
+.mcp-view__env-remove:hover {
+  color: var(--color-danger, #ef4444);
+}
+
+.mcp-view__modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgb(0 0 0 / 40%);
+  backdrop-filter: blur(12px);
+}
+
+.mcp-view__modal {
+  position: relative;
+  width: min(100%, 42rem);
+  max-height: 90vh;
+  overflow-y: auto;
+  border-radius: 1.5rem;
+  padding: 2rem;
+  box-shadow: 0 32px 80px rgb(15 23 42 / 35%);
+}
+
+.mcp-view__modal-close {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  border-radius: 9999px;
+  padding: 0.5rem;
+  color: rgb(255 255 255 / 50%);
+  transition: color 0.2s ease, background-color 0.2s ease;
+}
+
+.mcp-view__modal-close:hover {
+  background: rgb(255 255 255 / 5%);
+}
+
+.mcp-view__form {
+  gap: 1.25rem;
+}
+
+.mcp-view__field-label {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: rgb(255 255 255 / 80%);
+  font-size: 0.75rem;
+  line-height: 1rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.mcp-view__input {
+  width: 100%;
+  border-radius: 0.75rem;
+  padding: 0.75rem 1rem;
+  color: rgb(255 255 255 / 100%);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  outline: none;
+}
+
+.mcp-view__input:focus {
+  border-color: rgb(139 92 246 / 100%);
+  box-shadow: 0 0 0 4px rgb(139 92 246 / 10%);
+}
+
+.mcp-view__input--mono,
+.mcp-view__env-code {
+  font-family: var(--font-mono, 'Maple Mono', monospace);
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+
+.mcp-view__hint {
+  margin-top: 0.375rem;
+  color: rgb(255 255 255 / 50%);
+  font-size: 0.75rem;
+  line-height: 1rem;
+}
+
+.mcp-view__env-inputs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.mcp-view__secondary-button {
+  border-radius: 0.75rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  font-weight: 700;
+  transition: opacity 0.2s ease;
+}
+
+.mcp-view__secondary-button:hover {
+  opacity: 0.9;
+}
+
+.mcp-view__env-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-color: rgb(255 255 255 / 5%);
+  border-radius: 0.5rem;
+  padding: 0.5rem 1rem;
+}
+
+.mcp-view__env-code {
+  color: rgb(255 255 255 / 100%);
+}
+
+.mcp-view__env-remove {
+  color: rgb(255 255 255 / 50%);
+  transition: color 0.2s ease;
+}
+
+.mcp-view__toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  border: 1px solid rgb(255 255 255 / 5%);
+  border-radius: 0.75rem;
+  background: rgb(255 255 255 / 5%);
+  padding: 1rem;
+}
+
+.mcp-view__toggle-input {
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 0.375rem;
+  border: 1px solid rgb(255 255 255 / 10%);
+  color: rgb(139 92 246 / 100%);
+}
+
+.mcp-view__toggle-label {
+  cursor: pointer;
+  color: rgb(255 255 255 / 80%);
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  font-weight: 500;
+}
+
+.mcp-view__modal-actions {
+  display: flex;
+  gap: 1rem;
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid rgb(255 255 255 / 5%);
+}
+
+.mcp-view__modal-button {
+  flex: 1 1 0%;
+  border-radius: 0.75rem;
+  padding: 0.875rem 1.5rem;
+  font-weight: 700;
+}
+
+.mcp-view__modal-button--ghost {
+  color: rgb(255 255 255 / 80%);
+  transition: background-color 0.2s ease;
+}
+
+.mcp-view__modal-button--ghost:hover {
+  background: rgb(255 255 255 / 10%);
+}
+
+.mcp-view__modal-button--primary {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.mcp-view__modal-button--primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 24px 48px rgb(139 92 246 / 32%);
+}
+
+@media (width <= 900px) {
+  .mcp-view__hero {
+    position: static;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .mcp-view__server-card-header,
+  .mcp-view__env-inputs,
+  .mcp-view__modal-actions {
+    flex-direction: column;
+  }
+
+  .mcp-view__server-actions {
+    opacity: 1;
+    margin-top: 1rem;
+  }
+}
+</style>

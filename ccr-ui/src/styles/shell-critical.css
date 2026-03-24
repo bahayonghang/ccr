@@ -1,0 +1,131 @@
+/* ============================================
+   Shell Critical Styles
+   仅保留首屏 shell / home 必需的语义层与基础动画
+   ============================================ */
+
+@layer components {
+  .surface-shell,
+  .liquid-glass {
+    background: var(--surface-shell-bg);
+    backdrop-filter: var(--surface-shell-blur);
+    border: 1px solid var(--surface-shell-border);
+    box-shadow: var(--surface-shell-shadow), var(--liquid-glass-highlight);
+  }
+
+  .surface-workspace,
+  .glass-effect,
+  .glass-surface {
+    background: var(--surface-workspace-bg);
+    backdrop-filter: var(--surface-workspace-blur);
+    border: 1px solid var(--surface-workspace-border);
+    box-shadow: var(--surface-workspace-shadow);
+  }
+
+  .surface-card,
+  .glass-effect-strong,
+  .glass-elevated {
+    background: var(--surface-card-bg);
+    backdrop-filter: var(--surface-card-blur);
+    border: 1px solid var(--surface-card-border);
+    box-shadow: var(--surface-card-shadow), var(--glass-inner-glow);
+  }
+
+  .surface-modal,
+  .glass-modal {
+    background: var(--surface-modal-bg);
+    backdrop-filter: var(--surface-modal-blur);
+    border: 1px solid var(--surface-modal-border);
+    box-shadow: var(--surface-modal-shadow), var(--glass-inner-glow);
+  }
+
+  .surface-status {
+    background: var(--surface-status-bg);
+    backdrop-filter: var(--surface-status-blur);
+    border: 1px solid var(--surface-status-border);
+    box-shadow: var(--surface-status-shadow);
+  }
+
+  .loading-spinner {
+    border: 3px solid;
+    border-radius: 50%;
+    border-top-color: currentcolor;
+    animation: spin 1s linear infinite;
+  }
+}
+
+@layer utilities {
+  @keyframes slide-up {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes spin {
+    from {
+      transform: rotate(0deg);
+    }
+
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  .animate-slide-up {
+    animation: slide-up var(--duration-slow) var(--ease-out) forwards;
+    will-change: transform, opacity;
+  }
+
+  .surface-shell {
+    backdrop-filter: var(--surface-shell-blur);
+  }
+
+  .surface-workspace,
+  .glass-effect,
+  .glass-surface {
+    backdrop-filter: var(--surface-workspace-blur);
+  }
+
+  .surface-card,
+  .glass-effect-strong,
+  .glass-elevated {
+    backdrop-filter: var(--surface-card-blur);
+  }
+
+  .surface-modal,
+  .glass-modal {
+    backdrop-filter: var(--surface-modal-blur);
+  }
+
+  .surface-status {
+    backdrop-filter: var(--surface-status-blur);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-slide-up {
+    animation: none !important;
+    opacity: 1 !important;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .surface-shell,
+  .surface-workspace,
+  .surface-card,
+  .surface-modal,
+  .surface-status,
+  .glass-surface,
+  .glass-effect,
+  .glass-effect-strong,
+  .glass-elevated,
+  .glass-modal,
+  .liquid-glass {
+    background: var(--glass-bg-strong) !important;
+  }
+}

@@ -11,24 +11,18 @@ import { showCurrentWindowIfTauri } from '@/utils/tauriWindow'
 import { applyInitialTheme } from '@/utils/themeBootstrap'
 import './styles/index.css'
 
-const deferredStylesheets = [
-  '/fonts/maplebright/MapleBright-Medium/result.css',
-  '/fonts/maplebright/MapleBright-Italic/result.css',
-  '/fonts/maplebright/MapleBright-MediumItalic/result.css',
-]
+const loadDeferredStyles = () => import('./styles/deferred.css').catch((error) => {
+  logger.warn('[startup] failed to load deferred app styles', error)
+})
 
-const appendStylesheet = (href: string) => {
-  if (typeof document === 'undefined') {
-    return
-  }
-
-  if (document.querySelector(`link[rel="stylesheet"][href="${href}"]`)) {
-    return
-  }
+const ensureDeferredStylesheet = (href: string, key: string) => {
+  if (typeof document === 'undefined') return
+  if (document.head.querySelector(`link[data-font="${key}"]`)) return
 
   const link = document.createElement('link')
   link.rel = 'stylesheet'
   link.href = href
+  link.dataset.font = key
   document.head.appendChild(link)
 }
 
@@ -69,6 +63,8 @@ app.mount('#app')
 // 非关键初始化推迟到首帧之后，优先让主界面完成首次绘制。
 scheduleAfterPaint(() => {
   void showCurrentWindowIfTauri()
+  void loadDeferredStyles()
+  ensureDeferredStylesheet('/fonts/maplebright/MapleBright-Regular/result.css', 'maplebright-regular-full')
 
   void hydratePreferredLocale().catch((error) => {
     logger.warn('[startup] failed to hydrate preferred locale after first paint', error)
@@ -79,10 +75,6 @@ scheduleAfterPaint(() => {
   })
 
   scheduleWhenIdle(() => {
-    for (const href of deferredStylesheets) {
-      appendStylesheet(href)
-    }
-
     void import('./styles/decorative.css').catch((error) => {
       logger.warn('[startup] failed to load decorative styles', error)
     })

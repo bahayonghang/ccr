@@ -1,18 +1,18 @@
 <template>
-  <div class="min-h-full p-6 lg:p-10 relative overflow-hidden">
-    <div class="max-w-7xl mx-auto space-y-5">
-      <section class="grid grid-cols-1 xl:grid-cols-3 gap-4">
+  <div class="codex-view">
+    <div class="codex-shell">
+      <section class="codex-grid codex-grid--hero">
         <Card
           variant="glass"
-          class="xl:col-span-2 relative overflow-hidden p-6"
+          class="codex-hero-card"
         >
-          <div class="absolute inset-y-0 right-0 w-72 bg-gradient-to-l from-pink-500/10 via-purple-500/5 to-transparent pointer-events-none" />
+          <div class="codex-hero-card__glow" />
 
-          <div class="relative z-10 space-y-5">
-            <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-              <div class="space-y-3">
-                <div class="flex items-center gap-3">
-                  <div class="w-12 h-12 rounded-2xl bg-pink-500/10 border border-pink-500/20 flex items-center justify-center shadow-lg backdrop-blur-md">
+          <div class="codex-hero-content">
+            <div class="codex-hero-header">
+              <div class="codex-hero-copy">
+                <div class="codex-hero-title-row">
+                  <div class="codex-hero-icon">
                     <SIcon
                       name="Code2"
                       size="w-6 h-6"
@@ -20,29 +20,29 @@
                     />
                   </div>
                   <div>
-                    <h1 class="text-3xl font-bold font-display text-white tracking-tight">
+                    <h1 class="codex-hero-title">
                       Codex
                     </h1>
-                    <p class="text-sm text-white/70">
+                    <p class="codex-hero-subtitle">
                       先看当前账号、配置健康度和下一步，再进入细项管理。
                     </p>
                   </div>
                 </div>
 
-                <div class="flex flex-wrap gap-2">
-                  <span class="px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider bg-pink-500/10 text-pink-300 border border-pink-500/20">
+                <div class="codex-pill-row">
+                  <span class="codex-pill codex-pill--pink">
                     workflow first
                   </span>
-                  <span class="px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider border border-white/10 bg-white/5 text-white/75">
+                  <span class="codex-pill codex-pill--neutral">
                     {{ versionLabel }}
                   </span>
-                  <span class="px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider border border-emerald-500/20 bg-emerald-500/10 text-emerald-300">
+                  <span class="codex-pill codex-pill--emerald">
                     {{ currentProfileLabel }}
                   </span>
                 </div>
               </div>
 
-              <div class="flex flex-wrap gap-2 lg:justify-end">
+              <div class="codex-action-row">
                 <RouterLink to="/codex/auth">
                   <Button
                     variant="glass"
@@ -86,31 +86,31 @@
               </div>
             </div>
 
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div class="rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
-                <p class="text-xs uppercase tracking-[0.2em] text-white/45 mb-1">
+            <div class="codex-hero-stats">
+              <div class="codex-stat-card">
+                <p class="codex-stat-label">
                   当前账号
                 </p>
                 <p
-                  class="text-lg font-semibold text-white truncate"
+                  class="codex-stat-value truncate"
                   :title="currentAccountLabel"
                 >
                   {{ currentAccountLabel }}
                 </p>
               </div>
-              <div class="rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
-                <p class="text-xs uppercase tracking-[0.2em] text-white/45 mb-1">
+              <div class="codex-stat-card">
+                <p class="codex-stat-label">
                   累计请求
                 </p>
-                <p class="text-lg font-semibold text-white">
+                <p class="codex-stat-value">
                   {{ summary?.usage.all_time.total_requests ?? 0 }}
                 </p>
               </div>
-              <div class="rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
-                <p class="text-xs uppercase tracking-[0.2em] text-white/45 mb-1">
+              <div class="codex-stat-card">
+                <p class="codex-stat-label">
                   累计 Tokens
                 </p>
-                <p class="text-lg font-semibold text-white">
+                <p class="codex-stat-value">
                   {{ usageTotalTokens }}
                 </p>
               </div>
@@ -120,10 +120,10 @@
 
         <Card
           variant="glass"
-          class="p-5"
+          class="codex-panel"
         >
-          <div class="flex items-center gap-3 mb-4">
-            <div class="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center">
+          <div class="codex-panel-header">
+            <div class="codex-panel-icon codex-panel-icon--amber">
               <SIcon
                 name="Route"
                 size="w-5 h-5"
@@ -131,25 +131,25 @@
               />
             </div>
             <div>
-              <h2 class="text-base font-semibold text-white">
+              <h2 class="codex-panel-title">
                 下一步
               </h2>
-              <p class="text-xs text-white/55">
+              <p class="codex-panel-subtitle">
                 只保留最该先做的动作
               </p>
             </div>
           </div>
 
-          <div class="space-y-3">
+          <div class="codex-stack">
             <RouterLink
               v-for="action in nextActions"
               :key="action.title"
               :to="action.to"
-              class="block rounded-2xl border border-white/10 bg-white/5 p-4 transition-all duration-200 hover:border-pink-500/30 hover:bg-white/10"
+              class="codex-action-card"
             >
               <div class="flex items-start gap-3">
                 <div
-                  class="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border"
+                  class="codex-tone-icon"
                   :class="toneClassMap[action.tone]"
                 >
                   <SIcon
@@ -178,7 +178,7 @@
         </Card>
       </section>
 
-      <section class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
+      <section class="codex-grid codex-grid--health">
         <RouterLink
           v-for="item in healthItems"
           :key="item.key"
@@ -188,11 +188,11 @@
           <Card
             variant="elevated"
             hover
-            class="h-full p-4 border border-white/10"
+            class="codex-health-card"
           >
             <div class="flex items-start justify-between gap-3">
               <div
-                class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border"
+                class="codex-tone-icon codex-tone-icon--large"
                 :class="toneClassMap[item.tone]"
               >
                 <SIcon
@@ -200,46 +200,46 @@
                   size="w-5 h-5"
                 />
               </div>
-              <span class="text-[11px] uppercase tracking-[0.18em] text-white/35">
+              <span class="codex-health-eyebrow">
                 状态
               </span>
             </div>
-            <p class="mt-4 text-xs uppercase tracking-[0.2em] text-white/45">
+            <p class="codex-health-label">
               {{ item.title }}
             </p>
-            <p class="mt-1 text-lg font-semibold text-white break-words">
+            <p class="codex-health-value">
               {{ item.value }}
             </p>
-            <p class="mt-2 text-sm leading-6 text-white/60">
+            <p class="codex-health-detail">
               {{ item.detail }}
             </p>
           </Card>
         </RouterLink>
       </section>
 
-      <section class="grid grid-cols-1 xl:grid-cols-3 gap-4">
+      <section class="codex-grid codex-grid--manage">
         <Card
           variant="glass"
-          class="xl:col-span-2 p-5"
+          class="codex-panel codex-panel--wide"
         >
-          <div class="flex items-center justify-between gap-3 mb-4">
+          <div class="codex-section-header">
             <div>
-              <h2 class="text-base font-semibold text-white">
+              <h2 class="codex-panel-title">
                 管理入口
               </h2>
-              <p class="text-sm text-white/55">
+              <p class="codex-panel-description">
                 把细项管理降级成次级入口，需要时再深入。
               </p>
             </div>
             <RouterLink
               to="/codex/settings"
-              class="text-sm text-pink-300 hover:text-pink-200 transition-colors"
+              class="codex-text-link"
             >
               打开设置
             </RouterLink>
           </div>
 
-          <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+          <div class="codex-grid codex-grid--links">
             <RouterLink
               v-for="link in managementLinks"
               :key="link.to"
@@ -249,11 +249,11 @@
               <Card
                 variant="glass"
                 hover
-                class="h-full p-4 border border-white/10"
+                class="codex-link-card"
               >
-                <div class="flex items-start justify-between gap-3 mb-3">
+                <div class="codex-link-card__header">
                   <div
-                    class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border"
+                    class="codex-tone-icon"
                     :class="toneClassMap[link.tone]"
                   >
                     <SIcon
@@ -261,14 +261,14 @@
                       size="w-5 h-5"
                     />
                   </div>
-                  <span class="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] text-white/55">
+                  <span class="codex-link-badge">
                     {{ link.badge }}
                   </span>
                 </div>
-                <h3 class="text-sm font-semibold text-white group-hover:text-pink-200 transition-colors">
+                <h3 class="codex-link-title">
                   {{ link.title }}
                 </h3>
-                <p class="mt-2 text-sm leading-6 text-white/60">
+                <p class="codex-link-description">
                   {{ link.description }}
                 </p>
               </Card>
@@ -278,10 +278,10 @@
 
         <Card
           variant="glass"
-          class="p-5"
+          class="codex-panel"
         >
-          <div class="flex items-center gap-3 mb-4">
-            <div class="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center">
+          <div class="codex-panel-header">
+            <div class="codex-panel-icon codex-panel-icon--indigo">
               <SIcon
                 name="Sparkles"
                 size="w-5 h-5"
@@ -289,10 +289,10 @@
               />
             </div>
             <div>
-              <h2 class="text-base font-semibold text-white">
+              <h2 class="codex-panel-title">
                 工作流摘要
               </h2>
-              <p class="text-xs text-white/55">
+              <p class="codex-panel-subtitle">
                 一眼确认是否可以直接开工
               </p>
             </div>
@@ -312,11 +312,11 @@
 
           <div
             v-else-if="!summary && loading"
-            class="space-y-3"
+            class="codex-stack"
           >
-            <div class="h-20 rounded-2xl bg-white/5 animate-pulse" />
-            <div class="h-20 rounded-2xl bg-white/5 animate-pulse" />
-            <div class="h-20 rounded-2xl bg-white/5 animate-pulse" />
+            <div class="codex-skeleton" />
+            <div class="codex-skeleton" />
+            <div class="codex-skeleton" />
           </div>
 
           <EmptyState
@@ -331,67 +331,67 @@
 
           <div
             v-else
-            class="space-y-3"
+            class="codex-stack"
           >
-            <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
-              <p class="text-xs uppercase tracking-[0.2em] text-white/45 mb-1">
+            <div class="codex-summary-card">
+              <p class="codex-summary-label">
                 活跃模型
               </p>
-              <p class="text-lg font-semibold text-white">
+              <p class="codex-summary-value">
                 {{ summary.usage.top_model?.model || summary.config.model || '未识别' }}
               </p>
-              <p class="mt-1 text-sm text-white/60 leading-6">
+              <p class="codex-summary-description">
                 {{ summary.usage.top_model
                   ? `近阶段请求 ${summary.usage.top_model.total_requests} 次，输出 ${formatTokens(summary.usage.top_model.total_output_tokens)} tokens`
                   : '暂无按模型维度的活跃数据' }}
               </p>
             </div>
 
-            <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
-              <p class="text-xs uppercase tracking-[0.2em] text-white/45 mb-1">
+            <div class="codex-summary-card">
+              <p class="codex-summary-label">
                 扩展能力库存
               </p>
-              <div class="grid grid-cols-2 gap-3 mt-3 text-sm">
+              <div class="codex-inventory-grid">
                 <div>
-                  <p class="text-white/40">
+                  <p class="codex-inventory-key">
                     MCP
                   </p>
-                  <p class="text-white font-semibold">
+                  <p class="codex-inventory-value">
                     {{ summary.inventory.mcp_servers_total }}
                   </p>
                 </div>
                 <div>
-                  <p class="text-white/40">
+                  <p class="codex-inventory-key">
                     Config Profiles
                   </p>
-                  <p class="text-white font-semibold">
+                  <p class="codex-inventory-value">
                     {{ summary.inventory.config_profiles_total }}
                   </p>
                 </div>
                 <div>
-                  <p class="text-white/40">
+                  <p class="codex-inventory-key">
                     Agents
                   </p>
-                  <p class="text-white font-semibold">
+                  <p class="codex-inventory-value">
                     {{ summary.inventory.agents_total }}
                   </p>
                 </div>
                 <div>
-                  <p class="text-white/40">
+                  <p class="codex-inventory-key">
                     Slash Commands
                   </p>
-                  <p class="text-white font-semibold">
+                  <p class="codex-inventory-value">
                     {{ summary.inventory.slash_commands_total }}
                   </p>
                 </div>
               </div>
             </div>
 
-            <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
-              <p class="text-xs uppercase tracking-[0.2em] text-white/45 mb-1">
+            <div class="codex-summary-card">
+              <p class="codex-summary-label">
                 最近活动
               </p>
-              <p class="text-sm text-white/70 leading-6">
+              <p class="codex-summary-description codex-summary-description--compact">
                 {{ summary.usage.last_activity_at
                   ? `最近活动时间 ${formatDateTime(summary.usage.last_activity_at)}`
                   : '尚未发现最近活动记录' }}
@@ -445,3 +445,262 @@ onActivated(() => {
   void refresh(false)
 })
 </script>
+
+<style scoped>
+.codex-view {
+  @apply relative min-h-full overflow-hidden p-6 lg:p-10;
+}
+
+.codex-shell {
+  @apply mx-auto max-w-7xl space-y-5;
+}
+
+.codex-grid {
+  @apply grid gap-4;
+}
+
+.codex-grid--hero {
+  @apply grid-cols-1 xl:grid-cols-3;
+}
+
+.codex-grid--health {
+  @apply grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4;
+}
+
+.codex-grid--manage {
+  @apply grid-cols-1 xl:grid-cols-3;
+}
+
+.codex-grid--links {
+  @apply grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3;
+}
+
+.codex-hero-card {
+  @apply relative overflow-hidden p-6 xl:col-span-2;
+}
+
+.codex-hero-card__glow {
+  @apply pointer-events-none absolute inset-y-0 right-0 w-72;
+
+  background: linear-gradient(270deg, rgb(236 72 153 / 10%), rgb(168 85 247 / 5%), transparent);
+}
+
+.codex-hero-content {
+  @apply relative z-10 space-y-5;
+}
+
+.codex-hero-header {
+  @apply flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between;
+}
+
+.codex-hero-copy {
+  @apply space-y-3;
+}
+
+.codex-hero-title-row {
+  @apply flex items-center gap-3;
+}
+
+.codex-hero-icon {
+  @apply flex h-12 w-12 items-center justify-center rounded-2xl border border-pink-500/20 bg-pink-500/10 shadow-lg backdrop-blur-md;
+}
+
+.codex-hero-title {
+  @apply text-3xl font-bold tracking-tight text-white;
+
+  font-family: MapleBright, 'Microsoft YaHei UI', system-ui, sans-serif;
+}
+
+.codex-hero-subtitle {
+  @apply text-sm text-white/70;
+}
+
+.codex-pill-row {
+  @apply flex flex-wrap gap-2;
+}
+
+.codex-pill {
+  @apply rounded-full border px-3 py-1 text-xs font-semibold uppercase text-white/75;
+
+  letter-spacing: 0.12em;
+}
+
+.codex-pill--pink {
+  @apply border-pink-500/20 bg-pink-500/10 text-pink-300;
+}
+
+.codex-pill--neutral {
+  @apply border-white/10 bg-white/5 text-white/75;
+}
+
+.codex-pill--emerald {
+  @apply border-emerald-500/20 bg-emerald-500/10 text-emerald-300;
+}
+
+.codex-action-row {
+  @apply flex flex-wrap gap-2 lg:justify-end;
+}
+
+.codex-hero-stats {
+  @apply grid grid-cols-1 gap-3 sm:grid-cols-3;
+}
+
+.codex-stat-card {
+  @apply rounded-2xl border border-white/10 bg-white/5 px-4 py-3;
+}
+
+.codex-stat-label {
+  @apply mb-1 text-xs uppercase text-white/45;
+
+  letter-spacing: 0.2em;
+}
+
+.codex-stat-value {
+  @apply text-lg font-semibold text-white;
+}
+
+.codex-panel {
+  @apply p-5;
+}
+
+.codex-panel--wide {
+  @apply xl:col-span-2;
+}
+
+.codex-panel-header {
+  @apply mb-4 flex items-center gap-3;
+}
+
+.codex-panel-title {
+  @apply text-base font-semibold text-white;
+}
+
+.codex-panel-subtitle {
+  @apply text-xs text-white/55;
+}
+
+.codex-panel-description {
+  @apply text-sm text-white/55;
+}
+
+.codex-panel-icon {
+  @apply flex h-10 w-10 items-center justify-center rounded-xl border;
+}
+
+.codex-panel-icon--amber {
+  @apply border-amber-500/20 bg-amber-500/10;
+}
+
+.codex-panel-icon--indigo {
+  @apply border-indigo-500/20 bg-indigo-500/10;
+}
+
+.codex-stack {
+  @apply space-y-3;
+}
+
+.codex-action-card {
+  @apply block rounded-2xl border border-white/10 bg-white/5 p-4 transition-all duration-200 hover:border-pink-500/30 hover:bg-white/10;
+}
+
+.codex-tone-icon {
+  @apply mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border;
+}
+
+.codex-tone-icon--large {
+  @apply h-11 w-11;
+}
+
+.codex-health-card {
+  @apply h-full border border-white/10 p-4;
+}
+
+.codex-health-eyebrow {
+  @apply text-white/35;
+
+  font-size: 11px;
+  letter-spacing: 0.18em;
+}
+
+.codex-health-label {
+  @apply mt-4 text-xs uppercase text-white/45;
+
+  letter-spacing: 0.2em;
+}
+
+.codex-health-value {
+  @apply mt-1 break-words text-lg font-semibold text-white;
+}
+
+.codex-health-detail {
+  @apply mt-2 text-sm leading-6 text-white/60;
+}
+
+.codex-section-header {
+  @apply mb-4 flex items-center justify-between gap-3;
+}
+
+.codex-text-link {
+  @apply text-sm text-pink-300 transition-colors hover:text-pink-200;
+}
+
+.codex-link-card {
+  @apply h-full border border-white/10 p-4;
+}
+
+.codex-link-card__header {
+  @apply mb-3 flex items-start justify-between gap-3;
+}
+
+.codex-link-badge {
+  @apply rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-white/55;
+
+  font-size: 11px;
+}
+
+.codex-link-title {
+  @apply text-sm font-semibold text-white transition-colors group-hover:text-pink-200;
+}
+
+.codex-link-description {
+  @apply mt-2 text-sm leading-6 text-white/60;
+}
+
+.codex-skeleton {
+  @apply h-20 animate-pulse rounded-2xl bg-white/5;
+}
+
+.codex-summary-card {
+  @apply rounded-2xl border border-white/10 bg-white/5 p-4;
+}
+
+.codex-summary-label {
+  @apply mb-1 text-xs uppercase text-white/45;
+
+  letter-spacing: 0.2em;
+}
+
+.codex-summary-value {
+  @apply text-lg font-semibold text-white;
+}
+
+.codex-summary-description {
+  @apply mt-1 text-sm leading-6 text-white/60;
+}
+
+.codex-summary-description--compact {
+  @apply text-white/70;
+}
+
+.codex-inventory-grid {
+  @apply mt-3 grid grid-cols-2 gap-3 text-sm;
+}
+
+.codex-inventory-key {
+  @apply text-white/40;
+}
+
+.codex-inventory-value {
+  @apply font-semibold text-white;
+}
+</style>

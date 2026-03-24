@@ -1,31 +1,31 @@
 <template>
-  <div class="min-h-full p-6">
-    <div class="max-w-[1800px] mx-auto">
-      <div class="mt-6 space-y-6">
+  <div class="codex-auth-view">
+    <div class="codex-auth-view__container">
+      <div class="codex-auth-view__stack">
         <ModuleSubnav module="codex" />
 
-        <main class="flex flex-col gap-6 w-full min-w-0">
+        <main class="codex-auth-view__main">
           <!-- Header Section -->
-          <div class="flex items-center justify-between">
-            <div class="flex items-center gap-3">
-              <div class="p-2 rounded-xl bg-platform-codex/10">
+          <div class="codex-auth-view__header">
+            <div class="codex-auth-view__title-group">
+              <div class="codex-auth-view__title-icon-shell">
                 <SIcon
                   name="KeyRound"
                   size="w-6 h-6"
-                  class="text-platform-codex"
+                  class="codex-auth-view__title-icon"
                 />
               </div>
               <div>
-                <h1 class="text-2xl font-bold text-white">
+                <h1 class="codex-auth-view__title">
                   {{ $t('codex.auth.title') }}
                 </h1>
-                <p class="text-sm text-white/80 mt-1">
+                <p class="codex-auth-view__subtitle">
                   {{ $t('codex.auth.subtitle') }}
                 </p>
               </div>
             </div>
 
-            <div class="flex items-center gap-3">
+            <div class="codex-auth-view__actions">
               <RouterLink
                 to="/codex"
                 class="btn btn-secondary"
@@ -52,17 +52,17 @@
           </div>
 
           <!-- Status Cards -->
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div class="codex-auth-view__status-grid">
             <!-- Login State -->
             <Card
               variant="glass"
               :gradient-border="true"
               :glow-color="loginStateColor"
-              class="relative overflow-hidden group"
+              class="codex-auth-view__status-card"
             >
-              <div class="flex items-center gap-4">
+              <div class="codex-auth-view__status-row">
                 <div
-                  class="p-3 rounded-xl group-hover:scale-110 transition-transform duration-300"
+                  class="codex-auth-view__status-icon-shell"
                   :class="loginStateIconClass"
                 >
                   <SIcon
@@ -71,10 +71,10 @@
                   />
                 </div>
                 <div>
-                  <p class="text-xs font-medium text-white/50 uppercase tracking-wider mb-1">
+                  <p class="codex-auth-view__status-label">
                     {{ $t('codex.auth.status.loginState') }}
                   </p>
-                  <p class="text-xl font-bold text-white truncate">
+                  <p class="codex-auth-view__status-value codex-auth-view__status-value--truncate">
                     {{ loginStateText }}
                   </p>
                 </div>
@@ -86,20 +86,20 @@
               variant="glass"
               :interactive="true"
               glow-color="primary"
-              class="group"
+              class="codex-auth-view__status-card"
             >
-              <div class="flex items-center gap-4">
-                <div class="p-3 rounded-xl bg-indigo-500/10 text-indigo-500 group-hover:scale-110 transition-transform duration-300">
+              <div class="codex-auth-view__status-row">
+                <div class="codex-auth-view__status-icon-shell codex-auth-view__status-icon-shell--info">
                   <SIcon
                     name="Users"
                     size="w-6 h-6"
                   />
                 </div>
                 <div>
-                  <p class="text-xs font-medium text-white/50 uppercase tracking-wider mb-1">
+                  <p class="codex-auth-view__status-label">
                     {{ $t('codex.auth.status.totalAccounts') }}
                   </p>
-                  <p class="text-xl font-bold text-white">
+                  <p class="codex-auth-view__status-value">
                     {{ accounts.length }}
                   </p>
                 </div>
@@ -111,11 +111,11 @@
               variant="glass"
               :interactive="true"
               :glow-color="currentAccount ? 'success' : 'secondary'"
-              class="group"
+              class="codex-auth-view__status-card"
             >
-              <div class="flex items-center gap-4">
+              <div class="codex-auth-view__status-row">
                 <div
-                  class="p-3 rounded-xl transition-colors duration-300 group-hover:scale-110 transition-transform"
+                  class="codex-auth-view__status-icon-shell"
                   :class="currentAccount ? 'bg-emerald-500/10 text-emerald-500' : 'bg-gray-500/10 text-text-muted'"
                 >
                   <SIcon
@@ -124,10 +124,10 @@
                   />
                 </div>
                 <div>
-                  <p class="text-xs font-medium text-white/50 uppercase tracking-wider mb-1">
+                  <p class="codex-auth-view__status-label">
                     {{ $t('codex.auth.status.currentAccount') }}
                   </p>
-                  <p class="text-xl font-bold text-white truncate">
+                  <p class="codex-auth-view__status-value codex-auth-view__status-value--truncate">
                     {{ currentAccount?.name || $t('codex.auth.status.noAccount') }}
                   </p>
                 </div>
@@ -141,63 +141,63 @@
             variant="glass"
             padding="lg"
           >
-            <div class="flex items-center gap-2 mb-4">
+            <div class="codex-auth-view__section-header">
               <SIcon
                 name="Info"
                 size="w-5 h-5"
-                class="text-platform-codex"
+                class="codex-auth-view__section-icon"
               />
-              <h3 class="text-base font-semibold text-white">
+              <h3 class="codex-auth-view__section-title">
                 {{ $t('codex.auth.currentSession') }}
               </h3>
             </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-              <div class="flex flex-col gap-1">
-                <span class="text-xs font-medium text-white/50 uppercase tracking-wider">
+            <div class="codex-auth-view__session-grid">
+              <div class="codex-auth-view__session-field">
+                <span class="codex-auth-view__field-label">
                   {{ $t('codex.auth.fields.accountId') }}
                 </span>
-                <code class="font-mono text-white truncate px-2 py-1 rounded glass-surface border border-white/5">
+                <code class="codex-auth-view__field-code">
                   {{ currentInfo.account_id }}
                 </code>
               </div>
-              <div class="flex flex-col gap-1">
-                <span class="text-xs font-medium text-white/50 uppercase tracking-wider">
+              <div class="codex-auth-view__session-field">
+                <span class="codex-auth-view__field-label">
                   {{ $t('codex.auth.fields.email') }}
                 </span>
-                <span class="text-white truncate">
+                <span class="codex-auth-view__field-value codex-auth-view__field-value--truncate">
                   {{ currentInfo.email || $t('codex.auth.status.notAvailable') }}
                 </span>
               </div>
-              <div class="flex flex-col gap-1">
-                <span class="text-xs font-medium text-white/50 uppercase tracking-wider">
+              <div class="codex-auth-view__session-field">
+                <span class="codex-auth-view__field-label">
                   {{ $t('codex.auth.fields.tokenFreshness') }}
                 </span>
-                <div class="flex items-center gap-2">
+                <div class="codex-auth-view__field-inline">
                   <span>{{ currentInfo.freshness_icon }}</span>
                   <span
-                    class="text-sm font-medium"
+                    class="codex-auth-view__field-value codex-auth-view__field-value--strong"
                     :class="freshnessClass(currentInfo.freshness)"
                   >
                     {{ currentInfo.freshness_description }}
                   </span>
                 </div>
               </div>
-              <div class="flex flex-col gap-1">
-                <span class="text-xs font-medium text-white/50 uppercase tracking-wider">
+              <div class="codex-auth-view__session-field">
+                <span class="codex-auth-view__field-label">
                   {{ $t('codex.auth.fields.lastRefresh') }}
                 </span>
-                <span class="text-white/80 text-sm">
+                <span class="codex-auth-view__field-value codex-auth-view__field-value--muted">
                   {{ currentInfo.last_refresh || $t('codex.auth.status.notAvailable') }}
                 </span>
               </div>
-              <div class="flex flex-col gap-1">
-                <span class="text-xs font-medium text-white/50 uppercase tracking-wider">
+              <div class="codex-auth-view__session-field">
+                <span class="codex-auth-view__field-label">
                   {{ $t('codex.auth.fields.expiresAt') }}
                 </span>
-                <div class="flex items-center gap-2">
+                <div class="codex-auth-view__field-inline">
                   <span
                     v-if="currentInfo.is_expired"
-                    class="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded bg-red-500/10 text-red-500 border border-red-500/20"
+                    class="codex-auth-view__expired-badge"
                   >
                     <SIcon
                       name="AlertTriangle"
@@ -207,13 +207,13 @@
                   </span>
                   <span
                     v-else-if="currentInfo.expires_at"
-                    class="text-white/80 text-sm"
+                    class="codex-auth-view__field-value codex-auth-view__field-value--muted"
                   >
                     {{ formatExpiryDate(currentInfo.expires_at) }}
                   </span>
                   <span
                     v-else
-                    class="text-white/50 text-sm"
+                    class="codex-auth-view__field-value codex-auth-view__field-value--faint"
                   >
                     {{ $t('codex.auth.noExpiry') }}
                   </span>
@@ -227,9 +227,9 @@
             padding="lg"
             :glow-color="canManageAuthAccounts ? 'success' : 'warning'"
           >
-            <div class="flex items-start gap-3">
+            <div class="codex-auth-view__guard">
               <div
-                class="mt-0.5 rounded-xl p-2"
+                class="codex-auth-view__guard-icon-shell"
                 :class="canManageAuthAccounts ? 'bg-emerald-500/10 text-emerald-400' : 'bg-yellow-500/10 text-yellow-400'"
               >
                 <SIcon
@@ -237,16 +237,16 @@
                   size="w-5 h-5"
                 />
               </div>
-              <div class="min-w-0">
-                <p class="text-sm font-semibold text-white">
+              <div class="codex-auth-view__guard-body">
+                <p class="codex-auth-view__guard-title">
                   {{ $t('codex.auth.profileGuard.title') }}
                 </p>
-                <p class="mt-1 text-sm text-white/70">
+                <p class="codex-auth-view__guard-message">
                   {{ profileGuardMessage }}
                 </p>
                 <p
                   v-if="authActionError"
-                  class="mt-3 rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-2 text-sm text-red-300"
+                  class="codex-auth-view__guard-error"
                 >
                   {{ authActionError }}
                 </p>
@@ -255,8 +255,8 @@
           </Card>
 
           <!-- Account Overview -->
-          <div class="flex items-center justify-between">
-            <h2 class="text-xl font-bold text-white flex items-center gap-2">
+          <div class="codex-auth-view__overview-header">
+            <h2 class="codex-auth-view__overview-title">
               <SIcon
                 name="LayoutGrid"
                 size="w-5 h-5"
@@ -894,3 +894,253 @@ onActivated(() => {
   void ensureLoaded(false)
 })
 </script>
+
+<style scoped>
+.codex-auth-view {
+  min-height: 100%;
+  padding: 1.5rem;
+}
+
+.codex-auth-view__container {
+  max-width: 1800px;
+  margin: 0 auto;
+}
+
+.codex-auth-view__stack {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  margin-top: 1.5rem;
+}
+
+.codex-auth-view__main {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.codex-auth-view__header,
+.codex-auth-view__overview-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.codex-auth-view__title-group,
+.codex-auth-view__actions,
+.codex-auth-view__overview-title,
+.codex-auth-view__section-header,
+.codex-auth-view__status-row,
+.codex-auth-view__field-inline {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.codex-auth-view__title-icon-shell,
+.codex-auth-view__guard-icon-shell {
+  border-radius: 0.75rem;
+  padding: 0.5rem;
+}
+
+.codex-auth-view__title-icon-shell {
+  background: rgb(var(--platform-codex-rgb, 245 158 11) / 10%);
+}
+
+.codex-auth-view__title-icon,
+.codex-auth-view__section-icon {
+  color: var(--platform-codex, #f59e0b);
+}
+
+.codex-auth-view__title {
+  color: rgb(255 255 255 / 100%);
+  font-size: 1.5rem;
+  line-height: 2rem;
+  font-weight: 700;
+}
+
+.codex-auth-view__subtitle {
+  margin-top: 0.25rem;
+  color: rgb(255 255 255 / 80%);
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+
+.codex-auth-view__status-grid,
+.codex-auth-view__session-grid {
+  display: grid;
+  gap: 1rem;
+}
+
+.codex-auth-view__status-grid {
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+}
+
+.codex-auth-view__status-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.codex-auth-view__status-icon-shell {
+  border-radius: 0.75rem;
+  padding: 0.75rem;
+  transition: transform 0.3s ease, color 0.3s ease, background-color 0.3s ease;
+}
+
+.codex-auth-view__status-card:hover .codex-auth-view__status-icon-shell {
+  transform: scale(1.1);
+}
+
+.codex-auth-view__status-icon-shell--info {
+  background: rgb(99 102 241 / 10%);
+  color: rgb(99 102 241 / 100%);
+}
+
+.codex-auth-view__status-label,
+.codex-auth-view__field-label {
+  margin-bottom: 0.25rem;
+  color: rgb(255 255 255 / 50%);
+  font-size: 0.75rem;
+  line-height: 1rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.codex-auth-view__status-value,
+.codex-auth-view__overview-title {
+  color: rgb(255 255 255 / 100%);
+  font-size: 1.25rem;
+  line-height: 1.75rem;
+  font-weight: 700;
+}
+
+.codex-auth-view__status-value--truncate,
+.codex-auth-view__field-value--truncate,
+.codex-auth-view__field-code {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.codex-auth-view__section-title,
+.codex-auth-view__guard-title {
+  color: rgb(255 255 255 / 100%);
+  font-size: 1rem;
+  line-height: 1.5rem;
+  font-weight: 600;
+}
+
+.codex-auth-view__session-grid {
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+}
+
+.codex-auth-view__session-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.codex-auth-view__field-code {
+  border: 1px solid rgb(255 255 255 / 5%);
+  border-radius: 0.5rem;
+  padding: 0.25rem 0.5rem;
+  color: rgb(255 255 255 / 100%);
+  font-family: var(--font-mono, 'Maple Mono', monospace);
+}
+
+.codex-auth-view__field-value--muted {
+  color: rgb(255 255 255 / 80%);
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+
+.codex-auth-view__field-value--faint {
+  color: rgb(255 255 255 / 50%);
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+
+.codex-auth-view__field-value--strong {
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+  font-weight: 500;
+}
+
+.codex-auth-view__expired-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  border: 1px solid rgb(239 68 68 / 20%);
+  border-radius: 0.375rem;
+  background: rgb(239 68 68 / 10%);
+  padding: 0.125rem 0.5rem;
+  color: rgb(239 68 68 / 100%);
+  font-size: 0.75rem;
+  line-height: 1rem;
+  font-weight: 500;
+}
+
+.codex-auth-view__guard {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.codex-auth-view__guard-icon-shell {
+  margin-top: 0.125rem;
+}
+
+.codex-auth-view__guard-body {
+  min-width: 0;
+}
+
+.codex-auth-view__guard-message {
+  margin-top: 0.25rem;
+  color: rgb(255 255 255 / 70%);
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+
+.codex-auth-view__guard-error {
+  margin-top: 0.75rem;
+  border: 1px solid rgb(239 68 68 / 20%);
+  border-radius: 0.5rem;
+  background: rgb(239 68 68 / 10%);
+  padding: 0.5rem 0.75rem;
+  color: rgb(252 165 165 / 100%);
+  font-size: 0.875rem;
+  line-height: 1.25rem;
+}
+
+@media (width >= 768px) {
+  .codex-auth-view__status-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .codex-auth-view__session-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (width >= 1280px) {
+  .codex-auth-view__session-grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+}
+
+@media (width <= 900px) {
+  .codex-auth-view__header,
+  .codex-auth-view__overview-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .codex-auth-view__actions {
+    flex-wrap: wrap;
+  }
+}
+</style>
