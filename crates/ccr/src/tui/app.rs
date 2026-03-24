@@ -1,7 +1,7 @@
 // TUI application state — Tab-based dispatch (Claude + Codex only)
 
 use crate::core::error::Result;
-use crate::models::platform::{Platform, PlatformConfig, ProfileConfig};
+use crate::models::platform::{Platform, PlatformConfig, PlatformPaths, ProfileConfig};
 use crate::platforms::create_platform;
 use crate::tui::action::Action;
 use crate::tui::toast::{Toast, ToastManager};
@@ -44,7 +44,42 @@ pub struct PlatformTab {
     pub label: String,
     pub profiles: Vec<ProfileItem>,
     pub profile_configs: IndexMap<String, ProfileConfig>,
+    pub profile_load_error: Option<String>,
+    pub current_profile_error: Option<String>,
     pub instance: Option<Arc<dyn PlatformConfig>>,
+}
+
+struct ProfileTabData {
+    profiles: Vec<ProfileItem>,
+    profile_configs: IndexMap<String, ProfileConfig>,
+    profile_load_error: Option<String>,
+    current_profile_error: Option<String>,
+}
+
+fn profile_source_path(platform: Platform) -> String {
+    PlatformPaths::new(platform)
+        .map(|paths| paths.profiles_file.display().to_string())
+        .unwrap_or_else(|_| format!("~/.ccr/platforms/{}/profiles.toml", platform.short_name()))
+}
+
+fn current_profile_source_path(platform: Platform) -> String {
+    match PlatformPaths::new(platform) {
+        Ok(paths) if platform == Platform::Codex => format!(
+            "{}\nFallback: {}",
+            paths.registry_file.display(),
+            paths.profiles_file.display()
+        ),
+        Ok(paths) => paths.registry_file.display().to_string(),
+        Err(_) if platform == Platform::Codex => format!(
+            "~/.ccr/config.toml\nFallback: ~/.ccr/platforms/{}/profiles.toml",
+            platform.short_name()
+        ),
+        Err(_) => "~/.ccr/config.toml".to_string(),
+    }
+}
+
+fn format_issue(location: String, error: &dyn std::fmt::Display) -> String {
+    format!("Where: {location}\nWhat: {error}")
 }
 
 /// Main TUI application state
@@ -76,10 +111,17 @@ pub struct App {
 }
 
 impl App {
-    fn build_profile_tab_data(
-        instance: &Arc<dyn PlatformConfig>,
-    ) -> (Vec<ProfileItem>, IndexMap<String, ProfileConfig>) {
-        let current = instance.get_current_profile().ok().flatten();
+    fn build_profile_tab_data(instance: &Arc<dyn PlatformConfig>) -> ProfileTabData {
+        let platform = instance.platform_type();
+        let (current, current_profile_error) = match instance.get_current_profile() {
+            Ok(current) => (current, None),
+            Err(e) => {
+                let err = format_issue(current_profile_source_path(platform), &e);
+                tracing::warn!("{err}");
+                (None, Some(err))
+            }
+        };
+
         match instance.load_profiles() {
             Ok(profile_configs) => {
                 let profiles = profile_configs
@@ -90,15 +132,22 @@ impl App {
                         name: name.clone(),
                     })
                     .collect();
-                (profiles, profile_configs)
+                ProfileTabData {
+                    profiles,
+                    profile_configs,
+                    profile_load_error: None,
+                    current_profile_error,
+                }
             }
             Err(e) => {
-                tracing::warn!(
-                    "Failed to load {} profiles: {}",
-                    instance.platform_name(),
-                    e
-                );
-                (Vec::new(), IndexMap::new())
+                let err = format_issue(profile_source_path(platform), &e);
+                tracing::warn!("{err}");
+                ProfileTabData {
+                    profiles: Vec::new(),
+                    profile_configs: IndexMap::new(),
+                    profile_load_error: Some(err),
+                    current_profile_error,
+                }
             }
         }
     }
@@ -144,6 +193,14 @@ impl App {
     pub fn selected_profile_config(&self) -> Option<&ProfileConfig> {
         let profile_name = self.selected_profile()?.name.as_str();
         self.tabs[self.active_tab].profile_configs.get(profile_name)
+    }
+
+    pub fn current_profile_load_error(&self) -> Option<&str> {
+        self.tabs[self.active_tab].profile_load_error.as_deref()
+    }
+
+    pub fn current_profile_status_error(&self) -> Option<&str> {
+        self.tabs[self.active_tab].current_profile_error.as_deref()
     }
 
     fn sync_selection_to_profile_name(&mut self) {
@@ -195,7 +252,7 @@ impl App {
 
             match create_platform(platform) {
                 Ok(instance) => {
-                    let (items, profile_configs) = Self::build_profile_tab_data(&instance);
+                    let tab_data = Self::build_profile_tab_data(&instance);
 
                     match platform {
                         Platform::Claude => {
@@ -203,8 +260,10 @@ impl App {
                                 platform,
                                 variant: TabVariant::Profile,
                                 label: platform.display_name().to_string(),
-                                profiles: items,
-                                profile_configs,
+                                profiles: tab_data.profiles,
+                                profile_configs: tab_data.profile_configs,
+                                profile_load_error: tab_data.profile_load_error,
+                                current_profile_error: tab_data.current_profile_error,
                                 instance: Some(instance),
                             });
                         }
@@ -216,6 +275,8 @@ impl App {
                                 label: "Codex Auth".to_string(),
                                 profiles: Vec::new(),
                                 profile_configs: IndexMap::new(),
+                                profile_load_error: None,
+                                current_profile_error: None,
                                 instance: Some(Arc::clone(&instance)),
                             });
                             // Codex Profile tab (profile switching)
@@ -223,8 +284,10 @@ impl App {
                                 platform,
                                 variant: TabVariant::Profile,
                                 label: "Codex Profile".to_string(),
-                                profiles: items,
-                                profile_configs,
+                                profiles: tab_data.profiles,
+                                profile_configs: tab_data.profile_configs,
+                                profile_load_error: tab_data.profile_load_error,
+                                current_profile_error: tab_data.current_profile_error,
                                 instance: Some(instance),
                             });
                         }
@@ -245,6 +308,8 @@ impl App {
                 label: Platform::Claude.display_name().to_string(),
                 profiles: Vec::new(),
                 profile_configs: IndexMap::new(),
+                profile_load_error: None,
+                current_profile_error: None,
                 instance: None,
             });
         }
@@ -436,9 +501,11 @@ impl App {
                 continue;
             }
             if let Some(instance) = &tab.instance {
-                let (profiles, profile_configs) = Self::build_profile_tab_data(instance);
-                tab.profiles = profiles;
-                tab.profile_configs = profile_configs;
+                let tab_data = Self::build_profile_tab_data(instance);
+                tab.profiles = tab_data.profiles;
+                tab.profile_configs = tab_data.profile_configs;
+                tab.profile_load_error = tab_data.profile_load_error;
+                tab.current_profile_error = tab_data.current_profile_error;
             }
         }
         self.sync_selection_to_profile_name();
@@ -666,6 +733,11 @@ impl TuiApp for App {
 mod tests {
     #![allow(clippy::unwrap_used)]
     use super::*;
+    use crate::core::error::{CcrError, Result};
+    use crate::models::Platform;
+    use crate::models::ProfileConfig;
+    use std::path::PathBuf;
+    use std::sync::Arc;
 
     // -- list_hit_test tests --
 
@@ -778,5 +850,145 @@ mod tests {
         assert_eq!(tab_hit_test(header, 1, 35, 3, 0), Some(1));
         // Click at col 65 → tab index 2
         assert_eq!(tab_hit_test(header, 1, 65, 3, 0), Some(2));
+    }
+
+    #[test]
+    fn current_profile_error_accessors_expose_tab_failures() {
+        let app = App {
+            tabs: vec![PlatformTab {
+                platform: Platform::Claude,
+                variant: TabVariant::Profile,
+                label: "Claude Code".to_string(),
+                profiles: Vec::new(),
+                profile_configs: IndexMap::<String, ProfileConfig>::new(),
+                profile_load_error: Some("load failed".to_string()),
+                current_profile_error: Some("current failed".to_string()),
+                instance: None,
+            }],
+            active_tab: 0,
+            selected_index: 0,
+            current_page: 0,
+            selected_profile_name: None,
+            toasts: ToastManager::new(),
+            last_applied: None,
+            codex_auth_app: None,
+            codex_auth_error: None,
+            last_codex_action: None,
+            header_area: Cell::new(None),
+            list_area: Cell::new(None),
+        };
+
+        assert_eq!(app.current_profile_load_error(), Some("load failed"));
+        assert_eq!(app.current_profile_status_error(), Some("current failed"));
+        assert!(app.selected_profile().is_none());
+        assert!(app.selected_profile_config().is_none());
+    }
+
+    struct FailingPlatform {
+        platform: Platform,
+        current_profile_error: Option<CcrError>,
+        profile_load_error: Option<CcrError>,
+    }
+
+    impl PlatformConfig for FailingPlatform {
+        fn platform_name(&self) -> &str {
+            self.platform.short_name()
+        }
+
+        fn platform_type(&self) -> Platform {
+            self.platform
+        }
+
+        fn load_profiles(&self) -> Result<IndexMap<String, ProfileConfig>> {
+            if let Some(err) = &self.profile_load_error {
+                return Err(match err {
+                    CcrError::ConfigError(message) => CcrError::ConfigError(message.clone()),
+                    CcrError::ConfigMissing(message) => CcrError::ConfigMissing(message.clone()),
+                    CcrError::ConfigSectionNotFound(message) => {
+                        CcrError::ConfigSectionNotFound(message.clone())
+                    }
+                    CcrError::ConfigFormatInvalid(message) => {
+                        CcrError::ConfigFormatInvalid(message.clone())
+                    }
+                    other => CcrError::ConfigError(other.to_string()),
+                });
+            }
+            Ok(IndexMap::new())
+        }
+
+        fn save_profile(&self, _name: &str, _profile: &ProfileConfig) -> Result<()> {
+            Ok(())
+        }
+
+        fn delete_profile(&self, _name: &str) -> Result<()> {
+            Ok(())
+        }
+
+        fn get_settings_path(&self) -> PathBuf {
+            PathBuf::new()
+        }
+
+        fn apply_profile(&self, _name: &str) -> Result<()> {
+            Ok(())
+        }
+
+        fn validate_profile(&self, _profile: &ProfileConfig) -> Result<()> {
+            Ok(())
+        }
+
+        fn get_current_profile(&self) -> Result<Option<String>> {
+            if let Some(err) = &self.current_profile_error {
+                return Err(match err {
+                    CcrError::ConfigError(message) => CcrError::ConfigError(message.clone()),
+                    CcrError::ConfigMissing(message) => CcrError::ConfigMissing(message.clone()),
+                    CcrError::ConfigSectionNotFound(message) => {
+                        CcrError::ConfigSectionNotFound(message.clone())
+                    }
+                    CcrError::ConfigFormatInvalid(message) => {
+                        CcrError::ConfigFormatInvalid(message.clone())
+                    }
+                    other => CcrError::ConfigError(other.to_string()),
+                });
+            }
+            Ok(Some("default".to_string()))
+        }
+    }
+
+    #[test]
+    fn build_profile_tab_data_includes_profile_file_location_for_load_errors() {
+        let platform: Arc<dyn PlatformConfig> = Arc::new(FailingPlatform {
+            platform: Platform::Claude,
+            current_profile_error: None,
+            profile_load_error: Some(CcrError::ConfigFormatInvalid(
+                "TOML 解析失败: invalid string".to_string(),
+            )),
+        });
+
+        let tab_data = App::build_profile_tab_data(&platform);
+        let error = tab_data.profile_load_error.unwrap();
+
+        assert!(error.contains("Where:"));
+        assert!(error.contains("profiles.toml"));
+        assert!(error.contains("What:"));
+        assert!(error.contains("TOML 解析失败"));
+    }
+
+    #[test]
+    fn build_profile_tab_data_includes_registry_location_for_current_profile_errors() {
+        let platform: Arc<dyn PlatformConfig> = Arc::new(FailingPlatform {
+            platform: Platform::Codex,
+            current_profile_error: Some(CcrError::ConfigError("registry broken".to_string())),
+            profile_load_error: None,
+        });
+
+        let tab_data = App::build_profile_tab_data(&platform);
+        let error = tab_data.current_profile_error.unwrap();
+
+        assert!(error.contains("Where:"));
+        assert!(error.contains("config.toml"));
+        assert!(error.contains("Fallback:"));
+        assert!(error.contains("profiles.toml"));
+        assert!(error.contains("What:"));
+        assert!(error.contains("registry broken"));
     }
 }

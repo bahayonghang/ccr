@@ -13,7 +13,7 @@ use ratatui::{
     style::{Modifier, Style},
     symbols,
     text::{Line, Span},
-    widgets::{Block, Borders, List, ListItem, Padding, Paragraph, Tabs},
+    widgets::{Block, Borders, List, ListItem, Padding, Paragraph, Tabs, Wrap},
 };
 
 // ═══════════════════════════════════════════════════════════
@@ -324,17 +324,19 @@ fn render_profile_details(f: &mut Frame, app: &App, area: Rect) {
         .padding(Padding::horizontal(1));
 
     let Some(profile) = app.selected_profile() else {
-        let paragraph = Paragraph::new("No profile selected")
+        let paragraph = Paragraph::new(profile_status_text(app))
             .block(block)
-            .alignment(Alignment::Center);
+            .alignment(profile_status_alignment(app))
+            .wrap(Wrap { trim: false });
         f.render_widget(paragraph, area);
         return;
     };
 
     let Some(config) = app.selected_profile_config() else {
-        let paragraph = Paragraph::new("No profile details available")
+        let paragraph = Paragraph::new(profile_status_text(app))
             .block(block)
-            .alignment(Alignment::Center);
+            .alignment(profile_status_alignment(app))
+            .wrap(Wrap { trim: false });
         f.render_widget(paragraph, area);
         return;
     };
@@ -497,6 +499,39 @@ fn render_empty_state(f: &mut Frame, app: &App, area: Rect, block: Block) {
     let platform_name = platform.display_name();
     let short_name = platform.short_name();
 
+    if let Some(error) = app.current_profile_load_error() {
+        let error_text = vec![
+            Line::from(""),
+            Line::from(Span::styled(
+                format!("⚠ Failed to load {} profiles", platform_name),
+                theme::empty_hint_style(),
+            )),
+            Line::from(""),
+            Line::from(Span::styled(
+                "CCR could not read the profile source below:".to_string(),
+                Style::default().fg(theme::FG_SECONDARY),
+            )),
+            Line::from(""),
+            Line::from(Span::styled(
+                error.to_string(),
+                Style::default().fg(theme::FG_PRIMARY),
+            )),
+            Line::from(""),
+            Line::from(Span::styled(
+                "Fix the file content or path, then press 'r' to reload.".to_string(),
+                Style::default().fg(theme::FG_MUTED),
+            )),
+        ];
+
+        let paragraph = Paragraph::new(error_text)
+            .block(block)
+            .alignment(Alignment::Left)
+            .wrap(Wrap { trim: false });
+
+        f.render_widget(paragraph, area);
+        return;
+    }
+
     let empty_text = vec![
         Line::from(""),
         Line::from(Span::styled(
@@ -520,6 +555,46 @@ fn render_empty_state(f: &mut Frame, app: &App, area: Rect, block: Block) {
         .alignment(Alignment::Center);
 
     f.render_widget(paragraph, area);
+}
+
+fn profile_status_text(app: &App) -> Vec<Line<'static>> {
+    if let Some(error) = app.current_profile_load_error() {
+        return vec![
+            Line::from(Span::styled(
+                "⚠ Profile list unavailable".to_string(),
+                theme::empty_hint_style(),
+            )),
+            Line::from(""),
+            Line::from(Span::styled(
+                error.to_string(),
+                Style::default().fg(theme::FG_PRIMARY),
+            )),
+        ];
+    }
+
+    if let Some(error) = app.current_profile_status_error() {
+        return vec![
+            Line::from(Span::styled(
+                "⚠ Current profile state unavailable".to_string(),
+                theme::empty_hint_style(),
+            )),
+            Line::from(""),
+            Line::from(Span::styled(
+                error.to_string(),
+                Style::default().fg(theme::FG_PRIMARY),
+            )),
+        ];
+    }
+
+    vec![Line::from("No profile selected")]
+}
+
+fn profile_status_alignment(app: &App) -> Alignment {
+    if app.current_profile_load_error().is_some() || app.current_profile_status_error().is_some() {
+        Alignment::Left
+    } else {
+        Alignment::Center
+    }
 }
 
 // ═══════════════════════════════════════════════════════════

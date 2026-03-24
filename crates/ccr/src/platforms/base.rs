@@ -85,15 +85,18 @@ pub fn load_profiles_from_toml(profiles_path: &Path) -> Result<IndexMap<String, 
         return Ok(IndexMap::new());
     }
 
+    let display_path = profiles_path.display().to_string();
+
     // 读取文件
     let content = fs::read_to_string(profiles_path)
-        .map_err(|e| CcrError::ConfigError(format!("读取配置文件失败: {}", e)))?;
+        .map_err(|e| CcrError::ConfigError(format!("读取配置文件失败 {}: {}", display_path, e)))?;
 
     // 尝试解析为 CcsConfig 或简化格式
     let sections = match toml::from_str::<CcsConfig>(&content) {
         Ok(config) => config.sections,
-        Err(_) => toml::from_str::<IndexMap<String, ConfigSection>>(&content)
-            .map_err(|e| CcrError::ConfigFormatInvalid(format!("TOML 解析失败: {}", e)))?,
+        Err(_) => toml::from_str::<IndexMap<String, ConfigSection>>(&content).map_err(|e| {
+            CcrError::ConfigFormatInvalid(format!("TOML 解析失败 {}: {}", display_path, e))
+        })?,
     };
 
     // 转换为 ProfileConfig
@@ -489,5 +492,18 @@ mod tests {
 
         restore_env_var("CCR_ROOT", previous_root);
         result.unwrap();
+    }
+
+    #[test]
+    fn test_load_profiles_from_toml_reports_path_on_parse_error() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let profiles_path = temp_dir.path().join("profiles.toml");
+        fs::write(&profiles_path, "not = [valid toml").unwrap();
+
+        let err = load_profiles_from_toml(&profiles_path).unwrap_err();
+        let err_text = err.to_string();
+
+        assert!(err_text.contains("profiles.toml"));
+        assert!(err_text.contains("TOML 解析失败"));
     }
 }
