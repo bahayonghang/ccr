@@ -11,6 +11,8 @@ export interface UsePolledDataOptions {
   pauseWhen?: WatchSource<boolean> | (() => boolean)
   /** 是否立即执行一次（默认 true） */
   immediate?: boolean
+  /** 页面重新可见时的附加回调 */
+  onVisibilityResume?: () => void | Promise<void>
   /** 错误回调 */
   onError?: (error: Error) => void
 }
@@ -42,6 +44,7 @@ export function usePolledData<T>(
     pauseWhenHidden = true,
     pauseWhen,
     immediate = true,
+    onVisibilityResume,
     onError,
   } = options
 
@@ -156,6 +159,7 @@ export function usePolledData<T>(
       stopTimer()
     } else if (isActive.value) {
       void doFetch()
+      void onVisibilityResume?.()
       startTimer()
     }
   }

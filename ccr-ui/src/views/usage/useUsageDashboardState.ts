@@ -71,18 +71,6 @@ export const useUsageDashboardState = () => {
     }
   })
 
-  const onVisibilityChange = () => {
-    if (document.hidden) {
-      store.stopAutoRefresh()
-      return
-    }
-
-    store.startAutoRefresh()
-    if (activeTab.value === 'logs') {
-      loadLogs('same')
-    }
-  }
-
   const summaryCards = computed(() => {
     const summary = store.summary
     if (!summary) return []
@@ -233,12 +221,10 @@ export const useUsageDashboardState = () => {
       end,
     })
     store.startAutoRefresh()
-    document.addEventListener('visibilitychange', onVisibilityChange)
   })
 
   onUnmounted(() => {
     store.stopAutoRefresh()
-    document.removeEventListener('visibilitychange', onVisibilityChange)
   })
 
   return {

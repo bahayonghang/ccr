@@ -528,6 +528,11 @@ export const useUsageStore = defineStore('usage', () => {
       intervalMs: REFRESH_INTERVAL,
       pauseWhenHidden: true,
       immediate: false,
+      onVisibilityResume: async () => {
+        if (logs.value) {
+          await fetchLogs('same')
+        }
+      },
     },
   )
 
