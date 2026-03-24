@@ -3,7 +3,7 @@ import SIcon from '@/components/ui/SIcon.vue'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useBackendHealth } from '@/composables/useBackendHealth'
-import { isTauriEnvironment } from '@/api'
+import { isTauriEnvironment } from '@/api/runtime/environment'
 
 const { status, lastCheckedAt, checkHealth } = useBackendHealth()
 const isTauri = isTauriEnvironment()

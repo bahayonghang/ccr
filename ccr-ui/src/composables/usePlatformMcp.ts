@@ -14,6 +14,7 @@ import { listGeminiMcpServers, addGeminiMcpServer, updateGeminiMcpServer, delete
 import { listQwenMcpServers, addQwenMcpServer, updateQwenMcpServer, deleteQwenMcpServer } from '@/api'
 import { listQoderMcpServers, addQoderMcpServer, updateQoderMcpServer, deleteQoderMcpServer } from '@/api'
 import { listDroidMcpServers, addDroidMcpServer, updateDroidMcpServer, deleteDroidMcpServer } from '@/api'
+import { genericPlatformDescriptors, type GenericPlatformId } from '@/config/platformDescriptors'
 import { logger } from '@/utils/logger'
 import type {
     GeminiMcpServer,
@@ -29,7 +30,7 @@ import type {
 // ============ 类型定义 ============
 
 /** 支持的平台类型 */
-export type PlatformType = 'gemini' | 'qwen' | 'qoder' | 'droid'
+export type PlatformType = GenericPlatformId
 
 /** 统一的 MCP 服务器类型（合并各平台差异） */
 export interface UnifiedMcpServer {
@@ -72,11 +73,11 @@ interface PlatformConfig {
 
 // ============ 平台 API 映射 ============
 
-const platformConfigs: Record<PlatformType, PlatformConfig> = {
+const platformApiMap: Record<
+  PlatformType,
+  Pick<PlatformConfig, 'listApi' | 'addApi' | 'updateApi' | 'deleteApi'>
+> = {
     gemini: {
-        color: '#8b5cf6',
-        i18nPrefix: 'gemini.mcp',
-        parentPath: '/gemini-cli',
         listApi: async () => {
             const servers = await listGeminiMcpServers<GeminiMcpServer[]>()
             return servers.map(normalizeServer)
@@ -112,9 +113,6 @@ const platformConfigs: Record<PlatformType, PlatformConfig> = {
         deleteApi: deleteGeminiMcpServer,
     },
     qwen: {
-        color: '#14b8a6',
-        i18nPrefix: 'qwen.mcp',
-        parentPath: '/qwen',
         listApi: async () => {
             const servers = await listQwenMcpServers<QwenMcpServer[]>()
             return servers.map(normalizeServer)
@@ -146,9 +144,6 @@ const platformConfigs: Record<PlatformType, PlatformConfig> = {
         deleteApi: deleteQwenMcpServer,
     },
     qoder: {
-        color: '#f97316',
-        i18nPrefix: 'qoder.mcp',
-        parentPath: '/qoder',
         listApi: async () => {
             const servers = await listQoderMcpServers<QoderMcpServer[]>()
             return servers.map((s: QoderMcpServer) => ({
@@ -182,9 +177,6 @@ const platformConfigs: Record<PlatformType, PlatformConfig> = {
         deleteApi: deleteQoderMcpServer,
     },
     droid: {
-        color: '#ec4899',
-        i18nPrefix: 'droid.mcp',
-        parentPath: '/droid',
         listApi: async () => {
             const servers = await listDroidMcpServers<DroidMcpServer[]>()
             return servers.map((s: DroidMcpServer) => ({
@@ -222,6 +214,33 @@ const platformConfigs: Record<PlatformType, PlatformConfig> = {
             return updateDroidMcpServer(name, droidReq)
         },
         deleteApi: deleteDroidMcpServer,
+    },
+}
+
+const platformConfigs: Record<PlatformType, PlatformConfig> = {
+    gemini: {
+        color: genericPlatformDescriptors.gemini.color,
+        i18nPrefix: genericPlatformDescriptors.gemini.mcp.i18nPrefix,
+        parentPath: `/${genericPlatformDescriptors.gemini.rootPath}`,
+        ...platformApiMap.gemini,
+    },
+    qwen: {
+        color: genericPlatformDescriptors.qwen.color,
+        i18nPrefix: genericPlatformDescriptors.qwen.mcp.i18nPrefix,
+        parentPath: `/${genericPlatformDescriptors.qwen.rootPath}`,
+        ...platformApiMap.qwen,
+    },
+    qoder: {
+        color: genericPlatformDescriptors.qoder.color,
+        i18nPrefix: genericPlatformDescriptors.qoder.mcp.i18nPrefix,
+        parentPath: `/${genericPlatformDescriptors.qoder.rootPath}`,
+        ...platformApiMap.qoder,
+    },
+    droid: {
+        color: genericPlatformDescriptors.droid.color,
+        i18nPrefix: genericPlatformDescriptors.droid.mcp.i18nPrefix,
+        parentPath: `/${genericPlatformDescriptors.droid.rootPath}`,
+        ...platformApiMap.droid,
     },
 }
 

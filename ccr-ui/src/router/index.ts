@@ -1,4 +1,5 @@
-import { createRouter, createWebHistory } from 'vue-router'
+import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
+import { genericPlatformDescriptorList } from '@/config/platformDescriptors'
 
 // RouteMeta 类型扩展
 declare module 'vue-router' {
@@ -15,13 +16,42 @@ declare module 'vue-router' {
   }
 }
 
-const router = createRouter({
-  history: createWebHistory(import.meta.env.BASE_URL),
-  routes: [
+const genericPlatformRoutes: RouteRecordRaw[] = genericPlatformDescriptorList.flatMap((platform) => {
+  const routes: RouteRecordRaw[] = [
     {
-      path: '/',
-      component: () => import('@/components/MainLayout.vue'),
-      children: [
+      path: `${platform.rootPath}/${platform.mcp.path}`,
+      name: platform.mcp.name,
+      component: () => import('@/views/generic/PlatformMcpView.vue'),
+      props: { platform: platform.id },
+      meta: { depth: 2, group: platform.id },
+    },
+    {
+      path: `${platform.rootPath}/${platform.agents.path}`,
+      name: platform.agents.name,
+      component: () => import('@/views/generic/AgentsView.vue'),
+      props: { module: platform.agents.module },
+      meta: { depth: 2, group: platform.id },
+    },
+  ]
+
+  if (platform.plugins) {
+    routes.push({
+      path: `${platform.rootPath}/${platform.plugins.path}`,
+      name: platform.plugins.name,
+      component: () => import('@/views/generic/PlatformPluginsView.vue'),
+      props: { platform: platform.id },
+      meta: { depth: 2, group: platform.id },
+    })
+  }
+
+  return routes
+})
+
+const routes: RouteRecordRaw[] = [
+  {
+    path: '/',
+    component: () => import('@/components/MainLayout.vue'),
+    children: [
         {
           path: '',
           name: 'home',
@@ -278,75 +308,19 @@ const router = createRouter({
         },
         // Gemini CLI 子页面 (depth: 2, group: 'gemini')
         {
-          path: 'gemini-cli/mcp',
-          name: 'gemini-mcp',
-          component: () => import('@/views/generic/PlatformMcpView.vue'),
-          props: { platform: 'gemini' },
-          meta: { depth: 2, group: 'gemini' }
-        },
-        {
-          path: 'gemini-cli/agents',
-          name: 'gemini-agents',
-          component: () => import('@/views/generic/AgentsView.vue'),
-          props: { module: 'gemini' },
-          meta: { depth: 2, group: 'gemini' }
-        },
-        {
           path: 'gemini-cli/slash-commands',
           name: 'gemini-slash-commands',
           component: () => import('@/views/GeminiSlashCommandsView.vue'),
           meta: { depth: 2, group: 'gemini' }
         },
-        {
-          path: 'gemini-cli/plugins',
-          name: 'gemini-plugins',
-          component: () => import('@/views/generic/PlatformPluginsView.vue'),
-          props: { platform: 'gemini' },
-          meta: { depth: 2, group: 'gemini' }
-        },
         // Qwen 子页面 (depth: 2, group: 'qwen')
-        {
-          path: 'qwen/mcp',
-          name: 'qwen-mcp',
-          component: () => import('@/views/generic/PlatformMcpView.vue'),
-          props: { platform: 'qwen' },
-          meta: { depth: 2, group: 'qwen' }
-        },
-        {
-          path: 'qwen/agents',
-          name: 'qwen-agents',
-          component: () => import('@/views/generic/AgentsView.vue'),
-          props: { module: 'qwen' },
-          meta: { depth: 2, group: 'qwen' }
-        },
         {
           path: 'qwen/slash-commands',
           name: 'qwen-slash-commands',
           component: () => import('@/views/QwenSlashCommandsView.vue'),
           meta: { depth: 2, group: 'qwen' }
         },
-        {
-          path: 'qwen/plugins',
-          name: 'qwen-plugins',
-          component: () => import('@/views/generic/PlatformPluginsView.vue'),
-          props: { platform: 'qwen' },
-          meta: { depth: 2, group: 'qwen' }
-        },
         // Qoder 子页面 (depth: 2, group: 'qoder')
-        {
-          path: 'qoder/mcp',
-          name: 'qoder-mcp',
-          component: () => import('@/views/generic/PlatformMcpView.vue'),
-          props: { platform: 'qoder' },
-          meta: { depth: 2, group: 'qoder' }
-        },
-        {
-          path: 'qoder/subagents',
-          name: 'qoder-subagents',
-          component: () => import('@/views/generic/AgentsView.vue'),
-          props: { module: 'qoder' },
-          meta: { depth: 2, group: 'qoder' }
-        },
         {
           path: 'qoder/commands',
           name: 'qoder-commands',
@@ -360,20 +334,6 @@ const router = createRouter({
           meta: { depth: 2, group: 'qoder' }
         },
         // Droid 子页面 (depth: 2, group: 'droid')
-        {
-          path: 'droid/mcp',
-          name: 'droid-mcp',
-          component: () => import('@/views/generic/PlatformMcpView.vue'),
-          props: { platform: 'droid' },
-          meta: { depth: 2, group: 'droid' }
-        },
-        {
-          path: 'droid/agents',
-          name: 'droid-agents',
-          component: () => import('@/views/generic/AgentsView.vue'),
-          props: { module: 'droid' },
-          meta: { depth: 2, group: 'droid' }
-        },
         {
           path: 'droid/slash-commands',
           name: 'droid-slash-commands',
@@ -441,10 +401,15 @@ const router = createRouter({
           name: 'ssh-management',
           component: () => import('@/views/SshManagementView.vue'),
           meta: { depth: 1, group: 'environment' }
-        }
-      ]
-    }
-  ],
+        },
+        ...genericPlatformRoutes,
+      ],
+    },
+]
+
+const router = createRouter({
+  history: createWebHistory(import.meta.env.BASE_URL),
+  routes,
   scrollBehavior() {
     // 始终滚动到顶部
     return { top: 0 }

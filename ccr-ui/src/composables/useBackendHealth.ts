@@ -1,5 +1,6 @@
 import { ref } from 'vue'
-import { healthCheck, isTauriEnvironment } from '@/api'
+import { isTauriEnvironment } from '@/api/runtime/environment'
+import { healthCheck } from '@/api/runtime/system'
 import { usePolledData } from '@/composables/usePolledData'
 
 export type BackendHealthStatus = 'unsupported' | 'unknown' | 'checking' | 'ok' | 'error'

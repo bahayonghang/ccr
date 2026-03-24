@@ -6,11 +6,13 @@ import { listQoderAgents, addQoderAgent, updateQoderAgent, deleteQoderAgent, tog
 import { listDroidAgents, addDroidAgent, updateDroidAgent, deleteDroidAgent } from '@/api'
 import { listConfigs, getHistory } from '@/api'
 import { listAgents, getAgent as apiGetAgent, addAgent, updateAgent, deleteAgent, toggleAgent } from '@/api'
+import { genericPlatformDescriptors } from '@/config/platformDescriptors'
 import { logger } from '@/utils/logger'
 import type { Agent, AgentRequest } from '@/types'
 import type { ConfigListResponse, HistoryResponse } from '@/types'
 
-type ModuleType = 'codex' | 'gemini' | 'qwen' | 'qoder' | 'droid' | 'agents'
+type GenericAgentModule = (typeof genericPlatformDescriptors)[keyof typeof genericPlatformDescriptors]['agents']['module']
+type ModuleType = 'codex' | GenericAgentModule | 'agents'
 
 interface AgentApi {
     list: () => Promise<{ agents: Agent[], folders?: string[] }>

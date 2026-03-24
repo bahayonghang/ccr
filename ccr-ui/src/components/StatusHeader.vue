@@ -218,7 +218,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { getSystemInfo } from '@/api'
+import { getSystemInfo } from '@/api/runtime/system'
 import type { SystemInfo as SystemInfoType } from '@/types'
 import { logger } from '@/utils/logger'
 import VersionManager from './VersionManager.vue'

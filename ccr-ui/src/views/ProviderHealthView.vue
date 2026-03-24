@@ -311,7 +311,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { healthCheck } from '@/api'
+import { healthCheck } from '@/api/runtime/system'
 import { logger } from '@/utils/logger'
 
 interface HealthCheckResult {

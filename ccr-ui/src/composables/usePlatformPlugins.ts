@@ -13,6 +13,7 @@ import { useUIStore } from '@/stores/ui'
 import { listGeminiPlugins, addGeminiPlugin, updateGeminiPlugin, deleteGeminiPlugin, toggleGeminiPlugin } from '@/api'
 import { listQwenPlugins, addQwenPlugin, updateQwenPlugin, deleteQwenPlugin, toggleQwenPlugin } from '@/api'
 import { listQoderPlugins, addQoderPlugin, updateQoderPlugin, deleteQoderPlugin, toggleQoderPlugin } from '@/api'
+import { genericPlatformDescriptors } from '@/config/platformDescriptors'
 import type { Plugin as PluginType, PluginRequest } from '@/types'
 import { logger } from '@/utils/logger'
 
@@ -38,10 +39,10 @@ interface PlatformPluginConfig {
 
 const platformConfigs: Record<PluginPlatformType, PlatformPluginConfig> = {
     gemini: {
-        color: '#8b5cf6',
-        i18nPrefix: 'gemini.plugins',
-        parentPath: '/gemini-cli',
-        sidebarModule: 'gemini-cli',
+        color: genericPlatformDescriptors.gemini.color,
+        i18nPrefix: genericPlatformDescriptors.gemini.plugins!.i18nPrefix,
+        parentPath: `/${genericPlatformDescriptors.gemini.rootPath}`,
+        sidebarModule: genericPlatformDescriptors.gemini.plugins!.sidebarModule,
         listApi: listGeminiPlugins,
         addApi: addGeminiPlugin,
         updateApi: updateGeminiPlugin,
@@ -49,10 +50,10 @@ const platformConfigs: Record<PluginPlatformType, PlatformPluginConfig> = {
         toggleApi: toggleGeminiPlugin,
     },
     qwen: {
-        color: '#14b8a6',
-        i18nPrefix: 'qwen.plugins',
-        parentPath: '/qwen',
-        sidebarModule: 'qwen',
+        color: genericPlatformDescriptors.qwen.color,
+        i18nPrefix: genericPlatformDescriptors.qwen.plugins!.i18nPrefix,
+        parentPath: `/${genericPlatformDescriptors.qwen.rootPath}`,
+        sidebarModule: genericPlatformDescriptors.qwen.plugins!.sidebarModule,
         listApi: listQwenPlugins,
         addApi: addQwenPlugin,
         updateApi: updateQwenPlugin,
@@ -60,10 +61,10 @@ const platformConfigs: Record<PluginPlatformType, PlatformPluginConfig> = {
         toggleApi: toggleQwenPlugin,
     },
     qoder: {
-        color: '#f97316',
-        i18nPrefix: 'qoder.plugins',
-        parentPath: '/qoder',
-        sidebarModule: 'qoder',
+        color: genericPlatformDescriptors.qoder.color,
+        i18nPrefix: genericPlatformDescriptors.qoder.plugins!.i18nPrefix,
+        parentPath: `/${genericPlatformDescriptors.qoder.rootPath}`,
+        sidebarModule: genericPlatformDescriptors.qoder.plugins!.sidebarModule,
         listApi: listQoderPlugins,
         addApi: addQoderPlugin,
         updateApi: updateQoderPlugin,

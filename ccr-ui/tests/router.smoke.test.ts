@@ -6,7 +6,11 @@ describe('router smoke', () => {
     const requiredRoutes = [
       'home',
       'codex',
+      'gemini-mcp',
+      'qwen-agents',
       'qoder',
+      'qoder-subagents',
+      'droid-mcp',
       'usage',
       'monitoring',
       'mcp',
@@ -26,6 +30,15 @@ describe('router smoke', () => {
     const statsRoute = router.getRoutes().find(route => route.path === '/stats')
 
     expect(statsRoute?.redirect).toBe('/usage')
+  })
+
+  it('preserves generated platform child route paths', () => {
+    const routePaths = router.getRoutes().map((route) => route.path)
+
+    expect(routePaths).toContain('/gemini-cli/mcp')
+    expect(routePaths).toContain('/qwen/agents')
+    expect(routePaths).toContain('/qoder/subagents')
+    expect(routePaths).toContain('/droid/mcp')
   })
 
   it('hides the global background on routes with page-level decorative backgrounds', () => {

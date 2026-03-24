@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import SIcon from '@/components/ui/SIcon.vue'
 import { ref, onMounted } from 'vue'
-import { isTauriEnvironment, TauriAPI } from '@/api'
+import { isTauriEnvironment, TauriRuntimeApi } from '@/api/runtime/environment'
 import { logger } from '@/utils/logger'
 
 const isTauri = ref(false)
@@ -12,7 +12,7 @@ onMounted(async () => {
 
   if (isTauri.value) {
     try {
-      tauriVersion.value = await TauriAPI.getTauriVersion()
+      tauriVersion.value = await TauriRuntimeApi.getTauriVersion()
     } catch (error) {
       logger.error('Failed to get Tauri version:', error)
     }

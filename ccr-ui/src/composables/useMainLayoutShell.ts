@@ -1,5 +1,9 @@
 import { computed, onMounted, onUnmounted, ref, watch, type ComputedRef } from 'vue'
-import { getSkipExitConfirm, isTauriEnvironment, setSkipExitConfirm } from '@/api/tauri'
+import {
+  getSkipExitConfirm,
+  isTauriEnvironment,
+  setSkipExitConfirm,
+} from '@/api/runtime/environment'
 import { logger } from '@/utils/logger'
 
 interface UseMainLayoutShellOptions {

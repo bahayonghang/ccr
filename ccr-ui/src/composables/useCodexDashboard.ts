@@ -1,6 +1,7 @@
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { getCliVersions, getCodexDashboardSummary } from '@/api'
+import { getCodexDashboardSummary } from '@/api'
+import { getCliVersions } from '@/api/runtime/system'
 import type { CodexDashboardSummary } from '@/api'
 import type { CliVersionEntry, CliVersionsResponse } from '@/types'
 
