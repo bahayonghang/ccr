@@ -221,6 +221,8 @@ interface Props {
   selectedPlatforms: string[]
   canManualInstall: boolean
   manualInstalling: boolean
+  hasDetectedPlatforms: boolean
+  noPlatformHint: string
   setActiveSource: (source: ManualSource) => void
   updateGithubUrl: (value: string) => void
   updateLocalPath: (value: string) => void

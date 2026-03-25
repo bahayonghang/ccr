@@ -12,9 +12,14 @@
             class="platform-modal"
           >
             <div class="platform-modal__header">
-              <h3 class="platform-modal__title">
-                {{ $t('skills.installSkill') }}
-              </h3>
+              <div>
+                <h3 class="platform-modal__title">
+                  {{ modalTitle }}
+                </h3>
+                <p class="platform-modal__subtitle">
+                  {{ modalSubtitle }}
+                </p>
+              </div>
               <button
                 class="platform-modal__close"
                 @click="closeModal"
@@ -25,9 +30,42 @@
                 />
               </button>
             </div>
-            <p class="platform-modal__pkg">
-              {{ pendingPackage }}
-            </p>
+
+            <div
+              v-if="mode === 'single' && pendingItem"
+              class="platform-summary"
+            >
+              <p class="platform-summary__eyebrow">
+                {{ $t('skills.installSkill') }}
+              </p>
+              <p class="platform-summary__title">
+                {{ pendingItem.skill || pendingItem.repo }}
+              </p>
+              <p class="platform-summary__package">
+                {{ pendingItem.package }}
+              </p>
+            </div>
+
+            <div
+              v-else-if="mode === 'batch'"
+              class="platform-summary"
+            >
+              <p class="platform-summary__eyebrow">
+                {{ $t('skills.batchInstall') }}
+              </p>
+              <p class="platform-summary__title">
+                {{ $t('skills.batchInstallCount', { count: batchPackages.length }) }}
+              </p>
+              <ul class="platform-summary__list">
+                <li
+                  v-for="pkg in batchPackages"
+                  :key="pkg"
+                >
+                  {{ pkg }}
+                </li>
+              </ul>
+            </div>
+
             <div class="platform-section">
               <div class="platform-section__header">
                 <h3 class="platform-section__title">
@@ -80,7 +118,7 @@
                   name="Download"
                   size="w-4 h-4"
                 />
-                {{ $t('skills.installTo', { count: selectedPlatforms.length }) }}
+                {{ confirmLabel }}
               </button>
             </div>
           </div>
@@ -91,12 +129,16 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import SIcon from '@/components/ui/SIcon.vue'
-import type { PlatformSummary } from '@/types/skills'
+import type { MarketplaceItem, PlatformSummary } from '@/types/skills'
 
 interface Props {
   show: boolean
-  pendingPackage: string
+  mode: 'single' | 'batch'
+  pendingItem: MarketplaceItem | null
+  batchPackages: string[]
   platforms: PlatformSummary[]
   selectedPlatforms: string[]
   closeModal: () => void
@@ -106,6 +148,23 @@ interface Props {
 }
 
 const props = defineProps<Props>()
+const { t } = useI18n()
+
+const modalTitle = computed(() => {
+  return props.mode === 'batch' ? t('skills.batchInstall') : t('skills.installSkill')
+})
+
+const modalSubtitle = computed(() => {
+  if (props.mode === 'batch') {
+    return t('skills.batchInstallCount', { count: props.batchPackages.length })
+  }
+
+  return props.pendingItem?.package || ''
+})
+
+const confirmLabel = computed(() => {
+  return t('skills.installTo', { count: props.selectedPlatforms.length })
+})
 
 const toggleSelectedPlatform = (platformId: string) => {
   const next = props.selectedPlatforms.includes(platformId)
@@ -138,17 +197,15 @@ const toggleSelectedPlatform = (platformId: string) => {
 }
 
 .platform-action {
-  @apply text-xs text-accent-primary hover:underline cursor-pointer;
+  @apply cursor-pointer text-xs text-accent-primary hover:underline;
 }
 
 .platform-grid {
-  @apply grid grid-cols-2 sm:grid-cols-3 gap-2;
+  @apply grid grid-cols-2 gap-2 sm:grid-cols-3;
 }
 
 .platform-item {
-  @apply flex items-center gap-2 px-3 py-2 rounded-lg
-         glass-surface text-sm cursor-pointer
-         hover:bg-white/5 transition-colors;
+  @apply glass-surface flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors hover:bg-white/5;
 }
 
 .platform-item--disabled {
@@ -163,51 +220,62 @@ const toggleSelectedPlatform = (platformId: string) => {
   @apply ml-auto text-[10px] text-white/50;
 }
 
+.platform-summary {
+  @apply glass-surface flex flex-col gap-2 rounded-2xl border border-white/5 px-4 py-4;
+}
+
+.platform-summary__eyebrow {
+  @apply text-xs font-semibold uppercase tracking-wide text-accent-primary;
+}
+
+.platform-summary__title {
+  @apply text-base font-semibold text-white;
+}
+
+.platform-summary__package {
+  @apply truncate font-mono text-sm text-white/65;
+}
+
+.platform-summary__list {
+  @apply max-h-32 list-disc space-y-1 overflow-y-auto pl-4 text-sm text-white/80;
+}
+
 .btn-install {
-  @apply flex items-center gap-2 px-5 py-2.5 rounded-xl
-         text-sm font-semibold text-white
-         bg-accent-primary hover:bg-accent-primary/90
-         disabled:opacity-50 disabled:cursor-not-allowed transition-colors;
+  @apply flex items-center gap-2 rounded-xl bg-accent-primary px-5 py-2.5 text-sm font-semibold text-white transition-colors disabled:cursor-not-allowed disabled:opacity-50 hover:bg-accent-primary/90;
 }
 
 .btn-cancel {
-  @apply px-4 py-2 rounded-xl text-sm font-medium
-         text-white/80 hover:text-white
-         hover:bg-white/5 transition-colors;
+  @apply rounded-xl px-4 py-2 text-sm font-medium text-white/80 transition-colors hover:bg-white/5 hover:text-white;
 }
 
 .platform-modal-overlay {
-  @apply fixed inset-0 z-50 flex items-center justify-center
-         bg-black/50 backdrop-blur-md;
+  @apply fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-md;
 }
 
 .platform-modal {
-  @apply flex flex-col gap-4 w-full max-w-md mx-4 p-6 rounded-2xl
-         border border-white/5 shadow-2xl;
+  @apply flex w-full max-w-xl flex-col gap-4 mx-4 rounded-2xl border border-white/5 p-6 shadow-2xl;
 
   background: rgb(var(--color-bg-base-rgb));
 }
 
 .platform-modal__header {
-  @apply flex items-center justify-between;
+  @apply flex items-start justify-between gap-4;
 }
 
 .platform-modal__title {
   @apply text-lg font-bold text-white;
 }
 
-.platform-modal__close {
-  @apply p-2 rounded-lg text-white/50
-         hover:text-white hover:bg-white/5 transition-colors;
+.platform-modal__subtitle {
+  @apply mt-1 text-sm text-white/60;
 }
 
-.platform-modal__pkg {
-  @apply text-sm text-white/80 font-mono truncate
-         px-3 py-2 rounded-lg glass-surface;
+.platform-modal__close {
+  @apply rounded-lg p-2 text-white/50 transition-colors hover:bg-white/5 hover:text-white;
 }
 
 .platform-modal__footer {
-  @apply flex items-center justify-end gap-3 pt-3 border-t border-white/5;
+  @apply flex items-center justify-end gap-3 border-t border-white/5 pt-3;
 }
 
 .modal-fade-enter-active,

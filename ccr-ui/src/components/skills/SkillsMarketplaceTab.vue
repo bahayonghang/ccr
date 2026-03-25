@@ -119,8 +119,8 @@
         :batch-mode="batchMode"
         :is-selected="batchSelection.has(item.package)"
         @install="handleInstall"
-        @select="handleBatchSelect"
-        @view-source="handleViewSource"
+        @toggle-batch="handleBatchSelect"
+        @view-detail="handleViewDetail"
       />
     </div>
 
@@ -304,7 +304,7 @@ function handleInstall(item: MarketplaceItem) {
   emit('install', item)
 }
 
-function handleViewSource(item: MarketplaceItem) {
+function handleViewDetail(item: MarketplaceItem) {
   window.open(`https://github.com/${item.owner}/${item.repo}`, '_blank')
 }
 </script>

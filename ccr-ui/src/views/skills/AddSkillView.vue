@@ -1,6 +1,5 @@
 <template>
   <div class="add-skill-view">
-    <!-- Header -->
     <header class="add-skill-header">
       <div class="add-skill-header__left">
         <RouterLink
@@ -29,7 +28,10 @@
     <SkillMarketplaceBrowsePanel
       :batch-mode="batchMode"
       :batch-selected-count="batchSelected.size"
+      :content-mode="marketplaceContentMode"
+      :content-state="marketplaceContentState"
       :current-page="currentPage"
+      :has-detected-platforms="hasDetectedPlatforms"
       :is-batch-selected="isBatchSelected"
       :is-installing="isInstallingPackage"
       :is-marketplace-loading="isMarketplaceLoading"
@@ -38,21 +40,23 @@
       :marketplace-cached="marketplaceCached"
       :marketplace-error="marketplaceError"
       :marketplace-items="marketplaceItems"
+      :no-platform-hint="$t('skills.noDetectedPlatformsHint')"
       :page-size="pageSize"
       :paged-items="pagedItems"
       :search-query="searchQuery"
       :sort-by="sortBy"
       :sorted-items="sortedItems"
       @batch-install="handleBatchInstall"
-      @batch-select="handleBatchSelect"
+      @toggle-batch="handleBatchSelect"
       @clear-batch-selected="clearBatchSelected"
       @marketplace-install="handleMarketplaceInstall"
-      @refresh-cache="handleRefreshCache"
+      @refresh="handleRefreshMarketplace"
       @search="handleSearch"
       @update:batch-mode="updateBatchMode"
       @update:current-page="currentPage = $event"
       @update:search-query="searchQuery = $event"
       @update:sort-by="sortBy = $event"
+      @view-detail="openDetailModal"
     />
 
     <SkillManualInstallPanel
@@ -62,9 +66,11 @@
       :github-url="githubUrl"
       :handle-browse="handleBrowse"
       :handle-manual-install="handleManualInstall"
+      :has-detected-platforms="hasDetectedPlatforms"
       :local-path="localPath"
       :manual-installing="manualInstalling"
       :manual-tabs="manualTabs"
+      :no-platform-hint="$t('skills.noDetectedPlatformsHint')"
       :npx-available="npxAvailable"
       :npx-global="npxGlobal"
       :npx-package="npxPackage"
@@ -81,9 +87,11 @@
     />
 
     <SkillPlatformSelectModal
+      :batch-packages="pendingBatchPackages"
       :close-modal="closePlatformModal"
       :confirm-install="confirmMarketplaceInstall"
-      :pending-package="pendingInstallPackage"
+      :mode="platformModalMode"
+      :pending-item="pendingInstallItem"
       :platforms="platforms"
       :selected-platforms="modalSelectedPlatforms"
       :select-detected="selectDetectedForModal"
@@ -91,7 +99,15 @@
       :update-selected-platforms="updateModalSelectedPlatforms"
     />
 
-    <!-- Install Progress Toast -->
+    <SkillMarketplaceDetailModal
+      :item="detailItem"
+      :install-disabled="!hasDetectedPlatforms"
+      :is-installed="detailItem ? isSkillInstalled(detailItem) : false"
+      :show="showDetailModal"
+      @close="closeDetailModal"
+      @install="handleMarketplaceInstall"
+    />
+
     <SkillInstallToast
       :progress="installProgress"
       @dismiss="setInstallProgress(null)"
@@ -105,10 +121,11 @@ import { ref, computed, onMounted, reactive } from 'vue'
 import { useI18n } from 'vue-i18n'
 import SkillManualInstallPanel from '@/components/skills/SkillManualInstallPanel.vue'
 import SkillMarketplaceBrowsePanel from '@/components/skills/SkillMarketplaceBrowsePanel.vue'
+import SkillMarketplaceDetailModal from '@/components/skills/SkillMarketplaceDetailModal.vue'
 import SkillPlatformSelectModal from '@/components/skills/SkillPlatformSelectModal.vue'
 import SkillInstallToast from '@/components/skills/SkillInstallToast.vue'
 import { useUnifiedSkills } from '@/composables/useUnifiedSkills'
-import type { MarketplaceItem, ImportSource } from '@/types/skills'
+import type { BatchInstallResponse, MarketplaceItem, ImportSource } from '@/types/skills'
 import { logger } from '@/utils/logger'
 
 useI18n()
@@ -137,7 +154,8 @@ const {
   setInstallProgress,
 } = useUnifiedSkills()
 
-// === Browse Trending ===
+const { t } = useI18n()
+
 const searchQuery = ref('')
 const sortBy = ref<'stars' | 'name'>('stars')
 const currentPage = ref(1)
@@ -147,7 +165,23 @@ const batchMode = ref(false)
 const batchSelected = reactive(new Set<string>())
 const installingPackages = reactive(new Set<string>())
 
-// Sort
+const normalizedSearchQuery = computed(() => searchQuery.value.trim())
+const marketplaceContentMode = computed<'trending' | 'search'>(() => {
+  return normalizedSearchQuery.value ? 'search' : 'trending'
+})
+const marketplaceContentState = computed<'loading' | 'error' | 'empty' | 'ready'>(() => {
+  if (isMarketplaceLoading.value) {
+    return 'loading'
+  }
+  if (marketplaceError.value) {
+    return 'error'
+  }
+  return sortedItems.value.length > 0 ? 'ready' : 'empty'
+})
+const hasDetectedPlatforms = computed(() => {
+  return platforms.value.some((platform) => platform.detected)
+})
+
 const sortedItems = computed(() => {
   const list = [...marketplaceItems.value]
   if (sortBy.value === 'stars') {
@@ -162,38 +196,55 @@ const installedSkillNameSet = computed(() => {
   return new Set(skills.value.map(s => s.name.toLowerCase()))
 })
 
-// Pagination
 const pagedItems = computed(() => {
   const start = (currentPage.value - 1) * pageSize
   return sortedItems.value.slice(start, start + pageSize)
 })
 
-// Check installed
 function isSkillInstalled(item: MarketplaceItem): boolean {
   const skillName = (item.skill || item.repo || '').toLowerCase()
   return installedSkillNameSet.value.has(skillName)
 }
 
-function handleSearch() {
-  currentPage.value = 1
-  if (searchQuery.value.trim()) {
-    searchMarketplace(searchQuery.value.trim())
-  } else {
-    fetchMarketplaceTrending()
-  }
+function showNoPlatformFeedback(target: string) {
+  setInstallProgress({
+    phase: 'error',
+    package: target,
+    message: t('skills.noDetectedPlatformsHint'),
+    startedAt: Date.now(),
+  })
 }
 
-// Refresh cache
-async function handleRefreshCache() {
+async function loadMarketplaceContent(forceTrending = false) {
+  currentPage.value = 1
+
+  if (!forceTrending && marketplaceContentMode.value === 'search') {
+    await searchMarketplace(normalizedSearchQuery.value)
+    return
+  }
+
+  await fetchMarketplaceTrending(30, 1, forceTrending)
+}
+
+async function handleSearch() {
+  await loadMarketplaceContent()
+}
+
+async function handleRefreshMarketplace() {
   isRefreshing.value = true
   try {
+    if (marketplaceContentMode.value === 'search') {
+      await refreshMarketplaceCache()
+      await searchMarketplace(normalizedSearchQuery.value)
+      return
+    }
+
     await refreshMarketplaceCache()
   } finally {
     isRefreshing.value = false
   }
 }
 
-// Batch
 function handleBatchSelect(item: MarketplaceItem) {
   if (batchSelected.has(item.package)) {
     batchSelected.delete(item.package)
@@ -208,6 +259,9 @@ function clearBatchSelected() {
 
 function updateBatchMode(value: boolean) {
   batchMode.value = value
+  if (!value) {
+    clearBatchSelected()
+  }
 }
 
 function isInstallingPackage(pkg: string) {
@@ -218,20 +272,36 @@ function isBatchSelected(pkg: string) {
   return batchSelected.has(pkg)
 }
 
-async function handleBatchInstall() {
-  // Open platform modal for batch install
+const showPlatformModal = ref(false)
+const modalSelectedPlatforms = ref<string[]>([])
+const pendingInstallItem = ref<MarketplaceItem | null>(null)
+const pendingBatchPackages = ref<string[]>([])
+const platformModalMode = computed<'single' | 'batch'>(() => {
+  return pendingBatchPackages.value.length > 0 ? 'batch' : 'single'
+})
+
+function handleBatchInstall() {
+  if (!hasDetectedPlatforms.value) {
+    showNoPlatformFeedback(`${batchSelected.size} skills`)
+    return
+  }
+
+  if (batchSelected.size === 0) {
+    return
+  }
+
+  pendingInstallItem.value = null
   pendingBatchPackages.value = [...batchSelected]
   selectDetectedForModal()
   showPlatformModal.value = true
 }
 
-// === Platform Selection Modal (for marketplace installs) ===
-const showPlatformModal = ref(false)
-const modalSelectedPlatforms = ref<string[]>([])
-const pendingInstallItem = ref<MarketplaceItem | null>(null)
-const pendingBatchPackages = ref<string[]>([])
-
 function handleMarketplaceInstall(item: MarketplaceItem) {
+  if (!hasDetectedPlatforms.value) {
+    showNoPlatformFeedback(item.package)
+    return
+  }
+
   pendingInstallItem.value = item
   pendingBatchPackages.value = []
   selectDetectedForModal()
@@ -250,40 +320,72 @@ function updateModalSelectedPlatforms(value: string[]) {
 
 function closePlatformModal() {
   showPlatformModal.value = false
+  pendingInstallItem.value = null
+  pendingBatchPackages.value = []
 }
 
-const pendingInstallPackage = computed(() => pendingInstallItem.value?.package || '')
+function formatBatchInstallSummary(response: BatchInstallResponse) {
+  const summary = t('skills.batchInstallSummary', {
+    success: response.successCount,
+    total: response.total,
+    platforms: modalSelectedPlatforms.value.length,
+  })
+
+  if (response.failCount === 0) {
+    return summary
+  }
+
+  const failedPackages = response.results
+    .filter(result => !result.ok)
+    .map(result => result.package)
+    .filter(Boolean)
+
+  if (failedPackages.length === 0) {
+    return `${summary} · ${t('skills.batchInstallFailedCount', { count: response.failCount })}`
+  }
+
+  return `${summary} · ${t('skills.batchInstallFailedPackages', {
+    count: response.failCount,
+    packages: failedPackages.join(', '),
+  })}`
+}
 
 async function confirmMarketplaceInstall() {
   showPlatformModal.value = false
 
   if (pendingBatchPackages.value.length > 0) {
-    // Batch install
+    const pendingPackages = [...pendingBatchPackages.value]
     setInstallProgress({
       phase: 'downloading',
-      package: `${pendingBatchPackages.value.length} skills`,
-      startedAt: Date.now()
+      package: `${pendingPackages.length} skills`,
+      startedAt: Date.now(),
     })
+
     try {
-      await batchInstall({
-        packages: pendingBatchPackages.value,
+      const response = await batchInstall({
+        packages: pendingPackages,
         agents: modalSelectedPlatforms.value,
-        force: false
+        force: false,
       })
       setInstallProgress({
-        phase: 'done',
-        package: `${pendingBatchPackages.value.length} skills`,
-        startedAt: Date.now()
+        phase: response.failCount === 0 ? 'done' : 'error',
+        package: `${pendingPackages.length} skills`,
+        message: formatBatchInstallSummary(response),
+        startedAt: Date.now(),
       })
-      batchSelected.clear()
-      batchMode.value = false
+      if (response.failCount === 0) {
+        batchSelected.clear()
+        batchMode.value = false
+      }
     } catch (err) {
       setInstallProgress({
         phase: 'error',
-        package: `${pendingBatchPackages.value.length} skills`,
-        message: (err instanceof Error ? err.message : "Error") || 'Batch install failed',
-        startedAt: Date.now()
+        package: `${pendingPackages.length} skills`,
+        message: (err instanceof Error ? err.message : 'Error') || 'Batch install failed',
+        startedAt: Date.now(),
       })
+    } finally {
+      pendingBatchPackages.value = []
     }
     return
   }
@@ -295,26 +397,26 @@ async function confirmMarketplaceInstall() {
   setInstallProgress({
     phase: 'downloading',
     package: item.package,
-    startedAt: Date.now()
+    startedAt: Date.now(),
   })
 
   try {
     await installSkill({
       package: item.package,
       agents: modalSelectedPlatforms.value,
-      force: false
+      force: false,
     })
     setInstallProgress({
       phase: 'done',
       package: item.package,
-      startedAt: Date.now()
+      startedAt: Date.now(),
     })
   } catch (err) {
     setInstallProgress({
       phase: 'error',
       package: item.package,
-      message: (err instanceof Error ? err.message : "Error") || 'Install failed',
-      startedAt: Date.now()
+      message: (err instanceof Error ? err.message : 'Error') || 'Install failed',
+      startedAt: Date.now(),
     })
   } finally {
     installingPackages.delete(item.package)
@@ -322,17 +424,13 @@ async function confirmMarketplaceInstall() {
   }
 }
 
-// === Manual Install ===
 type ManualSource = Exclude<ImportSource, 'marketplace'>
 const activeSource = ref<ManualSource>('github')
 const selectedPlatforms = ref<string[]>([])
 const manualInstalling = ref(false)
 
-// GitHub
 const githubUrl = ref('')
-// Local
 const localPath = ref('')
-// npx
 const npxPackage = ref('')
 const npxGlobal = ref(false)
 
@@ -370,7 +468,7 @@ const updateSelectedPlatforms = (value: string[]) => {
 }
 
 const canManualInstall = computed(() => {
-  if (selectedPlatforms.value.length === 0) return false
+  if (!hasDetectedPlatforms.value || selectedPlatforms.value.length === 0) return false
   switch (activeSource.value) {
     case 'github': return githubUrl.value.trim().length > 0
     case 'local': return localPath.value.trim().length > 0
@@ -397,77 +495,52 @@ async function handleBrowse() {
 }
 
 async function handleManualInstall() {
+  if (!hasDetectedPlatforms.value) {
+    const target = activeSource.value === 'github'
+      ? githubUrl.value || 'github'
+      : activeSource.value === 'local'
+        ? localPath.value || 'local'
+        : npxPackage.value || 'npx'
+    showNoPlatformFeedback(target)
+    return
+  }
+
   manualInstalling.value = true
   setInstalling(true)
 
   try {
     switch (activeSource.value) {
       case 'github': {
-        setInstallProgress({
-          phase: 'downloading',
-          package: githubUrl.value,
-          startedAt: Date.now()
-        })
-        await importFromGithub({
-          url: githubUrl.value.trim(),
-          agents: selectedPlatforms.value,
-          force: false
-        })
-        setInstallProgress({
-          phase: 'done',
-          package: githubUrl.value,
-          startedAt: Date.now()
-        })
+        setInstallProgress({ phase: 'downloading', package: githubUrl.value, startedAt: Date.now() })
+        await importFromGithub({ url: githubUrl.value.trim(), agents: selectedPlatforms.value, force: false })
+        setInstallProgress({ phase: 'done', package: githubUrl.value, startedAt: Date.now() })
         githubUrl.value = ''
         break
       }
       case 'local': {
-        setInstallProgress({
-          phase: 'installing',
-          package: localPath.value,
-          startedAt: Date.now()
-        })
-        await importFromLocal({
-          sourcePath: localPath.value.trim(),
-          agents: selectedPlatforms.value
-        })
-        setInstallProgress({
-          phase: 'done',
-          package: localPath.value,
-          startedAt: Date.now()
-        })
+        setInstallProgress({ phase: 'installing', package: localPath.value, startedAt: Date.now() })
+        await importFromLocal({ sourcePath: localPath.value.trim(), agents: selectedPlatforms.value })
+        setInstallProgress({ phase: 'done', package: localPath.value, startedAt: Date.now() })
         localPath.value = ''
         break
       }
       case 'npx': {
-        setInstallProgress({
-          phase: 'downloading',
-          package: npxPackage.value,
-          startedAt: Date.now()
-        })
-        await importViaNpx({
-          package: npxPackage.value.trim(),
-          agents: selectedPlatforms.value,
-          global: npxGlobal.value
-        })
-        setInstallProgress({
-          phase: 'done',
-          package: npxPackage.value,
-          startedAt: Date.now()
-        })
+        setInstallProgress({ phase: 'downloading', package: npxPackage.value, startedAt: Date.now() })
+        await importViaNpx({ package: npxPackage.value.trim(), agents: selectedPlatforms.value, global: npxGlobal.value })
+        setInstallProgress({ phase: 'done', package: npxPackage.value, startedAt: Date.now() })
         npxPackage.value = ''
         break
       }
     }
   } catch (err) {
     const pkg = activeSource.value === 'github' ? githubUrl.value
-              : activeSource.value === 'local' ? localPath.value
-              : npxPackage.value
+      : activeSource.value === 'local' ? localPath.value
+        : npxPackage.value
     setInstallProgress({
       phase: 'error',
       package: pkg,
-      message: (err instanceof Error ? err.message : "Error") || 'Installation failed',
-      startedAt: Date.now()
+      message: (err instanceof Error ? err.message : 'Error') || 'Installation failed',
+      startedAt: Date.now(),
     })
   } finally {
     manualInstalling.value = false
@@ -475,12 +548,23 @@ async function handleManualInstall() {
   }
 }
 
-// === Init ===
+const showDetailModal = ref(false)
+const detailItem = ref<MarketplaceItem | null>(null)
+
+function openDetailModal(item: MarketplaceItem) {
+  detailItem.value = item
+  showDetailModal.value = true
+}
+
+function closeDetailModal() {
+  showDetailModal.value = false
+}
+
 onMounted(async () => {
   try {
     await Promise.all([
       fetchPlatforms(),
-      fetchMarketplaceTrending(),
+      loadMarketplaceContent(),
       checkNpxStatus(),
     ])
     selectDetected()
@@ -492,31 +576,22 @@ onMounted(async () => {
 
 <style scoped>
 .add-skill-view {
-  @apply flex flex-col gap-6 p-6 max-w-7xl mx-auto;
+  @apply mx-auto flex max-w-7xl flex-col gap-6 p-6;
 }
 
-/* Header */
 .add-skill-header {
   @apply flex flex-col gap-2;
 }
 
 .add-skill-header__back {
-  @apply flex items-center gap-1.5 text-sm text-white/50
-         hover:text-white transition-colors w-fit;
+  @apply flex w-fit items-center gap-1.5 text-sm text-white/50 transition-colors hover:text-white;
 }
 
 .add-skill-header__title {
-  @apply flex items-center gap-2 text-2xl font-bold text-white mt-1;
+  @apply mt-1 flex items-center gap-2 text-2xl font-bold text-white;
 }
 
 .add-skill-header__subtitle {
   @apply text-sm text-white/80;
-}
-
-.btn-install {
-  @apply flex items-center gap-2 px-5 py-2.5 rounded-xl
-         text-sm font-semibold text-white
-         bg-accent-primary hover:bg-accent-primary/90
-         disabled:opacity-50 disabled:cursor-not-allowed transition-colors;
 }
 </style>

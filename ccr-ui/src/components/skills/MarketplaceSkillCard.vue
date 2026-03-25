@@ -4,15 +4,15 @@
     :class="{
       'mp-card--selected': isSelected,
       'mp-card--installing': isInstalling,
-      'mp-card--installed': isInstalled
+      'mp-card--installed': isInstalled,
+      'mp-card--clickable': !batchMode,
     }"
     @click="handleClick"
   >
-    <!-- 批量模式复选框 -->
     <div
       v-if="batchMode"
       class="mp-card__checkbox"
-      @click.stop="$emit('select', item)"
+      @click.stop="emit('toggle-batch', item)"
     >
       <div
         class="mp-card__check"
@@ -26,7 +26,6 @@
       </div>
     </div>
 
-    <!-- 头部: 作者头像 + 名称 + 星标 -->
     <div class="mp-card__header">
       <div class="mp-card__author">
         <img
@@ -50,12 +49,10 @@
       </div>
     </div>
 
-    <!-- 标题 -->
     <h3 class="mp-card__name">
       {{ displayName }}
     </h3>
 
-    <!-- 描述 -->
     <p
       v-if="item.description"
       class="mp-card__description"
@@ -66,24 +63,20 @@
       v-else
       class="mp-card__description mp-card__description--empty"
     >
-      {{ $t('skills.noDescription') }}
+      {{ $t('skills.search.noDescription') }}
     </p>
 
-    <!-- 底部: 源码链接 + 安装按钮 -->
     <div class="mp-card__footer">
-      <a
-        :href="sourceUrl"
-        target="_blank"
-        rel="noopener noreferrer"
-        class="mp-card__source-link"
-        @click.stop
+      <button
+        class="mp-card__link-btn"
+        @click.stop="emit('view-detail', item)"
       >
         <SIcon
-          name="Github"
+          name="ExternalLink"
           size="w-3.5 h-3.5"
         />
-        <span>{{ $t('skills.source') }}</span>
-      </a>
+        <span>{{ $t('skills.viewDetails') }}</span>
+      </button>
 
       <button
         v-if="isInstalled"
@@ -111,13 +104,14 @@
       <button
         v-else
         class="mp-card__install-btn"
-        @click.stop="$emit('install', item)"
+        :disabled="installDisabled"
+        @click.stop="emit('install', item)"
       >
         <SIcon
-          name="Download"
+          :name="installDisabled ? 'AlertTriangle' : 'Download'"
           size="w-4 h-4"
         />
-        <span>{{ $t('skills.install') }}</span>
+        <span>{{ installDisabled ? $t('skills.noPlatformsDetectedShort') : $t('skills.install') }}</span>
       </button>
     </div>
   </div>
@@ -134,12 +128,13 @@ const props = defineProps<{
   isInstalling?: boolean
   batchMode?: boolean
   isSelected?: boolean
+  installDisabled?: boolean
 }>()
 
-defineEmits<{
+const emit = defineEmits<{
   (e: 'install', item: MarketplaceItem): void
-  (e: 'select', item: MarketplaceItem): void
-  (e: 'view-source', item: MarketplaceItem): void
+  (e: 'toggle-batch', item: MarketplaceItem): void
+  (e: 'view-detail', item: MarketplaceItem): void
 }>()
 
 const avatarFailed = ref(false)
@@ -153,10 +148,6 @@ const avatarUrl = computed(() => {
 
 const displayName = computed(() => {
   return props.item.skill || props.item.repo
-})
-
-const sourceUrl = computed(() => {
-  return `https://github.com/${props.item.owner}/${props.item.repo}`
 })
 
 function formatStars(stars: number): string {
@@ -175,24 +166,28 @@ function onAvatarError() {
 
 function handleClick() {
   if (props.batchMode) {
-    // noop — checkbox handles it
+    emit('toggle-batch', props.item)
+    return
   }
+  emit('view-detail', props.item)
 }
 </script>
 
 <style scoped>
 .mp-card {
-  @apply relative flex flex-col gap-3 p-4 rounded-2xl cursor-default
-         border border-white/10 text-white
-         transition-[color,background-color,border-color,box-shadow,transform] duration-200 ease-out
-         overflow-hidden;
+  @apply relative flex flex-col gap-3 overflow-hidden rounded-2xl border border-white/10 p-4 text-white
+         transition-[color,background-color,border-color,box-shadow,transform] duration-200 ease-out;
 
   background: rgb(var(--color-bg-elevated-rgb) / 92%);
   contain: layout paint;
 }
 
+.mp-card--clickable {
+  @apply cursor-pointer;
+}
+
 .mp-card:hover {
-  @apply border-white/20 transform scale-[1.01];
+  @apply scale-[1.01] border-white/20;
 
   background: rgb(var(--color-bg-surface-rgb) / 96%);
   box-shadow: 0 4px 20px rgb(0 0 0 / 20%);
@@ -211,51 +206,46 @@ function handleClick() {
   @apply opacity-90;
 }
 
-/* 批量复选框 */
 .mp-card__checkbox {
-  @apply absolute top-3 right-3 z-10;
+  @apply absolute right-3 top-3 z-10;
 }
 
 .mp-card__check {
-  @apply flex items-center justify-center w-5 h-5 rounded-md
-         border-2 border-white/20 bg-black/20
-         transition-colors duration-150 cursor-pointer;
+  @apply flex h-5 w-5 cursor-pointer items-center justify-center rounded-md border-2 border-white/20 bg-black/20 transition-colors duration-150;
 }
 
 .mp-card__check--active {
   @apply border-accent-primary bg-accent-primary text-white;
 }
 
-/* 头部 */
 .mp-card__header {
   @apply flex items-center justify-between;
 }
 
 .mp-card__author {
-  @apply flex items-center gap-2 min-w-0;
+  @apply flex min-w-0 items-center gap-2;
 }
 
 .mp-card__avatar {
-  @apply w-6 h-6 rounded-full bg-white/10 shrink-0;
+  @apply h-6 w-6 shrink-0 rounded-full bg-white/10;
 }
 
 .mp-card__owner {
-  @apply text-xs font-medium text-white/70 truncate;
+  @apply truncate text-xs font-medium text-white/70;
 }
 
 .mp-card__stars {
-  @apply flex items-center gap-1 text-xs font-medium shrink-0;
+  @apply flex shrink-0 items-center gap-1 text-xs font-medium;
 
   color: rgb(var(--color-warning-rgb));
 }
 
-/* 标题 */
 .mp-card__name {
-  @apply text-base font-bold text-white truncate;
+  @apply truncate text-base font-bold text-white;
 }
 
 .mp-card__description {
-  @apply text-sm text-white/80 leading-relaxed flex-1;
+  @apply flex-1 text-sm leading-relaxed text-white/80;
 
   display: -webkit-box;
   -webkit-line-clamp: 3;
@@ -264,30 +254,23 @@ function handleClick() {
 }
 
 .mp-card__description--empty {
-  @apply text-white/50 italic;
+  @apply italic text-white/50;
 }
 
 .mp-card__footer {
-  @apply flex items-center justify-between mt-auto pt-2
-         border-t border-white/10;
+  @apply mt-auto flex items-center justify-between border-t border-white/10 pt-2;
 }
 
-.mp-card__source-link {
-  @apply flex items-center gap-1.5 text-xs text-white/50
-         hover:text-white transition-colors;
+.mp-card__link-btn {
+  @apply flex items-center gap-1.5 text-xs text-white/50 transition-colors hover:text-white;
 }
 
 .mp-card__install-btn {
-  @apply flex items-center gap-1.5 px-3 py-1.5 rounded-lg
-         text-xs font-semibold
-         bg-accent-primary/10 text-accent-primary
-         hover:bg-accent-primary hover:text-white
-         transition-colors duration-200;
+  @apply flex items-center gap-1.5 rounded-lg bg-accent-primary/10 px-3 py-1.5 text-xs font-semibold text-accent-primary transition-colors duration-200 hover:bg-accent-primary hover:text-white disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:bg-accent-primary/10 disabled:hover:text-accent-primary;
 }
 
 .mp-card__status {
-  @apply flex items-center gap-1.5 px-3 py-1.5 rounded-lg
-         text-xs font-semibold cursor-default;
+  @apply flex cursor-default items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold;
 }
 
 .mp-card__status--installed {
@@ -296,6 +279,7 @@ function handleClick() {
 }
 
 .mp-card__status--installing {
-  @apply text-white/70 bg-white/10;
+  @apply bg-white/10 text-white/70;
 }
 </style>
+

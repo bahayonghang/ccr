@@ -2,15 +2,21 @@
   <section class="browse-section">
     <div class="section-header">
       <div class="section-header__left">
-        <h2 class="section-title">
+        <h2
+          class="section-title"
+          data-testid="marketplace-title"
+        >
           <SIcon
-            name="TrendingUp"
+            :name="contentMode === 'search' ? 'Search' : 'TrendingUp'"
             size="w-5 h-5"
             class="text-accent-primary"
           />
-          {{ $t('skills.browseTrending') }}
+          {{ headerTitle }}
         </h2>
-        <span class="section-hint">{{ $t('skills.browseTrendingHint') }}</span>
+        <span
+          class="section-hint"
+          data-testid="marketplace-hint"
+        >{{ headerHint }}</span>
       </div>
       <div class="section-header__right">
         <span
@@ -26,14 +32,14 @@
         <button
           class="btn-refresh"
           :disabled="isRefreshing"
-          @click="emit('refresh-cache')"
+          @click="emit('refresh')"
         >
           <SIcon
             name="RefreshCw"
             size="w-4 h-4"
             :class="{ 'animate-spin': isRefreshing }"
           />
-          <span>{{ isRefreshing ? $t('skills.refreshingCache') : $t('skills.refreshCache') }}</span>
+          <span>{{ refreshLabel }}</span>
         </button>
       </div>
     </div>
@@ -51,6 +57,7 @@
             type="text"
             class="search-input"
             :placeholder="$t('skills.searchMarketplace')"
+            data-testid="marketplace-search-input"
             @input="handleSearchInput"
             @keyup.enter="handleSearchSubmit"
           >
@@ -78,10 +85,11 @@
       <div class="browse-toolbar">
         <div class="toolbar-left">
           <span
-            v-if="marketplaceItems.length > 0"
+            v-if="sortedItems.length > 0"
             class="result-badge"
+            data-testid="marketplace-result-badge"
           >
-            {{ marketplaceItems.length }} {{ $t('skills.resultCount') }}
+            {{ resultSummary }}
           </span>
         </div>
         <div class="toolbar-right">
@@ -121,7 +129,25 @@
     </div>
 
     <div
-      v-if="marketplaceError"
+      v-if="!hasDetectedPlatforms"
+      class="state-box state-box--warning"
+      data-testid="no-platform-blocking"
+    >
+      <SIcon
+        name="Laptop"
+        size="w-8 h-8"
+        class="text-warning"
+      />
+      <h3 class="mt-3 text-lg font-semibold text-white">
+        {{ $t('skills.noDetectedPlatformsTitle') }}
+      </h3>
+      <p class="mt-1 text-center text-sm text-white/75">
+        {{ noPlatformHint }}
+      </p>
+    </div>
+
+    <div
+      v-if="contentState === 'error'"
       class="state-box state-box--error"
     >
       <SIcon
@@ -129,30 +155,31 @@
         size="w-8 h-8"
         class="text-danger"
       />
-      <p class="text-danger mt-2">
+      <p class="mt-2 text-danger">
         {{ marketplaceError }}
       </p>
     </div>
 
     <div
-      v-else-if="!isMarketplaceLoading && sortedItems.length === 0"
+      v-else-if="contentState === 'empty'"
       class="state-box"
+      data-testid="marketplace-empty-state"
     >
       <SIcon
-        name="Store"
+        :name="contentMode === 'search' ? 'SearchX' : 'Store'"
         size="w-12 h-12"
         class="text-white/50"
       />
       <h3 class="mt-4 text-lg font-semibold text-white">
-        {{ $t('skills.noMarketplaceResults') }}
+        {{ emptyTitle }}
       </h3>
       <p class="mt-1 text-sm text-white/80">
-        {{ $t('skills.tryDifferentSearch') }}
+        {{ emptyHint }}
       </p>
     </div>
 
     <div
-      v-else-if="isMarketplaceLoading"
+      v-else-if="contentState === 'loading'"
       class="marketplace-grid"
     >
       <div
@@ -182,32 +209,36 @@
     <div
       v-else
       class="marketplace-grid"
+      data-testid="marketplace-grid"
     >
       <MarketplaceSkillCard
         v-for="item in pagedItems"
         :key="item.package"
-        :item="item"
-        :is-installed="isSkillInstalled(item)"
-        :is-installing="isInstalling(item.package)"
         :batch-mode="batchMode"
+        :install-disabled="!hasDetectedPlatforms"
+        :is-installing="isInstalling(item.package)"
+        :is-installed="isSkillInstalled(item)"
         :is-selected="isBatchSelected(item.package)"
+        :item="item"
         @install="emit('marketplace-install', item)"
-        @select="emit('batch-select', item)"
+        @toggle-batch="emit('toggle-batch', item)"
+        @view-detail="emit('view-detail', item)"
       />
     </div>
 
     <MarketplacePagination
-      v-if="!isMarketplaceLoading && sortedItems.length > 0"
+      v-if="contentState === 'ready'"
       :current-page="currentPage"
-      :total-items="sortedItems.length"
       :page-size="pageSize"
+      :total-items="sortedItems.length"
       @page-change="emit('update:currentPage', $event)"
     />
 
     <Transition name="batch-bar">
       <div
-        v-if="batchMode && batchSelectedCount > 0"
+        v-if="batchSelectedCount > 0"
         class="batch-bar"
+        data-testid="marketplace-batch-bar"
       >
         <span class="batch-bar__count">
           {{ $t('skills.selectedCount', { count: batchSelectedCount }) }}
@@ -221,13 +252,14 @@
           </button>
           <button
             class="batch-bar__install"
+            :disabled="!hasDetectedPlatforms"
             @click="emit('batch-install')"
           >
             <SIcon
-              name="Download"
+              :name="hasDetectedPlatforms ? 'Download' : 'AlertTriangle'"
               size="w-4 h-4"
             />
-            {{ $t('skills.batchInstall') }}
+            {{ hasDetectedPlatforms ? $t('skills.batchInstall') : $t('skills.noPlatformsDetectedShort') }}
           </button>
         </div>
       </div>
@@ -236,18 +268,24 @@
 </template>
 
 <script setup lang="ts">
-import { onUnmounted } from 'vue'
+import { computed, onUnmounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import MarketplacePagination from '@/components/skills/MarketplacePagination.vue'
 import MarketplaceSkillCard from '@/components/skills/MarketplaceSkillCard.vue'
 import SIcon from '@/components/ui/SIcon.vue'
 import type { MarketplaceItem } from '@/types/skills'
 
 type MarketplaceSort = 'stars' | 'name'
+type ContentMode = 'trending' | 'search'
+type ContentState = 'loading' | 'error' | 'empty' | 'ready'
 
 interface Props {
   batchMode: boolean
   batchSelectedCount: number
+  contentMode: ContentMode
+  contentState: ContentState
   currentPage: number
+  hasDetectedPlatforms: boolean
   isBatchSelected: (pkg: string) => boolean
   isInstalling: (pkg: string) => boolean
   isMarketplaceLoading: boolean
@@ -256,6 +294,7 @@ interface Props {
   marketplaceCached: boolean
   marketplaceError: string | null
   marketplaceItems: MarketplaceItem[]
+  noPlatformHint: string
   pageSize: number
   pagedItems: MarketplaceItem[]
   searchQuery: string
@@ -264,21 +303,61 @@ interface Props {
 }
 
 const props = defineProps<Props>()
+const { t } = useI18n()
 
 const emit = defineEmits<{
   'batch-install': []
-  'batch-select': [item: MarketplaceItem]
   'clear-batch-selected': []
   'marketplace-install': [item: MarketplaceItem]
-  'refresh-cache': []
+  refresh: []
   search: []
+  'toggle-batch': [item: MarketplaceItem]
   'update:batchMode': [value: boolean]
   'update:currentPage': [value: number]
   'update:searchQuery': [value: string]
   'update:sortBy': [value: MarketplaceSort]
+  'view-detail': [item: MarketplaceItem]
 }>()
 
 let searchTimer: ReturnType<typeof setTimeout> | null = null
+
+const trimmedSearchQuery = computed(() => props.searchQuery.trim())
+const headerTitle = computed(() => {
+  return props.contentMode === 'search'
+    ? t('skills.searchResultsTitle', { query: trimmedSearchQuery.value })
+    : t('skills.browseTrending')
+})
+
+const headerHint = computed(() => {
+  return props.contentMode === 'search'
+    ? t('skills.searchResultsHint')
+    : t('skills.browseTrendingHint')
+})
+
+const refreshLabel = computed(() => {
+  if (props.isRefreshing) {
+    return props.contentMode === 'search' ? t('skills.refreshingSearch') : t('skills.refreshingTrending')
+  }
+  return props.contentMode === 'search' ? t('skills.refreshSearch') : t('skills.refreshTrending')
+})
+
+const resultSummary = computed(() => {
+  return props.contentMode === 'search'
+    ? t('skills.searchResultCount', { count: props.sortedItems.length })
+    : `${props.sortedItems.length} ${t('skills.resultCount')}`
+})
+
+const emptyTitle = computed(() => {
+  return props.contentMode === 'search'
+    ? t('skills.noMarketplaceResults')
+    : t('skills.noTrendingResults')
+})
+
+const emptyHint = computed(() => {
+  return props.contentMode === 'search'
+    ? t('skills.tryDifferentSearch')
+    : t('skills.tryRefreshTrending')
+})
 
 const handleSearchInput = (event: Event) => {
   const value = (event.target as HTMLInputElement).value
@@ -425,6 +504,15 @@ onUnmounted(() => {
   background: rgb(0 0 0 / 20%);
 }
 
+.state-box--error {
+  border-color: rgb(var(--color-danger-rgb) / 20%);
+}
+
+.state-box--warning {
+  border-color: rgb(var(--color-warning-rgb) / 20%);
+  background: rgb(var(--color-warning-rgb) / 8%);
+}
+
 .marketplace-grid {
   @apply grid gap-4;
 
@@ -466,7 +554,7 @@ onUnmounted(() => {
 
 .batch-bar__install {
   @apply flex items-center gap-1.5 rounded-lg bg-accent-primary px-4 py-1.5
-         text-sm font-semibold text-white transition-colors hover:bg-accent-primary/90;
+         text-sm font-semibold text-white transition-colors hover:bg-accent-primary/90 disabled:cursor-not-allowed disabled:opacity-60;
 }
 
 .batch-bar-enter-active,
