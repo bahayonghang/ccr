@@ -1,0 +1,83 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">CCR brand master</title>
+  <desc id="desc">Reference master for the CCR cyber badge brand system.</desc>
+  <defs>
+    <linearGradient id="badgeFill" x1="128" y1="88" x2="384" y2="424" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#123f70"/>
+      <stop offset="0.54" stop-color="#081b44"/>
+      <stop offset="1" stop-color="#040d2a"/>
+    </linearGradient>
+    <linearGradient id="rimStroke" x1="116" y1="92" x2="406" y2="438" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#35f4e5"/>
+      <stop offset="0.48" stop-color="#27c9d6"/>
+      <stop offset="1" stop-color="#74fbff"/>
+    </linearGradient>
+    <linearGradient id="monogramStroke" x1="164" y1="126" x2="334" y2="364" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#67fff6"/>
+      <stop offset="0.5" stop-color="#21e4dd"/>
+      <stop offset="1" stop-color="#7af6ff"/>
+    </linearGradient>
+    <filter id="softGlow" x="-25%" y="-25%" width="150%" height="150%">
+      <feGaussianBlur stdDeviation="8" result="blur"/>
+      <feColorMatrix
+        in="blur"
+        type="matrix"
+        values="1 0 0 0 0
+                0 1 0 0 0.68
+                0 0 1 0 0.72
+                0 0 0 0.45 0"
+        result="glow"
+      />
+      <feMerge>
+        <feMergeNode in="glow"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <g id="badge">
+    <path
+      d="M256 50 404 136v240L256 462 108 376V136Z"
+      fill="url(#badgeFill)"
+      filter="url(#softGlow)"
+    />
+    <path
+      d="M256 76 381 148v216L256 436 131 364V148Z"
+      fill="none"
+      stroke="url(#rimStroke)"
+      stroke-width="18"
+      stroke-linejoin="round"
+    />
+    <path
+      d="M256 108 353 164v184L256 404 159 348V164Z"
+      fill="#08163b"
+      stroke="#123a6f"
+      stroke-width="10"
+      stroke-linejoin="round"
+    />
+  </g>
+
+  <g id="monogram" fill="none" stroke="url(#monogramStroke)" stroke-linecap="square" stroke-linejoin="round">
+    <path d="M318 170 236 126 160 170v172l76 44 82-44" stroke-width="34"/>
+    <path d="M278 222 238 200 198 224v64l40 22 40-22" stroke-width="24"/>
+  </g>
+
+  <g id="accent">
+    <path
+      d="M256 108 353 164"
+      fill="none"
+      stroke="#a0ffff"
+      stroke-width="6"
+      stroke-linecap="round"
+      opacity="0.6"
+    />
+    <path
+      d="M165 341 205 364"
+      fill="none"
+      stroke="#90fbff"
+      stroke-width="8"
+      stroke-linecap="round"
+      opacity="0.65"
+    />
+  </g>
+</svg>

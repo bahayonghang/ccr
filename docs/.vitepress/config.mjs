@@ -1,6 +1,10 @@
 import { defineConfig } from 'vitepress'
 
 const sharedConfig = {
+  head: [
+    ['link', { rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg' }],
+    ['link', { rel: 'alternate icon', type: 'image/png', href: '/favicon.png' }]
+  ],
   markdown: {
     theme: {
       light: 'github-light',

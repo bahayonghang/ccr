@@ -14,7 +14,7 @@
         @click="showAboutDialog = true"
       >
         <img
-          src="/icons/icon.png"
+          src="/icons/icon.svg"
           class="w-full h-full object-cover transition-transform group-hover:scale-110"
           :alt="appName"
         >
@@ -169,7 +169,7 @@
             <div class="p-6 flex flex-col items-center">
               <div class="w-24 h-24 rounded-2xl mb-4 relative overflow-hidden shadow-lg border border-slate-100 dark:border-white/5 ring-4 ring-slate-50 dark:ring-white/5">
                 <img
-                  src="/icons/icon.png"
+                  src="/icons/logo.svg"
                   :alt="`${appName} logo`"
                   class="w-full h-full object-cover"
                 >
