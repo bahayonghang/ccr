@@ -3,56 +3,12 @@
    Utilities - Reusable Utility Classes
    ============================================ */
 
-/* ============================================
-   CCR-UI Nekomata Kawaii Design System
-   Utilities - Reusable Utility Classes
-   ============================================ */
+/* NOTE: This file is loaded after first paint.
+   The surface contract (`surface-*` / `glass-*`) is defined in Tailwind via
+   `tailwind.config.ts` so SFC `@apply` is stable and independent from CSS
+   import order. Keep this file focused on non-critical, non-surface utilities. */
 
 @layer components {
-    /* ========== Surface Contract (语义层) ========== */
-
-    /* `glass-*` 类仍保留为迁移期别名，新的共享组件应优先使用 `surface-*`。 */
-    .surface-shell,
-    .liquid-glass {
-        background: var(--surface-shell-bg);
-        backdrop-filter: var(--surface-shell-blur);
-        border: 1px solid var(--surface-shell-border);
-        box-shadow: var(--surface-shell-shadow), var(--liquid-glass-highlight);
-    }
-
-    .surface-workspace,
-    .glass-effect,
-    .glass-surface {
-        background: var(--surface-workspace-bg);
-        backdrop-filter: var(--surface-workspace-blur);
-        border: 1px solid var(--surface-workspace-border);
-        box-shadow: var(--surface-workspace-shadow);
-    }
-
-    .surface-card,
-    .glass-effect-strong,
-    .glass-elevated {
-        background: var(--surface-card-bg);
-        backdrop-filter: var(--surface-card-blur);
-        border: 1px solid var(--surface-card-border);
-        box-shadow: var(--surface-card-shadow), var(--glass-inner-glow);
-    }
-
-    .surface-modal,
-    .glass-modal {
-        background: var(--surface-modal-bg);
-        backdrop-filter: var(--surface-modal-blur);
-        border: 1px solid var(--surface-modal-border);
-        box-shadow: var(--surface-modal-shadow), var(--glass-inner-glow);
-    }
-
-    .surface-status {
-        background: var(--surface-status-bg);
-        backdrop-filter: var(--surface-status-blur);
-        border: 1px solid var(--surface-status-border);
-        box-shadow: var(--surface-status-shadow);
-    }
-
     /* ========== Dashboard Workspace Utilities ========== */
     .glass-panel {
         background: var(--glass-bg-light);
@@ -60,6 +16,7 @@
         transition:
             border-color var(--duration-fast) var(--ease-out),
             box-shadow var(--duration-fast) var(--ease-out);
+        backdrop-filter: var(--glass-blur-sm);
     }
 
     .glass-panel:hover {
@@ -893,75 +850,9 @@
     .delay-300 { animation-delay: 300ms; }
     .delay-400 { animation-delay: 400ms; }
     .delay-500 { animation-delay: 500ms; }
+
 }
 
-/* ========== 玻璃 backdrop-filter（提升到 utilities 层以兼容 Tailwind CSS 变量系统）==========
- * Tailwind 的 backdrop-filter 工具类在 @layer utilities 中通过 --tw-backdrop-* 变量运作。
- * 当自定义 glass 类的 backdrop-filter 定义在 @layer components 时，
- * 优先级低于 utilities 层导致被覆盖为空值。
- * 将 backdrop-filter 声明提升到 @layer utilities 解决此优先级冲突。 */
-@layer utilities {
-    .surface-shell {
-        backdrop-filter: var(--surface-shell-blur);
-    }
-
-    .surface-workspace {
-        backdrop-filter: var(--surface-workspace-blur);
-    }
-
-    .surface-card {
-        backdrop-filter: var(--surface-card-blur);
-    }
-
-    .surface-modal {
-        backdrop-filter: var(--surface-modal-blur);
-    }
-
-    .surface-status {
-        backdrop-filter: var(--surface-status-blur);
-    }
-
-    .glass-panel {
-        backdrop-filter: var(--glass-blur-sm);
-    }
-
-    .glass-surface {
-        backdrop-filter: var(--surface-workspace-blur);
-    }
-
-    .glass-effect {
-        backdrop-filter: var(--surface-workspace-blur);
-    }
-
-    .glass-effect-strong,
-    .glass-elevated {
-        backdrop-filter: var(--surface-card-blur);
-    }
-
-    .glass-modal {
-        backdrop-filter: var(--surface-modal-blur);
-    }
-
-    .liquid-glass {
-        backdrop-filter: var(--surface-shell-blur);
-    }
-
-    .config-card-active {
-        backdrop-filter: var(--glass-blur-xl);
-    }
-
-    .nav-item-active-glow {
-        backdrop-filter: blur(10px);
-    }
-
-    .nav-item-inactive {
-        backdrop-filter: blur(10px);
-    }
-
-    .glass-card {
-        backdrop-filter: var(--liquid-glass-blur);
-    }
-}
 
 /* ========== 无障碍: 减少动画 & 性能降级 ========== */
 
@@ -1004,17 +895,6 @@
 /* 当用户明确要求减少透明度时，增加背景不透明度但保留模糊效果。
  * backdrop-filter (blur) 属于视觉增强而非"透明度"，不应完全关闭。 */
 @media (prefers-reduced-transparency: reduce) {
-    .surface-shell,
-    .surface-workspace,
-    .surface-card,
-    .surface-modal,
-    .surface-status,
-    .glass-surface,
-    .glass-effect,
-    .glass-effect-strong,
-    .glass-elevated,
-    .glass-modal,
-    .liquid-glass,
     .config-card-active,
     .nav-item-active-glow,
     .nav-item-inactive {

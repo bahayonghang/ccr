@@ -75,7 +75,7 @@
             <div
               v-for="server in servers"
               :key="server.name"
-              class="group rounded-lg p-4 transition-[color,background-color,border-color,box-shadow] duration-300"
+              class="group rounded-lg p-4 transition-interactive duration-300"
               :style="{ background: 'rgba(255, 255, 255, 0.7)', border: '1px solid rgba(var(--color-accent-primary-rgb), 0.12)', outline: 'none', cursor: 'default' }"
               @mouseenter="(e) => onCardHover(e.currentTarget as HTMLElement, true)"
               @mouseleave="(e) => onCardHover(e.currentTarget as HTMLElement, false)"

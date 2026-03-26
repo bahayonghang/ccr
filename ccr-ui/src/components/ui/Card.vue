@@ -1,6 +1,6 @@
 <template>
   <div
-    class="ui-card group relative overflow-hidden transition-[color,background-color,border-color,box-shadow,transform,opacity] duration-300"
+    class="ui-card group relative overflow-hidden transition-interactive duration-300"
     :class="[
       `ui-card--${normalizedVariant}`,
       isInteractive ? 'ui-card--interactive' : '',
@@ -15,7 +15,7 @@
   >
     <div
       v-if="pattern"
-      class="absolute inset-0 opacity-[0.08] pointer-events-none"
+      class="absolute inset-0 ui-card-pattern pointer-events-none"
       :style="{ backgroundImage: backgroundPattern }"
     />
 
@@ -27,10 +27,10 @@
 
     <div
       v-if="gradientBorder"
-      class="absolute inset-0 rounded-[inherit] pointer-events-none overflow-hidden"
+      class="absolute inset-0 ui-card-inherit-radius pointer-events-none overflow-hidden"
     >
       <div
-        class="absolute inset-0 rounded-[inherit] opacity-0 transition-opacity duration-300"
+        class="absolute inset-0 ui-card-inherit-radius opacity-0 transition-opacity duration-300"
         :class="{ 'opacity-100': isInteractive }"
         :style="gradientBorderStyle"
       />
@@ -38,7 +38,7 @@
 
     <div
       v-if="isInteractive"
-      class="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-[opacity,transform] duration-300 translate-x-1 group-hover:translate-x-0 pointer-events-none"
+      class="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-interactive duration-300 translate-x-1 group-hover:translate-x-0 pointer-events-none"
     >
       <div class="rounded-full bg-white/10 p-1.5 backdrop-blur-md text-text-primary">
         <svg
@@ -234,6 +234,14 @@ const handleMouseLeave = (event: MouseEvent) => {
   box-shadow:
     var(--surface-card-shadow),
     0 0 24px rgb(var(--color-accent-primary-rgb) / 20%);
+}
+
+.ui-card-pattern {
+  opacity: 0.08;
+}
+
+.ui-card-inherit-radius {
+  border-radius: inherit;
 }
 
 .ui-card:focus-visible {

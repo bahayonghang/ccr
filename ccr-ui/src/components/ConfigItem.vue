@@ -1,7 +1,7 @@
 <template>
   <button
     type="button"
-    class="config-item group w-full rounded-lg text-left transition-[color,background-color,border-color,box-shadow] duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary/30 focus-visible:ring-offset-2 focus-visible:ring-offset-bg-base"
+    class="config-item group w-full rounded-lg text-left transition-interactive duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary/30 focus-visible:ring-offset-2 focus-visible:ring-offset-bg-base"
     :class="{
       'config-item--active': config.is_current,
       'config-item--idle': !config.is_current,

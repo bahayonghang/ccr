@@ -423,6 +423,15 @@
     --liquid-glass-shadow: 0 8px 32px rgb(0 0 0 / 25%), 0 2px 8px rgb(0 0 0 / 15%);
 }
 
+@media (prefers-reduced-transparency: reduce) {
+    :root:where(:root):where(:root):where(:root):where(:root):where(:root) {
+        --liquid-glass-bg: var(--glass-bg-strong);
+        --surface-shell-bg: var(--glass-bg-strong);
+        --surface-workspace-bg: var(--glass-bg-strong);
+        --surface-status-bg: var(--glass-bg-strong);
+    }
+}
+
 /* ========== 动画系统 ========== */
 :root:where(:root):where(:root):where(:root):where(:root):where(:root):where(:root) {
     /* --- 时长 --- */

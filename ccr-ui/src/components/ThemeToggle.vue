@@ -1,7 +1,7 @@
 <template>
   <button
     type="button"
-    class="inline-flex min-h-[44px] min-w-[44px] flex-shrink-0 items-center justify-center rounded-xl border border-border-default/70 bg-bg-elevated/70 p-0 leading-none text-text-secondary shadow-sm backdrop-blur-md transition-[color,background-color,border-color,box-shadow,transform] duration-200 hover:border-accent-primary/40 hover:bg-bg-surface hover:text-accent-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary/30 focus-visible:ring-offset-2 focus-visible:ring-offset-bg-base active:scale-95"
+    class="inline-flex min-h-[44px] min-w-[44px] flex-shrink-0 items-center justify-center rounded-xl border border-border-default/70 bg-bg-elevated/70 p-0 leading-none text-text-secondary shadow-sm backdrop-blur-md transition-interactive duration-200 hover:border-accent-primary/40 hover:bg-bg-surface hover:text-accent-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary/30 focus-visible:ring-offset-2 focus-visible:ring-offset-bg-base active:scale-95"
     :title="`切换到${currentTheme === 'dark' ? '明亮' : '深色'}模式`"
     :aria-label="`切换到${currentTheme === 'dark' ? '明亮' : '深色'}模式`"
     @click.stop="toggleTheme"

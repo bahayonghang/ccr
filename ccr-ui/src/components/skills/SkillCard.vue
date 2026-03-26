@@ -304,7 +304,7 @@ function handleKeydown(event: KeyboardEvent) {
 .skill-card {
   @apply relative flex flex-row items-start gap-4 p-4 pl-5 rounded-2xl cursor-pointer
          border border-border-default/40 text-text-primary
-         transition-[color,background-color,border-color,box-shadow,transform] duration-200 ease-out
+         transition-interactive duration-200 ease-out
          overflow-hidden;
 
   background: rgb(var(--color-bg-elevated-rgb) / 92%);

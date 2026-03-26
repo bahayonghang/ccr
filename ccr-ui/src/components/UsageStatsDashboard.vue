@@ -133,7 +133,7 @@
         <div
           v-for="card in summaryCards"
           :key="card.label"
-          class="group relative overflow-hidden rounded-xl border border-border-default/30 bg-bg-elevated/30 p-4 transition-[color,background-color,box-shadow] duration-300"
+          class="group relative overflow-hidden rounded-xl border border-border-default/30 bg-bg-elevated/30 p-4 transition-interactive duration-300"
           :class="card.hoverClass"
         >
           <div
@@ -172,7 +172,7 @@
         <div
           v-for="card in platformCards"
           :key="card.key"
-          class="rounded-xl border p-4 transition-[color,background-color,box-shadow] duration-300"
+          class="rounded-xl border p-4 transition-interactive duration-300"
           :class="card.containerClass"
         >
           <div class="mb-3 flex items-center gap-2">

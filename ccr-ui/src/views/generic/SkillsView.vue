@@ -282,7 +282,7 @@
             </div>
 
             <!-- Actions (Visible on hover) -->
-            <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-[opacity,transform] duration-200 translate-x-2 group-hover:translate-x-0">
+            <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-interactive duration-200 translate-x-2 group-hover:translate-x-0">
               <button
                 v-if="!skill.repository"
                 class="p-1.5 rounded-lg hover:bg-white/5 text-white/50 hover:text-white transition-colors"

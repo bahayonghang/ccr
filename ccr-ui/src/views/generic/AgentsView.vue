@@ -11,9 +11,9 @@
         <!-- Left Sidebar (Folders) -->
         <div class="w-64 flex-shrink-0 space-y-4 hidden lg:block sticky top-6">
           <div class="glass-effect rounded-2xl p-4 border border-white/20 shadow-sm">
-            <h3 class="text-xs font-bold text-[var(--color-text-muted)] uppercase tracking-wider mb-3 px-2 flex items-center justify-between">
+            <h3 class="text-xs font-bold text-text-muted uppercase tracking-wider mb-3 px-2 flex items-center justify-between">
               {{ $t(`${tPrefix}.folders.label`) }}
-              <span class="bg-[var(--color-bg-surface)] px-1.5 py-0.5 rounded text-[10px]">{{ stats.total }}</span>
+              <span class="bg-bg-surface px-1.5 py-0.5 rounded text-[10px]">{{ stats.total }}</span>
             </h3>
              
             <div class="space-y-1">
@@ -24,8 +24,8 @@
                 class="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm transition-colors duration-200 group min-h-[44px]"
                 :class="[
                   selectedFolder === folder.value 
-                    ? 'bg-[var(--color-accent-primary)]/10 text-[var(--color-accent-primary)] font-medium shadow-sm border border-[var(--color-accent-primary)]/20' 
-                    : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-surface)] hover:text-[var(--color-text-primary)]'
+                    ? 'bg-accent-primary/10 text-accent-primary font-medium shadow-sm border border-accent-primary/20' 
+                    : 'text-text-secondary hover:bg-bg-surface hover:text-text-primary'
                 ]"
                 @click="selectedFolder = folder.value"
               >
@@ -33,12 +33,12 @@
                   :name="folder.icon"
                   size="w-4 h-4"
                   class="transition-transform group-hover:scale-110"
-                  :class="selectedFolder === folder.value ? 'text-[var(--color-accent-primary)]' : 'text-[var(--color-text-muted)]'"
+                  :class="selectedFolder === folder.value ? 'text-accent-primary' : 'text-text-muted'"
                 />
                 <span class="flex-1 truncate">{{ folder.label }}</span>
                 <span 
                   class="text-xs px-1.5 py-0.5 rounded-md transition-colors"
-                  :class="selectedFolder === folder.value ? 'bg-[var(--color-accent-primary)]/20 text-[var(--color-accent-primary)]' : 'bg-[var(--color-bg-surface)] text-[var(--color-text-muted)]'"
+                  :class="selectedFolder === folder.value ? 'bg-accent-primary/20 text-accent-primary' : 'bg-bg-surface text-text-muted'"
                 >
                   {{ folder.count }}
                 </span>
@@ -48,24 +48,24 @@
 
           <!-- Stats Card -->
           <div class="glass-effect rounded-2xl p-5 border border-white/20 shadow-sm relative overflow-hidden group">
-            <div class="absolute top-0 right-0 w-24 h-24 bg-[var(--color-accent-primary)]/10 rounded-full blur-2xl -mr-8 -mt-8 transition-colors group-hover:bg-[var(--color-accent-primary)]/20" />
-            <h4 class="text-sm font-bold text-[var(--color-text-primary)] mb-1">
+            <div class="absolute top-0 right-0 w-24 h-24 bg-accent-primary/10 rounded-full blur-2xl -mr-8 -mt-8 transition-colors group-hover:bg-accent-primary/20" />
+            <h4 class="text-sm font-bold text-text-primary mb-1">
               Agent Status
             </h4>
             <div class="flex items-center gap-2 mt-3">
-              <div class="flex-1 bg-[var(--color-bg-surface)] rounded-lg p-2 text-center">
-                <div class="text-lg font-bold text-[var(--color-accent-primary)]">
+              <div class="flex-1 bg-bg-surface rounded-lg p-2 text-center">
+                <div class="text-lg font-bold text-accent-primary">
                   {{ stats.active }}
                 </div>
-                <div class="text-[10px] text-[var(--color-text-muted)] uppercase">
+                <div class="text-[10px] text-text-muted uppercase">
                   Active
                 </div>
               </div>
-              <div class="flex-1 bg-[var(--color-bg-surface)] rounded-lg p-2 text-center">
-                <div class="text-lg font-bold text-[var(--color-text-muted)]">
+              <div class="flex-1 bg-bg-surface rounded-lg p-2 text-center">
+                <div class="text-lg font-bold text-text-muted">
                   {{ stats.disabled }}
                 </div>
-                <div class="text-[10px] text-[var(--color-text-muted)] uppercase">
+                <div class="text-[10px] text-text-muted uppercase">
                   Disabled
                 </div>
               </div>
@@ -83,17 +83,17 @@
             class="mb-6"
           >
             <template #meta>
-              <span class="inline-flex items-center gap-2 rounded-full border border-[var(--color-accent-primary)]/20 bg-[var(--color-accent-primary)]/10 px-3 py-1 text-sm font-medium text-[var(--color-accent-primary)]">
+              <span class="inline-flex items-center gap-2 rounded-full border border-accent-primary/20 bg-accent-primary/10 px-3 py-1 text-sm font-medium text-accent-primary">
                 {{ stats.active }} Active
               </span>
-              <span class="inline-flex items-center gap-2 rounded-full border border-[var(--color-border-default)]/50 bg-[var(--color-bg-surface)]/70 px-3 py-1 text-sm font-medium text-[var(--color-text-secondary)]">
+              <span class="inline-flex items-center gap-2 rounded-full border border-border-default/50 bg-bg-surface/70 px-3 py-1 text-sm font-medium text-text-secondary">
                 {{ stats.disabled }} Disabled
               </span>
             </template>
 
             <template #actions>
               <button
-                class="min-h-[44px] px-4 py-2.5 rounded-xl font-medium transition-[color,background-color,border-color,transform] hover:scale-105 bg-[var(--color-accent-primary)] text-white shadow-lg shadow-[var(--color-accent-primary)]/20 hover:shadow-[var(--color-accent-primary)]/30 flex items-center text-sm"
+                class="min-h-[44px] px-4 py-2.5 rounded-xl font-medium transition-[color,background-color,border-color,transform] hover:scale-105 bg-accent-primary text-white shadow-lg shadow-accent-primary/20 hover:shadow-accent-primary/30 flex items-center text-sm"
                 @click="handleAdd"
               >
                 <SIcon
@@ -108,17 +108,17 @@
               <SIcon
                 name="Search"
                 size="w-4 h-4"
-                class="absolute left-3 top-1/2 transform -translate-y-1/2 text-[var(--color-text-muted)]"
+                class="absolute left-3 top-1/2 transform -translate-y-1/2 text-text-muted"
               />
               <input
                 v-model="searchQuery"
                 type="text"
                 :placeholder="$t(`${tPrefix}.searchPlaceholder`)"
-                class="w-full pl-10 pr-10 py-2.5 rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--color-accent-primary)]/20 bg-[var(--color-bg-surface)]/50 border border-[var(--color-border-default)] hover:bg-[var(--color-bg-surface)] text-[var(--color-text-primary)] placeholder-[var(--color-text-muted)] text-sm"
+                class="w-full pl-10 pr-10 py-2.5 rounded-xl transition-colors focus:outline-none focus:ring-2 focus:ring-accent-primary/20 bg-bg-surface/50 border border-border-default hover:bg-bg-surface text-text-primary placeholder:text-text-muted text-sm"
               >
               <button
                 v-if="searchQuery"
-                class="absolute right-2 top-1/2 transform -translate-y-1/2 rounded-full hover:bg-black/10 text-[var(--color-text-muted)] transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
+                class="absolute right-2 top-1/2 transform -translate-y-1/2 rounded-full hover:bg-black/10 text-text-muted transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
                 :aria-label="$t('common.clearSearch')"
                 @click="searchQuery = ''"
               >
@@ -133,9 +133,9 @@
           <!-- Agent Grid -->
           <div
             v-if="loading"
-            class="text-center py-20 text-[var(--color-text-muted)]"
+            class="text-center py-20 text-text-muted"
           >
-            <div class="loading-spinner mx-auto mb-4 w-8 h-8 border-[var(--color-accent-primary)]/30 border-t-[var(--color-accent-primary)]" />
+            <div class="loading-spinner mx-auto mb-4 w-8 h-8 border-accent-primary/30 border-t-accent-primary" />
             {{ $t(`${tPrefix}.loading`) }}
           </div>
            
@@ -143,21 +143,21 @@
             v-else-if="filteredAgents.length === 0"
             class="text-center py-24 glass-effect rounded-3xl border border-white/20 border-dashed"
           >
-            <div class="bg-[var(--color-bg-elevated)] w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
+            <div class="bg-bg-elevated w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
               <SIcon
                 name="Search"
                 size="w-10 h-10"
-                class="opacity-30 text-[var(--color-text-muted)]"
+                class="opacity-30 text-text-muted"
               />
             </div>
-            <p class="text-lg font-bold text-[var(--color-text-primary)]">
+            <p class="text-lg font-bold text-text-primary">
               {{ $t(`${tPrefix}.noResults`) }}
             </p>
-            <p class="text-sm mt-2 text-[var(--color-text-muted)]">
+            <p class="text-sm mt-2 text-text-muted">
               {{ $t(`${tPrefix}.noResultsHint`) }}
             </p>
             <button 
-              class="mt-6 min-h-[44px] px-4 py-2 text-sm text-[var(--color-accent-primary)] hover:bg-[var(--color-accent-primary)]/5 rounded-lg transition-colors"
+              class="mt-6 min-h-[44px] px-4 py-2 text-sm text-accent-primary hover:bg-accent-primary/5 rounded-lg transition-colors"
               @click="searchQuery = ''; selectedFolder = ''"
             >
               {{ $t(`${tPrefix}.tryOtherKeywords`) }}
@@ -178,17 +178,17 @@
                 <div class="relative z-10 flex flex-col h-full">
                   <div class="flex items-start justify-between mb-3">
                     <div class="flex items-center gap-3 overflow-hidden">
-                      <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--color-accent-primary)]/10 to-[var(--color-info)]/10 flex items-center justify-center text-lg shadow-sm border border-white/20 group-hover:scale-110 transition-transform duration-300">
+                      <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-accent-primary/10 to-accent-info/10 flex items-center justify-center text-lg shadow-sm border border-white/20 group-hover:scale-110 transition-transform duration-300">
                         🤖
                       </div>
                       <div class="min-w-0">
-                        <h3 class="text-base font-bold text-[var(--color-text-primary)] group-hover:text-[var(--color-accent-primary)] transition-colors truncate">
+                        <h3 class="text-base font-bold text-text-primary group-hover:text-accent-primary transition-colors truncate">
                           {{ agent.name }}
                         </h3>
                         <div class="flex items-center gap-1.5 mt-0.5">
                           <span
                             v-if="agent.folder"
-                            class="flex items-center gap-1 text-[10px] text-[var(--color-text-muted)] bg-[var(--color-bg-surface)] px-1.5 py-0.5 rounded border border-[var(--color-border-default)]/50"
+                            class="flex items-center gap-1 text-[10px] text-text-muted bg-bg-surface px-1.5 py-0.5 rounded border border-border-default/50"
                           >
                             <SIcon
                               name="Folder"
@@ -202,8 +202,8 @@
                     <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                       <button
                         v-if="!isQoderSubagents"
-                        class="min-h-[44px] min-w-[44px] rounded-lg transition-colors hover:bg-[var(--color-bg-surface)] flex items-center justify-center"
-                        :class="agent.disabled ? 'text-[var(--color-text-muted)] hover:text-[var(--color-accent-primary)]' : 'text-[var(--color-accent-primary)] hover:text-[var(--color-text-muted)]'"
+                        class="min-h-[44px] min-w-[44px] rounded-lg transition-colors hover:bg-bg-surface flex items-center justify-center"
+                        :class="agent.disabled ? 'text-text-muted hover:text-accent-primary' : 'text-accent-primary hover:text-text-muted'"
                         :title="agent.disabled ? $t(`${tPrefix}.enable`) : $t(`${tPrefix}.disable`)"
                         @click.stop="handleToggle(agent)"
                       >
@@ -220,7 +220,7 @@
                       </button>
                       <button
                         v-if="module === 'agents'"
-                        class="min-h-[44px] min-w-[44px] rounded-lg text-[var(--color-text-secondary)] hover:text-[var(--color-accent-primary)] hover:bg-[var(--color-accent-primary)]/10 transition-colors flex items-center justify-center"
+                        class="min-h-[44px] min-w-[44px] rounded-lg text-text-secondary hover:text-accent-primary hover:bg-accent-primary/10 transition-colors flex items-center justify-center"
                         :title="$t('common.view')"
                         @click.stop="navigateToDetail(agent)"
                       >
@@ -230,7 +230,7 @@
                         />
                       </button>
                       <button
-                        class="min-h-[44px] min-w-[44px] rounded-lg text-[var(--color-text-secondary)] hover:text-[var(--color-info)] hover:bg-[var(--color-info)]/10 transition-colors flex items-center justify-center"
+                        class="min-h-[44px] min-w-[44px] rounded-lg text-text-secondary hover:text-accent-info hover:bg-accent-info/10 transition-colors flex items-center justify-center"
                         :title="$t('common.edit')"
                         @click.stop="handleEdit(agent)"
                       >
@@ -240,7 +240,7 @@
                         />
                       </button>
                       <button
-                        class="min-h-[44px] min-w-[44px] rounded-lg text-[var(--color-text-secondary)] hover:text-[var(--color-danger)] hover:bg-[var(--color-danger)]/10 transition-colors flex items-center justify-center"
+                        class="min-h-[44px] min-w-[44px] rounded-lg text-text-secondary hover:text-accent-danger hover:bg-accent-danger/10 transition-colors flex items-center justify-center"
                         :title="$t('common.delete')"
                         @click.stop="handleDelete(agent)"
                       >
@@ -254,7 +254,7 @@
 
                   <button
                     type="button"
-                    class="flex h-full flex-col text-left rounded-2xl transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent-primary)]/25"
+                    class="flex h-full flex-col text-left rounded-2xl transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary/25"
                     :aria-label="$t('common.view') + ': ' + agent.name"
                     @click="navigateToDetail(agent)"
                   >
@@ -263,22 +263,22 @@
                         v-if="agent.system_prompt"
                         class="relative"
                       >
-                        <div class="absolute left-0 top-0 bottom-0 w-0.5 bg-[var(--color-accent-primary)]/30 rounded-full" />
-                        <p class="pl-3 text-xs text-[var(--color-text-secondary)] line-clamp-3 leading-relaxed italic">
+                        <div class="absolute left-0 top-0 bottom-0 w-0.5 bg-accent-primary/30 rounded-full" />
+                        <p class="pl-3 text-xs text-text-secondary line-clamp-3 leading-relaxed italic">
                           {{ agent.system_prompt }}
                         </p>
                       </div>
                       <div
                         v-else
-                        class="text-xs text-[var(--color-text-muted)] italic pl-3"
+                        class="text-xs text-text-muted italic pl-3"
                       >
                         No system prompt configured
                       </div>
                     </div>
                    
-                    <div class="mt-4 pt-3 border-t border-[var(--color-border-default)]/30 flex items-center justify-between gap-2">
-                      <div class="flex items-center gap-1.5 text-[10px] text-[var(--color-text-muted)] bg-[var(--color-bg-surface)]/50 px-2 py-1 rounded-md border border-[var(--color-border-default)]/30">
-                        <span class="w-1.5 h-1.5 rounded-full bg-[var(--color-accent-secondary)]/50" />
+                    <div class="mt-4 pt-3 border-t border-border-default/30 flex items-center justify-between gap-2">
+                      <div class="flex items-center gap-1.5 text-[10px] text-text-muted bg-bg-surface/50 px-2 py-1 rounded-md border border-border-default/30">
+                        <span class="w-1.5 h-1.5 rounded-full bg-accent-secondary/50" />
                         <span class="truncate max-w-[120px]">
                           {{ isQoderSubagents ? 'Subagent' : agent.model }}
                         </span>
@@ -291,14 +291,14 @@
                         <div
                           v-for="(tool, i) in agent.tools.slice(0, 3)"
                           :key="i" 
-                          class="w-6 h-6 rounded-full bg-white border border-[var(--color-border-default)] flex items-center justify-center text-[10px] shadow-sm text-[var(--color-text-secondary)]"
+                          class="w-6 h-6 rounded-full bg-white border border-border-default flex items-center justify-center text-[10px] shadow-sm text-text-secondary"
                           :title="tool"
                         >
                           {{ tool.charAt(0).toUpperCase() }}
                         </div>
                         <div
                           v-if="agent.tools.length > 3"
-                          class="w-6 h-6 rounded-full bg-[var(--color-bg-surface)] border border-[var(--color-border-default)] flex items-center justify-center text-[9px] font-medium text-[var(--color-text-muted)]"
+                          class="w-6 h-6 rounded-full bg-bg-surface border border-border-default flex items-center justify-center text-[9px] font-medium text-text-muted"
                         >
                           +{{ agent.tools.length - 3 }}
                         </div>
@@ -310,9 +310,9 @@
                 <!-- Disabled Overlay -->
                 <div
                   v-if="agent.disabled"
-                  class="absolute inset-0 bg-[var(--color-bg-base)]/40 backdrop-blur-[2px] flex items-center justify-center z-20 rounded-xl border border-[var(--color-text-muted)]/10"
+                  class="absolute inset-0 bg-bg-base/40 backdrop-blur-[2px] flex items-center justify-center z-20 rounded-xl border border-text-muted/10"
                 >
-                  <span class="px-3 py-1 bg-[var(--color-text-muted)]/80 text-white text-xs font-bold rounded-full shadow-sm uppercase tracking-wider backdrop-blur-md">
+                  <span class="px-3 py-1 bg-text-muted/80 text-white text-xs font-bold rounded-full shadow-sm uppercase tracking-wider backdrop-blur-md">
                     {{ $t(`${tPrefix}.disabledBadge`) }}
                   </span>
                 </div>
@@ -334,7 +334,7 @@
     <!-- Add/Edit Modal -->
     <div
       v-if="showAddForm"
-      class="fixed inset-0 flex items-center justify-center z-50 bg-[var(--color-bg-overlay)]/20 backdrop-blur-md transition-colors p-4"
+      class="fixed inset-0 flex items-center justify-center z-50 bg-bg-overlay/20 backdrop-blur-md transition-colors p-4"
       @click="showAddForm = false"
     >
       <div
@@ -342,7 +342,7 @@
         @click.stop
       >
         <button 
-          class="absolute top-4 right-4 p-2 rounded-full hover:bg-[var(--color-bg-surface)] text-[var(--color-text-muted)] transition-colors"
+          class="absolute top-4 right-4 p-2 rounded-full hover:bg-bg-surface text-text-muted transition-colors"
           @click="showAddForm = false"
         >
           <SIcon
@@ -351,8 +351,8 @@
           />
         </button>
 
-        <h3 class="text-2xl font-bold mb-8 text-[var(--color-text-primary)] flex items-center">
-          <div class="w-10 h-10 rounded-xl bg-[var(--color-accent-primary)]/10 flex items-center justify-center mr-3 text-[var(--color-accent-primary)]">
+        <h3 class="text-2xl font-bold mb-8 text-text-primary flex items-center">
+          <div class="w-10 h-10 rounded-xl bg-accent-primary/10 flex items-center justify-center mr-3 text-accent-primary">
             <SIcon
               :name="editingAgent ? 'Edit2' : 'Plus'"
               size="w-5 h-5"
@@ -364,21 +364,21 @@
         <div class="space-y-6">
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label class="block mb-2 text-xs font-bold text-[var(--color-text-secondary)] uppercase tracking-wider">{{ $t(`${tPrefix}.nameLabel`) }}</label>
+              <label class="block mb-2 text-xs font-bold text-text-secondary uppercase tracking-wider">{{ $t(`${tPrefix}.nameLabel`) }}</label>
               <input
                 v-model="formData.name"
                 type="text"
-                class="w-full px-4 py-3 rounded-xl bg-white/50 border border-[var(--color-border-default)] focus:border-[var(--color-accent-primary)] focus:ring-4 focus:ring-[var(--color-accent-primary)]/10 outline-none transition-colors"
+                class="w-full px-4 py-3 rounded-xl bg-white/50 border border-border-default focus:border-accent-primary focus:ring-4 focus:ring-accent-primary/10 outline-none transition-colors"
                 :placeholder="$t(`${tPrefix}.namePlaceholder` || 'Agent Name')"
               >
             </div>
 
             <div v-if="!isQoderSubagents">
-              <label class="block mb-2 text-xs font-bold text-[var(--color-text-secondary)] uppercase tracking-wider">{{ $t(`${tPrefix}.modelLabel`) }}</label>
+              <label class="block mb-2 text-xs font-bold text-text-secondary uppercase tracking-wider">{{ $t(`${tPrefix}.modelLabel`) }}</label>
               <div class="relative">
                 <select
                   v-model="formData.model"
-                  class="w-full px-4 py-3 rounded-xl bg-white/50 border border-[var(--color-border-default)] focus:border-[var(--color-accent-primary)] focus:ring-4 focus:ring-[var(--color-accent-primary)]/10 outline-none transition-colors appearance-none"
+                  class="w-full px-4 py-3 rounded-xl bg-white/50 border border-border-default focus:border-accent-primary focus:ring-4 focus:ring-accent-primary/10 outline-none transition-colors appearance-none"
                 >
                   <option value="claude-sonnet-4-5-20250929">
                     Claude Sonnet 4.5
@@ -390,7 +390,7 @@
                     Claude 3.5 Sonnet
                   </option>
                 </select>
-                <div class="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-[var(--color-text-muted)]">
+                <div class="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-text-muted">
                   <SIcon
                     name="ChevronDown"
                     size="w-4 h-4"
@@ -401,35 +401,35 @@
           </div>
 
           <div>
-            <label class="block mb-2 text-xs font-bold text-[var(--color-text-secondary)] uppercase tracking-wider">{{ $t(`${tPrefix}.toolsLabel`) }}</label>
+            <label class="block mb-2 text-xs font-bold text-text-secondary uppercase tracking-wider">{{ $t(`${tPrefix}.toolsLabel`) }}</label>
             <div class="flex gap-2 mb-3">
               <input
                 v-model="toolInput"
                 type="text"
                 :placeholder="$t(`${tPrefix}.toolPlaceholder`)"
-                class="flex-1 px-4 py-3 rounded-xl bg-white/50 border border-[var(--color-border-default)] focus:border-[var(--color-accent-primary)] focus:ring-4 focus:ring-[var(--color-accent-primary)]/10 outline-none transition-colors"
+                class="flex-1 px-4 py-3 rounded-xl bg-white/50 border border-border-default focus:border-accent-primary focus:ring-4 focus:ring-accent-primary/10 outline-none transition-colors"
                 @keyup.enter="addTool"
               >
               <button
-                class="px-6 py-3 rounded-xl font-bold text-white bg-[var(--color-accent-primary)] hover:bg-[var(--color-accent-primary)]/90 transition-colors shadow-lg shadow-[var(--color-accent-primary)]/20"
+                class="px-6 py-3 rounded-xl font-bold text-white bg-accent-primary hover:bg-accent-primary/90 transition-colors shadow-lg shadow-accent-primary/20"
                 @click="addTool"
               >
                 {{ $t(`${tPrefix}.addTool`) }}
               </button>
             </div>
-            <div class="flex flex-wrap gap-2 min-h-[50px] p-4 rounded-xl bg-[var(--color-bg-elevated)]/50 border border-[var(--color-border-default)]/50 border-dashed">
+            <div class="flex flex-wrap gap-2 min-h-[50px] p-4 rounded-xl bg-bg-elevated/50 border border-border-default/50 border-dashed">
               <span
                 v-if="!formData.tools || formData.tools.length === 0"
-                class="text-sm text-[var(--color-text-muted)] italic w-full text-center py-2"
+                class="text-sm text-text-muted italic w-full text-center py-2"
               >No tools added</span>
               <span
                 v-for="tool in (formData.tools || [])"
                 :key="tool"
-                class="px-3 py-1.5 rounded-lg text-sm flex items-center gap-2 bg-white border border-[var(--color-border-default)] shadow-sm text-[var(--color-text-primary)] group"
+                class="px-3 py-1.5 rounded-lg text-sm flex items-center gap-2 bg-white border border-border-default shadow-sm text-text-primary group"
               >
                 {{ tool }}
                 <button
-                  class="text-[var(--color-text-muted)] group-hover:text-[var(--color-danger)] transition-colors"
+                  class="text-text-muted group-hover:text-accent-danger transition-colors"
                   @click="removeTool(tool)"
                 ><SIcon
                   name="X"
@@ -440,25 +440,25 @@
           </div>
 
           <div>
-            <label class="block mb-2 text-xs font-bold text-[var(--color-text-secondary)] uppercase tracking-wider">{{ $t(`${tPrefix}.systemPromptLabel`) }}</label>
+            <label class="block mb-2 text-xs font-bold text-text-secondary uppercase tracking-wider">{{ $t(`${tPrefix}.systemPromptLabel`) }}</label>
             <textarea
               v-model="formData.system_prompt"
               rows="6"
-              class="w-full px-4 py-3 rounded-xl bg-white/50 border border-[var(--color-border-default)] focus:border-[var(--color-accent-primary)] focus:ring-4 focus:ring-[var(--color-accent-primary)]/10 outline-none transition-colors resize-y font-mono text-sm leading-relaxed"
+              class="w-full px-4 py-3 rounded-xl bg-white/50 border border-border-default focus:border-accent-primary focus:ring-4 focus:ring-accent-primary/10 outline-none transition-colors resize-y font-mono text-sm leading-relaxed"
               :placeholder="$t(`${tPrefix}.systemPromptPlaceholder` || 'Enter system prompt...')"
             />
           </div>
         </div>
 
-        <div class="flex gap-4 mt-10 pt-6 border-t border-[var(--color-border-default)]/50">
+        <div class="flex gap-4 mt-10 pt-6 border-t border-border-default/50">
           <button
-            class="flex-1 px-6 py-3.5 rounded-xl font-bold transition-colors bg-white text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-surface)] border border-[var(--color-border-default)]"
+            class="flex-1 px-6 py-3.5 rounded-xl font-bold transition-colors bg-white text-text-secondary hover:bg-bg-surface border border-border-default"
             @click="showAddForm = false"
           >
             {{ $t('common.cancel') }}
           </button>
           <button
-            class="flex-1 px-6 py-3.5 rounded-xl font-bold transition-[color,background-color,border-color,transform] bg-[var(--color-accent-primary)] text-white shadow-lg shadow-[var(--color-accent-primary)]/20 hover:shadow-xl hover:shadow-[var(--color-accent-primary)]/30 hover:-translate-y-0.5"
+            class="flex-1 px-6 py-3.5 rounded-xl font-bold transition-[color,background-color,border-color,transform] bg-accent-primary text-white shadow-lg shadow-accent-primary/20 hover:shadow-xl hover:shadow-accent-primary/30 hover:-translate-y-0.5"
             @click="handleSubmit"
           >
             {{ editingAgent ? $t(`${tPrefix}.save`) : $t(`${tPrefix}.add`) }}

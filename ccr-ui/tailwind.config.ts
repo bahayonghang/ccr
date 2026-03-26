@@ -17,6 +17,11 @@ export default {
     './src/utils/**/*.{js,ts}',
     './src/views/**/*.{vue,js,ts,jsx,tsx}',
   ],
+  corePlugins: {
+    // We ship our own reset + base styles in `src/styles/base.css` and keep
+    // Tailwind's generated CSS as lean as possible for startup performance.
+    preflight: false,
+  },
   theme: {
     // Override default font family to use our tokens
     fontFamily: {
@@ -36,6 +41,11 @@ export default {
       black: '500',
     },
     extend: {
+      transitionProperty: {
+        // Unified interactive transitions to avoid many one-off `transition-[...]` utilities.
+        // This reduces generated CSS size and keeps motion language consistent.
+        interactive: 'color, background-color, border-color, box-shadow, transform, opacity',
+      },
       colors: {
         bg: {
           base: 'rgb(var(--color-bg-base-rgb) / <alpha-value>)',
@@ -160,13 +170,62 @@ export default {
   },
   plugins: [
     plugin(({ addComponents }) => {
+      const surfaceShell = {
+        background: 'var(--surface-shell-bg)',
+        '-webkit-backdrop-filter': 'var(--surface-shell-blur)',
+        'backdrop-filter': 'var(--surface-shell-blur)',
+        border: '1px solid var(--surface-shell-border)',
+        'box-shadow': 'var(--surface-shell-shadow), var(--liquid-glass-highlight)',
+      }
+
+      const surfaceWorkspace = {
+        background: 'var(--surface-workspace-bg)',
+        '-webkit-backdrop-filter': 'var(--surface-workspace-blur)',
+        'backdrop-filter': 'var(--surface-workspace-blur)',
+        border: '1px solid var(--surface-workspace-border)',
+        'box-shadow': 'var(--surface-workspace-shadow)',
+      }
+
+      const surfaceCard = {
+        background: 'var(--surface-card-bg)',
+        '-webkit-backdrop-filter': 'var(--surface-card-blur)',
+        'backdrop-filter': 'var(--surface-card-blur)',
+        border: '1px solid var(--surface-card-border)',
+        'box-shadow': 'var(--surface-card-shadow), var(--glass-inner-glow)',
+      }
+
+      const surfaceModal = {
+        background: 'var(--surface-modal-bg)',
+        '-webkit-backdrop-filter': 'var(--surface-modal-blur)',
+        'backdrop-filter': 'var(--surface-modal-blur)',
+        border: '1px solid var(--surface-modal-border)',
+        'box-shadow': 'var(--surface-modal-shadow), var(--glass-inner-glow)',
+      }
+
+      const surfaceStatus = {
+        background: 'var(--surface-status-bg)',
+        '-webkit-backdrop-filter': 'var(--surface-status-blur)',
+        'backdrop-filter': 'var(--surface-status-blur)',
+        border: '1px solid var(--surface-status-border)',
+        'box-shadow': 'var(--surface-status-shadow)',
+      }
+
       addComponents({
-        '.glass-surface': {
-          background: 'var(--glass-bg-light)',
-          '-webkit-backdrop-filter': 'var(--glass-blur-md)',
-          'backdrop-filter': 'var(--glass-blur-md)',
-          border: '1px solid var(--glass-border-light)',
-        },
+        '.surface-shell': surfaceShell,
+        '.liquid-glass': surfaceShell,
+
+        '.surface-workspace': surfaceWorkspace,
+        '.glass-effect': surfaceWorkspace,
+        '.glass-surface': surfaceWorkspace,
+
+        '.surface-card': surfaceCard,
+        '.glass-effect-strong': surfaceCard,
+        '.glass-elevated': surfaceCard,
+
+        '.surface-modal': surfaceModal,
+        '.glass-modal': surfaceModal,
+
+        '.surface-status': surfaceStatus,
       })
     }),
   ],

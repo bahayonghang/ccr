@@ -4,7 +4,7 @@
    ============================================ */
 
 /* ========== 基础动画关键帧 ========== */
-@layer utilities {
+
     /* 淡入 */
     @keyframes fade-in {
         from {
@@ -752,4 +752,3 @@
         opacity: 0;
         transform: translateX(-20px);
     }
-}

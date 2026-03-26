@@ -94,7 +94,7 @@ const classes = computed(() => {
 <style scoped>
 .ui-button {
   @apply inline-flex min-h-[44px] items-center justify-center rounded-xl font-medium;
-  @apply transition-[color,background-color,border-color,transform,box-shadow] duration-300 ease-out;
+  @apply transition-interactive duration-300 ease-out;
   @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary/30 focus-visible:ring-offset-2 focus-visible:ring-offset-bg-base;
 
   transform: translateZ(0);

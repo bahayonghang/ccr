@@ -77,7 +77,7 @@
             <div
               v-for="plugin in plugins"
               :key="plugin.id"
-              class="group glass-effect rounded-2xl p-5 border border-white/20 transition-[color,background-color,box-shadow] duration-300 hover:shadow-md hover:border-accent-secondary/30 flex flex-col"
+              class="group glass-effect rounded-2xl p-5 border border-white/20 transition-interactive duration-300 hover:shadow-md hover:border-accent-secondary/30 flex flex-col"
             >
               <div class="flex items-start justify-between mb-3">
                 <div class="flex-1 min-w-0">

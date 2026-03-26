@@ -36,7 +36,7 @@
         <!-- Dropdown -->
         <div
           v-if="isMenuOpen"
-          class="absolute top-full left-0 mt-1 w-48 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border border-black/10 dark:border-white/10 rounded-lg shadow-2xl py-1 z-[100] overflow-hidden transform origin-top-left transition-[opacity,transform]"
+          class="absolute top-full left-0 mt-1 w-48 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border border-black/10 dark:border-white/10 rounded-lg shadow-2xl py-1 z-[100] overflow-hidden transform origin-top-left transition-interactive"
         >
           <button
             class="w-full text-left px-3 py-1.5 text-xs text-slate-700 dark:text-white/80 hover:text-slate-900 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 transition-colors flex items-center"

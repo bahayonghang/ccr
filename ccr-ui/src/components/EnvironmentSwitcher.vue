@@ -99,7 +99,7 @@ onUnmounted(() => {
     <!-- 触发按钮 -->
     <button
       type="button"
-      class="glass-surface flex items-center gap-2 rounded-lg border border-border-default/60 px-3 py-1.5 text-xs font-medium text-text-secondary transition-[color,background-color,border-color,box-shadow] duration-200 hover:border-accent-primary/35 hover:bg-bg-elevated/80 hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary/20"
+      class="glass-surface flex items-center gap-2 rounded-lg border border-border-default/60 px-3 py-1.5 text-xs font-medium text-text-secondary transition-interactive duration-200 hover:border-accent-primary/35 hover:bg-bg-elevated/80 hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary/20"
       :aria-expanded="isOpen"
       aria-haspopup="listbox"
       @click.stop="isOpen = !isOpen"

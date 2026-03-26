@@ -3,7 +3,7 @@
     <!-- Language Switcher Button -->
     <button
       type="button"
-      class="glass-surface flex items-center justify-between gap-2 rounded-lg border border-border-default/60 px-3 py-2 text-sm font-semibold text-text-primary transition-[color,background-color,border-color,transform,box-shadow] hover:border-accent-primary/35 hover:bg-bg-elevated/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary/20"
+      class="glass-surface flex items-center justify-between gap-2 rounded-lg border border-border-default/60 px-3 py-2 text-sm font-semibold text-text-primary transition-interactive hover:border-accent-primary/35 hover:bg-bg-elevated/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary/20"
       :aria-label="$t('common.language.switchLanguage')"
       :aria-expanded="showDropdown"
       aria-haspopup="listbox"

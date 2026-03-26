@@ -120,13 +120,13 @@
 
       <!-- Footer: User Profile - Neko Kawaii Style -->
       <div class="p-3 pb-6 border-t border-pink-200/10 dark:border-pink-300/10">
-        <div class="user-card group relative overflow-hidden rounded-2xl transition-[color,background-color,box-shadow,border-color] duration-300">
+        <div class="user-card group relative overflow-hidden rounded-2xl transition-interactive duration-300">
           <!-- Animated gradient background -->
           <div class="absolute inset-0 bg-gradient-to-br from-pink-500/15 via-fuchsia-500/12 to-violet-500/15 opacity-80" />
-          <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(244,114,182,0.12),transparent_50%)]" />
+          <div class="absolute inset-0 user-card-accent-mesh" />
 
           <!-- Neko dot pattern -->
-          <div class="absolute inset-0 opacity-10 bg-[radial-gradient(circle,rgba(255,255,255,0.15)_1px,transparent_1px)] bg-[size:10px_10px]" />
+          <div class="absolute inset-0 opacity-10 user-card-dot-pattern" />
 
           <!-- Glow effect on hover -->
           <div class="absolute -inset-1 bg-gradient-to-r from-pink-500/0 via-fuchsia-400/20 to-violet-500/0 blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
@@ -414,7 +414,7 @@ const {
 /* Nav Item Styles */
 .nav-item {
   @apply relative flex items-center gap-3 overflow-hidden rounded-xl px-3 py-2 text-sm font-medium text-text-secondary
-         transition-[color,background-color,box-shadow] duration-200;
+         transition-interactive duration-200;
 }
 
 .nav-item:focus-visible {
@@ -454,6 +454,15 @@ const {
   box-shadow:
     0 4px 24px rgb(0 0 0 / 20%),
     inset 0 1px 0 rgb(255 255 255 / 10%);
+}
+
+.user-card-accent-mesh {
+  background: radial-gradient(ellipse at top right, rgb(244 114 182 / 12%), transparent 50%);
+}
+
+.user-card-dot-pattern {
+  background-image: radial-gradient(circle, rgb(255 255 255 / 15%) 1px, transparent 1px);
+  background-size: 10px 10px;
 }
 
 .user-card:hover {

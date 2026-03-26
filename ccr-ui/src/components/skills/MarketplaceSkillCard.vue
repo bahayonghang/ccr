@@ -176,7 +176,7 @@ function handleClick() {
 <style scoped>
 .mp-card {
   @apply relative flex flex-col gap-3 overflow-hidden rounded-2xl border border-white/10 p-4 text-white
-         transition-[color,background-color,border-color,box-shadow,transform] duration-200 ease-out;
+         transition-interactive duration-200 ease-out;
 
   background: rgb(var(--color-bg-elevated-rgb) / 92%);
   contain: layout paint;

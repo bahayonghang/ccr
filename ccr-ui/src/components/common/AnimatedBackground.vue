@@ -8,16 +8,16 @@
     <template v-if="effectiveVariant === 'default' || effectiveVariant === 'complex'">
       <!-- 1. Base Mesh Gradient (Subtle shifting colors) -->
       <div class="absolute inset-0 opacity-24 dark:opacity-18">
-        <div class="absolute top-0 left-0 h-full w-full bg-[radial-gradient(circle_at_50%_0%,rgb(var(--color-accent-primary-rgb)/18%),transparent_46%)] animate-pulse-slow" />
-        <div class="absolute bottom-0 right-0 h-full w-full bg-[radial-gradient(circle_at_100%_100%,rgb(var(--color-accent-secondary-rgb)/14%),transparent_46%)] animate-pulse-slow delay-1000" />
+        <div class="absolute top-0 left-0 h-full w-full mesh-glow mesh-glow--primary-top animate-pulse-slow" />
+        <div class="absolute bottom-0 right-0 h-full w-full mesh-glow mesh-glow--secondary-bottom animate-pulse-slow delay-1000" />
         <div
           v-if="effectiveVariant === 'complex'"
-          class="absolute top-1/2 left-1/2 h-full w-full -translate-x-1/2 -translate-y-1/2 bg-[radial-gradient(circle_at_50%_50%,rgb(var(--color-info-rgb)/10%),transparent_56%)] opacity-40 animate-pulse-slower"
+          class="absolute top-1/2 left-1/2 h-full w-full -translate-x-1/2 -translate-y-1/2 mesh-glow mesh-glow--info-center opacity-40 animate-pulse-slower"
         />
       </div>
 
       <!-- 2. Cyber Grid Pattern -->
-      <div class="absolute inset-0 cyber-grid [mask-image:radial-gradient(ellipse_120%_140%_at_50%_30%,#000_20%,transparent_85%)]" />
+      <div class="absolute inset-0 cyber-grid cyber-grid-mask" />
 
       <!-- 3. Noise Texture (Film Grain Effect) -->
       <div class="noise-overlay" />
@@ -39,7 +39,7 @@
         class="absolute inset-0"
         :class="spotlightColorClass"
       />
-      <div class="absolute inset-0 cyber-grid opacity-50 [mask-image:radial-gradient(ellipse_120%_140%_at_50%_30%,#000_20%,transparent_85%)]" />
+      <div class="absolute inset-0 cyber-grid cyber-grid-mask opacity-50" />
       <div class="noise-overlay" />
     </template>
 
@@ -61,7 +61,7 @@
 
     <!-- Variant: Minimal - Subtle single gradient -->
     <template v-else-if="effectiveVariant === 'minimal'">
-      <div class="absolute inset-0 bg-[radial-gradient(ellipse_78%_46%_at_50%_-18%,rgb(var(--color-accent-primary-rgb)/10%),transparent)]" />
+      <div class="absolute inset-0 minimal-gradient" />
     </template>
   </div>
 </template>
@@ -113,12 +113,12 @@ const backgroundLayerClass = computed(() => (
 // Spotlight color class mapping
 const spotlightColorClass = computed(() => {
   const colorMap: Record<SpotlightColor, string> = {
-    primary: 'bg-[radial-gradient(circle_at_50%_0%,rgb(var(--color-accent-primary-rgb)/18%),transparent_60%)]',
-    secondary: 'bg-[radial-gradient(circle_at_50%_0%,rgb(var(--color-accent-secondary-rgb)/18%),transparent_60%)]',
-    success: 'bg-[radial-gradient(circle_at_50%_0%,rgb(var(--color-success-rgb)/18%),transparent_60%)]',
-    warning: 'bg-[radial-gradient(circle_at_50%_0%,rgb(var(--color-warning-rgb)/18%),transparent_60%)]',
-    danger: 'bg-[radial-gradient(circle_at_50%_0%,rgb(var(--color-danger-rgb)/18%),transparent_60%)]',
-    info: 'bg-[radial-gradient(circle_at_50%_0%,rgb(var(--color-info-rgb)/18%),transparent_60%)]'
+    primary: 'spotlight-gradient spotlight-gradient--primary',
+    secondary: 'spotlight-gradient spotlight-gradient--secondary',
+    success: 'spotlight-gradient spotlight-gradient--success',
+    warning: 'spotlight-gradient spotlight-gradient--warning',
+    danger: 'spotlight-gradient spotlight-gradient--danger',
+    info: 'spotlight-gradient spotlight-gradient--info'
   }
   return colorMap[props.spotlightColor]
 })
@@ -234,6 +234,66 @@ const spotlightColorClass = computed(() => {
   background-image:
     linear-gradient(to right, rgb(var(--color-accent-primary-rgb) / 6%) 1px, transparent 1px),
     linear-gradient(to bottom, rgb(var(--color-accent-primary-rgb) / 6%) 1px, transparent 1px);
+}
+
+.cyber-grid-mask {
+  mask-image: radial-gradient(ellipse 120% 140% at 50% 30%, #000 20%, transparent 85%);
+}
+
+.mesh-glow--primary-top {
+  background: radial-gradient(
+    circle at 50% 0%,
+    rgb(var(--color-accent-primary-rgb) / 18%),
+    transparent 46%
+  );
+}
+
+.mesh-glow--secondary-bottom {
+  background: radial-gradient(
+    circle at 100% 100%,
+    rgb(var(--color-accent-secondary-rgb) / 14%),
+    transparent 46%
+  );
+}
+
+.mesh-glow--info-center {
+  background: radial-gradient(
+    circle at 50% 50%,
+    rgb(var(--color-info-rgb) / 10%),
+    transparent 56%
+  );
+}
+
+.spotlight-gradient--primary {
+  background: radial-gradient(circle at 50% 0%, rgb(var(--color-accent-primary-rgb) / 18%), transparent 60%);
+}
+
+.spotlight-gradient--secondary {
+  background: radial-gradient(circle at 50% 0%, rgb(var(--color-accent-secondary-rgb) / 18%), transparent 60%);
+}
+
+.spotlight-gradient--success {
+  background: radial-gradient(circle at 50% 0%, rgb(var(--color-success-rgb) / 18%), transparent 60%);
+}
+
+.spotlight-gradient--warning {
+  background: radial-gradient(circle at 50% 0%, rgb(var(--color-warning-rgb) / 18%), transparent 60%);
+}
+
+.spotlight-gradient--danger {
+  background: radial-gradient(circle at 50% 0%, rgb(var(--color-danger-rgb) / 18%), transparent 60%);
+}
+
+.spotlight-gradient--info {
+  background: radial-gradient(circle at 50% 0%, rgb(var(--color-info-rgb) / 18%), transparent 60%);
+}
+
+.minimal-gradient {
+  background: radial-gradient(
+    ellipse 78% 46% at 50% -18%,
+    rgb(var(--color-accent-primary-rgb) / 10%),
+    transparent
+  );
 }
 
 /* ========== Noise Overlay ========== */
