@@ -96,6 +96,20 @@ pub enum CodexAuthAction {
     /// 示例: ccr codex auth list
     List,
 
+    /// 将当前 runtime OAuth tokens 回写到匹配的已保存账号
+    ///
+    /// 用于修复 refresh_token 轮换导致的快照过期问题。
+    /// 示例: ccr codex auth sync
+    Sync,
+
+    /// 修复指定账号的 OAuth tokens（从 ~/.codex/auth.json 与 ~/.codex/backups 扫描最新副本）
+    ///
+    /// 示例: ccr codex auth repair team
+    Repair {
+        /// 要修复的账号名称
+        name: String,
+    },
+
     /// 切换到指定账号
     ///
     /// 将 ~/.codex/auth.json 切换为指定账号的登录状态

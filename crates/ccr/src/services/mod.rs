@@ -9,6 +9,7 @@
 
 pub mod backup_service;
 pub mod codex_auth_service;
+pub mod codex_oauth_token_service;
 pub mod codex_quota_service;
 pub mod codex_runtime_service;
 #[allow(dead_code)]
@@ -30,6 +31,8 @@ pub mod validate_service;
 pub use backup_service::BackupService;
 #[allow(unused_imports)]
 pub use codex_auth_service::CodexAuthService;
+#[allow(unused_imports)]
+pub use codex_oauth_token_service::CodexOAuthTokenService;
 #[allow(unused_imports)]
 pub use codex_quota_service::CodexQuotaService;
 #[allow(unused_imports)]

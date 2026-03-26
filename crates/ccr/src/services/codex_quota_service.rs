@@ -6,6 +6,7 @@
 // - 🔑 OAuth token 过期检测与自动刷新
 // - 📊 解析 5h 窗口和周限额数据
 
+use crate::core::atomic_writer::AtomicWriter;
 use crate::core::error::{CcrError, Result};
 use crate::models::{CodexAccountQuota, CodexAuthJson, CodexAuthRegistry, CodexQuota};
 use chrono::Utc;
@@ -13,6 +14,8 @@ use reqwest::header::{ACCEPT, AUTHORIZATION, HeaderMap, HeaderValue};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use tracing::{debug, warn};
+
+use super::codex_oauth_token_service::CodexOAuthTokenService;
 
 /// wham/usage API 端点
 const USAGE_URL: &str = "https://chatgpt.com/backend-api/wham/usage";
@@ -90,11 +93,14 @@ impl CodexQuotaService {
         let home =
             dirs::home_dir().ok_or_else(|| CcrError::ConfigError("无法获取用户主目录".into()))?;
 
-        let ccr_codex_dir = if let Ok(custom) = std::env::var("CCR_DATA_DIR") {
-            PathBuf::from(custom).join("platforms/codex")
+        let ccr_root = if let Ok(custom) = std::env::var("CCR_DATA_DIR") {
+            PathBuf::from(custom)
+        } else if let Ok(custom) = std::env::var("CCR_ROOT") {
+            PathBuf::from(custom)
         } else {
-            home.join(".ccr/platforms/codex")
+            home.join(".ccr")
         };
+        let ccr_codex_dir = ccr_root.join("platforms/codex");
 
         Ok(Self { ccr_codex_dir })
     }
@@ -105,6 +111,19 @@ impl CodexQuotaService {
 
     /// 查询指定账号的配额
     pub async fn fetch_account_quota(&self, account_name: &str) -> CodexAccountQuota {
+        self.fetch_account_quota_inner(account_name, false).await
+    }
+
+    /// 查询指定账号的配额（强制刷新 token 后查询）
+    pub async fn fetch_account_quota_force_refresh(&self, account_name: &str) -> CodexAccountQuota {
+        self.fetch_account_quota_inner(account_name, true).await
+    }
+
+    async fn fetch_account_quota_inner(
+        &self,
+        account_name: &str,
+        force_refresh: bool,
+    ) -> CodexAccountQuota {
         let now = Utc::now();
 
         // 读取 auth 文件
@@ -149,7 +168,6 @@ impl CodexQuotaService {
         };
 
         let mut access_token = tokens.access_token.clone().unwrap_or_default();
-        let refresh_token = tokens.refresh_token.clone();
         let account_id = tokens.account_id.clone();
 
         if access_token.is_empty() {
@@ -162,9 +180,9 @@ impl CodexQuotaService {
             };
         }
 
-        // 检查 token 是否过期，如过期则刷新
-        if Self::is_token_expired(&access_token) {
-            match Self::try_refresh_token(&refresh_token, &auth_path, &auth_json).await {
+        // 检查 token 是否过期（或强制刷新），如需要则刷新（带自愈修复）
+        if force_refresh || Self::is_token_expired(&access_token) {
+            match Self::refresh_access_token_with_self_heal(account_name, &auth_path).await {
                 Ok(new_access) => access_token = new_access,
                 Err(e) => {
                     return CodexAccountQuota {
@@ -193,7 +211,7 @@ impl CodexQuotaService {
                 // 如果 token 失效，尝试强制刷新后重试
                 if Self::should_force_refresh(&e)
                     && let Ok(new_access) =
-                        Self::try_refresh_token(&refresh_token, &auth_path, &auth_json).await
+                        Self::refresh_access_token_with_self_heal(account_name, &auth_path).await
                     && let Ok(quota) =
                         Self::call_usage_api(&new_access, account_id.as_deref()).await
                 {
@@ -218,6 +236,15 @@ impl CodexQuotaService {
 
     /// 并发查询所有账号的配额（semaphore 限制并发数）
     pub async fn fetch_all_quotas(&self) -> Vec<CodexAccountQuota> {
+        self.fetch_all_quotas_inner(false).await
+    }
+
+    /// 并发查询所有账号的配额（强制刷新 token 后查询）
+    pub async fn fetch_all_quotas_force_refresh(&self) -> Vec<CodexAccountQuota> {
+        self.fetch_all_quotas_inner(true).await
+    }
+
+    async fn fetch_all_quotas_inner(&self, force_refresh: bool) -> Vec<CodexAccountQuota> {
         let registry = match self.load_registry() {
             Ok(r) => r,
             Err(e) => {
@@ -252,7 +279,9 @@ impl CodexQuotaService {
                 async move {
                     let _permit = semaphore.acquire().await;
                     let service = CodexQuotaService { ccr_codex_dir: dir };
-                    service.fetch_account_quota(&name).await
+                    service
+                        .fetch_account_quota_inner(&name, force_refresh)
+                        .await
                 }
             })
             .collect();
@@ -437,25 +466,79 @@ impl CodexQuotaService {
     }
 
     /// 尝试使用 refresh_token 刷新 access_token
-    async fn try_refresh_token(
-        refresh_token: &Option<String>,
+    async fn refresh_access_token_with_self_heal(
+        account_name: &str,
         auth_path: &std::path::Path,
-        original_json: &str,
     ) -> std::result::Result<String, String> {
-        let rt = match refresh_token {
-            Some(rt) if !rt.is_empty() => rt,
-            _ => return Err("Token 已过期且缺少 refresh_token".to_string()),
-        };
+        // 第一次刷新
+        match Self::try_refresh_token(auth_path).await {
+            Ok(tokens) => Ok(tokens.access_token),
+            Err(e) => {
+                // refresh_token_reused / invalid_grant 等：尝试离线修复后重试一次
+                if Self::should_repair_tokens(&e) {
+                    if let Ok(oauth) = CodexOAuthTokenService::new() {
+                        match oauth.repair_saved_account(account_name) {
+                            Ok(outcome) if outcome.updated => {
+                                debug!(
+                                    "Repaired OAuth tokens for '{}' from {}",
+                                    account_name,
+                                    outcome
+                                        .source
+                                        .as_ref()
+                                        .map(|s| s.label())
+                                        .unwrap_or_else(|| "-".to_string())
+                                );
+                            }
+                            Ok(outcome) => {
+                                debug!(
+                                    "OAuth repair skipped for '{}': {}",
+                                    account_name, outcome.message
+                                );
+                            }
+                            Err(err) => {
+                                warn!("OAuth repair failed for '{}': {}", account_name, err);
+                            }
+                        }
+                    }
+
+                    // 第二次刷新（只重试一次，避免循环）
+                    if let Ok(tokens) = Self::try_refresh_token(auth_path).await {
+                        return Ok(tokens.access_token);
+                    }
+                }
+
+                Err(e)
+            }
+        }
+    }
+
+    async fn try_refresh_token(
+        auth_path: &std::path::Path,
+    ) -> std::result::Result<TokenRefreshResponse, String> {
+        let content =
+            std::fs::read_to_string(auth_path).map_err(|e| format!("读取 auth 文件失败: {}", e))?;
+        let auth: CodexAuthJson =
+            serde_json::from_str(&content).map_err(|e| format!("解析 auth JSON 失败: {}", e))?;
+
+        let rt = auth
+            .tokens
+            .and_then(|t| t.refresh_token)
+            .map(|s| s.trim().to_string())
+            .filter(|s| !s.is_empty())
+            .ok_or_else(|| "Token 已过期且缺少 refresh_token".to_string())?;
 
         debug!("Codex token 已过期，正在刷新...");
 
-        let new_tokens = Self::refresh_access_token(rt).await?;
+        let new_tokens = Self::refresh_access_token(&rt).await?;
         let new_access = new_tokens.access_token.clone();
 
-        // 更新 auth 文件
-        Self::update_auth_file(auth_path, original_json, &new_tokens);
+        // 更新 auth 文件（回写 tokens）
+        Self::update_auth_file(auth_path, &new_tokens);
 
-        Ok(new_access)
+        // access_token 一定存在
+        let mut normalized = new_tokens;
+        normalized.access_token = new_access;
+        Ok(normalized)
     }
 
     /// 刷新 OAuth access_token
@@ -489,7 +572,13 @@ impl CodexQuotaService {
             } else {
                 &body
             };
-            return Err(format!("Token 刷新失败 ({}): {}", status, body_preview));
+            let error_code = Self::extract_error_code(&body);
+            let mut msg = format!("Token 刷新失败 ({})", status);
+            if let Some(code) = error_code {
+                msg.push_str(&format!(" [{}]", code));
+            }
+            msg.push_str(&format!(": {}", body_preview));
+            return Err(msg);
         }
 
         serde_json::from_str(&body).map_err(|e| format!("解析 Token 刷新响应失败: {}", e))
@@ -630,18 +719,10 @@ impl CodexQuotaService {
     }
 
     /// 更新 auth 文件中的 tokens（刷新后回写）
-    fn update_auth_file(
-        auth_path: &std::path::Path,
-        original_json: &str,
-        new_tokens: &TokenRefreshResponse,
-    ) {
-        let mut value: serde_json::Value = match serde_json::from_str(original_json) {
-            Ok(v) => v,
-            Err(e) => {
-                warn!("无法解析 auth 文件以更新 tokens: {}", e);
-                return;
-            }
-        };
+    fn update_auth_file(auth_path: &std::path::Path, new_tokens: &TokenRefreshResponse) {
+        let original_json = std::fs::read_to_string(auth_path).unwrap_or_default();
+        let mut value: serde_json::Value = serde_json::from_str(&original_json)
+            .unwrap_or_else(|_| serde_json::Value::Object(serde_json::Map::new()));
 
         if let Some(tokens) = value.get_mut("tokens").and_then(|t| t.as_object_mut()) {
             tokens.insert(
@@ -666,13 +747,25 @@ impl CodexQuotaService {
 
         match serde_json::to_string_pretty(&value) {
             Ok(content) => {
-                if let Err(e) = std::fs::write(auth_path, content) {
+                if let Err(e) = AtomicWriter::new(auth_path).write_string(&content) {
                     warn!("写回 auth 文件失败: {}", e);
+                    return;
+                }
+                #[cfg(unix)]
+                {
+                    use std::os::unix::fs::PermissionsExt;
+                    let perms = std::fs::Permissions::from_mode(0o600);
+                    let _ = std::fs::set_permissions(auth_path, perms);
                 }
             }
             Err(e) => {
                 warn!("序列化 auth 文件失败: {}", e);
             }
         }
+    }
+
+    fn should_repair_tokens(error_message: &str) -> bool {
+        let lower = error_message.to_ascii_lowercase();
+        lower.contains("refresh_token_reused") || lower.contains("invalid_grant")
     }
 }

@@ -17,13 +17,17 @@ mod delete;
 mod export;
 mod import;
 mod list;
+mod repair;
 mod save;
 mod switch;
+mod sync;
 
 pub use current::current_command;
 pub use delete::delete_command;
 pub use export::export_command;
 pub use import::import_command;
 pub use list::list_command;
+pub use repair::repair_command;
 pub use save::save_command;
 pub use switch::switch_command;
+pub use sync::sync_command;

@@ -62,11 +62,14 @@ impl CodexAuthService {
         let home =
             dirs::home_dir().ok_or_else(|| CcrError::ConfigError("无法获取用户主目录".into()))?;
 
-        let ccr_codex_dir = if let Ok(custom) = env::var("CCR_DATA_DIR") {
-            PathBuf::from(custom).join("platforms/codex")
+        let ccr_root = if let Ok(custom) = env::var("CCR_DATA_DIR") {
+            PathBuf::from(custom)
+        } else if let Ok(custom) = env::var("CCR_ROOT") {
+            PathBuf::from(custom)
         } else {
-            home.join(".ccr/platforms/codex")
+            home.join(".ccr")
         };
+        let ccr_codex_dir = ccr_root.join("platforms/codex");
 
         let codex_dir = if let Ok(custom) = env::var("CCR_CODEX_DIR") {
             PathBuf::from(custom)

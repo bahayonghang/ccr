@@ -269,6 +269,36 @@ impl CodexAuthApp {
                 self.reload_accounts()?;
                 self.toasts.push(Toast::info("已刷新账号列表"));
             }
+            KeyCode::Char('R') => {
+                if let Some(account) = self.selected_account().cloned() {
+                    if account.is_virtual {
+                        self.toasts.push(Toast::warning("未保存的当前登录无法修复"));
+                        return Ok(false);
+                    }
+
+                    match crate::services::CodexOAuthTokenService::new() {
+                        Ok(oauth) => match oauth.repair_saved_account(&account.name) {
+                            Ok(outcome) => {
+                                if outcome.updated {
+                                    self.toasts.push(Toast::success(outcome.message));
+                                    // 修复后刷新列表与配额
+                                    self.reload_accounts()?;
+                                    self.start_quota_fetch();
+                                } else {
+                                    self.toasts.push(Toast::info(outcome.message));
+                                }
+                            }
+                            Err(e) => {
+                                self.toasts.push(Toast::error(format!("修复失败: {}", e)));
+                            }
+                        },
+                        Err(e) => {
+                            self.toasts
+                                .push(Toast::error(format!("初始化修复服务失败: {}", e)));
+                        }
+                    }
+                }
+            }
             KeyCode::Char('b') => {
                 self.pending_quota_confirm = true;
             }

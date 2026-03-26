@@ -386,6 +386,10 @@ impl CommandDispatcher {
                     .await
                 }
                 CodexAuthAction::List => crate::commands::codex::auth::list_command().await,
+                CodexAuthAction::Sync => crate::commands::codex::auth::sync_command().await,
+                CodexAuthAction::Repair { name } => {
+                    crate::commands::codex::auth::repair_command(name).await
+                }
                 CodexAuthAction::Switch { name } => {
                     crate::commands::codex::auth::switch_command(name).await
                 }

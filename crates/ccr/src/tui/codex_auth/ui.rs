@@ -345,6 +345,12 @@ fn draw_usage_panel(f: &mut Frame, area: Rect, app: &CodexAuthApp) {
                         format!("  ⚠️ {}: {}", aq.account_name, err),
                         Style::default().fg(Color::Red),
                     )));
+                    if is_refresh_token_reused_error(err) {
+                        content.push(Line::from(Span::styled(
+                            "  提示: Token 已轮换，可按 R 尝试修复；仍失败请重新登录后保存账号",
+                            Style::default().fg(Color::Yellow),
+                        )));
+                    }
                 }
             } else if !quotas.is_empty() {
                 // 显示第一个有配额的账号
@@ -445,12 +451,19 @@ fn progress_bar(pct: i32, width: usize) -> String {
     format!("{}{}", "█".repeat(filled), "░".repeat(empty))
 }
 
+fn is_refresh_token_reused_error(message: &str) -> bool {
+    let lower = message.to_ascii_lowercase();
+    lower.contains("refresh_token_reused") || lower.contains("invalid_grant")
+}
+
 /// Draw help bar (overlay-aware)
 fn draw_help_bar(f: &mut Frame, area: Rect, app: &CodexAuthApp) {
     let help_text = match &app.overlay {
         Some(Overlay::Confirm { .. }) => "y 确认删除 | n/Esc 取消",
         Some(Overlay::Input { .. }) => "Enter 确认 | Esc 取消",
-        None => "↑/k 上移 | ↓/j 下移 | Enter 切换 | s 保存当前 | d 删除 | r 刷新 | b 配额 | q 退出",
+        None => {
+            "↑/k 上移 | ↓/j 下移 | Enter 切换 | s 保存当前 | d 删除 | r 刷新 | R 修复 | b 配额 | q 退出"
+        }
     };
 
     let help = Paragraph::new(help_text)
@@ -712,7 +725,7 @@ fn draw_help_bar_embedded(f: &mut Frame, area: Rect, app: &CodexAuthApp) {
         Some(Overlay::Confirm { .. }) => "y 确认删除 | n/Esc 取消",
         Some(Overlay::Input { .. }) => "Enter 确认 | Esc 取消",
         None => {
-            "Tab 切换 | ↑/k 上移 | ↓/j 下移 | Enter 切换 | s 保存当前 | d 删除 | r 刷新 | b 配额 | q 退出"
+            "Tab 切换 | ↑/k 上移 | ↓/j 下移 | Enter 切换 | s 保存当前 | d 删除 | r 刷新 | R 修复 | b 配额 | q 退出"
         }
     };
 

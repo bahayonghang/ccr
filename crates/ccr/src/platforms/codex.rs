@@ -16,7 +16,9 @@ use crate::models::{
     PlatformConfig, PlatformPaths, ProfileConfig,
 };
 use crate::platforms::base;
-use crate::services::{CodexAuthCacheAction, CodexRuntimeCommitPlan, CodexRuntimeService};
+use crate::services::{
+    CodexAuthCacheAction, CodexOAuthTokenService, CodexRuntimeCommitPlan, CodexRuntimeService,
+};
 use indexmap::IndexMap;
 use serde_json::Value as JsonValue;
 use std::path::PathBuf;
@@ -946,6 +948,16 @@ impl CodexPlatform {
                     }
                 }
                 _ => {
+                    // 在清理 OpenAI tokens 前，尽量把当前 runtime OAuth tokens 回写到已保存账号快照，
+                    // 避免 refresh_token 轮换导致 CCR 快照持有旧 refresh_token（refresh_token_reused）。
+                    if let Ok(oauth) = CodexOAuthTokenService::new()
+                        && let Err(err) = oauth.sync_runtime_tokens_to_saved_account()
+                    {
+                        tracing::warn!(
+                            "Failed to sync runtime OAuth tokens before clearing: {}",
+                            err
+                        );
+                    }
                     let mut auth = self.config_manager.load_auth()?;
                     let original = auth.clone();
                     Self::apply_auth_selection(&mut auth, selection);
@@ -1661,6 +1673,128 @@ requires_openai_auth = true
     // ═══════════════════════════════════════════════════════════
     // 💾 写入测试
     // ═══════════════════════════════════════════════════════════
+
+    #[test]
+    fn test_apply_switch_spec_syncs_oauth_tokens_before_clearing() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let ccr_root = temp_dir.path().join("ccr");
+        let codex_dir = temp_dir.path().join("codex");
+
+        unsafe {
+            std::env::set_var("CCR_ROOT", ccr_root.to_str().unwrap());
+            std::env::set_var("CCR_DATA_DIR", ccr_root.to_str().unwrap());
+            std::env::set_var("CCR_CODEX_DIR", codex_dir.to_str().unwrap());
+        }
+
+        // CCR auth registry + snapshot
+        let ccr_codex_dir = ccr_root.join("platforms/codex");
+        std::fs::create_dir_all(ccr_codex_dir.join("auth")).unwrap();
+
+        let registry = crate::models::CodexAuthRegistry {
+            version: "1.0".to_string(),
+            current_auth: Some("team".to_string()),
+            accounts: {
+                let mut m = IndexMap::new();
+                m.insert(
+                    "team".to_string(),
+                    crate::models::CodexAuthAccount {
+                        description: None,
+                        account_id: "acc-1".to_string(),
+                        auth_method: Some(OpenAiAuthMethod::Chatgpt),
+                        email: None,
+                        saved_at: chrono::Utc::now(),
+                        last_used: None,
+                        last_refresh: None,
+                        expires_at: None,
+                    },
+                );
+                m
+            },
+        };
+        let registry_path = ccr_codex_dir.join("auth_registry.toml");
+        std::fs::write(&registry_path, toml::to_string_pretty(&registry).unwrap()).unwrap();
+
+        let snapshot_path = ccr_codex_dir.join("auth/team.json");
+        std::fs::write(
+            &snapshot_path,
+            serde_json::to_string_pretty(&json!({
+                "tokens": {
+                    "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaGF0Z3B0X2FjY291bnRfaWQiOiJhY2MtMSIsImV4cCI6MjAwMDAwMDAwMH0.sig",
+                    "refresh_token": "rt_old",
+                    "account_id": "acc-1"
+                },
+                "last_refresh": "2026-03-01T00:00:00Z"
+            }))
+            .unwrap(),
+        )
+        .unwrap();
+
+        // Codex runtime auth.json contains OAuth tokens (will be cleared)
+        std::fs::create_dir_all(&codex_dir).unwrap();
+        std::fs::write(
+            codex_dir.join("config.toml"),
+            "cli_auth_credentials_store = \"file\"\n",
+        )
+        .unwrap();
+        std::fs::write(
+            codex_dir.join("auth.json"),
+            serde_json::to_string_pretty(&json!({
+                "tokens": {
+                    "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjaGF0Z3B0X2FjY291bnRfaWQiOiJhY2MtMSIsImV4cCI6MjAwMDAwMDAwMH0.sig",
+                    "refresh_token": "rt_latest",
+                    "account_id": "acc-1"
+                },
+                "last_refresh": "2026-03-26T00:00:00Z"
+            }))
+            .unwrap(),
+        )
+        .unwrap();
+
+        let platform = CodexPlatform::new().unwrap();
+        let profile = ProfileConfig {
+            description: Some("API Key".to_string()),
+            base_url: None,
+            auth_token: Some("sk-test".to_string()),
+            model: None,
+            small_fast_model: None,
+            provider: None,
+            provider_type: Some("official_relay".to_string()),
+            account: None,
+            tags: None,
+            usage_count: Some(0),
+            enabled: Some(true),
+            platform_data: {
+                let mut data = IndexMap::new();
+                data.insert("auth_mode".into(), json!("openai_api_key"));
+                data
+            },
+        };
+
+        let spec = CodexPlatform::build_switch_spec(
+            "test",
+            &profile,
+            &AuthIntent::OpenAiAuth {
+                method: OpenAiAuthMethod::Chatgpt,
+            },
+        )
+        .unwrap();
+
+        platform.apply_switch_spec(&spec).unwrap();
+
+        // saved snapshot should have been synced before clearing tokens
+        let updated: crate::models::CodexAuthJson =
+            serde_json::from_str(&std::fs::read_to_string(&snapshot_path).unwrap()).unwrap();
+        assert_eq!(
+            updated.tokens.unwrap().refresh_token.as_deref().unwrap(),
+            "rt_latest"
+        );
+
+        unsafe {
+            std::env::remove_var("CCR_ROOT");
+            std::env::remove_var("CCR_DATA_DIR");
+            std::env::remove_var("CCR_CODEX_DIR");
+        }
+    }
 
     #[test]
     fn test_save_profile_scrubs_secret_and_restores_on_load() {
