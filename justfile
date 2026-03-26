@@ -761,30 +761,101 @@ _outputs-collect-ui-sync:
 
 [private]
 _outputs-collect-ui-sync-linux:
-    @mkdir -p {{OUTPUTS_DIR}}/ccr-ui/src-tauri/target/release
-    rm -rf {{OUTPUTS_DIR}}/ccr-ui/dist {{OUTPUTS_DIR}}/ccr-ui/src-tauri/target/release/bundle
-    cp -R ccr-ui/dist {{OUTPUTS_DIR}}/ccr-ui/
-    cp ccr-ui/src-tauri/target/release/ccr-desktop {{OUTPUTS_DIR}}/ccr-ui/src-tauri/target/release/
-    if [ -d ccr-ui/src-tauri/target/release/bundle ]; then cp -R ccr-ui/src-tauri/target/release/bundle {{OUTPUTS_DIR}}/ccr-ui/src-tauri/target/release/; fi
-    @just success "CCR UI artifacts synchronized to {{OUTPUTS_DIR}}/ccr-ui/"
+    #!/usr/bin/env bash
+    set -euo pipefail
+    dest_root="{{OUTPUTS_DIR}}/ccr-ui"
+    release_dest="$dest_root/src-tauri/target/release"
+    source_bundle="ccr-ui/src-tauri/target/release/bundle"
+    mkdir -p "$release_dest"
+    rm -rf "$dest_root/dist" "$release_dest/bundle"
+    cp -R ccr-ui/dist "$dest_root/"
+    cp ccr-ui/src-tauri/target/release/ccr-desktop "$release_dest/"
+    if [ -d "$source_bundle" ]; then
+        mkdir -p "$release_dest/bundle"
+        for format_dir in "$source_bundle"/*; do
+            [ -d "$format_dir" ] || continue
+            format_name="$(basename "$format_dir")"
+            latest_item=""
+            latest_mtime=0
+            for candidate in "$format_dir"/*; do
+                [ -e "$candidate" ] || continue
+                mtime="$(stat -c '%Y' "$candidate")"
+                if [ -z "$latest_item" ] || [ "$mtime" -gt "$latest_mtime" ]; then
+                    latest_item="$candidate"
+                    latest_mtime="$mtime"
+                fi
+            done
+            [ -n "$latest_item" ] || continue
+            mkdir -p "$release_dest/bundle/$format_name"
+            cp -R "$latest_item" "$release_dest/bundle/$format_name/"
+        done
+    fi
+    just success "CCR UI artifacts synchronized to {{OUTPUTS_DIR}}/ccr-ui/"
 
 [private]
 _outputs-collect-ui-sync-macos:
-    @mkdir -p {{OUTPUTS_DIR}}/ccr-ui/src-tauri/target/release
-    rm -rf {{OUTPUTS_DIR}}/ccr-ui/dist {{OUTPUTS_DIR}}/ccr-ui/src-tauri/target/release/bundle
-    cp -R ccr-ui/dist {{OUTPUTS_DIR}}/ccr-ui/
-    cp ccr-ui/src-tauri/target/release/ccr-desktop {{OUTPUTS_DIR}}/ccr-ui/src-tauri/target/release/
-    if [ -d ccr-ui/src-tauri/target/release/bundle ]; then cp -R ccr-ui/src-tauri/target/release/bundle {{OUTPUTS_DIR}}/ccr-ui/src-tauri/target/release/; fi
-    @just success "CCR UI artifacts synchronized to {{OUTPUTS_DIR}}/ccr-ui/"
+    #!/usr/bin/env bash
+    set -euo pipefail
+    dest_root="{{OUTPUTS_DIR}}/ccr-ui"
+    release_dest="$dest_root/src-tauri/target/release"
+    source_bundle="ccr-ui/src-tauri/target/release/bundle"
+    mkdir -p "$release_dest"
+    rm -rf "$dest_root/dist" "$release_dest/bundle"
+    cp -R ccr-ui/dist "$dest_root/"
+    cp ccr-ui/src-tauri/target/release/ccr-desktop "$release_dest/"
+    if [ -d "$source_bundle" ]; then
+        mkdir -p "$release_dest/bundle"
+        for format_dir in "$source_bundle"/*; do
+            [ -d "$format_dir" ] || continue
+            format_name="$(basename "$format_dir")"
+            latest_item=""
+            latest_mtime=0
+            for candidate in "$format_dir"/*; do
+                [ -e "$candidate" ] || continue
+                mtime="$(stat -f '%m' "$candidate")"
+                if [ -z "$latest_item" ] || [ "$mtime" -gt "$latest_mtime" ]; then
+                    latest_item="$candidate"
+                    latest_mtime="$mtime"
+                fi
+            done
+            [ -n "$latest_item" ] || continue
+            mkdir -p "$release_dest/bundle/$format_name"
+            cp -R "$latest_item" "$release_dest/bundle/$format_name/"
+        done
+    fi
+    just success "CCR UI artifacts synchronized to {{OUTPUTS_DIR}}/ccr-ui/"
 
 [private]
 _outputs-collect-ui-sync-windows:
-    @New-Item -ItemType Directory -Force -Path "{{OUTPUTS_DIR}}/ccr-ui/src-tauri/target/release" | Out-Null
-    @if (Test-Path "{{OUTPUTS_DIR}}/ccr-ui/dist") { Remove-Item "{{OUTPUTS_DIR}}/ccr-ui/dist" -Recurse -Force }
-    @Copy-Item "ccr-ui/dist" "{{OUTPUTS_DIR}}/ccr-ui/" -Recurse -Force
-    @Copy-Item "ccr-ui/src-tauri/target/release/ccr-desktop.exe" "{{OUTPUTS_DIR}}/ccr-ui/src-tauri/target/release/" -Force
-    @if (Test-Path "ccr-ui/src-tauri/target/release/bundle") { Copy-Item "ccr-ui/src-tauri/target/release/bundle" "{{OUTPUTS_DIR}}/ccr-ui/src-tauri/target/release/" -Recurse -Force }
-    @just success "CCR UI artifacts synchronized to {{OUTPUTS_DIR}}/ccr-ui/"
+    #!pwsh.exe
+    $ErrorActionPreference = 'Stop'
+    [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+    chcp 65001 | Out-Null
+    $destRoot = Join-Path '{{OUTPUTS_DIR}}' 'ccr-ui'
+    $releaseDest = Join-Path $destRoot 'src-tauri/target/release'
+    $sourceBundle = 'ccr-ui/src-tauri/target/release/bundle'
+    New-Item -ItemType Directory -Force -Path $releaseDest | Out-Null
+    if (Test-Path (Join-Path $destRoot 'dist')) {
+        Remove-Item (Join-Path $destRoot 'dist') -Recurse -Force
+    }
+    if (Test-Path (Join-Path $releaseDest 'bundle')) {
+        Remove-Item (Join-Path $releaseDest 'bundle') -Recurse -Force
+    }
+    Copy-Item 'ccr-ui/dist' $destRoot -Recurse -Force
+    Copy-Item 'ccr-ui/src-tauri/target/release/ccr-desktop.exe' $releaseDest -Force
+    if (Test-Path $sourceBundle) {
+        $bundleDest = Join-Path $releaseDest 'bundle'
+        New-Item -ItemType Directory -Force -Path $bundleDest | Out-Null
+        Get-ChildItem $sourceBundle -Directory | ForEach-Object {
+            $latestItem = Get-ChildItem $_.FullName -Force | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+            if ($null -ne $latestItem) {
+                $formatDest = Join-Path $bundleDest $_.Name
+                New-Item -ItemType Directory -Force -Path $formatDest | Out-Null
+                Copy-Item $latestItem.FullName $formatDest -Recurse -Force
+            }
+        }
+    }
+    just success "CCR UI artifacts synchronized to {{OUTPUTS_DIR}}/ccr-ui/"
 
 # ═══════════════════════════════════════════════════════════
 # 🧹 清理与维护命令
