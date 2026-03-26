@@ -68,7 +68,7 @@
             <span>添加账号</span>
           </button>
           <button
-            :disabled="builtinProviders.filter(p => p.oauth_config).length === 0"
+            :disabled="builtinProviders.filter((p) => p.oauth_config).length === 0"
             class="checkin-accounts-tab__action-button checkin-accounts-tab__action-button--secondary"
             @click="emit('show-oauth-wizard')"
           >
@@ -198,45 +198,28 @@
                     name="Calendar"
                     size="w-3 h-3"
                     class="checkin-accounts-tab__mini-button-icon"
-                  /> 签到
+                  />
+                  签到
                 </button>
                 <div class="checkin-accounts-tab__menu-wrap">
                   <button
                     class="checkin-accounts-tab__menu-trigger"
-                    @click="toggleAccountMenu(account.id)"
+                    :class="{
+                      'checkin-accounts-tab__menu-trigger--active':
+                        openMenuAccountId === account.id,
+                    }"
+                    @click="toggleAccountMenu(account.id, $event)"
                   >
                     <svg
                       class="w-4 h-4"
                       fill="currentColor"
                       viewBox="0 0 20 20"
                     >
-                      <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+                      <path
+                        d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z"
+                      />
                     </svg>
                   </button>
-                  <!-- 下拉菜单 (向上弹出) -->
-                  <div
-                    v-if="openMenuAccountId === account.id"
-                    class="checkin-accounts-tab__menu"
-                  >
-                    <button
-                      class="checkin-accounts-tab__menu-item checkin-accounts-tab__menu-item--top"
-                      @click="emit('refresh-balance', account.id); openMenuAccountId = null"
-                    >
-                      刷新余额
-                    </button>
-                    <button
-                      class="checkin-accounts-tab__menu-item"
-                      @click="openAccountModal(account); openMenuAccountId = null"
-                    >
-                      编辑
-                    </button>
-                    <button
-                      class="checkin-accounts-tab__menu-item checkin-accounts-tab__menu-item--danger"
-                      @click="deleteAccount(account.id); openMenuAccountId = null"
-                    >
-                      删除
-                    </button>
-                  </div>
                 </div>
               </div>
             </td>
@@ -246,26 +229,90 @@
     </div>
   </div>
 
-  <!-- 账号编辑弹窗 -->
-  <div
-    v-if="showAccountModal"
-    class="checkin-accounts-tab__modal-backdrop"
-    @click.self="showAccountModal = false"
-  >
-    <div class="checkin-accounts-tab__modal-panel">
-      <!-- 标题栏 -->
-      <div class="checkin-accounts-tab__modal-header">
-        <h3 class="checkin-accounts-tab__modal-title">
-          <SIcon
-            name="Users"
-            size="w-5 h-5"
-            class="checkin-accounts-tab__modal-title-icon"
-          />
-          {{ editingAccount ? '编辑账号' : '添加账号' }}
-        </h3>
-      </div>
+  <Teleport to="body">
+    <div
+      v-if="activeMenuAccount"
+      class="checkin-accounts-tab__menu checkin-accounts-tab__menu--floating"
+      :class="`checkin-accounts-tab__menu--${accountMenuPosition.placement}`"
+      :style="accountMenuStyle"
+      @click.stop
+    >
+      <button
+        class="checkin-accounts-tab__menu-item checkin-accounts-tab__menu-item--top"
+        @click="emit('refresh-balance', activeMenuAccount.id); closeAccountMenu()"
+      >
+        刷新余额
+      </button>
+      <button
+        class="checkin-accounts-tab__menu-item"
+        @click="openAccountModal(activeMenuAccount); closeAccountMenu()"
+      >
+        编辑
+      </button>
+      <button
+        class="checkin-accounts-tab__menu-item checkin-accounts-tab__menu-item--danger"
+        @click="deleteAccount(activeMenuAccount.id); closeAccountMenu()"
+      >
+        删除
+      </button>
+    </div>
+  </Teleport>
 
+  <!-- 账号编辑弹窗 -->
+  <BaseModal
+    v-model="showAccountModal"
+    size="xl"
+    surface="solid"
+    content-class="checkin-accounts-tab__account-modal"
+  >
+    <template #header="{ titleId }">
+      <div class="checkin-accounts-tab__modal-header">
+        <div class="checkin-accounts-tab__modal-header-copy">
+          <p class="checkin-accounts-tab__modal-eyebrow">
+            {{ editingAccount ? '更新签到凭证与扩展配置' : '创建新的签到账号入口' }}
+          </p>
+          <h3
+            :id="titleId"
+            class="checkin-accounts-tab__modal-title"
+          >
+            <SIcon
+              name="Users"
+              size="w-5 h-5"
+              class="checkin-accounts-tab__modal-title-icon"
+            />
+            {{ editingAccount ? '编辑账号' : '添加账号' }}
+          </h3>
+          <p class="checkin-accounts-tab__modal-subtitle">
+            {{
+              editingAccount
+                ? '留空的 Session 不会覆盖旧凭证，适合只调整名称、开关或扩展配置。'
+                : '支持直接录入单值 Session，也支持完整 cookies JSON。'
+            }}
+          </p>
+        </div>
+        <div class="checkin-accounts-tab__modal-badge-row">
+          <span class="checkin-accounts-tab__modal-badge">
+            {{ modalProviderLabel }}
+          </span>
+          <span
+            v-if="selectedBuiltinProvider?.requires_waf_bypass"
+            class="checkin-accounts-tab__modal-badge checkin-accounts-tab__modal-badge--warning"
+          >
+            需要 WAF
+          </span>
+        </div>
+      </div>
+    </template>
+
+    <div class="checkin-accounts-tab__modal-intro">
+      <span class="checkin-accounts-tab__modal-intro-pill"> Session 支持单值 / JSON </span>
+      <span class="checkin-accounts-tab__modal-intro-pill"> API User 为必填 </span>
+      <span class="checkin-accounts-tab__modal-intro-pill"> 编辑时空白不覆盖旧凭证 </span>
+    </div>
+
+    <div class="checkin-accounts-tab__modal-scroll">
       <form
+        id="checkin-account-form"
         class="checkin-accounts-tab__form"
         @submit.prevent="saveAccount"
       >
@@ -340,7 +387,8 @@
                 d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
               />
             </svg>
-            可直接粘贴 session 值，后台会自动包装为 cookies JSON；如果你已经拿到完整 cookies JSON，也可以直接粘贴
+            可直接粘贴 session 值，后台会自动包装为 cookies JSON；如果你已经拿到完整 cookies
+            JSON，也可以直接粘贴
           </p>
         </div>
 
@@ -357,7 +405,8 @@
             placeholder="12345"
           >
           <p class="checkin-accounts-tab__hint">
-            使用 session / cookies 登录时必须填写。优先从 Local Storage 的 <code>user.id</code> 获取，也可从请求头里的 <code>new-api-user</code> 找到
+            使用 session / cookies 登录时必须填写。优先从 Local Storage 的
+            <code>user.id</code> 获取，也可从请求头里的 <code>new-api-user</code> 找到
           </p>
         </div>
 
@@ -469,10 +518,19 @@
           </p>
           <ol class="checkin-accounts-tab__notice-list checkin-accounts-tab__notice-list--info">
             <li>按 <kbd class="checkin-accounts-tab__kbd">F12</kbd> 打开浏览器开发者工具</li>
-            <li>转到 <span class="font-medium">Application</span> 标签页 → <span class="font-medium">Cookies</span></li>
-            <li>选择目标站点，找到 <code class="checkin-accounts-tab__code">session</code> 这一行</li>
+            <li>
+              转到 <span class="font-medium">Application</span> 标签页 →
+              <span class="font-medium">Cookies</span>
+            </li>
+            <li>
+              选择目标站点，找到 <code class="checkin-accounts-tab__code">session</code> 这一行
+            </li>
             <li>复制 session 的值，直接粘贴到上方输入框</li>
-            <li>再到 <span class="font-medium">Local Storage</span> → <code class="checkin-accounts-tab__code">user</code>，取其中的 <code class="checkin-accounts-tab__code">id</code> 作为 API User</li>
+            <li>
+              再到 <span class="font-medium">Local Storage</span> →
+              <code class="checkin-accounts-tab__code">user</code>，取其中的
+              <code class="checkin-accounts-tab__code">id</code> 作为 API User
+            </li>
           </ol>
         </div>
 
@@ -491,29 +549,32 @@
             启用此账号
           </label>
         </div>
-
-        <!-- 操作按钮 -->
-        <div class="checkin-accounts-tab__form-actions">
-          <button
-            type="button"
-            class="checkin-accounts-tab__form-button checkin-accounts-tab__form-button--secondary"
-            @click="showAccountModal = false"
-          >
-            取消
-          </button>
-          <button
-            type="submit"
-            class="checkin-accounts-tab__form-button checkin-accounts-tab__form-button--primary"
-          >
-            保存
-          </button>
-        </div>
       </form>
     </div>
-  </div>
+
+    <template #footer>
+      <div class="checkin-accounts-tab__modal-footer">
+        <button
+          type="button"
+          class="checkin-accounts-tab__form-button checkin-accounts-tab__form-button--secondary"
+          @click="showAccountModal = false"
+        >
+          取消
+        </button>
+        <button
+          type="submit"
+          form="checkin-account-form"
+          class="checkin-accounts-tab__form-button checkin-accounts-tab__form-button--primary"
+        >
+          {{ editingAccount ? '保存变更' : '创建账号' }}
+        </button>
+      </div>
+    </template>
+  </BaseModal>
 </template>
 
 <script setup lang="ts">
+import BaseModal from '@/components/common/BaseModal.vue'
 import SIcon from '@/components/ui/SIcon.vue'
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import {
@@ -522,12 +583,7 @@ import {
   deleteCheckinAccount as apiDeleteAccount,
   getCheckinAccountCookies,
 } from '@/api'
-import type {
-  CheckinProvider,
-  AccountInfo,
-  BuiltinProvider,
-  CdkExtraConfig,
-} from '@/types/checkin'
+import type { CheckinProvider, AccountInfo, BuiltinProvider, CdkExtraConfig } from '@/types/checkin'
 import { useUIStore } from '@/stores/ui'
 import { logger } from '@/utils/logger'
 
@@ -553,10 +609,32 @@ interface CheckinAccountCookiesResponse {
   api_user?: string | null
 }
 
+type AccountMenuPlacement = 'top' | 'bottom'
+
+interface AccountMenuPosition {
+  top: number
+  left: number
+  width: number
+  maxHeight: number
+  placement: AccountMenuPlacement
+}
+
+const ACCOUNT_MENU_WIDTH = 168
+const ACCOUNT_MENU_ESTIMATED_HEIGHT = 144
+const ACCOUNT_MENU_MARGIN = 12
+const ACCOUNT_MENU_GAP = 8
+
 // 本地状态
 const showAccountModal = ref(false)
 const editingAccount = ref<AccountInfo | null>(null)
 const openMenuAccountId = ref<string | null>(null)
+const accountMenuPosition = ref<AccountMenuPosition>({
+  top: ACCOUNT_MENU_MARGIN,
+  left: ACCOUNT_MENU_MARGIN,
+  width: ACCOUNT_MENU_WIDTH,
+  maxHeight: ACCOUNT_MENU_ESTIMATED_HEIGHT,
+  placement: 'bottom',
+})
 const searchQuery = ref('')
 const providerFilter = ref<string>('all')
 
@@ -575,17 +653,22 @@ const accountForm = ref({
 // CDK 配置：根据选中的提供商查找对应的内置 CDK 配置
 const selectedProviderCdkConfig = computed(() => {
   if (!accountForm.value.provider_id) return null
-  const provider = props.providers.find(p => p.id === accountForm.value.provider_id)
+  const provider = props.providers.find((p) => p.id === accountForm.value.provider_id)
   if (!provider) return null
-  const builtin = props.builtinProviders.find(bp => bp.name === provider.name)
+  const builtin = props.builtinProviders.find((bp) => bp.name === provider.name)
   return builtin?.cdk_config || null
 })
 
 const selectedBuiltinProvider = computed(() => {
   if (!accountForm.value.provider_id) return null
-  const provider = props.providers.find(p => p.id === accountForm.value.provider_id)
+  const provider = props.providers.find((p) => p.id === accountForm.value.provider_id)
   if (!provider) return null
-  return props.builtinProviders.find(bp => bp.name === provider.name) || null
+  return props.builtinProviders.find((bp) => bp.name === provider.name) || null
+})
+
+const modalProviderLabel = computed(() => {
+  if (!accountForm.value.provider_id) return '待选择提供商'
+  return selectedBuiltinProvider.value?.name || getProviderName(accountForm.value.provider_id)
 })
 
 // 过滤后的账号列表
@@ -594,22 +677,34 @@ const filteredAccounts = computed(() => {
 
   if (searchQuery.value) {
     const query = searchQuery.value.toLowerCase()
-    result = result.filter(account =>
-      account.name.toLowerCase().includes(query) ||
-      (account.provider_name && account.provider_name.toLowerCase().includes(query))
+    result = result.filter(
+      (account) =>
+        account.name.toLowerCase().includes(query) ||
+        (account.provider_name && account.provider_name.toLowerCase().includes(query))
     )
   }
 
   if (providerFilter.value !== 'all') {
-    result = result.filter(account => account.provider_id === providerFilter.value)
+    result = result.filter((account) => account.provider_id === providerFilter.value)
   }
 
   return result
 })
 
+const activeMenuAccount = computed(
+  () => props.accounts.find((account) => account.id === openMenuAccountId.value) || null
+)
+
+const accountMenuStyle = computed(() => ({
+  top: `${accountMenuPosition.value.top}px`,
+  left: `${accountMenuPosition.value.left}px`,
+  width: `${accountMenuPosition.value.width}px`,
+  maxHeight: `${accountMenuPosition.value.maxHeight}px`,
+}))
+
 // 辅助函数
 const getProviderName = (providerId: string) => {
-  return props.providers.find(p => p.id === providerId)?.name || providerId
+  return props.providers.find((p) => p.id === providerId)?.name || providerId
 }
 
 const formatDate = (dateStr: string) => {
@@ -620,10 +715,59 @@ const getErrorMessage = (error: unknown, fallback: string) =>
   error instanceof Error ? error.message : fallback
 
 // 切换账号菜单
-const toggleAccountMenu = (accountId: string) => {
+const closeAccountMenu = () => {
+  openMenuAccountId.value = null
+}
+
+const updateAccountMenuPosition = (trigger: HTMLElement) => {
+  const rect = trigger.getBoundingClientRect()
+  const viewportWidth = window.innerWidth
+  const viewportHeight = window.innerHeight
+  const menuWidth = Math.min(ACCOUNT_MENU_WIDTH, viewportWidth - ACCOUNT_MENU_MARGIN * 2)
+  const availableBelow = viewportHeight - rect.bottom - ACCOUNT_MENU_MARGIN
+  const availableAbove = rect.top - ACCOUNT_MENU_MARGIN
+  const placement: AccountMenuPlacement =
+    availableBelow >= ACCOUNT_MENU_ESTIMATED_HEIGHT || availableBelow >= availableAbove
+      ? 'bottom'
+      : 'top'
+
+  const left = Math.min(
+    Math.max(ACCOUNT_MENU_MARGIN, rect.right - menuWidth),
+    viewportWidth - menuWidth - ACCOUNT_MENU_MARGIN
+  )
+
+  const minimumVisibleHeight = 108
+  const top =
+    placement === 'bottom'
+      ? Math.min(
+          Math.max(ACCOUNT_MENU_MARGIN, rect.bottom + ACCOUNT_MENU_GAP),
+          viewportHeight - ACCOUNT_MENU_MARGIN - minimumVisibleHeight
+        )
+      : Math.max(ACCOUNT_MENU_MARGIN, rect.top - ACCOUNT_MENU_ESTIMATED_HEIGHT - ACCOUNT_MENU_GAP)
+
+  const maxHeight = Math.max(
+    minimumVisibleHeight,
+    placement === 'bottom'
+      ? viewportHeight - top - ACCOUNT_MENU_MARGIN
+      : rect.top - ACCOUNT_MENU_GAP - ACCOUNT_MENU_MARGIN
+  )
+
+  accountMenuPosition.value = {
+    top,
+    left,
+    width: menuWidth,
+    maxHeight,
+    placement,
+  }
+}
+
+const toggleAccountMenu = (accountId: string, event: MouseEvent) => {
   if (openMenuAccountId.value === accountId) {
-    openMenuAccountId.value = null
+    closeAccountMenu()
   } else {
+    const trigger = event.currentTarget
+    if (!(trigger instanceof HTMLElement)) return
+    updateAccountMenuPosition(trigger)
     openMenuAccountId.value = accountId
   }
 }
@@ -670,7 +814,9 @@ const openAccountModal = async (account?: AccountInfo) => {
     let existingExtra: CdkExtraConfig = {}
     try {
       existingExtra = account.extra_config ? JSON.parse(account.extra_config) : {}
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
 
     try {
       const cookiesData = await getCheckinAccountCookies<CheckinAccountCookiesResponse>(account.id)
@@ -681,7 +827,9 @@ const openAccountModal = async (account?: AccountInfo) => {
         api_user: typeof cookiesData.api_user === 'string' ? cookiesData.api_user : '',
         enabled: account.enabled,
         fuli_cookies: existingExtra.fuli_cookies ? JSON.stringify(existingExtra.fuli_cookies) : '',
-        b4u_cdk_cookies: existingExtra.b4u_cdk_cookies ? JSON.stringify(existingExtra.b4u_cdk_cookies) : '',
+        b4u_cdk_cookies: existingExtra.b4u_cdk_cookies
+          ? JSON.stringify(existingExtra.b4u_cdk_cookies)
+          : '',
         x666_access_token: existingExtra.x666_access_token || '',
       }
     } catch (e: unknown) {
@@ -693,7 +841,9 @@ const openAccountModal = async (account?: AccountInfo) => {
         api_user: account.api_user || '',
         enabled: account.enabled,
         fuli_cookies: existingExtra.fuli_cookies ? JSON.stringify(existingExtra.fuli_cookies) : '',
-        b4u_cdk_cookies: existingExtra.b4u_cdk_cookies ? JSON.stringify(existingExtra.b4u_cdk_cookies) : '',
+        b4u_cdk_cookies: existingExtra.b4u_cdk_cookies
+          ? JSON.stringify(existingExtra.b4u_cdk_cookies)
+          : '',
         x666_access_token: existingExtra.x666_access_token || '',
       }
     }
@@ -746,7 +896,13 @@ const saveAccount = async () => {
     }
 
     if (editingAccount.value) {
-      const updateData: { name?: string; cookies_json?: string; api_user?: string; enabled?: boolean; extra_config?: string } = {
+      const updateData: {
+        name?: string
+        cookies_json?: string
+        api_user?: string
+        enabled?: boolean
+        extra_config?: string
+      } = {
         name: accountForm.value.name,
         api_user: apiUser,
         enabled: accountForm.value.enabled,
@@ -796,17 +952,26 @@ const deleteAccount = async (id: string) => {
 
 // 点击页面其他地方关闭菜单
 const closeMenuOnClickOutside = (e: MouseEvent) => {
-  if (openMenuAccountId.value && !(e.target as HTMLElement).closest('.checkin-accounts-tab__menu-wrap')) {
-    openMenuAccountId.value = null
+  if (
+    openMenuAccountId.value &&
+    !(e.target as HTMLElement).closest(
+      '.checkin-accounts-tab__menu-wrap, .checkin-accounts-tab__menu--floating'
+    )
+  ) {
+    closeAccountMenu()
   }
 }
 
 onMounted(() => {
   document.addEventListener('click', closeMenuOnClickOutside)
+  window.addEventListener('resize', closeAccountMenu)
+  window.addEventListener('scroll', closeAccountMenu, true)
 })
 
 onUnmounted(() => {
   document.removeEventListener('click', closeMenuOnClickOutside)
+  window.removeEventListener('resize', closeAccountMenu)
+  window.removeEventListener('scroll', closeAccountMenu, true)
 })
 </script>
 
@@ -845,11 +1010,14 @@ onUnmounted(() => {
 .checkin-accounts-tab__action-button,
 .checkin-accounts-tab__account-row,
 .checkin-accounts-tab__row-actions,
+.checkin-accounts-tab__modal-header,
+.checkin-accounts-tab__modal-badge-row,
 .checkin-accounts-tab__modal-title,
+.checkin-accounts-tab__modal-footer,
+.checkin-accounts-tab__modal-intro,
 .checkin-accounts-tab__hint--with-icon,
 .checkin-accounts-tab__notice-title,
-.checkin-accounts-tab__toggle,
-.checkin-accounts-tab__form-actions {
+.checkin-accounts-tab__toggle {
   display: flex;
   align-items: center;
 }
@@ -879,13 +1047,17 @@ onUnmounted(() => {
 .checkin-accounts-tab__input,
 .checkin-accounts-tab__control {
   border-radius: 0.75rem;
-  border: 1px solid var(--border-default);
+  border: 1px solid rgb(var(--color-border-default-rgb) / 72%);
   color: var(--text-primary);
-  transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    background-color 0.2s ease,
+    transform 0.2s ease;
 }
 
 .checkin-accounts-tab__input {
-  background: rgb(255 255 255 / 8%);
+  background: rgb(var(--color-bg-elevated-rgb) / 36%);
   padding: 0.625rem 0.75rem;
   font-size: 0.875rem;
 }
@@ -898,8 +1070,10 @@ onUnmounted(() => {
 .checkin-accounts-tab__input:focus,
 .checkin-accounts-tab__control:focus {
   outline: none;
-  border-color: var(--accent-primary);
-  box-shadow: 0 0 0 2px rgb(59 130 246 / 20%);
+  border-color: rgb(var(--color-accent-primary-rgb) / 88%);
+  box-shadow:
+    0 0 0 3px rgb(var(--color-accent-primary-rgb) / 18%),
+    0 14px 28px rgb(var(--color-accent-primary-rgb) / 12%);
 }
 
 .checkin-accounts-tab__input--search {
@@ -931,7 +1105,9 @@ onUnmounted(() => {
 .checkin-accounts-tab__form-button {
   border-radius: 0.75rem;
   color: white;
-  transition: background-color 0.2s ease, opacity 0.2s ease;
+  transition:
+    background-color 0.2s ease,
+    opacity 0.2s ease;
 }
 
 .checkin-accounts-tab__action-button {
@@ -953,7 +1129,7 @@ onUnmounted(() => {
 
 .checkin-accounts-tab__action-button--primary:hover:not(:disabled),
 .checkin-accounts-tab__mini-button:hover:not(:disabled) {
-  background: rgb(59 130 246 / 90%);
+  background: rgb(var(--color-accent-primary-rgb) / 88%);
 }
 
 .checkin-accounts-tab__action-button--secondary {
@@ -961,7 +1137,7 @@ onUnmounted(() => {
 }
 
 .checkin-accounts-tab__action-button--secondary:hover:not(:disabled) {
-  background: rgb(139 92 246 / 90%);
+  background: rgb(var(--color-accent-secondary-rgb) / 88%);
 }
 
 .checkin-accounts-tab__empty {
@@ -1116,126 +1292,211 @@ onUnmounted(() => {
 
 .checkin-accounts-tab__menu-wrap {
   position: relative;
+  z-index: 1;
 }
 
 .checkin-accounts-tab__menu-trigger {
   min-width: 40px;
   min-height: 40px;
-  border-radius: 0.5rem;
+  border-radius: 0.85rem;
+  border: 1px solid transparent;
   color: var(--text-muted);
-  transition: color 0.2s ease, background-color 0.2s ease;
+  background: rgb(var(--color-bg-elevated-rgb) / 20%);
+  transition:
+    color 0.2s ease,
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
-.checkin-accounts-tab__menu-trigger:hover {
-  background: rgb(255 255 255 / 8%);
+.checkin-accounts-tab__menu-trigger:hover,
+.checkin-accounts-tab__menu-trigger--active {
+  border-color: rgb(var(--color-accent-primary-rgb) / 30%);
+  background: rgb(var(--color-bg-elevated-rgb) / 52%);
   color: var(--text-primary);
+  box-shadow: 0 12px 28px rgb(15 23 42 / 14%);
 }
 
 .checkin-accounts-tab__menu {
-  position: absolute;
-  right: 0;
-  bottom: calc(100% + 0.25rem);
-  z-index: 50;
-  width: 8rem;
-  overflow: hidden;
-  border-radius: 0.5rem;
-  border: 1px solid var(--border-default);
-  background: var(--bg-elevated);
-  box-shadow: 0 12px 24px rgb(15 23 42 / 18%);
+  z-index: 60;
+  padding: 0.35rem;
+  border-radius: 1rem;
+  border: 1px solid rgb(var(--color-border-strong-rgb) / 48%);
+  background: linear-gradient(
+    180deg,
+    rgb(var(--color-bg-elevated-rgb) / 94%),
+    rgb(var(--color-bg-surface-rgb) / 92%)
+  );
+  box-shadow:
+    0 20px 40px rgb(15 23 42 / 18%),
+    inset 0 1px 0 rgb(255 255 255 / 16%);
+  backdrop-filter: blur(18px) saturate(165%);
+  overflow-y: auto;
+}
+
+.checkin-accounts-tab__menu--floating {
+  position: fixed;
+  inset: auto auto auto 0;
+}
+
+.checkin-accounts-tab__menu--top {
+  transform-origin: bottom right;
+}
+
+.checkin-accounts-tab__menu--bottom {
+  transform-origin: top right;
 }
 
 .checkin-accounts-tab__menu-item {
   width: 100%;
-  padding: 0.5rem 0.75rem;
+  border-radius: 0.8rem;
+  padding: 0.625rem 0.75rem;
   text-align: left;
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
   color: var(--text-secondary);
-  transition: background-color 0.2s ease;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
 }
 
 .checkin-accounts-tab__menu-item:hover {
-  background: rgb(255 255 255 / 8%);
+  background: rgb(var(--color-accent-primary-rgb) / 12%);
+  color: var(--text-primary);
 }
 
 .checkin-accounts-tab__menu-item--top {
-  border-top-left-radius: 0.5rem;
-  border-top-right-radius: 0.5rem;
+  margin-bottom: 0.15rem;
 }
 
 .checkin-accounts-tab__menu-item--danger {
-  color: rgb(220 38 38);
-}
-
-.dark .checkin-accounts-tab__menu-item--danger {
-  color: rgb(248 113 113);
+  color: rgb(var(--color-danger-rgb) / 92%);
 }
 
 .checkin-accounts-tab__menu-item--danger:hover {
-  background: rgb(254 242 242 / 60%);
-}
-
-.dark .checkin-accounts-tab__menu-item--danger:hover {
-  background: rgb(127 29 29 / 20%);
-}
-
-.checkin-accounts-tab__modal-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 50;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgb(0 0 0 / 50%);
-  backdrop-filter: blur(12px);
-}
-
-.checkin-accounts-tab__modal-panel {
-  width: 100%;
-  max-width: 36rem;
-  margin: 0 1rem;
-  overflow: hidden;
-  border-radius: 0.75rem;
-  background: white;
-  box-shadow: 0 24px 48px rgb(15 23 42 / 30%);
-}
-
-.dark .checkin-accounts-tab__modal-panel {
-  background: rgb(31 41 55);
+  background: rgb(var(--color-danger-rgb) / 14%);
+  color: rgb(var(--color-danger-rgb) / 100%);
 }
 
 .checkin-accounts-tab__modal-header {
-  border-bottom: 1px solid rgb(229 231 235);
-  background: linear-gradient(to right, rgb(239 246 255), rgb(224 231 255));
-  padding: 1rem 1.5rem;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 1rem;
+  border-bottom: 1px solid rgb(var(--color-border-default-rgb) / 72%);
+  background:
+    radial-gradient(
+      circle at top right,
+      rgb(var(--color-accent-secondary-rgb) / 18%),
+      transparent 42%
+    ),
+    radial-gradient(
+      circle at left center,
+      rgb(var(--color-accent-primary-rgb) / 20%),
+      transparent 36%
+    ),
+    linear-gradient(
+      135deg,
+      rgb(var(--color-bg-surface-rgb) / 98%),
+      rgb(var(--color-bg-elevated-rgb) / 98%)
+    );
+  padding: 1.1rem 1.5rem 1rem;
 }
 
-.dark .checkin-accounts-tab__modal-header {
-  border-color: rgb(55 65 81);
-  background: linear-gradient(to right, rgb(31 41 55), rgb(31 41 55));
+.checkin-accounts-tab__modal-header-copy {
+  display: flex;
+  min-width: 0;
+  flex: 1 1 20rem;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.checkin-accounts-tab__modal-eyebrow {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgb(var(--color-accent-secondary-rgb) / 86%);
 }
 
 .checkin-accounts-tab__modal-title {
   gap: 0.5rem;
-  font-size: 1.125rem;
+  font-size: 1.2rem;
   font-weight: 600;
   color: var(--text-primary);
 }
 
 .checkin-accounts-tab__modal-title-icon {
-  color: rgb(37 99 235);
+  color: rgb(var(--color-accent-primary-rgb) / 94%);
 }
 
-.dark .checkin-accounts-tab__modal-title-icon {
-  color: rgb(96 165 250);
+.checkin-accounts-tab__modal-subtitle {
+  max-width: 36rem;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  color: var(--text-secondary);
+}
+
+.checkin-accounts-tab__modal-badge-row {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.checkin-accounts-tab__modal-badge,
+.checkin-accounts-tab__modal-intro-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border-radius: 999px;
+  border: 1px solid rgb(var(--color-border-default-rgb) / 72%);
+  background: rgb(var(--color-bg-elevated-rgb) / 72%);
+  padding: 0.4rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.checkin-accounts-tab__modal-badge--warning {
+  border-color: rgb(var(--color-warning-rgb) / 42%);
+  background: rgb(var(--color-warning-rgb) / 14%);
+  color: rgb(var(--color-warning-rgb) / 96%);
+}
+
+.checkin-accounts-tab__modal-intro {
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  padding-top: 0.5rem;
+}
+
+.checkin-accounts-tab__modal-intro-pill {
+  background: rgb(var(--color-bg-surface-rgb) / 78%);
+}
+
+.checkin-accounts-tab__modal-scroll {
+  max-height: min(62vh, 640px);
+  overflow-y: auto;
+  padding-right: 0.15rem;
+}
+
+.checkin-accounts-tab__modal-footer {
+  justify-content: flex-end;
+  gap: 0.75rem;
 }
 
 .checkin-accounts-tab__form {
-  gap: 1.25rem;
-  padding: 1.5rem;
+  gap: 1rem;
+  padding: 0.75rem 0 0.25rem;
 }
 
 .checkin-accounts-tab__field {
   gap: 0.375rem;
+}
+
+.checkin-accounts-tab__account-modal {
+  border-color: rgb(var(--color-border-strong-rgb) / 72%);
+  box-shadow:
+    0 28px 80px rgb(15 23 42 / 28%),
+    0 0 0 1px rgb(var(--color-accent-primary-rgb) / 10%);
 }
 
 .checkin-accounts-tab__label {
@@ -1255,19 +1516,22 @@ onUnmounted(() => {
 .checkin-accounts-tab__control {
   display: block;
   width: 100%;
-  background: white;
-  padding: 0.625rem 0.75rem;
-}
-
-.dark .checkin-accounts-tab__control {
-  border-color: rgb(75 85 99);
-  background: rgb(55 65 81);
-  color: white;
+  background: linear-gradient(
+    180deg,
+    rgb(var(--color-bg-elevated-rgb) / 96%),
+    rgb(var(--color-bg-surface-rgb) / 92%)
+  );
+  padding: 0.72rem 0.85rem;
+  color: var(--text-primary);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 10%),
+    0 10px 24px rgb(15 23 42 / 8%);
 }
 
 .checkin-accounts-tab__control:disabled {
   cursor: not-allowed;
-  opacity: 0.5;
+  opacity: 0.6;
+  background: rgb(var(--color-bg-surface-rgb) / 72%);
 }
 
 .checkin-accounts-tab__control--textarea {
@@ -1287,24 +1551,22 @@ onUnmounted(() => {
 }
 
 .checkin-accounts-tab__control--mono {
-  background: rgb(249 250 251);
-}
-
-.dark .checkin-accounts-tab__control--mono {
-  background: rgb(17 24 39);
+  background: linear-gradient(
+    180deg,
+    rgb(var(--color-bg-base-rgb) / 94%),
+    rgb(var(--color-bg-elevated-rgb) / 92%)
+  );
 }
 
 .checkin-accounts-tab__control--amber {
-  border-color: rgb(252 211 77);
-}
-
-.dark .checkin-accounts-tab__control--amber {
-  border-color: rgb(180 83 9);
+  border-color: rgb(var(--color-warning-rgb) / 46%);
 }
 
 .checkin-accounts-tab__control--amber:focus {
-  border-color: rgb(245 158 11);
-  box-shadow: 0 0 0 2px rgb(245 158 11 / 20%);
+  border-color: rgb(var(--color-warning-rgb) / 86%);
+  box-shadow:
+    0 0 0 3px rgb(var(--color-warning-rgb) / 16%),
+    0 14px 28px rgb(var(--color-warning-rgb) / 12%);
 }
 
 .checkin-accounts-tab__hint,
@@ -1468,7 +1730,7 @@ onUnmounted(() => {
   cursor: pointer;
   border-radius: 0.25rem;
   border: 1px solid rgb(209 213 219);
-  accent-color: rgb(37 99 235);
+  accent-color: rgb(var(--color-accent-primary-rgb) / 100%);
 }
 
 .checkin-accounts-tab__checkbox-label {
@@ -1479,47 +1741,41 @@ onUnmounted(() => {
   color: var(--text-secondary);
 }
 
-.checkin-accounts-tab__form-actions {
-  justify-content: flex-end;
-  gap: 0.75rem;
-  border-top: 1px solid rgb(229 231 235);
-  padding-top: 1rem;
-}
-
-.dark .checkin-accounts-tab__form-actions {
-  border-color: rgb(55 65 81);
-}
-
 .checkin-accounts-tab__form-button {
+  border-radius: 0.9rem;
   padding: 0.5rem 1rem;
   font-size: 0.875rem;
   font-weight: 500;
 }
 
 .checkin-accounts-tab__form-button--secondary {
-  border: 1px solid rgb(209 213 219);
-  background: transparent;
+  border: 1px solid rgb(var(--color-border-default-rgb) / 82%);
+  background: rgb(var(--color-bg-surface-rgb) / 78%);
   color: var(--text-secondary);
-}
-
-.dark .checkin-accounts-tab__form-button--secondary {
-  border-color: rgb(75 85 99);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 10%);
 }
 
 .checkin-accounts-tab__form-button--secondary:hover {
-  background: rgb(249 250 251);
-}
-
-.dark .checkin-accounts-tab__form-button--secondary:hover {
-  background: rgb(55 65 81);
+  background: rgb(var(--color-bg-elevated-rgb) / 90%);
+  color: var(--text-primary);
 }
 
 .checkin-accounts-tab__form-button--primary {
-  background: rgb(37 99 235);
+  background: linear-gradient(
+    135deg,
+    rgb(var(--color-accent-primary-rgb) / 96%),
+    rgb(var(--color-accent-secondary-rgb) / 92%)
+  );
+  box-shadow: 0 16px 28px rgb(var(--color-accent-primary-rgb) / 24%);
 }
 
 .checkin-accounts-tab__form-button--primary:hover {
-  background: rgb(29 78 216);
+  background: linear-gradient(
+    135deg,
+    rgb(var(--color-accent-primary-rgb) / 100%),
+    rgb(var(--color-accent-secondary-rgb) / 100%)
+  );
+  transform: translateY(-1px);
 }
 
 @media (width <= 900px) {
@@ -1539,6 +1795,30 @@ onUnmounted(() => {
 
   .checkin-accounts-tab__table-shell {
     overflow-x: auto;
+  }
+
+  .checkin-accounts-tab__modal-header,
+  .checkin-accounts-tab__modal-footer {
+    align-items: stretch;
+  }
+
+  .checkin-accounts-tab__modal-badge-row,
+  .checkin-accounts-tab__modal-footer {
+    justify-content: stretch;
+  }
+
+  .checkin-accounts-tab__modal-badge-row,
+  .checkin-accounts-tab__modal-footer,
+  .checkin-accounts-tab__modal-intro {
+    flex-direction: column;
+  }
+
+  .checkin-accounts-tab__modal-scroll {
+    max-height: min(58vh, 560px);
+  }
+
+  .checkin-accounts-tab__form-button {
+    width: 100%;
   }
 }
 </style>
