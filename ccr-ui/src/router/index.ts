@@ -216,19 +216,15 @@ const routes: RouteRecordRaw[] = [
         {
           path: 'skills/add',
           name: 'skills-add',
-          component: () => import('@/views/skills/AddSkillView.vue'),
-          meta: { depth: 2, group: 'skills' }
+          redirect: '/skills?tab=marketplace'
         },
         {
           path: 'skills/hub',
-          redirect: '/skills'
+          redirect: '/skills?tab=marketplace'
         },
         {
           path: 'skills/:platform/:name',
-          name: 'skill-detail',
-          component: () => import('@/views/generic/SkillDetailView.vue'),
-          props: true,
-          meta: { depth: 2, group: 'skills' }
+          redirect: '/skills'
         },
         {
           path: 'market',

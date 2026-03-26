@@ -1,632 +1,1381 @@
 <template>
-  <div class="unified-skills-view">
-    <!-- Header -->
-    <div class="skills-header">
-      <div class="skills-header__info">
-        <h1 class="skills-header__title">
-          {{ $t('skills.title') }}
-          <span
-            v-if="stats.installed > 0"
-            class="skills-header__badge"
-          >
-            {{ stats.installed }}
-          </span>
+  <div class="skills-console">
+    <header class="console-header">
+      <div>
+        <p class="console-header__eyebrow">
+          Skills Domain
+        </p>
+        <h1 class="console-header__title">
+          /skills
         </h1>
-        <p class="skills-header__subtitle">
-          {{ $t('skills.subtitle') }}
+        <p class="console-header__subtitle">
+          Inventory, sources, marketplace, and multi-platform sync in one console.
         </p>
       </div>
-      <div class="skills-header__actions">
-        <!-- Add Skill Button -->
-        <button
-          class="btn-add"
-          @click="$router.push('/skills/add')"
-        >
-          <SIcon
-            name="Plus"
-            size="w-4 h-4"
-          />
-          <span class="hidden sm:inline">{{ $t('skills.addSkill') }}</span>
-        </button>
-        <!-- Mobile Filter Toggle -->
-        <button
-          class="btn-filter lg:hidden"
-          @click="showMobileFilter = true"
-        >
-          <SIcon
-            name="Filter"
-            size="w-4 h-4"
-          />
-          <span
-            v-if="hasActiveFilters"
-            class="filter-badge"
-          />
-        </button>
-        <!-- Operation Log -->
-        <button
-          class="btn-log"
-          :title="$t('skills.operationLog')"
-          @click="showLogModal = true"
-        >
-          <SIcon
-            name="ScrollText"
-            size="w-4 h-4"
-          />
-        </button>
-        <button
-          class="btn-refresh"
-          :disabled="isLoading"
-          @click="handleRefresh"
-        >
-          <SIcon
-            name="RefreshCw"
-            size="w-4 h-4"
-            :class="{ 'animate-spin': isLoading }"
-          />
-        </button>
-      </div>
+      <button
+        class="console-button"
+        :disabled="inventoryLoading || sourcesLoading || marketplaceLoading"
+        @click="handleRefresh"
+      >
+        <SIcon
+          name="RefreshCw"
+          size="w-4 h-4"
+          :class="{ 'animate-spin': inventoryLoading || sourcesLoading || marketplaceLoading }"
+        />
+        <span>Refresh</span>
+      </button>
+    </header>
+
+    <div class="console-tabs">
+      <button
+        v-for="tab in tabs"
+        :key="tab.id"
+        class="console-tab"
+        :class="{ 'console-tab--active': routeState.tab === tab.id }"
+        @click="setTab(tab.id)"
+      >
+        <SIcon
+          :name="tab.icon"
+          size="w-4 h-4"
+        />
+        <span>{{ tab.label }}</span>
+        <span class="console-tab__count">{{ tab.count }}</span>
+      </button>
     </div>
 
-    <!-- Two-Column Layout -->
-    <div class="skills-layout">
-      <!-- Left: Filter Panel (Desktop) -->
-      <SkillsFilterPanel
-        v-model="filterPanelValue"
-        :platforms="platforms"
-        :categories="availableCategories"
-        :tags="availableTags"
-        :collapsed="filterPanelCollapsed"
-        class="hidden lg:block"
-        @toggle-collapse="filterPanelCollapsed = !filterPanelCollapsed"
-      />
+    <div class="console-layout">
+      <aside class="console-sidebar">
+        <section class="panel">
+          <div class="panel__header">
+            <h2 class="panel__title">
+              Targets
+            </h2>
+            <button
+              class="panel__link"
+              @click="selectDetectedPlatforms"
+            >
+              Detected
+            </button>
+          </div>
+          <div class="platform-grid">
+            <button
+              v-for="platform in platforms"
+              :key="platform.id"
+              class="platform-chip"
+              :class="{
+                'platform-chip--active': selectedPlatforms.includes(platform.id),
+                'platform-chip--disabled': !platform.detected,
+              }"
+              :disabled="!platform.detected"
+              @click="togglePlatform(platform.id)"
+            >
+              <SIcon
+                :name="platformIcon(platform.id)"
+                size="w-4 h-4"
+              />
+              <span>{{ platform.displayName }}</span>
+              <span class="platform-chip__count">{{ platform.installedCount }}</span>
+            </button>
+          </div>
+        </section>
 
-      <!-- Right: Main Content -->
-      <div class="skills-main">
-        <!-- Stats Cards -->
-        <SkillsStatsCards
-          :stats="stats"
-          :platforms="platforms"
-          :cached="marketplaceCached"
-          :marketplace-loaded="marketplaceLoaded"
-          :active-platform="filters.platform"
-        />
+        <section
+          v-if="routeState.tab === 'inventory'"
+          class="panel"
+        >
+          <div class="panel__header">
+            <h2 class="panel__title">
+              Filters
+            </h2>
+            <button
+              class="panel__link"
+              @click="resetInventoryFilters"
+            >
+              Reset
+            </button>
+          </div>
 
-        <!-- Content Tabs -->
-        <div class="content-tabs">
+          <label class="field">
+            <span class="field__label">Search</span>
+            <input
+              v-model="searchInput"
+              class="field__input"
+              type="text"
+              placeholder="name / tag / category"
+            >
+          </label>
+
+          <label class="field">
+            <span class="field__label">Platform</span>
+            <select
+              class="field__input"
+              :value="routeState.platform"
+              @change="updatePlatformFilter(($event.target as HTMLSelectElement).value)"
+            >
+              <option value="all">All platforms</option>
+              <option
+                v-for="platform in platforms"
+                :key="platform.id"
+                :value="platform.id"
+              >
+                {{ platform.displayName }}
+              </option>
+            </select>
+          </label>
+
+          <label class="field">
+            <span class="field__label">Origin</span>
+            <select
+              class="field__input"
+              :value="routeState.origin"
+              @change="updateOriginFilter(($event.target as HTMLSelectElement).value)"
+            >
+              <option value="all">All origins</option>
+              <option
+                v-for="origin in originOptions"
+                :key="origin"
+                :value="origin"
+              >
+                {{ origin }}
+              </option>
+            </select>
+          </label>
+
+          <label class="field">
+            <span class="field__label">Category</span>
+            <select
+              v-model="filters.category"
+              class="field__input"
+            >
+              <option :value="null">All categories</option>
+              <option
+                v-for="category in categories"
+                :key="category"
+                :value="category"
+              >
+                {{ category }}
+              </option>
+            </select>
+          </label>
+
+          <div class="tag-cloud">
+            <button
+              v-for="tag in tags"
+              :key="tag"
+              class="tag-chip"
+              :class="{ 'tag-chip--active': filters.tags.includes(tag) }"
+              @click="toggleTag(tag)"
+            >
+              {{ tag }}
+            </button>
+          </div>
+        </section>
+
+        <section
+          v-else-if="routeState.tab === 'sources'"
+          class="panel"
+        >
+          <div class="panel__header">
+            <h2 class="panel__title">
+              Add Source
+            </h2>
+          </div>
+
+          <label class="field">
+            <span class="field__label">Git repo</span>
+            <input
+              v-model="gitSourceUrl"
+              class="field__input"
+              type="text"
+              placeholder="https://github.com/owner/repo"
+            >
+          </label>
           <button
-            v-for="tab in contentTabs"
-            :key="tab.id"
-            class="content-tab"
-            :class="{ 'content-tab--active': activeTab === tab.id }"
-            @click="setActiveTab(tab.id)"
+            class="console-button console-button--primary"
+            :disabled="mutationLoading || !gitSourceUrl.trim()"
+            @click="handleAddGitSource"
           >
             <SIcon
-              :name="tab.icon"
+              name="Github"
               size="w-4 h-4"
             />
-            <span>{{ $t(tab.label) }}</span>
-            <span
-              v-if="tab.count > 0"
-              class="content-tab__count"
-            >{{ tab.count }}</span>
+            <span>Add Git Source</span>
           </button>
-        </div>
 
-        <!-- Main Content Area -->
-        <div class="skills-content">
-          <!-- Loading State -->
-          <AsyncStatePanel
-            v-if="isLoading && filteredSkills.length === 0"
-            state="loading"
-            :title="$t('common.loading')"
-            compact
-          />
+          <label class="field">
+            <span class="field__label">Local directory</span>
+            <div class="field__row">
+              <input
+                v-model="localSourcePath"
+                class="field__input"
+                type="text"
+                placeholder="D:/skills/repo"
+              >
+              <button
+                class="console-button"
+                @click="handlePickFolder('source')"
+              >
+                <SIcon
+                  name="FolderOpen"
+                  size="w-4 h-4"
+                />
+              </button>
+            </div>
+          </label>
+          <button
+            class="console-button console-button--primary"
+            :disabled="mutationLoading || !localSourcePath.trim()"
+            @click="handleAddLocalSource"
+          >
+            <SIcon
+              name="FolderGit2"
+              size="w-4 h-4"
+            />
+            <span>Add Local Source</span>
+          </button>
+        </section>
 
-          <AsyncStatePanel
-            v-else-if="error"
-            state="error"
-            :title="$t('stats.states.loadFailed')"
-            :description="error"
-            :action-label="$t('common.retry')"
-            action-icon="RefreshCw"
-            compact
-            @action="handleRefresh"
-          />
-
-          <!-- Installed Tab -->
-          <SkillsInstalledTab
-            v-else-if="activeTab === 'installed'"
-            :skills="filteredSkills"
-            :is-loading="isLoading"
-            @edit="handleEditSkill"
-            @delete="handleDeleteSkill"
-            @click="handleSkillClick"
-          />
-
-          <!-- Marketplace Tab -->
-          <SkillsMarketplaceTab
-            v-else-if="activeTab === 'marketplace'"
-            :items="marketplaceItems"
-            :is-loading="isMarketplaceLoading"
-            :error="marketplaceError"
-            :installed-packages="installedPackageSet"
-            @install="handleInstallFromMarketplace"
-            @search="handleMarketplaceSearch"
-            @batch-install="handleBatchInstall"
-          />
-
-          <!-- Repositories Tab (Placeholder) -->
-          <AsyncStatePanel
-            v-else-if="activeTab === 'repositories'"
-            state="empty"
-            icon="FolderGit2"
-            :title="$t('skills.repositoriesComingSoon')"
-            compact
-          />
-        </div>
-      </div>
-    </div>
-
-    <!-- Mobile Filter Drawer -->
-    <Teleport to="body">
-      <Transition name="drawer-fade">
-        <div
-          v-if="showMobileFilter"
-          class="mobile-filter-overlay"
-          @click.self="showMobileFilter = false"
+        <section
+          v-else
+          class="panel"
         >
-          <Transition name="drawer-slide">
-            <div
-              v-if="showMobileFilter"
-              class="mobile-filter-drawer"
+          <div class="panel__header">
+            <h2 class="panel__title">
+              Manual Install
+            </h2>
+          </div>
+
+          <label class="field">
+            <span class="field__label">GitHub</span>
+            <input
+              v-model="manualGithub"
+              class="field__input"
+              type="text"
+              placeholder="owner/repo or owner/repo@skill"
             >
-              <div class="mobile-filter-header">
-                <h3 class="text-lg font-bold text-white">
-                  {{ $t('skills.filters') }}
-                </h3>
+          </label>
+          <label class="field">
+            <span class="field__label">Local path</span>
+            <div class="field__row">
+              <input
+                v-model="manualLocalPath"
+                class="field__input"
+                type="text"
+                placeholder="D:/skills/local-skill"
+              >
+              <button
+                class="console-button"
+                @click="handlePickFolder('manual')"
+              >
+                <SIcon
+                  name="FolderOpen"
+                  size="w-4 h-4"
+                />
+              </button>
+            </div>
+          </label>
+          <label class="field">
+            <span class="field__label">npx package</span>
+            <input
+              v-model="manualNpx"
+              class="field__input"
+              type="text"
+              placeholder="owner/repo or owner/repo@skill"
+            >
+          </label>
+        </section>
+
+        <section class="panel">
+          <div class="panel__header">
+            <h2 class="panel__title">
+              Activity
+            </h2>
+          </div>
+          <div class="activity-list">
+            <div
+              v-for="entry in operationLog.slice(0, 8)"
+              :key="entry.id"
+              class="activity-row"
+            >
+              <span
+                class="activity-row__status"
+                :class="`activity-row__status--${entry.status}`"
+              />
+              <div class="activity-row__body">
+                <strong>{{ entry.action }}</strong>
+                <span>{{ entry.target }}</span>
+                <span class="activity-row__meta">{{ formatTime(entry.timestamp) }}</span>
+              </div>
+            </div>
+          </div>
+        </section>
+      </aside>
+
+      <div class="console-main">
+        <section
+          v-if="routeState.tab === 'inventory'"
+          class="inventory-layout"
+        >
+          <section class="panel">
+            <div class="panel__header">
+              <h2 class="panel__title">
+                Inventory
+              </h2>
+              <span class="panel__link">{{ filteredSkills.length }} results</span>
+            </div>
+
+            <div
+              ref="inventoryScrollRef"
+              class="inventory-list"
+            >
+              <div :style="{ height: `${rowVirtualizer.getTotalSize()}px`, position: 'relative' }">
                 <button
-                  class="p-2 rounded-lg text-white/50 hover:text-white hover:bg-white/5 transition-colors"
-                  @click="showMobileFilter = false"
+                  v-for="virtualRow in rowVirtualizer.getVirtualItems()"
+                  :key="filteredSkills[virtualRow.index]?.id"
+                  class="skill-card"
+                  :class="{ 'skill-card--active': filteredSkills[virtualRow.index]?.id === selectedSkill?.id }"
+                  :style="{ transform: `translateY(${virtualRow.start}px)` }"
+                  @click="handleSelectSkill(filteredSkills[virtualRow.index]?.id)"
+                >
+                  <div class="skill-card__head">
+                    <div class="min-w-0">
+                      <h3>{{ filteredSkills[virtualRow.index]?.name }}</h3>
+                      <p>{{ filteredSkills[virtualRow.index]?.description || 'No description' }}</p>
+                    </div>
+                    <span class="console-tab__count">{{ filteredSkills[virtualRow.index]?.installCount }}</span>
+                  </div>
+                  <div class="skill-card__meta">
+                    <span class="badge">{{ filteredSkills[virtualRow.index]?.origin }}</span>
+                    <span
+                      v-for="installation in filteredSkills[virtualRow.index]?.installations.slice(0, 3)"
+                      :key="installation.id"
+                      class="badge"
+                    >
+                      {{ installation.platformName }}
+                    </span>
+                  </div>
+                </button>
+              </div>
+            </div>
+          </section>
+
+          <section class="panel">
+            <div class="panel__header">
+              <h2 class="panel__title">
+                Detail
+              </h2>
+              <button
+                v-if="selectedSkill"
+                class="console-button console-button--danger"
+                :disabled="mutationLoading"
+                @click="handleRemoveSkill"
+              >
+                <SIcon
+                  name="Trash2"
+                  size="w-4 h-4"
+                />
+                <span>Remove Skill</span>
+              </button>
+            </div>
+
+            <div
+              v-if="selectedSkill"
+              class="detail-stack"
+            >
+              <div class="detail-card">
+                <h3>{{ selectedSkill.name }}</h3>
+                <p>{{ selectedSkill.description || 'No description' }}</p>
+                <div class="detail-card__grid">
+                  <div>
+                    <span>Origin</span>
+                    <strong>{{ selectedSkill.origin }}</strong>
+                  </div>
+                  <div>
+                    <span>Author</span>
+                    <strong>{{ selectedSkill.author || 'Unknown' }}</strong>
+                  </div>
+                  <div>
+                    <span>Version</span>
+                    <strong>{{ selectedSkill.version || 'N/A' }}</strong>
+                  </div>
+                  <div>
+                    <span>Category</span>
+                    <strong>{{ selectedSkill.category || 'Uncategorized' }}</strong>
+                  </div>
+                </div>
+                <div class="skill-card__meta">
+                  <span
+                    v-for="tag in selectedSkill.tags"
+                    :key="tag"
+                    class="tag-chip tag-chip--active"
+                  >
+                    {{ tag }}
+                  </span>
+                </div>
+              </div>
+
+              <div class="detail-card">
+                <div class="panel__header">
+                  <h2 class="panel__title">
+                    Installations
+                  </h2>
+                  <button
+                    class="console-button"
+                    :disabled="mutationLoading || !selectedSkill || selectedPlatforms.length === 0"
+                    @click="handleSyncSelected"
+                  >
+                    <SIcon
+                      name="CopyPlus"
+                      size="w-4 h-4"
+                    />
+                    <span>Sync to selected</span>
+                  </button>
+                </div>
+                <div class="installation-list">
+                  <div
+                    v-for="installation in selectedSkill.installations"
+                    :key="installation.id"
+                    class="installation-row"
+                  >
+                    <div class="installation-row__main">
+                      <strong>{{ installation.platformName }}</strong>
+                      <span>{{ shortenPath(installation.installPath) }}</span>
+                    </div>
+                    <div class="installation-row__actions">
+                      <button
+                        class="console-button"
+                        @click="handleSelectInstallation(installation.id)"
+                      >
+                        <SIcon
+                          name="Eye"
+                          size="w-4 h-4"
+                        />
+                      </button>
+                      <button
+                        class="console-button console-button--danger"
+                        :disabled="mutationLoading"
+                        @click="handleRemoveInstallation(installation.id)"
+                      >
+                        <SIcon
+                          name="Trash2"
+                          size="w-4 h-4"
+                        />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="detail-card">
+                <div class="panel__header">
+                  <h2 class="panel__title">
+                    Content
+                  </h2>
+                  <div class="installation-row__actions">
+                    <button
+                      class="console-button"
+                      @click="setMode(routeState.mode === 'edit' ? 'view' : 'edit')"
+                    >
+                      <SIcon
+                        :name="routeState.mode === 'edit' ? 'Eye' : 'Pencil'"
+                        size="w-4 h-4"
+                      />
+                      <span>{{ routeState.mode === 'edit' ? 'Preview' : 'Edit' }}</span>
+                    </button>
+                    <button
+                      class="console-button console-button--primary"
+                      :disabled="mutationLoading || routeState.mode !== 'edit' || !contentDirty || !selectedInstallation"
+                      @click="handleSaveContent"
+                    >
+                      <SIcon
+                        name="Save"
+                        size="w-4 h-4"
+                      />
+                      <span>Save</span>
+                    </button>
+                  </div>
+                </div>
+
+                <textarea
+                  v-if="routeState.mode === 'edit'"
+                  v-model="editBuffer"
+                  class="content-editor"
+                />
+                <pre
+                  v-else
+                  class="content-preview"
+                >{{ currentContent?.raw || 'No content loaded.' }}</pre>
+              </div>
+            </div>
+
+            <div
+              v-else
+              class="empty-state"
+            >
+              Select a logical skill to inspect it.
+            </div>
+          </section>
+        </section>
+
+        <section
+          v-else-if="routeState.tab === 'sources'"
+          class="source-list"
+        >
+          <article
+            v-for="source in sources"
+            :key="source.id"
+            class="panel"
+          >
+            <div class="panel__header">
+              <div>
+                <h2 class="panel__title">
+                  {{ source.name }}
+                </h2>
+                <p class="console-header__subtitle">
+                  {{ source.description || source.location }}
+                </p>
+              </div>
+              <div class="installation-row__actions">
+                <button
+                  class="console-button"
+                  :disabled="mutationLoading"
+                  @click="handleSyncSource(source.id)"
                 >
                   <SIcon
-                    name="X"
-                    size="w-5 h-5"
+                    name="RefreshCw"
+                    size="w-4 h-4"
+                  />
+                </button>
+                <button
+                  class="console-button console-button--danger"
+                  :disabled="mutationLoading"
+                  @click="handleRemoveSource(source.id)"
+                >
+                  <SIcon
+                    name="Trash2"
+                    size="w-4 h-4"
                   />
                 </button>
               </div>
-              <SkillsFilterPanel
-                v-model="filterPanelValue"
-                :platforms="platforms"
-                :categories="availableCategories"
-                :tags="availableTags"
-                :collapsed="false"
-                class="mobile-filter-content"
-              />
             </div>
-          </Transition>
-        </div>
-      </Transition>
-    </Teleport>
 
-    <!-- Install Modal -->
-    <SkillInstallModal
-      v-model="showInstallModal"
-      :skill="selectedSkillForInstall"
-      :marketplace-item="selectedMarketplaceItem"
-      :platforms="platforms"
-      @install="handleInstall"
-    />
+            <div class="skill-card__meta">
+              <span class="badge">{{ source.type }}</span>
+              <span class="badge">{{ source.health }}</span>
+              <span class="badge">{{ source.skillCount }} skills</span>
+            </div>
 
-    <!-- Detail / Edit Modal -->
-    <SkillDetailModal
-      v-model="showDetailModal"
-      :skill="selectedSkillForDetail"
-      :initial-mode="detailModalMode"
-      @saved="refresh"
-    />
+            <div class="source-skill-grid">
+              <button
+                v-for="skill in source.skills"
+                :key="`${source.id}:${skill.id}`"
+                class="source-skill-card"
+                :disabled="selectedPlatforms.length === 0 || mutationLoading"
+                @click="handleInstallFromSource(source.id, skill.id)"
+              >
+                <div>
+                  <strong>{{ skill.name }}</strong>
+                  <p>{{ skill.description || 'No description' }}</p>
+                </div>
+                <SIcon
+                  name="ArrowRight"
+                  size="w-4 h-4"
+                />
+              </button>
+            </div>
+          </article>
+        </section>
 
-    <!-- Delete Confirm Modal -->
-    <SkillDeleteConfirmModal
-      v-model="showDeleteModal"
-      :skill="selectedSkillForDelete"
-      @confirm="confirmDeleteSkill"
-    />
+        <section
+          v-else
+          class="marketplace-layout"
+        >
+          <section class="panel">
+            <div class="panel__header">
+              <h2 class="panel__title">
+                Marketplace
+              </h2>
+              <div class="field__row">
+                <input
+                  v-model="marketplaceSearch"
+                  class="field__input"
+                  type="text"
+                  placeholder="search skills.sh"
+                >
+                <button
+                  class="console-button"
+                  :disabled="marketplaceLoading"
+                  @click="handleMarketplaceSearch"
+                >
+                  <SIcon
+                    name="Search"
+                    size="w-4 h-4"
+                  />
+                </button>
+              </div>
+            </div>
 
-    <!-- Operation Log Modal -->
-    <SkillOperationLogModal v-model="showLogModal" />
+            <div class="marketplace-grid">
+              <article
+                v-for="item in marketplace.items"
+                :key="item.package"
+                class="marketplace-card"
+              >
+                <div class="marketplace-card__header">
+                  <div>
+                    <h3>{{ item.package }}</h3>
+                    <p>{{ item.description || `${item.owner}/${item.repo}` }}</p>
+                  </div>
+                  <span class="badge">{{ item.stars ?? 0 }}★</span>
+                </div>
+                <button
+                  class="console-button console-button--primary"
+                  :disabled="selectedPlatforms.length === 0 || mutationLoading"
+                  @click="handleInstallMarketplace(item)"
+                >
+                  <SIcon
+                    name="Download"
+                    size="w-4 h-4"
+                  />
+                  <span>Install</span>
+                </button>
+              </article>
+            </div>
 
-    <!-- Install Progress Toast -->
-    <SkillInstallToast
-      :progress="installProgress"
-      @dismiss="installProgress = null"
-    />
+            <div class="pagination-row">
+              <button
+                class="console-button"
+                :disabled="routeState.page <= 1"
+                @click="updatePage(routeState.page - 1)"
+              >
+                Prev
+              </button>
+              <span class="panel__link">Page {{ routeState.page }}</span>
+              <button
+                class="console-button"
+                :disabled="marketplace.items.length < marketplace.pageSize"
+                @click="updatePage(routeState.page + 1)"
+              >
+                Next
+              </button>
+            </div>
+          </section>
+
+          <section class="panel manual-actions">
+            <div class="panel__header">
+              <h2 class="panel__title">
+                Manual Install
+              </h2>
+            </div>
+            <button
+              class="console-button console-button--primary"
+              :disabled="mutationLoading || !manualGithub.trim() || selectedPlatforms.length === 0"
+              @click="installManual('github')"
+            >
+              <SIcon
+                name="Github"
+                size="w-4 h-4"
+              />
+              <span>Install GitHub</span>
+            </button>
+            <button
+              class="console-button console-button--primary"
+              :disabled="mutationLoading || !manualLocalPath.trim() || selectedPlatforms.length === 0"
+              @click="installManual('local')"
+            >
+              <SIcon
+                name="HardDrive"
+                size="w-4 h-4"
+              />
+              <span>Install Local</span>
+            </button>
+            <button
+              class="console-button console-button--primary"
+              :disabled="mutationLoading || !manualNpx.trim() || selectedPlatforms.length === 0"
+              @click="installManual('npx')"
+            >
+              <SIcon
+                name="Terminal"
+                size="w-4 h-4"
+              />
+              <span>Install npx</span>
+            </button>
+            <p class="console-header__subtitle">
+              {{ npxStatus?.available ? `npx ${npxStatus.version ?? ''}` : 'npx unavailable' }}
+            </p>
+          </section>
+        </section>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import { useVirtualizer } from '@tanstack/vue-virtual'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import SIcon from '@/components/ui/SIcon.vue'
-import { AsyncStatePanel } from '@/components/ui'
-import { ref, computed, onMounted, watch, defineAsyncComponent } from 'vue'
-import { useI18n } from 'vue-i18n'
 import { useUnifiedSkills } from '@/composables/useUnifiedSkills'
 import { useUIStore } from '@/stores/ui'
-import type { Platform, UnifiedSkill, MarketplaceItem, ContentTab, SkillFilters } from '@/types/skills'
+import { PLATFORM_CONFIG } from '@/types/skills'
+import { isTauriRuntime } from '@/utils/tauriRuntime'
+import type { Platform, SkillOrigin, SkillsRouteState, SkillsTab } from '@/types/skills'
 
-// 静态导入: 首屏必需组件（始终可见）
-import SkillsFilterPanel from '@/components/skills/SkillsFilterPanel.vue'
-import SkillsStatsCards from '@/components/skills/SkillsStatsCards.vue'
-import SkillsInstalledTab from '@/components/skills/SkillsInstalledTab.vue'
-import SkillInstallToast from '@/components/skills/SkillInstallToast.vue'
-import { logger } from '@/utils/logger'
-import { toInstalledPackageSet } from '@/utils/skills'
-
-defineOptions({
-  name: 'UnifiedSkillsView',
-})
-
-// 懒加载: Tab 内容（按需加载，切换 tab 时才触发）
-const SkillsMarketplaceTab = defineAsyncComponent(
-  () => import('@/components/skills/SkillsMarketplaceTab.vue')
-)
-
-// 懒加载: Modal 组件（用户交互时才加载）
-const SkillInstallModal = defineAsyncComponent(
-  () => import('@/components/skills/SkillInstallModal.vue')
-)
-const SkillDetailModal = defineAsyncComponent(
-  () => import('@/components/skills/SkillDetailModal.vue')
-)
-const SkillDeleteConfirmModal = defineAsyncComponent(
-  () => import('@/components/skills/SkillDeleteConfirmModal.vue')
-)
-const SkillOperationLogModal = defineAsyncComponent(
-  () => import('@/components/skills/SkillOperationLogModal.vue')
-)
-
-const { t } = useI18n()
+const router = useRouter()
+const route = useRoute()
 const uiStore = useUIStore()
-
 const {
-  skills,
-  platforms,
-  marketplaceItems,
-  marketplaceLoaded,
-  isLoading,
-  isMarketplaceLoading,
-  error,
-  marketplaceError,
-  marketplaceCached,
-  filters,
-  activeTab,
-  filteredSkills,
-  availableCategories,
-  availableTags,
-  stats,
-  installProgress,
-  setFilters,
-  setActiveTab,
   initialize,
   refresh,
-  fetchMarketplaceTrending,
-  searchMarketplace,
-  installSkill,
-  removeSkill,
-  batchInstall
+  loadMarketplace,
+  loadNpxStatus,
+  applyRouteState,
+  install,
+  syncSkill,
+  removeInstallation,
+  removeSkillRecord,
+  addGitSource,
+  addLocalSourceRecord,
+  syncSource,
+  removeSource,
+  ensureDetail,
+  ensureContent,
+  saveContent,
+  browseFolder,
+  platforms,
+  sources,
+  marketplace,
+  filters,
+  routeState,
+  selectedSkill,
+  selectedInstallation,
+  operationLog,
+  npxStatus,
+  mutationLoading,
+  filteredSkills,
+  categories,
+  tags,
+  stats,
+  inventoryLoading,
+  sourcesLoading,
+  marketplaceLoading,
+  selectSkill,
 } = useUnifiedSkills()
 
-// Local state
-const showInstallModal = ref(false)
-const selectedSkillForInstall = ref<UnifiedSkill | undefined>()
-const selectedMarketplaceItem = ref<MarketplaceItem | undefined>()
-
-// Detail modal state
-const showDetailModal = ref(false)
-const selectedSkillForDetail = ref<UnifiedSkill | undefined>()
-const detailModalMode = ref<'view' | 'edit'>('view')
-
-// Delete confirm modal state
-const showDeleteModal = ref(false)
-const selectedSkillForDelete = ref<UnifiedSkill | undefined>()
-
-// Operation log modal state
-const showLogModal = ref(false)
-
-// Filter panel state
-const filterPanelCollapsed = ref(false)
-const showMobileFilter = ref(false)
-
-// Installed packages set (for marketplace installed detection)
-const installedPackageSet = computed(() => {
-  return toInstalledPackageSet(skills.value)
-})
-
-// Filter panel v-model binding (includes platform)
-const filterPanelValue = computed({
-  get: (): SkillFilters => ({
-    search: filters.value.search,
-    source: filters.value.source,
-    category: filters.value.category,
-    tags: filters.value.tags,
-    platform: filters.value.platform
-  }),
-  set: (value: SkillFilters) => {
-    setFilters(value)
-  }
-})
-
-// Check if any filters are active
-const hasActiveFilters = computed(() => {
-  return filters.value.search !== '' ||
-         filters.value.source !== 'all' ||
-         filters.value.category !== null ||
-         filters.value.tags.length > 0 ||
-         filters.value.platform !== 'all'
-})
-
-// Content tabs configuration
-const contentTabs = computed(() => [
-  {
-    id: 'installed' as ContentTab,
-    label: 'skills.tabInstalled',
-    icon: 'Package',
-    count: filteredSkills.value.length
-  },
-  {
-    id: 'marketplace' as ContentTab,
-    label: 'skills.tabMarketplace',
-    icon: 'Store',
-    count: marketplaceItems.value.length
-  },
-  {
-    id: 'repositories' as ContentTab,
-    label: 'skills.tabRepositories',
-    icon: 'FolderGit2',
-    count: 0
-  }
+const tabs = computed(() => [
+  { id: 'inventory' as SkillsTab, label: 'Inventory', icon: 'Package', count: stats.value.logicalSkills },
+  { id: 'sources' as SkillsTab, label: 'Sources', icon: 'FolderGit2', count: stats.value.sources },
+  { id: 'marketplace' as SkillsTab, label: 'Marketplace', icon: 'Store', count: marketplace.value.total },
 ])
 
-// Event handlers
+const originOptions: SkillOrigin[] = ['marketplace', 'github', 'repo', 'local', 'npx', 'unknown']
+const selectedPlatforms = ref<Platform[]>([])
+const inventoryScrollRef = ref<HTMLElement | null>(null)
+const searchInput = ref('')
+const marketplaceSearch = ref('')
+const gitSourceUrl = ref('')
+const localSourcePath = ref('')
+const manualGithub = ref('')
+const manualLocalPath = ref('')
+const manualNpx = ref('')
+const currentContent = ref<Awaited<ReturnType<typeof ensureContent>> | null>(null)
+const editBuffer = ref('')
+let stopSkillsEvent: null | (() => void) = null
+const rowVirtualizer = useVirtualizer(computed(() => ({
+  count: filteredSkills.value.length,
+  getScrollElement: () => inventoryScrollRef.value,
+  estimateSize: () => 120,
+  overscan: 6,
+})))
+const contentDirty = computed(() => currentContent.value != null && editBuffer.value !== currentContent.value.raw)
+
+function platformIcon(platformId: Platform) {
+  return PLATFORM_CONFIG[platformId]?.icon ?? 'Code2'
+}
+
+function normalizeRouteState(query: Record<string, unknown>): SkillsRouteState {
+  return {
+    tab: query.tab === 'sources' || query.tab === 'marketplace' ? query.tab : 'inventory',
+    selected: typeof query.selected === 'string' ? query.selected : null,
+    mode: query.mode === 'edit' ? 'edit' : 'view',
+    platform: typeof query.platform === 'string' && query.platform in PLATFORM_CONFIG ? query.platform as Platform : 'all',
+    origin: typeof query.origin === 'string' && originOptions.includes(query.origin as SkillOrigin) ? query.origin as SkillOrigin : 'all',
+    q: typeof query.q === 'string' ? query.q : '',
+    page: typeof query.page === 'string' ? Math.max(Number(query.page) || 1, 1) : 1,
+    source: typeof query.source === 'string' ? query.source : null,
+  }
+}
+
+function replaceRoute(patch: Partial<SkillsRouteState>) {
+  const nextState = {
+    ...routeState.value,
+    ...patch,
+  }
+  applyRouteState(nextState)
+  const query: Record<string, string> = {}
+  if (nextState.tab !== 'inventory') query.tab = nextState.tab
+  if (nextState.selected) query.selected = nextState.selected
+  if (nextState.mode !== 'view') query.mode = nextState.mode
+  if (nextState.platform !== 'all') query.platform = nextState.platform
+  if (nextState.origin !== 'all') query.origin = nextState.origin
+  if (nextState.q) query.q = nextState.q
+  if (nextState.page > 1) query.page = String(nextState.page)
+  if (nextState.source) query.source = nextState.source
+  void router.replace({ path: '/skills', query })
+}
+
+function setTab(tab: SkillsTab) {
+  replaceRoute({ tab, page: 1 })
+}
+
+function updatePlatformFilter(value: string) {
+  replaceRoute({ platform: value as SkillsRouteState['platform'] })
+}
+
+function updateOriginFilter(value: string) {
+  replaceRoute({ origin: value as SkillsRouteState['origin'] })
+}
+
+function updatePage(page: number) {
+  replaceRoute({ page })
+}
+
+function resetInventoryFilters() {
+  filters.value = { search: '', platform: 'all', origin: 'all', category: null, tags: [], source: 'all' }
+  searchInput.value = ''
+  replaceRoute({ platform: 'all', origin: 'all', q: '' })
+}
+
+function togglePlatform(platform: Platform) {
+  selectedPlatforms.value = selectedPlatforms.value.includes(platform)
+    ? selectedPlatforms.value.filter((item) => item !== platform)
+    : [...selectedPlatforms.value, platform]
+}
+
+function selectDetectedPlatforms() {
+  selectedPlatforms.value = platforms.value.filter((platform) => platform.detected).map((platform) => platform.id)
+}
+
+function toggleTag(tag: string) {
+  filters.value = {
+    ...filters.value,
+    tags: filters.value.tags.includes(tag)
+      ? filters.value.tags.filter((item) => item !== tag)
+      : [...filters.value.tags, tag],
+  }
+}
+
 async function handleRefresh() {
-  await refresh(activeTab.value === 'marketplace')
+  await refresh(routeState.value.tab === 'marketplace')
+  if (routeState.value.tab === 'marketplace') {
+    await loadMarketplace(true)
+  }
 }
 
-function handleSkillClick(skill: UnifiedSkill) {
-  selectedSkillForDetail.value = skill
-  detailModalMode.value = 'view'
-  showDetailModal.value = true
+function handleSelectSkill(skillId?: string) {
+  if (!skillId) return
+  replaceRoute({ selected: skillId })
+  selectSkill(skillId, null)
+  void ensureDetail(skillId, true)
 }
 
-function handleEditSkill(skill: UnifiedSkill) {
-  selectedSkillForDetail.value = skill
-  detailModalMode.value = 'edit'
-  showDetailModal.value = true
+function handleSelectInstallation(installationId: string) {
+  if (!selectedSkill.value) return
+  selectSkill(selectedSkill.value.id, installationId)
 }
 
-function handleDeleteSkill(skill: UnifiedSkill) {
-  selectedSkillForDelete.value = skill
-  showDeleteModal.value = true
+function setMode(mode: 'view' | 'edit') {
+  replaceRoute({ mode })
 }
 
-async function confirmDeleteSkill(skill: UnifiedSkill) {
+async function loadSelectedContent() {
+  if (!selectedSkill.value || !selectedInstallation.value) {
+    currentContent.value = null
+    editBuffer.value = ''
+    return
+  }
+  currentContent.value = await ensureContent(selectedSkill.value.id, selectedInstallation.value.id, true)
+  editBuffer.value = currentContent.value?.raw ?? ''
+}
+
+async function handleSaveContent() {
+  if (!selectedSkill.value || !selectedInstallation.value) return
   try {
-    await removeSkill({
-      skill: skill.skillDir,
-      agents: [skill.platform]
-    })
-    showDeleteModal.value = false
-    uiStore.showSuccess(t('skills.deleteSuccess'))
-  } catch (err) {
-    uiStore.showError(t('skills.deleteFailed') + ': ' + ((err instanceof Error ? err.message : "Error") || ''))
+    const saved = await saveContent(selectedSkill.value.id, selectedInstallation.value.id, editBuffer.value)
+    currentContent.value = saved
+    editBuffer.value = saved.raw
+    setMode('view')
+    uiStore.showSuccess('Skill content saved')
+  } catch (error) {
+    uiStore.showError(error instanceof Error ? error.message : String(error))
   }
 }
 
-function handleInstallFromMarketplace(item: MarketplaceItem) {
-  selectedMarketplaceItem.value = item
-  selectedSkillForInstall.value = undefined
-  showInstallModal.value = true
-}
-
-async function handleInstall(targetPlatforms: Platform[]) {
-  if (!selectedMarketplaceItem.value) return
-
+async function handleSyncSelected() {
+  if (!selectedSkill.value || !selectedInstallation.value || selectedPlatforms.value.length === 0) return
   try {
-    await installSkill({
-      package: selectedMarketplaceItem.value.skillsShUrl,
-      agents: targetPlatforms,
-      force: false
+    await syncSkill({
+      skillId: selectedSkill.value.id,
+      installationId: selectedInstallation.value.id,
+      targetPlatforms: selectedPlatforms.value,
     })
-    showInstallModal.value = false
-  } catch (err) {
-    logger.error('Failed to install skill:', err)
+    uiStore.showSuccess('Skill synced to selected platforms')
+  } catch (error) {
+    uiStore.showError(error instanceof Error ? error.message : String(error))
   }
 }
 
-async function handleMarketplaceSearch(query: string) {
-  if (query.trim()) {
-    await searchMarketplace(query)
-  } else {
-    await fetchMarketplaceTrending()
-  }
-}
-
-async function handleBatchInstall(packages: string[]) {
-  if (packages.length === 0) return
+async function handleRemoveInstallation(installationId: string) {
+  if (!selectedSkill.value) return
   try {
-    const detectedPlatforms = platforms.value
-      .filter(p => p.detected)
-      .map(p => p.id)
-    await batchInstall({
-      packages,
-      agents: detectedPlatforms,
-      force: false
-    })
-    uiStore.showSuccess(t('skills.donePhase'))
-  } catch (err) {
-    uiStore.showError((err instanceof Error ? err.message : "Error") || 'Batch install failed')
+    await removeInstallation(selectedSkill.value.id, installationId)
+    uiStore.showSuccess('Installation removed')
+  } catch (error) {
+    uiStore.showError(error instanceof Error ? error.message : String(error))
   }
 }
 
-// Initialize on mount
-onMounted(() => {
-  void initialize(false)
+async function handleRemoveSkill() {
+  if (!selectedSkill.value) return
+  try {
+    await removeSkillRecord(selectedSkill.value.id)
+    replaceRoute({ selected: null, mode: 'view' })
+    currentContent.value = null
+    editBuffer.value = ''
+    uiStore.showSuccess('Skill removed')
+  } catch (error) {
+    uiStore.showError(error instanceof Error ? error.message : String(error))
+  }
+}
+
+async function handleAddGitSource() {
+  try {
+    await addGitSource(gitSourceUrl.value.trim())
+    gitSourceUrl.value = ''
+    uiStore.showSuccess('Git source added')
+  } catch (error) {
+    uiStore.showError(error instanceof Error ? error.message : String(error))
+  }
+}
+
+async function handleAddLocalSource() {
+  try {
+    await addLocalSourceRecord(localSourcePath.value.trim())
+    localSourcePath.value = ''
+    uiStore.showSuccess('Local source added')
+  } catch (error) {
+    uiStore.showError(error instanceof Error ? error.message : String(error))
+  }
+}
+
+async function handleSyncSource(sourceId: string) {
+  try {
+    await syncSource(sourceId)
+    uiStore.showSuccess('Source synced')
+  } catch (error) {
+    uiStore.showError(error instanceof Error ? error.message : String(error))
+  }
+}
+
+async function handleRemoveSource(sourceId: string) {
+  try {
+    await removeSource(sourceId)
+    uiStore.showSuccess('Source removed')
+  } catch (error) {
+    uiStore.showError(error instanceof Error ? error.message : String(error))
+  }
+}
+
+async function handleInstallFromSource(sourceId: string, skillId: string) {
+  try {
+    await install({
+      sourceKind: 'source',
+      sourceRef: sourceId,
+      sourceSkillId: skillId,
+      targetPlatforms: selectedPlatforms.value,
+    })
+    uiStore.showSuccess('Skill installed from source')
+  } catch (error) {
+    uiStore.showError(error instanceof Error ? error.message : String(error))
+  }
+}
+
+async function handleMarketplaceSearch() {
+  replaceRoute({ q: marketplaceSearch.value.trim(), page: 1 })
+  await loadMarketplace(true)
+}
+
+async function handleInstallMarketplace(item: { package: string; skill?: string }) {
+  try {
+    await install({
+      sourceKind: 'marketplace',
+      sourceRef: item.package,
+      sourceSkillId: item.skill,
+      targetPlatforms: selectedPlatforms.value,
+    })
+    uiStore.showSuccess('Marketplace skill installed')
+  } catch (error) {
+    uiStore.showError(error instanceof Error ? error.message : String(error))
+  }
+}
+
+async function installManual(kind: 'github' | 'local' | 'npx') {
+  const sourceRef = kind === 'github' ? manualGithub.value : kind === 'local' ? manualLocalPath.value : manualNpx.value
+  try {
+    await install({
+      sourceKind: kind,
+      sourceRef: sourceRef.trim(),
+      targetPlatforms: selectedPlatforms.value,
+    })
+    if (kind === 'github') manualGithub.value = ''
+    if (kind === 'local') manualLocalPath.value = ''
+    if (kind === 'npx') manualNpx.value = ''
+    uiStore.showSuccess(`Installed via ${kind}`)
+  } catch (error) {
+    uiStore.showError(error instanceof Error ? error.message : String(error))
+  }
+}
+
+async function handlePickFolder(target: 'source' | 'manual') {
+  try {
+    const path = await browseFolder()
+    if (!path) return
+    if (target === 'source') {
+      localSourcePath.value = path
+    } else {
+      manualLocalPath.value = path
+    }
+  } catch (error) {
+    uiStore.showError(error instanceof Error ? error.message : String(error))
+  }
+}
+
+function formatTime(timestamp: number) {
+  return new Date(timestamp).toLocaleTimeString()
+}
+
+function shortenPath(path: string) {
+  const normalized = path.replace(/\\/g, '/')
+  const parts = normalized.split('/')
+  return parts.length <= 4 ? normalized : `.../${parts.slice(-4).join('/')}`
+}
+
+watch(
+  () => route.query,
+  (query) => {
+    const normalized = normalizeRouteState(query as Record<string, unknown>)
+    applyRouteState(normalized)
+    searchInput.value = normalized.q
+    marketplaceSearch.value = normalized.q
+    if (normalized.selected) {
+      selectSkill(normalized.selected, null)
+      void ensureDetail(normalized.selected, true)
+    } else {
+      selectSkill(null, null)
+    }
+    if (normalized.tab === 'marketplace') {
+      void loadMarketplace(true)
+    }
+  },
+  { immediate: true }
+)
+
+watch(searchInput, (value) => {
+  window.clearTimeout(searchTimer)
+  searchTimer = window.setTimeout(() => {
+    filters.value = {
+      ...filters.value,
+      search: value.trim(),
+    }
+    replaceRoute({ q: value.trim() })
+  }, 300)
 })
 
-// Watch for tab changes to fetch marketplace data
-watch(activeTab, (newTab) => {
-  if (newTab === 'marketplace' && !marketplaceLoaded.value && !isMarketplaceLoading.value) {
-    void fetchMarketplaceTrending()
+watch([selectedSkill, selectedInstallation], () => {
+  void loadSelectedContent()
+})
+
+watch(
+  platforms,
+  (currentPlatforms) => {
+    if (selectedPlatforms.value.length === 0 && currentPlatforms.length > 0) {
+      selectDetectedPlatforms()
+    }
+  },
+  { immediate: true }
+)
+
+let searchTimer = 0
+
+onMounted(async () => {
+  await initialize(false)
+  await loadNpxStatus(true)
+  if (routeState.value.tab === 'marketplace') {
+    await loadMarketplace()
   }
+
+  if (isTauriRuntime()) {
+    const { listen } = await import('@tauri-apps/api/event')
+    stopSkillsEvent = await listen('skills-changed', async () => {
+      await refresh(routeState.value.tab === 'marketplace')
+    })
+  }
+})
+
+onUnmounted(() => {
+  stopSkillsEvent?.()
+  stopSkillsEvent = null
 })
 </script>
 
 <style scoped>
-.unified-skills-view {
+.skills-console {
   @apply flex flex-col gap-4 px-4 py-4;
 }
 
-.skills-header {
-  @apply flex items-center justify-between;
+.console-header,
+.panel,
+.console-tabs {
+  @apply rounded-3xl border border-white/10 bg-black/25 p-4 backdrop-blur-2xl;
 }
 
-.skills-header__info {
-  @apply flex flex-col gap-1;
+.console-header {
+  @apply flex items-center justify-between gap-4;
+
+  background:
+    radial-gradient(circle at top right, rgb(167 139 250 / 18%), transparent 30%),
+    linear-gradient(180deg, rgb(13 7 32 / 82%), rgb(8 5 21 / 74%));
 }
 
-.skills-header__title {
-  @apply flex items-center gap-2 text-2xl font-bold text-white;
+.console-header__eyebrow,
+.panel__title,
+.field__label {
+  @apply text-xs font-semibold uppercase tracking-[0.18em] text-white/55;
 }
 
-.skills-header__badge {
-  @apply px-2 py-0.5 rounded-full text-sm font-bold
-         bg-accent-primary/10 text-accent-primary;
+.console-header__title {
+  @apply text-3xl font-black text-white;
 }
 
-.skills-header__subtitle {
-  @apply text-sm text-white/80;
+.console-header__subtitle {
+  @apply text-sm text-white/65;
 }
 
-.skills-header__actions {
+.console-tabs {
+  @apply flex flex-wrap gap-2 p-2;
+}
+
+.console-tab,
+.console-button,
+.platform-chip,
+.tag-chip {
+  @apply inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white/70 transition-all;
+}
+
+.console-tab--active,
+.platform-chip--active,
+.tag-chip--active,
+.console-button--primary {
+  @apply border-violet-300/20 text-white;
+
+  background: linear-gradient(180deg, rgb(167 139 250 / 20%), rgb(255 255 255 / 6%));
+}
+
+.platform-chip--disabled {
+  @apply opacity-40;
+}
+
+.console-layout {
+  @apply grid gap-4 xl:grid-cols-[320px_minmax(0,1fr)];
+}
+
+.console-sidebar {
+  @apply flex flex-col gap-4;
+}
+
+.panel__header {
+  @apply mb-3 flex items-center justify-between gap-2;
+}
+
+.panel__link {
+  @apply text-xs text-white/55;
+}
+
+.platform-grid,
+.tag-cloud,
+.activity-list {
+  @apply flex flex-col gap-2;
+}
+
+.field {
+  @apply flex flex-col gap-2;
+}
+
+.field__input {
+  @apply w-full rounded-2xl border border-white/10 bg-black/25 px-3 py-2 text-sm text-white outline-none placeholder:text-white/30;
+}
+
+.field__row {
+  @apply flex gap-2;
+}
+
+.platform-chip__count,
+.console-tab__count {
+  @apply ml-auto rounded-full bg-black/30 px-2 py-0.5 text-xs text-white/70;
+}
+
+.inventory-layout,
+.marketplace-layout {
+  @apply grid gap-4 xl:grid-cols-[minmax(320px,420px)_minmax(0,1fr)];
+}
+
+.inventory-list {
+  @apply h-[68vh] overflow-auto rounded-2xl border border-white/10 bg-black/20 p-2;
+}
+
+.skill-card {
+  @apply absolute left-0 top-0 flex w-full flex-col gap-3 rounded-2xl border border-white/10 bg-white/5 p-4 text-left transition-all;
+}
+
+.skill-card--active {
+  @apply border-violet-300/20 bg-violet-300/10;
+}
+
+.skill-card__head,
+.marketplace-card__header,
+.pagination-row,
+.source-skill-card,
+.installation-row {
+  @apply flex items-center justify-between gap-3;
+}
+
+.skill-card__head h3,
+.detail-card h3,
+.source-skill-card strong,
+.marketplace-card__header h3 {
+  @apply text-base font-bold text-white;
+}
+
+.skill-card__head p,
+.detail-card p,
+.source-skill-card p,
+.marketplace-card__header p {
+  @apply mt-1 text-sm text-white/60;
+}
+
+.skill-card__meta,
+.detail-stack,
+.manual-actions,
+.source-list,
+.source-skill-grid,
+.marketplace-grid {
+  @apply flex flex-wrap gap-2;
+}
+
+.detail-stack,
+.manual-actions,
+.source-list {
+  @apply flex-col;
+}
+
+.detail-card,
+.marketplace-card,
+.source-skill-card {
+  @apply rounded-2xl border border-white/10 bg-white/5 p-4;
+}
+
+.detail-card__grid {
+  @apply mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-4;
+}
+
+.detail-card__grid div {
+  @apply rounded-2xl border border-white/10 bg-black/20 p-3;
+}
+
+.detail-card__grid span {
+  @apply mb-1 block text-xs uppercase tracking-[0.12em] text-white/45;
+}
+
+.detail-card__grid strong {
+  @apply text-sm text-white;
+}
+
+.installation-list {
+  @apply flex flex-col gap-2;
+}
+
+.installation-row {
+  @apply rounded-2xl border border-white/10 bg-black/20 p-3;
+}
+
+.installation-row__main {
+  @apply flex min-w-0 flex-col gap-1;
+}
+
+.installation-row__main span,
+.marketplace-card__header p,
+.empty-state {
+  @apply text-xs text-white/55;
+}
+
+.installation-row__actions {
   @apply flex items-center gap-2;
 }
 
-.btn-refresh {
-  @apply p-2 rounded-xl glass-surface hover:bg-white/5
-         text-white/80 hover:text-white
-         border border-white/5 hover:border-white/10
-         transition-colors duration-200 disabled:opacity-50;
+.content-editor,
+.content-preview {
+  @apply min-h-[300px] w-full rounded-2xl border border-white/10 bg-black/20 p-3 text-sm leading-6 text-white/85;
+
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
 }
 
-.btn-add {
-  @apply flex items-center gap-1.5 px-3 py-2 rounded-xl
-         text-sm font-semibold text-white
-         bg-accent-primary hover:bg-accent-primary/90
-         transition-colors duration-200;
+.content-editor {
+  @apply outline-none;
+
+  resize: vertical;
 }
 
-.btn-log {
-  @apply p-2 rounded-xl glass-surface hover:bg-white/5
-         text-white/80 hover:text-white
-         border border-white/5 hover:border-white/10
-         transition-colors duration-200;
+.content-preview {
+  @apply whitespace-pre-wrap break-words;
 }
 
-.btn-filter {
-  @apply relative p-2 rounded-xl glass-surface hover:bg-white/5
-         text-white/80 hover:text-white
-         border border-white/5 hover:border-white/10
-         transition-colors duration-200;
+.badge {
+  @apply inline-flex items-center rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-xs text-white/70;
 }
 
-.filter-badge {
-  @apply absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full
-         bg-accent-primary animate-pulse;
+.activity-row {
+  @apply flex items-start gap-3 rounded-2xl border border-white/10 bg-white/5 p-3;
 }
 
-/* Two-Column Layout */
-.skills-layout {
-  @apply grid gap-6 mt-2;
-
-  grid-template-columns: auto 1fr;
+.activity-row__status {
+  @apply mt-1 h-2.5 w-2.5 rounded-full bg-white/25;
 }
 
-@media (width <= 1023px) {
-  .skills-layout {
+.activity-row__status--success {
+  @apply bg-emerald-400;
+}
+
+.activity-row__status--error {
+  @apply bg-rose-400;
+}
+
+.activity-row__status--pending {
+  @apply bg-amber-300;
+}
+
+.activity-row__body {
+  @apply flex flex-col gap-0.5 text-xs text-white/60;
+}
+
+.activity-row__body strong {
+  @apply text-sm text-white/80;
+}
+
+@media (width <= 1279px) {
+  .console-layout,
+  .inventory-layout,
+  .marketplace-layout {
     grid-template-columns: 1fr;
   }
-}
-
-.skills-main {
-  @apply flex flex-col gap-4 min-w-0;
-}
-
-.content-tabs {
-  @apply flex gap-2 p-1 rounded-xl border border-white/5;
-
-  background: rgb(0 0 0 / 20%);
-}
-
-.content-tab {
-  @apply flex items-center gap-2 px-4 py-2 rounded-lg
-         text-sm font-medium text-white/80
-         hover:text-white
-         transition-colors duration-200;
-}
-
-.content-tab:hover {
-  background: rgb(0 0 0 / 30%);
-}
-
-.content-tab--active {
-  @apply text-white glass-surface shadow-sm;
-}
-
-.content-tab__count {
-  @apply px-1.5 py-0.5 rounded-md text-xs font-bold
-         bg-accent-primary/10 text-accent-primary;
-}
-
-.skills-content {
-  @apply min-h-[400px];
-}
-
-/* Mobile Filter Drawer */
-.mobile-filter-overlay {
-  @apply fixed inset-0 z-50 bg-black/50 backdrop-blur-md;
-}
-
-.mobile-filter-drawer {
-  @apply fixed left-0 top-0 bottom-0 w-[300px] max-w-[85vw]
-          border-r border-white/10
-         shadow-2xl flex flex-col;
-}
-
-.mobile-filter-header {
-  @apply flex items-center justify-between p-4
-         border-b border-white/5;
-}
-
-.mobile-filter-content {
-  @apply flex-1 overflow-y-auto !w-full !rounded-none !border-0;
-}
-
-/* Drawer Transitions */
-.drawer-fade-enter-active,
-.drawer-fade-leave-active {
-  transition: opacity 0.2s ease;
-}
-
-.drawer-fade-enter-from,
-.drawer-fade-leave-to {
-  opacity: 0;
-}
-
-.drawer-slide-enter-active,
-.drawer-slide-leave-active {
-  transition: transform 0.3s ease;
-}
-
-.drawer-slide-enter-from,
-.drawer-slide-leave-to {
-  transform: translateX(-100%);
 }
 </style>

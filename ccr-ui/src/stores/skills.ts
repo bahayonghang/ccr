@@ -1,370 +1,695 @@
-/**
- * Unified Skills Store
- * Pinia 状态管理 for Skills Hub
- */
 import { defineStore } from 'pinia'
-import { ref, computed, shallowRef, triggerRef } from 'vue'
+import { computed, ref, shallowRef, triggerRef } from 'vue'
 import { useCachedFetch } from '@/composables/useCachedFetch'
+import {
+  checkNpxAvailability,
+  getSkillDetail,
+  getSkillHubSkillContent,
+  getSkillHubTrending,
+  getSkillHubUnified,
+  searchSkillHubMarketplace,
+  saveSkillHubSkillContent,
+  skillsInstall,
+  skillsRemoveInstallation,
+  skillsRemoveSkill,
+  skillsSourceAddGit,
+  skillsSourceAddLocal,
+  skillsSourceRemove,
+  skillsSourceSync,
+  skillsSourcesList,
+  skillsSync,
+} from '@/api'
 import type {
-  SkillFilters,
-  UnifiedSkill,
-  PlatformSummary,
-  MarketplaceItem,
-  ContentTab,
-  SkillsStats,
+  MarketplaceResponse,
   NpxStatus,
-  InstallProgress
+  Platform,
+  SkillContent,
+  SkillFilters,
+  SkillLogEntry,
+  SkillOperationResponse,
+  SkillRecord,
+  SkillSourceRecord,
+  SkillsInstallRequest,
+  SkillsInventoryResponse,
+  SkillsRouteState,
+  SkillsSyncRequest,
+  SkillPlatformSummary,
+  UnifiedSkill,
 } from '@/types/skills'
 
+type UnknownRecord = Record<string, unknown>
+
+const DEFAULT_ROUTE_STATE: SkillsRouteState = {
+  tab: 'inventory',
+  selected: null,
+  mode: 'view',
+  platform: 'all',
+  origin: 'all',
+  q: '',
+  page: 1,
+  source: null,
+}
+
+function asRecord(value: unknown): UnknownRecord {
+  return typeof value === 'object' && value !== null ? (value as UnknownRecord) : {}
+}
+
+function asArray(value: unknown): unknown[] {
+  return Array.isArray(value) ? value : []
+}
+
+function normalizePlatform(value: string): Platform {
+  const normalized = value.toLowerCase()
+  if (normalized === 'claude' || normalized === 'claude-code') return 'claude-code'
+  if (normalized === 'codex') return 'codex'
+  if (normalized === 'gemini') return 'gemini'
+  if (normalized === 'qwen') return 'qwen'
+  if (normalized === 'qoder') return 'qoder'
+  return 'droid'
+}
+
+function toStringArray(value: unknown): string[] {
+  return asArray(value).filter((item): item is string => typeof item === 'string')
+}
+
+function transformInstallation(raw: unknown) {
+  const source = asRecord(raw)
+  return {
+    id: String(source.id ?? ''),
+    platformId: normalizePlatform(String(source.platform_id ?? source.platformId ?? 'codex')),
+    platformName: String(source.platform_name ?? source.platformName ?? ''),
+    installPath: String(source.install_path ?? source.installPath ?? ''),
+    installMode: 'copy' as const,
+    installedAt: typeof source.installed_at === 'number' ? source.installed_at : undefined,
+    isPrimary: Boolean(source.is_primary ?? source.isPrimary),
+  }
+}
+
+function transformSkill(raw: unknown): SkillRecord {
+  const source = asRecord(raw)
+  return {
+    id: String(source.id ?? ''),
+    name: String(source.name ?? ''),
+    description: typeof source.description === 'string' ? source.description : undefined,
+    category: typeof source.category === 'string' ? source.category : undefined,
+    tags: toStringArray(source.tags),
+    version: typeof source.version === 'string' ? source.version : undefined,
+    author: typeof source.author === 'string' ? source.author : undefined,
+    origin: String(source.origin ?? 'unknown') as SkillRecord['origin'],
+    sourceLabel: typeof source.source_label === 'string' ? source.source_label : undefined,
+    sourceRef: typeof source.source_ref === 'string' ? source.source_ref : undefined,
+    installCount: Number(source.install_count ?? source.installCount ?? 0),
+    installations: asArray(source.installations).map(transformInstallation),
+    editableInstallations: toStringArray(source.editable_installations ?? source.editableInstallations),
+  }
+}
+
+function transformPlatform(raw: unknown): SkillPlatformSummary {
+  const source = asRecord(raw)
+  return {
+    id: normalizePlatform(String(source.id ?? 'codex')),
+    displayName: String(source.display_name ?? source.displayName ?? ''),
+    globalSkillsDir: String(source.global_skills_dir ?? source.globalSkillsDir ?? ''),
+    detected: Boolean(source.detected),
+    installedCount: Number(source.installed_count ?? source.installedCount ?? 0),
+  }
+}
+
+function transformInventory(raw: unknown): SkillsInventoryResponse {
+  const source = asRecord(raw)
+  return {
+    skills: asArray(source.skills).map(transformSkill),
+    platforms: asArray(source.platforms).map(transformPlatform),
+    total: Number(source.total ?? 0),
+  }
+}
+
+function transformSourceSkill(raw: unknown) {
+  const source = asRecord(raw)
+  return {
+    id: String(source.id ?? ''),
+    name: String(source.name ?? ''),
+    description: typeof source.description === 'string' ? source.description : undefined,
+    category: typeof source.category === 'string' ? source.category : undefined,
+    tags: toStringArray(source.tags),
+    installRef: String(source.install_ref ?? source.installRef ?? ''),
+  }
+}
+
+function transformSource(raw: unknown): SkillSourceRecord {
+  const source = asRecord(raw)
+  return {
+    id: String(source.id ?? ''),
+    type: String(source.type ?? source.source_type ?? 'local') as SkillSourceRecord['type'],
+    name: String(source.name ?? ''),
+    description: typeof source.description === 'string' ? source.description : undefined,
+    location: String(source.location ?? ''),
+    skillsRoot: String(source.skills_root ?? source.skillsRoot ?? ''),
+    skillCount: Number(source.skill_count ?? source.skillCount ?? 0),
+    lastSyncedAt: typeof source.last_synced_at === 'string' ? source.last_synced_at : undefined,
+    health: String(source.health ?? 'ok') as SkillSourceRecord['health'],
+    skills: asArray(source.skills).map(transformSourceSkill),
+  }
+}
+
+function transformMarketplace(raw: unknown): MarketplaceResponse {
+  const source = asRecord(raw)
+  return {
+    items: asArray(source.items).map((item) => {
+      const row = asRecord(item)
+      return {
+        package: String(row.package ?? ''),
+        owner: String(row.owner ?? ''),
+        repo: String(row.repo ?? ''),
+        skill: typeof row.skill === 'string' ? row.skill : undefined,
+        skillsShUrl: String(row.skills_sh_url ?? row.skillsShUrl ?? `https://skills.sh/${String(row.package ?? '')}`),
+        description: typeof row.description === 'string' ? row.description : undefined,
+        authorAvatar: typeof row.author_avatar === 'string'
+          ? row.author_avatar
+          : typeof row.authorAvatar === 'string'
+            ? row.authorAvatar
+            : undefined,
+        stars: typeof row.stars === 'number' ? row.stars : undefined,
+      }
+    }),
+    total: Number(source.total ?? 0),
+    page: Number(source.page ?? 1),
+    pageSize: Number(source.page_size ?? source.pageSize ?? 20),
+    cached: Boolean(source.cached),
+  }
+}
+
+function transformContent(raw: unknown): SkillContent {
+  const source = asRecord(raw)
+  return {
+    skillId: String(source.skill_id ?? source.skillId ?? ''),
+    installationId: String(source.installation_id ?? source.installationId ?? ''),
+    name: String(source.name ?? ''),
+    description: typeof source.description === 'string' ? source.description : undefined,
+    category: typeof source.category === 'string' ? source.category : undefined,
+    tags: toStringArray(source.tags),
+    raw: String(source.raw ?? ''),
+    content: String(source.content ?? ''),
+    skillDir: String(source.skill_dir ?? source.skillDir ?? ''),
+  }
+}
+
+function transformOperation(raw: unknown): SkillOperationResponse {
+  const source = asRecord(raw)
+  return {
+    results: asArray(source.results).map((item) => {
+      const row = asRecord(item)
+      return {
+        agent: String(row.agent ?? ''),
+        ok: Boolean(row.ok),
+        message: typeof row.message === 'string' ? row.message : undefined,
+      }
+    }),
+  }
+}
+
+function fromUnifiedSkill(skill: UnifiedSkill): SkillRecord {
+  return {
+    id: `${skill.platform}:${skill.skillDir}`,
+    name: skill.name,
+    description: skill.description,
+    category: skill.category,
+    tags: skill.tags,
+    version: skill.version,
+    author: skill.author,
+    origin: skill.source ?? 'unknown',
+    sourceLabel: undefined,
+    sourceRef: skill.sourceUrl,
+    installCount: 1,
+    editableInstallations: [`${skill.platform}:${skill.skillDir}`],
+    installations: [
+      {
+        id: `${skill.platform}:${skill.skillDir}`,
+        platformId: skill.platform,
+        platformName: skill.platformName,
+        installPath: skill.skillDir,
+        installMode: 'copy',
+        installedAt: skill.installDate,
+        isPrimary: true,
+      },
+    ],
+  }
+}
+
 export const useSkillsStore = defineStore('skills', () => {
-  const skillsCache = useCachedFetch<UnifiedSkill[]>({
-    ttlMs: 5 * 60 * 1000,
+  const inventoryCache = useCachedFetch<SkillsInventoryResponse>({
+    ttlMs: 60_000,
+    initialValue: { skills: [], platforms: [], total: 0 },
+    isEmpty: (value) => value.total === 0 && value.platforms.length === 0,
+  })
+  const sourceCache = useCachedFetch<SkillSourceRecord[]>({
+    ttlMs: 60_000,
     initialValue: [],
     isEmpty: (value) => value.length === 0,
   })
-  const marketplaceCache = useCachedFetch<MarketplaceItem[]>({
-    ttlMs: 5 * 60 * 1000,
-    initialValue: [],
-    isEmpty: (value) => value.length === 0,
+  const marketplaceCache = useCachedFetch<MarketplaceResponse>({
+    ttlMs: 60_000,
+    initialValue: { items: [], total: 0, page: 1, pageSize: 20, cached: false },
+    isEmpty: (value) => value.items.length === 0,
   })
 
-  // State
-  const skills = skillsCache.data
-  const platforms = ref<PlatformSummary[]>([])
-  const marketplaceItems = marketplaceCache.data
-  const isLoading = ref(false)
-  const isMarketplaceLoading = ref(false)
-  const error = ref<string | null>(null)
-  const marketplaceError = ref<string | null>(null)
-  const marketplaceCached = ref(false)
-  const marketplaceLoaded = ref(false)
-
-  // 缓存时间戳（0 表示从未加载）
-  const skillsLastFetchedAt = skillsCache.lastFetchedAt
-  const marketplaceLastFetchedAt = marketplaceCache.lastFetchedAt
-
-  // === 新增状态 ===
-  // 安装状态
-  const isInstalling = ref(false)
-  const installProgress = ref<InstallProgress | null>(null)
-
-  // 批量模式
-  const batchMode = ref(false)
-  const batchSelection = shallowRef<Set<string>>(new Set())
-
-  // npx 状态
-  const npxStatus = ref<NpxStatus | null>(null)
-
-  // 市场分页
-  const marketplacePage = ref(1)
-  const marketplaceTotal = ref(0)
-  const marketplacePageSize = ref(20)
-
-  // Filters
+  const routeState = ref<SkillsRouteState>({ ...DEFAULT_ROUTE_STATE })
   const filters = ref<SkillFilters>({
     search: '',
-    source: 'all',
+    platform: 'all',
+    origin: 'all',
     category: null,
     tags: [],
-    platform: 'all'
+    source: 'all',
   })
+  const selectedSkillId = ref<string | null>(null)
+  const selectedInstallationId = ref<string | null>(null)
+  const operationLog = ref<SkillLogEntry[]>([])
+  const npxStatus = ref<NpxStatus | null>(null)
+  const marketplaceLoaded = ref(false)
+  const detailCache = shallowRef(new Map<string, SkillRecord>())
+  const contentCache = shallowRef(new Map<string, SkillContent>())
+  const detailLoading = ref(false)
+  const contentLoading = ref(false)
+  const mutationLoading = ref(false)
 
-  // Active content tab
-  const activeTab = ref<ContentTab>('installed')
-
-  // Computed: filtered skills
+  const inventory = computed(() => inventoryCache.data.value)
+  const skills = computed(() => inventory.value.skills)
+  const platforms = computed(() => inventory.value.platforms)
+  const sources = computed(() => sourceCache.data.value)
+  const marketplace = computed(() => marketplaceCache.data.value)
+  const selectedSkill = computed(() => {
+    const skillId = selectedSkillId.value || routeState.value.selected
+    if (!skillId) return null
+    return detailCache.value.get(skillId) ?? skills.value.find((skill) => skill.id === skillId) ?? null
+  })
+  const selectedInstallation = computed(() => {
+    const skill = selectedSkill.value
+    if (!skill) return null
+    const installationId = selectedInstallationId.value
+    return skill.installations.find((installation) => installation.id === installationId)
+      ?? skill.installations.find((installation) => installation.isPrimary)
+      ?? skill.installations[0]
+      ?? null
+  })
   const filteredSkills = computed(() => {
-    let result = [...skills.value]
-
-    // Filter by platform
-    if (filters.value.platform !== 'all') {
-      result = result.filter(s => s.platform === filters.value.platform)
-    }
-
-    // Filter by search query
-    if (filters.value.search.trim()) {
-      const query = filters.value.search.trim().toLowerCase()
-      result = result.filter(s =>
-        s.name.toLowerCase().includes(query) ||
-        s.description?.toLowerCase().includes(query) ||
-        s.tags.some(t => t.toLowerCase().includes(query)) ||
-        s.category?.toLowerCase().includes(query)
-      )
-    }
-
-    // Filter by category
-    if (filters.value.category) {
-      result = result.filter(s => s.category === filters.value.category)
-    }
-
-    // Filter by tags
-    if (filters.value.tags.length > 0) {
-      result = result.filter(s =>
-        filters.value.tags.some(tag => s.tags.includes(tag))
-      )
-    }
-
-    return result
+    return skills.value.filter((skill) => {
+      if (filters.value.platform !== 'all' && !skill.installations.some((item) => item.platformId === filters.value.platform)) {
+        return false
+      }
+      if (filters.value.origin !== 'all' && skill.origin !== filters.value.origin) {
+        return false
+      }
+      if (filters.value.category && skill.category !== filters.value.category) {
+        return false
+      }
+      if (filters.value.tags.length > 0 && !filters.value.tags.every((tag) => skill.tags.includes(tag))) {
+        return false
+      }
+      const q = filters.value.search.trim().toLowerCase()
+      if (!q) return true
+      return skill.name.toLowerCase().includes(q)
+        || skill.description?.toLowerCase().includes(q)
+        || skill.category?.toLowerCase().includes(q)
+        || skill.author?.toLowerCase().includes(q)
+        || skill.tags.some((tag) => tag.toLowerCase().includes(q))
+    })
   })
-
-  // Computed: available categories (filtered by current platform)
+  const categories = computed(() => {
+    return Array.from(new Set(skills.value.map((skill) => skill.category).filter(Boolean) as string[])).sort()
+  })
+  const tags = computed(() => {
+    return Array.from(new Set(skills.value.flatMap((skill) => skill.tags))).sort()
+  })
   const availableCategories = computed(() => {
-    const categories = new Set<string>()
-    // Filter by platform first
-    const baseSkills = filters.value.platform === 'all'
+    const platform = filters.value.platform
+    const list = platform === 'all'
       ? skills.value
-      : skills.value.filter(s => s.platform === filters.value.platform)
-
-    baseSkills.forEach(s => {
-      if (s.category) categories.add(s.category)
-    })
-    return Array.from(categories).sort()
+      : skills.value.filter((skill) => skill.installations.some((item) => item.platformId === platform))
+    return Array.from(new Set(list.map((skill) => skill.category).filter(Boolean) as string[])).sort()
   })
-
-  // Computed: available tags (filtered by current platform)
   const availableTags = computed(() => {
-    const tags = new Set<string>()
-    // Filter by platform first
-    const baseSkills = filters.value.platform === 'all'
+    const platform = filters.value.platform
+    const list = platform === 'all'
       ? skills.value
-      : skills.value.filter(s => s.platform === filters.value.platform)
-
-    baseSkills.forEach(s => {
-      s.tags.forEach(t => tags.add(t))
-    })
-    return Array.from(tags).sort()
+      : skills.value.filter((skill) => skill.installations.some((item) => item.platformId === platform))
+    return Array.from(new Set(list.flatMap((skill) => skill.tags))).sort()
   })
-
-  // Computed: stats
-  const stats = computed<SkillsStats>(() => {
-    const activePlatforms = platforms.value.filter(p => p.detected && p.installed_count > 0).length
+  const stats = computed(() => {
+    const activePlatforms = platforms.value.filter((platform) => platform.detected && platform.installedCount > 0).length
     return {
-      installed: skills.value.length,
-      available: marketplaceItems.value.length,
+      logicalSkills: skills.value.length,
+      installations: skills.value.reduce((sum, skill) => sum + skill.installCount, 0),
+      sources: sources.value.length,
       activePlatforms,
-      totalPlatforms: platforms.value.length
+      marketplace: marketplace.value.total,
+      installed: skills.value.length,
+      available: marketplace.value.items.length,
+      totalPlatforms: platforms.value.length,
     }
   })
 
-  // Computed: skills 缓存是否有效（5分钟 TTL）
-  const isSkillsCacheValid = skillsCache.isCacheValid
-
-  // Computed: marketplace 缓存是否有效（5分钟 TTL）
-  const isMarketplaceCacheValid = marketplaceCache.isCacheValid
-
-  // Computed: skills grouped by platform
-  const skillsByPlatform = computed(() => {
-    const grouped = new Map<string, UnifiedSkill[]>()
-    skills.value.forEach(skill => {
-      const existing = grouped.get(skill.platform) || []
-      existing.push(skill)
-      grouped.set(skill.platform, existing)
+  function pushLog(entry: Omit<SkillLogEntry, 'id' | 'timestamp'>) {
+    operationLog.value.unshift({
+      id: crypto.randomUUID(),
+      timestamp: Date.now(),
+      ...entry,
     })
-    return grouped
-  })
-
-  function getFacetOptionsForPlatform(platform: SkillFilters['platform']) {
-    const baseSkills = platform === 'all'
-      ? skills.value
-      : skills.value.filter((skill) => skill.platform === platform)
-
-    const categories = new Set<string>()
-    const tags = new Set<string>()
-
-    for (const skill of baseSkills) {
-      if (skill.category) categories.add(skill.category)
-      for (const tag of skill.tags) tags.add(tag)
+    if (operationLog.value.length > 200) {
+      operationLog.value = operationLog.value.slice(0, 200)
     }
+  }
 
-    return {
-      categories,
-      tags,
+  function syncFiltersFromRoute() {
+    filters.value = {
+      search: routeState.value.q,
+      platform: routeState.value.platform,
+      origin: routeState.value.origin,
+      category: filters.value.category,
+      tags: filters.value.tags,
+      source: filters.value.source,
     }
+    selectedSkillId.value = routeState.value.selected
+  }
+
+  async function loadInventory(force = false) {
+    const response = await inventoryCache.fetch(async () => {
+      return transformInventory(await getSkillHubUnified())
+    }, force)
+    response.skills.forEach((skill) => {
+      detailCache.value.set(skill.id, skill)
+    })
+    triggerRef(detailCache)
+    return response
+  }
+
+  async function loadSources(force = false) {
+    return sourceCache.fetch(async () => {
+      const response = await skillsSourcesList()
+      return asArray(response).map(transformSource)
+    }, force)
+  }
+
+  async function loadMarketplace(force = false) {
+    return marketplaceCache.fetch(async () => {
+      const response = routeState.value.q
+        ? await searchSkillHubMarketplace(routeState.value.q)
+        : await getSkillHubTrending()
+      marketplaceLoaded.value = true
+      return transformMarketplace(response)
+    }, force)
+  }
+
+  async function loadNpxStatus(force = false) {
+    if (!force && npxStatus.value) return npxStatus.value
+    const response = asRecord(await checkNpxAvailability())
+    npxStatus.value = {
+      available: Boolean(response.available),
+      version: typeof response.version === 'string' ? response.version : undefined,
+      path: typeof response.path === 'string' ? response.path : undefined,
+    }
+    return npxStatus.value
+  }
+
+  async function ensureDetail(skillId: string, force = false) {
+    if (!force && detailCache.value.has(skillId)) {
+      return detailCache.value.get(skillId) ?? null
+    }
+    detailLoading.value = true
+    try {
+      const detail = transformSkill(await getSkillDetail(skillId))
+      detailCache.value.set(skillId, detail)
+      triggerRef(detailCache)
+      return detail
+    } finally {
+      detailLoading.value = false
+    }
+  }
+
+  async function ensureContent(skillId: string, installationId?: string | null, force = false) {
+    const cacheKey = `${skillId}:${installationId ?? 'primary'}`
+    if (!force && contentCache.value.has(cacheKey)) {
+      return contentCache.value.get(cacheKey) ?? null
+    }
+    contentLoading.value = true
+    try {
+      const content = transformContent(await getSkillHubSkillContent(skillId))
+      contentCache.value.set(cacheKey, content)
+      triggerRef(contentCache)
+      return content
+    } finally {
+      contentLoading.value = false
+    }
+  }
+
+  async function refreshAll() {
+    await Promise.all([loadInventory(true), loadSources(true)])
+  }
+
+  function clearCaches() {
+    inventoryCache.invalidate()
+    sourceCache.invalidate()
+    marketplaceCache.invalidate()
+    detailCache.value.clear()
+    contentCache.value.clear()
+    triggerRef(detailCache)
+    triggerRef(contentCache)
+  }
+
+  function setSkills(nextSkills: UnifiedSkill[] | SkillRecord[]) {
+    const normalized = nextSkills.map((skill) => ('installations' in skill ? skill : fromUnifiedSkill(skill)))
+    inventoryCache.setData({
+      ...inventory.value,
+      skills: normalized,
+      total: normalized.length,
+    })
+  }
+
+  function setPlatforms(nextPlatforms: SkillPlatformSummary[]) {
+    const normalized = nextPlatforms.map(transformPlatform)
+    inventoryCache.setData({
+      ...inventory.value,
+      platforms: normalized,
+      total: inventory.value.skills.length,
+    })
+  }
+
+  function setMarketplaceItems(items: MarketplaceResponse['items'], cached: boolean) {
+    marketplaceLoaded.value = true
+    marketplaceCache.setData({
+      items,
+      total: items.length,
+      page: 1,
+      pageSize: marketplace.value.pageSize || 20,
+      cached,
+    })
   }
 
   function normalizeFilters(nextFilters: SkillFilters): SkillFilters {
     const normalized: SkillFilters = {
       search: nextFilters.search,
-      source: nextFilters.source,
+      source: nextFilters.source ?? 'all',
+      platform: nextFilters.platform,
+      origin: nextFilters.origin ?? 'all',
       category: nextFilters.category,
       tags: [...nextFilters.tags],
-      platform: nextFilters.platform,
     }
 
-    const { categories, tags } = getFacetOptionsForPlatform(normalized.platform)
+    const scopedSkills = normalized.platform === 'all'
+      ? skills.value
+      : skills.value.filter((skill) => skill.installations.some((item) => item.platformId === normalized.platform))
+    const scopedCategories = new Set(scopedSkills.map((skill) => skill.category).filter(Boolean) as string[])
+    const scopedTags = new Set(scopedSkills.flatMap((skill) => skill.tags))
 
-    if (normalized.category && !categories.has(normalized.category)) {
+    if (normalized.category && !scopedCategories.has(normalized.category)) {
       normalized.category = null
     }
-
     if (normalized.tags.length > 0) {
-      normalized.tags = normalized.tags.filter((tag) => tags.has(tag))
+      normalized.tags = normalized.tags.filter((tag) => scopedTags.has(tag))
     }
 
     return normalized
-  }
-
-  // Actions
-  function setFilter<K extends keyof SkillFilters>(key: K, value: SkillFilters[K]) {
-    setFilters({
-      ...filters.value,
-      [key]: value
-    })
   }
 
   function setFilters(nextFilters: SkillFilters) {
     filters.value = normalizeFilters(nextFilters)
   }
 
+  function setFilter<K extends keyof SkillFilters>(key: K, value: SkillFilters[K]) {
+    setFilters({
+      ...filters.value,
+      [key]: value,
+    })
+  }
+
   function resetFilters() {
     setFilters({
       search: '',
       source: 'all',
+      platform: 'all',
+      origin: 'all',
       category: null,
       tags: [],
-      platform: 'all'
     })
   }
 
-  function setActiveTab(tab: ContentTab) {
-    activeTab.value = tab
+  function setRouteState(nextState: Partial<SkillsRouteState>) {
+    routeState.value = {
+      ...routeState.value,
+      ...nextState,
+    }
+    syncFiltersFromRoute()
   }
 
-  function setSkills(newSkills: UnifiedSkill[]) {
-    skillsCache.setData(newSkills)
+  function selectSkill(skillId: string | null, installationId?: string | null) {
+    selectedSkillId.value = skillId
+    selectedInstallationId.value = installationId ?? null
+    routeState.value.selected = skillId
   }
 
-  function setPlatforms(newPlatforms: PlatformSummary[]) {
-    platforms.value = newPlatforms
-  }
-
-  function setMarketplaceItems(items: MarketplaceItem[], cached: boolean) {
-    marketplaceCache.setData(items)
-    marketplaceCached.value = cached
-    marketplaceLoaded.value = true
-  }
-
-  function setLoading(loading: boolean) {
-    isLoading.value = loading
-  }
-
-  function setMarketplaceLoading(loading: boolean) {
-    isMarketplaceLoading.value = loading
-  }
-
-  function setError(err: string | null) {
-    error.value = err
-  }
-
-  function setMarketplaceError(err: string | null) {
-    marketplaceError.value = err
-  }
-
-  // === 新增 Actions ===
-  function toggleBatchMode() {
-    batchMode.value = !batchMode.value
-    if (!batchMode.value) {
-      batchSelection.value.clear()
-      triggerRef(batchSelection)
+  async function saveContent(skillId: string, installationId: string, raw: string) {
+    mutationLoading.value = true
+    pushLog({ action: 'save', target: skillId, status: 'pending' })
+    try {
+      const saved = transformContent(await saveSkillHubSkillContent(skillId, raw))
+      contentCache.value.set(`${skillId}:${installationId}`, saved)
+      triggerRef(contentCache)
+      await loadInventory(true)
+      await ensureDetail(skillId, true)
+      pushLog({ action: 'save', target: skillId, status: 'success' })
+      return saved
+    } catch (error) {
+      pushLog({ action: 'save', target: skillId, status: 'error', detail: error instanceof Error ? error.message : String(error) })
+      throw error
+    } finally {
+      mutationLoading.value = false
     }
   }
 
-  function toggleBatchSelection(packageId: string) {
-    if (batchSelection.value.has(packageId)) {
-      batchSelection.value.delete(packageId)
-    } else {
-      batchSelection.value.add(packageId)
+  async function runOperation(action: string, target: string, request: Promise<unknown>) {
+    mutationLoading.value = true
+    pushLog({ action, target, status: 'pending' })
+    try {
+      const response = transformOperation(await request)
+      response.results.forEach((result) => {
+        pushLog({
+          action,
+          target: `${target}:${result.agent}`,
+          status: result.ok ? 'success' : 'error',
+          detail: result.message,
+        })
+      })
+      await refreshAll()
+      return response
+    } finally {
+      mutationLoading.value = false
     }
-    triggerRef(batchSelection)
   }
 
-  function selectAllBatch(packageIds: string[]) {
-    batchSelection.value = new Set(packageIds)
-    triggerRef(batchSelection)
+  async function install(request: SkillsInstallRequest) {
+    return runOperation('install', request.sourceRef, skillsInstall({
+      source_kind: request.sourceKind,
+      source_ref: request.sourceRef,
+      source_skill_id: request.sourceSkillId ?? null,
+      target_platforms: request.targetPlatforms,
+      force: request.force ?? false,
+    }))
   }
 
-  function clearBatchSelection() {
-    batchSelection.value.clear()
-    triggerRef(batchSelection)
+  async function syncSkill(request: SkillsSyncRequest) {
+    return runOperation('sync', request.skillId, skillsSync({
+      skill_id: request.skillId,
+      installation_id: request.installationId ?? null,
+      target_platforms: request.targetPlatforms,
+      force: request.force ?? false,
+    }))
   }
 
-  function setMarketplacePage(page: number) {
-    marketplacePage.value = page
+  async function removeInstallation(skillId: string, installationId: string) {
+    return runOperation('remove-installation', installationId, skillsRemoveInstallation(skillId, installationId))
   }
 
-  function setMarketplaceTotal(total: number) {
-    marketplaceTotal.value = total
+  async function removeSkillRecord(skillId: string) {
+    return runOperation('remove-skill', skillId, skillsRemoveSkill(skillId))
   }
 
-  function setNpxStatus(status: NpxStatus | null) {
-    npxStatus.value = status
+  async function addGitSource(url: string) {
+    const source = transformSource(await skillsSourceAddGit(url))
+    await loadSources(true)
+    return source
   }
 
-  function setInstalling(installing: boolean) {
-    isInstalling.value = installing
+  async function addLocalSource(path: string) {
+    const source = transformSource(await skillsSourceAddLocal(path))
+    await loadSources(true)
+    return source
   }
 
-  function setInstallProgress(progress: InstallProgress | null) {
-    installProgress.value = progress
+  async function syncSource(sourceId: string) {
+    const source = transformSource(await skillsSourceSync(sourceId))
+    await refreshAll()
+    return source
+  }
+
+  async function removeSource(sourceId: string) {
+    await skillsSourceRemove(sourceId)
+    await loadSources(true)
   }
 
   return {
-    // State
+    inventory,
     skills,
     platforms,
-    marketplaceItems,
-    isLoading,
-    isMarketplaceLoading,
-    error,
-    marketplaceError,
-    marketplaceCached,
-    marketplaceLoaded,
+    sources,
+    marketplace,
+    routeState,
     filters,
-    activeTab,
-    // 新增状态
-    isInstalling,
-    installProgress,
-    batchMode,
-    batchSelection,
+    selectedSkillId,
+    selectedInstallationId,
+    selectedSkill,
+    selectedInstallation,
+    operationLog,
     npxStatus,
-    marketplacePage,
-    marketplaceTotal,
-    marketplacePageSize,
-
-    // 缓存时间戳与有效性
-    skillsLastFetchedAt,
-    marketplaceLastFetchedAt,
-    isSkillsCacheValid,
-    isMarketplaceCacheValid,
-
-    // Computed
-    filteredSkills,
+    detailLoading,
+    contentLoading,
+    mutationLoading,
+    categories,
+    tags,
     availableCategories,
     availableTags,
+    filteredSkills,
     stats,
-    skillsByPlatform,
-
-    // Actions
-    setFilter,
-    setFilters,
-    resetFilters,
-    setActiveTab,
+    marketplaceLoaded,
+    inventoryLoading: inventoryCache.loading,
+    sourcesLoading: sourceCache.loading,
+    marketplaceLoading: marketplaceCache.loading,
+    inventoryError: inventoryCache.error,
+    sourcesError: sourceCache.error,
+    marketplaceError: marketplaceCache.error,
+    loadInventory,
+    loadSources,
+    loadMarketplace,
+    loadNpxStatus,
+    ensureDetail,
+    ensureContent,
+    refreshAll,
+    clearCaches,
     setSkills,
     setPlatforms,
     setMarketplaceItems,
-    setLoading,
-    setMarketplaceLoading,
-    setError,
-    setMarketplaceError,
-    // 新增 Actions
-    toggleBatchMode,
-    toggleBatchSelection,
-    selectAllBatch,
-    clearBatchSelection,
-    setMarketplacePage,
-    setMarketplaceTotal,
-    setNpxStatus,
-    setInstalling,
-    setInstallProgress
+    setFilters,
+    setFilter,
+    resetFilters,
+    setRouteState,
+    selectSkill,
+    saveContent,
+    install,
+    syncSkill,
+    removeInstallation,
+    removeSkillRecord,
+    addGitSource,
+    addLocalSource,
+    syncSource,
+    removeSource,
   }
 })

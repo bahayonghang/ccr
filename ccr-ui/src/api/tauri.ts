@@ -2919,119 +2919,207 @@ export const addSkill = async <T = UnknownRecord>(data: unknown): Promise<T> => 
   return invoke('add_skill', { name, instruction })
 }
 
-/** 删除技能 */
-export const deleteSkill = async <T = UnknownRecord>(name: string): Promise<T> => {
-  return invoke('delete_skill', { name })
+// ── Skills Domain ──
+
+export const skillsInventory = async <T = UnknownRecord>(query?: unknown): Promise<T> => {
+  return invoke('skills_inventory', { query: query ?? null })
 }
 
-/** 列出技能仓库 */
+export const skillsDetail = async <T = UnknownRecord>(skillId: string): Promise<T> => {
+  return invoke('skills_detail', { skillId })
+}
+
+export const skillsContentGet = async <T = UnknownRecord>(skillId: string, installationId?: string | null): Promise<T> => {
+  return invoke('skills_content_get', { skillId, installationId: installationId ?? null })
+}
+
+export const skillsContentSave = async <T = UnknownRecord>(skillId: string, installationId: string, raw: string): Promise<T> => {
+  return invoke('skills_content_save', { skillId, installationId, raw })
+}
+
+export const skillsInstall = async <T = UnknownRecord>(request: unknown): Promise<T> => {
+  return invoke('skills_install', { request })
+}
+
+export const skillsSync = async <T = UnknownRecord>(request: unknown): Promise<T> => {
+  return invoke('skills_sync', { request })
+}
+
+export const skillsRemoveInstallation = async <T = UnknownRecord>(skillId: string, installationId: string): Promise<T> => {
+  return invoke('skills_remove_installation', { skillId, installationId })
+}
+
+export const skillsRemoveSkill = async <T = UnknownRecord>(skillId: string): Promise<T> => {
+  return invoke('skills_remove_skill', { skillId })
+}
+
+export const skillsSourcesList = async <T = UnknownRecord>(): Promise<T> => {
+  return invoke('skills_sources_list')
+}
+
+export const skillsSourceAddGit = async <T = UnknownRecord>(url: string): Promise<T> => {
+  return invoke('skills_source_add_git', { url })
+}
+
+export const skillsSourceAddLocal = async <T = UnknownRecord>(path: string): Promise<T> => {
+  return invoke('skills_source_add_local', { path })
+}
+
+export const skillsSourceSync = async <T = UnknownRecord>(sourceId: string): Promise<T> => {
+  return invoke('skills_source_sync', { sourceId })
+}
+
+export const skillsSourceRemove = async <T = UnknownRecord>(sourceId: string): Promise<T> => {
+  return invoke('skills_source_remove', { sourceId })
+}
+
+export const skillsMarketplaceList = async <T = UnknownRecord>(query?: string | null, page = 1, pageSize = 20): Promise<T> => {
+  return invoke('skills_marketplace_list', { query: query ?? null, page, pageSize })
+}
+
+export const skillsMarketplaceDetail = async <T = UnknownRecord>(packageId: string): Promise<T> => {
+  return invoke('skills_marketplace_detail', { packageId })
+}
+
+export const skillsNpxStatus = async <T = UnknownRecord>(): Promise<T> => {
+  return invoke('skills_npx_status')
+}
+
+export const skillsPickFolder = async <T = UnknownRecord>(): Promise<T> => {
+  return invoke('skills_pick_folder')
+}
+
+// Legacy Skills aliases kept temporarily so remaining components compile during the refactor.
+export const deleteSkill = async <T = UnknownRecord>(skillId: string): Promise<T> => {
+  return skillsRemoveSkill(skillId)
+}
+
+export const getSkillDetail = async <T = UnknownRecord>(skillId: string): Promise<T> => {
+  return skillsDetail(skillId)
+}
+
+export const updateSkillContent = async <T = UnknownRecord>(skillId: string, raw: string): Promise<T> => {
+  const detail = asRecord(await skillsDetail(skillId))
+  const installations = Array.isArray(detail.installations) ? detail.installations : []
+  const installationId = String(asRecord(installations[0]).id ?? '')
+  return skillsContentSave(skillId, installationId, raw)
+}
+
 export const listSkillRepositories = async <T = UnknownRecord>(): Promise<T> => {
-  return invoke('list_skill_repositories')
+  return skillsSourcesList()
 }
 
-/** 添加技能仓库 */
 export const addSkillRepository = async <T = UnknownRecord>(data: unknown): Promise<T> => {
-  return invoke('add_skill_repository', { repo: data })
+  const payload = asRecord(data)
+  if (typeof payload.url === 'string' && payload.url.trim()) {
+    return skillsSourceAddGit(payload.url)
+  }
+  if (typeof payload.path === 'string' && payload.path.trim()) {
+    return skillsSourceAddLocal(payload.path)
+  }
+  throw new Error('Repository url/path is required')
 }
 
-/** 移除技能仓库 */
-export const removeSkillRepository = async <T = UnknownRecord>(name: string): Promise<T> => {
-  return invoke('remove_skill_repository', { name })
+export const removeSkillRepository = async <T = UnknownRecord>(sourceId: string): Promise<T> => {
+  return skillsSourceRemove(sourceId)
 }
 
-/** 扫描技能仓库 */
-export const scanSkillRepository = async <T = UnknownRecord>(urlOrName: string): Promise<T> => {
-  return invoke('scan_skill_repository', { url: urlOrName })
+export const scanSkillRepository = async <T = UnknownRecord>(sourceId: string): Promise<T> => {
+  return skillsSourceSync(sourceId)
 }
 
-// ── Skill Hub ──
-
-/** 获取 SkillHub 趋势 */
 export const getSkillHubTrending = async <T = UnknownRecord>(): Promise<T> => {
-  return invoke('skill_hub_trending')
+  return skillsMarketplaceList(null, 1, 20)
 }
 
-/** 搜索 SkillHub 市场 */
-export const searchSkillHubMarketplace = async <T = UnknownRecord>(query: string, category?: string): Promise<T> => {
-  return invoke('skill_hub_search', { query, category })
+export const searchSkillHubMarketplace = async <T = UnknownRecord>(query: string, _category?: string): Promise<T> => {
+  return skillsMarketplaceList(query, 1, 20)
 }
 
-/** 获取 SkillHub Agents */
 export const getSkillHubAgents = async <T = UnknownRecord>(): Promise<T> => {
-  return invoke('skill_hub_agents')
+  const inventory = asRecord(await skillsInventory())
+  return (inventory.platforms ?? []) as T
 }
 
-/** 获取 SkillHub Agent 技能 */
 export const getSkillHubAgentSkills = async <T = UnknownRecord>(agentName: string): Promise<T> => {
-  return invoke('skill_hub_agent_skills', { agentName })
+  return skillsInventory({ platform: agentName })
 }
 
-/** 安装 SkillHub 技能 */
 export const installSkillHubSkill = async <T = UnknownRecord>(data: unknown): Promise<T> => {
   const payload = asRecord(data)
-  const skillUrl = String(payload.url ?? payload.skill_url ?? payload.package ?? '')
-  const targetDir = typeof payload.target_dir === 'string' ? payload.target_dir : undefined
-  return invoke('skill_hub_install', { skillUrl, targetDir })
+  return skillsInstall({
+    source_kind: 'marketplace',
+    source_ref: String(payload.url ?? payload.package ?? ''),
+    target_platforms: [],
+    force: false,
+  })
 }
 
-/** 移除 SkillHub 技能 */
-export const removeSkillHubSkill = async <T = UnknownRecord>(skillPath: string): Promise<T> => {
-  return invoke('skill_hub_remove', { skillPath })
+export const removeSkillHubSkill = async <T = UnknownRecord>(skillId: string): Promise<T> => {
+  return skillsRemoveSkill(skillId)
 }
 
-/** 获取所有平台的 skills（统一查询） */
 export const getSkillHubUnified = async <T = UnknownRecord>(platform?: string): Promise<T> => {
-  return invoke('skill_hub_unified', { platform: platform ?? null })
+  return skillsInventory(platform ? { platform } : null)
 }
 
-/** 读取 Skill 内容 */
-export const getSkillHubSkillContent = async <T = UnknownRecord>(skillDir: string): Promise<T> => {
-  return invoke('skill_hub_skill_content', { skillDir })
+export const getSkillHubSkillContent = async <T = UnknownRecord>(skillId: string): Promise<T> => {
+  return skillsContentGet(skillId)
 }
 
-/** 保存 Skill 内容 */
-export const saveSkillHubSkillContent = async <T = UnknownRecord>(skillDir: string, content: string): Promise<T> => {
-  return invoke('skill_hub_save_skill_content', { skillDir, content })
+export const saveSkillHubSkillContent = async <T = UnknownRecord>(skillId: string, content: string): Promise<T> => {
+  return updateSkillContent(skillId, content)
 }
 
-/** 从 GitHub 导入技能 */
-export const importSkillFromGithub = async <T = UnknownRecord>(url: string, agents: string[], force?: boolean): Promise<T> => {
-  return invoke('skill_hub_import_github', { url, agents, force: force ?? false })
+export const importSkillFromGithub = async <T = UnknownRecord>(url: string, agents: string[], force = false): Promise<T> => {
+  return skillsInstall({
+    source_kind: 'github',
+    source_ref: url,
+    target_platforms: agents,
+    force,
+  })
 }
 
-/** 从本地目录导入技能 */
 export const importSkillFromLocal = async <T = UnknownRecord>(sourcePath: string, agents: string[], skillName?: string): Promise<T> => {
-  return invoke('skill_hub_import_local', { sourcePath, agents, skillName: skillName ?? null })
+  return skillsInstall({
+    source_kind: 'local',
+    source_ref: sourcePath,
+    source_skill_id: skillName ?? null,
+    target_platforms: agents,
+    force: false,
+  })
 }
 
-/** 通过 npx 安装技能 */
-export const importSkillViaNpx = async <T = UnknownRecord>(packageName: string, agents: string[], global?: boolean): Promise<T> => {
-  return invoke('skill_hub_import_npx', { packageName, agents, global: global ?? false })
+export const importSkillViaNpx = async <T = UnknownRecord>(packageName: string, agents: string[], global = false): Promise<T> => {
+  return skillsInstall({
+    source_kind: 'npx',
+    source_ref: packageName,
+    target_platforms: agents,
+    force: global,
+  })
 }
 
-/** 批量安装技能 */
-export const batchInstallSkills = async <T = UnknownRecord>(packages: string[], agents: string[], force?: boolean): Promise<T> => {
-  return invoke('skill_hub_batch_install', { packages, agents, force: force ?? false })
+export const batchInstallSkills = async <T = UnknownRecord>(packages: string[], agents: string[], force = false): Promise<T> => {
+  const results = await Promise.all(packages.map((pkg) => skillsInstall({
+    source_kind: 'marketplace',
+    source_ref: pkg,
+    target_platforms: agents,
+    force,
+  })))
+  return {
+    total: packages.length,
+    success_count: results.filter((item) => asArray(asRecord(item).results).every((row) => Boolean(asRecord(row).ok))).length,
+    fail_count: results.filter((item) => !asArray(asRecord(item).results).every((row) => Boolean(asRecord(row).ok))).length,
+    results: results.flatMap((item) => asArray(asRecord(item).results)),
+  } as T
 }
 
-/** 检查 npx 可用性 */
 export const checkNpxAvailability = async <T = UnknownRecord>(): Promise<T> => {
-  return invoke('skill_hub_check_npx')
+  return skillsNpxStatus()
 }
 
-/** 打开文件夹选择对话框 */
 export const browseForFolder = async <T = UnknownRecord>(): Promise<T> => {
-  return invoke('skill_hub_browse_folder')
-}
-
-/** 获取单个技能详情 */
-export const getSkillDetail = async <T = UnknownRecord>(name: string): Promise<T> => {
-  return invoke('get_skill', { name })
-}
-
-/** 更新技能内容 */
-export const updateSkillContent = async <T = UnknownRecord>(name: string, instruction: string): Promise<T> => {
-  return invoke('update_skill', { name, instruction })
+  return skillsPickFolder()
 }
 
 // ── Axios / HTTP 核心（不再需要） ──

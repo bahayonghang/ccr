@@ -12,5 +12,6 @@ export type { McpPreset, McpServerInfo, McpSyncResult as SyncResult } from '@/ty
 export * as configApi from './domains/config'
 export * as syncApi from './domains/sync'
 export * as platformApi from './domains/platforms'
+export * as skillsApi from './domains/skills'
 export * as usageApi from './domains/usage'
 export * as systemApi from './domains/system'

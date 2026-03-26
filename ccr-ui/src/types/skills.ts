@@ -1,76 +1,215 @@
-/**
- * Unified Skills Management Types
- * 统一 Skills 管理类型定义
- */
-
-// Platform identifiers
 export type Platform = 'claude-code' | 'codex' | 'gemini' | 'qwen' | 'qoder' | 'droid'
+export type SkillOrigin = 'marketplace' | 'github' | 'repo' | 'local' | 'npx' | 'unknown'
+export type SkillsTab = 'inventory' | 'sources' | 'marketplace'
+export type SkillSource = 'all' | 'user' | 'plugin' | 'remote' | SkillOrigin
+export type ImportSource = 'marketplace' | 'github' | 'local' | 'npx'
 
-// Source type for filtering
-export type SkillSource = 'all' | 'user' | 'plugin' | 'remote'
+export interface PlatformTheme {
+  displayName: string
+  icon: string
+  color: string
+  tailwindColor: string
+}
 
-// Platform information
-export interface PlatformInfo {
+export const PLATFORM_CONFIG: Record<Platform, PlatformTheme> = {
+  'claude-code': {
+    displayName: 'Claude Code',
+    icon: 'Code2',
+    color: '#A78BFA',
+    tailwindColor: 'purple-400',
+  },
+  codex: {
+    displayName: 'Codex',
+    icon: 'Sparkles',
+    color: '#34D399',
+    tailwindColor: 'emerald-400',
+  },
+  gemini: {
+    displayName: 'Gemini CLI',
+    icon: 'Gem',
+    color: '#60A5FA',
+    tailwindColor: 'blue-400',
+  },
+  qwen: {
+    displayName: 'Qwen',
+    icon: 'Zap',
+    color: '#22D3EE',
+    tailwindColor: 'cyan-400',
+  },
+  qoder: {
+    displayName: 'Qoder',
+    icon: 'Activity',
+    color: '#FBBF24',
+    tailwindColor: 'amber-400',
+  },
+  droid: {
+    displayName: 'Droid',
+    icon: 'Bot',
+    color: '#F472B6',
+    tailwindColor: 'pink-400',
+  },
+}
+
+export interface SkillInstallationRecord {
+  id: string
+  platformId: Platform
+  platformName: string
+  installPath: string
+  installMode: 'copy'
+  installedAt?: number
+  isPrimary: boolean
+}
+
+export interface SkillRecord {
+  id: string
+  name: string
+  description?: string
+  category?: string
+  tags: string[]
+  version?: string
+  author?: string
+  origin: SkillOrigin
+  sourceLabel?: string
+  sourceRef?: string
+  installCount: number
+  installations: SkillInstallationRecord[]
+  editableInstallations: string[]
+}
+
+export interface SkillSourceSkillRecord {
+  id: string
+  name: string
+  description?: string
+  category?: string
+  tags: string[]
+  installRef: string
+}
+
+export interface SkillSourceRecord {
+  id: string
+  type: 'git' | 'local'
+  name: string
+  description?: string
+  location: string
+  skillsRoot: string
+  skillCount: number
+  lastSyncedAt?: string
+  health: 'ok' | 'error' | 'missing'
+  skills: SkillSourceSkillRecord[]
+}
+
+export interface SkillPlatformSummary {
   id: Platform
   displayName: string
   globalSkillsDir: string
   detected: boolean
   installedCount: number
-  icon: string
-  color: string
 }
 
-// Platform configuration with colors and icons
-export const PLATFORM_CONFIG: Record<Platform, { displayName: string; icon: string; color: string; tailwindColor: string }> = {
-  'claude-code': {
-    displayName: 'Claude Code',
-    icon: 'Code2',
-    color: '#A78BFA',
-    tailwindColor: 'purple-400'
-  },
-  'codex': {
-    displayName: 'Codex',
-    icon: 'Settings',
-    color: '#34D399',
-    tailwindColor: 'emerald-400'
-  },
-  'gemini': {
-    displayName: 'Gemini CLI',
-    icon: 'Sparkles',
-    color: '#38BDF8',
-    tailwindColor: 'sky-400'
-  },
-  'qwen': {
-    displayName: 'Qwen',
-    icon: 'Zap',
-    color: '#22D3EE',
-    tailwindColor: 'cyan-400'
-  },
-  'qoder': {
-    displayName: 'Qoder',
-    icon: 'Activity',
-    color: '#FBBF24',
-    tailwindColor: 'amber-400'
-  },
-  'droid': {
-    displayName: 'Droid',
-    icon: 'Bot',
-    color: '#F472B6',
-    tailwindColor: 'pink-400'
-  }
+export interface SkillsInventoryResponse {
+  skills: SkillRecord[]
+  platforms: SkillPlatformSummary[]
+  total: number
 }
 
-// Skill metadata from SKILL.md frontmatter
-export interface SkillMetadata {
-  author?: string
-  version?: string
-  license?: string
+export interface SkillContent {
+  skillId: string
+  installationId: string
+  name: string
+  description?: string
   category?: string
-  tags?: string[]
-  updatedAt?: string
+  tags: string[]
+  raw: string
+  content: string
+  skillDir: string
 }
 
-// Unified skill with platform information
+export interface SkillOperationResult {
+  agent: string
+  ok: boolean
+  message?: string
+}
+
+export interface SkillOperationResponse {
+  results: SkillOperationResult[]
+}
+
+export interface MarketplaceItem {
+  package: string
+  owner: string
+  repo: string
+  skill?: string
+  skillsShUrl: string
+  description?: string
+  authorAvatar?: string
+  stars?: number
+}
+
+export interface MarketplaceResponse {
+  items: MarketplaceItem[]
+  total: number
+  page: number
+  pageSize: number
+  cached: boolean
+}
+
+export interface NpxStatus {
+  available: boolean
+  version?: string
+  path?: string
+}
+
+export interface SkillFilters {
+  search: string
+  platform: Platform | 'all'
+  origin?: SkillOrigin | 'all'
+  category: string | null
+  tags: string[]
+  source: SkillSource
+}
+
+export interface SkillsRouteState {
+  tab: SkillsTab
+  selected: string | null
+  mode: 'view' | 'edit'
+  platform: Platform | 'all'
+  origin: SkillOrigin | 'all'
+  q: string
+  page: number
+  source: string | null
+}
+
+export interface SkillLogEntry {
+  id: string
+  action: string
+  target: string
+  status: 'pending' | 'success' | 'error'
+  detail?: string
+  timestamp: number
+}
+
+export interface SkillsInstallRequest {
+  sourceKind: 'marketplace' | 'github' | 'local' | 'npx' | 'source'
+  sourceRef: string
+  sourceSkillId?: string
+  targetPlatforms: Platform[]
+  force?: boolean
+}
+
+export interface SkillsSyncRequest {
+  skillId: string
+  installationId?: string
+  targetPlatforms: Platform[]
+  force?: boolean
+}
+
+// Legacy compatibility types for still-existing components.
+export interface PlatformSummary extends SkillPlatformSummary {
+  display_name: string
+  global_skills_dir: string
+  installed_count: number
+}
+
 export interface UnifiedSkill {
   name: string
   description?: string
@@ -79,180 +218,24 @@ export interface UnifiedSkill {
   platformName: string
   category?: string
   tags: string[]
-  // Extended fields for UI
-  isRemote?: boolean
-  repository?: string
-  // Metadata fields (from backend SkillInstallMeta + frontmatter)
   version?: string
   author?: string
-  source?: string        // "marketplace" | "github" | "local"
+  source?: SkillOrigin
   sourceUrl?: string
-  installDate?: number   // Unix timestamp (ms)
+  installDate?: number
   commitHash?: string
 }
 
-// Backend response for unified skills
-export interface UnifiedSkillsResponse {
-  skills: UnifiedSkill[]
-  total: number
-  platforms: PlatformSummary[]
-}
-
-// Platform summary from backend
-export interface PlatformSummary {
-  id: Platform
-  display_name: string
-  global_skills_dir: string
-  detected: boolean
-  installed_count: number
-}
-
-// Marketplace item from skills.sh
-export interface MarketplaceItem {
+export interface InstallProgress {
+  phase: 'idle' | 'downloading' | 'installing' | 'done' | 'error'
   package: string
-  owner: string
-  repo: string
-  skill?: string
-  skillsShUrl: string
-  // 新增（从 skills.sh HTML 解析）
-  description?: string
-  authorAvatar?: string    // 推导自 https://avatars.githubusercontent.com/{owner}
-  stars?: number
-}
-
-// Marketplace response
-export interface MarketplaceResponse {
-  items: MarketplaceItem[]
-  total: number
-  cached: boolean
-}
-
-// Filter state
-export interface SkillFilters {
-  search: string
-  source: SkillSource
-  category: string | null
-  tags: string[]
-  platform: Platform | 'all'
-}
-
-// Install request
-export interface InstallRequest {
-  package: string
-  agents: string[]
-  force?: boolean
-}
-
-// Remove request
-export interface RemoveRequest {
-  skill: string
-  agents: string[]
-}
-
-// Operation result for a single agent
-export interface AgentOperationResult {
-  agent: string
-  ok: boolean
   message?: string
+  startedAt: number
 }
 
-// Operation response
-export interface OperationResponse {
-  results: AgentOperationResult[]
-}
-
-// Content tab type
-export type ContentTab = 'installed' | 'marketplace' | 'repositories'
-
-// Stats for display
 export interface SkillsStats {
   installed: number
   available: number
   activePlatforms: number
   totalPlatforms: number
-}
-
-// Skill content response from backend (full SKILL.md content)
-export interface SkillContent {
-  name: string
-  description?: string
-  category?: string
-  tags: string[]
-  content: string    // Markdown body (after frontmatter)
-  raw: string        // Full raw SKILL.md content (for editing)
-  skillDir: string
-}
-
-// === 多源安装相关类型 ===
-
-// 安装来源类型
-export type ImportSource = 'marketplace' | 'github' | 'local' | 'npx'
-
-// GitHub URL 导入请求
-export interface ImportGithubRequest {
-  url: string
-  agents: string[]
-  force?: boolean
-}
-
-// 本地文件夹导入请求
-export interface ImportLocalRequest {
-  sourcePath: string
-  agents: string[]
-  skillName?: string
-}
-
-// npx skills 安装请求
-export interface NpxInstallRequest {
-  package: string
-  agents: string[]
-  global?: boolean
-}
-
-// 批量安装请求
-export interface BatchInstallRequest {
-  packages: string[]
-  agents: string[]
-  force?: boolean
-}
-
-// 批量安装单项结果
-export interface BatchItemResult {
-  package: string
-  ok: boolean
-  message?: string
-}
-
-// 批量安装响应
-export interface BatchInstallResponse {
-  total: number
-  successCount: number
-  failCount: number
-  results: BatchItemResult[]
-}
-
-// npx 可用性状态
-export interface NpxStatus {
-  available: boolean
-  version?: string
-  path?: string
-}
-
-// npx 安装响应
-export interface NpxInstallResponse {
-  success: boolean
-  method: string  // "npx" | "github_fallback"
-  stdout?: string
-  stderr?: string
-  results: AgentOperationResult[]
-}
-
-// 安装进度状态
-export type InstallPhase = 'idle' | 'downloading' | 'installing' | 'done' | 'error'
-
-export interface InstallProgress {
-  phase: InstallPhase
-  package: string
-  message?: string
-  startedAt: number
 }
