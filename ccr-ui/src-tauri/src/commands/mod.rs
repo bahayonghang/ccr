@@ -17,7 +17,6 @@ pub mod mcp_presets;
 pub mod opencode;
 pub mod pricing;
 pub mod qwen;
-pub mod skill_hub;
 pub mod skills;
 pub mod ssh;
 pub mod stats;
@@ -287,14 +286,24 @@ macro_rules! generate_handler_common {
         mcp_presets::list_source_mcp_servers,
         mcp_presets::sync_mcp_server,
         mcp_presets::sync_all_mcp_servers,
-        // —— 技能管理 ——
-        skills::list_skills,
-        skills::add_skill,
-        skills::delete_skill,
-        skills::list_skill_repositories,
-        skills::add_skill_repository,
-        skills::remove_skill_repository,
-        skills::scan_skill_repository,
+        // —— Skills Domain ——
+        skills::skills_inventory,
+        skills::skills_detail,
+        skills::skills_content_get,
+        skills::skills_content_save,
+        skills::skills_install,
+        skills::skills_sync,
+        skills::skills_remove_installation,
+        skills::skills_remove_skill,
+        skills::skills_sources_list,
+        skills::skills_source_add_git,
+        skills::skills_source_add_local,
+        skills::skills_source_sync,
+        skills::skills_source_remove,
+        skills::skills_marketplace_list,
+        skills::skills_marketplace_detail,
+        skills::skills_npx_status,
+        skills::skills_pick_folder,
         // —— Usage V2 ——
         usage::get_usage_summary_v2,
         usage::get_usage_trends_v2,
@@ -310,25 +319,6 @@ macro_rules! generate_handler_common {
         command_exec::execute_ccr_command,
         command_exec::list_ccr_commands,
         command_exec::get_ccr_command_help,
-        // —— 技能管理（扩展） ——
-        skills::get_skill,
-        skills::update_skill,
-        // —— SkillHub 市场 ——
-        skill_hub::skill_hub_trending,
-        skill_hub::skill_hub_search,
-        skill_hub::skill_hub_agents,
-        skill_hub::skill_hub_agent_skills,
-        skill_hub::skill_hub_install,
-        skill_hub::skill_hub_remove,
-        skill_hub::skill_hub_unified,
-        skill_hub::skill_hub_skill_content,
-        skill_hub::skill_hub_save_skill_content,
-        skill_hub::skill_hub_import_github,
-        skill_hub::skill_hub_import_local,
-        skill_hub::skill_hub_import_npx,
-        skill_hub::skill_hub_batch_install,
-        skill_hub::skill_hub_check_npx,
-        skill_hub::skill_hub_browse_folder,
         // —— 统计扩展 ——
         stats::get_cost_trend,
         stats::get_cost_by_model,

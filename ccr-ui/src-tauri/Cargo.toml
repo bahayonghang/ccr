@@ -2,7 +2,7 @@
 
 [package]
 name = "ccr-desktop"
-version = "5.3.8"
+version = "5.4.0"
 description = "CCR Desktop - Tauri Application"
 authors = ["CCR Team"]
 edition = "2024"
@@ -84,6 +84,7 @@ tempfile = "3.27.0"
 # Error handling
 thiserror = "2"
 lru = "0.16.3"
+notify = "8.2.0"
 
 # File locking for cache
 fs4 = "0.13"
@@ -100,6 +101,5 @@ winreg = "0.55"
 default = []
 # Custom protocol for production builds
 custom-protocol = ["tauri/custom-protocol"]
-
 
 

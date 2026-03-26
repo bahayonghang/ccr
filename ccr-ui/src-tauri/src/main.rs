@@ -7,6 +7,7 @@ mod events;
 mod monitoring;
 mod platform;
 mod process;
+mod skills_watcher;
 mod ssh;
 mod state;
 
@@ -56,6 +57,11 @@ fn main() {
 
             // 先注册 Local 环境，其他环境在异步初始化完成后写入 managed state。
             app.manage(app_state);
+            app.manage(skills_watcher::SkillsWatcherState::default());
+            skills_watcher::reload(&app.handle()).map_err(|e| {
+                tracing::warn!("[app] skills watcher init failed: {e}");
+                std::io::Error::other(e)
+            })?;
 
             // 异步初始化环境注册表，避免阻塞启动流程。
             let app_handle = app.handle().clone();
