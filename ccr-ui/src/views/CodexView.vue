@@ -30,9 +30,7 @@
                 </div>
 
                 <div class="codex-pill-row">
-                  <span class="codex-pill codex-pill--pink">
-                    workflow first
-                  </span>
+                  <span class="codex-pill codex-pill--pink"> workflow first </span>
                   <span class="codex-pill codex-pill--neutral">
                     {{ versionLabel }}
                   </span>
@@ -56,6 +54,19 @@
                     账号
                   </Button>
                 </RouterLink>
+                <RouterLink to="/codex/sessions">
+                  <Button
+                    variant="glass"
+                    size="sm"
+                  >
+                    <SIcon
+                      name="MessagesSquare"
+                      size="w-4 h-4"
+                      class="mr-2"
+                    />
+                    会话
+                  </Button>
+                </RouterLink>
                 <RouterLink to="/codex/profiles">
                   <Button
                     variant="glass"
@@ -67,6 +78,19 @@
                       class="mr-2"
                     />
                     Profiles
+                  </Button>
+                </RouterLink>
+                <RouterLink to="/codex/agents">
+                  <Button
+                    variant="glass"
+                    size="sm"
+                  >
+                    <SIcon
+                      name="Bot"
+                      size="w-4 h-4"
+                      class="mr-2"
+                    />
+                    Agents
                   </Button>
                 </RouterLink>
                 <Button
@@ -200,9 +224,7 @@
                   size="w-5 h-5"
                 />
               </div>
-              <span class="codex-health-eyebrow">
-                状态
-              </span>
+              <span class="codex-health-eyebrow"> 状态 </span>
             </div>
             <p class="codex-health-label">
               {{ item.title }}
@@ -341,9 +363,11 @@
                 {{ summary.usage.top_model?.model || summary.config.model || '未识别' }}
               </p>
               <p class="codex-summary-description">
-                {{ summary.usage.top_model
-                  ? `近阶段请求 ${summary.usage.top_model.total_requests} 次，输出 ${formatTokens(summary.usage.top_model.total_output_tokens)} tokens`
-                  : '暂无按模型维度的活跃数据' }}
+                {{
+                  summary.usage.top_model
+                    ? `近阶段请求 ${summary.usage.top_model.total_requests} 次，输出 ${formatTokens(summary.usage.top_model.total_output_tokens)} tokens`
+                    : '暂无按模型维度的活跃数据'
+                }}
               </p>
             </div>
 
@@ -378,10 +402,10 @@
                 </div>
                 <div>
                   <p class="codex-inventory-key">
-                    Slash Commands
+                    Sessions
                   </p>
                   <p class="codex-inventory-value">
-                    {{ summary.inventory.slash_commands_total }}
+                    {{ summary.inventory.sessions_total }}
                   </p>
                 </div>
               </div>
@@ -392,9 +416,11 @@
                 最近活动
               </p>
               <p class="codex-summary-description codex-summary-description--compact">
-                {{ summary.usage.last_activity_at
-                  ? `最近活动时间 ${formatDateTime(summary.usage.last_activity_at)}`
-                  : '尚未发现最近活动记录' }}
+                {{
+                  summary.usage.last_activity_at
+                    ? `最近活动时间 ${formatDateTime(summary.usage.last_activity_at)}`
+                    : '尚未发现最近活动记录'
+                }}
               </p>
             </div>
           </div>
@@ -427,14 +453,14 @@ const {
   managementLinks,
   formatTokens,
   formatDateTime,
-  refresh
+  refresh,
 } = useCodexDashboard()
 
 const toneClassMap = {
   success: 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300',
   warning: 'bg-amber-500/10 border-amber-500/20 text-amber-300',
   danger: 'bg-rose-500/10 border-rose-500/20 text-rose-300',
-  neutral: 'bg-white/5 border-white/10 text-white/75'
+  neutral: 'bg-white/5 border-white/10 text-white/75',
 } as const
 
 onMounted(() => {

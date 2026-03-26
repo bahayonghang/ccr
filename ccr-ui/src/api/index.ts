@@ -10,6 +10,7 @@ export type { McpPreset, McpServerInfo, McpSyncResult as SyncResult } from '@/ty
 
 // Domain-first modular API (new), while keeping legacy named exports above for compatibility.
 export * as configApi from './domains/config'
+export * as codexApi from './domains/codex'
 export * as syncApi from './domains/sync'
 export * as platformApi from './domains/platforms'
 export * as skillsApi from './domains/skills'

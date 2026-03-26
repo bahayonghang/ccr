@@ -64,7 +64,7 @@ export function useCodexDashboard() {
       month: '2-digit',
       day: '2-digit',
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
     }).format(date)
   }
 
@@ -113,7 +113,11 @@ export function useCodexDashboard() {
       return
     }
 
-    const versions = await getCliVersions<CliVersionsResponse>({ mode: 'fast', timeoutMs: 3500, parallelism: 4 })
+    const versions = await getCliVersions<CliVersionsResponse>({
+      mode: 'fast',
+      timeoutMs: 3500,
+      parallelism: 4,
+    })
     const codex = versions.versions.find((item: CliVersionEntry) => item.platform === 'codex')
     applyVersionEntry(codex)
     lastVersionLoadedAt.value = Date.now()
@@ -125,11 +129,14 @@ export function useCodexDashboard() {
 
     const [summaryResult, versionResult] = await Promise.allSettled([
       loadSummary(force),
-      loadVersion(force)
+      loadVersion(force),
     ])
 
     if (summaryResult.status === 'rejected') {
-      error.value = summaryResult.reason instanceof Error ? summaryResult.reason.message : String(summaryResult.reason)
+      error.value =
+        summaryResult.reason instanceof Error
+          ? summaryResult.reason.message
+          : String(summaryResult.reason)
     }
 
     if (versionResult.status === 'rejected') {
@@ -164,11 +171,8 @@ export function useCodexDashboard() {
         ? 'warning'
         : 'success'
 
-    const profileTone: CodexDashboardTone = data.profiles.total === 0
-      ? 'danger'
-      : !data.profiles.current_profile
-        ? 'warning'
-        : 'success'
+    const profileTone: CodexDashboardTone =
+      data.profiles.total === 0 ? 'danger' : !data.profiles.current_profile ? 'warning' : 'success'
 
     const configTone: CodexDashboardTone = !data.config.model
       ? 'warning'
@@ -180,7 +184,7 @@ export function useCodexDashboard() {
       fresh: 'success',
       stale: 'warning',
       old: 'danger',
-      empty: 'neutral'
+      empty: 'neutral',
     }
 
     return [
@@ -189,11 +193,11 @@ export function useCodexDashboard() {
         title: '当前账号',
         value: currentAccountLabel.value,
         detail: data.auth.logged_in
-          ? (data.auth.current?.freshness_description || '已登录，可继续使用')
+          ? data.auth.current?.freshness_description || '已登录，可继续使用'
           : '尚未登录 Codex 账号',
         tone: authTone,
         icon: 'ShieldCheck',
-        to: '/codex/auth'
+        to: '/codex/auth',
       },
       {
         key: 'profiles',
@@ -202,7 +206,7 @@ export function useCodexDashboard() {
         detail: `共 ${data.profiles.total} 个，启用 ${data.profiles.enabled_total} 个`,
         tone: profileTone,
         icon: 'Settings2',
-        to: '/codex/profiles'
+        to: '/codex/profiles',
       },
       {
         key: 'config',
@@ -211,7 +215,7 @@ export function useCodexDashboard() {
         detail: `${data.config.approval_policy || '未设置审批'} · ${data.config.sandbox_mode || '未设置沙箱'}`,
         tone: configTone,
         icon: 'SlidersHorizontal',
-        to: '/codex/settings'
+        to: '/codex/settings',
       },
       {
         key: 'usage',
@@ -222,8 +226,8 @@ export function useCodexDashboard() {
           : '还没有可用的使用记录',
         tone: usageToneMap[data.usage.freshness],
         icon: 'BarChart3',
-        to: '/usage'
-      }
+        to: '/usage',
+      },
     ]
   })
 
@@ -239,7 +243,7 @@ export function useCodexDashboard() {
         description: '进入 Auth 页面登录或切换到可用账号，避免后续流程卡住。',
         to: '/codex/auth',
         icon: 'LogIn',
-        tone: 'danger'
+        tone: 'danger',
       })
     }
 
@@ -249,7 +253,7 @@ export function useCodexDashboard() {
         description: '先准备一个可切换的 Profile，把模型、鉴权和策略固定下来。',
         to: '/codex/profiles',
         icon: 'Plus',
-        tone: 'warning'
+        tone: 'warning',
       })
     } else if (!data.profiles.current_profile) {
       actions.push({
@@ -257,7 +261,7 @@ export function useCodexDashboard() {
         description: '已有配置但未激活当前 Profile，建议先切换到默认工作配置。',
         to: '/codex/profiles',
         icon: 'ArrowRightLeft',
-        tone: 'warning'
+        tone: 'warning',
       })
     }
 
@@ -267,7 +271,7 @@ export function useCodexDashboard() {
         description: '检查模型、审批策略和沙箱模式，确保日常工作流可直接使用。',
         to: '/codex/settings',
         icon: 'Lock',
-        tone: 'warning'
+        tone: 'warning',
       })
     }
 
@@ -277,7 +281,17 @@ export function useCodexDashboard() {
         description: '如果你要把 Codex 接到本地工具链，现在可以添加第一个 MCP 服务器。',
         to: '/codex/mcp',
         icon: 'Server',
-        tone: 'neutral'
+        tone: 'neutral',
+      })
+    }
+
+    if (actions.length === 0 && data.inventory.sessions_total > 0) {
+      actions.push({
+        title: '回到最近会话',
+        description: '会话记录已经可用，可以直接从工作台继续查看上下文和导出记录。',
+        to: '/codex/sessions',
+        icon: 'MessagesSquare',
+        tone: 'success',
       })
     }
 
@@ -285,9 +299,9 @@ export function useCodexDashboard() {
       actions.push({
         title: '工作流已经就绪',
         description: '账号、Profile 和核心配置都可用，可以直接开始日常使用或微调扩展能力。',
-        to: '/codex/settings',
+        to: '/codex/sessions',
         icon: 'Sparkles',
-        tone: 'success'
+        tone: 'success',
       })
     }
 
@@ -305,7 +319,7 @@ export function useCodexDashboard() {
         to: '/codex/auth',
         icon: 'KeyRound',
         badge: `${data.auth.saved_accounts_total} 个账号`,
-        tone: data.auth.logged_in ? 'success' : 'danger'
+        tone: data.auth.logged_in ? 'success' : 'danger',
       },
       {
         title: 'Profiles',
@@ -313,7 +327,7 @@ export function useCodexDashboard() {
         to: '/codex/profiles',
         icon: 'Folders',
         badge: `${data.profiles.total} 个 Profile`,
-        tone: data.profiles.total > 0 ? 'success' : 'warning'
+        tone: data.profiles.total > 0 ? 'success' : 'warning',
       },
       {
         title: 'CLI Settings',
@@ -321,7 +335,7 @@ export function useCodexDashboard() {
         to: '/codex/settings',
         icon: 'SlidersHorizontal',
         badge: data.config.model || '未设置模型',
-        tone: data.config.model ? 'neutral' : 'warning'
+        tone: data.config.model ? 'neutral' : 'warning',
       },
       {
         title: 'MCP 服务器',
@@ -329,16 +343,24 @@ export function useCodexDashboard() {
         to: '/codex/mcp',
         icon: 'Server',
         badge: `${data.inventory.mcp_servers_total} 个服务`,
-        tone: data.inventory.mcp_servers_total > 0 ? 'neutral' : 'warning'
+        tone: data.inventory.mcp_servers_total > 0 ? 'neutral' : 'warning',
       },
       {
-        title: 'Slash Commands',
-        description: '查看命令能力入口；当前平台不支持时也能快速确认状态。',
-        to: '/codex/slash-commands',
-        icon: 'Command',
-        badge: `${data.inventory.slash_commands_total} 条命令`,
-        tone: data.inventory.slash_commands_total > 0 ? 'neutral' : 'neutral'
-      }
+        title: 'Agents',
+        description: '复用现有 Agent 管理面板，维护 Codex 专用智能体。',
+        to: '/codex/agents',
+        icon: 'Bot',
+        badge: `${data.inventory.agents_total} 个 Agent`,
+        tone: data.inventory.agents_total > 0 ? 'neutral' : 'warning',
+      },
+      {
+        title: 'Sessions',
+        description: '进入 Codex 会话工作台，查看上下文、导出记录和复制会话。',
+        to: '/codex/sessions',
+        icon: 'MessagesSquare',
+        badge: `${data.inventory.sessions_total} 个会话`,
+        tone: data.inventory.sessions_total > 0 ? 'success' : 'neutral',
+      },
     ]
   })
 
@@ -356,6 +378,6 @@ export function useCodexDashboard() {
     managementLinks,
     formatTokens,
     formatDateTime,
-    refresh
+    refresh,
   }
 }

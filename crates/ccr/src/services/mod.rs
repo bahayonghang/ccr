@@ -11,6 +11,8 @@ pub mod backup_service;
 pub mod codex_auth_service;
 pub mod codex_quota_service;
 pub mod codex_runtime_service;
+#[allow(dead_code)]
+pub mod codex_session_service;
 pub mod codex_usage_service;
 pub mod config_service;
 pub mod health_check;
@@ -33,6 +35,11 @@ pub use codex_quota_service::CodexQuotaService;
 #[allow(unused_imports)]
 pub use codex_runtime_service::{
     CodexAuthCacheAction, CodexRuntimeCommitPlan, CodexRuntimeService,
+};
+#[allow(unused_imports)]
+pub use codex_session_service::{
+    CodexSessionDetail, CodexSessionExport, CodexSessionMessage, CodexSessionService,
+    CodexSessionSummary,
 };
 #[allow(unused_imports)]
 pub use codex_usage_service::{CodexRollingUsage, CodexUsageService};

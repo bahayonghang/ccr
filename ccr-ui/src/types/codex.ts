@@ -299,3 +299,53 @@ export interface CodexAccountQuota {
   error?: string
   fetched_at: string
 }
+
+// ============ Codex Session Types ============
+
+export interface CodexSessionSummary {
+  session_id: string
+  file_path: string
+  relative_path: string
+  cwd?: string | null
+  model?: string | null
+  cli_version?: string | null
+  originator?: string | null
+  source?: string | null
+  created_at?: string | null
+  updated_at?: string | null
+  message_count: number
+  preview?: string | null
+  total_input_tokens: number
+  total_output_tokens: number
+  total_requests: number
+}
+
+export interface CodexSessionMessage {
+  role: string
+  text: string
+  timestamp?: string | null
+}
+
+export interface CodexSessionsResponse {
+  sessions: CodexSessionSummary[]
+}
+
+export interface CodexSessionDetailResponse {
+  session: CodexSessionSummary
+  messages: CodexSessionMessage[]
+  clipped: boolean
+  message_limit: number
+}
+
+export interface CodexSessionExportResponse {
+  session_id: string
+  file_name: string
+  content: string
+  truncated: boolean
+  max_messages: number
+}
+
+export interface CodexCloneSessionResponse {
+  message: string
+  session: CodexSessionSummary
+}

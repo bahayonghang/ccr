@@ -20,7 +20,8 @@ const moduleSubnavMap: Record<string, ModuleSubnavItem[]> = {
     { label: 'Profiles', href: '/codex/profiles', icon: 'Folders' },
     { label: 'Settings', href: '/codex/settings', icon: 'SlidersHorizontal' },
     { label: 'MCP', href: '/codex/mcp', icon: 'Server' },
-    { label: 'Slash Commands', href: '/codex/slash-commands', icon: 'Command' },
+    { label: 'Agents', href: '/codex/agents', icon: 'Bot' },
+    { label: 'Sessions', href: '/codex/sessions', icon: 'MessagesSquare' },
   ],
   'gemini-cli': [
     { label: 'MCP', href: '/gemini-cli/mcp', icon: 'Server' },
@@ -57,9 +58,7 @@ const moduleSubnavMap: Record<string, ModuleSubnavItem[]> = {
     { label: '添加 Skill', href: '/skills/add', icon: 'PlusCircle' },
     { label: 'Market', href: '/market', icon: 'Store' },
   ],
-  converter: [
-    { label: 'CLI 配置转换', href: '/converter', icon: 'ArrowLeftRight' },
-  ],
+  converter: [{ label: 'CLI 配置转换', href: '/converter', icon: 'ArrowLeftRight' }],
 }
 
 export const getModuleSubnavItems = (module: string): ModuleSubnavItem[] => {

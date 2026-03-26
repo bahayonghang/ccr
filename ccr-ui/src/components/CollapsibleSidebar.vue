@@ -60,7 +60,9 @@
               ? 'rgba(255, 255, 255, 0.15)'
               : 'rgba(255, 255, 255, 0.05)',
             border: `1px solid ${hasActiveChild(group.items) ? 'rgba(244, 114, 182, 0.5)' : 'rgba(255, 255, 255, 0.1)'}`,
-            color: hasActiveChild(group.items) ? 'var(--accent-primary)' : 'rgba(255, 255, 255, 0.9)'
+            color: hasActiveChild(group.items)
+              ? 'var(--accent-primary)'
+              : 'rgba(255, 255, 255, 0.9)',
           }"
           :title="collapsed ? group.title : undefined"
           :aria-expanded="!collapsed && expandedGroups[group.title]"
@@ -104,15 +106,20 @@
             :key="item.href"
             :to="item.href"
             class="flex items-center space-x-3 px-4 py-3 ml-2 rounded-lg transition-[color,background-color,border-color,transform] duration-300 relative overflow-hidden group"
-            :class="isActive(item.href) ? 'scale-[1.02] nav-item-active-glow' : 'hover:translate-x-1 nav-item-inactive'"
+            :class="
+              isActive(item.href)
+                ? 'scale-[1.02] nav-item-active-glow'
+                : 'hover:translate-x-1 nav-item-inactive'
+            "
             :style="{
               marginTop: itemIndex > 0 ? '4px' : '0',
               marginBottom: '4px',
               color: isActive(item.href) ? 'white' : 'var(--text-secondary)',
               fontWeight: isActive(item.href) ? '600' : '500',
-              borderBottom: itemIndex < group.items.length - 1 && !isActive(item.href)
-                ? '1px solid rgba(var(--color-accent-secondary-rgb), 0.1)'
-                : undefined
+              borderBottom:
+                itemIndex < group.items.length - 1 && !isActive(item.href)
+                  ? '1px solid rgba(var(--color-accent-secondary-rgb), 0.1)'
+                  : undefined,
             }"
             :aria-current="isActive(item.href) ? 'page' : undefined"
           >
@@ -121,7 +128,8 @@
               v-if="isActive(item.href)"
               class="absolute inset-0 rounded-lg pointer-events-none"
               :style="{
-                background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.05) 100%)'
+                background:
+                  'linear-gradient(135deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.05) 100%)',
               }"
               aria-hidden="true"
             />
@@ -129,12 +137,18 @@
             <!-- 左侧发光指示器 -->
             <span
               class="absolute left-0 top-0 w-1 h-full transition-[transform,opacity] duration-300"
-              :class="isActive(item.href) ? 'scale-y-100 opacity-100' : 'scale-y-0 opacity-0 group-hover:scale-y-75 group-hover:opacity-50'"
+              :class="
+                isActive(item.href)
+                  ? 'scale-y-100 opacity-100'
+                  : 'scale-y-0 opacity-0 group-hover:scale-y-75 group-hover:opacity-50'
+              "
               :style="{
                 background: isActive(item.href)
                   ? 'linear-gradient(to bottom, var(--color-accent-secondary), var(--color-accent-secondary-hover))'
                   : 'rgba(var(--color-accent-secondary-rgb), 0.6)',
-                boxShadow: isActive(item.href) ? '0 0 10px var(--color-accent-secondary)' : undefined
+                boxShadow: isActive(item.href)
+                  ? '0 0 10px var(--color-accent-secondary)'
+                  : undefined,
               }"
               aria-hidden="true"
             />
@@ -146,7 +160,9 @@
               class="flex-shrink-0 transition-transform duration-300"
               :class="isActive(item.href) ? 'scale-110' : 'group-hover:scale-105'"
               :style="{
-                filter: isActive(item.href) ? 'drop-shadow(0 0 4px rgba(255, 255, 255, 0.5))' : undefined
+                filter: isActive(item.href)
+                  ? 'drop-shadow(0 0 4px rgba(255, 255, 255, 0.5))'
+                  : undefined,
               }"
             />
             <span
@@ -162,7 +178,7 @@
               class="ml-auto w-2 h-2 rounded-full"
               :style="{
                 background: 'white',
-                boxShadow: '0 0 8px white'
+                boxShadow: '0 0 8px white',
               }"
               aria-hidden="true"
             />
@@ -179,13 +195,18 @@
             :key="item.href"
             :to="item.href"
             class="flex items-center justify-center px-4 py-3 rounded-lg transition-[color,background-color,border-color,transform] duration-300 relative overflow-hidden group"
-            :class="isActive(item.href) ? 'scale-110 nav-item-active-glow' : 'hover:scale-105 nav-item-inactive'"
+            :class="
+              isActive(item.href)
+                ? 'scale-110 nav-item-active-glow'
+                : 'hover:scale-105 nav-item-inactive'
+            "
             :style="{
               color: isActive(item.href) ? 'white' : 'var(--text-secondary)',
               marginTop: itemIndex > 0 ? '4px' : '0',
-              borderBottom: itemIndex < group.items.length - 1 && !isActive(item.href)
-                ? '1px solid rgba(var(--color-accent-secondary-rgb), 0.15)'
-                : undefined
+              borderBottom:
+                itemIndex < group.items.length - 1 && !isActive(item.href)
+                  ? '1px solid rgba(var(--color-accent-secondary-rgb), 0.15)'
+                  : undefined,
             }"
             :title="item.name"
             :aria-current="isActive(item.href) ? 'page' : undefined"
@@ -195,18 +216,21 @@
               v-if="isActive(item.href)"
               class="absolute inset-0 rounded-lg pointer-events-none"
               :style="{
-                background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.05) 100%)'
+                background:
+                  'linear-gradient(135deg, rgba(255, 255, 255, 0.12) 0%, rgba(255, 255, 255, 0.05) 100%)',
               }"
               aria-hidden="true"
             />
-            
+
             <SIcon
               :name="item.icon || ''"
               size="w-5 h-5"
               class="flex-shrink-0 transition-transform duration-300"
               :class="isActive(item.href) ? 'scale-110' : ''"
               :style="{
-                filter: isActive(item.href) ? 'drop-shadow(0 0 4px rgba(255, 255, 255, 0.5))' : undefined
+                filter: isActive(item.href)
+                  ? 'drop-shadow(0 0 4px rgba(255, 255, 255, 0.5))'
+                  : undefined,
               }"
             />
 
@@ -216,7 +240,7 @@
               class="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-1/2 h-0.5"
               :style="{
                 background: 'white',
-                boxShadow: '0 0 8px white'
+                boxShadow: '0 0 8px white',
               }"
               aria-hidden="true"
             />
@@ -261,16 +285,16 @@ interface NavGroup {
   icon: string
   defaultExpanded: boolean
   items: NavItem[]
-  module?: string  // 添加模块标识
+  module?: string // 添加模块标识
 }
 
 // Props: 接受一个可选的 module 参数来过滤菜单
 interface Props {
-  module?: string  // 'claude-code' | 'codex' | 'gemini-cli' | 'qwen' | 'qoder' | 'droid' | 'opencode' | 'commands' | 'converter'
+  module?: string // 'claude-code' | 'codex' | 'gemini-cli' | 'qwen' | 'qoder' | 'droid' | 'opencode' | 'commands' | 'converter'
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  module: undefined
+  module: undefined,
 })
 
 const route = useRoute()
@@ -323,8 +347,8 @@ const allNavigationGroups: NavGroup[] = [
       { name: 'Claude 命令', href: '/commands/claude', icon: 'Zap' },
       { name: 'Qwen 命令', href: '/commands/qwen', icon: 'Sparkles' },
       { name: 'Gemini 命令', href: '/commands/gemini', icon: 'Gem' },
-      { name: 'QODER 命令', href: '/commands/qoder', icon: 'Workflow' }
-    ]
+      { name: 'QODER 命令', href: '/commands/qoder', icon: 'Workflow' },
+    ],
   },
   {
     title: 'Claude Code',
@@ -339,8 +363,8 @@ const allNavigationGroups: NavGroup[] = [
       { name: 'Agents', href: '/agents', icon: 'Bot' },
       { name: 'Skills', href: '/skills', icon: 'Book' },
       { name: 'Skill Hub', href: '/skills/hub', icon: 'Boxes' },
-      { name: '插件管理', href: '/plugins', icon: 'Puzzle' }
-    ]
+      { name: '插件管理', href: '/plugins', icon: 'Puzzle' },
+    ],
   },
   {
     title: 'Codex',
@@ -352,8 +376,9 @@ const allNavigationGroups: NavGroup[] = [
       { name: 'Profiles 配置', href: '/codex/profiles', icon: 'Folders' },
       { name: 'CLI 设置', href: '/codex/settings', icon: 'SlidersHorizontal' },
       { name: 'MCP 服务器', href: '/codex/mcp', icon: 'Server' },
-      { name: 'Slash Commands', href: '/codex/slash-commands', icon: 'Command' }
-    ]
+      { name: 'Agents', href: '/codex/agents', icon: 'Bot' },
+      { name: 'Sessions', href: '/codex/sessions', icon: 'MessagesSquare' },
+    ],
   },
   {
     title: 'Gemini CLI',
@@ -364,8 +389,8 @@ const allNavigationGroups: NavGroup[] = [
       { name: 'MCP 服务器', href: '/gemini-cli/mcp', icon: 'Server' },
       { name: 'Agents', href: '/gemini-cli/agents', icon: 'Bot' },
       { name: 'Slash Commands', href: '/gemini-cli/slash-commands', icon: 'Command' },
-      { name: '插件管理', href: '/gemini-cli/plugins', icon: 'Puzzle' }
-    ]
+      { name: '插件管理', href: '/gemini-cli/plugins', icon: 'Puzzle' },
+    ],
   },
   {
     title: 'Qwen',
@@ -376,8 +401,8 @@ const allNavigationGroups: NavGroup[] = [
       { name: 'MCP 服务器', href: '/qwen/mcp', icon: 'Server' },
       { name: 'Agents', href: '/qwen/agents', icon: 'Bot' },
       { name: 'Slash Commands', href: '/qwen/slash-commands', icon: 'Command' },
-      { name: '插件管理', href: '/qwen/plugins', icon: 'Puzzle' }
-    ]
+      { name: '插件管理', href: '/qwen/plugins', icon: 'Puzzle' },
+    ],
   },
   {
     title: 'Qoder',
@@ -388,8 +413,8 @@ const allNavigationGroups: NavGroup[] = [
       { name: 'MCP 服务器', href: '/qoder/mcp', icon: 'Server' },
       { name: 'Subagents', href: '/qoder/subagents', icon: 'Bot' },
       { name: 'Commands', href: '/qoder/commands', icon: 'Command' },
-      { name: 'Hooks', href: '/qoder/hooks', icon: 'Webhook' }
-    ]
+      { name: 'Hooks', href: '/qoder/hooks', icon: 'Webhook' },
+    ],
   },
   {
     title: 'Factory Droid',
@@ -400,8 +425,8 @@ const allNavigationGroups: NavGroup[] = [
       { name: 'MCP 服务器', href: '/droid/mcp', icon: 'Server' },
       { name: 'Agents', href: '/droid/agents', icon: 'Bot' },
       { name: 'Slash Commands', href: '/droid/slash-commands', icon: 'Command' },
-      { name: '插件管理', href: '/droid/plugins', icon: 'Puzzle' }
-    ]
+      { name: '插件管理', href: '/droid/plugins', icon: 'Puzzle' },
+    ],
   },
   {
     title: 'OpenCode',
@@ -412,18 +437,16 @@ const allNavigationGroups: NavGroup[] = [
       { name: 'Providers', href: '/opencode/providers', icon: 'Layers' },
       { name: 'MCP 服务器', href: '/opencode/mcp', icon: 'Server' },
       { name: 'Skills', href: '/skills', icon: 'Book' },
-      { name: '插件管理', href: '/opencode/plugins', icon: 'Puzzle' }
-    ]
+      { name: '插件管理', href: '/opencode/plugins', icon: 'Puzzle' },
+    ],
   },
   {
     title: '配置转换器',
     icon: 'ArrowLeftRight',
     defaultExpanded: false,
     module: 'converter',
-    items: [
-      { name: 'CLI 配置转换', href: '/converter', icon: 'ArrowLeftRight' }
-    ]
-  }
+    items: [{ name: 'CLI 配置转换', href: '/converter', icon: 'ArrowLeftRight' }],
+  },
 ]
 
 // 根据 module prop 过滤导航菜单
@@ -431,21 +454,21 @@ const navigationGroups = computed(() => {
   if (!props.module) {
     // 如果没有指定 module，显示所有菜单
     return allNavigationGroups
-      .map(group => ({
+      .map((group) => ({
         ...group,
-        items: group.items.filter(item => isItemEnabled(group.module, item.href))
+        items: group.items.filter((item) => isItemEnabled(group.module, item.href)),
       }))
-      .filter(group => group.items.length > 0)
+      .filter((group) => group.items.length > 0)
   }
-  
+
   // 否则只显示指定 module 的菜单
   return allNavigationGroups
-    .filter(group => group.module === props.module)
-    .map(group => ({
+    .filter((group) => group.module === props.module)
+    .map((group) => ({
       ...group,
-      items: group.items.filter(item => isItemEnabled(group.module, item.href))
+      items: group.items.filter((item) => isItemEnabled(group.module, item.href)),
     }))
-    .filter(group => group.items.length > 0)
+    .filter((group) => group.items.length > 0)
 })
 
 onMounted(() => {
@@ -453,7 +476,7 @@ onMounted(() => {
   // 当前默认所有功能可用（capabilities = null 时 isItemEnabled 返回 true）
 
   // 初始化展开状态
-  navigationGroups.value.forEach(group => {
+  navigationGroups.value.forEach((group) => {
     expandedGroups[group.title] = group.defaultExpanded
   })
 
@@ -490,6 +513,6 @@ const isActive = (href: string): boolean => {
 }
 
 const hasActiveChild = (items: NavItem[]): boolean => {
-  return items.some(item => isActive(item.href))
+  return items.some((item) => isActive(item.href))
 }
 </script>

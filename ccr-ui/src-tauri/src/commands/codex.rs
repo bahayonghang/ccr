@@ -16,7 +16,7 @@ use tauri::State;
 
 use ccr::models::OpenAiAuthMethod;
 use ccr::platforms::CodexPlatform;
-use ccr::services::{CodexAuthService, CodexUsageService};
+use ccr::services::{CodexAuthService, CodexSessionService, CodexUsageService};
 use ccr::{PlatformConfig, ProfileConfig};
 
 use crate::state::{AppState, CacheFillRegistration};
@@ -49,6 +49,10 @@ struct CodexConfig {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub disable_response_storage: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub sandbox_workspace_write: Option<CodexSandboxWorkspaceWriteConfig>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub shell_environment_policy: Option<CodexShellEnvironmentPolicyConfig>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub web_search: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub file_opener: Option<String>,
@@ -56,6 +60,10 @@ struct CodexConfig {
     pub developer_instructions: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub instructions: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tools: Option<CodexToolsConfig>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tui: Option<CodexTuiConfig>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub hide_agent_reasoning: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -66,6 +74,14 @@ struct CodexConfig {
     pub suppress_unstable_features_warning: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub experimental_use_rmcp_client: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub history: Option<CodexHistoryConfig>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub analytics: Option<CodexAnalyticsConfig>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub feedback: Option<CodexFeedbackConfig>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub features: Option<HashMap<String, bool>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub mcp_servers: Option<HashMap<String, CodexMcpServer>>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -105,6 +121,74 @@ struct CodexProfile {
     pub sandbox_mode: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub model_reasoning_effort: Option<String>,
+    #[serde(flatten)]
+    pub other: HashMap<String, toml::Value>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+struct CodexSandboxWorkspaceWriteConfig {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub writable_roots: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub network_access: Option<bool>,
+    #[serde(flatten)]
+    pub other: HashMap<String, toml::Value>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+struct CodexShellEnvironmentPolicyConfig {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub include_only: Option<Vec<String>>,
+    #[serde(flatten)]
+    pub other: HashMap<String, toml::Value>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+struct CodexToolsConfig {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub view_image: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub web_search: Option<bool>,
+    #[serde(flatten)]
+    pub other: HashMap<String, toml::Value>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+struct CodexTuiConfig {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub alternate_screen: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub animations: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub notifications: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub show_tooltips: Option<bool>,
+    #[serde(flatten)]
+    pub other: HashMap<String, toml::Value>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+struct CodexHistoryConfig {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub persistence: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub max_bytes: Option<i64>,
+    #[serde(flatten)]
+    pub other: HashMap<String, toml::Value>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+struct CodexAnalyticsConfig {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub enabled: Option<bool>,
+    #[serde(flatten)]
+    pub other: HashMap<String, toml::Value>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+struct CodexFeedbackConfig {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub enabled: Option<bool>,
     #[serde(flatten)]
     pub other: HashMap<String, toml::Value>,
 }
@@ -417,6 +501,455 @@ fn parse_bool_field(raw: &Value, field_name: &str) -> Result<Option<bool>, Strin
         Value::Bool(flag) => Ok(Some(*flag)),
         _ => Err(format!("字段 '{field_name}' 必须是布尔值")),
     }
+}
+
+fn parse_i64_field(raw: &Value, field_name: &str) -> Result<Option<i64>, String> {
+    match raw {
+        Value::Null => Ok(None),
+        Value::Number(number) => number
+            .as_i64()
+            .map(Some)
+            .ok_or_else(|| format!("字段 '{field_name}' 必须是整数")),
+        Value::String(text) => {
+            let trimmed = text.trim();
+            if trimmed.is_empty() {
+                Ok(None)
+            } else {
+                trimmed
+                    .parse::<i64>()
+                    .map(Some)
+                    .map_err(|_| format!("字段 '{field_name}' 必须是整数"))
+            }
+        }
+        _ => Err(format!("字段 '{field_name}' 必须是整数")),
+    }
+}
+
+fn parse_string_array_field(raw: &Value, field_name: &str) -> Result<Option<Vec<String>>, String> {
+    match raw {
+        Value::Null => Ok(None),
+        Value::String(text) => {
+            let items: Vec<String> = text
+                .split(',')
+                .map(|item| item.trim())
+                .filter(|item| !item.is_empty())
+                .map(ToString::to_string)
+                .collect();
+            if items.is_empty() {
+                Ok(None)
+            } else {
+                Ok(Some(items))
+            }
+        }
+        Value::Array(items) => {
+            let mut values = Vec::new();
+            for item in items {
+                let Value::String(value) = item else {
+                    return Err(format!("字段 '{field_name}' 必须是字符串数组"));
+                };
+                let trimmed = value.trim();
+                if !trimmed.is_empty() {
+                    values.push(trimmed.to_string());
+                }
+            }
+            if values.is_empty() {
+                Ok(None)
+            } else {
+                Ok(Some(values))
+            }
+        }
+        _ => Err(format!("字段 '{field_name}' 必须是字符串数组")),
+    }
+}
+
+fn parse_bool_map_field(
+    raw: &Value,
+    field_name: &str,
+) -> Result<Option<HashMap<String, bool>>, String> {
+    match raw {
+        Value::Null => Ok(None),
+        Value::Object(items) => {
+            let mut values = HashMap::new();
+            for (key, value) in items {
+                let parsed = parse_bool_field(value, &format!("{field_name}.{key}"))?;
+                if let Some(flag) = parsed {
+                    values.insert(key.clone(), flag);
+                }
+            }
+            if values.is_empty() {
+                Ok(None)
+            } else {
+                Ok(Some(values))
+            }
+        }
+        _ => Err(format!("字段 '{field_name}' 必须是对象")),
+    }
+}
+
+fn apply_optional_string_setting(
+    target: &mut Option<String>,
+    settings: &Map<String, Value>,
+    field_name: &str,
+) -> Result<(), String> {
+    if let Some(raw) = settings.get(field_name) {
+        *target = parse_string_field(raw, field_name)?;
+    }
+    Ok(())
+}
+
+fn apply_optional_bool_setting(
+    target: &mut Option<bool>,
+    settings: &Map<String, Value>,
+    field_name: &str,
+) -> Result<(), String> {
+    if let Some(raw) = settings.get(field_name) {
+        *target = parse_bool_field(raw, field_name)?;
+    }
+    Ok(())
+}
+
+fn apply_optional_i64_setting(
+    target: &mut Option<i64>,
+    settings: &Map<String, Value>,
+    field_name: &str,
+) -> Result<(), String> {
+    if let Some(raw) = settings.get(field_name) {
+        *target = parse_i64_field(raw, field_name)?;
+    }
+    Ok(())
+}
+
+fn apply_sandbox_workspace_write_setting(
+    config: &mut CodexConfig,
+    raw: &Value,
+) -> Result<(), String> {
+    let Value::Object(obj) = raw else {
+        return Err("字段 'sandbox_workspace_write' 必须是对象".to_string());
+    };
+
+    let nested = config
+        .sandbox_workspace_write
+        .get_or_insert_with(CodexSandboxWorkspaceWriteConfig::default);
+    if let Some(value) = obj.get("writable_roots") {
+        nested.writable_roots =
+            parse_string_array_field(value, "sandbox_workspace_write.writable_roots")?;
+    }
+    if let Some(value) = obj.get("network_access") {
+        nested.network_access = parse_bool_field(value, "sandbox_workspace_write.network_access")?;
+    }
+
+    if nested.writable_roots.is_none() && nested.network_access.is_none() && nested.other.is_empty() {
+        config.sandbox_workspace_write = None;
+    }
+
+    Ok(())
+}
+
+fn apply_shell_environment_policy_setting(
+    config: &mut CodexConfig,
+    raw: &Value,
+) -> Result<(), String> {
+    let Value::Object(obj) = raw else {
+        return Err("字段 'shell_environment_policy' 必须是对象".to_string());
+    };
+
+    let nested = config
+        .shell_environment_policy
+        .get_or_insert_with(CodexShellEnvironmentPolicyConfig::default);
+    if let Some(value) = obj.get("include_only") {
+        nested.include_only =
+            parse_string_array_field(value, "shell_environment_policy.include_only")?;
+    }
+
+    if nested.include_only.is_none() && nested.other.is_empty() {
+        config.shell_environment_policy = None;
+    }
+
+    Ok(())
+}
+
+fn apply_tools_setting(config: &mut CodexConfig, raw: &Value) -> Result<(), String> {
+    let Value::Object(obj) = raw else {
+        return Err("字段 'tools' 必须是对象".to_string());
+    };
+
+    let nested = config.tools.get_or_insert_with(CodexToolsConfig::default);
+    if let Some(value) = obj.get("view_image") {
+        nested.view_image = parse_bool_field(value, "tools.view_image")?;
+    }
+    if let Some(value) = obj.get("web_search") {
+        nested.web_search = parse_bool_field(value, "tools.web_search")?;
+    }
+
+    if nested.view_image.is_none() && nested.web_search.is_none() && nested.other.is_empty() {
+        config.tools = None;
+    }
+
+    Ok(())
+}
+
+fn apply_tui_setting(config: &mut CodexConfig, raw: &Value) -> Result<(), String> {
+    let Value::Object(obj) = raw else {
+        return Err("字段 'tui' 必须是对象".to_string());
+    };
+
+    let nested = config.tui.get_or_insert_with(CodexTuiConfig::default);
+    if let Some(value) = obj.get("alternate_screen") {
+        nested.alternate_screen = parse_string_field(value, "tui.alternate_screen")?;
+    }
+    if let Some(value) = obj.get("animations") {
+        nested.animations = parse_bool_field(value, "tui.animations")?;
+    }
+    if let Some(value) = obj.get("notifications") {
+        nested.notifications = parse_bool_field(value, "tui.notifications")?;
+    }
+    if let Some(value) = obj.get("show_tooltips") {
+        nested.show_tooltips = parse_bool_field(value, "tui.show_tooltips")?;
+    }
+
+    if nested.alternate_screen.is_none()
+        && nested.animations.is_none()
+        && nested.notifications.is_none()
+        && nested.show_tooltips.is_none()
+        && nested.other.is_empty()
+    {
+        config.tui = None;
+    }
+
+    Ok(())
+}
+
+fn apply_history_setting(config: &mut CodexConfig, raw: &Value) -> Result<(), String> {
+    let Value::Object(obj) = raw else {
+        return Err("字段 'history' 必须是对象".to_string());
+    };
+
+    let nested = config.history.get_or_insert_with(CodexHistoryConfig::default);
+    if let Some(value) = obj.get("persistence") {
+        nested.persistence = parse_string_field(value, "history.persistence")?;
+    }
+    if let Some(value) = obj.get("max_bytes") {
+        nested.max_bytes = parse_i64_field(value, "history.max_bytes")?;
+    }
+
+    if nested.persistence.is_none() && nested.max_bytes.is_none() && nested.other.is_empty() {
+        config.history = None;
+    }
+
+    Ok(())
+}
+
+fn apply_analytics_setting(config: &mut CodexConfig, raw: &Value) -> Result<(), String> {
+    let Value::Object(obj) = raw else {
+        return Err("字段 'analytics' 必须是对象".to_string());
+    };
+
+    let nested = config
+        .analytics
+        .get_or_insert_with(CodexAnalyticsConfig::default);
+    if let Some(value) = obj.get("enabled") {
+        nested.enabled = parse_bool_field(value, "analytics.enabled")?;
+    }
+
+    if nested.enabled.is_none() && nested.other.is_empty() {
+        config.analytics = None;
+    }
+
+    Ok(())
+}
+
+fn apply_feedback_setting(config: &mut CodexConfig, raw: &Value) -> Result<(), String> {
+    let Value::Object(obj) = raw else {
+        return Err("字段 'feedback' 必须是对象".to_string());
+    };
+
+    let nested = config
+        .feedback
+        .get_or_insert_with(CodexFeedbackConfig::default);
+    if let Some(value) = obj.get("enabled") {
+        nested.enabled = parse_bool_field(value, "feedback.enabled")?;
+    }
+
+    if nested.enabled.is_none() && nested.other.is_empty() {
+        config.feedback = None;
+    }
+
+    Ok(())
+}
+
+fn codex_settings_to_json(config: &CodexConfig) -> Value {
+    json!({
+        "model": config.model,
+        "model_provider": config.model_provider,
+        "model_reasoning_effort": config.model_reasoning_effort,
+        "model_reasoning_summary": config.model_reasoning_summary,
+        "model_verbosity": config.model_verbosity,
+        "model_context_window": config.model_context_window,
+        "model_auto_compact_token_limit": config.model_auto_compact_token_limit,
+        "personality": config.personality,
+        "approval_policy": config.approval_policy,
+        "sandbox_mode": config.sandbox_mode,
+        "disable_response_storage": config.disable_response_storage,
+        "sandbox_workspace_write": config.sandbox_workspace_write.as_ref().map(|nested| json!({
+            "writable_roots": nested.writable_roots,
+            "network_access": nested.network_access,
+        })),
+        "shell_environment_policy": config.shell_environment_policy.as_ref().map(|nested| json!({
+            "include_only": nested.include_only,
+        })),
+        "web_search": config.web_search,
+        "file_opener": config.file_opener,
+        "developer_instructions": config.developer_instructions,
+        "instructions": config.instructions,
+        "tools": config.tools.as_ref().map(|nested| json!({
+            "view_image": nested.view_image,
+            "web_search": nested.web_search,
+        })),
+        "tui": config.tui.as_ref().map(|nested| json!({
+            "alternate_screen": nested.alternate_screen,
+            "animations": nested.animations,
+            "notifications": nested.notifications,
+            "show_tooltips": nested.show_tooltips,
+        })),
+        "hide_agent_reasoning": config.hide_agent_reasoning,
+        "show_raw_agent_reasoning": config.show_raw_agent_reasoning,
+        "check_for_update_on_startup": config.check_for_update_on_startup,
+        "suppress_unstable_features_warning": config.suppress_unstable_features_warning,
+        "experimental_use_rmcp_client": config.experimental_use_rmcp_client,
+        "history": config.history.as_ref().map(|nested| json!({
+            "persistence": nested.persistence,
+            "max_bytes": nested.max_bytes,
+        })),
+        "analytics": config.analytics.as_ref().map(|nested| json!({
+            "enabled": nested.enabled,
+        })),
+        "feedback": config.feedback.as_ref().map(|nested| json!({
+            "enabled": nested.enabled,
+        })),
+        "features": config.features,
+    })
+}
+
+fn apply_codex_settings_update(config: &mut CodexConfig, settings: &Value) -> Result<(), String> {
+    let obj = settings
+        .as_object()
+        .ok_or_else(|| "settings 必须是对象".to_string())?;
+
+    apply_optional_string_setting(&mut config.model, obj, "model")?;
+    apply_optional_string_setting(&mut config.model_provider, obj, "model_provider")?;
+    apply_optional_string_setting(
+        &mut config.model_reasoning_effort,
+        obj,
+        "model_reasoning_effort",
+    )?;
+    apply_optional_string_setting(
+        &mut config.model_reasoning_summary,
+        obj,
+        "model_reasoning_summary",
+    )?;
+    apply_optional_string_setting(&mut config.model_verbosity, obj, "model_verbosity")?;
+    apply_optional_i64_setting(&mut config.model_context_window, obj, "model_context_window")?;
+    apply_optional_i64_setting(
+        &mut config.model_auto_compact_token_limit,
+        obj,
+        "model_auto_compact_token_limit",
+    )?;
+    apply_optional_string_setting(&mut config.personality, obj, "personality")?;
+    apply_optional_string_setting(&mut config.approval_policy, obj, "approval_policy")?;
+    apply_optional_string_setting(&mut config.sandbox_mode, obj, "sandbox_mode")?;
+    apply_optional_bool_setting(
+        &mut config.disable_response_storage,
+        obj,
+        "disable_response_storage",
+    )?;
+    apply_optional_string_setting(&mut config.web_search, obj, "web_search")?;
+    apply_optional_string_setting(&mut config.file_opener, obj, "file_opener")?;
+    apply_optional_string_setting(
+        &mut config.developer_instructions,
+        obj,
+        "developer_instructions",
+    )?;
+    apply_optional_string_setting(&mut config.instructions, obj, "instructions")?;
+    apply_optional_bool_setting(
+        &mut config.hide_agent_reasoning,
+        obj,
+        "hide_agent_reasoning",
+    )?;
+    apply_optional_bool_setting(
+        &mut config.show_raw_agent_reasoning,
+        obj,
+        "show_raw_agent_reasoning",
+    )?;
+    apply_optional_bool_setting(
+        &mut config.check_for_update_on_startup,
+        obj,
+        "check_for_update_on_startup",
+    )?;
+    apply_optional_bool_setting(
+        &mut config.suppress_unstable_features_warning,
+        obj,
+        "suppress_unstable_features_warning",
+    )?;
+    apply_optional_bool_setting(
+        &mut config.experimental_use_rmcp_client,
+        obj,
+        "experimental_use_rmcp_client",
+    )?;
+
+    if let Some(raw) = obj.get("sandbox_workspace_write") {
+        if raw.is_null() {
+            config.sandbox_workspace_write = None;
+        } else {
+            apply_sandbox_workspace_write_setting(config, raw)?;
+        }
+    }
+    if let Some(raw) = obj.get("shell_environment_policy") {
+        if raw.is_null() {
+            config.shell_environment_policy = None;
+        } else {
+            apply_shell_environment_policy_setting(config, raw)?;
+        }
+    }
+    if let Some(raw) = obj.get("tools") {
+        if raw.is_null() {
+            config.tools = None;
+        } else {
+            apply_tools_setting(config, raw)?;
+        }
+    }
+    if let Some(raw) = obj.get("tui") {
+        if raw.is_null() {
+            config.tui = None;
+        } else {
+            apply_tui_setting(config, raw)?;
+        }
+    }
+    if let Some(raw) = obj.get("history") {
+        if raw.is_null() {
+            config.history = None;
+        } else {
+            apply_history_setting(config, raw)?;
+        }
+    }
+    if let Some(raw) = obj.get("analytics") {
+        if raw.is_null() {
+            config.analytics = None;
+        } else {
+            apply_analytics_setting(config, raw)?;
+        }
+    }
+    if let Some(raw) = obj.get("feedback") {
+        if raw.is_null() {
+            config.feedback = None;
+        } else {
+            apply_feedback_setting(config, raw)?;
+        }
+    }
+    if let Some(raw) = obj.get("features") {
+        config.features = parse_bool_map_field(raw, "features")?;
+    }
+
+    Ok(())
 }
 
 fn parse_usage_count_field(raw: &Value) -> Result<Option<u32>, String> {
@@ -793,6 +1326,28 @@ pub async fn codex_apply_profile(name: String) -> Result<Value, String> {
     .map_err(|e| format!("任务执行失败: {e}"))?
 }
 
+/// 获取 Codex profile 导出的环境变量与 shell 脚本
+#[tauri::command]
+pub async fn codex_get_profile_env(name: String) -> Result<Value, String> {
+    tokio::task::spawn_blocking(move || {
+        let platform = CodexPlatform::new().map_err(|e| format!("初始化 Codex 平台失败: {e}"))?;
+        let env_export = platform
+            .export_profile_env(&name)
+            .map_err(|e| format!("导出 Codex Profile 环境变量失败: {e}"))?;
+        let shell_export_script = platform
+            .export_profile_shell_script(&name)
+            .map_err(|e| format!("生成 Codex Profile shell 导出脚本失败: {e}"))?;
+
+        Ok(json!({
+            "name": name,
+            "env_export": env_export,
+            "shell_export_script": shell_export_script,
+        }))
+    })
+    .await
+    .map_err(|e| format!("任务执行失败: {e}"))?
+}
+
 // ── Settings ──
 
 /// 获取 Codex 完整配置（去掉 mcp_servers 和 profiles）
@@ -801,28 +1356,7 @@ pub async fn codex_get_settings() -> Result<Value, String> {
     tokio::task::spawn_blocking(|| {
         let path = codex_config_path()?;
         let config = read_codex_config(&path)?;
-        Ok(json!({
-            "model": config.model,
-            "model_provider": config.model_provider,
-            "model_reasoning_effort": config.model_reasoning_effort,
-            "model_reasoning_summary": config.model_reasoning_summary,
-            "model_verbosity": config.model_verbosity,
-            "model_context_window": config.model_context_window,
-            "model_auto_compact_token_limit": config.model_auto_compact_token_limit,
-            "personality": config.personality,
-            "approval_policy": config.approval_policy,
-            "sandbox_mode": config.sandbox_mode,
-            "disable_response_storage": config.disable_response_storage,
-            "web_search": config.web_search,
-            "file_opener": config.file_opener,
-            "developer_instructions": config.developer_instructions,
-            "instructions": config.instructions,
-            "hide_agent_reasoning": config.hide_agent_reasoning,
-            "show_raw_agent_reasoning": config.show_raw_agent_reasoning,
-            "check_for_update_on_startup": config.check_for_update_on_startup,
-            "suppress_unstable_features_warning": config.suppress_unstable_features_warning,
-            "experimental_use_rmcp_client": config.experimental_use_rmcp_client,
-        }))
+        Ok(codex_settings_to_json(&config))
     })
     .await
     .map_err(|e| format!("任务执行失败: {e}"))?
@@ -834,49 +1368,7 @@ pub async fn codex_update_settings(settings: Value) -> Result<Value, String> {
     tokio::task::spawn_blocking(move || {
         let path = codex_config_path()?;
         let mut config = read_codex_config(&path)?;
-
-        macro_rules! apply_str {
-            ($field:ident) => {
-                if let Some(v) = settings.get(stringify!($field)).and_then(|v| v.as_str()) {
-                    config.$field = Some(v.to_string());
-                }
-            };
-        }
-        macro_rules! apply_bool {
-            ($field:ident) => {
-                if let Some(v) = settings.get(stringify!($field)).and_then(|v| v.as_bool()) {
-                    config.$field = Some(v);
-                }
-            };
-        }
-        macro_rules! apply_i64 {
-            ($field:ident) => {
-                if let Some(v) = settings.get(stringify!($field)).and_then(|v| v.as_i64()) {
-                    config.$field = Some(v);
-                }
-            };
-        }
-
-        apply_str!(model);
-        apply_str!(model_provider);
-        apply_str!(model_reasoning_effort);
-        apply_str!(model_reasoning_summary);
-        apply_str!(model_verbosity);
-        apply_i64!(model_context_window);
-        apply_i64!(model_auto_compact_token_limit);
-        apply_str!(personality);
-        apply_str!(approval_policy);
-        apply_str!(sandbox_mode);
-        apply_bool!(disable_response_storage);
-        apply_str!(web_search);
-        apply_str!(file_opener);
-        apply_str!(developer_instructions);
-        apply_str!(instructions);
-        apply_bool!(hide_agent_reasoning);
-        apply_bool!(show_raw_agent_reasoning);
-        apply_bool!(check_for_update_on_startup);
-        apply_bool!(suppress_unstable_features_warning);
-        apply_bool!(experimental_use_rmcp_client);
+        apply_codex_settings_update(&mut config, &settings)?;
 
         write_codex_config(&path, &config)?;
         Ok(json!({ "message": "Codex 配置已更新" }))
@@ -1081,6 +1573,104 @@ pub async fn codex_delete_agent(name: String) -> Result<String, String> {
         fs::remove_file(&file_path).map_err(|e| format!("删除 agent '{name}' 失败: {e}"))?;
 
         Ok(format!("Agent '{name}' 已删除"))
+    })
+    .await
+    .map_err(|e| format!("任务执行失败: {e}"))?
+}
+
+// ── Sessions ──
+
+#[tauri::command]
+pub async fn codex_list_sessions(
+    limit: Option<usize>,
+    query: Option<String>,
+) -> Result<Value, String> {
+    tokio::task::spawn_blocking(move || {
+        let codex_dir = dirs::home_dir()
+            .ok_or_else(|| "无法获取用户主目录".to_string())?
+            .join(".codex");
+        let service = CodexSessionService::new(codex_dir);
+        let sessions = service
+            .list_sessions(limit.unwrap_or(120).max(1), query.as_deref())
+            .map_err(|e| format!("读取 Codex sessions 失败: {e}"))?;
+        Ok(json!({ "sessions": sessions }))
+    })
+    .await
+    .map_err(|e| format!("任务执行失败: {e}"))?
+}
+
+#[tauri::command]
+pub async fn codex_get_session_detail(
+    file_path: String,
+    message_limit: Option<usize>,
+) -> Result<Value, String> {
+    tokio::task::spawn_blocking(move || {
+        let codex_dir = dirs::home_dir()
+            .ok_or_else(|| "无法获取用户主目录".to_string())?
+            .join(".codex");
+        let service = CodexSessionService::new(codex_dir);
+        let detail = service
+            .get_session_detail(PathBuf::from(file_path).as_path(), message_limit)
+            .map_err(|e| format!("读取 Codex session 详情失败: {e}"))?;
+        Ok(json!(detail))
+    })
+    .await
+    .map_err(|e| format!("任务执行失败: {e}"))?
+}
+
+#[tauri::command]
+pub async fn codex_export_session(
+    file_path: String,
+    max_messages: Option<usize>,
+) -> Result<Value, String> {
+    tokio::task::spawn_blocking(move || {
+        let codex_dir = dirs::home_dir()
+            .ok_or_else(|| "无法获取用户主目录".to_string())?
+            .join(".codex");
+        let service = CodexSessionService::new(codex_dir);
+        let export = service
+            .export_session_markdown(PathBuf::from(file_path).as_path(), max_messages)
+            .map_err(|e| format!("导出 Codex session 失败: {e}"))?;
+        Ok(json!(export))
+    })
+    .await
+    .map_err(|e| format!("任务执行失败: {e}"))?
+}
+
+#[tauri::command]
+pub async fn codex_clone_session(file_path: String) -> Result<Value, String> {
+    tokio::task::spawn_blocking(move || {
+        let codex_dir = dirs::home_dir()
+            .ok_or_else(|| "无法获取用户主目录".to_string())?
+            .join(".codex");
+        let service = CodexSessionService::new(codex_dir);
+        let session = service
+            .clone_session(PathBuf::from(file_path).as_path())
+            .map_err(|e| format!("克隆 Codex session 失败: {e}"))?;
+        Ok(json!({
+            "message": "Codex session 已克隆",
+            "session": session,
+        }))
+    })
+    .await
+    .map_err(|e| format!("任务执行失败: {e}"))?
+}
+
+#[tauri::command]
+pub async fn codex_delete_session(file_path: String) -> Result<Value, String> {
+    tokio::task::spawn_blocking(move || {
+        let codex_dir = dirs::home_dir()
+            .ok_or_else(|| "无法获取用户主目录".to_string())?
+            .join(".codex");
+        let service = CodexSessionService::new(codex_dir);
+        let target_path = PathBuf::from(&file_path);
+        service
+            .delete_session(target_path.as_path())
+            .map_err(|e| format!("删除 Codex session 失败: {e}"))?;
+        Ok(json!({
+            "message": "Codex session 已删除",
+            "file_path": file_path,
+        }))
     })
     .await
     .map_err(|e| format!("任务执行失败: {e}"))?
@@ -1470,6 +2060,13 @@ pub async fn codex_get_dashboard_summary() -> Result<Value, String> {
 
         let usage_payload = compute_codex_usage_payload()?;
         let agents_count = count_codex_agents(&codex_agents_dir()?)?;
+        let sessions_count = CodexSessionService::new(
+            dirs::home_dir()
+                .ok_or_else(|| "无法获取用户主目录".to_string())?
+                .join(".codex"),
+        )
+        .count_sessions()
+        .map_err(|e| format!("统计 Codex sessions 失败: {e}"))?;
         let mcp_servers_total = config
             .mcp_servers
             .as_ref()
@@ -1511,7 +2108,7 @@ pub async fn codex_get_dashboard_summary() -> Result<Value, String> {
             "inventory": {
                 "mcp_servers_total": mcp_servers_total,
                 "agents_total": agents_count,
-                "slash_commands_total": 0,
+                "sessions_total": sessions_count,
                 "config_profiles_total": config_profiles_total,
             }
         }))
@@ -1691,6 +2288,169 @@ mod tests {
             profile.platform_data.get("model_reasoning_effort"),
             Some(&json!("high"))
         );
+    }
+
+    #[test]
+    fn apply_codex_settings_update_patches_nested_fields() {
+        let mut config = CodexConfig {
+            tui: Some(CodexTuiConfig {
+                other: HashMap::from([(
+                    "status_line".into(),
+                    toml::Value::Array(vec![toml::Value::String("model".into())]),
+                )]),
+                ..Default::default()
+            }),
+            ..Default::default()
+        };
+
+        apply_codex_settings_update(
+            &mut config,
+            &json!({
+                "sandbox_workspace_write": {
+                    "writable_roots": ["D:/repo", "D:/workspace"],
+                    "network_access": true
+                },
+                "shell_environment_policy": {
+                    "include_only": ["PATH", "HOME"]
+                },
+                "tools": {
+                    "view_image": true,
+                    "web_search": false
+                },
+                "tui": {
+                    "alternate_screen": "never",
+                    "animations": false
+                },
+                "history": {
+                    "persistence": "save-all",
+                    "max_bytes": 1024
+                },
+                "analytics": {
+                    "enabled": true
+                },
+                "feedback": {
+                    "enabled": false
+                },
+                "features": {
+                    "multi_agent": true,
+                    "steer": false
+                }
+            }),
+        )
+        .unwrap();
+
+        assert_eq!(
+            config
+                .sandbox_workspace_write
+                .as_ref()
+                .and_then(|value| value.writable_roots.clone()),
+            Some(vec!["D:/repo".into(), "D:/workspace".into()])
+        );
+        assert_eq!(
+            config
+                .shell_environment_policy
+                .as_ref()
+                .and_then(|value| value.include_only.clone()),
+            Some(vec!["PATH".into(), "HOME".into()])
+        );
+        assert_eq!(
+            config.tools.as_ref().and_then(|value| value.view_image),
+            Some(true)
+        );
+        assert_eq!(
+            config.tools.as_ref().and_then(|value| value.web_search),
+            Some(false)
+        );
+        assert_eq!(
+            config
+                .tui
+                .as_ref()
+                .and_then(|value| value.alternate_screen.clone()),
+            Some("never".into())
+        );
+        assert_eq!(
+            config.tui.as_ref().and_then(|value| value.animations),
+            Some(false)
+        );
+        assert!(config
+            .tui
+            .as_ref()
+            .is_some_and(|value| value.other.contains_key("status_line")));
+        assert_eq!(
+            config
+                .history
+                .as_ref()
+                .and_then(|value| value.persistence.clone()),
+            Some("save-all".into())
+        );
+        assert_eq!(
+            config.history.as_ref().and_then(|value| value.max_bytes),
+            Some(1024)
+        );
+        assert_eq!(
+            config.analytics.as_ref().and_then(|value| value.enabled),
+            Some(true)
+        );
+        assert_eq!(
+            config.feedback.as_ref().and_then(|value| value.enabled),
+            Some(false)
+        );
+        assert_eq!(
+            config
+                .features
+                .as_ref()
+                .and_then(|value| value.get("multi_agent"))
+                .copied(),
+            Some(true)
+        );
+    }
+
+    #[test]
+    fn apply_codex_settings_update_clears_nested_fields_with_nulls() {
+        let mut config = CodexConfig {
+            sandbox_workspace_write: Some(CodexSandboxWorkspaceWriteConfig {
+                writable_roots: Some(vec!["D:/repo".into()]),
+                network_access: Some(true),
+                ..Default::default()
+            }),
+            history: Some(CodexHistoryConfig {
+                persistence: Some("save-all".into()),
+                max_bytes: Some(2048),
+                ..Default::default()
+            }),
+            tools: Some(CodexToolsConfig {
+                view_image: Some(true),
+                web_search: Some(true),
+                ..Default::default()
+            }),
+            features: Some(HashMap::from([("multi_agent".into(), true)])),
+            ..Default::default()
+        };
+
+        apply_codex_settings_update(
+            &mut config,
+            &json!({
+                "sandbox_workspace_write": {
+                    "writable_roots": null,
+                    "network_access": null
+                },
+                "history": {
+                    "persistence": null,
+                    "max_bytes": null
+                },
+                "tools": {
+                    "view_image": null,
+                    "web_search": null
+                },
+                "features": {}
+            }),
+        )
+        .unwrap();
+
+        assert!(config.sandbox_workspace_write.is_none());
+        assert!(config.history.is_none());
+        assert!(config.tools.is_none());
+        assert!(config.features.is_none());
     }
 
     #[tokio::test]

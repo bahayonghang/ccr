@@ -14,28 +14,66 @@ export interface MainLayoutNavSection {
 export const mainLayoutNavSections: MainLayoutNavSection[] = [
   {
     id: 'home',
-    items: [
-      { to: '/', labelKey: 'nav.home', icon: 'Home' },
-    ],
+    items: [{ to: '/', labelKey: 'nav.home', icon: 'Home' }],
   },
   {
     id: 'skills',
     titleKey: 'nav.skillsHub',
     items: [
-      { to: '/skills', labelKey: 'nav.skills', icon: 'Package', iconClass: 'text-fuchsia-400 group-hover:text-fuchsia-300 transition-colors' },
-      { to: '/skills/add', labelKey: 'nav.addSkill', icon: 'PlusCircle', iconClass: 'text-fuchsia-400 group-hover:text-fuchsia-300 transition-colors' },
+      {
+        to: '/skills',
+        labelKey: 'nav.skills',
+        icon: 'Package',
+        iconClass: 'text-fuchsia-400 group-hover:text-fuchsia-300 transition-colors',
+      },
+      {
+        to: '/skills/add',
+        labelKey: 'nav.addSkill',
+        icon: 'PlusCircle',
+        iconClass: 'text-fuchsia-400 group-hover:text-fuchsia-300 transition-colors',
+      },
     ],
   },
   {
     id: 'modules',
     titleKey: 'nav.mainModules',
     items: [
-      { to: '/claude-code', labelKey: 'nav.claudeCode', icon: 'Code2', iconClass: 'text-platform-claude group-hover:text-platform-claude/80 transition-colors' },
-      { to: '/codex', labelKey: 'nav.codex', icon: 'Settings', iconClass: 'text-platform-codex group-hover:text-platform-codex/80 transition-colors' },
-      { to: '/gemini-cli', labelKey: 'nav.gemini', icon: 'Sparkles', iconClass: 'text-platform-gemini group-hover:text-platform-gemini/80 transition-colors' },
-      { to: '/qwen', labelKey: 'nav.qwen', icon: 'Zap', iconClass: 'text-platform-qwen group-hover:text-platform-qwen/80 transition-colors' },
-      { to: '/qoder', labelKey: 'nav.qoder', icon: 'Activity', iconClass: 'text-platform-qoder group-hover:text-platform-qoder/80 transition-colors' },
-      { to: '/droid', labelKey: 'nav.droid', icon: 'Bot', iconClass: 'text-accent-secondary group-hover:text-accent-secondary/80 transition-colors' },
+      {
+        to: '/claude-code',
+        labelKey: 'nav.claudeCode',
+        icon: 'Code2',
+        iconClass: 'text-platform-claude group-hover:text-platform-claude/80 transition-colors',
+      },
+      {
+        to: '/codex',
+        labelKey: 'nav.codex',
+        icon: 'Settings',
+        iconClass: 'text-platform-codex group-hover:text-platform-codex/80 transition-colors',
+      },
+      {
+        to: '/gemini-cli',
+        labelKey: 'nav.gemini',
+        icon: 'Sparkles',
+        iconClass: 'text-platform-gemini group-hover:text-platform-gemini/80 transition-colors',
+      },
+      {
+        to: '/qwen',
+        labelKey: 'nav.qwen',
+        icon: 'Zap',
+        iconClass: 'text-platform-qwen group-hover:text-platform-qwen/80 transition-colors',
+      },
+      {
+        to: '/qoder',
+        labelKey: 'nav.qoder',
+        icon: 'Activity',
+        iconClass: 'text-platform-qoder group-hover:text-platform-qoder/80 transition-colors',
+      },
+      {
+        to: '/droid',
+        labelKey: 'nav.droid',
+        icon: 'Bot',
+        iconClass: 'text-accent-secondary group-hover:text-accent-secondary/80 transition-colors',
+      },
     ],
   },
   {
@@ -64,6 +102,8 @@ export const mainLayoutRouteTitleMap: Record<string, string> = {
   codex: 'nav.codex',
   'codex-mcp': 'nav.mcp',
   'codex-profiles': 'nav.profiles',
+  'codex-agents': 'nav.agents',
+  'codex-sessions': 'nav.sessions',
   'codex-slash-commands': 'nav.slashCommands',
   'codex-auth': 'nav.auth',
   'codex-settings': 'common.settings',
@@ -141,6 +181,7 @@ export const mainLayoutCachedViews = [
   'CodexAuthView',
   'CodexProfilesView',
   'CodexMcpView',
+  'CodexSessionsView',
   'GeminiCliView',
   'QwenView',
   'QoderView',

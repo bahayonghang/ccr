@@ -16,7 +16,9 @@
         </div>
         <div class="flex gap-3">
           <RouterLink to="/codex">
-            <button class="px-4 py-2 rounded-lg font-medium transition-colors glass-surface text-white/80 border border-white/20 hover:bg-white/5 min-h-[44px] flex items-center">
+            <button
+              class="px-4 py-2 rounded-lg font-medium transition-colors glass-surface text-white/80 border border-white/20 hover:bg-white/5 min-h-[44px] flex items-center"
+            >
               <SIcon
                 name="ArrowLeft"
                 size="w-4 h-4"
@@ -45,7 +47,9 @@
         v-if="loading"
         class="text-center py-20 text-white/50"
       >
-        <div class="loading-spinner mx-auto mb-4 w-8 h-8 border-emerald-500/30 border-t-emerald-500" />
+        <div
+          class="loading-spinner mx-auto mb-4 w-8 h-8 border-emerald-500/30 border-t-emerald-500"
+        />
         <span>{{ $t('common.loading') }}</span>
       </div>
 
@@ -61,7 +65,11 @@
             role="tab"
             :aria-selected="activeTab === tab.key"
             class="px-4 py-2 rounded-lg font-medium text-sm transition-colors min-h-[44px] whitespace-nowrap flex-shrink-0 flex items-center gap-2"
-            :class="activeTab === tab.key ? 'bg-emerald-500 text-white shadow-md' : 'glass-surface text-white/80 border border-white/20 hover:bg-white/5'"
+            :class="
+              activeTab === tab.key
+                ? 'bg-emerald-500 text-white shadow-md'
+                : 'glass-surface text-white/80 border border-white/20 hover:bg-white/5'
+            "
             @click="activeTab = tab.key"
           >
             <SIcon
@@ -86,7 +94,9 @@
             </h3>
 
             <div>
-              <label class="block mb-1.5 text-sm font-semibold text-white">{{ $t('codex.settings.model.model') }}</label>
+              <label class="block mb-1.5 text-sm font-semibold text-white">{{
+                $t('codex.settings.model.model')
+              }}</label>
               <input
                 v-model="form.model"
                 type="text"
@@ -96,7 +106,9 @@
             </div>
 
             <div>
-              <label class="block mb-1.5 text-sm font-semibold text-white">{{ $t('codex.settings.model.modelProvider') }}</label>
+              <label class="block mb-1.5 text-sm font-semibold text-white">{{
+                $t('codex.settings.model.modelProvider')
+              }}</label>
               <input
                 v-model="form.model_provider"
                 type="text"
@@ -106,7 +118,9 @@
             </div>
 
             <div>
-              <label class="block mb-1.5 text-sm font-semibold text-white">{{ $t('codex.settings.model.reasoningEffort') }}</label>
+              <label class="block mb-1.5 text-sm font-semibold text-white">{{
+                $t('codex.settings.model.reasoningEffort')
+              }}</label>
               <select
                 v-model="form.model_reasoning_effort"
                 class="settings-input"
@@ -115,7 +129,7 @@
                   --
                 </option>
                 <option
-                  v-for="o in ['low','medium','high']"
+                  v-for="o in ['low', 'medium', 'high']"
                   :key="o"
                   :value="o"
                 >
@@ -125,7 +139,9 @@
             </div>
 
             <div>
-              <label class="block mb-1.5 text-sm font-semibold text-white">{{ $t('codex.settings.model.reasoningSummary') }}</label>
+              <label class="block mb-1.5 text-sm font-semibold text-white">{{
+                $t('codex.settings.model.reasoningSummary')
+              }}</label>
               <select
                 v-model="form.model_reasoning_summary"
                 class="settings-input"
@@ -134,7 +150,7 @@
                   --
                 </option>
                 <option
-                  v-for="o in ['auto','concise','detailed','none']"
+                  v-for="o in ['auto', 'concise', 'detailed', 'none']"
                   :key="o"
                   :value="o"
                 >
@@ -144,7 +160,9 @@
             </div>
 
             <div>
-              <label class="block mb-1.5 text-sm font-semibold text-white">{{ $t('codex.settings.model.verbosity') }}</label>
+              <label class="block mb-1.5 text-sm font-semibold text-white">{{
+                $t('codex.settings.model.verbosity')
+              }}</label>
               <select
                 v-model="form.model_verbosity"
                 class="settings-input"
@@ -153,7 +171,7 @@
                   --
                 </option>
                 <option
-                  v-for="o in ['low','medium','high']"
+                  v-for="o in ['low', 'medium', 'high']"
                   :key="o"
                   :value="o"
                 >
@@ -164,7 +182,9 @@
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label class="block mb-1.5 text-sm font-semibold text-white">{{ $t('codex.settings.model.contextWindow') }}</label>
+                <label class="block mb-1.5 text-sm font-semibold text-white">{{
+                  $t('codex.settings.model.contextWindow')
+                }}</label>
                 <input
                   v-model.number="form.model_context_window"
                   type="number"
@@ -173,7 +193,9 @@
                 >
               </div>
               <div>
-                <label class="block mb-1.5 text-sm font-semibold text-white">{{ $t('codex.settings.model.autoCompactLimit') }}</label>
+                <label class="block mb-1.5 text-sm font-semibold text-white">{{
+                  $t('codex.settings.model.autoCompactLimit')
+                }}</label>
                 <input
                   v-model.number="form.model_auto_compact_token_limit"
                   type="number"
@@ -184,7 +206,9 @@
             </div>
 
             <div>
-              <label class="block mb-1.5 text-sm font-semibold text-white">{{ $t('codex.settings.model.personality') }}</label>
+              <label class="block mb-1.5 text-sm font-semibold text-white">{{
+                $t('codex.settings.model.personality')
+              }}</label>
               <select
                 v-model="form.personality"
                 class="settings-input"
@@ -193,7 +217,7 @@
                   --
                 </option>
                 <option
-                  v-for="o in ['none','friendly','pragmatic']"
+                  v-for="o in ['none', 'friendly', 'pragmatic']"
                   :key="o"
                   :value="o"
                 >
@@ -218,7 +242,9 @@
             </h3>
 
             <div>
-              <label class="block mb-1.5 text-sm font-semibold text-white">{{ $t('codex.settings.security.approvalPolicy') }}</label>
+              <label class="block mb-1.5 text-sm font-semibold text-white">{{
+                $t('codex.settings.security.approvalPolicy')
+              }}</label>
               <select
                 v-model="form.approval_policy"
                 class="settings-input"
@@ -227,7 +253,7 @@
                   --
                 </option>
                 <option
-                  v-for="o in ['auto','on-request','read-only','full-access']"
+                  v-for="o in ['auto', 'on-request', 'read-only', 'full-access']"
                   :key="o"
                   :value="o"
                 >
@@ -237,7 +263,9 @@
             </div>
 
             <div>
-              <label class="block mb-1.5 text-sm font-semibold text-white">{{ $t('codex.settings.security.sandboxMode') }}</label>
+              <label class="block mb-1.5 text-sm font-semibold text-white">{{
+                $t('codex.settings.security.sandboxMode')
+              }}</label>
               <input
                 v-model="form.sandbox_mode"
                 type="text"
@@ -252,7 +280,9 @@
             />
 
             <div>
-              <label class="block mb-1.5 text-sm font-semibold text-white">{{ $t('codex.settings.security.writableRoots') }}</label>
+              <label class="block mb-1.5 text-sm font-semibold text-white">{{
+                $t('codex.settings.security.writableRoots')
+              }}</label>
               <input
                 v-model="writableRootsStr"
                 type="text"
@@ -270,7 +300,9 @@
             />
 
             <div>
-              <label class="block mb-1.5 text-sm font-semibold text-white">{{ $t('codex.settings.security.shellIncludeOnly') }}</label>
+              <label class="block mb-1.5 text-sm font-semibold text-white">{{
+                $t('codex.settings.security.shellIncludeOnly')
+              }}</label>
               <input
                 v-model="shellIncludeOnlyStr"
                 type="text"
@@ -298,7 +330,9 @@
             </h3>
 
             <div>
-              <label class="block mb-1.5 text-sm font-semibold text-white">{{ $t('codex.settings.tools.webSearch') }}</label>
+              <label class="block mb-1.5 text-sm font-semibold text-white">{{
+                $t('codex.settings.tools.webSearch')
+              }}</label>
               <select
                 v-model="form.web_search"
                 class="settings-input"
@@ -307,7 +341,7 @@
                   --
                 </option>
                 <option
-                  v-for="o in ['disabled','cached','live']"
+                  v-for="o in ['disabled', 'cached', 'live']"
                   :key="o"
                   :value="o"
                 >
@@ -317,7 +351,9 @@
             </div>
 
             <div>
-              <label class="block mb-1.5 text-sm font-semibold text-white">{{ $t('codex.settings.tools.fileOpener') }}</label>
+              <label class="block mb-1.5 text-sm font-semibold text-white">{{
+                $t('codex.settings.tools.fileOpener')
+              }}</label>
               <select
                 v-model="form.file_opener"
                 class="settings-input"
@@ -326,7 +362,7 @@
                   --
                 </option>
                 <option
-                  v-for="o in ['vscode','cursor','windsurf','none']"
+                  v-for="o in ['vscode', 'cursor', 'windsurf', 'none']"
                   :key="o"
                   :value="o"
                 >
@@ -345,7 +381,9 @@
             />
 
             <div>
-              <label class="block mb-1.5 text-sm font-semibold text-white">{{ $t('codex.settings.tools.developerInstructions') }}</label>
+              <label class="block mb-1.5 text-sm font-semibold text-white">{{
+                $t('codex.settings.tools.developerInstructions')
+              }}</label>
               <textarea
                 v-model="form.developer_instructions"
                 rows="3"
@@ -355,7 +393,9 @@
             </div>
 
             <div>
-              <label class="block mb-1.5 text-sm font-semibold text-white">{{ $t('codex.settings.tools.instructions') }}</label>
+              <label class="block mb-1.5 text-sm font-semibold text-white">{{
+                $t('codex.settings.tools.instructions')
+              }}</label>
               <textarea
                 v-model="form.instructions"
                 rows="3"
@@ -380,7 +420,9 @@
             </h3>
 
             <div>
-              <label class="block mb-1.5 text-sm font-semibold text-white">{{ $t('codex.settings.ui.alternateScreen') }}</label>
+              <label class="block mb-1.5 text-sm font-semibold text-white">{{
+                $t('codex.settings.ui.alternateScreen')
+              }}</label>
               <select
                 v-model="tuiAlternateScreen"
                 class="settings-input"
@@ -389,7 +431,7 @@
                   --
                 </option>
                 <option
-                  v-for="o in ['auto','always','never']"
+                  v-for="o in ['auto', 'always', 'never']"
                   :key="o"
                   :value="o"
                 >
@@ -448,7 +490,9 @@
             />
 
             <div>
-              <label class="block mb-1.5 text-sm font-semibold text-white">{{ $t('codex.settings.features.historyPersistence') }}</label>
+              <label class="block mb-1.5 text-sm font-semibold text-white">{{
+                $t('codex.settings.features.historyPersistence')
+              }}</label>
               <select
                 v-model="historyPersistence"
                 class="settings-input"
@@ -457,7 +501,7 @@
                   --
                 </option>
                 <option
-                  v-for="o in ['save-all','none']"
+                  v-for="o in ['save-all', 'none']"
                   :key="o"
                   :value="o"
                 >
@@ -467,7 +511,9 @@
             </div>
 
             <div>
-              <label class="block mb-1.5 text-sm font-semibold text-white">{{ $t('codex.settings.features.historyMaxBytes') }}</label>
+              <label class="block mb-1.5 text-sm font-semibold text-white">{{
+                $t('codex.settings.features.historyMaxBytes')
+              }}</label>
               <input
                 v-model.number="historyMaxBytes"
                 type="number"
@@ -487,14 +533,20 @@
 
             <!-- Dynamic features map -->
             <div v-if="form.features && Object.keys(form.features).length > 0">
-              <label class="block mb-2 text-sm font-semibold text-white">{{ $t('codex.settings.features.featureFlags') }}</label>
+              <label class="block mb-2 text-sm font-semibold text-white">{{
+                $t('codex.settings.features.featureFlags')
+              }}</label>
               <div class="space-y-2">
                 <ToggleField
                   v-for="(val, key) in form.features"
                   :key="key"
                   :model-value="val"
                   :label="String(key)"
-                  @update:model-value="(v: boolean) => { if (form.features) form.features[key as string] = v }"
+                  @update:model-value="
+                    (v: boolean) => {
+                      if (form.features) form.features[key as string] = v
+                    }
+                  "
                 />
               </div>
             </div>
@@ -506,7 +558,9 @@
           <div
             v-if="toast"
             class="fixed bottom-6 right-6 z-50 px-5 py-3 rounded-xl shadow-lg text-sm font-medium"
-            :class="toast.type === 'success' ? 'bg-emerald-500 text-white' : 'bg-red-500 text-white'"
+            :class="
+              toast.type === 'success' ? 'bg-emerald-500 text-white' : 'bg-red-500 text-white'
+            "
           >
             {{ toast.message }}
           </div>
@@ -523,6 +577,7 @@ import { useI18n } from 'vue-i18n'
 import Card from '@/components/ui/Card.vue'
 import { getCodexConfig, updateCodexConfig } from '@/api'
 import type { CodexConfig } from '@/types'
+import { logger } from '@/utils/logger'
 
 const { t } = useI18n()
 
@@ -550,15 +605,20 @@ const writableRootsStr = computed({
   get: () => form.sandbox_workspace_write?.writable_roots?.join(', ') ?? '',
   set: (v: string) => {
     if (!form.sandbox_workspace_write) form.sandbox_workspace_write = {}
-    form.sandbox_workspace_write.writable_roots = v ? v.split(',').map(s => s.trim()).filter(Boolean) : undefined
-  }
+    form.sandbox_workspace_write.writable_roots = v
+      ? v
+          .split(',')
+          .map((s) => s.trim())
+          .filter(Boolean)
+      : undefined
+  },
 })
 const sandboxNetworkAccess = computed({
   get: () => form.sandbox_workspace_write?.network_access,
   set: (v: boolean | undefined) => {
     if (!form.sandbox_workspace_write) form.sandbox_workspace_write = {}
     form.sandbox_workspace_write.network_access = v
-  }
+  },
 })
 
 // shell_environment_policy
@@ -566,62 +626,99 @@ const shellIncludeOnlyStr = computed({
   get: () => form.shell_environment_policy?.include_only?.join(', ') ?? '',
   set: (v: string) => {
     if (!form.shell_environment_policy) form.shell_environment_policy = {}
-    form.shell_environment_policy.include_only = v ? v.split(',').map(s => s.trim()).filter(Boolean) : undefined
-  }
+    form.shell_environment_policy.include_only = v
+      ? v
+          .split(',')
+          .map((s) => s.trim())
+          .filter(Boolean)
+      : undefined
+  },
 })
 
 // tools
 const toolsViewImage = computed({
   get: () => form.tools?.view_image,
-  set: (v: boolean | undefined) => { if (!form.tools) form.tools = {}; form.tools.view_image = v }
+  set: (v: boolean | undefined) => {
+    if (!form.tools) form.tools = {}
+    form.tools.view_image = v
+  },
 })
 const toolsWebSearch = computed({
   get: () => form.tools?.web_search,
-  set: (v: boolean | undefined) => { if (!form.tools) form.tools = {}; form.tools.web_search = v }
+  set: (v: boolean | undefined) => {
+    if (!form.tools) form.tools = {}
+    form.tools.web_search = v
+  },
 })
 
 // tui
 const tuiAlternateScreen = computed({
   get: () => form.tui?.alternate_screen ?? '',
-  set: (v: string) => { if (!form.tui) form.tui = {}; form.tui.alternate_screen = v || undefined }
+  set: (v: string) => {
+    if (!form.tui) form.tui = {}
+    form.tui.alternate_screen = v || undefined
+  },
 })
 const tuiAnimations = computed({
   get: () => form.tui?.animations,
-  set: (v: boolean | undefined) => { if (!form.tui) form.tui = {}; form.tui.animations = v }
+  set: (v: boolean | undefined) => {
+    if (!form.tui) form.tui = {}
+    form.tui.animations = v
+  },
 })
 const tuiNotifications = computed({
   get: () => form.tui?.notifications,
-  set: (v: boolean | undefined) => { if (!form.tui) form.tui = {}; form.tui.notifications = v }
+  set: (v: boolean | undefined) => {
+    if (!form.tui) form.tui = {}
+    form.tui.notifications = v
+  },
 })
 const tuiShowTooltips = computed({
   get: () => form.tui?.show_tooltips,
-  set: (v: boolean | undefined) => { if (!form.tui) form.tui = {}; form.tui.show_tooltips = v }
+  set: (v: boolean | undefined) => {
+    if (!form.tui) form.tui = {}
+    form.tui.show_tooltips = v
+  },
 })
 
 // history
 const historyPersistence = computed({
   get: () => form.history?.persistence ?? '',
-  set: (v: string) => { if (!form.history) form.history = {}; form.history.persistence = v || undefined }
+  set: (v: string) => {
+    if (!form.history) form.history = {}
+    form.history.persistence = v || undefined
+  },
 })
 const historyMaxBytes = computed({
   get: () => form.history?.max_bytes,
-  set: (v: number | undefined) => { if (!form.history) form.history = {}; form.history.max_bytes = v }
+  set: (v: number | undefined) => {
+    if (!form.history) form.history = {}
+    form.history.max_bytes = v
+  },
 })
 
 // analytics / feedback
 const analyticsEnabled = computed({
   get: () => form.analytics?.enabled,
-  set: (v: boolean | undefined) => { if (!form.analytics) form.analytics = {}; form.analytics.enabled = v }
+  set: (v: boolean | undefined) => {
+    if (!form.analytics) form.analytics = {}
+    form.analytics.enabled = v
+  },
 })
 const feedbackEnabled = computed({
   get: () => form.feedback?.enabled,
-  set: (v: boolean | undefined) => { if (!form.feedback) form.feedback = {}; form.feedback.enabled = v }
+  set: (v: boolean | undefined) => {
+    if (!form.feedback) form.feedback = {}
+    form.feedback.enabled = v
+  },
 })
 
 // ============ Actions ============
 function showToast(message: string, type: 'success' | 'error' = 'success') {
   toast.value = { message, type }
-  setTimeout(() => { toast.value = null }, 3000)
+  setTimeout(() => {
+    toast.value = null
+  }, 3000)
 }
 
 async function loadConfig() {
@@ -640,8 +737,57 @@ async function loadConfig() {
 async function handleSave() {
   saving.value = true
   try {
-    // 构建提交对象，排除 mcp_servers 和 profiles
-    const { mcp_servers: _m, profiles: _p, ...payload } = form
+    const payload: Record<string, unknown> = {
+      model: form.model ?? null,
+      model_provider: form.model_provider ?? null,
+      model_reasoning_effort: form.model_reasoning_effort ?? null,
+      model_reasoning_summary: form.model_reasoning_summary ?? null,
+      model_verbosity: form.model_verbosity ?? null,
+      model_context_window: form.model_context_window ?? null,
+      model_auto_compact_token_limit: form.model_auto_compact_token_limit ?? null,
+      personality: form.personality ?? null,
+      approval_policy: form.approval_policy ?? null,
+      sandbox_mode: form.sandbox_mode ?? null,
+      disable_response_storage: form.disable_response_storage ?? null,
+      sandbox_workspace_write: {
+        writable_roots: form.sandbox_workspace_write?.writable_roots ?? null,
+        network_access: form.sandbox_workspace_write?.network_access ?? null,
+      },
+      shell_environment_policy: {
+        include_only: form.shell_environment_policy?.include_only ?? null,
+      },
+      web_search: form.web_search ?? null,
+      file_opener: form.file_opener ?? null,
+      developer_instructions: form.developer_instructions ?? null,
+      instructions: form.instructions ?? null,
+      tools: {
+        view_image: form.tools?.view_image ?? null,
+        web_search: form.tools?.web_search ?? null,
+      },
+      tui: {
+        alternate_screen: form.tui?.alternate_screen ?? null,
+        animations: form.tui?.animations ?? null,
+        notifications: form.tui?.notifications ?? null,
+        show_tooltips: form.tui?.show_tooltips ?? null,
+      },
+      hide_agent_reasoning: form.hide_agent_reasoning ?? null,
+      show_raw_agent_reasoning: form.show_raw_agent_reasoning ?? null,
+      check_for_update_on_startup: form.check_for_update_on_startup ?? null,
+      suppress_unstable_features_warning: form.suppress_unstable_features_warning ?? null,
+      experimental_use_rmcp_client: form.experimental_use_rmcp_client ?? null,
+      history: {
+        persistence: form.history?.persistence ?? null,
+        max_bytes: form.history?.max_bytes ?? null,
+      },
+      analytics: {
+        enabled: form.analytics?.enabled ?? null,
+      },
+      feedback: {
+        enabled: form.feedback?.enabled ?? null,
+      },
+      features: form.features ?? null,
+    }
+
     await updateCodexConfig(payload as CodexConfig)
     showToast(t('codex.settings.messages.saveSuccess'))
   } catch (e) {
@@ -659,7 +805,6 @@ onMounted(loadConfig)
 
 <script lang="ts">
 import { defineComponent, h } from 'vue'
-import { logger } from '@/utils/logger'
 
 const ToggleField = defineComponent({
   name: 'ToggleField',
@@ -669,16 +814,17 @@ const ToggleField = defineComponent({
   },
   emits: ['update:modelValue'],
   setup(props, { emit }) {
-    return () => h('label', { class: 'flex items-center gap-3 cursor-pointer' }, [
-      h('input', {
-        type: 'checkbox',
-        checked: props.modelValue ?? false,
-        class: 'w-4 h-4 rounded border-white/10 text-emerald-500 focus:ring-emerald-500',
-        onChange: (e: Event) => emit('update:modelValue', (e.target as HTMLInputElement).checked),
-      }),
-      h('span', { class: 'text-sm font-semibold text-white' }, props.label),
-    ])
-  }
+    return () =>
+      h('label', { class: 'flex items-center gap-3 cursor-pointer' }, [
+        h('input', {
+          type: 'checkbox',
+          checked: props.modelValue ?? false,
+          class: 'w-4 h-4 rounded border-white/10 text-emerald-500 focus:ring-emerald-500',
+          onChange: (e: Event) => emit('update:modelValue', (e.target as HTMLInputElement).checked),
+        }),
+        h('span', { class: 'text-sm font-semibold text-white' }, props.label),
+      ])
+  },
 })
 
 export default { components: { ToggleField } }
@@ -688,8 +834,16 @@ export default { components: { ToggleField } }
 .settings-input {
   @apply w-full px-4 py-2.5 rounded-lg glass-surface border border-white/10 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none transition-[border-color,box-shadow] text-white;
 }
-.fade-enter-active, .fade-leave-active { transition: opacity 0.3s; }
-.fade-enter-from, .fade-leave-to { opacity: 0; }
+
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.3s;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
 
 .loading-spinner {
   border: 3px solid;
@@ -697,5 +851,9 @@ export default { components: { ToggleField } }
   animation: spin 1s linear infinite;
 }
 
-@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
 </style>
