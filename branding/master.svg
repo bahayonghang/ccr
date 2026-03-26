@@ -1,83 +1,32 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
   <title id="title">CCR brand master</title>
-  <desc id="desc">Reference master for the CCR cyber badge brand system.</desc>
+  <desc id="desc">Reference master for the CCR rounded-square prism badge brand system.</desc>
   <defs>
-    <linearGradient id="badgeFill" x1="128" y1="88" x2="384" y2="424" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#123f70"/>
-      <stop offset="0.54" stop-color="#081b44"/>
-      <stop offset="1" stop-color="#040d2a"/>
+    <linearGradient id="badgeFill" x1="116" y1="102" x2="394" y2="410" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#F29A68"/>
+      <stop offset="0.56" stop-color="#E87C58"/>
+      <stop offset="1" stop-color="#D96543"/>
     </linearGradient>
-    <linearGradient id="rimStroke" x1="116" y1="92" x2="406" y2="438" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#35f4e5"/>
-      <stop offset="0.48" stop-color="#27c9d6"/>
-      <stop offset="1" stop-color="#74fbff"/>
+    <linearGradient id="badgeHighlight" x1="144" y1="122" x2="332" y2="290" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.38"/>
+      <stop offset="0.4" stop-color="#FFFFFF" stop-opacity="0.14"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
     </linearGradient>
-    <linearGradient id="monogramStroke" x1="164" y1="126" x2="334" y2="364" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#67fff6"/>
-      <stop offset="0.5" stop-color="#21e4dd"/>
-      <stop offset="1" stop-color="#7af6ff"/>
-    </linearGradient>
-    <filter id="softGlow" x="-25%" y="-25%" width="150%" height="150%">
-      <feGaussianBlur stdDeviation="8" result="blur"/>
-      <feColorMatrix
-        in="blur"
-        type="matrix"
-        values="1 0 0 0 0
-                0 1 0 0 0.68
-                0 0 1 0 0.72
-                0 0 0 0.45 0"
-        result="glow"
-      />
-      <feMerge>
-        <feMergeNode in="glow"/>
-        <feMergeNode in="SourceGraphic"/>
-      </feMerge>
+    <filter id="badgeShadow" x="-18%" y="-18%" width="136%" height="136%">
+      <feDropShadow dx="0" dy="18" stdDeviation="22" flood-color="#A94A2D" flood-opacity="0.22"/>
     </filter>
   </defs>
 
-  <g id="badge">
+  <g id="badge" filter="url(#badgeShadow)">
+    <rect x="88" y="88" width="336" height="336" rx="122" fill="url(#badgeFill)"/>
     <path
-      d="M256 50 404 136v240L256 462 108 376V136Z"
-      fill="url(#badgeFill)"
-      filter="url(#softGlow)"
-    />
-    <path
-      d="M256 76 381 148v216L256 436 131 364V148Z"
-      fill="none"
-      stroke="url(#rimStroke)"
-      stroke-width="18"
-      stroke-linejoin="round"
-    />
-    <path
-      d="M256 108 353 164v184L256 404 159 348V164Z"
-      fill="#08163b"
-      stroke="#123a6f"
-      stroke-width="10"
-      stroke-linejoin="round"
+      d="M132 126C184 102 266 102 338 132C382 151 405 178 418 204V88H88V190C96 166 110 144 132 126Z"
+      fill="url(#badgeHighlight)"
     />
   </g>
 
-  <g id="monogram" fill="none" stroke="url(#monogramStroke)" stroke-linecap="square" stroke-linejoin="round">
-    <path d="M318 170 236 126 160 170v172l76 44 82-44" stroke-width="34"/>
-    <path d="M278 222 238 200 198 224v64l40 22 40-22" stroke-width="24"/>
-  </g>
-
-  <g id="accent">
-    <path
-      d="M256 108 353 164"
-      fill="none"
-      stroke="#a0ffff"
-      stroke-width="6"
-      stroke-linecap="round"
-      opacity="0.6"
-    />
-    <path
-      d="M165 341 205 364"
-      fill="none"
-      stroke="#90fbff"
-      stroke-width="8"
-      stroke-linecap="round"
-      opacity="0.65"
-    />
+  <g id="monogram" fill="none" stroke="#FFF8F2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M164 292 236 190H332L388 258 318 356H216Z" stroke-width="32"/>
+    <path d="M236 190 294 258 216 356" stroke-width="28"/>
   </g>
 </svg>

@@ -9,7 +9,7 @@ from __future__ import annotations
 from io import BytesIO
 from pathlib import Path
 
-from PIL import Image
+from PIL import Image, ImageChops, ImageDraw, ImageFilter
 
 try:
     from cairosvg import svg2png as cairosvg_svg2png
@@ -27,6 +27,11 @@ APP_ICON_SVG = BRANDING_DIR / "app-icon.svg"
 DISPLAY_LOGO_SVG = BRANDING_DIR / "display-logo.svg"
 VSCODE_ICON_SVG = BRANDING_DIR / "vscode-icon.svg"
 
+APP_START = (0xF2, 0x9A, 0x68, 0xFF)
+APP_END = (0xD9, 0x65, 0x43, 0xFF)
+APP_STROKE = (0xFF, 0xF8, 0xF2, 0xFF)
+SHADOW_COLOR = (0xA9, 0x4A, 0x2D, 0xFF)
+
 
 def ensure_parent(path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -38,7 +43,93 @@ def copy_text_asset(source: Path, target: Path) -> None:
     print(f"Updated {target.relative_to(REPO_ROOT)}")
 
 
-def load_reference_icon() -> Image.Image:
+def scale(value: float, size: int, base_size: int = 512) -> int:
+    return int(round(value * size / base_size))
+
+
+def scale_points(points: list[tuple[float, float]], size: int) -> list[tuple[int, int]]:
+    return [(scale(x, size), scale(y, size)) for x, y in points]
+
+
+def diagonal_gradient(size: int, start: tuple[int, int, int, int], end: tuple[int, int, int, int]) -> Image.Image:
+    mask = Image.linear_gradient("L").rotate(-45, expand=True).resize((size, size), Image.Resampling.BICUBIC)
+    start_layer = Image.new("RGBA", (size, size), start)
+    end_layer = Image.new("RGBA", (size, size), end)
+    return Image.composite(end_layer, start_layer, mask)
+
+
+def rounded_line(
+    draw: ImageDraw.ImageDraw,
+    points: list[tuple[int, int]],
+    width: int,
+    color: tuple[int, int, int, int],
+) -> None:
+    draw.line(points, fill=color, width=width, joint="curve")
+    radius = width // 2
+    for x, y in (points[0], points[-1]):
+        draw.ellipse((x - radius, y - radius, x + radius, y + radius), fill=color)
+
+
+def render_native_brand_icon(size: int, variant: str = "app") -> Image.Image:
+    render_size = size * 2 if size < 512 else size
+    canvas = Image.new("RGBA", (render_size, render_size), (0, 0, 0, 0))
+
+    badge_mask = Image.new("L", (render_size, render_size), 0)
+    badge_draw = ImageDraw.Draw(badge_mask)
+    inset = scale(88, render_size)
+    badge_draw.rounded_rectangle(
+        (inset, inset, render_size - inset, render_size - inset),
+        radius=scale(122, render_size),
+        fill=255,
+    )
+
+    shadow = Image.new("RGBA", (render_size, render_size), SHADOW_COLOR)
+    shadow_alpha = badge_mask.filter(ImageFilter.GaussianBlur(scale(22, render_size)))
+    shadow_alpha = shadow_alpha.point(lambda alpha: min(255, int(alpha * 0.22)))
+    shadow.putalpha(shadow_alpha)
+    canvas.alpha_composite(shadow, (0, scale(18 if variant == "app" else 22, render_size)))
+
+    badge = diagonal_gradient(render_size, APP_START, APP_END)
+    badge.putalpha(badge_mask)
+    canvas.alpha_composite(badge)
+
+    highlight = Image.new("RGBA", (render_size, render_size), (255, 255, 255, 0))
+    highlight_draw = ImageDraw.Draw(highlight)
+    highlight_draw.ellipse(
+        (
+            scale(112, render_size),
+            scale(102, render_size),
+            scale(392, render_size),
+            scale(270, render_size),
+        ),
+        fill=(255, 255, 255, 84 if variant == "app" else 96),
+    )
+    highlight = highlight.filter(ImageFilter.GaussianBlur(scale(18, render_size)))
+    highlight.putalpha(ImageChops.multiply(highlight.getchannel("A"), badge_mask))
+    canvas.alpha_composite(highlight)
+
+    outer_points = scale_points(
+        [(164, 292), (236, 190), (332, 190), (388, 258), (318, 356), (216, 356), (164, 292)],
+        render_size,
+    )
+    inner_points = scale_points([(236, 190), (294, 258), (216, 356)], render_size)
+
+    monogram = Image.new("RGBA", (render_size, render_size), (0, 0, 0, 0))
+    monogram_draw = ImageDraw.Draw(monogram)
+    monogram_draw.line(outer_points, fill=APP_STROKE, width=scale(32, render_size), joint="curve")
+    rounded_line(monogram_draw, inner_points, width=scale(28, render_size), color=APP_STROKE)
+    canvas.alpha_composite(monogram)
+
+    if render_size != size:
+        canvas = canvas.resize((size, size), Image.Resampling.LANCZOS)
+
+    return canvas
+
+
+def load_reference_icon(svg_path: Path) -> Image.Image:
+    if not REFERENCE_ICON_PNG.exists():
+        return render_svg(svg_path, 1024)
+
     image = Image.open(REFERENCE_ICON_PNG).convert("RGBA")
     alpha_bbox = image.getchannel("A").getbbox()
     bbox = alpha_bbox or image.getbbox()
@@ -62,6 +153,9 @@ def render_svg(svg_path: Path, size: int, fallback_image: Image.Image | None = N
             background_color=None,
         )
         return Image.open(BytesIO(png_bytes)).convert("RGBA")
+    if svg_path in {APP_ICON_SVG, DISPLAY_LOGO_SVG}:
+        variant = "display" if svg_path == DISPLAY_LOGO_SVG else "app"
+        return render_native_brand_icon(size, variant=variant)
     if fallback_image is None:
         raise RuntimeError(f"SVG rasterizer unavailable and no fallback image for {svg_path}")
     return fallback_image.resize((size, size), Image.Resampling.LANCZOS)
@@ -83,7 +177,10 @@ def render_with_padding(
 
 def save_png(image: Image.Image, target: Path) -> None:
     ensure_parent(target)
-    image.save(target, format="PNG", optimize=True)
+    # On Windows, Pillow may fail opening paths with its default `w+b` mode in
+    # rare cases (seen as Errno 22). Provide our own write handle instead.
+    with target.open("wb") as handle:
+        image.save(handle, format="PNG", optimize=True)
     print(f"Generated {target.relative_to(REPO_ROOT)} ({image.width}x{image.height})")
 
 
@@ -99,13 +196,15 @@ def save_svg_preview(
 def save_ico(image: Image.Image, target: Path) -> None:
     ensure_parent(target)
     ico_sizes = [(16, 16), (24, 24), (32, 32), (48, 48), (64, 64), (256, 256)]
-    image.save(target, format="ICO", sizes=ico_sizes)
+    with target.open("wb") as handle:
+        image.save(handle, format="ICO", sizes=ico_sizes)
     print(f"Generated {target.relative_to(REPO_ROOT)}")
 
 
 def save_icns(image: Image.Image, target: Path) -> None:
     ensure_parent(target)
-    image.save(target, format="ICNS")
+    with target.open("wb") as handle:
+        image.save(handle, format="ICNS")
     print(f"Generated {target.relative_to(REPO_ROOT)}")
 
 
@@ -119,9 +218,10 @@ def export_brand_sources() -> None:
 
 
 def export_runtime_assets() -> None:
-    app_fallback = load_reference_icon()
-    display_fallback = load_reference_icon()
+    app_fallback = load_reference_icon(APP_ICON_SVG)
+    display_fallback = load_reference_icon(DISPLAY_LOGO_SVG)
 
+    save_svg_preview(APP_ICON_SVG, REPO_ROOT / "icon.png", 512, app_fallback)
     save_svg_preview(APP_ICON_SVG, REPO_ROOT / "ccr-ui" / "public" / "icons" / "icon.png", 512, app_fallback)
     save_svg_preview(DISPLAY_LOGO_SVG, REPO_ROOT / "ccr-ui" / "public" / "icons" / "logo.png", 1024, display_fallback)
     save_svg_preview(DISPLAY_LOGO_SVG, REPO_ROOT / "ccr-ui" / "src" / "assets" / "logo.png", 640, display_fallback)
@@ -131,7 +231,7 @@ def export_runtime_assets() -> None:
 
 def export_tauri_bundle_assets() -> None:
     tauri_icons = REPO_ROOT / "ccr-ui" / "src-tauri" / "icons"
-    app_fallback = load_reference_icon()
+    app_fallback = load_reference_icon(APP_ICON_SVG)
     app_1024 = render_svg(APP_ICON_SVG, 1024, fallback_image=app_fallback)
 
     png_targets = {
@@ -162,7 +262,7 @@ def export_tauri_bundle_assets() -> None:
 
 def export_android_assets() -> None:
     android_root = REPO_ROOT / "ccr-ui" / "src-tauri" / "icons" / "android"
-    app_fallback = load_reference_icon()
+    app_fallback = load_reference_icon(APP_ICON_SVG)
     launcher_sizes = {
         "mipmap-mdpi": 48,
         "mipmap-hdpi": 72,
@@ -187,7 +287,7 @@ def export_android_assets() -> None:
         foreground = render_with_padding(APP_ICON_SVG, size, padding_ratio=0.14, fallback_image=app_fallback)
         save_png(foreground, android_root / bucket / "ic_launcher_foreground.png")
 
-    background_xml = """<resources>\n  <color name=\"ic_launcher_background\">#071B45</color>\n</resources>\n"""
+    background_xml = """<resources>\n  <color name=\"ic_launcher_background\">#E67E58</color>\n</resources>\n"""
     background_path = android_root / "values" / "ic_launcher_background.xml"
     ensure_parent(background_path)
     background_path.write_text(background_xml, encoding="utf-8")
@@ -196,7 +296,7 @@ def export_android_assets() -> None:
 
 def export_ios_assets() -> None:
     ios_root = REPO_ROOT / "ccr-ui" / "src-tauri" / "icons" / "ios"
-    app_fallback = load_reference_icon()
+    app_fallback = load_reference_icon(APP_ICON_SVG)
     ios_targets = {
         "AppIcon-20x20@1x.png": 20,
         "AppIcon-20x20@2x.png": 40,

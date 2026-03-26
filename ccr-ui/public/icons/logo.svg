@@ -1,65 +1,30 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" role="img" aria-label="CCR display logo">
   <defs>
-    <linearGradient id="bgGlow" x1="122" y1="98" x2="530" y2="562" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#42fff2"/>
-      <stop offset="0.45" stop-color="#24d6dd"/>
-      <stop offset="1" stop-color="#83ffff"/>
+    <linearGradient id="badgeFill" x1="154" y1="128" x2="496" y2="504" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#F29A68"/>
+      <stop offset="0.55" stop-color="#E87C58"/>
+      <stop offset="1" stop-color="#D96543"/>
     </linearGradient>
-    <linearGradient id="plateFill" x1="150" y1="116" x2="512" y2="556" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#184775"/>
-      <stop offset="0.48" stop-color="#071d49"/>
-      <stop offset="1" stop-color="#030b24"/>
+    <linearGradient id="badgeHighlight" x1="186" y1="148" x2="410" y2="354" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.42"/>
+      <stop offset="0.42" stop-color="#FFFFFF" stop-opacity="0.16"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
     </linearGradient>
-    <linearGradient id="monoStroke" x1="202" y1="156" x2="416" y2="458" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#78fff8"/>
-      <stop offset="0.5" stop-color="#27e7df"/>
-      <stop offset="1" stop-color="#8bfbff"/>
-    </linearGradient>
-    <filter id="halo" x="-25%" y="-25%" width="150%" height="150%">
-      <feGaussianBlur stdDeviation="18" result="blur"/>
-      <feColorMatrix
-        in="blur"
-        type="matrix"
-        values="1 0 0 0 0
-                0 1 0 0 0.72
-                0 0 1 0 0.8
-                0 0 0 0.38 0"
-        result="glow"
-      />
-      <feMerge>
-        <feMergeNode in="glow"/>
-        <feMergeNode in="SourceGraphic"/>
-      </feMerge>
+    <filter id="badgeShadow" x="-16%" y="-16%" width="132%" height="132%">
+      <feDropShadow dx="0" dy="22" stdDeviation="26" flood-color="#A94A2D" flood-opacity="0.24"/>
     </filter>
   </defs>
 
-  <g filter="url(#halo)">
+  <g filter="url(#badgeShadow)">
+    <rect x="96" y="96" width="448" height="448" rx="160" fill="url(#badgeFill)"/>
     <path
-      d="M320 74 502 178v284L320 566 138 462V178Z"
-      fill="url(#plateFill)"
-      stroke="url(#bgGlow)"
-      stroke-width="18"
-      stroke-linejoin="round"
-    />
-    <path
-      d="M320 110 470 196v248L320 530 170 444V196Z"
-      fill="none"
-      stroke="url(#bgGlow)"
-      stroke-width="18"
-      stroke-linejoin="round"
-      opacity="0.9"
-    />
-    <path
-      d="M320 148 430 212v216L320 492 210 428V212Z"
-      fill="#06173c"
-      stroke="#123f71"
-      stroke-width="10"
-      stroke-linejoin="round"
+      d="M152 148C220 116 326 116 418 156C474 180 508 216 528 254V96H96V236C108 202 126 170 152 148Z"
+      fill="url(#badgeHighlight)"
     />
   </g>
 
-  <g fill="none" stroke="url(#monoStroke)" stroke-linecap="square" stroke-linejoin="round">
-    <path d="M394 220 292 164 198 220v200l94 56 102-56" stroke-width="38"/>
-    <path d="M344 282 294 256 244 286v76l50 26 50-26" stroke-width="28"/>
+  <g fill="none" stroke="#FFF8F2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M202 362 296 226H422L492 314 400 442H272Z" stroke-width="40"/>
+    <path d="M296 226 370 314 272 442" stroke-width="34"/>
   </g>
 </svg>

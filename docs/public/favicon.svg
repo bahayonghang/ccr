@@ -1,43 +1,30 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="CCR app icon">
   <defs>
-    <linearGradient id="badgeFill" x1="120" y1="86" x2="394" y2="430" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#133f73"/>
-      <stop offset="0.5" stop-color="#071b45"/>
-      <stop offset="1" stop-color="#040d29"/>
+    <linearGradient id="badgeFill" x1="116" y1="102" x2="394" y2="410" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#F29A68"/>
+      <stop offset="0.56" stop-color="#E87C58"/>
+      <stop offset="1" stop-color="#D96543"/>
     </linearGradient>
-    <linearGradient id="badgeStroke" x1="118" y1="96" x2="394" y2="420" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#2ff2e2"/>
-      <stop offset="0.52" stop-color="#21d0d6"/>
-      <stop offset="1" stop-color="#71fbff"/>
+    <linearGradient id="badgeHighlight" x1="144" y1="122" x2="332" y2="290" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.38"/>
+      <stop offset="0.4" stop-color="#FFFFFF" stop-opacity="0.14"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
     </linearGradient>
-    <linearGradient id="monoStroke" x1="168" y1="128" x2="334" y2="368" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#72fff7"/>
-      <stop offset="0.45" stop-color="#2ae4db"/>
-      <stop offset="1" stop-color="#89f6ff"/>
-    </linearGradient>
+    <filter id="badgeShadow" x="-18%" y="-18%" width="136%" height="136%">
+      <feDropShadow dx="0" dy="18" stdDeviation="22" flood-color="#A94A2D" flood-opacity="0.22"/>
+    </filter>
   </defs>
 
-  <path
-    d="M256 56 398 138v236L256 456 114 374V138Z"
-    fill="url(#badgeFill)"
-  />
-  <path
-    d="M256 84 375 152v208L256 428 137 360V152Z"
-    fill="none"
-    stroke="url(#badgeStroke)"
-    stroke-width="18"
-    stroke-linejoin="round"
-  />
-  <path
-    d="M256 114 347 166v180L256 398 165 346V166Z"
-    fill="#07173b"
-    stroke="#11396c"
-    stroke-width="10"
-    stroke-linejoin="round"
-  />
+  <g filter="url(#badgeShadow)">
+    <rect x="88" y="88" width="336" height="336" rx="122" fill="url(#badgeFill)"/>
+    <path
+      d="M132 126C184 102 266 102 338 132C382 151 405 178 418 204V88H88V190C96 166 110 144 132 126Z"
+      fill="url(#badgeHighlight)"
+    />
+  </g>
 
-  <g fill="none" stroke="url(#monoStroke)" stroke-linecap="square" stroke-linejoin="round">
-    <path d="M316 172 236 130 162 172v168l74 42 80-42" stroke-width="34"/>
-    <path d="M278 222 238 202 198 224v62l40 20 40-20" stroke-width="22"/>
+  <g fill="none" stroke="#FFF8F2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M164 292 236 190H332L388 258 318 356H216Z" stroke-width="32"/>
+    <path d="M236 190 294 258 216 356" stroke-width="28"/>
   </g>
 </svg>
