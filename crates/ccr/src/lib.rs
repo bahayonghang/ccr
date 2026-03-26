@@ -186,6 +186,13 @@ pub use managers::{
     ProviderType, SettingsManager, TempOverride, TempOverrideManager, UnifiedConfig,
 };
 
+pub use models::skills::{
+    MarketplaceListResponse, MarketplaceSkill, NpxStatus, SkillContent, SkillInstallMeta,
+    SkillInstallMode, SkillInstallationRecord, SkillOrigin, SkillPlatformConfig,
+    SkillPlatformSummary, SkillRecord, SkillSourceHealth, SkillSourceRecord,
+    SkillSourceSkillRecord, SkillSourceType, SkillsInstallRequest, SkillsInventoryQuery,
+    SkillsInventoryResponse, SkillsSourceManifest, SkillsSyncRequest,
+};
 /// 数据模型和平台 trait
 ///
 /// **平台相关**:
@@ -265,7 +272,7 @@ pub use platforms::{
 /// - [`BackupService`] - 备份和恢复服务
 /// - [`ValidateService`] - 验证服务
 pub use services::{
-    BackupService, ConfigService, HistoryService, SettingsService, ValidateService,
+    BackupService, ConfigService, HistoryService, SettingsService, SkillsService, ValidateService,
 };
 
 /// 工具函数和辅助类型

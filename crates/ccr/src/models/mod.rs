@@ -7,7 +7,10 @@ pub mod mcp_preset;
 pub mod platform;
 pub mod pricing;
 pub mod prompt;
+#[allow(dead_code)]
 pub mod skill;
+#[allow(dead_code)]
+pub mod skills;
 pub mod stats;
 pub mod sync_folder;
 

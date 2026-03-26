@@ -1022,7 +1022,7 @@ impl UsageImportService {
         hasher.update(&buffer[..bytes_read]);
         let hash = hasher.finalize();
 
-        Ok(format!("{:x}", hash))
+        Ok(hash.iter().map(|byte| format!("{byte:02x}")).collect())
     }
 
     /// Extract project path from file path

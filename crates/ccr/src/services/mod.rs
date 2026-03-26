@@ -17,6 +17,8 @@ pub mod health_check;
 pub mod history_service;
 pub mod multi_backup_service;
 pub mod settings_service;
+#[allow(dead_code)]
+pub mod skills_service;
 pub mod sync_service;
 pub mod ui_service;
 pub mod validate_service;
@@ -42,6 +44,8 @@ pub use history_service::HistoryService;
 pub use multi_backup_service::MultiBackupService;
 #[allow(unused_imports)]
 pub use settings_service::SettingsService;
+#[allow(unused_imports)]
+pub use skills_service::SkillsService;
 #[allow(unused_imports)]
 pub use sync_service::SyncService;
 #[allow(unused_imports)]
