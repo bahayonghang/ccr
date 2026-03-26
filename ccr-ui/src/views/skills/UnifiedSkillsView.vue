@@ -329,32 +329,51 @@
               class="inventory-list"
             >
               <div :style="{ height: `${rowVirtualizer.getTotalSize()}px`, position: 'relative' }">
-                <button
+                <div
                   v-for="virtualRow in rowVirtualizer.getVirtualItems()"
                   :key="filteredSkills[virtualRow.index]?.id"
-                  class="skill-card"
-                  :class="{ 'skill-card--active': filteredSkills[virtualRow.index]?.id === selectedSkill?.id }"
+                  class="inventory-row"
                   :style="{ transform: `translateY(${virtualRow.start}px)` }"
-                  @click="handleSelectSkill(filteredSkills[virtualRow.index]?.id)"
                 >
-                  <div class="skill-card__head">
-                    <div class="min-w-0">
-                      <h3>{{ filteredSkills[virtualRow.index]?.name }}</h3>
-                      <p>{{ filteredSkills[virtualRow.index]?.description || 'No description' }}</p>
+                  <button
+                    :ref="measureElement"
+                    :data-index="virtualRow.index"
+                    class="skill-card"
+                    :class="{ 'skill-card--active': filteredSkills[virtualRow.index]?.id === selectedSkill?.id }"
+                    @click="handleSelectSkill(filteredSkills[virtualRow.index]?.id)"
+                  >
+                    <div class="skill-card__head">
+                      <div class="min-w-0">
+                        <h3 class="truncate">
+                          {{ filteredSkills[virtualRow.index]?.name }}
+                        </h3>
+                        <p
+                          class="skill-card__desc"
+                          :title="filteredSkills[virtualRow.index]?.description ?? ''"
+                        >
+                          {{ formatSkillDescription(filteredSkills[virtualRow.index]?.description) }}
+                        </p>
+                      </div>
+                      <span class="console-tab__count">{{ filteredSkills[virtualRow.index]?.installCount }}</span>
                     </div>
-                    <span class="console-tab__count">{{ filteredSkills[virtualRow.index]?.installCount }}</span>
-                  </div>
-                  <div class="skill-card__meta">
-                    <span class="badge">{{ filteredSkills[virtualRow.index]?.origin }}</span>
-                    <span
-                      v-for="installation in filteredSkills[virtualRow.index]?.installations.slice(0, 3)"
-                      :key="installation.id"
-                      class="badge"
-                    >
-                      {{ installation.platformName }}
-                    </span>
-                  </div>
-                </button>
+                    <div class="skill-card__meta">
+                      <span class="badge">{{ filteredSkills[virtualRow.index]?.origin }}</span>
+                      <span
+                        v-for="installation in filteredSkills[virtualRow.index]?.installations.slice(0, 2)"
+                        :key="installation.id"
+                        class="badge"
+                      >
+                        {{ installation.platformName }}
+                      </span>
+                      <span
+                        v-if="(filteredSkills[virtualRow.index]?.installations.length ?? 0) > 2"
+                        class="badge"
+                      >
+                        +{{ (filteredSkills[virtualRow.index]?.installations.length ?? 0) - 2 }}
+                      </span>
+                    </div>
+                  </button>
+                </div>
               </div>
             </div>
           </section>
@@ -384,7 +403,21 @@
             >
               <div class="detail-card">
                 <h3>{{ selectedSkill.name }}</h3>
-                <p>{{ selectedSkill.description || 'No description' }}</p>
+                <p
+                  class="detail-description"
+                  :class="{ 'detail-description--collapsed': !showFullDetailDescription }"
+                  :title="selectedSkill.description ?? ''"
+                >
+                  {{ selectedSkill.description || 'No description' }}
+                </p>
+                <button
+                  v-if="selectedSkill.description && selectedSkill.description.length > 320"
+                  type="button"
+                  class="detail-description__toggle"
+                  @click="showFullDetailDescription = !showFullDetailDescription"
+                >
+                  {{ showFullDetailDescription ? 'Show less' : 'Show more' }}
+                </button>
                 <div class="detail-card__grid">
                   <div>
                     <span>Origin</span>
@@ -504,7 +537,7 @@
                 <pre
                   v-else
                   class="content-preview"
-                >{{ currentContent?.raw || 'No content loaded.' }}</pre>
+                >{{ contentPreview }}</pre>
               </div>
             </div>
 
@@ -780,17 +813,50 @@ const manualLocalPath = ref('')
 const manualNpx = ref('')
 const currentContent = ref<Awaited<ReturnType<typeof ensureContent>> | null>(null)
 const editBuffer = ref('')
+const showFullDetailDescription = ref(false)
 let stopSkillsEvent: null | (() => void) = null
 const rowVirtualizer = useVirtualizer(computed(() => ({
   count: filteredSkills.value.length,
   getScrollElement: () => inventoryScrollRef.value,
-  estimateSize: () => 120,
+  estimateSize: () => 140,
   overscan: 6,
 })))
 const contentDirty = computed(() => currentContent.value != null && editBuffer.value !== currentContent.value.raw)
+const contentPreview = computed(() => {
+  const raw = currentContent.value?.raw ?? ''
+  return raw ? stripFrontmatter(raw) : 'No content loaded.'
+})
+
+const measureElement = (element: unknown) => {
+  rowVirtualizer.value.measureElement(element instanceof Element ? element : null)
+}
 
 function platformIcon(platformId: Platform) {
   return PLATFORM_CONFIG[platformId]?.icon ?? 'Code2'
+}
+
+function stripFrontmatter(raw: string) {
+  const normalized = raw.replace(/\r\n/g, '\n')
+  const trimmed = normalized.trimStart()
+  const lines = trimmed.split('\n')
+
+  if (lines[0]?.trim() !== '---') return raw
+
+  for (let i = 1; i < lines.length; i += 1) {
+    if (lines[i].trim() === '---') {
+      return lines.slice(i + 1).join('\n').trim()
+    }
+  }
+
+  return raw
+}
+
+function formatSkillDescription(value?: string) {
+  const description = value?.trim()
+  if (!description) return 'No description'
+  const maxLength = 280
+  if (description.length <= maxLength) return description
+  return description.slice(0, maxLength).trimEnd() + '…'
 }
 
 function normalizeRouteState(query: Record<string, unknown>): SkillsRouteState {
@@ -1095,6 +1161,10 @@ watch([selectedSkill, selectedInstallation], () => {
   void loadSelectedContent()
 })
 
+watch(selectedSkill, () => {
+  showFullDetailDescription.value = false
+})
+
 watch(
   platforms,
   (currentPlatforms) => {
@@ -1233,12 +1303,36 @@ onUnmounted(() => {
   @apply h-[68vh] overflow-auto rounded-2xl border border-white/10 bg-black/20 p-2;
 }
 
+.inventory-row {
+  @apply absolute left-0 top-0 w-full;
+}
+
 .skill-card {
-  @apply absolute left-0 top-0 flex w-full flex-col gap-3 rounded-2xl border border-white/10 bg-white/5 p-4 text-left transition-all;
+  @apply flex w-full flex-col gap-3 rounded-2xl border border-white/10 bg-white/5 p-4 text-left transition-all;
 }
 
 .skill-card--active {
   @apply border-violet-300/20 bg-violet-300/10;
+}
+
+.skill-card__desc {
+  @apply mt-1 text-sm text-white/60;
+
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.detail-description__toggle {
+  @apply mt-1 text-xs font-medium text-violet-200/80 hover:text-violet-200 hover:underline;
+}
+
+.detail-description--collapsed {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .skill-card__head,

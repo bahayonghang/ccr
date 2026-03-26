@@ -64,6 +64,7 @@
         >
           <div
             :ref="(el) => measureElement(el)"
+            :data-index="virtualRow.index"
             class="pb-3"
           >
             <Card 
@@ -198,8 +199,8 @@ const rowVirtualizer = useVirtualizer(computed(() => ({
   overscan: 5,
 })))
 
-const measureElement = (el: unknown) => {
-  if (el instanceof Element) rowVirtualizer.value.measureElement(el)
+const measureElement = (element: unknown) => {
+  rowVirtualizer.value.measureElement(element instanceof Element ? element : null)
 }
 
 const getOperationLabel = (op: string) => ({

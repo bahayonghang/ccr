@@ -28,7 +28,10 @@
           data-testid="skills-installed-row"
           :style="{ transform: `translateY(${virtualRow.start}px)` }"
         >
-          <div :ref="measureElement">
+          <div
+            :ref="measureElement"
+            :data-index="virtualRow.index"
+          >
             <SkillCard
               :skill="skills[virtualRow.index]"
               @click="$emit('click', skills[virtualRow.index])"
@@ -108,10 +111,8 @@ const rowVirtualizer = useVirtualizer(computed(() => ({
 
 const virtualItems = computed(() => rowVirtualizer.value.getVirtualItems())
 
-const measureElement = (el: unknown) => {
-  if (el instanceof Element) {
-    rowVirtualizer.value.measureElement(el)
-  }
+const measureElement = (element: unknown) => {
+  rowVirtualizer.value.measureElement(element instanceof Element ? element : null)
 }
 </script>
 
