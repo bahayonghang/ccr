@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 import { genericPlatformDescriptorList } from '@/config/platformDescriptors'
+import { initPerfTelemetry, recordRouteTiming } from '@/utils/perfTelemetry'
 
 // RouteMeta 类型扩展
 declare module 'vue-router' {
@@ -426,5 +427,48 @@ const router = createRouter({
     return { top: 0 }
   },
 })
+
+const perfEnabled = initPerfTelemetry()
+
+if (perfEnabled) {
+  let navStartMs: number | null = null
+  let navFrom = ''
+  let navTo = ''
+
+  router.beforeEach((to, from) => {
+    if (typeof performance !== 'undefined' && typeof performance.now === 'function') {
+      navStartMs = performance.now()
+    } else {
+      navStartMs = Date.now()
+    }
+
+    navFrom = from.fullPath ?? String(from.path ?? '')
+    navTo = to.fullPath ?? String(to.path ?? '')
+  })
+
+  router.afterEach((to, from, failure) => {
+    if (failure) {
+      navStartMs = null
+      navFrom = ''
+      navTo = ''
+      return
+    }
+
+    if (navStartMs === null) return
+
+    const endMs = typeof performance !== 'undefined' && typeof performance.now === 'function'
+      ? performance.now()
+      : Date.now()
+
+    recordRouteTiming(
+      navFrom || (from.fullPath ?? String(from.path ?? '')),
+      navTo || (to.fullPath ?? String(to.path ?? '')),
+      endMs - navStartMs,
+    )
+    navStartMs = null
+    navFrom = ''
+    navTo = ''
+  })
+}
 
 export default router

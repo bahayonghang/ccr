@@ -245,6 +245,7 @@ import Button from '@/components/ui/Button.vue'
 import { getSystemInfo, getCliVersions } from '@/api/runtime/system'
 import { scheduleWhenIdle } from '@/utils/scheduling'
 import { logger } from '@/utils/logger'
+import { perfMark, shouldLogPerfTelemetry } from '@/utils/perfTelemetry'
 import type { CliVersionEntry, CliVersionsResponse, SystemInfo } from '@/types'
 
 const UsageStatsDashboard = defineAsyncComponent({
@@ -259,23 +260,18 @@ const cliVersions = ref<Map<string, CliVersionEntry>>(new Map())
 const usageStatsSection = ref<HTMLElement | null>(null)
 const shouldRenderUsageStats = ref(false)
 
-const markPerf = (name: string) => {
-  if (!import.meta.env.DEV || typeof performance === 'undefined') return
-  performance.mark(name)
-}
-
 const applyCliVersions = (entries: CliVersionEntry[]) => {
   for (const entry of entries) {
     cliVersions.value.set(entry.platform, entry)
   }
-  markPerf('home:cli-badges-updated')
+  perfMark('home:cli-badges-updated')
 }
 
 const loadSystemInfo = async () => {
   try {
     const sysInfo = await getSystemInfo<SystemInfo>().catch(() => null)
     systemInfo.value = sysInfo
-    markPerf('home:system-ready')
+    perfMark('home:system-ready')
   } catch (e) {
     logger.error('[HomeView] failed to load system info', e)
   }
@@ -300,7 +296,7 @@ const revealUsageStats = () => {
   if (shouldRenderUsageStats.value) return
 
   shouldRenderUsageStats.value = true
-  markPerf('home:usage-dashboard-revealed')
+  perfMark('home:usage-dashboard-revealed')
 
   if (usageStatsObserver) {
     usageStatsObserver.disconnect()
@@ -334,7 +330,7 @@ const scheduleUsageStatsLoad = () => {
 }
 
 const logHomePerfSnapshot = () => {
-  if (!import.meta.env.DEV || typeof performance === 'undefined') return
+  if (!shouldLogPerfTelemetry() || typeof performance === 'undefined') return
 
   setTimeout(() => {
     const resources = performance.getEntriesByType('resource') as PerformanceResourceTiming[]
@@ -353,7 +349,8 @@ const logHomePerfSnapshot = () => {
     const badgeMarks = performance.getEntriesByName('home:cli-badges-updated')
     const lastBadgeMark = badgeMarks.length > 0 ? Math.round(badgeMarks[badgeMarks.length - 1].startTime) : null
 
-    logger.info('[HomePerf]', {
+    logger.info('[Perf]', {
+      scope: 'home',
       apiResponses: relevant,
       cliBadgeUpdatedAt: lastBadgeMark,
     })

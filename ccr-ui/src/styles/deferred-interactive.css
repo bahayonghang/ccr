@@ -1,11 +1,11 @@
 /* ============================================
-   Deferred App Styles
-   首屏后补充加载的大体积样式
+   Deferred Interactive Styles
+   非关键但高频使用的样式：首帧后加载，避免阻塞关键渲染
    ============================================ */
 
 @import './animations.css';
 @import './utilities.css';
 @import './chart-colors.css';
 
+/* Needed so Tailwind can place `@layer components` from utilities.css (used by `@apply`). */
 @tailwind components;
-@tailwind utilities;

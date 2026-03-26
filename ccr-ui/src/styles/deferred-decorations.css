@@ -1,7 +1,8 @@
 /* ============================================
-   CCR-UI Decorative Style Entry
-   首帧之后按需加载，避免装饰样式阻塞关键渲染
+   Deferred Decoration Styles
+   装饰与氛围层：仅在空闲时加载
    ============================================ */
 
 @import './backgrounds.css';
 @import './neko-decorations.css';
+
