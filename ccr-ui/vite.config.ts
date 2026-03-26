@@ -33,6 +33,7 @@ export default defineConfig({
   },
   server: {
     port: 15173,
+    strictPort: true,
     warmup: {
       clientFiles: [
         './src/main.ts',
