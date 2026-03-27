@@ -28,7 +28,7 @@ pub fn draw(f: &mut Frame, app: &CodexAuthApp) {
         .constraints([
             Constraint::Length(3),  // Title
             Constraint::Min(8),     // Account list
-            Constraint::Length(14), // Usage panel (enlarged for quota)
+            Constraint::Length(12), // Usage panel
             Constraint::Length(3),  // Status bar
             Constraint::Length(2),  // Help bar
         ])
@@ -493,7 +493,7 @@ pub fn draw_embedded(
         .direction(Direction::Vertical)
         .constraints([
             Constraint::Min(8),     // Account list (with login status in title)
-            Constraint::Length(14), // Usage panel (enlarged for quota)
+            Constraint::Length(12), // Usage panel
         ])
         .split(content_area);
 

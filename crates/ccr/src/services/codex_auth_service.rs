@@ -17,9 +17,9 @@ use crate::managers::codex_config::CodexConfigManager;
 use crate::models::PlatformConfig;
 use crate::models::{
     AuthIntent, AuthState, AuthStateStatus, CodexAuthAccount, CodexAuthExport,
-    CodexAuthExportAccount, CodexAuthItem, CodexAuthJson, CodexAuthRegistry, CredentialStoreKind,
-    CurrentAuthInfo, ImportMode, ImportResult, LoginState, OpenAiAuthMethod, PlatformPaths,
-    TokenFreshness, normalize_auth_map_for_intent,
+    CodexAuthExportAccount, CodexAuthItem, CodexAuthJson, CodexAuthRegistry, CodexRuntimeMode,
+    CodexRuntimeSummary, CredentialStoreKind, CurrentAuthInfo, ImportMode, ImportResult,
+    LoginState, OpenAiAuthMethod, PlatformPaths, TokenFreshness, normalize_auth_map_for_intent,
 };
 use crate::platforms::codex::CodexPlatform;
 use chrono::{DateTime, Duration, Utc};
@@ -445,6 +445,52 @@ impl CodexAuthService {
             registry,
             current_account_name,
             current_expires_at,
+        })
+    }
+
+    pub fn get_runtime_summary(&self) -> Result<CodexRuntimeSummary> {
+        let snapshot = self.read_auth_snapshot()?;
+        let platform = self.platform()?;
+        let current_profile_name = platform.get_current_profile()?;
+
+        let mut current_profile_provider = None;
+        let mut current_profile_auth_mode = None;
+        let mut current_profile_auth_source = None;
+
+        if let Some(profile_name) = current_profile_name.as_ref() {
+            let profiles = platform.load_profiles()?;
+            if let Some(profile) = profiles.get(profile_name) {
+                current_profile_provider = profile.provider.clone();
+                let auth_mode = CodexPlatform::profile_auth_mode(profile);
+                current_profile_auth_mode = Some(auth_mode);
+                current_profile_auth_source = Some(CodexPlatform::profile_auth_source(profile));
+            }
+        }
+
+        let mode = match current_profile_auth_mode {
+            Some(auth_mode) if auth_mode.uses_openai_auth() => {
+                if matches!(snapshot.auth_state.status, AuthStateStatus::Valid) {
+                    CodexRuntimeMode::ProfileWithAuth
+                } else {
+                    CodexRuntimeMode::ProfilePendingAuth
+                }
+            }
+            Some(_) => CodexRuntimeMode::ProfileOnly,
+            None if matches!(snapshot.auth_state.status, AuthStateStatus::Valid) => {
+                CodexRuntimeMode::RuntimeOnly
+            }
+            None => CodexRuntimeMode::Unresolved,
+        };
+
+        Ok(CodexRuntimeSummary {
+            mode,
+            current_profile_name,
+            current_profile_provider,
+            current_profile_auth_mode,
+            current_profile_auth_source,
+            current_auth_name: snapshot.current_account_name,
+            login_state: snapshot.login_state,
+            auth_state: snapshot.auth_state,
         })
     }
 
@@ -1482,7 +1528,8 @@ impl CodexAuthService {
 #[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
-    use crate::models::CodexAuthTokens;
+    use crate::models::{CodexAuthTokens, CodexRuntimeMode, ProfileConfig};
+    use serde_json::json;
     use tempfile::TempDir;
 
     /// 创建测试用的 service 实例
@@ -1518,6 +1565,125 @@ mod tests {
             }}"#,
             account_id, last_refresh
         )
+    }
+
+    fn official_profile() -> ProfileConfig {
+        ProfileConfig {
+            description: Some("Official".to_string()),
+            provider: Some("openai".to_string()),
+            provider_type: Some("official_relay".to_string()),
+            ..ProfileConfig::default()
+        }
+    }
+
+    fn provider_env_profile() -> ProfileConfig {
+        let mut profile = ProfileConfig {
+            description: Some("Duck".to_string()),
+            base_url: Some("https://api.example.com/v1".to_string()),
+            auth_token: Some("duck-key".to_string()),
+            model: Some("gpt-5-codex".to_string()),
+            provider: Some("duck".to_string()),
+            provider_type: Some("third_party_model".to_string()),
+            ..ProfileConfig::default()
+        };
+        profile
+            .platform_data
+            .insert("wire_api".to_string(), json!("responses"));
+        profile
+            .platform_data
+            .insert("env_key".to_string(), json!("DUCK_API_KEY"));
+        profile
+            .platform_data
+            .insert("requires_openai_auth".to_string(), json!(false));
+        profile
+    }
+
+    #[test]
+    fn test_get_runtime_summary_for_profile_with_auth() {
+        let (service, _ccr, codex) = create_test_service();
+        let auth_path = codex.path().join("auth.json");
+        fs::write(
+            &auth_path,
+            create_test_auth_json("test-id", "2026-01-08T03:09:53.894843900Z"),
+        )
+        .unwrap();
+
+        let platform = service.platform().unwrap();
+        platform
+            .save_profile("official", &official_profile())
+            .unwrap();
+        platform.apply_profile("official").unwrap();
+        service.save_current("work", None, None, false).unwrap();
+
+        let summary = service.get_runtime_summary().unwrap();
+        assert_eq!(summary.mode, CodexRuntimeMode::ProfileWithAuth);
+        assert_eq!(summary.current_profile_name.as_deref(), Some("official"));
+        assert_eq!(summary.current_auth_name.as_deref(), Some("work"));
+        assert_eq!(
+            summary.current_profile_auth_mode,
+            Some(crate::models::CodexProfileAuthMode::OpenAiChatgpt)
+        );
+        assert_eq!(
+            summary.profile_label(),
+            "official · openai · openai_chatgpt"
+        );
+        assert_eq!(summary.auth_label(), "work · OpenAI / ChatGPT");
+    }
+
+    #[test]
+    fn test_get_runtime_summary_for_profile_only_provider_key() {
+        let (service, _ccr, _codex) = create_test_service();
+        let platform = service.platform().unwrap();
+        platform
+            .save_profile("duck", &provider_env_profile())
+            .unwrap();
+        platform.apply_profile("duck").unwrap();
+
+        let summary = service.get_runtime_summary().unwrap();
+        assert_eq!(summary.mode, CodexRuntimeMode::ProfileOnly);
+        assert_eq!(summary.current_profile_name.as_deref(), Some("duck"));
+        assert_eq!(
+            summary.current_profile_auth_mode,
+            Some(crate::models::CodexProfileAuthMode::ProviderEnvKey)
+        );
+        assert_eq!(
+            summary.current_profile_auth_source.as_deref(),
+            Some("provider:DUCK_API_KEY")
+        );
+        assert_eq!(summary.auth_label(), "Provider / DUCK_API_KEY");
+    }
+
+    #[test]
+    fn test_get_runtime_summary_for_runtime_only_auth() {
+        let (service, _ccr, codex) = create_test_service();
+        let auth_path = codex.path().join("auth.json");
+        fs::write(
+            &auth_path,
+            create_test_auth_json("test-id", "2026-01-08T03:09:53.894843900Z"),
+        )
+        .unwrap();
+        service.save_current("work", None, None, false).unwrap();
+
+        let summary = service.get_runtime_summary().unwrap();
+        assert_eq!(summary.mode, CodexRuntimeMode::RuntimeOnly);
+        assert_eq!(summary.current_profile_name, None);
+        assert_eq!(summary.current_auth_name.as_deref(), Some("work"));
+        assert_eq!(summary.auth_label(), "work · OpenAI / ChatGPT");
+    }
+
+    #[test]
+    fn test_get_runtime_summary_for_profile_pending_auth() {
+        let (service, _ccr, _codex) = create_test_service();
+        let platform = service.platform().unwrap();
+        platform
+            .save_profile("official", &official_profile())
+            .unwrap();
+        platform.apply_profile("official").unwrap();
+
+        let summary = service.get_runtime_summary().unwrap();
+        assert_eq!(summary.mode, CodexRuntimeMode::ProfilePendingAuth);
+        assert_eq!(summary.current_profile_name.as_deref(), Some("official"));
+        assert_eq!(summary.auth_label(), "未登录 · OpenAI / ChatGPT");
     }
 
     // ==================== 邮箱脱敏测试 ====================

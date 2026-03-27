@@ -2,7 +2,9 @@
 // Manages the Codex multi-account selector state
 
 use crate::core::error::Result;
-use crate::models::{CodexAccountQuota, CodexAuthItem, LoginState, TokenFreshness};
+use crate::models::{
+    CodexAccountQuota, CodexAuthItem, CodexRuntimeSummary, LoginState, TokenFreshness,
+};
 use crate::services::codex_auth_service::AuthReadSnapshot;
 use crate::services::{CodexAuthService, CodexRollingUsage};
 use crate::tui::overlay::Overlay;
@@ -64,6 +66,8 @@ pub struct CodexAuthApp {
     pub should_quit: bool,
     /// Login state
     pub login_state: LoginState,
+    /// Current runtime interpretation (profile/auth control plane summary)
+    pub runtime_summary: Option<CodexRuntimeSummary>,
     /// Service instance
     service: CodexAuthService,
     /// Last action info (action_type, account_name, success, error)
@@ -113,6 +117,7 @@ impl CodexAuthApp {
             toasts: ToastManager::new(),
             should_quit: false,
             login_state,
+            runtime_summary: service.get_runtime_summary().ok(),
             service,
             last_action: None,
             usage_state: UsageState::Loading,
@@ -130,6 +135,7 @@ impl CodexAuthApp {
     fn apply_snapshot(&mut self, snapshot: AuthReadSnapshot) -> Result<()> {
         self.login_state = snapshot.login_state.clone();
         self.accounts = self.service.build_account_items(&snapshot)?;
+        self.runtime_summary = self.service.get_runtime_summary().ok();
 
         if self.selected_index >= self.accounts.len() {
             self.selected_index = self.accounts.len().saturating_sub(1);

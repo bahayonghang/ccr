@@ -319,6 +319,143 @@ pub struct CodexAuthItem {
     pub expires_at: Option<DateTime<Utc>>,
 }
 
+/// Codex 当前运行时的控制模式
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CodexRuntimeMode {
+    /// 当前由 Profile 独立控制（常见于 provider env key / 无认证 profile）
+    ProfileOnly,
+    /// 当前由 Profile 控制路由，Auth 控制身份
+    ProfileWithAuth,
+    /// 当前 Profile 需要 OpenAI Auth，但运行时尚未具备有效凭据
+    ProfilePendingAuth,
+    /// 当前只有 runtime/auth 生效，未稳定绑定到某个 profile
+    RuntimeOnly,
+    /// 当前既没有可解析的 profile，也没有有效 auth
+    Unresolved,
+}
+
+impl CodexRuntimeMode {
+    pub fn label(&self) -> &'static str {
+        match self {
+            CodexRuntimeMode::ProfileOnly => "Profile 驱动",
+            CodexRuntimeMode::ProfileWithAuth => "Profile 路由 + Auth 身份",
+            CodexRuntimeMode::ProfilePendingAuth => "Profile 路由，等待 Auth",
+            CodexRuntimeMode::RuntimeOnly => "仅 Runtime/Auth 生效",
+            CodexRuntimeMode::Unresolved => "未解析",
+        }
+    }
+}
+
+/// Codex 运行时摘要（用于统一解释当前是谁在控制 Codex）
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CodexRuntimeSummary {
+    pub mode: CodexRuntimeMode,
+    pub current_profile_name: Option<String>,
+    pub current_profile_provider: Option<String>,
+    pub current_profile_auth_mode: Option<CodexProfileAuthMode>,
+    pub current_profile_auth_source: Option<String>,
+    pub current_auth_name: Option<String>,
+    pub login_state: LoginState,
+    pub auth_state: AuthState,
+}
+
+impl CodexRuntimeSummary {
+    pub fn profile_label(&self) -> String {
+        let Some(name) = &self.current_profile_name else {
+            return "未绑定".to_string();
+        };
+
+        let mut parts = vec![name.clone()];
+
+        if let Some(provider) = self
+            .current_profile_provider
+            .as_deref()
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+        {
+            parts.push(provider.to_string());
+        }
+
+        match self.current_profile_auth_mode {
+            Some(CodexProfileAuthMode::ProviderEnvKey) => {
+                if let Some(source) = self
+                    .current_profile_auth_source
+                    .as_deref()
+                    .map(str::trim)
+                    .filter(|value| !value.is_empty())
+                {
+                    parts.push(source.to_string());
+                }
+            }
+            Some(mode) => parts.push(mode.as_str().to_string()),
+            None => {}
+        }
+
+        parts.join(" · ")
+    }
+
+    pub fn auth_label(&self) -> String {
+        match &self.login_state {
+            LoginState::LoggedInSaved(name) => {
+                format!("{name} · {}", auth_intent_label(&self.auth_state.intent))
+            }
+            LoginState::LoggedInUnsaved => {
+                format!(
+                    "未保存账号 · {}",
+                    auth_intent_label(&self.auth_state.intent)
+                )
+            }
+            LoginState::ApiKeyActive => auth_intent_label(&self.auth_state.intent),
+            LoginState::ProviderKeyActive { .. } => auth_intent_label(&self.auth_state.intent),
+            LoginState::NotLoggedIn => {
+                if matches!(
+                    self.current_profile_auth_mode,
+                    Some(CodexProfileAuthMode::ProviderEnvKey)
+                ) {
+                    return self
+                        .current_profile_auth_source
+                        .as_deref()
+                        .map(profile_auth_source_label)
+                        .unwrap_or_else(|| "Provider Key".to_string());
+                }
+
+                self.current_profile_auth_mode
+                    .map(expected_auth_label)
+                    .map(|label| format!("未登录 · {label}"))
+                    .unwrap_or_else(|| "未登录".to_string())
+            }
+            LoginState::Unknown { type_name, .. } => format!("未知状态 · {type_name}"),
+        }
+    }
+}
+
+fn auth_intent_label(intent: &AuthIntent) -> String {
+    match intent {
+        AuthIntent::OpenAiAuth { method } => match method {
+            OpenAiAuthMethod::Chatgpt => "OpenAI / ChatGPT".to_string(),
+            OpenAiAuthMethod::Api => "OpenAI / API Key".to_string(),
+        },
+        AuthIntent::ProviderEnvKey { env_key } => format!("Provider / {env_key}"),
+        AuthIntent::NoAuth => "No Auth".to_string(),
+    }
+}
+
+fn expected_auth_label(mode: CodexProfileAuthMode) -> String {
+    match mode {
+        CodexProfileAuthMode::OpenAiChatgpt => "OpenAI / ChatGPT".to_string(),
+        CodexProfileAuthMode::OpenAiApiKey => "OpenAI / API Key".to_string(),
+        CodexProfileAuthMode::ProviderEnvKey => "Provider Key".to_string(),
+        CodexProfileAuthMode::NoAuth => "No Auth".to_string(),
+    }
+}
+
+fn profile_auth_source_label(source: &str) -> String {
+    source
+        .strip_prefix("provider:")
+        .map(|env_key| format!("Provider / {env_key}"))
+        .unwrap_or_else(|| source.to_string())
+}
+
 /// 当前 auth.json 解析信息
 #[derive(Debug, Clone)]
 pub struct CurrentAuthInfo {

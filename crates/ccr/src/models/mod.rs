@@ -18,9 +18,9 @@ pub mod sync_folder;
 pub use codex_auth::{
     AuthIntent, AuthState, AuthStateStatus, CodexAccountQuota, CodexAuthAccount, CodexAuthExport,
     CodexAuthExportAccount, CodexAuthItem, CodexAuthJson, CodexAuthRegistry, CodexProfileAuthMode,
-    CodexProfileSecret, CodexProfileSecretStore, CodexQuota, CredentialStoreKind, CurrentAuthInfo,
-    ImportMode, ImportResult, LoginState, OpenAiAuthMethod, TokenFreshness,
-    normalize_auth_map_for_intent,
+    CodexProfileSecret, CodexProfileSecretStore, CodexQuota, CodexRuntimeMode, CodexRuntimeSummary,
+    CredentialStoreKind, CurrentAuthInfo, ImportMode, ImportResult, LoginState, OpenAiAuthMethod,
+    TokenFreshness, normalize_auth_map_for_intent,
 };
 // 测试时需要的类型
 #[cfg(test)]

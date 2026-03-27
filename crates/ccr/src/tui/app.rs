@@ -1,6 +1,7 @@
 // TUI application state — Tab-based dispatch (Claude + Codex only)
 
 use crate::core::error::Result;
+use crate::models::CodexRuntimeSummary;
 use crate::models::platform::{Platform, PlatformConfig, PlatformPaths, ProfileConfig};
 use crate::platforms::create_platform;
 use crate::tui::action::Action;
@@ -46,6 +47,7 @@ pub struct PlatformTab {
     pub profile_configs: IndexMap<String, ProfileConfig>,
     pub profile_load_error: Option<String>,
     pub current_profile_error: Option<String>,
+    pub codex_runtime_summary: Option<CodexRuntimeSummary>,
     pub instance: Option<Arc<dyn PlatformConfig>>,
 }
 
@@ -54,6 +56,7 @@ struct ProfileTabData {
     profile_configs: IndexMap<String, ProfileConfig>,
     profile_load_error: Option<String>,
     current_profile_error: Option<String>,
+    codex_runtime_summary: Option<CodexRuntimeSummary>,
 }
 
 fn profile_source_path(platform: Platform) -> String {
@@ -122,6 +125,14 @@ impl App {
             }
         };
 
+        let codex_runtime_summary = if platform == Platform::Codex {
+            crate::services::CodexAuthService::new()
+                .ok()
+                .and_then(|service| service.get_runtime_summary().ok())
+        } else {
+            None
+        };
+
         match instance.load_profiles() {
             Ok(profile_configs) => {
                 let profiles = profile_configs
@@ -137,6 +148,7 @@ impl App {
                     profile_configs,
                     profile_load_error: None,
                     current_profile_error,
+                    codex_runtime_summary,
                 }
             }
             Err(e) => {
@@ -147,6 +159,7 @@ impl App {
                     profile_configs: IndexMap::new(),
                     profile_load_error: Some(err),
                     current_profile_error,
+                    codex_runtime_summary,
                 }
             }
         }
@@ -201,6 +214,10 @@ impl App {
 
     pub fn current_profile_status_error(&self) -> Option<&str> {
         self.tabs[self.active_tab].current_profile_error.as_deref()
+    }
+
+    pub fn current_codex_runtime_summary(&self) -> Option<&CodexRuntimeSummary> {
+        self.tabs[self.active_tab].codex_runtime_summary.as_ref()
     }
 
     fn sync_selection_to_profile_name(&mut self) {
@@ -264,6 +281,7 @@ impl App {
                                 profile_configs: tab_data.profile_configs,
                                 profile_load_error: tab_data.profile_load_error,
                                 current_profile_error: tab_data.current_profile_error,
+                                codex_runtime_summary: tab_data.codex_runtime_summary,
                                 instance: Some(instance),
                             });
                         }
@@ -277,6 +295,7 @@ impl App {
                                 profile_configs: IndexMap::new(),
                                 profile_load_error: None,
                                 current_profile_error: None,
+                                codex_runtime_summary: None,
                                 instance: Some(Arc::clone(&instance)),
                             });
                             // Codex Profile tab (profile switching)
@@ -288,6 +307,7 @@ impl App {
                                 profile_configs: tab_data.profile_configs,
                                 profile_load_error: tab_data.profile_load_error,
                                 current_profile_error: tab_data.current_profile_error,
+                                codex_runtime_summary: tab_data.codex_runtime_summary,
                                 instance: Some(instance),
                             });
                         }
@@ -310,6 +330,7 @@ impl App {
                 profile_configs: IndexMap::new(),
                 profile_load_error: None,
                 current_profile_error: None,
+                codex_runtime_summary: None,
                 instance: None,
             });
         }
@@ -506,6 +527,7 @@ impl App {
                 tab.profile_configs = tab_data.profile_configs;
                 tab.profile_load_error = tab_data.profile_load_error;
                 tab.current_profile_error = tab_data.current_profile_error;
+                tab.codex_runtime_summary = tab_data.codex_runtime_summary;
             }
         }
         self.sync_selection_to_profile_name();
@@ -863,6 +885,7 @@ mod tests {
                 profile_configs: IndexMap::<String, ProfileConfig>::new(),
                 profile_load_error: Some("load failed".to_string()),
                 current_profile_error: Some("current failed".to_string()),
+                codex_runtime_summary: None,
                 instance: None,
             }],
             active_tab: 0,

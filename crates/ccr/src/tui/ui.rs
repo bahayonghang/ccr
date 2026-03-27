@@ -5,7 +5,7 @@ use super::app::App;
 use super::codex_auth;
 use super::theme;
 use super::toast::ToastKind;
-use crate::models::{OpenAiAuthMethod, Platform, ProfileConfig};
+use crate::models::{CodexRuntimeSummary, OpenAiAuthMethod, Platform, ProfileConfig};
 use crate::platforms::codex::CodexPlatform;
 use ratatui::{
     Frame,
@@ -35,16 +35,39 @@ pub fn draw(f: &mut Frame, app: &App) {
 
     render_header(f, app, chunks[0]);
 
+    let content_area = if app.current_platform() == Platform::Codex {
+        let runtime_chunks = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([
+                Constraint::Length(if compact { 3 } else { 4 }),
+                Constraint::Min(0),
+            ])
+            .split(chunks[1]);
+
+        let runtime_summary = if app.is_codex_auth_tab() {
+            app.codex_auth_app
+                .as_ref()
+                .and_then(|codex_app| codex_app.runtime_summary.as_ref())
+        } else {
+            app.current_codex_runtime_summary()
+        };
+
+        render_codex_runtime_banner(f, runtime_chunks[0], runtime_summary, compact);
+        runtime_chunks[1]
+    } else {
+        chunks[1]
+    };
+
     if app.is_codex_auth_tab() {
         app.header_area.set(Some(chunks[0]));
-        app.list_area.set(Some(chunks[1]));
+        app.list_area.set(Some(content_area));
 
         if let Some(ref codex_app) = app.codex_auth_app {
-            codex_auth::ui::draw_embedded(f, codex_app, chunks[1], chunks[2], compact);
+            codex_auth::ui::draw_embedded(f, codex_app, content_area, chunks[2], compact);
         } else {
             codex_auth::ui::draw_loading_placeholder(
                 f,
-                chunks[1],
+                content_area,
                 chunks[2],
                 compact,
                 app.codex_auth_error.as_deref(),
@@ -52,12 +75,12 @@ pub fn draw(f: &mut Frame, app: &App) {
         }
     } else {
         let content_chunks = if compact {
-            vec![chunks[1]]
+            vec![content_area]
         } else {
             Layout::default()
                 .direction(Direction::Vertical)
                 .constraints([Constraint::Percentage(52), Constraint::Percentage(48)])
-                .split(chunks[1])
+                .split(content_area)
                 .to_vec()
         };
 
@@ -74,6 +97,75 @@ pub fn draw(f: &mut Frame, app: &App) {
         } else {
             render_footer(f, app, chunks[2]);
         }
+    }
+}
+
+fn render_codex_runtime_banner(
+    f: &mut Frame,
+    area: Rect,
+    summary: Option<&CodexRuntimeSummary>,
+    compact: bool,
+) {
+    let (mode_label, mode_style, profile_label, auth_label) = if let Some(summary) = summary {
+        (
+            summary.mode.label().to_string(),
+            Style::default()
+                .fg(runtime_mode_color(summary.mode))
+                .add_modifier(Modifier::BOLD),
+            summary.profile_label(),
+            summary.auth_label(),
+        )
+    } else {
+        (
+            "未解析".to_string(),
+            Style::default().fg(theme::FG_MUTED),
+            "-".to_string(),
+            "-".to_string(),
+        )
+    };
+
+    let lines = if compact {
+        vec![Line::from(vec![
+            Span::styled(" 当前驱动: ", Style::default().fg(theme::FG_SECONDARY)),
+            Span::styled(mode_label, mode_style),
+        ])]
+    } else {
+        vec![
+            Line::from(vec![
+                Span::styled(" 当前驱动: ", Style::default().fg(theme::FG_SECONDARY)),
+                Span::styled(mode_label, mode_style),
+            ]),
+            Line::from(vec![
+                Span::styled(" Profile: ", Style::default().fg(theme::FG_SECONDARY)),
+                Span::styled(profile_label, Style::default().fg(theme::FG_PRIMARY)),
+                Span::styled("  │  ", Style::default().fg(theme::BORDER)),
+                Span::styled("Auth: ", Style::default().fg(theme::FG_SECONDARY)),
+                Span::styled(auth_label, Style::default().fg(theme::FG_SUCCESS)),
+            ]),
+        ]
+    };
+
+    let banner = Paragraph::new(lines)
+        .block(
+            Block::default()
+                .borders(Borders::ALL)
+                .border_set(symbols::border::ROUNDED)
+                .border_style(Style::default().fg(theme::CODEX_PRIMARY))
+                .title(" 当前控制面 ")
+                .title_style(theme::codex_style()),
+        )
+        .wrap(Wrap { trim: true });
+
+    f.render_widget(banner, area);
+}
+
+fn runtime_mode_color(mode: crate::models::CodexRuntimeMode) -> ratatui::style::Color {
+    match mode {
+        crate::models::CodexRuntimeMode::ProfileOnly => theme::FG_SUCCESS,
+        crate::models::CodexRuntimeMode::ProfileWithAuth => theme::FG_WARNING,
+        crate::models::CodexRuntimeMode::ProfilePendingAuth => theme::FG_WARNING,
+        crate::models::CodexRuntimeMode::RuntimeOnly => theme::FG_SECONDARY,
+        crate::models::CodexRuntimeMode::Unresolved => theme::FG_MUTED,
     }
 }
 
