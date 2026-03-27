@@ -11,7 +11,7 @@ Gemini CLI is Google's command-line interface for the Gemini AI model. CCR provi
 - **Icon**: ✨
 - **Status**: ✅ Fully Implemented
 - **Settings Path**: `~/.gemini/settings.json`
-- **Profiles Path**: `~/.ccr/gemini/profiles.toml`
+- **Profiles Path**: `~/.ccr/platforms/gemini/profiles.toml`
 
 ## Prerequisites
 
@@ -82,7 +82,7 @@ ccr add
 
 ### Configuration Example
 
-Create a profile in `~/.ccr/gemini/profiles.toml`:
+Create a profile in `~/.ccr/platforms/gemini/profiles.toml`:
 
 ```toml
 [google-official]
@@ -133,7 +133,7 @@ ccr google-official
 
 ```bash
 # Edit profiles.toml manually
-vim ~/.ccr/gemini/profiles.toml
+vim ~/.ccr/platforms/gemini/profiles.toml
 
 # Validate changes
 ccr validate
@@ -313,16 +313,13 @@ ccr validate
 ```bash
 # Automatic backup before profile switch
 ccr switch new-profile
-# → Creates ~/.ccr/gemini/backups/settings_20250125_120000.json.bak
+# → Creates a backup under ~/.ccr/platforms/gemini/backups/
 
-# Manual backup
-ccr backup gemini
+# Review recent write activity
+ccr history --platform gemini
 
-# List backups
-ccr backups list
-
-# Restore from backup
-ccr restore ~/.ccr/gemini/backups/settings_20250125_120000.json.bak
+# Clean old backups when needed
+ccr clean --days 30 --dry-run
 ```
 
 ### History Tracking
@@ -374,11 +371,14 @@ base_url = "https://us-central1-aiplatform.googleapis.com/v1"
 # Initialize Gemini platform
 ccr platform init gemini
 
-# Migrate compatible profiles (requires manual API key replacement)
-ccr platform migrate claude gemini
+# Export structure from the source platform
+ccr platform switch claude
+ccr export -o claude-profiles.toml --no-secrets
 
-# Update API keys manually
-vim ~/.ccr/gemini/profiles.toml
+# Import into Gemini and then update API keys manually
+ccr platform switch gemini
+ccr import claude-profiles.toml --merge --backup
+vim ~/.ccr/platforms/gemini/profiles.toml
 ```
 
 ### From Manual Configuration
@@ -451,10 +451,10 @@ ls -la ~/.gemini/settings.json
 chmod 600 ~/.gemini/settings.json
 
 # Verify lock files
-ls -la ~/.ccr/gemini/.locks/
+ls -la ~/.ccr/platforms/gemini/.locks/
 
 # Clean stale locks if present
-rm -rf ~/.ccr/gemini/.locks/*
+rm -rf ~/.ccr/platforms/gemini/.locks/*
 ```
 
 ## Advanced Configuration
@@ -519,10 +519,10 @@ ccr sync pull
 
 ## Security Best Practices
 
-1. **API Key Storage**: API keys are stored in plaintext in `~/.ccr/gemini/profiles.toml`
+1. **API Key Storage**: API keys are stored in plaintext in `~/.ccr/platforms/gemini/profiles.toml`
    ```bash
    # Ensure proper file permissions
-   chmod 600 ~/.ccr/gemini/profiles.toml
+   chmod 600 ~/.ccr/platforms/gemini/profiles.toml
    ```
 
 2. **API Key Masking**: CCR automatically masks keys in:
@@ -533,7 +533,7 @@ ccr sync pull
 3. **Backup Security**: Backups also contain API keys
    ```bash
    # Secure backup directory
-   chmod 700 ~/.ccr/gemini/backups
+   chmod 700 ~/.ccr/platforms/gemini/backups
    ```
 
 4. **Export Without Secrets**:
@@ -547,7 +547,7 @@ ccr sync pull
    # Delete old key on Google Cloud Console
    # Create new key
    # Update profile
-   vim ~/.ccr/gemini/profiles.toml
+   vim ~/.ccr/platforms/gemini/profiles.toml
    ccr validate  # Verify format
    ```
 
@@ -574,9 +574,9 @@ ccr delete <name>           # Delete profile
 ccr validate                # Validate all profiles
 ccr history                 # View operation history
 
-# Backup and restore
-ccr backups list            # List backups
-ccr restore <file>          # Restore from backup
+# Backup review
+ccr history --platform gemini
+ccr clean --days 30 --dry-run
 ```
 
 ## See Also

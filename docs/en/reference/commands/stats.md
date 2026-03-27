@@ -1,6 +1,6 @@
 # `ccr stats`
 
-Cost & usage statistics (web feature). Supports summary, import, export, and clear.
+Cost & usage statistics. Supports summary, import, export, and clear.
 
 ## Subcommands
 

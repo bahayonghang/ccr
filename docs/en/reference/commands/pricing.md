@@ -1,6 +1,6 @@
 # `ccr pricing`
 
-Model pricing management (web feature). Configure per-model pricing used by `ccr stats` cost calculation and budget evaluation.
+Model pricing management. Configure per-model pricing used by `ccr stats` cost calculation and budget evaluation.
 
 ## Subcommands
 

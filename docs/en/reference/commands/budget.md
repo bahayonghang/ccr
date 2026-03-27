@@ -1,6 +1,6 @@
 # `ccr budget`
 
-Budget management (web feature). Configure daily/weekly/monthly limits, warning thresholds, enable/disable control, and reset limits. Uses `ccr stats` data.
+Budget management. Configure daily/weekly/monthly limits, warning thresholds, enable/disable control, and reset limits. Uses `ccr stats` data.
 
 ## Subcommands
 
@@ -53,7 +53,7 @@ Warnings show ⚠️/❌ when near or over thresholds.
 
 ## Notes
 
-- Relies on `ccr stats` data (web feature); ensure stats are collected.
+- Relies on `ccr stats` data; ensure statistics are collected.
 - Warnings do not block calls; they are informational.
 
 ## See also

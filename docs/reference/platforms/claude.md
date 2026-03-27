@@ -350,17 +350,14 @@ ccr switch anyrouter  # Uses config from profiles.toml
 
 ## Migration from Legacy Mode
 
-If you're using Legacy mode (`~/.ccs_config.toml`), you can migrate to Unified mode:
+If you're still using the legacy single-file config (`~/.ccs_config.toml`), treat it as a reference source when moving to the current layout.
 
 ```bash
-# Check if you should migrate
-ccr migrate --check
-
-# Migrate all Claude profiles to Unified mode
-ccr migrate --platform claude
-
-# Or migrate all platforms at once
-ccr migrate
+ccr init
+ccr platform init claude
+ccr platform switch claude
+ccr add
+ccr list
 ```
 
 ### Migration Effects

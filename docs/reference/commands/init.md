@@ -191,7 +191,7 @@ model = "claude-sonnet-4-5-20250929"
 2. 初始化其他平台：`ccr platform init <platform>`
 3. 添加配置 profile：`ccr add`
 4. 查看配置列表：`ccr list`
-5. 迁移旧配置：`ccr migrate`
+5. 如果仍保留旧单文件配置，把它当参考源并逐步搬到当前目录布局
 
 ### Legacy Mode 初始化后
 
@@ -207,6 +207,5 @@ model = "claude-sonnet-4-5-20250929"
 - [platform switch](../commands/platform#switch) - 切换平台
 - [list](./list) - 查看所有配置
 - [add](./add) - 添加新配置
-- [migrate](./migrate) - 从 Legacy Mode 迁移到 Unified Mode
 - [validate](./validate) - 验证配置完整性
 - [export](./export) - 导出配置备份
