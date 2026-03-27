@@ -133,14 +133,16 @@ impl CodexOAuthTokenService {
         Ok(())
     }
 
+    #[cfg(unix)]
     fn ensure_private_permissions(&self, path: &Path) {
-        #[cfg(unix)]
-        {
-            use std::os::unix::fs::PermissionsExt;
-            let perms = std::fs::Permissions::from_mode(0o600);
-            let _ = fs::set_permissions(path, perms);
-        }
+        use std::os::unix::fs::PermissionsExt;
+
+        let perms = std::fs::Permissions::from_mode(0o600);
+        let _ = fs::set_permissions(path, perms);
     }
+
+    #[cfg(not(unix))]
+    fn ensure_private_permissions(&self, _path: &Path) {}
 
     fn parse_rfc3339(value: Option<&str>) -> Option<DateTime<Utc>> {
         value

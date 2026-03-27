@@ -746,18 +746,19 @@ impl CodexQuotaService {
         value["last_refresh"] = serde_json::Value::String(Utc::now().to_rfc3339());
 
         match serde_json::to_string_pretty(&value) {
-            Ok(content) => {
-                if let Err(e) = AtomicWriter::new(auth_path).write_string(&content) {
+            Ok(content) => match AtomicWriter::new(auth_path).write_string(&content) {
+                Ok(()) => {
+                    #[cfg(unix)]
+                    {
+                        use std::os::unix::fs::PermissionsExt;
+                        let perms = std::fs::Permissions::from_mode(0o600);
+                        let _ = std::fs::set_permissions(auth_path, perms);
+                    }
+                }
+                Err(e) => {
                     warn!("写回 auth 文件失败: {}", e);
-                    return;
                 }
-                #[cfg(unix)]
-                {
-                    use std::os::unix::fs::PermissionsExt;
-                    let perms = std::fs::Permissions::from_mode(0o600);
-                    let _ = std::fs::set_permissions(auth_path, perms);
-                }
-            }
+            },
             Err(e) => {
                 warn!("序列化 auth 文件失败: {}", e);
             }
