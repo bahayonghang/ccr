@@ -1,105 +1,163 @@
 # Architecture
 
-> Canonical guide for the current workspace layout. CCR now uses a Rust 2024 workspace with core crates under `crates/`, while `ccr-ui`, `docs`, `scripts`, and `examples` remain at the repository root.
+> This page describes the current code truth. CCR is a Rust workspace built around `crates/ccr`, `crates/ccr-db`, and `crates/ccr-types`. The built-in legacy Web API has been removed and is not part of the current runtime surface.
 
 ## Overview
 
-- **Core CLI crate**: `crates/ccr`
-- **Database crate**: `crates/ccr-db`
-- **Shared types crate**: `crates/ccr-types`
-- **UI app root**: `ccr-ui`
-- **Root utilities**: `docs/`, `scripts/`, `examples/`
-- **Collected artifacts**: optional root `outputs/`
+- `crates/ccr`: main CLI crate for command entrypoints, platform implementations, config writes, sync, session indexing, TUI, and the `ccr ui` bridge
+- `crates/ccr-db`: desktop-side database and service crate for SQLite, CheckIn, usage import, log persistence, and UI state
+- `crates/ccr-types`: shared serde types and compatibility rules reused across crates
+- `ccr-ui/src-tauri`: desktop shell that links against these crates directly instead of calling an internal HTTP server
 
-## Workspace Layout
+## Workspace Dependencies
+
+```mermaid
+flowchart LR
+  UI[ccr-ui / src-tauri]
+  CCR[crates/ccr]
+  DB[crates/ccr-db]
+  TYPES[crates/ccr-types]
+
+  UI --> CCR
+  UI --> DB
+  UI --> TYPES
+  CCR --> TYPES
+  DB --> TYPES
+```
+
+## Repository Layout
 
 ```text
 ccr/
-├── Cargo.toml                # workspace manifest + shared dependencies
+├── Cargo.toml
 ├── crates/
-│   ├── ccr/                  # installable CLI crate + shared runtime logic
-│   │   ├── src/              # cli / commands / services / managers / sync / web / tui
-│   │   └── tests/            # integration tests for the CLI crate
-│   ├── ccr-db/               # database-facing services and models
-│   └── ccr-types/            # shared types reused across crates and desktop shell
+│   ├── ccr/
+│   │   ├── src/
+│   │   │   ├── application/
+│   │   │   ├── cli/
+│   │   │   ├── commands/
+│   │   │   ├── core/
+│   │   │   ├── managers/
+│   │   │   ├── models/
+│   │   │   ├── platforms/
+│   │   │   ├── services/
+│   │   │   ├── sessions/
+│   │   │   ├── storage/
+│   │   │   ├── sync/
+│   │   │   ├── tui/        # gated by the `tui` feature
+│   │   │   └── utils/
+│   │   └── tests/
+│   ├── ccr-db/
+│   │   └── src/
+│   │       ├── core/
+│   │       ├── database/
+│   │       ├── managers/
+│   │       ├── models/
+│   │       └── services/
+│   └── ccr-types/
+│       └── src/
 ├── ccr-ui/
-│   ├── src/                  # Vue 3 application
-│   ├── src-tauri/            # Tauri desktop shell
-│   └── dist/                 # generated frontend assets after `ccr-ui` build
-├── docs/                     # VitePress docs (zh/en)
-├── scripts/                  # repository automation and maintenance helpers
-├── examples/                 # sample configs and workflows
-└── outputs/                  # collected/generated artifacts (optional)
+│   ├── src/
+│   └── src-tauri/
+├── docs/
+├── examples/
+└── scripts/
 ```
 
-## Layering
+## Internal Layering in `crates/ccr`
 
-```text
-CLI / Web API / TUI / Desktop shell
-                ↓
-         Commands / UI bridge
-                ↓
-          Services (orchestration)
-                ↓
-          Managers (persistence)
-                ↓
-         Core / Utils / Models
+```mermaid
+flowchart TD
+  Entry[main.rs / cli]
+  Cmd[commands]
+  App[application]
+  Svc[services]
+  Mgr[managers]
+  Sync[sync + sessions + storage]
+  Plat[platforms]
+  Base[core + utils + models]
+  Tui[tui feature]
+
+  Entry --> Cmd
+  Entry --> Tui
+  Cmd --> App
+  Cmd --> Svc
+  Cmd --> Sync
+  App --> Svc
+  Svc --> Mgr
+  Svc --> Plat
+  Sync --> Mgr
+  Sync --> Base
+  Mgr --> Base
+  Plat --> Base
+  Tui --> Svc
+  Tui --> Plat
 ```
 
-- **CLI entrypoints** live in `crates/ccr/src/cli/` and `crates/ccr/src/main.rs`.
-- **Command handlers** live in `crates/ccr/src/commands/`.
-- **Service orchestration** lives in `crates/ccr/src/services/`.
-- **Persistence and data access** live in `crates/ccr/src/managers/`.
-- **Platform implementations** live in `crates/ccr/src/platforms/`.
-- **Infrastructure helpers** live in `crates/ccr/src/core/` and `crates/ccr/src/utils/`.
-- **Desktop integration** in `ccr-ui/src-tauri` depends directly on `crates/ccr`, `crates/ccr-db`, and `crates/ccr-types`.
+Important boundaries:
 
-## Dependency Direction
+- `cli/` defines arguments and dispatch rules
+- `commands/` implements user-facing command behavior
+- `services/` orchestrates cross-manager and cross-platform work
+- `managers/` owns config, pricing, history, skills, and MCP preset persistence
+- `sessions/` + `storage/` handle session indexing and local SQLite-backed storage
+- `sync/` owns WebDAV configuration and folder sync flows
+- `tui/` is optional at compile time and enabled by default
 
-- Interfaces depend on Commands.
-- Commands depend on Services.
-- Services depend on Managers.
-- Managers depend on Core/Utils.
-- Shared models/platform traits can be reused upward, but UI code does not own the business logic.
+## `crates/ccr-db` and `crates/ccr-types`
 
-## Key Flows
+### `ccr-db`
+
+- `database/`: connection pool, schema, migration, repositories
+- `managers/checkin/`: account, provider, balance, record, and WAF cookie management
+- `services/checkin_service.rs`: check-in execution, balance queries, batch operations, and daily stats
+- `services/usage_import_service.rs`: token and cost extraction from Codex and Gemini session files
+- `services/log_persistence.rs`: persisted logs and monitoring-related data
+
+### `ccr-types`
+
+- `ClaudeSettings`: shared Claude settings model
+- `LoginState` / `TokenFreshness`: Codex auth state models
+- `MonitoringEntry` / `FrontendLogInput`: monitoring and frontend log payloads
+
+This crate is about compatibility rather than business orchestration:
+
+- preserve stable serialization behavior
+- accept older input shapes
+- keep unknown fields instead of dropping user-managed config
+
+## Current Key Flows
 
 ### Profile switching
 
-1. `crates/ccr/src/cli/` parses a command or shorthand `ccr <name>`.
-2. `ConfigService` loads `~/.ccr/config.toml` and `platforms/<name>/profiles.toml`.
-3. `SettingsService` acquires locks, creates backups, and atomically writes the target `settings.json`.
-4. `HistoryService` records masked diffs.
-5. `TempOverrideManager` applies temporary token/base_url/model overrides when requested.
+1. `main.rs` parses CLI arguments
+2. `cli/dispatch.rs` routes to the concrete command
+3. `ConfigService` loads the registry and the current platform profile set
+4. `SettingsService` acquires locks, creates backups, and writes the target settings
+5. `HistoryService` records the masked operation history
 
-### WebDAV sync
+### `ccr ui`
 
-1. `sync config` stores connection data.
-2. `sync folder ...` registers and enables sync targets.
-3. `SyncService` handles push/pull/all recursion while filtering backups, history, lock files, and UI cache.
+1. `dispatch_ui` enters `UiService`
+2. `UiService` probes for a nearby `ccr-ui/` checkout first
+3. It falls back to `~/.ccr/ccr-ui/`
+4. If still missing, it goes through the GitHub download or update flow
 
-### CCR UI bootstrap
+### Session indexing
 
-1. `UiService` probes local `./ccr-ui` first.
-2. It falls back to `~/.ccr/ccr-ui` if needed.
-3. It can finally prompt for a GitHub download.
+1. `ccr sessions ...` enters the sessions command group
+2. `SessionIndexer` scans Claude, Codex, Gemini, and related session files
+3. `SessionStore` persists searchable summaries and statistics locally
 
-## Reliability & Quality
+## Design Constraints
 
-- File locks, in-process mutexes, and atomic writes protect config files.
-- Destructive operations create backups first.
-- Logs are controlled via `CCR_LOG_LEVEL` and stored under `~/.ccr/logs/`.
-- CLI integration tests live under `crates/ccr/tests/`.
-- New commands and platform work should extend `crates/ccr/src/`, not the workspace root.
-
-## Extension Paths
-
-- Add commands under `crates/ccr/src/commands/<domain>/`.
-- Wire CLI definitions in `crates/ccr/src/cli/definitions.rs` and routing in `crates/ccr/src/cli/dispatch.rs`.
-- Add platforms under `crates/ccr/src/platforms/` and register them in `crates/ccr/src/platforms/mod.rs`.
+- there is no current `src/web/**` module and no supported built-in HTTP API
+- `ccr ui` is a graphical entrypoint, not a second configuration system
+- CCR UI and the CLI share the same config, history, and platform truth
 
 ## See Also
 
-- [Quick Start](/en/guide/quick-start)
+- [Crate Map](/en/reference/internals/crate-map)
+- [Runtime Flows](/en/reference/internals/runtime-flows)
 - [Command Reference](/en/reference/commands/)
 - [Migration Guide](/en/reference/migration)

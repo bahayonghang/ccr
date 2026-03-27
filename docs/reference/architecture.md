@@ -1,114 +1,163 @@
 # CCR 架构设计
 
-> 面向当前 workspace 布局的权威说明。CCR 采用 Rust 2024 workspace，核心逻辑拆分到 `crates/`，UI、文档、脚本与示例保留在仓库根目录。
+> 面向当前代码真相的架构说明。CCR 的事实源是 Rust workspace：`crates/ccr`、`crates/ccr-db`、`crates/ccr-types`。内置 legacy Web API 已移除，不再属于当前运行面。
 
 ## 总览
 
-- **核心 crate**：`crates/ccr`（可安装 CLI + 共享核心逻辑）
-- **数据库层**：`crates/ccr-db`（SQLite、CheckIn、加密与相关服务）
-- **共享类型**：`crates/ccr-types`（跨 crate/桌面端复用的数据结构）
-- **UI 工程**：根 `ccr-ui/`（Vue 3 前端 + Tauri 桌面壳）
-- **仓库根目录**：`docs/`、`scripts/`、`examples/` 保持根级；`outputs/` 用于汇总产物（如存在）
+- `crates/ccr`：主 CLI crate，负责命令入口、平台实现、配置写入、同步、会话索引、TUI 与 `ccr ui` 启动桥接
+- `crates/ccr-db`：桌面侧数据库与业务服务，负责 SQLite、CheckIn、usage import、日志持久化、UI state
+- `crates/ccr-types`：跨 crate 共享的 serde 类型与兼容性约束
+- `ccr-ui/src-tauri`：桌面壳，直接复用上述 crate，而不是通过旧的内置 HTTP 服务
 
-## 工作区结构
+## Workspace 依赖关系
+
+```mermaid
+flowchart LR
+  UI[ccr-ui / src-tauri]
+  CCR[crates/ccr]
+  DB[crates/ccr-db]
+  TYPES[crates/ccr-types]
+
+  UI --> CCR
+  UI --> DB
+  UI --> TYPES
+  CCR --> TYPES
+  DB --> TYPES
+```
+
+## 仓库布局
 
 ```text
 ccr/
-├── Cargo.toml                # workspace manifest + shared dependencies
+├── Cargo.toml
 ├── crates/
-│   ├── ccr/                  # installable CLI crate + shared runtime logic
-│   │   ├── Cargo.toml
-│   │   ├── src/              # cli / commands / services / managers / sync / web / tui
-│   │   └── tests/            # integration tests for the CLI crate
-│   ├── ccr-db/               # database-facing services and models
-│   └── ccr-types/            # shared types reused across crates and desktop shell
+│   ├── ccr/
+│   │   ├── src/
+│   │   │   ├── application/
+│   │   │   ├── cli/
+│   │   │   ├── commands/
+│   │   │   ├── core/
+│   │   │   ├── managers/
+│   │   │   ├── models/
+│   │   │   ├── platforms/
+│   │   │   ├── services/
+│   │   │   ├── sessions/
+│   │   │   ├── storage/
+│   │   │   ├── sync/
+│   │   │   ├── tui/        # 由 `tui` feature 控制
+│   │   │   └── utils/
+│   │   └── tests/
+│   ├── ccr-db/
+│   │   └── src/
+│   │       ├── core/
+│   │       ├── database/
+│   │       ├── managers/
+│   │       ├── models/
+│   │       └── services/
+│   └── ccr-types/
+│       └── src/
 ├── ccr-ui/
-│   ├── src/                  # Vue 3 application
-│   ├── src-tauri/            # Tauri desktop shell
-│   └── dist/                 # generated frontend assets after `ccr-ui` build
-├── docs/                     # VitePress docs (zh/en)
-├── scripts/                  # repository automation and maintenance helpers
-├── examples/                 # sample configs and workflows
-└── outputs/                  # collected/generated artifacts (optional)
+│   ├── src/
+│   └── src-tauri/
+├── docs/
+├── examples/
+└── scripts/
 ```
 
-## 分层设计
+## `crates/ccr` 内部分层
 
-```text
-CLI / Web API / TUI / Desktop shell
-                ↓
-         Commands / UI bridge
-                ↓
-          Services (编排)
-                ↓
-          Managers (持久化)
-                ↓
-         Core / Utils / Models
+```mermaid
+flowchart TD
+  Entry[main.rs / cli]
+  Cmd[commands]
+  App[application]
+  Svc[services]
+  Mgr[managers]
+  Sync[sync + sessions + storage]
+  Plat[platforms]
+  Base[core + utils + models]
+  Tui[tui feature]
+
+  Entry --> Cmd
+  Entry --> Tui
+  Cmd --> App
+  Cmd --> Svc
+  Cmd --> Sync
+  App --> Svc
+  Svc --> Mgr
+  Svc --> Plat
+  Sync --> Mgr
+  Sync --> Base
+  Mgr --> Base
+  Plat --> Base
+  Tui --> Svc
+  Tui --> Plat
 ```
 
-- **CLI 入口**：`crates/ccr/src/cli/` 与 `crates/ccr/src/main.rs`
-- **命令实现**：`crates/ccr/src/commands/`
-- **服务编排**：`crates/ccr/src/services/`
-- **数据访问与持久化**：`crates/ccr/src/managers/`
-- **平台实现**：`crates/ccr/src/platforms/`
-- **基础设施**：`crates/ccr/src/core/`、`crates/ccr/src/utils/`
-- **桌面壳集成**：`ccr-ui/src-tauri` 直接依赖 `crates/ccr`、`crates/ccr-db`、`crates/ccr-types`
+关键边界：
 
-## 依赖方向
+- `cli/` 负责参数定义与命令分发
+- `commands/` 负责用户可见命令行为
+- `services/` 负责跨 manager / platform 的业务编排
+- `managers/` 负责配置、定价、历史、skills、MCP preset 等持久化与读写
+- `sessions/` + `storage/` 负责会话索引与本地 SQLite 存储
+- `sync/` 负责 WebDAV 配置与目录同步
+- `tui/` 是可选 feature；默认构建启用
 
-- **严格单向**：接口层 → Commands → Services → Managers → Core/Utils
-- **共享模块**：Models、Platforms、Utils 可被上层复用，但不反向依赖 UI
-- **特性隔离**：`web` 与 `tui` 仍由 `crates/ccr` 的 feature flags 控制
-- **桌面端复用**：Tauri 壳通过 crate 依赖复用核心逻辑，而不是依赖旧的 `ccr-ui/backend`
+## `crates/ccr-db` 与 `crates/ccr-types`
 
-## 关键流程
+### `ccr-db`
+
+- `database/`：连接池、schema、migration、repository
+- `managers/checkin/`：签到账号、提供商、余额、记录、WAF cookie 管理
+- `services/checkin_service.rs`：签到执行、余额查询、批量签到、今日统计
+- `services/usage_import_service.rs`：从 Codex / Gemini session 文件提取 token 与成本记录
+- `services/log_persistence.rs`：持久化日志与监控相关数据
+
+### `ccr-types`
+
+- `ClaudeSettings`：跨 CLI/UI 共享的 Claude settings 结构
+- `LoginState` / `TokenFreshness`：Codex auth 状态表达
+- `MonitoringEntry` / `FrontendLogInput`：监控与前端日志输入
+
+这个 crate 的重点不是业务逻辑，而是：
+
+- 保持字段序列化兼容
+- 接受旧输入格式
+- 保留未知字段，避免覆盖用户手写配置
+
+## 当前关键流程
 
 ### Profile 切换
 
-1. `crates/ccr/src/cli/` 解析命令或快捷调用 `ccr <name>`
-2. `ConfigService` 读取 `~/.ccr/config.toml` 与 `platforms/<name>/profiles.toml`
-3. `SettingsService` 获取文件锁、执行备份并原子写入目标 `settings.json`
-4. `HistoryService` 记录掩码后的差异
-5. 需要时由 `TempOverrideManager` 注入临时 token/base_url/model
+1. `main.rs` 解析 CLI 参数
+2. `cli/dispatch.rs` 路由到具体命令
+3. `ConfigService` 读取平台注册表与当前平台 profile 集合
+4. `SettingsService` 获取锁、创建备份、写入目标 settings
+5. `HistoryService` 记录掩码后的操作历史
 
-### WebDAV 同步
+### `ccr ui`
 
-1. `sync config` 写入连接信息
-2. `sync folder ...` 注册和启用同步目录
-3. `SyncService` 递归处理 push/pull/all，过滤备份、历史、锁文件与 UI 缓存
+1. `dispatch_ui` 进入 `UiService`
+2. `UiService` 先探测当前目录或父目录中的 `ccr-ui/`
+3. 不存在时回退到 `~/.ccr/ccr-ui/`
+4. 仍缺失时再走 GitHub 下载 / 更新流程
 
-### CCR UI 启动
+### 会话索引
 
-1. `UiService` 优先探测本地 `./ccr-ui`
-2. 若缺失则回退到用户目录 `~/.ccr/ccr-ui`
-3. 仍不可用时，再提示从 GitHub 下载
+1. `ccr sessions ...` 进入 `sessions` 命令组
+2. `SessionIndexer` 扫描 Claude / Codex / Gemini 等 session 文件
+3. `SessionStore` 把摘要、检索字段和统计写入本地存储
 
-## 可靠性与质量
+## 设计约束
 
-- **并发安全**：文件锁 + 进程内互斥 + 原子写入
-- **可恢复性**：切换、导入等破坏性操作前自动备份
-- **日志**：`CCR_LOG_LEVEL` 控制，日志落在 `~/.ccr/logs/`
-- **测试**：CLI 集成测试位于 `crates/ccr/tests/`
-- **扩展性**：新增命令、平台与同步逻辑都以 `crates/ccr/src/` 为准扩展
+- 当前没有 `src/web/**` 模块，也没有受支持的内置 HTTP API
+- `ccr ui` 是图形入口，不是第二套配置系统
+- `ccr-ui` 与 CLI 共用同一套配置/历史/平台事实源
 
-## 扩展指南
+## 延伸阅读
 
-### 新增命令
-
-1. 在 `crates/ccr/src/commands/<domain>/` 创建模块
-2. 在对应 `mod.rs` 导出命令函数
-3. 在 `crates/ccr/src/cli/definitions.rs` 添加 CLI 定义
-4. 在 `crates/ccr/src/cli/dispatch.rs` 接入路由
-
-### 新增平台
-
-1. 在 `crates/ccr/src/platforms/` 添加平台模块
-2. 实现 `PlatformConfig` trait
-3. 在 `crates/ccr/src/models/platform.rs` 中补充平台类型
-4. 在 `crates/ccr/src/platforms/mod.rs` 注册工厂方法
-
-## 参考文档
-
-- [快速开始](/guide/quick-start)
+- [Crate 地图](/reference/internals/crate-map)
+- [运行时流程](/reference/internals/runtime-flows)
 - [命令参考](/reference/commands/)
 - [迁移指南](/reference/migration)
