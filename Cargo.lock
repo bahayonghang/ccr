@@ -305,7 +305,7 @@ dependencies = [
 
 [[package]]
 name = "ccr"
-version = "5.4.3"
+version = "5.4.4"
 dependencies = [
  "anyhow",
  "base64",
@@ -380,7 +380,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-types"
-version = "5.4.3"
+version = "5.4.4"
 dependencies = [
  "chrono",
  "serde",
