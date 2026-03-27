@@ -84,12 +84,13 @@ docs/
 │   ├── quick-start.md          # 快速开始
 │   ├── configuration.md        # 配置管理
 │   ├── cli-workflows.md        # CLI 工作流
+│   ├── entrypoints.md          # CLI / TUI / CCR UI 入口选择
 │   ├── ui-overview.md          # UI 概览
-│   ├── ui-modules.md           # UI 模块地图
-│   └── web-guide.md            # Web 与 UI 入口选择
+│   └── ui-modules.md           # UI 模块地图
 ├── reference/              # 📚 技术参考（中文）
 │   ├── architecture.md         # 架构设计
 │   ├── changelog.md            # 更新日志
+│   ├── internals/              # 内部实现参考
 │   ├── commands/               # 命令参考
 │   └── platforms/              # 平台支持
 ├── examples/               # 💡 示例（中文）
@@ -102,12 +103,13 @@ docs/
 │   │   ├── quick-start.md
 │   │   ├── configuration.md
 │   │   ├── cli-workflows.md
+│   │   ├── entrypoints.md
 │   │   ├── ui-overview.md
-│   │   ├── ui-modules.md
-│   │   └── web-guide.md
+│   │   └── ui-modules.md
 │   ├── reference/              # 📚 Reference
 │   │   ├── architecture.md
 │   │   ├── changelog.md
+│   │   ├── internals/
 │   │   ├── migration.md
 │   │   ├── commands/
 │   │   └── platforms/
@@ -138,7 +140,8 @@ When adding new documentation:
 - 中文与英文文档页集合是否保持镜像对齐
 - 英文核心页是否仍保留 “translation in progress” 一类占位文案
 - `ccr ui` 默认值与 `crates/ccr/src/cli/definitions.rs` 是否同步
-- `/reference/api` 是否覆盖关键 API 路由，且不再引用已过时的 provider-health 路由
+- 已移除页面与链接是否彻底退出当前文档入口
+- 当前文档中是否仍残留 `ccr web`、`ccr migrate`、`platform migrate`、旧 API 路由等失真内容
 
 ## VitePress Features
 

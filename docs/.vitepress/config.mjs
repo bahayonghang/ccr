@@ -22,7 +22,6 @@ const zhTheme = {
     { text: '快速开始', link: '/guide/quick-start' },
     { text: 'CLI', link: '/reference/commands/' },
     { text: 'UI', link: '/guide/ui-overview' },
-    { text: 'API', link: '/reference/api' },
     { text: '架构', link: '/reference/architecture' },
     { text: '更新日志', link: '/reference/changelog' }
   ],
@@ -39,10 +38,10 @@ const zhTheme = {
         ]
       },
       {
-        text: 'Web 与 UI',
+        text: '入口与 UI',
         collapsed: false,
         items: [
-          { text: '接口选择：ccr ui vs ccr web', link: '/guide/web-guide' },
+          { text: '入口选择：CLI / TUI / CCR UI', link: '/guide/entrypoints' },
           { text: 'UI 概览', link: '/guide/ui-overview' },
           { text: 'UI 模块地图', link: '/guide/ui-modules' }
         ]
@@ -58,7 +57,6 @@ const zhTheme = {
             items: [
               { text: 'platform', link: '/reference/commands/platform' },
               { text: 'codex', link: '/reference/commands/codex' },
-              { text: 'migrate', link: '/reference/commands/migrate' },
               { text: 'init', link: '/reference/commands/init' }
             ]
           },
@@ -99,7 +97,6 @@ const zhTheme = {
             collapsed: true,
             items: [
               { text: 'ui', link: '/reference/commands/ui' },
-              { text: 'web', link: '/reference/commands/web' },
               { text: 'tui', link: '/reference/commands/tui' },
               { text: 'stats', link: '/reference/commands/stats' },
               { text: 'budget', link: '/reference/commands/budget' },
@@ -116,8 +113,9 @@ const zhTheme = {
         text: '参考资料',
         collapsed: false,
         items: [
-          { text: 'Web API', link: '/reference/api' },
           { text: '架构设计', link: '/reference/architecture' },
+          { text: 'Crate 地图', link: '/reference/internals/crate-map' },
+          { text: '运行时流程', link: '/reference/internals/runtime-flows' },
           { text: '平台支持', link: '/reference/platforms/' },
           { text: '迁移指南', link: '/reference/migration' },
           { text: '更新日志', link: '/reference/changelog' }
@@ -197,7 +195,6 @@ const enTheme = {
     { text: 'Quick Start', link: '/en/guide/quick-start' },
     { text: 'CLI', link: '/en/reference/commands/' },
     { text: 'UI', link: '/en/guide/ui-overview' },
-    { text: 'API', link: '/en/reference/api' },
     { text: 'Architecture', link: '/en/reference/architecture' },
     { text: 'Changelog', link: '/en/reference/changelog' }
   ],
@@ -214,10 +211,10 @@ const enTheme = {
         ]
       },
       {
-        text: 'Web and UI',
+        text: 'Entrypoints and UI',
         collapsed: false,
         items: [
-          { text: 'Choosing ccr ui vs ccr web', link: '/en/guide/web-guide' },
+          { text: 'Choosing CLI / TUI / CCR UI', link: '/en/guide/entrypoints' },
           { text: 'UI Overview', link: '/en/guide/ui-overview' },
           { text: 'UI Module Map', link: '/en/guide/ui-modules' }
         ]
@@ -233,7 +230,6 @@ const enTheme = {
             items: [
               { text: 'platform', link: '/en/reference/commands/platform' },
               { text: 'codex', link: '/en/reference/commands/codex' },
-              { text: 'migrate', link: '/en/reference/commands/migrate' },
               { text: 'init', link: '/en/reference/commands/init' }
             ]
           },
@@ -274,7 +270,6 @@ const enTheme = {
             collapsed: true,
             items: [
               { text: 'ui', link: '/en/reference/commands/ui' },
-              { text: 'web', link: '/en/reference/commands/web' },
               { text: 'tui', link: '/en/reference/commands/tui' },
               { text: 'stats', link: '/en/reference/commands/stats' },
               { text: 'budget', link: '/en/reference/commands/budget' },
@@ -291,8 +286,9 @@ const enTheme = {
         text: 'Reference',
         collapsed: false,
         items: [
-          { text: 'Web API', link: '/en/reference/api' },
           { text: 'Architecture', link: '/en/reference/architecture' },
+          { text: 'Crate Map', link: '/en/reference/internals/crate-map' },
+          { text: 'Runtime Flows', link: '/en/reference/internals/runtime-flows' },
           { text: 'Platforms', link: '/en/reference/platforms/' },
           { text: 'Migration Guide', link: '/en/reference/migration' },
           { text: 'Changelog', link: '/en/reference/changelog' }

@@ -15,9 +15,23 @@ const readIfExists = (...segments) => {
 
 const configText = readIfExists('docs', '.vitepress', 'config.mjs')
 const cliDefinitions = read('crates', 'ccr', 'src', 'cli', 'definitions.rs')
-const webServer = read('crates', 'ccr', 'src', 'web', 'server.rs')
 
 const failures = new Set()
+const ignoredParityFiles = new Set([
+  'README.md'
+])
+const historicalFiles = new Set([
+  'reference/changelog.md',
+  'en/reference/changelog.md'
+])
+const allowedHistoricalMentions = new Set([
+  'guide/entrypoints.md',
+  'en/guide/entrypoints.md',
+  'reference/migration.md',
+  'en/reference/migration.md',
+  'reference/platforms/migration.md',
+  'en/reference/platforms/migration.md'
+])
 
 function walkMarkdownFiles(dir) {
   const files = []
@@ -55,30 +69,25 @@ function assert(condition, message) {
   if (!condition) failures.add(message)
 }
 
-function extractCliDefaults() {
-  const webHost = cliDefinitions.match(/default_value = "([^"]+)"\)\s*\n\s*host: std::net::IpAddr/)
-  const webPort = cliDefinitions.match(/default_value_t = (\d+)\)\s*\n\s*port: u16/)
+function extractUiDefaults() {
   const uiPort = cliDefinitions.match(/Ui \{[\s\S]*?default_value_t = (\d+)\)\s*\n\s*port: u16/)
   const backendPort = cliDefinitions.match(/Ui \{[\s\S]*?default_value_t = (\d+)\)\s*\n\s*backend_port: u16/)
 
   return {
-    webHost: webHost?.[1],
-    webPort: webPort?.[1],
     uiPort: uiPort?.[1],
     backendPort: backendPort?.[1]
   }
 }
 
-function extractRoutes() {
-  return new Set(
-    [...webServer.matchAll(/"((?:\/api\/)[^"]+)"/g)]
-      .map(match => match[1])
-      .filter(route => route.startsWith('/api/'))
-  )
+function activeMarkdownFiles() {
+  return walkMarkdownFiles(docsRoot).filter(file => {
+    const rel = relFromDocs(file)
+    return !historicalFiles.has(rel) && !ignoredParityFiles.has(rel)
+  })
 }
 
 function collectDocText(prefix = '') {
-  return walkMarkdownFiles(docsRoot)
+  return activeMarkdownFiles()
     .filter(file => relFromDocs(file).startsWith(prefix))
     .map(file => fs.readFileSync(file, 'utf8'))
     .join('\n')
@@ -100,7 +109,7 @@ function checkInternalLinks() {
 function checkLocaleParity() {
   const allDocs = walkMarkdownFiles(docsRoot)
     .map(relFromDocs)
-    .filter(file => file !== 'README.md')
+    .filter(file => !ignoredParityFiles.has(file))
 
   const zh = new Set(allDocs.filter(file => !file.startsWith('en/')))
   const en = new Set(allDocs.filter(file => file.startsWith('en/')).map(file => file.replace(/^en\//, '')))
@@ -124,91 +133,111 @@ function checkPlaceholderTranslations() {
     'docs/en/guide/quick-start.md',
     'docs/en/guide/configuration.md',
     'docs/en/guide/cli-workflows.md',
-    'docs/en/guide/web-guide.md',
+    'docs/en/guide/entrypoints.md',
     'docs/en/guide/ui-overview.md',
     'docs/en/guide/ui-modules.md',
-    'docs/en/reference/api.md',
-    'docs/en/reference/platforms/index.md',
-    'docs/en/reference/commands/codex.md',
+    'docs/en/reference/architecture.md',
+    'docs/en/reference/migration.md',
+    'docs/en/reference/internals/crate-map.md',
+    'docs/en/reference/internals/runtime-flows.md',
+    'docs/en/reference/commands/index.md',
     'docs/en/reference/commands/ui.md',
-    'docs/en/reference/commands/web.md',
-    'docs/en/reference/commands/temp-token.md',
-    'docs/en/reference/commands/provider.md'
+    'docs/en/reference/commands/tui.md'
   ]
 
   for (const file of coreFiles) {
-    if (!fs.existsSync(path.join(repoRoot, file))) continue
-    const content = fs.readFileSync(path.join(repoRoot, file), 'utf8')
+    const full = path.join(repoRoot, file)
+    if (!fs.existsSync(full)) continue
+    const content = fs.readFileSync(full, 'utf8')
     for (const pattern of placeholderPatterns) {
       assert(!pattern.test(content), `Placeholder translation marker found in ${file}`)
     }
   }
 }
 
+function checkRemovedAndRequiredPages() {
+  const removedFiles = [
+    'docs/reference/api.md',
+    'docs/en/reference/api.md',
+    'docs/reference/commands/web.md',
+    'docs/en/reference/commands/web.md',
+    'docs/reference/commands/migrate.md',
+    'docs/en/reference/commands/migrate.md',
+    'docs/guide/web-guide.md',
+    'docs/en/guide/web-guide.md'
+  ]
+
+  const requiredFiles = [
+    'docs/guide/entrypoints.md',
+    'docs/en/guide/entrypoints.md',
+    'docs/reference/internals/crate-map.md',
+    'docs/en/reference/internals/crate-map.md',
+    'docs/reference/internals/runtime-flows.md',
+    'docs/en/reference/internals/runtime-flows.md'
+  ]
+
+  for (const file of removedFiles) {
+    assert(!fs.existsSync(path.join(repoRoot, file)), `Removed doc still exists: ${file}`)
+  }
+
+  for (const file of requiredFiles) {
+    assert(fs.existsSync(path.join(repoRoot, file)), `Required doc is missing: ${file}`)
+  }
+
+  if (!configText) return
+
+  const removedLinks = [
+    '/reference/api',
+    '/en/reference/api',
+    '/reference/commands/web',
+    '/en/reference/commands/web',
+    '/guide/web-guide',
+    '/en/guide/web-guide'
+  ]
+
+  for (const link of removedLinks) {
+    assert(!configText.includes(link), `Removed link still present in nav/sidebar config: ${link}`)
+  }
+}
+
 function checkFactSync() {
-  const defaults = extractCliDefaults()
-  const routes = extractRoutes()
+  const defaults = extractUiDefaults()
   const zhDocs = collectDocText('')
   const enDocs = collectDocText('en/')
 
-  const requiredRoutes = [
-    '/api/system',
-    '/api/platforms',
-    '/api/codex/profiles',
-    '/api/stats/cost/summary',
-    '/api/budget/status',
-    '/api/pricing/list',
-    '/api/sync/status'
-  ]
-
-  for (const route of requiredRoutes) {
-    assert(routes.has(route), `Route missing from code truth set: ${route}`)
-  }
-
-  const apiFiles = [
-    path.join(docsRoot, 'reference', 'api.md'),
-    path.join(docsRoot, 'en', 'reference', 'api.md')
-  ]
-
-  for (const file of apiFiles) {
-    if (!fs.existsSync(file)) continue
-    const content = fs.readFileSync(file, 'utf8')
-    for (const route of requiredRoutes) {
-      assert(content.includes(route), `API doc missing route ${route} in ${relFromDocs(file)}`)
-    }
-    assert(!content.includes('/api/provider-health/test'), `Stale provider-health route found in ${relFromDocs(file)}`)
-    assert(!content.includes('/api/provider-health/test-all'), `Stale provider-health route found in ${relFromDocs(file)}`)
-  }
-
-  const uiFacts = [defaults.uiPort, defaults.backendPort].filter(Boolean)
-  const webFacts = [defaults.webHost, defaults.webPort].filter(Boolean)
-
-  for (const fact of uiFacts) {
+  for (const fact of [defaults.uiPort, defaults.backendPort].filter(Boolean)) {
     assert(zhDocs.includes(String(fact)), `Chinese docs missing ccr ui fact: ${fact}`)
     assert(enDocs.includes(String(fact)), `English docs missing ccr ui fact: ${fact}`)
   }
 
-  for (const fact of webFacts) {
-    assert(zhDocs.includes(String(fact)), `Chinese docs missing ccr web fact: ${fact}`)
-    assert(enDocs.includes(String(fact)), `English docs missing ccr web fact: ${fact}`)
-  }
-
-  const stalePatterns = [
-    { pattern: /默认地址\s*0\.0\.0\.0/, label: 'stale web default host wording (zh)' },
-    { pattern: /Default\s*\(0\.0\.0\.0:19527\)/, label: 'stale web default host wording (en)' },
-    { pattern: /默认 `3000`/, label: 'stale ccr ui default port wording (zh)' },
-    { pattern: /default `3000`/i, label: 'stale ccr ui default port wording (en)' }
+  const bannedPatterns = [
+    { pattern: /\bccr web\b/i, label: 'removed ccr web command' },
+    { pattern: /\bccr migrate\b/i, label: 'removed ccr migrate command' },
+    { pattern: /\bplatform migrate\b/i, label: 'nonexistent platform migrate command' },
+    { pattern: /\bccr restore\b/i, label: 'nonexistent ccr restore command' },
+    { pattern: /\bccr backup(?:s)?\b/i, label: 'nonexistent ccr backup command' },
+    { pattern: /\/reference\/api\b/i, label: 'removed API reference route' },
+    { pattern: /\/en\/reference\/api\b/i, label: 'removed English API reference route' },
+    { pattern: /\/reference\/commands\/web\b/i, label: 'removed web command route' },
+    { pattern: /\/en\/reference\/commands\/web\b/i, label: 'removed English web command route' },
+    { pattern: /web 特性/, label: 'stale zh web-feature wording' },
+    { pattern: /web feature/i, label: 'stale en web-feature wording' }
   ]
 
-  for (const { pattern, label } of stalePatterns) {
-    assert(!pattern.test(zhDocs), `Detected ${label}`)
-    assert(!pattern.test(enDocs), `Detected ${label}`)
+  for (const file of activeMarkdownFiles()) {
+    const rel = relFromDocs(file)
+    const content = fs.readFileSync(file, 'utf8')
+    if (allowedHistoricalMentions.has(rel)) continue
+    for (const { pattern, label } of bannedPatterns) {
+      assert(!pattern.test(content), `Detected ${label} in ${rel}`)
+    }
   }
 }
 
 checkInternalLinks()
 checkLocaleParity()
 checkPlaceholderTranslations()
+checkRemovedAndRequiredPages()
 checkFactSync()
 
 if (failures.size > 0) {

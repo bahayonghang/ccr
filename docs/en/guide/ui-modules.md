@@ -50,7 +50,7 @@ To avoid turning the docs into a route inventory:
 
 - describe UI in capability groups, not one page per route
 - document user-visible modules, not every internal page
-- keep defaults, CLI flags, and HTTP details in CLI / API reference pages
+- keep defaults and CLI flags in the command reference, and keep runtime structure in the architecture / internals pages
 
 ## 6. Suggested Navigation Order
 
@@ -58,4 +58,4 @@ If you are entering the UI for the first time:
 
 1. start with [UI Overview](/en/guide/ui-overview)
 2. move into a platform module or an operations module
-3. return to [Command Reference](/en/reference/commands/) or [Web API Reference](/en/reference/api) when you need exact flags or routes
+3. return to [Command Reference](/en/reference/commands/) or [Architecture](/en/reference/architecture) when you need exact flags or runtime structure

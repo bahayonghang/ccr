@@ -70,7 +70,7 @@ const capabilityCards = [
   {
     icon: '🏗️',
     title: 'Architecture and integration',
-    details: 'Use the architecture and API reference to understand workspace layout and legacy HTTP routes.',
+    details: 'Use the architecture and internals reference to understand crate boundaries, runtime flows, and migration context.',
     link: '/en/reference/architecture'
   }
 ]
@@ -103,6 +103,7 @@ ccr validate
 
 Then continue with:
 - [CLI Workflows](/en/guide/cli-workflows)
+- [Entrypoints](/en/guide/entrypoints)
 - [UI Overview](/en/guide/ui-overview)
 - [Command Reference](/en/reference/commands/)
 
@@ -132,6 +133,7 @@ ccr stats summary --range week --details
 ## Documentation Map
 - [Quick Start](/en/guide/quick-start)
 - [CLI Workflows](/en/guide/cli-workflows)
+- [Entrypoints](/en/guide/entrypoints)
 - [UI Overview](/en/guide/ui-overview)
 - [UI Modules](/en/guide/ui-modules)
 - [Architecture](/en/reference/architecture)

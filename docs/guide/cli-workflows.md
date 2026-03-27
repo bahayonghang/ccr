@@ -45,13 +45,12 @@ ccr clean --days 30 --dry-run
 ccr clear --force
 ```
 
-## 4. 导入、导出与迁移
+## 4. 导入、导出与整理
 
 ```bash
 ccr export -o configs.toml --no-secrets
 ccr import configs.toml --merge --backup
-ccr migrate
-ccr migrate --platform claude
+ccr clean --days 30 --dry-run
 ```
 
 ## 5. 临时覆盖与快速实验
@@ -100,13 +99,14 @@ ccr pricing set my-model --input 3.0 --output 15.0
 
 ```bash
 ccr ui -p 15173 --backend-port 38081
-ccr tui
+ccr
 ```
 
 - `ccr ui`：推荐的图形界面入口
-- `ccr tui`：纯终端环境下的交互界面
+- `ccr`：默认构建下的终端交互界面
 
 ## 相关页面
 - [`快速开始`](/guide/quick-start)
+- [`入口选择`](/guide/entrypoints)
 - [`UI 概览`](/guide/ui-overview)
 - [`命令参考`](/reference/commands/)

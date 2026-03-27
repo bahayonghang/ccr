@@ -70,7 +70,7 @@ const capabilityCards = [
   {
     icon: '🏗️',
     title: '架构与集成参考',
-    details: 'workspace 分层、Legacy Web API 路由、平台结构和迁移路径集中在参考文档。',
+    details: 'workspace 分层、crate 边界、运行时流程和迁移说明集中在参考文档。',
     link: '/reference/architecture'
   }
 ]
@@ -104,6 +104,7 @@ ccr validate
 下一步：
 - 日常 CLI 路径：[`CLI 工作流`](/guide/cli-workflows)
 - 浏览器与桌面路径：[`UI 概览`](/guide/ui-overview)
+- 入口选择：[`入口选择`](/guide/entrypoints)
 - 所有命令：[`命令参考`](/reference/commands/)
 
 ## 支持矩阵
@@ -132,6 +133,7 @@ ccr stats summary --range week --details
 ## 文档地图
 - [`快速开始`](/guide/quick-start)：安装、初始化、首个 profile
 - [`CLI 工作流`](/guide/cli-workflows)：按日常任务组织命令
+- [`入口选择`](/guide/entrypoints)：CLI / TUI / CCR UI 的角色边界
 - [`UI 概览`](/guide/ui-overview)：`ccr ui` 的运行模式与推荐使用方式
 - [`UI 模块地图`](/guide/ui-modules)：平台模块与工具模块的能力分组
 - [`架构设计`](/reference/architecture)：workspace 与分层设计

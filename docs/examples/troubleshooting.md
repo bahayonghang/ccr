@@ -137,16 +137,16 @@ $ ccr platform list
 
 **解决方案**:
 ```bash
-# 方案 1: 迁移到 Unified 模式
-ccr migrate --check  # 检查迁移状态
-ccr migrate  # 执行迁移
+# 方案 1: 以当前布局为准
+ccr init
+ccr platform list
 
 # 方案 2: 继续使用 Legacy 模式
-rm -rf ~/.ccr  # 删除 Unified 配置
+mv ~/.ccr ~/.ccr.disabled  # 暂时移走 Unified 配置
 # 继续使用 ccr list / ccr switch 等命令
 
-# 方案 3: 明确指定模式
-export CCR_MODE=unified  # 或 legacy
+# 方案 3: 统一迁移后再逐个平台重建或导入 profile
+ccr import <file> --merge --backup
 ```
 
 ---
@@ -252,9 +252,6 @@ $ ccr switch official
 
 # 方案 2: 重新加载 Claude Code 配置
 # (具体方法取决于 Claude Code 的实现)
-
-# 方案 3: 手动导出环境变量
-source <(ccr env)  # 如果 CCR 提供 env 命令
 ```
 
 ---

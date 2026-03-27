@@ -66,4 +66,4 @@
 ## 相关页面
 - [`UI 概览`](/guide/ui-overview)
 - [`CLI 工作流`](/guide/cli-workflows)
-- [`Web 指南`](/guide/web-guide)
+- [`入口选择`](/guide/entrypoints)

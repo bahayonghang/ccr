@@ -94,6 +94,7 @@ This path is Codex-specific and should be documented as a first-class workflow r
 
 ```bash
 ccr ui
+ccr
 ```
 
 Move from CLI to UI when:
@@ -102,7 +103,10 @@ Move from CLI to UI when:
 - you want to jump across multiple capability areas
 - you want browser access to skills, monitoring, sessions, statusline, checkin, or opencode
 
+Use `ccr` directly when you want the terminal interactive mode instead of the graphical UI.
+
 ## Related Docs
 
 - [Command Overview](/en/reference/commands/)
+- [Entrypoints](/en/guide/entrypoints)
 - [UI Overview](/en/guide/ui-overview)
