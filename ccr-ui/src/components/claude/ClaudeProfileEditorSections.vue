@@ -43,7 +43,7 @@
         </div>
       </div>
 
-      <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
+      <div class="grid grid-cols-1 gap-4">
         <div>
           <label
             for="claude-profile-name"
@@ -65,27 +65,7 @@
           </p>
         </div>
 
-        <div class="editor-panel-muted rounded-[24px] p-4">
-          <p class="text-xs font-semibold uppercase tracking-[0.2em] text-text-muted">
-            {{ modalStatus }}
-          </p>
-          <p class="mt-2 text-sm leading-6 text-text-secondary">
-            {{ modalDescription }}
-          </p>
-          <div class="mt-4 flex flex-wrap items-center gap-2">
-            <span
-              class="editor-pill px-3 py-1 text-xs font-medium"
-              :class="modalStatusClass"
-            >
-              {{ modalStatus }}
-            </span>
-            <span class="editor-inline-chip px-3 py-1 text-xs text-text-secondary">
-              {{ isEditing ? editingName : $t('claudeProfiles.newProfileTitle') }}
-            </span>
-          </div>
-        </div>
-
-        <div class="lg:col-span-2">
+        <div>
           <label
             for="claude-profile-description"
             class="mb-2 block text-sm font-medium text-text-secondary"
@@ -371,15 +351,6 @@
               </span>
             </div>
           </label>
-
-          <div class="editor-inline-card mt-4 rounded-2xl px-4 py-3">
-            <p class="text-xs font-semibold uppercase tracking-[0.2em] text-text-muted">
-              {{ modalStatus }}
-            </p>
-            <p class="mt-2 text-sm text-text-primary">
-              {{ form.enabled ? $t('claudeProfiles.enabledText') : $t('claudeProfiles.disabledText') }}
-            </p>
-          </div>
         </div>
       </div>
     </section>
@@ -395,9 +366,6 @@ const props = defineProps<{
   editingName: string
   form: ClaudeProfileEditorForm
   isEditing: boolean
-  modalDescription: string
-  modalStatus: string
-  modalStatusClass: string
   monospaceFieldClass: string
   parsedFormTags: string[]
   registerModalSectionRef: (sectionId: ClaudeProfileFormSectionId, target: Element | ComponentPublicInstance | null) => void

@@ -2,8 +2,8 @@
   <nav
     :class="[
       mobile
-        ? 'rounded-2xl border border-border-default/50 bg-bg-surface/70 p-3'
-        : 'sticky top-6 rounded-[28px] border border-border-default/50 bg-bg-surface/72 p-4 shadow-xl shadow-black/5 backdrop-blur-xl',
+        ? 'rounded-2xl border border-border-default/45 bg-bg-surface/68 p-3'
+        : 'sticky top-6 rounded-[28px] border border-border-default/45 bg-bg-surface/72 p-4 shadow-xl shadow-black/5 backdrop-blur-xl',
     ]"
     :aria-label="$t('claudeProfiles.providerNavTitle')"
   >
@@ -40,7 +40,7 @@
             : 'min-h-[52px] w-full px-4 py-3 text-left',
           'group rounded-2xl border transition-[background-color,border-color,color,transform] duration-200',
           activeSectionId === section.id
-            ? 'border-accent-secondary/40 bg-accent-secondary/12 text-text-primary shadow-[0_10px_30px_rgba(96,70,160,0.14)]'
+            ? 'border-accent-secondary/30 bg-accent-secondary/10 text-text-primary shadow-[0_10px_30px_rgba(96,70,160,0.12)]'
             : 'border-border-default/50 bg-bg-surface/55 text-text-secondary hover:border-border-default hover:bg-bg-elevated/70 hover:text-text-primary',
         ]"
         @click="$emit('navigate', section.id)"
@@ -68,12 +68,6 @@
               :class="activeSectionId === section.id ? 'bg-accent-secondary/14 text-accent-secondary' : 'bg-bg-elevated text-text-muted'"
             >
               {{ section.count }}
-            </span>
-            <span
-              v-if="section.isCurrentProvider && !mobile"
-              class="rounded-full bg-accent-success/10 px-2 py-1 text-[11px] font-medium text-accent-success"
-            >
-              {{ $t('claudeProfiles.currentBadge') }}
             </span>
           </div>
         </div>

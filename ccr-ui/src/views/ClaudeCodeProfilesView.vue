@@ -1,53 +1,49 @@
 <template>
   <div class="claude-profiles-view">
     <div class="claude-profiles-view__shell">
-      <header class="claude-profiles-view__header animate-slide-up">
-        <div class="claude-profiles-view__hero">
-          <div class="claude-profiles-view__breadcrumb">
-            <RouterLink
-              to="/claude-code"
-              class="claude-profiles-view__breadcrumb-link"
-            >
-              Claude Code
-            </RouterLink>
+      <div class="claude-profiles-view__breadcrumb animate-slide-up">
+        <RouterLink
+          to="/claude-code"
+          class="claude-profiles-view__breadcrumb-link"
+        >
+          Claude Code
+        </RouterLink>
+        <SIcon
+          name="ChevronRight"
+          size="w-3 h-3"
+        />
+        <span class="claude-profiles-view__breadcrumb-current">{{ $t('claudeProfiles.breadcrumbProfiles') }}</span>
+      </div>
+
+      <PageHeaderCard
+        class="animate-slide-up"
+        icon="Layers"
+        tone="secondary"
+        :title="$t('claudeProfiles.title')"
+        :description="$t('claudeProfiles.subtitle')"
+      >
+        <template #meta>
+          <span class="claude-profiles-view__eyebrow">
+            {{ $t('claudeProfiles.consoleEyebrow') }}
+          </span>
+          <span
+            v-if="showNavigation"
+            class="claude-profiles-view__meta-chip"
+          >
+            {{ $t('claudeProfiles.providerSectionsCount', { count: providerSections.length }) }}
+          </span>
+        </template>
+
+        <template #actions>
+          <RouterLink
+            to="/claude-code"
+            class="claude-profiles-view__header-button claude-profiles-view__header-button--secondary"
+          >
             <SIcon
-              name="ChevronRight"
-              size="w-3 h-3"
+              name="ArrowLeft"
+              size="w-4 h-4"
             />
-            <span class="claude-profiles-view__breadcrumb-current">{{ $t('claudeProfiles.breadcrumbProfiles') }}</span>
-          </div>
-
-          <div class="claude-profiles-view__hero-title-row">
-            <div class="claude-profiles-view__hero-icon">
-              <SIcon
-                name="Layers"
-                size="w-6 h-6"
-              />
-            </div>
-            <div>
-              <p class="claude-profiles-view__eyebrow">
-                {{ $t('claudeProfiles.consoleEyebrow') }}
-              </p>
-              <h1 class="claude-profiles-view__title">
-                {{ $t('claudeProfiles.title') }}
-              </h1>
-            </div>
-          </div>
-
-          <p class="claude-profiles-view__subtitle">
-            {{ $t('claudeProfiles.subtitle') }}
-          </p>
-        </div>
-
-        <div class="claude-profiles-view__header-actions">
-          <RouterLink to="/claude-code">
-            <button class="claude-profiles-view__header-button claude-profiles-view__header-button--secondary">
-              <SIcon
-                name="ArrowLeft"
-                size="w-4 h-4"
-              />
-              {{ $t('claudeProfiles.back') }}
-            </button>
+            {{ $t('claudeProfiles.back') }}
           </RouterLink>
 
           <button
@@ -61,8 +57,16 @@
             />
             {{ $t('claudeProfiles.addProfile') }}
           </button>
-        </div>
-      </header>
+        </template>
+
+        <ClaudeProfilesOverview
+          :current-profile-name="currentProfileName"
+          :enabled-profiles-count="enabledProfilesCount"
+          :profiles="profiles"
+          :total-profiles="profiles.length"
+          @apply="handleApply"
+        />
+      </PageHeaderCard>
 
       <div
         :class="[
@@ -91,15 +95,6 @@
             @navigate="scrollToSection"
           />
 
-          <ClaudeProfilesOverview
-            :current-profile-name="currentProfileName"
-            :enabled-profiles-count="enabledProfilesCount"
-            :profiles="profiles"
-            :provider-sections-count="providerSections.length"
-            :show-navigation="showNavigation"
-            :total-profiles="profiles.length"
-            @apply="handleApply"
-          />
           <div
             v-if="loading"
             class="flex items-center justify-center py-20"
@@ -182,11 +177,10 @@
 
       <BaseModal
         v-model="showForm"
-        :description="modalDescription"
         :persistent="isSaving"
         :show-close="false"
-        size="full"
-        content-class="claude-profile-editor-modal !max-w-[1440px] !max-h-[92vh] rounded-[32px]"
+        size="xl"
+        content-class="claude-profile-editor-modal !max-w-[980px] !max-h-[90vh] rounded-[32px]"
       >
         <template #header="{ titleId }">
           <div class="editor-shell-header flex items-start justify-between gap-4">
@@ -236,43 +230,45 @@
           </div>
         </template>
 
-        <div class="flex min-h-[620px] max-h-[calc(92vh-9rem)] flex-col overflow-hidden">
+        <div class="flex max-h-[calc(90vh-8rem)] flex-col overflow-hidden">
+          <div class="editor-nav-rail mb-4 flex flex-wrap gap-2 border-b border-border-default/35 pb-4">
+            <button
+              v-for="section in modalSectionItems"
+              :key="section.id"
+              type="button"
+              class="editor-nav-button inline-flex min-h-[40px] items-center gap-2 rounded-full px-3.5 py-2 text-sm transition-[background-color,border-color,transform] duration-200 hover:-translate-y-px"
+              :class="activeFormSectionId === section.id
+                ? 'editor-nav-button--active'
+                : 'editor-nav-button--idle'"
+              @click="scrollToFormSection(section.id)"
+            >
+              <span class="editor-nav-button__icon flex h-7 w-7 items-center justify-center rounded-full">
+                <SIcon
+                  :name="section.icon"
+                  size="w-3.5 h-3.5"
+                />
+              </span>
+              {{ section.title }}
+            </button>
+          </div>
+
           <div
             ref="modalScrollRef"
             class="editor-scroll-area min-h-0 flex-1 overflow-y-auto pr-1"
             @scroll="syncActiveFormSection"
           >
-            <div class="grid gap-5 xl:grid-cols-[320px_minmax(0,1fr)]">
-              <ClaudeProfileEditorSidebar
-                :active-form-section-id="activeFormSectionId"
-                :enabled-badge-class="enabledBadgeClass"
-                :form-enabled="form.enabled"
-                :modal-preview-description="modalPreviewDescription"
-                :modal-preview-title="modalPreviewTitle"
-                :modal-section-items="modalSectionItems"
-                :modal-status="modalStatus"
-                :modal-status-class="modalStatusClass"
-                :modal-summary-items="modalSummaryItems"
-                :parsed-form-tags="parsedFormTags"
-                @navigate="scrollToFormSection"
-              />
-
-              <ClaudeProfileEditorSections
-                :editing-name="editingName"
-                :form="form"
-                :is-editing="isEditing"
-                :modal-description="modalDescription"
-                :modal-status="modalStatus"
-                :modal-status-class="modalStatusClass"
-                :monospace-field-class="monospaceFieldClass"
-                :parsed-form-tags="parsedFormTags"
-                :register-modal-section-ref="registerModalSectionRef"
-                :save-error="saveError"
-                :textarea-class="textareaClass"
-                :text-field-class="textFieldClass"
-                :update-form-field="updateFormField"
-              />
-            </div>
+            <ClaudeProfileEditorSections
+              :editing-name="editingName"
+              :form="form"
+              :is-editing="isEditing"
+              :monospace-field-class="monospaceFieldClass"
+              :parsed-form-tags="parsedFormTags"
+              :register-modal-section-ref="registerModalSectionRef"
+              :save-error="saveError"
+              :textarea-class="textareaClass"
+              :text-field-class="textFieldClass"
+              :update-form-field="updateFormField"
+            />
           </div>
 
           <div class="editor-footer mt-5 flex flex-col gap-3 pt-4 sm:flex-row sm:items-center sm:justify-between">
@@ -324,17 +320,16 @@ import {
   updateClaudeProfile,
 } from '@/api'
 import ClaudeProfileEditorSections from '@/components/claude/ClaudeProfileEditorSections.vue'
-import ClaudeProfileEditorSidebar from '@/components/claude/ClaudeProfileEditorSidebar.vue'
 import ClaudeProfilesOverview from '@/components/claude/ClaudeProfilesOverview.vue'
 import ClaudeProfilesProviderNav from '@/components/claude/ClaudeProfilesProviderNav.vue'
 import ClaudeProfilesSectionList from '@/components/claude/ClaudeProfilesSectionList.vue'
 import BaseModal from '@/components/common/BaseModal.vue'
+import PageHeaderCard from '@/components/PageHeaderCard.vue'
 import SIcon from '@/components/ui/SIcon.vue'
 import type { ClaudeProfile, ClaudeProfileRequest, ClaudeProfilesResponse } from '@/types'
 import type {
   ClaudeProfileEditorForm,
   ClaudeProfileEditorSectionItem,
-  ClaudeProfileEditorSummaryItem,
   ClaudeProfileFormSectionId,
 } from '@/types/claudeProfileEditor'
 import { getErrorMessage } from '@/types/api'
@@ -411,18 +406,10 @@ const modalStatusClass = computed(() => {
   if (isEditing.value) return 'editor-pill--info'
   return 'editor-pill--neutral'
 })
-const enabledBadgeClass = computed(() => (
-  form.enabled ? 'editor-pill--success' : 'editor-pill--danger'
-))
 
 const textFieldClass = 'editor-input w-full rounded-[20px] px-4 py-3 text-sm'
 const monospaceFieldClass = `${textFieldClass} editor-input--mono`
 const textareaClass = `${textFieldClass} editor-input--textarea min-h-[116px] resize-y`
-
-const displayFormValue = (value: string | null | undefined, fallback = t('claudeProfiles.notSet')): string => {
-  const trimmed = value?.trim() ?? ''
-  return trimmed || fallback
-}
 
 const normalizeOptional = (value: string): string | undefined => {
   const trimmed = value.trim()
@@ -439,38 +426,6 @@ const parseTags = (input: string): string[] | undefined => {
 }
 
 const parsedFormTags = computed(() => parseTags(form.tagsInput) ?? [])
-const modalPreviewTitle = computed(() => displayFormValue(form.name, modalTitle.value))
-const modalPreviewDescription = computed(() => displayFormValue(form.description, t('claudeProfiles.descriptionFallback')))
-const modalSummaryItems = computed<ClaudeProfileEditorSummaryItem[]>(() => [
-  {
-    label: t('claudeProfiles.providerLabel'),
-    value: displayFormValue(form.provider, t('claudeProfiles.providerUnset')),
-    icon: 'Globe',
-  },
-  {
-    label: t('claudeProfiles.baseUrlLabel'),
-    value: displayFormValue(form.base_url),
-    icon: 'Webhook',
-    mono: true,
-  },
-  {
-    label: t('claudeProfiles.modelLabel'),
-    value: displayFormValue(form.model),
-    icon: 'Sparkles',
-    mono: true,
-  },
-  {
-    label: t('claudeProfiles.accountLabel'),
-    value: displayFormValue(form.account),
-    icon: 'User',
-  },
-  {
-    label: t('claudeProfiles.authTokenLabel'),
-    value: form.auth_token.trim() ? '********' : t('claudeProfiles.notSet'),
-    icon: 'ShieldCheck',
-    mono: true,
-  },
-])
 const modalSectionItems = computed<ClaudeProfileEditorSectionItem[]>(() => ([
   {
     id: 'basic' as const,
@@ -1143,9 +1098,36 @@ onBeforeUnmount(teardownSectionObserver)
   padding: 1.5rem;
 }
 
+.claude-profiles-view::before,
+.claude-profiles-view::after {
+  content: '';
+  position: absolute;
+  inset: auto;
+  pointer-events: none;
+  filter: blur(64px);
+  opacity: 0.9;
+}
+
+.claude-profiles-view::before {
+  top: -4rem;
+  right: -2rem;
+  width: 18rem;
+  height: 18rem;
+  background: radial-gradient(circle, rgb(var(--color-accent-secondary-rgb) / 16%), transparent 70%);
+}
+
+.claude-profiles-view::after {
+  bottom: 8rem;
+  left: -4rem;
+  width: 22rem;
+  height: 22rem;
+  background: radial-gradient(circle, rgb(var(--color-platform-claude-rgb) / 10%), transparent 72%);
+}
+
 .claude-profiles-view__shell,
-.claude-profiles-view__hero,
 .claude-profiles-view__main {
+  position: relative;
+  z-index: 1;
   display: flex;
   flex-direction: column;
 }
@@ -1156,29 +1138,18 @@ onBeforeUnmount(teardownSectionObserver)
   gap: 2rem;
 }
 
-.claude-profiles-view__header,
 .claude-profiles-view__breadcrumb,
-.claude-profiles-view__hero-title-row,
-.claude-profiles-view__header-actions,
 .claude-profiles-view__header-button {
   display: flex;
   align-items: center;
 }
 
-.claude-profiles-view__header {
-  justify-content: space-between;
-  gap: 1.25rem;
-}
-
-.claude-profiles-view__hero {
-  gap: 0.75rem;
-}
-
 .claude-profiles-view__breadcrumb {
+  width: fit-content;
   gap: 0.5rem;
   font-size: 0.875rem;
   line-height: 1.25rem;
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
 }
 
 .claude-profiles-view__breadcrumb-link {
@@ -1186,58 +1157,40 @@ onBeforeUnmount(teardownSectionObserver)
 }
 
 .claude-profiles-view__breadcrumb-link:hover {
-  color: var(--text-primary);
+  color: var(--color-text-primary);
 }
 
 .claude-profiles-view__breadcrumb-current {
-  color: var(--text-primary);
-}
-
-.claude-profiles-view__hero-title-row {
-  flex-wrap: wrap;
-  gap: 0.75rem;
-}
-
-.claude-profiles-view__hero-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 3rem;
-  height: 3rem;
-  border-radius: 1rem;
-  background: rgb(var(--color-accent-secondary-rgb) / 12%);
-  color: rgb(var(--color-accent-secondary-rgb) / 100%);
-  box-shadow: 0 10px 25px rgb(96 70 160 / 18%);
+  color: var(--color-text-primary);
 }
 
 .claude-profiles-view__eyebrow {
-  font-size: 0.75rem;
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.75rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  border: 1px solid rgb(var(--color-platform-claude-rgb) / 22%);
+  background: rgb(var(--color-platform-claude-rgb) / 8%);
+  color: rgb(var(--color-platform-claude-rgb));
+  font-size: 0.72rem;
   line-height: 1rem;
-  font-weight: 600;
-  letter-spacing: 0.28em;
-  text-transform: uppercase;
-  color: var(--text-muted);
-}
-
-.claude-profiles-view__title {
-  margin-top: 0.25rem;
-  font-size: 1.875rem;
-  line-height: 2.25rem;
   font-weight: 700;
-  letter-spacing: -0.025em;
-  color: var(--text-primary);
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
 }
 
-.claude-profiles-view__subtitle {
-  max-width: 48rem;
-  font-size: 0.875rem;
-  line-height: 1.5rem;
-  color: var(--text-secondary);
-}
-
-.claude-profiles-view__header-actions {
-  flex-wrap: wrap;
-  gap: 0.75rem;
+.claude-profiles-view__meta-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.75rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  border: 1px solid rgb(var(--color-border-default-rgb) / 45%);
+  background: rgb(var(--color-bg-elevated-rgb) / 72%);
+  color: var(--color-text-secondary);
+  font-size: 0.75rem;
+  font-weight: 500;
 }
 
 .claude-profiles-view__header-button {
@@ -1248,29 +1201,30 @@ onBeforeUnmount(teardownSectionObserver)
   padding: 0.625rem 1rem;
   font-size: 0.875rem;
   line-height: 1.25rem;
+  font-weight: 500;
   transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
 .claude-profiles-view__header-button--secondary {
   border-color: rgb(var(--color-border-default-rgb) / 60%);
   background: rgb(var(--color-bg-surface-rgb) / 75%);
-  color: var(--text-secondary);
+  color: var(--color-text-secondary);
 }
 
 .claude-profiles-view__header-button--secondary:hover {
-  background: var(--bg-elevated);
-  color: var(--text-primary);
+  background: rgb(var(--color-bg-elevated-rgb) / 92%);
+  color: var(--color-text-primary);
 }
 
 .claude-profiles-view__header-button--primary {
   border-color: rgb(var(--color-accent-secondary-rgb) / 35%);
-  background: rgb(var(--color-accent-secondary-rgb) / 12%);
+  background: linear-gradient(180deg, rgb(var(--color-accent-secondary-rgb) / 14%), rgb(var(--color-accent-secondary-rgb) / 10%));
   color: rgb(var(--color-accent-secondary-rgb) / 100%);
-  font-weight: 500;
+  box-shadow: 0 12px 24px rgb(var(--color-accent-secondary-rgb) / 12%);
 }
 
 .claude-profiles-view__header-button--primary:hover {
-  background: rgb(var(--color-accent-secondary-rgb) / 18%);
+  background: linear-gradient(180deg, rgb(var(--color-accent-secondary-rgb) / 20%), rgb(var(--color-accent-secondary-rgb) / 14%));
 }
 
 .claude-profiles-view__header-button--primary:focus-visible {
@@ -1303,15 +1257,6 @@ onBeforeUnmount(teardownSectionObserver)
 }
 
 @media (width >= 1280px) {
-  .claude-profiles-view__header {
-    align-items: flex-end;
-    flex-direction: row;
-  }
-
-  .claude-profiles-view__header-actions {
-    justify-content: flex-end;
-  }
-
   .claude-profiles-view__layout--with-nav {
     grid-template-columns: 18rem minmax(0, 1fr);
   }
@@ -1325,14 +1270,9 @@ onBeforeUnmount(teardownSectionObserver)
   }
 }
 
-@media (width >= 1024px) {
-  .claude-profiles-view__title {
-    font-size: 2.25rem;
-    line-height: 2.5rem;
-  }
-
-  .claude-profiles-view__subtitle {
-    font-size: 1rem;
+@media (width < 768px) {
+  .claude-profiles-view__meta-chip {
+    display: none;
   }
 }
 </style>

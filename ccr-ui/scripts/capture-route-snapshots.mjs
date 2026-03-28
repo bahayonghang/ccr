@@ -10,6 +10,7 @@ const routes = [
   { slug: 'home', path: '/' },
   { slug: 'skills', path: '/skills' },
   { slug: 'skills-add', path: '/skills/add' },
+  { slug: 'claude-profiles', path: '/claude-code/profiles' },
   { slug: 'usage', path: '/usage' },
   { slug: 'sync', path: '/sync' },
   { slug: 'commands', path: '/commands' },
