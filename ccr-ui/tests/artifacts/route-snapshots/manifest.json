@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-03-22T10:16:34.065Z",
-  "baseUrl": "http://127.0.0.1:5173",
+  "generatedAt": "2026-03-28T03:54:37.373Z",
+  "baseUrl": "http://127.0.0.1:4173",
   "routes": [
     {
       "slug": "home",
