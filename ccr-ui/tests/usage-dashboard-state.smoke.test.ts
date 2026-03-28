@@ -21,8 +21,14 @@ const usageStore = reactive({
   fetchLogs: vi.fn(),
 })
 
+let tauriRuntime = false
+
 vi.mock('@/stores/usage', () => ({
   useUsageStore: () => usageStore,
+}))
+
+vi.mock('@/utils/tauriRuntime', () => ({
+  isTauriRuntime: () => tauriRuntime,
 }))
 
 vi.mock('vue-i18n', async () => {
@@ -71,6 +77,7 @@ const mountComposable = async () => {
 }
 
 beforeEach(() => {
+  tauriRuntime = false
   usageStore.summary = null
   usageStore.trends = []
   usageStore.modelStats = []
@@ -97,6 +104,7 @@ afterEach(() => {
 
 describe('usage dashboard state smoke', () => {
   it('starts store auto refresh without registering its own visibility listener', async () => {
+    tauriRuntime = true
     const addEventListenerSpy = vi.spyOn(document, 'addEventListener')
     const { unmount } = await mountComposable()
 
@@ -115,6 +123,7 @@ describe('usage dashboard state smoke', () => {
   })
 
   it('loads logs when the logs tab becomes active', async () => {
+    tauriRuntime = true
     const { state, unmount } = await mountComposable()
 
     try {
@@ -125,5 +134,20 @@ describe('usage dashboard state smoke', () => {
     } finally {
       unmount()
     }
+  })
+
+  it('skips desktop initialization in web runtime mode', async () => {
+    tauriRuntime = false
+    const { state, unmount } = await mountComposable()
+
+    try {
+      expect(state.runtimeUnavailable.value).toBe(true)
+      expect(usageStore.initializeDashboard).not.toHaveBeenCalled()
+      expect(usageStore.startAutoRefresh).not.toHaveBeenCalled()
+    } finally {
+      unmount()
+    }
+
+    expect(usageStore.stopAutoRefresh).toHaveBeenCalled()
   })
 })

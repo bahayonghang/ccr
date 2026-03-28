@@ -49,20 +49,20 @@
       </button>
 
       <!-- Logo Area -->
-      <div class="h-[100px] pt-9 flex items-center justify-between px-4 border-b border-pink-200/20 dark:border-pink-300/10 shrink-0">
+      <div class="flex h-[84px] items-center justify-between border-b border-border-default/45 px-4 pt-6 shrink-0">
         <div class="flex items-center gap-3">
-          <div class="relative flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-pink-400 to-violet-400 shadow-lg shadow-pink-400/30">
+          <div class="relative flex h-9 w-9 items-center justify-center rounded-xl border border-accent-primary/20 bg-gradient-to-br from-accent-primary/70 to-accent-secondary/70 shadow-md shadow-accent-primary/15">
             <SIcon
               name="Cat"
               size="w-5 h-5"
               class="text-white"
             />
           </div>
-          <div>
-            <h1 class="text-lg font-bold font-display tracking-tight leading-none text-text-primary">
+          <div class="min-w-0">
+            <h1 class="truncate text-base font-semibold leading-none tracking-tight text-text-primary font-brand">
               {{ appNamePrefix }} <span class="text-accent-primary">{{ appNameSuffix }}</span>
             </h1>
-            <p class="text-[10px] uppercase tracking-widest text-pink-400 dark:text-pink-300 font-bold mt-0.5">
+            <p class="mt-1 text-[10px] font-semibold tracking-[0.18em] text-text-muted">
               {{ t('common.shell.tagline') }}
             </p>
           </div>
@@ -85,7 +85,7 @@
       <!-- Navigation -->
       <nav
         id="primary-navigation"
-        class="flex-1 overflow-y-auto p-3 space-y-6 scrollbar-hide"
+        class="flex-1 overflow-y-auto px-3 pb-4 pt-3 space-y-5 scrollbar-hide"
         aria-label="Primary navigation"
         @click="isMobileSidebar ? closeSidebar() : undefined"
       >
@@ -95,7 +95,7 @@
         >
           <div
             v-if="section.titleKey"
-            class="px-3 mb-2 text-[10px] font-bold uppercase tracking-wider text-text-muted flex items-center gap-2"
+            class="mb-2 flex items-center gap-2 px-3 text-[10px] font-semibold tracking-[0.16em] text-text-muted"
           >
             {{ $t(section.titleKey) }}
             <div class="h-px flex-1 bg-border-default/70" />
@@ -119,28 +119,21 @@
       </nav>
 
       <!-- Footer: User Profile - Neko Kawaii Style -->
-      <div class="p-3 pb-6 border-t border-pink-200/10 dark:border-pink-300/10">
+      <div class="border-t border-border-default/40 p-3 pb-5">
         <div class="user-card group relative overflow-hidden rounded-2xl transition-interactive duration-300">
-          <!-- Animated gradient background -->
-          <div class="absolute inset-0 bg-gradient-to-br from-pink-500/15 via-fuchsia-500/12 to-violet-500/15 opacity-80" />
+          <div class="absolute inset-0 bg-gradient-to-br from-accent-primary/10 via-accent-secondary/8 to-transparent opacity-90" />
           <div class="absolute inset-0 user-card-accent-mesh" />
 
-          <!-- Neko dot pattern -->
-          <div class="absolute inset-0 opacity-10 user-card-dot-pattern" />
-
-          <!-- Glow effect on hover -->
-          <div class="absolute -inset-1 bg-gradient-to-r from-pink-500/0 via-fuchsia-400/20 to-violet-500/0 blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-
           <!-- Inner content -->
-          <div class="relative p-3.5 backdrop-blur-md z-10 flex flex-col gap-3">
+          <div class="relative z-10 flex flex-col gap-3 p-3.5 backdrop-blur-md">
             <div class="flex items-center justify-between">
               <!-- Session Status -->
-              <p class="text-[11px] font-mono uppercase tracking-wider flex items-center gap-2">
+              <p class="flex items-center gap-2 text-[11px] font-mono tracking-wide">
                 <span class="text-text-muted">{{ t('common.shell.session') }}:</span>
-                <span class="flex items-center gap-1.5 text-emerald-400 font-semibold">
+                <span class="flex items-center gap-1.5 font-semibold text-accent-success">
                   <span class="relative flex h-2 w-2">
-                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                    <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.8)]" />
+                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent-success opacity-65" />
+                    <span class="relative inline-flex h-2 w-2 rounded-full bg-accent-success shadow-[0_0_6px_rgba(100,192,166,0.65)]" />
                   </span>
                   {{ t('common.shell.active') }}
                 </span>
@@ -171,7 +164,7 @@
       :class="{ 'content-main--theme-stage': shouldUseThemeStage }"
     >
       <!-- Top Bar -->
-      <div class="topbar-glass sticky top-0 z-30 flex min-h-[92px] shrink-0 items-center justify-between border-b border-border-default/40 px-4 pt-7 sm:px-6 sm:pt-9">
+      <div class="topbar-glass sticky top-0 z-30 flex min-h-[78px] shrink-0 items-center justify-between border-b border-border-default/40 px-4 pt-5 sm:px-6 sm:pt-6">
         <!-- Left: Breadcrumbs or Back + Title -->
         <div class="flex min-w-0 items-center gap-3 text-sm text-text-secondary">
           <button
@@ -365,7 +358,7 @@ const {
 .layout-shell--theme-stage {
   background:
     radial-gradient(circle at top left, rgb(var(--color-accent-secondary-rgb) / 12%) 0%, transparent 24%),
-    radial-gradient(circle at bottom left, rgb(var(--color-accent-primary-rgb) / 10%) 0%, transparent 22%),
+    radial-gradient(circle at bottom left, rgb(var(--color-accent-primary-rgb) / 8%) 0%, transparent 22%),
     linear-gradient(180deg, rgb(var(--color-bg-base-rgb) / 100%), rgb(var(--color-bg-base-rgb) / 96%));
 }
 
@@ -378,14 +371,14 @@ const {
   border-right: 1px solid var(--surface-shell-border);
   box-shadow:
     var(--surface-shell-shadow),
-    inset -1px 0 0 rgb(255 255 255 / 8%);
+    inset -1px 0 0 rgb(255 255 255 / 6%);
 }
 
 .topbar-glass {
   background: var(--surface-status-bg);
   backdrop-filter: var(--surface-status-blur);
   box-shadow:
-    inset 0 -1px 0 rgb(var(--color-border-default-rgb) / 45%),
+    inset 0 -1px 0 rgb(var(--color-border-default-rgb) / 42%),
     var(--surface-status-shadow);
 }
 
@@ -401,7 +394,7 @@ const {
 
 .content-main--theme-stage {
   background:
-    radial-gradient(circle at top right, rgb(var(--color-accent-primary-rgb) / 12%) 0%, transparent 28%),
+    radial-gradient(circle at top right, rgb(var(--color-accent-primary-rgb) / 10%) 0%, transparent 28%),
     radial-gradient(circle at top left, rgb(var(--color-accent-secondary-rgb) / 10%) 0%, transparent 24%),
     linear-gradient(180deg, rgb(var(--color-bg-base-rgb) / 98%), rgb(var(--color-bg-base-rgb) / 94%));
 }
@@ -413,8 +406,10 @@ const {
 
 /* Nav Item Styles */
 .nav-item {
-  @apply relative flex items-center gap-3 overflow-hidden rounded-xl px-3 py-2 text-sm font-medium text-text-secondary
+  @apply relative flex items-center gap-3 overflow-hidden rounded-xl px-3 py-2.5 text-sm font-medium text-text-secondary
          transition-interactive duration-200;
+
+  border: 1px solid transparent;
 }
 
 .nav-item:focus-visible {
@@ -422,83 +417,74 @@ const {
 }
 
 .nav-item:hover {
-  @apply bg-bg-overlay/75 text-text-primary shadow-sm;
+  @apply text-text-primary shadow-sm;
+
+  background-color: rgb(var(--color-bg-overlay-rgb) / 65%);
+  border-color: rgb(var(--color-border-default-rgb) / 60%);
 }
 
 .nav-item.router-link-active {
-  @apply border border-accent-primary/15 bg-accent-primary/10 text-accent-primary shadow-sm;
+  @apply text-text-primary shadow-sm;
 
   box-shadow:
-    0 10px 24px rgb(var(--color-accent-primary-rgb) / 12%),
-    0 0 20px rgb(var(--color-accent-primary-rgb) / 8%);
+    0 16px 32px rgb(var(--color-accent-primary-rgb) / 10%),
+    inset 0 1px 0 rgb(255 255 255 / 8%);
+  background: linear-gradient(135deg, rgb(var(--color-accent-primary-rgb) / 12%), rgb(var(--color-accent-secondary-rgb) / 8%));
+  border-color: rgb(var(--color-accent-primary-rgb) / 20%);
 }
 
 /* Active indicator strip */
 .nav-item.router-link-active::before {
   content: '';
 
-  @apply absolute left-0 top-1/2 -translate-y-1/2 h-4 w-1 bg-accent-primary rounded-r-full;
+  @apply absolute left-0 top-1/2 -translate-y-1/2 h-5 w-1 rounded-r-full;
 
-  box-shadow: 0 0 8px rgb(var(--color-accent-primary-rgb), 0.6);
+  background: linear-gradient(180deg, rgb(var(--color-accent-primary-rgb) / 95%), rgb(var(--color-accent-secondary-rgb) / 92%));
+  box-shadow: 0 0 8px rgb(var(--color-accent-primary-rgb) / 45%);
 }
 
 /* User Card - Neko Kawaii Style */
 .user-card {
   background: linear-gradient(135deg,
-    rgb(120 40 90 / 25%) 0%,
-    rgb(140 60 130 / 15%) 50%,
-    rgb(100 50 150 / 20%) 100%
+    rgb(var(--color-bg-elevated-rgb) / 90%) 0%,
+    rgb(var(--color-bg-surface-rgb) / 86%) 100%
   );
-  backdrop-filter: blur(16px) saturate(180%);
-  border: 1px solid rgb(244 114 182 / 25%);
+  backdrop-filter: blur(18px) saturate(140%);
+  border: 1px solid rgb(var(--color-border-default-rgb) / 55%);
   box-shadow:
-    0 4px 24px rgb(0 0 0 / 20%),
-    inset 0 1px 0 rgb(255 255 255 / 10%);
+    0 14px 32px rgb(4 6 13 / 24%),
+    inset 0 1px 0 rgb(255 255 255 / 8%);
 }
 
 .user-card-accent-mesh {
-  background: radial-gradient(ellipse at top right, rgb(244 114 182 / 12%), transparent 50%);
-}
-
-.user-card-dot-pattern {
-  background-image: radial-gradient(circle, rgb(255 255 255 / 15%) 1px, transparent 1px);
-  background-size: 10px 10px;
+  background:
+    radial-gradient(ellipse at top right, rgb(var(--color-accent-primary-rgb) / 14%), transparent 54%),
+    radial-gradient(ellipse at bottom left, rgb(var(--color-accent-secondary-rgb) / 10%), transparent 48%);
 }
 
 .user-card:hover {
-  border-color: rgb(244 114 182 / 45%);
-  background: linear-gradient(135deg,
-    rgb(120 40 90 / 35%) 0%,
-    rgb(140 60 130 / 25%) 50%,
-    rgb(100 50 150 / 30%) 100%
-  );
+  border-color: rgb(var(--color-accent-primary-rgb) / 28%);
   box-shadow:
-    0 8px 32px rgb(244 114 182 / 15%),
-    0 4px 20px rgb(0 0 0 / 25%),
-    inset 0 1px 0 rgb(255 255 255 / 12%);
+    0 18px 38px rgb(var(--color-accent-primary-rgb) / 10%),
+    0 6px 16px rgb(4 6 13 / 24%),
+    inset 0 1px 0 rgb(255 255 255 / 10%);
 }
 
 /* User Card - Light Mode Override */
 [data-theme="light"] .user-card {
   background: linear-gradient(135deg,
-    rgb(255 240 245 / 72%) 0%,
-    rgb(255 228 237 / 80%) 50%,
-    rgb(243 232 255 / 72%) 100%
+    rgb(var(--color-bg-elevated-rgb) / 94%) 0%,
+    rgb(var(--color-bg-surface-rgb) / 92%) 100%
   );
-  backdrop-filter: blur(16px) saturate(180%);
-  border: 1px solid rgb(244 114 182 / 35%);
+  backdrop-filter: blur(18px) saturate(145%);
+  border: 1px solid rgb(var(--color-border-default-rgb) / 65%);
   box-shadow:
-    0 4px 15px rgb(244 114 182 / 10%),
-    inset 0 1px 0 rgb(255 255 255 / 90%);
+    0 16px 34px rgb(48 32 71 / 10%),
+    inset 0 1px 0 rgb(255 255 255 / 75%);
 }
 
 [data-theme="light"] .user-card:hover {
-  background: linear-gradient(135deg,
-    rgb(255 240 245 / 82%) 0%,
-    rgb(255 228 237 / 88%) 50%,
-    rgb(243 232 255 / 82%) 100%
-  );
-  box-shadow: 0 8px 25px rgb(244 114 182 / 12%);
+  box-shadow: 0 18px 38px rgb(48 32 71 / 12%);
 }
 
 </style>

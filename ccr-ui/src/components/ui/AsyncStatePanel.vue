@@ -69,7 +69,7 @@ import SIcon from '@/components/ui/SIcon.vue'
 import Spinner from '@/components/ui/Spinner.vue'
 import { computed } from 'vue'
 
-type AsyncState = 'loading' | 'error' | 'empty'
+type AsyncState = 'loading' | 'error' | 'empty' | 'runtime-unavailable'
 
 const props = withDefaults(defineProps<{
   state: AsyncState
@@ -90,17 +90,20 @@ defineEmits<{
 const iconName = computed(() => {
   if (props.icon) return props.icon
   if (props.state === 'error') return 'AlertCircle'
+  if (props.state === 'runtime-unavailable') return 'MonitorOff'
   if (props.state === 'empty') return 'FileX'
   return 'Loader2'
 })
 
 const iconClass = computed(() => {
   if (props.state === 'error') return 'text-accent-danger'
+  if (props.state === 'runtime-unavailable') return 'text-accent-secondary'
   return 'text-text-muted'
 })
 
 const iconContainerClass = computed(() => {
   if (props.state === 'error') return 'bg-accent-danger/10 border-accent-danger/20'
+  if (props.state === 'runtime-unavailable') return 'bg-accent-secondary/10 border-accent-secondary/20'
   return 'bg-bg-surface/80 border-border-default/60'
 })
 

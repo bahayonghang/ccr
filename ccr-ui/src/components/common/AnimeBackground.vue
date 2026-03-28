@@ -5,10 +5,11 @@
     <div
       v-if="bgUrl"
       class="absolute inset-0 w-full h-full bg-cover bg-center bg-no-repeat transition-opacity duration-1000"
-      :style="{ backgroundImage: `url(${bgUrl})`, opacity: isLoaded ? 1 : 0 }"
+      :style="{ backgroundImage: `url(${bgUrl})`, opacity: isLoaded ? 1 : 0, filter: 'saturate(1.06) contrast(1.02)' }"
     />
 
-    <div class="absolute inset-0 w-full h-full bg-white/78 dark:bg-black/40 z-0 pointer-events-none" />
+    <div class="absolute inset-0 w-full h-full bg-gradient-to-br from-white/40 via-white/24 to-pink-100/26 dark:from-black/16 dark:via-black/28 dark:to-violet-950/16 z-0 pointer-events-none" />
+    <div class="absolute inset-0 w-full h-full bg-white/52 dark:bg-black/30 z-0 pointer-events-none" />
   </div>
 </template>
 

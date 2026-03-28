@@ -98,6 +98,7 @@ const classes = computed(() => {
   @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary/30 focus-visible:ring-offset-2 focus-visible:ring-offset-bg-base;
 
   transform: translateZ(0);
+  letter-spacing: 0.01em;
 }
 
 .ui-button:active {
@@ -131,17 +132,30 @@ const classes = computed(() => {
 }
 
 .ui-button--primary {
-  @apply border border-accent-primary/20 bg-accent-primary/90 text-text-inverted;
+  @apply border text-text-inverted;
 
-  box-shadow: 0 0 20px rgb(var(--color-accent-primary-rgb) / 24%);
+  border-color: rgb(var(--color-accent-primary-rgb) / 24%);
+  background: linear-gradient(
+    135deg,
+    rgb(var(--color-accent-primary-rgb) / 96%),
+    rgb(var(--color-accent-secondary-rgb) / 82%)
+  );
+  box-shadow:
+    0 14px 30px rgb(var(--color-accent-primary-rgb) / 20%),
+    inset 0 1px 0 rgb(255 255 255 / 18%);
 }
 
 .ui-button--primary:hover:not(:disabled) {
-  @apply bg-accent-primary;
+  box-shadow:
+    0 18px 34px rgb(var(--color-accent-primary-rgb) / 24%),
+    inset 0 1px 0 rgb(255 255 255 / 22%);
+  transform: translateY(-1px);
 }
 
 .ui-button--secondary {
-  @apply border border-border-default/70 bg-bg-elevated/75 text-text-primary shadow-sm backdrop-blur-md;
+  @apply border border-border-default/70 text-text-primary shadow-sm backdrop-blur-md;
+
+  background-color: rgb(var(--color-bg-elevated-rgb) / 80%);
 }
 
 .ui-button--secondary:hover:not(:disabled) {
@@ -163,7 +177,9 @@ const classes = computed(() => {
 }
 
 .ui-button--outline:hover:not(:disabled) {
-  @apply border-accent-primary/35 bg-bg-surface/70 text-text-primary;
+  @apply border-accent-primary/35 text-text-primary;
+
+  background-color: rgb(var(--color-bg-surface-rgb) / 70%);
 }
 
 .ui-button--ghost {
@@ -171,7 +187,9 @@ const classes = computed(() => {
 }
 
 .ui-button--ghost:hover:not(:disabled) {
-  @apply bg-bg-surface/80 text-text-primary;
+  @apply text-text-primary;
+
+  background-color: rgb(var(--color-bg-surface-rgb) / 75%);
 }
 
 .ui-button--glass {
@@ -179,17 +197,21 @@ const classes = computed(() => {
 
   background: var(--surface-status-bg);
   backdrop-filter: var(--surface-status-blur);
-  box-shadow: var(--surface-status-shadow);
+  box-shadow: var(--surface-status-shadow), inset 0 1px 0 rgb(255 255 255 / 10%);
 }
 
 .ui-button--glass:hover:not(:disabled) {
-  @apply border-accent-primary/30 bg-bg-elevated/80;
+  @apply border-accent-primary/30;
+
+  background-color: rgb(var(--color-bg-elevated-rgb) / 80%);
 }
 
 .ui-button--danger {
-  @apply border border-accent-danger/20 bg-accent-danger/90 text-text-inverted;
+  @apply border text-text-inverted;
 
-  box-shadow: 0 0 20px rgb(var(--color-danger-rgb) / 24%);
+  border-color: rgb(var(--color-danger-rgb) / 24%);
+  background: linear-gradient(135deg, rgb(var(--color-danger-rgb) / 94%), rgb(var(--color-warning-rgb) / 74%));
+  box-shadow: 0 14px 30px rgb(var(--color-danger-rgb) / 18%);
 }
 
 .ui-button--danger:hover:not(:disabled) {

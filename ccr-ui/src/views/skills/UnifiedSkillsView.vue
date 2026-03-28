@@ -1,745 +1,769 @@
 <template>
   <div class="skills-console">
-    <header class="console-header">
-      <div>
-        <p class="console-header__eyebrow">
-          Skills Domain
-        </p>
-        <h1 class="console-header__title">
-          /skills
-        </h1>
-        <p class="console-header__subtitle">
-          Inventory, sources, marketplace, and multi-platform sync in one console.
-        </p>
-      </div>
-      <button
-        class="console-button"
-        :disabled="inventoryLoading || sourcesLoading || marketplaceLoading"
-        @click="handleRefresh"
-      >
-        <SIcon
-          name="RefreshCw"
-          size="w-4 h-4"
-          :class="{ 'animate-spin': inventoryLoading || sourcesLoading || marketplaceLoading }"
-        />
-        <span>Refresh</span>
-      </button>
-    </header>
-
-    <div class="console-tabs">
-      <button
-        v-for="tab in tabs"
-        :key="tab.id"
-        class="console-tab"
-        :class="{ 'console-tab--active': routeState.tab === tab.id }"
-        @click="setTab(tab.id)"
-      >
-        <SIcon
-          :name="tab.icon"
-          size="w-4 h-4"
-        />
-        <span>{{ tab.label }}</span>
-        <span class="console-tab__count">{{ tab.count }}</span>
-      </button>
-    </div>
-
-    <div class="console-layout">
-      <aside class="console-sidebar">
-        <section class="panel">
-          <div class="panel__header">
-            <h2 class="panel__title">
-              Targets
-            </h2>
-            <button
-              class="panel__link"
-              @click="selectDetectedPlatforms"
-            >
-              Detected
-            </button>
-          </div>
-          <div class="platform-grid">
-            <button
-              v-for="platform in platforms"
-              :key="platform.id"
-              class="platform-chip"
-              :class="{
-                'platform-chip--active': selectedPlatforms.includes(platform.id),
-                'platform-chip--disabled': !platform.detected,
-              }"
-              :disabled="!platform.detected"
-              @click="togglePlatform(platform.id)"
-            >
-              <SIcon
-                :name="platformIcon(platform.id)"
-                size="w-4 h-4"
-              />
-              <span>{{ platform.displayName }}</span>
-              <span class="platform-chip__count">{{ platform.installedCount }}</span>
-            </button>
-          </div>
-        </section>
-
-        <section
-          v-if="routeState.tab === 'inventory'"
-          class="panel"
+    <PageHeaderCard
+      title="Skills 管理中心"
+      description="跨平台 AI CLI 工具的统一技能库存、来源和安装工作台。"
+      badge="Workspace"
+      icon="Package"
+      tone="secondary"
+    >
+      <template #actions>
+        <button
+          class="console-button"
+          :disabled="inventoryLoading || sourcesLoading || marketplaceLoading"
+          @click="handleRefresh"
         >
-          <div class="panel__header">
-            <h2 class="panel__title">
-              Filters
-            </h2>
-            <button
-              class="panel__link"
-              @click="resetInventoryFilters"
-            >
-              Reset
-            </button>
-          </div>
+          <SIcon
+            name="RefreshCw"
+            size="w-4 h-4"
+            :class="{ 'animate-spin': inventoryLoading || sourcesLoading || marketplaceLoading }"
+          />
+          <span>Refresh</span>
+        </button>
+      </template>
 
-          <label class="field">
-            <span class="field__label">Search</span>
-            <input
-              v-model="searchInput"
-              class="field__input"
-              type="text"
-              placeholder="name / tag / category"
-            >
-          </label>
+      <div class="skills-header-stats">
+        <div class="skills-header-stat">
+          <span class="skills-header-stat__label">Logical skills</span>
+          <strong class="skills-header-stat__value">{{ stats.logicalSkills }}</strong>
+        </div>
+        <div class="skills-header-stat">
+          <span class="skills-header-stat__label">Sources</span>
+          <strong class="skills-header-stat__value">{{ stats.sources }}</strong>
+        </div>
+        <div class="skills-header-stat">
+          <span class="skills-header-stat__label">Installed packages</span>
+          <strong class="skills-header-stat__value">{{ stats.installations }}</strong>
+        </div>
+      </div>
+    </PageHeaderCard>
 
-          <label class="field">
-            <span class="field__label">Platform</span>
-            <select
-              class="field__input"
-              :value="routeState.platform"
-              @change="updatePlatformFilter(($event.target as HTMLSelectElement).value)"
-            >
-              <option value="all">All platforms</option>
-              <option
+    <AsyncStatePanel
+      v-if="runtimeUnavailable"
+      state="runtime-unavailable"
+      :title="runtimeCopy.title"
+      :description="runtimeCopy.description"
+      :action-label="runtimeCopy.actionLabel"
+      action-icon="ArrowLeft"
+      @action="$router.push('/')"
+    />
+
+    <template v-else>
+      <div class="console-tabs">
+        <button
+          v-for="tab in tabs"
+          :key="tab.id"
+          class="console-tab"
+          :class="{ 'console-tab--active': routeState.tab === tab.id }"
+          @click="setTab(tab.id)"
+        >
+          <SIcon
+            :name="tab.icon"
+            size="w-4 h-4"
+          />
+          <span>{{ tab.label }}</span>
+          <span class="console-tab__count">{{ tab.count }}</span>
+        </button>
+      </div>
+
+      <div class="console-layout">
+        <aside class="console-sidebar">
+          <section class="panel">
+            <div class="panel__header">
+              <h2 class="panel__title">
+                Targets
+              </h2>
+              <button
+                class="panel__link"
+                @click="selectDetectedPlatforms"
+              >
+                Detected
+              </button>
+            </div>
+            <div class="platform-grid">
+              <button
                 v-for="platform in platforms"
                 :key="platform.id"
-                :value="platform.id"
-              >
-                {{ platform.displayName }}
-              </option>
-            </select>
-          </label>
-
-          <label class="field">
-            <span class="field__label">Origin</span>
-            <select
-              class="field__input"
-              :value="routeState.origin"
-              @change="updateOriginFilter(($event.target as HTMLSelectElement).value)"
-            >
-              <option value="all">All origins</option>
-              <option
-                v-for="origin in originOptions"
-                :key="origin"
-                :value="origin"
-              >
-                {{ origin }}
-              </option>
-            </select>
-          </label>
-
-          <label class="field">
-            <span class="field__label">Category</span>
-            <select
-              v-model="filters.category"
-              class="field__input"
-            >
-              <option :value="null">All categories</option>
-              <option
-                v-for="category in categories"
-                :key="category"
-                :value="category"
-              >
-                {{ category }}
-              </option>
-            </select>
-          </label>
-
-          <div class="tag-cloud">
-            <button
-              v-for="tag in tags"
-              :key="tag"
-              class="tag-chip"
-              :class="{ 'tag-chip--active': filters.tags.includes(tag) }"
-              @click="toggleTag(tag)"
-            >
-              {{ tag }}
-            </button>
-          </div>
-        </section>
-
-        <section
-          v-else-if="routeState.tab === 'sources'"
-          class="panel"
-        >
-          <div class="panel__header">
-            <h2 class="panel__title">
-              Add Source
-            </h2>
-          </div>
-
-          <label class="field">
-            <span class="field__label">Git repo</span>
-            <input
-              v-model="gitSourceUrl"
-              class="field__input"
-              type="text"
-              placeholder="https://github.com/owner/repo"
-            >
-          </label>
-          <button
-            class="console-button console-button--primary"
-            :disabled="mutationLoading || !gitSourceUrl.trim()"
-            @click="handleAddGitSource"
-          >
-            <SIcon
-              name="Github"
-              size="w-4 h-4"
-            />
-            <span>Add Git Source</span>
-          </button>
-
-          <label class="field">
-            <span class="field__label">Local directory</span>
-            <div class="field__row">
-              <input
-                v-model="localSourcePath"
-                class="field__input"
-                type="text"
-                placeholder="D:/skills/repo"
-              >
-              <button
-                class="console-button"
-                @click="handlePickFolder('source')"
+                class="platform-chip"
+                :class="{
+                  'platform-chip--active': selectedPlatforms.includes(platform.id),
+                  'platform-chip--disabled': !platform.detected,
+                }"
+                :disabled="!platform.detected"
+                @click="togglePlatform(platform.id)"
               >
                 <SIcon
-                  name="FolderOpen"
+                  :name="platformIcon(platform.id)"
                   size="w-4 h-4"
                 />
+                <span>{{ platform.displayName }}</span>
+                <span class="platform-chip__count">{{ platform.installedCount }}</span>
               </button>
-            </div>
-          </label>
-          <button
-            class="console-button console-button--primary"
-            :disabled="mutationLoading || !localSourcePath.trim()"
-            @click="handleAddLocalSource"
-          >
-            <SIcon
-              name="FolderGit2"
-              size="w-4 h-4"
-            />
-            <span>Add Local Source</span>
-          </button>
-        </section>
-
-        <section
-          v-else
-          class="panel"
-        >
-          <div class="panel__header">
-            <h2 class="panel__title">
-              Manual Install
-            </h2>
-          </div>
-
-          <label class="field">
-            <span class="field__label">GitHub</span>
-            <input
-              v-model="manualGithub"
-              class="field__input"
-              type="text"
-              placeholder="owner/repo or owner/repo@skill"
-            >
-          </label>
-          <label class="field">
-            <span class="field__label">Local path</span>
-            <div class="field__row">
-              <input
-                v-model="manualLocalPath"
-                class="field__input"
-                type="text"
-                placeholder="D:/skills/local-skill"
-              >
-              <button
-                class="console-button"
-                @click="handlePickFolder('manual')"
-              >
-                <SIcon
-                  name="FolderOpen"
-                  size="w-4 h-4"
-                />
-              </button>
-            </div>
-          </label>
-          <label class="field">
-            <span class="field__label">npx package</span>
-            <input
-              v-model="manualNpx"
-              class="field__input"
-              type="text"
-              placeholder="owner/repo or owner/repo@skill"
-            >
-          </label>
-        </section>
-
-        <section class="panel">
-          <div class="panel__header">
-            <h2 class="panel__title">
-              Activity
-            </h2>
-          </div>
-          <div class="activity-list">
-            <div
-              v-for="entry in operationLog.slice(0, 8)"
-              :key="entry.id"
-              class="activity-row"
-            >
-              <span
-                class="activity-row__status"
-                :class="`activity-row__status--${entry.status}`"
-              />
-              <div class="activity-row__body">
-                <strong>{{ entry.action }}</strong>
-                <span>{{ entry.target }}</span>
-                <span class="activity-row__meta">{{ formatTime(entry.timestamp) }}</span>
-              </div>
-            </div>
-          </div>
-        </section>
-      </aside>
-
-      <div class="console-main">
-        <section
-          v-if="routeState.tab === 'inventory'"
-          class="inventory-layout"
-        >
-          <section class="panel">
-            <div class="panel__header">
-              <h2 class="panel__title">
-                Inventory
-              </h2>
-              <span class="panel__link">{{ filteredSkills.length }} results</span>
-            </div>
-
-            <div
-              ref="inventoryScrollRef"
-              class="inventory-list"
-            >
-              <div :style="{ height: `${rowVirtualizer.getTotalSize()}px`, position: 'relative' }">
-                <div
-                  v-for="virtualRow in rowVirtualizer.getVirtualItems()"
-                  :key="filteredSkills[virtualRow.index]?.id"
-                  class="inventory-row"
-                  :style="{ transform: `translateY(${virtualRow.start}px)` }"
-                >
-                  <button
-                    :ref="measureElement"
-                    :data-index="virtualRow.index"
-                    class="skill-card"
-                    :class="{ 'skill-card--active': filteredSkills[virtualRow.index]?.id === selectedSkill?.id }"
-                    @click="handleSelectSkill(filteredSkills[virtualRow.index]?.id)"
-                  >
-                    <div class="skill-card__head">
-                      <div class="min-w-0">
-                        <h3 class="truncate">
-                          {{ filteredSkills[virtualRow.index]?.name }}
-                        </h3>
-                        <p
-                          class="skill-card__desc"
-                          :title="filteredSkills[virtualRow.index]?.description ?? ''"
-                        >
-                          {{ formatSkillDescription(filteredSkills[virtualRow.index]?.description) }}
-                        </p>
-                      </div>
-                      <span class="console-tab__count">{{ filteredSkills[virtualRow.index]?.installCount }}</span>
-                    </div>
-                    <div class="skill-card__meta">
-                      <span class="badge">{{ filteredSkills[virtualRow.index]?.origin }}</span>
-                      <span
-                        v-for="installation in filteredSkills[virtualRow.index]?.installations.slice(0, 2)"
-                        :key="installation.id"
-                        class="badge"
-                      >
-                        {{ installation.platformName }}
-                      </span>
-                      <span
-                        v-if="(filteredSkills[virtualRow.index]?.installations.length ?? 0) > 2"
-                        class="badge"
-                      >
-                        +{{ (filteredSkills[virtualRow.index]?.installations.length ?? 0) - 2 }}
-                      </span>
-                    </div>
-                  </button>
-                </div>
-              </div>
             </div>
           </section>
 
-          <section class="panel">
-            <div class="panel__header">
-              <h2 class="panel__title">
-                Detail
-              </h2>
-              <button
-                v-if="selectedSkill"
-                class="console-button console-button--danger"
-                :disabled="mutationLoading"
-                @click="handleRemoveSkill"
-              >
-                <SIcon
-                  name="Trash2"
-                  size="w-4 h-4"
-                />
-                <span>Remove Skill</span>
-              </button>
-            </div>
-
-            <div
-              v-if="selectedSkill"
-              class="detail-stack"
-            >
-              <div class="detail-card">
-                <h3>{{ selectedSkill.name }}</h3>
-                <p
-                  class="detail-description"
-                  :class="{ 'detail-description--collapsed': !showFullDetailDescription }"
-                  :title="selectedSkill.description ?? ''"
-                >
-                  {{ selectedSkill.description || 'No description' }}
-                </p>
-                <button
-                  v-if="selectedSkill.description && selectedSkill.description.length > 320"
-                  type="button"
-                  class="detail-description__toggle"
-                  @click="showFullDetailDescription = !showFullDetailDescription"
-                >
-                  {{ showFullDetailDescription ? 'Show less' : 'Show more' }}
-                </button>
-                <div class="detail-card__grid">
-                  <div>
-                    <span>Origin</span>
-                    <strong>{{ selectedSkill.origin }}</strong>
-                  </div>
-                  <div>
-                    <span>Author</span>
-                    <strong>{{ selectedSkill.author || 'Unknown' }}</strong>
-                  </div>
-                  <div>
-                    <span>Version</span>
-                    <strong>{{ selectedSkill.version || 'N/A' }}</strong>
-                  </div>
-                  <div>
-                    <span>Category</span>
-                    <strong>{{ selectedSkill.category || 'Uncategorized' }}</strong>
-                  </div>
-                </div>
-                <div class="skill-card__meta">
-                  <span
-                    v-for="tag in selectedSkill.tags"
-                    :key="tag"
-                    class="tag-chip tag-chip--active"
-                  >
-                    {{ tag }}
-                  </span>
-                </div>
-              </div>
-
-              <div class="detail-card">
-                <div class="panel__header">
-                  <h2 class="panel__title">
-                    Installations
-                  </h2>
-                  <button
-                    class="console-button"
-                    :disabled="mutationLoading || !selectedSkill || selectedPlatforms.length === 0"
-                    @click="handleSyncSelected"
-                  >
-                    <SIcon
-                      name="CopyPlus"
-                      size="w-4 h-4"
-                    />
-                    <span>Sync to selected</span>
-                  </button>
-                </div>
-                <div class="installation-list">
-                  <div
-                    v-for="installation in selectedSkill.installations"
-                    :key="installation.id"
-                    class="installation-row"
-                  >
-                    <div class="installation-row__main">
-                      <strong>{{ installation.platformName }}</strong>
-                      <span>{{ shortenPath(installation.installPath) }}</span>
-                    </div>
-                    <div class="installation-row__actions">
-                      <button
-                        class="console-button"
-                        @click="handleSelectInstallation(installation.id)"
-                      >
-                        <SIcon
-                          name="Eye"
-                          size="w-4 h-4"
-                        />
-                      </button>
-                      <button
-                        class="console-button console-button--danger"
-                        :disabled="mutationLoading"
-                        @click="handleRemoveInstallation(installation.id)"
-                      >
-                        <SIcon
-                          name="Trash2"
-                          size="w-4 h-4"
-                        />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div class="detail-card">
-                <div class="panel__header">
-                  <h2 class="panel__title">
-                    Content
-                  </h2>
-                  <div class="installation-row__actions">
-                    <button
-                      class="console-button"
-                      @click="setMode(routeState.mode === 'edit' ? 'view' : 'edit')"
-                    >
-                      <SIcon
-                        :name="routeState.mode === 'edit' ? 'Eye' : 'Pencil'"
-                        size="w-4 h-4"
-                      />
-                      <span>{{ routeState.mode === 'edit' ? 'Preview' : 'Edit' }}</span>
-                    </button>
-                    <button
-                      class="console-button console-button--primary"
-                      :disabled="mutationLoading || routeState.mode !== 'edit' || !contentDirty || !selectedInstallation"
-                      @click="handleSaveContent"
-                    >
-                      <SIcon
-                        name="Save"
-                        size="w-4 h-4"
-                      />
-                      <span>Save</span>
-                    </button>
-                  </div>
-                </div>
-
-                <textarea
-                  v-if="routeState.mode === 'edit'"
-                  v-model="editBuffer"
-                  class="content-editor"
-                />
-                <pre
-                  v-else
-                  class="content-preview"
-                >{{ contentPreview }}</pre>
-              </div>
-            </div>
-
-            <div
-              v-else
-              class="empty-state"
-            >
-              Select a logical skill to inspect it.
-            </div>
-          </section>
-        </section>
-
-        <section
-          v-else-if="routeState.tab === 'sources'"
-          class="source-list"
-        >
-          <article
-            v-for="source in sources"
-            :key="source.id"
+          <section
+            v-if="routeState.tab === 'inventory'"
             class="panel"
           >
             <div class="panel__header">
-              <div>
-                <h2 class="panel__title">
-                  {{ source.name }}
-                </h2>
-                <p class="console-header__subtitle">
-                  {{ source.description || source.location }}
-                </p>
-              </div>
-              <div class="installation-row__actions">
-                <button
-                  class="console-button"
-                  :disabled="mutationLoading"
-                  @click="handleSyncSource(source.id)"
-                >
-                  <SIcon
-                    name="RefreshCw"
-                    size="w-4 h-4"
-                  />
-                </button>
-                <button
-                  class="console-button console-button--danger"
-                  :disabled="mutationLoading"
-                  @click="handleRemoveSource(source.id)"
-                >
-                  <SIcon
-                    name="Trash2"
-                    size="w-4 h-4"
-                  />
-                </button>
-              </div>
-            </div>
-
-            <div class="skill-card__meta">
-              <span class="badge">{{ source.type }}</span>
-              <span class="badge">{{ source.health }}</span>
-              <span class="badge">{{ source.skillCount }} skills</span>
-            </div>
-
-            <div class="source-skill-grid">
-              <button
-                v-for="skill in source.skills"
-                :key="`${source.id}:${skill.id}`"
-                class="source-skill-card"
-                :disabled="selectedPlatforms.length === 0 || mutationLoading"
-                @click="handleInstallFromSource(source.id, skill.id)"
-              >
-                <div>
-                  <strong>{{ skill.name }}</strong>
-                  <p>{{ skill.description || 'No description' }}</p>
-                </div>
-                <SIcon
-                  name="ArrowRight"
-                  size="w-4 h-4"
-                />
-              </button>
-            </div>
-          </article>
-        </section>
-
-        <section
-          v-else
-          class="marketplace-layout"
-        >
-          <section class="panel">
-            <div class="panel__header">
               <h2 class="panel__title">
-                Marketplace
+                Filters
               </h2>
-              <div class="field__row">
-                <input
-                  v-model="marketplaceSearch"
-                  class="field__input"
-                  type="text"
-                  placeholder="search skills.sh"
-                >
-                <button
-                  class="console-button"
-                  :disabled="marketplaceLoading"
-                  @click="handleMarketplaceSearch"
-                >
-                  <SIcon
-                    name="Search"
-                    size="w-4 h-4"
-                  />
-                </button>
-              </div>
-            </div>
-
-            <div class="marketplace-grid">
-              <article
-                v-for="item in marketplace.items"
-                :key="item.package"
-                class="marketplace-card"
-              >
-                <div class="marketplace-card__header">
-                  <div>
-                    <h3>{{ item.package }}</h3>
-                    <p>{{ item.description || `${item.owner}/${item.repo}` }}</p>
-                  </div>
-                  <span class="badge">{{ item.stars ?? 0 }}★</span>
-                </div>
-                <button
-                  class="console-button console-button--primary"
-                  :disabled="selectedPlatforms.length === 0 || mutationLoading"
-                  @click="handleInstallMarketplace(item)"
-                >
-                  <SIcon
-                    name="Download"
-                    size="w-4 h-4"
-                  />
-                  <span>Install</span>
-                </button>
-              </article>
-            </div>
-
-            <div class="pagination-row">
               <button
-                class="console-button"
-                :disabled="routeState.page <= 1"
-                @click="updatePage(routeState.page - 1)"
+                class="panel__link"
+                @click="resetInventoryFilters"
               >
-                Prev
+                Reset
               </button>
-              <span class="panel__link">Page {{ routeState.page }}</span>
-              <button
-                class="console-button"
-                :disabled="marketplace.items.length < marketplace.pageSize"
-                @click="updatePage(routeState.page + 1)"
+            </div>
+
+            <label class="field">
+              <span class="field__label">Search</span>
+              <input
+                v-model="searchInput"
+                class="field__input"
+                type="text"
+                placeholder="name / tag / category"
               >
-                Next
+            </label>
+
+            <label class="field">
+              <span class="field__label">Platform</span>
+              <select
+                class="field__input"
+                :value="routeState.platform"
+                @change="updatePlatformFilter(($event.target as HTMLSelectElement).value)"
+              >
+                <option value="all">All platforms</option>
+                <option
+                  v-for="platform in platforms"
+                  :key="platform.id"
+                  :value="platform.id"
+                >
+                  {{ platform.displayName }}
+                </option>
+              </select>
+            </label>
+
+            <label class="field">
+              <span class="field__label">Origin</span>
+              <select
+                class="field__input"
+                :value="routeState.origin"
+                @change="updateOriginFilter(($event.target as HTMLSelectElement).value)"
+              >
+                <option value="all">All origins</option>
+                <option
+                  v-for="origin in originOptions"
+                  :key="origin"
+                  :value="origin"
+                >
+                  {{ origin }}
+                </option>
+              </select>
+            </label>
+
+            <label class="field">
+              <span class="field__label">Category</span>
+              <select
+                v-model="filters.category"
+                class="field__input"
+              >
+                <option :value="null">All categories</option>
+                <option
+                  v-for="category in categories"
+                  :key="category"
+                  :value="category"
+                >
+                  {{ category }}
+                </option>
+              </select>
+            </label>
+
+            <div class="tag-cloud">
+              <button
+                v-for="tag in tags"
+                :key="tag"
+                class="tag-chip"
+                :class="{ 'tag-chip--active': filters.tags.includes(tag) }"
+                @click="toggleTag(tag)"
+              >
+                {{ tag }}
               </button>
             </div>
           </section>
 
-          <section class="panel manual-actions">
+          <section
+            v-else-if="routeState.tab === 'sources'"
+            class="panel"
+          >
             <div class="panel__header">
               <h2 class="panel__title">
-                Manual Install
+                Add Source
               </h2>
             </div>
+
+            <label class="field">
+              <span class="field__label">Git repo</span>
+              <input
+                v-model="gitSourceUrl"
+                class="field__input"
+                type="text"
+                placeholder="https://github.com/owner/repo"
+              >
+            </label>
             <button
               class="console-button console-button--primary"
-              :disabled="mutationLoading || !manualGithub.trim() || selectedPlatforms.length === 0"
-              @click="installManual('github')"
+              :disabled="mutationLoading || !gitSourceUrl.trim()"
+              @click="handleAddGitSource"
             >
               <SIcon
                 name="Github"
                 size="w-4 h-4"
               />
-              <span>Install GitHub</span>
+              <span>Add Git Source</span>
             </button>
+
+            <label class="field">
+              <span class="field__label">Local directory</span>
+              <div class="field__row">
+                <input
+                  v-model="localSourcePath"
+                  class="field__input"
+                  type="text"
+                  placeholder="D:/skills/repo"
+                >
+                <button
+                  class="console-button"
+                  @click="handlePickFolder('source')"
+                >
+                  <SIcon
+                    name="FolderOpen"
+                    size="w-4 h-4"
+                  />
+                </button>
+              </div>
+            </label>
             <button
               class="console-button console-button--primary"
-              :disabled="mutationLoading || !manualLocalPath.trim() || selectedPlatforms.length === 0"
-              @click="installManual('local')"
+              :disabled="mutationLoading || !localSourcePath.trim()"
+              @click="handleAddLocalSource"
             >
               <SIcon
-                name="HardDrive"
+                name="FolderGit2"
                 size="w-4 h-4"
               />
-              <span>Install Local</span>
+              <span>Add Local Source</span>
             </button>
-            <button
-              class="console-button console-button--primary"
-              :disabled="mutationLoading || !manualNpx.trim() || selectedPlatforms.length === 0"
-              @click="installManual('npx')"
-            >
-              <SIcon
-                name="Terminal"
-                size="w-4 h-4"
-              />
-              <span>Install npx</span>
-            </button>
-            <p class="console-header__subtitle">
-              {{ npxStatus?.available ? `npx ${npxStatus.version ?? ''}` : 'npx unavailable' }}
-            </p>
           </section>
-        </section>
+
+          <section
+            v-else
+            class="panel"
+          >
+            <div class="panel__header">
+              <h2 class="panel__title">
+                Manual Install
+              </h2>
+            </div>
+
+            <label class="field">
+              <span class="field__label">GitHub</span>
+              <input
+                v-model="manualGithub"
+                class="field__input"
+                type="text"
+                placeholder="owner/repo or owner/repo@skill"
+              >
+            </label>
+            <label class="field">
+              <span class="field__label">Local path</span>
+              <div class="field__row">
+                <input
+                  v-model="manualLocalPath"
+                  class="field__input"
+                  type="text"
+                  placeholder="D:/skills/local-skill"
+                >
+                <button
+                  class="console-button"
+                  @click="handlePickFolder('manual')"
+                >
+                  <SIcon
+                    name="FolderOpen"
+                    size="w-4 h-4"
+                  />
+                </button>
+              </div>
+            </label>
+            <label class="field">
+              <span class="field__label">npx package</span>
+              <input
+                v-model="manualNpx"
+                class="field__input"
+                type="text"
+                placeholder="owner/repo or owner/repo@skill"
+              >
+            </label>
+          </section>
+
+          <section class="panel">
+            <div class="panel__header">
+              <h2 class="panel__title">
+                Activity
+              </h2>
+            </div>
+            <div class="activity-list">
+              <div
+                v-for="entry in operationLog.slice(0, 8)"
+                :key="entry.id"
+                class="activity-row"
+              >
+                <span
+                  class="activity-row__status"
+                  :class="`activity-row__status--${entry.status}`"
+                />
+                <div class="activity-row__body">
+                  <strong>{{ entry.action }}</strong>
+                  <span>{{ entry.target }}</span>
+                  <span class="activity-row__meta">{{ formatTime(entry.timestamp) }}</span>
+                </div>
+              </div>
+            </div>
+          </section>
+        </aside>
+
+        <div class="console-main">
+          <section
+            v-if="routeState.tab === 'inventory'"
+            class="inventory-layout"
+          >
+            <section class="panel">
+              <div class="panel__header">
+                <h2 class="panel__title">
+                  Inventory
+                </h2>
+                <span class="panel__link">{{ filteredSkills.length }} results</span>
+              </div>
+
+              <div
+                ref="inventoryScrollRef"
+                class="inventory-list"
+              >
+                <div :style="{ height: `${rowVirtualizer.getTotalSize()}px`, position: 'relative' }">
+                  <div
+                    v-for="virtualRow in rowVirtualizer.getVirtualItems()"
+                    :key="filteredSkills[virtualRow.index]?.id"
+                    class="inventory-row"
+                    :style="{ transform: `translateY(${virtualRow.start}px)` }"
+                  >
+                    <button
+                      :ref="measureElement"
+                      :data-index="virtualRow.index"
+                      class="skill-card"
+                      :class="{ 'skill-card--active': filteredSkills[virtualRow.index]?.id === selectedSkill?.id }"
+                      @click="handleSelectSkill(filteredSkills[virtualRow.index]?.id)"
+                    >
+                      <div class="skill-card__head">
+                        <div class="min-w-0">
+                          <h3 class="truncate">
+                            {{ filteredSkills[virtualRow.index]?.name }}
+                          </h3>
+                          <p
+                            class="skill-card__desc"
+                            :title="filteredSkills[virtualRow.index]?.description ?? ''"
+                          >
+                            {{ formatSkillDescription(filteredSkills[virtualRow.index]?.description) }}
+                          </p>
+                        </div>
+                        <span class="console-tab__count">{{ filteredSkills[virtualRow.index]?.installCount }}</span>
+                      </div>
+                      <div class="skill-card__meta">
+                        <span class="badge">{{ filteredSkills[virtualRow.index]?.origin }}</span>
+                        <span
+                          v-for="installation in filteredSkills[virtualRow.index]?.installations.slice(0, 2)"
+                          :key="installation.id"
+                          class="badge"
+                        >
+                          {{ installation.platformName }}
+                        </span>
+                        <span
+                          v-if="(filteredSkills[virtualRow.index]?.installations.length ?? 0) > 2"
+                          class="badge"
+                        >
+                          +{{ (filteredSkills[virtualRow.index]?.installations.length ?? 0) - 2 }}
+                        </span>
+                      </div>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section class="panel">
+              <div class="panel__header">
+                <h2 class="panel__title">
+                  Detail
+                </h2>
+                <button
+                  v-if="selectedSkill"
+                  class="console-button console-button--danger"
+                  :disabled="mutationLoading"
+                  @click="handleRemoveSkill"
+                >
+                  <SIcon
+                    name="Trash2"
+                    size="w-4 h-4"
+                  />
+                  <span>Remove Skill</span>
+                </button>
+              </div>
+
+              <div
+                v-if="selectedSkill"
+                class="detail-stack"
+              >
+                <div class="detail-card">
+                  <h3>{{ selectedSkill.name }}</h3>
+                  <p
+                    class="detail-description"
+                    :class="{ 'detail-description--collapsed': !showFullDetailDescription }"
+                    :title="selectedSkill.description ?? ''"
+                  >
+                    {{ selectedSkill.description || 'No description' }}
+                  </p>
+                  <button
+                    v-if="selectedSkill.description && selectedSkill.description.length > 320"
+                    type="button"
+                    class="detail-description__toggle"
+                    @click="showFullDetailDescription = !showFullDetailDescription"
+                  >
+                    {{ showFullDetailDescription ? 'Show less' : 'Show more' }}
+                  </button>
+                  <div class="detail-card__grid">
+                    <div>
+                      <span>Origin</span>
+                      <strong>{{ selectedSkill.origin }}</strong>
+                    </div>
+                    <div>
+                      <span>Author</span>
+                      <strong>{{ selectedSkill.author || 'Unknown' }}</strong>
+                    </div>
+                    <div>
+                      <span>Version</span>
+                      <strong>{{ selectedSkill.version || 'N/A' }}</strong>
+                    </div>
+                    <div>
+                      <span>Category</span>
+                      <strong>{{ selectedSkill.category || 'Uncategorized' }}</strong>
+                    </div>
+                  </div>
+                  <div class="skill-card__meta">
+                    <span
+                      v-for="tag in selectedSkill.tags"
+                      :key="tag"
+                      class="tag-chip tag-chip--active"
+                    >
+                      {{ tag }}
+                    </span>
+                  </div>
+                </div>
+
+                <div class="detail-card">
+                  <div class="panel__header">
+                    <h2 class="panel__title">
+                      Installations
+                    </h2>
+                    <button
+                      class="console-button"
+                      :disabled="mutationLoading || !selectedSkill || selectedPlatforms.length === 0"
+                      @click="handleSyncSelected"
+                    >
+                      <SIcon
+                        name="CopyPlus"
+                        size="w-4 h-4"
+                      />
+                      <span>Sync to selected</span>
+                    </button>
+                  </div>
+                  <div class="installation-list">
+                    <div
+                      v-for="installation in selectedSkill.installations"
+                      :key="installation.id"
+                      class="installation-row"
+                    >
+                      <div class="installation-row__main">
+                        <strong>{{ installation.platformName }}</strong>
+                        <span>{{ shortenPath(installation.installPath) }}</span>
+                      </div>
+                      <div class="installation-row__actions">
+                        <button
+                          class="console-button"
+                          @click="handleSelectInstallation(installation.id)"
+                        >
+                          <SIcon
+                            name="Eye"
+                            size="w-4 h-4"
+                          />
+                        </button>
+                        <button
+                          class="console-button console-button--danger"
+                          :disabled="mutationLoading"
+                          @click="handleRemoveInstallation(installation.id)"
+                        >
+                          <SIcon
+                            name="Trash2"
+                            size="w-4 h-4"
+                          />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="detail-card">
+                  <div class="panel__header">
+                    <h2 class="panel__title">
+                      Content
+                    </h2>
+                    <div class="installation-row__actions">
+                      <button
+                        class="console-button"
+                        @click="setMode(routeState.mode === 'edit' ? 'view' : 'edit')"
+                      >
+                        <SIcon
+                          :name="routeState.mode === 'edit' ? 'Eye' : 'Pencil'"
+                          size="w-4 h-4"
+                        />
+                        <span>{{ routeState.mode === 'edit' ? 'Preview' : 'Edit' }}</span>
+                      </button>
+                      <button
+                        class="console-button console-button--primary"
+                        :disabled="mutationLoading || routeState.mode !== 'edit' || !contentDirty || !selectedInstallation"
+                        @click="handleSaveContent"
+                      >
+                        <SIcon
+                          name="Save"
+                          size="w-4 h-4"
+                        />
+                        <span>Save</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  <textarea
+                    v-if="routeState.mode === 'edit'"
+                    v-model="editBuffer"
+                    class="content-editor"
+                  />
+                  <pre
+                    v-else
+                    class="content-preview"
+                  >{{ contentPreview }}</pre>
+                </div>
+              </div>
+
+              <div
+                v-else
+                class="empty-state"
+              >
+                Select a logical skill to inspect it.
+              </div>
+            </section>
+          </section>
+
+          <section
+            v-else-if="routeState.tab === 'sources'"
+            class="source-list"
+          >
+            <article
+              v-for="source in sources"
+              :key="source.id"
+              class="panel"
+            >
+              <div class="panel__header">
+                <div>
+                  <h2 class="panel__title">
+                    {{ source.name }}
+                  </h2>
+                  <p class="console-header__subtitle">
+                    {{ source.description || source.location }}
+                  </p>
+                </div>
+                <div class="installation-row__actions">
+                  <button
+                    class="console-button"
+                    :disabled="mutationLoading"
+                    @click="handleSyncSource(source.id)"
+                  >
+                    <SIcon
+                      name="RefreshCw"
+                      size="w-4 h-4"
+                    />
+                  </button>
+                  <button
+                    class="console-button console-button--danger"
+                    :disabled="mutationLoading"
+                    @click="handleRemoveSource(source.id)"
+                  >
+                    <SIcon
+                      name="Trash2"
+                      size="w-4 h-4"
+                    />
+                  </button>
+                </div>
+              </div>
+
+              <div class="skill-card__meta">
+                <span class="badge">{{ source.type }}</span>
+                <span class="badge">{{ source.health }}</span>
+                <span class="badge">{{ source.skillCount }} skills</span>
+              </div>
+
+              <div class="source-skill-grid">
+                <button
+                  v-for="skill in source.skills"
+                  :key="`${source.id}:${skill.id}`"
+                  class="source-skill-card"
+                  :disabled="selectedPlatforms.length === 0 || mutationLoading"
+                  @click="handleInstallFromSource(source.id, skill.id)"
+                >
+                  <div>
+                    <strong>{{ skill.name }}</strong>
+                    <p>{{ skill.description || 'No description' }}</p>
+                  </div>
+                  <SIcon
+                    name="ArrowRight"
+                    size="w-4 h-4"
+                  />
+                </button>
+              </div>
+            </article>
+          </section>
+
+          <section
+            v-else
+            class="marketplace-layout"
+          >
+            <section class="panel">
+              <div class="panel__header">
+                <h2 class="panel__title">
+                  Marketplace
+                </h2>
+                <div class="field__row">
+                  <input
+                    v-model="marketplaceSearch"
+                    class="field__input"
+                    type="text"
+                    placeholder="search skills.sh"
+                  >
+                  <button
+                    class="console-button"
+                    :disabled="marketplaceLoading"
+                    @click="handleMarketplaceSearch"
+                  >
+                    <SIcon
+                      name="Search"
+                      size="w-4 h-4"
+                    />
+                  </button>
+                </div>
+              </div>
+
+              <div class="marketplace-grid">
+                <article
+                  v-for="item in marketplace.items"
+                  :key="item.package"
+                  class="marketplace-card"
+                >
+                  <div class="marketplace-card__header">
+                    <div>
+                      <h3>{{ item.package }}</h3>
+                      <p>{{ item.description || `${item.owner}/${item.repo}` }}</p>
+                    </div>
+                    <span class="badge">{{ item.stars ?? 0 }}★</span>
+                  </div>
+                  <button
+                    class="console-button console-button--primary"
+                    :disabled="selectedPlatforms.length === 0 || mutationLoading"
+                    @click="handleInstallMarketplace(item)"
+                  >
+                    <SIcon
+                      name="Download"
+                      size="w-4 h-4"
+                    />
+                    <span>Install</span>
+                  </button>
+                </article>
+              </div>
+
+              <div class="pagination-row">
+                <button
+                  class="console-button"
+                  :disabled="routeState.page <= 1"
+                  @click="updatePage(routeState.page - 1)"
+                >
+                  Prev
+                </button>
+                <span class="panel__link">Page {{ routeState.page }}</span>
+                <button
+                  class="console-button"
+                  :disabled="marketplace.items.length < marketplace.pageSize"
+                  @click="updatePage(routeState.page + 1)"
+                >
+                  Next
+                </button>
+              </div>
+            </section>
+
+            <section class="panel manual-actions">
+              <div class="panel__header">
+                <h2 class="panel__title">
+                  Manual Install
+                </h2>
+              </div>
+              <button
+                class="console-button console-button--primary"
+                :disabled="mutationLoading || !manualGithub.trim() || selectedPlatforms.length === 0"
+                @click="installManual('github')"
+              >
+                <SIcon
+                  name="Github"
+                  size="w-4 h-4"
+                />
+                <span>Install GitHub</span>
+              </button>
+              <button
+                class="console-button console-button--primary"
+                :disabled="mutationLoading || !manualLocalPath.trim() || selectedPlatforms.length === 0"
+                @click="installManual('local')"
+              >
+                <SIcon
+                  name="HardDrive"
+                  size="w-4 h-4"
+                />
+                <span>Install Local</span>
+              </button>
+              <button
+                class="console-button console-button--primary"
+                :disabled="mutationLoading || !manualNpx.trim() || selectedPlatforms.length === 0"
+                @click="installManual('npx')"
+              >
+                <SIcon
+                  name="Terminal"
+                  size="w-4 h-4"
+                />
+                <span>Install npx</span>
+              </button>
+              <p class="console-header__subtitle">
+                {{ npxStatus?.available ? `npx ${npxStatus.version ?? ''}` : 'npx unavailable' }}
+              </p>
+            </section>
+          </section>
+        </div>
       </div>
-    </div>
+    </template>
   </div>
 </template>
 
@@ -747,10 +771,13 @@
 import { useVirtualizer } from '@tanstack/vue-virtual'
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import PageHeaderCard from '@/components/PageHeaderCard.vue'
+import AsyncStatePanel from '@/components/ui/AsyncStatePanel.vue'
 import SIcon from '@/components/ui/SIcon.vue'
 import { useUnifiedSkills } from '@/composables/useUnifiedSkills'
 import { useUIStore } from '@/stores/ui'
 import { PLATFORM_CONFIG } from '@/types/skills'
+import { getRuntimeUnavailableCopy } from '@/utils/runtimeState'
 import { isTauriRuntime } from '@/utils/tauriRuntime'
 import type { Platform, SkillOrigin, SkillsRouteState, SkillsTab } from '@/types/skills'
 
@@ -800,6 +827,8 @@ const tabs = computed(() => [
   { id: 'sources' as SkillsTab, label: 'Sources', icon: 'FolderGit2', count: stats.value.sources },
   { id: 'marketplace' as SkillsTab, label: 'Marketplace', icon: 'Store', count: marketplace.value.total },
 ])
+const runtimeUnavailable = computed(() => !isTauriRuntime())
+const runtimeCopy = computed(() => getRuntimeUnavailableCopy('skills'))
 
 const originOptions: SkillOrigin[] = ['marketplace', 'github', 'repo', 'local', 'npx', 'unknown']
 const selectedPlatforms = ref<Platform[]>([])
@@ -932,6 +961,7 @@ function toggleTag(tag: string) {
 }
 
 async function handleRefresh() {
+  if (runtimeUnavailable.value) return
   await refresh(routeState.value.tab === 'marketplace')
   if (routeState.value.tab === 'marketplace') {
     await loadMarketplace(true)
@@ -955,6 +985,11 @@ function setMode(mode: 'view' | 'edit') {
 }
 
 async function loadSelectedContent() {
+  if (runtimeUnavailable.value) {
+    currentContent.value = null
+    editBuffer.value = ''
+    return
+  }
   if (!selectedSkill.value || !selectedInstallation.value) {
     currentContent.value = null
     editBuffer.value = ''
@@ -1133,6 +1168,12 @@ watch(
     applyRouteState(normalized)
     searchInput.value = normalized.q
     marketplaceSearch.value = normalized.q
+
+    if (runtimeUnavailable.value) {
+      selectSkill(null, null)
+      return
+    }
+
     if (normalized.selected) {
       selectSkill(normalized.selected, null)
       void ensureDetail(normalized.selected, true)
@@ -1178,6 +1219,10 @@ watch(
 let searchTimer = 0
 
 onMounted(async () => {
+  if (runtimeUnavailable.value) {
+    return
+  }
+
   await initialize(false)
   await loadNpxStatus(true)
   if (routeState.value.tab === 'marketplace') {
@@ -1200,35 +1245,50 @@ onUnmounted(() => {
 
 <style scoped>
 .skills-console {
-  @apply flex flex-col gap-4 px-4 py-4;
+  @apply flex flex-col gap-5 px-4 py-4;
 }
 
-.console-header,
 .panel,
 .console-tabs {
-  @apply rounded-3xl border border-white/10 bg-black/25 p-4 backdrop-blur-2xl;
+  @apply rounded-3xl p-4;
+
+  background: var(--surface-workspace-bg);
+  border: 1px solid var(--surface-workspace-border);
+  box-shadow: var(--surface-workspace-shadow);
+  backdrop-filter: var(--surface-workspace-blur);
 }
 
-.console-header {
-  @apply flex items-center justify-between gap-4;
+.skills-header-stats {
+  @apply grid gap-3 md:grid-cols-3;
+}
 
-  background:
-    radial-gradient(circle at top right, rgb(167 139 250 / 18%), transparent 30%),
-    linear-gradient(180deg, rgb(13 7 32 / 82%), rgb(8 5 21 / 74%));
+.skills-header-stat {
+  @apply rounded-2xl border border-border-default/55 px-4 py-3;
+
+  background-color: rgb(var(--color-bg-elevated-rgb) / 72%);
+  backdrop-filter: blur(14px);
+}
+
+.skills-header-stat__label {
+  @apply block text-[11px] uppercase tracking-[0.12em] text-text-muted;
+}
+
+.skills-header-stat__value {
+  @apply mt-2 block text-lg font-semibold tracking-tight text-text-primary;
 }
 
 .console-header__eyebrow,
 .panel__title,
 .field__label {
-  @apply text-xs font-semibold uppercase tracking-[0.18em] text-white/55;
+  @apply text-xs font-semibold uppercase tracking-[0.16em] text-text-muted;
 }
 
 .console-header__title {
-  @apply text-3xl font-black text-white;
+  @apply text-3xl font-black text-text-primary;
 }
 
 .console-header__subtitle {
-  @apply text-sm text-white/65;
+  @apply text-sm text-text-secondary;
 }
 
 .console-tabs {
@@ -1239,16 +1299,19 @@ onUnmounted(() => {
 .console-button,
 .platform-chip,
 .tag-chip {
-  @apply inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white/70 transition-all;
+  @apply inline-flex items-center gap-2 rounded-xl border border-border-default/55 px-3 py-2 text-sm text-text-secondary transition-all;
+
+  background-color: rgb(var(--color-bg-elevated-rgb) / 72%);
 }
 
 .console-tab--active,
 .platform-chip--active,
 .tag-chip--active,
 .console-button--primary {
-  @apply border-violet-300/20 text-white;
+  @apply text-text-primary;
 
-  background: linear-gradient(180deg, rgb(167 139 250 / 20%), rgb(255 255 255 / 6%));
+  background: linear-gradient(180deg, rgb(var(--color-accent-primary-rgb) / 18%), rgb(var(--color-accent-secondary-rgb) / 10%));
+  border-color: rgb(var(--color-accent-primary-rgb) / 20%);
 }
 
 .platform-chip--disabled {
@@ -1268,7 +1331,7 @@ onUnmounted(() => {
 }
 
 .panel__link {
-  @apply text-xs text-white/55;
+  @apply text-xs text-text-muted;
 }
 
 .platform-grid,
@@ -1282,7 +1345,9 @@ onUnmounted(() => {
 }
 
 .field__input {
-  @apply w-full rounded-2xl border border-white/10 bg-black/25 px-3 py-2 text-sm text-white outline-none placeholder:text-white/30;
+  @apply w-full rounded-2xl border border-border-default/55 px-3 py-2 text-sm text-text-primary outline-none placeholder:text-text-muted/70;
+
+  background-color: rgb(var(--color-bg-elevated-rgb) / 72%);
 }
 
 .field__row {
@@ -1291,7 +1356,9 @@ onUnmounted(() => {
 
 .platform-chip__count,
 .console-tab__count {
-  @apply ml-auto rounded-full bg-black/30 px-2 py-0.5 text-xs text-white/70;
+  @apply ml-auto rounded-full px-2 py-0.5 text-xs text-text-secondary;
+
+  background-color: rgb(var(--color-bg-base-rgb) / 68%);
 }
 
 .inventory-layout,
@@ -1300,7 +1367,9 @@ onUnmounted(() => {
 }
 
 .inventory-list {
-  @apply h-[68vh] overflow-auto rounded-2xl border border-white/10 bg-black/20 p-2;
+  @apply h-[68vh] overflow-auto rounded-2xl border border-border-default/55 p-2;
+
+  background-color: rgb(var(--color-bg-base-rgb) / 42%);
 }
 
 .inventory-row {
@@ -1308,15 +1377,18 @@ onUnmounted(() => {
 }
 
 .skill-card {
-  @apply flex w-full flex-col gap-3 rounded-2xl border border-white/10 bg-white/5 p-4 text-left transition-all;
+  @apply flex w-full flex-col gap-3 rounded-2xl border border-border-default/55 p-4 text-left transition-all;
+
+  background-color: rgb(var(--color-bg-elevated-rgb) / 70%);
 }
 
 .skill-card--active {
-  @apply border-violet-300/20 bg-violet-300/10;
+  background: linear-gradient(135deg, rgb(var(--color-accent-primary-rgb) / 14%), rgb(var(--color-accent-secondary-rgb) / 8%));
+  border-color: rgb(var(--color-accent-primary-rgb) / 20%);
 }
 
 .skill-card__desc {
-  @apply mt-1 text-sm text-white/60;
+  @apply mt-1 text-sm text-text-secondary;
 
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -1325,7 +1397,7 @@ onUnmounted(() => {
 }
 
 .detail-description__toggle {
-  @apply mt-1 text-xs font-medium text-violet-200/80 hover:text-violet-200 hover:underline;
+  @apply mt-1 text-xs font-medium text-accent-secondary hover:text-accent-secondary hover:underline;
 }
 
 .detail-description--collapsed {
@@ -1347,14 +1419,14 @@ onUnmounted(() => {
 .detail-card h3,
 .source-skill-card strong,
 .marketplace-card__header h3 {
-  @apply text-base font-bold text-white;
+  @apply text-base font-bold text-text-primary;
 }
 
 .skill-card__head p,
 .detail-card p,
 .source-skill-card p,
 .marketplace-card__header p {
-  @apply mt-1 text-sm text-white/60;
+  @apply mt-1 text-sm text-text-secondary;
 }
 
 .skill-card__meta,
@@ -1375,7 +1447,9 @@ onUnmounted(() => {
 .detail-card,
 .marketplace-card,
 .source-skill-card {
-  @apply rounded-2xl border border-white/10 bg-white/5 p-4;
+  @apply rounded-2xl border border-border-default/55 p-4;
+
+  background-color: rgb(var(--color-bg-elevated-rgb) / 70%);
 }
 
 .detail-card__grid {
@@ -1383,15 +1457,17 @@ onUnmounted(() => {
 }
 
 .detail-card__grid div {
-  @apply rounded-2xl border border-white/10 bg-black/20 p-3;
+  @apply rounded-2xl border border-border-default/45 p-3;
+
+  background-color: rgb(var(--color-bg-base-rgb) / 55%);
 }
 
 .detail-card__grid span {
-  @apply mb-1 block text-xs uppercase tracking-[0.12em] text-white/45;
+  @apply mb-1 block text-xs uppercase tracking-[0.12em] text-text-muted;
 }
 
 .detail-card__grid strong {
-  @apply text-sm text-white;
+  @apply text-sm text-text-primary;
 }
 
 .installation-list {
@@ -1399,7 +1475,9 @@ onUnmounted(() => {
 }
 
 .installation-row {
-  @apply rounded-2xl border border-white/10 bg-black/20 p-3;
+  @apply rounded-2xl border border-border-default/45 p-3;
+
+  background-color: rgb(var(--color-bg-base-rgb) / 55%);
 }
 
 .installation-row__main {
@@ -1409,7 +1487,7 @@ onUnmounted(() => {
 .installation-row__main span,
 .marketplace-card__header p,
 .empty-state {
-  @apply text-xs text-white/55;
+  @apply text-xs text-text-muted;
 }
 
 .installation-row__actions {
@@ -1418,8 +1496,9 @@ onUnmounted(() => {
 
 .content-editor,
 .content-preview {
-  @apply min-h-[300px] w-full rounded-2xl border border-white/10 bg-black/20 p-3 text-sm leading-6 text-white/85;
+  @apply min-h-[300px] w-full rounded-2xl border border-border-default/45 p-3 text-sm leading-6 text-text-primary;
 
+  background-color: rgb(var(--color-bg-base-rgb) / 55%);
   font-family: 'JetBrains Mono', 'Fira Code', monospace;
 }
 
@@ -1434,7 +1513,9 @@ onUnmounted(() => {
 }
 
 .badge {
-  @apply inline-flex items-center rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-xs text-white/70;
+  @apply inline-flex items-center rounded-full border border-border-default/45 px-2.5 py-1 text-xs text-text-secondary;
+
+  background-color: rgb(var(--color-bg-base-rgb) / 55%);
 }
 
 .activity-row {

@@ -1,68 +1,56 @@
 <template>
-  <div class="min-h-full relative overflow-hidden p-6 transition-colors duration-300">
-    <!-- 🎨 动态背景装饰 -->
-    <div class="absolute inset-0 overflow-hidden pointer-events-none -z-10">
-      <div
-        class="absolute top-0 right-0 w-[600px] h-[600px] rounded-full opacity-10 blur-3xl"
-        :style="{ background: 'radial-gradient(circle, var(--accent-primary) 0%, transparent 70%)' }"
-      />
-      <div
-        class="absolute bottom-0 left-0 w-[500px] h-[500px] rounded-full opacity-10 blur-3xl"
-        :style="{ background: 'radial-gradient(circle, var(--accent-secondary) 0%, transparent 70%)' }"
-      />
-    </div>
-
-    <div class="relative z-10 mx-auto max-w-[1800px]">
-      <!-- 页面标题 -->
-      <div class="mb-6 mt-6">
-        <div class="flex items-center gap-3 mb-2">
-          <div class="p-2 rounded-lg bg-bg-surface">
+  <div class="commands-page">
+    <div class="commands-shell">
+      <PageHeaderCard
+        :title="$t('commands.title')"
+        :description="$t('commands.description')"
+        badge="Command Center"
+        icon="Terminal"
+        tone="secondary"
+      >
+        <div class="commands-header-meta">
+          <span class="commands-chip">
             <SIcon
-              name="Terminal"
-              size="w-6 h-6"
-              class="text-accent-secondary"
+              name="Cpu"
+              size="w-3.5 h-3.5"
             />
-          </div>
-          <div>
-            <h1 class="text-2xl font-bold text-text-primary">
-              {{ $t('commands.title') }}
-            </h1>
-            <p class="text-sm text-text-secondary">
-              {{ $t('commands.description') }}
-            </p>
-          </div>
+            {{ selectedClient }}
+          </span>
+          <span
+            class="commands-chip"
+            :class="runtimeUnavailable ? 'commands-chip--warning' : ''"
+          >
+            <SIcon
+              :name="runtimeUnavailable ? 'MonitorOff' : 'CheckCircle2'"
+              size="w-3.5 h-3.5"
+            />
+            {{ runtimeUnavailable ? 'web preview' : 'desktop runtime' }}
+          </span>
         </div>
-      </div>
+      </PageHeaderCard>
 
-      <div class="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-6">
-        <!-- 左侧：工具与命令选择 -->
-        <aside class="flex flex-col gap-6">
-          <!-- 工具选择器 -->
+      <div class="commands-layout">
+        <aside class="commands-sidebar">
           <Card
             variant="glass"
-            class="flex flex-col overflow-hidden"
+            class="commands-panel"
           >
-            <div class="p-4 border-b border-border-default/50">
-              <h2 class="text-xs font-bold uppercase tracking-wider text-text-secondary">
+            <div class="commands-panel__header">
+              <h2 class="commands-panel__title">
                 {{ $t('commands.selectClient') }}
               </h2>
             </div>
-            
-            <div class="p-2 space-y-1">
+
+            <div class="commands-list">
               <button
                 v-for="client in CLI_CLIENTS"
                 :key="client.id"
-                class="group relative flex min-h-[48px] w-full items-center gap-3 rounded-lg px-3 py-2.5 transition-colors"
-                :class="selectedClient === client.id ? 'bg-bg-elevated' : 'hover:bg-bg-elevated/50'"
+                class="client-row"
+                :class="{ 'client-row--active': selectedClient === client.id }"
                 @click="setSelectedClient(client.id)"
               >
-                <div 
-                  class="absolute bottom-2 left-0 top-2 w-1 rounded-full transition-opacity"
-                  :class="[client.markerClass, selectedClient === client.id ? 'opacity-100' : 'opacity-0']"
-                />
-                
-                <div 
-                  class="rounded-md p-1.5 transition-colors"
+                <div
+                  class="client-row__icon"
                   :class="selectedClient === client.id ? client.surfaceClass : 'bg-bg-surface text-text-secondary'"
                 >
                   <SIcon
@@ -71,56 +59,37 @@
                     :class="selectedClient === client.id ? client.textClass : 'text-text-secondary'"
                   />
                 </div>
-                
-                <span 
-                  class="text-sm font-medium"
-                  :class="selectedClient === client.id ? 'text-text-primary' : 'text-text-secondary'"
-                >
-                  {{ client.name }}
-                </span>
-                
+                <span class="client-row__label">{{ client.name }}</span>
                 <SIcon
                   v-if="selectedClient === client.id"
                   name="ChevronRight"
                   size="w-4 h-4"
-                  class="ml-auto text-text-secondary"
+                  class="text-accent-secondary"
                 />
               </button>
             </div>
           </Card>
 
-          <!-- 命令列表 -->
           <Card
             variant="glass"
-            class="flex-1 flex flex-col overflow-hidden min-h-[400px]"
+            class="commands-panel commands-panel--fill"
           >
-            <div class="p-4 border-b border-border-default/50">
-              <h2 class="text-xs font-bold uppercase tracking-wider text-text-secondary">
+            <div class="commands-panel__header">
+              <h2 class="commands-panel__title">
                 {{ $t('commands.availableCommands') }}
               </h2>
             </div>
-            
-            <div class="flex-1 overflow-y-auto p-2 space-y-1 custom-scrollbar">
+
+            <div class="commands-list commands-list--scroll">
               <button
                 v-for="cmd in commands"
                 :key="cmd.name"
-                class="group relative w-full overflow-hidden rounded-lg px-4 py-3 text-left transition-colors"
-                :class="selectedCommand === cmd.name ? 'bg-bg-elevated' : 'hover:bg-bg-elevated/50'"
+                class="command-row"
+                :class="{ 'command-row--active': selectedCommand === cmd.name }"
                 @click="setSelectedCommand(cmd.name)"
               >
-                <div 
-                  class="absolute left-0 top-0 bottom-0 w-1 transition-opacity bg-accent-secondary"
-                  :style="{ 
-                    opacity: selectedCommand === cmd.name ? 1 : 0
-                  }"
-                />
-                <div class="flex items-center justify-between">
-                  <span 
-                    class="font-mono text-sm font-semibold"
-                    :class="selectedCommand === cmd.name ? 'text-accent-secondary' : 'text-text-primary'"
-                  >
-                    {{ cmd.name }}
-                  </span>
+                <div class="command-row__head">
+                  <strong>{{ cmd.name }}</strong>
                   <SIcon
                     v-if="selectedCommand === cmd.name"
                     name="ChevronRight"
@@ -128,63 +97,49 @@
                     class="text-accent-secondary"
                   />
                 </div>
-                <p class="text-xs mt-1 line-clamp-1 text-text-secondary">
-                  {{ cmd.description }}
-                </p>
+                <p>{{ cmd.description }}</p>
               </button>
             </div>
           </Card>
         </aside>
 
-        <!-- 右侧：执行区域 -->
-        <main class="flex flex-col gap-6 min-w-0">
-          <!-- 命令详情与输入 -->
+        <main class="commands-main">
           <Card
-            variant="glass"
-            class="p-6"
+            variant="elevated"
+            class="commands-panel"
           >
-            <!-- 头部信息 -->
-            <div class="mb-6">
-              <div class="flex items-center gap-3 mb-2">
-                <div class="p-2 rounded-lg bg-bg-surface">
-                  <SIcon
-                    :name="currentClientInfo?.icon || ''"
-                    size="w-6 h-6"
-                    class="text-text-primary"
-                  />
-                </div>
-                <div>
-                  <h1 class="text-2xl font-bold text-text-primary">
-                    {{ selectedCommandInfo?.name || 'Select a command' }}
-                  </h1>
-                  <p class="text-sm text-text-secondary">
-                    {{ selectedCommandInfo?.description }}
-                  </p>
-                </div>
+            <div class="commands-panel__header commands-panel__header--wide">
+              <div>
+                <h2 class="commands-panel__title">
+                  {{ selectedCommandInfo?.name || 'Select a command' }}
+                </h2>
+                <p class="commands-panel__subtitle">
+                  {{ selectedCommandInfo?.description || 'Choose a command to inspect its arguments and run it.' }}
+                </p>
               </div>
+              <Button
+                variant="primary"
+                size="sm"
+                :disabled="loading || runtimeUnavailable || !selectedCommand"
+                @click="handleExecute"
+              >
+                {{ loading ? $t('common.loading') : 'Run command' }}
+              </Button>
             </div>
 
-            <!-- 终端输入框 -->
-            <div 
-              class="rounded-2xl border border-border-default/60 bg-bg-base/95 p-4 font-mono text-sm shadow-inner"
-            >
-              <div class="mb-2 flex items-center gap-2 text-xs text-text-muted opacity-70 select-none">
-                <SIcon
-                  name="Terminal"
-                  size="w-3 h-3"
-                />
-                <span>COMMAND INPUT</span>
+            <div class="command-input-shell">
+              <div class="command-input-shell__label">
+                command input
               </div>
-              <div class="flex items-center gap-3 flex-wrap">
-                <span class="select-none font-bold text-accent-success">➜</span>
-                <span class="select-none font-bold text-accent-info">~</span>
-                <span class="select-none font-bold text-text-primary">{{ selectedClient }}</span>
-                <span class="select-none font-bold text-accent-warning">{{ selectedCommand }}</span>
-                
-                <!-- Switch Command Dropdown -->
+              <div class="command-input-shell__body">
+                <span class="command-input-shell__prompt">➜</span>
+                <span class="command-input-shell__home">~</span>
+                <span class="command-input-shell__binary">{{ selectedClient }}</span>
+                <span class="command-input-shell__binary">{{ selectedCommand }}</span>
+
                 <div
                   v-if="selectedCommand === 'switch'"
-                  class="flex-1 min-w-[200px]"
+                  class="flex-1 min-w-[220px]"
                 >
                   <label
                     for="commands-switch-select"
@@ -193,184 +148,128 @@
                   <select
                     id="commands-switch-select"
                     v-model="args"
-                    class="min-h-[44px] w-full cursor-pointer rounded-lg border border-border-default bg-bg-surface px-3 py-2 text-text-primary focus:border-accent-secondary focus:outline-none focus:ring-2 focus:ring-accent-secondary/20"
+                    class="command-input-shell__field"
+                    :disabled="runtimeUnavailable"
                     @keydown.enter="!loading && handleExecute()"
                   >
                     <option
                       value=""
                       disabled
-                      class="bg-bg-surface text-text-muted"
                     >
                       Select a configuration
                     </option>
-                    <option 
-                      v-for="config in configs" 
-                      :key="config.name" 
+                    <option
+                      v-for="config in configs"
+                      :key="config.name"
                       :value="config.name"
-                      class="bg-bg-surface text-text-primary"
                     >
                       {{ config.name }}
                     </option>
                   </select>
                 </div>
 
-                <!-- Default Text Input -->
-                <template v-else>
-                  <label
-                    for="commands-args"
-                    class="sr-only"
-                  >{{ $t('commands.argsPlaceholder') }}</label>
-                  <input
-                    id="commands-args"
-                    v-model="args"
-                    type="text"
-                    :placeholder="$t('commands.argsPlaceholder')"
-                    class="min-h-[44px] min-w-[200px] flex-1 rounded-lg border border-transparent bg-transparent px-2 text-text-primary placeholder:text-text-muted outline-none transition-colors focus:border-accent-secondary/30 focus:bg-bg-surface/40"
-                    @keydown.enter="!loading && handleExecute()"
-                  >
-                </template>
-              </div>
-            </div>
-
-            <!-- 执行按钮 -->
-            <div class="mt-4 flex justify-end">
-              <button
-                type="button"
-                class="flex min-h-[44px] items-center gap-2 rounded-xl bg-accent-secondary px-8 py-2.5 text-sm font-semibold text-white shadow-lg shadow-accent-secondary/20 transition-colors hover:bg-accent-secondary/90 active:scale-[0.98]"
-                :class="{ 'opacity-70 cursor-not-allowed': loading }"
-                :disabled="loading"
-                @click="handleExecute"
-              >
-                <SIcon
-                  v-if="loading"
-                  name="Loader2"
-                  size="w-4 h-4"
-                  class="animate-spin"
-                />
-                <SIcon
+                <label
                   v-else
-                  name="Play"
-                  size="w-4 h-4"
-                />
-                {{ loading ? $t('commands.executing') : $t('commands.executeCommand') }}
-              </button>
+                  for="commands-args"
+                  class="sr-only"
+                >{{ $t('commands.argsPlaceholder') }}</label>
+                <input
+                  v-if="selectedCommand !== 'switch'"
+                  id="commands-args"
+                  v-model="args"
+                  type="text"
+                  :disabled="runtimeUnavailable"
+                  :placeholder="runtimeUnavailable ? 'Desktop mode required for command execution' : $t('commands.argsPlaceholder')"
+                  class="command-input-shell__field"
+                  @keydown.enter="!loading && handleExecute()"
+                >
+              </div>
             </div>
           </Card>
 
-          <!-- 输出区域 -->
           <Card
-            v-if="output || loading"
             variant="glass"
-            class="flex-1 overflow-hidden flex flex-col min-h-[400px] border-border-default/50"
-            :class="'bg-bg-base/95'"
+            class="commands-panel commands-panel--fill"
           >
-            <!-- 终端头部 -->
-            <div class="flex items-center justify-between border-b border-border-default/50 bg-bg-surface/80 px-4 py-2">
-              <div class="flex items-center gap-2">
-                <div class="flex gap-1.5">
-                  <div class="h-3 w-3 rounded-full bg-accent-danger" />
-                  <div class="h-3 w-3 rounded-full bg-accent-warning" />
-                  <div class="h-3 w-3 rounded-full bg-accent-success" />
-                </div>
-                <span class="ml-3 font-mono text-xs text-text-muted">bash - 80x24</span>
-              </div>
-              
-              <div
-                v-if="output"
-                class="flex items-center gap-2"
-              >
-                <button
-                  type="button"
-                  class="flex min-h-[36px] min-w-[36px] items-center justify-center rounded-lg text-text-muted transition-colors hover:bg-bg-elevated hover:text-text-primary"
-                  :title="$t('commands.copyOutput')"
-                  :aria-label="$t('commands.copyOutput')"
-                  @click="handleCopyOutput"
-                >
-                  <SIcon
-                    name="Copy"
-                    size="w-3.5 h-3.5"
-                  />
-                </button>
-                <button
-                  type="button"
-                  class="flex min-h-[36px] min-w-[36px] items-center justify-center rounded-lg text-text-muted transition-colors hover:bg-bg-elevated hover:text-text-primary"
-                  :title="$t('commands.clearOutputButton')"
-                  :aria-label="$t('commands.clearOutputButton')"
-                  @click="handleClearOutput"
-                >
-                  <SIcon
-                    name="Trash2"
-                    size="w-3.5 h-3.5"
-                  />
-                </button>
-              </div>
-            </div>
-
-            <!-- 终端内容 -->
-            <div class="flex-1 p-4 font-mono text-sm overflow-y-auto custom-scrollbar relative">
-              <div
-                v-if="loading"
-                class="absolute inset-0 flex items-center justify-center bg-black/20 backdrop-blur-md"
-              >
-                <div class="flex flex-col items-center gap-3">
-                  <SIcon
-                    name="Loader2"
-                    size="w-8 h-8"
-                    class="text-accent-secondary animate-spin"
-                  />
-                  <span class="animate-pulse text-xs text-text-muted">Processing command...</span>
-                </div>
-              </div>
-
-              <template v-if="output">
-                <!-- 命令行回显 -->
-                <div class="flex items-center gap-2 mb-4 opacity-50">
-                  <span class="text-accent-success">➜</span>
-                  <span class="text-accent-info">~</span>
-                  <span class="text-text-secondary">{{ selectedClient }} {{ selectedCommand }} {{ args }}</span>
-                </div>
-
-                <!-- 实际输出 -->
-                <pre
-                  class="whitespace-pre-wrap break-words leading-relaxed"
-                  :class="output.success ? 'text-text-primary' : 'text-accent-danger'"
-                >{{ commandOutputText }}</pre>
-
-                <!-- 状态行 -->
-                <div class="mt-6 flex items-center gap-4 border-t border-border-default/40 pt-4 text-xs font-mono">
-                  <div class="flex items-center gap-2">
-                    <span class="text-text-muted">Status:</span>
-                    <span :class="output.success ? 'text-accent-success' : 'text-accent-danger'">
-                      {{ output.success ? 'SUCCESS' : 'FAILED' }}
-                    </span>
-                  </div>
-                  <div class="flex items-center gap-2">
-                    <span class="text-text-muted">Code:</span>
-                    <span :class="output.exit_code === 0 ? 'text-text-primary' : 'text-accent-danger'">
-                      {{ output.exit_code }}
-                    </span>
-                  </div>
-                  <div class="flex items-center gap-2">
-                    <span class="text-text-muted">Time:</span>
-                    <span class="text-accent-secondary">{{ output.duration_ms }}ms</span>
-                  </div>
-                </div>
-              </template>
-              
-              <div
-                v-else-if="!loading"
-                class="flex h-full flex-col items-center justify-center gap-2 text-text-muted"
-              >
-                <SIcon
-                  name="Terminal"
-                  size="w-12 h-12"
-                  class="opacity-20"
-                />
-                <p class="text-sm">
-                  Ready to execute commands
+            <div class="commands-panel__header commands-panel__header--wide">
+              <div>
+                <h2 class="commands-panel__title">
+                  {{ $t('commands.output') }}
+                </h2>
+                <p class="commands-panel__subtitle">
+                  Command output, execution metadata, and runtime feedback.
                 </p>
               </div>
+
+              <div class="commands-panel__actions">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  :disabled="!output"
+                  @click="handleCopyOutput"
+                >
+                  {{ $t('commands.copy') }}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  :disabled="!output"
+                  @click="handleClearOutput"
+                >
+                  {{ $t('commands.clear') }}
+                </Button>
+              </div>
             </div>
+
+            <AsyncStatePanel
+              v-if="runtimeUnavailable && !output"
+              state="runtime-unavailable"
+              :title="runtimeCopy.title"
+              :description="runtimeCopy.description"
+              compact
+            />
+
+            <div
+              v-else-if="loading"
+              class="commands-output commands-output--loading"
+            >
+              <SIcon
+                name="Loader2"
+                size="w-8 h-8"
+                class="animate-spin text-accent-secondary"
+              />
+              <span>Processing command…</span>
+            </div>
+
+            <div
+              v-else-if="output"
+              class="commands-output"
+            >
+              <div class="commands-output__echo">
+                <span class="command-input-shell__prompt">➜</span>
+                <span class="command-input-shell__home">~</span>
+                <span>{{ selectedClient }} {{ selectedCommand }} {{ args }}</span>
+              </div>
+
+              <pre
+                class="commands-output__body"
+                :class="output.success ? 'text-text-primary' : 'text-accent-danger'"
+              >{{ commandOutputText }}</pre>
+
+              <div class="commands-output__meta">
+                <span>Status: <strong :class="output.success ? 'text-accent-success' : 'text-accent-danger'">{{ output.success ? 'SUCCESS' : 'FAILED' }}</strong></span>
+                <span>Code: <strong>{{ output.exit_code }}</strong></span>
+                <span>Time: <strong>{{ output.duration_ms }}ms</strong></span>
+              </div>
+            </div>
+
+            <AsyncStatePanel
+              v-else
+              state="empty"
+              title="Ready to execute commands"
+              description="Select a client, choose a command, and provide optional arguments."
+              compact
+            />
           </Card>
         </main>
       </div>
@@ -379,48 +278,77 @@
 </template>
 
 <script setup lang="ts">
-import SIcon from '@/components/ui/SIcon.vue'
-import { ref, computed, onMounted, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
-
-import { listCommands, executeCommand, listConfigs } from '@/api'
+import AsyncStatePanel from '@/components/ui/AsyncStatePanel.vue'
+import Button from '@/components/ui/Button.vue'
+import Card from '@/components/ui/Card.vue'
+import PageHeaderCard from '@/components/PageHeaderCard.vue'
+import SIcon from '@/components/ui/SIcon.vue'
+import { executeCommand, listCommands, listConfigs } from '@/api'
 import type { CommandInfo, CommandResponse, ConfigItem } from '@/types'
 import { normalizeCliClient, type CliClient } from '@/types/router'
-import Card from '@/components/ui/Card.vue'
 import { logger } from '@/utils/logger'
+import { getRuntimeUnavailableCopy } from '@/utils/runtimeState'
+import { isTauriRuntime } from '@/utils/tauriRuntime'
 
 const { t } = useI18n({ useScope: 'global' })
 const route = useRoute()
 const router = useRouter()
 
+const runtimeUnavailable = computed(() => !isTauriRuntime())
+const runtimeCopy = computed(() => getRuntimeUnavailableCopy('commands'))
+
 const CLI_CLIENTS = [
-  { id: 'ccr' as CliClient, name: 'CCR', icon: 'Zap', surfaceClass: 'bg-accent-primary/10', textClass: 'text-accent-primary', markerClass: 'bg-accent-primary' },
-  { id: 'claude' as CliClient, name: 'Claude Code', icon: 'Code2', surfaceClass: 'bg-accent-secondary/10', textClass: 'text-accent-secondary', markerClass: 'bg-accent-secondary' },
-  { id: 'qwen' as CliClient, name: 'Qwen', icon: 'Sparkles', surfaceClass: 'bg-accent-warning/10', textClass: 'text-accent-warning', markerClass: 'bg-accent-warning' },
-  { id: 'gemini' as CliClient, name: 'Gemini', icon: 'Gem', surfaceClass: 'bg-accent-info/10', textClass: 'text-accent-info', markerClass: 'bg-accent-info' },
-  { id: 'qoder' as CliClient, name: 'Qoder CLI', icon: 'Workflow', surfaceClass: 'bg-accent-primary/10', textClass: 'text-accent-primary', markerClass: 'bg-accent-primary' }
+  { id: 'ccr' as CliClient, name: 'CCR', icon: 'Zap', surfaceClass: 'bg-accent-primary/10', textClass: 'text-accent-primary' },
+  { id: 'claude' as CliClient, name: 'Claude Code', icon: 'Code2', surfaceClass: 'bg-accent-secondary/10', textClass: 'text-accent-secondary' },
+  { id: 'qwen' as CliClient, name: 'Qwen', icon: 'Sparkles', surfaceClass: 'bg-accent-warning/10', textClass: 'text-accent-warning' },
+  { id: 'gemini' as CliClient, name: 'Gemini', icon: 'Gem', surfaceClass: 'bg-accent-info/10', textClass: 'text-accent-info' },
+  { id: 'qoder' as CliClient, name: 'Qoder CLI', icon: 'Workflow', surfaceClass: 'bg-accent-primary/10', textClass: 'text-accent-primary' },
 ]
 
 const selectedClient = ref<CliClient>('ccr')
 const commands = ref<CommandInfo[]>([])
-const selectedCommand = ref<string>('')
-const args = ref<string>('')
+const selectedCommand = ref('')
+const args = ref('')
 const output = ref<CommandResponse | null>(null)
 const loading = ref(false)
 const configs = ref<ConfigItem[]>([])
 
+const fallbackCommandRegistry: Record<CliClient, CommandInfo[]> = {
+  ccr: [
+    { name: 'help', description: 'Inspect the CCR command surface.', usage: 'ccr --help', examples: ['ccr --help'] },
+    { name: 'switch', description: 'Switch to a saved CCR configuration.', usage: 'ccr switch <name>', examples: ['ccr switch default'] },
+    { name: 'version', description: 'Inspect the installed CCR version.', usage: 'ccr --version', examples: ['ccr --version'] },
+  ],
+  claude: [
+    { name: 'help', description: 'Inspect Claude Code CLI help.', usage: 'claude --help', examples: ['claude --help'] },
+    { name: 'version', description: 'Inspect Claude Code CLI version.', usage: 'claude --version', examples: ['claude --version'] },
+    { name: 'login', description: 'Authenticate Claude Code.', usage: 'claude login', examples: ['claude login'] },
+  ],
+  qwen: [
+    { name: 'help', description: 'Inspect Qwen CLI help.', usage: 'qwen --help', examples: ['qwen --help'] },
+    { name: 'version', description: 'Inspect Qwen CLI version.', usage: 'qwen --version', examples: ['qwen --version'] },
+    { name: 'login', description: 'Authenticate Qwen CLI.', usage: 'qwen login', examples: ['qwen login'] },
+  ],
+  gemini: [
+    { name: 'help', description: 'Inspect Gemini CLI help.', usage: 'gemini --help', examples: ['gemini --help'] },
+    { name: 'version', description: 'Inspect Gemini CLI version.', usage: 'gemini --version', examples: ['gemini --version'] },
+    { name: 'login', description: 'Authenticate Gemini CLI.', usage: 'gemini login', examples: ['gemini login'] },
+  ],
+  qoder: [
+    { name: 'help', description: 'Inspect Qoder CLI help.', usage: 'qodercli --help', examples: ['qodercli --help'] },
+    { name: 'version', description: 'Inspect Qoder CLI version.', usage: 'qodercli --version', examples: ['qodercli --version'] },
+    { name: 'login', description: 'Authenticate Qoder CLI.', usage: 'qodercli login', examples: ['qodercli login'] },
+  ],
+}
+
 const selectedCommandInfo = computed(() =>
-  commands.value.find((c) => c.name === selectedCommand.value)
+  commands.value.find((command) => command.name === selectedCommand.value),
 )
 
-const currentClientInfo = computed(() =>
-  CLI_CLIENTS.find((c) => c.id === selectedClient.value)
-)
-
-const commandOutputText = computed(() => {
-  return output.value?.output || output.value?.error || ''
-})
+const commandOutputText = computed(() => output.value?.output || output.value?.error || '')
 
 const isCommandResponse = (value: unknown): value is CommandResponse => {
   if (typeof value !== 'object' || value === null) {
@@ -443,53 +371,49 @@ const normalizeCommandResponse = (value: unknown): CommandResponse => {
     output: '',
     error: t('commands.unknownError'),
     exit_code: -1,
-    duration_ms: 0
+    duration_ms: 0,
+  }
+}
+
+const applyCommandList = (client: CliClient) => {
+  commands.value = fallbackCommandRegistry[client]
+  if (!selectedCommand.value || !commands.value.some((command) => command.name === selectedCommand.value)) {
+    selectedCommand.value = commands.value[0]?.name ?? ''
   }
 }
 
 const loadConfigs = async () => {
+  if (runtimeUnavailable.value) {
+    configs.value = [
+      { name: 'default' } as ConfigItem,
+      { name: 'workspace' } as ConfigItem,
+    ]
+    return
+  }
+
   try {
     const response = await listConfigs<{ configs: ConfigItem[] }>()
     configs.value = response.configs
-  } catch (err) {
-    logger.error('Failed to load configs:', err)
+  } catch (error) {
+    logger.error('Failed to load configs:', error)
   }
 }
 
 const loadCommands = async () => {
+  if (runtimeUnavailable.value || selectedClient.value !== 'ccr') {
+    applyCommandList(selectedClient.value)
+    return
+  }
+
   try {
-    if (selectedClient.value === 'ccr') {
-      const data = await listCommands<CommandInfo[]>()
-      commands.value = data
-      if (data.length > 0 && !selectedCommand.value) {
-        selectedCommand.value = data[0].name
-      }
-    } else {
-      const clientName = CLI_CLIENTS.find((c) => c.id === selectedClient.value)?.name || selectedClient.value
-      commands.value = [
-        {
-          name: 'help',
-          description: t('commands.helpDescription', { client: clientName }),
-          usage: `${selectedClient.value} --help`,
-          examples: [`${selectedClient.value} --help`]
-        },
-        {
-          name: 'version',
-          description: t('commands.versionDescription', { client: clientName }),
-          usage: `${selectedClient.value} --version`,
-          examples: [`${selectedClient.value} --version`]
-        },
-        {
-          name: 'login',
-          description: `Login to ${clientName}`,
-          usage: `${selectedClient.value} login`,
-          examples: [`${selectedClient.value} login`]
-        }
-      ]
-      selectedCommand.value = 'help'
+    const data = await listCommands<CommandInfo[]>()
+    commands.value = data
+    if (data.length > 0 && !selectedCommand.value) {
+      selectedCommand.value = data[0].name
     }
-  } catch (err) {
-    logger.error('Failed to load commands:', err)
+  } catch (error) {
+    logger.error('Failed to load commands:', error)
+    applyCommandList(selectedClient.value)
   }
 }
 
@@ -498,8 +422,8 @@ onMounted(() => {
   if (initialClient) {
     selectedClient.value = initialClient
   }
-  loadCommands()
-  loadConfigs()
+  void loadCommands()
+  void loadConfigs()
 })
 
 watch(
@@ -509,18 +433,18 @@ watch(
     if (client && client !== selectedClient.value) {
       selectedClient.value = client
     }
-  }
+  },
 )
 
 watch(selectedClient, () => {
   selectedCommand.value = ''
   args.value = ''
   output.value = null
-  loadCommands()
+  void loadCommands()
 
   const current = normalizeCliClient(route.params.client) || 'ccr'
   if (current !== selectedClient.value) {
-    router.replace({ name: 'commands', params: { client: selectedClient.value } })
+    void router.replace({ name: 'commands', params: { client: selectedClient.value } })
   }
 })
 
@@ -528,9 +452,9 @@ const setSelectedClient = (client: CliClient) => {
   selectedClient.value = client
 }
 
-const setSelectedCommand = (cmd: string) => {
-  selectedCommand.value = cmd
-  args.value = '' // Clear args when switching commands
+const setSelectedCommand = (command: string) => {
+  selectedCommand.value = command
+  args.value = ''
 }
 
 const resolveClientBinary = (client: CliClient): string => {
@@ -539,26 +463,24 @@ const resolveClientBinary = (client: CliClient): string => {
 }
 
 const handleExecute = async () => {
-  if (!selectedCommand.value) return
+  if (!selectedCommand.value || runtimeUnavailable.value) return
 
   loading.value = true
   try {
     const argsArray = args.value
       .split(' ')
-      .map((a) => a.trim())
-      .filter((a) => a.length > 0)
+      .map((arg) => arg.trim())
+      .filter((arg) => arg.length > 0)
 
     if (selectedClient.value === 'ccr') {
       const result = await executeCommand({
         command: selectedCommand.value,
-        args: argsArray
+        args: argsArray,
       })
       output.value = normalizeCommandResponse(result)
     } else {
-      // For other clients, map selected command to args if needed
       const finalArgs = [...argsArray]
-      
-      // Prepend command-specific flags if they aren't already in args
+
       if (selectedCommand.value === 'help' && !finalArgs.includes('--help')) {
         finalArgs.unshift('--help')
       } else if (selectedCommand.value === 'version' && !finalArgs.includes('--version')) {
@@ -569,17 +491,17 @@ const handleExecute = async () => {
 
       const result = await executeCommand({
         command: resolveClientBinary(selectedClient.value),
-        args: finalArgs
+        args: finalArgs,
       })
       output.value = normalizeCommandResponse(result)
     }
-  } catch (err) {
+  } catch (error) {
     output.value = {
       success: false,
       output: '',
-      error: err instanceof Error ? err.message : t('commands.unknownError'),
+      error: error instanceof Error ? error.message : t('commands.unknownError'),
       exit_code: -1,
-      duration_ms: 0
+      duration_ms: 0,
     }
   } finally {
     loading.value = false
@@ -588,12 +510,11 @@ const handleExecute = async () => {
 
 const handleCopyOutput = async () => {
   if (!output.value) return
-  const text = output.value.output + (output.value.error ? '\n' + output.value.error : '')
+  const text = output.value.output + (output.value.error ? `\n${output.value.error}` : '')
   try {
     await navigator.clipboard.writeText(text)
-    // Could add a toast notification here
-  } catch (err) {
-    logger.error('Failed to copy:', err)
+  } catch (error) {
+    logger.error('Failed to copy:', error)
   }
 }
 
@@ -603,21 +524,178 @@ const handleClearOutput = () => {
 </script>
 
 <style scoped>
-.custom-scrollbar::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+.commands-page {
+  @apply px-4 py-4 sm:px-6 sm:py-6;
 }
 
-.custom-scrollbar::-webkit-scrollbar-track {
-  background: transparent;
+.commands-shell {
+  @apply mx-auto flex max-w-[1440px] flex-col gap-5;
 }
 
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background: rgb(255 255 255 / 10%);
-  border-radius: 3px;
+.commands-header-meta {
+  @apply flex flex-wrap gap-2;
 }
 
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: rgb(255 255 255 / 20%);
+.commands-chip {
+  @apply inline-flex items-center gap-1.5 rounded-full border border-border-default/55 px-3 py-1 text-xs font-medium text-text-secondary;
+
+  background-color: rgb(var(--color-bg-elevated-rgb) / 72%);
+}
+
+.commands-chip--warning {
+  @apply border-accent-warning/25 bg-accent-warning/10 text-accent-warning;
+}
+
+.commands-layout {
+  @apply grid gap-5 xl:grid-cols-[300px_minmax(0,1fr)];
+}
+
+.commands-sidebar,
+.commands-main {
+  @apply flex flex-col gap-5;
+}
+
+.commands-panel {
+  @apply p-5;
+}
+
+.commands-panel--fill {
+  @apply min-h-[420px];
+}
+
+.commands-panel__header {
+  @apply mb-4 flex items-start justify-between gap-4;
+}
+
+.commands-panel__header--wide {
+  @apply flex-wrap;
+}
+
+.commands-panel__title {
+  @apply text-base font-semibold text-text-primary;
+}
+
+.commands-panel__subtitle {
+  @apply mt-1 max-w-2xl text-sm text-text-secondary;
+}
+
+.commands-panel__actions {
+  @apply flex flex-wrap items-center gap-2;
+}
+
+.commands-list {
+  @apply flex flex-col gap-2;
+}
+
+.commands-list--scroll {
+  @apply max-h-[460px] overflow-y-auto pr-1;
+}
+
+.client-row,
+.command-row {
+  @apply flex w-full items-start gap-3 rounded-2xl border border-transparent px-3 py-3 text-left transition-colors duration-200;
+}
+
+.client-row:hover,
+.command-row:hover {
+  background-color: rgb(var(--color-bg-surface-rgb) / 62%);
+  border-color: rgb(var(--color-border-default-rgb) / 60%);
+}
+
+.client-row--active,
+.command-row--active {
+  background: linear-gradient(135deg, rgb(var(--color-accent-primary-rgb) / 12%), rgb(var(--color-accent-secondary-rgb) / 9%));
+  border-color: rgb(var(--color-accent-primary-rgb) / 20%);
+}
+
+.client-row__icon {
+  @apply flex h-9 w-9 items-center justify-center rounded-xl border border-border-default/35;
+}
+
+.client-row__label {
+  @apply flex-1 text-sm font-medium text-text-primary;
+}
+
+.command-row {
+  @apply flex-col gap-2;
+}
+
+.command-row__head {
+  @apply flex w-full items-center justify-between gap-2;
+}
+
+.command-row__head strong {
+  @apply font-mono text-sm font-semibold text-text-primary;
+}
+
+.command-row p {
+  @apply text-sm leading-relaxed text-text-secondary;
+}
+
+.command-input-shell {
+  @apply rounded-2xl border border-border-default/55 p-4;
+
+  background-color: rgb(var(--color-bg-base-rgb) / 92%);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 6%);
+}
+
+.command-input-shell__label {
+  @apply mb-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted;
+}
+
+.command-input-shell__body {
+  @apply flex flex-wrap items-center gap-3 font-mono text-sm;
+}
+
+.command-input-shell__prompt {
+  @apply font-semibold text-accent-success;
+}
+
+.command-input-shell__home {
+  @apply font-semibold text-accent-info;
+}
+
+.command-input-shell__binary {
+  @apply font-semibold text-text-primary;
+}
+
+.command-input-shell__field {
+  @apply min-h-[44px] min-w-[220px] flex-1 rounded-xl border border-border-default/60 px-3 py-2 text-sm text-text-primary outline-none transition-colors duration-200 placeholder:text-text-muted;
+
+  background-color: rgb(var(--color-bg-elevated-rgb) / 62%);
+}
+
+.command-input-shell__field:focus {
+  @apply border-accent-secondary/35;
+}
+
+.command-input-shell__field:disabled {
+  @apply cursor-not-allowed opacity-60;
+}
+
+.commands-output {
+  @apply flex min-h-[260px] flex-col rounded-2xl border border-border-default/50 p-4 font-mono text-sm;
+
+  background-color: rgb(var(--color-bg-base-rgb) / 72%);
+}
+
+.commands-output--loading {
+  @apply items-center justify-center gap-3 text-text-secondary;
+}
+
+.commands-output__echo {
+  @apply mb-4 flex flex-wrap items-center gap-2 text-xs text-text-muted;
+}
+
+.commands-output__body {
+  @apply flex-1 whitespace-pre-wrap break-words leading-relaxed;
+}
+
+.commands-output__meta {
+  @apply mt-5 flex flex-wrap gap-4 border-t border-border-default/50 pt-4 text-xs text-text-secondary;
+}
+
+.commands-output__meta strong {
+  @apply font-semibold text-text-primary;
 }
 </style>

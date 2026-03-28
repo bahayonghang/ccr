@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { useVirtualizer } from '@tanstack/vue-virtual'
 import { useUsageStore } from '@/stores/usage'
 import type { Platform } from '@/types/usage'
+import { isTauriRuntime } from '@/utils/tauriRuntime'
 
 const CHART_COLORS = ['#F9A8D4', '#C4B5FD', '#6EE7B7', '#FCD34D', '#D8B4FE', '#FDA4AF', '#22D3EE', '#2DD4BF']
 
@@ -40,6 +41,7 @@ export const useUsageDashboardState = () => {
   const selectedDays = ref(30)
   const logModelFilter = ref('')
   const logsScrollRef = ref<HTMLElement | null>(null)
+  const runtimeUnavailable = computed(() => !isTauriRuntime())
 
   const shouldLoadCharts = computed(() => activeTab.value === 'overview' || activeTab.value === 'models')
 
@@ -214,6 +216,11 @@ export const useUsageDashboardState = () => {
   })
 
   onMounted(async () => {
+    if (runtimeUnavailable.value) {
+      store.stopAutoRefresh()
+      return
+    }
+
     const { start, end } = getTimeRange(selectedDays.value)
     await store.initializeDashboard({
       platform: (selectedPlatform.value || undefined) as Platform | undefined,
@@ -245,6 +252,7 @@ export const useUsageDashboardState = () => {
     onFilterChange,
     pieOptions,
     pieSeries,
+    runtimeUnavailable,
     selectedDays,
     selectedPlatform,
     shortenPath,

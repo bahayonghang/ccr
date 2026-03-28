@@ -1,7 +1,7 @@
 <template>
   <AnimeBackground v-if="showGlobalBackground" />
   <Titlebar />
-  <div class="flex flex-col h-screen w-screen overflow-hidden">
+  <div class="flex h-screen w-screen flex-col overflow-hidden bg-bg-base pt-9">
     <RouterView class="flex-1 overflow-hidden" />
   </div>
   <ToastContainer />

@@ -6,7 +6,7 @@
     <!-- Label -->
     <label 
       v-if="label" 
-      class="mb-1.5 ml-1 block text-xs font-bold uppercase tracking-wider text-text-muted transition-colors group-hover:text-text-secondary group-focus-within:text-accent-primary"
+      class="mb-1.5 ml-1 block text-xs font-semibold tracking-wide text-text-muted transition-colors group-hover:text-text-secondary group-focus-within:text-accent-primary"
       :for="id"
     >
       {{ label }}
@@ -30,7 +30,7 @@
         :type="type"
         :disabled="disabled"
         :placeholder="placeholder"
-        class="peer w-full rounded-lg border border-border-default/70 bg-bg-elevated/75 px-4 py-2.5 text-sm text-text-primary shadow-sm transition-[background-color,border-color,box-shadow,color] duration-300 placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent-primary/20 focus:border-accent-primary/50 focus:bg-bg-surface/80 disabled:cursor-not-allowed disabled:opacity-50 hover:border-border-strong hover:bg-bg-surface/65"
+        class="peer w-full rounded-xl border border-border-default/70 bg-bg-elevated/84 px-4 py-2.5 text-sm text-text-primary shadow-sm transition-[background-color,border-color,box-shadow,color] duration-300 placeholder:text-text-muted/80 focus:outline-none focus:ring-2 focus:ring-accent-primary/18 focus:border-accent-primary/42 focus:bg-bg-elevated/96 disabled:cursor-not-allowed disabled:opacity-50 hover:border-border-strong hover:bg-bg-elevated/92"
         :class="[
           $slots.leading ? 'pl-10' : '',
           $slots.trailing ? 'pr-10' : '',
@@ -51,7 +51,7 @@
 
       <!-- Neo Glow Effect on Focus -->
       <div 
-        class="absolute -inset-0.5 bg-accent-primary/20 rounded-xl blur opacity-0 transition-opacity duration-300 peer-focus:opacity-100 -z-10 pointer-events-none"
+        class="absolute -inset-0.5 bg-accent-primary/16 rounded-xl blur opacity-0 transition-opacity duration-300 peer-focus:opacity-100 -z-10 pointer-events-none"
         :class="error ? 'bg-accent-danger/20' : ''"
       />
     </div>

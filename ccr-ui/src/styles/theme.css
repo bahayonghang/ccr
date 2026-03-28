@@ -8,92 +8,92 @@
     /* --- Color Palette: Light Mode (Kawaii Light) --- */
 
     /* Background Hierarchy */
-    --color-bg-base: #FFF5F7;
-    --color-bg-base-rgb: 255 245 247;
+    --color-bg-base: #F3F1F8;
+    --color-bg-base-rgb: 243 241 248;
 
     /* Faint sakura pink */
-    --color-bg-elevated: #FFF;
-    --color-bg-elevated-rgb: 255 255 255;
+    --color-bg-elevated: #FAF8FD;
+    --color-bg-elevated-rgb: 250 248 253;
 
     /* Pure white */
-    --color-bg-surface: #FFF0F5;
-    --color-bg-surface-rgb: 255 240 245;
+    --color-bg-surface: #EBE7F4;
+    --color-bg-surface-rgb: 235 231 244;
 
     /* Light pink surface */
-    --color-bg-overlay: #FFE4ED;
-    --color-bg-overlay-rgb: 255 228 237;
+    --color-bg-overlay: #DDD6EB;
+    --color-bg-overlay-rgb: 221 214 235;
 
     /* Pink overlay */
 
     /* Text Hierarchy */
-    --color-text-primary: #2D1B30;
-    --color-text-primary-rgb: 45 27 48;
+    --color-text-primary: #1D1A27;
+    --color-text-primary-rgb: 29 26 39;
 
     /* Deep purple-brown */
-    --color-text-secondary: #6B4C6E;
-    --color-text-secondary-rgb: 107 76 110;
+    --color-text-secondary: #5C5470;
+    --color-text-secondary-rgb: 92 84 112;
 
     /* Soft purple */
-    --color-text-muted: #B591B8;
-    --color-text-muted-rgb: 181 145 184;
+    --color-text-muted: #7F7694;
+    --color-text-muted-rgb: 127 118 148;
 
     /* Light purple */
-    --color-text-ghost: #D4B8D8;
-    --color-text-ghost-rgb: 212 184 216;
+    --color-text-ghost: #A79EB9;
+    --color-text-ghost-rgb: 167 158 185;
 
     /* Faint purple */
-    --color-text-disabled: #E8D0EC;
-    --color-text-disabled-rgb: 232 208 236;
+    --color-text-disabled: #C9C2D7;
+    --color-text-disabled-rgb: 201 194 215;
 
     /* Disabled grey-purple */
     --color-text-inverted: #FFF;
     --color-text-inverted-rgb: 255 255 255;
 
     /* Border */
-    --color-border-subtle: #FFF0F5;
-    --color-border-subtle-rgb: 255 240 245;
+    --color-border-subtle: #ECE7F3;
+    --color-border-subtle-rgb: 236 231 243;
 
     /* Lavender blush */
-    --color-border-default: #F9D4E2;
-    --color-border-default-rgb: 249 212 226;
+    --color-border-default: #D2CADA;
+    --color-border-default-rgb: 210 202 218;
 
     /* Soft pink */
-    --color-border-strong: #F0B4CC;
-    --color-border-strong-rgb: 240 180 204;
+    --color-border-strong: #B3A6C2;
+    --color-border-strong-rgb: 179 166 194;
 
     /* Medium pink */
-    --color-border-interactive: #F472B6;
-    --color-border-interactive-rgb: 244 114 182;
+    --color-border-interactive: #CA8FD1;
+    --color-border-interactive-rgb: 202 143 209;
 
     /* Focus pink */
 
     /* Brand Accents */
-    --color-accent-primary: #F472B6;
+    --color-accent-primary: #CA8FD1;
 
     /* Neko pink (pink-400) */
-    --color-accent-secondary: #A78BFA;
+    --color-accent-secondary: #7F78D8;
 
     /* Lavender purple (violet-400) */
-    --color-success: #34D399;
+    --color-success: #3CA88D;
 
     /* Emerald-400 */
-    --color-warning: #FBBF24;
+    --color-warning: #D6A143;
 
     /* Amber-400 */
-    --color-danger: #FB7185;
+    --color-danger: #D46F88;
 
     /* Rose-400 */
-    --color-info: #C084FC;
+    --color-info: #69A8D8;
 
     /* Purple-400 */
 
     /* RGB Values for Opacity Manipulation */
-    --color-accent-primary-rgb: 244 114 182;
-    --color-accent-secondary-rgb: 167 139 250;
-    --color-success-rgb: 52 211 153;
-    --color-warning-rgb: 251 191 36;
-    --color-danger-rgb: 251 113 133;
-    --color-info-rgb: 192 132 252;
+    --color-accent-primary-rgb: 202 143 209;
+    --color-accent-secondary-rgb: 127 120 216;
+    --color-success-rgb: 60 168 141;
+    --color-warning-rgb: 214 161 67;
+    --color-danger-rgb: 212 111 136;
+    --color-info-rgb: 105 168 216;
 
     /* --- Platform Accent Tokens --- */
     --color-platform-claude: #FF6B35;
@@ -194,6 +194,7 @@
 
     /* --- Typography --- */
     --font-sans: "MapleBright", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+    --font-brand: "MapleBright", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
     --font-mono: "MapleBright", "JetBrains Mono", "Fira Code", monospace;
     --font-normal: 400;
     --font-medium: 500;
@@ -222,91 +223,91 @@
   :root[class~="dark"],
   [data-theme="dark"] {
     /* Background Hierarchy */
-    --color-bg-base: #1A0A20;
-    --color-bg-base-rgb: 26 10 32;
+    --color-bg-base: #0F1120;
+    --color-bg-base-rgb: 15 17 32;
 
     /* Deep purple night */
-    --color-bg-elevated: #261232;
-    --color-bg-elevated-rgb: 38 18 50;
+    --color-bg-elevated: #171A2B;
+    --color-bg-elevated-rgb: 23 26 43;
 
     /* Dark purple */
-    --color-bg-surface: #321A40;
-    --color-bg-surface-rgb: 50 26 64;
+    --color-bg-surface: #1F2237;
+    --color-bg-surface-rgb: 31 34 55;
 
     /* Medium purple */
-    --color-bg-overlay: #44225A;
-    --color-bg-overlay-rgb: 68 34 90;
+    --color-bg-overlay: #2A2F4A;
+    --color-bg-overlay-rgb: 42 47 74;
 
     /* Light purple overlay */
 
     /* Text Hierarchy */
-    --color-text-primary: #FDF2F8;
-    --color-text-primary-rgb: 253 242 248;
+    --color-text-primary: #F4EFFF;
+    --color-text-primary-rgb: 244 239 255;
 
     /* Pink-white */
-    --color-text-secondary: #F9A8D4;
-    --color-text-secondary-rgb: 249 168 212;
+    --color-text-secondary: #C8BFDD;
+    --color-text-secondary-rgb: 200 191 221;
 
     /* Pink-300 */
-    --color-text-muted: #C084FC;
-    --color-text-muted-rgb: 192 132 252;
+    --color-text-muted: #9488B0;
+    --color-text-muted-rgb: 148 136 176;
 
     /* Purple-400 */
-    --color-text-ghost: #7E4C8A;
-    --color-text-ghost-rgb: 126 76 138;
+    --color-text-ghost: #6C6482;
+    --color-text-ghost-rgb: 108 100 130;
 
     /* Dark purple */
-    --color-text-disabled: #5A3268;
-    --color-text-disabled-rgb: 90 50 104;
+    --color-text-disabled: #514A67;
+    --color-text-disabled-rgb: 81 74 103;
 
     /* Disabled dark purple */
-    --color-text-inverted: #1A0A20;
-    --color-text-inverted-rgb: 26 10 32;
+    --color-text-inverted: #0F1120;
+    --color-text-inverted-rgb: 15 17 32;
 
     /* Border */
-    --color-border-subtle: #321A40;
-    --color-border-subtle-rgb: 50 26 64;
+    --color-border-subtle: #272A3D;
+    --color-border-subtle-rgb: 39 42 61;
 
     /* Medium purple */
-    --color-border-default: #44225A;
-    --color-border-default-rgb: 68 34 90;
+    --color-border-default: #35384D;
+    --color-border-default-rgb: 53 56 77;
 
     /* Light purple */
-    --color-border-strong: #5A3268;
-    --color-border-strong-rgb: 90 50 104;
+    --color-border-strong: #4A4F69;
+    --color-border-strong-rgb: 74 79 105;
 
     /* Strong purple */
-    --color-border-interactive: #F9A8D4;
-    --color-border-interactive-rgb: 249 168 212;
+    --color-border-interactive: #D7A2E6;
+    --color-border-interactive-rgb: 215 162 230;
 
     /* Pink-300 */
 
     /* Brand Accents (Brighter for dark mode) */
-    --color-accent-primary: #F9A8D4;
+    --color-accent-primary: #D7A2E6;
 
     /* Neko pink bright (pink-300) */
-    --color-accent-secondary: #C4B5FD;
+    --color-accent-secondary: #978CEC;
 
     /* Lavender bright (violet-300) */
-    --color-success: #6EE7B7;
+    --color-success: #64C0A6;
 
     /* Emerald-300 */
-    --color-warning: #FCD34D;
+    --color-warning: #E1B45B;
 
     /* Amber-300 */
-    --color-danger: #FDA4AF;
+    --color-danger: #EA8FAA;
 
     /* Rose-300 */
-    --color-info: #D8B4FE;
+    --color-info: #84B8EA;
 
     /* Purple-300 */
 
-    --color-accent-primary-rgb: 249 168 212;
-    --color-accent-secondary-rgb: 196 181 253;
-    --color-success-rgb: 110 231 183;
-    --color-warning-rgb: 252 211 77;
-    --color-danger-rgb: 253 164 175;
-    --color-info-rgb: 216 180 254;
+    --color-accent-primary-rgb: 215 162 230;
+    --color-accent-secondary-rgb: 151 140 236;
+    --color-success-rgb: 100 192 166;
+    --color-warning-rgb: 225 180 91;
+    --color-danger-rgb: 234 143 170;
+    --color-info-rgb: 132 184 234;
 
     /* Glows (Stronger in dark mode) */
     --shadow-glow-primary: 0 0 20px rgb(249 168 212 / 30%);

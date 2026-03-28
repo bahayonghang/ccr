@@ -1,7 +1,7 @@
 <template>
   <div
     data-tauri-drag-region
-    class="fixed top-0 left-0 right-0 h-9 z-[60] flex items-center justify-between px-3 select-none text-white transition-colors duration-200"
+    class="fixed top-0 left-0 right-0 z-[60] flex h-9 items-center justify-between border-b border-border-default/30 bg-bg-base/82 px-3 text-white transition-colors duration-200 select-none backdrop-blur-xl"
   >
     <!-- Left: App Icon and Menu -->
     <div

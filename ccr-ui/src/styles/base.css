@@ -27,7 +27,7 @@
         font-size: var(--text-base);
         line-height: var(--leading-normal);
         color: var(--color-text-primary);
-        background-color: transparent;
+        background-color: var(--color-bg-base);
         min-height: 100vh;
         transition:
             background-color var(--duration-normal) var(--ease-out),
@@ -39,6 +39,7 @@
         min-height: 100vh;
         display: flex;
         flex-direction: column;
+        background-color: var(--color-bg-base);
     }
 
     /* 移除列表默认样式 */
@@ -218,6 +219,10 @@
     /* 排版工具类 */
     .font-sans {
         font-family: var(--font-sans);
+    }
+
+    .font-brand {
+        font-family: var(--font-brand);
     }
 
     .font-mono {

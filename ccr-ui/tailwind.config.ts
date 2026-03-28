@@ -26,9 +26,9 @@ export default {
     // Override default font family to use our tokens
     fontFamily: {
       sans: ['var(--font-sans)', 'ui-sans-serif', 'system-ui'],
+      brand: ['var(--font-brand)', 'var(--font-sans)', 'ui-sans-serif', 'system-ui'],
       mono: ['var(--font-mono)', 'ui-monospace', 'monospace'],
     },
-    // MapleBright currently provides 400/500 for the app design system.
     fontWeight: {
       thin: '400',
       extralight: '400',

@@ -1,86 +1,47 @@
 <!-- -->
 <template>
-  <div class="min-h-full relative">
-    <!-- Enhanced Animated Background -->
-    <AnimatedBackground
-      contained
-      variant="mesh"
-    />
-
-    <main class="relative z-10 mx-auto max-w-7xl px-4 pb-8 pt-8 sm:px-6 lg:px-8">
-      <div class="mb-12">
-        <div class="flex items-center justify-between mb-6 animate-fade-in">
-          <div class="flex items-center gap-4">
-            <div class="p-4 rounded-3xl glass-effect border border-cyan-500/30 bg-gradient-to-br from-cyan-500/20 to-blue-500/20">
-              <SIcon
-                name="Cloud"
-                size="w-10 h-10"
-                class="text-cyan-400"
-              />
-            </div>
-            <div>
-              <h1 class="text-4xl md:text-5xl font-bold mb-2 text-gradient-cyan">
-                {{ $t('sync.title') }}
-              </h1>
-              <p class="text-lg text-white/80">
-                {{ $t('sync.subtitle') }}
-              </p>
-            </div>
-          </div>
+  <div class="sync-page">
+    <main class="sync-shell">
+      <PageHeaderCard
+        :title="$t('sync.title')"
+        :description="$t('sync.subtitle')"
+        badge="Settings"
+        icon="Cloud"
+        tone="info"
+      >
+        <template #actions>
           <RouterLink
             to="/"
-            class="group glass-effect flex items-center gap-2 px-5 py-3 hover:scale-105 transition-[color,background-color,border-color,transform] duration-300 border border-white/5 hover:border-cyan-500/30"
+            class="sync-back-link"
           >
             <SIcon
               name="Home"
-              size="w-5 h-5"
-              class="text-white/50 group-hover:text-cyan-400 transition-colors"
+              size="w-4 h-4"
             />
-            <span class="font-medium text-white/80 group-hover:text-white transition-colors">{{ $t('sync.backHome') }}</span>
+            <span>{{ $t('sync.backHome') }}</span>
           </RouterLink>
-        </div>
-      </div>
+        </template>
+      </PageHeaderCard>
 
       <!-- Loading state -->
-      <div
+      <AsyncStatePanel
         v-if="loading"
-        class="flex items-center justify-center py-16"
-      >
-        <div class="p-8 glass-effect rounded-2xl border border-cyan-500/20">
-          <SIcon
-            name="RefreshCw"
-            size="w-12 h-12"
-            class="animate-spin text-cyan-400"
-          />
-        </div>
-      </div>
+        state="loading"
+        :title="$t('common.loading')"
+      />
 
       <!-- Error state -->
-      <div
+      <AsyncStatePanel
         v-else-if="error"
-        class="glass-effect p-6 flex items-start gap-4 border border-danger/30 rounded-2xl"
-      >
-        <div class="p-3 rounded-2xl bg-danger/15">
-          <SIcon
-            name="XCircle"
-            size="w-7 h-7"
-            class="text-danger"
-          />
-        </div>
-        <div class="flex-1">
-          <h3 class="font-bold text-xl mb-2 text-white">
-            {{ $t('sync.loadFailed') }}
-          </h3>
-          <p class="text-base text-white/80">
-            {{ error }}
-          </p>
-        </div>
-      </div>
+        state="error"
+        :title="$t('sync.loadFailed')"
+        :description="error"
+      />
 
       <!-- 主要内容 -->
       <div
         v-else
-        class="grid grid-cols-1 lg:grid-cols-3 gap-6"
+        class="grid grid-cols-1 gap-6 lg:grid-cols-3"
       >
         <!-- 左侧主内容区 (2 columns) -->
         <div class="lg:col-span-2 space-y-6">
@@ -138,6 +99,8 @@ import SIcon from '@/components/ui/SIcon.vue'
 import { ref, onMounted, computed } from 'vue'
 import { RouterLink } from 'vue-router'
 import { useI18n } from 'vue-i18n'
+import AsyncStatePanel from '@/components/ui/AsyncStatePanel.vue'
+import PageHeaderCard from '@/components/PageHeaderCard.vue'
 import {
   getSyncStatus,
   listSyncFolders,
@@ -147,7 +110,6 @@ import {
   pushSync,
   pullSync,
 } from '@/api'
-import AnimatedBackground from '@/components/common/AnimatedBackground.vue'
 import SyncBatchOperationsPanel from '@/components/sync/SyncBatchOperationsPanel.vue'
 import SyncEnabledFoldersPanel from '@/components/sync/SyncEnabledFoldersPanel.vue'
 import SyncInfoSidebar from '@/components/sync/SyncInfoSidebar.vue'
@@ -556,5 +518,24 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-/* 自定义样式 */
+.sync-page {
+  @apply px-4 py-4 sm:px-6 sm:py-6;
+}
+
+.sync-shell {
+  @apply mx-auto flex max-w-[1440px] flex-col gap-5;
+}
+
+.sync-back-link {
+  @apply inline-flex items-center gap-2 rounded-xl border border-border-default/60 px-4 py-2 text-sm font-medium text-text-secondary transition-colors duration-200;
+
+  background-color: rgb(var(--color-bg-elevated-rgb) / 72%);
+  backdrop-filter: blur(14px);
+}
+
+.sync-back-link:hover {
+  @apply border-accent-info/25 text-text-primary;
+
+  background-color: rgb(var(--color-bg-surface-rgb) / 70%);
+}
 </style>

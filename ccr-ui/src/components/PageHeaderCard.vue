@@ -130,10 +130,10 @@ const toneClasses = computed(() => {
   position: relative;
   overflow: hidden;
   border-radius: 1.5rem;
-  border: 1px solid rgb(var(--color-border-default-rgb) / 55%);
-  background: rgb(var(--color-bg-elevated-rgb) / 74%);
-  box-shadow: 0 18px 40px rgb(15 23 42 / 10%);
-  backdrop-filter: blur(20px);
+  border: 1px solid var(--surface-card-border);
+  background: var(--surface-card-bg);
+  box-shadow: var(--surface-card-shadow), inset 0 1px 0 rgb(255 255 255 / 10%);
+  backdrop-filter: var(--surface-card-blur);
 }
 
 .page-header-card__glow {
@@ -171,7 +171,7 @@ const toneClasses = computed(() => {
 .page-header-card__content {
   position: relative;
   z-index: 1;
-  padding: 1.5rem;
+  padding: 1.35rem 1.5rem;
 }
 
 .page-header-card__top {
@@ -226,17 +226,18 @@ const toneClasses = computed(() => {
 }
 
 .page-header-card__title {
-  font-size: 1.5rem;
-  line-height: 1.2;
+  font-size: 1.45rem;
+  line-height: 1.15;
   font-weight: 700;
+  letter-spacing: -0.02em;
   color: var(--color-text-primary);
 }
 
 .page-header-card__description {
   margin-top: 0.5rem;
-  max-width: 48rem;
+  max-width: 52rem;
   color: var(--color-text-secondary);
-  line-height: 1.6;
+  line-height: 1.55;
 }
 
 .page-header-card__badge {

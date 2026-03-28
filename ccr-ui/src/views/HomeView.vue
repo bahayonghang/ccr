@@ -1,80 +1,78 @@
-<!-- -->
 <template>
   <div class="home-view">
     <div class="home-shell">
-      <!-- HEADER SECTION -->
-      <header class="home-section animate-slide-up">
-        <div class="home-hero">
-          <div class="hero-overlay hero-overlay--accent" />
-          <div class="hero-overlay hero-overlay--shade" />
+      <PageHeaderCard
+        :title="`${$t('home.welcomeBack')}，${$t('home.roleEngineer')}`"
+        :description="$t('home.statusMsg')"
+        badge="Neko Console"
+        icon="Sparkles"
+        tone="secondary"
+      >
+        <template #actions>
+          <Button
+            variant="primary"
+            size="sm"
+            @click="router.push('/commands')"
+          >
+            {{ $t('home.actionCommandRunner') }}
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
+            @click="router.push('/skills?tab=marketplace')"
+          >
+            {{ $t('nav.skills') }}
+          </Button>
+        </template>
 
-          <div class="hero-content">
-            <div class="hero-copy">
-              <span class="hero-badge">
-                <span class="hero-badge__dot" />
-                {{ $t('common.shell.tagline') }}
-              </span>
-              <div class="hero-copy__body">
-                <h1 class="hero-title">
-                  {{ $t('home.welcomeBack') }},
-                  <span class="hero-title__accent">{{ $t('home.roleEngineer') }}</span>
-                </h1>
-                <p class="hero-description">
-                  {{ $t('home.statusMsg') }}
-                </p>
-              </div>
+        <div class="hero-metrics">
+          <div class="hero-metric">
+            <div class="hero-metric__icon hero-metric__icon--success">
+              <div class="hero-metric__dot hero-metric__dot--success" />
             </div>
+            <div class="hero-metric__body">
+              <span class="hero-metric__label">{{ $t('home.cpuUsage') }}</span>
+              <strong class="hero-metric__value">{{ systemInfo?.cpu_usage?.toFixed(1) || '0.0' }}%</strong>
+            </div>
+          </div>
 
-            <div class="hero-stats">
-              <Card
-                variant="glass"
-                class="hero-metric"
-              >
-                <div class="flex items-center gap-3">
-                  <div class="hero-metric__icon hero-metric__icon--success">
-                    <div class="hero-metric__dot hero-metric__dot--success animate-pulse" />
-                  </div>
-                  <div class="hero-metric__body">
-                    <span class="hero-metric__label">{{ $t('home.cpuUsage') }}</span>
-                    <span class="hero-metric__value">{{ systemInfo?.cpu_usage?.toFixed(1) || '12.4' }}%</span>
-                  </div>
-                </div>
-              </Card>
-              <Card
-                variant="glass"
-                class="hero-metric"
-              >
-                <div class="flex items-center gap-3">
-                  <div class="hero-metric__icon hero-metric__icon--info">
-                    <div class="hero-metric__dot hero-metric__dot--info" />
-                  </div>
-                  <div class="hero-metric__body">
-                    <span class="hero-metric__label">{{ $t('home.memoryUsage') }}</span>
-                    <span class="hero-metric__value">{{ systemInfo?.memory_usage_percent?.toFixed(1) || '42.8' }}%</span>
-                  </div>
-                </div>
-              </Card>
+          <div class="hero-metric">
+            <div class="hero-metric__icon hero-metric__icon--info">
+              <div class="hero-metric__dot hero-metric__dot--info" />
+            </div>
+            <div class="hero-metric__body">
+              <span class="hero-metric__label">{{ $t('home.memoryUsage') }}</span>
+              <strong class="hero-metric__value">{{ systemInfo?.memory_usage_percent?.toFixed(1) || '0.0' }}%</strong>
+            </div>
+          </div>
+
+          <div class="hero-metric">
+            <div class="hero-metric__icon hero-metric__icon--secondary">
+              <SIcon
+                name="Package"
+                size="w-4 h-4"
+              />
+            </div>
+            <div class="hero-metric__body">
+              <span class="hero-metric__label">CLI footprint</span>
+              <strong class="hero-metric__value">{{ installedCliCount }}/{{ mainModules.length }}</strong>
             </div>
           </div>
         </div>
-      </header>
+      </PageHeaderCard>
 
-      <!-- QUICK ACTIONS GRID -->
-      <section
-        class="home-section animate-slide-up"
-        style="animation-delay: 100ms"
-      >
-        <div class="section-heading">
-          <SIcon
-            name="Terminal"
-            size="w-4 h-4"
-            class="text-accent-primary"
-          />
-          <h2 class="section-eyebrow">
-            {{ $t('home.quickActions') }}
-          </h2>
+      <section class="section-block">
+        <div class="section-row">
+          <div>
+            <p class="section-kicker">
+              {{ $t('home.quickActions') }}
+            </p>
+            <h2 class="section-title">
+              Operate fast
+            </h2>
+          </div>
         </div>
-        
+
         <div class="quick-actions-grid">
           <RouterLink
             v-for="action in quickActions"
@@ -85,21 +83,19 @@
             <Card
               variant="elevated"
               hover
-              glow
               class="quick-action-card"
             >
-              <div 
+              <div
                 class="quick-action-icon"
                 :class="action.bgClass"
               >
                 <SIcon
                   :name="action.icon"
                   size="w-5 h-5"
-                  class="transition-transform group-hover:scale-110"
                   :class="action.textClass"
                 />
               </div>
-              <div>
+              <div class="quick-action-copy">
                 <h3 class="quick-action-title">
                   {{ action.title }}
                 </h3>
@@ -109,7 +105,7 @@
               </div>
               <SIcon
                 name="ArrowRight"
-                size="h-4 w-4"
+                size="w-4 h-4"
                 class="quick-action-arrow"
               />
             </Card>
@@ -117,20 +113,16 @@
         </div>
       </section>
 
-      <!-- MAIN MODULES -->
-      <section
-        class="home-section animate-slide-up"
-        style="animation-delay: 200ms"
-      >
-        <div class="section-heading">
-          <SIcon
-            name="Grid"
-            size="w-4 h-4"
-            class="text-accent-secondary"
-          />
-          <h2 class="section-eyebrow">
-            {{ $t('home.platformModules') }}
-          </h2>
+      <section class="section-block">
+        <div class="section-row">
+          <div>
+            <p class="section-kicker">
+              {{ $t('home.platformModules') }}
+            </p>
+            <h2 class="section-title">
+              Platform surfaces
+            </h2>
+          </div>
         </div>
 
         <div class="modules-grid">
@@ -141,33 +133,23 @@
             class="group h-full"
           >
             <Card
-              variant="glass"
+              variant="elevated"
               hover
-              glow
               class="module-card"
             >
-              <!-- Background Icon Watermark -->
-              <SIcon
-                :name="module.icon"
-                size="w-32 h-32"
-                class="module-watermark"
-              />
-              
               <div class="module-card__header">
                 <div class="module-icon-shell">
                   <SIcon
                     :name="module.icon"
-                    size="w-6 h-6"
+                    size="w-5 h-5"
                     :class="module.iconClass"
                   />
                 </div>
-                <div class="flex items-center gap-2">
-                  <div
-                    class="module-version-badge"
-                    :class="getVersionClass(module.platformKey)"
-                  >
-                    {{ getVersionLabel(module.platformKey) }}
-                  </div>
+                <div
+                  class="module-version-badge"
+                  :class="getVersionClass(module.platformKey)"
+                >
+                  {{ getVersionLabel(module.platformKey) }}
                 </div>
               </div>
 
@@ -184,35 +166,28 @@
         </div>
       </section>
 
-      <!-- STATS DASHBOARD -->
       <section
         ref="usageStatsSection"
-        class="home-section animate-slide-up"
-        style="animation-delay: 300ms"
+        class="section-block"
       >
-        <div class="section-header">
-          <div class="section-heading">
-            <SIcon
-              name="Activity"
-              size="w-4 h-4"
-              class="text-accent-info"
-            />
-            <h2 class="section-eyebrow">
+        <div class="section-row">
+          <div>
+            <p class="section-kicker">
               {{ $t('home.systemActivity') }}
+            </p>
+            <h2 class="section-title">
+              Usage overview
             </h2>
           </div>
           <Button
             variant="ghost"
             size="sm"
-            @click="$router.push('/usage')"
+            @click="router.push('/usage')"
           >
-            {{ $t('home.fullReport') }} <SIcon
-              name="ArrowRight"
-              size="w-3 h-3"
-              class="ml-1"
-            />
+            {{ $t('home.fullReport') }}
           </Button>
         </div>
+
         <UsageStatsDashboard v-if="shouldRenderUsageStats" />
         <Card
           v-else
@@ -237,15 +212,17 @@
 </template>
 
 <script setup lang="ts">
-import SIcon from '@/components/ui/SIcon.vue'
-import { ref, computed, onMounted, onBeforeUnmount, defineAsyncComponent } from 'vue'
+import { computed, defineAsyncComponent, onBeforeUnmount, onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import Card from '@/components/ui/Card.vue'
 import Button from '@/components/ui/Button.vue'
-import { getSystemInfo, getCliVersions } from '@/api/runtime/system'
-import { scheduleWhenIdle } from '@/utils/scheduling'
+import Card from '@/components/ui/Card.vue'
+import PageHeaderCard from '@/components/PageHeaderCard.vue'
+import SIcon from '@/components/ui/SIcon.vue'
+import { getCliVersions, getSystemInfo } from '@/api/runtime/system'
 import { logger } from '@/utils/logger'
 import { perfMark, shouldLogPerfTelemetry } from '@/utils/perfTelemetry'
+import { scheduleWhenIdle } from '@/utils/scheduling'
 import type { CliVersionEntry, CliVersionsResponse, SystemInfo } from '@/types'
 
 const UsageStatsDashboard = defineAsyncComponent({
@@ -254,6 +231,7 @@ const UsageStatsDashboard = defineAsyncComponent({
 })
 
 const { t } = useI18n()
+const router = useRouter()
 
 const systemInfo = ref<SystemInfo | null>(null)
 const cliVersions = ref<Map<string, CliVersionEntry>>(new Map())
@@ -272,19 +250,23 @@ const loadSystemInfo = async () => {
     const sysInfo = await getSystemInfo<SystemInfo>().catch(() => null)
     systemInfo.value = sysInfo
     perfMark('home:system-ready')
-  } catch (e) {
-    logger.error('[HomeView] failed to load system info', e)
+  } catch (error) {
+    logger.error('[HomeView] failed to load system info', error)
   }
 }
 
 const loadCliVersions = async () => {
   try {
-    const versions = await getCliVersions<CliVersionsResponse>({ mode: 'fast', timeoutMs: 3500, parallelism: 4 }).catch(() => null)
+    const versions = await getCliVersions<CliVersionsResponse>({
+      mode: 'fast',
+      timeoutMs: 3500,
+      parallelism: 4,
+    }).catch(() => null)
     if (versions) {
       applyCliVersions(versions.versions)
     }
-  } catch (e) {
-    logger.error('[HomeView] failed to load CLI versions', e)
+  } catch (error) {
+    logger.error('[HomeView] failed to load CLI versions', error)
   }
 }
 
@@ -332,13 +314,13 @@ const scheduleUsageStatsLoad = () => {
 const logHomePerfSnapshot = () => {
   if (!shouldLogPerfTelemetry() || typeof performance === 'undefined') return
 
-  setTimeout(() => {
+  window.setTimeout(() => {
     const resources = performance.getEntriesByType('resource') as PerformanceResourceTiming[]
     const relevant = resources
       .filter((entry) =>
-        entry.name.includes('get_system_info') ||
-        entry.name.includes('get_cli_versions') ||
-        entry.name.includes('get_home_usage_overview_v2')
+        entry.name.includes('get_system_info')
+        || entry.name.includes('get_cli_versions')
+        || entry.name.includes('get_home_usage_overview_v2'),
       )
       .map((entry) => ({
         name: entry.name,
@@ -390,45 +372,45 @@ const getVersionLabel = (platformKey: string) => {
 
 const getVersionClass = (platformKey: string) => {
   const entry = cliVersions.value.get(platformKey)
-  if (!entry) return 'glass-surface border border-border-default/50 text-text-muted'
-  if (entry.status === 'timeout') return 'bg-amber-500/10 text-amber-400'
-  if (entry.status === 'error') return 'bg-orange-500/10 text-orange-400'
-  if (entry.status === 'not_installed' || !entry.installed) return 'bg-red-500/10 text-red-400'
-  return 'glass-surface border border-border-default/50 text-text-secondary'
+  if (!entry) return 'module-version-badge--default'
+  if (entry.status === 'timeout') return 'module-version-badge--warning'
+  if (entry.status === 'error') return 'module-version-badge--danger'
+  if (entry.status === 'not_installed' || !entry.installed) return 'module-version-badge--danger'
+  return 'module-version-badge--default'
 }
 
 const quickActions = computed(() => [
-  { 
-    title: t('home.actionCommandRunner'), 
-    desc: t('home.actionCommandRunnerDesc'), 
-    path: '/commands', 
-    icon: 'Terminal', 
-    bgClass: 'bg-blue-500/10',
-    textClass: 'text-blue-500'
+  {
+    title: t('home.actionCommandRunner'),
+    desc: t('home.actionCommandRunnerDesc'),
+    path: '/commands',
+    icon: 'Terminal',
+    bgClass: 'bg-accent-secondary/12',
+    textClass: 'text-accent-secondary',
   },
-  { 
-    title: t('home.actionConfigManager'), 
-    desc: t('home.actionConfigManagerDesc'), 
-    path: '/configs', 
-    icon: 'Settings', 
-    bgClass: 'bg-purple-500/10',
-    textClass: 'text-purple-500'
+  {
+    title: t('home.actionConfigManager'),
+    desc: t('home.actionConfigManagerDesc'),
+    path: '/configs',
+    icon: 'Settings',
+    bgClass: 'bg-accent-primary/12',
+    textClass: 'text-accent-primary',
   },
-  { 
-    title: t('home.actionCloudSync'), 
-    desc: t('home.actionCloudSyncDesc'), 
-    path: '/sync', 
-    icon: 'Cloud', 
-    bgClass: 'bg-cyan-500/10',
-    textClass: 'text-cyan-500'
+  {
+    title: t('home.actionCloudSync'),
+    desc: t('home.actionCloudSyncDesc'),
+    path: '/sync',
+    icon: 'Cloud',
+    bgClass: 'bg-accent-info/12',
+    textClass: 'text-accent-info',
   },
-  { 
-    title: t('home.actionUsageStats'), 
-    desc: t('home.actionUsageStatsDesc'), 
-    path: '/usage', 
-    icon: 'Activity', 
-    bgClass: 'bg-emerald-500/10',
-    textClass: 'text-emerald-500'
+  {
+    title: t('home.actionUsageStats'),
+    desc: t('home.actionUsageStatsDesc'),
+    path: '/usage',
+    icon: 'Activity',
+    bgClass: 'bg-accent-success/12',
+    textClass: 'text-accent-success',
   },
 ])
 
@@ -439,7 +421,7 @@ const mainModules = computed(() => [
     path: '/claude-code',
     icon: 'Code2',
     iconClass: 'text-platform-claude',
-    platformKey: 'claude-code'
+    platformKey: 'claude-code',
   },
   {
     title: t('home.codexTitle'),
@@ -447,7 +429,7 @@ const mainModules = computed(() => [
     path: '/codex',
     icon: 'Settings',
     iconClass: 'text-platform-codex',
-    platformKey: 'codex'
+    platformKey: 'codex',
   },
   {
     title: t('home.geminiTitle'),
@@ -455,7 +437,7 @@ const mainModules = computed(() => [
     path: '/gemini-cli',
     icon: 'Sparkles',
     iconClass: 'text-platform-gemini',
-    platformKey: 'gemini-cli'
+    platformKey: 'gemini-cli',
   },
   {
     title: t('home.qwenTitle'),
@@ -463,7 +445,7 @@ const mainModules = computed(() => [
     path: '/qwen',
     icon: 'Zap',
     iconClass: 'text-platform-qwen',
-    platformKey: 'qwen'
+    platformKey: 'qwen',
   },
   {
     title: t('home.qoderTitle'),
@@ -471,7 +453,7 @@ const mainModules = computed(() => [
     path: '/qoder',
     icon: 'Workflow',
     iconClass: 'text-platform-qoder',
-    platformKey: 'qoder'
+    platformKey: 'qoder',
   },
   {
     title: t('home.factoryDroidTitle'),
@@ -479,108 +461,68 @@ const mainModules = computed(() => [
     path: '/droid',
     icon: 'Bot',
     iconClass: 'text-accent-secondary',
-    platformKey: 'droid'
-  }
+    platformKey: 'droid',
+  },
 ])
+
+const installedCliCount = computed(() => (
+  mainModules.value.filter((module) => {
+    const entry = cliVersions.value.get(module.platformKey)
+    return Boolean(entry?.installed && entry.status !== 'error' && entry.status !== 'timeout')
+  }).length
+))
 </script>
 
 <style scoped>
 .home-view {
-  @apply relative min-h-full overflow-hidden p-6 lg:p-10;
+  @apply relative min-h-full px-4 py-4 sm:px-6 sm:py-6;
 }
 
 .home-shell {
-  @apply mx-auto max-w-7xl space-y-10;
+  @apply mx-auto flex max-w-[1440px] flex-col gap-6;
 }
 
-.home-section {
-  @apply relative;
+.section-block {
+  @apply flex flex-col gap-4;
 }
 
-.home-hero {
-  @apply relative overflow-hidden border border-white/25 p-6 shadow-2xl shadow-slate-950/20 backdrop-blur-xl md:p-8;
-
-  border-radius: 2rem;
-  background: linear-gradient(145deg, rgb(16 18 36 / 74%), rgb(56 27 77 / 62%));
+.section-row {
+  @apply flex flex-wrap items-end justify-between gap-4;
 }
 
-.hero-overlay {
-  @apply absolute inset-0;
+.section-kicker {
+  @apply text-xs font-semibold tracking-[0.14em] text-text-muted;
 }
 
-.hero-overlay--accent {
-  background:
-    radial-gradient(circle at top left, rgb(244 114 182 / 20%), transparent 42%),
-    radial-gradient(circle at bottom right, rgb(168 85 247 / 16%), transparent 38%);
+.section-title {
+  @apply mt-1 text-xl font-semibold tracking-tight text-text-primary;
 }
 
-.hero-overlay--shade {
-  background: linear-gradient(120deg, rgb(8 10 24 / 46%), transparent 55%);
-}
-
-.hero-content {
-  @apply relative flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between;
-}
-
-.hero-copy {
-  @apply max-w-3xl space-y-4;
-}
-
-.hero-copy__body {
-  @apply space-y-2;
-}
-
-.hero-badge {
-  @apply inline-flex items-center gap-2 rounded-full border border-white/15 px-3 py-1 font-semibold uppercase text-pink-100/90;
-
-  background: rgb(255 255 255 / 8%);
-  font-size: 11px;
-  letter-spacing: 0.28em;
-}
-
-.hero-badge__dot {
-  @apply h-2 w-2 rounded-full bg-accent-primary;
-
-  box-shadow: 0 0 12px rgb(var(--color-accent-primary-rgb) / 75%);
-}
-
-.hero-title {
-  @apply text-4xl font-bold tracking-tight text-white md:text-5xl;
-
-  font-family: MapleBright, 'Microsoft YaHei UI', system-ui, sans-serif;
-}
-
-.hero-title__accent {
-  @apply text-pink-100;
-}
-
-.hero-description {
-  @apply max-w-2xl text-base leading-7 md:text-lg;
-
-  color: rgb(241 245 249 / 88%);
-}
-
-.hero-stats {
-  @apply grid gap-3 sm:grid-cols-2;
+.hero-metrics {
+  @apply grid gap-3 md:grid-cols-3;
 }
 
 .hero-metric {
-  @apply border-white/15 bg-white/10 px-4 py-3;
+  @apply flex items-center gap-3 rounded-2xl border border-border-default/60 px-4 py-3;
 
-  min-height: 72px;
-  min-width: 150px;
+  background-color: rgb(var(--color-bg-elevated-rgb) / 70%);
+  backdrop-filter: blur(14px);
 }
 
 .hero-metric__icon {
-  @apply flex h-10 w-10 items-center justify-center rounded-2xl;
+  @apply flex h-10 w-10 items-center justify-center rounded-xl border border-border-default/40;
 }
 
 .hero-metric__icon--success {
-  @apply bg-accent-success/15 text-accent-success;
+  @apply bg-accent-success/10 text-accent-success;
 }
 
 .hero-metric__icon--info {
-  @apply bg-accent-info/15 text-accent-info;
+  @apply bg-accent-info/10 text-accent-info;
+}
+
+.hero-metric__icon--secondary {
+  @apply bg-accent-secondary/10 text-accent-secondary;
 }
 
 .hero-metric__dot {
@@ -589,103 +531,97 @@ const mainModules = computed(() => [
 
 .hero-metric__dot--success {
   @apply bg-accent-success;
-
-  box-shadow: 0 0 12px rgb(var(--color-success-rgb) / 65%);
 }
 
 .hero-metric__dot--info {
   @apply bg-accent-info;
-
-  box-shadow: 0 0 12px rgb(var(--color-info-rgb) / 65%);
 }
 
 .hero-metric__body {
-  @apply font-mono text-xs;
+  @apply min-w-0 font-mono;
 }
 
 .hero-metric__label {
-  @apply block text-slate-200/70;
+  @apply block text-[11px] uppercase tracking-[0.12em] text-text-muted;
 }
 
 .hero-metric__value {
-  @apply mt-1 block text-xl font-bold text-white;
-}
+  @apply mt-1 block text-lg font-semibold tracking-tight text-text-primary;
 
-.section-header {
-  @apply mb-4 flex items-center justify-between;
-}
-
-.section-heading {
-  @apply mb-4 flex items-center gap-2;
-}
-
-.section-eyebrow {
-  @apply text-xs font-bold uppercase tracking-widest text-text-muted;
+  font-variant-numeric: tabular-nums;
 }
 
 .quick-actions-grid {
-  @apply grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4;
+  @apply grid gap-4 md:grid-cols-2 xl:grid-cols-4;
 }
 
 .quick-action-card {
-  @apply flex h-full flex-col items-start gap-4 p-4 transition-colors;
+  @apply flex h-full flex-col items-start gap-4 p-5;
 }
 
 .quick-action-icon {
-  @apply flex h-10 w-10 items-center justify-center rounded-lg transition-colors duration-300;
+  @apply flex h-11 w-11 items-center justify-center rounded-xl border border-border-default/40;
+}
+
+.quick-action-copy {
+  @apply flex-1;
 }
 
 .quick-action-title {
-  @apply mb-1 font-bold text-text-primary;
+  @apply mb-1 font-semibold text-text-primary;
 }
 
 .quick-action-desc {
-  @apply line-clamp-2 text-xs leading-relaxed text-text-secondary;
+  @apply text-sm leading-relaxed text-text-secondary;
 }
 
 .quick-action-arrow {
-  @apply mt-auto self-end -translate-x-2 text-text-muted opacity-0 group-hover:translate-x-0 group-hover:opacity-100 group-hover:text-accent-primary;
-
-  transition:
-    opacity 200ms ease,
-    transform 200ms ease,
-    color 200ms ease;
+  @apply mt-auto text-text-muted transition-all duration-200 group-hover:translate-x-1 group-hover:text-accent-primary;
 }
 
 .modules-grid {
-  @apply grid grid-cols-1 gap-6 md:grid-cols-3;
+  @apply grid gap-4 md:grid-cols-2 xl:grid-cols-3;
 }
 
 .module-card {
-  @apply relative flex h-full flex-col gap-6 overflow-hidden p-6;
-}
-
-.module-watermark {
-  @apply absolute -bottom-6 -right-6 rotate-12 transition-opacity;
-
-  opacity: 0.03;
+  @apply flex h-full flex-col gap-5 p-5;
 }
 
 .module-card__header {
-  @apply z-10 flex items-start justify-between;
+  @apply flex items-start justify-between gap-3;
 }
 
 .module-icon-shell {
-  @apply rounded-xl border border-border-default/50 bg-bg-elevated/70 p-3 backdrop-blur-md;
+  @apply flex h-11 w-11 items-center justify-center rounded-xl border border-border-default/40;
+
+  background-color: rgb(var(--color-bg-elevated-rgb) / 75%);
+  backdrop-filter: blur(12px);
 }
 
 .module-version-badge {
-  @apply rounded-md border border-border-default/50 px-2 py-1 font-bold uppercase;
+  @apply rounded-full border px-2.5 py-1 text-[10px] font-semibold tracking-[0.12em];
+}
 
-  font-size: 10px;
+.module-version-badge--default {
+  @apply border-border-default/60 text-text-secondary;
+
+  background-color: rgb(var(--color-bg-elevated-rgb) / 72%);
+}
+
+.module-version-badge--warning {
+  @apply border-accent-warning/30 bg-accent-warning/10 text-accent-warning;
+}
+
+.module-version-badge--danger {
+  @apply border-accent-danger/30 bg-accent-danger/10 text-accent-danger;
 }
 
 .module-copy {
-  @apply z-10;
+  @apply flex-1;
 }
 
 .module-title {
-  @apply mb-2 text-xl font-bold text-text-primary transition-colors group-hover:text-accent-primary;
+  @apply mb-2 text-lg font-semibold text-text-primary transition-colors group-hover:text-accent-primary;
 }
 
 .module-desc {
@@ -695,11 +631,7 @@ const mainModules = computed(() => [
 .usage-placeholder {
   @apply flex items-center justify-center p-6;
 
-  min-height: 420px;
-}
-
-.group:hover .module-watermark {
-  opacity: 0.07;
+  min-height: 320px;
 }
 
 .usage-placeholder__content {

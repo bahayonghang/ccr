@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <link rel="icon" type="image/svg+xml" href="/src/assets/favicon.svg">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CCR UI - AI CLI Configuration Manager</title>
-    <meta name="description" content="Modern web console for managing AI CLI tool configurations">
+    <title>CCR UI - Midnight Nebula Console</title>
+    <meta name="description" content="Operational console for managing AI CLI tools, runtimes, skills, and sync workflows">
 
     <!-- 主题预初始化：在任何 CSS 加载前同步设置，消除 FOUC -->
     <script>
@@ -23,20 +23,20 @@
       #app-loader {
         display:flex; flex-direction:column; align-items:center; justify-content:center;
         height:100vh; gap:16px;
-        background:#FFF5F7; color:#6B4C6E;
+        background:#F3F1F8; color:#5C5470;
         font-family:system-ui,-apple-system,sans-serif;
         transition: background 0.3s, color 0.3s;
       }
       [data-theme="dark"] #app-loader {
-        background:#1A0A20; color:#F9A8D4;
+        background:#0F1120; color:#C8BFDD;
       }
       .loader-spinner {
         width:36px; height:36px;
-        border:3px solid #F9D4E2; border-top-color:#F472B6;
+        border:3px solid #D2CADA; border-top-color:#CA8FD1;
         border-radius:50%; animation:spin .8s linear infinite;
       }
       [data-theme="dark"] .loader-spinner {
-        border-color:#44225A; border-top-color:#F9A8D4;
+        border-color:#35384D; border-top-color:#D7A2E6;
       }
       .loader-text { font-size:14px; opacity:0.7; }
       @keyframes spin { to { transform:rotate(360deg) } }

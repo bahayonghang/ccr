@@ -230,10 +230,11 @@ const handleMouseLeave = (event: MouseEvent) => {
 }
 
 .ui-card--interactive:hover {
-  transform: translateY(-0.25rem);
+  transform: translateY(-0.18rem);
   box-shadow:
     var(--surface-card-shadow),
-    0 0 24px rgb(var(--color-accent-primary-rgb) / 20%);
+    0 18px 40px rgb(var(--color-accent-primary-rgb) / 12%);
+  border-color: rgb(var(--color-accent-primary-rgb) / 28%);
 }
 
 .ui-card-pattern {
