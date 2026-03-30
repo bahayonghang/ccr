@@ -22,6 +22,12 @@ export interface CliVersionsCommandOptions {
   timeout?: number
 }
 
+export interface CliVersionCommandOptions {
+  tool: string
+  timeoutMs?: number
+  force?: boolean
+}
+
 export const getSystemInfo = async <T = UnknownRecord>(): Promise<T> => {
   return invoke('get_system_info')
 }
@@ -72,4 +78,16 @@ export const getCliVersions = async <T = UnknownRecord>(
     ...raw,
     versions: entries,
   } as T
+}
+
+export const getCliVersion = async <T = UnknownRecord>(
+  options: CliVersionCommandOptions,
+): Promise<T> => {
+  const normalizedOptions = {
+    tool: options.tool,
+    timeoutMs: options.timeoutMs,
+    force: options.force,
+  }
+
+  return invoke('get_cli_version', { options: normalizedOptions })
 }

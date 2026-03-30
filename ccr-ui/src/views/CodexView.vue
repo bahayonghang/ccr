@@ -127,7 +127,7 @@
                   累计请求
                 </p>
                 <p class="codex-stat-value">
-                  {{ summary?.usage.all_time.total_requests ?? 0 }}
+                  {{ usageTotalRequests }}
                 </p>
               </div>
               <div class="codex-stat-card">
@@ -164,7 +164,10 @@
             </div>
           </div>
 
-          <div class="codex-stack">
+          <div
+            v-if="nextActions.length"
+            class="codex-stack"
+          >
             <RouterLink
               v-for="action in nextActions"
               :key="action.title"
@@ -199,44 +202,78 @@
               </div>
             </RouterLink>
           </div>
+
+          <div
+            v-else-if="overviewLoading"
+            class="codex-stack"
+          >
+            <div class="codex-skeleton codex-skeleton--panel" />
+            <div class="codex-skeleton codex-skeleton--panel" />
+          </div>
+
+          <EmptyState
+            v-else
+            icon="Route"
+            title="正在准备下一步动作"
+            description="概览数据尚未可用，可以先刷新一次重试。"
+            action-text="立即刷新"
+            action-icon="RefreshCw"
+            :on-action="() => refresh(true)"
+          />
         </Card>
       </section>
 
       <section class="codex-grid codex-grid--health">
-        <RouterLink
-          v-for="item in healthItems"
-          :key="item.key"
-          :to="item.to"
-          class="group"
-        >
+        <template v-if="healthItems.length">
+          <RouterLink
+            v-for="item in healthItems"
+            :key="item.key"
+            :to="item.to"
+            class="group"
+          >
+            <Card
+              variant="elevated"
+              hover
+              class="codex-health-card"
+            >
+              <div class="flex items-start justify-between gap-3">
+                <div
+                  class="codex-tone-icon codex-tone-icon--large"
+                  :class="toneClassMap[item.tone]"
+                >
+                  <SIcon
+                    :name="item.icon"
+                    size="w-5 h-5"
+                  />
+                </div>
+                <span class="codex-health-eyebrow"> 状态 </span>
+              </div>
+              <p class="codex-health-label">
+                {{ item.title }}
+              </p>
+              <p class="codex-health-value">
+                {{ item.value }}
+              </p>
+              <p class="codex-health-detail">
+                {{ item.detail }}
+              </p>
+            </Card>
+          </RouterLink>
+        </template>
+
+        <template v-else-if="overviewLoading">
           <Card
+            v-for="n in 4"
+            :key="`health-skeleton-${n}`"
             variant="elevated"
-            hover
             class="codex-health-card"
           >
-            <div class="flex items-start justify-between gap-3">
-              <div
-                class="codex-tone-icon codex-tone-icon--large"
-                :class="toneClassMap[item.tone]"
-              >
-                <SIcon
-                  :name="item.icon"
-                  size="w-5 h-5"
-                />
-              </div>
-              <span class="codex-health-eyebrow"> 状态 </span>
-            </div>
-            <p class="codex-health-label">
-              {{ item.title }}
-            </p>
-            <p class="codex-health-value">
-              {{ item.value }}
-            </p>
-            <p class="codex-health-detail">
-              {{ item.detail }}
-            </p>
+            <div class="codex-skeleton codex-skeleton--icon mb-4" />
+            <div class="codex-skeleton codex-skeleton--line mb-3" />
+            <div class="codex-skeleton codex-skeleton--line mb-2" />
+            <div class="codex-skeleton codex-skeleton--detail" />
           </Card>
-        </RouterLink>
+        </template>
       </section>
 
       <section class="codex-grid codex-grid--manage">
@@ -261,7 +298,10 @@
             </RouterLink>
           </div>
 
-          <div class="codex-grid codex-grid--links">
+          <div
+            v-if="managementLinks.length"
+            class="codex-grid codex-grid--links"
+          >
             <RouterLink
               v-for="link in managementLinks"
               :key="link.to"
@@ -296,6 +336,32 @@
               </Card>
             </RouterLink>
           </div>
+
+          <div
+            v-else-if="overviewLoading"
+            class="codex-grid codex-grid--links"
+          >
+            <Card
+              v-for="n in 6"
+              :key="`link-skeleton-${n}`"
+              variant="glass"
+              class="codex-link-card"
+            >
+              <div class="codex-skeleton codex-skeleton--icon mb-4" />
+              <div class="codex-skeleton codex-skeleton--line mb-3" />
+              <div class="codex-skeleton codex-skeleton--detail" />
+            </Card>
+          </div>
+
+          <EmptyState
+            v-else
+            icon="Folders"
+            title="暂时还没有管理入口数据"
+            description="可以先刷新一次，或者进入 Auth / Profiles 页面补齐基础配置。"
+            action-text="立即刷新"
+            action-icon="RefreshCw"
+            :on-action="() => refresh(true)"
+          />
         </Card>
 
         <Card
@@ -321,11 +387,11 @@
           </div>
 
           <div
-            v-if="error"
+            v-if="error && !overview"
             class="rounded-2xl border border-rose-500/20 bg-rose-500/10 p-4 text-sm text-rose-200"
           >
             <p class="font-medium mb-2">
-              仪表盘数据加载失败
+              仪表盘概览加载失败
             </p>
             <p class="text-rose-100/80 break-words">
               {{ error }}
@@ -333,7 +399,7 @@
           </div>
 
           <div
-            v-else-if="!summary && loading"
+            v-else-if="!overview && overviewLoading"
             class="codex-stack"
           >
             <div class="codex-skeleton" />
@@ -342,7 +408,7 @@
           </div>
 
           <EmptyState
-            v-else-if="!summary"
+            v-else-if="!overview"
             icon="Inbox"
             title="暂时还没有仪表盘数据"
             description="可以先刷新一次，或者进入 Auth / Profiles 页面补齐基础配置。"
@@ -360,13 +426,15 @@
                 活跃模型
               </p>
               <p class="codex-summary-value">
-                {{ summary.usage.top_model?.model || summary.config.model || '未识别' }}
+                {{ usageSummary?.top_model?.model || overview.config.model || (usageLoading ? '分析中' : '未识别') }}
               </p>
               <p class="codex-summary-description">
                 {{
-                  summary.usage.top_model
-                    ? `近阶段请求 ${summary.usage.top_model.total_requests} 次，输出 ${formatTokens(summary.usage.top_model.total_output_tokens)} tokens`
-                    : '暂无按模型维度的活跃数据'
+                  usageSummary?.top_model
+                    ? `近阶段请求 ${usageSummary.top_model.total_requests} 次，输出 ${formatTokens(usageSummary.top_model.total_output_tokens)} tokens`
+                    : usageLoading
+                      ? '正在计算模型活跃度'
+                      : '暂无按模型维度的活跃数据'
                 }}
               </p>
             </div>
@@ -381,7 +449,7 @@
                     MCP
                   </p>
                   <p class="codex-inventory-value">
-                    {{ summary.inventory.mcp_servers_total }}
+                    {{ overview.inventory.mcp_servers_total }}
                   </p>
                 </div>
                 <div>
@@ -389,7 +457,7 @@
                     Config Profiles
                   </p>
                   <p class="codex-inventory-value">
-                    {{ summary.inventory.config_profiles_total }}
+                    {{ overview.inventory.config_profiles_total }}
                   </p>
                 </div>
                 <div>
@@ -397,7 +465,7 @@
                     Agents
                   </p>
                   <p class="codex-inventory-value">
-                    {{ summary.inventory.agents_total }}
+                    {{ overview.inventory.agents_total }}
                   </p>
                 </div>
                 <div>
@@ -405,7 +473,7 @@
                     Sessions
                   </p>
                   <p class="codex-inventory-value">
-                    {{ summary.inventory.sessions_total }}
+                    {{ overview.inventory.sessions_total }}
                   </p>
                 </div>
               </div>
@@ -417,10 +485,24 @@
               </p>
               <p class="codex-summary-description codex-summary-description--compact">
                 {{
-                  summary.usage.last_activity_at
-                    ? `最近活动时间 ${formatDateTime(summary.usage.last_activity_at)}`
-                    : '尚未发现最近活动记录'
+                  usageSummary?.last_activity_at
+                    ? `最近活动时间 ${formatDateTime(usageSummary.last_activity_at)}`
+                    : usageLoading
+                      ? '正在读取最近活动记录'
+                      : '尚未发现最近活动记录'
                 }}
+              </p>
+            </div>
+
+            <div
+              v-if="usageError && !usageSummary"
+              class="rounded-2xl border border-amber-500/20 bg-amber-500/10 p-4 text-sm text-amber-100"
+            >
+              <p class="font-medium mb-1">
+                用量摘要加载失败
+              </p>
+              <p class="break-words text-amber-50/80">
+                {{ usageError }}
               </p>
             </div>
           </div>
@@ -441,12 +523,17 @@ import { useCodexDashboard } from '@/composables/useCodexDashboard'
 defineOptions({ name: 'CodexView' })
 
 const {
-  summary,
+  overview,
+  usageSummary,
   loading,
   error,
+  overviewLoading,
+  usageLoading,
+  usageError,
   versionLabel,
   currentAccountLabel,
   currentProfileLabel,
+  usageTotalRequests,
   usageTotalTokens,
   healthItems,
   nextActions,
@@ -694,6 +781,22 @@ onActivated(() => {
 
 .codex-skeleton {
   @apply h-20 animate-pulse rounded-2xl bg-white/5;
+}
+
+.codex-skeleton--panel {
+  @apply h-24;
+}
+
+.codex-skeleton--icon {
+  @apply h-10 w-10 rounded-xl;
+}
+
+.codex-skeleton--line {
+  @apply h-5 w-3/4;
+}
+
+.codex-skeleton--detail {
+  @apply h-4 w-full;
 }
 
 .codex-summary-card {

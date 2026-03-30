@@ -8,7 +8,9 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::cmp::Reverse;
+use std::collections::BTreeMap;
 use std::fs::{self, File};
+use std::hash::{DefaultHasher, Hash, Hasher};
 use std::io::{BufRead, BufReader};
 use std::path::{Path, PathBuf};
 use uuid::Uuid;
@@ -16,6 +18,27 @@ use uuid::Uuid;
 const DEFAULT_DETAIL_MESSAGE_LIMIT: usize = 120;
 const DEFAULT_EXPORT_MESSAGE_LIMIT: usize = 200;
 const PREVIEW_MAX_CHARS: usize = 160;
+const SESSION_INVENTORY_CACHE_VERSION: u32 = 1;
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CodexSessionInventory {
+    pub total_sessions: usize,
+    pub signature: String,
+    pub latest_session_modified_ms: Option<u64>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+struct SessionInventoryCache {
+    version: u32,
+    directories: BTreeMap<String, CachedSessionDir>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+struct CachedSessionDir {
+    modified_ms: u64,
+    session_count: usize,
+    latest_session_modified_ms: Option<u64>,
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CodexSessionSummary {
@@ -110,13 +133,90 @@ impl CodexSessionService {
         self.codex_dir.join("sessions")
     }
 
+    fn inventory_cache_path(&self) -> PathBuf {
+        self.codex_dir.join(".ccr-session-inventory.json")
+    }
+
+    pub fn invalidate_inventory_cache(&self) -> Result<()> {
+        let cache_path = self.inventory_cache_path();
+        if cache_path.exists() {
+            fs::remove_file(cache_path)?;
+        }
+        Ok(())
+    }
+
     pub fn count_sessions(&self) -> Result<usize> {
+        Ok(self.session_inventory()?.total_sessions)
+    }
+
+    pub fn session_inventory(&self) -> Result<CodexSessionInventory> {
         let sessions_dir = self.sessions_dir();
         if !sessions_dir.exists() {
-            return Ok(0);
+            return Ok(CodexSessionInventory {
+                total_sessions: 0,
+                signature: "empty".to_string(),
+                latest_session_modified_ms: None,
+            });
         }
 
-        Ok(Self::collect_jsonl_files(&sessions_dir).len())
+        let cache_path = self.inventory_cache_path();
+        let existing_cache = Self::read_inventory_cache(&cache_path).unwrap_or_default();
+        let mut next_cache = SessionInventoryCache {
+            version: SESSION_INVENTORY_CACHE_VERSION,
+            directories: BTreeMap::new(),
+        };
+
+        let mut directories = Vec::new();
+        Self::collect_session_dirs(&sessions_dir, &mut directories);
+        directories.sort();
+
+        let mut total_sessions = 0usize;
+        let mut latest_session_modified_ms = None;
+        let mut hasher = DefaultHasher::new();
+        SESSION_INVENTORY_CACHE_VERSION.hash(&mut hasher);
+
+        for directory in directories {
+            let relative = directory
+                .strip_prefix(&sessions_dir)
+                .ok()
+                .map(|value| value.to_string_lossy().replace('\\', "/"))
+                .filter(|value| !value.is_empty())
+                .unwrap_or_else(|| ".".to_string());
+            let modified_ms = Self::metadata_modified_ms(&directory);
+
+            let (session_count, dir_latest_session_modified_ms) = existing_cache
+                .directories
+                .get(&relative)
+                .filter(|entry| entry.modified_ms == modified_ms)
+                .map(|entry| (entry.session_count, entry.latest_session_modified_ms))
+                .unwrap_or_else(|| Self::count_jsonl_files_in_dir(&directory));
+
+            next_cache.directories.insert(
+                relative.clone(),
+                CachedSessionDir {
+                    modified_ms,
+                    session_count,
+                    latest_session_modified_ms: dir_latest_session_modified_ms,
+                },
+            );
+
+            relative.hash(&mut hasher);
+            modified_ms.hash(&mut hasher);
+            session_count.hash(&mut hasher);
+            dir_latest_session_modified_ms.hash(&mut hasher);
+            total_sessions += session_count;
+            latest_session_modified_ms =
+                latest_session_modified_ms.max(dir_latest_session_modified_ms);
+        }
+
+        let signature = format!("{:016x}", hasher.finish());
+        Self::write_inventory_cache(&cache_path, &next_cache)?;
+
+        Ok(CodexSessionInventory {
+            total_sessions,
+            signature,
+            latest_session_modified_ms,
+        })
     }
 
     pub fn list_sessions(
@@ -518,6 +618,81 @@ impl CodexSessionService {
         files
     }
 
+    fn collect_session_dirs(dir: &Path, directories: &mut Vec<PathBuf>) {
+        let Ok(entries) = fs::read_dir(dir) else {
+            return;
+        };
+
+        let mut has_jsonl = false;
+        let mut child_dirs = Vec::new();
+
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.is_dir() {
+                child_dirs.push(path);
+            } else if path.extension().and_then(|value| value.to_str()) == Some("jsonl") {
+                has_jsonl = true;
+            }
+        }
+
+        if has_jsonl {
+            directories.push(dir.to_path_buf());
+        }
+
+        for child in child_dirs {
+            Self::collect_session_dirs(&child, directories);
+        }
+    }
+
+    fn count_jsonl_files_in_dir(dir: &Path) -> (usize, Option<u64>) {
+        let Ok(entries) = fs::read_dir(dir) else {
+            return (0, None);
+        };
+
+        let mut count = 0usize;
+        let mut latest_modified_ms = None;
+
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.extension().and_then(|value| value.to_str()) == Some("jsonl") {
+                count += 1;
+                latest_modified_ms =
+                    latest_modified_ms.max(Some(Self::metadata_modified_ms(&path)));
+            }
+        }
+
+        (count, latest_modified_ms)
+    }
+
+    fn metadata_modified_ms(path: &Path) -> u64 {
+        fs::metadata(path)
+            .ok()
+            .and_then(|metadata| metadata.modified().ok())
+            .and_then(|modified| modified.duration_since(std::time::UNIX_EPOCH).ok())
+            .map(|duration| duration.as_millis() as u64)
+            .unwrap_or(0)
+    }
+
+    fn read_inventory_cache(path: &Path) -> Result<SessionInventoryCache> {
+        if !path.exists() {
+            return Ok(SessionInventoryCache::default());
+        }
+
+        let content = fs::read_to_string(path)?;
+        let cache: SessionInventoryCache = serde_json::from_str(&content)?;
+        if cache.version != SESSION_INVENTORY_CACHE_VERSION {
+            return Ok(SessionInventoryCache::default());
+        }
+
+        Ok(cache)
+    }
+
+    fn write_inventory_cache(path: &Path, cache: &SessionInventoryCache) -> Result<()> {
+        let content = serde_json::to_string(cache)?;
+        fs::write(path, content)?;
+        Ok(())
+    }
+
     fn metadata_time(path: &Path) -> Option<DateTime<Utc>> {
         let metadata = fs::metadata(path).ok()?;
         let modified = metadata.modified().ok()?;
@@ -842,5 +1017,30 @@ mod tests {
         assert_ne!(cloned.session_id, "sess-clone");
         assert!(cloned.session_id.starts_with("clone-"));
         assert!(cloned.file_path.exists());
+    }
+
+    #[test]
+    fn session_inventory_reuses_directory_cache_and_updates_on_new_file() {
+        let (service, temp_dir) = create_service();
+        write_session(
+            &temp_dir,
+            "rollout-cache-a.jsonl",
+            r#"{"timestamp":"2026-03-26T06:37:24.013Z","type":"session_meta","payload":{"id":"sess-cache-a","timestamp":"2026-03-26T06:37:24.013Z","cwd":"D:\\repo","model":"gpt-5"}}"#,
+        );
+
+        let first = service.session_inventory().unwrap();
+        assert_eq!(first.total_sessions, 1);
+        assert!(service.inventory_cache_path().exists());
+
+        write_session(
+            &temp_dir,
+            "rollout-cache-b.jsonl",
+            r#"{"timestamp":"2026-03-26T06:37:24.013Z","type":"session_meta","payload":{"id":"sess-cache-b","timestamp":"2026-03-26T06:37:24.013Z","cwd":"D:\\repo","model":"gpt-5"}}"#,
+        );
+
+        let second = service.session_inventory().unwrap();
+        assert_eq!(second.total_sessions, 2);
+        assert_ne!(first.signature, second.signature);
+        assert!(second.latest_session_modified_ms.is_some());
     }
 }

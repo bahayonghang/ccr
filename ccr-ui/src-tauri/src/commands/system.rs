@@ -55,6 +55,14 @@ pub struct CliVersionsOptions {
     pub parallelism: Option<usize>,
 }
 
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CliVersionOptions {
+    pub tool: String,
+    pub timeout_ms: Option<u64>,
+    pub force: Option<bool>,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CliVersionEntry {
     pub platform: String,
@@ -325,6 +333,59 @@ async fn probe_cli_version(tool: &'static str, timeout_ms: u64) -> CliVersionEnt
     }
 }
 
+fn normalize_cli_tool(tool: &str) -> Option<&'static str> {
+    match tool.trim().to_ascii_lowercase().as_str() {
+        "ccr" => Some("ccr"),
+        "claude" => Some("claude"),
+        "codex" => Some("codex"),
+        "gemini" => Some("gemini"),
+        _ => None,
+    }
+}
+
+async fn get_cached_cli_version(
+    state: &AppState,
+    tool: &'static str,
+    timeout_ms: u64,
+    force: bool,
+) -> Result<CliVersionEntry, String> {
+    let cache_key = format!("system:cli_version:{tool}:{timeout_ms}");
+
+    if !force {
+        if let Some(cached) = state.cache_get(&cache_key).await {
+            let entry: CliVersionEntry = serde_json::from_value(cached)
+                .map_err(|e| format!("CLI version cache decode failed: {e}"))?;
+            return Ok(entry);
+        }
+
+        match state.begin_cache_fill(&cache_key).await {
+            CacheFillRegistration::Wait(notify) => {
+                notify.notified().await;
+                if let Some(cached) = state.cache_get(&cache_key).await {
+                    let entry: CliVersionEntry = serde_json::from_value(cached)
+                        .map_err(|e| format!("CLI version cache decode failed: {e}"))?;
+                    return Ok(entry);
+                }
+            }
+            CacheFillRegistration::Leader => {
+                let entry = probe_cli_version(tool, timeout_ms).await;
+                let cached_entry = match serde_json::to_value(&entry) {
+                    Ok(value) => value,
+                    Err(error) => {
+                        state.finish_cache_fill(&cache_key).await;
+                        return Err(format!("CLI version cache encode failed: {error}"));
+                    }
+                };
+                state.cache_set(cache_key.clone(), cached_entry, 60).await;
+                state.finish_cache_fill(&cache_key).await;
+                return Ok(entry);
+            }
+        }
+    }
+
+    Ok(probe_cli_version(tool, timeout_ms).await)
+}
+
 fn legacy_versions_map(entries: &[CliVersionEntry]) -> serde_json::Map<String, serde_json::Value> {
     let mut versions = serde_json::Map::new();
     for entry in entries {
@@ -470,6 +531,19 @@ pub async fn get_cli_versions(
     Ok(cli_versions_payload(entries, mode, timeout_ms, parallelism))
 }
 
+#[tauri::command]
+pub async fn get_cli_version(
+    state: State<'_, AppState>,
+    options: CliVersionOptions,
+) -> Result<CliVersionEntry, String> {
+    let tool = normalize_cli_tool(&options.tool)
+        .ok_or_else(|| format!("Unsupported CLI tool: {}", options.tool))?;
+    let timeout_ms = options.timeout_ms.unwrap_or(1_500);
+    let force = options.force.unwrap_or(false);
+
+    get_cached_cli_version(&state, tool, timeout_ms, force).await
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -508,6 +582,24 @@ mod tests {
 
         // fast 模式下应在合理时间内返回，避免回归导致探测超时
         assert!(started_at.elapsed() <= Duration::from_millis(5_000));
+    }
+
+    #[test]
+    fn normalize_cli_tool_rejects_unknown_tool() {
+        assert_eq!(normalize_cli_tool("codex"), Some("codex"));
+        assert_eq!(normalize_cli_tool(" CODEX "), Some("codex"));
+        assert_eq!(normalize_cli_tool("unknown"), None);
+    }
+
+    #[tokio::test]
+    async fn single_cli_probe_returns_requested_platform() {
+        let entry = probe_cli_version("codex", 3_500).await;
+
+        assert_eq!(entry.platform, "codex");
+        assert!(matches!(
+            entry.status.as_str(),
+            "ok" | "not_installed" | "timeout" | "error"
+        ));
     }
 }
 

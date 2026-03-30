@@ -187,3 +187,9 @@ export interface CliVersionsOptions {
   timeoutMs?: number;
   parallelism?: number;
 }
+
+export interface CliVersionCommandOptions {
+  tool: string;
+  timeoutMs?: number;
+  force?: boolean;
+}

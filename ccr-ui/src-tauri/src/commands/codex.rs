@@ -11,15 +11,20 @@ use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value, json};
 use std::collections::HashMap;
 use std::fs;
+use std::hash::{DefaultHasher, Hash, Hasher};
 use std::path::PathBuf;
 use tauri::State;
 
 use ccr::models::OpenAiAuthMethod;
 use ccr::platforms::CodexPlatform;
+use ccr::services::codex_session_service::CodexSessionInventory;
 use ccr::services::{CodexAuthService, CodexSessionService, CodexUsageService};
-use ccr::{PlatformConfig, ProfileConfig};
+use ccr::{Platform, PlatformConfig, PlatformPaths, ProfileConfig};
 
 use crate::state::{AppState, CacheFillRegistration};
+
+const CODEX_USAGE_CACHE_KEY: &str = "codex:rolling_usage";
+const CODEX_DASHBOARD_OVERVIEW_CACHE_KEY: &str = "codex:dashboard_overview";
 
 // ── 内部辅助类型 ──
 
@@ -197,6 +202,23 @@ struct CodexFeedbackConfig {
 struct CodexCustomModelsFile {
     #[serde(default)]
     pub models: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+struct CodexDashboardOverviewFingerprint {
+    codex_config_hash: u64,
+    registry_hash: u64,
+    profiles_hash: u64,
+    auth_registry_hash: u64,
+    auth_dir_hash: u64,
+    agents_signature: String,
+    session_inventory_signature: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct CodexDashboardOverviewCacheEntry {
+    fingerprint: CodexDashboardOverviewFingerprint,
+    payload: Value,
 }
 
 const CODEX_BUILTIN_MODELS: &[&str] = &["gpt-5.3-codex", "gpt-5.4"];
@@ -419,6 +441,320 @@ fn build_codex_usage_summary(usage: &Value) -> Value {
     })
 }
 
+fn hash_bytes<T: Hash>(value: &T) -> u64 {
+    let mut hasher = DefaultHasher::new();
+    value.hash(&mut hasher);
+    hasher.finish()
+}
+
+fn hash_file_contents(path: &std::path::Path) -> u64 {
+    fs::read(path).map(|bytes| hash_bytes(&bytes)).unwrap_or(0)
+}
+
+fn collect_directory_files(dir: &std::path::Path, files: &mut Vec<PathBuf>) {
+    let Ok(entries) = fs::read_dir(dir) else {
+        return;
+    };
+
+    for entry in entries.flatten() {
+        let path = entry.path();
+        if path.is_dir() {
+            collect_directory_files(&path, files);
+        } else {
+            files.push(path);
+        }
+    }
+}
+
+fn hash_directory_contents(dir: &std::path::Path) -> u64 {
+    if !dir.exists() {
+        return 0;
+    }
+
+    let mut files = Vec::new();
+    collect_directory_files(dir, &mut files);
+    files.sort();
+
+    let mut hasher = DefaultHasher::new();
+    for path in files {
+        path.to_string_lossy().hash(&mut hasher);
+        if let Ok(bytes) = fs::read(&path) {
+            bytes.hash(&mut hasher);
+        }
+    }
+
+    hasher.finish()
+}
+
+fn codex_dashboard_overview_fingerprint(
+    session_inventory: &CodexSessionInventory,
+) -> Result<CodexDashboardOverviewFingerprint, String> {
+    let codex_paths = PlatformPaths::new(Platform::Codex)
+        .map_err(|e| format!("初始化 Codex 平台路径失败: {e}"))?;
+    let auth_dir = codex_paths.platform_dir.join("auth");
+    let auth_registry_path = codex_paths.platform_dir.join("auth_registry.toml");
+    let agents_signature = count_codex_agents(&codex_agents_dir()?)?.to_string();
+
+    Ok(CodexDashboardOverviewFingerprint {
+        codex_config_hash: hash_file_contents(&codex_config_path()?),
+        registry_hash: hash_file_contents(&codex_paths.registry_file),
+        profiles_hash: hash_file_contents(&codex_paths.profiles_file),
+        auth_registry_hash: hash_file_contents(&auth_registry_path),
+        auth_dir_hash: hash_directory_contents(&auth_dir),
+        agents_signature,
+        session_inventory_signature: session_inventory.signature.clone(),
+    })
+}
+
+fn build_codex_dashboard_overview_payload(
+    session_inventory: &CodexSessionInventory,
+) -> Result<Value, String> {
+    let path = codex_config_path()?;
+    let config = read_codex_config(&path)?;
+    let platform = CodexPlatform::new().map_err(|e| format!("初始化 Codex 平台失败: {e}"))?;
+    let current_profile = platform
+        .get_current_profile()
+        .map_err(|e| format!("读取当前 Codex profile 失败: {e}"))?;
+    let profiles = platform
+        .load_profiles()
+        .map_err(|e| format!("读取 Codex profiles 失败: {e}"))?;
+
+    let auth_service =
+        CodexAuthService::new().map_err(|e| format!("初始化 Codex Auth 服务失败: {e}"))?;
+    let auth_state = auth_service.get_auth_state();
+    let auth_snapshot = auth_service
+        .read_auth_snapshot()
+        .map_err(|e| format!("读取认证快照失败: {e}"))?;
+    let auth_accounts = auth_service
+        .build_account_items(&auth_snapshot)
+        .map_err(|e| format!("列出账号失败: {e}"))?;
+
+    let current_auth_name = auth_accounts
+        .iter()
+        .find(|item| item.is_current)
+        .map(|item| item.name.clone());
+    let expired_accounts = auth_accounts
+        .iter()
+        .filter(|item| CodexAuthService::is_expired(item.expires_at))
+        .count();
+    let current_auth = auth_snapshot.current_info.as_ref().map(|current| {
+        let freshness = &current.freshness;
+        let expires_at = auth_snapshot.current_expires_at;
+        json!({
+            "name": current_auth_name,
+            "account_id": current.account_id,
+            "email": current.email,
+            "last_refresh": current.last_refresh.map(|dt| dt.to_rfc3339()),
+            "freshness": freshness,
+            "freshness_icon": freshness.icon(),
+            "freshness_description": freshness.description(),
+            "expires_at": expires_at.map(|dt| dt.to_rfc3339()),
+            "is_expired": CodexAuthService::is_expired(expires_at),
+        })
+    });
+
+    let current_profile_summary = current_profile.as_ref().and_then(|name| {
+        profiles.get(name).cloned().map(|profile| {
+            profile_to_json(
+                &platform,
+                current_profile.as_deref(),
+                Some(auth_state.store.as_str()),
+                name.clone(),
+                profile,
+            )
+        })
+    });
+    let enabled_profiles = profiles
+        .values()
+        .filter(|profile| profile.enabled.unwrap_or(true))
+        .count();
+
+    let agents_count = count_codex_agents(&codex_agents_dir()?)?;
+    let sessions_count = session_inventory.total_sessions;
+    let mcp_servers_total = config
+        .mcp_servers
+        .as_ref()
+        .map(|servers| servers.len())
+        .unwrap_or(0);
+    let config_profiles_total = config
+        .profiles
+        .as_ref()
+        .map(|items| items.len())
+        .unwrap_or(0);
+
+    Ok(json!({
+        "auth": {
+            "logged_in": current_auth.is_some(),
+            "login_state": auth_snapshot.login_state,
+            "store": auth_state.store.as_str(),
+            "saved_accounts_total": auth_accounts.len(),
+            "expired_accounts_total": expired_accounts,
+            "current": current_auth,
+        },
+        "profiles": {
+            "current_profile": current_profile,
+            "total": profiles.len(),
+            "enabled_total": enabled_profiles,
+            "disabled_total": profiles.len().saturating_sub(enabled_profiles),
+            "current": current_profile_summary,
+        },
+        "config": {
+            "model": config.model,
+            "model_provider": config.model_provider,
+            "approval_policy": config.approval_policy,
+            "sandbox_mode": config.sandbox_mode,
+            "model_reasoning_effort": config.model_reasoning_effort,
+            "model_reasoning_summary": config.model_reasoning_summary,
+            "web_search": config.web_search,
+            "disable_response_storage": config.disable_response_storage,
+        },
+        "inventory": {
+            "mcp_servers_total": mcp_servers_total,
+            "agents_total": agents_count,
+            "sessions_total": sessions_count,
+            "config_profiles_total": config_profiles_total,
+        }
+    }))
+}
+
+async fn get_cached_codex_usage_payload(state: &AppState, force: bool) -> Result<Value, String> {
+    if !force {
+        if let Some(cached) = state.cache_get(CODEX_USAGE_CACHE_KEY).await {
+            return Ok(cached);
+        }
+
+        match state.begin_cache_fill(CODEX_USAGE_CACHE_KEY).await {
+            CacheFillRegistration::Wait(notify) => {
+                notify.notified().await;
+                if let Some(cached) = state.cache_get(CODEX_USAGE_CACHE_KEY).await {
+                    return Ok(cached);
+                }
+            }
+            CacheFillRegistration::Leader => {
+                let result = tokio::task::spawn_blocking(compute_codex_usage_payload)
+                    .await
+                    .map_err(|e| format!("任务执行失败: {e}"))?;
+
+                match result {
+                    Ok(payload) => {
+                        state
+                            .cache_set(CODEX_USAGE_CACHE_KEY.to_string(), payload.clone(), 30)
+                            .await;
+                        state.finish_cache_fill(CODEX_USAGE_CACHE_KEY).await;
+                        return Ok(payload);
+                    }
+                    Err(error) => {
+                        state.finish_cache_fill(CODEX_USAGE_CACHE_KEY).await;
+                        return Err(error);
+                    }
+                }
+            }
+        }
+    }
+
+    tokio::task::spawn_blocking(compute_codex_usage_payload)
+        .await
+        .map_err(|e| format!("任务执行失败: {e}"))?
+}
+
+async fn get_cached_codex_dashboard_overview_payload(
+    state: &AppState,
+    force: bool,
+) -> Result<Value, String> {
+    let session_inventory = CodexSessionService::new(
+        dirs::home_dir()
+            .ok_or_else(|| "无法获取用户主目录".to_string())?
+            .join(".codex"),
+    )
+    .session_inventory()
+    .map_err(|e| format!("统计 Codex sessions 失败: {e}"))?;
+    let fingerprint = codex_dashboard_overview_fingerprint(&session_inventory)?;
+
+    if !force {
+        if let Some(cached) = state.cache_get(CODEX_DASHBOARD_OVERVIEW_CACHE_KEY).await {
+            let entry: CodexDashboardOverviewCacheEntry = serde_json::from_value(cached)
+                .map_err(|e| format!("仪表盘概览缓存解析失败: {e}"))?;
+            if entry.fingerprint == fingerprint {
+                return Ok(entry.payload);
+            }
+        }
+
+        match state
+            .begin_cache_fill(CODEX_DASHBOARD_OVERVIEW_CACHE_KEY)
+            .await
+        {
+            CacheFillRegistration::Wait(notify) => {
+                notify.notified().await;
+                if let Some(cached) = state.cache_get(CODEX_DASHBOARD_OVERVIEW_CACHE_KEY).await {
+                    let entry: CodexDashboardOverviewCacheEntry = serde_json::from_value(cached)
+                        .map_err(|e| format!("仪表盘概览缓存解析失败: {e}"))?;
+                    if entry.fingerprint == fingerprint {
+                        return Ok(entry.payload);
+                    }
+                }
+            }
+            CacheFillRegistration::Leader => {
+                let session_inventory_for_task = session_inventory.clone();
+                let result = tokio::task::spawn_blocking(move || {
+                    build_codex_dashboard_overview_payload(&session_inventory_for_task)
+                })
+                .await
+                .map_err(|e| format!("任务执行失败: {e}"))?;
+
+                match result {
+                    Ok(payload) => {
+                        let entry = CodexDashboardOverviewCacheEntry {
+                            fingerprint: fingerprint.clone(),
+                            payload: payload.clone(),
+                        };
+                        let cached_value = serde_json::to_value(entry)
+                            .map_err(|e| format!("仪表盘概览缓存序列化失败: {e}"))?;
+                        state
+                            .cache_set(
+                                CODEX_DASHBOARD_OVERVIEW_CACHE_KEY.to_string(),
+                                cached_value,
+                                300,
+                            )
+                            .await;
+                        state
+                            .finish_cache_fill(CODEX_DASHBOARD_OVERVIEW_CACHE_KEY)
+                            .await;
+                        return Ok(payload);
+                    }
+                    Err(error) => {
+                        state
+                            .finish_cache_fill(CODEX_DASHBOARD_OVERVIEW_CACHE_KEY)
+                            .await;
+                        return Err(error);
+                    }
+                }
+            }
+        }
+    }
+
+    tokio::task::spawn_blocking(move || build_codex_dashboard_overview_payload(&session_inventory))
+        .await
+        .map_err(|e| format!("任务执行失败: {e}"))?
+}
+
+async fn invalidate_codex_dashboard_overview_cache(state: &AppState) {
+    state.cache_remove(CODEX_DASHBOARD_OVERVIEW_CACHE_KEY).await;
+}
+
+async fn invalidate_codex_usage_cache(state: &AppState) {
+    state.cache_remove(CODEX_USAGE_CACHE_KEY).await;
+}
+
+fn invalidate_codex_session_inventory_cache() -> Result<(), String> {
+    let codex_dir = dirs::home_dir()
+        .ok_or_else(|| "无法获取用户主目录".to_string())?
+        .join(".codex");
+    let service = CodexSessionService::new(codex_dir);
+    service
+        .invalidate_inventory_cache()
+        .map_err(|e| format!("清理 Codex session inventory 缓存失败: {e}"))
+}
+
 fn read_codex_config(path: &PathBuf) -> Result<CodexConfig, String> {
     if !path.exists() {
         return Ok(CodexConfig::default());
@@ -638,7 +974,8 @@ fn apply_sandbox_workspace_write_setting(
         nested.network_access = parse_bool_field(value, "sandbox_workspace_write.network_access")?;
     }
 
-    if nested.writable_roots.is_none() && nested.network_access.is_none() && nested.other.is_empty() {
+    if nested.writable_roots.is_none() && nested.network_access.is_none() && nested.other.is_empty()
+    {
         config.sandbox_workspace_write = None;
     }
 
@@ -724,7 +1061,9 @@ fn apply_history_setting(config: &mut CodexConfig, raw: &Value) -> Result<(), St
         return Err("字段 'history' 必须是对象".to_string());
     };
 
-    let nested = config.history.get_or_insert_with(CodexHistoryConfig::default);
+    let nested = config
+        .history
+        .get_or_insert_with(CodexHistoryConfig::default);
     if let Some(value) = obj.get("persistence") {
         nested.persistence = parse_string_field(value, "history.persistence")?;
     }
@@ -848,7 +1187,11 @@ fn apply_codex_settings_update(config: &mut CodexConfig, settings: &Value) -> Re
         "model_reasoning_summary",
     )?;
     apply_optional_string_setting(&mut config.model_verbosity, obj, "model_verbosity")?;
-    apply_optional_i64_setting(&mut config.model_context_window, obj, "model_context_window")?;
+    apply_optional_i64_setting(
+        &mut config.model_context_window,
+        obj,
+        "model_context_window",
+    )?;
     apply_optional_i64_setting(
         &mut config.model_auto_compact_token_limit,
         obj,
@@ -1253,8 +1596,12 @@ pub async fn codex_add_custom_model(model: String) -> Result<Value, String> {
 
 /// 新增 Codex profile（写入 CCR profiles.toml）
 #[tauri::command]
-pub async fn codex_add_profile(name: String, config: Value) -> Result<Value, String> {
-    tokio::task::spawn_blocking(move || {
+pub async fn codex_add_profile(
+    state: State<'_, AppState>,
+    name: String,
+    config: Value,
+) -> Result<Value, String> {
+    let response = tokio::task::spawn_blocking(move || -> Result<Value, String> {
         let platform = CodexPlatform::new().map_err(|e| format!("初始化 Codex 平台失败: {e}"))?;
         let profiles = platform
             .load_profiles()
@@ -1271,13 +1618,20 @@ pub async fn codex_add_profile(name: String, config: Value) -> Result<Value, Str
         Ok(json!({ "message": format!("Codex Profile '{name}' 已添加") }))
     })
     .await
-    .map_err(|e| format!("任务执行失败: {e}"))?
+    .map_err(|e| format!("任务执行失败: {e}"))??;
+
+    invalidate_codex_dashboard_overview_cache(&state).await;
+    Ok(response)
 }
 
 /// 更新 Codex profile（核心字段覆盖 + extra/platform_data 整体替换）
 #[tauri::command]
-pub async fn codex_update_profile(name: String, config: Value) -> Result<Value, String> {
-    tokio::task::spawn_blocking(move || {
+pub async fn codex_update_profile(
+    state: State<'_, AppState>,
+    name: String,
+    config: Value,
+) -> Result<Value, String> {
+    let response = tokio::task::spawn_blocking(move || -> Result<Value, String> {
         let platform = CodexPlatform::new().map_err(|e| format!("初始化 Codex 平台失败: {e}"))?;
         let profiles = platform
             .load_profiles()
@@ -1295,13 +1649,19 @@ pub async fn codex_update_profile(name: String, config: Value) -> Result<Value, 
         Ok(json!({ "message": format!("Codex Profile '{name}' 已更新") }))
     })
     .await
-    .map_err(|e| format!("任务执行失败: {e}"))?
+    .map_err(|e| format!("任务执行失败: {e}"))??;
+
+    invalidate_codex_dashboard_overview_cache(&state).await;
+    Ok(response)
 }
 
 /// 删除 Codex profile
 #[tauri::command]
-pub async fn codex_delete_profile(name: String) -> Result<Value, String> {
-    tokio::task::spawn_blocking(move || {
+pub async fn codex_delete_profile(
+    state: State<'_, AppState>,
+    name: String,
+) -> Result<Value, String> {
+    let response = tokio::task::spawn_blocking(move || -> Result<Value, String> {
         let platform = CodexPlatform::new().map_err(|e| format!("初始化 Codex 平台失败: {e}"))?;
         platform
             .delete_profile(&name)
@@ -1309,13 +1669,19 @@ pub async fn codex_delete_profile(name: String) -> Result<Value, String> {
         Ok(json!({ "message": format!("Codex Profile '{name}' 已删除") }))
     })
     .await
-    .map_err(|e| format!("任务执行失败: {e}"))?
+    .map_err(|e| format!("任务执行失败: {e}"))??;
+
+    invalidate_codex_dashboard_overview_cache(&state).await;
+    Ok(response)
 }
 
 /// 应用 Codex profile
 #[tauri::command]
-pub async fn codex_apply_profile(name: String) -> Result<Value, String> {
-    tokio::task::spawn_blocking(move || {
+pub async fn codex_apply_profile(
+    state: State<'_, AppState>,
+    name: String,
+) -> Result<Value, String> {
+    let response = tokio::task::spawn_blocking(move || -> Result<Value, String> {
         let platform = CodexPlatform::new().map_err(|e| format!("初始化 Codex 平台失败: {e}"))?;
         platform
             .apply_profile(&name)
@@ -1323,7 +1689,10 @@ pub async fn codex_apply_profile(name: String) -> Result<Value, String> {
         Ok(json!({ "message": format!("Codex Profile '{name}' 已应用") }))
     })
     .await
-    .map_err(|e| format!("任务执行失败: {e}"))?
+    .map_err(|e| format!("任务执行失败: {e}"))??;
+
+    invalidate_codex_dashboard_overview_cache(&state).await;
+    Ok(response)
 }
 
 /// 获取 Codex profile 导出的环境变量与 shell 脚本
@@ -1364,8 +1733,11 @@ pub async fn codex_get_settings() -> Result<Value, String> {
 
 /// 更新 Codex 配置（合并写入，不覆盖 mcp_servers/profiles）
 #[tauri::command]
-pub async fn codex_update_settings(settings: Value) -> Result<Value, String> {
-    tokio::task::spawn_blocking(move || {
+pub async fn codex_update_settings(
+    state: State<'_, AppState>,
+    settings: Value,
+) -> Result<Value, String> {
+    let response = tokio::task::spawn_blocking(move || -> Result<Value, String> {
         let path = codex_config_path()?;
         let mut config = read_codex_config(&path)?;
         apply_codex_settings_update(&mut config, &settings)?;
@@ -1374,7 +1746,10 @@ pub async fn codex_update_settings(settings: Value) -> Result<Value, String> {
         Ok(json!({ "message": "Codex 配置已更新" }))
     })
     .await
-    .map_err(|e| format!("任务执行失败: {e}"))?
+    .map_err(|e| format!("任务执行失败: {e}"))??;
+
+    invalidate_codex_dashboard_overview_cache(&state).await;
+    Ok(response)
 }
 
 // ── MCP Servers ──
@@ -1410,8 +1785,12 @@ pub async fn codex_list_mcp_servers() -> Result<Value, String> {
 
 /// 添加 MCP 服务器到 config.toml
 #[tauri::command]
-pub async fn codex_add_mcp_server(name: String, config: Value) -> Result<Value, String> {
-    tokio::task::spawn_blocking(move || {
+pub async fn codex_add_mcp_server(
+    state: State<'_, AppState>,
+    name: String,
+    config: Value,
+) -> Result<Value, String> {
+    let response = tokio::task::spawn_blocking(move || -> Result<Value, String> {
         let path = codex_config_path()?;
         let mut cfg = read_codex_config(&path)?;
 
@@ -1430,13 +1809,20 @@ pub async fn codex_add_mcp_server(name: String, config: Value) -> Result<Value, 
         Ok(json!({ "message": format!("MCP 服务器 '{name}' 已添加") }))
     })
     .await
-    .map_err(|e| format!("任务执行失败: {e}"))?
+    .map_err(|e| format!("任务执行失败: {e}"))??;
+
+    invalidate_codex_dashboard_overview_cache(&state).await;
+    Ok(response)
 }
 
 /// 更新已有 MCP 服务器
 #[tauri::command]
-pub async fn codex_update_mcp_server(name: String, config: Value) -> Result<Value, String> {
-    tokio::task::spawn_blocking(move || {
+pub async fn codex_update_mcp_server(
+    state: State<'_, AppState>,
+    name: String,
+    config: Value,
+) -> Result<Value, String> {
+    let response = tokio::task::spawn_blocking(move || -> Result<Value, String> {
         let path = codex_config_path()?;
         let mut cfg = read_codex_config(&path)?;
 
@@ -1456,13 +1842,19 @@ pub async fn codex_update_mcp_server(name: String, config: Value) -> Result<Valu
         Ok(json!({ "message": format!("MCP 服务器 '{name}' 已更新") }))
     })
     .await
-    .map_err(|e| format!("任务执行失败: {e}"))?
+    .map_err(|e| format!("任务执行失败: {e}"))??;
+
+    invalidate_codex_dashboard_overview_cache(&state).await;
+    Ok(response)
 }
 
 /// 删除 MCP 服务器
 #[tauri::command]
-pub async fn codex_delete_mcp_server(name: String) -> Result<String, String> {
-    tokio::task::spawn_blocking(move || {
+pub async fn codex_delete_mcp_server(
+    state: State<'_, AppState>,
+    name: String,
+) -> Result<String, String> {
+    let response = tokio::task::spawn_blocking(move || -> Result<String, String> {
         let path = codex_config_path()?;
         let mut cfg = read_codex_config(&path)?;
 
@@ -1479,7 +1871,10 @@ pub async fn codex_delete_mcp_server(name: String) -> Result<String, String> {
         Ok(format!("MCP 服务器 '{name}' 已删除"))
     })
     .await
-    .map_err(|e| format!("任务执行失败: {e}"))?
+    .map_err(|e| format!("任务执行失败: {e}"))??;
+
+    invalidate_codex_dashboard_overview_cache(&state).await;
+    Ok(response)
 }
 
 // ── Agents (markdown files in ~/.codex/agents/) ──
@@ -1522,8 +1917,12 @@ pub async fn codex_list_agents() -> Result<Value, String> {
 
 /// 添加新 agent（写入 ~/.codex/agents/{name}.md）
 #[tauri::command]
-pub async fn codex_add_agent(name: String, config: Value) -> Result<Value, String> {
-    tokio::task::spawn_blocking(move || {
+pub async fn codex_add_agent(
+    state: State<'_, AppState>,
+    name: String,
+    config: Value,
+) -> Result<Value, String> {
+    let response = tokio::task::spawn_blocking(move || -> Result<Value, String> {
         let agents_dir = codex_agents_dir()?;
         fs::create_dir_all(&agents_dir).map_err(|e| format!("创建 agents 目录失败: {e}"))?;
 
@@ -1538,13 +1937,20 @@ pub async fn codex_add_agent(name: String, config: Value) -> Result<Value, Strin
         Ok(json!({ "message": format!("Agent '{name}' 已添加") }))
     })
     .await
-    .map_err(|e| format!("任务执行失败: {e}"))?
+    .map_err(|e| format!("任务执行失败: {e}"))??;
+
+    invalidate_codex_dashboard_overview_cache(&state).await;
+    Ok(response)
 }
 
 /// 更新已有 agent
 #[tauri::command]
-pub async fn codex_update_agent(name: String, config: Value) -> Result<Value, String> {
-    tokio::task::spawn_blocking(move || {
+pub async fn codex_update_agent(
+    state: State<'_, AppState>,
+    name: String,
+    config: Value,
+) -> Result<Value, String> {
+    let response = tokio::task::spawn_blocking(move || -> Result<Value, String> {
         let agents_dir = codex_agents_dir()?;
         let file_path = agents_dir.join(format!("{name}.md"));
         if !file_path.exists() {
@@ -1557,13 +1963,19 @@ pub async fn codex_update_agent(name: String, config: Value) -> Result<Value, St
         Ok(json!({ "message": format!("Agent '{name}' 已更新") }))
     })
     .await
-    .map_err(|e| format!("任务执行失败: {e}"))?
+    .map_err(|e| format!("任务执行失败: {e}"))??;
+
+    invalidate_codex_dashboard_overview_cache(&state).await;
+    Ok(response)
 }
 
 /// 删除 agent
 #[tauri::command]
-pub async fn codex_delete_agent(name: String) -> Result<String, String> {
-    tokio::task::spawn_blocking(move || {
+pub async fn codex_delete_agent(
+    state: State<'_, AppState>,
+    name: String,
+) -> Result<String, String> {
+    let response = tokio::task::spawn_blocking(move || -> Result<String, String> {
         let agents_dir = codex_agents_dir()?;
         let file_path = agents_dir.join(format!("{name}.md"));
         if !file_path.exists() {
@@ -1575,7 +1987,10 @@ pub async fn codex_delete_agent(name: String) -> Result<String, String> {
         Ok(format!("Agent '{name}' 已删除"))
     })
     .await
-    .map_err(|e| format!("任务执行失败: {e}"))?
+    .map_err(|e| format!("任务执行失败: {e}"))??;
+
+    invalidate_codex_dashboard_overview_cache(&state).await;
+    Ok(response)
 }
 
 // ── Sessions ──
@@ -1638,8 +2053,11 @@ pub async fn codex_export_session(
 }
 
 #[tauri::command]
-pub async fn codex_clone_session(file_path: String) -> Result<Value, String> {
-    tokio::task::spawn_blocking(move || {
+pub async fn codex_clone_session(
+    state: State<'_, AppState>,
+    file_path: String,
+) -> Result<Value, String> {
+    let response = tokio::task::spawn_blocking(move || -> Result<Value, String> {
         let codex_dir = dirs::home_dir()
             .ok_or_else(|| "无法获取用户主目录".to_string())?
             .join(".codex");
@@ -1653,12 +2071,20 @@ pub async fn codex_clone_session(file_path: String) -> Result<Value, String> {
         }))
     })
     .await
-    .map_err(|e| format!("任务执行失败: {e}"))?
+    .map_err(|e| format!("任务执行失败: {e}"))??;
+
+    invalidate_codex_session_inventory_cache()?;
+    invalidate_codex_dashboard_overview_cache(&state).await;
+    invalidate_codex_usage_cache(&state).await;
+    Ok(response)
 }
 
 #[tauri::command]
-pub async fn codex_delete_session(file_path: String) -> Result<Value, String> {
-    tokio::task::spawn_blocking(move || {
+pub async fn codex_delete_session(
+    state: State<'_, AppState>,
+    file_path: String,
+) -> Result<Value, String> {
+    let response = tokio::task::spawn_blocking(move || -> Result<Value, String> {
         let codex_dir = dirs::home_dir()
             .ok_or_else(|| "无法获取用户主目录".to_string())?
             .join(".codex");
@@ -1673,7 +2099,12 @@ pub async fn codex_delete_session(file_path: String) -> Result<Value, String> {
         }))
     })
     .await
-    .map_err(|e| format!("任务执行失败: {e}"))?
+    .map_err(|e| format!("任务执行失败: {e}"))??;
+
+    invalidate_codex_session_inventory_cache()?;
+    invalidate_codex_dashboard_overview_cache(&state).await;
+    invalidate_codex_usage_cache(&state).await;
+    Ok(response)
 }
 
 // ── Auth 账号管理 ──
@@ -1765,12 +2196,13 @@ pub async fn codex_get_auth_current() -> Result<Value, String> {
 /// 保存当前登录到命名账号
 #[tauri::command]
 pub async fn codex_save_auth(
+    state: State<'_, AppState>,
     name: String,
     description: Option<String>,
     expires_at: Option<String>,
     force: Option<bool>,
 ) -> Result<Value, String> {
-    tokio::task::spawn_blocking(move || {
+    let response = tokio::task::spawn_blocking(move || -> Result<Value, String> {
         let service =
             CodexAuthService::new().map_err(|e| format!("初始化 Codex Auth 服务失败: {e}"))?;
 
@@ -1795,12 +2227,15 @@ pub async fn codex_save_auth(
         Ok(json!({ "success": true, "message": format!("Codex Auth 账号 '{name}' 已成功保存") }))
     })
     .await
-    .map_err(|e| format!("任务执行失败: {e}"))?
+    .map_err(|e| format!("任务执行失败: {e}"))??;
+
+    invalidate_codex_dashboard_overview_cache(&state).await;
+    Ok(response)
 }
 
 /// 切换到指定账号
 #[tauri::command]
-pub async fn codex_switch_auth(name: String) -> Result<Value, String> {
+pub async fn codex_switch_auth(state: State<'_, AppState>, name: String) -> Result<Value, String> {
     let name_resp = name.clone();
     tokio::task::spawn_blocking(move || {
         let service =
@@ -1813,12 +2248,13 @@ pub async fn codex_switch_auth(name: String) -> Result<Value, String> {
     .await
     .map_err(|e| format!("任务执行失败: {e}"))??;
 
+    invalidate_codex_dashboard_overview_cache(&state).await;
     Ok(json!({ "success": true, "message": format!("已切换到 Codex Auth 账号 '{name_resp}'") }))
 }
 
 /// 删除指定账号
 #[tauri::command]
-pub async fn codex_delete_auth(name: String) -> Result<Value, String> {
+pub async fn codex_delete_auth(state: State<'_, AppState>, name: String) -> Result<Value, String> {
     let name_resp = name.clone();
     tokio::task::spawn_blocking(move || {
         let service =
@@ -1831,6 +2267,7 @@ pub async fn codex_delete_auth(name: String) -> Result<Value, String> {
     .await
     .map_err(|e| format!("任务执行失败: {e}"))??;
 
+    invalidate_codex_dashboard_overview_cache(&state).await;
     Ok(json!({ "success": true, "message": format!("Codex Auth 账号 '{name_resp}' 已成功删除") }))
 }
 
@@ -1952,169 +2389,26 @@ pub async fn codex_get_usage(
     state: State<'_, AppState>,
     force: Option<bool>,
 ) -> Result<Value, String> {
-    let force = force.unwrap_or(false);
-    let cache_key = "codex:rolling_usage";
-
-    if !force {
-        if let Some(cached) = state.cache_get(cache_key).await {
-            return Ok(cached);
-        }
-
-        match state.begin_cache_fill(cache_key).await {
-            CacheFillRegistration::Wait(notify) => {
-                notify.notified().await;
-                if let Some(cached) = state.cache_get(cache_key).await {
-                    return Ok(cached);
-                }
-            }
-            CacheFillRegistration::Leader => {
-                let result = tokio::task::spawn_blocking(compute_codex_usage_payload)
-                    .await
-                    .map_err(|e| format!("任务执行失败: {e}"))?;
-
-                match result {
-                    Ok(payload) => {
-                        state
-                            .cache_set(cache_key.to_string(), payload.clone(), 30)
-                            .await;
-                        state.finish_cache_fill(cache_key).await;
-                        return Ok(payload);
-                    }
-                    Err(error) => {
-                        state.finish_cache_fill(cache_key).await;
-                        return Err(error);
-                    }
-                }
-            }
-        }
-    }
-
-    tokio::task::spawn_blocking(compute_codex_usage_payload)
-        .await
-        .map_err(|e| format!("任务执行失败: {e}"))?
+    get_cached_codex_usage_payload(&state, force.unwrap_or(false)).await
 }
 
-/// 获取 Codex 仪表盘摘要
+/// 获取 Codex 仪表盘概览（轻量数据）
 #[tauri::command]
-pub async fn codex_get_dashboard_summary() -> Result<Value, String> {
-    tokio::task::spawn_blocking(|| {
-        let path = codex_config_path()?;
-        let config = read_codex_config(&path)?;
-        let platform = CodexPlatform::new().map_err(|e| format!("初始化 Codex 平台失败: {e}"))?;
-        let current_profile = platform
-            .get_current_profile()
-            .map_err(|e| format!("读取当前 Codex profile 失败: {e}"))?;
-        let profiles = platform
-            .load_profiles()
-            .map_err(|e| format!("读取 Codex profiles 失败: {e}"))?;
+pub async fn codex_get_dashboard_overview(
+    state: State<'_, AppState>,
+    force: Option<bool>,
+) -> Result<Value, String> {
+    get_cached_codex_dashboard_overview_payload(&state, force.unwrap_or(false)).await
+}
 
-        let auth_service =
-            CodexAuthService::new().map_err(|e| format!("初始化 Codex Auth 服务失败: {e}"))?;
-        let auth_state = auth_service.get_auth_state();
-        let auth_snapshot = auth_service
-            .read_auth_snapshot()
-            .map_err(|e| format!("读取认证快照失败: {e}"))?;
-        let auth_accounts = auth_service
-            .build_account_items(&auth_snapshot)
-            .map_err(|e| format!("列出账号失败: {e}"))?;
-
-        let current_auth_name = auth_accounts
-            .iter()
-            .find(|item| item.is_current)
-            .map(|item| item.name.clone());
-        let expired_accounts = auth_accounts
-            .iter()
-            .filter(|item| CodexAuthService::is_expired(item.expires_at))
-            .count();
-        let current_auth = auth_snapshot.current_info.as_ref().map(|current| {
-            let freshness = &current.freshness;
-            let expires_at = auth_snapshot.current_expires_at;
-            json!({
-                "name": current_auth_name,
-                "account_id": current.account_id,
-                "email": current.email,
-                "last_refresh": current.last_refresh.map(|dt| dt.to_rfc3339()),
-                "freshness": freshness,
-                "freshness_icon": freshness.icon(),
-                "freshness_description": freshness.description(),
-                "expires_at": expires_at.map(|dt| dt.to_rfc3339()),
-                "is_expired": CodexAuthService::is_expired(expires_at),
-            })
-        });
-
-        let current_profile_summary = current_profile.as_ref().and_then(|name| {
-            profiles.get(name).cloned().map(|profile| {
-                profile_to_json(
-                    &platform,
-                    current_profile.as_deref(),
-                    Some(auth_state.store.as_str()),
-                    name.clone(),
-                    profile,
-                )
-            })
-        });
-        let enabled_profiles = profiles
-            .values()
-            .filter(|profile| profile.enabled.unwrap_or(true))
-            .count();
-
-        let usage_payload = compute_codex_usage_payload()?;
-        let agents_count = count_codex_agents(&codex_agents_dir()?)?;
-        let sessions_count = CodexSessionService::new(
-            dirs::home_dir()
-                .ok_or_else(|| "无法获取用户主目录".to_string())?
-                .join(".codex"),
-        )
-        .count_sessions()
-        .map_err(|e| format!("统计 Codex sessions 失败: {e}"))?;
-        let mcp_servers_total = config
-            .mcp_servers
-            .as_ref()
-            .map(|servers| servers.len())
-            .unwrap_or(0);
-        let config_profiles_total = config
-            .profiles
-            .as_ref()
-            .map(|items| items.len())
-            .unwrap_or(0);
-
-        Ok(json!({
-            "auth": {
-                "logged_in": current_auth.is_some(),
-                "login_state": auth_snapshot.login_state,
-                "store": auth_state.store.as_str(),
-                "saved_accounts_total": auth_accounts.len(),
-                "expired_accounts_total": expired_accounts,
-                "current": current_auth,
-            },
-            "profiles": {
-                "current_profile": current_profile,
-                "total": profiles.len(),
-                "enabled_total": enabled_profiles,
-                "disabled_total": profiles.len().saturating_sub(enabled_profiles),
-                "current": current_profile_summary,
-            },
-            "config": {
-                "model": config.model,
-                "model_provider": config.model_provider,
-                "approval_policy": config.approval_policy,
-                "sandbox_mode": config.sandbox_mode,
-                "model_reasoning_effort": config.model_reasoning_effort,
-                "model_reasoning_summary": config.model_reasoning_summary,
-                "web_search": config.web_search,
-                "disable_response_storage": config.disable_response_storage,
-            },
-            "usage": build_codex_usage_summary(&usage_payload),
-            "inventory": {
-                "mcp_servers_total": mcp_servers_total,
-                "agents_total": agents_count,
-                "sessions_total": sessions_count,
-                "config_profiles_total": config_profiles_total,
-            }
-        }))
-    })
-    .await
-    .map_err(|e| format!("任务执行失败: {e}"))?
+/// 获取 Codex 仪表盘使用量摘要（重数据，独立异步加载）
+#[tauri::command]
+pub async fn codex_get_dashboard_usage_summary(
+    state: State<'_, AppState>,
+    force: Option<bool>,
+) -> Result<Value, String> {
+    let usage = get_cached_codex_usage_payload(&state, force.unwrap_or(false)).await?;
+    Ok(build_codex_usage_summary(&usage))
 }
 
 // ── 私有辅助函数 ──
@@ -2372,10 +2666,12 @@ mod tests {
             config.tui.as_ref().and_then(|value| value.animations),
             Some(false)
         );
-        assert!(config
-            .tui
-            .as_ref()
-            .is_some_and(|value| value.other.contains_key("status_line")));
+        assert!(
+            config
+                .tui
+                .as_ref()
+                .is_some_and(|value| value.other.contains_key("status_line"))
+        );
         assert_eq!(
             config
                 .history

@@ -1,6 +1,7 @@
 export {
   getSystemInfo,
   healthCheck,
+  getCliVersion,
   getCliVersions,
 } from '../runtime/system'
 

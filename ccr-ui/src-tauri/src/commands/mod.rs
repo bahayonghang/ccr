@@ -12,10 +12,10 @@ pub mod converter;
 pub mod droid;
 pub mod environment;
 pub mod gemini;
-pub mod qoder;
 pub mod mcp_presets;
 pub mod opencode;
 pub mod pricing;
+pub mod qoder;
 pub mod qwen;
 pub mod skills;
 pub mod ssh;
@@ -116,7 +116,8 @@ macro_rules! generate_handler_common {
         codex::codex_clone_session,
         codex::codex_delete_session,
         codex::codex_get_usage,
-        codex::codex_get_dashboard_summary,
+        codex::codex_get_dashboard_overview,
+        codex::codex_get_dashboard_usage_summary,
         codex::codex_list_auth_accounts,
         codex::codex_get_auth_current,
         codex::codex_save_auth,
@@ -349,6 +350,7 @@ macro_rules! generate_handler_common {
         config::set_skip_exit_confirm,
         // —— 系统扩展 ——
         system::update_ccr,
+        system::get_cli_version,
         system::get_cli_versions,
         $($extra,)*
         ]

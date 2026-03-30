@@ -1010,7 +1010,29 @@ export const detectCodexProcess = async <T = UnknownRecord>(): Promise<T> => {
   return invoke('codex_detect_process')
 }
 
-export interface CodexDashboardSummary {
+export interface CodexDashboardUsageSection {
+  total_requests: number
+  total_input_tokens: number
+  total_output_tokens: number
+}
+
+export interface CodexDashboardUsageSummary {
+  last_activity_at?: string | null
+  freshness: 'fresh' | 'stale' | 'old' | 'empty'
+  freshness_description: string
+  five_hour: CodexDashboardUsageSection
+  seven_day: CodexDashboardUsageSection
+  all_time: CodexDashboardUsageSection
+  top_model?: {
+    model: string
+    total_requests: number
+    total_input_tokens: number
+    total_output_tokens: number
+    window_end?: string | null
+  } | null
+}
+
+export interface CodexDashboardOverview {
   auth: {
     logged_in: boolean
     login_state?: string
@@ -1046,33 +1068,6 @@ export interface CodexDashboardSummary {
     web_search?: string | null
     disable_response_storage?: boolean | null
   }
-  usage: {
-    last_activity_at?: string | null
-    freshness: 'fresh' | 'stale' | 'old' | 'empty'
-    freshness_description: string
-    five_hour: {
-      total_requests: number
-      total_input_tokens: number
-      total_output_tokens: number
-    }
-    seven_day: {
-      total_requests: number
-      total_input_tokens: number
-      total_output_tokens: number
-    }
-    all_time: {
-      total_requests: number
-      total_input_tokens: number
-      total_output_tokens: number
-    }
-    top_model?: {
-      model: string
-      total_requests: number
-      total_input_tokens: number
-      total_output_tokens: number
-      window_end?: string | null
-    } | null
-  }
   inventory: {
     mcp_servers_total: number
     agents_total: number
@@ -1081,9 +1076,22 @@ export interface CodexDashboardSummary {
   }
 }
 
-/** 获取 Codex 仪表盘摘要 */
-export const getCodexDashboardSummary = async <T = CodexDashboardSummary>(): Promise<T> => {
-  return invoke('codex_get_dashboard_summary')
+export interface CodexCommandOptions {
+  force?: boolean
+}
+
+/** 获取 Codex 仪表盘概览 */
+export const getCodexDashboardOverview = async <T = CodexDashboardOverview>(
+  options?: CodexCommandOptions,
+): Promise<T> => {
+  return invoke('codex_get_dashboard_overview', { force: options?.force })
+}
+
+/** 获取 Codex 仪表盘用量摘要 */
+export const getCodexDashboardUsageSummary = async <T = CodexDashboardUsageSummary>(
+  options?: CodexCommandOptions,
+): Promise<T> => {
+  return invoke('codex_get_dashboard_usage_summary', { force: options?.force })
 }
 
 export interface CodexUsageCommandOptions {
@@ -2607,6 +2615,12 @@ export interface CliVersionsCommandOptions {
   timeout?: number
 }
 
+export interface CliVersionCommandOptions {
+  tool: string
+  timeoutMs?: number
+  force?: boolean
+}
+
 /** 获取 CLI 版本 */
 export const getCliVersions = async <T = UnknownRecord>(
   options?: CliVersionsCommandOptions
@@ -2649,6 +2663,19 @@ export const getCliVersions = async <T = UnknownRecord>(
     ...raw,
     versions: entries,
   } as T
+}
+
+/** 获取单个 CLI 版本 */
+export const getCliVersion = async <T = UnknownRecord>(
+  options: CliVersionCommandOptions
+): Promise<T> => {
+  const normalizedOptions = {
+    tool: options.tool,
+    timeoutMs: options.timeoutMs,
+    force: options.force,
+  }
+
+  return invoke('get_cli_version', { options: normalizedOptions })
 }
 
 // ════════════════════════════════════════════════════════════

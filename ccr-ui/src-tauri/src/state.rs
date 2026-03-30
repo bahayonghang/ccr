@@ -170,6 +170,12 @@ impl AppState {
         );
     }
 
+    /// 删除指定缓存值
+    pub async fn cache_remove(&self, key: &str) {
+        let mut cache = self.cache.write().await;
+        cache.pop(key);
+    }
+
     /// 注册缓存填充任务；已存在时返回等待中的 notifier。
     pub async fn begin_cache_fill(&self, key: &str) -> CacheFillRegistration {
         let mut inflight = self.inflight_cache_keys.write().await;
