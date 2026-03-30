@@ -3,12 +3,12 @@
 //! 这里仅保留参数校验、Tauri 对话框与错误映射；
 //! 领域逻辑统一下沉到 `ccr::SkillsService`。
 
+use ccr::models::skills::SkillOperationResponse;
 use ccr::{
     MarketplaceListResponse, MarketplaceSkill, NpxStatus, SkillContent, SkillRecord,
-    SkillSourceRecord, SkillsInstallRequest, SkillsInventoryQuery,
-    SkillsInventoryResponse, SkillsService, SkillsSyncRequest,
+    SkillSourceRecord, SkillsInstallRequest, SkillsInventoryQuery, SkillsInventoryResponse,
+    SkillsService, SkillsSyncRequest,
 };
-use ccr::models::skills::SkillOperationResponse;
 use serde::Serialize;
 use tauri_plugin_dialog::DialogExt;
 
@@ -37,8 +37,8 @@ pub async fn skills_inventory(
         let service = new_service()?;
         map_domain_error(service.inventory(query))
     })
-        .await
-        .map_err(map_join_error)?
+    .await
+    .map_err(map_join_error)?
 }
 
 #[tauri::command]
@@ -47,8 +47,8 @@ pub async fn skills_detail(skill_id: String) -> Result<SkillRecord, String> {
         let service = new_service()?;
         map_domain_error(service.detail(&skill_id))
     })
-        .await
-        .map_err(map_join_error)?
+    .await
+    .map_err(map_join_error)?
 }
 
 #[tauri::command]
@@ -125,8 +125,8 @@ pub async fn skills_sources_list() -> Result<Vec<SkillSourceRecord>, String> {
         let service = new_service()?;
         map_domain_error(service.sources_list())
     })
-        .await
-        .map_err(map_join_error)?
+    .await
+    .map_err(map_join_error)?
 }
 
 #[tauri::command]
@@ -170,10 +170,7 @@ pub async fn skills_source_sync(source_id: String) -> Result<SkillSourceRecord, 
 }
 
 #[tauri::command]
-pub async fn skills_source_remove(
-    app: tauri::AppHandle,
-    source_id: String,
-) -> Result<(), String> {
+pub async fn skills_source_remove(app: tauri::AppHandle, source_id: String) -> Result<(), String> {
     let result = tokio::task::spawn_blocking(move || {
         let service = new_service()?;
         map_domain_error(service.source_remove(&source_id))
@@ -210,8 +207,8 @@ pub async fn skills_npx_status() -> Result<NpxStatus, String> {
         let service = new_service()?;
         Ok::<_, String>(service.npx_status())
     })
-        .await
-        .map_err(map_join_error)?
+    .await
+    .map_err(map_join_error)?
 }
 
 #[tauri::command]

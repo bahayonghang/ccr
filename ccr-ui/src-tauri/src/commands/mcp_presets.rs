@@ -51,11 +51,13 @@ fn read_qoder_mcp_servers(path: &Path) -> Result<Map<String, Value>, String> {
     if !path.exists() {
         return Ok(Map::new());
     }
-    let content = std::fs::read_to_string(path).map_err(|e| format!("Failed to read Qoder MCP config: {e}"))?;
+    let content = std::fs::read_to_string(path)
+        .map_err(|e| format!("Failed to read Qoder MCP config: {e}"))?;
     let value: Value = if content.trim().is_empty() {
         json!({})
     } else {
-        serde_json::from_str(&content).map_err(|e| format!("Failed to parse Qoder MCP config: {e}"))?
+        serde_json::from_str(&content)
+            .map_err(|e| format!("Failed to parse Qoder MCP config: {e}"))?
     };
     Ok(value
         .get("mcpServers")
@@ -66,15 +68,18 @@ fn read_qoder_mcp_servers(path: &Path) -> Result<Map<String, Value>, String> {
 
 fn write_qoder_mcp_servers(path: &Path, servers: &Map<String, Value>) -> Result<(), String> {
     if let Some(parent) = path.parent() {
-        std::fs::create_dir_all(parent).map_err(|e| format!("Failed to create Qoder MCP directory: {e}"))?;
+        std::fs::create_dir_all(parent)
+            .map_err(|e| format!("Failed to create Qoder MCP directory: {e}"))?;
     }
 
     let mut root = if path.exists() {
-        let content = std::fs::read_to_string(path).map_err(|e| format!("Failed to read Qoder MCP config: {e}"))?;
+        let content = std::fs::read_to_string(path)
+            .map_err(|e| format!("Failed to read Qoder MCP config: {e}"))?;
         if content.trim().is_empty() {
             json!({})
         } else {
-            serde_json::from_str::<Value>(&content).map_err(|e| format!("Failed to parse Qoder MCP config: {e}"))?
+            serde_json::from_str::<Value>(&content)
+                .map_err(|e| format!("Failed to parse Qoder MCP config: {e}"))?
         }
     } else {
         json!({})
@@ -85,12 +90,15 @@ fn write_qoder_mcp_servers(path: &Path, servers: &Map<String, Value>) -> Result<
         .ok_or_else(|| "Qoder MCP config must be a JSON object".to_string())?;
     obj.insert("mcpServers".to_string(), Value::Object(servers.clone()));
 
-    let parent = path.parent().ok_or_else(|| "Invalid Qoder MCP path".to_string())?;
-    let tmp =
-        tempfile::NamedTempFile::new_in(parent).map_err(|e| format!("Failed to create temp file: {e}"))?;
+    let parent = path
+        .parent()
+        .ok_or_else(|| "Invalid Qoder MCP path".to_string())?;
+    let tmp = tempfile::NamedTempFile::new_in(parent)
+        .map_err(|e| format!("Failed to create temp file: {e}"))?;
     std::fs::write(
         tmp.path(),
-        serde_json::to_string_pretty(&root).map_err(|e| format!("Failed to serialize Qoder MCP config: {e}"))?,
+        serde_json::to_string_pretty(&root)
+            .map_err(|e| format!("Failed to serialize Qoder MCP config: {e}"))?,
     )
     .map_err(|e| format!("Failed to write temp file: {e}"))?;
     tmp.persist(path)
@@ -193,7 +201,10 @@ pub async fn install_mcp_preset(
 
         let sync_manager = ccr::managers::McpSyncManager::new();
         let requested_platforms = requested_platform_ids(platforms);
-        let qoder_spec = if requested_platforms.iter().any(|platform| platform == "qoder") {
+        let qoder_spec = if requested_platforms
+            .iter()
+            .any(|platform| platform == "qoder")
+        {
             Some(preset_spec_with_env(&preset_id, custom_env.clone())?)
         } else {
             None
@@ -390,8 +401,8 @@ pub async fn sync_all_mcp_servers(platforms: Option<Vec<String>>) -> Result<Valu
                     continue;
                 }
 
-                let target =
-                    parse_platform(platform).ok_or_else(|| format!("Unknown platform: {platform}"))?;
+                let target = parse_platform(platform)
+                    .ok_or_else(|| format!("Unknown platform: {platform}"))?;
                 let result = sync_manager.sync_mcp_server(&server_name, &[target]);
                 let (success, error) = match result {
                     Ok(items) => {

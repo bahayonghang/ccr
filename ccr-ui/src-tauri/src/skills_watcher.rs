@@ -30,10 +30,7 @@ pub fn reload(app_handle: &AppHandle) -> Result<(), String> {
 
             let should_emit = matches!(
                 event.kind,
-                EventKind::Any
-                    | EventKind::Create(_)
-                    | EventKind::Modify(_)
-                    | EventKind::Remove(_)
+                EventKind::Any | EventKind::Create(_) | EventKind::Modify(_) | EventKind::Remove(_)
             );
             if !should_emit {
                 return;

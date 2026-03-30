@@ -165,7 +165,9 @@ fn read_qoder_mcp_map(path: &Path) -> Result<Map<String, Value>, String> {
 
 fn write_qoder_mcp_map(path: &Path, servers: &Map<String, Value>) -> Result<(), String> {
     let mut value = read_json_file_or_empty(path)?;
-    let root = value.as_object_mut().ok_or_else(|| "MCP 配置文件必须是 JSON 对象".to_string())?;
+    let root = value
+        .as_object_mut()
+        .ok_or_else(|| "MCP 配置文件必须是 JSON 对象".to_string())?;
     root.insert("mcpServers".to_string(), Value::Object(servers.clone()));
     write_json_atomic(path, &value)
 }
@@ -221,7 +223,8 @@ fn render_markdown_with_frontmatter<T>(metadata: &T, body: &str) -> Result<Strin
 where
     T: Serialize,
 {
-    let mut yaml = serde_yaml::to_string(metadata).map_err(|e| format!("序列化 frontmatter 失败: {e}"))?;
+    let mut yaml =
+        serde_yaml::to_string(metadata).map_err(|e| format!("序列化 frontmatter 失败: {e}"))?;
     if let Some(stripped) = yaml.strip_prefix("---\n") {
         yaml = stripped.to_string();
     }
@@ -271,7 +274,8 @@ where
     let mut items = Vec::new();
     let mut folders = HashSet::new();
     for (key, path) in &chosen {
-        let content = std::fs::read_to_string(path).map_err(|e| format!("读取 Markdown 文件失败: {e}"))?;
+        let content =
+            std::fs::read_to_string(path).map_err(|e| format!("读取 Markdown 文件失败: {e}"))?;
         let (folder, name) = match key.rsplit_once('/') {
             Some((folder, name)) => {
                 folders.insert(folder.to_string());
@@ -279,10 +283,16 @@ where
             }
             None => (String::new(), key.clone()),
         };
-        items.push(build_item(&name, path, &content)?.as_object().cloned().map(|mut obj| {
-            obj.insert("folder".to_string(), json!(folder));
-            Value::Object(obj)
-        }).unwrap_or(Value::Null));
+        items.push(
+            build_item(&name, path, &content)?
+                .as_object()
+                .cloned()
+                .map(|mut obj| {
+                    obj.insert("folder".to_string(), json!(folder));
+                    Value::Object(obj)
+                })
+                .unwrap_or(Value::Null),
+        );
     }
 
     items.sort_by(|a, b| {
@@ -344,7 +354,9 @@ fn normalize_qoder_hook_item(index: usize, value: &Value) -> Value {
         .and_then(|hooks| {
             hooks.iter().find_map(|hook| {
                 if hook.get("type").and_then(Value::as_str) == Some("command") {
-                    hook.get("command").and_then(Value::as_str).map(ToOwned::to_owned)
+                    hook.get("command")
+                        .and_then(Value::as_str)
+                        .map(ToOwned::to_owned)
                 } else {
                     None
                 }
@@ -539,7 +551,12 @@ pub async fn qoder_add_command(name: String, config: Value) -> Result<Value, Str
             .get("description")
             .and_then(Value::as_str)
             .map(ToOwned::to_owned)
-            .or_else(|| config.get("command").and_then(Value::as_str).and_then(first_non_empty_line));
+            .or_else(|| {
+                config
+                    .get("command")
+                    .and_then(Value::as_str)
+                    .and_then(first_non_empty_line)
+            });
         let command = config
             .get("command")
             .and_then(Value::as_str)
@@ -584,7 +601,12 @@ pub async fn qoder_update_command(name: String, config: Value) -> Result<Value, 
             .get("description")
             .and_then(Value::as_str)
             .map(ToOwned::to_owned)
-            .or_else(|| config.get("command").and_then(Value::as_str).and_then(first_non_empty_line));
+            .or_else(|| {
+                config
+                    .get("command")
+                    .and_then(Value::as_str)
+                    .and_then(first_non_empty_line)
+            });
         let command = config
             .get("command")
             .and_then(Value::as_str)
@@ -809,7 +831,9 @@ pub async fn qoder_add_hook(config: Value) -> Result<Value, String> {
             .and_then(Value::as_str)
             .ok_or_else(|| "Hook command 不能为空".to_string())?;
         let mut settings = read_qoder_settings_merged()?;
-        let root = settings.as_object_mut().ok_or_else(|| "Qoder settings 必须是 JSON 对象".to_string())?;
+        let root = settings
+            .as_object_mut()
+            .ok_or_else(|| "Qoder settings 必须是 JSON 对象".to_string())?;
         let hooks = root
             .entry("hooks")
             .or_insert_with(|| json!({}))
