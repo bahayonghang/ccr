@@ -50,32 +50,3 @@ export function readCodexAuthAccounts(): CodexAuthInfo[] {
     return [];
   }
 }
-
-export async function writeCodexAuthDescription(name: string, description: string | undefined): Promise<void> {
-  const registryPath = getCodexAuthRegistryPath();
-  if (!fs.existsSync(registryPath)) {
-    throw new Error("Codex auth registry not found.");
-  }
-
-  const content = await fs.promises.readFile(registryPath, "utf-8");
-  const raw = TOML.parse(content) as Record<string, unknown>;
-  const accounts = raw["accounts"];
-  if (!accounts || typeof accounts !== "object" || Array.isArray(accounts)) {
-    throw new Error("Codex auth registry accounts section is invalid.");
-  }
-
-  const record = (accounts as Record<string, unknown>)[name];
-  if (!record || typeof record !== "object" || Array.isArray(record)) {
-    throw new Error(`Codex auth account '${name}' not found.`);
-  }
-
-  const account = record as Record<string, unknown>;
-  if (!description) {
-    delete account["description"];
-  } else {
-    account["description"] = description;
-  }
-
-  const toml = TOML.stringify(raw as TOML.TomlPrimitive);
-  await fs.promises.writeFile(registryPath, toml, "utf-8");
-}

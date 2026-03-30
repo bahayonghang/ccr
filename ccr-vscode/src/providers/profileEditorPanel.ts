@@ -3,7 +3,11 @@ import * as vscode from "vscode";
 import { EDITABLE_FIELDS, PROFILE_EDITABLE_FIELDS_BY_PLATFORM, getEditableProfileFields } from "../models/types";
 import type { ProfileCreationPlatform, ProfileEditorDraft, ProfileEditorMode, ProfileInfo } from "../models/types";
 import { getPanelKey, getPanelTitle, normalizeFieldValue } from "./profileEditorPanel.helpers";
-import { toggleProfileEnabled, writeProfileField } from "../services/tomlReader";
+import {
+  execPlatformProfileDisable,
+  execPlatformProfileEnable,
+  execPlatformProfileSetField,
+} from "../services/ccrCli";
 
 const TOML_KEY_BY_EDITABLE_FIELD = Object.fromEntries(
   EDITABLE_FIELDS.map((item) => [item.key, item.tomlKey]),
@@ -179,7 +183,15 @@ export class ProfileEditorPanel {
     try {
       const writeValue = normalizeFieldValue(tomlKey, value);
 
-      await writeProfileField(profile.platformName, profile.name, tomlKey, writeValue);
+      const result = await execPlatformProfileSetField(
+        profile.platformName,
+        profile.name,
+        tomlKey,
+        writeValue,
+      );
+      if (!result.success) {
+        throw new Error(result.stderr || "Unknown error");
+      }
       (profile as unknown as Record<string, unknown>)[field] = tomlKey === "tags"
         ? writeValue
         : (value || undefined);
@@ -200,7 +212,13 @@ export class ProfileEditorPanel {
     const profile = this.profile as ProfileInfo;
 
     try {
-      const newState = await toggleProfileEnabled(profile.platformName, profile.name);
+      const result = profile.enabled
+        ? await execPlatformProfileDisable(profile.platformName, profile.name, true)
+        : await execPlatformProfileEnable(profile.platformName, profile.name);
+      if (!result.success) {
+        throw new Error(result.stderr || "Unknown error");
+      }
+      const newState = result.data?.enabled ?? !profile.enabled;
       profile.enabled = newState;
       this.panel.webview.postMessage({ type: "saveResult", field: "enabled", success: true });
       this.sendProfileData();

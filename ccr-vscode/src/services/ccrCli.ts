@@ -7,6 +7,18 @@
 
 import { execFile } from "child_process";
 import * as vscode from "vscode";
+import type { ProfileCreateRequest, ProfileCreationPlatform } from "../models/types";
+import {
+  buildCodexAuthUpdateArgs,
+  buildPlatformProfileCreateArgs,
+  buildPlatformProfileDeleteArgs,
+  buildPlatformProfileDisableArgs,
+  buildPlatformProfileEnableArgs,
+  buildPlatformProfileSetFieldArgs,
+  type CodexAuthUpdateData,
+  type PlatformProfileMutationData,
+  type ProfileFieldValue,
+} from "./ccrCliArgs";
 
 let cachedCcrPath: string | null = null;
 let ccrChecked = false;
@@ -59,6 +71,12 @@ export interface CliResult {
   exitCode: number | null;
 }
 
+export interface CliJsonResult<T> extends CliResult {
+  data?: T;
+}
+
+export type { CodexAuthUpdateData, PlatformProfileMutationData, ProfileFieldValue };
+
 /** Execute `ccr platform switch <name>` — switch active platform */
 export async function execPlatformSwitch(platformName: string): Promise<CliResult> {
   return execCcr(["platform", "switch", platformName]);
@@ -84,6 +102,53 @@ export async function execCodexAuthCurrent(): Promise<CliResult> {
   return execCcr(["codex", "auth", "current"]);
 }
 
+export async function execPlatformProfileCreate(
+  platformName: ProfileCreationPlatform,
+  profileName: string,
+  config: ProfileCreateRequest,
+): Promise<CliJsonResult<PlatformProfileMutationData>> {
+  return execCcrJson(buildPlatformProfileCreateArgs(platformName, profileName, config));
+}
+
+export async function execPlatformProfileSetField(
+  platformName: string,
+  profileName: string,
+  field: string,
+  value: ProfileFieldValue,
+): Promise<CliJsonResult<PlatformProfileMutationData>> {
+  return execCcrJson(buildPlatformProfileSetFieldArgs(platformName, profileName, field, value));
+}
+
+export async function execPlatformProfileEnable(
+  platformName: string,
+  profileName: string,
+): Promise<CliJsonResult<PlatformProfileMutationData>> {
+  return execCcrJson(buildPlatformProfileEnableArgs(platformName, profileName));
+}
+
+export async function execPlatformProfileDisable(
+  platformName: string,
+  profileName: string,
+  force = false,
+): Promise<CliJsonResult<PlatformProfileMutationData>> {
+  return execCcrJson(buildPlatformProfileDisableArgs(platformName, profileName, force));
+}
+
+export async function execPlatformProfileDelete(
+  platformName: string,
+  profileName: string,
+  force = false,
+): Promise<CliJsonResult<PlatformProfileMutationData>> {
+  return execCcrJson(buildPlatformProfileDeleteArgs(platformName, profileName, force));
+}
+
+export async function execCodexAuthUpdate(
+  name: string,
+  description: string | undefined,
+): Promise<CliJsonResult<CodexAuthUpdateData>> {
+  return execCcrJson(buildCodexAuthUpdateArgs(name, description));
+}
+
 /** Execute an arbitrary ccr command */
 export async function execCcr(args: string[]): Promise<CliResult> {
   const ccrPath = await findCcrBinary();
@@ -107,4 +172,24 @@ export async function execCcr(args: string[]): Promise<CliResult> {
       });
     });
   });
+}
+
+async function execCcrJson<T>(args: string[]): Promise<CliJsonResult<T>> {
+  const result = await execCcr(args);
+  if (!result.success) {
+    return result;
+  }
+
+  try {
+    return {
+      ...result,
+      data: result.stdout ? JSON.parse(result.stdout) as T : undefined,
+    };
+  } catch (error) {
+    return {
+      ...result,
+      success: false,
+      stderr: `Failed to parse JSON output: ${error}`,
+    };
+  }
 }

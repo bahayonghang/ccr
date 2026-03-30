@@ -1,12 +1,9 @@
 /**
- * TOML reader/writer for CCR configuration files
+ * TOML reader for CCR configuration files
  *
  * Reads:
  * - config.toml (UnifiedConfig registry)
  * - platforms/{name}/profiles.toml (CcsConfig profiles)
- *
- * Writes:
- * - profiles.toml (preserving top-level fields)
  */
 
 import * as fs from "fs";
@@ -19,10 +16,7 @@ import type {
   ProfileConfig,
   PlatformInfo,
   ProfileInfo,
-  ProfileCreateRequest,
-  ProfileCreationPlatform,
 } from "../models/types";
-import { isProfileCreationPlatform } from "../models/types";
 
 // ── Top-level keys that are NOT profile sections ──
 const CCS_TOP_KEYS = new Set(["default_config", "current_config", "settings"]);
@@ -120,204 +114,6 @@ export function readProfiles(platformName: string): ProfileInfo[] {
     console.error(`Failed to read profiles for ${platformName}:`, err);
     return [];
   }
-}
-
-/** Read raw CcsConfig for a platform (used by writeProfiles) */
-function readRawProfiles(platformName: string): Record<string, unknown> | null {
-  const profilesPath = getProfilesPath(platformName);
-  if (!fs.existsSync(profilesPath)) {
-    return null;
-  }
-
-  try {
-    const content = fs.readFileSync(profilesPath, "utf-8");
-    return TOML.parse(content) as Record<string, unknown>;
-  } catch {
-    return null;
-  }
-}
-
-/**
- * Write an updated profile field back to profiles.toml
- *
- * Preserves all top-level fields (default_config, current_config, settings)
- * and all other profile sections.
- */
-export async function writeProfileField(
-  platformName: string,
-  profileName: string,
-  field: string,
-  value: string | boolean | number | string[] | undefined
-): Promise<void> {
-  const profilesPath = getProfilesPath(platformName);
-  const raw = readRawProfiles(platformName);
-  if (!raw) {
-    throw new Error(`Cannot read profiles.toml for platform: ${platformName}`);
-  }
-
-  // Get or create the profile section
-  const section = raw[profileName];
-  if (!section || typeof section !== "object" || Array.isArray(section)) {
-    throw new Error(`Profile '${profileName}' not found in ${platformName}/profiles.toml`);
-  }
-
-  // Update the field
-  const profileObj = section as Record<string, unknown>;
-  if (value === undefined || value === "") {
-    delete profileObj[field];
-  } else {
-    profileObj[field] = value;
-  }
-
-  // Serialize and write back
-  const tomlStr = TOML.stringify(raw as TOML.TomlPrimitive);
-  await fs.promises.writeFile(profilesPath, tomlStr, "utf-8");
-}
-
-/**
- * Toggle the `enabled` field of a profile
- */
-export async function toggleProfileEnabled(platformName: string, profileName: string): Promise<boolean> {
-  const profilesPath = getProfilesPath(platformName);
-  const raw = readRawProfiles(platformName);
-  if (!raw) {
-    throw new Error(`Cannot read profiles.toml for platform: ${platformName}`);
-  }
-
-  const section = raw[profileName];
-  if (!section || typeof section !== "object" || Array.isArray(section)) {
-    throw new Error(`Profile '${profileName}' not found in ${platformName}/profiles.toml`);
-  }
-
-  const profileObj = section as Record<string, unknown>;
-  const currentEnabled = (profileObj["enabled"] as boolean) ?? true;
-  profileObj["enabled"] = !currentEnabled;
-
-  const tomlStr = TOML.stringify(raw as TOML.TomlPrimitive);
-  await fs.promises.writeFile(profilesPath, tomlStr, "utf-8");
-
-  return !currentEnabled;
-}
-
-function writeRegistry(raw: Record<string, unknown>): Promise<void> {
-  const registryPath = getRegistryPath();
-  const tomlStr = TOML.stringify(raw as TOML.TomlPrimitive);
-  return fs.promises.writeFile(registryPath, tomlStr, "utf-8");
-}
-
-function getSortedProfileNames(raw: Record<string, unknown>): string[] {
-  return Object.entries(raw)
-    .filter(([key, value]) => !CCS_TOP_KEYS.has(key) && typeof value === "object" && value !== null && !Array.isArray(value))
-    .map(([key]) => key)
-    .sort((a, b) => a.localeCompare(b));
-}
-
-async function reconcileRegistryCurrentProfile(platformName: string, nextProfileName?: string): Promise<void> {
-  const registryPath = getRegistryPath();
-  if (!fs.existsSync(registryPath)) {
-    return;
-  }
-
-  const content = await fs.promises.readFile(registryPath, "utf-8");
-  const raw = TOML.parse(content) as Record<string, unknown>;
-  const platformSection = raw[platformName];
-  if (!platformSection || typeof platformSection !== "object" || Array.isArray(platformSection)) {
-    return;
-  }
-
-  const platformObj = platformSection as Record<string, unknown>;
-  if (nextProfileName) {
-    platformObj["current_profile"] = nextProfileName;
-  } else {
-    delete platformObj["current_profile"];
-  }
-
-  await writeRegistry(raw);
-}
-
-/** Delete a profile from profiles.toml and reconcile current pointers */
-export async function deleteProfile(platformName: string, profileName: string): Promise<string | undefined> {
-  const profilesPath = getProfilesPath(platformName);
-  const raw = readRawProfiles(platformName);
-  if (!raw) {
-    throw new Error(`Cannot read profiles.toml for platform: ${platformName}`);
-  }
-
-  if (!(profileName in raw)) {
-    throw new Error(`Profile '${profileName}' not found in ${platformName}/profiles.toml`);
-  }
-
-  delete raw[profileName];
-
-  const remainingProfiles = getSortedProfileNames(raw);
-  const currentConfig = typeof raw["current_config"] === "string" ? raw["current_config"] : "";
-  const nextCurrentProfile = currentConfig === profileName
-    ? remainingProfiles[0]
-    : (remainingProfiles.includes(currentConfig) ? currentConfig : remainingProfiles[0]);
-
-  if (nextCurrentProfile) {
-    raw["current_config"] = nextCurrentProfile;
-  } else {
-    raw["current_config"] = "";
-  }
-
-  const tomlStr = TOML.stringify(raw as TOML.TomlPrimitive);
-  await fs.promises.writeFile(profilesPath, tomlStr, "utf-8");
-  await reconcileRegistryCurrentProfile(platformName, nextCurrentProfile);
-  return nextCurrentProfile;
-}
-
-export async function createProfile(
-  platformName: ProfileCreationPlatform,
-  profileName: string,
-  config: ProfileCreateRequest,
-): Promise<void> {
-  if (!isProfileCreationPlatform(platformName)) {
-    throw new Error(`Profile creation is only supported for Claude and Codex. Received: ${platformName}`);
-  }
-
-  const trimmedName = profileName.trim();
-  if (!trimmedName) {
-    throw new Error("Profile name cannot be empty.");
-  }
-
-  const raw = readRawProfiles(platformName);
-  if (!raw) {
-    throw new Error(`Cannot read profiles.toml for platform: ${platformName}`);
-  }
-
-  if (trimmedName in raw) {
-    throw new Error(`Profile '${trimmedName}' already exists in ${platformName}/profiles.toml`);
-  }
-
-  const nextProfile: ProfileConfig = {};
-  for (const [key, value] of Object.entries(config)) {
-    if (value === undefined) {
-      continue;
-    }
-
-    if (key === "tags") {
-      const tags = Array.isArray(value)
-        ? value.map((tag) => tag.trim()).filter(Boolean)
-        : [];
-      if (tags.length > 0) {
-        nextProfile.tags = tags;
-      }
-      continue;
-    }
-
-    nextProfile[key] = value;
-  }
-
-  if (nextProfile.enabled === undefined) {
-    nextProfile.enabled = true;
-  }
-
-  raw[trimmedName] = nextProfile;
-
-  const profilesPath = getProfilesPath(platformName);
-  const tomlStr = TOML.stringify(raw as TOML.TomlPrimitive);
-  await fs.promises.writeFile(profilesPath, tomlStr, "utf-8");
 }
 
 // ── Helpers ──

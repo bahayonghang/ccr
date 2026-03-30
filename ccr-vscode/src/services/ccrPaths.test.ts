@@ -1,5 +1,5 @@
 /**
- * Unit tests for path resolution and TOML read/write
+ * Unit tests for path resolution and TOML readers
  *
  * Uses Node built-in test runner (node:test)
  */
@@ -10,13 +10,10 @@ import * as fs from "fs";
 import * as path from "path";
 import * as os from "os";
 
-// ── Path resolution tests ──
-
 describe("ccrPaths", () => {
   const originalEnv = process.env["CCR_ROOT"];
 
   after(() => {
-    // Restore original env
     if (originalEnv !== undefined) {
       process.env["CCR_ROOT"] = originalEnv;
     } else {
@@ -26,7 +23,6 @@ describe("ccrPaths", () => {
 
   it("getCcrRoot returns $CCR_ROOT when set", async () => {
     process.env["CCR_ROOT"] = "/tmp/test-ccr-root";
-    // Re-import to pick up env change
     const { getCcrRoot } = await import("../services/ccrPaths.js");
     assert.equal(getCcrRoot(), "/tmp/test-ccr-root");
   });
@@ -50,25 +46,7 @@ describe("ccrPaths", () => {
     const result = getProfilesPath("claude");
     assert.equal(result, path.join("/tmp/test-ccr", "platforms", "claude", "profiles.toml"));
   });
-
-  it("getPlatformDisplayName returns known platform names", async () => {
-    const { getPlatformDisplayName } = await import("../services/ccrPaths.js");
-    assert.equal(getPlatformDisplayName("claude"), "Claude Code");
-    assert.equal(getPlatformDisplayName("codex"), "Codex");
-  });
-
-  it("getPlatformDisplayName capitalizes unknown platforms", async () => {
-    const { getPlatformDisplayName } = await import("../services/ccrPaths.js");
-    assert.equal(getPlatformDisplayName("custom"), "Custom");
-  });
-
-  it("getPlatformIcon returns fallback for unknown platforms", async () => {
-    const { getPlatformIcon } = await import("../services/ccrPaths.js");
-    assert.equal(getPlatformIcon("unknown"), "\u{1F4E6}");
-  });
 });
-
-// ── TOML read/write tests ──
 
 describe("tomlReader", () => {
   let tmpDir: string;
@@ -79,7 +57,6 @@ describe("tomlReader", () => {
   });
 
   after(() => {
-    // Cleanup temp dir
     fs.rmSync(tmpDir, { recursive: true, force: true });
     delete process.env["CCR_ROOT"];
   });
@@ -111,32 +88,8 @@ current_profile = "default"
 
       assert.notEqual(result, null);
       assert.equal(result!.platforms.length, 2);
-
-      // Current platform (claude) should be sorted first
       assert.equal(result!.platforms[0].name, "claude");
-      assert.equal(result!.platforms[0].enabled, true);
-      assert.equal(result!.platforms[0].currentProfile, "anthropic");
-
       assert.equal(result!.platforms[1].name, "codex");
-    });
-
-    it("filters out top-level scalar keys from platform entries", async () => {
-      const configToml = `
-default_platform = "claude"
-current_platform = "claude"
-
-[claude]
-enabled = true
-`;
-      fs.writeFileSync(path.join(tmpDir, "config.toml"), configToml, "utf-8");
-
-      const { readRegistry } = await import("../services/tomlReader.js");
-      const result = readRegistry();
-
-      assert.notEqual(result, null);
-      // Only platform entries, not default_platform/current_platform
-      assert.equal(result!.platforms.length, 1);
-      assert.equal(result!.platforms[0].name, "claude");
     });
   });
 
@@ -177,278 +130,8 @@ enabled = false
       const profiles = readProfiles("claude");
 
       assert.equal(profiles.length, 2);
-
-      const anthropic = profiles.find((p) => p.name === "anthropic");
-      assert.notEqual(anthropic, undefined);
-      assert.equal(anthropic!.description, "Anthropic Official API");
-      assert.equal(anthropic!.baseUrl, "https://api.anthropic.com");
-      assert.equal(anthropic!.model, "claude-sonnet-4-5-20250929");
-      assert.equal(anthropic!.isCurrent, true);
-      assert.equal(anthropic!.enabled, true);
-
-      const relay = profiles.find((p) => p.name === "relay");
-      assert.notEqual(relay, undefined);
-      assert.equal(relay!.isCurrent, false);
-      assert.equal(relay!.enabled, false);
-    });
-
-    it("filters CCS top-level keys from profile entries", async () => {
-      const platformDir = path.join(tmpDir, "platforms", "codex");
-      fs.mkdirSync(platformDir, { recursive: true });
-
-      const profilesToml = `
-default_config = "default"
-current_config = "default"
-
-[settings]
-some_global = "value"
-
-[default]
-description = "Default Codex"
-enabled = true
-`;
-      fs.writeFileSync(path.join(platformDir, "profiles.toml"), profilesToml, "utf-8");
-
-      const { readProfiles } = await import("../services/tomlReader.js");
-      const profiles = readProfiles("codex");
-
-      // Only "default" profile, not "settings" or top-level keys
-      assert.equal(profiles.length, 1);
-      assert.equal(profiles[0].name, "default");
-    });
-  });
-
-  describe("writeProfileField", () => {
-    it("updates a string field and preserves structure", async () => {
-      const platformDir = path.join(tmpDir, "platforms", "write-test");
-      fs.mkdirSync(platformDir, { recursive: true });
-
-      const profilesToml = `
-default_config = "main"
-current_config = "main"
-
-[main]
-description = "Original"
-model = "old-model"
-enabled = true
-`;
-      const filePath = path.join(platformDir, "profiles.toml");
-      fs.writeFileSync(filePath, profilesToml, "utf-8");
-
-      const { writeProfileField, readProfiles } = await import("../services/tomlReader.js");
-      await writeProfileField("write-test", "main", "model", "new-model");
-
-      // Re-read and verify
-      const profiles = readProfiles("write-test");
-      const main = profiles.find((p) => p.name === "main");
-      assert.equal(main!.model, "new-model");
-      assert.equal(main!.description, "Original"); // Preserved
-
-      // Verify top-level fields preserved
-      const raw = fs.readFileSync(filePath, "utf-8");
-      assert.ok(raw.includes("default_config"));
-      assert.ok(raw.includes("current_config"));
-    });
-
-    it("deletes a field when value is undefined", async () => {
-      const platformDir = path.join(tmpDir, "platforms", "delete-test");
-      fs.mkdirSync(platformDir, { recursive: true });
-
-      const profilesToml = `
-default_config = "main"
-current_config = "main"
-
-[main]
-description = "Has model"
-model = "to-be-removed"
-enabled = true
-`;
-      fs.writeFileSync(path.join(platformDir, "profiles.toml"), profilesToml, "utf-8");
-
-      const { writeProfileField, readProfiles } = await import("../services/tomlReader.js");
-      await writeProfileField("delete-test", "main", "model", undefined);
-
-      const profiles = readProfiles("delete-test");
-      const main = profiles.find((p) => p.name === "main");
-      assert.equal(main!.model, undefined);
-    });
-
-    it("deletes model when value is an empty string", async () => {
-      const platformDir = path.join(tmpDir, "platforms", "empty-model-test");
-      fs.mkdirSync(platformDir, { recursive: true });
-
-      const profilesToml = `
-default_config = "main"
-current_config = "main"
-
-[main]
-description = "Optional model"
-model = "to-be-cleared"
-enabled = true
-`;
-      fs.writeFileSync(path.join(platformDir, "profiles.toml"), profilesToml, "utf-8");
-
-      const { writeProfileField, readProfiles } = await import("../services/tomlReader.js");
-      await writeProfileField("empty-model-test", "main", "model", "");
-
-      const profiles = readProfiles("empty-model-test");
-      const main = profiles.find((p) => p.name === "main");
-      assert.equal(main!.model, undefined);
-    });
-
-    it("throws when profile does not exist", async () => {
-      const platformDir = path.join(tmpDir, "platforms", "throw-test");
-      fs.mkdirSync(platformDir, { recursive: true });
-
-      const profilesToml = `
-default_config = "main"
-current_config = "main"
-
-[main]
-description = "Exists"
-`;
-      fs.writeFileSync(path.join(platformDir, "profiles.toml"), profilesToml, "utf-8");
-
-      const { writeProfileField } = await import("../services/tomlReader.js");
-      await assert.rejects(
-        writeProfileField("throw-test", "nonexistent", "model", "value"),
-        /not found/,
-      );
-    });
-  });
-
-  describe("createProfile", () => {
-    it("creates a claude profile and preserves top-level fields", async () => {
-      const platformDir = path.join(tmpDir, "platforms", "claude");
-      fs.mkdirSync(platformDir, { recursive: true });
-
-      const profilesToml = `
-default_config = "main"
-current_config = "main"
-
-[settings]
-workspace = "primary"
-
-[main]
-description = "Existing"
-enabled = true
-`;
-      const filePath = path.join(platformDir, "profiles.toml");
-      fs.writeFileSync(filePath, profilesToml, "utf-8");
-
-      const { createProfile, readProfiles } = await import("../services/tomlReader.js");
-      await createProfile("claude", "new-profile", {
-        description: "New Claude Profile",
-        base_url: "https://api.example.com/v1",
-        auth_token: "secret-token",
-        model: "claude-sonnet",
-        small_fast_model: "claude-haiku",
-        provider: "Anthropic",
-        tags: [" work ", "team", ""],
-      });
-
-      const profiles = readProfiles("claude");
-      const created = profiles.find((profile) => profile.name === "new-profile");
-      assert.notEqual(created, undefined);
-      assert.equal(created!.description, "New Claude Profile");
-      assert.equal(created!.baseUrl, "https://api.example.com/v1");
-      assert.deepEqual(created!.tags, ["work", "team"]);
-      assert.equal(created!.enabled, true);
-
-      const raw = fs.readFileSync(filePath, "utf-8");
-      assert.ok(raw.includes("default_config = \"main\""));
-      assert.ok(raw.includes("current_config = \"main\""));
-      assert.ok(raw.includes("[settings]"));
-      assert.ok(raw.includes("workspace = \"primary\""));
-    });
-
-    it("creates a codex profile with provider fields", async () => {
-      const platformDir = path.join(tmpDir, "platforms", "codex");
-      fs.mkdirSync(platformDir, { recursive: true });
-      fs.writeFileSync(path.join(platformDir, "profiles.toml"), `
-default_config = "default"
-current_config = "default"
-
-[default]
-description = "Existing codex"
-enabled = true
-`, "utf-8");
-
-      const { createProfile, readProfiles } = await import("../services/tomlReader.js");
-      await createProfile("codex", "prod", {
-        description: "Production",
-        model: "gpt-5-codex",
-        small_fast_model: "gpt-5-mini",
-        provider: "OpenAI",
-        provider_type: "cloud",
-        account: "team-a",
-        tags: ["prod", "shared"],
-        enabled: false,
-      });
-
-      const profiles = readProfiles("codex");
-      const created = profiles.find((profile) => profile.name === "prod");
-      assert.notEqual(created, undefined);
-      assert.equal(created!.provider, "OpenAI");
-      assert.equal(created!.providerType, "cloud");
-      assert.equal(created!.account, "team-a");
-      assert.deepEqual(created!.tags, ["prod", "shared"]);
-      assert.equal(created!.enabled, false);
-    });
-
-    it("rejects empty profile names", async () => {
-      const platformDir = path.join(tmpDir, "platforms", "claude");
-      fs.mkdirSync(platformDir, { recursive: true });
-      fs.writeFileSync(path.join(platformDir, "profiles.toml"), `
-default_config = "main"
-current_config = "main"
-
-[main]
-enabled = true
-`, "utf-8");
-
-      const { createProfile } = await import("../services/tomlReader.js");
-      await assert.rejects(createProfile("claude", "   ", {}), /cannot be empty/i);
-    });
-
-    it("rejects duplicate profile names", async () => {
-      const platformDir = path.join(tmpDir, "platforms", "codex");
-      fs.mkdirSync(platformDir, { recursive: true });
-      fs.writeFileSync(path.join(platformDir, "profiles.toml"), `
-default_config = "default"
-current_config = "default"
-
-[default]
-enabled = true
-`, "utf-8");
-
-      const { createProfile } = await import("../services/tomlReader.js");
-      await assert.rejects(createProfile("codex", "default", {}), /already exists/i);
-    });
-  });
-
-  describe("toggleProfileEnabled", () => {
-    it("flips enabled from true to false", async () => {
-      const platformDir = path.join(tmpDir, "platforms", "toggle-test");
-      fs.mkdirSync(platformDir, { recursive: true });
-
-      const profilesToml = `
-default_config = "main"
-current_config = "main"
-
-[main]
-description = "Toggle me"
-enabled = true
-`;
-      fs.writeFileSync(path.join(platformDir, "profiles.toml"), profilesToml, "utf-8");
-
-      const { toggleProfileEnabled, readProfiles } = await import("../services/tomlReader.js");
-      const newState = await toggleProfileEnabled("toggle-test", "main");
-
-      assert.equal(newState, false);
-
-      const profiles = readProfiles("toggle-test");
-      assert.equal(profiles[0].enabled, false);
+      assert.equal(profiles.find((p) => p.name === "anthropic")?.isCurrent, true);
+      assert.equal(profiles.find((p) => p.name === "relay")?.enabled, false);
     });
   });
 

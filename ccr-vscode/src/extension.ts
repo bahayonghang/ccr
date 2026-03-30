@@ -12,11 +12,17 @@ import {
   checkCcrAvailability,
   execCodexAuthDelete,
   execCodexAuthSwitch,
+  execCodexAuthUpdate,
   execPlatformSwitch,
+  execPlatformProfileCreate,
+  execPlatformProfileDelete,
+  execPlatformProfileDisable,
+  execPlatformProfileEnable,
+  execPlatformProfileSetField,
   execProfileSwitch,
 } from "./services/ccrCli";
-import { readCodexAuthAccounts, writeCodexAuthDescription } from "./services/codexAuthReader";
-import { createProfile, deleteProfile, readProfiles, readRegistry, toggleProfileEnabled, writeProfileField } from "./services/tomlReader";
+import { readCodexAuthAccounts } from "./services/codexAuthReader";
+import { readProfiles, readRegistry } from "./services/tomlReader";
 import { getProfilesPath } from "./services/ccrPaths";
 import {
   EDITABLE_FIELDS,
@@ -114,7 +120,14 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         return;
       }
       try {
-        const newState = await toggleProfileEnabled(node.profile.platformName, node.profile.name);
+        const result = node.profile.enabled
+          ? await execPlatformProfileDisable(node.profile.platformName, node.profile.name, true)
+          : await execPlatformProfileEnable(node.profile.platformName, node.profile.name);
+        if (!result.success) {
+          vscode.window.showErrorMessage(`Failed to toggle profile: ${result.stderr || "Unknown error"}`);
+          return;
+        }
+        const newState = result.data?.enabled ?? !node.profile.enabled;
         vscode.window.showInformationMessage(
           `Profile '${node.profile.name}' ${newState ? "enabled" : "disabled"}.`,
         );
@@ -142,7 +155,12 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       }
 
       try {
-        const nextCurrent = await deleteProfile(node.profile.platformName, node.profile.name);
+        const result = await execPlatformProfileDelete(node.profile.platformName, node.profile.name, true);
+        if (!result.success) {
+          vscode.window.showErrorMessage(`Failed to delete profile: ${result.stderr || "Unknown error"}`);
+          return;
+        }
+        const nextCurrent = result.data?.current_profile;
         vscode.window.showInformationMessage(
           nextCurrent
             ? `Deleted '${node.profile.name}'. Current profile is now '${nextCurrent}'.`
@@ -197,7 +215,11 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       }
 
       try {
-        await writeCodexAuthDescription(node.auth.name, newDescription || undefined);
+        const result = await execCodexAuthUpdate(node.auth.name, newDescription || undefined);
+        if (!result.success) {
+          vscode.window.showErrorMessage(`Failed to update Codex auth: ${result.stderr || "Unknown error"}`);
+          return;
+        }
         vscode.window.showInformationMessage(`Updated Codex auth '${node.auth.name}'.`);
         refreshAll();
       } catch (err) {
@@ -500,7 +522,10 @@ async function showAddProfileFlow(
         config.auth_token = normalizeOptionalText(draft.authToken);
       }
 
-      await createProfile(platformName, trimmedName, config);
+      const result = await execPlatformProfileCreate(platformName, trimmedName, config);
+      if (!result.success) {
+        throw new Error(result.stderr || "Unknown error");
+      }
       refreshAll();
       vscode.window.showInformationMessage(`Created ${platformName} profile '${trimmedName}'.`);
     } catch (err) {
@@ -610,7 +635,16 @@ async function editProfileField(
   if (newValue === undefined) return;
 
   try {
-    await writeProfileField(profile.platformName, profile.name, picked.field.tomlKey, newValue || undefined);
+    const result = await execPlatformProfileSetField(
+      profile.platformName,
+      profile.name,
+      picked.field.tomlKey,
+      newValue || undefined,
+    );
+    if (!result.success) {
+      vscode.window.showErrorMessage(`Failed to update profile: ${result.stderr || "Unknown error"}`);
+      return;
+    }
     vscode.window.showInformationMessage(
       `Updated ${picked.field.label} for '${profile.name}'.`,
     );
