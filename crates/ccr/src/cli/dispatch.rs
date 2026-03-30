@@ -293,6 +293,7 @@ impl CommandDispatcher {
     async fn dispatch_platform(
         action: &crate::cli::subcommands::PlatformAction,
     ) -> Result<(), CcrError> {
+        use crate::cli::subcommands::platform::PlatformProfileAction;
         use crate::cli::subcommands::PlatformAction;
 
         match action {
@@ -314,6 +315,100 @@ impl CommandDispatcher {
             PlatformAction::Init { platform_name } => {
                 crate::commands::platform_init_command(platform_name).await
             }
+            PlatformAction::Profile { action } => match action {
+                PlatformProfileAction::Create {
+                    platform_name,
+                    name,
+                    description,
+                    base_url,
+                    auth_token,
+                    model,
+                    small_fast_model,
+                    provider,
+                    provider_type,
+                    account,
+                    tags,
+                    disabled,
+                    json,
+                } => {
+                    crate::commands::platform::platform_profile_create_command(
+                        platform_name,
+                        name,
+                        description.clone(),
+                        base_url.clone(),
+                        auth_token.clone(),
+                        model.clone(),
+                        small_fast_model.clone(),
+                        provider.clone(),
+                        provider_type.clone(),
+                        account.clone(),
+                        tags.clone(),
+                        *disabled,
+                        *json,
+                    )
+                    .await
+                }
+                PlatformProfileAction::SetField {
+                    platform_name,
+                    name,
+                    field,
+                    value,
+                    value_json,
+                    clear,
+                    json,
+                } => {
+                    crate::commands::platform::platform_profile_set_field_command(
+                        platform_name,
+                        name,
+                        field,
+                        value.clone(),
+                        value_json.clone(),
+                        *clear,
+                        *json,
+                    )
+                    .await
+                }
+                PlatformProfileAction::Enable {
+                    platform_name,
+                    name,
+                    json,
+                } => {
+                    crate::commands::platform::platform_profile_enable_command(
+                        platform_name,
+                        name,
+                        *json,
+                    )
+                    .await
+                }
+                PlatformProfileAction::Disable {
+                    platform_name,
+                    name,
+                    force,
+                    json,
+                } => {
+                    crate::commands::platform::platform_profile_disable_command(
+                        platform_name,
+                        name,
+                        *force,
+                        *json,
+                    )
+                    .await
+                }
+                PlatformProfileAction::Delete {
+                    platform_name,
+                    name,
+                    force,
+                    json,
+                } => {
+                    crate::commands::platform::platform_profile_delete_command(
+                        platform_name,
+                        name,
+                        *force,
+                        *json,
+                    )
+                    .await
+                }
+            },
         }
     }
 
@@ -382,6 +477,20 @@ impl CommandDispatcher {
                         description.clone(),
                         expires_at.clone(),
                         *force,
+                    )
+                    .await
+                }
+                CodexAuthAction::Update {
+                    name,
+                    description,
+                    clear_description,
+                    json,
+                } => {
+                    crate::commands::codex::auth::update_command(
+                        name,
+                        description.clone(),
+                        *clear_description,
+                        *json,
                     )
                     .await
                 }

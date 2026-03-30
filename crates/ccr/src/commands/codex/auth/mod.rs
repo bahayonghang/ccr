@@ -21,6 +21,7 @@ mod repair;
 mod save;
 mod switch;
 mod sync;
+mod update;
 
 pub use current::current_command;
 pub use delete::delete_command;
@@ -31,3 +32,4 @@ pub use repair::repair_command;
 pub use save::save_command;
 pub use switch::switch_command;
 pub use sync::sync_command;
+pub use update::update_command;

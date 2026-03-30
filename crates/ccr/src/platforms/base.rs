@@ -10,13 +10,97 @@
 // 设计目标: 消除 claude.rs, codex.rs, gemini.rs 中重复的 ~150 行代码
 
 use crate::core::error::{CcrError, Result};
+use crate::core::{AtomicWriter, LockManager};
 use crate::managers::PlatformConfigManager;
 use crate::managers::config::{CcsConfig, ConfigSection, GlobalSettings, ProviderType};
 use crate::models::{PlatformPaths, ProfileConfig};
 use crate::utils::toml_json;
+use chrono::Local;
 use indexmap::IndexMap;
 use std::fs;
 use std::path::Path;
+use std::time::Duration;
+
+const PLATFORM_PROFILE_LOCK_TIMEOUT: Duration = Duration::from_secs(10);
+const PLATFORM_PROFILE_BACKUP_KEEP: usize = 10;
+const PLATFORM_REGISTRY_LOCK_RESOURCE: &str = "platform_registry";
+
+fn profile_lock_resource(platform_name: &str) -> String {
+    format!("platform_profiles_{}", platform_name)
+}
+
+fn backup_with_rotation(source: &Path, backup_dir: &Path, prefix: &str) -> Result<()> {
+    if !source.exists() {
+        return Ok(());
+    }
+
+    fs::create_dir_all(backup_dir)
+        .map_err(|e| CcrError::ConfigError(format!("创建备份目录失败 {:?}: {}", backup_dir, e)))?;
+
+    let timestamp = Local::now().format("%Y%m%d_%H%M%S");
+    let extension = source
+        .extension()
+        .and_then(|ext| ext.to_str())
+        .filter(|ext| !ext.is_empty())
+        .unwrap_or("bak");
+    let backup_path = backup_dir.join(format!("{prefix}.{timestamp}.{extension}.bak"));
+
+    fs::copy(source, &backup_path).map_err(|e| {
+        CcrError::ConfigError(format!(
+            "备份文件失败 {:?} -> {:?}: {}",
+            source, backup_path, e
+        ))
+    })?;
+
+    let mut backups: Vec<_> = fs::read_dir(backup_dir)
+        .map_err(|e| CcrError::ConfigError(format!("读取备份目录失败 {:?}: {}", backup_dir, e)))?
+        .filter_map(|entry| entry.ok())
+        .map(|entry| entry.path())
+        .filter(|path| {
+            path.file_name()
+                .and_then(|name| name.to_str())
+                .is_some_and(|name| name.starts_with(prefix) && name.ends_with(".bak"))
+        })
+        .collect();
+
+    backups.sort_by(|a, b| {
+        let a_time = fs::metadata(a).and_then(|m| m.modified()).ok();
+        let b_time = fs::metadata(b).and_then(|m| m.modified()).ok();
+        b_time.cmp(&a_time)
+    });
+
+    if backups.len() > PLATFORM_PROFILE_BACKUP_KEEP {
+        for old in &backups[PLATFORM_PROFILE_BACKUP_KEEP..] {
+            if let Err(err) = fs::remove_file(old) {
+                tracing::warn!("清理旧备份失败 {:?}: {}", old, err);
+            }
+        }
+    }
+
+    Ok(())
+}
+
+fn save_platform_registry<F>(mutate: F) -> Result<()>
+where
+    F: FnOnce(&mut crate::managers::UnifiedConfig) -> Result<()>,
+{
+    let manager = PlatformConfigManager::with_default()?;
+    let lock_manager = LockManager::with_default_path()?;
+    let _lock =
+        lock_manager.lock_resource(PLATFORM_REGISTRY_LOCK_RESOURCE, PLATFORM_PROFILE_LOCK_TIMEOUT)?;
+
+    let mut unified_config = manager.load_or_create_default()?;
+    let config_exists = manager.config_path().exists();
+    mutate(&mut unified_config)?;
+
+    if config_exists {
+        let tag = "platform_profile_mutation".to_string();
+        manager.backup(Some(&tag))?;
+    }
+
+    manager.save(&unified_config)?;
+    Ok(())
+}
 
 // ═══════════════════════════════════════════════════════════
 // 📋 ProfileConfig ↔ ConfigSection 转换
@@ -125,6 +209,10 @@ pub fn save_profiles_to_toml(
     platform_name: &str,
     paths: &PlatformPaths,
 ) -> Result<()> {
+    let lock_manager = LockManager::with_default_path()?;
+    let lock_name = profile_lock_resource(platform_name);
+    let _lock = lock_manager.lock_resource(&lock_name, PLATFORM_PROFILE_LOCK_TIMEOUT)?;
+
     // 确保目录存在
     paths.ensure_directories()?;
 
@@ -184,8 +272,10 @@ pub fn save_profiles_to_toml(
     let content = toml::to_string_pretty(&config)
         .map_err(|e| CcrError::ConfigError(format!("序列化配置失败: {}", e)))?;
 
-    // 写入文件
-    fs::write(profiles_path, content)
+    backup_with_rotation(profiles_path, &paths.backups_dir, "profiles")?;
+
+    AtomicWriter::new(profiles_path)
+        .write_string(&content)
         .map_err(|e| CcrError::ConfigError(format!("写入配置文件失败: {}", e)))?;
 
     tracing::info!("✅ 已保存 {} profiles: {:?}", platform_name, profiles_path);
@@ -247,6 +337,15 @@ pub fn update_current_config(profiles_path: &Path, name: &str) -> Result<()> {
         return Ok(());
     }
 
+    let platform_name = profiles_path
+        .parent()
+        .and_then(|parent| parent.file_name())
+        .and_then(|name| name.to_str())
+        .unwrap_or("unknown");
+    let lock_manager = LockManager::with_default_path()?;
+    let lock_name = profile_lock_resource(platform_name);
+    let _lock = lock_manager.lock_resource(&lock_name, PLATFORM_PROFILE_LOCK_TIMEOUT)?;
+
     // 读取现有配置
     let content = fs::read_to_string(profiles_path)
         .map_err(|e| CcrError::ConfigError(format!("读取配置文件失败: {}", e)))?;
@@ -273,7 +372,21 @@ pub fn update_current_config(profiles_path: &Path, name: &str) -> Result<()> {
     let new_content = toml::to_string_pretty(&config)
         .map_err(|e| CcrError::ConfigError(format!("序列化配置失败: {}", e)))?;
 
-    fs::write(profiles_path, new_content)
+    let backup_dir = profiles_path
+        .parent()
+        .and_then(|parent| parent.parent())
+        .and_then(|platforms_dir| platforms_dir.parent())
+        .map(|root| root.join("backups").join(platform_name))
+        .unwrap_or_else(|| {
+            profiles_path
+                .parent()
+                .unwrap_or_else(|| Path::new("."))
+                .join("backups")
+        });
+    backup_with_rotation(profiles_path, &backup_dir, "profiles")?;
+
+    AtomicWriter::new(profiles_path)
+        .write_string(&new_content)
         .map_err(|e| CcrError::ConfigError(format!("写入配置文件失败: {}", e)))?;
 
     tracing::debug!("✅ 已更新 profiles.toml 的 current_config: {}", name);
@@ -289,23 +402,18 @@ pub fn update_current_config(profiles_path: &Path, name: &str) -> Result<()> {
 /// 在 apply_profile 后调用，同步更新统一配置管理器中的当前 profile。
 /// 如果平台尚未在注册表中注册，会自动补全条目。
 pub fn update_registry_current_profile(platform_name: &str, profile_name: &str) -> Result<()> {
-    let platform_config_mgr = PlatformConfigManager::with_default()?;
-    let mut unified_config = platform_config_mgr.load()?;
+    save_platform_registry(|unified_config| {
+        // 如果平台不存在于注册表中，自动注册
+        if unified_config.get_platform(platform_name).is_err() {
+            tracing::info!("📋 平台 '{}' 未在注册表中，自动注册", platform_name);
+            unified_config.register_platform(
+                platform_name.to_string(),
+                crate::managers::platform_config::PlatformConfigEntry::default(),
+            )?;
+        }
 
-    // 如果平台不存在于注册表中，自动注册
-    if unified_config.get_platform(platform_name).is_err() {
-        tracing::info!("📋 平台 '{}' 未在注册表中，自动注册", platform_name);
-        unified_config.register_platform(
-            platform_name.to_string(),
-            crate::managers::platform_config::PlatformConfigEntry::default(),
-        )?;
-    }
-
-    // 更新平台的 current_profile
-    unified_config.set_platform_profile(platform_name, profile_name)?;
-
-    // 保存注册表
-    platform_config_mgr.save(&unified_config)?;
+        unified_config.set_platform_profile(platform_name, profile_name)
+    })?;
 
     tracing::debug!("✅ 已更新注册表 current_profile: {}", profile_name);
     Ok(())
@@ -319,27 +427,26 @@ pub fn reconcile_registry_current_profile_after_delete(
     deleted_profile_name: &str,
     remaining_profiles: &IndexMap<String, ProfileConfig>,
 ) -> Result<()> {
-    let platform_config_mgr = PlatformConfigManager::with_default()?;
-    let mut unified_config = platform_config_mgr.load()?;
+    save_platform_registry(|unified_config| {
+        let current_profile = match unified_config.get_platform(platform_name) {
+            Ok(entry) => entry.current_profile.clone(),
+            Err(_) => return Ok(()),
+        };
 
-    let current_profile = match unified_config.get_platform(platform_name) {
-        Ok(entry) => entry.current_profile.clone(),
-        Err(_) => return Ok(()),
-    };
+        if current_profile.as_deref() != Some(deleted_profile_name) {
+            return Ok(());
+        }
 
-    if current_profile.as_deref() != Some(deleted_profile_name) {
-        return Ok(());
-    }
+        if let Some(next_profile_name) = remaining_profiles.keys().next().cloned() {
+            unified_config.set_platform_profile(platform_name, &next_profile_name)?;
+        } else {
+            let registry = unified_config.get_platform_mut(platform_name)?;
+            registry.current_profile = None;
+            registry.last_used = Some(chrono::Utc::now().to_rfc3339());
+        }
 
-    if let Some(next_profile_name) = remaining_profiles.keys().next().cloned() {
-        unified_config.set_platform_profile(platform_name, &next_profile_name)?;
-    } else {
-        let registry = unified_config.get_platform_mut(platform_name)?;
-        registry.current_profile = None;
-        registry.last_used = Some(chrono::Utc::now().to_rfc3339());
-    }
-
-    platform_config_mgr.save(&unified_config)?;
+        Ok(())
+    })?;
     Ok(())
 }
 

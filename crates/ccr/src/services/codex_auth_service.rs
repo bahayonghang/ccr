@@ -13,6 +13,7 @@ use super::codex_runtime_service::{
 };
 use crate::core::error::{CcrError, Result};
 use crate::core::lock::LockManager;
+use crate::core::AtomicWriter;
 use crate::managers::codex_config::CodexConfigManager;
 use crate::models::PlatformConfig;
 use crate::models::{
@@ -25,6 +26,7 @@ use crate::platforms::codex::CodexPlatform;
 use chrono::{DateTime, Duration, Utc};
 use std::path::PathBuf;
 use std::{env, fs};
+use std::time::Duration as StdDuration;
 use tracing::{debug, warn};
 
 /// 备份保留数量
@@ -40,6 +42,9 @@ pub struct CodexAuthService {
     /// Codex CLI 配置目录 (~/.codex/)
     codex_dir: PathBuf,
 }
+
+const CODEX_AUTH_REGISTRY_LOCK_TIMEOUT: StdDuration = StdDuration::from_secs(10);
+const CODEX_AUTH_REGISTRY_LOCK_RESOURCE: &str = "codex_auth_registry";
 
 struct CurrentAuthDocuments {
     raw: serde_json::Map<String, serde_json::Value>,
@@ -1219,6 +1224,9 @@ impl CodexAuthService {
     /// 保存注册表
     fn save_registry(&self, registry: &CodexAuthRegistry) -> Result<()> {
         let path = self.registry_path();
+        let lock_manager = LockManager::new(self.ccr_codex_dir.join(".locks"));
+        let _lock = lock_manager
+            .lock_resource(CODEX_AUTH_REGISTRY_LOCK_RESOURCE, CODEX_AUTH_REGISTRY_LOCK_TIMEOUT)?;
 
         // 确保目录存在
         if let Some(parent) = path.parent() {
@@ -1229,10 +1237,31 @@ impl CodexAuthService {
         let content = toml::to_string_pretty(registry)
             .map_err(|e| CcrError::ConfigError(format!("序列化注册表失败: {}", e)))?;
 
-        fs::write(&path, content)
+        let _ = self.backup_registry()?;
+
+        AtomicWriter::new(&path)
+            .write_string(&content)
             .map_err(|e| CcrError::ConfigError(format!("写入注册表失败: {}", e)))?;
 
         Ok(())
+    }
+
+    pub fn update_account_description(
+        &self,
+        name: &str,
+        description: Option<String>,
+    ) -> Result<CodexAuthAccount> {
+        self.ensure_managed_auth_supported("更新账号描述")?;
+
+        let mut registry = self.load_registry()?;
+        let account = registry
+            .accounts
+            .get_mut(name)
+            .ok_or_else(|| CcrError::ResourceNotFound(format!("Codex auth account '{}'", name)))?;
+        account.description = description;
+        let updated = account.clone();
+        self.save_registry(&registry)?;
+        Ok(updated)
     }
 
     // ==================== 辅助方法 ====================

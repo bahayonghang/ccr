@@ -90,6 +90,26 @@ pub enum CodexAuthAction {
         force: bool,
     },
 
+    /// 更新已保存账号的元数据
+    ///
+    /// 仅修改 auth_registry.toml 中的账号描述，不覆盖账号快照。
+    Update {
+        /// 账号名称
+        name: String,
+
+        /// 新的账号描述
+        #[arg(short, long, conflicts_with = "clear_description")]
+        description: Option<String>,
+
+        /// 清空账号描述
+        #[arg(long, conflicts_with = "description")]
+        clear_description: bool,
+
+        /// 以 JSON 格式输出（供扩展消费）
+        #[arg(long)]
+        json: bool,
+    },
+
     /// 列出所有已保存的账号
     ///
     /// 显示所有已保存的 Codex 账号，包括当前登录状态

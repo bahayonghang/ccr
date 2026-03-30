@@ -9,11 +9,13 @@
 //! - [`platform_info_command`] - 显示指定平台详细信息
 //! - [`platform_switch_command`] - 切换当前平台
 //! - [`platform_init_command`] - 初始化平台配置
+//! - `platform_profile_*_command` - 非交互式 Profile 变更命令
 
 mod current;
 mod info;
 mod init;
 mod list;
+mod profile;
 mod switch;
 
 // 公共数据结构
@@ -23,6 +25,11 @@ pub use current::platform_current_command;
 pub use info::platform_info_command;
 pub use init::platform_init_command;
 pub use list::platform_list_command;
+pub use profile::{
+    platform_profile_create_command, platform_profile_delete_command,
+    platform_profile_disable_command, platform_profile_enable_command,
+    platform_profile_set_field_command,
+};
 pub use switch::platform_switch_command;
 
 // 内部类型（供子模块使用）

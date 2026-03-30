@@ -7,6 +7,7 @@
 // - 🧹 代码复用 - 单一数据源
 // - 📝 支持 TOML 和 JSON 格式
 
+use crate::core::atomic_writer::{AsyncAtomicWriter, AtomicWriter};
 use crate::core::error::{CcrError, Result};
 use serde::{Deserialize, Serialize};
 use std::fs;
@@ -105,8 +106,7 @@ where
     let content = toml::to_string_pretty(value)
         .map_err(|e| CcrError::FileIoError(format!("序列化 TOML 数据失败: {}", e)))?;
 
-    // 写入文件
-    fs::write(path, content).map_err(|e| {
+    AtomicWriter::new(path).write_string(&content).map_err(|e| {
         CcrError::FileIoError(format!("写入配置文件 {} 失败: {}", path.display(), e))
     })?;
 
@@ -147,7 +147,7 @@ where
     let content = serde_json::to_string_pretty(value)
         .map_err(|e| CcrError::FileIoError(format!("序列化 JSON 数据失败: {}", e)))?;
 
-    fs::write(path, content).map_err(|e| {
+    AtomicWriter::new(path).write_string(&content).map_err(|e| {
         CcrError::FileIoError(format!("写入 JSON 文件 {} 失败: {}", path.display(), e))
     })?;
 
@@ -188,9 +188,12 @@ where
     let content = toml::to_string_pretty(value)
         .map_err(|e| CcrError::FileIoError(format!("序列化 TOML 数据失败: {}", e)))?;
 
-    async_fs::write(path, content).await.map_err(|e| {
-        CcrError::FileIoError(format!("写入配置文件 {} 失败: {}", path.display(), e))
-    })?;
+    AsyncAtomicWriter::new(path)
+        .write_string_async(&content)
+        .await
+        .map_err(|e| {
+            CcrError::FileIoError(format!("写入配置文件 {} 失败: {}", path.display(), e))
+        })?;
 
     tracing::trace!("✅ 成功写入 TOML 文件: {}", path.display());
     Ok(())
@@ -229,9 +232,12 @@ where
     let content = serde_json::to_string_pretty(value)
         .map_err(|e| CcrError::FileIoError(format!("序列化 JSON 数据失败: {}", e)))?;
 
-    async_fs::write(path, content).await.map_err(|e| {
-        CcrError::FileIoError(format!("写入 JSON 文件 {} 失败: {}", path.display(), e))
-    })?;
+    AsyncAtomicWriter::new(path)
+        .write_string_async(&content)
+        .await
+        .map_err(|e| {
+            CcrError::FileIoError(format!("写入 JSON 文件 {} 失败: {}", path.display(), e))
+        })?;
 
     tracing::trace!("✅ 成功写入 JSON 文件: {}", path.display());
     Ok(())
