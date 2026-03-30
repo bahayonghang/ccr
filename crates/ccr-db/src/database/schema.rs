@@ -1,10 +1,10 @@
 // Database schema definitions for unified SQLite storage
-// Schema version: 2
+// Schema version: 10
 // See: openspec/changes/add-unified-sqlite-storage/proposal.md
 
 /// Current schema version for migration tracking
 #[allow(dead_code)]
-pub const SCHEMA_VERSION: i32 = 7;
+pub const SCHEMA_VERSION: i32 = 10;
 
 /// Database file path relative to user home directory
 pub const DB_RELATIVE_PATH: &str = ".ccr-ui/ccr-ui.db";
@@ -115,7 +115,6 @@ CREATE TABLE IF NOT EXISTS checkin_balances (
     used_quota REAL NOT NULL,
     remaining_quota REAL NOT NULL,
     currency TEXT NOT NULL,
-    raw_response TEXT,
     recorded_at TEXT NOT NULL
 );
 

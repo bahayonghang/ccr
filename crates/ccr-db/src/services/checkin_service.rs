@@ -65,9 +65,53 @@ struct DailySummary {
     remaining_quota: f64,
 }
 
-/// 安全截断 UTF-8 字符串（避免在多字节字符中间截断导致 panic）
-fn truncate_string(s: &str, max_chars: usize) -> String {
-    s.chars().take(max_chars).collect()
+#[derive(Debug, Clone, Copy)]
+enum ProxySource {
+    Env,
+    WindowsRegistry,
+}
+
+impl ProxySource {
+    fn label(self) -> &'static str {
+        match self {
+            Self::Env => "env",
+            Self::WindowsRegistry => "windows_registry",
+        }
+    }
+}
+
+fn response_body_chars(body: &str) -> usize {
+    body.chars().count()
+}
+
+fn response_content_kind(body: &str) -> &'static str {
+    let trimmed = body.trim();
+    if trimmed.is_empty() {
+        "empty"
+    } else if serde_json::from_str::<serde_json::Value>(trimmed).is_ok() {
+        "json"
+    } else if trimmed.starts_with('<') || trimmed.contains("<html") {
+        "html"
+    } else {
+        "text"
+    }
+}
+
+fn response_challenge_classification(status: reqwest::StatusCode, body: &str) -> &'static str {
+    if is_waf_challenge(body) {
+        "waf"
+    } else if is_cf_challenge(status, body) {
+        "cf"
+    } else {
+        "none"
+    }
+}
+
+fn json_object_keys(value: &serde_json::Value) -> Vec<String> {
+    value
+        .as_object()
+        .map(|obj| obj.keys().cloned().collect())
+        .unwrap_or_default()
 }
 
 /// 默认 User-Agent
@@ -96,6 +140,10 @@ fn get_proxy_url_from_env() -> Option<String> {
         }
     }
     None
+}
+
+fn get_proxy_settings_from_env() -> Option<(ProxySource, String)> {
+    get_proxy_url_from_env().map(|url| (ProxySource::Env, url))
 }
 
 #[cfg(target_os = "windows")]
@@ -203,8 +251,18 @@ fn get_proxy_url_from_windows_registry() -> Option<String> {
     None
 }
 
-fn get_proxy_url() -> Option<String> {
-    get_proxy_url_from_env().or_else(get_proxy_url_from_windows_registry)
+#[cfg(target_os = "windows")]
+fn get_proxy_settings_from_windows_registry() -> Option<(ProxySource, String)> {
+    get_proxy_url_from_windows_registry().map(|url| (ProxySource::WindowsRegistry, url))
+}
+
+#[cfg(not(target_os = "windows"))]
+fn get_proxy_settings_from_windows_registry() -> Option<(ProxySource, String)> {
+    None
+}
+
+fn get_proxy_settings() -> Option<(ProxySource, String)> {
+    get_proxy_settings_from_env().or_else(get_proxy_settings_from_windows_registry)
 }
 
 fn is_waf_challenge(text: &str) -> bool {
@@ -250,7 +308,8 @@ impl CheckinService {
     /// 创建新的签到服务（默认使用系统代理）
     #[allow(dead_code)]
     pub fn new(checkin_dir: PathBuf) -> Self {
-        let proxy_url = get_proxy_url();
+        let proxy_settings = get_proxy_settings();
+        let proxy_url = proxy_settings.as_ref().map(|(_, url)| url.clone());
 
         let mut client_builder = Client::builder()
             .timeout(Duration::from_secs(30))
@@ -258,13 +317,17 @@ impl CheckinService {
             .user_agent(DEFAULT_USER_AGENT)
             .no_proxy();
 
-        match proxy_url.as_deref() {
-            Some(url) => match Proxy::all(url) {
+        match proxy_settings.as_ref() {
+            Some((source, url)) => match Proxy::all(url) {
                 Ok(proxy) => {
-                    tracing::info!("签到服务使用代理: {}", url);
+                    tracing::info!(source = source.label(), "签到服务已启用代理");
                     client_builder = client_builder.proxy(proxy);
                 }
-                Err(e) => tracing::warn!("代理格式无效，将忽略: {} ({})", url, e),
+                Err(e) => tracing::warn!(
+                    source = source.label(),
+                    error = %e,
+                    "代理配置无效，将忽略"
+                ),
             },
             None => tracing::debug!("签到服务未检测到代理，直连模式"),
         }
@@ -282,7 +345,7 @@ impl CheckinService {
 
     /// 使用共享的 HTTP 客户端创建签到服务
     pub fn with_client(checkin_dir: PathBuf, client: Client) -> Self {
-        let proxy_url = get_proxy_url();
+        let proxy_url = get_proxy_settings().map(|(_, url)| url);
         Self {
             checkin_dir,
             client,
@@ -535,7 +598,7 @@ impl CheckinService {
 
         // 执行签到请求
         let checkin_result = self
-            .do_checkin(&provider, &credentials, &account.name)
+            .do_checkin(&provider, &credentials, account_id, &account.name)
             .await;
 
         // 记录签到结果
@@ -732,6 +795,7 @@ impl CheckinService {
         &self,
         provider: &CheckinProvider,
         credentials: &CookieCredentials,
+        account_id: &str,
         account_name: &str,
     ) -> Result<(String, Option<String>)> {
         let url = format!(
@@ -755,8 +819,16 @@ impl CheckinService {
             .send_checkin_request(&url, domain, credentials, &cookie_string)
             .await?;
 
-        tracing::info!("Checkin response status: {}", status);
-        tracing::info!("Checkin response body: {}", truncate_string(&body, 500));
+        tracing::info!(
+            provider_id = %provider.id,
+            account_id,
+            account_name,
+            status = %status.as_u16(),
+            content_kind = response_content_kind(&body),
+            challenge = response_challenge_classification(status, &body),
+            body_chars = response_body_chars(&body),
+            "签到响应已接收"
+        );
 
         // 检测 WAF 挑战页面：尝试刷新 WAF cookies 后重试（软失败模式）
         if is_waf_challenge(&body) {
@@ -777,8 +849,16 @@ impl CheckinService {
                     status = retry_status;
                     body = retry_body;
 
-                    tracing::info!("Checkin retry status: {}", status);
-                    tracing::info!("Checkin retry response: {}", truncate_string(&body, 500));
+                    tracing::info!(
+                        provider_id = %provider.id,
+                        account_id,
+                        account_name,
+                        status = %status.as_u16(),
+                        content_kind = response_content_kind(&body),
+                        challenge = response_challenge_classification(status, &body),
+                        body_chars = response_body_chars(&body),
+                        "WAF 重试后的签到响应已接收"
+                    );
                 }
                 Err(e) => {
                     tracing::warn!(
@@ -813,8 +893,16 @@ impl CheckinService {
                     status = retry_status;
                     body = retry_body;
 
-                    tracing::info!("Checkin CF retry status: {}", status);
-                    tracing::info!("Checkin CF retry response: {}", truncate_string(&body, 500));
+                    tracing::info!(
+                        provider_id = %provider.id,
+                        account_id,
+                        account_name,
+                        status = %status.as_u16(),
+                        content_kind = response_content_kind(&body),
+                        challenge = response_challenge_classification(status, &body),
+                        body_chars = response_body_chars(&body),
+                        "Cloudflare 重试后的签到响应已接收"
+                    );
                 }
                 Err(e) => {
                     tracing::warn!(
@@ -830,8 +918,12 @@ impl CheckinService {
         // 如果响应是合法 JSON，即使包含 WAF 特征字符串也应按 API 响应处理。
         if let Ok(data) = serde_json::from_str::<serde_json::Value>(&body) {
             tracing::debug!(
-                "Parsed JSON response: {}",
-                serde_json::to_string_pretty(&data).unwrap_or_default()
+                provider_id = %provider.id,
+                account_id,
+                account_name,
+                status = %status.as_u16(),
+                json_keys = ?json_object_keys(&data),
+                "签到响应解析为 JSON"
             );
 
             // HTTP 错误但返回了 JSON（API 级别的错误响应）
@@ -905,8 +997,14 @@ impl CheckinService {
 
         // JSON 解析失败：响应不是合法 JSON，检查是否为 WAF/CF 挑战页面
         tracing::warn!(
-            "Failed to parse as JSON, raw response: {}",
-            truncate_string(&body, 500)
+            provider_id = %provider.id,
+            account_id,
+            account_name,
+            status = %status.as_u16(),
+            content_kind = response_content_kind(&body),
+            challenge = response_challenge_classification(status, &body),
+            body_chars = response_body_chars(&body),
+            "签到响应不是合法 JSON"
         );
 
         if !status.is_success() {
@@ -925,9 +1023,8 @@ impl CheckinService {
             }
 
             return Err(CheckinServiceError::Api(format!(
-                "HTTP {}: {}",
-                status.as_u16(),
-                truncate_string(&body, 200)
+                "HTTP {}: 返回非 JSON 响应",
+                status.as_u16()
             )));
         }
 
@@ -941,10 +1038,9 @@ impl CheckinService {
         if body.to_lowercase().contains("success") || body.contains("成功") {
             Ok(("签到成功".to_string(), None))
         } else {
-            Err(CheckinServiceError::Api(format!(
-                "无法解析响应: {}",
-                truncate_string(&body, 100)
-            )))
+            Err(CheckinServiceError::Api(
+                "无法解析响应: 返回非 JSON 响应".to_string(),
+            ))
         }
     }
 
@@ -1015,8 +1111,16 @@ impl CheckinService {
             .send_balance_request(&url, domain, credentials, &cookie_string)
             .await?;
 
-        tracing::info!("Balance query response status: {}", status);
-        tracing::info!("Balance query response: {}", truncate_string(&body, 500));
+        tracing::info!(
+            provider_id = %provider.id,
+            account_id,
+            account_name,
+            status = %status.as_u16(),
+            content_kind = response_content_kind(&body),
+            challenge = response_challenge_classification(status, &body),
+            body_chars = response_body_chars(&body),
+            "余额响应已接收"
+        );
 
         // 检测 WAF 挑战页面：尝试刷新 WAF cookies 后重试（软失败模式）
         if is_waf_challenge(&body) {
@@ -1037,10 +1141,15 @@ impl CheckinService {
                     status = retry_status;
                     body = retry_body;
 
-                    tracing::info!("Balance query retry status: {}", status);
                     tracing::info!(
-                        "Balance query retry response: {}",
-                        truncate_string(&body, 500)
+                        provider_id = %provider.id,
+                        account_id,
+                        account_name,
+                        status = %status.as_u16(),
+                        content_kind = response_content_kind(&body),
+                        challenge = response_challenge_classification(status, &body),
+                        body_chars = response_body_chars(&body),
+                        "WAF 重试后的余额响应已接收"
                     );
                 }
                 Err(e) => {
@@ -1075,10 +1184,15 @@ impl CheckinService {
                     status = retry_status;
                     body = retry_body;
 
-                    tracing::info!("Balance query CF retry status: {}", status);
                     tracing::info!(
-                        "Balance query CF retry response: {}",
-                        truncate_string(&body, 500)
+                        provider_id = %provider.id,
+                        account_id,
+                        account_name,
+                        status = %status.as_u16(),
+                        content_kind = response_content_kind(&body),
+                        challenge = response_challenge_classification(status, &body),
+                        body_chars = response_body_chars(&body),
+                        "Cloudflare 重试后的余额响应已接收"
                     );
                 }
                 Err(e) => {
@@ -1107,9 +1221,8 @@ impl CheckinService {
             }
 
             return Err(CheckinServiceError::Api(format!(
-                "HTTP {}: {}",
-                status.as_u16(),
-                truncate_string(&body, 200)
+                "HTTP {}: 返回非 JSON 响应",
+                status.as_u16()
             )));
         }
 
@@ -1121,16 +1234,27 @@ impl CheckinService {
         }
 
         let data: serde_json::Value = serde_json::from_str(&body).map_err(|e| {
-            CheckinServiceError::Api(format!(
-                "无法解析余额响应: {} - {}",
-                e,
-                truncate_string(&body, 200)
-            ))
+            tracing::warn!(
+                provider_id = %provider.id,
+                account_id,
+                account_name,
+                status = %status.as_u16(),
+                content_kind = response_content_kind(&body),
+                challenge = response_challenge_classification(status, &body),
+                body_chars = response_body_chars(&body),
+                error = %e,
+                "余额响应不是合法 JSON"
+            );
+            CheckinServiceError::Api(format!("无法解析余额响应: {}", e))
         })?;
 
         tracing::debug!(
-            "Parsed balance response: {}",
-            serde_json::to_string_pretty(&data).unwrap_or_default()
+            provider_id = %provider.id,
+            account_id,
+            account_name,
+            status = %status.as_u16(),
+            json_keys = ?json_object_keys(&data),
+            "余额响应解析为 JSON"
         );
 
         if data["data"].is_null() {
@@ -1139,9 +1263,8 @@ impl CheckinService {
                 .or_else(|| data["msg"].as_str())
                 .unwrap_or("API 响应缺少 'data' 字段");
             return Err(CheckinServiceError::Api(format!(
-                "{}: {}",
-                error_msg,
-                truncate_string(&body, 200)
+                "{}: API 响应缺少余额数据",
+                error_msg
             )));
         }
 
@@ -1160,28 +1283,48 @@ impl CheckinService {
             let total_consumed = (used_quota / quota_rate * 100.0).round() / 100.0;
             let total_quota = current_balance + total_consumed;
 
+            tracing::debug!(
+                provider_id = %provider.id,
+                account_id,
+                account_name,
+                total_quota,
+                used_quota = total_consumed,
+                remaining_quota = current_balance,
+                currency = "USD",
+                "余额响应已解析为 quota/used_quota 形式"
+            );
+
             return Ok(BalanceSnapshot::new(
                 account_id.to_string(),
                 total_quota,
                 total_consumed,
                 current_balance,
                 "USD".to_string(),
-            )
-            .with_raw_response(body));
+            ));
         }
 
         if let Some(balance) = data["data"]["balance"]
             .as_f64()
             .or(data["balance"].as_f64())
         {
+            tracing::debug!(
+                provider_id = %provider.id,
+                account_id,
+                account_name,
+                total_quota = balance,
+                used_quota = 0.0,
+                remaining_quota = balance,
+                currency = "USD",
+                "余额响应已解析为 balance 形式"
+            );
+
             return Ok(BalanceSnapshot::new(
                 account_id.to_string(),
                 balance,
                 0.0,
                 balance,
                 "USD".to_string(),
-            )
-            .with_raw_response(body));
+            ));
         }
 
         let available_fields: Vec<&str> = data["data"]
@@ -1190,9 +1333,8 @@ impl CheckinService {
             .unwrap_or_default();
 
         Err(CheckinServiceError::Api(format!(
-            "无法解析余额响应，缺少 quota/used_quota 字段。可用字段: {:?}，响应: {}",
-            available_fields,
-            truncate_string(&body, 200)
+            "无法解析余额响应，缺少 quota/used_quota/balance 字段。可用字段: {:?}",
+            available_fields
         )))
     }
 
@@ -1708,5 +1850,30 @@ mod tests {
         let stats = service.get_today_stats().unwrap();
         assert_eq!(stats.total_accounts, 0);
         assert_eq!(stats.checked_in, 0);
+    }
+
+    #[test]
+    fn test_response_metadata_helpers() {
+        assert_eq!(response_body_chars("余额"), 2);
+        assert_eq!(response_content_kind(r#"{"ok":true}"#), "json");
+        assert_eq!(response_content_kind("<html>challenge</html>"), "html");
+        assert_eq!(response_content_kind("plain text"), "text");
+        assert_eq!(
+            response_challenge_classification(
+                reqwest::StatusCode::OK,
+                "<script>var arg1=abc</script>",
+            ),
+            "waf"
+        );
+        assert_eq!(
+            response_challenge_classification(
+                reqwest::StatusCode::FORBIDDEN,
+                "<html>Just a moment _cf_chl</html>",
+            ),
+            "cf"
+        );
+        let mut keys = json_object_keys(&serde_json::json!({ "ret": 1, "message": "ok" }));
+        keys.sort();
+        assert_eq!(keys, vec!["message".to_string(), "ret".to_string()]);
     }
 }

@@ -19,9 +19,6 @@ pub struct BalanceSnapshot {
     /// 货币/单位 (USD, CNY, tokens, credits)
     #[serde(default = "default_currency")]
     pub currency: String,
-    /// 原始响应 (可选，用于调试)
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub raw_response: Option<String>,
     /// 记录时间
     pub recorded_at: DateTime<Utc>,
 }
@@ -46,15 +43,8 @@ impl BalanceSnapshot {
             used_quota,
             remaining_quota,
             currency,
-            raw_response: None,
             recorded_at: Utc::now(),
         }
-    }
-
-    /// 带原始响应创建快照
-    pub fn with_raw_response(mut self, raw: String) -> Self {
-        self.raw_response = Some(raw);
-        self
     }
 
     /// 计算使用百分比

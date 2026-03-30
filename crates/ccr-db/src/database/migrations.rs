@@ -420,7 +420,6 @@ fn import_checkin_balances(conn: &Connection, home_dir: &Path) -> MigrationResul
             used_quota,
             remaining_quota,
             currency,
-            raw_response: None,
             recorded_at,
         };
 
@@ -926,6 +925,58 @@ pub fn run_migration_v9(conn: &Connection) -> MigrationResult<()> {
     Ok(())
 }
 
+/// Run migration v10: remove raw_response column from checkin_balances
+pub fn run_migration_v10(conn: &Connection) -> MigrationResult<()> {
+    if is_migration_applied(conn, 10)? {
+        debug!("Migration v10 already applied, skipping");
+        return Ok(());
+    }
+
+    info!("Running migration v10: remove raw_response from checkin_balances");
+
+    if table_has_column(conn, "checkin_balances", "raw_response")? {
+        conn.execute_batch(
+            "BEGIN;
+             CREATE TABLE checkin_balances_new (
+                 id TEXT PRIMARY KEY,
+                 account_id TEXT NOT NULL,
+                 total_quota REAL NOT NULL,
+                 used_quota REAL NOT NULL,
+                 remaining_quota REAL NOT NULL,
+                 currency TEXT NOT NULL,
+                 recorded_at TEXT NOT NULL
+             );
+
+             INSERT INTO checkin_balances_new (
+                 id, account_id, total_quota, used_quota, remaining_quota, currency, recorded_at
+             )
+             SELECT
+                 id, account_id, total_quota, used_quota, remaining_quota, currency, recorded_at
+             FROM checkin_balances;
+
+             DROP TABLE checkin_balances;
+             ALTER TABLE checkin_balances_new RENAME TO checkin_balances;
+
+             CREATE INDEX IF NOT EXISTS idx_checkin_balances_account_id
+                 ON checkin_balances (account_id);
+             CREATE INDEX IF NOT EXISTS idx_checkin_balances_recorded_at
+                 ON checkin_balances (recorded_at DESC);
+             COMMIT;",
+        )
+        .map_err(|e| MigrationError::Database(e.to_string()))?;
+    }
+
+    let now = Utc::now().to_rfc3339();
+    conn.execute(
+        INSERT_MIGRATION_SQL,
+        rusqlite::params![10, "checkin_balances_remove_raw_response", now],
+    )
+    .map_err(|e| MigrationError::Database(e.to_string()))?;
+
+    info!("Migration v10 completed successfully");
+    Ok(())
+}
+
 /// Run all migrations (schema + legacy data import)
 /// This is the main entry point called during initialization
 pub fn run_all_migrations(conn: &Connection, home_dir: &Path) -> MigrationResult<()> {
@@ -955,6 +1006,9 @@ pub fn run_all_migrations(conn: &Connection, home_dir: &Path) -> MigrationResult
 
     // Step 1.12: Run v9 migration (claude_profiles table)
     run_migration_v9(conn)?;
+
+    // Step 1.13: Run v10 migration (drop raw_response from checkin_balances)
+    run_migration_v10(conn)?;
 
     // Step 2: Import legacy data if not done and files exist
     if !is_legacy_migration_done(conn)? {
@@ -1153,5 +1207,69 @@ mod tests {
         // Idempotent
         mark_legacy_migration_done(&conn).unwrap();
         assert!(is_legacy_migration_done(&conn).unwrap());
+    }
+
+    #[test]
+    fn test_migration_v10_removes_raw_response_column() {
+        let conn = Connection::open_in_memory().unwrap();
+        run_initial_migration(&conn).unwrap();
+
+        conn.execute_batch(
+            "DROP TABLE checkin_balances;
+             CREATE TABLE checkin_balances (
+                 id TEXT PRIMARY KEY,
+                 account_id TEXT NOT NULL,
+                 total_quota REAL NOT NULL,
+                 used_quota REAL NOT NULL,
+                 remaining_quota REAL NOT NULL,
+                 currency TEXT NOT NULL,
+                 raw_response TEXT,
+                 recorded_at TEXT NOT NULL
+             );
+             CREATE INDEX IF NOT EXISTS idx_checkin_balances_account_id
+                 ON checkin_balances (account_id);
+             CREATE INDEX IF NOT EXISTS idx_checkin_balances_recorded_at
+                 ON checkin_balances (recorded_at DESC);",
+        )
+        .unwrap();
+
+        conn.execute(
+            "INSERT INTO checkin_balances (
+                id, account_id, total_quota, used_quota, remaining_quota, currency, raw_response, recorded_at
+             ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
+            rusqlite::params![
+                "balance-1",
+                "account-1",
+                100.0_f64,
+                25.0_f64,
+                75.0_f64,
+                "USD",
+                "{\"secret\":true}",
+                Utc::now().to_rfc3339(),
+            ],
+        )
+        .unwrap();
+
+        run_migration_v10(&conn).unwrap();
+
+        assert!(!table_has_column(&conn, "checkin_balances", "raw_response").unwrap());
+
+        let remaining: f64 = conn
+            .query_row(
+                "SELECT remaining_quota FROM checkin_balances WHERE id = 'balance-1'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(remaining, 75.0);
+
+        let count: i32 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM migrations WHERE version = 10",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(count, 1);
     }
 }

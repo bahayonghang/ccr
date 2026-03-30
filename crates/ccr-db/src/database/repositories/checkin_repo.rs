@@ -680,8 +680,8 @@ pub fn insert_balance(conn: &Connection, balance: &BalanceSnapshot) -> Result<()
 
     conn.execute(
         "INSERT INTO checkin_balances (id, account_id, total_quota, used_quota, remaining_quota,
-         currency, raw_response, recorded_at)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
+         currency, recorded_at)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
         params![
             balance.id,
             balance.account_id,
@@ -689,7 +689,6 @@ pub fn insert_balance(conn: &Connection, balance: &BalanceSnapshot) -> Result<()
             balance.used_quota,
             balance.remaining_quota,
             balance.currency,
-            balance.raw_response,
             recorded_at,
         ],
     )?;
@@ -708,7 +707,7 @@ pub fn get_latest_balance(
     account_id: &str,
 ) -> Result<Option<BalanceSnapshot>, rusqlite::Error> {
     conn.query_row(
-        "SELECT id, account_id, total_quota, used_quota, remaining_quota, currency, raw_response, recorded_at
+        "SELECT id, account_id, total_quota, used_quota, remaining_quota, currency, recorded_at
          FROM checkin_balances
          WHERE account_id = ?1
          ORDER BY recorded_at DESC
@@ -727,7 +726,7 @@ pub fn get_balance_history(
     limit: usize,
 ) -> Result<Vec<BalanceSnapshot>, rusqlite::Error> {
     let mut stmt = conn.prepare(
-        "SELECT id, account_id, total_quota, used_quota, remaining_quota, currency, raw_response, recorded_at
+        "SELECT id, account_id, total_quota, used_quota, remaining_quota, currency, recorded_at
          FROM checkin_balances
          WHERE account_id = ?1
          ORDER BY recorded_at DESC
@@ -761,7 +760,7 @@ pub fn get_all_balances(
     limit: usize,
 ) -> Result<Vec<BalanceSnapshot>, rusqlite::Error> {
     let mut stmt = conn.prepare(
-        "SELECT id, account_id, total_quota, used_quota, remaining_quota, currency, raw_response, recorded_at
+        "SELECT id, account_id, total_quota, used_quota, remaining_quota, currency, recorded_at
          FROM checkin_balances
          ORDER BY recorded_at DESC
          LIMIT ?1",
@@ -781,7 +780,7 @@ pub fn get_latest_balances_for_all(
 ) -> Result<Vec<BalanceSnapshot>, rusqlite::Error> {
     // Using window function to get latest per account
     let mut stmt = conn.prepare(
-        "SELECT id, account_id, total_quota, used_quota, remaining_quota, currency, raw_response, recorded_at
+        "SELECT id, account_id, total_quota, used_quota, remaining_quota, currency, recorded_at
          FROM checkin_balances b1
          WHERE recorded_at = (
              SELECT MAX(recorded_at) FROM checkin_balances b2 WHERE b2.account_id = b1.account_id
@@ -1008,8 +1007,7 @@ fn row_to_balance(row: &rusqlite::Row) -> Result<BalanceSnapshot, rusqlite::Erro
     let used_quota: f64 = row.get(3)?;
     let remaining_quota: f64 = row.get(4)?;
     let currency: String = row.get(5)?;
-    let raw_response: Option<String> = row.get(6)?;
-    let recorded_at_str: String = row.get(7)?;
+    let recorded_at_str: String = row.get(6)?;
 
     let recorded_at = DateTime::parse_from_rfc3339(&recorded_at_str)
         .map(|dt| dt.with_timezone(&Utc))
@@ -1022,7 +1020,6 @@ fn row_to_balance(row: &rusqlite::Row) -> Result<BalanceSnapshot, rusqlite::Erro
         used_quota,
         remaining_quota,
         currency,
-        raw_response,
         recorded_at,
     })
 }
