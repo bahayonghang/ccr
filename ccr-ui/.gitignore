@@ -68,3 +68,5 @@ cypress/screenshots/
 storybook-static
 
 skills_response.json
+
+tests/artifacts

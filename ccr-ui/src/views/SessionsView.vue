@@ -1,7 +1,7 @@
 <template>
-  <div class="sessions-view p-6 space-y-6">
+  <div class="sessions-view space-y-6">
     <!-- 页面标题 -->
-    <div class="flex items-center justify-between">
+    <div class="sessions-header flex items-center justify-between gap-4">
       <div>
         <h1 class="text-3xl font-bold text-text-primary">
           📚 Sessions
@@ -10,11 +10,11 @@
           管理和浏览 AI CLI 会话记录
         </p>
       </div>
-      <div class="flex items-center space-x-4">
+      <div class="sessions-toolbar flex items-center gap-3">
         <!-- 平台筛选 -->
         <select
           v-model="selectedPlatform"
-          class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+          class="sessions-toolbar-select"
           @change="loadSessions"
         >
           <option value="">
@@ -34,7 +34,7 @@
         <!-- 重建索引按钮 -->
         <button
           :disabled="reindexing"
-          class="px-4 py-2 border border-blue-200 dark:border-blue-500 text-blue-700 dark:text-blue-200 rounded-lg flex items-center space-x-2 hover:bg-blue-50 dark:hover:bg-blue-900/30 disabled:opacity-50"
+          class="sessions-toolbar-button sessions-toolbar-button--secondary"
           @click="reindex"
         >
           <svg
@@ -57,7 +57,7 @@
         <!-- 刷新按钮 -->
         <button
           :disabled="loading"
-          class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center space-x-2 disabled:opacity-50"
+          class="sessions-toolbar-button sessions-toolbar-button--primary"
           @click="loadSessions"
         >
           <svg
@@ -80,8 +80,8 @@
     </div>
 
     <!-- 统计卡片 -->
-    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
-      <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+    <div class="grid grid-cols-1 gap-6 md:grid-cols-4">
+      <div class="sessions-stat-card">
         <div class="flex items-center justify-between">
           <div>
             <p class="text-sm font-medium text-text-secondary">
@@ -91,7 +91,7 @@
               {{ stats?.total || 0 }}
             </p>
           </div>
-          <div class="p-3 bg-blue-100 dark:bg-blue-900/20 rounded-full">
+          <div class="sessions-stat-icon sessions-stat-icon--primary">
             <svg
               class="w-8 h-8 text-blue-600 dark:text-blue-400"
               fill="none"
@@ -111,7 +111,7 @@
       <div
         v-for="(count, platform) in stats?.by_platform || {}"
         :key="platform"
-        class="bg-white dark:bg-gray-800 rounded-lg shadow p-6"
+        class="sessions-stat-card"
       >
         <div class="flex items-center justify-between">
           <div>
@@ -143,7 +143,7 @@
     <!-- 错误提示 -->
     <div
       v-if="error"
-      class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4"
+      class="sessions-feedback sessions-feedback--error"
     >
       <div class="flex">
         <svg
@@ -171,10 +171,10 @@
     <!-- Session 列表 -->
     <div
       v-if="!loading && !error"
-      class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden"
+      class="sessions-table-shell"
     >
-      <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-        <thead class="bg-gray-50 dark:bg-gray-900/50">
+      <table class="min-w-full">
+        <thead class="sessions-table-head">
           <tr>
             <th class="px-6 py-3 text-left text-xs font-medium text-text-muted uppercase tracking-wider">
               平台
@@ -193,11 +193,11 @@
             </th>
           </tr>
         </thead>
-        <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+        <tbody class="sessions-table-body">
           <tr
             v-for="session in sessions"
             :key="session.id"
-            class="hover:bg-gray-50 dark:hover:bg-gray-700/50 cursor-pointer"
+            class="sessions-table-row cursor-pointer"
             @click="showSessionDetail(session)"
           >
             <td class="px-6 py-4 whitespace-nowrap">
@@ -210,7 +210,7 @@
             </td>
             <td class="px-6 py-4">
               <div
-                class="text-sm text-text-muted truncate max-w-xs"
+                class="max-w-xs truncate text-sm text-text-muted"
                 :title="session.cwd"
               >
                 {{ shortenPath(session.cwd) }}
@@ -238,70 +238,71 @@
     </div>
 
     <!-- Session 详情弹窗 -->
-    <div
-      v-if="selectedSession"
-      class="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
-      @click.self="selectedSession = null"
+    <BaseModal
+      :model-value="Boolean(selectedSession)"
+      title="Session 详情"
+      description="Session metadata detail panel"
+      size="xl"
+      surface="solid"
+      @update:model-value="handleSessionModalChange"
     >
-      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full mx-4 p-6">
-        <div class="flex items-center justify-between mb-4">
-          <h3 class="text-xl font-bold text-text-primary">
-            Session 详情
-          </h3>
-          <button
-            class="text-text-muted hover:text-text-primary dark:hover:text-white"
-            @click="selectedSession = null"
-          >
-            ✕
-          </button>
+      <div
+        v-if="selectedSession"
+        class="sessions-detail-grid"
+      >
+        <div class="sessions-detail-item sessions-detail-item--wide">
+          <label class="sessions-detail-label">ID</label>
+          <p class="sessions-detail-value sessions-detail-value--mono">
+            {{ selectedSession.id }}
+          </p>
         </div>
-        <div class="space-y-4">
-          <div>
-            <label class="text-sm font-medium text-text-secondary">ID</label>
-            <p class="text-text-primary font-mono text-sm">
-              {{ selectedSession.id }}
-            </p>
-          </div>
-          <div>
-            <label class="text-sm font-medium text-text-secondary">平台</label>
-            <p class="text-text-primary">
-              {{ selectedSession.platform }}
-            </p>
-          </div>
-          <div v-if="selectedSession.title">
-            <label class="text-sm font-medium text-text-secondary">标题</label>
-            <p class="text-text-primary">
-              {{ selectedSession.title }}
-            </p>
-          </div>
-          <div>
-            <label class="text-sm font-medium text-text-secondary">工作目录</label>
-            <p class="text-text-primary font-mono text-sm break-all">
-              {{ selectedSession.cwd }}
-            </p>
-          </div>
-          <div class="grid grid-cols-2 gap-4">
-            <div>
-              <label class="text-sm font-medium text-text-secondary">消息数</label>
-              <p class="text-text-primary">
-                {{ selectedSession.message_count }}
-              </p>
-            </div>
-            <div>
-              <label class="text-sm font-medium text-text-secondary">更新时间</label>
-              <p class="text-text-primary">
-                {{ formatDate(selectedSession.updated_at) }}
-              </p>
-            </div>
-          </div>
+        <div class="sessions-detail-item">
+          <label class="sessions-detail-label">平台</label>
+          <p class="sessions-detail-value">
+            {{ selectedSession.platform }}
+          </p>
+        </div>
+        <div class="sessions-detail-item">
+          <label class="sessions-detail-label">消息数</label>
+          <p class="sessions-detail-value">
+            {{ selectedSession.message_count }}
+          </p>
+        </div>
+        <div
+          v-if="selectedSession.title"
+          class="sessions-detail-item sessions-detail-item--wide"
+        >
+          <label class="sessions-detail-label">标题</label>
+          <p class="sessions-detail-value">
+            {{ selectedSession.title }}
+          </p>
+        </div>
+        <div class="sessions-detail-item sessions-detail-item--wide">
+          <label class="sessions-detail-label">工作目录</label>
+          <p class="sessions-detail-value sessions-detail-value--mono break-all">
+            {{ selectedSession.cwd }}
+          </p>
+        </div>
+        <div class="sessions-detail-item">
+          <label class="sessions-detail-label">更新时间</label>
+          <p class="sessions-detail-value">
+            {{ formatDate(selectedSession.updated_at) }}
+          </p>
+        </div>
+        <div class="sessions-detail-item">
+          <label class="sessions-detail-label">创建时间</label>
+          <p class="sessions-detail-value">
+            {{ formatDate(selectedSession.created_at) }}
+          </p>
         </div>
       </div>
-    </div>
+    </BaseModal>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import BaseModal from '@/components/common/BaseModal.vue'
 import { logger } from '@/utils/logger'
 
 interface SessionSummary {
@@ -375,6 +376,12 @@ const showSessionDetail = (session: SessionSummary) => {
   selectedSession.value = session
 }
 
+const handleSessionModalChange = (isOpen: boolean) => {
+  if (!isOpen) {
+    selectedSession.value = null
+  }
+}
+
 const getPlatformIcon = (platform: string): string => {
   const icons: Record<string, string> = {
     Claude: '🔮',
@@ -427,5 +434,200 @@ onMounted(() => {
 <style scoped>
 .sessions-view {
   min-height: calc(100vh - 64px);
+  padding: 1rem;
+}
+
+.sessions-header {
+  align-items: flex-start;
+}
+
+.sessions-toolbar {
+  flex-wrap: wrap;
+}
+
+.sessions-toolbar-select,
+.sessions-toolbar-button {
+  min-height: 44px;
+  border-radius: 0.875rem;
+  transition:
+    background-color var(--motion-subtle-duration) var(--motion-subtle-ease),
+    border-color var(--motion-subtle-duration) var(--motion-subtle-ease),
+    box-shadow var(--motion-subtle-duration) var(--motion-subtle-ease),
+    transform var(--motion-subtle-duration) var(--motion-subtle-ease),
+    color var(--motion-subtle-duration) var(--motion-subtle-ease);
+}
+
+.sessions-toolbar-select {
+  min-width: 11rem;
+  padding: 0.625rem 1rem;
+  color: var(--color-text-primary);
+  background: var(--surface-status-bg);
+  border: 1px solid var(--surface-status-border);
+  backdrop-filter: var(--surface-status-blur);
+  box-shadow: var(--elevation-1);
+}
+
+.sessions-toolbar-select:hover,
+.sessions-toolbar-select:focus {
+  border-color: rgb(var(--color-accent-primary-rgb) / 30%);
+  box-shadow: var(--elevation-2);
+  outline: none;
+}
+
+.sessions-toolbar-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1rem;
+  border: 1px solid transparent;
+  font-weight: 600;
+}
+
+.sessions-toolbar-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.sessions-toolbar-button--primary {
+  color: var(--color-text-inverted);
+  background: linear-gradient(135deg, rgb(var(--color-accent-primary-rgb) / 96%), rgb(var(--color-accent-secondary-rgb) / 84%));
+  box-shadow: var(--elevation-2);
+}
+
+.sessions-toolbar-button--primary:hover:not(:disabled),
+.sessions-toolbar-button--secondary:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.sessions-toolbar-button--secondary {
+  color: var(--color-accent-secondary);
+  background: var(--surface-status-bg);
+  border-color: rgb(var(--color-accent-secondary-rgb) / 24%);
+  backdrop-filter: var(--surface-status-blur);
+  box-shadow: var(--elevation-1);
+}
+
+.sessions-stat-card {
+  border-radius: 1rem;
+  padding: 1.5rem;
+  background: var(--surface-card-bg);
+  border: 1px solid var(--surface-card-border);
+  backdrop-filter: var(--surface-card-blur);
+  box-shadow: var(--elevation-2);
+}
+
+.sessions-stat-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.75rem;
+  border-radius: 9999px;
+  background: rgb(var(--color-bg-surface-rgb) / 70%);
+}
+
+.sessions-stat-icon--primary {
+  background: rgb(var(--color-info-rgb) / 12%);
+}
+
+.sessions-feedback {
+  border-radius: 1rem;
+  padding: 1rem;
+}
+
+.sessions-feedback--error {
+  background: rgb(var(--color-danger-rgb) / 10%);
+  border: 1px solid rgb(var(--color-danger-rgb) / 24%);
+}
+
+.sessions-table-shell {
+  overflow: hidden;
+  border-radius: 1rem;
+  background: var(--surface-workspace-bg);
+  border: 1px solid var(--surface-workspace-border);
+  backdrop-filter: var(--surface-workspace-blur);
+  box-shadow: var(--elevation-2);
+}
+
+.sessions-table-head {
+  background: rgb(var(--color-bg-base-rgb) / 58%);
+}
+
+.sessions-table-head th {
+  padding: 0.75rem 1.5rem;
+  text-align: left;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.sessions-table-body {
+  background: transparent;
+}
+
+.sessions-table-body tr + tr {
+  border-top: 1px solid rgb(var(--color-border-default-rgb) / 35%);
+}
+
+.sessions-table-row {
+  transition: background-color var(--motion-subtle-duration) var(--motion-subtle-ease);
+}
+
+.sessions-table-row:hover {
+  background: rgb(var(--color-bg-surface-rgb) / 48%);
+}
+
+.sessions-detail-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.sessions-detail-item {
+  border-radius: 1rem;
+  padding: 0.875rem 1rem;
+  background: var(--surface-status-bg);
+  border: 1px solid var(--surface-status-border);
+  backdrop-filter: var(--surface-status-blur);
+}
+
+.sessions-detail-item--wide {
+  grid-column: 1 / -1;
+}
+
+.sessions-detail-label {
+  display: block;
+  margin-bottom: 0.375rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.sessions-detail-value {
+  color: var(--color-text-primary);
+}
+
+.sessions-detail-value--mono {
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+}
+
+@media (width >= 640px) {
+  .sessions-view {
+    padding: 1.5rem;
+  }
+}
+
+@media (width <= 768px) {
+  .sessions-detail-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .sessions-header {
+    flex-direction: column;
+  }
 }
 </style>

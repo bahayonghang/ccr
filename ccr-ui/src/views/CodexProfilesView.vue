@@ -29,25 +29,39 @@
             <div class="codex-profiles-header__actions">
               <RouterLink
                 to="/codex"
-                class="btn btn-secondary"
+                class="inline-flex"
               >
-                <SIcon
-                  name="ArrowLeft"
-                  size="w-4 h-4"
-                />
-                <span>{{ $t('codex.profiles.backToCodex') }}</span>
+                <Button
+                  variant="secondary"
+                  surface="status"
+                  density="compact"
+                  motion="subtle"
+                >
+                  <template #leading>
+                    <SIcon
+                      name="ArrowLeft"
+                      size="w-4 h-4"
+                    />
+                  </template>
+                  {{ $t('codex.profiles.backToCodex') }}
+                </Button>
               </RouterLink>
 
-              <button
-                class="btn btn-primary"
+              <Button
+                variant="primary"
+                surface="card"
+                density="compact"
+                motion="standard"
                 @click="handleAdd"
               >
-                <SIcon
-                  name="Plus"
-                  size="w-4 h-4"
-                />
+                <template #leading>
+                  <SIcon
+                    name="Plus"
+                    size="w-4 h-4"
+                  />
+                </template>
                 {{ $t('codex.profiles.addProfile') }}
-              </button>
+              </Button>
             </div>
           </div>
 
@@ -55,7 +69,9 @@
           <div class="codex-profiles-status-grid">
             <!-- Current Config -->
             <Card
-              variant="glass"
+              surface="status"
+              :elevation="2"
+              motion="subtle"
               :gradient-border="true"
               glow-color="warning"
               class="group codex-profiles-status-card"
@@ -80,7 +96,9 @@
 
             <!-- Total Profiles -->
             <Card
-              variant="glass"
+              surface="status"
+              :elevation="2"
+              motion="subtle"
               :interactive="true"
               glow-color="primary"
               class="group codex-profiles-status-card"
@@ -105,7 +123,9 @@
 
             <!-- Config Mode -->
             <Card
-              variant="glass"
+              surface="status"
+              :elevation="2"
+              motion="subtle"
               :interactive="true"
               :glow-color="currentConfigMode === 'official' ? 'success' : 'secondary'"
               class="group codex-profiles-status-card"
@@ -135,7 +155,9 @@
           <!-- Quick Switch -->
           <Card
             v-if="profiles.length > 0"
-            variant="glass"
+            surface="workspace"
+            :elevation="2"
+            motion="subtle"
             padding="lg"
           >
             <div class="flex items-center gap-2 mb-4">
@@ -231,7 +253,9 @@
             <Card 
               v-for="profile in profiles" 
               :key="profile.name"
-              variant="glass"
+              surface="card"
+              :elevation="2"
+              motion="subtle"
               class="group codex-profiles-card"
               :class="[currentProfile && profile.name === currentProfile ? 'config-card-active' : '']"
               :glow-color="currentProfile && profile.name === currentProfile ? 'warning' : 'primary'"
@@ -481,6 +505,7 @@
 import CodexProfileEditorModal from '@/components/codex/CodexProfileEditorModal.vue'
 import ConfirmModal from '@/components/ConfirmModal.vue'
 import ModuleSubnav from '@/components/ModuleSubnav.vue'
+import Button from '@/components/ui/Button.vue'
 import Card from '@/components/ui/Card.vue'
 import SIcon from '@/components/ui/SIcon.vue'
 import { computed, onActivated, onMounted, reactive, ref } from 'vue'

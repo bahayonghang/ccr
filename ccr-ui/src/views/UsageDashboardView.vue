@@ -52,7 +52,9 @@
             </select>
             <Button
               variant="primary"
-              size="sm"
+              density="compact"
+              surface="card"
+              motion="standard"
               :disabled="store.importing"
               @click="doImport"
             >
@@ -271,6 +273,28 @@ const runtimeCopy = computed(() => getRuntimeUnavailableCopy('usage'))
   @apply flex flex-wrap items-center gap-2;
 }
 
+.toolbar-select {
+  @apply min-h-[44px] rounded-xl border px-3 py-2 text-sm text-text-primary outline-none;
+
+  border-color: var(--surface-status-border);
+  background: var(--surface-status-bg);
+  backdrop-filter: var(--surface-status-blur);
+  box-shadow: var(--elevation-1);
+  transition:
+    border-color var(--motion-subtle-duration) var(--motion-subtle-ease),
+    background-color var(--motion-subtle-duration) var(--motion-subtle-ease),
+    box-shadow var(--motion-subtle-duration) var(--motion-subtle-ease);
+}
+
+.toolbar-select:hover {
+  border-color: rgb(var(--color-accent-primary-rgb) / 28%);
+}
+
+.toolbar-select:focus {
+  border-color: rgb(var(--color-accent-primary-rgb) / 40%);
+  box-shadow: var(--elevation-2);
+}
+
 .usage-summary-grid {
   @apply grid gap-3 md:grid-cols-2 xl:grid-cols-4;
 }
@@ -278,8 +302,10 @@ const runtimeCopy = computed(() => getRuntimeUnavailableCopy('usage'))
 .usage-summary-card {
   @apply rounded-2xl border border-border-default/55 px-4 py-3;
 
-  background-color: rgb(var(--color-bg-elevated-rgb) / 72%);
-  backdrop-filter: blur(14px);
+  background: var(--surface-status-bg);
+  border-color: var(--surface-status-border);
+  backdrop-filter: var(--surface-status-blur);
+  box-shadow: var(--elevation-1);
 }
 
 .usage-summary-card__label {
@@ -295,18 +321,27 @@ const runtimeCopy = computed(() => getRuntimeUnavailableCopy('usage'))
 .usage-tabs {
   @apply flex flex-wrap gap-2 rounded-2xl border border-border-default/55 p-2;
 
-  background-color: rgb(var(--color-bg-elevated-rgb) / 68%);
-  backdrop-filter: blur(16px);
+  background: var(--surface-workspace-bg);
+  border-color: var(--surface-workspace-border);
+  backdrop-filter: var(--surface-workspace-blur);
+  box-shadow: var(--elevation-2);
 }
 
 .usage-tab {
-  @apply rounded-xl border border-transparent px-4 py-2 text-sm font-medium text-text-secondary transition-colors duration-200;
+  @apply rounded-xl border border-transparent px-4 py-2 text-sm font-medium text-text-secondary;
+
+  transition:
+    color var(--motion-subtle-duration) var(--motion-subtle-ease),
+    background-color var(--motion-subtle-duration) var(--motion-subtle-ease),
+    border-color var(--motion-subtle-duration) var(--motion-subtle-ease),
+    transform var(--motion-subtle-duration) var(--motion-subtle-ease);
 }
 
 .usage-tab:hover {
   @apply text-text-primary;
 
-  background-color: rgb(var(--color-bg-surface-rgb) / 68%);
+  background: var(--surface-status-bg);
+  transform: translateY(-1px);
 }
 
 .usage-tab--active {

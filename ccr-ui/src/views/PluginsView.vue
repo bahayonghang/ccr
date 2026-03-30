@@ -6,7 +6,7 @@
 
         <main class="min-w-0">
           <!-- Header -->
-          <div class="glass-effect rounded-2xl p-6 mb-6 border border-white/20 flex flex-col md:flex-row items-center justify-between gap-4 sticky top-6 z-20 backdrop-blur-md shadow-sm">
+          <div class="plugins-header-shell mb-6 flex flex-col items-center justify-between gap-4 rounded-2xl p-6 md:flex-row">
             <div class="flex items-center gap-4">
               <div class="p-3 rounded-xl bg-accent-secondary/10 text-accent-secondary">
                 <SIcon
@@ -33,8 +33,11 @@
             </div>
             
             <div class="flex items-center gap-3">
-              <button
-                class="px-5 py-2.5 rounded-xl font-bold text-sm text-white flex items-center gap-2 transition-[color,background-color,border-color,transform] hover:scale-105 bg-accent-secondary shadow-lg shadow-accent-secondary/20 hover:shadow-accent-secondary/30"
+              <Button
+                variant="primary"
+                density="compact"
+                surface="card"
+                motion="standard"
                 @click="handleAdd"
               >
                 <SIcon
@@ -42,7 +45,7 @@
                   size="w-5 h-5"
                 />
                 {{ $t('plugins.addPlugin') }}
-              </button>
+              </Button>
             </div>
           </div>
 
@@ -56,7 +59,7 @@
 
           <div
             v-else-if="!plugins || plugins.length === 0"
-            class="text-center py-16 glass-effect rounded-3xl border border-white/20 border-dashed"
+            class="plugins-empty-state py-16 text-center"
           >
             <div class="bg-bg-elevated w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
               <SIcon
@@ -77,7 +80,7 @@
             <div
               v-for="plugin in plugins"
               :key="plugin.id"
-              class="group glass-effect rounded-2xl p-5 border border-white/20 transition-interactive duration-300 hover:shadow-md hover:border-accent-secondary/30 flex flex-col"
+              class="plugin-card group flex flex-col rounded-2xl p-5"
             >
               <div class="flex items-start justify-between mb-3">
                 <div class="flex-1 min-w-0">
@@ -152,26 +155,20 @@
           </div>
 
           <!-- Add/Edit Form Modal -->
-          <div
-            v-if="showAddForm"
-            class="fixed inset-0 bg-black/20 backdrop-blur-md flex items-center justify-center p-4 z-50 transition-colors"
-            @click="showAddForm = false"
+          <BaseModal
+            :model-value="showAddForm"
+            :title="editingPlugin ? $t('plugins.editPlugin') : $t('plugins.addPlugin')"
+            :description="$t('plugins.subtitle')"
+            size="xl"
+            surface="solid"
+            content-class="plugins-editor-modal"
+            @update:model-value="showAddForm = $event"
           >
-            <div
-              class="glass-effect rounded-3xl p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-white/30 relative"
-              @click.stop
-            >
-              <button 
-                class="absolute top-4 right-4 p-2 rounded-full hover:bg-bg-surface text-text-muted transition-colors"
-                @click="showAddForm = false"
+            <template #header="{ titleId }">
+              <h2
+                :id="titleId"
+                class="mb-0 flex items-center gap-3 text-2xl font-bold text-text-primary"
               >
-                <SIcon
-                  name="X"
-                  size="w-5 h-5"
-                />
-              </button>
-
-              <h2 class="text-2xl font-bold mb-6 text-text-primary flex items-center gap-3">
                 <div class="w-10 h-10 rounded-xl bg-accent-secondary/10 flex items-center justify-center text-accent-secondary">
                   <SIcon
                     :name="editingPlugin ? 'Edit2' : 'Plus'"
@@ -180,91 +177,99 @@
                 </div>
                 {{ editingPlugin ? $t('plugins.editPlugin') : $t('plugins.addPlugin') }}
               </h2>
+            </template>
 
-              <div class="space-y-5">
-                <div>
-                  <label class="block text-xs font-bold text-text-secondary uppercase tracking-wider mb-2">
-                    {{ $t('plugins.form.id') }} <span class="text-accent-danger">*</span>
-                  </label>
-                  <input
-                    v-model="formData.id"
-                    type="text"
-                    class="w-full px-4 py-3 rounded-xl bg-white/50 border border-border-default focus:border-accent-secondary focus:ring-4 focus:ring-accent-secondary/10 outline-none transition-colors"
-                    :placeholder="$t('plugins.form.idPlaceholder')"
-                  >
-                </div>
+            <div class="space-y-5">
+              <div>
+                <label class="block text-xs font-bold text-text-secondary uppercase tracking-wider mb-2">
+                  {{ $t('plugins.form.id') }} <span class="text-accent-danger">*</span>
+                </label>
+                <input
+                  v-model="formData.id"
+                  type="text"
+                  class="w-full px-4 py-3 rounded-xl bg-white/50 border border-border-default focus:border-accent-secondary focus:ring-4 focus:ring-accent-secondary/10 outline-none transition-colors"
+                  :placeholder="$t('plugins.form.idPlaceholder')"
+                >
+              </div>
 
-                <div>
-                  <label class="block text-xs font-bold text-text-secondary uppercase tracking-wider mb-2">
-                    {{ $t('plugins.form.name') }} <span class="text-accent-danger">*</span>
-                  </label>
-                  <input
-                    v-model="formData.name"
-                    type="text"
-                    class="w-full px-4 py-3 rounded-xl bg-white/50 border border-border-default focus:border-accent-secondary focus:ring-4 focus:ring-accent-secondary/10 outline-none transition-colors"
-                    :placeholder="$t('plugins.form.namePlaceholder')"
-                  >
-                </div>
+              <div>
+                <label class="block text-xs font-bold text-text-secondary uppercase tracking-wider mb-2">
+                  {{ $t('plugins.form.name') }} <span class="text-accent-danger">*</span>
+                </label>
+                <input
+                  v-model="formData.name"
+                  type="text"
+                  class="w-full px-4 py-3 rounded-xl bg-white/50 border border-border-default focus:border-accent-secondary focus:ring-4 focus:ring-accent-secondary/10 outline-none transition-colors"
+                  :placeholder="$t('plugins.form.namePlaceholder')"
+                >
+              </div>
 
-                <div>
-                  <label class="block text-xs font-bold text-text-secondary uppercase tracking-wider mb-2">
-                    {{ $t('plugins.form.version') }} <span class="text-accent-danger">*</span>
-                  </label>
-                  <input
-                    v-model="formData.version"
-                    type="text"
-                    class="w-full px-4 py-3 rounded-xl bg-white/50 border border-border-default focus:border-accent-secondary focus:ring-4 focus:ring-accent-secondary/10 outline-none transition-colors"
-                    :placeholder="$t('plugins.form.versionPlaceholder')"
-                  >
-                </div>
+              <div>
+                <label class="block text-xs font-bold text-text-secondary uppercase tracking-wider mb-2">
+                  {{ $t('plugins.form.version') }} <span class="text-accent-danger">*</span>
+                </label>
+                <input
+                  v-model="formData.version"
+                  type="text"
+                  class="w-full px-4 py-3 rounded-xl bg-white/50 border border-border-default focus:border-accent-secondary focus:ring-4 focus:ring-accent-secondary/10 outline-none transition-colors"
+                  :placeholder="$t('plugins.form.versionPlaceholder')"
+                >
+              </div>
 
-                <div>
-                  <label class="block text-xs font-bold text-text-secondary uppercase tracking-wider mb-2">
-                    {{ $t('plugins.form.config') }}
-                  </label>
-                  <textarea
-                    v-model="configJson"
-                    rows="8"
-                    class="w-full px-4 py-3 rounded-xl font-mono text-sm bg-white/50 border border-border-default focus:border-accent-secondary focus:ring-4 focus:ring-accent-secondary/10 outline-none transition-colors"
-                    :placeholder="$t('plugins.form.configPlaceholder')"
-                  />
-                  <div class="text-xs mt-1.5 text-text-muted">
-                    {{ $t('plugins.form.configHint') }}
-                  </div>
-                </div>
-
-                <div class="flex items-center gap-3 p-4 rounded-xl bg-bg-surface/50 border border-border-default/50">
-                  <input
-                    id="enabled"
-                    v-model="formData.enabled"
-                    type="checkbox"
-                    class="w-5 h-5 rounded text-accent-secondary focus:ring-accent-secondary/20 border-border-default"
-                  >
-                  <label
-                    for="enabled"
-                    class="text-sm font-medium text-text-secondary cursor-pointer"
-                  >
-                    {{ $t('plugins.form.enablePlugin') }}
-                  </label>
+              <div>
+                <label class="block text-xs font-bold text-text-secondary uppercase tracking-wider mb-2">
+                  {{ $t('plugins.form.config') }}
+                </label>
+                <textarea
+                  v-model="configJson"
+                  rows="8"
+                  class="w-full px-4 py-3 rounded-xl font-mono text-sm bg-white/50 border border-border-default focus:border-accent-secondary focus:ring-4 focus:ring-accent-secondary/10 outline-none transition-colors"
+                  :placeholder="$t('plugins.form.configPlaceholder')"
+                />
+                <div class="text-xs mt-1.5 text-text-muted">
+                  {{ $t('plugins.form.configHint') }}
                 </div>
               </div>
 
-              <div class="flex gap-4 mt-8 pt-6 border-t border-border-default/50">
-                <button
-                  class="flex-1 px-6 py-3.5 rounded-xl font-bold transition-colors bg-white text-text-secondary hover:bg-bg-surface border border-border-default"
+              <div class="flex items-center gap-3 p-4 rounded-xl bg-bg-surface/50 border border-border-default/50">
+                <input
+                  id="enabled"
+                  v-model="formData.enabled"
+                  type="checkbox"
+                  class="w-5 h-5 rounded text-accent-secondary focus:ring-accent-secondary/20 border-border-default"
+                >
+                <label
+                  for="enabled"
+                  class="text-sm font-medium text-text-secondary cursor-pointer"
+                >
+                  {{ $t('plugins.form.enablePlugin') }}
+                </label>
+              </div>
+            </div>
+
+            <template #footer>
+              <div class="flex w-full gap-4">
+                <Button
+                  variant="secondary"
+                  surface="status"
+                  motion="subtle"
+                  class="flex-1"
                   @click="showAddForm = false"
                 >
                   {{ $t('plugins.form.cancel') }}
-                </button>
-                <button
-                  class="flex-1 px-6 py-3.5 rounded-xl font-bold transition-[color,background-color,border-color,transform] bg-accent-secondary text-white shadow-lg shadow-accent-secondary/20 hover:shadow-xl hover:shadow-accent-secondary/30 hover:-translate-y-0.5"
+                </Button>
+                <Button
+                  variant="primary"
+                  surface="card"
+                  motion="standard"
+                  class="flex-1"
                   @click="handleSubmit"
                 >
                   {{ editingPlugin ? $t('plugins.form.update') : $t('plugins.form.add') }}
-                </button>
+                </Button>
               </div>
-            </div>
-          </div>
+            </template>
+          </BaseModal>
 
           <ConfirmModal
             v-model:is-open="showDeleteModal"
@@ -289,6 +294,8 @@ import { listPlugins, addPlugin, updatePlugin, deletePlugin, togglePlugin } from
 import type { Plugin as PluginType, PluginRequest } from '@/types'
 import ModuleSubnav from '@/components/ModuleSubnav.vue'
 import { logger } from '@/utils/logger'
+import BaseModal from '@/components/common/BaseModal.vue'
+import Button from '@/components/ui/Button.vue'
 import ConfirmModal from '@/components/ConfirmModal.vue'
 import { useUIStore } from '@/stores/ui'
 
@@ -397,3 +404,40 @@ const handleToggle = async (id: string) => {
   }
 }
 </script>
+
+<style scoped>
+.plugins-header-shell {
+  position: sticky;
+  top: 1.5rem;
+  z-index: var(--layer-sticky);
+  background: var(--surface-workspace-bg);
+  border: 1px solid var(--surface-workspace-border);
+  backdrop-filter: var(--surface-workspace-blur);
+  box-shadow: var(--elevation-2);
+}
+
+.plugins-empty-state {
+  border-radius: 1.5rem;
+  border: 1px dashed rgb(var(--color-border-default-rgb) / 45%);
+  background: var(--surface-workspace-bg);
+  backdrop-filter: var(--surface-workspace-blur);
+  box-shadow: var(--elevation-1);
+}
+
+.plugin-card {
+  background: var(--surface-card-bg);
+  border: 1px solid var(--surface-card-border);
+  backdrop-filter: var(--surface-card-blur);
+  box-shadow: var(--elevation-1);
+  transition:
+    transform var(--motion-subtle-duration) var(--motion-subtle-ease),
+    box-shadow var(--motion-subtle-duration) var(--motion-subtle-ease),
+    border-color var(--motion-subtle-duration) var(--motion-subtle-ease);
+}
+
+.plugin-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--elevation-2);
+  border-color: rgb(var(--color-accent-secondary-rgb) / 28%);
+}
+</style>

@@ -32,7 +32,9 @@
       <div class="commands-layout">
         <aside class="commands-sidebar">
           <Card
-            variant="glass"
+            surface="workspace"
+            :elevation="2"
+            motion="subtle"
             class="commands-panel"
           >
             <div class="commands-panel__header">
@@ -71,7 +73,9 @@
           </Card>
 
           <Card
-            variant="glass"
+            surface="workspace"
+            :elevation="2"
+            motion="subtle"
             class="commands-panel commands-panel--fill"
           >
             <div class="commands-panel__header">
@@ -105,7 +109,9 @@
 
         <main class="commands-main">
           <Card
-            variant="elevated"
+            surface="card"
+            :elevation="3"
+            motion="standard"
             class="commands-panel"
           >
             <div class="commands-panel__header commands-panel__header--wide">
@@ -119,7 +125,9 @@
               </div>
               <Button
                 variant="primary"
-                size="sm"
+                density="compact"
+                surface="card"
+                motion="standard"
                 :disabled="loading || runtimeUnavailable || !selectedCommand"
                 @click="handleExecute"
               >
@@ -188,7 +196,9 @@
           </Card>
 
           <Card
-            variant="glass"
+            surface="workspace"
+            :elevation="2"
+            motion="subtle"
             class="commands-panel commands-panel--fill"
           >
             <div class="commands-panel__header commands-panel__header--wide">
@@ -204,7 +214,9 @@
               <div class="commands-panel__actions">
                 <Button
                   variant="ghost"
-                  size="sm"
+                  density="compact"
+                  surface="status"
+                  motion="subtle"
                   :disabled="!output"
                   @click="handleCopyOutput"
                 >
@@ -212,7 +224,9 @@
                 </Button>
                 <Button
                   variant="ghost"
-                  size="sm"
+                  density="compact"
+                  surface="status"
+                  motion="subtle"
                   :disabled="!output"
                   @click="handleClearOutput"
                 >

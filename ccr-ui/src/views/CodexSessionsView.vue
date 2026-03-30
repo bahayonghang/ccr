@@ -35,23 +35,35 @@
               <span>返回 Codex</span>
             </RouterLink>
             <button
-              class="btn btn-primary"
+              class="hidden"
+              :disabled="loading"
+              @click="refreshSessions()"
+            />
+            <Button
+              variant="primary"
+              surface="card"
+              density="compact"
+              motion="standard"
               :disabled="loading"
               @click="refreshSessions()"
             >
-              <SIcon
-                name="RefreshCw"
-                size="w-4 h-4"
-                :class="{ 'animate-spin': loading }"
-              />
-              <span>刷新列表</span>
-            </button>
+              <template #leading>
+                <SIcon
+                  name="RefreshCw"
+                  size="w-4 h-4"
+                  :class="{ 'animate-spin': loading }"
+                />
+              </template>
+              刷新列表
+            </Button>
           </div>
         </div>
 
         <div class="codex-sessions-stats">
           <Card
-            variant="glass"
+            surface="status"
+            :elevation="2"
+            motion="subtle"
             class="codex-sessions-stat"
           >
             <p class="codex-sessions-stat__label">
@@ -65,7 +77,9 @@
             </p>
           </Card>
           <Card
-            variant="glass"
+            surface="status"
+            :elevation="2"
+            motion="subtle"
             class="codex-sessions-stat"
           >
             <p class="codex-sessions-stat__label">
@@ -79,7 +93,9 @@
             </p>
           </Card>
           <Card
-            variant="glass"
+            surface="status"
+            :elevation="2"
+            motion="subtle"
             class="codex-sessions-stat"
           >
             <p class="codex-sessions-stat__label">
@@ -107,7 +123,9 @@
 
         <div class="codex-sessions-workspace">
           <Card
-            variant="glass"
+            surface="workspace"
+            :elevation="2"
+            motion="subtle"
             class="codex-sessions-panel codex-sessions-panel--list"
           >
             <div class="codex-sessions-panel__header">
@@ -121,17 +139,23 @@
               </div>
 
               <div class="codex-sessions-search">
-                <SIcon
-                  name="Search"
-                  size="w-4 h-4"
-                  class="codex-sessions-search__icon"
-                />
-                <input
+                <Input
                   v-model="searchQuery"
                   type="text"
+                  surface="status"
+                  :elevation="1"
+                  motion="subtle"
+                  density="compact"
+                  :full-width="true"
                   placeholder="搜索 session id / cwd / model"
-                  class="codex-sessions-search__input"
                 >
+                  <template #leading>
+                    <SIcon
+                      name="Search"
+                      size="w-4 h-4"
+                    />
+                  </template>
+                </Input>
               </div>
             </div>
 
@@ -199,7 +223,9 @@
           </Card>
 
           <Card
-            variant="glass"
+            surface="workspace"
+            :elevation="2"
+            motion="subtle"
             class="codex-sessions-panel codex-sessions-panel--detail"
           >
             <div class="codex-sessions-panel__header">
@@ -213,50 +239,70 @@
               </div>
 
               <div class="codex-detail-actions">
-                <button
-                  class="codex-detail-action"
+                <Button
+                  variant="glass"
+                  surface="status"
+                  density="compact"
+                  motion="subtle"
                   :disabled="!selectedSession || actionLoading"
                   @click="copyFilePath"
                 >
-                  <SIcon
-                    name="Copy"
-                    size="w-4 h-4"
-                  />
-                  <span>复制路径</span>
-                </button>
-                <button
-                  class="codex-detail-action"
+                  <template #leading>
+                    <SIcon
+                      name="Copy"
+                      size="w-4 h-4"
+                    />
+                  </template>
+                  复制路径
+                </Button>
+                <Button
+                  variant="glass"
+                  surface="status"
+                  density="compact"
+                  motion="subtle"
                   :disabled="!selectedSession || actionLoading"
                   @click="handleExport"
                 >
-                  <SIcon
-                    name="Download"
-                    size="w-4 h-4"
-                  />
-                  <span>导出</span>
-                </button>
-                <button
-                  class="codex-detail-action"
+                  <template #leading>
+                    <SIcon
+                      name="Download"
+                      size="w-4 h-4"
+                    />
+                  </template>
+                  导出
+                </Button>
+                <Button
+                  variant="glass"
+                  surface="status"
+                  density="compact"
+                  motion="subtle"
                   :disabled="!selectedSession || actionLoading"
                   @click="handleClone"
                 >
-                  <SIcon
-                    name="CopyPlus"
-                    size="w-4 h-4"
-                  />
-                  <span>克隆</span>
-                </button>
-                <button
-                  class="codex-detail-action codex-detail-action--danger"
+                  <template #leading>
+                    <SIcon
+                      name="CopyPlus"
+                      size="w-4 h-4"
+                    />
+                  </template>
+                  克隆
+                </Button>
+                <Button
+                  variant="danger"
+                  surface="status"
+                  density="compact"
+                  motion="subtle"
                   :disabled="!selectedSession || actionLoading"
                   @click="handleDelete"
                 >
-                  <SIcon
-                    name="Trash2"
-                    size="w-4 h-4"
-                  />
-                  <span>删除</span>
-                </button>
+                  <template #leading>
+                    <SIcon
+                      name="Trash2"
+                      size="w-4 h-4"
+                    />
+                  </template>
+                  删除
+                </Button>
               </div>
             </div>
 
@@ -368,8 +414,10 @@
 
 <script setup lang="ts">
 import { computed, onActivated, onMounted, ref } from 'vue'
+import Button from '@/components/ui/Button.vue'
 import Card from '@/components/ui/Card.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
+import Input from '@/components/ui/Input.vue'
 import ModuleSubnav from '@/components/ModuleSubnav.vue'
 import SIcon from '@/components/ui/SIcon.vue'
 import {
@@ -713,18 +761,6 @@ onActivated(() => {
   @apply text-sm text-white/55;
 }
 
-.codex-sessions-search {
-  @apply relative;
-}
-
-.codex-sessions-search__icon {
-  @apply pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-white/35;
-}
-
-.codex-sessions-search__input {
-  @apply w-full rounded-2xl border border-white/10 bg-white/5 py-2.5 pl-10 pr-4 text-sm text-white outline-none transition-all duration-200 placeholder:text-white/35 focus:border-platform-codex/40 focus:bg-white/10;
-}
-
 .codex-sessions-loading {
   @apply flex h-full min-h-[320px] flex-col items-center justify-center gap-3 text-sm text-white/60;
 }
@@ -773,14 +809,6 @@ onActivated(() => {
 
 .codex-detail-actions {
   @apply flex flex-wrap gap-2;
-}
-
-.codex-detail-action {
-  @apply inline-flex min-h-[40px] items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white/75 transition-all duration-200 hover:border-platform-codex/25 hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-50;
-}
-
-.codex-detail-action--danger {
-  @apply hover:border-rose-500/25 hover:bg-rose-500/10 hover:text-rose-200;
 }
 
 .codex-detail {

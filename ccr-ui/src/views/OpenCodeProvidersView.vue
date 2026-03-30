@@ -11,12 +11,21 @@
         <div class="flex items-center gap-3">
           <RouterLink
             to="/opencode"
-            class="p-2 rounded-lg text-white/50 hover:text-white transition-colors"
+            class="inline-flex"
           >
-            <SIcon
-              name="ChevronLeft"
-              size="w-5 h-5"
-            />
+            <Button
+              variant="ghost"
+              surface="status"
+              density="compact"
+              motion="subtle"
+            >
+              <template #leading>
+                <SIcon
+                  name="ChevronLeft"
+                  size="w-5 h-5"
+                />
+              </template>
+            </Button>
           </RouterLink>
           <div>
             <h1 class="text-2xl font-bold text-white">
@@ -27,17 +36,21 @@
             </p>
           </div>
         </div>
-        <button
-          class="flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-transform hover:scale-105"
-          style="background: var(--accent-primary); color: white;"
+        <Button
+          variant="primary"
+          surface="card"
+          density="compact"
+          motion="standard"
           @click="showAddDialog = true"
         >
-          <SIcon
-            name="Plus"
-            size="w-4 h-4"
-          />
+          <template #leading>
+            <SIcon
+              name="Plus"
+              size="w-4 h-4"
+            />
+          </template>
           添加 Provider
-        </button>
+        </Button>
       </div>
 
       <!-- 加载状态 -->
@@ -51,7 +64,9 @@
       <!-- 错误状态 -->
       <Card
         v-else-if="error"
-        variant="elevated"
+        surface="card"
+        :elevation="2"
+        motion="subtle"
         class="p-6 text-center"
       >
         <p class="text-red-400 mb-3">
@@ -68,7 +83,9 @@
       <!-- 空状态 -->
       <Card
         v-else-if="providers.length === 0"
-        variant="glass"
+        surface="workspace"
+        :elevation="2"
+        motion="subtle"
         class="p-10 text-center"
       >
         <SIcon
@@ -82,13 +99,15 @@
         <p class="text-white/50 text-sm mb-4">
           添加 npm AI SDK Provider 来开始使用 OpenCode
         </p>
-        <button
-          class="px-4 py-2 rounded-lg font-medium text-sm transition-transform hover:scale-105"
-          style="background: var(--accent-primary); color: white;"
+        <Button
+          variant="primary"
+          surface="card"
+          density="compact"
+          motion="standard"
           @click="showAddDialog = true"
         >
           添加第一个 Provider
-        </button>
+        </Button>
       </Card>
 
       <!-- Provider 列表 -->
@@ -99,7 +118,9 @@
         <Card
           v-for="provider in providers"
           :key="provider.id"
-          variant="elevated"
+          surface="card"
+          :elevation="2"
+          motion="subtle"
           class="p-4 animate-slide-up"
         >
           <div class="flex items-start justify-between gap-4">
@@ -185,29 +206,34 @@
     </div>
 
     <!-- 添加/编辑 Provider 弹窗 -->
-    <div
-      v-if="showAddDialog || editingProvider"
-      class="fixed inset-0 flex items-center justify-center z-50 p-4"
-      style="background: rgb(0 0 0 / 50%); backdrop-filter: blur(4px);"
-      @click.self="closeDialog"
+    <BaseModal
+      :model-value="showAddDialog || Boolean(editingProvider)"
+      :title="editingProvider ? '编辑 Provider' : '添加 Provider'"
+      description="创建或编辑 OpenCode npm AI SDK Provider 配置。"
+      size="lg"
+      surface="solid"
+      content-class="max-w-lg"
+      @update:model-value="(value) => !value && closeDialog()"
     >
-      <Card
-        variant="glass"
-        class="w-full max-w-lg p-6 space-y-4 max-h-[90vh] overflow-y-auto"
-      >
+      <div class="space-y-4 max-h-[90vh] overflow-y-auto">
         <div class="flex items-center justify-between">
-          <h2 class="text-lg font-bold text-white">
+          <h2 class="text-lg font-bold text-text-primary">
             {{ editingProvider ? '编辑 Provider' : '添加 Provider' }}
           </h2>
-          <button
-            class="p-1 rounded text-white/50 hover:text-white transition-colors"
+          <Button
+            variant="ghost"
+            surface="status"
+            density="compact"
+            motion="subtle"
             @click="closeDialog"
           >
-            <SIcon
-              name="X"
-              size="w-5 h-5"
-            />
-          </button>
+            <template #leading>
+              <SIcon
+                name="X"
+                size="w-5 h-5"
+              />
+            </template>
+          </Button>
         </div>
 
         <!-- Provider ID -->
@@ -218,7 +244,7 @@
             :disabled="!!editingProvider"
             type="text"
             placeholder="例：my-claude"
-            class="w-full px-3 py-2 rounded-lg text-sm glass-surface border border-white/20 text-white placeholder:text-white/50 focus:outline-none focus:border-violet-500 disabled:opacity-50"
+            class="opencode-provider-input w-full px-3 py-2 rounded-lg text-sm"
           >
         </div>
 
@@ -229,10 +255,10 @@
             <button
               v-for="preset in OPENCODE_PROVIDER_PRESETS"
               :key="preset.npm"
-              class="px-3 py-2 rounded-lg text-xs text-left transition-colors border"
+              class="opencode-provider-preset px-3 py-2 rounded-lg text-left text-xs border"
               :class="form.npm === preset.npm
                 ? 'bg-violet-500/20 border-violet-500 text-violet-400'
-                : 'glass-surface border-white/20 text-white/50 hover:border-violet-500/50'"
+                : 'text-text-secondary hover:border-violet-500/50'"
               @click="selectPreset(preset)"
             >
               <div class="font-bold truncate">
@@ -247,7 +273,7 @@
             v-model="form.npm"
             type="text"
             placeholder="或输入自定义 npm 包名"
-            class="w-full px-3 py-2 rounded-lg text-sm glass-surface border border-white/20 text-white placeholder:text-white/50 focus:outline-none focus:border-violet-500"
+            class="opencode-provider-input w-full px-3 py-2 rounded-lg text-sm"
           >
         </div>
 
@@ -258,7 +284,7 @@
             v-model="form.apiKey"
             type="password"
             placeholder="sk-... 或 {env:VAR_NAME}"
-            class="w-full px-3 py-2 rounded-lg text-sm glass-surface border border-white/20 text-white placeholder:text-white/50 focus:outline-none focus:border-violet-500"
+            class="opencode-provider-input w-full px-3 py-2 rounded-lg text-sm"
           >
           <p class="text-xs text-white/50 mt-1">
             支持环境变量格式：{env:MY_API_KEY}
@@ -272,76 +298,91 @@
             v-model="form.baseURL"
             type="text"
             placeholder="https://api.example.com/v1"
-            class="w-full px-3 py-2 rounded-lg text-sm glass-surface border border-white/20 text-white placeholder:text-white/50 focus:outline-none focus:border-violet-500"
+            class="opencode-provider-input w-full px-3 py-2 rounded-lg text-sm"
           >
         </div>
 
         <!-- 操作按钮 -->
         <div class="flex justify-end gap-3 pt-2">
-          <button
-            class="px-4 py-2 rounded-lg text-sm text-white/50 hover:text-white transition-colors"
+          <Button
+            variant="secondary"
+            surface="status"
+            density="compact"
+            motion="subtle"
             @click="closeDialog"
           >
             取消
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="primary"
+            surface="card"
+            density="compact"
+            motion="standard"
             :disabled="!form.id || !form.npm || saving"
-            class="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-transform hover:scale-105 disabled:opacity-50 disabled:hover:scale-100"
-            style="background: var(--accent-primary); color: white;"
             @click="saveProvider"
           >
-            <SIcon
-              v-if="saving"
-              name="Loader2"
-              size="w-4 h-4"
-              class="animate-spin"
-            />
+            <template #leading>
+              <SIcon
+                v-if="saving"
+                name="Loader2"
+                size="w-4 h-4"
+                class="animate-spin"
+              />
+            </template>
             {{ editingProvider ? '更新' : '添加' }}
-          </button>
+          </Button>
         </div>
-      </Card>
-    </div>
+      </div>
+    </BaseModal>
 
     <!-- 删除确认弹窗 -->
-    <div
-      v-if="deletingProvider"
-      class="fixed inset-0 flex items-center justify-center z-50 p-4"
-      style="background: rgb(0 0 0 / 50%); backdrop-filter: blur(4px);"
-      @click.self="deletingProvider = null"
+    <BaseModal
+      :model-value="Boolean(deletingProvider)"
+      title="确认删除"
+      description="删除后该 Provider 会从 OpenCode 配置中移除。"
+      size="sm"
+      surface="solid"
+      content-class="max-w-sm"
+      @update:model-value="(value) => !value && (deletingProvider = null)"
     >
-      <Card
-        variant="glass"
-        class="w-full max-w-sm p-6 space-y-4"
-      >
+      <div class="space-y-4">
         <h2 class="text-lg font-bold text-white">
           确认删除
         </h2>
         <p class="text-white/80 text-sm">
-          确定要删除 Provider <strong>{{ deletingProvider.id }}</strong>（{{ deletingProvider.npm }}）吗？此操作无法撤销。
+          确定要删除 Provider <strong>{{ deletingProvider?.id }}</strong>（{{ deletingProvider?.npm }}）吗？此操作无法撤销。
         </p>
         <div class="flex justify-end gap-3">
-          <button
-            class="px-4 py-2 rounded-lg text-sm text-white/50 hover:text-white"
+          <Button
+            variant="secondary"
+            surface="status"
+            density="compact"
+            motion="subtle"
             @click="deletingProvider = null"
           >
             取消
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="danger"
+            surface="status"
+            density="compact"
+            motion="standard"
             :disabled="saving"
-            class="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-red-500 text-white hover:bg-red-600 transition-colors disabled:opacity-50"
             @click="doDelete"
           >
-            <SIcon
-              v-if="saving"
-              name="Loader2"
-              size="w-4 h-4"
-              class="animate-spin"
-            />
+            <template #leading>
+              <SIcon
+                v-if="saving"
+                name="Loader2"
+                size="w-4 h-4"
+                class="animate-spin"
+              />
+            </template>
             删除
-          </button>
+          </Button>
         </div>
-      </Card>
-    </div>
+      </div>
+    </BaseModal>
   </div>
 </template>
 
@@ -349,6 +390,8 @@
 import SIcon from '@/components/ui/SIcon.vue'
 import { ref, onMounted, reactive } from 'vue'
 import AnimatedBackground from '@/components/common/AnimatedBackground.vue'
+import BaseModal from '@/components/common/BaseModal.vue'
+import Button from '@/components/ui/Button.vue'
 import Card from '@/components/ui/Card.vue'
 import {
   listOpenCodeProviders,
@@ -463,3 +506,28 @@ const doDelete = async () => {
 
 onMounted(loadProviders)
 </script>
+
+<style scoped>
+.opencode-provider-input,
+.opencode-provider-preset {
+  background: var(--surface-status-bg);
+  border-color: var(--surface-status-border);
+  color: var(--color-text-primary);
+  backdrop-filter: var(--surface-status-blur);
+  box-shadow: var(--elevation-1);
+  transition:
+    border-color var(--motion-subtle-duration) var(--motion-subtle-ease),
+    box-shadow var(--motion-subtle-duration) var(--motion-subtle-ease),
+    background-color var(--motion-subtle-duration) var(--motion-subtle-ease);
+}
+
+.opencode-provider-input::placeholder {
+  color: var(--color-text-muted);
+}
+
+.opencode-provider-input:focus {
+  outline: none;
+  border-color: rgb(var(--color-accent-primary-rgb) / 42%);
+  box-shadow: var(--elevation-2);
+}
+</style>

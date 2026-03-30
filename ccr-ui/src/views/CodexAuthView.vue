@@ -28,26 +28,40 @@
             <div class="codex-auth-view__actions">
               <RouterLink
                 to="/codex"
-                class="btn btn-secondary"
+                class="inline-flex"
               >
-                <SIcon
-                  name="ArrowLeft"
-                  size="w-4 h-4"
-                />
-                <span>{{ $t('codex.auth.backToCodex') }}</span>
+                <Button
+                  variant="secondary"
+                  surface="status"
+                  density="compact"
+                  motion="subtle"
+                >
+                  <template #leading>
+                    <SIcon
+                      name="ArrowLeft"
+                      size="w-4 h-4"
+                    />
+                  </template>
+                  {{ $t('codex.auth.backToCodex') }}
+                </Button>
               </RouterLink>
 
-              <button
-                class="btn btn-primary"
+              <Button
+                variant="primary"
+                surface="card"
+                density="compact"
+                motion="standard"
                 :disabled="!canSave"
                 @click="handleSave"
               >
-                <SIcon
-                  name="Save"
-                  size="w-4 h-4"
-                />
+                <template #leading>
+                  <SIcon
+                    name="Save"
+                    size="w-4 h-4"
+                  />
+                </template>
                 {{ $t('codex.auth.saveAccount') }}
-              </button>
+              </Button>
             </div>
           </div>
 
@@ -55,7 +69,9 @@
           <div class="codex-auth-view__status-grid">
             <!-- Login State -->
             <Card
-              variant="glass"
+              surface="status"
+              :elevation="2"
+              motion="subtle"
               :gradient-border="true"
               :glow-color="loginStateColor"
               class="codex-auth-view__status-card"
@@ -83,7 +99,9 @@
 
             <!-- Total Accounts -->
             <Card
-              variant="glass"
+              surface="status"
+              :elevation="2"
+              motion="subtle"
               :interactive="true"
               glow-color="primary"
               class="codex-auth-view__status-card"
@@ -108,7 +126,9 @@
 
             <!-- Current Account -->
             <Card
-              variant="glass"
+              surface="status"
+              :elevation="2"
+              motion="subtle"
               :interactive="true"
               :glow-color="currentAccount ? 'success' : 'secondary'"
               class="codex-auth-view__status-card"
@@ -138,7 +158,9 @@
           <!-- Current Session Info -->
           <Card
             v-if="currentInfo"
-            variant="glass"
+            surface="workspace"
+            :elevation="2"
+            motion="subtle"
             padding="lg"
           >
             <div class="codex-auth-view__section-header">
@@ -223,7 +245,9 @@
           </Card>
 
           <Card
-            variant="glass"
+            surface="workspace"
+            :elevation="2"
+            motion="subtle"
             padding="lg"
             :glow-color="canManageAuthAccounts ? 'success' : 'warning'"
           >
@@ -265,16 +289,25 @@
               {{ $t('codex.auth.accountOverview') }}
             </h2>
             <button
-              class="btn btn-secondary btn-sm"
+              class="hidden"
+              @click="handleRefresh"
+            />
+            <Button
+              variant="secondary"
+              surface="status"
+              density="compact"
+              motion="subtle"
               @click="handleRefresh"
             >
-              <SIcon
-                name="RefreshCw"
-                size="w-4 h-4"
-                :class="{ 'animate-spin': loading }"
-              />
+              <template #leading>
+                <SIcon
+                  name="RefreshCw"
+                  size="w-4 h-4"
+                  :class="{ 'animate-spin': loading }"
+                />
+              </template>
               {{ $t('codex.auth.refresh') }}
-            </button>
+            </Button>
           </div>
 
           <!-- Loading -->
@@ -328,130 +361,149 @@
           </div>
 
           <!-- Save Modal -->
-          <div
-            v-if="showSaveForm"
-            class="fixed inset-0 bg-black/60 backdrop-blur-md flex items-center justify-center p-4 z-50"
+          <BaseModal
+            :model-value="showSaveForm"
+            :title="$t('codex.auth.saveAccount')"
+            :description="$t('codex.auth.subtitle')"
+            size="lg"
+            surface="glass"
+            content-class="w-full max-w-lg max-h-[90vh] overflow-y-auto"
+            @update:model-value="(value) => !value && handleCloseSaveForm()"
           >
-            <Card
-              variant="glass"
-              class="w-full max-w-lg max-h-[90vh] overflow-y-auto !p-0 shadow-2xl animate-in zoom-in-95 duration-200"
-              :padding="'none'"
-            >
+            <template #header="{ titleId }">
               <!-- Modal Header -->
               <div class="px-6 py-4 border-b border-white/5 flex items-center justify-between sticky top-0 bg-white/5/95 backdrop-blur z-10">
-                <h2 class="text-xl font-bold text-white">
+                <h2
+                  :id="titleId"
+                  class="text-xl font-bold text-white"
+                >
                   {{ $t('codex.auth.saveAccount') }}
                 </h2>
-                <button
-                  class="p-1 rounded-lg hover:bg-white/10 text-white/50 transition-colors"
+                <Button
+                  variant="ghost"
+                  surface="status"
+                  density="compact"
+                  motion="subtle"
                   @click="handleCloseSaveForm"
                 >
-                  <SIcon
-                    name="X"
-                    size="w-5 h-5"
-                  />
-                </button>
-              </div>
-
-              <!-- Modal Content -->
-              <div class="p-6 space-y-6">
-                <!-- Process Warning -->
-                <div
-                  v-if="processWarning"
-                  class="p-4 rounded-lg bg-yellow-500/10 border border-yellow-500/30 text-yellow-600 dark:text-yellow-400"
-                >
-                  <div class="flex items-start gap-3">
+                  <template #leading>
                     <SIcon
-                      name="AlertTriangle"
+                      name="X"
                       size="w-5 h-5"
-                      class="flex-shrink-0 mt-0.5"
                     />
-                    <div>
-                      <p class="font-medium">
-                        {{ $t('codex.auth.processWarning') }}
-                      </p>
-                      <p class="text-sm mt-1 opacity-80">
-                        {{ processWarning }}
-                      </p>
-                    </div>
-                  </div>
-                </div>
+                  </template>
+                </Button>
+              </div>
+            </template>
 
-                <div class="space-y-4">
-                  <div class="space-y-1.5">
-                    <label class="text-sm font-semibold text-white/80">
-                      {{ $t('codex.auth.fields.accountName') }} <span class="text-red-500">*</span>
-                    </label>
-                    <input
-                      v-model="saveForm.name"
-                      type="text"
-                      class="input"
-                      :placeholder="$t('codex.auth.placeholders.accountName')"
-                    >
-                  </div>
-                  <div class="space-y-1.5">
-                    <label class="text-sm font-semibold text-white/80">
-                      {{ $t('codex.auth.fields.description') }}
-                    </label>
-                    <input
-                      v-model="saveForm.description"
-                      type="text"
-                      class="input"
-                      :placeholder="$t('codex.auth.placeholders.description')"
-                    >
-                  </div>
-                  <div class="space-y-1.5">
-                    <label class="text-sm font-semibold text-white/80">
-                      {{ $t('codex.auth.fields.expiresAt') }}
-                    </label>
-                    <input
-                      v-model="saveForm.expires_at"
-                      type="datetime-local"
-                      class="input"
-                    >
-                    <p class="text-xs text-white/50 mt-1">
-                      {{ $t('codex.auth.expiresAtHint') }}
+            <!-- Modal Content -->
+            <div class="p-6 space-y-6">
+              <!-- Process Warning -->
+              <div
+                v-if="processWarning"
+                class="p-4 rounded-lg bg-yellow-500/10 border border-yellow-500/30 text-yellow-600 dark:text-yellow-400"
+              >
+                <div class="flex items-start gap-3">
+                  <SIcon
+                    name="AlertTriangle"
+                    size="w-5 h-5"
+                    class="flex-shrink-0 mt-0.5"
+                  />
+                  <div>
+                    <p class="font-medium">
+                      {{ $t('codex.auth.processWarning') }}
+                    </p>
+                    <p class="text-sm mt-1 opacity-80">
+                      {{ processWarning }}
                     </p>
                   </div>
-                  <div class="flex items-center gap-3 p-3 rounded-lg glass-surface border border-white/5">
-                    <input
-                      id="forceOverwrite"
-                      v-model="saveForm.force"
-                      type="checkbox"
-                      class="w-5 h-5 rounded border-white/10 text-accent-primary focus:ring-accent-primary/20"
-                    >
-                    <label
-                      for="forceOverwrite"
-                      class="text-sm font-medium text-white cursor-pointer select-none"
-                    >
-                      {{ $t('codex.auth.forceOverwrite') }}
-                    </label>
-                  </div>
                 </div>
               </div>
 
+              <div class="space-y-4">
+                <div class="space-y-1.5">
+                  <label class="text-sm font-semibold text-white/80">
+                    {{ $t('codex.auth.fields.accountName') }} <span class="text-red-500">*</span>
+                  </label>
+                  <input
+                    v-model="saveForm.name"
+                    type="text"
+                    class="input"
+                    :placeholder="$t('codex.auth.placeholders.accountName')"
+                  >
+                </div>
+                <div class="space-y-1.5">
+                  <label class="text-sm font-semibold text-white/80">
+                    {{ $t('codex.auth.fields.description') }}
+                  </label>
+                  <input
+                    v-model="saveForm.description"
+                    type="text"
+                    class="input"
+                    :placeholder="$t('codex.auth.placeholders.description')"
+                  >
+                </div>
+                <div class="space-y-1.5">
+                  <label class="text-sm font-semibold text-white/80">
+                    {{ $t('codex.auth.fields.expiresAt') }}
+                  </label>
+                  <input
+                    v-model="saveForm.expires_at"
+                    type="datetime-local"
+                    class="input"
+                  >
+                  <p class="text-xs text-white/50 mt-1">
+                    {{ $t('codex.auth.expiresAtHint') }}
+                  </p>
+                </div>
+                <div class="flex items-center gap-3 p-3 rounded-lg glass-surface border border-white/5">
+                  <input
+                    id="forceOverwrite"
+                    v-model="saveForm.force"
+                    type="checkbox"
+                    class="w-5 h-5 rounded border-white/10 text-accent-primary focus:ring-accent-primary/20"
+                  >
+                  <label
+                    for="forceOverwrite"
+                    class="text-sm font-medium text-white cursor-pointer select-none"
+                  >
+                    {{ $t('codex.auth.forceOverwrite') }}
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <template #footer>
               <!-- Footer -->
               <div class="px-6 py-4 border-t border-white/5 flex justify-end gap-3 bg-white/5/50">
-                <button
-                  class="btn btn-secondary"
+                <Button
+                  variant="secondary"
+                  surface="status"
+                  density="compact"
+                  motion="subtle"
                   @click="handleCloseSaveForm"
                 >
                   {{ $t('codex.actions.cancel') }}
-                </button>
-                <button
-                  class="btn btn-primary"
+                </Button>
+                <Button
+                  variant="primary"
+                  surface="card"
+                  density="compact"
+                  motion="standard"
                   :disabled="saving || !saveForm.name.trim()"
                   @click="handleConfirmSave"
                 >
-                  <span
-                    v-if="saving"
-                    class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2"
-                  />
+                  <template #leading>
+                    <span
+                      v-if="saving"
+                      class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"
+                    />
+                  </template>
                   {{ saving ? $t('codex.states.saving') : $t('codex.actions.save') }}
-                </button>
+                </Button>
               </div>
-            </Card>
-          </div>
+            </template>
+          </BaseModal>
 
           <ConfirmModal
             v-model:is-open="showConfirmModal"
@@ -474,6 +526,8 @@ import { computed, onActivated, onMounted, reactive, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import ModuleSubnav from '@/components/ModuleSubnav.vue'
+import BaseModal from '@/components/common/BaseModal.vue'
+import Button from '@/components/ui/Button.vue'
 import Card from '@/components/ui/Card.vue'
 import CodexAccountCard from '@/components/codex/CodexAccountCard.vue'
 import ConfirmModal from '@/components/ConfirmModal.vue'

@@ -1254,7 +1254,7 @@ onUnmounted(() => {
 
   background: var(--surface-workspace-bg);
   border: 1px solid var(--surface-workspace-border);
-  box-shadow: var(--surface-workspace-shadow);
+  box-shadow: var(--elevation-2);
   backdrop-filter: var(--surface-workspace-blur);
 }
 
@@ -1299,9 +1299,17 @@ onUnmounted(() => {
 .console-button,
 .platform-chip,
 .tag-chip {
-  @apply inline-flex items-center gap-2 rounded-xl border border-border-default/55 px-3 py-2 text-sm text-text-secondary transition-all;
+  @apply inline-flex items-center gap-2 rounded-xl border border-border-default/55 px-3 py-2 text-sm text-text-secondary;
 
-  background-color: rgb(var(--color-bg-elevated-rgb) / 72%);
+  background: var(--surface-status-bg);
+  border-color: var(--surface-status-border);
+  box-shadow: var(--elevation-1);
+  transition:
+    color var(--motion-subtle-duration) var(--motion-subtle-ease),
+    background-color var(--motion-subtle-duration) var(--motion-subtle-ease),
+    border-color var(--motion-subtle-duration) var(--motion-subtle-ease),
+    box-shadow var(--motion-subtle-duration) var(--motion-subtle-ease),
+    transform var(--motion-subtle-duration) var(--motion-subtle-ease);
 }
 
 .console-tab--active,
@@ -1312,6 +1320,7 @@ onUnmounted(() => {
 
   background: linear-gradient(180deg, rgb(var(--color-accent-primary-rgb) / 18%), rgb(var(--color-accent-secondary-rgb) / 10%));
   border-color: rgb(var(--color-accent-primary-rgb) / 20%);
+  box-shadow: var(--elevation-2);
 }
 
 .platform-chip--disabled {
@@ -1347,7 +1356,23 @@ onUnmounted(() => {
 .field__input {
   @apply w-full rounded-2xl border border-border-default/55 px-3 py-2 text-sm text-text-primary outline-none placeholder:text-text-muted/70;
 
-  background-color: rgb(var(--color-bg-elevated-rgb) / 72%);
+  background: var(--surface-status-bg);
+  border-color: var(--surface-status-border);
+  box-shadow: var(--elevation-1);
+  backdrop-filter: var(--surface-status-blur);
+  transition:
+    border-color var(--motion-subtle-duration) var(--motion-subtle-ease),
+    box-shadow var(--motion-subtle-duration) var(--motion-subtle-ease),
+    background-color var(--motion-subtle-duration) var(--motion-subtle-ease);
+}
+
+.field__input:hover {
+  border-color: rgb(var(--color-accent-primary-rgb) / 28%);
+}
+
+.field__input:focus {
+  border-color: rgb(var(--color-accent-primary-rgb) / 40%);
+  box-shadow: var(--elevation-2);
 }
 
 .field__row {
@@ -1369,7 +1394,8 @@ onUnmounted(() => {
 .inventory-list {
   @apply h-[68vh] overflow-auto rounded-2xl border border-border-default/55 p-2;
 
-  background-color: rgb(var(--color-bg-base-rgb) / 42%);
+  background: rgb(var(--color-bg-base-rgb) / 42%);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 6%);
 }
 
 .inventory-row {
@@ -1377,9 +1403,22 @@ onUnmounted(() => {
 }
 
 .skill-card {
-  @apply flex w-full flex-col gap-3 rounded-2xl border border-border-default/55 p-4 text-left transition-all;
+  @apply flex w-full flex-col gap-3 rounded-2xl border border-border-default/55 p-4 text-left;
 
-  background-color: rgb(var(--color-bg-elevated-rgb) / 70%);
+  background: var(--surface-card-bg);
+  border-color: var(--surface-card-border);
+  backdrop-filter: var(--surface-card-blur);
+  box-shadow: var(--elevation-1);
+  transition:
+    transform var(--motion-subtle-duration) var(--motion-subtle-ease),
+    border-color var(--motion-subtle-duration) var(--motion-subtle-ease),
+    box-shadow var(--motion-subtle-duration) var(--motion-subtle-ease),
+    background-color var(--motion-subtle-duration) var(--motion-subtle-ease);
+}
+
+.skill-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--elevation-2);
 }
 
 .skill-card--active {
@@ -1449,7 +1488,10 @@ onUnmounted(() => {
 .source-skill-card {
   @apply rounded-2xl border border-border-default/55 p-4;
 
-  background-color: rgb(var(--color-bg-elevated-rgb) / 70%);
+  background: var(--surface-card-bg);
+  border-color: var(--surface-card-border);
+  backdrop-filter: var(--surface-card-blur);
+  box-shadow: var(--elevation-1);
 }
 
 .detail-card__grid {
@@ -1477,7 +1519,9 @@ onUnmounted(() => {
 .installation-row {
   @apply rounded-2xl border border-border-default/45 p-3;
 
-  background-color: rgb(var(--color-bg-base-rgb) / 55%);
+  background: var(--surface-status-bg);
+  border-color: var(--surface-status-border);
+  backdrop-filter: var(--surface-status-blur);
 }
 
 .installation-row__main {
@@ -1515,7 +1559,8 @@ onUnmounted(() => {
 .badge {
   @apply inline-flex items-center rounded-full border border-border-default/45 px-2.5 py-1 text-xs text-text-secondary;
 
-  background-color: rgb(var(--color-bg-base-rgb) / 55%);
+  background: var(--surface-status-bg);
+  border-color: var(--surface-status-border);
 }
 
 .activity-row {

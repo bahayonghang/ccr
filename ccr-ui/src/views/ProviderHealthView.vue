@@ -1,7 +1,7 @@
 <template>
-  <div class="provider-health-view p-6 space-y-6">
+  <div class="provider-health-view space-y-6">
     <!-- 页面标题 -->
-    <div class="flex items-center justify-between">
+    <div class="provider-health-header flex items-center justify-between gap-4">
       <div>
         <h1 class="text-3xl font-bold text-text-primary">
           🏥 Provider 健康检查
@@ -10,11 +10,11 @@
           检测 API 端点连通性和 Key 有效性
         </p>
       </div>
-      <div class="flex items-center space-x-4">
+      <div class="provider-health-toolbar flex items-center gap-3">
         <!-- 测试所有按钮 -->
         <button
           :disabled="testing"
-          class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center space-x-2 disabled:opacity-50"
+          class="provider-health-button provider-health-button--primary"
           @click="testAll"
         >
           <svg
@@ -39,9 +39,9 @@
     <!-- 健康状态摘要 -->
     <div
       v-if="summary"
-      class="grid grid-cols-1 md:grid-cols-4 gap-6"
+      class="grid grid-cols-1 gap-6 md:grid-cols-4"
     >
-      <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+      <div class="provider-health-summary-card">
         <div class="flex items-center justify-between">
           <div>
             <p class="text-sm font-medium text-text-secondary">
@@ -51,7 +51,7 @@
               {{ summary.total }}
             </p>
           </div>
-          <div class="p-3 bg-gray-100 dark:bg-gray-700 rounded-full">
+          <div class="provider-health-summary-icon">
             <svg
               class="w-8 h-8 text-text-secondary"
               fill="none"
@@ -68,7 +68,7 @@
           </div>
         </div>
       </div>
-      <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+      <div class="provider-health-summary-card">
         <div class="flex items-center justify-between">
           <div>
             <p class="text-sm font-medium text-text-secondary">
@@ -78,7 +78,7 @@
               {{ summary.healthy }}
             </p>
           </div>
-          <div class="p-3 bg-green-100 dark:bg-green-900/20 rounded-full">
+          <div class="provider-health-summary-icon provider-health-summary-icon--healthy">
             <svg
               class="w-8 h-8 text-green-600 dark:text-green-400"
               fill="none"
@@ -95,7 +95,7 @@
           </div>
         </div>
       </div>
-      <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+      <div class="provider-health-summary-card">
         <div class="flex items-center justify-between">
           <div>
             <p class="text-sm font-medium text-text-secondary">
@@ -105,7 +105,7 @@
               {{ summary.degraded }}
             </p>
           </div>
-          <div class="p-3 bg-yellow-100 dark:bg-yellow-900/20 rounded-full">
+          <div class="provider-health-summary-icon provider-health-summary-icon--degraded">
             <svg
               class="w-8 h-8 text-yellow-600 dark:text-yellow-400"
               fill="none"
@@ -122,7 +122,7 @@
           </div>
         </div>
       </div>
-      <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+      <div class="provider-health-summary-card">
         <div class="flex items-center justify-between">
           <div>
             <p class="text-sm font-medium text-text-secondary">
@@ -132,7 +132,7 @@
               {{ summary.unhealthy }}
             </p>
           </div>
-          <div class="p-3 bg-red-100 dark:bg-red-900/20 rounded-full">
+          <div class="provider-health-summary-icon provider-health-summary-icon--unhealthy">
             <svg
               class="w-8 h-8 text-red-600 dark:text-red-400"
               fill="none"
@@ -167,10 +167,10 @@
     <!-- 检测结果列表 -->
     <div
       v-if="results.length > 0"
-      class="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden"
+      class="provider-health-table-shell"
     >
-      <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-        <thead class="bg-gray-50 dark:bg-gray-900/50">
+      <table class="min-w-full">
+        <thead class="provider-health-table-head">
           <tr>
             <th class="px-6 py-3 text-left text-xs font-medium text-text-muted uppercase tracking-wider">
               状态
@@ -189,11 +189,11 @@
             </th>
           </tr>
         </thead>
-        <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+        <tbody class="provider-health-table-body">
           <tr
             v-for="result in results"
             :key="result.provider_name"
-            class="hover:bg-gray-50 dark:hover:bg-gray-700/50"
+            class="provider-health-table-row"
           >
             <td class="px-6 py-4 whitespace-nowrap">
               <span
@@ -236,7 +236,7 @@
                 <span
                   v-for="model in result.available_models.slice(0, 3)"
                   :key="model"
-                  class="px-2 py-0.5 text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 rounded"
+                  class="provider-health-model-chip"
                 >
                   {{ shortenModelName(model) }}
                 </span>
@@ -260,7 +260,7 @@
     <!-- 错误详情 -->
     <div
       v-if="errorResults.length > 0"
-      class="bg-red-50 dark:bg-red-900/20 rounded-lg p-6"
+      class="provider-health-errors"
     >
       <h3 class="text-lg font-bold text-red-800 dark:text-red-200 mb-4">
         错误详情
@@ -269,7 +269,7 @@
         <div
           v-for="result in errorResults"
           :key="result.provider_name"
-          class="p-3 bg-white dark:bg-gray-800 rounded border border-red-200 dark:border-red-800"
+          class="provider-health-error-card"
         >
           <p class="font-medium text-text-primary">
             {{ result.provider_name }}
@@ -284,7 +284,7 @@
     <!-- 空状态 -->
     <div
       v-if="!testing && results.length === 0"
-      class="bg-white dark:bg-gray-800 rounded-lg shadow p-12 text-center"
+      class="provider-health-empty"
     >
       <svg
         class="mx-auto h-12 w-12 text-text-muted"
@@ -439,5 +439,154 @@ const shortenModelName = (model: string): string => {
 <style scoped>
 .provider-health-view {
   min-height: calc(100vh - 64px);
+  padding: 1rem;
+}
+
+.provider-health-header {
+  align-items: flex-start;
+}
+
+.provider-health-toolbar {
+  flex-wrap: wrap;
+}
+
+.provider-health-button {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1rem;
+  border-radius: 0.875rem;
+  font-weight: 600;
+  transition:
+    background-color var(--motion-subtle-duration) var(--motion-subtle-ease),
+    border-color var(--motion-subtle-duration) var(--motion-subtle-ease),
+    box-shadow var(--motion-subtle-duration) var(--motion-subtle-ease),
+    transform var(--motion-subtle-duration) var(--motion-subtle-ease);
+}
+
+.provider-health-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.provider-health-button--primary {
+  color: var(--color-text-inverted);
+  background: linear-gradient(135deg, rgb(var(--color-accent-primary-rgb) / 96%), rgb(var(--color-accent-secondary-rgb) / 84%));
+  box-shadow: var(--elevation-2);
+}
+
+.provider-health-button--primary:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.provider-health-summary-card {
+  border-radius: 1rem;
+  padding: 1.5rem;
+  background: var(--surface-card-bg);
+  border: 1px solid var(--surface-card-border);
+  backdrop-filter: var(--surface-card-blur);
+  box-shadow: var(--elevation-2);
+}
+
+.provider-health-summary-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.75rem;
+  border-radius: 9999px;
+  background: rgb(var(--color-bg-surface-rgb) / 72%);
+}
+
+.provider-health-summary-icon--healthy {
+  background: rgb(var(--color-success-rgb) / 12%);
+}
+
+.provider-health-summary-icon--degraded {
+  background: rgb(var(--color-warning-rgb) / 12%);
+}
+
+.provider-health-summary-icon--unhealthy {
+  background: rgb(var(--color-danger-rgb) / 12%);
+}
+
+.provider-health-table-shell {
+  overflow: hidden;
+  border-radius: 1rem;
+  background: var(--surface-workspace-bg);
+  border: 1px solid var(--surface-workspace-border);
+  backdrop-filter: var(--surface-workspace-blur);
+  box-shadow: var(--elevation-2);
+}
+
+.provider-health-table-head {
+  background: rgb(var(--color-bg-base-rgb) / 58%);
+}
+
+.provider-health-table-head th {
+  padding: 0.75rem 1.5rem;
+  text-align: left;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.provider-health-table-body tr + tr {
+  border-top: 1px solid rgb(var(--color-border-default-rgb) / 35%);
+}
+
+.provider-health-table-row {
+  transition: background-color var(--motion-subtle-duration) var(--motion-subtle-ease);
+}
+
+.provider-health-table-row:hover {
+  background: rgb(var(--color-bg-surface-rgb) / 48%);
+}
+
+.provider-health-model-chip {
+  padding: 0.125rem 0.5rem;
+  font-size: 0.75rem;
+  border-radius: 9999px;
+  background: rgb(var(--color-info-rgb) / 12%);
+  color: var(--color-info);
+}
+
+.provider-health-errors {
+  border-radius: 1rem;
+  padding: 1.5rem;
+  background: rgb(var(--color-danger-rgb) / 10%);
+  border: 1px solid rgb(var(--color-danger-rgb) / 24%);
+}
+
+.provider-health-error-card {
+  border-radius: 0.875rem;
+  padding: 0.75rem;
+  background: var(--surface-status-bg);
+  border: 1px solid rgb(var(--color-danger-rgb) / 20%);
+  backdrop-filter: var(--surface-status-blur);
+}
+
+.provider-health-empty {
+  border-radius: 1rem;
+  padding: 3rem;
+  text-align: center;
+  background: var(--surface-card-bg);
+  border: 1px solid var(--surface-card-border);
+  backdrop-filter: var(--surface-card-blur);
+  box-shadow: var(--elevation-2);
+}
+
+@media (width >= 640px) {
+  .provider-health-view {
+    padding: 1.5rem;
+  }
+}
+
+@media (width <= 768px) {
+  .provider-health-header {
+    flex-direction: column;
+  }
 }
 </style>

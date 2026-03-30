@@ -17,7 +17,10 @@
       </div>
 
       <Card
-        variant="glass"
+        surface="workspace"
+        :elevation="2"
+        motion="subtle"
+        density="compact"
         glow
         class="p-6 h-fit min-h-[600px] flex flex-col"
       >
@@ -133,8 +136,10 @@
 
               <div class="flex gap-2">
                 <Button
-                  size="sm"
                   variant="ghost"
+                  density="compact"
+                  surface="status"
+                  motion="subtle"
                   @click="refreshData"
                 >
                   <SIcon

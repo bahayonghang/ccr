@@ -57,7 +57,7 @@
 
       <!-- SEARCH & FILTERS -->
       <section 
-        class="sticky top-4 z-40 /85 backdrop-blur-md border border-white/10 p-2 rounded-2xl shadow-2xl animate-slide-up flex flex-col xl:flex-row gap-2"
+        class="skills-filter-shell sticky top-4 animate-slide-up flex flex-col gap-2 rounded-2xl p-2 xl:flex-row"
         style="animation-delay: 100ms;"
       >
         <div class="relative flex-1 group min-w-[200px]">
@@ -151,7 +151,7 @@
             <!-- Tags Dropdown -->
             <div 
               v-if="showTagsFilter"
-              class="absolute top-full right-0 mt-2 w-64 p-3 bg-white/5/90 backdrop-blur-xl border border-white/10 rounded-xl shadow-xl z-50 grid grid-cols-2 gap-2"
+              class="skills-tag-dropdown absolute top-full right-0 mt-2 grid w-64 grid-cols-2 gap-2 rounded-xl p-3"
             >
               <div class="col-span-2 flex justify-between items-center mb-1 px-1">
                 <span class="text-[10px] font-bold text-white/50 uppercase tracking-wider">Select Tags</span>
@@ -177,7 +177,7 @@
             <!-- Backdrop for tags dropdown -->
             <div 
               v-if="showTagsFilter" 
-              class="fixed inset-0 z-40 bg-transparent" 
+              class="skills-tag-scrim fixed inset-0 bg-transparent"
               @click="showTagsFilter = false"
             />
           </div>
@@ -338,89 +338,77 @@
       </TransitionGroup>
 
 
-      <!-- ADD MODAL -->
-      <Transition
-        enter-active-class="transition duration-200 ease-out"
-        enter-from-class="opacity-0 scale-95"
-        enter-to-class="opacity-100 scale-100"
-        leave-active-class="transition duration-150 ease-in"
-        leave-from-class="opacity-100 scale-100"
-        leave-to-class="opacity-0 scale-95"
+      <BaseModal
+        :model-value="showModal"
+        :title="editingSkill ? $t('skills.editSkill') : $t('skills.addSkill')"
+        :description="$t('skills.help.description')"
+        size="xl"
+        surface="glass"
+        content-class="skills-editor-modal"
+        @update:model-value="showModal = $event"
       >
-        <div
-          v-if="showModal"
-          class="fixed inset-0 z-50 flex items-center justify-center p-4"
-        >
-          <div
-            class="absolute inset-0 bg-black/60 backdrop-blur-md"
-            @click="showModal = false"
-          />
-          
-          <div class="relative w-full max-w-2xl /90 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
-            <div class="p-6 border-b border-white/5 flex items-center justify-center justify-between">
-              <h3 class="text-xl font-bold text-white flex items-center gap-3">
-                <div class="w-8 h-8 rounded-lg bg-accent-primary/20 flex items-center justify-center text-accent-primary">
-                  <SIcon
-                    :name="editingSkill ? 'Edit2' : 'Plus'"
-                    size="w-4 h-4"
-                  />
-                </div>
-                {{ editingSkill ? $t('skills.editSkill') : $t('skills.addSkill') }}
-              </h3>
-              <button
-                class="text-white/50 hover:text-white transition-colors"
-                @click="showModal = false"
-              >
-                <SIcon
-                  name="X"
-                  size="w-5 h-5"
-                />
-              </button>
+        <template #header="{ titleId }">
+          <h3
+            :id="titleId"
+            class="flex items-center gap-3 text-xl font-bold text-white"
+          >
+            <div class="w-8 h-8 rounded-lg bg-accent-primary/20 flex items-center justify-center text-accent-primary">
+              <SIcon
+                :name="editingSkill ? 'Edit2' : 'Plus'"
+                size="w-4 h-4"
+              />
             </div>
+            {{ editingSkill ? $t('skills.editSkill') : $t('skills.addSkill') }}
+          </h3>
+        </template>
 
-            <div class="p-6 overflow-y-auto space-y-6 custom-scrollbar">
-              <div class="space-y-2">
-                <label class="text-sm font-semibold text-white/80">{{ $t('skills.nameLabel') }}</label>
-                <input 
-                  v-model="formData.name" 
-                  :disabled="!!editingSkill"
-                  type="text" 
-                  placeholder="e.g. data-analysis-pro"
-                  class="w-full px-4 py-3 rounded-xl bg-white/5/50 border border-white/10 focus:border-accent-primary focus:ring-1 focus:ring-accent-primary outline-none transition-colors font-mono text-sm"
-                >
-              </div>
+        <div class="p-6 overflow-y-auto space-y-6 custom-scrollbar">
+          <div class="space-y-2">
+            <label class="text-sm font-semibold text-white/80">{{ $t('skills.nameLabel') }}</label>
+            <input
+              v-model="formData.name"
+              :disabled="!!editingSkill"
+              type="text"
+              placeholder="e.g. data-analysis-pro"
+              class="skills-editor-input w-full px-4 py-3 rounded-xl font-mono text-sm"
+            >
+          </div>
 
-              <div class="space-y-2">
-                <div class="flex justify-between">
-                  <label class="text-sm font-semibold text-white/80">{{ $t('skills.instructionLabel') }}</label>
-                  <span class="text-xs text-white/50">Markdown supported</span>
-                </div>
-                <textarea 
-                  v-model="formData.instruction"
-                  rows="12"
-                  class="w-full px-4 py-3 rounded-xl bg-white/5/50 border border-white/10 focus:border-accent-primary focus:ring-1 focus:ring-accent-primary outline-none transition-colors font-mono text-sm leading-relaxed custom-scrollbar"
-                  placeholder="# Skill Name..."
-                />
-              </div>
+          <div class="space-y-2">
+            <div class="flex justify-between">
+              <label class="text-sm font-semibold text-white/80">{{ $t('skills.instructionLabel') }}</label>
+              <span class="text-xs text-white/50">Markdown supported</span>
             </div>
-
-            <div class="p-6 border-t border-white/5 bg-white/5/30 flex justify-end gap-3">
-              <Button
-                variant="ghost"
-                @click="showModal = false"
-              >
-                {{ $t('common.cancel') }}
-              </Button>
-              <Button
-                variant="primary"
-                @click="handleSubmit"
-              >
-                {{ editingSkill ? $t('common.save') : $t('common.add') }}
-              </Button>
-            </div>
+            <textarea
+              v-model="formData.instruction"
+              rows="12"
+              class="skills-editor-input w-full px-4 py-3 rounded-xl font-mono text-sm leading-relaxed custom-scrollbar"
+              placeholder="# Skill Name..."
+            />
           </div>
         </div>
-      </Transition>
+
+        <template #footer>
+          <div class="flex w-full justify-end gap-3">
+            <Button
+              variant="ghost"
+              surface="status"
+              motion="subtle"
+              @click="showModal = false"
+            >
+              {{ $t('common.cancel') }}
+            </Button>
+            <Button
+              variant="primary"
+              surface="card"
+              motion="standard"
+              @click="handleSubmit"
+            >
+              {{ editingSkill ? $t('common.save') : $t('common.add') }}
+            </Button>
+          </div>
+        </template>
+      </BaseModal>
     </div>
   </div>
 </template>
@@ -431,6 +419,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import AnimatedBackground from '@/components/common/AnimatedBackground.vue'
+import BaseModal from '@/components/common/BaseModal.vue'
 import Card from '@/components/ui/Card.vue'
 import Button from '@/components/ui/Button.vue'
 import { useSkills, type Skill } from '@/composables/useSkills'
@@ -620,5 +609,40 @@ onMounted(listSkills)
 .no-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
+}
+
+.skills-filter-shell {
+  z-index: var(--layer-sticky);
+  background: var(--surface-workspace-bg);
+  border: 1px solid var(--surface-workspace-border);
+  backdrop-filter: var(--surface-workspace-blur);
+  box-shadow: var(--elevation-2);
+}
+
+.skills-tag-dropdown {
+  z-index: var(--layer-dropdown);
+  background: var(--surface-modal-bg);
+  border: 1px solid var(--surface-modal-border);
+  backdrop-filter: var(--surface-modal-blur);
+  box-shadow: var(--elevation-3);
+}
+
+.skills-tag-scrim {
+  z-index: var(--layer-sticky);
+}
+
+.skills-editor-input {
+  background: rgb(255 255 255 / 5%);
+  border: 1px solid rgb(255 255 255 / 10%);
+  transition:
+    border-color var(--motion-subtle-duration) var(--motion-subtle-ease),
+    box-shadow var(--motion-subtle-duration) var(--motion-subtle-ease),
+    background-color var(--motion-subtle-duration) var(--motion-subtle-ease);
+}
+
+.skills-editor-input:focus {
+  outline: none;
+  border-color: rgb(var(--color-accent-primary-rgb) / 42%);
+  box-shadow: 0 0 0 1px rgb(var(--color-accent-primary-rgb) / 32%);
 }
 </style>

@@ -11,14 +11,18 @@
         <template #actions>
           <Button
             variant="primary"
-            size="sm"
+            density="compact"
+            surface="card"
+            motion="standard"
             @click="router.push('/commands')"
           >
             {{ $t('home.actionCommandRunner') }}
           </Button>
           <Button
             variant="secondary"
-            size="sm"
+            density="compact"
+            surface="card"
+            motion="subtle"
             @click="router.push('/skills?tab=marketplace')"
           >
             {{ $t('nav.skills') }}
@@ -81,7 +85,10 @@
             class="group"
           >
             <Card
-              variant="elevated"
+              surface="card"
+              :elevation="2"
+              motion="subtle"
+              density="compact"
               hover
               class="quick-action-card"
             >
@@ -133,7 +140,10 @@
             class="group h-full"
           >
             <Card
-              variant="elevated"
+              surface="card"
+              :elevation="2"
+              motion="subtle"
+              density="compact"
               hover
               class="module-card"
             >
@@ -181,7 +191,9 @@
           </div>
           <Button
             variant="ghost"
-            size="sm"
+            density="compact"
+            surface="status"
+            motion="subtle"
             @click="router.push('/usage')"
           >
             {{ $t('home.fullReport') }}
@@ -191,7 +203,9 @@
         <UsageStatsDashboard v-if="shouldRenderUsageStats" />
         <Card
           v-else
-          variant="glass"
+          surface="workspace"
+          :elevation="2"
+          motion="subtle"
           class="usage-placeholder"
         >
           <div class="usage-placeholder__content">

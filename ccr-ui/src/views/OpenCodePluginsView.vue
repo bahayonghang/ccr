@@ -11,12 +11,21 @@
         <div class="flex items-center gap-3">
           <RouterLink
             to="/opencode"
-            class="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl border border-border-default/60 bg-bg-surface/70 text-text-secondary transition-colors hover:border-accent-success/30 hover:text-text-primary"
+            class="inline-flex"
           >
-            <SIcon
-              name="ChevronLeft"
-              size="w-5 h-5"
-            />
+            <Button
+              variant="ghost"
+              surface="status"
+              density="compact"
+              motion="subtle"
+            >
+              <template #leading>
+                <SIcon
+                  name="ChevronLeft"
+                  size="w-5 h-5"
+                />
+              </template>
+            </Button>
           </RouterLink>
           <div>
             <h1 class="text-2xl font-bold text-text-primary">
@@ -27,17 +36,21 @@
             </p>
           </div>
         </div>
-        <button
-          type="button"
-          class="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl bg-accent-success px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-accent-success/90 focus:outline-none focus:ring-2 focus:ring-accent-success/30"
+        <Button
+          variant="success"
+          surface="card"
+          density="compact"
+          motion="standard"
           @click="showAddDialog = true"
         >
-          <SIcon
-            name="Plus"
-            size="w-4 h-4"
-          />
+          <template #leading>
+            <SIcon
+              name="Plus"
+              size="w-4 h-4"
+            />
+          </template>
           添加插件
-        </button>
+        </Button>
       </div>
 
       <!-- 加载状态 -->
@@ -51,7 +64,9 @@
       <!-- 错误状态 -->
       <Card
         v-else-if="error"
-        variant="elevated"
+        surface="card"
+        :elevation="2"
+        motion="subtle"
         class="p-6 text-center"
       >
         <p class="mb-3 text-accent-danger">
@@ -69,7 +84,9 @@
       <!-- 空状态 -->
       <Card
         v-else-if="plugins.length === 0"
-        variant="glass"
+        surface="workspace"
+        :elevation="2"
+        motion="subtle"
         class="p-10 text-center"
       >
         <div class="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-accent-success/10 text-accent-success">
@@ -84,13 +101,15 @@
         <p class="mb-4 text-sm text-text-secondary">
           添加 npm 插件包来扩展 OpenCode 功能
         </p>
-        <button
-          type="button"
-          class="inline-flex min-h-[44px] items-center justify-center rounded-xl bg-accent-success px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-accent-success/90 focus:outline-none focus:ring-2 focus:ring-accent-success/30"
+        <Button
+          variant="success"
+          surface="card"
+          density="compact"
+          motion="standard"
           @click="showAddDialog = true"
         >
           添加第一个插件
-        </button>
+        </Button>
       </Card>
 
       <!-- 插件列表 -->
@@ -101,7 +120,9 @@
         <Card
           v-for="plugin in plugins"
           :key="plugin.npm"
-          variant="elevated"
+          surface="card"
+          :elevation="2"
+          motion="subtle"
           class="p-4 animate-slide-up"
         >
           <div class="flex items-center justify-between gap-4">
@@ -125,7 +146,6 @@
             <button
               type="button"
               class="flex min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-xl text-text-secondary transition-colors hover:bg-accent-danger/10 hover:text-accent-danger focus:outline-none focus:ring-2 focus:ring-accent-danger/20"
-              title="删除"
               @click="confirmDelete(plugin.npm)"
             >
               <SIcon
@@ -163,27 +183,33 @@
         </div>
 
         <div class="flex justify-end gap-3 border-t border-border-default/50 pt-4">
-          <button
-            type="button"
-            class="min-h-[44px] rounded-xl border border-border-default bg-bg-surface px-4 py-2.5 text-sm text-text-secondary transition-colors hover:bg-bg-overlay hover:text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-success/20"
+          <Button
+            variant="secondary"
+            surface="status"
+            density="compact"
+            motion="subtle"
             @click="showAddDialog = false"
           >
             取消
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="success"
+            surface="card"
+            density="compact"
+            motion="standard"
             :disabled="!newNpm.trim() || saving"
-            type="button"
-            class="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl bg-accent-success px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-accent-success/90 focus:outline-none focus:ring-2 focus:ring-accent-success/30 disabled:cursor-not-allowed disabled:opacity-50"
             @click="doAdd"
           >
-            <SIcon
-              v-if="saving"
-              name="Loader2"
-              size="w-4 h-4"
-              class="animate-spin"
-            />
+            <template #leading>
+              <SIcon
+                v-if="saving"
+                name="Loader2"
+                size="w-4 h-4"
+                class="animate-spin"
+              />
+            </template>
             添加
-          </button>
+          </Button>
         </div>
       </div>
     </BaseModal>
@@ -202,27 +228,33 @@
           确定要删除插件 <strong class="font-mono">{{ deletingNpm }}</strong> 吗？
         </p>
         <div class="flex justify-end gap-3 border-t border-border-default/50 pt-4">
-          <button
-            type="button"
-            class="min-h-[44px] rounded-xl border border-border-default bg-bg-surface px-4 py-2.5 text-sm text-text-secondary transition-colors hover:bg-bg-overlay hover:text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-danger/20"
+          <Button
+            variant="secondary"
+            surface="status"
+            density="compact"
+            motion="subtle"
             @click="deletingNpm = ''"
           >
             取消
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="danger"
+            surface="status"
+            density="compact"
+            motion="standard"
             :disabled="saving"
-            type="button"
-            class="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-xl bg-accent-danger px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-accent-danger/90 focus:outline-none focus:ring-2 focus:ring-accent-danger/30 disabled:cursor-not-allowed disabled:opacity-50"
             @click="doDelete"
           >
-            <SIcon
-              v-if="saving"
-              name="Loader2"
-              size="w-4 h-4"
-              class="animate-spin"
-            />
+            <template #leading>
+              <SIcon
+                v-if="saving"
+                name="Loader2"
+                size="w-4 h-4"
+                class="animate-spin"
+              />
+            </template>
             删除
-          </button>
+          </Button>
         </div>
       </div>
     </BaseModal>
@@ -235,6 +267,7 @@ import { ref, onMounted } from 'vue'
 import AnimatedBackground from '@/components/common/AnimatedBackground.vue'
 import Card from '@/components/ui/Card.vue'
 import BaseModal from '@/components/common/BaseModal.vue'
+import Button from '@/components/ui/Button.vue'
 import {
   listOpenCodePlugins,
   addOpenCodePlugin,
