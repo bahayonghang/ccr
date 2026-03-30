@@ -6,7 +6,8 @@
     :close-on-backdrop="false"
     :close-on-escape="true"
     :show-close="false"
-    :surface="surface"
+    :surface="resolvedSurface"
+    :content-class="modalClasses"
     size="sm"
     @update:model-value="handleModalChange"
     @close="handleCancel"
@@ -14,13 +15,13 @@
     <template #header="{ titleId }">
       <h2
         :id="titleId"
-        class="w-full text-center text-lg font-semibold text-text-primary"
+        class="confirm-modal__title w-full text-center text-lg font-semibold"
       >
         {{ title }}
       </h2>
     </template>
 
-    <div class="flex flex-col items-center text-center pb-1">
+    <div class="confirm-modal__body flex flex-col items-center text-center pb-1">
       <div :class="iconContainerClasses">
         <slot name="icon">
           <SIcon
@@ -30,23 +31,23 @@
         </slot>
       </div>
 
-      <p class="mt-4 text-sm leading-relaxed text-text-secondary">
+      <p class="confirm-modal__message mt-4 text-sm leading-relaxed">
         {{ message }}
       </p>
     </div>
 
     <template #footer>
-      <div class="flex w-full gap-3">
+      <div class="confirm-modal__footer flex w-full gap-3">
         <button
           type="button"
-          class="flex-1 rounded-xl border border-border-default bg-bg-surface px-4 py-2.5 text-sm font-medium text-text-secondary transition-colors duration-150 hover:bg-bg-overlay hover:text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/30"
+          class="confirm-modal__button confirm-modal__button--cancel flex-1 rounded-xl px-4 py-2.5 text-sm font-medium transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-accent-primary/30"
           @click="handleCancel"
         >
           {{ cancelText || '取消' }}
         </button>
         <button
           type="button"
-          :class="confirmButtonClasses"
+          :class="['confirm-modal__button flex-1 rounded-xl px-4 py-2.5 text-sm font-medium focus:outline-none focus:ring-2 transition-colors duration-150', confirmButtonClasses]"
           @click="handleConfirm"
         >
           {{ confirmText || '确认' }}
@@ -79,10 +80,13 @@ const emit = defineEmits<{
 
 const props = withDefaults(defineProps<Props>(), {
   type: 'info',
-  surface: 'glass',
+  surface: 'solid',
   confirmText: '',
   cancelText: '',
 })
+
+const resolvedSurface = computed(() => props.surface)
+const modalClasses = computed(() => `confirm-modal confirm-modal--${props.type}`)
 
 const iconComponent = computed(() => {
   const icons = {
@@ -95,7 +99,7 @@ const iconComponent = computed(() => {
 })
 
 const iconContainerClasses = computed(() => {
-  const baseClasses = 'flex h-14 w-14 items-center justify-center rounded-full border shadow-sm'
+  const baseClasses = 'confirm-modal__icon-wrap flex h-14 w-14 items-center justify-center rounded-full border shadow-sm'
   const typeClasses = {
     danger: 'border-accent-danger/20 bg-accent-danger/10',
     warning: 'border-accent-warning/20 bg-accent-warning/10',
@@ -118,9 +122,7 @@ const iconClasses = computed(() => {
 
 const confirmButtonClasses = computed(() => {
   const baseClasses = [
-    'flex-1 rounded-xl px-4 py-2.5 text-sm font-medium text-white shadow-sm',
-    'focus:outline-none focus:ring-2',
-    'transition-colors duration-150',
+    'shadow-sm text-white',
   ]
 
   const typeClasses: Record<string, string[]> = {
@@ -158,3 +160,81 @@ function handleCancel() {
   emit('update:isOpen', false)
 }
 </script>
+
+<style>
+.confirm-modal {
+  --confirm-shell-bg: linear-gradient(180deg, rgb(255 253 252 / 98%), rgb(247 244 255 / 94%));
+  --confirm-shell-border: rgb(var(--color-border-default-rgb) / 82%);
+  --confirm-shell-shadow: 0 28px 72px rgb(31 17 58 / 16%), 0 12px 28px rgb(31 17 58 / 10%);
+  --confirm-shell-highlight:
+    radial-gradient(circle at top center, rgb(var(--color-accent-primary-rgb) / 10%), transparent 42%),
+    radial-gradient(circle at bottom right, rgb(var(--color-warning-rgb) / 8%), transparent 36%);
+  --confirm-text-primary: rgb(var(--color-text-primary-rgb) / 96%);
+  --confirm-text-secondary: rgb(var(--color-text-secondary-rgb) / 92%);
+  --confirm-hairline: rgb(var(--color-border-default-rgb) / 58%);
+  --confirm-muted-bg: rgb(var(--color-bg-surface-rgb) / 72%);
+  --confirm-muted-hover: rgb(var(--color-bg-overlay-rgb) / 80%);
+
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  background: var(--confirm-shell-bg) !important;
+  border: 1px solid var(--confirm-shell-border) !important;
+  box-shadow: var(--confirm-shell-shadow) !important;
+}
+
+:root[class~='dark'] .confirm-modal,
+[data-theme='dark'] .confirm-modal {
+  --confirm-shell-bg: linear-gradient(180deg, rgb(23 26 43 / 98%), rgb(16 18 31 / 96%));
+  --confirm-shell-border: rgb(78 84 115 / 78%);
+  --confirm-shell-shadow: 0 32px 84px rgb(0 0 0 / 58%), 0 18px 36px rgb(0 0 0 / 42%);
+  --confirm-shell-highlight:
+    radial-gradient(circle at top center, rgb(var(--color-accent-primary-rgb) / 16%), transparent 42%),
+    radial-gradient(circle at bottom right, rgb(var(--color-warning-rgb) / 12%), transparent 38%);
+  --confirm-text-primary: rgb(var(--color-text-primary-rgb) / 98%);
+  --confirm-text-secondary: rgb(var(--color-text-secondary-rgb) / 92%);
+  --confirm-hairline: rgb(78 84 115 / 74%);
+  --confirm-muted-bg: rgb(42 47 74 / 56%);
+  --confirm-muted-hover: rgb(53 60 92 / 72%);
+}
+
+.confirm-modal::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--confirm-shell-highlight);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.confirm-modal > * {
+  position: relative;
+  z-index: 1;
+}
+
+.confirm-modal__title {
+  color: var(--confirm-text-primary);
+}
+
+.confirm-modal__message {
+  color: var(--confirm-text-secondary);
+}
+
+.confirm-modal__footer {
+  padding-top: 0.25rem;
+}
+
+.confirm-modal__button {
+  border: 1px solid transparent;
+}
+
+.confirm-modal__button--cancel {
+  border-color: var(--confirm-hairline);
+  background: var(--confirm-muted-bg);
+  color: var(--confirm-text-primary);
+}
+
+.confirm-modal__button--cancel:hover {
+  background: var(--confirm-muted-hover);
+}
+</style>

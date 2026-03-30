@@ -73,27 +73,27 @@ export interface CodexProfile {
 
 export interface CodexProfileRequest {
   name: string
-  description?: string
-  base_url?: string
-  auth_token?: string
-  model?: string
-  small_fast_model?: string
-  provider?: string
-  provider_type?: string
-  account?: string
-  tags?: string[]
-  enabled?: boolean
-  wire_api?: string
-  env_key?: string
-  requires_openai_auth?: boolean
-  approval_policy?: string
-  sandbox_mode?: string
-  model_reasoning_effort?: string
-  network_access?: string | boolean
-  disable_response_storage?: boolean
-  auth_mode?: CodexProfileAuthMode
-  openai_login_method?: OpenAiLoginMethod
-  extra?: Record<string, unknown>
+  description?: string | null
+  base_url?: string | null
+  auth_token?: string | null
+  model?: string | null
+  small_fast_model?: string | null
+  provider?: string | null
+  provider_type?: string | null
+  account?: string | null
+  tags?: string[] | null
+  enabled?: boolean | null
+  wire_api?: string | null
+  env_key?: string | null
+  requires_openai_auth?: boolean | null
+  approval_policy?: string | null
+  sandbox_mode?: string | null
+  model_reasoning_effort?: string | null
+  network_access?: string | boolean | null
+  disable_response_storage?: boolean | null
+  auth_mode?: CodexProfileAuthMode | null
+  openai_login_method?: OpenAiLoginMethod | null
+  extra?: Record<string, unknown> | null
 }
 
 export interface CodexProfilesResponse {

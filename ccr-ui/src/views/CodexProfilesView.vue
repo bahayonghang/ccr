@@ -439,321 +439,28 @@
             </Card>
           </div>
             
-          <!-- Add/Edit Modal -->
-          <div
-            v-if="showForm"
-            class="codex-profiles-modal-overlay"
-          >
-            <Card
-              variant="glass"
-              class="codex-profiles-modal-card animate-in zoom-in-95 duration-200"
-              :padding="'none'"
-            >
-              <!-- Modal Header -->
-              <div class="codex-profiles-modal-header">
-                <h2 class="text-xl font-bold text-white">
-                  {{ editingName ? $t('codex.profiles.editProfile') : $t('codex.profiles.addProfile') }}
-                </h2>
-                <button
-                  class="codex-profiles-modal-close"
-                  @click="handleCloseForm"
-                >
-                  <SIcon
-                    name="X"
-                    size="w-5 h-5"
-                  />
-                </button>
-              </div>
-
-              <!-- Modal Content -->
-              <div class="codex-profiles-modal-body">
-                <!-- Use generic grid for form -->
-                <div class="codex-profiles-form-grid">
-                  <!-- Name & Desc -->
-                  <div class="codex-profiles-form-grid--two-col">
-                    <div class="codex-profiles-field">
-                      <label class="codex-profiles-field__label">
-                        {{ $t('codex.profiles.fields.name') }} <span class="text-red-500">*</span>
-                      </label>
-                      <input
-                        v-model="form.name"
-                        :disabled="!!editingName"
-                        type="text"
-                        class="codex-profiles-input"
-                        :placeholder="$t('codex.profiles.placeholders.name')"
-                      >
-                    </div>
-                    <div class="codex-profiles-field">
-                      <label class="codex-profiles-field__label">
-                        {{ $t('codex.profiles.fields.description') }}
-                      </label>
-                      <input
-                        v-model="form.description"
-                        type="text"
-                        class="codex-profiles-input"
-                        :placeholder="$t('codex.profiles.placeholders.description')"
-                      >
-                    </div>
-                  </div>
-                       
-                  <div class="codex-profiles-form-grid--two-col">
-                    <div class="codex-profiles-field">
-                      <label class="codex-profiles-field__label">
-                        {{ $t('codex.profiles.fields.authMode') }} <span class="text-red-500">*</span>
-                      </label>
-                      <select
-                        v-model="form.auth_mode"
-                        class="codex-profiles-input"
-                      >
-                        <option
-                          v-for="authMode in availableAuthModeOptions"
-                          :key="authMode"
-                          :value="authMode"
-                        >
-                          {{ authModeLabel(authMode) }}
-                        </option>
-                      </select>
-                      <p
-                        v-if="isDeprecatedAuthMode(form.auth_mode)"
-                        class="text-xs text-amber-300"
-                      >
-                        {{ $t('codex.profiles.deprecatedAuthModeHint', { mode: authModeLabel(form.auth_mode) }) }}
-                      </p>
-                    </div>
-                    <div class="codex-profiles-field">
-                      <label class="codex-profiles-field__label">
-                        {{ $t('codex.profiles.fields.openAiLoginMethod') }}
-                      </label>
-                      <input
-                        :value="displayOpenAiLoginMethod"
-                        type="text"
-                        class="codex-profiles-input codex-profiles-input--mono"
-                        disabled
-                      >
-                    </div>
-                  </div>
-
-                  <!-- URL & Token -->
-                  <div class="codex-profiles-field">
-                    <label class="codex-profiles-field__label">
-                      {{ $t('codex.profiles.fields.baseUrl') }}
-                      <span
-                        v-if="requiresBaseUrl"
-                        class="text-red-500"
-                      >*</span>
-                    </label>
-                    <input
-                      v-model="form.base_url"
-                      type="text"
-                      class="codex-profiles-input codex-profiles-input--mono"
-                      :placeholder="$t('codex.profiles.placeholders.baseUrl')"
-                    >
-                    <p class="text-xs text-white/50">
-                      {{ requiresBaseUrl ? $t('codex.profiles.baseUrlRequiredHint') : $t('codex.profiles.baseUrlOptionalHint') }}
-                    </p>
-                  </div>
-
-                  <div class="codex-profiles-field">
-                    <label class="codex-profiles-field__label">
-                      {{ $t('codex.profiles.fields.authToken') }}
-                      <span
-                        v-if="requiresSecret"
-                        class="text-red-500"
-                      >*</span>
-                    </label>
-                    <input
-                      v-model="form.auth_token"
-                      type="password"
-                      class="codex-profiles-input codex-profiles-input--mono"
-                      :placeholder="$t('codex.profiles.placeholders.authToken')"
-                    >
-                    <p class="text-xs text-white/50">
-                      {{ authTokenHint }}
-                    </p>
-                  </div>
-
-                  <div
-                    v-if="requiresEnvKey"
-                    class="codex-profiles-field"
-                  >
-                    <label class="codex-profiles-field__label">
-                      {{ $t('codex.profiles.fields.envKey') }} <span class="text-red-500">*</span>
-                    </label>
-                    <input
-                      v-model="form.env_key"
-                      type="text"
-                      class="codex-profiles-input codex-profiles-input--mono"
-                      :placeholder="$t('codex.profiles.placeholders.envKey')"
-                    >
-                    <p class="text-xs text-white/50">
-                      {{ $t('codex.profiles.envKeyHint') }}
-                    </p>
-                  </div>
-
-                  <!-- Models -->
-                  <div class="codex-profiles-form-grid--two-col">
-                    <div class="codex-profiles-field">
-                      <label class="codex-profiles-field__label">
-                        {{ $t('codex.profiles.fields.model') }} <span class="text-red-500">*</span>
-                      </label>
-                      <select
-                        v-model="selectedModelOption"
-                        class="codex-profiles-input codex-profiles-input--mono"
-                      >
-                        <option
-                          v-for="model in modelCatalog"
-                          :key="model"
-                          :value="model"
-                        >
-                          {{ model }}
-                        </option>
-                        <option :value="CUSTOM_MODEL_OPTION">
-                          {{ $t('codex.profiles.customModelOption') }}
-                        </option>
-                      </select>
-                      <input
-                        v-if="selectedModelOption === CUSTOM_MODEL_OPTION"
-                        v-model="customModelInput"
-                        type="text"
-                        class="codex-profiles-input codex-profiles-input--mono codex-profiles-input--spaced"
-                        :placeholder="$t('codex.profiles.placeholders.customModel')"
-                      >
-                      <p class="text-xs text-white/50">
-                        {{ selectedModelOption === CUSTOM_MODEL_OPTION ? $t('codex.profiles.customModelHint') : $t('codex.profiles.modelPresetHint') }}
-                      </p>
-                    </div>
-                    <div class="codex-profiles-field">
-                      <label class="codex-profiles-field__label">
-                        {{ $t('codex.profiles.fields.smallFastModel') }}
-                      </label>
-                      <input
-                        v-model="form.small_fast_model"
-                        type="text"
-                        class="codex-profiles-input codex-profiles-input--mono"
-                        :placeholder="$t('codex.profiles.placeholders.smallFastModel')"
-                      >
-                    </div>
-                  </div>
-
-                  <div class="codex-profiles-form-grid--two-col">
-                    <div class="codex-profiles-field">
-                      <label class="codex-profiles-field__label">
-                        {{ $t('codex.profiles.fields.wireApi') }}
-                      </label>
-                      <input
-                        v-model="form.wire_api"
-                        type="text"
-                        class="codex-profiles-input codex-profiles-input--mono"
-                        :placeholder="$t('codex.profiles.placeholders.wireApi')"
-                      >
-                    </div>
-                    <div class="codex-profiles-checkbox-row">
-                      <input
-                        id="requiresOpenAiAuth"
-                        :checked="requiresOpenAiAuth"
-                        type="checkbox"
-                        class="codex-profiles-checkbox"
-                        disabled
-                      >
-                      <label
-                        for="requiresOpenAiAuth"
-                        class="codex-profiles-checkbox-label codex-profiles-checkbox-label--muted"
-                      >
-                        {{ $t('codex.profiles.fields.requiresOpenaiAuth') }}
-                      </label>
-                    </div>
-                  </div>
-                       
-                  <!-- Metadata -->
-                  <div class="codex-profiles-form-grid--three-col">
-                    <div class="codex-profiles-field">
-                      <label class="codex-profiles-field__label">
-                        {{ $t('codex.profiles.fields.provider') }}
-                      </label>
-                      <input
-                        v-model="form.provider"
-                        type="text"
-                        class="codex-profiles-input"
-                        :placeholder="$t('codex.profiles.placeholders.provider')"
-                      >
-                    </div>
-                    <div class="codex-profiles-field">
-                      <label class="codex-profiles-field__label">
-                        {{ $t('codex.profiles.fields.providerType') }}
-                      </label>
-                      <input
-                        v-model="form.provider_type"
-                        type="text"
-                        class="codex-profiles-input"
-                        :placeholder="$t('codex.profiles.placeholders.providerType')"
-                      >
-                    </div>
-                    <div class="codex-profiles-field">
-                      <label class="codex-profiles-field__label">
-                        {{ $t('codex.profiles.fields.tags') }}
-                      </label>
-                      <input
-                        v-model="tagsText"
-                        type="text"
-                        class="codex-profiles-input"
-                        :placeholder="$t('codex.profiles.placeholders.tags')"
-                      >
-                    </div>
-                  </div>
-                       
-                  <div class="codex-profiles-checkbox-row">
-                    <input
-                      id="profileEnabled"
-                      v-model="form.enabled"
-                      type="checkbox"
-                      class="codex-profiles-checkbox"
-                    >
-                    <label
-                      for="profileEnabled"
-                      class="codex-profiles-checkbox-label"
-                    >
-                      {{ $t('codex.profiles.fields.enabled') }}
-                    </label>
-                  </div>
-                       
-                  <!-- Extra JSON -->
-                  <div class="codex-profiles-field">
-                    <label class="codex-profiles-field__label codex-profiles-field__label--between">
-                      <span>{{ $t('codex.profiles.fields.extraJson') }}</span>
-                      <span class="text-xs font-normal text-white/50">{{ $t('codex.profiles.extraHint') }}</span>
-                    </label>
-                    <textarea
-                      v-model="extraText"
-                      rows="6"
-                      class="codex-profiles-input codex-profiles-input--mono codex-profiles-textarea"
-                      :placeholder="$t('codex.profiles.placeholders.extraJson')"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <!-- Footer -->
-              <div class="codex-profiles-modal-footer">
-                <button
-                  class="btn btn-secondary"
-                  @click="handleCloseForm"
-                >
-                  {{ $t('codex.actions.cancel') }}
-                </button>
-                <button 
-                  class="btn btn-primary"
-                  :disabled="saving"
-                  @click="handleSave"
-                >
-                  <span
-                    v-if="saving"
-                    class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2"
-                  />
-                  {{ saving ? $t('codex.states.saving') : $t('codex.actions.save') }}
-                </button>
-              </div>
-            </Card>
-          </div>
+          <CodexProfileEditorModal
+            :model-value="showForm"
+            :editing-name="editingName"
+            :saving="saving"
+            :form="form"
+            :update-field="updateFormField"
+            :available-auth-mode-options="availableAuthModeOptions"
+            :model-catalog="modelCatalog"
+            :selected-model-option="selectedModelOption"
+            :custom-model-input="customModelInput"
+            :requires-base-url="requiresBaseUrl"
+            :requires-secret="requiresSecret"
+            :requires-env-key="requiresEnvKey"
+            :auth-token-hint="authTokenHint"
+            :is-deprecated-auth-mode="isDeprecatedAuthMode(form.auth_mode)"
+            :display-open-ai-login-method="displayOpenAiLoginMethod"
+            :auth-mode-label="authModeLabel"
+            @update:model-value="handleFormModelValue"
+            @update:selected-model-option="selectedModelOption = $event"
+            @update:custom-model-input="customModelInput = $event"
+            @save="handleSave"
+          />
 
           <ConfirmModal
             v-model:is-open="showConfirmModal"
@@ -771,23 +478,36 @@
 </template>
 
 <script setup lang="ts">
+import CodexProfileEditorModal from '@/components/codex/CodexProfileEditorModal.vue'
+import ConfirmModal from '@/components/ConfirmModal.vue'
+import ModuleSubnav from '@/components/ModuleSubnav.vue'
+import Card from '@/components/ui/Card.vue'
 import SIcon from '@/components/ui/SIcon.vue'
 import { computed, onActivated, onMounted, reactive, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import ModuleSubnav from '@/components/ModuleSubnav.vue'
-import Card from '@/components/ui/Card.vue'
-import ConfirmModal from '@/components/ConfirmModal.vue'
 import { addCodexCustomModel, addCodexProfile, applyCodexProfile, deleteCodexProfile, getCodexProfile, listCodexModels, listCodexProfiles, updateCodexProfile } from '@/api'
 import type {
   CodexAddCustomModelResponse,
   CodexModelsResponse,
   CodexProfile,
   CodexProfileAuthMode,
-  CodexProfileRequest,
   CodexProfilesResponse,
-  OpenAiLoginMethod,
 } from '@/types'
+import { copyToClipboard } from '@/utils/codexHelpers'
+import {
+  AVAILABLE_AUTH_MODES,
+  CUSTOM_MODEL_OPTION,
+  type CodexProfileEditorForm,
+  authModeToLoginMethod,
+  buildCodexProfileRequest,
+  codexProfileToEditorForm,
+  createCodexProfileEditorForm,
+  isDeprecatedAuthMode,
+  normalizeModelName,
+  resolveModelSelection,
+  usesOpenAiAuthMode,
+} from '@/utils/codexProfileEditor'
 import { logger } from '@/utils/logger'
 import { useUIStore } from '@/stores/ui'
 
@@ -799,10 +519,6 @@ const uiStore = useUIStore()
 const loading = ref(false)
 const saving = ref(false)
 const actionLoading = ref(false)
-
-const AVAILABLE_AUTH_MODES: CodexProfileAuthMode[] = ['openai_api_key', 'no_auth']
-const DEPRECATED_AUTH_MODES: CodexProfileAuthMode[] = ['openai_chatgpt', 'provider_env_key']
-const CUSTOM_MODEL_OPTION = '__custom__'
 
 const profiles = ref<CodexProfile[]>([])
 const currentProfile = ref<string | null>(null)
@@ -832,9 +548,6 @@ let confirmedAction: (() => Promise<void>) | null = null
 
 const REFRESH_TTL_MS = 30_000
 
-const tagsText = ref('')
-const extraText = ref('{}')
-
 const extractErrorMessage = (error: unknown) => {
   if (typeof error === 'string') {
     return error
@@ -850,27 +563,10 @@ const extractErrorMessage = (error: unknown) => {
   return null
 }
 
-const authModeToLoginMethod = (authMode: CodexProfileAuthMode): OpenAiLoginMethod | undefined => {
-  switch (authMode) {
-    case 'openai_chatgpt':
-      return 'chatgpt'
-    case 'openai_api_key':
-      return 'api'
-    default:
-      return undefined
-  }
-}
-
-const normalizeModelName = (value?: string | null) => value?.trim() || ''
-
 const modelCatalog = computed(() => {
   const merged = [...codexBuiltinModels.value, ...codexCustomModels.value]
   return merged.filter((model, index) => merged.indexOf(model) === index)
 })
-
-const isDeprecatedAuthMode = (authMode?: CodexProfileAuthMode | null) => {
-  return authMode ? DEPRECATED_AUTH_MODES.includes(authMode) : false
-}
 
 const availableAuthModeOptions = computed(() => {
   const options = [...AVAILABLE_AUTH_MODES]
@@ -879,10 +575,6 @@ const availableAuthModeOptions = computed(() => {
   }
   return options
 })
-
-const usesOpenAiAuthMode = (authMode: CodexProfileAuthMode) => {
-  return authMode === 'openai_chatgpt' || authMode === 'openai_api_key'
-}
 
 const isOfficialConfig = (profile: CodexProfile) => {
   return !profile.base_url?.trim()
@@ -913,7 +605,10 @@ const copyProfileEnv = async (profile: CodexProfile) => {
   }
 
   try {
-    await navigator.clipboard.writeText(script)
+    const copied = await copyToClipboard(script)
+    if (!copied) {
+      throw new Error('copy failed')
+    }
     uiStore.showSuccess(t('codex.profiles.messages.envExportCopied'))
   } catch (error) {
     logger.error('Failed to copy profile env export:', error)
@@ -928,30 +623,23 @@ const currentConfigMode = computed(() => {
   return profile && isOfficialConfig(profile) ? 'official' : 'custom'
 })
 
-const form = reactive<Required<Pick<CodexProfileRequest, 'name' | 'model' | 'auth_mode'>> & Partial<CodexProfileRequest>>({
-  name: '',
-  description: '',
-  base_url: '',
-  auth_token: '',
-  model: '',
-  small_fast_model: '',
-  provider: '',
-  provider_type: '',
-  account: '',
-  tags: [],
-  enabled: true,
-  wire_api: '',
-  env_key: '',
-  requires_openai_auth: false,
-  auth_mode: 'no_auth',
-  openai_login_method: undefined,
-  extra: {},
-})
+const form = reactive(createCodexProfileEditorForm())
+
+const updateFormField = (field: keyof CodexProfileEditorForm, value: string | boolean) => {
+  if (field === 'enabled' || field === 'requires_openai_auth') {
+    form[field] = Boolean(value) as never
+  } else {
+    form[field] = String(value) as never
+  }
+
+  if (field === 'auth_mode') {
+    syncDerivedAuthFields()
+  }
+}
 
 const requiresBaseUrl = computed(() => !usesOpenAiAuthMode(form.auth_mode))
 const requiresSecret = computed(() => form.auth_mode === 'openai_api_key')
 const requiresEnvKey = computed(() => form.auth_mode === 'provider_env_key')
-const requiresOpenAiAuth = computed(() => usesOpenAiAuthMode(form.auth_mode))
 const displayOpenAiLoginMethod = computed(() => authModeToLoginMethod(form.auth_mode) || t('codex.profiles.notAvailable'))
 const resolvedModelValue = computed(() => {
   return selectedModelOption.value === CUSTOM_MODEL_OPTION
@@ -1034,63 +722,16 @@ const executeConfirmedAction = async () => {
 }
 
 const resetForm = () => {
-  Object.assign(form, {
-    name: '',
-    description: '',
-    base_url: '',
-    auth_token: '',
-    model: '',
-    small_fast_model: '',
-    provider: '',
-    provider_type: '',
-    account: '',
-    tags: [],
-    enabled: true,
-    wire_api: '',
-    env_key: '',
-    requires_openai_auth: false,
-    auth_mode: 'no_auth',
-    openai_login_method: undefined,
-    extra: {},
-  })
+  Object.assign(form, createCodexProfileEditorForm())
   selectedModelOption.value = modelCatalog.value[0] || CUSTOM_MODEL_OPTION
   customModelInput.value = ''
-  tagsText.value = ''
-  extraText.value = JSON.stringify({}, null, 2)
 }
 
 const applyProfileToForm = (profile: CodexProfile) => {
-  Object.assign(form, {
-    name: profile.name,
-    description: profile.description || '',
-    base_url: profile.base_url || '',
-    auth_token: profile.auth_token || '',
-    model: profile.model || '',
-    small_fast_model: profile.small_fast_model || '',
-    provider: profile.provider || '',
-    provider_type: profile.provider_type || '',
-    account: profile.account || '',
-    tags: profile.tags || [],
-    enabled: profile.enabled !== false,
-    wire_api: profile.wire_api || '',
-    env_key: profile.env_key || '',
-    requires_openai_auth: profile.requires_openai_auth ?? usesOpenAiAuthMode(profile.auth_mode || 'no_auth'),
-    auth_mode: profile.auth_mode || 'no_auth',
-    openai_login_method: profile.openai_login_method || authModeToLoginMethod(profile.auth_mode || 'no_auth'),
-    extra: profile.extra || {},
-  })
-
-  const normalizedModel = normalizeModelName(profile.model)
-  if (normalizedModel && modelCatalog.value.includes(normalizedModel)) {
-    selectedModelOption.value = normalizedModel
-    customModelInput.value = ''
-  } else {
-    selectedModelOption.value = CUSTOM_MODEL_OPTION
-    customModelInput.value = normalizedModel
-  }
-
-  tagsText.value = (form.tags || []).join(', ')
-  extraText.value = JSON.stringify(form.extra || {}, null, 2)
+  Object.assign(form, codexProfileToEditorForm(profile))
+  const selection = resolveModelSelection(profile.model, modelCatalog.value)
+  selectedModelOption.value = selection.selectedModelOption
+  customModelInput.value = selection.customModelInput
 }
 
 const openFormModal = async (name?: string) => {
@@ -1152,28 +793,16 @@ const handleCloseForm = () => {
   editingName.value = null
 }
 
-const parseTags = (raw: string): string[] | undefined => {
-  const tags = raw
-    .split(',')
-    .map(s => s.trim())
-    .filter(Boolean)
-  return tags.length > 0 ? tags : undefined
-}
-
-const parseExtraJson = (raw: string): Record<string, unknown> | undefined => {
-  const trimmed = raw.trim()
-  if (!trimmed) return undefined
-  const parsed = JSON.parse(trimmed)
-  if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
-    throw new Error('extra must be a JSON object')
+const handleFormModelValue = (value: boolean) => {
+  showForm.value = value
+  if (!value) {
+    editingName.value = null
   }
-  return parsed
 }
 
 const syncDerivedAuthFields = () => {
-  form.openai_login_method = authModeToLoginMethod(form.auth_mode)
+  form.openai_login_method = authModeToLoginMethod(form.auth_mode) ?? null
   form.requires_openai_auth = usesOpenAiAuthMode(form.auth_mode)
-  form.model = resolvedModelValue.value
 
   if (!requiresEnvKey.value) {
     form.env_key = ''
@@ -1204,33 +833,7 @@ const handleSave = async () => {
     return
   }
 
-  let extra: Record<string, unknown> | undefined
-  try {
-    extra = parseExtraJson(extraText.value) || undefined
-  } catch {
-    uiStore.showError(t('codex.profiles.validation.extraJsonInvalid'))
-    return
-  }
-
-  const request: CodexProfileRequest = {
-    name: form.name.trim(),
-    description: form.description?.trim() ? form.description.trim() : undefined,
-    base_url: form.base_url?.trim() ? form.base_url.trim() : undefined,
-    auth_token: form.auth_token?.trim() ? form.auth_token.trim() : undefined,
-    model: resolvedModelValue.value,
-    small_fast_model: form.small_fast_model?.trim() ? form.small_fast_model.trim() : undefined,
-    provider: form.provider?.trim() ? form.provider.trim() : undefined,
-    provider_type: form.provider_type?.trim() ? form.provider_type.trim() : undefined,
-    account: form.account?.trim() ? form.account.trim() : undefined,
-    tags: parseTags(tagsText.value),
-    enabled: form.enabled === true,
-    wire_api: form.wire_api?.trim() ? form.wire_api.trim() : undefined,
-    env_key: form.env_key?.trim() ? form.env_key.trim() : undefined,
-    requires_openai_auth: requiresOpenAiAuth.value,
-    auth_mode: form.auth_mode,
-    openai_login_method: form.openai_login_method,
-    extra,
-  }
+  const request = buildCodexProfileRequest(form, resolvedModelValue.value)
 
   try {
     saving.value = true
@@ -1457,83 +1060,4 @@ onActivated(() => {
   @apply rounded-md px-2 py-0.5 text-xs font-medium text-white/80 glass-surface;
 }
 
-.codex-profiles-modal-overlay {
-  @apply fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-md;
-}
-
-.codex-profiles-modal-card {
-  @apply glass-modal max-h-[90vh] w-full max-w-3xl overflow-y-auto shadow-2xl;
-}
-
-.codex-profiles-modal-header {
-  @apply sticky top-0 z-10 flex items-center justify-between border-b border-white/5 px-6 py-4 glass-effect-strong;
-}
-
-.codex-profiles-modal-close {
-  @apply rounded-lg p-1 text-white/50 transition-colors hover:bg-white/10;
-}
-
-.codex-profiles-modal-body {
-  @apply space-y-6 p-6;
-}
-
-.codex-profiles-form-grid {
-  @apply grid grid-cols-1 gap-6;
-}
-
-.codex-profiles-form-grid--two-col {
-  @apply grid grid-cols-1 gap-4 md:grid-cols-2;
-}
-
-.codex-profiles-form-grid--three-col {
-  @apply grid grid-cols-1 gap-4 md:grid-cols-3;
-}
-
-.codex-profiles-field {
-  @apply space-y-1.5;
-}
-
-.codex-profiles-field__label {
-  @apply text-sm font-semibold text-white/80;
-}
-
-.codex-profiles-field__label--between {
-  @apply flex justify-between;
-}
-
-.codex-profiles-input {
-  @apply input;
-}
-
-.codex-profiles-input--mono {
-  @apply font-mono text-sm;
-}
-
-.codex-profiles-input--spaced {
-  @apply mt-2;
-}
-
-.codex-profiles-textarea {
-  @apply text-xs leading-relaxed;
-}
-
-.codex-profiles-checkbox-row {
-  @apply flex items-center gap-3 rounded-lg border border-white/5 p-3 glass-surface;
-}
-
-.codex-profiles-checkbox {
-  @apply h-5 w-5 rounded border-white/10 text-accent-primary focus:ring-accent-primary/20;
-}
-
-.codex-profiles-checkbox-label {
-  @apply cursor-pointer select-none text-sm font-medium text-white;
-}
-
-.codex-profiles-checkbox-label--muted {
-  @apply cursor-default text-white/70;
-}
-
-.codex-profiles-modal-footer {
-  @apply flex justify-end gap-3 border-t border-white/5 px-6 py-4 glass-surface;
-}
 </style>
