@@ -1,10 +1,10 @@
 <template>
   <Teleport to="body">
     <Transition
-      enter-active-class="transition-opacity duration-200 ease-out"
+      enter-active-class="base-modal-fade-enter-active"
       enter-from-class="opacity-0"
       enter-to-class="opacity-100"
-      leave-active-class="transition-opacity duration-150 ease-in"
+      leave-active-class="base-modal-fade-leave-active"
       leave-from-class="opacity-100"
       leave-to-class="opacity-0"
       @after-enter="handleAfterEnter"
@@ -12,7 +12,7 @@
     >
       <div
         v-if="modelValue"
-        class="fixed inset-0 z-50 flex items-center justify-center p-4"
+        class="base-modal-root fixed inset-0 flex items-center justify-center p-4"
         @click.self="handleBackdropClick"
       >
         <!-- 背景遮罩 -->
@@ -23,10 +23,10 @@
 
         <!-- 模态框内容 -->
         <Transition
-          enter-active-class="transition-all duration-200 ease-out"
+          enter-active-class="base-modal-panel-enter-active"
           enter-from-class="opacity-0 scale-95 translate-y-4"
           enter-to-class="opacity-100 scale-100 translate-y-0"
-          leave-active-class="transition-all duration-150 ease-in"
+          leave-active-class="base-modal-panel-leave-active"
           leave-from-class="opacity-100 scale-100 translate-y-0"
           leave-to-class="opacity-0 scale-95 translate-y-4"
         >
@@ -280,3 +280,29 @@ defineExpose({
   close: handleClose,
 })
 </script>
+
+<style scoped>
+.base-modal-root {
+  z-index: var(--layer-modal);
+}
+
+.base-modal-fade-enter-active {
+  transition: opacity var(--motion-enter-duration) var(--motion-enter-ease);
+}
+
+.base-modal-fade-leave-active {
+  transition: opacity var(--motion-exit-duration) var(--motion-exit-ease);
+}
+
+.base-modal-panel-enter-active {
+  transition:
+    opacity var(--motion-enter-duration) var(--motion-enter-ease),
+    transform var(--motion-enter-duration) var(--motion-enter-ease);
+}
+
+.base-modal-panel-leave-active {
+  transition:
+    opacity var(--motion-exit-duration) var(--motion-exit-ease),
+    transform var(--motion-exit-duration) var(--motion-exit-ease);
+}
+</style>

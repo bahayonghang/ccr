@@ -1,7 +1,7 @@
 <template>
   <div
     data-tauri-drag-region
-    class="fixed top-0 left-0 right-0 z-[60] flex h-9 items-center justify-between border-b border-border-default/30 bg-bg-base/82 px-3 text-white transition-colors duration-200 select-none backdrop-blur-xl"
+    class="titlebar-shell fixed top-0 left-0 right-0 flex h-9 items-center justify-between border-b border-border-default/30 px-3 text-white select-none"
   >
     <!-- Left: App Icon and Menu -->
     <div
@@ -36,7 +36,7 @@
         <!-- Dropdown -->
         <div
           v-if="isMenuOpen"
-          class="absolute top-full left-0 mt-1 w-48 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border border-black/10 dark:border-white/10 rounded-lg shadow-2xl py-1 z-[100] overflow-hidden transform origin-top-left transition-interactive"
+          class="titlebar-menu absolute top-full left-0 mt-1 w-48 overflow-hidden rounded-lg py-1"
         >
           <button
             class="w-full text-left px-3 py-1.5 text-xs text-slate-700 dark:text-white/80 hover:text-slate-900 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 transition-colors flex items-center"
@@ -159,7 +159,7 @@
       >
         <div
           v-if="showAboutDialog"
-          class="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/20 dark:bg-black/60 backdrop-blur-md"
+          class="titlebar-dialog-backdrop fixed inset-0 flex items-center justify-center p-4"
           @click.self="showAboutDialog = false"
         >
           <div class="surface-modal relative w-full max-w-sm overflow-hidden overflow-y-auto rounded-2xl border border-border-default/70">
@@ -332,6 +332,29 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+.titlebar-shell {
+  z-index: var(--layer-sticky);
+  background: var(--surface-status-bg);
+  backdrop-filter: var(--surface-status-blur);
+  box-shadow: var(--surface-status-shadow);
+  transition: background-color var(--motion-subtle-duration) var(--motion-subtle-ease),
+    border-color var(--motion-subtle-duration) var(--motion-subtle-ease);
+}
+
+.titlebar-menu {
+  z-index: var(--layer-dropdown);
+  background: var(--surface-modal-bg);
+  backdrop-filter: var(--surface-modal-blur);
+  border: 1px solid var(--surface-modal-border);
+  box-shadow: var(--surface-modal-shadow);
+}
+
+.titlebar-dialog-backdrop {
+  z-index: var(--layer-modal);
+  background: rgb(15 23 42 / 20%);
+  backdrop-filter: blur(12px);
+}
+
 .titlebar-control-btn {
   width: 46px;
   height: 2.25rem;

@@ -1,20 +1,28 @@
 <template>
   <div
-    class="ui-card group relative overflow-hidden transition-interactive duration-300"
+    class="ui-card group relative overflow-hidden"
     :class="[
       `ui-card--${normalizedVariant}`,
+      `ui-card--surface-${resolvedSurface}`,
+      `ui-card--elevation-${resolvedElevation}`,
+      `ui-card--motion-${resolvedMotion}`,
+      `ui-card--density-${resolvedDensity}`,
       isInteractive ? 'ui-card--interactive' : '',
-      disabled ? 'ui-card--disabled' : '',
-      className,
+      props.disabled ? 'ui-card--disabled' : '',
+      props.className,
     ]"
-    :style="style"
-    :aria-disabled="disabled || undefined"
+    :data-surface="resolvedSurface"
+    :data-elevation="resolvedElevation"
+    :data-motion="resolvedMotion"
+    :data-density="resolvedDensity"
+    :style="props.style"
+    :aria-disabled="props.disabled || undefined"
     @click="handleClick"
     @mouseenter="handleMouseEnter"
     @mouseleave="handleMouseLeave"
   >
     <div
-      v-if="pattern"
+      v-if="props.pattern"
       class="absolute inset-0 ui-card-pattern pointer-events-none"
       :style="{ backgroundImage: backgroundPattern }"
     />
@@ -26,7 +34,7 @@
     />
 
     <div
-      v-if="gradientBorder"
+      v-if="props.gradientBorder"
       class="absolute inset-0 ui-card-inherit-radius pointer-events-none overflow-hidden"
     >
       <div
@@ -70,7 +78,7 @@
 
     <div
       class="relative z-10 h-full"
-      :class="[paddingClasses, bodyClass]"
+      :class="[paddingClasses, props.bodyClass]"
     >
       <slot />
     </div>
@@ -84,9 +92,17 @@ import type { CSSProperties } from 'vue'
 type CardVariant = 'default' | 'base' | 'elevated' | 'glass' | 'outline' | 'neko'
 type PaddingSize = 'none' | 'sm' | 'md' | 'lg'
 type GlowColor = 'primary' | 'secondary' | 'success' | 'warning' | 'danger'
+type SurfaceKind = 'workspace' | 'card' | 'modal' | 'status'
+type ElevationLevel = 0 | 1 | 2 | 3 | 4
+type MotionKind = 'none' | 'subtle' | 'standard'
+type DensityKind = 'compact' | 'default'
 
 interface Props {
   variant?: CardVariant
+  surface?: SurfaceKind
+  elevation?: ElevationLevel
+  motion?: MotionKind
+  density?: DensityKind
   hover?: boolean
   interactive?: boolean
   glow?: boolean
@@ -101,6 +117,29 @@ interface Props {
   style?: Record<string, string | number>
 }
 
+const surfaceByVariant: Record<Exclude<CardVariant, 'default'>, SurfaceKind> = {
+  base: 'workspace',
+  elevated: 'card',
+  glass: 'workspace',
+  outline: 'status',
+  neko: 'card',
+}
+
+const variantBySurface: Record<SurfaceKind, Exclude<CardVariant, 'default'>> = {
+  workspace: 'glass',
+  card: 'elevated',
+  modal: 'elevated',
+  status: 'outline',
+}
+
+const elevationByVariant: Record<Exclude<CardVariant, 'default'>, ElevationLevel> = {
+  base: 1,
+  elevated: 3,
+  glass: 2,
+  outline: 0,
+  neko: 4,
+}
+
 const props = withDefaults(defineProps<Props>(), {
   variant: 'elevated',
   hover: false,
@@ -110,7 +149,6 @@ const props = withDefaults(defineProps<Props>(), {
   glowColor: 'primary',
   gradientBorder: false,
   pattern: false,
-  padding: 'md',
   disabled: false,
   className: '',
   bodyClass: '',
@@ -124,10 +162,16 @@ const emit = defineEmits<{
 }>()
 
 const normalizedVariant = computed<Exclude<CardVariant, 'default'>>(() =>
-  props.variant === 'default' ? 'elevated' : props.variant
+  props.variant === 'default'
+    ? (props.surface ? variantBySurface[props.surface] : 'elevated')
+    : props.variant
 )
 
 const isInteractive = computed(() => !props.disabled && (props.interactive || props.hover))
+const resolvedSurface = computed<SurfaceKind>(() => props.surface ?? surfaceByVariant[normalizedVariant.value])
+const resolvedElevation = computed<ElevationLevel>(() => props.elevation ?? elevationByVariant[normalizedVariant.value])
+const resolvedMotion = computed<MotionKind>(() => props.motion ?? (isInteractive.value ? 'standard' : 'subtle'))
+const resolvedDensity = computed<DensityKind>(() => props.density ?? 'default')
 const showGlow = computed(() => props.glow || props.glowEffect || normalizedVariant.value === 'neko')
 
 const paddingClasses = computed(() => {
@@ -137,7 +181,8 @@ const paddingClasses = computed(() => {
     md: 'p-6',
     lg: 'p-8',
   }
-  return map[props.padding]
+  const fallbackPadding: PaddingSize = resolvedDensity.value === 'compact' ? 'sm' : 'md'
+  return map[props.padding ?? fallbackPadding]
 })
 
 const glowColors: Record<GlowColor, string> = {
@@ -181,6 +226,12 @@ const handleMouseLeave = (event: MouseEvent) => {
 </script>
 
 <style scoped>
+.ui-card {
+  transition-property: transform, box-shadow, border-color, background-color, opacity;
+  transition-duration: var(--ui-card-duration, var(--motion-standard-duration));
+  transition-timing-function: var(--ui-card-ease, var(--motion-standard-ease));
+}
+
 .ui-card--disabled {
   @apply cursor-not-allowed opacity-50;
 }
@@ -189,6 +240,7 @@ const handleMouseLeave = (event: MouseEvent) => {
   @apply rounded-xl border border-white/10 shadow-sm;
 
   background: var(--color-bg-elevated);
+  box-shadow: var(--ui-card-shadow, var(--shadow-sm));
 }
 
 .ui-card--elevated {
@@ -197,7 +249,7 @@ const handleMouseLeave = (event: MouseEvent) => {
   background: var(--surface-card-bg);
   border: 1px solid var(--surface-card-border);
   backdrop-filter: var(--surface-card-blur);
-  box-shadow: var(--surface-card-shadow), var(--glass-inner-glow);
+  box-shadow: var(--ui-card-shadow, var(--surface-card-shadow)), var(--glass-inner-glow);
 }
 
 .ui-card--glass {
@@ -206,11 +258,13 @@ const handleMouseLeave = (event: MouseEvent) => {
   background: var(--surface-workspace-bg);
   border: 1px solid var(--surface-workspace-border);
   backdrop-filter: var(--surface-workspace-blur);
-  box-shadow: var(--surface-workspace-shadow);
+  box-shadow: var(--ui-card-shadow, var(--surface-workspace-shadow));
 }
 
 .ui-card--outline {
   @apply rounded-xl border border-white/20 bg-transparent backdrop-blur-md;
+
+  box-shadow: var(--ui-card-shadow, none);
 }
 
 .ui-card--neko {
@@ -220,9 +274,16 @@ const handleMouseLeave = (event: MouseEvent) => {
   border-color: rgb(var(--color-accent-primary-rgb) / 20%);
   backdrop-filter: var(--surface-card-blur);
   box-shadow:
-    var(--surface-card-shadow),
+    var(--ui-card-shadow, var(--surface-card-shadow)),
     var(--glass-inner-glow),
     0 0 24px rgb(var(--color-accent-primary-rgb) / 18%);
+}
+
+.ui-card--surface-modal.ui-card--elevated,
+.ui-card--surface-modal.ui-card--glass {
+  background: var(--surface-modal-bg);
+  border-color: var(--surface-modal-border);
+  backdrop-filter: var(--surface-modal-blur);
 }
 
 .ui-card--interactive {
@@ -230,11 +291,53 @@ const handleMouseLeave = (event: MouseEvent) => {
 }
 
 .ui-card--interactive:hover {
-  transform: translateY(-0.18rem);
+  transform: translateY(var(--ui-card-hover-translate, -0.18rem));
   box-shadow:
-    var(--surface-card-shadow),
+    var(--ui-card-hover-shadow, var(--ui-card-shadow, var(--surface-card-shadow))),
     0 18px 40px rgb(var(--color-accent-primary-rgb) / 12%);
   border-color: rgb(var(--color-accent-primary-rgb) / 28%);
+}
+
+.ui-card--elevation-0 {
+  --ui-card-shadow: var(--elevation-0);
+  --ui-card-hover-shadow: var(--elevation-0);
+}
+
+.ui-card--elevation-1 {
+  --ui-card-shadow: var(--elevation-1);
+  --ui-card-hover-shadow: var(--elevation-2);
+}
+
+.ui-card--elevation-2 {
+  --ui-card-shadow: var(--elevation-2);
+  --ui-card-hover-shadow: var(--elevation-3);
+}
+
+.ui-card--elevation-3 {
+  --ui-card-shadow: var(--elevation-3);
+  --ui-card-hover-shadow: var(--elevation-4);
+}
+
+.ui-card--elevation-4 {
+  --ui-card-shadow: var(--elevation-4);
+  --ui-card-hover-shadow: var(--shadow-2xl);
+}
+
+.ui-card--motion-none {
+  --ui-card-duration: var(--motion-none-duration);
+  --ui-card-hover-translate: 0px;
+}
+
+.ui-card--motion-subtle {
+  --ui-card-duration: var(--motion-subtle-duration);
+  --ui-card-ease: var(--motion-subtle-ease);
+  --ui-card-hover-translate: -2px;
+}
+
+.ui-card--motion-standard {
+  --ui-card-duration: var(--motion-standard-duration);
+  --ui-card-ease: var(--motion-standard-ease);
+  --ui-card-hover-translate: -0.18rem;
 }
 
 .ui-card-pattern {

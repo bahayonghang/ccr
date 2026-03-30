@@ -6,7 +6,7 @@
     <!-- Skip Link -->
     <a
       href="#main-content"
-      class="skip-to-content z-50"
+      class="skip-to-content layout-layer-toast"
     >
       {{ $t('common.skipToContent') || 'Skip to content' }}
     </a>
@@ -15,7 +15,7 @@
     <button
       v-if="showMobileBackdrop"
       type="button"
-      class="fixed inset-0 z-40 bg-slate-950/55 backdrop-blur-[2px] lg:hidden"
+      class="fixed inset-0 layout-layer-modal-backdrop bg-slate-950/55 backdrop-blur-[2px] lg:hidden"
       :aria-label="closeNavigationLabel"
       @click="closeSidebar"
     />
@@ -23,12 +23,12 @@
     <div
       v-if="hasSidebar"
       id="primary-navigation-panel"
-      class="sidebar-glass flex flex-col transition-all duration-300 ease-out will-change-[width,transform]"
+      class="sidebar-glass layout-sidebar flex flex-col transition-all duration-300 ease-out will-change-[width,transform]"
       :class="[
         isResizing ? 'select-none' : '',
         isMobileSidebar
-          ? 'fixed inset-y-0 left-0 z-50 w-[min(86vw,320px)] max-w-[320px] border-r border-white/10 shadow-2xl shadow-slate-950/30'
-          : 'relative z-40 flex-shrink-0',
+          ? 'fixed inset-y-0 left-0 layout-layer-modal w-[min(86vw,320px)] max-w-[320px] border-r border-white/10 shadow-2xl shadow-slate-950/30'
+          : 'relative layout-layer-dropdown flex-shrink-0',
         isMobileSidebar && !isSidebarOpen ? '-translate-x-full pointer-events-none' : 'translate-x-0',
         isMobileSidebar && isSidebarOpen ? 'pointer-events-auto' : ''
       ]"
@@ -38,7 +38,7 @@
       <button
         v-if="!isMobileSidebar"
         type="button"
-        class="group absolute -right-2 top-0 z-50 h-full w-5 cursor-col-resize rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary/30"
+        class="group absolute -right-2 top-0 layout-layer-popover h-full w-5 cursor-col-resize rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary/30"
         :aria-label="t('common.resizeSidebar')"
         aria-controls="primary-navigation"
         :title="t('common.resizeSidebar')"
@@ -125,7 +125,7 @@
           <div class="absolute inset-0 user-card-accent-mesh" />
 
           <!-- Inner content -->
-          <div class="relative z-10 flex flex-col gap-3 p-3.5 backdrop-blur-md">
+          <div class="relative flex flex-col gap-3 p-3.5 backdrop-blur-md">
             <div class="flex items-center justify-between">
               <!-- Session Status -->
               <p class="flex items-center gap-2 text-[11px] font-mono tracking-wide">
@@ -140,7 +140,7 @@
               </p>
               
               <!-- Theme Toggle -->
-              <ThemeToggle class="relative z-20" />
+              <ThemeToggle class="relative" />
             </div>
 
             <!-- Version -->
@@ -164,7 +164,7 @@
       :class="{ 'content-main--theme-stage': shouldUseThemeStage }"
     >
       <!-- Top Bar -->
-      <div class="topbar-glass sticky top-0 z-30 flex min-h-[78px] shrink-0 items-center justify-between border-b border-border-default/40 px-4 pt-5 sm:px-6 sm:pt-6">
+      <div class="topbar-glass sticky top-0 layout-layer-sticky flex min-h-[78px] shrink-0 items-center justify-between border-b border-border-default/40 px-4 pt-5 sm:px-6 sm:pt-6">
         <!-- Left: Breadcrumbs or Back + Title -->
         <div class="flex min-w-0 items-center gap-3 text-sm text-text-secondary">
           <button
@@ -312,7 +312,7 @@ const [appNamePrefix = APP_NAME, appNameSuffix = ''] = APP_NAME.split(' ')
 const appVersionLabel = APP_VERSION_LABEL
 const navSections = mainLayoutNavSections
 const cachedViews = [
-  'ConfigsView', 'CommandsView', 'CodexAuthView', 'CodexProfilesView', 'CodexMcpView',
+  'ConfigsView', 'CommandsView', 'CodexView', 'CodexAuthView', 'CodexProfilesView', 'CodexMcpView',
   'UnifiedSkillsView',
 ]
 
@@ -380,6 +380,30 @@ const {
   box-shadow:
     inset 0 -1px 0 rgb(var(--color-border-default-rgb) / 42%),
     var(--surface-status-shadow);
+}
+
+.layout-layer-dropdown {
+  z-index: var(--layer-dropdown);
+}
+
+.layout-layer-sticky {
+  z-index: var(--layer-sticky);
+}
+
+.layout-layer-modal-backdrop {
+  z-index: var(--layer-modal-backdrop);
+}
+
+.layout-layer-modal {
+  z-index: var(--layer-modal);
+}
+
+.layout-layer-popover {
+  z-index: var(--layer-popover);
+}
+
+.layout-layer-toast {
+  z-index: var(--layer-toast);
 }
 
 /* Content area compositing fix:

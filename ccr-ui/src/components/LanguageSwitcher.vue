@@ -38,7 +38,7 @@
     >
       <div
         v-if="showDropdown"
-        class="glass-surface absolute left-0 z-50 mt-2 w-44 overflow-hidden rounded-xl border border-border-default/70 shadow-2xl"
+        class="language-switcher__menu glass-surface absolute left-0 mt-2 w-44 overflow-hidden rounded-xl border border-border-default/70 shadow-2xl"
         role="listbox"
       >
         <button
@@ -71,7 +71,7 @@
     <!-- Click outside to close -->
     <div
       v-if="showDropdown"
-      class="fixed inset-0 z-40"
+      class="language-switcher__scrim fixed inset-0"
       @click="showDropdown = false"
     />
   </div>
@@ -128,6 +128,14 @@ const switchLanguage = async (langCode: string) => {
 </script>
 
 <style scoped>
+.language-switcher__menu {
+  z-index: var(--layer-dropdown);
+}
+
+.language-switcher__scrim {
+  z-index: var(--layer-sticky);
+}
+
 .lang-option {
   position: relative;
 }

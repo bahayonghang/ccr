@@ -131,7 +131,7 @@ onUnmounted(() => {
     >
       <div
         v-if="isOpen"
-        class="glass-surface absolute right-0 top-full z-50 mt-1 w-64 overflow-hidden rounded-xl border border-border-default/70 shadow-xl"
+        class="env-switcher__menu glass-surface absolute right-0 top-full mt-1 w-64 overflow-hidden rounded-xl border border-border-default/70 shadow-xl"
         role="listbox"
       >
         <!-- 标题栏 -->
@@ -203,3 +203,9 @@ onUnmounted(() => {
     </Transition>
   </div>
 </template>
+
+<style scoped>
+.env-switcher__menu {
+  z-index: var(--layer-dropdown);
+}
+</style>

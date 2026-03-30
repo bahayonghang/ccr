@@ -1,113 +1,8 @@
 @layer base {
   :root {
-    /* ========================================================================
-       NEKOMATA KAWAII DESIGN SYSTEM v1.0
-       Sakura Pink + Lavender Purple + Cream
-       ======================================================================== */
+    /* Compatibility bridge:
+       keep legacy variable names alive, but source all values from tokens.css. */
 
-    /* --- Color Palette: Light Mode (Kawaii Light) --- */
-
-    /* Background Hierarchy */
-    --color-bg-base: #F3F1F8;
-    --color-bg-base-rgb: 243 241 248;
-
-    /* Faint sakura pink */
-    --color-bg-elevated: #FAF8FD;
-    --color-bg-elevated-rgb: 250 248 253;
-
-    /* Pure white */
-    --color-bg-surface: #EBE7F4;
-    --color-bg-surface-rgb: 235 231 244;
-
-    /* Light pink surface */
-    --color-bg-overlay: #DDD6EB;
-    --color-bg-overlay-rgb: 221 214 235;
-
-    /* Pink overlay */
-
-    /* Text Hierarchy */
-    --color-text-primary: #1D1A27;
-    --color-text-primary-rgb: 29 26 39;
-
-    /* Deep purple-brown */
-    --color-text-secondary: #5C5470;
-    --color-text-secondary-rgb: 92 84 112;
-
-    /* Soft purple */
-    --color-text-muted: #7F7694;
-    --color-text-muted-rgb: 127 118 148;
-
-    /* Light purple */
-    --color-text-ghost: #A79EB9;
-    --color-text-ghost-rgb: 167 158 185;
-
-    /* Faint purple */
-    --color-text-disabled: #C9C2D7;
-    --color-text-disabled-rgb: 201 194 215;
-
-    /* Disabled grey-purple */
-    --color-text-inverted: #FFF;
-    --color-text-inverted-rgb: 255 255 255;
-
-    /* Border */
-    --color-border-subtle: #ECE7F3;
-    --color-border-subtle-rgb: 236 231 243;
-
-    /* Lavender blush */
-    --color-border-default: #D2CADA;
-    --color-border-default-rgb: 210 202 218;
-
-    /* Soft pink */
-    --color-border-strong: #B3A6C2;
-    --color-border-strong-rgb: 179 166 194;
-
-    /* Medium pink */
-    --color-border-interactive: #CA8FD1;
-    --color-border-interactive-rgb: 202 143 209;
-
-    /* Focus pink */
-
-    /* Brand Accents */
-    --color-accent-primary: #CA8FD1;
-
-    /* Neko pink (pink-400) */
-    --color-accent-secondary: #7F78D8;
-
-    /* Lavender purple (violet-400) */
-    --color-success: #3CA88D;
-
-    /* Emerald-400 */
-    --color-warning: #D6A143;
-
-    /* Amber-400 */
-    --color-danger: #D46F88;
-
-    /* Rose-400 */
-    --color-info: #69A8D8;
-
-    /* Purple-400 */
-
-    /* RGB Values for Opacity Manipulation */
-    --color-accent-primary-rgb: 202 143 209;
-    --color-accent-secondary-rgb: 127 120 216;
-    --color-success-rgb: 60 168 141;
-    --color-warning-rgb: 214 161 67;
-    --color-danger-rgb: 212 111 136;
-    --color-info-rgb: 105 168 216;
-
-    /* --- Platform Accent Tokens --- */
-    --color-platform-claude: #FF6B35;
-    --color-platform-claude-rgb: 255 107 53;
-    --color-platform-codex: #10B981;
-    --color-platform-codex-rgb: 16 185 129;
-    --color-platform-gemini: #4285F4;
-    --color-platform-gemini-rgb: 66 133 244;
-    --color-platform-qwen: #00B5E2;
-    --color-platform-qwen-rgb: 0 181 226;
-    --color-platform-qoder: #FAAD14;
-    --color-platform-qoder-rgb: 250 173 20;
-
-    /* --- Legacy Compatibility Aliases --- */
     --text-primary: var(--color-text-primary);
     --text-secondary: var(--color-text-secondary);
     --text-muted: var(--color-text-muted);
@@ -118,205 +13,52 @@
     --bg-surface: var(--color-bg-surface);
     --bg-overlay: var(--color-bg-overlay);
     --bg-card: var(--color-bg-elevated);
+    --bg-elevated: var(--color-bg-elevated);
     --border-color: var(--color-border-default);
     --accent-primary: var(--color-accent-primary);
+    --accent-primary-rgb: var(--color-accent-primary-rgb);
     --accent-secondary: var(--color-accent-secondary);
+    --accent-tertiary: var(--color-info);
     --accent-success: var(--color-success);
     --accent-warning: var(--color-warning);
+    --accent-warning-rgb: var(--color-warning-rgb);
     --accent-danger: var(--color-danger);
+    --accent-danger-rgb: var(--color-danger-rgb);
     --accent-info: var(--color-info);
     --platform-claude: var(--color-platform-claude);
     --platform-codex: var(--color-platform-codex);
     --platform-gemini: var(--color-platform-gemini);
     --platform-qwen: var(--color-platform-qwen);
     --platform-qoder: var(--color-platform-qoder);
-
-    /* --- Spacing System --- */
-    --space-1: 0.25rem;
-
-    /* 4px */
-    --space-2: 0.5rem;
-
-    /* 8px */
-    --space-3: 0.75rem;
-
-    /* 12px */
-    --space-4: 1rem;
-
-    /* 16px */
-    --space-5: 1.25rem;
-
-    /* 20px */
-    --space-6: 1.5rem;
-
-    /* 24px */
-    --space-8: 2rem;
-
-    /* 32px */
-    --space-10: 2.5rem;
-
-    /* 40px */
-    --space-12: 3rem;
-
-    /* 48px */
-    --space-16: 4rem;
-
-    /* 64px */
-    --space-20: 5rem;
-
-    /* 80px */
-
-    /* --- Radius System --- */
-    --radius-sm: 0.25rem;
-
-    /* 4px */
-    --radius-md: 0.5rem;
-
-    /* 8px */
-    --radius-lg: 0.75rem;
-
-    /* 12px */
-    --radius-xl: 1rem;
-
-    /* 16px */
-    --radius-full: 9999px;
-
-    /* --- Shadow System --- */
-    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 5%);
-    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 8%), 0 2px 4px -2px rgb(0 0 0 / 5%);
-    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 8%), 0 4px 6px -4px rgb(0 0 0 / 5%);
-    --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 8%), 0 8px 10px -6px rgb(0 0 0 / 5%);
-
-    /* Glows (Light mode - subtle pink) */
-    --shadow-glow-primary: 0 0 15px rgb(244 114 182 / 20%);
-    --shadow-glow-success: 0 0 15px rgb(52 211 153 / 15%);
-    --shadow-glow-danger: 0 0 15px rgb(251 113 133 / 15%);
-
-    /* --- Typography --- */
-    --font-sans: "MapleBright", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
-    --font-brand: "MapleBright", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
-    --font-mono: "MapleBright", "JetBrains Mono", "Fira Code", monospace;
-    --font-normal: 400;
-    --font-medium: 500;
-    --font-semibold: 500;
-    --font-bold: 500;
-    --font-extrabold: 500;
-    --text-xs: 0.75rem;
-    --text-sm: 0.875rem;
-    --text-base: 1rem;
-    --text-lg: 1.125rem;
-    --text-xl: 1.25rem;
-    --text-2xl: 1.5rem;
-    --text-3xl: 1.875rem;
-
-    /* --- Animation --- */
-    --duration-fast: 150ms;
-    --duration-normal: 300ms;
-    --duration-slow: 500ms;
-    --ease-default: cubic-bezier(0.4, 0, 0.2, 1);
-    --ease-in: cubic-bezier(0.4, 0, 1, 1);
-    --ease-out: cubic-bezier(0, 0, 0.2, 1);
-    --ease-spring: cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  }
-
-  /* --- Dark Mode (Kawaii Dark - Deep Purple Night) --- */
-  :root[class~="dark"],
-  [data-theme="dark"] {
-    /* Background Hierarchy */
-    --color-bg-base: #0F1120;
-    --color-bg-base-rgb: 15 17 32;
-
-    /* Deep purple night */
-    --color-bg-elevated: #171A2B;
-    --color-bg-elevated-rgb: 23 26 43;
-
-    /* Dark purple */
-    --color-bg-surface: #1F2237;
-    --color-bg-surface-rgb: 31 34 55;
-
-    /* Medium purple */
-    --color-bg-overlay: #2A2F4A;
-    --color-bg-overlay-rgb: 42 47 74;
-
-    /* Light purple overlay */
-
-    /* Text Hierarchy */
-    --color-text-primary: #F4EFFF;
-    --color-text-primary-rgb: 244 239 255;
-
-    /* Pink-white */
-    --color-text-secondary: #C8BFDD;
-    --color-text-secondary-rgb: 200 191 221;
-
-    /* Pink-300 */
-    --color-text-muted: #9488B0;
-    --color-text-muted-rgb: 148 136 176;
-
-    /* Purple-400 */
-    --color-text-ghost: #6C6482;
-    --color-text-ghost-rgb: 108 100 130;
-
-    /* Dark purple */
-    --color-text-disabled: #514A67;
-    --color-text-disabled-rgb: 81 74 103;
-
-    /* Disabled dark purple */
-    --color-text-inverted: #0F1120;
-    --color-text-inverted-rgb: 15 17 32;
-
-    /* Border */
-    --color-border-subtle: #272A3D;
-    --color-border-subtle-rgb: 39 42 61;
-
-    /* Medium purple */
-    --color-border-default: #35384D;
-    --color-border-default-rgb: 53 56 77;
-
-    /* Light purple */
-    --color-border-strong: #4A4F69;
-    --color-border-strong-rgb: 74 79 105;
-
-    /* Strong purple */
-    --color-border-interactive: #D7A2E6;
-    --color-border-interactive-rgb: 215 162 230;
-
-    /* Pink-300 */
-
-    /* Brand Accents (Brighter for dark mode) */
-    --color-accent-primary: #D7A2E6;
-
-    /* Neko pink bright (pink-300) */
-    --color-accent-secondary: #978CEC;
-
-    /* Lavender bright (violet-300) */
-    --color-success: #64C0A6;
-
-    /* Emerald-300 */
-    --color-warning: #E1B45B;
-
-    /* Amber-300 */
-    --color-danger: #EA8FAA;
-
-    /* Rose-300 */
-    --color-info: #84B8EA;
-
-    /* Purple-300 */
-
-    --color-accent-primary-rgb: 215 162 230;
-    --color-accent-secondary-rgb: 151 140 236;
-    --color-success-rgb: 100 192 166;
-    --color-warning-rgb: 225 180 91;
-    --color-danger-rgb: 234 143 170;
-    --color-info-rgb: 132 184 234;
-
-    /* Glows (Stronger in dark mode) */
-    --shadow-glow-primary: 0 0 20px rgb(249 168 212 / 30%);
-    --shadow-glow-success: 0 0 20px rgb(110 231 183 / 25%);
-    --shadow-glow-danger: 0 0 20px rgb(253 164 175 / 25%);
-
-    /* Stronger Shadows for depth */
-    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 30%), 0 2px 4px -2px rgb(0 0 0 / 30%);
-    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 40%), 0 4px 6px -4px rgb(0 0 0 / 40%);
-    --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 50%), 0 8px 10px -6px rgb(0 0 0 / 50%);
+    --color-accent-danger: var(--color-danger);
+    --color-accent-info: var(--color-info);
+    --color-accent-tertiary-rgb: var(--color-info-rgb);
+    --color-slate-rgb: var(--color-bg-overlay-rgb);
+    --color-slate-dark-rgb: var(--color-bg-surface-rgb);
+    --space-xs: var(--space-1);
+    --space-sm: var(--space-2);
+    --space-md: var(--space-4);
+    --space-lg: var(--space-6);
+    --space-xl: var(--space-8);
+    --space-3xl: var(--space-16);
+    --font-family-mono: var(--font-mono);
+    --font-size-base: var(--text-base);
+    --font-size-xl: var(--text-xl);
+    --font-size-3xl: var(--text-3xl);
+    --font-weight-medium: var(--font-medium);
+    --font-weight-semibold: var(--font-semibold);
+    --font-weight-bold: var(--font-bold);
+    --line-height-tight: var(--leading-tight);
+    --line-height-relaxed: var(--leading-relaxed);
+    --glass-bg: var(--glass-bg-medium);
+    --glass-bg-heavy: var(--glass-bg-strong);
+    --glass-border: var(--glass-border-medium);
+    --shadow-small: var(--shadow-sm);
+    --shadow-medium: var(--shadow-md);
+    --gradient-secondary: linear-gradient(
+      135deg,
+      rgb(var(--color-info-rgb) / 92%),
+      rgb(var(--color-accent-secondary-rgb) / 84%)
+    );
   }
 }

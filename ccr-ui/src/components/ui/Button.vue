@@ -1,16 +1,20 @@
 <template>
   <button
-    :type="type"
+    :type="props.type"
     :class="classes"
-    :data-variant="variant"
-    :data-size="size"
-    :disabled="disabled || loading"
-    :aria-busy="loading || undefined"
+    :data-variant="props.variant"
+    :data-size="resolvedSize"
+    :data-surface="resolvedSurface"
+    :data-elevation="resolvedElevation"
+    :data-motion="resolvedMotion"
+    :data-density="resolvedDensity"
+    :disabled="props.disabled || props.loading"
+    :aria-busy="props.loading || undefined"
     @click="handleClick"
   >
     <!-- Loading Spinner -->
     <svg 
-      v-if="loading" 
+      v-if="props.loading"
       class="animate-spin -ml-1 mr-2 h-4 w-4" 
       xmlns="http://www.w3.org/2000/svg" 
       fill="none" 
@@ -33,7 +37,7 @@
 
     <!-- Leading Icon -->
     <span
-      v-if="$slots.leading && !loading"
+      v-if="$slots.leading && !props.loading"
       class="mr-2 flex items-center"
     >
       <slot name="leading" />
@@ -55,9 +59,18 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 
+type ButtonSurface = 'workspace' | 'card' | 'modal' | 'status'
+type ButtonElevation = 0 | 1 | 2 | 3 | 4
+type ButtonMotion = 'none' | 'subtle' | 'standard'
+type ButtonDensity = 'compact' | 'default'
+
 interface Props {
-  variant?: 'primary' | 'secondary' | 'accent' | 'outline' | 'ghost' | 'glass' | 'danger'
+  variant?: 'primary' | 'secondary' | 'accent' | 'outline' | 'ghost' | 'glass' | 'danger' | 'success'
   size?: 'sm' | 'md' | 'lg' | 'icon'
+  surface?: ButtonSurface
+  elevation?: ButtonElevation
+  motion?: ButtonMotion
+  density?: ButtonDensity
   type?: 'button' | 'submit' | 'reset'
   disabled?: boolean
   loading?: boolean
@@ -66,7 +79,6 @@ interface Props {
 
 const props = withDefaults(defineProps<Props>(), {
   variant: 'primary',
-  size: 'md',
   type: 'button',
   disabled: false,
   loading: false,
@@ -81,11 +93,26 @@ const handleClick = (e: MouseEvent) => {
   }
 }
 
+const resolvedDensity = computed<ButtonDensity>(() => props.density ?? 'default')
+const resolvedSize = computed<NonNullable<Props['size']>>(() => props.size ?? (resolvedDensity.value === 'compact' ? 'sm' : 'md'))
+const resolvedSurface = computed<ButtonSurface>(() => props.surface ?? 'status')
+const resolvedMotion = computed<ButtonMotion>(() => props.motion ?? 'standard')
+const resolvedElevation = computed<ButtonElevation>(() => {
+  if (props.elevation !== undefined) return props.elevation
+  if (props.variant === 'ghost' || props.variant === 'outline') return 0
+  if (props.variant === 'primary' || props.variant === 'danger' || props.variant === 'success') return 2
+  return 1
+})
+
 const classes = computed(() => {
   return [
     'ui-button',
     `ui-button--${props.variant}`,
-    `ui-button--${props.size}`,
+    `ui-button--${resolvedSize.value}`,
+    `ui-button--surface-${resolvedSurface.value}`,
+    `ui-button--elevation-${resolvedElevation.value}`,
+    `ui-button--motion-${resolvedMotion.value}`,
+    `ui-button--density-${resolvedDensity.value}`,
     props.block ? 'ui-button--block' : '',
   ].join(' ')
 })
@@ -94,15 +121,17 @@ const classes = computed(() => {
 <style scoped>
 .ui-button {
   @apply inline-flex min-h-[44px] items-center justify-center rounded-xl font-medium;
-  @apply transition-interactive duration-300 ease-out;
   @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary/30 focus-visible:ring-offset-2 focus-visible:ring-offset-bg-base;
 
   transform: translateZ(0);
   letter-spacing: 0.01em;
+  transition-property: transform, box-shadow, background-color, border-color, color, opacity;
+  transition-duration: var(--ui-button-duration, var(--motion-standard-duration));
+  transition-timing-function: var(--ui-button-ease, var(--motion-standard-ease));
 }
 
 .ui-button:active {
-  transform: scale(0.95);
+  transform: scale(var(--ui-button-active-scale, 0.95));
 }
 
 .ui-button:disabled {
@@ -141,7 +170,7 @@ const classes = computed(() => {
     rgb(var(--color-accent-secondary-rgb) / 82%)
   );
   box-shadow:
-    0 14px 30px rgb(var(--color-accent-primary-rgb) / 20%),
+    var(--ui-button-shadow, 0 14px 30px rgb(var(--color-accent-primary-rgb) / 20%)),
     inset 0 1px 0 rgb(255 255 255 / 18%);
 }
 
@@ -197,7 +226,7 @@ const classes = computed(() => {
 
   background: var(--surface-status-bg);
   backdrop-filter: var(--surface-status-blur);
-  box-shadow: var(--surface-status-shadow), inset 0 1px 0 rgb(255 255 255 / 10%);
+  box-shadow: var(--ui-button-shadow, var(--surface-status-shadow)), inset 0 1px 0 rgb(255 255 255 / 10%);
 }
 
 .ui-button--glass:hover:not(:disabled) {
@@ -211,10 +240,75 @@ const classes = computed(() => {
 
   border-color: rgb(var(--color-danger-rgb) / 24%);
   background: linear-gradient(135deg, rgb(var(--color-danger-rgb) / 94%), rgb(var(--color-warning-rgb) / 74%));
-  box-shadow: 0 14px 30px rgb(var(--color-danger-rgb) / 18%);
+  box-shadow: var(--ui-button-shadow, 0 14px 30px rgb(var(--color-danger-rgb) / 18%));
 }
 
 .ui-button--danger:hover:not(:disabled) {
   @apply bg-accent-danger;
+}
+
+.ui-button--success {
+  @apply border text-text-inverted;
+
+  border-color: rgb(var(--color-success-rgb) / 24%);
+  background: linear-gradient(135deg, rgb(var(--color-success-rgb) / 94%), rgb(var(--color-info-rgb) / 74%));
+  box-shadow: var(--ui-button-shadow, 0 14px 30px rgb(var(--color-success-rgb) / 18%));
+}
+
+.ui-button--success:hover:not(:disabled) {
+  box-shadow: var(--ui-button-shadow, 0 18px 34px rgb(var(--color-success-rgb) / 24%));
+  transform: translateY(-1px);
+}
+
+.ui-button--surface-workspace.ui-button--glass {
+  background: var(--surface-workspace-bg);
+  backdrop-filter: var(--surface-workspace-blur);
+}
+
+.ui-button--surface-card.ui-button--glass {
+  background: var(--surface-card-bg);
+  backdrop-filter: var(--surface-card-blur);
+}
+
+.ui-button--surface-modal.ui-button--glass {
+  background: var(--surface-modal-bg);
+  backdrop-filter: var(--surface-modal-blur);
+}
+
+.ui-button--elevation-0 {
+  --ui-button-shadow: none;
+}
+
+.ui-button--elevation-1 {
+  --ui-button-shadow: var(--elevation-1);
+}
+
+.ui-button--elevation-2 {
+  --ui-button-shadow: var(--elevation-2);
+}
+
+.ui-button--elevation-3 {
+  --ui-button-shadow: var(--elevation-3);
+}
+
+.ui-button--elevation-4 {
+  --ui-button-shadow: var(--elevation-4);
+}
+
+.ui-button--motion-none {
+  --ui-button-duration: var(--motion-none-duration);
+  --ui-button-active-scale: 1;
+}
+
+.ui-button--motion-subtle {
+  --ui-button-duration: var(--motion-subtle-duration);
+  --ui-button-ease: var(--motion-subtle-ease);
+  --ui-button-active-scale: 0.98;
+}
+
+.ui-button--motion-standard {
+  --ui-button-duration: var(--motion-standard-duration);
+  --ui-button-ease: var(--motion-standard-ease);
+  --ui-button-active-scale: 0.95;
 }
 </style>

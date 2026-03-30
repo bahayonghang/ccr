@@ -50,7 +50,7 @@ const getIcon = (type: 'success' | 'error' | 'warning' | 'info') => {
   position: fixed;
   top: 1rem;
   right: 1rem;
-  z-index: 9999;
+  z-index: var(--layer-toast);
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
@@ -74,9 +74,10 @@ const getIcon = (type: 'success' | 'error' | 'warning' | 'info') => {
   border: 1px solid var(--color-border-default);
   border-left: 3px solid transparent;
   transition:
-    transform 0.2s ease,
-    box-shadow 0.2s ease,
-    border-color 0.2s ease;
+    transform var(--motion-subtle-duration) var(--motion-subtle-ease),
+    box-shadow var(--motion-subtle-duration) var(--motion-subtle-ease),
+    border-color var(--motion-subtle-duration) var(--motion-subtle-ease),
+    opacity var(--motion-subtle-duration) var(--motion-subtle-ease);
 }
 
 .toast:hover {
@@ -140,37 +141,23 @@ const getIcon = (type: 'success' | 'error' | 'warning' | 'info') => {
   opacity: 1;
 }
 
-/* 动画 */
-.toast-enter-active {
-  animation: toast-in 0.3s ease-out;
-}
-
+.toast-enter-active,
 .toast-leave-active {
-  animation: toast-out 0.2s ease-in;
+  transition:
+    transform var(--motion-enter-duration) var(--motion-enter-ease),
+    opacity var(--motion-enter-duration) var(--motion-enter-ease);
 }
 
-@keyframes toast-in {
-  from {
-    opacity: 0;
-    transform: translateX(100%);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
+.toast-enter-from,
+.toast-leave-to {
+  opacity: 0;
+  transform: translateX(100%);
 }
 
-@keyframes toast-out {
-  from {
-    opacity: 1;
-    transform: translateX(0);
-  }
-
-  to {
-    opacity: 0;
-    transform: translateX(100%);
-  }
+.toast-enter-to,
+.toast-leave-from {
+  opacity: 1;
+  transform: translateX(0);
 }
 
 @media (prefers-reduced-motion: reduce) {

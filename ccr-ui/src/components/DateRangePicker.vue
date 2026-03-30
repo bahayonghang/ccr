@@ -32,10 +32,10 @@
 
     <div
       v-if="isOpen"
-      class="absolute left-0 right-0 top-full z-50 mt-2 w-full sm:right-auto sm:w-[22rem]"
+      class="date-range-picker__panel absolute left-0 right-0 top-full mt-2 w-full sm:right-auto sm:w-[22rem]"
       @click.stop
     >
-      <div class="glass-effect rounded-2xl border border-white/20 p-4 shadow-2xl">
+      <div class="date-range-picker__surface rounded-2xl p-4">
         <div class="mb-4 border-b border-border-default/60 pb-4">
           <h4 class="mb-3 text-sm font-semibold text-text-primary">
             Quick Select
@@ -45,7 +45,7 @@
               v-for="preset in presets"
               :key="preset.label"
               type="button"
-              class="min-h-[40px] rounded-xl border border-border-default bg-bg-surface px-3 py-2 text-sm text-text-secondary transition-colors hover:border-accent-primary/30 hover:bg-bg-elevated hover:text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/20"
+              class="date-range-picker__preset min-h-[40px] rounded-xl px-3 py-2 text-sm"
               @click="selectPreset(preset)"
             >
               {{ preset.label }}
@@ -69,7 +69,7 @@
               id="date-range-start"
               v-model="localStartDate"
               type="date"
-              class="w-full rounded-xl border border-border-default bg-bg-surface px-3 py-2.5 text-sm text-text-primary transition-[border-color,box-shadow] focus:border-accent-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/20"
+              class="date-range-picker__input w-full rounded-xl px-3 py-2.5 text-sm text-text-primary"
               :max="localEndDate || today"
             >
           </div>
@@ -85,7 +85,7 @@
               id="date-range-end"
               v-model="localEndDate"
               type="date"
-              class="w-full rounded-xl border border-border-default bg-bg-surface px-3 py-2.5 text-sm text-text-primary transition-[border-color,box-shadow] focus:border-accent-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/20"
+              class="date-range-picker__input w-full rounded-xl px-3 py-2.5 text-sm text-text-primary"
               :min="localStartDate"
               :max="today"
             >
@@ -94,14 +94,14 @@
           <div class="flex flex-col gap-2 pt-1 sm:flex-row">
             <button
               type="button"
-              class="inline-flex min-h-[44px] flex-1 items-center justify-center rounded-xl bg-gradient-to-r from-violet-500 to-purple-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-violet-500/20 transition-[color,background-color,border-color,transform] hover:-translate-y-0.5 hover:shadow-violet-500/30 focus:outline-none focus:ring-2 focus:ring-accent-primary/30"
+              class="date-range-picker__action date-range-picker__action--primary inline-flex min-h-[44px] flex-1 items-center justify-center rounded-xl px-4 py-2.5 text-sm font-semibold text-white"
               @click="applyCustomRange"
             >
               Apply
             </button>
             <button
               type="button"
-              class="inline-flex min-h-[44px] items-center justify-center rounded-xl border border-border-default bg-bg-surface px-4 py-2.5 text-sm font-medium text-text-secondary transition-colors hover:bg-bg-elevated hover:text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-primary/20"
+              class="date-range-picker__action date-range-picker__action--secondary inline-flex min-h-[44px] items-center justify-center rounded-xl px-4 py-2.5 text-sm font-medium text-text-secondary"
               @click="clearRange"
             >
               Clear
@@ -113,7 +113,7 @@
 
     <div
       v-if="isOpen"
-      class="fixed inset-0 z-40"
+      class="date-range-picker__scrim fixed inset-0"
       @click="isOpen = false"
     />
   </div>
@@ -256,6 +256,61 @@ watch(() => props.modelValue, (newValue) => {
 <style scoped>
 .date-range-picker {
   position: relative;
+}
+
+.date-range-picker__panel {
+  z-index: var(--layer-dropdown);
+}
+
+.date-range-picker__surface {
+  background: var(--surface-modal-bg);
+  border: 1px solid var(--surface-modal-border);
+  backdrop-filter: var(--surface-modal-blur);
+  box-shadow: var(--surface-modal-shadow);
+}
+
+.date-range-picker__preset,
+.date-range-picker__input,
+.date-range-picker__action--secondary {
+  background: var(--surface-status-bg);
+  border: 1px solid var(--surface-status-border);
+  backdrop-filter: var(--surface-status-blur);
+  box-shadow: var(--elevation-1);
+  transition:
+    border-color var(--motion-subtle-duration) var(--motion-subtle-ease),
+    box-shadow var(--motion-subtle-duration) var(--motion-subtle-ease),
+    background-color var(--motion-subtle-duration) var(--motion-subtle-ease),
+    transform var(--motion-subtle-duration) var(--motion-subtle-ease),
+    color var(--motion-subtle-duration) var(--motion-subtle-ease);
+}
+
+.date-range-picker__preset:hover,
+.date-range-picker__input:hover,
+.date-range-picker__action--secondary:hover {
+  border-color: rgb(var(--color-accent-primary-rgb) / 28%);
+}
+
+.date-range-picker__input:focus {
+  outline: none;
+  border-color: rgb(var(--color-accent-primary-rgb) / 40%);
+  box-shadow: var(--elevation-2);
+}
+
+.date-range-picker__action--primary {
+  background: linear-gradient(135deg, rgb(var(--color-accent-primary-rgb) / 96%), rgb(var(--color-accent-secondary-rgb) / 84%));
+  box-shadow: var(--elevation-2);
+  transition:
+    transform var(--motion-subtle-duration) var(--motion-subtle-ease),
+    box-shadow var(--motion-subtle-duration) var(--motion-subtle-ease);
+}
+
+.date-range-picker__action--primary:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--elevation-3);
+}
+
+.date-range-picker__scrim {
+  z-index: var(--layer-sticky);
 }
 
 @media (width <= 639px) {

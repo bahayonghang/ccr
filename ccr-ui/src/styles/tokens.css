@@ -7,133 +7,174 @@
 :root {
     /* --- 背景层级 (亮色主题 - 默认) --- */
     --color-bg-base: #F3F1F8;
+    --color-bg-base-rgb: 243 241 248;
     --color-bg-elevated: #FAF8FD;
+    --color-bg-elevated-rgb: 250 248 253;
     --color-bg-surface: #EBE7F4;
+    --color-bg-surface-rgb: 235 231 244;
     --color-bg-overlay: #DDD6EB;
+    --color-bg-overlay-rgb: 221 214 235;
 
     /* --- 边框与分隔 --- */
     --color-border-subtle: rgb(210 202 218 / 28%);
+    --color-border-subtle-rgb: 210 202 218;
     --color-border-default: rgb(179 166 194 / 44%);
+    --color-border-default-rgb: 179 166 194;
     --color-border-strong: rgb(149 136 176 / 54%);
+    --color-border-strong-rgb: 149 136 176;
     --color-border-accent: rgb(202 143 209 / 34%);
+    --color-border-interactive: var(--color-accent-primary);
 
     /* --- 文字层级 --- */
     --color-text-primary: #1D1A27;
+    --color-text-primary-rgb: 29 26 39;
     --color-text-secondary: #5C5470;
+    --color-text-secondary-rgb: 92 84 112;
     --color-text-muted: #7F7694;
+    --color-text-muted-rgb: 127 118 148;
+    --color-text-ghost: #A79EB9;
+    --color-text-ghost-rgb: 167 158 185;
     --color-text-disabled: #C9C2D7;
+    --color-text-disabled-rgb: 201 194 215;
+    --color-text-inverted: #FFF;
+    --color-text-inverted-rgb: 255 255 255;
 
     /* --- 主强调色 - 猫娘粉 --- */
     --color-accent-primary: #CA8FD1;
     --color-accent-primary-hover: #D9A8DE;
     --color-accent-primary-active: #B677C0;
-    --color-accent-primary-rgb: 202, 143, 209;
+    --color-accent-primary-rgb: 202 143 209;
     --color-accent-primary-glow: rgb(202 143 209 / 16%);
 
     /* --- 辅助强调色 - 薰衣草紫 --- */
     --color-accent-secondary: #7F78D8;
     --color-accent-secondary-hover: #9791E4;
     --color-accent-secondary-active: #6D66C9;
-    --color-accent-secondary-rgb: 127, 120, 216;
+    --color-accent-secondary-rgb: 127 120 216;
     --color-accent-secondary-glow: rgb(127 120 216 / 14%);
 
     /* --- 功能色 --- */
     --color-success: #3CA88D;
     --color-success-hover: #55BAA0;
-    --color-success-rgb: 60, 168, 141;
+    --color-success-rgb: 60 168 141;
     --color-success-glow: rgb(60 168 141 / 16%);
     --color-warning: #D6A143;
     --color-warning-hover: #E0B25E;
-    --color-warning-rgb: 214, 161, 67;
+    --color-warning-rgb: 214 161 67;
     --color-warning-glow: rgb(214 161 67 / 16%);
     --color-danger: #D46F88;
     --color-danger-hover: #DD879C;
-    --color-danger-rgb: 212, 111, 136;
+    --color-danger-rgb: 212 111 136;
     --color-danger-glow: rgb(212 111 136 / 16%);
     --color-info: #69A8D8;
     --color-info-hover: #85BAE3;
-    --color-info-rgb: 105, 168, 216;
+    --color-info-rgb: 105 168 216;
     --color-info-glow: rgb(105 168 216 / 16%);
 
     /* --- 扩展功能色 --- */
     --color-cyan: #6FB3E8;
-    --color-cyan-rgb: 111, 179, 232;
+    --color-cyan-rgb: 111 179 232;
     --color-teal: #57BBA6;
-    --color-teal-rgb: 87, 187, 166;
+    --color-teal-rgb: 87 187 166;
     --color-gray: #7F7694;
-    --color-gray-rgb: 127, 118, 148;
+    --color-gray-rgb: 127 118 148;
 
     /* --- 平台专属色 --- */
     --color-platform-claude: #FF6B35;
+    --color-platform-claude-rgb: 255 107 53;
     --color-platform-codex: #10B981;
+    --color-platform-codex-rgb: 16 185 129;
     --color-platform-gemini: #4285F4;
+    --color-platform-gemini-rgb: 66 133 244;
     --color-platform-qwen: #00B5E2;
+    --color-platform-qwen-rgb: 0 181 226;
     --color-platform-qoder: #FAAD14;
+    --color-platform-qoder-rgb: 250 173 20;
 
     /* --- Neko Kawaii Gradient --- */
     --color-premium-pink: #EEE5F4;
-    --color-premium-pink-rgb: 238, 229, 244;
+    --color-premium-pink-rgb: 238 229 244;
     --color-premium-blue: #E6E0F2;
-    --color-premium-blue-rgb: 230, 224, 242;
+    --color-premium-blue-rgb: 230 224 242;
+
+    /* --- 全局状态语义 --- */
+    --state-loading: var(--color-info);
+    --state-error: var(--color-danger);
+    --animation-state: running;
 }
 
 /* ========== 暗色主题 ========== */
 [data-theme="dark"] {
     /* --- 背景层级 --- */
     --color-bg-base: #0F1120;
+    --color-bg-base-rgb: 15 17 32;
     --color-bg-elevated: #171A2B;
+    --color-bg-elevated-rgb: 23 26 43;
     --color-bg-surface: #1F2237;
+    --color-bg-surface-rgb: 31 34 55;
     --color-bg-overlay: #2A2F4A;
+    --color-bg-overlay-rgb: 42 47 74;
 
     /* --- 边框与分隔 --- */
     --color-border-subtle: rgb(53 56 77 / 48%);
+    --color-border-subtle-rgb: 53 56 77;
     --color-border-default: rgb(74 79 105 / 64%);
+    --color-border-default-rgb: 74 79 105;
     --color-border-strong: rgb(108 100 130 / 72%);
+    --color-border-strong-rgb: 108 100 130;
     --color-border-accent: rgb(215 162 230 / 28%);
 
     /* --- 文字层级 --- */
     --color-text-primary: #F4EFFF;
+    --color-text-primary-rgb: 244 239 255;
     --color-text-secondary: #C8BFDD;
+    --color-text-secondary-rgb: 200 191 221;
     --color-text-muted: #9488B0;
+    --color-text-muted-rgb: 148 136 176;
+    --color-text-ghost: #6C6482;
+    --color-text-ghost-rgb: 108 100 130;
     --color-text-disabled: #514A67;
+    --color-text-disabled-rgb: 81 74 103;
+    --color-text-inverted: #0F1120;
+    --color-text-inverted-rgb: 15 17 32;
 
     /* --- 主强调色 - 猫娘粉 (暗色模式更亮) --- */
     --color-accent-primary: #D7A2E6;
     --color-accent-primary-hover: #E1B6EC;
     --color-accent-primary-active: #C48ED5;
-    --color-accent-primary-rgb: 215, 162, 230;
+    --color-accent-primary-rgb: 215 162 230;
     --color-accent-primary-glow: rgb(215 162 230 / 20%);
 
     /* --- 辅助强调色 - 薰衣草紫 (暗色模式更亮) --- */
     --color-accent-secondary: #978CEC;
     --color-accent-secondary-hover: #AAA2F1;
     --color-accent-secondary-active: #8377DF;
-    --color-accent-secondary-rgb: 151, 140, 236;
+    --color-accent-secondary-rgb: 151 140 236;
     --color-accent-secondary-glow: rgb(151 140 236 / 20%);
 
     /* --- 功能色 (暗色模式更亮) --- */
     --color-success: #64C0A6;
     --color-success-hover: #7BD0B7;
-    --color-success-rgb: 100, 192, 166;
+    --color-success-rgb: 100 192 166;
     --color-success-glow: rgb(100 192 166 / 20%);
     --color-warning: #E1B45B;
     --color-warning-hover: #E8C270;
-    --color-warning-rgb: 225, 180, 91;
+    --color-warning-rgb: 225 180 91;
     --color-warning-glow: rgb(225 180 91 / 20%);
     --color-danger: #EA8FAA;
     --color-danger-hover: #F0A4BC;
-    --color-danger-rgb: 234, 143, 170;
+    --color-danger-rgb: 234 143 170;
     --color-danger-glow: rgb(234 143 170 / 20%);
     --color-info: #84B8EA;
     --color-info-hover: #9BC7F0;
-    --color-info-rgb: 132, 184, 234;
+    --color-info-rgb: 132 184 234;
     --color-info-glow: rgb(132 184 234 / 20%);
 
     /* --- 发光效果调整（暗色模式更强） --- */
     --color-premium-pink: #231C36;
-    --color-premium-pink-rgb: 35, 28, 54;
+    --color-premium-pink-rgb: 35 28 54;
     --color-premium-blue: #191A31;
-    --color-premium-blue-rgb: 25, 26, 49;
+    --color-premium-blue-rgb: 25 26 49;
 }
 
 /* ========== 亮色主题覆盖 ========== */
@@ -337,6 +378,13 @@
     /* --- 渐变边框 (粉→紫) --- */
     --gradient-border: linear-gradient(135deg, var(--color-accent-primary) 0%, var(--color-accent-secondary) 100%);
     --gradient-brand: linear-gradient(135deg, var(--color-accent-primary) 0%, var(--color-accent-secondary) 100%);
+
+    /* --- 语义化 Elevation --- */
+    --elevation-0: none;
+    --elevation-1: var(--shadow-sm);
+    --elevation-2: var(--shadow-md);
+    --elevation-3: var(--shadow-lg);
+    --elevation-4: var(--shadow-xl);
 }
 
 /* 暗色主题阴影调整 */
@@ -449,20 +497,41 @@
     --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
     --ease-out-back: cubic-bezier(0.34, 1.56, 0.64, 1);
     --ease-spring: cubic-bezier(0.175, 0.885, 0.32, 1.275);
+
+    /* --- Motion Primitives --- */
+    --motion-none-duration: 0ms;
+    --motion-subtle-duration: var(--duration-fast);
+    --motion-standard-duration: var(--duration-normal);
+    --motion-enter-duration: var(--duration-normal);
+    --motion-exit-duration: var(--duration-fast);
+    --motion-feedback-duration: var(--duration-fast);
+    --motion-subtle-ease: var(--ease-out);
+    --motion-standard-ease: var(--ease-in-out);
+    --motion-enter-ease: var(--ease-out);
+    --motion-exit-ease: var(--ease-in);
+    --motion-feedback-ease: var(--ease-out-back);
 }
 
 /* ========== Z-Index 层级系统 ========== */
 :root:where(:root):where(:root):where(:root):where(:root):where(:root):where(:root):where(:root) {
+    --layer-base: 0;
+    --layer-sticky: 10;
+    --layer-dropdown: 20;
+    --layer-modal-backdrop: 30;
+    --layer-modal: 40;
+    --layer-popover: 50;
+    --layer-tooltip: 60;
+    --layer-toast: 70;
     --z-behind: -1;
-    --z-base: 0;
-    --z-dropdown: 10;
-    --z-sticky: 20;
+    --z-base: var(--layer-base);
+    --z-dropdown: var(--layer-dropdown);
+    --z-sticky: var(--layer-sticky);
     --z-fixed: 30;
-    --z-modal-backdrop: 40;
-    --z-modal: 50;
-    --z-popover: 60;
-    --z-tooltip: 70;
-    --z-toast: 80;
+    --z-modal-backdrop: var(--layer-modal-backdrop);
+    --z-modal: var(--layer-modal);
+    --z-popover: var(--layer-popover);
+    --z-tooltip: var(--layer-tooltip);
+    --z-toast: var(--layer-toast);
 }
 
 /* ========== 断点（仅用于参考，主要针对桌面） ========== */
