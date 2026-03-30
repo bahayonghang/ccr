@@ -26,7 +26,7 @@ pub use info::platform_info_command;
 pub use init::platform_init_command;
 pub use list::platform_list_command;
 pub use profile::{
-    platform_profile_create_command, platform_profile_delete_command,
+    PlatformProfileCreateArgs, platform_profile_create_command, platform_profile_delete_command,
     platform_profile_disable_command, platform_profile_enable_command,
     platform_profile_set_field_command,
 };

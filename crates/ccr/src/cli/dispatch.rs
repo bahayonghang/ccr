@@ -293,8 +293,8 @@ impl CommandDispatcher {
     async fn dispatch_platform(
         action: &crate::cli::subcommands::PlatformAction,
     ) -> Result<(), CcrError> {
-        use crate::cli::subcommands::platform::PlatformProfileAction;
         use crate::cli::subcommands::PlatformAction;
+        use crate::cli::subcommands::platform::PlatformProfileAction;
 
         match action {
             PlatformAction::Help => {
@@ -315,7 +315,7 @@ impl CommandDispatcher {
             PlatformAction::Init { platform_name } => {
                 crate::commands::platform_init_command(platform_name).await
             }
-            PlatformAction::Profile { action } => match action {
+            PlatformAction::Profile { action } => match action.as_ref() {
                 PlatformProfileAction::Create {
                     platform_name,
                     name,
@@ -332,19 +332,21 @@ impl CommandDispatcher {
                     json,
                 } => {
                     crate::commands::platform::platform_profile_create_command(
-                        platform_name,
-                        name,
-                        description.clone(),
-                        base_url.clone(),
-                        auth_token.clone(),
-                        model.clone(),
-                        small_fast_model.clone(),
-                        provider.clone(),
-                        provider_type.clone(),
-                        account.clone(),
-                        tags.clone(),
-                        *disabled,
-                        *json,
+                        crate::commands::platform::PlatformProfileCreateArgs {
+                            platform_name: platform_name.clone(),
+                            name: name.clone(),
+                            description: description.clone(),
+                            base_url: base_url.clone(),
+                            auth_token: auth_token.clone(),
+                            model: model.clone(),
+                            small_fast_model: small_fast_model.clone(),
+                            provider: provider.clone(),
+                            provider_type: provider_type.clone(),
+                            account: account.clone(),
+                            tags: tags.clone(),
+                            disabled: *disabled,
+                            json: *json,
+                        },
                     )
                     .await
                 }

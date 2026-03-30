@@ -12,7 +12,7 @@ use ratatui::{
     layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Line, Span},
-    widgets::{Block, Borders, List, ListItem, Paragraph, Wrap},
+    widgets::{Block, Borders, Cell, Paragraph, Row, Table, Wrap},
 };
 
 /// 🎨 Draw main interface
@@ -81,102 +81,33 @@ fn draw_title(f: &mut Frame, area: Rect, app: &CodexAuthApp) {
     f.render_widget(title, area);
 }
 
-/// Draw account list
 fn draw_account_list(f: &mut Frame, area: Rect, app: &CodexAuthApp) {
-    // 🖱️ 缓存列表区域供鼠标点击使用
-    app.list_area.set(Some(area));
-    let accounts = app.current_page_accounts();
+    render_account_list_panel(f, area, app, " 账号列表 ".to_string());
+}
 
-    let items: Vec<ListItem> = accounts
-        .iter()
-        .enumerate()
-        .map(|(i, account)| {
-            let is_selected = i == app.selected_index;
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum AccountColumn {
+    Status,
+    Account,
+    Email,
+    SavedAt,
+    ExpiresAt,
+    Description,
+}
 
-            let status = if account.is_current { "▶ " } else { "  " };
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct AccountTableLayout {
+    columns: Vec<AccountColumn>,
+    widths: Vec<Constraint>,
+}
 
-            let name = if account.is_virtual {
-                format!("{} *", account.name)
-            } else {
-                account.name.clone()
-            };
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct AccountListRegions {
+    header: Rect,
+    body: Rect,
+}
 
-            let email = account.email.as_deref().unwrap_or("-");
-
-            let saved_at = account
-                .saved_at
-                .map(|ts| ts.with_timezone(&Local).format("%Y-%m-%d").to_string())
-                .unwrap_or_else(|| "-".to_string());
-
-            let (expire_text, expire_style) = match account.expires_at {
-                Some(ts) => {
-                    let expired = ts <= Utc::now();
-                    let local_ts = ts.with_timezone(&Local).format("%Y-%m-%d %H:%M");
-                    let text = if expired {
-                        format!("🔒 {}", local_ts)
-                    } else {
-                        local_ts.to_string()
-                    };
-                    let style =
-                        Style::default().fg(if expired { Color::Red } else { Color::Green });
-                    (text, style)
-                }
-                None => ("-".to_string(), Style::default().fg(Color::DarkGray)),
-            };
-
-            let desc = account.description.as_deref().unwrap_or("");
-
-            let line = Line::from(vec![
-                Span::styled(
-                    status,
-                    Style::default().fg(if account.is_current {
-                        Color::Green
-                    } else {
-                        Color::DarkGray
-                    }),
-                ),
-                Span::styled(
-                    format!("{:<16}", name),
-                    Style::default()
-                        .fg(if account.is_virtual {
-                            Color::Yellow
-                        } else if account.is_current {
-                            Color::Green
-                        } else {
-                            Color::White
-                        })
-                        .add_modifier(if is_selected {
-                            Modifier::BOLD
-                        } else {
-                            Modifier::empty()
-                        }),
-                ),
-                Span::raw(" "),
-                Span::styled(format!("{:<24}", email), Style::default().fg(Color::Cyan)),
-                Span::raw(" "),
-                Span::styled(
-                    format!("{:<12}", saved_at),
-                    Style::default().fg(Color::White),
-                ),
-                Span::raw(" "),
-                Span::styled(format!("{:<18}", expire_text), expire_style),
-                Span::raw(" "),
-                Span::styled(desc.to_string(), Style::default().fg(Color::DarkGray)),
-            ]);
-
-            let style = if is_selected {
-                Style::default()
-                    .bg(theme::CODEX_PRIMARY)
-                    .fg(theme::BG_PRIMARY)
-                    .add_modifier(Modifier::BOLD)
-            } else {
-                Style::default()
-            };
-
-            ListItem::new(line).style(style)
-        })
-        .collect();
-
+fn render_account_list_panel(f: &mut Frame, area: Rect, app: &CodexAuthApp, title: String) {
     let page_info = format!(
         " 第 {}/{} 页 | 共 {} 个账号 ",
         app.current_page + 1,
@@ -184,23 +115,276 @@ fn draw_account_list(f: &mut Frame, area: Rect, app: &CodexAuthApp) {
         app.accounts.len()
     );
 
-    let list = List::new(items)
-        .block(
-            Block::default()
-                .borders(Borders::ALL)
-                .border_style(Style::default().fg(theme::BORDER))
-                .title(" 账号列表 ")
-                .title_style(Style::default().fg(theme::ACCENT))
-                .title_bottom(Line::from(page_info).alignment(Alignment::Right)),
-        )
-        .highlight_style(
+    let block = Block::default()
+        .borders(Borders::ALL)
+        .border_style(Style::default().fg(theme::BORDER))
+        .title(title)
+        .title_style(Style::default().fg(theme::ACCENT))
+        .title_bottom(Line::from(page_info).alignment(Alignment::Right));
+
+    let inner = block.inner(area);
+    f.render_widget(block, area);
+
+    if app.accounts.is_empty() {
+        app.list_area.set(None);
+        let empty = Paragraph::new(" 未检测到可切换的 Codex 账号")
+            .style(Style::default().fg(Color::DarkGray))
+            .alignment(Alignment::Left);
+        f.render_widget(empty, inner);
+        return;
+    }
+
+    if inner.height < 2 {
+        app.list_area.set(Some(inner));
+        return;
+    }
+
+    let regions = account_list_regions(inner);
+    let layout = account_table_layout(regions.header.width);
+
+    app.list_area.set(Some(regions.body));
+    render_account_list_header(f, regions.header, &layout);
+    render_account_list_rows(f, regions.body, app, &layout);
+}
+
+fn account_list_regions(inner: Rect) -> AccountListRegions {
+    let chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([Constraint::Length(1), Constraint::Min(0)])
+        .split(inner);
+
+    AccountListRegions {
+        header: chunks[0],
+        body: chunks[1],
+    }
+}
+
+fn account_table_layout(inner_width: u16) -> AccountTableLayout {
+    if inner_width < 64 {
+        return AccountTableLayout {
+            columns: vec![
+                AccountColumn::Status,
+                AccountColumn::Account,
+                AccountColumn::Email,
+            ],
+            widths: vec![
+                Constraint::Length(3),
+                Constraint::Length(18),
+                Constraint::Min(8),
+            ],
+        };
+    }
+
+    if inner_width < 92 {
+        return AccountTableLayout {
+            columns: vec![
+                AccountColumn::Status,
+                AccountColumn::Account,
+                AccountColumn::Email,
+                AccountColumn::SavedAt,
+                AccountColumn::ExpiresAt,
+            ],
+            widths: vec![
+                Constraint::Length(3),
+                Constraint::Length(18),
+                Constraint::Min(12),
+                Constraint::Length(10),
+                Constraint::Length(10),
+            ],
+        };
+    }
+
+    AccountTableLayout {
+        columns: vec![
+            AccountColumn::Status,
+            AccountColumn::Account,
+            AccountColumn::Email,
+            AccountColumn::SavedAt,
+            AccountColumn::ExpiresAt,
+            AccountColumn::Description,
+        ],
+        widths: vec![
+            Constraint::Length(3),
+            Constraint::Length(18),
+            Constraint::Length(24),
+            Constraint::Length(10),
+            Constraint::Length(10),
+            Constraint::Min(10),
+        ],
+    }
+}
+
+fn render_account_list_header(f: &mut Frame, area: Rect, layout: &AccountTableLayout) {
+    let header_cells = layout.columns.iter().map(account_header_cell);
+    let header = Table::new([Row::new(header_cells)], layout.widths.clone())
+        .column_spacing(1)
+        .style(
             Style::default()
-                .bg(theme::CODEX_PRIMARY)
-                .fg(theme::BG_PRIMARY)
+                .fg(theme::FG_SECONDARY)
                 .add_modifier(Modifier::BOLD),
         );
 
-    f.render_widget(list, area);
+    f.render_widget(header, area);
+}
+
+fn render_account_list_rows(
+    f: &mut Frame,
+    area: Rect,
+    app: &CodexAuthApp,
+    layout: &AccountTableLayout,
+) {
+    let selected_style = Style::default()
+        .bg(theme::CODEX_PRIMARY)
+        .fg(theme::BG_PRIMARY)
+        .add_modifier(Modifier::BOLD);
+
+    let rows = app
+        .current_page_accounts()
+        .iter()
+        .enumerate()
+        .map(|(idx, account)| {
+            let row_style = if idx == app.selected_index {
+                selected_style
+            } else {
+                Style::default()
+            };
+
+            Row::new(
+                layout
+                    .columns
+                    .iter()
+                    .map(|column| account_cell(account, *column)),
+            )
+            .style(row_style)
+            .height(1)
+        });
+
+    let table = Table::new(rows, layout.widths.clone()).column_spacing(1);
+    f.render_widget(table, area);
+}
+
+fn account_header_cell(column: &AccountColumn) -> Cell<'static> {
+    let label = match column {
+        AccountColumn::Status => "状态",
+        AccountColumn::Account => "账号",
+        AccountColumn::Email => "邮箱",
+        AccountColumn::SavedAt => "保存",
+        AccountColumn::ExpiresAt => "到期",
+        AccountColumn::Description => "备注",
+    };
+
+    Cell::from(label.to_string())
+}
+
+fn account_cell(account: &crate::models::CodexAuthItem, column: AccountColumn) -> Cell<'static> {
+    match column {
+        AccountColumn::Status => {
+            let marker = if account.is_current { "▶" } else { " " };
+            let style = if account.is_current {
+                Style::default()
+                    .fg(Color::Green)
+                    .add_modifier(Modifier::BOLD)
+            } else {
+                Style::default().fg(Color::DarkGray)
+            };
+            Cell::from(Line::from(Span::styled(marker, style)))
+        }
+        AccountColumn::Account => {
+            let freshness = Span::styled(
+                account.freshness.icon().to_string(),
+                Style::default().fg(freshness_color(&account.freshness)),
+            );
+            let name_style = if account.is_virtual {
+                Style::default().fg(Color::Yellow)
+            } else if account.is_current {
+                Style::default()
+                    .fg(Color::Green)
+                    .add_modifier(Modifier::BOLD)
+            } else {
+                Style::default().fg(Color::White)
+            };
+
+            let mut spans = vec![
+                freshness,
+                Span::raw(" "),
+                Span::styled(account.name.clone(), name_style),
+            ];
+
+            if account.is_virtual {
+                spans.push(Span::styled(
+                    " *",
+                    Style::default()
+                        .fg(Color::Yellow)
+                        .add_modifier(Modifier::ITALIC),
+                ));
+            }
+
+            Cell::from(Line::from(spans))
+        }
+        AccountColumn::Email => {
+            let email = account.email.as_deref().unwrap_or("-");
+            Cell::from(Line::from(Span::styled(
+                email.to_string(),
+                Style::default().fg(Color::Cyan),
+            )))
+        }
+        AccountColumn::SavedAt => Cell::from(Line::from(Span::styled(
+            format_saved_at(account),
+            Style::default().fg(Color::White),
+        ))),
+        AccountColumn::ExpiresAt => {
+            let (text, style) = format_expires_at(account);
+            Cell::from(Line::from(Span::styled(text, style)))
+        }
+        AccountColumn::Description => {
+            let description = account.description.as_deref().unwrap_or("-");
+            Cell::from(Line::from(Span::styled(
+                description.to_string(),
+                Style::default().fg(Color::DarkGray),
+            )))
+        }
+    }
+}
+
+fn login_status_text(app: &CodexAuthApp) -> String {
+    match &app.login_state {
+        crate::models::LoginState::NotLoggedIn => "未登录".to_string(),
+        crate::models::LoginState::LoggedInUnsaved => "已登录 (未保存)".to_string(),
+        crate::models::LoginState::LoggedInSaved(name) => format!("已登录: {}", name),
+        crate::models::LoginState::ApiKeyActive => "API Key 模式".to_string(),
+        crate::models::LoginState::ProviderKeyActive { env_key } => {
+            format!("Provider Key: {}", env_key)
+        }
+        crate::models::LoginState::Unknown { type_name, .. } => format!("未知状态: {}", type_name),
+    }
+}
+
+fn format_saved_at(account: &crate::models::CodexAuthItem) -> String {
+    account
+        .saved_at
+        .map(|ts| ts.with_timezone(&Local).format("%Y-%m-%d").to_string())
+        .unwrap_or_else(|| "-".to_string())
+}
+
+fn format_expires_at(account: &crate::models::CodexAuthItem) -> (String, Style) {
+    match account.expires_at {
+        Some(ts) => {
+            let expired = ts <= Utc::now();
+            let text = ts.with_timezone(&Local).format("%Y-%m-%d").to_string();
+            let style = Style::default().fg(if expired { Color::Red } else { Color::Green });
+            (text, style)
+        }
+        None => ("-".to_string(), Style::default().fg(Color::DarkGray)),
+    }
+}
+
+fn freshness_color(freshness: &crate::models::TokenFreshness) -> Color {
+    match freshness {
+        crate::models::TokenFreshness::Fresh => Color::Green,
+        crate::models::TokenFreshness::Stale => Color::Yellow,
+        crate::models::TokenFreshness::Old => Color::Red,
+        crate::models::TokenFreshness::Unknown(_) => Color::DarkGray,
+    }
 }
 
 /// Render status bar with toast notification
@@ -583,140 +767,9 @@ pub fn draw_loading_placeholder(
     }
 }
 
-/// Draw account list with login status merged into the title
 fn draw_account_list_with_status(f: &mut Frame, area: Rect, app: &CodexAuthApp) {
-    // 🖱️ 缓存列表区域供鼠标点击使用
-    app.list_area.set(Some(area));
-    let accounts = app.current_page_accounts();
-
-    let items: Vec<ListItem> = accounts
-        .iter()
-        .enumerate()
-        .map(|(i, account)| {
-            let is_selected = i == app.selected_index;
-
-            let status = if account.is_current { "▶ " } else { "  " };
-
-            let name = if account.is_virtual {
-                format!("{} *", account.name)
-            } else {
-                account.name.clone()
-            };
-
-            let email = account.email.as_deref().unwrap_or("-");
-
-            let saved_at = account
-                .saved_at
-                .map(|ts| ts.with_timezone(&Local).format("%Y-%m-%d").to_string())
-                .unwrap_or_else(|| "-".to_string());
-
-            let (expire_text, expire_style) = match account.expires_at {
-                Some(ts) => {
-                    let expired = ts <= Utc::now();
-                    let local_ts = ts.with_timezone(&Local).format("%Y-%m-%d %H:%M");
-                    let text = if expired {
-                        format!("🔒 {}", local_ts)
-                    } else {
-                        local_ts.to_string()
-                    };
-                    let style =
-                        Style::default().fg(if expired { Color::Red } else { Color::Green });
-                    (text, style)
-                }
-                None => ("-".to_string(), Style::default().fg(Color::DarkGray)),
-            };
-
-            let desc = account.description.as_deref().unwrap_or("");
-
-            let line = Line::from(vec![
-                Span::styled(
-                    status,
-                    Style::default().fg(if account.is_current {
-                        Color::Green
-                    } else {
-                        Color::DarkGray
-                    }),
-                ),
-                Span::styled(
-                    format!("{:<16}", name),
-                    Style::default()
-                        .fg(if account.is_virtual {
-                            Color::Yellow
-                        } else if account.is_current {
-                            Color::Green
-                        } else {
-                            Color::White
-                        })
-                        .add_modifier(if is_selected {
-                            Modifier::BOLD
-                        } else {
-                            Modifier::empty()
-                        }),
-                ),
-                Span::raw(" "),
-                Span::styled(format!("{:<24}", email), Style::default().fg(Color::Cyan)),
-                Span::raw(" "),
-                Span::styled(
-                    format!("{:<12}", saved_at),
-                    Style::default().fg(Color::White),
-                ),
-                Span::raw(" "),
-                Span::styled(format!("{:<18}", expire_text), expire_style),
-                Span::raw(" "),
-                Span::styled(desc.to_string(), Style::default().fg(Color::DarkGray)),
-            ]);
-
-            let style = if is_selected {
-                Style::default()
-                    .bg(theme::CODEX_PRIMARY)
-                    .fg(theme::BG_PRIMARY)
-                    .add_modifier(Modifier::BOLD)
-            } else {
-                Style::default()
-            };
-
-            ListItem::new(line).style(style)
-        })
-        .collect();
-
-    // Merge login status into the list title
-    let login_status = match &app.login_state {
-        crate::models::LoginState::NotLoggedIn => "未登录".to_string(),
-        crate::models::LoginState::LoggedInUnsaved => "已登录 (未保存)".to_string(),
-        crate::models::LoginState::LoggedInSaved(name) => format!("已登录: {}", name),
-        crate::models::LoginState::ApiKeyActive => "API Key 模式".to_string(),
-        crate::models::LoginState::ProviderKeyActive { env_key } => {
-            format!("Provider Key: {}", env_key)
-        }
-        crate::models::LoginState::Unknown { type_name, .. } => format!("未知状态: {}", type_name),
-    };
-
-    let title = format!(" 🔐 账号列表 | {} ", login_status);
-
-    let page_info = format!(
-        " 第 {}/{} 页 | 共 {} 个账号 ",
-        app.current_page + 1,
-        app.total_pages(),
-        app.accounts.len()
-    );
-
-    let list = List::new(items)
-        .block(
-            Block::default()
-                .borders(Borders::ALL)
-                .border_style(Style::default().fg(theme::BORDER))
-                .title(title)
-                .title_style(Style::default().fg(theme::ACCENT))
-                .title_bottom(Line::from(page_info).alignment(Alignment::Right)),
-        )
-        .highlight_style(
-            Style::default()
-                .bg(theme::CODEX_PRIMARY)
-                .fg(theme::BG_PRIMARY)
-                .add_modifier(Modifier::BOLD),
-        );
-
-    f.render_widget(list, area);
+    let title = format!(" 🔐 账号列表 | {} ", login_status_text(app));
+    render_account_list_panel(f, area, app, title);
 }
 
 /// Draw help bar with Tab switch hint (embedded mode)
@@ -734,4 +787,49 @@ fn draw_help_bar_embedded(f: &mut Frame, area: Rect, app: &CodexAuthApp) {
         .alignment(Alignment::Center);
 
     f.render_widget(help, area);
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn account_table_layout_hides_secondary_columns_on_narrow_widths() {
+        let layout = account_table_layout(60);
+        assert_eq!(
+            layout.columns,
+            vec![
+                AccountColumn::Status,
+                AccountColumn::Account,
+                AccountColumn::Email
+            ]
+        );
+        assert_eq!(layout.widths.len(), 3);
+    }
+
+    #[test]
+    fn account_table_layout_shows_description_on_wide_widths() {
+        let layout = account_table_layout(108);
+        assert_eq!(
+            layout.columns,
+            vec![
+                AccountColumn::Status,
+                AccountColumn::Account,
+                AccountColumn::Email,
+                AccountColumn::SavedAt,
+                AccountColumn::ExpiresAt,
+                AccountColumn::Description,
+            ]
+        );
+        assert_eq!(layout.widths.len(), 6);
+    }
+
+    #[test]
+    fn account_list_regions_reserve_one_row_for_header() {
+        let inner = Rect::new(2, 3, 80, 9);
+        let regions = account_list_regions(inner);
+
+        assert_eq!(regions.header, Rect::new(2, 3, 80, 1));
+        assert_eq!(regions.body, Rect::new(2, 4, 80, 8));
+    }
 }

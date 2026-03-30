@@ -43,6 +43,23 @@ struct PlatformProfileMutationOutput {
     current_profile: Option<String>,
 }
 
+#[derive(Debug, Clone)]
+pub struct PlatformProfileCreateArgs {
+    pub platform_name: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub base_url: Option<String>,
+    pub auth_token: Option<String>,
+    pub model: Option<String>,
+    pub small_fast_model: Option<String>,
+    pub provider: Option<String>,
+    pub provider_type: Option<String>,
+    pub account: Option<String>,
+    pub tags: Vec<String>,
+    pub disabled: bool,
+    pub json: bool,
+}
+
 fn parse_platform(platform_name: &str) -> Result<Platform> {
     Platform::from_str(platform_name)
         .map_err(|_| CcrError::PlatformNotFound(platform_name.to_string()))
@@ -61,16 +78,12 @@ fn ensure_field_allowed(platform: Platform, field: &str) -> Result<()> {
     } else {
         Err(CcrError::ValidationError(format!(
             "平台 '{}' 不允许编辑字段 '{}'",
-            platform,
-            field
+            platform, field
         )))
     }
 }
 
-fn load_existing_profile(
-    platform_impl: &dyn PlatformConfig,
-    name: &str,
-) -> Result<ProfileConfig> {
+fn load_existing_profile(platform_impl: &dyn PlatformConfig, name: &str) -> Result<ProfileConfig> {
     let mut profiles = platform_impl.load_profiles()?;
     profiles
         .shift_remove(name)
@@ -81,7 +94,7 @@ fn print_output(output: &PlatformProfileMutationOutput, json: bool) -> Result<()
     if json {
         println!(
             "{}",
-            serde_json::to_string(output).map_err(|e| CcrError::JsonError(e))?
+            serde_json::to_string(output).map_err(CcrError::JsonError)?
         );
         return Ok(());
     }
@@ -125,7 +138,10 @@ fn update_profile_field(
                 profile.tags = None;
             } else if let Some(raw_json) = value_json {
                 let tags: Vec<String> = serde_json::from_str(&raw_json).map_err(|e| {
-                    CcrError::ValidationError(format!("tags 的 value-json 不是合法 JSON 数组: {}", e))
+                    CcrError::ValidationError(format!(
+                        "tags 的 value-json 不是合法 JSON 数组: {}",
+                        e
+                    ))
                 })?;
                 profile.tags = normalize_tags(tags);
             } else {
@@ -149,22 +165,24 @@ fn update_profile_field(
     Ok(())
 }
 
-pub async fn platform_profile_create_command(
-    platform_name: &str,
-    name: &str,
-    description: Option<String>,
-    base_url: Option<String>,
-    auth_token: Option<String>,
-    model: Option<String>,
-    small_fast_model: Option<String>,
-    provider: Option<String>,
-    provider_type: Option<String>,
-    account: Option<String>,
-    tags: Vec<String>,
-    disabled: bool,
-    json: bool,
-) -> Result<()> {
-    let platform = parse_platform(platform_name)?;
+pub async fn platform_profile_create_command(args: PlatformProfileCreateArgs) -> Result<()> {
+    let PlatformProfileCreateArgs {
+        platform_name,
+        name,
+        description,
+        base_url,
+        auth_token,
+        model,
+        small_fast_model,
+        provider,
+        provider_type,
+        account,
+        tags,
+        disabled,
+        json,
+    } = args;
+
+    let platform = parse_platform(&platform_name)?;
     if !matches!(platform, Platform::Claude | Platform::Codex) {
         return Err(CcrError::PlatformNotSupported(format!(
             "{} 目前不支持通过 CLI 创建平台 Profile",
@@ -202,7 +220,7 @@ pub async fn platform_profile_create_command(
 
     let output = PlatformProfileMutationOutput {
         ok: true,
-        platform: platform_name.to_string(),
+        platform: platform_name.clone(),
         name: profile_name.to_string(),
         message: format!("已创建 {} 平台 Profile '{}'", platform_name, profile_name),
         enabled: Some(profile.is_enabled()),

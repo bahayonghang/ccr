@@ -15,7 +15,6 @@ use ratatui::layout::Rect;
 use std::cell::Cell;
 use std::sync::mpsc::TryRecvError;
 
-use crate::tui::app::list_hit_test;
 use crate::tui::runtime::TuiApp;
 use crate::tui::toast::{Toast, ToastManager};
 use std::path::PathBuf;
@@ -625,6 +624,19 @@ impl CodexAuthApp {
 
 // -- TuiApp trait implementation --
 
+fn account_list_hit_test(area: Rect, mouse_row: u16, page_len: usize) -> Option<usize> {
+    if mouse_row < area.y || mouse_row >= area.y + area.height {
+        return None;
+    }
+
+    let clicked_row = (mouse_row - area.y) as usize;
+    if clicked_row < page_len {
+        Some(clicked_row)
+    } else {
+        None
+    }
+}
+
 impl TuiApp for CodexAuthApp {
     fn handle_key(&mut self, key: KeyEvent) -> Result<bool> {
         if self.overlay.is_some() {
@@ -644,7 +656,7 @@ impl TuiApp for CodexAuthApp {
             MouseEventKind::Down(MouseButton::Left) => {
                 if let Some(area) = self.list_area.get()
                     && let Some(idx) =
-                        list_hit_test(area, mouse.row, self.current_page_accounts().len())
+                        account_list_hit_test(area, mouse.row, self.current_page_accounts().len())
                 {
                     self.selected_index = idx;
                 }
@@ -681,5 +693,28 @@ impl TuiApp for CodexAuthApp {
 
     fn render(&self, frame: &mut Frame) {
         super::ui::draw(frame, self);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn account_list_hit_test_hits_first_row_of_body_area() {
+        let area = Rect::new(4, 7, 60, 6);
+        assert_eq!(account_list_hit_test(area, 7, 4), Some(0));
+    }
+
+    #[test]
+    fn account_list_hit_test_ignores_header_row_above_body_area() {
+        let area = Rect::new(4, 7, 60, 6);
+        assert_eq!(account_list_hit_test(area, 6, 4), None);
+    }
+
+    #[test]
+    fn account_list_hit_test_ignores_rows_beyond_visible_items() {
+        let area = Rect::new(4, 7, 60, 6);
+        assert_eq!(account_list_hit_test(area, 10, 2), None);
     }
 }

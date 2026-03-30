@@ -86,8 +86,10 @@ where
 {
     let manager = PlatformConfigManager::with_default()?;
     let lock_manager = LockManager::with_default_path()?;
-    let _lock =
-        lock_manager.lock_resource(PLATFORM_REGISTRY_LOCK_RESOURCE, PLATFORM_PROFILE_LOCK_TIMEOUT)?;
+    let _lock = lock_manager.lock_resource(
+        PLATFORM_REGISTRY_LOCK_RESOURCE,
+        PLATFORM_PROFILE_LOCK_TIMEOUT,
+    )?;
 
     let mut unified_config = manager.load_or_create_default()?;
     let config_exists = manager.config_path().exists();

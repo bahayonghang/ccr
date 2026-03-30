@@ -69,7 +69,7 @@ pub enum PlatformAction {
     ///       ccr platform profile delete codex old --force
     Profile {
         #[command(subcommand)]
-        action: PlatformProfileAction,
+        action: Box<PlatformProfileAction>,
     },
 }
 

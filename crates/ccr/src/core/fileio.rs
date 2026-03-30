@@ -106,9 +106,11 @@ where
     let content = toml::to_string_pretty(value)
         .map_err(|e| CcrError::FileIoError(format!("序列化 TOML 数据失败: {}", e)))?;
 
-    AtomicWriter::new(path).write_string(&content).map_err(|e| {
-        CcrError::FileIoError(format!("写入配置文件 {} 失败: {}", path.display(), e))
-    })?;
+    AtomicWriter::new(path)
+        .write_string(&content)
+        .map_err(|e| {
+            CcrError::FileIoError(format!("写入配置文件 {} 失败: {}", path.display(), e))
+        })?;
 
     tracing::trace!("✅ 成功写入 TOML 文件: {}", path.display());
     Ok(())
@@ -147,9 +149,11 @@ where
     let content = serde_json::to_string_pretty(value)
         .map_err(|e| CcrError::FileIoError(format!("序列化 JSON 数据失败: {}", e)))?;
 
-    AtomicWriter::new(path).write_string(&content).map_err(|e| {
-        CcrError::FileIoError(format!("写入 JSON 文件 {} 失败: {}", path.display(), e))
-    })?;
+    AtomicWriter::new(path)
+        .write_string(&content)
+        .map_err(|e| {
+            CcrError::FileIoError(format!("写入 JSON 文件 {} 失败: {}", path.display(), e))
+        })?;
 
     tracing::trace!("✅ 成功写入 JSON 文件: {}", path.display());
     Ok(())

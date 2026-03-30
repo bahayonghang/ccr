@@ -11,9 +11,9 @@
 use super::codex_runtime_service::{
     CodexAuthCacheAction, CodexRuntimeCommitPlan, CodexRuntimeService,
 };
+use crate::core::AtomicWriter;
 use crate::core::error::{CcrError, Result};
 use crate::core::lock::LockManager;
-use crate::core::AtomicWriter;
 use crate::managers::codex_config::CodexConfigManager;
 use crate::models::PlatformConfig;
 use crate::models::{
@@ -25,8 +25,8 @@ use crate::models::{
 use crate::platforms::codex::CodexPlatform;
 use chrono::{DateTime, Duration, Utc};
 use std::path::PathBuf;
-use std::{env, fs};
 use std::time::Duration as StdDuration;
+use std::{env, fs};
 use tracing::{debug, warn};
 
 /// 备份保留数量
@@ -1225,8 +1225,10 @@ impl CodexAuthService {
     fn save_registry(&self, registry: &CodexAuthRegistry) -> Result<()> {
         let path = self.registry_path();
         let lock_manager = LockManager::new(self.ccr_codex_dir.join(".locks"));
-        let _lock = lock_manager
-            .lock_resource(CODEX_AUTH_REGISTRY_LOCK_RESOURCE, CODEX_AUTH_REGISTRY_LOCK_TIMEOUT)?;
+        let _lock = lock_manager.lock_resource(
+            CODEX_AUTH_REGISTRY_LOCK_RESOURCE,
+            CODEX_AUTH_REGISTRY_LOCK_TIMEOUT,
+        )?;
 
         // 确保目录存在
         if let Some(parent) = path.parent() {
