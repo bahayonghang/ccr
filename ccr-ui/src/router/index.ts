@@ -232,8 +232,7 @@ const routes: RouteRecordRaw[] = [
       {
         path: 'market',
         name: 'market',
-        component: () => import('@/views/generic/MarketView.vue'),
-        meta: { depth: 1, group: 'skills' },
+        redirect: '/skills?tab=marketplace',
       },
       // 配置组 (depth: 1, group: 'config')
       {

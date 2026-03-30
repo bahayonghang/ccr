@@ -155,7 +155,7 @@
       <!-- MARKET BANNER -->
       <section class="animate-slide-up">
         <RouterLink
-          to="/market"
+          to="/skills?tab=marketplace"
           class="block group"
         >
           <Card
