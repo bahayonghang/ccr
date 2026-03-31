@@ -16,6 +16,22 @@ const requiredAssets = [
   'src-tauri/icons/icon.icns',
 ]
 
+function writeLine(stream, message) {
+  stream.write(`${message}\n`)
+}
+
+function info(message) {
+  writeLine(process.stdout, message)
+}
+
+function warn(message) {
+  writeLine(process.stderr, message)
+}
+
+function error(message) {
+  writeLine(process.stderr, message)
+}
+
 function missingAssets() {
   return requiredAssets.filter((asset) => !existsSync(resolve(uiRoot, asset)))
 }
@@ -46,14 +62,14 @@ function main() {
   if (process.env.CCR_SKIP_ICON_GENERATION === '1') {
     const missing = missingAssets()
     if (missing.length > 0) {
-      console.error('CCR_SKIP_ICON_GENERATION=1 but required icon assets are missing:')
+      error('CCR_SKIP_ICON_GENERATION=1 but required icon assets are missing:')
       for (const asset of missing) {
-        console.error(`- ${asset}`)
+        error(`- ${asset}`)
       }
       process.exit(1)
     }
 
-    console.log('Skipping icon generation because CCR_SKIP_ICON_GENERATION=1')
+    info('Skipping icon generation because CCR_SKIP_ICON_GENERATION=1')
     return
   }
 
@@ -63,15 +79,15 @@ function main() {
 
   const missing = missingAssets()
   if (missing.length === 0) {
-    console.warn('uv not found, using committed icon assets')
+    warn('uv not found, using committed icon assets')
     return
   }
 
-  console.error('uv not found and required icon assets are missing:')
+  error('uv not found and required icon assets are missing:')
   for (const asset of missing) {
-    console.error(`- ${asset}`)
+    error(`- ${asset}`)
   }
-  console.error('Install uv or regenerate icons before building.')
+  error('Install uv or regenerate icons before building.')
   process.exit(1)
 }
 
