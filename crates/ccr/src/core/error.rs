@@ -345,10 +345,14 @@ impl CcrError {
                 format!("更新失败: {}", msg)
             }
             CcrError::UiError(msg) => {
-                format!(
-                    "UI 启动或更新失败: {}\n建议: 检查 UI 依赖、just 命令与本地环境",
-                    msg
-                )
+                if msg.contains("TUI") || msg.contains("终端") {
+                    msg.clone()
+                } else {
+                    format!(
+                        "UI 启动或更新失败: {}\n建议: 检查 UI 依赖、just 命令与本地环境",
+                        msg
+                    )
+                }
             }
             CcrError::ExternalCommandError(msg) => {
                 format!(
