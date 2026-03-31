@@ -4,11 +4,11 @@
 
 #![allow(clippy::unused_async)]
 
-use crate::core::ColorOutput;
-use crate::core::error::{CcrError, Result};
 use crate::models::Platform;
-use crate::sessions::models::SessionFilter;
-use crate::sessions::{SessionIndexer, SessionSummary};
+use ccr_core::core::ColorOutput;
+use ccr_core::core::error::{CcrError, Result};
+use ccr_store::sessions::models::SessionFilter;
+use ccr_store::sessions::{SessionIndexer, SessionSummary};
 use clap::{Args, Subcommand};
 use comfy_table::{Cell, Color, Table, presets::UTF8_FULL};
 

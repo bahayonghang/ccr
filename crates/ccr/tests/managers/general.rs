@@ -2,13 +2,13 @@
 // 🧪 Manager 层集成测试
 // 测试 ConfigManager, SettingsManager, HistoryManager 的核心功能
 
-use ccr::core::lock::LockManager;
+use ccr::LockManager;
+use ccr::Validatable;
 use ccr::managers::config::{CcsConfig, ConfigManager, ConfigSection};
-use ccr::managers::history::{
+use ccr::managers::settings::{ClaudeSettings, SettingsManager};
+use ccr::managers::{
     HistoryEntry, HistoryManager, OperationDetails, OperationResult, OperationType,
 };
-use ccr::managers::settings::{ClaudeSettings, SettingsManager};
-use ccr::utils::Validatable;
 use indexmap::IndexMap;
 use tempfile::tempdir;
 
@@ -329,7 +329,7 @@ fn test_settings_validation() {
 fn test_history_manager_add_and_load() {
     let temp_dir = tempdir().unwrap();
     let db_path = temp_dir.path().join("test.db");
-    let db = ccr::storage::Database::init(&db_path).unwrap();
+    let db = ccr::Database::init(&db_path).unwrap();
     let manager = HistoryManager::new(db);
 
     // 添加第一条记录
@@ -369,7 +369,7 @@ fn test_history_manager_add_and_load() {
 fn test_history_manager_filtering() {
     let temp_dir = tempdir().unwrap();
     let db_path = temp_dir.path().join("test.db");
-    let db = ccr::storage::Database::init(&db_path).unwrap();
+    let db = ccr::Database::init(&db_path).unwrap();
     let manager = HistoryManager::new(db);
 
     let details = OperationDetails {
@@ -426,7 +426,7 @@ fn test_history_manager_filtering() {
 fn test_history_manager_recent_limit() {
     let temp_dir = tempdir().unwrap();
     let db_path = temp_dir.path().join("test.db");
-    let db = ccr::storage::Database::init(&db_path).unwrap();
+    let db = ccr::Database::init(&db_path).unwrap();
     let manager = HistoryManager::new(db);
 
     let details = OperationDetails {
@@ -462,7 +462,7 @@ fn test_history_manager_recent_limit() {
 fn test_history_manager_stats() {
     let temp_dir = tempdir().unwrap();
     let db_path = temp_dir.path().join("test.db");
-    let db = ccr::storage::Database::init(&db_path).unwrap();
+    let db = ccr::Database::init(&db_path).unwrap();
     let manager = HistoryManager::new(db);
 
     let details = OperationDetails {

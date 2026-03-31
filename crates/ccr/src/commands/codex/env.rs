@@ -4,10 +4,10 @@
 
 #![allow(clippy::unused_async)]
 
-use crate::core::error::{CcrError, Result};
-use crate::core::logging::ColorOutput;
 use crate::models::PlatformConfig;
-use crate::platforms::codex::CodexPlatform;
+use ccr_codex::CodexPlatform;
+use ccr_core::core::error::{CcrError, Result};
+use ccr_core::core::logging::ColorOutput;
 
 pub async fn env_command(profile_name: Option<&str>) -> Result<()> {
     let platform = CodexPlatform::new()?;

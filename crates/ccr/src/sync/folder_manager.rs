@@ -11,11 +11,11 @@
 
 #![allow(dead_code)]
 
-use crate::core::error::{CcrError, Result};
-use crate::core::fileio;
-use crate::core::lock::LockManager;
-use crate::sync::config::SyncConfigManager;
 use crate::sync::folder::{FolderStats, SyncFolder, SyncFoldersConfig, WebDavConfig, expand_path};
+use ccr_config::SyncConfigManager;
+use ccr_core::core::error::{CcrError, Result};
+use ccr_core::core::fileio;
+use ccr_core::core::lock::LockManager;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
@@ -32,7 +32,7 @@ use std::time::Duration;
 ///
 /// ```no_run
 /// use ccr::managers::sync_folder_manager::SyncFolderManager;
-/// use ccr::models::sync_folder::SyncFolder;
+/// use ccr::SyncFolder;
 ///
 /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
 /// let mut manager = SyncFolderManager::with_default()?;
@@ -723,7 +723,7 @@ mod tests {
         }
 
         // 创建旧版 sync.toml
-        let old_config = crate::managers::sync_config::SyncConfig {
+        let old_config = ccr_config::SyncConfig {
             enabled: true,
             webdav_url: "https://dav.example.com/".to_string(),
             username: "test@example.com".to_string(),
@@ -732,8 +732,7 @@ mod tests {
             auto_sync: false,
         };
 
-        let sync_config_manager =
-            crate::managers::sync_config::SyncConfigManager::new(&sync_config_path);
+        let sync_config_manager = ccr_config::SyncConfigManager::new(&sync_config_path);
         sync_config_manager.save(&old_config).unwrap();
 
         // 执行迁移

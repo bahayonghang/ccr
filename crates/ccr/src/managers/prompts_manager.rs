@@ -1,6 +1,6 @@
-use crate::core::error::{CcrError, Result};
 use crate::models::Platform;
 use crate::models::prompt::{PromptPreset, PromptTarget};
+use ccr_core::core::error::{CcrError, Result};
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;

@@ -6,11 +6,11 @@
 // - 提供统一的验证接口
 // - 复用 ConfigService 和 SettingsService 的验证能力
 
-use crate::core::error::Result;
 use crate::managers::SettingsManager;
 use crate::services::ConfigService;
 use crate::services::config_service::ValidationReport;
-use crate::utils::Validatable;
+use ccr_core::Validatable;
+use ccr_core::core::error::Result;
 use std::sync::Arc;
 
 /// 🔍 完整验证报告

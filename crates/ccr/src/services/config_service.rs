@@ -1,11 +1,11 @@
 // ⚙️ 配置服务
 // 封装配置相关的业务逻辑
 
-use crate::core::error::{CcrError, Result};
-use crate::core::lock::{CONFIG_LOCK, LockManager};
 use crate::managers::config::{CcsConfig, ConfigManager, ConfigSection};
 use crate::managers::config_validator::ConfigValidator;
-use crate::utils::Validatable;
+use ccr_core::Validatable;
+use ccr_core::core::error::{CcrError, Result};
+use ccr_core::core::lock::{CONFIG_LOCK, LockManager};
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -90,7 +90,7 @@ impl ConfigService {
     fn lock_config(
         &self,
     ) -> Result<(
-        crate::core::lock::FileLock,
+        ccr_core::core::lock::FileLock,
         std::sync::MutexGuard<'static, ()>,
     )> {
         let lock_manager = LockManager::with_default_path()?;
@@ -368,7 +368,7 @@ impl ConfigService {
         if !include_secrets {
             for section in config.sections.values_mut() {
                 if let Some(ref token) = section.auth_token {
-                    section.auth_token = Some(crate::utils::mask_sensitive(token));
+                    section.auth_token = Some(ccr_core::mask_sensitive(token));
                 }
             }
         }

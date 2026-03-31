@@ -1,10 +1,10 @@
 // 💰 CCR 预算命令实现
 // 提供预算配置和监控功能
 
-use crate::core::ColorOutput;
-use crate::core::error::{CcrError, Result};
 use crate::managers::{BudgetManager, CostTracker};
 use crate::models::budget::BudgetPeriod;
+use ccr_core::core::ColorOutput;
+use ccr_core::core::error::{CcrError, Result};
 use clap::{Args, Subcommand};
 use comfy_table::{Cell, CellAlignment, Color, ContentArrangement, Table};
 

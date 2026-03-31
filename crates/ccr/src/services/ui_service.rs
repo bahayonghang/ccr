@@ -1,10 +1,10 @@
 // 🎨 UI 服务层
 // 负责启动和管理 CCR UI (Web 应用)
 
-use crate::core::CCR_UI_REPO;
-use crate::core::error::{CcrError, Result};
-use crate::core::http::HTTP_CLIENT;
-use crate::core::logging::ColorOutput;
+use ccr_core::core::CCR_UI_REPO;
+use ccr_core::core::error::{CcrError, Result};
+use ccr_core::core::http::HTTP_CLIENT;
+use ccr_core::core::logging::ColorOutput;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};

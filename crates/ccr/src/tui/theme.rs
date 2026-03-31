@@ -1,7 +1,7 @@
 // TUI theme & style — centralized color scheme and style functions
 // Unified color palette, accent styles, spacing strategy for consistent theming
 
-use crate::models::platform::Platform;
+use crate::models::Platform;
 use ratatui::style::{Color, Modifier, Style};
 
 // ═══════════════════════════════════════════════════════════

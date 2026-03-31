@@ -1,8 +1,8 @@
 // 🎯 交互式提示工具
 // 统一处理用户输入和确认逻辑
 
-use crate::core::error::Result;
-use crate::core::logging::ColorOutput;
+use ccr_core::core::error::Result;
+use ccr_core::core::logging::ColorOutput;
 use colored::Colorize;
 use std::io::{self, Write};
 

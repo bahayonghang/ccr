@@ -6,9 +6,9 @@
 // - 提供统一的验证接口
 // - 生成详细的验证报告
 
-use crate::core::error::Result;
 use crate::managers::config::{CcsConfig, ConfigSection};
-use crate::utils::Validatable;
+use ccr_core::Validatable;
+use ccr_core::core::error::Result;
 use std::collections::HashMap;
 
 /// 📊 验证报告

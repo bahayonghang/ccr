@@ -305,11 +305,15 @@ dependencies = [
 
 [[package]]
 name = "ccr"
-version = "5.5.0"
+version = "5.5.1"
 dependencies = [
  "anyhow",
  "base64",
  "blake3",
+ "ccr-codex",
+ "ccr-config",
+ "ccr-core",
+ "ccr-store",
  "ccr-types",
  "chrono",
  "clap",
@@ -347,13 +351,78 @@ dependencies = [
 ]
 
 [[package]]
+name = "ccr-codex"
+version = "5.5.1"
+dependencies = [
+ "base64",
+ "ccr-config",
+ "ccr-core",
+ "ccr-types",
+ "chrono",
+ "dirs",
+ "futures",
+ "indexmap",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "sysinfo",
+ "tempfile",
+ "tokio",
+ "toml",
+ "tracing",
+ "uuid",
+]
+
+[[package]]
+name = "ccr-config"
+version = "5.5.1"
+dependencies = [
+ "ccr-core",
+ "chrono",
+ "dirs",
+ "indexmap",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "toml",
+ "tracing",
+]
+
+[[package]]
+name = "ccr-core"
+version = "5.5.1"
+dependencies = [
+ "anyhow",
+ "colored",
+ "dirs",
+ "fs4",
+ "indexmap",
+ "r2d2",
+ "r2d2_sqlite",
+ "reqwest",
+ "rusqlite",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "thiserror 2.0.18",
+ "tokio",
+ "toml",
+ "tracing",
+ "tracing-appender",
+ "tracing-log",
+ "tracing-subscriber",
+ "uuid",
+]
+
+[[package]]
 name = "ccr-db"
-version = "5.5.0"
+version = "5.5.1"
 dependencies = [
  "aes-gcm",
  "anyhow",
  "async-stream",
  "base64",
+ "ccr-core",
  "ccr-types",
  "chrono",
  "dirs",
@@ -379,8 +448,29 @@ dependencies = [
 ]
 
 [[package]]
+name = "ccr-store"
+version = "5.5.1"
+dependencies = [
+ "blake3",
+ "ccr-config",
+ "ccr-core",
+ "chrono",
+ "dirs",
+ "r2d2",
+ "r2d2_sqlite",
+ "rayon",
+ "rusqlite",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "tracing",
+ "uuid",
+ "whoami",
+]
+
+[[package]]
 name = "ccr-types"
-version = "5.5.0"
+version = "5.5.1"
 dependencies = [
  "chrono",
  "serde",

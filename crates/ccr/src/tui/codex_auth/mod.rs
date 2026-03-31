@@ -6,7 +6,7 @@ pub(crate) mod ui;
 
 pub use app::CodexAuthApp;
 
-use crate::core::error::Result;
+use ccr_core::core::error::Result;
 
 /// Run the Codex Auth TUI application.
 ///

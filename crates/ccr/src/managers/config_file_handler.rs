@@ -6,10 +6,10 @@
 // - 提供统一的文件读写接口
 // - 支持配置文件的备份和恢复
 
-use crate::core::error::{CcrError, Result};
-use crate::core::fileio;
 use crate::managers::config::CcsConfig;
-use crate::utils::AutoCompletable;
+use ccr_core::AutoCompletable;
+use ccr_core::core::error::{CcrError, Result};
+use ccr_core::core::fileio;
 use chrono::Local;
 use std::fs;
 use std::path::{Path, PathBuf};

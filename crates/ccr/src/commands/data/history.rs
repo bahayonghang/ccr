@@ -3,10 +3,10 @@
 
 #![allow(clippy::unused_async)]
 
-use crate::core::error::Result;
-use crate::core::logging::ColorOutput;
-use crate::managers::history::OperationType;
+use crate::managers::{OperationResult, OperationType};
 use crate::services::HistoryService;
+use ccr_core::core::error::Result;
+use ccr_core::core::logging::ColorOutput;
 use colored::*;
 
 /// 📚 显示操作历史
@@ -72,13 +72,9 @@ pub async fn history_command(limit: Option<usize>, filter_type: Option<String>) 
         let op_str = entry.operation.as_str();
 
         let result_str = match &entry.result {
-            crate::managers::history::OperationResult::Success => "成功".green(),
-            crate::managers::history::OperationResult::Failure(msg) => {
-                format!("失败: {}", msg).red()
-            }
-            crate::managers::history::OperationResult::Warning(msg) => {
-                format!("警告: {}", msg).yellow()
-            }
+            OperationResult::Success => "成功".green(),
+            OperationResult::Failure(msg) => format!("失败: {}", msg).red(),
+            OperationResult::Warning(msg) => format!("警告: {}", msg).yellow(),
         };
 
         println!("{}. [{}] {} - {}", index + 1, time_str, op_str, result_str);

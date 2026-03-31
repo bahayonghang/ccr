@@ -1,0 +1,32 @@
+[package]
+name = "ccr-codex"
+version.workspace = true
+edition = "2024"
+rust-version = "1.90"
+authors = ["Yonghang Li"]
+description = "Dedicated CCR Codex domain crate scaffold"
+license = "MIT"
+repository = "https://github.com/bahayonghang/ccr"
+
+[dependencies]
+ccr-core = { path = "../ccr-core" }
+ccr-config = { path = "../ccr-config" }
+ccr-types = { path = "../ccr-types" }
+base64 = { workspace = true }
+chrono = { workspace = true }
+dirs = { workspace = true }
+futures = { workspace = true }
+indexmap = { workspace = true }
+reqwest = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+sysinfo = { version = "0.38.3", default-features = false, features = ["system"] }
+tempfile = { workspace = true }
+tokio = { workspace = true }
+toml = { workspace = true }
+tracing = { workspace = true }
+uuid = { workspace = true }
+
+[lib]
+name = "ccr_codex"
+path = "src/lib.rs"

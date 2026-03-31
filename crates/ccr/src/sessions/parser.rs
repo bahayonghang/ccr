@@ -2,9 +2,9 @@
 //!
 //! 解析不同平台的 JSONL session 文件。
 
-use crate::core::error::{CcrError, Result};
+use ccr_core::core::error::{CcrError, Result};
 use crate::models::Platform;
-use crate::sessions::models::{IndexStats, Session, SessionEvent};
+use ccr_store::sessions::models::{IndexStats, Session, SessionEvent};
 use chrono::{DateTime, Utc};
 use rayon::prelude::*;
 use std::fs::File;

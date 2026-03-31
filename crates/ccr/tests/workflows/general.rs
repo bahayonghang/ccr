@@ -80,7 +80,7 @@ fn test_settings_service_workflow() {
     let backup_dir = temp_dir.path().join("backups");
     let lock_dir = temp_dir.path().join("locks");
 
-    let lock_manager = ccr::core::lock::LockManager::new(lock_dir);
+    let lock_manager = ccr::LockManager::new(lock_dir);
     let settings_manager = Arc::new(ccr::managers::settings::SettingsManager::new(
         settings_path,
         backup_dir,
@@ -115,7 +115,7 @@ fn test_settings_service_workflow() {
 
 #[test]
 fn test_validation_trait() {
-    use ccr::utils::Validatable;
+    use ccr::Validatable;
 
     // 测试有效配置
     let valid_section = create_test_section("valid");

@@ -1,11 +1,11 @@
 // TUI application state — Tab-based dispatch (Claude + Codex only)
 
-use crate::core::error::Result;
 use crate::models::CodexRuntimeSummary;
-use crate::models::platform::{Platform, PlatformConfig, PlatformPaths, ProfileConfig};
+use crate::models::{Platform, PlatformConfig, PlatformPaths, ProfileConfig};
 use crate::platforms::create_platform;
 use crate::tui::action::Action;
 use crate::tui::toast::{Toast, ToastManager};
+use ccr_core::core::error::Result;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
 use indexmap::IndexMap;
 use ratatui::Frame;
@@ -755,9 +755,9 @@ impl TuiApp for App {
 mod tests {
     #![allow(clippy::unwrap_used)]
     use super::*;
-    use crate::core::error::{CcrError, Result};
     use crate::models::Platform;
     use crate::models::ProfileConfig;
+    use ccr_core::core::error::{CcrError, Result};
     use std::path::PathBuf;
     use std::sync::Arc;
 

@@ -1,7 +1,7 @@
-use crate::core::error::Result;
 use crate::managers::skills_manager::SkillsManager;
 use crate::models::Platform;
 use crate::models::skill::SkillRepository;
+use ccr_core::core::error::Result;
 use clap::{Args, Subcommand};
 use comfy_table::{Attribute, Cell, Color, ContentArrangement, Table, presets::UTF8_FULL};
 use std::str::FromStr;

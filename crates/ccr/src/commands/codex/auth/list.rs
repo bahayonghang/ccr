@@ -4,10 +4,10 @@
 
 #![allow(clippy::unused_async)]
 
-use crate::core::error::Result;
-use crate::core::logging::ColorOutput;
 use crate::models::AuthIntent;
 use crate::services::CodexAuthService;
+use ccr_core::core::error::Result;
+use ccr_core::core::logging::ColorOutput;
 use chrono::Local;
 use comfy_table::{
     Attribute, Cell, CellAlignment, Color as TableColor, ContentArrangement, Table,

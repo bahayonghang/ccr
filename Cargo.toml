@@ -1,10 +1,18 @@
 [workspace]
-members = ["crates/ccr", "crates/ccr-db", "crates/ccr-types"]
+members = [
+    "crates/ccr",
+    "crates/ccr-core",
+    "crates/ccr-config",
+    "crates/ccr-store",
+    "crates/ccr-codex",
+    "crates/ccr-db",
+    "crates/ccr-types",
+]
 default-members = ["crates/ccr"]
 resolver = "3"
 
 [workspace.package]
-version = "5.5.0"
+version = "5.5.1"
 
 [workspace.dependencies]
 # Async runtime

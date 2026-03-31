@@ -7,9 +7,9 @@
 // - 💾 安装预设到指定平台
 #![allow(dead_code)]
 
-use crate::core::error::{CcrError, Result};
 use crate::models::Platform;
 use crate::models::mcp_preset::{McpPreset, McpServerSpec};
+use ccr_core::core::error::{CcrError, Result};
 use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;

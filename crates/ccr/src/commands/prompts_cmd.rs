@@ -1,9 +1,9 @@
 #![allow(clippy::unused_async)]
 
-use crate::core::error::Result;
 use crate::managers::prompts_manager::PromptsManager;
 use crate::models::Platform;
 use crate::models::prompt::{PromptPreset, PromptTarget};
+use ccr_core::core::error::Result;
 use clap::{Args, Subcommand};
 use comfy_table::{Attribute, Cell, Color, ContentArrangement, Table, presets::UTF8_FULL};
 use std::str::FromStr;
@@ -112,11 +112,12 @@ pub async fn prompts_command(args: PromptsArgs) -> Result<()> {
             description,
         } => {
             let target_enum = PromptTarget::from_str(&target)
-                .map_err(crate::core::error::CcrError::ConfigError)?;
+                .map_err(ccr_core::core::error::CcrError::ConfigError)?;
 
             // Handle @file syntax
             let content = if let Some(file_path) = content.strip_prefix('@') {
-                std::fs::read_to_string(file_path).map_err(crate::core::error::CcrError::IoError)?
+                std::fs::read_to_string(file_path)
+                    .map_err(ccr_core::core::error::CcrError::IoError)?
             } else {
                 content
             };
@@ -153,7 +154,7 @@ pub async fn prompts_command(args: PromptsArgs) -> Result<()> {
         }
         PromptsAction::Current { target } => {
             let target_enum = PromptTarget::from_str(&target)
-                .map_err(crate::core::error::CcrError::ConfigError)?;
+                .map_err(ccr_core::core::error::CcrError::ConfigError)?;
 
             let content = manager.get_current_content(target_enum)?;
             if content.is_empty() {

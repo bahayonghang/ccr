@@ -9,8 +9,8 @@
 // - 📅 时间戳和操作者追踪
 // - 💾 SQLite 持久化存储(~/.ccr/data.db)
 
-use crate::core::error::{CcrError, Result};
-use crate::storage::Database;
+use ccr_core::core::error::{CcrError, Result};
+use ccr_store::storage::Database;
 use chrono::{DateTime, Local};
 use rusqlite::params;
 use serde::{Deserialize, Serialize};
@@ -154,8 +154,8 @@ impl HistoryEntry {
         old_value: Option<String>,
         new_value: Option<String>,
     ) {
-        let old_masked = old_value.map(|v| crate::utils::mask_if_sensitive(&var_name, &v));
-        let new_masked = new_value.map(|v| crate::utils::mask_if_sensitive(&var_name, &v));
+        let old_masked = old_value.map(|v| ccr_core::mask_if_sensitive(&var_name, &v));
+        let new_masked = new_value.map(|v| ccr_core::mask_if_sensitive(&var_name, &v));
 
         self.env_changes.push(EnvChange {
             var_name,

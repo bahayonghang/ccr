@@ -2,11 +2,11 @@
 //!
 //! 管理 Session 的索引、搜索和增量更新。
 
-use crate::core::error::Result;
+use ccr_core::core::error::Result;
 use crate::models::Platform;
-use crate::sessions::models::{IndexStats, Session, SessionFilter, SessionSummary};
-use crate::sessions::parser::SessionParser;
-use crate::storage::{Database, SessionStore};
+use ccr_store::sessions::models::{IndexStats, Session, SessionFilter, SessionSummary};
+use ccr_store::sessions::parser::SessionParser;
+use ccr_store::storage::{Database, SessionStore};
 use rayon::prelude::*;
 use std::path::Path;
 use std::sync::Arc;
@@ -133,7 +133,7 @@ impl SessionIndexer {
             match session_result {
                 Ok(session) => {
                     // 转换为 storage 格式
-                    let storage_session = crate::storage::session_store::Session {
+                    let storage_session = ccr_store::storage::session_store::Session {
                         id: session.id,
                         platform: session.platform,
                         title: session.title,
@@ -172,7 +172,7 @@ impl SessionIndexer {
         let store = SessionStore::new(&self.db);
 
         // 转换过滤器
-        let storage_filter = crate::storage::session_store::SessionFilter {
+        let storage_filter = ccr_store::storage::session_store::SessionFilter {
             platform: filter.platform,
             from_date: filter.from_date,
             to_date: filter.to_date,
@@ -249,7 +249,7 @@ impl SessionIndexer {
     }
 
     /// 获取统计信息
-    pub fn stats(&self) -> Result<crate::storage::session_store::SessionStats> {
+    pub fn stats(&self) -> Result<ccr_store::storage::session_store::SessionStats> {
         let store = SessionStore::new(&self.db);
         store.stats()
     }
@@ -270,8 +270,8 @@ impl SessionIndexer {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::storage::SessionStore;
-    use crate::storage::session_store::SessionFilter as StorageSessionFilter;
+    use ccr_store::storage::SessionStore;
+    use ccr_store::storage::session_store::SessionFilter as StorageSessionFilter;
     use std::fs;
     use std::path::{Path, PathBuf};
     use tempfile::tempdir;

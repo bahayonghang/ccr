@@ -1,12 +1,13 @@
 use crate::application::types::{SwitchProfileRequest, SwitchProfileResult};
-use crate::core::error::{CcrError, Result};
-use crate::managers::PlatformConfigManager;
-use crate::managers::history::{
-    HistoryEntry, HistoryManager, OperationDetails, OperationResult, OperationType,
-};
 use crate::managers::settings::SettingsManager;
+use crate::managers::{
+    HistoryEntry, HistoryManager, OperationDetails, OperationResult, OperationType,
+    PlatformConfigManager,
+};
 use crate::models::Platform;
-use crate::platforms::{base::profile_to_section, create_platform};
+use crate::platforms::create_platform;
+use ccr_config::profile_to_section;
+use ccr_core::core::error::{CcrError, Result};
 use std::collections::HashMap;
 use std::str::FromStr;
 

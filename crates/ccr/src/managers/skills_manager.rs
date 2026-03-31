@@ -1,7 +1,7 @@
-use crate::core::error::{CcrError, Result};
-use crate::core::http::HTTP_CLIENT;
 use crate::models::Platform;
 use crate::models::skill::{Skill, SkillRepository};
+use ccr_core::core::error::{CcrError, Result};
+use ccr_core::core::http::HTTP_CLIENT;
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;

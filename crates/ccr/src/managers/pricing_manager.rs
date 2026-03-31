@@ -1,9 +1,9 @@
 // 💰 CCR 价格表管理器
 // 负责模型定价配置的管理
 
-use crate::core::error::{CcrError, Result};
 use crate::models::pricing::PricingConfig;
 use crate::models::stats::ModelPricing;
+use ccr_core::core::error::{CcrError, Result};
 use std::fs;
 use std::path::{Path, PathBuf};
 

@@ -6,7 +6,7 @@ use super::codex_auth;
 use super::theme;
 use super::toast::ToastKind;
 use crate::models::{CodexRuntimeSummary, OpenAiAuthMethod, Platform, ProfileConfig};
-use crate::platforms::codex::CodexPlatform;
+use ccr_codex::CodexPlatform;
 use ratatui::{
     Frame,
     layout::{Alignment, Constraint, Direction, Layout, Rect},

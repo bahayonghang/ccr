@@ -1,4 +1,4 @@
-use crate::core::logging::ColorOutput;
+use ccr_core::core::logging::ColorOutput;
 
 const FAILURE_LOG_LINES: usize = 20;
 

@@ -9,16 +9,12 @@
 
 mod application;
 mod commands;
-mod core;
 mod help;
 mod managers;
 mod models;
 mod platforms;
 mod services;
-mod sessions;
-mod storage;
 mod sync;
-mod utils;
 
 #[cfg(feature = "tui")]
 mod tui;
@@ -26,9 +22,9 @@ mod tui;
 // CLI 模块 - 命令行结构定义和命令分发
 mod cli;
 
+use ccr_core::{init_file_only_logger, init_logger};
 use clap::Parser;
 use cli::{Cli, CommandDispatcher};
-use core::init_logger;
 
 /// 🎯 主函数入口
 ///
@@ -46,7 +42,7 @@ async fn main() {
     // TUI 模式下仅输出到文件，避免日志覆盖 TUI 界面
     #[cfg(feature = "tui")]
     if cli.is_tui_mode() {
-        core::init_file_only_logger();
+        init_file_only_logger();
     } else {
         init_logger();
     }

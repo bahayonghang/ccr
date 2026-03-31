@@ -3,9 +3,9 @@
 //!
 //! 测试新的交互式内容选择功能的完整流程
 
+use ccr::CONFIG_LOCK;
 use ccr::commands::SyncContentSelector;
 use ccr::commands::sync_content_selector::{SyncContentSelection, SyncContentType};
-use ccr::core::CONFIG_LOCK;
 use std::fs;
 use tempfile::tempdir;
 

@@ -6,8 +6,8 @@
 #[path = "update_failure.rs"]
 mod update_failure;
 
-use crate::core::error::{CcrError, Result};
-use crate::core::logging::ColorOutput;
+use ccr_core::core::error::{CcrError, Result};
+use ccr_core::core::logging::ColorOutput;
 use std::io::{BufRead, BufReader};
 use std::process::{Command, ExitStatus, Stdio};
 use update_failure::handle_update_failure;
@@ -22,7 +22,7 @@ struct UpdateExecutionResult {
 
 /// 🔄 执行自更新
 pub async fn update_command(check_only: bool, branch: &str) -> Result<()> {
-    use crate::core::CCR_GITHUB_REPO;
+    use ccr_core::core::CCR_GITHUB_REPO;
 
     let current_version = env!("CARGO_PKG_VERSION");
     let repo_url = format!("https://github.com/{CCR_GITHUB_REPO}");

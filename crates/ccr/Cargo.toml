@@ -24,6 +24,10 @@ default = ["tui"]
 tui = ["dep:crossterm", "dep:ratatui"]
 
 [dependencies]
+ccr-core = { path = "../ccr-core" }
+ccr-config = { path = "../ccr-config" }
+ccr-store = { path = "../ccr-store" }
+ccr-codex = { path = "../ccr-codex" }
 anyhow = { workspace = true }
 ccr-types = { path = "../ccr-types" }
 chrono = { workspace = true }

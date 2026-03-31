@@ -3,10 +3,10 @@
 
 #![allow(clippy::unused_async)]
 
-use crate::core::error::{CcrError, Result};
-use crate::core::logging::ColorOutput;
 use crate::managers::config::CcsConfig;
 use crate::services::ConfigService;
+use ccr_core::core::error::{CcrError, Result};
+use ccr_core::core::logging::ColorOutput;
 use std::fs;
 use std::path::PathBuf;
 
@@ -228,8 +228,8 @@ fn print_import_summary(result: &ImportResult) {
 #[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
-    use crate::core::lock::CONFIG_LOCK;
     use crate::managers::config::ConfigSection;
+    use ccr_core::core::lock::CONFIG_LOCK;
     use std::env;
     use tempfile::tempdir;
 

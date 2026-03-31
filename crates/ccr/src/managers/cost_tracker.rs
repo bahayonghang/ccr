@@ -1,11 +1,11 @@
 // 💰 CCR 成本追踪管理器
 // 负责记录和查询 API 使用成本
 
-use crate::core::error::{CcrError, Result};
 use crate::managers::PricingManager;
 use crate::models::stats::{
     Cost, CostRecord, CostStats, DailyCost, ModelPricing, TokenStats, TokenUsage,
 };
+use ccr_core::core::error::{CcrError, Result};
 use chrono::{DateTime, Datelike, Duration, Utc};
 use std::collections::HashMap;
 use std::fs::{self, OpenOptions};

@@ -4,16 +4,17 @@
 
 #![allow(clippy::unused_async)]
 
-use crate::core::error::Result;
-use crate::core::logging::ColorOutput;
 use crate::managers::ConfigManager;
 use crate::managers::PlatformConfigManager;
 use crate::models::{
     AuthIntent, AuthState, AuthStateStatus, OpenAiAuthMethod, Platform, PlatformPaths,
 };
-use crate::platforms::{base::profile_to_section, create_platform};
+use crate::platforms::create_platform;
 use crate::services::{CodexAuthService, SettingsService};
-use crate::utils::Validatable;
+use ccr_config::profile_to_section;
+use ccr_core::Validatable;
+use ccr_core::core::error::Result;
+use ccr_core::core::logging::ColorOutput;
 use colored::Colorize;
 use comfy_table::{
     Attribute, Cell, Color as TableColor, ContentArrangement, Table, presets::UTF8_FULL,
@@ -102,13 +103,13 @@ pub async fn current_command() -> Result<()> {
 
     // 获取当前 profile
     let current_profile = platform_config.get_current_profile()?.ok_or_else(|| {
-        crate::core::error::CcrError::ConfigError("未设置当前 profile".to_string())
+        ccr_core::core::error::CcrError::ConfigError("未设置当前 profile".to_string())
     })?;
 
     // 加载 profiles
     let profiles = platform_config.load_profiles()?;
     let profile = profiles.get(&current_profile).ok_or_else(|| {
-        crate::core::error::CcrError::ConfigSectionNotFound(current_profile.clone())
+        ccr_core::core::error::CcrError::ConfigSectionNotFound(current_profile.clone())
     })?;
 
     // 转换为 ConfigSection（统一复用平台公共转换逻辑）
@@ -413,10 +414,10 @@ fn render_auth_source(auth_state: &AuthState, profile: &crate::models::ProfileCo
         },
         AuthIntent::ProviderEnvKey { env_key } => format!("provider:{env_key}"),
         AuthIntent::NoAuth => {
-            if crate::platforms::codex::CodexPlatform::profile_auth_mode(profile)
+            if ccr_codex::CodexPlatform::profile_auth_mode(profile)
                 == crate::models::CodexProfileAuthMode::ProviderEnvKey
             {
-                crate::platforms::codex::CodexPlatform::profile_auth_source(profile)
+                ccr_codex::CodexPlatform::profile_auth_source(profile)
             } else {
                 "none".to_string()
             }

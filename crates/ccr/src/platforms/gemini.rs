@@ -7,10 +7,10 @@
 // - 🔐 验证 Google API key 格式
 // - 💾 仅支持 Unified 模式
 
-use crate::core::error::{CcrError, Result};
 use crate::models::{Platform, PlatformConfig, PlatformPaths, ProfileConfig};
-use crate::platforms::base;
-use crate::utils::Validatable;
+use ccr_config::platforms::base;
+use ccr_core::Validatable;
+use ccr_core::core::error::{CcrError, Result};
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 use std::fs;

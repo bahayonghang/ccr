@@ -4,10 +4,10 @@
 
 #![allow(clippy::unused_async)]
 
-use crate::core::error::{CcrError, Result};
-use crate::core::logging::ColorOutput;
 use crate::models::ImportMode;
 use crate::services::CodexAuthService;
+use ccr_core::core::error::{CcrError, Result};
+use ccr_core::core::logging::ColorOutput;
 use colored::Colorize;
 use std::fs;
 use std::io::{self, Write};

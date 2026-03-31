@@ -1,7 +1,7 @@
 #![allow(clippy::unused_async)]
 
-use crate::core::error::Result;
 use crate::managers::conflict_checker::{ConflictChecker, ConflictSeverity};
+use ccr_core::core::error::Result;
 use comfy_table::{Attribute, Cell, Color, ContentArrangement, Table, presets::UTF8_FULL};
 
 pub async fn check_conflicts_command() -> Result<()> {

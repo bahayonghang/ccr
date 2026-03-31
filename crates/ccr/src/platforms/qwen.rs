@@ -7,8 +7,8 @@
 // - 🚧 返回 NotImplemented 错误
 // - 📋 为未来实现预留接口
 
-use crate::core::error::{CcrError, Result};
 use crate::models::{Platform, PlatformConfig, ProfileConfig};
+use ccr_core::core::error::{CcrError, Result};
 use indexmap::IndexMap;
 use std::path::PathBuf;
 

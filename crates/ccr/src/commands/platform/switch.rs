@@ -5,8 +5,8 @@
 #![allow(clippy::unused_async)]
 
 use crate::application::{SwitchPlatformRequest, switch_platform};
-use crate::core::error::Result;
-use crate::core::logging::ColorOutput;
+use ccr_core::core::error::Result;
+use ccr_core::core::logging::ColorOutput;
 use colored::Colorize;
 
 /// 🔄 切换当前平台

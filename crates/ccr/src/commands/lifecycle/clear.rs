@@ -8,10 +8,10 @@
 
 #![allow(clippy::unused_async)]
 
-use crate::core::error::{CcrError, Result};
-use crate::core::logging::ColorOutput;
 use crate::managers::SettingsManager;
 use crate::services::ConfigService;
+use ccr_core::core::error::{CcrError, Result};
+use ccr_core::core::logging::ColorOutput;
 use comfy_table::{
     Attribute, Cell, Color as TableColor, ContentArrangement, Table, presets::UTF8_FULL,
 };
@@ -80,7 +80,7 @@ pub async fn clear_command(force: bool) -> Result<()> {
 
     for (key, value) in &anthropic_vars {
         let masked_value = if key.contains("TOKEN") || key.contains("KEY") {
-            crate::utils::mask_sensitive(value)
+            ccr_core::mask_sensitive(value)
         } else {
             value.clone()
         };

@@ -7,7 +7,7 @@
 // - 🔄 路径扩展和验证
 // - 🏗️ Builder 模式便捷构建
 
-use crate::core::error::{CcrError, Result};
+use ccr_core::core::error::{CcrError, Result};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
@@ -18,7 +18,7 @@ use std::path::PathBuf;
 /// # Examples
 ///
 /// ```no_run
-/// use ccr::models::sync_folder::SyncFolder;
+/// use ccr::SyncFolder;
 ///
 /// let folder = SyncFolder::builder()
 ///     .name("claude")
@@ -466,7 +466,7 @@ pub struct FolderStats {
 /// # Examples
 ///
 /// ```no_run
-/// use ccr::models::sync_folder::expand_path;
+/// use ccr::expand_path;
 ///
 /// let path = expand_path("~/.claude").unwrap();
 /// // 返回类似: /home/username/.claude

@@ -7,9 +7,6 @@ use blake3::Hasher;
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
 
-use crate::core::atomic_writer::AtomicWriter;
-use crate::core::error::{CcrError, Result};
-use crate::core::http::HTTP_CLIENT;
 use crate::models::skill::Skill;
 use crate::models::skills::{
     MarketplaceListResponse, MarketplaceSkill, NpxStatus, SkillContent, SkillDescriptor,
@@ -18,6 +15,9 @@ use crate::models::skills::{
     SkillSourceRecord, SkillSourceSkillRecord, SkillSourceType, SkillsInstallRequest,
     SkillsInventoryQuery, SkillsInventoryResponse, SkillsSourceManifest, SkillsSyncRequest,
 };
+use ccr_core::core::atomic_writer::AtomicWriter;
+use ccr_core::core::error::{CcrError, Result};
+use ccr_core::core::http::HTTP_CLIENT;
 
 const DEFAULT_MARKETPLACE_URL: &str = "https://skills.sh/api/trending";
 const SKILL_META_FILENAME: &str = ".skill-meta.json";

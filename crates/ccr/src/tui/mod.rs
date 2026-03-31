@@ -14,7 +14,7 @@ mod ui;
 pub use app::App;
 pub use event::EventHandler;
 
-use crate::core::error::Result;
+use ccr_core::core::error::Result;
 use runtime::{TerminalGuard, run_loop};
 
 /// Print exit info for both profile and codex auth actions.

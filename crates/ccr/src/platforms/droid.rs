@@ -10,12 +10,12 @@
 // - CCR 配置: `~/.ccr/platforms/droid/profiles.toml`
 // - Droid 设置: `~/.factory/settings.json`
 
-use crate::core::error::{CcrError, Result};
 use crate::managers::PlatformConfigManager;
 use crate::managers::config::ConfigSection;
 use crate::models::{Platform, PlatformConfig, PlatformPaths, ProfileConfig};
-use crate::platforms::base;
-use crate::utils::Validatable;
+use ccr_config::platforms::base;
+use ccr_core::Validatable;
+use ccr_core::core::error::{CcrError, Result};
 use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;

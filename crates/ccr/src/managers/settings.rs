@@ -9,12 +9,12 @@
 // - 💾 自动备份机制
 // - 🌍 环境变量映射
 
-use crate::core::atomic_writer::AsyncAtomicWriter;
-use crate::core::cache::ConfigCache;
-use crate::core::error::{CcrError, Result};
-use crate::core::lock::LockManager;
 use crate::managers::config::ConfigSection;
-use crate::utils::Validatable;
+use ccr_core::Validatable;
+use ccr_core::core::atomic_writer::AsyncAtomicWriter;
+use ccr_core::core::cache::ConfigCache;
+use ccr_core::core::error::{CcrError, Result};
+use ccr_core::core::lock::LockManager;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;

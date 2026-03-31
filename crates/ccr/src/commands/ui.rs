@@ -3,8 +3,8 @@
 
 #![allow(clippy::unused_async)]
 
-use crate::core::error::{CcrError, Result};
 use crate::services::ui_service::UiService;
+use ccr_core::core::error::{CcrError, Result};
 
 /// 🎨 启动 CCR UI
 ///

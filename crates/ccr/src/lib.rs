@@ -128,15 +128,11 @@
 // 分层模块
 pub mod application;
 pub mod commands;
-pub mod core;
 pub mod managers;
-pub mod models;
+mod models;
 pub mod platforms;
 pub mod services;
-pub mod sessions;
-pub mod storage;
 pub mod sync;
-pub mod utils;
 
 // 可选功能模块
 #[cfg(feature = "tui")]
@@ -154,7 +150,10 @@ pub mod tui;
 /// - [`LockManager`] - 文件锁管理器
 /// - [`init_logger`] - 日志初始化函数
 /// - [`init_file_only_logger`] - TUI 模式日志初始化函数（仅文件输出）
-pub use core::{CcrError, ColorOutput, LockManager, Result, init_file_only_logger, init_logger};
+pub use ccr_core::{
+    AutoCompletable, CONFIG_LOCK, CcrError, ColorOutput, FileLock, LockManager, Result,
+    Validatable, init_file_only_logger, init_logger, mask_if_sensitive, mask_sensitive,
+};
 
 /// 管理器层 - 数据访问和持久化
 ///
@@ -275,12 +274,13 @@ pub use services::{
     BackupService, ConfigService, HistoryService, SettingsService, SkillsService, ValidateService,
 };
 
-/// 工具函数和辅助类型
-///
-/// **验证**:
-/// - [`Validatable`] - 可验证 trait
-///
-/// **敏感信息掩码**:
-/// - [`mask_sensitive`] - 掩码敏感字符串
-/// - [`mask_if_sensitive`] - 条件掩码（根据键名判断）
-pub use utils::{Validatable, mask_if_sensitive, mask_sensitive};
+pub use ccr_store::{
+    Database, Session, SessionEvent, SessionFilter, SessionIndexer, SessionStats, SessionStore,
+    SessionSummary,
+};
+pub use sync::folder::expand_path;
+pub use sync::{
+    FolderStats, SyncConfig, SyncConfigManager, SyncContentSelection, SyncContentSelector,
+    SyncContentType, SyncFolder, SyncFolderManager, SyncFoldersConfig, SyncService, WebDavConfig,
+    get_ccr_sync_path,
+};

@@ -1,8 +1,8 @@
 use crate::application::types::{SwitchPlatformRequest, SwitchPlatformResult};
-use crate::core::error::{CcrError, Result};
 use crate::managers::{PlatformConfigEntry, PlatformConfigManager};
 use crate::models::Platform;
 use crate::platforms::create_platform;
+use ccr_core::core::error::{CcrError, Result};
 use std::str::FromStr;
 
 pub fn switch_platform(request: SwitchPlatformRequest) -> Result<SwitchPlatformResult> {

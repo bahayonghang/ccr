@@ -11,12 +11,12 @@
 // - 设置文件: `~/.claude/settings.json`
 // - 支持多平台配置
 
-use crate::core::error::{CcrError, Result};
 use crate::managers::config::ConfigSection;
 use crate::managers::settings::{ClaudeSettings, SettingsManager};
 use crate::models::{Platform, PlatformConfig, PlatformPaths, ProfileConfig};
-use crate::platforms::base;
-use crate::utils::Validatable;
+use ccr_config::platforms::base;
+use ccr_core::Validatable;
+use ccr_core::core::error::{CcrError, Result};
 use indexmap::IndexMap;
 use std::path::PathBuf;
 
@@ -167,7 +167,7 @@ impl PlatformConfig for ClaudePlatform {
 mod tests {
     use super::*;
     use crate::managers::PlatformConfigManager;
-    use crate::managers::platform_config::{PlatformConfigEntry, UnifiedConfig};
+    use crate::managers::{PlatformConfigEntry, UnifiedConfig};
     use std::sync::{LazyLock, Mutex};
 
     static ENV_LOCK: LazyLock<Mutex<()>> = LazyLock::new(|| Mutex::new(()));

@@ -2,9 +2,9 @@
 //!
 //! 查询 Codex 账号的 API 配额余额（5h 窗口 / 周限额）
 
-use crate::core::error::{CcrError, Result};
-use crate::core::logging::ColorOutput;
 use crate::services::CodexQuotaService;
+use ccr_core::core::error::{CcrError, Result};
+use ccr_core::core::logging::ColorOutput;
 
 /// 执行配额查询命令
 pub async fn quota_command(account: Option<&str>, json_output: bool, refresh: bool) -> Result<()> {

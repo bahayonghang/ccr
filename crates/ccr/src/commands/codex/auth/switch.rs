@@ -4,9 +4,9 @@
 
 #![allow(clippy::unused_async)]
 
-use crate::core::error::Result;
-use crate::core::logging::ColorOutput;
 use crate::services::CodexAuthService;
+use ccr_core::core::error::Result;
+use ccr_core::core::logging::ColorOutput;
 use colored::Colorize;
 
 /// 🔄 切换到指定账号

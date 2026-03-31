@@ -4,8 +4,8 @@
 
 use crate::cli::subcommands::{AllSyncAction, FolderAction};
 use crate::cli::{Cli, Commands};
-use crate::core::error::CcrError;
 use crate::help;
+use ccr_core::core::error::CcrError;
 use std::result::Result;
 
 /// 命令分发器
@@ -520,7 +520,7 @@ impl CommandDispatcher {
 
     /// Stats 命令分发
     async fn dispatch_stats(args: crate::commands::StatsArgs) -> Result<(), CcrError> {
-        use crate::core::ColorOutput;
+        use ccr_core::core::ColorOutput;
         let mut color_output = ColorOutput;
         crate::commands::stats_command(args, &mut color_output).await
     }
@@ -537,7 +537,7 @@ impl CommandDispatcher {
 
     /// 显示版本信息
     fn show_version() {
-        use crate::core::ColorOutput;
+        use ccr_core::core::ColorOutput;
 
         let version = env!("CARGO_PKG_VERSION");
         ColorOutput::banner(version);
@@ -583,7 +583,7 @@ impl CommandDispatcher {
 
 /// 处理错误的辅助函数
 pub fn handle_error(e: CcrError) {
-    use crate::core::ColorOutput;
+    use ccr_core::core::ColorOutput;
 
     eprintln!();
     ColorOutput::error(&e.user_message());

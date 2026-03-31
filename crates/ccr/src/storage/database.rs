@@ -2,7 +2,7 @@
 //!
 //! 提供 SQLite 数据库连接池和迁移管理。
 
-use crate::core::error::{CcrError, Result};
+use ccr_core::core::error::{CcrError, Result};
 use r2d2::{Pool, PooledConnection};
 use r2d2_sqlite::SqliteConnectionManager;
 use rusqlite::Connection;

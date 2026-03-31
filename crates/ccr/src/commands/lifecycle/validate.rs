@@ -3,10 +3,10 @@
 
 #![allow(clippy::unused_async)]
 
-use crate::core::error::Result;
-use crate::core::logging::ColorOutput;
 use crate::services::{ConfigService, SettingsService};
-use crate::utils::Validatable;
+use ccr_core::Validatable;
+use ccr_core::core::error::Result;
+use ccr_core::core::logging::ColorOutput;
 use colored::*;
 
 /// ✅ 验证配置和设置

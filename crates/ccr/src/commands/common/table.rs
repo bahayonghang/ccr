@@ -1,7 +1,7 @@
 // 📊 表格构建工具
 // 统一处理 comfy_table 表格构建逻辑
 
-use crate::core::logging::ColorOutput;
+use ccr_core::core::logging::ColorOutput;
 use comfy_table::{
     Attribute, Cell, CellAlignment, Color as TableColor, ColumnConstraint, ContentArrangement,
     Table, Width, presets::UTF8_FULL,

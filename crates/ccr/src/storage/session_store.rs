@@ -2,9 +2,9 @@
 //!
 //! 提供 Session 的 CRUD 操作和搜索功能。
 
-use crate::core::error::{CcrError, Result};
+use ccr_core::core::error::{CcrError, Result};
 use crate::models::Platform;
-use crate::storage::database::Database;
+use ccr_store::storage::database::Database;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
@@ -428,7 +428,7 @@ impl Platform {
 #[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
-    use crate::storage::Database;
+    use ccr_store::storage::Database;
     use tempfile::tempdir;
 
     fn create_test_db() -> Database {

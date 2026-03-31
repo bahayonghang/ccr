@@ -7,8 +7,8 @@
 // - 🔄 智能同步(基于时间戳)
 // - ✅ 连接测试
 
-use crate::core::error::{CcrError, Result};
-use crate::sync::config::SyncConfig;
+use ccr_config::SyncConfig;
+use ccr_core::core::error::{CcrError, Result};
 use reqwest_dav::list_cmd::ListEntity;
 use reqwest_dav::re_exports::reqwest::StatusCode;
 use reqwest_dav::{Auth, Client, ClientBuilder, Depth, Error as DavError};

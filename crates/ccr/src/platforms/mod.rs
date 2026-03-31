@@ -6,32 +6,21 @@
 // - 📋 平台注册表 - 管理所有可用平台
 // - 🔍 平台检测 - 检测系统中可用的平台
 
-use crate::core::error::{CcrError, Result};
 use crate::models::{Platform, PlatformConfig};
+use ccr_core::core::error::{CcrError, Result};
 use std::str::FromStr;
 use std::sync::Arc;
 
 // 平台实现模块
-pub mod base;
 pub mod claude;
-pub mod codex;
 pub mod droid;
 pub mod gemini;
 pub mod iflow;
 pub mod qwen;
 
-// 重新导出 base 模块的公共函数 (内部使用)
-// 这些函数由各平台实现内部使用，故标记 allow(unused)
-#[allow(unused_imports)]
-pub use base::{
-    get_current_profile_from_registry, load_profiles_from_toml, profile_to_section,
-    save_profiles_to_toml, section_to_profile, update_current_config,
-    update_registry_current_profile,
-};
-
 // 重新导出平台实现
+pub use ccr_codex::CodexPlatform;
 pub use claude::ClaudePlatform;
-pub use codex::CodexPlatform;
 pub use droid::DroidPlatform;
 pub use gemini::GeminiPlatform;
 pub use iflow::IFlowPlatform;

@@ -5,11 +5,11 @@
 #![allow(clippy::unused_async)]
 
 use crate::commands::common::{prompt_optional, prompt_required, prompt_tags};
-use crate::core::error::{CcrError, Result};
-use crate::core::logging::ColorOutput;
 use crate::managers::config::{ConfigSection, ProviderType};
 use crate::services::ConfigService;
-use crate::utils::Validatable;
+use ccr_core::Validatable;
+use ccr_core::core::error::{CcrError, Result};
+use ccr_core::core::logging::ColorOutput;
 use indexmap::IndexMap;
 use std::io::{self, Write};
 

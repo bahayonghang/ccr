@@ -4,12 +4,12 @@
 
 #![allow(clippy::unused_async)]
 
-use crate::core::error::{CcrError, Result};
-use crate::core::logging::ColorOutput;
 use crate::managers::PlatformConfigManager;
 use crate::managers::config::{CcsConfig, GlobalSettings};
 use crate::models::{Platform, PlatformPaths};
 use crate::platforms::create_platform;
+use ccr_core::core::error::{CcrError, Result};
+use ccr_core::core::logging::ColorOutput;
 use indexmap::IndexMap;
 use std::fs;
 use std::str::FromStr;

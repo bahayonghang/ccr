@@ -1,0 +1,30 @@
+[package]
+name = "ccr-store"
+version.workspace = true
+edition = "2024"
+rust-version = "1.90"
+authors = ["Yonghang Li"]
+description = "CCR CLI-side SQLite history and session persistence"
+license = "MIT"
+repository = "https://github.com/bahayonghang/ccr"
+
+[dependencies]
+ccr-core = { path = "../ccr-core" }
+ccr-config = { path = "../ccr-config" }
+blake3 = { workspace = true }
+chrono = { workspace = true }
+dirs = { workspace = true }
+rayon = "1.11"
+r2d2 = { workspace = true }
+r2d2_sqlite = { workspace = true }
+rusqlite = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tempfile = { workspace = true }
+tracing = { workspace = true }
+uuid = { workspace = true }
+whoami = "=2.1.0"
+
+[lib]
+name = "ccr_store"
+path = "src/lib.rs"

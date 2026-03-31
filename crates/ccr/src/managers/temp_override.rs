@@ -7,7 +7,7 @@
 // - ⏰ 支持过期时间管理
 // - 🧹 自动清理过期配置
 
-use crate::core::error::{CcrError, Result};
+use ccr_core::core::error::{CcrError, Result};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::fs;

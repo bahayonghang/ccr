@@ -4,9 +4,9 @@
 
 #![allow(clippy::unused_async)]
 
-use crate::core::error::Result;
-use crate::core::logging::ColorOutput;
 use crate::services::CodexOAuthTokenService;
+use ccr_core::core::error::Result;
+use ccr_core::core::logging::ColorOutput;
 
 /// 🔄 同步当前 runtime OAuth tokens 到已保存账号
 pub async fn sync_command() -> Result<()> {

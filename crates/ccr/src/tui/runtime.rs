@@ -1,7 +1,7 @@
 // TUI unified runtime
 // Provides TuiApp trait, RAII TerminalGuard, and generic run_loop
 
-use crate::core::error::{CcrError, Result};
+use ccr_core::core::error::{CcrError, Result};
 use crossterm::{
     cursor::{MoveTo, Show},
     event::{DisableMouseCapture, EnableMouseCapture},
@@ -130,7 +130,7 @@ impl TerminalGuard {
         let mode = TerminalSessionMode::detect()?;
         let backend = CrosstermBackend::new(io::stdout());
         let mut terminal = Terminal::new(backend)
-            .map_err(|e| crate::core::error::CcrError::IoError(io::Error::other(e)))?;
+            .map_err(|e| ccr_core::core::error::CcrError::IoError(io::Error::other(e)))?;
         let mut state = TerminalSetupState::default();
 
         if let Err(err) = Self::setup_terminal(&mut terminal, &mut state, mode) {
@@ -173,7 +173,7 @@ impl TerminalGuard {
         if mode.clear_on_enter {
             terminal
                 .clear()
-                .map_err(|e| crate::core::error::CcrError::IoError(io::Error::other(e)))?;
+                .map_err(|e| ccr_core::core::error::CcrError::IoError(io::Error::other(e)))?;
         }
 
         Ok(())
@@ -251,7 +251,7 @@ pub fn run_loop<A: TuiApp>(
                 guard
                     .terminal_mut()
                     .clear()
-                    .map_err(|e| crate::core::error::CcrError::IoError(io::Error::other(e)))?;
+                    .map_err(|e| ccr_core::core::error::CcrError::IoError(io::Error::other(e)))?;
                 draw_frame(guard, app)?;
             }
             Event::Tick => {
@@ -267,7 +267,7 @@ fn draw_frame<A: TuiApp>(guard: &mut TerminalGuard, app: &A) -> Result<()> {
     guard
         .terminal_mut()
         .draw(|f| app.render(f))
-        .map_err(|e| crate::core::error::CcrError::IoError(io::Error::other(e)))?;
+        .map_err(|e| ccr_core::core::error::CcrError::IoError(io::Error::other(e)))?;
     Ok(())
 }
 

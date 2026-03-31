@@ -1,8 +1,8 @@
 // 🎯 CCR 同步内容选择器
 // 提供交互式界面让用户选择要同步的内容类型
 
-use crate::core::error::{CcrError, Result};
-use crate::core::logging::ColorOutput;
+use ccr_core::core::error::{CcrError, Result};
+use ccr_core::core::logging::ColorOutput;
 use colored::*;
 use std::collections::HashMap;
 use std::io::{self, Write};
@@ -354,7 +354,7 @@ impl SyncContentSelector {
 #[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
-    use crate::core::lock::CONFIG_LOCK;
+    use ccr_core::core::lock::CONFIG_LOCK;
     use std::fs;
     use tempfile::tempdir;
 

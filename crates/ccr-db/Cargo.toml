@@ -1,11 +1,12 @@
 [package]
 name = "ccr-db"
-version = "5.5.0"
+version = "5.5.1"
 edition = "2024"
 rust-version = "1.88"
 description = "CCR Desktop database layer - SQLite storage, CheckIn services, and data models"
 
 [dependencies]
+ccr-core = { path = "../ccr-core" }
 ccr-types = { path = "../ccr-types" }
 
 # ═══════════════════════════════════════════════════════════

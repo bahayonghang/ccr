@@ -3,8 +3,8 @@
 
 #![allow(dead_code)]
 
-use crate::core::error::{CcrError, Result};
-use crate::core::lock::LockManager;
+use ccr_core::core::error::{CcrError, Result};
+use ccr_core::core::lock::LockManager;
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::fs;

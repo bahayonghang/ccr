@@ -1,8 +1,8 @@
 // 📚 历史记录服务
 // 封装历史记录相关的业务逻辑
 
-use crate::core::error::Result;
-use crate::managers::history::{HistoryEntry, HistoryManager, HistoryStats, OperationType};
+use crate::managers::{HistoryEntry, HistoryManager, HistoryStats, OperationType};
+use ccr_core::core::error::Result;
 use std::sync::Arc;
 
 /// 📚 历史记录服务
@@ -124,8 +124,8 @@ impl HistoryService {
 #[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
-    use crate::managers::history::{OperationDetails, OperationResult};
-    use crate::storage::Database;
+    use crate::managers::{OperationDetails, OperationResult};
+    use ccr_store::storage::Database;
     use tempfile::tempdir;
 
     fn setup_service() -> HistoryService {

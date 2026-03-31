@@ -1,7 +1,5 @@
 pub mod commands;
 pub mod content_selector;
-
-pub mod config;
 pub mod folder;
 pub mod folder_manager;
 pub mod service;
@@ -13,7 +11,7 @@ pub use commands::*;
 pub use content_selector::{SyncContentSelection, SyncContentSelector, SyncContentType};
 
 #[allow(unused_imports)]
-pub use config::{SyncConfig, SyncConfigManager};
+pub use ccr_config::{SyncConfig, SyncConfigManager};
 #[allow(unused_imports)]
 pub use folder::{FolderStats, SyncFolder, SyncFoldersConfig, WebDavConfig};
 #[allow(unused_imports)]

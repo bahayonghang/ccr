@@ -2,9 +2,9 @@
 //!
 //! 测试 Provider 端点的连通性和 API Key 有效性。
 
-use crate::core::error::{CcrError, Result};
-use crate::core::http::HTTP_CLIENT;
 use crate::managers::config::ConfigSection;
+use ccr_core::core::error::{CcrError, Result};
+use ccr_core::core::http::HTTP_CLIENT;
 use serde::{Deserialize, Serialize};
 use std::time::{Duration, Instant};
 use tracing::{debug, info, warn};

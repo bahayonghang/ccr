@@ -2,9 +2,9 @@
 
 #![allow(clippy::unused_async)]
 
-use crate::core::error::{CcrError, Result};
-use crate::core::logging::ColorOutput;
 use crate::services::CodexAuthService;
+use ccr_core::core::error::{CcrError, Result};
+use ccr_core::core::logging::ColorOutput;
 use serde::Serialize;
 
 #[derive(Debug, Serialize)]

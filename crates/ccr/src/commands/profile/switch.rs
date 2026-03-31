@@ -9,13 +9,13 @@
 #![allow(clippy::unused_async)]
 
 use crate::application::profile_switch::switch_profile_for_platform as run_switch_profile_for_platform;
-use crate::core::error::{CcrError, Result};
-use crate::core::logging::ColorOutput;
 use crate::managers::PlatformConfigManager;
 use crate::managers::settings::SettingsManager;
 use crate::models::Platform;
 use crate::platforms::create_platform;
-use crate::utils::Validatable;
+use ccr_core::Validatable;
+use ccr_core::core::error::{CcrError, Result};
+use ccr_core::core::logging::ColorOutput;
 use colored::Colorize;
 use comfy_table::{
     Attribute, Cell, Color as TableColor, ContentArrangement, Table, presets::UTF8_FULL,

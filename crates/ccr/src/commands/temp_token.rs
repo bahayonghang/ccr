@@ -8,11 +8,11 @@
 
 #![allow(clippy::unused_async)]
 
-use crate::core::error::Result;
-use crate::core::logging::ColorOutput;
 use crate::managers::SettingsManager;
 use crate::managers::temp_override::{TempOverride, TempOverrideManager};
-use crate::utils::mask_sensitive;
+use ccr_core::core::error::Result;
+use ccr_core::core::logging::ColorOutput;
+use ccr_core::mask_sensitive;
 use comfy_table::{
     Attribute, Cell, Color as TableColor, ContentArrangement, Table, presets::UTF8_FULL,
 };

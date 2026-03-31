@@ -1,13 +1,13 @@
 // Codex Auth TUI application state machine
 // Manages the Codex multi-account selector state
 
-use crate::core::error::Result;
 use crate::models::{
     CodexAccountQuota, CodexAuthItem, CodexRuntimeSummary, LoginState, TokenFreshness,
 };
-use crate::services::codex_auth_service::AuthReadSnapshot;
+use crate::services::AuthReadSnapshot;
 use crate::services::{CodexAuthService, CodexRollingUsage};
 use crate::tui::overlay::Overlay;
+use ccr_core::core::error::Result;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
 use dirs::home_dir;
 use ratatui::Frame;

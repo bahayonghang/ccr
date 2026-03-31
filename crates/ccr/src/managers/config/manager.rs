@@ -1,10 +1,9 @@
 // 🔧 配置管理器
 // 负责配置文件的加载、保存和管理
 
-use crate::core::error::{CcrError, Result};
-use crate::core::fileio;
-use crate::managers::config::ccs_config::CcsConfig;
-use crate::managers::config::types::GlobalSettings;
+use crate::managers::config::{CcsConfig, GlobalSettings};
+use ccr_core::core::error::{CcrError, Result};
+use ccr_core::core::fileio;
 use indexmap::IndexMap;
 use std::path::{Path, PathBuf};
 

@@ -2,10 +2,10 @@
 
 #![allow(clippy::unused_async)]
 
-use crate::core::error::{CcrError, Result};
-use crate::core::logging::ColorOutput;
 use crate::models::{Platform, PlatformConfig, ProfileConfig};
 use crate::platforms::create_platform;
+use ccr_core::core::error::{CcrError, Result};
+use ccr_core::core::logging::ColorOutput;
 use serde::Serialize;
 use std::str::FromStr;
 
@@ -13,16 +13,6 @@ const DEFAULT_EDITABLE_FIELDS: &[&str] = &[
     "description",
     "base_url",
     "auth_token",
-    "model",
-    "small_fast_model",
-    "provider",
-    "provider_type",
-    "account",
-    "tags",
-];
-
-const CODEX_EDITABLE_FIELDS: &[&str] = &[
-    "description",
     "model",
     "small_fast_model",
     "provider",
@@ -67,7 +57,7 @@ fn parse_platform(platform_name: &str) -> Result<Platform> {
 
 fn editable_fields(platform: Platform) -> &'static [&'static str] {
     match platform {
-        Platform::Codex => CODEX_EDITABLE_FIELDS,
+        Platform::Codex => ccr_codex::CodexPlatform::editable_fields(),
         _ => DEFAULT_EDITABLE_FIELDS,
     }
 }

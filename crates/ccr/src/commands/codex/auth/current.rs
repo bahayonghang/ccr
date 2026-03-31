@@ -4,10 +4,10 @@
 
 #![allow(clippy::unused_async)]
 
-use crate::core::error::Result;
-use crate::core::logging::ColorOutput;
 use crate::models::{AuthIntent, AuthState, LoginState, TokenFreshness};
 use crate::services::CodexAuthService;
+use ccr_core::core::error::Result;
+use ccr_core::core::logging::ColorOutput;
 use chrono::{DateTime, Local, Utc};
 use colored::Colorize;
 

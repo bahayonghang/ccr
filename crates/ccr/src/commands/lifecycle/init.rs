@@ -3,10 +3,10 @@
 
 #![allow(clippy::unused_async)]
 
-use crate::core::error::{CcrError, Result};
-use crate::core::logging::ColorOutput;
 use crate::managers::PlatformConfigManager;
 use crate::models::{Platform, PlatformPaths};
+use ccr_core::core::error::{CcrError, Result};
+use ccr_core::core::logging::ColorOutput;
 use indexmap::IndexMap;
 use std::fs;
 
@@ -172,7 +172,7 @@ mod tests {
     use indexmap::IndexMap;
 
     /// 📋 生成示例配置文件内容（测试用）
-    fn generate_example_config() -> crate::core::error::Result<String> {
+    fn generate_example_config() -> ccr_core::core::error::Result<String> {
         // 构建示例配置节
         let mut sections = IndexMap::new();
         sections.insert(
@@ -208,7 +208,7 @@ mod tests {
         };
 
         toml::to_string_pretty(&config).map_err(|e| {
-            crate::core::error::CcrError::ConfigError(format!("生成示例配置失败: {}", e))
+            ccr_core::core::error::CcrError::ConfigError(format!("生成示例配置失败: {}", e))
         })
     }
 

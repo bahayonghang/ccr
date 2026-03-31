@@ -3,9 +3,9 @@
 
 #![allow(clippy::unused_async)]
 
-use crate::core::error::Result;
-use crate::core::logging::ColorOutput;
 use crate::services::config_service::ConfigService;
+use ccr_core::core::error::Result;
+use ccr_core::core::logging::ColorOutput;
 
 /// ✅ 启用指定配置
 ///

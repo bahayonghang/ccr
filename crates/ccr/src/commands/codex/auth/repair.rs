@@ -5,9 +5,9 @@
 
 #![allow(clippy::unused_async)]
 
-use crate::core::error::Result;
-use crate::core::logging::ColorOutput;
 use crate::services::CodexOAuthTokenService;
+use ccr_core::core::error::Result;
+use ccr_core::core::logging::ColorOutput;
 
 /// 🩹 修复指定账号的 OAuth tokens
 pub async fn repair_command(name: &str) -> Result<()> {

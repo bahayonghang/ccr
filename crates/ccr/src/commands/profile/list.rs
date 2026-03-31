@@ -4,11 +4,11 @@
 
 #![allow(clippy::unused_async)]
 
-use crate::core::error::Result;
-use crate::core::logging::ColorOutput;
 use crate::managers::PlatformConfigManager;
 use crate::services::ConfigService;
-use crate::utils::Validatable;
+use ccr_core::Validatable;
+use ccr_core::core::error::Result;
+use ccr_core::core::logging::ColorOutput;
 use colored::Colorize;
 use comfy_table::{
     Attribute, Cell, CellAlignment, Color as TableColor, ColumnConstraint, ContentArrangement,

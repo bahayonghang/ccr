@@ -1,10 +1,10 @@
 // 🔍 配置模式检测
 // Unified 模式配置加载
 
-use crate::core::error::{CcrError, Result};
 use crate::managers::{PlatformConfigManager, UnifiedConfig};
 use crate::models::{Platform, PlatformConfig, PlatformPaths};
 use crate::platforms::create_platform;
+use ccr_core::core::error::{CcrError, Result};
 use std::str::FromStr;
 use std::sync::Arc;
 

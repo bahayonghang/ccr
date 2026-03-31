@@ -8,22 +8,22 @@
 //! - **连接复用**: 避免频繁创建/销毁连接的开销
 //! - **自动管理**: 连接自动归还池中，无需手动管理生命周期
 
-use r2d2::{Pool, PooledConnection};
-use r2d2_sqlite::SqliteConnectionManager;
-use rusqlite::Connection;
 use std::path::Path;
-use std::time::Duration;
 use tracing::info;
 
 use crate::core::error::DbError;
+use ccr_core::core::sqlite::{
+    DbConnection as CoreDbConnection, DbPool as CoreDbPool, PoolConfig as CorePoolConfig,
+    create_sqlite_pool,
+};
 
 /// 连接池类型别名
-pub type DbPool = Pool<SqliteConnectionManager>;
+pub type DbPool = CoreDbPool;
 
 /// 池化连接类型别名
 /// NOTE: 当前为 Phase 1 基础设施，Phase 2 会在 Handler 中使用
 #[allow(dead_code)]
-pub type PooledConn = PooledConnection<SqliteConnectionManager>;
+pub type PooledConn = CoreDbConnection;
 
 /// 连接池配置
 /// NOTE: 当前为 Phase 1 基础设施，Phase 2 会在自定义配置时使用
@@ -35,9 +35,9 @@ pub struct PoolConfig {
     /// 最小空闲连接数（默认 2）
     pub min_idle: Option<u32>,
     /// 连接超时时间（默认 30 秒）
-    pub connection_timeout: Duration,
+    pub connection_timeout: std::time::Duration,
     /// 空闲连接超时时间（默认 10 分钟）
-    pub idle_timeout: Option<Duration>,
+    pub idle_timeout: Option<std::time::Duration>,
 }
 
 impl Default for PoolConfig {
@@ -45,8 +45,8 @@ impl Default for PoolConfig {
         Self {
             max_size: 10,
             min_idle: Some(2),
-            connection_timeout: Duration::from_secs(30),
-            idle_timeout: Some(Duration::from_secs(600)),
+            connection_timeout: std::time::Duration::from_secs(30),
+            idle_timeout: Some(std::time::Duration::from_secs(600)),
         }
     }
 }
@@ -69,18 +69,16 @@ pub fn create_pool(db_path: &Path, config: Option<PoolConfig>) -> Result<DbPool,
         config.min_idle
     );
 
-    // 创建 SQLite 连接管理器
-    let manager = SqliteConnectionManager::file(db_path);
-
-    // 构建连接池
-    let pool = Pool::builder()
-        .max_size(config.max_size)
-        .min_idle(config.min_idle)
-        .connection_timeout(config.connection_timeout)
-        .idle_timeout(config.idle_timeout)
-        .connection_customizer(Box::new(SqliteCustomizer))
-        .build(manager)
-        .map_err(|e| DbError::Pool(e.to_string()))?;
+    let pool = create_sqlite_pool(
+        db_path,
+        Some(CorePoolConfig {
+            max_size: config.max_size,
+            min_idle: config.min_idle,
+            connection_timeout: config.connection_timeout,
+            idle_timeout: config.idle_timeout,
+        }),
+    )
+    .map_err(|e| DbError::Pool(e.to_string()))?;
 
     info!("Database connection pool created successfully");
     Ok(pool)
@@ -89,35 +87,10 @@ pub fn create_pool(db_path: &Path, config: Option<PoolConfig>) -> Result<DbPool,
 /// 创建内存数据库连接池（用于测试）
 #[cfg(test)]
 pub fn create_memory_pool() -> Result<DbPool, DbError> {
-    let manager = SqliteConnectionManager::memory();
-
-    let pool = Pool::builder()
-        .max_size(1) // 内存数据库只能有一个连接
-        .connection_customizer(Box::new(SqliteCustomizer))
-        .build(manager)
+    let pool = ccr_core::core::sqlite::create_memory_sqlite_pool()
         .map_err(|e| DbError::Pool(e.to_string()))?;
 
     Ok(pool)
-}
-
-/// SQLite 连接自定义器
-///
-/// 在每个新连接创建时配置 SQLite 参数
-#[derive(Debug)]
-struct SqliteCustomizer;
-
-impl r2d2::CustomizeConnection<Connection, rusqlite::Error> for SqliteCustomizer {
-    fn on_acquire(&self, conn: &mut Connection) -> Result<(), rusqlite::Error> {
-        // 配置 SQLite 性能参数
-        conn.execute_batch(
-            "PRAGMA journal_mode = WAL;
-             PRAGMA synchronous = NORMAL;
-             PRAGMA foreign_keys = ON;
-             PRAGMA busy_timeout = 5000;
-             PRAGMA cache_size = -2000;", // 2MB cache
-        )?;
-        Ok(())
-    }
 }
 
 #[cfg(test)]

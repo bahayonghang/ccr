@@ -2,10 +2,10 @@
 //!
 //! 提供 Provider 测试相关的 CLI 命令。
 
-use crate::core::ColorOutput;
-use crate::core::error::Result;
 use crate::services::ConfigService;
 use crate::services::health_check::{HealthCheckService, HealthStatus};
+use ccr_core::core::ColorOutput;
+use ccr_core::core::error::Result;
 use clap::{Args, Subcommand};
 use comfy_table::{Cell, Color, Table, presets::UTF8_FULL};
 

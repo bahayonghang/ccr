@@ -1,11 +1,11 @@
 // 💰 CCR 预算管理器
 // 负责预算配置的管理和成本监控
 
-use crate::core::error::{CcrError, Result};
 use crate::managers::CostTracker;
 use crate::models::budget::{
     BudgetConfig, BudgetLimits, BudgetPeriod, BudgetStatus, BudgetWarning, PeriodCosts,
 };
+use ccr_core::core::error::{CcrError, Result};
 use chrono::{Datelike, Duration, Utc};
 use std::fs;
 use std::path::{Path, PathBuf};

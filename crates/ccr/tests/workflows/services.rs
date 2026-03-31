@@ -2,11 +2,11 @@
 // 🧪 Service 层工作流集成测试
 // 测试 ConfigService, SettingsService, HistoryService, BackupService 的业务流程
 
-use ccr::core::lock::LockManager;
+use ccr::LockManager;
+use ccr::Validatable;
 use ccr::managers::config::{CcsConfig, ConfigManager, ConfigSection};
 use ccr::managers::settings::SettingsManager;
 use ccr::services::{BackupService, ConfigService, HistoryService, SettingsService};
-use ccr::utils::Validatable;
 use indexmap::IndexMap;
 use std::fs;
 use std::io::Write;
@@ -304,21 +304,21 @@ fn test_settings_service_backup_workflow() {
 fn test_history_service_record_and_query() {
     let temp_dir = tempdir().unwrap();
     let db_path = temp_dir.path().join("test.db");
-    let db = ccr::storage::Database::init(&db_path).unwrap();
+    let db = ccr::Database::init(&db_path).unwrap();
 
-    let history_manager = Arc::new(ccr::managers::history::HistoryManager::new(db));
+    let history_manager = Arc::new(ccr::managers::HistoryManager::new(db));
     let service = HistoryService::new(history_manager);
 
     // 记录操作
-    let entry = ccr::managers::history::HistoryEntry::new(
-        ccr::managers::history::OperationType::Switch,
-        ccr::managers::history::OperationDetails {
+    let entry = ccr::managers::HistoryEntry::new(
+        ccr::managers::OperationType::Switch,
+        ccr::managers::OperationDetails {
             from_config: Some("old".into()),
             to_config: Some("new".into()),
             backup_path: None,
             extra: None,
         },
-        ccr::managers::history::OperationResult::Success,
+        ccr::managers::OperationResult::Success,
     );
 
     service.record_operation(entry).unwrap();
@@ -579,26 +579,26 @@ fn test_settings_service_multiple_switches() {
 fn test_history_service_workflow() {
     let temp_dir = tempdir().unwrap();
     let db_path = temp_dir.path().join("test.db");
-    let db = ccr::storage::Database::init(&db_path).unwrap();
+    let db = ccr::Database::init(&db_path).unwrap();
 
-    let history_manager = Arc::new(ccr::managers::history::HistoryManager::new(db));
+    let history_manager = Arc::new(ccr::managers::HistoryManager::new(db));
     let service = HistoryService::new(history_manager);
 
     // 记录多个操作
     for i in 0..10 {
-        let entry = ccr::managers::history::HistoryEntry::new(
+        let entry = ccr::managers::HistoryEntry::new(
             if i % 2 == 0 {
-                ccr::managers::history::OperationType::Switch
+                ccr::managers::OperationType::Switch
             } else {
-                ccr::managers::history::OperationType::Backup
+                ccr::managers::OperationType::Backup
             },
-            ccr::managers::history::OperationDetails {
+            ccr::managers::OperationDetails {
                 from_config: Some(format!("config{}", i)),
                 to_config: Some(format!("config{}", i + 1)),
                 backup_path: None,
                 extra: None,
             },
-            ccr::managers::history::OperationResult::Success,
+            ccr::managers::OperationResult::Success,
         );
         service.record_operation(entry).unwrap();
         std::thread::sleep(std::time::Duration::from_millis(5)); // 确保时间戳不同
@@ -610,12 +610,12 @@ fn test_history_service_workflow() {
 
     // 测试按类型筛选
     let switch_ops = service
-        .filter_by_type(ccr::managers::history::OperationType::Switch)
+        .filter_by_type(ccr::managers::OperationType::Switch)
         .unwrap();
     assert_eq!(switch_ops.len(), 5);
 
     let backup_ops = service
-        .filter_by_type(ccr::managers::history::OperationType::Backup)
+        .filter_by_type(ccr::managers::OperationType::Backup)
         .unwrap();
     assert_eq!(backup_ops.len(), 5);
 
@@ -774,7 +774,7 @@ fn test_usage_count_increment() {
 
 #[test]
 fn test_auto_complete_missing_fields() {
-    use ccr::utils::AutoCompletable;
+    use ccr::AutoCompletable;
 
     // 创建一个缺少新字段的配置节
     let mut section = ConfigSection {

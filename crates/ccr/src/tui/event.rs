@@ -1,7 +1,7 @@
 // ⚡ TUI 事件处理
 // 处理键盘输入和定时刷新事件
 
-use crate::core::error::Result;
+use ccr_core::core::error::Result;
 use crossterm::event::{self, Event as CrosstermEvent, KeyEvent, KeyEventKind, MouseEvent};
 use std::time::Duration;
 

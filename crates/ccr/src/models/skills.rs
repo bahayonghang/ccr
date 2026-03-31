@@ -263,6 +263,7 @@ pub struct NpxStatus {
 
 #[derive(Debug, Clone)]
 pub struct SkillDescriptor {
+    #[allow(dead_code)]
     pub skill_dir: std::path::PathBuf,
     pub name: String,
     pub description: Option<String>,

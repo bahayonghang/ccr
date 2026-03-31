@@ -1,10 +1,10 @@
 // 💰 CCR 价格表命令实现
 // 提供模型定价配置和管理功能
 
-use crate::core::ColorOutput;
-use crate::core::error::{CcrError, Result};
 use crate::managers::PricingManager;
 use crate::models::stats::ModelPricing;
+use ccr_core::core::ColorOutput;
+use ccr_core::core::error::{CcrError, Result};
 use clap::{Args, Subcommand};
 use comfy_table::{Cell, CellAlignment, Color, ContentArrangement, Table};
 

@@ -1,9 +1,9 @@
 // 📝 设置服务
 // 封装 Claude Code 设置相关的业务逻辑
 
-use crate::core::error::Result;
 use crate::managers::config::ConfigSection;
 use crate::managers::settings::{ClaudeSettings, SettingsManager};
+use ccr_core::core::error::Result;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use tokio::fs as async_fs;
@@ -164,8 +164,8 @@ impl SettingsService {
 #[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
-    use crate::core::lock::LockManager;
     use crate::managers::config::ConfigSection;
+    use ccr_core::core::lock::LockManager;
     use indexmap::IndexMap;
     use tempfile::tempdir;
 
