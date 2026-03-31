@@ -4,7 +4,7 @@ default-members = ["crates/ccr"]
 resolver = "3"
 
 [workspace.package]
-version = "5.4.8"
+version = "5.5.0"
 
 [workspace.dependencies]
 # Async runtime
@@ -62,7 +62,7 @@ aes-gcm = "0.10"
 rand = "0.10.0"
 sha2 = "0.11.0"
 base64 = "0.22.1"
-blake3 = "1.8.3"
+blake3 = "1.8.4"
 
 # Extra utilities
 indexmap = { version = "2.13.0", features = ["serde"] }
