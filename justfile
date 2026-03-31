@@ -344,6 +344,13 @@ check:
     cargo check -p {{BIN}}
     @just success "类型检查通过"
 
+# 🔍 工作区类型检查
+check-workspace:
+    @just info "🔍 运行工作区类型检查..."
+    @just info "💡 覆盖新拆分 crates，避免旁路 crate 漂移"
+    cargo check --workspace
+    @just success "工作区类型检查通过"
+
 # ═══════════════════════════════════════════════════════════
 # ▶️  运行命令
 # ═══════════════════════════════════════════════════════════
@@ -466,6 +473,7 @@ _ci-timed-windows:
         @{ Name = "fmt";             Label = "Format" },
         @{ Name = "fmt-check";       Label = "Format Check" },
         @{ Name = "lint-strict";     Label = "Strict Clippy" },
+        @{ Name = "check-workspace"; Label = "Workspace Check" },
         @{ Name = "test";            Label = "Test" },
         @{ Name = "release";         Label = "Release Build" },
         @{ Name = "audit";           Label = "Security Audit" },
@@ -525,8 +533,8 @@ _ci-timed-windows:
 _ci-timed-linux:
     #!/usr/bin/env bash
     set -uo pipefail
-    steps=("version-sync" "fmt" "fmt-check" "lint-strict" "test" "release" "audit" "frontend-check" "vscode-ci")
-    labels=("Version Sync" "Format" "Format Check" "Strict Clippy" "Test" "Release Build" "Security Audit" "Frontend Check" "VSCode CI")
+    steps=("version-sync" "fmt" "fmt-check" "lint-strict" "check-workspace" "test" "release" "audit" "frontend-check" "vscode-ci")
+    labels=("Version Sync" "Format" "Format Check" "Strict Clippy" "Workspace Check" "Test" "Release Build" "Security Audit" "Frontend Check" "VSCode CI")
     PAD=20
     times=()
     statuses=()
@@ -586,8 +594,8 @@ _ci-timed-linux:
 _ci-timed-macos:
     #!/usr/bin/env bash
     set -uo pipefail
-    steps=("version-sync" "fmt" "fmt-check" "lint-strict" "test" "release" "audit" "frontend-check" "vscode-ci")
-    labels=("Version Sync" "Format" "Format Check" "Strict Clippy" "Test" "Release Build" "Security Audit" "Frontend Check" "VSCode CI")
+    steps=("version-sync" "fmt" "fmt-check" "lint-strict" "check-workspace" "test" "release" "audit" "frontend-check" "vscode-ci")
+    labels=("Version Sync" "Format" "Format Check" "Strict Clippy" "Workspace Check" "Test" "Release Build" "Security Audit" "Frontend Check" "VSCode CI")
     PAD=20
     times=()
     statuses=()
