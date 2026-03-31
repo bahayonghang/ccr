@@ -259,16 +259,16 @@ dependencies = [
 
 [[package]]
 name = "blake3"
-version = "1.8.3"
+version = "1.8.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2468ef7d57b3fb7e16b576e8377cdbde2320c60e1491e961d11da40fc4f02a2d"
+checksum = "4d2d5991425dfd0785aed03aedcf0b321d61975c9b5b3689c774a2610ae0b51e"
 dependencies = [
  "arrayref",
  "arrayvec",
  "cc",
  "cfg-if",
  "constant_time_eq",
- "cpufeatures 0.2.17",
+ "cpufeatures 0.3.0",
 ]
 
 [[package]]
@@ -425,11 +425,15 @@ dependencies = [
 
 [[package]]
 name = "ccr"
-version = "5.4.8"
+version = "5.5.3"
 dependencies = [
  "anyhow",
  "base64 0.22.1",
  "blake3",
+ "ccr-codex",
+ "ccr-config",
+ "ccr-core",
+ "ccr-store",
  "ccr-types",
  "chrono",
  "clap",
@@ -465,13 +469,78 @@ dependencies = [
 ]
 
 [[package]]
+name = "ccr-codex"
+version = "5.5.3"
+dependencies = [
+ "base64 0.22.1",
+ "ccr-config",
+ "ccr-core",
+ "ccr-types",
+ "chrono",
+ "dirs",
+ "futures",
+ "indexmap 2.13.0",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "sysinfo",
+ "tempfile",
+ "tokio",
+ "toml 0.9.12+spec-1.1.0",
+ "tracing",
+ "uuid",
+]
+
+[[package]]
+name = "ccr-config"
+version = "5.5.3"
+dependencies = [
+ "ccr-core",
+ "chrono",
+ "dirs",
+ "indexmap 2.13.0",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "toml 0.9.12+spec-1.1.0",
+ "tracing",
+]
+
+[[package]]
+name = "ccr-core"
+version = "5.5.3"
+dependencies = [
+ "anyhow",
+ "colored",
+ "dirs",
+ "fs4",
+ "indexmap 2.13.0",
+ "r2d2",
+ "r2d2_sqlite",
+ "reqwest",
+ "rusqlite",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "thiserror 2.0.18",
+ "tokio",
+ "toml 0.9.12+spec-1.1.0",
+ "tracing",
+ "tracing-appender",
+ "tracing-log",
+ "tracing-subscriber",
+ "uuid",
+]
+
+[[package]]
 name = "ccr-db"
-version = "5.4.8"
+version = "5.5.3"
 dependencies = [
  "aes-gcm",
  "anyhow",
  "async-stream",
  "base64 0.22.1",
+ "ccr-core",
  "ccr-types",
  "chrono",
  "dirs",
@@ -498,7 +567,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-desktop"
-version = "5.4.8"
+version = "5.5.3"
 dependencies = [
  "aes-gcm",
  "async-trait",
@@ -531,8 +600,29 @@ dependencies = [
 ]
 
 [[package]]
+name = "ccr-store"
+version = "5.5.3"
+dependencies = [
+ "blake3",
+ "ccr-config",
+ "ccr-core",
+ "chrono",
+ "dirs",
+ "r2d2",
+ "r2d2_sqlite",
+ "rayon",
+ "rusqlite",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "tracing",
+ "uuid",
+ "whoami",
+]
+
+[[package]]
 name = "ccr-types"
-version = "5.4.8"
+version = "5.5.3"
 dependencies = [
  "chrono",
  "serde",
