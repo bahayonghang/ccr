@@ -7,7 +7,10 @@ pub static HTTP_CLIENT: LazyLock<reqwest::Client> = LazyLock::new(|| {
         .timeout(Duration::from_secs(30))
         .pool_max_idle_per_host(5)
         .build()
-        .expect("Failed to create HTTP client")
+        .unwrap_or_else(|err| {
+            tracing::warn!(error = %err, "创建定制 HTTP client 失败，回退到默认客户端");
+            reqwest::Client::new()
+        })
 });
 
 #[cfg(test)]

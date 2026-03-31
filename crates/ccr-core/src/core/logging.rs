@@ -86,12 +86,16 @@ impl ColorOutput {
     pub fn ask_confirmation(question: &str, default: bool) -> bool {
         let default_str = if default { "Y/n" } else { "y/N" };
         print!("{} {} [{}]: ", "?".yellow().bold(), question, default_str);
-        io::stdout().flush().expect("failed to flush stdout");
+        if let Err(err) = io::stdout().flush() {
+            tracing::warn!(error = %err, "刷新确认提示输出失败，返回默认值");
+            return default;
+        }
 
         let mut input = String::new();
-        io::stdin()
-            .read_line(&mut input)
-            .expect("failed to read confirmation input");
+        if let Err(err) = io::stdin().read_line(&mut input) {
+            tracing::warn!(error = %err, "读取确认输入失败，返回默认值");
+            return default;
+        }
         let input = input.trim().to_lowercase();
 
         if input.is_empty() {
