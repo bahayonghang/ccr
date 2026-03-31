@@ -594,6 +594,10 @@ impl CodexPlatform {
         auth.remove("OPENAI_API_KEY");
     }
 
+    fn remove_auth_mode_metadata(auth: &mut serde_json::Map<String, serde_json::Value>) {
+        auth.remove("auth_mode");
+    }
+
     fn remove_provider_keys(auth: &mut serde_json::Map<String, serde_json::Value>) {
         auth.retain(|key, _| !Self::is_provider_api_key_field(key));
     }
@@ -602,6 +606,7 @@ impl CodexPlatform {
         auth: &mut serde_json::Map<String, serde_json::Value>,
         selection: &AuthSelection,
     ) {
+        Self::remove_auth_mode_metadata(auth);
         match selection {
             AuthSelection::EnsureChatgpt => {
                 Self::remove_provider_keys(auth);
@@ -794,7 +799,11 @@ impl CodexPlatform {
 
         let auth =
             Self::resolve_auth_selection(effective_auth_mode, auth_token, current_auth_intent)?;
-        let forced_login_method = Self::platform_string(profile, "forced_login_method");
+        let forced_login_method =
+            Self::platform_string(profile, "forced_login_method").or_else(|| {
+                matches!(effective_auth_mode, CodexProfileAuthMode::OpenAiApiKey)
+                    .then(|| "api".to_string())
+            });
 
         // 未显式配置凭据存储时，仅 API key 模式需要强制 file 存储
         // （确保 CCR 写入的 auth.json 被 Codex 正确读取）
@@ -2443,6 +2452,11 @@ env_key = "MISTRAL_API_KEY"
                     Some(THIRD_PARTY_RUNTIME_PROVIDER_KEY),
                     "third-party runtime provider should always be custom"
                 );
+                assert_eq!(
+                    root.get("forced_login_method").and_then(|v| v.as_str()),
+                    Some("api"),
+                    "auto-promote should force API login method"
+                );
                 assert!(
                     !content.contains("env_key"),
                     "should not write env_key when not provided, got: {}",
@@ -2450,6 +2464,79 @@ env_key = "MISTRAL_API_KEY"
                 );
             }
         }
+
+        unsafe {
+            std::env::remove_var("CCR_CODEX_DIR");
+        }
+    }
+
+    #[test]
+    fn test_third_party_default_auth_key_clears_stale_chatgpt_auth_metadata() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        unsafe {
+            std::env::set_var("CCR_CODEX_DIR", temp_dir.path().to_str().unwrap());
+        }
+        write_file_store_config(&temp_dir);
+
+        let config_manager = CodexConfigManager::with_default().unwrap();
+        let mut auth = serde_json::Map::new();
+        auth.insert("auth_mode".to_string(), json!("chatgpt"));
+        auth.insert(
+            "tokens".to_string(),
+            json!({
+                "id_token": "id-token",
+                "access_token": "access-token",
+                "refresh_token": "refresh-token",
+            }),
+        );
+        config_manager.save_auth_atomic(&auth).unwrap();
+
+        let platform = CodexPlatform::new().unwrap();
+        let mut profile = ProfileConfig {
+            description: Some("Proxy".to_string()),
+            base_url: Some("https://api.proxy.example/v1".to_string()),
+            auth_token: Some("sk-proxy-key".to_string()),
+            model: None,
+            small_fast_model: None,
+            provider: Some("proxy".to_string()),
+            provider_type: None,
+            account: None,
+            tags: None,
+            usage_count: Some(0),
+            enabled: Some(true),
+            platform_data: IndexMap::new(),
+        };
+        profile
+            .platform_data
+            .insert("wire_api".into(), json!("responses"));
+
+        platform
+            .apply_third_party_profile("proxy", &profile)
+            .unwrap();
+
+        let auth_path = temp_dir.path().join("auth.json");
+        let content = std::fs::read_to_string(&auth_path).unwrap();
+        let auth: serde_json::Map<String, serde_json::Value> =
+            serde_json::from_str(&content).unwrap();
+        assert_eq!(
+            auth.get("OPENAI_API_KEY").and_then(|v| v.as_str()),
+            Some("sk-proxy-key")
+        );
+        assert!(
+            !auth.contains_key("auth_mode"),
+            "stale auth_mode should be removed after API-key switch, got: {auth:?}"
+        );
+        assert!(
+            !auth.contains_key("tokens"),
+            "chatgpt tokens should be removed after API-key switch, got: {auth:?}"
+        );
+
+        let config = config_manager.load_config().unwrap();
+        let root = config.as_table().unwrap();
+        assert_eq!(
+            root.get("forced_login_method").and_then(|v| v.as_str()),
+            Some("api")
+        );
 
         unsafe {
             std::env::remove_var("CCR_CODEX_DIR");
