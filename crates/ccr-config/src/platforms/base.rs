@@ -18,7 +18,7 @@ use ccr_core::utils::toml_json;
 use chrono::Local;
 use indexmap::IndexMap;
 use std::fs;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::time::Duration;
 
 const PLATFORM_PROFILE_LOCK_TIMEOUT: Duration = Duration::from_secs(10);
@@ -80,12 +80,16 @@ fn backup_with_rotation(source: &Path, backup_dir: &Path, prefix: &str) -> Resul
     Ok(())
 }
 
-fn save_platform_registry<F>(mutate: F) -> Result<()>
+fn save_platform_registry_with_paths<F>(
+    registry_path: PathBuf,
+    lock_dir: PathBuf,
+    mutate: F,
+) -> Result<()>
 where
     F: FnOnce(&mut crate::managers::UnifiedConfig) -> Result<()>,
 {
-    let manager = PlatformConfigManager::with_default()?;
-    let lock_manager = LockManager::with_default_path()?;
+    let manager = PlatformConfigManager::new(registry_path);
+    let lock_manager = LockManager::new(lock_dir);
     let _lock = lock_manager.lock_resource(
         PLATFORM_REGISTRY_LOCK_RESOURCE,
         PLATFORM_PROFILE_LOCK_TIMEOUT,
@@ -102,6 +106,19 @@ where
 
     manager.save(&unified_config)?;
     Ok(())
+}
+
+fn save_platform_registry<F>(mutate: F) -> Result<()>
+where
+    F: FnOnce(&mut crate::managers::UnifiedConfig) -> Result<()>,
+{
+    let manager = PlatformConfigManager::with_default()?;
+    let lock_manager = LockManager::with_default_path()?;
+    save_platform_registry_with_paths(
+        manager.config_path().to_path_buf(),
+        lock_manager.lock_dir().to_path_buf(),
+        mutate,
+    )
 }
 
 // ═══════════════════════════════════════════════════════════

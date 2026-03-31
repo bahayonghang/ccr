@@ -204,6 +204,11 @@ impl LockManager {
         Ok(Self::new(lock_dir))
     }
 
+    /// 📂 返回锁目录路径
+    pub fn lock_dir(&self) -> &Path {
+        &self.lock_dir
+    }
+
     /// 📁 为指定资源创建锁路径
     fn create_lock_path(&self, resource_name: &str) -> PathBuf {
         self.lock_dir.join(format!("{}.lock", resource_name))
