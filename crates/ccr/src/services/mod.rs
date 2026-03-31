@@ -23,6 +23,10 @@ pub mod validate_service;
 #[allow(unused_imports)]
 pub use backup_service::BackupService;
 #[allow(unused_imports)]
+pub use ccr_codex::services::codex_session_service;
+#[allow(unused_imports)]
+pub use ccr_codex::services::codex_session_service::CodexSessionInventory;
+#[allow(unused_imports)]
 pub use ccr_codex::{
     AuthReadSnapshot, CodexAuthCacheAction, CodexAuthService, CodexOAuthTokenService,
     CodexQuotaService, CodexRollingUsage, CodexRuntimeCommitPlan, CodexRuntimeService,

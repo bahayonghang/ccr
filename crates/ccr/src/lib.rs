@@ -129,7 +129,7 @@
 pub mod application;
 pub mod commands;
 pub mod managers;
-mod models;
+pub mod models;
 pub mod platforms;
 pub mod services;
 pub mod sync;
@@ -274,6 +274,7 @@ pub use services::{
     BackupService, ConfigService, HistoryService, SettingsService, SkillsService, ValidateService,
 };
 
+pub use ccr_store::sessions;
 pub use ccr_store::{
     Database, Session, SessionEvent, SessionFilter, SessionIndexer, SessionStats, SessionStore,
     SessionSummary,

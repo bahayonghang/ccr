@@ -18,7 +18,7 @@ use uuid::Uuid;
 const DEFAULT_DETAIL_MESSAGE_LIMIT: usize = 120;
 const DEFAULT_EXPORT_MESSAGE_LIMIT: usize = 200;
 const PREVIEW_MAX_CHARS: usize = 160;
-const SESSION_INVENTORY_CACHE_VERSION: u32 = 1;
+const SESSION_INVENTORY_CACHE_VERSION: u32 = 2;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CodexSessionInventory {
@@ -35,7 +35,7 @@ struct SessionInventoryCache {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 struct CachedSessionDir {
-    modified_ms: u64,
+    signature: u64,
     session_count: usize,
     latest_session_modified_ms: Option<u64>,
 }
@@ -182,31 +182,25 @@ impl CodexSessionService {
                 .map(|value| value.to_string_lossy().replace('\\', "/"))
                 .filter(|value| !value.is_empty())
                 .unwrap_or_else(|| ".".to_string());
-            let modified_ms = Self::metadata_modified_ms(&directory);
-
-            let (session_count, dir_latest_session_modified_ms) = existing_cache
+            let current_snapshot = Self::scan_jsonl_files_in_dir(&directory);
+            let dir_snapshot = existing_cache
                 .directories
                 .get(&relative)
-                .filter(|entry| entry.modified_ms == modified_ms)
-                .map(|entry| (entry.session_count, entry.latest_session_modified_ms))
-                .unwrap_or_else(|| Self::count_jsonl_files_in_dir(&directory));
+                .filter(|entry| entry.signature == current_snapshot.signature)
+                .cloned()
+                .unwrap_or(current_snapshot);
 
-            next_cache.directories.insert(
-                relative.clone(),
-                CachedSessionDir {
-                    modified_ms,
-                    session_count,
-                    latest_session_modified_ms: dir_latest_session_modified_ms,
-                },
-            );
+            next_cache
+                .directories
+                .insert(relative.clone(), dir_snapshot.clone());
 
             relative.hash(&mut hasher);
-            modified_ms.hash(&mut hasher);
-            session_count.hash(&mut hasher);
-            dir_latest_session_modified_ms.hash(&mut hasher);
-            total_sessions += session_count;
+            dir_snapshot.signature.hash(&mut hasher);
+            dir_snapshot.session_count.hash(&mut hasher);
+            dir_snapshot.latest_session_modified_ms.hash(&mut hasher);
+            total_sessions += dir_snapshot.session_count;
             latest_session_modified_ms =
-                latest_session_modified_ms.max(dir_latest_session_modified_ms);
+                latest_session_modified_ms.max(dir_snapshot.latest_session_modified_ms);
         }
 
         let signature = format!("{:016x}", hasher.finish());
@@ -644,24 +638,45 @@ impl CodexSessionService {
         }
     }
 
-    fn count_jsonl_files_in_dir(dir: &Path) -> (usize, Option<u64>) {
+    fn scan_jsonl_files_in_dir(dir: &Path) -> CachedSessionDir {
         let Ok(entries) = fs::read_dir(dir) else {
-            return (0, None);
+            return CachedSessionDir::default();
         };
 
+        let mut files = Vec::new();
         let mut count = 0usize;
         let mut latest_modified_ms = None;
 
         for entry in entries.flatten() {
             let path = entry.path();
             if path.extension().and_then(|value| value.to_str()) == Some("jsonl") {
+                let modified_ms = Self::metadata_modified_ms(&path);
                 count += 1;
-                latest_modified_ms =
-                    latest_modified_ms.max(Some(Self::metadata_modified_ms(&path)));
+                latest_modified_ms = latest_modified_ms.max(Some(modified_ms));
+                files.push((
+                    path.file_name()
+                        .and_then(|value| value.to_str())
+                        .unwrap_or_default()
+                        .to_string(),
+                    modified_ms,
+                ));
             }
         }
 
-        (count, latest_modified_ms)
+        files.sort();
+
+        let mut hasher = DefaultHasher::new();
+        SESSION_INVENTORY_CACHE_VERSION.hash(&mut hasher);
+        for (name, modified_ms) in files {
+            name.hash(&mut hasher);
+            modified_ms.hash(&mut hasher);
+        }
+
+        CachedSessionDir {
+            signature: hasher.finish(),
+            session_count: count,
+            latest_session_modified_ms: latest_modified_ms,
+        }
     }
 
     fn metadata_modified_ms(path: &Path) -> u64 {
@@ -945,6 +960,7 @@ fn build_session_markdown(
 #[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
+    use filetime::FileTime;
     use tempfile::TempDir;
 
     fn create_service() -> (CodexSessionService, TempDir) {
@@ -1022,11 +1038,13 @@ mod tests {
     #[test]
     fn session_inventory_reuses_directory_cache_and_updates_on_new_file() {
         let (service, temp_dir) = create_service();
-        write_session(
+        let first_path = write_session(
             &temp_dir,
             "rollout-cache-a.jsonl",
             r#"{"timestamp":"2026-03-26T06:37:24.013Z","type":"session_meta","payload":{"id":"sess-cache-a","timestamp":"2026-03-26T06:37:24.013Z","cwd":"D:\\repo","model":"gpt-5"}}"#,
         );
+        let session_dir = first_path.parent().unwrap();
+        let original_modified_ms = CodexSessionService::metadata_modified_ms(session_dir);
 
         let first = service.session_inventory().unwrap();
         assert_eq!(first.total_sessions, 1);
@@ -1037,6 +1055,14 @@ mod tests {
             "rollout-cache-b.jsonl",
             r#"{"timestamp":"2026-03-26T06:37:24.013Z","type":"session_meta","payload":{"id":"sess-cache-b","timestamp":"2026-03-26T06:37:24.013Z","cwd":"D:\\repo","model":"gpt-5"}}"#,
         );
+        filetime::set_file_mtime(
+            session_dir,
+            FileTime::from_unix_time(
+                (original_modified_ms / 1000) as i64,
+                ((original_modified_ms % 1000) * 1_000_000) as u32,
+            ),
+        )
+        .unwrap();
 
         let second = service.session_inventory().unwrap();
         assert_eq!(second.total_sessions, 2);
