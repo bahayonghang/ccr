@@ -258,7 +258,7 @@ fn get_proxy_settings_from_windows_registry() -> Option<(ProxySource, String)> {
 
 #[cfg(not(target_os = "windows"))]
 fn get_proxy_settings_from_windows_registry() -> Option<(ProxySource, String)> {
-    None
+    get_proxy_url_from_windows_registry().map(|url| (ProxySource::WindowsRegistry, url))
 }
 
 fn get_proxy_settings() -> Option<(ProxySource, String)> {

@@ -22,7 +22,9 @@ mod tui;
 // CLI 模块 - 命令行结构定义和命令分发
 mod cli;
 
-use ccr_core::{init_file_only_logger, init_logger};
+#[cfg(feature = "tui")]
+use ccr_core::init_file_only_logger;
+use ccr_core::init_logger;
 use clap::Parser;
 use cli::{Cli, CommandDispatcher};
 
