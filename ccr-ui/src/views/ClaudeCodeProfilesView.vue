@@ -62,11 +62,64 @@
         <ClaudeProfilesOverview
           :current-profile-name="currentProfileName"
           :enabled-profiles-count="enabledProfilesCount"
-          :profiles="profiles"
+          :quick-switch-profiles="filteredProfiles"
           :total-profiles="profiles.length"
           @apply="handleApply"
         />
       </PageHeaderCard>
+
+      <section
+        v-if="showSearchRail"
+        class="claude-profiles-view__search-rail animate-slide-up"
+        style="animation-delay: 120ms"
+      >
+        <div class="claude-profiles-view__search-grid">
+          <div class="claude-profiles-view__search-input-shell">
+            <Input
+              v-model="searchQuery"
+              type="text"
+              surface="status"
+              :elevation="1"
+              motion="subtle"
+              density="compact"
+              :full-width="true"
+              :placeholder="$t('claudeProfiles.searchPlaceholder')"
+            >
+              <template #leading>
+                <SIcon
+                  name="Search"
+                  size="w-4 h-4"
+                />
+              </template>
+            </Input>
+          </div>
+
+          <div class="claude-profiles-view__search-meta">
+            <span class="claude-profiles-view__search-chip">
+              {{ $t('claudeProfiles.searchProfilesCount', { matched: filteredProfiles.length, total: profiles.length }) }}
+            </span>
+            <span class="claude-profiles-view__search-chip">
+              {{ $t('claudeProfiles.searchProvidersCount', { matched: visibleProviderSections.length, total: providerSections.length }) }}
+            </span>
+            <button
+              v-if="hasActiveSearch"
+              type="button"
+              class="claude-profiles-view__search-clear"
+              @click="clearSearch()"
+            >
+              <SIcon
+                name="RotateCcw"
+                size="w-3.5 h-3.5"
+              />
+              {{ $t('claudeProfiles.clearSearch') }}
+            </button>
+          </div>
+        </div>
+
+        <p class="claude-profiles-view__search-hint">
+          {{ $t('claudeProfiles.searchHint') }}
+        </p>
+      </section>
 
       <div
         :class="[
@@ -79,7 +132,7 @@
           class="claude-profiles-view__sidebar"
         >
           <ClaudeProfilesProviderNav
-            :sections="providerSections"
+            :sections="visibleProviderSections"
             :active-section-id="currentSectionId"
             @navigate="scrollToSection"
           />
@@ -89,7 +142,7 @@
           <ClaudeProfilesProviderNav
             v-if="showNavigation"
             mobile
-            :sections="providerSections"
+            :sections="visibleProviderSections"
             :active-section-id="currentSectionId"
             class="claude-profiles-view__mobile-nav"
             @navigate="scrollToSection"
@@ -164,9 +217,41 @@
             </button>
           </div>
 
+          <div
+            v-else-if="filteredProfiles.length === 0"
+            class="py-20 text-center animate-slide-up"
+            style="animation-delay: 200ms"
+          >
+            <div class="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-[28px] border border-border-default/50 bg-bg-surface/75 shadow-lg shadow-black/5">
+              <SIcon
+                name="SearchX"
+                size="w-10 h-10"
+                class="text-text-muted"
+              />
+            </div>
+            <h3 class="mb-2 text-xl font-semibold text-text-primary">
+              {{ $t('claudeProfiles.searchEmptyTitle') }}
+            </h3>
+            <p class="mx-auto mb-6 max-w-xl text-text-secondary">
+              {{ $t('claudeProfiles.searchEmptyDesc') }}
+            </p>
+            <button
+              type="button"
+              class="inline-flex min-h-[44px] items-center justify-center rounded-2xl border border-accent-secondary/30 bg-accent-secondary/10 px-6 py-3 text-sm font-medium text-accent-secondary transition-colors hover:bg-accent-secondary/15 focus:outline-none focus:ring-2 focus:ring-accent-secondary/20"
+              @click="clearSearch()"
+            >
+              <SIcon
+                name="RotateCcw"
+                size="w-4 h-4"
+                class="mr-2"
+              />
+              {{ $t('claudeProfiles.clearSearch') }}
+            </button>
+          </div>
+
           <ClaudeProfilesSectionList
             v-else
-            :provider-sections="providerSections"
+            :provider-sections="visibleProviderSections"
             :register-section-ref="registerSectionRef"
             @apply="handleApply"
             @delete="handleDelete"
@@ -325,6 +410,7 @@ import ClaudeProfilesProviderNav from '@/components/claude/ClaudeProfilesProvide
 import ClaudeProfilesSectionList from '@/components/claude/ClaudeProfilesSectionList.vue'
 import BaseModal from '@/components/common/BaseModal.vue'
 import PageHeaderCard from '@/components/PageHeaderCard.vue'
+import Input from '@/components/ui/Input.vue'
 import SIcon from '@/components/ui/SIcon.vue'
 import type { ClaudeProfile, ClaudeProfileRequest, ClaudeProfilesResponse } from '@/types'
 import type {
@@ -333,7 +419,7 @@ import type {
   ClaudeProfileFormSectionId,
 } from '@/types/claudeProfileEditor'
 import { getErrorMessage } from '@/types/api'
-import { createClaudeProfileSections } from '@/utils/claudeProfiles'
+import { createClaudeProfileSections, filterClaudeProfiles } from '@/utils/claudeProfiles'
 import { logger } from '@/utils/logger'
 import { CLAUDE_PROFILE_FORM_SECTION_IDS } from '@/types/claudeProfileEditor'
 
@@ -349,6 +435,7 @@ const isSaving = ref(false)
 const saveError = ref<string | null>(null)
 const editingName = ref('')
 const currentSectionId = ref<string | null>(null)
+const searchQuery = ref('')
 const sectionRefs = ref<Record<string, HTMLElement | null>>({})
 const sectionObserver = ref<IntersectionObserver | null>(null)
 const modalScrollRef = ref<HTMLElement | null>(null)
@@ -374,10 +461,15 @@ const form = reactive<ClaudeProfileEditorForm>({
   enabled: true,
 })
 
+const trimmedSearchQuery = computed(() => searchQuery.value.trim())
+const hasActiveSearch = computed(() => trimmedSearchQuery.value.length > 0)
 const currentProfileName = computed(() => currentProfile.value ?? profiles.value.find(profile => profile.is_current)?.name ?? null)
 const enabledProfilesCount = computed(() => profiles.value.filter(profile => profile.enabled !== false).length)
 const providerSections = computed(() => createClaudeProfileSections(profiles.value, t('claudeProfiles.providerUnset')))
-const showNavigation = computed(() => !loading.value && !loadError.value && providerSections.value.length > 0)
+const filteredProfiles = computed(() => filterClaudeProfiles(profiles.value, trimmedSearchQuery.value))
+const visibleProviderSections = computed(() => createClaudeProfileSections(filteredProfiles.value, t('claudeProfiles.providerUnset')))
+const showSearchRail = computed(() => !loading.value && !loadError.value && profiles.value.length > 0)
+const showNavigation = computed(() => !loading.value && !loadError.value && visibleProviderSections.value.length > 1)
 const isEditingCurrent = computed(() => isEditing.value && editingName.value === currentProfileName.value)
 
 const modalEyebrow = computed(() => (
@@ -573,7 +665,7 @@ const setupSectionObserver = () => {
 
   if (!showNavigation.value || typeof IntersectionObserver === 'undefined') return
 
-  const elements = providerSections.value
+  const elements = visibleProviderSections.value
     .map(section => sectionRefs.value[section.id])
     .filter((element): element is HTMLElement => !!element)
 
@@ -607,6 +699,10 @@ const setupSectionObserver = () => {
 const scrollToSection = (sectionId: string) => {
   currentSectionId.value = sectionId
   sectionRefs.value[sectionId]?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+}
+
+const clearSearch = () => {
+  searchQuery.value = ''
 }
 
 const syncActiveFormSection = () => {
@@ -709,7 +805,7 @@ const handleApply = async (name: string) => {
   }
 }
 
-watch(providerSections, async (sections) => {
+watch(visibleProviderSections, async (sections) => {
   const validSectionIds = new Set(sections.map(section => section.id))
   Object.keys(sectionRefs.value).forEach((sectionId) => {
     if (!validSectionIds.has(sectionId)) {
@@ -1138,6 +1234,74 @@ onBeforeUnmount(teardownSectionObserver)
   gap: 2rem;
 }
 
+.claude-profiles-view__search-rail {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+  padding: 1rem 1.125rem;
+  border: 1px solid rgb(var(--color-border-default-rgb) / 48%);
+  border-radius: 1.5rem;
+  background:
+    linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 78%), rgb(var(--color-bg-surface-rgb) / 72%));
+  box-shadow:
+    0 18px 34px rgb(8 10 20 / 8%),
+    inset 0 1px 0 rgb(255 255 255 / 8%);
+  backdrop-filter: blur(18px) saturate(135%);
+}
+
+.claude-profiles-view__search-grid {
+  display: grid;
+  gap: 0.875rem;
+}
+
+.claude-profiles-view__search-input-shell {
+  min-width: 0;
+}
+
+.claude-profiles-view__search-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.625rem;
+  align-items: center;
+}
+
+.claude-profiles-view__search-chip,
+.claude-profiles-view__search-clear {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-height: 2.25rem;
+  padding: 0.45rem 0.85rem;
+  border-radius: 9999px;
+  border: 1px solid rgb(var(--color-border-default-rgb) / 48%);
+  background: rgb(var(--color-bg-elevated-rgb) / 64%);
+  font-size: 0.78rem;
+  line-height: 1rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.claude-profiles-view__search-clear {
+  border-color: rgb(var(--color-accent-secondary-rgb) / 26%);
+  background: rgb(var(--color-accent-secondary-rgb) / 10%);
+  color: rgb(var(--color-accent-secondary-rgb) / 100%);
+  transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+}
+
+.claude-profiles-view__search-clear:hover {
+  border-color: rgb(var(--color-accent-secondary-rgb) / 34%);
+  background: rgb(var(--color-accent-secondary-rgb) / 14%);
+  transform: translateY(-1px);
+}
+
+.claude-profiles-view__search-hint {
+  font-size: 0.82rem;
+  line-height: 1.4;
+  color: var(--color-text-muted);
+}
+
 .claude-profiles-view__breadcrumb,
 .claude-profiles-view__header-button {
   display: flex;
@@ -1270,9 +1434,24 @@ onBeforeUnmount(teardownSectionObserver)
   }
 }
 
+@media (width >= 960px) {
+  .claude-profiles-view__search-grid {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+  }
+
+  .claude-profiles-view__search-meta {
+    justify-content: flex-end;
+  }
+}
+
 @media (width < 768px) {
   .claude-profiles-view__meta-chip {
     display: none;
+  }
+
+  .claude-profiles-view__search-rail {
+    padding: 0.9rem;
   }
 }
 </style>

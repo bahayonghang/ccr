@@ -44,7 +44,7 @@
     </div>
 
     <section
-      v-if="profiles.length > 0"
+      v-if="quickSwitchProfiles.length > 0"
       class="rounded-[24px] border border-border-default/45 bg-bg-surface/56 px-4 py-4"
     >
       <div class="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
@@ -67,7 +67,7 @@
 
       <div class="mt-4 flex flex-wrap gap-2.5">
         <button
-          v-for="profile in profiles"
+          v-for="profile in quickSwitchProfiles"
           :key="profile.name"
           type="button"
           class="inline-flex min-h-[40px] items-center gap-2 rounded-full border px-3.5 py-2 text-sm font-medium transition-[background-color,border-color,color,transform] duration-200"
@@ -94,7 +94,7 @@ import type { ClaudeProfile } from '@/types'
 defineProps<{
   currentProfileName: string | null
   enabledProfilesCount: number
-  profiles: ClaudeProfile[]
+  quickSwitchProfiles: ClaudeProfile[]
   totalProfiles: number
 }>()
 

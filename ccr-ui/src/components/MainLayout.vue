@@ -240,8 +240,10 @@
 
       <!-- Scrollable Content -->
       <div
+        ref="contentScrollAreaRef"
         class="flex-1 overflow-y-auto scroll-smooth p-4 sm:p-6 content-scroll-area"
         :class="{ 'content-scroll-area--theme-stage': shouldUseThemeStage }"
+        @scroll.passive="handleContentScroll"
       >
         <BackendStatusBanner class="mb-6" />
         <RouterView v-slot="{ Component }">
@@ -266,13 +268,21 @@
           </transition>
         </RouterView>
       </div>
+
+      <ScrollToTopButton
+        :visible="showScrollToTop"
+        :button-label="t('common.backToTop')"
+        :label="t('common.topShort')"
+        @click="scrollMainContentToTop"
+      />
     </main>
   </div>
 </template>
 
 <script setup lang="ts">
 import SIcon from '@/components/ui/SIcon.vue'
-import { computed, defineAsyncComponent } from 'vue'
+import ScrollToTopButton from '@/components/common/ScrollToTopButton.vue'
+import { computed, defineAsyncComponent, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { APP_NAME, APP_VERSION_LABEL } from '@/config/appMeta'
@@ -315,6 +325,10 @@ const cachedViews = [
   'ConfigsView', 'CommandsView', 'CodexView', 'CodexAuthView', 'CodexProfilesView', 'CodexMcpView',
   'UnifiedSkillsView',
 ]
+const MAIN_SCROLL_TOP_THRESHOLD = 480
+const contentScrollAreaRef = ref<HTMLElement | null>(null)
+const showScrollToTop = ref(false)
+let scrollVisibilityFrame = 0
 
 const currentPageTitle = computed(() => {
   const name = route.name as string
@@ -351,6 +365,56 @@ const {
   hasSidebar,
   routeFullPath: computed(() => route.fullPath),
   t,
+})
+
+const syncScrollToTopVisibility = () => {
+  showScrollToTop.value = (contentScrollAreaRef.value?.scrollTop ?? 0) > MAIN_SCROLL_TOP_THRESHOLD
+}
+
+const clearScrollVisibilityFrame = () => {
+  if (!scrollVisibilityFrame) return
+
+  window.cancelAnimationFrame(scrollVisibilityFrame)
+  scrollVisibilityFrame = 0
+}
+
+const handleContentScroll = () => {
+  if (scrollVisibilityFrame) return
+
+  scrollVisibilityFrame = window.requestAnimationFrame(() => {
+    scrollVisibilityFrame = 0
+    syncScrollToTopVisibility()
+  })
+}
+
+const prefersReducedMotion = (): boolean => {
+  return typeof window.matchMedia === 'function'
+    ? window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    : false
+}
+
+const scrollMainContentToTop = () => {
+  const container = contentScrollAreaRef.value
+
+  if (!container) return
+
+  container.scrollTo({
+    top: 0,
+    behavior: prefersReducedMotion() ? 'auto' : 'smooth',
+  })
+}
+
+watch(() => route.fullPath, async () => {
+  await nextTick()
+  syncScrollToTopVisibility()
+})
+
+onMounted(() => {
+  syncScrollToTopVisibility()
+})
+
+onBeforeUnmount(() => {
+  clearScrollVisibilityFrame()
 })
 </script>
 

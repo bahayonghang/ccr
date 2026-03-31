@@ -13,6 +13,7 @@ export interface ClaudeProfileSection {
 }
 
 const normalizeProvider = (provider?: string | null): string => provider?.trim() ?? ''
+const normalizeSearchValue = (value?: string | null): string => value?.trim().toLowerCase() ?? ''
 
 const compareProfiles = (left: ClaudeProfile, right: ClaudeProfile): number => {
   if (left.is_current !== right.is_current) {
@@ -43,6 +44,33 @@ export const getClaudeProfileProviderLabel = (
 ): string => {
   const normalized = normalizeProvider(provider)
   return normalized || unsetLabel
+}
+
+export const filterClaudeProfiles = (
+  profiles: ClaudeProfile[],
+  query: string
+): ClaudeProfile[] => {
+  const normalizedQuery = normalizeSearchValue(query)
+
+  if (!normalizedQuery) {
+    return profiles
+  }
+
+  return profiles.filter((profile) => {
+    const fields = [
+      profile.name,
+      profile.description,
+      profile.provider,
+      profile.provider_type,
+      profile.account,
+      profile.base_url,
+      profile.model,
+      profile.small_fast_model,
+      ...(profile.tags ?? []),
+    ]
+
+    return fields.some(field => normalizeSearchValue(field).includes(normalizedQuery))
+  })
 }
 
 export const createClaudeProfileSections = (

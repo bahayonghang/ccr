@@ -1,5 +1,5 @@
 import { createApp, defineComponent, h, reactive, nextTick } from 'vue'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 
 vi.mock('vue', async () => {
   const actual = await vi.importActual<typeof import('vue')>('vue')
@@ -91,6 +91,19 @@ vi.mock('@/components/ThemeToggle.vue', () => asyncStub('ThemeToggle'))
 vi.mock('@/components/EnvironmentSwitcher.vue', () => asyncStub('EnvironmentSwitcher'))
 
 import MainLayout from '@/components/MainLayout.vue'
+
+beforeAll(() => {
+  vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
+    callback(0)
+    return 1
+  })
+
+  vi.stubGlobal('cancelAnimationFrame', vi.fn())
+})
+
+afterAll(() => {
+  vi.unstubAllGlobals()
+})
 
 const mountLayout = async () => {
   const el = document.createElement('div')
@@ -189,6 +202,53 @@ describe('MainLayout theme stage smoke', () => {
       expect(shell?.classList.contains('layout-shell--theme-stage')).toBe(false)
       expect(main?.classList.contains('content-main--theme-stage')).toBe(false)
       expect(scrollArea?.classList.contains('content-scroll-area--theme-stage')).toBe(false)
+    } finally {
+      unmount()
+    }
+  })
+
+  it('shows a floating scroll-to-top control after the main workspace scrolls down', async () => {
+    routeState.name = 'claude-code'
+    routeState.fullPath = '/claude-code'
+    routeState.meta.group = 'claude-code'
+    routeState.meta.hideGlobalBackground = true
+    routeState.meta.hideSidebar = false
+
+    const { el, unmount } = await mountLayout()
+
+    try {
+      const scrollArea = el.querySelector('.content-scroll-area') as HTMLElement | null
+      expect(scrollArea).not.toBeNull()
+      expect(el.querySelector('[data-testid="main-scroll-to-top"]')).toBeNull()
+
+      const scrollToMock = vi.fn(({ top }: { top: number }) => {
+        if (!scrollArea) return
+        scrollArea.scrollTop = top
+        scrollArea.dispatchEvent(new Event('scroll'))
+      })
+
+      Object.defineProperty(scrollArea as HTMLElement, 'scrollTo', {
+        value: scrollToMock,
+        configurable: true,
+      })
+
+      if (scrollArea) {
+        scrollArea.scrollTop = 640
+        scrollArea.dispatchEvent(new Event('scroll'))
+      }
+
+      await nextTick()
+      await nextTick()
+
+      const button = el.querySelector('[data-testid="main-scroll-to-top"]') as HTMLButtonElement | null
+      expect(button).not.toBeNull()
+
+      button?.click()
+
+      expect(scrollToMock).toHaveBeenCalledWith({
+        top: 0,
+        behavior: 'smooth',
+      })
     } finally {
       unmount()
     }
