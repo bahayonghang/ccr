@@ -5,7 +5,16 @@ const usageStore = reactive({
   summary: null,
   trends: [],
   modelStats: [],
-  logs: null as null | { records: unknown[] },
+  projectStats: [],
+  logs: null as null | {
+    records: unknown[]
+    total?: number | null
+    page?: number
+    page_size?: number
+    next_cursor?: string | null
+    mode?: string
+  },
+  logsLoading: false,
   logsModelFilter: undefined as string | undefined,
   lastImportResults: [] as Array<{ platform: string; error?: string }>,
   warning: '',
@@ -43,13 +52,6 @@ vi.mock('vue-i18n', async () => {
   }
 })
 
-vi.mock('@tanstack/vue-virtual', () => ({
-  useVirtualizer: vi.fn(() => ({
-    getVirtualItems: () => [],
-    getTotalSize: () => 0,
-  })),
-}))
-
 const mountComposable = async () => {
   const { useUsageDashboardState } = await import('@/views/usage/useUsageDashboardState')
   let state: ReturnType<typeof useUsageDashboardState> | null = null
@@ -80,10 +82,13 @@ const mountComposable = async () => {
 
 beforeEach(() => {
   tauriRuntime = false
+  document.documentElement.setAttribute('data-theme', 'light')
   usageStore.summary = null
   usageStore.trends = []
   usageStore.modelStats = []
+  usageStore.projectStats = []
   usageStore.logs = null
+  usageStore.logsLoading = false
   usageStore.logsModelFilter = undefined
   usageStore.lastImportResults = []
   usageStore.warning = ''
@@ -168,6 +173,114 @@ describe('usage dashboard state smoke', () => {
         reason: 'manual',
         recentDays: 90,
       })
+    } finally {
+      unmount()
+    }
+  })
+
+  it('exposes codex repair diagnostics when codex records look unhealthy', async () => {
+    tauriRuntime = true
+    usageStore.summary = {
+      total_requests: 42,
+      total_input_tokens: 42000,
+      total_output_tokens: 1800,
+      total_cache_read_tokens: 0,
+      total_cost_usd: 0,
+      cache_efficiency: 0,
+    }
+    usageStore.modelStats = [
+      { model: 'unknown', request_count: 42, total_tokens: 43800, total_cost: 0 },
+    ]
+    usageStore.logs = {
+      total: 42,
+      page: 1,
+      page_size: 50,
+      next_cursor: null,
+      mode: 'offset',
+      records: [
+        {
+          id: 'codex-1',
+          platform: 'codex',
+          project_path: '/tmp/project',
+          record_json: '{}',
+          recorded_at: '2026-04-01T00:00:00Z',
+          source_id: 'source-1',
+          model: null,
+          input_tokens: 120,
+          output_tokens: 24,
+          cache_read_tokens: 0,
+          cost_usd: 0,
+        },
+      ],
+    }
+
+    const { state, unmount } = await mountComposable()
+
+    try {
+      state.selectedPlatform.value = 'codex'
+      expect(state.diagnosticsSummary.value.repairRecommended).toBe(true)
+
+      await state.repairCodexLogs()
+
+      expect(usageStore.startImportJob).toHaveBeenCalledWith({
+        platform: 'codex',
+        reason: 'manual',
+        recentDays: 30,
+        resetSources: true,
+      })
+    } finally {
+      unmount()
+    }
+  })
+
+  it('builds dashboard meta and summary cards from the loaded usage data', async () => {
+    tauriRuntime = true
+    usageStore.summary = {
+      total_requests: 120,
+      total_input_tokens: 42000,
+      total_output_tokens: 18000,
+      total_cache_read_tokens: 9000,
+      total_cost_usd: 24.5,
+      cache_efficiency: 0.375,
+    }
+    usageStore.modelStats = [
+      { model: 'claude-opus', request_count: 72, total_tokens: 30000, total_cost: 18.4 },
+      { model: 'gemini-flash', request_count: 48, total_tokens: 30000, total_cost: 6.1 },
+    ]
+    usageStore.projectStats = [
+      { project_path: 'D:/workspace/heavy-project', request_count: 80, total_tokens: 36000, total_cost: 15.6 },
+    ]
+
+    const { state, unmount } = await mountComposable()
+
+    try {
+      expect(state.summaryCards.value.map((card) => card.id)).toEqual([
+        'requests',
+        'tokens',
+        'cost',
+        'cache',
+      ])
+      expect(state.dashboardMetaItems.value).toHaveLength(4)
+      expect(state.topModelRankings.value[0]?.label).toBe('claude-opus')
+      expect(state.topProjectRankings.value[0]?.title).toBe('D:/workspace/heavy-project')
+    } finally {
+      unmount()
+    }
+  })
+
+  it('keeps chart theme in sync with the document theme', async () => {
+    tauriRuntime = true
+    document.documentElement.setAttribute('data-theme', 'dark')
+    const { state, unmount } = await mountComposable()
+
+    try {
+      expect(state.trendOptions.value.theme.mode).toBe('dark')
+
+      document.documentElement.setAttribute('data-theme', 'light')
+      await nextTick()
+      await nextTick()
+
+      expect(state.trendOptions.value.theme.mode).toBe('light')
     } finally {
       unmount()
     }

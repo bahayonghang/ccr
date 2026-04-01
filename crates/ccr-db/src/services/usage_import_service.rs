@@ -124,6 +124,35 @@ impl UsageImportService {
         self.import_file(platform, file_path)
     }
 
+    /// Delete imported records and checkpoints for all sources of a platform.
+    pub fn reset_platform_sources(&self, platform: &str) -> Result<(usize, usize), String> {
+        let sources =
+            database::with_connection(|conn| usage_repo::get_sources_by_platform(conn, platform))
+                .map_err(|e| e.to_string())?;
+
+        let mut deleted_sources = 0usize;
+        let mut deleted_records = 0usize;
+
+        for source in sources {
+            let removed_records = database::with_connection(|conn| {
+                let removed_records = usage_repo::delete_records_by_source(conn, &source.id)?;
+                let _ = usage_repo::delete_source(conn, &source.id)?;
+                Ok::<usize, rusqlite::Error>(removed_records)
+            })
+            .map_err(|e| e.to_string())?;
+
+            deleted_sources += 1;
+            deleted_records += removed_records;
+        }
+
+        info!(
+            "Reset usage import state for {}: {} sources, {} records",
+            platform, deleted_sources, deleted_records
+        );
+
+        Ok((deleted_sources, deleted_records))
+    }
+
     /// Import usage data for a platform incrementally
     pub fn import_platform(&self, platform: &str) -> Result<ImportResult, String> {
         let start = Instant::now();
@@ -1737,6 +1766,98 @@ mod tests {
         assert_eq!(records[1].input_tokens, 1000);
         assert_eq!(records[1].output_tokens, 200);
         assert_eq!(records[1].cache_read_tokens, 400);
+    }
+
+    #[test]
+    fn test_reset_platform_sources_clears_records_and_checkpoints() {
+        setup();
+
+        database::with_connection(|conn| {
+            conn.execute("DELETE FROM usage_records", [])?;
+            conn.execute("DELETE FROM usage_sources", [])?;
+            conn.execute("DELETE FROM usage_daily_agg", [])?;
+            Ok::<(), rusqlite::Error>(())
+        })
+        .unwrap();
+
+        let codex_source = usage_repo::UsageSource {
+            id: "src-codex".to_string(),
+            platform: "codex".to_string(),
+            file_path: "/tmp/codex-rollout.jsonl".to_string(),
+            file_hash: "hash-a".to_string(),
+            last_offset: 128,
+            updated_at: Utc::now(),
+        };
+        let claude_source = usage_repo::UsageSource {
+            id: "src-claude".to_string(),
+            platform: "claude".to_string(),
+            file_path: "/tmp/claude-usage.jsonl".to_string(),
+            file_hash: "hash-b".to_string(),
+            last_offset: 128,
+            updated_at: Utc::now(),
+        };
+
+        let codex_record = usage_repo::UsageRecord {
+            id: "codex-record".to_string(),
+            platform: "codex".to_string(),
+            project_path: "/tmp/project".to_string(),
+            record_json: "{}".to_string(),
+            recorded_at: Utc::now(),
+            source_id: codex_source.id.clone(),
+            model: Some("unknown".to_string()),
+            input_tokens: 100,
+            output_tokens: 40,
+            cache_read_tokens: 0,
+            cost_usd: 0.0,
+        };
+        let claude_record = usage_repo::UsageRecord {
+            id: "claude-record".to_string(),
+            platform: "claude".to_string(),
+            project_path: "/tmp/project".to_string(),
+            record_json: "{}".to_string(),
+            recorded_at: Utc::now(),
+            source_id: claude_source.id.clone(),
+            model: Some("claude-sonnet-4-5".to_string()),
+            input_tokens: 120,
+            output_tokens: 60,
+            cache_read_tokens: 0,
+            cost_usd: 1.2,
+        };
+
+        database::with_connection(|conn| {
+            usage_repo::upsert_source(conn, &codex_source)?;
+            usage_repo::upsert_source(conn, &claude_source)?;
+            usage_repo::insert_record(conn, &codex_record)?;
+            usage_repo::insert_record(conn, &claude_record)?;
+            Ok::<(), rusqlite::Error>(())
+        })
+        .unwrap();
+
+        let service = UsageImportService::new(ImportConfig::default());
+        let (deleted_sources, deleted_records) = service.reset_platform_sources("codex").unwrap();
+
+        assert_eq!(deleted_sources, 1);
+        assert_eq!(deleted_records, 1);
+
+        let (
+            remaining_codex_sources,
+            remaining_codex_records,
+            remaining_claude_sources,
+            remaining_claude_records,
+        ) = database::with_connection(|conn| {
+            Ok::<_, rusqlite::Error>((
+                usage_repo::get_sources_by_platform(conn, "codex")?.len(),
+                usage_repo::count_records_by_platform(conn, "codex")?,
+                usage_repo::get_sources_by_platform(conn, "claude")?.len(),
+                usage_repo::count_records_by_platform(conn, "claude")?,
+            ))
+        })
+        .unwrap();
+
+        assert_eq!(remaining_codex_sources, 0);
+        assert_eq!(remaining_codex_records, 0);
+        assert_eq!(remaining_claude_sources, 1);
+        assert_eq!(remaining_claude_records, 1);
     }
 
     #[test]

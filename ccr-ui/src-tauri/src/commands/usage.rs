@@ -383,6 +383,7 @@ async fn run_usage_import_job(
     job_id: String,
     platform: Option<String>,
     recent_window_days: usize,
+    reset_sources: bool,
 ) {
     let platforms = match platform.as_deref() {
         Some(value) => vec![value.to_string()],
@@ -390,6 +391,52 @@ async fn run_usage_import_job(
     };
 
     let execution = async {
+        if reset_sources {
+            for platform_name in &platforms {
+                let platform_name = platform_name.clone();
+                let source_target = platform_name.clone();
+                let source_count = tokio::task::spawn_blocking(move || {
+                    let service = ccr_db::services::usage_import_service::UsageImportService::new(
+                        ccr_db::services::usage_import_service::ImportConfig::default(),
+                    );
+                    service.list_usage_files(&source_target).map(|files| files.len())
+                })
+                .await
+                .map_err(|error| format!("Repair preflight join error: {error}"))??;
+
+                if source_count == 0 {
+                    return Err(format!(
+                        "No usage source files found for {}. Refusing to reset imported history.",
+                        platform_name
+                    ));
+                }
+
+                let reset_target = platform_name.clone();
+                let reset_result = tokio::task::spawn_blocking(move || {
+                    let service = ccr_db::services::usage_import_service::UsageImportService::new(
+                        ccr_db::services::usage_import_service::ImportConfig::default(),
+                    );
+                    service.reset_platform_sources(&reset_target)
+                })
+                .await
+                .map_err(|error| format!("Repair task join error: {error}"))??;
+
+                if let Some(snapshot) = app_handle
+                    .state::<AppState>()
+                    .update_usage_import_job(&job_id, |job: &mut UsageImportJobSnapshot| {
+                        job.push_warning(format!(
+                            "Reset {} sources and {} records for {} before re-import",
+                            reset_result.0, reset_result.1, platform_name
+                        ));
+                    })
+                    .await
+                {
+                    emit_usage_import_job_snapshot(&app_handle, "usage:job-progress", &snapshot)
+                        .await;
+                }
+            }
+        }
+
         let (recent_files, history_files) = build_usage_import_plan(&platforms, recent_window_days)?;
         let files_total = recent_files.len() + history_files.len();
         let mut results_by_platform = create_platform_results(&platforms);
@@ -1224,6 +1271,7 @@ pub async fn start_usage_import_job_v2(
     state: State<'_, AppState>,
     platform: Option<String>,
     recent_days: Option<usize>,
+    reset_sources: Option<bool>,
 ) -> Result<Value, String> {
     if let Some(snapshot) = state.get_active_usage_import_job().await {
         return serde_json::to_value(StartUsageImportJobResponse {
@@ -1247,6 +1295,7 @@ pub async fn start_usage_import_job_v2(
         job_id.clone(),
         platform,
         recent_window_days,
+        reset_sources.unwrap_or(false),
     ));
 
     serde_json::to_value(StartUsageImportJobResponse { job_id, snapshot })

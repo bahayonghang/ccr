@@ -2,7 +2,7 @@
  * Usage Analytics Store (V2)
  *
  * 统一管理使用统计数据，对接后端 v2 聚合 API
- * 支持请求去重、筛选防抖、分频自动刷新和日志游标分页
+ * 支持请求去重、筛选防抖、分频自动刷新和日志分页诊断
  */
 
 import { defineStore } from 'pinia'
@@ -45,6 +45,7 @@ const REFRESH_INTERVAL = 30_000 // 30s
 const HEATMAP_REFRESH_INTERVAL = 10 * 60_000 // 10min
 const FILTER_DEBOUNCE_MS = 300
 const HEATMAP_DAYS = 365
+const IMPORT_PROGRESS_REFRESH_INTERVAL_MS = 2_000
 
 const parseEnvFlag = (value: string | undefined, defaultValue: boolean): boolean => {
   if (value == null || value === '') return defaultValue
@@ -55,7 +56,6 @@ const USE_DASHBOARD_API = parseEnvFlag(
   import.meta.env.VITE_USAGE_DASHBOARD_AGGREGATED_API,
   true,
 )
-const USE_CURSOR_LOGS = parseEnvFlag(import.meta.env.VITE_USAGE_LOGS_CURSOR_PAGING, true)
 const LAZY_HEATMAP_LOAD = parseEnvFlag(import.meta.env.VITE_PERF_HEATMAP_LAZY_LOAD, true)
 
 const nowMs = () => (typeof performance !== 'undefined' ? performance.now() : Date.now())
@@ -79,6 +79,7 @@ interface FetchOptions {
   reason?: string
   preserveError?: boolean
   background?: boolean
+  force?: boolean
 }
 
 type UsageDashboardPayload = Omit<UsageDashboardResponse, 'heatmap' | 'generated_at'> & {
@@ -124,12 +125,12 @@ export const useUsageStore = defineStore('usage', () => {
   const logsPage = ref(1)
   const logsPageSize = ref(50)
   const logsModelFilter = ref<string | undefined>(undefined)
-  const logsCursor = ref<string | undefined>(undefined)
-  const logsCursorHistory = ref<string[]>([])
 
   let filterDebounceTimer: ReturnType<typeof setTimeout> | null = null
   let importJobUnlisteners: UnlistenFn[] = []
   let activeImportReason: 'manual' | 'bootstrap' | null = null
+  let lastProgressRefreshAt = 0
+  let lastProgressRefreshRecords = 0
 
   let requestSerial = 0
   let inFlightKey: string | null = null
@@ -147,14 +148,10 @@ export const useUsageStore = defineStore('usage', () => {
     return Math.max(1, Math.ceil(total / logsPageSize.value))
   })
 
-  const canPrevLogs = computed(() => {
-    if (USE_CURSOR_LOGS) return logsCursorHistory.value.length > 0
-    return logsPage.value > 1
-  })
+  const canPrevLogs = computed(() => logsPage.value > 1)
 
   const canNextLogs = computed(() => {
     if (!logs.value) return false
-    if (USE_CURSOR_LOGS) return Boolean(logs.value.next_cursor)
     const total = logs.value.total
     if (!total || total <= 0) return logs.value.records.length >= logsPageSize.value
     return logsPage.value < logsTotalPages.value
@@ -192,6 +189,11 @@ export const useUsageStore = defineStore('usage', () => {
     warning.value = null
     lastImportSummary.value = null
     lastImportResults.value = []
+  }
+
+  const resetProgressRefreshState = () => {
+    lastProgressRefreshAt = 0
+    lastProgressRefreshRecords = 0
   }
 
   const buildImportSummary = (results: ImportResult[]): UsageImportSummary => {
@@ -277,10 +279,32 @@ export const useUsageStore = defineStore('usage', () => {
     await Promise.all(unlisteners.map(unlisten => unlisten()))
   }
 
-  const refreshAfterImportSignal = async (reason: string, includeHeatmap = false) => {
+  const shouldRefreshOnImportProgress = (job: UsageImportJobSnapshot) => {
+    if (job.records_imported <= 0) return false
+
+    const now = Date.now()
+    const hasNewRecords = job.records_imported > lastProgressRefreshRecords
+    const isFirstPositiveRefresh = lastProgressRefreshRecords === 0
+    const throttleExpired = now - lastProgressRefreshAt >= IMPORT_PROGRESS_REFRESH_INTERVAL_MS
+
+    if (!hasNewRecords || (!isFirstPositiveRefresh && !throttleExpired)) {
+      return false
+    }
+
+    lastProgressRefreshRecords = job.records_imported
+    lastProgressRefreshAt = now
+    return true
+  }
+
+  const refreshAfterImportSignal = async (
+    reason: string,
+    includeHeatmap = false,
+    force = false,
+  ) => {
     await fetchAll({
       background: true,
       includeHeatmap,
+      force,
       reason,
       preserveError: true,
     })
@@ -292,18 +316,30 @@ export const useUsageStore = defineStore('usage', () => {
   ) => {
     syncImportFeedbackFromJob(job)
 
+    if (trigger === 'progress' && shouldRefreshOnImportProgress(job)) {
+      await refreshAfterImportSignal('job-progress')
+    }
+
     if (trigger === 'recent-ready') {
-      await refreshAfterImportSignal('job-recent-ready')
+      await refreshAfterImportSignal('job-recent-ready', false, true)
+      if (logs.value) {
+        await fetchLogs('reset')
+      }
     }
 
     if (trigger === 'finished') {
-      await refreshAfterImportSignal('job-finished', !LAZY_HEATMAP_LOAD)
+      await refreshAfterImportSignal('job-finished', !LAZY_HEATMAP_LOAD, true)
+      if (logs.value) {
+        await fetchLogs('reset')
+      }
       activeImportReason = null
+      resetProgressRefreshState()
       await clearImportJobListeners()
     }
 
     if (trigger === 'failed') {
       activeImportReason = null
+      resetProgressRefreshState()
       await clearImportJobListeners()
     }
   }
@@ -372,10 +408,11 @@ export const useUsageStore = defineStore('usage', () => {
     const reason = options.reason ?? 'manual'
     const preserveError = options.preserveError ?? false
     const background = options.background ?? false
+    const force = options.force ?? false
     const startedAt = nowMs()
     const key = buildFetchKey(includeHeatmap)
 
-    if (inFlightPromise && inFlightKey === key) {
+    if (!force && inFlightPromise && inFlightKey === key) {
       return inFlightPromise
     }
 
@@ -460,57 +497,27 @@ export const useUsageStore = defineStore('usage', () => {
     logsLoading.value = true
     error.value = null
     try {
-      const preferredMode: 'cursor' | 'offset' = USE_CURSOR_LOGS ? 'cursor' : 'offset'
-      const prepareQuery = (mode: 'cursor' | 'offset', includeTotal: boolean): UsageLogsQuery => ({
+      const prepareQuery = (): UsageLogsQuery => ({
         platform: platform.value,
         model: logsModelFilter.value,
         start_date: timeRange.value.start,
         end_date: timeRange.value.end,
         page: logsPage.value,
         page_size: logsPageSize.value,
-        cursor: mode === 'cursor' ? logsCursor.value : undefined,
-        include_total: includeTotal,
-        mode,
+        include_total: true,
+        mode: 'offset',
       })
 
-      if (preferredMode === 'cursor') {
-        if (direction === 'reset') {
-          logsPage.value = 1
-          logsCursor.value = undefined
-          logsCursorHistory.value = []
-        } else if (direction === 'next') {
-          const nextCursor = logs.value?.next_cursor || undefined
-          if (!nextCursor) return
-          logsCursorHistory.value.push(logsCursor.value ?? '')
-          logsCursor.value = nextCursor
-          logsPage.value += 1
-        } else if (direction === 'prev') {
-          const previous = logsCursorHistory.value.pop()
-          if (previous == null) return
-          logsCursor.value = previous || undefined
-          logsPage.value = Math.max(1, logsPage.value - 1)
-        }
+      if (direction === 'next') logsPage.value += 1
+      if (direction === 'prev') logsPage.value = Math.max(1, logsPage.value - 1)
+      if (direction === 'reset') logsPage.value = 1
 
-        try {
-          const result = await getUsageLogsV2<PaginatedLogs>(prepareQuery('cursor', false))
-          logs.value = { ...result, page: logsPage.value, page_size: logsPageSize.value, mode: 'cursor' }
-        } catch (cursorError) {
-          // 兼容兜底：cursor 失败时退回 offset 模式
-          const offsetResult = await getUsageLogsV2<PaginatedLogs>({
-            ...prepareQuery('offset', true),
-            cursor: undefined,
-          })
-          logs.value = { ...offsetResult, page: logsPage.value, page_size: logsPageSize.value, mode: 'offset' }
-          if (import.meta.env.DEV) {
-            logger.warn('[usage] cursor logs failed, fallback to offset', cursorError)
-          }
-        }
-      } else {
-        if (direction === 'next') logsPage.value += 1
-        if (direction === 'prev') logsPage.value = Math.max(1, logsPage.value - 1)
-        if (direction === 'reset') logsPage.value = 1
-        const result = await getUsageLogsV2<PaginatedLogs>(prepareQuery('offset', true))
-        logs.value = { ...result, mode: 'offset' }
+      const result = await getUsageLogsV2<PaginatedLogs>(prepareQuery())
+      logs.value = {
+        ...result,
+        page: result.page ?? logsPage.value,
+        page_size: result.page_size ?? logsPageSize.value,
+        mode: 'offset',
       }
     } catch (e) {
       error.value = e instanceof Error ? e.message : String(e)
@@ -612,6 +619,7 @@ export const useUsageStore = defineStore('usage', () => {
     platform?: Platform
     recentDays?: number
     reason?: 'manual' | 'bootstrap'
+    resetSources?: boolean
   }) {
     const reason = opts.reason ?? 'manual'
     activeImportReason = reason
@@ -619,11 +627,13 @@ export const useUsageStore = defineStore('usage', () => {
     isBootstrapping.value = reason === 'bootstrap'
     error.value = null
     clearImportFeedback()
+    resetProgressRefreshState()
 
     try {
       const response = await startUsageImportJobV2<StartUsageImportJobResponse>(
         opts.platform,
         opts.recentDays,
+        opts.resetSources,
       )
 
       syncImportFeedbackFromJob(response.snapshot)
@@ -763,7 +773,6 @@ export const useUsageStore = defineStore('usage', () => {
     hasUsageData,
     hasNoUsageData,
     // flags
-    useCursorLogs: USE_CURSOR_LOGS,
     useDashboardApi: USE_DASHBOARD_API,
     // actions
     initializeDashboard,

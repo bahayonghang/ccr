@@ -2,12 +2,21 @@ import { setActivePinia, createPinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ImportAllUsageResponse, UsageSummary } from '@/types/usage'
 
+const tauriRuntimeMock = vi.fn(() => false)
+const eventListeners = new Map<string, (event: { payload: unknown }) => void>()
+const listenMock = vi.fn(async (eventName: string, callback: (event: { payload: unknown }) => void) => {
+  eventListeners.set(eventName, callback)
+  return () => {
+    eventListeners.delete(eventName)
+  }
+})
+
 vi.mock('@tauri-apps/api/event', () => ({
-  listen: vi.fn(async () => () => undefined),
+  listen: listenMock,
 }))
 
 vi.mock('@/utils/tauriRuntime', () => ({
-  isTauriRuntime: () => false,
+  isTauriRuntime: tauriRuntimeMock,
 }))
 
 vi.mock('@/api', () => ({
@@ -31,7 +40,8 @@ vi.mock('@/api', () => ({
     records: [],
     total: 0,
     page: 1,
-    page_size: 50
+    page_size: 50,
+    mode: 'offset'
   }),
   getUsageSummaryV2: vi.fn().mockResolvedValue({
     total_requests: 0,
@@ -57,10 +67,20 @@ vi.mock('@/api', () => ({
   startUsageImportJobV2: vi.fn(),
 }))
 
+const flushPromises = async () => {
+  await Promise.resolve()
+  await Promise.resolve()
+  await Promise.resolve()
+}
+
 describe('usage store smoke', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     vi.resetModules()
+    tauriRuntimeMock.mockReturnValue(false)
+    eventListeners.clear()
+    listenMock.mockClear()
+    vi.useRealTimers()
   })
 
   it('keeps stable default and computed state', async () => {
@@ -150,9 +170,222 @@ describe('usage store smoke', () => {
     const store = useUsageStore()
     await store.startImportJob({ recentDays: 90, reason: 'manual' })
 
-    expect(api.startUsageImportJobV2).toHaveBeenCalledWith(undefined, 90)
+    expect(api.startUsageImportJobV2).toHaveBeenCalledWith(undefined, 90, undefined)
     expect(store.currentImportJob?.job_id).toBe('usage-import-1')
     expect(store.importing).toBe(true)
     expect(store.isBootstrapping).toBe(false)
+  })
+
+  it('passes resetSources when codex repair is requested', async () => {
+    const api = await import('@/api')
+    vi.mocked(api.startUsageImportJobV2).mockResolvedValue({
+      job_id: 'usage-import-repair',
+      snapshot: {
+        job_id: 'usage-import-repair',
+        status: 'running',
+        stage: 'importing_recent',
+        platform_scope: 'codex',
+        recent_window_days: 30,
+        files_total: 1,
+        files_scanned: 0,
+        files_imported: 0,
+        records_imported: 0,
+        records_skipped: 0,
+        started_at: '2026-04-01T00:00:00Z',
+        updated_at: '2026-04-01T00:00:00Z',
+        recent_ready_at: null,
+        finished_at: null,
+        current_file: null,
+        warnings: [],
+        error: null,
+        results: [],
+        summary: null,
+      },
+    })
+
+    const { useUsageStore } = await import('@/stores/usage')
+    const store = useUsageStore()
+    await store.startImportJob({
+      platform: 'codex',
+      recentDays: 30,
+      reason: 'manual',
+      resetSources: true,
+    })
+
+    expect(api.startUsageImportJobV2).toHaveBeenCalledWith('codex', 30, true)
+  })
+
+  it('uses offset paging when fetching diagnostics logs', async () => {
+    const api = await import('@/api')
+    const { useUsageStore } = await import('@/stores/usage')
+    const store = useUsageStore()
+
+    store.platform = 'codex'
+    store.timeRange = { start: '2026-03-01', end: '2026-03-31' }
+    store.logsModelFilter = 'unknown'
+
+    await store.fetchLogs('reset')
+
+    expect(api.getUsageLogsV2).toHaveBeenCalledWith(expect.objectContaining({
+      platform: 'codex',
+      model: 'unknown',
+      start_date: '2026-03-01',
+      end_date: '2026-03-31',
+      page: 1,
+      page_size: 50,
+      include_total: true,
+      mode: 'offset',
+    }))
+  })
+
+  it('progressively refreshes the dashboard during import without flipping loading state', async () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-04-01T00:00:00Z'))
+    tauriRuntimeMock.mockReturnValue(true)
+
+    const api = await import('@/api')
+    vi.mocked(api.startUsageImportJobV2).mockResolvedValue({
+      job_id: 'usage-import-2',
+      snapshot: {
+        job_id: 'usage-import-2',
+        status: 'running',
+        stage: 'importing_recent',
+        platform_scope: 'all',
+        recent_window_days: 90,
+        files_total: 12,
+        files_scanned: 0,
+        files_imported: 0,
+        records_imported: 0,
+        records_skipped: 0,
+        started_at: '2026-04-01T00:00:00Z',
+        updated_at: '2026-04-01T00:00:00Z',
+        recent_ready_at: null,
+        finished_at: null,
+        current_file: null,
+        warnings: [],
+        error: null,
+        results: [],
+        summary: null,
+      },
+    })
+    vi.mocked(api.getUsageImportJobStatusV2).mockResolvedValue({
+      job_id: 'usage-import-2',
+      status: 'running',
+      stage: 'importing_recent',
+      platform_scope: 'all',
+      recent_window_days: 90,
+      files_total: 12,
+      files_scanned: 0,
+      files_imported: 0,
+      records_imported: 0,
+      records_skipped: 0,
+      started_at: '2026-04-01T00:00:00Z',
+      updated_at: '2026-04-01T00:00:00Z',
+      recent_ready_at: null,
+      finished_at: null,
+      current_file: null,
+      warnings: [],
+      error: null,
+      results: [],
+      summary: null,
+    })
+
+    const { useUsageStore } = await import('@/stores/usage')
+    const store = useUsageStore()
+    store.loading = false
+
+    await store.startImportJob({ recentDays: 90, reason: 'manual' })
+    expect(listenMock).toHaveBeenCalled()
+    expect(api.getUsageDashboardV2).not.toHaveBeenCalled()
+
+    const progress = eventListeners.get('usage:job-progress')
+    progress?.({
+      payload: {
+        job_id: 'usage-import-2',
+        status: 'running',
+        stage: 'importing_recent',
+        platform_scope: 'all',
+        recent_window_days: 90,
+        files_total: 12,
+        files_scanned: 1,
+        files_imported: 1,
+        records_imported: 24,
+        records_skipped: 0,
+        started_at: '2026-04-01T00:00:00Z',
+        updated_at: '2026-04-01T00:00:01Z',
+        recent_ready_at: null,
+        finished_at: null,
+        current_file: '/tmp/usage-1.jsonl',
+        warnings: [],
+        error: null,
+        results: [],
+        summary: null,
+      },
+    })
+    await flushPromises()
+
+    expect(api.getUsageDashboardV2).toHaveBeenCalledTimes(1)
+    expect(store.loading).toBe(false)
+
+    progress?.({
+      payload: {
+        job_id: 'usage-import-2',
+        status: 'running',
+        stage: 'importing_recent',
+        platform_scope: 'all',
+        recent_window_days: 90,
+        files_total: 12,
+        files_scanned: 2,
+        files_imported: 2,
+        records_imported: 48,
+        records_skipped: 0,
+        started_at: '2026-04-01T00:00:00Z',
+        updated_at: '2026-04-01T00:00:01Z',
+        recent_ready_at: null,
+        finished_at: null,
+        current_file: '/tmp/usage-2.jsonl',
+        warnings: [],
+        error: null,
+        results: [],
+        summary: null,
+      },
+    })
+    await flushPromises()
+
+    expect(api.getUsageDashboardV2).toHaveBeenCalledTimes(1)
+
+    const finished = eventListeners.get('usage:job-finished')
+    finished?.({
+      payload: {
+        job_id: 'usage-import-2',
+        status: 'finished',
+        stage: 'finished',
+        platform_scope: 'all',
+        recent_window_days: 90,
+        files_total: 12,
+        files_scanned: 12,
+        files_imported: 12,
+        records_imported: 96,
+        records_skipped: 0,
+        started_at: '2026-04-01T00:00:00Z',
+        updated_at: '2026-04-01T00:00:05Z',
+        recent_ready_at: '2026-04-01T00:00:04Z',
+        finished_at: '2026-04-01T00:00:05Z',
+        current_file: null,
+        warnings: [],
+        error: null,
+        results: [],
+        summary: {
+          success_count: 1,
+          failure_count: 0,
+          imported_records: 96,
+          processed_files: 12,
+          has_partial: false,
+        },
+      },
+    })
+    await flushPromises()
+
+    expect(api.getUsageDashboardV2).toHaveBeenCalledTimes(2)
   })
 })

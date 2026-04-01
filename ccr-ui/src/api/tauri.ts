@@ -2499,9 +2499,10 @@ export const getUsageDashboardV2 = async <T = UnknownRecord>(
 /** V2: 启动 usage 后台导入任务 */
 export const startUsageImportJobV2 = async <T = UnknownRecord>(
   platform?: string,
-  recentDays?: number
+  recentDays?: number,
+  resetSources?: boolean
 ): Promise<T> => {
-  return invoke('start_usage_import_job_v2', { platform, recentDays })
+  return invoke('start_usage_import_job_v2', { platform, recentDays, resetSources })
 }
 
 /** V2: 查询 usage 后台导入任务状态 */
