@@ -4,7 +4,7 @@
 use chrono::{DateTime, Utc};
 use rusqlite::{Connection, Row, params};
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 /// Usage source - tracks imported files with offsets
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -260,6 +260,68 @@ fn upsert_daily_agg_from_records(
     Ok(())
 }
 
+fn refresh_daily_agg_entry(
+    conn: &Connection,
+    date: &str,
+    platform: &str,
+) -> Result<(), rusqlite::Error> {
+    let (request_count, input_tokens, output_tokens, cache_read_tokens, cost_usd): (
+        i64,
+        i64,
+        i64,
+        i64,
+        f64,
+    ) = conn.query_row(
+        "SELECT COUNT(*),
+                COALESCE(SUM(input_tokens), 0),
+                COALESCE(SUM(output_tokens), 0),
+                COALESCE(SUM(cache_read_tokens), 0),
+                COALESCE(SUM(cost_usd), 0)
+         FROM usage_records
+         WHERE substr(recorded_at, 1, 10) = ?1 AND platform = ?2",
+        params![date, platform],
+        |row| {
+            Ok((
+                row.get(0)?,
+                row.get(1)?,
+                row.get(2)?,
+                row.get(3)?,
+                row.get(4)?,
+            ))
+        },
+    )?;
+
+    if request_count == 0 {
+        conn.execute(
+            "DELETE FROM usage_daily_agg WHERE date = ?1 AND platform = ?2",
+            params![date, platform],
+        )?;
+        return Ok(());
+    }
+
+    conn.execute(
+        "INSERT INTO usage_daily_agg (date, platform, request_count, input_tokens, output_tokens, cache_read_tokens, cost_usd)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)
+         ON CONFLICT(date, platform) DO UPDATE SET
+           request_count = excluded.request_count,
+           input_tokens = excluded.input_tokens,
+           output_tokens = excluded.output_tokens,
+           cache_read_tokens = excluded.cache_read_tokens,
+           cost_usd = excluded.cost_usd",
+        params![
+            date,
+            platform,
+            request_count,
+            input_tokens,
+            output_tokens,
+            cache_read_tokens,
+            cost_usd,
+        ],
+    )?;
+
+    Ok(())
+}
+
 const USAGE_RECORD_COLUMNS: &str = "id, platform, project_path, record_json, recorded_at, source_id, model, input_tokens, output_tokens, cache_read_tokens, cost_usd";
 
 /// Get recent records by platform
@@ -322,10 +384,33 @@ pub fn delete_records_by_source(
     conn: &Connection,
     source_id: &str,
 ) -> Result<usize, rusqlite::Error> {
-    conn.execute(
+    let mut affected_keys = HashSet::new();
+    {
+        let mut stmt = conn.prepare(
+            "SELECT DISTINCT substr(recorded_at, 1, 10), platform
+             FROM usage_records
+             WHERE source_id = ?1",
+        )?;
+        let rows = stmt.query_map(params![source_id], |row| {
+            Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+        })?;
+        for row in rows.flatten() {
+            affected_keys.insert(row);
+        }
+    }
+
+    let tx = conn.unchecked_transaction()?;
+    let deleted = tx.execute(
         "DELETE FROM usage_records WHERE source_id = ?1",
         params![source_id],
-    )
+    )?;
+
+    for (date, platform) in affected_keys {
+        refresh_daily_agg_entry(&tx, &date, &platform)?;
+    }
+
+    tx.commit()?;
+    Ok(deleted)
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -929,6 +1014,64 @@ mod tests {
 
         let count = count_records_by_platform(&conn, "codex").unwrap();
         assert_eq!(count, 5);
+    }
+
+    #[test]
+    fn test_delete_records_by_source_keeps_daily_agg_in_sync() {
+        let conn = setup_test_db();
+        let recorded_at = DateTime::parse_from_rfc3339("2026-03-20T10:00:00Z")
+            .unwrap()
+            .with_timezone(&Utc);
+
+        let source_a = "source-a".to_string();
+        let source_b = "source-b".to_string();
+        let records = vec![
+            UsageRecord {
+                id: "r-a".to_string(),
+                platform: "codex".to_string(),
+                project_path: "/project/a".to_string(),
+                record_json: "{}".to_string(),
+                recorded_at,
+                source_id: source_a.clone(),
+                model: Some("gpt-5".to_string()),
+                input_tokens: 100,
+                output_tokens: 20,
+                cache_read_tokens: 10,
+                cost_usd: 1.0,
+            },
+            UsageRecord {
+                id: "r-b".to_string(),
+                platform: "codex".to_string(),
+                project_path: "/project/b".to_string(),
+                record_json: "{}".to_string(),
+                recorded_at,
+                source_id: source_b.clone(),
+                model: Some("gpt-5".to_string()),
+                input_tokens: 200,
+                output_tokens: 40,
+                cache_read_tokens: 20,
+                cost_usd: 2.0,
+            },
+        ];
+
+        insert_records_batch(&conn, &records).unwrap();
+
+        let before = get_daily_trends(&conn, &Some("codex".to_string()), &None, &None).unwrap();
+        assert_eq!(before.len(), 1);
+        assert_eq!(before[0].request_count, 2);
+        assert_eq!(before[0].input_tokens, 300);
+        assert_eq!(before[0].output_tokens, 60);
+        assert_eq!(before[0].cache_read_tokens, 30);
+
+        delete_records_by_source(&conn, &source_a).unwrap();
+
+        let after = get_daily_trends(&conn, &Some("codex".to_string()), &None, &None).unwrap();
+        assert_eq!(after.len(), 1);
+        assert_eq!(after[0].request_count, 1);
+        assert_eq!(after[0].input_tokens, 200);
+        assert_eq!(after[0].output_tokens, 40);
+        assert_eq!(after[0].cache_read_tokens, 20);
+        assert!((after[0].cost_usd - 2.0).abs() < 0.0001);
     }
 
     #[test]

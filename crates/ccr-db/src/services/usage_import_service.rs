@@ -65,6 +65,16 @@ struct CodexTokenUsage {
     output_tokens: u64,
 }
 
+#[derive(Debug, Clone)]
+struct CodexAppendCheckpoint {
+    session_id: String,
+    model: Option<String>,
+    project_path: String,
+    last_line_number: u64,
+    prefers_turn_completed: bool,
+    last_cumulative_usage: CodexTokenUsage,
+}
+
 #[derive(Debug, Clone, Copy, Default)]
 struct GeminiTokenUsage {
     input_tokens: i64,
@@ -77,19 +87,11 @@ impl UsageImportService {
         Self { config }
     }
 
-    /// Import usage data for a platform incrementally
-    pub fn import_platform(&self, platform: &str) -> Result<ImportResult, String> {
-        let start = Instant::now();
-        let time_budget = Duration::from_secs(self.config.time_budget_secs);
-
-        // Get home directory
+    pub fn list_usage_files(&self, platform: &str) -> Result<Vec<PathBuf>, String> {
         let home_dir = dirs::home_dir().ok_or("Could not find home directory")?;
-
-        // Determine projects directory based on platform
         let projects_dir = match platform {
             "claude" => home_dir.join(".claude/projects"),
             "codex" => {
-                // Codex CLI: 支持 CODEX_HOME 环境变量覆盖配置目录
                 let codex_home = std::env::var("CODEX_HOME")
                     .map(PathBuf::from)
                     .unwrap_or_else(|_| home_dir.join(".codex"));
@@ -100,30 +102,33 @@ impl UsageImportService {
         };
 
         if !projects_dir.exists() {
-            debug!(
-                "Projects directory does not exist for platform {}: {:?}",
-                platform, projects_dir
-            );
-            return Ok(ImportResult {
-                platform: platform.to_string(),
-                files_processed: 0,
-                records_imported: 0,
-                records_skipped: 0,
-                duration_ms: start.elapsed().as_millis() as u64,
-                completed: true,
-            });
+            return Ok(Vec::new());
         }
 
-        // Collect candidate usage files
-        let usage_files: Vec<PathBuf> = WalkDir::new(&projects_dir)
+        Ok(WalkDir::new(&projects_dir)
             .into_iter()
-            .filter_map(|e| e.ok())
-            .filter(|e| match platform {
-                "gemini" => Self::is_gemini_session_file(e.path()),
-                _ => e.path().extension().is_some_and(|ext| ext == "jsonl"),
+            .filter_map(|entry| entry.ok())
+            .filter(|entry| match platform {
+                "gemini" => Self::is_gemini_session_file(entry.path()),
+                _ => entry.path().extension().is_some_and(|ext| ext == "jsonl"),
             })
-            .map(|e| e.path().to_path_buf())
-            .collect();
+            .map(|entry| entry.path().to_path_buf())
+            .collect())
+    }
+
+    pub fn import_file_path(
+        &self,
+        platform: &str,
+        file_path: &Path,
+    ) -> Result<(usize, usize), String> {
+        self.import_file(platform, file_path)
+    }
+
+    /// Import usage data for a platform incrementally
+    pub fn import_platform(&self, platform: &str) -> Result<ImportResult, String> {
+        let start = Instant::now();
+        let time_budget = Duration::from_secs(self.config.time_budget_secs);
+        let usage_files = self.list_usage_files(platform)?;
 
         debug!(
             "Found {} usage files for platform {}",
@@ -176,6 +181,9 @@ impl UsageImportService {
         let file_path_str = file_path.to_str().ok_or("Invalid file path")?.to_string();
         let is_codex = platform == "codex";
         let is_gemini_session = platform == "gemini" && Self::is_gemini_session_file(file_path);
+        let current_file_size = std::fs::metadata(file_path)
+            .map(|metadata| metadata.len() as i64)
+            .unwrap_or(0);
 
         // Calculate current file hash (first 4KB for efficiency)
         let current_hash = self.calculate_file_hash(file_path)?;
@@ -185,9 +193,54 @@ impl UsageImportService {
             database::with_connection(|conn| usage_repo::get_source_by_path(conn, &file_path_str))
                 .map_err(|e| e.to_string())?;
 
+        let mut codex_append_checkpoint = None;
         let (source_id, start_offset) = match existing_source {
             Some(source) => {
-                if source.file_hash != current_hash {
+                if is_codex {
+                    if current_file_size < source.last_offset {
+                        debug!("Codex session shrank, re-importing: {:?}", file_path);
+                        database::with_connection(|conn| {
+                            usage_repo::delete_records_by_source(conn, &source.id)
+                        })
+                        .map_err(|e| e.to_string())?;
+                        (source.id, 0i64)
+                    } else if current_file_size == source.last_offset {
+                        if source.file_hash == current_hash {
+                            return Ok((0, 0));
+                        }
+                        debug!(
+                            "Codex session changed in-place, re-importing: {:?}",
+                            file_path
+                        );
+                        database::with_connection(|conn| {
+                            usage_repo::delete_records_by_source(conn, &source.id)
+                        })
+                        .map_err(|e| e.to_string())?;
+                        (source.id, 0i64)
+                    } else {
+                        let stable_prefix_len =
+                            std::cmp::min(source.last_offset.max(0) as usize, 4096);
+                        let prefix_hash =
+                            self.calculate_file_hash_with_limit(file_path, stable_prefix_len)?;
+
+                        if source.file_hash == prefix_hash {
+                            codex_append_checkpoint = self
+                                .load_codex_append_checkpoint(&source.id)
+                                .map_err(|e| e.to_string())?;
+                            (source.id, source.last_offset)
+                        } else {
+                            debug!(
+                                "Codex session prefix changed, re-importing from start: {:?}",
+                                file_path
+                            );
+                            database::with_connection(|conn| {
+                                usage_repo::delete_records_by_source(conn, &source.id)
+                            })
+                            .map_err(|e| e.to_string())?;
+                            (source.id, 0i64)
+                        }
+                    }
+                } else if source.file_hash != current_hash {
                     // File changed, need to re-import from beginning
                     debug!("File hash changed, re-importing: {:?}", file_path);
                     database::with_connection(|conn| {
@@ -195,16 +248,10 @@ impl UsageImportService {
                     })
                     .map_err(|e| e.to_string())?;
                     (source.id, 0i64)
-                } else if is_codex || is_gemini_session {
-                    // Codex/Gemini session: hash 只覆盖前 4KB，需额外检查文件大小判断是否有追加数据
-                    let file_size = std::fs::metadata(file_path)
-                        .map(|m| m.len() as i64)
-                        .unwrap_or(0);
-                    if source.last_offset >= file_size {
-                        // 文件未变化，跳过
+                } else if is_gemini_session {
+                    if source.last_offset >= current_file_size {
                         return Ok((0, 0));
                     }
-                    // 文件增长，需要完整重解析（整文件结构依赖上下文）
                     debug!("Session file grew, re-importing: {:?}", file_path);
                     database::with_connection(|conn| {
                         usage_repo::delete_records_by_source(conn, &source.id)
@@ -223,22 +270,39 @@ impl UsageImportService {
         };
 
         // Extract project path from file path
-        let project_path = self.extract_project_path(file_path, platform);
+        let project_path = codex_append_checkpoint
+            .as_ref()
+            .map(|checkpoint| checkpoint.project_path.clone())
+            .unwrap_or_else(|| self.extract_project_path(file_path, platform));
 
         // Read and parse: Codex/Gemini session 使用专用解析器，其他平台用逐行解析
-        let (records, new_offset, skipped) = if is_codex {
-            self.read_codex_session(file_path, &project_path, &source_id)?
-        } else if is_gemini_session {
-            self.read_gemini_session(file_path, &project_path, &source_id)?
-        } else {
-            self.read_lines_from_offset(
-                file_path,
-                start_offset,
-                platform,
-                &project_path,
-                &source_id,
-            )?
-        };
+        let (records, new_offset, skipped) =
+            if let Some(checkpoint) = codex_append_checkpoint.as_ref() {
+                let (records, parsed_offset, skipped) = self.read_codex_session_from_offset(
+                    file_path,
+                    start_offset,
+                    &source_id,
+                    checkpoint,
+                )?;
+                let next_offset = if records.is_empty() {
+                    start_offset
+                } else {
+                    parsed_offset
+                };
+                (records, next_offset, skipped)
+            } else if is_codex {
+                self.read_codex_session(file_path, &project_path, &source_id)?
+            } else if is_gemini_session {
+                self.read_gemini_session(file_path, &project_path, &source_id)?
+            } else {
+                self.read_lines_from_offset(
+                    file_path,
+                    start_offset,
+                    platform,
+                    &project_path,
+                    &source_id,
+                )?
+            };
 
         let imported = records.len();
 
@@ -262,6 +326,57 @@ impl UsageImportService {
             .map_err(|e| e.to_string())?;
 
         Ok((imported, skipped))
+    }
+
+    fn load_codex_append_checkpoint(
+        &self,
+        source_id: &str,
+    ) -> Result<Option<CodexAppendCheckpoint>, String> {
+        let records =
+            database::with_connection(|conn| usage_repo::get_records_by_source(conn, source_id))
+                .map_err(|e| e.to_string())?;
+        let latest = records
+            .into_iter()
+            .filter_map(|record| {
+                Self::parse_record_line_number(&record.id).map(|line_number| (line_number, record))
+            })
+            .max_by_key(|(line_number, _)| *line_number);
+
+        let Some((last_line_number, latest_record)) = latest else {
+            return Ok(None);
+        };
+
+        let session_id = latest_record
+            .id
+            .rsplit_once(':')
+            .map(|(prefix, _)| prefix.to_string())
+            .unwrap_or_else(|| "unknown".to_string());
+
+        let parsed_json = serde_json::from_str::<Value>(&latest_record.record_json).ok();
+        let prefers_turn_completed = parsed_json
+            .as_ref()
+            .and_then(|json| json.get("type"))
+            .and_then(|value| value.as_str())
+            == Some("turn.completed");
+
+        let last_cumulative_usage = if prefers_turn_completed {
+            CodexTokenUsage::default()
+        } else {
+            parsed_json
+                .as_ref()
+                .and_then(Self::extract_codex_event_payload)
+                .map(Self::extract_codex_token_usage)
+                .unwrap_or_default()
+        };
+
+        Ok(Some(CodexAppendCheckpoint {
+            session_id,
+            model: latest_record.model,
+            project_path: latest_record.project_path,
+            last_line_number,
+            prefers_turn_completed,
+            last_cumulative_usage,
+        }))
     }
 
     /// Read lines from a file starting at offset
@@ -527,6 +642,168 @@ impl UsageImportService {
         Ok((records, file_size, skipped))
     }
 
+    fn read_codex_session_from_offset(
+        &self,
+        file_path: &Path,
+        offset: i64,
+        source_id: &str,
+        checkpoint: &CodexAppendCheckpoint,
+    ) -> Result<(Vec<usage_repo::UsageRecord>, i64, usize), String> {
+        let file = File::open(file_path).map_err(|e| e.to_string())?;
+        let file_size = file.metadata().map(|m| m.len() as i64).unwrap_or(offset);
+        let mut reader = BufReader::new(file);
+        reader
+            .seek(SeekFrom::Start(offset as u64))
+            .map_err(|e| e.to_string())?;
+
+        let mut current_model = checkpoint.model.clone();
+        let mut prev_input_tokens = checkpoint.last_cumulative_usage.input_tokens;
+        let mut prev_cached_input_tokens = checkpoint.last_cumulative_usage.cached_input_tokens;
+        let mut prev_output_tokens = checkpoint.last_cumulative_usage.output_tokens;
+        let mut line_number = checkpoint.last_line_number;
+        let mut token_count_records = Vec::new();
+        let mut turn_completed_records = Vec::new();
+        let mut skipped = 0usize;
+
+        loop {
+            let mut line = String::new();
+            let bytes_read = reader.read_line(&mut line).map_err(|e| e.to_string())?;
+            if bytes_read == 0 {
+                break;
+            }
+
+            line_number += 1;
+            let trimmed = line.trim();
+            if trimmed.is_empty() {
+                continue;
+            }
+
+            let json: Value = match serde_json::from_str(trimmed) {
+                Ok(value) => value,
+                Err(_) => {
+                    skipped += 1;
+                    continue;
+                }
+            };
+
+            let event_ts = json
+                .get("timestamp")
+                .and_then(|v| v.as_str())
+                .and_then(|ts| DateTime::parse_from_rfc3339(ts).ok())
+                .map(|dt| dt.with_timezone(&Utc))
+                .unwrap_or_else(Utc::now);
+
+            if let Some(payload) = Self::extract_codex_event_payload(&json) {
+                let event_type = payload.get("type").and_then(|v| v.as_str()).unwrap_or("");
+
+                match event_type {
+                    "turn_context" => {
+                        if let Some(model) = payload.get("model").and_then(|v| v.as_str()) {
+                            current_model = Some(model.to_string());
+                        }
+                    }
+                    "token_count" if !checkpoint.prefers_turn_completed => {
+                        let usage = Self::extract_codex_token_usage(payload);
+                        let delta_input = usage.input_tokens.saturating_sub(prev_input_tokens);
+                        let delta_cached = usage
+                            .cached_input_tokens
+                            .saturating_sub(prev_cached_input_tokens);
+                        let delta_output = usage.output_tokens.saturating_sub(prev_output_tokens);
+
+                        if delta_input > 0 || delta_output > 0 {
+                            let record_id = format!("{}:{}", checkpoint.session_id, line_number);
+                            let model_name = current_model.as_deref().unwrap_or("unknown");
+                            let cost = self.calculate_cost(
+                                model_name,
+                                delta_input as i64,
+                                delta_output as i64,
+                                delta_cached as i64,
+                            );
+
+                            token_count_records.push(usage_repo::UsageRecord {
+                                id: record_id,
+                                platform: "codex".to_string(),
+                                project_path: checkpoint.project_path.clone(),
+                                record_json: json.to_string(),
+                                recorded_at: event_ts,
+                                source_id: source_id.to_string(),
+                                model: current_model.clone(),
+                                input_tokens: delta_input as i64,
+                                output_tokens: delta_output as i64,
+                                cache_read_tokens: delta_cached as i64,
+                                cost_usd: cost,
+                            });
+                        }
+
+                        prev_input_tokens = usage.input_tokens;
+                        prev_cached_input_tokens = usage.cached_input_tokens;
+                        prev_output_tokens = usage.output_tokens;
+                    }
+                    _ => {
+                        skipped += 1;
+                    }
+                }
+                continue;
+            }
+
+            if json.get("type").and_then(|v| v.as_str()) == Some("turn.completed") {
+                if let Some(usage) = json.get("usage") {
+                    let input = usage
+                        .get("input_tokens")
+                        .and_then(|v| v.as_u64())
+                        .unwrap_or(0);
+                    let cached = usage
+                        .get("cached_input_tokens")
+                        .and_then(|v| v.as_u64())
+                        .unwrap_or(0);
+                    let output = usage
+                        .get("output_tokens")
+                        .and_then(|v| v.as_u64())
+                        .unwrap_or(0);
+
+                    if input > 0 || output > 0 {
+                        let record_id = format!("{}:{}", checkpoint.session_id, line_number);
+                        let model_name = current_model.as_deref().unwrap_or("unknown");
+                        let cost = self.calculate_cost(
+                            model_name,
+                            input as i64,
+                            output as i64,
+                            cached as i64,
+                        );
+
+                        turn_completed_records.push(usage_repo::UsageRecord {
+                            id: record_id,
+                            platform: "codex".to_string(),
+                            project_path: checkpoint.project_path.clone(),
+                            record_json: json.to_string(),
+                            recorded_at: event_ts,
+                            source_id: source_id.to_string(),
+                            model: current_model.clone(),
+                            input_tokens: input as i64,
+                            output_tokens: output as i64,
+                            cache_read_tokens: cached as i64,
+                            cost_usd: cost,
+                        });
+                    }
+                } else {
+                    skipped += 1;
+                }
+                continue;
+            }
+
+            skipped += 1;
+        }
+
+        let records = if !turn_completed_records.is_empty() {
+            skipped += token_count_records.len();
+            turn_completed_records
+        } else {
+            token_count_records
+        };
+
+        Ok((records, file_size, skipped))
+    }
+
     fn parse_codex_session_meta(json: &Value) -> CodexSessionMeta {
         let payload = if json.get("type").and_then(|v| v.as_str()) == Some("session_meta") {
             json.get("payload").unwrap_or(json)
@@ -571,6 +848,12 @@ impl UsageImportService {
         } else {
             json.get("event_msg").and_then(|em| em.get("payload"))
         }
+    }
+
+    fn parse_record_line_number(record_id: &str) -> Option<u64> {
+        record_id
+            .rsplit_once(':')
+            .and_then(|(_, line_number)| line_number.parse::<u64>().ok())
     }
 
     fn extract_codex_token_usage(payload: &Value) -> CodexTokenUsage {
@@ -1011,9 +1294,17 @@ impl UsageImportService {
 
     /// Calculate file hash (first 4KB for efficiency)
     fn calculate_file_hash(&self, file_path: &Path) -> Result<String, String> {
+        self.calculate_file_hash_with_limit(file_path, 4096)
+    }
+
+    fn calculate_file_hash_with_limit(
+        &self,
+        file_path: &Path,
+        limit: usize,
+    ) -> Result<String, String> {
         let file = File::open(file_path).map_err(|e| e.to_string())?;
         let mut reader = BufReader::new(file);
-        let mut buffer = [0u8; 4096];
+        let mut buffer = vec![0u8; limit];
 
         let bytes_read =
             std::io::Read::read(&mut reader, &mut buffer).map_err(|e| e.to_string())?;
@@ -1390,6 +1681,62 @@ mod tests {
                 .iter()
                 .any(|stat| stat.project_path == r"D:\Documents\Code\Github\ccr")
         );
+    }
+
+    #[test]
+    fn test_import_file_appends_codex_session_tail_without_reimporting_history() {
+        setup();
+
+        let temp_dir = TempDir::new().unwrap();
+        let file_dir = temp_dir
+            .path()
+            .join("sessions")
+            .join("2026")
+            .join("03")
+            .join("05");
+        std::fs::create_dir_all(&file_dir).unwrap();
+        let file_path = file_dir.join("rollout-append.jsonl");
+
+        let initial = r#"{"timestamp":"2026-03-05T09:11:45.366Z","type":"session_meta","payload":{"id":"sess-append","timestamp":"2026-03-05T09:11:45.366Z","cwd":"D:\\Documents\\Code\\Github\\ccr","model":"gpt-5"}}
+{"timestamp":"2026-03-05T09:11:50.406Z","type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":1000,"cached_input_tokens":400,"output_tokens":200}}}}
+"#;
+        std::fs::write(&file_path, initial).unwrap();
+
+        let service = UsageImportService::new(ImportConfig::default());
+        let (first_imported, first_skipped) = service.import_file("codex", &file_path).unwrap();
+        assert_eq!(first_imported, 1);
+        assert_eq!(first_skipped, 0);
+
+        let appended = r#"{"timestamp":"2026-03-05T09:12:01.000Z","type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":1800,"cached_input_tokens":700,"output_tokens":260}}}}
+"#;
+        {
+            use std::io::Write;
+            let mut file = std::fs::OpenOptions::new()
+                .append(true)
+                .open(&file_path)
+                .unwrap();
+            file.write_all(appended.as_bytes()).unwrap();
+        }
+
+        let (second_imported, second_skipped) = service.import_file("codex", &file_path).unwrap();
+        assert_eq!(second_imported, 1);
+        assert_eq!(second_skipped, 0);
+
+        let file_path_str = file_path.to_string_lossy().to_string();
+        let records = database::with_connection(|conn| {
+            let source = usage_repo::get_source_by_path(conn, &file_path_str)?
+                .expect("source should exist after append import");
+            usage_repo::get_records_by_source(conn, &source.id)
+        })
+        .unwrap();
+
+        assert_eq!(records.len(), 2);
+        assert_eq!(records[0].input_tokens, 800);
+        assert_eq!(records[0].output_tokens, 60);
+        assert_eq!(records[0].cache_read_tokens, 300);
+        assert_eq!(records[1].input_tokens, 1000);
+        assert_eq!(records[1].output_tokens, 200);
+        assert_eq!(records[1].cache_read_tokens, 400);
     }
 
     #[test]
