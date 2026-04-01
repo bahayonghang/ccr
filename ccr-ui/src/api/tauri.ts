@@ -2496,6 +2496,19 @@ export const getUsageDashboardV2 = async <T = UnknownRecord>(
   })
 }
 
+/** V2: 启动 usage 后台导入任务 */
+export const startUsageImportJobV2 = async <T = UnknownRecord>(
+  platform?: string,
+  recentDays?: number
+): Promise<T> => {
+  return invoke('start_usage_import_job_v2', { platform, recentDays })
+}
+
+/** V2: 查询 usage 后台导入任务状态 */
+export const getUsageImportJobStatusV2 = async <T = UnknownRecord>(jobId: string): Promise<T> => {
+  return invoke('get_usage_import_job_status_v2', { jobId })
+}
+
 /** V2: 导入单平台 usage */
 export const importUsageV2 = async <T = UnknownRecord>(platform: string): Promise<T> => {
   return invoke('import_usage_v2', { platform })

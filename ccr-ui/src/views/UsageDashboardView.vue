@@ -123,6 +123,22 @@
           class="usage-content"
         >
           <div
+            v-if="importJobBanner"
+            class="usage-warning"
+          >
+            <div class="font-medium">
+              {{ importJobBanner }}
+            </div>
+            <div
+              v-for="detail in importJobWarnings"
+              :key="detail"
+              class="usage-warning__detail"
+            >
+              {{ detail }}
+            </div>
+          </div>
+
+          <div
             v-if="warningMessage"
             class="usage-warning"
           >
@@ -234,6 +250,8 @@ const {
   formatTokens,
   importButtonLabel,
   importDetails,
+  importJobBanner,
+  importJobWarnings,
   loadLogs,
   logsRecords,
   setLogsScrollRef,

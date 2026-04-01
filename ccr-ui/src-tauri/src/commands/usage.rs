@@ -1,16 +1,19 @@
 //! Usage V2 命令模块，基于 SQLite 查询与导入用量数据。
 
 use std::collections::BTreeMap;
+use std::path::PathBuf;
 use std::time::Instant;
 
 use chrono::{Duration, Utc};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use tauri::State;
+use tauri::{AppHandle, Emitter, Manager, State};
+use uuid::Uuid;
 
 use crate::events::{self, UsageImportPayload};
 use crate::monitoring::{emit_and_record_monitoring_event, should_persist, usage_import_entry};
 use crate::state::AppState;
+use crate::usage_jobs::{UsageImportJobSnapshot, UsageImportJobStage};
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default)]
 #[serde(rename_all = "lowercase")]
@@ -72,6 +75,19 @@ pub struct UsageImportSummary {
 pub struct ImportAllUsageResponse {
     pub results: Vec<UsageImportResultV2>,
     pub summary: UsageImportSummary,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct StartUsageImportJobResponse {
+    pub job_id: String,
+    pub snapshot: UsageImportJobSnapshot,
+}
+
+#[derive(Debug, Clone)]
+struct UsageImportJobFile {
+    platform: String,
+    path: PathBuf,
+    modified_at: Option<std::time::SystemTime>,
 }
 
 const HOME_USAGE_PLATFORMS: [&str; 3] = ["claude", "codex", "gemini"];
@@ -192,6 +208,275 @@ fn build_import_summary(results: &[UsageImportResultV2]) -> UsageImportSummary {
         imported_records,
         processed_files,
         has_partial,
+    }
+}
+
+async fn emit_usage_import_job_snapshot(
+    app_handle: &AppHandle,
+    event: &str,
+    snapshot: &UsageImportJobSnapshot,
+) {
+    if let Err(error) = app_handle.emit(event, snapshot.clone()) {
+        tracing::warn!(event, ?error, job_id = %snapshot.job_id, "Failed to emit usage import job event");
+    }
+}
+
+fn platform_scope_label(platform: Option<&str>) -> String {
+    platform.unwrap_or("all").to_string()
+}
+
+fn create_platform_results(platforms: &[String]) -> BTreeMap<String, UsageImportResultV2> {
+    platforms
+        .iter()
+        .map(|platform| {
+            (
+                platform.clone(),
+                UsageImportResultV2 {
+                    platform: platform.clone(),
+                    files_processed: 0,
+                    records_imported: 0,
+                    records_skipped: 0,
+                    duration_ms: 0,
+                    completed: true,
+                    error: None,
+                },
+            )
+        })
+        .collect()
+}
+
+fn sort_job_files(files: &mut [UsageImportJobFile]) {
+    files.sort_by(|left, right| {
+        right
+            .modified_at
+            .cmp(&left.modified_at)
+            .then_with(|| left.path.cmp(&right.path))
+    });
+}
+
+fn build_usage_import_plan(
+    platforms: &[String],
+    recent_window_days: usize,
+) -> Result<(Vec<UsageImportJobFile>, Vec<UsageImportJobFile>), String> {
+    let service = ccr_db::services::usage_import_service::UsageImportService::new(
+        ccr_db::services::usage_import_service::ImportConfig::default(),
+    );
+
+    let cutoff = std::time::SystemTime::now()
+        .checked_sub(std::time::Duration::from_secs(
+            recent_window_days.max(1) as u64 * 24 * 60 * 60,
+        ))
+        .unwrap_or(std::time::SystemTime::UNIX_EPOCH);
+
+    let mut recent = Vec::new();
+    let mut history = Vec::new();
+
+    for platform in platforms {
+        for path in service.list_usage_files(platform)? {
+            let modified_at = std::fs::metadata(&path).and_then(|meta| meta.modified()).ok();
+            let job_file = UsageImportJobFile {
+                platform: platform.clone(),
+                path,
+                modified_at,
+            };
+
+            if modified_at.is_some_and(|modified| modified >= cutoff) {
+                recent.push(job_file);
+            } else {
+                history.push(job_file);
+            }
+        }
+    }
+
+    sort_job_files(&mut recent);
+    sort_job_files(&mut history);
+
+    if recent.is_empty() && !history.is_empty() {
+        let promote_count = history.len().min(12);
+        recent.extend(history.drain(0..promote_count));
+    }
+
+    Ok((recent, history))
+}
+
+async fn process_usage_import_phase(
+    app_handle: &AppHandle,
+    job_id: &str,
+    files_total: usize,
+    stage: UsageImportJobStage,
+    files: &[UsageImportJobFile],
+    results_by_platform: &mut BTreeMap<String, UsageImportResultV2>,
+) -> Result<(), String> {
+    for file in files {
+        let display_path = file.path.display().to_string();
+
+        if let Some(snapshot) = app_handle
+            .state::<AppState>()
+            .update_usage_import_job(job_id, |job: &mut UsageImportJobSnapshot| {
+                job.mark_running(stage, files_total, Some(display_path.clone()));
+            })
+            .await
+        {
+            emit_usage_import_job_snapshot(app_handle, "usage:job-progress", &snapshot).await;
+        }
+
+        let platform = file.platform.clone();
+        let path = file.path.clone();
+        let import_started = Instant::now();
+        let import_result = tokio::task::spawn_blocking(move || {
+            let service = ccr_db::services::usage_import_service::UsageImportService::new(
+                ccr_db::services::usage_import_service::ImportConfig::default(),
+            );
+            service.import_file_path(&platform, &path)
+        })
+        .await
+        .map_err(|error| format!("Import task join error: {error}"))?;
+
+        match import_result {
+            Ok((imported, skipped)) => {
+                if let Some(platform_result) = results_by_platform.get_mut(&file.platform) {
+                    platform_result.files_processed += 1;
+                    platform_result.records_imported += imported;
+                    platform_result.records_skipped += skipped;
+                    platform_result.duration_ms += import_started.elapsed().as_millis() as u64;
+                }
+
+                if let Some(snapshot) = app_handle
+                    .state::<AppState>()
+                    .update_usage_import_job(job_id, |job: &mut UsageImportJobSnapshot| {
+                        job.record_file_result(Some(display_path.clone()), imported, skipped);
+                    })
+                    .await
+                {
+                    emit_usage_import_job_snapshot(app_handle, "usage:job-progress", &snapshot)
+                        .await;
+                }
+            }
+            Err(error) => {
+                if let Some(platform_result) = results_by_platform.get_mut(&file.platform) {
+                    platform_result.files_processed += 1;
+                    platform_result.duration_ms += import_started.elapsed().as_millis() as u64;
+                    platform_result.completed = false;
+                    platform_result.error = Some(error.clone());
+                }
+
+                if let Some(snapshot) = app_handle
+                    .state::<AppState>()
+                    .update_usage_import_job(job_id, |job: &mut UsageImportJobSnapshot| {
+                        job.record_file_result(Some(display_path.clone()), 0, 0);
+                        job.push_warning(format!("{}: {}", display_path, error));
+                    })
+                    .await
+                {
+                    emit_usage_import_job_snapshot(app_handle, "usage:job-progress", &snapshot)
+                        .await;
+                }
+            }
+        }
+    }
+
+    Ok(())
+}
+
+async fn run_usage_import_job(
+    app_handle: AppHandle,
+    job_id: String,
+    platform: Option<String>,
+    recent_window_days: usize,
+) {
+    let platforms = match platform.as_deref() {
+        Some(value) => vec![value.to_string()],
+        None => HOME_USAGE_PLATFORMS.iter().map(|value| (*value).to_string()).collect(),
+    };
+
+    let execution = async {
+        let (recent_files, history_files) = build_usage_import_plan(&platforms, recent_window_days)?;
+        let files_total = recent_files.len() + history_files.len();
+        let mut results_by_platform = create_platform_results(&platforms);
+
+        if let Some(snapshot) = app_handle
+            .state::<AppState>()
+            .update_usage_import_job(&job_id, |job: &mut UsageImportJobSnapshot| {
+                job.files_total = files_total;
+                job.updated_at = Utc::now().to_rfc3339();
+            })
+            .await
+        {
+            emit_usage_import_job_snapshot(&app_handle, "usage:job-progress", &snapshot).await;
+        }
+
+        process_usage_import_phase(
+            &app_handle,
+            &job_id,
+            files_total,
+            UsageImportJobStage::ImportingRecent,
+            &recent_files,
+            &mut results_by_platform,
+        )
+        .await?;
+
+        if let Some(snapshot) = app_handle
+            .state::<AppState>()
+            .update_usage_import_job(&job_id, |job: &mut UsageImportJobSnapshot| {
+                job.mark_recent_ready(!history_files.is_empty());
+            })
+            .await
+        {
+            emit_usage_import_job_snapshot(&app_handle, "usage:job-recent-ready", &snapshot)
+                .await;
+        }
+
+        process_usage_import_phase(
+            &app_handle,
+            &job_id,
+            files_total,
+            UsageImportJobStage::ImportingHistory,
+            &history_files,
+            &mut results_by_platform,
+        )
+        .await?;
+
+        let results = results_by_platform.into_values().collect::<Vec<_>>();
+        let summary = build_import_summary(&results);
+
+        let final_snapshot = app_handle
+            .state::<AppState>()
+            .update_usage_import_job(&job_id, |job: &mut UsageImportJobSnapshot| {
+                job.mark_finished(results.clone(), summary.clone());
+            })
+            .await
+            .ok_or_else(|| format!("Usage import job '{}' not found", job_id))?;
+
+        let payload = UsageImportPayload {
+            imported_count: summary.imported_records,
+            platform: platform_scope_label(platform.as_deref()),
+        };
+        let entry = usage_import_entry(&payload);
+        let persist = should_persist(entry.level, &entry.event_type);
+        emit_and_record_monitoring_event(
+            &app_handle,
+            events::channels::USAGE_IMPORT,
+            &payload,
+            entry,
+            persist,
+        )
+        .await;
+
+        emit_usage_import_job_snapshot(&app_handle, "usage:job-finished", &final_snapshot).await;
+        Ok::<(), String>(())
+    };
+
+    if let Err(error) = execution.await {
+        tracing::error!(job_id = %job_id, ?error, "Usage import job failed");
+        if let Some(snapshot) = app_handle
+            .state::<AppState>()
+            .update_usage_import_job(&job_id, |job: &mut UsageImportJobSnapshot| {
+                job.mark_failed(error.clone())
+            })
+            .await
+        {
+            emit_usage_import_job_snapshot(&app_handle, "usage:job-failed", &snapshot).await;
+        }
     }
 }
 
@@ -931,6 +1216,54 @@ pub async fn import_all_usage_v2(
     };
 
     serde_json::to_value(response).map_err(|e| format!("Serialize error: {e}"))
+}
+
+#[tauri::command]
+pub async fn start_usage_import_job_v2(
+    app_handle: tauri::AppHandle,
+    state: State<'_, AppState>,
+    platform: Option<String>,
+    recent_days: Option<usize>,
+) -> Result<Value, String> {
+    if let Some(snapshot) = state.get_active_usage_import_job().await {
+        return serde_json::to_value(StartUsageImportJobResponse {
+            job_id: snapshot.job_id.clone(),
+            snapshot,
+        })
+        .map_err(|e| format!("Serialization error: {e}"));
+    }
+
+    let recent_window_days = recent_days.unwrap_or(30).max(1);
+    let job_id = format!("usage-import-{}", Uuid::new_v4());
+    let snapshot = UsageImportJobSnapshot::new(
+        job_id.clone(),
+        platform_scope_label(platform.as_deref()),
+        recent_window_days,
+    );
+    state.insert_usage_import_job(snapshot.clone()).await;
+
+    tauri::async_runtime::spawn(run_usage_import_job(
+        app_handle,
+        job_id.clone(),
+        platform,
+        recent_window_days,
+    ));
+
+    serde_json::to_value(StartUsageImportJobResponse { job_id, snapshot })
+        .map_err(|e| format!("Serialization error: {e}"))
+}
+
+#[tauri::command]
+pub async fn get_usage_import_job_status_v2(
+    state: State<'_, AppState>,
+    job_id: String,
+) -> Result<Value, String> {
+    let snapshot = state
+        .get_usage_import_job(&job_id)
+        .await
+        .ok_or_else(|| format!("Usage import job '{}' not found", job_id))?;
+
+    serde_json::to_value(snapshot).map_err(|e| format!("Serialization error: {e}"))
 }
 #[cfg(test)]
 mod tests {

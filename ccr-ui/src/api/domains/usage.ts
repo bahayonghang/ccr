@@ -6,6 +6,8 @@ export {
   getUsageLogsV2,
   getUsageDashboardV2,
   getHomeUsageOverviewV2,
+  startUsageImportJobV2,
+  getUsageImportJobStatusV2,
   importUsageV2,
   importAllUsageV2,
   getCostOverview,

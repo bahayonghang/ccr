@@ -160,5 +160,36 @@ export interface ImportAllUsageResponse {
   summary: UsageImportSummary
 }
 
+export type UsageImportJobStatus = 'pending' | 'running' | 'recent_ready' | 'finished' | 'failed'
+
+export type UsageImportJobStage = 'queued' | 'importing_recent' | 'importing_history' | 'finished' | 'failed'
+
+export interface UsageImportJobSnapshot {
+  job_id: string
+  status: UsageImportJobStatus
+  stage: UsageImportJobStage
+  platform_scope: string
+  recent_window_days: number
+  files_total: number
+  files_scanned: number
+  files_imported: number
+  records_imported: number
+  records_skipped: number
+  started_at: string
+  updated_at: string
+  recent_ready_at?: string | null
+  finished_at?: string | null
+  current_file?: string | null
+  warnings: string[]
+  error?: string | null
+  results: ImportResult[]
+  summary?: UsageImportSummary | null
+}
+
+export interface StartUsageImportJobResponse {
+  job_id: string
+  snapshot: UsageImportJobSnapshot
+}
+
 /** 平台类型 */
 export type Platform = 'claude' | 'codex' | 'gemini'

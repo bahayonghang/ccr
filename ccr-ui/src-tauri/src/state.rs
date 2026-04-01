@@ -18,6 +18,7 @@ use tokio::sync::{Notify, RwLock};
 use crate::checkin_jobs::CheckinJobSnapshot;
 use crate::events::{EventLog, EventLogStats};
 use crate::platform::EnvironmentRegistry;
+use crate::usage_jobs::{UsageImportJobSnapshot, UsageImportJobStatus};
 
 pub const DEFAULT_CACHE_MAX_ENTRIES: usize = 1000;
 pub const DEFAULT_SSH_STATE_TTL_SECS: i64 = 30 * 60;
@@ -68,6 +69,12 @@ pub struct AppState {
 
     /// 签到任务快照
     pub checkin_jobs: RwLock<HashMap<String, CheckinJobSnapshot>>,
+
+    /// Usage 导入后台任务快照
+    pub usage_import_jobs: RwLock<HashMap<String, UsageImportJobSnapshot>>,
+
+    /// 当前活跃的 Usage 导入任务 ID
+    active_usage_import_job_id: RwLock<Option<String>>,
 
     /// 应用设置
     pub settings: Mutex<AppSettings>,
@@ -131,6 +138,8 @@ impl AppState {
             ssh_password_cache: RwLock::new(HashMap::new()),
             monitoring_logs: LogPersistenceService::new(LogStorageConfig::default()),
             checkin_jobs: RwLock::new(HashMap::new()),
+            usage_import_jobs: RwLock::new(HashMap::new()),
+            active_usage_import_job_id: RwLock::new(None),
             settings: Mutex::new(AppSettings::default()),
             exit_confirmed: AtomicBool::new(false),
             event_log: EventLog::with_limits(500, 10 * 1024, 5 * 1024 * 1024),
@@ -264,6 +273,58 @@ impl AppState {
         let snapshot = jobs.get_mut(job_id)?;
         mutator(snapshot);
         Some(snapshot.clone())
+    }
+
+    pub async fn insert_usage_import_job(&self, snapshot: UsageImportJobSnapshot) {
+        let mut jobs = self.usage_import_jobs.write().await;
+        jobs.insert(snapshot.job_id.clone(), snapshot.clone());
+        let mut active = self.active_usage_import_job_id.write().await;
+        *active = Some(snapshot.job_id);
+    }
+
+    pub async fn get_usage_import_job(&self, job_id: &str) -> Option<UsageImportJobSnapshot> {
+        let jobs = self.usage_import_jobs.read().await;
+        jobs.get(job_id).cloned()
+    }
+
+    pub async fn get_active_usage_import_job(&self) -> Option<UsageImportJobSnapshot> {
+        let active_job_id = self.active_usage_import_job_id.read().await.clone()?;
+        let jobs = self.usage_import_jobs.read().await;
+        let snapshot = jobs.get(&active_job_id)?.clone();
+        if matches!(
+            snapshot.status,
+            UsageImportJobStatus::Finished | UsageImportJobStatus::Failed
+        ) {
+            return None;
+        }
+        Some(snapshot)
+    }
+
+    pub async fn update_usage_import_job<F>(
+        &self,
+        job_id: &str,
+        mutator: F,
+    ) -> Option<UsageImportJobSnapshot>
+    where
+        F: FnOnce(&mut UsageImportJobSnapshot),
+    {
+        let mut jobs = self.usage_import_jobs.write().await;
+        let snapshot = jobs.get_mut(job_id)?;
+        mutator(snapshot);
+        let cloned = snapshot.clone();
+        drop(jobs);
+
+        if matches!(
+            cloned.status,
+            UsageImportJobStatus::Finished | UsageImportJobStatus::Failed
+        ) {
+            let mut active = self.active_usage_import_job_id.write().await;
+            if active.as_deref() == Some(job_id) {
+                *active = None;
+            }
+        }
+
+        Some(cloned)
     }
 
     pub fn record_command_duration_ms(&self, duration_ms: f64) {

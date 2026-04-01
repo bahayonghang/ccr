@@ -32,7 +32,7 @@ const getTimeRange = (days: number) => {
 }
 
 export const useUsageDashboardState = () => {
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
   const store = useUsageStore()
 
   const tabKeys = ['overview', 'models', 'projects', 'logs'] as const
@@ -55,7 +55,11 @@ export const useUsageDashboardState = () => {
   }
 
   const doImport = async () => {
-    await store.triggerImport(undefined, 'manual')
+    await store.startImportJob({
+      platform: undefined,
+      reason: 'manual',
+      recentDays: selectedDays.value,
+    })
   }
 
   const loadLogs = (direction: 'reset' | 'next' | 'prev' | 'same' = 'reset') => {
@@ -199,6 +203,24 @@ export const useUsageDashboardState = () => {
   )
 
   const warningMessage = computed(() => store.warning || null)
+  const importJobBanner = computed(() => {
+    const job = store.currentImportJob
+    if (!job || !store.importing) return null
+
+    const totalFiles = Math.max(job.files_total, job.files_scanned)
+    const isZh = locale.value.startsWith('zh')
+
+    if (job.status === 'recent_ready') {
+      return isZh
+        ? `最近数据已就绪，历史数据仍在后台补齐中。已扫描 ${job.files_scanned}/${totalFiles} 个文件，累计导入 ${job.records_imported.toLocaleString()} 条记录。`
+        : `Recent data is ready. Historical data is still backfilling in the background. Scanned ${job.files_scanned}/${totalFiles} files and imported ${job.records_imported.toLocaleString()} records so far.`
+    }
+
+    return isZh
+      ? `正在后台导入 usage 数据。已扫描 ${job.files_scanned}/${totalFiles} 个文件，累计导入 ${job.records_imported.toLocaleString()} 条记录；你可以继续切换页面。`
+      : `Usage import is running in the background. Scanned ${job.files_scanned}/${totalFiles} files and imported ${job.records_imported.toLocaleString()} records so far; you can keep navigating.`
+  })
+  const importJobWarnings = computed(() => store.currentImportJob?.warnings ?? [])
   const showEmptyState = computed(() => store.hasNoUsageData)
 
   const emptyStateTitle = computed(() => {
@@ -243,6 +265,8 @@ export const useUsageDashboardState = () => {
     formatTokens,
     importButtonLabel,
     importDetails,
+    importJobBanner,
+    importJobWarnings,
     loadLogs,
     logsRecords,
     logsScrollRef,

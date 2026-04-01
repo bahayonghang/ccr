@@ -9,6 +9,7 @@ const usageStore = reactive({
   logsModelFilter: undefined as string | undefined,
   lastImportResults: [] as Array<{ platform: string; error?: string }>,
   warning: '',
+  currentImportJob: null as null | { warnings: string[]; status: string; files_total: number; files_scanned: number; records_imported: number },
   hasNoUsageData: false,
   isBootstrapping: false,
   importing: false,
@@ -17,6 +18,7 @@ const usageStore = reactive({
   startAutoRefresh: vi.fn(),
   stopAutoRefresh: vi.fn(),
   setFilters: vi.fn(),
+  startImportJob: vi.fn(async () => undefined),
   triggerImport: vi.fn(async () => undefined),
   fetchLogs: vi.fn(),
 })
@@ -85,6 +87,7 @@ beforeEach(() => {
   usageStore.logsModelFilter = undefined
   usageStore.lastImportResults = []
   usageStore.warning = ''
+  usageStore.currentImportJob = null
   usageStore.hasNoUsageData = false
   usageStore.isBootstrapping = false
   usageStore.importing = false
@@ -93,6 +96,7 @@ beforeEach(() => {
   usageStore.startAutoRefresh.mockClear()
   usageStore.stopAutoRefresh.mockClear()
   usageStore.setFilters.mockClear()
+  usageStore.startImportJob.mockClear()
   usageStore.triggerImport.mockClear()
   usageStore.fetchLogs.mockClear()
 })
@@ -149,5 +153,23 @@ describe('usage dashboard state smoke', () => {
     }
 
     expect(usageStore.stopAutoRefresh).toHaveBeenCalled()
+  })
+
+  it('starts a background import job with the current recent-days window', async () => {
+    tauriRuntime = true
+    const { state, unmount } = await mountComposable()
+
+    try {
+      state.selectedDays.value = 90
+      await state.doImport()
+
+      expect(usageStore.startImportJob).toHaveBeenCalledWith({
+        platform: undefined,
+        reason: 'manual',
+        recentDays: 90,
+      })
+    } finally {
+      unmount()
+    }
   })
 })

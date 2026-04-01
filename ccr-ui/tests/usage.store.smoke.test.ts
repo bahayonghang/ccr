@@ -2,6 +2,14 @@ import { setActivePinia, createPinia } from 'pinia'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ImportAllUsageResponse, UsageSummary } from '@/types/usage'
 
+vi.mock('@tauri-apps/api/event', () => ({
+  listen: vi.fn(async () => () => undefined),
+}))
+
+vi.mock('@/utils/tauriRuntime', () => ({
+  isTauriRuntime: () => false,
+}))
+
 vi.mock('@/api', () => ({
   getUsageByModelV2: vi.fn().mockResolvedValue([]),
   getUsageByProjectV2: vi.fn().mockResolvedValue([]),
@@ -33,6 +41,7 @@ vi.mock('@/api', () => ({
     total_cost_usd: 0,
     cache_efficiency: 0
   }),
+  getUsageImportJobStatusV2: vi.fn(),
   getUsageTrendsV2: vi.fn().mockResolvedValue([]),
   importAllUsageV2: vi.fn().mockResolvedValue({
     results: [],
@@ -44,7 +53,8 @@ vi.mock('@/api', () => ({
       has_partial: false
     }
   }),
-  importUsageV2: vi.fn()
+  importUsageV2: vi.fn(),
+  startUsageImportJobV2: vi.fn(),
 }))
 
 describe('usage store smoke', () => {
@@ -107,5 +117,42 @@ describe('usage store smoke', () => {
     expect(store.lastImportSummary).toEqual((result as ImportAllUsageResponse).summary)
     expect(store.lastImportResults).toHaveLength(1)
     expect(store.error).toBeNull()
+  })
+
+  it('starts a background usage import job and stores the active snapshot', async () => {
+    const api = await import('@/api')
+    vi.mocked(api.startUsageImportJobV2).mockResolvedValue({
+      job_id: 'usage-import-1',
+      snapshot: {
+        job_id: 'usage-import-1',
+        status: 'running',
+        stage: 'importing_recent',
+        platform_scope: 'all',
+        recent_window_days: 90,
+        files_total: 12,
+        files_scanned: 1,
+        files_imported: 1,
+        records_imported: 24,
+        records_skipped: 0,
+        started_at: '2026-04-01T00:00:00Z',
+        updated_at: '2026-04-01T00:00:01Z',
+        recent_ready_at: null,
+        finished_at: null,
+        current_file: '/tmp/usage.jsonl',
+        warnings: [],
+        error: null,
+        results: [],
+        summary: null,
+      },
+    })
+
+    const { useUsageStore } = await import('@/stores/usage')
+    const store = useUsageStore()
+    await store.startImportJob({ recentDays: 90, reason: 'manual' })
+
+    expect(api.startUsageImportJobV2).toHaveBeenCalledWith(undefined, 90)
+    expect(store.currentImportJob?.job_id).toBe('usage-import-1')
+    expect(store.importing).toBe(true)
+    expect(store.isBootstrapping).toBe(false)
   })
 })

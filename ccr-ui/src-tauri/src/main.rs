@@ -10,6 +10,7 @@ mod process;
 mod skills_watcher;
 mod ssh;
 mod state;
+mod usage_jobs;
 
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};

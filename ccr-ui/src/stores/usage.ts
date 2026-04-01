@@ -7,6 +7,7 @@
 
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
+import { listen, type UnlistenFn } from '@tauri-apps/api/event'
 import type {
   DailyTrend,
   HeatmapResponse,
@@ -16,12 +17,15 @@ import type {
   PaginatedLogs,
   Platform,
   ProjectStat,
+  StartUsageImportJobResponse,
   UsageDashboardResponse,
+  UsageImportJobSnapshot,
   UsageImportSummary,
   UsageLogsQuery,
   UsageSummary,
 } from '@/types/usage'
 import {
+  getUsageImportJobStatusV2,
   getUsageByModelV2,
   getUsageByProjectV2,
   getUsageDashboardV2,
@@ -31,9 +35,11 @@ import {
   getUsageTrendsV2,
   importAllUsageV2,
   importUsageV2,
+  startUsageImportJobV2,
 } from '@/api'
 import { usePolledData } from '@/composables/usePolledData'
 import { logger } from '@/utils/logger'
+import { isTauriRuntime } from '@/utils/tauriRuntime'
 
 const REFRESH_INTERVAL = 30_000 // 30s
 const HEATMAP_REFRESH_INTERVAL = 10 * 60_000 // 10min
@@ -72,6 +78,7 @@ interface FetchOptions {
   includeHeatmap?: boolean
   reason?: string
   preserveError?: boolean
+  background?: boolean
 }
 
 type UsageDashboardPayload = Omit<UsageDashboardResponse, 'heatmap' | 'generated_at'> & {
@@ -109,6 +116,7 @@ export const useUsageStore = defineStore('usage', () => {
   const bootstrapAttempted = ref(false)
   const lastImportSummary = ref<UsageImportSummary | null>(null)
   const lastImportResults = ref<ImportResult[]>([])
+  const currentImportJob = ref<UsageImportJobSnapshot | null>(null)
 
   // 筛选条件
   const platform = ref<Platform | undefined>(undefined)
@@ -120,6 +128,8 @@ export const useUsageStore = defineStore('usage', () => {
   const logsCursorHistory = ref<string[]>([])
 
   let filterDebounceTimer: ReturnType<typeof setTimeout> | null = null
+  let importJobUnlisteners: UnlistenFn[] = []
+  let activeImportReason: 'manual' | 'bootstrap' | null = null
 
   let requestSerial = 0
   let inFlightKey: string | null = null
@@ -221,6 +231,122 @@ export const useUsageStore = defineStore('usage', () => {
     }
   }
 
+  const isTerminalImportJob = (job: UsageImportJobSnapshot | null | undefined) =>
+    job?.status === 'finished' || job?.status === 'failed'
+
+  const syncImportFeedbackFromJob = (job: UsageImportJobSnapshot | null) => {
+    currentImportJob.value = job ?? null
+
+    if (!job) {
+      importing.value = false
+      isBootstrapping.value = false
+      return
+    }
+
+    importing.value = !isTerminalImportJob(job)
+    isBootstrapping.value = activeImportReason === 'bootstrap' && importing.value
+
+    if (job.results.length > 0) {
+      lastImportResults.value = job.results
+    }
+    if (job.summary) {
+      lastImportSummary.value = job.summary
+      const failedDetails = job.results
+        .filter(result => result.error)
+        .map(result => `${result.platform}: ${result.error}`)
+        .join('\n')
+
+      if (job.summary.failure_count === job.results.length && job.results.length > 0) {
+        error.value = failedDetails || job.error || '未能导入本地 usage 日志，请检查日志目录或导入错误'
+        warning.value = null
+      } else if (job.summary.has_partial) {
+        warning.value = failedDetails || job.warnings[0] || '仅导入部分 usage 数据，可重试继续导入'
+      } else {
+        warning.value = null
+      }
+    }
+
+    if (job.status === 'failed') {
+      error.value = job.error || '后台导入任务失败'
+    }
+  }
+
+  const clearImportJobListeners = async () => {
+    const unlisteners = importJobUnlisteners
+    importJobUnlisteners = []
+    await Promise.all(unlisteners.map(unlisten => unlisten()))
+  }
+
+  const refreshAfterImportSignal = async (reason: string, includeHeatmap = false) => {
+    await fetchAll({
+      background: true,
+      includeHeatmap,
+      reason,
+      preserveError: true,
+    })
+  }
+
+  const handleImportJobSnapshot = async (
+    job: UsageImportJobSnapshot,
+    trigger: 'progress' | 'recent-ready' | 'finished' | 'failed',
+  ) => {
+    syncImportFeedbackFromJob(job)
+
+    if (trigger === 'recent-ready') {
+      await refreshAfterImportSignal('job-recent-ready')
+    }
+
+    if (trigger === 'finished') {
+      await refreshAfterImportSignal('job-finished', !LAZY_HEATMAP_LOAD)
+      activeImportReason = null
+      await clearImportJobListeners()
+    }
+
+    if (trigger === 'failed') {
+      activeImportReason = null
+      await clearImportJobListeners()
+    }
+  }
+
+  const ensureImportJobListeners = async (jobId: string) => {
+    if (!isTauriRuntime()) return
+
+    await clearImportJobListeners()
+
+    importJobUnlisteners = await Promise.all([
+      listen<UsageImportJobSnapshot>('usage:job-progress', (event) => {
+        if (event.payload.job_id === jobId) {
+          void handleImportJobSnapshot(event.payload, 'progress')
+        }
+      }),
+      listen<UsageImportJobSnapshot>('usage:job-recent-ready', (event) => {
+        if (event.payload.job_id === jobId) {
+          void handleImportJobSnapshot(event.payload, 'recent-ready')
+        }
+      }),
+      listen<UsageImportJobSnapshot>('usage:job-finished', (event) => {
+        if (event.payload.job_id === jobId) {
+          void handleImportJobSnapshot(event.payload, 'finished')
+        }
+      }),
+      listen<UsageImportJobSnapshot>('usage:job-failed', (event) => {
+        if (event.payload.job_id === jobId) {
+          void handleImportJobSnapshot(event.payload, 'failed')
+        }
+      }),
+    ])
+
+    const latest = await getUsageImportJobStatusV2<UsageImportJobSnapshot>(jobId)
+    const trigger = latest.status === 'failed'
+      ? 'failed'
+      : latest.status === 'finished'
+        ? 'finished'
+        : latest.status === 'recent_ready'
+          ? 'recent-ready'
+          : 'progress'
+    await handleImportJobSnapshot(latest, trigger)
+  }
+
   // ═══ Actions ═══
   async function fetchHeatmap(reason: string = 'manual') {
     const startedAt = nowMs()
@@ -245,6 +371,7 @@ export const useUsageStore = defineStore('usage', () => {
     const includeHeatmap = options.includeHeatmap ?? !LAZY_HEATMAP_LOAD
     const reason = options.reason ?? 'manual'
     const preserveError = options.preserveError ?? false
+    const background = options.background ?? false
     const startedAt = nowMs()
     const key = buildFetchKey(includeHeatmap)
 
@@ -253,7 +380,9 @@ export const useUsageStore = defineStore('usage', () => {
     }
 
     const requestId = ++requestSerial
-    loading.value = true
+    if (!background) {
+      loading.value = true
+    }
     if (!preserveError) {
       error.value = null
     }
@@ -308,7 +437,7 @@ export const useUsageStore = defineStore('usage', () => {
         if (requestId !== requestSerial) return
         error.value = e instanceof Error ? e.message : String(e)
       } finally {
-        if (requestId === requestSerial) {
+        if (requestId === requestSerial && !background) {
           loading.value = false
         }
       }
@@ -479,6 +608,37 @@ export const useUsageStore = defineStore('usage', () => {
     }
   }
 
+  async function startImportJob(opts: {
+    platform?: Platform
+    recentDays?: number
+    reason?: 'manual' | 'bootstrap'
+  }) {
+    const reason = opts.reason ?? 'manual'
+    activeImportReason = reason
+    importing.value = true
+    isBootstrapping.value = reason === 'bootstrap'
+    error.value = null
+    clearImportFeedback()
+
+    try {
+      const response = await startUsageImportJobV2<StartUsageImportJobResponse>(
+        opts.platform,
+        opts.recentDays,
+      )
+
+      syncImportFeedbackFromJob(response.snapshot)
+      await ensureImportJobListeners(response.job_id)
+      return response.snapshot
+    } catch (e) {
+      const message = e instanceof Error ? e.message : String(e)
+      error.value = message
+      importing.value = false
+      isBootstrapping.value = false
+      activeImportReason = null
+      throw e
+    }
+  }
+
   /** 初始化仪表盘并在空库时做一次自举导入 */
   async function initializeDashboard(opts: { platform?: Platform; start?: string; end?: string }) {
     applyFilters(opts)
@@ -493,7 +653,11 @@ export const useUsageStore = defineStore('usage', () => {
     }
 
     bootstrapAttempted.value = true
-    await triggerImport(undefined, 'bootstrap')
+    await startImportJob({
+      platform: undefined,
+      reason: 'bootstrap',
+      recentDays: 30,
+    })
   }
 
   /** 设置筛选条件并刷新（300ms 防抖） */
@@ -585,6 +749,7 @@ export const useUsageStore = defineStore('usage', () => {
     bootstrapAttempted,
     lastImportSummary,
     lastImportResults,
+    currentImportJob,
     platform,
     timeRange,
     logsPage,
@@ -607,6 +772,7 @@ export const useUsageStore = defineStore('usage', () => {
     fetchLogs,
     nextLogsPage,
     prevLogsPage,
+    startImportJob,
     triggerImport,
     clearImportFeedback,
     setFilters,
