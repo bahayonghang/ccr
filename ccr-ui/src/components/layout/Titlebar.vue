@@ -1,7 +1,7 @@
 <template>
   <div
     data-tauri-drag-region
-    class="titlebar-shell fixed top-0 left-0 right-0 flex h-9 items-center justify-between border-b border-border-default/30 px-3 text-white select-none"
+    class="titlebar-shell fixed top-0 left-0 right-0 flex h-9 items-center justify-between border-b border-border-default/30 px-3 text-text-primary select-none"
   >
     <!-- Left: App Icon and Menu -->
     <div
@@ -58,7 +58,7 @@
     <!-- Center: Window Title -->
     <div
       data-tauri-drag-region
-      class="absolute left-1/2 -translate-x-1/2 flex items-center space-x-2 text-xs font-medium tracking-wider text-white/70"
+      class="titlebar-title absolute left-1/2 -translate-x-1/2 flex items-center space-x-2 text-xs font-medium tracking-wider"
     >
       <span class="opacity-50">✦</span>
       <span>{{ windowTitle }}</span>
@@ -68,12 +68,13 @@
     <!-- Right: Window Controls -->
     <div class="flex items-center space-x-0.5">
       <button 
-        class="titlebar-control-btn group hover:bg-white/10" 
+        type="button"
+        class="titlebar-control-btn group"
         title="最小化"
         @click="minimizeWindow"
       >
         <svg
-          class="w-3.5 h-3.5 transition-colors text-white/70 group-hover:text-white"
+          class="titlebar-control-icon w-3.5 h-3.5"
           fill="currentColor"
           viewBox="0 0 16 16"
         >
@@ -88,13 +89,14 @@
       </button>
 
       <button 
-        class="titlebar-control-btn group hover:bg-white/10" 
+        type="button"
+        class="titlebar-control-btn group"
         :title="isMaximized ? '还原' : '最大化'"
         @click="toggleMaximize"
       >
         <svg
           v-if="!isMaximized"
-          class="w-3.5 h-3.5 transition-colors text-white/70 group-hover:text-white"
+          class="titlebar-control-icon w-3.5 h-3.5"
           fill="none"
           viewBox="0 0 16 16"
         >
@@ -110,7 +112,7 @@
         </svg>
         <svg
           v-else
-          class="w-3.5 h-3.5 transition-colors text-white/70 group-hover:text-white"
+          class="titlebar-control-icon w-3.5 h-3.5"
           fill="none"
           viewBox="0 0 16 16"
         >
@@ -133,12 +135,13 @@
       </button>
 
       <button 
-        class="titlebar-control-btn group hover:bg-red-500 hover:text-white control-close" 
+        type="button"
+        class="titlebar-control-btn titlebar-control-btn--close group" 
         title="关闭"
         @click="closeWindow"
       >
         <svg
-          class="control-close-icon w-3.5 h-3.5 text-white/70 transition-colors"
+          class="titlebar-control-icon w-3.5 h-3.5"
           fill="currentColor"
           viewBox="0 0 16 16"
         >
@@ -361,14 +364,52 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: color 150ms, background-color 150ms;
+  border-radius: 0.75rem;
+  color: rgb(var(--color-text-secondary-rgb) / 88%);
+  transition:
+    color var(--motion-feedback-duration) var(--motion-standard-ease),
+    background-color var(--motion-feedback-duration) var(--motion-standard-ease),
+    box-shadow var(--motion-feedback-duration) var(--motion-standard-ease),
+    transform var(--motion-feedback-duration) var(--motion-standard-ease);
   cursor: default;
   outline: none;
+
+  &:hover {
+    color: rgb(var(--color-text-primary-rgb) / 98%);
+    background: rgb(var(--color-text-primary-rgb) / 8%);
+    box-shadow: inset 0 0 0 1px rgb(var(--color-text-primary-rgb) / 6%);
+  }
+
+  &:active {
+    transform: translateY(0.5px);
+  }
 
   &:focus-visible {
     outline: 2px solid rgb(var(--color-accent-primary-rgb) / 50%);
     outline-offset: 2px;
   }
+}
+
+.titlebar-control-btn--close:hover {
+  color: rgb(255 255 255 / 98%);
+  background:
+    linear-gradient(135deg, rgb(224 88 154 / 92%), rgb(244 63 94 / 92%));
+  box-shadow:
+    inset 0 0 0 1px rgb(255 255 255 / 14%),
+    0 10px 22px rgb(244 63 94 / 20%);
+}
+
+.titlebar-control-btn--close:focus-visible {
+  outline-color: rgb(244 63 94 / 42%);
+}
+
+.titlebar-control-icon {
+  display: block;
+  transition: color var(--motion-feedback-duration) var(--motion-standard-ease);
+}
+
+.titlebar-title {
+  color: rgb(var(--color-text-muted-rgb) / 92%);
 }
 
 .titlebar-menu-btn {
@@ -390,10 +431,5 @@ onUnmounted(() => {
 .titlebar-menu-btn:hover {
   color: white;
   background-color: rgb(255 255 255 / 10%);
-}
-
-/* Ensure close button icon turns white on hover correctly */
-.control-close:hover .control-close-icon {
-  color: white;
 }
 </style>
