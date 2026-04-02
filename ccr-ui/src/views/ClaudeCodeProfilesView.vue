@@ -253,6 +253,7 @@
             v-else
             :provider-sections="visibleProviderSections"
             :register-section-ref="registerSectionRef"
+            :search-query="trimmedSearchQuery"
             @apply="handleApply"
             @delete="handleDelete"
             @edit="openEditForm"
@@ -705,6 +706,16 @@ const clearSearch = () => {
   searchQuery.value = ''
 }
 
+// Ctrl/Cmd+K 聚焦搜索框快捷键
+const handleGlobalKeydown = (event: KeyboardEvent) => {
+  if ((event.metaKey || event.ctrlKey) && event.key === 'k') {
+    event.preventDefault()
+    // 聚焦搜索区域内的 input 元素
+    const searchEl = document.querySelector('.claude-profiles-view__search-input-shell input') as HTMLInputElement | null
+    searchEl?.focus()
+  }
+}
+
 const syncActiveFormSection = () => {
   const container = modalScrollRef.value
 
@@ -826,8 +837,14 @@ watch(showForm, (isOpen) => {
   activeFormSectionId.value = 'basic'
 })
 
-onMounted(loadProfiles)
-onBeforeUnmount(teardownSectionObserver)
+onMounted(() => {
+  loadProfiles()
+  document.addEventListener('keydown', handleGlobalKeydown)
+})
+onBeforeUnmount(() => {
+  teardownSectionObserver()
+  document.removeEventListener('keydown', handleGlobalKeydown)
+})
 </script>
 
 <style>
@@ -1452,6 +1469,44 @@ onBeforeUnmount(teardownSectionObserver)
 
   .claude-profiles-view__search-rail {
     padding: 0.9rem;
+  }
+}
+
+/* ── Overview 与列表的视觉分隔 ── */
+.claude-profiles-view .page-header-card__body {
+  padding-top: 1.25rem;
+  border-top: 1px solid rgb(var(--color-border-default-rgb) / 22%);
+}
+
+/* ── 搜索高亮样式 ── */
+.profile-search-highlight {
+  background: rgb(var(--color-accent-secondary-rgb) / 18%);
+  color: inherit;
+  border-radius: 2px;
+  padding: 0 1px;
+}
+
+/* ── 键盘快捷键提示 ── */
+.claude-profiles-view__search-hint kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.5em;
+  padding: 0.1em 0.35em;
+  border: 1px solid rgb(var(--color-border-default-rgb) / 45%);
+  border-radius: 4px;
+  background: rgb(var(--color-bg-elevated-rgb) / 60%);
+  font-family: var(--font-mono);
+  font-size: 0.72em;
+  line-height: 1.3;
+  color: var(--color-text-muted);
+  box-shadow: 0 1px 0 rgb(0 0 0 / 8%);
+}
+
+/* ── reduced motion 降级 ── */
+@media (prefers-reduced-motion: reduce) {
+  .profile-search-highlight {
+    transition: none;
   }
 }
 </style>

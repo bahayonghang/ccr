@@ -2,6 +2,155 @@ import type { ClaudeProfile } from '@/types'
 
 export const CLAUDE_PROFILE_UNSET_PROVIDER_KEY = '__unset_provider__'
 
+// ── Provider 色彩映射系统 ─────────────────────────────────────────
+
+/** Provider 色彩配置对象 */
+export interface ProviderColorConfig {
+  /** 平台标识键 (如 'claude', 'codex', 'gemini', 'qwen') */
+  key: string
+  /** CSS 变量名 (如 '--color-platform-claude') */
+  cssVar: string
+  /** RGB CSS 变量名 (如 '--color-platform-claude-rgb')，用于 alpha 合成 */
+  rgbVar: string
+  /** Tailwind 平台色类名前缀 (如 'platform-claude') */
+  tailwindClass: string
+}
+
+/** provider 关键词 → 平台色彩映射表 */
+const PROVIDER_COLOR_MAP: Record<string, ProviderColorConfig> = {
+  anthropic: { key: 'claude', cssVar: '--color-platform-claude', rgbVar: '--color-platform-claude-rgb', tailwindClass: 'platform-claude' },
+  claude: { key: 'claude', cssVar: '--color-platform-claude', rgbVar: '--color-platform-claude-rgb', tailwindClass: 'platform-claude' },
+  openai: { key: 'codex', cssVar: '--color-platform-codex', rgbVar: '--color-platform-codex-rgb', tailwindClass: 'platform-codex' },
+  codex: { key: 'codex', cssVar: '--color-platform-codex', rgbVar: '--color-platform-codex-rgb', tailwindClass: 'platform-codex' },
+  google: { key: 'gemini', cssVar: '--color-platform-gemini', rgbVar: '--color-platform-gemini-rgb', tailwindClass: 'platform-gemini' },
+  gemini: { key: 'gemini', cssVar: '--color-platform-gemini', rgbVar: '--color-platform-gemini-rgb', tailwindClass: 'platform-gemini' },
+  qwen: { key: 'qwen', cssVar: '--color-platform-qwen', rgbVar: '--color-platform-qwen-rgb', tailwindClass: 'platform-qwen' },
+  alibaba: { key: 'qwen', cssVar: '--color-platform-qwen', rgbVar: '--color-platform-qwen-rgb', tailwindClass: 'platform-qwen' },
+}
+
+/** 默认回退色彩 (accent-secondary 紫) */
+const DEFAULT_PROVIDER_COLOR: ProviderColorConfig = {
+  key: 'default',
+  cssVar: '--color-accent-secondary',
+  rgbVar: '--color-accent-secondary-rgb',
+  tailwindClass: 'accent-secondary',
+}
+
+/**
+ * 根据 provider 名称解析对应的平台色彩配置。
+ * 支持精确匹配 + includes 模糊回退，大小写不敏感。
+ */
+export const resolveProviderColor = (provider?: string | null): ProviderColorConfig => {
+  if (!provider?.trim()) return DEFAULT_PROVIDER_COLOR
+
+  const lower = provider.trim().toLowerCase()
+
+  // 精确匹配
+  if (PROVIDER_COLOR_MAP[lower]) return PROVIDER_COLOR_MAP[lower]
+
+  // includes 模糊回退
+  for (const [keyword, config] of Object.entries(PROVIDER_COLOR_MAP)) {
+    if (lower.includes(keyword) || keyword.includes(lower)) return config
+  }
+
+  return DEFAULT_PROVIDER_COLOR
+}
+
+/** Provider 关键词 → Lucide 图标名映射 */
+const PROVIDER_ICON_MAP: Record<string, string> = {
+  anthropic: 'Sparkles',
+  claude: 'Sparkles',
+  openai: 'Cpu',
+  codex: 'Cpu',
+  google: 'Globe',
+  gemini: 'Globe',
+  qwen: 'Wind',
+  alibaba: 'Wind',
+}
+
+/**
+ * 根据 provider 名称解析对应的 Lucide 图标名。
+ * 未知 provider 回退到 'Server'。
+ */
+export const resolveProviderIcon = (provider?: string | null): string => {
+  if (!provider?.trim()) return 'Server'
+
+  const lower = provider.trim().toLowerCase()
+
+  if (PROVIDER_ICON_MAP[lower]) return PROVIDER_ICON_MAP[lower]
+
+  for (const [keyword, icon] of Object.entries(PROVIDER_ICON_MAP)) {
+    if (lower.includes(keyword) || keyword.includes(lower)) return icon
+  }
+
+  return 'Server'
+}
+
+/**
+ * 对文本中的搜索关键词进行高亮包裹。
+ * 返回包含 `<mark>` 标签的 HTML 字符串，需配合 `v-html` 使用。
+ * 输入文本会进行 HTML 实体转义以防止 XSS。
+ */
+export const highlightSearchMatch = (text: string, query: string): string => {
+  if (!query.trim() || !text) return escapeHtml(text)
+
+  const escaped = escapeHtml(text)
+  const escapedQuery = query.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const regex = new RegExp(`(${escapedQuery})`, 'gi')
+
+  return escaped.replace(regex, '<mark class="profile-search-highlight">$1</mark>')
+}
+
+/** HTML 实体转义（防 XSS） */
+const escapeHtml = (str: string): string =>
+  str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#x27;')
+
+/**
+ * 将 profile 列表按 provider 分组，附带色彩配置。
+ * 用于 Quick Switch 区域的分组展示。
+ */
+export interface ProviderGroup {
+  providerKey: string
+  label: string
+  color: ProviderColorConfig
+  icon: string
+  profiles: ClaudeProfile[]
+}
+
+export const groupProfilesByProvider = (
+  profiles: ClaudeProfile[],
+  unsetLabel = 'Other',
+): ProviderGroup[] => {
+  const groupMap = new Map<string, ProviderGroup>()
+
+  for (const profile of profiles) {
+    const providerKey = getClaudeProfileProviderKey(profile.provider)
+    const label = getClaudeProfileProviderLabel(profile.provider, unsetLabel)
+    const existing = groupMap.get(providerKey)
+
+    if (existing) {
+      existing.profiles.push(profile)
+    } else {
+      groupMap.set(providerKey, {
+        providerKey,
+        label,
+        color: resolveProviderColor(profile.provider),
+        icon: resolveProviderIcon(profile.provider),
+        profiles: [profile],
+      })
+    }
+  }
+
+  return Array.from(groupMap.values())
+}
+
+// ── 原有接口与函数 ───────────────────────────────────────────────
+
 export interface ClaudeProfileSection {
   id: string
   providerKey: string

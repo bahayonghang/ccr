@@ -1,59 +1,110 @@
 <template>
   <div
-    class="space-y-8 animate-slide-up"
+    class="space-y-10 animate-slide-up"
     style="animation-delay: 200ms"
   >
     <section
-      v-for="section in providerSections"
+      v-for="(section, index) in providerSections"
       :id="section.id"
       :key="section.id"
       :ref="(element) => registerSectionRef(section.id, element)"
-      class="scroll-mt-28 space-y-4"
+      class="scroll-mt-28"
     >
-      <div class="border-b border-border-default/35 pb-4">
-        <div>
-          <p class="text-xs font-semibold uppercase tracking-[0.24em] text-text-muted">
-            {{ $t('claudeProfiles.providerSectionEyebrow') }}
-          </p>
-          <div class="mt-2 flex flex-wrap items-center gap-2.5">
-            <h2 class="text-2xl font-semibold tracking-tight text-text-primary">
+      <!-- 区块间分隔线 -->
+      <div
+        v-if="index > 0"
+        class="mb-8 flex items-center gap-4"
+        aria-hidden="true"
+      >
+        <div class="h-px flex-1 bg-border-default/25" />
+        <span class="text-[11px] font-medium uppercase tracking-[0.2em] text-text-ghost">
+          {{ section.title }}
+        </span>
+        <div class="h-px flex-1 bg-border-default/25" />
+      </div>
+
+      <!-- Provider 区块头部 -->
+      <div class="mb-4 flex items-center gap-4">
+        <!-- provider 色彩竖条 -->
+        <div
+          class="h-12 w-1 shrink-0 rounded-full"
+          :style="{ backgroundColor: `rgb(var(${sectionColors[section.providerKey]?.rgbVar || '--color-accent-secondary-rgb'}))` }"
+        />
+
+        <!-- provider 图标 -->
+        <div
+          class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
+          :style="{ backgroundColor: `rgb(var(${sectionColors[section.providerKey]?.rgbVar || '--color-accent-secondary-rgb'}) / 0.1)` }"
+        >
+          <SIcon
+            :name="sectionIcons[section.providerKey] || 'Server'"
+            size="w-5 h-5"
+            :style="{ color: `rgb(var(${sectionColors[section.providerKey]?.rgbVar || '--color-accent-secondary-rgb'}))` }"
+          />
+        </div>
+
+        <!-- 标题和统计 -->
+        <div class="min-w-0 flex-1">
+          <div class="flex flex-wrap items-center gap-2.5">
+            <h2 class="truncate text-xl font-semibold tracking-tight text-text-primary">
               {{ section.title }}
             </h2>
-            <span class="rounded-full border border-border-default/45 bg-bg-surface/62 px-3 py-1 text-xs text-text-secondary">
-              {{ $t('claudeProfiles.providerNavCount', { count: section.count }) }}
+            <span
+              class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium"
+              :style="{
+                backgroundColor: `rgb(var(${sectionColors[section.providerKey]?.rgbVar || '--color-accent-secondary-rgb'}) / 0.1)`,
+                color: `rgb(var(${sectionColors[section.providerKey]?.rgbVar || '--color-accent-secondary-rgb'}))`,
+              }"
+            >
+              {{ section.count }} {{ $t('claudeProfiles.profileUnit', section.count) }}
+            </span>
+            <span
+              v-if="section.isCurrentProvider"
+              class="inline-flex items-center gap-1.5 rounded-full bg-accent-secondary/8 px-2.5 py-0.5 text-xs text-accent-secondary"
+            >
+              <span class="h-1.5 w-1.5 rounded-full bg-current animate-pulse" />
+              {{ $t('claudeProfiles.currentBadge') }}
             </span>
           </div>
-          <p class="mt-2 text-sm text-text-secondary">
+          <p class="mt-1 text-sm text-text-muted">
             {{ $t('claudeProfiles.providerSectionSummary', { count: section.count, enabled: section.enabledCount }) }}
           </p>
         </div>
       </div>
 
-      <div class="rounded-[30px] border border-border-default/35 bg-bg-surface/42 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] md:p-4">
-        <div class="space-y-3">
-          <ClaudeProfileRow
-            v-for="profile in section.profiles"
-            :key="profile.name"
-            :profile="profile"
-            @apply="$emit('apply', profile.name)"
-            @edit="$emit('edit', profile)"
-            @delete="$emit('delete', profile.name)"
-          />
-        </div>
+      <!-- Profile 卡片列表 (不再嵌套外层容器) -->
+      <div class="space-y-3">
+        <ClaudeProfileRow
+          v-for="profile in section.profiles"
+          :key="profile.name"
+          :profile="profile"
+          :provider-color="sectionColors[section.providerKey] || defaultColor"
+          :search-query="searchQuery"
+          @apply="$emit('apply', profile.name)"
+          @edit="$emit('edit', profile)"
+          @delete="$emit('delete', profile.name)"
+        />
       </div>
     </section>
   </div>
 </template>
 
 <script setup lang="ts">
-import type { ComponentPublicInstance } from 'vue'
+import { computed, type ComponentPublicInstance } from 'vue'
 import ClaudeProfileRow from '@/components/claude/ClaudeProfileRow.vue'
+import SIcon from '@/components/ui/SIcon.vue'
 import type { ClaudeProfile } from '@/types'
-import type { ClaudeProfileSection } from '@/utils/claudeProfiles'
+import {
+  resolveProviderColor,
+  resolveProviderIcon,
+  type ClaudeProfileSection,
+  type ProviderColorConfig,
+} from '@/utils/claudeProfiles'
 
-defineProps<{
+const props = defineProps<{
   providerSections: ClaudeProfileSection[]
   registerSectionRef: (sectionId: string, target: Element | ComponentPublicInstance | null) => void
+  searchQuery?: string
 }>()
 
 defineEmits<{
@@ -61,4 +112,30 @@ defineEmits<{
   delete: [name: string]
   edit: [profile: ClaudeProfile]
 }>()
+
+// 默认色彩配置
+const defaultColor: ProviderColorConfig = {
+  key: 'default',
+  cssVar: '--color-accent-secondary',
+  rgbVar: '--color-accent-secondary-rgb',
+  tailwindClass: 'accent-secondary',
+}
+
+// 缓存各 section 的 provider 色彩
+const sectionColors = computed(() => {
+  const map: Record<string, ProviderColorConfig> = {}
+  for (const section of props.providerSections) {
+    map[section.providerKey] = resolveProviderColor(section.title)
+  }
+  return map
+})
+
+// 缓存各 section 的 provider 图标
+const sectionIcons = computed(() => {
+  const map: Record<string, string> = {}
+  for (const section of props.providerSections) {
+    map[section.providerKey] = resolveProviderIcon(section.title)
+  }
+  return map
+})
 </script>

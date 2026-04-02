@@ -34,38 +34,64 @@
         v-for="section in sections"
         :key="section.id"
         type="button"
+        :aria-current="activeSectionId === section.id ? 'location' : undefined"
         :class="[
           mobile
             ? 'min-h-[40px] whitespace-nowrap px-3 py-2 text-sm'
-            : 'min-h-[52px] w-full px-4 py-3 text-left',
+            : 'relative min-h-[52px] w-full px-4 py-3 text-left',
           'group rounded-2xl border transition-[background-color,border-color,color,transform] duration-200',
           activeSectionId === section.id
-            ? 'border-accent-secondary/30 bg-accent-secondary/10 text-text-primary shadow-[0_10px_30px_rgba(96,70,160,0.12)]'
+            ? 'border-transparent text-text-primary shadow-[0_10px_30px_rgba(96,70,160,0.12)]'
             : 'border-border-default/50 bg-bg-surface/55 text-text-secondary hover:border-border-default hover:bg-bg-elevated/70 hover:text-text-primary',
         ]"
+        :style="activeSectionId === section.id ? {
+          backgroundColor: `rgb(var(${sectionColors[section.providerKey]?.rgbVar || '--color-accent-secondary-rgb'}) / 0.08)`,
+          borderColor: `rgb(var(${sectionColors[section.providerKey]?.rgbVar || '--color-accent-secondary-rgb'}) / 0.2)`,
+        } : {}"
         @click="$emit('navigate', section.id)"
       >
+        <!-- 含当前活跃 profile 的指示圆点 -->
+        <span
+          v-if="!mobile && section.isCurrentProvider"
+          class="absolute right-2.5 top-2.5 flex h-2.5 w-2.5 items-center justify-center"
+          :aria-label="$t('claudeProfiles.currentProviderHint')"
+        >
+          <span class="absolute h-full w-full rounded-full bg-accent-secondary/40 animate-ping" />
+          <span class="relative h-2 w-2 rounded-full bg-accent-secondary" />
+        </span>
+
         <div class="flex items-center justify-between gap-3">
-          <div class="min-w-0">
-            <p
-              :class="[
-                'truncate font-medium',
-                activeSectionId === section.id ? 'text-text-primary' : '',
-              ]"
-            >
-              {{ section.title }}
-            </p>
-            <p
-              v-if="!mobile"
-              class="mt-1 text-xs text-text-muted"
-            >
-              {{ $t('claudeProfiles.providerNavCount', { count: section.count }) }}
-            </p>
+          <div class="flex min-w-0 items-center gap-2.5">
+            <!-- Provider 色彩圆点 -->
+            <span
+              class="h-2 w-2 shrink-0 rounded-full"
+              :style="{ backgroundColor: `rgb(var(${sectionColors[section.providerKey]?.rgbVar || '--color-accent-secondary-rgb'}))` }"
+            />
+            <div class="min-w-0">
+              <p
+                :class="[
+                  'truncate font-medium',
+                  activeSectionId === section.id ? 'text-text-primary' : '',
+                ]"
+              >
+                {{ section.title }}
+              </p>
+              <p
+                v-if="!mobile"
+                class="mt-1 text-xs text-text-muted"
+              >
+                {{ $t('claudeProfiles.providerNavCount', { count: section.count }) }}
+              </p>
+            </div>
           </div>
           <div class="flex shrink-0 items-center gap-2">
             <span
               class="rounded-full px-2 py-1 text-xs font-medium"
-              :class="activeSectionId === section.id ? 'bg-accent-secondary/14 text-accent-secondary' : 'bg-bg-elevated text-text-muted'"
+              :style="activeSectionId === section.id ? {
+                backgroundColor: `rgb(var(${sectionColors[section.providerKey]?.rgbVar || '--color-accent-secondary-rgb'}) / 0.12)`,
+                color: `rgb(var(${sectionColors[section.providerKey]?.rgbVar || '--color-accent-secondary-rgb'}))`,
+              } : {}"
+              :class="activeSectionId !== section.id ? 'bg-bg-elevated text-text-muted' : ''"
             >
               {{ section.count }}
             </span>
@@ -77,10 +103,15 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import SIcon from '@/components/ui/SIcon.vue'
-import type { ClaudeProfileSection } from '@/utils/claudeProfiles'
+import {
+  resolveProviderColor,
+  type ClaudeProfileSection,
+  type ProviderColorConfig,
+} from '@/utils/claudeProfiles'
 
-defineProps<{
+const props = defineProps<{
   sections: ClaudeProfileSection[]
   activeSectionId: string | null
   mobile?: boolean
@@ -89,4 +120,13 @@ defineProps<{
 defineEmits<{
   navigate: [sectionId: string]
 }>()
+
+// 缓存各 section 的 provider 色彩
+const sectionColors = computed(() => {
+  const map: Record<string, ProviderColorConfig> = {}
+  for (const section of props.sections) {
+    map[section.providerKey] = resolveProviderColor(section.title)
+  }
+  return map
+})
 </script>
