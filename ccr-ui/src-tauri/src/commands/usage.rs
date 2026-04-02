@@ -273,7 +273,9 @@ fn build_usage_import_plan(
 
     for platform in platforms {
         for path in service.list_usage_files(platform)? {
-            let modified_at = std::fs::metadata(&path).and_then(|meta| meta.modified()).ok();
+            let modified_at = std::fs::metadata(&path)
+                .and_then(|meta| meta.modified())
+                .ok();
             let job_file = UsageImportJobFile {
                 platform: platform.clone(),
                 path,
@@ -387,7 +389,10 @@ async fn run_usage_import_job(
 ) {
     let platforms = match platform.as_deref() {
         Some(value) => vec![value.to_string()],
-        None => HOME_USAGE_PLATFORMS.iter().map(|value| (*value).to_string()).collect(),
+        None => HOME_USAGE_PLATFORMS
+            .iter()
+            .map(|value| (*value).to_string())
+            .collect(),
     };
 
     let execution = async {
@@ -399,7 +404,9 @@ async fn run_usage_import_job(
                     let service = ccr_db::services::usage_import_service::UsageImportService::new(
                         ccr_db::services::usage_import_service::ImportConfig::default(),
                     );
-                    service.list_usage_files(&source_target).map(|files| files.len())
+                    service
+                        .list_usage_files(&source_target)
+                        .map(|files| files.len())
                 })
                 .await
                 .map_err(|error| format!("Repair preflight join error: {error}"))??;
@@ -437,7 +444,8 @@ async fn run_usage_import_job(
             }
         }
 
-        let (recent_files, history_files) = build_usage_import_plan(&platforms, recent_window_days)?;
+        let (recent_files, history_files) =
+            build_usage_import_plan(&platforms, recent_window_days)?;
         let files_total = recent_files.len() + history_files.len();
         let mut results_by_platform = create_platform_results(&platforms);
 
@@ -469,8 +477,7 @@ async fn run_usage_import_job(
             })
             .await
         {
-            emit_usage_import_job_snapshot(&app_handle, "usage:job-recent-ready", &snapshot)
-                .await;
+            emit_usage_import_job_snapshot(&app_handle, "usage:job-recent-ready", &snapshot).await;
         }
 
         process_usage_import_phase(

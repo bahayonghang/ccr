@@ -438,6 +438,32 @@ pub fn update_registry_current_profile(platform_name: &str, profile_name: &str) 
     Ok(())
 }
 
+pub fn update_registry_current_profile_with_paths(
+    registry_path: &Path,
+    lock_dir: &Path,
+    platform_name: &str,
+    profile_name: &str,
+) -> Result<()> {
+    save_platform_registry_with_paths(
+        registry_path.to_path_buf(),
+        lock_dir.to_path_buf(),
+        |unified_config| {
+            if unified_config.get_platform(platform_name).is_err() {
+                tracing::info!("📋 平台 '{}' 未在注册表中，自动注册", platform_name);
+                unified_config.register_platform(
+                    platform_name.to_string(),
+                    crate::managers::platform_config::PlatformConfigEntry::default(),
+                )?;
+            }
+
+            unified_config.set_platform_profile(platform_name, profile_name)
+        },
+    )?;
+
+    tracing::debug!("✅ 已更新注册表 current_profile: {}", profile_name);
+    Ok(())
+}
+
 /// 🔍 获取当前 profile (从注册表)
 ///
 /// 如果平台未在注册表中注册，返回 None 而非报错
@@ -466,6 +492,40 @@ pub fn reconcile_registry_current_profile_after_delete(
 
         Ok(())
     })?;
+    Ok(())
+}
+
+pub fn reconcile_registry_current_profile_after_delete_with_paths(
+    registry_path: &Path,
+    lock_dir: &Path,
+    platform_name: &str,
+    deleted_profile_name: &str,
+    remaining_profiles: &IndexMap<String, ProfileConfig>,
+) -> Result<()> {
+    save_platform_registry_with_paths(
+        registry_path.to_path_buf(),
+        lock_dir.to_path_buf(),
+        |unified_config| {
+            let current_profile = match unified_config.get_platform(platform_name) {
+                Ok(entry) => entry.current_profile.clone(),
+                Err(_) => return Ok(()),
+            };
+
+            if current_profile.as_deref() != Some(deleted_profile_name) {
+                return Ok(());
+            }
+
+            if let Some(next_profile_name) = remaining_profiles.keys().next().cloned() {
+                unified_config.set_platform_profile(platform_name, &next_profile_name)?;
+            } else {
+                let registry = unified_config.get_platform_mut(platform_name)?;
+                registry.current_profile = None;
+                registry.last_used = Some(chrono::Utc::now().to_rfc3339());
+            }
+
+            Ok(())
+        },
+    )?;
     Ok(())
 }
 

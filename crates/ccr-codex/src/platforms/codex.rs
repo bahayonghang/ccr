@@ -21,6 +21,7 @@ use ccr_config::platforms::base;
 use ccr_core::core::error::{CcrError, Result};
 use indexmap::IndexMap;
 use serde_json::Value as JsonValue;
+use std::path::Path;
 use std::path::PathBuf;
 
 const THIRD_PARTY_RUNTIME_PROVIDER_KEY: &str = "custom";
@@ -89,6 +90,18 @@ pub struct CodexPlatform {
 }
 
 impl CodexPlatform {
+    fn registry_lock_dir(&self) -> PathBuf {
+        self.paths.root.join(".locks")
+    }
+
+    fn codex_dir(&self) -> PathBuf {
+        self.config_manager
+            .auth_path()
+            .parent()
+            .unwrap_or_else(|| Path::new("."))
+            .to_path_buf()
+    }
+
     pub fn editable_fields() -> &'static [&'static str] {
         CODEX_EDITABLE_FIELDS
     }
@@ -1310,7 +1323,13 @@ impl PlatformConfig for CodexPlatform {
 
         self.runtime_service.delete_profile_secret(name)?;
         self.save_profiles_to_file(&profiles)?;
-        base::reconcile_registry_current_profile_after_delete("codex", name, &profiles)
+        base::reconcile_registry_current_profile_after_delete_with_paths(
+            &self.paths.registry_file,
+            &self.registry_lock_dir(),
+            "codex",
+            name,
+            &profiles,
+        )
     }
 
     fn get_settings_path(&self) -> PathBuf {
@@ -1338,12 +1357,19 @@ impl PlatformConfig for CodexPlatform {
         base::update_current_config(&self.paths.profiles_file, name)?;
 
         // 更新注册表 current_profile
-        base::update_registry_current_profile("codex", name)?;
+        base::update_registry_current_profile_with_paths(
+            &self.paths.registry_file,
+            &self.registry_lock_dir(),
+            "codex",
+            name,
+        )?;
 
         // 同步当前 OpenAI 账号指针，避免 profile/apply 与 auth registry 漂移
-        if let Ok(service) = crate::services::CodexAuthService::new() {
-            let _ = service.sync_current_auth_registry();
-        }
+        let service = crate::services::CodexAuthService::from_dirs(
+            self.paths.platform_dir.clone(),
+            self.codex_dir(),
+        );
+        let _ = service.sync_current_auth_registry();
 
         tracing::info!("✅ 已应用 Codex profile: {}", name);
         Ok(())

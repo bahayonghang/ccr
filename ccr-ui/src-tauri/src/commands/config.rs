@@ -468,13 +468,19 @@ pub async fn update_config(name: String, data: serde_json::Value) -> Result<Stri
 
 #[tauri::command]
 pub async fn get_skip_exit_confirm(state: State<'_, AppState>) -> Result<bool, String> {
-    let settings = state.settings.lock().unwrap();
+    let settings = state
+        .settings
+        .lock()
+        .map_err(|e| format!("Failed to access UI settings: {e}"))?;
     Ok(settings.skip_exit_confirm)
 }
 
 #[tauri::command]
 pub async fn set_skip_exit_confirm(skip: bool, state: State<'_, AppState>) -> Result<(), String> {
-    let mut settings = state.settings.lock().unwrap();
+    let mut settings = state
+        .settings
+        .lock()
+        .map_err(|e| format!("Failed to access UI settings: {e}"))?;
     settings.skip_exit_confirm = skip;
     Ok(())
 }

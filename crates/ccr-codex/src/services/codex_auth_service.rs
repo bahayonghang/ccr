@@ -88,6 +88,13 @@ impl CodexAuthService {
         })
     }
 
+    pub(crate) fn from_dirs(ccr_codex_dir: PathBuf, codex_dir: PathBuf) -> Self {
+        Self {
+            ccr_codex_dir,
+            codex_dir,
+        }
+    }
+
     fn ccr_root_dir(&self) -> PathBuf {
         let is_standard_platform_dir = self
             .ccr_codex_dir

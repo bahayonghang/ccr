@@ -59,7 +59,7 @@ fn main() {
             // 先注册 Local 环境，其他环境在异步初始化完成后写入 managed state。
             app.manage(app_state);
             app.manage(skills_watcher::SkillsWatcherState::default());
-            skills_watcher::reload(&app.handle()).map_err(|e| {
+            skills_watcher::reload(app.handle()).map_err(|e| {
                 tracing::warn!("[app] skills watcher init failed: {e}");
                 std::io::Error::other(e)
             })?;
@@ -184,9 +184,12 @@ fn main() {
                 }
 
                 // 允许用户通过设置跳过退出确认。
-                let skip_confirm = {
-                    let settings = state.settings.lock().unwrap();
-                    settings.skip_exit_confirm
+                let skip_confirm = match state.settings.lock() {
+                    Ok(settings) => settings.skip_exit_confirm,
+                    Err(e) => {
+                        tracing::warn!("[app] failed to access UI settings during exit flow: {e}");
+                        false
+                    }
                 };
 
                 if skip_confirm {
