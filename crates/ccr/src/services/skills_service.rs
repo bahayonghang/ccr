@@ -3,6 +3,19 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
+/// 创建一个在 Windows 上隐藏控制台窗口的 Command。
+/// 防止 Tauri 桌面应用中生成可见的 cmd.exe / git.exe 子进程窗口。
+fn silent_command(program: &str) -> Command {
+    let mut cmd = Command::new(program);
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+        cmd.creation_flags(CREATE_NO_WINDOW);
+    }
+    cmd
+}
+
 use blake3::Hasher;
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
@@ -166,7 +179,7 @@ impl SkillsService {
             SkillPlatformConfig {
                 id: "codex".into(),
                 display_name: "Codex".into(),
-                relative_path: ".codex/skills".into(),
+                relative_path: ".agents/skills".into(),
             },
             SkillPlatformConfig {
                 id: "gemini".into(),
@@ -187,6 +200,16 @@ impl SkillsService {
                 id: "droid".into(),
                 display_name: "Droid".into(),
                 relative_path: ".gemini/antigravity/skills".into(),
+            },
+            SkillPlatformConfig {
+                id: "iflow".into(),
+                display_name: "iFlow".into(),
+                relative_path: ".iflow/skills".into(),
+            },
+            SkillPlatformConfig {
+                id: "opencode".into(),
+                display_name: "OpenCode".into(),
+                relative_path: ".config/opencode/skills".into(),
             },
         ]
     }
@@ -879,7 +902,7 @@ impl SkillsService {
     }
 
     fn run_git(args: &[&str], cwd: Option<&Path>) -> Result<String> {
-        let mut command = Command::new("git");
+        let mut command = silent_command("git");
         command.args(args);
         if let Some(cwd) = cwd {
             command.current_dir(cwd);
@@ -1692,11 +1715,11 @@ impl SkillsService {
 
     pub fn npx_status(&self) -> NpxStatus {
         let version_output = if cfg!(windows) {
-            Command::new("cmd")
+            silent_command("cmd")
                 .args(["/C", "npx", "--version"])
                 .output()
         } else {
-            Command::new("sh").args(["-c", "npx --version"]).output()
+            silent_command("sh").args(["-c", "npx --version"]).output()
         };
 
         let Ok(version_output) = version_output else {
@@ -1716,12 +1739,12 @@ impl SkillsService {
         }
 
         let path_output = if cfg!(windows) {
-            Command::new("cmd")
+            silent_command("cmd")
                 .args(["/C", "where", "npx"])
                 .output()
                 .ok()
         } else {
-            Command::new("sh").args(["-c", "which npx"]).output().ok()
+            silent_command("sh").args(["-c", "which npx"]).output().ok()
         };
 
         NpxStatus {

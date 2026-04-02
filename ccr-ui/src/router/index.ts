@@ -213,7 +213,7 @@ const routes: RouteRecordRaw[] = [
       {
         path: 'skills',
         name: 'skills',
-        component: () => import('@/views/skills/UnifiedSkillsView.vue'),
+        component: () => import('@/views/skills/SkillsView.vue'),
         meta: { cache: true, depth: 1, group: 'skills' },
       },
       {

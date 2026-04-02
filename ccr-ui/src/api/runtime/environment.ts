@@ -3,6 +3,14 @@ import { isTauriRuntime } from '@/utils/tauriRuntime'
 
 const SKIP_EXIT_CONFIRM_KEY = 'ccr_skip_exit_confirm'
 
+export interface EnvironmentInfo {
+  id: string
+  name: string
+  env_type: string
+  is_active: boolean
+  description: string
+}
+
 export const isTauriEnvironment = (): boolean => {
   return isTauriRuntime()
 }
@@ -22,6 +30,22 @@ export const getTauriVersion = async (): Promise<string | null> => {
   } catch {
     return null
   }
+}
+
+export const listEnvironments = async (): Promise<EnvironmentInfo[]> => {
+  return invoke('list_environments')
+}
+
+export const getCurrentEnvironment = async (): Promise<EnvironmentInfo | null> => {
+  return invoke('get_current_environment')
+}
+
+export const switchEnvironment = async (envId: string): Promise<void> => {
+  await invoke('switch_environment', { envId })
+}
+
+export const refreshEnvironments = async (): Promise<EnvironmentInfo[]> => {
+  return invoke('refresh_environments')
 }
 
 export const getSkipExitConfirm = async (): Promise<boolean> => {

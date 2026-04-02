@@ -4,28 +4,19 @@
  */
 import SIcon from '@/components/ui/SIcon.vue'
 import { ref, onMounted } from 'vue'
-import { invoke } from '@tauri-apps/api/core'
+import {
+  clearWslCache,
+  detectWslCli,
+  getWslCacheStatus,
+  listWslDistros,
+  readWslConfig,
+  refreshWslDistros,
+  syncWslConfig,
+  type WslCacheStatus,
+  type WslCliStatus,
+  type WslDistro,
+} from '@/api/runtime/wsl'
 import { logger } from '@/utils/logger'
-
-interface WslDistro {
-  name: string
-  is_default: boolean
-  version: string
-  state: string
-}
-
-interface CliStatus {
-  [key: string]: boolean
-}
-
-interface CacheStatus {
-  has_memory_cache: boolean
-  has_disk_cache: boolean
-  cached_at: string | null
-  distro_count: number
-  is_expired: boolean
-  age_secs: number | null
-}
 
 const distros = ref<WslDistro[]>([])
 const selectedDistro = ref<string | null>(null)
@@ -34,9 +25,9 @@ const isRefreshing = ref(false)
 const isSyncing = ref(false)
 const syncMessage = ref('')
 const configContent = ref('')
-const cliStatus = ref<CliStatus>({})
+const cliStatus = ref<WslCliStatus>({})
 const selectedPlatform = ref('claude')
-const cacheStatus = ref<CacheStatus | null>(null)
+const cacheStatus = ref<WslCacheStatus | null>(null)
 
 const platforms = ['claude', 'codex', 'gemini', 'qwen', 'qoder', 'droid']
 
@@ -58,7 +49,7 @@ const formatCacheAge = (secs: number | null): string => {
 
 const fetchCacheStatus = async () => {
   try {
-    cacheStatus.value = await invoke<CacheStatus>('wsl_cache_status')
+    cacheStatus.value = await getWslCacheStatus()
   } catch (e) {
     logger.error('[WSL] Failed to get cache status:', e)
   }
@@ -67,7 +58,7 @@ const fetchCacheStatus = async () => {
 const fetchDistros = async (forceRefresh = false) => {
   isLoading.value = true
   try {
-    distros.value = await invoke<WslDistro[]>('wsl_list_distros', { forceRefresh })
+    distros.value = await listWslDistros(forceRefresh)
     await fetchCacheStatus()
     if (distros.value.length > 0 && !selectedDistro.value) {
       selectedDistro.value = distros.value[0].name
@@ -85,9 +76,7 @@ const loadDistroDetails = async () => {
 
   try {
     // 检测 CLI 工具状态
-    const status = await invoke<Record<string, boolean>>('wsl_detect_cli', {
-      distro: selectedDistro.value
-    })
+    const status = await detectWslCli(selectedDistro.value)
     cliStatus.value = status
   } catch (e) {
     logger.error('[WSL] Failed to detect CLI:', e)
@@ -100,10 +89,10 @@ const readConfig = async () => {
   if (!selectedDistro.value) return
 
   try {
-    configContent.value = await invoke<string>('wsl_read_config', {
+    configContent.value = await readWslConfig({
       distro: selectedDistro.value,
       platform: selectedPlatform.value,
-      path: ''
+      path: '',
     })
   } catch (e) {
     configContent.value = `读取失败: ${e}`
@@ -116,10 +105,10 @@ const syncConfig = async (direction: string) => {
   isSyncing.value = true
   syncMessage.value = ''
   try {
-    const result = await invoke<string>('wsl_sync_config', {
+    const result = await syncWslConfig({
       distro: selectedDistro.value,
       platform: selectedPlatform.value,
-      direction
+      direction,
     })
     syncMessage.value = result
   } catch (e) {
@@ -143,7 +132,7 @@ const refresh = async () => {
 const forceRefresh = async () => {
   isRefreshing.value = true
   try {
-    distros.value = await invoke<WslDistro[]>('wsl_refresh_distros')
+    distros.value = await refreshWslDistros()
     await fetchCacheStatus()
     if (distros.value.length > 0 && !selectedDistro.value) {
       selectedDistro.value = distros.value[0].name
@@ -158,7 +147,7 @@ const forceRefresh = async () => {
 
 const clearCache = async () => {
   try {
-    await invoke('wsl_clear_cache')
+    await clearWslCache()
     await fetchCacheStatus()
   } catch (e) {
     logger.error('[WSL] Failed to clear cache:', e)

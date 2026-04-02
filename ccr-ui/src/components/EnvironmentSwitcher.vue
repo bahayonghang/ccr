@@ -5,16 +5,13 @@
 import SIcon from '@/components/ui/SIcon.vue'
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { invoke } from '@tauri-apps/api/core'
+import {
+  listEnvironments,
+  refreshEnvironments,
+  switchEnvironment,
+  type EnvironmentInfo,
+} from '@/api/runtime/environment'
 import { logger } from '@/utils/logger'
-
-interface EnvironmentInfo {
-  id: string
-  name: string
-  env_type: string
-  is_active: boolean
-  description: string
-}
 
 const environments = ref<EnvironmentInfo[]>([])
 const isOpen = ref(false)
@@ -44,7 +41,7 @@ const envColor = (envType: string) => {
 
 const fetchEnvironments = async () => {
   try {
-    environments.value = await invoke<EnvironmentInfo[]>('list_environments')
+    environments.value = await listEnvironments()
   } catch (e) {
     logger.error('[EnvironmentSwitcher] Failed to list environments:', e)
   }
@@ -58,7 +55,7 @@ const switchEnv = async (envId: string) => {
 
   isLoading.value = true
   try {
-    await invoke('switch_environment', { envId })
+    await switchEnvironment(envId)
     await fetchEnvironments()
   } catch (e) {
     logger.error('[EnvironmentSwitcher] Failed to switch:', e)
@@ -71,7 +68,7 @@ const switchEnv = async (envId: string) => {
 const refreshEnvs = async () => {
   isRefreshing.value = true
   try {
-    environments.value = await invoke<EnvironmentInfo[]>('refresh_environments')
+    environments.value = await refreshEnvironments()
   } catch (e) {
     logger.error('[EnvironmentSwitcher] Failed to refresh:', e)
   } finally {
