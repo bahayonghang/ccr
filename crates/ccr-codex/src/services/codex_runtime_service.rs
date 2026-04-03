@@ -358,12 +358,7 @@ fn atomic_write(path: &Path, data: &[u8]) -> Result<()> {
     temp.persist(path)
         .map_err(|e| CcrError::ConfigError(format!("原子写入失败: {}", e)))?;
 
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::PermissionsExt;
-        let perms = std::fs::Permissions::from_mode(0o600);
-        let _ = fs::set_permissions(path, perms);
-    }
+    crate::utils::ensure_private_permissions(path);
 
     Ok(())
 }

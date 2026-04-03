@@ -7,15 +7,20 @@
 // - 📊 解析 5h 窗口和周限额数据
 
 use crate::models::{CodexAccountQuota, CodexAuthJson, CodexAuthRegistry, CodexQuota};
+use crate::utils::CodexPaths;
 use ccr_core::core::atomic_writer::AtomicWriter;
-use ccr_core::core::error::{CcrError, Result};
+use ccr_core::core::error::Result;
 use chrono::Utc;
 use reqwest::header::{ACCEPT, AUTHORIZATION, HeaderMap, HeaderValue};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
+use std::sync::LazyLock;
 use tracing::{debug, warn};
 
 use super::codex_oauth_token_service::CodexOAuthTokenService;
+
+/// 全局复用的 HTTP 客户端（内部为 Arc，clone 开销极低）
+static HTTP_CLIENT: LazyLock<reqwest::Client> = LazyLock::new(reqwest::Client::new);
 
 /// wham/usage API 端点
 const USAGE_URL: &str = "https://chatgpt.com/backend-api/wham/usage";
@@ -90,19 +95,10 @@ pub struct CodexQuotaService {
 impl CodexQuotaService {
     /// 创建新的配额查询服务
     pub fn new() -> Result<Self> {
-        let home =
-            dirs::home_dir().ok_or_else(|| CcrError::ConfigError("无法获取用户主目录".into()))?;
-
-        let ccr_root = if let Ok(custom) = std::env::var("CCR_DATA_DIR") {
-            PathBuf::from(custom)
-        } else if let Ok(custom) = std::env::var("CCR_ROOT") {
-            PathBuf::from(custom)
-        } else {
-            home.join(".ccr")
-        };
-        let ccr_codex_dir = ccr_root.join("platforms/codex");
-
-        Ok(Self { ccr_codex_dir })
+        let paths = CodexPaths::resolve()?;
+        Ok(Self {
+            ccr_codex_dir: paths.ccr_codex_dir,
+        })
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -373,11 +369,6 @@ impl CodexQuotaService {
     // 内部实现
     // ═══════════════════════════════════════════════════════════
 
-    /// 注册表路径
-    fn registry_path(&self) -> PathBuf {
-        self.ccr_codex_dir.join("auth_registry.toml")
-    }
-
     /// 账号 auth 文件路径
     fn account_auth_path(&self, name: &str) -> PathBuf {
         self.ccr_codex_dir
@@ -387,16 +378,7 @@ impl CodexQuotaService {
 
     /// 加载注册表
     fn load_registry(&self) -> Result<CodexAuthRegistry> {
-        let path = self.registry_path();
-        if !path.exists() {
-            return Ok(CodexAuthRegistry::default());
-        }
-
-        let content = std::fs::read_to_string(&path)
-            .map_err(|e| CcrError::ConfigError(format!("读取注册表失败: {}", e)))?;
-
-        toml::from_str(&content)
-            .map_err(|e| CcrError::ConfigError(format!("解析注册表失败: {}", e)))
+        super::codex_registry_store::CodexRegistryStore::new(&self.ccr_codex_dir).load()
     }
 
     /// 调用 wham/usage API
@@ -404,8 +386,6 @@ impl CodexQuotaService {
         access_token: &str,
         account_id: Option<&str>,
     ) -> std::result::Result<CodexQuota, String> {
-        let client = reqwest::Client::new();
-
         let mut headers = HeaderMap::new();
         headers.insert(
             AUTHORIZATION,
@@ -431,7 +411,7 @@ impl CodexQuotaService {
             USAGE_URL, effective_id
         );
 
-        let response = client
+        let response = HTTP_CLIENT
             .get(USAGE_URL)
             .headers(headers)
             .send()
@@ -545,15 +525,13 @@ impl CodexQuotaService {
     async fn refresh_access_token(
         refresh_token: &str,
     ) -> std::result::Result<TokenRefreshResponse, String> {
-        let client = reqwest::Client::new();
-
         let request = TokenRefreshRequest {
             grant_type: "refresh_token".to_string(),
             refresh_token: refresh_token.to_string(),
             client_id: OAUTH_CLIENT_ID.to_string(),
         };
 
-        let response = client
+        let response = HTTP_CLIENT
             .post(TOKEN_REFRESH_URL)
             .json(&request)
             .send()
@@ -608,20 +586,7 @@ impl CodexQuotaService {
 
     /// Base64 URL-safe 解码
     fn decode_base64_url(input: &str) -> Option<Vec<u8>> {
-        use base64::Engine;
-        use base64::engine::general_purpose::URL_SAFE_NO_PAD;
-
-        // 添加填充
-        let padded = match input.len() % 4 {
-            2 => format!("{}==", input),
-            3 => format!("{}=", input),
-            _ => input.to_string(),
-        };
-
-        URL_SAFE_NO_PAD.decode(&padded).ok().or_else(|| {
-            use base64::engine::general_purpose::STANDARD;
-            STANDARD.decode(&padded).ok()
-        })
+        crate::utils::decode_base64url(input)
     }
 
     /// 解析配额响应为 CodexQuota
@@ -748,12 +713,7 @@ impl CodexQuotaService {
         match serde_json::to_string_pretty(&value) {
             Ok(content) => match AtomicWriter::new(auth_path).write_string(&content) {
                 Ok(()) => {
-                    #[cfg(unix)]
-                    {
-                        use std::os::unix::fs::PermissionsExt;
-                        let perms = std::fs::Permissions::from_mode(0o600);
-                        let _ = std::fs::set_permissions(auth_path, perms);
-                    }
+                    crate::utils::ensure_private_permissions(auth_path);
                 }
                 Err(e) => {
                     warn!("写回 auth 文件失败: {}", e);

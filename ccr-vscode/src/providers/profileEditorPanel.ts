@@ -569,6 +569,19 @@ export class ProfileEditorPanel {
       map[field.key] = field.label;
       return map;
     }, {});
+    const SECRET_FIELD_KEYS = Object.values(FIELD_GROUPS)
+      .flat()
+      .filter((field) => field.secret)
+      .map((field) => field.key);
+
+    function sanitizeProfile(profile) {
+      if (!profile) return profile;
+      const sanitized = { ...profile };
+      SECRET_FIELD_KEYS.forEach((key) => {
+        if (key in sanitized) sanitized[key] = undefined;
+      });
+      return sanitized;
+    }
     const allowedEditableFields = ${serializedAllowedEditableFields};
     const fieldElements = {};
     const fieldState = {};
@@ -675,7 +688,7 @@ export class ProfileEditorPanel {
       }, 1800);
     }
     flashAutosave.timer = 0;
-    function persistState() { vscode.setState({ profile: currentProfile, mode: currentMode }); }
+    function persistState() { vscode.setState({ profile: sanitizeProfile(currentProfile), mode: currentMode }); }
     function saveFieldIfDirty(field) {
       if (currentMode !== 'edit') return;
       const input = fieldElements[field];

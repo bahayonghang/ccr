@@ -5,6 +5,7 @@ src/**
 *.vsix
 node_modules/**
 tsconfig.json
+tsconfig.test.json
 *.map
 .gitignore
 .omc/**

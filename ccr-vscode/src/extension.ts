@@ -32,6 +32,7 @@ import {
   type ProfileCreationPlatform,
 } from "./models/types";
 import { ProfileEditorPanel } from "./providers/profileEditorPanel";
+import { normalizeFieldValue } from "./providers/profileEditorPanel.helpers";
 
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
   const treeProvider = new ProfileTreeProvider();
@@ -269,7 +270,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       }
 
       if (!platformName) {
-        const registry = readRegistry();
+        const registry = await readRegistry();
         if (!registry || registry.platforms.length === 0) {
           vscode.window.showWarningMessage("No platforms available.");
           return;
@@ -297,7 +298,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 
   context.subscriptions.push(
     vscode.commands.registerCommand("ccr.selectStatusBarPlatform", async () => {
-      const registry = readRegistry();
+      const registry = await readRegistry();
       if (!registry || registry.platforms.length === 0) {
         vscode.window.showWarningMessage("No platforms available.");
         return;
@@ -358,7 +359,7 @@ async function doSwitch(
       cancellable: false,
     },
     async () => {
-      const registry = readRegistry();
+      const registry = await readRegistry();
       const currentPlatform = registry?.currentPlatform ?? "";
 
       if (currentPlatform !== platform) {
@@ -412,7 +413,7 @@ async function showSwitchQuickPick(
   refreshAll: () => void,
   platformOverride?: string,
 ): Promise<void> {
-  const registry = readRegistry();
+  const registry = await readRegistry();
   if (!registry || registry.platforms.length === 0) {
     vscode.window.showWarningMessage("No platforms available.");
     return;
@@ -441,7 +442,7 @@ async function showSwitchQuickPick(
     platformName = picked.platformName;
   }
 
-  const profiles = readProfiles(platformName);
+  const profiles = await readProfiles(platformName);
   if (profiles.length === 0) {
     vscode.window.showWarningMessage(`No profiles for ${platformName}.`);
     return;
@@ -465,7 +466,7 @@ async function showSwitchQuickPick(
 }
 
 async function showCodexAuthQuickPick(refreshAll: () => void): Promise<void> {
-  const accounts = readCodexAuthAccounts();
+  const accounts = await readCodexAuthAccounts();
   if (accounts.length === 0) {
     vscode.window.showWarningMessage("No Codex auth accounts available.");
     return;
@@ -551,7 +552,7 @@ async function resolveProfileCreationPlatform(
     return source;
   }
 
-  const registry = readRegistry();
+  const registry = await readRegistry();
   const items = (registry?.platforms ?? [])
     .filter((platform): platform is typeof platform & { name: ProfileCreationPlatform } => (
       platform.enabled && isProfileCreationPlatform(platform.name)
@@ -626,20 +627,23 @@ async function editProfileField(
       ? String(currentValue)
       : "";
 
+  const isSecret = picked.field.key === "authToken";
   const newValue = await vscode.window.showInputBox({
     prompt: `Edit ${picked.field.label} for '${profile.name}'`,
     value: currentStr,
-    placeHolder: `Enter new value for ${picked.field.label}`,
+    password: isSecret,
+    placeHolder: isSecret ? "Update or clear the credential" : `Enter new value for ${picked.field.label}`,
   });
 
   if (newValue === undefined) return;
 
   try {
+    const writeValue = normalizeFieldValue(picked.field.tomlKey, newValue);
     const result = await execPlatformProfileSetField(
       profile.platformName,
       profile.name,
       picked.field.tomlKey,
-      newValue || undefined,
+      writeValue,
     );
     if (!result.success) {
       vscode.window.showErrorMessage(`Failed to update profile: ${result.stderr || "Unknown error"}`);

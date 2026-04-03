@@ -17,14 +17,17 @@ interface CodexAuthRegistryShape {
   accounts?: Record<string, CodexAuthRegistryEntry>;
 }
 
-export function readCodexAuthAccounts(): CodexAuthInfo[] {
+function isNotFoundError(error: unknown): boolean {
+  if (!error || typeof error !== "object") return false;
+  if (!("code" in error)) return false;
+  return (error as { code?: string }).code === "ENOENT";
+}
+
+export async function readCodexAuthAccounts(): Promise<CodexAuthInfo[]> {
   const registryPath = getCodexAuthRegistryPath();
-  if (!fs.existsSync(registryPath)) {
-    return [];
-  }
 
   try {
-    const content = fs.readFileSync(registryPath, "utf-8");
+    const content = await fs.promises.readFile(registryPath, "utf-8");
     const raw = TOML.parse(content) as unknown as CodexAuthRegistryShape;
     const currentAuth = raw.current_auth;
     const accounts = Object.entries(raw.accounts ?? {}).map(([name, value]) => ({
@@ -46,6 +49,9 @@ export function readCodexAuthAccounts(): CodexAuthInfo[] {
 
     return accounts;
   } catch (error) {
+    if (isNotFoundError(error)) {
+      return [];
+    }
     console.error("Failed to read Codex auth registry:", error);
     return [];
   }

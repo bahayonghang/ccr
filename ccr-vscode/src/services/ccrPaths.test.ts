@@ -64,7 +64,7 @@ describe("tomlReader", () => {
   describe("readRegistry", () => {
     it("returns null when config.toml does not exist", async () => {
       const { readRegistry } = await import("../services/tomlReader.js");
-      assert.equal(readRegistry(), null);
+      assert.equal(await readRegistry(), null);
     });
 
     it("parses config.toml with platform entries", async () => {
@@ -84,7 +84,7 @@ current_profile = "default"
       fs.writeFileSync(path.join(tmpDir, "config.toml"), configToml, "utf-8");
 
       const { readRegistry } = await import("../services/tomlReader.js");
-      const result = readRegistry();
+      const result = await readRegistry();
 
       assert.notEqual(result, null);
       assert.equal(result!.platforms.length, 2);
@@ -96,7 +96,7 @@ current_profile = "default"
   describe("readProfiles", () => {
     it("returns empty array when profiles.toml does not exist", async () => {
       const { readProfiles } = await import("../services/tomlReader.js");
-      const result = readProfiles("nonexistent");
+      const result = await readProfiles("nonexistent");
       assert.deepEqual(result, []);
     });
 
@@ -127,7 +127,7 @@ enabled = false
       fs.writeFileSync(path.join(platformDir, "profiles.toml"), profilesToml, "utf-8");
 
       const { readProfiles } = await import("../services/tomlReader.js");
-      const profiles = readProfiles("claude");
+      const profiles = await readProfiles("claude");
 
       assert.equal(profiles.length, 2);
       assert.equal(profiles.find((p) => p.name === "anthropic")?.isCurrent, true);

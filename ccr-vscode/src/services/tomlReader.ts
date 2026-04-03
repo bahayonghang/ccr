@@ -24,15 +24,18 @@ const REGISTRY_TOP_KEYS = new Set(["default_platform", "current_platform"]);
 
 // ── Registry (config.toml) ──
 
+function isNotFoundError(error: unknown): boolean {
+  if (!error || typeof error !== "object") return false;
+  if (!("code" in error)) return false;
+  return (error as { code?: string }).code === "ENOENT";
+}
+
 /** Read and parse the unified registry */
-export function readRegistry(): { platforms: PlatformInfo[]; currentPlatform: string } | null {
+export async function readRegistry(): Promise<{ platforms: PlatformInfo[]; currentPlatform: string } | null> {
   const registryPath = getRegistryPath();
-  if (!fs.existsSync(registryPath)) {
-    return null;
-  }
 
   try {
-    const content = fs.readFileSync(registryPath, "utf-8");
+    const content = await fs.promises.readFile(registryPath, "utf-8");
     const raw = TOML.parse(content) as unknown as UnifiedConfig;
 
     const currentPlatform = raw.current_platform ?? "claude";
@@ -63,6 +66,9 @@ export function readRegistry(): { platforms: PlatformInfo[]; currentPlatform: st
 
     return { platforms, currentPlatform };
   } catch (err) {
+    if (isNotFoundError(err)) {
+      return null;
+    }
     console.error("Failed to read CCR registry:", err);
     return null;
   }
@@ -71,14 +77,11 @@ export function readRegistry(): { platforms: PlatformInfo[]; currentPlatform: st
 // ── Profiles (profiles.toml) ──
 
 /** Read and parse profiles for a platform */
-export function readProfiles(platformName: string): ProfileInfo[] {
+export async function readProfiles(platformName: string): Promise<ProfileInfo[]> {
   const profilesPath = getProfilesPath(platformName);
-  if (!fs.existsSync(profilesPath)) {
-    return [];
-  }
 
   try {
-    const content = fs.readFileSync(profilesPath, "utf-8");
+    const content = await fs.promises.readFile(profilesPath, "utf-8");
     const raw = TOML.parse(content) as unknown as CcsConfig;
     const currentConfig = raw.current_config ?? "";
 
@@ -111,6 +114,9 @@ export function readProfiles(platformName: string): ProfileInfo[] {
 
     return profiles;
   } catch (err) {
+    if (isNotFoundError(err)) {
+      return [];
+    }
     console.error(`Failed to read profiles for ${platformName}:`, err);
     return [];
   }

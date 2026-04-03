@@ -263,7 +263,7 @@ export class ProfileTreeProvider implements vscode.TreeDataProvider<TreeNode> {
     return element;
   }
 
-  getChildren(element?: TreeNode): TreeNode[] {
+  async getChildren(element?: TreeNode): Promise<TreeNode[]> {
     if (!ccrRootExists()) {
       if (!element) {
         return [new MessageNode("CCR is not initialized. Run 'ccr init' to get started.")];
@@ -272,7 +272,7 @@ export class ProfileTreeProvider implements vscode.TreeDataProvider<TreeNode> {
     }
 
     if (!element) {
-      const registry = readRegistry();
+      const registry = await readRegistry();
       if (!registry || registry.platforms.length === 0) {
         return [new MessageNode("No platforms configured.")];
       }
@@ -292,13 +292,13 @@ export class ProfileTreeProvider implements vscode.TreeDataProvider<TreeNode> {
 
     if (element instanceof SectionNode) {
       if (element.section.kind === "profiles") {
-        const profiles = sortProfiles(readProfiles(element.section.platformName));
+        const profiles = sortProfiles(await readProfiles(element.section.platformName));
         return profiles.length > 0
           ? profiles.map((profile) => new ProfileNode(profile))
           : [new MessageNode("No profiles configured.")];
       }
 
-      const authAccounts = sortAuthAccounts(readCodexAuthAccounts());
+      const authAccounts = sortAuthAccounts(await readCodexAuthAccounts());
       return authAccounts.length > 0
         ? authAccounts.map((auth) => new CodexAuthNode(auth))
         : [new MessageNode("No Codex auth accounts configured.")];

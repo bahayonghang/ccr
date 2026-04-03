@@ -20,12 +20,11 @@ use crate::models::{
     LoginState, OpenAiAuthMethod, PlatformPaths, TokenFreshness, normalize_auth_map_for_intent,
 };
 use crate::platforms::codex::CodexPlatform;
-use ccr_core::core::AtomicWriter;
+use crate::utils::CodexPaths;
 use ccr_core::core::error::{CcrError, Result};
 use ccr_core::core::lock::LockManager;
 use chrono::{DateTime, Duration, Utc};
 use std::path::PathBuf;
-use std::time::Duration as StdDuration;
 use std::{env, fs};
 use tracing::{debug, warn};
 
@@ -42,9 +41,6 @@ pub struct CodexAuthService {
     /// Codex CLI 配置目录 (~/.codex/)
     codex_dir: PathBuf,
 }
-
-const CODEX_AUTH_REGISTRY_LOCK_TIMEOUT: StdDuration = StdDuration::from_secs(10);
-const CODEX_AUTH_REGISTRY_LOCK_RESOURCE: &str = "codex_auth_registry";
 
 struct CurrentAuthDocuments {
     raw: serde_json::Map<String, serde_json::Value>,
@@ -64,27 +60,10 @@ pub struct AuthReadSnapshot {
 impl CodexAuthService {
     /// 创建新的 CodexAuthService 实例
     pub fn new() -> Result<Self> {
-        let home =
-            dirs::home_dir().ok_or_else(|| CcrError::ConfigError("无法获取用户主目录".into()))?;
-
-        let ccr_root = if let Ok(custom) = env::var("CCR_DATA_DIR") {
-            PathBuf::from(custom)
-        } else if let Ok(custom) = env::var("CCR_ROOT") {
-            PathBuf::from(custom)
-        } else {
-            home.join(".ccr")
-        };
-        let ccr_codex_dir = ccr_root.join("platforms/codex");
-
-        let codex_dir = if let Ok(custom) = env::var("CCR_CODEX_DIR") {
-            PathBuf::from(custom)
-        } else {
-            home.join(".codex")
-        };
-
+        let paths = CodexPaths::resolve()?;
         Ok(Self {
-            ccr_codex_dir,
-            codex_dir,
+            ccr_codex_dir: paths.ccr_codex_dir,
+            codex_dir: paths.codex_dir,
         })
     }
 
@@ -607,10 +586,9 @@ impl CodexAuthService {
     /// 根据当前 runtime auth 对账 current_auth 指针
     pub fn sync_current_auth_registry(&self) -> Result<Option<String>> {
         let mut registry = self.load_registry()?;
-        let new_current = match self.get_auth_state().intent {
-            AuthIntent::OpenAiAuth { .. }
-                if matches!(self.get_auth_state().status, AuthStateStatus::Valid) =>
-            {
+        let state = self.get_auth_state();
+        let new_current = match state.intent {
+            AuthIntent::OpenAiAuth { .. } if matches!(state.status, AuthStateStatus::Valid) => {
                 let info = self.get_current_auth_info()?;
                 registry.accounts.iter().find_map(|(name, account)| {
                     (account.account_id == info.account_id).then(|| name.clone())
@@ -794,13 +772,8 @@ impl CodexAuthService {
         fs::copy(&src, &dst)
             .map_err(|e| CcrError::ConfigError(format!("复制 auth.json 失败: {}", e)))?;
 
-        // 设置文件权限 (Unix)
-        #[cfg(unix)]
-        {
-            use std::os::unix::fs::PermissionsExt;
-            let perms = std::fs::Permissions::from_mode(0o600);
-            let _ = fs::set_permissions(&dst, perms);
-        }
+        // 设置文件权限（仅当前用户可读写）
+        crate::utils::ensure_private_permissions(&dst);
 
         // 获取当前账号信息
         let current_info = self.get_current_auth_info()?;
@@ -1104,21 +1077,49 @@ impl CodexAuthService {
 
     // ==================== 进程检测 ====================
 
-    /// 检测是否有 Codex 进程正在运行
-    pub fn detect_codex_process(&self) -> Vec<u32> {
-        use sysinfo::System;
+    /// 进程检测缓存（5 秒节流，避免 TUI 场景下频繁扫描进程表）
+    fn cached_codex_processes() -> Vec<u32> {
+        use std::sync::{LazyLock, Mutex};
+        use std::time::Instant;
 
+        static CACHE: LazyLock<Mutex<(Instant, Vec<u32>)>> = LazyLock::new(|| {
+            Mutex::new((
+                Instant::now() - std::time::Duration::from_secs(10),
+                Vec::new(),
+            ))
+        });
+
+        const THROTTLE: std::time::Duration = std::time::Duration::from_secs(5);
+
+        let mut cache = CACHE
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        if cache.0.elapsed() < THROTTLE {
+            return cache.1.clone();
+        }
+
+        // 缓存过期，重新扫描
+        use sysinfo::System;
         let mut sys = System::new();
         sys.refresh_processes(sysinfo::ProcessesToUpdate::All, true);
 
-        sys.processes()
+        let pids: Vec<u32> = sys
+            .processes()
             .iter()
             .filter(|(_, process)| {
                 let name = process.name().to_string_lossy().to_lowercase();
                 name.contains("codex") && !name.contains("ccr")
             })
             .map(|(pid, _)| pid.as_u32())
-            .collect()
+            .collect();
+
+        *cache = (Instant::now(), pids.clone());
+        pids
+    }
+
+    /// 检测是否有 Codex 进程正在运行（5 秒缓存节流）
+    pub fn detect_codex_process(&self) -> Vec<u32> {
+        Self::cached_codex_processes()
     }
 
     // ==================== Token 新鲜度 ====================
@@ -1196,63 +1197,23 @@ impl CodexAuthService {
 
     /// Base64URL 解码
     fn base64url_decode(&self, input: &str) -> Option<Vec<u8>> {
-        use base64::{Engine, engine::general_purpose::URL_SAFE_NO_PAD};
-
-        // 添加 padding
-        let padded = match input.len() % 4 {
-            2 => format!("{}==", input),
-            3 => format!("{}=", input),
-            _ => input.to_string(),
-        };
-
-        URL_SAFE_NO_PAD.decode(&padded).ok().or_else(|| {
-            // 尝试标准 base64
-            use base64::engine::general_purpose::STANDARD;
-            STANDARD.decode(&padded).ok()
-        })
+        crate::utils::decode_base64url(input)
     }
 
     // ==================== 注册表管理 ====================
 
     /// 加载注册表
     pub fn load_registry(&self) -> Result<CodexAuthRegistry> {
-        let path = self.registry_path();
-        if !path.exists() {
-            return Ok(CodexAuthRegistry::default());
-        }
-
-        let content = fs::read_to_string(&path)
-            .map_err(|e| CcrError::ConfigError(format!("读取注册表失败: {}", e)))?;
-
-        toml::from_str(&content)
-            .map_err(|e| CcrError::ConfigError(format!("解析注册表失败: {}", e)))
+        self.registry_store().load()
     }
 
     /// 保存注册表
     fn save_registry(&self, registry: &CodexAuthRegistry) -> Result<()> {
-        let path = self.registry_path();
-        let lock_manager = LockManager::new(self.ccr_codex_dir.join(".locks"));
-        let _lock = lock_manager.lock_resource(
-            CODEX_AUTH_REGISTRY_LOCK_RESOURCE,
-            CODEX_AUTH_REGISTRY_LOCK_TIMEOUT,
-        )?;
+        self.registry_store().save(registry)
+    }
 
-        // 确保目录存在
-        if let Some(parent) = path.parent() {
-            fs::create_dir_all(parent)
-                .map_err(|e| CcrError::ConfigError(format!("创建目录失败: {}", e)))?;
-        }
-
-        let content = toml::to_string_pretty(registry)
-            .map_err(|e| CcrError::ConfigError(format!("序列化注册表失败: {}", e)))?;
-
-        let _ = self.backup_registry()?;
-
-        AtomicWriter::new(&path)
-            .write_string(&content)
-            .map_err(|e| CcrError::ConfigError(format!("写入注册表失败: {}", e)))?;
-
-        Ok(())
+    fn registry_store(&self) -> super::codex_registry_store::CodexRegistryStore {
+        super::codex_registry_store::CodexRegistryStore::new(&self.ccr_codex_dir)
     }
 
     pub fn update_account_description(
@@ -1513,13 +1474,8 @@ impl CodexAuthService {
                     CcrError::ConfigError(format!("写入 auth 文件失败 (账号: {}): {}", name, e))
                 })?;
 
-                // 设置文件权限 (Unix)
-                #[cfg(unix)]
-                {
-                    use std::os::unix::fs::PermissionsExt;
-                    let perms = std::fs::Permissions::from_mode(0o600);
-                    let _ = fs::set_permissions(&auth_path, perms);
-                }
+                // 设置文件权限（仅当前用户可读写）
+                crate::utils::ensure_private_permissions(&auth_path);
 
                 debug!("已写入账号 {} 的 auth 文件", name);
             }

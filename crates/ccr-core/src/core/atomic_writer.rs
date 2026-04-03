@@ -138,6 +138,12 @@ impl AsyncAtomicWriter {
             CcrError::IoError(std::io::Error::other(format!("写入临时文件失败: {}", e)))
         })?;
 
+        // Windows 上 rename 不能原子覆盖已存在的文件，需要先删除目标
+        #[cfg(target_os = "windows")]
+        if self.target_path.exists() {
+            let _ = async_fs::remove_file(&self.target_path).await;
+        }
+
         if let Err(e) = async_fs::rename(&temp_path, &self.target_path).await {
             let _ = async_fs::remove_file(&temp_path).await;
             return Err(CcrError::IoError(std::io::Error::other(format!(

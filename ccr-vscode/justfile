@@ -16,7 +16,8 @@ install:
 
 # 🔨 构建扩展 — esbuild 打包 + vsce 生成 .vsix + 复制到 outputs/
 build:
-    npm run package
+    node ./node_modules/esbuild/bin/esbuild src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --format=cjs --platform=node --target=node18 --charset=utf8 --minify --legal-comments=none
+    node ./node_modules/@vscode/vsce/vsce package --no-dependencies -o ccr-vscode.vsix
     @just _copy-outputs-{{os()}}
 
 [private]
@@ -43,11 +44,12 @@ watch:
 
 # 🔍 TypeScript 类型检查
 lint:
-    npm run lint
+    node ./node_modules/typescript/bin/tsc --noEmit
+    node ./node_modules/typescript/bin/tsc -p tsconfig.test.json --noEmit
 
 # ✅ 运行测试
 test:
-    npm test
+    node --import tsx --test src/**/*.test.ts
 
 # 🧹 清理构建产物
 clean:

@@ -13,6 +13,7 @@
 
 use crate::models::codex_auth::CodexAuthTokens;
 use crate::models::{CodexAuthJson, CodexAuthRegistry};
+use crate::utils::CodexPaths;
 use ccr_core::core::atomic_writer::AtomicWriter;
 use ccr_core::core::error::{CcrError, Result};
 use chrono::{DateTime, Utc};
@@ -67,32 +68,19 @@ pub struct CodexOAuthTokenService {
 
 impl CodexOAuthTokenService {
     pub fn new() -> Result<Self> {
-        let home =
-            dirs::home_dir().ok_or_else(|| CcrError::ConfigError("无法获取用户主目录".into()))?;
-
-        let ccr_root = if let Ok(custom) = std::env::var("CCR_DATA_DIR") {
-            PathBuf::from(custom)
-        } else if let Ok(custom) = std::env::var("CCR_ROOT") {
-            PathBuf::from(custom)
-        } else {
-            home.join(".ccr")
-        };
-        let ccr_codex_dir = ccr_root.join("platforms/codex");
-
-        let codex_dir = if let Ok(custom) = std::env::var("CCR_CODEX_DIR") {
-            PathBuf::from(custom)
-        } else {
-            home.join(".codex")
-        };
-
+        let paths = CodexPaths::resolve()?;
         Ok(Self {
-            ccr_codex_dir,
-            codex_dir,
+            ccr_codex_dir: paths.ccr_codex_dir,
+            codex_dir: paths.codex_dir,
         })
     }
 
-    fn registry_path(&self) -> PathBuf {
-        self.ccr_codex_dir.join("auth_registry.toml")
+    /// 从显式路径构造（用于测试注入，避免 unsafe set_var）
+    pub fn from_dirs(ccr_codex_dir: PathBuf, codex_dir: PathBuf) -> Self {
+        Self {
+            ccr_codex_dir,
+            codex_dir,
+        }
     }
 
     fn auth_storage_dir(&self) -> PathBuf {
@@ -111,38 +99,21 @@ impl CodexOAuthTokenService {
         self.codex_dir.join("backups")
     }
 
-    fn load_registry(&self) -> Result<CodexAuthRegistry> {
-        let path = self.registry_path();
-        if !path.exists() {
-            return Ok(CodexAuthRegistry::default());
-        }
+    fn registry_store(&self) -> super::codex_registry_store::CodexRegistryStore {
+        super::codex_registry_store::CodexRegistryStore::new(&self.ccr_codex_dir)
+    }
 
-        let content = fs::read_to_string(&path)
-            .map_err(|e| CcrError::ConfigError(format!("读取注册表失败: {}", e)))?;
-        toml::from_str(&content)
-            .map_err(|e| CcrError::ConfigError(format!("解析注册表失败: {}", e)))
+    fn load_registry(&self) -> Result<CodexAuthRegistry> {
+        self.registry_store().load()
     }
 
     fn save_registry(&self, registry: &CodexAuthRegistry) -> Result<()> {
-        let path = self.registry_path();
-        let content = toml::to_string_pretty(registry)
-            .map_err(|e| CcrError::ConfigError(format!("序列化注册表失败: {}", e)))?;
-
-        AtomicWriter::new(&path).write_string(&content)?;
-        self.ensure_private_permissions(&path);
-        Ok(())
+        self.registry_store().save(registry)
     }
 
-    #[cfg(unix)]
     fn ensure_private_permissions(&self, path: &Path) {
-        use std::os::unix::fs::PermissionsExt;
-
-        let perms = std::fs::Permissions::from_mode(0o600);
-        let _ = fs::set_permissions(path, perms);
+        crate::utils::ensure_private_permissions(path);
     }
-
-    #[cfg(not(unix))]
-    fn ensure_private_permissions(&self, _path: &Path) {}
 
     fn parse_rfc3339(value: Option<&str>) -> Option<DateTime<Utc>> {
         value
@@ -535,19 +506,7 @@ impl CodexOAuthTokenService {
     }
 
     fn decode_base64_url(input: &str) -> Option<Vec<u8>> {
-        use base64::Engine;
-        use base64::engine::general_purpose::URL_SAFE_NO_PAD;
-
-        let padded = match input.len() % 4 {
-            2 => format!("{}==", input),
-            3 => format!("{}=", input),
-            _ => input.to_string(),
-        };
-
-        URL_SAFE_NO_PAD.decode(&padded).ok().or_else(|| {
-            use base64::engine::general_purpose::STANDARD;
-            STANDARD.decode(&padded).ok()
-        })
+        crate::utils::decode_base64url(input)
     }
 }
 
@@ -561,12 +520,7 @@ mod tests {
     fn write_json(path: &Path, value: &serde_json::Value) {
         let content = serde_json::to_string_pretty(value).unwrap();
         AtomicWriter::new(path).write_string(&content).unwrap();
-        #[cfg(unix)]
-        {
-            use std::os::unix::fs::PermissionsExt;
-            let perms = std::fs::Permissions::from_mode(0o600);
-            let _ = fs::set_permissions(path, perms);
-        }
+        crate::utils::ensure_private_permissions(path);
     }
 
     fn setup_dirs() -> (TempDir, PathBuf, TempDir, PathBuf) {
@@ -583,12 +537,7 @@ mod tests {
     fn test_resolve_latest_oauth_doc_prefers_newer_last_refresh_or_mtime() {
         let (_ccr_root, ccr_codex_dir, _codex_root, codex_dir) = setup_dirs();
 
-        unsafe {
-            std::env::set_var("CCR_DATA_DIR", _ccr_root.path().to_str().unwrap());
-            std::env::set_var("CCR_CODEX_DIR", codex_dir.to_str().unwrap());
-        }
-
-        let service = CodexOAuthTokenService::new().unwrap();
+        let service = CodexOAuthTokenService::from_dirs(ccr_codex_dir.clone(), codex_dir.clone());
         assert_eq!(service.ccr_codex_dir, ccr_codex_dir);
 
         let acc_id = "acc-123";
@@ -630,14 +579,9 @@ mod tests {
 
     #[test]
     fn test_repair_saved_account_updates_snapshot_and_registry() {
-        let (ccr_root, _ccr_codex_dir, _codex_root, codex_dir) = setup_dirs();
+        let (_ccr_root, ccr_codex_dir, _codex_root, codex_dir) = setup_dirs();
 
-        unsafe {
-            std::env::set_var("CCR_DATA_DIR", ccr_root.path().to_str().unwrap());
-            std::env::set_var("CCR_CODEX_DIR", codex_dir.to_str().unwrap());
-        }
-
-        let service = CodexOAuthTokenService::new().unwrap();
+        let service = CodexOAuthTokenService::from_dirs(ccr_codex_dir.clone(), codex_dir.clone());
 
         // registry with one account
         let mut registry = CodexAuthRegistry::default();

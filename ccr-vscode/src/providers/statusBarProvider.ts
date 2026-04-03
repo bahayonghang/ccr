@@ -12,6 +12,7 @@ import { resolveStatusBarTarget } from "./statusBarTarget";
 
 export class StatusBarProvider implements vscode.Disposable {
   private readonly statusBarItem: vscode.StatusBarItem;
+  private updateVersion = 0;
 
   constructor() {
     this.statusBarItem = vscode.window.createStatusBarItem(
@@ -24,6 +25,11 @@ export class StatusBarProvider implements vscode.Disposable {
 
   /** Update status bar text from current config state */
   update(): void {
+    void this.updateAsync();
+  }
+
+  private async updateAsync(): Promise<void> {
+    const updateVersion = ++this.updateVersion;
     const config = vscode.workspace.getConfiguration("ccr");
     const mode = config.get<string>("statusBar.mode", "pinned");
     const pinnedPlatform = config.get<string>("statusBar.platform", "");
@@ -41,7 +47,10 @@ export class StatusBarProvider implements vscode.Disposable {
       return;
     }
 
-    const registry = readRegistry();
+    const registry = await readRegistry();
+    if (updateVersion !== this.updateVersion) {
+      return;
+    }
     if (!registry || registry.platforms.length === 0) {
       this.statusBarItem.command = "ccr.switchProfile";
       this.statusBarItem.text = "$(gear) CCR: No platforms";
@@ -71,7 +80,10 @@ export class StatusBarProvider implements vscode.Disposable {
       return;
     }
 
-    const profiles = readProfiles(platform.name);
+    const profiles = await readProfiles(platform.name);
+    if (updateVersion !== this.updateVersion) {
+      return;
+    }
     const current = profiles.find((profile) => profile.isCurrent);
     const profileName = current?.name ?? platform.currentProfile ?? "none";
 
