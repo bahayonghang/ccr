@@ -393,9 +393,20 @@ pub fn update_current_config(profiles_path: &Path, name: &str) -> Result<()> {
 
     let backup_dir = profiles_path
         .parent()
-        .and_then(|parent| parent.parent())
-        .and_then(|platforms_dir| platforms_dir.parent())
-        .map(|root| root.join("backups").join(platform_name))
+        .and_then(|parent| {
+            // 仅在标准目录结构 (<root>/platforms/<name>/profiles.toml) 时向上推算备份目录
+            let grandparent = parent.parent()?;
+            if grandparent
+                .file_name()
+                .and_then(|n| n.to_str())
+                .is_some_and(|n| n.eq_ignore_ascii_case("platforms"))
+            {
+                let root = grandparent.parent()?;
+                Some(root.join("backups").join(platform_name))
+            } else {
+                None
+            }
+        })
         .unwrap_or_else(|| {
             profiles_path
                 .parent()
