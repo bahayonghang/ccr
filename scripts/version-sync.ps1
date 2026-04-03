@@ -1,22 +1,37 @@
 # 版本同步脚本（PowerShell 版本）
-# 以 crates/ccr/Cargo.toml 为主，同步到：
-# - crates/ccr-types/Cargo.toml
-# - crates/ccr-db/Cargo.toml
-# - ccr-ui/package.json
-# - ccr-ui/src-tauri/Cargo.toml
-# - ccr-ui/src-tauri/tauri.conf.json
-# - ccr-vscode/package.json
+# 以 crates/ccr/Cargo.toml 为主，同步到各目标文件
 
 param(
     [switch]$Check,
     [switch]$Verbose
 )
 
+# ═══════════════════════════════════════════════════════════
+# 📋 同步目标配置（单一数据源）
+# 修改同步逻辑时，优先检查此配置表
+# ═══════════════════════════════════════════════════════════
+# 格式：@{ Name = "显示名称"; Path = "相对路径"; Type = "cargo|json|vue" }
+# 新增目标：在此添加哈希表项，并检查 extract/update 函数是否支持该类型
+# 删除目标：从此表中移除即可
+$SYNC_TARGETS = @(
+    @{ Name = "ccr-types";      Path = "crates\ccr-types\Cargo.toml";             Type = "cargo" }
+    @{ Name = "ccr-db";         Path = "crates\ccr-db\Cargo.toml";                Type = "cargo" }
+    @{ Name = "frontend";       Path = "ccr-ui\package.json";                     Type = "json"  }
+    @{ Name = "tauri-cargo";    Path = "ccr-ui\src-tauri\Cargo.toml";             Type = "cargo" }
+    @{ Name = "tauri-conf";     Path = "ccr-ui\src-tauri\tauri.conf.json";        Type = "json"  }
+    @{ Name = "ui-component";   Path = "ccr-ui\src\components\MainLayout.vue";    Type = "vue"   }
+    @{ Name = "ui-legacy";      Path = "ccr-ui\src\layouts\MainLayout.vue";       Type = "vue"   }
+    @{ Name = "vscode";         Path = "ccr-vscode\package.json";                 Type = "json"  }
+)
+# ═══════════════════════════════════════════════════════════
+
 # 设置 UTF-8 编码以正确显示中文
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 [Console]::InputEncoding = [System.Text.Encoding]::UTF8
 $OutputEncoding = [System.Text.Encoding]::UTF8
-chcp 65001 | Out-Null
+try { chcp 65001 | Out-Null } catch {
+    # 忽略代码页切换错误，UTF-8 编码设置已在上文完成
+}
 
 $ErrorActionPreference = "Stop"
 
@@ -96,29 +111,61 @@ function Get-JsonVersion {
 }
 
 # 更新 Cargo.toml 的 [package] 区块中的 version
+# 如果目标使用 version.workspace = true，则跳过更新
 function Set-CargoVersion {
     param(
         [string]$Path,
         [string]$NewVersion
     )
-    
+
     $content = Get-Content $Path -Raw
-    # 使用回调方式替换，避免 $1 变量解释问题
+    
+    # 检查是否使用 workspace 版本继承
+    if ($content -match '(?ms)^\[(?:workspace\.)?package\]\s*(.*?)(?=^\[|\z)') {
+        $block = $matches[1]
+        if ($block -match '(?m)^\s*version\.workspace\s*=\s*true\s*$') {
+            if ($Verbose) {
+                Write-Host "  ⏭️  $(Split-Path $Path -Leaf) 使用 workspace 版本继承，跳过"
+            }
+            return
+        }
+    }
+
+    # 使用正则替换更新版本号
     $pattern = '(\[package\](?:(?!\[).)*?version\s*=\s*)"[^"]+"'
     $updated = [regex]::Replace($content, $pattern, { param($m) $m.Groups[1].Value + '"' + $NewVersion + '"' }, [System.Text.RegularExpressions.RegexOptions]::Singleline)
     Set-Content -Path $Path -Value $updated -NoNewline
 }
 
-# 更新 JSON 文件的 version
+# 更新 JSON 文件的 version（优先使用 jq 保留格式）
 function Set-JsonVersion {
     param(
         [string]$Path,
         [string]$NewVersion
     )
-    
-    $json = Get-Content $Path -Raw | ConvertFrom-Json
-    $json.version = $NewVersion
-    $json | ConvertTo-Json -Depth 100 | Set-Content -Path $Path -Encoding UTF8
+
+    # 优先使用 jq 进行原地更新，保留原有格式
+    if (Get-Command jq -ErrorAction SilentlyContinue) {
+        $tmp = [System.IO.Path]::GetTempFileName()
+        try {
+            jq --arg ver $NewVersion '.version = $ver' $Path | Out-File -FilePath $tmp -Encoding UTF8 -NoNewline
+            Move-Item -Path $tmp -Destination $Path -Force
+        }
+        catch {
+            Remove-Item -Path $tmp -Force -ErrorAction SilentlyContinue
+            Write-Error "❌ jq 更新 $Path 失败: $_"
+            exit 1
+        }
+    }
+    else {
+        # 降级到 ConvertTo-Json，发出警告
+        if ($Verbose) {
+            Write-Warning "jq 未安装，使用 PowerShell 原生 JSON 处理，格式可能会改变"
+        }
+        $json = Get-Content $Path -Raw | ConvertFrom-Json
+        $json.version = $NewVersion
+        $json | ConvertTo-Json -Depth 100 | Set-Content -Path $Path -Encoding UTF8
+    }
 }
 
 # 从 UI 布局文件中提取 CCR UI 版本

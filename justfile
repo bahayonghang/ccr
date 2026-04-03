@@ -683,7 +683,7 @@ frontend-build:
 docs-check:
     @just header "📚 文档构建检查"
     @just warn "注意: 若有 dead links 会失败，可在 .vitepress/config 中配置 ignoreDeadLinks"
-    cd docs && npm install && npm run build
+    cd docs && npm install && node ./node_modules/vitepress/bin/vitepress.js build
     @just success "文档构建检查完成"
 
 # 🌐 前端完整检查 (类型检查 + Lint + 构建 + 文档构建)
@@ -953,6 +953,43 @@ _version-check-linux:
 _version-check-macos:
     @just info "🔍 检查版本号一致性"
     bash scripts/version-sync.sh --check --verbose
+
+# 🧪 运行脚本测试 (Bats + Pester)
+test-scripts:
+    @just _test-scripts-{{os()}}
+
+[private]
+_test-scripts-windows:
+    @just header "🧪 运行脚本测试"
+    @just info "📌 检查 Bats/Pester 是否安装"
+    @# 检查 Pester
+    -pwsh -NoProfile -Command "if (Get-Module -ListAvailable Pester) { Write-Host 'Pester 已安装' -ForegroundColor Green; Invoke-Pester -Path 'tests/scripts/version-sync.Tests.ps1' -PassThru } else { Write-Host 'Pester 未安装，请运行: Install-Module Pester -Force' -ForegroundColor Yellow }"
+    @# 检查 Bats (如果安装了 Git Bash 或 WSL)
+    -bash -c "if command -v bats &>/dev/null; then echo 'Bats 已安装'; bats tests/scripts/version-sync.bats; else echo 'Bats 未安装，请参考: https://github.com/bats-core/bats-core'; fi"
+
+[private]
+_test-scripts-linux:
+    @just header "🧪 运行脚本测试"
+    @just info "📌 检查 Bats 是否安装"
+    @if command -v bats &>/dev/null; then \
+        echo "Bats 已安装，运行测试..."; \
+        bats tests/scripts/version-sync.bats; \
+    else \
+        echo "Bats 未安装，请参考: https://github.com/bats-core/bats-core"; \
+    fi
+    @# 检查 Pester (如果有 pwsh)
+    -pwsh -NoProfile -Command "if (Get-Module -ListAvailable Pester) { Write-Host 'Pester 已安装' -ForegroundColor Green; Invoke-Pester -Path 'tests/scripts/version-sync.Tests.ps1' -PassThru } else { Write-Host 'Pester 未安装 (可选)' -ForegroundColor Yellow }"
+
+[private]
+_test-scripts-macos:
+    @just header "🧪 运行脚本测试"
+    @just info "📌 检查 Bats 是否安装"
+    @if command -v bats &>/dev/null; then \
+        echo "Bats 已安装，运行测试..."; \
+        bats tests/scripts/version-sync.bats; \
+    else \
+        echo "Bats 未安装，请运行: brew install bats-core"; \
+    fi
 
 # ===== CCR UI Commands (migrated from ccr-ui/justfile) =====
 

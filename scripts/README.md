@@ -83,3 +83,40 @@ vim crates/ccr/Cargo.toml
 - 调整版本同步逻辑时，同时检查 Bash 与 PowerShell 版本。
 - 若工作区目录再次调整，优先更新本文档中的 canonical path，再同步更新脚本实现。
 - 若流水线产出需要落盘，统一收集到根 `outputs/`，避免散落在子目录。
+- 新增/删除同步目标时，在两个脚本的 `SYNC_TARGETS` 配置表中同步修改。
+
+## 未来展望：CLI 集成方案
+
+当前版本同步逻辑由独立的 Bash/PowerShell 脚本实现。未来可考虑将其集成到 `crates/ccr` CLI 中，获得以下优势：
+
+### 潜在优势
+
+1. **单一实现**：无需维护两套脚本，避免跨平台逻辑 diverge
+2. **类型安全**：Rust 的类型系统可在编译期捕获路径/格式错误
+3. **更好的错误提示**：使用 `clap` 提供子命令帮助、参数验证、彩色输出
+4. **与现有 CLI 集成**：例如 `ccr version sync`、`ccr version check`
+
+### 设计草图
+
+```rust
+// crates/ccr/src/cli/version.rs
+#[derive(Subcommand)]
+pub enum VersionCommand {
+    /// 检查版本一致性
+    Check { verbose: bool },
+    /// 同步版本到所有目标
+    Sync { dry_run: bool },
+}
+```
+
+### 迁移路径
+
+1. 先在 Rust 中实现核心逻辑（文件解析、版本比较、原子写入）
+2. 保留现有脚本作为轻包装器，调用 `ccr version --legacy`
+3. 验证通过后，逐步弃用脚本，转向 CLI 子命令
+
+### 当前建议
+
+- 保持现有脚本用于 CI/CD 和日常使用
+- 重大同步逻辑修改时，评估是否值得 Rust 重构
+- 若 CLI 已有类似功能，优先复用 CLI 而非重复实现

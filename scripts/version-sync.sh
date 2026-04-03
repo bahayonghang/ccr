@@ -1,16 +1,38 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# 版本同步脚本（以 crates/ccr/Cargo.toml 为主）
-# 同步到：
-# - crates/ccr-types/Cargo.toml
-# - crates/ccr-db/Cargo.toml
-# - ccr-ui/package.json
-# - ccr-ui/src-tauri/Cargo.toml
-# - ccr-ui/src-tauri/tauri.conf.json
-# - ccr-vscode/package.json
+# 版本同步脚本（Bash 版本）
+# 以 crates/ccr/Cargo.toml 为主，同步到各目标文件
+#
+# ═══════════════════════════════════════════════════════════
+# 📋 同步目标配置（单一数据源）
+# 修改同步逻辑时，优先检查此配置表
+# ═══════════════════════════════════════════════════════════
+# 格式：名称:相对路径:类型(cargo|json|vue)
+# 新增目标：在此添加配置行，并检查 extract/update 函数是否支持该类型
+# 删除目标：从此表中移除即可
+SYNC_TARGETS=(
+  "ccr-types:crates/ccr-types/Cargo.toml:cargo"
+  "ccr-db:crates/ccr-db/Cargo.toml:cargo"
+  "frontend:ccr-ui/package.json:json"
+  "tauri-cargo:ccr-ui/src-tauri/Cargo.toml:cargo"
+  "tauri-conf:ccr-ui/src-tauri/tauri.conf.json:json"
+  "ui-component:ccr-ui/src/components/MainLayout.vue:vue"
+  "ui-legacy:ccr-ui/src/layouts/MainLayout.vue:vue"
+  "vscode:ccr-vscode/package.json:json"
+)
+# ═══════════════════════════════════════════════════════════
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")"/.. && pwd)"
+
+# 安全：确保脚本退出时清理所有临时文件
+TEMP_FILES=()
+cleanup_temp() {
+  for tmp in "${TEMP_FILES[@]}"; do
+    rm -f "$tmp" 2>/dev/null || true
+  done
+}
+trap cleanup_temp EXIT ERR INT TERM
 
 ROOT_CARGO="$ROOT_DIR/Cargo.toml"
 CCR_TYPES_CARGO="$ROOT_DIR/crates/ccr-types/Cargo.toml"
@@ -32,6 +54,7 @@ update_ui_footer_version() {
   local file="$1"
   local tmp
   tmp="$(mktemp)"
+  TEMP_FILES+=("$tmp")
   if grep -Eq 'APP_VERSION_LABEL|APP_VERSION|packageJson\.version' "$file"; then
     rm -f "$tmp"
     return
@@ -43,6 +66,31 @@ update_ui_footer_version() {
   sed -E "s/(CCR UI v)[0-9A-Za-z._-]+/\1$ROOT_VER/g" "$file" > "$tmp" || {
     rm -f "$tmp"
     die "更新 $file 中的 CCR UI 版本失败"
+  }
+  mv "$tmp" "$file"
+}
+
+# 更新 Cargo.toml 版本（如果已使用 version.workspace = true 则跳过）
+update_cargo_version() {
+  local file="$1"
+  local new_ver="$2"
+  local tmp
+  tmp="$(mktemp)"
+  TEMP_FILES+=("$tmp")
+
+  # 检查是否使用 workspace 版本继承
+  if awk 'BEGIN{p=0} /^\[(workspace\.)?package\]/{p=1;next} /^\[/{p=0} p && /version\.workspace[[:space:]]*=[[:space:]]*true/{found=1;exit} END{exit !found}' "$file"; then
+    if [[ "$VERBOSE" == true ]]; then
+      echo "  ⏭️  $(basename "$file") 使用 workspace 版本继承，跳过"
+    fi
+    rm -f "$tmp"
+    return
+  fi
+
+  # 执行版本更新
+  sed -E "s/^([[:space:]]*version[[:space:]]*=[[:space:]]*)\"[^\"]+\"/\1\"$new_ver\"/" "$file" > "$tmp" || {
+    rm -f "$tmp"
+    die "更新 $file 版本失败"
   }
   mv "$tmp" "$file"
 }
@@ -251,17 +299,13 @@ echo "♻️  开始同步版本到 UI 文件..."
 
 if [[ "$CCR_DB_VER" != "$ROOT_VER" ]]; then
   echo "  - ccr-db: $CCR_DB_VER -> $ROOT_VER"
-  tmp="$(mktemp)"
-  sed -E "s/^([[:space:]]*version[[:space:]]*=[[:space:]]*)\"[^\"]+\"/\1\"$ROOT_VER\"/" "$CCR_DB_CARGO" > "$tmp" || {
-    rm -f "$tmp"
-    die "更新 ccr-db Cargo.toml 版本失败"
-  }
-  mv "$tmp" "$CCR_DB_CARGO"
+  update_cargo_version "$CCR_DB_CARGO" "$ROOT_VER"
 fi
 
 update_frontend_version() {
   local tmp
   tmp="$(mktemp)"
+  TEMP_FILES+=("$tmp")
   if command -v jq &>/dev/null; then
     jq --arg ver "$ROOT_VER" '.version = $ver' "$FRONTEND_PKG" > "$tmp" || {
       rm -f "$tmp"
@@ -283,17 +327,13 @@ fi
 
 if [[ "$TAURI_CARGO_VER" != "$ROOT_VER" ]]; then
   echo "  - Tauri Cargo.toml: $TAURI_CARGO_VER -> $ROOT_VER"
-  tmp="$(mktemp)"
-  sed -E "s/^([[:space:]]*version[[:space:]]*=[[:space:]]*)\"[^\"]+\"/\1\"$ROOT_VER\"/" "$TAURI_CARGO" > "$tmp" || {
-    rm -f "$tmp"
-    die "更新 Tauri Cargo.toml 版本失败"
-  }
-  mv "$tmp" "$TAURI_CARGO"
+  update_cargo_version "$TAURI_CARGO" "$ROOT_VER"
 fi
 
 update_tauri_conf_version() {
   local tmp
   tmp="$(mktemp)"
+  TEMP_FILES+=("$tmp")
   if command -v jq &>/dev/null; then
     jq --arg ver "$ROOT_VER" '.version = $ver' "$TAURI_CONF" > "$tmp" || {
       rm -f "$tmp"
@@ -327,6 +367,7 @@ fi
 update_vscode_version() {
   local tmp
   tmp="$(mktemp)"
+  TEMP_FILES+=("$tmp")
   if command -v jq &>/dev/null; then
     jq --arg ver "$ROOT_VER" '.version = $ver' "$VSCODE_PKG" > "$tmp" || {
       rm -f "$tmp"
