@@ -44,6 +44,28 @@ export function useCcrControl() {
   const lastExitCode = ref<number | null>(null)
   const abortController = ref<AbortController | null>(null)
 
+  const MAX_OUTPUT_LINES = 2000
+  const TRUNCATION_NOTICE = `… output truncated (keeping last ${MAX_OUTPUT_LINES} lines)`
+
+  const appendOutputLines = (lines: string[]) => {
+    if (lines.length === 0) return
+
+    const base = outputLines.value[0] === TRUNCATION_NOTICE
+      ? outputLines.value.slice(1)
+      : outputLines.value
+    const merged = [...base, ...lines]
+
+    if (merged.length <= MAX_OUTPUT_LINES) {
+      outputLines.value = merged
+      return
+    }
+
+    outputLines.value = [
+      TRUNCATION_NOTICE,
+      ...merged.slice(-(MAX_OUTPUT_LINES - 1)),
+    ]
+  }
+
   // 命令参数
   const commandArgs = ref<Record<string, string>>({})
   const commandFlags = ref<Record<string, unknown>>({})
@@ -204,8 +226,10 @@ export function useCcrControl() {
         : args
       const mainCommand = fullCommand.split(' ')[0]
 
-      outputLines.value.push(`$ ccr ${fullCommand}${args.length ? ' ' + args.join(' ') : ''}`)
-      outputLines.value.push('')
+      appendOutputLines([
+        `$ ccr ${fullCommand}${args.length ? ' ' + args.join(' ') : ''}`,
+        '',
+      ])
 
       logger.debug('[CCR] Executing command', { command: mainCommand, args: fullArgs })
 
@@ -230,10 +254,10 @@ export function useCcrControl() {
         .filter(line => line.length > 0)
 
       if (stdoutLines.length > 0) {
-        outputLines.value.push(...stdoutLines)
+        appendOutputLines(stdoutLines)
       }
       if (stderrLines.length > 0) {
-        outputLines.value.push(...stderrLines.map(line => `[stderr] ${line}`))
+        appendOutputLines(stderrLines.map(line => `[stderr] ${line}`))
       }
 
       lastExitCode.value = response?.exit_code ?? (response?.success ? 0 : 1)
@@ -241,12 +265,12 @@ export function useCcrControl() {
       const duration = Date.now() - startTime
       const success = lastExitCode.value === 0
 
-      outputLines.value.push('')
-      outputLines.value.push(
+      appendOutputLines([
+        '',
         success
           ? `✅ 命令执行成功 (${duration}ms)`
-          : `❌ 命令执行失败，退出码: ${lastExitCode.value}`
-      )
+          : `❌ 命令执行失败，退出码: ${lastExitCode.value}`,
+      ])
 
       // 记录历史
       await addHistory({
@@ -263,12 +287,11 @@ export function useCcrControl() {
 
       // 检查是否是用户取消
       if (err instanceof Error && err.name === 'AbortError') {
-        outputLines.value.push('')
-        outputLines.value.push('⏹️ 命令已取消')
+        appendOutputLines(['', '⏹️ 命令已取消'])
         lastExitCode.value = 1
       } else {
         const errorMessage = err instanceof Error ? err.message : '未知错误'
-        outputLines.value.push(`❌ 执行错误: ${errorMessage}`)
+        appendOutputLines([`❌ 执行错误: ${errorMessage}`])
         lastExitCode.value = 1
 
         // 记录失败历史
@@ -290,7 +313,7 @@ export function useCcrControl() {
   const cancelCommand = () => {
     if (abortController.value) {
       abortController.value.abort()
-      outputLines.value.push('⏹️ 正在取消命令...')
+      appendOutputLines(['⏹️ 正在取消命令...'])
     }
   }
 

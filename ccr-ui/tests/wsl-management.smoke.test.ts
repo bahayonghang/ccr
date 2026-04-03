@@ -141,7 +141,7 @@ describe('WslManagementView smoke', () => {
         expect(readWslConfigMock).toHaveBeenCalledWith({
           distro: 'Ubuntu-22.04',
           platform: 'claude',
-          path: '',
+          path: 'settings.json',
         })
 
         return true
@@ -182,7 +182,7 @@ describe('WslManagementView smoke', () => {
       expect(syncWslConfigMock).toHaveBeenCalledWith({
         distro: 'Ubuntu-22.04',
         platform: 'claude',
-        direction: 'wsl_to_local',
+        direction: 'wslToLocal',
       })
       expect(el.textContent).toContain('同步完成')
 

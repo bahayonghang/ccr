@@ -9,6 +9,7 @@ use tokio::io::AsyncWriteExt;
 use crate::process::tokio_command;
 
 use super::{CliStatus, EnvError, EnvironmentType, ExecutionEnvironment, PlatformInfo};
+use super::config_path::normalize_config_relative_path;
 
 /// SSH 主机配置
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -156,11 +157,8 @@ impl ExecutionEnvironment for SshEnvironment {
 
     async fn read_config(&self, platform: &str, path: &str) -> Result<String, EnvError> {
         let base_dir = self.platform_config_dir(platform)?;
-        let remote_path = if path.trim().is_empty() {
-            format!("{base_dir}/settings.json")
-        } else {
-            format!("{base_dir}/{path}")
-        };
+        let safe_rel_path = normalize_config_relative_path(path)?;
+        let remote_path = format!("{base_dir}/{safe_rel_path}");
 
         let escaped = Self::shell_escape_single(&remote_path);
         let output = self.run_ssh(&format!("cat \"{escaped}\"")).await?;
@@ -180,11 +178,8 @@ impl ExecutionEnvironment for SshEnvironment {
         content: &str,
     ) -> Result<(), EnvError> {
         let base_dir = self.platform_config_dir(platform)?;
-        let remote_path = if path.trim().is_empty() {
-            format!("{base_dir}/settings.json")
-        } else {
-            format!("{base_dir}/{path}")
-        };
+        let safe_rel_path = normalize_config_relative_path(path)?;
+        let remote_path = format!("{base_dir}/{safe_rel_path}");
 
         let parent = std::path::Path::new(&remote_path)
             .parent()

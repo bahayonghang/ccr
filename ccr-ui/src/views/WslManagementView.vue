@@ -92,7 +92,7 @@ const readConfig = async () => {
     configContent.value = await readWslConfig({
       distro: selectedDistro.value,
       platform: selectedPlatform.value,
-      path: '',
+      path: 'settings.json',
     })
   } catch (e) {
     configContent.value = `读取失败: ${e}`
@@ -388,7 +388,7 @@ onMounted(() => fetchDistros())
             <button
               class="flex items-center gap-2 px-4 py-2 rounded-lg bg-accent-primary/10 text-accent-primary text-sm font-medium hover:bg-accent-primary/20 transition-colors"
               :disabled="isSyncing"
-              @click="syncConfig('local_to_wsl')"
+              @click="syncConfig('localToWsl')"
             >
               <SIcon
                 name="Upload"
@@ -399,7 +399,7 @@ onMounted(() => fetchDistros())
             <button
               class="flex items-center gap-2 px-4 py-2 rounded-lg border border-white/10 text-white/80 text-sm font-medium hover:text-white hover:border-accent-primary/30 transition-colors"
               :disabled="isSyncing"
-              @click="syncConfig('wsl_to_local')"
+              @click="syncConfig('wslToLocal')"
             >
               <SIcon
                 name="Download"

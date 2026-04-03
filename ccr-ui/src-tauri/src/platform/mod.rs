@@ -7,6 +7,7 @@ pub mod local;
 pub mod ssh;
 #[cfg(target_os = "windows")]
 pub mod wsl;
+mod config_path;
 
 use std::sync::Arc;
 

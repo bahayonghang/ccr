@@ -6,14 +6,16 @@
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::{Read, Write};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use chrono::{DateTime, Utc};
 use fs4::fs_std::FileExt;
+use walkdir::WalkDir;
 
 use crate::process::std_command;
 
 use super::{CliStatus, EnvError, EnvironmentType, ExecutionEnvironment, PlatformInfo};
+use super::config_path::normalize_config_relative_path;
 
 // ── 缓存配置常量 ────────────────────────────────────────────────────────────
 
@@ -607,7 +609,8 @@ impl ExecutionEnvironment for WslEnvironment {
 
     async fn read_config(&self, platform: &str, path: &str) -> Result<String, EnvError> {
         let base_dir = self.platform_config_dir(platform)?;
-        let linux_path = format!("{base_dir}/{path}");
+        let safe_rel_path = normalize_config_relative_path(path)?;
+        let linux_path = format!("{base_dir}/{safe_rel_path}");
 
         // 优先尝试 UNC 路径（更快，无需启动 WSL 进程）
         match self.read_via_unc(&linux_path) {
@@ -641,7 +644,8 @@ impl ExecutionEnvironment for WslEnvironment {
         content: &str,
     ) -> Result<(), EnvError> {
         let base_dir = self.platform_config_dir(platform)?;
-        let linux_path = format!("{base_dir}/{path}");
+        let safe_rel_path = normalize_config_relative_path(path)?;
+        let linux_path = format!("{base_dir}/{safe_rel_path}");
 
         // 优先尝试 UNC 原子写
         match self.write_via_unc(&linux_path, content) {
@@ -753,6 +757,40 @@ pub enum SyncDirection {
     WslToLocal,
 }
 
+fn copy_dir_recursive(src: &Path, dest: &Path) -> Result<u32, EnvError> {
+    if !src.exists() {
+        return Ok(0);
+    }
+
+    std::fs::create_dir_all(dest).map_err(EnvError::Io)?;
+
+    let mut count = 0u32;
+    for entry in WalkDir::new(src).follow_links(false) {
+        let entry = entry.map_err(|e| EnvError::Other(format!("遍历目录失败: {e}")))?;
+        if entry.file_type().is_dir() {
+            continue;
+        }
+        if entry.file_type().is_symlink() {
+            continue;
+        }
+
+        let rel = entry
+            .path()
+            .strip_prefix(src)
+            .map_err(|e| EnvError::Other(format!("strip_prefix 失败: {e}")))?;
+        let target = dest.join(rel);
+        if let Some(parent) = target.parent() {
+            std::fs::create_dir_all(parent).map_err(EnvError::Io)?;
+        }
+
+        std::fs::copy(entry.path(), &target)
+            .map_err(|e| EnvError::Other(format!("复制文件失败: {e}")))?;
+        count += 1;
+    }
+
+    Ok(count)
+}
+
 /// 在本地和 WSL 之间同步指定平台的配置文件。
 ///
 /// 返回操作摘要字符串。
@@ -791,17 +829,7 @@ pub fn sync_config_blocking(
             std::fs::create_dir_all(&unc_dir)
                 .map_err(|e| EnvError::Other(format!("创建 WSL 目录失败: {e}")))?;
 
-            let mut count = 0u32;
-            if local_dir.exists() {
-                for entry in std::fs::read_dir(&local_dir).map_err(EnvError::Io)? {
-                    let entry = entry.map_err(EnvError::Io)?;
-                    let file_name = entry.file_name();
-                    let dest = format!("{}\\{}", unc_dir, file_name.to_string_lossy());
-                    std::fs::copy(entry.path(), &dest)
-                        .map_err(|e| EnvError::Other(format!("复制文件失败: {e}")))?;
-                    count += 1;
-                }
-            }
+            let count = copy_dir_recursive(&local_dir, Path::new(&unc_dir))?;
             Ok(format!(
                 "Local→WSL ({platform}@{distro}): {count} 个文件已同步"
             ))
@@ -811,20 +839,39 @@ pub fn sync_config_blocking(
             std::fs::create_dir_all(&local_dir).map_err(EnvError::Io)?;
 
             let unc_path = std::path::Path::new(&unc_dir);
-            let mut count = 0u32;
-            if unc_path.exists() {
-                for entry in std::fs::read_dir(unc_path).map_err(EnvError::Io)? {
-                    let entry = entry.map_err(EnvError::Io)?;
-                    let file_name = entry.file_name();
-                    let dest = local_dir.join(&file_name);
-                    std::fs::copy(entry.path(), &dest)
-                        .map_err(|e| EnvError::Other(format!("复制文件失败: {e}")))?;
-                    count += 1;
-                }
-            }
+            let count = copy_dir_recursive(unc_path, &local_dir)?;
             Ok(format!(
                 "WSL→Local ({platform}@{distro}): {count} 个文件已同步"
             ))
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::copy_dir_recursive;
+
+    #[test]
+    fn copy_dir_recursive_copies_nested_files_and_overwrites() {
+        let src = tempfile::tempdir().unwrap();
+        std::fs::create_dir_all(src.path().join("nested/dir")).unwrap();
+        std::fs::write(src.path().join("root.txt"), "root").unwrap();
+        std::fs::write(src.path().join("nested/file.txt"), "nested").unwrap();
+        std::fs::write(src.path().join("nested/dir/deep.txt"), "deep").unwrap();
+
+        let dest = tempfile::tempdir().unwrap();
+        std::fs::write(dest.path().join("root.txt"), "old").unwrap();
+
+        let count = copy_dir_recursive(src.path(), dest.path()).unwrap();
+        assert_eq!(count, 3);
+        assert_eq!(std::fs::read_to_string(dest.path().join("root.txt")).unwrap(), "root");
+        assert_eq!(
+            std::fs::read_to_string(dest.path().join("nested/file.txt")).unwrap(),
+            "nested"
+        );
+        assert_eq!(
+            std::fs::read_to_string(dest.path().join("nested/dir/deep.txt")).unwrap(),
+            "deep"
+        );
     }
 }

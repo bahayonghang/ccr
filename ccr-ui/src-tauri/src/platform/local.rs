@@ -1,6 +1,7 @@
 //! 本地执行环境 — 直接委托到 `ccr` 核心库。
 
 use super::{CliStatus, EnvError, EnvironmentType, ExecutionEnvironment, PlatformInfo};
+use super::config_path::normalize_config_relative_path;
 use crate::process::tokio_command;
 
 /// 本地环境实现 — 始终可用，委托到 ccr 核心库。
@@ -148,7 +149,8 @@ fn resolve_config_path(
         _ => return Err(EnvError::PlatformNotSupported(platform.to_string())),
     };
 
-    Ok(base.join(relative_path))
+    let safe_relative_path = normalize_config_relative_path(relative_path)?;
+    Ok(base.join(safe_relative_path))
 }
 
 /// 检测 CLI 工具是否可用（通过 PATH 查找）
