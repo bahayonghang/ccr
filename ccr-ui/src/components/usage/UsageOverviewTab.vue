@@ -20,19 +20,22 @@
           </span>
         </div>
 
-        <component
-          :is="chartComponent"
-          v-if="shouldLoadCharts && trendSeries[0]?.data?.length"
-          type="area"
-          height="360"
-          :options="trendOptions"
-          :series="trendSeries"
-        />
-        <div
-          v-else
-          class="overview-tab__empty"
-        >
-          {{ $t('usage.dashboard.chart.noTrend') }}
+        <div class="overview-tab__trend-shell">
+          <component
+            :is="chartComponent"
+            v-if="shouldLoadCharts && hasRenderableTrendData"
+            class="overview-tab__chart"
+            type="area"
+            height="100%"
+            :options="trendOptions"
+            :series="trendSeries"
+          />
+          <div
+            v-else
+            class="overview-tab__empty overview-tab__empty--trend"
+          >
+            {{ $t('usage.dashboard.chart.noTrend') }}
+          </div>
         </div>
       </div>
 
@@ -229,6 +232,7 @@ type OverviewRankItem = {
 interface Props {
   chartComponent: Component
   shouldLoadCharts: boolean
+  hasRenderableTrendData: boolean
   trendSeries: TrendSeriesItem[]
   trendOptions: object
   trendSubtitle: string
@@ -264,6 +268,7 @@ const formatShare = (value: number) => `${Math.round(value * 100)}%`
   display: grid;
   gap: 1rem;
   grid-template-columns: minmax(0, 1.5fr) minmax(22rem, 0.92fr);
+  align-items: start;
 }
 
 .overview-tab__trend,
@@ -271,12 +276,22 @@ const formatShare = (value: number) => `${Math.round(value * 100)}%`
 .overview-tab__rank-panel {
   position: relative;
   overflow: hidden;
+
+  /* 防止 ApexCharts 溢出 glass-panel 容器 */
+  min-width: 0;
 }
 
 .overview-tab__side {
   display: grid;
   gap: 1rem;
   min-width: 0;
+  align-content: start;
+}
+
+.overview-tab__trend {
+  display: grid;
+  gap: 1rem;
+  align-content: start;
 }
 
 .overview-tab__panel-head {
@@ -332,6 +347,24 @@ const formatShare = (value: number) => `${Math.round(value * 100)}%`
   border: 1px dashed rgb(var(--color-accent-primary-rgb) / 16%);
   background: rgb(var(--color-bg-elevated-rgb) / 36%);
   color: var(--color-text-muted);
+}
+
+.overview-tab__trend-shell {
+  min-width: 0;
+  min-height: clamp(19rem, 42vh, 24rem);
+  overflow: hidden;
+  border-radius: 1.35rem;
+}
+
+.overview-tab__chart {
+  display: block;
+  height: 100%;
+  width: 100%;
+}
+
+.overview-tab__empty--trend {
+  min-height: clamp(19rem, 42vh, 24rem);
+  width: 100%;
 }
 
 .overview-tab__insight-list {
@@ -471,6 +504,12 @@ const formatShare = (value: number) => `${Math.round(value * 100)}%`
   .overview-tab__canvas,
   .overview-tab__rankings {
     grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (width < 1440px) and (width >= 1280px) {
+  .overview-tab__canvas {
+    grid-template-columns: minmax(0, 1.2fr) minmax(20rem, 0.88fr);
   }
 }
 </style>

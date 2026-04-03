@@ -1640,6 +1640,7 @@ export default {
       claude: '🤖 Claude',
       codex: '💻 Codex',
       gemini: '✨ Gemini',
+      qwen: '🌟 Qwen',
     },
 
     actions: {
@@ -1706,22 +1707,22 @@ export default {
         logs: '诊断',
       },
 
-        cards: {
-          totalRequests: '总请求数',
-          requestsDetail: '{models} 个模型 · {projects} 个项目',
-          totalTokens: '总 Tokens',
-          tokensDetail: '{input} 输入 · {output} 输出',
-          totalCost: '总费用',
-          costDetail: '平均每次请求 {average}',
-          cacheEfficiency: '缓存效率',
-          cacheDetail: '{tokens} 缓存读取',
-        },
+      cards: {
+        totalRequests: '总请求数',
+        requestsDetail: '{models} 个模型 · {projects} 个项目',
+        totalTokens: '总 Tokens',
+        tokensDetail: '{input} 输入 · {output} 输出',
+        totalCost: '总费用',
+        costDetail: '平均每次请求 {average}',
+        cacheEfficiency: '缓存效率',
+        cacheDetail: '{tokens} 缓存读取',
+      },
 
-        chart: {
-          trendEyebrow: '主信号画布',
-          trendTitle: 'Token 使用趋势',
-          trendSubtitle: '{window}内按{granularity}聚合，共 {points} 个关键节点',
-          input: '输入',
+      chart: {
+        trendEyebrow: '主信号画布',
+        trendTitle: 'Token 使用趋势',
+        trendSubtitle: '{window}内按{granularity}聚合，共 {points} 个关键节点',
+        input: '输入',
         output: '输出',
         cache: '缓存',
         noTrend: '暂无趋势数据',
@@ -1738,69 +1739,69 @@ export default {
         },
       },
 
-        highlights: {
-          eyebrow: '即时洞察',
-          title: '洞察速览',
-          subtitle: '把长周期趋势压缩成能立即扫读的重点',
-          density: '趋势密度',
-          densityDetail: '{window} 内保留 {points} 个关键节点',
-          topModel: '头部模型',
-          topProject: '头部项目',
-          cacheRead: '缓存读取',
-          cacheReadDetail: '缓存效率 {percent}',
-        },
+      highlights: {
+        eyebrow: '即时洞察',
+        title: '洞察速览',
+        subtitle: '把长周期趋势压缩成能立即扫读的重点',
+        density: '趋势密度',
+        densityDetail: '{window} 内保留 {points} 个关键节点',
+        topModel: '头部模型',
+        topProject: '头部项目',
+        cacheRead: '缓存读取',
+        cacheReadDetail: '缓存效率 {percent}',
+      },
 
-        rankings: {
-          modelsEyebrow: '费用头部',
-          modelsTitle: '模型费用排名',
-          modelsSubtitle: '按费用权重筛出最值得关注的模型，快速识别主力调用面。',
-          projectsEyebrow: '工作区重心',
-          projectsTitle: '项目费用排名',
-          projectsSubtitle: '聚焦最重的项目路径，先看最可能继续放大的消耗来源。',
-        },
+      rankings: {
+        modelsEyebrow: '费用头部',
+        modelsTitle: '模型费用排名',
+        modelsSubtitle: '按费用权重筛出最值得关注的模型，快速识别主力调用面。',
+        projectsEyebrow: '工作区重心',
+        projectsTitle: '项目费用排名',
+        projectsSubtitle: '聚焦最重的项目路径，先看最可能继续放大的消耗来源。',
+      },
 
-        models: {
-          title: '模型工作区',
-          subtitle: '按费用排序查看每个模型的请求量、Token 负载与成本占比。',
-        },
+      models: {
+        title: '模型工作区',
+        subtitle: '按费用排序查看每个模型的请求量、Token 负载与成本占比。',
+      },
 
-        projects: {
-          title: '项目工作区',
-          subtitle: '从工作区维度追踪成本、Token 与请求量，定位长期高消耗路径。',
-        },
+      projects: {
+        title: '项目工作区',
+        subtitle: '从工作区维度追踪成本、Token 与请求量，定位长期高消耗路径。',
+      },
 
-        meta: {
-          scope: '范围',
-          window: '窗口',
-          models: '模型数',
-          projects: '项目数',
-        },
+      meta: {
+        scope: '范围',
+        window: '窗口',
+        models: '模型数',
+        projects: '项目数',
+      },
 
-        table: {
-          model: '模型',
-          project: '项目',
-          requests: '请求数',
-          tokens: 'Tokens',
-          cost: '费用',
-          share: '占比',
-          time: '时间',
-          platform: '平台',
-          input: '输入',
+      table: {
+        model: '模型',
+        project: '项目',
+        requests: '请求数',
+        tokens: 'Tokens',
+        cost: '费用',
+        share: '占比',
+        time: '时间',
+        platform: '平台',
+        input: '输入',
         output: '输出',
         noData: '暂无数据',
       },
 
-        logs: {
-          title: '原始记录与诊断',
-          subtitle: '查看逐条 usage 记录、导入结果，并在需要时修复平台历史数据。',
-          filterPlaceholder: '按模型筛选...',
-          search: '搜索',
-          prev: '上一页',
-          next: '下一页',
-          noLogs: '未找到原始记录',
-        },
+      logs: {
+        title: '原始记录与诊断',
+        subtitle: '查看逐条 usage 记录、导入结果，并在需要时修复平台历史数据。',
+        filterPlaceholder: '按模型筛选...',
+        search: '搜索',
+        prev: '上一页',
+        next: '下一页',
+        noLogs: '未找到原始记录',
+      },
 
-        diagnostics: {
+      diagnostics: {
           totalRecords: '记录总数',
           latestRecord: '最近记录',
           dataHealth: '数据健康',

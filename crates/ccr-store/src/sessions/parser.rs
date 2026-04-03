@@ -5,6 +5,7 @@
 use crate::sessions::models::{IndexStats, Session, SessionEvent};
 use ccr_config::Platform;
 use ccr_core::core::error::{CcrError, Result};
+use ccr_core::{is_qwen_chat_file, qwen_project_dir_name_from_chat_path, qwen_projects_dir};
 use chrono::{DateTime, Utc};
 use rayon::prelude::*;
 use std::fs::File;
@@ -24,9 +25,8 @@ impl SessionParser {
             Platform::Claude => Self::parse_claude(path),
             Platform::Codex => Self::parse_codex(path),
             Platform::Gemini => Self::parse_gemini(path),
-            Platform::Qwen | Platform::IFlow | Platform::Droid => {
-                Self::parse_generic(path, platform)
-            }
+            Platform::Qwen => Self::parse_qwen(path),
+            Platform::IFlow | Platform::Droid => Self::parse_generic(path, platform),
         }
     }
 
@@ -200,6 +200,62 @@ impl SessionParser {
         Ok(Session {
             id: session_id,
             platform,
+            title,
+            cwd,
+            file_path: path.to_path_buf(),
+            file_hash,
+            created_at,
+            updated_at,
+            message_count: user_count + assistant_count,
+            user_message_count: user_count,
+            assistant_message_count: assistant_count,
+            tool_use_count: tool_count,
+            indexed_at: Utc::now(),
+        })
+    }
+
+    /// 解析 Qwen session 文件
+    fn parse_qwen(path: &Path) -> Result<Session> {
+        let events = Self::read_jsonl(path).unwrap_or_else(|e| {
+            debug!(
+                "Qwen session 文件解析失败，使用空事件列表: {} - {}",
+                path.display(),
+                e
+            );
+            Vec::new()
+        });
+
+        let session_id = Self::extract_session_id(&events)
+            .or_else(|| Self::extract_id_from_path(path))
+            .unwrap_or_else(|| {
+                let id = uuid::Uuid::new_v4().to_string();
+                debug!("无法从 Qwen 会话中提取 session ID，生成新 ID: {}", id);
+                id
+            });
+
+        let cwd = Self::extract_cwd(&events)
+            .map(PathBuf::from)
+            .or_else(|| qwen_project_dir_name_from_chat_path(path).map(PathBuf::from))
+            .unwrap_or_else(|| {
+                let fallback = path
+                    .parent()
+                    .map(|parent| parent.to_path_buf())
+                    .unwrap_or_default();
+                if fallback.as_os_str().is_empty() {
+                    debug!("无法提取 Qwen 工作目录，使用空路径: {}", path.display());
+                }
+                fallback
+            });
+
+        let title = Self::extract_title(&events);
+        let (created_at, updated_at) = Self::extract_timestamps(&events, path)?;
+        let (user_count, assistant_count, tool_count) = Self::count_messages(&events);
+
+        let file_hash = Self::compute_file_hash(path)?;
+
+        Ok(Session {
+            id: session_id,
+            platform: Platform::Qwen,
             title,
             cwd,
             file_path: path.to_path_buf(),
@@ -417,21 +473,20 @@ impl SessionParser {
                 // Gemini 可能使用不同的扩展名
                 extension == Some("jsonl") || extension == Some("json")
             }
+            Platform::Qwen => is_qwen_chat_file(path),
             _ => extension == Some("jsonl"),
         }
     }
 
     /// 获取平台的默认 session 目录
     pub fn get_platform_session_dir(platform: &Platform) -> Option<PathBuf> {
-        let home = dirs::home_dir()?;
-
         let path = match platform {
-            Platform::Claude => home.join(".claude").join("projects"),
-            Platform::Codex => home.join(".codex").join("sessions"),
-            Platform::Gemini => home.join(".gemini").join("tmp"),
-            Platform::Qwen => home.join(".qwen").join("sessions"),
-            Platform::IFlow => home.join(".iflow").join("sessions"),
-            Platform::Droid => home.join(".factory").join("sessions"),
+            Platform::Claude => dirs::home_dir()?.join(".claude").join("projects"),
+            Platform::Codex => dirs::home_dir()?.join(".codex").join("sessions"),
+            Platform::Gemini => dirs::home_dir()?.join(".gemini").join("tmp"),
+            Platform::Qwen => qwen_projects_dir()?,
+            Platform::IFlow => dirs::home_dir()?.join(".iflow").join("sessions"),
+            Platform::Droid => dirs::home_dir()?.join(".factory").join("sessions"),
         };
 
         if path.exists() { Some(path) } else { None }
@@ -525,6 +580,46 @@ mod tests {
     }
 
     #[test]
+    fn test_parse_qwen_prefers_record_cwd() {
+        let content = r#"{"type":"session_meta","session_id":"qwen-1","cwd":"D:\\Documents\\Code\\Github\\ccr"}
+{"type":"user","role":"user","message":"hello"}
+{"type":"assistant","role":"assistant","message":"world"}
+"#;
+
+        let path = create_test_jsonl(content);
+        let session = SessionParser::parse_qwen(&path).expect("Failed to parse Qwen session");
+
+        assert_eq!(session.id, "qwen-1");
+        assert_eq!(session.cwd, PathBuf::from(r"D:\Documents\Code\Github\ccr"));
+        assert_eq!(session.platform, Platform::Qwen);
+    }
+
+    #[test]
+    fn test_parse_qwen_falls_back_to_project_dir_name() {
+        let dir = tempdir().expect("Failed to create temp directory for Qwen test");
+        let chats_dir = dir
+            .path()
+            .join(".qwen")
+            .join("projects")
+            .join("workspace___repo")
+            .join("chats");
+        std::fs::create_dir_all(&chats_dir).expect("Failed to create Qwen chats dir");
+        let path = chats_dir.join("session-1.jsonl");
+        std::fs::write(
+            &path,
+            r#"{"type":"user","role":"user","message":"hello"}
+{"type":"assistant","role":"assistant","message":"world"}
+"#,
+        )
+        .expect("Failed to write Qwen session");
+
+        let session = SessionParser::parse_qwen(&path).expect("Failed to parse Qwen session");
+
+        assert_eq!(session.id, "session-1");
+        assert_eq!(session.cwd, PathBuf::from("workspace___repo"));
+    }
+
+    #[test]
     fn test_is_session_file() {
         assert!(SessionParser::is_session_file(
             Path::new("/tmp/test.jsonl"),
@@ -533,6 +628,14 @@ mod tests {
         assert!(!SessionParser::is_session_file(
             Path::new("/tmp/test.txt"),
             &Platform::Claude
+        ));
+        assert!(SessionParser::is_session_file(
+            Path::new("/tmp/.qwen/projects/workspace___repo/chats/session-1.jsonl"),
+            &Platform::Qwen
+        ));
+        assert!(!SessionParser::is_session_file(
+            Path::new("/tmp/.qwen/projects/workspace___repo/session-1.jsonl"),
+            &Platform::Qwen
         ));
     }
 

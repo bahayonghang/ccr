@@ -13,6 +13,10 @@
         <span class="w-3 h-3 rounded-[2px] bg-blue-500" />
         <span class="text-text-secondary">Gemini</span>
       </div>
+      <div class="flex items-center gap-1.5">
+        <span class="w-3 h-3 rounded-[2px] bg-platform-qwen" />
+        <span class="text-text-secondary">Qwen</span>
+      </div>
     </div>
 
     <div class="flex flex-col h-full pt-8 pb-6">
@@ -46,6 +50,7 @@
             <div
               v-if="row.gemini > 0"
               class="w-full bg-blue-500"
+              data-platform="gemini"
               :style="{ height: `${row.geminiHeight}px` }"
               :class="[
                 { 'opacity-90': hoveredIndex !== null && hoveredIndex !== index },
@@ -53,8 +58,19 @@
               ]"
             />
             <div
+              v-if="row.qwen > 0"
+              class="w-full bg-platform-qwen"
+              data-platform="qwen"
+              :style="{ height: `${row.qwenHeight}px` }"
+              :class="[
+                { 'opacity-90': hoveredIndex !== null && hoveredIndex !== index },
+                row.qwenCorner,
+              ]"
+            />
+            <div
               v-if="row.claude > 0"
               class="w-full bg-pink-400"
+              data-platform="claude"
               :style="{ height: `${row.claudeHeight}px` }"
               :class="[
                 { 'opacity-90': hoveredIndex !== null && hoveredIndex !== index },
@@ -64,6 +80,7 @@
             <div
               v-if="row.codex > 0"
               class="w-full bg-orange-500"
+              data-platform="codex"
               :style="{ height: `${row.codexHeight}px` }"
               :class="[
                 { 'opacity-90': hoveredIndex !== null && hoveredIndex !== index },
@@ -135,6 +152,15 @@
               {{ formatValue(hoveredRow.gemini) }}
             </span>
           </div>
+          <div class="flex items-center justify-between gap-6">
+            <div class="flex items-center gap-1.5">
+              <span class="w-2 h-2 rounded-[1px] bg-platform-qwen" />
+              <span class="text-text-secondary">Qwen</span>
+            </div>
+            <span class="text-text-primary font-mono font-medium">
+              {{ formatValue(hoveredRow.qwen) }}
+            </span>
+          </div>
         </div>
       </div>
     </Transition>
@@ -162,7 +188,7 @@ let hoverRafId: number | null = null
 
 const getValue = (
   item: HomeOverviewSeriesItem,
-  platform: 'claude' | 'codex' | 'gemini'
+  platform: 'claude' | 'codex' | 'gemini' | 'qwen'
 ): number => {
   const stats = item?.[platform]
   if (!stats) return 0
@@ -183,7 +209,11 @@ const chartData = computed(() => props.data ?? [])
 const maxValue = computed(() => {
   let max = 0
   for (const item of chartData.value) {
-    const total = getValue(item, 'claude') + getValue(item, 'codex') + getValue(item, 'gemini')
+    const total =
+      getValue(item, 'claude')
+      + getValue(item, 'codex')
+      + getValue(item, 'gemini')
+      + getValue(item, 'qwen')
     if (total > max) max = total
   }
   return max || 1
@@ -201,9 +231,12 @@ const chartRows = computed(() => {
     const codex = getValue(item, 'codex')
     const claude = getValue(item, 'claude')
     const gemini = getValue(item, 'gemini')
+    const qwen = getValue(item, 'qwen')
 
-    const codexCorner = gemini === 0 && claude === 0 && codex > 0 ? 'rounded-t-[2px]' : ''
-    const claudeCorner = gemini === 0 && claude > 0 ? 'rounded-t-[2px]' : ''
+    const codexCorner =
+      gemini === 0 && qwen === 0 && claude === 0 && codex > 0 ? 'rounded-t-[2px]' : ''
+    const claudeCorner = gemini === 0 && qwen === 0 && claude > 0 ? 'rounded-t-[2px]' : ''
+    const qwenCorner = gemini === 0 && qwen > 0 ? 'rounded-t-[2px]' : ''
     const geminiCorner = gemini > 0 ? 'rounded-t-[2px]' : ''
 
     const date = new Date(item.date)
@@ -217,12 +250,15 @@ const chartRows = computed(() => {
       codex,
       claude,
       gemini,
+      qwen,
       codexHeight: getBarHeight(codex),
       claudeHeight: getBarHeight(claude),
       geminiHeight: getBarHeight(gemini),
+      qwenHeight: getBarHeight(qwen),
       codexCorner,
       claudeCorner,
       geminiCorner,
+      qwenCorner,
       isMonthStart,
       showDate,
       dayLabel: date.getDate().toString(),

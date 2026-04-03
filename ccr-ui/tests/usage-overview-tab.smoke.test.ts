@@ -21,6 +21,7 @@ const mountOverviewTab = async () => {
       return h(UsageOverviewTab, {
         chartComponent: ChartStub,
         shouldLoadCharts: true,
+        hasRenderableTrendData: true,
         trendSeries: [
           {
             name: 'input',
@@ -116,14 +117,23 @@ describe('usage overview tab smoke', () => {
     const { el, unmount, longModelLabel, longProjectPath } = await mountOverviewTab()
 
     try {
+      const canvas = el.querySelector('.overview-tab__canvas') as HTMLElement | null
+      const trendShell = el.querySelector('.overview-tab__trend-shell') as HTMLElement | null
+      const distributionLegend = el.querySelector('.distribution-card__legend') as HTMLElement | null
       const distributionLabel = el.querySelector('.distribution-card__label')
       const rankModelLabel = el.querySelector('.overview-tab__rankings .overview-tab__rank-label')
       const rankProjectLabel = el.querySelectorAll('.overview-tab__rankings .overview-tab__rank-label')[1]
 
+      expect(canvas).not.toBeNull()
+      expect(trendShell).not.toBeNull()
+      expect(distributionLegend).not.toBeNull()
       expect(distributionLabel?.getAttribute('title')).toBe(longModelLabel)
       expect(rankModelLabel?.getAttribute('title')).toBe(longModelLabel)
       expect(rankProjectLabel?.getAttribute('title')).toBe(longProjectPath)
       expect(el.querySelectorAll('.overview-tab__rank-item')).toHaveLength(2)
+      expect(trendShell?.querySelector('.chart-stub')).not.toBeNull()
+      expect(el.querySelector('.overview-tab__empty--trend')).toBeNull()
+      expect(distributionLegend?.querySelectorAll('.distribution-card__legend-item')).toHaveLength(2)
     } finally {
       unmount()
     }

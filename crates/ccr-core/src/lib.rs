@@ -9,4 +9,8 @@ pub use core::{
     init_file_only_logger, init_logger, read_json, read_json_async, read_toml, read_toml_async,
     write_json, write_json_async, write_toml, write_toml_async,
 };
-pub use utils::{AutoCompletable, Validatable, mask_if_sensitive, mask_sensitive};
+pub use utils::{
+    AutoCompletable, Validatable, is_qwen_chat_file, mask_if_sensitive, mask_sensitive,
+    qwen_project_dir_name_from_chat_path, qwen_projects_dir, qwen_runtime_base_dir,
+    resolve_qwen_runtime_base_dir,
+};

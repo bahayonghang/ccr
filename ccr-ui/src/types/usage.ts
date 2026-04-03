@@ -105,6 +105,7 @@ export interface HomeOverviewSeriesItem {
   claude: HomeOverviewPlatformStats
   codex: HomeOverviewPlatformStats
   gemini: HomeOverviewPlatformStats
+  qwen: HomeOverviewPlatformStats
 }
 
 /** 首页概览汇总 */
@@ -192,4 +193,4 @@ export interface StartUsageImportJobResponse {
 }
 
 /** 平台类型 */
-export type Platform = 'claude' | 'codex' | 'gemini'
+export type Platform = 'claude' | 'codex' | 'gemini' | 'qwen'

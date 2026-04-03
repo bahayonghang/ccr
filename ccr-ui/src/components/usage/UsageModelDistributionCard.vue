@@ -171,15 +171,20 @@ const hasData = computed(() => {
 .distribution-card__body {
   display: grid;
   gap: 1rem;
+  align-items: start;
 }
 
 .distribution-card__chart-shell {
   display: grid;
+  width: 100%;
   min-width: 0;
+  min-height: clamp(16rem, 34vh, 18rem);
   place-items: center;
+  align-self: start;
 }
 
 .distribution-card__chart {
+  width: 100%;
   min-height: 280px;
 }
 
@@ -199,6 +204,8 @@ const hasData = computed(() => {
   display: grid;
   gap: 0.7rem;
   min-width: 0;
+  max-height: min(24rem, 48vh);
+  overflow-y: auto;
 }
 
 .distribution-card__legend-item {
@@ -300,8 +307,8 @@ const hasData = computed(() => {
 
 @media (width >= 1180px) {
   .distribution-card__body {
-    grid-template-columns: clamp(14rem, 25vw, 17rem) minmax(0, 1fr);
-    align-items: center;
+    grid-template-columns: clamp(13rem, 24vw, 16rem) minmax(0, 1fr);
+    align-items: start;
   }
 }
 </style>

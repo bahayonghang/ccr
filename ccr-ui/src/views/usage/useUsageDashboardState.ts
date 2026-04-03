@@ -1,6 +1,7 @@
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useUsageStore } from '@/stores/usage'
+import { ensureLocaleLoaded } from '@/i18n'
 import type { Platform } from '@/types/usage'
 import { isTauriRuntime } from '@/utils/tauriRuntime'
 import {
@@ -72,6 +73,8 @@ const formatCost = (value: number) => (
 const formatPercent = (value: number) => `${(value * 100).toFixed(1)}%`
 const formatDateTime = (value: string, locale: string) =>
   new Date(value).toLocaleString(locale)
+
+const hasTemplatePlaceholder = (value: string) => /\{[a-zA-Z_][a-zA-Z0-9_]*\}/.test(value)
 
 const shortenPath = (path: string) => {
   const parts = path.replace(/\\/g, '/').split('/')
@@ -175,11 +178,41 @@ export const useUsageDashboardState = () => {
   const selectedPlatform = ref('')
   const selectedDays = ref(30)
   const logModelFilter = ref('')
+  const localeReady = ref(false)
+  const dashboardBootstrapped = ref(false)
+  const translationRevision = ref(0)
   const runtimeUnavailable = computed(() => !isTauriRuntime())
   const chartTheme = ref<ChartThemeState>(buildChartTheme())
   let themeObserver: MutationObserver | null = null
 
+  const dashboardReady = computed(() => localeReady.value && dashboardBootstrapped.value)
   const shouldLoadCharts = computed(() => activeTab.value === 'overview' || activeTab.value === 'models')
+
+  const translateDashboardText = (
+    key: string,
+    values: Record<string, number | string> | undefined,
+    fallback: string,
+  ) => {
+    void translationRevision.value
+
+    if (!localeReady.value) {
+      return fallback
+    }
+
+    const resolved = values ? t(key, values) : t(key)
+    if (resolved === key || hasTemplatePlaceholder(resolved)) {
+      return fallback
+    }
+
+    return resolved
+  }
+
+  const hydrateUsageLocale = async () => {
+    localeReady.value = false
+    await ensureLocaleLoaded(locale.value)
+    translationRevision.value += 1
+    localeReady.value = true
+  }
 
   const onFilterChange = () => {
     const { start, end } = getTimeRange(selectedDays.value)
@@ -217,15 +250,32 @@ export const useUsageDashboardState = () => {
     }
   })
 
+  watch(locale, () => {
+    void hydrateUsageLocale()
+  })
+
   const selectedPlatformLabel = computed(() => {
     if (!selectedPlatform.value) {
-      return t('usage.dashboard.allPlatforms')
+      return translateDashboardText('usage.dashboard.allPlatforms', undefined, 'All Platforms')
     }
 
-    return t(`usage.platforms.${selectedPlatform.value}`)
+    const fallbackLabels: Record<string, string> = {
+      claude: 'Claude',
+      codex: 'Codex',
+      gemini: 'Gemini',
+      qwen: 'Qwen',
+    }
+
+    return translateDashboardText(
+      `usage.platforms.${selectedPlatform.value}`,
+      undefined,
+      fallbackLabels[selectedPlatform.value] ?? selectedPlatform.value,
+    )
   })
 
   const summaryCards = computed<UsageSummaryCard[]>(() => {
+    if (!dashboardReady.value) return []
+
     const summary = store.summary
     if (!summary) return []
 
@@ -237,43 +287,59 @@ export const useUsageDashboardState = () => {
     return [
       {
         id: 'requests',
-        label: t('usage.dashboard.cards.totalRequests'),
+        label: translateDashboardText('usage.dashboard.cards.totalRequests', undefined, 'Total Requests'),
         value: summary.total_requests.toLocaleString(),
-        detail: t('usage.dashboard.cards.requestsDetail', {
-          models: store.modelStats.length,
-          projects: store.projectStats.length,
-        }),
+        detail: translateDashboardText(
+          'usage.dashboard.cards.requestsDetail',
+          {
+            models: store.modelStats.length,
+            projects: store.projectStats.length,
+          },
+          `${store.modelStats.length} models · ${store.projectStats.length} projects`,
+        ),
         icon: 'Activity',
         tone: 'rose',
       },
       {
         id: 'tokens',
-        label: t('usage.dashboard.cards.totalTokens'),
+        label: translateDashboardText('usage.dashboard.cards.totalTokens', undefined, 'Total Tokens'),
         value: formatTokens(totalTokens),
-        detail: t('usage.dashboard.cards.tokensDetail', {
-          input: formatTokens(summary.total_input_tokens),
-          output: formatTokens(summary.total_output_tokens),
-        }),
+        detail: translateDashboardText(
+          'usage.dashboard.cards.tokensDetail',
+          {
+            input: formatTokens(summary.total_input_tokens),
+            output: formatTokens(summary.total_output_tokens),
+          },
+          `${formatTokens(summary.total_input_tokens)} in · ${formatTokens(summary.total_output_tokens)} out`,
+        ),
         icon: 'Layers',
         tone: 'violet',
       },
       {
         id: 'cost',
-        label: t('usage.dashboard.cards.totalCost'),
+        label: translateDashboardText('usage.dashboard.cards.totalCost', undefined, 'Total Cost'),
         value: formatCost(summary.total_cost_usd),
-        detail: t('usage.dashboard.cards.costDetail', {
-          average: averageCostPerRequest,
-        }),
+        detail: translateDashboardText(
+          'usage.dashboard.cards.costDetail',
+          {
+            average: averageCostPerRequest,
+          },
+          `${averageCostPerRequest} per request`,
+        ),
         icon: 'Wallet',
         tone: 'sky',
       },
       {
         id: 'cache',
-        label: t('usage.dashboard.cards.cacheEfficiency'),
+        label: translateDashboardText('usage.dashboard.cards.cacheEfficiency', undefined, 'Cache Efficiency'),
         value: formatPercent(summary.cache_efficiency),
-        detail: t('usage.dashboard.cards.cacheDetail', {
-          tokens: formatTokens(summary.total_cache_read_tokens),
-        }),
+        detail: translateDashboardText(
+          'usage.dashboard.cards.cacheDetail',
+          {
+            tokens: formatTokens(summary.total_cache_read_tokens),
+          },
+          `${formatTokens(summary.total_cache_read_tokens)} cache read`,
+        ),
         icon: 'Cpu',
         tone: 'amber',
       },
@@ -281,38 +347,45 @@ export const useUsageDashboardState = () => {
   })
 
   const selectedWindowLabel = computed(() => {
-    const labels: Record<number, string> = {
-      7: t('usage.dashboard.days7'),
-      30: t('usage.dashboard.days30'),
-      90: t('usage.dashboard.days90'),
-      365: t('usage.dashboard.days365'),
+    const labels: Record<number, { key: string; fallback: string }> = {
+      7: { key: 'usage.dashboard.days7', fallback: '7 Days' },
+      30: { key: 'usage.dashboard.days30', fallback: '30 Days' },
+      90: { key: 'usage.dashboard.days90', fallback: '90 Days' },
+      365: { key: 'usage.dashboard.days365', fallback: '365 Days' },
     }
 
-    return labels[selectedDays.value] ?? `${selectedDays.value}d`
+    const selected = labels[selectedDays.value]
+    if (!selected) return `${selectedDays.value}d`
+
+    return translateDashboardText(selected.key, undefined, selected.fallback)
   })
 
-  const dashboardMetaItems = computed<DashboardMetaItem[]>(() => [
-    {
-      id: 'scope',
-      label: t('usage.dashboard.meta.scope'),
-      value: selectedPlatformLabel.value,
-    },
-    {
-      id: 'window',
-      label: t('usage.dashboard.meta.window'),
-      value: selectedWindowLabel.value,
-    },
-    {
-      id: 'models',
-      label: t('usage.dashboard.meta.models'),
-      value: store.modelStats.length.toLocaleString(),
-    },
-    {
-      id: 'projects',
-      label: t('usage.dashboard.meta.projects'),
-      value: store.projectStats.length.toLocaleString(),
-    },
-  ])
+  const dashboardMetaItems = computed<DashboardMetaItem[]>(() => {
+    if (!dashboardReady.value) return []
+
+    return [
+      {
+        id: 'scope',
+        label: translateDashboardText('usage.dashboard.meta.scope', undefined, 'Scope'),
+        value: selectedPlatformLabel.value,
+      },
+      {
+        id: 'window',
+        label: translateDashboardText('usage.dashboard.meta.window', undefined, 'Window'),
+        value: selectedWindowLabel.value,
+      },
+      {
+        id: 'models',
+        label: translateDashboardText('usage.dashboard.meta.models', undefined, 'Models'),
+        value: store.modelStats.length.toLocaleString(),
+      },
+      {
+        id: 'projects',
+        label: translateDashboardText('usage.dashboard.meta.projects', undefined, 'Projects'),
+        value: store.projectStats.length.toLocaleString(),
+      },
+    ]
+  })
 
   const trendGranularity = computed(() => selectTrendGranularity(selectedDays.value))
 
@@ -325,28 +398,50 @@ export const useUsageDashboardState = () => {
 
   const trendSeries = computed(() => [
     {
-      name: t('usage.dashboard.chart.input'),
+      name: translateDashboardText('usage.dashboard.chart.input', undefined, 'Input'),
       data: trendBuckets.value.map((item) => ({ x: `${item.startDate}T00:00:00Z`, y: item.inputTokens })),
     },
     {
-      name: t('usage.dashboard.chart.output'),
+      name: translateDashboardText('usage.dashboard.chart.output', undefined, 'Output'),
       data: trendBuckets.value.map((item) => ({ x: `${item.startDate}T00:00:00Z`, y: item.outputTokens })),
     },
     {
-      name: t('usage.dashboard.chart.cache'),
+      name: translateDashboardText('usage.dashboard.chart.cache', undefined, 'Cache'),
       data: trendBuckets.value.map((item) => ({ x: `${item.startDate}T00:00:00Z`, y: item.cacheReadTokens })),
     },
   ])
 
-  const trendGranularityLabel = computed(() => t(`usage.dashboard.chart.bucket.${trendGranularity.value}`))
+  const trendGranularityLabel = computed(() => {
+    const fallbacks: Record<TrendGranularity, string> = {
+      day: 'Daily',
+      week: 'Weekly',
+      month: 'Monthly',
+    }
 
-  const trendSubtitle = computed(() =>
-    t('usage.dashboard.chart.trendSubtitle', {
-      granularity: trendGranularityLabel.value,
-      window: selectedWindowLabel.value,
-      points: trendBuckets.value.length,
-    }),
+    return translateDashboardText(
+      `usage.dashboard.chart.bucket.${trendGranularity.value}`,
+      undefined,
+      fallbacks[trendGranularity.value],
+    )
+  })
+
+  const hasRenderableTrendData = computed(() =>
+    dashboardReady.value && trendSeries.value.some((series) => series.data.length > 0),
   )
+
+  const trendSubtitle = computed(() => {
+    if (!dashboardReady.value) return ''
+
+    return translateDashboardText(
+      'usage.dashboard.chart.trendSubtitle',
+      {
+        granularity: trendGranularityLabel.value,
+        window: selectedWindowLabel.value,
+        points: trendBuckets.value.length,
+      },
+      `${selectedWindowLabel.value} · ${trendGranularityLabel.value} · ${trendBuckets.value.length} points`,
+    )
+  })
 
   const trendOptions = computed(() => ({
     chart: {
@@ -399,7 +494,7 @@ export const useUsageDashboardState = () => {
     grid: {
       borderColor: chartTheme.value.grid,
       strokeDashArray: 4,
-      padding: { bottom: 4 },
+      padding: { left: 8, right: 8, bottom: 8, top: 4 },
     },
     legend: {
       labels: { colors: chartTheme.value.textSecondary },
@@ -410,7 +505,9 @@ export const useUsageDashboardState = () => {
   const modelDistribution = computed(() =>
     groupModelDistribution(store.modelStats, 6).map((item) => ({
       ...item,
-      label: item.isOther ? t('usage.dashboard.chart.others') : item.label,
+      label: item.isOther
+        ? translateDashboardText('usage.dashboard.chart.others', undefined, 'Others')
+        : item.label,
     })),
   )
 
@@ -432,16 +529,26 @@ export const useUsageDashboardState = () => {
   })
 
   const distributionSubtitle = computed(() => {
+    if (!dashboardReady.value) return ''
+
     if (store.modelStats.length <= 6) {
-      return t('usage.dashboard.chart.distributionAllVisible', {
-        total: store.modelStats.length,
-      })
+      return translateDashboardText(
+        'usage.dashboard.chart.distributionAllVisible',
+        {
+          total: store.modelStats.length,
+        },
+        `${store.modelStats.length} models visible in this window`,
+      )
     }
 
-    return t('usage.dashboard.chart.distributionSubtitle', {
-      visible: 6,
-      total: store.modelStats.length - 6,
-    })
+    return translateDashboardText(
+      'usage.dashboard.chart.distributionSubtitle',
+      {
+        visible: 6,
+        total: store.modelStats.length - 6,
+      },
+      `Showing the top 6 models; ${store.modelStats.length - 6} grouped into Others`,
+    )
   })
 
   const pieOptions = computed(() => ({
@@ -500,49 +607,65 @@ export const useUsageDashboardState = () => {
   }))
 
   const overviewHighlights = computed(() => {
+    if (!dashboardReady.value) return []
+
     const topModel = store.modelStats[0]
     const topProject = store.projectStats[0]
 
     return [
       {
         id: 'density',
-        label: t('usage.dashboard.highlights.density'),
+        label: translateDashboardText('usage.dashboard.highlights.density', undefined, 'Trend Density'),
         value: trendGranularityLabel.value,
-        detail: t('usage.dashboard.highlights.densityDetail', {
-          points: trendBuckets.value.length,
-          window: selectedWindowLabel.value,
-        }),
+        detail: translateDashboardText(
+          'usage.dashboard.highlights.densityDetail',
+          {
+            points: trendBuckets.value.length,
+            window: selectedWindowLabel.value,
+          },
+          `${trendBuckets.value.length} points across ${selectedWindowLabel.value}`,
+        ),
       },
       {
         id: 'top-model',
-        label: t('usage.dashboard.highlights.topModel'),
-        value: topModel?.model ?? t('usage.dashboard.table.noData'),
+        label: translateDashboardText('usage.dashboard.highlights.topModel', undefined, 'Top Model'),
+        value: topModel?.model ?? translateDashboardText('usage.dashboard.table.noData', undefined, 'No data'),
         detail: topModel
           ? `${formatCost(topModel.total_cost)} · ${formatTokens(topModel.total_tokens)}`
-          : t('usage.dashboard.table.noData'),
+          : translateDashboardText('usage.dashboard.table.noData', undefined, 'No data'),
       },
       {
         id: 'top-project',
-        label: t('usage.dashboard.highlights.topProject'),
-        value: topProject ? shortenPath(topProject.project_path) : t('usage.dashboard.table.noData'),
+        label: translateDashboardText('usage.dashboard.highlights.topProject', undefined, 'Top Project'),
+        value: topProject
+          ? shortenPath(topProject.project_path)
+          : translateDashboardText('usage.dashboard.table.noData', undefined, 'No data'),
         detail: topProject
-          ? `${formatCost(topProject.total_cost)} · ${topProject.request_count.toLocaleString()} ${t('usage.dashboard.table.requests')}`
-          : t('usage.dashboard.table.noData'),
+          ? `${formatCost(topProject.total_cost)} · ${topProject.request_count.toLocaleString()} ${translateDashboardText('usage.dashboard.table.requests', undefined, 'requests')}`
+          : translateDashboardText('usage.dashboard.table.noData', undefined, 'No data'),
       },
       {
         id: 'cache',
-        label: t('usage.dashboard.highlights.cacheRead'),
-        value: store.summary ? formatTokens(store.summary.total_cache_read_tokens) : t('usage.dashboard.table.noData'),
+        label: translateDashboardText('usage.dashboard.highlights.cacheRead', undefined, 'Cache Read'),
+        value: store.summary
+          ? formatTokens(store.summary.total_cache_read_tokens)
+          : translateDashboardText('usage.dashboard.table.noData', undefined, 'No data'),
         detail: store.summary
-          ? t('usage.dashboard.highlights.cacheReadDetail', {
-            percent: formatPercent(store.summary.cache_efficiency),
-          })
-          : t('usage.dashboard.table.noData'),
+          ? translateDashboardText(
+            'usage.dashboard.highlights.cacheReadDetail',
+            {
+              percent: formatPercent(store.summary.cache_efficiency),
+            },
+            `Cache efficiency ${formatPercent(store.summary.cache_efficiency)}`,
+          )
+          : translateDashboardText('usage.dashboard.table.noData', undefined, 'No data'),
       },
     ]
   })
 
   const topModelRankings = computed<OverviewRankItem[]>(() => {
+    if (!dashboardReady.value) return []
+
     const totalCost = store.modelStats.reduce((sum, item) => sum + item.total_cost, 0)
 
     return [...store.modelStats]
@@ -556,13 +679,15 @@ export const useUsageDashboardState = () => {
         id: item.model,
         label: item.model,
         title: item.model,
-        detail: `${item.request_count.toLocaleString()} ${t('usage.dashboard.table.requests')} · ${formatTokens(item.total_tokens)}`,
+        detail: `${item.request_count.toLocaleString()} ${translateDashboardText('usage.dashboard.table.requests', undefined, 'requests')} · ${formatTokens(item.total_tokens)}`,
         value: formatCost(item.total_cost),
         share: totalCost > 0 ? item.total_cost / totalCost : 0,
       }))
   })
 
   const topProjectRankings = computed<OverviewRankItem[]>(() => {
+    if (!dashboardReady.value) return []
+
     const totalCost = store.projectStats.reduce((sum, item) => sum + item.total_cost, 0)
 
     return [...store.projectStats]
@@ -576,7 +701,7 @@ export const useUsageDashboardState = () => {
         id: item.project_path,
         label: shortenPath(item.project_path),
         title: item.project_path,
-        detail: `${formatTokens(item.total_tokens)} · ${item.request_count.toLocaleString()} ${t('usage.dashboard.table.requests')}`,
+        detail: `${formatTokens(item.total_tokens)} · ${item.request_count.toLocaleString()} ${translateDashboardText('usage.dashboard.table.requests', undefined, 'requests')}`,
         value: formatCost(item.total_cost),
         share: totalCost > 0 ? item.total_cost / totalCost : 0,
       }))
@@ -709,7 +834,10 @@ export const useUsageDashboardState = () => {
       })
     }
 
+    await hydrateUsageLocale()
+
     if (runtimeUnavailable.value) {
+      dashboardBootstrapped.value = true
       store.stopAutoRefresh()
       return
     }
@@ -720,6 +848,7 @@ export const useUsageDashboardState = () => {
       start,
       end,
     })
+    dashboardBootstrapped.value = true
     store.startAutoRefresh()
   })
 
@@ -730,6 +859,7 @@ export const useUsageDashboardState = () => {
 
   return {
     activeTab,
+    dashboardReady,
     dashboardMetaItems,
     doImport,
     emptyStateDescription,
@@ -751,6 +881,8 @@ export const useUsageDashboardState = () => {
     pieColors,
     pieOptions,
     pieSeries,
+    hasRenderableTrendData,
+    localeReady,
     runtimeUnavailable,
     selectedDays,
     selectedPlatformLabel,

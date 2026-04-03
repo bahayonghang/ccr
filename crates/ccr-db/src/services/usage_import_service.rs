@@ -2,6 +2,7 @@
 // Implements incremental import pipeline for usage logs
 // Tracks per-file offsets and hashes for efficient import
 
+use ccr_core::{is_qwen_chat_file, qwen_project_dir_name_from_chat_path, qwen_projects_dir};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -88,16 +89,21 @@ impl UsageImportService {
     }
 
     pub fn list_usage_files(&self, platform: &str) -> Result<Vec<PathBuf>, String> {
-        let home_dir = dirs::home_dir().ok_or("Could not find home directory")?;
         let projects_dir = match platform {
-            "claude" => home_dir.join(".claude/projects"),
+            "claude" => dirs::home_dir()
+                .ok_or("Could not find home directory")?
+                .join(".claude/projects"),
             "codex" => {
+                let home_dir = dirs::home_dir().ok_or("Could not find home directory")?;
                 let codex_home = std::env::var("CODEX_HOME")
                     .map(PathBuf::from)
                     .unwrap_or_else(|_| home_dir.join(".codex"));
                 codex_home.join("sessions")
             }
-            "gemini" => home_dir.join(".gemini/tmp"),
+            "gemini" => dirs::home_dir()
+                .ok_or("Could not find home directory")?
+                .join(".gemini/tmp"),
+            "qwen" => qwen_projects_dir().ok_or("Could not resolve Qwen runtime directory")?,
             _ => return Err(format!("Unsupported platform: {}", platform)),
         };
 
@@ -110,6 +116,7 @@ impl UsageImportService {
             .filter_map(|entry| entry.ok())
             .filter(|entry| match platform {
                 "gemini" => Self::is_gemini_session_file(entry.path()),
+                "qwen" => Self::is_qwen_session_file(entry.path()),
                 _ => entry.path().extension().is_some_and(|ext| ext == "jsonl"),
             })
             .map(|entry| entry.path().to_path_buf())
@@ -210,6 +217,8 @@ impl UsageImportService {
         let file_path_str = file_path.to_str().ok_or("Invalid file path")?.to_string();
         let is_codex = platform == "codex";
         let is_gemini_session = platform == "gemini" && Self::is_gemini_session_file(file_path);
+        let is_qwen_session = platform == "qwen" && Self::is_qwen_session_file(file_path);
+        let is_replay_session = is_gemini_session || is_qwen_session;
         let current_file_size = std::fs::metadata(file_path)
             .map(|metadata| metadata.len() as i64)
             .unwrap_or(0);
@@ -269,19 +278,23 @@ impl UsageImportService {
                             (source.id, 0i64)
                         }
                     }
-                } else if source.file_hash != current_hash {
-                    // File changed, need to re-import from beginning
-                    debug!("File hash changed, re-importing: {:?}", file_path);
+                } else if is_replay_session {
+                    if current_file_size == source.last_offset && source.file_hash == current_hash {
+                        return Ok((0, 0));
+                    }
+
+                    debug!(
+                        "Session file changed, re-importing from start: {:?}",
+                        file_path
+                    );
                     database::with_connection(|conn| {
                         usage_repo::delete_records_by_source(conn, &source.id)
                     })
                     .map_err(|e| e.to_string())?;
                     (source.id, 0i64)
-                } else if is_gemini_session {
-                    if source.last_offset >= current_file_size {
-                        return Ok((0, 0));
-                    }
-                    debug!("Session file grew, re-importing: {:?}", file_path);
+                } else if source.file_hash != current_hash {
+                    // File changed, need to re-import from beginning
+                    debug!("File hash changed, re-importing: {:?}", file_path);
                     database::with_connection(|conn| {
                         usage_repo::delete_records_by_source(conn, &source.id)
                     })
@@ -323,6 +336,8 @@ impl UsageImportService {
                 self.read_codex_session(file_path, &project_path, &source_id)?
             } else if is_gemini_session {
                 self.read_gemini_session(file_path, &project_path, &source_id)?
+            } else if is_qwen_session {
+                self.read_qwen_session(file_path, &project_path, &source_id)?
             } else {
                 self.read_lines_from_offset(
                     file_path,
@@ -1026,6 +1041,10 @@ impl UsageImportService {
             && parent_name == "chats"
     }
 
+    fn is_qwen_session_file(path: &Path) -> bool {
+        is_qwen_chat_file(path)
+    }
+
     fn extract_gemini_token_usage(message: &Value) -> GeminiTokenUsage {
         if let Some(tokens) = message.get("tokens") {
             let input_tokens = tokens
@@ -1210,6 +1229,297 @@ impl UsageImportService {
         Some(prefix)
     }
 
+    fn read_qwen_session(
+        &self,
+        file_path: &Path,
+        project_path: &str,
+        source_id: &str,
+    ) -> Result<(Vec<usage_repo::UsageRecord>, i64, usize), String> {
+        let file = File::open(file_path).map_err(|e| e.to_string())?;
+        let file_size = file
+            .metadata()
+            .map(|metadata| metadata.len() as i64)
+            .unwrap_or(0);
+        let reader = BufReader::new(file);
+        let fallback_recorded_at = std::fs::metadata(file_path)
+            .and_then(|metadata| metadata.modified())
+            .map(DateTime::<Utc>::from)
+            .ok();
+
+        let mut records = Vec::new();
+        let mut skipped = 0usize;
+        let mut session_id = file_path
+            .file_stem()
+            .and_then(|stem| stem.to_str())
+            .unwrap_or("unknown")
+            .to_string();
+        let mut current_model: Option<String> = None;
+        let mut resolved_project_path = if project_path.is_empty() {
+            String::from("unknown")
+        } else {
+            project_path.to_string()
+        };
+
+        for (index, line_result) in reader.lines().enumerate() {
+            let line = match line_result {
+                Ok(line) => line,
+                Err(_) => {
+                    skipped += 1;
+                    continue;
+                }
+            };
+
+            let trimmed = line.trim();
+            if trimmed.is_empty() {
+                continue;
+            }
+
+            let json: Value = match serde_json::from_str(trimmed) {
+                Ok(json) => json,
+                Err(_) => {
+                    skipped += 1;
+                    continue;
+                }
+            };
+
+            if let Some(parsed_session_id) = Self::extract_qwen_session_id(&json) {
+                session_id = parsed_session_id;
+            }
+
+            if let Some(project_root) = Self::extract_qwen_project_path(&json) {
+                resolved_project_path = project_root;
+            }
+
+            if let Some(model) = Self::extract_qwen_model(&json) {
+                current_model = Some(model);
+            }
+
+            let recorded_at = Self::extract_qwen_recorded_at(&json)
+                .or_else(|| fallback_recorded_at.as_ref().cloned())
+                .unwrap_or_else(Utc::now);
+            let model = Self::extract_qwen_model(&json).or_else(|| current_model.clone());
+            let line_number = (index + 1) as u64;
+            let mut produced = false;
+
+            if let Some(usage) = Self::extract_qwen_assistant_usage(&json) {
+                records.push(self.build_qwen_usage_record(
+                    &session_id,
+                    line_number,
+                    "assistant",
+                    source_id,
+                    &resolved_project_path,
+                    model.clone(),
+                    recorded_at,
+                    &json,
+                    usage,
+                ));
+                produced = true;
+            }
+
+            if let Some(usage) = Self::extract_qwen_task_execution_usage(&json) {
+                records.push(self.build_qwen_usage_record(
+                    &session_id,
+                    line_number,
+                    "task",
+                    source_id,
+                    &resolved_project_path,
+                    model.clone(),
+                    recorded_at,
+                    &json,
+                    usage,
+                ));
+                produced = true;
+            }
+
+            if !produced {
+                skipped += 1;
+            }
+        }
+
+        Ok((records, file_size, skipped))
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn build_qwen_usage_record(
+        &self,
+        session_id: &str,
+        line_number: u64,
+        record_kind: &str,
+        source_id: &str,
+        project_path: &str,
+        model: Option<String>,
+        recorded_at: DateTime<Utc>,
+        record_json: &Value,
+        usage: GeminiTokenUsage,
+    ) -> usage_repo::UsageRecord {
+        let cost_usd = self.calculate_cost(
+            model.as_deref().unwrap_or("unknown"),
+            usage.input_tokens,
+            usage.output_tokens,
+            usage.cached_input_tokens,
+        );
+
+        usage_repo::UsageRecord {
+            id: format!("{session_id}:{record_kind}:{line_number}"),
+            platform: "qwen".to_string(),
+            project_path: project_path.to_string(),
+            record_json: record_json.to_string(),
+            recorded_at,
+            source_id: source_id.to_string(),
+            model,
+            input_tokens: usage.input_tokens,
+            output_tokens: usage.output_tokens,
+            cache_read_tokens: usage.cached_input_tokens,
+            cost_usd,
+        }
+    }
+
+    fn extract_qwen_assistant_usage(record: &Value) -> Option<GeminiTokenUsage> {
+        let usage = record
+            .get("usageMetadata")
+            .or_else(|| record.get("usage_metadata"))
+            .or_else(|| Self::find_value_by_keys(record, &["usageMetadata", "usage_metadata"]))?;
+
+        Self::extract_qwen_token_usage(usage)
+    }
+
+    fn extract_qwen_task_execution_usage(record: &Value) -> Option<GeminiTokenUsage> {
+        let result_display = record
+            .get("resultDisplay")
+            .or_else(|| Self::find_value_by_keys(record, &["resultDisplay"]))?;
+
+        if result_display.get("type").and_then(|value| value.as_str()) != Some("task_execution") {
+            return None;
+        }
+
+        let summary = record
+            .get("executionSummary")
+            .or_else(|| result_display.get("executionSummary"))
+            .or_else(|| Self::find_value_by_keys(record, &["executionSummary"]))?;
+
+        Self::extract_qwen_token_usage(summary)
+    }
+
+    fn extract_qwen_token_usage(usage: &Value) -> Option<GeminiTokenUsage> {
+        let input_tokens = Self::find_i64_by_keys(
+            usage,
+            &[
+                "promptTokenCount",
+                "inputTokenCount",
+                "inputTokens",
+                "input_tokens",
+            ],
+        )
+        .unwrap_or(0);
+        let cached_input_tokens = Self::find_i64_by_keys(
+            usage,
+            &[
+                "cachedContentTokenCount",
+                "cachedInputTokenCount",
+                "cachedTokens",
+                "cachedReadTokens",
+                "cached_input_tokens",
+            ],
+        )
+        .unwrap_or(0);
+        let output_tokens = Self::find_i64_by_keys(
+            usage,
+            &[
+                "candidatesTokenCount",
+                "outputTokenCount",
+                "outputTokens",
+                "output_tokens",
+            ],
+        )
+        .unwrap_or(0)
+            + Self::find_i64_by_keys(usage, &["thoughtTokens"]).unwrap_or(0);
+
+        if input_tokens == 0 && cached_input_tokens == 0 && output_tokens == 0 {
+            return None;
+        }
+
+        Some(GeminiTokenUsage {
+            input_tokens,
+            cached_input_tokens,
+            output_tokens,
+        })
+    }
+
+    fn extract_qwen_session_id(record: &Value) -> Option<String> {
+        Self::find_string_by_keys(record, &["sessionId", "session_id"])
+    }
+
+    fn extract_qwen_project_path(record: &Value) -> Option<String> {
+        Self::find_string_by_keys(record, &["cwd", "projectRoot", "project_root"])
+            .filter(|value| !value.trim().is_empty())
+    }
+
+    fn extract_qwen_model(record: &Value) -> Option<String> {
+        Self::find_string_by_keys(record, &["model", "modelId", "model_id"])
+            .filter(|value| !value.trim().is_empty())
+    }
+
+    fn extract_qwen_recorded_at(record: &Value) -> Option<DateTime<Utc>> {
+        let timestamp = Self::find_string_by_keys(
+            record,
+            &[
+                "timestamp",
+                "recordedAt",
+                "recorded_at",
+                "createdAt",
+                "created_at",
+                "updatedAt",
+                "updated_at",
+            ],
+        )?;
+
+        DateTime::parse_from_rfc3339(&timestamp)
+            .map(|datetime| datetime.with_timezone(&Utc))
+            .ok()
+    }
+
+    fn find_string_by_keys(value: &Value, keys: &[&str]) -> Option<String> {
+        Self::find_value_by_keys(value, keys).and_then(|value| value.as_str().map(str::to_owned))
+    }
+
+    fn find_i64_by_keys(value: &Value, keys: &[&str]) -> Option<i64> {
+        Self::find_value_by_keys(value, keys).and_then(Self::value_as_i64)
+    }
+
+    fn value_as_i64(value: &Value) -> Option<i64> {
+        match value {
+            Value::Number(number) => number
+                .as_i64()
+                .or_else(|| number.as_u64().and_then(|value| i64::try_from(value).ok())),
+            Value::String(text) => text.parse::<i64>().ok(),
+            _ => None,
+        }
+    }
+
+    fn find_value_by_keys<'a>(value: &'a Value, keys: &[&str]) -> Option<&'a Value> {
+        match value {
+            Value::Object(map) => {
+                for key in keys {
+                    if let Some(found) = map.get(*key) {
+                        return Some(found);
+                    }
+                }
+
+                for nested in map.values() {
+                    if let Some(found) = Self::find_value_by_keys(nested, keys) {
+                        return Some(found);
+                    }
+                }
+
+                None
+            }
+            Value::Array(items) => items
+                .iter()
+                .find_map(|item| Self::find_value_by_keys(item, keys)),
+            _ => None,
+        }
+    }
+
     /// Parse a JSON object into a usage record
     fn parse_usage_record(
         &self,
@@ -1379,6 +1689,12 @@ impl UsageImportService {
             }
         }
 
+        if platform == "qwen"
+            && let Some(project_dir_name) = qwen_project_dir_name_from_chat_path(file_path)
+        {
+            return project_dir_name;
+        }
+
         // Claude/Gemini: projects 目录结构
         // e.g., ~/.claude/projects/myproject/usage.jsonl -> myproject
         let marker = format!("/.{}/projects/", platform);
@@ -1420,6 +1736,16 @@ mod tests {
 
     fn setup() {
         database::initialize_for_test().unwrap();
+    }
+
+    fn reset_usage_tables() {
+        database::with_connection(|conn| {
+            conn.execute("DELETE FROM usage_records", [])?;
+            conn.execute("DELETE FROM usage_sources", [])?;
+            conn.execute("DELETE FROM usage_daily_agg", [])?;
+            Ok::<(), rusqlite::Error>(())
+        })
+        .unwrap();
     }
 
     #[test]
@@ -1531,6 +1857,16 @@ mod tests {
         let path = PathBuf::from("/home/user/.codex/sessions/2026/01/15/rollout-abc123.jsonl");
         let project = service.extract_project_path(&path, "codex");
         assert_eq!(project, "2026/01/15");
+    }
+
+    #[test]
+    fn test_extract_project_path_qwen() {
+        let service = UsageImportService::new(ImportConfig::default());
+
+        let path =
+            PathBuf::from("/home/user/.qwen/projects/workspace___repo/chats/session-1.jsonl");
+        let project = service.extract_project_path(&path, "qwen");
+        assert_eq!(project, "workspace___repo");
     }
 
     #[test]
@@ -1771,14 +2107,7 @@ mod tests {
     #[test]
     fn test_reset_platform_sources_clears_records_and_checkpoints() {
         setup();
-
-        database::with_connection(|conn| {
-            conn.execute("DELETE FROM usage_records", [])?;
-            conn.execute("DELETE FROM usage_sources", [])?;
-            conn.execute("DELETE FROM usage_daily_agg", [])?;
-            Ok::<(), rusqlite::Error>(())
-        })
-        .unwrap();
+        reset_usage_tables();
 
         let codex_source = usage_repo::UsageSource {
             id: "src-codex".to_string(),
@@ -1942,6 +2271,7 @@ mod tests {
     #[test]
     fn test_import_file_persists_gemini_session_records() {
         setup();
+        reset_usage_tables();
 
         let temp_dir = TempDir::new().unwrap();
         let project_dir = temp_dir.path().join("tmp").join("backend");
@@ -2028,5 +2358,107 @@ mod tests {
         // o3: (2.0, 8.0, 0.50) per 1M tokens
         let cost = service.calculate_cost("o3", 1_000_000, 1_000_000, 0);
         assert!((cost - 10.0).abs() < 0.001); // 2.0 + 8.0
+    }
+
+    #[test]
+    fn test_read_qwen_session_parses_usage_metadata_and_task_execution() {
+        setup();
+        reset_usage_tables();
+
+        let temp_dir = TempDir::new().unwrap();
+        let file_dir = temp_dir
+            .path()
+            .join(".qwen")
+            .join("projects")
+            .join("workspace___repo")
+            .join("chats");
+        std::fs::create_dir_all(&file_dir).unwrap();
+        let file_path = file_dir.join("session-qwen.jsonl");
+
+        let content = r#"{"type":"session_meta","sessionId":"sess-qwen","cwd":"D:\\Documents\\Code\\Github\\ccr","model":"qwen3-coder-plus"}
+{"type":"assistant","timestamp":"2026-04-01T08:00:00Z","usageMetadata":{"promptTokenCount":1200,"candidatesTokenCount":320,"cachedContentTokenCount":450}}
+{"type":"tool","timestamp":"2026-04-01T08:01:00Z","resultDisplay":{"type":"task_execution"},"executionSummary":{"inputTokens":200,"outputTokens":50,"cachedTokens":20,"thoughtTokens":30}}
+"#;
+        std::fs::write(&file_path, content).unwrap();
+
+        let service = UsageImportService::new(ImportConfig::default());
+        let (records, offset, skipped) = service
+            .read_qwen_session(&file_path, "workspace___repo", "src-qwen")
+            .unwrap();
+
+        assert_eq!(offset, content.len() as i64);
+        assert_eq!(skipped, 1);
+        assert_eq!(records.len(), 2);
+
+        assert_eq!(records[0].id, "sess-qwen:assistant:2");
+        assert_eq!(records[0].platform, "qwen");
+        assert_eq!(records[0].project_path, r"D:\Documents\Code\Github\ccr");
+        assert_eq!(records[0].model.as_deref(), Some("qwen3-coder-plus"));
+        assert_eq!(records[0].input_tokens, 1200);
+        assert_eq!(records[0].output_tokens, 320);
+        assert_eq!(records[0].cache_read_tokens, 450);
+
+        assert_eq!(records[1].id, "sess-qwen:task:3");
+        assert_eq!(records[1].input_tokens, 200);
+        assert_eq!(records[1].output_tokens, 80);
+        assert_eq!(records[1].cache_read_tokens, 20);
+    }
+
+    #[test]
+    fn test_import_file_persists_qwen_session_records() {
+        setup();
+        reset_usage_tables();
+
+        let temp_dir = TempDir::new().unwrap();
+        let file_dir = temp_dir
+            .path()
+            .join(".qwen")
+            .join("projects")
+            .join("workspace___repo")
+            .join("chats");
+        std::fs::create_dir_all(&file_dir).unwrap();
+        let file_path = file_dir.join("session-qwen-import.jsonl");
+
+        let content = r#"{"type":"session_meta","sessionId":"sess-qwen-import","cwd":"D:\\Documents\\Code\\Github\\ccr\\ccr-ui","model":"qwen3-coder-plus"}
+{"type":"assistant","timestamp":"2026-04-01T08:00:00Z","usageMetadata":{"promptTokenCount":1200,"candidatesTokenCount":320,"cachedContentTokenCount":450}}
+{"type":"tool","timestamp":"2026-04-01T08:01:00Z","resultDisplay":{"type":"task_execution"},"executionSummary":{"inputTokens":200,"outputTokens":50,"cachedTokens":20}}
+"#;
+        std::fs::write(&file_path, content).unwrap();
+
+        let service = UsageImportService::new(ImportConfig::default());
+        let (imported, skipped) = service.import_file("qwen", &file_path).unwrap();
+
+        assert_eq!(imported, 2);
+        assert_eq!(skipped, 1);
+
+        let file_path_str = file_path.to_string_lossy().to_string();
+        let (source, records, model_stats, project_stats) = database::with_connection(|conn| {
+            let source = usage_repo::get_source_by_path(conn, &file_path_str)?
+                .expect("source should exist after qwen import");
+            let records = usage_repo::get_records_by_source(conn, &source.id)?;
+            let model_stats =
+                usage_repo::get_model_stats(conn, &Some("qwen".to_string()), &None, &None)?;
+            let project_stats =
+                usage_repo::get_project_stats(conn, &Some("qwen".to_string()), &None, &None)?;
+            Ok((source, records, model_stats, project_stats))
+        })
+        .unwrap();
+
+        assert!(!source.id.is_empty());
+        assert_eq!(records.len(), 2);
+        assert_eq!(
+            records[0].project_path,
+            r"D:\Documents\Code\Github\ccr\ccr-ui"
+        );
+        assert!(
+            model_stats
+                .iter()
+                .any(|stat| stat.model == "qwen3-coder-plus")
+        );
+        assert!(
+            project_stats
+                .iter()
+                .any(|stat| stat.project_path == r"D:\Documents\Code\Github\ccr\ccr-ui")
+        );
     }
 }

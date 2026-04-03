@@ -45,6 +45,9 @@
               <option value="gemini">
                 Gemini
               </option>
+              <option value="qwen">
+                Qwen
+              </option>
             </select>
             <select
               v-model="selectedDays"
@@ -90,7 +93,7 @@
 
       <template v-else>
         <section
-          v-if="summaryCards.length > 0"
+          v-if="dashboardReady && summaryCards.length > 0"
           class="usage-summary-grid"
         >
           <article
@@ -149,6 +152,13 @@
           @action="onFilterChange"
         />
 
+        <AsyncStatePanel
+          v-else-if="!dashboardReady"
+          state="loading"
+          :title="$t('common.loading')"
+          compact
+        />
+
         <div
           v-else
           class="usage-content"
@@ -199,6 +209,7 @@
               :distribution-subtitle="distributionSubtitle"
               :format-cost="formatCost"
               :format-tokens="formatTokens"
+              :has-renderable-trend-data="hasRenderableTrendData"
               :model-stats="store.modelStats"
               :model-distribution="modelDistribution"
               :overview-highlights="overviewHighlights"
@@ -289,6 +300,7 @@ const apexchart = defineAsyncComponent(async () => {
 
 const {
   activeTab,
+  dashboardReady,
   dashboardMetaItems,
   doImport,
   emptyStateDescription,
@@ -302,6 +314,7 @@ const {
   diagnosticsEmptyDetail,
   diagnosticsEmptyMessage,
   diagnosticsSummary,
+  hasRenderableTrendData,
   loadLogs,
   logsRecords,
   logModelFilter,
@@ -445,10 +458,94 @@ const runtimeCopy = computed(() => getRuntimeUnavailableCopy('usage'))
   gap: 0.8rem;
   border-radius: 1.5rem;
   border: 1px solid rgb(var(--color-border-default-rgb) / 32%);
+  border-left: 3px solid rgb(var(--color-border-default-rgb) / 32%);
   padding: 1rem 1.05rem 1.1rem;
   background: var(--surface-status-bg);
   backdrop-filter: var(--surface-status-blur);
   box-shadow: var(--elevation-1);
+  transition:
+    border-color var(--motion-subtle-duration) var(--motion-subtle-ease),
+    box-shadow var(--motion-subtle-duration) var(--motion-subtle-ease);
+}
+
+/* ── Per-tone: rose (总请求数) ── */
+.usage-summary-card--rose {
+  border-left-color: rgb(var(--color-accent-primary-rgb) / 64%);
+}
+
+.usage-summary-card--rose:hover {
+  border-color: rgb(var(--color-accent-primary-rgb) / 36%);
+  border-left-color: rgb(var(--color-accent-primary-rgb) / 80%);
+  box-shadow: var(--elevation-2);
+}
+
+.usage-summary-card--rose .usage-summary-card__icon {
+  background: rgb(var(--color-accent-primary-rgb) / 14%);
+  color: rgb(var(--color-accent-primary-rgb));
+}
+
+.usage-summary-card--rose .usage-summary-card__value {
+  color: rgb(var(--color-accent-primary-rgb));
+}
+
+/* ── Per-tone: violet (总 Tokens) ── */
+.usage-summary-card--violet {
+  border-left-color: rgb(var(--color-accent-secondary-rgb) / 64%);
+}
+
+.usage-summary-card--violet:hover {
+  border-color: rgb(var(--color-accent-secondary-rgb) / 36%);
+  border-left-color: rgb(var(--color-accent-secondary-rgb) / 80%);
+  box-shadow: var(--elevation-2);
+}
+
+.usage-summary-card--violet .usage-summary-card__icon {
+  background: rgb(var(--color-accent-secondary-rgb) / 14%);
+  color: rgb(var(--color-accent-secondary-rgb));
+}
+
+.usage-summary-card--violet .usage-summary-card__value {
+  color: rgb(var(--color-accent-secondary-rgb));
+}
+
+/* ── Per-tone: sky (总费用) ── */
+.usage-summary-card--sky {
+  border-left-color: rgb(var(--color-info-rgb) / 64%);
+}
+
+.usage-summary-card--sky:hover {
+  border-color: rgb(var(--color-info-rgb) / 36%);
+  border-left-color: rgb(var(--color-info-rgb) / 80%);
+  box-shadow: var(--elevation-2);
+}
+
+.usage-summary-card--sky .usage-summary-card__icon {
+  background: rgb(var(--color-info-rgb) / 14%);
+  color: rgb(var(--color-info-rgb));
+}
+
+.usage-summary-card--sky .usage-summary-card__value {
+  color: rgb(var(--color-info-rgb));
+}
+
+/* ── Per-tone: amber (缓存效率) ── */
+.usage-summary-card--amber {
+  border-left-color: rgb(var(--color-warning-rgb) / 64%);
+}
+
+.usage-summary-card--amber:hover {
+  border-color: rgb(var(--color-warning-rgb) / 36%);
+  border-left-color: rgb(var(--color-warning-rgb) / 80%);
+  box-shadow: var(--elevation-2);
+}
+
+.usage-summary-card--amber .usage-summary-card__icon {
+  background: rgb(var(--color-warning-rgb) / 14%);
+  color: rgb(var(--color-warning-rgb));
+}
+
+.usage-summary-card--amber .usage-summary-card__value {
+  color: rgb(var(--color-warning-rgb));
 }
 
 .usage-summary-card::after {

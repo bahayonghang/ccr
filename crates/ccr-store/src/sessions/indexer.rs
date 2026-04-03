@@ -36,7 +36,12 @@ impl SessionIndexer {
     pub fn index_all(&self) -> Result<IndexStats> {
         let mut total_stats = IndexStats::default();
 
-        for platform in &[Platform::Claude, Platform::Codex, Platform::Gemini] {
+        for platform in &[
+            Platform::Claude,
+            Platform::Codex,
+            Platform::Gemini,
+            Platform::Qwen,
+        ] {
             match self.index_platform(*platform) {
                 Ok(stats) => {
                     total_stats.merge(&stats);

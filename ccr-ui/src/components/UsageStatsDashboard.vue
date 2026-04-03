@@ -168,7 +168,7 @@
 
       <div class="h-px bg-gradient-to-r from-transparent via-border-default/50 to-transparent" />
 
-      <div class="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div class="grid grid-cols-2 gap-3 lg:grid-cols-5">
         <div
           v-for="card in platformCards"
           :key="card.key"
@@ -288,7 +288,8 @@ const hasSeriesDataForMode = (
     const claudeValue = getChartValue('claude', mode)(item)
     const codexValue = getChartValue('codex', mode)(item)
     const geminiValue = getChartValue('gemini', mode)(item)
-    return claudeValue + codexValue + geminiValue > 0
+    const qwenValue = getChartValue('qwen', mode)(item)
+    return claudeValue + codexValue + geminiValue + qwenValue > 0
   })
 }
 
@@ -415,6 +416,15 @@ const platformCards = computed(() => {
         'bg-blue-500/5 border-blue-500/20 hover:border-blue-500/40 hover:bg-blue-500/10',
       dotClass: 'bg-blue-500 ring-blue-500/20',
       titleClass: 'text-blue-400',
+    },
+    {
+      key: 'qwen',
+      label: 'Qwen',
+      stats: getPlatformStats('qwen'),
+      containerClass:
+        'bg-platform-qwen/5 border-platform-qwen/20 hover:border-platform-qwen/40 hover:bg-platform-qwen/10',
+      dotClass: 'bg-platform-qwen ring-platform-qwen/20',
+      titleClass: 'text-platform-qwen',
     },
   ]
 })

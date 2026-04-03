@@ -90,7 +90,7 @@ struct UsageImportJobFile {
     modified_at: Option<std::time::SystemTime>,
 }
 
-const HOME_USAGE_PLATFORMS: [&str; 3] = ["claude", "codex", "gemini"];
+const HOME_USAGE_PLATFORMS: [&str; 4] = ["claude", "codex", "gemini", "qwen"];
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
 pub struct HomeOverviewPlatformStats {
@@ -122,6 +122,7 @@ pub struct HomeOverviewSeriesItem {
     pub claude: HomeOverviewPlatformStats,
     pub codex: HomeOverviewPlatformStats,
     pub gemini: HomeOverviewPlatformStats,
+    pub qwen: HomeOverviewPlatformStats,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -549,6 +550,8 @@ fn normalize_home_platform(raw: &str) -> Option<&'static str> {
         "gemini" | "gemini-cli" | "gemini cli" | "google-gemini" | "google gemini" => {
             Some("gemini")
         }
+        "qwen" | "qwen-cli" | "qwen cli" | "qwen-code" | "qwen code" | "alibaba-qwen"
+        | "alibaba qwen" => Some("qwen"),
         _ => None,
     }
 }
@@ -1100,6 +1103,7 @@ pub async fn get_home_usage_overview_v2(
                     claude: day_stats.remove("claude").unwrap_or_default(),
                     codex: day_stats.remove("codex").unwrap_or_default(),
                     gemini: day_stats.remove("gemini").unwrap_or_default(),
+                    qwen: day_stats.remove("qwen").unwrap_or_default(),
                 }
             })
             .collect::<Vec<_>>();
@@ -1192,7 +1196,7 @@ pub async fn import_all_usage_v2(
 
     let semaphore = Arc::new(Semaphore::new(2));
     let mut tasks = tokio::task::JoinSet::new();
-    for platform in ["claude", "codex", "gemini"] {
+    for platform in HOME_USAGE_PLATFORMS {
         let sem = Arc::clone(&semaphore);
         let platform_name = platform.to_string();
         tasks.spawn(async move {
@@ -1330,6 +1334,7 @@ mod tests {
         assert_eq!(normalize_home_platform("Claude Code"), Some("claude"));
         assert_eq!(normalize_home_platform("openai-codex"), Some("codex"));
         assert_eq!(normalize_home_platform("gemini-cli"), Some("gemini"));
+        assert_eq!(normalize_home_platform("qwen-cli"), Some("qwen"));
         assert_eq!(normalize_home_platform("unknown"), None);
     }
 
