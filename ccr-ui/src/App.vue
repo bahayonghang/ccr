@@ -1,7 +1,10 @@
 <template>
   <AnimeBackground v-if="showGlobalBackground" />
-  <Titlebar />
-  <div class="flex h-screen w-screen flex-col overflow-hidden bg-bg-base pt-9">
+  <Titlebar v-if="showCustomTitlebar" />
+  <div
+    class="flex h-screen w-screen flex-col overflow-hidden bg-bg-base"
+    :class="{ 'pt-9': showCustomTitlebar }"
+  >
     <RouterView class="flex-1 overflow-hidden" />
   </div>
   <ToastContainer />
@@ -11,6 +14,7 @@
 <script setup lang="ts">
 import { computed, defineAsyncComponent } from 'vue'
 import { useRoute } from 'vue-router'
+import { shouldUseCustomTitlebar } from '@/utils/windowChrome'
 
 const Titlebar = defineAsyncComponent({
   loader: () => import('@/components/layout/Titlebar.vue'),
@@ -33,6 +37,7 @@ const GlobalConfirmDialog = defineAsyncComponent({
 })
 
 const route = useRoute()
+const showCustomTitlebar = shouldUseCustomTitlebar()
 
 const showGlobalBackground = computed(() => {
   return !route.meta.hideGlobalBackground

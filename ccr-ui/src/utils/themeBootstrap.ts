@@ -7,6 +7,12 @@ export const applyThemeToDocument = (theme: ThemeMode): void => {
 
   document.documentElement.classList.toggle('dark', theme === 'dark')
   document.documentElement.setAttribute('data-theme', theme)
+
+  void import('@/utils/nativeWindowAppearance')
+    .then(({ syncNativeWindowAppearance }) => syncNativeWindowAppearance(theme))
+    .catch(() => {
+      // 浏览器测试环境或非 Tauri 运行时允许静默降级。
+    })
 }
 
 export const readStoredTheme = (): ThemeMode => {

@@ -15,7 +15,7 @@ mod usage_jobs;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 
-use tauri::{Manager, RunEvent, WindowEvent};
+use tauri::{Manager, RunEvent, TitleBarStyle, WindowEvent};
 use tauri_plugin_dialog::{DialogExt, MessageDialogButtons, MessageDialogKind};
 use tokio::sync::Notify;
 
@@ -29,6 +29,27 @@ fn should_confirm_app_exit(window_label: &str) -> bool {
     window_label == "main"
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct MacOsWindowChromeConfig {
+    decorations: bool,
+    title_bar_style: TitleBarStyle,
+}
+
+fn macos_native_window_chrome_config() -> MacOsWindowChromeConfig {
+    MacOsWindowChromeConfig {
+        decorations: true,
+        title_bar_style: TitleBarStyle::Visible,
+    }
+}
+
+#[cfg(target_os = "macos")]
+fn enable_macos_native_window_chrome(window: &tauri::WebviewWindow) -> tauri::Result<()> {
+    let config = macos_native_window_chrome_config();
+    window.set_decorations(config.decorations)?;
+    window.set_title_bar_style(config.title_bar_style)?;
+    Ok(())
+}
+
 fn main() {
     ccr::init_logger();
 
@@ -40,6 +61,17 @@ fn main() {
     let app = tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .setup(|app| {
+            #[cfg(target_os = "macos")]
+            if let Some(window) = app.get_webview_window("main") {
+                if let Err(error) = enable_macos_native_window_chrome(&window) {
+                    tracing::warn!("[app] failed to enable macOS native window chrome: {error}");
+                } else {
+                    tracing::info!(
+                        "[app] macOS native window chrome enabled for main window"
+                    );
+                }
+            }
+
             // 初始化全局数据库，并确保后续通过 with_connection() 的调用可用。
             // 这里先启动全局连接池，再为 AppState 创建独立的应用连接池。
             ccr_db::database::initialize().map_err(|e| {
@@ -250,6 +282,14 @@ mod tests {
         assert!(should_confirm_app_exit("main"));
         assert!(!should_confirm_app_exit("waf-login-builtin-anyrouter"));
         assert!(!should_confirm_app_exit("oauth-login"));
+    }
+
+    #[test]
+    fn macos_window_chrome_config_enables_native_decorations() {
+        let config = super::macos_native_window_chrome_config();
+
+        assert!(config.decorations);
+        assert_eq!(config.title_bar_style, tauri::TitleBarStyle::Visible);
     }
 }
 
