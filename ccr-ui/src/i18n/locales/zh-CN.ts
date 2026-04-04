@@ -68,7 +68,8 @@ export default {
     about: {
       menu: '关于 {name}',
       title: '关于 {name}',
-      description: '面向 Claude Code、Codex、Gemini 等 AI CLI 的统一控制台。保留 Neko 风格和 Liquid Glass 交互层，同时优先服务高频配置与运维工作流。',
+      description:
+        '面向 Claude Code、Codex、Gemini 等 AI CLI 的统一控制台。保留 Neko 风格和 Liquid Glass 交互层，同时优先服务高频配置与运维工作流。',
       owner: '作者',
       engine: '技术栈',
       close: '我知道了喵～',
@@ -343,7 +344,7 @@ export default {
 
     // New Keys for HomeView Redesign
     welcomeBack: '欢迎回来',
-      roleEngineer: '舰长',
+    roleEngineer: '舰长',
     statusMsg: '核心服务已就绪，可以继续配置、同步或排查问题。',
     platformModules: '平台模块',
     systemActivity: '系统活动',
@@ -737,20 +738,20 @@ export default {
     sections: {
       basic: {
         title: '基础信息',
-        description: '定义这个 Profile 的名称和识别说明。'
+        description: '定义这个 Profile 的名称和识别说明。',
       },
       connection: {
         title: '连接与模型',
-        description: '配置服务地址、默认模型和所属 Provider。'
+        description: '配置服务地址、默认模型和所属 Provider。',
       },
       auth: {
         title: '账号与鉴权',
-        description: '维护账号标识、Provider 类型和运行时鉴权信息。'
+        description: '维护账号标识、Provider 类型和运行时鉴权信息。',
       },
       status: {
         title: '状态与标签',
-        description: '整理启用状态和辅助标签，保持列表可扫描。'
-      }
+        description: '整理启用状态和辅助标签，保持列表可扫描。',
+      },
     },
     loadFailedTitle: '加载 Claude Profiles 失败',
     loadFailed: '无法读取 Claude profiles',
@@ -1719,16 +1720,16 @@ export default {
       },
 
       chart: {
-        trendEyebrow: '主信号画布',
+        trendEyebrow: '主趋势',
         trendTitle: 'Token 使用趋势',
-        trendSubtitle: '{window}内按{granularity}聚合，共 {points} 个关键节点',
+        trendSubtitle: '{window} · {granularity} · {points} 个节点',
         input: '输入',
         output: '输出',
         cache: '缓存',
         noTrend: '暂无趋势数据',
         costByModel: '模型费用分布',
-        distributionSubtitle: '仅展示前 {visible} 个模型，其余 {total} 个合并为 Others',
-        distributionAllVisible: '当前窗口共 {total} 个模型，全部直接展示',
+        distributionSubtitle: '前 {visible} 个模型单独显示，其余 {total} 个归入 Others',
+        distributionAllVisible: '当前窗口共 {total} 个模型，已全部显示',
         modelTableSubtitle: '按请求频次排序，帮助识别最常用模型',
         projectTableSubtitle: '聚焦最重的项目路径，快速定位高消耗工作区',
         others: 'Others',
@@ -1740,11 +1741,11 @@ export default {
       },
 
       highlights: {
-        eyebrow: '即时洞察',
+        eyebrow: '关键洞察',
         title: '洞察速览',
-        subtitle: '把长周期趋势压缩成能立即扫读的重点',
+        subtitle: '把主趋势压缩成首屏可扫读的结论',
         density: '趋势密度',
-        densityDetail: '{window} 内保留 {points} 个关键节点',
+        densityDetail: '{window} 内共 {points} 个节点',
         topModel: '头部模型',
         topProject: '头部项目',
         cacheRead: '缓存读取',
@@ -1754,10 +1755,10 @@ export default {
       rankings: {
         modelsEyebrow: '费用头部',
         modelsTitle: '模型费用排名',
-        modelsSubtitle: '按费用权重筛出最值得关注的模型，快速识别主力调用面。',
+        modelsSubtitle: '按费用排序，先看主力调用模型。',
         projectsEyebrow: '工作区重心',
         projectsTitle: '项目费用排名',
-        projectsSubtitle: '聚焦最重的项目路径，先看最可能继续放大的消耗来源。',
+        projectsSubtitle: '按费用排序，先看最重的工作区路径。',
       },
 
       models: {
@@ -1802,22 +1803,23 @@ export default {
       },
 
       diagnostics: {
-          totalRecords: '记录总数',
-          latestRecord: '最近记录',
-          dataHealth: '数据健康',
-          noRecentRecord: '暂无最近记录',
-          healthy: '原始记录正常',
-          rawLogsHint: '这一区域用于排查导入与聚合问题，不作为常规分析主视图。',
-          repairNeeded: '建议修复 Codex 历史记录',
-          codexRepairHint: '检测到 {unknown} 条 Codex 记录缺少模型信息或费用异常，建议先重建历史导入。',
-          repairTitle: 'Codex 历史记录需要重建',
-          repairCodex: '修复 Codex 历史记录',
-          repairingCodex: '正在重建 Codex 历史记录...',
-          emptyHint: '当前筛选范围下还没有导入到原始 usage 记录，可先执行导入再回到此处诊断。',
-          filteredNoResults: '当前筛选条件没有命中原始记录',
-          filteredNoResultsHint: '尝试清空模型筛选或放宽时间范围，再观察原始记录是否出现。',
-          unknownModel: 'unknown',
-        },
+        totalRecords: '记录总数',
+        latestRecord: '最近记录',
+        dataHealth: '数据健康',
+        noRecentRecord: '暂无最近记录',
+        healthy: '原始记录正常',
+        rawLogsHint: '这一区域用于排查导入与聚合问题，不作为常规分析主视图。',
+        repairNeeded: '建议修复 Codex 历史记录',
+        codexRepairHint:
+          '检测到 {unknown} 条 Codex 记录缺少模型信息或费用异常，建议先重建历史导入。',
+        repairTitle: 'Codex 历史记录需要重建',
+        repairCodex: '修复 Codex 历史记录',
+        repairingCodex: '正在重建 Codex 历史记录...',
+        emptyHint: '当前筛选范围下还没有导入到原始 usage 记录，可先执行导入再回到此处诊断。',
+        filteredNoResults: '当前筛选条件没有命中原始记录',
+        filteredNoResultsHint: '尝试清空模型筛选或放宽时间范围，再观察原始记录是否出现。',
+        unknownModel: 'unknown',
+      },
 
       status: {
         noLogsTitle: '未发现使用日志',
@@ -2226,8 +2228,10 @@ export default {
       customModelOption: '自定义模型…',
       customModelHint: '输入后会写入独立 custom-models.toml，供后续 profile 复用。',
       modelPresetHint: '优先使用保守预置模型；如需其他模型，请选择自定义。',
-      reasoningEffortHint: '可选值为 minimal / low / medium / high / xhigh，留空表示使用默认推理强度。',
-      deprecatedAuthModeHint: '当前 Profile 仍在使用历史认证模式：{mode}。你可以继续查看，并在保存时迁移到推荐模式。',
+      reasoningEffortHint:
+        '可选值为 minimal / low / medium / high / xhigh，留空表示使用默认推理强度。',
+      deprecatedAuthModeHint:
+        '当前 Profile 仍在使用历史认证模式：{mode}。你可以继续查看，并在保存时迁移到推荐模式。',
       officialBaseUrl: '官方 OpenAI 运行时',
       notAvailable: '不可用',
       openAiAuthOn: '走 OpenAI 认证',

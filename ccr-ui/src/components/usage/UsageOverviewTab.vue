@@ -1,7 +1,7 @@
 <template>
   <div class="overview-tab">
     <section class="overview-tab__canvas">
-      <div class="overview-tab__trend glass-panel rounded-[30px] p-5">
+      <div class="overview-tab__trend glass-panel rounded-[30px] p-4">
         <div class="overview-tab__panel-head">
           <div>
             <p class="overview-tab__eyebrow">
@@ -39,7 +39,7 @@
         </div>
       </div>
 
-      <div class="overview-tab__side">
+      <aside class="overview-tab__side glass-panel rounded-[28px] p-4">
         <UsageModelDistributionCard
           :chart-component="chartComponent"
           :format-cost="formatCost"
@@ -51,9 +51,12 @@
           :should-load-charts="shouldLoadCharts"
           :subtitle="distributionSubtitle"
           :title="$t('usage.dashboard.chart.costByModel')"
+          variant="embedded"
         />
 
-        <div class="overview-tab__insights glass-panel rounded-[28px] p-5">
+        <div class="overview-tab__side-divider" />
+
+        <div class="overview-tab__insights">
           <div class="overview-tab__panel-head">
             <div>
               <p class="overview-tab__eyebrow">
@@ -85,11 +88,11 @@
             </article>
           </div>
         </div>
-      </div>
+      </aside>
     </section>
 
     <section class="overview-tab__rankings">
-      <div class="overview-tab__rank-panel glass-panel rounded-[26px] p-5">
+      <div class="overview-tab__rank-panel glass-panel rounded-[26px] p-4">
         <div class="overview-tab__panel-head">
           <div>
             <p class="overview-tab__eyebrow">
@@ -144,7 +147,7 @@
         </div>
       </div>
 
-      <div class="overview-tab__rank-panel glass-panel rounded-[26px] p-5">
+      <div class="overview-tab__rank-panel glass-panel rounded-[26px] p-4">
         <div class="overview-tab__panel-head">
           <div>
             <p class="overview-tab__eyebrow">
@@ -261,18 +264,17 @@ const formatShare = (value: number) => `${Math.round(value * 100)}%`
 .overview-tab {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 0.9rem;
 }
 
 .overview-tab__canvas {
   display: grid;
-  gap: 1rem;
-  grid-template-columns: minmax(0, 1.5fr) minmax(22rem, 0.92fr);
+  gap: 0.9rem;
+  grid-template-columns: minmax(0, 1.7fr) minmax(22rem, 0.9fr);
   align-items: start;
 }
 
 .overview-tab__trend,
-.overview-tab__insights,
 .overview-tab__rank-panel {
   position: relative;
   overflow: hidden;
@@ -283,14 +285,24 @@ const formatShare = (value: number) => `${Math.round(value * 100)}%`
 
 .overview-tab__side {
   display: grid;
-  gap: 1rem;
+  gap: 0.8rem;
   min-width: 0;
   align-content: start;
 }
 
+.overview-tab__side-divider {
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    rgb(var(--color-border-default-rgb) / 0%),
+    rgb(var(--color-border-default-rgb) / 24%),
+    rgb(var(--color-border-default-rgb) / 0%)
+  );
+}
+
 .overview-tab__trend {
   display: grid;
-  gap: 1rem;
+  gap: 0.65rem;
   align-content: start;
 }
 
@@ -298,42 +310,46 @@ const formatShare = (value: number) => `${Math.round(value * 100)}%`
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 1rem;
-  margin-bottom: 1rem;
+  gap: 0.8rem;
+  margin-bottom: 0.65rem;
 }
 
 .overview-tab__eyebrow {
   color: var(--color-text-muted);
-  font-size: 0.7rem;
+  font-size: 0.68rem;
   font-weight: 700;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
 }
 
 .overview-tab__panel-title {
-  margin-top: 0.2rem;
+  margin-top: 0.14rem;
   color: var(--color-text-primary);
-  font-size: 1rem;
+  font-size: 0.98rem;
   font-weight: 650;
 }
 
 .overview-tab__panel-subtitle {
-  margin-top: 0.35rem;
+  margin-top: 0.2rem;
   color: var(--color-text-secondary);
-  font-size: 0.82rem;
-  line-height: 1.6;
+  font-size: 0.78rem;
+  line-height: 1.45;
 }
 
 .overview-tab__trend-chip {
   display: inline-flex;
-  min-height: 2.1rem;
+  min-height: 1.9rem;
   align-items: center;
-  padding: 0 0.85rem;
+  padding: 0 0.75rem;
   border-radius: 9999px;
   border: 1px solid rgb(var(--color-accent-primary-rgb) / 18%);
-  background: linear-gradient(135deg, rgb(var(--color-accent-primary-rgb) / 12%), rgb(var(--color-accent-secondary-rgb) / 10%));
+  background: linear-gradient(
+    135deg,
+    rgb(var(--color-accent-primary-rgb) / 12%),
+    rgb(var(--color-accent-secondary-rgb) / 10%)
+  );
   color: var(--color-text-primary);
-  font-size: 0.76rem;
+  font-size: 0.72rem;
   font-weight: 700;
 }
 
@@ -351,9 +367,9 @@ const formatShare = (value: number) => `${Math.round(value * 100)}%`
 
 .overview-tab__trend-shell {
   min-width: 0;
-  min-height: clamp(19rem, 42vh, 24rem);
+  min-height: clamp(15.5rem, 31vh, 18rem);
   overflow: hidden;
-  border-radius: 1.35rem;
+  border-radius: 1.15rem;
 }
 
 .overview-tab__chart {
@@ -363,29 +379,42 @@ const formatShare = (value: number) => `${Math.round(value * 100)}%`
 }
 
 .overview-tab__empty--trend {
-  min-height: clamp(19rem, 42vh, 24rem);
+  min-height: clamp(15.5rem, 31vh, 18rem);
   width: 100%;
 }
 
 .overview-tab__insight-list {
   display: grid;
-  gap: 0.7rem;
+  gap: 0.6rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .overview-tab__insight-card {
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: 0.25rem;
   min-width: 0;
-  border-radius: 1.1rem;
+  border-radius: 1rem;
   border: 1px solid rgb(var(--color-border-default-rgb) / 22%);
-  background: linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 56%), rgb(var(--color-bg-surface-rgb) / 28%));
-  padding: 0.95rem 1rem;
+  background: linear-gradient(
+    180deg,
+    rgb(var(--color-bg-elevated-rgb) / 56%),
+    rgb(var(--color-bg-surface-rgb) / 28%)
+  );
+  padding: 0.82rem 0.88rem;
+  transition:
+    border-color var(--motion-subtle-duration) var(--motion-subtle-ease),
+    transform var(--motion-subtle-duration) var(--motion-subtle-ease),
+    background-color var(--motion-subtle-duration) var(--motion-subtle-ease);
+}
+
+.overview-tab__side:hover .overview-tab__insight-card {
+  border-color: rgb(var(--color-accent-primary-rgb) / 18%);
 }
 
 .overview-tab__insight-label {
   color: var(--color-text-muted);
-  font-size: 0.72rem;
+  font-size: 0.68rem;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -395,7 +424,7 @@ const formatShare = (value: number) => `${Math.round(value * 100)}%`
   display: block;
   overflow: hidden;
   color: var(--color-text-primary);
-  font-size: 1rem;
+  font-size: 0.94rem;
   font-weight: 650;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -403,26 +432,26 @@ const formatShare = (value: number) => `${Math.round(value * 100)}%`
 
 .overview-tab__insight-detail {
   color: var(--color-text-secondary);
-  font-size: 0.8rem;
-  line-height: 1.55;
+  font-size: 0.75rem;
+  line-height: 1.4;
   font-variant-numeric: tabular-nums;
 }
 
 .overview-tab__rankings {
   display: grid;
-  gap: 1rem;
+  gap: 0.9rem;
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .overview-tab__rank-list {
   display: grid;
-  gap: 0.85rem;
+  gap: 0.7rem;
 }
 
 .overview-tab__rank-item {
   display: grid;
   grid-template-columns: 2.25rem minmax(0, 1fr);
-  gap: 0.85rem;
+  gap: 0.7rem;
   align-items: start;
 }
 
@@ -443,7 +472,7 @@ const formatShare = (value: number) => `${Math.round(value * 100)}%`
 .overview-tab__rank-main {
   min-width: 0;
   display: grid;
-  gap: 0.45rem;
+  gap: 0.35rem;
   padding-top: 0.1rem;
 }
 
@@ -452,7 +481,7 @@ const formatShare = (value: number) => `${Math.round(value * 100)}%`
   min-width: 0;
   align-items: center;
   justify-content: space-between;
-  gap: 0.85rem;
+  gap: 0.7rem;
 }
 
 .overview-tab__rank-row--meta {
@@ -462,7 +491,7 @@ const formatShare = (value: number) => `${Math.round(value * 100)}%`
 .overview-tab__rank-label {
   overflow: hidden;
   color: var(--color-text-primary);
-  font-size: 0.92rem;
+  font-size: 0.88rem;
   font-weight: 600;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -472,7 +501,7 @@ const formatShare = (value: number) => `${Math.round(value * 100)}%`
 .overview-tab__rank-share {
   flex-shrink: 0;
   color: var(--color-text-primary);
-  font-size: 0.84rem;
+  font-size: 0.8rem;
   font-weight: 650;
   font-variant-numeric: tabular-nums;
 }
@@ -480,14 +509,14 @@ const formatShare = (value: number) => `${Math.round(value * 100)}%`
 .overview-tab__rank-detail {
   overflow: hidden;
   color: var(--color-text-secondary);
-  font-size: 0.8rem;
-  line-height: 1.5;
+  font-size: 0.76rem;
+  line-height: 1.4;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .overview-tab__rank-bar {
-  height: 0.42rem;
+  height: 0.34rem;
   overflow: hidden;
   border-radius: 9999px;
   background: rgb(var(--color-border-default-rgb) / 18%);
@@ -497,7 +526,11 @@ const formatShare = (value: number) => `${Math.round(value * 100)}%`
   display: block;
   height: 100%;
   border-radius: inherit;
-  background: linear-gradient(90deg, rgb(var(--color-accent-primary-rgb) / 86%), rgb(var(--color-accent-secondary-rgb) / 82%));
+  background: linear-gradient(
+    90deg,
+    rgb(var(--color-accent-primary-rgb) / 86%),
+    rgb(var(--color-accent-secondary-rgb) / 82%)
+  );
 }
 
 @media (width < 1280px) {
@@ -509,7 +542,13 @@ const formatShare = (value: number) => `${Math.round(value * 100)}%`
 
 @media (width < 1440px) and (width >= 1280px) {
   .overview-tab__canvas {
-    grid-template-columns: minmax(0, 1.2fr) minmax(20rem, 0.88fr);
+    grid-template-columns: minmax(0, 1.45fr) minmax(20rem, 0.92fr);
+  }
+}
+
+@media (width < 900px) {
+  .overview-tab__insight-list {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 </style>

@@ -4,6 +4,7 @@
     <div class="usage-page__ambient" />
     <div class="usage-shell">
       <PageHeaderCard
+        class="usage-page__header"
         :title="$t('usage.title')"
         :description="$t('usage.subtitle')"
         badge="Usage Ops"
@@ -363,7 +364,11 @@ const runtimeCopy = computed(() => getRuntimeUnavailableCopy('usage'))
   pointer-events: none;
   background:
     radial-gradient(circle at 12% 0%, rgb(var(--color-accent-primary-rgb) / 10%), transparent 30%),
-    radial-gradient(circle at 100% 18%, rgb(var(--color-accent-secondary-rgb) / 10%), transparent 26%);
+    radial-gradient(
+      circle at 100% 18%,
+      rgb(var(--color-accent-secondary-rgb) / 10%),
+      transparent 26%
+    );
   opacity: 0.9;
 }
 
@@ -374,37 +379,36 @@ const runtimeCopy = computed(() => getRuntimeUnavailableCopy('usage'))
   display: flex;
   max-width: 1520px;
   flex-direction: column;
-  gap: 1rem;
+  gap: 0.85rem;
 }
 
 .usage-header-meta {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.625rem;
+  gap: 0.45rem;
 }
 
 .usage-header-meta__chip {
   display: inline-flex;
-  min-height: 2rem;
+  min-height: 1.8rem;
   align-items: center;
-  gap: 0.55rem;
+  gap: 0.45rem;
   border-radius: 9999px;
   border: 1px solid rgb(var(--color-border-default-rgb) / 28%);
   background: rgb(var(--color-bg-elevated-rgb) / 66%);
-  padding: 0.35rem 0.8rem;
+  padding: 0.28rem 0.7rem;
   color: var(--color-text-secondary);
   backdrop-filter: blur(10px);
 }
 
 .usage-header-meta__label {
-  font-size: 0.7rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  font-size: 0.68rem;
+  letter-spacing: 0.04em;
 }
 
 .usage-header-meta__value {
   color: var(--color-text-primary);
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   font-weight: 600;
 }
 
@@ -413,16 +417,16 @@ const runtimeCopy = computed(() => getRuntimeUnavailableCopy('usage'))
   flex-wrap: wrap;
   align-items: center;
   justify-content: flex-end;
-  gap: 0.625rem;
+  gap: 0.55rem;
 }
 
 .toolbar-select {
-  min-height: 44px;
-  min-width: 9rem;
+  min-height: 40px;
+  min-width: 8.5rem;
   border-radius: 1rem;
   border: 1px solid var(--surface-status-border);
-  padding: 0.6rem 0.9rem;
-  font-size: 0.92rem;
+  padding: 0.52rem 0.82rem;
+  font-size: 0.88rem;
   color: var(--color-text-primary);
   outline: none;
   background: var(--surface-status-bg);
@@ -445,7 +449,7 @@ const runtimeCopy = computed(() => getRuntimeUnavailableCopy('usage'))
 
 .usage-summary-grid {
   display: grid;
-  gap: 0.9rem;
+  gap: 0.8rem;
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
@@ -453,13 +457,13 @@ const runtimeCopy = computed(() => getRuntimeUnavailableCopy('usage'))
   position: relative;
   overflow: hidden;
   display: flex;
-  min-height: 10rem;
+  min-height: 7.75rem;
   flex-direction: column;
-  gap: 0.8rem;
-  border-radius: 1.5rem;
+  gap: 0.45rem;
+  border-radius: 1.35rem;
   border: 1px solid rgb(var(--color-border-default-rgb) / 32%);
   border-left: 3px solid rgb(var(--color-border-default-rgb) / 32%);
-  padding: 1rem 1.05rem 1.1rem;
+  padding: 0.82rem 0.95rem 0.88rem;
   background: var(--surface-status-bg);
   backdrop-filter: var(--surface-status-blur);
   box-shadow: var(--elevation-1);
@@ -579,16 +583,16 @@ const runtimeCopy = computed(() => getRuntimeUnavailableCopy('usage'))
 .usage-summary-card__head {
   display: flex;
   align-items: center;
-  gap: 0.7rem;
+  gap: 0.55rem;
 }
 
 .usage-summary-card__icon {
   display: inline-flex;
-  height: 2rem;
-  width: 2rem;
+  height: 1.8rem;
+  width: 1.8rem;
   align-items: center;
   justify-content: center;
-  border-radius: 0.85rem;
+  border-radius: 0.7rem;
   border: 1px solid rgb(var(--color-border-default-rgb) / 20%);
   background: rgb(var(--color-bg-elevated-rgb) / 82%);
   color: var(--color-text-primary);
@@ -596,9 +600,9 @@ const runtimeCopy = computed(() => getRuntimeUnavailableCopy('usage'))
 
 .usage-summary-card__label {
   display: block;
-  font-size: 0.72rem;
+  font-size: 0.68rem;
   font-weight: 700;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--color-text-muted);
 }
@@ -613,10 +617,12 @@ const runtimeCopy = computed(() => getRuntimeUnavailableCopy('usage'))
 }
 
 .usage-summary-card__detail {
-  margin-top: auto;
   color: var(--color-text-secondary);
-  font-size: 0.85rem;
-  line-height: 1.55;
+  font-size: 0.78rem;
+  line-height: 1.35;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .usage-workspace-switcher {
@@ -624,10 +630,10 @@ const runtimeCopy = computed(() => getRuntimeUnavailableCopy('usage'))
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 0.75rem;
-  border-radius: 1.5rem;
+  gap: 0.6rem;
+  border-radius: 1.35rem;
   border: 1px solid rgb(var(--color-border-default-rgb) / 32%);
-  padding: 0.7rem;
+  padding: 0.58rem 0.65rem;
   background: var(--surface-workspace-bg);
   backdrop-filter: var(--surface-workspace-blur);
   box-shadow: var(--elevation-2);
@@ -647,8 +653,8 @@ const runtimeCopy = computed(() => getRuntimeUnavailableCopy('usage'))
 .usage-tab {
   border-radius: 1rem;
   border: 1px solid transparent;
-  padding: 0.7rem 1rem;
-  font-size: 0.92rem;
+  padding: 0.62rem 0.95rem;
+  font-size: 0.88rem;
   font-weight: 600;
   color: var(--color-text-secondary);
   transition:
@@ -666,7 +672,11 @@ const runtimeCopy = computed(() => getRuntimeUnavailableCopy('usage'))
 
 .usage-tab--active {
   color: var(--color-text-primary);
-  background: linear-gradient(135deg, rgb(var(--color-accent-primary-rgb) / 14%), rgb(var(--color-accent-secondary-rgb) / 10%));
+  background: linear-gradient(
+    135deg,
+    rgb(var(--color-accent-primary-rgb) / 14%),
+    rgb(var(--color-accent-secondary-rgb) / 10%)
+  );
   border-color: rgb(var(--color-accent-primary-rgb) / 20%);
   box-shadow: 0 10px 24px rgb(var(--color-accent-primary-rgb) / 10%);
 }
@@ -674,13 +684,17 @@ const runtimeCopy = computed(() => getRuntimeUnavailableCopy('usage'))
 .usage-content {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 0.9rem;
 }
 
 .usage-warning {
   border-radius: 1.35rem;
   border: 1px solid rgb(var(--color-warning-rgb) / 24%);
-  background: linear-gradient(135deg, rgb(var(--color-warning-rgb) / 14%), rgb(var(--color-accent-primary-rgb) / 8%));
+  background: linear-gradient(
+    135deg,
+    rgb(var(--color-warning-rgb) / 14%),
+    rgb(var(--color-accent-primary-rgb) / 8%)
+  );
   padding: 0.9rem 1rem;
   color: var(--color-text-primary);
   box-shadow: var(--elevation-1);
@@ -709,6 +723,55 @@ td {
 
   .usage-workspace-switcher {
     align-items: flex-start;
+  }
+}
+
+.usage-page__header :deep(.page-header-card__content) {
+  padding: 1.1rem 1.25rem;
+}
+
+.usage-page__header :deep(.page-header-card__top) {
+  gap: 0.9rem;
+}
+
+.usage-page__header :deep(.page-header-card__intro) {
+  gap: 0.85rem;
+}
+
+.usage-page__header :deep(.page-header-card__icon) {
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 0.9rem;
+}
+
+.usage-page__header :deep(.page-header-card__title) {
+  font-size: 1.32rem;
+}
+
+.usage-page__header :deep(.page-header-card__description) {
+  margin-top: 0.28rem;
+  max-width: 42rem;
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.usage-page__header :deep(.page-header-card__meta) {
+  margin-top: 0.65rem;
+  gap: 0.45rem;
+}
+
+.usage-page__header :deep(.page-header-card__actions) {
+  gap: 0.55rem;
+  align-items: flex-start;
+}
+
+@media (width >= 1024px) {
+  .usage-page__header :deep(.page-header-card__top) {
+    align-items: flex-start;
+  }
+
+  .usage-page__header :deep(.page-header-card__actions) {
+    justify-content: flex-end;
   }
 }
 </style>

@@ -60,19 +60,17 @@ type UsageDiagnosticsSummary = {
   canRepairCodex: boolean
 }
 
-const formatTokens = (value: number) => (
-  value >= 1e6 ? `${(value / 1e6).toFixed(1)}M`
-    : value >= 1e3 ? `${(value / 1e3).toFixed(1)}K`
+const formatTokens = (value: number) =>
+  value >= 1e6
+    ? `${(value / 1e6).toFixed(1)}M`
+    : value >= 1e3
+      ? `${(value / 1e3).toFixed(1)}K`
       : value.toString()
-)
 
-const formatCost = (value: number) => (
-  value >= 1 ? `$${value.toFixed(2)}` : `$${value.toFixed(4)}`
-)
+const formatCost = (value: number) => (value >= 1 ? `$${value.toFixed(2)}` : `$${value.toFixed(4)}`)
 
 const formatPercent = (value: number) => `${(value * 100).toFixed(1)}%`
-const formatDateTime = (value: string, locale: string) =>
-  new Date(value).toLocaleString(locale)
+const formatDateTime = (value: string, locale: string) => new Date(value).toLocaleString(locale)
 
 const hasTemplatePlaceholder = (value: string) => /\{[a-zA-Z_][a-zA-Z0-9_]*\}/.test(value)
 
@@ -97,11 +95,7 @@ const buildDateFormatters = (locale: string) => ({
   month: new Intl.DateTimeFormat(locale, { month: 'short', year: 'numeric', timeZone: 'UTC' }),
 })
 
-const formatTrendAxisLabel = (
-  value: number,
-  granularity: TrendGranularity,
-  locale: string,
-) => {
+const formatTrendAxisLabel = (value: number, granularity: TrendGranularity, locale: string) => {
   const formatters = buildDateFormatters(locale)
   const date = new Date(value)
 
@@ -114,7 +108,7 @@ const formatTrendTooltipLabel = (
   startDate: string,
   endDate: string,
   granularity: TrendGranularity,
-  locale: string,
+  locale: string
 ) => {
   const formatters = buildDateFormatters(locale)
   const start = parseUtcDate(startDate)
@@ -186,12 +180,14 @@ export const useUsageDashboardState = () => {
   let themeObserver: MutationObserver | null = null
 
   const dashboardReady = computed(() => localeReady.value && dashboardBootstrapped.value)
-  const shouldLoadCharts = computed(() => activeTab.value === 'overview' || activeTab.value === 'models')
+  const shouldLoadCharts = computed(
+    () => activeTab.value === 'overview' || activeTab.value === 'models'
+  )
 
   const translateDashboardText = (
     key: string,
     values: Record<string, number | string> | undefined,
-    fallback: string,
+    fallback: string
   ) => {
     void translationRevision.value
 
@@ -269,7 +265,7 @@ export const useUsageDashboardState = () => {
     return translateDashboardText(
       `usage.platforms.${selectedPlatform.value}`,
       undefined,
-      fallbackLabels[selectedPlatform.value] ?? selectedPlatform.value,
+      fallbackLabels[selectedPlatform.value] ?? selectedPlatform.value
     )
   })
 
@@ -280,14 +276,19 @@ export const useUsageDashboardState = () => {
     if (!summary) return []
 
     const totalTokens = summary.total_input_tokens + summary.total_output_tokens
-    const averageCostPerRequest = summary.total_requests > 0
-      ? formatCost(summary.total_cost_usd / summary.total_requests)
-      : formatCost(0)
+    const averageCostPerRequest =
+      summary.total_requests > 0
+        ? formatCost(summary.total_cost_usd / summary.total_requests)
+        : formatCost(0)
 
     return [
       {
         id: 'requests',
-        label: translateDashboardText('usage.dashboard.cards.totalRequests', undefined, 'Total Requests'),
+        label: translateDashboardText(
+          'usage.dashboard.cards.totalRequests',
+          undefined,
+          'Total Requests'
+        ),
         value: summary.total_requests.toLocaleString(),
         detail: translateDashboardText(
           'usage.dashboard.cards.requestsDetail',
@@ -295,14 +296,18 @@ export const useUsageDashboardState = () => {
             models: store.modelStats.length,
             projects: store.projectStats.length,
           },
-          `${store.modelStats.length} models · ${store.projectStats.length} projects`,
+          `${store.modelStats.length} models · ${store.projectStats.length} projects`
         ),
         icon: 'Activity',
         tone: 'rose',
       },
       {
         id: 'tokens',
-        label: translateDashboardText('usage.dashboard.cards.totalTokens', undefined, 'Total Tokens'),
+        label: translateDashboardText(
+          'usage.dashboard.cards.totalTokens',
+          undefined,
+          'Total Tokens'
+        ),
         value: formatTokens(totalTokens),
         detail: translateDashboardText(
           'usage.dashboard.cards.tokensDetail',
@@ -310,7 +315,7 @@ export const useUsageDashboardState = () => {
             input: formatTokens(summary.total_input_tokens),
             output: formatTokens(summary.total_output_tokens),
           },
-          `${formatTokens(summary.total_input_tokens)} in · ${formatTokens(summary.total_output_tokens)} out`,
+          `${formatTokens(summary.total_input_tokens)} in · ${formatTokens(summary.total_output_tokens)} out`
         ),
         icon: 'Layers',
         tone: 'violet',
@@ -324,21 +329,25 @@ export const useUsageDashboardState = () => {
           {
             average: averageCostPerRequest,
           },
-          `${averageCostPerRequest} per request`,
+          `${averageCostPerRequest} per request`
         ),
         icon: 'Wallet',
         tone: 'sky',
       },
       {
         id: 'cache',
-        label: translateDashboardText('usage.dashboard.cards.cacheEfficiency', undefined, 'Cache Efficiency'),
+        label: translateDashboardText(
+          'usage.dashboard.cards.cacheEfficiency',
+          undefined,
+          'Cache Efficiency'
+        ),
         value: formatPercent(summary.cache_efficiency),
         detail: translateDashboardText(
           'usage.dashboard.cards.cacheDetail',
           {
             tokens: formatTokens(summary.total_cache_read_tokens),
           },
-          `${formatTokens(summary.total_cache_read_tokens)} cache read`,
+          `${formatTokens(summary.total_cache_read_tokens)} cache read`
         ),
         icon: 'Cpu',
         tone: 'amber',
@@ -393,21 +402,30 @@ export const useUsageDashboardState = () => {
     aggregateDailyTrends(store.trends, trendGranularity.value).map((bucket) => ({
       ...bucket,
       displayEndDate: expandTrendBucketEnd(bucket, trendGranularity.value),
-    })),
+    }))
   )
 
   const trendSeries = computed(() => [
     {
       name: translateDashboardText('usage.dashboard.chart.input', undefined, 'Input'),
-      data: trendBuckets.value.map((item) => ({ x: `${item.startDate}T00:00:00Z`, y: item.inputTokens })),
+      data: trendBuckets.value.map((item) => ({
+        x: `${item.startDate}T00:00:00Z`,
+        y: item.inputTokens,
+      })),
     },
     {
       name: translateDashboardText('usage.dashboard.chart.output', undefined, 'Output'),
-      data: trendBuckets.value.map((item) => ({ x: `${item.startDate}T00:00:00Z`, y: item.outputTokens })),
+      data: trendBuckets.value.map((item) => ({
+        x: `${item.startDate}T00:00:00Z`,
+        y: item.outputTokens,
+      })),
     },
     {
       name: translateDashboardText('usage.dashboard.chart.cache', undefined, 'Cache'),
-      data: trendBuckets.value.map((item) => ({ x: `${item.startDate}T00:00:00Z`, y: item.cacheReadTokens })),
+      data: trendBuckets.value.map((item) => ({
+        x: `${item.startDate}T00:00:00Z`,
+        y: item.cacheReadTokens,
+      })),
     },
   ])
 
@@ -421,12 +439,12 @@ export const useUsageDashboardState = () => {
     return translateDashboardText(
       `usage.dashboard.chart.bucket.${trendGranularity.value}`,
       undefined,
-      fallbacks[trendGranularity.value],
+      fallbacks[trendGranularity.value]
     )
   })
 
-  const hasRenderableTrendData = computed(() =>
-    dashboardReady.value && trendSeries.value.some((series) => series.data.length > 0),
+  const hasRenderableTrendData = computed(
+    () => dashboardReady.value && trendSeries.value.some((series) => series.data.length > 0)
   )
 
   const trendSubtitle = computed(() => {
@@ -439,7 +457,7 @@ export const useUsageDashboardState = () => {
         window: selectedWindowLabel.value,
         points: trendBuckets.value.length,
       },
-      `${selectedWindowLabel.value} · ${trendGranularityLabel.value} · ${trendBuckets.value.length} points`,
+      `${selectedWindowLabel.value} · ${trendGranularityLabel.value} · ${trendBuckets.value.length} points`
     )
   })
 
@@ -448,6 +466,11 @@ export const useUsageDashboardState = () => {
       background: 'transparent',
       toolbar: { show: false },
       fontFamily: 'inherit',
+      animations: {
+        enabled: true,
+        speed: 220,
+        easing: 'easeinout',
+      },
     },
     theme: { mode: chartTheme.value.mode },
     colors: [chartTheme.value.primary, chartTheme.value.secondary, chartTheme.value.tertiary],
@@ -471,11 +494,13 @@ export const useUsageDashboardState = () => {
         formatter: (value: number) => formatTokens(value),
       },
     },
-    stroke: { curve: 'smooth' as const, width: 2.4 },
+    stroke: { curve: 'smooth' as const, width: 2.2 },
     fill: { type: 'gradient', gradient: { opacityFrom: 0.32, opacityTo: 0.04 } },
     dataLabels: { enabled: false },
     tooltip: {
       theme: chartTheme.value.mode,
+      shared: true,
+      intersect: false,
       x: {
         // ApexCharts 会把第二个参数作为上下文对象传入，这里只取数据点索引。
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -486,7 +511,7 @@ export const useUsageDashboardState = () => {
             bucket.startDate,
             bucket.displayEndDate,
             trendGranularity.value,
-            locale.value,
+            locale.value
           )
         },
       },
@@ -494,11 +519,15 @@ export const useUsageDashboardState = () => {
     grid: {
       borderColor: chartTheme.value.grid,
       strokeDashArray: 4,
-      padding: { left: 8, right: 8, bottom: 8, top: 4 },
+      padding: { left: 4, right: 4, bottom: 2, top: 0 },
     },
     legend: {
+      position: 'top' as const,
+      horizontalAlign: 'left' as const,
       labels: { colors: chartTheme.value.textSecondary },
-      markers: { size: 4 },
+      fontSize: '12px',
+      itemMargin: { horizontal: 12, vertical: 0 },
+      markers: { size: 5, offsetX: -2 },
     },
   }))
 
@@ -508,7 +537,7 @@ export const useUsageDashboardState = () => {
       label: item.isOther
         ? translateDashboardText('usage.dashboard.chart.others', undefined, 'Others')
         : item.label,
-    })),
+    }))
   )
 
   const pieSeries = computed(() => modelDistribution.value.map((item) => item.totalCost))
@@ -537,7 +566,7 @@ export const useUsageDashboardState = () => {
         {
           total: store.modelStats.length,
         },
-        `${store.modelStats.length} models visible in this window`,
+        `${store.modelStats.length} models visible in this window`
       )
     }
 
@@ -547,7 +576,7 @@ export const useUsageDashboardState = () => {
         visible: 6,
         total: store.modelStats.length - 6,
       },
-      `Showing the top 6 models; ${store.modelStats.length - 6} grouped into Others`,
+      `Showing the top 6 models; ${store.modelStats.length - 6} grouped into Others`
     )
   })
 
@@ -560,18 +589,18 @@ export const useUsageDashboardState = () => {
     plotOptions: {
       pie: {
         donut: {
-          size: '64%',
+          size: '72%',
           labels: {
             show: true,
             name: {
               show: true,
-              fontSize: '12px',
+              fontSize: '11px',
               color: chartTheme.value.textMuted,
-              offsetY: -4,
+              offsetY: -2,
             },
             value: {
               show: true,
-              fontSize: '16px',
+              fontSize: '15px',
               fontWeight: 600,
               color: chartTheme.value.textPrimary,
               formatter: (value: string) => formatCost(Number(value)),
@@ -579,10 +608,13 @@ export const useUsageDashboardState = () => {
             total: {
               show: true,
               label: t('usage.dashboard.cards.totalCost'),
-              fontSize: '11px',
+              fontSize: '10px',
               color: chartTheme.value.textMuted,
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              formatter: (context: any) => formatCost(context.globals.seriesTotals.reduce((sum: number, item: number) => sum + item, 0)),
+              formatter: (context: any) =>
+                formatCost(
+                  context.globals.seriesTotals.reduce((sum: number, item: number) => sum + item, 0)
+                ),
             },
           },
         },
@@ -590,7 +622,10 @@ export const useUsageDashboardState = () => {
     },
     dataLabels: {
       enabled: true,
-      formatter: (_: number, options: { seriesIndex: number; w: { globals: { series: number[] } } }) => {
+      formatter: (
+        _: number,
+        options: { seriesIndex: number; w: { globals: { series: number[] } } }
+      ) => {
         const total = options.w.globals.series.reduce((sum: number, item: number) => sum + item, 0)
         if (total <= 0) return '0%'
 
@@ -615,7 +650,11 @@ export const useUsageDashboardState = () => {
     return [
       {
         id: 'density',
-        label: translateDashboardText('usage.dashboard.highlights.density', undefined, 'Trend Density'),
+        label: translateDashboardText(
+          'usage.dashboard.highlights.density',
+          undefined,
+          'Trend Density'
+        ),
         value: trendGranularityLabel.value,
         detail: translateDashboardText(
           'usage.dashboard.highlights.densityDetail',
@@ -623,20 +662,30 @@ export const useUsageDashboardState = () => {
             points: trendBuckets.value.length,
             window: selectedWindowLabel.value,
           },
-          `${trendBuckets.value.length} points across ${selectedWindowLabel.value}`,
+          `${trendBuckets.value.length} points across ${selectedWindowLabel.value}`
         ),
       },
       {
         id: 'top-model',
-        label: translateDashboardText('usage.dashboard.highlights.topModel', undefined, 'Top Model'),
-        value: topModel?.model ?? translateDashboardText('usage.dashboard.table.noData', undefined, 'No data'),
+        label: translateDashboardText(
+          'usage.dashboard.highlights.topModel',
+          undefined,
+          'Top Model'
+        ),
+        value:
+          topModel?.model ??
+          translateDashboardText('usage.dashboard.table.noData', undefined, 'No data'),
         detail: topModel
           ? `${formatCost(topModel.total_cost)} · ${formatTokens(topModel.total_tokens)}`
           : translateDashboardText('usage.dashboard.table.noData', undefined, 'No data'),
       },
       {
         id: 'top-project',
-        label: translateDashboardText('usage.dashboard.highlights.topProject', undefined, 'Top Project'),
+        label: translateDashboardText(
+          'usage.dashboard.highlights.topProject',
+          undefined,
+          'Top Project'
+        ),
         value: topProject
           ? shortenPath(topProject.project_path)
           : translateDashboardText('usage.dashboard.table.noData', undefined, 'No data'),
@@ -646,18 +695,22 @@ export const useUsageDashboardState = () => {
       },
       {
         id: 'cache',
-        label: translateDashboardText('usage.dashboard.highlights.cacheRead', undefined, 'Cache Read'),
+        label: translateDashboardText(
+          'usage.dashboard.highlights.cacheRead',
+          undefined,
+          'Cache Read'
+        ),
         value: store.summary
           ? formatTokens(store.summary.total_cache_read_tokens)
           : translateDashboardText('usage.dashboard.table.noData', undefined, 'No data'),
         detail: store.summary
           ? translateDashboardText(
-            'usage.dashboard.highlights.cacheReadDetail',
-            {
-              percent: formatPercent(store.summary.cache_efficiency),
-            },
-            `Cache efficiency ${formatPercent(store.summary.cache_efficiency)}`,
-          )
+              'usage.dashboard.highlights.cacheReadDetail',
+              {
+                percent: formatPercent(store.summary.cache_efficiency),
+              },
+              `Cache efficiency ${formatPercent(store.summary.cache_efficiency)}`
+            )
           : translateDashboardText('usage.dashboard.table.noData', undefined, 'No data'),
       },
     ]
@@ -669,10 +722,11 @@ export const useUsageDashboardState = () => {
     const totalCost = store.modelStats.reduce((sum, item) => sum + item.total_cost, 0)
 
     return [...store.modelStats]
-      .sort((left, right) =>
-        right.total_cost - left.total_cost ||
-        right.total_tokens - left.total_tokens ||
-        right.request_count - left.request_count,
+      .sort(
+        (left, right) =>
+          right.total_cost - left.total_cost ||
+          right.total_tokens - left.total_tokens ||
+          right.request_count - left.request_count
       )
       .slice(0, 5)
       .map((item) => ({
@@ -691,10 +745,11 @@ export const useUsageDashboardState = () => {
     const totalCost = store.projectStats.reduce((sum, item) => sum + item.total_cost, 0)
 
     return [...store.projectStats]
-      .sort((left, right) =>
-        right.total_cost - left.total_cost ||
-        right.total_tokens - left.total_tokens ||
-        right.request_count - left.request_count,
+      .sort(
+        (left, right) =>
+          right.total_cost - left.total_cost ||
+          right.total_tokens - left.total_tokens ||
+          right.request_count - left.request_count
       )
       .slice(0, 5)
       .map((item) => ({
@@ -708,8 +763,8 @@ export const useUsageDashboardState = () => {
   })
 
   const logsRecords = computed(() => store.logs?.records ?? [])
-  const unknownModelStat = computed(() =>
-    store.modelStats.find((item) => item.model === 'unknown') ?? null,
+  const unknownModelStat = computed(
+    () => store.modelStats.find((item) => item.model === 'unknown') ?? null
   )
   const logsTotalCount = computed(() => store.logs?.total ?? logsRecords.value.length)
   const latestLogTimestamp = computed(() => logsRecords.value[0]?.recorded_at ?? null)
@@ -750,17 +805,17 @@ export const useUsageDashboardState = () => {
   const diagnosticsEmptyMessage = computed(() =>
     logModelFilter.value
       ? t('usage.dashboard.diagnostics.filteredNoResults')
-      : t('usage.dashboard.logs.noLogs'),
+      : t('usage.dashboard.logs.noLogs')
   )
   const diagnosticsEmptyDetail = computed(() =>
     logModelFilter.value
       ? t('usage.dashboard.diagnostics.filteredNoResultsHint')
-      : t('usage.dashboard.diagnostics.emptyHint'),
+      : t('usage.dashboard.diagnostics.emptyHint')
   )
   const repairCodexButtonLabel = computed(() =>
     store.importing
       ? t('usage.dashboard.diagnostics.repairingCodex')
-      : t('usage.dashboard.diagnostics.repairCodex'),
+      : t('usage.dashboard.diagnostics.repairCodex')
   )
   const repairCodexLogs = async () => {
     if (selectedPlatform.value !== 'codex' || store.importing) return
@@ -782,7 +837,7 @@ export const useUsageDashboardState = () => {
   const importDetails = computed(() =>
     store.lastImportResults
       .filter((result) => result.error)
-      .map((result) => `${result.platform}: ${result.error}`),
+      .map((result) => `${result.platform}: ${result.error}`)
   )
 
   const warningMessage = computed(() => store.warning || null)
@@ -807,14 +862,22 @@ export const useUsageDashboardState = () => {
   const showEmptyState = computed(() => store.hasNoUsageData)
 
   const emptyStateTitle = computed(() => {
-    if (store.lastImportSummary && store.lastImportSummary.processed_files === 0 && store.lastImportSummary.imported_records === 0) {
+    if (
+      store.lastImportSummary &&
+      store.lastImportSummary.processed_files === 0 &&
+      store.lastImportSummary.imported_records === 0
+    ) {
       return t('usage.dashboard.status.noLogsTitle')
     }
     return t('usage.states.noData')
   })
 
   const emptyStateDescription = computed(() => {
-    if (store.lastImportSummary && store.lastImportSummary.processed_files === 0 && store.lastImportSummary.imported_records === 0) {
+    if (
+      store.lastImportSummary &&
+      store.lastImportSummary.processed_files === 0 &&
+      store.lastImportSummary.imported_records === 0
+    ) {
       return t('usage.dashboard.status.noLogs')
     }
     return t('usage.states.noDataHint', { platform: selectedPlatform.value || 'AI' })

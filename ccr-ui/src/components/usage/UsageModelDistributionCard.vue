@@ -1,5 +1,12 @@
 <template>
-  <div class="distribution-card glass-panel rounded-[28px] p-5">
+  <div
+    class="distribution-card rounded-[28px]"
+    :class="[
+      variant === 'panel'
+        ? 'distribution-card--panel glass-panel p-5'
+        : 'distribution-card--embedded',
+    ]"
+  >
     <div class="distribution-card__header">
       <div>
         <h3 class="distribution-card__title">
@@ -28,7 +35,7 @@
           v-if="hasData"
           class="distribution-card__chart"
           type="donut"
-          height="280"
+          :height="chartHeight"
           :options="pieOptions"
           :series="pieSeries"
         />
@@ -113,9 +120,12 @@ interface Props {
   modelDistribution: ModelDistributionSlice[]
   formatCost: (value: number) => string
   formatTokens: (value: number) => string
+  variant?: 'panel' | 'embedded'
 }
 
-const props = defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), {
+  variant: 'panel',
+})
 
 const hasData = computed(() => {
   if (!props.shouldLoadCharts || props.modelDistribution.length === 0) {
@@ -124,53 +134,64 @@ const hasData = computed(() => {
 
   return props.pieSeries.some((value) => value > 0)
 })
+
+const chartHeight = computed(() => (props.variant === 'embedded' ? 220 : 240))
 </script>
 
 <style scoped>
 .distribution-card {
   display: flex;
   flex-direction: column;
-  gap: 1.25rem;
+  gap: 0.9rem;
+  min-width: 0;
+}
+
+.distribution-card--panel {
+  border-radius: 1.55rem;
+}
+
+.distribution-card--embedded {
+  gap: 0.8rem;
 }
 
 .distribution-card__header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 1rem;
+  gap: 0.75rem;
 }
 
 .distribution-card__title {
   color: var(--color-text-primary);
-  font-size: 1rem;
+  font-size: 0.98rem;
   font-weight: 650;
 }
 
 .distribution-card__subtitle {
-  margin-top: 0.35rem;
+  margin-top: 0.2rem;
   color: var(--color-text-secondary);
-  font-size: 0.8rem;
-  line-height: 1.6;
+  font-size: 0.77rem;
+  line-height: 1.45;
 }
 
 .distribution-card__badge {
   display: inline-flex;
-  min-height: 2rem;
-  min-width: 2rem;
+  min-height: 1.75rem;
+  min-width: 1.75rem;
   align-items: center;
   justify-content: center;
-  padding: 0 0.75rem;
+  padding: 0 0.6rem;
   border-radius: 9999px;
   border: 1px solid rgb(var(--color-accent-primary-rgb) / 18%);
   background: rgb(var(--color-accent-primary-rgb) / 10%);
   color: var(--color-text-primary);
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   font-weight: 700;
 }
 
 .distribution-card__body {
   display: grid;
-  gap: 1rem;
+  gap: 0.8rem;
   align-items: start;
 }
 
@@ -178,19 +199,19 @@ const hasData = computed(() => {
   display: grid;
   width: 100%;
   min-width: 0;
-  min-height: clamp(16rem, 34vh, 18rem);
+  min-height: clamp(12rem, 26vh, 14.5rem);
   place-items: center;
   align-self: start;
 }
 
 .distribution-card__chart {
   width: 100%;
-  min-height: 280px;
+  min-height: 220px;
 }
 
 .distribution-card__empty {
   display: flex;
-  min-height: 280px;
+  min-height: 220px;
   width: 100%;
   align-items: center;
   justify-content: center;
@@ -202,20 +223,20 @@ const hasData = computed(() => {
 
 .distribution-card__legend {
   display: grid;
-  gap: 0.7rem;
+  gap: 0.25rem;
   min-width: 0;
-  max-height: min(24rem, 48vh);
+  max-height: min(16rem, 34vh);
   overflow-y: auto;
 }
 
 .distribution-card__legend-item {
   display: grid;
-  gap: 0.45rem;
+  gap: 0.35rem;
   min-width: 0;
-  border-radius: 1rem;
-  border: 1px solid rgb(var(--color-border-default-rgb) / 18%);
-  background: rgb(var(--color-bg-elevated-rgb) / 44%);
-  padding: 0.85rem 0.9rem;
+  border-radius: 0.95rem;
+  border: 1px solid rgb(var(--color-border-default-rgb) / 12%);
+  background: rgb(var(--color-bg-elevated-rgb) / 28%);
+  padding: 0.65rem 0.72rem;
 }
 
 .distribution-card__legend-row {
@@ -223,14 +244,14 @@ const hasData = computed(() => {
   min-width: 0;
   align-items: center;
   justify-content: space-between;
-  gap: 0.85rem;
+  gap: 0.65rem;
 }
 
 .distribution-card__legend-main {
   display: flex;
   min-width: 0;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.6rem;
 }
 
 .distribution-card__legend-copy {
@@ -238,8 +259,8 @@ const hasData = computed(() => {
 }
 
 .distribution-card__swatch {
-  height: 0.82rem;
-  width: 0.82rem;
+  height: 0.72rem;
+  width: 0.72rem;
   flex-shrink: 0;
   border-radius: 9999px;
   box-shadow: 0 0 0 4px rgb(255 255 255 / 3%);
@@ -256,7 +277,7 @@ const hasData = computed(() => {
   display: block;
   overflow: hidden;
   color: var(--color-text-primary);
-  font-size: 0.86rem;
+  font-size: 0.82rem;
   font-weight: 600;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -275,9 +296,9 @@ const hasData = computed(() => {
 }
 
 .distribution-card__meta {
-  margin-top: 0.22rem;
+  margin-top: 0.14rem;
   color: var(--color-text-secondary);
-  font-size: 0.76rem;
+  font-size: 0.72rem;
   font-variant-numeric: tabular-nums;
 }
 
@@ -287,13 +308,13 @@ const hasData = computed(() => {
 
 .distribution-card__share {
   color: var(--color-text-primary);
-  font-size: 0.82rem;
+  font-size: 0.78rem;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
 
 .distribution-card__bar {
-  height: 0.42rem;
+  height: 0.34rem;
   overflow: hidden;
   border-radius: 9999px;
   background: rgb(var(--color-border-default-rgb) / 18%);
@@ -307,8 +328,14 @@ const hasData = computed(() => {
 
 @media (width >= 1180px) {
   .distribution-card__body {
-    grid-template-columns: clamp(13rem, 24vw, 16rem) minmax(0, 1fr);
+    grid-template-columns: clamp(11.5rem, 20vw, 14rem) minmax(0, 1fr);
     align-items: start;
+  }
+}
+
+@media (width < 900px) {
+  .distribution-card__legend {
+    max-height: none;
   }
 }
 </style>
