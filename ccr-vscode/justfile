@@ -16,8 +16,8 @@ install:
 
 # 🔨 构建扩展 — esbuild 打包 + vsce 生成 .vsix + 复制到 outputs/
 build:
-    node ./node_modules/esbuild/bin/esbuild src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --format=cjs --platform=node --target=node18 --charset=utf8 --minify --legal-comments=none
-    node ./node_modules/@vscode/vsce/vsce package --no-dependencies -o ccr-vscode.vsix
+    npm run build -- --minify --legal-comments=none
+    npx --no-install vsce package --no-dependencies -o ccr-vscode.vsix
     @just _copy-outputs-{{os()}}
 
 [private]
