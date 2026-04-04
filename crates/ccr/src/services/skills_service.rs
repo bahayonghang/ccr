@@ -13,9 +13,12 @@ fn silent_command(program: &str) -> Command {
         const CREATE_NO_WINDOW: u32 = 0x0800_0000;
         let mut cmd = cmd;
         cmd.creation_flags(CREATE_NO_WINDOW);
-        return cmd;
+        cmd
     }
-    cmd
+    #[cfg(not(windows))]
+    {
+        cmd
+    }
 }
 
 use blake3::Hasher;

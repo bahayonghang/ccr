@@ -177,7 +177,7 @@ fn write_disk_cache(cache: &WslDistrosCache) -> Result<(), EnvError> {
         file.write_all(content.as_bytes())
             .map_err(|e| EnvError::Other(format!("写入缓存失败: {e}")))?;
 
-        file.unlock()
+        FileExt::unlock(&file)
             .map_err(|e| EnvError::Other(format!("释放文件锁失败: {e}")))?;
     }
 
@@ -195,12 +195,12 @@ fn write_disk_cache(cache: &WslDistrosCache) -> Result<(), EnvError> {
 
 /// 清除所有缓存（内存 + 磁盘）
 pub fn clear_wsl_cache() -> Result<(), EnvError> {
-    if let Some(path) = get_disk_cache_path() {
-        if path.exists() {
-            std::fs::remove_file(&path)
-                .map_err(|e| EnvError::Other(format!("删除缓存文件失败: {e}")))?;
-            tracing::debug!("[wsl-cache] disk cache cleared");
-        }
+    if let Some(path) = get_disk_cache_path()
+        && path.exists()
+    {
+        std::fs::remove_file(&path)
+            .map_err(|e| EnvError::Other(format!("删除缓存文件失败: {e}")))?;
+        tracing::debug!("[wsl-cache] disk cache cleared");
     }
     Ok(())
 }
@@ -342,11 +342,11 @@ fn detect_wsl_distros_internal() -> Result<Vec<WslDistroInfo>, EnvError> {
 ///
 /// 运行 `wsl -d <distro> -- whoami`。
 pub fn get_wsl_username(distro: &str) -> Result<String, EnvError> {
-    if let Some(cache) = read_disk_cache() {
-        if let Some(username) = cache.usernames.get(distro) {
-            tracing::debug!("[wsl-cache] username cache hit for {}", distro);
-            return Ok(username.clone());
-        }
+    if let Some(cache) = read_disk_cache()
+        && let Some(username) = cache.usernames.get(distro)
+    {
+        tracing::debug!("[wsl-cache] username cache hit for {}", distro);
+        return Ok(username.clone());
     }
 
     get_wsl_username_internal(distro)

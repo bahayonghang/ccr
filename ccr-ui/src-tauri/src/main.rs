@@ -15,7 +15,7 @@ mod usage_jobs;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 
-use tauri::{Manager, RunEvent, TitleBarStyle, WindowEvent};
+use tauri::{Manager, RunEvent, WindowEvent};
 use tauri_plugin_dialog::{DialogExt, MessageDialogButtons, MessageDialogKind};
 use tokio::sync::Notify;
 
@@ -29,16 +29,18 @@ fn should_confirm_app_exit(window_label: &str) -> bool {
     window_label == "main"
 }
 
+#[cfg(target_os = "macos")]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 struct MacOsWindowChromeConfig {
     decorations: bool,
-    title_bar_style: TitleBarStyle,
+    title_bar_style: tauri::TitleBarStyle,
 }
 
+#[cfg(target_os = "macos")]
 fn macos_native_window_chrome_config() -> MacOsWindowChromeConfig {
     MacOsWindowChromeConfig {
         decorations: true,
-        title_bar_style: TitleBarStyle::Visible,
+        title_bar_style: tauri::TitleBarStyle::Visible,
     }
 }
 
@@ -284,6 +286,7 @@ mod tests {
         assert!(!should_confirm_app_exit("oauth-login"));
     }
 
+    #[cfg(target_os = "macos")]
     #[test]
     fn macos_window_chrome_config_enables_native_decorations() {
         let config = super::macos_native_window_chrome_config();
