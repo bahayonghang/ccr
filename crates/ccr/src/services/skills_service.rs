@@ -6,12 +6,14 @@ use std::process::Command;
 /// 创建一个在 Windows 上隐藏控制台窗口的 Command。
 /// 防止 Tauri 桌面应用中生成可见的 cmd.exe / git.exe 子进程窗口。
 fn silent_command(program: &str) -> Command {
-    let mut cmd = Command::new(program);
+    let cmd = Command::new(program);
     #[cfg(windows)]
     {
         use std::os::windows::process::CommandExt;
         const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+        let mut cmd = cmd;
         cmd.creation_flags(CREATE_NO_WINDOW);
+        return cmd;
     }
     cmd
 }
