@@ -160,6 +160,21 @@ const bootstrap = async (disposeStartupErrorHandlers: () => void) => {
     })
   }
 
+  const shouldHydrateLocaleBeforeMount = import.meta.env.DEV || router.currentRoute.value.name !== 'home'
+
+  if (shouldHydrateLocaleBeforeMount) {
+    perfMark('app:i18n-prehydrate-start')
+    try {
+      // 首屏直接进入二级页面时，先把完整语言包补齐，避免页面先渲染 key 再回填。
+      await hydratePreferredLocale()
+    } catch (error) {
+      logger.warn('[startup] failed to hydrate preferred locale before mount', error)
+    } finally {
+      perfMark('app:i18n-prehydrate-end')
+      perfMeasure('app:i18n-prehydrate', 'app:i18n-prehydrate-start', 'app:i18n-prehydrate-end')
+    }
+  }
+
   try {
     app.mount('#app')
   } catch (error) {

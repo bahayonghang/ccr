@@ -17,12 +17,23 @@ use crate::state::{AppState, CacheFillRegistration};
 /// 系统信息响应结构
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SystemInfo {
+    pub hostname: String,
+    pub os: String,
     pub os_name: String,
     pub os_version: String,
+    pub kernel_version: String,
     pub arch: String,
-    pub hostname: String,
+    pub cpu_brand: String,
+    pub cpu_cores: usize,
     pub cpu_count: usize,
+    pub cpu_usage: f32,
+    pub total_memory_gb: f64,
+    pub used_memory_gb: f64,
+    pub memory_usage_percent: f64,
     pub total_memory_mb: u64,
+    pub total_swap_gb: f64,
+    pub used_swap_gb: f64,
+    pub uptime_seconds: u64,
     pub ccr_version: String,
 }
 
@@ -116,18 +127,61 @@ impl CliProbeMode {
 #[tauri::command]
 pub async fn get_system_info() -> Result<SystemInfo, String> {
     tokio::task::spawn_blocking(|| {
-        use sysinfo::System;
+        use sysinfo::{MINIMUM_CPU_UPDATE_INTERVAL, System};
+
+        const BYTES_PER_GIB: f64 = 1024.0 * 1024.0 * 1024.0;
 
         let mut sys = System::new_all();
-        sys.refresh_all();
+        sys.refresh_cpu_usage();
+        std::thread::sleep(MINIMUM_CPU_UPDATE_INTERVAL);
+        sys.refresh_cpu_usage();
+        sys.refresh_memory();
+
+        let cpu_cores = sys.cpus().len();
+        let cpu_usage = if cpu_cores == 0 {
+            0.0
+        } else {
+            sys.cpus().iter().map(|cpu| cpu.cpu_usage()).sum::<f32>() / cpu_cores as f32
+        };
+
+        let total_memory_bytes = sys.total_memory();
+        let used_memory_bytes = sys.used_memory();
+        let total_swap_bytes = sys.total_swap();
+        let used_swap_bytes = sys.used_swap();
+        let total_memory_gb = total_memory_bytes as f64 / BYTES_PER_GIB;
+        let used_memory_gb = used_memory_bytes as f64 / BYTES_PER_GIB;
+        let total_swap_gb = total_swap_bytes as f64 / BYTES_PER_GIB;
+        let used_swap_gb = used_swap_bytes as f64 / BYTES_PER_GIB;
+        let memory_usage_percent = if total_memory_bytes == 0 {
+            0.0
+        } else {
+            (used_memory_bytes as f64 / total_memory_bytes as f64) * 100.0
+        };
+        let os_name = System::name().unwrap_or_else(|| "Unknown".to_string());
 
         Ok::<_, String>(SystemInfo {
-            os_name: System::name().unwrap_or_else(|| "Unknown".to_string()),
-            os_version: System::os_version().unwrap_or_else(|| "Unknown".to_string()),
-            arch: std::env::consts::ARCH.to_string(),
             hostname: System::host_name().unwrap_or_else(|| "Unknown".to_string()),
-            cpu_count: sys.cpus().len(),
-            total_memory_mb: sys.total_memory() / 1024 / 1024,
+            os: os_name.clone(),
+            os_name,
+            os_version: System::os_version().unwrap_or_else(|| "Unknown".to_string()),
+            kernel_version: System::kernel_version().unwrap_or_else(|| "Unknown".to_string()),
+            arch: std::env::consts::ARCH.to_string(),
+            cpu_brand: sys
+                .cpus()
+                .first()
+                .map(|cpu| cpu.brand().trim().to_string())
+                .filter(|brand| !brand.is_empty())
+                .unwrap_or_else(|| "Unknown".to_string()),
+            cpu_cores,
+            cpu_count: cpu_cores,
+            cpu_usage,
+            total_memory_gb,
+            used_memory_gb,
+            memory_usage_percent,
+            total_memory_mb: total_memory_bytes / 1024 / 1024,
+            total_swap_gb,
+            used_swap_gb,
+            uptime_seconds: System::uptime(),
             ccr_version: env!("CARGO_PKG_VERSION").to_string(),
         })
     })
@@ -600,6 +654,23 @@ mod tests {
             entry.status.as_str(),
             "ok" | "not_installed" | "timeout" | "error"
         ));
+    }
+
+    #[tokio::test]
+    async fn get_system_info_exposes_home_dashboard_metrics() {
+        let info = get_system_info()
+            .await
+            .expect("get_system_info should succeed");
+        let payload = serde_json::to_value(&info).expect("system info should serialize");
+
+        assert!(payload.get("hostname").is_some());
+        assert!(payload.get("os").is_some());
+        assert!(payload.get("cpu_usage").is_some());
+        assert!(payload.get("memory_usage_percent").is_some());
+        assert!(payload.get("cpu_cores").is_some());
+        assert!(payload.get("total_memory_gb").is_some());
+        assert!(payload.get("used_memory_gb").is_some());
+        assert!(payload.get("uptime_seconds").is_some());
     }
 }
 

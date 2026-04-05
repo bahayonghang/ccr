@@ -105,6 +105,9 @@ describe('HomeView smoke', () => {
       expect(el.querySelector('[data-home-platforms]')).not.toBeNull()
       expect(el.querySelector('[data-home-usage-preview]')).not.toBeNull()
       expect(el.querySelector('.page-header-card')).toBeNull()
+      expect(el.textContent).toContain('11.4%')
+      expect(el.textContent).toContain('27.3%')
+      expect(el.textContent).toContain('2/6')
     } finally {
       unmount()
     }

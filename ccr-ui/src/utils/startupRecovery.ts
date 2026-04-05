@@ -1,4 +1,5 @@
 import { logger } from '@/utils/logger'
+import { showCurrentWindowIfTauri } from '@/utils/tauriWindow'
 
 const STARTUP_ERROR_TYPES = ['error', 'unhandledrejection'] as const
 
@@ -82,6 +83,10 @@ export const renderFatalStartup = (message: string): void => {
       `${message}\n\nPlease check Monitoring or recent frontend logs for details.`,
     ),
   )
+
+  void showCurrentWindowIfTauri().catch((error) => {
+    logger.warn('[startup] failed to reveal fatal startup fallback', error)
+  })
 }
 
 export const reportStartupFailure = (stage: string, error: unknown): void => {

@@ -1324,7 +1324,7 @@ prepare-release: clean build
 # ===== Tauri 桌面应用 =====
 
 # 启动 Tauri 开发模式（桌面应用）
-tauri-dev:
+tauri-dev: _ensure-frontend-deps
     @just _tauri-dev-{{os()}}
 
 _tauri-dev-linux:
@@ -1332,6 +1332,8 @@ _tauri-dev-linux:
     @echo "📍 Frontend: http://localhost:{{vite_port}} (自动加载)"
     @echo "📍 Desktop: Tauri 窗口将自动打开"
     @echo ""
+    @echo "⚡ 预热前端依赖缓存..."
+    @bun run prebundle
     bun run tauri:dev
 
 _tauri-dev-macos:
@@ -1339,6 +1341,8 @@ _tauri-dev-macos:
     @echo "📍 Frontend: http://localhost:{{vite_port}} (自动加载)"
     @echo "📍 Desktop: Tauri 窗口将自动打开"
     @echo ""
+    @echo "⚡ 预热前端依赖缓存..."
+    @bun run prebundle
     bun run tauri:dev
 
 _tauri-dev-windows:
@@ -1347,6 +1351,8 @@ _tauri-dev-windows:
     @Write-Output '📍 Desktop: Tauri 窗口将自动打开'
     @Write-Output ''
     @powershell -ExecutionPolicy Bypass -File scripts/clean_dev.ps1 -BackendPort "{{backend_port}}" -VitePort "{{vite_port}}" -StopTauriDesktop
+    @Write-Output '⚡ 预热前端依赖缓存...'
+    @bun run prebundle
     @bun run tauri:dev
 
 # 构建 Tauri 生产版本（桌面应用）
