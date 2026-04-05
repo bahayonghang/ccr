@@ -83,6 +83,15 @@
           <div class="source-actions">
             <button
               class="console-button"
+              @click="$emit('view-source', source.id)"
+            >
+              <SIcon
+                name="ArrowRightLeft"
+                size="w-4 h-4"
+              />
+            </button>
+            <button
+              class="console-button"
               :disabled="mutationLoading"
               @click="handleSyncSource(source.id)"
             >
@@ -108,6 +117,10 @@
           <span class="badge">{{ source.type }}</span>
           <span class="badge">{{ source.health }}</span>
           <span class="badge">{{ source.skillCount }} skills</span>
+          <span
+            v-if="source.lastSyncedAt"
+            class="badge"
+          >Synced {{ source.lastSyncedAt }}</span>
         </div>
 
         <div class="source-skill-grid">
@@ -148,6 +161,9 @@ import { useUIStore } from '@/stores/ui'
 import type { Platform } from '@/types/skills'
 
 const props = defineProps<{ selectedPlatforms: Platform[] }>()
+defineEmits<{
+  (e: 'view-source', sourceId: string): void
+}>()
 
 const uiStore = useUIStore()
 const {

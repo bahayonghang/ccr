@@ -92,6 +92,7 @@
                     type="checkbox"
                     :value="platform.id"
                     class="checkbox-input"
+                    :disabled="!platform.detected"
                     @change="toggleSelectedPlatform(platform.id)"
                   >
                   <span class="platform-item__name">{{ platform.display_name }}</span>

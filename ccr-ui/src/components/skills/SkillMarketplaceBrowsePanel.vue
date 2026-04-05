@@ -230,7 +230,7 @@
       v-if="contentState === 'ready'"
       :current-page="currentPage"
       :page-size="pageSize"
-      :total-items="sortedItems.length"
+      :total-items="resolvedTotalItems"
       @page-change="emit('update:currentPage', $event)"
     />
 
@@ -300,6 +300,7 @@ interface Props {
   searchQuery: string
   sortBy: MarketplaceSort
   sortedItems: MarketplaceItem[]
+  totalItems?: number
 }
 
 const props = defineProps<Props>()
@@ -322,6 +323,7 @@ const emit = defineEmits<{
 let searchTimer: ReturnType<typeof setTimeout> | null = null
 
 const trimmedSearchQuery = computed(() => props.searchQuery.trim())
+const resolvedTotalItems = computed(() => props.totalItems ?? props.sortedItems.length)
 const headerTitle = computed(() => {
   return props.contentMode === 'search'
     ? t('skills.searchResultsTitle', { query: trimmedSearchQuery.value })
@@ -343,8 +345,8 @@ const refreshLabel = computed(() => {
 
 const resultSummary = computed(() => {
   return props.contentMode === 'search'
-    ? t('skills.searchResultCount', { count: props.sortedItems.length })
-    : `${props.sortedItems.length} ${t('skills.resultCount')}`
+    ? t('skills.searchResultCount', { count: resolvedTotalItems.value })
+    : `${resolvedTotalItems.value} ${t('skills.resultCount')}`
 })
 
 const emptyTitle = computed(() => {

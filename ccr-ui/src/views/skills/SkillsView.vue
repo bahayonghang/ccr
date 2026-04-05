@@ -148,7 +148,7 @@
               >
                 <option :value="null">All categories</option>
                 <option
-                  v-for="cat in categories"
+                  v-for="cat in availableCategories"
                   :key="cat"
                   :value="cat"
                 >
@@ -157,9 +157,27 @@
               </select>
             </label>
 
+            <label class="field">
+              <span class="field__label">Source</span>
+              <select
+                class="field__input"
+                :value="routeState.source ?? 'all'"
+                @change="updateSourceFilter(($event.target as HTMLSelectElement).value)"
+              >
+                <option value="all">All sources</option>
+                <option
+                  v-for="source in sourceOptions"
+                  :key="source.id"
+                  :value="source.id"
+                >
+                  {{ source.name }}
+                </option>
+              </select>
+            </label>
+
             <div class="tag-cloud">
               <button
-                v-for="tag in tags"
+                v-for="tag in availableTags"
                 :key="tag"
                 class="tag-chip"
                 :class="{ 'tag-chip--active': filters.tags.includes(tag) }"
@@ -213,7 +231,7 @@
                 >
                 <button
                   class="console-button"
-                  @click="handlePickFolder('source')"
+                  @click="handlePickFolder"
                 >
                   <SIcon
                     name="FolderOpen"
@@ -242,48 +260,24 @@
           >
             <div class="panel__header">
               <h2 class="panel__title">
-                Manual Install
+                Marketplace Context
               </h2>
             </div>
 
-            <label class="field">
-              <span class="field__label">GitHub</span>
-              <input
-                v-model="manualGithub"
-                class="field__input"
-                type="text"
-                placeholder="owner/repo or owner/repo@skill"
-              >
-            </label>
-            <label class="field">
-              <span class="field__label">Local path</span>
-              <div class="field__row">
-                <input
-                  v-model="manualLocalPath"
-                  class="field__input"
-                  type="text"
-                  placeholder="D:/skills/local-skill"
-                >
-                <button
-                  class="console-button"
-                  @click="handlePickFolder('manual')"
-                >
-                  <SIcon
-                    name="FolderOpen"
-                    size="w-4 h-4"
-                  />
-                </button>
+            <div class="skills-marketplace-context">
+              <div class="skills-marketplace-context__item">
+                <span class="field__label">Target platforms</span>
+                <strong>{{ selectedPlatforms.length > 0 ? selectedPlatforms.length : 0 }}</strong>
               </div>
-            </label>
-            <label class="field">
-              <span class="field__label">npx package</span>
-              <input
-                v-model="manualNpx"
-                class="field__input"
-                type="text"
-                placeholder="owner/repo or owner/repo@skill"
-              >
-            </label>
+              <div class="skills-marketplace-context__item">
+                <span class="field__label">Search</span>
+                <strong>{{ routeState.q || 'Trending' }}</strong>
+              </div>
+              <div class="skills-marketplace-context__item">
+                <span class="field__label">Page</span>
+                <strong>{{ routeState.page }}</strong>
+              </div>
+            </div>
           </section>
 
           <ActivityLog :entries="operationLog" />
@@ -301,6 +295,7 @@
           <SourcesPanel
             v-else-if="routeState.tab === 'sources'"
             :selected-platforms="selectedPlatforms"
+            @view-source="handleViewSource"
           />
 
           <MarketplacePanel
@@ -348,13 +343,14 @@ const {
   addLocalSourceRecord,
   browseFolder,
   platforms,
+  sources,
   marketplace,
   filters,
   routeState,
   operationLog,
   mutationLoading,
-  categories,
-  tags,
+  availableCategories,
+  availableTags,
   stats,
   inventoryLoading,
   sourcesLoading,
@@ -368,11 +364,12 @@ const selectedPlatforms = ref<Platform[]>([])
 const searchInput = ref('')
 const gitSourceUrl = ref('')
 const localSourcePath = ref('')
-const manualGithub = ref('')
-const manualLocalPath = ref('')
-const manualNpx = ref('')
 let stopSkillsEvent: null | (() => void) = null
 let searchTimer = 0
+const sourceOptions = computed(() => sources.value.map((source) => ({
+  id: source.id,
+  name: source.name,
+})))
 
 const tabs = computed(() => [
   { id: 'inventory' as SkillsTab, label: 'Inventory', icon: 'Package', count: stats.value.logicalSkills },
@@ -414,6 +411,7 @@ function replaceRoute(patch: Partial<SkillsRouteState>) {
 function setTab(tab: SkillsTab) { replaceRoute({ tab, page: 1 }) }
 function updatePlatformFilter(value: string) { replaceRoute({ platform: value as SkillsRouteState['platform'] }) }
 function updateOriginFilter(value: string) { replaceRoute({ origin: value as SkillsRouteState['origin'] }) }
+function updateSourceFilter(value: string) { replaceRoute({ source: value === 'all' ? null : value, selected: null }) }
 function updatePage(page: number) { replaceRoute({ page }) }
 function updateSearchQuery(q: string) { replaceRoute({ q, page: 1 }) }
 
@@ -423,7 +421,7 @@ function handleModeChange(mode: 'view' | 'edit') { replaceRoute({ mode }) }
 function resetFilters() {
   filters.value = { search: '', platform: 'all', origin: 'all', category: null, tags: [], source: 'all' }
   searchInput.value = ''
-  replaceRoute({ platform: 'all', origin: 'all', q: '' })
+  replaceRoute({ platform: 'all', origin: 'all', q: '', source: null, selected: null })
 }
 
 function toggleTag(tag: string) {
@@ -458,12 +456,11 @@ async function handleAddLocalSource() {
   catch (error) { uiStore.showError(error instanceof Error ? error.message : String(error)) }
 }
 
-async function handlePickFolder(target: 'source' | 'manual') {
+async function handlePickFolder() {
   try {
     const path = await browseFolder()
     if (!path) return
-    if (target === 'source') localSourcePath.value = path
-    else manualLocalPath.value = path
+    localSourcePath.value = path
   }
   catch (error) { uiStore.showError(error instanceof Error ? error.message : String(error)) }
 }
@@ -471,7 +468,10 @@ async function handlePickFolder(target: 'source' | 'manual') {
 async function handleRefresh() {
   if (runtimeUnavailable.value) return
   await refresh(routeState.value.tab === 'marketplace')
-  if (routeState.value.tab === 'marketplace') await loadMarketplace(true)
+}
+
+function handleViewSource(sourceId: string) {
+  replaceRoute({ tab: 'inventory', source: sourceId, selected: null, page: 1 })
 }
 
 // --- Watchers ---
@@ -496,6 +496,7 @@ watch(
 )
 
 watch(searchInput, (value) => {
+  if (routeState.value.tab !== 'inventory') return
   window.clearTimeout(searchTimer)
   searchTimer = window.setTimeout(() => {
     filters.value = { ...filters.value, search: value.trim() }
@@ -612,6 +613,20 @@ onUnmounted(() => {
 
 .console-sidebar {
   @apply flex flex-col gap-4;
+}
+
+.skills-marketplace-context {
+  @apply flex flex-col gap-3;
+}
+
+.skills-marketplace-context__item {
+  @apply rounded-2xl border border-border-default/45 p-3;
+
+  background-color: rgb(var(--color-bg-base-rgb) / 55%);
+}
+
+.skills-marketplace-context__item strong {
+  @apply mt-1 block text-sm text-text-primary;
 }
 
 .panel__header {

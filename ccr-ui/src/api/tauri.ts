@@ -3282,15 +3282,19 @@ export const scanSkillRepository = async <T = UnknownRecord>(sourceId: string): 
   return skillsSourceSync(sourceId)
 }
 
-export const getSkillHubTrending = async <T = UnknownRecord>(): Promise<T> => {
-  return skillsMarketplaceList(null, 1, 20)
+export const getSkillHubTrending = async <T = UnknownRecord>(
+  page = 1,
+  pageSize = 20,
+): Promise<T> => {
+  return skillsMarketplaceList(null, page, pageSize)
 }
 
 export const searchSkillHubMarketplace = async <T = UnknownRecord>(
   query: string,
-  _category?: string
+  page = 1,
+  pageSize = 20,
 ): Promise<T> => {
-  return skillsMarketplaceList(query, 1, 20)
+  return skillsMarketplaceList(query, page, pageSize)
 }
 
 export const getSkillHubAgents = async <T = UnknownRecord>(): Promise<T> => {
@@ -3304,11 +3308,13 @@ export const getSkillHubAgentSkills = async <T = UnknownRecord>(agentName: strin
 
 export const installSkillHubSkill = async <T = UnknownRecord>(data: unknown): Promise<T> => {
   const payload = asRecord(data)
+  const agents = asArray(payload.agents).filter((value): value is string => typeof value === 'string')
   return skillsInstall({
     source_kind: 'marketplace',
     source_ref: String(payload.url ?? payload.package ?? ''),
-    target_platforms: [],
-    force: false,
+    source_skill_id: typeof payload.skill === 'string' ? payload.skill : null,
+    target_platforms: agents,
+    force: Boolean(payload.force),
   })
 }
 
@@ -3320,15 +3326,23 @@ export const getSkillHubUnified = async <T = UnknownRecord>(platform?: string): 
   return skillsInventory(platform ? { platform } : null)
 }
 
-export const getSkillHubSkillContent = async <T = UnknownRecord>(skillId: string): Promise<T> => {
-  return skillsContentGet(skillId)
+export const getSkillHubSkillContent = async <T = UnknownRecord>(
+  skillId: string,
+  installationId?: string | null,
+): Promise<T> => {
+  return skillsContentGet(skillId, installationId ?? null)
 }
 
 export const saveSkillHubSkillContent = async <T = UnknownRecord>(
   skillId: string,
-  content: string
+  installationIdOrContent: string,
+  maybeContent?: string,
 ): Promise<T> => {
-  return updateSkillContent(skillId, content)
+  if (maybeContent == null) {
+    return updateSkillContent(skillId, installationIdOrContent)
+  }
+
+  return skillsContentSave(skillId, installationIdOrContent, maybeContent)
 }
 
 export const importSkillFromGithub = async <T = UnknownRecord>(

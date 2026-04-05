@@ -1,7 +1,7 @@
 import { setActivePinia, createPinia } from 'pinia'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { useSkillsStore } from '@/stores/skills'
-import type { PlatformSummary, UnifiedSkill } from '@/types/skills'
+import type { PlatformSummary, SkillRecord, UnifiedSkill } from '@/types/skills'
 import { toInstalledPackageSet } from '@/utils/skills'
 
 const samplePlatforms: PlatformSummary[] = [
@@ -40,6 +40,53 @@ const sampleSkills: UnifiedSkill[] = [
     category: 'analysis',
     tags: ['report']
   }
+]
+
+const sampleSkillRecords: SkillRecord[] = [
+  {
+    id: 'sg_skill_alpha',
+    name: 'Skill Alpha',
+    description: 'Alpha description',
+    category: 'ops',
+    tags: ['sync', 'shell'],
+    origin: 'repo',
+    sourceRef: 'src_alpha',
+    sourceLabel: 'Repo Alpha',
+    installCount: 1,
+    editableInstallations: ['ins_skill_alpha'],
+    installations: [
+      {
+        id: 'ins_skill_alpha',
+        platformId: 'codex',
+        platformName: 'Codex',
+        installPath: '/tmp/skills/alpha',
+        installMode: 'copy',
+        isPrimary: true,
+      },
+    ],
+  },
+  {
+    id: 'sg_skill_beta',
+    name: 'Skill Beta',
+    description: 'Beta description',
+    category: 'analysis',
+    tags: ['report'],
+    origin: 'marketplace',
+    sourceRef: 'owner/skill-beta',
+    sourceLabel: 'owner/skill-beta',
+    installCount: 1,
+    editableInstallations: ['ins_skill_beta'],
+    installations: [
+      {
+        id: 'ins_skill_beta',
+        platformId: 'gemini',
+        platformName: 'Gemini CLI',
+        installPath: '/tmp/skills/beta',
+        installMode: 'copy',
+        isPrimary: true,
+      },
+    ],
+  },
 ]
 
 describe('skills store smoke', () => {
@@ -119,5 +166,17 @@ describe('skills store smoke', () => {
 
     expect(store.marketplaceLoaded).toBe(true)
     expect(store.stats.available).toBe(1)
+  })
+
+  it('filters installed skills by source id and keeps scoped tags aligned', () => {
+    const store = useSkillsStore()
+    store.setPlatforms(samplePlatforms)
+    store.setSkills(sampleSkillRecords)
+
+    store.setFilter('source', 'src_alpha')
+
+    expect(store.filteredSkills).toHaveLength(1)
+    expect(store.filteredSkills[0]?.name).toBe('Skill Alpha')
+    expect(store.availableTags).toEqual(['shell', 'sync'])
   })
 })

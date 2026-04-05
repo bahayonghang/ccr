@@ -38,6 +38,7 @@ import type {
 } from '@/types/skills'
 
 type UnknownRecord = Record<string, unknown>
+const MARKETPLACE_PAGE_SIZE = 20
 
 const DEFAULT_ROUTE_STATE: SkillsRouteState = {
   tab: 'inventory',
@@ -278,6 +279,22 @@ export const useSkillsStore = defineStore('skills', () => {
   const platforms = computed(() => inventory.value.platforms)
   const sources = computed(() => sourceCache.data.value)
   const marketplace = computed(() => marketplaceCache.data.value)
+  const facetScopedSkills = computed(() => {
+    return skills.value.filter((skill) => {
+      if (filters.value.platform !== 'all' && !skill.installations.some((item) => item.platformId === filters.value.platform)) {
+        return false
+      }
+      if (filters.value.origin !== 'all' && skill.origin !== filters.value.origin) {
+        return false
+      }
+      if (filters.value.source !== 'all'
+        && skill.sourceRef !== filters.value.source
+        && skill.sourceLabel !== filters.value.source) {
+        return false
+      }
+      return true
+    })
+  })
   const selectedSkill = computed(() => {
     const skillId = selectedSkillId.value || routeState.value.selected
     if (!skillId) return null
@@ -293,13 +310,7 @@ export const useSkillsStore = defineStore('skills', () => {
       ?? null
   })
   const filteredSkills = computed(() => {
-    return skills.value.filter((skill) => {
-      if (filters.value.platform !== 'all' && !skill.installations.some((item) => item.platformId === filters.value.platform)) {
-        return false
-      }
-      if (filters.value.origin !== 'all' && skill.origin !== filters.value.origin) {
-        return false
-      }
+    return facetScopedSkills.value.filter((skill) => {
       if (filters.value.category && skill.category !== filters.value.category) {
         return false
       }
@@ -322,18 +333,10 @@ export const useSkillsStore = defineStore('skills', () => {
     return Array.from(new Set(skills.value.flatMap((skill) => skill.tags))).sort()
   })
   const availableCategories = computed(() => {
-    const platform = filters.value.platform
-    const list = platform === 'all'
-      ? skills.value
-      : skills.value.filter((skill) => skill.installations.some((item) => item.platformId === platform))
-    return Array.from(new Set(list.map((skill) => skill.category).filter(Boolean) as string[])).sort()
+    return Array.from(new Set(facetScopedSkills.value.map((skill) => skill.category).filter(Boolean) as string[])).sort()
   })
   const availableTags = computed(() => {
-    const platform = filters.value.platform
-    const list = platform === 'all'
-      ? skills.value
-      : skills.value.filter((skill) => skill.installations.some((item) => item.platformId === platform))
-    return Array.from(new Set(list.flatMap((skill) => skill.tags))).sort()
+    return Array.from(new Set(facetScopedSkills.value.flatMap((skill) => skill.tags))).sort()
   })
   const stats = computed(() => {
     const activePlatforms = platforms.value.filter((platform) => platform.detected && platform.installedCount > 0).length
@@ -344,7 +347,7 @@ export const useSkillsStore = defineStore('skills', () => {
       activePlatforms,
       marketplace: marketplace.value.total,
       installed: skills.value.length,
-      available: marketplace.value.items.length,
+      available: marketplace.value.total,
       totalPlatforms: platforms.value.length,
     }
   })
@@ -367,7 +370,7 @@ export const useSkillsStore = defineStore('skills', () => {
       origin: routeState.value.origin,
       category: filters.value.category,
       tags: filters.value.tags,
-      source: filters.value.source,
+      source: (routeState.value.source ?? 'all') as SkillFilters['source'],
     }
     selectedSkillId.value = routeState.value.selected
   }
@@ -393,8 +396,8 @@ export const useSkillsStore = defineStore('skills', () => {
   async function loadMarketplace(force = false) {
     return marketplaceCache.fetch(async () => {
       const response = routeState.value.q
-        ? await searchSkillHubMarketplace(routeState.value.q)
-        : await getSkillHubTrending()
+        ? await searchSkillHubMarketplace(routeState.value.q, routeState.value.page, MARKETPLACE_PAGE_SIZE)
+        : await getSkillHubTrending(routeState.value.page, MARKETPLACE_PAGE_SIZE)
       marketplaceLoaded.value = true
       return transformMarketplace(response)
     }, force)
@@ -433,7 +436,7 @@ export const useSkillsStore = defineStore('skills', () => {
     }
     contentLoading.value = true
     try {
-      const content = transformContent(await getSkillHubSkillContent(skillId))
+      const content = transformContent(await getSkillHubSkillContent(skillId, installationId ?? null))
       contentCache.value.set(cacheKey, content)
       triggerRef(contentCache)
       return content
@@ -551,7 +554,7 @@ export const useSkillsStore = defineStore('skills', () => {
     mutationLoading.value = true
     pushLog({ action: 'save', target: skillId, status: 'pending' })
     try {
-      const saved = transformContent(await saveSkillHubSkillContent(skillId, raw))
+      const saved = transformContent(await saveSkillHubSkillContent(skillId, installationId, raw))
       contentCache.value.set(`${skillId}:${installationId}`, saved)
       triggerRef(contentCache)
       await loadInventory(true)

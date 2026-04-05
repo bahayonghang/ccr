@@ -159,7 +159,13 @@
               class="installation-row"
             >
               <div class="installation-row__main">
-                <strong>{{ inst.platformName }}</strong>
+                <div class="installation-row__title">
+                  <strong>{{ inst.platformName }}</strong>
+                  <span
+                    v-if="inst.isPrimary"
+                    class="badge"
+                  >Primary</span>
+                </div>
                 <span>{{ shortenPath(inst.installPath) }}</span>
               </div>
               <div class="installation-row__actions">
@@ -322,8 +328,17 @@ function toggleMode() {
   emit('update:mode', editMode.value ? 'edit' : 'view')
 }
 
+function confirmDiscardChanges() {
+  if (!contentDirty.value) {
+    return true
+  }
+
+  return window.confirm('Discard unsaved skill content changes?')
+}
+
 function handleSelectSkill(skillId?: string) {
   if (!skillId) return
+  if (!confirmDiscardChanges()) return
   emit('select', skillId)
   selectSkill(skillId, null)
   void ensureDetail(skillId, true)
@@ -331,6 +346,8 @@ function handleSelectSkill(skillId?: string) {
 
 function handleSelectInstallation(installationId: string) {
   if (!selectedSkill.value) return
+  if (installationId === selectedInstallation.value?.id) return
+  if (!confirmDiscardChanges()) return
   selectSkill(selectedSkill.value.id, installationId)
 }
 
@@ -532,6 +549,10 @@ watch(selectedSkill, () => { showFullDesc.value = false })
 
 .installation-row__main {
   @apply flex min-w-0 flex-col gap-1;
+}
+
+.installation-row__title {
+  @apply flex items-center gap-2;
 }
 
 .installation-row__main span {

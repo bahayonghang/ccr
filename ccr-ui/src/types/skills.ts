@@ -1,7 +1,7 @@
 export type Platform = 'claude-code' | 'codex' | 'gemini' | 'qwen' | 'qoder' | 'droid' | 'iflow' | 'opencode'
 export type SkillOrigin = 'marketplace' | 'github' | 'repo' | 'local' | 'npx' | 'unknown'
 export type SkillsTab = 'inventory' | 'sources' | 'marketplace'
-export type SkillSource = 'all' | 'user' | 'plugin' | 'remote' | SkillOrigin
+export type SkillSource = 'all' | 'user' | 'plugin' | 'remote' | SkillOrigin | `src_${string}`
 export type ImportSource = 'marketplace' | 'github' | 'local' | 'npx'
 
 export interface PlatformTheme {

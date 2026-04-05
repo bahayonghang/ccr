@@ -52,6 +52,7 @@ export function useUnifiedSkills() {
   async function initialize(preloadMarketplace = false) {
     await Promise.all([
       store.loadInventory(),
+      store.loadSources(),
       preloadMarketplace ? store.loadMarketplace() : Promise.resolve(),
     ])
   }
@@ -76,8 +77,8 @@ export function useUnifiedSkills() {
     return store.loadMarketplace(force)
   }
 
-  async function searchMarketplace(query: string) {
-    store.setRouteState({ q: query, page: 1 })
+  async function searchMarketplace(query: string, page = 1) {
+    store.setRouteState({ q: query, page })
     return store.loadMarketplace(true)
   }
 
