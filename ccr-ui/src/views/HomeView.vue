@@ -1,178 +1,296 @@
 <template>
   <div class="home-view">
     <div class="home-shell">
-      <PageHeaderCard
-        :title="`${$t('home.welcomeBack')}，${$t('home.roleEngineer')}`"
-        :description="$t('home.statusMsg')"
-        badge="Neko Console"
-        icon="Sparkles"
-        tone="secondary"
+      <section
+        class="home-poster"
+        data-home-hero
       >
-        <template #actions>
-          <Button
-            variant="primary"
-            density="compact"
-            surface="card"
-            motion="standard"
-            @click="router.push('/commands')"
-          >
-            {{ $t('home.actionCommandRunner') }}
-          </Button>
-          <Button
-            variant="secondary"
-            density="compact"
-            surface="card"
-            motion="subtle"
-            @click="router.push('/skills?tab=marketplace')"
-          >
-            {{ $t('nav.skills') }}
-          </Button>
-        </template>
-
-        <div class="hero-metrics">
-          <div class="hero-metric">
-            <div class="hero-metric__icon hero-metric__icon--success">
-              <div class="hero-metric__dot hero-metric__dot--success" />
-            </div>
-            <div class="hero-metric__body">
-              <span class="hero-metric__label">{{ $t('home.cpuUsage') }}</span>
-              <strong class="hero-metric__value">{{ systemInfo?.cpu_usage?.toFixed(1) || '0.0' }}%</strong>
-            </div>
+        <div class="home-poster__mesh" />
+        <div class="home-poster__copy">
+          <div class="home-poster__eyebrow">
+            <span class="home-poster__eyebrow-line" />
+            {{ $t('home.posterEyebrow') }}
           </div>
-
-          <div class="hero-metric">
-            <div class="hero-metric__icon hero-metric__icon--info">
-              <div class="hero-metric__dot hero-metric__dot--info" />
-            </div>
-            <div class="hero-metric__body">
-              <span class="hero-metric__label">{{ $t('home.memoryUsage') }}</span>
-              <strong class="hero-metric__value">{{ systemInfo?.memory_usage_percent?.toFixed(1) || '0.0' }}%</strong>
-            </div>
+          <div class="home-poster__title-wrap">
+            <p class="home-poster__welcome">
+              {{ `${$t('home.welcomeBack')}，${$t('home.roleEngineer')}` }}
+            </p>
+            <h1 class="home-poster__title">
+              {{ $t('home.posterTitle') }}
+            </h1>
           </div>
+          <p class="home-poster__lead">
+            {{ $t('home.posterLead') }}
+          </p>
+          <p class="home-poster__description">
+            {{ $t('home.posterDescription') }}
+          </p>
 
-          <div class="hero-metric">
-            <div class="hero-metric__icon hero-metric__icon--secondary">
-              <SIcon
-                name="Package"
-                size="w-4 h-4"
+          <div class="home-poster__status-rail">
+            <div
+              v-for="item in posterStatusItems"
+              :key="item.label"
+              class="home-status-pill"
+            >
+              <span
+                class="home-status-pill__dot"
+                :class="item.toneClass"
               />
+              <span class="home-status-pill__label">{{ item.label }}</span>
+              <strong class="home-status-pill__value">{{ item.value }}</strong>
             </div>
-            <div class="hero-metric__body">
-              <span class="hero-metric__label">CLI footprint</span>
-              <strong class="hero-metric__value">{{ installedCliCount }}/{{ mainModules.length }}</strong>
+          </div>
+
+          <div class="home-poster__actions">
+            <Button
+              variant="primary"
+              density="compact"
+              surface="card"
+              motion="standard"
+              @click="router.push('/commands')"
+            >
+              {{ $t('home.actionCommandRunner') }}
+            </Button>
+            <Button
+              variant="secondary"
+              density="compact"
+              surface="card"
+              motion="subtle"
+              @click="router.push('/skills?tab=marketplace')"
+            >
+              {{ $t('nav.skills') }}
+            </Button>
+          </div>
+        </div>
+
+        <div class="home-poster__visual">
+          <div class="home-visual-panel">
+            <div class="home-visual-panel__header">
+              <div>
+                <p class="home-visual-panel__eyebrow">
+                  {{ $t('home.visualEyebrow') }}
+                </p>
+                <h2 class="home-visual-panel__title">
+                  {{ $t('home.visualTitle') }}
+                </h2>
+              </div>
+              <div class="home-visual-panel__badge">
+                {{ installedCliCount }}/{{ mainModules.length }} {{ $t('home.visualBadge') }}
+              </div>
+            </div>
+
+            <div class="home-visual-panel__fabric">
+              <div class="home-visual-panel__grid" />
+              <div class="home-visual-panel__signal-ring" />
+              <div class="home-visual-panel__signal-ring home-visual-panel__signal-ring--secondary" />
+
+              <div class="home-signal-list">
+                <div
+                  v-for="module in posterModules"
+                  :key="module.path"
+                  class="home-signal-node"
+                >
+                  <div class="home-signal-node__meta">
+                    <SIcon
+                      :name="module.icon"
+                      size="w-4 h-4"
+                      :class="module.iconClass"
+                    />
+                    <span>{{ module.title }}</span>
+                  </div>
+                  <div class="home-signal-node__status">
+                    <span class="home-signal-node__version">{{ getVersionLabel(module.platformKey) }}</span>
+                    <span
+                      class="home-signal-node__state"
+                      :class="getNodeStateClass(module.platformKey)"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div
+              class="home-usage-preview"
+              data-home-usage-preview
+            >
+              <div class="home-usage-preview__copy">
+                <p class="home-usage-preview__eyebrow">
+                  {{ $t('home.usagePreviewEyebrow') }}
+                </p>
+                <p class="home-usage-preview__title">
+                  {{ $t('home.usagePreviewTitle') }}
+                </p>
+              </div>
+              <div class="home-usage-preview__bars">
+                <span
+                  v-for="(bar, index) in usagePreviewBars"
+                  :key="`${bar}-${index}`"
+                  class="home-usage-preview__bar"
+                  :style="{ height: `${bar}%` }"
+                />
+              </div>
             </div>
           </div>
         </div>
-      </PageHeaderCard>
+      </section>
 
-      <section class="section-block">
+      <section
+        class="section-block"
+        data-home-actions
+      >
         <div class="section-row">
           <div>
             <p class="section-kicker">
-              {{ $t('home.quickActions') }}
+              {{ $t('home.actionsEyebrow') }}
             </p>
             <h2 class="section-title">
-              Operate fast
+              {{ $t('home.actionsTitle') }}
             </h2>
+            <p class="section-description">
+              {{ $t('home.actionsDescription') }}
+            </p>
           </div>
         </div>
 
-        <div class="quick-actions-grid">
+        <div class="command-strip">
           <RouterLink
             v-for="action in quickActions"
             :key="action.path"
             :to="action.path"
-            class="group"
+            class="command-strip__item group"
           >
-            <Card
-              surface="card"
-              :elevation="2"
-              motion="subtle"
-              density="compact"
-              hover
-              class="quick-action-card"
-            >
-              <div
-                class="quick-action-icon"
-                :class="action.bgClass"
-              >
-                <SIcon
-                  :name="action.icon"
-                  size="w-5 h-5"
-                  :class="action.textClass"
-                />
-              </div>
-              <div class="quick-action-copy">
-                <h3 class="quick-action-title">
+            <div class="command-strip__slot">
+              <SIcon
+                :name="action.icon"
+                size="w-5 h-5"
+                :class="action.textClass"
+              />
+              <div class="command-strip__copy">
+                <h3 class="command-strip__title">
                   {{ action.title }}
                 </h3>
-                <p class="quick-action-desc">
+                <p class="command-strip__desc">
                   {{ action.desc }}
                 </p>
               </div>
               <SIcon
                 name="ArrowRight"
                 size="w-4 h-4"
-                class="quick-action-arrow"
+                class="command-strip__arrow"
               />
-            </Card>
+            </div>
           </RouterLink>
         </div>
       </section>
 
-      <section class="section-block">
+      <section
+        class="section-block"
+        data-home-platforms
+      >
         <div class="section-row">
           <div>
             <p class="section-kicker">
-              {{ $t('home.platformModules') }}
+              {{ $t('home.platformsEyebrow') }}
             </p>
             <h2 class="section-title">
-              Platform surfaces
+              {{ $t('home.platformsTitle') }}
             </h2>
+            <p class="section-description">
+              {{ $t('home.platformsDescription') }}
+            </p>
           </div>
         </div>
 
-        <div class="modules-grid">
-          <RouterLink
-            v-for="module in mainModules"
-            :key="module.path"
-            :to="module.path"
-            class="group h-full"
-          >
-            <Card
-              surface="card"
-              :elevation="2"
-              motion="subtle"
-              density="compact"
-              hover
-              class="module-card"
+        <div class="platform-matrix">
+          <div class="platform-matrix__primary">
+            <RouterLink
+              v-for="module in featuredModules"
+              :key="module.path"
+              :to="module.path"
+              class="platform-feature group"
             >
-              <div class="module-card__header">
-                <div class="module-icon-shell">
-                  <SIcon
-                    :name="module.icon"
-                    size="w-5 h-5"
-                    :class="module.iconClass"
-                  />
+              <div class="platform-feature__shell">
+                <div class="platform-feature__header">
+                  <div class="platform-feature__brand">
+                    <div class="platform-feature__icon">
+                      <SIcon
+                        :name="module.icon"
+                        size="w-5 h-5"
+                        :class="module.iconClass"
+                      />
+                    </div>
+                    <div>
+                      <p class="platform-feature__eyebrow">
+                        {{ $t('home.platformFeatureLabel') }}
+                      </p>
+                      <h3 class="platform-feature__title">
+                        {{ module.title }}
+                      </h3>
+                    </div>
+                  </div>
+                  <div
+                    class="module-version-badge"
+                    :class="getVersionClass(module.platformKey)"
+                  >
+                    {{ getVersionLabel(module.platformKey) }}
+                  </div>
                 </div>
-                <div
-                  class="module-version-badge"
-                  :class="getVersionClass(module.platformKey)"
-                >
-                  {{ getVersionLabel(module.platformKey) }}
-                </div>
-              </div>
-
-              <div class="module-copy">
-                <h3 class="module-title">
-                  {{ module.title }}
-                </h3>
-                <p class="module-desc">
+                <p class="platform-feature__desc">
                   {{ module.desc }}
                 </p>
+                <div class="platform-feature__footer">
+                  <span class="platform-feature__state">
+                    {{ getModuleStateLabel(module.platformKey) }}
+                  </span>
+                  <SIcon
+                    name="ArrowUpRight"
+                    size="w-4 h-4"
+                    class="platform-feature__arrow"
+                  />
+                </div>
               </div>
-            </Card>
-          </RouterLink>
+            </RouterLink>
+          </div>
+
+          <div class="platform-matrix__secondary">
+            <RouterLink
+              v-for="module in secondaryModules"
+              :key="module.path"
+              :to="module.path"
+              class="platform-rail group"
+            >
+              <div class="platform-rail__shell">
+                <div class="platform-rail__meta">
+                  <SIcon
+                    :name="module.icon"
+                    size="w-4 h-4"
+                    :class="module.iconClass"
+                  />
+                  <div>
+                    <h3 class="platform-rail__title">
+                      {{ module.title }}
+                    </h3>
+                    <p class="platform-rail__desc">
+                      {{ module.desc }}
+                    </p>
+                  </div>
+                </div>
+                <div class="platform-rail__status">
+                  <span
+                    class="module-version-badge"
+                    :class="getVersionClass(module.platformKey)"
+                  >
+                    {{ getVersionLabel(module.platformKey) }}
+                  </span>
+                  <SIcon
+                    name="ArrowRight"
+                    size="w-4 h-4"
+                    class="platform-rail__arrow"
+                  />
+                </div>
+              </div>
+            </RouterLink>
+          </div>
         </div>
       </section>
 
@@ -186,8 +304,11 @@
               {{ $t('home.systemActivity') }}
             </p>
             <h2 class="section-title">
-              Usage overview
+              {{ $t('home.usageSectionTitle') }}
             </h2>
+            <p class="section-description">
+              {{ $t('home.usageSectionDescription') }}
+            </p>
           </div>
           <Button
             variant="ghost"
@@ -231,7 +352,6 @@ import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import Button from '@/components/ui/Button.vue'
 import Card from '@/components/ui/Card.vue'
-import PageHeaderCard from '@/components/PageHeaderCard.vue'
 import SIcon from '@/components/ui/SIcon.vue'
 import { getCliVersions, getSystemInfo } from '@/api/runtime/system'
 import { logger } from '@/utils/logger'
@@ -428,6 +548,29 @@ const quickActions = computed(() => [
   },
 ])
 
+const posterStatusItems = computed(() => [
+  {
+    label: t('home.statusReadyLabel'),
+    value: t('common.ready'),
+    toneClass: 'home-status-pill__dot--success',
+  },
+  {
+    label: t('home.cpuUsage'),
+    value: `${systemInfo.value?.cpu_usage?.toFixed(1) || '0.0'}%`,
+    toneClass: 'home-status-pill__dot--info',
+  },
+  {
+    label: t('home.memoryUsage'),
+    value: `${systemInfo.value?.memory_usage_percent?.toFixed(1) || '0.0'}%`,
+    toneClass: 'home-status-pill__dot--secondary',
+  },
+  {
+    label: t('home.statusCliLabel'),
+    value: `${installedCliCount.value}/${mainModules.value.length}`,
+    toneClass: 'home-status-pill__dot--primary',
+  },
+])
+
 const mainModules = computed(() => [
   {
     title: t('home.claudeCodeTitle'),
@@ -485,6 +628,42 @@ const installedCliCount = computed(() => (
     return Boolean(entry?.installed && entry.status !== 'error' && entry.status !== 'timeout')
   }).length
 ))
+
+const featuredModules = computed(() => mainModules.value.slice(0, 2))
+const secondaryModules = computed(() => mainModules.value.slice(2))
+const posterModules = computed(() => mainModules.value.slice(0, 4))
+
+const usagePreviewBars = computed(() => {
+  const cpu = Math.round(systemInfo.value?.cpu_usage ?? 0)
+  const memory = Math.round(systemInfo.value?.memory_usage_percent ?? 0)
+  const baseBars = [28, 44, 58, 72, 52, 80, 64, 48]
+
+  return baseBars.map((base, index) => {
+    if (index === 1) return Math.max(18, Math.min(96, cpu + 16))
+    if (index === 5) return Math.max(22, Math.min(96, memory + 10))
+    return Math.max(16, Math.min(94, base + installedCliCount.value * 3 - index * 2))
+  })
+})
+
+const getModuleStateLabel = (platformKey: string) => {
+  const entry = cliVersions.value.get(platformKey)
+  if (!entry) return t('common.loading')
+  if (entry.status === 'timeout') return t('home.moduleStateScanning')
+  if (entry.status === 'error' || entry.status === 'not_installed' || !entry.installed) {
+    return t('home.moduleStateAttention')
+  }
+  return t('home.moduleStateReady')
+}
+
+const getNodeStateClass = (platformKey: string) => {
+  const entry = cliVersions.value.get(platformKey)
+  if (!entry) return 'home-signal-node__state--idle'
+  if (entry.status === 'timeout') return 'home-signal-node__state--warning'
+  if (entry.status === 'error' || entry.status === 'not_installed' || !entry.installed) {
+    return 'home-signal-node__state--danger'
+  }
+  return 'home-signal-node__state--ready'
+}
 </script>
 
 <style scoped>
@@ -493,7 +672,249 @@ const installedCliCount = computed(() => (
 }
 
 .home-shell {
-  @apply mx-auto flex max-w-[1440px] flex-col gap-6;
+  @apply mx-auto flex max-w-[1480px] flex-col gap-8;
+}
+
+.home-poster {
+  position: relative;
+  overflow: hidden;
+  border-radius: 2rem;
+  border: 1px solid rgb(var(--color-accent-primary-rgb) / 12%);
+  background:
+    radial-gradient(circle at top left, rgb(var(--color-accent-primary-rgb) / 16%), transparent 32%),
+    radial-gradient(circle at bottom right, rgb(var(--color-accent-secondary-rgb) / 14%), transparent 30%),
+    linear-gradient(135deg, rgb(var(--color-bg-elevated-rgb) / 96%), rgb(var(--color-bg-base-rgb) / 98%));
+  box-shadow:
+    0 24px 80px rgb(15 23 42 / 12%),
+    inset 0 1px 0 rgb(255 255 255 / 14%);
+  display: grid;
+  gap: 2rem;
+  padding: 1.5rem;
+}
+
+.home-poster__mesh {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgb(255 255 255 / 5%) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(255 255 255 / 5%) 1px, transparent 1px);
+  background-size: 36px 36px;
+  mask-image: radial-gradient(circle at center, black 40%, transparent 92%);
+  opacity: 0.36;
+  pointer-events: none;
+}
+
+.home-poster__copy,
+.home-poster__visual {
+  position: relative;
+  z-index: 1;
+}
+
+.home-poster__copy {
+  @apply flex flex-col gap-5;
+}
+
+.home-poster__eyebrow,
+.home-visual-panel__eyebrow,
+.home-usage-preview__eyebrow {
+  @apply flex items-center gap-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-text-muted;
+}
+
+.home-poster__eyebrow-line {
+  @apply h-px w-10 bg-accent-primary/40;
+}
+
+.home-poster__welcome {
+  @apply text-sm font-medium uppercase tracking-[0.16em] text-accent-primary;
+}
+
+.home-poster__title-wrap {
+  @apply flex flex-col gap-2;
+}
+
+.home-poster__title {
+  font-family: var(--font-brand, inherit);
+
+  @apply max-w-[9ch] text-4xl font-semibold tracking-[-0.04em] text-text-primary sm:text-5xl lg:text-6xl;
+}
+
+.home-poster__lead {
+  @apply max-w-[32rem] text-lg font-medium leading-8 text-text-primary;
+}
+
+.home-poster__description {
+  @apply max-w-[34rem] text-sm leading-7 text-text-secondary;
+}
+
+.home-poster__status-rail {
+  @apply flex flex-wrap gap-3;
+}
+
+.home-status-pill {
+  @apply inline-flex items-center gap-2 rounded-full border border-border-default/55 bg-bg-elevated/70 px-3 py-2 backdrop-blur;
+}
+
+.home-status-pill__dot {
+  @apply h-2.5 w-2.5 rounded-full;
+}
+
+.home-status-pill__dot--success,
+.home-signal-node__state--ready {
+  @apply bg-accent-success;
+}
+
+.home-status-pill__dot--info {
+  @apply bg-accent-info;
+}
+
+.home-status-pill__dot--secondary {
+  @apply bg-accent-secondary;
+}
+
+.home-status-pill__dot--primary {
+  @apply bg-accent-primary;
+}
+
+.home-status-pill__label {
+  @apply text-[11px] uppercase tracking-[0.14em] text-text-muted;
+}
+
+.home-status-pill__value {
+  @apply text-sm font-semibold text-text-primary;
+}
+
+.home-poster__actions {
+  @apply flex flex-wrap items-center gap-3;
+}
+
+.home-poster__visual {
+  @apply flex items-stretch;
+}
+
+.home-visual-panel {
+  @apply flex w-full flex-col gap-5 rounded-[1.75rem] border border-border-default/55 bg-bg-base/75 p-5 backdrop-blur-xl;
+
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 10%);
+}
+
+.home-visual-panel__header {
+  @apply flex items-start justify-between gap-4;
+}
+
+.home-visual-panel__title {
+  @apply mt-1 text-xl font-semibold tracking-tight text-text-primary;
+}
+
+.home-visual-panel__badge {
+  @apply rounded-full border border-accent-primary/25 bg-accent-primary/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-accent-primary;
+}
+
+.home-visual-panel__fabric {
+  position: relative;
+  overflow: hidden;
+  border-radius: 1.5rem;
+  min-height: 280px;
+  border: 1px solid rgb(var(--color-accent-primary-rgb) / 12%);
+  background:
+    linear-gradient(180deg, rgb(255 255 255 / 3%), transparent),
+    linear-gradient(135deg, rgb(var(--color-bg-elevated-rgb) / 88%), rgb(var(--color-bg-base-rgb) / 90%));
+}
+
+.home-visual-panel__grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgb(255 255 255 / 4%) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(255 255 255 / 4%) 1px, transparent 1px);
+  background-size: 30px 30px;
+}
+
+.home-visual-panel__signal-ring {
+  position: absolute;
+  inset: auto auto 1.25rem 1.5rem;
+  width: 220px;
+  height: 220px;
+  border-radius: 9999px;
+  border: 1px solid rgb(var(--color-accent-primary-rgb) / 24%);
+  box-shadow: 0 0 90px rgb(var(--color-accent-primary-rgb) / 14%);
+  animation: hero-pulse 9s ease-in-out infinite;
+}
+
+.home-visual-panel__signal-ring--secondary {
+  inset: 2.25rem 2rem auto auto;
+  width: 160px;
+  height: 160px;
+  border-color: rgb(var(--color-accent-secondary-rgb) / 22%);
+  box-shadow: 0 0 70px rgb(var(--color-accent-secondary-rgb) / 12%);
+  animation-delay: 1.4s;
+}
+
+.home-signal-list {
+  position: relative;
+  z-index: 1;
+
+  @apply flex h-full flex-col justify-center gap-3 p-5;
+}
+
+.home-signal-node {
+  @apply flex items-center justify-between gap-3 rounded-2xl border border-border-default/55 bg-bg-surface/70 px-4 py-3 backdrop-blur;
+
+  transform: translateZ(0);
+  transition: transform 220ms ease, border-color 220ms ease, background-color 220ms ease;
+}
+
+.home-signal-node:hover {
+  transform: translateX(4px);
+  border-color: rgb(var(--color-accent-primary-rgb) / 26%);
+  background-color: rgb(var(--color-bg-elevated-rgb) / 82%);
+}
+
+.home-signal-node__meta {
+  @apply flex items-center gap-3 text-sm font-medium text-text-primary;
+}
+
+.home-signal-node__status {
+  @apply flex items-center gap-3;
+}
+
+.home-signal-node__version {
+  @apply text-xs font-mono uppercase tracking-[0.12em] text-text-muted;
+}
+
+.home-signal-node__state {
+  @apply h-2.5 w-2.5 rounded-full bg-text-muted/40;
+}
+
+.home-signal-node__state--idle {
+  @apply bg-text-muted/40;
+}
+
+.home-signal-node__state--warning {
+  @apply bg-accent-warning;
+}
+
+.home-signal-node__state--danger {
+  @apply bg-accent-danger;
+}
+
+.home-usage-preview {
+  @apply flex items-end justify-between gap-4 rounded-[1.4rem] border border-border-default/55 px-4 py-4 backdrop-blur;
+
+  background-color: rgb(var(--color-bg-surface-rgb) / 72%);
+}
+
+.home-usage-preview__title {
+  @apply mt-1 text-base font-semibold text-text-primary;
+}
+
+.home-usage-preview__bars {
+  @apply flex min-w-[10rem] items-end gap-1.5;
+}
+
+.home-usage-preview__bar {
+  @apply w-3 rounded-full bg-gradient-to-t from-accent-primary/35 via-accent-primary/60 to-accent-info/80;
+
+  min-height: 14px;
 }
 
 .section-block {
@@ -512,104 +933,113 @@ const installedCliCount = computed(() => (
   @apply mt-1 text-xl font-semibold tracking-tight text-text-primary;
 }
 
-.hero-metrics {
-  @apply grid gap-3 md:grid-cols-3;
+.section-description {
+  @apply mt-2 max-w-2xl text-sm leading-6 text-text-secondary;
 }
 
-.hero-metric {
-  @apply flex items-center gap-3 rounded-2xl border border-border-default/60 px-4 py-3;
-
-  background-color: rgb(var(--color-bg-elevated-rgb) / 70%);
-  backdrop-filter: blur(14px);
+.command-strip {
+  @apply grid gap-3 lg:grid-cols-2;
 }
 
-.hero-metric__icon {
-  @apply flex h-10 w-10 items-center justify-center rounded-xl border border-border-default/40;
+.command-strip__item {
+  @apply block;
 }
 
-.hero-metric__icon--success {
-  @apply bg-accent-success/10 text-accent-success;
+.command-strip__slot {
+  @apply flex h-full items-center gap-4 rounded-[1.45rem] border border-border-default/55 px-4 py-4 backdrop-blur transition-all duration-200;
+
+  background-color: rgb(var(--color-bg-surface-rgb) / 72%);
 }
 
-.hero-metric__icon--info {
-  @apply bg-accent-info/10 text-accent-info;
+.command-strip__slot:hover {
+  border-color: rgb(var(--color-accent-primary-rgb) / 26%);
+  transform: translateY(-2px);
 }
 
-.hero-metric__icon--secondary {
-  @apply bg-accent-secondary/10 text-accent-secondary;
+.command-strip__copy {
+  @apply min-w-0 flex-1;
 }
 
-.hero-metric__dot {
-  @apply h-2.5 w-2.5 rounded-full;
+.command-strip__title {
+  @apply text-base font-semibold text-text-primary;
 }
 
-.hero-metric__dot--success {
-  @apply bg-accent-success;
+.command-strip__desc {
+  @apply mt-1 text-sm leading-6 text-text-secondary;
 }
 
-.hero-metric__dot--info {
-  @apply bg-accent-info;
+.command-strip__arrow {
+  @apply text-text-muted transition-transform duration-200 group-hover:translate-x-1 group-hover:text-accent-primary;
 }
 
-.hero-metric__body {
-  @apply min-w-0 font-mono;
+.platform-matrix {
+  @apply grid gap-4 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,0.9fr)];
 }
 
-.hero-metric__label {
-  @apply block text-[11px] uppercase tracking-[0.12em] text-text-muted;
+.platform-matrix__primary,
+.platform-matrix__secondary {
+  @apply flex flex-col gap-4;
 }
 
-.hero-metric__value {
-  @apply mt-1 block text-lg font-semibold tracking-tight text-text-primary;
-
-  font-variant-numeric: tabular-nums;
+.platform-feature,
+.platform-rail {
+  @apply block;
 }
 
-.quick-actions-grid {
-  @apply grid gap-4 md:grid-cols-2 xl:grid-cols-4;
+.platform-feature__shell,
+.platform-rail__shell {
+  @apply rounded-[1.6rem] border border-border-default/55 p-5 backdrop-blur transition-all duration-200;
+
+  background-color: rgb(var(--color-bg-surface-rgb) / 72%);
 }
 
-.quick-action-card {
-  @apply flex h-full flex-col items-start gap-4 p-5;
+.platform-feature__shell:hover,
+.platform-rail__shell:hover {
+  border-color: rgb(var(--color-accent-primary-rgb) / 26%);
+  transform: translateY(-2px);
 }
 
-.quick-action-icon {
-  @apply flex h-11 w-11 items-center justify-center rounded-xl border border-border-default/40;
+.platform-feature__header,
+.platform-feature__footer,
+.platform-rail__shell,
+.platform-rail__status {
+  @apply flex items-center justify-between gap-4;
 }
 
-.quick-action-copy {
-  @apply flex-1;
+.platform-feature__brand,
+.platform-rail__meta {
+  @apply flex items-start gap-3;
 }
 
-.quick-action-title {
-  @apply mb-1 font-semibold text-text-primary;
+.platform-feature__icon {
+  @apply flex h-12 w-12 items-center justify-center rounded-2xl border border-border-default/55 bg-bg-elevated/80;
 }
 
-.quick-action-desc {
-  @apply text-sm leading-relaxed text-text-secondary;
+.platform-feature__eyebrow {
+  @apply text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted;
 }
 
-.quick-action-arrow {
-  @apply mt-auto text-text-muted transition-all duration-200 group-hover:translate-x-1 group-hover:text-accent-primary;
+.platform-feature__title,
+.platform-rail__title {
+  @apply mt-1 text-lg font-semibold tracking-tight text-text-primary;
 }
 
-.modules-grid {
-  @apply grid gap-4 md:grid-cols-2 xl:grid-cols-3;
+.platform-feature__desc,
+.platform-rail__desc {
+  @apply mt-4 text-sm leading-7 text-text-secondary;
 }
 
-.module-card {
-  @apply flex h-full flex-col gap-5 p-5;
+.platform-feature__state {
+  @apply text-xs font-semibold uppercase tracking-[0.14em] text-accent-primary;
 }
 
-.module-card__header {
-  @apply flex items-start justify-between gap-3;
+.platform-feature__arrow,
+.platform-rail__arrow {
+  @apply text-text-muted transition-transform duration-200 group-hover:translate-x-1 group-hover:text-accent-primary;
 }
 
-.module-icon-shell {
-  @apply flex h-11 w-11 items-center justify-center rounded-xl border border-border-default/40;
-
-  background-color: rgb(var(--color-bg-elevated-rgb) / 75%);
-  backdrop-filter: blur(12px);
+.platform-rail__meta {
+  @apply min-w-0 flex-1;
 }
 
 .module-version-badge {
@@ -628,18 +1058,6 @@ const installedCliCount = computed(() => (
 
 .module-version-badge--danger {
   @apply border-accent-danger/30 bg-accent-danger/10 text-accent-danger;
-}
-
-.module-copy {
-  @apply flex-1;
-}
-
-.module-title {
-  @apply mb-2 text-lg font-semibold text-text-primary transition-colors group-hover:text-accent-primary;
-}
-
-.module-desc {
-  @apply text-sm leading-relaxed text-text-secondary;
 }
 
 .usage-placeholder {
@@ -662,5 +1080,44 @@ const installedCliCount = computed(() => (
 
 .usage-placeholder__subtitle {
   @apply mt-1 text-xs text-text-muted;
+}
+
+@keyframes hero-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.45;
+  }
+
+  50% {
+    transform: scale(1.05);
+    opacity: 0.85;
+  }
+}
+
+@media (width >= 1024px) {
+  .home-poster {
+    grid-template-columns: minmax(0, 1.05fr) minmax(360px, 0.95fr);
+    padding: 2rem;
+  }
+}
+
+@media (width <= 767px) {
+  .home-poster {
+    border-radius: 1.5rem;
+    padding: 1.25rem;
+  }
+
+  .home-poster__title {
+    max-width: 12ch;
+  }
+
+  .home-visual-panel__fabric {
+    min-height: 240px;
+  }
+
+  .home-usage-preview {
+    @apply flex-col items-start;
+  }
 }
 </style>

@@ -101,6 +101,31 @@
     --state-loading: var(--color-info);
     --state-error: var(--color-danger);
     --animation-state: running;
+
+    /* --- Stage 页面语义层（亮色优先保证可读性） --- */
+    --color-stage-text-primary: rgb(var(--color-text-primary-rgb) / 96%);
+    --color-stage-text-secondary: rgb(var(--color-text-secondary-rgb) / 94%);
+    --color-stage-text-muted: rgb(var(--color-text-muted-rgb) / 88%);
+    --color-stage-text-quiet: rgb(var(--color-text-muted-rgb) / 72%);
+    --color-stage-surface-soft: rgb(var(--color-bg-surface-rgb) / 72%);
+    --color-stage-surface-medium: rgb(var(--color-bg-elevated-rgb) / 82%);
+    --color-stage-surface-strong: rgb(var(--color-bg-elevated-rgb) / 90%);
+    --color-stage-border-soft: rgb(var(--color-border-default-rgb) / 52%);
+    --color-stage-border-medium: rgb(var(--color-border-strong-rgb) / 50%);
+    --color-stage-chip-neutral-bg: rgb(var(--color-bg-surface-rgb) / 78%);
+    --color-stage-chip-neutral-border: rgb(var(--color-border-default-rgb) / 62%);
+    --color-stage-chip-neutral-text: rgb(var(--color-text-secondary-rgb) / 94%);
+    --stage-bg-grid-opacity: 3%;
+    --stage-bg-grid-opacity-dark: 5%;
+    --stage-bg-noise-opacity: 0.012;
+    --stage-bg-noise-opacity-dark: 0.028;
+    --stage-bg-mesh-primary-opacity: 11%;
+    --stage-bg-mesh-secondary-opacity: 8%;
+    --stage-bg-mesh-info-opacity: 7%;
+    --stage-bg-aurora-primary-opacity: 10%;
+    --stage-bg-aurora-secondary-opacity: 7%;
+    --stage-bg-orb-primary-opacity: 8%;
+    --stage-bg-orb-secondary-opacity: 6%;
 }
 
 /* ========== 暗色主题 ========== */
@@ -175,6 +200,31 @@
     --color-premium-pink-rgb: 35 28 54;
     --color-premium-blue: #191A31;
     --color-premium-blue-rgb: 25 26 49;
+
+    /* --- Stage 页面语义层（暗色维持高氛围） --- */
+    --color-stage-text-primary: rgb(var(--color-text-primary-rgb) / 98%);
+    --color-stage-text-secondary: rgb(var(--color-text-secondary-rgb) / 92%);
+    --color-stage-text-muted: rgb(var(--color-text-secondary-rgb) / 76%);
+    --color-stage-text-quiet: rgb(var(--color-text-muted-rgb) / 60%);
+    --color-stage-surface-soft: rgb(var(--color-bg-surface-rgb) / 46%);
+    --color-stage-surface-medium: rgb(var(--color-bg-elevated-rgb) / 58%);
+    --color-stage-surface-strong: rgb(var(--color-bg-elevated-rgb) / 72%);
+    --color-stage-border-soft: rgb(var(--color-border-default-rgb) / 42%);
+    --color-stage-border-medium: rgb(var(--color-border-strong-rgb) / 36%);
+    --color-stage-chip-neutral-bg: rgb(255 255 255 / 6%);
+    --color-stage-chip-neutral-border: rgb(255 255 255 / 12%);
+    --color-stage-chip-neutral-text: rgb(var(--color-text-secondary-rgb) / 92%);
+    --stage-bg-grid-opacity: 5%;
+    --stage-bg-grid-opacity-dark: 6%;
+    --stage-bg-noise-opacity: 0.028;
+    --stage-bg-noise-opacity-dark: 0.035;
+    --stage-bg-mesh-primary-opacity: 18%;
+    --stage-bg-mesh-secondary-opacity: 14%;
+    --stage-bg-mesh-info-opacity: 10%;
+    --stage-bg-aurora-primary-opacity: 16%;
+    --stage-bg-aurora-secondary-opacity: 12%;
+    --stage-bg-orb-primary-opacity: 16%;
+    --stage-bg-orb-secondary-opacity: 14%;
 }
 
 /* ========== 亮色主题覆盖 ========== */

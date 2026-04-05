@@ -1,5 +1,5 @@
 <template>
-  <div class="gemini-view">
+  <div class="gemini-view stage-page">
     <!-- Background Mesh -->
     <!-- Standard Animated Background -->
     <AnimatedBackground
@@ -293,7 +293,8 @@ import Button from '@/components/ui/Button.vue'
 }
 
 .gemini-brand__subtitle {
-  @apply mt-1 max-w-xl text-lg text-white/80;
+  color: var(--stage-text-secondary);
+  @apply mt-1 max-w-xl text-lg;
 }
 
 .gemini-home-button {
@@ -339,7 +340,8 @@ import Button from '@/components/ui/Button.vue'
 }
 
 .gemini-section-heading__title {
-  @apply text-lg font-bold uppercase text-white/50;
+  color: var(--stage-text-muted);
+  @apply text-lg font-bold uppercase;
 
   letter-spacing: 0.2em;
 }
@@ -391,11 +393,13 @@ import Button from '@/components/ui/Button.vue'
 }
 
 .gemini-module-card__title {
-  @apply mb-1 text-lg font-bold text-white transition-colors;
+  color: var(--stage-text-primary);
+  @apply mb-1 text-lg font-bold transition-colors;
 }
 
 .gemini-module-card__desc {
-  @apply mb-3 text-sm leading-relaxed text-white/80;
+  color: var(--stage-text-secondary);
+  @apply mb-3 text-sm leading-relaxed;
 }
 
 .gemini-module-card__badge {
@@ -461,7 +465,8 @@ import Button from '@/components/ui/Button.vue'
 }
 
 .gemini-info-card__title {
-  @apply text-lg font-bold text-white;
+  color: var(--stage-text-primary);
+  @apply text-lg font-bold;
 }
 
 .gemini-info-grid {
@@ -469,10 +474,9 @@ import Button from '@/components/ui/Button.vue'
 }
 
 .gemini-info-feature {
+  background: var(--stage-surface-soft);
+  border: 1px solid var(--stage-border-soft);
   @apply flex items-center gap-3 rounded-lg p-3;
-
-  background: rgb(255 255 255 / 5%);
-  border: 1px solid rgb(255 255 255 / 10%);
 }
 
 .gemini-info-dot {
@@ -483,6 +487,7 @@ import Button from '@/components/ui/Button.vue'
 }
 
 .gemini-info-feature__text {
-  @apply text-sm text-white/80;
+  color: var(--stage-text-secondary);
+  @apply text-sm;
 }
 </style>

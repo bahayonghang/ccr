@@ -1,5 +1,5 @@
 <template>
-  <div class="qoder-view">
+  <div class="qoder-view stage-page">
     <!-- 🎨 彩色背景装饰 -->
     <!-- Standard Animated Background -->
     <AnimatedBackground
@@ -262,6 +262,9 @@ import AnimatedBackground from '@/components/common/AnimatedBackground.vue'
 
 .qoder-home-link {
   @apply flex items-center gap-2 px-5 py-3 text-text-secondary transition-colors duration-300;
+
+  background: var(--stage-surface-medium);
+  border: 1px solid var(--stage-border-soft);
 }
 
 .qoder-home-link:hover {
@@ -313,12 +316,14 @@ import AnimatedBackground from '@/components/common/AnimatedBackground.vue'
 .qoder-feature-card {
   @apply h-full p-6 duration-300;
 
+  background: var(--stage-surface-medium);
+  border: 1px solid var(--stage-border-soft);
   transition-property: transform, box-shadow, border-color;
 }
 
 .qoder-feature-link:hover .qoder-feature-card {
   transform: translateY(-0.25rem);
-  border-color: rgb(255 255 255 / 30%);
+  border-color: var(--stage-border-medium);
 }
 
 .qoder-feature-card__content {
@@ -378,6 +383,8 @@ import AnimatedBackground from '@/components/common/AnimatedBackground.vue'
 }
 
 .qoder-info-card {
+  background: var(--stage-surface-strong);
+  border: 1px solid var(--stage-border-medium);
   @apply p-6;
 }
 

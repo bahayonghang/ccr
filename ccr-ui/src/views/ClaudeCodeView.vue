@@ -1,5 +1,5 @@
 <template>
-  <div class="claude-view">
+  <div class="claude-view stage-page">
     <!-- Enhanced Animated Background -->
     <AnimatedBackground
       contained
@@ -202,7 +202,7 @@
           <SIcon
             name="Boxes"
             size="w-5 h-5"
-            class="text-white/50"
+            class="claude-section-heading__icon"
           />
           <h2 class="claude-section-heading__title">
             {{ $t('claudeCode.modules.extensionsTitle') }}
@@ -551,7 +551,8 @@ const copyCommand = (cmd: string) => {
 }
 
 .claude-header__subtitle {
-  @apply text-lg text-white/80;
+  color: var(--stage-text-secondary);
+  @apply text-lg;
 }
 
 .claude-tag-row {
@@ -621,7 +622,8 @@ const copyCommand = (cmd: string) => {
 }
 
 .claude-feature-card__title {
-  @apply text-xl font-bold text-white transition-colors;
+  color: var(--stage-text-primary);
+  @apply text-xl font-bold transition-colors;
 }
 
 .claude-feature-card__title--primary {
@@ -647,7 +649,8 @@ const copyCommand = (cmd: string) => {
 }
 
 .claude-feature-card__desc {
-  @apply leading-relaxed text-white/80;
+  color: var(--stage-text-secondary);
+  @apply leading-relaxed;
 }
 
 .claude-market-card {
@@ -660,11 +663,11 @@ const copyCommand = (cmd: string) => {
   top: 0;
   right: 0;
   filter: blur(100px);
-  background: rgb(var(--color-warning-rgb) / 5%);
+  background: rgb(var(--color-warning-rgb) / 4%);
 }
 
 .group:hover .claude-market-card__glow {
-  background: rgb(var(--color-warning-rgb) / 10%);
+  background: rgb(var(--color-warning-rgb) / 7%);
 }
 
 .claude-market-card__content {
@@ -676,14 +679,16 @@ const copyCommand = (cmd: string) => {
 }
 
 .claude-market-card__icon {
-  @apply flex h-16 w-16 items-center justify-center rounded-2xl text-white shadow-lg transition-transform duration-300 group-hover:scale-110;
+  color: var(--color-text-inverted);
+  @apply flex h-16 w-16 items-center justify-center rounded-2xl shadow-lg transition-transform duration-300 group-hover:scale-110;
 
   transform: rotate(3deg);
   background: linear-gradient(135deg, #fb923c, #ef4444);
 }
 
 .claude-market-card__title {
-  @apply mb-2 flex items-center gap-3 text-2xl font-bold text-white;
+  color: var(--stage-text-primary);
+  @apply mb-2 flex items-center gap-3 text-2xl font-bold;
 }
 
 .claude-market-card__badge {
@@ -691,7 +696,8 @@ const copyCommand = (cmd: string) => {
 }
 
 .claude-market-card__desc {
-  @apply max-w-xl text-lg text-white/80;
+  color: var(--stage-text-secondary);
+  @apply max-w-xl text-lg;
 }
 
 .claude-market-card__cta {
@@ -703,7 +709,12 @@ const copyCommand = (cmd: string) => {
 }
 
 .claude-section-heading__title {
-  @apply text-sm font-bold uppercase tracking-widest text-white/50;
+  color: var(--stage-text-muted);
+  @apply text-sm font-bold uppercase tracking-widest;
+}
+
+.claude-section-heading__icon {
+  color: var(--stage-text-muted);
 }
 
 .claude-section-heading__rule {
@@ -751,13 +762,17 @@ const copyCommand = (cmd: string) => {
 }
 
 .claude-extension-card__eyebrow {
-  @apply rounded px-2 py-1 font-bold uppercase text-white/50;
+  color: var(--stage-text-muted);
+  background: var(--stage-chip-neutral-bg);
+  border: 1px solid var(--stage-chip-neutral-border);
+  @apply rounded px-2 py-1 font-bold uppercase;
 
   font-size: 10px;
 }
 
 .claude-extension-card__title {
-  @apply mb-1 font-bold text-white transition-colors;
+  color: var(--stage-text-primary);
+  @apply mb-1 font-bold transition-colors;
 }
 
 .claude-extension-card__title--cyan {
@@ -785,7 +800,8 @@ const copyCommand = (cmd: string) => {
 }
 
 .claude-extension-card__desc {
-  @apply line-clamp-2 text-xs text-white/50;
+  color: var(--stage-text-muted);
+  @apply line-clamp-2 text-xs;
 }
 
 .claude-bottom-grid {
@@ -797,7 +813,8 @@ const copyCommand = (cmd: string) => {
 }
 
 .claude-panel__title {
-  @apply mb-4 flex items-center gap-2 text-lg font-bold text-white;
+  color: var(--stage-text-primary);
+  @apply mb-4 flex items-center gap-2 text-lg font-bold;
 }
 
 .claude-stack {
@@ -805,19 +822,26 @@ const copyCommand = (cmd: string) => {
 }
 
 .claude-command-row {
-  @apply flex cursor-copy items-center justify-between rounded-xl border border-white/5 bg-white/5 p-3 transition-colors hover:border-accent-primary/20;
+  background: var(--stage-surface-soft);
+  border: 1px solid var(--stage-border-soft);
+  @apply flex cursor-copy items-center justify-between rounded-xl p-3 transition-colors hover:border-accent-primary/20;
 }
 
 .claude-command-row__label {
-  @apply text-sm font-medium text-white/80;
+  color: var(--stage-text-secondary);
+  @apply text-sm font-medium;
 }
 
 .claude-command-row__code {
-  @apply rounded border border-white/5 px-2 py-1 text-xs font-mono text-white/50 transition-colors group-hover:text-accent-primary;
+  color: var(--stage-text-muted);
+  background: var(--stage-chip-neutral-bg);
+  border: 1px solid var(--stage-chip-neutral-border);
+  @apply rounded px-2 py-1 text-xs font-mono transition-colors group-hover:text-accent-primary;
 }
 
 .claude-command-row__copy {
-  @apply text-white/50 opacity-0 transition-opacity group-hover:opacity-100;
+  color: var(--stage-text-muted);
+  @apply opacity-0 transition-opacity group-hover:opacity-100;
 }
 
 .claude-resource-grid {
@@ -825,19 +849,24 @@ const copyCommand = (cmd: string) => {
 }
 
 .claude-resource-link {
-  @apply flex items-center gap-3 rounded-xl border border-white/5 bg-white/5 p-3 transition-colors hover:bg-white/5;
+  background: var(--stage-surface-soft);
+  border: 1px solid var(--stage-border-soft);
+  @apply flex items-center gap-3 rounded-xl p-3 transition-colors;
 }
 
 .claude-resource-link__icon {
-  @apply text-white/50 transition-colors group-hover:text-accent-secondary;
+  color: var(--stage-text-muted);
+  @apply transition-colors group-hover:text-accent-secondary;
 }
 
 .claude-resource-link__label {
-  @apply text-sm font-medium text-white/80 transition-colors group-hover:text-white;
+  color: var(--stage-text-secondary);
+  @apply text-sm font-medium transition-colors;
 }
 
 .claude-resource-link__external {
-  @apply ml-auto text-white/50 opacity-0 group-hover:opacity-100;
+  color: var(--stage-text-muted);
+  @apply ml-auto opacity-0 group-hover:opacity-100;
 }
 
 .claude-tip-card {
@@ -861,6 +890,7 @@ const copyCommand = (cmd: string) => {
 }
 
 .claude-tip-card__list {
-  @apply list-inside list-disc space-y-1 text-xs text-white/80 opacity-80;
+  color: var(--stage-text-secondary);
+  @apply list-inside list-disc space-y-1 text-xs;
 }
 </style>

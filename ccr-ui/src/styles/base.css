@@ -216,6 +216,10 @@
         color: var(--color-text-primary);
     }
 
+    .stage-page {
+        color: var(--stage-text-primary);
+    }
+
     /* 排版工具类 */
     .font-sans {
         font-family: var(--font-sans);

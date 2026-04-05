@@ -1,5 +1,5 @@
 <template>
-  <div class="droid-view">
+  <div class="droid-view stage-page">
     <AnimatedBackground
       contained
       variant="orbs"
@@ -336,8 +336,8 @@ import AnimatedBackground from '@/components/common/AnimatedBackground.vue'
 .droid-home-link {
   @apply inline-flex min-h-[44px] items-center gap-2 self-start rounded-2xl border px-5 py-3 text-text-secondary transition-colors;
 
-  border-color: rgb(var(--color-border-default-rgb) / 60%);
-  background: rgb(var(--color-bg-surface-rgb) / 80%);
+  border-color: var(--stage-border-medium);
+  background: var(--stage-surface-medium);
 }
 
 .droid-home-link:hover {
@@ -390,8 +390,8 @@ import AnimatedBackground from '@/components/common/AnimatedBackground.vue'
 .droid-feature-card {
   @apply h-full rounded-3xl border p-6 shadow-sm duration-200;
 
-  border-color: rgb(var(--color-border-default-rgb) / 50%);
-  background: rgb(var(--color-bg-surface-rgb) / 75%);
+  border-color: var(--stage-border-medium);
+  background: var(--stage-surface-medium);
   transition-property: border-color, transform, box-shadow;
 }
 
@@ -478,8 +478,8 @@ import AnimatedBackground from '@/components/common/AnimatedBackground.vue'
 .droid-info-card {
   @apply rounded-3xl border p-6 shadow-sm;
 
-  border-color: rgb(var(--color-border-default-rgb) / 50%);
-  background: rgb(var(--color-bg-surface-rgb) / 80%);
+  border-color: var(--stage-border-medium);
+  background: var(--stage-surface-strong);
 }
 
 .droid-info-card__content {

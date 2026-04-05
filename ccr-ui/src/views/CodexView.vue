@@ -1,5 +1,5 @@
 <template>
-  <div class="codex-view">
+  <div class="codex-view stage-page">
     <div class="codex-shell">
       <section class="codex-grid codex-grid--hero">
         <Card
@@ -186,16 +186,16 @@
                 </div>
                 <div class="min-w-0 flex-1">
                   <div class="flex items-center justify-between gap-3">
-                    <h3 class="text-sm font-semibold text-white">
+                    <h3 class="codex-action-title">
                       {{ action.title }}
                     </h3>
                     <SIcon
                       name="ArrowRight"
                       size="w-4 h-4"
-                      class="text-white/35 shrink-0"
+                      class="codex-action-arrow shrink-0"
                     />
                   </div>
-                  <p class="mt-1 text-sm leading-6 text-white/65">
+                  <p class="codex-action-description">
                     {{ action.description }}
                   </p>
                 </div>
@@ -388,12 +388,12 @@
 
           <div
             v-if="error && !overview"
-            class="rounded-2xl border border-rose-500/20 bg-rose-500/10 p-4 text-sm text-rose-200"
+            class="codex-alert codex-alert--danger"
           >
-            <p class="font-medium mb-2">
+            <p class="mb-2 font-medium">
               仪表盘概览加载失败
             </p>
-            <p class="text-rose-100/80 break-words">
+            <p class="break-words">
               {{ error }}
             </p>
           </div>
@@ -496,12 +496,12 @@
 
             <div
               v-if="usageError && !usageSummary"
-              class="rounded-2xl border border-amber-500/20 bg-amber-500/10 p-4 text-sm text-amber-100"
+              class="codex-alert codex-alert--warning"
             >
-              <p class="font-medium mb-1">
+              <p class="mb-1 font-medium">
                 用量摘要加载失败
               </p>
-              <p class="break-words text-amber-50/80">
+              <p class="break-words">
                 {{ usageError }}
               </p>
             </div>
@@ -547,7 +547,7 @@ const toneClassMap = {
   success: 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300',
   warning: 'bg-amber-500/10 border-amber-500/20 text-amber-300',
   danger: 'bg-rose-500/10 border-rose-500/20 text-rose-300',
-  neutral: 'bg-white/5 border-white/10 text-white/75',
+  neutral: 'codex-tone-icon--neutral',
 } as const
 
 onMounted(() => {
@@ -619,13 +619,15 @@ onActivated(() => {
 }
 
 .codex-hero-title {
-  @apply text-3xl font-bold tracking-tight text-white;
+  color: var(--stage-text-primary);
+  @apply text-3xl font-bold tracking-tight;
 
   font-family: MapleBright, 'Microsoft YaHei UI', system-ui, sans-serif;
 }
 
 .codex-hero-subtitle {
-  @apply text-sm text-white/70;
+  color: var(--stage-text-secondary);
+  @apply text-sm;
 }
 
 .codex-pill-row {
@@ -633,7 +635,8 @@ onActivated(() => {
 }
 
 .codex-pill {
-  @apply rounded-full border px-3 py-1 text-xs font-semibold uppercase text-white/75;
+  color: var(--stage-chip-neutral-text);
+  @apply rounded-full border px-3 py-1 text-xs font-semibold uppercase;
 
   letter-spacing: 0.12em;
 }
@@ -643,7 +646,9 @@ onActivated(() => {
 }
 
 .codex-pill--neutral {
-  @apply border-white/10 bg-white/5 text-white/75;
+  background: var(--stage-chip-neutral-bg);
+  border-color: var(--stage-chip-neutral-border);
+  color: var(--stage-chip-neutral-text);
 }
 
 .codex-pill--emerald {
@@ -659,17 +664,21 @@ onActivated(() => {
 }
 
 .codex-stat-card {
-  @apply rounded-2xl border border-white/10 bg-white/5 px-4 py-3;
+  background: var(--stage-surface-soft);
+  border: 1px solid var(--stage-border-soft);
+  @apply rounded-2xl px-4 py-3;
 }
 
 .codex-stat-label {
-  @apply mb-1 text-xs uppercase text-white/45;
+  color: var(--stage-text-quiet);
+  @apply mb-1 text-xs uppercase;
 
   letter-spacing: 0.2em;
 }
 
 .codex-stat-value {
-  @apply text-lg font-semibold text-white;
+  color: var(--stage-text-primary);
+  @apply text-lg font-semibold;
 }
 
 .codex-panel {
@@ -685,15 +694,18 @@ onActivated(() => {
 }
 
 .codex-panel-title {
-  @apply text-base font-semibold text-white;
+  color: var(--stage-text-primary);
+  @apply text-base font-semibold;
 }
 
 .codex-panel-subtitle {
-  @apply text-xs text-white/55;
+  color: var(--stage-text-muted);
+  @apply text-xs;
 }
 
 .codex-panel-description {
-  @apply text-sm text-white/55;
+  color: var(--stage-text-muted);
+  @apply text-sm;
 }
 
 .codex-panel-icon {
@@ -713,11 +725,33 @@ onActivated(() => {
 }
 
 .codex-action-card {
-  @apply block rounded-2xl border border-white/10 bg-white/5 p-4 transition-all duration-200 hover:border-pink-500/30 hover:bg-white/10;
+  background: var(--stage-surface-soft);
+  border: 1px solid var(--stage-border-soft);
+  @apply block rounded-2xl p-4 transition-all duration-200 hover:border-pink-500/30;
 }
 
 .codex-tone-icon {
   @apply mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border;
+}
+
+.codex-action-title {
+  color: var(--stage-text-primary);
+  @apply text-sm font-semibold;
+}
+
+.codex-action-arrow {
+  color: var(--stage-text-quiet);
+}
+
+.codex-action-description {
+  color: var(--stage-text-secondary);
+  @apply mt-1 text-sm leading-6;
+}
+
+.codex-tone-icon--neutral {
+  background: var(--stage-chip-neutral-bg);
+  border-color: var(--stage-chip-neutral-border);
+  color: var(--stage-chip-neutral-text);
 }
 
 .codex-tone-icon--large {
@@ -725,28 +759,33 @@ onActivated(() => {
 }
 
 .codex-health-card {
-  @apply h-full border border-white/10 p-4;
+  background: var(--stage-surface-medium);
+  border: 1px solid var(--stage-border-soft);
+  @apply h-full p-4;
 }
 
 .codex-health-eyebrow {
-  @apply text-white/35;
+  color: var(--stage-text-quiet);
 
   font-size: 11px;
   letter-spacing: 0.18em;
 }
 
 .codex-health-label {
-  @apply mt-4 text-xs uppercase text-white/45;
+  color: var(--stage-text-quiet);
+  @apply mt-4 text-xs uppercase;
 
   letter-spacing: 0.2em;
 }
 
 .codex-health-value {
-  @apply mt-1 break-words text-lg font-semibold text-white;
+  color: var(--stage-text-primary);
+  @apply mt-1 break-words text-lg font-semibold;
 }
 
 .codex-health-detail {
-  @apply mt-2 text-sm leading-6 text-white/60;
+  color: var(--stage-text-secondary);
+  @apply mt-2 text-sm leading-6;
 }
 
 .codex-section-header {
@@ -758,7 +797,9 @@ onActivated(() => {
 }
 
 .codex-link-card {
-  @apply h-full border border-white/10 p-4;
+  background: var(--stage-surface-medium);
+  border: 1px solid var(--stage-border-soft);
+  @apply h-full p-4;
 }
 
 .codex-link-card__header {
@@ -766,21 +807,27 @@ onActivated(() => {
 }
 
 .codex-link-badge {
-  @apply rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-white/55;
+  background: var(--stage-chip-neutral-bg);
+  border: 1px solid var(--stage-chip-neutral-border);
+  color: var(--stage-text-muted);
+  @apply rounded-full px-2.5 py-1;
 
   font-size: 11px;
 }
 
 .codex-link-title {
-  @apply text-sm font-semibold text-white transition-colors group-hover:text-pink-200;
+  color: var(--stage-text-primary);
+  @apply text-sm font-semibold transition-colors group-hover:text-pink-200;
 }
 
 .codex-link-description {
-  @apply mt-2 text-sm leading-6 text-white/60;
+  color: var(--stage-text-secondary);
+  @apply mt-2 text-sm leading-6;
 }
 
 .codex-skeleton {
-  @apply h-20 animate-pulse rounded-2xl bg-white/5;
+  background: var(--stage-surface-soft);
+  @apply h-20 animate-pulse rounded-2xl;
 }
 
 .codex-skeleton--panel {
@@ -800,25 +847,30 @@ onActivated(() => {
 }
 
 .codex-summary-card {
-  @apply rounded-2xl border border-white/10 bg-white/5 p-4;
+  background: var(--stage-surface-soft);
+  border: 1px solid var(--stage-border-soft);
+  @apply rounded-2xl p-4;
 }
 
 .codex-summary-label {
-  @apply mb-1 text-xs uppercase text-white/45;
+  color: var(--stage-text-quiet);
+  @apply mb-1 text-xs uppercase;
 
   letter-spacing: 0.2em;
 }
 
 .codex-summary-value {
-  @apply text-lg font-semibold text-white;
+  color: var(--stage-text-primary);
+  @apply text-lg font-semibold;
 }
 
 .codex-summary-description {
-  @apply mt-1 text-sm leading-6 text-white/60;
+  color: var(--stage-text-secondary);
+  @apply mt-1 text-sm leading-6;
 }
 
 .codex-summary-description--compact {
-  @apply text-white/70;
+  color: var(--stage-text-secondary);
 }
 
 .codex-inventory-grid {
@@ -826,10 +878,41 @@ onActivated(() => {
 }
 
 .codex-inventory-key {
-  @apply text-white/40;
+  color: var(--stage-text-quiet);
 }
 
 .codex-inventory-value {
-  @apply font-semibold text-white;
+  color: var(--stage-text-primary);
+  @apply font-semibold;
+}
+
+.codex-alert {
+  @apply rounded-2xl p-4 text-sm;
+}
+
+.codex-alert--danger {
+  color: rgb(136 33 57 / 96%);
+  background: rgb(255 231 239 / 76%);
+  border: 1px solid rgb(212 111 136 / 28%);
+}
+
+.codex-alert--warning {
+  color: rgb(126 78 22 / 96%);
+  background: rgb(255 243 218 / 78%);
+  border: 1px solid rgb(214 161 67 / 30%);
+}
+
+[data-theme='dark'] .codex-alert--danger,
+:root[class~='dark'] .codex-alert--danger {
+  color: rgb(255 225 233 / 92%);
+  background: rgb(120 27 56 / 22%);
+  border-color: rgb(234 143 170 / 28%);
+}
+
+[data-theme='dark'] .codex-alert--warning,
+:root[class~='dark'] .codex-alert--warning {
+  color: rgb(255 242 213 / 90%);
+  background: rgb(131 90 19 / 22%);
+  border-color: rgb(225 180 91 / 28%);
 }
 </style>

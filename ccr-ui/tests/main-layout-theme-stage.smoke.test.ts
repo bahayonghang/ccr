@@ -12,6 +12,12 @@ vi.mock('vue', async () => {
         return () => actual.h('div', { 'data-async-stub': 'true' })
       },
     }),
+    Suspense: actual.defineComponent({
+      name: 'SuspenseStub',
+      setup(_props, { slots }) {
+        return () => actual.h('div', { 'data-suspense-stub': 'true' }, slots.default?.())
+      },
+    }),
   }
 })
 

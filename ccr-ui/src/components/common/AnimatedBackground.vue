@@ -106,8 +106,8 @@ const effectiveVariant = computed<BackgroundVariant>(() => {
 
 const backgroundLayerClass = computed(() => (
   props.contained
-    ? 'absolute inset-0 overflow-hidden pointer-events-none -z-10 transition-colors duration-500'
-    : 'fixed inset-0 overflow-hidden pointer-events-none -z-10 transition-colors duration-500'
+    ? 'background-layer background-layer--contained absolute inset-0 overflow-hidden pointer-events-none -z-10 transition-colors duration-500'
+    : 'background-layer fixed inset-0 overflow-hidden pointer-events-none -z-10 transition-colors duration-500'
 ))
 
 // Spotlight color class mapping
@@ -240,6 +240,18 @@ const spotlightColorClass = computed(() => {
   mask-image: radial-gradient(ellipse 120% 140% at 50% 30%, #000 20%, transparent 85%);
 }
 
+.background-layer--contained .cyber-grid {
+  background-image:
+    linear-gradient(to right, rgb(var(--color-accent-primary-rgb) / var(--stage-bg-grid-opacity)) 1px, transparent 1px),
+    linear-gradient(to bottom, rgb(var(--color-accent-primary-rgb) / var(--stage-bg-grid-opacity)) 1px, transparent 1px);
+}
+
+[data-theme="dark"] .background-layer--contained .cyber-grid {
+  background-image:
+    linear-gradient(to right, rgb(var(--color-accent-primary-rgb) / var(--stage-bg-grid-opacity-dark)) 1px, transparent 1px),
+    linear-gradient(to bottom, rgb(var(--color-accent-primary-rgb) / var(--stage-bg-grid-opacity-dark)) 1px, transparent 1px);
+}
+
 .mesh-glow--primary-top {
   background: radial-gradient(
     circle at 50% 0%,
@@ -260,6 +272,30 @@ const spotlightColorClass = computed(() => {
   background: radial-gradient(
     circle at 50% 50%,
     rgb(var(--color-info-rgb) / 10%),
+    transparent 56%
+  );
+}
+
+.background-layer--contained .mesh-glow--primary-top {
+  background: radial-gradient(
+    circle at 50% 0%,
+    rgb(var(--color-accent-primary-rgb) / var(--stage-bg-mesh-primary-opacity)),
+    transparent 46%
+  );
+}
+
+.background-layer--contained .mesh-glow--secondary-bottom {
+  background: radial-gradient(
+    circle at 100% 100%,
+    rgb(var(--color-accent-secondary-rgb) / var(--stage-bg-mesh-secondary-opacity)),
+    transparent 46%
+  );
+}
+
+.background-layer--contained .mesh-glow--info-center {
+  background: radial-gradient(
+    circle at 50% 50%,
+    rgb(var(--color-info-rgb) / var(--stage-bg-mesh-info-opacity)),
     transparent 56%
   );
 }
@@ -309,6 +345,14 @@ const spotlightColorClass = computed(() => {
   opacity: 0.035;
 }
 
+.background-layer--contained .noise-overlay {
+  opacity: var(--stage-bg-noise-opacity);
+}
+
+[data-theme="dark"] .background-layer--contained .noise-overlay {
+  opacity: var(--stage-bg-noise-opacity-dark);
+}
+
 /* ========== Aurora Waves ========== */
 .aurora-wave {
   position: absolute;
@@ -330,6 +374,14 @@ const spotlightColorClass = computed(() => {
   background: linear-gradient(180deg, rgb(var(--color-accent-secondary-rgb) / 12%) 0%, transparent 100%);
   animation-delay: 2s;
   top: -10%;
+}
+
+.background-layer--contained .aurora-wave-1 {
+  background: linear-gradient(180deg, rgb(var(--color-accent-primary-rgb) / var(--stage-bg-aurora-primary-opacity)) 0%, transparent 100%);
+}
+
+.background-layer--contained .aurora-wave-2 {
+  background: linear-gradient(180deg, rgb(var(--color-accent-secondary-rgb) / var(--stage-bg-aurora-secondary-opacity)) 0%, transparent 100%);
 }
 
 /* ========== Mesh Gradient ========== */
@@ -375,6 +427,14 @@ const spotlightColorClass = computed(() => {
   background: rgb(var(--color-accent-secondary-rgb) / 10%);
   animation: orb-float-2 28s ease-in-out infinite;
   animation-play-state: var(--animation-state);
+}
+
+.background-layer--contained .orb-1 {
+  background: rgb(var(--color-accent-primary-rgb) / var(--stage-bg-orb-primary-opacity));
+}
+
+.background-layer--contained .orb-2 {
+  background: rgb(var(--color-accent-secondary-rgb) / var(--stage-bg-orb-secondary-opacity));
 }
 
 [data-theme="dark"] .orb-1 {

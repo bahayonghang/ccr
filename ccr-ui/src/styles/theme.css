@@ -53,6 +53,18 @@
     --glass-bg: var(--glass-bg-medium);
     --glass-bg-heavy: var(--glass-bg-strong);
     --glass-border: var(--glass-border-medium);
+    --stage-text-primary: var(--color-stage-text-primary);
+    --stage-text-secondary: var(--color-stage-text-secondary);
+    --stage-text-muted: var(--color-stage-text-muted);
+    --stage-text-quiet: var(--color-stage-text-quiet);
+    --stage-surface-soft: var(--color-stage-surface-soft);
+    --stage-surface-medium: var(--color-stage-surface-medium);
+    --stage-surface-strong: var(--color-stage-surface-strong);
+    --stage-border-soft: var(--color-stage-border-soft);
+    --stage-border-medium: var(--color-stage-border-medium);
+    --stage-chip-neutral-bg: var(--color-stage-chip-neutral-bg);
+    --stage-chip-neutral-border: var(--color-stage-chip-neutral-border);
+    --stage-chip-neutral-text: var(--color-stage-chip-neutral-text);
     --shadow-small: var(--shadow-sm);
     --shadow-medium: var(--shadow-md);
     --gradient-secondary: linear-gradient(
