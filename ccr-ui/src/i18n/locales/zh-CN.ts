@@ -695,6 +695,7 @@ export default {
     emptyDesc: '创建第一个 Claude profile，写入 ~/.ccr/platforms/claude/profiles.toml',
     createProfile: '创建 Profile',
     currentBadge: '当前',
+    currentDisabled: '当前但已禁用',
     editTooltip: '编辑',
     deleteTooltip: '删除',
     applyProfile: '应用此 Profile',

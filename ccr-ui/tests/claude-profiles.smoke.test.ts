@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { createClaudeProfileSections, filterClaudeProfiles, getClaudeProfileProviderKey } from '@/utils/claudeProfiles'
+import {
+  createClaudeProfileSections,
+  filterClaudeProfiles,
+  getClaudeProfileProviderKey,
+  normalizeClaudeProfilesState,
+} from '@/utils/claudeProfiles'
 import type { ClaudeProfile } from '@/types'
 
 const sampleProfiles: ClaudeProfile[] = [
@@ -94,5 +99,21 @@ describe('claude profiles utils', () => {
 
   it('returns an empty result when the query does not match any searchable field', () => {
     expect(filterClaudeProfiles(sampleProfiles, 'no-such-profile')).toEqual([])
+  })
+
+  it('normalizes mismatched current profile sources into one canonical current profile', () => {
+    const normalized = normalizeClaudeProfilesState(sampleProfiles, 'anthropic-a')
+
+    expect(normalized.currentProfile).toBe('anthropic-a')
+    expect(normalized.profiles.find(profile => profile.name === 'anthropic-a')?.is_current).toBe(true)
+    expect(normalized.profiles.find(profile => profile.name === 'zeta-current')?.is_current).toBe(false)
+    expect(normalized.warnings).not.toHaveLength(0)
+  })
+
+  it('falls back to the row-level current marker when current_profile is missing', () => {
+    const normalized = normalizeClaudeProfilesState(sampleProfiles, null)
+
+    expect(normalized.currentProfile).toBe('zeta-current')
+    expect(normalized.profiles.filter(profile => profile.is_current).map(profile => profile.name)).toEqual(['zeta-current'])
   })
 })

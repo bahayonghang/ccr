@@ -78,12 +78,14 @@
                 :style="{ backgroundColor: `rgb(var(${providerColor.rgbVar}))` }"
               />
             </span>
-            {{ $t('claudeProfiles.currentlyActive') }}
+            {{ currentStatusLabel }}
           </span>
           <button
             v-else
             type="button"
+            :disabled="profile.enabled === false"
             class="inline-flex min-h-[40px] items-center justify-center gap-2 rounded-2xl px-4 py-2 text-sm font-medium transition-all duration-200 hover:shadow-lg active:scale-[0.97] focus:outline-none focus:ring-2 focus:ring-offset-1"
+            :class="profile.enabled === false ? 'cursor-not-allowed opacity-55 hover:shadow-none active:scale-100' : ''"
             :style="{
               background: `linear-gradient(to bottom, rgb(var(${providerColor.rgbVar}) / 0.14), rgb(var(${providerColor.rgbVar}) / 0.08))`,
               borderColor: `rgb(var(${providerColor.rgbVar}) / 0.28)`,
@@ -209,18 +211,30 @@ const displayValue = (value?: string | null): string => value?.trim() || t('clau
 const providerLabelValue = computed(() => displayValue(props.profile.provider || t('claudeProfiles.providerUnset')))
 
 const stateLabel = computed(() => {
-  if (props.profile.is_current) return t('claudeProfiles.currentBadge')
+  if (props.profile.is_current) {
+    return props.profile.enabled === false
+      ? t('claudeProfiles.currentDisabled')
+      : t('claudeProfiles.currentBadge')
+  }
   return props.profile.enabled !== false ? t('claudeProfiles.enabledText') : t('claudeProfiles.disabledText')
 })
 
 const stateBadgeClass = computed(() => {
   if (props.profile.is_current) {
-    return 'border border-accent-secondary/24 bg-accent-secondary/10 text-accent-secondary'
+    return props.profile.enabled === false
+      ? 'border border-accent-danger/24 bg-accent-danger/10 text-accent-danger'
+      : 'border border-accent-secondary/24 bg-accent-secondary/10 text-accent-secondary'
   }
   return props.profile.enabled !== false
     ? 'bg-accent-success/10 text-accent-success'
     : 'bg-accent-danger/10 text-accent-danger'
 })
+
+const currentStatusLabel = computed(() => (
+  props.profile.enabled === false
+    ? t('claudeProfiles.currentDisabled')
+    : t('claudeProfiles.currentlyActive')
+))
 
 // 左侧状态条样式 (非 current 使用 class, current 使用 inline style)
 const statusBarClass = computed(() => {

@@ -56,7 +56,7 @@
                 color: `rgb(var(${sectionColors[section.providerKey]?.rgbVar || '--color-accent-secondary-rgb'}))`,
               }"
             >
-              {{ section.count }} {{ $t('claudeProfiles.profileUnit', section.count) }}
+              {{ getProviderNavCount(section.count) }}
             </span>
             <span
               v-if="section.isCurrentProvider"
@@ -67,7 +67,7 @@
             </span>
           </div>
           <p class="mt-1 text-sm text-text-muted">
-            {{ $t('claudeProfiles.providerSectionSummary', { count: section.count, enabled: section.enabledCount }) }}
+            {{ getProviderSectionSummary(section.count, section.enabledCount) }}
           </p>
         </div>
       </div>
@@ -91,6 +91,7 @@
 
 <script setup lang="ts">
 import { computed, type ComponentPublicInstance } from 'vue'
+import { useI18n } from 'vue-i18n'
 import ClaudeProfileRow from '@/components/claude/ClaudeProfileRow.vue'
 import SIcon from '@/components/ui/SIcon.vue'
 import type { ClaudeProfile } from '@/types'
@@ -112,6 +113,12 @@ defineEmits<{
   delete: [name: string]
   edit: [profile: ClaudeProfile]
 }>()
+
+const { t } = useI18n()
+
+const getProviderNavCount = (count: number) => t('claudeProfiles.providerNavCount', { count })
+const getProviderSectionSummary = (count: number, enabled: number) =>
+  t('claudeProfiles.providerSectionSummary', { count, enabled })
 
 // 默认色彩配置
 const defaultColor: ProviderColorConfig = {

@@ -60,7 +60,7 @@
         </template>
 
         <ClaudeProfilesOverview
-          :current-profile-name="currentProfileName"
+          :current-profile="currentProfileRecord"
           :enabled-profiles-count="enabledProfilesCount"
           :quick-switch-profiles="filteredProfiles"
           :total-profiles="profiles.length"
@@ -420,7 +420,7 @@ import type {
   ClaudeProfileFormSectionId,
 } from '@/types/claudeProfileEditor'
 import { getErrorMessage } from '@/types/api'
-import { createClaudeProfileSections, filterClaudeProfiles } from '@/utils/claudeProfiles'
+import { createClaudeProfileSections, filterClaudeProfiles, normalizeClaudeProfilesState } from '@/utils/claudeProfiles'
 import { logger } from '@/utils/logger'
 import { CLAUDE_PROFILE_FORM_SECTION_IDS } from '@/types/claudeProfileEditor'
 
@@ -429,7 +429,6 @@ const { t } = useI18n()
 const loading = ref(true)
 const loadError = ref<string | null>(null)
 const profiles = ref<ClaudeProfile[]>([])
-const currentProfile = ref<string | null>(null)
 const showForm = ref(false)
 const isEditing = ref(false)
 const isSaving = ref(false)
@@ -464,14 +463,14 @@ const form = reactive<ClaudeProfileEditorForm>({
 
 const trimmedSearchQuery = computed(() => searchQuery.value.trim())
 const hasActiveSearch = computed(() => trimmedSearchQuery.value.length > 0)
-const currentProfileName = computed(() => currentProfile.value ?? profiles.value.find(profile => profile.is_current)?.name ?? null)
+const currentProfileRecord = computed(() => profiles.value.find(profile => profile.is_current) ?? null)
 const enabledProfilesCount = computed(() => profiles.value.filter(profile => profile.enabled !== false).length)
 const providerSections = computed(() => createClaudeProfileSections(profiles.value, t('claudeProfiles.providerUnset')))
 const filteredProfiles = computed(() => filterClaudeProfiles(profiles.value, trimmedSearchQuery.value))
 const visibleProviderSections = computed(() => createClaudeProfileSections(filteredProfiles.value, t('claudeProfiles.providerUnset')))
 const showSearchRail = computed(() => !loading.value && !loadError.value && profiles.value.length > 0)
 const showNavigation = computed(() => !loading.value && !loadError.value && visibleProviderSections.value.length > 1)
-const isEditingCurrent = computed(() => isEditing.value && editingName.value === currentProfileName.value)
+const isEditingCurrent = computed(() => isEditing.value && editingName.value === currentProfileRecord.value?.name)
 
 const modalEyebrow = computed(() => (
   isEditing.value
@@ -754,12 +753,19 @@ const loadProfiles = async () => {
 
   try {
     const data = await listClaudeProfiles<ClaudeProfilesResponse>()
-    profiles.value = data.profiles || []
-    currentProfile.value = data.current_profile || null
+    const normalized = normalizeClaudeProfilesState(data.profiles || [], data.current_profile || null)
+
+    profiles.value = normalized.profiles
+
+    if (normalized.warnings.length > 0) {
+      logger.warn('Normalized inconsistent Claude profiles response', {
+        currentProfile: normalized.currentProfile,
+        warnings: normalized.warnings,
+      })
+    }
   } catch (error) {
     logger.error('Failed to load Claude profiles:', error)
     profiles.value = []
-    currentProfile.value = null
     loadError.value = getErrorMessage(error, t('claudeProfiles.loadFailed'))
   } finally {
     loading.value = false
@@ -805,6 +811,9 @@ const handleDelete = async (name: string) => {
 }
 
 const handleApply = async (name: string) => {
+  const targetProfile = profiles.value.find(profile => profile.name === name)
+  if (!targetProfile || targetProfile.is_current || targetProfile.enabled === false) return
+
   if (!confirm(t('claudeProfiles.confirmApply', { name }))) return
 
   try {

@@ -1,5 +1,7 @@
 import { createApp, defineComponent, h, nextTick } from 'vue'
+import { createI18n } from 'vue-i18n'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import zhCnMessages from '@/i18n/locales/zh-CN'
 
 const apiMocks = vi.hoisted(() => ({
   listClaudeProfiles: vi.fn(),
@@ -15,12 +17,6 @@ vi.mock('@/api', () => ({
   updateClaudeProfile: apiMocks.updateClaudeProfile,
   deleteClaudeProfile: apiMocks.deleteClaudeProfile,
   applyClaudeProfile: apiMocks.applyClaudeProfile,
-}))
-
-vi.mock('vue-i18n', () => ({
-  useI18n: () => ({
-    t: (key: string) => key,
-  }),
 }))
 
 vi.mock('vue-router', () => ({
@@ -112,8 +108,9 @@ const flushPromises = async () => {
 }
 
 import ClaudeCodeProfilesView from '@/views/ClaudeCodeProfilesView.vue'
+import type { ClaudeProfile } from '@/types'
 
-const sampleProfiles = [
+const sampleProfiles: ClaudeProfile[] = [
   {
     name: 'zeta-current',
     provider: 'Zeta Relay',
@@ -140,6 +137,16 @@ const sampleProfiles = [
     is_current: false,
   },
   {
+    name: 'anthropic-disabled',
+    provider: 'Anthropic',
+    provider_type: 'api',
+    description: 'Disabled fallback route',
+    small_fast_model: 'claude-3-5-haiku',
+    tags: ['disabled'],
+    enabled: false,
+    is_current: false,
+  },
+  {
     name: 'missing-provider',
     description: 'Temporary local sandbox',
     base_url: 'https://sandbox.internal',
@@ -148,6 +155,12 @@ const sampleProfiles = [
     is_current: false,
   },
 ]
+
+const cloneProfiles = (profiles: ClaudeProfile[] = sampleProfiles): ClaudeProfile[] =>
+  profiles.map(profile => ({
+    ...profile,
+    tags: profile.tags ? [...profile.tags] : undefined,
+  }))
 
 const mountView = async () => {
   const el = document.createElement('div')
@@ -159,7 +172,16 @@ const mountView = async () => {
     },
   }))
 
-  app.config.globalProperties.$t = (key: string) => key
+  app.use(createI18n({
+    legacy: false,
+    locale: 'zh-CN',
+    fallbackLocale: 'zh-CN',
+    missingWarn: false,
+    fallbackWarn: false,
+    messages: {
+      'zh-CN': zhCnMessages,
+    },
+  }))
 
   app.mount(el)
   await flushPromises()
@@ -178,6 +200,12 @@ const findQuickSwitchButtons = (el: HTMLElement) =>
     sampleProfiles.some((profile) => button.textContent?.includes(profile.name)),
   )
 
+const findQuickSwitchButton = (el: HTMLElement, name: string) =>
+  findQuickSwitchButtons(el).find(button => button.textContent?.includes(name)) ?? null
+
+const findProfileCard = (el: HTMLElement, name: string) =>
+  Array.from(el.querySelectorAll<HTMLElement>('article')).find((article) => article.textContent?.includes(name)) ?? null
+
 beforeEach(() => {
   apiMocks.listClaudeProfiles.mockReset()
   apiMocks.addClaudeProfile.mockReset()
@@ -186,13 +214,17 @@ beforeEach(() => {
   apiMocks.applyClaudeProfile.mockReset()
 
   apiMocks.listClaudeProfiles.mockResolvedValue({
-    profiles: sampleProfiles,
+    profiles: cloneProfiles(),
     current_profile: 'zeta-current',
   })
+
+  vi.stubGlobal('confirm', vi.fn(() => true))
+  vi.stubGlobal('alert', vi.fn())
 })
 
 afterEach(() => {
   document.body.innerHTML = ''
+  vi.unstubAllGlobals()
 })
 
 describe('ClaudeCodeProfilesView smoke', () => {
@@ -203,10 +235,11 @@ describe('ClaudeCodeProfilesView smoke', () => {
       expect(findQuickSwitchButtons(el).map(button => button.textContent?.trim())).toEqual([
         'zeta-current',
         'anthropic-a',
+        'anthropic-disabled',
         'missing-provider',
       ])
 
-      const searchInput = el.querySelector<HTMLInputElement>('input[placeholder="claudeProfiles.searchPlaceholder"]')
+      const searchInput = el.querySelector<HTMLInputElement>('input[placeholder="搜索名称 / provider / model / tag"]')
       expect(searchInput).not.toBeNull()
 
       searchInput!.value = 'local'
@@ -216,6 +249,8 @@ describe('ClaudeCodeProfilesView smoke', () => {
       expect(findQuickSwitchButtons(el).map(button => button.textContent?.trim())).toEqual([
         'missing-provider',
       ])
+      expect(el.textContent).not.toContain('{count}')
+      expect(el.textContent).not.toContain('{enabled}')
     } finally {
       unmount()
     }
@@ -225,15 +260,69 @@ describe('ClaudeCodeProfilesView smoke', () => {
     const { el, unmount } = await mountView()
 
     try {
-      const searchInput = el.querySelector<HTMLInputElement>('input[placeholder="claudeProfiles.searchPlaceholder"]')
+      const searchInput = el.querySelector<HTMLInputElement>('input[placeholder="搜索名称 / provider / model / tag"]')
       expect(searchInput).not.toBeNull()
 
       searchInput!.value = 'no-such-profile'
       searchInput!.dispatchEvent(new Event('input', { bubbles: true }))
       await flushPromises()
 
-      expect(el.textContent).toContain('claudeProfiles.searchEmptyTitle')
+      expect(el.textContent).toContain('没有匹配的 Claude Profile')
+      expect(el.textContent).not.toContain('claudeProfiles.')
       expect(findQuickSwitchButtons(el)).toHaveLength(0)
+    } finally {
+      unmount()
+    }
+  })
+
+  it('normalizes current profile state across overview, provider nav, quick switch, and row cards', async () => {
+    apiMocks.listClaudeProfiles.mockResolvedValue({
+      profiles: cloneProfiles(),
+      current_profile: 'anthropic-a',
+    })
+
+    const { el, unmount } = await mountView()
+
+    try {
+      expect(el.textContent).toContain('当前 Profile')
+      expect(el.textContent).toContain('anthropic-a')
+
+      const anthropicCard = findProfileCard(el, 'anthropic-a')
+      const zetaCard = findProfileCard(el, 'zeta-current')
+      const anthropicQuickSwitch = findQuickSwitchButton(el, 'anthropic-a')
+      const zetaQuickSwitch = findQuickSwitchButton(el, 'zeta-current')
+      const anthropicProviderButtons = Array.from(el.querySelectorAll<HTMLButtonElement>('nav button'))
+        .filter(button => button.textContent?.includes('Anthropic'))
+
+      expect(anthropicCard?.textContent).toContain('当前已激活')
+      expect(zetaCard?.textContent).not.toContain('当前已激活')
+      expect(anthropicQuickSwitch?.disabled).toBe(true)
+      expect(zetaQuickSwitch?.disabled).toBe(false)
+      expect(anthropicProviderButtons.some(button => button.querySelector('[aria-label="当前 Provider"]'))).toBe(true)
+      expect(el.textContent).not.toContain('claudeProfiles.')
+    } finally {
+      unmount()
+    }
+  })
+
+  it('prevents disabled profiles from applying through quick switch or row actions', async () => {
+    const { el, unmount } = await mountView()
+
+    try {
+      const disabledQuickSwitch = findQuickSwitchButton(el, 'anthropic-disabled')
+      const disabledCard = findProfileCard(el, 'anthropic-disabled')
+      const disabledRowApply = Array.from(disabledCard?.querySelectorAll<HTMLButtonElement>('button') ?? [])
+        .find(button => button.textContent?.includes('应用此 Profile'))
+
+      expect(disabledQuickSwitch).not.toBeNull()
+      expect(disabledQuickSwitch?.disabled).toBe(true)
+      expect(disabledRowApply?.disabled).toBe(true)
+
+      disabledQuickSwitch?.click()
+      disabledRowApply?.click()
+      await flushPromises()
+
+      expect(apiMocks.applyClaudeProfile).not.toHaveBeenCalled()
     } finally {
       unmount()
     }

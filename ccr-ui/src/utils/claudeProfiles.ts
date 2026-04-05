@@ -161,6 +161,12 @@ export interface ClaudeProfileSection {
   profiles: ClaudeProfile[]
 }
 
+export interface NormalizedClaudeProfilesState {
+  currentProfile: string | null
+  profiles: ClaudeProfile[]
+  warnings: string[]
+}
+
 const normalizeProvider = (provider?: string | null): string => provider?.trim() ?? ''
 const normalizeSearchValue = (value?: string | null): string => value?.trim().toLowerCase() ?? ''
 
@@ -193,6 +199,54 @@ export const getClaudeProfileProviderLabel = (
 ): string => {
   const normalized = normalizeProvider(provider)
   return normalized || unsetLabel
+}
+
+export const normalizeClaudeProfilesState = (
+  profiles: ClaudeProfile[],
+  currentProfile: string | null | undefined
+): NormalizedClaudeProfilesState => {
+  const warnings: string[] = []
+  const profileNames = new Set(profiles.map(profile => profile.name))
+  const trimmedCurrentProfile = currentProfile?.trim() || null
+  const flaggedCurrentProfiles = profiles
+    .filter(profile => profile.is_current)
+    .map(profile => profile.name)
+
+  let canonicalCurrentProfile =
+    trimmedCurrentProfile && profileNames.has(trimmedCurrentProfile)
+      ? trimmedCurrentProfile
+      : null
+
+  if (trimmedCurrentProfile && !canonicalCurrentProfile) {
+    warnings.push(`Unknown current_profile "${trimmedCurrentProfile}" returned by Claude profiles API`)
+  }
+
+  if (!canonicalCurrentProfile && flaggedCurrentProfiles.length > 0) {
+    canonicalCurrentProfile = flaggedCurrentProfiles[0] || null
+  }
+
+  if (flaggedCurrentProfiles.length > 1) {
+    warnings.push(`Multiple profiles marked as current: ${flaggedCurrentProfiles.join(', ')}`)
+  }
+
+  if (
+    canonicalCurrentProfile
+    && flaggedCurrentProfiles.length > 0
+    && (flaggedCurrentProfiles.length !== 1 || flaggedCurrentProfiles[0] !== canonicalCurrentProfile)
+  ) {
+    warnings.push(
+      `Current profile mismatch between current_profile and row flags; normalized to "${canonicalCurrentProfile}"`
+    )
+  }
+
+  return {
+    currentProfile: canonicalCurrentProfile,
+    profiles: profiles.map(profile => ({
+      ...profile,
+      is_current: canonicalCurrentProfile === profile.name,
+    })),
+    warnings,
+  }
 }
 
 export const filterClaudeProfiles = (

@@ -54,7 +54,7 @@
         <span
           v-if="!mobile && section.isCurrentProvider"
           class="absolute right-2.5 top-2.5 flex h-2.5 w-2.5 items-center justify-center"
-          :aria-label="$t('claudeProfiles.currentProviderHint')"
+          :aria-label="$t('claudeProfiles.currentProviderBadge')"
         >
           <span class="absolute h-full w-full rounded-full bg-accent-secondary/40 animate-ping" />
           <span class="relative h-2 w-2 rounded-full bg-accent-secondary" />
@@ -80,7 +80,7 @@
                 v-if="!mobile"
                 class="mt-1 text-xs text-text-muted"
               >
-                {{ $t('claudeProfiles.providerNavCount', { count: section.count }) }}
+                {{ getProviderNavCount(section.count) }}
               </p>
             </div>
           </div>
@@ -104,6 +104,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import SIcon from '@/components/ui/SIcon.vue'
 import {
   resolveProviderColor,
@@ -120,6 +121,10 @@ const props = defineProps<{
 defineEmits<{
   navigate: [sectionId: string]
 }>()
+
+const { t } = useI18n()
+
+const getProviderNavCount = (count: number) => t('claudeProfiles.providerNavCount', { count })
 
 // 缓存各 section 的 provider 色彩
 const sectionColors = computed(() => {

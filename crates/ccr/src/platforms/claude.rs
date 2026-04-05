@@ -11,13 +11,15 @@
 // - 设置文件: `~/.claude/settings.json`
 // - 支持多平台配置
 
-use crate::managers::config::ConfigSection;
+use crate::managers::PlatformConfigManager;
+use crate::managers::config::{CcsConfig, ConfigSection};
 use crate::managers::settings::{ClaudeSettings, SettingsManager};
 use crate::models::{Platform, PlatformConfig, PlatformPaths, ProfileConfig};
 use ccr_config::platforms::base;
 use ccr_core::Validatable;
 use ccr_core::core::error::{CcrError, Result};
 use indexmap::IndexMap;
+use std::fs;
 use std::path::PathBuf;
 
 /// 🤖 Claude Platform 实现
@@ -70,6 +72,66 @@ impl ClaudePlatform {
     /// 📖 从 TOML 文件加载 profiles
     fn load_profiles_from_file(&self) -> Result<IndexMap<String, ProfileConfig>> {
         base::load_profiles_from_toml(&self.paths.profiles_file)
+    }
+
+    fn current_profile_from_file(
+        &self,
+        profiles: &IndexMap<String, ProfileConfig>,
+    ) -> Result<Option<String>> {
+        if !self.paths.profiles_file.exists() {
+            return Ok(None);
+        }
+
+        let content = match fs::read_to_string(&self.paths.profiles_file) {
+            Ok(content) => content,
+            Err(_) => return Ok(None),
+        };
+
+        let parsed = match toml::from_str::<CcsConfig>(&content) {
+            Ok(parsed) => parsed,
+            Err(_) => return Ok(None),
+        };
+
+        let current = parsed.current_config.trim();
+        if current.is_empty() || !profiles.contains_key(current) {
+            return Ok(None);
+        }
+
+        Ok(Some(current.to_string()))
+    }
+
+    fn clear_current_profile_registry(&self) -> Result<()> {
+        let manager = PlatformConfigManager::with_default()?;
+        let mut unified = manager.load()?;
+        if let Ok(entry) = unified.get_platform_mut("claude") {
+            entry.current_profile = None;
+            entry.last_used = Some(chrono::Utc::now().to_rfc3339());
+        }
+        manager.save(&unified)
+    }
+
+    fn stable_current_profile(&self) -> Result<Option<String>> {
+        let profiles = self.load_profiles()?;
+        let registry_current = base::get_current_profile_from_registry("claude")?;
+
+        if let Some(file_current) = self.current_profile_from_file(&profiles)? {
+            if registry_current.as_deref() != Some(file_current.as_str()) {
+                base::update_registry_current_profile("claude", &file_current)?;
+            }
+            return Ok(Some(file_current));
+        }
+
+        match registry_current {
+            Some(current) if profiles.contains_key(&current) => {
+                self.update_current_config_in_profiles(&current)?;
+                Ok(Some(current))
+            }
+            Some(_) => {
+                self.clear_current_profile_registry()?;
+                Ok(None)
+            }
+            None => Ok(None),
+        }
     }
 }
 
@@ -149,7 +211,7 @@ impl PlatformConfig for ClaudePlatform {
     }
 
     fn get_current_profile(&self) -> Result<Option<String>> {
-        base::get_current_profile_from_registry("claude")
+        self.stable_current_profile()
     }
 
     fn get_env_var_names(&self) -> Vec<String> {
@@ -168,6 +230,7 @@ mod tests {
     use super::*;
     use crate::managers::PlatformConfigManager;
     use crate::managers::{PlatformConfigEntry, UnifiedConfig};
+    use std::fs;
     use std::sync::{LazyLock, Mutex};
 
     static ENV_LOCK: LazyLock<Mutex<()>> = LazyLock::new(|| Mutex::new(()));
@@ -179,6 +242,74 @@ mod tests {
                 None => std::env::remove_var(key),
             }
         }
+    }
+
+    struct TestEnv {
+        root: tempfile::TempDir,
+        previous_root: Option<String>,
+        previous_settings: Option<String>,
+        previous_backup: Option<String>,
+        previous_lock: Option<String>,
+    }
+
+    impl TestEnv {
+        fn new() -> Self {
+            let root = tempfile::tempdir().unwrap();
+            let settings_path = root.path().join("claude").join("settings.json");
+            let backup_dir = root.path().join("claude").join("backups");
+            let lock_dir = root.path().join("locks");
+
+            let previous_root = std::env::var("CCR_ROOT").ok();
+            let previous_settings = std::env::var("CCR_SETTINGS_PATH").ok();
+            let previous_backup = std::env::var("CCR_BACKUP_DIR").ok();
+            let previous_lock = std::env::var("CCR_LOCK_DIR").ok();
+
+            unsafe {
+                std::env::set_var("CCR_ROOT", root.path());
+                std::env::set_var("CCR_SETTINGS_PATH", &settings_path);
+                std::env::set_var("CCR_BACKUP_DIR", &backup_dir);
+                std::env::set_var("CCR_LOCK_DIR", &lock_dir);
+            }
+
+            Self {
+                root,
+                previous_root,
+                previous_settings,
+                previous_backup,
+                previous_lock,
+            }
+        }
+
+        fn root_path(&self) -> &std::path::Path {
+            self.root.path()
+        }
+    }
+
+    impl Drop for TestEnv {
+        fn drop(&mut self) {
+            restore_env_var("CCR_ROOT", self.previous_root.take());
+            restore_env_var("CCR_SETTINGS_PATH", self.previous_settings.take());
+            restore_env_var("CCR_BACKUP_DIR", self.previous_backup.take());
+            restore_env_var("CCR_LOCK_DIR", self.previous_lock.take());
+        }
+    }
+
+    fn make_profile(name: &str) -> ProfileConfig {
+        ProfileConfig::new()
+            .with_base_url(format!("https://{name}.example.com"))
+            .with_auth_token(format!("sk-{name}"))
+            .with_model(format!("claude-{name}"))
+    }
+
+    fn read_profiles_config(root: &std::path::Path) -> CcsConfig {
+        let profiles_path = root.join("platforms").join("claude").join("profiles.toml");
+        toml::from_str(&fs::read_to_string(profiles_path).unwrap()).unwrap()
+    }
+
+    fn write_profiles_config(root: &std::path::Path, config: &CcsConfig) {
+        let profiles_path = root.join("platforms").join("claude").join("profiles.toml");
+        fs::create_dir_all(profiles_path.parent().unwrap()).unwrap();
+        fs::write(profiles_path, toml::to_string_pretty(config).unwrap()).unwrap();
     }
 
     #[test]
@@ -229,22 +360,7 @@ mod tests {
     #[test]
     fn test_apply_profile_auto_registers_missing_claude_platform() {
         let _guard = ENV_LOCK.lock().unwrap();
-        let temp_dir = tempfile::tempdir().unwrap();
-        let settings_path = temp_dir.path().join("claude").join("settings.json");
-        let backup_dir = temp_dir.path().join("claude").join("backups");
-        let lock_dir = temp_dir.path().join("locks");
-
-        let previous_root = std::env::var("CCR_ROOT").ok();
-        let previous_settings = std::env::var("CCR_SETTINGS_PATH").ok();
-        let previous_backup = std::env::var("CCR_BACKUP_DIR").ok();
-        let previous_lock = std::env::var("CCR_LOCK_DIR").ok();
-
-        unsafe {
-            std::env::set_var("CCR_ROOT", temp_dir.path());
-            std::env::set_var("CCR_SETTINGS_PATH", &settings_path);
-            std::env::set_var("CCR_BACKUP_DIR", &backup_dir);
-            std::env::set_var("CCR_LOCK_DIR", &lock_dir);
-        }
+        let _env = TestEnv::new();
 
         let result = (|| -> Result<()> {
             let manager = PlatformConfigManager::with_default()?;
@@ -282,10 +398,121 @@ mod tests {
             Ok(())
         })();
 
-        restore_env_var("CCR_ROOT", previous_root);
-        restore_env_var("CCR_SETTINGS_PATH", previous_settings);
-        restore_env_var("CCR_BACKUP_DIR", previous_backup);
-        restore_env_var("CCR_LOCK_DIR", previous_lock);
+        result.unwrap();
+    }
+
+    #[test]
+    fn test_get_current_profile_prefers_profiles_file_and_repairs_registry() {
+        let _guard = ENV_LOCK.lock().unwrap();
+        let env = TestEnv::new();
+
+        let result = (|| -> Result<()> {
+            let platform = ClaudePlatform::new()?;
+            platform.save_profile("alpha", &make_profile("alpha"))?;
+            platform.save_profile("beta", &make_profile("beta"))?;
+            platform.update_current_config_in_profiles("beta")?;
+            base::update_registry_current_profile("claude", "alpha")?;
+
+            assert_eq!(platform.get_current_profile()?, Some("beta".to_string()));
+
+            let manager = PlatformConfigManager::with_default()?;
+            let reloaded = manager.load()?;
+            assert_eq!(
+                reloaded.get_platform("claude")?.current_profile.as_deref(),
+                Some("beta")
+            );
+
+            Ok(())
+        })();
+
+        drop(env);
+        result.unwrap();
+    }
+
+    #[test]
+    fn test_get_current_profile_repairs_profiles_file_from_valid_registry() {
+        let _guard = ENV_LOCK.lock().unwrap();
+        let env = TestEnv::new();
+
+        let result = (|| -> Result<()> {
+            let platform = ClaudePlatform::new()?;
+            platform.save_profile("alpha", &make_profile("alpha"))?;
+            platform.save_profile("beta", &make_profile("beta"))?;
+
+            let mut config = read_profiles_config(env.root_path());
+            config.current_config = "ghost".to_string();
+            write_profiles_config(env.root_path(), &config);
+            base::update_registry_current_profile("claude", "beta")?;
+
+            assert_eq!(platform.get_current_profile()?, Some("beta".to_string()));
+
+            let repaired = read_profiles_config(env.root_path());
+            assert_eq!(repaired.current_config, "beta");
+
+            Ok(())
+        })();
+
+        drop(env);
+        result.unwrap();
+    }
+
+    #[test]
+    fn test_get_current_profile_returns_none_when_registry_and_file_are_invalid() {
+        let _guard = ENV_LOCK.lock().unwrap();
+        let env = TestEnv::new();
+
+        let result = (|| -> Result<()> {
+            let platform = ClaudePlatform::new()?;
+            platform.save_profile("alpha", &make_profile("alpha"))?;
+            platform.save_profile("beta", &make_profile("beta"))?;
+
+            let mut config = read_profiles_config(env.root_path());
+            config.current_config = "ghost".to_string();
+            write_profiles_config(env.root_path(), &config);
+            base::update_registry_current_profile("claude", "phantom")?;
+
+            assert_eq!(platform.get_current_profile()?, None);
+
+            let manager = PlatformConfigManager::with_default()?;
+            let reloaded = manager.load()?;
+            assert_eq!(reloaded.get_platform("claude")?.current_profile, None);
+
+            Ok(())
+        })();
+
+        drop(env);
+        result.unwrap();
+    }
+
+    #[test]
+    fn test_delete_current_profile_keeps_registry_and_file_on_same_fallback() {
+        let _guard = ENV_LOCK.lock().unwrap();
+        let env = TestEnv::new();
+
+        let result = (|| -> Result<()> {
+            let platform = ClaudePlatform::new()?;
+            platform.save_profile("alpha", &make_profile("alpha"))?;
+            platform.save_profile("beta", &make_profile("beta"))?;
+            platform.apply_profile("alpha")?;
+
+            platform.delete_profile("alpha")?;
+
+            assert_eq!(platform.get_current_profile()?, Some("beta".to_string()));
+
+            let config = read_profiles_config(env.root_path());
+            assert_eq!(config.current_config, "beta");
+
+            let manager = PlatformConfigManager::with_default()?;
+            let reloaded = manager.load()?;
+            assert_eq!(
+                reloaded.get_platform("claude")?.current_profile.as_deref(),
+                Some("beta")
+            );
+
+            Ok(())
+        })();
+
+        drop(env);
         result.unwrap();
     }
 }

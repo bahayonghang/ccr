@@ -19,7 +19,7 @@
             class="inline-flex items-center gap-2 rounded-full border border-accent-secondary/25 bg-accent-secondary/10 px-3 py-1 text-xs font-medium text-accent-secondary"
           >
             <span class="h-2 w-2 rounded-full bg-current opacity-80" />
-            {{ $t('claudeProfiles.currentlyActive') }}
+            {{ currentProfileStatusLabel }}
           </span>
         </div>
       </section>
@@ -116,10 +116,13 @@
               v-for="profile in group.profiles"
               :key="profile.name"
               type="button"
+              :disabled="profile.is_current || profile.enabled === false"
               class="inline-flex min-h-[32px] items-center gap-1.5 rounded-full border px-3 py-1 text-[0.78rem] font-medium transition-[background-color,border-color,color,transform] duration-200 hover:-translate-y-px"
               :class="profile.is_current
                 ? ''
-                : 'border-border-default/50 bg-bg-elevated/60 text-text-secondary hover:border-border-default hover:bg-bg-elevated/92 hover:text-text-primary'"
+                : (profile.enabled === false
+                  ? 'cursor-not-allowed border-border-default/35 bg-bg-elevated/34 text-text-muted opacity-60'
+                  : 'border-border-default/50 bg-bg-elevated/60 text-text-secondary hover:border-border-default hover:bg-bg-elevated/92 hover:text-text-primary')"
               :style="profile.is_current ? {
                 borderColor: `rgb(var(${group.color.rgbVar}) / 0.28)`,
                 backgroundColor: `rgb(var(${group.color.rgbVar}) / 0.12)`,
@@ -143,12 +146,13 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import SIcon from '@/components/ui/SIcon.vue'
 import type { ClaudeProfile } from '@/types'
 import { groupProfilesByProvider, type ProviderGroup } from '@/utils/claudeProfiles'
 
 const props = defineProps<{
-  currentProfileName: string | null
+  currentProfile: ClaudeProfile | null
   enabledProfilesCount: number
   quickSwitchProfiles: ClaudeProfile[]
   totalProfiles: number
@@ -158,7 +162,15 @@ defineEmits<{
   apply: [name: string]
 }>()
 
-// 按 provider 分组的 Quick Switch 数据
+const { t } = useI18n()
+
+const currentProfileName = computed(() => props.currentProfile?.name ?? null)
+const currentProfileStatusLabel = computed(() => (
+  props.currentProfile?.enabled === false
+    ? t('claudeProfiles.currentDisabled')
+    : t('claudeProfiles.currentlyActive')
+))
+
 const groupedProfiles = computed<ProviderGroup[]>(() =>
   groupProfilesByProvider(props.quickSwitchProfiles, 'Other'),
 )
