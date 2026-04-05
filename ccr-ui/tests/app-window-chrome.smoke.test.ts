@@ -1,47 +1,37 @@
-import { createApp, defineComponent, h, nextTick, reactive } from 'vue'
+import { createApp, defineComponent, h, nextTick } from 'vue'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-const routeState = reactive({
-  meta: {
-    hideGlobalBackground: false,
-  },
-})
+const mountAppWithChrome = async (showCustomTitlebar: boolean) => {
+  vi.resetModules()
 
-vi.mock('vue', async () => {
-  const actual = await vi.importActual<typeof import('vue')>('vue')
-
-  return {
-    ...actual,
-    defineAsyncComponent: () => actual.defineComponent({
-      name: 'AsyncComponentStub',
-      setup() {
-        return () => actual.h('div', { 'data-async-stub': 'true' })
+  vi.doMock('vue-router', () => ({
+    useRoute: () => ({
+      meta: {
+        hideGlobalBackground: false,
       },
     }),
-  }
-})
+  }))
 
-vi.mock('vue-router', () => ({
-  useRoute: () => routeState,
-}))
-
-import App from '@/App.vue'
-
-const clearRuntimeMarkers = () => {
-  Reflect.deleteProperty(window, '__TAURI__')
-  Reflect.deleteProperty(window, '__TAURI_INTERNALS__')
-}
-
-const originalPlatformDescriptor = Object.getOwnPropertyDescriptor(window.navigator, 'platform')
-
-const setNavigatorPlatform = (value: string) => {
-  Object.defineProperty(window.navigator, 'platform', {
-    configurable: true,
-    value,
+  const stub = (name: string) => ({
+    default: defineComponent({
+      name,
+      setup() {
+        return () => h('div', { 'data-stub': name })
+      },
+    }),
   })
-}
 
-const mountApp = async () => {
+  vi.doMock('@/utils/windowChrome', () => ({
+    shouldUseCustomTitlebar: () => showCustomTitlebar,
+    getWindowChromeTopInset: () => (showCustomTitlebar ? 36 : 0),
+  }))
+  vi.doMock('@/components/layout/Titlebar.vue', () => stub('Titlebar'))
+  vi.doMock('@/components/common/AnimeBackground.vue', () => stub('AnimeBackground'))
+  vi.doMock('@/components/common/ToastContainer.vue', () => stub('ToastContainer'))
+  vi.doMock('@/components/common/GlobalConfirmDialog.vue', () => stub('GlobalConfirmDialog'))
+
+  const App = (await import('@/App.vue')).default
+
   const el = document.createElement('div')
   document.body.appendChild(el)
 
@@ -54,9 +44,8 @@ const mountApp = async () => {
   app.component(
     'RouterView',
     defineComponent({
-      name: 'RouterViewStub',
       setup() {
-        return () => h('main', { 'data-stub': 'router-view' })
+        return () => h('div', { 'data-route-view': 'true' })
       },
     }),
   )
@@ -75,45 +64,29 @@ const mountApp = async () => {
 }
 
 afterEach(() => {
-  clearRuntimeMarkers()
-
-  if (originalPlatformDescriptor) {
-    Object.defineProperty(window.navigator, 'platform', originalPlatformDescriptor)
-  } else {
-    Reflect.deleteProperty(window.navigator, 'platform')
-  }
-
+  vi.resetModules()
+  vi.clearAllMocks()
   document.body.innerHTML = ''
 })
 
 describe('App window chrome smoke', () => {
-  it('keeps the custom titlebar for non-mac tauri runtimes', async () => {
-    Object.defineProperty(window, '__TAURI_INTERNALS__', {
-      configurable: true,
-      value: {},
-    })
-    setNavigatorPlatform('Win32')
-
-    const { el, unmount } = await mountApp()
+  it('adds top inset when the custom titlebar is active', async () => {
+    const { el, unmount } = await mountAppWithChrome(true)
 
     try {
-      expect(el.querySelector('.pt-9')).not.toBeNull()
+      const shell = el.querySelector('.h-screen.w-screen') as HTMLElement | null
+      expect(shell?.style.paddingTop).toBe('36px')
     } finally {
       unmount()
     }
   })
 
-  it('drops the custom titlebar on macOS tauri runtimes so native window chrome handles drag/maximize', async () => {
-    Object.defineProperty(window, '__TAURI_INTERNALS__', {
-      configurable: true,
-      value: {},
-    })
-    setNavigatorPlatform('MacIntel')
-
-    const { el, unmount } = await mountApp()
+  it('keeps the top inset empty when native chrome is active', async () => {
+    const { el, unmount } = await mountAppWithChrome(false)
 
     try {
-      expect(el.querySelector('.pt-9')).toBeNull()
+      const shell = el.querySelector('.h-screen.w-screen') as HTMLElement | null
+      expect(shell?.style.paddingTop || '').toBe('')
     } finally {
       unmount()
     }

@@ -30,25 +30,15 @@ fn should_confirm_app_exit(window_label: &str) -> bool {
 }
 
 #[cfg(target_os = "macos")]
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-struct MacOsWindowChromeConfig {
-    decorations: bool,
-    title_bar_style: tauri::TitleBarStyle,
+fn configure_main_window_chrome(window: &tauri::WebviewWindow) -> tauri::Result<()> {
+    window.set_decorations(true)?;
+    window.set_title_bar_style(tauri::TitleBarStyle::Visible)?;
+    Ok(())
 }
 
-#[cfg(target_os = "macos")]
-fn macos_native_window_chrome_config() -> MacOsWindowChromeConfig {
-    MacOsWindowChromeConfig {
-        decorations: true,
-        title_bar_style: tauri::TitleBarStyle::Visible,
-    }
-}
-
-#[cfg(target_os = "macos")]
-fn enable_macos_native_window_chrome(window: &tauri::WebviewWindow) -> tauri::Result<()> {
-    let config = macos_native_window_chrome_config();
-    window.set_decorations(config.decorations)?;
-    window.set_title_bar_style(config.title_bar_style)?;
+#[cfg(not(target_os = "macos"))]
+fn configure_main_window_chrome(window: &tauri::WebviewWindow) -> tauri::Result<()> {
+    window.set_decorations(false)?;
     Ok(())
 }
 
@@ -63,13 +53,17 @@ fn main() {
     let app = tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .setup(|app| {
-            #[cfg(target_os = "macos")]
             if let Some(window) = app.get_webview_window("main") {
-                if let Err(error) = enable_macos_native_window_chrome(&window) {
-                    tracing::warn!("[app] failed to enable macOS native window chrome: {error}");
+                if let Err(error) = configure_main_window_chrome(&window) {
+                    tracing::warn!("[app] failed to configure main window chrome: {error}");
                 } else {
+                    #[cfg(target_os = "macos")]
                     tracing::info!(
                         "[app] macOS native window chrome enabled for main window"
+                    );
+                    #[cfg(not(target_os = "macos"))]
+                    tracing::info!(
+                        "[app] custom window chrome enabled for main window"
                     );
                 }
             }
