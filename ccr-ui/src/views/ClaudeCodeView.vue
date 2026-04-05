@@ -552,6 +552,7 @@ const copyCommand = (cmd: string) => {
 
 .claude-header__subtitle {
   color: var(--stage-text-secondary);
+
   @apply text-lg;
 }
 
@@ -623,6 +624,7 @@ const copyCommand = (cmd: string) => {
 
 .claude-feature-card__title {
   color: var(--stage-text-primary);
+
   @apply text-xl font-bold transition-colors;
 }
 
@@ -650,6 +652,7 @@ const copyCommand = (cmd: string) => {
 
 .claude-feature-card__desc {
   color: var(--stage-text-secondary);
+
   @apply leading-relaxed;
 }
 
@@ -680,6 +683,7 @@ const copyCommand = (cmd: string) => {
 
 .claude-market-card__icon {
   color: var(--color-text-inverted);
+
   @apply flex h-16 w-16 items-center justify-center rounded-2xl shadow-lg transition-transform duration-300 group-hover:scale-110;
 
   transform: rotate(3deg);
@@ -688,6 +692,7 @@ const copyCommand = (cmd: string) => {
 
 .claude-market-card__title {
   color: var(--stage-text-primary);
+
   @apply mb-2 flex items-center gap-3 text-2xl font-bold;
 }
 
@@ -697,6 +702,7 @@ const copyCommand = (cmd: string) => {
 
 .claude-market-card__desc {
   color: var(--stage-text-secondary);
+
   @apply max-w-xl text-lg;
 }
 
@@ -710,6 +716,7 @@ const copyCommand = (cmd: string) => {
 
 .claude-section-heading__title {
   color: var(--stage-text-muted);
+
   @apply text-sm font-bold uppercase tracking-widest;
 }
 
@@ -765,6 +772,7 @@ const copyCommand = (cmd: string) => {
   color: var(--stage-text-muted);
   background: var(--stage-chip-neutral-bg);
   border: 1px solid var(--stage-chip-neutral-border);
+
   @apply rounded px-2 py-1 font-bold uppercase;
 
   font-size: 10px;
@@ -772,6 +780,7 @@ const copyCommand = (cmd: string) => {
 
 .claude-extension-card__title {
   color: var(--stage-text-primary);
+
   @apply mb-1 font-bold transition-colors;
 }
 
@@ -801,6 +810,7 @@ const copyCommand = (cmd: string) => {
 
 .claude-extension-card__desc {
   color: var(--stage-text-muted);
+
   @apply line-clamp-2 text-xs;
 }
 
@@ -814,6 +824,7 @@ const copyCommand = (cmd: string) => {
 
 .claude-panel__title {
   color: var(--stage-text-primary);
+
   @apply mb-4 flex items-center gap-2 text-lg font-bold;
 }
 
@@ -824,11 +835,13 @@ const copyCommand = (cmd: string) => {
 .claude-command-row {
   background: var(--stage-surface-soft);
   border: 1px solid var(--stage-border-soft);
+
   @apply flex cursor-copy items-center justify-between rounded-xl p-3 transition-colors hover:border-accent-primary/20;
 }
 
 .claude-command-row__label {
   color: var(--stage-text-secondary);
+
   @apply text-sm font-medium;
 }
 
@@ -836,11 +849,13 @@ const copyCommand = (cmd: string) => {
   color: var(--stage-text-muted);
   background: var(--stage-chip-neutral-bg);
   border: 1px solid var(--stage-chip-neutral-border);
+
   @apply rounded px-2 py-1 text-xs font-mono transition-colors group-hover:text-accent-primary;
 }
 
 .claude-command-row__copy {
   color: var(--stage-text-muted);
+
   @apply opacity-0 transition-opacity group-hover:opacity-100;
 }
 
@@ -851,21 +866,25 @@ const copyCommand = (cmd: string) => {
 .claude-resource-link {
   background: var(--stage-surface-soft);
   border: 1px solid var(--stage-border-soft);
+
   @apply flex items-center gap-3 rounded-xl p-3 transition-colors;
 }
 
 .claude-resource-link__icon {
   color: var(--stage-text-muted);
+
   @apply transition-colors group-hover:text-accent-secondary;
 }
 
 .claude-resource-link__label {
   color: var(--stage-text-secondary);
+
   @apply text-sm font-medium transition-colors;
 }
 
 .claude-resource-link__external {
   color: var(--stage-text-muted);
+
   @apply ml-auto opacity-0 group-hover:opacity-100;
 }
 
@@ -891,6 +910,7 @@ const copyCommand = (cmd: string) => {
 
 .claude-tip-card__list {
   color: var(--stage-text-secondary);
+
   @apply list-inside list-disc space-y-1 text-xs;
 }
 </style>

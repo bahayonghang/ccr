@@ -294,6 +294,7 @@ import Button from '@/components/ui/Button.vue'
 
 .gemini-brand__subtitle {
   color: var(--stage-text-secondary);
+
   @apply mt-1 max-w-xl text-lg;
 }
 
@@ -341,6 +342,7 @@ import Button from '@/components/ui/Button.vue'
 
 .gemini-section-heading__title {
   color: var(--stage-text-muted);
+
   @apply text-lg font-bold uppercase;
 
   letter-spacing: 0.2em;
@@ -394,11 +396,13 @@ import Button from '@/components/ui/Button.vue'
 
 .gemini-module-card__title {
   color: var(--stage-text-primary);
+
   @apply mb-1 text-lg font-bold transition-colors;
 }
 
 .gemini-module-card__desc {
   color: var(--stage-text-secondary);
+
   @apply mb-3 text-sm leading-relaxed;
 }
 
@@ -466,6 +470,7 @@ import Button from '@/components/ui/Button.vue'
 
 .gemini-info-card__title {
   color: var(--stage-text-primary);
+
   @apply text-lg font-bold;
 }
 
@@ -476,6 +481,7 @@ import Button from '@/components/ui/Button.vue'
 .gemini-info-feature {
   background: var(--stage-surface-soft);
   border: 1px solid var(--stage-border-soft);
+
   @apply flex items-center gap-3 rounded-lg p-3;
 }
 
@@ -488,6 +494,7 @@ import Button from '@/components/ui/Button.vue'
 
 .gemini-info-feature__text {
   color: var(--stage-text-secondary);
+
   @apply text-sm;
 }
 </style>

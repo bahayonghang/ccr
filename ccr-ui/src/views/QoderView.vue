@@ -385,6 +385,7 @@ import AnimatedBackground from '@/components/common/AnimatedBackground.vue'
 .qoder-info-card {
   background: var(--stage-surface-strong);
   border: 1px solid var(--stage-border-medium);
+
   @apply p-6;
 }
 

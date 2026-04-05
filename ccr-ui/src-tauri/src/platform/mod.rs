@@ -3,11 +3,11 @@
 //! 核心 trait `ExecutionEnvironment` 定义了平台无关的配置管理接口，
 //! `EnvironmentRegistry` 管理多个环境实例并支持运行时切换。
 
+mod config_path;
 pub mod local;
 pub mod ssh;
 #[cfg(target_os = "windows")]
 pub mod wsl;
-mod config_path;
 
 use std::sync::Arc;
 

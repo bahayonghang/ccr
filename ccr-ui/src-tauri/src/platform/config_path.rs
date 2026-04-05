@@ -89,10 +89,7 @@ mod tests {
 
     #[test]
     fn empty_defaults_to_settings_json() {
-        assert_eq!(
-            normalize_config_relative_path("").unwrap(),
-            "settings.json"
-        );
+        assert_eq!(normalize_config_relative_path("").unwrap(), "settings.json");
         assert_eq!(
             normalize_config_relative_path("   ").unwrap(),
             "settings.json"
@@ -141,4 +138,3 @@ mod tests {
         assert!(normalize_config_relative_path("a\0b").is_err());
     }
 }
-

@@ -58,13 +58,9 @@ fn main() {
                     tracing::warn!("[app] failed to configure main window chrome: {error}");
                 } else {
                     #[cfg(target_os = "macos")]
-                    tracing::info!(
-                        "[app] macOS native window chrome enabled for main window"
-                    );
+                    tracing::info!("[app] macOS native window chrome enabled for main window");
                     #[cfg(not(target_os = "macos"))]
-                    tracing::info!(
-                        "[app] custom window chrome enabled for main window"
-                    );
+                    tracing::info!("[app] custom window chrome enabled for main window");
                 }
             }
 

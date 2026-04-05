@@ -1,7 +1,7 @@
 //! 本地执行环境 — 直接委托到 `ccr` 核心库。
 
-use super::{CliStatus, EnvError, EnvironmentType, ExecutionEnvironment, PlatformInfo};
 use super::config_path::normalize_config_relative_path;
+use super::{CliStatus, EnvError, EnvironmentType, ExecutionEnvironment, PlatformInfo};
 use crate::process::tokio_command;
 
 /// 本地环境实现 — 始终可用，委托到 ccr 核心库。

@@ -14,8 +14,8 @@ use walkdir::WalkDir;
 
 use crate::process::std_command;
 
-use super::{CliStatus, EnvError, EnvironmentType, ExecutionEnvironment, PlatformInfo};
 use super::config_path::normalize_config_relative_path;
+use super::{CliStatus, EnvError, EnvironmentType, ExecutionEnvironment, PlatformInfo};
 
 // ── 缓存配置常量 ────────────────────────────────────────────────────────────
 
@@ -177,8 +177,7 @@ fn write_disk_cache(cache: &WslDistrosCache) -> Result<(), EnvError> {
         file.write_all(content.as_bytes())
             .map_err(|e| EnvError::Other(format!("写入缓存失败: {e}")))?;
 
-        FileExt::unlock(&file)
-            .map_err(|e| EnvError::Other(format!("释放文件锁失败: {e}")))?;
+        FileExt::unlock(&file).map_err(|e| EnvError::Other(format!("释放文件锁失败: {e}")))?;
     }
 
     // Windows 上 rename 不覆盖已存在文件，需先删除目标文件
@@ -864,7 +863,10 @@ mod tests {
 
         let count = copy_dir_recursive(src.path(), dest.path()).unwrap();
         assert_eq!(count, 3);
-        assert_eq!(std::fs::read_to_string(dest.path().join("root.txt")).unwrap(), "root");
+        assert_eq!(
+            std::fs::read_to_string(dest.path().join("root.txt")).unwrap(),
+            "root"
+        );
         assert_eq!(
             std::fs::read_to_string(dest.path().join("nested/file.txt")).unwrap(),
             "nested"

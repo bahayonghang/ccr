@@ -620,6 +620,7 @@ onActivated(() => {
 
 .codex-hero-title {
   color: var(--stage-text-primary);
+
   @apply text-3xl font-bold tracking-tight;
 
   font-family: MapleBright, 'Microsoft YaHei UI', system-ui, sans-serif;
@@ -627,6 +628,7 @@ onActivated(() => {
 
 .codex-hero-subtitle {
   color: var(--stage-text-secondary);
+
   @apply text-sm;
 }
 
@@ -636,6 +638,7 @@ onActivated(() => {
 
 .codex-pill {
   color: var(--stage-chip-neutral-text);
+
   @apply rounded-full border px-3 py-1 text-xs font-semibold uppercase;
 
   letter-spacing: 0.12em;
@@ -666,11 +669,13 @@ onActivated(() => {
 .codex-stat-card {
   background: var(--stage-surface-soft);
   border: 1px solid var(--stage-border-soft);
+
   @apply rounded-2xl px-4 py-3;
 }
 
 .codex-stat-label {
   color: var(--stage-text-quiet);
+
   @apply mb-1 text-xs uppercase;
 
   letter-spacing: 0.2em;
@@ -678,6 +683,7 @@ onActivated(() => {
 
 .codex-stat-value {
   color: var(--stage-text-primary);
+
   @apply text-lg font-semibold;
 }
 
@@ -695,16 +701,19 @@ onActivated(() => {
 
 .codex-panel-title {
   color: var(--stage-text-primary);
+
   @apply text-base font-semibold;
 }
 
 .codex-panel-subtitle {
   color: var(--stage-text-muted);
+
   @apply text-xs;
 }
 
 .codex-panel-description {
   color: var(--stage-text-muted);
+
   @apply text-sm;
 }
 
@@ -727,6 +736,7 @@ onActivated(() => {
 .codex-action-card {
   background: var(--stage-surface-soft);
   border: 1px solid var(--stage-border-soft);
+
   @apply block rounded-2xl p-4 transition-all duration-200 hover:border-pink-500/30;
 }
 
@@ -736,6 +746,7 @@ onActivated(() => {
 
 .codex-action-title {
   color: var(--stage-text-primary);
+
   @apply text-sm font-semibold;
 }
 
@@ -745,6 +756,7 @@ onActivated(() => {
 
 .codex-action-description {
   color: var(--stage-text-secondary);
+
   @apply mt-1 text-sm leading-6;
 }
 
@@ -761,18 +773,19 @@ onActivated(() => {
 .codex-health-card {
   background: var(--stage-surface-medium);
   border: 1px solid var(--stage-border-soft);
+
   @apply h-full p-4;
 }
 
 .codex-health-eyebrow {
   color: var(--stage-text-quiet);
-
   font-size: 11px;
   letter-spacing: 0.18em;
 }
 
 .codex-health-label {
   color: var(--stage-text-quiet);
+
   @apply mt-4 text-xs uppercase;
 
   letter-spacing: 0.2em;
@@ -780,11 +793,13 @@ onActivated(() => {
 
 .codex-health-value {
   color: var(--stage-text-primary);
+
   @apply mt-1 break-words text-lg font-semibold;
 }
 
 .codex-health-detail {
   color: var(--stage-text-secondary);
+
   @apply mt-2 text-sm leading-6;
 }
 
@@ -799,6 +814,7 @@ onActivated(() => {
 .codex-link-card {
   background: var(--stage-surface-medium);
   border: 1px solid var(--stage-border-soft);
+
   @apply h-full p-4;
 }
 
@@ -810,6 +826,7 @@ onActivated(() => {
   background: var(--stage-chip-neutral-bg);
   border: 1px solid var(--stage-chip-neutral-border);
   color: var(--stage-text-muted);
+
   @apply rounded-full px-2.5 py-1;
 
   font-size: 11px;
@@ -817,16 +834,19 @@ onActivated(() => {
 
 .codex-link-title {
   color: var(--stage-text-primary);
+
   @apply text-sm font-semibold transition-colors group-hover:text-pink-200;
 }
 
 .codex-link-description {
   color: var(--stage-text-secondary);
+
   @apply mt-2 text-sm leading-6;
 }
 
 .codex-skeleton {
   background: var(--stage-surface-soft);
+
   @apply h-20 animate-pulse rounded-2xl;
 }
 
@@ -849,11 +869,13 @@ onActivated(() => {
 .codex-summary-card {
   background: var(--stage-surface-soft);
   border: 1px solid var(--stage-border-soft);
+
   @apply rounded-2xl p-4;
 }
 
 .codex-summary-label {
   color: var(--stage-text-quiet);
+
   @apply mb-1 text-xs uppercase;
 
   letter-spacing: 0.2em;
@@ -861,11 +883,13 @@ onActivated(() => {
 
 .codex-summary-value {
   color: var(--stage-text-primary);
+
   @apply text-lg font-semibold;
 }
 
 .codex-summary-description {
   color: var(--stage-text-secondary);
+
   @apply mt-1 text-sm leading-6;
 }
 
@@ -883,6 +907,7 @@ onActivated(() => {
 
 .codex-inventory-value {
   color: var(--stage-text-primary);
+
   @apply font-semibold;
 }
 
