@@ -26,11 +26,11 @@ pub fn draw(f: &mut Frame, app: &App) {
     f.render_widget(background, f.area());
 
     let area = f.area();
-    let (constraints, compact) = responsive_constraints(area.height);
+    let mode = theme::viewport_mode(area.width, area.height);
 
     let chunks = Layout::default()
         .direction(Direction::Vertical)
-        .constraints(constraints)
+        .constraints(root_constraints(mode))
         .split(area);
 
     render_header(f, app, chunks[0]);
@@ -39,7 +39,11 @@ pub fn draw(f: &mut Frame, app: &App) {
         let runtime_chunks = Layout::default()
             .direction(Direction::Vertical)
             .constraints([
-                Constraint::Length(if compact { 3 } else { 4 }),
+                Constraint::Length(if mode == theme::ViewportMode::Compact {
+                    3
+                } else {
+                    4
+                }),
                 Constraint::Min(0),
             ])
             .split(chunks[1]);
@@ -52,7 +56,12 @@ pub fn draw(f: &mut Frame, app: &App) {
             app.current_codex_runtime_summary()
         };
 
-        render_codex_runtime_banner(f, runtime_chunks[0], runtime_summary, compact);
+        render_codex_runtime_banner(
+            f,
+            runtime_chunks[0],
+            runtime_summary,
+            mode == theme::ViewportMode::Compact,
+        );
         runtime_chunks[1]
     } else {
         chunks[1]
@@ -60,43 +69,23 @@ pub fn draw(f: &mut Frame, app: &App) {
 
     if app.is_codex_auth_tab() {
         app.header_area.set(Some(chunks[0]));
-        app.list_area.set(Some(content_area));
 
         if let Some(ref codex_app) = app.codex_auth_app {
-            codex_auth::ui::draw_embedded(f, codex_app, content_area, chunks[2], compact);
+            codex_auth::ui::draw_embedded(f, codex_app, content_area, chunks[2], mode);
         } else {
             codex_auth::ui::draw_loading_placeholder(
                 f,
                 content_area,
                 chunks[2],
-                compact,
+                mode,
                 app.codex_auth_error.as_deref(),
             );
         }
     } else {
-        let content_chunks = if compact {
-            vec![content_area]
-        } else {
-            Layout::default()
-                .direction(Direction::Vertical)
-                .constraints([Constraint::Percentage(52), Constraint::Percentage(48)])
-                .split(content_area)
-                .to_vec()
-        };
-
         app.header_area.set(Some(chunks[0]));
-        app.list_area.set(Some(content_chunks[0]));
 
-        render_profile_list(f, app, content_chunks[0]);
-        if !compact {
-            render_profile_details(f, app, content_chunks[1]);
-        }
-
-        if compact {
-            render_toast(f, app, chunks[2]);
-        } else {
-            render_footer(f, app, chunks[2]);
-        }
+        render_profile_workspace(f, app, content_area, mode);
+        render_footer(f, app, chunks[2]);
     }
 }
 
@@ -169,23 +158,12 @@ fn runtime_mode_color(mode: crate::models::CodexRuntimeMode) -> ratatui::style::
     }
 }
 
-/// Calculate responsive layout constraints based on terminal height
-fn responsive_constraints(height: u16) -> (Vec<Constraint>, bool) {
-    let compact = height < 20;
-    let constraints = if compact {
-        vec![
-            Constraint::Length(3), // Header with tabs
-            Constraint::Min(0),    // Profile list / Codex content
-            Constraint::Length(2), // Toast only (compact)
-        ]
-    } else {
-        vec![
-            Constraint::Length(3), // Header with tabs
-            Constraint::Min(0),    // Profile list / Codex content
-            Constraint::Length(5), // Footer: shortcuts + toast
-        ]
-    };
-    (constraints, compact)
+fn root_constraints(mode: theme::ViewportMode) -> Vec<Constraint> {
+    vec![
+        Constraint::Length(3),
+        Constraint::Min(0),
+        Constraint::Length(theme::footer_height(mode)),
+    ]
 }
 
 /// Calculate column widths for profile list (responsive to terminal width)
@@ -267,12 +245,45 @@ fn render_header(f: &mut Frame, app: &App, area: Rect) {
 // Profile list rendering
 // ═══════════════════════════════════════════════════════════
 
-/// Render profile list with platform-aware accent color
-fn render_profile_list(f: &mut Frame, app: &App, area: Rect) {
-    render_profile_list_panel(f, app, area);
+fn render_profile_workspace(f: &mut Frame, app: &App, area: Rect, mode: theme::ViewportMode) {
+    match mode {
+        theme::ViewportMode::Compact => {
+            render_profile_list_panel(f, app, area);
+        }
+        theme::ViewportMode::Standard => {
+            let detail_height = area.height.saturating_sub(8).clamp(11, 14);
+            let chunks = Layout::default()
+                .direction(Direction::Vertical)
+                .constraints([Constraint::Min(8), Constraint::Length(detail_height)])
+                .split(area);
+
+            render_profile_list_panel(f, app, chunks[0]);
+            render_profile_context_workspace(f, app, chunks[1], mode);
+        }
+        theme::ViewportMode::Wide => {
+            let columns = Layout::default()
+                .direction(Direction::Horizontal)
+                .constraints([Constraint::Percentage(42), Constraint::Percentage(58)])
+                .split(area);
+
+            render_profile_list_rail(f, app, columns[0]);
+            render_profile_context_workspace(f, app, columns[1], mode);
+        }
+    }
+}
+
+fn render_profile_list_rail(f: &mut Frame, app: &App, area: Rect) {
+    let chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([Constraint::Min(8), Constraint::Length(5)])
+        .split(area);
+
+    render_profile_list_panel(f, app, chunks[0]);
+    render_profile_meta_panel(f, app, chunks[1]);
 }
 
 fn render_profile_list_panel(f: &mut Frame, app: &App, area: Rect) {
+    app.list_area.set(Some(area));
     let profiles = app.current_page_profiles();
     let all_profiles = app.current_profiles();
     let platform = app.current_platform();
@@ -404,6 +415,111 @@ fn render_profile_list_panel(f: &mut Frame, app: &App, area: Rect) {
     f.render_widget(list, area);
 }
 
+fn render_profile_meta_panel(f: &mut Frame, app: &App, area: Rect) {
+    let block = Block::default()
+        .borders(Borders::ALL)
+        .border_set(symbols::border::ROUNDED)
+        .border_style(Style::default().fg(theme::BORDER))
+        .title(" Selection ")
+        .title_style(
+            Style::default()
+                .fg(theme::FG_SECONDARY)
+                .add_modifier(Modifier::BOLD),
+        )
+        .padding(Padding::horizontal(1));
+
+    let lines: Vec<Line> = profile_meta_strings(
+        app.current_profiles().len(),
+        app.current_page,
+        app.total_pages(),
+        app.selected_profile(),
+    )
+    .into_iter()
+    .map(Line::from)
+    .collect();
+
+    let paragraph = Paragraph::new(lines).block(block).wrap(Wrap { trim: true });
+    f.render_widget(paragraph, area);
+}
+
+fn render_profile_context_workspace(
+    f: &mut Frame,
+    app: &App,
+    area: Rect,
+    mode: theme::ViewportMode,
+) {
+    let Some(profile) = app.selected_profile() else {
+        let block = Block::default()
+            .borders(Borders::ALL)
+            .border_set(symbols::border::ROUNDED)
+            .border_style(Style::default().fg(theme::platform_color_for(app.current_platform())))
+            .title(" Focus ")
+            .title_style(theme::platform_style_for(app.current_platform()))
+            .padding(Padding::horizontal(1));
+
+        let paragraph = Paragraph::new(profile_status_text(app))
+            .block(block)
+            .alignment(profile_status_alignment(app))
+            .wrap(Wrap { trim: false });
+        f.render_widget(paragraph, area);
+        return;
+    };
+
+    let Some(config) = app.selected_profile_config() else {
+        let block = Block::default()
+            .borders(Borders::ALL)
+            .border_set(symbols::border::ROUNDED)
+            .border_style(Style::default().fg(theme::platform_color_for(app.current_platform())))
+            .title(" Focus ")
+            .title_style(theme::platform_style_for(app.current_platform()))
+            .padding(Padding::horizontal(1));
+
+        let paragraph = Paragraph::new(profile_status_text(app))
+            .block(block)
+            .alignment(profile_status_alignment(app))
+            .wrap(Wrap { trim: false });
+        f.render_widget(paragraph, area);
+        return;
+    };
+
+    if mode == theme::ViewportMode::Wide {
+        let chunks = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([
+                Constraint::Length(7),
+                Constraint::Min(10),
+                Constraint::Length(3),
+            ])
+            .split(area);
+
+        render_profile_summary_block(
+            f,
+            app,
+            chunks[0],
+            profile.name.as_str(),
+            config,
+            profile.is_current,
+        );
+        render_profile_details(f, app, chunks[1]);
+        render_profile_status_strip(f, app, chunks[2], profile.name.as_str());
+    } else {
+        let chunks = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([Constraint::Length(7), Constraint::Min(0)])
+            .split(area);
+
+        render_profile_summary_block(
+            f,
+            app,
+            chunks[0],
+            profile.name.as_str(),
+            config,
+            profile.is_current,
+        );
+        render_profile_details(f, app, chunks[1]);
+    }
+}
+
 fn render_profile_details(f: &mut Frame, app: &App, area: Rect) {
     let platform = app.current_platform();
     let accent = theme::platform_color_for(platform);
@@ -411,7 +527,7 @@ fn render_profile_details(f: &mut Frame, app: &App, area: Rect) {
         .borders(Borders::ALL)
         .border_set(symbols::border::ROUNDED)
         .border_style(Style::default().fg(accent))
-        .title(" Details ")
+        .title(" Context ")
         .title_style(theme::platform_style_for(platform))
         .padding(Padding::horizontal(1));
 
@@ -443,19 +559,81 @@ fn render_profile_details(f: &mut Frame, app: &App, area: Rect) {
     f.render_widget(paragraph, area);
 }
 
+fn render_profile_summary_block(
+    f: &mut Frame,
+    app: &App,
+    area: Rect,
+    profile_name: &str,
+    config: &ProfileConfig,
+    is_current: bool,
+) {
+    let platform = app.current_platform();
+    let block = Block::default()
+        .borders(Borders::ALL)
+        .border_set(symbols::border::ROUNDED)
+        .border_style(Style::default().fg(theme::platform_color_for(platform)))
+        .title(" Focus ")
+        .title_style(theme::platform_style_for(platform))
+        .padding(Padding::horizontal(1));
+
+    let lines: Vec<Line> = profile_summary_strings(
+        platform,
+        profile_name,
+        config,
+        is_current,
+        app.last_applied.as_ref(),
+    )
+    .into_iter()
+    .map(|text| Line::from(Span::styled(text, Style::default().fg(theme::FG_PRIMARY))))
+    .collect();
+
+    let paragraph = Paragraph::new(lines).block(block).wrap(Wrap { trim: true });
+    f.render_widget(paragraph, area);
+}
+
+fn render_profile_status_strip(f: &mut Frame, app: &App, area: Rect, profile_name: &str) {
+    let block = Block::default()
+        .borders(Borders::ALL)
+        .border_set(symbols::border::ROUNDED)
+        .border_style(Style::default().fg(theme::BORDER))
+        .title(" Status ")
+        .title_style(
+            Style::default()
+                .fg(theme::FG_SECONDARY)
+                .add_modifier(Modifier::BOLD),
+        )
+        .padding(Padding::horizontal(1));
+
+    let mut text = footer_text(app);
+    if let Some(action) = last_apply_message(profile_name, app.last_applied.as_ref()) {
+        text = format!("{action}  │  {text}");
+    }
+
+    let paragraph = Paragraph::new(text)
+        .block(block)
+        .alignment(Alignment::Left)
+        .wrap(Wrap { trim: true });
+    f.render_widget(paragraph, area);
+}
+
 fn generic_profile_detail_lines(
     name: &str,
     config: &ProfileConfig,
     is_current: bool,
 ) -> Vec<Line<'static>> {
     vec![
+        section_line(" Overview "),
         detail_line("name", name.to_string()),
         detail_line("current", yes_no(is_current)),
+        detail_line("enabled", yes_no(config.is_enabled())),
         detail_line("description", opt_text(config.description.as_deref())),
+        Line::from(""),
+        section_line(" Runtime "),
         detail_line("base_url", opt_text(config.base_url.as_deref())),
         detail_line("model", opt_text(config.model.as_deref())),
         detail_line("account", opt_text(config.account.as_deref())),
-        detail_line("enabled", yes_no(config.is_enabled())),
+        Line::from(""),
+        section_line(" Activity "),
         detail_line("usage_count", config.usage_count().to_string()),
         detail_line("tags", tags_text(config)),
     ]
@@ -488,9 +666,13 @@ fn codex_profile_detail_lines(
     };
 
     vec![
+        section_line(" Overview "),
         detail_line("name", name.to_string()),
         detail_line("current", yes_no(is_current)),
+        detail_line("enabled", yes_no(config.is_enabled())),
         detail_line("description", opt_text(config.description.as_deref())),
+        Line::from(""),
+        section_line(" Routing/Auth "),
         detail_line("provider_type", opt_text(config.provider_type.as_deref())),
         detail_line("provider", opt_text(config.provider.as_deref())),
         detail_line("auth_mode", auth_mode.as_str().to_string()),
@@ -520,15 +702,27 @@ fn codex_profile_detail_lines(
             )
             .to_string(),
         ),
+        Line::from(""),
+        section_line(" Engine "),
         detail_line("base_url", opt_text(config.base_url.as_deref())),
         detail_line("model", opt_text(config.model.as_deref())),
         detail_line("small_fast", opt_text(config.small_fast_model.as_deref())),
         detail_line("account", opt_text(config.account.as_deref())),
-        detail_line("enabled", yes_no(config.is_enabled())),
+        Line::from(""),
+        section_line(" Activity "),
         detail_line("usage_count", config.usage_count().to_string()),
         detail_line("tags", tags_text(config)),
         detail_line("token", token_state),
     ]
+}
+
+fn section_line(title: &str) -> Line<'static> {
+    Line::from(Span::styled(
+        title.to_string(),
+        Style::default()
+            .fg(theme::FG_SECONDARY)
+            .add_modifier(Modifier::BOLD | Modifier::UNDERLINED),
+    ))
 }
 
 fn detail_line(label: &str, value: String) -> Line<'static> {
@@ -583,6 +777,97 @@ fn codex_platform_value(config: &ProfileConfig, key: &str) -> Option<String> {
         serde_json::Value::Number(num) => Some(num.to_string()),
         _ => None,
     })
+}
+
+fn profile_meta_strings(
+    total_profiles: usize,
+    current_page: usize,
+    total_pages: usize,
+    selected: Option<&crate::tui::app::ProfileItem>,
+) -> Vec<String> {
+    let selection = selected
+        .map(|profile| {
+            if profile.is_current {
+                format!("Selected: {} (current)", profile.name)
+            } else {
+                format!("Selected: {}", profile.name)
+            }
+        })
+        .unwrap_or_else(|| "Selected: -".to_string());
+
+    vec![
+        selection,
+        format!("Profiles: {total_profiles}"),
+        format!("Page: {}/{}", current_page + 1, total_pages.max(1)),
+        "Legend: ● current · ▶ selected".to_string(),
+        "Enter apply · r reload · Tab switch".to_string(),
+    ]
+}
+
+fn profile_summary_strings(
+    platform: Platform,
+    name: &str,
+    config: &ProfileConfig,
+    is_current: bool,
+    last_applied: Option<&(String, String, bool, Option<String>)>,
+) -> Vec<String> {
+    let mut lines = vec![
+        format!("Name: {name}"),
+        format!(
+            "Status: {} · {}",
+            if is_current { "Current" } else { "Available" },
+            if config.is_enabled() {
+                "Enabled"
+            } else {
+                "Disabled"
+            }
+        ),
+        format!("Description: {}", opt_text(config.description.as_deref())),
+        format!("Model: {}", opt_text(config.model.as_deref())),
+    ];
+
+    if platform == Platform::Codex {
+        let auth_mode = CodexPlatform::profile_auth_mode(config);
+        lines.push(format!(
+            "Routing: {} · {}",
+            opt_text(config.provider.as_deref()),
+            auth_mode.as_str()
+        ));
+    } else {
+        lines.push(format!(
+            "Base URL: {}",
+            opt_text(config.base_url.as_deref())
+        ));
+    }
+
+    lines.push(format!(
+        "Last action: {}",
+        last_apply_message(name, last_applied).unwrap_or_else(|| "None this session".to_string())
+    ));
+
+    lines
+}
+
+fn last_apply_message(
+    profile_name: &str,
+    last_applied: Option<&(String, String, bool, Option<String>)>,
+) -> Option<String> {
+    let (_, name, success, error) = last_applied?;
+    if name != profile_name {
+        return None;
+    }
+
+    if *success {
+        Some("Applied successfully".to_string())
+    } else {
+        Some(format!(
+            "Apply failed{}",
+            error
+                .as_ref()
+                .map(|err| format!(" ({err})"))
+                .unwrap_or_default()
+        ))
+    }
 }
 
 /// Render empty state for current platform
@@ -695,78 +980,45 @@ fn profile_status_alignment(app: &App) -> Alignment {
 
 /// Render footer with keyboard shortcuts and toast notification
 fn render_footer(f: &mut Frame, app: &App, area: Rect) {
-    let chunks = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([Constraint::Length(3), Constraint::Length(2)])
-        .split(area);
+    let paragraph = Paragraph::new(footer_text(app))
+        .block(
+            Block::default()
+                .borders(Borders::TOP)
+                .border_set(symbols::border::ROUNDED)
+                .border_style(Style::default().fg(theme::BORDER))
+                .title(" Keys ")
+                .title_alignment(Alignment::Center)
+                .title_style(
+                    Style::default()
+                        .fg(theme::FG_MUTED)
+                        .add_modifier(Modifier::ITALIC),
+                ),
+        )
+        .alignment(Alignment::Center)
+        .wrap(Wrap { trim: true });
 
-    render_shortcuts(f, app, chunks[0]);
-    render_toast(f, app, chunks[1]);
+    f.render_widget(paragraph, area);
 }
 
-/// Render keyboard shortcuts bar (Claude tab only)
-fn render_shortcuts(f: &mut Frame, app: &App, area: Rect) {
-    let sep = Span::styled(" │ ", Style::default().fg(theme::BORDER));
-
+fn footer_text(app: &App) -> String {
     let page_hint = if app.total_pages() > 1 {
-        vec![
-            Span::styled("←→", theme::shortcut_key_style()),
-            Span::styled(" Prev/Next page", theme::shortcut_desc_style()),
-            sep.clone(),
-        ]
+        "←→ page  │  "
     } else {
-        vec![]
+        ""
     };
 
-    let mut shortcuts_spans = vec![
-        Span::styled("Tab", theme::shortcut_key_style()),
-        Span::styled(" Switch", theme::shortcut_desc_style()),
-        sep.clone(),
-    ];
+    let shortcuts =
+        format!("Tab switch  │  {page_hint}↑↓/jk select  │  Enter apply  │  r reload  │  q quit");
 
-    shortcuts_spans.extend(page_hint);
-
-    shortcuts_spans.extend(vec![
-        Span::styled("↑↓", theme::shortcut_key_style()),
-        Span::styled("/", Style::default().fg(theme::FG_MUTED)),
-        Span::styled("jk", theme::shortcut_key_style()),
-        Span::styled(" Select", theme::shortcut_desc_style()),
-        sep.clone(),
-        Span::styled("Enter", theme::shortcut_key_style()),
-        Span::styled(" Apply", theme::shortcut_desc_style()),
-        sep.clone(),
-        Span::styled("r", theme::shortcut_key_style()),
-        Span::styled(" Reload", theme::shortcut_desc_style()),
-        sep.clone(),
-        Span::styled("🖱️", theme::shortcut_key_style()),
-        Span::styled(" Mouse", theme::shortcut_desc_style()),
-        sep,
-        Span::styled("q", theme::shortcut_key_style()),
-        Span::styled(" Quit", theme::shortcut_desc_style()),
-    ]);
-
-    let shortcuts = Line::from(shortcuts_spans);
-
-    let block = Block::default()
-        .borders(Borders::TOP)
-        .border_set(symbols::border::ROUNDED)
-        .border_style(Style::default().fg(theme::BORDER))
-        .title(" Keys ")
-        .title_alignment(Alignment::Center)
-        .title_style(
-            Style::default()
-                .fg(theme::FG_MUTED)
-                .add_modifier(Modifier::ITALIC),
-        );
-
-    let shortcuts_paragraph = Paragraph::new(shortcuts)
-        .block(block)
-        .alignment(Alignment::Center);
-
-    f.render_widget(shortcuts_paragraph, area);
+    if let Some(toast) = app.toasts.active() {
+        format!("{}  │  {}", toast.message, shortcuts)
+    } else {
+        shortcuts
+    }
 }
 
 /// Render toast notification (replaces old status_message)
+#[allow(dead_code)]
 fn render_toast(f: &mut Frame, app: &App, area: Rect) {
     if let Some(toast) = app.toasts.active() {
         let style = match toast.kind {
@@ -782,5 +1034,61 @@ fn render_toast(f: &mut Frame, app: &App, area: Rect) {
             .alignment(Alignment::Center);
 
         f.render_widget(status, area);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::tui::theme::ViewportMode;
+
+    #[test]
+    fn viewport_mode_prefers_wide_only_when_both_dimensions_allow() {
+        assert_eq!(theme::viewport_mode(140, 30), ViewportMode::Wide);
+        assert_eq!(theme::viewport_mode(100, 30), ViewportMode::Standard);
+        assert_eq!(theme::viewport_mode(140, 20), ViewportMode::Compact);
+        assert_eq!(theme::viewport_mode(80, 30), ViewportMode::Compact);
+    }
+
+    #[test]
+    fn profile_meta_strings_show_selection_and_paging() {
+        let profile = crate::tui::app::ProfileItem {
+            name: "fovts".to_string(),
+            description: Some("公益".to_string()),
+            is_current: true,
+        };
+
+        let lines = profile_meta_strings(15, 1, 2, Some(&profile));
+
+        assert!(lines.iter().any(|line| line.contains("Selected: fovts")));
+        assert!(lines.iter().any(|line| line.contains("Page: 2/2")));
+        assert!(lines.iter().any(|line| line.contains("Legend:")));
+    }
+
+    #[test]
+    fn profile_summary_strings_include_last_apply_feedback() {
+        let mut config = ProfileConfig::new();
+        config.description = Some("fovts 公益".to_string());
+        config.model = Some("gpt-5.4".to_string());
+
+        let lines = profile_summary_strings(
+            Platform::Codex,
+            "fovts",
+            &config,
+            true,
+            Some(&("Codex Profile".to_string(), "fovts".to_string(), true, None)),
+        );
+
+        assert!(
+            lines
+                .iter()
+                .any(|line| line.contains("Status: Current · Enabled"))
+        );
+        assert!(lines.iter().any(|line| line.contains("Model: gpt-5.4")));
+        assert!(
+            lines
+                .iter()
+                .any(|line| line.contains("Last action: Applied successfully"))
+        );
     }
 }

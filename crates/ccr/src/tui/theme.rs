@@ -4,6 +4,30 @@
 use crate::models::Platform;
 use ratatui::style::{Color, Modifier, Style};
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ViewportMode {
+    Compact,
+    Standard,
+    Wide,
+}
+
+pub fn viewport_mode(width: u16, height: u16) -> ViewportMode {
+    if width < 90 || height < 22 {
+        ViewportMode::Compact
+    } else if width >= 120 && height >= 22 {
+        ViewportMode::Wide
+    } else {
+        ViewportMode::Standard
+    }
+}
+
+pub fn footer_height(mode: ViewportMode) -> u16 {
+    match mode {
+        ViewportMode::Compact => 2,
+        ViewportMode::Standard | ViewportMode::Wide => 3,
+    }
+}
+
 // ═══════════════════════════════════════════════════════════
 // Color definitions - modern gradient palette
 // ═══════════════════════════════════════════════════════════
@@ -135,18 +159,6 @@ pub fn list_description_style(is_selected: bool, is_current: bool) -> Style {
     } else {
         Style::default().fg(FG_MUTED)
     }
-}
-
-/// Shortcut key style
-pub fn shortcut_key_style() -> Style {
-    Style::default()
-        .fg(CLAUDE_PRIMARY)
-        .add_modifier(Modifier::BOLD)
-}
-
-/// Shortcut description style
-pub fn shortcut_desc_style() -> Style {
-    Style::default().fg(FG_SECONDARY)
 }
 
 /// Success message style

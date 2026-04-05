@@ -567,33 +567,11 @@ fn draw_usage_panel(f: &mut Frame, area: Rect, app: &CodexAuthApp) {
             )));
         }
         UsageState::Loaded(usage) => {
-            let five_total =
-                usage.five_hour.total_input_tokens + usage.five_hour.total_output_tokens;
-            let seven_total =
-                usage.seven_day.total_input_tokens + usage.seven_day.total_output_tokens;
-
-            content.push(Line::from(vec![
-                Span::styled("  5小时: ", Style::default().fg(Color::Cyan)),
-                Span::styled(
-                    format!(
-                        "{} tokens ({} 请求)",
-                        CodexUsageService::format_tokens(five_total),
-                        usage.five_hour.total_requests
-                    ),
-                    Style::default().fg(Color::White),
-                ),
-            ]));
-            content.push(Line::from(vec![
-                Span::styled("  7天:   ", Style::default().fg(Color::Cyan)),
-                Span::styled(
-                    format!(
-                        "{} tokens ({} 请求)",
-                        CodexUsageService::format_tokens(seven_total),
-                        usage.seven_day.total_requests
-                    ),
-                    Style::default().fg(Color::White),
-                ),
-            ]));
+            content.extend(
+                usage_digest_strings(usage)
+                    .into_iter()
+                    .map(|line| Line::from(Span::styled(line, Style::default().fg(Color::White)))),
+            );
         }
         UsageState::Loading => {
             content.push(Line::from(Span::styled(
@@ -635,6 +613,107 @@ fn progress_bar(pct: i32, width: usize) -> String {
     format!("{}{}", "█".repeat(filled), "░".repeat(empty))
 }
 
+fn account_snapshot_strings(account: &crate::models::CodexAuthItem) -> Vec<String> {
+    vec![
+        format!("Account: {}", account.name),
+        format!(
+            "State: {}{}",
+            if account.is_current {
+                "Current"
+            } else {
+                "Saved"
+            },
+            if account.is_virtual {
+                " · Virtual"
+            } else {
+                ""
+            }
+        ),
+        format!("Email: {}", account.email.as_deref().unwrap_or("-")),
+        format!("Freshness: {}", account.freshness.description()),
+        format!("Saved at: {}", format_saved_at(account)),
+        format!("Expires: {}", format_expires_at(account).0),
+        format!(
+            "Description: {}",
+            account.description.as_deref().unwrap_or("-")
+        ),
+    ]
+}
+
+fn usage_digest_strings(usage: &crate::services::CodexRollingUsage) -> Vec<String> {
+    let five_total = usage.five_hour.total_input_tokens + usage.five_hour.total_output_tokens;
+    let seven_total = usage.seven_day.total_input_tokens + usage.seven_day.total_output_tokens;
+    let all_time = usage.all_time.total_input_tokens + usage.all_time.total_output_tokens;
+
+    let top_model = usage
+        .by_model
+        .iter()
+        .max_by_key(|(_, stats)| stats.total_input_tokens + stats.total_output_tokens)
+        .map(|(model, stats)| {
+            let total = stats.total_input_tokens + stats.total_output_tokens;
+            format!(
+                "  Top model: {} ({}, {} req)",
+                model,
+                CodexUsageService::format_tokens(total),
+                stats.total_requests
+            )
+        })
+        .unwrap_or_else(|| "  Top model: -".to_string());
+
+    vec![
+        format!(
+            "  5小时: {} tokens ({} 请求)",
+            CodexUsageService::format_tokens(five_total),
+            usage.five_hour.total_requests
+        ),
+        format!(
+            "  7天:   {} tokens ({} 请求)",
+            CodexUsageService::format_tokens(seven_total),
+            usage.seven_day.total_requests
+        ),
+        format!(
+            "  All time: {} tokens ({} 请求)",
+            CodexUsageService::format_tokens(all_time),
+            usage.all_time.total_requests
+        ),
+        top_model,
+    ]
+}
+
+fn runtime_digest_strings(app: &CodexAuthApp) -> Vec<String> {
+    let mut lines = Vec::new();
+
+    if let Some(summary) = &app.runtime_summary {
+        lines.push(format!("Mode: {}", summary.mode.label()));
+        lines.push(format!("Profile: {}", summary.profile_label()));
+        lines.push(format!("Auth: {}", summary.auth_label()));
+    } else {
+        lines.push("Mode: 未解析".to_string());
+    }
+
+    lines.push(format!("Login: {}", login_status_text(app)));
+
+    if let Some((action, name, success, error)) = &app.last_action {
+        if *success {
+            lines.push(format!("Recent: {} {}", action, name));
+        } else {
+            lines.push(format!(
+                "Recent: {} {} failed{}",
+                action,
+                name,
+                error
+                    .as_ref()
+                    .map(|err| format!(" ({err})"))
+                    .unwrap_or_default()
+            ));
+        }
+    } else {
+        lines.push("Recent: Enter switch · s save · b quota".to_string());
+    }
+
+    lines
+}
+
 fn is_refresh_token_reused_error(message: &str) -> bool {
     let lower = message.to_ascii_lowercase();
     lower.contains("refresh_token_reused") || lower.contains("invalid_grant")
@@ -670,35 +749,60 @@ pub fn draw_embedded(
     app: &CodexAuthApp,
     content_area: Rect,
     footer_area: Rect,
-    compact: bool,
+    mode: crate::tui::theme::ViewportMode,
 ) {
-    // Content area: account list + usage panel
-    let content_chunks = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([
-            Constraint::Min(8),     // Account list (with login status in title)
-            Constraint::Length(12), // Usage panel
-        ])
-        .split(content_area);
+    match mode {
+        crate::tui::theme::ViewportMode::Compact => {
+            let content_chunks = Layout::default()
+                .direction(Direction::Vertical)
+                .constraints([Constraint::Min(8), Constraint::Length(12)])
+                .split(content_area);
 
-    draw_account_list_with_status(f, content_chunks[0], app);
-    draw_usage_panel(f, content_chunks[1], app);
+            draw_account_list_with_status(f, content_chunks[0], app);
+            draw_usage_panel(f, content_chunks[1], app);
+        }
+        crate::tui::theme::ViewportMode::Standard => {
+            let content_chunks = Layout::default()
+                .direction(Direction::Vertical)
+                .constraints([
+                    Constraint::Min(8),
+                    Constraint::Length(12),
+                    Constraint::Length(8),
+                ])
+                .split(content_area);
 
-    // Footer area: status bar + help bar (or just help in compact)
-    if compact {
-        draw_help_bar_embedded(f, footer_area, app);
-    } else {
-        let footer_chunks = Layout::default()
-            .direction(Direction::Vertical)
-            .constraints([
-                Constraint::Length(3), // Status bar
-                Constraint::Length(2), // Help bar
-            ])
-            .split(footer_area);
+            draw_account_list_with_status(f, content_chunks[0], app);
+            draw_usage_panel(f, content_chunks[1], app);
+            draw_runtime_panel(f, content_chunks[2], app);
+        }
+        crate::tui::theme::ViewportMode::Wide => {
+            let columns = Layout::default()
+                .direction(Direction::Horizontal)
+                .constraints([Constraint::Percentage(42), Constraint::Percentage(58)])
+                .split(content_area);
 
-        draw_status_bar(f, footer_chunks[0], app);
-        draw_help_bar_embedded(f, footer_chunks[1], app);
+            let left = Layout::default()
+                .direction(Direction::Vertical)
+                .constraints([Constraint::Min(8), Constraint::Length(4)])
+                .split(columns[0]);
+            draw_account_list_with_status(f, left[0], app);
+            draw_account_list_meta_panel(f, left[1], app);
+
+            let right = Layout::default()
+                .direction(Direction::Vertical)
+                .constraints([
+                    Constraint::Length(8),
+                    Constraint::Length(12),
+                    Constraint::Min(6),
+                ])
+                .split(columns[1]);
+            draw_account_snapshot_panel(f, right[0], app);
+            draw_usage_panel(f, right[1], app);
+            draw_runtime_panel(f, right[2], app);
+        }
     }
+
+    draw_footer_strip(f, footer_area, app);
 
     // Draw overlay (with dark backdrop) if active
     if let Some(overlay) = &app.overlay {
@@ -710,7 +814,7 @@ pub fn draw_loading_placeholder(
     f: &mut Frame,
     content_area: Rect,
     footer_area: Rect,
-    compact: bool,
+    mode: crate::tui::theme::ViewportMode,
     error: Option<&str>,
 ) {
     let message = error
@@ -729,17 +833,12 @@ pub fn draw_loading_placeholder(
         .wrap(Wrap { trim: true });
     f.render_widget(panel, content_area);
 
-    if compact {
+    if mode == crate::tui::theme::ViewportMode::Compact {
         let help = Paragraph::new("Tab 切换")
             .style(Style::default().fg(Color::DarkGray))
             .alignment(Alignment::Center);
         f.render_widget(help, footer_area);
     } else {
-        let footer_chunks = Layout::default()
-            .direction(Direction::Vertical)
-            .constraints([Constraint::Length(3), Constraint::Length(2)])
-            .split(footer_area);
-
         let status_text = if error.is_some() {
             "初始化失败"
         } else {
@@ -753,17 +852,12 @@ pub fn draw_loading_placeholder(
 
         let status = Paragraph::new(status_text).style(status_style).block(
             Block::default()
-                .borders(Borders::ALL)
+                .borders(Borders::TOP)
                 .border_style(Style::default().fg(theme::BORDER))
-                .title(" 状态 ")
+                .title(" Keys ")
                 .title_style(Style::default().fg(theme::ACCENT)),
         );
-        f.render_widget(status, footer_chunks[0]);
-
-        let help = Paragraph::new("Tab 切换")
-            .style(Style::default().fg(Color::DarkGray))
-            .alignment(Alignment::Center);
-        f.render_widget(help, footer_chunks[1]);
+        f.render_widget(status, footer_area);
     }
 }
 
@@ -772,19 +866,85 @@ fn draw_account_list_with_status(f: &mut Frame, area: Rect, app: &CodexAuthApp) 
     render_account_list_panel(f, area, app, title);
 }
 
-/// Draw help bar with Tab switch hint (embedded mode)
-fn draw_help_bar_embedded(f: &mut Frame, area: Rect, app: &CodexAuthApp) {
-    let help_text = match &app.overlay {
-        Some(Overlay::Confirm { .. }) => "y 确认删除 | n/Esc 取消",
-        Some(Overlay::Input { .. }) => "Enter 确认 | Esc 取消",
-        None => {
-            "Tab 切换 | ↑/k 上移 | ↓/j 下移 | Enter 切换 | s 保存当前 | d 删除 | r 刷新 | R 修复 | b 配额 | q 退出"
-        }
+fn draw_account_list_meta_panel(f: &mut Frame, area: Rect, app: &CodexAuthApp) {
+    let selected = app
+        .selected_account()
+        .map(|account| account.name.as_str())
+        .unwrap_or("-");
+    let lines = [
+        format!("Selected: {selected}"),
+        format!("Page: {}/{}", app.current_page + 1, app.total_pages()),
+        "Legend: 🟢 fresh · 🟡 stale · 🔴 old".to_string(),
+        "Enter switch · s save · d delete".to_string(),
+    ];
+
+    let panel = Paragraph::new(lines.join("\n"))
+        .block(
+            Block::default()
+                .borders(Borders::ALL)
+                .border_style(Style::default().fg(theme::BORDER))
+                .title(" Legend ")
+                .title_style(Style::default().fg(theme::FG_SECONDARY)),
+        )
+        .wrap(Wrap { trim: true });
+
+    f.render_widget(panel, area);
+}
+
+fn draw_account_snapshot_panel(f: &mut Frame, area: Rect, app: &CodexAuthApp) {
+    let lines = app
+        .selected_account()
+        .map(account_snapshot_strings)
+        .unwrap_or_else(|| vec!["Account: -".to_string(), "State: -".to_string()]);
+
+    let panel = Paragraph::new(lines.join("\n"))
+        .block(
+            Block::default()
+                .borders(Borders::ALL)
+                .border_style(Style::default().fg(theme::BORDER))
+                .title(" Focus ")
+                .title_style(Style::default().fg(theme::ACCENT)),
+        )
+        .wrap(Wrap { trim: true });
+
+    f.render_widget(panel, area);
+}
+
+fn draw_runtime_panel(f: &mut Frame, area: Rect, app: &CodexAuthApp) {
+    let panel = Paragraph::new(runtime_digest_strings(app).join("\n"))
+        .block(
+            Block::default()
+                .borders(Borders::ALL)
+                .border_style(Style::default().fg(theme::BORDER))
+                .title(" Runtime ")
+                .title_style(Style::default().fg(theme::ACCENT)),
+        )
+        .wrap(Wrap { trim: true });
+
+    f.render_widget(panel, area);
+}
+
+fn draw_footer_strip(f: &mut Frame, area: Rect, app: &CodexAuthApp) {
+    let message = if let Some(toast) = app.toasts.active() {
+        format!(
+            "{}  │  Tab switch  │  ↑↓/jk select  │  Enter switch  │  s save  │  b quota  │  q quit",
+            toast.message
+        )
+    } else {
+        "Tab switch  │  ↑↓/jk select  │  Enter switch  │  s save  │  d delete  │  b quota  │  q quit"
+            .to_string()
     };
 
-    let help = Paragraph::new(help_text)
-        .style(Style::default().fg(Color::DarkGray))
-        .alignment(Alignment::Center);
+    let help = Paragraph::new(message)
+        .block(
+            Block::default()
+                .borders(Borders::TOP)
+                .border_style(Style::default().fg(theme::BORDER))
+                .title(" Keys ")
+                .title_style(Style::default().fg(theme::FG_MUTED)),
+        )
+        .alignment(Alignment::Center)
+        .wrap(Wrap { trim: true });
 
     f.render_widget(help, area);
 }
@@ -792,6 +952,9 @@ fn draw_help_bar_embedded(f: &mut Frame, area: Rect, app: &CodexAuthApp) {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use ccr_codex::services::codex_usage_service::CodexUsageStats;
+    use chrono::{TimeZone, Utc};
+    use std::collections::HashMap;
 
     #[test]
     fn account_table_layout_hides_secondary_columns_on_narrow_widths() {
@@ -831,5 +994,67 @@ mod tests {
 
         assert_eq!(regions.header, Rect::new(2, 3, 80, 1));
         assert_eq!(regions.body, Rect::new(2, 4, 80, 8));
+    }
+
+    #[test]
+    fn account_snapshot_strings_include_freshness_description() {
+        let account = crate::models::CodexAuthItem {
+            name: "codexcn".to_string(),
+            description: Some("Primary account".to_string()),
+            email: Some("bah***@gmail.com".to_string()),
+            is_current: true,
+            is_virtual: false,
+            saved_at: Some(Utc.with_ymd_and_hms(2026, 4, 5, 12, 0, 0).unwrap()),
+            last_used: None,
+            last_refresh: None,
+            freshness: crate::models::TokenFreshness::Fresh,
+            expires_at: None,
+        };
+
+        let lines = account_snapshot_strings(&account);
+
+        assert!(lines.iter().any(|line| line.contains("Account: codexcn")));
+        assert!(
+            lines
+                .iter()
+                .any(|line| line.contains("Freshness: Token 状态良好"))
+        );
+        assert!(
+            lines
+                .iter()
+                .any(|line| line.contains("Description: Primary account"))
+        );
+    }
+
+    #[test]
+    fn usage_digest_strings_include_all_time_and_top_model() {
+        let mut usage = crate::services::CodexRollingUsage::default();
+        usage.five_hour.total_input_tokens = 1_000;
+        usage.five_hour.total_output_tokens = 2_000;
+        usage.five_hour.total_requests = 3;
+        usage.seven_day.total_input_tokens = 10_000;
+        usage.seven_day.total_output_tokens = 20_000;
+        usage.seven_day.total_requests = 30;
+        usage.all_time.total_input_tokens = 50_000;
+        usage.all_time.total_output_tokens = 10_000;
+        usage.all_time.total_requests = 42;
+        usage.by_model = HashMap::from([(
+            "gpt-5.4".to_string(),
+            CodexUsageStats {
+                total_input_tokens: 30_000,
+                total_output_tokens: 5_000,
+                total_requests: 21,
+                ..Default::default()
+            },
+        )]);
+
+        let lines = usage_digest_strings(&usage);
+
+        assert!(
+            lines
+                .iter()
+                .any(|line| line.contains("All time: 60.0K tokens"))
+        );
+        assert!(lines.iter().any(|line| line.contains("Top model: gpt-5.4")));
     }
 }
