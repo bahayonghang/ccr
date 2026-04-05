@@ -1,6 +1,6 @@
 <template>
   <div class="overview-tab">
-    <section class="overview-tab__canvas">
+    <section class="overview-tab__canvas overview-tab__hero">
       <div class="overview-tab__trend glass-panel rounded-[30px] p-4">
         <div class="overview-tab__panel-head">
           <div>
@@ -39,7 +39,7 @@
         </div>
       </div>
 
-      <aside class="overview-tab__side glass-panel rounded-[28px] p-4">
+      <aside class="overview-tab__distribution glass-panel rounded-[28px] p-4">
         <UsageModelDistributionCard
           :chart-component="chartComponent"
           :format-cost="formatCost"
@@ -53,42 +53,58 @@
           :title="$t('usage.dashboard.chart.costByModel')"
           variant="embedded"
         />
-
-        <div class="overview-tab__side-divider" />
-
-        <div class="overview-tab__insights">
-          <div class="overview-tab__panel-head">
-            <div>
-              <p class="overview-tab__eyebrow">
-                {{ $t('usage.dashboard.highlights.eyebrow') }}
-              </p>
-              <h3 class="overview-tab__panel-title">
-                {{ $t('usage.dashboard.highlights.title') }}
-              </h3>
-              <p class="overview-tab__panel-subtitle">
-                {{ $t('usage.dashboard.highlights.subtitle') }}
-              </p>
-            </div>
-          </div>
-
-          <div class="overview-tab__insight-list">
-            <article
-              v-for="item in overviewHighlights"
-              :key="item.id"
-              class="overview-tab__insight-card"
-            >
-              <span class="overview-tab__insight-label">{{ item.label }}</span>
-              <strong
-                class="overview-tab__insight-value"
-                :title="item.value"
-              >
-                {{ item.value }}
-              </strong>
-              <span class="overview-tab__insight-detail">{{ item.detail }}</span>
-            </article>
-          </div>
-        </div>
       </aside>
+    </section>
+
+    <section class="overview-tab__insights-strip glass-panel rounded-[26px] p-4">
+      <div class="overview-tab__panel-head overview-tab__panel-head--strip">
+        <div>
+          <p class="overview-tab__eyebrow">
+            {{ $t('usage.dashboard.highlights.eyebrow') }}
+          </p>
+          <h3 class="overview-tab__panel-title">
+            {{ $t('usage.dashboard.highlights.title') }}
+          </h3>
+          <p class="overview-tab__panel-subtitle">
+            {{ $t('usage.dashboard.highlights.subtitle') }}
+          </p>
+        </div>
+      </div>
+
+      <div
+        v-if="overviewHighlights.length > 0"
+        class="overview-tab__insight-grid"
+      >
+        <article
+          v-for="item in overviewHighlights"
+          :key="item.id"
+          class="overview-tab__insight-tile"
+          :class="`overview-tab__insight-tile--${getInsightTone(item.id)}`"
+        >
+          <span
+            class="overview-tab__insight-accent"
+            aria-hidden="true"
+          />
+
+          <div class="overview-tab__insight-copy">
+            <span class="overview-tab__insight-label">{{ item.label }}</span>
+            <strong
+              class="overview-tab__insight-value"
+              :title="item.value"
+            >
+              {{ item.value }}
+            </strong>
+            <span class="overview-tab__insight-detail">{{ item.detail }}</span>
+          </div>
+        </article>
+      </div>
+
+      <div
+        v-else
+        class="overview-tab__rank-empty"
+      >
+        {{ $t('usage.dashboard.table.noData') }}
+      </div>
     </section>
 
     <section class="overview-tab__rankings">
@@ -258,23 +274,36 @@ interface Props {
 defineProps<Props>()
 
 const formatShare = (value: number) => `${Math.round(value * 100)}%`
+
+type InsightTone = 'violet' | 'rose' | 'sky' | 'amber'
+
+const insightToneById: Record<string, InsightTone> = {
+  density: 'violet',
+  'top-model': 'rose',
+  'top-project': 'sky',
+  cache: 'amber',
+}
+
+const getInsightTone = (id: string): InsightTone => insightToneById[id] ?? 'violet'
 </script>
 
 <style scoped>
 .overview-tab {
   display: flex;
   flex-direction: column;
-  gap: 0.9rem;
+  gap: 1rem;
 }
 
-.overview-tab__canvas {
+.overview-tab__hero {
   display: grid;
-  gap: 0.9rem;
-  grid-template-columns: minmax(0, 1.7fr) minmax(22rem, 0.9fr);
+  gap: 1rem;
+  grid-template-columns: minmax(0, 1.72fr) minmax(19.5rem, 0.88fr);
   align-items: start;
 }
 
 .overview-tab__trend,
+.overview-tab__distribution,
+.overview-tab__insights-strip,
 .overview-tab__rank-panel {
   position: relative;
   overflow: hidden;
@@ -283,27 +312,19 @@ const formatShare = (value: number) => `${Math.round(value * 100)}%`
   min-width: 0;
 }
 
-.overview-tab__side {
+.overview-tab__distribution,
+.overview-tab__insights-strip,
+.overview-tab__rank-panel {
   display: grid;
   gap: 0.8rem;
-  min-width: 0;
   align-content: start;
-}
-
-.overview-tab__side-divider {
-  height: 1px;
-  background: linear-gradient(
-    90deg,
-    rgb(var(--color-border-default-rgb) / 0%),
-    rgb(var(--color-border-default-rgb) / 24%),
-    rgb(var(--color-border-default-rgb) / 0%)
-  );
 }
 
 .overview-tab__trend {
   display: grid;
-  gap: 0.65rem;
+  gap: 0.75rem;
   align-content: start;
+  min-height: clamp(25rem, 47vh, 31rem);
 }
 
 .overview-tab__panel-head {
@@ -311,36 +332,40 @@ const formatShare = (value: number) => `${Math.round(value * 100)}%`
   align-items: flex-start;
   justify-content: space-between;
   gap: 0.8rem;
-  margin-bottom: 0.65rem;
+  margin-bottom: 0.5rem;
+}
+
+.overview-tab__panel-head--strip {
+  margin-bottom: 0.1rem;
 }
 
 .overview-tab__eyebrow {
   color: var(--color-text-muted);
-  font-size: 0.68rem;
+  font-size: 0.66rem;
   font-weight: 700;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
 }
 
 .overview-tab__panel-title {
-  margin-top: 0.14rem;
+  margin-top: 0.16rem;
   color: var(--color-text-primary);
-  font-size: 0.98rem;
+  font-size: 1rem;
   font-weight: 650;
 }
 
 .overview-tab__panel-subtitle {
-  margin-top: 0.2rem;
+  margin-top: 0.18rem;
   color: var(--color-text-secondary);
-  font-size: 0.78rem;
-  line-height: 1.45;
+  font-size: 0.77rem;
+  line-height: 1.5;
 }
 
 .overview-tab__trend-chip {
   display: inline-flex;
-  min-height: 1.9rem;
+  min-height: 1.8rem;
   align-items: center;
-  padding: 0 0.75rem;
+  padding: 0 0.72rem;
   border-radius: 9999px;
   border: 1px solid rgb(var(--color-accent-primary-rgb) / 18%);
   background: linear-gradient(
@@ -349,8 +374,9 @@ const formatShare = (value: number) => `${Math.round(value * 100)}%`
     rgb(var(--color-accent-secondary-rgb) / 10%)
   );
   color: var(--color-text-primary);
-  font-size: 0.72rem;
+  font-size: 0.7rem;
   font-weight: 700;
+  letter-spacing: 0.04em;
 }
 
 .overview-tab__empty,
@@ -366,10 +392,21 @@ const formatShare = (value: number) => `${Math.round(value * 100)}%`
 }
 
 .overview-tab__trend-shell {
+  position: relative;
+  display: grid;
   min-width: 0;
-  min-height: clamp(15.5rem, 31vh, 18rem);
+  min-height: clamp(20.5rem, 40vh, 25.5rem);
   overflow: hidden;
-  border-radius: 1.15rem;
+  border-radius: 1.3rem;
+  border: 1px solid rgb(var(--color-border-default-rgb) / 16%);
+  background:
+    radial-gradient(circle at 22% 14%, rgb(var(--color-accent-primary-rgb) / 10%), transparent 34%),
+    linear-gradient(
+      180deg,
+      rgb(var(--color-bg-elevated-rgb) / 40%),
+      rgb(var(--color-bg-surface-rgb) / 18%)
+    );
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 4%);
 }
 
 .overview-tab__chart {
@@ -379,55 +416,93 @@ const formatShare = (value: number) => `${Math.round(value * 100)}%`
 }
 
 .overview-tab__empty--trend {
-  min-height: clamp(15.5rem, 31vh, 18rem);
+  min-height: clamp(20.5rem, 40vh, 25.5rem);
   width: 100%;
 }
 
-.overview-tab__insight-list {
+.overview-tab__insight-grid {
   display: grid;
-  gap: 0.6rem;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.7rem;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 
-.overview-tab__insight-card {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
+.overview-tab__insight-tile {
+  --overview-insight-rgb: var(--color-accent-secondary-rgb);
+
+  position: relative;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.8rem;
+  align-items: start;
   min-width: 0;
-  border-radius: 1rem;
-  border: 1px solid rgb(var(--color-border-default-rgb) / 22%);
+  border-radius: 1.15rem;
+  border: 1px solid rgb(var(--color-border-default-rgb) / 16%);
   background: linear-gradient(
-    180deg,
-    rgb(var(--color-bg-elevated-rgb) / 56%),
-    rgb(var(--color-bg-surface-rgb) / 28%)
+    135deg,
+    rgb(var(--overview-insight-rgb) / 11%),
+    rgb(var(--color-bg-elevated-rgb) / 54%) 36%,
+    rgb(var(--color-bg-surface-rgb) / 18%)
   );
-  padding: 0.82rem 0.88rem;
+  padding: 0.95rem 1rem;
   transition:
     border-color var(--motion-subtle-duration) var(--motion-subtle-ease),
     transform var(--motion-subtle-duration) var(--motion-subtle-ease),
     background-color var(--motion-subtle-duration) var(--motion-subtle-ease);
 }
 
-.overview-tab__side:hover .overview-tab__insight-card {
-  border-color: rgb(var(--color-accent-primary-rgb) / 18%);
+.overview-tab__insight-tile:hover {
+  transform: translateY(-1px);
+  border-color: rgb(var(--overview-insight-rgb) / 22%);
+}
+
+.overview-tab__insight-tile--rose {
+  --overview-insight-rgb: var(--color-accent-primary-rgb);
+}
+
+.overview-tab__insight-tile--violet {
+  --overview-insight-rgb: var(--color-accent-secondary-rgb);
+}
+
+.overview-tab__insight-tile--sky {
+  --overview-insight-rgb: var(--color-info-rgb);
+}
+
+.overview-tab__insight-tile--amber {
+  --overview-insight-rgb: var(--color-warning-rgb);
+}
+
+.overview-tab__insight-accent {
+  width: 0.45rem;
+  min-height: 3.35rem;
+  border-radius: 9999px;
+  background: rgb(var(--overview-insight-rgb) / 82%);
+  box-shadow: 0 0 0 4px rgb(var(--overview-insight-rgb) / 10%);
+}
+
+.overview-tab__insight-copy {
+  display: grid;
+  gap: 0.2rem;
+  min-width: 0;
 }
 
 .overview-tab__insight-label {
   color: var(--color-text-muted);
-  font-size: 0.68rem;
+  font-size: 0.67rem;
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
 }
 
 .overview-tab__insight-value {
-  display: block;
+  display: -webkit-box;
   overflow: hidden;
   color: var(--color-text-primary);
-  font-size: 0.94rem;
+  font-size: 0.97rem;
   font-weight: 650;
+  line-height: 1.3;
   text-overflow: ellipsis;
-  white-space: nowrap;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 
 .overview-tab__insight-detail {
@@ -439,7 +514,7 @@ const formatShare = (value: number) => `${Math.round(value * 100)}%`
 
 .overview-tab__rankings {
   display: grid;
-  gap: 0.9rem;
+  gap: 1rem;
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
@@ -534,21 +609,38 @@ const formatShare = (value: number) => `${Math.round(value * 100)}%`
 }
 
 @media (width < 1280px) {
-  .overview-tab__canvas,
+  .overview-tab__hero,
   .overview-tab__rankings {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .overview-tab__insight-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
 @media (width < 1440px) and (width >= 1280px) {
-  .overview-tab__canvas {
+  .overview-tab__hero {
     grid-template-columns: minmax(0, 1.45fr) minmax(20rem, 0.92fr);
   }
 }
 
 @media (width < 900px) {
-  .overview-tab__insight-list {
+  .overview-tab__insight-grid {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .overview-tab__panel-head {
+    flex-direction: column;
+  }
+
+  .overview-tab__trend {
+    min-height: auto;
+  }
+
+  .overview-tab__trend-shell,
+  .overview-tab__empty--trend {
+    min-height: clamp(18rem, 52vh, 22rem);
   }
 }
 </style>

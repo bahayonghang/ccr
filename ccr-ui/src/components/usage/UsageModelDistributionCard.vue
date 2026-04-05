@@ -135,7 +135,7 @@ const hasData = computed(() => {
   return props.pieSeries.some((value) => value > 0)
 })
 
-const chartHeight = computed(() => (props.variant === 'embedded' ? 220 : 240))
+const chartHeight = computed(() => (props.variant === 'embedded' ? 196 : 240))
 </script>
 
 <style scoped>
@@ -191,7 +191,7 @@ const chartHeight = computed(() => (props.variant === 'embedded' ? 220 : 240))
 
 .distribution-card__body {
   display: grid;
-  gap: 0.8rem;
+  gap: 0.9rem;
   align-items: start;
 }
 
@@ -327,10 +327,79 @@ const chartHeight = computed(() => (props.variant === 'embedded' ? 220 : 240))
 }
 
 @media (width >= 1180px) {
-  .distribution-card__body {
+  .distribution-card--panel .distribution-card__body {
     grid-template-columns: clamp(11.5rem, 20vw, 14rem) minmax(0, 1fr);
     align-items: start;
   }
+}
+
+.distribution-card--embedded .distribution-card__header {
+  gap: 0.6rem;
+}
+
+.distribution-card--embedded .distribution-card__title {
+  font-size: 0.94rem;
+}
+
+.distribution-card--embedded .distribution-card__subtitle {
+  margin-top: 0.16rem;
+  font-size: 0.74rem;
+}
+
+.distribution-card--embedded .distribution-card__badge {
+  min-height: 1.65rem;
+  min-width: 1.65rem;
+  padding: 0 0.5rem;
+  font-size: 0.68rem;
+}
+
+.distribution-card--embedded .distribution-card__body {
+  gap: 0.72rem;
+}
+
+.distribution-card--embedded .distribution-card__chart-shell {
+  min-height: clamp(10.75rem, 22vh, 12.5rem);
+}
+
+.distribution-card--embedded .distribution-card__chart,
+.distribution-card--embedded .distribution-card__empty {
+  min-height: 196px;
+}
+
+.distribution-card--embedded .distribution-card__legend {
+  gap: 0.2rem;
+  max-height: 13rem;
+}
+
+.distribution-card--embedded .distribution-card__legend-item {
+  gap: 0.28rem;
+  padding: 0.58rem 0.65rem;
+  border-radius: 0.88rem;
+}
+
+.distribution-card--embedded .distribution-card__legend-row {
+  gap: 0.5rem;
+}
+
+.distribution-card--embedded .distribution-card__legend-main {
+  gap: 0.48rem;
+}
+
+.distribution-card--embedded .distribution-card__label {
+  font-size: 0.79rem;
+}
+
+.distribution-card--embedded .distribution-card__group-tag {
+  min-height: 1.2rem;
+  padding: 0 0.38rem;
+}
+
+.distribution-card--embedded .distribution-card__meta {
+  font-size: 0.7rem;
+}
+
+.distribution-card--embedded .distribution-card__share {
+  font-size: 0.76rem;
 }
 
 @media (width < 900px) {
