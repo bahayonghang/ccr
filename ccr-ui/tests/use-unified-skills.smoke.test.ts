@@ -93,7 +93,7 @@ const apiMocks = vi.hoisted(() => ({
   importSkillFromLocal: vi.fn(),
   importSkillViaNpx: vi.fn(),
   batchInstallSkills: vi.fn(),
-  checkNpxAvailability: vi.fn(),
+  skillsOnboardingCandidates: vi.fn(async (): Promise<unknown[]> => []),
   browseForFolder: vi.fn(),
 }))
 
@@ -130,15 +130,69 @@ describe('useUnifiedSkills smoke', () => {
     expect(skillsApi.stats.value.available).toBe(1)
   })
 
-  it('passes installation ids through content fetch and save', async () => {
+  it('loads onboarding candidates on demand', async () => {
+    apiMocks.skillsOnboardingCandidates.mockImplementationOnce(async () => [
+      {
+        skill_id: 'sg_skill_alpha',
+        name: 'Skill Alpha',
+        platform_ids: ['codex'],
+        installation_ids: ['ins_skill_alpha'],
+        reason: 'missing_source',
+      },
+    ])
+
     const { useUnifiedSkills } = await import('@/composables/useUnifiedSkills')
     const skillsApi = useUnifiedSkills()
 
-    await skillsApi.initialize()
-    await skillsApi.fetchSkillContent('/tmp/skill-alpha', 'ins_skill_alpha')
-    await skillsApi.saveSkillContent('sg_skill_alpha', 'ins_skill_alpha', 'updated content')
+    const candidates = await skillsApi.loadOnboardingCandidates(true)
 
-    expect(apiMocks.getSkillHubSkillContent).toHaveBeenCalledWith('sg_skill_alpha', 'ins_skill_alpha')
-    expect(apiMocks.saveSkillHubSkillContent).toHaveBeenCalledWith('sg_skill_alpha', 'ins_skill_alpha', 'updated content')
+    expect(apiMocks.skillsOnboardingCandidates).toHaveBeenCalledTimes(1)
+    expect(candidates).toHaveLength(1)
+    expect(candidates[0]?.skillId).toBe('sg_skill_alpha')
+    expect(skillsApi.onboardingCandidates.value).toHaveLength(1)
+  })
+
+  it('preserves backend target statuses when loading skill detail', async () => {
+    apiMocks.getSkillDetail.mockImplementationOnce(async () => ({
+      id: 'sg_skill_alpha',
+      name: 'skill-alpha',
+      origin: 'repo',
+      source_ref: 'src_alpha',
+      source_label: 'Repo Alpha',
+      tags: ['sync'],
+      install_count: 1,
+      editable_installations: ['ins_skill_alpha'],
+      installations: [
+        {
+          id: 'ins_skill_alpha',
+          platform_id: 'codex',
+          platform_name: 'Codex',
+          install_path: '/tmp/skill-alpha',
+          is_primary: true,
+        },
+      ],
+      targets: [
+        {
+          id: 'ins_skill_alpha',
+          platform_id: 'codex',
+          platform_name: 'Codex',
+          target_path: '/tmp/skill-alpha',
+          status: 'pending',
+          synced_at: 123,
+          is_primary: true,
+        },
+      ],
+    }))
+
+    const { useUnifiedSkills } = await import('@/composables/useUnifiedSkills')
+    const skillsApi = useUnifiedSkills()
+
+    const detail = await skillsApi.ensureDetail('sg_skill_alpha', true)
+
+    expect(detail?.targets).toHaveLength(1)
+    expect(detail?.targets[0]?.status).toBe('pending')
+    expect(detail?.lifecycle.targetCount).toBe(1)
+    expect(detail?.lifecycle.healthyTargetCount).toBe(0)
+    expect(detail?.lifecycle.hasErrors).toBe(true)
   })
 })

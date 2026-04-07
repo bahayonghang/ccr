@@ -9,7 +9,10 @@ import {
   getSkillHubUnified,
   searchSkillHubMarketplace,
   saveSkillHubSkillContent,
+  skillsFileGet,
+  skillsFilesList,
   skillsInstall,
+  skillsOnboardingCandidates,
   skillsRemoveInstallation,
   skillsRemoveSkill,
   skillsSourceAddGit,
@@ -22,8 +25,11 @@ import {
 import type {
   MarketplaceResponse,
   NpxStatus,
+  OnboardingCandidate,
   Platform,
   SkillContent,
+  SkillFileContent,
+  SkillFileEntry,
   SkillFilters,
   SkillLogEntry,
   SkillOperationResponse,
@@ -34,6 +40,8 @@ import type {
   SkillsRouteState,
   SkillsSyncRequest,
   SkillPlatformSummary,
+  SkillTargetRecord,
+  SkillWorkflowState,
   UnifiedSkill,
 } from '@/types/skills'
 
@@ -95,15 +103,97 @@ function transformInstallation(raw: unknown) {
   }
 }
 
+function toTargets(installations: SkillRecord['installations'], source?: UnknownRecord) {
+  const rawTargets = asArray(source?.targets)
+  if (rawTargets.length > 0) {
+    return rawTargets
+      .map((raw) => {
+        const row = asRecord(raw)
+        const platformId = normalizePlatform(String(row.platform_id ?? row.platformId ?? ''))
+        if (!platformId) return null
+        return {
+          id: String(row.id ?? ''),
+          platformId,
+          platformName: String(row.platform_name ?? row.platformName ?? ''),
+          targetPath: String(row.target_path ?? row.targetPath ?? ''),
+          syncMode: 'copy' as const,
+          status: String(row.status ?? 'unknown') as SkillTargetRecord['status'],
+          syncedAt: typeof row.synced_at === 'number' ? row.synced_at : undefined,
+          lastError: typeof row.last_error === 'string' ? row.last_error : undefined,
+          isPrimary: Boolean(row.is_primary ?? row.isPrimary),
+        }
+      })
+      .filter(isNonNull)
+  }
+
+  return installations.filter(isNonNull).map(
+    (installation): SkillTargetRecord => ({
+      id: installation.id,
+      platformId: installation.platformId,
+      platformName: installation.platformName,
+      targetPath: installation.installPath,
+      syncMode: installation.installMode,
+      status: 'ok',
+      syncedAt: installation.installedAt,
+      lastError: undefined,
+      isPrimary: installation.isPrimary,
+    })
+  )
+}
+
+function toLifecycle(
+  installations: SkillRecord['installations'],
+  source: UnknownRecord,
+  sourceRef?: string,
+  sourceLabel?: string,
+  fallbackTargets?: SkillTargetRecord[]
+) {
+  const rawLifecycle = asRecord(source.lifecycle)
+  if (Object.keys(rawLifecycle).length > 0) {
+    return {
+      sourceRef: typeof rawLifecycle.source_ref === 'string' ? rawLifecycle.source_ref : sourceRef,
+      sourceLabel:
+        typeof rawLifecycle.source_label === 'string' ? rawLifecycle.source_label : sourceLabel,
+      sourceRevision:
+        typeof rawLifecycle.source_revision === 'string' ? rawLifecycle.source_revision : undefined,
+      contentHash:
+        typeof rawLifecycle.content_hash === 'string' ? rawLifecycle.content_hash : undefined,
+      lastSyncedAt:
+        typeof rawLifecycle.last_synced_at === 'number' ? rawLifecycle.last_synced_at : undefined,
+      hasErrors: Boolean(rawLifecycle.has_errors),
+      targetCount: Number(rawLifecycle.target_count ?? installations.length),
+      healthyTargetCount: Number(rawLifecycle.healthy_target_count ?? installations.length),
+    }
+  }
+
+  const targets = fallbackTargets?.length ? fallbackTargets : toTargets(installations, source)
+  const healthyTargetCount = targets.filter((target) => target.status === 'ok').length
+  const syncedAt = targets
+    .map((target) => target.syncedAt ?? 0)
+    .reduce((latest, value) => Math.max(latest, value), 0)
+
+  return {
+    sourceRef,
+    sourceLabel,
+    sourceRevision: typeof source.source_revision === 'string' ? source.source_revision : undefined,
+    contentHash: typeof source.content_hash === 'string' ? source.content_hash : undefined,
+    lastSyncedAt: syncedAt > 0 ? syncedAt : undefined,
+    hasErrors: healthyTargetCount !== targets.length,
+    targetCount: targets.length,
+    healthyTargetCount,
+  }
+}
+
 function transformSkill(raw: unknown): SkillRecord | null {
   const source = asRecord(raw)
-  const installations = asArray(source.installations)
-    .map(transformInstallation)
-    .filter(isNonNull)
+  const installations = asArray(source.installations).map(transformInstallation).filter(isNonNull)
 
   if (installations.length === 0) {
     return null
   }
+
+  const sourceLabel = typeof source.source_label === 'string' ? source.source_label : undefined
+  const sourceRef = typeof source.source_ref === 'string' ? source.source_ref : undefined
 
   return {
     id: String(source.id ?? ''),
@@ -114,11 +204,15 @@ function transformSkill(raw: unknown): SkillRecord | null {
     version: typeof source.version === 'string' ? source.version : undefined,
     author: typeof source.author === 'string' ? source.author : undefined,
     origin: String(source.origin ?? 'unknown') as SkillRecord['origin'],
-    sourceLabel: typeof source.source_label === 'string' ? source.source_label : undefined,
-    sourceRef: typeof source.source_ref === 'string' ? source.source_ref : undefined,
+    sourceLabel,
+    sourceRef,
     installCount: installations.length,
     installations,
-    editableInstallations: toStringArray(source.editable_installations ?? source.editableInstallations),
+    targets: toTargets(installations, source),
+    lifecycle: toLifecycle(installations, source, sourceRef, sourceLabel),
+    editableInstallations: toStringArray(
+      source.editable_installations ?? source.editableInstallations
+    ),
   }
 }
 
@@ -186,13 +280,16 @@ function transformMarketplace(raw: unknown): MarketplaceResponse {
         owner: String(row.owner ?? ''),
         repo: String(row.repo ?? ''),
         skill: typeof row.skill === 'string' ? row.skill : undefined,
-        skillsShUrl: String(row.skills_sh_url ?? row.skillsShUrl ?? `https://skills.sh/${String(row.package ?? '')}`),
+        skillsShUrl: String(
+          row.skills_sh_url ?? row.skillsShUrl ?? `https://skills.sh/${String(row.package ?? '')}`
+        ),
         description: typeof row.description === 'string' ? row.description : undefined,
-        authorAvatar: typeof row.author_avatar === 'string'
-          ? row.author_avatar
-          : typeof row.authorAvatar === 'string'
-            ? row.authorAvatar
-            : undefined,
+        authorAvatar:
+          typeof row.author_avatar === 'string'
+            ? row.author_avatar
+            : typeof row.authorAvatar === 'string'
+              ? row.authorAvatar
+              : undefined,
         stars: typeof row.stars === 'number' ? row.stars : undefined,
       }
     }),
@@ -232,7 +329,41 @@ function transformOperation(raw: unknown): SkillOperationResponse {
   }
 }
 
+function normalizeSkillRecord(skill: SkillRecord): SkillRecord {
+  const targets = skill.targets?.length ? skill.targets : toTargets(skill.installations)
+  const lifecycle = skill.lifecycle?.targetCount
+    ? skill.lifecycle
+    : toLifecycle(
+        skill.installations,
+        {
+          source_ref: skill.sourceRef,
+          source_label: skill.sourceLabel,
+        },
+        skill.sourceRef,
+        skill.sourceLabel,
+        targets
+      )
+
+  return {
+    ...skill,
+    targets,
+    lifecycle,
+  }
+}
+
 function fromUnifiedSkill(skill: UnifiedSkill): SkillRecord {
+  const installations = [
+    {
+      id: `${skill.platform}:${skill.skillDir}`,
+      platformId: skill.platform,
+      platformName: skill.platformName,
+      installPath: skill.skillDir,
+      installMode: 'copy' as const,
+      installedAt: skill.installDate,
+      isPrimary: true,
+    },
+  ]
+
   return {
     id: `${skill.platform}:${skill.skillDir}`,
     name: skill.name,
@@ -246,17 +377,18 @@ function fromUnifiedSkill(skill: UnifiedSkill): SkillRecord {
     sourceRef: skill.sourceUrl,
     installCount: 1,
     editableInstallations: [`${skill.platform}:${skill.skillDir}`],
-    installations: [
-      {
-        id: `${skill.platform}:${skill.skillDir}`,
-        platformId: skill.platform,
-        platformName: skill.platformName,
-        installPath: skill.skillDir,
-        installMode: 'copy',
-        installedAt: skill.installDate,
-        isPrimary: true,
-      },
-    ],
+    installations,
+    targets: toTargets(installations),
+    lifecycle: {
+      sourceRef: skill.sourceUrl,
+      sourceLabel: undefined,
+      sourceRevision: skill.commitHash,
+      contentHash: undefined,
+      lastSyncedAt: skill.installDate,
+      hasErrors: false,
+      targetCount: 1,
+      healthyTargetCount: 1,
+    },
   }
 }
 
@@ -289,6 +421,14 @@ export const useSkillsStore = defineStore('skills', () => {
   const selectedSkillId = ref<string | null>(null)
   const selectedInstallationId = ref<string | null>(null)
   const operationLog = ref<SkillLogEntry[]>([])
+  const workflowState = ref<SkillWorkflowState>({
+    action: 'idle',
+    target: '',
+    status: 'idle',
+  })
+  const onboardingCandidates = ref<OnboardingCandidate[]>([])
+  const filesCache = shallowRef(new Map<string, SkillFileEntry[]>())
+  const fileContentCache = shallowRef(new Map<string, SkillFileContent>())
   const npxStatus = ref<NpxStatus | null>(null)
   const marketplaceLoaded = ref(false)
   const detailCache = shallowRef(new Map<string, SkillRecord>())
@@ -304,15 +444,20 @@ export const useSkillsStore = defineStore('skills', () => {
   const marketplace = computed(() => marketplaceCache.data.value)
   const facetScopedSkills = computed(() => {
     return skills.value.filter((skill) => {
-      if (filters.value.platform !== 'all' && !skill.installations.some((item) => item.platformId === filters.value.platform)) {
+      if (
+        filters.value.platform !== 'all' &&
+        !skill.installations.some((item) => item.platformId === filters.value.platform)
+      ) {
         return false
       }
       if (filters.value.origin !== 'all' && skill.origin !== filters.value.origin) {
         return false
       }
-      if (filters.value.source !== 'all'
-        && skill.sourceRef !== filters.value.source
-        && skill.sourceLabel !== filters.value.source) {
+      if (
+        filters.value.source !== 'all' &&
+        skill.sourceRef !== filters.value.source &&
+        skill.sourceLabel !== filters.value.source
+      ) {
         return false
       }
       return true
@@ -321,48 +466,63 @@ export const useSkillsStore = defineStore('skills', () => {
   const selectedSkill = computed(() => {
     const skillId = selectedSkillId.value || routeState.value.selected
     if (!skillId) return null
-    return detailCache.value.get(skillId) ?? skills.value.find((skill) => skill.id === skillId) ?? null
+    return (
+      detailCache.value.get(skillId) ?? skills.value.find((skill) => skill.id === skillId) ?? null
+    )
   })
   const selectedInstallation = computed(() => {
     const skill = selectedSkill.value
     if (!skill) return null
     const installationId = selectedInstallationId.value
-    return skill.installations.find((installation) => installation.id === installationId)
-      ?? skill.installations.find((installation) => installation.isPrimary)
-      ?? skill.installations[0]
-      ?? null
+    return (
+      skill.installations.find((installation) => installation.id === installationId) ??
+      skill.installations.find((installation) => installation.isPrimary) ??
+      skill.installations[0] ??
+      null
+    )
   })
   const filteredSkills = computed(() => {
     return facetScopedSkills.value.filter((skill) => {
       if (filters.value.category && skill.category !== filters.value.category) {
         return false
       }
-      if (filters.value.tags.length > 0 && !filters.value.tags.every((tag) => skill.tags.includes(tag))) {
+      if (
+        filters.value.tags.length > 0 &&
+        !filters.value.tags.every((tag) => skill.tags.includes(tag))
+      ) {
         return false
       }
       const q = filters.value.search.trim().toLowerCase()
       if (!q) return true
-      return skill.name.toLowerCase().includes(q)
-        || skill.description?.toLowerCase().includes(q)
-        || skill.category?.toLowerCase().includes(q)
-        || skill.author?.toLowerCase().includes(q)
-        || skill.tags.some((tag) => tag.toLowerCase().includes(q))
+      return (
+        skill.name.toLowerCase().includes(q) ||
+        skill.description?.toLowerCase().includes(q) ||
+        skill.category?.toLowerCase().includes(q) ||
+        skill.author?.toLowerCase().includes(q) ||
+        skill.tags.some((tag) => tag.toLowerCase().includes(q))
+      )
     })
   })
   const categories = computed(() => {
-    return Array.from(new Set(skills.value.map((skill) => skill.category).filter(Boolean) as string[])).sort()
+    return Array.from(
+      new Set(skills.value.map((skill) => skill.category).filter(Boolean) as string[])
+    ).sort()
   })
   const tags = computed(() => {
     return Array.from(new Set(skills.value.flatMap((skill) => skill.tags))).sort()
   })
   const availableCategories = computed(() => {
-    return Array.from(new Set(facetScopedSkills.value.map((skill) => skill.category).filter(Boolean) as string[])).sort()
+    return Array.from(
+      new Set(facetScopedSkills.value.map((skill) => skill.category).filter(Boolean) as string[])
+    ).sort()
   })
   const availableTags = computed(() => {
     return Array.from(new Set(facetScopedSkills.value.flatMap((skill) => skill.tags))).sort()
   })
   const stats = computed(() => {
-    const activePlatforms = platforms.value.filter((platform) => platform.detected && platform.installedCount > 0).length
+    const activePlatforms = platforms.value.filter(
+      (platform) => platform.detected && platform.installedCount > 0
+    ).length
     return {
       logicalSkills: skills.value.length,
       installations: skills.value.reduce((sum, skill) => sum + skill.installCount, 0),
@@ -419,7 +579,11 @@ export const useSkillsStore = defineStore('skills', () => {
   async function loadMarketplace(force = false) {
     return marketplaceCache.fetch(async () => {
       const response = routeState.value.q
-        ? await searchSkillHubMarketplace(routeState.value.q, routeState.value.page, MARKETPLACE_PAGE_SIZE)
+        ? await searchSkillHubMarketplace(
+            routeState.value.q,
+            routeState.value.page,
+            MARKETPLACE_PAGE_SIZE
+          )
         : await getSkillHubTrending(routeState.value.page, MARKETPLACE_PAGE_SIZE)
       marketplaceLoaded.value = true
       return transformMarketplace(response)
@@ -462,13 +626,82 @@ export const useSkillsStore = defineStore('skills', () => {
     }
     contentLoading.value = true
     try {
-      const content = transformContent(await getSkillHubSkillContent(skillId, installationId ?? null))
+      const content = transformContent(
+        await getSkillHubSkillContent(skillId, installationId ?? null)
+      )
       contentCache.value.set(cacheKey, content)
       triggerRef(contentCache)
       return content
     } finally {
       contentLoading.value = false
     }
+  }
+
+  async function ensureFiles(skillId: string, installationId?: string | null, force = false) {
+    const cacheKey = `${skillId}:${installationId ?? 'primary'}`
+    if (!force && filesCache.value.has(cacheKey)) {
+      return filesCache.value.get(cacheKey) ?? []
+    }
+
+    const files = asArray(await skillsFilesList(skillId, installationId ?? null)).map((raw) => {
+      const row = asRecord(raw)
+      return {
+        path: String(row.path ?? ''),
+        size: Number(row.size ?? 0),
+        isDir: Boolean(row.is_dir ?? row.isDir),
+      } satisfies SkillFileEntry
+    })
+
+    filesCache.value.set(cacheKey, files)
+    triggerRef(filesCache)
+    return files
+  }
+
+  async function ensureFileContent(
+    skillId: string,
+    path: string,
+    installationId?: string | null,
+    force = false
+  ) {
+    const cacheKey = `${skillId}:${installationId ?? 'primary'}:${path}`
+    if (!force && fileContentCache.value.has(cacheKey)) {
+      return fileContentCache.value.get(cacheKey) ?? null
+    }
+
+    const row = asRecord(await skillsFileGet(skillId, path, installationId ?? null))
+    const content = {
+      skillId: String(row.skill_id ?? row.skillId ?? skillId),
+      installationId: String(
+        row.installation_id ?? row.installationId ?? installationId ?? 'primary'
+      ),
+      path: String(row.path ?? path),
+      content: String(row.content ?? ''),
+    } satisfies SkillFileContent
+
+    fileContentCache.value.set(cacheKey, content)
+    triggerRef(fileContentCache)
+    return content
+  }
+
+  async function loadOnboardingCandidates(force = false) {
+    if (!force && onboardingCandidates.value.length > 0) {
+      return onboardingCandidates.value
+    }
+
+    onboardingCandidates.value = asArray(await skillsOnboardingCandidates()).map((raw) => {
+      const row = asRecord(raw)
+      return {
+        skillId: String(row.skill_id ?? row.skillId ?? ''),
+        name: String(row.name ?? ''),
+        platformIds: toStringArray(row.platform_ids ?? row.platformIds)
+          .map((value) => normalizePlatform(value))
+          .filter(isNonNull),
+        installationIds: toStringArray(row.installation_ids ?? row.installationIds),
+        installationPaths: toStringArray(row.installation_paths ?? row.installationPaths),
+        reason: String(row.reason ?? 'unknown_origin') as OnboardingCandidate['reason'],
+      }
+    })
+    return onboardingCandidates.value
   }
 
   async function refreshAll() {
@@ -486,7 +719,12 @@ export const useSkillsStore = defineStore('skills', () => {
   }
 
   function setSkills(nextSkills: UnifiedSkill[] | SkillRecord[]) {
-    const normalized = nextSkills.map((skill) => ('installations' in skill ? skill : fromUnifiedSkill(skill)))
+    const normalized = nextSkills.map((skill) => {
+      if ('installations' in skill) {
+        return normalizeSkillRecord(skill)
+      }
+      return fromUnifiedSkill(skill)
+    })
     inventoryCache.setData({
       ...inventory.value,
       skills: normalized,
@@ -524,10 +762,15 @@ export const useSkillsStore = defineStore('skills', () => {
       tags: [...nextFilters.tags],
     }
 
-    const scopedSkills = normalized.platform === 'all'
-      ? skills.value
-      : skills.value.filter((skill) => skill.installations.some((item) => item.platformId === normalized.platform))
-    const scopedCategories = new Set(scopedSkills.map((skill) => skill.category).filter(Boolean) as string[])
+    const scopedSkills =
+      normalized.platform === 'all'
+        ? skills.value
+        : skills.value.filter((skill) =>
+            skill.installations.some((item) => item.platformId === normalized.platform)
+          )
+    const scopedCategories = new Set(
+      scopedSkills.map((skill) => skill.category).filter(Boolean) as string[]
+    )
     const scopedTags = new Set(scopedSkills.flatMap((skill) => skill.tags))
 
     if (normalized.category && !scopedCategories.has(normalized.category)) {
@@ -578,28 +821,68 @@ export const useSkillsStore = defineStore('skills', () => {
 
   async function saveContent(skillId: string, installationId: string, raw: string) {
     mutationLoading.value = true
+    workflowState.value = {
+      action: 'save',
+      target: skillId,
+      status: 'pending',
+    }
     pushLog({ action: 'save', target: skillId, status: 'pending' })
     try {
       const saved = transformContent(await saveSkillHubSkillContent(skillId, installationId, raw))
       contentCache.value.set(`${skillId}:${installationId}`, saved)
       triggerRef(contentCache)
-      await loadInventory(true)
+      detailCache.value.delete(skillId)
+      triggerRef(detailCache)
       await ensureDetail(skillId, true)
+      workflowState.value = {
+        action: 'save',
+        target: skillId,
+        status: 'success',
+      }
       pushLog({ action: 'save', target: skillId, status: 'success' })
       return saved
     } catch (error) {
-      pushLog({ action: 'save', target: skillId, status: 'error', detail: error instanceof Error ? error.message : String(error) })
+      workflowState.value = {
+        action: 'save',
+        target: skillId,
+        status: 'error',
+        detail: error instanceof Error ? error.message : String(error),
+      }
+      pushLog({
+        action: 'save',
+        target: skillId,
+        status: 'error',
+        detail: error instanceof Error ? error.message : String(error),
+      })
       throw error
     } finally {
       mutationLoading.value = false
     }
   }
 
-  async function runOperation(action: string, target: string, request: Promise<unknown>) {
+  async function runOperation(
+    action: string,
+    target: string,
+    request: Promise<unknown>,
+    targetPlatforms?: Platform[]
+  ) {
     mutationLoading.value = true
+    workflowState.value = {
+      action,
+      target,
+      status: 'pending',
+      targetPlatforms,
+    }
     pushLog({ action, target, status: 'pending' })
     try {
       const response = transformOperation(await request)
+      workflowState.value = {
+        action,
+        target,
+        status: response.results.every((result) => result.ok) ? 'success' : 'error',
+        targetPlatforms,
+        results: response.results,
+      }
       response.results.forEach((result) => {
         pushLog({
           action,
@@ -608,34 +891,73 @@ export const useSkillsStore = defineStore('skills', () => {
           detail: result.message,
         })
       })
-      await refreshAll()
+
+      if (
+        action === 'install' ||
+        action === 'sync' ||
+        action === 'remove-installation' ||
+        action === 'remove-skill'
+      ) {
+        inventoryCache.invalidate()
+        detailCache.value.delete(target)
+        triggerRef(detailCache)
+        await loadInventory(true)
+      } else if (action === 'source-sync') {
+        sourceCache.invalidate()
+        inventoryCache.invalidate()
+        await Promise.all([loadSources(true), loadInventory(true)])
+      }
+
       return response
+    } catch (error) {
+      workflowState.value = {
+        action,
+        target,
+        status: 'error',
+        targetPlatforms,
+        detail: error instanceof Error ? error.message : String(error),
+      }
+      throw error
     } finally {
       mutationLoading.value = false
     }
   }
 
   async function install(request: SkillsInstallRequest) {
-    return runOperation('install', request.sourceRef, skillsInstall({
-      source_kind: request.sourceKind,
-      source_ref: request.sourceRef,
-      source_skill_id: request.sourceSkillId ?? null,
-      target_platforms: request.targetPlatforms,
-      force: request.force ?? false,
-    }))
+    return runOperation(
+      'install',
+      request.sourceRef,
+      skillsInstall({
+        source_kind: request.sourceKind,
+        source_ref: request.sourceRef,
+        source_skill_id: request.sourceSkillId ?? null,
+        target_platforms: request.targetPlatforms,
+        force: request.force ?? false,
+      }),
+      request.targetPlatforms
+    )
   }
 
   async function syncSkill(request: SkillsSyncRequest) {
-    return runOperation('sync', request.skillId, skillsSync({
-      skill_id: request.skillId,
-      installation_id: request.installationId ?? null,
-      target_platforms: request.targetPlatforms,
-      force: request.force ?? false,
-    }))
+    return runOperation(
+      'sync',
+      request.skillId,
+      skillsSync({
+        skill_id: request.skillId,
+        installation_id: request.installationId ?? null,
+        target_platforms: request.targetPlatforms,
+        force: request.force ?? false,
+      }),
+      request.targetPlatforms
+    )
   }
 
   async function removeInstallation(skillId: string, installationId: string) {
-    return runOperation('remove-installation', installationId, skillsRemoveInstallation(skillId, installationId))
+    return runOperation(
+      'remove-installation',
+      installationId,
+      skillsRemoveInstallation(skillId, installationId)
+    )
   }
 
   async function removeSkillRecord(skillId: string) {
@@ -643,26 +965,106 @@ export const useSkillsStore = defineStore('skills', () => {
   }
 
   async function addGitSource(url: string) {
-    const source = transformSource(await skillsSourceAddGit(url))
-    await loadSources(true)
-    return source
+    mutationLoading.value = true
+    workflowState.value = {
+      action: 'source-add-git',
+      target: url,
+      status: 'pending',
+    }
+    try {
+      const source = transformSource(await skillsSourceAddGit(url))
+      sourceCache.invalidate()
+      await loadSources(true)
+      workflowState.value = {
+        action: 'source-add-git',
+        target: url,
+        status: 'success',
+      }
+      return source
+    } catch (error) {
+      workflowState.value = {
+        action: 'source-add-git',
+        target: url,
+        status: 'error',
+        detail: error instanceof Error ? error.message : String(error),
+      }
+      throw error
+    } finally {
+      mutationLoading.value = false
+    }
   }
 
   async function addLocalSource(path: string) {
-    const source = transformSource(await skillsSourceAddLocal(path))
-    await loadSources(true)
-    return source
+    mutationLoading.value = true
+    workflowState.value = {
+      action: 'source-add-local',
+      target: path,
+      status: 'pending',
+    }
+    try {
+      const source = transformSource(await skillsSourceAddLocal(path))
+      sourceCache.invalidate()
+      await loadSources(true)
+      workflowState.value = {
+        action: 'source-add-local',
+        target: path,
+        status: 'success',
+      }
+      return source
+    } catch (error) {
+      workflowState.value = {
+        action: 'source-add-local',
+        target: path,
+        status: 'error',
+        detail: error instanceof Error ? error.message : String(error),
+      }
+      throw error
+    } finally {
+      mutationLoading.value = false
+    }
   }
 
   async function syncSource(sourceId: string) {
     const source = transformSource(await skillsSourceSync(sourceId))
-    await refreshAll()
+    workflowState.value = {
+      action: 'source-sync',
+      target: sourceId,
+      status: 'success',
+    }
+    sourceCache.invalidate()
+    inventoryCache.invalidate()
+    await Promise.all([loadSources(true), loadInventory(true)])
     return source
   }
 
   async function removeSource(sourceId: string) {
-    await skillsSourceRemove(sourceId)
-    await loadSources(true)
+    mutationLoading.value = true
+    workflowState.value = {
+      action: 'source-remove',
+      target: sourceId,
+      status: 'pending',
+    }
+    try {
+      await skillsSourceRemove(sourceId)
+      sourceCache.invalidate()
+      inventoryCache.invalidate()
+      await Promise.all([loadSources(true), loadInventory(true)])
+      workflowState.value = {
+        action: 'source-remove',
+        target: sourceId,
+        status: 'success',
+      }
+    } catch (error) {
+      workflowState.value = {
+        action: 'source-remove',
+        target: sourceId,
+        status: 'error',
+        detail: error instanceof Error ? error.message : String(error),
+      }
+      throw error
+    } finally {
+      mutationLoading.value = false
+    }
   }
 
   return {
@@ -678,6 +1080,8 @@ export const useSkillsStore = defineStore('skills', () => {
     selectedSkill,
     selectedInstallation,
     operationLog,
+    onboardingCandidates,
+    workflowState,
     npxStatus,
     detailLoading,
     contentLoading,
@@ -701,6 +1105,9 @@ export const useSkillsStore = defineStore('skills', () => {
     loadNpxStatus,
     ensureDetail,
     ensureContent,
+    ensureFiles,
+    ensureFileContent,
+    loadOnboardingCandidates,
     refreshAll,
     clearCaches,
     setSkills,

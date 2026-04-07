@@ -10,15 +10,15 @@ const samplePlatforms: PlatformSummary[] = [
     display_name: 'Codex',
     global_skills_dir: '/tmp/codex',
     detected: true,
-    installed_count: 2
+    installed_count: 2,
   },
   {
     id: 'gemini',
     display_name: 'Gemini CLI',
     global_skills_dir: '/tmp/gemini',
     detected: false,
-    installed_count: 0
-  }
+    installed_count: 0,
+  },
 ]
 
 const sampleSkills: UnifiedSkill[] = [
@@ -29,7 +29,7 @@ const sampleSkills: UnifiedSkill[] = [
     platform: 'codex',
     platformName: 'Codex',
     category: 'ops',
-    tags: ['sync', 'shell']
+    tags: ['sync', 'shell'],
   },
   {
     name: 'Skill Beta',
@@ -38,8 +38,8 @@ const sampleSkills: UnifiedSkill[] = [
     platform: 'gemini',
     platformName: 'Gemini CLI',
     category: 'analysis',
-    tags: ['report']
-  }
+    tags: ['report'],
+  },
 ]
 
 const sampleSkillRecords: SkillRecord[] = [
@@ -64,6 +64,24 @@ const sampleSkillRecords: SkillRecord[] = [
         isPrimary: true,
       },
     ],
+    targets: [
+      {
+        id: 'ins_skill_alpha',
+        platformId: 'codex',
+        platformName: 'Codex',
+        targetPath: '/tmp/skills/alpha',
+        syncMode: 'copy',
+        status: 'ok',
+        isPrimary: true,
+      },
+    ],
+    lifecycle: {
+      sourceRef: 'src_alpha',
+      sourceLabel: 'Repo Alpha',
+      hasErrors: false,
+      targetCount: 1,
+      healthyTargetCount: 1,
+    },
   },
   {
     id: 'sg_skill_beta',
@@ -86,6 +104,24 @@ const sampleSkillRecords: SkillRecord[] = [
         isPrimary: true,
       },
     ],
+    targets: [
+      {
+        id: 'ins_skill_beta',
+        platformId: 'gemini',
+        platformName: 'Gemini CLI',
+        targetPath: '/tmp/skills/beta',
+        syncMode: 'copy',
+        status: 'ok',
+        isPrimary: true,
+      },
+    ],
+    lifecycle: {
+      sourceRef: 'owner/skill-beta',
+      sourceLabel: 'owner/skill-beta',
+      hasErrors: false,
+      targetCount: 1,
+      healthyTargetCount: 1,
+    },
   },
 ]
 
@@ -155,28 +191,99 @@ describe('skills store smoke', () => {
     expect(store.marketplaceLoaded).toBe(false)
     expect(store.stats.available).toBe(0)
 
-    store.setMarketplaceItems([
-      {
-        package: 'owner/skill-alpha',
-        owner: 'owner',
-        repo: 'skill-alpha',
-        skillsShUrl: 'https://skills.sh/owner/skill-alpha',
-      },
-    ], false)
+    store.setMarketplaceItems(
+      [
+        {
+          package: 'owner/skill-alpha',
+          owner: 'owner',
+          repo: 'skill-alpha',
+          skillsShUrl: 'https://skills.sh/owner/skill-alpha',
+        },
+      ],
+      false
+    )
 
     expect(store.marketplaceLoaded).toBe(true)
     expect(store.stats.available).toBe(1)
   })
 
-  it('filters installed skills by source id and keeps scoped tags aligned', () => {
+  it('derives lifecycle metadata from installed skills', () => {
     const store = useSkillsStore()
     store.setPlatforms(samplePlatforms)
     store.setSkills(sampleSkillRecords)
 
-    store.setFilter('source', 'src_alpha')
+    const alpha = store.skills.find((skill: SkillRecord) => skill.id === 'sg_skill_alpha')
 
-    expect(store.filteredSkills).toHaveLength(1)
-    expect(store.filteredSkills[0]?.name).toBe('Skill Alpha')
-    expect(store.availableTags).toEqual(['shell', 'sync'])
+    expect(alpha?.targets).toHaveLength(1)
+    expect(alpha?.targets[0]?.status).toBe('ok')
+    expect(alpha?.lifecycle.targetCount).toBe(1)
+    expect(alpha?.lifecycle.healthyTargetCount).toBe(1)
+    expect(alpha?.lifecycle.hasErrors).toBe(false)
+    expect(alpha?.lifecycle.sourceRef).toBe('src_alpha')
+  })
+
+  it('preserves unhealthy targets when normalizing provided skill records', () => {
+    const store = useSkillsStore()
+    store.setPlatforms(samplePlatforms)
+    store.setSkills([
+      {
+        ...sampleSkillRecords[0],
+        id: 'sg_skill_gamma',
+        name: 'Skill Gamma',
+        sourceRef: 'src_gamma',
+        sourceLabel: 'Repo Gamma',
+        installations: [
+          {
+            id: 'ins_skill_gamma',
+            platformId: 'codex',
+            platformName: 'Codex',
+            installPath: '/tmp/skills/gamma',
+            installMode: 'copy',
+            isPrimary: true,
+          },
+        ],
+        targets: [
+          {
+            id: 'ins_skill_gamma',
+            platformId: 'codex',
+            platformName: 'Codex',
+            targetPath: '/tmp/skills/gamma',
+            syncMode: 'copy',
+            status: 'stale',
+            syncedAt: 42,
+            isPrimary: true,
+          },
+        ],
+        lifecycle: {
+          hasErrors: false,
+          targetCount: 0,
+          healthyTargetCount: 0,
+        },
+        editableInstallations: ['ins_skill_gamma'],
+      },
+    ])
+
+    const gamma = store.skills.find((skill: SkillRecord) => skill.id === 'sg_skill_gamma')
+
+    expect(gamma?.targets).toHaveLength(1)
+    expect(gamma?.targets[0]?.status).toBe('stale')
+    expect(gamma?.lifecycle.targetCount).toBe(1)
+    expect(gamma?.lifecycle.healthyTargetCount).toBe(0)
+    expect(gamma?.lifecycle.hasErrors).toBe(true)
+    expect(gamma?.lifecycle.lastSyncedAt).toBe(42)
+  })
+
+  it('tracks workflow state for install-like operations', async () => {
+    const store = useSkillsStore()
+    store.setPlatforms(samplePlatforms)
+    store.setSkills(sampleSkillRecords)
+
+    expect(store.workflowState.status).toBe('idle')
+
+    await expect(store.removeSkillRecord('sg_skill_alpha')).rejects.toBeDefined()
+
+    expect(store.workflowState.action).toBe('remove-skill')
+    expect(store.workflowState.target).toBe('sg_skill_alpha')
+    expect(store.workflowState.status).toBe('error')
   })
 })

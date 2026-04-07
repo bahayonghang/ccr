@@ -3173,6 +3173,25 @@ export const skillsContentGet = async <T = UnknownRecord>(
   return invoke('skills_content_get', { skillId, installationId: installationId ?? null })
 }
 
+export const skillsFilesList = async <T = UnknownRecord>(
+  skillId: string,
+  installationId?: string | null,
+): Promise<T> => {
+  return invoke('skills_files_list', { skillId, installationId: installationId ?? null })
+}
+
+export const skillsFileGet = async <T = UnknownRecord>(
+  skillId: string,
+  path: string,
+  installationId?: string | null,
+): Promise<T> => {
+  return invoke('skills_file_get', { skillId, path, installationId: installationId ?? null })
+}
+
+export const skillsOnboardingCandidates = async <T = UnknownRecord>(): Promise<T> => {
+  return invoke('skills_onboarding_candidates')
+}
+
 export const skillsContentSave = async <T = UnknownRecord>(
   skillId: string,
   installationId: string,

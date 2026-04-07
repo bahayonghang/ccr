@@ -5,7 +5,19 @@ import {
   skillsPickFolder,
   skillsSourceAddLocal,
 } from '@/api'
-import type { InstallProgress, NpxStatus, Platform, SkillContent, SkillOperationResponse, SkillsInstallRequest, SkillsRouteState, SkillsSyncRequest } from '@/types/skills'
+import type {
+  InstallProgress,
+  NpxStatus,
+  OnboardingCandidate,
+  Platform,
+  SkillContent,
+  SkillFileContent,
+  SkillFileEntry,
+  SkillOperationResponse,
+  SkillsInstallRequest,
+  SkillsRouteState,
+  SkillsSyncRequest,
+} from '@/types/skills'
 
 type LegacyInstallRequest = {
   package: string
@@ -90,9 +102,9 @@ export function useUnifiedSkills() {
   }
 
   async function fetchSkillContent(skillIdOrPath: string, installationId?: string | null): Promise<SkillContent> {
-    const byId = skills.value.find((skill) => skill.id === skillIdOrPath)
-    const targetSkill = byId ?? skills.value.find((skill) =>
-      skill.installations.some((installation) => installation.installPath === skillIdOrPath))
+    const byId = skills.value.find((skill: { id: string }) => skill.id === skillIdOrPath)
+    const targetSkill = byId ?? skills.value.find((skill: { installations: Array<{ installPath: string }> }) =>
+      skill.installations.some((installation: { installPath: string }) => installation.installPath === skillIdOrPath))
     if (!targetSkill) {
       throw new Error(`Skill not found: ${skillIdOrPath}`)
     }
@@ -109,9 +121,9 @@ export function useUnifiedSkills() {
   }
 
   async function saveSkillContent(skillIdOrPath: string, installationIdOrRaw: string, maybeRaw?: string) {
-    const byId = skills.value.find((skill) => skill.id === skillIdOrPath)
-    const targetSkill = byId ?? skills.value.find((skill) =>
-      skill.installations.some((installation) => installation.installPath === skillIdOrPath))
+    const byId = skills.value.find((skill: { id: string }) => skill.id === skillIdOrPath)
+    const targetSkill = byId ?? skills.value.find((skill: { installations: Array<{ installPath: string }> }) =>
+      skill.installations.some((installation: { installPath: string }) => installation.installPath === skillIdOrPath))
     if (!targetSkill) {
       throw new Error(`Skill not found: ${skillIdOrPath}`)
     }
@@ -185,8 +197,8 @@ export function useUnifiedSkills() {
       })
       results.push({
         package: pkg,
-        ok: response.results.every((item) => item.ok),
-        message: response.results.find((item) => !item.ok)?.message,
+        ok: response.results.every((item: { ok: boolean }) => item.ok),
+        message: response.results.find((item: { ok: boolean; message?: string }) => !item.ok)?.message,
       })
     }
     return {
@@ -260,6 +272,12 @@ export function useUnifiedSkills() {
     removeSource: store.removeSource,
     ensureDetail: store.ensureDetail,
     ensureContent: store.ensureContent,
+    ensureFiles: (skillId: string, installationId?: string | null, force?: boolean): Promise<SkillFileEntry[]> =>
+      store.ensureFiles(skillId, installationId, force),
+    ensureFileContent: (skillId: string, path: string, installationId?: string | null, force?: boolean): Promise<SkillFileContent | null> =>
+      store.ensureFileContent(skillId, path, installationId, force),
+    loadOnboardingCandidates: (force?: boolean): Promise<OnboardingCandidate[]> =>
+      store.loadOnboardingCandidates(force),
     selectSkill: store.selectSkill,
     saveContent: store.saveContent,
   }

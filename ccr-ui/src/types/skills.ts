@@ -3,6 +3,8 @@ export type SkillOrigin = 'marketplace' | 'github' | 'repo' | 'local' | 'npx' | 
 export type SkillsTab = 'inventory' | 'sources' | 'marketplace'
 export type SkillSource = 'all' | 'user' | 'plugin' | 'remote' | SkillOrigin | `src_${string}`
 export type ImportSource = 'marketplace' | 'github' | 'local' | 'npx'
+export type SkillTargetStatus = 'ok' | 'pending' | 'error' | 'missing' | 'stale' | 'unknown'
+export type SkillWorkflowStatus = 'idle' | 'pending' | 'success' | 'error'
 
 export interface PlatformTheme {
   displayName: string
@@ -66,6 +68,29 @@ export interface SkillInstallationRecord {
   isPrimary: boolean
 }
 
+export interface SkillTargetRecord {
+  id: string
+  platformId: Platform
+  platformName: string
+  targetPath: string
+  syncMode: 'copy'
+  status: SkillTargetStatus
+  syncedAt?: number
+  lastError?: string
+  isPrimary: boolean
+}
+
+export interface SkillLifecycleSummary {
+  sourceRef?: string
+  sourceLabel?: string
+  sourceRevision?: string
+  contentHash?: string
+  lastSyncedAt?: number
+  hasErrors: boolean
+  targetCount: number
+  healthyTargetCount: number
+}
+
 export interface SkillRecord {
   id: string
   name: string
@@ -79,6 +104,8 @@ export interface SkillRecord {
   sourceRef?: string
   installCount: number
   installations: SkillInstallationRecord[]
+  targets: SkillTargetRecord[]
+  lifecycle: SkillLifecycleSummary
   editableInstallations: string[]
 }
 
@@ -130,10 +157,48 @@ export interface SkillContent {
   skillDir: string
 }
 
+export interface SkillFileEntry {
+  path: string
+  size: number
+  isDir: boolean
+}
+
+export interface SkillFileContent {
+  skillId: string
+  installationId: string
+  path: string
+  content: string
+}
+
+export interface SkillsChangePayload {
+  paths: string[]
+  affectsInventory: boolean
+  affectsSources: boolean
+  affectsMarketplace: boolean
+}
+
+export interface OnboardingCandidate {
+  skillId: string
+  name: string
+  platformIds: Platform[]
+  installationIds: string[]
+  installationPaths: string[]
+  reason: 'missing_source' | 'unknown_origin'
+}
+
 export interface SkillOperationResult {
   agent: string
   ok: boolean
   message?: string
+}
+
+export interface SkillWorkflowState {
+  action: string
+  target: string
+  status: SkillWorkflowStatus
+  targetPlatforms?: Platform[]
+  results?: SkillOperationResult[]
+  detail?: string
 }
 
 export interface SkillOperationResponse {
