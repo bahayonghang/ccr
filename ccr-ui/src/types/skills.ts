@@ -1,4 +1,4 @@
-export type Platform = 'claude-code' | 'codex' | 'gemini' | 'qwen' | 'qoder' | 'droid' | 'iflow' | 'opencode'
+export type Platform = 'claude-code' | 'codex' | 'gemini' | 'qwen' | 'qoder' | 'droid' | 'opencode'
 export type SkillOrigin = 'marketplace' | 'github' | 'repo' | 'local' | 'npx' | 'unknown'
 export type SkillsTab = 'inventory' | 'sources' | 'marketplace'
 export type SkillSource = 'all' | 'user' | 'plugin' | 'remote' | SkillOrigin | `src_${string}`
@@ -47,12 +47,6 @@ export const PLATFORM_CONFIG: Record<Platform, PlatformTheme> = {
     icon: 'Bot',
     color: '#F472B6',
     tailwindColor: 'pink-400',
-  },
-  iflow: {
-    displayName: 'iFlow',
-    icon: 'Workflow',
-    color: '#FB923C',
-    tailwindColor: 'orange-400',
   },
   opencode: {
     displayName: 'OpenCode',

@@ -59,14 +59,20 @@ function asArray(value: unknown): unknown[] {
   return Array.isArray(value) ? value : []
 }
 
-function normalizePlatform(value: string): Platform {
+function isNonNull<T>(value: T | null): value is T {
+  return value !== null
+}
+
+function normalizePlatform(value: string): Platform | null {
   const normalized = value.toLowerCase()
   if (normalized === 'claude' || normalized === 'claude-code') return 'claude-code'
   if (normalized === 'codex') return 'codex'
   if (normalized === 'gemini') return 'gemini'
   if (normalized === 'qwen') return 'qwen'
   if (normalized === 'qoder') return 'qoder'
-  return 'droid'
+  if (normalized === 'droid') return 'droid'
+  if (normalized === 'opencode') return 'opencode'
+  return null
 }
 
 function toStringArray(value: unknown): string[] {
@@ -75,9 +81,12 @@ function toStringArray(value: unknown): string[] {
 
 function transformInstallation(raw: unknown) {
   const source = asRecord(raw)
+  const platformId = normalizePlatform(String(source.platform_id ?? source.platformId ?? 'codex'))
+  if (!platformId) return null
+
   return {
     id: String(source.id ?? ''),
-    platformId: normalizePlatform(String(source.platform_id ?? source.platformId ?? 'codex')),
+    platformId,
     platformName: String(source.platform_name ?? source.platformName ?? ''),
     installPath: String(source.install_path ?? source.installPath ?? ''),
     installMode: 'copy' as const,
@@ -86,8 +95,16 @@ function transformInstallation(raw: unknown) {
   }
 }
 
-function transformSkill(raw: unknown): SkillRecord {
+function transformSkill(raw: unknown): SkillRecord | null {
   const source = asRecord(raw)
+  const installations = asArray(source.installations)
+    .map(transformInstallation)
+    .filter(isNonNull)
+
+  if (installations.length === 0) {
+    return null
+  }
+
   return {
     id: String(source.id ?? ''),
     name: String(source.name ?? ''),
@@ -99,16 +116,19 @@ function transformSkill(raw: unknown): SkillRecord {
     origin: String(source.origin ?? 'unknown') as SkillRecord['origin'],
     sourceLabel: typeof source.source_label === 'string' ? source.source_label : undefined,
     sourceRef: typeof source.source_ref === 'string' ? source.source_ref : undefined,
-    installCount: Number(source.install_count ?? source.installCount ?? 0),
-    installations: asArray(source.installations).map(transformInstallation),
+    installCount: installations.length,
+    installations,
     editableInstallations: toStringArray(source.editable_installations ?? source.editableInstallations),
   }
 }
 
-function transformPlatform(raw: unknown): SkillPlatformSummary {
+function transformPlatform(raw: unknown): SkillPlatformSummary | null {
   const source = asRecord(raw)
+  const id = normalizePlatform(String(source.id ?? 'codex'))
+  if (!id) return null
+
   return {
-    id: normalizePlatform(String(source.id ?? 'codex')),
+    id,
     displayName: String(source.display_name ?? source.displayName ?? ''),
     globalSkillsDir: String(source.global_skills_dir ?? source.globalSkillsDir ?? ''),
     detected: Boolean(source.detected),
@@ -118,10 +138,13 @@ function transformPlatform(raw: unknown): SkillPlatformSummary {
 
 function transformInventory(raw: unknown): SkillsInventoryResponse {
   const source = asRecord(raw)
+  const skills = asArray(source.skills).map(transformSkill).filter(isNonNull)
+  const platforms = asArray(source.platforms).map(transformPlatform).filter(isNonNull)
+
   return {
-    skills: asArray(source.skills).map(transformSkill),
-    platforms: asArray(source.platforms).map(transformPlatform),
-    total: Number(source.total ?? 0),
+    skills,
+    platforms,
+    total: skills.length,
   }
 }
 
@@ -421,6 +444,9 @@ export const useSkillsStore = defineStore('skills', () => {
     detailLoading.value = true
     try {
       const detail = transformSkill(await getSkillDetail(skillId))
+      if (!detail) {
+        return null
+      }
       detailCache.value.set(skillId, detail)
       triggerRef(detailCache)
       return detail
@@ -469,7 +495,7 @@ export const useSkillsStore = defineStore('skills', () => {
   }
 
   function setPlatforms(nextPlatforms: SkillPlatformSummary[]) {
-    const normalized = nextPlatforms.map(transformPlatform)
+    const normalized = nextPlatforms.map(transformPlatform).filter(isNonNull)
     inventoryCache.setData({
       ...inventory.value,
       platforms: normalized,

@@ -207,16 +207,27 @@ impl SkillsService {
                 relative_path: ".gemini/antigravity/skills".into(),
             },
             SkillPlatformConfig {
-                id: "iflow".into(),
-                display_name: "iFlow".into(),
-                relative_path: ".iflow/skills".into(),
-            },
-            SkillPlatformConfig {
                 id: "opencode".into(),
                 display_name: "OpenCode".into(),
                 relative_path: ".config/opencode/skills".into(),
             },
         ]
+    }
+
+    fn sanitize_platforms(platforms: Vec<SkillPlatformConfig>) -> Vec<SkillPlatformConfig> {
+        platforms
+            .into_iter()
+            .filter(|platform| !platform.id.eq_ignore_ascii_case("iflow"))
+            .collect()
+    }
+
+    fn save_platforms(&self, platforms: &[SkillPlatformConfig]) -> Result<()> {
+        self.ensure_runtime_dirs()?;
+        let payload = toml::to_string_pretty(&SkillPlatformsConfigFile {
+            platforms: platforms.to_vec(),
+        })
+        .map_err(|e| CcrError::ConfigError(e.to_string()))?;
+        AtomicWriter::new(&self.platforms_path).write_string(&payload)
     }
 
     fn ensure_runtime_dirs(&self) -> Result<()> {
@@ -235,12 +246,21 @@ impl SkillsService {
         let raw = fs::read_to_string(&self.platforms_path).map_err(CcrError::IoError)?;
         let parsed: SkillPlatformsConfigFile =
             toml::from_str(&raw).map_err(|e| CcrError::ConfigError(e.to_string()))?;
-
-        if parsed.platforms.is_empty() {
-            Ok(Self::default_platforms())
+        let had_stale_entries = parsed
+            .platforms
+            .iter()
+            .any(|platform| platform.id.eq_ignore_ascii_case("iflow"));
+        let platforms = if parsed.platforms.is_empty() {
+            Self::default_platforms()
         } else {
-            Ok(parsed.platforms)
+            Self::sanitize_platforms(parsed.platforms)
+        };
+
+        if had_stale_entries {
+            self.save_platforms(&platforms)?;
         }
+
+        Ok(platforms)
     }
 
     fn load_sources(&self) -> Result<Vec<SkillSourceEntry>> {
@@ -1807,6 +1827,16 @@ mod tests {
     use super::*;
     use tempfile::tempdir;
 
+    fn build_test_service(root: &Path) -> SkillsService {
+        SkillsService {
+            home_dir: root.to_path_buf(),
+            ccr_skills_dir: root.join(".ccr").join("skills"),
+            sources_path: root.join(".ccr").join("skills").join(SOURCES_FILENAME),
+            platforms_path: root.join(".ccr").join("skills").join(PLATFORMS_FILENAME),
+            summary_cache_path: root.join(".cache").join(SUMMARY_CACHE_FILENAME),
+        }
+    }
+
     #[test]
     fn build_group_key_prefers_explicit_install_group_id() {
         let key = SkillsService::build_group_key(
@@ -1841,5 +1871,34 @@ mod tests {
 
         let resolved = SkillsService::resolve_source_root(&repo_root);
         assert_eq!(resolved, repo_root.join("catalog"));
+    }
+
+    #[test]
+    fn load_platforms_filters_iflow_and_persists_cleaned_config() {
+        let temp = tempdir().unwrap();
+        let service = build_test_service(temp.path());
+        fs::create_dir_all(service.ccr_skills_dir.clone()).unwrap();
+        fs::write(
+            &service.platforms_path,
+            r#"
+[[platforms]]
+id = "codex"
+display_name = "Codex"
+relative_path = ".agents/skills"
+
+[[platforms]]
+id = "iflow"
+display_name = "iFlow"
+relative_path = ".iflow/skills"
+"#,
+        )
+        .unwrap();
+
+        let platforms = service.load_platforms().unwrap();
+        assert_eq!(platforms.len(), 1);
+        assert_eq!(platforms[0].id, "codex");
+
+        let persisted = fs::read_to_string(&service.platforms_path).unwrap();
+        assert!(!persisted.contains("iflow"));
     }
 }
