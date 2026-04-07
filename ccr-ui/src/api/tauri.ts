@@ -3163,14 +3163,14 @@ export const skillsInventory = async <T = UnknownRecord>(query?: unknown): Promi
 }
 
 export const skillsDetail = async <T = UnknownRecord>(skillId: string): Promise<T> => {
-  return invoke('skills_detail', { skill_id: skillId })
+  return invoke('skills_detail', { skillId })
 }
 
 export const skillsContentGet = async <T = UnknownRecord>(
   skillId: string,
   installationId?: string | null
 ): Promise<T> => {
-  return invoke('skills_content_get', { skill_id: skillId, installation_id: installationId ?? null })
+  return invoke('skills_content_get', { skillId, installationId: installationId ?? null })
 }
 
 export const skillsContentSave = async <T = UnknownRecord>(
@@ -3178,7 +3178,7 @@ export const skillsContentSave = async <T = UnknownRecord>(
   installationId: string,
   raw: string
 ): Promise<T> => {
-  return invoke('skills_content_save', { skill_id: skillId, installation_id: installationId, raw })
+  return invoke('skills_content_save', { skillId, installationId, raw })
 }
 
 export const skillsInstall = async <T = UnknownRecord>(request: unknown): Promise<T> => {
@@ -3193,11 +3193,11 @@ export const skillsRemoveInstallation = async <T = UnknownRecord>(
   skillId: string,
   installationId: string
 ): Promise<T> => {
-  return invoke('skills_remove_installation', { skill_id: skillId, installation_id: installationId })
+  return invoke('skills_remove_installation', { skillId, installationId })
 }
 
 export const skillsRemoveSkill = async <T = UnknownRecord>(skillId: string): Promise<T> => {
-  return invoke('skills_remove_skill', { skill_id: skillId })
+  return invoke('skills_remove_skill', { skillId })
 }
 
 export const skillsSourcesList = async <T = UnknownRecord>(): Promise<T> => {
@@ -3213,11 +3213,11 @@ export const skillsSourceAddLocal = async <T = UnknownRecord>(path: string): Pro
 }
 
 export const skillsSourceSync = async <T = UnknownRecord>(sourceId: string): Promise<T> => {
-  return invoke('skills_source_sync', { source_id: sourceId })
+  return invoke('skills_source_sync', { sourceId })
 }
 
 export const skillsSourceRemove = async <T = UnknownRecord>(sourceId: string): Promise<T> => {
-  return invoke('skills_source_remove', { source_id: sourceId })
+  return invoke('skills_source_remove', { sourceId })
 }
 
 export const skillsMarketplaceList = async <T = UnknownRecord>(
@@ -3225,11 +3225,11 @@ export const skillsMarketplaceList = async <T = UnknownRecord>(
   page = 1,
   pageSize = 20
 ): Promise<T> => {
-  return invoke('skills_marketplace_list', { query: query ?? null, page, page_size: pageSize })
+  return invoke('skills_marketplace_list', { query: query ?? null, page, pageSize })
 }
 
 export const skillsMarketplaceDetail = async <T = UnknownRecord>(packageId: string): Promise<T> => {
-  return invoke('skills_marketplace_detail', { package_id: packageId })
+  return invoke('skills_marketplace_detail', { packageId })
 }
 
 export const skillsNpxStatus = async <T = UnknownRecord>(): Promise<T> => {

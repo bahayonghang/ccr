@@ -12,40 +12,69 @@ describe('Tauri skills arg mapping smoke', () => {
     invokeMock.mockResolvedValue(null)
   })
 
-  it('uses snake_case keys for marketplace list/detail', async () => {
+  it('uses camelCase keys for marketplace list/detail', async () => {
     const { skillsMarketplaceDetail, skillsMarketplaceList } = await import('@/api/tauri')
 
     await skillsMarketplaceList('find-skills', 2, 30)
     expect(invokeMock).toHaveBeenLastCalledWith('skills_marketplace_list', {
       query: 'find-skills',
       page: 2,
-      page_size: 30,
+      pageSize: 30,
     })
 
     await skillsMarketplaceDetail('owner/repo')
     expect(invokeMock).toHaveBeenLastCalledWith('skills_marketplace_detail', {
-      package_id: 'owner/repo',
+      packageId: 'owner/repo',
     })
   })
 
-  it('uses snake_case keys for skill detail and content', async () => {
+  it('uses camelCase keys for skill detail and content', async () => {
     const { skillsContentGet, skillsContentSave, skillsDetail } = await import('@/api/tauri')
 
     await skillsDetail('skill-123')
-    expect(invokeMock).toHaveBeenLastCalledWith('skills_detail', { skill_id: 'skill-123' })
+    expect(invokeMock).toHaveBeenLastCalledWith('skills_detail', { skillId: 'skill-123' })
 
     await skillsContentGet('skill-123', 'inst-1')
     expect(invokeMock).toHaveBeenLastCalledWith('skills_content_get', {
-      skill_id: 'skill-123',
-      installation_id: 'inst-1',
+      skillId: 'skill-123',
+      installationId: 'inst-1',
     })
 
     await skillsContentSave('skill-123', 'inst-1', 'raw-content')
     expect(invokeMock).toHaveBeenLastCalledWith('skills_content_save', {
-      skill_id: 'skill-123',
-      installation_id: 'inst-1',
+      skillId: 'skill-123',
+      installationId: 'inst-1',
       raw: 'raw-content',
     })
   })
-})
 
+  it('uses camelCase keys for removal and source commands', async () => {
+    const {
+      skillsRemoveInstallation,
+      skillsRemoveSkill,
+      skillsSourceRemove,
+      skillsSourceSync,
+    } = await import('@/api/tauri')
+
+    await skillsRemoveInstallation('skill-123', 'inst-1')
+    expect(invokeMock).toHaveBeenLastCalledWith('skills_remove_installation', {
+      skillId: 'skill-123',
+      installationId: 'inst-1',
+    })
+
+    await skillsRemoveSkill('skill-123')
+    expect(invokeMock).toHaveBeenLastCalledWith('skills_remove_skill', {
+      skillId: 'skill-123',
+    })
+
+    await skillsSourceSync('source-1')
+    expect(invokeMock).toHaveBeenLastCalledWith('skills_source_sync', {
+      sourceId: 'source-1',
+    })
+
+    await skillsSourceRemove('source-1')
+    expect(invokeMock).toHaveBeenLastCalledWith('skills_source_remove', {
+      sourceId: 'source-1',
+    })
+  })
+})
