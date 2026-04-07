@@ -40,6 +40,20 @@ export function getCodexAuthDir(): string {
   return path.join(getCcrRoot(), "platforms", "codex", "auth");
 }
 
+/** Path to Codex runtime directory: $CCR_CODEX_DIR || ~/.codex/ */
+export function getCodexRuntimeDir(): string {
+  const envDir = process.env["CCR_CODEX_DIR"];
+  if (envDir) {
+    return envDir;
+  }
+  return path.join(os.homedir(), ".codex");
+}
+
+/** Path to Codex runtime auth.json: $CCR_CODEX_DIR/auth.json || ~/.codex/auth.json */
+export function getCodexRuntimeAuthPath(): string {
+  return path.join(getCodexRuntimeDir(), "auth.json");
+}
+
 /** Path to the platforms directory: ~/.ccr/platforms/ */
 export function getPlatformsDir(): string {
   return path.join(getCcrRoot(), "platforms");

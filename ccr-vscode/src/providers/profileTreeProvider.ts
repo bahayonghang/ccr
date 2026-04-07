@@ -11,7 +11,34 @@ import * as vscode from "vscode";
 import { ccrRootExists, getPlatformCodiconId } from "../services/ccrPaths";
 import { readRegistry, readProfiles, maskToken } from "../services/tomlReader";
 import { readCodexAuthAccounts } from "../services/codexAuthReader";
-import type { CodexAuthInfo, PlatformInfo, ProfileInfo, TreeSectionInfo, TreeSectionKind } from "../models/types";
+import {
+  ensureCodexQuotaSnapshot,
+  getCachedCodexQuotaByAccount,
+  getCodexQuotaError,
+} from "../services/codexQuotaReader";
+import {
+  ensureCodexRuntimeSnapshot,
+  getCachedCodexRuntimeSnapshot,
+  getCodexRuntimeError,
+} from "../services/codexRuntimeReader";
+import type {
+  CodexAuthInfo,
+  CodexAuthQuotaInfo,
+  CodexRuntimeSnapshot,
+  PlatformInfo,
+  ProfileInfo,
+  TreeSectionInfo,
+  TreeSectionKind,
+} from "../models/types";
+import {
+  buildCodexAuthDetailDescriptors,
+  buildCodexRuntimeDetails,
+  formatCodexAuthDescription,
+  formatQuotaReset,
+  getCodexPlatformDescription,
+  getQuotaTone,
+  getSectionInfo,
+} from "./profileTreePresentation";
 
 /** Escape user-controlled strings to prevent Markdown injection */
 function escapeMarkdown(str: string): string {
@@ -24,31 +51,17 @@ const PLATFORM_THEME_COLORS: Record<string, string> = {
   codex: "charts.green",
 };
 
-function getSectionInfo(platformName: string, kind: TreeSectionKind): TreeSectionInfo {
-  if (platformName === "claude") {
-    return {
-      kind,
-      platformName,
-      label: "Claude Profiles",
-      description: "Switch and manage Claude profiles",
-    };
+function getQuotaToneThemeColor(tone: "success" | "warning" | "danger" | "neutral"): string {
+  switch (tone) {
+    case "danger":
+      return "problemsErrorIcon.foreground";
+    case "warning":
+      return "problemsWarningIcon.foreground";
+    case "success":
+      return "charts.green";
+    default:
+      return "foreground";
   }
-
-  if (kind === "auth") {
-    return {
-      kind,
-      platformName,
-      label: "Codex Auth",
-      description: "Switch and manage saved Codex auth accounts",
-    };
-  }
-
-  return {
-    kind,
-    platformName,
-    label: "Codex Profiles",
-    description: "Switch and manage Codex profiles",
-  };
 }
 
 function sortProfiles(profiles: ProfileInfo[]): ProfileInfo[] {
@@ -68,7 +81,11 @@ function sortAuthAccounts(accounts: CodexAuthInfo[]): CodexAuthInfo[] {
 }
 
 export class PlatformNode extends vscode.TreeItem {
-  constructor(public readonly platform: PlatformInfo) {
+  constructor(
+    public readonly platform: PlatformInfo,
+    runtimeSnapshot?: CodexRuntimeSnapshot | null,
+    runtimeError?: string | null,
+  ) {
     super(
       platform.displayName,
       platform.enabled
@@ -91,6 +108,8 @@ export class PlatformNode extends vscode.TreeItem {
 
     if (!platform.enabled) {
       this.description = "(disabled)";
+    } else if (platform.name === "codex") {
+      this.description = getCodexPlatformDescription(platform, runtimeSnapshot ?? undefined);
     } else if (platform.currentProfile) {
       this.description = `▸ ${platform.currentProfile}`;
     }
@@ -98,8 +117,21 @@ export class PlatformNode extends vscode.TreeItem {
     const md = new vscode.MarkdownString();
     md.appendMarkdown(`### $(${codiconId}) ${escapeMarkdown(platform.displayName)}\n\n`);
     md.appendMarkdown(`**Status:** ${platform.enabled ? "Enabled" : "Disabled"}\n\n`);
-    if (platform.currentProfile) {
+    if (platform.name === "codex" && runtimeSnapshot) {
+      md.appendMarkdown(`**Runtime:** \`${escapeMarkdown(runtimeSnapshot.runtimeSummary.profileLabel)}\`\n\n`);
+      md.appendMarkdown(`**Auth:** \`${escapeMarkdown(runtimeSnapshot.runtimeSummary.authLabel)}\`\n\n`);
+      md.appendMarkdown(`**Source:** ${escapeMarkdown(runtimeSnapshot.dataSource)}\n\n`);
+      if (runtimeSnapshot.authSidecarLabel) {
+        md.appendMarkdown(`**Sidecar:** ${escapeMarkdown(runtimeSnapshot.authSidecarLabel)}\n\n`);
+      }
+      if (runtimeSnapshot.binaryPath) {
+        md.appendMarkdown(`**Binary:** \`${escapeMarkdown(runtimeSnapshot.binaryPath)}\`\n\n`);
+      }
+    } else if (platform.currentProfile) {
       md.appendMarkdown(`**Current Profile:** \`${escapeMarkdown(platform.currentProfile)}\`\n\n`);
+    }
+    if (platform.name === "codex" && runtimeError) {
+      md.appendMarkdown(`**Runtime Sync:** ${escapeMarkdown(runtimeError)}\n\n`);
     }
     md.appendMarkdown(`---\n\n`);
     md.appendMarkdown(`*Expand to manage grouped resources*`);
@@ -113,10 +145,20 @@ export class SectionNode extends vscode.TreeItem {
     this.contextValue = section.kind === "profiles" && (section.platformName === "claude" || section.platformName === "codex")
       ? "section-profiles-create-supported"
       : `section-${section.kind}`;
-    this.description = section.kind === "auth" ? "saved accounts" : "profiles";
+    this.description = section.kind === "auth"
+      ? "quota & accounts"
+      : section.kind === "runtime"
+        ? "live runtime"
+        : "profiles";
     this.iconPath = new vscode.ThemeIcon(
-      section.kind === "auth" ? "key" : "files",
-      new vscode.ThemeColor(section.kind === "auth" ? "charts.green" : "foreground"),
+      section.kind === "auth" ? "key" : section.kind === "runtime" ? "pulse" : "files",
+      new vscode.ThemeColor(
+        section.kind === "auth"
+          ? "charts.green"
+          : section.kind === "runtime"
+            ? "charts.blue"
+            : "foreground",
+      ),
     );
     this.tooltip = new vscode.MarkdownString(`**${escapeMarkdown(section.label)}**\n\n${escapeMarkdown(section.description)}`);
   }
@@ -199,16 +241,29 @@ export class ProfileNode extends vscode.TreeItem {
 }
 
 export class CodexAuthNode extends vscode.TreeItem {
-  constructor(public readonly auth: CodexAuthInfo) {
-    super(auth.name, vscode.TreeItemCollapsibleState.None);
+  constructor(
+    public readonly auth: CodexAuthInfo,
+    public readonly quota?: CodexAuthQuotaInfo,
+    public readonly quotaFetchError?: string | null,
+  ) {
+    super(auth.name, vscode.TreeItemCollapsibleState.Expanded);
 
+    this.id = `codex-auth:${auth.name}`;
     this.contextValue = auth.isCurrent ? "codex-auth-current" : "codex-auth";
-    this.description = [auth.email, auth.description].filter(Boolean).join(" · ") || undefined;
+    const summaryDescription = formatCodexAuthDescription(quota, quotaFetchError);
+    this.description = summaryDescription !== undefined
+      ? summaryDescription
+      : quota?.quota
+        ? undefined
+        : quotaFetchError
+          ? "quota unavailable"
+          : "loading quota…";
 
     if (auth.isCurrent) {
       this.iconPath = new vscode.ThemeIcon("pass-filled", new vscode.ThemeColor("testing.iconPassed"));
     } else {
-      this.iconPath = new vscode.ThemeIcon("key", new vscode.ThemeColor("charts.green"));
+      const tone = getQuotaTone(quota);
+      this.iconPath = new vscode.ThemeIcon("key", new vscode.ThemeColor(getQuotaToneThemeColor(tone)));
     }
 
     const md = new vscode.MarkdownString();
@@ -222,15 +277,39 @@ export class CodexAuthNode extends vscode.TreeItem {
     if (auth.savedAt) {
       md.appendMarkdown(`- Saved At: \`${escapeMarkdown(auth.savedAt)}\`\n`);
     }
+    if (auth.lastRefresh) {
+      md.appendMarkdown(`- Last Refresh: \`${escapeMarkdown(auth.lastRefresh)}\`\n`);
+    }
     if (auth.expiresAt) {
       md.appendMarkdown(`- Expires At: \`${escapeMarkdown(auth.expiresAt)}\`\n`);
+    }
+    if (quota?.quota) {
+      md.appendMarkdown(`- 5h Remaining: **${quota.quota.hourlyPercentage}%**\n`);
+      md.appendMarkdown(`- 7d Remaining: **${quota.quota.weeklyPercentage}%**\n`);
+      if (quota.quota.planType) {
+        md.appendMarkdown(`- Plan: ${escapeMarkdown(quota.quota.planType)}\n`);
+      }
+      const hourlyReset = formatQuotaReset(quota.quota.hourlyResetTime);
+      const weeklyReset = formatQuotaReset(quota.quota.weeklyResetTime);
+      if (hourlyReset) {
+        md.appendMarkdown(`- 5h Reset: \`${escapeMarkdown(hourlyReset)}\`\n`);
+      }
+      if (weeklyReset) {
+        md.appendMarkdown(`- 7d Reset: \`${escapeMarkdown(weeklyReset)}\`\n`);
+      }
+    } else if (quota?.error) {
+      md.appendMarkdown(`- Quota: ${escapeMarkdown(quota.error)}\n`);
+    } else if (quotaFetchError) {
+      md.appendMarkdown(`- Quota: ${escapeMarkdown(quotaFetchError)}\n`);
+    } else {
+      md.appendMarkdown(`- Quota: loading...\n`);
     }
     md.appendMarkdown(`\n---\n\n`);
     md.appendMarkdown(`**Status:** ${auth.isCurrent ? "Active" : "Saved"}`);
     if (auth.isVirtual) {
       md.appendMarkdown(` · **Type:** Virtual`);
     }
-    md.appendMarkdown(`\n\n*Click to switch auth account · Right-click for more*`);
+    md.appendMarkdown(`\n\n*Click label to switch auth account · Expand to inspect quota windows*`);
     this.tooltip = md;
 
     this.command = {
@@ -238,6 +317,36 @@ export class CodexAuthNode extends vscode.TreeItem {
       title: "Switch Codex Auth",
       arguments: [this],
     };
+  }
+}
+
+export class CodexAuthDetailNode extends vscode.TreeItem {
+  constructor(
+    authName: string,
+    public readonly detail: { key: string; label: string; description?: string; icon: string; tone: "success" | "warning" | "danger" | "neutral"; tooltip: string },
+  ) {
+    super(detail.label, vscode.TreeItemCollapsibleState.None);
+    this.id = `codex-auth:${authName}:detail:${detail.key}`;
+    this.contextValue = "codex-auth-detail";
+    this.description = detail.description;
+    this.iconPath = new vscode.ThemeIcon(detail.icon, new vscode.ThemeColor(getQuotaToneThemeColor(detail.tone)));
+    this.tooltip = new vscode.MarkdownString(
+      `**${escapeMarkdown(detail.label)}**\n\n${escapeMarkdown(detail.tooltip)}`,
+    );
+  }
+}
+
+export class RuntimeDetailNode extends vscode.TreeItem {
+  constructor(
+    public readonly detail: { label: string; description: string; icon: string; tooltip: string },
+  ) {
+    super(detail.label, vscode.TreeItemCollapsibleState.None);
+    this.contextValue = "runtime-detail";
+    this.description = detail.description;
+    this.iconPath = new vscode.ThemeIcon(detail.icon, new vscode.ThemeColor("charts.blue"));
+    this.tooltip = new vscode.MarkdownString(
+      `**${escapeMarkdown(detail.label)}**\n\n${escapeMarkdown(detail.tooltip)}`,
+    );
   }
 }
 
@@ -249,11 +358,20 @@ export class MessageNode extends vscode.TreeItem {
   }
 }
 
-export type TreeNode = PlatformNode | SectionNode | ProfileNode | CodexAuthNode | MessageNode;
+export type TreeNode =
+  | PlatformNode
+  | SectionNode
+  | ProfileNode
+  | CodexAuthNode
+  | CodexAuthDetailNode
+  | RuntimeDetailNode
+  | MessageNode;
 
 export class ProfileTreeProvider implements vscode.TreeDataProvider<TreeNode> {
   private _onDidChangeTreeData = new vscode.EventEmitter<TreeNode | undefined | null>();
   readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
+
+  constructor(private readonly onAsyncDataChanged?: () => void) {}
 
   refresh(): void {
     this._onDidChangeTreeData.fire(undefined);
@@ -276,12 +394,20 @@ export class ProfileTreeProvider implements vscode.TreeDataProvider<TreeNode> {
       if (!registry || registry.platforms.length === 0) {
         return [new MessageNode("No platforms configured.")];
       }
-      return registry.platforms.map((platform) => new PlatformNode(platform));
+      ensureCodexRuntimeSnapshot(this.onAsyncDataChanged);
+      const runtimeSnapshot = getCachedCodexRuntimeSnapshot();
+      const runtimeError = getCodexRuntimeError();
+      return registry.platforms.map((platform) => new PlatformNode(
+        platform,
+        platform.name === "codex" ? runtimeSnapshot : undefined,
+        platform.name === "codex" ? runtimeError : undefined,
+      ));
     }
 
     if (element instanceof PlatformNode) {
       if (element.platform.name === "codex") {
         return [
+          new SectionNode(getSectionInfo("codex", "runtime")),
           new SectionNode(getSectionInfo("codex", "profiles")),
           new SectionNode(getSectionInfo("codex", "auth")),
         ];
@@ -291,6 +417,27 @@ export class ProfileTreeProvider implements vscode.TreeDataProvider<TreeNode> {
     }
 
     if (element instanceof SectionNode) {
+      if (element.section.kind === "runtime") {
+        ensureCodexRuntimeSnapshot(this.onAsyncDataChanged);
+        const runtimeSnapshot = getCachedCodexRuntimeSnapshot();
+        const runtimeError = getCodexRuntimeError();
+        return buildCodexRuntimeDetails(element.section.platformName === "codex"
+          ? {
+              name: "codex",
+              displayName: "Codex",
+              icon: "",
+              enabled: true,
+              currentProfile: runtimeSnapshot?.runtimeSummary.currentProfileName,
+            }
+          : {
+              name: element.section.platformName,
+              displayName: element.section.platformName,
+              icon: "",
+              enabled: true,
+            }, runtimeSnapshot, runtimeError)
+          .map((detail) => new RuntimeDetailNode(detail));
+      }
+
       if (element.section.kind === "profiles") {
         const profiles = sortProfiles(await readProfiles(element.section.platformName));
         return profiles.length > 0
@@ -298,10 +445,22 @@ export class ProfileTreeProvider implements vscode.TreeDataProvider<TreeNode> {
           : [new MessageNode("No profiles configured.")];
       }
 
-      const authAccounts = sortAuthAccounts(await readCodexAuthAccounts());
+      const runtimeSnapshot = getCachedCodexRuntimeSnapshot();
+      ensureCodexQuotaSnapshot(this.onAsyncDataChanged);
+      const quotaByAccount = getCachedCodexQuotaByAccount();
+      const quotaError = getCodexQuotaError();
+      const authAccounts = sortAuthAccounts((await readCodexAuthAccounts()).map((auth) => ({
+        ...auth,
+        isCurrent: runtimeSnapshot?.runtimeSummary.currentAuthName === auth.name,
+      })));
       return authAccounts.length > 0
-        ? authAccounts.map((auth) => new CodexAuthNode(auth))
+        ? authAccounts.map((auth) => new CodexAuthNode(auth, quotaByAccount[auth.name], quotaError))
         : [new MessageNode("No Codex auth accounts configured.")];
+    }
+
+    if (element instanceof CodexAuthNode) {
+      return buildCodexAuthDetailDescriptors(element.quota, element.quotaFetchError)
+        .map((detail) => new CodexAuthDetailNode(element.auth.name, detail));
     }
 
     return [];

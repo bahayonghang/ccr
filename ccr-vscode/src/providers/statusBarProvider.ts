@@ -8,6 +8,11 @@
 import * as vscode from "vscode";
 import { ccrRootExists } from "../services/ccrPaths";
 import { readRegistry, readProfiles } from "../services/tomlReader";
+import {
+  ensureCodexRuntimeSnapshot,
+  getCachedCodexRuntimeSnapshot,
+} from "../services/codexRuntimeReader";
+import { buildStatusBarText, buildStatusBarTooltipLines } from "./statusBarPresentation";
 import { resolveStatusBarTarget } from "./statusBarTarget";
 
 export class StatusBarProvider implements vscode.Disposable {
@@ -86,6 +91,12 @@ export class StatusBarProvider implements vscode.Disposable {
     }
     const current = profiles.find((profile) => profile.isCurrent);
     const profileName = current?.name ?? platform.currentProfile ?? "none";
+    const runtimeSnapshot = platform.name === "codex"
+      ? getCachedCodexRuntimeSnapshot()
+      : null;
+    if (platform.name === "codex") {
+      ensureCodexRuntimeSnapshot(() => this.update());
+    }
 
     this.statusBarItem.command = target.mode === "pinned"
       ? {
@@ -95,22 +106,16 @@ export class StatusBarProvider implements vscode.Disposable {
         }
       : "ccr.switchProfile";
 
-    this.statusBarItem.text = `${platform.icon} ${platform.displayName}: ${profileName}`;
+    this.statusBarItem.text = buildStatusBarText(platform, profileName, runtimeSnapshot);
 
-    const tooltipLines = [
-      `**CCR Profile Status**`,
-      `Mode: ${target.mode === "pinned" ? "Pinned platform" : "Current platform"}`,
-      `Platform: ${platform.displayName}`,
-      `Profile: ${profileName}`,
-      current?.model ? `Model: ${current.model}` : null,
-      current?.provider ? `Provider: ${current.provider}` : null,
-      target.warning ? `$(warning) ${target.warning}` : null,
-      ``,
-      target.mode === "pinned"
-        ? `_Click to switch profiles for ${platform.displayName}_`
-        : `_Click to switch profile_`,
-    ]
-      .filter(Boolean)
+    const tooltipLines = buildStatusBarTooltipLines(
+      target.mode,
+      platform,
+      profileName,
+      current,
+      runtimeSnapshot,
+      target.warning,
+    )
       .join("  \n");
 
     this.statusBarItem.tooltip = new vscode.MarkdownString(tooltipLines);

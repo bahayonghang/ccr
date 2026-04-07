@@ -7,7 +7,11 @@
 
 import { execFile } from "child_process";
 import * as vscode from "vscode";
-import type { ProfileCreateRequest, ProfileCreationPlatform } from "../models/types";
+import type {
+  CcrCapabilitySnapshot,
+  ProfileCreateRequest,
+  ProfileCreationPlatform,
+} from "../models/types";
 import {
   buildCodexAuthUpdateArgs,
   buildPlatformProfileCreateArgs,
@@ -22,6 +26,8 @@ import {
 
 let cachedCcrPath: string | null = null;
 let ccrChecked = false;
+let cachedCapabilities: CcrCapabilitySnapshot | null = null;
+let capabilityInflight: Promise<CcrCapabilitySnapshot> | null = null;
 
 /** Check if ccr binary is available in PATH */
 export async function findCcrBinary(): Promise<string | null> {
@@ -48,6 +54,8 @@ export async function findCcrBinary(): Promise<string | null> {
 export function resetCcrCache(): void {
   cachedCcrPath = null;
   ccrChecked = false;
+  cachedCapabilities = null;
+  capabilityInflight = null;
 }
 
 /** Check CCR availability and show message if not found */
@@ -77,6 +85,80 @@ export interface CliJsonResult<T> extends CliResult {
 
 export type { CodexAuthUpdateData, PlatformProfileMutationData, ProfileFieldValue };
 
+function execFileCommand(
+  command: string,
+  args: string[],
+  timeout = 30_000,
+): Promise<CliResult> {
+  return new Promise((resolve) => {
+    execFile(command, args, { timeout }, (err, stdout, stderr) => {
+      const exitCode = err ? (typeof err.code === "number" ? err.code : 1) : 0;
+      resolve({
+        success: !err,
+        stdout: stdout?.trim() ?? "",
+        stderr: stderr?.trim() ?? "",
+        exitCode,
+      });
+    });
+  });
+}
+
+async function probeHelpFlagSupport(command: string, args: string[], flag: string): Promise<boolean> {
+  const result = await execFileCommand(command, [...args, "--help"], 10_000);
+  const combined = `${result.stdout}\n${result.stderr}`;
+  return combined.includes(flag);
+}
+
+export function getCachedCcrCapabilitySnapshot(): CcrCapabilitySnapshot | null {
+  return cachedCapabilities;
+}
+
+export function invalidateCcrCapabilityCache(): void {
+  cachedCapabilities = null;
+  capabilityInflight = null;
+}
+
+export async function detectCcrCapabilities(force = false): Promise<CcrCapabilitySnapshot> {
+  if (!force && cachedCapabilities) {
+    return cachedCapabilities;
+  }
+  if (!force && capabilityInflight) {
+    return capabilityInflight;
+  }
+
+  capabilityInflight = (async () => {
+    const binaryPath = await findCcrBinary();
+    if (!binaryPath) {
+      return {
+        supportsCodexAuthCurrentJson: false,
+        supportsCodexQuotaJson: false,
+        checkedAt: Date.now(),
+      } satisfies CcrCapabilitySnapshot;
+    }
+
+    const [supportsCodexAuthCurrentJson, supportsCodexQuotaJson] = await Promise.all([
+      probeHelpFlagSupport(binaryPath, ["codex", "auth", "current"], "--json"),
+      probeHelpFlagSupport(binaryPath, ["codex", "quota"], "--json"),
+    ]);
+
+    return {
+      binaryPath,
+      supportsCodexAuthCurrentJson,
+      supportsCodexQuotaJson,
+      checkedAt: Date.now(),
+    } satisfies CcrCapabilitySnapshot;
+  })()
+    .then((snapshot) => {
+      cachedCapabilities = snapshot;
+      return snapshot;
+    })
+    .finally(() => {
+      capabilityInflight = null;
+    });
+
+  return capabilityInflight;
+}
+
 /** Execute `ccr platform switch <name>` — switch active platform */
 export async function execPlatformSwitch(platformName: string): Promise<CliResult> {
   return execCcr(["platform", "switch", platformName]);
@@ -100,6 +182,16 @@ export async function execCodexAuthDelete(name: string): Promise<CliResult> {
 /** Execute `ccr codex auth current` — inspect current Codex auth account */
 export async function execCodexAuthCurrent(): Promise<CliResult> {
   return execCcr(["codex", "auth", "current"]);
+}
+
+/** Execute `ccr codex auth current --json` — inspect current Codex runtime summary */
+export async function execCodexAuthCurrentJson<T>(): Promise<CliJsonResult<T>> {
+  return execCcrJson(["codex", "auth", "current", "--json"]);
+}
+
+/** Execute `ccr codex quota --json` — inspect per-account Codex quota */
+export async function execCodexQuotaJson<T>(): Promise<CliJsonResult<T>> {
+  return execCcrJson(["codex", "quota", "--json"]);
 }
 
 export async function execPlatformProfileCreate(
@@ -161,17 +253,7 @@ export async function execCcr(args: string[]): Promise<CliResult> {
     };
   }
 
-  return new Promise((resolve) => {
-    execFile(ccrPath, args, { timeout: 30000 }, (err, stdout, stderr) => {
-      const exitCode = err ? (typeof err.code === "number" ? err.code : 1) : 0;
-      resolve({
-        success: !err,
-        stdout: stdout?.trim() ?? "",
-        stderr: stderr?.trim() ?? "",
-        exitCode,
-      });
-    });
-  });
+  return execFileCommand(ccrPath, args);
 }
 
 async function execCcrJson<T>(args: string[]): Promise<CliJsonResult<T>> {

@@ -20,6 +20,7 @@ import {
   execPlatformProfileEnable,
   execPlatformProfileSetField,
   execProfileSwitch,
+  invalidateCcrCapabilityCache,
 } from "./services/ccrCli";
 import { readCodexAuthAccounts } from "./services/codexAuthReader";
 import { readProfiles, readRegistry } from "./services/tomlReader";
@@ -33,9 +34,23 @@ import {
 } from "./models/types";
 import { ProfileEditorPanel } from "./providers/profileEditorPanel";
 import { normalizeFieldValue } from "./providers/profileEditorPanel.helpers";
+import { invalidateCodexRuntimeCache } from "./services/codexRuntimeReader";
+import { invalidateCodexQuotaCache } from "./services/codexQuotaReader";
 
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
-  const treeProvider = new ProfileTreeProvider();
+  const refreshAll = (options?: { invalidateRuntime?: boolean; invalidateQuota?: boolean }) => {
+    invalidateCcrCapabilityCache();
+    if (options?.invalidateRuntime) {
+      invalidateCodexRuntimeCache();
+    }
+    if (options?.invalidateQuota) {
+      invalidateCodexQuotaCache();
+    }
+    treeProvider.refresh();
+    statusBar.update();
+  };
+
+  const treeProvider = new ProfileTreeProvider(() => refreshAll());
   const treeView = vscode.window.createTreeView("ccr-profiles", {
     treeDataProvider: treeProvider,
     showCollapseAll: true,
@@ -45,19 +60,14 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   const statusBar = new StatusBarProvider();
   context.subscriptions.push(statusBar);
 
-  const refreshAll = () => {
-    treeProvider.refresh();
-    statusBar.update();
-  };
-
   const watcher = new CcrWatcher();
-  watcher.onChange(refreshAll);
+  watcher.onChange(() => refreshAll({ invalidateRuntime: true, invalidateQuota: true }));
   context.subscriptions.push(watcher);
 
   context.subscriptions.push(
     vscode.workspace.onDidChangeConfiguration((event) => {
       if (event.affectsConfiguration("ccr")) {
-        refreshAll();
+        refreshAll({ invalidateRuntime: true, invalidateQuota: true });
       }
     }),
   );
@@ -65,7 +75,10 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   checkCcrAvailability();
 
   context.subscriptions.push(
-    vscode.commands.registerCommand("ccr.refreshProfiles", refreshAll),
+    vscode.commands.registerCommand("ccr.refreshProfiles", () => refreshAll({
+      invalidateRuntime: true,
+      invalidateQuota: true,
+    })),
   );
 
   context.subscriptions.push(
@@ -253,6 +266,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
       const result = await execCodexAuthDelete(node.auth.name);
       if (result.success) {
         vscode.window.showInformationMessage(`Deleted Codex auth '${node.auth.name}'.`);
+        invalidateCodexRuntimeCache();
         refreshAll();
       } else {
         vscode.window.showErrorMessage(`Failed to delete Codex auth: ${result.stderr || "Unknown error"}`);
@@ -383,6 +397,9 @@ async function doSwitch(
     },
   );
 
+  if (platform === "codex") {
+    invalidateCodexRuntimeCache();
+  }
   refreshAll();
 }
 
@@ -403,6 +420,7 @@ async function doSwitchCodexAuth(name: string, refreshAll: () => void): Promise<
   const result = await execCodexAuthSwitch(name);
   if (result.success) {
     vscode.window.showInformationMessage(`Switched Codex auth to '${name}'.`);
+    invalidateCodexRuntimeCache();
     refreshAll();
   } else {
     vscode.window.showErrorMessage(`Codex auth switch failed: ${result.stderr || "Unknown error"}`);

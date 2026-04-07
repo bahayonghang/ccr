@@ -113,7 +113,7 @@ export interface ProfileInfo {
   isCurrent: boolean;
 }
 
-export type TreeSectionKind = "profiles" | "auth";
+export type TreeSectionKind = "runtime" | "profiles" | "auth";
 
 export interface TreeSectionInfo {
   kind: TreeSectionKind;
@@ -132,6 +132,95 @@ export interface CodexAuthInfo {
   expiresAt?: string;
   isCurrent: boolean;
   isVirtual: boolean;
+}
+
+export type CodexRuntimeMode =
+  | "profile_only"
+  | "profile_with_auth"
+  | "profile_pending_auth"
+  | "runtime_only"
+  | "unresolved"
+  | string;
+
+export interface CodexAuthIntentInfo {
+  kind: string;
+  method?: string;
+  env_key?: string;
+  [key: string]: unknown;
+}
+
+export interface CodexAuthStateInfo {
+  intent: CodexAuthIntentInfo;
+  store: string;
+  status: string;
+  reason: string;
+}
+
+export interface CodexLoginStateInfo {
+  type: string;
+  account_name?: string;
+  env_key?: string;
+  [key: string]: unknown;
+}
+
+export interface CodexCurrentAuthInfo {
+  accountId: string;
+  authMethod?: string;
+  email?: string;
+  lastRefresh?: string;
+  freshness: string;
+}
+
+export interface CodexRuntimeSummaryInfo {
+  mode: CodexRuntimeMode;
+  currentProfileName?: string;
+  currentProfileProvider?: string;
+  currentProfileAuthMode?: string;
+  currentProfileAuthSource?: string;
+  currentAuthName?: string;
+  loginState: CodexLoginStateInfo;
+  authState: CodexAuthStateInfo;
+  profileLabel: string;
+  authLabel: string;
+}
+
+export type CodexRuntimeDataSource = "cli_json" | "local_fallback" | "unsupported";
+
+export interface CcrCapabilitySnapshot {
+  binaryPath?: string;
+  supportsCodexAuthCurrentJson: boolean;
+  supportsCodexQuotaJson: boolean;
+  checkedAt: number;
+}
+
+export interface CodexRuntimeSnapshot {
+  runtimeSummary: CodexRuntimeSummaryInfo;
+  authState: CodexAuthStateInfo;
+  currentAuthInfo?: CodexCurrentAuthInfo;
+  authSidecarLabel?: string;
+  dataSource: CodexRuntimeDataSource;
+  binaryPath?: string;
+  capabilityWarnings: string[];
+}
+
+export interface CodexQuotaInfo {
+  hourlyPercentage: number;
+  hourlyResetTime?: number;
+  hourlyWindowMinutes?: number;
+  hourlyWindowPresent?: boolean;
+  weeklyPercentage: number;
+  weeklyResetTime?: number;
+  weeklyWindowMinutes?: number;
+  weeklyWindowPresent?: boolean;
+  planType?: string;
+}
+
+export interface CodexAuthQuotaInfo {
+  accountName: string;
+  email?: string;
+  quota?: CodexQuotaInfo;
+  error?: string;
+  fetchedAt: string;
 }
 
 export type ProfileEditorMode = "edit" | "create";
