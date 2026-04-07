@@ -17,7 +17,7 @@
 | 平台 | 状态 | 说明 | 配置文件路径 |
 |------|------|------|-------------|
 | Claude Code | ✅ 完全支持 | Anthropic 官方 CLI | `~/.claude/settings.json` |
-| Codex | ✅ 完全支持 | GitHub Copilot CLI | `~/.codex/config.json` |
+| Codex | ✅ 完全支持 | Codex CLI | `~/.codex/config.json` |
 | Gemini CLI | ✅ 完全支持 | Google Gemini CLI | `~/.gemini/settings.json` |
 | Qwen | ✅ 完全支持 | 阿里通义千问 CLI | `~/.qwen/config.json` |
 

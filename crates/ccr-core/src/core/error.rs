@@ -300,7 +300,7 @@ impl CcrError {
                     "平台 '{}' 未找到或未实现\n\n\
                     可用平台:\n\
                     • claude  - Claude Code (✅ 已实现)\n\
-                    • codex   - GitHub Copilot CLI (✅ 已实现)\n\
+                    • codex   - Codex CLI (✅ 已实现)\n\
                     • gemini  - Google Gemini CLI (✅ 已实现)\n\
                     • qwen    - Alibaba Qwen CLI (🚧 计划中)\n\n\
                     建议:\n\
@@ -315,7 +315,7 @@ impl CcrError {
                     "平台 '{}' 尚未实现\n\n\
                     当前已实现的平台:\n\
                     • claude  - Claude Code\n\
-                    • codex   - GitHub Copilot CLI\n\
+                    • codex   - Codex CLI\n\
                     • gemini  - Google Gemini CLI\n\n\
                     计划中的平台:\n\
                     • qwen    - Alibaba Qwen CLI\n\n\

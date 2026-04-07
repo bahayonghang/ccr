@@ -7,7 +7,7 @@
 | 平台 | 状态 | Profiles 数量 | 当前 Profile | 描述 |
 |------|------|---------------|--------------|------|
 | **Claude** | ✅ 已启用 | 16 | husan | Claude Code AI Assistant |
-| **Codex** | ✅ 已启用 | 5 | github | GitHub Copilot CLI |
+| **Codex** | ✅ 已启用 | 3 | default | Codex CLI |
 | **Gemini** | ✅ 已启用 | 6 | google | Google Gemini CLI |
 | **Qwen** | ⏸️ 未启用 | 0 | - | Alibaba Qwen CLI (计划中) |
 
@@ -47,7 +47,7 @@ ccr platform list
 │ 状态   ┆ 平台名称 ┆ 启用 ┆ 当前 Profile ┆ 描述                     │
 ╞════════╪══════════╪══════╪══════════════╪══════════════════════════╡
 │ ▶ 当前 ┆ claude   ┆ ✓    ┆ husan        ┆ Claude Code AI Assistant │
-│        ┆ codex    ┆ ✓    ┆ github       ┆ GitHub Copilot CLI       │
+│        ┆ codex    ┆ ✓    ┆ default      ┆ Codex CLI                │
 │        ┆ gemini   ┆ ✓    ┆ google       ┆ Google Gemini CLI        │
 └────────┴──────────┴──────┴──────────────┴──────────────────────────┘
 ```
@@ -55,7 +55,7 @@ ccr platform list
 ### 2. 切换平台
 
 ```bash
-# 切换到 Codex (GitHub Copilot)
+# 切换到 Codex CLI
 ccr platform switch codex
 
 # 切换到 Gemini
@@ -115,18 +115,16 @@ ccr current
 **默认配置**: anyrouter
 **当前配置**: husan
 
-## 💻 Codex 平台配置 (5 Profiles)
+## 💻 Codex 平台配置 (3 Profiles)
 
 | Profile | 描述 | Model | Provider |
 |---------|------|-------|----------|
-| github | GitHub Official Copilot | gpt-4 / gpt-3.5-turbo | GitHub |
-| profile-1 | Test profile 1 | model | - |
-| profile-2 | Test profile 2 | model | - |
-| profile-3 | Test profile 3 | model | - |
-| profile-5 | Test profile 5 | gpt-4 / gpt-3.5-turbo | GitHub |
+| default | OpenAI Codex Official | 由 Codex CLI 选择 | OpenAI |
+| duckcoding | DuckCoding 中转站 | 自定义 | DuckCoding |
+| 88code | 88Code 中转站 | 自定义 | 88Code |
 
-**默认配置**: github
-**当前配置**: github
+**默认配置**: default
+**当前配置**: default
 
 ## ✨ Gemini 平台配置 (6 Profiles)
 
@@ -173,7 +171,7 @@ ccr switch siliconflow
 ### 场景 3: 跨平台切换
 
 ```bash
-# 从 Claude 切换到 GitHub Copilot
+# 从 Claude 切换到 Codex CLI
 ccr platform switch codex
 ccr current
 
@@ -215,8 +213,8 @@ last_used = "2025-10-25T15:23:43.177265328+00:00"
 
 [codex]
 enabled = true
-current_profile = "github"
-description = "GitHub Copilot CLI"
+current_profile = "default"
+description = "Codex CLI"
 last_used = "2025-10-25T15:23:43.182209794+00:00"
 
 [gemini]
@@ -258,21 +256,28 @@ tags = ["paid", "stable", "high-speed"]
 ### ~/.ccr/platforms/codex/profiles.toml (Codex Profiles)
 
 ```toml
-default_config = "github"
-current_config = "github"
+default_config = "default"
+current_config = "default"
 
 [settings]
 skip_confirmation = false
 
-[github]
-description = "Test Codex profile: github"
-base_url = "https://api.github.com/copilot"
-auth_token = "ghp_1234567890123456789012345678901234567890"
-model = "gpt-4"
-small_fast_model = "gpt-3.5-turbo"
-provider = "GitHub"
+[default]
+description = "OpenAI Codex Official"
+auth_token = ""
+enabled = true
 
-# ... 其他 4 个 profiles
+[duckcoding]
+description = "DuckCoding 中转站"
+base_url = "https://jp.duckcoding.com/v1"
+auth_token = "sk-...your-duckcoding-codex-token"
+enabled = true
+
+[88code]
+description = "88Code 中转站"
+base_url = "https://www.88code.ai/openai/v1"
+auth_token = "sk-your-api-key"
+enabled = true
 ```
 
 ### ~/.ccr/platforms/gemini/profiles.toml (Gemini Profiles)
@@ -340,8 +345,8 @@ provider = "Google"
 - 添加描述性 tags: ["free", "paid", "stable", "backup"]
 
 **Codex Platform**:
-- GitHub 官方：github
-- 测试配置：profile-1, profile-2, etc.
+- OpenAI 官方：default
+- 中转站配置：duckcoding、88code 等
 
 **Gemini Platform**:
 - Google 官方：google

@@ -540,7 +540,7 @@ When you switch to a Claude profile, CCR sets these environment variables in `~/
 - [Configuration Guide](/guide/configuration) - Detailed configuration reference
 - [Migration Guide](migration.md) - Legacy to Unified mode migration
 - [Quick Start](/guide/quick-start) - Getting started guide
-- [Codex Platform](codex.md) - GitHub Copilot CLI platform
+- [Codex Platform](codex.md) - Codex CLI platform
 - [Gemini Platform](gemini.md) - Google Gemini CLI platform
 
 ## Statistics

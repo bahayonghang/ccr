@@ -501,7 +501,7 @@ mod tests {
             PlatformConfigEntry {
                 enabled: true,
                 current_profile: None,
-                description: Some("GitHub Copilot CLI".to_string()),
+                description: Some("Codex CLI".to_string()),
                 last_used: None,
             },
         );

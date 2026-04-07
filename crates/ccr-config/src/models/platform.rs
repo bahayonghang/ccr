@@ -22,7 +22,7 @@ use std::str::FromStr;
 ///
 /// ## 支持状态
 /// - ✅ **Claude**: 完全支持（Claude Code）
-/// - ✅ **Codex**: 完全支持（GitHub Copilot CLI）
+/// - ✅ **Codex**: 完全支持（Codex CLI）
 /// - ✅ **Gemini**: 完全支持（Gemini CLI）
 /// - 🚧 **Qwen**: 计划支持（阿里通义千问 CLI）
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -30,7 +30,7 @@ use std::str::FromStr;
 pub enum Platform {
     /// Claude Code - Anthropic 官方 CLI
     Claude,
-    /// Codex - GitHub Copilot CLI
+    /// Codex - Codex CLI
     Codex,
     /// Gemini CLI - Google Gemini CLI
     Gemini,

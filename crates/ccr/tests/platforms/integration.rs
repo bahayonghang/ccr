@@ -62,11 +62,11 @@ fn create_claude_profile(name: &str) -> ProfileConfig {
 fn create_codex_profile(name: &str) -> ProfileConfig {
     let mut profile = ProfileConfig::new();
     profile.description = Some(format!("Test Codex profile: {}", name));
-    profile.base_url = Some("https://api.github.com/copilot".to_string());
-    profile.auth_token = Some("ghp_1234567890123456789012345678901234567890".to_string());
-    profile.model = Some("gpt-4".to_string());
-    profile.small_fast_model = Some("gpt-3.5-turbo".to_string());
-    profile.provider = Some("GitHub".to_string());
+    profile.base_url = Some("https://api.openai.com/v1".to_string());
+    profile.auth_token = Some("sk-test-codex-12345678901234567890".to_string());
+    profile.model = Some("gpt-5-codex".to_string());
+    profile.small_fast_model = Some("gpt-5-mini".to_string());
+    profile.provider = Some("OpenAI".to_string());
     profile
 }
 
@@ -438,7 +438,7 @@ fn test_platform_isolation_under_operations() {
             .unwrap()
             .contains("anthropic")
     );
-    assert!(codex_default.base_url.as_ref().unwrap().contains("github"));
+    assert!(codex_default.base_url.as_ref().unwrap().contains("openai"));
 
     // 删除 Claude 的 default profile
     claude.delete_profile("default").unwrap();
@@ -617,7 +617,7 @@ fn test_end_to_end_complete_workflow() {
     // 3. 注册并切换到 Codex
     let codex_entry = ccr::PlatformConfigEntry {
         enabled: true,
-        description: Some("GitHub Copilot CLI".to_string()),
+        description: Some("Codex CLI".to_string()),
         ..Default::default()
     };
     config

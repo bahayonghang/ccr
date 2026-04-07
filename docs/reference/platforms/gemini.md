@@ -582,7 +582,7 @@ ccr clean --days 30 --dry-run
 ## See Also
 
 - [Migration Guide](./migration.md) - Migrating between platforms
-- [Codex Platform Guide](./codex.md) - GitHub Copilot CLI configuration
+- [Codex Platform Guide](./codex.md) - Codex CLI configuration
 - [Main README](../../README.md) - CCR overview
 - [Google AI Studio](https://makersuite.google.com/) - Get API keys
 - [Gemini API Docs](https://ai.google.dev/docs) - Official Gemini API documentation

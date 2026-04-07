@@ -5,7 +5,7 @@
 //! ## 支持的平台
 //!
 //! - **Claude Code**: Anthropic 官方 CLI ([`platforms::ClaudePlatform`])
-//! - **Codex**: GitHub Copilot CLI ([`platforms::CodexPlatform`])
+//! - **Codex**: Codex CLI ([`platforms::CodexPlatform`])
 //! - **Gemini**: Google Gemini CLI ([`platforms::GeminiPlatform`])
 //! - **Qwen**: 阿里通义千问 CLI (计划中)
 //!

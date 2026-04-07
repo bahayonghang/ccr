@@ -336,7 +336,7 @@ max_output_tokens = 8192  # Claude limit
 ## Related Resources
 
 - [Claude Platform](claude.md) - Anthropic Claude Code CLI
-- [Codex Platform](codex.md) - GitHub Copilot CLI
+- [Codex Platform](codex.md) - Codex CLI
 - [Gemini Platform](gemini.md) - Google Gemini CLI
 - [Migration Guide](migration.md) - Cross-platform migration
 
