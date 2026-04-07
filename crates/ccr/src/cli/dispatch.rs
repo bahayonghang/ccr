@@ -507,7 +507,9 @@ impl CommandDispatcher {
                 CodexAuthAction::Delete { name, force } => {
                     crate::commands::codex::auth::delete_command(name, *force).await
                 }
-                CodexAuthAction::Current => crate::commands::codex::auth::current_command().await,
+                CodexAuthAction::Current { json } => {
+                    crate::commands::codex::auth::current_command(*json).await
+                }
                 CodexAuthAction::Export { no_secrets } => {
                     crate::commands::codex::auth::export_command(*no_secrets).await
                 }

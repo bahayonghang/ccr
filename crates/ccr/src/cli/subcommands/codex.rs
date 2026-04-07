@@ -157,7 +157,12 @@ pub enum CodexAuthAction {
     ///
     /// 显示当前 ~/.codex/auth.json 的账号信息
     /// 示例: ccr codex auth current
-    Current,
+    ///       ccr codex auth current --json
+    Current {
+        /// 以 JSON 格式输出（供扩展消费）
+        #[arg(long)]
+        json: bool,
+    },
 
     /// 导出所有账号到 JSON 文件
     ///

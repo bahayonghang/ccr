@@ -320,7 +320,8 @@ pub struct CodexAuthItem {
 }
 
 /// Codex 当前运行时的控制模式
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
 pub enum CodexRuntimeMode {
     /// 当前由 Profile 独立控制（常见于 provider env key / 无认证 profile）
     ProfileOnly,
@@ -347,7 +348,7 @@ impl CodexRuntimeMode {
 }
 
 /// Codex 运行时摘要（用于统一解释当前是谁在控制 Codex）
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct CodexRuntimeSummary {
     pub mode: CodexRuntimeMode,
     pub current_profile_name: Option<String>,
