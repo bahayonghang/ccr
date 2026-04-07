@@ -84,6 +84,49 @@ pub struct SkillInstallationRecord {
     pub is_primary: bool,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "lowercase")]
+pub enum SkillTargetStatus {
+    Ok,
+    Pending,
+    Error,
+    Missing,
+    Stale,
+    Unknown,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SkillTargetRecord {
+    pub id: String,
+    pub platform_id: String,
+    pub platform_name: String,
+    pub target_path: String,
+    pub sync_mode: SkillInstallMode,
+    pub status: SkillTargetStatus,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub synced_at: Option<i64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub last_error: Option<String>,
+    pub is_primary: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct SkillLifecycleSummary {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub source_ref: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub source_label: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub source_revision: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub content_hash: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub last_synced_at: Option<i64>,
+    pub has_errors: bool,
+    pub target_count: usize,
+    pub healthy_target_count: usize,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SkillRecord {
     pub id: String,
@@ -107,6 +150,10 @@ pub struct SkillRecord {
     pub install_count: usize,
     #[serde(default)]
     pub installations: Vec<SkillInstallationRecord>,
+    #[serde(default)]
+    pub targets: Vec<SkillTargetRecord>,
+    #[serde(default)]
+    pub lifecycle: SkillLifecycleSummary,
     #[serde(default)]
     pub editable_installations: Vec<String>,
 }
@@ -165,6 +212,34 @@ pub struct SkillContent {
     pub raw: String,
     pub content: String,
     pub skill_dir: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SkillFileEntry {
+    pub path: String,
+    pub size: u64,
+    pub is_dir: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SkillFileContent {
+    pub skill_id: String,
+    pub installation_id: String,
+    pub path: String,
+    pub content: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SkillsOnboardingCandidate {
+    pub skill_id: String,
+    pub name: String,
+    #[serde(default)]
+    pub platform_ids: Vec<String>,
+    #[serde(default)]
+    pub installation_ids: Vec<String>,
+    #[serde(default)]
+    pub installation_paths: Vec<String>,
+    pub reason: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]

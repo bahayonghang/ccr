@@ -347,7 +347,7 @@ dependencies = [
  "tracing-log",
  "tracing-subscriber",
  "uuid",
- "whoami",
+ "walkdir",
 ]
 
 [[package]]

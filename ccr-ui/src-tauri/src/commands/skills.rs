@@ -5,9 +5,9 @@
 
 use ccr::models::skills::SkillOperationResponse;
 use ccr::{
-    MarketplaceListResponse, MarketplaceSkill, NpxStatus, SkillContent, SkillRecord,
-    SkillSourceRecord, SkillsInstallRequest, SkillsInventoryQuery, SkillsInventoryResponse,
-    SkillsService, SkillsSyncRequest,
+    MarketplaceListResponse, MarketplaceSkill, NpxStatus, SkillContent, SkillFileContent,
+    SkillFileEntry, SkillRecord, SkillSourceRecord, SkillsInstallRequest, SkillsInventoryQuery,
+    SkillsInventoryResponse, SkillsOnboardingCandidate, SkillsService, SkillsSyncRequest,
 };
 use serde::Serialize;
 use tauri_plugin_dialog::DialogExt;
@@ -59,6 +59,43 @@ pub async fn skills_content_get(
     tokio::task::spawn_blocking(move || {
         let service = new_service()?;
         map_domain_error(service.content_get(&skill_id, installation_id.as_deref()))
+    })
+    .await
+    .map_err(map_join_error)?
+}
+
+#[tauri::command]
+pub async fn skills_files_list(
+    skill_id: String,
+    installation_id: Option<String>,
+) -> Result<Vec<SkillFileEntry>, String> {
+    tokio::task::spawn_blocking(move || {
+        let service = new_service()?;
+        map_domain_error(service.files_list(&skill_id, installation_id.as_deref()))
+    })
+    .await
+    .map_err(map_join_error)?
+}
+
+#[tauri::command]
+pub async fn skills_file_get(
+    skill_id: String,
+    path: String,
+    installation_id: Option<String>,
+) -> Result<SkillFileContent, String> {
+    tokio::task::spawn_blocking(move || {
+        let service = new_service()?;
+        map_domain_error(service.file_get(&skill_id, installation_id.as_deref(), &path))
+    })
+    .await
+    .map_err(map_join_error)?
+}
+
+#[tauri::command]
+pub async fn skills_onboarding_candidates() -> Result<Vec<SkillsOnboardingCandidate>, String> {
+    tokio::task::spawn_blocking(move || {
+        let service = new_service()?;
+        map_domain_error(service.onboarding_candidates())
     })
     .await
     .map_err(map_join_error)?

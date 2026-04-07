@@ -24,14 +24,17 @@ fn silent_command(program: &str) -> Command {
 use blake3::Hasher;
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
+use walkdir::WalkDir;
 
 use crate::models::skill::Skill;
 use crate::models::skills::{
     MarketplaceListResponse, MarketplaceSkill, NpxStatus, SkillContent, SkillDescriptor,
-    SkillInstallMeta, SkillInstallMode, SkillInstallationRecord, SkillOperationResponse,
-    SkillOrigin, SkillPlatformConfig, SkillPlatformSummary, SkillRecord, SkillSourceHealth,
-    SkillSourceRecord, SkillSourceSkillRecord, SkillSourceType, SkillsInstallRequest,
-    SkillsInventoryQuery, SkillsInventoryResponse, SkillsSourceManifest, SkillsSyncRequest,
+    SkillFileContent, SkillFileEntry, SkillInstallMeta, SkillInstallMode, SkillInstallationRecord,
+    SkillLifecycleSummary, SkillOperationResponse, SkillOrigin, SkillPlatformConfig,
+    SkillPlatformSummary, SkillRecord, SkillSourceHealth, SkillSourceRecord,
+    SkillSourceSkillRecord, SkillSourceType, SkillTargetRecord, SkillTargetStatus,
+    SkillsInstallRequest, SkillsInventoryQuery, SkillsInventoryResponse, SkillsOnboardingCandidate,
+    SkillsSourceManifest, SkillsSyncRequest,
 };
 use ccr_core::core::atomic_writer::AtomicWriter;
 use ccr_core::core::error::{CcrError, Result};
@@ -311,6 +314,32 @@ impl SkillsService {
 
     fn skill_path(skill_dir: &Path) -> PathBuf {
         skill_dir.join("SKILL.md")
+    }
+
+    fn resolve_installation_file_path(
+        install_path: &Path,
+        requested_path: &str,
+    ) -> Result<PathBuf> {
+        let requested = Path::new(requested_path);
+        if requested.has_root() || requested.is_absolute() {
+            return Err(CcrError::ValidationError(
+                "技能文件路径必须位于安装目录内".to_string(),
+            ));
+        }
+
+        let canonical_install_path = install_path.canonicalize().map_err(CcrError::IoError)?;
+        let canonical_target = canonical_install_path
+            .join(requested)
+            .canonicalize()
+            .map_err(CcrError::IoError)?;
+
+        if !canonical_target.starts_with(&canonical_install_path) {
+            return Err(CcrError::ValidationError(
+                "技能文件路径必须位于安装目录内".to_string(),
+            ));
+        }
+
+        Ok(canonical_target)
     }
 
     fn read_install_meta(skill_dir: &Path) -> SkillInstallMeta {
@@ -720,6 +749,49 @@ impl SkillsService {
                     .installations
                     .first()
                     .map(|installation| installation.installation_id.clone());
+                let install_count = aggregate.installations.len();
+                let editable_installations = aggregate
+                    .installations
+                    .iter()
+                    .map(|installation| installation.installation_id.clone())
+                    .collect::<Vec<_>>();
+                let installations = aggregate
+                    .installations
+                    .iter()
+                    .map(|installation| SkillInstallationRecord {
+                        is_primary: primary_id
+                            .as_ref()
+                            .is_some_and(|primary| primary == &installation.installation_id),
+                        id: installation.installation_id.clone(),
+                        platform_id: installation.platform_id.clone(),
+                        platform_name: installation.platform_name.clone(),
+                        install_path: installation.install_path.to_string_lossy().to_string(),
+                        install_mode: SkillInstallMode::Copy,
+                        installed_at: installation.installed_at,
+                    })
+                    .collect::<Vec<_>>();
+                let targets = aggregate
+                    .installations
+                    .iter()
+                    .map(|installation| SkillTargetRecord {
+                        id: installation.installation_id.clone(),
+                        platform_id: installation.platform_id.clone(),
+                        platform_name: installation.platform_name.clone(),
+                        target_path: installation.install_path.to_string_lossy().to_string(),
+                        sync_mode: SkillInstallMode::Copy,
+                        status: SkillTargetStatus::Ok,
+                        synced_at: installation.installed_at,
+                        last_error: None,
+                        is_primary: primary_id
+                            .as_ref()
+                            .is_some_and(|primary| primary == &installation.installation_id),
+                    })
+                    .collect::<Vec<_>>();
+                let last_synced_at = targets.iter().filter_map(|target| target.synced_at).max();
+                let healthy_target_count = targets
+                    .iter()
+                    .filter(|target| matches!(target.status, SkillTargetStatus::Ok))
+                    .count();
                 SkillRecord {
                     id: aggregate.id,
                     name: aggregate.name,
@@ -729,29 +801,22 @@ impl SkillsService {
                     version: aggregate.version,
                     author: aggregate.author,
                     origin: aggregate.origin,
-                    source_label: aggregate.source_label,
-                    source_ref: aggregate.source_ref,
-                    install_count: aggregate.installations.len(),
-                    editable_installations: aggregate
-                        .installations
-                        .iter()
-                        .map(|installation| installation.installation_id.clone())
-                        .collect(),
-                    installations: aggregate
-                        .installations
-                        .into_iter()
-                        .map(|installation| SkillInstallationRecord {
-                            is_primary: primary_id
-                                .as_ref()
-                                .is_some_and(|primary| primary == &installation.installation_id),
-                            id: installation.installation_id,
-                            platform_id: installation.platform_id,
-                            platform_name: installation.platform_name,
-                            install_path: installation.install_path.to_string_lossy().to_string(),
-                            install_mode: SkillInstallMode::Copy,
-                            installed_at: installation.installed_at,
-                        })
-                        .collect(),
+                    source_label: aggregate.source_label.clone(),
+                    source_ref: aggregate.source_ref.clone(),
+                    install_count,
+                    editable_installations,
+                    installations,
+                    targets,
+                    lifecycle: SkillLifecycleSummary {
+                        source_ref: aggregate.source_ref,
+                        source_label: aggregate.source_label,
+                        source_revision: None,
+                        content_hash: None,
+                        last_synced_at,
+                        has_errors: healthy_target_count != install_count,
+                        target_count: install_count,
+                        healthy_target_count,
+                    },
                 }
             })
             .collect::<Vec<_>>();
@@ -891,6 +956,94 @@ impl SkillsService {
             raw,
             skill_dir: installation.install_path,
         })
+    }
+
+    pub fn files_list(
+        &self,
+        skill_id: &str,
+        installation_id: Option<&str>,
+    ) -> Result<Vec<SkillFileEntry>> {
+        let (_, installation) = self.resolve_installation_path(skill_id, installation_id)?;
+        let install_path = PathBuf::from(&installation.install_path);
+        let mut entries = Vec::new();
+
+        for entry in WalkDir::new(&install_path) {
+            let Ok(entry) = entry else {
+                continue;
+            };
+            if entry.path() == install_path {
+                continue;
+            }
+            let Ok(relative) = entry.path().strip_prefix(&install_path) else {
+                continue;
+            };
+            let Ok(metadata) = entry.metadata() else {
+                continue;
+            };
+            entries.push(SkillFileEntry {
+                path: relative.to_string_lossy().replace('\\', "/"),
+                size: if metadata.is_file() {
+                    metadata.len()
+                } else {
+                    0
+                },
+                is_dir: metadata.is_dir(),
+            });
+        }
+
+        entries.sort_by(|left, right| left.path.cmp(&right.path));
+        Ok(entries)
+    }
+
+    pub fn file_get(
+        &self,
+        skill_id: &str,
+        installation_id: Option<&str>,
+        path: &str,
+    ) -> Result<SkillFileContent> {
+        let (_, installation) = self.resolve_installation_path(skill_id, installation_id)?;
+        let install_path = PathBuf::from(&installation.install_path);
+        let target = Self::resolve_installation_file_path(&install_path, path)?;
+        let content = fs::read_to_string(&target).map_err(CcrError::IoError)?;
+        Ok(SkillFileContent {
+            skill_id: skill_id.to_string(),
+            installation_id: installation.id,
+            path: path.to_string(),
+            content,
+        })
+    }
+
+    pub fn onboarding_candidates(&self) -> Result<Vec<SkillsOnboardingCandidate>> {
+        let skills = self.inventory(None)?.skills;
+        let candidates = skills
+            .into_iter()
+            .filter(|skill| skill.origin == SkillOrigin::Unknown || skill.source_ref.is_none())
+            .map(|skill| SkillsOnboardingCandidate {
+                skill_id: skill.id,
+                name: skill.name,
+                platform_ids: skill
+                    .installations
+                    .iter()
+                    .map(|installation| installation.platform_id.clone())
+                    .collect(),
+                installation_ids: skill
+                    .installations
+                    .iter()
+                    .map(|installation| installation.id.clone())
+                    .collect(),
+                installation_paths: skill
+                    .installations
+                    .iter()
+                    .map(|installation| installation.install_path.clone())
+                    .collect(),
+                reason: if skill.source_ref.is_none() {
+                    "missing_source".to_string()
+                } else {
+                    "unknown_origin".to_string()
+                },
+            })
+            .collect();
+        Ok(candidates)
     }
 
     pub fn content_save(
@@ -1825,6 +1978,7 @@ struct ParsedGithubRef {
 #[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
+    use ccr_core::core::error::CcrError;
     use tempfile::tempdir;
 
     fn build_test_service(root: &Path) -> SkillsService {
@@ -1835,6 +1989,26 @@ mod tests {
             platforms_path: root.join(".ccr").join("skills").join(PLATFORMS_FILENAME),
             summary_cache_path: root.join(".cache").join(SUMMARY_CACHE_FILENAME),
         }
+    }
+
+    fn create_test_skill(root: &Path, name: &str) -> (SkillsService, String, String) {
+        let service = build_test_service(root);
+        let skill_dir = root.join(".agents").join("skills").join(name);
+        fs::create_dir_all(&skill_dir).unwrap();
+        fs::write(
+            skill_dir.join("SKILL.md"),
+            format!("---\nname: {name}\ndescription: demo skill\n---\n\n# {name}\n"),
+        )
+        .unwrap();
+
+        let inventory = service.inventory(None).unwrap();
+        let skill = inventory
+            .skills
+            .into_iter()
+            .find(|skill| skill.name == name)
+            .unwrap();
+        let installation = skill.installations.first().cloned().unwrap();
+        (service, skill.id, installation.id)
     }
 
     #[test]
@@ -1900,5 +2074,64 @@ relative_path = ".iflow/skills"
 
         let persisted = fs::read_to_string(&service.platforms_path).unwrap();
         assert!(!persisted.contains("iflow"));
+    }
+
+    #[test]
+    fn file_get_rejects_parent_traversal_outside_installation() {
+        let temp = tempdir().unwrap();
+        let (service, skill_id, installation_id) = create_test_skill(temp.path(), "demo-skill");
+        fs::write(
+            temp.path()
+                .join(".agents")
+                .join("skills")
+                .join("outside.txt"),
+            "secret",
+        )
+        .unwrap();
+
+        let error = service
+            .file_get(&skill_id, Some(&installation_id), "../outside.txt")
+            .unwrap_err();
+
+        assert!(matches!(error, CcrError::ValidationError(_)));
+    }
+
+    #[test]
+    fn file_get_rejects_absolute_path_requests() {
+        let temp = tempdir().unwrap();
+        let (service, skill_id, installation_id) = create_test_skill(temp.path(), "demo-skill");
+        let outside = temp.path().join("outside.txt");
+        fs::write(&outside, "secret").unwrap();
+
+        let error = service
+            .file_get(
+                &skill_id,
+                Some(&installation_id),
+                outside.to_string_lossy().as_ref(),
+            )
+            .unwrap_err();
+
+        assert!(matches!(error, CcrError::ValidationError(_)));
+    }
+
+    #[test]
+    fn file_get_reads_files_within_installation_root() {
+        let temp = tempdir().unwrap();
+        let (service, skill_id, installation_id) = create_test_skill(temp.path(), "demo-skill");
+        let nested_dir = temp
+            .path()
+            .join(".agents")
+            .join("skills")
+            .join("demo-skill")
+            .join("docs");
+        fs::create_dir_all(&nested_dir).unwrap();
+        fs::write(nested_dir.join("guide.md"), "hello").unwrap();
+
+        let content = service
+            .file_get(&skill_id, Some(&installation_id), "docs/guide.md")
+            .unwrap();
+
+        assert_eq!(content.path, "docs/guide.md");
+        assert_eq!(content.content, "hello");
     }
 }

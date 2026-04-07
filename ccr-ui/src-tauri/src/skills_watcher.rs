@@ -36,12 +36,23 @@ pub fn reload(app_handle: &AppHandle) -> Result<(), String> {
                 return;
             }
 
+            let affects_sources = event.paths.iter().any(|path| {
+                path.file_name()
+                    .and_then(|name| name.to_str())
+                    .is_some_and(|name| name == "sources.json")
+            });
+            let affects_marketplace = event.paths.iter().any(|path| {
+                path.to_string_lossy().contains("skills.sh")
+            });
             let payload = serde_json::json!({
                 "paths": event
                     .paths
                     .iter()
                     .map(|path| path.to_string_lossy().to_string())
                     .collect::<Vec<_>>(),
+                "affectsInventory": true,
+                "affectsSources": affects_sources,
+                "affectsMarketplace": affects_marketplace,
             });
             let _ = emit_handle.emit("skills-changed", payload);
         },
