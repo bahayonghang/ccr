@@ -664,6 +664,8 @@ watch(selectedSkill, () => { showFullDesc.value = false })
 
   background: linear-gradient(180deg, rgb(var(--color-accent-primary-rgb) / 18%), rgb(var(--color-accent-secondary-rgb) / 10%));
 }
+
+.content-body {
   @apply min-h-[300px] w-full rounded-2xl border border-border-default/45 p-3 text-sm leading-6 text-text-primary;
 
   background-color: rgb(var(--color-bg-base-rgb) / 55%);

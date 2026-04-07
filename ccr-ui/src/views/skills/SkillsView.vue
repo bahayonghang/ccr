@@ -58,7 +58,10 @@
           :class="{ 'console-tab--active': routeState.tab === tab.id }"
           @click="setTab(tab.id)"
         >
-          <SIcon :name="tab.icon" size="w-4 h-4" />
+          <SIcon
+            :name="tab.icon"
+            size="w-4 h-4"
+          />
           <span>{{ tab.label }}</span>
           <span class="console-tab__count">{{ tab.count }}</span>
         </button>
@@ -68,7 +71,10 @@
       <div class="console-layout">
         <!-- 左侧边栏：平台选择 + 上下文面板 + 活动日志 -->
         <aside class="console-sidebar">
-          <section v-if="newlyDetectedPlatforms.length > 0" class="panel">
+          <section
+            v-if="newlyDetectedPlatforms.length > 0"
+            class="panel"
+          >
             <div class="panel__header">
               <h2 class="panel__title">
                 {{ $t('skills.newToolsTitle') }}
@@ -79,7 +85,11 @@
               {{ $t('skills.newToolsDescription', { count: newlyDetectedPlatforms.length }) }}
             </p>
             <div class="skill-card__meta">
-              <span v-for="platform in newlyDetectedPlatforms" :key="platform.id" class="badge">
+              <span
+                v-for="platform in newlyDetectedPlatforms"
+                :key="platform.id"
+                class="badge"
+              >
                 {{ platform.displayName }}
               </span>
             </div>
@@ -90,15 +100,23 @@
               >
                 {{ $t('skills.newToolsAction') }}
               </button>
-              <button class="console-button" @click="dismissNewToolsPrompt">
+              <button
+                class="console-button"
+                @click="dismissNewToolsPrompt"
+              >
                 {{ $t('skills.newToolsDismiss') }}
               </button>
             </div>
           </section>
 
-          <section v-if="onboardingCandidates.length > 0" class="panel">
+          <section
+            v-if="onboardingCandidates.length > 0"
+            class="panel"
+          >
             <div class="panel__header">
-              <h2 class="panel__title">Onboarding</h2>
+              <h2 class="panel__title">
+                Onboarding
+              </h2>
               <span class="badge">{{ onboardingCandidates.length }}</span>
             </div>
             <p class="console-header__subtitle">
@@ -121,8 +139,8 @@
                     class="field__input mt-2"
                     :value="
                       canonicalSourceBySkill[candidate.skillId] ??
-                      candidate.installationPaths[0] ??
-                      ''
+                        candidate.installationPaths[0] ??
+                        ''
                     "
                     @change="
                       updateCanonicalSource(
@@ -131,7 +149,11 @@
                       )
                     "
                   >
-                    <option v-for="path in candidate.installationPaths" :key="path" :value="path">
+                    <option
+                      v-for="path in candidate.installationPaths"
+                      :key="path"
+                      :value="path"
+                    >
                       {{ path }}
                     </option>
                   </select>
@@ -154,10 +176,20 @@
           />
 
           <!-- Inventory 筛选器 -->
-          <section v-if="routeState.tab === 'inventory'" class="panel">
+          <section
+            v-if="routeState.tab === 'inventory'"
+            class="panel"
+          >
             <div class="panel__header">
-              <h2 class="panel__title">Filters</h2>
-              <button class="panel__link" @click="resetFilters">Reset</button>
+              <h2 class="panel__title">
+                Filters
+              </h2>
+              <button
+                class="panel__link"
+                @click="resetFilters"
+              >
+                Reset
+              </button>
             </div>
 
             <label class="field">
@@ -167,7 +199,7 @@
                 class="field__input"
                 type="text"
                 placeholder="name / tag / category"
-              />
+              >
             </label>
 
             <label class="field">
@@ -178,7 +210,11 @@
                 @change="updatePlatformFilter(($event.target as HTMLSelectElement).value)"
               >
                 <option value="all">All platforms</option>
-                <option v-for="p in platforms" :key="p.id" :value="p.id">
+                <option
+                  v-for="p in platforms"
+                  :key="p.id"
+                  :value="p.id"
+                >
                   {{ p.displayName }}
                 </option>
               </select>
@@ -192,7 +228,11 @@
                 @change="updateOriginFilter(($event.target as HTMLSelectElement).value)"
               >
                 <option value="all">All origins</option>
-                <option v-for="origin in originOptions" :key="origin" :value="origin">
+                <option
+                  v-for="origin in originOptions"
+                  :key="origin"
+                  :value="origin"
+                >
                   {{ origin }}
                 </option>
               </select>
@@ -200,9 +240,16 @@
 
             <label class="field">
               <span class="field__label">Category</span>
-              <select v-model="filters.category" class="field__input">
+              <select
+                v-model="filters.category"
+                class="field__input"
+              >
                 <option :value="null">All categories</option>
-                <option v-for="cat in availableCategories" :key="cat" :value="cat">
+                <option
+                  v-for="cat in availableCategories"
+                  :key="cat"
+                  :value="cat"
+                >
                   {{ cat }}
                 </option>
               </select>
@@ -216,7 +263,11 @@
                 @change="updateSourceFilter(($event.target as HTMLSelectElement).value)"
               >
                 <option value="all">All sources</option>
-                <option v-for="source in sourceOptions" :key="source.id" :value="source.id">
+                <option
+                  v-for="source in sourceOptions"
+                  :key="source.id"
+                  :value="source.id"
+                >
                   {{ source.name }}
                 </option>
               </select>
@@ -236,9 +287,14 @@
           </section>
 
           <!-- Sources 添加表单 -->
-          <section v-else-if="routeState.tab === 'sources'" class="panel">
+          <section
+            v-else-if="routeState.tab === 'sources'"
+            class="panel"
+          >
             <div class="panel__header">
-              <h2 class="panel__title">Add Source</h2>
+              <h2 class="panel__title">
+                Add Source
+              </h2>
             </div>
 
             <label class="field">
@@ -248,14 +304,17 @@
                 class="field__input"
                 type="text"
                 placeholder="https://github.com/owner/repo"
-              />
+              >
             </label>
             <button
               class="console-button console-button--primary"
               :disabled="mutationLoading || !gitSourceUrl.trim()"
               @click="handleAddGitSource"
             >
-              <SIcon name="Github" size="w-4 h-4" />
+              <SIcon
+                name="Github"
+                size="w-4 h-4"
+              />
               <span>Add Git Source</span>
             </button>
 
@@ -267,9 +326,15 @@
                   class="field__input"
                   type="text"
                   placeholder="D:/skills/repo"
-                />
-                <button class="console-button" @click="handlePickFolder">
-                  <SIcon name="FolderOpen" size="w-4 h-4" />
+                >
+                <button
+                  class="console-button"
+                  @click="handlePickFolder"
+                >
+                  <SIcon
+                    name="FolderOpen"
+                    size="w-4 h-4"
+                  />
                 </button>
               </div>
             </label>
@@ -278,15 +343,23 @@
               :disabled="mutationLoading || !localSourcePath.trim()"
               @click="handleAddLocalSource"
             >
-              <SIcon name="FolderGit2" size="w-4 h-4" />
+              <SIcon
+                name="FolderGit2"
+                size="w-4 h-4"
+              />
               <span>Add Local Source</span>
             </button>
           </section>
 
           <!-- Marketplace 手动安装 -->
-          <section v-else class="panel">
+          <section
+            v-else
+            class="panel"
+          >
             <div class="panel__header">
-              <h2 class="panel__title">Marketplace Context</h2>
+              <h2 class="panel__title">
+                Marketplace Context
+              </h2>
             </div>
 
             <div class="skills-marketplace-context">
@@ -307,7 +380,9 @@
 
           <section class="panel">
             <div class="panel__header">
-              <h2 class="panel__title">Workflow</h2>
+              <h2 class="panel__title">
+                Workflow
+              </h2>
               <span class="badge">{{ workflowState.status }}</span>
             </div>
             <div class="skills-marketplace-context">
@@ -323,7 +398,10 @@
                 <span class="field__label">Platforms</span>
                 <strong>{{ workflowState.targetPlatforms?.length ?? 0 }}</strong>
               </div>
-              <div v-if="workflowState.detail" class="skills-marketplace-context__item">
+              <div
+                v-if="workflowState.detail"
+                class="skills-marketplace-context__item"
+              >
                 <span class="field__label">Detail</span>
                 <strong>{{ workflowState.detail }}</strong>
               </div>
