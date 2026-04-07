@@ -58,10 +58,7 @@
           :class="{ 'console-tab--active': routeState.tab === tab.id }"
           @click="setTab(tab.id)"
         >
-          <SIcon
-            :name="tab.icon"
-            size="w-4 h-4"
-          />
+          <SIcon :name="tab.icon" size="w-4 h-4" />
           <span>{{ tab.label }}</span>
           <span class="console-tab__count">{{ tab.count }}</span>
         </button>
@@ -71,6 +68,85 @@
       <div class="console-layout">
         <!-- 左侧边栏：平台选择 + 上下文面板 + 活动日志 -->
         <aside class="console-sidebar">
+          <section v-if="newlyDetectedPlatforms.length > 0" class="panel">
+            <div class="panel__header">
+              <h2 class="panel__title">
+                {{ $t('skills.newToolsTitle') }}
+              </h2>
+              <span class="badge">{{ newlyDetectedPlatforms.length }}</span>
+            </div>
+            <p class="console-header__subtitle">
+              {{ $t('skills.newToolsDescription', { count: newlyDetectedPlatforms.length }) }}
+            </p>
+            <div class="skill-card__meta">
+              <span v-for="platform in newlyDetectedPlatforms" :key="platform.id" class="badge">
+                {{ platform.displayName }}
+              </span>
+            </div>
+            <div class="source-actions mt-3">
+              <button
+                class="console-button console-button--primary"
+                @click="selectNewlyDetectedPlatforms"
+              >
+                {{ $t('skills.newToolsAction') }}
+              </button>
+              <button class="console-button" @click="dismissNewToolsPrompt">
+                {{ $t('skills.newToolsDismiss') }}
+              </button>
+            </div>
+          </section>
+
+          <section v-if="onboardingCandidates.length > 0" class="panel">
+            <div class="panel__header">
+              <h2 class="panel__title">Onboarding</h2>
+              <span class="badge">{{ onboardingCandidates.length }}</span>
+            </div>
+            <p class="console-header__subtitle">
+              已发现可纳管的已有 Skills，可用于后续导入与统一同步。
+            </p>
+            <div class="activity-list">
+              <div
+                v-for="candidate in onboardingCandidates.slice(0, 4)"
+                :key="candidate.skillId"
+                class="activity-row"
+              >
+                <span class="activity-row__status activity-row__status--pending" />
+                <div class="activity-row__body">
+                  <strong>{{ candidate.name }}</strong>
+                  <span>{{ candidate.reason }}</span>
+                  <span class="activity-row__meta">{{
+                    candidate.platformIds.join(', ') || 'unknown platforms'
+                  }}</span>
+                  <select
+                    class="field__input mt-2"
+                    :value="
+                      canonicalSourceBySkill[candidate.skillId] ??
+                      candidate.installationPaths[0] ??
+                      ''
+                    "
+                    @change="
+                      updateCanonicalSource(
+                        candidate.skillId,
+                        ($event.target as HTMLSelectElement).value
+                      )
+                    "
+                  >
+                    <option v-for="path in candidate.installationPaths" :key="path" :value="path">
+                      {{ path }}
+                    </option>
+                  </select>
+                </div>
+                <button
+                  data-testid="onboarding-import"
+                  class="console-button"
+                  @click="importOnboardingCandidate(candidate)"
+                >
+                  Import & Sync
+                </button>
+              </div>
+            </div>
+          </section>
+
           <PlatformSelector
             v-model="selectedPlatforms"
             :platforms="platforms"
@@ -78,20 +154,10 @@
           />
 
           <!-- Inventory 筛选器 -->
-          <section
-            v-if="routeState.tab === 'inventory'"
-            class="panel"
-          >
+          <section v-if="routeState.tab === 'inventory'" class="panel">
             <div class="panel__header">
-              <h2 class="panel__title">
-                Filters
-              </h2>
-              <button
-                class="panel__link"
-                @click="resetFilters"
-              >
-                Reset
-              </button>
+              <h2 class="panel__title">Filters</h2>
+              <button class="panel__link" @click="resetFilters">Reset</button>
             </div>
 
             <label class="field">
@@ -101,7 +167,7 @@
                 class="field__input"
                 type="text"
                 placeholder="name / tag / category"
-              >
+              />
             </label>
 
             <label class="field">
@@ -112,11 +178,7 @@
                 @change="updatePlatformFilter(($event.target as HTMLSelectElement).value)"
               >
                 <option value="all">All platforms</option>
-                <option
-                  v-for="p in platforms"
-                  :key="p.id"
-                  :value="p.id"
-                >
+                <option v-for="p in platforms" :key="p.id" :value="p.id">
                   {{ p.displayName }}
                 </option>
               </select>
@@ -130,11 +192,7 @@
                 @change="updateOriginFilter(($event.target as HTMLSelectElement).value)"
               >
                 <option value="all">All origins</option>
-                <option
-                  v-for="origin in originOptions"
-                  :key="origin"
-                  :value="origin"
-                >
+                <option v-for="origin in originOptions" :key="origin" :value="origin">
                   {{ origin }}
                 </option>
               </select>
@@ -142,16 +200,9 @@
 
             <label class="field">
               <span class="field__label">Category</span>
-              <select
-                v-model="filters.category"
-                class="field__input"
-              >
+              <select v-model="filters.category" class="field__input">
                 <option :value="null">All categories</option>
-                <option
-                  v-for="cat in availableCategories"
-                  :key="cat"
-                  :value="cat"
-                >
+                <option v-for="cat in availableCategories" :key="cat" :value="cat">
                   {{ cat }}
                 </option>
               </select>
@@ -165,11 +216,7 @@
                 @change="updateSourceFilter(($event.target as HTMLSelectElement).value)"
               >
                 <option value="all">All sources</option>
-                <option
-                  v-for="source in sourceOptions"
-                  :key="source.id"
-                  :value="source.id"
-                >
+                <option v-for="source in sourceOptions" :key="source.id" :value="source.id">
                   {{ source.name }}
                 </option>
               </select>
@@ -189,14 +236,9 @@
           </section>
 
           <!-- Sources 添加表单 -->
-          <section
-            v-else-if="routeState.tab === 'sources'"
-            class="panel"
-          >
+          <section v-else-if="routeState.tab === 'sources'" class="panel">
             <div class="panel__header">
-              <h2 class="panel__title">
-                Add Source
-              </h2>
+              <h2 class="panel__title">Add Source</h2>
             </div>
 
             <label class="field">
@@ -206,17 +248,14 @@
                 class="field__input"
                 type="text"
                 placeholder="https://github.com/owner/repo"
-              >
+              />
             </label>
             <button
               class="console-button console-button--primary"
               :disabled="mutationLoading || !gitSourceUrl.trim()"
               @click="handleAddGitSource"
             >
-              <SIcon
-                name="Github"
-                size="w-4 h-4"
-              />
+              <SIcon name="Github" size="w-4 h-4" />
               <span>Add Git Source</span>
             </button>
 
@@ -228,15 +267,9 @@
                   class="field__input"
                   type="text"
                   placeholder="D:/skills/repo"
-                >
-                <button
-                  class="console-button"
-                  @click="handlePickFolder"
-                >
-                  <SIcon
-                    name="FolderOpen"
-                    size="w-4 h-4"
-                  />
+                />
+                <button class="console-button" @click="handlePickFolder">
+                  <SIcon name="FolderOpen" size="w-4 h-4" />
                 </button>
               </div>
             </label>
@@ -245,23 +278,15 @@
               :disabled="mutationLoading || !localSourcePath.trim()"
               @click="handleAddLocalSource"
             >
-              <SIcon
-                name="FolderGit2"
-                size="w-4 h-4"
-              />
+              <SIcon name="FolderGit2" size="w-4 h-4" />
               <span>Add Local Source</span>
             </button>
           </section>
 
           <!-- Marketplace 手动安装 -->
-          <section
-            v-else
-            class="panel"
-          >
+          <section v-else class="panel">
             <div class="panel__header">
-              <h2 class="panel__title">
-                Marketplace Context
-              </h2>
+              <h2 class="panel__title">Marketplace Context</h2>
             </div>
 
             <div class="skills-marketplace-context">
@@ -276,6 +301,31 @@
               <div class="skills-marketplace-context__item">
                 <span class="field__label">Page</span>
                 <strong>{{ routeState.page }}</strong>
+              </div>
+            </div>
+          </section>
+
+          <section class="panel">
+            <div class="panel__header">
+              <h2 class="panel__title">Workflow</h2>
+              <span class="badge">{{ workflowState.status }}</span>
+            </div>
+            <div class="skills-marketplace-context">
+              <div class="skills-marketplace-context__item">
+                <span class="field__label">Action</span>
+                <strong>{{ workflowState.action }}</strong>
+              </div>
+              <div class="skills-marketplace-context__item">
+                <span class="field__label">Target</span>
+                <strong>{{ workflowState.target || 'N/A' }}</strong>
+              </div>
+              <div class="skills-marketplace-context__item">
+                <span class="field__label">Platforms</span>
+                <strong>{{ workflowState.targetPlatforms?.length ?? 0 }}</strong>
+              </div>
+              <div v-if="workflowState.detail" class="skills-marketplace-context__item">
+                <span class="field__label">Detail</span>
+                <strong>{{ workflowState.detail }}</strong>
               </div>
             </div>
           </section>
@@ -328,7 +378,14 @@ import { useUIStore } from '@/stores/ui'
 import { PLATFORM_CONFIG } from '@/types/skills'
 import { getRuntimeUnavailableCopy } from '@/utils/runtimeState'
 import { isTauriRuntime } from '@/utils/tauriRuntime'
-import type { Platform, SkillOrigin, SkillsRouteState, SkillsTab } from '@/types/skills'
+import { handleSkillsChangedPayload } from './skillsWatcher'
+import type {
+  OnboardingCandidate,
+  Platform,
+  SkillOrigin,
+  SkillsRouteState,
+  SkillsTab,
+} from '@/types/skills'
 
 const router = useRouter()
 const route = useRoute()
@@ -338,16 +395,20 @@ const {
   refresh,
   loadMarketplace,
   loadNpxStatus,
+  loadOnboardingCandidates,
   applyRouteState,
+  importFromLocal,
   addGitSource,
   addLocalSourceRecord,
   browseFolder,
   platforms,
   sources,
   marketplace,
+  onboardingCandidates,
   filters,
   routeState,
   operationLog,
+  workflowState,
   mutationLoading,
   availableCategories,
   availableTags,
@@ -364,17 +425,40 @@ const selectedPlatforms = ref<Platform[]>([])
 const searchInput = ref('')
 const gitSourceUrl = ref('')
 const localSourcePath = ref('')
+const canonicalSourceBySkill = ref<Record<string, string>>({})
+const dismissedDetectedPlatformIds = ref<string[]>([])
 let stopSkillsEvent: null | (() => void) = null
 let searchTimer = 0
-const sourceOptions = computed(() => sources.value.map((source) => ({
-  id: source.id,
-  name: source.name,
-})))
+const sourceOptions = computed(() =>
+  sources.value.map((source) => ({
+    id: source.id,
+    name: source.name,
+  }))
+)
+const newlyDetectedPlatforms = computed(() => {
+  return platforms.value.filter((platform) => {
+    return (
+      platform.detected &&
+      !selectedPlatforms.value.includes(platform.id) &&
+      !dismissedDetectedPlatformIds.value.includes(platform.id)
+    )
+  })
+})
 
 const tabs = computed(() => [
-  { id: 'inventory' as SkillsTab, label: 'Inventory', icon: 'Package', count: stats.value.logicalSkills },
+  {
+    id: 'inventory' as SkillsTab,
+    label: 'Inventory',
+    icon: 'Package',
+    count: stats.value.logicalSkills,
+  },
   { id: 'sources' as SkillsTab, label: 'Sources', icon: 'FolderGit2', count: stats.value.sources },
-  { id: 'marketplace' as SkillsTab, label: 'Marketplace', icon: 'Store', count: marketplace.value.total },
+  {
+    id: 'marketplace' as SkillsTab,
+    label: 'Marketplace',
+    icon: 'Store',
+    count: marketplace.value.total,
+  },
 ])
 const runtimeUnavailable = computed(() => !isTauriRuntime())
 const runtimeCopy = computed(() => getRuntimeUnavailableCopy('skills'))
@@ -385,8 +469,14 @@ function normalizeRouteState(query: Record<string, unknown>): SkillsRouteState {
     tab: query.tab === 'sources' || query.tab === 'marketplace' ? query.tab : 'inventory',
     selected: typeof query.selected === 'string' ? query.selected : null,
     mode: query.mode === 'edit' ? 'edit' : 'view',
-    platform: typeof query.platform === 'string' && query.platform in PLATFORM_CONFIG ? query.platform as Platform : 'all',
-    origin: typeof query.origin === 'string' && originOptions.includes(query.origin as SkillOrigin) ? query.origin as SkillOrigin : 'all',
+    platform:
+      typeof query.platform === 'string' && query.platform in PLATFORM_CONFIG
+        ? (query.platform as Platform)
+        : 'all',
+    origin:
+      typeof query.origin === 'string' && originOptions.includes(query.origin as SkillOrigin)
+        ? (query.origin as SkillOrigin)
+        : 'all',
     q: typeof query.q === 'string' ? query.q : '',
     page: typeof query.page === 'string' ? Math.max(Number(query.page) || 1, 1) : 1,
     source: typeof query.source === 'string' ? query.source : null,
@@ -408,18 +498,41 @@ function replaceRoute(patch: Partial<SkillsRouteState>) {
   void router.replace({ path: '/skills', query })
 }
 
-function setTab(tab: SkillsTab) { replaceRoute({ tab, page: 1 }) }
-function updatePlatformFilter(value: string) { replaceRoute({ platform: value as SkillsRouteState['platform'] }) }
-function updateOriginFilter(value: string) { replaceRoute({ origin: value as SkillsRouteState['origin'] }) }
-function updateSourceFilter(value: string) { replaceRoute({ source: value === 'all' ? null : value, selected: null }) }
-function updatePage(page: number) { replaceRoute({ page }) }
-function updateSearchQuery(q: string) { replaceRoute({ q, page: 1 }) }
+function setTab(tab: SkillsTab) {
+  replaceRoute({ tab, page: 1 })
+}
+function updatePlatformFilter(value: string) {
+  replaceRoute({ platform: value as SkillsRouteState['platform'] })
+}
+function updateOriginFilter(value: string) {
+  replaceRoute({ origin: value as SkillsRouteState['origin'] })
+}
+function updateSourceFilter(value: string) {
+  replaceRoute({ source: value === 'all' ? null : value, selected: null })
+}
+function updatePage(page: number) {
+  replaceRoute({ page })
+}
+function updateSearchQuery(q: string) {
+  replaceRoute({ q, page: 1 })
+}
 
-function handleSkillSelect(skillId: string) { replaceRoute({ selected: skillId }) }
-function handleModeChange(mode: 'view' | 'edit') { replaceRoute({ mode }) }
+function handleSkillSelect(skillId: string) {
+  replaceRoute({ selected: skillId })
+}
+function handleModeChange(mode: 'view' | 'edit') {
+  replaceRoute({ mode })
+}
 
 function resetFilters() {
-  filters.value = { search: '', platform: 'all', origin: 'all', category: null, tags: [], source: 'all' }
+  filters.value = {
+    search: '',
+    platform: 'all',
+    origin: 'all',
+    category: null,
+    tags: [],
+    source: 'all',
+  }
   searchInput.value = ''
   replaceRoute({ platform: 'all', origin: 'all', q: '', source: null, selected: null })
 }
@@ -428,13 +541,60 @@ function toggleTag(tag: string) {
   filters.value = {
     ...filters.value,
     tags: filters.value.tags.includes(tag)
-      ? filters.value.tags.filter(t => t !== tag)
+      ? filters.value.tags.filter((t) => t !== tag)
       : [...filters.value.tags, tag],
   }
 }
 
 function selectDetectedPlatforms() {
-  selectedPlatforms.value = platforms.value.filter(p => p.detected).map(p => p.id)
+  selectedPlatforms.value = platforms.value.filter((p) => p.detected).map((p) => p.id)
+}
+
+function selectNewlyDetectedPlatforms() {
+  selectedPlatforms.value = Array.from(
+    new Set([
+      ...selectedPlatforms.value,
+      ...newlyDetectedPlatforms.value.map((platform) => platform.id),
+    ])
+  )
+  dismissedDetectedPlatformIds.value = []
+}
+
+function dismissNewToolsPrompt() {
+  dismissedDetectedPlatformIds.value = newlyDetectedPlatforms.value.map((platform) => platform.id)
+}
+
+function updateCanonicalSource(skillId: string, path: string) {
+  canonicalSourceBySkill.value = {
+    ...canonicalSourceBySkill.value,
+    [skillId]: path,
+  }
+}
+
+async function importOnboardingCandidate(candidate: OnboardingCandidate) {
+  const sourcePath =
+    canonicalSourceBySkill.value[candidate.skillId] ?? candidate.installationPaths[0]
+  if (!sourcePath) {
+    uiStore.showError('No canonical source selected')
+    return
+  }
+
+  try {
+    await importFromLocal({
+      sourcePath,
+      agents: candidate.platformIds,
+      skillName: candidate.name,
+    })
+    selectedPlatforms.value = Array.from(
+      new Set([...selectedPlatforms.value, ...candidate.platformIds])
+    )
+    uiStore.showSuccess(`Imported ${candidate.name}`)
+    await loadOnboardingCandidates(true)
+    await refresh(routeState.value.tab === 'marketplace')
+    void router.replace({ path: '/skills', query: { ...route.query, tab: 'inventory' } })
+  } catch (error) {
+    uiStore.showError(error instanceof Error ? error.message : String(error))
+  }
 }
 
 // --- 侧边栏操作 ---
@@ -443,8 +603,9 @@ async function handleAddGitSource() {
     await addGitSource(gitSourceUrl.value.trim())
     gitSourceUrl.value = ''
     uiStore.showSuccess('Git source added')
+  } catch (error) {
+    uiStore.showError(error instanceof Error ? error.message : String(error))
   }
-  catch (error) { uiStore.showError(error instanceof Error ? error.message : String(error)) }
 }
 
 async function handleAddLocalSource() {
@@ -452,8 +613,9 @@ async function handleAddLocalSource() {
     await addLocalSourceRecord(localSourcePath.value.trim())
     localSourcePath.value = ''
     uiStore.showSuccess('Local source added')
+  } catch (error) {
+    uiStore.showError(error instanceof Error ? error.message : String(error))
   }
-  catch (error) { uiStore.showError(error instanceof Error ? error.message : String(error)) }
 }
 
 async function handlePickFolder() {
@@ -461,8 +623,9 @@ async function handlePickFolder() {
     const path = await browseFolder()
     if (!path) return
     localSourcePath.value = path
+  } catch (error) {
+    uiStore.showError(error instanceof Error ? error.message : String(error))
   }
-  catch (error) { uiStore.showError(error instanceof Error ? error.message : String(error)) }
 }
 
 async function handleRefresh() {
@@ -482,17 +645,19 @@ watch(
     applyRouteState(normalized)
     searchInput.value = normalized.q
 
-    if (runtimeUnavailable.value) { selectSkill(null, null); return }
+    if (runtimeUnavailable.value) {
+      selectSkill(null, null)
+      return
+    }
 
     if (normalized.selected) {
       selectSkill(normalized.selected, null)
-    }
-    else {
+    } else {
       selectSkill(null, null)
     }
     if (normalized.tab === 'marketplace') void loadMarketplace(true)
   },
-  { immediate: true },
+  { immediate: true }
 )
 
 watch(searchInput, (value) => {
@@ -509,7 +674,7 @@ watch(
   (current) => {
     if (selectedPlatforms.value.length === 0 && current.length > 0) selectDetectedPlatforms()
   },
-  { immediate: true },
+  { immediate: true }
 )
 
 // --- 生命周期 ---
@@ -517,12 +682,24 @@ onMounted(async () => {
   if (runtimeUnavailable.value) return
   await initialize(false)
   await loadNpxStatus(true)
+  await loadOnboardingCandidates(true)
   if (routeState.value.tab === 'marketplace') await loadMarketplace()
 
   if (isTauriRuntime()) {
     const { listen } = await import('@tauri-apps/api/event')
-    stopSkillsEvent = await listen('skills-changed', async () => {
-      await refresh(routeState.value.tab === 'marketplace')
+    stopSkillsEvent = await listen('skills-changed', async (event) => {
+      await handleSkillsChangedPayload(
+        event.payload as {
+          affectsInventory?: boolean
+          affectsSources?: boolean
+          affectsMarketplace?: boolean
+        },
+        {
+          currentTab: routeState.value.tab,
+          loadOnboardingCandidates,
+          refresh,
+        }
+      )
     })
   }
 })
@@ -596,7 +773,11 @@ onUnmounted(() => {
 .console-button--primary {
   @apply text-text-primary;
 
-  background: linear-gradient(180deg, rgb(var(--color-accent-primary-rgb) / 18%), rgb(var(--color-accent-secondary-rgb) / 10%));
+  background: linear-gradient(
+    180deg,
+    rgb(var(--color-accent-primary-rgb) / 18%),
+    rgb(var(--color-accent-secondary-rgb) / 10%)
+  );
   border-color: rgb(var(--color-accent-primary-rgb) / 20%);
   box-shadow: var(--elevation-2);
 }

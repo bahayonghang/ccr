@@ -134,6 +134,32 @@
           </div>
         </div>
 
+        <div class="detail-card">
+          <div class="panel__header">
+            <h2 class="panel__title">
+              Lifecycle
+            </h2>
+          </div>
+          <div class="detail-card__grid">
+            <div>
+              <span>Targets</span>
+              <strong>{{ selectedSkill.lifecycle.targetCount }}</strong>
+            </div>
+            <div>
+              <span>Healthy</span>
+              <strong>{{ selectedSkill.lifecycle.healthyTargetCount }}</strong>
+            </div>
+            <div>
+              <span>Last sync</span>
+              <strong>{{ formatTimestamp(selectedSkill.lifecycle.lastSyncedAt) }}</strong>
+            </div>
+            <div>
+              <span>Source</span>
+              <strong>{{ selectedSkill.lifecycle.sourceLabel || selectedSkill.lifecycle.sourceRef || 'N/A' }}</strong>
+            </div>
+          </div>
+        </div>
+
         <!-- 安装列表 -->
         <div class="detail-card">
           <div class="panel__header">
@@ -165,8 +191,12 @@
                     v-if="inst.isPrimary"
                     class="badge"
                   >Primary</span>
+                  <span class="badge">{{ targetStatusMap[inst.id]?.status || 'unknown' }}</span>
                 </div>
                 <span>{{ shortenPath(inst.installPath) }}</span>
+                <span class="installation-row__meta">
+                  {{ targetStatusMap[inst.id]?.syncedAt ? `Synced ${formatTimestamp(targetStatusMap[inst.id]?.syncedAt)}` : 'Not synced yet' }}
+                </span>
               </div>
               <div class="installation-row__actions">
                 <button
@@ -224,15 +254,36 @@
             </div>
           </div>
 
-          <textarea
-            v-if="editMode"
-            v-model="editBuffer"
-            class="content-editor"
-          />
-          <pre
-            v-else
-            class="content-preview"
-          >{{ contentPreview }}</pre>
+          <div class="content-layout">
+            <aside class="content-files">
+              <button
+                v-for="file in currentFiles.filter((entry) => !entry.isDir)"
+                :key="file.path"
+                data-testid="content-file-row"
+                class="content-file-row"
+                :class="{ 'content-file-row--active': file.path === selectedFilePath }"
+                @click="handleSelectFile(file.path)"
+              >
+                <span class="truncate">{{ file.path }}</span>
+              </button>
+            </aside>
+
+            <div class="content-body">
+              <textarea
+                v-if="editMode"
+                v-model="editBuffer"
+                class="content-editor"
+              />
+              <pre
+                v-else-if="selectedFilePath && selectedFilePreview"
+                class="content-preview"
+              >{{ selectedFilePreview }}</pre>
+              <pre
+                v-else
+                class="content-preview"
+              >{{ contentPreview }}</pre>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -272,6 +323,8 @@ const {
   selectSkill,
   ensureDetail,
   ensureContent,
+  ensureFiles,
+  ensureFileContent,
   saveContent,
   syncSkill,
   removeInstallation,
@@ -283,6 +336,9 @@ const showFullDesc = ref(false)
 const editMode = ref(false)
 const editBuffer = ref('')
 const currentContent = ref<Awaited<ReturnType<typeof ensureContent>> | null>(null)
+const currentFiles = ref<Awaited<ReturnType<typeof ensureFiles>>>([])
+const selectedFilePath = ref<string | null>(null)
+const selectedFileContent = ref<Awaited<ReturnType<typeof ensureFileContent>> | null>(null)
 
 const rowVirtualizer = useVirtualizer(computed(() => ({
   count: filteredSkills.value.length,
@@ -295,6 +351,11 @@ const contentDirty = computed(() => currentContent.value != null && editBuffer.v
 const contentPreview = computed(() => {
   const raw = currentContent.value?.raw ?? ''
   return raw ? stripFrontmatter(raw) : 'No content loaded.'
+})
+const selectedFilePreview = computed(() => selectedFileContent.value?.content ?? '')
+const targetStatusMap = computed(() => {
+  const entries = selectedSkill.value?.targets ?? []
+  return Object.fromEntries(entries.map((target) => [target.id, target]))
 })
 
 const measureElement = (element: unknown) => {
@@ -321,6 +382,11 @@ function shortenPath(path: string) {
   const normalized = path.replace(/\\/g, '/')
   const parts = normalized.split('/')
   return parts.length <= 4 ? normalized : `.../${parts.slice(-4).join('/')}`
+}
+
+function formatTimestamp(value?: number) {
+  if (!value) return 'Never'
+  return new Date(value).toLocaleString()
 }
 
 function toggleMode() {
@@ -354,11 +420,25 @@ function handleSelectInstallation(installationId: string) {
 async function loadSelectedContent() {
   if (!selectedSkill.value || !selectedInstallation.value) {
     currentContent.value = null
+    currentFiles.value = []
+    selectedFilePath.value = null
+    selectedFileContent.value = null
     editBuffer.value = ''
     return
   }
   currentContent.value = await ensureContent(selectedSkill.value.id, selectedInstallation.value.id, true)
+  currentFiles.value = await ensureFiles(selectedSkill.value.id, selectedInstallation.value.id, true)
+  selectedFilePath.value = currentFiles.value.find((file) => file.path.toLowerCase().endsWith('skill.md'))?.path ?? null
+  selectedFileContent.value = selectedFilePath.value
+    ? await ensureFileContent(selectedSkill.value.id, selectedFilePath.value, selectedInstallation.value.id, true)
+    : null
   editBuffer.value = currentContent.value?.raw ?? ''
+}
+
+async function handleSelectFile(path: string) {
+  if (!selectedSkill.value || !selectedInstallation.value) return
+  selectedFilePath.value = path
+  selectedFileContent.value = await ensureFileContent(selectedSkill.value.id, path, selectedInstallation.value.id, true)
 }
 
 async function handleSaveContent() {
@@ -414,7 +494,7 @@ async function handleRemoveSkill() {
   }
 }
 
-watch([selectedSkill, selectedInstallation], () => { void loadSelectedContent() })
+watch([selectedSkill, selectedInstallation], () => { void loadSelectedContent() }, { immediate: true })
 watch(selectedSkill, () => { showFullDesc.value = false })
 </script>
 
@@ -563,8 +643,27 @@ watch(selectedSkill, () => { showFullDesc.value = false })
   @apply flex items-center gap-2;
 }
 
-.content-editor,
-.content-preview {
+.content-layout {
+  @apply grid gap-3 xl:grid-cols-[220px_minmax(0,1fr)];
+}
+
+.content-files {
+  @apply flex max-h-[320px] flex-col gap-2 overflow-auto rounded-2xl border border-border-default/45 p-2;
+
+  background-color: rgb(var(--color-bg-base-rgb) / 45%);
+}
+
+.content-file-row {
+  @apply rounded-xl px-3 py-2 text-left text-xs text-text-secondary;
+
+  background: transparent;
+}
+
+.content-file-row--active {
+  @apply text-text-primary;
+
+  background: linear-gradient(180deg, rgb(var(--color-accent-primary-rgb) / 18%), rgb(var(--color-accent-secondary-rgb) / 10%));
+}
   @apply min-h-[300px] w-full rounded-2xl border border-border-default/45 p-3 text-sm leading-6 text-text-primary;
 
   background-color: rgb(var(--color-bg-base-rgb) / 55%);
