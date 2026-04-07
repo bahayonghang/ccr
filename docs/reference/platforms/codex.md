@@ -7,6 +7,8 @@ CCR 在 Codex 平台下会把统一 profile 配置转换为 Codex CLI 配置文�
 - 输入：`~/.ccr/platforms/codex/profiles.toml`
 - 输出：`~/.codex/config.toml`、`~/.codex/auth.json`
 
+> 说明：本仓库同时提供 GitHub Copilot for VS Code 的工作区资产，它们位于仓库内 `.github/*` 与共享 `.claude/skills/`。那一套能力与这里描述的 Codex CLI 运行时配置是分开的。
+
 切换时有两种模式：
 
 1. `official_relay`（官方模式）：重置 `config.toml` 和 `auth.json`
@@ -217,6 +219,7 @@ chmod 600 ~/.codex/auth.json
 
 ## 相关文档
 
+- [GitHub Copilot 工作区支持](/guide/github-copilot-workspace)
 - [平台总览](./index)
 - [平台迁移](./migration)
 - [示例索引](../../examples/)

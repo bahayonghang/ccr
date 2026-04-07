@@ -7,6 +7,8 @@ In CCR, Codex platform profiles are translated into Codex CLI runtime files.
 - Input: `~/.ccr/platforms/codex/profiles.toml`
 - Output: `~/.codex/config.toml` and `~/.codex/auth.json`
 
+> Note: this repository also ships GitHub Copilot for VS Code workspace assets under `.github/*` plus shared `.claude/skills/`. That workspace surface is separate from the Codex CLI runtime configuration described on this page.
+
 Switching uses two modes:
 
 1. `official_relay` (Official mode): reset `config.toml` and `auth.json`
@@ -215,6 +217,7 @@ chmod 600 ~/.codex/auth.json
 
 ## See Also
 
+- [GitHub Copilot Workspace Support](/en/guide/github-copilot-workspace)
 - [Platform Overview](./index)
 - [Platform Migration](./migration)
 - [Examples](../../examples/)

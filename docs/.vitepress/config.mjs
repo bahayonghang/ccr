@@ -34,7 +34,8 @@ const zhTheme = {
           { text: '项目简介', link: '/' },
           { text: '快速开始', link: '/guide/quick-start' },
           { text: '配置模型', link: '/guide/configuration' },
-          { text: 'CLI 工作流', link: '/guide/cli-workflows' }
+          { text: 'CLI 工作流', link: '/guide/cli-workflows' },
+          { text: 'GitHub Copilot 工作区', link: '/guide/github-copilot-workspace' }
         ]
       },
       {
@@ -207,7 +208,8 @@ const enTheme = {
           { text: 'Project Overview', link: '/en/' },
           { text: 'Quick Start', link: '/en/guide/quick-start' },
           { text: 'Configuration Model', link: '/en/guide/configuration' },
-          { text: 'CLI Workflows', link: '/en/guide/cli-workflows' }
+          { text: 'CLI Workflows', link: '/en/guide/cli-workflows' },
+          { text: 'GitHub Copilot Workspace', link: '/en/guide/github-copilot-workspace' }
         ]
       },
       {

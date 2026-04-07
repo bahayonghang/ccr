@@ -181,8 +181,10 @@ ccr skills list --platform gemini
 技能文件存储在各平台的配置目录中：
 
 - Claude: `~/.claude/skills/`
-- Codex: `~/.codex/skills/`
+- Codex: `~/.agents/skills/`
 - Gemini: `~/.gemini/skills/`
+
+> 说明：这里描述的是 `ccr skills` 管理的用户目录安装位置。仓库内给 GitHub Copilot 复用的共享 project skills 见 [GitHub Copilot 工作区支持](/guide/github-copilot-workspace)。
 
 ## 技术实现
 

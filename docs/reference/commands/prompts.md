@@ -240,7 +240,7 @@ You are an expert Rust developer. Please:
 4. Review error handling
 EOF
 
-cr prompts add rust-expert \
+ccr prompts add rust-expert \
   --target claude \
   --content @/tmp/dev-prompt.txt \
   --description "Rust code review expert"
@@ -254,7 +254,7 @@ Generate comprehensive unit tests for the following code:
 4. Integration test examples
 EOF
 
-cr prompts add test-generator \
+ccr prompts add test-generator \
   --target claude \
   --content @/tmp/test-prompt.txt \
   --description "Unit test generation template"
@@ -264,28 +264,35 @@ cr prompts add test-generator \
 
 `-t, --target <TARGET>` 支持的值：
 
-- **claude** - Claude Code 的主配置文件（`~/.claude/settings.json`）
-- **agents** - Agents 定义文件（`~/.claude/agents/` 目录）
-- **gemini** - Gemini CLI 的配置文件（暂未完全支持）
+- **claude** - 写入所选平台根目录下的 `CLAUDE.md`
+- **agents** - 写入所选平台根目录下的 `AGENTS.md`
+- **gemini** - 写入所选平台根目录下的 `GEMINI.md`
 
 ## 预设存储位置
 
-预设文件存储在各平台的配置目录中：
+预设本身统一存储在 `~/.ccr/platforms/<platform>/prompts.toml`。
 
-- **Claude**: `~/.claude/prompts/`
-- **Codex**: `~/.codex/prompts/`
-- **Gemini**: `~/.gemini/prompts/`
+应用预设时，CCR 会根据平台根目录和 `--target` 写入实际文件：
 
-每个预设以独立的 JSON 文件存储，格式如下：
+- **Claude 平台根目录**: `~/.claude/`
+- **Codex 平台根目录**: `~/.codex/`
+- **Gemini 平台根目录**: `~/.gemini/`
+- **其他平台**: `~/.ccr/platforms/<platform>/`
 
-```json
-{
-  "name": "code-review",
-  "description": "Code review template",
-  "target_file": "claude",
-  "content": "Review code for security and performance...",
-  "tags": []
-}
+例如：
+
+- `ccr prompts apply code-review --platform claude` + `--target agents` 会写入 `~/.claude/AGENTS.md`
+- `ccr prompts apply repo-rules --platform codex` + `--target agents` 会写入 `~/.codex/AGENTS.md`
+
+`prompts.toml` 的序列化结构如下：
+
+```toml
+[[presets]]
+name = "code-review"
+description = "Code review template"
+target_file = "agents"
+content = "Review code for security and performance..."
+tags = []
 ```
 
 ## 技术实现

@@ -686,6 +686,12 @@ docs-check:
     cd docs && npm install && node ./node_modules/vitepress/bin/vitepress.js build
     @just success "文档构建检查完成"
 
+# 🤖 GitHub Copilot 工作区资产检查
+copilot-check:
+    @just header "🤖 GitHub Copilot 工作区资产检查"
+    node scripts/check-copilot-assets.mjs
+    @just success "GitHub Copilot 工作区资产检查通过"
+
 # 🌐 前端完整检查 (类型检查 + Lint + 构建 + 文档构建)
 frontend-check: frontend-typecheck frontend-lint frontend-test frontend-build docs-check
     @just success "前端检查全部通过"
