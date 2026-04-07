@@ -59,7 +59,6 @@ Creates the directory structure and template files for a platform.
 | `gemini` | Implemented | Managed in Unified Mode |
 | `droid` | Implemented | Writes to `~/.factory/settings.json` |
 | `qwen` | Reserved / Stub | Core implementation currently reports unsupported |
-| `iflow` | Reserved / Stub | Core implementation currently reports unsupported |
 
 ## Common Examples
 

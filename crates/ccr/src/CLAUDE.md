@@ -24,7 +24,7 @@
 5. **CCR UI Launcher** - 启动与更新独立 `ccr-ui` 图形界面
 6. **核心基础设施** - 错误处理、文件锁定、原子写入、日志
 7. **Session 管理** - AI 会话解析、索引、搜索 (SQLite)
-8. **平台抽象** - 6 平台支持 (Claude/Codex/Gemini/Qwen/IFlow/Droid)
+8. **平台抽象** - 5 平台支持 (Claude/Codex/Gemini/Qwen/Droid)
 9. **云端同步** - WebDAV 多文件夹同步
 
 **设计特点**:
@@ -69,19 +69,10 @@ src/
 │   ├── codex.rs             - Codex 平台实现
 │   ├── gemini.rs            - Gemini 平台实现
 │   ├── qwen.rs              - Qwen 平台实现 (stub)
-│   ├── iflow.rs             - IFlow 平台实现 (stub)
 │   └── droid.rs             - Droid 平台实现
 │
-├── Session Layer (会话层)
-│   ├── models.rs            - Session 数据模型
-│   ├── parser.rs            - JSONL 解析器 (多平台)
-│   └── indexer.rs           - 索引管理器 (SQLite)
-│
-├── Storage Layer (存储层)
-│   ├── database.rs          - SQLite 数据库管理 (r2d2 连接池)
-│   └── session_store.rs     - Session 存储层 (CRUD)
-│
-├── Sync Layer (同步层)
+├── Session & Sync Layer (会话与同步层)
+│   ├── 会话索引与存储由 ccr-store crate 提供
 │   ├── config.rs            - 同步配置管理
 │   ├── folder_manager.rs    - 多文件夹管理
 │   ├── service.rs           - WebDAV 同步服务
@@ -227,26 +218,14 @@ src/
 │   ├── pricing.rs             - 价格表管理
 │   └── temp_override.rs       - 临时 Token 覆盖
 │
-├── platforms/                 # 平台实现 (6 平台)
+├── platforms/                 # 平台实现 (5 平台)
 │   ├── mod.rs                 - 平台工厂和注册表
 │   ├── base.rs                - 基础操作函数
 │   ├── claude.rs              - Claude 平台实现
 │   ├── codex.rs               - Codex 平台实现
 │   ├── gemini.rs              - Gemini 平台实现
 │   ├── qwen.rs                - Qwen 平台实现 (stub)
-│   ├── iflow.rs               - IFlow 平台实现 (stub)
 │   └── droid.rs               - Droid 平台实现
-│
-├── sessions/                  # 会话管理
-│   ├── mod.rs
-│   ├── models.rs              - Session 数据模型
-│   ├── parser.rs              - JSONL 解析器 (多平台)
-│   └── indexer.rs             - 索引管理器 (SQLite)
-│
-├── storage/                   # 存储层
-│   ├── mod.rs
-│   ├── database.rs            - SQLite 数据库管理 (r2d2 连接池)
-│   └── session_store.rs       - Session 存储层 (CRUD)
 │
 ├── sync/                      # 同步模块
 │   ├── mod.rs

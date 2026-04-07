@@ -20,7 +20,7 @@
 - 主平台页
 - MCP、agents、slash commands、plugins、models、profiles、droids
 
-### 预留分组：Qwen / iFlow
+### 预留分组：Qwen
 - 在 UI 中已有一级与二级分组
 - 文档按 reserved / partial 说明，不把它们写成已完整交付的平台能力
 

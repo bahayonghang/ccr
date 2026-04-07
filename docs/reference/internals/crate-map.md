@@ -44,7 +44,7 @@
 
 ### 共享基础设施
 
-- `platforms/`：Claude / Codex / Gemini / Droid / Qwen / IFlow 平台实现
+- `platforms/`：Claude / Codex / Gemini / Droid / Qwen 平台实现
 - `core/`：错误、锁、原子写入、日志、HTTP 等基础设施
 - `utils/`：mask、验证、格式转换等通用工具
 

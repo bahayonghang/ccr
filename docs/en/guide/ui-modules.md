@@ -7,13 +7,13 @@ This page groups the current `ccr-ui` surfaces by capability so the docs stay un
 | Module group | Representative pages | Notes |
 |--------------|----------------------|-------|
 | Claude / Codex / Gemini / Droid | platform home pages and sub-pages | Main implemented or clearly productized platform surfaces |
-| Qwen / iFlow | platform home pages and sub-pages | Visible in the UI, but still reserved/stub at the core platform layer |
+| Qwen | platform home pages and sub-pages | Visible in the UI, but still reserved/stub at the core platform layer |
 | OpenCode | `opencode/*` | Separate tool-family entrypoint with providers, MCP, and plugins |
 
 Typical sub-pages:
 
 - Codex: MCP, Profiles, Slash Commands, Auth, Settings
-- Gemini / Qwen / iFlow: MCP, Agents, Slash Commands, Plugins
+- Gemini / Qwen: MCP, Agents, Slash Commands, Plugins
 - Droid: MCP, Agents, Slash Commands, Plugins, Models, Profiles, Droids
 
 ## 2. Configuration and Extension Modules

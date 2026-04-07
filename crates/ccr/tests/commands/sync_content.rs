@@ -45,9 +45,9 @@ fn test_sync_content_selection_flow() {
     assert!(available_types.contains(&SyncContentType::Config));
     assert!(available_types.contains(&SyncContentType::Claude));
 
-    // 测试默认选择：应默认选择所有平台类型（Claude/Gemini/Qwen/IFlow），不包含 Config
+    // 测试默认选择：应默认选择所有平台类型（Claude/Gemini/Qwen），不包含 Config
     let default_selection = SyncContentSelection::default();
-    assert_eq!(default_selection.count(), 4);
+    assert_eq!(default_selection.count(), 3);
     assert!(
         default_selection
             .selected_types
@@ -62,11 +62,6 @@ fn test_sync_content_selection_flow() {
         default_selection
             .selected_types
             .contains(&SyncContentType::Qwen)
-    );
-    assert!(
-        default_selection
-            .selected_types
-            .contains(&SyncContentType::IFlow)
     );
     assert!(
         !default_selection
@@ -108,7 +103,6 @@ fn test_sync_content_type_detection() {
     assert!(!SyncContentType::Claude.exists());
     assert!(!SyncContentType::Gemini.exists());
     assert!(!SyncContentType::Qwen.exists());
-    assert!(!SyncContentType::IFlow.exists());
 
     // 清理环境变量
     unsafe {

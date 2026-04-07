@@ -74,7 +74,6 @@ export default {
           codex: 'rgb(var(--color-platform-codex-rgb) / <alpha-value>)',
           gemini: 'rgb(var(--color-platform-gemini-rgb) / <alpha-value>)',
           qwen: 'rgb(var(--color-platform-qwen-rgb) / <alpha-value>)',
-          iflow: 'rgb(var(--color-platform-iflow-rgb) / <alpha-value>)',
         },
         border: {
           subtle: 'rgb(var(--color-border-subtle-rgb) / <alpha-value>)',

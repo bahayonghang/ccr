@@ -11,7 +11,6 @@
 | Gemini CLI | 已实现 | `~/.ccr/platforms/gemini/profiles.toml` | `~/.ccr/platforms/gemini/settings.json` | Unified Mode 管理 |
 | Factory Droid | 已实现 | `~/.ccr/platforms/droid/profiles.toml` | `~/.factory/settings.json` | 独立 settings 结构 |
 | Qwen CLI | 预留 / Stub | `~/.ccr/platforms/qwen/profiles.toml` | `~/.ccr/platforms/qwen/settings.json` | 当前核心实现返回未支持 |
-| iFlow CLI | 预留 / Stub | `~/.ccr/platforms/iflow/profiles.toml` | `~/.ccr/platforms/iflow/settings.json` | 当前核心实现返回未支持 |
 
 > 平台状态以 `Platform::is_implemented()` 和对应平台实现为准。UI 中有入口，不代表 CLI 平台已经完整可用。
 
@@ -34,9 +33,8 @@ ccr platform init gemini
 ## 预留平台
 
 - `qwen`
-- `iflow`
 
-它们当前的意义是：
+它当前的意义是：
 
 - 在 Unified Mode 中预留命名空间
 - 在 UI 中预留页面入口

@@ -119,7 +119,6 @@ impl Session {
             Platform::Codex => format!("codex resume {}", self.id),
             Platform::Gemini => format!("gemini --continue {}", self.id),
             Platform::Qwen => format!("qwen --resume {}", self.id),
-            Platform::IFlow => format!("iflow --resume {}", self.id),
             Platform::Droid => format!("droid --resume {}", self.id),
         }
     }

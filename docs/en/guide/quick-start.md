@@ -46,7 +46,6 @@ Core layout:
 │   ├── codex/
 │   ├── gemini/
 │   ├── qwen/
-│   ├── iflow/
 │   └── droid/
 ├── history/
 └── backups/

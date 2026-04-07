@@ -25,7 +25,6 @@ pub enum LogSource {
     Codex,
     Gemini,
     Qwen,
-    IFlow,
     #[default]
     System,
     Proxy,

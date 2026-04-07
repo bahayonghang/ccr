@@ -16,7 +16,6 @@ fn parse_platform_safe(s: &str) -> Platform {
         "codex" => Platform::Codex,
         "gemini" => Platform::Gemini,
         "qwen" => Platform::Qwen,
-        "iflow" => Platform::IFlow,
         "droid" => Platform::Droid,
         _ => Platform::Claude,
     }

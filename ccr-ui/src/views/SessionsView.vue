@@ -387,8 +387,7 @@ const getPlatformIcon = (platform: string): string => {
     Claude: '🔮',
     Codex: '🐙',
     Gemini: '💎',
-    Qwen: '🌟',
-    IFlow: '🌊'
+    Qwen: '🌟'
   }
   return icons[platform] || '📦'
 }

@@ -11,7 +11,6 @@ This page is the single platform-status reference for CCR. Home pages, command d
 | Gemini CLI | Implemented | `~/.ccr/platforms/gemini/profiles.toml` | `~/.ccr/platforms/gemini/settings.json` | managed in Unified Mode |
 | Factory Droid | Implemented | `~/.ccr/platforms/droid/profiles.toml` | `~/.factory/settings.json` | separate settings structure |
 | Qwen CLI | Reserved / Stub | `~/.ccr/platforms/qwen/profiles.toml` | `~/.ccr/platforms/qwen/settings.json` | core implementation currently reports unsupported |
-| iFlow CLI | Reserved / Stub | `~/.ccr/platforms/iflow/profiles.toml` | `~/.ccr/platforms/iflow/settings.json` | core implementation currently reports unsupported |
 
 > Platform status follows `Platform::is_implemented()` and the concrete platform implementation, not merely whether a UI entry exists.
 
@@ -34,7 +33,6 @@ ccr platform init gemini
 ## Reserved Platforms
 
 - `qwen`
-- `iflow`
 
 Today that means:
 

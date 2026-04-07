@@ -26,7 +26,6 @@ Detection order:
 │   ├── gemini/
 │   ├── droid/
 │   ├── qwen/
-│   └── iflow/
 ├── history/
 ├── backups/
 ├── logs/
@@ -49,9 +48,7 @@ Key points:
 | Gemini | Implemented | `~/.ccr/platforms/gemini/profiles.toml` | `~/.ccr/platforms/gemini/settings.json` |
 | Droid | Implemented | `~/.ccr/platforms/droid/profiles.toml` | `~/.factory/settings.json` |
 | Qwen | Reserved / Stub | `~/.ccr/platforms/qwen/profiles.toml` | `~/.ccr/platforms/qwen/settings.json` |
-| iFlow | Reserved / Stub | `~/.ccr/platforms/iflow/profiles.toml` | `~/.ccr/platforms/iflow/settings.json` |
-
-> Qwen and iFlow may already appear in the UI, but the core platform implementation still reports them as unsupported. The docs treat them as reserved/stub platforms until the code says otherwise.
+> Qwen remains a reserved/stub platform until the core implementation says otherwise.
 
 ## Common Lifecycle
 

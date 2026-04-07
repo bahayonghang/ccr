@@ -3,7 +3,7 @@
 //
 // 功能：
 // - 📋 提供内置预设模板（fetch, context7, sequential-thinking, exa, serena）
-// - 🔄 多平台同步（Claude → Codex/Gemini/Qwen/iFlow）
+// - 🔄 多平台同步（Claude → Codex/Gemini/Qwen/Droid）
 // - 💾 安装预设到指定平台
 #![allow(dead_code)]
 
@@ -108,7 +108,6 @@ impl McpPresetManager {
             Platform::Codex => home.join(".codex"),
             Platform::Gemini => home.join(".gemini"),
             Platform::Qwen => home.join(".qwen"),
-            Platform::IFlow => home.join(".iflow"),
             Platform::Droid => home.join(".factory"),
         };
 
@@ -155,7 +154,6 @@ impl McpPresetManager {
             Platform::Codex => self.install_to_codex(&preset.id, &server_spec),
             Platform::Gemini => self.install_to_gemini(&preset.id, &server_spec),
             Platform::Qwen => self.install_to_qwen(&preset.id, &server_spec),
-            Platform::IFlow => self.install_to_iflow(&preset.id, &server_spec),
             Platform::Droid => self.install_to_droid(&preset.id, &server_spec),
         }
     }
@@ -167,7 +165,6 @@ impl McpPresetManager {
             Platform::Codex => self.install_to_codex(name, spec),
             Platform::Gemini => self.install_to_gemini(name, spec),
             Platform::Qwen => self.install_to_qwen(name, spec),
-            Platform::IFlow => self.install_to_iflow(name, spec),
             Platform::Droid => self.install_to_droid(name, spec),
         }
     }
@@ -270,29 +267,6 @@ impl McpPresetManager {
 
         self.save_json_config(&config_path, &config)?;
         tracing::info!("Installed MCP preset '{}' to Qwen", id);
-        Ok(())
-    }
-
-    /// 安装到 iFlow
-    fn install_to_iflow(&self, id: &str, spec: &McpServerSpec) -> Result<()> {
-        // iFlow 使用与 Claude 类似的 JSON 格式
-        let config_path = self.platform_dir.join("config.json");
-        let mut config = self.load_json_config(&config_path)?;
-
-        let mcp_servers = config
-            .as_object_mut()
-            .ok_or_else(|| CcrError::ConfigError("Invalid iFlow config format".into()))?
-            .entry("mcpServers")
-            .or_insert_with(|| serde_json::json!({}));
-
-        let server_config = self.spec_to_claude_format(spec);
-        mcp_servers
-            .as_object_mut()
-            .ok_or_else(|| CcrError::ConfigError("Invalid mcpServers format".into()))?
-            .insert(id.to_string(), server_config);
-
-        self.save_json_config(&config_path, &config)?;
-        tracing::info!("Installed MCP preset '{}' to iFlow", id);
         Ok(())
     }
 

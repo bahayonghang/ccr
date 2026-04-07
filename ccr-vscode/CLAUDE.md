@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-CCR VSCode Extension — a sidebar extension for managing AI CLI tool configurations (Claude, Codex, Gemini, Qwen, iFlow, Droid) directly from VSCode. It reads/writes CCR's TOML config files and delegates switching operations to the `ccr` CLI binary.
+CCR VSCode Extension — a sidebar extension for managing AI CLI tool configurations (Claude, Codex, Gemini, Qwen, Droid) directly from VSCode. It reads/writes CCR's TOML config files and delegates switching operations to the `ccr` CLI binary.
 
 ## Build & Development Commands
 

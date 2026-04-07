@@ -14,7 +14,6 @@ pub enum SyncContentType {
     Claude,
     Gemini,
     Qwen,
-    IFlow,
 }
 
 impl SyncContentType {
@@ -25,7 +24,6 @@ impl SyncContentType {
             SyncContentType::Claude => "Claude 配置 (.claude/)",
             SyncContentType::Gemini => "Gemini 配置 (.gemini/)",
             SyncContentType::Qwen => "Qwen 配置 (.qwen/)",
-            SyncContentType::IFlow => "iFlow 配置 (.iflow/)",
         }
     }
 
@@ -37,7 +35,6 @@ impl SyncContentType {
             SyncContentType::Claude => "claude",
             SyncContentType::Gemini => "gemini",
             SyncContentType::Qwen => "qwen",
-            SyncContentType::IFlow => "iflow",
         }
     }
 
@@ -48,7 +45,6 @@ impl SyncContentType {
             SyncContentType::Claude,
             SyncContentType::Gemini,
             SyncContentType::Qwen,
-            SyncContentType::IFlow,
         ]
     }
 
@@ -89,14 +85,6 @@ impl SyncContentType {
                     home.join(".qwen").exists() || ccr_root.join("platforms").join("qwen").exists()
                 }
             }
-            SyncContentType::IFlow => {
-                if use_ccr_root {
-                    ccr_root.join("platforms").join("iflow").exists()
-                } else {
-                    home.join(".iflow").exists()
-                        || ccr_root.join("platforms").join("iflow").exists()
-                }
-            }
         }
     }
 }
@@ -116,7 +104,6 @@ impl Default for SyncContentSelection {
                 SyncContentType::Claude,
                 SyncContentType::Gemini,
                 SyncContentType::Qwen,
-                SyncContentType::IFlow,
             ],
             use_default: true,
         }
@@ -183,14 +170,6 @@ impl SyncContentSelection {
                         paths.push(".qwen".to_string());
                     }
                 }
-                SyncContentType::IFlow => {
-                    let platform_dir = ccr_root.join("platforms").join("iflow");
-                    if platform_dir.exists() {
-                        paths.push("platforms/iflow".to_string());
-                    } else if home.join(".iflow").exists() {
-                        paths.push(".iflow".to_string());
-                    }
-                }
             }
         }
 
@@ -219,14 +198,11 @@ impl SyncContentSelector {
             .collect();
 
         let mut selected = HashMap::new();
-        // 默认选中平台目录（Claude/Gemini/Qwen/IFlow），config 不默认选中
+        // 默认选中平台目录（Claude/Gemini/Qwen），config 不默认选中
         for content_type in available_types.iter().cloned() {
             let is_platform = matches!(
                 content_type,
-                SyncContentType::Claude
-                    | SyncContentType::Gemini
-                    | SyncContentType::Qwen
-                    | SyncContentType::IFlow
+                SyncContentType::Claude | SyncContentType::Gemini | SyncContentType::Qwen
             );
             selected.insert(content_type, is_platform);
         }
@@ -377,7 +353,7 @@ mod tests {
         let selection = SyncContentSelection::default();
         assert!(!selection.contains(&SyncContentType::Config));
         assert!(selection.contains(&SyncContentType::Claude));
-        assert_eq!(selection.count(), 4);
+        assert_eq!(selection.count(), 3);
         assert!(selection.use_default);
 
         let custom =

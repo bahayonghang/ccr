@@ -254,7 +254,6 @@ const configs = await listConfigs()
 - **Codex**: MCP 服务器、Profiles、基础配置
 - **Gemini CLI**: 配置管理和工具集成
 - **Qwen**: 阿里通义千问配置管理
-- **iFlow**: 工作流配置管理
 - **命令中心**: 统一的 CLI 命令执行界面
 - **配置转换器**: 跨平台配置格式转换
 - **云同步**: WebDAV 云端配置同步

@@ -281,21 +281,6 @@ impl MultiBackupService {
             ));
         }
 
-        // 5) .iflow 或统一模式 platforms/iflow → backups/ccr/.iflow
-        let iflow_dir = if home.join(".iflow").exists() {
-            home.join(".iflow")
-        } else {
-            ccr_root.join("platforms").join("iflow")
-        };
-        if iflow_dir.exists() {
-            sources.push(BackupSource::new(
-                "iflow",
-                iflow_dir,
-                SourceKind::Directory,
-                "ccr/.iflow",
-            ));
-        }
-
         Ok(sources)
     }
 

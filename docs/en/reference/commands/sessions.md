@@ -20,7 +20,6 @@ The `ccr sessions` command group provides management functionality for session h
 | Codex | `~/.codex/sessions/*.jsonl` | JSONL |
 | Gemini | `~/.gemini/tmp/*` | Custom format |
 | Qwen | `~/.qwen/sessions/*.jsonl` | JSONL |
-| iFlow | `~/.iflow/sessions/*.jsonl` | JSONL |
 
 ## Subcommands
 
@@ -36,7 +35,7 @@ ccr sessions list [OPTIONS]
 
 | Option | Description | Default |
 |--------|-------------|---------|
-| `-p, --platform <PLATFORM>` | Filter by platform (claude/codex/gemini/qwen/iflow) | All |
+| `-p, --platform <PLATFORM>` | Filter by platform (claude/codex/gemini/qwen/droid) | All |
 | `-l, --limit <N>` | Limit display count | 20 |
 | `--today` | Show only today's sessions | No |
 

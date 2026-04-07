@@ -303,7 +303,6 @@ pub async fn current_command() -> Result<()> {
             Platform::Codex => "Codex",
             Platform::Gemini => "Gemini",
             Platform::Qwen => "Qwen",
-            Platform::IFlow => "IFlow",
             Platform::Droid => "Factory Droid",
         };
         ColorOutput::step(&format!("🌍 {} 环境变量状态", platform_display));

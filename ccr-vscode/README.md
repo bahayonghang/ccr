@@ -1,6 +1,6 @@
 # CCR VSCode Extension
 
-Manage AI CLI tool configurations (Claude, Codex, Gemini, Qwen, iFlow, Droid) directly from the VSCode sidebar.
+Manage AI CLI tool configurations (Claude, Codex, Gemini, Qwen, Droid) directly from the VSCode sidebar.
 
 ## Features
 

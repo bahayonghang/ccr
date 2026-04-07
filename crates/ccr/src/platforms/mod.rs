@@ -15,7 +15,6 @@ use std::sync::Arc;
 pub mod claude;
 pub mod droid;
 pub mod gemini;
-pub mod iflow;
 pub mod qwen;
 
 // 重新导出平台实现
@@ -23,7 +22,6 @@ pub use ccr_codex::CodexPlatform;
 pub use claude::ClaudePlatform;
 pub use droid::DroidPlatform;
 pub use gemini::GeminiPlatform;
-pub use iflow::IFlowPlatform;
 pub use qwen::QwenPlatform;
 
 /// 🏭 平台工厂函数
@@ -62,10 +60,6 @@ pub fn create_platform(platform: Platform) -> Result<Arc<dyn PlatformConfig>> {
         Platform::Qwen => {
             let qwen = QwenPlatform::new()?;
             Ok(Arc::new(qwen))
-        }
-        Platform::IFlow => {
-            let iflow = IFlowPlatform::new()?;
-            Ok(Arc::new(iflow))
         }
         Platform::Droid => {
             let droid = DroidPlatform::new()?;
@@ -305,21 +299,17 @@ mod tests {
             "Gemini 平台应该成功创建"
         );
 
-        // Qwen 和 IFlow 是 stub 实现，也能成功创建（但方法会返回 PlatformNotSupported 错误）
+        // Qwen 是 stub 实现，也能成功创建（但方法会返回 PlatformNotSupported 错误）
         assert!(
             create_platform(Platform::Qwen).is_ok(),
             "Qwen 平台应该成功创建（stub）"
-        );
-        assert!(
-            create_platform(Platform::IFlow).is_ok(),
-            "IFlow 平台应该成功创建（stub）"
         );
     }
 
     #[test]
     fn test_platform_registry() {
         let registry = PlatformRegistry::new();
-        assert_eq!(registry.all_platforms().len(), 6);
+        assert_eq!(registry.all_platforms().len(), 5);
 
         let implemented = registry.implemented_platforms();
         assert_eq!(implemented.len(), 4);
@@ -351,6 +341,6 @@ mod tests {
     #[test]
     fn test_platform_detector() {
         let detector = PlatformDetector::new();
-        assert_eq!(detector.registry().all_platforms().len(), 6);
+        assert_eq!(detector.registry().all_platforms().len(), 5);
     }
 }

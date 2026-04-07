@@ -44,7 +44,7 @@ This page expands the `architecture` page by describing the current responsibili
 
 ### Shared infrastructure
 
-- `platforms/`: platform implementations for Claude, Codex, Gemini, Droid, Qwen, and IFlow
+- `platforms/`: platform implementations for Claude, Codex, Gemini, Droid, and Qwen
 - `core/`: errors, locks, atomic writes, logging, HTTP helpers, and related foundations
 - `utils/`: masking, validation, and shared format helpers
 

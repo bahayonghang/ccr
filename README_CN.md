@@ -11,7 +11,7 @@
 
 ## ✨ 核心特性
 
-- **统一平台注册表**：统一管理 Claude、Codex、Gemini、Qwen、iFlow、Droid 等 AI CLI 平台的独立 profile、历史和备份。
+- **统一平台注册表**：统一管理 Claude、Codex、Gemini、Qwen、Droid 等 AI CLI 平台的独立 profile、历史和备份。
 - **企业级安全**：支持原子写入、文件锁 (`fs4`)、完整审计日志，且在每次修改前自动备份。
 - **多端接口**：
   - **CLI**：功能强大的命令行接口。

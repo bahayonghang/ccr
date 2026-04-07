@@ -59,7 +59,6 @@ ccr platform init <platform>
 | `gemini` | 已实现 | Unified Mode 管理 |
 | `droid` | 已实现 | 写入 `~/.factory/settings.json` |
 | `qwen` | 预留 / Stub | 当前核心实现返回未支持 |
-| `iflow` | 预留 / Stub | 当前核心实现返回未支持 |
 
 ## 常见命令
 

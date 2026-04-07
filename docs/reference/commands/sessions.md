@@ -20,7 +20,6 @@ Session 会话管理命令，用于解析、索引和管理 AI CLI 工具产生�
 | Codex | `~/.codex/sessions/*.jsonl` | JSONL |
 | Gemini | `~/.gemini/tmp/*` | 自定义格式 |
 | Qwen | `~/.qwen/sessions/*.jsonl` | JSONL |
-| iFlow | `~/.iflow/sessions/*.jsonl` | JSONL |
 
 ## 子命令
 
@@ -36,7 +35,7 @@ ccr sessions list [OPTIONS]
 
 | 选项 | 说明 | 默认值 |
 |------|------|--------|
-| `-p, --platform <PLATFORM>` | 按平台过滤 (claude/codex/gemini/qwen/iflow) | 全部 |
+| `-p, --platform <PLATFORM>` | 按平台过滤 (claude/codex/gemini/qwen/droid) | 全部 |
 | `-l, --limit <N>` | 限制显示数量 | 20 |
 | `--today` | 仅显示今天的会话 | 否 |
 

@@ -17,7 +17,7 @@ Error: 平台 'unknown' 未找到
 # 查看所有支持的平台
 ccr platform list
 
-# 支持的平台: claude, codex, gemini, qwen, iflow
+# 支持的平台: claude, codex, gemini, qwen, droid
 ccr platform switch claude
 ```
 

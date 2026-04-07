@@ -116,7 +116,6 @@ Then continue with:
 | Gemini CLI | ✅ Implemented | Isolated profile, history, and backup structure |
 | Factory Droid | ✅ Implemented | Present in both CLI platform docs and CCR UI modules |
 | Qwen CLI | 🚧 Reserved / Partial | Platform key and UI grouping exist; treat as reserved/partial in docs |
-| iFlow CLI | 🚧 Reserved / Partial | Platform key and UI grouping exist; treat as reserved/partial in docs |
 
 See [Platform Support](/en/reference/platforms/) for the detailed matrix.
 

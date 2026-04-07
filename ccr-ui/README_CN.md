@@ -20,7 +20,6 @@
 | Codex | ✅ 完全支持 | GitHub Copilot CLI | `~/.codex/config.json` |
 | Gemini CLI | ✅ 完全支持 | Google Gemini CLI | `~/.gemini/settings.json` |
 | Qwen | ✅ 完全支持 | 阿里通义千问 CLI | `~/.qwen/config.json` |
-| iFlow | 🚧 基础支持 | iFlow CLI | 开发中 |
 
 ## 快速开始
 
@@ -160,21 +159,14 @@ ccr/ (workspace root)
 **前缀：`/api/qwen/`**
 支持 MCP、Agents、Slash Commands、Plugins、Config 管理
 
-### 5. iFlow API（5 个端点 - 基础支持）
-- `GET    /api/iflow/mcp` - 获取 iFlow MCP 服务器
-- `POST   /api/iflow/mcp` - 添加/更新 iFlow MCP 服务器
-- `GET    /api/iflow/agents` - 获取 iFlow Agents
-- `GET    /api/iflow/slash-commands` - 获取 iFlow Slash 命令
-- `GET    /api/iflow/plugins` - 获取 iFlow 插件
-
-### 6. 工具类 API
+### 5. 工具类 API
 - `POST   /api/converter/convert` - 转换配置文件格式
 - `POST   /api/sync/claude-to-codex` - 从 Claude 同步到 Codex
 - `POST   /api/command/execute` - 执行 CCR CLI 命令
 - `GET    /api/system/info` - 获取系统信息
 - `GET    /api/version` - 获取后端版本
 
-### 7. CCR 核心 API
+### 6. CCR 核心 API
 - `GET    /api/configs` - 列出所有配置
 - `POST   /api/switch` - 切换配置
 - `POST   /api/validate` - 验证配置
@@ -229,15 +221,6 @@ ccr/ (workspace root)
 /qwen/agents             - Agents 管理
 /qwen/slash-commands
 /qwen/plugins
-```
-
-### iFlow 路由（开发中）
-```
-/iflow                   - iFlow 概览
-/iflow/mcp               - MCP 服务器管理
-/iflow/agents            - Agents 管理
-/iflow/slash-commands
-/iflow/plugins
 ```
 
 ## 手动开发（不依赖 just）

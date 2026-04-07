@@ -39,7 +39,7 @@ Startup discovery order:
 
 ## Why the UI Exists
 
-- Platform modules: Claude, Codex, Gemini, Droid, plus visible reserved groups for Qwen, iFlow, and OpenCode
+- Platform modules: Claude, Codex, Gemini, Droid, plus visible reserved groups for Qwen and OpenCode
 - Configuration and extension management: MCP, Skills, Prompts, Plugins, Hooks, Output Styles, Statusline, Provider Health
 - Data and operations views: Usage, Monitoring, Sessions, Budget, Pricing, Sync, Commands
 - Specialized surfaces: Checkin, WSL, SSH, OpenCode

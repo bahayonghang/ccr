@@ -11,7 +11,6 @@ pub enum CliType {
     Codex,
     Gemini,
     Qwen,
-    Iflow,
 }
 
 /// 转换请求

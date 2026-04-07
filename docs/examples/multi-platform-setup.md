@@ -10,7 +10,6 @@
 | **Codex** | ✅ 已启用 | 5 | github | GitHub Copilot CLI |
 | **Gemini** | ✅ 已启用 | 6 | google | Google Gemini CLI |
 | **Qwen** | ⏸️ 未启用 | 0 | - | Alibaba Qwen CLI (计划中) |
-| **iFlow** | ⏸️ 未启用 | 0 | - | iFlow CLI (计划中) |
 
 ### 目录结构
 
@@ -434,7 +433,7 @@ ccr list
 - 测试配置: 11 个 (41%)
 
 **活跃平台**: 3 个 (Claude, Codex, Gemini)
-**计划平台**: 2 个 (Qwen, iFlow)
+**计划平台**: 1 个 (Qwen)
 
 ## 🎉 总结
 

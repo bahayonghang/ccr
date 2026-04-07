@@ -26,7 +26,7 @@ impl SessionParser {
             Platform::Codex => Self::parse_codex(path),
             Platform::Gemini => Self::parse_gemini(path),
             Platform::Qwen => Self::parse_qwen(path),
-            Platform::IFlow | Platform::Droid => Self::parse_generic(path, platform),
+            Platform::Droid => Self::parse_generic(path, platform),
         }
     }
 
@@ -168,7 +168,7 @@ impl SessionParser {
         })
     }
 
-    /// 解析通用格式（用于 Qwen、iFlow 等）
+    /// 解析通用格式（用于 Droid 等）
     fn parse_generic(path: &Path, platform: Platform) -> Result<Session> {
         let events = Self::read_jsonl(path).unwrap_or_else(|e| {
             debug!(
@@ -485,7 +485,6 @@ impl SessionParser {
             Platform::Codex => dirs::home_dir()?.join(".codex").join("sessions"),
             Platform::Gemini => dirs::home_dir()?.join(".gemini").join("tmp"),
             Platform::Qwen => qwen_projects_dir()?,
-            Platform::IFlow => dirs::home_dir()?.join(".iflow").join("sessions"),
             Platform::Droid => dirs::home_dir()?.join(".factory").join("sessions"),
         };
 

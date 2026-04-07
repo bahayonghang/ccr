@@ -26,7 +26,6 @@
 │   ├── gemini/
 │   ├── droid/
 │   ├── qwen/
-│   └── iflow/
 ├── history/
 ├── backups/
 ├── logs/
@@ -49,9 +48,7 @@
 | Gemini | 已实现 | `~/.ccr/platforms/gemini/profiles.toml` | `~/.ccr/platforms/gemini/settings.json` |
 | Droid | 已实现 | `~/.ccr/platforms/droid/profiles.toml` | `~/.factory/settings.json` |
 | Qwen | 预留 / Stub | `~/.ccr/platforms/qwen/profiles.toml` | `~/.ccr/platforms/qwen/settings.json` |
-| iFlow | 预留 / Stub | `~/.ccr/platforms/iflow/profiles.toml` | `~/.ccr/platforms/iflow/settings.json` |
-
-> `Qwen` 和 `iFlow` 在 UI 中可能出现入口，但当前核心平台实现仍返回未支持错误，文档统一视为“预留 / Stub”。
+> `Qwen` 当前仍作为预留 / Stub 保留，核心平台实现尚未完整支持。
 
 ## 常见生命周期
 

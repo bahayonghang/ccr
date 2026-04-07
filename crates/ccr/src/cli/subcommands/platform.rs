@@ -23,7 +23,7 @@ pub enum PlatformAction {
     /// 切换当前激活的平台
     /// 示例: ccr platform switch codex
     Switch {
-        /// 平台名称 (claude, codex, gemini, qwen, iflow)
+        /// 平台名称 (claude, codex, gemini, qwen, droid)
         platform_name: String,
     },
 

@@ -412,7 +412,6 @@ fn parse_platform(s: &str) -> Option<Platform> {
         "codex" => Some(Platform::Codex),
         "gemini" => Some(Platform::Gemini),
         "qwen" => Some(Platform::Qwen),
-        "iflow" => Some(Platform::IFlow),
         _ => None,
     }
 }

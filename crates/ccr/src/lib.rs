@@ -8,7 +8,6 @@
 //! - **Codex**: GitHub Copilot CLI ([`platforms::CodexPlatform`])
 //! - **Gemini**: Google Gemini CLI ([`platforms::GeminiPlatform`])
 //! - **Qwen**: 阿里通义千问 CLI (计划中)
-//! - **iFlow**: iFlow CLI (计划中)
 //!
 //! ## 核心特性
 //!
@@ -195,7 +194,7 @@ pub use models::skills::{
 /// 数据模型和平台 trait
 ///
 /// **平台相关**:
-/// - [`Platform`] - 平台类型枚举（Claude, Codex, Gemini, Qwen, iFlow）
+/// - [`Platform`] - 平台类型枚举（Claude, Codex, Gemini, Qwen, Droid）
 /// - [`PlatformConfig`] - 平台配置接口 trait
 /// - [`PlatformPaths`] - 平台路径管理结构
 ///

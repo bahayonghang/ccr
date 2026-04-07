@@ -11,7 +11,7 @@ CLI-first workflow with TUI and the full CCR UI for Claude Code, Codex, Gemini, 
 
 ## ✨ Features
 
-- **Unified Platform Registry**: Manage Claude, Codex, Gemini, Qwen, iFlow, Droid, and related AI CLI platforms with isolated profiles, history, and backups.
+- **Unified Platform Registry**: Manage Claude, Codex, Gemini, Qwen, Droid, and related AI CLI platforms with isolated profiles, history, and backups.
 - **Enterprise-Grade Safety**: Atomic writes, file locking (`fs4`), comprehensive audit logs, and automatic backups before every modification.
 - **Multi-Interface**:
   - **CLI**: Powerful command-line interface for all operations.

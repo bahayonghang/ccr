@@ -25,7 +25,6 @@ use std::str::FromStr;
 /// - ✅ **Codex**: 完全支持（GitHub Copilot CLI）
 /// - ✅ **Gemini**: 完全支持（Gemini CLI）
 /// - 🚧 **Qwen**: 计划支持（阿里通义千问 CLI）
-/// - 🚧 **IFlow**: 计划支持（iFlow CLI）
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum Platform {
@@ -37,8 +36,6 @@ pub enum Platform {
     Gemini,
     /// Qwen CLI - 阿里通义千问 CLI (未实现)
     Qwen,
-    /// iFlow CLI - iFlow CLI (未实现)
-    IFlow,
     /// Factory Droid CLI - Factory AI Droid CLI
     Droid,
 }
@@ -51,7 +48,6 @@ impl Platform {
             Platform::Codex => "Codex",
             Platform::Gemini => "Gemini CLI",
             Platform::Qwen => "Qwen CLI",
-            Platform::IFlow => "iFlow CLI",
             Platform::Droid => "Factory Droid",
         }
     }
@@ -63,7 +59,6 @@ impl Platform {
             Platform::Codex => "codex",
             Platform::Gemini => "gemini",
             Platform::Qwen => "qwen",
-            Platform::IFlow => "iflow",
             Platform::Droid => "droid",
         }
     }
@@ -75,7 +70,6 @@ impl Platform {
             Platform::Codex => "💻",
             Platform::Gemini => "✨",
             Platform::Qwen => "🌟",
-            Platform::IFlow => "🌊",
             Platform::Droid => "🏭",
         }
     }
@@ -95,7 +89,6 @@ impl Platform {
             Platform::Codex,
             Platform::Gemini,
             Platform::Qwen,
-            Platform::IFlow,
             Platform::Droid,
         ]
     }
@@ -124,7 +117,6 @@ impl FromStr for Platform {
             "codex" => Ok(Platform::Codex),
             "gemini" => Ok(Platform::Gemini),
             "qwen" => Ok(Platform::Qwen),
-            "iflow" => Ok(Platform::IFlow),
             "droid" | "factory" => Ok(Platform::Droid),
             _ => Err(ccr_core::core::error::CcrError::PlatformNotFound(
                 s.to_string(),
@@ -525,13 +517,12 @@ mod tests {
         assert!(Platform::Codex.is_implemented());
         assert!(Platform::Gemini.is_implemented());
         assert!(!Platform::Qwen.is_implemented());
-        assert!(!Platform::IFlow.is_implemented());
     }
 
     #[test]
     fn test_platform_all() {
         let platforms = Platform::all();
-        assert_eq!(platforms.len(), 6);
+        assert_eq!(platforms.len(), 5);
         assert!(platforms.contains(&Platform::Claude));
         assert!(platforms.contains(&Platform::Qwen));
         assert!(platforms.contains(&Platform::Droid));

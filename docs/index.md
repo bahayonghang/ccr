@@ -116,7 +116,6 @@ ccr validate
 | Gemini CLI | ✅ Implemented | 独立 profile / history / backup |
 | Factory Droid | ✅ Implemented | 平台页与模块页已进入 CCR UI |
 | Qwen CLI | 🚧 Reserved / Partial | 代码中保留平台键与 UI 分组，文档按保留能力说明 |
-| iFlow CLI | 🚧 Reserved / Partial | 代码中保留平台键与 UI 分组，文档按保留能力说明 |
 
 详细平台说明见 [`平台支持`](/reference/platforms/)。
 

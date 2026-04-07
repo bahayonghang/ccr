@@ -46,7 +46,6 @@ ccr init
 │   ├── codex/
 │   ├── gemini/
 │   ├── qwen/
-│   ├── iflow/
 │   └── droid/
 ├── history/
 └── backups/

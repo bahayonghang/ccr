@@ -117,6 +117,11 @@ impl Database {
             "003_create_history",
             Self::migration_003_create_history,
         )?;
+        self.run_migration(
+            &conn,
+            "004_prune_iflow_sessions",
+            Self::migration_004_prune_iflow_sessions,
+        )?;
 
         info!("数据库迁移完成");
         Ok(())
@@ -231,6 +236,14 @@ impl Database {
             "#,
         )
         .map_err(|e| CcrError::DatabaseError(format!("创建 history 表失败: {}", e)))?;
+
+        Ok(())
+    }
+
+    /// 迁移 004: 清理已移除平台的历史 session
+    fn migration_004_prune_iflow_sessions(conn: &Connection) -> Result<()> {
+        conn.execute("DELETE FROM sessions WHERE platform = 'iflow'", [])
+            .map_err(|e| CcrError::DatabaseError(format!("清理 iflow sessions 失败: {}", e)))?;
 
         Ok(())
     }

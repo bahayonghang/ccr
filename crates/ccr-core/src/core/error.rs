@@ -302,8 +302,7 @@ impl CcrError {
                     • claude  - Claude Code (✅ 已实现)\n\
                     • codex   - GitHub Copilot CLI (✅ 已实现)\n\
                     • gemini  - Google Gemini CLI (✅ 已实现)\n\
-                    • qwen    - Alibaba Qwen CLI (🚧 计划中)\n\
-                    • iflow   - iFlow CLI (🚧 计划中)\n\n\
+                    • qwen    - Alibaba Qwen CLI (🚧 计划中)\n\n\
                     建议:\n\
                     • 运行 'ccr platform list' 查看所有平台\n\
                     • 运行 'ccr platform init <平台名>' 初始化平台\n\
@@ -319,8 +318,7 @@ impl CcrError {
                     • codex   - GitHub Copilot CLI\n\
                     • gemini  - Google Gemini CLI\n\n\
                     计划中的平台:\n\
-                    • qwen    - Alibaba Qwen CLI\n\
-                    • iflow   - iFlow CLI\n\n\
+                    • qwen    - Alibaba Qwen CLI\n\n\
                     建议:\n\
                     • 使用已实现的平台: 'ccr platform switch claude'\n\
                     • 查看平台列表: 'ccr platform list'\n\
