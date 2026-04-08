@@ -275,7 +275,7 @@
             v-model:is-open="showDeleteModal"
             type="danger"
             :title="$t('plugins.delete')"
-            :message="$t('plugins.deleteConfirm', { id: pluginToDelete || '' })"
+            :message="$t('plugins.deleteConfirm', { name: pluginToDelete || '' })"
             :confirm-text="$t('common.delete')"
             :cancel-text="$t('common.cancel')"
             @confirm="confirmDelete"

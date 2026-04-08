@@ -799,7 +799,7 @@ const handleSave = async () => {
 }
 
 const handleDelete = async (name: string) => {
-  if (!confirm(t('claudeProfiles.confirmDelete', { name }))) return
+  if (!confirm(t('claudeProfiles.deleteConfirm', { name }))) return
 
   try {
     await deleteClaudeProfile(name)

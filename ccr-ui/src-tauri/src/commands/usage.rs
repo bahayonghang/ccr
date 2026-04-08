@@ -4,6 +4,7 @@ use std::collections::BTreeMap;
 use std::path::PathBuf;
 use std::time::Instant;
 
+use ccr::Platform;
 use chrono::{Duration, Utc};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -12,6 +13,7 @@ use uuid::Uuid;
 
 use crate::events::{self, UsageImportPayload};
 use crate::monitoring::{emit_and_record_monitoring_event, should_persist, usage_import_entry};
+use crate::session_index_jobs::SessionIndexJobSnapshot;
 use crate::state::AppState;
 use crate::usage_jobs::{UsageImportJobSnapshot, UsageImportJobStage};
 
@@ -83,6 +85,12 @@ pub struct StartUsageImportJobResponse {
     pub snapshot: UsageImportJobSnapshot,
 }
 
+#[derive(Debug, Clone, Serialize)]
+pub struct StartSessionIndexJobResponse {
+    pub job_id: String,
+    pub snapshot: SessionIndexJobSnapshot,
+}
+
 #[derive(Debug, Clone)]
 struct UsageImportJobFile {
     platform: String,
@@ -114,6 +122,11 @@ pub struct HomeOverviewBootstrap {
     pub usage_imported_records: usize,
     pub session_reindex_attempted: bool,
     pub indexed_sessions: u64,
+    pub usage_job_id: Option<String>,
+    pub session_job_id: Option<String>,
+    pub needs_usage_import: bool,
+    pub needs_session_index: bool,
+    pub is_warm: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -220,6 +233,46 @@ async fn emit_usage_import_job_snapshot(
     if let Err(error) = app_handle.emit(event, snapshot.clone()) {
         tracing::warn!(event, ?error, job_id = %snapshot.job_id, "Failed to emit usage import job event");
     }
+}
+
+async fn emit_session_index_job_snapshot(
+    app_handle: &AppHandle,
+    event: &str,
+    snapshot: &SessionIndexJobSnapshot,
+) {
+    if let Err(error) = app_handle.emit(event, snapshot.clone()) {
+        tracing::warn!(event, ?error, job_id = %snapshot.job_id, "Failed to emit session index job event");
+    }
+}
+
+fn session_index_platforms() -> [Platform; 4] {
+    [
+        Platform::Claude,
+        Platform::Codex,
+        Platform::Gemini,
+        Platform::Qwen,
+    ]
+}
+
+fn session_index_platform_label(platform: Platform) -> &'static str {
+    match platform {
+        Platform::Claude => "claude",
+        Platform::Codex => "codex",
+        Platform::Gemini => "gemini",
+        Platform::Qwen => "qwen",
+        Platform::Droid => "droid",
+    }
+}
+
+fn session_index_file_count(platform: Platform) -> u64 {
+    let Some(session_dir) = ccr::sessions::parser::SessionParser::get_platform_session_dir(&platform)
+    else {
+        return 0;
+    };
+
+    ccr::sessions::parser::SessionParser::scan_directory(&session_dir, platform)
+        .map(|files| files.len() as u64)
+        .unwrap_or(0)
 }
 
 fn platform_scope_label(platform: Option<&str>) -> String {
@@ -535,6 +588,115 @@ async fn run_usage_import_job(
     }
 }
 
+async fn run_session_index_job(app_handle: AppHandle, job_id: String) {
+    let platforms = session_index_platforms();
+
+    let execution = async {
+        let files_total: u64 = platforms.iter().copied().map(session_index_file_count).sum();
+
+        if let Some(snapshot) = app_handle
+            .state::<AppState>()
+            .update_session_index_job(&job_id, |job: &mut SessionIndexJobSnapshot| {
+                job.files_total = files_total;
+            })
+            .await
+        {
+            emit_session_index_job_snapshot(&app_handle, "usage:session-index-progress", &snapshot)
+                .await;
+        }
+
+        let indexer = ccr::sessions::SessionIndexer::new()
+            .map_err(|error| format!("Failed to create session indexer: {error}"))?;
+        let mut completed_files = 0u64;
+
+        for platform in platforms {
+            let platform_label = session_index_platform_label(platform).to_string();
+            if let Some(snapshot) = app_handle
+                .state::<AppState>()
+                .update_session_index_job(&job_id, |job: &mut SessionIndexJobSnapshot| {
+                    job.mark_running(Some(platform_label.clone()), files_total, completed_files);
+                })
+                .await
+            {
+                emit_session_index_job_snapshot(
+                    &app_handle,
+                    "usage:session-index-progress",
+                    &snapshot,
+                )
+                .await;
+            }
+
+            match indexer.index_platform(platform) {
+                Ok(stats) => {
+                    completed_files += stats.files_scanned;
+                    if let Some(snapshot) = app_handle
+                        .state::<AppState>()
+                        .update_session_index_job(&job_id, |job: &mut SessionIndexJobSnapshot| {
+                            job.record_platform_result(
+                                stats.files_scanned,
+                                stats.sessions_added,
+                                stats.sessions_updated,
+                                stats.errors,
+                            );
+                        })
+                        .await
+                    {
+                        emit_session_index_job_snapshot(
+                            &app_handle,
+                            "usage:session-index-progress",
+                            &snapshot,
+                        )
+                        .await;
+                    }
+                }
+                Err(error) => {
+                    if let Some(snapshot) = app_handle
+                        .state::<AppState>()
+                        .update_session_index_job(&job_id, |job: &mut SessionIndexJobSnapshot| {
+                            job.push_warning(format!("{}: {}", platform_label, error));
+                            job.record_platform_result(0, 0, 0, 1);
+                        })
+                        .await
+                    {
+                        emit_session_index_job_snapshot(
+                            &app_handle,
+                            "usage:session-index-progress",
+                            &snapshot,
+                        )
+                        .await;
+                    }
+                }
+            }
+        }
+
+        let final_snapshot = app_handle
+            .state::<AppState>()
+            .update_session_index_job(&job_id, |job: &mut SessionIndexJobSnapshot| {
+                job.mark_finished();
+            })
+            .await
+            .ok_or_else(|| format!("Session index job '{}' not found", job_id))?;
+
+        emit_session_index_job_snapshot(&app_handle, "usage:session-index-finished", &final_snapshot)
+            .await;
+        Ok::<(), String>(())
+    };
+
+    if let Err(error) = execution.await {
+        tracing::error!(job_id = %job_id, ?error, "Session index job failed");
+        if let Some(snapshot) = app_handle
+            .state::<AppState>()
+            .update_session_index_job(&job_id, |job: &mut SessionIndexJobSnapshot| {
+                job.mark_failed(error.clone())
+            })
+            .await
+        {
+            emit_session_index_job_snapshot(&app_handle, "usage:session-index-failed", &snapshot)
+                .await;
+        }
+    }
+}
+
 fn empty_home_platform_map() -> BTreeMap<String, HomeOverviewPlatformStats> {
     let mut map = BTreeMap::new();
     for platform in HOME_USAGE_PLATFORMS {
@@ -593,32 +755,29 @@ fn detect_home_empty_reason(
     None
 }
 
-fn import_all_usage_for_home() -> ImportAllUsageResponse {
-    let service = ccr_db::services::usage_import_service::UsageImportService::new(
-        ccr_db::services::usage_import_service::ImportConfig::default(),
-    );
-
-    let mut results = Vec::new();
-    for platform in HOME_USAGE_PLATFORMS {
-        let result = match service.import_platform(platform) {
-            Ok(import_result) => normalize_import_result(import_result),
-            Err(error) => UsageImportResultV2 {
-                platform: platform.to_string(),
-                files_processed: 0,
-                records_imported: 0,
-                records_skipped: 0,
-                duration_ms: 0,
-                completed: false,
-                error: Some(error),
-            },
+fn has_any_raw_sessions() -> bool {
+    for platform in [
+        Platform::Claude,
+        Platform::Codex,
+        Platform::Gemini,
+        Platform::Qwen,
+    ] {
+        let Some(session_dir) =
+            ccr::sessions::parser::SessionParser::get_platform_session_dir(&platform)
+        else {
+            continue;
         };
-        results.push(result);
+
+        match ccr::sessions::parser::SessionParser::scan_directory(&session_dir, platform) {
+            Ok(files) if !files.is_empty() => return true,
+            Ok(_) => continue,
+            Err(error) => {
+                tracing::debug!(?platform, ?error, "Failed to inspect raw session files");
+            }
+        }
     }
 
-    ImportAllUsageResponse {
-        summary: build_import_summary(&results),
-        results,
-    }
+    false
 }
 
 fn load_home_usage_snapshot(
@@ -636,43 +795,30 @@ fn load_home_usage_snapshot(
     let trends =
         ccr_db::database::repositories::usage_repo::get_daily_trends(&conn, &None, &start, &end)
             .map_err(|e| format!("Trend query error: {e}"))?;
+    let platform_summaries =
+        ccr_db::database::repositories::usage_repo::get_platform_summaries(&conn, &start, &end)
+            .map_err(|e| format!("Platform summary query error: {e}"))?;
+    let platform_trends =
+        ccr_db::database::repositories::usage_repo::get_daily_platform_trends(&conn, &start, &end)
+            .map_err(|e| format!("Platform trend query error: {e}"))?;
 
     let mut by_platform = empty_home_platform_map();
     let mut daily_by_platform = BTreeMap::new();
 
-    for platform in HOME_USAGE_PLATFORMS {
-        let platform_filter = Some(platform.to_string());
-        let platform_summary = ccr_db::database::repositories::usage_repo::get_usage_summary(
-            &conn,
-            &platform_filter,
-            &Some(start_date.to_string()),
-            &Some(end_date.to_string()),
-        )
-        .map_err(|e| format!("Platform summary query error for {platform}: {e}"))?;
-
-        if let Some(stats) = by_platform.get_mut(platform) {
-            stats.requests = non_negative_i64(platform_summary.total_requests);
-            stats.tokens = non_negative_i64(
-                platform_summary.total_input_tokens + platform_summary.total_output_tokens,
-            );
+    for platform_summary in platform_summaries {
+        if let Some(stats) = by_platform.get_mut(platform_summary.platform.as_str()) {
+            stats.requests = non_negative_i64(platform_summary.request_count);
+            stats.tokens = non_negative_i64(platform_summary.total_tokens);
         }
+    }
 
-        let platform_trends = ccr_db::database::repositories::usage_repo::get_daily_trends(
-            &conn,
-            &platform_filter,
-            &Some(start_date.to_string()),
-            &Some(end_date.to_string()),
-        )
-        .map_err(|e| format!("Platform trend query error for {platform}: {e}"))?;
-
-        for trend in platform_trends {
-            let day_entry = daily_by_platform
-                .entry(trend.date.clone())
-                .or_insert_with(empty_home_platform_map);
-            if let Some(stats) = day_entry.get_mut(platform) {
-                stats.requests = non_negative_i64(trend.request_count);
-                stats.tokens = non_negative_i64(trend.input_tokens + trend.output_tokens);
-            }
+    for trend in platform_trends {
+        let day_entry = daily_by_platform
+            .entry(trend.date.clone())
+            .or_insert_with(empty_home_platform_map);
+        if let Some(stats) = day_entry.get_mut(trend.platform.as_str()) {
+            stats.requests = non_negative_i64(trend.request_count);
+            stats.tokens = non_negative_i64(trend.input_tokens + trend.output_tokens);
         }
     }
 
@@ -1023,6 +1169,18 @@ pub async fn get_home_usage_overview_v2(
     let command_started = Instant::now();
     let pool = state.db_pool.clone();
     let days = days.unwrap_or(30).max(1);
+    let active_usage_job = state.get_active_usage_import_job().await;
+    let active_usage_job_id = active_usage_job.as_ref().map(|job| job.job_id.clone());
+    let active_usage_imported_records = active_usage_job
+        .as_ref()
+        .map(|job| job.records_imported)
+        .unwrap_or(0);
+    let active_session_job = state.get_active_session_index_job().await;
+    let active_session_job_id = active_session_job.as_ref().map(|job| job.job_id.clone());
+    let active_session_indexed = active_session_job
+        .as_ref()
+        .map(|job| job.sessions_added + job.sessions_updated)
+        .unwrap_or(0);
 
     let result = tokio::task::spawn_blocking(move || {
         let db_started = Instant::now();
@@ -1030,18 +1188,8 @@ pub async fn get_home_usage_overview_v2(
         let start_day = end_day - Duration::days((days - 1) as i64);
         let start_date = start_day.format("%Y-%m-%d").to_string();
         let end_date = end_day.format("%Y-%m-%d").to_string();
-        let mut bootstrap = HomeOverviewBootstrap::default();
-
-        let mut has_any_usage = load_home_usage_presence(&pool)?;
+        let has_any_usage = load_home_usage_presence(&pool)?;
         let mut usage_snapshot = load_home_usage_snapshot(&pool, &start_date, &end_date)?;
-
-        if !has_any_usage {
-            bootstrap.usage_import_attempted = true;
-            let import_result = import_all_usage_for_home();
-            bootstrap.usage_imported_records = import_result.summary.imported_records;
-            has_any_usage = load_home_usage_presence(&pool)?;
-            usage_snapshot = load_home_usage_snapshot(&pool, &start_date, &end_date)?;
-        }
 
         let session_start = start_day
             .and_hms_opt(0, 0, 0)
@@ -1056,18 +1204,13 @@ pub async fn get_home_usage_overview_v2(
         let mut has_any_sessions = false;
         if let Ok(indexer) = ccr::sessions::SessionIndexer::new() {
             has_any_sessions = !list_home_sessions(&indexer, None, None, Some(1)).is_empty();
-            sessions = list_home_sessions(&indexer, Some(session_start), Some(session_end), None);
-            if !has_any_sessions {
-                bootstrap.session_reindex_attempted = true;
-                if let Ok(index_stats) = indexer.index_all() {
-                    bootstrap.indexed_sessions =
-                        index_stats.sessions_added + index_stats.sessions_updated;
-                }
-                has_any_sessions = !list_home_sessions(&indexer, None, None, Some(1)).is_empty();
+            if has_any_sessions {
                 sessions =
                     list_home_sessions(&indexer, Some(session_start), Some(session_end), None);
             }
         }
+        let needs_usage_import = !has_any_usage;
+        let needs_session_index = !has_any_sessions && has_any_raw_sessions();
 
         for session in &sessions {
             let platform_name = session.platform.to_string();
@@ -1118,6 +1261,17 @@ pub async fn get_home_usage_overview_v2(
             .values()
             .filter(|stats| stats.sessions > 0 || stats.requests > 0 || stats.tokens > 0)
             .count() as u64;
+        let bootstrap = HomeOverviewBootstrap {
+            usage_import_attempted: active_usage_job_id.is_some(),
+            usage_imported_records: active_usage_imported_records,
+            session_reindex_attempted: active_session_job_id.is_some(),
+            indexed_sessions: active_session_indexed,
+            usage_job_id: active_usage_job_id.clone(),
+            session_job_id: active_session_job_id.clone(),
+            needs_usage_import,
+            needs_session_index,
+            is_warm: !needs_usage_import && !needs_session_index,
+        };
 
         let payload = HomeUsageOverviewResponse {
             summary: HomeOverviewSummary {
@@ -1148,6 +1302,42 @@ pub async fn get_home_usage_overview_v2(
     let (payload, db_ms) = result?;
     record_db_duration(&state, db_ms);
     serde_json::to_value(payload).map_err(|e| format!("Serialize error: {e}"))
+}
+
+#[tauri::command]
+pub async fn ensure_session_index_v2(
+    app_handle: tauri::AppHandle,
+    state: State<'_, AppState>,
+) -> Result<Value, String> {
+    if let Some(snapshot) = state.get_active_session_index_job().await {
+        return serde_json::to_value(StartSessionIndexJobResponse {
+            job_id: snapshot.job_id.clone(),
+            snapshot,
+        })
+        .map_err(|e| format!("Serialization error: {e}"));
+    }
+
+    let job_id = format!("session-index-{}", Uuid::new_v4());
+    let snapshot = SessionIndexJobSnapshot::new(job_id.clone(), session_index_platforms().len());
+    state.insert_session_index_job(snapshot.clone()).await;
+
+    tauri::async_runtime::spawn(run_session_index_job(app_handle, job_id.clone()));
+
+    serde_json::to_value(StartSessionIndexJobResponse { job_id, snapshot })
+        .map_err(|e| format!("Serialization error: {e}"))
+}
+
+#[tauri::command]
+pub async fn get_session_index_job_status_v2(
+    state: State<'_, AppState>,
+    job_id: String,
+) -> Result<Value, String> {
+    let snapshot = state
+        .get_session_index_job(&job_id)
+        .await
+        .ok_or_else(|| format!("Session index job '{}' not found", job_id))?;
+
+    serde_json::to_value(snapshot).map_err(|e| format!("Serialization error: {e}"))
 }
 
 /// 从 JSONL 文件导入单个平台的用量数据

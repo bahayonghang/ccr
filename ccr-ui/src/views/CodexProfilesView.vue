@@ -886,10 +886,26 @@ const handleSave = async () => {
   }
 }
 
+const formatProfileConfirmMessage = (
+  key: string,
+  name: string,
+  fallback: string,
+) => {
+  const message = t(key, { name })
+  if (message !== key && !message.includes('{name}')) {
+    return message
+  }
+  return fallback.replace('{name}', name)
+}
+
 const handleDelete = async (name: string) => {
   openConfirmDialog({
     title: t('codex.actions.delete'),
-    message: t('codex.profiles.confirmDelete', { name }),
+    message: formatProfileConfirmMessage(
+      'codex.profiles.deleteConfirm',
+      name,
+      '确定删除 Profile "{name}" 吗？此操作不可撤销。',
+    ),
     confirmText: t('codex.actions.delete'),
     type: 'danger',
     action: async () => {
@@ -907,7 +923,11 @@ const handleDelete = async (name: string) => {
 const handleApply = async (name: string) => {
   openConfirmDialog({
     title: t('codex.profiles.apply'),
-    message: t('codex.profiles.confirmApply', { name }),
+    message: formatProfileConfirmMessage(
+      'codex.profiles.confirmApply',
+      name,
+      '确定切换到 Profile "{name}" 吗？',
+    ),
     confirmText: t('codex.profiles.apply'),
     type: 'warning',
     action: async () => {

@@ -2505,6 +2505,16 @@ export const startUsageImportJobV2 = async <T = UnknownRecord>(
   return invoke('start_usage_import_job_v2', { platform, recentDays, resetSources })
 }
 
+/** V2: 后台确保 session 索引可用 */
+export const ensureSessionIndexV2 = async <T = UnknownRecord>(): Promise<T> => {
+  return invoke('ensure_session_index_v2')
+}
+
+/** V2: 查询 session 索引后台任务状态 */
+export const getSessionIndexJobStatusV2 = async <T = UnknownRecord>(jobId: string): Promise<T> => {
+  return invoke('get_session_index_job_status_v2', { jobId })
+}
+
 /** V2: 查询 usage 后台导入任务状态 */
 export const getUsageImportJobStatusV2 = async <T = UnknownRecord>(jobId: string): Promise<T> => {
   return invoke('get_usage_import_job_status_v2', { jobId })

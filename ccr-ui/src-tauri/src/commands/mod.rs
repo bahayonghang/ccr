@@ -323,6 +323,8 @@ macro_rules! generate_handler_common {
         usage::get_usage_logs_v2,
         usage::get_usage_dashboard_v2,
         usage::get_home_usage_overview_v2,
+        usage::ensure_session_index_v2,
+        usage::get_session_index_job_status_v2,
         usage::start_usage_import_job_v2,
         usage::get_usage_import_job_status_v2,
         usage::import_usage_v2,

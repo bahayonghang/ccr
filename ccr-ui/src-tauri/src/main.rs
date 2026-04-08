@@ -7,6 +7,7 @@ mod events;
 mod monitoring;
 mod platform;
 mod process;
+mod session_index_jobs;
 mod skills_watcher;
 mod ssh;
 mod state;

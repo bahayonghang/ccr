@@ -215,23 +215,22 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import Card from '@/components/ui/Card.vue'
 import SIcon from '@/components/ui/SIcon.vue'
 import UsageStatsChart from '@/components/UsageStatsChart.vue'
-import { getHomeUsageOverviewV2 } from '@/api'
+import { useHomeUsageOverviewStore } from '@/stores/homeUsageOverview'
 import type {
   HomeOverviewPlatformStats,
   HomeOverviewViewMode,
-  HomeUsageOverviewResponse,
   Platform,
 } from '@/types/usage'
-import { logger } from '@/utils/logger'
 
 type HomePlatformKey = Platform
 
 const { t } = useI18n()
+const overviewStore = useHomeUsageOverviewStore()
 
 const viewMode = ref<HomeOverviewViewMode>('sessions')
 const viewModes = [
@@ -247,11 +246,9 @@ const dateRanges = [
   { days: 90, label: '90D' },
 ]
 
-const overview = ref<HomeUsageOverviewResponse | null>(null)
-const loading = ref(true)
-const error = ref<string | null>(null)
-const OVERVIEW_CACHE_TTL = 60_000
-const overviewCache = new Map<number, { data: HomeUsageOverviewResponse; ts: number }>()
+const overview = computed(() => overviewStore.overview)
+const loading = computed(() => overviewStore.loading)
+const error = computed(() => overviewStore.error)
 
 const emptyStats = (): HomeOverviewPlatformStats => ({
   sessions: 0,
@@ -264,7 +261,7 @@ const getPlatformStats = (platform: HomePlatformKey): HomeOverviewPlatformStats 
 }
 
 const getChartValue = (platform: HomePlatformKey, mode: HomeOverviewViewMode) => {
-  return (item: HomeUsageOverviewResponse['series'][number]) => {
+  return (item: NonNullable<typeof overview.value>['series'][number]) => {
     const stats = item?.[platform] ?? emptyStats()
     switch (mode) {
       case 'sessions':
@@ -280,7 +277,7 @@ const getChartValue = (platform: HomePlatformKey, mode: HomeOverviewViewMode) =>
 }
 
 const hasSeriesDataForMode = (
-  data: HomeUsageOverviewResponse | null,
+  data: typeof overview.value,
   mode: HomeOverviewViewMode
 ) => {
   const series = data?.series ?? []
@@ -298,6 +295,18 @@ const hasChartData = computed(() => {
 })
 
 const diagnosticMessage = computed(() => {
+  const bootstrap = overview.value?.bootstrap
+  if (bootstrap?.needs_usage_import) {
+    return bootstrap.usage_job_id || overviewStore.usageWarmupRunning
+      ? t('usageStats.noUsageLogsPending')
+      : t('usageStats.noUsageLogs')
+  }
+  if (bootstrap?.needs_session_index) {
+    return overviewStore.sessionWarmupRunning
+      ? t('usageStats.noSessionIndexPending')
+      : t('usageStats.noSessionIndex')
+  }
+
   switch (overview.value?.empty_reason) {
     case 'no_usage_logs':
       return t('usageStats.noUsageLogs')
@@ -314,14 +323,37 @@ const bootstrapNotes = computed(() => {
   const notes: string[] = []
   const bootstrap = overview.value?.bootstrap
   if (!bootstrap) return notes
+  if (overviewStore.currentUsageJob) {
+    notes.push(
+      t('usageStats.warmingUsageProgress', {
+        scanned: formatNumber(overviewStore.currentUsageJob.files_scanned),
+        total: formatNumber(overviewStore.currentUsageJob.files_total),
+        records: formatNumber(overviewStore.currentUsageJob.records_imported),
+      })
+    )
+  } else if (bootstrap.usage_job_id || overviewStore.usageWarmupRunning) {
+    notes.push(t('usageStats.warmingUsage'))
+  }
+  if (overviewStore.currentSessionJob) {
+    notes.push(
+      t('usageStats.warmingSessionsProgress', {
+        done: formatNumber(overviewStore.currentSessionJob.platforms_completed),
+        total: formatNumber(overviewStore.currentSessionJob.platforms_total),
+        files: formatNumber(overviewStore.currentSessionJob.files_scanned),
+        current: overviewStore.currentSessionJob.current_platform ?? '...',
+      })
+    )
+  } else if (overviewStore.sessionWarmupRunning) {
+    notes.push(t('usageStats.warmingSessions'))
+  }
   if (bootstrap.usage_imported_records > 0) {
     notes.push(
       t('usageStats.bootstrapImported', { count: formatNumber(bootstrap.usage_imported_records) })
     )
   }
-  if (bootstrap.session_reindex_attempted && bootstrap.indexed_sessions > 0) {
+  if (overviewStore.lastSessionWarmupIndexed > 0) {
     notes.push(
-      t('usageStats.bootstrapIndexed', { count: formatNumber(bootstrap.indexed_sessions) })
+      t('usageStats.bootstrapIndexed', { count: formatNumber(overviewStore.lastSessionWarmupIndexed) })
     )
   }
   return notes
@@ -429,23 +461,9 @@ const platformCards = computed(() => {
   ]
 })
 
-const loadOverview = async (days: number, force: boolean = false) => {
-  const cached = overviewCache.get(days)
-  const now = Date.now()
-  if (!force && cached && now - cached.ts < OVERVIEW_CACHE_TTL) {
-    overview.value = cached.data
-    error.value = null
-    loading.value = false
-    return
-  }
-
-  loading.value = true
-  error.value = null
-
+const loadOverview = async (days: number) => {
   try {
-    const data = await getHomeUsageOverviewV2<HomeUsageOverviewResponse>(days)
-    overview.value = data
-    overviewCache.set(days, { data, ts: now })
+    const data = await overviewStore.loadOverview(days)
 
     if (!hasSeriesDataForMode(data, viewMode.value)) {
       if (hasSeriesDataForMode(data, 'sessions')) {
@@ -456,11 +474,8 @@ const loadOverview = async (days: number, force: boolean = false) => {
         viewMode.value = 'tokens'
       }
     }
-  } catch (loadError) {
-    error.value = loadError instanceof Error ? loadError.message : String(loadError)
-    logger.error('[UsageStatsDashboard] failed to load home overview', loadError)
-  } finally {
-    loading.value = false
+  } catch {
+    // 错误状态由共享 store 承载，组件保持无副作用。
   }
 }
 
@@ -499,5 +514,9 @@ const formatLastUpdated = (dateStr?: string): string => {
 
 onMounted(async () => {
   await loadOverview(selectedDays.value)
+})
+
+onUnmounted(() => {
+  void overviewStore.teardown()
 })
 </script>

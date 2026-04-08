@@ -782,7 +782,7 @@ export default {
     },
     loadFailedTitle: '加载 Claude Profiles 失败',
     loadFailed: '无法读取 Claude profiles',
-    confirmDelete: '确定要删除 Profile "{name}" 吗？',
+    deleteConfirm: '确定要删除 Profile "{name}" 吗？',
     confirmApply: '确定要应用 Profile "{name}" 吗？这将同步更新当前 Claude 配置。',
     operationFailed: '操作失败',
     deleteFailed: '删除失败',
@@ -2185,8 +2185,6 @@ export default {
       backToCodex: '返回',
       apply: '应用',
       currentBadge: '当前',
-      confirmApply: '确定应用 Profile "{name}" 吗？这会更新 Codex 本地配置。',
-      confirmDelete: '确定删除 Profile "{name}" 吗？此操作不可撤销。',
       extraHint: '额外 JSON 仅用于没有单独表单项的少量 platform_data 字段。',
       modalFooterHint: '保存会覆盖当前 Profile 的可编辑字段，并清理已移除的旧隐藏配置。',
       fields: {
@@ -2222,6 +2220,7 @@ export default {
       emptyHint: '点击"添加 Profile"创建第一个配置',
       deleteConfirm: '确定删除 Profile "{name}" 吗？此操作不可撤销。',
       deleteConfirmShort: '确定要删除 Profile "{name}" 吗？',
+      confirmApply: '确定切换到 Profile "{name}" 吗？',
       setActive: '设为活跃',
       currentActive: '当前活跃',
       placeholders: {
@@ -2476,7 +2475,7 @@ export default {
       processWarning: '警告：检测到 Codex 进程',
       processDetected: '检测到 Codex 进程 (PIDs: {pids})，切换可能导致问题',
       confirmSwitch: '确定要切换到账户 "{name}" 吗？',
-      confirmDelete: '确定要删除账户 "{name}" 吗？',
+      deleteConfirm: '确定要删除账户 "{name}" 吗？',
       profileGuard: {
         title: 'Profile 兼容性',
         noCurrentProfile:
@@ -3375,7 +3374,9 @@ export default {
     noDataTitle: '暂无首页统计',
     noData: '暂无统计数据',
     noUsageLogs: '未发现本地 usage 日志，首页已自动尝试导入一次。',
+    noUsageLogsPending: '未发现本地 usage 日志，首页正在后台导入。',
     noSessionIndex: '未发现 session 索引，首页已自动尝试重建一次。',
+    noSessionIndexPending: '未发现 session 索引，首页正在后台重建。',
     noUsageAndSessions: '未发现 usage 日志和 session 索引数据。',
     fullReportHint: '打开完整报告可手动导入并查看诊断。',
     viewModes: {
@@ -3392,6 +3393,10 @@ export default {
     daysWithActivity: '有活动的天数',
     platforms: 'Platforms',
     trackedPlatforms: '已追踪平台',
+    warmingUsage: '后台 usage 导入进行中',
+    warmingUsageProgress: '后台 usage 导入：{scanned}/{total} 个文件 · {records} 条记录',
+    warmingSessions: '后台 session 索引进行中',
+    warmingSessionsProgress: '后台 session 索引：{done}/{total} 个平台 · {files} 个文件 · 当前 {current}',
     bootstrapImported: '自动导入 {count} 条 usage 记录',
     bootstrapIndexed: '自动索引 {count} 个 Sessions',
   },

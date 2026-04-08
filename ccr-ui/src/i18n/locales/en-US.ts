@@ -752,7 +752,7 @@ export default {
     },
     loadFailedTitle: 'Failed to load Claude profiles',
     loadFailed: 'Unable to read Claude profiles',
-    confirmDelete: 'Are you sure you want to delete Profile "{name}"?',
+    deleteConfirm: 'Are you sure you want to delete Profile "{name}"?',
     confirmApply: 'Are you sure you want to apply Profile "{name}"? This will sync the active Claude configuration.',
     operationFailed: 'Operation failed',
     deleteFailed: 'Delete failed',
@@ -2157,8 +2157,6 @@ export default {
       backToCodex: 'Back',
       apply: 'Apply',
       currentBadge: 'Current',
-      confirmApply: 'Apply Profile "{name}"? This will update local Codex configuration.',
-      confirmDelete: 'Delete Profile "{name}"? This action cannot be undone.',
       extraHint:
         'Extra JSON is for uncommon platform_data fields that do not have dedicated inputs.',
       modalFooterHint: 'Saving overwrites the editable profile fields and clears removed legacy hidden settings.',
@@ -2195,6 +2193,7 @@ export default {
       emptyHint: 'Click "Add Profile" to create the first configuration',
       deleteConfirm: 'Delete Profile "{name}"? This action cannot be undone.',
       deleteConfirmShort: 'Are you sure to delete Profile "{name}"?',
+      confirmApply: 'Switch to Profile "{name}"?',
       setActive: 'Set Active',
       currentActive: 'Current Active',
       placeholders: {
@@ -2449,7 +2448,7 @@ export default {
       processWarning: 'Warning: Codex process detected',
       processDetected: 'Codex process detected (PIDs: {pids}), switching may cause issues',
       confirmSwitch: 'Are you sure you want to switch to account "{name}"?',
-      confirmDelete: 'Are you sure you want to delete account "{name}"?',
+      deleteConfirm: 'Are you sure you want to delete account "{name}"?',
       profileGuard: {
         title: 'Profile Compatibility',
         noCurrentProfile:
@@ -3355,7 +3354,9 @@ export default {
     noDataTitle: 'No home overview data yet',
     noData: 'No statistics available',
     noUsageLogs: 'No local usage logs were found. Home overview tried one automatic import.',
+    noUsageLogsPending: 'No local usage logs were found. Home overview is importing them in the background.',
     noSessionIndex: 'No session index was found. Home overview tried one automatic reindex.',
+    noSessionIndexPending: 'No session index was found. Home overview is rebuilding it in the background.',
     noUsageAndSessions: 'No usage logs or session index data were found.',
     fullReportHint: 'Open the full report to import manually and inspect diagnostics.',
     viewModes: {
@@ -3372,6 +3373,10 @@ export default {
     daysWithActivity: 'Days with activity',
     platforms: 'Platforms',
     trackedPlatforms: 'Tracked platforms',
+    warmingUsage: 'Background usage import in progress',
+    warmingUsageProgress: 'Background usage import: {scanned}/{total} files · {records} records',
+    warmingSessions: 'Background session indexing in progress',
+    warmingSessionsProgress: 'Background session indexing: {done}/{total} platforms · {files} files · current {current}',
     bootstrapImported: 'Auto-imported {count} usage records',
     bootstrapIndexed: 'Auto-indexed {count} sessions',
   },

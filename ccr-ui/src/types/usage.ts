@@ -123,6 +123,11 @@ export interface HomeOverviewBootstrap {
   usage_imported_records: number
   session_reindex_attempted: boolean
   indexed_sessions: number
+  usage_job_id?: string | null
+  session_job_id?: string | null
+  needs_usage_import: boolean
+  needs_session_index: boolean
+  is_warm: boolean
 }
 
 /** 首页概览响应 */
@@ -190,6 +195,34 @@ export interface UsageImportJobSnapshot {
 export interface StartUsageImportJobResponse {
   job_id: string
   snapshot: UsageImportJobSnapshot
+}
+
+export type SessionIndexJobStatus = 'pending' | 'running' | 'finished' | 'failed'
+
+export type SessionIndexJobStage = 'queued' | 'indexing' | 'finished' | 'failed'
+
+export interface SessionIndexJobSnapshot {
+  job_id: string
+  status: SessionIndexJobStatus
+  stage: SessionIndexJobStage
+  platforms_total: number
+  platforms_completed: number
+  files_total: number
+  files_scanned: number
+  sessions_added: number
+  sessions_updated: number
+  errors: number
+  started_at: string
+  updated_at: string
+  finished_at?: string | null
+  current_platform?: string | null
+  warnings: string[]
+  error?: string | null
+}
+
+export interface StartSessionIndexJobResponse {
+  job_id: string
+  snapshot: SessionIndexJobSnapshot
 }
 
 /** 平台类型 */

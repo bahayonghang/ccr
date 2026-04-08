@@ -18,6 +18,7 @@ use tokio::sync::{Notify, RwLock};
 use crate::checkin_jobs::CheckinJobSnapshot;
 use crate::events::{EventLog, EventLogStats};
 use crate::platform::EnvironmentRegistry;
+use crate::session_index_jobs::{SessionIndexJobSnapshot, SessionIndexJobStatus};
 use crate::usage_jobs::{UsageImportJobSnapshot, UsageImportJobStatus};
 
 pub const DEFAULT_CACHE_MAX_ENTRIES: usize = 1000;
@@ -75,6 +76,12 @@ pub struct AppState {
 
     /// 当前活跃的 Usage 导入任务 ID
     active_usage_import_job_id: RwLock<Option<String>>,
+
+    /// Session 索引后台任务快照
+    pub session_index_jobs: RwLock<HashMap<String, SessionIndexJobSnapshot>>,
+
+    /// 当前活跃的 Session 索引任务 ID
+    active_session_index_job_id: RwLock<Option<String>>,
 
     /// 应用设置
     pub settings: Mutex<AppSettings>,
@@ -140,6 +147,8 @@ impl AppState {
             checkin_jobs: RwLock::new(HashMap::new()),
             usage_import_jobs: RwLock::new(HashMap::new()),
             active_usage_import_job_id: RwLock::new(None),
+            session_index_jobs: RwLock::new(HashMap::new()),
+            active_session_index_job_id: RwLock::new(None),
             settings: Mutex::new(AppSettings::default()),
             exit_confirmed: AtomicBool::new(false),
             event_log: EventLog::with_limits(500, 10 * 1024, 5 * 1024 * 1024),
@@ -319,6 +328,58 @@ impl AppState {
             UsageImportJobStatus::Finished | UsageImportJobStatus::Failed
         ) {
             let mut active = self.active_usage_import_job_id.write().await;
+            if active.as_deref() == Some(job_id) {
+                *active = None;
+            }
+        }
+
+        Some(cloned)
+    }
+
+    pub async fn insert_session_index_job(&self, snapshot: SessionIndexJobSnapshot) {
+        let mut jobs = self.session_index_jobs.write().await;
+        jobs.insert(snapshot.job_id.clone(), snapshot.clone());
+        let mut active = self.active_session_index_job_id.write().await;
+        *active = Some(snapshot.job_id);
+    }
+
+    pub async fn get_session_index_job(&self, job_id: &str) -> Option<SessionIndexJobSnapshot> {
+        let jobs = self.session_index_jobs.read().await;
+        jobs.get(job_id).cloned()
+    }
+
+    pub async fn get_active_session_index_job(&self) -> Option<SessionIndexJobSnapshot> {
+        let active_job_id = self.active_session_index_job_id.read().await.clone()?;
+        let jobs = self.session_index_jobs.read().await;
+        let snapshot = jobs.get(&active_job_id)?.clone();
+        if matches!(
+            snapshot.status,
+            SessionIndexJobStatus::Finished | SessionIndexJobStatus::Failed
+        ) {
+            return None;
+        }
+        Some(snapshot)
+    }
+
+    pub async fn update_session_index_job<F>(
+        &self,
+        job_id: &str,
+        mutator: F,
+    ) -> Option<SessionIndexJobSnapshot>
+    where
+        F: FnOnce(&mut SessionIndexJobSnapshot),
+    {
+        let mut jobs = self.session_index_jobs.write().await;
+        let snapshot = jobs.get_mut(job_id)?;
+        mutator(snapshot);
+        let cloned = snapshot.clone();
+        drop(jobs);
+
+        if matches!(
+            cloned.status,
+            SessionIndexJobStatus::Finished | SessionIndexJobStatus::Failed
+        ) {
+            let mut active = self.active_session_index_job_id.write().await;
             if active.as_deref() == Some(job_id) {
                 *active = None;
             }

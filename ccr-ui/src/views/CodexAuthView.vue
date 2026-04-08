@@ -906,7 +906,7 @@ const handleDelete = async (name: string) => {
   authActionError.value = null
   openConfirmDialog({
     title: t('codex.actions.delete'),
-    message: t('codex.auth.confirmDelete', { name }),
+    message: t('codex.auth.deleteConfirm', { name }),
     confirmText: t('codex.actions.delete'),
     type: 'danger',
     action: async () => {

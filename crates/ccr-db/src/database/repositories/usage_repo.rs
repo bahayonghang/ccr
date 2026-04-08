@@ -457,6 +457,27 @@ pub struct ProjectStat {
     pub total_cost: f64,
 }
 
+/// 平台汇总
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PlatformSummaryStat {
+    pub platform: String,
+    pub request_count: i64,
+    pub total_tokens: i64,
+    pub total_cost: f64,
+}
+
+/// 平台每日趋势
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PlatformDailyTrend {
+    pub date: String,
+    pub platform: String,
+    pub request_count: i64,
+    pub input_tokens: i64,
+    pub output_tokens: i64,
+    pub cache_read_tokens: i64,
+    pub cost_usd: f64,
+}
+
 /// 分页日志
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PaginatedLogs {
@@ -496,6 +517,36 @@ fn build_where_clause(
         };
         bind_params.push(Box::new(end_val));
         conditions.push(format!("recorded_at <= ?{}", bind_params.len()));
+    }
+
+    let where_sql = if conditions.is_empty() {
+        String::new()
+    } else {
+        format!(" WHERE {}", conditions.join(" AND "))
+    };
+
+    (where_sql, bind_params)
+}
+
+fn build_daily_agg_where_clause(
+    platform: &Option<String>,
+    start: &Option<String>,
+    end: &Option<String>,
+) -> (String, Vec<Box<dyn rusqlite::types::ToSql>>) {
+    let mut conditions: Vec<String> = Vec::new();
+    let mut bind_params: Vec<Box<dyn rusqlite::types::ToSql>> = Vec::new();
+
+    if let Some(p) = platform {
+        bind_params.push(Box::new(p.clone()));
+        conditions.push(format!("platform = ?{}", bind_params.len()));
+    }
+    if let Some(s) = start {
+        bind_params.push(Box::new(s.clone()));
+        conditions.push(format!("date >= ?{}", bind_params.len()));
+    }
+    if let Some(e) = end {
+        bind_params.push(Box::new(e.clone()));
+        conditions.push(format!("date <= ?{}", bind_params.len()));
     }
 
     let where_sql = if conditions.is_empty() {
@@ -596,27 +647,7 @@ pub fn get_daily_trends(
     start: &Option<String>,
     end: &Option<String>,
 ) -> Result<Vec<DailyTrend>, rusqlite::Error> {
-    let mut conditions: Vec<String> = Vec::new();
-    let mut bind_params: Vec<Box<dyn rusqlite::types::ToSql>> = Vec::new();
-
-    if let Some(p) = platform {
-        bind_params.push(Box::new(p.clone()));
-        conditions.push(format!("platform = ?{}", bind_params.len()));
-    }
-    if let Some(s) = start {
-        bind_params.push(Box::new(s.clone()));
-        conditions.push(format!("date >= ?{}", bind_params.len()));
-    }
-    if let Some(e) = end {
-        bind_params.push(Box::new(e.clone()));
-        conditions.push(format!("date <= ?{}", bind_params.len()));
-    }
-
-    let where_sql = if conditions.is_empty() {
-        String::new()
-    } else {
-        format!(" WHERE {}", conditions.join(" AND "))
-    };
+    let (where_sql, bind_params) = build_daily_agg_where_clause(platform, start, end);
 
     let sql = format!(
         "SELECT date, SUM(request_count), SUM(input_tokens), SUM(output_tokens),
@@ -638,6 +669,83 @@ pub fn get_daily_trends(
                 output_tokens: row.get::<_, i64>(3).unwrap_or(0),
                 cache_read_tokens: row.get::<_, i64>(4).unwrap_or(0),
                 cost_usd: row.get::<_, f64>(5).unwrap_or(0.0),
+            })
+        })?
+        .filter_map(|r| r.ok())
+        .collect();
+    Ok(rows)
+}
+
+/// 获取按平台聚合的汇总（从预聚合表查询）
+#[allow(dead_code)]
+pub fn get_platform_summaries(
+    conn: &Connection,
+    start: &Option<String>,
+    end: &Option<String>,
+) -> Result<Vec<PlatformSummaryStat>, rusqlite::Error> {
+    let (where_sql, bind_params) = build_daily_agg_where_clause(&None, start, end);
+    let sql = format!(
+        "SELECT platform,
+                SUM(request_count),
+                SUM(input_tokens + output_tokens),
+                SUM(cost_usd)
+         FROM usage_daily_agg{}
+         GROUP BY platform
+         ORDER BY platform ASC",
+        where_sql
+    );
+
+    let params_ref: Vec<&dyn rusqlite::types::ToSql> =
+        bind_params.iter().map(|p| p.as_ref()).collect();
+    let mut stmt = conn.prepare(&sql)?;
+    let rows = stmt
+        .query_map(params_ref.as_slice(), |row| {
+            Ok(PlatformSummaryStat {
+                platform: row.get(0)?,
+                request_count: row.get(1)?,
+                total_tokens: row.get::<_, i64>(2).unwrap_or(0),
+                total_cost: row.get::<_, f64>(3).unwrap_or(0.0),
+            })
+        })?
+        .filter_map(|r| r.ok())
+        .collect();
+    Ok(rows)
+}
+
+/// 获取按 (date, platform) 聚合的趋势（从预聚合表查询）
+#[allow(dead_code)]
+pub fn get_daily_platform_trends(
+    conn: &Connection,
+    start: &Option<String>,
+    end: &Option<String>,
+) -> Result<Vec<PlatformDailyTrend>, rusqlite::Error> {
+    let (where_sql, bind_params) = build_daily_agg_where_clause(&None, start, end);
+    let sql = format!(
+        "SELECT date, platform,
+                SUM(request_count),
+                SUM(input_tokens),
+                SUM(output_tokens),
+                SUM(cache_read_tokens),
+                SUM(cost_usd)
+         FROM usage_daily_agg{}
+         GROUP BY date, platform
+         ORDER BY date ASC, platform ASC",
+        where_sql
+    );
+
+    let params_ref: Vec<&dyn rusqlite::types::ToSql> =
+        bind_params.iter().map(|p| p.as_ref()).collect();
+    let mut stmt = conn.prepare(&sql)?;
+    let rows = stmt
+        .query_map(params_ref.as_slice(), |row| {
+            Ok(PlatformDailyTrend {
+                date: row.get(0)?,
+                platform: row.get(1)?,
+                request_count: row.get(2)?,
+                input_tokens: row.get::<_, i64>(3).unwrap_or(0),
+                output_tokens: row.get::<_, i64>(4).unwrap_or(0),
+                cache_read_tokens: row.get::<_, i64>(5).unwrap_or(0),
+                cost_usd: row.get::<_, f64>(6).unwrap_or(0.0),
             })
         })?
         .filter_map(|r| r.ok())
@@ -725,17 +833,11 @@ pub fn get_heatmap_data(
     let cutoff = Utc::now() - chrono::Duration::days(days);
     let cutoff_str = cutoff.format("%Y-%m-%d").to_string();
 
-    let mut conditions = vec!["date >= ?1".to_string()];
-    let mut bind_params: Vec<Box<dyn rusqlite::types::ToSql>> = vec![Box::new(cutoff_str)];
-
-    if let Some(p) = platform {
-        bind_params.push(Box::new(p.clone()));
-        conditions.push(format!("platform = ?{}", bind_params.len()));
-    }
+    let (where_sql, bind_params) = build_daily_agg_where_clause(platform, &Some(cutoff_str), &None);
 
     let sql = format!(
-        "SELECT date, SUM(request_count) FROM usage_daily_agg WHERE {} GROUP BY date",
-        conditions.join(" AND ")
+        "SELECT date, SUM(request_count) FROM usage_daily_agg{} GROUP BY date",
+        where_sql
     );
 
     let params_ref: Vec<&dyn rusqlite::types::ToSql> =
@@ -1103,6 +1205,91 @@ mod tests {
             cost_usd: 0.0,
         };
         insert_record(&conn, &record).unwrap();
+    }
+
+    #[test]
+    fn test_platform_rollups_use_daily_agg() {
+        let conn = setup_test_db();
+        let source_id = Uuid::new_v4().to_string();
+        let records = vec![
+            UsageRecord {
+                id: "claude-day1".to_string(),
+                platform: "claude".to_string(),
+                project_path: "/project/claude".to_string(),
+                record_json: "{}".to_string(),
+                recorded_at: DateTime::parse_from_rfc3339("2026-03-01T10:00:00Z")
+                    .unwrap()
+                    .with_timezone(&Utc),
+                source_id: source_id.clone(),
+                model: Some("claude-sonnet-4-6".to_string()),
+                input_tokens: 100,
+                output_tokens: 50,
+                cache_read_tokens: 10,
+                cost_usd: 1.0,
+            },
+            UsageRecord {
+                id: "codex-day1".to_string(),
+                platform: "codex".to_string(),
+                project_path: "/project/codex".to_string(),
+                record_json: "{}".to_string(),
+                recorded_at: DateTime::parse_from_rfc3339("2026-03-01T12:00:00Z")
+                    .unwrap()
+                    .with_timezone(&Utc),
+                source_id: source_id.clone(),
+                model: Some("gpt-5".to_string()),
+                input_tokens: 40,
+                output_tokens: 20,
+                cache_read_tokens: 0,
+                cost_usd: 0.4,
+            },
+            UsageRecord {
+                id: "claude-day2".to_string(),
+                platform: "claude".to_string(),
+                project_path: "/project/claude".to_string(),
+                record_json: "{}".to_string(),
+                recorded_at: DateTime::parse_from_rfc3339("2026-03-02T09:00:00Z")
+                    .unwrap()
+                    .with_timezone(&Utc),
+                source_id,
+                model: Some("claude-sonnet-4-6".to_string()),
+                input_tokens: 80,
+                output_tokens: 20,
+                cache_read_tokens: 5,
+                cost_usd: 0.8,
+            },
+        ];
+        insert_records_batch(&conn, &records).unwrap();
+
+        let summaries = get_platform_summaries(
+            &conn,
+            &Some("2026-03-01".to_string()),
+            &Some("2026-03-02".to_string()),
+        )
+        .unwrap();
+        assert_eq!(summaries.len(), 2);
+        assert_eq!(summaries[0].platform, "claude");
+        assert_eq!(summaries[0].request_count, 2);
+        assert_eq!(summaries[0].total_tokens, 250);
+        assert!((summaries[0].total_cost - 1.8).abs() < 0.0001);
+        assert_eq!(summaries[1].platform, "codex");
+        assert_eq!(summaries[1].request_count, 1);
+        assert_eq!(summaries[1].total_tokens, 60);
+
+        let daily = get_daily_platform_trends(
+            &conn,
+            &Some("2026-03-01".to_string()),
+            &Some("2026-03-02".to_string()),
+        )
+        .unwrap();
+        assert_eq!(daily.len(), 3);
+        assert_eq!(daily[0].date, "2026-03-01");
+        assert_eq!(daily[0].platform, "claude");
+        assert_eq!(daily[0].request_count, 1);
+        assert_eq!(daily[1].platform, "codex");
+        assert_eq!(daily[2].date, "2026-03-02");
+        assert_eq!(daily[2].platform, "claude");
+        assert_eq!(daily[2].input_tokens, 80);
+        assert_eq!(daily[2].output_tokens, 20);
     }
 
     #[test]
