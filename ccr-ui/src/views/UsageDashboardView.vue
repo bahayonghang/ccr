@@ -262,7 +262,7 @@
               :diagnostics-summary="diagnosticsSummary"
               :format-cost="formatCost"
               :format-tokens="formatTokens"
-              :has-logs-total="Boolean(store.logs?.total)"
+              :has-logs-total="store.hasLogsTotal"
               :load-logs="loadLogs"
               :logs-loading="store.logsLoading"
               :logs-page="store.logsPage"
@@ -271,7 +271,7 @@
               :log-model-filter="logModelFilter"
               :repair-button-label="repairCodexButtonLabel"
               :repair-codex-logs="repairCodexLogs"
-              :show-pager="Boolean(store.logs && (store.canPrevLogs || store.canNextLogs))"
+              :show-pager="store.showLogsPager"
               :update-log-model-filter="updateLogModelFilter"
             />
           </template>

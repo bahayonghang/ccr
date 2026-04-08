@@ -46,6 +46,7 @@ const HEATMAP_REFRESH_INTERVAL = 10 * 60_000 // 10min
 const FILTER_DEBOUNCE_MS = 300
 const HEATMAP_DAYS = 365
 const IMPORT_PROGRESS_REFRESH_INTERVAL_MS = 2_000
+const DASHBOARD_CACHE_TTL_MS = 30_000
 
 const parseEnvFlag = (value: string | undefined, defaultValue: boolean): boolean => {
   if (value == null || value === '') return defaultValue
@@ -86,6 +87,11 @@ type UsageDashboardPayload = Omit<UsageDashboardResponse, 'heatmap' | 'generated
   heatmap?: HeatmapResponse
   by_model?: ModelStat[]
   by_project?: ProjectStat[]
+}
+
+type UsageDashboardCacheEntry = {
+  payload: UsageDashboardPayload
+  ts: number
 }
 
 const isImportAllUsageResponse = (
@@ -135,6 +141,8 @@ export const useUsageStore = defineStore('usage', () => {
   let requestSerial = 0
   let inFlightKey: string | null = null
   let inFlightPromise: Promise<void> | null = null
+  let logsCursorStack: Array<string | null> = [null]
+  const dashboardCache = new Map<string, UsageDashboardCacheEntry>()
 
   // ═══ Computed ═══
   const totalTokens = computed(() => {
@@ -148,13 +156,23 @@ export const useUsageStore = defineStore('usage', () => {
     return Math.max(1, Math.ceil(total / logsPageSize.value))
   })
 
+  const hasLogsTotal = computed(() => logs.value?.total != null)
+
   const canPrevLogs = computed(() => logsPage.value > 1)
 
   const canNextLogs = computed(() => {
     if (!logs.value) return false
+    if (logs.value.mode === 'cursor') {
+      return Boolean(logs.value.next_cursor)
+    }
     const total = logs.value.total
     if (!total || total <= 0) return logs.value.records.length >= logsPageSize.value
     return logsPage.value < logsTotalPages.value
+  })
+
+  const showLogsPager = computed(() => {
+    if (!logs.value) return false
+    return canPrevLogs.value || canNextLogs.value || (hasLogsTotal.value && logsTotalPages.value > 1)
   })
 
   const hasUsageData = computed(() => (summary.value?.total_requests ?? 0) > 0)
@@ -301,6 +319,7 @@ export const useUsageStore = defineStore('usage', () => {
     includeHeatmap = false,
     force = false,
   ) => {
+    dashboardCache.clear()
     await fetchAll({
       background: true,
       includeHeatmap,
@@ -411,9 +430,21 @@ export const useUsageStore = defineStore('usage', () => {
     const force = options.force ?? false
     const startedAt = nowMs()
     const key = buildFetchKey(includeHeatmap)
+    const cached = dashboardCache.get(key)
+    const hasFreshCache = cached && Date.now() - cached.ts < DASHBOARD_CACHE_TTL_MS
 
     if (!force && inFlightPromise && inFlightKey === key) {
       return inFlightPromise
+    }
+
+    if (!force && hasFreshCache) {
+      applyDashboardPayload(cached.payload, includeHeatmap)
+      if (!preserveError) {
+        error.value = null
+      }
+      loading.value = false
+      lastUpdated.value = new Date(cached.ts)
+      return
     }
 
     const requestId = ++requestSerial
@@ -439,6 +470,7 @@ export const useUsageStore = defineStore('usage', () => {
           )
           if (requestId !== requestSerial) return
           applyDashboardPayload(data, includeHeatmap)
+          dashboardCache.set(key, { payload: data, ts: Date.now() })
           if (LAZY_HEATMAP_LOAD && !includeHeatmap) {
             scheduleHeatmapLoad(`${reason}-lazy-heatmap`)
           }
@@ -460,6 +492,16 @@ export const useUsageStore = defineStore('usage', () => {
           } else if (LAZY_HEATMAP_LOAD) {
             scheduleHeatmapLoad(`${reason}-lazy-heatmap`)
           }
+          dashboardCache.set(key, {
+            payload: {
+              summary: summaryData ?? null,
+              trends: trendsData ?? [],
+              model_stats: modelData ?? [],
+              project_stats: projectData ?? [],
+              heatmap: includeHeatmap ? heatmap.value ?? undefined : undefined,
+            },
+            ts: Date.now(),
+          })
         }
 
         if (requestId !== requestSerial) return
@@ -497,27 +539,42 @@ export const useUsageStore = defineStore('usage', () => {
     logsLoading.value = true
     error.value = null
     try {
+      let targetPage = logsPage.value
+
+      if (direction === 'reset') {
+        targetPage = 1
+        logsCursorStack = [null]
+      } else if (direction === 'next') {
+        if (!logs.value?.next_cursor) return
+        logsCursorStack[targetPage] = logs.value.next_cursor
+        targetPage += 1
+      } else if (direction === 'prev') {
+        targetPage = Math.max(1, targetPage - 1)
+      }
+
+      const currentCursor = logsCursorStack[targetPage - 1] ?? null
+      const previousTotal = logs.value?.total ?? null
+      logsPage.value = targetPage
+
       const prepareQuery = (): UsageLogsQuery => ({
         platform: platform.value,
         model: logsModelFilter.value,
         start_date: timeRange.value.start,
         end_date: timeRange.value.end,
-        page: logsPage.value,
+        page: targetPage,
         page_size: logsPageSize.value,
-        include_total: true,
-        mode: 'offset',
+        cursor: currentCursor ?? undefined,
+        include_total: targetPage === 1 && previousTotal == null,
+        mode: 'cursor',
       })
-
-      if (direction === 'next') logsPage.value += 1
-      if (direction === 'prev') logsPage.value = Math.max(1, logsPage.value - 1)
-      if (direction === 'reset') logsPage.value = 1
 
       const result = await getUsageLogsV2<PaginatedLogs>(prepareQuery())
       logs.value = {
         ...result,
-        page: result.page ?? logsPage.value,
+        total: result.total ?? previousTotal,
+        page: targetPage,
         page_size: result.page_size ?? logsPageSize.value,
-        mode: 'offset',
+        mode: 'cursor',
       }
     } catch (e) {
       error.value = e instanceof Error ? e.message : String(e)
@@ -768,8 +825,10 @@ export const useUsageStore = defineStore('usage', () => {
     // computed
     totalTokens,
     logsTotalPages,
+    hasLogsTotal,
     canPrevLogs,
     canNextLogs,
+    showLogsPager,
     hasUsageData,
     hasNoUsageData,
     // flags

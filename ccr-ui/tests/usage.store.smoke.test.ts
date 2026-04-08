@@ -41,7 +41,8 @@ vi.mock('@/api', () => ({
     total: 0,
     page: 1,
     page_size: 50,
-    mode: 'offset'
+    next_cursor: null,
+    mode: 'cursor'
   }),
   getUsageSummaryV2: vi.fn().mockResolvedValue({
     total_requests: 0,
@@ -215,7 +216,7 @@ describe('usage store smoke', () => {
     expect(api.startUsageImportJobV2).toHaveBeenCalledWith('codex', 30, true)
   })
 
-  it('uses offset paging when fetching diagnostics logs', async () => {
+  it('uses cursor paging when fetching diagnostics logs', async () => {
     const api = await import('@/api')
     const { useUsageStore } = await import('@/stores/usage')
     const store = useUsageStore()
@@ -234,8 +235,52 @@ describe('usage store smoke', () => {
       page: 1,
       page_size: 50,
       include_total: true,
-      mode: 'offset',
+      cursor: undefined,
+      mode: 'cursor',
     }))
+  })
+
+  it('uses next_cursor instead of recounting when loading the next logs page', async () => {
+    const api = await import('@/api')
+    vi.mocked(api.getUsageLogsV2)
+      .mockResolvedValueOnce({
+        records: [{ id: 'row-1' }],
+        total: 120,
+        page: 1,
+        page_size: 50,
+        next_cursor: 'cursor-2',
+        mode: 'cursor',
+      })
+      .mockResolvedValueOnce({
+        records: [{ id: 'row-2' }],
+        total: null,
+        page: 2,
+        page_size: 50,
+        next_cursor: 'cursor-3',
+        mode: 'cursor',
+      })
+
+    const { useUsageStore } = await import('@/stores/usage')
+    const store = useUsageStore()
+    store.platform = 'codex'
+
+    await store.fetchLogs('reset')
+    await store.fetchLogs('next')
+
+    expect(api.getUsageLogsV2).toHaveBeenNthCalledWith(1, expect.objectContaining({
+      page: 1,
+      include_total: true,
+      cursor: undefined,
+      mode: 'cursor',
+    }))
+    expect(api.getUsageLogsV2).toHaveBeenNthCalledWith(2, expect.objectContaining({
+      page: 2,
+      include_total: false,
+      cursor: 'cursor-2',
+      mode: 'cursor',
+    }))
+    expect(store.logs?.total).toBe(120)
+    expect(store.logsPage).toBe(2)
   })
 
   it('progressively refreshes the dashboard during import without flipping loading state', async () => {
