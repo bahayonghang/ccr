@@ -1,38 +1,39 @@
 <template>
   <div
-    data-tauri-drag-region
     class="titlebar-shell fixed top-0 left-0 right-0 flex h-9 items-center justify-between border-b border-border-default/30 px-3 text-text-primary select-none"
   >
     <!-- Left: App Icon and Menu -->
-    <div
-      class="flex items-center space-x-1"
-      data-tauri-drag-region
-    >
-      <!-- App Icon -->
-      <div 
-        class="w-5 h-5 rounded-md flex items-center justify-center mr-2 shadow-sm relative overflow-hidden group cursor-pointer"
-        @click="showAboutDialog = true"
+    <div class="flex items-center space-x-1">
+      <div
+        data-tauri-drag-region
+        class="titlebar-drag-region flex items-center"
       >
-        <img
-          src="/icons/icon.svg"
-          class="w-full h-full object-cover transition-transform group-hover:scale-110"
-          :alt="appName"
+        <!-- App Icon -->
+        <div
+          class="titlebar-interactive w-5 h-5 rounded-md flex items-center justify-center mr-2 shadow-sm relative overflow-hidden group cursor-pointer"
+          @click="showAboutDialog = true"
         >
+          <img
+            src="/icons/icon.svg"
+            class="w-full h-full object-cover transition-transform group-hover:scale-110"
+            :alt="appName"
+          >
+        </div>
       </div>
 
       <!-- Simple Menu Item as Example -->
       <div
         ref="menuRef"
-        class="relative"
+        class="titlebar-interactive relative"
       >
-        <button 
+        <button
           class="titlebar-menu-btn"
           :class="{ 'bg-white/10 text-white': isMenuOpen }"
           @click="toggleMenu"
         >
           文件
         </button>
-        
+
         <!-- Dropdown -->
         <div
           v-if="isMenuOpen"
@@ -58,7 +59,7 @@
     <!-- Center: Window Title -->
     <div
       data-tauri-drag-region
-      class="titlebar-title absolute left-1/2 -translate-x-1/2 flex items-center space-x-2 text-xs font-medium tracking-wider"
+      class="titlebar-drag-region titlebar-title absolute left-1/2 -translate-x-1/2 flex items-center space-x-2 text-xs font-medium tracking-wider"
     >
       <span class="opacity-50">✦</span>
       <span>{{ windowTitle }}</span>
@@ -66,8 +67,8 @@
     </div>
 
     <!-- Right: Window Controls -->
-    <div class="flex items-center space-x-0.5">
-      <button 
+    <div class="titlebar-interactive flex items-center space-x-0.5">
+      <button
         type="button"
         class="titlebar-control-btn group"
         title="最小化"
@@ -88,7 +89,7 @@
         </svg>
       </button>
 
-      <button 
+      <button
         type="button"
         class="titlebar-control-btn group"
         :title="isMaximized ? '还原' : '最大化'"
@@ -134,9 +135,9 @@
         </svg>
       </button>
 
-      <button 
+      <button
         type="button"
-        class="titlebar-control-btn titlebar-control-btn--close group" 
+        class="titlebar-control-btn titlebar-control-btn--close group"
         title="关闭"
         @click="closeWindow"
       >
@@ -335,6 +336,19 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+.titlebar-drag-region {
+  app-region: drag;
+}
+
+.titlebar-interactive,
+.titlebar-interactive *,
+.titlebar-menu-btn,
+.titlebar-control-btn,
+.titlebar-menu,
+.titlebar-menu * {
+  app-region: no-drag;
+}
+
 .titlebar-shell {
   z-index: var(--layer-sticky);
   background: var(--surface-status-bg);

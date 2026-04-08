@@ -4,8 +4,31 @@ import { isTauriRuntime } from '@/utils/tauriRuntime'
 
 let windowPromise: Promise<TauriWindow | null> | null = null
 
+const waitForTauriRuntime = async (timeoutMs = 3000): Promise<boolean> => {
+  if (isTauriRuntime()) {
+    return true
+  }
+
+  if (typeof window === 'undefined') {
+    return false
+  }
+
+  const start = Date.now()
+
+  while (Date.now() - start < timeoutMs) {
+    await new Promise((resolve) => window.setTimeout(resolve, 50))
+
+    if (isTauriRuntime()) {
+      return true
+    }
+  }
+
+  return false
+}
+
 export const getCurrentWindowSafe = async (): Promise<TauriWindow | null> => {
-  if (!isTauriRuntime()) {
+  const tauriReady = await waitForTauriRuntime()
+  if (!tauriReady) {
     return null
   }
 
@@ -13,6 +36,7 @@ export const getCurrentWindowSafe = async (): Promise<TauriWindow | null> => {
     windowPromise = import('@tauri-apps/api/window')
       .then(({ getCurrentWindow }) => getCurrentWindow())
       .catch((error) => {
+        windowPromise = null
         logger.warn('[tauriWindow] failed to get current window', error)
         return null
       })

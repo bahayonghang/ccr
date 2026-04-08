@@ -133,6 +133,20 @@ const scheduleDeferredStartupTasks = (disposeStartupErrorHandlers: () => void) =
   })
 }
 
+const awaitRouterReadyWithTimeout = async (timeoutMs = 3000): Promise<boolean> => {
+  try {
+    await Promise.race([
+      router.isReady().then(() => true),
+      new Promise<boolean>((resolve) => window.setTimeout(() => resolve(false), timeoutMs)),
+    ])
+  } catch (error) {
+    reportStartupFailure('Router initialization', error)
+    return false
+  }
+
+  return router.currentRoute.value.matched.length > 0
+}
+
 const bootstrap = async (disposeStartupErrorHandlers: () => void) => {
   perfMark('app:bootstrap-start')
 
@@ -143,12 +157,11 @@ const bootstrap = async (disposeStartupErrorHandlers: () => void) => {
   app.use(i18n)
   configureAppErrorHandler(app)
 
-  try {
-    // 等待初始路由完成匹配后再挂载，避免 web 模式首屏停留在空 RouterView。
-    await router.isReady()
-  } catch (error) {
-    reportStartupFailure('Router initialization', error)
-    return
+  const routerReady = await awaitRouterReadyWithTimeout()
+  if (!routerReady) {
+    logger.warn('[router] initial navigation was not ready before timeout; mount app with current route state', {
+      path: router.currentRoute.value.fullPath,
+    })
   }
 
   perfMark('app:router-ready')
