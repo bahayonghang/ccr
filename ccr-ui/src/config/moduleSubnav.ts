@@ -56,7 +56,7 @@ const moduleSubnavMap: Record<string, ModuleSubnavItem[]> = {
   skills: [
     { label: 'Skills 库', href: '/skills', icon: 'Package' },
     { label: '添加 Skill', href: '/skills/add', icon: 'PlusCircle' },
-    { label: 'Market', href: '/skills?tab=marketplace', icon: 'Store' },
+    { label: 'Market', href: '/skills?tab=explore', icon: 'Store' },
   ],
   converter: [{ label: 'CLI 配置转换', href: '/converter', icon: 'ArrowLeftRight' }],
 }

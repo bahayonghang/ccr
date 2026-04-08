@@ -1,10 +1,11 @@
-export type Platform = 'claude-code' | 'codex' | 'gemini' | 'qwen' | 'qoder' | 'droid' | 'opencode'
+export type Platform = string
 export type SkillOrigin = 'marketplace' | 'github' | 'repo' | 'local' | 'npx' | 'unknown'
-export type SkillsTab = 'inventory' | 'sources' | 'marketplace'
+export type SkillsTab = 'library' | 'explore' | 'platforms' | 'sources' | 'inventory' | 'marketplace'
 export type SkillSource = 'all' | 'user' | 'plugin' | 'remote' | SkillOrigin | `src_${string}`
 export type ImportSource = 'marketplace' | 'github' | 'local' | 'npx'
 export type SkillTargetStatus = 'ok' | 'pending' | 'error' | 'missing' | 'stale' | 'unknown'
 export type SkillWorkflowStatus = 'idle' | 'pending' | 'success' | 'error'
+export type SkillInstallStrategy = 'managedcopy' | 'directcopy' | 'directcli'
 
 export interface PlatformTheme {
   displayName: string
@@ -137,6 +138,12 @@ export interface SkillPlatformSummary {
   globalSkillsDir: string
   detected: boolean
   installedCount: number
+  sharedDirGroup?: string
+  installStrategy?: SkillInstallStrategy
+  npxAgentKey?: string
+  category?: string
+  capabilities?: string[]
+  sortOrder?: number
 }
 
 export interface SkillsInventoryResponse {
@@ -263,8 +270,12 @@ export interface SkillsInstallRequest {
   sourceKind: 'marketplace' | 'github' | 'local' | 'npx' | 'source'
   sourceRef: string
   sourceSkillId?: string
+  selectedSkills?: string[]
   targetPlatforms: Platform[]
   force?: boolean
+  scope?: 'global' | 'project'
+  copyMode?: boolean
+  allMode?: boolean
 }
 
 export interface SkillsSyncRequest {
@@ -309,4 +320,57 @@ export interface SkillsStats {
   available: number
   activePlatforms: number
   totalPlatforms: number
+}
+
+export interface NpxPlatformSupport {
+  platformId: Platform
+  platformName: string
+  supported: boolean
+  agentKey?: string
+  reason?: string
+}
+
+export interface SkillsNpxCapabilities {
+  available: boolean
+  version?: string
+  path?: string
+  packageManager: string
+  supportedFlags: string[]
+  supportedPlatforms: NpxPlatformSupport[]
+}
+
+export interface SkillInstallReviewSource {
+  sourceKind: string
+  sourceRef: string
+  sourceSkillId?: string
+  resolvedName: string
+  resolvedDirName: string
+  origin: SkillOrigin
+  description?: string
+}
+
+export interface SkillInstallReviewTarget {
+  platformId: Platform
+  platformName: string
+  detected: boolean
+  targetPath: string
+  sharedDirGroup?: string
+  installStrategy?: SkillInstallStrategy
+  directNpxSupported: boolean
+  npxAgentKey?: string
+}
+
+export interface SkillInstallCommandPreview {
+  kind: string
+  label: string
+  command: string
+  platforms: Platform[]
+}
+
+export interface SkillInstallReviewResponse {
+  source: SkillInstallReviewSource
+  targets: SkillInstallReviewTarget[]
+  warnings: string[]
+  commandPreviews: SkillInstallCommandPreview[]
+  npx?: SkillsNpxCapabilities
 }

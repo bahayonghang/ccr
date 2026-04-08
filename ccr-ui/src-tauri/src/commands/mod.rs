@@ -301,6 +301,7 @@ macro_rules! generate_handler_common {
         skills::skills_file_get,
         skills::skills_onboarding_candidates,
         skills::skills_content_save,
+        skills::skills_prepare_install,
         skills::skills_install,
         skills::skills_sync,
         skills::skills_remove_installation,
@@ -313,6 +314,7 @@ macro_rules! generate_handler_common {
         skills::skills_marketplace_list,
         skills::skills_marketplace_detail,
         skills::skills_npx_status,
+        skills::skills_npx_capabilities,
         skills::skills_pick_folder,
         // —— Usage V2 ——
         usage::get_usage_summary_v2,

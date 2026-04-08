@@ -219,11 +219,11 @@ const routes: RouteRecordRaw[] = [
       {
         path: 'skills/add',
         name: 'skills-add',
-        redirect: '/skills?tab=marketplace',
+        redirect: '/skills?tab=explore',
       },
       {
         path: 'skills/hub',
-        redirect: '/skills?tab=marketplace',
+        redirect: '/skills?tab=explore',
       },
       {
         path: 'skills/:platform/:name',
@@ -232,7 +232,7 @@ const routes: RouteRecordRaw[] = [
       {
         path: 'market',
         name: 'market',
-        redirect: '/skills?tab=marketplace',
+        redirect: '/skills?tab=explore',
       },
       // 配置组 (depth: 1, group: 'config')
       {

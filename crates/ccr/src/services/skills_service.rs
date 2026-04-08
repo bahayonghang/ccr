@@ -28,19 +28,23 @@ use walkdir::WalkDir;
 
 use crate::models::skill::Skill;
 use crate::models::skills::{
-    MarketplaceListResponse, MarketplaceSkill, NpxStatus, SkillContent, SkillDescriptor,
-    SkillFileContent, SkillFileEntry, SkillInstallMeta, SkillInstallMode, SkillInstallationRecord,
-    SkillLifecycleSummary, SkillOperationResponse, SkillOrigin, SkillPlatformConfig,
-    SkillPlatformSummary, SkillRecord, SkillSourceHealth, SkillSourceRecord,
-    SkillSourceSkillRecord, SkillSourceType, SkillTargetRecord, SkillTargetStatus,
-    SkillsInstallRequest, SkillsInventoryQuery, SkillsInventoryResponse, SkillsOnboardingCandidate,
-    SkillsSourceManifest, SkillsSyncRequest,
+    MarketplaceListResponse, MarketplaceSkill, NpxPlatformSupport, NpxStatus, SkillContent,
+    SkillDescriptor, SkillFileContent, SkillFileEntry, SkillInstallMeta, SkillInstallMode,
+    SkillInstallStrategy, SkillInstallationRecord, SkillLifecycleSummary, SkillOperationResponse,
+    SkillOrigin, SkillPlatformConfig, SkillPlatformSummary, SkillRecord, SkillSourceHealth,
+    SkillSourceRecord, SkillSourceSkillRecord, SkillSourceType, SkillTargetRecord,
+    SkillTargetStatus, SkillsInstallCommandPreview, SkillsInstallRequest,
+    SkillsInstallReviewResponse, SkillsInstallReviewSource, SkillsInstallReviewTarget,
+    SkillsInventoryQuery, SkillsInventoryResponse, SkillsNpxCapabilities,
+    SkillsOnboardingCandidate, SkillsSourceManifest, SkillsSyncRequest,
 };
 use ccr_core::core::atomic_writer::AtomicWriter;
 use ccr_core::core::error::{CcrError, Result};
 use ccr_core::core::http::HTTP_CLIENT;
 
 const DEFAULT_MARKETPLACE_URL: &str = "https://skills.sh/api/trending";
+const BUNDLED_FEATURED_SKILLS_JSON: &str =
+    include_str!("../../../../ref/repo/skills-hub/featured-skills.json");
 const SKILL_META_FILENAME: &str = ".skill-meta.json";
 const SOURCES_FILENAME: &str = "sources.json";
 const PLATFORMS_FILENAME: &str = "platforms.toml";
@@ -178,50 +182,467 @@ impl SkillsService {
     }
 
     pub fn default_platforms() -> Vec<SkillPlatformConfig> {
+        let platform = |id: &str,
+                        display_name: &str,
+                        relative_path: &str,
+                        shared_dir_group: Option<&str>,
+                        install_strategy: SkillInstallStrategy,
+                        npx_agent_key: Option<&str>,
+                        category: Option<&str>,
+                        sort_order: usize| SkillPlatformConfig {
+            id: id.into(),
+            display_name: display_name.into(),
+            relative_path: relative_path.into(),
+            shared_dir_group: shared_dir_group.map(str::to_string),
+            install_strategy,
+            npx_agent_key: npx_agent_key.map(str::to_string),
+            category: category.map(str::to_string),
+            capabilities: vec!["skills".into()],
+            sort_order,
+        };
+
         vec![
-            SkillPlatformConfig {
-                id: "claude-code".into(),
-                display_name: "Claude Code".into(),
-                relative_path: ".claude/skills".into(),
-            },
-            SkillPlatformConfig {
-                id: "codex".into(),
-                display_name: "Codex".into(),
-                relative_path: ".agents/skills".into(),
-            },
-            SkillPlatformConfig {
-                id: "gemini".into(),
-                display_name: "Gemini CLI".into(),
-                relative_path: ".gemini/skills".into(),
-            },
-            SkillPlatformConfig {
-                id: "qwen".into(),
-                display_name: "Qwen".into(),
-                relative_path: ".qwen/skills".into(),
-            },
-            SkillPlatformConfig {
-                id: "qoder".into(),
-                display_name: "Qoder".into(),
-                relative_path: ".qoder/skills".into(),
-            },
-            SkillPlatformConfig {
-                id: "droid".into(),
-                display_name: "Droid".into(),
-                relative_path: ".gemini/antigravity/skills".into(),
-            },
-            SkillPlatformConfig {
-                id: "opencode".into(),
-                display_name: "OpenCode".into(),
-                relative_path: ".config/opencode/skills".into(),
-            },
+            platform(
+                "claude-code",
+                "Claude Code",
+                ".claude/skills",
+                None,
+                SkillInstallStrategy::ManagedCopy,
+                Some("claude-code"),
+                Some("primary"),
+                10,
+            ),
+            platform(
+                "codex",
+                "Codex",
+                ".codex/skills",
+                None,
+                SkillInstallStrategy::ManagedCopy,
+                Some("codex"),
+                Some("primary"),
+                20,
+            ),
+            platform(
+                "gemini",
+                "Gemini CLI",
+                ".gemini/skills",
+                None,
+                SkillInstallStrategy::ManagedCopy,
+                Some("gemini-cli"),
+                Some("primary"),
+                30,
+            ),
+            platform(
+                "qwen",
+                "Qwen",
+                ".qwen/skills",
+                None,
+                SkillInstallStrategy::ManagedCopy,
+                None,
+                Some("primary"),
+                40,
+            ),
+            platform(
+                "qoder",
+                "Qoder",
+                ".qoder/skills",
+                None,
+                SkillInstallStrategy::ManagedCopy,
+                None,
+                Some("primary"),
+                50,
+            ),
+            platform(
+                "droid",
+                "Droid",
+                ".gemini/antigravity/skills",
+                None,
+                SkillInstallStrategy::ManagedCopy,
+                None,
+                Some("primary"),
+                60,
+            ),
+            platform(
+                "opencode",
+                "OpenCode",
+                ".config/opencode/skills",
+                None,
+                SkillInstallStrategy::ManagedCopy,
+                Some("opencode"),
+                Some("primary"),
+                70,
+            ),
+            platform(
+                "cursor",
+                "Cursor",
+                ".cursor/skills",
+                None,
+                SkillInstallStrategy::ManagedCopy,
+                None,
+                Some("ecosystem"),
+                100,
+            ),
+            platform(
+                "amp",
+                "Amp",
+                ".config/agents/skills",
+                Some("agents-shared"),
+                SkillInstallStrategy::ManagedCopy,
+                None,
+                Some("ecosystem"),
+                110,
+            ),
+            platform(
+                "kimi-cli",
+                "Kimi Code CLI",
+                ".config/agents/skills",
+                Some("agents-shared"),
+                SkillInstallStrategy::ManagedCopy,
+                None,
+                Some("ecosystem"),
+                120,
+            ),
+            platform(
+                "augment",
+                "Augment",
+                ".augment/rules",
+                None,
+                SkillInstallStrategy::ManagedCopy,
+                None,
+                Some("ecosystem"),
+                130,
+            ),
+            platform(
+                "openclaw",
+                "OpenClaw",
+                ".openclaw/skills",
+                None,
+                SkillInstallStrategy::ManagedCopy,
+                None,
+                Some("ecosystem"),
+                140,
+            ),
+            platform(
+                "cline",
+                "Cline",
+                ".cline/skills",
+                None,
+                SkillInstallStrategy::ManagedCopy,
+                None,
+                Some("ecosystem"),
+                150,
+            ),
+            platform(
+                "codebuddy",
+                "CodeBuddy",
+                ".codebuddy/skills",
+                None,
+                SkillInstallStrategy::ManagedCopy,
+                None,
+                Some("ecosystem"),
+                160,
+            ),
+            platform(
+                "command-code",
+                "Command Code",
+                ".commandcode/skills",
+                None,
+                SkillInstallStrategy::ManagedCopy,
+                None,
+                Some("ecosystem"),
+                170,
+            ),
+            platform(
+                "continue",
+                "Continue",
+                ".continue/skills",
+                None,
+                SkillInstallStrategy::ManagedCopy,
+                None,
+                Some("ecosystem"),
+                180,
+            ),
+            platform(
+                "crush",
+                "Crush",
+                ".config/crush/skills",
+                None,
+                SkillInstallStrategy::ManagedCopy,
+                None,
+                Some("ecosystem"),
+                190,
+            ),
+            platform(
+                "junie",
+                "Junie",
+                ".junie/skills",
+                None,
+                SkillInstallStrategy::ManagedCopy,
+                None,
+                Some("ecosystem"),
+                200,
+            ),
+            platform(
+                "iflow",
+                "iFlow CLI",
+                ".iflow/skills",
+                None,
+                SkillInstallStrategy::ManagedCopy,
+                None,
+                Some("ecosystem"),
+                210,
+            ),
+            platform(
+                "kiro",
+                "Kiro CLI",
+                ".kiro/skills",
+                None,
+                SkillInstallStrategy::ManagedCopy,
+                None,
+                Some("ecosystem"),
+                220,
+            ),
+            platform(
+                "kode",
+                "Kode",
+                ".kode/skills",
+                None,
+                SkillInstallStrategy::ManagedCopy,
+                None,
+                Some("ecosystem"),
+                230,
+            ),
+            platform(
+                "mcpjam",
+                "MCPJam",
+                ".mcpjam/skills",
+                None,
+                SkillInstallStrategy::ManagedCopy,
+                None,
+                Some("ecosystem"),
+                240,
+            ),
+            platform(
+                "mistral-vibe",
+                "Mistral Vibe",
+                ".vibe/skills",
+                None,
+                SkillInstallStrategy::ManagedCopy,
+                None,
+                Some("ecosystem"),
+                250,
+            ),
+            platform(
+                "mux",
+                "Mux",
+                ".mux/skills",
+                None,
+                SkillInstallStrategy::ManagedCopy,
+                None,
+                Some("ecosystem"),
+                260,
+            ),
+            platform(
+                "openclaude",
+                "OpenClaude IDE",
+                ".openclaude/skills",
+                None,
+                SkillInstallStrategy::ManagedCopy,
+                None,
+                Some("ecosystem"),
+                270,
+            ),
+            platform(
+                "openhands",
+                "OpenHands",
+                ".openhands/skills",
+                None,
+                SkillInstallStrategy::ManagedCopy,
+                None,
+                Some("ecosystem"),
+                280,
+            ),
+            platform(
+                "pi",
+                "Pi",
+                ".pi/agent/skills",
+                None,
+                SkillInstallStrategy::ManagedCopy,
+                None,
+                Some("ecosystem"),
+                290,
+            ),
+            platform(
+                "qoderwork",
+                "QoderWork",
+                ".qoderwork/skills",
+                None,
+                SkillInstallStrategy::ManagedCopy,
+                None,
+                Some("ecosystem"),
+                300,
+            ),
+            platform(
+                "qwen-code",
+                "Qwen Code",
+                ".qwen/skills",
+                Some("qwen-shared"),
+                SkillInstallStrategy::ManagedCopy,
+                None,
+                Some("ecosystem"),
+                310,
+            ),
+            platform(
+                "trae",
+                "Trae",
+                ".trae/skills",
+                None,
+                SkillInstallStrategy::ManagedCopy,
+                None,
+                Some("ecosystem"),
+                320,
+            ),
+            platform(
+                "trae-cn",
+                "Trae CN",
+                ".trae-cn/skills",
+                None,
+                SkillInstallStrategy::ManagedCopy,
+                None,
+                Some("ecosystem"),
+                330,
+            ),
+            platform(
+                "zencoder",
+                "Zencoder",
+                ".zencoder/skills",
+                None,
+                SkillInstallStrategy::ManagedCopy,
+                None,
+                Some("ecosystem"),
+                340,
+            ),
+            platform(
+                "neovate",
+                "Neovate",
+                ".neovate/skills",
+                None,
+                SkillInstallStrategy::ManagedCopy,
+                None,
+                Some("ecosystem"),
+                350,
+            ),
+            platform(
+                "pochi",
+                "Pochi",
+                ".pochi/skills",
+                None,
+                SkillInstallStrategy::ManagedCopy,
+                None,
+                Some("ecosystem"),
+                360,
+            ),
+            platform(
+                "adal",
+                "AdaL",
+                ".adal/skills",
+                None,
+                SkillInstallStrategy::ManagedCopy,
+                None,
+                Some("ecosystem"),
+                370,
+            ),
+            platform(
+                "kilo-code",
+                "Kilo Code",
+                ".kilocode/skills",
+                None,
+                SkillInstallStrategy::ManagedCopy,
+                None,
+                Some("ecosystem"),
+                380,
+            ),
+            platform(
+                "roo-code",
+                "Roo Code",
+                ".roo/skills",
+                None,
+                SkillInstallStrategy::ManagedCopy,
+                None,
+                Some("ecosystem"),
+                390,
+            ),
+            platform(
+                "goose",
+                "Goose",
+                ".config/goose/skills",
+                None,
+                SkillInstallStrategy::ManagedCopy,
+                None,
+                Some("ecosystem"),
+                400,
+            ),
+            platform(
+                "gemini-cli",
+                "Gemini CLI (alt)",
+                ".gemini/skills",
+                Some("gemini-shared"),
+                SkillInstallStrategy::ManagedCopy,
+                Some("gemini-cli"),
+                Some("ecosystem"),
+                410,
+            ),
+            platform(
+                "github-copilot",
+                "GitHub Copilot",
+                ".copilot/skills",
+                None,
+                SkillInstallStrategy::ManagedCopy,
+                None,
+                Some("ecosystem"),
+                420,
+            ),
+            platform(
+                "clawdbot",
+                "Clawdbot",
+                ".clawdbot/skills",
+                None,
+                SkillInstallStrategy::ManagedCopy,
+                None,
+                Some("ecosystem"),
+                430,
+            ),
+            platform(
+                "windsurf",
+                "Windsurf",
+                ".codeium/windsurf/skills",
+                None,
+                SkillInstallStrategy::ManagedCopy,
+                None,
+                Some("ecosystem"),
+                440,
+            ),
+            platform(
+                "moltbot",
+                "MoltBot",
+                ".moltbot/skills",
+                None,
+                SkillInstallStrategy::ManagedCopy,
+                None,
+                Some("ecosystem"),
+                450,
+            ),
         ]
     }
 
     fn sanitize_platforms(platforms: Vec<SkillPlatformConfig>) -> Vec<SkillPlatformConfig> {
-        platforms
+        let mut seen = HashSet::new();
+        let mut sanitized = platforms
             .into_iter()
-            .filter(|platform| !platform.id.eq_ignore_ascii_case("iflow"))
-            .collect()
+            .filter(|platform| seen.insert(platform.id.to_ascii_lowercase()))
+            .collect::<Vec<_>>();
+        sanitized.sort_by_key(|platform| platform.sort_order);
+        sanitized
     }
 
     fn save_platforms(&self, platforms: &[SkillPlatformConfig]) -> Result<()> {
@@ -249,18 +670,21 @@ impl SkillsService {
         let raw = fs::read_to_string(&self.platforms_path).map_err(CcrError::IoError)?;
         let parsed: SkillPlatformsConfigFile =
             toml::from_str(&raw).map_err(|e| CcrError::ConfigError(e.to_string()))?;
-        let had_stale_entries = parsed
-            .platforms
-            .iter()
-            .any(|platform| platform.id.eq_ignore_ascii_case("iflow"));
-        let platforms = if parsed.platforms.is_empty() {
+        let mut platforms = if parsed.platforms.is_empty() {
             Self::default_platforms()
         } else {
             Self::sanitize_platforms(parsed.platforms)
         };
 
-        if had_stale_entries {
-            self.save_platforms(&platforms)?;
+        if platforms
+            .windows(2)
+            .any(|pair| pair[0].sort_order > pair[1].sort_order)
+        {
+            platforms.sort_by_key(|platform| platform.sort_order);
+        }
+
+        if platforms.is_empty() {
+            platforms = Self::default_platforms();
         }
 
         Ok(platforms)
@@ -666,6 +1090,12 @@ impl SkillsService {
             global_skills_dir: platform_dir.to_string_lossy().to_string(),
             detected,
             installed_count: installations.len(),
+            shared_dir_group: platform.shared_dir_group.clone(),
+            install_strategy: platform.install_strategy.clone(),
+            npx_agent_key: platform.npx_agent_key.clone(),
+            category: platform.category.clone(),
+            capabilities: platform.capabilities.clone(),
+            sort_order: platform.sort_order,
         };
 
         Ok((installations, summary))
@@ -1509,6 +1939,98 @@ impl SkillsService {
         Ok(targets)
     }
 
+    fn platform_detected(&self, platform: &SkillPlatformConfig) -> bool {
+        self.platform_dir(platform).is_dir()
+    }
+
+    fn read_description_from_raw(raw: &str) -> Option<String> {
+        let (_, description) = Skill::parse_with_fallback(raw);
+        description
+    }
+
+    fn build_npx_install_command(
+        &self,
+        request: &SkillsInstallRequest,
+        payload: &InstallPayload,
+        targets: &[InstallationTarget],
+        skip_confirmation: bool,
+    ) -> Result<String> {
+        let mut parts = vec![
+            "npx".to_string(),
+            "skills".to_string(),
+            "add".to_string(),
+            request.source_ref.clone(),
+        ];
+
+        let selected_skills = if request.selected_skills.is_empty() {
+            request
+                .source_skill_id
+                .clone()
+                .into_iter()
+                .collect::<Vec<_>>()
+        } else {
+            request.selected_skills.clone()
+        };
+
+        let agent_keys = targets
+            .iter()
+            .filter_map(|target| target.platform.npx_agent_key.clone())
+            .collect::<Vec<_>>();
+
+        let scope = request.scope.as_deref().unwrap_or("global");
+        if scope.eq_ignore_ascii_case("global") {
+            parts.push("--global".into());
+        }
+
+        if request.copy_mode.unwrap_or(true) {
+            parts.push("--copy".into());
+        }
+
+        if request.all_mode.unwrap_or(false) {
+            parts.push("--all".into());
+        } else {
+            if !agent_keys.is_empty() {
+                parts.push("--agent".into());
+                parts.extend(agent_keys);
+            }
+            if !selected_skills.is_empty() {
+                parts.push("--skill".into());
+                parts.extend(selected_skills);
+            } else if request.source_skill_id.is_none() {
+                parts.push("--skill".into());
+                parts.push(payload.dir_name.clone());
+            }
+        }
+
+        if skip_confirmation {
+            parts.push("--yes".into());
+        }
+
+        Ok(parts.join(" "))
+    }
+
+    fn run_npx_install_command(&self, command: &str) -> Result<()> {
+        let output = if cfg!(windows) {
+            silent_command("cmd").args(["/C", command]).output()
+        } else {
+            silent_command("sh").args(["-lc", command]).output()
+        }
+        .map_err(|error| CcrError::ExternalCommandError(error.to_string()))?;
+
+        if output.status.success() {
+            return Ok(());
+        }
+
+        Err(CcrError::ExternalCommandError({
+            let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+            if stderr.is_empty() {
+                String::from_utf8_lossy(&output.stdout).trim().to_string()
+            } else {
+                stderr
+            }
+        }))
+    }
+
     fn find_existing_skill_id(
         &self,
         origin: &SkillOrigin,
@@ -1646,7 +2168,69 @@ impl SkillsService {
         let mut touched_paths = Vec::new();
         let mut results = Vec::new();
 
-        for target in targets {
+        let npx_enabled = request.source_kind.eq_ignore_ascii_case("npx")
+            && self.npx_status().available
+            && request.copy_mode.unwrap_or(true);
+
+        let (npx_targets, direct_targets): (Vec<_>, Vec<_>) = if npx_enabled {
+            targets.into_iter().partition(|target| {
+                target.platform.npx_agent_key.is_some() && self.platform_detected(&target.platform)
+            })
+        } else {
+            (Vec::new(), targets)
+        };
+
+        if !npx_targets.is_empty() {
+            let command = self.build_npx_install_command(&request, &payload, &npx_targets, true)?;
+            let command_result = self.run_npx_install_command(&command);
+            let command_error = command_result.err().map(|error| error.to_string());
+
+            for target in &npx_targets {
+                let meta = SkillInstallMeta {
+                    install_group_id: payload.install_group_id.clone(),
+                    origin: SkillOrigin::Npx,
+                    source_url: Some(
+                        payload
+                            .source_url
+                            .clone()
+                            .unwrap_or_else(|| request.source_ref.clone()),
+                    ),
+                    source_repo_id: payload.source_repo_id.clone(),
+                    install_mode: SkillInstallMode::Copy,
+                    installed_at: Some(now),
+                    updated_at: Some(now),
+                    content_hash: Some(content_hash.clone()),
+                };
+
+                let result = if command_error.is_none() {
+                    if target.skill_dir.exists() {
+                        self.persist_install_meta(&target.skill_dir, &meta)
+                    } else {
+                        Err(CcrError::ResourceNotFound(format!(
+                            "npx install target not found: {}",
+                            target.skill_dir.to_string_lossy()
+                        )))
+                    }
+                } else {
+                    Err(CcrError::ExternalCommandError(
+                        command_error
+                            .clone()
+                            .unwrap_or_else(|| "npx install failed".into()),
+                    ))
+                };
+
+                if result.is_ok() {
+                    touched_paths.push(target.skill_dir.clone());
+                }
+                results.push(crate::models::skills::SkillOperationResult {
+                    agent: target.platform.id.clone(),
+                    ok: result.is_ok(),
+                    message: result.err().map(|error| error.to_string()),
+                });
+            }
+        }
+
+        for target in direct_targets {
             let meta = SkillInstallMeta {
                 install_group_id: payload.install_group_id.clone(),
                 origin: payload.origin.clone(),
@@ -1674,6 +2258,111 @@ impl SkillsService {
         }
 
         Ok(SkillOperationResponse { results })
+    }
+
+    pub async fn prepare_install(
+        &self,
+        request: SkillsInstallRequest,
+    ) -> Result<SkillsInstallReviewResponse> {
+        let payload = self.resolve_install_payload(&request).await?;
+        let targets = self.resolve_install_targets(&request.target_platforms, &payload.dir_name)?;
+        let npx = if request.source_kind.eq_ignore_ascii_case("npx") {
+            Some(self.npx_capabilities()?)
+        } else {
+            None
+        };
+
+        let mut warnings = Vec::new();
+        if request.source_kind.eq_ignore_ascii_case("npx") {
+            if npx.as_ref().is_some_and(|cap| !cap.status.available) {
+                warnings.push(
+                    "npx is unavailable. CCR will use the internal managed-copy install flow."
+                        .into(),
+                );
+            }
+
+            let fallback_targets = targets
+                .iter()
+                .filter(|target| target.platform.npx_agent_key.is_none())
+                .map(|target| target.platform.display_name.clone())
+                .collect::<Vec<_>>();
+            if !fallback_targets.is_empty() {
+                warnings.push(format!(
+                    "Direct npx install is not supported for {}. CCR will materialize copies for those targets.",
+                    fallback_targets.join(", ")
+                ));
+            }
+        }
+
+        let mut command_previews = Vec::new();
+        if request.source_kind.eq_ignore_ascii_case("npx")
+            && npx.as_ref().is_some_and(|cap| cap.status.available)
+        {
+            let supported_targets = targets
+                .iter()
+                .filter(|target| target.platform.npx_agent_key.is_some())
+                .cloned()
+                .collect::<Vec<_>>();
+            if !supported_targets.is_empty() {
+                command_previews.push(SkillsInstallCommandPreview {
+                    kind: "npx".into(),
+                    label: "Official npx install".into(),
+                    command: self.build_npx_install_command(
+                        &request,
+                        &payload,
+                        &supported_targets,
+                        false,
+                    )?,
+                    platforms: supported_targets
+                        .iter()
+                        .map(|target| target.platform.id.clone())
+                        .collect(),
+                });
+            }
+        }
+
+        command_previews.push(SkillsInstallCommandPreview {
+            kind: "ccr".into(),
+            label: "CCR managed install".into(),
+            command: format!(
+                "skills_confirm_install {} -> {}",
+                request.source_kind, payload.dir_name
+            ),
+            platforms: targets
+                .iter()
+                .map(|target| target.platform.id.clone())
+                .collect(),
+        });
+
+        Ok(SkillsInstallReviewResponse {
+            source: SkillsInstallReviewSource {
+                source_kind: request.source_kind,
+                source_ref: request.source_ref,
+                source_skill_id: request
+                    .source_skill_id
+                    .or_else(|| request.selected_skills.first().cloned()),
+                resolved_name: payload.requested_name,
+                resolved_dir_name: payload.dir_name,
+                origin: payload.origin,
+                description: Self::read_description_from_raw(&payload.raw),
+            },
+            targets: targets
+                .into_iter()
+                .map(|target| SkillsInstallReviewTarget {
+                    platform_id: target.platform.id.clone(),
+                    platform_name: target.platform.display_name.clone(),
+                    detected: self.platform_detected(&target.platform),
+                    target_path: target.skill_dir.to_string_lossy().to_string(),
+                    shared_dir_group: target.platform.shared_dir_group.clone(),
+                    install_strategy: target.platform.install_strategy.clone(),
+                    direct_npx_supported: target.platform.npx_agent_key.is_some(),
+                    npx_agent_key: target.platform.npx_agent_key.clone(),
+                })
+                .collect(),
+            warnings,
+            command_previews,
+            npx,
+        })
     }
 
     pub async fn sync(&self, request: SkillsSyncRequest) -> Result<SkillOperationResponse> {
@@ -1780,45 +2469,16 @@ impl SkillsService {
         page: usize,
         page_size: usize,
     ) -> Result<MarketplaceListResponse> {
-        let response = HTTP_CLIENT
-            .get(DEFAULT_MARKETPLACE_URL)
-            .send()
-            .await
-            .map_err(|e| CcrError::NetworkError(e.to_string()))?;
-
-        let payload: serde_json::Value = response
-            .json()
-            .await
-            .map_err(|e| CcrError::NetworkError(e.to_string()))?;
-
-        let raw_items = payload
-            .get("skills")
-            .and_then(|value| value.as_array())
-            .cloned()
-            .or_else(|| payload.as_array().cloned())
-            .unwrap_or_default();
-
-        let mut items = raw_items
-            .into_iter()
-            .filter_map(|item| Self::parse_marketplace_item(&item))
-            .collect::<Vec<_>>();
-
-        if let Some(query) = query {
-            let query = query.trim().to_lowercase();
-            if !query.is_empty() {
-                items.retain(|item| {
-                    item.package.to_lowercase().contains(&query)
-                        || item.owner.to_lowercase().contains(&query)
-                        || item.repo.to_lowercase().contains(&query)
-                        || item
-                            .description
-                            .as_deref()
-                            .unwrap_or_default()
-                            .to_lowercase()
-                            .contains(&query)
-                });
+        let items = if let Some(query_text) = query.as_deref() {
+            let query_text = query_text.trim();
+            if query_text.is_empty() {
+                self.load_bundled_featured_marketplace_items()?
+            } else {
+                self.search_marketplace_items(query_text).await?
             }
-        }
+        } else {
+            self.fetch_trending_marketplace_items().await?
+        };
 
         let total = items.len();
         let page = page.max(1);
@@ -1833,6 +2493,127 @@ impl SkillsService {
             page_size,
             cached: false,
         })
+    }
+
+    async fn fetch_trending_marketplace_items(&self) -> Result<Vec<MarketplaceSkill>> {
+        let response = HTTP_CLIENT.get(DEFAULT_MARKETPLACE_URL).send().await;
+        match response {
+            Ok(response) if response.status().is_success() => {
+                let raw = response
+                    .text()
+                    .await
+                    .map_err(|e| CcrError::NetworkError(e.to_string()))?;
+                match serde_json::from_str::<serde_json::Value>(&raw) {
+                    Ok(payload) => {
+                        let raw_items = payload
+                            .get("skills")
+                            .and_then(|value| value.as_array())
+                            .cloned()
+                            .or_else(|| payload.as_array().cloned())
+                            .unwrap_or_default();
+                        let items = raw_items
+                            .into_iter()
+                            .filter_map(|item| Self::parse_marketplace_item(&item))
+                            .collect::<Vec<_>>();
+                        if items.is_empty() {
+                            self.load_bundled_featured_marketplace_items()
+                        } else {
+                            Ok(items)
+                        }
+                    }
+                    Err(_) => self.load_bundled_featured_marketplace_items(),
+                }
+            }
+            _ => self.load_bundled_featured_marketplace_items(),
+        }
+    }
+
+    async fn search_marketplace_items(&self, query: &str) -> Result<Vec<MarketplaceSkill>> {
+        let url = format!(
+            "https://skills.sh/api/search?q={}&limit=50",
+            urlencoding::encode(query)
+        );
+        let response = HTTP_CLIENT
+            .get(url)
+            .send()
+            .await
+            .map_err(|e| CcrError::NetworkError(e.to_string()))?;
+        let payload: serde_json::Value = response
+            .json()
+            .await
+            .map_err(|e| CcrError::NetworkError(e.to_string()))?;
+        Ok(payload
+            .get("skills")
+            .and_then(|value| value.as_array())
+            .cloned()
+            .unwrap_or_default()
+            .into_iter()
+            .filter_map(|item| {
+                let source = item.get("source")?.as_str()?.to_string();
+                let name = item
+                    .get("skillId")
+                    .or_else(|| item.get("name"))
+                    .and_then(|value| value.as_str())
+                    .map(ToString::to_string);
+                let mut segments = source.split('/');
+                let owner = segments.next()?.to_string();
+                let repo = segments.next()?.to_string();
+                let package = match name.as_deref() {
+                    Some(skill_name) if !skill_name.is_empty() => format!("{source}@{skill_name}"),
+                    _ => source.clone(),
+                };
+                Some(MarketplaceSkill {
+                    package,
+                    owner,
+                    repo,
+                    skill: name,
+                    skills_sh_url: format!("https://skills.sh/{source}"),
+                    description: None,
+                    author_avatar: None,
+                    stars: None,
+                })
+            })
+            .collect())
+    }
+
+    fn load_bundled_featured_marketplace_items(&self) -> Result<Vec<MarketplaceSkill>> {
+        let payload: serde_json::Value =
+            serde_json::from_str(BUNDLED_FEATURED_SKILLS_JSON).map_err(CcrError::JsonError)?;
+        Ok(payload
+            .get("skills")
+            .and_then(|value| value.as_array())
+            .cloned()
+            .unwrap_or_default()
+            .into_iter()
+            .filter_map(|item| {
+                let source_url = item.get("source_url")?.as_str()?;
+                let trimmed = source_url
+                    .trim()
+                    .trim_start_matches("https://github.com/")
+                    .trim_end_matches('/');
+                let repo_root = trimmed.split("/tree/").next().unwrap_or(trimmed);
+                let mut segments = repo_root.split('/');
+                let owner = segments.next()?.to_string();
+                let repo = segments.next()?.to_string();
+                let skill_name = item
+                    .get("name")
+                    .and_then(|value| value.as_str())?
+                    .to_string();
+                Some(MarketplaceSkill {
+                    package: format!("{owner}/{repo}@{skill_name}"),
+                    owner,
+                    repo,
+                    skill: Some(skill_name),
+                    skills_sh_url: format!("https://skills.sh/{repo_root}"),
+                    description: item
+                        .get("summary")
+                        .and_then(|value| value.as_str())
+                        .map(ToString::to_string),
+                    author_avatar: None,
+                    stars: item.get("stars").and_then(|value| value.as_u64()),
+                })
+            })
+            .collect())
     }
 
     pub async fn marketplace_detail(&self, package_id: &str) -> Result<MarketplaceSkill> {
@@ -1948,6 +2729,41 @@ impl SkillsService {
         }
     }
 
+    pub fn npx_capabilities(&self) -> Result<SkillsNpxCapabilities> {
+        let status = self.npx_status();
+        let supported_platforms = self
+            .load_platforms()?
+            .into_iter()
+            .map(|platform| NpxPlatformSupport {
+                platform_id: platform.id.clone(),
+                platform_name: platform.display_name.clone(),
+                supported: platform.npx_agent_key.is_some(),
+                agent_key: platform.npx_agent_key.clone(),
+                reason: if platform.npx_agent_key.is_some() {
+                    None
+                } else {
+                    Some("CCR fallback required".into())
+                },
+            })
+            .collect::<Vec<_>>();
+
+        Ok(SkillsNpxCapabilities {
+            status,
+            supported_platforms,
+            supported_flags: vec![
+                "--agent".into(),
+                "--skill".into(),
+                "--global".into(),
+                "--copy".into(),
+                "--all".into(),
+                "--list".into(),
+                "--yes".into(),
+                "--full-depth".into(),
+            ],
+            package_manager: "npx".into(),
+        })
+    }
+
     pub fn watch_paths(&self) -> Result<Vec<PathBuf>> {
         let mut paths = self
             .load_platforms()?
@@ -1993,7 +2809,11 @@ mod tests {
 
     fn create_test_skill(root: &Path, name: &str) -> (SkillsService, String, String) {
         let service = build_test_service(root);
-        let skill_dir = root.join(".agents").join("skills").join(name);
+        let codex_platform = SkillsService::default_platforms()
+            .into_iter()
+            .find(|platform| platform.id == "codex")
+            .unwrap();
+        let skill_dir = root.join(codex_platform.relative_path).join(name);
         fs::create_dir_all(&skill_dir).unwrap();
         fs::write(
             skill_dir.join("SKILL.md"),
@@ -2048,7 +2868,7 @@ mod tests {
     }
 
     #[test]
-    fn load_platforms_filters_iflow_and_persists_cleaned_config() {
+    fn load_platforms_keeps_custom_iflow_entries() {
         let temp = tempdir().unwrap();
         let service = build_test_service(temp.path());
         fs::create_dir_all(service.ccr_skills_dir.clone()).unwrap();
@@ -2069,11 +2889,12 @@ relative_path = ".iflow/skills"
         .unwrap();
 
         let platforms = service.load_platforms().unwrap();
-        assert_eq!(platforms.len(), 1);
+        assert_eq!(platforms.len(), 2);
         assert_eq!(platforms[0].id, "codex");
+        assert_eq!(platforms[1].id, "iflow");
 
         let persisted = fs::read_to_string(&service.platforms_path).unwrap();
-        assert!(!persisted.contains("iflow"));
+        assert!(persisted.contains("iflow"));
     }
 
     #[test]
@@ -2082,7 +2903,7 @@ relative_path = ".iflow/skills"
         let (service, skill_id, installation_id) = create_test_skill(temp.path(), "demo-skill");
         fs::write(
             temp.path()
-                .join(".agents")
+                .join(".codex")
                 .join("skills")
                 .join("outside.txt"),
             "secret",
@@ -2120,7 +2941,7 @@ relative_path = ".iflow/skills"
         let (service, skill_id, installation_id) = create_test_skill(temp.path(), "demo-skill");
         let nested_dir = temp
             .path()
-            .join(".agents")
+            .join(".codex")
             .join("skills")
             .join("demo-skill")
             .join("docs");

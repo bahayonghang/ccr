@@ -18,5 +18,5 @@ export async function handleSkillsChangedPayload(
     await loadOnboardingCandidates(true)
   }
 
-  await refresh(Boolean(payload?.affectsMarketplace || currentTab === 'marketplace'))
+  await refresh(Boolean(payload?.affectsMarketplace || currentTab === 'marketplace' || currentTab === 'explore'))
 }

@@ -11,7 +11,7 @@ import { useRouter } from 'vue-router'
 const router = useRouter()
 
 onMounted(() => {
-  void router.replace({ path: '/skills', query: { tab: 'marketplace' } })
+  void router.replace({ path: '/skills', query: { tab: 'explore' } })
 })
 </script>
 

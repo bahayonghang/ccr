@@ -3214,6 +3214,10 @@ export const skillsInstall = async <T = UnknownRecord>(request: unknown): Promis
   return invoke('skills_install', { request })
 }
 
+export const skillsPrepareInstall = async <T = UnknownRecord>(request: unknown): Promise<T> => {
+  return invoke('skills_prepare_install', { request })
+}
+
 export const skillsSync = async <T = UnknownRecord>(request: unknown): Promise<T> => {
   return invoke('skills_sync', { request })
 }
@@ -3263,6 +3267,10 @@ export const skillsMarketplaceDetail = async <T = UnknownRecord>(packageId: stri
 
 export const skillsNpxStatus = async <T = UnknownRecord>(): Promise<T> => {
   return invoke('skills_npx_status')
+}
+
+export const skillsNpxCapabilities = async <T = UnknownRecord>(): Promise<T> => {
+  return invoke('skills_npx_capabilities')
 }
 
 export const skillsPickFolder = async <T = UnknownRecord>(): Promise<T> => {

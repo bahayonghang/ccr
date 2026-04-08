@@ -6,8 +6,9 @@
 use ccr::models::skills::SkillOperationResponse;
 use ccr::{
     MarketplaceListResponse, MarketplaceSkill, NpxStatus, SkillContent, SkillFileContent,
-    SkillFileEntry, SkillRecord, SkillSourceRecord, SkillsInstallRequest, SkillsInventoryQuery,
-    SkillsInventoryResponse, SkillsOnboardingCandidate, SkillsService, SkillsSyncRequest,
+    SkillFileEntry, SkillRecord, SkillSourceRecord,
+    SkillsInstallRequest, SkillsInventoryQuery, SkillsInventoryResponse, SkillsNpxCapabilities,
+    SkillsInstallReviewResponse, SkillsOnboardingCandidate, SkillsService, SkillsSyncRequest,
 };
 use serde::Serialize;
 use tauri_plugin_dialog::DialogExt;
@@ -121,6 +122,16 @@ pub async fn skills_install(
 ) -> Result<SkillOperationResponse, String> {
     new_service()?
         .install(request)
+        .await
+        .map_err(|error| error.to_string())
+}
+
+#[tauri::command]
+pub async fn skills_prepare_install(
+    request: SkillsInstallRequest,
+) -> Result<SkillsInstallReviewResponse, String> {
+    new_service()?
+        .prepare_install(request)
         .await
         .map_err(|error| error.to_string())
 }
@@ -243,6 +254,16 @@ pub async fn skills_npx_status() -> Result<NpxStatus, String> {
     tokio::task::spawn_blocking(move || {
         let service = new_service()?;
         Ok::<_, String>(service.npx_status())
+    })
+    .await
+    .map_err(map_join_error)?
+}
+
+#[tauri::command]
+pub async fn skills_npx_capabilities() -> Result<SkillsNpxCapabilities, String> {
+    tokio::task::spawn_blocking(move || {
+        let service = new_service()?;
+        map_domain_error(service.npx_capabilities())
     })
     .await
     .map_err(map_join_error)?

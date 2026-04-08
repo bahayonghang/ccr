@@ -255,6 +255,8 @@ export function useUnifiedSkills() {
     importViaNpx,
     batchInstall,
     checkNpxStatus,
+    loadNpxCapabilities: store.loadNpxCapabilities,
+    prepareInstall: store.prepareInstall,
     browseFolder,
     loadMarketplace: store.loadMarketplace,
     loadNpxStatus: store.loadNpxStatus,

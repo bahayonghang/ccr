@@ -21,6 +21,15 @@ pub enum SkillInstallMode {
     Copy,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
+#[serde(rename_all = "lowercase")]
+pub enum SkillInstallStrategy {
+    #[default]
+    ManagedCopy,
+    DirectCopy,
+    DirectCli,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
 pub enum SkillSourceType {
@@ -41,6 +50,18 @@ pub struct SkillPlatformConfig {
     pub id: String,
     pub display_name: String,
     pub relative_path: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub shared_dir_group: Option<String>,
+    #[serde(default)]
+    pub install_strategy: SkillInstallStrategy,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub npx_agent_key: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub category: Option<String>,
+    #[serde(default)]
+    pub capabilities: Vec<String>,
+    #[serde(default)]
+    pub sort_order: usize,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -50,6 +71,18 @@ pub struct SkillPlatformSummary {
     pub global_skills_dir: String,
     pub detected: bool,
     pub installed_count: usize,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub shared_dir_group: Option<String>,
+    #[serde(default)]
+    pub install_strategy: SkillInstallStrategy,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub npx_agent_key: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub category: Option<String>,
+    #[serde(default)]
+    pub capabilities: Vec<String>,
+    #[serde(default)]
+    pub sort_order: usize,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -261,9 +294,17 @@ pub struct SkillsInstallRequest {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub source_skill_id: Option<String>,
     #[serde(default)]
+    pub selected_skills: Vec<String>,
+    #[serde(default)]
     pub target_platforms: Vec<String>,
     #[serde(default)]
     pub force: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub scope: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub copy_mode: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub all_mode: Option<bool>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -334,6 +375,78 @@ pub struct NpxStatus {
     pub version: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub path: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct NpxPlatformSupport {
+    pub platform_id: String,
+    pub platform_name: String,
+    pub supported: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub agent_key: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub reason: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SkillsNpxCapabilities {
+    #[serde(flatten)]
+    pub status: NpxStatus,
+    #[serde(default)]
+    pub supported_platforms: Vec<NpxPlatformSupport>,
+    #[serde(default)]
+    pub supported_flags: Vec<String>,
+    pub package_manager: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SkillsInstallReviewSource {
+    pub source_kind: String,
+    pub source_ref: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub source_skill_id: Option<String>,
+    pub resolved_name: String,
+    pub resolved_dir_name: String,
+    pub origin: SkillOrigin,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SkillsInstallReviewTarget {
+    pub platform_id: String,
+    pub platform_name: String,
+    pub detected: bool,
+    pub target_path: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub shared_dir_group: Option<String>,
+    #[serde(default)]
+    pub install_strategy: SkillInstallStrategy,
+    pub direct_npx_supported: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub npx_agent_key: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SkillsInstallCommandPreview {
+    pub kind: String,
+    pub label: String,
+    pub command: String,
+    #[serde(default)]
+    pub platforms: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SkillsInstallReviewResponse {
+    pub source: SkillsInstallReviewSource,
+    #[serde(default)]
+    pub targets: Vec<SkillsInstallReviewTarget>,
+    #[serde(default)]
+    pub warnings: Vec<String>,
+    #[serde(default)]
+    pub command_previews: Vec<SkillsInstallCommandPreview>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub npx: Option<SkillsNpxCapabilities>,
 }
 
 #[derive(Debug, Clone)]

@@ -1,43 +1,12 @@
 <template>
-  <div class="skills-console">
+  <div class="flex flex-col gap-5 px-4 py-4">
     <PageHeaderCard
-      title="Skills 管理中心"
-      description="跨平台 AI CLI 工具的统一技能库存、来源和安装工作台。"
+      title="Skills Hub"
+      description="统一管理 Skills 库存、探索、平台和来源。"
       badge="Workspace"
       icon="Package"
       tone="secondary"
-    >
-      <template #actions>
-        <button
-          class="console-button"
-          :disabled="inventoryLoading || sourcesLoading || marketplaceLoading"
-          @click="handleRefresh"
-        >
-          <SIcon
-            name="RefreshCw"
-            size="w-4 h-4"
-            :class="{ 'animate-spin': inventoryLoading || sourcesLoading || marketplaceLoading }"
-          />
-          <span>Refresh</span>
-        </button>
-      </template>
-
-      <div class="skills-header-stats">
-        <div class="skills-header-stat">
-          <span class="skills-header-stat__label">Logical skills</span>
-          <strong class="skills-header-stat__value">{{ stats.logicalSkills }}</strong>
-        </div>
-        <div class="skills-header-stat">
-          <span class="skills-header-stat__label">Sources</span>
-          <strong class="skills-header-stat__value">{{ stats.sources }}</strong>
-        </div>
-        <div class="skills-header-stat">
-          <span class="skills-header-stat__label">Installed packages</span>
-          <strong class="skills-header-stat__value">{{ stats.installations }}</strong>
-        </div>
-      </div>
-    </PageHeaderCard>
-
+    />
     <AsyncStatePanel
       v-if="runtimeUnavailable"
       state="runtime-unavailable"
@@ -47,188 +16,65 @@
       action-icon="ArrowLeft"
       @action="$router.push('/')"
     />
-
     <template v-else>
-      <!-- Tab 切换栏 -->
-      <div class="console-tabs">
+      <div class="flex flex-wrap gap-2 rounded-3xl border border-border-default/55 bg-bg-elevated/60 p-2">
         <button
           v-for="tab in tabs"
           :key="tab.id"
-          class="console-tab"
-          :class="{ 'console-tab--active': routeState.tab === tab.id }"
+          class="inline-flex items-center gap-2 rounded-2xl px-4 py-2.5 text-sm"
+          :class="activeTab===tab.id?'border border-accent-primary/30 bg-accent-primary/10 text-text-primary':'text-text-secondary'"
           @click="setTab(tab.id)"
         >
           <SIcon
             :name="tab.icon"
             size="w-4 h-4"
-          />
-          <span>{{ tab.label }}</span>
-          <span class="console-tab__count">{{ tab.count }}</span>
+          /><span>{{ tab.label }}</span><strong class="rounded-full bg-bg-base/70 px-2 py-0.5 text-xs">{{ tab.count }}</strong>
         </button>
       </div>
 
-      <!-- 主内容区 -->
-      <div class="console-layout">
-        <!-- 左侧边栏：平台选择 + 上下文面板 + 活动日志 -->
-        <aside class="console-sidebar">
-          <section
-            v-if="newlyDetectedPlatforms.length > 0"
-            class="panel"
-          >
-            <div class="panel__header">
-              <h2 class="panel__title">
-                {{ $t('skills.newToolsTitle') }}
-              </h2>
-              <span class="badge">{{ newlyDetectedPlatforms.length }}</span>
-            </div>
-            <p class="console-header__subtitle">
-              {{ $t('skills.newToolsDescription', { count: newlyDetectedPlatforms.length }) }}
-            </p>
-            <div class="skill-card__meta">
-              <span
-                v-for="platform in newlyDetectedPlatforms"
-                :key="platform.id"
-                class="badge"
-              >
-                {{ platform.displayName }}
-              </span>
-            </div>
-            <div class="source-actions mt-3">
-              <button
-                class="console-button console-button--primary"
-                @click="selectNewlyDetectedPlatforms"
-              >
-                {{ $t('skills.newToolsAction') }}
-              </button>
-              <button
-                class="console-button"
-                @click="dismissNewToolsPrompt"
-              >
-                {{ $t('skills.newToolsDismiss') }}
-              </button>
-            </div>
-          </section>
-
-          <section
-            v-if="onboardingCandidates.length > 0"
-            class="panel"
-          >
-            <div class="panel__header">
-              <h2 class="panel__title">
-                Onboarding
-              </h2>
-              <span class="badge">{{ onboardingCandidates.length }}</span>
-            </div>
-            <p class="console-header__subtitle">
-              已发现可纳管的已有 Skills，可用于后续导入与统一同步。
-            </p>
-            <div class="activity-list">
-              <div
-                v-for="candidate in onboardingCandidates.slice(0, 4)"
-                :key="candidate.skillId"
-                class="activity-row"
-              >
-                <span class="activity-row__status activity-row__status--pending" />
-                <div class="activity-row__body">
-                  <strong>{{ candidate.name }}</strong>
-                  <span>{{ candidate.reason }}</span>
-                  <span class="activity-row__meta">{{
-                    candidate.platformIds.join(', ') || 'unknown platforms'
-                  }}</span>
-                  <select
-                    class="field__input mt-2"
-                    :value="
-                      canonicalSourceBySkill[candidate.skillId] ??
-                        candidate.installationPaths[0] ??
-                        ''
-                    "
-                    @change="
-                      updateCanonicalSource(
-                        candidate.skillId,
-                        ($event.target as HTMLSelectElement).value
-                      )
-                    "
-                  >
-                    <option
-                      v-for="path in candidate.installationPaths"
-                      :key="path"
-                      :value="path"
-                    >
-                      {{ path }}
-                    </option>
-                  </select>
-                </div>
-                <button
-                  data-testid="onboarding-import"
-                  class="console-button"
-                  @click="importOnboardingCandidate(candidate)"
-                >
-                  Import & Sync
-                </button>
-              </div>
-            </div>
-          </section>
-
-          <PlatformSelector
-            v-model="selectedPlatforms"
-            :platforms="platforms"
-            @select-detected="selectDetectedPlatforms"
-          />
-
-          <!-- Inventory 筛选器 -->
-          <section
-            v-if="routeState.tab === 'inventory'"
-            class="panel"
-          >
-            <div class="panel__header">
-              <h2 class="panel__title">
+      <section
+        v-if="activeTab==='library'"
+        class="grid gap-4 xl:grid-cols-[320px_minmax(0,1fr)]"
+      >
+        <aside class="flex flex-col gap-4">
+          <div class="rounded-3xl border border-border-default/55 bg-bg-elevated/60 p-4">
+            <div class="mb-3 flex items-center justify-between">
+              <h2 class="text-xs uppercase tracking-[0.16em] text-text-muted">
                 Filters
-              </h2>
-              <button
-                class="panel__link"
-                @click="resetFilters"
+              </h2><button
+                class="text-xs text-text-muted"
+                @click="resetLibraryFilters"
               >
                 Reset
               </button>
             </div>
-
-            <label class="field">
-              <span class="field__label">Search</span>
+            <div class="flex flex-col gap-3">
               <input
-                v-model="searchInput"
-                class="field__input"
-                type="text"
-                placeholder="name / tag / category"
+                v-model="librarySearch"
+                class="rounded-2xl border border-border-default/55 bg-bg-base/45 px-3 py-2 text-sm text-text-primary"
+                placeholder="search"
               >
-            </label>
-
-            <label class="field">
-              <span class="field__label">Platform</span>
               <select
-                class="field__input"
-                :value="routeState.platform"
-                @change="updatePlatformFilter(($event.target as HTMLSelectElement).value)"
+                v-model="filters.platform"
+                class="rounded-2xl border border-border-default/55 bg-bg-base/45 px-3 py-2 text-sm text-text-primary"
               >
-                <option value="all">All platforms</option>
-                <option
-                  v-for="p in platforms"
-                  :key="p.id"
-                  :value="p.id"
+                <option value="all">
+                  All platforms
+                </option><option
+                  v-for="platform in platforms"
+                  :key="platform.id"
+                  :value="platform.id"
                 >
-                  {{ p.displayName }}
+                  {{ platform.displayName }}
                 </option>
               </select>
-            </label>
-
-            <label class="field">
-              <span class="field__label">Origin</span>
               <select
-                class="field__input"
-                :value="routeState.origin"
-                @change="updateOriginFilter(($event.target as HTMLSelectElement).value)"
+                v-model="filters.origin"
+                class="rounded-2xl border border-border-default/55 bg-bg-base/45 px-3 py-2 text-sm text-text-primary"
               >
-                <option value="all">All origins</option>
-                <option
+                <option value="all">
+                  All origins
+                </option><option
                   v-for="origin in originOptions"
                   :key="origin"
                   :value="origin"
@@ -236,206 +82,463 @@
                   {{ origin }}
                 </option>
               </select>
-            </label>
-
-            <label class="field">
-              <span class="field__label">Category</span>
-              <select
-                v-model="filters.category"
-                class="field__input"
-              >
-                <option :value="null">All categories</option>
-                <option
-                  v-for="cat in availableCategories"
-                  :key="cat"
-                  :value="cat"
-                >
-                  {{ cat }}
-                </option>
-              </select>
-            </label>
-
-            <label class="field">
-              <span class="field__label">Source</span>
-              <select
-                class="field__input"
-                :value="routeState.source ?? 'all'"
-                @change="updateSourceFilter(($event.target as HTMLSelectElement).value)"
-              >
-                <option value="all">All sources</option>
-                <option
-                  v-for="source in sourceOptions"
-                  :key="source.id"
-                  :value="source.id"
-                >
-                  {{ source.name }}
-                </option>
-              </select>
-            </label>
-
-            <div class="tag-cloud">
+            </div>
+          </div>
+          <div class="rounded-3xl border border-border-default/55 bg-bg-elevated/60 p-4">
+            <div class="mb-3 flex items-center justify-between">
+              <h2 class="text-xs uppercase tracking-[0.16em] text-text-muted">
+                Library
+              </h2><span class="text-xs text-text-muted">{{ filteredSkills?.length ?? 0 }}</span>
+            </div>
+            <div class="flex max-h-[70vh] flex-col gap-3 overflow-auto">
               <button
-                v-for="tag in availableTags"
-                :key="tag"
-                class="tag-chip"
-                :class="{ 'tag-chip--active': filters.tags.includes(tag) }"
-                @click="toggleTag(tag)"
+                v-for="skill in filteredSkills || []"
+                :key="skill.id"
+                class="rounded-2xl border p-3 text-left"
+                :class="selectedSkill?.id===skill.id?'border-accent-primary/35 bg-accent-primary/10':'border-border-default/55 bg-bg-base/35'"
+                @click="handleSelectSkill(skill.id)"
               >
-                {{ tag }}
+                <div class="mb-2 flex items-center justify-between gap-3">
+                  <strong class="truncate text-sm text-text-primary">{{ skill.name }}</strong><span class="rounded-full bg-bg-overlay/70 px-2 py-0.5 text-xs text-text-secondary">{{ skill.installCount }}</span>
+                </div>
+                <p class="line-clamp-2 text-xs text-text-muted">
+                  {{ skill.description || 'No description.' }}
+                </p>
               </button>
             </div>
-          </section>
-
-          <!-- Sources 添加表单 -->
-          <section
-            v-else-if="routeState.tab === 'sources'"
-            class="panel"
+          </div>
+          <div
+            v-if="(onboardingCandidates || []).length"
+            class="rounded-3xl border border-border-default/55 bg-bg-elevated/60 p-4"
           >
-            <div class="panel__header">
-              <h2 class="panel__title">
-                Add Source
-              </h2>
+            <div class="mb-3 flex items-center justify-between">
+              <h2 class="text-xs uppercase tracking-[0.16em] text-text-muted">
+                Onboarding
+              </h2><span class="text-xs text-text-muted">{{ onboardingCandidates.length }}</span>
             </div>
-
-            <label class="field">
-              <span class="field__label">Git repo</span>
-              <input
-                v-model="gitSourceUrl"
-                class="field__input"
-                type="text"
-                placeholder="https://github.com/owner/repo"
-              >
-            </label>
-            <button
-              class="console-button console-button--primary"
-              :disabled="mutationLoading || !gitSourceUrl.trim()"
-              @click="handleAddGitSource"
+            <div
+              v-for="candidate in onboardingCandidates"
+              :key="candidate.skillId"
+              class="rounded-2xl border border-border-default/55 bg-bg-base/35 p-3"
             >
-              <SIcon
-                name="Github"
-                size="w-4 h-4"
-              />
-              <span>Add Git Source</span>
-            </button>
-
-            <label class="field">
-              <span class="field__label">Local directory</span>
-              <div class="field__row">
-                <input
-                  v-model="localSourcePath"
-                  class="field__input"
-                  type="text"
-                  placeholder="D:/skills/repo"
-                >
+              <div class="mb-2">
+                <strong class="text-sm text-text-primary">{{ candidate.name }}</strong><p class="text-xs text-text-muted">
+                  {{ candidate.reason }}
+                </p>
+              </div>
+              <button
+                data-testid="onboarding-import"
+                class="rounded-xl border border-border-default/55 bg-bg-base/45 px-3 py-2 text-sm text-text-primary"
+                @click="importOnboardingCandidate(candidate)"
+              >
+                Import
+              </button>
+            </div>
+          </div>
+        </aside>
+        <div class="rounded-3xl border border-border-default/55 bg-bg-elevated/60 p-4">
+          <div
+            v-if="selectedSkill"
+            class="flex flex-col gap-4"
+          >
+            <div class="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <h2 class="text-lg font-semibold text-text-primary">
+                  {{ selectedSkill.name }}
+                </h2><p class="mt-1 text-sm text-text-muted">
+                  {{ selectedSkill.description || 'No description.' }}
+                </p>
+              </div>
+              <div class="flex gap-2">
                 <button
-                  class="console-button"
-                  @click="handlePickFolder"
+                  class="rounded-xl border border-border-default/55 bg-bg-base/45 px-3 py-2 text-sm text-text-primary"
+                  :disabled="mutationLoading || selectedPlatforms.length===0"
+                  @click="syncSelectedSkill"
                 >
-                  <SIcon
-                    name="FolderOpen"
-                    size="w-4 h-4"
-                  />
+                  Sync selected
+                </button>
+                <button
+                  class="rounded-xl border border-danger/30 bg-danger/10 px-3 py-2 text-sm text-danger"
+                  :disabled="mutationLoading"
+                  @click="removeSelectedSkill"
+                >
+                  Remove
                 </button>
               </div>
-            </label>
-            <button
-              class="console-button console-button--primary"
-              :disabled="mutationLoading || !localSourcePath.trim()"
-              @click="handleAddLocalSource"
-            >
-              <SIcon
-                name="FolderGit2"
-                size="w-4 h-4"
-              />
-              <span>Add Local Source</span>
-            </button>
-          </section>
-
-          <!-- Marketplace 手动安装 -->
-          <section
+            </div>
+            <div class="grid gap-3 md:grid-cols-2">
+              <div class="rounded-2xl bg-bg-base/35 p-3">
+                <span class="block text-[11px] uppercase tracking-[0.14em] text-text-muted">Origin</span><strong class="mt-1 block text-sm text-text-primary">{{ selectedSkill.origin }}</strong>
+              </div>
+              <div class="rounded-2xl bg-bg-base/35 p-3">
+                <span class="block text-[11px] uppercase tracking-[0.14em] text-text-muted">Source</span><strong class="mt-1 block truncate text-sm text-text-primary">{{ selectedSkill.lifecycle.sourceLabel || selectedSkill.lifecycle.sourceRef || 'N/A' }}</strong>
+              </div>
+            </div>
+            <div class="grid gap-3 lg:grid-cols-2">
+              <div class="rounded-2xl bg-bg-base/35 p-3">
+                <h3 class="mb-2 text-xs uppercase tracking-[0.16em] text-text-muted">
+                  Targets
+                </h3><div class="flex flex-col gap-2">
+                  <div
+                    v-for="target in selectedSkill.targets"
+                    :key="target.id"
+                    class="rounded-2xl border border-border-default/55 bg-bg-overlay/50 p-3"
+                  >
+                    <strong class="text-sm text-text-primary">{{ target.platformName }}</strong><p class="mt-1 text-xs text-text-muted">
+                      {{ target.targetPath }}
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div class="rounded-2xl bg-bg-base/35 p-3">
+                <h3 class="mb-2 text-xs uppercase tracking-[0.16em] text-text-muted">
+                  Content
+                </h3><pre class="max-h-[340px] overflow-auto rounded-2xl bg-bg-overlay/70 p-4 text-xs text-text-primary">{{ selectedContent }}</pre>
+              </div>
+            </div>
+          </div>
+          <div
             v-else
-            class="panel"
+            class="flex min-h-[380px] flex-col items-center justify-center gap-3 text-center"
           >
-            <div class="panel__header">
-              <h2 class="panel__title">
-                Marketplace Context
-              </h2>
-            </div>
+            <SIcon
+              name="BookOpen"
+              size="w-10 h-10"
+              class="text-text-muted"
+            /><h2 class="text-lg font-semibold text-text-primary">
+              Select a skill
+            </h2>
+          </div>
+        </div>
+      </section>
 
-            <div class="skills-marketplace-context">
-              <div class="skills-marketplace-context__item">
-                <span class="field__label">Target platforms</span>
-                <strong>{{ selectedPlatforms.length > 0 ? selectedPlatforms.length : 0 }}</strong>
-              </div>
-              <div class="skills-marketplace-context__item">
-                <span class="field__label">Search</span>
-                <strong>{{ routeState.q || 'Trending' }}</strong>
-              </div>
-              <div class="skills-marketplace-context__item">
-                <span class="field__label">Page</span>
-                <strong>{{ routeState.page }}</strong>
-              </div>
+      <section
+        v-else-if="activeTab==='explore'"
+        class="grid gap-4 xl:grid-cols-[320px_minmax(0,1fr)]"
+      >
+        <aside class="flex flex-col gap-4">
+          <div class="rounded-3xl border border-border-default/55 bg-bg-elevated/60 p-4">
+            <div class="mb-3 flex items-center justify-between">
+              <h2 class="text-xs uppercase tracking-[0.16em] text-text-muted">
+                Targets
+              </h2><button
+                class="text-xs text-text-muted"
+                @click="selectDetectedPlatforms"
+              >
+                Detected
+              </button>
+            </div><div class="flex flex-col gap-2">
+              <label
+                v-for="platform in platforms"
+                :key="platform.id"
+                class="grid grid-cols-[auto_1fr_auto] items-center gap-3 rounded-2xl border px-3 py-2 text-sm"
+                :class="platform.detected?'border-border-default/55 bg-bg-base/35 text-text-primary':'border-border-default/35 bg-bg-base/20 text-text-muted opacity-50'"
+              ><input
+                v-model="selectedPlatforms"
+                type="checkbox"
+                :value="platform.id"
+                :disabled="!platform.detected"
+              ><span>{{ platform.displayName }}</span><strong>{{ platform.installedCount }}</strong></label>
             </div>
-          </section>
+          </div>
+          <div class="rounded-3xl border border-border-default/55 bg-bg-elevated/60 p-4">
+            <h2 class="mb-3 text-xs uppercase tracking-[0.16em] text-text-muted">
+              npx
+            </h2><p class="text-sm text-text-primary">
+              {{ npxCapabilities?.available ? `ready · ${npxCapabilities.version || 'unknown'}` : 'missing' }}
+            </p><p class="mt-1 break-all text-xs text-text-muted">
+              {{ npxCapabilities?.path || 'Not detected' }}
+            </p>
+          </div>
+          <div class="rounded-3xl border border-border-default/55 bg-bg-elevated/60 p-4">
+            <h2 class="mb-3 text-xs uppercase tracking-[0.16em] text-text-muted">
+              Manual
+            </h2><div class="flex flex-col gap-3">
+              <input
+                v-model="manualGithub"
+                class="rounded-2xl border border-border-default/55 bg-bg-base/45 px-3 py-2 text-sm text-text-primary"
+                placeholder="owner/repo"
+              ><button
+                class="rounded-xl border border-border-default/55 bg-bg-base/45 px-3 py-2 text-sm text-text-primary"
+                :disabled="!manualGithub.trim() || selectedPlatforms.length===0"
+                @click="openInstallReview('github', manualGithub.trim())"
+              >
+                Review GitHub
+              </button><input
+                v-model="manualNpxPackage"
+                class="rounded-2xl border border-border-default/55 bg-bg-base/45 px-3 py-2 text-sm text-text-primary"
+                placeholder="vercel-labs/agent-skills"
+              ><input
+                v-model="manualNpxSkills"
+                class="rounded-2xl border border-border-default/55 bg-bg-base/45 px-3 py-2 text-sm text-text-primary"
+                placeholder="skill-a,skill-b"
+              ><button
+                class="rounded-xl border border-border-default/55 bg-bg-base/45 px-3 py-2 text-sm text-text-primary"
+                :disabled="!manualNpxPackage.trim() || selectedPlatforms.length===0"
+                @click="openInstallReview('npx', manualNpxPackage.trim(), parseSelectedSkills(manualNpxSkills))"
+              >
+                Review npx
+              </button>
+            </div>
+          </div>
+        </aside>
+        <div class="rounded-3xl border border-border-default/55 bg-bg-elevated/60 p-4">
+          <div class="mb-4 flex gap-3">
+            <input
+              v-model="exploreQuery"
+              class="flex-1 rounded-2xl border border-border-default/55 bg-bg-base/45 px-3 py-2 text-sm text-text-primary"
+              placeholder="Search skills.sh"
+              @keydown.enter="reloadMarketplace(true)"
+            ><button
+              class="rounded-xl border border-border-default/55 bg-bg-base/45 px-4 py-2 text-sm text-text-primary"
+              @click="reloadMarketplace(true)"
+            >
+              {{ exploreQuery ? 'Search' : 'Trending' }}
+            </button>
+          </div>
+          <div
+            v-if="marketplaceLoading"
+            class="flex min-h-[360px] items-center justify-center"
+          >
+            <div class="loading-spinner w-8 h-8 border-accent-primary/30 border-t-accent-primary" />
+          </div>
+          <div
+            v-else
+            class="grid gap-3 lg:grid-cols-2 2xl:grid-cols-3"
+          >
+            <article
+              v-for="item in marketplace.items"
+              :key="item.package"
+              class="rounded-2xl border border-border-default/55 bg-bg-base/35 p-4"
+            >
+              <div class="mb-2 flex items-start justify-between gap-3">
+                <div>
+                  <strong class="block text-sm text-text-primary">{{ item.skill || item.repo }}</strong><p class="text-xs text-text-muted">
+                    {{ item.owner }}/{{ item.repo }}
+                  </p>
+                </div><span class="rounded-full bg-bg-overlay/70 px-2 py-0.5 text-[11px] text-text-secondary">★ {{ item.stars || 0 }}</span>
+              </div><p class="mb-4 line-clamp-3 text-sm text-text-muted">
+                {{ item.description || 'No description.' }}
+              </p><div class="flex items-center justify-between gap-3">
+                <a
+                  :href="item.skillsShUrl"
+                  target="_blank"
+                  rel="noreferrer"
+                  class="text-sm text-accent-primary"
+                >Open</a><button
+                  class="rounded-xl border border-accent-primary/30 bg-accent-primary/10 px-3 py-2 text-sm text-text-primary"
+                  :disabled="selectedPlatforms.length===0"
+                  @click="openInstallReview('marketplace', item.package, item.skill ? [item.skill] : [])"
+                >
+                  Install review
+                </button>
+              </div>
+            </article>
+          </div>
+        </div>
+      </section>
 
-          <section class="panel">
-            <div class="panel__header">
-              <h2 class="panel__title">
-                Workflow
-              </h2>
-              <span class="badge">{{ workflowState.status }}</span>
+      <section
+        v-else-if="activeTab==='platforms'"
+        class="grid gap-4 md:grid-cols-2 2xl:grid-cols-3"
+      >
+        <article
+          v-for="platform in platforms"
+          :key="platform.id"
+          class="rounded-3xl border border-border-default/55 bg-bg-elevated/60 p-4"
+        >
+          <div class="mb-4 flex items-start justify-between gap-3">
+            <div>
+              <h2 class="text-base font-semibold text-text-primary">
+                {{ platform.displayName }}
+              </h2><p class="text-xs text-text-muted">
+                {{ platform.id }}
+              </p>
+            </div><span
+              class="rounded-full px-2 py-0.5 text-[11px]"
+              :class="platform.detected ? 'bg-success/10 text-success' : 'bg-danger/10 text-danger'"
+            >{{ platform.detected ? 'Detected' : 'Missing' }}</span>
+          </div><div class="grid gap-3">
+            <div class="rounded-2xl bg-bg-base/35 p-3">
+              <span class="block text-[11px] uppercase tracking-[0.14em] text-text-muted">Skills dir</span><strong class="mt-1 block break-all text-sm text-text-primary">{{ platform.globalSkillsDir }}</strong>
+            </div><div class="rounded-2xl bg-bg-base/35 p-3">
+              <span class="block text-[11px] uppercase tracking-[0.14em] text-text-muted">Install strategy</span><strong class="mt-1 block text-sm text-text-primary">{{ platform.installStrategy || 'managedcopy' }}</strong>
+            </div><div class="rounded-2xl bg-bg-base/35 p-3">
+              <span class="block text-[11px] uppercase tracking-[0.14em] text-text-muted">npx agent key</span><strong class="mt-1 block text-sm text-text-primary">{{ platform.npxAgentKey || 'fallback' }}</strong>
             </div>
-            <div class="skills-marketplace-context">
-              <div class="skills-marketplace-context__item">
-                <span class="field__label">Action</span>
-                <strong>{{ workflowState.action }}</strong>
-              </div>
-              <div class="skills-marketplace-context__item">
-                <span class="field__label">Target</span>
-                <strong>{{ workflowState.target || 'N/A' }}</strong>
-              </div>
-              <div class="skills-marketplace-context__item">
-                <span class="field__label">Platforms</span>
-                <strong>{{ workflowState.targetPlatforms?.length ?? 0 }}</strong>
+          </div>
+        </article>
+      </section>
+
+      <section
+        v-else
+        class="flex flex-col gap-4"
+      >
+        <div class="rounded-3xl border border-border-default/55 bg-bg-elevated/60 p-4">
+          <h2 class="mb-4 text-xs uppercase tracking-[0.16em] text-text-muted">
+            Add source
+          </h2><div class="grid gap-3 lg:grid-cols-2">
+            <div class="flex flex-col gap-3">
+              <input
+                v-model="manualGitSource"
+                class="rounded-2xl border border-border-default/55 bg-bg-base/45 px-3 py-2 text-sm text-text-primary"
+                placeholder="https://github.com/owner/repo"
+              ><button
+                class="rounded-xl border border-border-default/55 bg-bg-base/45 px-3 py-2 text-sm text-text-primary"
+                :disabled="mutationLoading || !manualGitSource.trim()"
+                @click="addGitRepository"
+              >
+                Add Git source
+              </button>
+            </div><div class="flex flex-col gap-3">
+              <input
+                v-model="manualLocalSource"
+                class="rounded-2xl border border-border-default/55 bg-bg-base/45 px-3 py-2 text-sm text-text-primary"
+                placeholder="D:/skills/repo"
+              ><button
+                class="rounded-xl border border-border-default/55 bg-bg-base/45 px-3 py-2 text-sm text-text-primary"
+                :disabled="mutationLoading || !manualLocalSource.trim()"
+                @click="addLocalRepository"
+              >
+                Add local source
+              </button>
+            </div>
+          </div>
+        </div>
+        <article
+          v-for="source in sources"
+          :key="source.id"
+          class="rounded-3xl border border-border-default/55 bg-bg-elevated/60 p-4"
+        >
+          <div class="mb-4 flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h2 class="text-base font-semibold text-text-primary">
+                {{ source.name }}
+              </h2><p class="mt-1 text-sm text-text-muted">
+                {{ source.location }}
+              </p>
+            </div><div class="flex gap-2">
+              <button
+                class="rounded-xl border border-border-default/55 bg-bg-base/45 px-3 py-2 text-sm text-text-primary"
+                :disabled="mutationLoading"
+                @click="syncRepository(source.id)"
+              >
+                Sync
+              </button><button
+                class="rounded-xl border border-danger/30 bg-danger/10 px-3 py-2 text-sm text-danger"
+                :disabled="mutationLoading"
+                @click="removeRepository(source.id)"
+              >
+                Remove
+              </button>
+            </div>
+          </div><div class="mt-4 flex flex-wrap gap-2">
+            <button
+              v-for="skill in source.skills"
+              :key="`${source.id}:${skill.id}`"
+              class="rounded-full border border-border-default/55 bg-bg-base/45 px-3 py-1.5 text-xs text-text-primary"
+              :disabled="selectedPlatforms.length===0"
+              @click="openSourceSkillReview(source.id, skill.id)"
+            >
+              {{ skill.name }}
+            </button>
+          </div>
+        </article>
+      </section>
+
+      <Transition name="fade">
+        <div
+          v-if="reviewDrawerOpen"
+          class="fixed inset-0 z-50 flex justify-end bg-bg-overlay/40 backdrop-blur-md"
+          @click="closeReviewDrawer"
+        >
+          <aside
+            class="flex h-full w-full max-w-[560px] flex-col gap-4 overflow-auto border-l border-border-default/55 bg-bg-elevated/90 p-5"
+            @click.stop
+          >
+            <div class="flex items-start justify-between gap-3">
+              <div>
+                <h2 class="text-lg font-semibold text-text-primary">
+                  Install review
+                </h2><p class="mt-1 text-sm text-text-muted">
+                  {{ installReview?.source.resolvedName || pendingInstall.sourceRef }}
+                </p>
+              </div><button
+                class="rounded-xl border border-border-default/55 bg-bg-base/45 px-3 py-2 text-sm text-text-primary"
+                @click="closeReviewDrawer"
+              >
+                <SIcon
+                  name="X"
+                  size="w-4 h-4"
+                />
+              </button>
+            </div>
+            <template v-if="installReview">
+              <div class="grid gap-3 md:grid-cols-2">
+                <div class="rounded-2xl bg-bg-base/40 p-4">
+                  <span class="block text-[11px] uppercase tracking-[0.14em] text-text-muted">Kind</span><strong class="mt-1 block text-sm text-text-primary">{{ installReview.source.sourceKind }}</strong>
+                </div><div class="rounded-2xl bg-bg-base/40 p-4">
+                  <span class="block text-[11px] uppercase tracking-[0.14em] text-text-muted">Resolved dir</span><strong class="mt-1 block text-sm text-text-primary">{{ installReview.source.resolvedDirName }}</strong>
+                </div>
               </div>
               <div
-                v-if="workflowState.detail"
-                class="skills-marketplace-context__item"
+                v-if="installReview.warnings.length>0"
+                class="rounded-2xl border border-warning/30 bg-warning/10 p-4"
               >
-                <span class="field__label">Detail</span>
-                <strong>{{ workflowState.detail }}</strong>
+                <ul class="list-disc space-y-1 pl-4 text-sm text-text-primary">
+                  <li
+                    v-for="warning in installReview.warnings"
+                    :key="warning"
+                  >
+                    {{ warning }}
+                  </li>
+                </ul>
               </div>
-            </div>
-          </section>
-
-          <ActivityLog :entries="operationLog" />
-        </aside>
-
-        <!-- 主内容：按 Tab 切换 -->
-        <div class="console-main">
-          <InventoryPanel
-            v-if="routeState.tab === 'inventory'"
-            :selected-platforms="selectedPlatforms"
-            @select="handleSkillSelect"
-            @update:mode="handleModeChange"
-          />
-
-          <SourcesPanel
-            v-else-if="routeState.tab === 'sources'"
-            :selected-platforms="selectedPlatforms"
-            @view-source="handleViewSource"
-          />
-
-          <MarketplacePanel
-            v-else
-            :selected-platforms="selectedPlatforms"
-            :search-initial="routeState.q"
-            :page="routeState.page"
-            @update:page="updatePage"
-            @update:search="updateSearchQuery"
-          />
+              <div class="rounded-2xl bg-bg-base/40 p-4">
+                <h3 class="mb-3 text-xs uppercase tracking-[0.16em] text-text-muted">
+                  Targets
+                </h3><div class="flex flex-col gap-2">
+                  <label
+                    v-for="platform in platforms"
+                    :key="platform.id"
+                    class="grid grid-cols-[auto_1fr_auto] items-center gap-3 rounded-2xl border px-3 py-2"
+                    :class="platform.detected?'border-border-default/55 bg-bg-overlay/50 text-text-primary':'border-border-default/35 bg-bg-base/20 text-text-muted opacity-50'"
+                  ><input
+                    v-model="selectedPlatforms"
+                    type="checkbox"
+                    :value="platform.id"
+                    :disabled="!platform.detected"
+                    @change="refreshInstallReview"
+                  ><span>{{ platform.displayName }}</span><strong class="text-xs">{{ platform.npxAgentKey || platform.installStrategy || 'managedcopy' }}</strong></label>
+                </div>
+              </div>
+              <article
+                v-for="preview in installReview.commandPreviews"
+                :key="`${preview.kind}:${preview.command}`"
+                class="rounded-2xl border border-border-default/55 bg-bg-base/35 p-4"
+              >
+                <div class="mb-2 flex items-center justify-between gap-3">
+                  <strong class="text-sm text-text-primary">{{ preview.label }}</strong><span class="rounded-full bg-bg-overlay/70 px-2 py-0.5 text-[11px] text-text-secondary">{{ preview.kind }}</span>
+                </div><pre class="overflow-auto rounded-2xl bg-bg-overlay/70 p-4 text-xs text-text-primary">{{ preview.command }}</pre>
+              </article>
+              <div class="flex justify-end gap-2">
+                <button
+                  class="rounded-xl border border-border-default/55 bg-bg-base/45 px-4 py-2 text-sm text-text-primary"
+                  @click="closeReviewDrawer"
+                >
+                  Cancel
+                </button><button
+                  class="rounded-xl border border-accent-primary/30 bg-accent-primary/10 px-4 py-2 text-sm text-text-primary"
+                  :disabled="selectedPlatforms.length===0 || mutationLoading"
+                  @click="confirmInstall"
+                >
+                  Confirm install
+                </button>
+              </div>
+            </template>
+          </aside>
         </div>
-      </div>
+      </Transition>
     </template>
   </div>
 </template>
@@ -443,499 +546,62 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import PageHeaderCard from '@/components/PageHeaderCard.vue'
 import AsyncStatePanel from '@/components/ui/AsyncStatePanel.vue'
+import PageHeaderCard from '@/components/PageHeaderCard.vue'
 import SIcon from '@/components/ui/SIcon.vue'
-import PlatformSelector from '@/components/skills/PlatformSelector.vue'
-import ActivityLog from '@/components/skills/ActivityLog.vue'
-import InventoryPanel from '@/components/skills/InventoryPanel.vue'
-import SourcesPanel from '@/components/skills/SourcesPanel.vue'
-import MarketplacePanel from '@/components/skills/MarketplacePanel.vue'
-import { useUnifiedSkills } from '@/composables/useUnifiedSkills'
 import { useUIStore } from '@/stores/ui'
-import { PLATFORM_CONFIG } from '@/types/skills'
+import { useUnifiedSkills } from '@/composables/useUnifiedSkills'
+import type { Platform, SkillOrigin, SkillsInstallRequest, SkillsTab } from '@/types/skills'
 import { getRuntimeUnavailableCopy } from '@/utils/runtimeState'
-import { isTauriRuntime } from '@/utils/tauriRuntime'
 import { handleSkillsChangedPayload } from './skillsWatcher'
-import type {
-  OnboardingCandidate,
-  Platform,
-  SkillOrigin,
-  SkillsRouteState,
-  SkillsTab,
-} from '@/types/skills'
+import { isTauriRuntime } from '@/utils/tauriRuntime'
 
-const router = useRouter()
 const route = useRoute()
+const router = useRouter()
 const uiStore = useUIStore()
-const {
-  initialize,
-  refresh,
-  loadMarketplace,
-  loadNpxStatus,
-  loadOnboardingCandidates,
-  applyRouteState,
-  importFromLocal,
-  addGitSource,
-  addLocalSourceRecord,
-  browseFolder,
-  platforms,
-  sources,
-  marketplace,
-  onboardingCandidates,
-  filters,
-  routeState,
-  operationLog,
-  workflowState,
-  mutationLoading,
-  availableCategories,
-  availableTags,
-  stats,
-  inventoryLoading,
-  sourcesLoading,
-  marketplaceLoading,
-  selectSkill,
-} = useUnifiedSkills()
-
-// --- 本地 UI 状态 ---
-const originOptions: SkillOrigin[] = ['marketplace', 'github', 'repo', 'local', 'npx', 'unknown']
-const selectedPlatforms = ref<Platform[]>([])
-const searchInput = ref('')
-const gitSourceUrl = ref('')
-const localSourcePath = ref('')
-const canonicalSourceBySkill = ref<Record<string, string>>({})
-const dismissedDetectedPlatformIds = ref<string[]>([])
-let stopSkillsEvent: null | (() => void) = null
-let searchTimer = 0
-const sourceOptions = computed(() =>
-  sources.value.map((source) => ({
-    id: source.id,
-    name: source.name,
-  }))
-)
-const newlyDetectedPlatforms = computed(() => {
-  return platforms.value.filter((platform) => {
-    return (
-      platform.detected &&
-      !selectedPlatforms.value.includes(platform.id) &&
-      !dismissedDetectedPlatformIds.value.includes(platform.id)
-    )
-  })
-})
-
-const tabs = computed(() => [
-  {
-    id: 'inventory' as SkillsTab,
-    label: 'Inventory',
-    icon: 'Package',
-    count: stats.value.logicalSkills,
-  },
-  { id: 'sources' as SkillsTab, label: 'Sources', icon: 'FolderGit2', count: stats.value.sources },
-  {
-    id: 'marketplace' as SkillsTab,
-    label: 'Marketplace',
-    icon: 'Store',
-    count: marketplace.value.total,
-  },
-])
+const { initialize, refresh, loadMarketplace, loadOnboardingCandidates, loadNpxCapabilities, addGitSource, addLocalSourceRecord, prepareInstall, install, syncSkill, removeSkillRecord, syncSource, removeSource, ensureDetail, ensureContent, selectSkill, selectedSkill, filteredSkills, selectedInstallation, platforms, sources, marketplace, onboardingCandidates, importFromLocal, stats, filters, routeState, installReview, npxCapabilities, marketplaceLoading, mutationLoading } = useUnifiedSkills()
 const runtimeUnavailable = computed(() => !isTauriRuntime())
 const runtimeCopy = computed(() => getRuntimeUnavailableCopy('skills'))
+const activeTab = computed<SkillsTab>(() => routeState.value.tab || 'library')
+const tabs = computed(() => [{ id: 'library' as SkillsTab, label: 'Library', icon: 'LibraryBig', count: stats.value.logicalSkills }, { id: 'explore' as SkillsTab, label: 'Explore', icon: 'Store', count: marketplace.value.total }, { id: 'platforms' as SkillsTab, label: 'Platforms', icon: 'Cpu', count: platforms.value.length }, { id: 'sources' as SkillsTab, label: 'Sources', icon: 'FolderGit2', count: sources.value.length }])
+const originOptions: SkillOrigin[] = ['marketplace', 'github', 'repo', 'local', 'npx', 'unknown']
+const selectedPlatforms = ref<Platform[]>([])
+const librarySearch = ref('')
+const exploreQuery = ref('')
+const manualGithub = ref('')
+const manualNpxPackage = ref('')
+const manualNpxSkills = ref('')
+const manualGitSource = ref('')
+const manualLocalSource = ref('')
+const reviewDrawerOpen = ref(false)
+const pendingInstall = ref<SkillsInstallRequest>({ sourceKind: 'marketplace', sourceRef: '', targetPlatforms: [] })
+const selectedContent = ref('')
+let stopSkillsEvent: null | (() => void) = null
+let searchTimer = 0
 
-// --- 路由同步 ---
-function normalizeRouteState(query: Record<string, unknown>): SkillsRouteState {
-  return {
-    tab: query.tab === 'sources' || query.tab === 'marketplace' ? query.tab : 'inventory',
-    selected: typeof query.selected === 'string' ? query.selected : null,
-    mode: query.mode === 'edit' ? 'edit' : 'view',
-    platform:
-      typeof query.platform === 'string' && query.platform in PLATFORM_CONFIG
-        ? (query.platform as Platform)
-        : 'all',
-    origin:
-      typeof query.origin === 'string' && originOptions.includes(query.origin as SkillOrigin)
-        ? (query.origin as SkillOrigin)
-        : 'all',
-    q: typeof query.q === 'string' ? query.q : '',
-    page: typeof query.page === 'string' ? Math.max(Number(query.page) || 1, 1) : 1,
-    source: typeof query.source === 'string' ? query.source : null,
-  }
-}
+function normalizeRouteState(query: Record<string, unknown>) { return { tab: (query.tab === 'explore' || query.tab === 'platforms' || query.tab === 'sources' ? query.tab : 'library') as SkillsTab, selected: typeof query.selected === 'string' ? query.selected : null, mode: 'view' as const, platform: typeof query.platform === 'string' ? query.platform : 'all', origin: (typeof query.origin === 'string' ? query.origin : 'all') as SkillOrigin | 'all', q: typeof query.q === 'string' ? query.q : '', page: 1, source: null } }
+function syncRoute(extra: Record<string, string | null>) { const next: Record<string, string> = {}; for (const [key, value] of Object.entries({ ...route.query, ...extra })) { if (typeof value === 'string' && value.trim()) next[key] = value } void router.replace({ path: '/skills', query: next }) }
+function setTab(tab: SkillsTab) { routeState.value.tab = tab; syncRoute({ tab: tab === 'library' ? null : tab }); if (tab === 'explore') void reloadMarketplace(false) }
+function resetLibraryFilters() { librarySearch.value = ''; filters.value.search = ''; filters.value.platform = 'all'; filters.value.origin = 'all'; filters.value.source = 'all'; filters.value.tags = []; syncRoute({ q: null, platform: null, origin: null }) }
+function selectDetectedPlatforms() { selectedPlatforms.value = platforms.value.filter((item) => item.detected).map((item) => item.id) }
+async function handleSelectSkill(skillId: string) { selectSkill(skillId, null); syncRoute({ selected: skillId }); await ensureDetail(skillId, true); const content = await ensureContent(skillId, selectedInstallation.value?.id ?? null, true); selectedContent.value = content?.raw ?? '' }
+async function syncSelectedSkill() { if (!selectedSkill.value || selectedPlatforms.value.length === 0) return; try { await syncSkill({ skillId: selectedSkill.value.id, installationId: selectedInstallation.value?.id, targetPlatforms: selectedPlatforms.value, force: true }); uiStore.showSuccess(`Synced ${selectedSkill.value.name}`); await refresh(activeTab.value === 'explore') } catch (error) { uiStore.showError(error instanceof Error ? error.message : String(error)) } }
+async function removeSelectedSkill() { if (!selectedSkill.value) return; try { await removeSkillRecord(selectedSkill.value.id); uiStore.showSuccess(`Removed ${selectedSkill.value.name}`); selectSkill(null, null); selectedContent.value = ''; syncRoute({ selected: null }) } catch (error) { uiStore.showError(error instanceof Error ? error.message : String(error)) } }
+async function importOnboardingCandidate(candidate: { name: string; platformIds: string[]; installationPaths: string[] }) { try { await importFromLocal({ sourcePath: candidate.installationPaths[0], agents: candidate.platformIds, skillName: candidate.name }); uiStore.showSuccess(`Imported ${candidate.name}`) } catch (error) { uiStore.showError(error instanceof Error ? error.message : String(error)) } }
+function parseSelectedSkills(value: string) { return value.split(',').map((item) => item.trim()).filter(Boolean) }
+async function openInstallReview(sourceKind: SkillsInstallRequest['sourceKind'], sourceRef: string, selectedSkills: string[] = []) { pendingInstall.value = { sourceKind, sourceRef, sourceSkillId: selectedSkills[0], selectedSkills, targetPlatforms: [...selectedPlatforms.value], scope: 'global', copyMode: true, allMode: false }; try { await prepareInstall(pendingInstall.value); reviewDrawerOpen.value = true } catch (error) { uiStore.showError(error instanceof Error ? error.message : String(error)) } }
+async function openSourceSkillReview(sourceId: string, skillId: string) { await openInstallReview('source', sourceId, [skillId]) }
+async function refreshInstallReview() { if (!reviewDrawerOpen.value || !pendingInstall.value.sourceRef) return; pendingInstall.value = { ...pendingInstall.value, targetPlatforms: [...selectedPlatforms.value] }; try { await prepareInstall(pendingInstall.value) } catch (error) { uiStore.showError(error instanceof Error ? error.message : String(error)) } }
+async function confirmInstall() { pendingInstall.value = { ...pendingInstall.value, targetPlatforms: [...selectedPlatforms.value] }; try { await install(pendingInstall.value); uiStore.showSuccess(`Installed ${installReview.value?.source.resolvedName || pendingInstall.value.sourceRef}`); closeReviewDrawer(); await refresh(activeTab.value === 'explore') } catch (error) { uiStore.showError(error instanceof Error ? error.message : String(error)) } }
+function closeReviewDrawer() { reviewDrawerOpen.value = false }
+async function reloadMarketplace(force: boolean) { routeState.value.q = exploreQuery.value.trim(); syncRoute({ q: routeState.value.q || null, tab: 'explore' }); await loadMarketplace(force) }
+async function addGitRepository() { try { await addGitSource(manualGitSource.value.trim()); manualGitSource.value = ''; uiStore.showSuccess('Git source added') } catch (error) { uiStore.showError(error instanceof Error ? error.message : String(error)) } }
+async function addLocalRepository() { try { await addLocalSourceRecord(manualLocalSource.value.trim()); manualLocalSource.value = ''; uiStore.showSuccess('Local source added') } catch (error) { uiStore.showError(error instanceof Error ? error.message : String(error)) } }
+async function syncRepository(sourceId: string) { try { await syncSource(sourceId); uiStore.showSuccess('Source synced') } catch (error) { uiStore.showError(error instanceof Error ? error.message : String(error)) } }
+async function removeRepository(sourceId: string) { try { await removeSource(sourceId); uiStore.showSuccess('Source removed') } catch (error) { uiStore.showError(error instanceof Error ? error.message : String(error)) } }
+watch(() => route.query, (query) => { const normalized = normalizeRouteState(query as Record<string, unknown>); routeState.value = normalized; filters.value.platform = normalized.platform; filters.value.origin = normalized.origin as SkillOrigin | 'all'; filters.value.search = normalized.q; librarySearch.value = normalized.q; if (normalized.selected) void handleSelectSkill(normalized.selected) }, { immediate: true })
+watch(librarySearch, (value) => { window.clearTimeout(searchTimer); searchTimer = window.setTimeout(() => { filters.value.search = value.trim(); syncRoute({ q: value.trim() || null }) }, 250) })
 
-function replaceRoute(patch: Partial<SkillsRouteState>) {
-  const next = { ...routeState.value, ...patch }
-  applyRouteState(next)
-  const query: Record<string, string> = {}
-  if (next.tab !== 'inventory') query.tab = next.tab
-  if (next.selected) query.selected = next.selected
-  if (next.mode !== 'view') query.mode = next.mode
-  if (next.platform !== 'all') query.platform = next.platform
-  if (next.origin !== 'all') query.origin = next.origin
-  if (next.q) query.q = next.q
-  if (next.page > 1) query.page = String(next.page)
-  if (next.source) query.source = next.source
-  void router.replace({ path: '/skills', query })
-}
-
-function setTab(tab: SkillsTab) {
-  replaceRoute({ tab, page: 1 })
-}
-function updatePlatformFilter(value: string) {
-  replaceRoute({ platform: value as SkillsRouteState['platform'] })
-}
-function updateOriginFilter(value: string) {
-  replaceRoute({ origin: value as SkillsRouteState['origin'] })
-}
-function updateSourceFilter(value: string) {
-  replaceRoute({ source: value === 'all' ? null : value, selected: null })
-}
-function updatePage(page: number) {
-  replaceRoute({ page })
-}
-function updateSearchQuery(q: string) {
-  replaceRoute({ q, page: 1 })
-}
-
-function handleSkillSelect(skillId: string) {
-  replaceRoute({ selected: skillId })
-}
-function handleModeChange(mode: 'view' | 'edit') {
-  replaceRoute({ mode })
-}
-
-function resetFilters() {
-  filters.value = {
-    search: '',
-    platform: 'all',
-    origin: 'all',
-    category: null,
-    tags: [],
-    source: 'all',
-  }
-  searchInput.value = ''
-  replaceRoute({ platform: 'all', origin: 'all', q: '', source: null, selected: null })
-}
-
-function toggleTag(tag: string) {
-  filters.value = {
-    ...filters.value,
-    tags: filters.value.tags.includes(tag)
-      ? filters.value.tags.filter((t) => t !== tag)
-      : [...filters.value.tags, tag],
-  }
-}
-
-function selectDetectedPlatforms() {
-  selectedPlatforms.value = platforms.value.filter((p) => p.detected).map((p) => p.id)
-}
-
-function selectNewlyDetectedPlatforms() {
-  selectedPlatforms.value = Array.from(
-    new Set([
-      ...selectedPlatforms.value,
-      ...newlyDetectedPlatforms.value.map((platform) => platform.id),
-    ])
-  )
-  dismissedDetectedPlatformIds.value = []
-}
-
-function dismissNewToolsPrompt() {
-  dismissedDetectedPlatformIds.value = newlyDetectedPlatforms.value.map((platform) => platform.id)
-}
-
-function updateCanonicalSource(skillId: string, path: string) {
-  canonicalSourceBySkill.value = {
-    ...canonicalSourceBySkill.value,
-    [skillId]: path,
-  }
-}
-
-async function importOnboardingCandidate(candidate: OnboardingCandidate) {
-  const sourcePath =
-    canonicalSourceBySkill.value[candidate.skillId] ?? candidate.installationPaths[0]
-  if (!sourcePath) {
-    uiStore.showError('No canonical source selected')
-    return
-  }
-
-  try {
-    await importFromLocal({
-      sourcePath,
-      agents: candidate.platformIds,
-      skillName: candidate.name,
-    })
-    selectedPlatforms.value = Array.from(
-      new Set([...selectedPlatforms.value, ...candidate.platformIds])
-    )
-    uiStore.showSuccess(`Imported ${candidate.name}`)
-    await loadOnboardingCandidates(true)
-    await refresh(routeState.value.tab === 'marketplace')
-    void router.replace({ path: '/skills', query: { ...route.query, tab: 'inventory' } })
-  } catch (error) {
-    uiStore.showError(error instanceof Error ? error.message : String(error))
-  }
-}
-
-// --- 侧边栏操作 ---
-async function handleAddGitSource() {
-  try {
-    await addGitSource(gitSourceUrl.value.trim())
-    gitSourceUrl.value = ''
-    uiStore.showSuccess('Git source added')
-  } catch (error) {
-    uiStore.showError(error instanceof Error ? error.message : String(error))
-  }
-}
-
-async function handleAddLocalSource() {
-  try {
-    await addLocalSourceRecord(localSourcePath.value.trim())
-    localSourcePath.value = ''
-    uiStore.showSuccess('Local source added')
-  } catch (error) {
-    uiStore.showError(error instanceof Error ? error.message : String(error))
-  }
-}
-
-async function handlePickFolder() {
-  try {
-    const path = await browseFolder()
-    if (!path) return
-    localSourcePath.value = path
-  } catch (error) {
-    uiStore.showError(error instanceof Error ? error.message : String(error))
-  }
-}
-
-async function handleRefresh() {
-  if (runtimeUnavailable.value) return
-  await refresh(routeState.value.tab === 'marketplace')
-}
-
-function handleViewSource(sourceId: string) {
-  replaceRoute({ tab: 'inventory', source: sourceId, selected: null, page: 1 })
-}
-
-// --- Watchers ---
-watch(
-  () => route.query,
-  (query) => {
-    const normalized = normalizeRouteState(query as Record<string, unknown>)
-    applyRouteState(normalized)
-    searchInput.value = normalized.q
-
-    if (runtimeUnavailable.value) {
-      selectSkill(null, null)
-      return
-    }
-
-    if (normalized.selected) {
-      selectSkill(normalized.selected, null)
-    } else {
-      selectSkill(null, null)
-    }
-    if (normalized.tab === 'marketplace') void loadMarketplace(true)
-  },
-  { immediate: true }
-)
-
-watch(searchInput, (value) => {
-  if (routeState.value.tab !== 'inventory') return
-  window.clearTimeout(searchTimer)
-  searchTimer = window.setTimeout(() => {
-    filters.value = { ...filters.value, search: value.trim() }
-    replaceRoute({ q: value.trim() })
-  }, 300)
-})
-
-watch(
-  platforms,
-  (current) => {
-    if (selectedPlatforms.value.length === 0 && current.length > 0) selectDetectedPlatforms()
-  },
-  { immediate: true }
-)
-
-// --- 生命周期 ---
-onMounted(async () => {
-  if (runtimeUnavailable.value) return
-  await initialize(false)
-  await loadNpxStatus(true)
-  await loadOnboardingCandidates(true)
-  if (routeState.value.tab === 'marketplace') await loadMarketplace()
-
-  if (isTauriRuntime()) {
-    const { listen } = await import('@tauri-apps/api/event')
-    stopSkillsEvent = await listen('skills-changed', async (event) => {
-      await handleSkillsChangedPayload(
-        event.payload as {
-          affectsInventory?: boolean
-          affectsSources?: boolean
-          affectsMarketplace?: boolean
-        },
-        {
-          currentTab: routeState.value.tab,
-          loadOnboardingCandidates,
-          refresh,
-        }
-      )
-    })
-  }
-})
-
-onUnmounted(() => {
-  stopSkillsEvent?.()
-  stopSkillsEvent = null
-})
+onMounted(async () => { if (runtimeUnavailable.value) return; await initialize(activeTab.value === 'explore'); await Promise.all([loadNpxCapabilities?.(true) ?? Promise.resolve(null), loadOnboardingCandidates(true)]); if (selectedPlatforms.value.length === 0) selectDetectedPlatforms(); if (isTauriRuntime()) { const { listen } = await import('@tauri-apps/api/event'); stopSkillsEvent = await listen('skills-changed', async (event) => { await handleSkillsChangedPayload(event.payload as { affectsInventory?: boolean; affectsSources?: boolean; affectsMarketplace?: boolean }, { currentTab: activeTab.value, loadOnboardingCandidates, refresh }) }) } })
+onUnmounted(() => { stopSkillsEvent?.(); stopSkillsEvent = null })
 </script>
-
-<style scoped>
-.skills-console {
-  @apply flex flex-col gap-5 px-4 py-4;
-}
-
-.panel,
-.console-tabs {
-  @apply rounded-3xl p-4;
-
-  background: var(--surface-workspace-bg);
-  border: 1px solid var(--surface-workspace-border);
-  box-shadow: var(--elevation-2);
-  backdrop-filter: var(--surface-workspace-blur);
-}
-
-.skills-header-stats {
-  @apply grid gap-3 md:grid-cols-3;
-}
-
-.skills-header-stat {
-  @apply rounded-2xl border border-border-default/55 px-4 py-3;
-
-  background-color: rgb(var(--color-bg-elevated-rgb) / 72%);
-  backdrop-filter: blur(14px);
-}
-
-.skills-header-stat__label {
-  @apply block text-[11px] uppercase tracking-[0.12em] text-text-muted;
-}
-
-.skills-header-stat__value {
-  @apply mt-2 block text-lg font-semibold tracking-tight text-text-primary;
-}
-
-.panel__title,
-.field__label {
-  @apply text-xs font-semibold uppercase tracking-[0.16em] text-text-muted;
-}
-
-.console-tabs {
-  @apply flex flex-wrap gap-2 p-2;
-}
-
-.console-tab,
-.console-button,
-.tag-chip {
-  @apply inline-flex items-center gap-2 rounded-xl border border-border-default/55 px-3 py-2 text-sm text-text-secondary;
-
-  background: var(--surface-status-bg);
-  border-color: var(--surface-status-border);
-  box-shadow: var(--elevation-1);
-  transition:
-    color var(--motion-subtle-duration) var(--motion-subtle-ease),
-    background-color var(--motion-subtle-duration) var(--motion-subtle-ease),
-    border-color var(--motion-subtle-duration) var(--motion-subtle-ease),
-    box-shadow var(--motion-subtle-duration) var(--motion-subtle-ease);
-}
-
-.console-tab--active,
-.tag-chip--active,
-.console-button--primary {
-  @apply text-text-primary;
-
-  background: linear-gradient(
-    180deg,
-    rgb(var(--color-accent-primary-rgb) / 18%),
-    rgb(var(--color-accent-secondary-rgb) / 10%)
-  );
-  border-color: rgb(var(--color-accent-primary-rgb) / 20%);
-  box-shadow: var(--elevation-2);
-}
-
-.console-tab__count {
-  @apply ml-auto rounded-full px-2 py-0.5 text-xs text-text-secondary;
-
-  background-color: rgb(var(--color-bg-base-rgb) / 68%);
-}
-
-.console-layout {
-  @apply grid gap-4 xl:grid-cols-[320px_minmax(0,1fr)];
-}
-
-.console-sidebar {
-  @apply flex flex-col gap-4;
-}
-
-.skills-marketplace-context {
-  @apply flex flex-col gap-3;
-}
-
-.skills-marketplace-context__item {
-  @apply rounded-2xl border border-border-default/45 p-3;
-
-  background-color: rgb(var(--color-bg-base-rgb) / 55%);
-}
-
-.skills-marketplace-context__item strong {
-  @apply mt-1 block text-sm text-text-primary;
-}
-
-.panel__header {
-  @apply mb-3 flex items-center justify-between gap-2;
-}
-
-.panel__link {
-  @apply text-xs text-text-muted;
-}
-
-.tag-cloud {
-  @apply flex flex-col gap-2;
-}
-
-.field {
-  @apply flex flex-col gap-2;
-}
-
-.field__input {
-  @apply w-full rounded-2xl border border-border-default/55 px-3 py-2 text-sm text-text-primary outline-none placeholder:text-text-muted/70;
-
-  background: var(--surface-status-bg);
-  border-color: var(--surface-status-border);
-  box-shadow: var(--elevation-1);
-  backdrop-filter: var(--surface-status-blur);
-  transition:
-    border-color var(--motion-subtle-duration) var(--motion-subtle-ease),
-    box-shadow var(--motion-subtle-duration) var(--motion-subtle-ease);
-}
-
-.field__input:hover {
-  border-color: rgb(var(--color-accent-primary-rgb) / 28%);
-}
-
-.field__input:focus {
-  border-color: rgb(var(--color-accent-primary-rgb) / 40%);
-  box-shadow: var(--elevation-2);
-}
-
-.field__row {
-  @apply flex gap-2;
-}
-
-.console-main {
-  @apply min-w-0;
-}
-
-@media (width <= 1279px) {
-  .console-layout {
-    grid-template-columns: 1fr;
-  }
-}
-</style>

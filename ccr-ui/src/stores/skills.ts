@@ -9,9 +9,11 @@ import {
   getSkillHubUnified,
   searchSkillHubMarketplace,
   saveSkillHubSkillContent,
+  skillsNpxCapabilities,
   skillsFileGet,
   skillsFilesList,
   skillsInstall,
+  skillsPrepareInstall,
   skillsOnboardingCandidates,
   skillsRemoveInstallation,
   skillsRemoveSkill,
@@ -25,17 +27,22 @@ import {
 import type {
   MarketplaceResponse,
   NpxStatus,
+  NpxPlatformSupport,
   OnboardingCandidate,
   Platform,
   SkillContent,
   SkillFileContent,
   SkillFileEntry,
+  SkillInstallCommandPreview,
+  SkillInstallReviewResponse,
+  SkillInstallReviewTarget,
   SkillFilters,
   SkillLogEntry,
   SkillOperationResponse,
   SkillRecord,
   SkillSourceRecord,
   SkillsInstallRequest,
+  SkillsNpxCapabilities,
   SkillsInventoryResponse,
   SkillsRouteState,
   SkillsSyncRequest,
@@ -49,7 +56,7 @@ type UnknownRecord = Record<string, unknown>
 const MARKETPLACE_PAGE_SIZE = 20
 
 const DEFAULT_ROUTE_STATE: SkillsRouteState = {
-  tab: 'inventory',
+  tab: 'library',
   selected: null,
   mode: 'view',
   platform: 'all',
@@ -72,15 +79,10 @@ function isNonNull<T>(value: T | null): value is T {
 }
 
 function normalizePlatform(value: string): Platform | null {
-  const normalized = value.toLowerCase()
-  if (normalized === 'claude' || normalized === 'claude-code') return 'claude-code'
-  if (normalized === 'codex') return 'codex'
-  if (normalized === 'gemini') return 'gemini'
-  if (normalized === 'qwen') return 'qwen'
-  if (normalized === 'qoder') return 'qoder'
-  if (normalized === 'droid') return 'droid'
-  if (normalized === 'opencode') return 'opencode'
-  return null
+  const normalized = value.trim().toLowerCase()
+  if (!normalized) return null
+  if (normalized === 'claude') return 'claude-code'
+  return normalized
 }
 
 function toStringArray(value: unknown): string[] {
@@ -227,13 +229,37 @@ function transformPlatform(raw: unknown): SkillPlatformSummary | null {
     globalSkillsDir: String(source.global_skills_dir ?? source.globalSkillsDir ?? ''),
     detected: Boolean(source.detected),
     installedCount: Number(source.installed_count ?? source.installedCount ?? 0),
+    sharedDirGroup:
+      typeof source.shared_dir_group === 'string'
+        ? source.shared_dir_group
+        : typeof source.sharedDirGroup === 'string'
+          ? source.sharedDirGroup
+          : undefined,
+    installStrategy:
+      typeof source.install_strategy === 'string'
+        ? (source.install_strategy as SkillPlatformSummary['installStrategy'])
+        : typeof source.installStrategy === 'string'
+          ? (source.installStrategy as SkillPlatformSummary['installStrategy'])
+          : undefined,
+    npxAgentKey:
+      typeof source.npx_agent_key === 'string'
+        ? source.npx_agent_key
+        : typeof source.npxAgentKey === 'string'
+          ? source.npxAgentKey
+          : undefined,
+    category: typeof source.category === 'string' ? source.category : undefined,
+    capabilities: toStringArray(source.capabilities),
+    sortOrder: Number(source.sort_order ?? source.sortOrder ?? 0),
   }
 }
 
 function transformInventory(raw: unknown): SkillsInventoryResponse {
   const source = asRecord(raw)
   const skills = asArray(source.skills).map(transformSkill).filter(isNonNull)
-  const platforms = asArray(source.platforms).map(transformPlatform).filter(isNonNull)
+  const platforms = asArray(source.platforms)
+    .map(transformPlatform)
+    .filter(isNonNull)
+    .sort((left, right) => (left.sortOrder ?? 0) - (right.sortOrder ?? 0))
 
   return {
     skills,
@@ -326,6 +352,103 @@ function transformOperation(raw: unknown): SkillOperationResponse {
         message: typeof row.message === 'string' ? row.message : undefined,
       }
     }),
+  }
+}
+
+function transformNpxCapabilities(raw: unknown): SkillsNpxCapabilities {
+  const source = asRecord(raw)
+  return {
+    available: Boolean(source.available ?? asRecord(source.status).available),
+    version:
+      typeof source.version === 'string'
+        ? source.version
+        : typeof asRecord(source.status).version === 'string'
+          ? String(asRecord(source.status).version)
+          : undefined,
+    path:
+      typeof source.path === 'string'
+        ? source.path
+        : typeof asRecord(source.status).path === 'string'
+          ? String(asRecord(source.status).path)
+          : undefined,
+    packageManager: String(source.package_manager ?? source.packageManager ?? 'npx'),
+    supportedFlags: toStringArray(source.supported_flags ?? source.supportedFlags),
+    supportedPlatforms: asArray(source.supported_platforms ?? source.supportedPlatforms).map((row) => {
+      const item = asRecord(row)
+      return {
+        platformId: String(item.platform_id ?? item.platformId ?? ''),
+        platformName: String(item.platform_name ?? item.platformName ?? ''),
+        supported: Boolean(item.supported),
+        agentKey:
+          typeof item.agent_key === 'string'
+            ? item.agent_key
+            : typeof item.agentKey === 'string'
+              ? item.agentKey
+              : undefined,
+        reason: typeof item.reason === 'string' ? item.reason : undefined,
+      } satisfies NpxPlatformSupport
+    }),
+  }
+}
+
+function transformInstallReview(raw: unknown): SkillInstallReviewResponse {
+  const source = asRecord(raw)
+  const reviewSource = asRecord(source.source)
+  return {
+    source: {
+      sourceKind: String(reviewSource.source_kind ?? reviewSource.sourceKind ?? ''),
+      sourceRef: String(reviewSource.source_ref ?? reviewSource.sourceRef ?? ''),
+      sourceSkillId:
+        typeof reviewSource.source_skill_id === 'string'
+          ? reviewSource.source_skill_id
+          : typeof reviewSource.sourceSkillId === 'string'
+            ? reviewSource.sourceSkillId
+            : undefined,
+      resolvedName: String(reviewSource.resolved_name ?? reviewSource.resolvedName ?? ''),
+      resolvedDirName: String(reviewSource.resolved_dir_name ?? reviewSource.resolvedDirName ?? ''),
+      origin: String(reviewSource.origin ?? 'unknown') as SkillInstallReviewResponse['source']['origin'],
+      description:
+        typeof reviewSource.description === 'string' ? reviewSource.description : undefined,
+    },
+    targets: asArray(source.targets).map((row) => {
+      const item = asRecord(row)
+      return {
+        platformId: String(item.platform_id ?? item.platformId ?? ''),
+        platformName: String(item.platform_name ?? item.platformName ?? ''),
+        detected: Boolean(item.detected),
+        targetPath: String(item.target_path ?? item.targetPath ?? ''),
+        sharedDirGroup:
+          typeof item.shared_dir_group === 'string'
+            ? item.shared_dir_group
+            : typeof item.sharedDirGroup === 'string'
+              ? item.sharedDirGroup
+              : undefined,
+        installStrategy:
+          typeof item.install_strategy === 'string'
+            ? (item.install_strategy as SkillInstallReviewTarget['installStrategy'])
+            : typeof item.installStrategy === 'string'
+              ? (item.installStrategy as SkillInstallReviewTarget['installStrategy'])
+              : undefined,
+        directNpxSupported: Boolean(item.direct_npx_supported ?? item.directNpxSupported),
+        npxAgentKey:
+          typeof item.npx_agent_key === 'string'
+            ? item.npx_agent_key
+            : typeof item.npxAgentKey === 'string'
+              ? item.npxAgentKey
+              : undefined,
+      } satisfies SkillInstallReviewTarget
+    }),
+    warnings: toStringArray(source.warnings),
+    commandPreviews: asArray(source.command_previews ?? source.commandPreviews).map((row) => {
+      const item = asRecord(row)
+      return {
+        kind: String(item.kind ?? ''),
+        label: String(item.label ?? ''),
+        command: String(item.command ?? ''),
+        platforms: toStringArray(item.platforms),
+      } satisfies SkillInstallCommandPreview
+    }),
+    npx: source.npx ? transformNpxCapabilities(source.npx) : undefined,
   }
 }
 
@@ -430,6 +553,8 @@ export const useSkillsStore = defineStore('skills', () => {
   const filesCache = shallowRef(new Map<string, SkillFileEntry[]>())
   const fileContentCache = shallowRef(new Map<string, SkillFileContent>())
   const npxStatus = ref<NpxStatus | null>(null)
+  const npxCapabilities = ref<SkillsNpxCapabilities | null>(null)
+  const installReview = ref<SkillInstallReviewResponse | null>(null)
   const marketplaceLoaded = ref(false)
   const detailCache = shallowRef(new Map<string, SkillRecord>())
   const contentCache = shallowRef(new Map<string, SkillContent>())
@@ -599,6 +724,29 @@ export const useSkillsStore = defineStore('skills', () => {
       path: typeof response.path === 'string' ? response.path : undefined,
     }
     return npxStatus.value
+  }
+
+  async function loadNpxCapabilities(force = false) {
+    if (!force && npxCapabilities.value) return npxCapabilities.value
+    npxCapabilities.value = transformNpxCapabilities(await skillsNpxCapabilities())
+    return npxCapabilities.value
+  }
+
+  async function prepareInstall(request: SkillsInstallRequest) {
+    installReview.value = transformInstallReview(
+      await skillsPrepareInstall({
+        source_kind: request.sourceKind,
+        source_ref: request.sourceRef,
+        source_skill_id: request.sourceSkillId ?? null,
+        selected_skills: request.selectedSkills ?? [],
+        target_platforms: request.targetPlatforms,
+        force: request.force ?? false,
+        scope: request.scope ?? 'global',
+        copy_mode: request.copyMode ?? true,
+        all_mode: request.allMode ?? false,
+      })
+    )
+    return installReview.value
   }
 
   async function ensureDetail(skillId: string, force = false) {
@@ -931,8 +1079,12 @@ export const useSkillsStore = defineStore('skills', () => {
         source_kind: request.sourceKind,
         source_ref: request.sourceRef,
         source_skill_id: request.sourceSkillId ?? null,
+        selected_skills: request.selectedSkills ?? [],
         target_platforms: request.targetPlatforms,
         force: request.force ?? false,
+        scope: request.scope ?? 'global',
+        copy_mode: request.copyMode ?? true,
+        all_mode: request.allMode ?? false,
       }),
       request.targetPlatforms
     )
@@ -1083,6 +1235,8 @@ export const useSkillsStore = defineStore('skills', () => {
     onboardingCandidates,
     workflowState,
     npxStatus,
+    npxCapabilities,
+    installReview,
     detailLoading,
     contentLoading,
     mutationLoading,
@@ -1103,6 +1257,8 @@ export const useSkillsStore = defineStore('skills', () => {
     loadSources,
     loadMarketplace,
     loadNpxStatus,
+    loadNpxCapabilities,
+    prepareInstall,
     ensureDetail,
     ensureContent,
     ensureFiles,

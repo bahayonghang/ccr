@@ -185,12 +185,15 @@ pub use managers::{
 };
 
 pub use models::skills::{
-    MarketplaceListResponse, MarketplaceSkill, NpxStatus, SkillContent, SkillFileContent,
-    SkillFileEntry, SkillInstallMeta, SkillInstallMode, SkillInstallationRecord,
-    SkillLifecycleSummary, SkillOrigin, SkillPlatformConfig, SkillPlatformSummary, SkillRecord,
-    SkillSourceHealth, SkillSourceRecord, SkillSourceSkillRecord, SkillSourceType,
-    SkillTargetRecord, SkillTargetStatus, SkillsInstallRequest, SkillsInventoryQuery,
-    SkillsInventoryResponse, SkillsOnboardingCandidate, SkillsSourceManifest, SkillsSyncRequest,
+    MarketplaceListResponse, MarketplaceSkill, NpxPlatformSupport, NpxStatus, SkillContent,
+    SkillFileContent, SkillFileEntry, SkillInstallMeta, SkillInstallMode, SkillInstallStrategy,
+    SkillInstallationRecord, SkillLifecycleSummary, SkillOrigin, SkillPlatformConfig,
+    SkillPlatformSummary, SkillRecord, SkillSourceHealth, SkillSourceRecord,
+    SkillSourceSkillRecord, SkillSourceType, SkillTargetRecord, SkillTargetStatus,
+    SkillsInstallCommandPreview, SkillsInstallRequest, SkillsInstallReviewResponse,
+    SkillsInstallReviewSource, SkillsInstallReviewTarget, SkillsInventoryQuery,
+    SkillsInventoryResponse, SkillsNpxCapabilities, SkillsOnboardingCandidate,
+    SkillsSourceManifest, SkillsSyncRequest,
 };
 /// 数据模型和平台 trait
 ///

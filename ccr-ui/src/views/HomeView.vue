@@ -56,7 +56,7 @@
               density="compact"
               surface="card"
               motion="subtle"
-              @click="router.push('/skills?tab=marketplace')"
+              @click="router.push('/skills?tab=explore')"
             >
               {{ $t('nav.skills') }}
             </Button>
