@@ -53,6 +53,7 @@ pub const FG_MUTED: Color = Color::Rgb(100, 116, 139); // #64748b - dark gray
 pub const FG_SUCCESS: Color = Color::Rgb(34, 197, 94); // #22c55e - green
 pub const FG_WARNING: Color = Color::Rgb(234, 179, 8); // #eab308 - yellow
 pub const FG_ERROR: Color = Color::Rgb(239, 68, 68); // #ef4444 - red
+pub const FG_INFO: Color = Color::Rgb(56, 189, 248); // #38bdf8 - sky blue
 
 /// Background color (for selected items)
 pub const BG_PRIMARY: Color = Color::Rgb(15, 23, 42); // #0f172a - deep blue black
@@ -166,9 +167,24 @@ pub fn success_style() -> Style {
     Style::default().fg(FG_SUCCESS).add_modifier(Modifier::BOLD)
 }
 
+/// Warning message style
+pub fn warning_style() -> Style {
+    Style::default().fg(FG_WARNING).add_modifier(Modifier::BOLD)
+}
+
 /// Error message style
 pub fn error_style() -> Style {
     Style::default().fg(FG_ERROR).add_modifier(Modifier::BOLD)
+}
+
+/// Informational message style
+pub fn info_style() -> Style {
+    Style::default().fg(FG_INFO)
+}
+
+/// Muted secondary text style
+pub fn muted_style() -> Style {
+    Style::default().fg(FG_MUTED)
 }
 
 /// Empty state hint style
