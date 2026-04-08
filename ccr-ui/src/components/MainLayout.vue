@@ -106,6 +106,7 @@
               :key="item.to"
               :to="item.to"
               class="nav-item group"
+              :class="{ 'nav-item--root': item.to === '/' }"
             >
               <SIcon
                 :name="item.icon"
@@ -345,6 +346,7 @@ const currentSectionTitle = computed(() => {
 
 const shouldUseThemeStage = computed(() => Boolean(route.meta.hideGlobalBackground))
 
+
 const hasSidebar = computed(() => !route.meta.hideSidebar)
 const {
   closeNavigationLabel,
@@ -511,7 +513,8 @@ onBeforeUnmount(() => {
   border-color: rgb(var(--color-border-default-rgb) / 60%);
 }
 
-.nav-item.router-link-active {
+.nav-item.router-link-active:not(.nav-item--root),
+.nav-item.router-link-exact-active.nav-item--root {
   @apply text-text-primary shadow-sm;
 
   box-shadow:
@@ -522,7 +525,8 @@ onBeforeUnmount(() => {
 }
 
 /* Active indicator strip */
-.nav-item.router-link-active::before {
+.nav-item.router-link-active:not(.nav-item--root)::before,
+.nav-item.router-link-exact-active.nav-item--root::before {
   content: '';
 
   @apply absolute left-0 top-1/2 -translate-y-1/2 h-5 w-1 rounded-r-full;
