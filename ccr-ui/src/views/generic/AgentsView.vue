@@ -484,7 +484,7 @@ import type { Agent, AgentRequest } from '@/types'
 import { logger } from '@/utils/logger'
 
 const props = defineProps<{
-  module: 'codex' | 'gemini' | 'qwen' | 'qoder' | 'agents' | 'droid'
+  module: 'gemini' | 'qwen' | 'qoder' | 'agents' | 'droid'
 }>()
 
 const { t } = useI18n()

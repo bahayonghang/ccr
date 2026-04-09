@@ -266,6 +266,47 @@ function resolveName(arg1: string | object): string {
   return String(request.name ?? request.id ?? '')
 }
 
+function resolveCodexAgentContext(value: unknown): UnknownRecord | undefined {
+  const request = asRecord(value)
+  if (Object.keys(request).length === 0) {
+    return undefined
+  }
+  return request
+}
+
+function resolveCodexAgentMutation(
+  arg1: string | object,
+  arg2?: unknown
+): { name: string; config: UnknownRecord; context?: UnknownRecord } {
+  if (typeof arg1 === 'string') {
+    return {
+      name: arg1,
+      config: asRecord(arg2),
+    }
+  }
+
+  const request = { ...asRecord(arg1) }
+  const name = String(request.name ?? request.id ?? '')
+  const context = resolveCodexAgentContext(request.context ?? request.agentContext)
+  delete request.name
+  delete request.id
+  delete request.context
+  delete request.agentContext
+  return { name, config: request, context }
+}
+
+function resolveCodexAgentNameAndContext(arg1: string | object): { name: string; context?: UnknownRecord } {
+  if (typeof arg1 === 'string') {
+    return { name: arg1 }
+  }
+
+  const request = asRecord(arg1)
+  return {
+    name: String(request.name ?? request.id ?? ''),
+    context: resolveCodexAgentContext(request.context ?? request.agentContext),
+  }
+}
+
 // ════════════════════════════════════════════════════════════
 // 1. 环境检测 & 工具函数
 // ════════════════════════════════════════════════════════════
@@ -830,8 +871,10 @@ export const deleteCodexMcpServer = async <T = UnknownRecord>(
 }
 
 /** 列出 Codex Agents */
-export const listCodexAgents = async <T = UnknownRecord>(): Promise<T> => {
-  return invoke('codex_list_agents')
+export const listCodexAgents = async <T = UnknownRecord>(context?: unknown): Promise<T> => {
+  return invoke('codex_list_agents', {
+    context: resolveCodexAgentContext(context),
+  })
 }
 
 /** 添加 Codex Agent */
@@ -839,8 +882,8 @@ export const addCodexAgent = async <T = UnknownRecord>(
   nameOrRequest: string | object,
   config?: unknown
 ): Promise<T> => {
-  const { name, config: resolvedConfig } = resolveNameAndConfig(nameOrRequest, config)
-  return invoke('codex_add_agent', { name, config: resolvedConfig })
+  const { name, config: resolvedConfig, context } = resolveCodexAgentMutation(nameOrRequest, config)
+  return invoke('codex_add_agent', { name, config: resolvedConfig, context })
 }
 
 /** 更新 Codex Agent */
@@ -848,32 +891,63 @@ export const updateCodexAgent = async <T = UnknownRecord>(
   nameOrRequest: string | object,
   config?: unknown
 ): Promise<T> => {
-  const { name, config: resolvedConfig } = resolveNameAndConfig(nameOrRequest, config)
-  return invoke('codex_update_agent', { name, config: resolvedConfig })
+  const { name, config: resolvedConfig, context } = resolveCodexAgentMutation(nameOrRequest, config)
+  return invoke('codex_update_agent', { name, config: resolvedConfig, context })
 }
 
 /** 删除 Codex Agent */
 export const deleteCodexAgent = async <T = UnknownRecord>(
   nameOrRequest: string | object
 ): Promise<T> => {
-  const name = resolveName(nameOrRequest)
-  return invoke('codex_delete_agent', { name })
+  const { name, context } = resolveCodexAgentNameAndContext(nameOrRequest)
+  return invoke('codex_delete_agent', { name, context })
 }
 
-/** 切换 Codex Agent 启用/禁用状态 */
+/** Codex custom agents do not support enabled/disabled toggling */
 export const toggleCodexAgent = async <T = UnknownRecord>(
   nameOrRequest: string | object,
-  enabled?: boolean
+  _enabled?: boolean
 ): Promise<T> => {
-  const name = resolveName(nameOrRequest)
-  const request = asRecord(nameOrRequest)
-  const resolvedEnabled =
-    typeof enabled === 'boolean'
-      ? enabled
-      : typeof request.enabled === 'boolean'
-        ? request.enabled
-        : true
-  return invoke('codex_update_agent', { name, config: { enabled: resolvedEnabled } })
+  const { name } = resolveCodexAgentNameAndContext(nameOrRequest)
+  return Promise.reject(new Error(`Codex agent '${name}' does not support toggle`))
+}
+
+/** 重命名 Codex Agent */
+export const renameCodexAgent = async <T = UnknownRecord>(
+  payload: { name: string; newName: string; context?: unknown }
+): Promise<T> => {
+  return invoke('codex_rename_agent', {
+    name: payload.name,
+    newName: payload.newName,
+    context: resolveCodexAgentContext(payload.context),
+  })
+}
+
+/** 复制 Codex Agent */
+export const copyCodexAgent = async <T = UnknownRecord>(
+  payload: {
+    name: string
+    sourceContext?: unknown
+    targetContext?: unknown
+    targetName?: string
+  }
+): Promise<T> => {
+  return invoke('codex_copy_agent', {
+    name: payload.name,
+    sourceContext: resolveCodexAgentContext(payload.sourceContext),
+    targetContext: resolveCodexAgentContext(payload.targetContext),
+    targetName: payload.targetName ?? null,
+  })
+}
+
+/** 校验 Codex Agent 原始 TOML */
+export const validateCodexAgentToml = async <T = UnknownRecord>(
+  payload: { name: string; context?: unknown }
+): Promise<T> => {
+  return invoke('codex_validate_agent_toml', {
+    name: payload.name,
+    context: resolveCodexAgentContext(payload.context),
+  })
 }
 
 // ── Codex Models ──

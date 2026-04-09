@@ -373,7 +373,7 @@ fn count_codex_agents(path: &PathBuf) -> Result<usize, String> {
     for entry in fs::read_dir(path).map_err(|e| format!("读取 agents 目录失败: {e}"))? {
         let entry = entry.map_err(|e| format!("遍历 agents 目录失败: {e}"))?;
         let path = entry.path();
-        if path.extension().and_then(|value| value.to_str()) == Some("md") {
+        if path.extension().and_then(|value| value.to_str()) == Some("toml") {
             count += 1;
         }
     }
@@ -1577,37 +1577,6 @@ fn parse_mcp_server(v: &Value) -> Result<CodexMcpServer, String> {
 }
 
 /// 从 markdown 内容中提取 YAML frontmatter 的 description 字段
-fn extract_frontmatter_description(content: &str) -> (Option<String>, String) {
-    if let Some(rest) = content.strip_prefix("---\n")
-        && let Some(end) = rest.find("\n---\n")
-    {
-        let frontmatter = &rest[..end];
-        let body = rest[end + 5..].to_string();
-        let description = frontmatter.lines().find_map(|line| {
-            let line = line.trim();
-            line.strip_prefix("description:")
-                .map(|v| v.trim().to_string())
-        });
-        return (description, body);
-    }
-    (None, content.to_string())
-}
-
-/// 从 JSON config 构建 agent markdown 内容
-fn build_agent_markdown(config: &Value) -> String {
-    let description = config
-        .get("description")
-        .and_then(|v| v.as_str())
-        .unwrap_or("");
-    let content = config.get("content").and_then(|v| v.as_str()).unwrap_or("");
-
-    if description.is_empty() {
-        content.to_string()
-    } else {
-        format!("---\ndescription: {description}\n---\n{content}")
-    }
-}
-
 #[cfg(test)]
 #[allow(clippy::unwrap_used)]
 mod tests {

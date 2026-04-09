@@ -257,6 +257,82 @@ export interface CodexAuthProcessResponse {
   warning?: string
 }
 
+// ============ Codex Agent Management Types ============
+
+export type CodexAgentContextMode = 'global' | 'project'
+
+export interface CodexAgentContext {
+  mode: CodexAgentContextMode
+  label: string
+  agentsDir: string
+  projectRoot?: string
+}
+
+export interface CodexAgentContextRequest {
+  mode?: CodexAgentContextMode
+  projectRoot?: string | null
+}
+
+export interface CodexAgentDiagnostic {
+  fileName: string
+  path: string
+  severity: string
+  message: string
+}
+
+export interface CodexAgentRecord {
+  name: string
+  fileName: string
+  path: string
+  description?: string
+  developerInstructions?: string
+  nicknameCandidates?: string[]
+  model?: string
+  modelReasoningEffort?: string
+  sandboxMode?: string
+  mcpServers?: Record<string, unknown>
+  skillsConfig?: unknown
+  other?: Record<string, unknown>
+  rawToml?: string
+  parseError?: string
+}
+
+export interface CodexAgentsResponse {
+  context: CodexAgentContext
+  agents: CodexAgentRecord[]
+  diagnostics: CodexAgentDiagnostic[]
+}
+
+export interface CodexAgentMutationResponse {
+  message: string
+  context: CodexAgentContext
+  agent: CodexAgentRecord
+  diagnostics?: CodexAgentDiagnostic[]
+  sourceContext?: CodexAgentContext
+  targetContext?: CodexAgentContext
+  sourceRawToml?: string
+}
+
+export interface CodexAgentUpsertRequest {
+  name?: string
+  description?: string | null
+  developerInstructions?: string | null
+  nicknameCandidates?: string[] | null
+  model?: string | null
+  modelReasoningEffort?: string | null
+  sandboxMode?: string | null
+  mcpServers?: Record<string, unknown> | null
+  skillsConfig?: unknown
+  other?: Record<string, unknown> | null
+  rawToml?: string | null
+  newName?: string | null
+  context?: CodexAgentContextRequest
+}
+
+export type CodexAgent = CodexAgentRecord
+export type CodexAgentListResponse = CodexAgentsResponse
+export type CodexAgentRequest = CodexAgentUpsertRequest
+
 // ============ Codex Usage Types ============
 
 /** Codex 使用量统计 */

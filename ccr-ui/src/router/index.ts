@@ -289,8 +289,7 @@ const routes: RouteRecordRaw[] = [
       {
         path: 'codex/agents',
         name: 'codex-agents',
-        component: () => import('@/views/generic/AgentsView.vue'),
-        props: { module: 'codex' },
+        component: () => import('@/views/codex/CodexAgentsView.vue'),
         meta: { depth: 2, group: 'codex' },
       },
       {

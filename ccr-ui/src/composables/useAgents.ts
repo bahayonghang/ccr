@@ -1,5 +1,4 @@
 import { ref } from 'vue'
-import { listCodexAgents, addCodexAgent, updateCodexAgent, deleteCodexAgent, toggleCodexAgent } from '@/api'
 import { listGeminiAgents, addGeminiAgent, updateGeminiAgent, deleteGeminiAgent, toggleGeminiAgent } from '@/api'
 import { listQwenAgents, addQwenAgent, updateQwenAgent, deleteQwenAgent, toggleQwenAgent } from '@/api'
 import { listQoderAgents, addQoderAgent, updateQoderAgent, deleteQoderAgent, toggleQoderAgent } from '@/api'
@@ -12,7 +11,7 @@ import type { Agent, AgentRequest } from '@/types'
 import type { ConfigListResponse, HistoryResponse } from '@/types'
 
 type GenericAgentModule = (typeof genericPlatformDescriptors)[keyof typeof genericPlatformDescriptors]['agents']['module']
-type ModuleType = 'codex' | GenericAgentModule | 'agents'
+type ModuleType = GenericAgentModule | 'agents'
 
 interface AgentApi {
     list: () => Promise<{ agents: Agent[], folders?: string[] }>
@@ -27,13 +26,6 @@ function getErrorMessage(err: unknown): string {
 }
 
 const apiMap: Record<ModuleType, AgentApi> = {
-    codex: {
-        list: listCodexAgents,
-        add: addCodexAgent,
-        update: updateCodexAgent,
-        delete: deleteCodexAgent,
-        toggle: toggleCodexAgent
-    },
     gemini: {
         list: listGeminiAgents,
         add: addGeminiAgent,
