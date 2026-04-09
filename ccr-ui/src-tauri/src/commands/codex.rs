@@ -99,19 +99,43 @@ struct CodexConfig {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct CodexMcpServer {
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub enabled: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub command: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub args: Option<Vec<String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub env: Option<HashMap<String, String>>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub env_vars: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub cwd: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub startup_timeout_ms: Option<u64>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub startup_timeout_sec: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub tool_timeout_sec: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub url: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub http_headers: Option<HashMap<String, String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub env_http_headers: Option<HashMap<String, String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub bearer_token: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub bearer_token_env_var: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub oauth_resource: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub scopes: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub enabled_tools: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub disabled_tools: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub required: Option<bool>,
     #[serde(flatten)]
     pub other: HashMap<String, toml::Value>,
 }
@@ -237,6 +261,29 @@ const EXPLICIT_PLATFORM_STRING_FIELDS: &[&str] = &[
 ];
 const EXPLICIT_PLATFORM_BOOL_FIELDS: &[&str] =
     &["requires_openai_auth", "disable_response_storage"];
+const KNOWN_MCP_FIELDS: &[&str] = &[
+    "enabled",
+    "disabled",
+    "command",
+    "args",
+    "env",
+    "env_vars",
+    "cwd",
+    "startup_timeout_ms",
+    "startup_timeout_sec",
+    "tool_timeout_sec",
+    "url",
+    "http_headers",
+    "headers",
+    "env_http_headers",
+    "bearer_token",
+    "bearer_token_env_var",
+    "oauth_resource",
+    "scopes",
+    "enabled_tools",
+    "disabled_tools",
+    "required",
+];
 
 #[path = "codex_agents.rs"]
 mod agents;
@@ -886,6 +933,15 @@ fn parse_i64_field(raw: &Value, field_name: &str) -> Result<Option<i64>, String>
     }
 }
 
+fn parse_u64_field(raw: &Value, field_name: &str) -> Result<Option<u64>, String> {
+    let parsed = parse_i64_field(raw, field_name)?;
+    match parsed {
+        Some(value) if value < 0 => Err(format!("字段 '{field_name}' 不能为负数")),
+        Some(value) => Ok(Some(value as u64)),
+        None => Ok(None),
+    }
+}
+
 fn parse_string_array_field(raw: &Value, field_name: &str) -> Result<Option<Vec<String>>, String> {
     match raw {
         Value::Null => Ok(None),
@@ -920,6 +976,30 @@ fn parse_string_array_field(raw: &Value, field_name: &str) -> Result<Option<Vec<
             }
         }
         _ => Err(format!("字段 '{field_name}' 必须是字符串数组")),
+    }
+}
+
+fn parse_string_map_field(
+    raw: &Value,
+    field_name: &str,
+) -> Result<Option<HashMap<String, String>>, String> {
+    match raw {
+        Value::Null => Ok(None),
+        Value::Object(items) => {
+            let mut values = HashMap::new();
+            for (key, value) in items {
+                let parsed = parse_string_field(value, &format!("{field_name}.{key}"))?;
+                if let Some(text) = parsed {
+                    values.insert(key.clone(), text);
+                }
+            }
+            if values.is_empty() {
+                Ok(None)
+            } else {
+                Ok(Some(values))
+            }
+        }
+        _ => Err(format!("字段 '{field_name}' 必须是对象")),
     }
 }
 
@@ -1551,28 +1631,107 @@ fn profile_to_json(
 
 // ── 私有辅助函数 ──
 
+fn json_to_toml_value(raw: &Value, field_name: &str) -> Result<toml::Value, String> {
+    serde_json::from_value(raw.clone())
+        .map_err(|_| format!("字段 '{field_name}' 无法转换为 TOML 值"))
+}
+
+fn validate_mcp_server(server: &CodexMcpServer) -> Result<(), String> {
+    if server.command.is_none() && server.url.is_none() {
+        return Err("MCP 服务器必须至少提供 command 或 url".to_string());
+    }
+
+    Ok(())
+}
+
+fn merge_codex_mcp_server(parsed: &mut CodexMcpServer, existing: &CodexMcpServer) {
+    let mut merged_other = existing.other.clone();
+    merged_other.extend(parsed.other.clone());
+    parsed.other = merged_other;
+}
+
 /// 从 JSON Value 解析 CodexMcpServer
 fn parse_mcp_server(v: &Value) -> Result<CodexMcpServer, String> {
+    let obj = v
+        .as_object()
+        .ok_or_else(|| "MCP 服务器配置必须是对象".to_string())?;
+
+    let enabled = if let Some(raw) = obj.get("enabled") {
+        parse_bool_field(raw, "enabled")?
+    } else if let Some(raw) = obj.get("disabled") {
+        parse_bool_field(raw, "disabled")?.map(|disabled| !disabled)
+    } else {
+        None
+    };
+
+    let http_headers = if let Some(raw) = obj.get("http_headers") {
+        parse_string_map_field(raw, "http_headers")?
+    } else if let Some(raw) = obj.get("headers") {
+        parse_string_map_field(raw, "headers")?
+    } else {
+        None
+    };
+
+    let mut other = HashMap::new();
+    for (key, value) in obj {
+        if KNOWN_MCP_FIELDS.contains(&key.as_str()) || value.is_null() {
+            continue;
+        }
+
+        other.insert(key.clone(), json_to_toml_value(value, key)?);
+    }
+
     Ok(CodexMcpServer {
-        command: v.get("command").and_then(|x| x.as_str()).map(String::from),
-        args: v.get("args").and_then(|x| x.as_array()).map(|arr| {
-            arr.iter()
-                .filter_map(|s| s.as_str().map(String::from))
-                .collect()
-        }),
-        env: v.get("env").and_then(|x| x.as_object()).map(|obj| {
-            obj.iter()
-                .filter_map(|(k, val)| val.as_str().map(|s| (k.clone(), s.to_string())))
-                .collect()
-        }),
-        cwd: v.get("cwd").and_then(|x| x.as_str()).map(String::from),
-        startup_timeout_ms: v.get("startup_timeout_ms").and_then(|x| x.as_u64()),
-        url: v.get("url").and_then(|x| x.as_str()).map(String::from),
-        bearer_token: v
-            .get("bearer_token")
-            .and_then(|x| x.as_str())
-            .map(String::from),
-        other: HashMap::new(),
+        enabled,
+        command: parse_string_field(obj.get("command").unwrap_or(&Value::Null), "command")?,
+        args: parse_string_array_field(obj.get("args").unwrap_or(&Value::Null), "args")?,
+        env: parse_string_map_field(obj.get("env").unwrap_or(&Value::Null), "env")?,
+        env_vars: parse_string_array_field(
+            obj.get("env_vars").unwrap_or(&Value::Null),
+            "env_vars",
+        )?,
+        cwd: parse_string_field(obj.get("cwd").unwrap_or(&Value::Null), "cwd")?,
+        startup_timeout_ms: parse_u64_field(
+            obj.get("startup_timeout_ms").unwrap_or(&Value::Null),
+            "startup_timeout_ms",
+        )?,
+        startup_timeout_sec: parse_u64_field(
+            obj.get("startup_timeout_sec").unwrap_or(&Value::Null),
+            "startup_timeout_sec",
+        )?,
+        tool_timeout_sec: parse_u64_field(
+            obj.get("tool_timeout_sec").unwrap_or(&Value::Null),
+            "tool_timeout_sec",
+        )?,
+        url: parse_string_field(obj.get("url").unwrap_or(&Value::Null), "url")?,
+        http_headers,
+        env_http_headers: parse_string_map_field(
+            obj.get("env_http_headers").unwrap_or(&Value::Null),
+            "env_http_headers",
+        )?,
+        bearer_token: parse_string_field(
+            obj.get("bearer_token").unwrap_or(&Value::Null),
+            "bearer_token",
+        )?,
+        bearer_token_env_var: parse_string_field(
+            obj.get("bearer_token_env_var").unwrap_or(&Value::Null),
+            "bearer_token_env_var",
+        )?,
+        oauth_resource: parse_string_field(
+            obj.get("oauth_resource").unwrap_or(&Value::Null),
+            "oauth_resource",
+        )?,
+        scopes: parse_string_array_field(obj.get("scopes").unwrap_or(&Value::Null), "scopes")?,
+        enabled_tools: parse_string_array_field(
+            obj.get("enabled_tools").unwrap_or(&Value::Null),
+            "enabled_tools",
+        )?,
+        disabled_tools: parse_string_array_field(
+            obj.get("disabled_tools").unwrap_or(&Value::Null),
+            "disabled_tools",
+        )?,
+        required: parse_bool_field(obj.get("required").unwrap_or(&Value::Null), "required")?,
+        other,
     })
 }
 
@@ -1914,5 +2073,99 @@ model = "legacy-model"
         restore_env_var("CCR_ROOT", previous_root);
         restore_env_var("CCR_CODEX_DIR", previous_codex_dir);
         result.unwrap();
+    }
+
+    #[test]
+    fn parse_mcp_server_supports_official_fields_and_preserves_unknown_fields() {
+        let parsed = parse_mcp_server(&json!({
+            "enabled": false,
+            "url": "https://api.openai.com/mcp",
+            "http_headers": {
+                "x-org": "openai"
+            },
+            "env_http_headers": {
+                "Authorization": "OPENAI_API_KEY"
+            },
+            "bearer_token_env_var": "OPENAI_API_KEY",
+            "oauth_resource": "https://api.openai.com/mcp",
+            "scopes": ["docs.read"],
+            "enabled_tools": ["search", "read"],
+            "disabled_tools": ["write"],
+            "env_vars": ["PATH", "HOME"],
+            "startup_timeout_sec": 12,
+            "tool_timeout_sec": 45,
+            "required": true,
+            "custom_field": "keep-me"
+        }))
+        .unwrap();
+
+        assert_eq!(parsed.enabled, Some(false));
+        assert_eq!(parsed.url.as_deref(), Some("https://api.openai.com/mcp"));
+        assert_eq!(
+            parsed
+                .http_headers
+                .as_ref()
+                .and_then(|headers| headers.get("x-org"))
+                .map(String::as_str),
+            Some("openai")
+        );
+        assert_eq!(
+            parsed
+                .env_http_headers
+                .as_ref()
+                .and_then(|headers| headers.get("Authorization"))
+                .map(String::as_str),
+            Some("OPENAI_API_KEY")
+        );
+        assert_eq!(
+            parsed.bearer_token_env_var.as_deref(),
+            Some("OPENAI_API_KEY")
+        );
+        assert_eq!(parsed.required, Some(true));
+        assert_eq!(
+            parsed.other.get("custom_field"),
+            Some(&toml::Value::String("keep-me".to_string()))
+        );
+    }
+
+    #[test]
+    fn parse_mcp_server_accepts_legacy_disabled_alias_and_merge_keeps_unknown_fields() {
+        let mut parsed = parse_mcp_server(&json!({
+            "disabled": true,
+            "command": "npx"
+        }))
+        .unwrap();
+
+        assert_eq!(parsed.enabled, Some(false));
+
+        let existing = CodexMcpServer {
+            enabled: Some(true),
+            command: Some("npx".into()),
+            args: None,
+            env: None,
+            env_vars: None,
+            cwd: None,
+            startup_timeout_ms: None,
+            startup_timeout_sec: None,
+            tool_timeout_sec: None,
+            url: None,
+            http_headers: None,
+            env_http_headers: None,
+            bearer_token: None,
+            bearer_token_env_var: None,
+            oauth_resource: None,
+            scopes: None,
+            enabled_tools: None,
+            disabled_tools: None,
+            required: None,
+            other: HashMap::from([("legacy".into(), toml::Value::String("kept".into()))]),
+        };
+
+        merge_codex_mcp_server(&mut parsed, &existing);
+
+        assert_eq!(
+            parsed.other.get("legacy"),
+            Some(&toml::Value::String("kept".to_string()))
+        );
     }
 }

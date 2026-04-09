@@ -11,15 +11,29 @@ pub async fn codex_list_mcp_servers() -> Result<Value, String> {
             .unwrap_or_default()
             .into_iter()
             .map(|(name, server)| {
+                let enabled = server.enabled.unwrap_or(true);
                 json!({
                     "name": name,
+                    "enabled": enabled,
+                    "transport": if server.url.is_some() { "http" } else { "stdio" },
                     "command": server.command,
                     "args": server.args,
                     "env": server.env,
+                    "env_vars": server.env_vars,
                     "cwd": server.cwd,
                     "startup_timeout_ms": server.startup_timeout_ms,
+                    "startup_timeout_sec": server.startup_timeout_sec,
+                    "tool_timeout_sec": server.tool_timeout_sec,
                     "url": server.url,
+                    "http_headers": server.http_headers,
+                    "env_http_headers": server.env_http_headers,
                     "bearer_token": server.bearer_token,
+                    "bearer_token_env_var": server.bearer_token_env_var,
+                    "oauth_resource": server.oauth_resource,
+                    "scopes": server.scopes,
+                    "enabled_tools": server.enabled_tools,
+                    "disabled_tools": server.disabled_tools,
+                    "required": server.required,
                 })
             })
             .collect();
@@ -47,6 +61,7 @@ pub async fn codex_add_mcp_server(
         }
 
         let server = parse_mcp_server(&config)?;
+        validate_mcp_server(&server)?;
         cfg.mcp_servers
             .get_or_insert_with(HashMap::new)
             .insert(name.clone(), server);
@@ -81,7 +96,14 @@ pub async fn codex_update_mcp_server(
             return Err(format!("MCP 服务器 '{name}' 不存在"));
         }
 
-        let server = parse_mcp_server(&config)?;
+        let existing = servers
+            .get(&name)
+            .cloned()
+            .ok_or_else(|| format!("MCP 服务器 '{name}' 不存在"))?;
+
+        let mut server = parse_mcp_server(&config)?;
+        validate_mcp_server(&server)?;
+        merge_codex_mcp_server(&mut server, &existing);
         servers.insert(name.clone(), server);
 
         write_codex_config(&path, &cfg)?;

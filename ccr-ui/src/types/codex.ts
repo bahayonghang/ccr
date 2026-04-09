@@ -3,27 +3,53 @@
 // ============ Codex MCP Server Types ============
 
 export interface CodexMcpServer {
+  enabled?: boolean | null
+  transport?: 'stdio' | 'http' | null
   name: string
   // STDIO server fields
-  command?: string
-  args?: string[]
-  env?: Record<string, string>
-  cwd?: string
-  startup_timeout_ms?: number
+  command?: string | null
+  args?: string[] | null
+  env?: Record<string, string> | null
+  env_vars?: string[] | null
+  cwd?: string | null
+  startup_timeout_ms?: number | null
+  startup_timeout_sec?: number | null
+  tool_timeout_sec?: number | null
   // HTTP server fields
-  url?: string
-  bearer_token?: string
+  url?: string | null
+  http_headers?: Record<string, string> | null
+  env_http_headers?: Record<string, string> | null
+  bearer_token?: string | null
+  bearer_token_env_var?: string | null
+  oauth_resource?: string | null
+  scopes?: string[] | null
+  // policy fields
+  enabled_tools?: string[] | null
+  disabled_tools?: string[] | null
+  required?: boolean | null
 }
 
 export interface CodexMcpServerRequest {
+  enabled?: boolean | null
   name?: string
-  command?: string
-  args?: string[]
-  env?: Record<string, string>
-  cwd?: string
-  startup_timeout_ms?: number
-  url?: string
-  bearer_token?: string
+  command?: string | null
+  args?: string[] | null
+  env?: Record<string, string> | null
+  env_vars?: string[] | null
+  cwd?: string | null
+  startup_timeout_ms?: number | null
+  startup_timeout_sec?: number | null
+  tool_timeout_sec?: number | null
+  url?: string | null
+  http_headers?: Record<string, string> | null
+  env_http_headers?: Record<string, string> | null
+  bearer_token?: string | null
+  bearer_token_env_var?: string | null
+  oauth_resource?: string | null
+  scopes?: string[] | null
+  enabled_tools?: string[] | null
+  disabled_tools?: string[] | null
+  required?: boolean | null
 }
 
 export interface CodexMcpServersResponse {
