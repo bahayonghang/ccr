@@ -312,20 +312,14 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
 
   context.subscriptions.push(
     vscode.commands.registerCommand("ccr.selectStatusBarPlatform", async () => {
-      const registry = await readRegistry();
-      if (!registry || registry.platforms.length === 0) {
-        vscode.window.showWarningMessage("No platforms available.");
-        return;
-      }
-
       const picked = await vscode.window.showQuickPick(
-        registry.platforms.map((platform) => ({
-          label: `${platform.icon} ${platform.displayName}`,
-          description: platform.currentProfile ? `current: ${platform.currentProfile}` : undefined,
-          platformName: platform.name,
-        })),
+        [
+          { label: "Claude Code", platformName: "claude", picked: true },
+          { label: "Codex", platformName: "codex", picked: true },
+        ],
         {
-          placeHolder: "Select platform to pin in the CCR status bar",
+          canPickMany: true,
+          placeHolder: "Select enabled status bar items for pinned mode",
         },
       );
 
@@ -333,13 +327,13 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
         return;
       }
 
+      const enabled = new Set(picked.map((item) => item.platformName));
       const config = vscode.workspace.getConfiguration("ccr");
-      await config.update("statusBar.platform", picked.platformName, vscode.ConfigurationTarget.Global);
-      await config.update("statusBar.mode", "pinned", vscode.ConfigurationTarget.Global);
+      await config.update("statusBar.showClaude", enabled.has("claude"), vscode.ConfigurationTarget.Global);
+      await config.update("statusBar.showCodex", enabled.has("codex"), vscode.ConfigurationTarget.Global);
+      await config.update("statusBar.mode", enabled.size === 0 ? "hidden" : "pinned", vscode.ConfigurationTarget.Global);
       refreshAll();
-      vscode.window.showInformationMessage(
-        `Pinned CCR status bar to ${picked.platformName}.`,
-      );
+      vscode.window.showInformationMessage("Updated CCR status bar items.");
     }),
   );
 }

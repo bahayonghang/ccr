@@ -1,7 +1,15 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import type { CodexRuntimeSnapshot, PlatformInfo, ProfileInfo } from "../models/types";
-import { buildStatusBarText, buildStatusBarTooltipLines } from "./statusBarPresentation";
+import { buildStatusBarText, buildStatusBarTooltipLines, getCompactPlatformLabel } from "./statusBarPresentation";
+
+const claudePlatform: PlatformInfo = {
+  name: "claude",
+  displayName: "Claude Code",
+  icon: "🤖",
+  enabled: true,
+  currentProfile: "dev",
+};
 
 const codexPlatform: PlatformInfo = {
   name: "codex",
@@ -62,10 +70,19 @@ const runtimeSnapshot: CodexRuntimeSnapshot = {
 };
 
 describe("statusBarPresentation", () => {
-  it("builds a Codex status bar label with auth identity", () => {
+  it("builds compact platform labels", () => {
+    assert.equal(getCompactPlatformLabel("claude"), "CC");
+    assert.equal(getCompactPlatformLabel("codex"), "CDX");
+  });
+
+  it("builds a Claude compact status bar label", () => {
+    assert.equal(buildStatusBarText(claudePlatform, "dev"), "CC: dev");
+  });
+
+  it("builds a compact Codex status bar label", () => {
     assert.equal(
       buildStatusBarText(codexPlatform, "52api", runtimeSnapshot),
-      "💻 Codex: 52api · OpenAI / API Key",
+      "CDX: 52api",
     );
   });
 
@@ -78,7 +95,7 @@ describe("statusBarPresentation", () => {
       runtimeSnapshot,
     );
 
-    assert.ok(tooltipLines.includes("Runtime: 52api"));
+    assert.ok(tooltipLines.includes("Profile: 52api"));
     assert.ok(tooltipLines.includes("Auth: OpenAI / API Key"));
     assert.ok(tooltipLines.includes("Control: profile_only"));
     assert.ok(tooltipLines.includes("Sidecar: Runtime API Key active"));

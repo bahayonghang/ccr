@@ -1,12 +1,15 @@
 import type { PlatformInfo } from "../models/types";
 
 export type StatusBarMode = "pinned" | "current" | "hidden";
+export type StatusBarPlatformName = "claude" | "codex";
 
 export interface StatusBarTargetInput {
   platforms: PlatformInfo[];
   currentPlatform?: string;
   mode?: string;
   pinnedPlatform?: string;
+  showClaude?: boolean;
+  showCodex?: boolean;
 }
 
 export interface StatusBarTargetResult {
@@ -15,6 +18,8 @@ export interface StatusBarTargetResult {
   platform?: PlatformInfo;
   warning?: string;
 }
+
+const SUPPORTED_STATUS_BAR_PLATFORMS: StatusBarPlatformName[] = ["claude", "codex"];
 
 export function normalizeStatusBarMode(mode: string | undefined): StatusBarMode {
   switch (mode) {
@@ -27,50 +32,61 @@ export function normalizeStatusBarMode(mode: string | undefined): StatusBarMode 
   }
 }
 
-export function resolveStatusBarTarget(input: StatusBarTargetInput): StatusBarTargetResult {
+export function getSupportedStatusBarPlatforms(platforms: PlatformInfo[]): PlatformInfo[] {
+  return SUPPORTED_STATUS_BAR_PLATFORMS
+    .map((name) => platforms.find((platform) => platform.name === name))
+    .filter((platform): platform is PlatformInfo => Boolean(platform));
+}
+
+function getEnabledPlatforms(input: StatusBarTargetInput): PlatformInfo[] {
+  const supportedPlatforms = getSupportedStatusBarPlatforms(input.platforms);
+  const enabledMap: Record<StatusBarPlatformName, boolean> = {
+    claude: input.showClaude ?? true,
+    codex: input.showCodex ?? true,
+  };
+
+  return supportedPlatforms.filter((platform) => enabledMap[platform.name as StatusBarPlatformName] ?? false);
+}
+
+export function resolveStatusBarItems(input: StatusBarTargetInput): StatusBarTargetResult[] {
   const mode = normalizeStatusBarMode(input.mode);
-
   if (mode === "hidden") {
-    return { mode, visible: false };
+    return [];
   }
 
-  if (input.platforms.length === 0) {
-    return { mode, visible: true };
+  const enabledPlatforms = getEnabledPlatforms(input);
+  if (enabledPlatforms.length === 0) {
+    return [];
   }
-
-  const fallbackPlatform = input.platforms.find((platform) => platform.name === input.currentPlatform)
-    ?? input.platforms[0];
 
   if (mode === "current") {
-    return {
+    const currentPlatform = enabledPlatforms.find((platform) => platform.name === input.currentPlatform)
+      ?? enabledPlatforms[0];
+
+    return [{
       mode,
       visible: true,
-      platform: fallbackPlatform,
-    };
+      platform: currentPlatform,
+    }];
   }
 
-  const pinnedPlatformName = input.pinnedPlatform?.trim();
-  if (!pinnedPlatformName) {
-    return {
-      mode,
-      visible: true,
-      platform: fallbackPlatform,
-    };
-  }
-
-  const pinnedPlatform = input.platforms.find((platform) => platform.name === pinnedPlatformName);
-  if (pinnedPlatform) {
-    return {
-      mode,
-      visible: true,
-      platform: pinnedPlatform,
-    };
-  }
-
-  return {
+  return enabledPlatforms.map((platform) => ({
     mode,
     visible: true,
-    platform: fallbackPlatform,
-    warning: `Configured status bar platform "${pinnedPlatformName}" was not found. Falling back to ${fallbackPlatform.displayName}.`,
-  };
+    platform,
+  }));
+}
+
+export function resolveStatusBarTarget(input: StatusBarTargetInput): StatusBarTargetResult {
+  const mode = normalizeStatusBarMode(input.mode);
+  const [firstItem] = resolveStatusBarItems(input);
+
+  if (!firstItem) {
+    return {
+      mode,
+      visible: false,
+    };
+  }
+
+  return firstItem;
 }

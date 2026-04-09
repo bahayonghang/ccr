@@ -1,11 +1,11 @@
 /**
  * Status bar provider for CCR current profile indicator
  *
- * Displays either a pinned platform, the current platform, or hides itself
- * based on user settings.
+ * Displays Claude Code and Codex as two independent status bar items.
  */
 
 import * as vscode from "vscode";
+import type { PlatformInfo } from "../models/types";
 import { ccrRootExists } from "../services/ccrPaths";
 import { readRegistry, readProfiles } from "../services/tomlReader";
 import {
@@ -13,18 +13,31 @@ import {
   getCachedCodexRuntimeSnapshot,
 } from "../services/codexRuntimeReader";
 import { buildStatusBarText, buildStatusBarTooltipLines } from "./statusBarPresentation";
-import { resolveStatusBarTarget } from "./statusBarTarget";
+import {
+  type StatusBarPlatformName,
+  resolveStatusBarItems,
+} from "./statusBarTarget";
+
+const STATUS_BAR_PRIORITIES: Record<StatusBarPlatformName, number> = {
+  claude: 51,
+  codex: 50,
+};
 
 export class StatusBarProvider implements vscode.Disposable {
-  private readonly statusBarItem: vscode.StatusBarItem;
+  private readonly statusBarItems: Record<StatusBarPlatformName, vscode.StatusBarItem>;
+  private readonly fallbackItem: vscode.StatusBarItem;
   private updateVersion = 0;
 
   constructor() {
-    this.statusBarItem = vscode.window.createStatusBarItem(
+    this.statusBarItems = {
+      claude: this.createPlatformItem("claude"),
+      codex: this.createPlatformItem("codex"),
+    };
+    this.fallbackItem = vscode.window.createStatusBarItem(
       vscode.StatusBarAlignment.Left,
-      50,
+      52,
     );
-    this.statusBarItem.name = "CCR Profile";
+    this.fallbackItem.name = "CCR Profile";
     this.update();
   }
 
@@ -33,55 +46,36 @@ export class StatusBarProvider implements vscode.Disposable {
     void this.updateAsync();
   }
 
-  private async updateAsync(): Promise<void> {
-    const updateVersion = ++this.updateVersion;
-    const config = vscode.workspace.getConfiguration("ccr");
-    const mode = config.get<string>("statusBar.mode", "pinned");
-    const pinnedPlatform = config.get<string>("statusBar.platform", "");
+  private createPlatformItem(platformName: StatusBarPlatformName): vscode.StatusBarItem {
+    const item = vscode.window.createStatusBarItem(
+      vscode.StatusBarAlignment.Left,
+      STATUS_BAR_PRIORITIES[platformName],
+    );
+    item.name = `CCR ${platformName}`;
+    return item;
+  }
 
-    if (mode === "hidden") {
-      this.statusBarItem.hide();
-      return;
-    }
+  private hideAllItems(): void {
+    this.fallbackItem.hide();
+    this.statusBarItems.claude.hide();
+    this.statusBarItems.codex.hide();
+  }
 
-    if (!ccrRootExists()) {
-      this.statusBarItem.command = "ccr.switchProfile";
-      this.statusBarItem.text = "$(gear) CCR: Not configured";
-      this.statusBarItem.tooltip = "CCR is not initialized. Run 'ccr init' to get started.";
-      this.statusBarItem.show();
-      return;
-    }
+  private showFallback(text: string, tooltip: string): void {
+    this.statusBarItems.claude.hide();
+    this.statusBarItems.codex.hide();
+    this.fallbackItem.command = "ccr.switchProfile";
+    this.fallbackItem.text = text;
+    this.fallbackItem.tooltip = tooltip;
+    this.fallbackItem.show();
+  }
 
-    const registry = await readRegistry();
-    if (updateVersion !== this.updateVersion) {
-      return;
-    }
-    if (!registry || registry.platforms.length === 0) {
-      this.statusBarItem.command = "ccr.switchProfile";
-      this.statusBarItem.text = "$(gear) CCR: No platforms";
-      this.statusBarItem.tooltip = "No platforms configured in CCR.";
-      this.statusBarItem.show();
-      return;
-    }
-
-    const target = resolveStatusBarTarget({
-      platforms: registry.platforms,
-      currentPlatform: registry.currentPlatform,
-      mode,
-      pinnedPlatform,
-    });
-
-    if (!target.visible) {
-      this.statusBarItem.hide();
-      return;
-    }
-
-    const platform = target.platform;
-    if (!platform) {
-      this.statusBarItem.command = "ccr.switchProfile";
-      this.statusBarItem.text = "$(gear) CCR";
-      this.statusBarItem.tooltip = "CCR status bar target could not be resolved.";
-      this.statusBarItem.show();
+  private async updatePlatformItem(
+    updateVersion: number,
+    platform: PlatformInfo,
+  ): Promise<void> {
+    const item = this.statusBarItems[platform.name as StatusBarPlatformName];
+    if (!item) {
       return;
     }
 
@@ -89,40 +83,92 @@ export class StatusBarProvider implements vscode.Disposable {
     if (updateVersion !== this.updateVersion) {
       return;
     }
+
     const current = profiles.find((profile) => profile.isCurrent);
     const profileName = current?.name ?? platform.currentProfile ?? "none";
     const runtimeSnapshot = platform.name === "codex"
       ? getCachedCodexRuntimeSnapshot()
       : null;
+
     if (platform.name === "codex") {
       ensureCodexRuntimeSnapshot(() => this.update());
     }
 
-    this.statusBarItem.command = target.mode === "pinned"
-      ? {
-          command: "ccr.switchProfileForPlatform",
-          title: "Switch Profile",
-          arguments: [platform.name],
-        }
-      : "ccr.switchProfile";
+    item.command = {
+      command: "ccr.switchProfileForPlatform",
+      title: "Switch Profile",
+      arguments: [platform.name],
+    };
+    item.text = buildStatusBarText(platform, profileName, runtimeSnapshot);
+    item.tooltip = new vscode.MarkdownString(
+      buildStatusBarTooltipLines("pinned", platform, profileName, current, runtimeSnapshot)
+        .join("  \n"),
+    );
+    item.show();
+  }
 
-    this.statusBarItem.text = buildStatusBarText(platform, profileName, runtimeSnapshot);
+  private async updateAsync(): Promise<void> {
+    const updateVersion = ++this.updateVersion;
+    const config = vscode.workspace.getConfiguration("ccr");
+    const mode = config.get<string>("statusBar.mode", "pinned");
+    const showClaude = config.get<boolean>("statusBar.showClaude", true);
+    const showCodex = config.get<boolean>("statusBar.showCodex", true);
 
-    const tooltipLines = buildStatusBarTooltipLines(
-      target.mode,
-      platform,
-      profileName,
-      current,
-      runtimeSnapshot,
-      target.warning,
-    )
-      .join("  \n");
+    if (mode === "hidden") {
+      this.hideAllItems();
+      return;
+    }
 
-    this.statusBarItem.tooltip = new vscode.MarkdownString(tooltipLines);
-    this.statusBarItem.show();
+    if (!ccrRootExists()) {
+      this.showFallback("$(gear) CCR: Not configured", "CCR is not initialized. Run 'ccr init' to get started.");
+      return;
+    }
+
+    const registry = await readRegistry();
+    if (updateVersion !== this.updateVersion) {
+      return;
+    }
+
+    if (!registry || registry.platforms.length === 0) {
+      this.showFallback("$(gear) CCR: No platforms", "No platforms configured in CCR.");
+      return;
+    }
+
+    this.fallbackItem.hide();
+    const targets = resolveStatusBarItems({
+      platforms: registry.platforms,
+      currentPlatform: registry.currentPlatform,
+      mode,
+      showClaude,
+      showCodex,
+    });
+
+    const visiblePlatforms = new Set(targets.map((target) => target.platform?.name).filter(Boolean));
+    for (const [platformName, item] of Object.entries(this.statusBarItems) as [StatusBarPlatformName, vscode.StatusBarItem][]) {
+      if (!visiblePlatforms.has(platformName)) {
+        item.hide();
+      }
+    }
+
+    if (targets.length === 0) {
+      this.hideAllItems();
+      return;
+    }
+
+    for (const target of targets) {
+      if (!target.platform) {
+        continue;
+      }
+      await this.updatePlatformItem(updateVersion, target.platform);
+      if (updateVersion !== this.updateVersion) {
+        return;
+      }
+    }
   }
 
   dispose(): void {
-    this.statusBarItem.dispose();
+    this.fallbackItem.dispose();
+    this.statusBarItems.claude.dispose();
+    this.statusBarItems.codex.dispose();
   }
 }

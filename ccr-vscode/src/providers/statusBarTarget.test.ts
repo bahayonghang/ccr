@@ -1,7 +1,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import type { PlatformInfo } from "../models/types";
-import { normalizeStatusBarMode, resolveStatusBarTarget } from "./statusBarTarget";
+import { getSupportedStatusBarPlatforms, normalizeStatusBarMode, resolveStatusBarItems, resolveStatusBarTarget } from "./statusBarTarget";
 
 const platforms: PlatformInfo[] = [
   {
@@ -18,6 +18,13 @@ const platforms: PlatformInfo[] = [
     enabled: true,
     currentProfile: "default",
   },
+  {
+    name: "gemini",
+    displayName: "Gemini",
+    icon: "✨",
+    enabled: true,
+    currentProfile: "flash",
+  },
 ];
 
 describe("statusBarTarget", () => {
@@ -26,69 +33,77 @@ describe("statusBarTarget", () => {
     assert.equal(normalizeStatusBarMode(undefined), "pinned");
   });
 
-  it("selects the pinned platform when configured", () => {
-    const result = resolveStatusBarTarget({
+  it("keeps only supported status bar platforms", () => {
+    assert.deepEqual(
+      getSupportedStatusBarPlatforms(platforms).map((platform) => platform.name),
+      ["claude", "codex"],
+    );
+  });
+
+  it("resolves both items by default in pinned mode", () => {
+    const result = resolveStatusBarItems({
       platforms,
       currentPlatform: "claude",
       mode: "pinned",
-      pinnedPlatform: "codex",
     });
 
-    assert.equal(result.visible, true);
-    assert.equal(result.mode, "pinned");
-    assert.equal(result.platform?.name, "codex");
-    assert.equal(result.warning, undefined);
+    assert.deepEqual(result.map((item) => item.platform?.name), ["claude", "codex"]);
   });
 
-  it("follows the current platform in current mode", () => {
-    const result = resolveStatusBarTarget({
+  it("follows only the current platform in current mode", () => {
+    const result = resolveStatusBarItems({
       platforms,
       currentPlatform: "codex",
       mode: "current",
     });
 
+    assert.deepEqual(result.map((item) => item.platform?.name), ["codex"]);
+  });
+
+  it("falls back to first enabled platform in current mode when current platform is unsupported", () => {
+    const result = resolveStatusBarItems({
+      platforms,
+      currentPlatform: "gemini",
+      mode: "current",
+      showClaude: false,
+      showCodex: true,
+    });
+
+    assert.deepEqual(result.map((item) => item.platform?.name), ["codex"]);
+  });
+
+  it("hides all items in hidden mode", () => {
+    const result = resolveStatusBarItems({
+      platforms,
+      currentPlatform: "claude",
+      mode: "hidden",
+    });
+
+    assert.deepEqual(result, []);
+  });
+
+  it("can disable codex item independently", () => {
+    const result = resolveStatusBarItems({
+      platforms,
+      currentPlatform: "claude",
+      mode: "pinned",
+      showClaude: true,
+      showCodex: false,
+    });
+
+    assert.deepEqual(result.map((item) => item.platform?.name), ["claude"]);
+  });
+
+  it("keeps single target compatibility with first visible platform", () => {
+    const result = resolveStatusBarTarget({
+      platforms,
+      currentPlatform: "claude",
+      mode: "pinned",
+      showClaude: false,
+      showCodex: true,
+    });
+
     assert.equal(result.visible, true);
-    assert.equal(result.mode, "current");
     assert.equal(result.platform?.name, "codex");
-  });
-
-  it("hides the status bar in hidden mode", () => {
-    const result = resolveStatusBarTarget({
-      platforms,
-      currentPlatform: "claude",
-      mode: "hidden",
-      pinnedPlatform: "codex",
-    });
-
-    assert.deepEqual(result, {
-      mode: "hidden",
-      visible: false,
-    });
-  });
-
-  it("falls back to the current platform when pinned platform is empty", () => {
-    const result = resolveStatusBarTarget({
-      platforms,
-      currentPlatform: "claude",
-      mode: "pinned",
-      pinnedPlatform: "   ",
-    });
-
-    assert.equal(result.visible, true);
-    assert.equal(result.platform?.name, "claude");
-    assert.equal(result.warning, undefined);
-  });
-
-  it("falls back and warns when pinned platform is missing", () => {
-    const result = resolveStatusBarTarget({
-      platforms,
-      currentPlatform: "claude",
-      mode: "pinned",
-      pinnedPlatform: "gemini",
-    });
-
-    assert.equal(result.visible, true);
-    assert.equal(result.platform?.name, "claude");
-    assert.match(result.warning ?? "", /gemini/);
   });
 });

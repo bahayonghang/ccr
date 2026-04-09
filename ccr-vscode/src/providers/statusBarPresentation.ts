@@ -1,5 +1,10 @@
 import type { CodexRuntimeSnapshot, PlatformInfo, ProfileInfo } from "../models/types";
 
+const COMPACT_PLATFORM_LABELS: Record<string, string> = {
+  claude: "CC",
+  codex: "CDX",
+};
+
 function compactAuthIdentity(snapshot?: CodexRuntimeSnapshot | null): string {
   if (!snapshot) {
     return "auth?";
@@ -10,18 +15,23 @@ function compactAuthIdentity(snapshot?: CodexRuntimeSnapshot | null): string {
     || "auth?";
 }
 
+export function getCompactPlatformLabel(platformName: string): string {
+  return COMPACT_PLATFORM_LABELS[platformName] || platformName.toUpperCase();
+}
+
 export function buildStatusBarText(
   platform: PlatformInfo,
   profileName: string,
   runtime?: CodexRuntimeSnapshot | null,
 ): string {
+  const label = getCompactPlatformLabel(platform.name);
+
   if (platform.name !== "codex") {
-    return `${platform.icon} ${platform.displayName}: ${profileName}`;
+    return `${label}: ${profileName}`;
   }
 
   const runtimeProfile = runtime?.runtimeSummary.currentProfileName || profileName;
-  const auth = compactAuthIdentity(runtime);
-  return `${platform.icon} ${platform.displayName}: ${runtimeProfile} · ${auth}`;
+  return `${label}: ${runtimeProfile}`;
 }
 
 export function buildStatusBarTooltipLines(
@@ -33,13 +43,12 @@ export function buildStatusBarTooltipLines(
   warning?: string,
 ): string[] {
   const lines = [
-    `**CCR Profile Status**`,
-    `Mode: ${mode === "pinned" ? "Pinned platform" : "Current platform"}`,
+    `**CCR Status · ${platform.displayName}**`,
     `Platform: ${platform.displayName}`,
   ];
 
   if (platform.name === "codex" && runtime) {
-    lines.push(`Runtime: ${runtime.runtimeSummary.profileLabel}`);
+    lines.push(`Profile: ${runtime.runtimeSummary.profileLabel}`);
     lines.push(`Auth: ${runtime.runtimeSummary.authLabel}`);
     lines.push(`Control: ${runtime.runtimeSummary.mode}`);
     if (runtime.authSidecarLabel) {
@@ -62,15 +71,18 @@ export function buildStatusBarTooltipLines(
   if (currentProfile?.provider) {
     lines.push(`Provider: ${currentProfile.provider}`);
   }
+  if (platform.name === "codex" && runtime && !runtime.currentAuthInfo) {
+    lines.push(`Identity: ${compactAuthIdentity(runtime)}`);
+  }
   if (warning) {
     lines.push(`$(warning) ${warning}`);
   }
 
   lines.push("");
   lines.push(
-    mode === "pinned"
-      ? `_Click to switch profiles for ${platform.displayName}_`
-      : `_Click to switch profile_`,
+    mode === "hidden"
+      ? `_Status bar hidden_`
+      : `_Click to switch ${platform.displayName} profile_`,
   );
 
   return lines;
