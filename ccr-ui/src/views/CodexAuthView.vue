@@ -531,6 +531,7 @@ import Button from '@/components/ui/Button.vue'
 import Card from '@/components/ui/Card.vue'
 import CodexAccountCard from '@/components/codex/CodexAccountCard.vue'
 import ConfirmModal from '@/components/ConfirmModal.vue'
+import { translateWithFallback } from '@/i18n/formatMessage'
 import {
   listCodexProfiles,
   listCodexAuthAccounts,
@@ -880,7 +881,12 @@ const handleSwitch = async (name: string) => {
   authActionError.value = null
   openConfirmDialog({
     title: t('codex.auth.switch'),
-    message: t('codex.auth.confirmSwitch', { name }),
+    message: translateWithFallback(
+      t,
+      'codex.auth.confirmSwitch',
+      '确定要切换到账户 "{name}" 吗？',
+      { name },
+    ),
     confirmText: t('codex.auth.switch'),
     type: 'warning',
     action: async () => {
@@ -906,7 +912,12 @@ const handleDelete = async (name: string) => {
   authActionError.value = null
   openConfirmDialog({
     title: t('codex.actions.delete'),
-    message: t('codex.auth.deleteConfirm', { name }),
+    message: translateWithFallback(
+      t,
+      'codex.auth.deleteConfirm',
+      '确定要删除账户 "{name}" 吗？',
+      { name },
+    ),
     confirmText: t('codex.actions.delete'),
     type: 'danger',
     action: async () => {

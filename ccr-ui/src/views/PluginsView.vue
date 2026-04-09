@@ -275,7 +275,7 @@
             v-model:is-open="showDeleteModal"
             type="danger"
             :title="$t('plugins.delete')"
-            :message="$t('plugins.deleteConfirm', { name: pluginToDelete || '' })"
+            :message="deleteConfirmMessage"
             :confirm-text="$t('common.delete')"
             :cancel-text="$t('common.cancel')"
             @confirm="confirmDelete"
@@ -288,7 +288,7 @@
 
 <script setup lang="ts">
 import SIcon from '@/components/ui/SIcon.vue'
-import { ref, onMounted } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { listPlugins, addPlugin, updatePlugin, deletePlugin, togglePlugin } from '@/api'
 import type { Plugin as PluginType, PluginRequest } from '@/types'
@@ -297,6 +297,7 @@ import { logger } from '@/utils/logger'
 import BaseModal from '@/components/common/BaseModal.vue'
 import Button from '@/components/ui/Button.vue'
 import ConfirmModal from '@/components/ConfirmModal.vue'
+import { translateWithFallback } from '@/i18n/formatMessage'
 import { useUIStore } from '@/stores/ui'
 
 const { t } = useI18n({ useScope: 'global' })
@@ -310,6 +311,12 @@ const formData = ref<PluginRequest>({ id: '', name: '', version: '', enabled: tr
 const configJson = ref('')
 const showDeleteModal = ref(false)
 const pluginToDelete = ref('')
+const deleteConfirmMessage = computed(() => translateWithFallback(
+  t,
+  'plugins.deleteConfirm',
+  '确定删除插件 "{id}" 吗？',
+  { id: pluginToDelete.value || '' },
+))
 
 const loadPlugins = async () => {
   try {

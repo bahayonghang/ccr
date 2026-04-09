@@ -327,4 +327,26 @@ describe('ClaudeCodeProfilesView smoke', () => {
       unmount()
     }
   })
+
+  it('renders interpolated confirmation copy when applying a profile', async () => {
+    const { el, unmount } = await mountView()
+
+    try {
+      const targetCard = findProfileCard(el, 'anthropic-a')
+      const applyButton = Array.from(targetCard?.querySelectorAll<HTMLButtonElement>('button') ?? [])
+        .find(button => button.textContent?.includes('应用此 Profile'))
+
+      expect(applyButton).not.toBeNull()
+
+      applyButton?.click()
+      await flushPromises()
+
+      expect(globalThis.confirm).toHaveBeenCalledWith(
+        '确定要应用 Profile "anthropic-a" 吗？这将同步更新当前 Claude 配置。'
+      )
+      expect(apiMocks.applyClaudeProfile).toHaveBeenCalledWith('anthropic-a')
+    } finally {
+      unmount()
+    }
+  })
 })

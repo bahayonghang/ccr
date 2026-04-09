@@ -512,6 +512,7 @@ import { computed, onActivated, onMounted, reactive, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { addCodexCustomModel, addCodexProfile, applyCodexProfile, deleteCodexProfile, getCodexProfile, listCodexModels, listCodexProfiles, updateCodexProfile } from '@/api'
+import { translateWithFallback } from '@/i18n/formatMessage'
 import type {
   CodexAddCustomModelResponse,
   CodexModelsResponse,
@@ -890,13 +891,7 @@ const formatProfileConfirmMessage = (
   key: string,
   name: string,
   fallback: string,
-) => {
-  const message = t(key, { name })
-  if (message !== key && !message.includes('{name}')) {
-    return message
-  }
-  return fallback.replace('{name}', name)
-}
+) => translateWithFallback(t, key, fallback, { name })
 
 const handleDelete = async (name: string) => {
   openConfirmDialog({

@@ -335,7 +335,7 @@
             v-model:is-open="showDeleteModal"
             type="danger"
             :title="$t('codex.actions.delete')"
-            :message="$t('codex.mcp.deleteConfirm', { name: deletingName || '' })"
+            :message="deleteConfirmMessage"
             :confirm-text="$t('codex.actions.delete')"
             :cancel-text="$t('codex.actions.cancel')"
             @confirm="confirmDelete"
@@ -348,7 +348,7 @@
 
 <script setup lang="ts">
 import SIcon from '@/components/ui/SIcon.vue'
-import { onActivated, onMounted, ref } from 'vue'
+import { computed, onActivated, onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import { listCodexMcpServers, addCodexMcpServer, updateCodexMcpServer, deleteCodexMcpServer } from '@/api'
 import type {
@@ -357,6 +357,7 @@ import type {
   CodexMcpServerRequest
 } from '@/types'
 import ModuleSubnav from '@/components/ModuleSubnav.vue'
+import { translateWithFallback } from '@/i18n/formatMessage'
 import { useI18n } from 'vue-i18n'
 import { logger } from '@/utils/logger'
 import ConfirmModal from '@/components/ConfirmModal.vue'
@@ -380,6 +381,12 @@ const submitting = ref(false)
 const deletingName = ref<string | null>(null)
 const showDeleteModal = ref(false)
 const lastLoadedAt = ref(0)
+const deleteConfirmMessage = computed(() => translateWithFallback(
+  t,
+  'codex.mcp.deleteConfirm',
+  '确定删除 MCP 服务器 "{name}" 吗？',
+  { name: deletingName.value || '' },
+))
 
 const REFRESH_TTL_MS = 30_000
 

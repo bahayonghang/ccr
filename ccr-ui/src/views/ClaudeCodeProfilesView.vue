@@ -413,6 +413,7 @@ import BaseModal from '@/components/common/BaseModal.vue'
 import PageHeaderCard from '@/components/PageHeaderCard.vue'
 import Input from '@/components/ui/Input.vue'
 import SIcon from '@/components/ui/SIcon.vue'
+import { translateWithFallback } from '@/i18n/formatMessage'
 import type { ClaudeProfile, ClaudeProfileRequest, ClaudeProfilesResponse } from '@/types'
 import type {
   ClaudeProfileEditorForm,
@@ -799,7 +800,12 @@ const handleSave = async () => {
 }
 
 const handleDelete = async (name: string) => {
-  if (!confirm(t('claudeProfiles.deleteConfirm', { name }))) return
+  if (!confirm(translateWithFallback(
+    t,
+    'claudeProfiles.deleteConfirm',
+    '确定要删除 Profile "{name}" 吗？',
+    { name },
+  ))) return
 
   try {
     await deleteClaudeProfile(name)
@@ -814,7 +820,12 @@ const handleApply = async (name: string) => {
   const targetProfile = profiles.value.find(profile => profile.name === name)
   if (!targetProfile || targetProfile.is_current || targetProfile.enabled === false) return
 
-  if (!confirm(t('claudeProfiles.confirmApply', { name }))) return
+  if (!confirm(translateWithFallback(
+    t,
+    'claudeProfiles.confirmApply',
+    '确定要应用 Profile "{name}" 吗？这将同步更新当前 Claude 配置。',
+    { name },
+  ))) return
 
   try {
     await applyClaudeProfile(name)

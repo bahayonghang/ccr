@@ -218,6 +218,7 @@ import ModuleSubnav from '@/components/ModuleSubnav.vue'
 import HistoryList from '@/components/HistoryList.vue'
 import ConfigFilters from '@/components/configs/ConfigFilters.vue'
 import ConfigList from '@/components/configs/ConfigList.vue'
+import { translateWithFallback } from '@/i18n/formatMessage'
 import EditConfigModal from '@/components/EditConfigModal.vue'
 import AddConfigModal from '@/components/AddConfigModal.vue'
 import ProviderStatsModal from '@/components/configs/ProviderStatsModal.vue'
@@ -430,7 +431,12 @@ const executeConfirmedAction = async () => {
 const handleSwitch = async (name: string) => {
   openConfirmDialog({
     title: t('configs.switchConfig'),
-    message: t('configs.confirmSwitch', { name }),
+    message: translateWithFallback(
+      t,
+      'configs.confirmSwitch',
+      '确定切换到配置 "{name}" 吗？',
+      { name },
+    ),
     confirmText: t('configs.switchConfig'),
     type: 'warning',
     action: async () => {
@@ -450,7 +456,12 @@ const handleEdit = (name: string) => { editingConfigName.value = name; isEditMod
 const handleDelete = async (name: string) => {
   openConfirmDialog({
     title: t('common.delete'),
-    message: t('configs.confirmDelete', { name }),
+    message: translateWithFallback(
+      t,
+      'configs.confirmDelete',
+      '确认删除配置 "{name}" 吗？',
+      { name },
+    ),
     confirmText: t('common.delete'),
     type: 'danger',
     action: async () => {

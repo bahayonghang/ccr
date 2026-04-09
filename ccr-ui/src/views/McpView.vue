@@ -330,7 +330,7 @@
       v-model:is-open="showDeleteModal"
       type="danger"
       :title="$t('mcp.deleteConfirmTitle')"
-      :message="$t('mcp.deleteConfirmMessage', { name: serverToDelete })"
+      :message="deleteConfirmMessage"
       :confirm-text="$t('common.delete')"
       :cancel-text="$t('common.cancel')"
       @confirm="confirmDelete"
@@ -342,7 +342,7 @@
       v-model:is-open="showToggleModal"
       type="warning"
       :title="serverToToggle.currentlyDisabled ? $t('mcp.enableConfirmTitle') : $t('mcp.disableConfirmTitle')"
-      :message="serverToToggle.currentlyDisabled ? $t('mcp.enableConfirmMessage', { name: serverToToggle.name }) : $t('mcp.disableConfirmMessage', { name: serverToToggle.name })"
+      :message="toggleConfirmMessage"
       :confirm-text="serverToToggle.currentlyDisabled ? $t('mcp.enable') : $t('mcp.disable')"
       :cancel-text="$t('common.cancel')"
       @confirm="confirmToggle"
@@ -352,7 +352,7 @@
 
 <script setup lang="ts">
 import SIcon from '@/components/ui/SIcon.vue'
-import { ref, onMounted } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
   listMcpServers,
@@ -366,6 +366,7 @@ import ModuleSubnav from '@/components/ModuleSubnav.vue'
 import ConfirmModal from '@/components/ConfirmModal.vue'
 import McpPresetsPanel from '@/components/McpPresetsPanel.vue'
 import McpSyncPanel from '@/components/McpSyncPanel.vue'
+import { translateWithFallback } from '@/i18n/formatMessage'
 import { logger } from '@/utils/logger'
 import { useUIStore } from '@/stores/ui'
 
@@ -391,6 +392,30 @@ const showDeleteModal = ref(false)
 const serverToDelete = ref('')
 const showToggleModal = ref(false)
 const serverToToggle = ref<{ name: string; currentlyDisabled: boolean } | null>(null)
+const deleteConfirmMessage = computed(() => translateWithFallback(
+  t,
+  'mcp.deleteConfirmMessage',
+  '确定删除 MCP 服务器 "{name}" 吗？',
+  { name: serverToDelete.value || '' },
+))
+const toggleConfirmMessage = computed(() => {
+  const target = serverToToggle.value
+  if (!target) return ''
+
+  return target.currentlyDisabled
+    ? translateWithFallback(
+        t,
+        'mcp.enableConfirmMessage',
+        '确定启用 MCP 服务器 "{name}" 吗？',
+        { name: target.name },
+      )
+    : translateWithFallback(
+        t,
+        'mcp.disableConfirmMessage',
+        '确定禁用 MCP 服务器 "{name}" 吗？禁用后该服务器将不可用。',
+        { name: target.name },
+      )
+})
 
 const loadServers = async () => {
   try {

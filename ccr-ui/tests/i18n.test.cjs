@@ -73,6 +73,7 @@ const dim = (text) => colorize(text, colors.dim);
 const I18N_DIR = path.join(__dirname, '../src/i18n/locales');
 const ZH_CN_FILE = path.join(I18N_DIR, 'zh-CN.ts');
 const EN_US_FILE = path.join(I18N_DIR, 'en-US.ts');
+const SRC_DIR = path.join(__dirname, '../src');
 
 // Required namespaces that must exist in both files
 const REQUIRED_NAMESPACES = [
@@ -333,6 +334,114 @@ function findUnsafeAtSymbols(content) {
         });
       }
     }
+  }
+
+  return issues;
+}
+
+/**
+ * Extract dotted translation keys that contain placeholders
+ */
+function extractPlaceholderKeysByPath(content) {
+  const placeholdersByKey = new Map();
+  const stack = [];
+
+  for (const line of content.split('\n')) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+
+    const openMatch = trimmed.match(/^([a-zA-Z_$][a-zA-Z0-9_$]*)\s*:\s*\{$/);
+    if (openMatch) {
+      stack.push(openMatch[1]);
+      continue;
+    }
+
+    if (trimmed === '},' || trimmed === '}') {
+      stack.pop();
+      continue;
+    }
+
+    const leafMatch = trimmed.match(/^([a-zA-Z_$][a-zA-Z0-9_$]*)\s*:\s*(['"])((?:\\.|(?!\2).)*)\2\s*,?$/);
+    if (!leafMatch) continue;
+
+    const key = [...stack, leafMatch[1]].join('.');
+    const placeholders = [...leafMatch[3].matchAll(/\{([a-zA-Z_][a-zA-Z0-9_]*)\}/g)].map((match) => match[1]);
+    if (placeholders.length > 0) {
+      placeholdersByKey.set(key, placeholders);
+    }
+  }
+
+  return placeholdersByKey;
+}
+
+/**
+ * Collect source files for lightweight static checks
+ */
+function collectSourceFiles(dir, acc = []) {
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    if (entry.name === 'dist' || entry.name === 'node_modules') continue;
+
+    const fullPath = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      collectSourceFiles(fullPath, acc);
+      continue;
+    }
+
+    if (/\.(ts|vue)$/.test(entry.name)) {
+      acc.push(fullPath);
+    }
+  }
+
+  return acc;
+}
+
+/**
+ * Validate simple same-line t/$t placeholder bindings.
+ * This intentionally stays conservative to avoid noisy false positives.
+ */
+function findPlaceholderBindingIssues(files, placeholdersByKey) {
+  const issues = [];
+  const callPattern = /\$?t\(\s*['"]([^'"]+)['"]\s*,\s*\{([^}]*)\}\s*\)/g;
+
+  for (const file of files) {
+    const content = readFileSafe(file);
+    if (!content) continue;
+
+    const lines = content.split('\n');
+    lines.forEach((line, index) => {
+      callPattern.lastIndex = 0;
+      let match;
+      while ((match = callPattern.exec(line)) !== null) {
+        const key = match[1];
+        const placeholders = placeholdersByKey.get(key);
+        if (!placeholders) continue;
+
+        const passedKeys = match[2]
+          .split(',')
+          .map((entry) => entry.trim())
+          .flatMap((entry) => {
+            const explicitMatch = entry.match(/^([a-zA-Z_$][a-zA-Z0-9_$]*)\s*:/);
+            if (explicitMatch) {
+              return [explicitMatch[1]];
+            }
+
+            const shorthandMatch = entry.match(/^([a-zA-Z_$][a-zA-Z0-9_$]*)$/);
+            return shorthandMatch ? [shorthandMatch[1]] : [];
+          });
+        const missing = placeholders.filter((placeholder) => !passedKeys.includes(placeholder));
+
+        if (missing.length > 0) {
+          issues.push({
+            file: path.relative(path.join(__dirname, '..'), file),
+            line: index + 1,
+            key,
+            expected: placeholders,
+            passed: passedKeys,
+            missing,
+          });
+        }
+      }
+    });
   }
 
   return issues;
@@ -646,10 +755,47 @@ function testAtLiteralSafety() {
 }
 
 /**
- * Test 8: Coverage Statistics
+ * Test 8: Placeholder Binding Validation
+ */
+function testPlaceholderBindings() {
+  printHeader('Test 8: Placeholder Binding Validation');
+
+  const zhContent = readFileSafe(ZH_CN_FILE);
+  if (!zhContent) {
+    printTest('Read zh-CN.ts for binding validation', false, 'Cannot read file content', true);
+    return;
+  }
+
+  const placeholderMap = extractPlaceholderKeysByPath(zhContent);
+  const sourceFiles = collectSourceFiles(SRC_DIR);
+  const issues = findPlaceholderBindingIssues(sourceFiles, placeholderMap);
+
+  printTest(
+    'Simple i18n placeholder bindings are aligned',
+    issues.length === 0,
+    issues.length === 0
+      ? `Checked ${sourceFiles.length} source files`
+      : `Found ${issues.length} binding issue(s)`,
+    true
+  );
+
+  if (issues.length > 0) {
+    issues.slice(0, 10).forEach((issue) => {
+      console.log(error(
+        `    ${issue.file}:${issue.line} -> ${issue.key} | expected ${issue.expected.join(', ')} | passed ${issue.passed.join(', ') || '(none)'}`
+      ));
+    });
+    if (issues.length > 10) {
+      console.log(error(`    ... and ${issues.length - 10} more`));
+    }
+  }
+}
+
+/**
+ * Test 9: Coverage Statistics
  */
 function testCoverageStats() {
-  printHeader('Test 8: Coverage Statistics');
+  printHeader('Test 9: Coverage Statistics');
 
   const zhContent = readFileSafe(ZH_CN_FILE);
   const enContent = readFileSafe(EN_US_FILE);
@@ -720,6 +866,7 @@ function main() {
   testPlaceholders();
   testSyntax();
   testAtLiteralSafety();
+  testPlaceholderBindings();
   testCoverageStats();
 
   // Print summary
