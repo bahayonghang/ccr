@@ -28,10 +28,12 @@ pub use ccr_codex::services::codex_session_service;
 pub use ccr_codex::services::codex_session_service::CodexSessionInventory;
 #[allow(unused_imports)]
 pub use ccr_codex::{
-    AuthReadSnapshot, CodexAuthCacheAction, CodexAuthService, CodexOAuthTokenService,
-    CodexQuotaService, CodexRollingUsage, CodexRuntimeCommitPlan, CodexRuntimeService,
-    CodexSessionDetail, CodexSessionExport, CodexSessionMessage, CodexSessionService,
-    CodexSessionSummary, CodexUsageService,
+    AuthReadSnapshot, CodexAuthCacheAction, CodexAuthService, CodexHistoryBackupPruneResult,
+    CodexHistoryBackupSummary, CodexHistoryRestoreResult, CodexHistorySyncOptions,
+    CodexHistorySyncResult, CodexHistorySyncService, CodexHistorySyncStatus,
+    CodexOAuthTokenService, CodexQuotaService, CodexRollingUsage, CodexRuntimeCommitPlan,
+    CodexRuntimeService, CodexSessionDetail, CodexSessionExport, CodexSessionMessage,
+    CodexSessionService, CodexSessionSummary, CodexUsageService,
 };
 #[allow(unused_imports)]
 pub use config_service::ConfigService;

@@ -54,6 +54,62 @@ pub enum CodexAction {
         #[arg(long)]
         refresh: bool,
     },
+
+    /// 同步 Codex 历史会话的 provider 元数据
+    ///
+    /// 修复官方/第三方 provider 切换后历史会话不可见的问题。
+    /// 示例: ccr codex sync-history
+    ///       ccr codex sync-history --provider custom
+    ///       ccr codex sync-history status
+    SyncHistory {
+        /// 显式指定历史同步目标 provider；省略时使用当前 ~/.codex/config.toml 的根级 model_provider
+        #[arg(long)]
+        provider: Option<String>,
+
+        /// 自动保留最近 N 份 sync-history 备份
+        #[arg(long)]
+        keep: Option<usize>,
+
+        /// 指定 Codex home 目录（默认使用 ~/.codex 或 CCR_CODEX_DIR）
+        #[arg(long)]
+        codex_home: Option<String>,
+
+        #[command(subcommand)]
+        action: Option<CodexSyncHistoryAction>,
+    },
+}
+
+/// Codex 历史同步子命令
+#[derive(Subcommand)]
+#[command(disable_help_subcommand = true)]
+pub enum CodexSyncHistoryAction {
+    /// 查看当前 provider 与历史元数据分布
+    Status {
+        /// 指定 Codex home 目录（默认使用 ~/.codex 或 CCR_CODEX_DIR）
+        #[arg(long)]
+        codex_home: Option<String>,
+    },
+
+    /// 从 sync-history 备份恢复
+    Restore {
+        /// 备份目录路径
+        backup_dir: String,
+
+        /// 指定 Codex home 目录（默认使用 ~/.codex 或 CCR_CODEX_DIR）
+        #[arg(long)]
+        codex_home: Option<String>,
+    },
+
+    /// 清理旧的 sync-history 备份
+    PruneBackups {
+        /// 保留最近 N 份备份
+        #[arg(long, default_value_t = 5)]
+        keep: usize,
+
+        /// 指定 Codex home 目录（默认使用 ~/.codex 或 CCR_CODEX_DIR）
+        #[arg(long)]
+        codex_home: Option<String>,
+    },
 }
 
 /// Codex Auth 子命令

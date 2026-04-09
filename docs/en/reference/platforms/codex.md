@@ -36,6 +36,8 @@ For every third-party profile:
 
 That means `model_provider` represents CCR's reserved runtime namespace in third-party mode, not the upstream vendor name. Legacy `[model_providers.<legacy_id>]` tables may still remain in the file, but the active runtime path is `custom`.
 
+If you have already switched the runtime provider but old history is still invisible in Codex CLI / App, use `ccr codex sync-history` to sync rollout, SQLite, and sidebar metadata.
+
 ## Key Fields (model / effort / url / key)
 
 ### model

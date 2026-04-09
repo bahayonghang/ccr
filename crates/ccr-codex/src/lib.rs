@@ -12,8 +12,11 @@ pub use managers::codex_config::{CachedCodexConfigManager, CodexConfigManager};
 pub use models::codex_auth::*;
 pub use platforms::CodexPlatform;
 pub use services::{
-    AuthReadSnapshot, CodexAuthCacheAction, CodexAuthService, CodexOAuthTokenService,
-    CodexQuotaService, CodexRegistryStore, CodexRollingUsage, CodexRuntimeCommitPlan,
-    CodexRuntimeService, CodexSessionDetail, CodexSessionExport, CodexSessionMessage,
-    CodexSessionService, CodexSessionSummary, CodexUsageService, OAuthRepairOutcome,
+    AuthReadSnapshot, CodexAuthCacheAction, CodexAuthService, CodexHistoryBackupPruneResult,
+    CodexHistoryBackupSummary, CodexHistoryRestoreResult, CodexHistorySyncOptions,
+    CodexHistorySyncResult, CodexHistorySyncService, CodexHistorySyncStatus,
+    CodexOAuthTokenService, CodexQuotaService, CodexRegistryStore, CodexRollingUsage,
+    CodexRuntimeCommitPlan, CodexRuntimeService, CodexSessionDetail, CodexSessionExport,
+    CodexSessionMessage, CodexSessionService, CodexSessionSummary, CodexUsageService,
+    OAuthRepairOutcome,
 };

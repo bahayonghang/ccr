@@ -431,6 +431,7 @@ impl CommandDispatcher {
     async fn dispatch_codex(
         action: &Option<crate::cli::subcommands::CodexAction>,
     ) -> Result<(), CcrError> {
+        use crate::cli::subcommands::codex::CodexSyncHistoryAction;
         use crate::cli::subcommands::{CodexAction, CodexAuthAction};
 
         match action {
@@ -462,6 +463,41 @@ impl CommandDispatcher {
                 crate::commands::codex::quota::quota_command(account.as_deref(), *json, *refresh)
                     .await
             }
+            Some(CodexAction::SyncHistory {
+                provider,
+                keep,
+                codex_home,
+                action,
+            }) => match action {
+                None => {
+                    crate::commands::codex::sync_history::sync_command(
+                        provider.clone(),
+                        *keep,
+                        codex_home.clone(),
+                    )
+                    .await
+                }
+                Some(CodexSyncHistoryAction::Status { codex_home }) => {
+                    crate::commands::codex::sync_history::status_command(codex_home.clone()).await
+                }
+                Some(CodexSyncHistoryAction::Restore {
+                    backup_dir,
+                    codex_home,
+                }) => {
+                    crate::commands::codex::sync_history::restore_command(
+                        backup_dir,
+                        codex_home.clone(),
+                    )
+                    .await
+                }
+                Some(CodexSyncHistoryAction::PruneBackups { keep, codex_home }) => {
+                    crate::commands::codex::sync_history::prune_backups_command(
+                        *keep,
+                        codex_home.clone(),
+                    )
+                    .await
+                }
+            },
             // auth 子命令
             Some(CodexAction::Auth { action }) => match action {
                 CodexAuthAction::Help => {

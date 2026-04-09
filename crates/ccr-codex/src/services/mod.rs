@@ -1,4 +1,5 @@
 pub mod codex_auth_service;
+pub mod codex_history_sync_service;
 pub mod codex_oauth_token_service;
 pub mod codex_quota_service;
 pub mod codex_registry_store;
@@ -7,6 +8,11 @@ pub mod codex_session_service;
 pub mod codex_usage_service;
 
 pub use codex_auth_service::{AuthReadSnapshot, CodexAuthService};
+pub use codex_history_sync_service::{
+    CodexHistoryBackupPruneResult, CodexHistoryBackupSummary, CodexHistoryRestoreResult,
+    CodexHistorySyncOptions, CodexHistorySyncResult, CodexHistorySyncService,
+    CodexHistorySyncStatus,
+};
 pub use codex_oauth_token_service::{CodexOAuthTokenService, OAuthRepairOutcome};
 pub use codex_quota_service::CodexQuotaService;
 pub use codex_registry_store::CodexRegistryStore;

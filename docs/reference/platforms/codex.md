@@ -36,6 +36,8 @@ CCR 保留 `custom` 作为第三方 Codex profile 的运行时 provider 命名�
 
 这意味着 `model_provider` 在第三方模式下表示 CCR 保留的运行时命名空间，而不是上游厂商名。历史遗留的 `[model_providers.<legacy_id>]` 表可能继续存在，但当前运行时只使用 `custom`。
 
+如果你已经切换了运行时 provider，但旧历史在 Codex CLI / App 中仍然不可见，请使用 `ccr codex sync-history` 同步 rollout / SQLite / 侧边栏元数据。
+
 ## 字段配置（重点）
 
 下面是 Codex 配置最关键的字段说明。
