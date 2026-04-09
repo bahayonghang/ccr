@@ -39,7 +39,7 @@ fn configure_main_window_chrome(window: &tauri::WebviewWindow) -> tauri::Result<
 
 #[cfg(not(target_os = "macos"))]
 fn configure_main_window_chrome(window: &tauri::WebviewWindow) -> tauri::Result<()> {
-    window.set_decorations(false)?;
+    window.set_decorations(true)?;
     Ok(())
 }
 
@@ -61,7 +61,7 @@ fn main() {
                     #[cfg(target_os = "macos")]
                     tracing::info!("[app] macOS native window chrome enabled for main window");
                     #[cfg(not(target_os = "macos"))]
-                    tracing::info!("[app] custom window chrome enabled for main window");
+                    tracing::info!("[app] native window chrome enabled for main window");
                 }
             }
 

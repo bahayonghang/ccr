@@ -1,6 +1,6 @@
 /* ============================================
    CCR-UI Nekomata Kawaii Background System
-   Sakura Mesh Gradients & Paw Patterns
+   Aurora Blue Mesh & Paw Patterns
    ============================================ */
 
 /* Definition of background animations */
@@ -90,28 +90,16 @@
 
 /* ============================================
    Light Mode Implementation
-   Style: Kawaii Sakura + Lavender Mesh
+   Style: Ice blue mesh + liquid glass haze
    ============================================ */
 :root {
-    --bg-mesh-1: rgb(var(--color-premium-pink-rgb) / 60%);
-
-    /* Sakura pink */
-
-    --bg-mesh-2: rgb(var(--color-premium-blue-rgb) / 50%);
-
-    /* Lavender purple */
-
-    --bg-mesh-3: rgb(251 191 36 / 30%);
-
-    /* Golden accent */
-    --bg-pattern-color: rgb(244 114 182 / 4%);
-
-    /* Pink pattern dots */
-
-    /* Aurora gradient colors - pink/purple */
-    --aurora-1: rgb(244 114 182 / 15%);
-    --aurora-2: rgb(167 139 250 / 12%);
-    --aurora-3: rgb(192 132 252 / 10%);
+    --bg-mesh-1: rgb(var(--color-premium-pink-rgb) / 62%);
+    --bg-mesh-2: rgb(var(--color-premium-blue-rgb) / 58%);
+    --bg-mesh-3: rgb(125 211 252 / 28%);
+    --bg-pattern-color: rgb(59 130 246 / 4%);
+    --aurora-1: rgb(59 130 246 / 14%);
+    --aurora-2: rgb(14 165 233 / 12%);
+    --aurora-3: rgb(34 211 238 / 10%);
 }
 
 /* Light Mode Elements */
@@ -156,20 +144,19 @@
 }
 
 [data-theme="light"] .premium-background {
-    background: linear-gradient(135deg, #FFF5F7 0%, #FFF 50%, #F3E8FF 100%);
+    background:
+        radial-gradient(circle at 12% 10%, rgb(var(--color-accent-primary-rgb) / 10%) 0%, transparent 28%),
+        radial-gradient(circle at 88% 18%, rgb(var(--color-accent-secondary-rgb) / 10%) 0%, transparent 26%),
+        linear-gradient(135deg, #F4F9FF 0%, #FDFEFF 48%, #E8F3FF 100%);
 }
 
-/* Dark Mode Premium Gradient: Deep Space "Pro Max" */
+/* Dark Mode Premium Gradient: Deep Ocean Console */
 [data-theme="dark"] .premium-background {
     background:
-        /* Top Center: Subtle Neko Pink visual interest */
-        radial-gradient(circle at 50% 0%, rgb(var(--color-accent-primary-rgb) / 8%) 0%, transparent 60%),
-        /* Bottom Right: Lavender depth */
-        radial-gradient(circle at 80% 80%, rgb(var(--color-accent-secondary-rgb) / 6%) 0%, transparent 50%),
-        /* Bottom Left: Info/Purple mystery */
-        radial-gradient(circle at 0% 100%, rgb(var(--color-info-rgb) / 6%) 0%, transparent 50%),
-        /* Base: Deep Void Gradient - Softened */
-        linear-gradient(180deg, var(--color-bg-base) 0%, #15081a 100%);
+        radial-gradient(circle at 50% 0%, rgb(var(--color-accent-primary-rgb) / 10%) 0%, transparent 58%),
+        radial-gradient(circle at 82% 82%, rgb(var(--color-accent-secondary-rgb) / 10%) 0%, transparent 46%),
+        radial-gradient(circle at 0% 100%, rgb(var(--color-info-rgb) / 9%) 0%, transparent 48%),
+        linear-gradient(180deg, var(--color-bg-base) 0%, #030915 100%);
 }
 
 /* Cat paw print pattern overlay */
@@ -193,29 +180,17 @@
 
 /* ============================================
    Dark Mode Implementation
-   Style: Deep Purple Night + Neon Pink
+   Style: Deep blue night + neon cyan
    ============================================ */
 :root[class~="dark"],
 [data-theme="dark"] {
-    --bg-mesh-1: rgb(249 168 212 / 15%);
-
-    /* Neon pink */
-
-    --bg-mesh-2: rgb(196 181 253 / 12%);
-
-    /* Lavender */
-
-    --bg-mesh-3: rgb(167 139 250 / 10%);
-
-    /* Purple */
-    --bg-grid-line: rgb(249 168 212 / 3%);
-
-    /* Pink grid */
-
-    /* Aurora gradient colors - enhanced for dark mode */
-    --aurora-1: rgb(249 168 212 / 20%);
-    --aurora-2: rgb(196 181 253 / 18%);
-    --aurora-3: rgb(216 180 254 / 15%);
+    --bg-mesh-1: rgb(96 165 250 / 18%);
+    --bg-mesh-2: rgb(56 189 248 / 14%);
+    --bg-mesh-3: rgb(34 211 238 / 10%);
+    --bg-grid-line: rgb(96 165 250 / 4%);
+    --aurora-1: rgb(96 165 250 / 22%);
+    --aurora-2: rgb(56 189 248 / 18%);
+    --aurora-3: rgb(34 211 238 / 14%);
 }
 
 /* Dark Mode Overrides */

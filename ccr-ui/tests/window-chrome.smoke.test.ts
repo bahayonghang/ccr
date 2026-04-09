@@ -1,22 +1,17 @@
 import { describe, expect, it } from 'vitest'
 
-import {
-  resolveClientPlatform,
-  resolveWindowChromeMode,
-} from '@/utils/windowChrome'
+import { resolveWindowChromeMode } from '@/utils/windowChrome'
 
-describe('windowChrome helpers', () => {
-  it('detects macOS, Windows, Linux, and unknown platforms', () => {
-    expect(resolveClientPlatform('MacIntel')).toBe('macos')
-    expect(resolveClientPlatform('Win32')).toBe('windows')
-    expect(resolveClientPlatform('Linux x86_64')).toBe('linux')
-    expect(resolveClientPlatform('SomethingElse')).toBe('unknown')
+describe('window chrome mode smoke', () => {
+  it('uses native window chrome for all Tauri desktop platforms', () => {
+    expect(resolveWindowChromeMode(true, 'windows')).toBe('native')
+    expect(resolveWindowChromeMode(true, 'macos')).toBe('native')
+    expect(resolveWindowChromeMode(true, 'linux')).toBe('native')
   })
 
-  it('uses native chrome only for macOS Tauri windows', () => {
-    expect(resolveWindowChromeMode(true, 'macos')).toBe('native')
-    expect(resolveWindowChromeMode(true, 'windows')).toBe('custom')
-    expect(resolveWindowChromeMode(true, 'linux')).toBe('custom')
+  it('keeps custom chrome only for non-Tauri browser preview', () => {
+    expect(resolveWindowChromeMode(false, 'windows')).toBe('custom')
     expect(resolveWindowChromeMode(false, 'macos')).toBe('custom')
+    expect(resolveWindowChromeMode(false, 'linux')).toBe('custom')
   })
 })

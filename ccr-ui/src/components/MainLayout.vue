@@ -51,7 +51,7 @@
       <!-- Logo Area -->
       <div class="flex h-[84px] items-center justify-between border-b border-border-default/45 px-4 pt-6 shrink-0">
         <div class="flex items-center gap-3">
-          <div class="relative flex h-9 w-9 items-center justify-center rounded-xl border border-accent-primary/20 bg-gradient-to-br from-accent-primary/70 to-accent-secondary/70 shadow-md shadow-accent-primary/15">
+          <div class="relative flex h-9 w-9 items-center justify-center rounded-xl border border-accent-primary/22 bg-gradient-to-br from-accent-primary/80 via-accent-secondary/70 to-cyan-300/75 shadow-lg shadow-accent-primary/20">
             <SIcon
               name="Cat"
               size="w-5 h-5"
@@ -121,8 +121,8 @@
 
       <!-- Footer: User Profile - Neko Kawaii Style -->
       <div class="border-t border-border-default/40 p-3 pb-5">
-        <div class="user-card group relative overflow-hidden rounded-2xl transition-interactive duration-300">
-          <div class="absolute inset-0 bg-gradient-to-br from-accent-primary/10 via-accent-secondary/8 to-transparent opacity-90" />
+        <div class="user-card group relative overflow-hidden rounded-[1.6rem] transition-interactive duration-300">
+          <div class="absolute inset-0 bg-gradient-to-br from-accent-primary/12 via-accent-secondary/10 to-transparent opacity-90" />
           <div class="absolute inset-0 user-card-accent-mesh" />
 
           <!-- Inner content -->
@@ -153,7 +153,7 @@
           </div>
 
           <!-- Bottom accent line -->
-          <div class="absolute bottom-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-pink-400/50 to-transparent" />
+          <div class="absolute bottom-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-sky-400/70 to-transparent" />
         </div>
       </div>
     </div>
@@ -423,8 +423,9 @@ onBeforeUnmount(() => {
 <style scoped>
 .layout-shell--theme-stage {
   background:
-    radial-gradient(circle at top left, rgb(var(--color-accent-secondary-rgb) / 12%) 0%, transparent 24%),
-    radial-gradient(circle at bottom left, rgb(var(--color-accent-primary-rgb) / 8%) 0%, transparent 22%),
+    radial-gradient(circle at top left, rgb(var(--color-accent-secondary-rgb) / 16%) 0%, transparent 24%),
+    radial-gradient(circle at bottom left, rgb(var(--color-accent-primary-rgb) / 10%) 0%, transparent 22%),
+    radial-gradient(circle at top right, rgb(var(--color-info-rgb) / 9%) 0%, transparent 26%),
     linear-gradient(180deg, rgb(var(--color-bg-base-rgb) / 100%), rgb(var(--color-bg-base-rgb) / 96%));
 }
 
@@ -437,7 +438,8 @@ onBeforeUnmount(() => {
   border-right: 1px solid var(--surface-shell-border);
   box-shadow:
     var(--surface-shell-shadow),
-    inset -1px 0 0 rgb(255 255 255 / 6%);
+    inset -1px 0 0 rgb(255 255 255 / 8%),
+    inset 0 1px 0 rgb(255 255 255 / 6%);
 }
 
 .topbar-glass {
@@ -445,6 +447,7 @@ onBeforeUnmount(() => {
   backdrop-filter: var(--surface-status-blur);
   box-shadow:
     inset 0 -1px 0 rgb(var(--color-border-default-rgb) / 42%),
+    inset 0 1px 0 rgb(255 255 255 / 8%),
     var(--surface-status-shadow);
 }
 
@@ -484,8 +487,9 @@ onBeforeUnmount(() => {
 
 .content-main--theme-stage {
   background:
-    radial-gradient(circle at top right, rgb(var(--color-accent-primary-rgb) / 10%) 0%, transparent 28%),
-    radial-gradient(circle at top left, rgb(var(--color-accent-secondary-rgb) / 10%) 0%, transparent 24%),
+    radial-gradient(circle at top right, rgb(var(--color-accent-primary-rgb) / 14%) 0%, transparent 28%),
+    radial-gradient(circle at top left, rgb(var(--color-accent-secondary-rgb) / 12%) 0%, transparent 24%),
+    radial-gradient(circle at bottom right, rgb(var(--color-info-rgb) / 10%) 0%, transparent 26%),
     linear-gradient(180deg, rgb(var(--color-bg-base-rgb) / 98%), rgb(var(--color-bg-base-rgb) / 94%));
 }
 
@@ -499,7 +503,8 @@ onBeforeUnmount(() => {
   @apply relative flex items-center gap-3 overflow-hidden rounded-xl px-3 py-2.5 text-sm font-medium text-text-secondary
          transition-interactive duration-200;
 
-  border: 1px solid transparent;
+  border: 1px solid rgb(var(--color-border-default-rgb) / 0%);
+  background: linear-gradient(135deg, rgb(var(--color-bg-elevated-rgb) / 0%), rgb(var(--color-bg-surface-rgb) / 0%));
 }
 
 .nav-item:focus-visible {
@@ -507,21 +512,26 @@ onBeforeUnmount(() => {
 }
 
 .nav-item:hover {
-  @apply text-text-primary shadow-sm;
+  @apply text-text-primary;
 
-  background-color: rgb(var(--color-bg-overlay-rgb) / 65%);
-  border-color: rgb(var(--color-border-default-rgb) / 60%);
+  background:
+    linear-gradient(135deg, rgb(var(--color-bg-elevated-rgb) / 76%), rgb(var(--color-bg-surface-rgb) / 64%));
+  border-color: rgb(var(--color-border-default-rgb) / 64%);
+  box-shadow:
+    0 12px 24px rgb(3 10 19 / 10%),
+    inset 0 1px 0 rgb(255 255 255 / 8%);
 }
 
 .nav-item.router-link-active:not(.nav-item--root),
 .nav-item.router-link-exact-active.nav-item--root {
-  @apply text-text-primary shadow-sm;
+  @apply text-text-primary;
 
   box-shadow:
-    0 16px 32px rgb(var(--color-accent-primary-rgb) / 10%),
-    inset 0 1px 0 rgb(255 255 255 / 8%);
-  background: linear-gradient(135deg, rgb(var(--color-accent-primary-rgb) / 12%), rgb(var(--color-accent-secondary-rgb) / 8%));
-  border-color: rgb(var(--color-accent-primary-rgb) / 20%);
+    0 18px 32px rgb(var(--color-accent-primary-rgb) / 16%),
+    inset 0 1px 0 rgb(255 255 255 / 10%);
+  background:
+    linear-gradient(135deg, rgb(var(--color-accent-primary-rgb) / 16%), rgb(var(--color-accent-secondary-rgb) / 10%));
+  border-color: rgb(var(--color-accent-primary-rgb) / 28%);
 }
 
 /* Active indicator strip */
@@ -537,46 +547,42 @@ onBeforeUnmount(() => {
 
 /* User Card - Neko Kawaii Style */
 .user-card {
-  background: linear-gradient(135deg,
-    rgb(var(--color-bg-elevated-rgb) / 90%) 0%,
-    rgb(var(--color-bg-surface-rgb) / 86%) 100%
-  );
-  backdrop-filter: blur(18px) saturate(140%);
-  border: 1px solid rgb(var(--color-border-default-rgb) / 55%);
+  background:
+    linear-gradient(135deg, rgb(var(--color-bg-elevated-rgb) / 80%) 0%, rgb(var(--color-bg-surface-rgb) / 70%) 100%);
+  backdrop-filter: blur(22px) saturate(165%);
+  border: 1px solid rgb(var(--color-border-default-rgb) / 58%);
   box-shadow:
-    0 14px 32px rgb(4 6 13 / 24%),
-    inset 0 1px 0 rgb(255 255 255 / 8%);
+    0 20px 36px rgb(3 10 19 / 24%),
+    inset 0 1px 0 rgb(255 255 255 / 12%);
 }
 
 .user-card-accent-mesh {
   background:
-    radial-gradient(ellipse at top right, rgb(var(--color-accent-primary-rgb) / 14%), transparent 54%),
-    radial-gradient(ellipse at bottom left, rgb(var(--color-accent-secondary-rgb) / 10%), transparent 48%);
+    radial-gradient(ellipse at top right, rgb(var(--color-accent-primary-rgb) / 18%), transparent 54%),
+    radial-gradient(ellipse at bottom left, rgb(var(--color-accent-secondary-rgb) / 14%), transparent 48%);
 }
 
 .user-card:hover {
   border-color: rgb(var(--color-accent-primary-rgb) / 28%);
   box-shadow:
-    0 18px 38px rgb(var(--color-accent-primary-rgb) / 10%),
-    0 6px 16px rgb(4 6 13 / 24%),
-    inset 0 1px 0 rgb(255 255 255 / 10%);
+    0 24px 42px rgb(var(--color-accent-primary-rgb) / 14%),
+    0 8px 16px rgb(3 10 19 / 26%),
+    inset 0 1px 0 rgb(255 255 255 / 14%);
 }
 
 /* User Card - Light Mode Override */
 [data-theme="light"] .user-card {
-  background: linear-gradient(135deg,
-    rgb(var(--color-bg-elevated-rgb) / 94%) 0%,
-    rgb(var(--color-bg-surface-rgb) / 92%) 100%
-  );
-  backdrop-filter: blur(18px) saturate(145%);
-  border: 1px solid rgb(var(--color-border-default-rgb) / 65%);
+  background:
+    linear-gradient(135deg, rgb(var(--color-bg-elevated-rgb) / 84%) 0%, rgb(var(--color-bg-surface-rgb) / 76%) 100%);
+  backdrop-filter: blur(24px) saturate(165%);
+  border: 1px solid rgb(var(--color-border-default-rgb) / 60%);
   box-shadow:
-    0 16px 34px rgb(48 32 71 / 10%),
-    inset 0 1px 0 rgb(255 255 255 / 75%);
+    0 18px 36px rgb(13 31 61 / 12%),
+    inset 0 1px 0 rgb(255 255 255 / 76%);
 }
 
 [data-theme="light"] .user-card:hover {
-  box-shadow: 0 18px 38px rgb(48 32 71 / 12%);
+  box-shadow: 0 22px 40px rgb(13 31 61 / 14%);
 }
 
 </style>

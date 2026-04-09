@@ -43,9 +43,9 @@ export const getClientPlatform = (): ClientPlatform => {
 
 export const resolveWindowChromeMode = (
   isTauri: boolean,
-  platform: ClientPlatform,
+  _platform: ClientPlatform,
 ): WindowChromeMode => {
-  if (isTauri && platform === 'macos') {
+  if (isTauri) {
     return 'native'
   }
 

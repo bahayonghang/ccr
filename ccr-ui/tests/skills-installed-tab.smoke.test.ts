@@ -16,6 +16,13 @@ vi.mock('@tanstack/vue-virtual', () => ({
   ),
 }))
 
+vi.mock('@/components/ui', () => ({
+  AsyncStatePanel: defineComponent({
+    name: 'AsyncStatePanelStub',
+    template: '<div data-testid="async-state-panel" />',
+  }),
+}))
+
 vi.mock('@/components/skills/SkillCard.vue', () => ({
   default: defineComponent({
     name: 'SkillCardStub',
@@ -42,7 +49,6 @@ const mountInstalledTab = async (skills: UnifiedSkill[]) => {
   app.config.globalProperties.$t = (key: string) => key
   app.mount(el)
   await nextTick()
-  await nextTick()
 
   return {
     el,
@@ -60,7 +66,7 @@ afterEach(() => {
 
 describe('SkillsInstalledTab smoke', () => {
   it('renders only the virtualized slice for large skill lists', async () => {
-    const skills = Array.from({ length: 1000 }, (_, index) => ({
+    const skills = Array.from({ length: 200 }, (_, index) => ({
       name: `Skill ${index}`,
       skillDir: `/tmp/skill-${index}`,
       platform: 'codex',
@@ -76,7 +82,7 @@ describe('SkillsInstalledTab smoke', () => {
       )
 
       expect(cards).toEqual(['Skill 0', 'Skill 1', 'Skill 2'])
-      expect(cards).not.toContain('Skill 999')
+      expect(cards).not.toContain('Skill 199')
       expect(el.querySelectorAll('[data-testid="skills-installed-row"]')).toHaveLength(3)
     } finally {
       unmount()

@@ -240,7 +240,9 @@ const handleMouseLeave = (event: MouseEvent) => {
   @apply rounded-xl border border-white/10 shadow-sm;
 
   background: var(--color-bg-elevated);
-  box-shadow: var(--ui-card-shadow, var(--shadow-sm));
+  box-shadow:
+    var(--ui-card-shadow, var(--shadow-sm)),
+    inset 0 1px 0 rgb(255 255 255 / 10%);
 }
 
 .ui-card--elevated {
@@ -249,7 +251,9 @@ const handleMouseLeave = (event: MouseEvent) => {
   background: var(--surface-card-bg);
   border: 1px solid var(--surface-card-border);
   backdrop-filter: var(--surface-card-blur);
-  box-shadow: var(--ui-card-shadow, var(--surface-card-shadow)), var(--glass-inner-glow);
+  box-shadow:
+    var(--ui-card-shadow, var(--surface-card-shadow)),
+    var(--glass-inner-glow);
 }
 
 .ui-card--glass {
@@ -258,12 +262,16 @@ const handleMouseLeave = (event: MouseEvent) => {
   background: var(--surface-workspace-bg);
   border: 1px solid var(--surface-workspace-border);
   backdrop-filter: var(--surface-workspace-blur);
-  box-shadow: var(--ui-card-shadow, var(--surface-workspace-shadow));
+  box-shadow:
+    var(--ui-card-shadow, var(--surface-workspace-shadow)),
+    inset 0 1px 0 rgb(255 255 255 / 10%);
 }
 
 .ui-card--outline {
-  @apply rounded-xl border border-white/20 bg-transparent backdrop-blur-md;
+  @apply rounded-xl bg-transparent;
 
+  border: 1px solid var(--surface-status-border);
+  backdrop-filter: var(--surface-status-blur);
   box-shadow: var(--ui-card-shadow, none);
 }
 
@@ -276,7 +284,7 @@ const handleMouseLeave = (event: MouseEvent) => {
   box-shadow:
     var(--ui-card-shadow, var(--surface-card-shadow)),
     var(--glass-inner-glow),
-    0 0 24px rgb(var(--color-accent-primary-rgb) / 18%);
+    0 0 28px rgb(var(--color-accent-primary-rgb) / 18%);
 }
 
 .ui-card--surface-modal.ui-card--elevated,
@@ -294,7 +302,7 @@ const handleMouseLeave = (event: MouseEvent) => {
   transform: translateY(var(--ui-card-hover-translate, -0.18rem));
   box-shadow:
     var(--ui-card-hover-shadow, var(--ui-card-shadow, var(--surface-card-shadow))),
-    0 18px 40px rgb(var(--color-accent-primary-rgb) / 12%);
+    0 22px 44px rgb(var(--color-accent-primary-rgb) / 14%);
   border-color: rgb(var(--color-accent-primary-rgb) / 28%);
 }
 

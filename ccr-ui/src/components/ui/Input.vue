@@ -57,7 +57,7 @@
 
       <!-- Neo Glow Effect on Focus -->
       <div 
-        class="absolute -inset-0.5 bg-accent-primary/16 rounded-xl blur opacity-0 transition-opacity duration-300 peer-focus:opacity-100 -z-10 pointer-events-none"
+        class="absolute -inset-0.5 rounded-xl bg-accent-primary/16 blur-md opacity-0 transition-opacity duration-300 peer-focus:opacity-100 -z-10 pointer-events-none"
         :class="props.error ? 'bg-accent-danger/20' : ''"
       />
     </div>
@@ -144,14 +144,16 @@ export default {
 
 <style scoped>
 .ui-input {
-  box-shadow: var(--ui-input-shadow, var(--shadow-sm));
   transition-property: background-color, border-color, box-shadow, color, transform;
   transition-duration: var(--ui-input-duration, var(--motion-subtle-duration));
   transition-timing-function: var(--ui-input-ease, var(--motion-subtle-ease));
+  box-shadow:
+    var(--ui-input-shadow, var(--shadow-sm)),
+    inset 0 1px 0 rgb(255 255 255 / 10%);
 }
 
 .ui-input:hover:not(:disabled) {
-  border-color: rgb(var(--color-border-strong-rgb) / 90%);
+  border-color: rgb(var(--color-border-strong-rgb) / 78%);
 }
 
 .ui-input--surface-workspace {

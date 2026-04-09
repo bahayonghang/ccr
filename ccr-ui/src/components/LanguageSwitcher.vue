@@ -3,7 +3,7 @@
     <!-- Language Switcher Button -->
     <button
       type="button"
-      class="glass-surface flex items-center justify-between gap-2 rounded-lg border border-border-default/60 px-3 py-2 text-sm font-semibold text-text-primary transition-interactive hover:border-accent-primary/35 hover:bg-bg-elevated/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary/20"
+      class="glass-surface flex items-center justify-between gap-2 rounded-xl border border-border-default/60 px-3 py-2 text-sm font-semibold text-text-primary transition-interactive hover:border-accent-primary/35 hover:text-accent-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary/20"
       :aria-label="$t('common.language.switchLanguage')"
       :aria-expanded="showDropdown"
       aria-haspopup="listbox"
@@ -38,7 +38,7 @@
     >
       <div
         v-if="showDropdown"
-        class="language-switcher__menu glass-surface absolute left-0 mt-2 w-44 overflow-hidden rounded-xl border border-border-default/70 shadow-2xl"
+        class="language-switcher__menu glass-surface absolute left-0 mt-2 w-44 overflow-hidden rounded-2xl border border-border-default/70 shadow-2xl"
         role="listbox"
       >
         <button
@@ -141,7 +141,7 @@ const switchLanguage = async (langCode: string) => {
 }
 
 .lang-active {
-  background: rgb(var(--color-accent-primary-rgb) / 12%);
+  background: linear-gradient(135deg, rgb(var(--color-accent-primary-rgb) / 16%), rgb(var(--color-accent-secondary-rgb) / 12%));
   color: var(--color-accent-primary);
   font-weight: var(--font-semibold);
   box-shadow: var(--shadow-glow-primary);

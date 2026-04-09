@@ -45,14 +45,14 @@
             <Button
               variant="primary"
               density="compact"
-              surface="card"
+              surface="modal"
               motion="standard"
               @click="router.push('/commands')"
             >
               {{ $t('home.actionCommandRunner') }}
             </Button>
             <Button
-              variant="secondary"
+              variant="glass"
               density="compact"
               surface="card"
               motion="subtle"
@@ -311,7 +311,7 @@
             </p>
           </div>
           <Button
-            variant="ghost"
+            variant="glass"
             density="compact"
             surface="status"
             motion="subtle"
@@ -669,6 +669,10 @@ const getNodeStateClass = (platformKey: string) => {
 <style scoped>
 .home-view {
   @apply relative min-h-full px-4 py-4 sm:px-6 sm:py-6;
+
+  background:
+    radial-gradient(circle at top right, rgb(var(--color-accent-primary-rgb) / 8%) 0%, transparent 22%),
+    radial-gradient(circle at 8% 18%, rgb(var(--color-accent-secondary-rgb) / 8%) 0%, transparent 18%);
 }
 
 .home-shell {
@@ -678,18 +682,20 @@ const getNodeStateClass = (platformKey: string) => {
 .home-poster {
   position: relative;
   overflow: hidden;
-  border-radius: 2rem;
-  border: 1px solid rgb(var(--color-accent-primary-rgb) / 12%);
+  border-radius: 2.25rem;
+  border: 1px solid rgb(var(--color-accent-primary-rgb) / 16%);
   background:
-    radial-gradient(circle at top left, rgb(var(--color-accent-primary-rgb) / 16%), transparent 32%),
-    radial-gradient(circle at bottom right, rgb(var(--color-accent-secondary-rgb) / 14%), transparent 30%),
-    linear-gradient(135deg, rgb(var(--color-bg-elevated-rgb) / 96%), rgb(var(--color-bg-base-rgb) / 98%));
+    radial-gradient(circle at 8% 16%, rgb(var(--color-accent-primary-rgb) / 18%), transparent 28%),
+    radial-gradient(circle at 92% 24%, rgb(var(--color-accent-secondary-rgb) / 16%), transparent 24%),
+    radial-gradient(circle at 72% 82%, rgb(var(--color-info-rgb) / 12%), transparent 24%),
+    linear-gradient(135deg, rgb(var(--color-bg-elevated-rgb) / 78%), rgb(var(--color-bg-base-rgb) / 74%));
+  backdrop-filter: blur(28px) saturate(175%);
   box-shadow:
-    0 24px 80px rgb(15 23 42 / 12%),
-    inset 0 1px 0 rgb(255 255 255 / 14%);
+    0 28px 80px rgb(3 10 19 / 16%),
+    inset 0 1px 0 rgb(255 255 255 / 16%);
   display: grid;
-  gap: 2rem;
-  padding: 1.5rem;
+  gap: 2.25rem;
+  padding: 1.75rem;
 }
 
 .home-poster__mesh {
@@ -698,9 +704,9 @@ const getNodeStateClass = (platformKey: string) => {
   background-image:
     linear-gradient(rgb(255 255 255 / 5%) 1px, transparent 1px),
     linear-gradient(90deg, rgb(255 255 255 / 5%) 1px, transparent 1px);
-  background-size: 36px 36px;
-  mask-image: radial-gradient(circle at center, black 40%, transparent 92%);
-  opacity: 0.36;
+  background-size: 32px 32px;
+  mask-image: radial-gradient(circle at 55% 46%, black 46%, transparent 92%);
+  opacity: 0.5;
   pointer-events: none;
 }
 
@@ -711,7 +717,7 @@ const getNodeStateClass = (platformKey: string) => {
 }
 
 .home-poster__copy {
-  @apply flex flex-col gap-5;
+  @apply flex flex-col gap-6;
 }
 
 .home-poster__eyebrow,
@@ -721,11 +727,13 @@ const getNodeStateClass = (platformKey: string) => {
 }
 
 .home-poster__eyebrow-line {
-  @apply h-px w-10 bg-accent-primary/40;
+  @apply h-px w-12 bg-accent-primary/45;
 }
 
 .home-poster__welcome {
   @apply text-sm font-medium uppercase tracking-[0.16em] text-accent-primary;
+
+  text-shadow: 0 0 18px rgb(var(--color-accent-primary-rgb) / 18%);
 }
 
 .home-poster__title-wrap {
@@ -735,15 +743,17 @@ const getNodeStateClass = (platformKey: string) => {
 .home-poster__title {
   font-family: var(--font-brand, inherit);
 
-  @apply max-w-[9ch] text-4xl font-semibold tracking-[-0.04em] text-text-primary sm:text-5xl lg:text-6xl;
+  @apply max-w-[9ch] text-4xl font-semibold tracking-[-0.05em] text-text-primary sm:text-5xl lg:text-[4.4rem];
+
+  line-height: 0.94;
 }
 
 .home-poster__lead {
-  @apply max-w-[32rem] text-lg font-medium leading-8 text-text-primary;
+  @apply max-w-[34rem] text-lg font-medium leading-8 text-text-primary;
 }
 
 .home-poster__description {
-  @apply max-w-[34rem] text-sm leading-7 text-text-secondary;
+  @apply max-w-[35rem] text-sm leading-7 text-text-secondary;
 }
 
 .home-poster__status-rail {
@@ -751,7 +761,12 @@ const getNodeStateClass = (platformKey: string) => {
 }
 
 .home-status-pill {
-  @apply inline-flex items-center gap-2 rounded-full border border-border-default/55 bg-bg-elevated/70 px-3 py-2 backdrop-blur;
+  @apply inline-flex items-center gap-2 rounded-full px-3 py-2;
+
+  border: 1px solid rgb(var(--color-border-default-rgb) / 48%);
+  background: linear-gradient(135deg, rgb(var(--color-bg-elevated-rgb) / 68%), rgb(var(--color-bg-surface-rgb) / 60%));
+  backdrop-filter: blur(16px) saturate(160%);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 12%);
 }
 
 .home-status-pill__dot {
@@ -792,9 +807,15 @@ const getNodeStateClass = (platformKey: string) => {
 }
 
 .home-visual-panel {
-  @apply flex w-full flex-col gap-5 rounded-[1.75rem] border border-border-default/55 bg-bg-base/75 p-5 backdrop-blur-xl;
+  @apply flex w-full flex-col gap-5 rounded-[1.9rem] p-5;
 
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 10%);
+  border: 1px solid rgb(var(--color-border-default-rgb) / 46%);
+  background:
+    linear-gradient(135deg, rgb(var(--color-bg-base-rgb) / 58%), rgb(var(--color-bg-surface-rgb) / 46%));
+  backdrop-filter: blur(24px) saturate(170%);
+  box-shadow:
+    0 18px 34px rgb(3 10 19 / 16%),
+    inset 0 1px 0 rgb(255 255 255 / 12%);
 }
 
 .home-visual-panel__header {
@@ -806,18 +827,24 @@ const getNodeStateClass = (platformKey: string) => {
 }
 
 .home-visual-panel__badge {
-  @apply rounded-full border border-accent-primary/25 bg-accent-primary/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-accent-primary;
+  @apply rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-accent-primary;
+
+  border: 1px solid rgb(var(--color-accent-primary-rgb) / 24%);
+  background: linear-gradient(135deg, rgb(var(--color-accent-primary-rgb) / 14%), rgb(var(--color-accent-secondary-rgb) / 10%));
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 10%);
 }
 
 .home-visual-panel__fabric {
   position: relative;
   overflow: hidden;
-  border-radius: 1.5rem;
-  min-height: 280px;
-  border: 1px solid rgb(var(--color-accent-primary-rgb) / 12%);
+  border-radius: 1.6rem;
+  min-height: 300px;
+  border: 1px solid rgb(var(--color-accent-primary-rgb) / 16%);
   background:
-    linear-gradient(180deg, rgb(255 255 255 / 3%), transparent),
-    linear-gradient(135deg, rgb(var(--color-bg-elevated-rgb) / 88%), rgb(var(--color-bg-base-rgb) / 90%));
+    linear-gradient(180deg, rgb(255 255 255 / 4%), transparent),
+    radial-gradient(circle at top right, rgb(var(--color-accent-secondary-rgb) / 14%) 0%, transparent 34%),
+    linear-gradient(135deg, rgb(var(--color-bg-elevated-rgb) / 60%), rgb(var(--color-bg-base-rgb) / 82%));
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 8%);
 }
 
 .home-visual-panel__grid {
@@ -826,26 +853,26 @@ const getNodeStateClass = (platformKey: string) => {
   background-image:
     linear-gradient(rgb(255 255 255 / 4%) 1px, transparent 1px),
     linear-gradient(90deg, rgb(255 255 255 / 4%) 1px, transparent 1px);
-  background-size: 30px 30px;
+  background-size: 28px 28px;
 }
 
 .home-visual-panel__signal-ring {
   position: absolute;
   inset: auto auto 1.25rem 1.5rem;
-  width: 220px;
-  height: 220px;
+  width: 240px;
+  height: 240px;
   border-radius: 9999px;
-  border: 1px solid rgb(var(--color-accent-primary-rgb) / 24%);
-  box-shadow: 0 0 90px rgb(var(--color-accent-primary-rgb) / 14%);
+  border: 1px solid rgb(var(--color-accent-primary-rgb) / 26%);
+  box-shadow: 0 0 110px rgb(var(--color-accent-primary-rgb) / 16%);
   animation: hero-pulse 9s ease-in-out infinite;
 }
 
 .home-visual-panel__signal-ring--secondary {
   inset: 2.25rem 2rem auto auto;
-  width: 160px;
-  height: 160px;
-  border-color: rgb(var(--color-accent-secondary-rgb) / 22%);
-  box-shadow: 0 0 70px rgb(var(--color-accent-secondary-rgb) / 12%);
+  width: 180px;
+  height: 180px;
+  border-color: rgb(var(--color-accent-secondary-rgb) / 24%);
+  box-shadow: 0 0 82px rgb(var(--color-accent-secondary-rgb) / 12%);
   animation-delay: 1.4s;
 }
 
@@ -857,16 +884,20 @@ const getNodeStateClass = (platformKey: string) => {
 }
 
 .home-signal-node {
-  @apply flex items-center justify-between gap-3 rounded-2xl border border-border-default/55 bg-bg-surface/70 px-4 py-3 backdrop-blur;
+  @apply flex items-center justify-between gap-3 rounded-2xl px-4 py-3;
 
+  border: 1px solid rgb(var(--color-border-default-rgb) / 46%);
+  background: linear-gradient(135deg, rgb(var(--color-bg-surface-rgb) / 64%), rgb(var(--color-bg-elevated-rgb) / 52%));
+  backdrop-filter: blur(16px) saturate(160%);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 10%);
   transform: translateZ(0);
   transition: transform 220ms ease, border-color 220ms ease, background-color 220ms ease;
 }
 
 .home-signal-node:hover {
-  transform: translateX(4px);
-  border-color: rgb(var(--color-accent-primary-rgb) / 26%);
-  background-color: rgb(var(--color-bg-elevated-rgb) / 82%);
+  transform: translateX(6px);
+  border-color: rgb(var(--color-accent-primary-rgb) / 28%);
+  background: linear-gradient(135deg, rgb(var(--color-bg-elevated-rgb) / 78%), rgb(var(--color-bg-surface-rgb) / 60%));
 }
 
 .home-signal-node__meta {
@@ -898,9 +929,12 @@ const getNodeStateClass = (platformKey: string) => {
 }
 
 .home-usage-preview {
-  @apply flex items-end justify-between gap-4 rounded-[1.4rem] border border-border-default/55 px-4 py-4 backdrop-blur;
+  @apply flex items-end justify-between gap-4 rounded-[1.45rem] px-4 py-4;
 
-  background-color: rgb(var(--color-bg-surface-rgb) / 72%);
+  border: 1px solid rgb(var(--color-border-default-rgb) / 44%);
+  background: linear-gradient(135deg, rgb(var(--color-bg-surface-rgb) / 62%), rgb(var(--color-bg-elevated-rgb) / 52%));
+  backdrop-filter: blur(18px) saturate(160%);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 10%);
 }
 
 .home-usage-preview__title {
@@ -912,13 +946,27 @@ const getNodeStateClass = (platformKey: string) => {
 }
 
 .home-usage-preview__bar {
-  @apply w-3 rounded-full bg-gradient-to-t from-accent-primary/35 via-accent-primary/60 to-accent-info/80;
+  @apply w-3 rounded-full;
 
   min-height: 14px;
+  background: linear-gradient(
+    180deg,
+    rgb(var(--color-info-rgb) / 90%) 0%,
+    rgb(var(--color-accent-primary-rgb) / 68%) 52%,
+    rgb(var(--color-accent-primary-rgb) / 40%) 100%
+  );
+  box-shadow: 0 0 16px rgb(var(--color-accent-primary-rgb) / 12%);
 }
 
 .section-block {
-  @apply flex flex-col gap-4;
+  @apply flex flex-col gap-4 rounded-[1.85rem] p-5;
+
+  border: 1px solid rgb(var(--color-border-default-rgb) / 34%);
+  background: linear-gradient(135deg, rgb(var(--color-bg-elevated-rgb) / 58%), rgb(var(--color-bg-base-rgb) / 38%));
+  backdrop-filter: blur(18px) saturate(150%);
+  box-shadow:
+    0 18px 40px rgb(3 10 19 / 10%),
+    inset 0 1px 0 rgb(255 255 255 / 10%);
 }
 
 .section-row {
@@ -946,14 +994,20 @@ const getNodeStateClass = (platformKey: string) => {
 }
 
 .command-strip__slot {
-  @apply flex h-full items-center gap-4 rounded-[1.45rem] border border-border-default/55 px-4 py-4 backdrop-blur transition-all duration-200;
+  @apply flex h-full items-center gap-4 rounded-[1.45rem] px-4 py-4 transition-all duration-200;
 
-  background-color: rgb(var(--color-bg-surface-rgb) / 72%);
+  border: 1px solid rgb(var(--color-border-default-rgb) / 42%);
+  background: linear-gradient(135deg, rgb(var(--color-bg-surface-rgb) / 62%), rgb(var(--color-bg-elevated-rgb) / 52%));
+  backdrop-filter: blur(16px) saturate(150%);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 10%);
 }
 
 .command-strip__slot:hover {
-  border-color: rgb(var(--color-accent-primary-rgb) / 26%);
-  transform: translateY(-2px);
+  border-color: rgb(var(--color-accent-primary-rgb) / 28%);
+  transform: translateY(-3px);
+  box-shadow:
+    0 20px 34px rgb(var(--color-accent-primary-rgb) / 10%),
+    inset 0 1px 0 rgb(255 255 255 / 12%);
 }
 
 .command-strip__copy {
@@ -988,15 +1042,21 @@ const getNodeStateClass = (platformKey: string) => {
 
 .platform-feature__shell,
 .platform-rail__shell {
-  @apply rounded-[1.6rem] border border-border-default/55 p-5 backdrop-blur transition-all duration-200;
+  @apply rounded-[1.6rem] p-5 transition-all duration-200;
 
-  background-color: rgb(var(--color-bg-surface-rgb) / 72%);
+  border: 1px solid rgb(var(--color-border-default-rgb) / 42%);
+  background: linear-gradient(135deg, rgb(var(--color-bg-surface-rgb) / 62%), rgb(var(--color-bg-elevated-rgb) / 52%));
+  backdrop-filter: blur(18px) saturate(155%);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 10%);
 }
 
 .platform-feature__shell:hover,
 .platform-rail__shell:hover {
-  border-color: rgb(var(--color-accent-primary-rgb) / 26%);
-  transform: translateY(-2px);
+  border-color: rgb(var(--color-accent-primary-rgb) / 28%);
+  transform: translateY(-3px);
+  box-shadow:
+    0 20px 34px rgb(var(--color-accent-primary-rgb) / 10%),
+    inset 0 1px 0 rgb(255 255 255 / 12%);
 }
 
 .platform-feature__header,
@@ -1012,7 +1072,11 @@ const getNodeStateClass = (platformKey: string) => {
 }
 
 .platform-feature__icon {
-  @apply flex h-12 w-12 items-center justify-center rounded-2xl border border-border-default/55 bg-bg-elevated/80;
+  @apply flex h-12 w-12 items-center justify-center rounded-2xl;
+
+  border: 1px solid rgb(var(--color-border-default-rgb) / 42%);
+  background: linear-gradient(135deg, rgb(var(--color-bg-elevated-rgb) / 76%), rgb(var(--color-bg-surface-rgb) / 62%));
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 12%);
 }
 
 .platform-feature__eyebrow {
@@ -1047,9 +1111,10 @@ const getNodeStateClass = (platformKey: string) => {
 }
 
 .module-version-badge--default {
-  @apply border-border-default/60 text-text-secondary;
+  @apply text-text-secondary;
 
-  background-color: rgb(var(--color-bg-elevated-rgb) / 72%);
+  border-color: rgb(var(--color-border-default-rgb) / 56%);
+  background-color: rgb(var(--color-bg-elevated-rgb) / 66%);
 }
 
 .module-version-badge--warning {
@@ -1097,7 +1162,7 @@ const getNodeStateClass = (platformKey: string) => {
 
 @media (width >= 1024px) {
   .home-poster {
-    grid-template-columns: minmax(0, 1.05fr) minmax(360px, 0.95fr);
+    grid-template-columns: minmax(0, 1.08fr) minmax(380px, 0.92fr);
     padding: 2rem;
   }
 }

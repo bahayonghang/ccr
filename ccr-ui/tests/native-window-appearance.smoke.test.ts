@@ -56,7 +56,7 @@ describe('native window appearance smoke', () => {
     await syncNativeWindowAppearance('light')
 
     expect(setTheme).toHaveBeenCalledWith('light')
-    expect(setBackgroundColor).toHaveBeenCalledWith('#F3F1F8')
+    expect(setBackgroundColor).toHaveBeenCalledWith('#EEF4FF')
     expect(loggerWarn).not.toHaveBeenCalled()
   })
 

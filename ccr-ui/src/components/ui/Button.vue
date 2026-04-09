@@ -125,6 +125,7 @@ const classes = computed(() => {
 
   transform: translateZ(0);
   letter-spacing: 0.01em;
+  backdrop-filter: var(--surface-status-blur);
   transition-property: transform, box-shadow, background-color, border-color, color, opacity;
   transition-duration: var(--ui-button-duration, var(--motion-standard-duration));
   transition-timing-function: var(--ui-button-ease, var(--motion-standard-ease));
@@ -163,32 +164,37 @@ const classes = computed(() => {
 .ui-button--primary {
   @apply border text-text-inverted;
 
-  border-color: rgb(var(--color-accent-primary-rgb) / 24%);
+  border-color: rgb(var(--color-accent-primary-rgb) / 28%);
   background: linear-gradient(
     135deg,
     rgb(var(--color-accent-primary-rgb) / 96%),
-    rgb(var(--color-accent-secondary-rgb) / 82%)
+    rgb(var(--color-accent-secondary-rgb) / 90%)
   );
   box-shadow:
-    var(--ui-button-shadow, 0 14px 30px rgb(var(--color-accent-primary-rgb) / 20%)),
-    inset 0 1px 0 rgb(255 255 255 / 18%);
+    var(--ui-button-shadow, 0 18px 34px rgb(var(--color-accent-primary-rgb) / 22%)),
+    inset 0 1px 0 rgb(255 255 255 / 20%);
 }
 
 .ui-button--primary:hover:not(:disabled) {
   box-shadow:
-    0 18px 34px rgb(var(--color-accent-primary-rgb) / 24%),
-    inset 0 1px 0 rgb(255 255 255 / 22%);
-  transform: translateY(-1px);
+    0 22px 40px rgb(var(--color-accent-primary-rgb) / 26%),
+    inset 0 1px 0 rgb(255 255 255 / 24%);
+  transform: translateY(-2px);
 }
 
 .ui-button--secondary {
-  @apply border border-border-default/70 text-text-primary shadow-sm backdrop-blur-md;
+  @apply border text-text-primary shadow-sm;
 
-  background-color: rgb(var(--color-bg-elevated-rgb) / 80%);
+  border-color: var(--surface-status-border);
+  background: linear-gradient(135deg, rgb(var(--color-bg-elevated-rgb) / 74%), rgb(var(--color-bg-surface-rgb) / 66%));
+  box-shadow:
+    var(--ui-button-shadow, var(--surface-status-shadow)),
+    inset 0 1px 0 rgb(255 255 255 / 12%);
 }
 
 .ui-button--secondary:hover:not(:disabled) {
-  @apply border-border-strong bg-bg-surface;
+  border-color: rgb(var(--color-accent-primary-rgb) / 26%);
+  background: linear-gradient(135deg, rgb(var(--color-bg-elevated-rgb) / 84%), rgb(var(--color-bg-surface-rgb) / 74%));
 }
 
 .ui-button--accent {
@@ -202,13 +208,16 @@ const classes = computed(() => {
 }
 
 .ui-button--outline {
-  @apply border border-border-default/80 bg-transparent text-text-secondary;
+  @apply border bg-transparent text-text-secondary;
+
+  border-color: rgb(var(--color-border-default-rgb) / 80%);
 }
 
 .ui-button--outline:hover:not(:disabled) {
-  @apply border-accent-primary/35 text-text-primary;
+  @apply text-text-primary;
 
-  background-color: rgb(var(--color-bg-surface-rgb) / 70%);
+  border-color: rgb(var(--color-accent-primary-rgb) / 35%);
+  background-color: rgb(var(--color-bg-surface-rgb) / 60%);
 }
 
 .ui-button--ghost {
@@ -218,21 +227,23 @@ const classes = computed(() => {
 .ui-button--ghost:hover:not(:disabled) {
   @apply text-text-primary;
 
-  background-color: rgb(var(--color-bg-surface-rgb) / 75%);
+  background-color: rgb(var(--color-bg-surface-rgb) / 62%);
 }
 
 .ui-button--glass {
-  @apply border border-border-default/60 text-text-primary shadow-sm;
+  @apply border text-text-primary shadow-sm;
 
   background: var(--surface-status-bg);
+  border-color: var(--surface-status-border);
   backdrop-filter: var(--surface-status-blur);
-  box-shadow: var(--ui-button-shadow, var(--surface-status-shadow)), inset 0 1px 0 rgb(255 255 255 / 10%);
+  box-shadow:
+    var(--ui-button-shadow, var(--surface-status-shadow)),
+    inset 0 1px 0 rgb(255 255 255 / 12%);
 }
 
 .ui-button--glass:hover:not(:disabled) {
-  @apply border-accent-primary/30;
-
-  background-color: rgb(var(--color-bg-elevated-rgb) / 80%);
+  border-color: rgb(var(--color-accent-primary-rgb) / 30%);
+  background-color: rgb(var(--color-bg-elevated-rgb) / 78%);
 }
 
 .ui-button--danger {
@@ -240,7 +251,7 @@ const classes = computed(() => {
 
   border-color: rgb(var(--color-danger-rgb) / 24%);
   background: linear-gradient(135deg, rgb(var(--color-danger-rgb) / 94%), rgb(var(--color-warning-rgb) / 74%));
-  box-shadow: var(--ui-button-shadow, 0 14px 30px rgb(var(--color-danger-rgb) / 18%));
+  box-shadow: var(--ui-button-shadow, 0 18px 34px rgb(var(--color-danger-rgb) / 18%));
 }
 
 .ui-button--danger:hover:not(:disabled) {
@@ -251,8 +262,8 @@ const classes = computed(() => {
   @apply border text-text-inverted;
 
   border-color: rgb(var(--color-success-rgb) / 24%);
-  background: linear-gradient(135deg, rgb(var(--color-success-rgb) / 94%), rgb(var(--color-info-rgb) / 74%));
-  box-shadow: var(--ui-button-shadow, 0 14px 30px rgb(var(--color-success-rgb) / 18%));
+  background: linear-gradient(135deg, rgb(var(--color-success-rgb) / 94%), rgb(var(--color-info-rgb) / 82%));
+  box-shadow: var(--ui-button-shadow, 0 18px 34px rgb(var(--color-success-rgb) / 18%));
 }
 
 .ui-button--success:hover:not(:disabled) {
