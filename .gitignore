@@ -68,6 +68,10 @@ cmake-build-*/
 .kiro/
 .workflow/
 
+# Graphify artifacts
+graphify-out/
+.graphify_*
+
 # File-based planning artifacts
 task_plan.md
 findings.md
