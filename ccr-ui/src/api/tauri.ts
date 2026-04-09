@@ -950,6 +950,68 @@ export const validateCodexAgentToml = async <T = UnknownRecord>(
   })
 }
 
+/** 列出 Codex GitHub agent sources */
+export const listCodexAgentSources = async <T = UnknownRecord>(): Promise<T> => {
+  return invoke('codex_list_agent_sources')
+}
+
+/** 添加 Codex GitHub agent source */
+export const addCodexAgentSource = async <T = UnknownRecord>(url: string): Promise<T> => {
+  return invoke('codex_add_agent_source', { request: { url } })
+}
+
+/** 删除 Codex GitHub agent source */
+export const removeCodexAgentSource = async <T = UnknownRecord>(sourceId: string): Promise<T> => {
+  return invoke('codex_remove_agent_source', { sourceId })
+}
+
+/** 重新扫描 Codex GitHub agent source */
+export const syncCodexAgentSource = async <T = UnknownRecord>(sourceId: string): Promise<T> => {
+  return invoke('codex_sync_agent_source', { sourceId })
+}
+
+/** 获取 Codex GitHub agent source catalog */
+export const getCodexAgentSourceCatalog = async <T = UnknownRecord>(sourceId: string): Promise<T> => {
+  return invoke('codex_get_agent_source_catalog', { sourceId })
+}
+
+/** 安装远程 Codex agent */
+export const installCodexSourceAgent = async <T = UnknownRecord>(payload: {
+  sourceId: string
+  agentId: string
+  targetName?: string | null
+  conflictMode?: string | null
+}): Promise<T> => {
+  return invoke('codex_install_source_agent', {
+    request: {
+      sourceId: payload.sourceId,
+      agentId: payload.agentId,
+      targetName: payload.targetName ?? null,
+      conflictMode: payload.conflictMode ?? null,
+    },
+  })
+}
+
+/** 同步远程 Codex agent 安装 */
+export const syncCodexSourceInstall = async <T = UnknownRecord>(installId: string): Promise<T> => {
+  return invoke('codex_sync_source_install', { request: { installId } })
+}
+
+/** 强制以上游覆盖 tracked install */
+export const forceSyncCodexSourceInstall = async <T = UnknownRecord>(installId: string): Promise<T> => {
+  return invoke('codex_sync_source_install', { request: { installId, force: true } })
+}
+
+/** 接受本地修改为新的 tracked baseline */
+export const acceptLocalCodexSourceInstall = async <T = UnknownRecord>(installId: string): Promise<T> => {
+  return invoke('codex_accept_local_source_install', { request: { installId } })
+}
+
+/** 取消 tracked install 关联但保留本地文件 */
+export const untrackCodexSourceInstall = async <T = UnknownRecord>(installId: string): Promise<T> => {
+  return invoke('codex_untrack_source_install', { request: { installId } })
+}
+
 // ── Codex Models ──
 
 /** 列出 Codex 可选模型（内置 + 自定义） */

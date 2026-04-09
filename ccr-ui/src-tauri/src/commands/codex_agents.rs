@@ -22,7 +22,7 @@ struct CodexAgentContextPayload {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[serde(rename_all = "camelCase")]
-struct CodexAgentRecord {
+pub(crate) struct CodexAgentRecord {
     pub name: String,
     pub file_name: String,
     pub path: String,
@@ -125,29 +125,34 @@ fn resolve_codex_agent_context(
     }
 }
 
-fn ensure_agents_dir(path: &Path) -> Result<(), String> {
+pub(crate) fn ensure_agents_dir(path: &Path) -> Result<(), String> {
     fs::create_dir_all(path)
         .map_err(|e| format!("创建 agents 目录 '{}' 失败: {e}", path.to_string_lossy()))
 }
 
-fn agent_file_path(agents_dir: &Path, name: &str) -> PathBuf {
+pub(crate) fn agent_file_path(agents_dir: &Path, name: &str) -> PathBuf {
     agents_dir.join(format!("{name}.toml"))
 }
 
-fn read_agent_table(path: &Path) -> Result<(String, toml::value::Table), String> {
+pub(crate) fn read_agent_table(path: &Path) -> Result<(String, toml::value::Table), String> {
     let raw = fs::read_to_string(path)
         .map_err(|e| format!("读取 agent 文件 '{}' 失败: {e}", path.to_string_lossy()))?;
     let value: toml::Value = toml::from_str(&raw)
         .map_err(|e| format!("解析 agent 文件 '{}' 失败: {e}", path.to_string_lossy()))?;
-    let table = value
-        .as_table()
-        .cloned()
-        .ok_or_else(|| format!("Agent 文件 '{}' 顶层必须是 TOML table", path.to_string_lossy()))?;
+    let table = value.as_table().cloned().ok_or_else(|| {
+        format!(
+            "Agent 文件 '{}' 顶层必须是 TOML table",
+            path.to_string_lossy()
+        )
+    })?;
     Ok((raw, table))
 }
 
-fn optional_string(table: &toml::value::Table, key: &str) -> Option<String> {
-    table.get(key).and_then(toml::Value::as_str).map(str::to_string)
+pub(crate) fn optional_string(table: &toml::value::Table, key: &str) -> Option<String> {
+    table
+        .get(key)
+        .and_then(toml::Value::as_str)
+        .map(str::to_string)
 }
 
 fn optional_json(value: Option<&toml::Value>) -> Option<Value> {
@@ -168,7 +173,7 @@ fn remove_known_agent_keys(table: &toml::value::Table) -> toml::value::Table {
     other
 }
 
-fn record_from_table(
+pub(crate) fn record_from_table(
     file_path: &Path,
     raw_toml: String,
     table: toml::value::Table,
@@ -278,7 +283,10 @@ fn list_codex_agents_for_context(
         match toml::from_str::<toml::Value>(&raw) {
             Ok(value) => {
                 let table = value.as_table().cloned().ok_or_else(|| {
-                    format!("Agent 文件 '{}' 顶层必须是 TOML table", path.to_string_lossy())
+                    format!(
+                        "Agent 文件 '{}' 顶层必须是 TOML table",
+                        path.to_string_lossy()
+                    )
                 })?;
                 agents.push(record_from_table(&path, raw, table, None));
             }
@@ -383,7 +391,9 @@ fn merge_structured_config(
         .get("name")
         .and_then(Value::as_str)
         .map(str::to_string)
-        .unwrap_or_else(|| optional_string(&table, "name").unwrap_or_else(|| fallback_name.to_string()));
+        .unwrap_or_else(|| {
+            optional_string(&table, "name").unwrap_or_else(|| fallback_name.to_string())
+        });
     table.insert("name".to_string(), toml::Value::String(requested_name));
 
     set_or_remove_string(&mut table, config, "description", "description")?;
@@ -458,14 +468,17 @@ fn merge_structured_config(
     Ok(table)
 }
 
-fn table_from_config(config: &Value, fallback_name: &str) -> Result<toml::value::Table, String> {
+pub(crate) fn table_from_config(
+    config: &Value,
+    fallback_name: &str,
+) -> Result<toml::value::Table, String> {
     let object = config
         .as_object()
         .ok_or_else(|| "Agent config must be a JSON object".to_string())?;
 
     if let Some(raw_toml) = object.get("rawToml").and_then(Value::as_str) {
-        let value: toml::Value = toml::from_str(raw_toml)
-            .map_err(|e| format!("Raw TOML parse failed: {e}"))?;
+        let value: toml::Value =
+            toml::from_str(raw_toml).map_err(|e| format!("Raw TOML parse failed: {e}"))?;
         let table = value
             .as_table()
             .cloned()
@@ -481,16 +494,14 @@ fn serialize_table(table: &toml::value::Table) -> Result<String, String> {
         .map_err(|e| format!("序列化 agent TOML 失败: {e}"))
 }
 
-fn write_agent_file(path: &Path, table: &toml::value::Table) -> Result<(), String> {
+pub(crate) fn write_agent_file(path: &Path, table: &toml::value::Table) -> Result<(), String> {
     let serialized = serialize_table(table)?;
     fs::write(path, serialized)
         .map_err(|e| format!("写入 agent 文件 '{}' 失败: {e}", path.to_string_lossy()))
 }
 
 #[tauri::command]
-pub async fn codex_list_agents(
-    context: Option<CodexAgentContextRequest>,
-) -> Result<Value, String> {
+pub async fn codex_list_agents(context: Option<CodexAgentContextRequest>) -> Result<Value, String> {
     tokio::task::spawn_blocking(move || {
         let context = resolve_codex_agent_context(context)?;
         let (agents, diagnostics) = list_codex_agents_for_context(&context)?;
@@ -534,8 +545,12 @@ pub async fn codex_add_agent(
         let table = table_from_config(&config, &target_name)?;
         write_agent_file(&file_path, &table)?;
 
-        let raw = fs::read_to_string(&file_path)
-            .map_err(|e| format!("读取新 agent 文件 '{}' 失败: {e}", file_path.to_string_lossy()))?;
+        let raw = fs::read_to_string(&file_path).map_err(|e| {
+            format!(
+                "读取新 agent 文件 '{}' 失败: {e}",
+                file_path.to_string_lossy()
+            )
+        })?;
         Ok(json!({
             "message": format!("Agent '{target_name}' 已添加"),
             "context": context.payload(),
@@ -590,8 +605,12 @@ pub async fn codex_update_agent(
         }
 
         write_agent_file(&next_path, &updated)?;
-        let raw = fs::read_to_string(&next_path)
-            .map_err(|e| format!("读取更新后的 agent 文件 '{}' 失败: {e}", next_path.to_string_lossy()))?;
+        let raw = fs::read_to_string(&next_path).map_err(|e| {
+            format!(
+                "读取更新后的 agent 文件 '{}' 失败: {e}",
+                next_path.to_string_lossy()
+            )
+        })?;
 
         Ok(json!({
             "message": format!("Agent '{}' 已更新", next_name),
@@ -618,8 +637,12 @@ pub async fn codex_delete_agent(
         if !file_path.exists() {
             return Err(format!("Agent '{name}' 不存在"));
         }
-        fs::remove_file(&file_path)
-            .map_err(|e| format!("删除 agent 文件 '{}' 失败: {e}", file_path.to_string_lossy()))?;
+        fs::remove_file(&file_path).map_err(|e| {
+            format!(
+                "删除 agent 文件 '{}' 失败: {e}",
+                file_path.to_string_lossy()
+            )
+        })?;
         Ok(format!("Agent '{name}' 已删除"))
     })
     .await
@@ -662,8 +685,12 @@ pub async fn codex_rename_agent(
             )
         })?;
         write_agent_file(&target_path, &table)?;
-        let raw = fs::read_to_string(&target_path)
-            .map_err(|e| format!("读取重命名后的 agent 文件 '{}' 失败: {e}", target_path.to_string_lossy()))?;
+        let raw = fs::read_to_string(&target_path).map_err(|e| {
+            format!(
+                "读取重命名后的 agent 文件 '{}' 失败: {e}",
+                target_path.to_string_lossy()
+            )
+        })?;
 
         Ok(json!({
             "message": format!("Agent '{}' 已重命名为 '{}'", name, new_name),
@@ -707,8 +734,12 @@ pub async fn codex_copy_agent(
 
         table.insert("name".to_string(), toml::Value::String(final_name.clone()));
         write_agent_file(&target_path, &table)?;
-        let written = fs::read_to_string(&target_path)
-            .map_err(|e| format!("读取复制后的 agent 文件 '{}' 失败: {e}", target_path.to_string_lossy()))?;
+        let written = fs::read_to_string(&target_path).map_err(|e| {
+            format!(
+                "读取复制后的 agent 文件 '{}' 失败: {e}",
+                target_path.to_string_lossy()
+            )
+        })?;
 
         Ok(json!({
             "message": format!(
@@ -741,14 +772,24 @@ pub async fn codex_validate_agent_toml(
             return Err(format!("Agent '{name}' 不存在"));
         }
 
-        let raw = fs::read_to_string(&file_path)
-            .map_err(|e| format!("读取 agent 文件 '{}' 失败: {e}", file_path.to_string_lossy()))?;
-        let value: toml::Value = toml::from_str(&raw)
-            .map_err(|e| format!("Raw TOML parse failed for '{}': {e}", file_path.to_string_lossy()))?;
-        let table = value
-            .as_table()
-            .cloned()
-            .ok_or_else(|| format!("Agent 文件 '{}' 顶层必须是 TOML table", file_path.to_string_lossy()))?;
+        let raw = fs::read_to_string(&file_path).map_err(|e| {
+            format!(
+                "读取 agent 文件 '{}' 失败: {e}",
+                file_path.to_string_lossy()
+            )
+        })?;
+        let value: toml::Value = toml::from_str(&raw).map_err(|e| {
+            format!(
+                "Raw TOML parse failed for '{}': {e}",
+                file_path.to_string_lossy()
+            )
+        })?;
+        let table = value.as_table().cloned().ok_or_else(|| {
+            format!(
+                "Agent 文件 '{}' 顶层必须是 TOML table",
+                file_path.to_string_lossy()
+            )
+        })?;
         Ok(json!({
             "context": context.payload(),
             "agent": record_from_table(&file_path, raw, table, None),
@@ -768,7 +809,10 @@ mod tests {
     fn resolve_global_context_defaults_to_codex_home() {
         let context = resolve_codex_agent_context(None).unwrap();
         assert_eq!(context.mode, "global");
-        assert!(context.agents_dir.ends_with(".codex\\agents") || context.agents_dir.ends_with(".codex/agents"));
+        assert!(
+            context.agents_dir.ends_with(".codex\\agents")
+                || context.agents_dir.ends_with(".codex/agents")
+        );
     }
 
     #[test]
@@ -787,10 +831,20 @@ mod tests {
             "model": "gpt-5.4"
         });
 
-        let merged = merge_structured_config(table, config.as_object().unwrap(), "existing").unwrap();
-        assert_eq!(optional_string(&merged, "description").as_deref(), Some("new"));
-        assert_eq!(optional_string(&merged, "model").as_deref(), Some("gpt-5.4"));
-        assert_eq!(merged.get("custom_flag").and_then(toml::Value::as_bool), Some(true));
+        let merged =
+            merge_structured_config(table, config.as_object().unwrap(), "existing").unwrap();
+        assert_eq!(
+            optional_string(&merged, "description").as_deref(),
+            Some("new")
+        );
+        assert_eq!(
+            optional_string(&merged, "model").as_deref(),
+            Some("gpt-5.4")
+        );
+        assert_eq!(
+            merged.get("custom_flag").and_then(toml::Value::as_bool),
+            Some(true)
+        );
     }
 
     #[test]

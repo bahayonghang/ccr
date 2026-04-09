@@ -359,6 +359,78 @@ export type CodexAgent = CodexAgentRecord
 export type CodexAgentListResponse = CodexAgentsResponse
 export type CodexAgentRequest = CodexAgentUpsertRequest
 
+// ============ Codex GitHub Agent Sources ============
+
+export interface CodexAgentSourceRecord {
+  id: string
+  repoUrl: string
+  owner: string
+  repo: string
+  defaultBranch: string
+  status: string
+  lastScannedAt?: string
+  lastError?: string
+  agentCount: number
+  diagnosticsCount: number
+  scanComplete: boolean
+  isStale: boolean
+  cacheTtlSeconds: number
+}
+
+export interface CodexAgentSourceDiagnostic {
+  path: string
+  severity: string
+  message: string
+}
+
+export interface CodexRemoteAgentRecord {
+  id: string
+  sourceId: string
+  sourcePath: string
+  fileName: string
+  blobSha: string
+  contentHash: string
+  category: string
+  categoryLabel: string
+  name: string
+  description?: string
+  developerInstructions?: string
+  nicknameCandidates?: string[]
+  model?: string
+  modelReasoningEffort?: string
+  sandboxMode?: string
+  mcpServers?: Record<string, unknown>
+  skillsConfig?: unknown
+  other?: Record<string, unknown>
+  rawToml: string
+  parseError?: string
+}
+
+export interface CodexSourceInstallRecord {
+  id: string
+  sourceId: string
+  repoUrl: string
+  sourcePath: string
+  installedName: string
+  targetPath: string
+  status: string
+  lastSyncedAt?: string
+  lastError?: string
+  hasUpstreamUpdate: boolean
+  hasLocalChanges: boolean
+}
+
+export interface CodexAgentSourcesResponse {
+  sources: CodexAgentSourceRecord[]
+}
+
+export interface CodexAgentSourceCatalogResponse {
+  source: CodexAgentSourceRecord
+  agents: CodexRemoteAgentRecord[]
+  diagnostics: CodexAgentSourceDiagnostic[]
+  installs: CodexSourceInstallRecord[]
+}
+
 // ============ Codex Usage Types ============
 
 /** Codex 使用量统计 */

@@ -30,6 +30,7 @@
               /><span>{{ $t('common.refresh') }}</span>
             </button>
             <button
+              v-if="activePanel === 'installed'"
               type="button"
               class="codex-agent-secondary-button"
               @click="handleChooseProject"
@@ -40,7 +41,7 @@
               /><span>Choose Project</span>
             </button>
             <button
-              v-if="hasProjectShortcut && !isProjectMode"
+              v-if="activePanel === 'installed' && hasProjectShortcut && !isProjectMode"
               type="button"
               class="codex-agent-secondary-button"
               @click="handleSwitchToSavedProject"
@@ -51,7 +52,7 @@
               /><span>Open Last Project</span>
             </button>
             <button
-              v-if="isProjectMode"
+              v-if="activePanel === 'installed' && isProjectMode"
               type="button"
               class="codex-agent-secondary-button"
               @click="handleBackToGlobal"
@@ -62,6 +63,7 @@
               /><span>Back To Global</span>
             </button>
             <button
+              v-if="activePanel === 'installed'"
               type="button"
               class="codex-agent-primary-button"
               @click="openCreateModal"
@@ -73,8 +75,29 @@
             </button>
           </div>
         </template>
+        <div class="mb-4 flex flex-wrap gap-2">
+          <button
+            type="button"
+            class="rounded-2xl border px-4 py-2 text-sm font-medium transition-colors"
+            :class="activePanel === 'installed' ? 'border-accent-primary/40 bg-accent-primary/10 text-accent-primary' : 'border-border-default/60 bg-bg-surface/60 text-text-secondary hover:bg-bg-surface'"
+            @click="activePanel = 'installed'"
+          >
+            Installed
+          </button>
+          <button
+            type="button"
+            class="rounded-2xl border px-4 py-2 text-sm font-medium transition-colors"
+            :class="activePanel === 'sources' ? 'border-accent-primary/40 bg-accent-primary/10 text-accent-primary' : 'border-border-default/60 bg-bg-surface/60 text-text-secondary hover:bg-bg-surface'"
+            @click="activePanel = 'sources'"
+          >
+            Sources
+          </button>
+        </div>
 
-        <div class="grid gap-4 xl:grid-cols-[minmax(0,1.7fr)_minmax(320px,1fr)]">
+        <div
+          v-if="activePanel === 'installed'"
+          class="grid gap-4 xl:grid-cols-[minmax(0,1.7fr)_minmax(320px,1fr)]"
+        >
           <div class="space-y-4">
             <div class="grid gap-4 md:grid-cols-3">
               <div class="codex-agent-summary-card">
@@ -432,6 +455,10 @@
             </Card>
           </div>
         </div>
+        <CodexAgentSourcesPanel
+          v-else
+          @refresh-installed="handleRefresh"
+        />
       </PageHeaderCard>
     </div>
 
@@ -566,6 +593,7 @@ import ModuleSubnav from '@/components/ModuleSubnav.vue'
 import PageHeaderCard from '@/components/PageHeaderCard.vue'
 import SIcon from '@/components/ui/SIcon.vue'
 import CodexAgentEditorModal from '@/components/codex/CodexAgentEditorModal.vue'
+import CodexAgentSourcesPanel from '@/components/codex/CodexAgentSourcesPanel.vue'
 import { useCodexAgents } from '@/composables/useCodexAgents'
 import { useUIStore } from '@/stores/ui'
 import type { CodexAgentContextRequest, CodexAgentRecord, CodexAgentUpsertRequest } from '@/types'
@@ -596,6 +624,7 @@ const {
   updateAgentRecord,
   validateAgentRecord,
 } = useCodexAgents()
+const activePanel = ref<'installed' | 'sources'>('installed')
 const searchQuery = ref('')
 const selectedNames = ref<string[]>([])
 const editorOpen = ref(false)

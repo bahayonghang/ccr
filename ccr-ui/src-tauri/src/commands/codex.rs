@@ -285,6 +285,8 @@ const KNOWN_MCP_FIELDS: &[&str] = &[
     "required",
 ];
 
+#[path = "codex_agent_sources.rs"]
+mod agent_sources;
 #[path = "codex_agents.rs"]
 mod agents;
 #[path = "codex_auth.rs"]
@@ -300,6 +302,7 @@ mod settings;
 #[path = "codex_usage.rs"]
 mod usage;
 
+pub use agent_sources::*;
 pub use agents::*;
 pub use auth::*;
 pub use mcp::*;
@@ -310,12 +313,12 @@ pub use usage::*;
 
 // ── 文件 I/O 辅助函数 ──
 
-fn codex_config_path() -> Result<PathBuf, String> {
+pub(crate) fn codex_config_path() -> Result<PathBuf, String> {
     let home = dirs::home_dir().ok_or_else(|| "无法获取用户主目录".to_string())?;
     Ok(home.join(".codex").join("config.toml"))
 }
 
-fn codex_agents_dir() -> Result<PathBuf, String> {
+pub(crate) fn codex_agents_dir() -> Result<PathBuf, String> {
     let home = dirs::home_dir().ok_or_else(|| "无法获取用户主目录".to_string())?;
     Ok(home.join(".codex").join("agents"))
 }
@@ -809,7 +812,7 @@ async fn get_cached_codex_dashboard_overview_payload(
         .map_err(|e| format!("任务执行失败: {e}"))?
 }
 
-async fn invalidate_codex_dashboard_overview_cache(state: &AppState) {
+pub(crate) async fn invalidate_codex_dashboard_overview_cache(state: &AppState) {
     state.cache_remove(CODEX_DASHBOARD_OVERVIEW_CACHE_KEY).await;
 }
 
