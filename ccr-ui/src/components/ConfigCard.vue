@@ -6,7 +6,6 @@
       'config-row--current': config.is_current,
       'config-row--disabled': config.enabled === false,
     }"
-    @click="$emit('edit', config.name)"
   >
     <!-- Left Accent Bar -->
     <div
@@ -15,7 +14,12 @@
     />
 
     <!-- Main Content -->
-    <div class="flex-1 flex items-center gap-4 px-5 py-4 min-w-0">
+    <button
+      type="button"
+      class="config-row-main flex-1 flex items-center gap-4 px-5 py-4 min-w-0 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary/35 focus-visible:ring-offset-2 focus-visible:ring-offset-bg-base"
+      :aria-label="t('common.edit') + ': ' + config.name"
+      @click="emit('edit', config.name)"
+    >
       <!-- Provider Avatar -->
       <div
         class="avatar-wrapper relative shrink-0 w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold text-white shadow-md transition-transform duration-300 group-hover:scale-105"
@@ -107,15 +111,18 @@
           <span class="font-bold text-accent-secondary">{{ config.usage_count }}</span>
         </div>
       </div>
-    </div>
+    </button>
 
     <!-- Right Action Area -->
     <div class="flex items-center gap-2 pr-4 shrink-0">
       <!-- Switch Button -->
       <button
         v-if="!config.is_current"
+        type="button"
         class="switch-btn px-3.5 py-1.5 rounded-lg text-xs font-bold transition-[color,background-color,opacity] duration-200 opacity-0 group-hover:opacity-100 focus:opacity-100"
-        @click.stop="$emit('switch', config.name)"
+        :aria-label="t('configs.switch') + ': ' + config.name"
+        :title="t('configs.switch')"
+        @click="emit('switch', config.name)"
       >
         <SIcon
           name="ArrowRightLeft"
@@ -137,9 +144,12 @@
 
       <!-- Edit Button -->
       <button
+        type="button"
         class="edit-btn p-2 rounded-lg transition-[color,background-color,opacity] duration-200 opacity-0 group-hover:opacity-100 focus:opacity-100"
         :class="config.is_current ? 'opacity-60' : ''"
-        @click.stop="$emit('edit', config.name)"
+        :aria-label="t('common.edit') + ': ' + config.name"
+        :title="t('common.edit')"
+        @click="emit('edit', config.name)"
       >
         <SIcon
           name="Settings"
@@ -163,7 +173,7 @@ interface Props {
 const props = defineProps<Props>()
 const { t } = useI18n()
 
-defineEmits<{
+const emit = defineEmits<{
   switch: [name: string]
   edit: [name: string]
   delete: [name: string]
@@ -217,7 +227,15 @@ const nameColorClass = computed(() => {
   backdrop-filter: var(--liquid-glass-blur);
   border: 1px solid var(--liquid-glass-border);
   box-shadow: var(--liquid-glass-highlight);
+}
+
+.config-row-main {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  color: inherit;
   cursor: pointer;
+  font: inherit;
 }
 
 .config-row:hover {

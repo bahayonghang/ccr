@@ -1,26 +1,6 @@
 <template>
   <div class="min-h-screen relative">
-    <!-- 🎨 动态背景装饰 - 液态玻璃风格 -->
-    <div class="fixed inset-0 overflow-hidden pointer-events-none -z-10">
-      <div
-        class="absolute top-20 right-20 w-96 h-96 rounded-full opacity-20 blur-3xl animate-pulse"
-        :style="{ background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)' }"
-      />
-      <div
-        class="absolute bottom-20 left-20 w-96 h-96 rounded-full opacity-20 blur-3xl animate-pulse"
-        :style="{
-          background: 'linear-gradient(135deg, #ec4899 0%, #f59e0b 100%)',
-          animationDelay: '1s'
-        }"
-      />
-      <div
-        class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full opacity-15 blur-3xl animate-pulse"
-        :style="{
-          background: 'linear-gradient(135deg, #10b981 0%, #3b82f6 100%)',
-          animationDelay: '2s'
-        }"
-      />
-    </div>
+    <AnimatedBackground variant="minimal" />
 
     <div class="relative z-10 container mx-auto px-4 py-6">
       <!-- Navbar -->
@@ -100,6 +80,7 @@
 
 <script setup lang="ts">
 import SIcon from '@/components/ui/SIcon.vue'
+import AnimatedBackground from '@/components/common/AnimatedBackground.vue'
 import { computed } from 'vue'
 import { useThemeStore } from '@/stores/theme'
 

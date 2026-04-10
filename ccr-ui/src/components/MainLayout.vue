@@ -23,7 +23,7 @@
     <div
       v-if="hasSidebar"
       id="primary-navigation-panel"
-      class="sidebar-glass layout-sidebar flex flex-col transition-all duration-300 ease-out will-change-[width,transform]"
+      class="sidebar-glass layout-sidebar flex flex-col transition-[width,transform,background-color,border-color,box-shadow] duration-300 ease-out will-change-[transform]"
       :class="[
         isResizing ? 'select-none' : '',
         isMobileSidebar
