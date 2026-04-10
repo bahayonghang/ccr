@@ -99,8 +99,8 @@ const zhCNBootMessages = {
   },
   home: {
     welcomeBack: '欢迎回来',
-    roleEngineer: '舰长',
-    statusMsg: '核心服务已就绪，可以继续配置、同步或排查问题。',
+    roleEngineer: '管理员',
+    statusMsg: '核心服务已就绪，可继续配置、同步或排查问题。',
     cpuUsage: 'CPU 使用率',
     memoryUsage: '内存使用',
     quickActions: '快速操作',
@@ -259,8 +259,8 @@ const enUSBootMessages = {
   },
   home: {
     welcomeBack: 'Welcome back',
-    roleEngineer: 'Captain',
-    statusMsg: 'Core services are ready. Jump into config, sync, or troubleshooting.',
+    roleEngineer: 'Operator',
+    statusMsg: 'Core services are ready for configuration, sync, and troubleshooting.',
     cpuUsage: 'CPU Usage',
     memoryUsage: 'Memory Usage',
     quickActions: 'Quick Actions',
