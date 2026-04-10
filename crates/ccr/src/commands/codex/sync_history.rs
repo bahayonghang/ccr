@@ -13,11 +13,13 @@ use std::path::PathBuf;
 pub async fn sync_command(
     provider: Option<String>,
     keep: Option<usize>,
+    max_age_days: u64,
     codex_home: Option<String>,
 ) -> Result<()> {
     let service = build_service(codex_home)?;
     let mut options = CodexHistorySyncOptions {
         provider,
+        max_age_days,
         ..Default::default()
     };
     if let Some(keep) = keep {

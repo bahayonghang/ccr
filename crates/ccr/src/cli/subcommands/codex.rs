@@ -58,8 +58,10 @@ pub enum CodexAction {
     /// 同步 Codex 历史会话的 provider 元数据
     ///
     /// 修复官方/第三方 provider 切换后历史会话不可见的问题。
+    /// 默认仅同步最近 7 天内的对话，避免导入过久远的历史记录。
     /// 示例: ccr codex sync-history
     ///       ccr codex sync-history --provider custom
+    ///       ccr codex sync-history --max-age-days 30
     ///       ccr codex sync-history status
     SyncHistory {
         /// 显式指定历史同步目标 provider；省略时使用当前 ~/.codex/config.toml 的根级 model_provider
@@ -69,6 +71,10 @@ pub enum CodexAction {
         /// 自动保留最近 N 份 sync-history 备份
         #[arg(long)]
         keep: Option<usize>,
+
+        /// 最大导入会话年龄（天）；默认仅同步最近 7 天内的对话
+        #[arg(long, default_value_t = 7)]
+        max_age_days: u64,
 
         /// 指定 Codex home 目录（默认使用 ~/.codex 或 CCR_CODEX_DIR）
         #[arg(long)]

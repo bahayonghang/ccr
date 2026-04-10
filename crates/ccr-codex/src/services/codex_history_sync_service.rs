@@ -7,22 +7,23 @@ use ccr_core::core::error::{CcrError, Result};
 use ccr_core::core::lock::LockManager;
 use chrono::{DateTime, Utc};
 use rusqlite::types::Value as SqlValue;
-use rusqlite::{Connection, params, params_from_iter};
+use rusqlite::{Connection, params_from_iter};
 use serde::{Deserialize, Serialize};
 use serde_json::{Map as JsonMap, Value as JsonValue};
 use std::collections::{BTreeMap, BTreeSet};
 use std::ffi::OsStr;
+#[cfg(windows)]
+use std::fs::OpenOptions;
 use std::fs::{self, File};
 use std::io::{BufRead, BufReader, Read, Seek, SeekFrom, Write};
 use std::path::{Path, PathBuf};
 use std::time::{Duration, UNIX_EPOCH};
 #[cfg(not(windows))]
 use tempfile::NamedTempFile;
-#[cfg(windows)]
-use std::fs::OpenOptions;
 use walkdir::WalkDir;
 
 const DEFAULT_PROVIDER: &str = "openai";
+const DEFAULT_MAX_AGE_DAYS: u64 = 7;
 const BACKUP_NAMESPACE: &str = "codex_sync_history";
 const BACKUP_DIR_NAME: &str = "sync-history";
 const GLOBAL_STATE_FILE_NAME: &str = ".codex-global-state.json";
@@ -90,6 +91,7 @@ pub struct CodexHistoryRestoreResult {
 pub struct CodexHistorySyncOptions {
     pub provider: Option<String>,
     pub keep_count: usize,
+    pub max_age_days: u64,
     pub sqlite_busy_timeout: Duration,
 }
 
@@ -98,6 +100,7 @@ impl Default for CodexHistorySyncOptions {
         Self {
             provider: None,
             keep_count: DEFAULT_KEEP_COUNT,
+            max_age_days: DEFAULT_MAX_AGE_DAYS,
             sqlite_busy_timeout: SQLITE_BUSY_TIMEOUT,
         }
     }
@@ -172,6 +175,7 @@ struct RolloutThreadCandidate {
     id: String,
     path: PathBuf,
     archived: bool,
+    updated_at: i64,
 }
 
 #[derive(Debug, Clone)]
@@ -288,7 +292,7 @@ impl CodexHistorySyncService {
     pub fn status(&self) -> Result<CodexHistorySyncStatus> {
         let current = self.current_provider()?;
         let rollout_counts = self
-            .scan_session_changes("__status_only__")?
+            .scan_session_changes("__status_only__", None)?
             .provider_counts;
         let sqlite_counts = self.read_sqlite_provider_counts()?;
         let backup_summary = self.backup_summary()?;
@@ -310,6 +314,11 @@ impl CodexHistorySyncService {
                 "--keep 必须大于或等于 1".to_string(),
             ));
         }
+        if options.max_age_days == 0 {
+            return Err(CcrError::ValidationError(
+                "--max-age-days 必须大于或等于 1".to_string(),
+            ));
+        }
 
         let _lock = self
             .lock_manager
@@ -323,10 +332,12 @@ impl CodexHistorySyncService {
             .filter(|value| !value.is_empty())
             .map(str::to_string)
             .unwrap_or_else(|| current.provider.clone());
+        let cutoff = Utc::now() - chrono::Duration::days(options.max_age_days as i64);
 
-        let scan = self.scan_session_changes(&target_provider)?;
-        let sidebar_plan = self
-            .prepare_sidebar_sync(self.read_sqlite_project_paths(options.sqlite_busy_timeout)?)?;
+        let scan = self.scan_session_changes(&target_provider, Some(cutoff))?;
+        let sidebar_plan = self.prepare_sidebar_sync(
+            self.read_sqlite_project_paths(options.sqlite_busy_timeout, &scan.thread_candidates)?,
+        )?;
         self.assert_sqlite_writable(options.sqlite_busy_timeout)?;
 
         let backup_dir = self.create_backup(&target_provider, &sidebar_plan)?;
@@ -468,7 +479,11 @@ impl CodexHistorySyncService {
         })
     }
 
-    fn scan_session_changes(&self, target_provider: &str) -> Result<SessionScan> {
+    fn scan_session_changes(
+        &self,
+        target_provider: &str,
+        cutoff: Option<DateTime<Utc>>,
+    ) -> Result<SessionScan> {
         let mut changes = Vec::new();
         let mut provider_counts = CodexHistoryProviderBuckets::default();
         let mut thread_candidates = Vec::new();
@@ -499,6 +514,14 @@ impl CodexHistorySyncService {
                     .to_string();
                 increment_provider_count(&mut provider_counts, scope, &current_provider);
 
+                let (_, updated_at) = extract_rollout_time_bounds(&path)?;
+                if cutoff
+                    .map(|value| updated_at < value.timestamp())
+                    .unwrap_or(false)
+                {
+                    continue;
+                }
+
                 if let Some(id) = payload
                     .get("id")
                     .and_then(|value| value.as_str())
@@ -508,6 +531,7 @@ impl CodexHistorySyncService {
                         id: id.to_string(),
                         path: path.clone(),
                         archived: matches!(scope, SessionScope::ArchivedSessions),
+                        updated_at,
                     });
                 }
 
@@ -629,10 +653,22 @@ impl CodexHistorySyncService {
         Ok(Some(counts))
     }
 
-    fn read_sqlite_project_paths(&self, busy_timeout: Duration) -> Result<Vec<String>> {
+    fn read_sqlite_project_paths(
+        &self,
+        busy_timeout: Duration,
+        thread_candidates: &[RolloutThreadCandidate],
+    ) -> Result<Vec<String>> {
+        let mut paths = BTreeSet::new();
+        for candidate in thread_candidates {
+            let record = build_rollout_thread_insert(candidate, DEFAULT_PROVIDER)?;
+            if !record.cwd.trim().is_empty() {
+                paths.insert(record.cwd);
+            }
+        }
+
         let db_path = self.codex_home.join(SQLITE_FILE_NAME);
         if !db_path.exists() {
-            return Ok(Vec::new());
+            return Ok(paths.into_iter().collect());
         }
 
         let conn = Connection::open(&db_path)
@@ -641,14 +677,23 @@ impl CodexHistorySyncService {
             CcrError::DatabaseError(format!("设置 SQLite busy timeout 失败: {}", err))
         })?;
 
-        let mut stmt = match conn.prepare(
-            r#"
-            SELECT DISTINCT cwd
-            FROM threads
-            WHERE TRIM(COALESCE(cwd, '')) <> ''
-            ORDER BY LOWER(cwd), cwd
-            "#,
-        ) {
+        let candidate_ids: Vec<&str> = thread_candidates
+            .iter()
+            .map(|candidate| candidate.id.as_str())
+            .collect();
+        if candidate_ids.is_empty() {
+            return Ok(paths.into_iter().collect());
+        }
+
+        let placeholders = std::iter::repeat_n("?", candidate_ids.len())
+            .collect::<Vec<_>>()
+            .join(", ");
+        let sql = format!(
+            "SELECT DISTINCT cwd FROM threads WHERE TRIM(COALESCE(cwd, '')) <> '' AND id IN ({}) ORDER BY LOWER(cwd), cwd",
+            placeholders
+        );
+
+        let mut stmt = match conn.prepare(&sql) {
             Ok(stmt) => stmt,
             Err(err)
                 if err
@@ -656,7 +701,7 @@ impl CodexHistorySyncService {
                     .to_ascii_lowercase()
                     .contains("no such column: cwd") =>
             {
-                return Ok(Vec::new());
+                return Ok(paths.into_iter().collect());
             }
             Err(err) => {
                 return Err(CcrError::DatabaseError(format!(
@@ -667,17 +712,18 @@ impl CodexHistorySyncService {
         };
 
         let rows = stmt
-            .query_map([], |row| row.get::<_, String>(0))
+            .query_map(params_from_iter(candidate_ids.iter().copied()), |row| {
+                row.get::<_, String>(0)
+            })
             .map_err(|err| CcrError::DatabaseError(format!("查询 SQLite cwd 列表失败: {}", err)))?;
 
-        let mut paths = Vec::new();
         for row in rows {
-            paths.push(row.map_err(|err| {
+            paths.insert(row.map_err(|err| {
                 CcrError::DatabaseError(format!("读取 SQLite cwd 失败: {}", err))
             })?);
         }
 
-        Ok(paths)
+        Ok(paths.into_iter().collect())
     }
 
     fn prepare_sidebar_sync(&self, workspace_roots: Vec<String>) -> Result<SidebarSyncPlan> {
@@ -1005,18 +1051,30 @@ impl CodexHistorySyncService {
         })?;
         conn.execute_batch("BEGIN IMMEDIATE")
             .map_err(map_sqlite_busy_error)?;
-        let updated_rows = conn.execute(
-            "UPDATE threads SET model_provider = ?1 WHERE COALESCE(model_provider, '') <> ?1",
-            params![target_provider],
-        );
 
-        let mut affected_rows = match updated_rows {
-            Ok(updated_rows) => updated_rows,
-            Err(err) => {
-                let _ = conn.execute_batch("ROLLBACK");
-                return Err(map_sqlite_busy_error(err));
-            }
-        };
+        let candidate_ids: Vec<&str> = thread_candidates
+            .iter()
+            .map(|candidate| candidate.id.as_str())
+            .collect();
+        let mut affected_rows = 0;
+        if !candidate_ids.is_empty() {
+            let placeholders = std::iter::repeat_n("?", candidate_ids.len())
+                .collect::<Vec<_>>()
+                .join(", ");
+            let sql = format!(
+                "UPDATE threads SET model_provider = ?1 WHERE COALESCE(model_provider, '') <> ?1 AND id IN ({})",
+                placeholders
+            );
+            let params = std::iter::once(target_provider).chain(candidate_ids.iter().copied());
+            let updated_rows = conn.execute(&sql, params_from_iter(params));
+            affected_rows = match updated_rows {
+                Ok(updated_rows) => updated_rows,
+                Err(err) => {
+                    let _ = conn.execute_batch("ROLLBACK");
+                    return Err(map_sqlite_busy_error(err));
+                }
+            };
+        }
 
         let existing_ids = load_existing_thread_ids(&conn)?;
         for candidate in thread_candidates {
@@ -1387,8 +1445,6 @@ fn build_rollout_thread_insert(
     let file = File::open(&candidate.path).map_err(map_io_error)?;
     let reader = BufReader::new(file);
 
-    let mut created_at = None;
-    let mut updated_at = None;
     let mut source = String::new();
     let mut cwd = String::new();
     let mut title = String::new();
@@ -1413,11 +1469,6 @@ fn build_rollout_thread_insert(
             Ok(value) => value,
             Err(_) => continue,
         };
-
-        if created_at.is_none() {
-            created_at = extract_timestamp_secs(&value);
-        }
-        updated_at = updated_at.max(extract_timestamp_secs(&value));
 
         if value.get("type").and_then(JsonValue::as_str) == Some("session_meta") {
             if let Some(payload) = value.get("payload").and_then(JsonValue::as_object) {
@@ -1496,14 +1547,7 @@ fn build_rollout_thread_insert(
         title = first_user_message.clone();
     }
 
-    let fallback_ts = fs::metadata(&candidate.path)?
-        .modified()
-        .ok()
-        .and_then(|value| value.duration_since(UNIX_EPOCH).ok())
-        .map(|value| value.as_secs() as i64)
-        .unwrap_or(0);
-    let created_at = created_at.unwrap_or(fallback_ts);
-    let updated_at = updated_at.unwrap_or(created_at);
+    let (created_at, updated_at) = extract_rollout_time_bounds(&candidate.path)?;
 
     Ok(RolloutThreadInsert {
         id: candidate.id.clone(),
@@ -1519,7 +1563,7 @@ fn build_rollout_thread_insert(
         tokens_used: 0,
         has_user_event: !first_user_message.is_empty(),
         archived: candidate.archived,
-        archived_at: candidate.archived.then_some(updated_at),
+        archived_at: candidate.archived.then_some(candidate.updated_at),
         cli_version,
         first_user_message,
         agent_nickname,
@@ -1529,6 +1573,40 @@ fn build_rollout_thread_insert(
         reasoning_effort,
         agent_path,
     })
+}
+
+fn extract_rollout_time_bounds(path: &Path) -> Result<(i64, i64)> {
+    let file = File::open(path).map_err(map_io_error)?;
+    let reader = BufReader::new(file);
+    let mut created_at = None;
+    let mut updated_at = None;
+
+    for line_result in reader.lines() {
+        let line = line_result.map_err(map_io_error)?;
+        if line.trim().is_empty() {
+            continue;
+        }
+
+        let value: JsonValue = match serde_json::from_str(&line) {
+            Ok(value) => value,
+            Err(_) => continue,
+        };
+
+        if created_at.is_none() {
+            created_at = extract_timestamp_secs(&value);
+        }
+        updated_at = updated_at.max(extract_timestamp_secs(&value));
+    }
+
+    let fallback_ts = fs::metadata(path)?
+        .modified()
+        .ok()
+        .and_then(|value| value.duration_since(UNIX_EPOCH).ok())
+        .map(|value| value.as_secs() as i64)
+        .unwrap_or(0);
+    let created_at = created_at.unwrap_or(fallback_ts);
+    let updated_at = updated_at.unwrap_or(created_at);
+    Ok((created_at, updated_at))
 }
 
 fn encode_source(value: Option<&JsonValue>) -> String {
@@ -1951,6 +2029,8 @@ fn collect_known_sidebar_projects(
 #[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
+    use filetime::FileTime;
+    use rusqlite::params;
     use tempfile::tempdir;
 
     fn create_service(temp: &Path) -> CodexHistorySyncService {
@@ -1967,10 +2047,42 @@ mod tests {
         fs::write(codex_home.join("config.toml"), content).unwrap();
     }
 
-    fn write_rollout(path: &Path, id: &str, provider: &str) {
+    fn write_rollout_with_timestamps(
+        path: &Path,
+        id: &str,
+        provider: &str,
+        session_ts: &str,
+        user_ts: &str,
+        cwd: &str,
+    ) {
         let content = format!(
-            "{{\"timestamp\":\"2026-04-09T00:00:00.000Z\",\"type\":\"session_meta\",\"payload\":{{\"id\":\"{}\",\"cwd\":\"E:\\\\Repo\",\"model_provider\":\"{}\"}}}}\n{{\"timestamp\":\"2026-04-09T00:00:01.000Z\",\"type\":\"event_msg\",\"payload\":{{\"type\":\"user_message\",\"message\":\"hello\"}}}}\n",
-            id, provider
+            "{{\"timestamp\":\"{}\",\"type\":\"session_meta\",\"payload\":{{\"id\":\"{}\",\"cwd\":\"{}\",\"model_provider\":\"{}\"}}}}\n{{\"timestamp\":\"{}\",\"type\":\"event_msg\",\"payload\":{{\"type\":\"user_message\",\"message\":\"hello\"}}}}\n",
+            session_ts,
+            id,
+            cwd.replace('\\', "\\\\"),
+            provider,
+            user_ts
+        );
+        fs::write(path, content).unwrap();
+    }
+
+    fn write_rollout(path: &Path, id: &str, provider: &str) {
+        write_rollout_with_timestamps(
+            path,
+            id,
+            provider,
+            "2026-04-09T00:00:00.000Z",
+            "2026-04-09T00:00:01.000Z",
+            r"E:\Repo",
+        );
+    }
+
+    fn write_rollout_without_timestamps(path: &Path, id: &str, provider: &str, cwd: &str) {
+        let content = format!(
+            "{{\"type\":\"session_meta\",\"payload\":{{\"id\":\"{}\",\"cwd\":\"{}\",\"model_provider\":\"{}\"}}}}\n{{\"type\":\"event_msg\",\"payload\":{{\"type\":\"user_message\",\"message\":\"hello\"}}}}\n",
+            id,
+            cwd.replace('\\', "\\\\"),
+            provider,
         );
         fs::write(path, content).unwrap();
     }
@@ -2132,6 +2244,187 @@ mod tests {
             .unwrap();
         assert_eq!(row.0, "openai");
         assert_eq!(row.1, r"E:\Repo");
+    }
+
+    #[test]
+    fn sync_defaults_to_recent_seven_days_only() {
+        let dir = tempdir().unwrap();
+        let service = create_service(dir.path());
+        write_config(&service.codex_home, Some("openai"));
+        write_global_state(
+            &service.codex_home,
+            r#"{"electron-saved-workspace-roots":[],"project-order":[],"thread-workspace-root-hints":{}}"#,
+        );
+
+        let recent_path = service
+            .codex_home
+            .join("sessions/2026/04/09/rollout-recent.jsonl");
+        let old_path = service
+            .codex_home
+            .join("sessions/2026/04/09/rollout-old.jsonl");
+        write_rollout_with_timestamps(
+            &recent_path,
+            "thread-recent",
+            "custom",
+            "2026-04-08T00:00:00.000Z",
+            "2026-04-09T00:00:01.000Z",
+            r"E:\Recent",
+        );
+        write_rollout_with_timestamps(
+            &old_path,
+            "thread-old",
+            "custom",
+            "2026-03-20T00:00:00.000Z",
+            "2026-03-20T00:00:01.000Z",
+            r"E:\Old",
+        );
+        write_state_db(
+            &service.codex_home,
+            &[
+                ("thread-recent", "custom", false, r"E:\Recent"),
+                ("thread-old", "custom", false, r"E:\Old"),
+            ],
+        );
+
+        let result = service.sync(CodexHistorySyncOptions::default()).unwrap();
+        assert_eq!(result.changed_rollout_files, 1);
+        assert_eq!(result.added_sidebar_projects, 0);
+        assert_eq!(result.sqlite_rows_updated, 1);
+
+        let recent_rollout = fs::read_to_string(&recent_path).unwrap();
+        let old_rollout = fs::read_to_string(&old_path).unwrap();
+        assert!(recent_rollout.contains(r#""model_provider":"openai""#));
+        assert!(old_rollout.contains(r#""model_provider":"custom""#));
+
+        let conn = Connection::open(service.codex_home.join(SQLITE_FILE_NAME)).unwrap();
+        let rows: Vec<(String, String)> = {
+            let mut stmt = conn
+                .prepare("SELECT id, model_provider FROM threads ORDER BY id")
+                .unwrap();
+            stmt.query_map([], |row| Ok((row.get(0)?, row.get(1)?)))
+                .unwrap()
+                .map(|row| row.unwrap())
+                .collect()
+        };
+        assert_eq!(
+            rows,
+            vec![
+                ("thread-old".to_string(), "custom".to_string()),
+                ("thread-recent".to_string(), "openai".to_string())
+            ]
+        );
+
+        let global_state =
+            fs::read_to_string(service.codex_home.join(GLOBAL_STATE_FILE_NAME)).unwrap();
+        assert_eq!(
+            global_state,
+            r#"{"electron-saved-workspace-roots":[],"project-order":[],"thread-workspace-root-hints":{}}"#
+        );
+    }
+
+    #[test]
+    fn sync_respects_custom_max_age_days() {
+        let dir = tempdir().unwrap();
+        let service = create_service(dir.path());
+        write_config(&service.codex_home, Some("openai"));
+        write_global_state(
+            &service.codex_home,
+            r#"{"electron-saved-workspace-roots":[],"project-order":[],"thread-workspace-root-hints":{}}"#,
+        );
+
+        let old_path = service
+            .codex_home
+            .join("sessions/2026/04/09/rollout-old.jsonl");
+        write_rollout_with_timestamps(
+            &old_path,
+            "thread-old",
+            "custom",
+            "2026-03-20T00:00:00.000Z",
+            "2026-03-20T00:00:01.000Z",
+            r"E:\Old",
+        );
+        write_state_db(
+            &service.codex_home,
+            &[("thread-old", "custom", false, r"E:\Old")],
+        );
+
+        let result = service
+            .sync(CodexHistorySyncOptions {
+                max_age_days: 30,
+                ..Default::default()
+            })
+            .unwrap();
+        assert_eq!(result.changed_rollout_files, 1);
+        assert_eq!(result.sqlite_rows_updated, 1);
+
+        let old_rollout = fs::read_to_string(&old_path).unwrap();
+        assert!(old_rollout.contains(r#""model_provider":"openai""#));
+    }
+
+    #[test]
+    fn sync_rejects_zero_max_age_days() {
+        let dir = tempdir().unwrap();
+        let service = create_service(dir.path());
+        write_config(&service.codex_home, Some("openai"));
+
+        let err = service
+            .sync(CodexHistorySyncOptions {
+                max_age_days: 0,
+                ..Default::default()
+            })
+            .unwrap_err();
+        assert!(err.to_string().contains("--max-age-days"));
+    }
+
+    #[test]
+    fn sync_uses_mtime_when_rollout_has_no_timestamps() {
+        let dir = tempdir().unwrap();
+        let service = create_service(dir.path());
+        write_config(&service.codex_home, Some("openai"));
+        write_global_state(
+            &service.codex_home,
+            r#"{"electron-saved-workspace-roots":[],"project-order":[],"thread-workspace-root-hints":{}}"#,
+        );
+
+        let recent_path = service
+            .codex_home
+            .join("sessions/2026/04/09/rollout-recent-mtime.jsonl");
+        let old_path = service
+            .codex_home
+            .join("sessions/2026/04/09/rollout-old-mtime.jsonl");
+        write_rollout_without_timestamps(
+            &recent_path,
+            "thread-recent-mtime",
+            "custom",
+            r"E:\RecentMtime",
+        );
+        write_rollout_without_timestamps(&old_path, "thread-old-mtime", "custom", r"E:\OldMtime");
+        filetime::set_file_mtime(
+            &recent_path,
+            FileTime::from_unix_time(Utc::now().timestamp() - 2 * 24 * 3600, 0),
+        )
+        .unwrap();
+        filetime::set_file_mtime(
+            &old_path,
+            FileTime::from_unix_time(Utc::now().timestamp() - 20 * 24 * 3600, 0),
+        )
+        .unwrap();
+        write_state_db(
+            &service.codex_home,
+            &[
+                ("thread-recent-mtime", "custom", false, r"E:\RecentMtime"),
+                ("thread-old-mtime", "custom", false, r"E:\OldMtime"),
+            ],
+        );
+
+        let result = service.sync(CodexHistorySyncOptions::default()).unwrap();
+        assert_eq!(result.changed_rollout_files, 1);
+        assert_eq!(result.sqlite_rows_updated, 1);
+
+        let recent_rollout = fs::read_to_string(&recent_path).unwrap();
+        let old_rollout = fs::read_to_string(&old_path).unwrap();
+        assert!(recent_rollout.contains(r#""model_provider":"openai""#));
+        assert!(old_rollout.contains(r#""model_provider":"custom""#));
     }
 
     #[test]

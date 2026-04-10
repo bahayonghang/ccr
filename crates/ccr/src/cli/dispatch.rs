@@ -466,6 +466,7 @@ impl CommandDispatcher {
             Some(CodexAction::SyncHistory {
                 provider,
                 keep,
+                max_age_days,
                 codex_home,
                 action,
             }) => match action {
@@ -473,6 +474,7 @@ impl CommandDispatcher {
                     crate::commands::codex::sync_history::sync_command(
                         provider.clone(),
                         *keep,
+                        *max_age_days,
                         codex_home.clone(),
                     )
                     .await
