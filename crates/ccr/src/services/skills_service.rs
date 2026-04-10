@@ -44,7 +44,7 @@ use ccr_core::core::http::HTTP_CLIENT;
 
 const DEFAULT_MARKETPLACE_URL: &str = "https://skills.sh/api/trending";
 const BUNDLED_FEATURED_SKILLS_JSON: &str =
-    include_str!("../../../../ref/repo/skills-hub/featured-skills.json");
+    include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/assets/featured-skills.json"));
 const SKILL_META_FILENAME: &str = ".skill-meta.json";
 const SOURCES_FILENAME: &str = "sources.json";
 const PLATFORMS_FILENAME: &str = "platforms.toml";

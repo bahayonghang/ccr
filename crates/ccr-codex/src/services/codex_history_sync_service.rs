@@ -12,12 +12,14 @@ use serde::{Deserialize, Serialize};
 use serde_json::{Map as JsonMap, Value as JsonValue};
 use std::collections::{BTreeMap, BTreeSet};
 use std::ffi::OsStr;
-use std::fs::{self, File, OpenOptions};
+use std::fs::{self, File};
 use std::io::{BufRead, BufReader, Read, Seek, SeekFrom, Write};
 use std::path::{Path, PathBuf};
 use std::time::{Duration, UNIX_EPOCH};
 #[cfg(not(windows))]
 use tempfile::NamedTempFile;
+#[cfg(windows)]
+use std::fs::OpenOptions;
 use walkdir::WalkDir;
 
 const DEFAULT_PROVIDER: &str = "openai";
