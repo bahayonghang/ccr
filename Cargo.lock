@@ -305,7 +305,7 @@ dependencies = [
 
 [[package]]
 name = "ccr"
-version = "5.7.7"
+version = "5.7.8"
 dependencies = [
  "anyhow",
  "base64",
@@ -354,7 +354,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-codex"
-version = "5.7.7"
+version = "5.7.8"
 dependencies = [
  "base64",
  "ccr-config",
@@ -380,7 +380,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-config"
-version = "5.7.7"
+version = "5.7.8"
 dependencies = [
  "ccr-core",
  "chrono",
@@ -395,7 +395,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-core"
-version = "5.7.7"
+version = "5.7.8"
 dependencies = [
  "anyhow",
  "colored",
@@ -421,7 +421,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-db"
-version = "5.7.7"
+version = "5.7.8"
 dependencies = [
  "aes-gcm",
  "anyhow",
@@ -454,7 +454,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-store"
-version = "5.7.7"
+version = "5.7.8"
 dependencies = [
  "blake3",
  "ccr-config",
@@ -475,7 +475,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-types"
-version = "5.7.7"
+version = "5.7.8"
 dependencies = [
  "chrono",
  "serde",
