@@ -94,6 +94,7 @@ import { computed, type ComponentPublicInstance } from 'vue'
 import { useI18n } from 'vue-i18n'
 import ClaudeProfileRow from '@/components/claude/ClaudeProfileRow.vue'
 import SIcon from '@/components/ui/SIcon.vue'
+import { translateWithFallback } from '@/i18n/formatMessage'
 import type { ClaudeProfile } from '@/types'
 import {
   resolveProviderColor,
@@ -104,6 +105,7 @@ import {
 
 const props = defineProps<{
   providerSections: ClaudeProfileSection[]
+  providerUnsetLabel: string
   registerSectionRef: (sectionId: string, target: Element | ComponentPublicInstance | null) => void
   searchQuery?: string
 }>()
@@ -116,9 +118,19 @@ defineEmits<{
 
 const { t } = useI18n()
 
-const getProviderNavCount = (count: number) => t('claudeProfiles.providerNavCount', { count })
+const getProviderNavCount = (count: number) => translateWithFallback(
+  t,
+  'claudeProfiles.providerNavCount',
+  '{count} 个 Profile',
+  { count },
+)
 const getProviderSectionSummary = (count: number, enabled: number) =>
-  t('claudeProfiles.providerSectionSummary', { count, enabled })
+  translateWithFallback(
+    t,
+    'claudeProfiles.providerSectionSummary',
+    '共 {count} 个 Profile，其中 {enabled} 个处于启用状态。',
+    { count, enabled },
+  )
 
 // 默认色彩配置
 const defaultColor: ProviderColorConfig = {
@@ -132,7 +144,10 @@ const defaultColor: ProviderColorConfig = {
 const sectionColors = computed(() => {
   const map: Record<string, ProviderColorConfig> = {}
   for (const section of props.providerSections) {
-    map[section.providerKey] = resolveProviderColor(section.title)
+    const providerName = section.providerKey === '__unset_provider__'
+      ? props.providerUnsetLabel
+      : section.title
+    map[section.providerKey] = resolveProviderColor(providerName)
   }
   return map
 })
@@ -141,7 +156,10 @@ const sectionColors = computed(() => {
 const sectionIcons = computed(() => {
   const map: Record<string, string> = {}
   for (const section of props.providerSections) {
-    map[section.providerKey] = resolveProviderIcon(section.title)
+    const providerName = section.providerKey === '__unset_provider__'
+      ? props.providerUnsetLabel
+      : section.title
+    map[section.providerKey] = resolveProviderIcon(providerName)
   }
   return map
 })

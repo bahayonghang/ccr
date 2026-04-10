@@ -106,6 +106,7 @@
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import SIcon from '@/components/ui/SIcon.vue'
+import { translateWithFallback } from '@/i18n/formatMessage'
 import {
   resolveProviderColor,
   type ClaudeProfileSection,
@@ -115,6 +116,7 @@ import {
 const props = defineProps<{
   sections: ClaudeProfileSection[]
   activeSectionId: string | null
+  providerUnsetLabel: string
   mobile?: boolean
 }>()
 
@@ -124,13 +126,21 @@ defineEmits<{
 
 const { t } = useI18n()
 
-const getProviderNavCount = (count: number) => t('claudeProfiles.providerNavCount', { count })
+const getProviderNavCount = (count: number) => translateWithFallback(
+  t,
+  'claudeProfiles.providerNavCount',
+  '{count} 个 Profile',
+  { count },
+)
 
 // 缓存各 section 的 provider 色彩
 const sectionColors = computed(() => {
   const map: Record<string, ProviderColorConfig> = {}
   for (const section of props.sections) {
-    map[section.providerKey] = resolveProviderColor(section.title)
+    const providerName = section.providerKey === '__unset_provider__'
+      ? props.providerUnsetLabel
+      : section.title
+    map[section.providerKey] = resolveProviderColor(providerName)
   }
   return map
 })

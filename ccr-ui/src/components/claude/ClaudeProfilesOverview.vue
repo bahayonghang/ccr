@@ -148,6 +148,7 @@
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import SIcon from '@/components/ui/SIcon.vue'
+import { translateWithFallback } from '@/i18n/formatMessage'
 import type { ClaudeProfile } from '@/types'
 import { groupProfilesByProvider, type ProviderGroup } from '@/utils/claudeProfiles'
 
@@ -172,6 +173,13 @@ const currentProfileStatusLabel = computed(() => (
 ))
 
 const groupedProfiles = computed<ProviderGroup[]>(() =>
-  groupProfilesByProvider(props.quickSwitchProfiles, 'Other'),
+  groupProfilesByProvider(
+    props.quickSwitchProfiles,
+    translateWithFallback(
+      t,
+      'claudeProfiles.providerUnset',
+      '未设置 Provider',
+    ),
+  ),
 )
 </script>
