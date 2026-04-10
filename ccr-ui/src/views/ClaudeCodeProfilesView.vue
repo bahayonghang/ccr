@@ -30,7 +30,7 @@
             v-if="showNavigation"
             class="claude-profiles-view__meta-chip"
           >
-            {{ $t('claudeProfiles.providerSectionsCount', { count: providerSections.length }) }}
+            {{ providerSectionsCountLabel }}
           </span>
         </template>
 
@@ -48,7 +48,22 @@
 
           <button
             type="button"
+            class="claude-profiles-view__header-button claude-profiles-view__header-button--secondary"
+            :disabled="loading || isRefreshing || isSaving"
+            @click="refreshProfiles()"
+          >
+            <SIcon
+              name="RefreshCw"
+              size="w-4 h-4"
+              :class="{ 'animate-spin': loading || isRefreshing }"
+            />
+            {{ $t('common.refresh') }}
+          </button>
+
+          <button
+            type="button"
             class="claude-profiles-view__header-button claude-profiles-view__header-button--primary"
+            :disabled="isSaving"
             @click="openAddForm()"
           >
             <SIcon
@@ -96,10 +111,10 @@
 
           <div class="claude-profiles-view__search-meta">
             <span class="claude-profiles-view__search-chip">
-              {{ $t('claudeProfiles.searchProfilesCount', { matched: filteredProfiles.length, total: profiles.length }) }}
+              {{ searchProfilesCountLabel }}
             </span>
             <span class="claude-profiles-view__search-chip">
-              {{ $t('claudeProfiles.searchProvidersCount', { matched: visibleProviderSections.length, total: providerSections.length }) }}
+              {{ searchProvidersCountLabel }}
             </span>
             <button
               v-if="hasActiveSearch"
@@ -134,6 +149,7 @@
           <ClaudeProfilesProviderNav
             :sections="visibleProviderSections"
             :active-section-id="currentSectionId"
+            :provider-unset-label="providerUnsetLabel"
             @navigate="scrollToSection"
           />
         </aside>
@@ -144,6 +160,7 @@
             mobile
             :sections="visibleProviderSections"
             :active-section-id="currentSectionId"
+            :provider-unset-label="providerUnsetLabel"
             class="claude-profiles-view__mobile-nav"
             @navigate="scrollToSection"
           />
@@ -178,7 +195,7 @@
               <button
                 type="button"
                 class="rounded-2xl border border-accent-danger/25 bg-accent-danger/10 px-4 py-2 text-sm font-medium text-accent-danger transition-colors hover:bg-accent-danger/15"
-                @click="loadProfiles()"
+                @click="refreshProfiles()"
               >
                 {{ $t('claudeProfiles.retry') }}
               </button>
@@ -186,7 +203,51 @@
           </div>
 
           <div
-            v-else-if="profiles.length === 0"
+            v-else-if="refreshError"
+            class="rounded-[24px] border border-accent-warning/20 bg-accent-warning/6 p-5 animate-slide-up"
+            style="animation-delay: 160ms"
+          >
+            <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+              <div class="flex items-start gap-3">
+                <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-accent-warning/10 text-accent-warning">
+                  <SIcon
+                    name="AlertCircle"
+                    size="w-5 h-5"
+                  />
+                </div>
+                <div class="min-w-0">
+                  <h3 class="text-sm font-semibold text-text-primary">
+                    {{ $t('claudeProfiles.refreshFailedTitle') }}
+                  </h3>
+                  <p class="mt-1 text-sm text-text-secondary">
+                    {{ refreshError }}
+                  </p>
+                  <p class="mt-2 text-xs text-text-muted">
+                    {{ $t('claudeProfiles.refreshFailedHint') }}
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                class="self-start rounded-2xl border border-accent-warning/25 bg-accent-warning/10 px-4 py-2 text-sm font-medium text-accent-warning transition-colors hover:bg-accent-warning/15 disabled:cursor-not-allowed disabled:opacity-60"
+                :disabled="isRefreshing"
+                @click="refreshProfiles()"
+              >
+                <span class="inline-flex items-center gap-2">
+                  <SIcon
+                    name="RefreshCw"
+                    size="w-4 h-4"
+                    :class="{ 'animate-spin': isRefreshing }"
+                  />
+                  {{ $t('claudeProfiles.retry') }}
+                </span>
+              </button>
+            </div>
+          </div>
+
+          <div
+            v-if="!loadError && profiles.length === 0"
             class="py-20 text-center animate-slide-up"
             style="animation-delay: 200ms"
           >
@@ -252,6 +313,7 @@
           <ClaudeProfilesSectionList
             v-else
             :provider-sections="visibleProviderSections"
+            :provider-unset-label="providerUnsetLabel"
             :register-section-ref="registerSectionRef"
             :search-query="trimmedSearchQuery"
             @apply="handleApply"
@@ -428,7 +490,9 @@ import { CLAUDE_PROFILE_FORM_SECTION_IDS } from '@/types/claudeProfileEditor'
 const { t } = useI18n()
 
 const loading = ref(true)
+const isRefreshing = ref(false)
 const loadError = ref<string | null>(null)
+const refreshError = ref<string | null>(null)
 const profiles = ref<ClaudeProfile[]>([])
 const showForm = ref(false)
 const isEditing = ref(false)
@@ -466,12 +530,37 @@ const trimmedSearchQuery = computed(() => searchQuery.value.trim())
 const hasActiveSearch = computed(() => trimmedSearchQuery.value.length > 0)
 const currentProfileRecord = computed(() => profiles.value.find(profile => profile.is_current) ?? null)
 const enabledProfilesCount = computed(() => profiles.value.filter(profile => profile.enabled !== false).length)
-const providerSections = computed(() => createClaudeProfileSections(profiles.value, t('claudeProfiles.providerUnset')))
+const providerUnsetLabel = computed(() => t('claudeProfiles.providerUnset'))
+const providerSections = computed(() => createClaudeProfileSections(profiles.value, providerUnsetLabel.value))
 const filteredProfiles = computed(() => filterClaudeProfiles(profiles.value, trimmedSearchQuery.value))
-const visibleProviderSections = computed(() => createClaudeProfileSections(filteredProfiles.value, t('claudeProfiles.providerUnset')))
+const visibleProviderSections = computed(() => createClaudeProfileSections(filteredProfiles.value, providerUnsetLabel.value))
 const showSearchRail = computed(() => !loading.value && !loadError.value && profiles.value.length > 0)
 const showNavigation = computed(() => !loading.value && !loadError.value && visibleProviderSections.value.length > 1)
 const isEditingCurrent = computed(() => isEditing.value && editingName.value === currentProfileRecord.value?.name)
+const providerSectionsCountLabel = computed(() => translateWithFallback(
+  t,
+  'claudeProfiles.providerSectionsCount',
+  'Provider 分组 {count}',
+  { count: providerSections.value.length },
+))
+const searchProfilesCountLabel = computed(() => translateWithFallback(
+  t,
+  'claudeProfiles.searchProfilesCount',
+  '{matched} / {total} Profiles',
+  {
+    matched: filteredProfiles.value.length,
+    total: profiles.value.length,
+  },
+))
+const searchProvidersCountLabel = computed(() => translateWithFallback(
+  t,
+  'claudeProfiles.searchProvidersCount',
+  '{matched} / {total} Providers',
+  {
+    matched: visibleProviderSections.value.length,
+    total: providerSections.value.length,
+  },
+))
 
 const modalEyebrow = computed(() => (
   isEditing.value
@@ -748,15 +837,24 @@ const scrollToFormSection = (sectionId: ClaudeProfileFormSectionId) => {
   })
 }
 
-const loadProfiles = async () => {
-  loading.value = true
-  loadError.value = null
+const loadProfiles = async (options: { preserveData?: boolean } = {}) => {
+  const preserveData = options.preserveData === true
+
+  if (preserveData) {
+    isRefreshing.value = true
+    refreshError.value = null
+  } else {
+    loading.value = true
+    loadError.value = null
+  }
 
   try {
     const data = await listClaudeProfiles<ClaudeProfilesResponse>()
     const normalized = normalizeClaudeProfilesState(data.profiles || [], data.current_profile || null)
 
     profiles.value = normalized.profiles
+    loadError.value = null
+    refreshError.value = null
 
     if (normalized.warnings.length > 0) {
       logger.warn('Normalized inconsistent Claude profiles response', {
@@ -766,11 +864,25 @@ const loadProfiles = async () => {
     }
   } catch (error) {
     logger.error('Failed to load Claude profiles:', error)
-    profiles.value = []
-    loadError.value = getErrorMessage(error, t('claudeProfiles.loadFailed'))
+    const message = getErrorMessage(error, t('claudeProfiles.loadFailed'))
+
+    if (preserveData) {
+      refreshError.value = message
+    } else {
+      profiles.value = []
+      loadError.value = message
+    }
   } finally {
-    loading.value = false
+    if (preserveData) {
+      isRefreshing.value = false
+    } else {
+      loading.value = false
+    }
   }
+}
+
+const refreshProfiles = async () => {
+  await loadProfiles({ preserveData: profiles.value.length > 0 })
 }
 
 const handleSave = async () => {
@@ -790,7 +902,7 @@ const handleSave = async () => {
 
     showForm.value = false
     activeFormSectionId.value = 'basic'
-    await loadProfiles()
+    await loadProfiles({ preserveData: profiles.value.length > 0 })
   } catch (error) {
     logger.error('Failed to save Claude profile:', error)
     saveError.value = getErrorMessage(error, t('claudeProfiles.operationFailed'))
@@ -809,7 +921,7 @@ const handleDelete = async (name: string) => {
 
   try {
     await deleteClaudeProfile(name)
-    await loadProfiles()
+    await loadProfiles({ preserveData: profiles.value.length > 0 })
   } catch (error) {
     logger.error('Failed to delete Claude profile:', error)
     alert(getErrorMessage(error, t('claudeProfiles.deleteFailed')))
@@ -829,7 +941,7 @@ const handleApply = async (name: string) => {
 
   try {
     await applyClaudeProfile(name)
-    await loadProfiles()
+    await loadProfiles({ preserveData: profiles.value.length > 0 })
   } catch (error) {
     logger.error('Failed to apply Claude profile:', error)
     alert(getErrorMessage(error, t('claudeProfiles.applyFailed')))
@@ -858,7 +970,7 @@ watch(showForm, (isOpen) => {
 })
 
 onMounted(() => {
-  loadProfiles()
+  void loadProfiles()
   document.addEventListener('keydown', handleGlobalKeydown)
 })
 onBeforeUnmount(() => {

@@ -1,6 +1,6 @@
 <!-- -->
 <template>
-  <div class="h-screen w-full bg-bg-primary text-white overflow-hidden flex flex-col relative transition-colors duration-300">
+  <div class="min-h-screen md:h-screen w-full bg-bg-primary text-white overflow-y-auto md:overflow-hidden flex flex-col relative transition-colors duration-300">
     <!-- 🎨 赛博朋克动态背景装饰 -->
     <div class="absolute inset-0 overflow-hidden pointer-events-none -z-10">
       <!-- 径向渐变光晕 -->
@@ -27,8 +27,8 @@
     </div>
 
     <!-- 🌟 头部区域 -->
-    <header class="flex-none px-6 py-4 flex items-center justify-between border-b border-border-color bg-bg-primary/80 backdrop-blur-md z-10 animate-fade-in-down">
-      <div class="flex items-center gap-4">
+    <header class="flex-none px-4 py-4 sm:px-6 flex flex-col gap-4 border-b border-border-color bg-bg-primary/80 backdrop-blur-md z-10 animate-fade-in-down sm:flex-row sm:items-center sm:justify-between">
+      <div class="flex min-w-0 items-center gap-4">
         <div class="relative group">
           <div class="absolute inset-0 bg-accent-primary/30 blur-xl rounded-full group-hover:bg-accent-primary/50 transition-colors duration-500 animate-pulse-glow" />
           <div class="relative w-10 h-10 rounded-xl glass-effect flex items-center justify-center border border-accent-primary/30 shadow-neon-jade group-hover:scale-110 group-hover:border-accent-primary/60 transition-[color,background-color,border-color,transform] duration-300">
@@ -40,7 +40,7 @@
           </div>
         </div>
         <div>
-          <h1 class="text-xl font-bold text-white tracking-tight neon-text-glow flex items-center gap-3">
+          <h1 class="flex flex-wrap items-center gap-3 text-xl font-bold tracking-tight text-white neon-text-glow">
             {{ $t('ccrControl.title') }}
             <span
               v-if="versionInfo?.current_version"
@@ -56,7 +56,7 @@
       </div>
 
       <!-- 右侧装饰或状态 -->
-      <div class="flex items-center gap-4">
+      <div class="flex items-center justify-between gap-4 sm:justify-end">
         <div class="flex items-center gap-2 text-xs font-mono text-white/50">
           <span class="w-2 h-2 rounded-full bg-accent-primary animate-pulse" />
           System Online
@@ -66,14 +66,14 @@
     </header>
 
     <!-- 🏗️ 主体内容区 -->
-    <div class="flex-1 flex overflow-hidden p-4 gap-4 animate-fade-in">
+    <div class="flex-1 flex flex-col gap-4 overflow-visible p-3 animate-fade-in sm:p-4 xl:flex-row xl:overflow-hidden">
       <!-- 👈 左侧侧边栏：命令/收藏/历史 -->
-      <aside class="w-80 flex-none flex flex-col gap-4 animate-slide-in-left">
+      <aside class="flex w-full flex-none flex-col gap-4 animate-slide-in-left xl:w-80">
         <Card 
           variant="glass" 
-          class="flex-1 flex flex-col !p-0 overflow-hidden neon-card"
+          class="flex flex-col !p-0 overflow-hidden neon-card xl:flex-1"
           padding="none"
-          body-class="h-full flex flex-col"
+          body-class="h-full min-h-[22rem] max-h-[60vh] xl:max-h-none flex flex-col"
         >
           <!-- 侧边栏 Tabs -->
           <div class="flex p-2 gap-1 border-b border-border-color bg-bg-secondary/50">
@@ -100,7 +100,7 @@
           </div>
 
           <!-- 内容区域 -->
-          <div class="flex-1 overflow-hidden relative">
+          <div class="flex-1 min-h-0 overflow-hidden relative">
             <Transition
               name="fade-slide"
               mode="out-in"
@@ -133,11 +133,15 @@
                   <div
                     v-for="cmd in selectedModule?.commands"
                     :key="cmd.command"
-                    class="cursor-pointer group relative p-3 rounded-xl border border-transparent hover:bg-bg-hover hover:border-accent-primary/20 transition-colors duration-300"
+                    class="group relative rounded-xl border border-transparent transition-colors duration-300 hover:bg-bg-hover hover:border-accent-primary/20"
                     :class="selectedCommand?.command === cmd.command ? 'bg-accent-primary/10 border-accent-primary/40 shadow-neon-jade-sm' : ''"
-                    @click="selectCommand(cmd)"
                   >
-                    <div class="flex items-start gap-3">
+                    <button
+                      type="button"
+                      class="flex w-full items-start gap-3 rounded-xl p-3 pr-12 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary/35 focus-visible:ring-offset-2 focus-visible:ring-offset-bg-primary"
+                      :aria-label="`Select command ${cmd.name}: ccr ${cmd.command}`"
+                      @click="selectCommand(cmd)"
+                    >
                       <div
                         class="mt-0.5 w-7 h-7 rounded-lg bg-bg-secondary flex items-center justify-center group-hover:scale-110 transition-transform"
                         :class="selectedCommand?.command === cmd.command ? 'bg-accent-primary text-white' : 'text-white/50 group-hover:text-accent-primary'"
@@ -153,21 +157,6 @@
                             class="text-sm font-bold truncate"
                             :class="selectedCommand?.command === cmd.command ? 'text-accent-primary' : 'text-white'"
                           >{{ cmd.name }}</span>
-                          <div class="flex gap-1">
-                            <SIcon
-                              v-if="cmd.dangerous"
-                              name="AlertTriangle"
-                              size="w-3 h-3"
-                              class="text-accent-danger animate-pulse"
-                            />
-                            <SIcon
-                              name="Star"
-                              size="w-3 h-3"
-                              class="transition-transform cursor-pointer hover:scale-125"
-                              :class="isFavorite(cmd.command) ? 'text-accent-warning fill-accent-warning' : 'text-transparent stroke-text-muted hover:stroke-accent-warning'"
-                              @click.stop="toggleFavorite(cmd)"
-                            />
-                          </div>
                         </div>
                         <div class="text-[10px] font-mono opacity-60 mb-1 text-white/80">
                           ccr {{ cmd.command }}
@@ -176,6 +165,26 @@
                           {{ cmd.description }}
                         </p>
                       </div>
+                    </button>
+                    <div class="absolute right-3 top-3 flex items-center gap-1">
+                      <SIcon
+                        v-if="cmd.dangerous"
+                        name="AlertTriangle"
+                        size="w-3 h-3"
+                        class="text-accent-danger animate-pulse"
+                      />
+                      <button
+                        type="button"
+                        class="rounded-md p-1 text-text-muted transition-transform hover:scale-125 hover:text-accent-warning focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-warning/40"
+                        :aria-label="isFavorite(cmd.command) ? `Remove ${cmd.name} from favorites` : `Add ${cmd.name} to favorites`"
+                        @click="toggleFavorite(cmd)"
+                      >
+                        <SIcon
+                          name="Star"
+                          size="w-3 h-3"
+                          :class="isFavorite(cmd.command) ? 'fill-accent-warning text-accent-warning' : ''"
+                        />
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -201,33 +210,39 @@
                 <div
                   v-for="fav in favorites"
                   :key="fav.id"
-                  class="p-3 rounded-xl bg-bg-secondary border border-border-color hover:border-accent-warning/30 hover:shadow-neon-gold-sm transition-[border-color,box-shadow] cursor-pointer group"
-                  @click="executeFromFavorite(fav)"
+                  class="relative rounded-xl border border-border-color bg-bg-secondary transition-[border-color,box-shadow] hover:border-accent-warning/30 hover:shadow-neon-gold-sm group"
                 >
-                  <div class="flex items-center justify-between mb-2">
-                    <span class="text-xs font-bold text-accent-warning">{{ fav.display_name || fav.command }}</span>
-                    <button
-                      class="text-white/50 hover:text-accent-danger transition-colors"
-                      @click.stop="removeFromFavorites(fav.id)"
-                    >
-                      <SIcon
-                        name="X"
-                        size="w-3 h-3"
-                      />
-                    </button>
-                  </div>
-                  <div class="text-[10px] font-mono text-white/80 mb-2">
-                    ccr {{ fav.command }}
-                  </div>
-                  <div class="flex justify-end">
-                    <button class="p-1.5 rounded-lg bg-accent-warning/10 text-accent-warning hover:bg-accent-warning hover:text-white transition-colors">
+                  <button
+                    type="button"
+                    class="w-full rounded-xl p-3 pr-10 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-warning/35 focus-visible:ring-offset-2 focus-visible:ring-offset-bg-primary"
+                    :aria-label="`Run favorite command ${fav.display_name || fav.command}`"
+                    @click="executeFromFavorite(fav)"
+                  >
+                    <div class="mb-2 flex items-center justify-between">
+                      <span class="text-xs font-bold text-accent-warning">{{ fav.display_name || fav.command }}</span>
+                    </div>
+                    <div class="mb-2 text-[10px] font-mono text-white/80">
+                      ccr {{ fav.command }}
+                    </div>
+                    <div class="flex justify-end text-accent-warning">
                       <SIcon
                         name="Play"
                         size="w-3 h-3"
                         class="fill-current"
                       />
-                    </button>
-                  </div>
+                    </div>
+                  </button>
+                  <button
+                    type="button"
+                    class="absolute right-3 top-3 rounded-md p-1 text-white/50 transition-colors hover:text-accent-danger focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-danger/40"
+                    :aria-label="`Remove favorite ${fav.display_name || fav.command}`"
+                    @click="removeFromFavorites(fav.id)"
+                  >
+                    <SIcon
+                      name="X"
+                      size="w-3 h-3"
+                    />
+                  </button>
                 </div>
               </div>
 
@@ -262,10 +277,12 @@
                     />
                     <span class="text-xs">{{ $t('ccrControl.noHistory') }}</span>
                   </div>
-                  <div
+                  <button
                     v-for="item in history"
                     :key="item.id"
-                    class="p-2.5 rounded-lg bg-bg-secondary border border-border-color hover:bg-bg-hover transition-colors cursor-pointer flex items-center gap-3 group"
+                    type="button"
+                    class="flex w-full items-center gap-3 rounded-lg border border-border-color bg-bg-secondary p-2.5 text-left transition-colors hover:bg-bg-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary/35 focus-visible:ring-offset-2 focus-visible:ring-offset-bg-primary group"
+                    :aria-label="`Run history command ${item.command}`"
                     @click="executeFromHistory(item)"
                   >
                     <div
@@ -286,7 +303,7 @@
                       size="w-3 h-3"
                       class="text-white/50 opacity-0 group-hover:opacity-100 transition-opacity"
                     />
-                  </div>
+                  </button>
                 </div>
               </div>
             </Transition>
@@ -295,7 +312,7 @@
       </aside>
 
       <!-- 👉 右侧主区域：参数配置 + 终端输出 -->
-      <main class="flex-1 flex flex-col gap-4 overflow-hidden animate-slide-in-right">
+      <main class="flex min-h-0 flex-1 flex-col gap-4 overflow-visible animate-slide-in-right xl:overflow-hidden">
         <!-- 1. 参数配置区 (高度自适应) -->
         <Card 
           variant="glass" 
@@ -314,12 +331,13 @@
           <div class="p-4">
             <div v-if="selectedCommand">
               <!-- 命令预览 & 执行按钮行 -->
-              <div class="flex items-center gap-4 mb-4">
-                <div class="flex-1 px-4 py-2.5 rounded-lg bg-bg-secondary border border-accent-primary/20 font-mono text-sm text-accent-primary flex items-center gap-2 shadow-inner">
+              <div class="mb-4 flex flex-col gap-4 sm:flex-row sm:items-center">
+                <div class="flex min-w-0 flex-1 items-center gap-2 rounded-lg border border-accent-primary/20 bg-bg-secondary px-4 py-2.5 font-mono text-sm text-accent-primary shadow-inner">
                   <span class="text-white/50 select-none">$</span>
-                  ccr {{ selectedCommand.command }}
+                  <span class="min-w-0 truncate">ccr {{ selectedCommand.command }}</span>
                 </div>
                 <button
+                  type="button"
                   class="flex items-center gap-2 px-6 py-2.5 rounded-lg font-bold text-sm text-white shadow-lg transition-[color,background-color,border-color,transform] active:scale-95"
                   :class="selectedCommand.dangerous
                     ? 'bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 shadow-neon-danger'
@@ -346,19 +364,23 @@
               <!-- 参数表单 -->
               <div
                 v-if="(selectedCommand.args && selectedCommand.args.length > 0) || (selectedCommand.flags && selectedCommand.flags.length > 0)"
-                class="grid grid-cols-2 gap-4 animate-fade-in"
+                class="grid grid-cols-1 gap-4 animate-fade-in md:grid-cols-2"
               >
                 <!-- Required Args -->
                 <div
                   v-for="arg in selectedCommand.args"
                   :key="arg.name"
                 >
-                  <label class="block text-[10px] font-bold text-white/80 mb-1 ml-1 uppercase">{{ arg.name }} <span
+                  <label
+                    class="block text-[10px] font-bold text-white/80 mb-1 ml-1 uppercase"
+                    :for="argDomId(arg.name)"
+                  >{{ arg.name }} <span
                     v-if="arg.required"
                     class="text-accent-danger"
                   >*</span></label>
                   <input
                     v-if="arg.type !== 'select'"
+                    :id="argDomId(arg.name)"
                     v-model="commandArgs[arg.name]"
                     type="text"
                     :placeholder="arg.placeholder"
@@ -366,6 +388,7 @@
                   >
                   <select
                     v-else
+                    :id="argDomId(arg.name)"
                     v-model="commandArgs[arg.name]"
                     class="w-full px-3 py-2 rounded-lg bg-bg-secondary border border-border-color text-sm text-white focus:border-accent-primary transition-colors font-mono"
                   >
@@ -393,13 +416,13 @@
                 >
                   <template v-if="flag.type === 'boolean'">
                     <input
-                      :id="`flag-${flag.name}`"
+                      :id="flagDomId(flag.name)"
                       v-model="commandFlags[flag.name]"
                       type="checkbox"
                       class="accent-accent-primary w-4 h-4 cursor-pointer"
                     >
                     <label
-                      :for="`flag-${flag.name}`"
+                      :for="flagDomId(flag.name)"
                       class="cursor-pointer flex-1"
                     >
                       <div class="text-xs font-medium text-white">{{ flag.name }}</div>
@@ -408,10 +431,14 @@
                   </template>
                   <template v-else>
                     <div class="flex-1">
-                      <div class="text-[10px] text-white/50 mb-1">
+                      <label
+                        class="mb-1 block text-[10px] text-white/50"
+                        :for="flagDomId(flag.name)"
+                      >
                         {{ flag.name }} <code class="bg-bg-tertiary px-1 rounded">{{ flag.flag }}</code>
-                      </div>
+                      </label>
                       <input 
+                        :id="flagDomId(flag.name)"
                         v-model="commandFlags[flag.name]" 
                         :type="flag.type === 'number' ? 'number' : 'text'"
                         class="w-full px-2 py-1 rounded bg-bg-tertiary border border-border-color text-xs font-mono text-white focus:border-accent-secondary transition-colors"
@@ -439,7 +466,7 @@
         </Card>
 
         <!-- 2. 终端输出区 (剩余空间全部占满) -->
-        <div class="flex-1 flex flex-col overflow-hidden min-h-0 rounded-xl border border-border-color bg-bg-primary/50 backdrop-blur-md shadow-2xl relative transition-[box-shadow] duration-300 hover:shadow-neon-jade-sm group">
+        <div class="flex min-h-[24rem] flex-1 flex-col overflow-hidden rounded-xl border border-border-color bg-bg-primary/50 backdrop-blur-md shadow-2xl relative transition-[box-shadow] duration-300 hover:shadow-neon-jade-sm group xl:min-h-0">
           <!-- Terminal Header -->
           <div class="flex-none px-4 py-3 border-b border-border-color bg-bg-secondary/50 flex items-center justify-between backdrop-blur-md">
             <div class="flex items-center gap-2">
@@ -467,9 +494,11 @@
                 <span>Exited: {{ lastExitCode }}</span>
               </div>
               <!-- Clear Button -->
-              <button 
+              <button
+                type="button"
                 class="p-1.5 rounded-lg hover:bg-bg-hover text-white/50 hover:text-accent-danger transition-[color,background-color,transform] active:scale-95"
                 :title="$t('ccrControl.clearOutput')"
+                :aria-label="$t('ccrControl.clearOutput')"
                 @click="clearOutput"
               >
                 <SIcon
@@ -586,6 +615,11 @@ const sidebarTabs: { id: 'commands' | 'favorites' | 'history'; label: string; ic
   { id: 'history', label: 'History', icon: 'History' }
 ]
 
+const controlDomId = (prefix: string, name: string) =>
+  `${prefix}-${name.replace(/[^A-Za-z0-9_-]/g, '-')}`
+
+const argDomId = (name: string) => controlDomId('arg', name)
+const flagDomId = (name: string) => controlDomId('flag', name)
 
 const syncRenderedOutputLines = (nextLines: string[]) => {
   const shouldRebuild = previousOutputLines.length === 0

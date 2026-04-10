@@ -51,11 +51,13 @@
             <div class="flex flex-col gap-3">
               <input
                 v-model="librarySearch"
+                aria-label="Search installed skills"
                 class="rounded-2xl border border-border-default/55 bg-bg-base/45 px-3 py-2 text-sm text-text-primary"
                 placeholder="search"
               >
               <select
                 v-model="filters.platform"
+                aria-label="Filter skills by platform"
                 class="rounded-2xl border border-border-default/55 bg-bg-base/45 px-3 py-2 text-sm text-text-primary"
               >
                 <option value="all">
@@ -70,6 +72,7 @@
               </select>
               <select
                 v-model="filters.origin"
+                aria-label="Filter skills by origin"
                 class="rounded-2xl border border-border-default/55 bg-bg-base/45 px-3 py-2 text-sm text-text-primary"
               >
                 <option value="all">
@@ -256,6 +259,7 @@
             </h2><div class="flex flex-col gap-3">
               <input
                 v-model="manualGithub"
+                aria-label="GitHub skill repository"
                 class="rounded-2xl border border-border-default/55 bg-bg-base/45 px-3 py-2 text-sm text-text-primary"
                 placeholder="owner/repo"
               ><button
@@ -266,10 +270,12 @@
                 Review GitHub
               </button><input
                 v-model="manualNpxPackage"
+                aria-label="npx package"
                 class="rounded-2xl border border-border-default/55 bg-bg-base/45 px-3 py-2 text-sm text-text-primary"
                 placeholder="vercel-labs/agent-skills"
               ><input
                 v-model="manualNpxSkills"
+                aria-label="npx skills to install"
                 class="rounded-2xl border border-border-default/55 bg-bg-base/45 px-3 py-2 text-sm text-text-primary"
                 placeholder="skill-a,skill-b"
               ><button
@@ -286,6 +292,7 @@
           <div class="mb-4 flex gap-3">
             <input
               v-model="exploreQuery"
+              aria-label="Search skills marketplace"
               class="flex-1 rounded-2xl border border-border-default/55 bg-bg-base/45 px-3 py-2 text-sm text-text-primary"
               placeholder="Search skills.sh"
               @keydown.enter="reloadMarketplace(true)"
@@ -381,6 +388,7 @@
             <div class="flex flex-col gap-3">
               <input
                 v-model="manualGitSource"
+                aria-label="Git source URL"
                 class="rounded-2xl border border-border-default/55 bg-bg-base/45 px-3 py-2 text-sm text-text-primary"
                 placeholder="https://github.com/owner/repo"
               ><button
@@ -393,6 +401,7 @@
             </div><div class="flex flex-col gap-3">
               <input
                 v-model="manualLocalSource"
+                aria-label="Local source directory"
                 class="rounded-2xl border border-border-default/55 bg-bg-base/45 px-3 py-2 text-sm text-text-primary"
                 placeholder="D:/skills/repo"
               ><button

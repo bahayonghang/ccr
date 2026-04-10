@@ -75,7 +75,7 @@
                 </h2>
               </div>
               <div class="home-visual-panel__badge">
-                {{ installedCliCount }}/{{ mainModules.length }} {{ $t('home.visualBadge') }}
+                {{ installedCliCount }}/{{ runtimeModules.length }} {{ $t('home.visualBadge') }}
               </div>
             </div>
 
@@ -359,6 +359,17 @@ import { perfMark, shouldLogPerfTelemetry } from '@/utils/perfTelemetry'
 import { scheduleWhenIdle } from '@/utils/scheduling'
 import type { CliVersionEntry, CliVersionsResponse, SystemInfo } from '@/types'
 
+type HomeModule = {
+  title: string
+  desc: string
+  path: string
+  icon: string
+  iconClass: string
+  platformKey: string
+  statusMode: 'cli' | 'managed'
+  showInHero: boolean
+}
+
 const UsageStatsDashboard = defineAsyncComponent({
   loader: () => import('@/components/UsageStatsDashboard.vue'),
   suspensible: false,
@@ -372,10 +383,34 @@ const cliVersions = ref<Map<string, CliVersionEntry>>(new Map())
 const usageStatsSection = ref<HTMLElement | null>(null)
 const shouldRenderUsageStats = ref(false)
 
+const CLI_PLATFORM_ALIASES: Record<string, string> = {
+  claude: 'claude-code',
+  'claude-code': 'claude-code',
+  codex: 'codex',
+  gemini: 'gemini-cli',
+  'gemini-cli': 'gemini-cli',
+  qwen: 'qwen',
+  qoder: 'qoder',
+}
+
+const normalizeHomeCliPlatform = (platform: string) => {
+  return CLI_PLATFORM_ALIASES[platform.trim().toLowerCase()] ?? null
+}
+
 const applyCliVersions = (entries: CliVersionEntry[]) => {
+  const normalizedEntries = new Map<string, CliVersionEntry>()
+
   for (const entry of entries) {
-    cliVersions.value.set(entry.platform, entry)
+    const platformKey = normalizeHomeCliPlatform(entry.platform)
+    if (!platformKey) continue
+
+    normalizedEntries.set(platformKey, {
+      ...entry,
+      platform: platformKey,
+    })
   }
+
+  cliVersions.value = normalizedEntries
   perfMark('home:cli-badges-updated')
 }
 
@@ -496,7 +531,14 @@ onBeforeUnmount(() => {
   }
 })
 
+const getModuleConfigByKey = (platformKey: string) => {
+  return mainModules.value.find((module) => module.platformKey === platformKey) ?? null
+}
+
 const getVersionLabel = (platformKey: string) => {
+  const module = getModuleConfigByKey(platformKey)
+  if (module?.statusMode === 'managed') return t('home.moduleManagedLabel')
+
   const entry = cliVersions.value.get(platformKey)
   if (!entry) return '...'
   if (entry.status === 'timeout' || entry.status === 'error') return '...'
@@ -505,6 +547,9 @@ const getVersionLabel = (platformKey: string) => {
 }
 
 const getVersionClass = (platformKey: string) => {
+  const module = getModuleConfigByKey(platformKey)
+  if (module?.statusMode === 'managed') return 'module-version-badge--default'
+
   const entry = cliVersions.value.get(platformKey)
   if (!entry) return 'module-version-badge--default'
   if (entry.status === 'timeout') return 'module-version-badge--warning'
@@ -548,6 +593,80 @@ const quickActions = computed(() => [
   },
 ])
 
+const mainModules = computed<HomeModule[]>(() => [
+  {
+    title: t('home.claudeCodeTitle'),
+    desc: t('home.claudeCodeDesc'),
+    path: '/claude-code',
+    icon: 'Code2',
+    iconClass: 'text-platform-claude',
+    platformKey: 'claude-code',
+    statusMode: 'cli',
+    showInHero: true,
+  },
+  {
+    title: t('home.codexTitle'),
+    desc: t('home.codexDesc'),
+    path: '/codex',
+    icon: 'Settings',
+    iconClass: 'text-platform-codex',
+    platformKey: 'codex',
+    statusMode: 'cli',
+    showInHero: true,
+  },
+  {
+    title: t('home.geminiTitle'),
+    desc: t('home.geminiDesc'),
+    path: '/gemini-cli',
+    icon: 'Sparkles',
+    iconClass: 'text-platform-gemini',
+    platformKey: 'gemini-cli',
+    statusMode: 'cli',
+    showInHero: true,
+  },
+  {
+    title: t('home.qwenTitle'),
+    desc: t('home.qwenDesc'),
+    path: '/qwen',
+    icon: 'Zap',
+    iconClass: 'text-platform-qwen',
+    platformKey: 'qwen',
+    statusMode: 'cli',
+    showInHero: true,
+  },
+  {
+    title: t('home.qoderTitle'),
+    desc: t('home.qoderDesc'),
+    path: '/qoder',
+    icon: 'Workflow',
+    iconClass: 'text-platform-qoder',
+    platformKey: 'qoder',
+    statusMode: 'cli',
+    showInHero: false,
+  },
+  {
+    title: t('home.factoryDroidTitle'),
+    desc: t('home.factoryDroidDesc'),
+    path: '/droid',
+    icon: 'Bot',
+    iconClass: 'text-accent-secondary',
+    platformKey: 'droid',
+    statusMode: 'managed',
+    showInHero: false,
+  },
+])
+
+const runtimeModules = computed(() => (
+  mainModules.value.filter((module) => module.showInHero)
+))
+
+const installedCliCount = computed(() => (
+  runtimeModules.value.filter((module) => {
+    const entry = cliVersions.value.get(module.platformKey)
+    return Boolean(entry?.installed && entry.status !== 'error' && entry.status !== 'timeout')
+  }).length
+))
+
 const posterStatusItems = computed(() => [
   {
     label: t('home.statusReadyLabel'),
@@ -566,72 +685,14 @@ const posterStatusItems = computed(() => [
   },
   {
     label: t('home.statusCliLabel'),
-    value: `${installedCliCount.value}/${mainModules.value.length}`,
+    value: `${installedCliCount.value}/${runtimeModules.value.length}`,
     toneClass: 'home-status-pill__dot--primary',
   },
 ])
 
-const mainModules = computed(() => [
-  {
-    title: t('home.claudeCodeTitle'),
-    desc: t('home.claudeCodeDesc'),
-    path: '/claude-code',
-    icon: 'Code2',
-    iconClass: 'text-platform-claude',
-    platformKey: 'claude-code',
-  },
-  {
-    title: t('home.codexTitle'),
-    desc: t('home.codexDesc'),
-    path: '/codex',
-    icon: 'Settings',
-    iconClass: 'text-platform-codex',
-    platformKey: 'codex',
-  },
-  {
-    title: t('home.geminiTitle'),
-    desc: t('home.geminiDesc'),
-    path: '/gemini-cli',
-    icon: 'Sparkles',
-    iconClass: 'text-platform-gemini',
-    platformKey: 'gemini-cli',
-  },
-  {
-    title: t('home.qwenTitle'),
-    desc: t('home.qwenDesc'),
-    path: '/qwen',
-    icon: 'Zap',
-    iconClass: 'text-platform-qwen',
-    platformKey: 'qwen',
-  },
-  {
-    title: t('home.qoderTitle'),
-    desc: t('home.qoderDesc'),
-    path: '/qoder',
-    icon: 'Workflow',
-    iconClass: 'text-platform-qoder',
-    platformKey: 'qoder',
-  },
-  {
-    title: t('home.factoryDroidTitle'),
-    desc: t('home.factoryDroidDesc'),
-    path: '/droid',
-    icon: 'Bot',
-    iconClass: 'text-accent-secondary',
-    platformKey: 'droid',
-  },
-])
-
-const installedCliCount = computed(() => (
-  mainModules.value.filter((module) => {
-    const entry = cliVersions.value.get(module.platformKey)
-    return Boolean(entry?.installed && entry.status !== 'error' && entry.status !== 'timeout')
-  }).length
-))
-
 const featuredModules = computed(() => mainModules.value.slice(0, 2))
 const secondaryModules = computed(() => mainModules.value.slice(2))
-const posterModules = computed(() => mainModules.value.slice(0, 4))
+const posterModules = computed(() => runtimeModules.value)
 
 const usagePreviewBars = computed(() => {
   const cpu = Math.round(systemInfo.value?.cpu_usage ?? 0)
@@ -646,6 +707,9 @@ const usagePreviewBars = computed(() => {
 })
 
 const getModuleStateLabel = (platformKey: string) => {
+  const module = getModuleConfigByKey(platformKey)
+  if (module?.statusMode === 'managed') return t('home.moduleStateManaged')
+
   const entry = cliVersions.value.get(platformKey)
   if (!entry) return t('common.loading')
   if (entry.status === 'timeout') return t('home.moduleStateScanning')
@@ -656,6 +720,9 @@ const getModuleStateLabel = (platformKey: string) => {
 }
 
 const getNodeStateClass = (platformKey: string) => {
+  const module = getModuleConfigByKey(platformKey)
+  if (module?.statusMode === 'managed') return 'home-signal-node__state--ready'
+
   const entry = cliVersions.value.get(platformKey)
   if (!entry) return 'home-signal-node__state--idle'
   if (entry.status === 'timeout') return 'home-signal-node__state--warning'
