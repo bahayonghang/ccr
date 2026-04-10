@@ -59,6 +59,7 @@
             <input
               :value="presetConfig.localPath"
               type="text"
+              :aria-label="$t('sync.customFolder.localPathPlaceholder')"
               class="glass-surface flex-1 rounded-lg border border-white/5 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/30"
               :placeholder="$t('sync.customFolder.localPathPlaceholder')"
               @input="updatePresetLocalPath(($event.target as HTMLInputElement).value)"
@@ -74,7 +75,7 @@
         :key="item.key"
         class="glass-card cursor-pointer rounded-xl p-5 transition-[transform,box-shadow] duration-300 hover:scale-[1.02]"
         :style="{
-          background: item.selected ? 'rgba(var(--color-accent-primary-rgb), 0.05)' : 'transparent',
+          background: item.selected ? 'rgb(var(--color-accent-primary-rgb) / 5%)' : 'transparent',
           animationDelay: `${index * 0.05}s`
         }"
         @click="toggleItem(item.key)"
@@ -84,7 +85,7 @@
             <div
               class="flex h-7 w-7 items-center justify-center rounded-lg transition-colors duration-300"
               :style="{
-                background: item.selected ? 'rgba(var(--color-accent-primary-rgb), 0.15)' : 'rgba(var(--color-gray-rgb), 0.1)',
+                background: item.selected ? 'rgb(var(--color-accent-primary-rgb) / 15%)' : 'rgb(var(--color-gray-rgb) / 10%)',
                 border: item.selected ? '2px solid var(--color-accent-primary)' : '2px solid var(--border-color)'
               }"
             >
@@ -100,7 +101,7 @@
             <div class="mb-2 flex items-center gap-3">
               <div
                 class="rounded-lg p-2"
-                :style="{ background: 'rgba(var(--color-accent-primary-rgb), 0.1)' }"
+                :style="{ background: 'rgb(var(--color-accent-primary-rgb) / 10%)' }"
               >
                 <SIcon
                   :name="item.icon || 'Cloud'"
@@ -135,8 +136,9 @@
                 <input
                   :value="item.localPath"
                   type="text"
+                  :aria-label="`${item.name} ${$t('sync.customFolder.localPathPlaceholder')}`"
                   class="glass-card flex-1 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2"
-                  :style="{ color: 'var(--text-primary)', background: 'rgba(255, 255, 255, 0.5)' }"
+                  :style="{ color: 'var(--text-primary)', background: 'rgb(var(--color-bg-elevated-rgb) / 62%)' }"
                   :placeholder="$t('sync.customFolder.localPathPlaceholder')"
                   @input="updateOptionalLocalPath(item.key, ($event.target as HTMLInputElement).value)"
                 >
@@ -150,8 +152,9 @@
                 <input
                   :value="item.remotePath"
                   type="text"
+                  :aria-label="`${item.name} ${$t('sync.customFolder.remotePathPlaceholder')}`"
                   class="glass-card flex-1 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2"
-                  :style="{ color: 'var(--text-primary)', background: 'rgba(255, 255, 255, 0.5)' }"
+                  :style="{ color: 'var(--text-primary)', background: 'rgb(var(--color-bg-elevated-rgb) / 62%)' }"
                   :placeholder="$t('sync.customFolder.remotePathPlaceholder')"
                   @input="updateOptionalRemotePath(item.key, ($event.target as HTMLInputElement).value)"
                 >
@@ -164,12 +167,12 @@
 
     <div
       class="glass-card mt-6 rounded-xl p-5"
-      :style="{ background: 'rgba(var(--color-accent-secondary-rgb), 0.05)' }"
+      :style="{ background: 'rgb(var(--color-accent-secondary-rgb) / 5%)' }"
     >
       <div class="mb-4 flex items-center gap-3">
         <div
           class="rounded-xl p-2"
-          :style="{ background: 'rgba(var(--color-accent-secondary-rgb), 0.15)' }"
+          :style="{ background: 'rgb(var(--color-accent-secondary-rgb) / 15%)' }"
         >
           <SIcon
             name="Plus"
@@ -188,40 +191,44 @@
         <input
           :value="customFolder.name"
           type="text"
+          :aria-label="$t('sync.customFolder.namePlaceholder')"
           :placeholder="$t('sync.customFolder.namePlaceholder')"
           class="glass-card rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2"
-          :style="{ color: 'var(--text-primary)', background: 'rgba(255, 255, 255, 0.5)' }"
+          :style="{ color: 'var(--text-primary)', background: 'rgb(var(--color-bg-elevated-rgb) / 62%)' }"
           @input="updateCustomField('name', ($event.target as HTMLInputElement).value)"
         >
         <input
           :value="customFolder.localPath"
           type="text"
+          :aria-label="$t('sync.customFolder.localPathPlaceholder')"
           :placeholder="$t('sync.customFolder.localPathPlaceholder')"
           class="glass-card rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2"
-          :style="{ color: 'var(--text-primary)', background: 'rgba(255, 255, 255, 0.5)' }"
+          :style="{ color: 'var(--text-primary)', background: 'rgb(var(--color-bg-elevated-rgb) / 62%)' }"
           @input="updateCustomField('localPath', ($event.target as HTMLInputElement).value)"
         >
         <input
           :value="customFolder.remotePath"
           type="text"
+          :aria-label="$t('sync.customFolder.remotePathPlaceholder')"
           :placeholder="$t('sync.customFolder.remotePathPlaceholder')"
           class="glass-card rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2"
-          :style="{ color: 'var(--text-primary)', background: 'rgba(255, 255, 255, 0.5)' }"
+          :style="{ color: 'var(--text-primary)', background: 'rgb(var(--color-bg-elevated-rgb) / 62%)' }"
           @input="updateCustomField('remotePath', ($event.target as HTMLInputElement).value)"
         >
         <input
           :value="customFolder.description"
           type="text"
+          :aria-label="$t('sync.customFolder.descriptionPlaceholder')"
           :placeholder="$t('sync.customFolder.descriptionPlaceholder')"
           class="glass-card rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2"
-          :style="{ color: 'var(--text-primary)', background: 'rgba(255, 255, 255, 0.5)' }"
+          :style="{ color: 'var(--text-primary)', background: 'rgb(var(--color-bg-elevated-rgb) / 62%)' }"
           @input="updateCustomField('description', ($event.target as HTMLInputElement).value)"
         >
       </div>
       <button
         :disabled="!customFolder.name || !customFolder.localPath || addingCustom"
         class="glass-card flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2.5 font-medium transition-[color,background-color,border-color,transform] duration-300 hover:scale-105 disabled:cursor-not-allowed disabled:opacity-50"
-        :style="{ background: 'rgba(var(--color-accent-secondary-rgb), 0.1)', color: 'var(--accent-secondary)' }"
+        :style="{ background: 'rgb(var(--color-accent-secondary-rgb) / 10%)', color: 'var(--accent-secondary)' }"
         @click="addCustomFolder"
       >
         <SIcon

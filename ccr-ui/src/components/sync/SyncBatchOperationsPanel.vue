@@ -3,7 +3,7 @@
     <div class="mb-4 flex items-center gap-3">
       <div
         class="rounded-2xl p-3"
-        :style="{ background: 'rgba(var(--color-warning-rgb), 0.1)' }"
+        :style="{ background: 'rgb(var(--color-warning-rgb) / 10%)' }"
       >
         <SIcon
           name="Layers"
@@ -30,7 +30,7 @@
       <button
         :disabled="batchOperating || foldersCount === 0"
         class="glass-card flex items-center justify-center gap-3 rounded-xl px-6 py-4 font-bold transition-[color,background-color,border-color,transform] duration-300 hover:scale-105 disabled:cursor-not-allowed disabled:opacity-50"
-        :style="{ background: 'rgba(var(--color-success-rgb), 0.1)', color: 'var(--accent-success)' }"
+        :style="{ background: 'rgb(var(--color-success-rgb) / 10%)', color: 'var(--accent-success)' }"
         @click="pushAllFolders"
       >
         <SIcon
@@ -42,7 +42,7 @@
       <button
         :disabled="batchOperating || foldersCount === 0"
         class="glass-card flex items-center justify-center gap-3 rounded-xl px-6 py-4 font-bold transition-[color,background-color,border-color,transform] duration-300 hover:scale-105 disabled:cursor-not-allowed disabled:opacity-50"
-        :style="{ background: 'rgba(var(--color-accent-secondary-rgb), 0.1)', color: 'var(--accent-secondary)' }"
+        :style="{ background: 'rgb(var(--color-accent-secondary-rgb) / 10%)', color: 'var(--accent-secondary)' }"
         @click="pullAllFolders"
       >
         <SIcon
@@ -54,7 +54,7 @@
       <button
         :disabled="batchOperating || foldersCount === 0"
         class="glass-card flex items-center justify-center gap-3 rounded-xl px-6 py-4 font-bold transition-[color,background-color,border-color,transform] duration-300 hover:scale-105 disabled:cursor-not-allowed disabled:opacity-50"
-        :style="{ background: 'rgba(var(--color-info-rgb), 0.1)', color: 'var(--accent-info)' }"
+        :style="{ background: 'rgb(var(--color-info-rgb) / 10%)', color: 'var(--accent-info)' }"
         @click="getAllFoldersStatus"
       >
         <SIcon

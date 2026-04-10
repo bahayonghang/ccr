@@ -4,7 +4,7 @@
       <div class="mb-6 flex items-center gap-3">
         <div
           class="rounded-2xl p-3"
-          :style="{ background: 'rgba(var(--color-accent-primary-rgb), 0.1)' }"
+          :style="{ background: 'rgb(var(--color-accent-primary-rgb) / 10%)' }"
         >
           <SIcon
             name="Settings"
@@ -26,7 +26,7 @@
       >
         <div
           class="flex items-center gap-3 rounded-xl px-4 py-3"
-          :style="{ background: 'rgba(var(--color-success-rgb), 0.1)' }"
+          :style="{ background: 'rgb(var(--color-success-rgb) / 10%)' }"
         >
           <SIcon
             name="CheckCircle"
@@ -91,7 +91,7 @@
       >
         <div
           class="flex items-center gap-3 rounded-xl px-4 py-3"
-          :style="{ background: 'rgba(var(--color-warning-rgb), 0.1)' }"
+          :style="{ background: 'rgb(var(--color-warning-rgb) / 10%)' }"
         >
           <SIcon
             name="AlertCircle"
@@ -111,7 +111,7 @@
         </p>
         <code
           class="glass-card block rounded-lg p-3 font-mono text-sm"
-          :style="{ color: 'var(--text-primary)', background: 'rgba(255, 255, 255, 0.5)' }"
+          :style="{ color: 'var(--text-primary)', background: 'rgb(var(--color-bg-elevated-rgb) / 62%)' }"
         >{{ $t('sync.webdav.configureCommand') }}</code>
       </div>
     </div>
@@ -120,7 +120,7 @@
       <div class="mb-6 flex items-center gap-3">
         <div
           class="rounded-2xl p-3"
-          :style="{ background: 'rgba(var(--color-accent-tertiary-rgb), 0.1)' }"
+          :style="{ background: 'rgb(var(--color-accent-tertiary-rgb) / 10%)' }"
         >
           <SIcon
             name="BookOpen"
@@ -183,7 +183,7 @@
       <div class="mb-6 flex items-center gap-3">
         <div
           class="rounded-2xl p-3"
-          :style="{ background: 'rgba(var(--color-success-rgb), 0.1)' }"
+          :style="{ background: 'rgb(var(--color-success-rgb) / 10%)' }"
         >
           <SIcon
             name="Server"

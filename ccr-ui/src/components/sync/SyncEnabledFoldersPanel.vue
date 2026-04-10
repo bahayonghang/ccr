@@ -4,7 +4,7 @@
       <div class="flex items-center gap-3">
         <div
           class="rounded-2xl p-3"
-          :style="{ background: 'rgba(var(--color-info-rgb), 0.1)' }"
+          :style="{ background: 'rgb(var(--color-info-rgb) / 10%)' }"
         >
           <SIcon
             name="Folders"
@@ -21,7 +21,7 @@
       </div>
       <button
         class="glass-card flex items-center gap-2 rounded-xl px-4 py-2.5 transition-[color,background-color,border-color,transform] duration-300 hover:scale-105"
-        :style="{ background: 'rgba(var(--color-info-rgb), 0.1)', color: 'var(--accent-info)' }"
+        :style="{ background: 'rgb(var(--color-info-rgb) / 10%)', color: 'var(--accent-info)' }"
         @click="refreshFolders"
       >
         <SIcon
@@ -39,7 +39,7 @@
     >
       <div
         class="inline-block rounded-2xl p-4"
-        :style="{ background: 'rgba(var(--color-gray-rgb), 0.1)' }"
+        :style="{ background: 'rgb(var(--color-gray-rgb) / 10%)' }"
       >
         <SIcon
           name="FolderOpen"
@@ -83,7 +83,7 @@
               <span
                 class="rounded-full px-3 py-1 text-sm font-medium"
                 :style="{
-                  background: folder.enabled ? 'rgba(var(--color-success-rgb), 0.15)' : 'rgba(var(--color-gray-rgb), 0.15)',
+                  background: folder.enabled ? 'rgb(var(--color-success-rgb) / 15%)' : 'rgb(var(--color-gray-rgb) / 15%)',
                   color: folder.enabled ? 'var(--accent-success)' : 'var(--text-muted)'
                 }"
               >
@@ -125,7 +125,7 @@
         <div class="flex flex-wrap gap-2">
           <button
             class="glass-card flex items-center gap-2 rounded-lg px-4 py-2 font-medium transition-[color,background-color,border-color,transform] duration-300 hover:scale-105"
-            :style="{ background: 'rgba(var(--color-accent-primary-rgb), 0.1)', color: 'var(--accent-primary)' }"
+            :style="{ background: 'rgb(var(--color-accent-primary-rgb) / 10%)', color: 'var(--accent-primary)' }"
             @click="toggleFolder(folder.name, folder.enabled)"
           >
             <SIcon
@@ -137,7 +137,7 @@
           <button
             :disabled="!folder.enabled"
             class="glass-card flex items-center gap-2 rounded-lg px-4 py-2 font-medium transition-[color,background-color,border-color,transform] duration-300 hover:scale-105 disabled:cursor-not-allowed disabled:opacity-50"
-            :style="{ background: 'rgba(var(--color-success-rgb), 0.1)', color: 'var(--accent-success)' }"
+            :style="{ background: 'rgb(var(--color-success-rgb) / 10%)', color: 'var(--accent-success)' }"
             @click="pushFolder(folder.name)"
           >
             <SIcon
@@ -149,7 +149,7 @@
           <button
             :disabled="!folder.enabled"
             class="glass-card flex items-center gap-2 rounded-lg px-4 py-2 font-medium transition-[color,background-color,border-color,transform] duration-300 hover:scale-105 disabled:cursor-not-allowed disabled:opacity-50"
-            :style="{ background: 'rgba(var(--color-accent-secondary-rgb), 0.1)', color: 'var(--accent-secondary)' }"
+            :style="{ background: 'rgb(var(--color-accent-secondary-rgb) / 10%)', color: 'var(--accent-secondary)' }"
             @click="pullFolder(folder.name)"
           >
             <SIcon
@@ -160,7 +160,7 @@
           </button>
           <button
             class="glass-card flex items-center gap-2 rounded-lg px-4 py-2 font-medium transition-[color,background-color,border-color,transform] duration-300 hover:scale-105"
-            :style="{ background: 'rgba(var(--color-info-rgb), 0.1)', color: 'var(--accent-info)' }"
+            :style="{ background: 'rgb(var(--color-info-rgb) / 10%)', color: 'var(--accent-info)' }"
             @click="getFolderStatus(folder.name)"
           >
             <SIcon
@@ -171,7 +171,7 @@
           </button>
           <button
             class="glass-card flex items-center gap-2 rounded-lg px-4 py-2 font-medium transition-[color,background-color,border-color,transform] duration-300 hover:scale-105"
-            :style="{ background: 'rgba(var(--color-danger-rgb), 0.1)', color: 'var(--accent-danger)' }"
+            :style="{ background: 'rgb(var(--color-danger-rgb) / 10%)', color: 'var(--accent-danger)' }"
             @click="removeFolder(folder.name)"
           >
             <SIcon

@@ -7,7 +7,7 @@
       <div class="flex items-center gap-3">
         <div
           class="rounded-xl p-2"
-          :style="{ background: 'rgba(var(--color-accent-primary-rgb), 0.1)' }"
+          :style="{ background: 'rgb(var(--color-accent-primary-rgb) / 10%)' }"
         >
           <SIcon
             name="Terminal"
@@ -23,8 +23,10 @@
         </h2>
       </div>
       <button
+        type="button"
         class="glass-card rounded-lg p-2 transition-[color,background-color,border-color,transform] duration-300 hover:scale-110"
-        :style="{ background: 'rgba(var(--color-gray-rgb), 0.1)' }"
+        :style="{ background: 'rgb(var(--color-gray-rgb) / 10%)' }"
+        :aria-label="$t('common.close')"
         @click="clearOutput"
       >
         <SIcon
@@ -36,7 +38,7 @@
     </div>
     <pre
       class="glass-card overflow-x-auto whitespace-pre-wrap rounded-lg p-4 font-mono text-sm"
-      :style="{ color: 'var(--text-primary)', background: 'rgba(255, 255, 255, 0.5)' }"
+      :style="{ color: 'var(--text-primary)', background: 'rgb(var(--color-bg-elevated-rgb) / 62%)' }"
     >{{ output }}</pre>
   </div>
 </template>
