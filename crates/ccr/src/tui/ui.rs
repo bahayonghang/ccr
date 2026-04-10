@@ -833,6 +833,10 @@ fn profile_summary_strings(
             opt_text(config.provider.as_deref()),
             auth_mode.as_str()
         ));
+        lines.push(format!(
+            "Base URL: {}",
+            opt_text(config.base_url.as_deref())
+        ));
     } else {
         lines.push(format!(
             "Base URL: {}",
