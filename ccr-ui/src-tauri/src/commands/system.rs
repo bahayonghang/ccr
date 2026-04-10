@@ -11,6 +11,7 @@ use tokio::time::{Duration, timeout};
 use crate::monitoring::{
     event_to_monitoring_entry, frontend_log_entry, record_monitoring_entry, should_persist,
 };
+use crate::platform::CliStatus;
 use crate::process::tokio_command;
 use crate::state::{AppState, CacheFillRegistration};
 
@@ -87,6 +88,15 @@ pub struct CliVersionEntry {
 enum CliProbeMode {
     Fast,
     Full,
+}
+
+const CLI_VERSION_TOOLS: [&str; 6] = ["ccr", "claude", "codex", "gemini", "qwen", "qoder"];
+
+#[derive(Debug, Clone)]
+struct CliProbeTarget {
+    platform: &'static str,
+    program: String,
+    installed: Option<bool>,
 }
 
 impl CliProbeMode {
@@ -334,8 +344,97 @@ fn extract_version_line(output: &std::process::Output) -> Option<String> {
 }
 
 async fn probe_cli_version(tool: &'static str, timeout_ms: u64) -> CliVersionEntry {
+    let target = CliProbeTarget {
+        platform: tool,
+        program: cli_command_name(tool).unwrap_or(tool).to_string(),
+        installed: None,
+    };
+    probe_cli_version_target(&target, timeout_ms).await
+}
+
+fn cli_command_name(tool: &str) -> Option<&'static str> {
+    match tool {
+        "ccr" => Some("ccr"),
+        "claude" => Some("claude"),
+        "codex" => Some("codex"),
+        "gemini" => Some("gemini"),
+        "qwen" => Some("qwen"),
+        "qoder" => Some("qodercli"),
+        _ => None,
+    }
+}
+
+fn cli_probe_order_index(platform: &str) -> usize {
+    CLI_VERSION_TOOLS
+        .iter()
+        .position(|candidate| *candidate == platform)
+        .unwrap_or(CLI_VERSION_TOOLS.len())
+}
+
+fn missing_cli_version_entry(platform: &'static str) -> CliVersionEntry {
+    CliVersionEntry {
+        platform: platform.to_string(),
+        installed: false,
+        version: None,
+        status: "not_installed".to_string(),
+        elapsed_ms: 0,
+    }
+}
+
+fn build_cli_probe_targets(statuses: Option<&[CliStatus]>) -> Vec<CliProbeTarget> {
+    CLI_VERSION_TOOLS
+        .iter()
+        .filter_map(|platform| {
+            let fallback_program = cli_command_name(platform)?.to_string();
+
+            if *platform == "ccr" {
+                return Some(CliProbeTarget {
+                    platform: *platform,
+                    program: fallback_program,
+                    installed: None,
+                });
+            }
+
+            match statuses {
+                Some(entries) => {
+                    let status = entries
+                        .iter()
+                        .find(|entry| normalize_cli_tool(&entry.name) == Some(*platform));
+
+                    match status {
+                        Some(entry) if entry.installed => Some(CliProbeTarget {
+                            platform: *platform,
+                            program: entry
+                                .path
+                                .clone()
+                                .filter(|path| !path.trim().is_empty())
+                                .unwrap_or(fallback_program),
+                            installed: Some(true),
+                        }),
+                        Some(_) | None => Some(CliProbeTarget {
+                            platform: *platform,
+                            program: fallback_program,
+                            installed: Some(false),
+                        }),
+                    }
+                }
+                None => Some(CliProbeTarget {
+                    platform: *platform,
+                    program: fallback_program,
+                    installed: None,
+                }),
+            }
+        })
+        .collect()
+}
+
+async fn probe_cli_version_target(target: &CliProbeTarget, timeout_ms: u64) -> CliVersionEntry {
+    if matches!(target.installed, Some(false)) {
+        return missing_cli_version_entry(target.platform);
+    }
+
     let started_at = Instant::now();
-    let mut cmd = tokio_command(tool);
+    let mut cmd = tokio_command(&target.program);
     cmd.args(["--version"]);
 
     let result = timeout(Duration::from_millis(timeout_ms), cmd.output()).await;
@@ -343,21 +442,21 @@ async fn probe_cli_version(tool: &'static str, timeout_ms: u64) -> CliVersionEnt
 
     match result {
         Err(_) => CliVersionEntry {
-            platform: tool.to_string(),
+            platform: target.platform.to_string(),
             installed: false,
             version: None,
             status: "timeout".to_string(),
             elapsed_ms,
         },
         Ok(Err(err)) if err.kind() == ErrorKind::NotFound => CliVersionEntry {
-            platform: tool.to_string(),
+            platform: target.platform.to_string(),
             installed: false,
             version: None,
             status: "not_installed".to_string(),
             elapsed_ms,
         },
         Ok(Err(_)) => CliVersionEntry {
-            platform: tool.to_string(),
+            platform: target.platform.to_string(),
             installed: false,
             version: None,
             status: "error".to_string(),
@@ -368,7 +467,7 @@ async fn probe_cli_version(tool: &'static str, timeout_ms: u64) -> CliVersionEnt
 
             if version.is_some() {
                 CliVersionEntry {
-                    platform: tool.to_string(),
+                    platform: target.platform.to_string(),
                     installed: true,
                     version,
                     status: "ok".to_string(),
@@ -376,7 +475,7 @@ async fn probe_cli_version(tool: &'static str, timeout_ms: u64) -> CliVersionEnt
                 }
             } else {
                 CliVersionEntry {
-                    platform: tool.to_string(),
+                    platform: target.platform.to_string(),
                     installed: false,
                     version: None,
                     status: "error".to_string(),
@@ -393,8 +492,30 @@ fn normalize_cli_tool(tool: &str) -> Option<&'static str> {
         "claude" => Some("claude"),
         "codex" => Some("codex"),
         "gemini" => Some("gemini"),
+        "qwen" => Some("qwen"),
+        "qoder" | "qodercli" => Some("qoder"),
         _ => None,
     }
+}
+
+async fn get_active_env_id(state: &AppState) -> String {
+    let registry = state.env_registry.read().await;
+    registry
+        .active()
+        .map(|env| env.env_id())
+        .unwrap_or_else(|| "unknown".to_string())
+}
+
+async fn get_active_cli_statuses(state: &AppState) -> Result<Vec<CliStatus>, String> {
+    let registry = state.env_registry.read().await;
+    let env = registry
+        .active()
+        .ok_or_else(|| "No active environment".to_string())?;
+    drop(registry);
+
+    env.detect_cli_status()
+        .await
+        .map_err(|e| format!("Failed to detect CLI status: {e}"))
 }
 
 async fn get_cached_cli_version(
@@ -403,7 +524,8 @@ async fn get_cached_cli_version(
     timeout_ms: u64,
     force: bool,
 ) -> Result<CliVersionEntry, String> {
-    let cache_key = format!("system:cli_version:{tool}:{timeout_ms}");
+    let env_id = get_active_env_id(state).await;
+    let cache_key = format!("system:cli_version:{env_id}:{tool}:{timeout_ms}");
 
     if !force {
         if let Some(cached) = state.cache_get(&cache_key).await {
@@ -422,7 +544,12 @@ async fn get_cached_cli_version(
                 }
             }
             CacheFillRegistration::Leader => {
-                let entry = probe_cli_version(tool, timeout_ms).await;
+                let statuses = get_active_cli_statuses(state).await.ok();
+                let target = build_cli_probe_targets(statuses.as_deref())
+                    .into_iter()
+                    .find(|target| target.platform == tool)
+                    .ok_or_else(|| format!("Unsupported CLI tool: {tool}"))?;
+                let entry = probe_cli_version_target(&target, timeout_ms).await;
                 let cached_entry = match serde_json::to_value(&entry) {
                     Ok(value) => value,
                     Err(error) => {
@@ -437,7 +564,12 @@ async fn get_cached_cli_version(
         }
     }
 
-    Ok(probe_cli_version(tool, timeout_ms).await)
+    let statuses = get_active_cli_statuses(state).await.ok();
+    let target = build_cli_probe_targets(statuses.as_deref())
+        .into_iter()
+        .find(|target| target.platform == tool)
+        .ok_or_else(|| format!("Unsupported CLI tool: {tool}"))?;
+    Ok(probe_cli_version_target(&target, timeout_ms).await)
 }
 
 fn legacy_versions_map(entries: &[CliVersionEntry]) -> serde_json::Map<String, serde_json::Value> {
@@ -477,20 +609,21 @@ fn cli_versions_payload(
 async fn compute_cli_versions(
     timeout_ms: u64,
     parallelism: usize,
+    statuses: Option<&[CliStatus]>,
 ) -> Result<Vec<CliVersionEntry>, String> {
-    let tools = ["ccr", "claude", "codex", "gemini"];
-    let effective_parallelism = parallelism.max(1).min(tools.len());
+    let targets = build_cli_probe_targets(statuses);
+    let effective_parallelism = parallelism.max(1).min(targets.len().max(1));
     let semaphore = Arc::new(Semaphore::new(effective_parallelism));
-    let mut handles = Vec::with_capacity(tools.len());
+    let mut handles = Vec::with_capacity(targets.len());
 
-    for tool in tools {
+    for target in targets {
         let permit_pool = Arc::clone(&semaphore);
         handles.push(tokio::spawn(async move {
             let _permit = permit_pool
                 .acquire_owned()
                 .await
                 .map_err(|e| format!("Semaphore acquire failed: {e}"))?;
-            Ok::<CliVersionEntry, String>(probe_cli_version(tool, timeout_ms).await)
+            Ok::<CliVersionEntry, String>(probe_cli_version_target(&target, timeout_ms).await)
         }));
     }
 
@@ -501,7 +634,9 @@ async fn compute_cli_versions(
             .map_err(|e| format!("CLI version task failed: {e}"))??;
         entries.push(entry);
     }
-    entries.sort_by(|a, b| a.platform.cmp(&b.platform));
+    entries.sort_by(|a, b| {
+        cli_probe_order_index(&a.platform).cmp(&cli_probe_order_index(&b.platform))
+    });
     Ok(entries)
 }
 
@@ -538,50 +673,53 @@ pub async fn get_cli_versions(
         .max(1);
 
     let should_cache = matches!(mode, CliProbeMode::Fast);
-    let cache_key = "system:cli_versions:fast";
+    let env_id = get_active_env_id(&state).await;
+    let cache_key = format!("system:cli_versions:fast:{env_id}");
 
     if should_cache {
-        if let Some(cached) = state.cache_get(cache_key).await {
+        if let Some(cached) = state.cache_get(&cache_key).await {
             let entries: Vec<CliVersionEntry> = serde_json::from_value(cached)
                 .map_err(|e| format!("CLI version cache decode failed: {e}"))?;
             return Ok(cli_versions_payload(entries, mode, timeout_ms, parallelism));
         }
 
-        match state.begin_cache_fill(cache_key).await {
+        match state.begin_cache_fill(&cache_key).await {
             CacheFillRegistration::Wait(notify) => {
                 notify.notified().await;
-                if let Some(cached) = state.cache_get(cache_key).await {
+                if let Some(cached) = state.cache_get(&cache_key).await {
                     let entries: Vec<CliVersionEntry> = serde_json::from_value(cached)
                         .map_err(|e| format!("CLI version cache decode failed: {e}"))?;
                     return Ok(cli_versions_payload(entries, mode, timeout_ms, parallelism));
                 }
             }
             CacheFillRegistration::Leader => {
-                let result = compute_cli_versions(timeout_ms, parallelism).await;
+                let statuses = get_active_cli_statuses(&state).await.ok();
+                let result = compute_cli_versions(timeout_ms, parallelism, statuses.as_deref()).await;
                 let entries = match result {
                     Ok(entries) => entries,
                     Err(error) => {
-                        state.finish_cache_fill(cache_key).await;
+                        state.finish_cache_fill(&cache_key).await;
                         return Err(error);
                     }
                 };
                 let cached_entries = match serde_json::to_value(&entries) {
                     Ok(value) => value,
                     Err(error) => {
-                        state.finish_cache_fill(cache_key).await;
+                        state.finish_cache_fill(&cache_key).await;
                         return Err(format!("CLI version cache encode failed: {error}"));
                     }
                 };
                 state
-                    .cache_set(cache_key.to_string(), cached_entries, 60)
+                    .cache_set(cache_key.clone(), cached_entries, 60)
                     .await;
-                state.finish_cache_fill(cache_key).await;
+                state.finish_cache_fill(&cache_key).await;
                 return Ok(cli_versions_payload(entries, mode, timeout_ms, parallelism));
             }
         }
     }
 
-    let entries = compute_cli_versions(timeout_ms, parallelism).await?;
+    let statuses = get_active_cli_statuses(&state).await.ok();
+    let entries = compute_cli_versions(timeout_ms, parallelism, statuses.as_deref()).await?;
     Ok(cli_versions_payload(entries, mode, timeout_ms, parallelism))
 }
 
@@ -609,7 +747,7 @@ mod tests {
         let mode = CliProbeMode::Fast;
         let timeout_ms = 3_500;
         let parallelism = 4;
-        let entries = compute_cli_versions(timeout_ms, parallelism)
+        let entries = compute_cli_versions(timeout_ms, parallelism, None)
             .await
             .expect("compute_cli_versions should succeed");
         let payload = cli_versions_payload(entries, mode, timeout_ms, parallelism);
@@ -624,14 +762,14 @@ mod tests {
                 .get("versions")
                 .and_then(|v| v.as_object())
                 .map(|m| m.len()),
-            Some(4)
+            Some(6)
         );
         assert_eq!(
             payload
                 .get("entries")
                 .and_then(|v| v.as_array())
                 .map(|a| a.len()),
-            Some(4)
+            Some(6)
         );
 
         // fast 模式下应在合理时间内返回，避免回归导致探测超时
@@ -642,7 +780,49 @@ mod tests {
     fn normalize_cli_tool_rejects_unknown_tool() {
         assert_eq!(normalize_cli_tool("codex"), Some("codex"));
         assert_eq!(normalize_cli_tool(" CODEX "), Some("codex"));
+        assert_eq!(normalize_cli_tool("qwen"), Some("qwen"));
+        assert_eq!(normalize_cli_tool("qodercli"), Some("qoder"));
         assert_eq!(normalize_cli_tool("unknown"), None);
+    }
+
+    #[test]
+    fn build_cli_probe_targets_uses_detected_paths_and_marks_missing_tools() {
+        let statuses = vec![
+            CliStatus {
+                name: "codex".to_string(),
+                installed: true,
+                path: Some("C:/tools/codex.cmd".to_string()),
+                version: None,
+            },
+            CliStatus {
+                name: "gemini".to_string(),
+                installed: false,
+                path: None,
+                version: None,
+            },
+            CliStatus {
+                name: "qoder".to_string(),
+                installed: true,
+                path: Some("C:/tools/qodercli.cmd".to_string()),
+                version: None,
+            },
+        ];
+
+        let targets = build_cli_probe_targets(Some(&statuses));
+
+        assert_eq!(targets.len(), 6);
+        assert_eq!(targets[0].platform, "ccr");
+        assert_eq!(targets[1].platform, "claude");
+        assert_eq!(targets[1].installed, Some(false));
+        assert_eq!(targets[2].platform, "codex");
+        assert_eq!(targets[2].program, "C:/tools/codex.cmd");
+        assert_eq!(targets[2].installed, Some(true));
+        assert_eq!(targets[3].platform, "gemini");
+        assert_eq!(targets[3].installed, Some(false));
+        assert_eq!(targets[4].platform, "qwen");
+        assert_eq!(targets[4].installed, Some(false));
+        assert_eq!(targets[5].platform, "qoder");
+        assert_eq!(targets[5].program, "C:/tools/qodercli.cmd");
     }
 
     #[tokio::test]
