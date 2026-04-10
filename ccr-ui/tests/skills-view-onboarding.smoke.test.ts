@@ -83,6 +83,9 @@ const i18n = createI18n({
 })
 
 const mountView = async () => {
+  vi.doMock('@tauri-apps/api/event', () => ({
+    listen: vi.fn(async () => () => {}),
+  }))
   const { default: SkillsView } = await import('@/views/skills/SkillsView.vue')
   const el = document.createElement('div')
   document.body.appendChild(el)
@@ -108,6 +111,18 @@ afterEach(() => {
 })
 
 describe('SkillsView onboarding smoke', () => {
+  it('names filter and manual install controls for assistive tech', async () => {
+    const { el, unmount } = await mountView()
+
+    try {
+      expect(el.querySelector('input[aria-label="Search installed skills"]')).toBeTruthy()
+      expect(el.querySelector('select[aria-label="Filter skills by platform"]')).toBeTruthy()
+      expect(el.querySelector('select[aria-label="Filter skills by origin"]')).toBeTruthy()
+    } finally {
+      unmount()
+    }
+  })
+
   it('triggers import flow from onboarding candidate action', async () => {
     const { el, unmount } = await mountView()
 

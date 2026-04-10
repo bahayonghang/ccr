@@ -232,6 +232,10 @@ describe('ClaudeCodeProfilesView smoke', () => {
     const { el, unmount } = await mountView()
 
     try {
+      expect(el.textContent).toContain('未设置 Provider')
+      expect(el.textContent).not.toContain('Unspecified Provider')
+      expect(el.textContent).not.toContain('Other')
+
       expect(findQuickSwitchButtons(el).map(button => button.textContent?.trim())).toEqual([
         'zeta-current',
         'anthropic-a',
@@ -323,6 +327,76 @@ describe('ClaudeCodeProfilesView smoke', () => {
       await flushPromises()
 
       expect(apiMocks.applyClaudeProfile).not.toHaveBeenCalled()
+    } finally {
+      unmount()
+    }
+  })
+
+  it('refreshes the list without clearing the current search context', async () => {
+    const { el, unmount } = await mountView()
+
+    try {
+      const searchInput = el.querySelector<HTMLInputElement>('input[placeholder="搜索名称 / provider / model / tag"]')
+      const refreshButton = Array.from(el.querySelectorAll<HTMLButtonElement>('button'))
+        .find(button => button.textContent?.includes('刷新'))
+
+      expect(searchInput).not.toBeNull()
+      expect(refreshButton).not.toBeNull()
+
+      searchInput!.value = 'local'
+      searchInput!.dispatchEvent(new Event('input', { bubbles: true }))
+      await flushPromises()
+
+      apiMocks.listClaudeProfiles.mockResolvedValueOnce({
+        profiles: cloneProfiles([
+          {
+            ...sampleProfiles[0],
+            name: 'zeta-current-v2',
+          },
+          {
+            name: 'missing-provider-refreshed',
+            description: 'Refreshed local sandbox',
+            base_url: 'https://sandbox.internal',
+            tags: ['local'],
+            enabled: true,
+            is_current: false,
+          },
+        ]),
+        current_profile: 'zeta-current-v2',
+      })
+
+      refreshButton!.click()
+      await flushPromises()
+
+      expect(apiMocks.listClaudeProfiles).toHaveBeenCalledTimes(2)
+      expect(searchInput!.value).toBe('local')
+      expect(el.textContent).toContain('missing-provider-refreshed')
+      expect(el.textContent).not.toContain('Temporary local sandbox')
+    } finally {
+      unmount()
+    }
+  })
+
+  it('keeps the existing list visible when a manual refresh fails', async () => {
+    const { el, unmount } = await mountView()
+
+    try {
+      const refreshButton = Array.from(el.querySelectorAll<HTMLButtonElement>('button'))
+        .find(button => button.textContent?.includes('刷新'))
+
+      expect(refreshButton).not.toBeNull()
+      expect(el.textContent).toContain('zeta-current')
+
+      apiMocks.listClaudeProfiles.mockRejectedValueOnce(new Error('refresh exploded'))
+
+      refreshButton!.click()
+      await flushPromises()
+
+      expect(apiMocks.listClaudeProfiles).toHaveBeenCalledTimes(2)
+      expect(el.textContent).toContain('刷新 Claude Profiles 失败')
+      expect(el.textContent).toContain('refresh exploded')
+      expect(el.textContent).toContain('zeta-current')
+      expect(el.textContent).not.toContain('加载 Claude Profiles 失败')
     } finally {
       unmount()
     }

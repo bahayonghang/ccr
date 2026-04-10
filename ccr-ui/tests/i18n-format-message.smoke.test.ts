@@ -38,4 +38,42 @@ describe('translateWithFallback', () => {
       ),
     ).toBe('确定要应用 Profile "alpha" 吗？')
   })
+
+  it('interpolates Claude profile count labels even when the translator leaves template placeholders intact', () => {
+    const translate = (key: string, _values?: Record<string, unknown>) => {
+      if (key === 'claudeProfiles.providerSectionsCount') {
+        return 'Provider 分组 {count}'
+      }
+
+      return key
+    }
+
+    expect(
+      translateWithFallback(
+        translate,
+        'claudeProfiles.providerSectionsCount',
+        'Provider 分组 {count}',
+        { count: 3 },
+      ),
+    ).toBe('Provider 分组 3')
+  })
+
+  it('interpolates Claude provider summaries when the translator returns an unresolved template', () => {
+    const translate = (key: string, _values?: Record<string, unknown>) => {
+      if (key === 'claudeProfiles.providerSectionSummary') {
+        return '共 {count} 个 Profile，其中 {enabled} 个处于启用状态。'
+      }
+
+      return key
+    }
+
+    expect(
+      translateWithFallback(
+        translate,
+        'claudeProfiles.providerSectionSummary',
+        '共 {count} 个 Profile，其中 {enabled} 个处于启用状态。',
+        { count: 12, enabled: 7 },
+      ),
+    ).toBe('共 12 个 Profile，其中 7 个处于启用状态。')
+  })
 })
