@@ -5,6 +5,12 @@ const COMPACT_PLATFORM_LABELS: Record<string, string> = {
   codex: "CDX",
 };
 
+/** VS Code codicons for each platform in the status bar */
+const PLATFORM_ICONS: Record<string, string> = {
+  claude: "$(brain)",
+  codex: "$(rocket)",
+};
+
 function compactAuthIdentity(snapshot?: CodexRuntimeSnapshot | null): string {
   if (!snapshot) {
     return "auth?";
@@ -25,13 +31,14 @@ export function buildStatusBarText(
   runtime?: CodexRuntimeSnapshot | null,
 ): string {
   const label = getCompactPlatformLabel(platform.name);
+  const icon = PLATFORM_ICONS[platform.name] || "$(symbol-misc)";
 
   if (platform.name !== "codex") {
-    return `${label}: ${profileName}`;
+    return `${icon} ${label}: ${profileName}`;
   }
 
   const runtimeProfile = runtime?.runtimeSummary.currentProfileName || profileName;
-  return `${label}: ${runtimeProfile}`;
+  return `${icon} ${label}: ${runtimeProfile}`;
 }
 
 export function buildStatusBarTooltipLines(

@@ -76,13 +76,13 @@ describe("statusBarPresentation", () => {
   });
 
   it("builds a Claude compact status bar label", () => {
-    assert.equal(buildStatusBarText(claudePlatform, "dev"), "CC: dev");
+    assert.equal(buildStatusBarText(claudePlatform, "dev"), "$(brain) CC: dev");
   });
 
   it("builds a compact Codex status bar label", () => {
     assert.equal(
       buildStatusBarText(codexPlatform, "52api", runtimeSnapshot),
-      "CDX: 52api",
+      "$(rocket) CDX: 52api",
     );
   });
 
