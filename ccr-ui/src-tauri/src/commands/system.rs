@@ -343,6 +343,7 @@ fn extract_version_line(output: &std::process::Output) -> Option<String> {
     Some(line.trim().to_string())
 }
 
+#[cfg(test)]
 async fn probe_cli_version(tool: &'static str, timeout_ms: u64) -> CliVersionEntry {
     let target = CliProbeTarget {
         platform: tool,
