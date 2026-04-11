@@ -222,6 +222,11 @@ fn render_header(f: &mut Frame, app: &App, area: Rect) {
         .collect();
 
     let border_color = theme::platform_color_for(app.current_platform());
+    let current_label = format!(
+        " {} {} ",
+        app.current_platform().icon(),
+        app.current_platform().display_name()
+    );
 
     let tabs = Tabs::new(tab_titles)
         .block(
@@ -231,7 +236,14 @@ fn render_header(f: &mut Frame, app: &App, area: Rect) {
                 .border_style(Style::default().fg(border_color))
                 .title(" 🚀 CCR - Configuration Switcher ")
                 .title_alignment(Alignment::Center)
-                .title_style(theme::title_style()),
+                .title_style(theme::platform_style_for(app.current_platform()))
+                .title_bottom(
+                    Line::from(Span::styled(
+                        current_label,
+                        theme::platform_style_for(app.current_platform()),
+                    ))
+                    .alignment(Alignment::Right),
+                ),
         )
         .select(app.active_tab)
         .style(theme::tab_normal_style())
@@ -584,7 +596,7 @@ fn render_profile_summary_block(
         app.last_applied.as_ref(),
     )
     .into_iter()
-    .map(|text| Line::from(Span::styled(text, Style::default().fg(theme::FG_PRIMARY))))
+    .map(profile_summary_line)
     .collect();
 
     let paragraph = Paragraph::new(lines).block(block).wrap(Wrap { trim: true });
@@ -717,12 +729,15 @@ fn codex_profile_detail_lines(
 }
 
 fn section_line(title: &str) -> Line<'static> {
-    Line::from(Span::styled(
-        title.to_string(),
-        Style::default()
-            .fg(theme::FG_SECONDARY)
-            .add_modifier(Modifier::BOLD | Modifier::UNDERLINED),
-    ))
+    Line::from(vec![
+        Span::styled("▌ ", Style::default().fg(theme::FG_INFO)),
+        Span::styled(
+            title.to_string(),
+            Style::default()
+                .fg(theme::FG_SECONDARY)
+                .add_modifier(Modifier::BOLD | Modifier::UNDERLINED),
+        ),
+    ])
 }
 
 fn detail_line(label: &str, value: String) -> Line<'static> {
@@ -733,8 +748,60 @@ fn detail_line(label: &str, value: String) -> Line<'static> {
                 .fg(theme::FG_SECONDARY)
                 .add_modifier(Modifier::BOLD),
         ),
-        Span::styled(value, Style::default().fg(theme::FG_PRIMARY)),
+        Span::styled(value.clone(), detail_value_style(label, &value)),
     ])
+}
+
+fn detail_value_style(label: &str, value: &str) -> Style {
+    let normalized_label = label.trim().to_ascii_lowercase();
+    let normalized_value = value.trim().to_ascii_lowercase();
+
+    if normalized_value == "yes"
+        || normalized_value == "enabled"
+        || normalized_value == "configured"
+        || normalized_value == "current"
+    {
+        return theme::success_style();
+    }
+
+    if normalized_value == "no" || normalized_value == "disabled" || normalized_value == "missing" {
+        return theme::warning_style();
+    }
+
+    if normalized_value == "-" || normalized_value == "none" || normalized_value == "unresolved" {
+        return theme::muted_style();
+    }
+
+    if normalized_label.contains("auth")
+        || normalized_label.contains("provider")
+        || normalized_label.contains("login")
+        || normalized_label.contains("base_url")
+        || normalized_label.contains("model")
+        || normalized_label.contains("account")
+    {
+        return theme::info_style();
+    }
+
+    Style::default().fg(theme::FG_PRIMARY)
+}
+
+fn profile_summary_line(text: String) -> Line<'static> {
+    if let Some((label, value)) = text.split_once(':') {
+        return Line::from(vec![
+            Span::styled(
+                format!("{label}: "),
+                Style::default()
+                    .fg(theme::FG_SECONDARY)
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Span::styled(
+                value.trim().to_string(),
+                detail_value_style(label, value.trim()),
+            ),
+        ]);
+    }
+
+    Line::from(Span::styled(text, Style::default().fg(theme::FG_PRIMARY)))
 }
 
 fn opt_text(value: Option<&str>) -> String {

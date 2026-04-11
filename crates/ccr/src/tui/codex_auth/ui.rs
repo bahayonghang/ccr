@@ -1067,7 +1067,7 @@ pub fn draw_loading_placeholder(
 }
 
 fn draw_account_list_with_status(f: &mut Frame, area: Rect, app: &CodexAuthApp) {
-    let title = format!(" 🔐 账号列表 | {} ", login_status_text(app));
+    let title = format!(" 🔐 账号列表 · {} ", login_status_text(app));
     render_account_list_panel(f, area, app, title);
 }
 
@@ -1112,9 +1112,9 @@ fn draw_account_list_meta_panel(f: &mut Frame, area: Rect, app: &CodexAuthApp) {
         .block(
             Block::default()
                 .borders(Borders::ALL)
-                .border_style(Style::default().fg(theme::BORDER))
+                .border_style(Style::default().fg(theme::CODEX_PRIMARY))
                 .title(" Legend ")
-                .title_style(Style::default().fg(theme::FG_SECONDARY)),
+                .title_style(theme::codex_style()),
         )
         .wrap(Wrap { trim: true });
 
@@ -1136,9 +1136,9 @@ fn draw_account_snapshot_panel(f: &mut Frame, area: Rect, app: &CodexAuthApp) {
         .block(
             Block::default()
                 .borders(Borders::ALL)
-                .border_style(Style::default().fg(theme::BORDER))
+                .border_style(Style::default().fg(theme::CODEX_PRIMARY))
                 .title(" Focus ")
-                .title_style(Style::default().fg(theme::ACCENT)),
+                .title_style(theme::codex_style()),
         )
         .wrap(Wrap { trim: true });
 
@@ -1150,9 +1150,9 @@ fn draw_runtime_panel(f: &mut Frame, area: Rect, app: &CodexAuthApp) {
         .block(
             Block::default()
                 .borders(Borders::ALL)
-                .border_style(Style::default().fg(theme::BORDER))
+                .border_style(Style::default().fg(theme::CODEX_PRIMARY))
                 .title(" Runtime ")
-                .title_style(Style::default().fg(theme::ACCENT)),
+                .title_style(theme::codex_style()),
         )
         .wrap(Wrap { trim: true });
 

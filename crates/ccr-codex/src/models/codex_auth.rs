@@ -407,7 +407,7 @@ impl CodexRuntimeSummary {
                 )
             }
             LoginState::ApiKeyActive => auth_intent_label(&self.auth_state.intent),
-            LoginState::ProviderKeyActive { .. } => auth_intent_label(&self.auth_state.intent),
+            LoginState::ProviderKeyActive { env_key } => format!("Provider / {env_key}"),
             LoginState::NotLoggedIn => {
                 if matches!(
                     self.current_profile_auth_mode,
@@ -418,6 +418,13 @@ impl CodexRuntimeSummary {
                         .as_deref()
                         .map(profile_auth_source_label)
                         .unwrap_or_else(|| "Provider Key".to_string());
+                }
+
+                if matches!(
+                    self.current_profile_auth_mode,
+                    Some(CodexProfileAuthMode::NoAuth)
+                ) {
+                    return "No Auth".to_string();
                 }
 
                 self.current_profile_auth_mode

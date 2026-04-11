@@ -473,14 +473,38 @@ impl CodexAuthService {
             None => CodexRuntimeMode::Unresolved,
         };
 
+        let (current_auth_name, login_state) = match mode {
+            CodexRuntimeMode::ProfileWithAuth | CodexRuntimeMode::RuntimeOnly => {
+                (snapshot.current_account_name, snapshot.login_state)
+            }
+            CodexRuntimeMode::ProfileOnly => match current_profile_auth_mode {
+                Some(crate::models::CodexProfileAuthMode::ProviderEnvKey) => {
+                    let env_key = current_profile_auth_source
+                        .as_deref()
+                        .and_then(|source| source.strip_prefix("provider:"))
+                        .map(str::to_string);
+                    (
+                        None,
+                        env_key
+                            .map(|env_key| LoginState::ProviderKeyActive { env_key })
+                            .unwrap_or(LoginState::NotLoggedIn),
+                    )
+                }
+                _ => (None, LoginState::NotLoggedIn),
+            },
+            CodexRuntimeMode::ProfilePendingAuth | CodexRuntimeMode::Unresolved => {
+                (None, LoginState::NotLoggedIn)
+            }
+        };
+
         Ok(CodexRuntimeSummary {
             mode,
             current_profile_name,
             current_profile_provider,
             current_profile_auth_mode,
             current_profile_auth_source,
-            current_auth_name: snapshot.current_account_name,
-            login_state: snapshot.login_state,
+            current_auth_name,
+            login_state,
             auth_state: snapshot.auth_state,
         })
     }
@@ -1592,6 +1616,98 @@ mod tests {
         profile
     }
 
+    fn runtime_fallback_profile() -> ProfileConfig {
+        ProfileConfig {
+            description: Some("ICE".to_string()),
+            base_url: Some("https://api.example.com/v1".to_string()),
+            model: Some("gpt-5.4".to_string()),
+            provider: Some("ice".to_string()),
+            provider_type: Some("ice".to_string()),
+            ..ProfileConfig::default()
+        }
+    }
+
+    #[test]
+    fn test_get_runtime_summary_prefers_profile_only_for_non_openai_profile() {
+        let (service, _ccr, codex) = create_test_service();
+
+        let platform = service.platform().unwrap();
+        platform
+            .save_profile("ice", &runtime_fallback_profile())
+            .unwrap();
+        platform.apply_profile("ice").unwrap();
+
+        let auth_path = codex.path().join("auth.json");
+        fs::write(
+            &auth_path,
+            create_test_auth_json("test-id", "2026-01-08T03:09:53.894843900Z"),
+        )
+        .unwrap();
+
+        let summary = service.get_runtime_summary().unwrap();
+        assert_eq!(summary.mode, CodexRuntimeMode::ProfileOnly);
+        assert_eq!(summary.current_profile_name.as_deref(), Some("ice"));
+        assert_eq!(summary.current_auth_name, None);
+        assert_eq!(
+            summary.current_profile_auth_mode,
+            Some(crate::models::CodexProfileAuthMode::NoAuth)
+        );
+        assert_eq!(summary.auth_label(), "No Auth");
+    }
+
+    #[test]
+    fn test_get_runtime_summary_keeps_explicit_openai_api_profile_mode() {
+        let (service, _ccr, codex) = create_test_service();
+        let auth_path = codex.path().join("auth.json");
+        fs::write(
+            &auth_path,
+            r#"{
+                "OPENAI_API_KEY": "sk-test-1234567890",
+                "tokens": null,
+                "last_refresh": null
+            }"#,
+        )
+        .unwrap();
+
+        let mut profile = official_profile();
+        profile.auth_token = Some("sk-profile-token".to_string());
+
+        let platform = service.platform().unwrap();
+        platform.save_profile("official-api", &profile).unwrap();
+        platform.apply_profile("official-api").unwrap();
+
+        let summary = service.get_runtime_summary().unwrap();
+        assert_eq!(summary.mode, CodexRuntimeMode::ProfileWithAuth);
+        assert_eq!(
+            summary.current_profile_auth_mode,
+            Some(crate::models::CodexProfileAuthMode::OpenAiApiKey)
+        );
+        assert_eq!(summary.auth_label(), "OpenAI / API Key");
+    }
+
+    #[test]
+    fn test_get_runtime_summary_preserves_explicit_openai_pending_state() {
+        let (service, _ccr, _codex) = create_test_service();
+        let mut profile = runtime_fallback_profile();
+        profile
+            .platform_data
+            .insert("requires_openai_auth".to_string(), json!(true));
+        profile
+            .platform_data
+            .insert("openai_login_method".to_string(), json!("chatgpt"));
+
+        let platform = service.platform().unwrap();
+        platform.save_profile("ice-openai", &profile).unwrap();
+        platform.apply_profile("ice-openai").unwrap();
+
+        let summary = service.get_runtime_summary().unwrap();
+        assert_eq!(summary.mode, CodexRuntimeMode::ProfilePendingAuth);
+        assert_eq!(
+            summary.current_profile_auth_mode,
+            Some(crate::models::CodexProfileAuthMode::OpenAiChatgpt)
+        );
+    }
+
     #[test]
     fn test_get_runtime_summary_for_profile_with_auth() {
         let (service, _ccr, codex) = create_test_service();
@@ -1663,6 +1779,32 @@ mod tests {
         assert_eq!(summary.current_profile_name, None);
         assert_eq!(summary.current_auth_name.as_deref(), Some("work"));
         assert_eq!(summary.auth_label(), "work · OpenAI / ChatGPT");
+    }
+
+    #[test]
+    fn test_get_runtime_summary_ignores_stale_profile_pointer_after_auth_switch() {
+        let (service, _ccr, codex) = create_test_service();
+        let platform = service.platform().unwrap();
+        platform
+            .save_profile("ice", &runtime_fallback_profile())
+            .unwrap();
+        platform.apply_profile("ice").unwrap();
+
+        let auth_path = codex.path().join("auth.json");
+        fs::write(
+            &auth_path,
+            create_test_auth_json("test-id", "2026-01-08T03:09:53.894843900Z"),
+        )
+        .unwrap();
+
+        service.save_current("plus", None, None, false).unwrap();
+        service.switch_account("plus").unwrap();
+
+        let summary = service.get_runtime_summary().unwrap();
+        assert_eq!(summary.mode, CodexRuntimeMode::RuntimeOnly);
+        assert_eq!(summary.current_profile_name, None);
+        assert_eq!(summary.current_auth_name.as_deref(), Some("plus"));
+        assert_eq!(summary.auth_label(), "plus · OpenAI / ChatGPT");
     }
 
     #[test]

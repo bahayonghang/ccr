@@ -115,6 +115,7 @@ pub fn platform_style(platform: &str) -> Style {
 // ═══════════════════════════════════════════════════════════
 
 /// Title style
+#[allow(dead_code)]
 pub fn title_style() -> Style {
     Style::default().fg(FG_PRIMARY).add_modifier(Modifier::BOLD)
 }

@@ -1094,17 +1094,6 @@ impl CodexPlatform {
             .shell_export_script(name, auth_mode, env_key.as_deref())
     }
 
-    fn auth_mode_from_intent(intent: &AuthIntent) -> CodexProfileAuthMode {
-        match intent {
-            AuthIntent::OpenAiAuth { method } => match method {
-                OpenAiAuthMethod::Chatgpt => CodexProfileAuthMode::OpenAiChatgpt,
-                OpenAiAuthMethod::Api => CodexProfileAuthMode::OpenAiApiKey,
-            },
-            AuthIntent::ProviderEnvKey { .. } => CodexProfileAuthMode::ProviderEnvKey,
-            AuthIntent::NoAuth => CodexProfileAuthMode::NoAuth,
-        }
-    }
-
     fn current_custom_provider(
         config: &toml::Value,
     ) -> Option<toml::map::Map<String, toml::Value>> {
@@ -1117,56 +1106,12 @@ impl CodexPlatform {
             .cloned()
     }
 
-    fn spec_matches_runtime(
-        spec: &SwitchSpec,
-        config: &toml::Value,
-        auth_intent: &AuthIntent,
-    ) -> bool {
+    fn spec_matches_runtime_without_auth(spec: &SwitchSpec, config: &toml::Value) -> bool {
         let Some(root) = config.as_table() else {
             return false;
         };
 
-        let matches_common = root
-            .get("model")
-            .and_then(|v| v.as_str())
-            .map(str::to_string)
-            == spec.model
-            && root
-                .get("approval_policy")
-                .and_then(|v| v.as_str())
-                .map(str::to_string)
-                == spec.approval_policy
-            && root
-                .get("sandbox_mode")
-                .and_then(|v| v.as_str())
-                .map(str::to_string)
-                == spec.sandbox_mode
-            && root
-                .get("model_reasoning_effort")
-                .and_then(|v| v.as_str())
-                .map(str::to_string)
-                == spec.reasoning_effort
-            && root
-                .get("forced_login_method")
-                .and_then(|v| v.as_str())
-                .map(str::to_string)
-                == spec.forced_login_method
-            && root
-                .get("disable_response_storage")
-                .and_then(|v| v.as_bool())
-                == spec.disable_response_storage
-            && root
-                .get("sandbox_workspace_write")
-                .and_then(|v| v.as_table())
-                .and_then(|workspace| workspace.get("network_access"))
-                .and_then(|v| v.as_bool())
-                == spec.network_access;
-
-        if !matches_common {
-            return false;
-        }
-
-        let matches_route = match &spec.route {
+        match &spec.route {
             RouteSelection::Official { relay_base_url } => {
                 if root.get("model_provider").and_then(|v| v.as_str())
                     != Some(THIRD_PARTY_RUNTIME_PROVIDER_KEY)
@@ -1211,9 +1156,7 @@ impl CodexPlatform {
                         .map(str::to_string)
                         == *env_key
             }
-        };
-
-        matches_route && Self::auth_mode_from_intent(auth_intent) == spec.auth_mode
+        }
     }
 
     fn clear_current_profile_registry(&self) -> Result<()> {
@@ -1250,27 +1193,46 @@ impl CodexPlatform {
     }
 
     fn stable_current_profile(&self) -> Result<Option<String>> {
+        let runtime_matches_profile =
+            |profile_name: &str, profile: &ProfileConfig| -> Result<bool> {
+                let config = self.config_manager.load_config()?;
+                let auth = self.config_manager.load_auth()?;
+                let auth_intent = Self::resolve_current_auth_intent(&config, &auth);
+                let spec = Self::build_switch_spec(profile_name, profile, &auth_intent)?;
+                Ok(Self::spec_matches_runtime_without_auth(&spec, &config))
+            };
+
         match base::get_current_profile_from_registry("codex")? {
             Some(current) => {
                 let profiles = self.load_profiles()?;
                 let Some(profile) = profiles.get(&current) else {
                     self.clear_current_profile_registry()?;
-                    return self.fallback_current_profile_from_file();
+                    return Ok(None);
                 };
 
-                let config = self.config_manager.load_config()?;
-                let auth = self.config_manager.load_auth()?;
-                let auth_intent = Self::resolve_current_auth_intent(&config, &auth);
-                let spec = Self::build_switch_spec(&current, profile, &auth_intent)?;
-
-                if Self::spec_matches_runtime(&spec, &config, &auth_intent) {
+                if runtime_matches_profile(&current, profile)? {
                     Ok(Some(current))
                 } else {
                     self.clear_current_profile_registry()?;
-                    self.fallback_current_profile_from_file()
+                    Ok(None)
                 }
             }
-            None => self.fallback_current_profile_from_file(),
+            None => {
+                let Some(current) = self.fallback_current_profile_from_file()? else {
+                    return Ok(None);
+                };
+
+                let profiles = self.load_profiles()?;
+                let Some(profile) = profiles.get(&current) else {
+                    return Ok(None);
+                };
+
+                if runtime_matches_profile(&current, profile)? {
+                    Ok(Some(current))
+                } else {
+                    Ok(None)
+                }
+            }
         }
     }
 }
