@@ -1,6 +1,6 @@
 use super::*;
 
-fn build_codex_usage_payload(rolling: ccr::services::CodexRollingUsage) -> Value {
+fn build_codex_usage_payload(rolling: ccr_codex::services::CodexRollingUsage) -> Value {
     let by_model: serde_json::Map<String, Value> = rolling
         .by_model
         .into_iter()
@@ -61,7 +61,7 @@ pub(super) fn compute_codex_usage_payload() -> Result<Value, String> {
 #[tauri::command]
 pub async fn codex_get_all_quotas() -> Result<Value, String> {
     let service =
-        ccr::services::CodexQuotaService::new().map_err(|e| format!("初始化配额服务失败: {e}"))?;
+        ccr_codex::CodexQuotaService::new().map_err(|e| format!("初始化配额服务失败: {e}"))?;
     let quotas = service.fetch_all_quotas().await;
     serde_json::to_value(&quotas).map_err(|e| format!("序列化配额数据失败: {e}"))
 }
@@ -70,7 +70,7 @@ pub async fn codex_get_all_quotas() -> Result<Value, String> {
 #[tauri::command]
 pub async fn codex_get_quota(account: String) -> Result<Value, String> {
     let service =
-        ccr::services::CodexQuotaService::new().map_err(|e| format!("初始化配额服务失败: {e}"))?;
+        ccr_codex::CodexQuotaService::new().map_err(|e| format!("初始化配额服务失败: {e}"))?;
     let quota = service.fetch_account_quota(&account).await;
     serde_json::to_value(&quota).map_err(|e| format!("序列化配额数据失败: {e}"))
 }

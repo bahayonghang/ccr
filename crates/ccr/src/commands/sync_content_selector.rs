@@ -1,1 +1,1 @@
-pub use crate::sync::content_selector::*;
+pub use ccr_sync::sync::content_selector::*;

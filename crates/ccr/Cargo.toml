@@ -26,6 +26,8 @@ tui = ["dep:crossterm", "dep:ratatui"]
 [dependencies]
 ccr-core = { path = "../ccr-core" }
 ccr-config = { path = "../ccr-config" }
+ccr-sync = { path = "../ccr-sync" }
+ccr-skills = { path = "../ccr-skills" }
 ccr-store = { path = "../ccr-store" }
 ccr-codex = { path = "../ccr-codex" }
 anyhow = { workspace = true }

@@ -1,14 +1,14 @@
 //! 统一 Skills 命令层。
 //!
 //! 这里仅保留参数校验、Tauri 对话框与错误映射；
-//! 领域逻辑统一下沉到 `ccr::SkillsService`。
+//! 领域逻辑统一下沉到 `ccr_skills::SkillsService`。
 
-use ccr::models::skills::SkillOperationResponse;
-use ccr::{
+use ccr_skills::{
     MarketplaceListResponse, MarketplaceSkill, NpxStatus, SkillContent, SkillFileContent,
-    SkillFileEntry, SkillRecord, SkillSourceRecord,
-    SkillsInstallRequest, SkillsInventoryQuery, SkillsInventoryResponse, SkillsNpxCapabilities,
-    SkillsInstallReviewResponse, SkillsOnboardingCandidate, SkillsService, SkillsSyncRequest,
+    SkillFileEntry, SkillOperationResponse, SkillRecord, SkillSourceRecord,
+    SkillsInstallRequest, SkillsInstallReviewResponse, SkillsInventoryQuery,
+    SkillsInventoryResponse, SkillsNpxCapabilities, SkillsOnboardingCandidate, SkillsService,
+    SkillsSyncRequest,
 };
 use serde::Serialize;
 use tauri_plugin_dialog::DialogExt;
@@ -17,7 +17,7 @@ fn map_join_error(error: tokio::task::JoinError) -> String {
     format!("Task join error: {error}")
 }
 
-fn map_domain_error<T>(result: ccr::Result<T>) -> Result<T, String> {
+fn map_domain_error<T>(result: ccr_core::Result<T>) -> Result<T, String> {
     result.map_err(|error| error.to_string())
 }
 

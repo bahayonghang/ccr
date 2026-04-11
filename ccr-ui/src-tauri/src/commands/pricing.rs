@@ -1,14 +1,15 @@
 //! 定价管理命令
 
+use ccr_store::{ModelPricing, PricingManager};
 use serde_json::Value;
 
 #[tauri::command]
 pub async fn set_pricing(model: String, pricing: Value) -> Result<Value, String> {
     let result = tokio::task::spawn_blocking(move || {
-        let model_pricing: ccr::ModelPricing =
+        let model_pricing: ModelPricing =
             serde_json::from_value(pricing).map_err(|e| format!("Invalid pricing data: {e}"))?;
 
-        let mut manager = ccr::managers::PricingManager::with_default()
+        let mut manager = PricingManager::with_default()
             .map_err(|e| format!("Failed to open pricing manager: {e}"))?;
 
         manager
@@ -27,7 +28,7 @@ pub async fn set_pricing(model: String, pricing: Value) -> Result<Value, String>
 #[tauri::command]
 pub async fn get_pricing_list() -> Result<Value, String> {
     let result = tokio::task::spawn_blocking(|| {
-        let manager = ccr::managers::PricingManager::with_default()
+        let manager = PricingManager::with_default()
             .map_err(|e| format!("Failed to open pricing manager: {e}"))?;
 
         let list = manager.export_pricing();
@@ -52,7 +53,7 @@ pub async fn get_pricing_list() -> Result<Value, String> {
 #[tauri::command]
 pub async fn remove_pricing(model: String) -> Result<Value, String> {
     let result = tokio::task::spawn_blocking(move || {
-        let mut manager = ccr::managers::PricingManager::with_default()
+        let mut manager = PricingManager::with_default()
             .map_err(|e| format!("Failed to open pricing manager: {e}"))?;
 
         let removed = manager
@@ -73,7 +74,7 @@ pub async fn remove_pricing(model: String) -> Result<Value, String> {
 #[tauri::command]
 pub async fn reset_pricing() -> Result<Value, String> {
     let result = tokio::task::spawn_blocking(|| {
-        let mut manager = ccr::managers::PricingManager::with_default()
+        let mut manager = PricingManager::with_default()
             .map_err(|e| format!("Failed to open pricing manager: {e}"))?;
 
         manager

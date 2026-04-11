@@ -1,0 +1,30 @@
+[package]
+name = "ccr-sync"
+version.workspace = true
+edition = "2024"
+rust-version = "1.90"
+authors = ["Yonghang Li"]
+description = "CCR WebDAV sync domain and folder registry"
+license = "MIT"
+repository = "https://github.com/bahayonghang/ccr"
+
+[dependencies]
+ccr-config = { path = "../ccr-config" }
+ccr-core = { path = "../ccr-core" }
+chrono = { workspace = true }
+colored = "3.1.1"
+comfy-table = "7.2.2"
+dirs = { workspace = true }
+reqwest_dav = { version = "0.3.3", default-features = false, features = ["native-tls"] }
+serde = { workspace = true }
+serde_json = { workspace = true }
+tokio = { workspace = true }
+toml = { workspace = true }
+tracing = { workspace = true }
+
+[lib]
+name = "ccr_sync"
+path = "src/lib.rs"
+
+[dev-dependencies]
+tempfile = { workspace = true }

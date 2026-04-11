@@ -2,9 +2,9 @@
 //!
 //! 配置文件位置: `~/.codex/config.toml`
 //! Agents 目录:  `~/.codex/agents/`
-//! Profiles:     通过 `ccr::create_platform(Platform::Codex)` 管理
-//! Auth:         通过 `ccr::services::CodexAuthService` 管理
-//! Usage:        通过 `ccr::services::CodexUsageService` 管理
+//! Profiles:     通过 `ccr_codex::CodexPlatform` 管理
+//! Auth:         通过 `ccr_codex::CodexAuthService` 管理
+//! Usage:        通过 `ccr_codex::CodexUsageService` 管理
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -15,11 +15,11 @@ use std::hash::{DefaultHasher, Hash, Hasher};
 use std::path::PathBuf;
 use tauri::State;
 
-use ccr::models::OpenAiAuthMethod;
-use ccr::platforms::CodexPlatform;
-use ccr::services::codex_session_service::CodexSessionInventory;
-use ccr::services::{CodexAuthService, CodexSessionService, CodexUsageService};
-use ccr::{Platform, PlatformConfig, PlatformPaths, ProfileConfig};
+use ccr_codex::services::codex_session_service::CodexSessionInventory;
+use ccr_codex::{
+    CodexAuthService, CodexPlatform, CodexSessionService, CodexUsageService, OpenAiAuthMethod,
+};
+use ccr_config::{Platform, PlatformConfig, PlatformPaths, ProfileConfig};
 
 use crate::state::{AppState, CacheFillRegistration};
 
@@ -2044,7 +2044,7 @@ model = "legacy-model"
             )
             .map_err(|e| format!("写入官方 config.toml 失败: {e}"))?;
 
-            let platform = ccr::create_platform(ccr::Platform::Codex)
+            let platform = CodexPlatform::new()
                 .map_err(|e| format!("创建 Codex 平台失败: {e}"))?;
             let mut profile = ProfileConfig::new();
             profile.model = Some("real-model".to_string());

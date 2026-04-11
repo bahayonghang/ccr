@@ -3,6 +3,10 @@
 use serde::{Deserialize, Serialize};
 use tauri::State;
 
+use ccr_config::{ConfigManager, ConfigSection, ConfigService, ImportMode, ProviderType};
+use ccr_core::LockManager;
+use ccr_store::HistoryService;
+
 use crate::state::AppState;
 
 /// 配置项详情
@@ -62,7 +66,7 @@ fn mask_token(token: &str) -> String {
 #[tauri::command]
 pub async fn list_configs(_state: State<'_, AppState>) -> Result<Vec<ConfigInfo>, String> {
     let result = tokio::task::spawn_blocking(move || {
-        let manager = ccr::ConfigManager::with_default()
+        let manager = ConfigManager::with_default()
             .map_err(|e| format!("Failed to create ConfigManager: {e}"))?;
         let config = manager
             .load()
@@ -124,13 +128,13 @@ pub async fn add_config(
 ) -> Result<String, String> {
     tokio::task::spawn_blocking(move || {
         // 使用锁管理器确保并发安全
-        let lock_manager = ccr::LockManager::with_default_path()
+        let lock_manager = LockManager::with_default_path()
             .map_err(|e| format!("Failed to create LockManager: {e}"))?;
         let _lock = lock_manager
             .lock_resource("config", std::time::Duration::from_secs(5))
             .map_err(|e| format!("Failed to acquire lock: {e}"))?;
 
-        let manager = ccr::ConfigManager::with_default()
+        let manager = ConfigManager::with_default()
             .map_err(|e| format!("Failed to create ConfigManager: {e}"))?;
         let mut config = manager
             .load()
@@ -140,7 +144,7 @@ pub async fn add_config(
             return Err(format!("Config '{name}' already exists"));
         }
 
-        let section = ccr::ConfigSection {
+        let section = ConfigSection {
             description,
             base_url: Some(base_url),
             auth_token: Some(auth_token),
@@ -148,8 +152,8 @@ pub async fn add_config(
             small_fast_model,
             provider,
             provider_type: provider_type.as_deref().and_then(|s| match s {
-                "official_relay" => Some(ccr::ProviderType::OfficialRelay),
-                "third_party_model" => Some(ccr::ProviderType::ThirdPartyModel),
+                "official_relay" => Some(ProviderType::OfficialRelay),
+                "third_party_model" => Some(ProviderType::ThirdPartyModel),
                 _ => None,
             }),
             account,
@@ -173,13 +177,13 @@ pub async fn add_config(
 #[tauri::command]
 pub async fn delete_config(name: String) -> Result<String, String> {
     tokio::task::spawn_blocking(move || {
-        let lock_manager = ccr::LockManager::with_default_path()
+        let lock_manager = LockManager::with_default_path()
             .map_err(|e| format!("Failed to create LockManager: {e}"))?;
         let _lock = lock_manager
             .lock_resource("config", std::time::Duration::from_secs(5))
             .map_err(|e| format!("Failed to acquire lock: {e}"))?;
 
-        let manager = ccr::ConfigManager::with_default()
+        let manager = ConfigManager::with_default()
             .map_err(|e| format!("Failed to create ConfigManager: {e}"))?;
         let mut config = manager
             .load()
@@ -206,13 +210,13 @@ pub async fn delete_config(name: String) -> Result<String, String> {
 #[tauri::command]
 pub async fn rename_config(old_name: String, new_name: String) -> Result<String, String> {
     tokio::task::spawn_blocking(move || {
-        let lock_manager = ccr::LockManager::with_default_path()
+        let lock_manager = LockManager::with_default_path()
             .map_err(|e| format!("Failed to create LockManager: {e}"))?;
         let _lock = lock_manager
             .lock_resource("config", std::time::Duration::from_secs(5))
             .map_err(|e| format!("Failed to acquire lock: {e}"))?;
 
-        let manager = ccr::ConfigManager::with_default()
+        let manager = ConfigManager::with_default()
             .map_err(|e| format!("Failed to create ConfigManager: {e}"))?;
         let mut config = manager
             .load()
@@ -258,13 +262,13 @@ pub async fn rename_config(old_name: String, new_name: String) -> Result<String,
 #[tauri::command]
 pub async fn duplicate_config(source: String, target: String) -> Result<String, String> {
     tokio::task::spawn_blocking(move || {
-        let lock_manager = ccr::LockManager::with_default_path()
+        let lock_manager = LockManager::with_default_path()
             .map_err(|e| format!("Failed to create LockManager: {e}"))?;
         let _lock = lock_manager
             .lock_resource("config", std::time::Duration::from_secs(5))
             .map_err(|e| format!("Failed to acquire lock: {e}"))?;
 
-        let manager = ccr::ConfigManager::with_default()
+        let manager = ConfigManager::with_default()
             .map_err(|e| format!("Failed to create ConfigManager: {e}"))?;
         let mut config = manager
             .load()
@@ -299,7 +303,7 @@ pub async fn duplicate_config(source: String, target: String) -> Result<String, 
 #[tauri::command]
 pub async fn validate_configs() -> Result<String, String> {
     tokio::task::spawn_blocking(move || {
-        let service = ccr::ConfigService::with_default()
+        let service = ConfigService::with_default()
             .map_err(|e| format!("Failed to create ConfigService: {e}"))?;
         service
             .validate_all()
@@ -316,8 +320,6 @@ pub async fn import_config(
     mode: String,
     backup: bool,
 ) -> Result<ImportResult, String> {
-    use ccr::services::config_service::ImportMode;
-
     tokio::task::spawn_blocking(move || {
         let import_mode = match mode.to_lowercase().as_str() {
             "merge" => ImportMode::Merge,
@@ -325,7 +327,7 @@ pub async fn import_config(
             _ => return Err(format!("Invalid import mode: {mode}")),
         };
 
-        let service = ccr::ConfigService::with_default()
+        let service = ConfigService::with_default()
             .map_err(|e| format!("Failed to create ConfigService: {e}"))?;
 
         let result = service
@@ -345,7 +347,7 @@ pub async fn import_config(
 #[tauri::command]
 pub async fn export_config(include_secrets: bool) -> Result<ExportResult, String> {
     tokio::task::spawn_blocking(move || {
-        let service = ccr::ConfigService::with_default()
+        let service = ConfigService::with_default()
             .map_err(|e| format!("Failed to create ConfigService: {e}"))?;
 
         let content = service
@@ -367,7 +369,7 @@ pub async fn export_config(include_secrets: bool) -> Result<ExportResult, String
 pub async fn get_history(limit: Option<usize>) -> Result<Vec<HistoryEntry>, String> {
     let limit = limit.unwrap_or(100);
 
-    let service = ccr::HistoryService::with_default()
+    let service = HistoryService::with_default()
         .map_err(|e| format!("Failed to create HistoryService: {e}"))?;
 
     let entries = service
@@ -390,7 +392,7 @@ pub async fn get_history(limit: Option<usize>) -> Result<Vec<HistoryEntry>, Stri
 
 #[tauri::command]
 pub async fn clear_history() -> Result<String, String> {
-    let service = ccr::HistoryService::with_default()
+    let service = HistoryService::with_default()
         .map_err(|e| format!("Failed to create HistoryService: {e}"))?;
     service
         .clear_async()
@@ -402,13 +404,13 @@ pub async fn clear_history() -> Result<String, String> {
 #[tauri::command]
 pub async fn update_config(name: String, data: serde_json::Value) -> Result<String, String> {
     tokio::task::spawn_blocking(move || {
-        let lock_manager = ccr::LockManager::with_default_path()
+        let lock_manager = LockManager::with_default_path()
             .map_err(|e| format!("Failed to create LockManager: {e}"))?;
         let _lock = lock_manager
             .lock_resource("config", std::time::Duration::from_secs(5))
             .map_err(|e| format!("Failed to acquire lock: {e}"))?;
 
-        let manager = ccr::ConfigManager::with_default()
+        let manager = ConfigManager::with_default()
             .map_err(|e| format!("Failed to create ConfigManager: {e}"))?;
         let mut config = manager
             .load()

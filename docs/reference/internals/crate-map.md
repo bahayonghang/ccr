@@ -19,34 +19,40 @@
 - `commands/codex/`：Codex 专属命令，重点是 auth 与 env / quota
 - `commands/sessions_cmd.rs`、`skills_cmd.rs`、`prompts_cmd.rs`：会话、skills、prompt 管理
 
-### 编排层
+### Shell / Compat 说明
 
-- `services/config_service.rs`：配置集合的增删改查、启停、导入导出
-- `services/settings_service.rs`：settings 应用、备份、恢复、列举备份
-- `services/codex_auth_service.rs`：Codex 多账号 auth、备份、切换、导入导出
-- `services/sync_service.rs`：WebDAV 同步执行
-- `services/ui_service.rs`：`ccr ui` 的探测、更新、下载与启动
+- `services/ui_service.rs`：`ccr ui` 的探测、更新、下载与启动，属于 shell 能力
+- `tui/`：终端 UI，属于 shell 能力
+- `models/`、`managers/`、`services/` 中仍有部分旧域逻辑或 re-export facade
+- 当 `ccr` 与 domain crate 同时提供同名能力时，以 domain crate 为事实源，`ccr` 视为兼容门面
 
-### 持久化与配置层
+## `crates/ccr-core`
 
-- `managers/config/`、`platform_config.rs`：平台注册表与统一配置
-- `managers/settings.rs`：settings 文件读写
-- `managers/history.rs`：操作历史
-- `managers/pricing_manager.rs`、`budget_manager.rs`、`cost_tracker.rs`：成本与预算
-- `managers/skills_manager.rs`、`services/skills_service.rs`：skills 源、安装、清单、缓存
-- `managers/mcp_preset_manager.rs`：MCP preset 安装与跨平台同步
+- 共享基础设施：错误、锁、原子写入、日志、HTTP 等底层能力
 
-### 会话与同步
+## `crates/ccr-config`
 
-- `sessions/`：session 文件解析、索引模型
-- `storage/session_store.rs`：本地会话存储与查询
-- `sync/`：WebDAV 配置、目录注册、批量 push/pull/status
+- 平台类型、profile/settings 契约、平台注册表、配置 helper
+- 作为配置与平台适配的主 owner
 
-### 共享基础设施
+## `crates/ccr-store`
 
-- `platforms/`：Claude / Codex / Gemini / Droid / Qwen 平台实现
-- `core/`：错误、锁、原子写入、日志、HTTP 等基础设施
-- `utils/`：mask、验证、格式转换等通用工具
+- history、本地 storage、session 索引与查询
+- 作为 CLI/桌面端本地持久化与聚合查询的主 owner
+
+## `crates/ccr-codex`
+
+- Codex auth/runtime/quota/usage/session 专属逻辑
+
+## `crates/ccr-sync`
+
+- WebDAV 配置、目录注册、批量 push/pull 所需的 sync domain 能力
+
+## `crates/ccr-skills`
+
+- skills 安装/清单/cache/source 管理
+- builtin prompts
+- MCP preset 安装与跨平台同步
 
 ## `crates/ccr-db`
 

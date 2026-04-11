@@ -1,1 +1,1 @@
-pub use crate::sync::service::*;
+pub use ccr_sync::sync::service::*;

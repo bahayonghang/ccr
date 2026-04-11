@@ -2,7 +2,7 @@
 
 [package]
 name = "ccr-desktop"
-version = "5.7.8"
+version = "5.7.9"
 description = "CCR Desktop - Tauri Application"
 authors = ["CCR Team"]
 edition = "2024"
@@ -14,6 +14,12 @@ tauri-build = { version = "=2.5.6", features = [] }
 [dependencies]
 # CCR 核心库 - 配置管理与平台适配
 ccr = { path = "../../crates/ccr", default-features = false }
+ccr-core = { path = "../../crates/ccr-core" }
+ccr-codex = { path = "../../crates/ccr-codex" }
+ccr-config = { path = "../../crates/ccr-config" }
+ccr-skills = { path = "../../crates/ccr-skills" }
+ccr-store = { path = "../../crates/ccr-store" }
+ccr-sync = { path = "../../crates/ccr-sync" }
 
 # CCR 类型定义 - Claude Settings 子类型（Agent、Plugin、Hook 等）
 ccr-types = { path = "../../crates/ccr-types" }
@@ -101,4 +107,3 @@ winreg = "0.55"
 default = []
 # Custom protocol for production builds
 custom-protocol = ["tauri/custom-protocol"]
-

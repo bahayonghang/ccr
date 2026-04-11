@@ -305,7 +305,7 @@ dependencies = [
 
 [[package]]
 name = "ccr"
-version = "5.7.8"
+version = "5.7.9"
 dependencies = [
  "anyhow",
  "base64",
@@ -313,7 +313,9 @@ dependencies = [
  "ccr-codex",
  "ccr-config",
  "ccr-core",
+ "ccr-skills",
  "ccr-store",
+ "ccr-sync",
  "ccr-types",
  "chrono",
  "clap",
@@ -354,7 +356,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-codex"
-version = "5.7.8"
+version = "5.7.9"
 dependencies = [
  "base64",
  "ccr-config",
@@ -380,7 +382,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-config"
-version = "5.7.8"
+version = "5.7.9"
 dependencies = [
  "ccr-core",
  "chrono",
@@ -395,7 +397,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-core"
-version = "5.7.8"
+version = "5.7.9"
 dependencies = [
  "anyhow",
  "colored",
@@ -421,7 +423,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-db"
-version = "5.7.8"
+version = "5.7.9"
 dependencies = [
  "aes-gcm",
  "anyhow",
@@ -453,8 +455,27 @@ dependencies = [
 ]
 
 [[package]]
+name = "ccr-skills"
+version = "5.7.9"
+dependencies = [
+ "blake3",
+ "ccr-config",
+ "ccr-core",
+ "chrono",
+ "dirs",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "toml",
+ "tracing",
+ "urlencoding",
+ "walkdir",
+]
+
+[[package]]
 name = "ccr-store"
-version = "5.7.8"
+version = "5.7.9"
 dependencies = [
  "blake3",
  "ccr-config",
@@ -468,14 +489,34 @@ dependencies = [
  "serde",
  "serde_json",
  "tempfile",
+ "toml",
  "tracing",
  "uuid",
  "whoami",
 ]
 
 [[package]]
+name = "ccr-sync"
+version = "5.7.9"
+dependencies = [
+ "ccr-config",
+ "ccr-core",
+ "chrono",
+ "colored",
+ "comfy-table",
+ "dirs",
+ "reqwest_dav",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "tokio",
+ "toml",
+ "tracing",
+]
+
+[[package]]
 name = "ccr-types"
-version = "5.7.8"
+version = "5.7.9"
 dependencies = [
  "chrono",
  "serde",

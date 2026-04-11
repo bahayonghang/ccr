@@ -1,0 +1,30 @@
+[package]
+name = "ccr-skills"
+version.workspace = true
+edition = "2024"
+rust-version = "1.90"
+authors = ["Yonghang Li"]
+description = "CCR skills, builtin prompts, and MCP preset domain"
+license = "MIT"
+repository = "https://github.com/bahayonghang/ccr"
+
+[dependencies]
+ccr-config = { path = "../ccr-config" }
+ccr-core = { path = "../ccr-core" }
+blake3 = { workspace = true }
+chrono = { workspace = true }
+dirs = { workspace = true }
+reqwest = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+toml = { workspace = true }
+tracing = { workspace = true }
+walkdir = { workspace = true }
+urlencoding = "2.1.3"
+
+[lib]
+name = "ccr_skills"
+path = "src/lib.rs"
+
+[dev-dependencies]
+tempfile = { workspace = true }

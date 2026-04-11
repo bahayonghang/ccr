@@ -3,6 +3,7 @@
 use std::collections::{HashMap, HashSet};
 
 use chrono::{Duration, Utc};
+use ccr_store::CostTracker;
 
 /// 平台每日统计累加器 (内部使用)
 #[derive(Default)]
@@ -32,9 +33,9 @@ pub async fn get_cost_overview(period: Option<String>) -> Result<serde_json::Val
     let period = period.unwrap_or_else(|| "today".to_string());
 
     let data = tokio::task::spawn_blocking(move || {
-        let storage_dir = ccr::CostTracker::default_storage_dir()
+        let storage_dir = CostTracker::default_storage_dir()
             .map_err(|e| format!("Failed to get stats dir: {e}"))?;
-        let tracker = ccr::CostTracker::new(storage_dir)
+        let tracker = CostTracker::new(storage_dir)
             .map_err(|e| format!("Failed to create cost tracker: {e}"))?;
 
         let now = Utc::now();
@@ -70,9 +71,9 @@ pub async fn get_heatmap_data(
     let days = days.unwrap_or(365);
 
     let data = tokio::task::spawn_blocking(move || {
-        let storage_dir = ccr::CostTracker::default_storage_dir()
+        let storage_dir = CostTracker::default_storage_dir()
             .map_err(|e| format!("Failed to get stats dir: {e}"))?;
-        let tracker = ccr::CostTracker::new(storage_dir)
+        let tracker = CostTracker::new(storage_dir)
             .map_err(|e| format!("Failed to create cost tracker: {e}"))?;
 
         let now = Utc::now();
@@ -117,9 +118,9 @@ pub async fn get_heatmap_data(
 #[tauri::command]
 pub async fn get_session_stats(platform: Option<String>) -> Result<serde_json::Value, String> {
     let data = tokio::task::spawn_blocking(move || {
-        let storage_dir = ccr::CostTracker::default_storage_dir()
+        let storage_dir = CostTracker::default_storage_dir()
             .map_err(|e| format!("Failed to get stats dir: {e}"))?;
-        let tracker = ccr::CostTracker::new(storage_dir)
+        let tracker = CostTracker::new(storage_dir)
             .map_err(|e| format!("Failed to create cost tracker: {e}"))?;
 
         let today_cost = tracker
@@ -158,9 +159,9 @@ pub async fn get_cost_trend(period: Option<String>) -> Result<serde_json::Value,
     let period = period.unwrap_or_else(|| "month".to_string());
 
     let data = tokio::task::spawn_blocking(move || {
-        let storage_dir = ccr::CostTracker::default_storage_dir()
+        let storage_dir = CostTracker::default_storage_dir()
             .map_err(|e| format!("Failed to get stats dir: {e}"))?;
-        let tracker = ccr::CostTracker::new(storage_dir)
+        let tracker = CostTracker::new(storage_dir)
             .map_err(|e| format!("Failed to create cost tracker: {e}"))?;
 
         let now = chrono::Utc::now();
@@ -213,9 +214,9 @@ pub async fn get_cost_trend(period: Option<String>) -> Result<serde_json::Value,
 #[tauri::command]
 pub async fn get_cost_by_model() -> Result<serde_json::Value, String> {
     let data = tokio::task::spawn_blocking(move || {
-        let storage_dir = ccr::CostTracker::default_storage_dir()
+        let storage_dir = CostTracker::default_storage_dir()
             .map_err(|e| format!("Failed to get stats dir: {e}"))?;
-        let tracker = ccr::CostTracker::new(storage_dir)
+        let tracker = CostTracker::new(storage_dir)
             .map_err(|e| format!("Failed to create cost tracker: {e}"))?;
 
         let now = chrono::Utc::now();
@@ -236,9 +237,9 @@ pub async fn get_cost_by_model() -> Result<serde_json::Value, String> {
 #[tauri::command]
 pub async fn get_cost_by_project() -> Result<serde_json::Value, String> {
     let data = tokio::task::spawn_blocking(move || {
-        let storage_dir = ccr::CostTracker::default_storage_dir()
+        let storage_dir = CostTracker::default_storage_dir()
             .map_err(|e| format!("Failed to get stats dir: {e}"))?;
-        let tracker = ccr::CostTracker::new(storage_dir)
+        let tracker = CostTracker::new(storage_dir)
             .map_err(|e| format!("Failed to create cost tracker: {e}"))?;
 
         let now = chrono::Utc::now();
@@ -261,9 +262,9 @@ pub async fn get_cost_by_project() -> Result<serde_json::Value, String> {
 #[tauri::command]
 pub async fn get_provider_usage() -> Result<serde_json::Value, String> {
     let data = tokio::task::spawn_blocking(move || {
-        let storage_dir = ccr::CostTracker::default_storage_dir()
+        let storage_dir = CostTracker::default_storage_dir()
             .map_err(|e| format!("Failed to get stats dir: {e}"))?;
-        let tracker = ccr::CostTracker::new(storage_dir)
+        let tracker = CostTracker::new(storage_dir)
             .map_err(|e| format!("Failed to create cost tracker: {e}"))?;
 
         let now = chrono::Utc::now();
@@ -285,9 +286,9 @@ pub async fn get_top_sessions(limit: Option<usize>) -> Result<serde_json::Value,
     let limit = limit.unwrap_or(10);
 
     let data = tokio::task::spawn_blocking(move || {
-        let storage_dir = ccr::CostTracker::default_storage_dir()
+        let storage_dir = CostTracker::default_storage_dir()
             .map_err(|e| format!("Failed to get stats dir: {e}"))?;
-        let tracker = ccr::CostTracker::new(storage_dir)
+        let tracker = CostTracker::new(storage_dir)
             .map_err(|e| format!("Failed to create cost tracker: {e}"))?;
 
         let sessions = tracker
@@ -310,9 +311,9 @@ pub async fn get_top_sessions(limit: Option<usize>) -> Result<serde_json::Value,
 #[tauri::command]
 pub async fn get_stats_summary() -> Result<serde_json::Value, String> {
     let data = tokio::task::spawn_blocking(move || {
-        let storage_dir = ccr::CostTracker::default_storage_dir()
+        let storage_dir = CostTracker::default_storage_dir()
             .map_err(|e| format!("Failed to get stats dir: {e}"))?;
-        let tracker = ccr::CostTracker::new(storage_dir)
+        let tracker = CostTracker::new(storage_dir)
             .map_err(|e| format!("Failed to create cost tracker: {e}"))?;
 
         let today = tracker
@@ -346,9 +347,9 @@ pub async fn get_daily_stats(days: Option<usize>) -> Result<serde_json::Value, S
     let days = days.unwrap_or(30);
 
     let data = tokio::task::spawn_blocking(move || {
-        let storage_dir = ccr::CostTracker::default_storage_dir()
+        let storage_dir = CostTracker::default_storage_dir()
             .map_err(|e| format!("Failed to get stats dir: {e}"))?;
-        let tracker = ccr::CostTracker::new(storage_dir)
+        let tracker = CostTracker::new(storage_dir)
             .map_err(|e| format!("Failed to create cost tracker: {e}"))?;
 
         let now = chrono::Utc::now();

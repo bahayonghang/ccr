@@ -1,6 +1,6 @@
 //! WebDAV 同步命令 — push / pull / status / folder CRUD。
 
-use ccr::sync::{SyncConfigManager, SyncFolderManager, SyncService};
+use ccr_sync::{SyncConfigManager, SyncFolder, SyncFolderManager, SyncService, get_ccr_sync_path};
 use serde::{Deserialize, Serialize};
 use std::time::Instant;
 
@@ -66,7 +66,7 @@ pub async fn sync_push(force: Option<bool>) -> Result<SyncOperationResult, Strin
         .map_err(|e| format!("Failed to create SyncService: {e}"))?;
 
     // 3. 获取本地路径
-    let local_path = ccr::sync::service::get_ccr_sync_path()
+    let local_path = get_ccr_sync_path()
         .map_err(|e| format!("Failed to get sync path: {e}"))?;
 
     // 4. 执行推送
@@ -108,7 +108,7 @@ pub async fn sync_pull(force: Option<bool>) -> Result<SyncOperationResult, Strin
         .map_err(|e| format!("Failed to create SyncService: {e}"))?;
 
     // 3. 获取本地路径
-    let local_path = ccr::sync::service::get_ccr_sync_path()
+    let local_path = get_ccr_sync_path()
         .map_err(|e| format!("Failed to get sync path: {e}"))?;
 
     // 4. 执行拉取
@@ -210,7 +210,7 @@ pub async fn add_sync_folder(
         let mut manager = SyncFolderManager::with_default()
             .map_err(|e| format!("Failed to create SyncFolderManager: {e}"))?;
 
-        let folder = ccr::sync::folder::SyncFolder::builder()
+        let folder = SyncFolder::builder()
             .name(name_clone.clone())
             .local_path(local_path_clone)
             .remote_path(remote_path_clone)

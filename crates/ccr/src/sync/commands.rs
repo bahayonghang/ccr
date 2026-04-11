@@ -2,13 +2,12 @@
 // 📁 支持配置文件的云端同步功能
 
 use crate::services::MultiBackupService;
-use crate::sync::content_selector::{SyncContentSelection, SyncContentSelector};
-use crate::sync::folder::SyncFolder;
-use crate::sync::folder_manager::SyncFolderManager;
-use crate::sync::service::SyncService;
 use ccr_config::{SyncConfig, SyncConfigManager};
 use ccr_core::core::error::{CcrError, Result};
 use ccr_core::core::logging::ColorOutput;
+use ccr_sync::{
+    SyncContentSelection, SyncContentSelector, SyncFolder, SyncFolderManager, SyncService,
+};
 use colored::Colorize;
 use comfy_table::{
     Cell, CellAlignment, Color, ColumnConstraint, ContentArrangement, Table, presets::UTF8_FULL,

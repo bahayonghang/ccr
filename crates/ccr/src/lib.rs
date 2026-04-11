@@ -282,9 +282,8 @@ pub use ccr_store::{
     Database, Session, SessionEvent, SessionFilter, SessionIndexer, SessionStats, SessionStore,
     SessionSummary,
 };
-pub use sync::folder::expand_path;
 pub use sync::{
     FolderStats, SyncConfig, SyncConfigManager, SyncContentSelection, SyncContentSelector,
     SyncContentType, SyncFolder, SyncFolderManager, SyncFoldersConfig, SyncService, WebDavConfig,
-    get_ccr_sync_path,
+    expand_path, get_ccr_sync_path,
 };

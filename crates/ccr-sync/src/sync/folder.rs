@@ -18,7 +18,7 @@ use std::path::PathBuf;
 /// # Examples
 ///
 /// ```no_run
-/// use ccr::SyncFolder;
+/// use ccr_sync::SyncFolder;
 ///
 /// let folder = SyncFolder::builder()
 ///     .name("claude")
@@ -466,7 +466,7 @@ pub struct FolderStats {
 /// # Examples
 ///
 /// ```no_run
-/// use ccr::expand_path;
+/// use ccr_sync::expand_path;
 ///
 /// let path = expand_path("~/.claude").unwrap();
 /// // 返回类似: /home/username/.claude

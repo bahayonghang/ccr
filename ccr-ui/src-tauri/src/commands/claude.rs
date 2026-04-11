@@ -13,10 +13,10 @@ use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value, json};
 use tauri::State;
 
-use ccr::managers::prompts_manager::PromptsManager;
-use ccr::models::prompt::PromptPreset;
+use ccr_config::{Platform, PlatformConfig, ProfileConfig};
+use ccr_skills::{PromptPreset, PromptsManager};
 use ccr::platforms::ClaudePlatform;
-use ccr::{BudgetManager, CostTracker, PlatformConfig, ProfileConfig};
+use ccr_store::{BudgetManager, CostTracker};
 
 use crate::platform::local::LocalEnvironment;
 use crate::platform::{EnvError, ExecutionEnvironment};
@@ -820,7 +820,7 @@ pub async fn claude_update_budgets(budgets: Value) -> Result<Value, String> {
 #[tauri::command]
 pub async fn claude_list_prompts() -> Result<Value, String> {
     tokio::task::spawn_blocking(|| {
-        let manager = PromptsManager::new(ccr::Platform::Claude)
+        let manager = PromptsManager::new(Platform::Claude)
             .map_err(|e| format!("PromptsManager init error: {}", e))?;
 
         let presets = manager
@@ -840,7 +840,7 @@ pub async fn claude_list_prompts() -> Result<Value, String> {
 #[tauri::command]
 pub async fn claude_update_prompts(prompts: Value) -> Result<Value, String> {
     tokio::task::spawn_blocking(move || {
-        let manager = PromptsManager::new(ccr::Platform::Claude)
+        let manager = PromptsManager::new(Platform::Claude)
             .map_err(|e| format!("PromptsManager init error: {}", e))?;
 
         if let Some(arr) = prompts.as_array() {

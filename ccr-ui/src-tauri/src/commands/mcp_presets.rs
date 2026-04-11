@@ -1,17 +1,18 @@
 //! MCP 预设管理命令
 
-use ccr::models::mcp_preset::McpServerSpec;
+use ccr_config::Platform;
+use ccr_skills::{McpPresetManager, McpServerSpec};
 use serde_json::{Map, Value, json};
 use std::path::{Path, PathBuf};
 
 /// 将平台名称字符串解析为 Platform 枚举
-fn parse_platform(s: &str) -> Option<ccr::Platform> {
+fn parse_platform(s: &str) -> Option<Platform> {
     match s.to_lowercase().as_str() {
-        "claude" => Some(ccr::Platform::Claude),
-        "codex" => Some(ccr::Platform::Codex),
-        "gemini" => Some(ccr::Platform::Gemini),
-        "qwen" => Some(ccr::Platform::Qwen),
-        "droid" => Some(ccr::Platform::Droid),
+        "claude" => Some(Platform::Claude),
+        "codex" => Some(Platform::Codex),
+        "gemini" => Some(Platform::Gemini),
+        "qwen" => Some(Platform::Qwen),
+        "droid" => Some(Platform::Droid),
         _ => None,
     }
 }
@@ -134,7 +135,7 @@ fn preset_spec_with_env(
     preset_id: &str,
     custom_env: Option<std::collections::HashMap<String, String>>,
 ) -> Result<McpServerSpec, String> {
-    let manager = ccr::managers::McpPresetManager::new(ccr::Platform::Claude)
+    let manager = McpPresetManager::new(Platform::Claude)
         .map_err(|e| format!("Failed to create preset manager: {e}"))?;
     let preset = manager
         .get_preset(preset_id)
@@ -151,7 +152,7 @@ fn preset_spec_with_env(
 #[tauri::command]
 pub async fn list_mcp_presets() -> Result<Value, String> {
     let result = tokio::task::spawn_blocking(|| {
-        let manager = ccr::managers::McpPresetManager::new(ccr::Platform::Claude)
+        let manager = McpPresetManager::new(Platform::Claude)
             .map_err(|e| format!("Failed to create preset manager: {e}"))?;
 
         let presets = manager.list_presets();
@@ -166,7 +167,7 @@ pub async fn list_mcp_presets() -> Result<Value, String> {
 #[tauri::command]
 pub async fn get_mcp_preset(id: String) -> Result<Value, String> {
     let result = tokio::task::spawn_blocking(move || {
-        let manager = ccr::managers::McpPresetManager::new(ccr::Platform::Claude)
+        let manager = McpPresetManager::new(Platform::Claude)
             .map_err(|e| format!("Failed to create preset manager: {e}"))?;
 
         let preset = manager.get_preset(&id);
@@ -199,7 +200,7 @@ pub async fn install_mcp_preset(
             None => None,
         };
 
-        let sync_manager = ccr::managers::McpSyncManager::new();
+        let sync_manager = ccr_skills::McpSyncManager::new();
         let requested_platforms = requested_platform_ids(platforms);
         let qoder_spec = if requested_platforms
             .iter()
@@ -276,7 +277,7 @@ pub async fn install_mcp_preset_single(
             let target =
                 parse_platform(&platform).ok_or_else(|| format!("Unknown platform: {platform}"))?;
 
-            let sync_manager = ccr::managers::McpSyncManager::new();
+            let sync_manager = ccr_skills::McpSyncManager::new();
             sync_manager
                 .sync_preset(&preset_id, custom_env, target)
                 .map_err(|e| format!("Failed to install preset to {platform}: {e}"))?;
@@ -297,7 +298,7 @@ pub async fn install_mcp_preset_single(
 #[tauri::command]
 pub async fn list_source_mcp_servers() -> Result<Value, String> {
     let result = tokio::task::spawn_blocking(|| {
-        let sync_manager = ccr::managers::McpSyncManager::new();
+        let sync_manager = ccr_skills::McpSyncManager::new();
         let servers = sync_manager
             .list_source_mcp_servers()
             .map_err(|e| format!("Failed to list source MCP servers: {e}"))?;
@@ -326,7 +327,7 @@ pub async fn sync_mcp_server(
     platforms: Option<Vec<String>>,
 ) -> Result<Value, String> {
     let result = tokio::task::spawn_blocking(move || {
-        let sync_manager = ccr::managers::McpSyncManager::new();
+        let sync_manager = ccr_skills::McpSyncManager::new();
         let servers = sync_manager
             .list_source_mcp_servers()
             .map_err(|e| format!("Failed to load source MCP servers: {e}"))?;
@@ -381,7 +382,7 @@ pub async fn sync_mcp_server(
 #[tauri::command]
 pub async fn sync_all_mcp_servers(platforms: Option<Vec<String>>) -> Result<Value, String> {
     let result = tokio::task::spawn_blocking(move || {
-        let sync_manager = ccr::managers::McpSyncManager::new();
+        let sync_manager = ccr_skills::McpSyncManager::new();
         let server_specs = sync_manager
             .list_source_mcp_servers()
             .map_err(|e| format!("Failed to load source MCP servers: {e}"))?;

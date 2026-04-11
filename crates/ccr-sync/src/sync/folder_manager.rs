@@ -31,8 +31,8 @@ use std::time::Duration;
 /// # Examples
 ///
 /// ```no_run
-/// use ccr::managers::sync_folder_manager::SyncFolderManager;
-/// use ccr::SyncFolder;
+/// use ccr_sync::SyncFolderManager;
+/// use ccr_sync::SyncFolder;
 ///
 /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
 /// let mut manager = SyncFolderManager::with_default()?;
@@ -408,7 +408,7 @@ impl SyncFolderManager {
     /// # Examples
     ///
     /// ```no_run
-    /// use ccr::managers::sync_folder_manager::SyncFolderManager;
+    /// use ccr_sync::SyncFolderManager;
     ///
     /// # fn main() -> Result<(), Box<dyn std::error::Error>> {
     /// let mut manager = SyncFolderManager::with_default()?;

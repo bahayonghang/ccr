@@ -18,7 +18,7 @@ impl SkillsWatcherState {
 }
 
 pub fn reload(app_handle: &AppHandle) -> Result<(), String> {
-    let service = ccr::SkillsService::new().map_err(|error| error.to_string())?;
+    let service = ccr_skills::SkillsService::new().map_err(|error| error.to_string())?;
     let paths = service.watch_paths().map_err(|error| error.to_string())?;
 
     let emit_handle = app_handle.clone();

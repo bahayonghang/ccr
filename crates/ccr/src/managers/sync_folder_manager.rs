@@ -1,1 +1,1 @@
-pub use crate::sync::folder_manager::*;
+pub use ccr_sync::sync::folder_manager::*;

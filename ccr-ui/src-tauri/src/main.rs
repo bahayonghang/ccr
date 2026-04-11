@@ -44,7 +44,7 @@ fn configure_main_window_chrome(window: &tauri::WebviewWindow) -> tauri::Result<
 }
 
 fn main() {
-    ccr::init_logger();
+    ccr_core::init_logger();
 
     tracing::info!(
         "[app] CCR Desktop v{} starting (native Tauri mode)",
@@ -332,7 +332,8 @@ async fn import_usage_data() -> Result<(), String> {
     // 这里只校验 storage dir 可访问，真正的导入由其他命令触发。
     tokio::task::spawn_blocking(|| {
         let _storage_dir =
-            ccr::CostTracker::default_storage_dir().map_err(|e| format!("Storage dir: {e}"))?;
+            ccr_store::CostTracker::default_storage_dir()
+                .map_err(|e| format!("Storage dir: {e}"))?;
         Ok(())
     })
     .await

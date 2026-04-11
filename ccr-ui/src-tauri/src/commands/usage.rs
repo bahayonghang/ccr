@@ -4,7 +4,8 @@ use std::collections::BTreeMap;
 use std::path::PathBuf;
 use std::time::Instant;
 
-use ccr::Platform;
+use ccr_config::Platform;
+use ccr_store::sessions::{SessionFilter, SessionIndexer, SessionSummary, parser::SessionParser};
 use chrono::{Duration, Utc};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -156,12 +157,12 @@ struct HomeUsageSnapshot {
 }
 
 fn list_home_sessions(
-    indexer: &ccr::sessions::SessionIndexer,
+    indexer: &SessionIndexer,
     from_date: Option<chrono::DateTime<Utc>>,
     to_date: Option<chrono::DateTime<Utc>>,
     limit: Option<usize>,
-) -> Vec<ccr::sessions::SessionSummary> {
-    let filter = ccr::sessions::SessionFilter {
+) -> Vec<SessionSummary> {
+    let filter = SessionFilter {
         platform: None,
         from_date,
         to_date,
@@ -265,12 +266,12 @@ fn session_index_platform_label(platform: Platform) -> &'static str {
 }
 
 fn session_index_file_count(platform: Platform) -> u64 {
-    let Some(session_dir) = ccr::sessions::parser::SessionParser::get_platform_session_dir(&platform)
+    let Some(session_dir) = SessionParser::get_platform_session_dir(&platform)
     else {
         return 0;
     };
 
-    ccr::sessions::parser::SessionParser::scan_directory(&session_dir, platform)
+    SessionParser::scan_directory(&session_dir, platform)
         .map(|files| files.len() as u64)
         .unwrap_or(0)
 }
@@ -605,7 +606,7 @@ async fn run_session_index_job(app_handle: AppHandle, job_id: String) {
                 .await;
         }
 
-        let indexer = ccr::sessions::SessionIndexer::new()
+        let indexer = SessionIndexer::new()
             .map_err(|error| format!("Failed to create session indexer: {error}"))?;
         let mut completed_files = 0u64;
 
@@ -763,12 +764,12 @@ fn has_any_raw_sessions() -> bool {
         Platform::Qwen,
     ] {
         let Some(session_dir) =
-            ccr::sessions::parser::SessionParser::get_platform_session_dir(&platform)
+            SessionParser::get_platform_session_dir(&platform)
         else {
             continue;
         };
 
-        match ccr::sessions::parser::SessionParser::scan_directory(&session_dir, platform) {
+        match SessionParser::scan_directory(&session_dir, platform) {
             Ok(files) if !files.is_empty() => return true,
             Ok(_) => continue,
             Err(error) => {
@@ -1200,9 +1201,9 @@ pub async fn get_home_usage_overview_v2(
             .ok_or_else(|| "Invalid session end date".to_string())?
             .and_utc();
 
-        let mut sessions: Vec<ccr::sessions::SessionSummary> = Vec::new();
+        let mut sessions: Vec<SessionSummary> = Vec::new();
         let mut has_any_sessions = false;
-        if let Ok(indexer) = ccr::sessions::SessionIndexer::new() {
+        if let Ok(indexer) = SessionIndexer::new() {
             has_any_sessions = !list_home_sessions(&indexer, None, None, Some(1)).is_empty();
             if has_any_sessions {
                 sessions =
