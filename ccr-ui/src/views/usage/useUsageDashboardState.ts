@@ -466,6 +466,9 @@ export const useUsageDashboardState = () => {
       background: 'transparent',
       toolbar: { show: false },
       fontFamily: 'inherit',
+      parentHeightOffset: 0,
+      redrawOnParentResize: true,
+      redrawOnWindowResize: true,
       animations: {
         enabled: true,
         speed: 220,
@@ -492,6 +495,13 @@ export const useUsageDashboardState = () => {
       labels: {
         style: { colors: chartTheme.value.textMuted },
         formatter: (value: number) => formatTokens(value),
+      },
+    },
+    markers: {
+      size: 0,
+      hover: {
+        size: 0,
+        sizeOffset: 0,
       },
     },
     stroke: { curve: 'smooth' as const, width: 2.2 },

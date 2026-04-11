@@ -425,6 +425,11 @@ describe('usage dashboard state smoke', () => {
 
     try {
       expect(state.trendOptions.value.theme.mode).toBe('dark')
+      expect(state.trendOptions.value.chart.parentHeightOffset).toBe(0)
+      expect(state.trendOptions.value.markers).toMatchObject({
+        size: 0,
+        hover: { size: 0, sizeOffset: 0 },
+      })
 
       document.documentElement.setAttribute('data-theme', 'light')
       await nextTick()

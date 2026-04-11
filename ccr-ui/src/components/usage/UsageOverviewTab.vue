@@ -395,7 +395,7 @@ const getInsightTone = (id: string): InsightTone => insightToneById[id] ?? 'viol
   position: relative;
   display: grid;
   min-width: 0;
-  min-height: clamp(20.5rem, 40vh, 25.5rem);
+  height: clamp(20.5rem, 40vh, 25.5rem);
   overflow: hidden;
   border-radius: 1.3rem;
   border: 1px solid rgb(var(--color-border-default-rgb) / 16%);
@@ -416,7 +416,7 @@ const getInsightTone = (id: string): InsightTone => insightToneById[id] ?? 'viol
 }
 
 .overview-tab__empty--trend {
-  min-height: clamp(20.5rem, 40vh, 25.5rem);
+  min-height: 100%;
   width: 100%;
 }
 
