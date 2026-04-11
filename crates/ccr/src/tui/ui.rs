@@ -166,6 +166,22 @@ fn root_constraints(mode: theme::ViewportMode) -> Vec<Constraint> {
     ]
 }
 
+fn wide_profile_workspace_layout(area: Rect) -> (Rect, Rect) {
+    let columns = Layout::default()
+        .direction(Direction::Horizontal)
+        .constraints([Constraint::Percentage(48), Constraint::Percentage(52)])
+        .split(area);
+    (columns[0], columns[1])
+}
+
+fn profile_list_rail_layout(area: Rect) -> (Rect, Rect) {
+    let chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([Constraint::Min(8), Constraint::Length(7)])
+        .split(area);
+    (chunks[0], chunks[1])
+}
+
 /// Calculate column widths for profile list (responsive to terminal width)
 /// Returns (name_width, desc_width) — desc_width is 0 when terminal is narrow
 fn column_widths(area_width: u16) -> (usize, usize) {
@@ -174,13 +190,13 @@ fn column_widths(area_width: u16) -> (usize, usize) {
     let available = inner.saturating_sub(gap);
 
     // Narrow terminal: name only, no description
-    if area_width < 60 {
+    if area_width < 52 {
         return (available, 0);
     }
 
-    let min_name = 12usize;
-    let min_desc = 10usize;
-    let mut name_width = available * 3 / 10;
+    let min_name = 18usize;
+    let min_desc = 14usize;
+    let mut name_width = available * 2 / 5;
     if name_width < min_name {
         name_width = min_name;
     }
@@ -192,6 +208,85 @@ fn column_widths(area_width: u16) -> (usize, usize) {
     }
     let desc_width = available.saturating_sub(name_width);
     (name_width, desc_width)
+}
+
+fn truncate_text(text: &str, width: usize) -> String {
+    if width == 0 {
+        return String::new();
+    }
+    let len = text.chars().count();
+    if len <= width {
+        return text.to_string();
+    }
+    if width == 1 {
+        return "…".to_string();
+    }
+    let mut out: String = text.chars().take(width - 1).collect();
+    out.push('…');
+    out
+}
+
+fn pad_text(text: &str, width: usize) -> String {
+    let len = text.chars().count();
+    if len >= width {
+        return text.to_string();
+    }
+    let mut out = String::with_capacity(width);
+    out.push_str(text);
+    out.extend(std::iter::repeat_n(' ', width - len));
+    out
+}
+
+fn profile_list_row(
+    profile: &crate::tui::app::ProfileItem,
+    is_selected: bool,
+    accent: ratatui::style::Color,
+    name_width: usize,
+    desc_width: usize,
+) -> Line<'static> {
+    let selected_style = Style::default()
+        .fg(theme::BG_PRIMARY)
+        .bg(accent)
+        .add_modifier(Modifier::BOLD);
+    let selector = if is_selected { "▶ " } else { "  " };
+    let current_marker = if profile.is_current { "●" } else { "○" };
+    let desc = profile.description.as_deref().unwrap_or("").trim();
+    let current_tag = if profile.is_current { " ✓" } else { "" };
+    let name_raw = format!(
+        "{}{} {}{}",
+        selector, current_marker, profile.name, current_tag
+    );
+    let name_cell = pad_text(&truncate_text(&name_raw, name_width), name_width);
+
+    let name_style = if is_selected {
+        selected_style
+    } else if profile.is_current {
+        theme::list_current_style().add_modifier(Modifier::BOLD)
+    } else {
+        theme::list_normal_style()
+    };
+
+    let line_spans = if desc_width > 0 && !desc.is_empty() {
+        let desc_cell = pad_text(&truncate_text(desc, desc_width), desc_width);
+        let desc_style = if is_selected {
+            selected_style
+        } else if profile.is_current {
+            Style::default()
+                .fg(theme::FG_SECONDARY)
+                .add_modifier(Modifier::BOLD)
+        } else {
+            Style::default().fg(theme::FG_MUTED)
+        };
+        vec![
+            Span::styled(name_cell, name_style),
+            Span::styled("  ", Style::default().fg(theme::BORDER)),
+            Span::styled(desc_cell, desc_style),
+        ]
+    } else {
+        vec![Span::styled(name_cell, name_style)]
+    };
+
+    Line::from(line_spans)
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -273,25 +368,19 @@ fn render_profile_workspace(f: &mut Frame, app: &App, area: Rect, mode: theme::V
             render_profile_context_workspace(f, app, chunks[1], mode);
         }
         theme::ViewportMode::Wide => {
-            let columns = Layout::default()
-                .direction(Direction::Horizontal)
-                .constraints([Constraint::Percentage(42), Constraint::Percentage(58)])
-                .split(area);
+            let (list_area, context_area) = wide_profile_workspace_layout(area);
 
-            render_profile_list_rail(f, app, columns[0]);
-            render_profile_context_workspace(f, app, columns[1], mode);
+            render_profile_list_rail(f, app, list_area);
+            render_profile_context_workspace(f, app, context_area, mode);
         }
     }
 }
 
 fn render_profile_list_rail(f: &mut Frame, app: &App, area: Rect) {
-    let chunks = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([Constraint::Min(8), Constraint::Length(5)])
-        .split(area);
+    let (list_area, meta_area) = profile_list_rail_layout(area);
 
-    render_profile_list_panel(f, app, chunks[0]);
-    render_profile_meta_panel(f, app, chunks[1]);
+    render_profile_list_panel(f, app, list_area);
+    render_profile_meta_panel(f, app, meta_area);
 }
 
 fn render_profile_list_panel(f: &mut Frame, app: &App, area: Rect) {
@@ -301,33 +390,6 @@ fn render_profile_list_panel(f: &mut Frame, app: &App, area: Rect) {
     let platform = app.current_platform();
     let platform_name = platform.display_name();
     let accent = theme::platform_color_for(platform);
-
-    fn truncate_text(text: &str, width: usize) -> String {
-        if width == 0 {
-            return String::new();
-        }
-        let len = text.chars().count();
-        if len <= width {
-            return text.to_string();
-        }
-        if width == 1 {
-            return "…".to_string();
-        }
-        let mut out: String = text.chars().take(width - 1).collect();
-        out.push('…');
-        out
-    }
-
-    fn pad_text(text: &str, width: usize) -> String {
-        let len = text.chars().count();
-        if len >= width {
-            return text.to_string();
-        }
-        let mut out = String::with_capacity(width);
-        out.push_str(text);
-        out.extend(std::iter::repeat_n(' ', width - len));
-        out
-    }
 
     let total_pages = app.total_pages();
     let total_profiles = all_profiles.len();
@@ -373,53 +435,18 @@ fn render_profile_list_panel(f: &mut Frame, app: &App, area: Rect) {
     }
 
     let (name_width, desc_width) = column_widths(area.width);
-    let selected_style = Style::default()
-        .fg(theme::BG_PRIMARY)
-        .bg(accent)
-        .add_modifier(Modifier::BOLD);
 
     let items: Vec<ListItem> = profiles
         .iter()
         .enumerate()
         .map(|(i, profile)| {
-            let is_selected = i == app.selected_index;
-            let selector = if is_selected { "▶ " } else { "  " };
-            let current_marker = if profile.is_current { "●" } else { "○" };
-            let name = &profile.name;
-            let desc = profile.description.as_deref().unwrap_or("").trim();
-            let current_tag = if profile.is_current { " ✓" } else { "" };
-            let name_raw = format!("{}{} {}{}", selector, current_marker, name, current_tag);
-            let name_cell = pad_text(&truncate_text(&name_raw, name_width), name_width);
-
-            let name_style = if is_selected {
-                selected_style
-            } else if profile.is_current {
-                theme::list_current_style().add_modifier(Modifier::BOLD)
-            } else {
-                theme::list_normal_style()
-            };
-
-            let line_spans = if desc_width > 0 && !desc.is_empty() {
-                let desc_cell = pad_text(&truncate_text(desc, desc_width), desc_width);
-                let desc_style = if is_selected {
-                    selected_style
-                } else if profile.is_current {
-                    Style::default()
-                        .fg(theme::FG_SECONDARY)
-                        .add_modifier(Modifier::BOLD)
-                } else {
-                    Style::default().fg(theme::FG_MUTED)
-                };
-                vec![
-                    Span::styled(name_cell, name_style),
-                    Span::styled("  ", Style::default().fg(theme::BORDER)),
-                    Span::styled(desc_cell, desc_style),
-                ]
-            } else {
-                vec![Span::styled(name_cell, name_style)]
-            };
-
-            ListItem::new(Line::from(line_spans))
+            ListItem::new(profile_list_row(
+                profile,
+                i == app.selected_index,
+                accent,
+                name_width,
+                desc_width,
+            ))
         })
         .collect();
 
@@ -567,7 +594,9 @@ fn render_profile_details(f: &mut Frame, app: &App, area: Rect) {
         generic_profile_detail_lines(profile.name.as_str(), config, profile.is_current)
     };
 
-    let paragraph = Paragraph::new(lines).block(block);
+    let paragraph = Paragraph::new(lines)
+        .block(block)
+        .wrap(Wrap { trim: false });
     f.render_widget(paragraph, area);
 }
 
@@ -1111,7 +1140,69 @@ fn render_toast(f: &mut Frame, app: &App, area: Rect) {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::tui::app::{PlatformTab, ProfileItem, TabVariant};
     use crate::tui::theme::ViewportMode;
+    use crate::tui::toast::ToastManager;
+    use indexmap::IndexMap;
+    use ratatui::{Terminal, backend::TestBackend};
+    use std::cell::Cell;
+
+    fn plain_line_text(line: &Line<'_>) -> String {
+        line.spans
+            .iter()
+            .map(|span| span.content.as_ref())
+            .collect::<Vec<_>>()
+            .join("")
+    }
+
+    fn buffer_line_text(backend: &TestBackend, y: u16) -> String {
+        let width = backend.buffer().area.width;
+        (0..width)
+            .filter_map(|x| backend.buffer().cell((x, y)))
+            .map(|cell| cell.symbol())
+            .collect::<Vec<_>>()
+            .join("")
+            .trim_end()
+            .to_string()
+    }
+
+    fn buffer_text(backend: &TestBackend) -> String {
+        let height = backend.buffer().area.height;
+        (0..height)
+            .map(|y| buffer_line_text(backend, y))
+            .collect::<Vec<_>>()
+            .join("\n")
+    }
+
+    fn sample_profile_app(profile: ProfileItem, config: ProfileConfig) -> App {
+        let mut profile_configs = IndexMap::new();
+        profile_configs.insert(profile.name.clone(), config);
+
+        App {
+            tabs: vec![PlatformTab {
+                platform: Platform::Claude,
+                variant: TabVariant::Profile,
+                label: "Claude Code".to_string(),
+                profiles: vec![profile.clone()],
+                profile_configs,
+                profile_load_error: None,
+                current_profile_error: None,
+                codex_runtime_summary: None,
+                instance: None,
+            }],
+            active_tab: 0,
+            selected_index: 0,
+            current_page: 0,
+            selected_profile_name: Some(profile.name),
+            toasts: ToastManager::new(),
+            last_applied: None,
+            codex_auth_app: None,
+            codex_auth_error: None,
+            last_codex_action: None,
+            header_area: Cell::new(None),
+            list_area: Cell::new(None),
+        }
+    }
 
     #[test]
     fn viewport_mode_prefers_wide_only_when_both_dimensions_allow() {
@@ -1119,6 +1210,49 @@ mod tests {
         assert_eq!(theme::viewport_mode(100, 30), ViewportMode::Standard);
         assert_eq!(theme::viewport_mode(140, 20), ViewportMode::Compact);
         assert_eq!(theme::viewport_mode(80, 30), ViewportMode::Compact);
+    }
+
+    #[test]
+    fn wide_profile_workspace_layout_favors_list_rail_more_than_before() {
+        let (list_area, context_area) = wide_profile_workspace_layout(Rect::new(0, 0, 120, 20));
+
+        assert_eq!(list_area.width, 58);
+        assert_eq!(context_area.width, 62);
+    }
+
+    #[test]
+    fn profile_list_rail_layout_keeps_full_selection_panel_visible() {
+        let (list_area, meta_area) = profile_list_rail_layout(Rect::new(0, 0, 58, 20));
+
+        assert_eq!(list_area.height, 13);
+        assert_eq!(meta_area.height, 7);
+    }
+
+    #[test]
+    fn column_widths_prioritize_name_without_hiding_description_too_early() {
+        assert_eq!(column_widths(51), (45, 0));
+        assert_eq!(column_widths(52), (18, 28));
+        assert_eq!(column_widths(58), (20, 32));
+    }
+
+    #[test]
+    fn profile_list_row_shows_more_of_long_profile_names_on_wider_list_rail() {
+        let profile = ProfileItem {
+            name: "anyrouter_temp_backup".to_string(),
+            description: Some("AnyRouter temp profile".to_string()),
+            is_current: false,
+        };
+
+        let rendered = plain_line_text(&profile_list_row(
+            &profile,
+            true,
+            theme::CLAUDE_PRIMARY,
+            20,
+            32,
+        ));
+
+        assert!(rendered.contains("anyrouter_temp"), "{rendered}");
+        assert!(rendered.contains("AnyRouter temp profile"), "{rendered}");
     }
 
     #[test]
@@ -1161,5 +1295,49 @@ mod tests {
                 .iter()
                 .any(|line| line.contains("Last action: Applied successfully"))
         );
+    }
+
+    #[test]
+    fn profile_meta_panel_render_shows_legend_when_rail_has_extra_height() {
+        let profile = ProfileItem {
+            name: "2CAPI".to_string(),
+            description: Some("2CAPI 公益".to_string()),
+            is_current: false,
+        };
+        let app = sample_profile_app(profile, ProfileConfig::new());
+        let mut terminal = Terminal::new(TestBackend::new(58, 7)).unwrap();
+
+        terminal
+            .draw(|frame| render_profile_meta_panel(frame, &app, frame.area()))
+            .unwrap();
+
+        let rendered = buffer_text(terminal.backend());
+        assert!(rendered.contains("Legend: ● current"), "{rendered}");
+    }
+
+    #[test]
+    fn profile_details_wrap_long_runtime_values_instead_of_clipping_them() {
+        let profile = ProfileItem {
+            name: "2CAPI".to_string(),
+            description: Some("2CAPI 公益".to_string()),
+            is_current: false,
+        };
+        let mut config = ProfileConfig::new();
+        config.description = Some("2CAPI 公益".to_string());
+        config.base_url =
+            Some("https://2capi.com/compatible-mode/openai/v1/chat/completions".to_string());
+        config.model = Some("gpt-5.4-mini".to_string());
+
+        let app = sample_profile_app(profile, config);
+        let mut terminal = Terminal::new(TestBackend::new(32, 14)).unwrap();
+
+        terminal
+            .draw(|frame| render_profile_details(frame, &app, frame.area()))
+            .unwrap();
+
+        let rendered = buffer_text(terminal.backend());
+        assert!(rendered.contains("https://2capi.com"), "{rendered}");
+        assert!(rendered.contains("compatible"), "{rendered}");
+        assert!(rendered.contains("chat/complet"), "{rendered}");
     }
 }
