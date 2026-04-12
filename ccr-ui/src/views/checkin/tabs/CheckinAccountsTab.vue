@@ -772,17 +772,24 @@ const toggleAccountMenu = (accountId: string, event: MouseEvent) => {
   }
 }
 
-// 从 cookies JSON 中提取 session 值
-const extractSessionFromJson = (json: string): string => {
+// 从 cookies JSON 中提取表单展示值
+const extractCookiesFieldValue = (json: string): string => {
+  const trimmed = json.trim()
+  if (!trimmed) return ''
+
   try {
-    const parsed: unknown = JSON.parse(json)
-    if (typeof parsed === 'object' && parsed !== null && 'session' in parsed) {
-      const session = (parsed as Record<string, unknown>).session
-      return typeof session === 'string' ? session : ''
+    const parsed: unknown = JSON.parse(trimmed)
+    if (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) {
+      const record = parsed as Record<string, unknown>
+      const keys = Object.keys(record)
+      if (keys.length === 1 && 'session' in record) {
+        const session = record.session
+        return typeof session === 'string' ? session : ''
+      }
     }
-    return ''
+    return trimmed
   } catch {
-    return ''
+    return trimmed
   }
 }
 
@@ -823,8 +830,11 @@ const openAccountModal = async (account?: AccountInfo) => {
       accountForm.value = {
         provider_id: account.provider_id,
         name: account.name,
-        session: extractSessionFromJson(cookiesData.cookies_json),
-        api_user: typeof cookiesData.api_user === 'string' ? cookiesData.api_user : '',
+        session: extractCookiesFieldValue(cookiesData.cookies_json),
+        api_user:
+          typeof cookiesData.api_user === 'string' && cookiesData.api_user.trim()
+            ? cookiesData.api_user
+            : account.api_user || '',
         enabled: account.enabled,
         fuli_cookies: existingExtra.fuli_cookies ? JSON.stringify(existingExtra.fuli_cookies) : '',
         b4u_cdk_cookies: existingExtra.b4u_cdk_cookies

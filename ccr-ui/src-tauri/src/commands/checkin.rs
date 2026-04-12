@@ -1103,6 +1103,7 @@ pub async fn get_checkin_account_cookies(
         Ok(serde_json::json!({
             "account_id": account_id,
             "cookies_json": cookies_json,
+            "api_user": account.api_user,
         }))
     })
     .await

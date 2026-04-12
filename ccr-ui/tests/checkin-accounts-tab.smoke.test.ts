@@ -1,6 +1,8 @@
 import { createApp, defineComponent, h, nextTick } from 'vue'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { AccountInfo, CheckinProvider } from '@/types/checkin'
+import * as checkinApi from '@/api'
+import CheckinAccountsTab from '@/views/checkin/tabs/CheckinAccountsTab.vue'
 
 vi.mock('@/components/ui/SIcon.vue', () => ({
   default: defineComponent({
@@ -46,7 +48,7 @@ vi.mock('@/api', () => ({
   getCheckinAccountCookies: vi.fn(),
 }))
 
-import CheckinAccountsTab from '@/views/checkin/tabs/CheckinAccountsTab.vue'
+const mockedGetCheckinAccountCookies = checkinApi.getCheckinAccountCookies as ReturnType<typeof vi.fn>
 
 const providers: CheckinProvider[] = [
   {
@@ -75,6 +77,46 @@ const accounts: AccountInfo[] = [
     api_user: '12345',
   } as AccountInfo,
 ]
+
+const openAccountEditor = async (el: HTMLElement) => {
+  const trigger = el.querySelector<HTMLButtonElement>('.checkin-accounts-tab__menu-trigger')
+  expect(trigger).not.toBeNull()
+
+  Object.defineProperty(trigger!, 'getBoundingClientRect', {
+    configurable: true,
+    value: () => ({
+      width: 40,
+      height: 40,
+      top: 140,
+      right: 980,
+      bottom: 180,
+      left: 940,
+      x: 940,
+      y: 140,
+      toJSON: () => {},
+    }),
+  })
+
+  trigger!.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+  await nextTick()
+
+  const editButton = Array.from(
+    document.body.querySelectorAll<HTMLButtonElement>('.checkin-accounts-tab__menu-item')
+  ).find(button => button.textContent?.includes('编辑'))
+
+  expect(editButton).not.toBeNull()
+  editButton!.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+  await Promise.resolve()
+  await nextTick()
+}
+
+const getCookiesTextarea = (el: HTMLElement) =>
+  el.querySelector<HTMLTextAreaElement>(
+    'textarea[placeholder="可直接粘贴 session 值，或完整 cookies JSON"]'
+  )
+
+const getApiUserInput = (el: HTMLElement) =>
+  el.querySelector<HTMLInputElement>('input[placeholder="12345"]')
 
 const mountTab = async () => {
   const el = document.createElement('div')
@@ -112,6 +154,7 @@ const mountTab = async () => {
 }
 
 afterEach(() => {
+  vi.clearAllMocks()
   document.body.innerHTML = ''
 })
 
@@ -151,6 +194,49 @@ describe('CheckinAccountsTab smoke', () => {
       expect(teleportedMenu?.textContent).toContain('删除')
       expect(teleportedMenu?.className).toContain('checkin-accounts-tab__menu--bottom')
       expect(el.querySelector('.checkin-accounts-tab__menu--floating')).toBeNull()
+    } finally {
+      unmount()
+    }
+  })
+
+  it('backfills api user when opening editor for an existing account', async () => {
+    mockedGetCheckinAccountCookies.mockResolvedValue({
+      cookies_json: '{"session":"abc123"}',
+      api_user: '67890',
+    })
+
+    const { el, unmount } = await mountTab()
+
+    try {
+      await openAccountEditor(el)
+
+      const apiUserInput = getApiUserInput(document.body)
+      const cookiesTextarea = getCookiesTextarea(document.body)
+
+      expect(apiUserInput).not.toBeNull()
+      expect(cookiesTextarea).not.toBeNull()
+      expect(apiUserInput?.value).toBe('67890')
+      expect(cookiesTextarea?.value).toBe('abc123')
+    } finally {
+      unmount()
+    }
+  })
+
+  it('preserves full cookies JSON when opening editor for an existing account', async () => {
+    const fullCookiesJson = '{"session":"abc123","cf_clearance":"token-1"}'
+    mockedGetCheckinAccountCookies.mockResolvedValue({
+      cookies_json: fullCookiesJson,
+      api_user: '67890',
+    })
+
+    const { el, unmount } = await mountTab()
+
+    try {
+      await openAccountEditor(el)
+
+      const cookiesTextarea = getCookiesTextarea(document.body)
+      expect(cookiesTextarea).not.toBeNull()
+      expect(cookiesTextarea?.value).toBe(fullCookiesJson)
     } finally {
       unmount()
     }
