@@ -1795,6 +1795,16 @@ export const updateOpenCodeConfig = async <T = UnknownRecord>(settings: unknown)
   return invoke('opencode_update_settings', { settings })
 }
 
+/** 获取 OpenCode TUI 配置 */
+export const getOpenCodeTuiSettings = async <T = UnknownRecord>(): Promise<T> => {
+  return invoke('opencode_get_tui_settings')
+}
+
+/** 更新 OpenCode TUI 配置 */
+export const updateOpenCodeTuiSettings = async <T = UnknownRecord>(settings: unknown): Promise<T> => {
+  return invoke('opencode_update_tui_settings', { settings })
+}
+
 /** 获取 OpenCode 快捷键 */
 export const getOpenCodeKeybindings = async <T = UnknownRecord>(): Promise<T> => {
   return invoke('opencode_get_keybindings')
@@ -1808,19 +1818,45 @@ export const updateOpenCodeKeybindings = async <T = UnknownRecord>(
 }
 
 /** 列出 OpenCode 主题 */
-export const listOpenCodeThemes = async <T = UnknownRecord>(): Promise<T> => {
+export const listOpenCodeThemes = async <T = UnknownRecord[]>(): Promise<T> => {
   return invoke('opencode_list_themes')
 }
 
-// ── OpenCode 组合实现（通过 get/update settings） ──
+function normalizedOpenCodeProviders(settings: UnknownRecord) {
+  const providers = pickRecord(settings, 'provider')
+  if (Object.keys(providers).length > 0) {
+    return Object.entries(providers).map(([id, config]) => ({ id, ...asRecord(config) }))
+  }
+  const legacyProviders = pickRecord(settings, 'providers')
+  return Object.entries(legacyProviders).map(([id, config]) => ({ id, ...asRecord(config) }))
+}
+
+function normalizedOpenCodeMcpServers(settings: UnknownRecord) {
+  const servers = pickRecord(settings, 'mcp')
+  if (Object.keys(servers).length > 0) {
+    return Object.entries(servers).map(([id, config]) => ({ id, ...asRecord(config) }))
+  }
+  const legacyServers = asRecord(settings.mcpServers ?? settings.mcp_servers)
+  return Object.entries(legacyServers).map(([id, config]) => ({ id, ...asRecord(config) }))
+}
+
+function normalizedOpenCodePlugins(settings: UnknownRecord): string[] {
+  const pluginList = asArray(settings.plugin)
+    .filter((item): item is string => typeof item === 'string')
+  if (pluginList.length > 0) return [...new Set(pluginList)]
+
+  const legacyPlugins = pickRecord(settings, 'plugins')
+  if (Object.keys(legacyPlugins).length > 0) {
+    return Object.keys(legacyPlugins)
+  }
+
+  return []
+}
 
 /** 列出 OpenCode Providers */
-export const listOpenCodeProviders = async <T = UnknownRecord>(): Promise<T> => {
+export const listOpenCodeProviders = async <T = UnknownRecord[]>(): Promise<T> => {
   const settings = await getOpenCodeConfig<UnknownRecord>()
-  const providers = pickRecord(settings, 'providers')
-  return {
-    providers: Object.entries(providers).map(([id, config]) => ({ id, ...asRecord(config) })),
-  } as T
+  return normalizedOpenCodeProviders(settings) as T
 }
 
 /** 添加 OpenCode Provider */
@@ -1830,9 +1866,9 @@ export const addOpenCodeProvider = async <T = UnknownRecord>(
 ): Promise<T> => {
   const { name, config: resolvedConfig } = resolveNameAndConfig(providerOrName, config)
   const settings = await getOpenCodeConfig<UnknownRecord>()
-  const providers = pickRecord(settings, 'providers')
+  const providers = pickRecord(settings, 'provider')
   providers[name] = resolvedConfig
-  await updateOpenCodeConfig({ providers })
+  await updateOpenCodeConfig({ provider: providers })
   return { id: name, ...resolvedConfig } as T
 }
 
@@ -1843,28 +1879,25 @@ export const updateOpenCodeProvider = async <T = UnknownRecord>(
 ): Promise<T> => {
   const { name, config: resolvedConfig } = resolveNameAndConfig(providerOrName, config)
   const settings = await getOpenCodeConfig<UnknownRecord>()
-  const providers = pickRecord(settings, 'providers')
+  const providers = pickRecord(settings, 'provider')
   providers[name] = { ...asRecord(providers[name]), ...resolvedConfig }
-  await updateOpenCodeConfig({ providers })
+  await updateOpenCodeConfig({ provider: providers })
   return { id: name, ...asRecord(providers[name]) } as T
 }
 
 /** 删除 OpenCode Provider */
 export const deleteOpenCodeProvider = async <T = UnknownRecord>(name: string): Promise<T> => {
   const settings = await getOpenCodeConfig<UnknownRecord>()
-  const providers = pickRecord(settings, 'providers')
+  const providers = pickRecord(settings, 'provider')
   delete providers[name]
-  await updateOpenCodeConfig({ providers })
+  await updateOpenCodeConfig({ provider: providers })
   return name as T
 }
 
 /** 列出 OpenCode MCP 服务器 */
-export const listOpenCodeMcpServers = async <T = UnknownRecord>(): Promise<T> => {
+export const listOpenCodeMcpServers = async <T = UnknownRecord[]>(): Promise<T> => {
   const settings = await getOpenCodeConfig<UnknownRecord>()
-  const servers = asRecord(settings.mcpServers ?? settings.mcp_servers)
-  return {
-    servers: Object.entries(servers).map(([name, config]) => ({ name, ...asRecord(config) })),
-  } as T
+  return normalizedOpenCodeMcpServers(settings) as T
 }
 
 /** 添加 OpenCode MCP 服务器 */
@@ -1874,10 +1907,10 @@ export const addOpenCodeMcpServer = async <T = UnknownRecord>(
 ): Promise<T> => {
   const { name, config: resolvedConfig } = resolveNameAndConfig(serverOrName, config)
   const settings = await getOpenCodeConfig<UnknownRecord>()
-  const servers = asRecord(settings.mcpServers ?? settings.mcp_servers)
+  const servers = pickRecord(settings, 'mcp')
   servers[name] = resolvedConfig
-  await updateOpenCodeConfig({ mcpServers: servers })
-  return { name, ...resolvedConfig } as T
+  await updateOpenCodeConfig({ mcp: servers })
+  return { id: name, ...resolvedConfig } as T
 }
 
 /** 更新 OpenCode MCP 服务器 */
@@ -1887,50 +1920,104 @@ export const updateOpenCodeMcpServer = async <T = UnknownRecord>(
 ): Promise<T> => {
   const { name, config: resolvedConfig } = resolveNameAndConfig(serverOrName, config)
   const settings = await getOpenCodeConfig<UnknownRecord>()
-  const servers = asRecord(settings.mcpServers ?? settings.mcp_servers)
+  const servers = pickRecord(settings, 'mcp')
   servers[name] = { ...asRecord(servers[name]), ...resolvedConfig }
-  await updateOpenCodeConfig({ mcpServers: servers })
-  return { name, ...asRecord(servers[name]) } as T
+  await updateOpenCodeConfig({ mcp: servers })
+  return { id: name, ...asRecord(servers[name]) } as T
 }
 
 /** 删除 OpenCode MCP 服务器 */
 export const deleteOpenCodeMcpServer = async <T = UnknownRecord>(name: string): Promise<T> => {
   const settings = await getOpenCodeConfig<UnknownRecord>()
-  const servers = asRecord(settings.mcpServers ?? settings.mcp_servers)
+  const servers = pickRecord(settings, 'mcp')
   delete servers[name]
-  await updateOpenCodeConfig({ mcpServers: servers })
+  await updateOpenCodeConfig({ mcp: servers })
   return name as T
 }
 
-/** 列出 OpenCode 插件 */
-export const listOpenCodePlugins = async <T = UnknownRecord>(): Promise<T> => {
-  const settings = await getOpenCodeConfig<UnknownRecord>()
-  const plugins = pickRecord(settings, 'plugins')
-  return {
-    plugins: Object.entries(plugins).map(([name, config]) => ({ name, ...asRecord(config) })),
-  } as T
+/** 列出 OpenCode agents */
+export const listOpenCodeAgents = async <T = UnknownRecord[]>(): Promise<T> => {
+  return invoke('opencode_list_agents')
 }
 
-/** 添加 OpenCode 插件 */
-export const addOpenCodePlugin = async <T = UnknownRecord>(
-  pluginOrName: string | object,
-  config?: unknown
+/** 添加 OpenCode agent */
+export const addOpenCodeAgent = async <T = UnknownRecord>(config: unknown): Promise<T> => {
+  return invoke('opencode_add_agent', { config })
+}
+
+/** 更新 OpenCode agent */
+export const updateOpenCodeAgent = async <T = UnknownRecord>(config: unknown): Promise<T> => {
+  return invoke('opencode_update_agent', { config })
+}
+
+/** 删除 OpenCode agent */
+export const deleteOpenCodeAgent = async <T = UnknownRecord>(
+  name: string,
+  context?: unknown
 ): Promise<T> => {
-  const { name, config: resolvedConfig } = resolveNameAndConfig(pluginOrName, config)
-  const settings = await getOpenCodeConfig<UnknownRecord>()
-  const plugins = pickRecord(settings, 'plugins')
-  plugins[name] = resolvedConfig
-  await updateOpenCodeConfig({ plugins })
-  return { name, ...resolvedConfig } as T
+  return invoke('opencode_delete_agent', { name, context })
 }
 
-/** 删除 OpenCode 插件 */
-export const deleteOpenCodePlugin = async <T = UnknownRecord>(name: string): Promise<T> => {
+/** 列出 OpenCode commands */
+export const listOpenCodeCommands = async <T = UnknownRecord[]>(): Promise<T> => {
+  return invoke('opencode_list_commands')
+}
+
+/** 添加 OpenCode command */
+export const addOpenCodeCommand = async <T = UnknownRecord>(config: unknown): Promise<T> => {
+  return invoke('opencode_add_command', { config })
+}
+
+/** 更新 OpenCode command */
+export const updateOpenCodeCommand = async <T = UnknownRecord>(config: unknown): Promise<T> => {
+  return invoke('opencode_update_command', { config })
+}
+
+/** 删除 OpenCode command */
+export const deleteOpenCodeCommand = async <T = UnknownRecord>(
+  name: string,
+  context?: unknown
+): Promise<T> => {
+  return invoke('opencode_delete_command', { name, context })
+}
+
+/** 列出 OpenCode npm 插件配置 */
+export const listOpenCodePlugins = async <T = string[]>(): Promise<T> => {
   const settings = await getOpenCodeConfig<UnknownRecord>()
-  const plugins = pickRecord(settings, 'plugins')
-  delete plugins[name]
-  await updateOpenCodeConfig({ plugins })
-  return name as T
+  return normalizedOpenCodePlugins(settings) as T
+}
+
+/** 添加 OpenCode npm 插件配置 */
+export const addOpenCodePlugin = async <T = string[]>(
+  pluginOrName: string | object
+): Promise<T> => {
+  const name = typeof pluginOrName === 'string'
+    ? pluginOrName
+    : String(asRecord(pluginOrName).name ?? asRecord(pluginOrName).npm ?? '')
+
+  const settings = await getOpenCodeConfig<UnknownRecord>()
+  const nextPlugins = [...normalizedOpenCodePlugins(settings)]
+  if (!nextPlugins.includes(name)) nextPlugins.push(name)
+  await updateOpenCodeConfig({ plugin: nextPlugins })
+  return nextPlugins as T
+}
+
+/** 删除 OpenCode npm 插件配置 */
+export const deleteOpenCodePlugin = async <T = string[]>(name: string): Promise<T> => {
+  const settings = await getOpenCodeConfig<UnknownRecord>()
+  const nextPlugins = normalizedOpenCodePlugins(settings).filter((item) => item !== name)
+  await updateOpenCodeConfig({ plugin: nextPlugins })
+  return nextPlugins as T
+}
+
+/** 列出 OpenCode 本地插件文件 */
+export const listOpenCodeLocalPlugins = async <T = UnknownRecord[]>(): Promise<T> => {
+  return invoke('opencode_list_local_plugins')
+}
+
+/** 列出 OpenCode 相关 skills 目录 */
+export const listOpenCodeSkillLocations = async <T = UnknownRecord[]>(): Promise<T> => {
+  return invoke('opencode_list_skill_locations')
 }
 
 // ════════════════════════════════════════════════════════════

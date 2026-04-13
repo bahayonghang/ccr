@@ -1,128 +1,249 @@
 /**
- * OpenCode 平台 TypeScript 类型定义
+ * OpenCode 平台类型定义。
  *
- * 对应后端 opencode_manager.rs 中的数据结构
+ * 官方参考：
+ * - https://opencode.ai/docs/config/
+ * - https://opencode.ai/docs/agents/
+ * - https://opencode.ai/docs/commands/
+ * - https://opencode.ai/docs/skills/
+ * - https://opencode.ai/docs/tools/
+ * - https://opencode.ai/docs/plugins/
  */
 
-// ============ Provider 类型 ============
+export type OpenCodeScope = 'global' | 'project'
+export type OpenCodeAgentMode = 'primary' | 'subagent' | 'all'
+export type OpenCodeMcpType = 'local' | 'remote'
+export type OpenCodeThemeType = 'light' | 'dark' | 'system'
 
 export interface OpenCodeProviderOptions {
-    baseURL?: string
-    apiKey?: string
-    headers?: Record<string, string>
-    [key: string]: unknown
+  apiKey?: string
+  baseURL?: string
+  timeout?: number | false
+  chunkTimeout?: number
+  setCacheKey?: boolean
+  [key: string]: unknown
 }
 
 export interface OpenCodeModelLimit {
-    context?: number
-    output?: number
+  context?: number
+  output?: number
 }
 
-export interface OpenCodeModel {
-    name: string
-    limit?: OpenCodeModelLimit
-    [key: string]: unknown
+export interface OpenCodeModelConfig {
+  name: string
+  limit?: OpenCodeModelLimit
+  [key: string]: unknown
 }
 
-export interface OpenCodeProvider {
-    /** Map key，Provider 唯一标识符 */
-    id: string
-    /** npm 包名，如 "@ai-sdk/anthropic" */
-    npm: string
-    name?: string
-    options: OpenCodeProviderOptions
-    models: Record<string, OpenCodeModel>
+export interface OpenCodeProviderConfig {
+  id: string
+  name?: string
+  options?: OpenCodeProviderOptions
+  models?: Record<string, OpenCodeModelConfig>
+  enabled?: boolean
+  disabled?: boolean
+  [key: string]: unknown
 }
-
-// ============ MCP 服务器类型（原生 OpenCode 格式）============
-
-export interface OpenCodeMcpServer {
-    /** Map key，服务器唯一标识符 */
-    id: string
-    /** 服务器类型："local" | "remote" */
-    type: 'local' | 'remote'
-    /** local 类型：命令数组 [cmd, ...args] */
-    command?: string[]
-    /** local 类型：环境变量 */
-    environment?: Record<string, string>
-    /** remote 类型：URL */
-    url?: string
-    /** remote 类型：请求头 */
-    headers?: Record<string, string>
-}
-
-// ============ Plugin 类型 ============
-
-export interface OpenCodePlugin {
-    /** npm 包名，如 "@opencode-ai/omo" */
-    npm: string
-}
-
-// ============ 完整配置类型 ============
-
-export interface OpenCodeConfig {
-    $schema?: string
-    provider: Record<string, Omit<OpenCodeProvider, 'id'>>
-    mcp: Record<string, Omit<OpenCodeMcpServer, 'id'>>
-    plugin: string[]
-    [key: string]: unknown
-}
-
-// ============ 请求类型 ============
 
 export interface OpenCodeProviderRequest {
-    id: string
-    npm: string
-    name?: string
-    options?: OpenCodeProviderOptions
-    models?: Record<string, { name: string; limit?: OpenCodeModelLimit }>
+  id: string
+  name?: string
+  options?: OpenCodeProviderOptions
+  models?: Record<string, OpenCodeModelConfig>
+  enabled?: boolean
+  disabled?: boolean
+}
+
+export interface OpenCodeMcpServer {
+  id: string
+  type: OpenCodeMcpType
+  enabled?: boolean
+  command?: string[]
+  environment?: Record<string, string>
+  url?: string
+  headers?: Record<string, string>
+  [key: string]: unknown
 }
 
 export interface OpenCodeMcpServerRequest {
-    id: string
-    type: 'local' | 'remote'
-    command?: string[]
-    environment?: Record<string, string>
-    url?: string
-    headers?: Record<string, string>
+  id: string
+  type: OpenCodeMcpType
+  enabled?: boolean
+  command?: string[]
+  environment?: Record<string, string>
+  url?: string
+  headers?: Record<string, string>
+}
+
+export interface OpenCodePluginPackage {
+  name: string
 }
 
 export interface OpenCodePluginRequest {
-    npm: string
+  name: string
 }
 
-// ============ 预设 Provider 定义 ============
+export interface OpenCodePermissionConfig {
+  [key: string]: unknown
+}
+
+export interface OpenCodeServerConfig {
+  port?: number
+  hostname?: string
+  mdns?: boolean
+  mdnsDomain?: string
+  cors?: string[]
+  [key: string]: unknown
+}
+
+export interface OpenCodeAgent {
+  name: string
+  path: string
+  scope: OpenCodeScope
+  description?: string
+  mode?: OpenCodeAgentMode
+  model?: string
+  temperature?: number
+  topP?: number
+  steps?: number
+  hidden?: boolean
+  disable?: boolean
+  color?: string
+  permission?: OpenCodePermissionConfig
+  tools?: Record<string, unknown>
+  body: string
+  other?: Record<string, unknown>
+  parseError?: string
+}
+
+export interface OpenCodeAgentRequest {
+  name: string
+  scope?: OpenCodeScope
+  projectRoot?: string
+  description?: string
+  mode?: OpenCodeAgentMode
+  model?: string
+  temperature?: number
+  topP?: number
+  steps?: number
+  hidden?: boolean
+  disable?: boolean
+  color?: string
+  permission?: OpenCodePermissionConfig
+  tools?: Record<string, unknown>
+  body?: string
+  [key: string]: unknown
+}
+
+export interface OpenCodeCommand {
+  name: string
+  path: string
+  scope: OpenCodeScope
+  description?: string
+  agent?: string
+  subtask?: boolean
+  model?: string
+  template: string
+  other?: Record<string, unknown>
+  parseError?: string
+}
+
+export interface OpenCodeCommandRequest {
+  name: string
+  scope?: OpenCodeScope
+  projectRoot?: string
+  description?: string
+  agent?: string
+  subtask?: boolean
+  model?: string
+  template?: string
+  [key: string]: unknown
+}
+
+export interface OpenCodeTuiConfig {
+  theme?: string
+  keybinds?: Record<string, unknown>
+  mouse?: boolean
+  diff_style?: string
+  scroll_speed?: number
+  scroll_acceleration?: Record<string, unknown>
+  [key: string]: unknown
+}
+
+export interface OpenCodeTheme {
+  id: string
+  name: string
+  themeType: OpenCodeThemeType
+}
+
+export interface OpenCodeLocalPluginFile {
+  name: string
+  path: string
+  scope: OpenCodeScope
+  size: number
+}
+
+export interface OpenCodeSkillLocation {
+  kind: string
+  scope: OpenCodeScope
+  path: string
+  exists: boolean
+  skillCount: number
+  skills: string[]
+}
+
+export interface OpenCodeConfig {
+  $schema?: string
+  provider?: Record<string, Omit<OpenCodeProviderConfig, 'id'>>
+  mcp?: Record<string, Omit<OpenCodeMcpServer, 'id'>>
+  agent?: Record<string, Record<string, unknown>>
+  command?: Record<string, Record<string, unknown>>
+  plugin?: string[]
+  model?: string
+  small_model?: string
+  default_agent?: string
+  share?: 'manual' | 'auto' | 'disabled'
+  snapshot?: boolean
+  autoupdate?: boolean | 'notify'
+  tools?: Record<string, unknown>
+  permission?: OpenCodePermissionConfig
+  server?: OpenCodeServerConfig
+  instructions?: string[]
+  enabled_providers?: string[]
+  disabled_providers?: string[]
+  [key: string]: unknown
+}
 
 export interface OpenCodeProviderPreset {
-    id: string
-    label: string
-    npm: string
-    description: string
+  id: string
+  label: string
+  description: string
 }
 
 export const OPENCODE_PROVIDER_PRESETS: OpenCodeProviderPreset[] = [
-    {
-        id: 'anthropic',
-        label: 'Anthropic (Claude)',
-        npm: '@ai-sdk/anthropic',
-        description: 'Claude 3.5 Sonnet, Opus, Haiku 等模型'
-    },
-    {
-        id: 'openai',
-        label: 'OpenAI',
-        npm: '@ai-sdk/openai',
-        description: 'GPT-4o, o1, o3 等模型'
-    },
-    {
-        id: 'google',
-        label: 'Google (Gemini)',
-        npm: '@ai-sdk/google',
-        description: 'Gemini 2.0, 1.5 Flash/Pro 等模型'
-    },
-    {
-        id: 'openai-compatible',
-        label: 'OpenAI Compatible',
-        npm: '@ai-sdk/openai-compatible',
-        description: '兼容 OpenAI API 的自定义端点'
-    }
+  {
+    id: 'anthropic',
+    label: 'Anthropic',
+    description: 'Claude 4 / Sonnet / Haiku provider',
+  },
+  {
+    id: 'openai',
+    label: 'OpenAI',
+    description: 'GPT and reasoning models',
+  },
+  {
+    id: 'google',
+    label: 'Google',
+    description: 'Gemini provider',
+  },
+  {
+    id: 'openai-compatible',
+    label: 'OpenAI Compatible',
+    description: 'Proxy or custom OpenAI-compatible endpoint',
+  },
+  {
+    id: 'amazon-bedrock',
+    label: 'Amazon Bedrock',
+    description: 'AWS Bedrock runtime',
+  },
 ]
