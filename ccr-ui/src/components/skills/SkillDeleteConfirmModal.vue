@@ -120,8 +120,6 @@ const platformIcon = computed(() => {
     'claude-code': 'Code2',
     'codex': 'Settings',
     'gemini': 'Sparkles',
-    'qwen': 'Zap',
-    'qoder': 'Activity',
     'droid': 'Bot'
   }
   return iconMap[props.skill?.platform || ''] || 'Code2'

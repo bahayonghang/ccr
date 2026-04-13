@@ -1,7 +1,7 @@
 /**
  * usePlatformMcp - 通用平台 MCP 服务器管理 Composable
  * 
- * 消除各平台 MCP 视图中的重复代码（GeminiMcpView、QwenMcpView、QoderMcpView）
+ * 消除各平台 MCP 视图中的重复代码（GeminiMcpView、DroidMcpView）
  * 
  * @example
  * const { servers, loading, loadServers, addServer, updateServer, deleteServer } = usePlatformMcp('gemini')
@@ -11,18 +11,12 @@ import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useUIStore } from '@/stores/ui'
 import { listGeminiMcpServers, addGeminiMcpServer, updateGeminiMcpServer, deleteGeminiMcpServer } from '@/api'
-import { listQwenMcpServers, addQwenMcpServer, updateQwenMcpServer, deleteQwenMcpServer } from '@/api'
-import { listQoderMcpServers, addQoderMcpServer, updateQoderMcpServer, deleteQoderMcpServer } from '@/api'
 import { listDroidMcpServers, addDroidMcpServer, updateDroidMcpServer, deleteDroidMcpServer } from '@/api'
 import { genericPlatformDescriptors, type GenericPlatformId } from '@/config/platformDescriptors'
 import { logger } from '@/utils/logger'
 import type {
     GeminiMcpServer,
     GeminiMcpServerRequest,
-    QwenMcpServer,
-    QwenMcpServerRequest,
-    QoderMcpServer,
-    QoderMcpServerRequest,
     DroidMcpServer,
     DroidMcpServerRequest,
 } from '@/types'
@@ -112,70 +106,6 @@ const platformApiMap: Record<
         },
         deleteApi: deleteGeminiMcpServer,
     },
-    qwen: {
-        listApi: async () => {
-            const servers = await listQwenMcpServers<QwenMcpServer[]>()
-            return servers.map(normalizeServer)
-        },
-        addApi: async (req) => {
-            const qwenReq: QwenMcpServerRequest = {
-                name: req.name,
-                command: req.command,
-                args: req.args,
-                env: req.env,
-                url: req.url,
-                headers: req.headers,
-                timeout: req.timeout,
-            }
-            return addQwenMcpServer(qwenReq)
-        },
-        updateApi: async (name, req) => {
-            const qwenReq: QwenMcpServerRequest = {
-                name: req.name,
-                command: req.command,
-                args: req.args,
-                env: req.env,
-                url: req.url,
-                headers: req.headers,
-                timeout: req.timeout,
-            }
-            return updateQwenMcpServer(name, qwenReq)
-        },
-        deleteApi: deleteQwenMcpServer,
-    },
-    qoder: {
-        listApi: async () => {
-            const servers = await listQoderMcpServers<QoderMcpServer[]>()
-            return servers.map((s: QoderMcpServer) => ({
-                name: s.name || s.command || s.url || 'unknown',
-                command: s.command,
-                url: s.url,
-                args: s.args,
-                env: s.env,
-            }))
-        },
-        addApi: async (req) => {
-            const qoderReq: QoderMcpServerRequest = {
-                name: req.name,
-                command: req.command,
-                url: req.url,
-                args: req.args,
-                env: req.env,
-            }
-            return addQoderMcpServer(qoderReq)
-        },
-        updateApi: async (name, req) => {
-            const qoderReq: QoderMcpServerRequest = {
-                name: req.name,
-                command: req.command,
-                url: req.url,
-                args: req.args,
-                env: req.env,
-            }
-            return updateQoderMcpServer(name, qoderReq)
-        },
-        deleteApi: deleteQoderMcpServer,
-    },
     droid: {
         listApi: async () => {
             const servers = await listDroidMcpServers<DroidMcpServer[]>()
@@ -224,18 +154,6 @@ const platformConfigs: Record<PlatformType, PlatformConfig> = {
         parentPath: `/${genericPlatformDescriptors.gemini.rootPath}`,
         ...platformApiMap.gemini,
     },
-    qwen: {
-        color: genericPlatformDescriptors.qwen.color,
-        i18nPrefix: genericPlatformDescriptors.qwen.mcp.i18nPrefix,
-        parentPath: `/${genericPlatformDescriptors.qwen.rootPath}`,
-        ...platformApiMap.qwen,
-    },
-    qoder: {
-        color: genericPlatformDescriptors.qoder.color,
-        i18nPrefix: genericPlatformDescriptors.qoder.mcp.i18nPrefix,
-        parentPath: `/${genericPlatformDescriptors.qoder.rootPath}`,
-        ...platformApiMap.qoder,
-    },
     droid: {
         color: genericPlatformDescriptors.droid.color,
         i18nPrefix: genericPlatformDescriptors.droid.mcp.i18nPrefix,
@@ -247,7 +165,7 @@ const platformConfigs: Record<PlatformType, PlatformConfig> = {
 // ============ 辅助函数 ============
 
 /** 统一各平台服务器数据结构 */
-function normalizeServer(server: GeminiMcpServer | QwenMcpServer): UnifiedMcpServer {
+function normalizeServer(server: GeminiMcpServer): UnifiedMcpServer {
     return {
         name: server.name,
         command: server.command,
@@ -258,7 +176,7 @@ function normalizeServer(server: GeminiMcpServer | QwenMcpServer): UnifiedMcpSer
         timeout: server.timeout,
         trust: 'trust' in server ? server.trust : undefined,
         includeTools: 'includeTools' in server ? server.includeTools : undefined,
-        headers: 'headers' in server ? server.headers : undefined,
+        headers: undefined,
     }
 }
 
@@ -461,7 +379,7 @@ export function usePlatformMcp(platform: PlatformType) {
             request.url = undefined
         }
 
-        // 设置 name（Qoder 平台特殊处理）
+        // 当请求未提供名称时，回退到 command/url 生成稳定标识。
         if (!request.name) {
             request.name = request.command || request.url || 'unknown'
         }

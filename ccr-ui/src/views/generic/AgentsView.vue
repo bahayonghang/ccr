@@ -201,7 +201,6 @@
                    
                     <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                       <button
-                        v-if="!isQoderSubagents"
                         class="min-h-[44px] min-w-[44px] rounded-lg transition-colors hover:bg-bg-surface flex items-center justify-center"
                         :class="agent.disabled ? 'text-text-muted hover:text-accent-primary' : 'text-accent-primary hover:text-text-muted'"
                         :title="agent.disabled ? $t(`${tPrefix}.enable`) : $t(`${tPrefix}.disable`)"
@@ -279,9 +278,7 @@
                     <div class="mt-4 pt-3 border-t border-border-default/30 flex items-center justify-between gap-2">
                       <div class="flex items-center gap-1.5 text-[10px] text-text-muted bg-bg-surface/50 px-2 py-1 rounded-md border border-border-default/30">
                         <span class="w-1.5 h-1.5 rounded-full bg-accent-secondary/50" />
-                        <span class="truncate max-w-[120px]">
-                          {{ isQoderSubagents ? 'Subagent' : agent.model }}
-                        </span>
+                        <span class="truncate max-w-[120px]">{{ agent.model }}</span>
                       </div>
 
                       <div
@@ -373,7 +370,7 @@
               >
             </div>
 
-            <div v-if="!isQoderSubagents">
+            <div>
               <label class="block mb-2 text-xs font-bold text-text-secondary uppercase tracking-wider">{{ $t(`${tPrefix}.modelLabel`) }}</label>
               <div class="relative">
                 <select
@@ -484,14 +481,13 @@ import type { Agent, AgentRequest } from '@/types'
 import { logger } from '@/utils/logger'
 
 const props = defineProps<{
-  module: 'gemini' | 'qwen' | 'qoder' | 'agents' | 'droid'
+  module: 'gemini' | 'agents' | 'droid'
 }>()
 
 const { t } = useI18n()
 const router = useRouter()
 const uiStore = useUIStore()
 const tPrefix = computed(() => props.module === 'agents' ? 'agents' : `${props.module}.agents`)
-const isQoderSubagents = computed(() => props.module === 'qoder')
 const {
   agents,
   folders,
@@ -510,7 +506,7 @@ const showAddForm = ref(false)
 const editingAgent = ref<Agent | null>(null)
 const defaultAgentRequest = (): AgentRequest => ({
   name: '',
-  model: props.module === 'qoder' ? 'qoder-subagent' : 'claude-sonnet-4-5-20250929',
+  model: 'claude-sonnet-4-5-20250929',
   tools: [],
   system_prompt: '',
   disabled: false,
@@ -600,7 +596,7 @@ const handleEdit = (agent: Agent) => {
   showAddForm.value = true
   formData.value = { 
     name: agent.name, 
-    model: agent.model || (props.module === 'qoder' ? 'qoder-subagent' : 'claude-sonnet-4-5-20250929'),
+    model: agent.model || 'claude-sonnet-4-5-20250929',
     description: agent.description,
     tools: [...(agent.tools || [])], 
     system_prompt: agent.system_prompt || '', 
@@ -631,7 +627,7 @@ const getAgentApiName = (agent: Agent) => {
 }
 
 const handleSubmit = async () => {
-  if (!formData.value.name || (!isQoderSubagents.value && !formData.value.model)) {
+  if (!formData.value.name || !formData.value.model) {
     uiStore.showWarning(t(`${tPrefix.value}.validation.required`))
     return
   }

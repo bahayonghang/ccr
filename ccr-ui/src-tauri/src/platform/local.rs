@@ -55,18 +55,6 @@ impl ExecutionEnvironment for LocalEnvironment {
                 version: None,
             },
             PlatformInfo {
-                name: "qwen".to_string(),
-                display_name: "Qwen".to_string(),
-                installed: true,
-                version: None,
-            },
-            PlatformInfo {
-                name: "qoder".to_string(),
-                display_name: "Qoder CLI".to_string(),
-                installed: true,
-                version: None,
-            },
-            PlatformInfo {
                 name: "droid".to_string(),
                 display_name: "Droid".to_string(),
                 installed: true,
@@ -109,17 +97,13 @@ impl ExecutionEnvironment for LocalEnvironment {
     }
 
     async fn detect_cli_status(&self) -> Result<Vec<CliStatus>, EnvError> {
-        let tools = ["claude", "codex", "gemini", "qwen", "qodercli"];
+        let tools = ["claude", "codex", "gemini", "droid", "opencode"];
         let mut statuses = Vec::new();
 
         for tool in &tools {
             let installed = which_tool(tool).await;
             statuses.push(CliStatus {
-                name: if *tool == "qodercli" {
-                    "qoder".to_string()
-                } else {
-                    tool.to_string()
-                },
+                name: tool.to_string(),
                 installed: installed.is_some(),
                 path: installed.clone(),
                 version: None,
@@ -142,8 +126,6 @@ fn resolve_config_path(
         "claude" => home.join(".claude"),
         "codex" => home.join(".codex"),
         "gemini" => home.join(".gemini"),
-        "qwen" => home.join(".qwen"),
-        "qoder" => home.join(".qoder"),
         "droid" => home.join(".droid"),
         "opencode" => home.join(".opencode"),
         _ => return Err(EnvError::PlatformNotSupported(platform.to_string())),

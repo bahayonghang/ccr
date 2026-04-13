@@ -387,7 +387,6 @@ const getPlatformIcon = (platform: string): string => {
     Claude: '🔮',
     Codex: '🐙',
     Gemini: '💎',
-    Qwen: '🌟'
   }
   return icons[platform] || '📦'
 }
@@ -397,7 +396,6 @@ const getPlatformColor = (platform: string): string => {
     Claude: 'bg-purple-100 dark:bg-purple-900/20',
     Codex: 'bg-gray-100 dark:bg-gray-700/50',
     Gemini: 'bg-blue-100 dark:bg-blue-900/20',
-    Qwen: 'bg-orange-100 dark:bg-orange-900/20'
   }
   return colors[platform] || 'bg-gray-100 dark:bg-gray-900/20'
 }

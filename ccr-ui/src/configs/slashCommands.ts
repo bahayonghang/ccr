@@ -5,8 +5,7 @@ import {
   listSlashCommands, addSlashCommand, updateSlashCommand, deleteSlashCommand, toggleSlashCommand,
   listCodexSlashCommands, addCodexSlashCommand, updateCodexSlashCommand, deleteCodexSlashCommand, toggleCodexSlashCommand,
   listGeminiSlashCommands, addGeminiSlashCommand, updateGeminiSlashCommand, deleteGeminiSlashCommand, toggleGeminiSlashCommand,
-  listQwenSlashCommands, addQwenSlashCommand, updateQwenSlashCommand, deleteQwenSlashCommand, toggleQwenSlashCommand,
-  listQoderCommands, addQoderCommand, updateQoderCommand, deleteQoderCommand, toggleQoderCommand
+  listDroidSlashCommands, addDroidSlashCommand, updateDroidSlashCommand, deleteDroidSlashCommand
 } from '@/api'
 
 type UnknownRecord = Record<string, unknown>
@@ -162,73 +161,36 @@ export const geminiConfig: PlatformConfig = {
   }
 }
 
-// Qwen 平台配置
-export const qwenConfig: PlatformConfig = {
+// Droid 平台配置
+export const droidConfig: PlatformConfig = {
   api: {
     list: async () => {
-      return await listQwenSlashCommands<{ commands: SlashCommand[]; folders: string[] }>()
+      return await listDroidSlashCommands<{ commands: SlashCommand[]; folders: string[] }>()
     },
     add: async (cmd: SlashCommandRequest) => {
-      await addQwenSlashCommand(getRequestName(cmd), cmd)
+      await addDroidSlashCommand(getRequestName(cmd), cmd)
     },
     update: async (name: string, cmd: SlashCommandRequest) => {
-      await updateQwenSlashCommand(name, cmd)
+      await updateDroidSlashCommand(name, cmd)
     },
     delete: async (name: string) => {
-      await deleteQwenSlashCommand(name)
+      await deleteDroidSlashCommand(name)
     },
     toggle: async (name: string) => {
-      await toggleQwenSlashCommand(name, true)
+      await updateDroidSlashCommand(name, { enabled: true })
     }
   },
   i18n: {
-    prefix: 'qwen.slashCommands'
+    prefix: 'droid.slashCommands'
   },
   theme: 'css-variable',
   route: {
-    homePath: '/qwen',
-    module: 'qwen'
+    homePath: '/droid',
+    module: 'droid'
   },
   platform: {
-    name: 'qwen',
-    displayName: 'Qwen'
-  },
-  features: {
-    breadcrumb: false,
-    glassEffect: false
-  }
-}
-
-// Qoder 平台配置
-export const qoderConfig: PlatformConfig = {
-  api: {
-    list: async () => {
-      return await listQoderCommands<{ commands: SlashCommand[]; folders: string[] }>()
-    },
-    add: async (cmd: SlashCommandRequest) => {
-      await addQoderCommand(getRequestName(cmd), cmd)
-    },
-    update: async (name: string, cmd: SlashCommandRequest) => {
-      await updateQoderCommand(name, cmd)
-    },
-    delete: async (name: string) => {
-      await deleteQoderCommand(name)
-    },
-    toggle: async (name: string) => {
-      await toggleQoderCommand(name, true)
-    }
-  },
-  i18n: {
-    prefix: 'qoder.slashCommands'
-  },
-  theme: 'css-variable',
-  route: {
-    homePath: '/qoder',
-    module: 'qoder'
-  },
-  platform: {
-    name: 'qoder',
-    displayName: 'Qoder'
+    name: 'droid',
+    displayName: 'Droid'
   },
   features: {
     breadcrumb: false,
@@ -241,8 +203,7 @@ export const platformConfigs = {
   'claude-code': claudeCodeConfig,
   'codex': codexConfig,
   'gemini-cli': geminiConfig,
-  'qwen': qwenConfig,
-  'qoder': qoderConfig
+  'droid': droidConfig
 } as const
 
 // 类型导出

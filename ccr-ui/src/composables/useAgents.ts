@@ -1,7 +1,5 @@
 import { ref } from 'vue'
 import { listGeminiAgents, addGeminiAgent, updateGeminiAgent, deleteGeminiAgent, toggleGeminiAgent } from '@/api'
-import { listQwenAgents, addQwenAgent, updateQwenAgent, deleteQwenAgent, toggleQwenAgent } from '@/api'
-import { listQoderAgents, addQoderAgent, updateQoderAgent, deleteQoderAgent, toggleQoderAgent } from '@/api'
 import { listDroidAgents, addDroidAgent, updateDroidAgent, deleteDroidAgent } from '@/api'
 import { listConfigs, getHistory } from '@/api'
 import { listAgents, getAgent as apiGetAgent, addAgent, updateAgent, deleteAgent, toggleAgent } from '@/api'
@@ -32,20 +30,6 @@ const apiMap: Record<ModuleType, AgentApi> = {
         update: updateGeminiAgent,
         delete: deleteGeminiAgent,
         toggle: toggleGeminiAgent
-    },
-    qwen: {
-        list: listQwenAgents,
-        add: addQwenAgent,
-        update: updateQwenAgent,
-        delete: deleteQwenAgent,
-        toggle: toggleQwenAgent
-    },
-    qoder: {
-        list: listQoderAgents,
-        add: addQoderAgent,
-        update: updateQoderAgent,
-        delete: deleteQoderAgent,
-        toggle: toggleQoderAgent
     },
     droid: {
         list: listDroidAgents,

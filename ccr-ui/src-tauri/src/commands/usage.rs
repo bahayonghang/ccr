@@ -99,7 +99,7 @@ struct UsageImportJobFile {
     modified_at: Option<std::time::SystemTime>,
 }
 
-const HOME_USAGE_PLATFORMS: [&str; 4] = ["claude", "codex", "gemini", "qwen"];
+const HOME_USAGE_PLATFORMS: [&str; 3] = ["claude", "codex", "gemini"];
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
 pub struct HomeOverviewPlatformStats {
@@ -136,7 +136,6 @@ pub struct HomeOverviewSeriesItem {
     pub claude: HomeOverviewPlatformStats,
     pub codex: HomeOverviewPlatformStats,
     pub gemini: HomeOverviewPlatformStats,
-    pub qwen: HomeOverviewPlatformStats,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -251,7 +250,7 @@ fn session_index_platforms() -> [Platform; 4] {
         Platform::Claude,
         Platform::Codex,
         Platform::Gemini,
-        Platform::Qwen,
+        Platform::Droid,
     ]
 }
 
@@ -260,14 +259,13 @@ fn session_index_platform_label(platform: Platform) -> &'static str {
         Platform::Claude => "claude",
         Platform::Codex => "codex",
         Platform::Gemini => "gemini",
-        Platform::Qwen => "qwen",
         Platform::Droid => "droid",
+        _ => "legacy",
     }
 }
 
 fn session_index_file_count(platform: Platform) -> u64 {
-    let Some(session_dir) = SessionParser::get_platform_session_dir(&platform)
-    else {
+    let Some(session_dir) = SessionParser::get_platform_session_dir(&platform) else {
         return 0;
     };
 
@@ -593,7 +591,11 @@ async fn run_session_index_job(app_handle: AppHandle, job_id: String) {
     let platforms = session_index_platforms();
 
     let execution = async {
-        let files_total: u64 = platforms.iter().copied().map(session_index_file_count).sum();
+        let files_total: u64 = platforms
+            .iter()
+            .copied()
+            .map(session_index_file_count)
+            .sum();
 
         if let Some(snapshot) = app_handle
             .state::<AppState>()
@@ -678,8 +680,12 @@ async fn run_session_index_job(app_handle: AppHandle, job_id: String) {
             .await
             .ok_or_else(|| format!("Session index job '{}' not found", job_id))?;
 
-        emit_session_index_job_snapshot(&app_handle, "usage:session-index-finished", &final_snapshot)
-            .await;
+        emit_session_index_job_snapshot(
+            &app_handle,
+            "usage:session-index-finished",
+            &final_snapshot,
+        )
+        .await;
         Ok::<(), String>(())
     };
 
@@ -713,8 +719,6 @@ fn normalize_home_platform(raw: &str) -> Option<&'static str> {
         "gemini" | "gemini-cli" | "gemini cli" | "google-gemini" | "google gemini" => {
             Some("gemini")
         }
-        "qwen" | "qwen-cli" | "qwen cli" | "qwen-code" | "qwen code" | "alibaba-qwen"
-        | "alibaba qwen" => Some("qwen"),
         _ => None,
     }
 }
@@ -761,11 +765,9 @@ fn has_any_raw_sessions() -> bool {
         Platform::Claude,
         Platform::Codex,
         Platform::Gemini,
-        Platform::Qwen,
+        Platform::Droid,
     ] {
-        let Some(session_dir) =
-            SessionParser::get_platform_session_dir(&platform)
-        else {
+        let Some(session_dir) = SessionParser::get_platform_session_dir(&platform) else {
             continue;
         };
 
@@ -1247,7 +1249,6 @@ pub async fn get_home_usage_overview_v2(
                     claude: day_stats.remove("claude").unwrap_or_default(),
                     codex: day_stats.remove("codex").unwrap_or_default(),
                     gemini: day_stats.remove("gemini").unwrap_or_default(),
-                    qwen: day_stats.remove("qwen").unwrap_or_default(),
                 }
             })
             .collect::<Vec<_>>();
@@ -1525,7 +1526,7 @@ mod tests {
         assert_eq!(normalize_home_platform("Claude Code"), Some("claude"));
         assert_eq!(normalize_home_platform("openai-codex"), Some("codex"));
         assert_eq!(normalize_home_platform("gemini-cli"), Some("gemini"));
-        assert_eq!(normalize_home_platform("qwen-cli"), Some("qwen"));
+        assert_eq!(normalize_home_platform("legacy-cli"), None);
         assert_eq!(normalize_home_platform("unknown"), None);
     }
 

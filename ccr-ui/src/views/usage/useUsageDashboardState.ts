@@ -259,7 +259,6 @@ export const useUsageDashboardState = () => {
       claude: 'Claude',
       codex: 'Codex',
       gemini: 'Gemini',
-      qwen: 'Qwen',
     }
 
     return translateDashboardText(

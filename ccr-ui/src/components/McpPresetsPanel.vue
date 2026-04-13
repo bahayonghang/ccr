@@ -279,8 +279,7 @@ const platforms = [
   { id: 'claude', name: 'Claude', icon: '🤖' },
   { id: 'codex', name: 'Codex', icon: '💻' },
   { id: 'gemini', name: 'Gemini', icon: '✨' },
-  { id: 'qwen', name: 'Qwen', icon: '🌟' },
-  { id: 'qoder', name: 'Qoder', icon: '🌊' }
+  { id: 'droid', name: 'Droid', icon: '🤖' }
 ]
 
 // Load presets

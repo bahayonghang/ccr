@@ -62,7 +62,7 @@
               size="w-3 h-3"
             /> Plugin System
           </span>
-          <span class="gemini-tag gemini-tag--qoder">
+          <span class="gemini-tag gemini-tag--secondary">
             <SIcon
               name="Sparkles"
               size="w-3 h-3"
@@ -184,20 +184,20 @@
               glow
               class="gemini-module-card"
             >
-              <div class="gemini-module-card__icon gemini-module-card__icon--qoder">
+              <div class="gemini-module-card__icon gemini-module-card__icon--secondary">
                 <SIcon
                   name="Command"
                   size="w-6 h-6"
                 />
               </div>
               <div>
-                <h3 class="gemini-module-card__title gemini-module-card__title--qoder">
+                <h3 class="gemini-module-card__title gemini-module-card__title--secondary">
                   {{ $t('gemini.slashCommands.title') }}
                 </h3>
                 <p class="gemini-module-card__desc">
                   {{ $t('gemini.slashCommands.subtitle') }}
                 </p>
-                <span class="gemini-module-card__badge gemini-module-card__badge--qoder">Commands</span>
+                <span class="gemini-module-card__badge gemini-module-card__badge--secondary">Commands</span>
               </div>
             </Card>
           </RouterLink>
@@ -287,7 +287,7 @@ import Button from '@/components/ui/Button.vue'
   @apply text-4xl font-bold tracking-tight;
 
   font-family: MapleBright, 'Microsoft YaHei UI', system-ui, sans-serif;
-  background: linear-gradient(90deg, var(--platform-gemini) 0%, var(--platform-qoder) 55%, var(--color-success) 100%);
+  background: linear-gradient(90deg, var(--platform-gemini) 0%, var(--color-accent-secondary) 55%, var(--color-success) 100%);
   background-clip: text;
   -webkit-text-fill-color: transparent;
 }
@@ -326,10 +326,10 @@ import Button from '@/components/ui/Button.vue'
   @apply border border-platform-claude/20 bg-platform-claude/10 text-platform-claude;
 }
 
-.gemini-tag--qoder {
-  color: var(--platform-qoder);
-  background: rgb(var(--color-platform-qoder-rgb) / 10%);
-  border: 1px solid rgb(var(--color-platform-qoder-rgb) / 20%);
+.gemini-tag--secondary {
+  color: var(--color-accent-secondary);
+  background: rgb(var(--color-accent-secondary-rgb) / 10%);
+  border: 1px solid rgb(var(--color-accent-secondary-rgb) / 20%);
 }
 
 .gemini-section-heading {
@@ -389,9 +389,9 @@ import Button from '@/components/ui/Button.vue'
   @apply bg-platform-claude/10 text-platform-claude;
 }
 
-.gemini-module-card__icon--qoder {
-  color: var(--platform-qoder);
-  background: rgb(var(--color-platform-qoder-rgb) / 10%);
+.gemini-module-card__icon--secondary {
+  color: var(--color-accent-secondary);
+  background: rgb(var(--color-accent-secondary-rgb) / 10%);
 }
 
 .gemini-module-card__title {
@@ -425,8 +425,8 @@ import Button from '@/components/ui/Button.vue'
   @apply text-platform-claude;
 }
 
-.gemini-module-link:hover .gemini-module-card__title--qoder {
-  color: var(--platform-qoder);
+.gemini-module-link:hover .gemini-module-card__title--secondary {
+  color: var(--color-accent-secondary);
 }
 
 .gemini-module-card__badge--gemini {
@@ -443,10 +443,10 @@ import Button from '@/components/ui/Button.vue'
   @apply border-platform-claude/20 bg-platform-claude/10 text-platform-claude;
 }
 
-.gemini-module-card__badge--qoder {
-  color: var(--platform-qoder);
-  background: rgb(var(--color-platform-qoder-rgb) / 10%);
-  border-color: rgb(var(--color-platform-qoder-rgb) / 20%);
+.gemini-module-card__badge--secondary {
+  color: var(--color-accent-secondary);
+  background: rgb(var(--color-accent-secondary-rgb) / 10%);
+  border-color: rgb(var(--color-accent-secondary-rgb) / 20%);
 }
 
 .gemini-info-card {

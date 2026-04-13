@@ -175,44 +175,6 @@ fn list_gemini_mcp() -> Result<Vec<UnifiedMcpServer>, String> {
         .collect())
 }
 
-fn list_qwen_mcp() -> Result<Vec<UnifiedMcpServer>, String> {
-    let path = home_dir()?.join(".qwen").join("settings.json");
-    if !path.exists() {
-        return Ok(vec![]);
-    }
-    let content = fs::read_to_string(&path).map_err(|e| format!("Read qwen settings: {e}"))?;
-    let config: Value =
-        serde_json::from_str(&content).map_err(|e| format!("Parse qwen settings: {e}"))?;
-
-    let Some(servers) = config.get("mcpServers").and_then(|v| v.as_object()) else {
-        return Ok(vec![]);
-    };
-
-    Ok(servers
-        .iter()
-        .map(|(name, v)| UnifiedMcpServer {
-            platform: "qwen".into(),
-            name: name.clone(),
-            command: v.get("command").and_then(|c| c.as_str()).map(String::from),
-            url: v.get("url").and_then(|u| u.as_str()).map(String::from),
-            args: v
-                .get("args")
-                .and_then(|a| a.as_array())
-                .map(|a| {
-                    a.iter()
-                        .filter_map(|v| v.as_str().map(String::from))
-                        .collect()
-                })
-                .unwrap_or_default(),
-            env: v
-                .get("env")
-                .and_then(|e| serde_json::from_value(e.clone()).ok())
-                .unwrap_or_default(),
-            disabled: false,
-        })
-        .collect())
-}
-
 fn list_droid_mcp() -> Result<Vec<UnifiedMcpServer>, String> {
     let path = home_dir()?.join(".factory").join("settings.json");
     if !path.exists() {
@@ -271,11 +233,6 @@ fn capabilities() -> Vec<PlatformMcpCapability> {
             supports_url: false,
         },
         PlatformMcpCapability {
-            platform: "qwen".into(),
-            supports_toggle: false,
-            supports_url: true,
-        },
-        PlatformMcpCapability {
             platform: "droid".into(),
             supports_toggle: false,
             supports_url: true,
@@ -293,7 +250,7 @@ pub async fn unified_list_mcp_servers(
     platforms: Option<Vec<String>>,
 ) -> Result<serde_json::Value, String> {
     tokio::task::spawn_blocking(move || {
-        let all = ["claude", "codex", "gemini", "qwen", "droid"];
+        let all = ["claude", "codex", "gemini", "droid"];
         let targets: Vec<&str> = match &platforms {
             Some(p) if !p.is_empty() => all
                 .iter()
@@ -309,7 +266,6 @@ pub async fn unified_list_mcp_servers(
                 "claude" => list_claude_mcp(),
                 "codex" => list_codex_mcp(),
                 "gemini" => list_gemini_mcp(),
-                "qwen" => list_qwen_mcp(),
                 "droid" => list_droid_mcp(),
                 _ => continue,
             };
@@ -370,7 +326,7 @@ pub async fn unified_add_mcp_server(
                     .map(|servers| servers.insert(name.clone(), Value::Object(entry)));
                 write_claude_config_for_unified(&cc)?;
             }
-            "codex" | "gemini" | "qwen" | "droid" => {
+            "codex" | "gemini" | "droid" => {
                 let (path, key) = platform_config_info(&platform)?;
                 let mut cfg = read_json_config(&path)?;
                 let servers = cfg
@@ -411,7 +367,7 @@ pub async fn unified_delete_mcp_server(platform: String, name: String) -> Result
                 }
                 write_claude_config_for_unified(&cc)?;
             }
-            "codex" | "gemini" | "qwen" | "droid" => {
+            "codex" | "gemini" | "droid" => {
                 let (path, key) = platform_config_info(&platform)?;
                 let mut cfg = read_json_config(&path)?;
                 let removed = cfg
@@ -442,10 +398,6 @@ fn platform_config_info(platform: &str) -> Result<(PathBuf, String), String> {
         )),
         "gemini" => Ok((
             home.join(".gemini").join("settings.json"),
-            "mcpServers".into(),
-        )),
-        "qwen" => Ok((
-            home.join(".qwen").join("settings.json"),
             "mcpServers".into(),
         )),
         "droid" => Ok((

@@ -93,18 +93,6 @@ const routes: RouteRecordRaw[] = [
         meta: { depth: 1, group: 'gemini', hideGlobalBackground: true },
       },
       {
-        path: 'qwen',
-        name: 'qwen',
-        component: () => import('@/views/QwenView.vue'),
-        meta: { depth: 1, group: 'qwen', hideGlobalBackground: true },
-      },
-      {
-        path: 'qoder',
-        name: 'qoder',
-        component: () => import('@/views/QoderView.vue'),
-        meta: { depth: 1, group: 'qoder', hideGlobalBackground: true },
-      },
-      {
         path: 'droid',
         name: 'droid',
         component: () => import('@/views/DroidView.vue'),
@@ -322,26 +310,6 @@ const routes: RouteRecordRaw[] = [
         name: 'gemini-slash-commands',
         component: () => import('@/views/GeminiSlashCommandsView.vue'),
         meta: { depth: 2, group: 'gemini' },
-      },
-      // Qwen 子页面 (depth: 2, group: 'qwen')
-      {
-        path: 'qwen/slash-commands',
-        name: 'qwen-slash-commands',
-        component: () => import('@/views/QwenSlashCommandsView.vue'),
-        meta: { depth: 2, group: 'qwen' },
-      },
-      // Qoder 子页面 (depth: 2, group: 'qoder')
-      {
-        path: 'qoder/commands',
-        name: 'qoder-commands',
-        component: () => import('@/views/QoderCommandsView.vue'),
-        meta: { depth: 2, group: 'qoder' },
-      },
-      {
-        path: 'qoder/hooks',
-        name: 'qoder-hooks',
-        component: () => import('@/views/QoderHooksView.vue'),
-        meta: { depth: 2, group: 'qoder' },
       },
       // Droid 子页面 (depth: 2, group: 'droid')
       {

@@ -46,9 +46,6 @@
               <option value="gemini">
                 Gemini
               </option>
-              <option value="qwen">
-                Qwen
-              </option>
             </select>
             <select
               v-model="selectedDays"

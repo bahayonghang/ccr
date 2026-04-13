@@ -7,7 +7,7 @@
 ### 核心功能
 - **配置管理**：可视化查看、切换、验证、导入/导出、历史记录、备份管理，覆盖全部 CLI 能力
 - **命令执行**：图形化运行所有 CCR 命令，实时查看命令输出
-- **多平台支持**：统一管理 Claude Code、Codex、Gemini CLI、Qwen 等 AI 工具配置
+- **多平台支持**：统一管理 Claude Code、Codex、Gemini CLI、Factory Droid 等 AI 工具配置
 - **WebDAV 同步**：多目录同步、注册管理、批量与单目录 push/pull/status
 - **格式转换**：不同平台配置间的互相转换（Claude ↔ Codex ↔ Gemini）
 - **签到管理**：中转站多账号签到、余额查询、历史记录追踪
@@ -19,7 +19,7 @@
 | Claude Code | ✅ 完全支持 | Anthropic 官方 CLI | `~/.claude/settings.json` |
 | Codex | ✅ 完全支持 | Codex CLI | `~/.codex/config.json` |
 | Gemini CLI | ✅ 完全支持 | Google Gemini CLI | `~/.gemini/settings.json` |
-| Qwen | ✅ 完全支持 | 阿里通义千问 CLI | `~/.qwen/config.json` |
+| Factory Droid | ✅ 完全支持 | Factory AI Droid CLI | `~/.factory/settings.json` |
 
 ## 快速开始
 
@@ -154,19 +154,14 @@ ccr/ (workspace root)
 **前缀：`/api/gemini-cli/`**
 支持 MCP、Agents、Slash Commands、Plugins、Config 管理
 
-### 4. Qwen API（28 个端点）
-
-**前缀：`/api/qwen/`**
-支持 MCP、Agents、Slash Commands、Plugins、Config 管理
-
-### 5. 工具类 API
+### 4. 工具类 API
 - `POST   /api/converter/convert` - 转换配置文件格式
 - `POST   /api/sync/claude-to-codex` - 从 Claude 同步到 Codex
 - `POST   /api/command/execute` - 执行 CCR CLI 命令
 - `GET    /api/system/info` - 获取系统信息
 - `GET    /api/version` - 获取后端版本
 
-### 6. CCR 核心 API
+### 5. CCR 核心 API
 - `GET    /api/configs` - 列出所有配置
 - `POST   /api/switch` - 切换配置
 - `POST   /api/validate` - 验证配置
@@ -212,15 +207,6 @@ ccr/ (workspace root)
 /gemini-cli/agents       - Agents 管理
 /gemini-cli/slash-commands
 /gemini-cli/plugins
-```
-
-### Qwen 路由
-```
-/qwen                    - Qwen 概览
-/qwen/mcp                - MCP 服务器管理
-/qwen/agents             - Agents 管理
-/qwen/slash-commands
-/qwen/plugins
 ```
 
 ## 手动开发（不依赖 just）
@@ -459,7 +445,7 @@ kill -9 <PID>
 - **Claude Code**: `~/.claude/settings.json`
 - **Codex**: `~/.codex/config.json`
 - **Gemini CLI**: `~/.gemini/settings.json`
-- **Qwen**: `~/.qwen/config.json`
+- **Factory Droid**: `~/.factory/settings.json`
 
 ### CCR UI 相关
 - **日志**: `~/.ccr/logs/` 或 `./ccr-ui/logs/`
@@ -483,7 +469,7 @@ A:
 - Claude Code: `~/.claude/settings.json`
 - Codex: `~/.codex/config.json`
 - Gemini: `~/.gemini/settings.json`
-- Qwen: `~/.qwen/config.json`
+- Factory Droid: `~/.factory/settings.json`
 
 ### Q: 如何添加新的 CLI 工具支持？
 A:

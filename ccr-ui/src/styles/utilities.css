@@ -452,14 +452,6 @@
         color: var(--color-platform-gemini);
     }
 
-    .platform-qwen {
-        color: var(--color-platform-qwen);
-    }
-
-    .platform-qoder {
-        color: var(--color-platform-qoder);
-    }
-
     .bg-platform-claude {
         background: var(--color-platform-claude);
     }
@@ -470,14 +462,6 @@
 
     .bg-platform-gemini {
         background: var(--color-platform-gemini);
-    }
-
-    .bg-platform-qwen {
-        background: var(--color-platform-qwen);
-    }
-
-    .bg-platform-qoder {
-        background: var(--color-platform-qoder);
     }
 
     /* ========== 表格样式 ========== */

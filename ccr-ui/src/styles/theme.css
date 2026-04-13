@@ -28,8 +28,6 @@
     --platform-claude: var(--color-platform-claude);
     --platform-codex: var(--color-platform-codex);
     --platform-gemini: var(--color-platform-gemini);
-    --platform-qwen: var(--color-platform-qwen);
-    --platform-qoder: var(--color-platform-qoder);
     --color-accent-danger: var(--color-danger);
     --color-accent-info: var(--color-info);
     --color-accent-tertiary-rgb: var(--color-info-rgb);

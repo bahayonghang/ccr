@@ -90,7 +90,7 @@ enum CliProbeMode {
     Full,
 }
 
-const CLI_VERSION_TOOLS: [&str; 6] = ["ccr", "claude", "codex", "gemini", "qwen", "qoder"];
+const CLI_VERSION_TOOLS: [&str; 5] = ["ccr", "claude", "codex", "gemini", "droid"];
 
 #[derive(Debug, Clone)]
 struct CliProbeTarget {
@@ -359,8 +359,7 @@ fn cli_command_name(tool: &str) -> Option<&'static str> {
         "claude" => Some("claude"),
         "codex" => Some("codex"),
         "gemini" => Some("gemini"),
-        "qwen" => Some("qwen"),
-        "qoder" => Some("qodercli"),
+        "droid" => Some("droid"),
         _ => None,
     }
 }
@@ -390,7 +389,7 @@ fn build_cli_probe_targets(statuses: Option<&[CliStatus]>) -> Vec<CliProbeTarget
 
             if *platform == "ccr" {
                 return Some(CliProbeTarget {
-                    platform: *platform,
+                    platform,
                     program: fallback_program,
                     installed: None,
                 });
@@ -404,7 +403,7 @@ fn build_cli_probe_targets(statuses: Option<&[CliStatus]>) -> Vec<CliProbeTarget
 
                     match status {
                         Some(entry) if entry.installed => Some(CliProbeTarget {
-                            platform: *platform,
+                            platform,
                             program: entry
                                 .path
                                 .clone()
@@ -413,14 +412,14 @@ fn build_cli_probe_targets(statuses: Option<&[CliStatus]>) -> Vec<CliProbeTarget
                             installed: Some(true),
                         }),
                         Some(_) | None => Some(CliProbeTarget {
-                            platform: *platform,
+                            platform,
                             program: fallback_program,
                             installed: Some(false),
                         }),
                     }
                 }
                 None => Some(CliProbeTarget {
-                    platform: *platform,
+                    platform,
                     program: fallback_program,
                     installed: None,
                 }),
@@ -493,8 +492,7 @@ fn normalize_cli_tool(tool: &str) -> Option<&'static str> {
         "claude" => Some("claude"),
         "codex" => Some("codex"),
         "gemini" => Some("gemini"),
-        "qwen" => Some("qwen"),
-        "qoder" | "qodercli" => Some("qoder"),
+        "droid" => Some("droid"),
         _ => None,
     }
 }
@@ -695,7 +693,8 @@ pub async fn get_cli_versions(
             }
             CacheFillRegistration::Leader => {
                 let statuses = get_active_cli_statuses(&state).await.ok();
-                let result = compute_cli_versions(timeout_ms, parallelism, statuses.as_deref()).await;
+                let result =
+                    compute_cli_versions(timeout_ms, parallelism, statuses.as_deref()).await;
                 let entries = match result {
                     Ok(entries) => entries,
                     Err(error) => {
@@ -710,9 +709,7 @@ pub async fn get_cli_versions(
                         return Err(format!("CLI version cache encode failed: {error}"));
                     }
                 };
-                state
-                    .cache_set(cache_key.clone(), cached_entries, 60)
-                    .await;
+                state.cache_set(cache_key.clone(), cached_entries, 60).await;
                 state.finish_cache_fill(&cache_key).await;
                 return Ok(cli_versions_payload(entries, mode, timeout_ms, parallelism));
             }
@@ -763,14 +760,14 @@ mod tests {
                 .get("versions")
                 .and_then(|v| v.as_object())
                 .map(|m| m.len()),
-            Some(6)
+            Some(5)
         );
         assert_eq!(
             payload
                 .get("entries")
                 .and_then(|v| v.as_array())
                 .map(|a| a.len()),
-            Some(6)
+            Some(5)
         );
 
         // fast 模式下应在合理时间内返回，避免回归导致探测超时
@@ -781,8 +778,7 @@ mod tests {
     fn normalize_cli_tool_rejects_unknown_tool() {
         assert_eq!(normalize_cli_tool("codex"), Some("codex"));
         assert_eq!(normalize_cli_tool(" CODEX "), Some("codex"));
-        assert_eq!(normalize_cli_tool("qwen"), Some("qwen"));
-        assert_eq!(normalize_cli_tool("qodercli"), Some("qoder"));
+        assert_eq!(normalize_cli_tool("droid"), Some("droid"));
         assert_eq!(normalize_cli_tool("unknown"), None);
     }
 
@@ -802,16 +798,16 @@ mod tests {
                 version: None,
             },
             CliStatus {
-                name: "qoder".to_string(),
+                name: "droid".to_string(),
                 installed: true,
-                path: Some("C:/tools/qodercli.cmd".to_string()),
+                path: Some("C:/tools/droid.cmd".to_string()),
                 version: None,
             },
         ];
 
         let targets = build_cli_probe_targets(Some(&statuses));
 
-        assert_eq!(targets.len(), 6);
+        assert_eq!(targets.len(), 5);
         assert_eq!(targets[0].platform, "ccr");
         assert_eq!(targets[1].platform, "claude");
         assert_eq!(targets[1].installed, Some(false));
@@ -820,10 +816,8 @@ mod tests {
         assert_eq!(targets[2].installed, Some(true));
         assert_eq!(targets[3].platform, "gemini");
         assert_eq!(targets[3].installed, Some(false));
-        assert_eq!(targets[4].platform, "qwen");
-        assert_eq!(targets[4].installed, Some(false));
-        assert_eq!(targets[5].platform, "qoder");
-        assert_eq!(targets[5].program, "C:/tools/qodercli.cmd");
+        assert_eq!(targets[4].platform, "droid");
+        assert_eq!(targets[4].program, "C:/tools/droid.cmd");
     }
 
     #[tokio::test]

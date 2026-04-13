@@ -71,7 +71,7 @@
           class="text-xs"
           :style="{ color: 'var(--text-muted)' }"
         >
-          Claude Code • Codex • Gemini • Qwen • QODER
+          Claude Code • Codex • Gemini
         </p>
       </footer>
     </div>

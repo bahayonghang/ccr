@@ -53,7 +53,6 @@ vi.mock('@/i18n', () => ({
 
 const translationTemplates: Record<string, string> = {
   'usage.dashboard.allPlatforms': 'All Platforms',
-  'usage.platforms.qwen': 'Qwen',
   'usage.dashboard.days7': '7 Days',
   'usage.dashboard.days30': '30 Days',
   'usage.dashboard.days90': '90 Days',
@@ -256,18 +255,18 @@ describe('usage dashboard state smoke', () => {
     }
   })
 
-  it('accepts qwen as a dashboard filter platform', async () => {
+  it('accepts codex as a dashboard filter platform', async () => {
     tauriRuntime = true
     const { state, unmount } = await mountComposable()
 
     try {
-      state.selectedPlatform.value = 'qwen'
+      state.selectedPlatform.value = 'codex'
       state.onFilterChange()
 
       expect(usageStore.setFilters).toHaveBeenCalledWith(expect.objectContaining({
-        platform: 'qwen',
+        platform: 'codex',
       }))
-      expect(state.selectedPlatformLabel.value).toBe('Qwen')
+      expect(state.selectedPlatformLabel.value).toBe('Codex')
     } finally {
       unmount()
     }

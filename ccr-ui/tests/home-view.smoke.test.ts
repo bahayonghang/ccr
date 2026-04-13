@@ -23,7 +23,7 @@ vi.mock('@/api/runtime/system', () => ({
       { platform: 'claude', installed: true, version: '1.0.0', status: 'ok' },
       { platform: 'codex', installed: true, version: '2.1.0', status: 'ok' },
       { platform: 'gemini', installed: true, version: '3.2.0', status: 'ok' },
-      { platform: 'qoder', installed: true, version: '0.1.0', status: 'ok' },
+      { platform: 'droid', installed: true, version: '0.1.0', status: 'ok' },
     ],
   })),
 }))
@@ -109,7 +109,7 @@ describe('HomeView smoke', () => {
       expect(el.querySelector('.page-header-card')).toBeNull()
       expect(el.textContent).toContain('11.4%')
       expect(el.textContent).toContain('27.3%')
-      expect(el.textContent).toContain('3/4')
+      expect(el.textContent).toContain('3/3')
     } finally {
       unmount()
     }

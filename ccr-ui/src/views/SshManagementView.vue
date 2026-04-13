@@ -433,12 +433,6 @@ defineExpose({ sshListKeys, discoveredKeys })
           <option value="gemini">
             gemini
           </option>
-          <option value="qwen">
-            qwen
-          </option>
-          <option value="qoder">
-            qoder
-          </option>
           <option value="droid">
             droid
           </option>

@@ -317,9 +317,7 @@ const runtimeCopy = computed(() => getRuntimeUnavailableCopy('commands'))
 const CLI_CLIENTS = [
   { id: 'ccr' as CliClient, name: 'CCR', icon: 'Zap', surfaceClass: 'bg-accent-primary/10', textClass: 'text-accent-primary' },
   { id: 'claude' as CliClient, name: 'Claude Code', icon: 'Code2', surfaceClass: 'bg-accent-secondary/10', textClass: 'text-accent-secondary' },
-  { id: 'qwen' as CliClient, name: 'Qwen', icon: 'Sparkles', surfaceClass: 'bg-accent-warning/10', textClass: 'text-accent-warning' },
   { id: 'gemini' as CliClient, name: 'Gemini', icon: 'Gem', surfaceClass: 'bg-accent-info/10', textClass: 'text-accent-info' },
-  { id: 'qoder' as CliClient, name: 'Qoder CLI', icon: 'Workflow', surfaceClass: 'bg-accent-primary/10', textClass: 'text-accent-primary' },
 ]
 
 const selectedClient = ref<CliClient>('ccr')
@@ -341,20 +339,10 @@ const fallbackCommandRegistry: Record<CliClient, CommandInfo[]> = {
     { name: 'version', description: 'Inspect Claude Code CLI version.', usage: 'claude --version', examples: ['claude --version'] },
     { name: 'login', description: 'Authenticate Claude Code.', usage: 'claude login', examples: ['claude login'] },
   ],
-  qwen: [
-    { name: 'help', description: 'Inspect Qwen CLI help.', usage: 'qwen --help', examples: ['qwen --help'] },
-    { name: 'version', description: 'Inspect Qwen CLI version.', usage: 'qwen --version', examples: ['qwen --version'] },
-    { name: 'login', description: 'Authenticate Qwen CLI.', usage: 'qwen login', examples: ['qwen login'] },
-  ],
   gemini: [
     { name: 'help', description: 'Inspect Gemini CLI help.', usage: 'gemini --help', examples: ['gemini --help'] },
     { name: 'version', description: 'Inspect Gemini CLI version.', usage: 'gemini --version', examples: ['gemini --version'] },
     { name: 'login', description: 'Authenticate Gemini CLI.', usage: 'gemini login', examples: ['gemini login'] },
-  ],
-  qoder: [
-    { name: 'help', description: 'Inspect Qoder CLI help.', usage: 'qodercli --help', examples: ['qodercli --help'] },
-    { name: 'version', description: 'Inspect Qoder CLI version.', usage: 'qodercli --version', examples: ['qodercli --version'] },
-    { name: 'login', description: 'Authenticate Qoder CLI.', usage: 'qodercli login', examples: ['qodercli login'] },
   ],
 }
 
@@ -472,7 +460,6 @@ const setSelectedCommand = (command: string) => {
 }
 
 const resolveClientBinary = (client: CliClient): string => {
-  if (client === 'qoder') return 'qodercli'
   return client
 }
 

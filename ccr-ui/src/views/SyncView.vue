@@ -194,24 +194,6 @@ const optionalItems = ref<SyncSelectableItem[]>([
     localPath: '~/.gemini/',
     remotePath: '',
     selected: false
-  },
-  {
-    key: 'qwen',
-    name: 'Qwen',
-    description: '通义千问 CLI 配置和数据',
-    icon: 'Cloud',
-    localPath: '~/.qwen/',
-    remotePath: '',
-    selected: false
-  },
-  {
-    key: 'qoder',
-    name: 'Qoder',
-    description: 'Qoder CLI 配置和数据',
-    icon: 'Cloud',
-    localPath: '~/.qoder/',
-    remotePath: '',
-    selected: false
   }
 ])
 

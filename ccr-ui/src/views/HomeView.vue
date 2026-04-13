@@ -389,8 +389,6 @@ const CLI_PLATFORM_ALIASES: Record<string, string> = {
   codex: 'codex',
   gemini: 'gemini-cli',
   'gemini-cli': 'gemini-cli',
-  qwen: 'qwen',
-  qoder: 'qoder',
 }
 
 const normalizeHomeCliPlatform = (platform: string) => {
@@ -623,26 +621,6 @@ const mainModules = computed<HomeModule[]>(() => [
     platformKey: 'gemini-cli',
     statusMode: 'cli',
     showInHero: true,
-  },
-  {
-    title: t('home.qwenTitle'),
-    desc: t('home.qwenDesc'),
-    path: '/qwen',
-    icon: 'Zap',
-    iconClass: 'text-platform-qwen',
-    platformKey: 'qwen',
-    statusMode: 'cli',
-    showInHero: true,
-  },
-  {
-    title: t('home.qoderTitle'),
-    desc: t('home.qoderDesc'),
-    path: '/qoder',
-    icon: 'Workflow',
-    iconClass: 'text-platform-qoder',
-    platformKey: 'qoder',
-    statusMode: 'cli',
-    showInHero: false,
   },
   {
     title: t('home.factoryDroidTitle'),

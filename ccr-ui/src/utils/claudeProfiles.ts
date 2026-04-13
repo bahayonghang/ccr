@@ -6,7 +6,7 @@ export const CLAUDE_PROFILE_UNSET_PROVIDER_KEY = '__unset_provider__'
 
 /** Provider 色彩配置对象 */
 export interface ProviderColorConfig {
-  /** 平台标识键 (如 'claude', 'codex', 'gemini', 'qwen') */
+  /** 平台标识键 (如 'claude', 'codex', 'gemini') */
   key: string
   /** CSS 变量名 (如 '--color-platform-claude') */
   cssVar: string
@@ -24,8 +24,6 @@ const PROVIDER_COLOR_MAP: Record<string, ProviderColorConfig> = {
   codex: { key: 'codex', cssVar: '--color-platform-codex', rgbVar: '--color-platform-codex-rgb', tailwindClass: 'platform-codex' },
   google: { key: 'gemini', cssVar: '--color-platform-gemini', rgbVar: '--color-platform-gemini-rgb', tailwindClass: 'platform-gemini' },
   gemini: { key: 'gemini', cssVar: '--color-platform-gemini', rgbVar: '--color-platform-gemini-rgb', tailwindClass: 'platform-gemini' },
-  qwen: { key: 'qwen', cssVar: '--color-platform-qwen', rgbVar: '--color-platform-qwen-rgb', tailwindClass: 'platform-qwen' },
-  alibaba: { key: 'qwen', cssVar: '--color-platform-qwen', rgbVar: '--color-platform-qwen-rgb', tailwindClass: 'platform-qwen' },
 }
 
 /** 默认回退色彩 (accent-secondary 紫) */
@@ -64,8 +62,6 @@ const PROVIDER_ICON_MAP: Record<string, string> = {
   codex: 'Cpu',
   google: 'Globe',
   gemini: 'Globe',
-  qwen: 'Wind',
-  alibaba: 'Wind',
 }
 
 /**

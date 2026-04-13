@@ -1,7 +1,7 @@
 /**
  * usePlatformPlugins - 通用平台插件管理 Composable
  *
- * 消除各平台 Plugins 视图中的重复代码（GeminiPluginsView、QwenPluginsView、QoderPluginsView）
+ * 消除各平台 Plugins 视图中的重复代码（GeminiPluginsView）
  *
  * @example
  * const { plugins, loading, loadPlugins, addPlugin, updatePlugin, deletePlugin, togglePlugin } = usePlatformPlugins('gemini')
@@ -11,8 +11,6 @@ import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useUIStore } from '@/stores/ui'
 import { listGeminiPlugins, addGeminiPlugin, updateGeminiPlugin, deleteGeminiPlugin, toggleGeminiPlugin } from '@/api'
-import { listQwenPlugins, addQwenPlugin, updateQwenPlugin, deleteQwenPlugin, toggleQwenPlugin } from '@/api'
-import { listQoderPlugins, addQoderPlugin, updateQoderPlugin, deleteQoderPlugin, toggleQoderPlugin } from '@/api'
 import { genericPlatformDescriptors } from '@/config/platformDescriptors'
 import type { Plugin as PluginType, PluginRequest } from '@/types'
 import { logger } from '@/utils/logger'
@@ -20,7 +18,7 @@ import { logger } from '@/utils/logger'
 // ============ 类型定义 ============
 
 /** 支持的平台类型 */
-export type PluginPlatformType = 'gemini' | 'qwen' | 'qoder'
+export type PluginPlatformType = 'gemini'
 
 /** 平台配置 */
 interface PlatformPluginConfig {
@@ -48,28 +46,6 @@ const platformConfigs: Record<PluginPlatformType, PlatformPluginConfig> = {
         updateApi: updateGeminiPlugin,
         deleteApi: deleteGeminiPlugin,
         toggleApi: toggleGeminiPlugin,
-    },
-    qwen: {
-        color: genericPlatformDescriptors.qwen.color,
-        i18nPrefix: genericPlatformDescriptors.qwen.plugins!.i18nPrefix,
-        parentPath: `/${genericPlatformDescriptors.qwen.rootPath}`,
-        sidebarModule: genericPlatformDescriptors.qwen.plugins!.sidebarModule,
-        listApi: listQwenPlugins,
-        addApi: addQwenPlugin,
-        updateApi: updateQwenPlugin,
-        deleteApi: deleteQwenPlugin,
-        toggleApi: toggleQwenPlugin,
-    },
-    qoder: {
-        color: genericPlatformDescriptors.qoder.color,
-        i18nPrefix: genericPlatformDescriptors.qoder.plugins!.i18nPrefix,
-        parentPath: `/${genericPlatformDescriptors.qoder.rootPath}`,
-        sidebarModule: genericPlatformDescriptors.qoder.plugins!.sidebarModule,
-        listApi: listQoderPlugins,
-        addApi: addQoderPlugin,
-        updateApi: updateQoderPlugin,
-        deleteApi: deleteQoderPlugin,
-        toggleApi: toggleQoderPlugin,
     },
 }
 

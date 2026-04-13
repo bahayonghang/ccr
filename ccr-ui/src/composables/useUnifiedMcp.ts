@@ -46,11 +46,10 @@ export const PLATFORM_META: Record<UnifiedMcpPlatform, PlatformMeta> = {
     claude: { id: 'claude', label: 'Claude Code', color: '#d97706', icon: 'terminal' },
     codex: { id: 'codex', label: 'Codex', color: '#10b981', icon: 'code' },
     gemini: { id: 'gemini', label: 'Gemini CLI', color: '#8b5cf6', icon: 'sparkles' },
-    qwen: { id: 'qwen', label: 'Qwen', color: '#14b8a6', icon: 'brain' },
     droid: { id: 'droid', label: 'Droid', color: '#ec4899', icon: 'bot' },
 }
 
-export const ALL_PLATFORMS: UnifiedMcpPlatform[] = ['claude', 'codex', 'gemini', 'qwen', 'droid']
+export const ALL_PLATFORMS: UnifiedMcpPlatform[] = ['claude', 'codex', 'gemini', 'droid']
 
 // ============ Composable ============
 

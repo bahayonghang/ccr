@@ -19,7 +19,6 @@ CCR UI 是基于 **Tauri v2** 的原生桌面应用，为多个 AI CLI 工具提
 - **Claude Code** - MCP 服务器、Agents、斜杠命令、插件、Settings、Hooks
 - **Codex** - Profiles、MCP、Agents、斜杠命令、插件、Auth
 - **Gemini CLI** - Settings、MCP、Agents、斜杠命令、插件
-- **Qwen** - Settings、MCP、Agents、斜杠命令、插件
 - **Droid** - Settings、MCP、Agents、Plugins、Models、Profiles
 - **OpenCode** - Settings、Keybindings、Themes、Providers、MCP
 
@@ -37,7 +36,6 @@ ccr-ui/
 │   │   │   ├── claude.rs          # Claude Code 平台
 │   │   │   ├── codex.rs           # Codex 平台
 │   │   │   ├── gemini.rs          # Gemini 平台
-│   │   │   ├── qwen.rs            # Qwen 平台
 │   │   │   ├── droid.rs           # Droid 平台
 │   │   │   ├── opencode.rs        # OpenCode 平台
 │   │   │   ├── checkin.rs         # CheckIn 签到

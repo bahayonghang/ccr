@@ -7,9 +7,7 @@ const landingViewPaths = [
   '../src/views/ClaudeCodeView.vue',
   '../src/views/CodexView.vue',
   '../src/views/GeminiCliView.vue',
-  '../src/views/QwenView.vue',
   '../src/views/DroidView.vue',
-  '../src/views/QoderView.vue',
 ]
 
 const forbiddenStageUtilities = /\btext-white(?:\/|\b)|\bbg-white\/|\bborder-white\//

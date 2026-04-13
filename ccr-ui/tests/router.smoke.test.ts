@@ -7,9 +7,7 @@ describe('router smoke', () => {
       'home',
       'codex',
       'gemini-mcp',
-      'qwen-agents',
-      'qoder',
-      'qoder-subagents',
+      'droid',
       'droid-mcp',
       'usage',
       'monitoring',
@@ -42,8 +40,6 @@ describe('router smoke', () => {
     const routePaths = router.getRoutes().map((route) => route.path)
 
     expect(routePaths).toContain('/gemini-cli/mcp')
-    expect(routePaths).toContain('/qwen/agents')
-    expect(routePaths).toContain('/qoder/subagents')
     expect(routePaths).toContain('/droid/mcp')
   })
 
@@ -51,8 +47,6 @@ describe('router smoke', () => {
     const routeNames = [
       'claude-code',
       'gemini-cli',
-      'qwen',
-      'qoder',
       'droid',
       'sync',
       'configs',

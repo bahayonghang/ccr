@@ -29,18 +29,6 @@ const moduleSubnavMap: Record<string, ModuleSubnavItem[]> = {
     { label: 'Slash Commands', href: '/gemini-cli/slash-commands', icon: 'Command' },
     { label: 'Plugins', href: '/gemini-cli/plugins', icon: 'Puzzle' },
   ],
-  qwen: [
-    { label: 'MCP', href: '/qwen/mcp', icon: 'Server' },
-    { label: 'Agents', href: '/qwen/agents', icon: 'Bot' },
-    { label: 'Slash Commands', href: '/qwen/slash-commands', icon: 'Command' },
-    { label: 'Plugins', href: '/qwen/plugins', icon: 'Puzzle' },
-  ],
-  qoder: [
-    { label: 'MCP', href: '/qoder/mcp', icon: 'Server' },
-    { label: 'Subagents', href: '/qoder/subagents', icon: 'Bot' },
-    { label: 'Commands', href: '/qoder/commands', icon: 'Command' },
-    { label: 'Hooks', href: '/qoder/hooks', icon: 'Webhook' },
-  ],
   droid: [
     { label: 'MCP', href: '/droid/mcp', icon: 'Server' },
     { label: 'Agents', href: '/droid/agents', icon: 'Bot' },

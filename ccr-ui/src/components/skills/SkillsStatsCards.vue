@@ -143,8 +143,6 @@ function getPlatformIcon(platformId: string) {
     'claude-code': 'Code2',
     'codex': 'Settings',
     'gemini': GeminiIcon,
-    'qwen': 'Zap',
-    'qoder': 'Activity',
     'droid': 'Bot'
   }
   return iconMap[platformId] || 'Code2'

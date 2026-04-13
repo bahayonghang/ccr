@@ -374,8 +374,6 @@ const {
 const sidebarModule = computed(() => {
   const moduleMap: Record<PlatformType, string> = {
     gemini: 'gemini-cli',
-    qwen: 'qwen',
-    qoder: 'qoder',
     droid: 'droid',
   }
   return moduleMap[props.platform]

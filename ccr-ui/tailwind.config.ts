@@ -73,7 +73,6 @@ export default {
           claude: 'rgb(var(--color-platform-claude-rgb) / <alpha-value>)',
           codex: 'rgb(var(--color-platform-codex-rgb) / <alpha-value>)',
           gemini: 'rgb(var(--color-platform-gemini-rgb) / <alpha-value>)',
-          qwen: 'rgb(var(--color-platform-qwen-rgb) / <alpha-value>)',
         },
         border: {
           subtle: 'rgb(var(--color-border-subtle-rgb) / <alpha-value>)',

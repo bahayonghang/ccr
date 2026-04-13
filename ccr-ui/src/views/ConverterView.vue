@@ -647,8 +647,7 @@ const CLI_DEFINITIONS: { value: CliType; label: string; descriptionKey: string }
   { value: 'claude-code', label: 'Claude Code', descriptionKey: 'converter.formatDescriptions.claudeCode' },
   { value: 'codex', label: 'Codex', descriptionKey: 'converter.formatDescriptions.codex' },
   { value: 'gemini', label: 'Gemini', descriptionKey: 'converter.formatDescriptions.gemini' },
-  { value: 'qwen', label: 'Qwen', descriptionKey: 'converter.formatDescriptions.qwen' },
-  { value: 'qoder', label: 'Qoder', descriptionKey: 'converter.formatDescriptions.qoder' }
+  { value: 'droid', label: 'Droid', descriptionKey: 'converter.formatDescriptions.droid' }
 ]
 
 const cliTypes = computed(() =>

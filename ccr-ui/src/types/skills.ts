@@ -33,18 +33,6 @@ export const PLATFORM_CONFIG: Record<Platform, PlatformTheme> = {
     color: '#60A5FA',
     tailwindColor: 'blue-400',
   },
-  qwen: {
-    displayName: 'Qwen',
-    icon: 'Zap',
-    color: '#22D3EE',
-    tailwindColor: 'cyan-400',
-  },
-  qoder: {
-    displayName: 'Qoder',
-    icon: 'Activity',
-    color: '#FBBF24',
-    tailwindColor: 'amber-400',
-  },
   droid: {
     displayName: 'Droid',
     icon: 'Bot',
