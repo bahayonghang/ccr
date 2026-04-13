@@ -23,4 +23,6 @@ pub use codex_session_service::{
     CodexSessionDetail, CodexSessionExport, CodexSessionMessage, CodexSessionService,
     CodexSessionSummary,
 };
-pub use codex_usage_service::{CodexRollingUsage, CodexUsageService};
+pub use codex_usage_service::{
+    CodexRollingUsage, CodexUsageRecord, CodexUsageService, CodexUsageStats,
+};

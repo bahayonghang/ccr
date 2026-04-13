@@ -2,10 +2,11 @@
 // Manages the Codex multi-account selector state
 
 use crate::models::{
-    CodexAccountQuota, CodexAuthItem, CodexRuntimeSummary, LoginState, TokenFreshness,
+    CodexAccountQuota, CodexAuthItem, CodexAuthRegistry, CodexRuntimeSummary, LoginState,
+    TokenFreshness,
 };
 use crate::services::AuthReadSnapshot;
-use crate::services::{CodexAuthService, CodexRollingUsage};
+use crate::services::{CodexAuthService, CodexRollingUsage, CodexUsageRecord, CodexUsageService};
 use crate::tui::overlay::Overlay;
 use ccr_core::core::error::Result;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers, MouseButton, MouseEvent, MouseEventKind};
@@ -17,10 +18,47 @@ use std::sync::mpsc::TryRecvError;
 
 use crate::tui::runtime::TuiApp;
 use crate::tui::toast::{Toast, ToastManager};
+use indexmap::IndexMap;
 use std::path::PathBuf;
 
 /// Maximum accounts per page
 pub const PAGE_SIZE: usize = 10;
+
+#[derive(Debug, Clone)]
+pub struct CodexUsageDataset {
+    pub records: Vec<CodexUsageRecord>,
+    pub global: CodexRollingUsage,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum CodexUsageScope {
+    GlobalRuntime,
+    AccountAttributed { account_name: String },
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CodexUsageAttributionState {
+    GlobalOnly,
+    AccountAttributed,
+    VirtualAccount,
+    UnattributedFallback,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CodexUsageTopModel {
+    pub model: String,
+    pub total_tokens: u64,
+    pub total_requests: u64,
+}
+
+#[derive(Debug, Clone)]
+pub struct CodexAuthUsagePanelData {
+    pub scope: CodexUsageScope,
+    pub attribution_state: CodexUsageAttributionState,
+    pub rolling: CodexRollingUsage,
+    pub top_model: Option<CodexUsageTopModel>,
+    pub fallback_reason: Option<String>,
+}
 
 /// Usage data state
 #[derive(Debug, Clone)]
@@ -29,7 +67,7 @@ pub enum UsageState {
     #[allow(dead_code)]
     Loading,
     /// Loaded successfully
-    Loaded(CodexRollingUsage),
+    Loaded(CodexUsageDataset),
     /// Load failed
     Error(String),
     /// No data
@@ -42,11 +80,20 @@ pub enum QuotaState {
     /// 未查询
     Idle,
     /// 查询中
-    Loading,
+    Loading {
+        account_name: String,
+        cache: IndexMap<String, CodexAccountQuota>,
+    },
     /// 已加载
-    Loaded(Vec<CodexAccountQuota>),
+    Loaded {
+        cache: IndexMap<String, CodexAccountQuota>,
+    },
     /// 查询失败
-    Error(String),
+    Error {
+        account_name: String,
+        message: String,
+        cache: IndexMap<String, CodexAccountQuota>,
+    },
 }
 
 /// Codex Auth TUI application
@@ -65,6 +112,8 @@ pub struct CodexAuthApp {
     pub should_quit: bool,
     /// Login state
     pub login_state: LoginState,
+    /// Auth registry snapshot (contains CCR usage attribution ledger)
+    pub auth_registry: CodexAuthRegistry,
     /// Current runtime interpretation (profile/auth control plane summary)
     pub runtime_summary: Option<CodexRuntimeSummary>,
     /// Service instance
@@ -77,7 +126,7 @@ pub struct CodexAuthApp {
     pub quota_state: QuotaState,
     /// Quota async result receiver
     quota_rx:
-        Option<std::sync::mpsc::Receiver<std::result::Result<Vec<CodexAccountQuota>, String>>>,
+        Option<std::sync::mpsc::Receiver<std::result::Result<CodexAccountQuota, (String, String)>>>,
     /// Usage async result receiver
     usage_rx: Option<std::sync::mpsc::Receiver<UsageState>>,
     /// Codex directory
@@ -116,6 +165,7 @@ impl CodexAuthApp {
             toasts: ToastManager::new(),
             should_quit: false,
             login_state,
+            auth_registry: snapshot.registry.clone(),
             runtime_summary: service.get_runtime_summary().ok(),
             service,
             last_action: None,
@@ -133,6 +183,7 @@ impl CodexAuthApp {
 
     fn apply_snapshot(&mut self, snapshot: AuthReadSnapshot) -> Result<()> {
         self.login_state = snapshot.login_state.clone();
+        self.auth_registry = snapshot.registry.clone();
         self.accounts = self.service.build_account_items(&snapshot)?;
         self.runtime_summary = self.service.get_runtime_summary().ok();
 
@@ -149,15 +200,17 @@ impl CodexAuthApp {
             return UsageState::Error("无法获取用户目录".to_string());
         };
 
-        use crate::services::CodexUsageService;
         let usage_service = CodexUsageService::new(dir.clone());
 
-        match usage_service.compute_rolling_usage() {
-            Ok(usage) => {
-                if usage.all_time.total_requests == 0 {
+        match usage_service.parse_all_logs() {
+            Ok(records) => {
+                if records.is_empty() {
                     UsageState::NoData
                 } else {
-                    UsageState::Loaded(usage)
+                    UsageState::Loaded(CodexUsageDataset {
+                        global: CodexUsageService::compute_rolling_usage_for_records(&records),
+                        records,
+                    })
                 }
             }
             Err(e) => UsageState::Error(e.to_string()),
@@ -202,6 +255,193 @@ impl CodexAuthApp {
         page_accounts.get(self.selected_index)
     }
 
+    pub fn selected_quota(&self) -> Option<&CodexAccountQuota> {
+        let selected_name = self.selected_account()?.name.as_str();
+        self.quota_cache().get(selected_name)
+    }
+
+    pub fn is_selected_quota_loading(&self) -> bool {
+        match &self.quota_state {
+            QuotaState::Loading { account_name, .. } => self
+                .selected_account()
+                .is_some_and(|account| account.name == *account_name),
+            _ => false,
+        }
+    }
+
+    pub fn selected_quota_error(&self) -> Option<&str> {
+        match &self.quota_state {
+            QuotaState::Error {
+                account_name,
+                message,
+                ..
+            } if self
+                .selected_account()
+                .is_some_and(|account| account.name == *account_name) =>
+            {
+                Some(message.as_str())
+            }
+            _ => None,
+        }
+    }
+
+    fn quota_cache(&self) -> &IndexMap<String, CodexAccountQuota> {
+        match &self.quota_state {
+            QuotaState::Idle => {
+                static EMPTY: std::sync::OnceLock<IndexMap<String, CodexAccountQuota>> =
+                    std::sync::OnceLock::new();
+                EMPTY.get_or_init(IndexMap::new)
+            }
+            QuotaState::Loading { cache, .. }
+            | QuotaState::Loaded { cache }
+            | QuotaState::Error { cache, .. } => cache,
+        }
+    }
+
+    pub fn usage_panel_data(&self) -> Option<CodexAuthUsagePanelData> {
+        let UsageState::Loaded(dataset) = &self.usage_state else {
+            return None;
+        };
+
+        Some(Self::build_usage_panel_data(
+            dataset,
+            self.selected_account(),
+            &self.auth_registry,
+        ))
+    }
+
+    fn build_usage_panel_data(
+        dataset: &CodexUsageDataset,
+        selected_account: Option<&CodexAuthItem>,
+        registry: &CodexAuthRegistry,
+    ) -> CodexAuthUsagePanelData {
+        let global_top_model = Self::top_model_from_usage(&dataset.global);
+
+        let Some(selected_account) = selected_account else {
+            return CodexAuthUsagePanelData {
+                scope: CodexUsageScope::GlobalRuntime,
+                attribution_state: CodexUsageAttributionState::GlobalOnly,
+                rolling: dataset.global.clone(),
+                top_model: global_top_model,
+                fallback_reason: None,
+            };
+        };
+
+        if selected_account.is_virtual {
+            return CodexAuthUsagePanelData {
+                scope: CodexUsageScope::GlobalRuntime,
+                attribution_state: CodexUsageAttributionState::VirtualAccount,
+                rolling: dataset.global.clone(),
+                top_model: global_top_model,
+                fallback_reason: Some(
+                    "当前登录尚未保存为 CCR 账号，本地 usage 暂时只能按全局 runtime 展示"
+                        .to_string(),
+                ),
+            };
+        }
+
+        let Some(account_id) = registry
+            .accounts
+            .get(&selected_account.name)
+            .map(|account| account.account_id.as_str())
+        else {
+            return CodexAuthUsagePanelData {
+                scope: CodexUsageScope::GlobalRuntime,
+                attribution_state: CodexUsageAttributionState::UnattributedFallback,
+                rolling: dataset.global.clone(),
+                top_model: global_top_model,
+                fallback_reason: Some(
+                    "CCR 未找到该账号的归因元数据，以下为全局 runtime 统计".to_string(),
+                ),
+            };
+        };
+
+        let attributed_records =
+            Self::records_for_account(&dataset.records, account_id, &registry.usage_ledger);
+
+        if attributed_records.is_empty() {
+            return CodexAuthUsagePanelData {
+                scope: CodexUsageScope::GlobalRuntime,
+                attribution_state: CodexUsageAttributionState::UnattributedFallback,
+                rolling: dataset.global.clone(),
+                top_model: global_top_model,
+                fallback_reason: Some(
+                    "本地 Codex 日志不包含账号字段；该账号尚无可置信的 CCR 归因记录，以下为全局 runtime 统计"
+                        .to_string(),
+                ),
+            };
+        }
+
+        let rolling = CodexUsageService::compute_rolling_usage_for_records(&attributed_records);
+        let top_model = Self::top_model_from_usage(&rolling);
+
+        CodexAuthUsagePanelData {
+            scope: CodexUsageScope::AccountAttributed {
+                account_name: selected_account.name.clone(),
+            },
+            attribution_state: CodexUsageAttributionState::AccountAttributed,
+            rolling,
+            top_model,
+            fallback_reason: if dataset.global.all_time.total_requests
+                > attributed_records.len() as u64
+            {
+                Some(
+                    "仅展示已归因到该账号的本地记录；更早或未归因历史不会混入该账号统计"
+                        .to_string(),
+                )
+            } else {
+                None
+            },
+        }
+    }
+
+    fn top_model_from_usage(usage: &CodexRollingUsage) -> Option<CodexUsageTopModel> {
+        usage
+            .by_model
+            .iter()
+            .max_by_key(|(_, stats)| stats.total_input_tokens + stats.total_output_tokens)
+            .map(|(model, stats)| CodexUsageTopModel {
+                model: model.clone(),
+                total_tokens: stats.total_input_tokens + stats.total_output_tokens,
+                total_requests: stats.total_requests,
+            })
+    }
+
+    fn records_for_account(
+        records: &[CodexUsageRecord],
+        account_id: &str,
+        ledger: &[crate::models::CodexUsageActivation],
+    ) -> Vec<CodexUsageRecord> {
+        if ledger.is_empty() {
+            return Vec::new();
+        }
+
+        let mut sorted_ledger = ledger.to_vec();
+        sorted_ledger.sort_by_key(|entry| entry.started_at);
+
+        records
+            .iter()
+            .filter(|record| {
+                let Some((index, entry)) = sorted_ledger
+                    .iter()
+                    .enumerate()
+                    .rev()
+                    .find(|(_, entry)| record.timestamp >= entry.started_at)
+                else {
+                    return false;
+                };
+
+                if entry.account_id != account_id {
+                    return false;
+                }
+
+                let next_started_at = sorted_ledger.get(index + 1).map(|next| next.started_at);
+                next_started_at.is_none_or(|next_start| record.timestamp < next_start)
+            })
+            .cloned()
+            .collect()
+    }
+
     // ═══════════════════════════════════════════════════════════
     // Key handlers
     // ═══════════════════════════════════════════════════════════
@@ -213,8 +453,13 @@ impl CodexAuthApp {
             match key.code {
                 KeyCode::Char('y') | KeyCode::Char('Y') => {
                     self.pending_quota_confirm = false;
-                    self.start_quota_fetch();
-                    self.toasts.push(Toast::info("正在查询配额余额..."));
+                    self.ensure_selected_quota_loaded(true);
+                    let label = self
+                        .selected_account()
+                        .map(|account| account.name.as_str())
+                        .unwrap_or("当前账号");
+                    self.toasts
+                        .push(Toast::info(format!("正在查询账号配额: {}", label)));
                 }
                 _ => {
                     self.pending_quota_confirm = false;
@@ -288,7 +533,7 @@ impl CodexAuthApp {
                                     self.toasts.push(Toast::success(outcome.message));
                                     // 修复后刷新列表与配额
                                     self.reload_accounts()?;
-                                    self.start_quota_fetch();
+                                    self.ensure_selected_quota_loaded(true);
                                 } else {
                                     self.toasts.push(Toast::info(outcome.message));
                                 }
@@ -406,16 +651,19 @@ impl CodexAuthApp {
 
     /// Move selection up
     fn move_up(&mut self) {
+        let before = self.selected_account().map(|account| account.name.clone());
         if self.selected_index > 0 {
             self.selected_index -= 1;
         } else if self.current_page > 0 {
             self.current_page -= 1;
             self.selected_index = PAGE_SIZE - 1;
         }
+        self.maybe_request_quota_for_selection_change(before);
     }
 
     /// Move selection down
     fn move_down(&mut self) {
+        let before = self.selected_account().map(|account| account.name.clone());
         let page_accounts = self.current_page_accounts();
         if self.selected_index < page_accounts.len().saturating_sub(1) {
             self.selected_index += 1;
@@ -423,21 +671,33 @@ impl CodexAuthApp {
             self.current_page += 1;
             self.selected_index = 0;
         }
+        self.maybe_request_quota_for_selection_change(before);
     }
 
     /// Previous page
     fn prev_page(&mut self) {
+        let before = self.selected_account().map(|account| account.name.clone());
         if self.current_page > 0 {
             self.current_page -= 1;
             self.selected_index = 0;
         }
+        self.maybe_request_quota_for_selection_change(before);
     }
 
     /// Next page
     fn next_page(&mut self) {
+        let before = self.selected_account().map(|account| account.name.clone());
         if self.current_page < self.total_pages() - 1 {
             self.current_page += 1;
             self.selected_index = 0;
+        }
+        self.maybe_request_quota_for_selection_change(before);
+    }
+
+    fn maybe_request_quota_for_selection_change(&mut self, previous: Option<String>) {
+        let current = self.selected_account().map(|account| account.name.clone());
+        if current != previous {
+            self.ensure_selected_quota_loaded(false);
         }
     }
 
@@ -503,7 +763,7 @@ impl CodexAuthApp {
         if matches!(self.usage_state, UsageState::Loading) && self.usage_rx.is_none() {
             self.delayed_usage_ticks = Some(1);
         }
-        if matches!(self.quota_state, QuotaState::Idle) {
+        if matches!(self.quota_state, QuotaState::Idle) || self.selected_quota().is_none() {
             self.delayed_quota_ticks = Some(4);
         }
     }
@@ -525,14 +785,51 @@ impl CodexAuthApp {
         });
     }
 
-    /// Start async quota fetch in background thread
-    fn start_quota_fetch(&mut self) {
-        // 避免重复查询
-        if matches!(self.quota_state, QuotaState::Loading) {
+    fn ensure_selected_quota_loaded(&mut self, force_refresh: bool) {
+        let Some(account) = self.selected_account().cloned() else {
+            return;
+        };
+
+        if account.is_virtual {
             return;
         }
 
-        self.quota_state = QuotaState::Loading;
+        let selected_name = account.name;
+        let cache_hit = self.quota_cache().contains_key(&selected_name);
+        let loading_same = matches!(
+            &self.quota_state,
+            QuotaState::Loading { account_name, .. } if account_name == &selected_name
+        );
+
+        if force_refresh {
+            if loading_same {
+                return;
+            }
+        } else {
+            if cache_hit || loading_same {
+                return;
+            }
+            if self.quota_rx.is_some() {
+                self.delayed_quota_ticks = Some(1);
+                return;
+            }
+        }
+
+        self.start_quota_fetch_for_account(selected_name, force_refresh);
+    }
+
+    /// Start async quota fetch in background thread
+    fn start_quota_fetch_for_account(&mut self, account_name: String, force_refresh: bool) {
+        if self.quota_rx.is_some() {
+            self.delayed_quota_ticks = Some(1);
+            return;
+        }
+
+        let cache = self.quota_cache().clone();
+        self.quota_state = QuotaState::Loading {
+            account_name: account_name.clone(),
+            cache,
+        };
         let (tx, rx) = std::sync::mpsc::channel();
         self.quota_rx = Some(rx);
 
@@ -541,18 +838,27 @@ impl CodexAuthApp {
             let rt = match tokio::runtime::Runtime::new() {
                 Ok(rt) => rt,
                 Err(e) => {
-                    let _ = tx.send(Err(format!("创建运行时失败: {}", e)));
+                    let _ = tx.send(Err((
+                        account_name.clone(),
+                        format!("创建运行时失败: {}", e),
+                    )));
                     return;
                 }
             };
             rt.block_on(async {
                 match crate::services::CodexQuotaService::new() {
                     Ok(service) => {
-                        let quotas = service.fetch_all_quotas().await;
-                        let _ = tx.send(Ok(quotas));
+                        let quota = if force_refresh {
+                            service
+                                .fetch_account_quota_force_refresh(&account_name)
+                                .await
+                        } else {
+                            service.fetch_account_quota(&account_name).await
+                        };
+                        let _ = tx.send(Ok(quota));
                     }
                     Err(e) => {
-                        let _ = tx.send(Err(format!("初始化配额服务失败: {}", e)));
+                        let _ = tx.send(Err((account_name, format!("初始化配额服务失败: {}", e))));
                     }
                 }
             });
@@ -602,19 +908,36 @@ impl CodexAuthApp {
         };
 
         match rx.try_recv() {
-            Ok(Ok(quotas)) => {
-                self.quota_state = QuotaState::Loaded(quotas);
+            Ok(Ok(quota)) => {
+                let mut cache = self.quota_cache().clone();
+                cache.insert(quota.account_name.clone(), quota);
+                self.quota_state = QuotaState::Loaded { cache };
                 self.quota_rx = None;
+                self.ensure_selected_quota_loaded(false);
                 true
             }
-            Ok(Err(e)) => {
-                self.quota_state = QuotaState::Error(e);
+            Ok(Err((account_name, message))) => {
+                let cache = self.quota_cache().clone();
+                self.quota_state = QuotaState::Error {
+                    account_name,
+                    message,
+                    cache,
+                };
                 self.quota_rx = None;
                 true
             }
             Err(TryRecvError::Empty) => false,
             Err(TryRecvError::Disconnected) => {
-                self.quota_state = QuotaState::Error("配额查询通道已断开".to_string());
+                let account_name = self
+                    .selected_account()
+                    .map(|account| account.name.clone())
+                    .unwrap_or_else(|| "当前账号".to_string());
+                let cache = self.quota_cache().clone();
+                self.quota_state = QuotaState::Error {
+                    account_name,
+                    message: "配额查询通道已断开".to_string(),
+                    cache,
+                };
                 self.quota_rx = None;
                 true
             }
@@ -658,7 +981,9 @@ impl TuiApp for CodexAuthApp {
                     && let Some(idx) =
                         account_list_hit_test(area, mouse.row, self.current_page_accounts().len())
                 {
+                    let before = self.selected_account().map(|account| account.name.clone());
                     self.selected_index = idx;
+                    self.maybe_request_quota_for_selection_change(before);
                 }
             }
             // 🖱️ 滚轮上
@@ -677,16 +1002,17 @@ impl TuiApp for CodexAuthApp {
     fn on_tick(&mut self) -> bool {
         let mut needs_redraw = self.toasts.tick();
 
+        needs_redraw |= self.poll_usage_result();
+        needs_redraw |= self.poll_quota_result();
+
         if Self::delayed_fetch_ready(&mut self.delayed_usage_ticks) {
             self.start_usage_fetch();
             needs_redraw = true;
         }
         if Self::delayed_fetch_ready(&mut self.delayed_quota_ticks) {
-            self.start_quota_fetch();
+            self.ensure_selected_quota_loaded(false);
             needs_redraw = true;
         }
-        needs_redraw |= self.poll_usage_result();
-        needs_redraw |= self.poll_quota_result();
 
         needs_redraw
     }
@@ -699,6 +1025,7 @@ impl TuiApp for CodexAuthApp {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use chrono::{Duration, TimeZone, Utc};
 
     #[test]
     fn account_list_hit_test_hits_first_row_of_body_area() {
@@ -716,5 +1043,180 @@ mod tests {
     fn account_list_hit_test_ignores_rows_beyond_visible_items() {
         let area = Rect::new(4, 7, 60, 6);
         assert_eq!(account_list_hit_test(area, 10, 2), None);
+    }
+
+    fn sample_saved_account(name: &str, _account_id: &str) -> CodexAuthItem {
+        CodexAuthItem {
+            name: name.to_string(),
+            description: None,
+            email: None,
+            is_current: true,
+            is_virtual: false,
+            saved_at: Some(Utc.with_ymd_and_hms(2026, 4, 13, 10, 0, 0).unwrap()),
+            last_used: None,
+            last_refresh: None,
+            freshness: TokenFreshness::Fresh,
+            expires_at: None,
+        }
+    }
+
+    fn registry_with_account(name: &str, account_id: &str) -> CodexAuthRegistry {
+        let mut registry = CodexAuthRegistry {
+            current_auth: Some(name.to_string()),
+            ..Default::default()
+        };
+        registry.accounts.insert(
+            name.to_string(),
+            crate::models::CodexAuthAccount {
+                description: None,
+                account_id: account_id.to_string(),
+                auth_method: None,
+                email: None,
+                saved_at: Utc::now(),
+                last_used: None,
+                last_refresh: None,
+                expires_at: None,
+            },
+        );
+        registry
+    }
+
+    #[test]
+    fn records_for_account_only_keeps_records_inside_matching_activation_window() {
+        let mut registry = registry_with_account("qq_pro", "acc-qq");
+        registry.record_usage_activation(
+            "qq_pro",
+            "acc-qq",
+            Utc.with_ymd_and_hms(2026, 4, 13, 10, 0, 0).unwrap(),
+        );
+        registry.record_usage_activation(
+            "other",
+            "acc-other",
+            Utc.with_ymd_and_hms(2026, 4, 13, 12, 0, 0).unwrap(),
+        );
+
+        let records = vec![
+            crate::services::CodexUsageRecord {
+                session_id: "before".to_string(),
+                timestamp: Utc.with_ymd_and_hms(2026, 4, 13, 9, 30, 0).unwrap(),
+                input_tokens: 10,
+                output_tokens: 5,
+                model: Some("gpt-5.4".to_string()),
+            },
+            crate::services::CodexUsageRecord {
+                session_id: "during".to_string(),
+                timestamp: Utc.with_ymd_and_hms(2026, 4, 13, 11, 0, 0).unwrap(),
+                input_tokens: 20,
+                output_tokens: 10,
+                model: Some("gpt-5.4".to_string()),
+            },
+            crate::services::CodexUsageRecord {
+                session_id: "after".to_string(),
+                timestamp: Utc.with_ymd_and_hms(2026, 4, 13, 12, 30, 0).unwrap(),
+                input_tokens: 30,
+                output_tokens: 15,
+                model: Some("gpt-5.4-mini".to_string()),
+            },
+        ];
+
+        let filtered =
+            CodexAuthApp::records_for_account(&records, "acc-qq", &registry.usage_ledger);
+        assert_eq!(filtered.len(), 1);
+        assert_eq!(filtered[0].session_id, "during");
+    }
+
+    #[test]
+    fn build_usage_panel_data_falls_back_to_global_runtime_when_selected_account_has_no_attribution()
+     {
+        let selected = sample_saved_account("qq_pro", "acc-qq");
+        let registry = registry_with_account("qq_pro", "acc-qq");
+        let now = Utc::now();
+        let records = vec![crate::services::CodexUsageRecord {
+            session_id: "global-only".to_string(),
+            timestamp: now - Duration::minutes(30),
+            input_tokens: 120,
+            output_tokens: 30,
+            model: Some("gpt-5.4".to_string()),
+        }];
+        let dataset = CodexUsageDataset {
+            global: crate::services::CodexUsageService::compute_rolling_usage_for_records(&records),
+            records,
+        };
+
+        let panel = CodexAuthApp::build_usage_panel_data(&dataset, Some(&selected), &registry);
+        assert_eq!(panel.scope, CodexUsageScope::GlobalRuntime);
+        assert_eq!(
+            panel.attribution_state,
+            CodexUsageAttributionState::UnattributedFallback
+        );
+        assert!(panel.fallback_reason.is_some());
+        assert_eq!(panel.rolling.all_time.total_requests, 1);
+    }
+
+    #[test]
+    fn build_usage_panel_data_prefers_attributed_records_for_selected_account() {
+        let selected = sample_saved_account("qq_pro", "acc-qq");
+        let mut registry = registry_with_account("qq_pro", "acc-qq");
+        registry.accounts.insert(
+            "other".to_string(),
+            crate::models::CodexAuthAccount {
+                description: None,
+                account_id: "acc-other".to_string(),
+                auth_method: None,
+                email: None,
+                saved_at: Utc::now(),
+                last_used: None,
+                last_refresh: None,
+                expires_at: None,
+            },
+        );
+        registry.record_usage_activation(
+            "qq_pro",
+            "acc-qq",
+            Utc.with_ymd_and_hms(2026, 4, 13, 10, 0, 0).unwrap(),
+        );
+        registry.record_usage_activation(
+            "other",
+            "acc-other",
+            Utc.with_ymd_and_hms(2026, 4, 13, 12, 0, 0).unwrap(),
+        );
+
+        let records = vec![
+            crate::services::CodexUsageRecord {
+                session_id: "qq-pro".to_string(),
+                timestamp: Utc.with_ymd_and_hms(2026, 4, 13, 11, 0, 0).unwrap(),
+                input_tokens: 200,
+                output_tokens: 40,
+                model: Some("gpt-5.4".to_string()),
+            },
+            crate::services::CodexUsageRecord {
+                session_id: "other".to_string(),
+                timestamp: Utc.with_ymd_and_hms(2026, 4, 13, 12, 30, 0).unwrap(),
+                input_tokens: 500,
+                output_tokens: 80,
+                model: Some("gpt-5.4-mini".to_string()),
+            },
+        ];
+        let dataset = CodexUsageDataset {
+            global: crate::services::CodexUsageService::compute_rolling_usage_for_records(&records),
+            records,
+        };
+
+        let panel = CodexAuthApp::build_usage_panel_data(&dataset, Some(&selected), &registry);
+        assert_eq!(
+            panel.scope,
+            CodexUsageScope::AccountAttributed {
+                account_name: "qq_pro".to_string()
+            }
+        );
+        assert_eq!(
+            panel.attribution_state,
+            CodexUsageAttributionState::AccountAttributed
+        );
+        assert_eq!(panel.rolling.all_time.total_requests, 1);
+        assert_eq!(
+            panel.top_model.as_ref().map(|top| top.model.as_str()),
+            Some("gpt-5.4")
+        );
     }
 }

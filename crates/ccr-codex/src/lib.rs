@@ -17,6 +17,6 @@ pub use services::{
     CodexHistorySyncResult, CodexHistorySyncService, CodexHistorySyncStatus,
     CodexOAuthTokenService, CodexQuotaService, CodexRegistryStore, CodexRollingUsage,
     CodexRuntimeCommitPlan, CodexRuntimeService, CodexSessionDetail, CodexSessionExport,
-    CodexSessionMessage, CodexSessionService, CodexSessionSummary, CodexUsageService,
-    OAuthRepairOutcome,
+    CodexSessionMessage, CodexSessionService, CodexSessionSummary, CodexUsageRecord,
+    CodexUsageService, CodexUsageStats, OAuthRepairOutcome,
 };

@@ -1720,6 +1720,7 @@ requires_openai_auth = true
                 );
                 m
             },
+            usage_ledger: Vec::new(),
         };
         let registry_path = ccr_codex_dir.join("auth_registry.toml");
         std::fs::write(&registry_path, toml::to_string_pretty(&registry).unwrap()).unwrap();

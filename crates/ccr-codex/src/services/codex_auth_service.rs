@@ -623,6 +623,15 @@ impl CodexAuthService {
 
         if registry.current_auth != new_current {
             registry.current_auth = new_current.clone();
+            if let Some(name) = &new_current
+                && let Some(account) = registry.accounts.get(name)
+            {
+                registry.record_usage_activation(
+                    name.clone(),
+                    account.account_id.clone(),
+                    Utc::now(),
+                );
+            }
             self.save_registry(&registry)?;
         }
 
@@ -816,6 +825,13 @@ impl CodexAuthService {
 
         registry.accounts.insert(name.to_string(), account);
         registry.current_auth = Some(name.to_string());
+        if let Some(saved) = registry.accounts.get(name) {
+            registry.record_usage_activation(
+                name.to_string(),
+                saved.account_id.clone(),
+                Utc::now(),
+            );
+        }
         self.save_registry(&registry)?;
 
         debug!("已保存账号: {}", name);
@@ -952,6 +968,13 @@ impl CodexAuthService {
         registry.current_auth = Some(name.to_string());
         if let Some(account) = registry.accounts.get_mut(name) {
             account.last_used = Some(Utc::now());
+        }
+        if let Some(account) = registry.accounts.get(name) {
+            registry.record_usage_activation(
+                name.to_string(),
+                account.account_id.clone(),
+                Utc::now(),
+            );
         }
         self.save_registry(&registry)?;
         let _ = self.sync_current_auth_registry();

@@ -1,7 +1,10 @@
 // 🎨 Codex Auth TUI UI rendering
 // Draws the Codex multi-account management interface
 
-use super::app::{CodexAuthApp, QuotaState, UsageState};
+use super::app::{
+    CodexAuthApp, CodexAuthUsagePanelData, CodexUsageAttributionState, CodexUsageScope, QuotaState,
+    UsageState,
+};
 use crate::services::{CodexQuotaService, CodexUsageService};
 use crate::tui::overlay::{Overlay, render_overlay};
 use crate::tui::theme;
@@ -215,19 +218,14 @@ fn detail_spans_line(label: &str, mut spans: Vec<Span<'static>>) -> Line<'static
 }
 
 fn render_account_list_panel(f: &mut Frame, area: Rect, app: &CodexAuthApp, title: String) {
-    let page_info = format!(
-        " 第 {}/{} 页 | 共 {} 个账号 ",
-        app.current_page + 1,
-        app.total_pages(),
-        app.accounts.len()
-    );
+    let page_info = account_list_footer_line(app);
 
     let block = Block::default()
         .borders(Borders::ALL)
         .border_style(Style::default().fg(theme::BORDER))
         .title(title)
         .title_style(Style::default().fg(theme::ACCENT))
-        .title_bottom(Line::from(page_info).alignment(Alignment::Right));
+        .title_bottom(page_info);
 
     let inner = block.inner(area);
     f.render_widget(block, area);
@@ -252,6 +250,48 @@ fn render_account_list_panel(f: &mut Frame, area: Rect, app: &CodexAuthApp, titl
     app.list_area.set(Some(regions.body));
     render_account_list_header(f, regions.header, &layout);
     render_account_list_rows(f, regions.body, app, &layout);
+}
+
+fn account_list_footer_line(app: &CodexAuthApp) -> Line<'static> {
+    let selected_name = app
+        .selected_account()
+        .map(|account| account.name.clone())
+        .unwrap_or_else(|| "-".to_string());
+    let selected_style = app
+        .selected_account()
+        .map(|account| {
+            if account.is_virtual {
+                theme::warning_style()
+            } else if account.is_current {
+                theme::success_style()
+            } else {
+                Style::default()
+                    .fg(theme::FG_PRIMARY)
+                    .add_modifier(Modifier::BOLD)
+            }
+        })
+        .unwrap_or_else(theme::muted_style);
+
+    Line::from(vec![
+        Span::styled(" Selected: ", theme::muted_style()),
+        Span::styled(selected_name, selected_style),
+        Span::styled("  ·  Legend: ", theme::muted_style()),
+        Span::styled("🟢 fresh", theme::success_style()),
+        Span::styled(" · ", theme::muted_style()),
+        Span::styled("🟡 stale", theme::warning_style()),
+        Span::styled(" · ", theme::muted_style()),
+        Span::styled("🔴 old", theme::error_style()),
+        Span::styled(
+            format!(
+                "  ·  Page {}/{}  ·  {} accounts ",
+                app.current_page + 1,
+                app.total_pages(),
+                app.accounts.len()
+            ),
+            theme::muted_style(),
+        ),
+    ])
+    .alignment(Alignment::Left)
 }
 
 fn account_list_regions(inner: Rect) -> AccountListRegions {
@@ -348,26 +388,23 @@ fn render_account_list_rows(
         .fg(theme::BG_PRIMARY)
         .add_modifier(Modifier::BOLD);
 
-    let rows = app
-        .current_page_accounts()
-        .iter()
-        .enumerate()
-        .map(|(idx, account)| {
-            let row_style = if idx == app.selected_index {
-                selected_style
-            } else {
-                Style::default()
-            };
+    let rows =
+        app.current_page_accounts()
+            .iter()
+            .enumerate()
+            .map(|(idx, account)| {
+                let row_style = if idx == app.selected_index {
+                    selected_style
+                } else {
+                    Style::default()
+                };
 
-            Row::new(
-                layout
-                    .columns
-                    .iter()
-                    .map(|column| account_cell(account, *column, layout)),
-            )
-            .style(row_style)
-            .height(1)
-        });
+                Row::new(layout.columns.iter().map(|column| {
+                    account_cell(account, *column, layout, idx == app.selected_index)
+                }))
+                .style(row_style)
+                .height(1)
+            });
 
     let table = Table::new(rows, layout.widths.clone()).column_spacing(ACCOUNT_COLUMN_SPACING);
     f.render_widget(table, area);
@@ -390,14 +427,23 @@ fn account_cell(
     account: &crate::models::CodexAuthItem,
     column: AccountColumn,
     layout: &AccountTableLayout,
+    is_selected: bool,
 ) -> Cell<'static> {
     match column {
         AccountColumn::Status => Cell::from(Line::from(Span::styled(
             account.freshness.icon().to_string(),
-            Style::default().fg(freshness_color(&account.freshness)),
+            if is_selected {
+                Style::default().fg(theme::FG_PRIMARY)
+            } else {
+                Style::default().fg(freshness_color(&account.freshness))
+            },
         ))),
         AccountColumn::Account => {
-            let name_style = if account.is_virtual {
+            let name_style = if is_selected {
+                Style::default()
+                    .fg(theme::FG_PRIMARY)
+                    .add_modifier(Modifier::BOLD)
+            } else if account.is_virtual {
                 theme::warning_style().add_modifier(Modifier::ITALIC)
             } else if account.is_current {
                 theme::success_style()
@@ -422,7 +468,14 @@ fn account_cell(
                 account.email.as_deref().unwrap_or("-"),
                 layout.text_width(AccountColumn::Email),
             );
-            Cell::from(Line::from(Span::styled(email, theme::info_style())))
+            Cell::from(Line::from(Span::styled(
+                email,
+                if is_selected {
+                    Style::default().fg(theme::FG_PRIMARY)
+                } else {
+                    theme::info_style()
+                },
+            )))
         }
         AccountColumn::SavedAt => Cell::from(Line::from(Span::styled(
             format_saved_at(account),
@@ -430,14 +483,28 @@ fn account_cell(
         ))),
         AccountColumn::ExpiresAt => {
             let (text, style) = format_expires_at(account);
-            Cell::from(Line::from(Span::styled(text, style)))
+            Cell::from(Line::from(Span::styled(
+                text,
+                if is_selected {
+                    Style::default().fg(theme::FG_PRIMARY)
+                } else {
+                    style
+                },
+            )))
         }
         AccountColumn::Description => {
             let description = truncate_text(
                 account.description.as_deref().unwrap_or("-"),
                 layout.text_width(AccountColumn::Description),
             );
-            Cell::from(Line::from(Span::styled(description, theme::muted_style())))
+            Cell::from(Line::from(Span::styled(
+                description,
+                if is_selected {
+                    Style::default().fg(theme::FG_SECONDARY)
+                } else {
+                    theme::muted_style()
+                },
+            )))
         }
     }
 }
@@ -494,16 +561,6 @@ fn login_status_style(login_state: &crate::models::LoginState) -> Style {
         crate::models::LoginState::LoggedInSaved(_) => theme::success_style(),
         crate::models::LoginState::ApiKeyActive
         | crate::models::LoginState::ProviderKeyActive { .. } => theme::info_style(),
-    }
-}
-
-fn codex_runtime_mode_color(mode: crate::models::CodexRuntimeMode) -> Color {
-    match mode {
-        crate::models::CodexRuntimeMode::ProfileOnly => theme::FG_SUCCESS,
-        crate::models::CodexRuntimeMode::ProfileWithAuth
-        | crate::models::CodexRuntimeMode::ProfilePendingAuth => theme::FG_WARNING,
-        crate::models::CodexRuntimeMode::RuntimeOnly => theme::FG_INFO,
-        crate::models::CodexRuntimeMode::Unresolved => theme::FG_MUTED,
     }
 }
 
@@ -569,7 +626,7 @@ fn draw_usage_panel(f: &mut Frame, area: Rect, app: &CodexAuthApp) {
     let title = Line::from(vec![
         Span::styled(" 📊 ", theme::info_style()),
         Span::styled(
-            "Codex 使用情况",
+            "Usage & Quota",
             Style::default()
                 .fg(theme::FG_PRIMARY)
                 .add_modifier(Modifier::BOLD),
@@ -587,6 +644,12 @@ fn draw_usage_panel(f: &mut Frame, area: Rect, app: &CodexAuthApp) {
     }
 
     // ── 配额余额区域 ──
+    content.push(scope_line(
+        "Quota scope:",
+        "selected account",
+        theme::success_style(),
+    ));
+
     match &app.quota_state {
         QuotaState::Idle => {
             content.push(Line::from(Span::styled(
@@ -594,26 +657,28 @@ fn draw_usage_panel(f: &mut Frame, area: Rect, app: &CodexAuthApp) {
                 theme::muted_style(),
             )));
         }
-        QuotaState::Loading => {
+        QuotaState::Loading { .. } if app.selected_quota().is_none() => {
             content.push(Line::from(Span::styled(
-                "  ⏳ 正在查询配额...",
+                "  ⏳ 正在查询当前账号配额...",
                 theme::warning_style(),
             )));
         }
-        QuotaState::Error(err) => {
-            content.push(Line::from(Span::styled(
-                format!("  ⚠️ 配额查询失败: {}", err),
-                theme::error_style(),
-            )));
+        QuotaState::Error { .. } if app.selected_quota().is_none() => {
+            if let Some(err) = app.selected_quota_error() {
+                content.push(Line::from(Span::styled(
+                    format!("  ⚠️ 配额查询失败: {}", err),
+                    theme::error_style(),
+                )));
+                if is_refresh_token_reused_error(err) {
+                    content.push(Line::from(Span::styled(
+                        "  提示: Token 已轮换，可按 R 尝试修复；仍失败请重新登录后保存账号",
+                        theme::warning_style(),
+                    )));
+                }
+            }
         }
-        QuotaState::Loaded(quotas) => {
-            // 查找当前选中账号的配额
-            let selected_name = app
-                .selected_account()
-                .map(|a| a.name.as_str())
-                .unwrap_or("");
-
-            if let Some(aq) = quotas.iter().find(|q| q.account_name == selected_name) {
+        _ => {
+            if let Some(aq) = app.selected_quota() {
                 if let Some(ref quota) = aq.quota {
                     let account_label = aq.email.as_deref().unwrap_or(&aq.account_name);
                     content.push(Line::from(vec![
@@ -621,7 +686,13 @@ fn draw_usage_panel(f: &mut Frame, area: Rect, app: &CodexAuthApp) {
                         Span::styled(format!("({})", account_label), theme::muted_style()),
                     ]));
 
-                    // 5h 限额
+                    if app.is_selected_quota_loading() {
+                        content.push(Line::from(Span::styled(
+                            "  ⏳ 正在刷新选中账号配额...",
+                            theme::warning_style(),
+                        )));
+                    }
+
                     let h_color = percent_color(quota.hourly_percentage);
                     let h_bar = progress_bar(quota.hourly_percentage, 10);
                     let h_reset = quota
@@ -638,7 +709,6 @@ fn draw_usage_panel(f: &mut Frame, area: Rect, app: &CodexAuthApp) {
                         Span::styled(h_reset, theme::muted_style()),
                     ]));
 
-                    // 周限额
                     let w_color = percent_color(quota.weekly_percentage);
                     let w_bar = progress_bar(quota.weekly_percentage, 10);
                     let w_reset = quota
@@ -664,7 +734,6 @@ fn draw_usage_panel(f: &mut Frame, area: Rect, app: &CodexAuthApp) {
                         Span::styled(w_reset, theme::muted_style()),
                     ]));
 
-                    // 订阅类型
                     if let Some(ref plan) = quota.plan_type {
                         content.push(Line::from(vec![
                             Span::styled("  订阅: ", Style::default().fg(theme::FG_PRIMARY)),
@@ -676,17 +745,10 @@ fn draw_usage_panel(f: &mut Frame, area: Rect, app: &CodexAuthApp) {
                         format!("  ⚠️ {}: {}", aq.account_name, err),
                         theme::error_style(),
                     )));
-                    if is_refresh_token_reused_error(err) {
-                        content.push(Line::from(Span::styled(
-                            "  提示: Token 已轮换，可按 R 尝试修复；仍失败请重新登录后保存账号",
-                            theme::warning_style(),
-                        )));
-                    }
                 }
-            } else if !quotas.is_empty() {
-                // 显示第一个有配额的账号
+            } else {
                 content.push(Line::from(Span::styled(
-                    "  选中账号无配额数据，按 b 刷新",
+                    "  选中账号暂无配额缓存，正在按需查询...",
                     theme::muted_style(),
                 )));
             }
@@ -700,29 +762,42 @@ fn draw_usage_panel(f: &mut Frame, area: Rect, app: &CodexAuthApp) {
     )));
 
     // ── 本地统计区域 ──
-    match &app.usage_state {
-        UsageState::NoData => {
+    if let Some(panel) = app.usage_panel_data() {
+        let (scope_label, scope_style) = usage_scope_badge(&panel);
+        content.push(scope_line("Usage scope:", scope_label, scope_style));
+        content.push(scope_line(
+            "Attribution:",
+            usage_attribution_label(panel.attribution_state),
+            usage_attribution_style(panel.attribution_state),
+        ));
+        if let Some(reason) = &panel.fallback_reason {
             content.push(Line::from(Span::styled(
-                "  📭 暂无本地使用数据",
-                theme::muted_style(),
+                format!("  Note: {}", reason),
+                theme::warning_style(),
             )));
         }
-        UsageState::Error(err) => {
-            content.push(Line::from(Span::styled(
-                format!("  ⚠️ 统计加载失败: {}", err),
-                theme::error_style(),
-            )));
-        }
-        UsageState::Loaded(usage) => {
-            content.extend(usage_digest_strings(usage).into_iter().map(|line| {
-                Line::from(Span::styled(line, Style::default().fg(theme::FG_PRIMARY)))
-            }));
-        }
-        UsageState::Loading => {
-            content.push(Line::from(Span::styled(
-                "  ⏳ 加载中...",
-                theme::muted_style(),
-            )));
+        content.extend(usage_digest_lines(&panel));
+    } else {
+        match &app.usage_state {
+            UsageState::NoData => {
+                content.push(Line::from(Span::styled(
+                    "  📭 暂无本地使用数据",
+                    theme::muted_style(),
+                )));
+            }
+            UsageState::Error(err) => {
+                content.push(Line::from(Span::styled(
+                    format!("  ⚠️ 统计加载失败: {}", err),
+                    theme::error_style(),
+                )));
+            }
+            UsageState::Loaded(_) => {}
+            UsageState::Loading => {
+                content.push(Line::from(Span::styled(
+                    "  ⏳ 加载中...",
+                    theme::muted_style(),
+                )));
+            }
         }
     }
 
@@ -816,107 +891,43 @@ fn account_snapshot_lines(account: &crate::models::CodexAuthItem) -> Vec<Line<'s
     ]
 }
 
-fn usage_digest_strings(usage: &crate::services::CodexRollingUsage) -> Vec<String> {
+fn usage_digest_lines(panel: &CodexAuthUsagePanelData) -> Vec<Line<'static>> {
+    let usage = &panel.rolling;
     let five_total = usage.five_hour.total_input_tokens + usage.five_hour.total_output_tokens;
     let seven_total = usage.seven_day.total_input_tokens + usage.seven_day.total_output_tokens;
     let all_time = usage.all_time.total_input_tokens + usage.all_time.total_output_tokens;
 
-    let top_model = usage
-        .by_model
-        .iter()
-        .max_by_key(|(_, stats)| stats.total_input_tokens + stats.total_output_tokens)
-        .map(|(model, stats)| {
-            let total = stats.total_input_tokens + stats.total_output_tokens;
+    let top_model = panel
+        .top_model
+        .as_ref()
+        .map(|top| {
             format!(
                 "  Top model: {} ({}, {} req)",
-                model,
-                CodexUsageService::format_tokens(total),
-                stats.total_requests
+                top.model,
+                CodexUsageService::format_tokens(top.total_tokens),
+                top.total_requests
             )
         })
         .unwrap_or_else(|| "  Top model: -".to_string());
 
     vec![
-        format!(
+        Line::from(format!(
             "  5小时: {} tokens ({} 请求)",
             CodexUsageService::format_tokens(five_total),
             usage.five_hour.total_requests
-        ),
-        format!(
+        )),
+        Line::from(format!(
             "  7天:   {} tokens ({} 请求)",
             CodexUsageService::format_tokens(seven_total),
             usage.seven_day.total_requests
-        ),
-        format!(
+        )),
+        Line::from(format!(
             "  All time: {} tokens ({} 请求)",
             CodexUsageService::format_tokens(all_time),
             usage.all_time.total_requests
-        ),
-        top_model,
+        )),
+        Line::from(top_model),
     ]
-}
-
-fn runtime_digest_lines(app: &CodexAuthApp) -> Vec<Line<'static>> {
-    let mut lines = Vec::new();
-
-    if let Some(summary) = &app.runtime_summary {
-        lines.push(detail_line(
-            "Mode:",
-            summary.mode.label(),
-            Style::default().fg(codex_runtime_mode_color(summary.mode)),
-        ));
-        lines.push(detail_line(
-            "Profile:",
-            summary.profile_label(),
-            Style::default().fg(theme::FG_PRIMARY),
-        ));
-        lines.push(detail_line(
-            "Auth:",
-            summary.auth_label(),
-            theme::info_style(),
-        ));
-    } else {
-        lines.push(detail_line("Mode:", "未解析", theme::muted_style()));
-    }
-
-    lines.push(detail_line(
-        "Login:",
-        login_status_text(app),
-        login_status_style(&app.login_state),
-    ));
-
-    let recent = if let Some((action, name, success, error)) = &app.last_action {
-        if *success {
-            detail_line(
-                "Recent:",
-                format!("{action} {name}"),
-                theme::success_style(),
-            )
-        } else {
-            detail_line(
-                "Recent:",
-                format!(
-                    "{} {} failed{}",
-                    action,
-                    name,
-                    error
-                        .as_ref()
-                        .map(|err| format!(" ({err})"))
-                        .unwrap_or_default()
-                ),
-                theme::error_style(),
-            )
-        }
-    } else {
-        detail_line(
-            "Recent:",
-            "Enter switch · s save · b quota",
-            theme::muted_style(),
-        )
-    };
-
-    lines.push(recent);
-    lines
 }
 
 fn is_refresh_token_reused_error(message: &str) -> bool {
@@ -969,41 +980,26 @@ pub fn draw_embedded(
         crate::tui::theme::ViewportMode::Standard => {
             let content_chunks = Layout::default()
                 .direction(Direction::Vertical)
-                .constraints([
-                    Constraint::Min(8),
-                    Constraint::Length(12),
-                    Constraint::Length(8),
-                ])
+                .constraints([Constraint::Min(10), Constraint::Length(14)])
                 .split(content_area);
 
             draw_account_list_with_status(f, content_chunks[0], app);
             draw_usage_panel(f, content_chunks[1], app);
-            draw_runtime_panel(f, content_chunks[2], app);
         }
         crate::tui::theme::ViewportMode::Wide => {
             let columns = Layout::default()
                 .direction(Direction::Horizontal)
-                .constraints([Constraint::Percentage(42), Constraint::Percentage(58)])
+                .constraints([Constraint::Percentage(48), Constraint::Percentage(52)])
                 .split(content_area);
 
-            let left = Layout::default()
-                .direction(Direction::Vertical)
-                .constraints([Constraint::Min(8), Constraint::Length(4)])
-                .split(columns[0]);
-            draw_account_list_with_status(f, left[0], app);
-            draw_account_list_meta_panel(f, left[1], app);
+            draw_account_list_with_status(f, columns[0], app);
 
             let right = Layout::default()
                 .direction(Direction::Vertical)
-                .constraints([
-                    Constraint::Length(8),
-                    Constraint::Length(12),
-                    Constraint::Min(6),
-                ])
+                .constraints([Constraint::Length(8), Constraint::Min(12)])
                 .split(columns[1]);
             draw_account_snapshot_panel(f, right[0], app);
             draw_usage_panel(f, right[1], app);
-            draw_runtime_panel(f, right[2], app);
         }
     }
 
@@ -1071,56 +1067,6 @@ fn draw_account_list_with_status(f: &mut Frame, area: Rect, app: &CodexAuthApp) 
     render_account_list_panel(f, area, app, title);
 }
 
-fn draw_account_list_meta_panel(f: &mut Frame, area: Rect, app: &CodexAuthApp) {
-    let selected_line = if let Some(account) = app.selected_account() {
-        let style = if account.is_current {
-            theme::success_style()
-        } else if account.is_virtual {
-            theme::warning_style()
-        } else {
-            Style::default().fg(theme::FG_PRIMARY)
-        };
-        detail_line("Selected:", account.name.clone(), style)
-    } else {
-        detail_line("Selected:", "-", theme::muted_style())
-    };
-    let lines = vec![
-        selected_line,
-        detail_line(
-            "Page:",
-            format!("{}/{}", app.current_page + 1, app.total_pages()),
-            Style::default().fg(theme::FG_PRIMARY),
-        ),
-        detail_spans_line(
-            "Legend:",
-            vec![
-                Span::styled("🟢 fresh", theme::success_style()),
-                Span::styled(" · ", theme::muted_style()),
-                Span::styled("🟡 stale", theme::warning_style()),
-                Span::styled(" · ", theme::muted_style()),
-                Span::styled("🔴 old", theme::error_style()),
-            ],
-        ),
-        detail_line(
-            "Actions:",
-            "Enter switch · s save · d delete",
-            theme::muted_style(),
-        ),
-    ];
-
-    let panel = Paragraph::new(lines)
-        .block(
-            Block::default()
-                .borders(Borders::ALL)
-                .border_style(Style::default().fg(theme::CODEX_PRIMARY))
-                .title(" Legend ")
-                .title_style(theme::codex_style()),
-        )
-        .wrap(Wrap { trim: true });
-
-    f.render_widget(panel, area);
-}
-
 fn draw_account_snapshot_panel(f: &mut Frame, area: Rect, app: &CodexAuthApp) {
     let lines = app
         .selected_account()
@@ -1138,20 +1084,6 @@ fn draw_account_snapshot_panel(f: &mut Frame, area: Rect, app: &CodexAuthApp) {
                 .borders(Borders::ALL)
                 .border_style(Style::default().fg(theme::CODEX_PRIMARY))
                 .title(" Focus ")
-                .title_style(theme::codex_style()),
-        )
-        .wrap(Wrap { trim: true });
-
-    f.render_widget(panel, area);
-}
-
-fn draw_runtime_panel(f: &mut Frame, area: Rect, app: &CodexAuthApp) {
-    let panel = Paragraph::new(runtime_digest_lines(app))
-        .block(
-            Block::default()
-                .borders(Borders::ALL)
-                .border_style(Style::default().fg(theme::CODEX_PRIMARY))
-                .title(" Runtime ")
                 .title_style(theme::codex_style()),
         )
         .wrap(Wrap { trim: true });
@@ -1184,13 +1116,43 @@ fn draw_footer_strip(f: &mut Frame, area: Rect, app: &CodexAuthApp) {
     f.render_widget(help, area);
 }
 
+fn scope_line(label: &str, value: impl Into<String>, style: Style) -> Line<'static> {
+    detail_line(label, value.into(), style)
+}
+
+fn usage_scope_badge(panel: &CodexAuthUsagePanelData) -> (String, Style) {
+    match &panel.scope {
+        CodexUsageScope::GlobalRuntime => ("global runtime".to_string(), theme::info_style()),
+        CodexUsageScope::AccountAttributed { account_name } => (
+            format!("attributed to {}", account_name),
+            theme::success_style(),
+        ),
+    }
+}
+
+fn usage_attribution_label(state: CodexUsageAttributionState) -> &'static str {
+    match state {
+        CodexUsageAttributionState::GlobalOnly => "global aggregate",
+        CodexUsageAttributionState::AccountAttributed => "CCR ledger matched",
+        CodexUsageAttributionState::VirtualAccount => "unsaved runtime login",
+        CodexUsageAttributionState::UnattributedFallback => "global fallback",
+    }
+}
+
+fn usage_attribution_style(state: CodexUsageAttributionState) -> Style {
+    match state {
+        CodexUsageAttributionState::AccountAttributed => theme::success_style(),
+        CodexUsageAttributionState::GlobalOnly => theme::info_style(),
+        CodexUsageAttributionState::VirtualAccount
+        | CodexUsageAttributionState::UnattributedFallback => theme::warning_style(),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ccr_codex::services::codex_usage_service::CodexUsageStats;
     use chrono::{TimeZone, Utc};
     use ratatui::{Terminal, backend::TestBackend};
-    use std::collections::HashMap;
 
     fn sample_account() -> crate::models::CodexAuthItem {
         crate::models::CodexAuthItem {
@@ -1300,7 +1262,7 @@ mod tests {
                     layout
                         .columns
                         .iter()
-                        .map(|column| account_cell(&account, *column, &layout)),
+                        .map(|column| account_cell(&account, *column, &layout, false)),
                 );
                 let table =
                     Table::new([row], layout.widths.clone()).column_spacing(ACCOUNT_COLUMN_SPACING);
@@ -1316,7 +1278,7 @@ mod tests {
     }
 
     #[test]
-    fn usage_digest_strings_include_all_time_and_top_model() {
+    fn usage_digest_lines_include_all_time_and_top_model() {
         let mut usage = crate::services::CodexRollingUsage::default();
         usage.five_hour.total_input_tokens = 1_000;
         usage.five_hour.total_output_tokens = 2_000;
@@ -1327,17 +1289,24 @@ mod tests {
         usage.all_time.total_input_tokens = 50_000;
         usage.all_time.total_output_tokens = 10_000;
         usage.all_time.total_requests = 42;
-        usage.by_model = HashMap::from([(
-            "gpt-5.4".to_string(),
-            CodexUsageStats {
-                total_input_tokens: 30_000,
-                total_output_tokens: 5_000,
-                total_requests: 21,
-                ..Default::default()
+        let panel = CodexAuthUsagePanelData {
+            scope: CodexUsageScope::AccountAttributed {
+                account_name: "codexcn".to_string(),
             },
-        )]);
+            attribution_state: CodexUsageAttributionState::AccountAttributed,
+            rolling: usage,
+            top_model: Some(crate::tui::codex_auth::app::CodexUsageTopModel {
+                model: "gpt-5.4".to_string(),
+                total_tokens: 35_000,
+                total_requests: 21,
+            }),
+            fallback_reason: None,
+        };
 
-        let lines = usage_digest_strings(&usage);
+        let lines: Vec<String> = usage_digest_lines(&panel)
+            .into_iter()
+            .map(|line| plain_line_text(&line))
+            .collect();
 
         assert!(
             lines

@@ -572,7 +572,11 @@ impl UsageImportService {
 
             // 检查 event_msg.payload 事件
             if let Some(payload) = Self::extract_codex_event_payload(&json) {
-                let event_type = payload.get("type").and_then(|v| v.as_str()).unwrap_or("");
+                let event_type = payload
+                    .get("type")
+                    .and_then(|v| v.as_str())
+                    .or_else(|| json.get("type").and_then(|v| v.as_str()))
+                    .unwrap_or("");
 
                 match event_type {
                     "turn_context" => {
@@ -738,7 +742,11 @@ impl UsageImportService {
                 .unwrap_or_else(Utc::now);
 
             if let Some(payload) = Self::extract_codex_event_payload(&json) {
-                let event_type = payload.get("type").and_then(|v| v.as_str()).unwrap_or("");
+                let event_type = payload
+                    .get("type")
+                    .and_then(|v| v.as_str())
+                    .or_else(|| json.get("type").and_then(|v| v.as_str()))
+                    .unwrap_or("");
 
                 match event_type {
                     "turn_context" => {
@@ -889,6 +897,11 @@ impl UsageImportService {
     fn extract_codex_event_payload(json: &Value) -> Option<&Value> {
         if json.get("type").and_then(|v| v.as_str()) == Some("event_msg") {
             json.get("payload")
+        } else if matches!(
+            json.get("type").and_then(|v| v.as_str()),
+            Some("turn_context") | Some("token_count")
+        ) {
+            json.get("payload").or(Some(json))
         } else {
             json.get("event_msg").and_then(|em| em.get("payload"))
         }

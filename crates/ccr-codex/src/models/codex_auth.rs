@@ -251,6 +251,22 @@ pub struct CodexAuthAccount {
     pub expires_at: Option<DateTime<Utc>>,
 }
 
+/// Codex 使用量归因激活记录
+///
+/// CCR 在账号切换时记录当前激活账号，后续可按时间窗将本地 usage
+/// 归因到对应账号。该账本是 CCR 自有能力，不依赖 Codex 原生日志格式。
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct CodexUsageActivation {
+    /// CCR 保存的账号名（用于展示）
+    pub account_name: String,
+
+    /// OpenAI account_id（用于稳定匹配，避免重命名影响历史归因）
+    pub account_id: String,
+
+    /// 生效时间
+    pub started_at: DateTime<Utc>,
+}
+
 /// Codex 账号注册表
 ///
 /// 存储在 ~/.ccr/platforms/codex/auth_registry.toml
@@ -267,6 +283,10 @@ pub struct CodexAuthRegistry {
     /// 所有账号
     #[serde(default)]
     pub accounts: IndexMap<String, CodexAuthAccount>,
+
+    /// CCR 维护的 usage 归因账本
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub usage_ledger: Vec<CodexUsageActivation>,
 }
 
 fn default_version() -> String {
@@ -279,7 +299,35 @@ impl Default for CodexAuthRegistry {
             version: default_version(),
             current_auth: None,
             accounts: IndexMap::new(),
+            usage_ledger: Vec::new(),
         }
+    }
+}
+
+impl CodexAuthRegistry {
+    /// 记录一次账号激活，用于后续按时间窗归因本地 usage。
+    ///
+    /// 连续重复激活同一账号时不追加新记录，避免账本噪音。
+    pub fn record_usage_activation(
+        &mut self,
+        account_name: impl Into<String>,
+        account_id: impl Into<String>,
+        started_at: DateTime<Utc>,
+    ) {
+        let account_name = account_name.into();
+        let account_id = account_id.into();
+
+        if self.usage_ledger.last().is_some_and(|entry| {
+            entry.account_name == account_name && entry.account_id == account_id
+        }) {
+            return;
+        }
+
+        self.usage_ledger.push(CodexUsageActivation {
+            account_name,
+            account_id,
+            started_at,
+        });
     }
 }
 
@@ -813,6 +861,7 @@ mod tests {
         assert_eq!(registry.version, "1.0");
         assert!(registry.current_auth.is_none());
         assert!(registry.accounts.is_empty());
+        assert!(registry.usage_ledger.is_empty());
     }
 
     #[test]
@@ -907,12 +956,14 @@ mod tests {
                 expires_at: Some(Utc::now() + chrono::Duration::days(7)),
             },
         );
+        registry.record_usage_activation("main", "acc-main", Utc::now());
 
         // Test serialization
         let toml_str = toml::to_string(&registry).unwrap();
         assert!(toml_str.contains("version"));
         assert!(toml_str.contains("current_auth"));
         assert!(toml_str.contains("[accounts.main]"));
+        assert!(toml_str.contains("[[usage_ledger]]"));
         assert!(toml_str.contains("expires_at"));
 
         // Test deserialization
@@ -921,6 +972,7 @@ mod tests {
         assert_eq!(parsed.current_auth, Some("main".to_string()));
         assert!(parsed.accounts.contains_key("main"));
         assert!(parsed.accounts["main"].expires_at.is_some());
+        assert_eq!(parsed.usage_ledger.len(), 1);
     }
 
     #[test]
@@ -940,5 +992,24 @@ saved_at = "2026-01-01T00:00:00Z"
         assert_eq!(parsed.current_auth, Some("legacy".to_string()));
         assert!(parsed.accounts.contains_key("legacy"));
         assert!(parsed.accounts["legacy"].expires_at.is_none());
+        assert!(parsed.usage_ledger.is_empty());
+    }
+
+    #[test]
+    fn test_record_usage_activation_deduplicates_consecutive_entries() {
+        let mut registry = CodexAuthRegistry::default();
+        let now = Utc::now();
+
+        registry.record_usage_activation("main", "acc-main", now);
+        registry.record_usage_activation("main", "acc-main", now + chrono::Duration::minutes(5));
+        registry.record_usage_activation(
+            "backup",
+            "acc-backup",
+            now + chrono::Duration::minutes(10),
+        );
+
+        assert_eq!(registry.usage_ledger.len(), 2);
+        assert_eq!(registry.usage_ledger[0].account_name, "main");
+        assert_eq!(registry.usage_ledger[1].account_name, "backup");
     }
 }

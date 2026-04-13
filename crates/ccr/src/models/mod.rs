@@ -15,7 +15,7 @@ pub use ccr_codex::models::codex_auth::{
     AuthIntent, AuthState, AuthStateStatus, CodexAccountQuota, CodexAuthAccount, CodexAuthExport,
     CodexAuthExportAccount, CodexAuthItem, CodexAuthJson, CodexAuthRegistry, CodexProfileAuthMode,
     CodexProfileSecret, CodexProfileSecretStore, CodexQuota, CodexRuntimeMode, CodexRuntimeSummary,
-    CredentialStoreKind, CurrentAuthInfo, ImportMode, ImportResult, LoginState, OpenAiAuthMethod,
-    TokenFreshness, normalize_auth_map_for_intent,
+    CodexUsageActivation, CredentialStoreKind, CurrentAuthInfo, ImportMode, ImportResult,
+    LoginState, OpenAiAuthMethod, TokenFreshness, normalize_auth_map_for_intent,
 };
 pub use ccr_config::{Platform, PlatformConfig, PlatformPaths, ProfileConfig};

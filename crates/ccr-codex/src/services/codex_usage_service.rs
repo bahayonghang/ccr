@@ -84,6 +84,8 @@ struct CodexSessionMeta {
     session_id: String,
     model: Option<String>,
     created_at: Option<DateTime<Utc>>,
+    #[allow(dead_code)]
+    cwd: Option<String>,
 }
 
 #[derive(Debug, Clone, Copy, Default)]
@@ -146,6 +148,11 @@ impl CodexUsageService {
         records.sort_by(|a, b| a.timestamp.cmp(&b.timestamp));
 
         Ok(records)
+    }
+
+    /// 基于已解析的 records 计算滚动窗口统计。
+    pub fn compute_rolling_usage_for_records(records: &[CodexUsageRecord]) -> CodexRollingUsage {
+        Self::compute_rolling_usage_at(records, Utc::now())
     }
 
     /// 解析单个 Codex Session JSONL 文件
@@ -215,7 +222,11 @@ impl CodexUsageService {
 
             // 检查 event_msg.payload 事件
             if let Some(payload) = Self::extract_codex_event_payload(&json) {
-                let event_type = payload.get("type").and_then(|v| v.as_str()).unwrap_or("");
+                let event_type = payload
+                    .get("type")
+                    .and_then(|v| v.as_str())
+                    .or_else(|| json.get("type").and_then(|v| v.as_str()))
+                    .unwrap_or("");
 
                 match event_type {
                     "turn_context" => {
@@ -306,6 +317,7 @@ impl CodexUsageService {
             session_id: payload
                 .get("id")
                 .or_else(|| payload.get("session_id"))
+                .or_else(|| json.get("id"))
                 .or_else(|| json.get("session_id"))
                 .and_then(|v| v.as_str())
                 .unwrap_or("unknown")
@@ -316,12 +328,22 @@ impl CodexUsageService {
                 .and_then(|v| v.as_str())
                 .map(|s| s.to_string()),
             created_at,
+            cwd: payload
+                .get("cwd")
+                .or_else(|| json.get("cwd"))
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string()),
         }
     }
 
     fn extract_codex_event_payload(json: &Value) -> Option<&Value> {
         if json.get("type").and_then(|v| v.as_str()) == Some("event_msg") {
             json.get("payload")
+        } else if matches!(
+            json.get("type").and_then(|v| v.as_str()),
+            Some("turn_context") | Some("token_count")
+        ) {
+            json.get("payload").or(Some(json))
         } else {
             json.get("event_msg").and_then(|em| em.get("payload"))
         }
@@ -348,28 +370,36 @@ impl CodexUsageService {
     /// 计算滚动窗口使用量
     pub fn compute_rolling_usage(&self) -> Result<CodexRollingUsage> {
         let records = self.parse_all_logs()?;
-        let now = Utc::now();
+        Ok(Self::compute_rolling_usage_for_records(&records))
+    }
 
+    /// 添加记录到统计
+    fn add_to_stats(stats: &mut CodexUsageStats, record: &CodexUsageRecord) {
+        stats.total_input_tokens += record.input_tokens;
+        stats.total_output_tokens += record.output_tokens;
+        stats.total_requests += 1;
+    }
+
+    fn compute_rolling_usage_at(
+        records: &[CodexUsageRecord],
+        now: DateTime<Utc>,
+    ) -> CodexRollingUsage {
         let five_hours_ago = now - Duration::hours(5);
         let seven_days_ago = now - Duration::days(7);
 
         let mut rolling = CodexRollingUsage::default();
 
-        for record in &records {
-            // 全部时间
+        for record in records {
             Self::add_to_stats(&mut rolling.all_time, record);
 
-            // 7天窗口
             if record.timestamp >= seven_days_ago {
                 Self::add_to_stats(&mut rolling.seven_day, record);
             }
 
-            // 5小时窗口
             if record.timestamp >= five_hours_ago {
                 Self::add_to_stats(&mut rolling.five_hour, record);
             }
 
-            // 按模型分组
             if let Some(model) = &record.model {
                 let model_stats = rolling
                     .by_model
@@ -379,7 +409,6 @@ impl CodexUsageService {
             }
         }
 
-        // 设置窗口时间
         rolling.five_hour.window_start = Some(five_hours_ago);
         rolling.five_hour.window_end = Some(now);
         rolling.seven_day.window_start = Some(seven_days_ago);
@@ -390,14 +419,7 @@ impl CodexUsageService {
         }
         rolling.all_time.window_end = Some(now);
 
-        Ok(rolling)
-    }
-
-    /// 添加记录到统计
-    fn add_to_stats(stats: &mut CodexUsageStats, record: &CodexUsageRecord) {
-        stats.total_input_tokens += record.input_tokens;
-        stats.total_output_tokens += record.output_tokens;
-        stats.total_requests += 1;
+        rolling
     }
 
     /// 格式化 tokens 数量 (带 K/M 后缀)
@@ -607,6 +629,27 @@ mod tests {
         assert_eq!(records[0].output_tokens, 200);
         assert_eq!(records[1].input_tokens, 800);
         assert_eq!(records[1].output_tokens, 60);
+    }
+
+    #[test]
+    fn test_parse_session_with_top_level_turn_context_and_session_id() {
+        let (service, temp_dir) = create_test_service();
+
+        let session_dir = temp_dir.path().join("sessions").join("2026/03/05");
+        std::fs::create_dir_all(&session_dir).unwrap();
+
+        let jsonl_content = r#"{"timestamp":"2026-03-05T09:11:45.366Z","type":"session_meta","id":"sess-top-level","cwd":"D:\\Documents\\Code\\Github\\ccr","payload":{"timestamp":"2026-03-05T09:11:45.366Z"}}
+{"timestamp":"2026-03-05T09:11:46.000Z","type":"turn_context","payload":{"turn_id":"turn-1","model":"gpt-5.4"}}
+{"timestamp":"2026-03-05T09:11:50.406Z","type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":1000,"cached_input_tokens":400,"output_tokens":200}}}}
+"#;
+        std::fs::write(session_dir.join("rollout-top-level.jsonl"), jsonl_content).unwrap();
+
+        let records = service.parse_all_logs().unwrap();
+        assert_eq!(records.len(), 1);
+        assert_eq!(records[0].session_id, "sess-top-level");
+        assert_eq!(records[0].model.as_deref(), Some("gpt-5.4"));
+        assert_eq!(records[0].input_tokens, 1000);
+        assert_eq!(records[0].output_tokens, 200);
     }
 
     #[test]

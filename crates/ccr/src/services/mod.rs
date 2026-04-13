@@ -33,7 +33,7 @@ pub use ccr_codex::{
     CodexHistorySyncResult, CodexHistorySyncService, CodexHistorySyncStatus,
     CodexOAuthTokenService, CodexQuotaService, CodexRollingUsage, CodexRuntimeCommitPlan,
     CodexRuntimeService, CodexSessionDetail, CodexSessionExport, CodexSessionMessage,
-    CodexSessionService, CodexSessionSummary, CodexUsageService,
+    CodexSessionService, CodexSessionSummary, CodexUsageRecord, CodexUsageService, CodexUsageStats,
 };
 #[allow(unused_imports)]
 pub use config_service::ConfigService;
