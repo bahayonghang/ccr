@@ -38,8 +38,11 @@ const moduleSubnavMap: Record<string, ModuleSubnavItem[]> = {
   opencode: [
     { label: 'Providers', href: '/opencode/providers', icon: 'Layers' },
     { label: 'MCP', href: '/opencode/mcp', icon: 'Server' },
+    { label: 'Agents', href: '/opencode/agents', icon: 'Bot' },
+    { label: 'Commands', href: '/opencode/commands', icon: 'Command' },
+    { label: 'Skills', href: '/opencode/skills', icon: 'BookOpen' },
     { label: 'Plugins', href: '/opencode/plugins', icon: 'Puzzle' },
-    { label: 'Skills', href: '/skills', icon: 'Book' },
+    { label: 'Settings', href: '/opencode/settings', icon: 'SlidersHorizontal' },
   ],
   skills: [
     { label: 'Skills 库', href: '/skills', icon: 'Package' },

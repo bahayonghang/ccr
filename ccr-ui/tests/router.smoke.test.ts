@@ -16,7 +16,11 @@ describe('router smoke', () => {
       'sessions',
       'wsl-management',
       'ssh-management',
-      'opencode'
+      'opencode',
+      'opencode-agents',
+      'opencode-commands',
+      'opencode-skills',
+      'opencode-settings',
     ]
 
     for (const routeName of requiredRoutes) {
@@ -54,7 +58,11 @@ describe('router smoke', () => {
       'opencode',
       'opencode-providers',
       'opencode-mcp',
+      'opencode-agents',
+      'opencode-commands',
+      'opencode-skills',
       'opencode-plugins',
+      'opencode-settings',
     ]
 
     for (const routeName of routeNames) {

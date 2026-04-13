@@ -1,9 +1,10 @@
 <template>
   <div class="flex flex-col gap-5 px-4 py-4">
     <PageHeaderCard
-      title="Skills Hub"
-      description="统一管理 Skills 库存、探索、平台和来源。"
-      badge="Workspace"
+      v-if="!hidePageHeader"
+      :title="pageTitleResolved"
+      :description="pageDescriptionResolved"
+      :badge="pageBadgeResolved"
       icon="Package"
       tone="secondary"
     />
@@ -565,12 +566,31 @@ import { getRuntimeUnavailableCopy } from '@/utils/runtimeState'
 import { handleSkillsChangedPayload } from './skillsWatcher'
 import { isTauriRuntime } from '@/utils/tauriRuntime'
 
+const props = withDefaults(defineProps<{
+  forcedPlatform?: Platform | null
+  routeBasePath?: string
+  pageTitle?: string
+  pageDescription?: string
+  pageBadge?: string
+  hidePageHeader?: boolean
+}>(), {
+  forcedPlatform: null,
+  routeBasePath: '/skills',
+  pageTitle: 'Skills Hub',
+  pageDescription: '统一管理 Skills 库存、探索、平台和来源。',
+  pageBadge: 'Workspace',
+  hidePageHeader: false,
+})
+
 const route = useRoute()
 const router = useRouter()
 const uiStore = useUIStore()
 const { initialize, refresh, loadMarketplace, loadOnboardingCandidates, loadNpxCapabilities, addGitSource, addLocalSourceRecord, prepareInstall, install, syncSkill, removeSkillRecord, syncSource, removeSource, ensureDetail, ensureContent, selectSkill, selectedSkill, filteredSkills, selectedInstallation, platforms, sources, marketplace, onboardingCandidates, importFromLocal, stats, filters, routeState, installReview, npxCapabilities, marketplaceLoading, mutationLoading } = useUnifiedSkills()
 const runtimeUnavailable = computed(() => !isTauriRuntime())
 const runtimeCopy = computed(() => getRuntimeUnavailableCopy('skills'))
+const pageTitleResolved = computed(() => props.pageTitle)
+const pageDescriptionResolved = computed(() => props.pageDescription)
+const pageBadgeResolved = computed(() => props.pageBadge)
 const activeTab = computed<SkillsTab>(() => routeState.value.tab || 'library')
 const tabs = computed(() => [{ id: 'library' as SkillsTab, label: 'Library', icon: 'LibraryBig', count: stats.value.logicalSkills }, { id: 'explore' as SkillsTab, label: 'Explore', icon: 'Store', count: marketplace.value.total }, { id: 'platforms' as SkillsTab, label: 'Platforms', icon: 'Cpu', count: platforms.value.length }, { id: 'sources' as SkillsTab, label: 'Sources', icon: 'FolderGit2', count: sources.value.length }])
 const originOptions: SkillOrigin[] = ['marketplace', 'github', 'repo', 'local', 'npx', 'unknown']
@@ -588,11 +608,49 @@ const selectedContent = ref('')
 let stopSkillsEvent: null | (() => void) = null
 let searchTimer = 0
 
-function normalizeRouteState(query: Record<string, unknown>) { return { tab: (query.tab === 'explore' || query.tab === 'platforms' || query.tab === 'sources' ? query.tab : 'library') as SkillsTab, selected: typeof query.selected === 'string' ? query.selected : null, mode: 'view' as const, platform: typeof query.platform === 'string' ? query.platform : 'all', origin: (typeof query.origin === 'string' ? query.origin : 'all') as SkillOrigin | 'all', q: typeof query.q === 'string' ? query.q : '', page: 1, source: null } }
-function syncRoute(extra: Record<string, string | null>) { const next: Record<string, string> = {}; for (const [key, value] of Object.entries({ ...route.query, ...extra })) { if (typeof value === 'string' && value.trim()) next[key] = value } void router.replace({ path: '/skills', query: next }) }
+function normalizeRouteState(query: Record<string, unknown>) {
+  const incomingPlatform = typeof query.platform === 'string' ? query.platform : null
+  const forcedPlatform = props.forcedPlatform
+  const platform = (forcedPlatform ?? incomingPlatform ?? 'all') as Platform | 'all'
+  return {
+    tab: (query.tab === 'explore' || query.tab === 'platforms' || query.tab === 'sources' ? query.tab : 'library') as SkillsTab,
+    selected: typeof query.selected === 'string' ? query.selected : null,
+    mode: 'view' as const,
+    platform,
+    origin: (typeof query.origin === 'string' ? query.origin : 'all') as SkillOrigin | 'all',
+    q: typeof query.q === 'string' ? query.q : '',
+    page: 1,
+    source: null,
+  }
+}
+function syncRoute(extra: Record<string, string | null>) {
+  const next: Record<string, string> = {}
+  const merged = { ...route.query, ...extra }
+  if (props.forcedPlatform) merged.platform = props.forcedPlatform
+  for (const [key, value] of Object.entries(merged)) {
+    if (typeof value === 'string' && value.trim()) next[key] = value
+  }
+  void router.replace({ path: props.routeBasePath, query: next })
+}
 function setTab(tab: SkillsTab) { routeState.value.tab = tab; syncRoute({ tab: tab === 'library' ? null : tab }); if (tab === 'explore') void reloadMarketplace(false) }
-function resetLibraryFilters() { librarySearch.value = ''; filters.value.search = ''; filters.value.platform = 'all'; filters.value.origin = 'all'; filters.value.source = 'all'; filters.value.tags = []; syncRoute({ q: null, platform: null, origin: null }) }
-function selectDetectedPlatforms() { selectedPlatforms.value = platforms.value.filter((item) => item.detected).map((item) => item.id) }
+function resetLibraryFilters() {
+  librarySearch.value = ''
+  filters.value.search = ''
+  filters.value.platform = props.forcedPlatform ?? 'all'
+  filters.value.origin = 'all'
+  filters.value.source = 'all'
+  filters.value.tags = []
+  syncRoute({ q: null, platform: props.forcedPlatform ?? null, origin: null })
+}
+function selectDetectedPlatforms() {
+  if (props.forcedPlatform) {
+    selectedPlatforms.value = platforms.value
+      .filter((item) => item.detected && item.id === props.forcedPlatform)
+      .map((item) => item.id)
+    return
+  }
+  selectedPlatforms.value = platforms.value.filter((item) => item.detected).map((item) => item.id)
+}
 async function handleSelectSkill(skillId: string) { selectSkill(skillId, null); syncRoute({ selected: skillId }); await ensureDetail(skillId, true); const content = await ensureContent(skillId, selectedInstallation.value?.id ?? null, true); selectedContent.value = content?.raw ?? '' }
 async function syncSelectedSkill() { if (!selectedSkill.value || selectedPlatforms.value.length === 0) return; try { await syncSkill({ skillId: selectedSkill.value.id, installationId: selectedInstallation.value?.id, targetPlatforms: selectedPlatforms.value, force: true }); uiStore.showSuccess(`Synced ${selectedSkill.value.name}`); await refresh(activeTab.value === 'explore') } catch (error) { uiStore.showError(error instanceof Error ? error.message : String(error)) } }
 async function removeSelectedSkill() { if (!selectedSkill.value) return; try { await removeSkillRecord(selectedSkill.value.id); uiStore.showSuccess(`Removed ${selectedSkill.value.name}`); selectSkill(null, null); selectedContent.value = ''; syncRoute({ selected: null }) } catch (error) { uiStore.showError(error instanceof Error ? error.message : String(error)) } }

@@ -22,12 +22,31 @@ const apiMocks = vi.hoisted(() => ({
   applyCodexProfile: vi.fn(),
   addCodexCustomModel: vi.fn(),
   listOpenCodeProviders: vi.fn(),
+  getOpenCodeConfig: vi.fn(),
+  getOpenCodeTuiSettings: vi.fn(),
   addOpenCodeProvider: vi.fn(),
   updateOpenCodeProvider: vi.fn(),
   deleteOpenCodeProvider: vi.fn(),
+  listOpenCodeMcpServers: vi.fn(),
+  addOpenCodeMcpServer: vi.fn(),
+  updateOpenCodeMcpServer: vi.fn(),
+  deleteOpenCodeMcpServer: vi.fn(),
+  listOpenCodeAgents: vi.fn(),
+  addOpenCodeAgent: vi.fn(),
+  updateOpenCodeAgent: vi.fn(),
+  deleteOpenCodeAgent: vi.fn(),
+  listOpenCodeCommands: vi.fn(),
+  addOpenCodeCommand: vi.fn(),
+  updateOpenCodeCommand: vi.fn(),
+  deleteOpenCodeCommand: vi.fn(),
   listOpenCodePlugins: vi.fn(),
+  listOpenCodeLocalPlugins: vi.fn(),
+  listOpenCodeSkillLocations: vi.fn(),
+  listOpenCodeThemes: vi.fn(),
   addOpenCodePlugin: vi.fn(),
   deleteOpenCodePlugin: vi.fn(),
+  updateOpenCodeConfig: vi.fn(),
+  updateOpenCodeTuiSettings: vi.fn(),
 }))
 
 vi.mock('@/api', () => ({
@@ -160,12 +179,31 @@ beforeEach(() => {
   apiMocks.applyCodexProfile.mockReset()
   apiMocks.addCodexCustomModel.mockReset()
   apiMocks.listOpenCodeProviders.mockReset()
+  apiMocks.getOpenCodeConfig.mockReset()
+  apiMocks.getOpenCodeTuiSettings.mockReset()
   apiMocks.addOpenCodeProvider.mockReset()
   apiMocks.updateOpenCodeProvider.mockReset()
   apiMocks.deleteOpenCodeProvider.mockReset()
+  apiMocks.listOpenCodeMcpServers.mockReset()
+  apiMocks.addOpenCodeMcpServer.mockReset()
+  apiMocks.updateOpenCodeMcpServer.mockReset()
+  apiMocks.deleteOpenCodeMcpServer.mockReset()
+  apiMocks.listOpenCodeAgents.mockReset()
+  apiMocks.addOpenCodeAgent.mockReset()
+  apiMocks.updateOpenCodeAgent.mockReset()
+  apiMocks.deleteOpenCodeAgent.mockReset()
+  apiMocks.listOpenCodeCommands.mockReset()
+  apiMocks.addOpenCodeCommand.mockReset()
+  apiMocks.updateOpenCodeCommand.mockReset()
+  apiMocks.deleteOpenCodeCommand.mockReset()
   apiMocks.listOpenCodePlugins.mockReset()
+  apiMocks.listOpenCodeLocalPlugins.mockReset()
+  apiMocks.listOpenCodeSkillLocations.mockReset()
+  apiMocks.listOpenCodeThemes.mockReset()
   apiMocks.addOpenCodePlugin.mockReset()
   apiMocks.deleteOpenCodePlugin.mockReset()
+  apiMocks.updateOpenCodeConfig.mockReset()
+  apiMocks.updateOpenCodeTuiSettings.mockReset()
 
   apiMocks.listCodexProfiles.mockResolvedValue({
     current_profile: 'default',
@@ -190,8 +228,16 @@ beforeEach(() => {
   apiMocks.detectCodexProcess.mockResolvedValue({ has_running_process: false, pids: [] })
   apiMocks.getCodexAllQuotas.mockResolvedValue([])
   apiMocks.listCodexModels.mockResolvedValue({ builtin_models: ['gpt-5.4'], custom_models: [] })
+  apiMocks.getOpenCodeConfig.mockResolvedValue({})
+  apiMocks.getOpenCodeTuiSettings.mockResolvedValue({})
   apiMocks.listOpenCodeProviders.mockResolvedValue([])
+  apiMocks.listOpenCodeMcpServers.mockResolvedValue([])
+  apiMocks.listOpenCodeAgents.mockResolvedValue([])
+  apiMocks.listOpenCodeCommands.mockResolvedValue([])
   apiMocks.listOpenCodePlugins.mockResolvedValue([])
+  apiMocks.listOpenCodeLocalPlugins.mockResolvedValue([])
+  apiMocks.listOpenCodeSkillLocations.mockResolvedValue([])
+  apiMocks.listOpenCodeThemes.mockResolvedValue([])
 })
 
 afterEach(() => {
@@ -236,13 +282,73 @@ describe('legacy shell pages smoke', () => {
     }
   })
 
+  it('renders OpenCode mcp shell', async () => {
+    const { default: OpenCodeMcpView } = await import('@/views/OpenCodeMcpView.vue')
+    const { el, unmount } = await mountView(OpenCodeMcpView)
+
+    try {
+      expect(el.textContent).toContain('MCP')
+      expect(el.textContent).toContain('暂无 MCP 服务器')
+    } finally {
+      unmount()
+    }
+  })
+
+  it('renders OpenCode agents shell', async () => {
+    const { default: OpenCodeAgentsView } = await import('@/views/OpenCodeAgentsView.vue')
+    const { el, unmount } = await mountView(OpenCodeAgentsView)
+
+    try {
+      expect(el.textContent).toContain('Built-in layout')
+      expect(el.textContent).toContain('暂无自定义 Agent')
+    } finally {
+      unmount()
+    }
+  })
+
+  it('renders OpenCode commands shell', async () => {
+    const { default: OpenCodeCommandsView } = await import('@/views/OpenCodeCommandsView.vue')
+    const { el, unmount } = await mountView(OpenCodeCommandsView)
+
+    try {
+      expect(el.textContent).toContain('Built-in behavior')
+      expect(el.textContent).toContain('暂无自定义 Command')
+    } finally {
+      unmount()
+    }
+  })
+
   it('renders OpenCode plugins shell', async () => {
     const { default: OpenCodePluginsView } = await import('@/views/OpenCodePluginsView.vue')
     const { el, unmount } = await mountView(OpenCodePluginsView)
 
     try {
-      expect(el.textContent).toContain('插件管理')
-      expect(el.textContent).toContain('暂无插件')
+      expect(el.textContent).toContain('Plugins')
+      expect(el.textContent).toContain('暂无 npm 插件配置')
+    } finally {
+      unmount()
+    }
+  })
+
+  it('renders OpenCode settings shell', async () => {
+    const { default: OpenCodeSettingsView } = await import('@/views/OpenCodeSettingsView.vue')
+    const { el, unmount } = await mountView(OpenCodeSettingsView)
+
+    try {
+      expect(el.textContent).toContain('Runtime config')
+      expect(el.textContent).toContain('TUI config')
+    } finally {
+      unmount()
+    }
+  })
+
+  it('renders OpenCode skills shell', async () => {
+    const { default: OpenCodeSkillsView } = await import('@/views/OpenCodeSkillsView.vue')
+    const { el, unmount } = await mountView(OpenCodeSkillsView)
+
+    try {
+      expect(el.textContent).toContain('Skills hub')
+      expect(el.textContent).toContain('Resolved locations')
     } finally {
       unmount()
     }

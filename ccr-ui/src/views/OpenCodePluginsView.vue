@@ -1,194 +1,193 @@
 <template>
-  <div class="min-h-full p-6 lg:p-10 relative overflow-hidden">
-    <AnimatedBackground
-      contained
-      variant="minimal"
-    />
-
-    <div class="relative z-10 mx-auto max-w-3xl space-y-5">
-      <!-- 页面标题 -->
-      <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between animate-slide-up">
-        <div class="flex items-center gap-3">
-          <RouterLink
-            to="/opencode"
-            class="inline-flex"
-          >
-            <Button
-              variant="ghost"
-              surface="status"
-              density="compact"
-              motion="subtle"
-            >
-              <template #leading>
-                <SIcon
-                  name="ChevronLeft"
-                  size="w-5 h-5"
-                />
-              </template>
-            </Button>
-          </RouterLink>
-          <div>
-            <h1 class="text-2xl font-bold text-text-primary">
-              插件管理
-            </h1>
-            <p class="text-sm text-text-secondary">
-              管理 OpenCode npm 插件包
-            </p>
-          </div>
-        </div>
-        <Button
-          variant="success"
-          surface="card"
-          density="compact"
-          motion="standard"
-          @click="showAddDialog = true"
-        >
-          <template #leading>
-            <SIcon
-              name="Plus"
-              size="w-4 h-4"
-            />
-          </template>
-          添加插件
-        </Button>
-      </div>
-
-      <!-- 加载状态 -->
-      <div
-        v-if="loading"
-        class="flex items-center justify-center py-16"
-      >
-        <div class="w-8 h-8 rounded-full border-2 border-accent-success/30 border-t-accent-success animate-spin" />
-      </div>
-
-      <!-- 错误状态 -->
-      <Card
-        v-else-if="error"
+  <OpenCodePageShell
+    title="Plugins"
+    description="将 npm 插件配置与本地插件文件分开展示，并补上官方 load order 语义。"
+    icon="Puzzle"
+    tone="emerald"
+    badge="plugin"
+  >
+    <template #actions>
+      <Button
+        variant="success"
         surface="card"
-        :elevation="2"
-        motion="subtle"
-        class="p-6 text-center"
+        density="compact"
+        motion="standard"
+        @click="showModal = true"
       >
-        <p class="mb-3 text-accent-danger">
-          {{ error }}
-        </p>
-        <button
-          type="button"
-          class="min-h-[44px] rounded-lg px-3 text-sm text-accent-success transition-colors hover:bg-accent-success/10 hover:underline"
-          @click="loadPlugins"
-        >
-          重新加载
-        </button>
-      </Card>
-
-      <!-- 空状态 -->
-      <Card
-        v-else-if="plugins.length === 0"
-        surface="workspace"
-        :elevation="2"
-        motion="subtle"
-        class="p-10 text-center"
-      >
-        <div class="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-accent-success/10 text-accent-success">
+        <template #leading>
           <SIcon
-            name="Package"
-            size="w-7 h-7"
+            name="Plus"
+            size="w-4 h-4"
           />
-        </div>
-        <h3 class="mb-2 text-lg font-bold text-text-primary">
-          暂无插件
-        </h3>
-        <p class="mb-4 text-sm text-text-secondary">
-          添加 npm 插件包来扩展 OpenCode 功能
-        </p>
-        <Button
-          variant="success"
-          surface="card"
-          density="compact"
-          motion="standard"
-          @click="showAddDialog = true"
-        >
-          添加第一个插件
-        </Button>
-      </Card>
+        </template>
+        添加 npm 插件
+      </Button>
+    </template>
 
-      <!-- 插件列表 -->
-      <div
-        v-else
-        class="space-y-2"
-      >
+    <div class="grid gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
+      <div class="space-y-5">
         <Card
-          v-for="plugin in plugins"
-          :key="plugin.npm"
-          surface="card"
-          :elevation="2"
-          motion="subtle"
-          class="p-4 animate-slide-up"
+          variant="glass"
+          class="p-5"
         >
-          <div class="flex items-center justify-between gap-4">
-            <div class="flex items-center gap-3 min-w-0">
-              <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-accent-success/10 text-accent-success">
-                <SIcon
-                  name="Package"
-                  size="w-4 h-4"
-                />
+          <div class="mb-4 flex items-start justify-between gap-3">
+            <div>
+              <h2 class="text-lg font-semibold text-text-primary">
+                npm plugin packages
+              </h2>
+              <p class="mt-1 text-sm text-text-secondary">
+                这些条目来自 `opencode.json` 的 `plugin` 数组，会在启动时通过 Bun 自动安装。
+              </p>
+            </div>
+            <span class="rounded-full border border-emerald-300/20 bg-emerald-300/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-emerald-200">
+              {{ packages.length }}
+            </span>
+          </div>
+
+          <div
+            v-if="loading"
+            class="flex justify-center py-8"
+          >
+            <div class="h-8 w-8 rounded-full border-2 border-emerald-300/25 border-t-emerald-300 animate-spin" />
+          </div>
+
+          <div
+            v-else-if="packages.length === 0"
+            class="rounded-2xl border border-border-default/55 bg-bg-base/35 p-4 text-sm text-text-secondary"
+          >
+            暂无 npm 插件配置。
+          </div>
+
+          <div
+            v-else
+            class="space-y-3"
+          >
+            <div
+              v-for="item in packages"
+              :key="item.name"
+              class="flex items-center justify-between gap-3 rounded-2xl border border-border-default/55 bg-bg-base/35 p-4"
+            >
+              <div>
+                <strong class="block font-mono text-sm text-text-primary">{{ item.name }}</strong>
+                <span class="mt-1 block text-xs text-text-muted">cached in ~/.cache/opencode/node_modules</span>
               </div>
-              <div class="min-w-0">
-                <p class="truncate font-mono text-sm font-medium text-text-primary">
-                  {{ plugin.npm }}
-                </p>
-                <p class="text-xs text-text-secondary">
-                  npm 包
-                </p>
+              <Button
+                variant="danger"
+                surface="status"
+                density="compact"
+                motion="subtle"
+                @click="removePackage(item.name)"
+              >
+                删除
+              </Button>
+            </div>
+          </div>
+        </Card>
+
+        <Card
+          variant="glass"
+          class="p-5"
+        >
+          <div class="mb-4 flex items-start justify-between gap-3">
+            <div>
+              <h2 class="text-lg font-semibold text-text-primary">
+                Local plugin files
+              </h2>
+              <p class="mt-1 text-sm text-text-secondary">
+                来自 `.opencode/plugins/` 和 `~/.config/opencode/plugins/` 的本地脚本文件。
+              </p>
+            </div>
+            <span class="rounded-full border border-border-default/55 bg-bg-base/35 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-text-secondary">
+              {{ localPlugins.length }}
+            </span>
+          </div>
+
+          <div
+            v-if="localPlugins.length === 0"
+            class="rounded-2xl border border-border-default/55 bg-bg-base/35 p-4 text-sm text-text-secondary"
+          >
+            未发现本地插件文件。
+          </div>
+
+          <div
+            v-else
+            class="space-y-3"
+          >
+            <div
+              v-for="plugin in localPlugins"
+              :key="plugin.path"
+              class="rounded-2xl border border-border-default/55 bg-bg-base/35 p-4"
+            >
+              <div class="flex items-center justify-between gap-3">
+                <div>
+                  <strong class="block text-sm text-text-primary">{{ plugin.name }}</strong>
+                  <span class="mt-1 block break-all font-mono text-xs text-text-muted">{{ plugin.path }}</span>
+                </div>
+                <span class="rounded-full bg-bg-base/45 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-text-secondary">
+                  {{ plugin.scope }}
+                </span>
               </div>
             </div>
-
-            <button
-              type="button"
-              class="flex min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-xl text-text-secondary transition-colors hover:bg-accent-danger/10 hover:text-accent-danger focus:outline-none focus:ring-2 focus:ring-accent-danger/20"
-              @click="confirmDelete(plugin.npm)"
-            >
-              <SIcon
-                name="Trash2"
-                size="w-4 h-4"
-              />
-            </button>
           </div>
         </Card>
       </div>
+
+      <Card
+        variant="glass"
+        class="p-5"
+      >
+        <h2 class="text-lg font-semibold text-text-primary">
+          Load order
+        </h2>
+        <p class="mt-2 text-sm text-text-secondary">
+          插件会按以下顺序加载，适合在排查覆盖关系时直接对照。
+        </p>
+
+        <ol class="mt-4 space-y-3">
+          <li class="rounded-2xl border border-border-default/55 bg-bg-base/35 p-4">
+            <strong class="block text-sm text-text-primary">1. Global config</strong>
+            <span class="mt-1 block text-xs text-text-muted">~/.config/opencode/opencode.json</span>
+          </li>
+          <li class="rounded-2xl border border-border-default/55 bg-bg-base/35 p-4">
+            <strong class="block text-sm text-text-primary">2. Project config</strong>
+            <span class="mt-1 block text-xs text-text-muted">opencode.json</span>
+          </li>
+          <li class="rounded-2xl border border-border-default/55 bg-bg-base/35 p-4">
+            <strong class="block text-sm text-text-primary">3. Global plugin directory</strong>
+            <span class="mt-1 block text-xs text-text-muted">~/.config/opencode/plugins</span>
+          </li>
+          <li class="rounded-2xl border border-border-default/55 bg-bg-base/35 p-4">
+            <strong class="block text-sm text-text-primary">4. Project plugin directory</strong>
+            <span class="mt-1 block text-xs text-text-muted">.opencode/plugins</span>
+          </li>
+        </ol>
+      </Card>
     </div>
 
-    <!-- 添加插件弹窗 -->
     <BaseModal
-      v-model="showAddDialog"
-      title="添加插件"
-      description="输入要安装到 OpenCode 的 npm 插件包名。"
+      v-model="showModal"
+      title="添加 npm 插件"
+      description="向 `plugin` 数组追加一个 npm package。"
       size="md"
       content-class="max-w-md"
     >
       <div class="space-y-4">
         <div>
-          <label
-            for="opencode-plugin-npm"
-            class="mb-2 block text-xs font-bold uppercase tracking-wider text-text-secondary"
-          >npm 包名 *</label>
+          <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">package name</label>
           <input
-            id="opencode-plugin-npm"
-            v-model="newNpm"
-            type="text"
-            placeholder="例：@opencode-ai/omo"
-            class="w-full rounded-xl border border-border-default bg-bg-surface px-4 py-3 text-sm text-text-primary placeholder:text-text-muted focus:border-accent-success focus:outline-none focus:ring-2 focus:ring-accent-success/20"
-            @keyup.enter="doAdd"
+            v-model="newPackage"
+            class="w-full rounded-2xl border border-border-default/55 bg-bg-base/45 px-4 py-3 text-sm text-text-primary"
+            placeholder="@my-org/custom-plugin"
           >
         </div>
 
-        <div class="flex justify-end gap-3 border-t border-border-default/50 pt-4">
+        <div class="flex justify-end gap-3 border-t border-border-default/55 pt-4">
           <Button
             variant="secondary"
             surface="status"
             density="compact"
             motion="subtle"
-            @click="showAddDialog = false"
+            @click="showModal = false"
           >
             取消
           </Button>
@@ -197,53 +196,8 @@
             surface="card"
             density="compact"
             motion="standard"
-            :disabled="!newNpm.trim() || saving"
-            @click="doAdd"
-          >
-            <template #leading>
-              <SIcon
-                v-if="saving"
-                name="Loader2"
-                size="w-4 h-4"
-                class="animate-spin"
-              />
-            </template>
-            添加
-          </Button>
-        </div>
-      </div>
-    </BaseModal>
-
-    <!-- 删除确认弹窗 -->
-    <BaseModal
-      :model-value="Boolean(deletingNpm)"
-      title="确认删除"
-      description="删除后插件会从 OpenCode 配置中移除。"
-      size="sm"
-      content-class="max-w-sm"
-      @update:model-value="(value) => !value && (deletingNpm = '')"
-    >
-      <div class="space-y-4">
-        <p class="text-sm text-text-secondary">
-          确定要删除插件 <strong class="font-mono">{{ deletingNpm }}</strong> 吗？
-        </p>
-        <div class="flex justify-end gap-3 border-t border-border-default/50 pt-4">
-          <Button
-            variant="secondary"
-            surface="status"
-            density="compact"
-            motion="subtle"
-            @click="deletingNpm = ''"
-          >
-            取消
-          </Button>
-          <Button
-            variant="danger"
-            surface="status"
-            density="compact"
-            motion="standard"
             :disabled="saving"
-            @click="doDelete"
+            @click="savePackage"
           >
             <template #leading>
               <SIcon
@@ -253,80 +207,80 @@
                 class="animate-spin"
               />
             </template>
-            删除
+            保存
           </Button>
         </div>
       </div>
     </BaseModal>
-  </div>
+  </OpenCodePageShell>
 </template>
 
 <script setup lang="ts">
-import SIcon from '@/components/ui/SIcon.vue'
-import { ref, onMounted } from 'vue'
-import AnimatedBackground from '@/components/common/AnimatedBackground.vue'
+import { onMounted, ref } from 'vue'
 import Card from '@/components/ui/Card.vue'
-import BaseModal from '@/components/common/BaseModal.vue'
 import Button from '@/components/ui/Button.vue'
-import {
-  listOpenCodePlugins,
-  addOpenCodePlugin,
-  deleteOpenCodePlugin,
-} from '@/api'
-import type { OpenCodePlugin } from '@/types/opencode'
+import SIcon from '@/components/ui/SIcon.vue'
+import BaseModal from '@/components/common/BaseModal.vue'
+import OpenCodePageShell from '@/components/opencode/OpenCodePageShell.vue'
+import { useUIStore } from '@/stores/ui'
+import { addOpenCodePlugin, deleteOpenCodePlugin, listOpenCodeLocalPlugins, listOpenCodePlugins } from '@/api'
+import type { OpenCodeLocalPluginFile, OpenCodePluginPackage } from '@/types'
 
-const plugins = ref<OpenCodePlugin[]>([])
-const loading = ref(true)
-const error = ref('')
+const uiStore = useUIStore()
+const loading = ref(false)
 const saving = ref(false)
-const showAddDialog = ref(false)
-const newNpm = ref('')
-const deletingNpm = ref('')
+const showModal = ref(false)
+const newPackage = ref('')
+const packages = ref<OpenCodePluginPackage[]>([])
+const localPlugins = ref<OpenCodeLocalPluginFile[]>([])
 
-const loadPlugins = async () => {
+async function loadPlugins() {
   loading.value = true
-  error.value = ''
   try {
-    plugins.value = await listOpenCodePlugins()
-  } catch (e: unknown) {
-    error.value = e instanceof Error ? e.message : '加载失败'
+    const [packageNames, localPluginList] = await Promise.all([
+      listOpenCodePlugins<string[]>(),
+      listOpenCodeLocalPlugins<OpenCodeLocalPluginFile[]>(),
+    ])
+    packages.value = packageNames.map((name) => ({ name }))
+    localPlugins.value = localPluginList
+  } catch (error) {
+    uiStore.showError(error instanceof Error ? error.message : String(error))
   } finally {
     loading.value = false
   }
 }
 
-const confirmDelete = (npm: string) => {
-  deletingNpm.value = npm
-}
+async function savePackage() {
+  if (!newPackage.value.trim()) {
+    uiStore.showError('package name 不能为空')
+    return
+  }
 
-const doAdd = async () => {
-  if (!newNpm.value.trim()) return
   saving.value = true
   try {
-    await addOpenCodePlugin({ npm: newNpm.value.trim() })
-    newNpm.value = ''
-    showAddDialog.value = false
+    await addOpenCodePlugin({ name: newPackage.value.trim() })
+    uiStore.showSuccess('npm 插件已添加')
+    newPackage.value = ''
+    showModal.value = false
     await loadPlugins()
-  } catch (e: unknown) {
-    error.value = e instanceof Error ? e.message : '添加失败'
+  } catch (error) {
+    uiStore.showError(error instanceof Error ? error.message : String(error))
   } finally {
     saving.value = false
   }
 }
 
-const doDelete = async () => {
-  if (!deletingNpm.value) return
-  saving.value = true
+async function removePackage(name: string) {
   try {
-    await deleteOpenCodePlugin(deletingNpm.value)
-    deletingNpm.value = ''
+    await deleteOpenCodePlugin(name)
+    uiStore.showSuccess('npm 插件已删除')
     await loadPlugins()
-  } catch (e: unknown) {
-    error.value = e instanceof Error ? e.message : '删除失败'
-  } finally {
-    saving.value = false
+  } catch (error) {
+    uiStore.showError(error instanceof Error ? error.message : String(error))
   }
 }
 
-onMounted(loadPlugins)
+onMounted(() => {
+  void loadPlugins()
+})
 </script>

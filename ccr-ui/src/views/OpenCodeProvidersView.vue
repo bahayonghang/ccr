@@ -1,315 +1,255 @@
 <template>
-  <div class="min-h-full p-6 lg:p-10 relative overflow-hidden">
-    <AnimatedBackground
-      contained
-      variant="minimal"
-    />
-
-    <div class="relative z-10 mx-auto max-w-5xl space-y-5">
-      <!-- 页面标题 -->
-      <div class="flex items-center justify-between animate-slide-up">
-        <div class="flex items-center gap-3">
-          <RouterLink
-            to="/opencode"
-            class="inline-flex"
-          >
-            <Button
-              variant="ghost"
-              surface="status"
-              density="compact"
-              motion="subtle"
-            >
-              <template #leading>
-                <SIcon
-                  name="ChevronLeft"
-                  size="w-5 h-5"
-                />
-              </template>
-            </Button>
-          </RouterLink>
-          <div>
-            <h1 class="text-2xl font-bold text-white">
-              Provider 管理
-            </h1>
-            <p class="text-white/50 text-sm">
-              管理 OpenCode npm AI SDK Provider 配置
-            </p>
-          </div>
-        </div>
-        <Button
-          variant="primary"
-          surface="card"
-          density="compact"
-          motion="standard"
-          @click="showAddDialog = true"
-        >
-          <template #leading>
-            <SIcon
-              name="Plus"
-              size="w-4 h-4"
-            />
-          </template>
-          添加 Provider
-        </Button>
-      </div>
-
-      <!-- 加载状态 -->
-      <div
-        v-if="loading"
-        class="flex items-center justify-center py-16"
-      >
-        <div class="w-8 h-8 border-2 border-violet-500 border-t-transparent rounded-full animate-spin" />
-      </div>
-
-      <!-- 错误状态 -->
-      <Card
-        v-else-if="error"
+  <OpenCodePageShell
+    title="Providers"
+    description="按官方 provider schema 管理认证、baseURL、模型和启用状态。"
+    icon="Layers"
+    tone="lime"
+    badge="provider"
+  >
+    <template #actions>
+      <Button
+        variant="primary"
         surface="card"
-        :elevation="2"
-        motion="subtle"
-        class="p-6 text-center"
+        density="compact"
+        motion="standard"
+        @click="openCreate()"
       >
-        <p class="text-red-400 mb-3">
-          {{ error }}
-        </p>
-        <button
-          class="text-sm text-accent-primary hover:underline"
-          @click="loadProviders"
-        >
-          重新加载
-        </button>
-      </Card>
+        <template #leading>
+          <SIcon
+            name="Plus"
+            size="w-4 h-4"
+          />
+        </template>
+        添加 Provider
+      </Button>
+    </template>
 
-      <!-- 空状态 -->
-      <Card
-        v-else-if="providers.length === 0"
-        surface="workspace"
-        :elevation="2"
-        motion="subtle"
-        class="p-10 text-center"
-      >
-        <SIcon
-          name="Layers"
-          size="w-12 h-12"
-          class="text-white/50 mx-auto mb-4"
-        />
-        <h3 class="text-lg font-bold text-white mb-2">
-          暂无 Provider
-        </h3>
-        <p class="text-white/50 text-sm mb-4">
-          添加 npm AI SDK Provider 来开始使用 OpenCode
-        </p>
-        <Button
-          variant="primary"
-          surface="card"
-          density="compact"
-          motion="standard"
-          @click="showAddDialog = true"
+    <div class="grid gap-5 xl:grid-cols-[minmax(0,1fr)_320px]">
+      <div class="space-y-4">
+        <Card
+          v-if="loading"
+          variant="glass"
+          class="p-8 text-center"
         >
-          添加第一个 Provider
-        </Button>
-      </Card>
+          <div class="mx-auto h-8 w-8 rounded-full border-2 border-lime-300/25 border-t-lime-300 animate-spin" />
+        </Card>
 
-      <!-- Provider 列表 -->
-      <div
-        v-else
-        class="space-y-3"
-      >
+        <Card
+          v-else-if="providers.length === 0"
+          variant="glass"
+          class="p-8 text-center"
+        >
+          <h2 class="text-lg font-semibold text-text-primary">
+            暂无 Provider
+          </h2>
+          <p class="mt-2 text-sm text-text-secondary">
+            从 Anthropic、OpenAI、Google 或自定义 OpenAI-compatible provider 开始。
+          </p>
+        </Card>
+
         <Card
           v-for="provider in providers"
           :key="provider.id"
-          surface="card"
-          :elevation="2"
-          motion="subtle"
-          class="p-4 animate-slide-up"
+          variant="glass"
+          class="p-5"
         >
-          <div class="flex items-start justify-between gap-4">
-            <div class="flex items-start gap-3 min-w-0">
-              <!-- Provider 图标 -->
-              <div class="w-10 h-10 rounded-lg bg-violet-500/10 flex items-center justify-center shrink-0">
-                <SIcon
-                  name="Layers"
-                  size="w-5 h-5"
-                  class="text-violet-500"
-                />
+          <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div class="min-w-0">
+              <div class="mb-3 flex flex-wrap items-center gap-2">
+                <span class="rounded-full border border-lime-300/20 bg-lime-300/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-lime-200">
+                  {{ provider.id }}
+                </span>
+                <span
+                  class="rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em]"
+                  :class="providerEnabled(provider.id) ? 'bg-emerald-300/10 text-emerald-200' : 'bg-amber-300/10 text-amber-200'"
+                >
+                  {{ providerEnabled(provider.id) ? 'enabled' : 'disabled' }}
+                </span>
               </div>
 
-              <!-- Provider 信息 -->
-              <div class="min-w-0">
-                <div class="flex items-center gap-2 mb-1">
-                  <h3 class="font-bold text-white truncate">
-                    {{ provider.id }}
-                  </h3>
-                  <span class="px-2 py-0.5 rounded text-xs bg-violet-500/10 text-violet-400 font-mono shrink-0">
-                    {{ provider.npm }}
-                  </span>
+              <h2 class="text-lg font-semibold text-text-primary">
+                {{ provider.name || provider.id }}
+              </h2>
+              <div class="mt-3 grid gap-3 md:grid-cols-3">
+                <div class="rounded-2xl border border-border-default/55 bg-bg-base/35 p-3">
+                  <span class="text-[11px] font-semibold uppercase tracking-[0.16em] text-text-muted">API key</span>
+                  <p class="mt-2 text-sm text-text-primary">
+                    {{ maskSecret(provider.options?.apiKey) }}
+                  </p>
                 </div>
-
-                <div class="flex flex-wrap gap-3 text-xs text-white/50">
-                  <span
-                    v-if="provider.options?.apiKey"
-                    class="flex items-center gap-1"
-                  >
-                    <SIcon
-                      name="Key"
-                      size="w-3 h-3"
-                    />
-                    {{ maskApiKey(provider.options.apiKey) }}
-                  </span>
-                  <span
-                    v-if="provider.options?.baseURL"
-                    class="flex items-center gap-1"
-                  >
-                    <SIcon
-                      name="Globe"
-                      size="w-3 h-3"
-                    />
-                    {{ provider.options.baseURL }}
-                  </span>
-                  <span class="flex items-center gap-1">
-                    <SIcon
-                      name="Cpu"
-                      size="w-3 h-3"
-                    />
-                    {{ Object.keys(provider.models || {}).length }} 个模型
-                  </span>
+                <div class="rounded-2xl border border-border-default/55 bg-bg-base/35 p-3">
+                  <span class="text-[11px] font-semibold uppercase tracking-[0.16em] text-text-muted">baseURL</span>
+                  <p class="mt-2 break-all text-sm text-text-primary">
+                    {{ provider.options?.baseURL || 'default' }}
+                  </p>
+                </div>
+                <div class="rounded-2xl border border-border-default/55 bg-bg-base/35 p-3">
+                  <span class="text-[11px] font-semibold uppercase tracking-[0.16em] text-text-muted">models</span>
+                  <p class="mt-2 text-sm text-text-primary">
+                    {{ Object.keys(provider.models || {}).length }}
+                  </p>
                 </div>
               </div>
             </div>
 
-            <!-- 操作按钮 -->
-            <div class="flex items-center gap-2 shrink-0">
-              <button
-                class="p-2 rounded-lg text-white/50 hover:text-blue-400 hover:bg-blue-500/10 transition-colors"
-                title="编辑"
-                @click="editProvider(provider)"
+            <div class="flex flex-wrap gap-2">
+              <Button
+                variant="secondary"
+                surface="status"
+                density="compact"
+                motion="subtle"
+                @click="toggleEnabled(provider)"
               >
-                <SIcon
-                  name="Pencil"
-                  size="w-4 h-4"
-                />
-              </button>
-              <button
-                class="p-2 rounded-lg text-white/50 hover:text-red-400 hover:bg-red-500/10 transition-colors"
-                title="删除"
-                @click="confirmDelete(provider)"
+                <template #leading>
+                  <SIcon
+                    :name="providerEnabled(provider.id) ? 'PauseCircle' : 'PlayCircle'"
+                    size="w-4 h-4"
+                  />
+                </template>
+                {{ providerEnabled(provider.id) ? '停用' : '启用' }}
+              </Button>
+              <Button
+                variant="secondary"
+                surface="status"
+                density="compact"
+                motion="subtle"
+                @click="openEdit(provider)"
               >
-                <SIcon
-                  name="Trash2"
-                  size="w-4 h-4"
-                />
-              </button>
+                <template #leading>
+                  <SIcon
+                    name="Pencil"
+                    size="w-4 h-4"
+                  />
+                </template>
+                编辑
+              </Button>
+              <Button
+                variant="danger"
+                surface="status"
+                density="compact"
+                motion="subtle"
+                @click="removeProvider(provider)"
+              >
+                <template #leading>
+                  <SIcon
+                    name="Trash2"
+                    size="w-4 h-4"
+                  />
+                </template>
+                删除
+              </Button>
             </div>
           </div>
         </Card>
       </div>
+
+      <Card
+        variant="glass"
+        class="p-5"
+      >
+        <h2 class="text-lg font-semibold text-text-primary">
+          推荐预设
+        </h2>
+        <p class="mt-2 text-sm text-text-secondary">
+          先选 provider id，再填认证与 baseURL。更多 provider-specific options 走 JSON 扩展位。
+        </p>
+
+        <div class="mt-4 space-y-3">
+          <button
+            v-for="preset in OPENCODE_PROVIDER_PRESETS"
+            :key="preset.id"
+            class="w-full rounded-2xl border border-border-default/55 bg-bg-base/35 p-3 text-left transition-colors hover:border-lime-300/35 hover:bg-lime-300/10"
+            @click="openCreate(preset.id)"
+          >
+            <strong class="block text-sm text-text-primary">{{ preset.label }}</strong>
+            <span class="mt-1 block text-xs leading-6 text-text-secondary">{{ preset.description }}</span>
+          </button>
+        </div>
+      </Card>
     </div>
 
-    <!-- 添加/编辑 Provider 弹窗 -->
     <BaseModal
-      :model-value="showAddDialog || Boolean(editingProvider)"
-      :title="editingProvider ? '编辑 Provider' : '添加 Provider'"
-      description="创建或编辑 OpenCode npm AI SDK Provider 配置。"
+      v-model="showModal"
+      :title="editingId ? '编辑 Provider' : '添加 Provider'"
+      description="直接编辑 OpenCode provider 配置。"
       size="lg"
-      surface="solid"
-      content-class="max-w-lg"
-      @update:model-value="(value) => !value && closeDialog()"
+      content-class="max-w-2xl"
     >
-      <div class="space-y-4 max-h-[90vh] overflow-y-auto">
-        <div class="flex items-center justify-between">
-          <h2 class="text-lg font-bold text-text-primary">
-            {{ editingProvider ? '编辑 Provider' : '添加 Provider' }}
-          </h2>
-          <Button
-            variant="ghost"
-            surface="status"
-            density="compact"
-            motion="subtle"
-            @click="closeDialog"
-          >
-            <template #leading>
-              <SIcon
-                name="X"
-                size="w-5 h-5"
-              />
-            </template>
-          </Button>
-        </div>
-
-        <!-- Provider ID -->
-        <div>
-          <label class="block text-xs font-bold text-white/50 uppercase tracking-wider mb-1">Provider ID *</label>
-          <input
-            v-model="form.id"
-            :disabled="!!editingProvider"
-            type="text"
-            placeholder="例：my-claude"
-            class="opencode-provider-input w-full px-3 py-2 rounded-lg text-sm"
-          >
-        </div>
-
-        <!-- npm 包名（预设选择） -->
-        <div>
-          <label class="block text-xs font-bold text-white/50 uppercase tracking-wider mb-1">npm 包 *</label>
-          <div class="grid grid-cols-2 gap-2 mb-2">
-            <button
-              v-for="preset in OPENCODE_PROVIDER_PRESETS"
-              :key="preset.npm"
-              class="opencode-provider-preset px-3 py-2 rounded-lg text-left text-xs border"
-              :class="form.npm === preset.npm
-                ? 'bg-violet-500/20 border-violet-500 text-violet-400'
-                : 'text-text-secondary hover:border-violet-500/50'"
-              @click="selectPreset(preset)"
+      <div class="space-y-4">
+        <div class="grid gap-4 md:grid-cols-2">
+          <div>
+            <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">provider id *</label>
+            <input
+              v-model="form.id"
+              :disabled="Boolean(editingId)"
+              class="w-full rounded-2xl border border-border-default/55 bg-bg-base/45 px-4 py-3 text-sm text-text-primary"
+              placeholder="anthropic"
             >
-              <div class="font-bold truncate">
-                {{ preset.label }}
-              </div>
-              <div class="opacity-70 truncate font-mono text-xs">
-                {{ preset.npm }}
-              </div>
-            </button>
           </div>
-          <input
-            v-model="form.npm"
-            type="text"
-            placeholder="或输入自定义 npm 包名"
-            class="opencode-provider-input w-full px-3 py-2 rounded-lg text-sm"
-          >
+          <div>
+            <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">display name</label>
+            <input
+              v-model="form.name"
+              class="w-full rounded-2xl border border-border-default/55 bg-bg-base/45 px-4 py-3 text-sm text-text-primary"
+              placeholder="Anthropic"
+            >
+          </div>
         </div>
 
-        <!-- API Key -->
+        <div class="grid gap-4 md:grid-cols-2">
+          <div>
+            <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">api key</label>
+            <input
+              v-model="form.apiKey"
+              class="w-full rounded-2xl border border-border-default/55 bg-bg-base/45 px-4 py-3 text-sm text-text-primary"
+              placeholder="{env:ANTHROPIC_API_KEY}"
+            >
+          </div>
+          <div>
+            <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">baseURL</label>
+            <input
+              v-model="form.baseURL"
+              class="w-full rounded-2xl border border-border-default/55 bg-bg-base/45 px-4 py-3 text-sm text-text-primary"
+              placeholder="https://api.example.com"
+            >
+          </div>
+        </div>
+
+        <label class="flex items-center gap-3 rounded-2xl border border-border-default/55 bg-bg-base/35 px-4 py-3 text-sm text-text-primary">
+          <input
+            v-model="form.enabled"
+            type="checkbox"
+          >
+          该 provider 默认启用
+        </label>
+
         <div>
-          <label class="block text-xs font-bold text-white/50 uppercase tracking-wider mb-1">API Key</label>
-          <input
-            v-model="form.apiKey"
-            type="password"
-            placeholder="sk-... 或 {env:VAR_NAME}"
-            class="opencode-provider-input w-full px-3 py-2 rounded-lg text-sm"
-          >
-          <p class="text-xs text-white/50 mt-1">
-            支持环境变量格式：{env:MY_API_KEY}
-          </p>
+          <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">models JSON</label>
+          <textarea
+            v-model="form.modelsJson"
+            rows="8"
+            class="w-full rounded-2xl border border-border-default/55 bg-bg-base/45 px-4 py-3 font-mono text-sm text-text-primary"
+            placeholder="{&#10;  &quot;claude-sonnet-4-5&quot;: { &quot;name&quot;: &quot;claude-sonnet-4-5&quot; }&#10;}"
+          />
         </div>
 
-        <!-- Base URL -->
         <div>
-          <label class="block text-xs font-bold text-white/50 uppercase tracking-wider mb-1">Base URL（可选）</label>
-          <input
-            v-model="form.baseURL"
-            type="text"
-            placeholder="https://api.example.com/v1"
-            class="opencode-provider-input w-full px-3 py-2 rounded-lg text-sm"
-          >
+          <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">extra options JSON</label>
+          <textarea
+            v-model="form.extraOptionsJson"
+            rows="6"
+            class="w-full rounded-2xl border border-border-default/55 bg-bg-base/45 px-4 py-3 font-mono text-sm text-text-primary"
+            placeholder="{&#10;  &quot;timeout&quot;: 600000&#10;}"
+          />
         </div>
 
-        <!-- 操作按钮 -->
-        <div class="flex justify-end gap-3 pt-2">
+        <div class="flex justify-end gap-3 border-t border-border-default/55 pt-4">
           <Button
             variant="secondary"
             surface="status"
             density="compact"
             motion="subtle"
-            @click="closeDialog"
+            @click="showModal = false"
           >
             取消
           </Button>
@@ -318,7 +258,7 @@
             surface="card"
             density="compact"
             motion="standard"
-            :disabled="!form.id || !form.npm || saving"
+            :disabled="saving"
             @click="saveProvider"
           >
             <template #leading>
@@ -329,205 +269,181 @@
                 class="animate-spin"
               />
             </template>
-            {{ editingProvider ? '更新' : '添加' }}
+            保存
           </Button>
         </div>
       </div>
     </BaseModal>
-
-    <!-- 删除确认弹窗 -->
-    <BaseModal
-      :model-value="Boolean(deletingProvider)"
-      title="确认删除"
-      description="删除后该 Provider 会从 OpenCode 配置中移除。"
-      size="sm"
-      surface="solid"
-      content-class="max-w-sm"
-      @update:model-value="(value) => !value && (deletingProvider = null)"
-    >
-      <div class="space-y-4">
-        <h2 class="text-lg font-bold text-white">
-          确认删除
-        </h2>
-        <p class="text-white/80 text-sm">
-          确定要删除 Provider <strong>{{ deletingProvider?.id }}</strong>（{{ deletingProvider?.npm }}）吗？此操作无法撤销。
-        </p>
-        <div class="flex justify-end gap-3">
-          <Button
-            variant="secondary"
-            surface="status"
-            density="compact"
-            motion="subtle"
-            @click="deletingProvider = null"
-          >
-            取消
-          </Button>
-          <Button
-            variant="danger"
-            surface="status"
-            density="compact"
-            motion="standard"
-            :disabled="saving"
-            @click="doDelete"
-          >
-            <template #leading>
-              <SIcon
-                v-if="saving"
-                name="Loader2"
-                size="w-4 h-4"
-                class="animate-spin"
-              />
-            </template>
-            删除
-          </Button>
-        </div>
-      </div>
-    </BaseModal>
-  </div>
+  </OpenCodePageShell>
 </template>
 
 <script setup lang="ts">
-import SIcon from '@/components/ui/SIcon.vue'
-import { ref, onMounted, reactive } from 'vue'
-import AnimatedBackground from '@/components/common/AnimatedBackground.vue'
-import BaseModal from '@/components/common/BaseModal.vue'
-import Button from '@/components/ui/Button.vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import Card from '@/components/ui/Card.vue'
-import {
-  listOpenCodeProviders,
-  addOpenCodeProvider,
-  updateOpenCodeProvider,
-  deleteOpenCodeProvider,
-} from '@/api'
+import Button from '@/components/ui/Button.vue'
+import SIcon from '@/components/ui/SIcon.vue'
+import BaseModal from '@/components/common/BaseModal.vue'
+import OpenCodePageShell from '@/components/opencode/OpenCodePageShell.vue'
+import { useUIStore } from '@/stores/ui'
+import { addOpenCodeProvider, deleteOpenCodeProvider, getOpenCodeConfig, listOpenCodeProviders, updateOpenCodeConfig, updateOpenCodeProvider } from '@/api'
 import { OPENCODE_PROVIDER_PRESETS } from '@/types/opencode'
-import type { OpenCodeProvider, OpenCodeProviderPreset } from '@/types/opencode'
+import type { OpenCodeConfig, OpenCodeProviderConfig, OpenCodeProviderOptions } from '@/types'
+import { formatJsonInput, maskSecret, parseJsonInput } from '@/utils/opencode'
 
-const providers = ref<OpenCodeProvider[]>([])
-const loading = ref(true)
-const error = ref('')
+const uiStore = useUIStore()
+const loading = ref(false)
 const saving = ref(false)
-const showAddDialog = ref(false)
-const editingProvider = ref<OpenCodeProvider | null>(null)
-const deletingProvider = ref<OpenCodeProvider | null>(null)
+const showModal = ref(false)
+const editingId = ref('')
+const providers = ref<OpenCodeProviderConfig[]>([])
+const configState = ref<OpenCodeConfig>({})
 
 const form = reactive({
   id: '',
-  npm: '',
+  name: '',
   apiKey: '',
   baseURL: '',
+  enabled: true,
+  modelsJson: '{}',
+  extraOptionsJson: '{}',
 })
 
-const maskApiKey = (key: string) => {
-  if (!key || key.startsWith('{env:')) return key
-  if (key.length <= 8) return '••••••••'
-  return key.slice(0, 4) + '••••••••' + key.slice(-4)
+const disabledProviders = computed(() => new Set(configState.value.disabled_providers || []))
+const enabledProviders = computed(() => configState.value.enabled_providers || [])
+
+function providerEnabled(id: string) {
+  if (disabledProviders.value.has(id)) return false
+  if (enabledProviders.value.length > 0) return enabledProviders.value.includes(id)
+  return true
 }
 
-const loadProviders = async () => {
+async function loadProviders() {
   loading.value = true
-  error.value = ''
   try {
-    providers.value = await listOpenCodeProviders()
-  } catch (e: unknown) {
-    error.value = e instanceof Error ? e.message : '加载 Provider 列表失败'
+    const [providerList, config] = await Promise.all([
+      listOpenCodeProviders<OpenCodeProviderConfig[]>(),
+      getOpenCodeConfig<OpenCodeConfig>(),
+    ])
+    providers.value = providerList
+    configState.value = config
+  } catch (error) {
+    uiStore.showError(error instanceof Error ? error.message : String(error))
   } finally {
     loading.value = false
   }
 }
 
-const selectPreset = (preset: OpenCodeProviderPreset) => {
-  form.npm = preset.npm
-  if (!form.id) {
-    form.id = preset.id
-  }
-}
-
-const editProvider = (provider: OpenCodeProvider) => {
-  editingProvider.value = provider
-  form.id = provider.id
-  form.npm = provider.npm
-  form.apiKey = provider.options?.apiKey || ''
-  form.baseURL = provider.options?.baseURL || ''
-}
-
-const confirmDelete = (provider: OpenCodeProvider) => {
-  deletingProvider.value = provider
-}
-
-const closeDialog = () => {
-  showAddDialog.value = false
-  editingProvider.value = null
-  form.id = ''
-  form.npm = ''
+function openCreate(presetId = '') {
+  editingId.value = ''
+  form.id = presetId
+  form.name = ''
   form.apiKey = ''
   form.baseURL = ''
+  form.enabled = true
+  form.modelsJson = '{}'
+  form.extraOptionsJson = '{}'
+  showModal.value = true
 }
 
-const saveProvider = async () => {
-  if (!form.id || !form.npm) return
+function openEdit(provider: OpenCodeProviderConfig) {
+  editingId.value = provider.id
+  form.id = provider.id
+  form.name = provider.name || ''
+  form.apiKey = String(provider.options?.apiKey || '')
+  form.baseURL = String(provider.options?.baseURL || '')
+  form.enabled = providerEnabled(provider.id)
+  form.modelsJson = formatJsonInput(provider.models || {})
+  const extraOptions = { ...(provider.options || {}) }
+  delete extraOptions.apiKey
+  delete extraOptions.baseURL
+  form.extraOptionsJson = formatJsonInput(extraOptions)
+  showModal.value = true
+}
+
+async function syncProviderVisibility(id: string, enabled: boolean) {
+  const nextDisabled = new Set(configState.value.disabled_providers || [])
+  const nextEnabled = new Set(configState.value.enabled_providers || [])
+
+  if (enabled) {
+    nextDisabled.delete(id)
+    if (nextEnabled.size > 0) nextEnabled.add(id)
+  } else {
+    nextDisabled.add(id)
+    nextEnabled.delete(id)
+  }
+
+  const patch: Record<string, unknown> = {
+    disabled_providers: [...nextDisabled],
+  }
+  if ((configState.value.enabled_providers || []).length > 0) {
+    patch.enabled_providers = [...nextEnabled]
+  }
+  configState.value = await updateOpenCodeConfig<OpenCodeConfig>(patch)
+}
+
+async function saveProvider() {
+  if (!form.id.trim()) {
+    uiStore.showError('Provider id 不能为空')
+    return
+  }
+
   saving.value = true
   try {
+    const extraOptions = parseJsonInput<Record<string, unknown>>(form.extraOptionsJson, {})
+    const models = parseJsonInput<Record<string, unknown>>(form.modelsJson, {})
+    const options: OpenCodeProviderOptions = { ...extraOptions }
+    if (form.apiKey.trim()) options.apiKey = form.apiKey.trim()
+    if (form.baseURL.trim()) options.baseURL = form.baseURL.trim()
+
     const request = {
-      id: form.id,
-      npm: form.npm,
-      options: {
-        apiKey: form.apiKey || undefined,
-        baseURL: form.baseURL || undefined,
-      },
-      models: {},
+      id: form.id.trim(),
+      name: form.name.trim() || undefined,
+      options,
+      models,
     }
-    if (editingProvider.value) {
-      await updateOpenCodeProvider(form.id, request)
+
+    if (editingId.value) {
+      await updateOpenCodeProvider(request.id, request)
     } else {
       await addOpenCodeProvider(request)
     }
-    closeDialog()
+
+    await syncProviderVisibility(request.id, form.enabled)
+    uiStore.showSuccess(editingId.value ? 'Provider 已更新' : 'Provider 已创建')
+    showModal.value = false
     await loadProviders()
-  } catch (e: unknown) {
-    error.value = e instanceof Error ? e.message : '保存失败'
+  } catch (error) {
+    uiStore.showError(error instanceof Error ? error.message : String(error))
   } finally {
     saving.value = false
   }
 }
 
-const doDelete = async () => {
-  if (!deletingProvider.value) return
-  saving.value = true
+async function toggleEnabled(provider: OpenCodeProviderConfig) {
   try {
-    await deleteOpenCodeProvider(deletingProvider.value.id)
-    deletingProvider.value = null
+    await syncProviderVisibility(provider.id, !providerEnabled(provider.id))
+    uiStore.showSuccess(providerEnabled(provider.id) ? 'Provider 已启用' : 'Provider 已停用')
     await loadProviders()
-  } catch (e: unknown) {
-    error.value = e instanceof Error ? e.message : '删除失败'
-  } finally {
-    saving.value = false
+  } catch (error) {
+    uiStore.showError(error instanceof Error ? error.message : String(error))
   }
 }
 
-onMounted(loadProviders)
+async function removeProvider(provider: OpenCodeProviderConfig) {
+  try {
+    await deleteOpenCodeProvider(provider.id)
+    configState.value = await updateOpenCodeConfig<OpenCodeConfig>({
+      disabled_providers: (configState.value.disabled_providers || []).filter((item) => item !== provider.id),
+      enabled_providers: (configState.value.enabled_providers || []).filter((item) => item !== provider.id),
+    })
+    uiStore.showSuccess('Provider 已删除')
+    await loadProviders()
+  } catch (error) {
+    uiStore.showError(error instanceof Error ? error.message : String(error))
+  }
+}
+
+onMounted(() => {
+  void loadProviders()
+})
 </script>
-
-<style scoped>
-.opencode-provider-input,
-.opencode-provider-preset {
-  background: var(--surface-status-bg);
-  border-color: var(--surface-status-border);
-  color: var(--color-text-primary);
-  backdrop-filter: var(--surface-status-blur);
-  box-shadow: var(--elevation-1);
-  transition:
-    border-color var(--motion-subtle-duration) var(--motion-subtle-ease),
-    box-shadow var(--motion-subtle-duration) var(--motion-subtle-ease),
-    background-color var(--motion-subtle-duration) var(--motion-subtle-ease);
-}
-
-.opencode-provider-input::placeholder {
-  color: var(--color-text-muted);
-}
-
-.opencode-provider-input:focus {
-  outline: none;
-  border-color: rgb(var(--color-accent-primary-rgb) / 42%);
-  box-shadow: var(--elevation-2);
-}
-</style>

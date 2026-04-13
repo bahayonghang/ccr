@@ -1,469 +1,424 @@
 <template>
-  <div class="min-h-full p-6 lg:p-10 relative overflow-hidden">
-    <AnimatedBackground
-      contained
-      variant="minimal"
-    />
-
-    <div class="relative z-10 mx-auto max-w-5xl space-y-5">
-      <!-- 页面标题 -->
-      <div class="flex items-center justify-between animate-slide-up">
-        <div class="flex items-center gap-3">
-          <RouterLink
-            to="/opencode"
-            class="p-2 rounded-lg text-white/50 hover:text-white transition-colors"
-          >
-            <SIcon
-              name="ChevronLeft"
-              size="w-5 h-5"
-            />
-          </RouterLink>
-          <div>
-            <h1 class="text-2xl font-bold text-white">
-              MCP 服务器
-            </h1>
-            <p class="text-white/50 text-sm">
-              管理 OpenCode 原生格式 MCP 服务器（local / remote）
-            </p>
-          </div>
-        </div>
-        <button
-          class="flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-transform hover:scale-105"
-          style="background: var(--accent-primary); color: white;"
-          @click="showAddDialog = true"
-        >
+  <OpenCodePageShell
+    title="MCP servers"
+    description="管理 local / remote MCP 定义，并提供官方 CLI auth / debug / logout 动作。"
+    icon="Server"
+    tone="cyan"
+    badge="mcp"
+  >
+    <template #actions>
+      <Button
+        variant="primary"
+        surface="card"
+        density="compact"
+        motion="standard"
+        @click="openCreate('local')"
+      >
+        <template #leading>
           <SIcon
             name="Plus"
             size="w-4 h-4"
           />
-          添加服务器
-        </button>
-      </div>
+        </template>
+        添加服务器
+      </Button>
+    </template>
 
-      <!-- 加载状态 -->
-      <div
-        v-if="loading"
-        class="flex items-center justify-center py-16"
-      >
-        <div class="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-      </div>
-
-      <!-- 错误状态 -->
-      <Card
-        v-else-if="error"
-        variant="elevated"
-        class="p-6 text-center"
-      >
-        <p class="text-red-400 mb-3">
-          {{ error }}
-        </p>
-        <button
-          class="text-sm text-accent-primary hover:underline"
-          @click="loadServers"
+    <div class="grid gap-5 xl:grid-cols-[minmax(0,1fr)_320px]">
+      <div class="space-y-4">
+        <Card
+          v-if="loading"
+          variant="glass"
+          class="p-8 text-center"
         >
-          重新加载
-        </button>
-      </Card>
+          <div class="mx-auto h-8 w-8 rounded-full border-2 border-cyan-300/25 border-t-cyan-300 animate-spin" />
+        </Card>
 
-      <!-- 空状态 -->
-      <Card
-        v-else-if="servers.length === 0"
-        variant="glass"
-        class="p-10 text-center"
-      >
-        <SIcon
-          name="Server"
-          size="w-12 h-12"
-          class="text-white/50 mx-auto mb-4"
-        />
-        <h3 class="text-lg font-bold text-white mb-2">
-          暂无 MCP 服务器
-        </h3>
-        <p class="text-white/50 text-sm mb-4">
-          添加 local（本地命令）或 remote（HTTP/SSE）MCP 服务器
-        </p>
-        <button
-          class="px-4 py-2 rounded-lg font-medium text-sm transition-transform hover:scale-105"
-          style="background: var(--accent-primary); color: white;"
-          @click="showAddDialog = true"
+        <Card
+          v-else-if="servers.length === 0"
+          variant="glass"
+          class="p-8 text-center"
         >
-          添加第一个服务器
-        </button>
-      </Card>
+          <h2 class="text-lg font-semibold text-text-primary">
+            暂无 MCP 服务器
+          </h2>
+          <p class="mt-2 text-sm text-text-secondary">
+            可添加本地命令型 server，或远程 HTTP/SSE server。
+          </p>
+        </Card>
 
-      <!-- 服务器列表 -->
-      <div
-        v-else
-        class="space-y-3"
-      >
         <Card
           v-for="server in servers"
           :key="server.id"
-          variant="elevated"
-          class="p-4 animate-slide-up"
+          variant="glass"
+          class="p-5"
         >
-          <div class="flex items-start justify-between gap-4">
-            <div class="flex items-start gap-3 min-w-0">
-              <!-- 类型图标 -->
-              <div
-                class="w-10 h-10 rounded-lg flex items-center justify-center shrink-0"
-                :class="server.type === 'local' ? 'bg-green-500/10' : 'bg-blue-500/10'"
-              >
-                <SIcon
-                  :name="server.type === 'local' ? 'Terminal' : 'Globe'"
-                  size="w-5 h-5"
-                  :class="server.type === 'local' ? 'text-green-500' : 'text-blue-500'"
-                />
+          <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div class="min-w-0">
+              <div class="mb-3 flex flex-wrap items-center gap-2">
+                <span class="rounded-full border border-cyan-300/20 bg-cyan-300/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-cyan-200">
+                  {{ server.id }}
+                </span>
+                <span class="rounded-full bg-bg-base/45 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-text-secondary">
+                  {{ server.type }}
+                </span>
+                <span
+                  class="rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em]"
+                  :class="server.enabled === false ? 'bg-amber-300/10 text-amber-200' : 'bg-emerald-300/10 text-emerald-200'"
+                >
+                  {{ server.enabled === false ? 'disabled' : 'enabled' }}
+                </span>
               </div>
 
-              <!-- 服务器信息 -->
-              <div class="min-w-0">
-                <div class="flex items-center gap-2 mb-1">
-                  <h3 class="font-bold text-white truncate">
-                    {{ server.id }}
-                  </h3>
-                  <span
-                    class="px-2 py-0.5 rounded text-xs font-bold uppercase shrink-0"
-                    :class="server.type === 'local'
-                      ? 'bg-green-500/10 text-green-400'
-                      : 'bg-blue-500/10 text-blue-400'"
-                  >
-                    {{ server.type }}
-                  </span>
+              <div class="grid gap-3 md:grid-cols-3">
+                <div class="rounded-2xl border border-border-default/55 bg-bg-base/35 p-3 md:col-span-2">
+                  <span class="text-[11px] font-semibold uppercase tracking-[0.16em] text-text-muted">entrypoint</span>
+                  <p class="mt-2 break-all font-mono text-sm text-text-primary">
+                    {{ server.type === 'local' ? stringifyCommandInput(server.command) || 'missing command' : server.url || 'missing url' }}
+                  </p>
                 </div>
+                <div class="rounded-2xl border border-border-default/55 bg-bg-base/35 p-3">
+                  <span class="text-[11px] font-semibold uppercase tracking-[0.16em] text-text-muted">extras</span>
+                  <p class="mt-2 text-sm text-text-primary">
+                    env {{ Object.keys(server.environment || {}).length }} · headers {{ Object.keys(server.headers || {}).length }}
+                  </p>
+                </div>
+              </div>
 
-                <!-- local 类型：显示命令 -->
-                <div
-                  v-if="server.type === 'local' && server.command?.length"
-                  class="text-xs text-white/50 font-mono truncate"
+              <div
+                v-if="server.type === 'remote'"
+                class="mt-4 flex flex-wrap gap-2"
+              >
+                <Button
+                  variant="secondary"
+                  surface="status"
+                  density="compact"
+                  motion="subtle"
+                  @click="copyCli(`opencode mcp auth ${server.id}`)"
                 >
-                  {{ server.command.join(' ') }}
-                </div>
-
-                <!-- remote 类型：显示 URL -->
-                <div
-                  v-else-if="server.type === 'remote' && server.url"
-                  class="text-xs text-white/50 font-mono truncate"
+                  Auth
+                </Button>
+                <Button
+                  variant="secondary"
+                  surface="status"
+                  density="compact"
+                  motion="subtle"
+                  @click="copyCli(`opencode mcp debug ${server.id}`)"
                 >
-                  {{ server.url }}
-                </div>
-
-                <!-- 环境变量数量 -->
-                <div
-                  v-if="server.environment && Object.keys(server.environment).length > 0"
-                  class="text-xs text-white/50 mt-1"
+                  Debug
+                </Button>
+                <Button
+                  variant="secondary"
+                  surface="status"
+                  density="compact"
+                  motion="subtle"
+                  @click="copyCli(`opencode mcp logout ${server.id}`)"
                 >
-                  {{ Object.keys(server.environment).length }} 个环境变量
-                </div>
+                  Logout
+                </Button>
               </div>
             </div>
 
-            <!-- 操作按钮 -->
-            <div class="flex items-center gap-2 shrink-0">
-              <button
-                class="p-2 rounded-lg text-white/50 hover:text-blue-400 hover:bg-blue-500/10 transition-colors"
-                title="编辑"
-                @click="editServer(server)"
+            <div class="flex flex-wrap gap-2">
+              <Button
+                variant="secondary"
+                surface="status"
+                density="compact"
+                motion="subtle"
+                @click="openEdit(server)"
               >
-                <SIcon
-                  name="Pencil"
-                  size="w-4 h-4"
-                />
-              </button>
-              <button
-                class="p-2 rounded-lg text-white/50 hover:text-red-400 hover:bg-red-500/10 transition-colors"
-                title="删除"
-                @click="confirmDelete(server)"
+                <template #leading>
+                  <SIcon
+                    name="Pencil"
+                    size="w-4 h-4"
+                  />
+                </template>
+                编辑
+              </Button>
+              <Button
+                variant="danger"
+                surface="status"
+                density="compact"
+                motion="subtle"
+                @click="removeServer(server.id)"
               >
-                <SIcon
-                  name="Trash2"
-                  size="w-4 h-4"
-                />
-              </button>
+                <template #leading>
+                  <SIcon
+                    name="Trash2"
+                    size="w-4 h-4"
+                  />
+                </template>
+                删除
+              </Button>
             </div>
           </div>
         </Card>
       </div>
-    </div>
 
-    <!-- 添加/编辑弹窗 -->
-    <div
-      v-if="showAddDialog || editingServer"
-      class="fixed inset-0 flex items-center justify-center z-50 p-4"
-      style="background: rgb(0 0 0 / 50%); backdrop-filter: blur(4px);"
-      @click.self="closeDialog"
-    >
       <Card
         variant="glass"
-        class="w-full max-w-lg p-6 space-y-4 max-h-[90vh] overflow-y-auto"
+        class="p-5"
       >
-        <div class="flex items-center justify-between">
-          <h2 class="text-lg font-bold text-white">
-            {{ editingServer ? '编辑 MCP 服务器' : '添加 MCP 服务器' }}
-          </h2>
-          <button
-            class="p-1 rounded text-white/50 hover:text-white"
-            @click="closeDialog"
-          >
-            <SIcon
-              name="X"
-              size="w-5 h-5"
-            />
-          </button>
+        <h2 class="text-lg font-semibold text-text-primary">
+          CLI handoff
+        </h2>
+        <p class="mt-2 text-sm text-text-secondary">
+          OpenCode 的 MCP OAuth 与调试动作本质上还是 CLI 能力，这里直接给你可执行命令。
+        </p>
+        <div class="mt-4 space-y-3">
+          <div class="rounded-2xl border border-border-default/55 bg-bg-base/35 p-3">
+            <strong class="font-mono text-sm text-text-primary">opencode mcp add</strong>
+            <p class="mt-2 text-sm text-text-secondary">
+              交互式添加 local 或 remote server。
+            </p>
+          </div>
+          <div class="rounded-2xl border border-border-default/55 bg-bg-base/35 p-3">
+            <strong class="font-mono text-sm text-text-primary">opencode mcp auth &lt;name&gt;</strong>
+            <p class="mt-2 text-sm text-text-secondary">
+              OAuth-enabled remote server 登录。
+            </p>
+          </div>
+          <div class="rounded-2xl border border-border-default/55 bg-bg-base/35 p-3">
+            <strong class="font-mono text-sm text-text-primary">opencode mcp debug &lt;name&gt;</strong>
+            <p class="mt-2 text-sm text-text-secondary">
+              排查 OAuth / transport 连接问题。
+            </p>
+          </div>
         </div>
+      </Card>
+    </div>
 
-        <!-- 服务器 ID -->
-        <div>
-          <label class="block text-xs font-bold text-white/50 uppercase tracking-wider mb-1">服务器 ID *</label>
-          <input
-            v-model="form.id"
-            :disabled="!!editingServer"
-            type="text"
-            placeholder="例：my-mcp-server"
-            class="w-full px-3 py-2 rounded-lg text-sm glass-surface border border-white/20 text-white placeholder:text-white/50 focus:outline-none focus:border-blue-500 disabled:opacity-50"
-          >
-        </div>
-
-        <!-- 类型选择 -->
-        <div>
-          <label class="block text-xs font-bold text-white/50 uppercase tracking-wider mb-1">服务器类型 *</label>
-          <div class="flex gap-3">
-            <button
-              class="flex-1 py-2 rounded-lg text-sm font-medium border transition-colors"
-              :class="form.type === 'local'
-                ? 'bg-green-500/20 border-green-500 text-green-400'
-                : 'glass-surface border-white/20 text-white/50 hover:border-green-500/50'"
-              @click="form.type = 'local'"
+    <BaseModal
+      v-model="showModal"
+      :title="editingId ? '编辑 MCP 服务器' : '添加 MCP 服务器'"
+      description="OpenCode `mcp` 配置使用 `local / remote` 两种形态。"
+      size="lg"
+      content-class="max-w-2xl"
+    >
+      <div class="space-y-4">
+        <div class="grid gap-4 md:grid-cols-2">
+          <div>
+            <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">server id *</label>
+            <input
+              v-model="form.id"
+              :disabled="Boolean(editingId)"
+              class="w-full rounded-2xl border border-border-default/55 bg-bg-base/45 px-4 py-3 text-sm text-text-primary"
+              placeholder="github"
             >
-              <SIcon
-                name="Terminal"
-                size="w-4 h-4"
-                class="mx-auto mb-1"
-              />
-              local（本地命令）
-            </button>
-            <button
-              class="flex-1 py-2 rounded-lg text-sm font-medium border transition-colors"
-              :class="form.type === 'remote'
-                ? 'bg-blue-500/20 border-blue-500 text-blue-400'
-                : 'glass-surface border-white/20 text-white/50 hover:border-blue-500/50'"
-              @click="form.type = 'remote'"
+          </div>
+          <div>
+            <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">type</label>
+            <select
+              v-model="form.type"
+              class="w-full rounded-2xl border border-border-default/55 bg-bg-base/45 px-4 py-3 text-sm text-text-primary"
             >
-              <SIcon
-                name="Globe"
-                size="w-4 h-4"
-                class="mx-auto mb-1"
-              />
-              remote（HTTP/SSE）
-            </button>
+              <option value="local">
+                local
+              </option>
+              <option value="remote">
+                remote
+              </option>
+            </select>
           </div>
         </div>
 
-        <!-- local: 命令输入 -->
-        <div v-if="form.type === 'local'">
-          <label class="block text-xs font-bold text-white/50 uppercase tracking-wider mb-1">命令（空格分隔）*</label>
+        <label class="flex items-center gap-3 rounded-2xl border border-border-default/55 bg-bg-base/35 px-4 py-3 text-sm text-text-primary">
           <input
-            v-model="form.commandStr"
-            type="text"
-            placeholder="例：npx -y @modelcontextprotocol/server-everything"
-            class="w-full px-3 py-2 rounded-lg text-sm glass-surface border border-white/20 text-white placeholder:text-white/50 focus:outline-none focus:border-blue-500"
+            v-model="form.enabled"
+            type="checkbox"
           >
-          <p class="text-xs text-white/50 mt-1">
-            命令将被拆分为数组：["npx", "-y", "@modelcontextprotocol/server-everything"]
-          </p>
+          启用该 MCP server
+        </label>
+
+        <div v-if="form.type === 'local'">
+          <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">command</label>
+          <input
+            v-model="form.command"
+            class="w-full rounded-2xl border border-border-default/55 bg-bg-base/45 px-4 py-3 font-mono text-sm text-text-primary"
+            placeholder="npx -y @modelcontextprotocol/server-github"
+          >
         </div>
 
-        <!-- remote: URL 输入 -->
-        <div v-if="form.type === 'remote'">
-          <label class="block text-xs font-bold text-white/50 uppercase tracking-wider mb-1">URL *</label>
+        <div v-else>
+          <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">url</label>
           <input
             v-model="form.url"
-            type="text"
-            placeholder="例：https://mcp.example.com/sse"
-            class="w-full px-3 py-2 rounded-lg text-sm glass-surface border border-white/20 text-white placeholder:text-white/50 focus:outline-none focus:border-blue-500"
+            class="w-full rounded-2xl border border-border-default/55 bg-bg-base/45 px-4 py-3 font-mono text-sm text-text-primary"
+            placeholder="https://mcp.example.com/sse"
           >
         </div>
 
-        <!-- 操作按钮 -->
-        <div class="flex justify-end gap-3 pt-2">
-          <button
-            class="px-4 py-2 rounded-lg text-sm text-white/50 hover:text-white"
-            @click="closeDialog"
+        <div class="grid gap-4 md:grid-cols-2">
+          <div>
+            <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">environment JSON</label>
+            <textarea
+              v-model="form.environmentJson"
+              rows="6"
+              class="w-full rounded-2xl border border-border-default/55 bg-bg-base/45 px-4 py-3 font-mono text-sm text-text-primary"
+            />
+          </div>
+          <div>
+            <label class="mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-muted">headers JSON</label>
+            <textarea
+              v-model="form.headersJson"
+              rows="6"
+              class="w-full rounded-2xl border border-border-default/55 bg-bg-base/45 px-4 py-3 font-mono text-sm text-text-primary"
+            />
+          </div>
+        </div>
+
+        <div class="flex justify-end gap-3 border-t border-border-default/55 pt-4">
+          <Button
+            variant="secondary"
+            surface="status"
+            density="compact"
+            motion="subtle"
+            @click="showModal = false"
           >
             取消
-          </button>
-          <button
-            :disabled="!isFormValid || saving"
-            class="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-transform hover:scale-105 disabled:opacity-50 disabled:hover:scale-100"
-            style="background: var(--accent-primary); color: white;"
+          </Button>
+          <Button
+            variant="primary"
+            surface="card"
+            density="compact"
+            motion="standard"
+            :disabled="saving"
             @click="saveServer"
           >
-            <SIcon
-              v-if="saving"
-              name="Loader2"
-              size="w-4 h-4"
-              class="animate-spin"
-            />
-            {{ editingServer ? '更新' : '添加' }}
-          </button>
+            <template #leading>
+              <SIcon
+                v-if="saving"
+                name="Loader2"
+                size="w-4 h-4"
+                class="animate-spin"
+              />
+            </template>
+            保存
+          </Button>
         </div>
-      </Card>
-    </div>
-
-    <!-- 删除确认弹窗 -->
-    <div
-      v-if="deletingServer"
-      class="fixed inset-0 flex items-center justify-center z-50 p-4"
-      style="background: rgb(0 0 0 / 50%); backdrop-filter: blur(4px);"
-      @click.self="deletingServer = null"
-    >
-      <Card
-        variant="glass"
-        class="w-full max-w-sm p-6 space-y-4"
-      >
-        <h2 class="text-lg font-bold text-white">
-          确认删除
-        </h2>
-        <p class="text-white/80 text-sm">
-          确定要删除 MCP 服务器 <strong>{{ deletingServer.id }}</strong>（{{ deletingServer.type }}）吗？
-        </p>
-        <div class="flex justify-end gap-3">
-          <button
-            class="px-4 py-2 rounded-lg text-sm text-white/50 hover:text-white"
-            @click="deletingServer = null"
-          >
-            取消
-          </button>
-          <button
-            :disabled="saving"
-            class="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-red-500 text-white hover:bg-red-600 disabled:opacity-50"
-            @click="doDelete"
-          >
-            <SIcon
-              v-if="saving"
-              name="Loader2"
-              size="w-4 h-4"
-              class="animate-spin"
-            />
-            删除
-          </button>
-        </div>
-      </Card>
-    </div>
-  </div>
+      </div>
+    </BaseModal>
+  </OpenCodePageShell>
 </template>
 
 <script setup lang="ts">
-import SIcon from '@/components/ui/SIcon.vue'
-import { ref, computed, onMounted, reactive } from 'vue'
-import AnimatedBackground from '@/components/common/AnimatedBackground.vue'
+import { onMounted, reactive, ref } from 'vue'
 import Card from '@/components/ui/Card.vue'
-import {
-  listOpenCodeMcpServers,
-  addOpenCodeMcpServer,
-  updateOpenCodeMcpServer,
-  deleteOpenCodeMcpServer,
-} from '@/api'
-import type { OpenCodeMcpServer } from '@/types/opencode'
+import Button from '@/components/ui/Button.vue'
+import SIcon from '@/components/ui/SIcon.vue'
+import BaseModal from '@/components/common/BaseModal.vue'
+import OpenCodePageShell from '@/components/opencode/OpenCodePageShell.vue'
+import { useUIStore } from '@/stores/ui'
+import { addOpenCodeMcpServer, deleteOpenCodeMcpServer, listOpenCodeMcpServers, updateOpenCodeMcpServer } from '@/api'
+import type { OpenCodeMcpServer } from '@/types'
+import { copyText, formatJsonInput, parseJsonInput, splitCommandInput, stringifyCommandInput } from '@/utils/opencode'
 
-const servers = ref<OpenCodeMcpServer[]>([])
-const loading = ref(true)
-const error = ref('')
+const uiStore = useUIStore()
+const loading = ref(false)
 const saving = ref(false)
-const showAddDialog = ref(false)
-const editingServer = ref<OpenCodeMcpServer | null>(null)
-const deletingServer = ref<OpenCodeMcpServer | null>(null)
+const showModal = ref(false)
+const editingId = ref('')
+const servers = ref<OpenCodeMcpServer[]>([])
 
 const form = reactive({
   id: '',
   type: 'local' as 'local' | 'remote',
-  commandStr: '',
+  enabled: true,
+  command: '',
   url: '',
+  environmentJson: '{}',
+  headersJson: '{}',
 })
 
-const isFormValid = computed(() => {
-  if (!form.id) return false
-  if (form.type === 'local') return !!form.commandStr.trim()
-  if (form.type === 'remote') return !!form.url.trim()
-  return false
-})
-
-const loadServers = async () => {
+async function loadServers() {
   loading.value = true
-  error.value = ''
   try {
-    servers.value = await listOpenCodeMcpServers()
-  } catch (e: unknown) {
-    error.value = e instanceof Error ? e.message : '加载失败'
+    servers.value = await listOpenCodeMcpServers<OpenCodeMcpServer[]>()
+  } catch (error) {
+    uiStore.showError(error instanceof Error ? error.message : String(error))
   } finally {
     loading.value = false
   }
 }
 
-const editServer = (server: OpenCodeMcpServer) => {
-  editingServer.value = server
+function openCreate(type: 'local' | 'remote') {
+  editingId.value = ''
+  form.id = ''
+  form.type = type
+  form.enabled = true
+  form.command = ''
+  form.url = ''
+  form.environmentJson = '{}'
+  form.headersJson = '{}'
+  showModal.value = true
+}
+
+function openEdit(server: OpenCodeMcpServer) {
+  editingId.value = server.id
   form.id = server.id
   form.type = server.type
-  form.commandStr = server.command?.join(' ') || ''
+  form.enabled = server.enabled !== false
+  form.command = stringifyCommandInput(server.command)
   form.url = server.url || ''
+  form.environmentJson = formatJsonInput(server.environment || {})
+  form.headersJson = formatJsonInput(server.headers || {})
+  showModal.value = true
 }
 
-const confirmDelete = (server: OpenCodeMcpServer) => {
-  deletingServer.value = server
-}
+async function saveServer() {
+  if (!form.id.trim()) {
+    uiStore.showError('Server id 不能为空')
+    return
+  }
 
-const closeDialog = () => {
-  showAddDialog.value = false
-  editingServer.value = null
-  form.id = ''
-  form.type = 'local'
-  form.commandStr = ''
-  form.url = ''
-}
-
-const saveServer = async () => {
-  if (!isFormValid.value) return
   saving.value = true
   try {
-    const command = form.type === 'local'
-      ? form.commandStr.trim().split(/\s+/)
-      : undefined
-    const url = form.type === 'remote' ? form.url.trim() : undefined
-
-    const request = {
-      id: form.id,
+    const request: OpenCodeMcpServer = {
+      id: form.id.trim(),
       type: form.type,
-      command,
-      url,
+      enabled: form.enabled,
+      command: form.type === 'local' ? splitCommandInput(form.command) : undefined,
+      url: form.type === 'remote' ? form.url.trim() : undefined,
+      environment: parseJsonInput<Record<string, string>>(form.environmentJson, {}),
+      headers: parseJsonInput<Record<string, string>>(form.headersJson, {}),
     }
 
-    if (editingServer.value) {
-      await updateOpenCodeMcpServer(form.id, request)
+    if (editingId.value) {
+      await updateOpenCodeMcpServer(request.id, request)
     } else {
       await addOpenCodeMcpServer(request)
     }
-    closeDialog()
+
+    uiStore.showSuccess(editingId.value ? 'MCP 服务器已更新' : 'MCP 服务器已创建')
+    showModal.value = false
     await loadServers()
-  } catch (e: unknown) {
-    error.value = e instanceof Error ? e.message : '保存失败'
+  } catch (error) {
+    uiStore.showError(error instanceof Error ? error.message : String(error))
   } finally {
     saving.value = false
   }
 }
 
-const doDelete = async () => {
-  if (!deletingServer.value) return
-  saving.value = true
+async function removeServer(id: string) {
   try {
-    await deleteOpenCodeMcpServer(deletingServer.value.id)
-    deletingServer.value = null
+    await deleteOpenCodeMcpServer(id)
+    uiStore.showSuccess('MCP 服务器已删除')
     await loadServers()
-  } catch (e: unknown) {
-    error.value = e instanceof Error ? e.message : '删除失败'
-  } finally {
-    saving.value = false
+  } catch (error) {
+    uiStore.showError(error instanceof Error ? error.message : String(error))
   }
 }
 
-onMounted(loadServers)
+async function copyCli(command: string) {
+  try {
+    await copyText(command)
+    uiStore.showSuccess(`已复制: ${command}`)
+  } catch (error) {
+    uiStore.showError(error instanceof Error ? error.message : String(error))
+  }
+}
+
+onMounted(() => {
+  void loadServers()
+})
 </script>

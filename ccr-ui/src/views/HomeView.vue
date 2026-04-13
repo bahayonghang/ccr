@@ -623,6 +623,16 @@ const mainModules = computed<HomeModule[]>(() => [
     showInHero: true,
   },
   {
+    title: t('home.opencodeTitle'),
+    desc: t('home.opencodeDesc'),
+    path: '/opencode',
+    icon: 'TerminalSquare',
+    iconClass: 'text-lime-300',
+    platformKey: 'opencode',
+    statusMode: 'cli',
+    showInHero: false,
+  },
+  {
     title: t('home.factoryDroidTitle'),
     desc: t('home.factoryDroidDesc'),
     path: '/droid',

@@ -289,6 +289,10 @@ export default {
     geminiDesc: 'Manage Gemini CLI config, MCP, commands, and plugins.',
     geminiStats: 'Google AI',
 
+    opencodeTitle: 'OpenCode',
+    opencodeDesc: 'Operate providers, MCP, agents, commands, skills, and runtime settings.',
+    opencodeStats: 'Operator Deck',
+
     // Config Tools
     commandsTitle: 'Command Center',
     commandsDesc:

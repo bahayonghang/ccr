@@ -315,6 +315,10 @@ export default {
     geminiDesc: '管理 Gemini CLI 的配置、MCP、命令与插件。',
     geminiStats: 'Google AI',
 
+    opencodeTitle: 'OpenCode',
+    opencodeDesc: '统一操作 provider、MCP、agents、commands、skills 与 runtime 配置。',
+    opencodeStats: '运维控制台',
+
     // Config Tools
     commandsTitle: '命令执行中心',
     commandsDesc: '统一的 CLI 命令执行和管理界面，支持多种 AI 平台',

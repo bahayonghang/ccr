@@ -362,9 +362,33 @@ const routes: RouteRecordRaw[] = [
         meta: { depth: 2, group: 'opencode', hideGlobalBackground: true },
       },
       {
+        path: 'opencode/agents',
+        name: 'opencode-agents',
+        component: () => import('@/views/OpenCodeAgentsView.vue'),
+        meta: { depth: 2, group: 'opencode', hideGlobalBackground: true },
+      },
+      {
+        path: 'opencode/commands',
+        name: 'opencode-commands',
+        component: () => import('@/views/OpenCodeCommandsView.vue'),
+        meta: { depth: 2, group: 'opencode', hideGlobalBackground: true },
+      },
+      {
+        path: 'opencode/skills',
+        name: 'opencode-skills',
+        component: () => import('@/views/OpenCodeSkillsView.vue'),
+        meta: { depth: 2, group: 'opencode', hideGlobalBackground: true },
+      },
+      {
         path: 'opencode/plugins',
         name: 'opencode-plugins',
         component: () => import('@/views/OpenCodePluginsView.vue'),
+        meta: { depth: 2, group: 'opencode', hideGlobalBackground: true },
+      },
+      {
+        path: 'opencode/settings',
+        name: 'opencode-settings',
+        component: () => import('@/views/OpenCodeSettingsView.vue'),
         meta: { depth: 2, group: 'opencode', hideGlobalBackground: true },
       },
       // 环境管理 (depth: 1, group: 'environment')

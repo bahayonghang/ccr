@@ -1,181 +1,378 @@
 <template>
-  <div class="open-code-view">
-    <AnimatedBackground
-      contained
-      variant="complex"
-    />
-
-    <div class="open-code-shell">
-      <!-- HEADER -->
-      <section class="open-code-header animate-slide-up">
-        <!-- Hero Card -->
+  <div class="opencode-view stage-page">
+    <div class="opencode-shell">
+      <section class="opencode-grid opencode-grid--hero">
         <Card
           variant="glass"
-          class="open-code-hero-card"
+          class="opencode-hero-card"
         >
-          <div class="open-code-hero-card__glow" />
+          <div class="opencode-hero-card__glow" />
 
-          <div class="open-code-hero-card__content">
-            <div class="open-code-brand">
-              <div class="open-code-brand__icon">
-                <SIcon
-                  name="TerminalSquare"
-                  size="w-6 h-6"
-                />
+          <div class="opencode-hero-card__content">
+            <div class="opencode-hero-head">
+              <div class="opencode-hero-copy">
+                <div class="opencode-hero-title-row">
+                  <div class="opencode-hero-icon">
+                    <SIcon
+                      name="TerminalSquare"
+                      size="w-6 h-6"
+                      class="text-lime-300"
+                    />
+                  </div>
+                  <div>
+                    <div class="opencode-hero-eyebrow">
+                      OpenCode operator deck
+                    </div>
+                    <h1 class="opencode-hero-title">
+                      OpenCode
+                    </h1>
+                    <p class="opencode-hero-subtitle">
+                      把 provider、MCP、agents、commands、skills、plugins 与 runtime 配置收敛到一个高密度控制台。
+                    </p>
+                  </div>
+                </div>
+
+                <div class="opencode-pill-row">
+                  <span class="opencode-pill opencode-pill--lime">
+                    config: {{ configPathLabel }}
+                  </span>
+                  <span class="opencode-pill opencode-pill--neutral">
+                    tui: {{ tuiPathLabel }}
+                  </span>
+                  <span class="opencode-pill opencode-pill--violet">
+                    default agent: {{ defaultAgentLabel }}
+                  </span>
+                </div>
               </div>
-              <div>
-                <h1 class="open-code-brand__title">
-                  OpenCode
-                </h1>
-                <p class="open-code-brand__subtitle">
-                  基于 npm AI SDK 的叠加式 Provider 配置管理
-                </p>
+
+              <div class="opencode-action-row">
+                <RouterLink to="/opencode/providers">
+                  <Button
+                    variant="glass"
+                    size="sm"
+                  >
+                    <SIcon
+                      name="Layers"
+                      size="w-4 h-4"
+                      class="mr-2"
+                    />
+                    Providers
+                  </Button>
+                </RouterLink>
+                <RouterLink to="/opencode/mcp">
+                  <Button
+                    variant="glass"
+                    size="sm"
+                  >
+                    <SIcon
+                      name="Server"
+                      size="w-4 h-4"
+                      class="mr-2"
+                    />
+                    MCP
+                  </Button>
+                </RouterLink>
+                <RouterLink to="/opencode/settings">
+                  <Button
+                    variant="glass"
+                    size="sm"
+                  >
+                    <SIcon
+                      name="SlidersHorizontal"
+                      size="w-4 h-4"
+                      class="mr-2"
+                    />
+                    Settings
+                  </Button>
+                </RouterLink>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  :disabled="loading"
+                  @click="loadOverview()"
+                >
+                  <SIcon
+                    name="RefreshCw"
+                    size="w-4 h-4"
+                    class="mr-2"
+                    :class="{ 'animate-spin': loading }"
+                  />
+                  刷新
+                </Button>
               </div>
             </div>
 
-            <div class="open-code-tag-row">
-              <span class="open-code-tag open-code-tag--violet">
+            <div class="opencode-hero-stats">
+              <div class="opencode-stat-card">
+                <p class="opencode-stat-label">
+                  Providers
+                </p>
+                <p class="opencode-stat-value">
+                  {{ providers.length }}
+                </p>
+                <p class="opencode-stat-detail">
+                  active model: {{ activeModelLabel }}
+                </p>
+              </div>
+              <div class="opencode-stat-card">
+                <p class="opencode-stat-label">
+                  MCP / Agents / Commands
+                </p>
+                <p class="opencode-stat-value">
+                  {{ mcpServers.length }} / {{ agents.length }} / {{ commands.length }}
+                </p>
+                <p class="opencode-stat-detail">
+                  npm plugins: {{ plugins.length }} · local files: {{ localPlugins.length }}
+                </p>
+              </div>
+              <div class="opencode-stat-card">
+                <p class="opencode-stat-label">
+                  Runtime
+                </p>
+                <p class="opencode-stat-value">
+                  {{ runtimeStatusLabel }}
+                </p>
+                <p class="opencode-stat-detail">
+                  theme: {{ themeLabel }}
+                </p>
+              </div>
+            </div>
+          </div>
+        </Card>
+
+        <Card
+          variant="glass"
+          class="opencode-side-panel"
+        >
+          <div class="opencode-side-panel__header">
+            <div class="opencode-side-panel__icon">
+              <SIcon
+                name="Route"
+                size="w-5 h-5"
+                class="text-cyan-300"
+              />
+            </div>
+            <div>
+              <h2 class="opencode-side-panel__title">
+                Runtime strip
+              </h2>
+              <p class="opencode-side-panel__description">
+                先看 server / web / ACP，再决定下一个入口。
+              </p>
+            </div>
+          </div>
+
+          <div class="opencode-runtime-strip">
+            <div class="opencode-runtime-chip">
+              <span class="opencode-runtime-chip__label">serve</span>
+              <strong>{{ serverLabel }}</strong>
+            </div>
+            <div class="opencode-runtime-chip">
+              <span class="opencode-runtime-chip__label">web</span>
+              <strong>{{ webLabel }}</strong>
+            </div>
+            <div class="opencode-runtime-chip">
+              <span class="opencode-runtime-chip__label">acp</span>
+              <strong>available</strong>
+            </div>
+            <div class="opencode-runtime-chip">
+              <span class="opencode-runtime-chip__label">share</span>
+              <strong>{{ shareLabel }}</strong>
+            </div>
+          </div>
+
+          <div class="opencode-side-panel__footer">
+            <div>
+              <p class="opencode-side-panel__footer-label">
+                skills discovery
+              </p>
+              <p class="opencode-side-panel__footer-value">
+                {{ skillLocationSummary }}
+              </p>
+            </div>
+            <RouterLink
+              to="/opencode/skills"
+              class="opencode-text-link"
+            >
+              打开 Skills
+            </RouterLink>
+          </div>
+        </Card>
+      </section>
+
+      <section class="opencode-grid opencode-grid--capabilities">
+        <RouterLink
+          v-for="card in opencodeCapabilityCards"
+          :key="card.id"
+          :to="card.href"
+          class="group"
+        >
+          <Card
+            variant="elevated"
+            hover
+            class="opencode-capability-card"
+          >
+            <div class="opencode-capability-card__header">
+              <div
+                class="opencode-capability-card__icon"
+                :class="`opencode-capability-card__icon--${card.tone}`"
+              >
                 <SIcon
-                  name="Layers"
-                  size="w-3 h-3"
-                /> npm AI SDK
-              </span>
-              <span class="open-code-tag open-code-tag--secondary">
-                opencode.json
+                  :name="card.icon"
+                  size="w-5 h-5"
+                />
+              </div>
+              <SIcon
+                name="ArrowRight"
+                size="w-4 h-4"
+                class="opencode-capability-card__arrow"
+              />
+            </div>
+            <h3 class="opencode-capability-card__title">
+              {{ card.title }}
+            </h3>
+            <p class="opencode-capability-card__description">
+              {{ card.description }}
+            </p>
+          </Card>
+        </RouterLink>
+      </section>
+
+      <section class="opencode-grid opencode-grid--detail">
+        <Card
+          variant="glass"
+          class="opencode-panel"
+        >
+          <div class="opencode-panel__header">
+            <h2 class="opencode-panel__title">
+              CLI runtime surface
+            </h2>
+            <p class="opencode-panel__description">
+              这是 OpenCode 在 CLI 层暴露的核心运行面，适合作为页面信息架构骨架。
+            </p>
+          </div>
+          <div class="opencode-command-list">
+            <div
+              v-for="item in opencodeCliCommands"
+              :key="item.command"
+              class="opencode-command-row"
+            >
+              <div>
+                <p class="opencode-command-row__command">
+                  {{ item.command }}
+                </p>
+                <p class="opencode-command-row__description">
+                  {{ item.description }}
+                </p>
+              </div>
+              <span
+                v-if="item.note"
+                class="opencode-command-row__note"
+              >
+                {{ item.note }}
               </span>
             </div>
           </div>
         </Card>
 
-        <!-- Status Grid -->
-        <div class="open-code-status-grid">
-          <!-- Provider Count -->
-          <Card
-            variant="elevated"
-            class="open-code-status-card open-code-status-card--violet"
-          >
-            <div class="open-code-status-card__icon open-code-status-card__icon--violet">
-              <SIcon
-                name="Layers"
-                size="w-5 h-5"
-              />
-            </div>
-            <div>
-              <p class="open-code-status-card__label">
-                Providers
-              </p>
-              <p class="open-code-status-card__value">
-                {{ providersCount }}
-              </p>
-            </div>
-          </Card>
-
-          <!-- MCP Count -->
-          <Card
-            variant="elevated"
-            class="open-code-status-card open-code-status-card--blue"
-          >
-            <div class="open-code-status-card__icon open-code-status-card__icon--blue">
-              <SIcon
-                name="Server"
-                size="w-5 h-5"
-              />
-            </div>
-            <div>
-              <p class="open-code-status-card__label">
-                MCP 服务器
-              </p>
-              <p class="open-code-status-card__value">
-                {{ mcpCount }}
-              </p>
-            </div>
-          </Card>
-
-          <!-- Plugin Count -->
-          <Card
-            variant="elevated"
-            class="open-code-status-card open-code-status-card--emerald"
-          >
-            <div class="open-code-status-card__icon open-code-status-card__icon--emerald">
-              <SIcon
-                name="Puzzle"
-                size="w-5 h-5"
-              />
-            </div>
-            <div>
-              <p class="open-code-status-card__label">
-                插件
-              </p>
-              <p class="open-code-status-card__value">
-                {{ pluginsCount }}
-              </p>
-            </div>
-          </Card>
-        </div>
-      </section>
-
-      <!-- MODULE NAVIGATION -->
-      <section class="animate-slide-up">
-        <h2 class="open-code-section-title">
-          功能模块
-        </h2>
-        <div class="open-code-module-grid">
-          <RouterLink
-            v-for="mod in modules"
-            :key="mod.href"
-            :to="mod.href"
-            class="open-code-module-link"
-          >
-            <Card
-              variant="glass"
-              class="open-code-module-card"
-            >
-              <div
-                :class="[
-                  'open-code-module-card__icon',
-                  `open-code-module-card__icon--${mod.tone}`,
-                ]"
-              >
-                <SIcon
-                  :name="mod.icon"
-                  size="w-5 h-5"
-                />
-              </div>
-              <div>
-                <h3 class="open-code-module-card__title">
-                  {{ mod.title }}
-                </h3>
-                <p class="open-code-module-card__desc">
-                  {{ mod.description }}
-                </p>
-              </div>
-            </Card>
-          </RouterLink>
-        </div>
-      </section>
-
-      <!-- CONFIG PATH INFO -->
-      <section
-        v-if="configPath"
-        class="animate-slide-up"
-        style="animation-delay: 0.2s"
-      >
         <Card
-          variant="elevated"
-          class="open-code-config-card"
+          variant="glass"
+          class="opencode-panel"
         >
-          <SIcon
-            name="FileJson"
-            size="w-5 h-5"
-            class="open-code-config-card__icon"
-          />
-          <div>
-            <p class="open-code-config-card__label">
-              配置文件路径
+          <div class="opencode-panel__header">
+            <h2 class="opencode-panel__title">
+              Built-in tools
+            </h2>
+            <p class="opencode-panel__description">
+              页面展示使用 built-in tool 与 permission key 的对应关系，帮助理解 `permission` 配置。
             </p>
-            <p class="open-code-config-card__value">
-              ~/.config/opencode/opencode.json
+          </div>
+          <div class="opencode-tool-grid">
+            <div
+              v-for="tool in opencodeBuiltInTools"
+              :key="tool.id"
+              class="opencode-tool-card"
+            >
+              <div class="opencode-tool-card__meta">
+                <strong>{{ tool.id }}</strong>
+                <span>{{ tool.permissionKey }}</span>
+              </div>
+              <p class="opencode-tool-card__description">
+                {{ tool.description }}
+              </p>
+              <p
+                v-if="tool.availability"
+                class="opencode-tool-card__availability"
+              >
+                {{ tool.availability }}
+              </p>
+            </div>
+          </div>
+        </Card>
+      </section>
+
+      <section class="opencode-grid opencode-grid--detail">
+        <Card
+          variant="glass"
+          class="opencode-panel"
+        >
+          <div class="opencode-panel__header">
+            <h2 class="opencode-panel__title">
+              Config topology
+            </h2>
+            <p class="opencode-panel__description">
+              按官方 precedence 和目录约定整理出 UI 需要可视化的路径图。
             </p>
+          </div>
+          <div class="opencode-topology-list">
+            <div
+              v-for="item in opencodeConfigTopology"
+              :key="item.path"
+              class="opencode-topology-item"
+            >
+              <span class="opencode-topology-item__title">{{ item.title }}</span>
+              <code class="opencode-topology-item__path">{{ item.path }}</code>
+              <p class="opencode-topology-item__description">
+                {{ item.description }}
+              </p>
+            </div>
+          </div>
+        </Card>
+
+        <Card
+          variant="glass"
+          class="opencode-panel"
+        >
+          <div class="opencode-panel__header">
+            <h2 class="opencode-panel__title">
+              Local discovery
+            </h2>
+            <p class="opencode-panel__description">
+              这里汇总本地插件文件和 skills 目录发现结果，判断 global / project 面是否已经落地。
+            </p>
+          </div>
+          <div class="opencode-discovery-grid">
+            <div class="opencode-discovery-card">
+              <span class="opencode-discovery-card__label">Local plugins</span>
+              <strong class="opencode-discovery-card__value">{{ localPlugins.length }}</strong>
+              <p class="opencode-discovery-card__detail">
+                {{ localPlugins.slice(0, 2).map((item) => item.name).join(', ') || 'No plugin files detected' }}
+              </p>
+            </div>
+            <div class="opencode-discovery-card">
+              <span class="opencode-discovery-card__label">Skill locations</span>
+              <strong class="opencode-discovery-card__value">{{ skillLocations.length }}</strong>
+              <p class="opencode-discovery-card__detail">
+                {{ skillLocationSummary }}
+              </p>
+            </div>
+            <div class="opencode-discovery-card">
+              <span class="opencode-discovery-card__label">Agents</span>
+              <strong class="opencode-discovery-card__value">{{ agents.length }}</strong>
+              <p class="opencode-discovery-card__detail">
+                custom + built-in split should happen in the dedicated page
+              </p>
+            </div>
           </div>
         </Card>
       </section>
@@ -184,263 +381,355 @@
 </template>
 
 <script setup lang="ts">
-import SIcon from '@/components/ui/SIcon.vue'
-import { ref, onMounted } from 'vue'
-import AnimatedBackground from '@/components/common/AnimatedBackground.vue'
+import { computed, onMounted, ref } from 'vue'
+import { RouterLink } from 'vue-router'
 import Card from '@/components/ui/Card.vue'
+import Button from '@/components/ui/Button.vue'
+import SIcon from '@/components/ui/SIcon.vue'
 import {
-  listOpenCodeProviders,
+  getOpenCodeConfig,
+  getOpenCodeTuiSettings,
+  listOpenCodeAgents,
+  listOpenCodeCommands,
+  listOpenCodeLocalPlugins,
   listOpenCodeMcpServers,
   listOpenCodePlugins,
+  listOpenCodeProviders,
+  listOpenCodeSkillLocations,
 } from '@/api'
-import type { OpenCodeProvider, OpenCodeMcpServer, OpenCodePlugin } from '@/types'
+import {
+  opencodeBuiltInTools,
+  opencodeCapabilityCards,
+  opencodeCliCommands,
+  opencodeConfigTopology,
+} from '@/config/opencodeMeta'
+import type {
+  OpenCodeAgent,
+  OpenCodeCommand,
+  OpenCodeConfig,
+  OpenCodeLocalPluginFile,
+  OpenCodeMcpServer,
+  OpenCodePluginPackage,
+  OpenCodeProviderConfig,
+  OpenCodeSkillLocation,
+  OpenCodeTuiConfig,
+} from '@/types'
 
-const providersCount = ref(0)
-const mcpCount = ref(0)
-const pluginsCount = ref(0)
-const configPath = ref(true)
+const loading = ref(false)
+const config = ref<OpenCodeConfig>({})
+const tui = ref<OpenCodeTuiConfig>({})
+const providers = ref<OpenCodeProviderConfig[]>([])
+const mcpServers = ref<OpenCodeMcpServer[]>([])
+const agents = ref<OpenCodeAgent[]>([])
+const commands = ref<OpenCodeCommand[]>([])
+const plugins = ref<OpenCodePluginPackage[]>([])
+const localPlugins = ref<OpenCodeLocalPluginFile[]>([])
+const skillLocations = ref<OpenCodeSkillLocation[]>([])
 
-const modules = [
-  {
-    title: 'Provider 管理',
-    description: '管理 npm AI SDK Provider，配置 API Key 和模型列表',
-    href: '/opencode/providers',
-    icon: 'Layers',
-    tone: 'violet',
-  },
-  {
-    title: 'MCP 服务器',
-    description: '管理本地（local）和远程（remote）MCP 服务器',
-    href: '/opencode/mcp',
-    icon: 'Server',
-    tone: 'blue',
-  },
-  {
-    title: 'Skills',
-    description: '管理 AI 技能库，跨平台共享 Skills 配置',
-    href: '/skills',
-    icon: 'Puzzle',
-    tone: 'amber',
-  },
-  {
-    title: '插件管理',
-    description: '管理 npm 插件包，扩展 OpenCode 功能',
-    href: '/opencode/plugins',
-    icon: 'Puzzle',
-    tone: 'emerald',
-  },
-]
+const configPathLabel = '~/.config/opencode/opencode.json'
+const tuiPathLabel = '~/.config/opencode/tui.json'
 
-onMounted(async () => {
+const activeModelLabel = computed(() => config.value.model || 'not configured')
+const defaultAgentLabel = computed(() => config.value.default_agent || 'build')
+const themeLabel = computed(() => tui.value.theme || 'system')
+const shareLabel = computed(() => config.value.share || 'manual')
+const runtimeStatusLabel = computed(() => {
+  if (config.value.server?.port) return `:${config.value.server.port}`
+  return 'default port'
+})
+const serverLabel = computed(() => {
+  const port = config.value.server?.port ?? 4096
+  const host = config.value.server?.hostname || 'localhost'
+  return `${host}:${port}`
+})
+const webLabel = computed(() => config.value.server?.cors?.length ? 'cors configured' : 'same host')
+const skillLocationSummary = computed(() => {
+  const active = skillLocations.value.filter((item) => item.exists && item.skillCount > 0)
+  if (active.length === 0) return 'No active OpenCode-compatible skill directories'
+  return active
+    .slice(0, 3)
+    .map((item) => `${item.kind}:${item.skillCount}`)
+    .join(' · ')
+})
+
+async function loadOverview() {
+  loading.value = true
   try {
-    const [providers, mcpServers, plugins] = await Promise.all([
-      listOpenCodeProviders<OpenCodeProvider[]>(),
+    const [
+      configValue,
+      tuiValue,
+      providerList,
+      mcpList,
+      agentList,
+      commandList,
+      pluginList,
+      localPluginList,
+      skillLocationList,
+    ] = await Promise.all([
+      getOpenCodeConfig<OpenCodeConfig>(),
+      getOpenCodeTuiSettings<OpenCodeTuiConfig>(),
+      listOpenCodeProviders<OpenCodeProviderConfig[]>(),
       listOpenCodeMcpServers<OpenCodeMcpServer[]>(),
-      listOpenCodePlugins<OpenCodePlugin[]>(),
+      listOpenCodeAgents<OpenCodeAgent[]>(),
+      listOpenCodeCommands<OpenCodeCommand[]>(),
+      listOpenCodePlugins<string[]>(),
+      listOpenCodeLocalPlugins<OpenCodeLocalPluginFile[]>(),
+      listOpenCodeSkillLocations<OpenCodeSkillLocation[]>(),
     ])
-    providersCount.value = providers.length
-    mcpCount.value = mcpServers.length
-    pluginsCount.value = plugins.length
-  } catch {
-    // 静默失败，OpenCode 可能未安装
+
+    config.value = configValue
+    tui.value = tuiValue
+    providers.value = providerList
+    mcpServers.value = mcpList
+    agents.value = agentList
+    commands.value = commandList
+    plugins.value = pluginList.map((name) => ({ name }))
+    localPlugins.value = localPluginList
+    skillLocations.value = skillLocationList
+  } finally {
+    loading.value = false
   }
+}
+
+onMounted(() => {
+  void loadOverview()
 })
 </script>
 
 <style scoped>
-.open-code-view {
-  @apply relative min-h-full overflow-hidden p-6 lg:p-10;
+.opencode-view {
+  @apply relative min-h-full px-4 py-4 sm:px-6 sm:py-6;
 }
 
-.open-code-shell {
-  @apply relative z-10 mx-auto max-w-7xl space-y-5;
+.opencode-shell {
+  @apply mx-auto flex max-w-[1480px] flex-col gap-5;
 }
 
-.open-code-header {
-  @apply grid grid-cols-1 gap-4 lg:grid-cols-3;
+.opencode-grid {
+  @apply grid gap-5;
 }
 
-.open-code-hero-card {
-  @apply relative flex flex-col overflow-hidden p-5 lg:col-span-2;
+.opencode-grid--hero {
+  @apply xl:grid-cols-[minmax(0,2fr)_380px];
 }
 
-.open-code-hero-card__glow {
-  @apply pointer-events-none absolute h-48 w-48 rounded-bl-full;
-
-  top: 0;
-  right: 0;
-  margin-top: -3rem;
-  margin-right: -3rem;
-  background: linear-gradient(to bottom left, rgb(139 92 246 / 10%), transparent);
+.opencode-grid--capabilities {
+  @apply md:grid-cols-2 xl:grid-cols-4;
 }
 
-.open-code-hero-card__content {
-  @apply relative z-10;
+.opencode-grid--detail {
+  @apply xl:grid-cols-2;
 }
 
-.open-code-brand {
-  @apply mb-3 flex items-center gap-3;
+.opencode-hero-card,
+.opencode-panel,
+.opencode-side-panel {
+  @apply relative overflow-hidden p-5;
 }
 
-.open-code-brand__icon {
-  @apply flex h-12 w-12 items-center justify-center rounded-xl border shadow-lg backdrop-blur-md;
+.opencode-hero-card__glow {
+  @apply pointer-events-none absolute right-[-4rem] top-[-5rem] h-56 w-56 rounded-full;
 
-  color: rgb(139 92 246);
-  background: rgb(139 92 246 / 10%);
-  border-color: rgb(139 92 246 / 20%);
+  background: radial-gradient(circle, rgb(163 230 53 / 20%), transparent 70%);
 }
 
-.open-code-brand__title {
-  @apply text-3xl font-bold tracking-tight text-white;
-
-  font-family: MapleBright, 'Microsoft YaHei UI', system-ui, sans-serif;
+.opencode-hero-card__content {
+  @apply relative z-10 flex flex-col gap-5;
 }
 
-.open-code-brand__subtitle {
-  @apply max-w-md text-base text-white/80;
+.opencode-hero-head {
+  @apply flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between;
 }
 
-.open-code-tag-row {
-  @apply flex flex-wrap gap-2;
+.opencode-hero-title-row {
+  @apply flex items-start gap-4;
 }
 
-.open-code-tag {
-  @apply flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-bold uppercase;
-
-  letter-spacing: 0.1em;
+.opencode-hero-icon {
+  @apply flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-lime-300/25 bg-lime-300/10;
 }
 
-.open-code-tag--violet {
-  color: rgb(139 92 246);
-  background: rgb(139 92 246 / 10%);
-  border-color: rgb(139 92 246 / 20%);
+.opencode-hero-eyebrow {
+  @apply mb-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-text-muted;
 }
 
-.open-code-tag--secondary {
-  @apply border-accent-secondary/20 bg-accent-secondary/10 text-accent-secondary;
+.opencode-hero-title {
+  @apply text-3xl font-semibold tracking-[-0.04em] text-text-primary;
 }
 
-.open-code-status-grid {
-  @apply grid grid-cols-1 gap-3;
+.opencode-hero-subtitle {
+  @apply mt-2 max-w-3xl text-sm leading-7 text-text-secondary;
 }
 
-.open-code-status-card {
-  @apply flex items-center gap-3 border-l-4 p-3;
+.opencode-pill-row,
+.opencode-action-row,
+.opencode-hero-stats,
+.opencode-runtime-strip,
+.opencode-discovery-grid {
+  @apply flex flex-wrap gap-3;
 }
 
-.open-code-status-card--violet {
-  border-left-color: rgb(139 92 246);
+.opencode-pill,
+.opencode-runtime-chip,
+.opencode-command-row__note,
+.opencode-discovery-card {
+  @apply inline-flex items-center rounded-2xl border px-3 py-2 text-sm;
 }
 
-.open-code-status-card--blue {
-  border-left-color: rgb(59 130 246);
+.opencode-pill--lime {
+  @apply border-lime-300/20 bg-lime-300/10 text-lime-200;
 }
 
-.open-code-status-card--emerald {
-  border-left-color: rgb(16 185 129);
+.opencode-pill--neutral {
+  @apply border-border-default/55 bg-bg-base/35 text-text-secondary;
 }
 
-.open-code-status-card__icon {
-  @apply flex h-10 w-10 shrink-0 items-center justify-center rounded-lg;
+.opencode-pill--violet {
+  @apply border-violet-300/25 bg-violet-300/10 text-violet-200;
 }
 
-.open-code-status-card__icon--violet {
-  color: rgb(139 92 246);
-  background: rgb(139 92 246 / 10%);
+.opencode-stat-card,
+.opencode-tool-card,
+.opencode-topology-item,
+.opencode-command-row,
+.opencode-discovery-card {
+  @apply rounded-3xl border border-border-default/55 bg-bg-base/35 p-4;
 }
 
-.open-code-status-card__icon--blue {
-  color: rgb(59 130 246);
-  background: rgb(59 130 246 / 10%);
+.opencode-stat-card {
+  @apply min-w-[220px] flex-1;
 }
 
-.open-code-status-card__icon--emerald {
-  color: rgb(16 185 129);
-  background: rgb(16 185 129 / 10%);
+.opencode-stat-label,
+.opencode-runtime-chip__label,
+.opencode-side-panel__footer-label,
+.opencode-discovery-card__label {
+  @apply text-[11px] font-semibold uppercase tracking-[0.16em] text-text-muted;
 }
 
-.open-code-status-card__label {
-  @apply mb-0.5 text-xs font-bold uppercase text-white/50;
-
-  letter-spacing: 0.1em;
+.opencode-stat-value,
+.opencode-discovery-card__value {
+  @apply mt-2 text-2xl font-semibold tracking-[-0.03em] text-text-primary;
 }
 
-.open-code-status-card__value {
-  @apply text-base font-bold text-white;
+.opencode-stat-detail,
+.opencode-discovery-card__detail,
+.opencode-side-panel__footer-value {
+  @apply mt-2 text-sm leading-6 text-text-secondary;
 }
 
-.open-code-section-title {
-  @apply mb-3 text-lg font-bold text-white;
+.opencode-side-panel__header,
+.opencode-panel__header {
+  @apply mb-4 flex items-start gap-3;
 }
 
-.open-code-module-grid {
-  @apply grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4;
+.opencode-side-panel__icon {
+  @apply flex h-10 w-10 items-center justify-center rounded-2xl border border-cyan-300/20 bg-cyan-300/10;
 }
 
-.open-code-module-link {
-  @apply block;
+.opencode-side-panel__title,
+.opencode-panel__title {
+  @apply text-lg font-semibold text-text-primary;
 }
 
-.open-code-module-card {
-  @apply flex cursor-pointer flex-col gap-3 border border-transparent p-4 duration-300;
-
-  transition-property: box-shadow, border-color, transform;
+.opencode-side-panel__description,
+.opencode-panel__description,
+.opencode-capability-card__description,
+.opencode-command-row__description,
+.opencode-tool-card__description,
+.opencode-topology-item__description {
+  @apply mt-1 text-sm leading-6 text-text-secondary;
 }
 
-.open-code-module-link:hover .open-code-module-card {
-  @apply shadow-lg;
-
-  transform: scale(1.02);
-  border-color: rgb(139 92 246 / 30%);
+.opencode-runtime-chip {
+  @apply flex min-w-[150px] flex-1 flex-col items-start gap-1 border-border-default/55 bg-bg-base/35;
 }
 
-.open-code-module-card__icon {
-  @apply flex h-10 w-10 items-center justify-center rounded-lg;
+.opencode-side-panel__footer {
+  @apply mt-4 flex items-center justify-between gap-4 rounded-3xl border border-border-default/55 bg-bg-base/30 p-4;
 }
 
-.open-code-module-card__icon--violet {
-  color: rgb(139 92 246);
-  background: rgb(139 92 246 / 10%);
+.opencode-text-link {
+  @apply text-sm font-medium text-lime-200 transition-colors hover:text-lime-100;
 }
 
-.open-code-module-card__icon--blue {
-  color: rgb(59 130 246);
-  background: rgb(59 130 246 / 10%);
+.opencode-capability-card {
+  @apply h-full p-4;
 }
 
-.open-code-module-card__icon--amber {
-  color: rgb(245 158 11);
-  background: rgb(245 158 11 / 10%);
+.opencode-capability-card__header {
+  @apply mb-4 flex items-center justify-between gap-3;
 }
 
-.open-code-module-card__icon--emerald {
-  color: rgb(16 185 129);
-  background: rgb(16 185 129 / 10%);
+.opencode-capability-card__icon {
+  @apply flex h-11 w-11 items-center justify-center rounded-2xl border;
 }
 
-.open-code-module-card__title {
-  @apply mb-1 text-sm font-bold text-white;
+.opencode-capability-card__icon--lime {
+  @apply border-lime-300/20 bg-lime-300/10 text-lime-200;
 }
 
-.open-code-module-card__desc {
-  @apply text-xs leading-relaxed text-white/50;
+.opencode-capability-card__icon--violet {
+  @apply border-violet-300/20 bg-violet-300/10 text-violet-200;
 }
 
-.open-code-config-card {
-  @apply flex items-center gap-3 p-4;
+.opencode-capability-card__icon--cyan {
+  @apply border-cyan-300/20 bg-cyan-300/10 text-cyan-200;
 }
 
-.open-code-config-card__icon {
-  @apply shrink-0 text-white/50;
+.opencode-capability-card__icon--amber {
+  @apply border-amber-300/20 bg-amber-300/10 text-amber-200;
 }
 
-.open-code-config-card__label {
-  @apply mb-0.5 text-xs font-bold uppercase text-white/50;
-
-  letter-spacing: 0.1em;
+.opencode-capability-card__icon--emerald {
+  @apply border-emerald-300/20 bg-emerald-300/10 text-emerald-200;
 }
 
-.open-code-config-card__value {
-  @apply text-sm font-mono text-white/80;
+.opencode-capability-card__title {
+  @apply text-base font-semibold text-text-primary;
+}
+
+.opencode-capability-card__arrow {
+  @apply text-text-muted transition-transform duration-200 group-hover:translate-x-1;
+}
+
+.opencode-command-list,
+.opencode-topology-list,
+.opencode-tool-grid {
+  @apply flex flex-col gap-3;
+}
+
+.opencode-command-row {
+  @apply flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between;
+}
+
+.opencode-command-row__command,
+.opencode-topology-item__path,
+.opencode-tool-card__meta strong {
+  @apply font-mono text-sm text-text-primary;
+}
+
+.opencode-command-row__note {
+  @apply border-border-default/55 bg-bg-base/45 text-text-secondary;
+}
+
+.opencode-tool-card__meta {
+  @apply mb-2 flex items-center justify-between gap-3;
+}
+
+.opencode-tool-card__meta span {
+  @apply rounded-full bg-bg-base/55 px-2 py-1 text-[11px] uppercase tracking-[0.14em] text-text-muted;
+}
+
+.opencode-tool-card__availability {
+  @apply mt-3 text-xs text-amber-200;
+}
+
+.opencode-topology-item__title {
+  @apply block text-sm font-semibold text-text-primary;
+}
+
+.opencode-topology-item__path {
+  @apply mt-2 block break-all;
 }
 </style>
