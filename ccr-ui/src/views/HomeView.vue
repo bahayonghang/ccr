@@ -6,6 +6,10 @@
         data-home-hero
       >
         <div class="home-poster__mesh" />
+        <div class="home-poster__ambient home-poster__ambient--primary" />
+        <div class="home-poster__ambient home-poster__ambient--secondary" />
+        <div class="home-poster__beam" />
+        <div class="home-poster__grain" />
         <div class="home-poster__copy">
           <div class="home-poster__eyebrow">
             <span class="home-poster__eyebrow-line" />
@@ -80,6 +84,8 @@
             </div>
 
             <div class="home-visual-panel__fabric">
+              <div class="home-visual-panel__sheen" />
+              <div class="home-visual-panel__glow" />
               <div class="home-visual-panel__grid" />
               <div class="home-visual-panel__signal-ring" />
               <div class="home-visual-panel__signal-ring home-visual-panel__signal-ring--secondary" />
@@ -726,43 +732,171 @@ const getNodeStateClass = (platformKey: string) => {
   @apply relative min-h-full px-4 py-4 sm:px-6 sm:py-6;
 
   background:
-    radial-gradient(circle at top right, rgb(var(--color-accent-primary-rgb) / 8%) 0%, transparent 22%),
-    radial-gradient(circle at 8% 18%, rgb(var(--color-accent-secondary-rgb) / 8%) 0%, transparent 18%);
+    radial-gradient(circle at top center, rgb(var(--color-accent-primary-rgb) / 9%) 0%, transparent 24%),
+    radial-gradient(circle at 12% 16%, rgb(var(--color-premium-blue-rgb) / 84%) 0%, transparent 28%),
+    linear-gradient(180deg, #f5f7fb 0%, #edf1f8 100%);
+}
+
+.home-view::before,
+.home-view::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.home-view::before {
+  background-image: radial-gradient(rgb(var(--color-text-primary-rgb) / 18%) 0.7px, transparent 0.7px);
+  background-size: 16px 16px;
+  mask-image: linear-gradient(180deg, rgb(0 0 0 / 35%), transparent 72%);
+  opacity: 0.03;
+}
+
+.home-view::after {
+  background:
+    radial-gradient(circle at top, rgb(255 255 255 / 55%), transparent 34%),
+    radial-gradient(circle at bottom, rgb(29 29 31 / 8%), transparent 34%);
+  opacity: 0.62;
+}
+
+[data-theme='dark'] .home-view {
+  background:
+    radial-gradient(circle at 50% -6%, rgb(var(--color-accent-primary-rgb) / 18%) 0%, transparent 25%),
+    radial-gradient(circle at 12% 16%, rgb(var(--color-premium-blue-rgb) / 42%) 0%, transparent 24%),
+    radial-gradient(circle at 88% 12%, rgb(255 255 255 / 5%) 0%, transparent 18%),
+    linear-gradient(180deg, #03060d 0%, #050913 38%, #08101a 100%);
+}
+
+[data-theme='dark'] .home-view::before {
+  opacity: 0.048;
+}
+
+[data-theme='dark'] .home-view::after {
+  background:
+    radial-gradient(circle at top, rgb(var(--color-accent-primary-rgb) / 8%), transparent 28%),
+    radial-gradient(circle at bottom, rgb(0 0 0 / 56%), transparent 34%);
+  opacity: 0.9;
 }
 
 .home-shell {
-  @apply mx-auto flex max-w-[1480px] flex-col gap-8;
+  @apply relative mx-auto flex max-w-[1480px] flex-col gap-6;
 }
 
 .home-poster {
   position: relative;
+  isolation: isolate;
   overflow: hidden;
-  border-radius: 2.25rem;
-  border: 1px solid rgb(var(--color-accent-primary-rgb) / 16%);
+  border-radius: 2.3rem;
+  border: 1px solid rgb(var(--color-border-default-rgb) / 14%);
   background:
-    radial-gradient(circle at 8% 16%, rgb(var(--color-accent-primary-rgb) / 18%), transparent 28%),
-    radial-gradient(circle at 92% 24%, rgb(var(--color-accent-secondary-rgb) / 16%), transparent 24%),
-    radial-gradient(circle at 72% 82%, rgb(var(--color-info-rgb) / 12%), transparent 24%),
-    linear-gradient(135deg, rgb(var(--color-bg-elevated-rgb) / 78%), rgb(var(--color-bg-base-rgb) / 74%));
-  backdrop-filter: blur(28px) saturate(175%);
+    linear-gradient(135deg, rgb(255 255 255 / 10%), transparent 42%),
+    linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 94%), rgb(var(--color-bg-base-rgb) / 84%));
+  backdrop-filter: blur(34px) saturate(178%);
   box-shadow:
-    0 28px 80px rgb(3 10 19 / 16%),
-    inset 0 1px 0 rgb(255 255 255 / 16%);
+    0 34px 90px rgb(13 18 28 / 10%),
+    inset 0 1px 0 rgb(255 255 255 / 26%),
+    inset 0 -1px 0 rgb(255 255 255 / 5%);
   display: grid;
-  gap: 2.25rem;
-  padding: 1.75rem;
+  gap: 2.65rem;
+  padding: 2rem;
+  min-height: 39rem;
 }
 
 .home-poster__mesh {
   position: absolute;
   inset: 0;
-  background-image:
-    linear-gradient(rgb(255 255 255 / 5%) 1px, transparent 1px),
-    linear-gradient(90deg, rgb(255 255 255 / 5%) 1px, transparent 1px);
-  background-size: 32px 32px;
-  mask-image: radial-gradient(circle at 55% 46%, black 46%, transparent 92%);
-  opacity: 0.5;
+  background:
+    linear-gradient(180deg, rgb(255 255 255 / 24%), transparent 18%, transparent 72%, rgb(255 255 255 / 3%) 100%),
+    radial-gradient(circle at top left, rgb(var(--color-accent-primary-rgb) / 8%) 0%, transparent 26%),
+    linear-gradient(120deg, rgb(255 255 255 / 7%), transparent 44%);
+  opacity: 0.92;
   pointer-events: none;
+}
+
+.home-poster__ambient,
+.home-poster__beam,
+.home-poster__grain {
+  position: absolute;
+  pointer-events: none;
+}
+
+.home-poster__ambient {
+  border-radius: 9999px;
+  filter: blur(28px);
+  opacity: 0.72;
+}
+
+.home-poster__ambient--primary {
+  top: -9rem;
+  right: 18%;
+  width: 26rem;
+  height: 26rem;
+  background: radial-gradient(circle, rgb(var(--color-accent-primary-rgb) / 20%) 0%, transparent 68%);
+  animation: home-ambient-drift 20s ease-in-out infinite;
+}
+
+.home-poster__ambient--secondary {
+  bottom: -8rem;
+  left: -4rem;
+  width: 22rem;
+  height: 22rem;
+  background: radial-gradient(circle, rgb(var(--color-premium-blue-rgb) / 80%) 0%, transparent 72%);
+  animation: home-ambient-drift 24s ease-in-out infinite reverse;
+}
+
+.home-poster__beam {
+  top: 16%;
+  left: 36%;
+  width: 56%;
+  height: 18rem;
+  transform: rotate(-12deg);
+  background: linear-gradient(90deg, transparent, rgb(var(--color-accent-primary-rgb) / 10%), transparent 72%);
+  filter: blur(46px);
+  opacity: 0.7;
+}
+
+.home-poster__grain {
+  inset: 0;
+  opacity: 0.05;
+  background-image: radial-gradient(rgb(var(--color-text-primary-rgb) / 36%) 0.65px, transparent 0.65px);
+  background-size: 14px 14px;
+  mask-image: linear-gradient(180deg, rgb(0 0 0 / 54%), transparent 80%);
+}
+
+[data-theme='dark'] .home-poster {
+  border-color: rgb(var(--color-border-default-rgb) / 11%);
+  background:
+    linear-gradient(135deg, rgb(255 255 255 / 7%), transparent 40%),
+    radial-gradient(circle at 12% 12%, rgb(var(--color-premium-blue-rgb) / 28%) 0%, transparent 24%),
+    linear-gradient(180deg, rgb(14 18 28 / 90%), rgb(8 11 18 / 86%));
+  box-shadow:
+    0 40px 96px rgb(0 0 0 / 52%),
+    inset 0 1px 0 rgb(255 255 255 / 10%),
+    inset 0 -1px 0 rgb(255 255 255 / 4%);
+}
+
+[data-theme='dark'] .home-poster__mesh {
+  background:
+    linear-gradient(180deg, rgb(255 255 255 / 10%), transparent 18%, transparent 72%, rgb(255 255 255 / 3%) 100%),
+    radial-gradient(circle at top left, rgb(var(--color-accent-primary-rgb) / 10%) 0%, transparent 26%),
+    linear-gradient(120deg, rgb(255 255 255 / 4%), transparent 44%);
+}
+
+[data-theme='dark'] .home-poster__ambient--primary {
+  background: radial-gradient(circle, rgb(var(--color-accent-primary-rgb) / 28%) 0%, transparent 70%);
+}
+
+[data-theme='dark'] .home-poster__ambient--secondary {
+  background: radial-gradient(circle, rgb(var(--color-premium-blue-rgb) / 46%) 0%, transparent 72%);
+}
+
+[data-theme='dark'] .home-poster__beam {
+  background: linear-gradient(90deg, transparent, rgb(var(--color-accent-primary-rgb) / 16%), transparent 70%);
+  opacity: 0.84;
+}
+
+[data-theme='dark'] .home-poster__grain {
+  opacity: 0.07;
 }
 
 .home-poster__copy,
@@ -772,7 +906,7 @@ const getNodeStateClass = (platformKey: string) => {
 }
 
 .home-poster__copy {
-  @apply flex flex-col gap-6;
+  @apply flex flex-col justify-center gap-7;
 }
 
 .home-poster__eyebrow,
@@ -782,46 +916,72 @@ const getNodeStateClass = (platformKey: string) => {
 }
 
 .home-poster__eyebrow-line {
-  @apply h-px w-12 bg-accent-primary/45;
+  @apply h-px w-12 bg-accent-primary/35;
 }
 
 .home-poster__welcome {
-  @apply text-sm font-medium uppercase tracking-[0.16em] text-accent-primary;
-
-  text-shadow: 0 0 18px rgb(var(--color-accent-primary-rgb) / 18%);
+  @apply text-sm font-medium uppercase tracking-[0.18em] text-accent-primary;
 }
 
 .home-poster__title-wrap {
-  @apply flex flex-col gap-2;
+  @apply flex flex-col gap-3;
 }
 
 .home-poster__title {
   font-family: var(--font-brand, inherit);
+  font-weight: 500;
+  text-wrap: balance;
 
-  @apply max-w-[9ch] text-4xl font-semibold tracking-[-0.05em] text-text-primary sm:text-5xl lg:text-[4.4rem];
+  @apply max-w-[10ch] text-[3.7rem] tracking-[-0.055em] text-text-primary sm:text-[4.6rem] lg:text-[5.7rem];
 
-  line-height: 0.94;
+  line-height: 0.96;
+  text-shadow: 0 20px 36px rgb(0 0 0 / 10%);
 }
 
 .home-poster__lead {
-  @apply max-w-[34rem] text-lg font-medium leading-8 text-text-primary;
+  @apply max-w-[38rem] text-[1.18rem] font-medium leading-[1.55] text-text-primary;
 }
 
 .home-poster__description {
-  @apply max-w-[35rem] text-sm leading-7 text-text-secondary;
+  @apply max-w-[36rem] text-[0.95rem] leading-[1.82] text-text-secondary;
 }
 
 .home-poster__status-rail {
-  @apply flex flex-wrap gap-3;
+  @apply flex flex-wrap gap-3.5;
 }
 
 .home-status-pill {
-  @apply inline-flex items-center gap-2 rounded-full px-3 py-2;
+  @apply inline-flex items-center gap-2 rounded-full px-3.5 py-2.5;
 
-  border: 1px solid rgb(var(--color-border-default-rgb) / 48%);
-  background: linear-gradient(135deg, rgb(var(--color-bg-elevated-rgb) / 68%), rgb(var(--color-bg-surface-rgb) / 60%));
-  backdrop-filter: blur(16px) saturate(160%);
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 12%);
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgb(var(--color-border-default-rgb) / 16%);
+  background: linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 88%), rgb(var(--color-bg-surface-rgb) / 78%));
+  backdrop-filter: blur(18px) saturate(175%);
+  box-shadow:
+    0 10px 24px rgb(13 18 28 / 6%),
+    inset 0 1px 0 rgb(255 255 255 / 18%);
+  transition:
+    transform 220ms var(--ease-out),
+    border-color 220ms var(--ease-out),
+    box-shadow 220ms var(--ease-out);
+}
+
+.home-status-pill::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(120deg, rgb(255 255 255 / 10%), transparent 42%);
+  opacity: 0.8;
+  pointer-events: none;
+}
+
+.home-status-pill:hover {
+  transform: translateY(-2px);
+  border-color: rgb(var(--color-accent-primary-rgb) / 20%);
+  box-shadow:
+    0 16px 28px rgb(var(--color-accent-primary-rgb) / 10%),
+    inset 0 1px 0 rgb(255 255 255 / 20%);
 }
 
 .home-status-pill__dot {
@@ -862,15 +1022,34 @@ const getNodeStateClass = (platformKey: string) => {
 }
 
 .home-visual-panel {
-  @apply flex w-full flex-col gap-5 rounded-[1.9rem] p-5;
+  @apply relative flex w-full flex-col gap-5 overflow-hidden rounded-[2rem] p-5;
 
-  border: 1px solid rgb(var(--color-border-default-rgb) / 46%);
+  border: 1px solid rgb(var(--color-border-default-rgb) / 14%);
   background:
-    linear-gradient(135deg, rgb(var(--color-bg-base-rgb) / 58%), rgb(var(--color-bg-surface-rgb) / 46%));
-  backdrop-filter: blur(24px) saturate(170%);
+    linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 82%), rgb(var(--color-bg-surface-rgb) / 74%));
+  backdrop-filter: blur(28px) saturate(176%);
   box-shadow:
-    0 18px 34px rgb(3 10 19 / 16%),
-    inset 0 1px 0 rgb(255 255 255 / 12%);
+    0 22px 48px rgb(13 18 28 / 10%),
+    inset 0 1px 0 rgb(255 255 255 / 18%);
+}
+
+.home-visual-panel::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgb(255 255 255 / 14%), transparent 20%),
+    radial-gradient(circle at 86% 0%, rgb(var(--color-accent-primary-rgb) / 10%), transparent 28%);
+  pointer-events: none;
+}
+
+[data-theme='dark'] .home-visual-panel {
+  border-color: rgb(var(--color-border-default-rgb) / 12%);
+  background:
+    linear-gradient(180deg, rgb(19 22 31 / 82%), rgb(10 13 20 / 74%));
+  box-shadow:
+    0 28px 64px rgb(0 0 0 / 46%),
+    inset 0 1px 0 rgb(255 255 255 / 8%);
 }
 
 .home-visual-panel__header {
@@ -878,81 +1057,114 @@ const getNodeStateClass = (platformKey: string) => {
 }
 
 .home-visual-panel__title {
-  @apply mt-1 text-xl font-semibold tracking-tight text-text-primary;
+  @apply mt-1 text-[1.4rem] font-semibold tracking-tight text-text-primary;
 }
 
 .home-visual-panel__badge {
   @apply rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-accent-primary;
 
-  border: 1px solid rgb(var(--color-accent-primary-rgb) / 24%);
-  background: linear-gradient(135deg, rgb(var(--color-accent-primary-rgb) / 14%), rgb(var(--color-accent-secondary-rgb) / 10%));
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 10%);
+  border: 1px solid rgb(var(--color-accent-primary-rgb) / 18%);
+  background: rgb(var(--color-bg-overlay-rgb) / 72%);
+  box-shadow:
+    0 10px 22px rgb(var(--color-accent-primary-rgb) / 10%),
+    inset 0 1px 0 rgb(255 255 255 / 16%);
 }
 
 .home-visual-panel__fabric {
   position: relative;
   overflow: hidden;
-  border-radius: 1.6rem;
-  min-height: 300px;
-  border: 1px solid rgb(var(--color-accent-primary-rgb) / 16%);
+  border-radius: 1.7rem;
+  min-height: 320px;
+  border: 1px solid rgb(var(--color-border-default-rgb) / 12%);
   background:
-    linear-gradient(180deg, rgb(255 255 255 / 4%), transparent),
-    radial-gradient(circle at top right, rgb(var(--color-accent-secondary-rgb) / 14%) 0%, transparent 34%),
-    linear-gradient(135deg, rgb(var(--color-bg-elevated-rgb) / 60%), rgb(var(--color-bg-base-rgb) / 82%));
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 8%);
+    linear-gradient(180deg, rgb(255 255 255 / 16%), transparent 24%, rgb(255 255 255 / 3%) 100%),
+    radial-gradient(circle at top right, rgb(var(--color-accent-primary-rgb) / 10%) 0%, transparent 30%),
+    linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 92%), rgb(var(--color-bg-base-rgb) / 82%));
+  box-shadow:
+    0 18px 40px rgb(13 18 28 / 8%),
+    inset 0 1px 0 rgb(255 255 255 / 18%);
+}
+
+.home-visual-panel__sheen,
+.home-visual-panel__glow {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.home-visual-panel__sheen {
+  background: linear-gradient(115deg, transparent 0%, rgb(255 255 255 / 14%) 48%, transparent 78%);
+  transform: translateX(28%);
+  opacity: 0.42;
+}
+
+.home-visual-panel__glow {
+  background:
+    radial-gradient(circle at 76% 16%, rgb(var(--color-accent-primary-rgb) / 12%) 0%, transparent 22%),
+    radial-gradient(circle at 18% 82%, rgb(var(--color-premium-blue-rgb) / 78%) 0%, transparent 30%);
+  opacity: 0.85;
+}
+
+[data-theme='dark'] .home-visual-panel__fabric {
+  border-color: rgb(var(--color-border-default-rgb) / 11%);
+  background:
+    linear-gradient(180deg, rgb(255 255 255 / 8%), transparent 24%, rgb(255 255 255 / 3%) 100%),
+    radial-gradient(circle at top right, rgb(var(--color-accent-primary-rgb) / 12%) 0%, transparent 30%),
+    linear-gradient(180deg, rgb(14 18 27 / 96%), rgb(4 7 13 / 92%));
+  box-shadow:
+    0 22px 44px rgb(0 0 0 / 38%),
+    inset 0 1px 0 rgb(255 255 255 / 10%);
+}
+
+[data-theme='dark'] .home-visual-panel__glow {
+  background:
+    radial-gradient(circle at 76% 16%, rgb(var(--color-accent-primary-rgb) / 16%) 0%, transparent 22%),
+    radial-gradient(circle at 18% 82%, rgb(var(--color-premium-blue-rgb) / 30%) 0%, transparent 30%);
 }
 
 .home-visual-panel__grid {
-  position: absolute;
-  inset: 0;
-  background-image:
-    linear-gradient(rgb(255 255 255 / 4%) 1px, transparent 1px),
-    linear-gradient(90deg, rgb(255 255 255 / 4%) 1px, transparent 1px);
-  background-size: 28px 28px;
+  display: none;
 }
 
 .home-visual-panel__signal-ring {
-  position: absolute;
-  inset: auto auto 1.25rem 1.5rem;
-  width: 240px;
-  height: 240px;
-  border-radius: 9999px;
-  border: 1px solid rgb(var(--color-accent-primary-rgb) / 26%);
-  box-shadow: 0 0 110px rgb(var(--color-accent-primary-rgb) / 16%);
-  animation: hero-pulse 9s ease-in-out infinite;
+  display: none;
 }
 
 .home-visual-panel__signal-ring--secondary {
-  inset: 2.25rem 2rem auto auto;
-  width: 180px;
-  height: 180px;
-  border-color: rgb(var(--color-accent-secondary-rgb) / 24%);
-  box-shadow: 0 0 82px rgb(var(--color-accent-secondary-rgb) / 12%);
-  animation-delay: 1.4s;
+  display: none;
 }
 
 .home-signal-list {
   position: relative;
   z-index: 1;
 
-  @apply flex h-full flex-col justify-center gap-3 p-5;
+  @apply flex h-full flex-col justify-center gap-3.5 p-5;
 }
 
 .home-signal-node {
-  @apply flex items-center justify-between gap-3 rounded-2xl px-4 py-3;
+  @apply flex items-center justify-between gap-3 rounded-[1.35rem] px-4 py-3.5;
 
-  border: 1px solid rgb(var(--color-border-default-rgb) / 46%);
-  background: linear-gradient(135deg, rgb(var(--color-bg-surface-rgb) / 64%), rgb(var(--color-bg-elevated-rgb) / 52%));
-  backdrop-filter: blur(16px) saturate(160%);
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 10%);
+  border: 1px solid rgb(var(--color-border-default-rgb) / 12%);
+  background: linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 92%), rgb(var(--color-bg-surface-rgb) / 80%));
+  backdrop-filter: blur(18px) saturate(175%);
+  box-shadow:
+    0 12px 28px rgb(13 18 28 / 8%),
+    inset 0 1px 0 rgb(255 255 255 / 18%);
   transform: translateZ(0);
-  transition: transform 220ms ease, border-color 220ms ease, background-color 220ms ease;
+  transition:
+    transform 220ms ease,
+    border-color 220ms ease,
+    background-color 220ms ease,
+    box-shadow 220ms ease;
 }
 
 .home-signal-node:hover {
-  transform: translateX(6px);
-  border-color: rgb(var(--color-accent-primary-rgb) / 28%);
-  background: linear-gradient(135deg, rgb(var(--color-bg-elevated-rgb) / 78%), rgb(var(--color-bg-surface-rgb) / 60%));
+  transform: translateX(5px);
+  border-color: rgb(var(--color-accent-primary-rgb) / 18%);
+  background: linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 98%), rgb(var(--color-bg-surface-rgb) / 88%));
+  box-shadow:
+    0 18px 34px rgb(var(--color-accent-primary-rgb) / 10%),
+    inset 0 1px 0 rgb(255 255 255 / 20%);
 }
 
 .home-signal-node__meta {
@@ -984,12 +1196,25 @@ const getNodeStateClass = (platformKey: string) => {
 }
 
 .home-usage-preview {
-  @apply flex items-end justify-between gap-4 rounded-[1.45rem] px-4 py-4;
+  @apply relative flex items-end justify-between gap-4 overflow-hidden rounded-[1.55rem] px-4 py-4;
 
-  border: 1px solid rgb(var(--color-border-default-rgb) / 44%);
-  background: linear-gradient(135deg, rgb(var(--color-bg-surface-rgb) / 62%), rgb(var(--color-bg-elevated-rgb) / 52%));
-  backdrop-filter: blur(18px) saturate(160%);
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 10%);
+  border: 1px solid rgb(var(--color-border-default-rgb) / 13%);
+  background: linear-gradient(180deg, rgb(var(--color-bg-surface-rgb) / 82%), rgb(var(--color-bg-elevated-rgb) / 92%));
+  backdrop-filter: blur(22px) saturate(172%);
+  box-shadow:
+    0 16px 34px rgb(13 18 28 / 8%),
+    inset 0 1px 0 rgb(255 255 255 / 18%);
+}
+
+.home-usage-preview::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at top right, rgb(var(--color-accent-primary-rgb) / 12%) 0%, transparent 26%),
+    linear-gradient(180deg, rgb(255 255 255 / 8%), transparent 42%);
+  opacity: 0.92;
+  pointer-events: none;
 }
 
 .home-usage-preview__title {
@@ -1006,22 +1231,68 @@ const getNodeStateClass = (platformKey: string) => {
   min-height: 14px;
   background: linear-gradient(
     180deg,
-    rgb(var(--color-info-rgb) / 90%) 0%,
-    rgb(var(--color-accent-primary-rgb) / 68%) 52%,
-    rgb(var(--color-accent-primary-rgb) / 40%) 100%
+    rgb(var(--color-accent-primary-rgb) / 92%) 0%,
+    rgb(var(--color-accent-secondary-rgb) / 68%) 100%
   );
-  box-shadow: 0 0 16px rgb(var(--color-accent-primary-rgb) / 12%);
+  box-shadow: 0 12px 18px rgb(var(--color-accent-primary-rgb) / 14%);
+  transition: transform 220ms var(--ease-out), box-shadow 220ms var(--ease-out);
+}
+
+.home-usage-preview:hover .home-usage-preview__bar {
+  transform: translateY(-2px);
+  box-shadow: 0 16px 24px rgb(var(--color-accent-primary-rgb) / 18%);
 }
 
 .section-block {
-  @apply flex flex-col gap-4 rounded-[1.85rem] p-5;
+  @apply relative flex flex-col gap-4 overflow-hidden rounded-[1.95rem] p-5;
 
-  border: 1px solid rgb(var(--color-border-default-rgb) / 34%);
-  background: linear-gradient(135deg, rgb(var(--color-bg-elevated-rgb) / 58%), rgb(var(--color-bg-base-rgb) / 38%));
-  backdrop-filter: blur(18px) saturate(150%);
+  border: 1px solid rgb(var(--color-border-default-rgb) / 13%);
+  background:
+    linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 84%), rgb(var(--color-bg-base-rgb) / 74%));
+  backdrop-filter: blur(22px) saturate(156%);
   box-shadow:
-    0 18px 40px rgb(3 10 19 / 10%),
-    inset 0 1px 0 rgb(255 255 255 / 10%);
+    0 22px 44px rgb(13 18 28 / 8%),
+    inset 0 1px 0 rgb(255 255 255 / 16%);
+}
+
+.section-block::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgb(255 255 255 / 12%), transparent 18%),
+    radial-gradient(circle at top right, rgb(var(--color-accent-primary-rgb) / 7%), transparent 24%);
+  opacity: 0.9;
+  pointer-events: none;
+}
+
+[data-theme='dark'] .section-block {
+  border-color: rgb(var(--color-border-default-rgb) / 11%);
+  background:
+    linear-gradient(180deg, rgb(18 21 31 / 80%), rgb(9 12 19 / 70%));
+  box-shadow:
+    0 26px 52px rgb(0 0 0 / 32%),
+    inset 0 1px 0 rgb(255 255 255 / 8%);
+}
+
+.section-block[data-home-actions] {
+  background:
+    linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 88%), rgb(var(--color-bg-surface-rgb) / 76%));
+}
+
+.section-block[data-home-platforms] {
+  background:
+    linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 82%), rgb(var(--color-bg-base-rgb) / 68%));
+}
+
+[data-theme='dark'] .section-block[data-home-actions] {
+  background:
+    linear-gradient(180deg, rgb(20 24 34 / 82%), rgb(11 15 22 / 72%));
+}
+
+[data-theme='dark'] .section-block[data-home-platforms] {
+  background:
+    linear-gradient(180deg, rgb(16 20 29 / 80%), rgb(8 11 18 / 66%));
 }
 
 .section-row {
@@ -1033,11 +1304,14 @@ const getNodeStateClass = (platformKey: string) => {
 }
 
 .section-title {
-  @apply mt-1 text-xl font-semibold tracking-tight text-text-primary;
+  font-family: var(--font-brand, inherit);
+  font-weight: 500;
+
+  @apply mt-1 text-[1.85rem] tracking-[-0.05em] text-text-primary;
 }
 
 .section-description {
-  @apply mt-2 max-w-2xl text-sm leading-6 text-text-secondary;
+  @apply mt-2 max-w-[42rem] text-[0.95rem] leading-7 text-text-secondary;
 }
 
 .command-strip {
@@ -1049,20 +1323,30 @@ const getNodeStateClass = (platformKey: string) => {
 }
 
 .command-strip__slot {
-  @apply flex h-full items-center gap-4 rounded-[1.45rem] px-4 py-4 transition-all duration-200;
+  @apply relative flex h-full items-center gap-4 overflow-hidden rounded-[1.6rem] px-4 py-4 transition-all duration-200;
 
-  border: 1px solid rgb(var(--color-border-default-rgb) / 42%);
-  background: linear-gradient(135deg, rgb(var(--color-bg-surface-rgb) / 62%), rgb(var(--color-bg-elevated-rgb) / 52%));
-  backdrop-filter: blur(16px) saturate(150%);
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 10%);
+  border: 1px solid rgb(var(--color-border-default-rgb) / 12%);
+  background: linear-gradient(180deg, rgb(var(--color-bg-surface-rgb) / 84%), rgb(var(--color-bg-elevated-rgb) / 94%));
+  backdrop-filter: blur(18px) saturate(162%);
+  box-shadow:
+    0 16px 28px rgb(13 18 28 / 7%),
+    inset 0 1px 0 rgb(255 255 255 / 16%);
 }
 
-.command-strip__slot:hover {
-  border-color: rgb(var(--color-accent-primary-rgb) / 28%);
+.command-strip__slot::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(120deg, rgb(255 255 255 / 10%), transparent 44%);
+  pointer-events: none;
+}
+
+.command-strip__item:is(:hover, :focus-visible) .command-strip__slot {
+  border-color: rgb(var(--color-accent-primary-rgb) / 18%);
   transform: translateY(-3px);
   box-shadow:
-    0 20px 34px rgb(var(--color-accent-primary-rgb) / 10%),
-    inset 0 1px 0 rgb(255 255 255 / 12%);
+    0 22px 40px rgb(var(--color-accent-primary-rgb) / 11%),
+    inset 0 1px 0 rgb(255 255 255 / 18%);
 }
 
 .command-strip__copy {
@@ -1097,21 +1381,34 @@ const getNodeStateClass = (platformKey: string) => {
 
 .platform-feature__shell,
 .platform-rail__shell {
-  @apply rounded-[1.6rem] p-5 transition-all duration-200;
+  @apply relative overflow-hidden rounded-[1.75rem] p-5 transition-all duration-200;
 
-  border: 1px solid rgb(var(--color-border-default-rgb) / 42%);
-  background: linear-gradient(135deg, rgb(var(--color-bg-surface-rgb) / 62%), rgb(var(--color-bg-elevated-rgb) / 52%));
-  backdrop-filter: blur(18px) saturate(155%);
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 10%);
+  border: 1px solid rgb(var(--color-border-default-rgb) / 12%);
+  background: linear-gradient(180deg, rgb(var(--color-bg-surface-rgb) / 84%), rgb(var(--color-bg-elevated-rgb) / 94%));
+  backdrop-filter: blur(22px) saturate(165%);
+  box-shadow:
+    0 18px 32px rgb(13 18 28 / 7%),
+    inset 0 1px 0 rgb(255 255 255 / 16%);
 }
 
-.platform-feature__shell:hover,
-.platform-rail__shell:hover {
-  border-color: rgb(var(--color-accent-primary-rgb) / 28%);
+.platform-feature__shell::before,
+.platform-rail__shell::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgb(255 255 255 / 10%), transparent 18%),
+    radial-gradient(circle at 100% 0%, rgb(var(--color-accent-primary-rgb) / 8%), transparent 26%);
+  pointer-events: none;
+}
+
+.platform-feature:is(:hover, :focus-visible) .platform-feature__shell,
+.platform-rail:is(:hover, :focus-visible) .platform-rail__shell {
+  border-color: rgb(var(--color-accent-primary-rgb) / 18%);
   transform: translateY(-3px);
   box-shadow:
-    0 20px 34px rgb(var(--color-accent-primary-rgb) / 10%),
-    inset 0 1px 0 rgb(255 255 255 / 12%);
+    0 24px 42px rgb(var(--color-accent-primary-rgb) / 11%),
+    inset 0 1px 0 rgb(255 255 255 / 18%);
 }
 
 .platform-feature__header,
@@ -1129,9 +1426,11 @@ const getNodeStateClass = (platformKey: string) => {
 .platform-feature__icon {
   @apply flex h-12 w-12 items-center justify-center rounded-2xl;
 
-  border: 1px solid rgb(var(--color-border-default-rgb) / 42%);
-  background: linear-gradient(135deg, rgb(var(--color-bg-elevated-rgb) / 76%), rgb(var(--color-bg-surface-rgb) / 62%));
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 12%);
+  border: 1px solid rgb(var(--color-border-default-rgb) / 14%);
+  background: linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 100%), rgb(var(--color-bg-surface-rgb) / 84%));
+  box-shadow:
+    0 10px 20px rgb(13 18 28 / 8%),
+    inset 0 1px 0 rgb(255 255 255 / 18%);
 }
 
 .platform-feature__eyebrow {
@@ -1202,34 +1501,39 @@ const getNodeStateClass = (platformKey: string) => {
   @apply mt-1 text-xs text-text-muted;
 }
 
-@keyframes hero-pulse {
+@keyframes home-ambient-drift {
   0%,
   100% {
-    transform: scale(1);
-    opacity: 0.45;
+    transform: translate3d(0, 0, 0) scale(1);
   }
 
   50% {
-    transform: scale(1.05);
-    opacity: 0.85;
+    transform: translate3d(0, -12px, 0) scale(1.05);
   }
 }
 
 @media (width >= 1024px) {
   .home-poster {
-    grid-template-columns: minmax(0, 1.08fr) minmax(380px, 0.92fr);
-    padding: 2rem;
+    grid-template-columns: minmax(0, 1.08fr) minmax(400px, 0.92fr);
+    padding: 2.2rem;
+  }
+
+  .home-poster__copy {
+    padding-left: 0.25rem;
   }
 }
 
 @media (width <= 767px) {
   .home-poster {
-    border-radius: 1.5rem;
-    padding: 1.25rem;
+    min-height: auto;
+    border-radius: 1.6rem;
+    padding: 1.35rem;
   }
 
   .home-poster__title {
     max-width: 12ch;
+    font-size: 3rem;
+    line-height: 0.98;
   }
 
   .home-visual-panel__fabric {
@@ -1238,6 +1542,22 @@ const getNodeStateClass = (platformKey: string) => {
 
   .home-usage-preview {
     @apply flex-col items-start;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-poster__ambient--primary,
+  .home-poster__ambient--secondary {
+    animation: none;
+  }
+
+  .home-status-pill,
+  .home-signal-node,
+  .home-usage-preview__bar,
+  .command-strip__slot,
+  .platform-feature__shell,
+  .platform-rail__shell {
+    transition: none;
   }
 }
 </style>

@@ -16,7 +16,7 @@
                     <SIcon
                       name="Code2"
                       size="w-6 h-6"
-                      class="text-pink-400"
+                      class="text-accent-primary"
                     />
                   </div>
                   <div>
@@ -30,11 +30,11 @@
                 </div>
 
                 <div class="codex-pill-row">
-                  <span class="codex-pill codex-pill--pink"> workflow first </span>
+                  <span class="codex-pill codex-pill--primary"> workflow first </span>
                   <span class="codex-pill codex-pill--neutral">
                     {{ versionLabel }}
                   </span>
-                  <span class="codex-pill codex-pill--emerald">
+                  <span class="codex-pill codex-pill--info">
                     {{ currentProfileLabel }}
                   </span>
                 </div>
@@ -544,9 +544,9 @@ const {
 } = useCodexDashboard()
 
 const toneClassMap = {
-  success: 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300',
-  warning: 'bg-amber-500/10 border-amber-500/20 text-amber-300',
-  danger: 'bg-rose-500/10 border-rose-500/20 text-rose-300',
+  success: 'codex-tone-icon--success',
+  warning: 'codex-tone-icon--warning',
+  danger: 'codex-tone-icon--danger',
   neutral: 'codex-tone-icon--neutral',
 } as const
 
@@ -595,7 +595,7 @@ onActivated(() => {
 .codex-hero-card__glow {
   @apply pointer-events-none absolute inset-y-0 right-0 w-72;
 
-  background: linear-gradient(270deg, rgb(236 72 153 / 10%), rgb(168 85 247 / 5%), transparent);
+  background: linear-gradient(270deg, rgb(var(--color-accent-primary-rgb) / 12%), rgb(var(--color-premium-blue-rgb) / 46%), transparent);
 }
 
 .codex-hero-content {
@@ -615,7 +615,10 @@ onActivated(() => {
 }
 
 .codex-hero-icon {
-  @apply flex h-12 w-12 items-center justify-center rounded-2xl border border-pink-500/20 bg-pink-500/10 shadow-lg backdrop-blur-md;
+  @apply flex h-12 w-12 items-center justify-center rounded-2xl shadow-lg backdrop-blur-md;
+
+  border: 1px solid rgb(var(--color-accent-primary-rgb) / 14%);
+  background: linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 100%), rgb(var(--color-bg-surface-rgb) / 84%));
 }
 
 .codex-hero-title {
@@ -623,7 +626,7 @@ onActivated(() => {
 
   @apply text-3xl font-bold tracking-tight;
 
-  font-family: MapleBright, 'Microsoft YaHei UI', system-ui, sans-serif;
+  font-family: var(--font-brand);
 }
 
 .codex-hero-subtitle {
@@ -644,8 +647,10 @@ onActivated(() => {
   letter-spacing: 0.12em;
 }
 
-.codex-pill--pink {
-  @apply border-pink-500/20 bg-pink-500/10 text-pink-300;
+.codex-pill--primary {
+  border-color: rgb(var(--color-accent-primary-rgb) / 16%);
+  background: rgb(var(--color-accent-primary-rgb) / 10%);
+  color: var(--color-accent-primary);
 }
 
 .codex-pill--neutral {
@@ -654,8 +659,10 @@ onActivated(() => {
   color: var(--stage-chip-neutral-text);
 }
 
-.codex-pill--emerald {
-  @apply border-emerald-500/20 bg-emerald-500/10 text-emerald-300;
+.codex-pill--info {
+  border-color: rgb(var(--color-info-rgb) / 16%);
+  background: rgb(var(--color-info-rgb) / 10%);
+  color: var(--color-info);
 }
 
 .codex-action-row {
@@ -722,11 +729,13 @@ onActivated(() => {
 }
 
 .codex-panel-icon--amber {
-  @apply border-amber-500/20 bg-amber-500/10;
+  border-color: rgb(var(--color-warning-rgb) / 16%);
+  background: rgb(var(--color-warning-rgb) / 10%);
 }
 
 .codex-panel-icon--indigo {
-  @apply border-indigo-500/20 bg-indigo-500/10;
+  border-color: rgb(var(--color-accent-primary-rgb) / 16%);
+  background: rgb(var(--color-accent-primary-rgb) / 10%);
 }
 
 .codex-stack {
@@ -737,11 +746,33 @@ onActivated(() => {
   background: var(--stage-surface-soft);
   border: 1px solid var(--stage-border-soft);
 
-  @apply block rounded-2xl p-4 transition-all duration-200 hover:border-pink-500/30;
+  @apply block rounded-2xl p-4 transition-all duration-200;
+}
+
+.codex-action-card:hover {
+  border-color: rgb(var(--color-accent-primary-rgb) / 16%);
 }
 
 .codex-tone-icon {
   @apply mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border;
+}
+
+.codex-tone-icon--success {
+  border-color: rgb(var(--color-success-rgb) / 16%);
+  background: rgb(var(--color-success-rgb) / 10%);
+  color: var(--color-success);
+}
+
+.codex-tone-icon--warning {
+  border-color: rgb(var(--color-warning-rgb) / 16%);
+  background: rgb(var(--color-warning-rgb) / 10%);
+  color: var(--color-warning);
+}
+
+.codex-tone-icon--danger {
+  border-color: rgb(var(--color-danger-rgb) / 16%);
+  background: rgb(var(--color-danger-rgb) / 10%);
+  color: var(--color-danger);
 }
 
 .codex-action-title {
@@ -808,7 +839,7 @@ onActivated(() => {
 }
 
 .codex-text-link {
-  @apply text-sm text-pink-300 transition-colors hover:text-pink-200;
+  @apply text-sm text-accent-primary transition-colors hover:text-accent-secondary;
 }
 
 .codex-link-card {
@@ -835,7 +866,7 @@ onActivated(() => {
 .codex-link-title {
   color: var(--stage-text-primary);
 
-  @apply text-sm font-semibold transition-colors group-hover:text-pink-200;
+  @apply text-sm font-semibold transition-colors group-hover:text-accent-primary;
 }
 
 .codex-link-description {

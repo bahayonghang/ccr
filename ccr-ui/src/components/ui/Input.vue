@@ -30,7 +30,7 @@
         :type="props.type"
         :disabled="props.disabled"
         :placeholder="props.placeholder"
-        class="peer rounded-xl border border-border-default/70 text-text-primary placeholder:text-text-muted/80 focus:outline-none focus:ring-2 focus:ring-accent-primary/18 focus:border-accent-primary/42 disabled:cursor-not-allowed disabled:opacity-50"
+        class="peer rounded-2xl border border-border-default/70 text-text-primary placeholder:text-text-muted/80 focus:outline-none focus:ring-2 focus:ring-accent-primary/14 focus:border-accent-primary/28 disabled:cursor-not-allowed disabled:opacity-50"
         :class="[
           ...inputClasses,
           inputDensityClass,
@@ -57,7 +57,7 @@
 
       <!-- Neo Glow Effect on Focus -->
       <div 
-        class="absolute -inset-0.5 rounded-xl bg-accent-primary/16 blur-md opacity-0 transition-opacity duration-300 peer-focus:opacity-100 -z-10 pointer-events-none"
+        class="absolute -inset-0.5 rounded-2xl bg-accent-primary/10 blur-md opacity-0 transition-opacity duration-300 peer-focus:opacity-100 -z-10 pointer-events-none"
         :class="props.error ? 'bg-accent-danger/20' : ''"
       />
     </div>
@@ -149,11 +149,11 @@ export default {
   transition-timing-function: var(--ui-input-ease, var(--motion-subtle-ease));
   box-shadow:
     var(--ui-input-shadow, var(--shadow-sm)),
-    inset 0 1px 0 rgb(255 255 255 / 10%);
+    inset 0 1px 0 rgb(255 255 255 / 14%);
 }
 
 .ui-input:hover:not(:disabled) {
-  border-color: rgb(var(--color-border-strong-rgb) / 78%);
+  border-color: rgb(var(--color-border-strong-rgb) / 28%);
 }
 
 .ui-input--surface-workspace {

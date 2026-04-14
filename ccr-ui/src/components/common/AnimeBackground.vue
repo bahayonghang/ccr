@@ -1,116 +1,90 @@
 <template>
-  <div class="fixed inset-0 w-full h-full -z-50 overflow-hidden transition-colors duration-1000 bg-white dark:bg-black">
-    <div class="absolute inset-0 w-full h-full bg-gradient-to-br from-pink-50 via-white to-purple-50 dark:from-gray-900 dark:via-slate-900 dark:to-black" />
-
-    <div
-      v-if="bgUrl"
-      class="absolute inset-0 w-full h-full bg-cover bg-center bg-no-repeat transition-opacity duration-1000"
-      :style="{ backgroundImage: `url(${bgUrl})`, opacity: isLoaded ? 1 : 0, filter: 'saturate(1.06) contrast(1.02)' }"
-    />
-
-    <div class="absolute inset-0 w-full h-full bg-gradient-to-br from-white/40 via-white/24 to-pink-100/26 dark:from-black/16 dark:via-black/28 dark:to-violet-950/16 z-0 pointer-events-none" />
-    <div class="absolute inset-0 w-full h-full bg-white/52 dark:bg-black/30 z-0 pointer-events-none" />
+  <div
+    class="apple-background"
+    aria-hidden="true"
+  >
+    <div class="apple-background__base" />
+    <div class="apple-background__halo apple-background__halo--left" />
+    <div class="apple-background__halo apple-background__halo--right" />
+    <div class="apple-background__grain" />
   </div>
 </template>
 
-<script setup lang="ts">
-import { onMounted, onUnmounted, ref } from 'vue'
-import fallbackBackgroundUrl from '@/assets/anime-background-fallback.svg'
-import {
-  clearBackgroundCache,
-  createBackgroundObjectUrl,
-  loadBackgroundCache,
-  revokeBackgroundObjectUrl,
-  type BackgroundCacheRecord
-} from '@/utils/backgroundCache'
-import { logger } from '@/utils/logger'
-
-const bgUrl = ref('')
-const isLoaded = ref(false)
-
-let currentObjectUrl: string | null = null
-let isUnmounted = false
-
-const releaseCurrentObjectUrl = () => {
-  revokeBackgroundObjectUrl(currentObjectUrl)
-  currentObjectUrl = null
-}
-
-const preloadBackground = (url: string, nextObjectUrl: string | null = null): Promise<boolean> => {
-  return new Promise((resolve) => {
-    const img = new Image()
-
-    img.onload = () => {
-      if (isUnmounted) {
-        revokeBackgroundObjectUrl(nextObjectUrl)
-        resolve(false)
-        return
-      }
-
-      releaseCurrentObjectUrl()
-      currentObjectUrl = nextObjectUrl
-      bgUrl.value = url
-      isLoaded.value = true
-      resolve(true)
-    }
-
-    img.onerror = () => {
-      revokeBackgroundObjectUrl(nextObjectUrl)
-      resolve(false)
-    }
-
-    img.src = url
-  })
-}
-
-const displayFallbackBackground = async (): Promise<void> => {
-  const displayed = await preloadBackground(fallbackBackgroundUrl)
-
-  if (!displayed && !isUnmounted) {
-    bgUrl.value = fallbackBackgroundUrl
-    isLoaded.value = true
-  }
-}
-
-const displayCachedBackground = async (record: Pick<BackgroundCacheRecord, 'blob'>): Promise<boolean> => {
-  const objectUrl = createBackgroundObjectUrl(record)
-  return preloadBackground(objectUrl, objectUrl)
-}
-
-const initializeBackground = async () => {
-  try {
-    const cached = await loadBackgroundCache()
-
-    if (cached) {
-      const displayed = await displayCachedBackground(cached)
-
-      if (!displayed) {
-        logger.warn('[AnimeBackground] cached background is invalid, clearing cache')
-        await clearBackgroundCache().catch(() => undefined)
-      } else {
-        return
-      }
-    }
-  } catch (error) {
-    logger.warn('[AnimeBackground] failed to load background cache', error)
-  }
-
-  await displayFallbackBackground()
-}
-
-onMounted(() => {
-  void initializeBackground()
-})
-
-onUnmounted(() => {
-  isUnmounted = true
-  releaseCurrentObjectUrl()
-})
-</script>
-
 <style scoped>
-.bg-cover {
-  transform: translateZ(0);
-  will-change: opacity;
+.apple-background {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: -50;
+  background: var(--color-bg-base);
+}
+
+.apple-background__base,
+.apple-background__halo,
+.apple-background__grain {
+  position: absolute;
+  inset: 0;
+}
+
+.apple-background__base {
+  background:
+    radial-gradient(circle at top left, rgb(var(--color-accent-primary-rgb) / 6%) 0%, transparent 28%),
+    radial-gradient(circle at 78% 12%, rgb(var(--color-accent-secondary-rgb) / 5%) 0%, transparent 24%),
+    linear-gradient(180deg, rgb(var(--color-bg-base-rgb) / 100%), rgb(var(--color-bg-base-rgb) / 94%));
+}
+
+.apple-background__halo {
+  filter: blur(88px);
+  opacity: 0.75;
+}
+
+.apple-background__halo--left {
+  inset: -8% auto auto -10%;
+  width: 44vw;
+  height: 44vw;
+  border-radius: 50%;
+  background: rgb(var(--color-accent-primary-rgb) / 8%);
+}
+
+.apple-background__halo--right {
+  inset: auto -10% -14% auto;
+  width: 38vw;
+  height: 38vw;
+  border-radius: 50%;
+  background: rgb(var(--color-premium-blue-rgb) / 42%);
+}
+
+.apple-background__grain {
+  opacity: 0.028;
+  background-image:
+    radial-gradient(rgb(var(--color-text-primary-rgb) / 26%) 0.7px, transparent 0.7px);
+  background-size: 18px 18px;
+  mask-image: linear-gradient(180deg, rgb(0 0 0 / 68%), transparent);
+}
+
+[data-theme='dark'] .apple-background__base {
+  background:
+    radial-gradient(circle at top left, rgb(var(--color-accent-primary-rgb) / 11%) 0%, transparent 30%),
+    radial-gradient(circle at 82% 10%, rgb(var(--color-accent-secondary-rgb) / 9%) 0%, transparent 28%),
+    linear-gradient(180deg, rgb(var(--color-bg-base-rgb) / 100%), rgb(var(--color-bg-base-rgb) / 92%));
+}
+
+[data-theme='dark'] .apple-background__halo--left {
+  background: rgb(var(--color-accent-primary-rgb) / 14%);
+}
+
+[data-theme='dark'] .apple-background__halo--right {
+  background: rgb(var(--color-premium-blue-rgb) / 66%);
+}
+
+[data-theme='dark'] .apple-background__grain {
+  opacity: 0.04;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .apple-background__halo {
+    display: none;
+  }
 }
 </style>

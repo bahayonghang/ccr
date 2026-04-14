@@ -1,97 +1,97 @@
 /* ============================================
-   CCR-UI Nekomata Kawaii Design System
+   CCR-UI Apple Reference Glass System
    Design Tokens - CSS Variables
    ============================================ */
 
 /* ========== 颜色系统 ========== */
 :root {
     /* --- 背景层级 (亮色主题 - 默认) --- */
-    --color-bg-base: #EEF4FF;
-    --color-bg-base-rgb: 238 244 255;
-    --color-bg-elevated: #F8FBFF;
-    --color-bg-elevated-rgb: 248 251 255;
-    --color-bg-surface: #E8F1FF;
-    --color-bg-surface-rgb: 232 241 255;
-    --color-bg-overlay: #D6E5FB;
-    --color-bg-overlay-rgb: 214 229 251;
+    --color-bg-base: #F5F5F7;
+    --color-bg-base-rgb: 245 245 247;
+    --color-bg-elevated: #FFF;
+    --color-bg-elevated-rgb: 255 255 255;
+    --color-bg-surface: #FBFBFD;
+    --color-bg-surface-rgb: 251 251 253;
+    --color-bg-overlay: #ECECF1;
+    --color-bg-overlay-rgb: 236 236 241;
 
     /* --- 边框与分隔 --- */
-    --color-border-subtle: rgb(170 190 220 / 28%);
-    --color-border-subtle-rgb: 170 190 220;
-    --color-border-default: rgb(132 160 205 / 42%);
-    --color-border-default-rgb: 132 160 205;
-    --color-border-strong: rgb(88 123 181 / 54%);
-    --color-border-strong-rgb: 88 123 181;
-    --color-border-accent: rgb(59 130 246 / 28%);
+    --color-border-subtle: rgb(29 29 31 / 8%);
+    --color-border-subtle-rgb: 29 29 31;
+    --color-border-default: rgb(29 29 31 / 12%);
+    --color-border-default-rgb: 29 29 31;
+    --color-border-strong: rgb(29 29 31 / 20%);
+    --color-border-strong-rgb: 29 29 31;
+    --color-border-accent: rgb(0 113 227 / 18%);
     --color-border-interactive: var(--color-accent-primary);
 
     /* --- 文字层级 --- */
-    --color-text-primary: #0E203D;
-    --color-text-primary-rgb: 14 32 61;
-    --color-text-secondary: #46607F;
-    --color-text-secondary-rgb: 70 96 127;
-    --color-text-muted: #6B83A2;
-    --color-text-muted-rgb: 107 131 162;
-    --color-text-ghost: #93A7C2;
-    --color-text-ghost-rgb: 147 167 194;
-    --color-text-disabled: #C1CDDF;
-    --color-text-disabled-rgb: 193 205 223;
+    --color-text-primary: #1D1D1F;
+    --color-text-primary-rgb: 29 29 31;
+    --color-text-secondary: #424245;
+    --color-text-secondary-rgb: 66 66 69;
+    --color-text-muted: #6E6E73;
+    --color-text-muted-rgb: 110 110 115;
+    --color-text-ghost: #86868B;
+    --color-text-ghost-rgb: 134 134 139;
+    --color-text-disabled: #ADADB3;
+    --color-text-disabled-rgb: 173 173 179;
     --color-text-inverted: #FFF;
     --color-text-inverted-rgb: 255 255 255;
 
-    /* --- 主强调色 - 现代蓝 --- */
-    --color-accent-primary: #3B82F6;
-    --color-accent-primary-hover: #60A5FA;
-    --color-accent-primary-active: #2563EB;
-    --color-accent-primary-rgb: 59 130 246;
-    --color-accent-primary-glow: rgb(59 130 246 / 16%);
+    /* --- 主强调色 - Apple Blue --- */
+    --color-accent-primary: #0071E3;
+    --color-accent-primary-hover: #0077ED;
+    --color-accent-primary-active: #0068D1;
+    --color-accent-primary-rgb: 0 113 227;
+    --color-accent-primary-glow: rgb(0 113 227 / 14%);
 
-    /* --- 辅助强调色 - 冷青蓝 --- */
-    --color-accent-secondary: #0EA5E9;
-    --color-accent-secondary-hover: #38BDF8;
-    --color-accent-secondary-active: #0284C7;
-    --color-accent-secondary-rgb: 14 165 233;
-    --color-accent-secondary-glow: rgb(14 165 233 / 14%);
+    /* --- 辅助强调色 - Bright Blue --- */
+    --color-accent-secondary: #2997FF;
+    --color-accent-secondary-hover: #53A9FF;
+    --color-accent-secondary-active: #0071E3;
+    --color-accent-secondary-rgb: 41 151 255;
+    --color-accent-secondary-glow: rgb(41 151 255 / 14%);
 
     /* --- 功能色 --- */
-    --color-success: #14B8A6;
-    --color-success-hover: #2DD4BF;
-    --color-success-rgb: 20 184 166;
-    --color-success-glow: rgb(20 184 166 / 16%);
-    --color-warning: #F59E0B;
-    --color-warning-hover: #FBBF24;
-    --color-warning-rgb: 245 158 11;
-    --color-warning-glow: rgb(245 158 11 / 16%);
-    --color-danger: #EF4444;
-    --color-danger-hover: #F87171;
-    --color-danger-rgb: 239 68 68;
-    --color-danger-glow: rgb(239 68 68 / 16%);
-    --color-info: #38BDF8;
-    --color-info-hover: #7DD3FC;
-    --color-info-rgb: 56 189 248;
-    --color-info-glow: rgb(56 189 248 / 16%);
+    --color-success: #34C759;
+    --color-success-hover: #30D158;
+    --color-success-rgb: 52 199 89;
+    --color-success-glow: rgb(52 199 89 / 14%);
+    --color-warning: #FF9F0A;
+    --color-warning-hover: #FFB340;
+    --color-warning-rgb: 255 159 10;
+    --color-warning-glow: rgb(255 159 10 / 14%);
+    --color-danger: #FF453A;
+    --color-danger-hover: #FF6961;
+    --color-danger-rgb: 255 69 58;
+    --color-danger-glow: rgb(255 69 58 / 14%);
+    --color-info: #5AC8FA;
+    --color-info-hover: #78D5FF;
+    --color-info-rgb: 90 200 250;
+    --color-info-glow: rgb(90 200 250 / 14%);
 
     /* --- 扩展功能色 --- */
-    --color-cyan: #22D3EE;
-    --color-cyan-rgb: 34 211 238;
-    --color-teal: #14B8A6;
-    --color-teal-rgb: 20 184 166;
-    --color-gray: #6B83A2;
-    --color-gray-rgb: 107 131 162;
+    --color-cyan: #5AC8FA;
+    --color-cyan-rgb: 90 200 250;
+    --color-teal: #30B0C7;
+    --color-teal-rgb: 48 176 199;
+    --color-gray: #6E6E73;
+    --color-gray-rgb: 110 110 115;
 
-    /* --- 平台专属色 --- */
+    /* --- 平台专属色（仅用于识别，不作为全局品牌轴） --- */
     --color-platform-claude: #FF6B35;
     --color-platform-claude-rgb: 255 107 53;
-    --color-platform-codex: #10B981;
-    --color-platform-codex-rgb: 16 185 129;
-    --color-platform-gemini: #4285F4;
-    --color-platform-gemini-rgb: 66 133 244;
+    --color-platform-codex: #34C759;
+    --color-platform-codex-rgb: 52 199 89;
+    --color-platform-gemini: #2997FF;
+    --color-platform-gemini-rgb: 41 151 255;
 
-    /* --- Neko Kawaii Gradient --- */
-    --color-premium-pink: #E5F0FF;
-    --color-premium-pink-rgb: 229 240 255;
-    --color-premium-blue: #DCEBFF;
-    --color-premium-blue-rgb: 220 235 255;
+    /* --- 环境色场（替代旧装饰色） --- */
+    --color-premium-pink: #F8F1EA;
+    --color-premium-pink-rgb: 248 241 234;
+    --color-premium-blue: #EEF4FB;
+    --color-premium-blue-rgb: 238 244 251;
 
     /* --- 全局状态语义 --- */
     --state-loading: var(--color-info);
@@ -100,156 +100,156 @@
 
     /* --- Stage 页面语义层（亮色优先保证可读性） --- */
     --color-stage-text-primary: rgb(var(--color-text-primary-rgb) / 96%);
-    --color-stage-text-secondary: rgb(var(--color-text-secondary-rgb) / 94%);
-    --color-stage-text-muted: rgb(var(--color-text-muted-rgb) / 88%);
-    --color-stage-text-quiet: rgb(var(--color-text-muted-rgb) / 72%);
-    --color-stage-surface-soft: rgb(var(--color-bg-surface-rgb) / 72%);
+    --color-stage-text-secondary: rgb(var(--color-text-secondary-rgb) / 84%);
+    --color-stage-text-muted: rgb(var(--color-text-muted-rgb) / 78%);
+    --color-stage-text-quiet: rgb(var(--color-text-muted-rgb) / 64%);
+    --color-stage-surface-soft: rgb(var(--color-bg-surface-rgb) / 74%);
     --color-stage-surface-medium: rgb(var(--color-bg-elevated-rgb) / 82%);
-    --color-stage-surface-strong: rgb(var(--color-bg-elevated-rgb) / 90%);
-    --color-stage-border-soft: rgb(var(--color-border-default-rgb) / 52%);
-    --color-stage-border-medium: rgb(var(--color-border-strong-rgb) / 50%);
-    --color-stage-chip-neutral-bg: rgb(var(--color-bg-surface-rgb) / 78%);
-    --color-stage-chip-neutral-border: rgb(var(--color-border-default-rgb) / 62%);
-    --color-stage-chip-neutral-text: rgb(var(--color-text-secondary-rgb) / 94%);
-    --stage-bg-grid-opacity: 3%;
-    --stage-bg-grid-opacity-dark: 5%;
-    --stage-bg-noise-opacity: 0.012;
-    --stage-bg-noise-opacity-dark: 0.028;
-    --stage-bg-mesh-primary-opacity: 11%;
-    --stage-bg-mesh-secondary-opacity: 8%;
-    --stage-bg-mesh-info-opacity: 7%;
-    --stage-bg-aurora-primary-opacity: 10%;
-    --stage-bg-aurora-secondary-opacity: 7%;
-    --stage-bg-orb-primary-opacity: 8%;
-    --stage-bg-orb-secondary-opacity: 6%;
+    --color-stage-surface-strong: rgb(var(--color-bg-elevated-rgb) / 92%);
+    --color-stage-border-soft: rgb(var(--color-border-default-rgb) / 14%);
+    --color-stage-border-medium: rgb(var(--color-border-strong-rgb) / 16%);
+    --color-stage-chip-neutral-bg: rgb(var(--color-bg-overlay-rgb) / 72%);
+    --color-stage-chip-neutral-border: rgb(var(--color-border-default-rgb) / 16%);
+    --color-stage-chip-neutral-text: rgb(var(--color-text-secondary-rgb) / 90%);
+    --stage-bg-grid-opacity: 0%;
+    --stage-bg-grid-opacity-dark: 0%;
+    --stage-bg-noise-opacity: 0.014;
+    --stage-bg-noise-opacity-dark: 0.02;
+    --stage-bg-mesh-primary-opacity: 8%;
+    --stage-bg-mesh-secondary-opacity: 5%;
+    --stage-bg-mesh-info-opacity: 4%;
+    --stage-bg-aurora-primary-opacity: 8%;
+    --stage-bg-aurora-secondary-opacity: 6%;
+    --stage-bg-orb-primary-opacity: 6%;
+    --stage-bg-orb-secondary-opacity: 4%;
 }
 
 /* ========== 暗色主题 ========== */
 [data-theme="dark"] {
     /* --- 背景层级 --- */
-    --color-bg-base: #07121F;
-    --color-bg-base-rgb: 7 18 31;
-    --color-bg-elevated: #0D1C2E;
-    --color-bg-elevated-rgb: 13 28 46;
-    --color-bg-surface: #122742;
-    --color-bg-surface-rgb: 18 39 66;
-    --color-bg-overlay: #193657;
-    --color-bg-overlay-rgb: 25 54 87;
+    --color-bg-base: #000;
+    --color-bg-base-rgb: 0 0 0;
+    --color-bg-elevated: #1C1C1E;
+    --color-bg-elevated-rgb: 28 28 30;
+    --color-bg-surface: #232326;
+    --color-bg-surface-rgb: 35 35 38;
+    --color-bg-overlay: #2C2C2E;
+    --color-bg-overlay-rgb: 44 44 46;
 
     /* --- 边框与分隔 --- */
-    --color-border-subtle: rgb(43 79 121 / 44%);
-    --color-border-subtle-rgb: 43 79 121;
-    --color-border-default: rgb(64 107 161 / 56%);
-    --color-border-default-rgb: 64 107 161;
-    --color-border-strong: rgb(99 152 223 / 60%);
-    --color-border-strong-rgb: 99 152 223;
-    --color-border-accent: rgb(96 165 250 / 28%);
+    --color-border-subtle: rgb(255 255 255 / 8%);
+    --color-border-subtle-rgb: 255 255 255;
+    --color-border-default: rgb(255 255 255 / 12%);
+    --color-border-default-rgb: 255 255 255;
+    --color-border-strong: rgb(255 255 255 / 20%);
+    --color-border-strong-rgb: 255 255 255;
+    --color-border-accent: rgb(41 151 255 / 24%);
 
     /* --- 文字层级 --- */
-    --color-text-primary: #E7F1FF;
-    --color-text-primary-rgb: 231 241 255;
-    --color-text-secondary: #B7CCE8;
-    --color-text-secondary-rgb: 183 204 232;
-    --color-text-muted: #7E9DC4;
-    --color-text-muted-rgb: 126 157 196;
-    --color-text-ghost: #547092;
-    --color-text-ghost-rgb: 84 112 146;
-    --color-text-disabled: #324A68;
-    --color-text-disabled-rgb: 50 74 104;
-    --color-text-inverted: #07121F;
-    --color-text-inverted-rgb: 7 18 31;
+    --color-text-primary: #F5F5F7;
+    --color-text-primary-rgb: 245 245 247;
+    --color-text-secondary: #D2D2D7;
+    --color-text-secondary-rgb: 210 210 215;
+    --color-text-muted: #A1A1A6;
+    --color-text-muted-rgb: 161 161 166;
+    --color-text-ghost: #86868B;
+    --color-text-ghost-rgb: 134 134 139;
+    --color-text-disabled: #6E6E73;
+    --color-text-disabled-rgb: 110 110 115;
+    --color-text-inverted: #1D1D1F;
+    --color-text-inverted-rgb: 29 29 31;
 
-    /* --- 主强调色 - 现代蓝 (暗色模式更亮) --- */
-    --color-accent-primary: #60A5FA;
-    --color-accent-primary-hover: #93C5FD;
-    --color-accent-primary-active: #3B82F6;
-    --color-accent-primary-rgb: 96 165 250;
-    --color-accent-primary-glow: rgb(96 165 250 / 20%);
+    /* --- 主强调色 - Bright Apple Blue --- */
+    --color-accent-primary: #2997FF;
+    --color-accent-primary-hover: #53A9FF;
+    --color-accent-primary-active: #0071E3;
+    --color-accent-primary-rgb: 41 151 255;
+    --color-accent-primary-glow: rgb(41 151 255 / 18%);
 
-    /* --- 辅助强调色 - 霓虹青 (暗色模式更亮) --- */
-    --color-accent-secondary: #38BDF8;
-    --color-accent-secondary-hover: #67E8F9;
-    --color-accent-secondary-active: #0EA5E9;
-    --color-accent-secondary-rgb: 56 189 248;
-    --color-accent-secondary-glow: rgb(56 189 248 / 20%);
+    /* --- 辅助强调色 - Light Interaction Blue --- */
+    --color-accent-secondary: #5AC8FA;
+    --color-accent-secondary-hover: #78D5FF;
+    --color-accent-secondary-active: #2997FF;
+    --color-accent-secondary-rgb: 90 200 250;
+    --color-accent-secondary-glow: rgb(90 200 250 / 18%);
 
-    /* --- 功能色 (暗色模式更亮) --- */
-    --color-success: #2DD4BF;
-    --color-success-hover: #5EEAD4;
-    --color-success-rgb: 45 212 191;
-    --color-success-glow: rgb(45 212 191 / 20%);
-    --color-warning: #FBBF24;
-    --color-warning-hover: #FCD34D;
-    --color-warning-rgb: 251 191 36;
-    --color-warning-glow: rgb(251 191 36 / 20%);
-    --color-danger: #F87171;
-    --color-danger-hover: #FCA5A5;
-    --color-danger-rgb: 248 113 113;
-    --color-danger-glow: rgb(248 113 113 / 20%);
-    --color-info: #7DD3FC;
-    --color-info-hover: #BAE6FD;
-    --color-info-rgb: 125 211 252;
-    --color-info-glow: rgb(125 211 252 / 20%);
+    /* --- 功能色 --- */
+    --color-success: #30D158;
+    --color-success-hover: #58E07A;
+    --color-success-rgb: 48 209 88;
+    --color-success-glow: rgb(48 209 88 / 18%);
+    --color-warning: #FFD60A;
+    --color-warning-hover: #FFE347;
+    --color-warning-rgb: 255 214 10;
+    --color-warning-glow: rgb(255 214 10 / 18%);
+    --color-danger: #FF453A;
+    --color-danger-hover: #FF6961;
+    --color-danger-rgb: 255 69 58;
+    --color-danger-glow: rgb(255 69 58 / 18%);
+    --color-info: #64D2FF;
+    --color-info-hover: #8BDCFF;
+    --color-info-rgb: 100 210 255;
+    --color-info-glow: rgb(100 210 255 / 18%);
 
-    /* --- 发光效果调整（暗色模式更强） --- */
-    --color-premium-pink: #0D2036;
-    --color-premium-pink-rgb: 13 32 54;
-    --color-premium-blue: #0A1B31;
-    --color-premium-blue-rgb: 10 27 49;
+    /* --- 环境色场（暗色氛围） --- */
+    --color-premium-pink: #121214;
+    --color-premium-pink-rgb: 18 18 20;
+    --color-premium-blue: #0B1624;
+    --color-premium-blue-rgb: 11 22 36;
 
-    /* --- Stage 页面语义层（暗色维持高氛围） --- */
+    /* --- Stage 页面语义层（暗色维持高可读） --- */
     --color-stage-text-primary: rgb(var(--color-text-primary-rgb) / 98%);
-    --color-stage-text-secondary: rgb(var(--color-text-secondary-rgb) / 92%);
-    --color-stage-text-muted: rgb(var(--color-text-secondary-rgb) / 76%);
-    --color-stage-text-quiet: rgb(var(--color-text-muted-rgb) / 60%);
-    --color-stage-surface-soft: rgb(var(--color-bg-surface-rgb) / 46%);
-    --color-stage-surface-medium: rgb(var(--color-bg-elevated-rgb) / 58%);
-    --color-stage-surface-strong: rgb(var(--color-bg-elevated-rgb) / 72%);
-    --color-stage-border-soft: rgb(var(--color-border-default-rgb) / 42%);
-    --color-stage-border-medium: rgb(var(--color-border-strong-rgb) / 36%);
+    --color-stage-text-secondary: rgb(var(--color-text-secondary-rgb) / 88%);
+    --color-stage-text-muted: rgb(var(--color-text-muted-rgb) / 74%);
+    --color-stage-text-quiet: rgb(var(--color-text-muted-rgb) / 58%);
+    --color-stage-surface-soft: rgb(var(--color-bg-surface-rgb) / 54%);
+    --color-stage-surface-medium: rgb(var(--color-bg-elevated-rgb) / 66%);
+    --color-stage-surface-strong: rgb(var(--color-bg-elevated-rgb) / 78%);
+    --color-stage-border-soft: rgb(var(--color-border-default-rgb) / 12%);
+    --color-stage-border-medium: rgb(var(--color-border-strong-rgb) / 16%);
     --color-stage-chip-neutral-bg: rgb(255 255 255 / 6%);
-    --color-stage-chip-neutral-border: rgb(255 255 255 / 12%);
+    --color-stage-chip-neutral-border: rgb(255 255 255 / 10%);
     --color-stage-chip-neutral-text: rgb(var(--color-text-secondary-rgb) / 92%);
-    --stage-bg-grid-opacity: 5%;
-    --stage-bg-grid-opacity-dark: 6%;
-    --stage-bg-noise-opacity: 0.028;
-    --stage-bg-noise-opacity-dark: 0.035;
-    --stage-bg-mesh-primary-opacity: 18%;
-    --stage-bg-mesh-secondary-opacity: 14%;
-    --stage-bg-mesh-info-opacity: 10%;
-    --stage-bg-aurora-primary-opacity: 16%;
-    --stage-bg-aurora-secondary-opacity: 12%;
-    --stage-bg-orb-primary-opacity: 16%;
-    --stage-bg-orb-secondary-opacity: 14%;
+    --stage-bg-grid-opacity: 0%;
+    --stage-bg-grid-opacity-dark: 0%;
+    --stage-bg-noise-opacity: 0.02;
+    --stage-bg-noise-opacity-dark: 0.026;
+    --stage-bg-mesh-primary-opacity: 12%;
+    --stage-bg-mesh-secondary-opacity: 8%;
+    --stage-bg-mesh-info-opacity: 6%;
+    --stage-bg-aurora-primary-opacity: 10%;
+    --stage-bg-aurora-secondary-opacity: 8%;
+    --stage-bg-orb-primary-opacity: 9%;
+    --stage-bg-orb-secondary-opacity: 7%;
 }
 
 /* ========== 亮色主题覆盖 ========== */
 [data-theme="light"] {
     /* --- 背景层级 --- */
-    --color-bg-base: #EEF4FF;
-    --color-bg-elevated: #F8FBFF;
-    --color-bg-surface: #E8F1FF;
-    --color-bg-overlay: #D6E5FB;
+    --color-bg-base: #F5F5F7;
+    --color-bg-elevated: #FFF;
+    --color-bg-surface: #FBFBFD;
+    --color-bg-overlay: #ECECF1;
 
     /* --- 边框与分隔 --- */
-    --color-border-subtle: rgb(170 190 220 / 28%);
-    --color-border-default: rgb(132 160 205 / 42%);
-    --color-border-strong: rgb(88 123 181 / 54%);
-    --color-border-accent: rgb(59 130 246 / 28%);
+    --color-border-subtle: rgb(29 29 31 / 8%);
+    --color-border-default: rgb(29 29 31 / 12%);
+    --color-border-strong: rgb(29 29 31 / 20%);
+    --color-border-accent: rgb(0 113 227 / 18%);
 
     /* --- 文字层级 --- */
-    --color-text-primary: #0E203D;
-    --color-text-secondary: #46607F;
-    --color-text-muted: #6B83A2;
-    --color-text-disabled: #C1CDDF;
+    --color-text-primary: #1D1D1F;
+    --color-text-secondary: #424245;
+    --color-text-muted: #6E6E73;
+    --color-text-disabled: #ADADB3;
 
-    /* --- 发光效果（亮色模式更微妙） --- */
-    --color-accent-primary-glow: rgb(59 130 246 / 12%);
-    --color-accent-secondary-glow: rgb(14 165 233 / 12%);
-    --color-success-glow: rgb(20 184 166 / 12%);
-    --color-warning-glow: rgb(245 158 11 / 12%);
-    --color-danger-glow: rgb(239 68 68 / 12%);
-    --color-info-glow: rgb(56 189 248 / 12%);
+    /* --- 发光效果（亮色模式保持克制） --- */
+    --color-accent-primary-glow: rgb(0 113 227 / 10%);
+    --color-accent-secondary-glow: rgb(41 151 255 / 10%);
+    --color-success-glow: rgb(52 199 89 / 10%);
+    --color-warning-glow: rgb(255 159 10 / 10%);
+    --color-danger-glow: rgb(255 69 58 / 10%);
+    --color-info-glow: rgb(90 200 250 / 10%);
 }
 
 /* ========== 间距系统 (4px 基准) ========== */
@@ -327,61 +327,61 @@
 /* ========== 字体系统 ========== */
 :root:where(:root):where(:root) {
     /* --- 字体族 --- */
-    --font-sans: 'MapleBright', 'PingFang SC', 'Microsoft YaHei', -apple-system, blinkmacsystemfont, 'Segoe UI', roboto, 'Helvetica Neue', arial, sans-serif;
-    --font-brand: 'MapleBright', 'PingFang SC', 'Microsoft YaHei', -apple-system, blinkmacsystemfont, 'Segoe UI', sans-serif;
-    --font-mono: 'MapleBright', 'JetBrains Mono', 'SF Mono', 'Fira Code', 'Cascadia Code', consolas, monospace;
+    --font-sans: -apple-system, blinkmacsystemfont, 'SF Pro Text', 'SF Pro Icons', 'Helvetica Neue', helvetica, arial, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    --font-brand: 'MapleBright', 'SF Pro Display', 'SF Pro Text', 'PingFang SC', 'Microsoft YaHei UI', 'Microsoft YaHei', sans-serif;
+    --font-mono: 'SFMono-Regular', 'SF Mono', menlo, monaco, consolas, 'Liberation Mono', monospace;
 
     /* --- 字号 --- */
     --text-xs: 0.75rem;
 
     /* 12px */
-    --text-sm: 0.875rem;
+    --text-sm: 0.8125rem;
 
     /* 14px */
     --text-base: 1rem;
 
     /* 16px */
-    --text-lg: 1.125rem;
+    --text-lg: 1.0625rem;
 
     /* 18px */
-    --text-xl: 1.25rem;
+    --text-xl: 1.3125rem;
 
     /* 20px */
-    --text-2xl: 1.5rem;
+    --text-2xl: 1.625rem;
 
     /* 24px */
-    --text-3xl: 1.875rem;
+    --text-3xl: 2rem;
 
     /* 30px */
-    --text-4xl: 2.25rem;
+    --text-4xl: 2.5rem;
 
     /* 36px */
-    --text-5xl: 3rem;
+    --text-5xl: 3.5rem;
 
     /* 48px */
-    --text-6xl: 3.75rem;
+    --text-6xl: 4.25rem;
 
     /* 60px */
 
     /* --- 字重 --- */
     --font-normal: 400;
     --font-medium: 500;
-    --font-semibold: 500;
-    --font-bold: 500;
-    --font-extrabold: 500;
+    --font-semibold: 600;
+    --font-bold: 600;
+    --font-extrabold: 700;
 
     /* --- 行高 --- */
     --leading-none: 1;
-    --leading-tight: 1.25;
-    --leading-snug: 1.375;
-    --leading-normal: 1.5;
-    --leading-relaxed: 1.625;
+    --leading-tight: 1.08;
+    --leading-snug: 1.18;
+    --leading-normal: 1.47;
+    --leading-relaxed: 1.6;
     --leading-loose: 2;
 
     /* --- 字间距 --- */
-    --tracking-tighter: -0.05em;
-    --tracking-tight: -0.025em;
-    --tracking-normal: 0;
+    --tracking-tighter: -0.06em;
+    --tracking-tight: -0.035em;
+    --tracking-normal: -0.012em;
     --tracking-wide: 0.025em;
     --tracking-wider: 0.05em;
     --tracking-widest: 0.1em;
@@ -390,38 +390,38 @@
 /* ========== 圆角系统 ========== */
 :root:where(:root):where(:root):where(:root) {
     --radius-none: 0;
-    --radius-sm: 4px;
-    --radius-md: 6px;
-    --radius-lg: 8px;
-    --radius-xl: 12px;
-    --radius-2xl: 16px;
-    --radius-3xl: 24px;
+    --radius-sm: 6px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+    --radius-xl: 16px;
+    --radius-2xl: 20px;
+    --radius-3xl: 28px;
     --radius-full: 9999px;
 }
 
 /* ========== 阴影与光效系统 ========== */
 :root:where(:root):where(:root):where(:root):where(:root) {
     /* --- 标准阴影 --- */
-    --shadow-xs: 0 1px 2px rgb(48 32 71 / 5%);
-    --shadow-sm: 0 1px 3px rgb(48 32 71 / 8%), 0 1px 2px rgb(48 32 71 / 5%);
-    --shadow-md: 0 12px 24px rgb(48 32 71 / 9%), 0 2px 6px rgb(48 32 71 / 4%);
-    --shadow-lg: 0 18px 38px rgb(48 32 71 / 12%), 0 4px 10px rgb(48 32 71 / 5%);
-    --shadow-xl: 0 24px 48px rgb(48 32 71 / 14%), 0 8px 16px rgb(48 32 71 / 7%);
-    --shadow-2xl: 0 32px 64px rgb(48 32 71 / 18%);
-    --shadow-inner: inset 0 1px 0 rgb(255 255 255 / 55%);
+    --shadow-xs: 0 1px 2px rgb(29 29 31 / 4%);
+    --shadow-sm: 0 1px 3px rgb(29 29 31 / 8%);
+    --shadow-md: 0 12px 30px rgb(29 29 31 / 9%);
+    --shadow-lg: 0 22px 48px rgb(29 29 31 / 12%);
+    --shadow-xl: 0 30px 64px rgb(29 29 31 / 16%);
+    --shadow-2xl: 0 40px 84px rgb(29 29 31 / 18%);
+    --shadow-inner: inset 0 1px 0 rgb(255 255 255 / 72%);
 
-    /* --- 猫娘粉紫发光效果 --- */
-    --glow-primary: 0 0 15px var(--color-accent-primary-glow);
-    --glow-secondary: 0 0 15px var(--color-accent-secondary-glow);
-    --glow-success: 0 0 12px var(--color-success-glow);
-    --glow-warning: 0 0 12px var(--color-warning-glow);
-    --glow-danger: 0 0 12px var(--color-danger-glow);
-    --glow-info: 0 0 12px var(--color-info-glow);
+    /* --- 柔和交互光晕 --- */
+    --glow-primary: 0 0 0 1px rgb(var(--color-accent-primary-rgb) / 12%), 0 18px 42px var(--color-accent-primary-glow);
+    --glow-secondary: 0 0 0 1px rgb(var(--color-accent-secondary-rgb) / 12%), 0 18px 42px var(--color-accent-secondary-glow);
+    --glow-success: 0 0 0 1px rgb(var(--color-success-rgb) / 12%), 0 16px 36px var(--color-success-glow);
+    --glow-warning: 0 0 0 1px rgb(var(--color-warning-rgb) / 12%), 0 16px 36px var(--color-warning-glow);
+    --glow-danger: 0 0 0 1px rgb(var(--color-danger-rgb) / 12%), 0 16px 36px var(--color-danger-glow);
+    --glow-info: 0 0 0 1px rgb(var(--color-info-rgb) / 12%), 0 16px 36px var(--color-info-glow);
 
     /* --- 内发光 --- */
-    --inner-glow: inset 0 1px 0 rgb(255 255 255 / 50%);
+    --inner-glow: inset 0 1px 0 rgb(255 255 255 / 60%);
 
-    /* --- 渐变边框 (粉→紫) --- */
+    /* --- 品牌渐变（仅用于少量强调） --- */
     --gradient-border: linear-gradient(135deg, var(--color-accent-primary) 0%, var(--color-accent-secondary) 100%);
     --gradient-brand: linear-gradient(135deg, var(--color-accent-primary) 0%, var(--color-accent-secondary) 100%);
 
@@ -435,45 +435,45 @@
 
 /* 暗色主题阴影调整 */
 [data-theme="dark"]:where([data-theme="dark"]) {
-    --shadow-xs: 0 1px 2px rgb(4 6 13 / 24%);
-    --shadow-sm: 0 1px 3px rgb(4 6 13 / 28%), 0 1px 2px rgb(4 6 13 / 22%);
-    --shadow-md: 0 14px 28px rgb(4 6 13 / 34%), 0 3px 10px rgb(4 6 13 / 20%);
-    --shadow-lg: 0 22px 44px rgb(4 6 13 / 42%), 0 8px 18px rgb(4 6 13 / 24%);
-    --shadow-xl: 0 28px 56px rgb(4 6 13 / 50%), 0 10px 22px rgb(4 6 13 / 28%);
-    --shadow-2xl: 0 34px 72px rgb(4 6 13 / 58%);
+    --shadow-xs: 0 1px 2px rgb(0 0 0 / 28%);
+    --shadow-sm: 0 1px 3px rgb(0 0 0 / 32%);
+    --shadow-md: 0 14px 32px rgb(0 0 0 / 38%);
+    --shadow-lg: 0 24px 52px rgb(0 0 0 / 46%);
+    --shadow-xl: 0 30px 68px rgb(0 0 0 / 54%);
+    --shadow-2xl: 0 40px 92px rgb(0 0 0 / 60%);
     --shadow-inner: inset 0 1px 0 rgb(255 255 255 / 8%);
     --inner-glow: inset 0 1px 0 rgb(255 255 255 / 7%);
 }
 
 /* ========== 玻璃效果系统 ========== */
 :root:where(:root):where(:root):where(:root):where(:root):where(:root) {
-    /* --- 玻璃背景 (粉色调 · 亮色模式需高不透明度以保证对比) --- */
-    --glass-bg-light: rgb(248 251 255 / 72%);
-    --glass-bg-medium: rgb(248 251 255 / 82%);
-    --glass-bg-strong: rgb(248 251 255 / 90%);
+    /* --- 玻璃背景 (Apple-style frosted surfaces) --- */
+    --glass-bg-light: rgb(255 255 255 / 58%);
+    --glass-bg-medium: rgb(255 255 255 / 72%);
+    --glass-bg-strong: rgb(255 255 255 / 84%);
 
-    /* --- 玻璃边框 (粉色调 · 亮色模式下加粗以增强辨识) --- */
-    --glass-border-light: rgb(132 160 205 / 38%);
-    --glass-border-medium: rgb(88 123 181 / 44%);
-    --glass-border-strong: rgb(59 130 246 / 28%);
+    /* --- 玻璃边框 --- */
+    --glass-border-light: rgb(29 29 31 / 8%);
+    --glass-border-medium: rgb(29 29 31 / 12%);
+    --glass-border-strong: rgb(29 29 31 / 16%);
 
     /* --- 玻璃模糊 --- */
-    --glass-blur-sm: blur(8px);
-    --glass-blur-md: blur(14px);
-    --glass-blur-lg: blur(20px);
-    --glass-blur-xl: blur(26px) saturate(165%);
+    --glass-blur-sm: blur(10px) saturate(150%);
+    --glass-blur-md: blur(18px) saturate(165%);
+    --glass-blur-lg: blur(24px) saturate(175%);
+    --glass-blur-xl: blur(30px) saturate(180%);
 
     /* --- 玻璃阴影 (亮色模式增强可见性) --- */
-    --glass-shadow: 0 18px 36px rgb(11 31 61 / 12%);
-    --glass-shadow-elevated: 0 26px 54px rgb(11 31 61 / 16%);
-    --glass-inner-glow: inset 0 1px 0 rgb(255 255 255 / 72%);
+    --glass-shadow: 0 18px 46px rgb(29 29 31 / 10%);
+    --glass-shadow-elevated: 0 28px 64px rgb(29 29 31 / 14%);
+    --glass-inner-glow: inset 0 1px 0 rgb(255 255 255 / 76%);
 
     /* --- 液态玻璃效果 --- */
-    --liquid-glass-bg: rgb(243 249 255 / 74%);
-    --liquid-glass-blur: blur(24px) saturate(160%);
-    --liquid-glass-border: rgb(88 123 181 / 26%);
-    --liquid-glass-highlight: inset 0 1px 0 rgb(255 255 255 / 84%), inset 0 0 24px rgb(191 219 254 / 18%);
-    --liquid-glass-shadow: 0 22px 48px rgb(11 31 61 / 13%), 0 6px 14px rgb(11 31 61 / 7%);
+    --liquid-glass-bg: rgb(255 255 255 / 66%);
+    --liquid-glass-blur: blur(24px) saturate(180%);
+    --liquid-glass-border: rgb(29 29 31 / 10%);
+    --liquid-glass-highlight: inset 0 1px 0 rgb(255 255 255 / 88%), inset 0 0 18px rgb(0 113 227 / 4%);
+    --liquid-glass-shadow: 0 24px 56px rgb(29 29 31 / 12%), 0 6px 16px rgb(29 29 31 / 6%);
 
     /* --- 语义化 Surface Contract --- */
     --surface-shell-bg: var(--liquid-glass-bg);
@@ -486,7 +486,7 @@
     --surface-workspace-shadow: var(--glass-shadow);
     --surface-card-bg: var(--glass-bg-strong);
     --surface-card-blur: var(--glass-blur-lg);
-    --surface-card-border: var(--glass-border-strong);
+    --surface-card-border: var(--glass-border-medium);
     --surface-card-shadow: var(--glass-shadow);
     --surface-modal-bg: var(--glass-bg-strong);
     --surface-modal-blur: var(--glass-blur-xl);
@@ -500,22 +500,22 @@
 
 /* 暗色主题玻璃效果 */
 [data-theme="dark"]:where([data-theme="dark"]):where([data-theme="dark"]) {
-    --glass-bg-light: rgb(13 28 46 / 56%);
-    --glass-bg-medium: rgb(13 28 46 / 72%);
-    --glass-bg-strong: rgb(13 28 46 / 84%);
-    --glass-border-light: rgb(64 107 161 / 36%);
-    --glass-border-medium: rgb(99 152 223 / 34%);
-    --glass-border-strong: rgb(125 211 252 / 26%);
-    --glass-shadow: 0 20px 40px rgb(3 10 19 / 44%);
-    --glass-shadow-elevated: 0 30px 60px rgb(3 10 19 / 56%);
+    --glass-bg-light: rgb(28 28 30 / 54%);
+    --glass-bg-medium: rgb(28 28 30 / 68%);
+    --glass-bg-strong: rgb(28 28 30 / 82%);
+    --glass-border-light: rgb(255 255 255 / 8%);
+    --glass-border-medium: rgb(255 255 255 / 12%);
+    --glass-border-strong: rgb(255 255 255 / 16%);
+    --glass-shadow: 0 20px 44px rgb(0 0 0 / 44%);
+    --glass-shadow-elevated: 0 32px 72px rgb(0 0 0 / 56%);
     --glass-inner-glow: inset 0 1px 0 rgb(255 255 255 / 10%);
 
     /* --- 液态玻璃效果 --- */
-    --liquid-glass-bg: rgb(7 18 31 / 72%);
-    --liquid-glass-blur: blur(28px) saturate(150%);
-    --liquid-glass-border: rgb(99 152 223 / 20%);
-    --liquid-glass-highlight: inset 0 1px 0 rgb(255 255 255 / 10%), inset 0 0 18px rgb(56 189 248 / 6%);
-    --liquid-glass-shadow: 0 24px 48px rgb(3 10 19 / 54%), 0 6px 16px rgb(3 10 19 / 26%);
+    --liquid-glass-bg: rgb(18 18 20 / 72%);
+    --liquid-glass-blur: blur(30px) saturate(175%);
+    --liquid-glass-border: rgb(255 255 255 / 10%);
+    --liquid-glass-highlight: inset 0 1px 0 rgb(255 255 255 / 8%), inset 0 0 18px rgb(41 151 255 / 6%);
+    --liquid-glass-shadow: 0 28px 60px rgb(0 0 0 / 54%), 0 6px 18px rgb(0 0 0 / 30%);
 }
 
 @media (prefers-reduced-transparency: reduce) {

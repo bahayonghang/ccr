@@ -14,7 +14,7 @@
           @click="showAboutDialog = true"
         >
           <img
-            src="/icons/icon.svg"
+            :src="appIconUrl"
             class="w-full h-full object-cover transition-transform group-hover:scale-110"
             :alt="appName"
           >
@@ -28,7 +28,7 @@
       >
         <button
           class="titlebar-menu-btn"
-          :class="{ 'bg-white/10 text-white': isMenuOpen }"
+          :class="{ 'bg-bg-overlay/70 text-text-primary': isMenuOpen }"
           @click="toggleMenu"
         >
           文件
@@ -40,14 +40,14 @@
           class="titlebar-menu absolute top-full left-0 mt-1 w-48 overflow-hidden rounded-lg py-1"
         >
           <button
-            class="w-full text-left px-3 py-1.5 text-xs text-slate-700 dark:text-white/80 hover:text-slate-900 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/10 transition-colors flex items-center"
+            class="w-full text-left px-3 py-1.5 text-xs text-text-secondary hover:text-text-primary hover:bg-bg-overlay/70 transition-colors flex items-center"
             @click="openAbout"
           >
             <i class="i-carbon-information mr-2" /> {{ t('common.about.menu', { name: appName }) }}
           </button>
-          <div class="h-px bg-black/10 dark:bg-white/10 my-1" />
+          <div class="my-1 h-px bg-border-default/40" />
           <button
-            class="w-full text-left px-3 py-1.5 text-xs text-red-500 dark:text-red-400 hover:text-red-600 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors flex items-center"
+            class="w-full text-left px-3 py-1.5 text-xs text-danger hover:text-danger hover:bg-danger/10 transition-colors flex items-center"
             @click="closeWindow"
           >
             <i class="i-carbon-close mr-2" /> 离开系统
@@ -167,20 +167,19 @@
           @click.self="showAboutDialog = false"
         >
           <div class="surface-modal relative w-full max-w-sm overflow-hidden overflow-y-auto rounded-2xl border border-border-default/70">
-            <!-- Glitch / Cyber effect top bar -->
-            <div class="h-1 w-full bg-gradient-to-r from-accent-primary via-accent-secondary to-cyan-400" />
+            <div class="h-px w-full bg-gradient-to-r from-transparent via-accent-primary/60 to-transparent" />
             
             <div class="p-6 flex flex-col items-center">
-              <div class="w-24 h-24 rounded-2xl mb-4 relative overflow-hidden shadow-lg border border-slate-100 dark:border-white/5 ring-4 ring-slate-50 dark:ring-white/5">
+              <div class="w-24 h-24 rounded-2xl mb-4 relative overflow-hidden shadow-lg border border-border-default/30 ring-4 ring-bg-elevated/70">
                 <img
-                  src="/icons/logo.svg"
+                  :src="appLogoUrl"
                   :alt="`${appName} logo`"
                   class="w-full h-full object-cover"
                 >
-                <div class="absolute inset-0 bg-gradient-to-tr from-accent-primary/20 to-transparent mix-blend-overlay" />
+                <div class="absolute inset-0 bg-gradient-to-tr from-accent-primary/12 to-transparent mix-blend-overlay" />
               </div>
               
-              <h2 class="text-2xl font-bold text-slate-800 dark:text-white tracking-tight mb-1">
+              <h2 class="text-2xl font-bold text-text-primary tracking-tight mb-1">
                 {{ appName }}
               </h2>
               <div class="flex items-center space-x-2 text-xs mb-4">
@@ -206,7 +205,7 @@
               </div>
 
               <button 
-                class="w-full py-2 bg-slate-100 hover:bg-slate-200 dark:bg-white/10 dark:hover:bg-white/20 border border-slate-200 dark:border-white/10 rounded-xl text-sm font-medium text-slate-800 dark:text-white transition-[color,background-color,transform] transform hover:scale-[1.02] active:scale-95 flex items-center justify-center focus:outline-none"
+                class="w-full py-2 border border-border-default/60 rounded-xl text-sm font-medium text-text-primary transition-[color,background-color,transform] transform hover:scale-[1.01] active:scale-95 flex items-center justify-center focus:outline-none bg-bg-surface/80 hover:bg-bg-elevated"
                 @click="showAboutDialog = false"
               >
                 {{ t('common.about.close') }}
@@ -214,7 +213,7 @@
             </div>
             
             <button
-              class="absolute top-3 right-3 rounded-full p-1.5 text-text-muted transition-colors hover:bg-slate-100 hover:text-slate-800 dark:hover:bg-white/10 dark:hover:text-white"
+              class="absolute top-3 right-3 rounded-full p-1.5 text-text-muted transition-colors hover:bg-bg-overlay/70 hover:text-text-primary"
               @click="showAboutDialog = false"
             >
               <svg
@@ -250,6 +249,8 @@ const appName = APP_NAME
 const appTagline = APP_TAGLINE
 const appOwner = APP_OWNER
 const appEngine = APP_ENGINE
+const appIconUrl = '/icons/icon.svg'
+const appLogoUrl = '/icons/logo.svg'
 const windowTitle = computed(() => appName.toUpperCase())
 const appVersionText = computed(() => `v${APP_VERSION}`)
 
@@ -368,8 +369,8 @@ onUnmounted(() => {
 
 .titlebar-dialog-backdrop {
   z-index: var(--layer-modal);
-  background: rgb(15 23 42 / 20%);
-  backdrop-filter: blur(12px);
+  background: rgb(29 29 31 / 14%);
+  backdrop-filter: blur(16px);
 }
 
 .titlebar-control-btn {
@@ -390,8 +391,8 @@ onUnmounted(() => {
 
   &:hover {
     color: rgb(var(--color-text-primary-rgb) / 98%);
-    background: rgb(var(--color-text-primary-rgb) / 8%);
-    box-shadow: inset 0 0 0 1px rgb(var(--color-text-primary-rgb) / 6%);
+    background: rgb(var(--color-text-primary-rgb) / 6%);
+    box-shadow: inset 0 0 0 1px rgb(var(--color-text-primary-rgb) / 4%);
   }
 
   &:active {
@@ -406,15 +407,14 @@ onUnmounted(() => {
 
 .titlebar-control-btn--close:hover {
   color: rgb(255 255 255 / 98%);
-  background:
-    linear-gradient(135deg, rgb(224 88 154 / 92%), rgb(244 63 94 / 92%));
+  background: rgb(var(--color-danger-rgb) / 92%);
   box-shadow:
     inset 0 0 0 1px rgb(255 255 255 / 14%),
-    0 10px 22px rgb(244 63 94 / 20%);
+    0 10px 22px rgb(var(--color-danger-rgb) / 20%);
 }
 
 .titlebar-control-btn--close:focus-visible {
-  outline-color: rgb(244 63 94 / 42%);
+  outline-color: rgb(var(--color-danger-rgb) / 42%);
 }
 
 .titlebar-control-icon {
@@ -423,7 +423,7 @@ onUnmounted(() => {
 }
 
 .titlebar-title {
-  color: rgb(var(--color-text-muted-rgb) / 92%);
+  color: rgb(var(--color-text-muted-rgb) / 90%);
 }
 
 .titlebar-menu-btn {
@@ -443,7 +443,7 @@ onUnmounted(() => {
 }
 
 .titlebar-menu-btn:hover {
-  color: white;
-  background-color: rgb(255 255 255 / 10%);
+  color: var(--color-text-primary);
+  background-color: rgb(var(--color-bg-overlay-rgb) / 72%);
 }
 </style>

@@ -18,17 +18,6 @@ import './styles/index.css'
 
 type DeferredStyleRel = 'preload' | 'stylesheet'
 
-const ensureDeferredStylesheet = (href: string, key: string) => {
-  if (typeof document === 'undefined') return
-  if (document.head.querySelector(`link[data-font="${key}"]`)) return
-
-  const link = document.createElement('link')
-  link.rel = 'stylesheet'
-  link.href = href
-  link.dataset.font = key
-  document.head.appendChild(link)
-}
-
 const ensureDeferredStyleLink = (href: string, key: string, rel: DeferredStyleRel) => {
   if (typeof document === 'undefined') return null
 
@@ -100,8 +89,6 @@ const scheduleDeferredStartupTasks = (disposeStartupErrorHandlers: () => void) =
 
     applyDeferredStyle(deferredInteractiveHref, 'deferred-interactive')
     perfMark('app:styles-deferred-interactive-applied')
-    ensureDeferredStylesheet('/fonts/maplebright/MapleBright-Regular/result.css', 'maplebright-regular-full')
-    perfMark('app:font-maplebright-link')
 
     perfMark('app:i18n-hydrate-start')
     void hydratePreferredLocale().catch((error) => {

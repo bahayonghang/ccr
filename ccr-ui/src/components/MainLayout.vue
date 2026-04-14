@@ -27,7 +27,7 @@
       :class="[
         isResizing ? 'select-none' : '',
         isMobileSidebar
-          ? 'fixed inset-y-0 left-0 layout-layer-modal w-[min(86vw,320px)] max-w-[320px] border-r border-white/10 shadow-2xl shadow-slate-950/30'
+          ? 'fixed inset-y-0 left-0 layout-layer-modal w-[min(86vw,320px)] max-w-[320px] border-r border-border-default/20 shadow-2xl shadow-black/15'
           : 'relative layout-layer-dropdown flex-shrink-0',
         isMobileSidebar && !isSidebarOpen ? '-translate-x-full pointer-events-none' : 'translate-x-0',
         isMobileSidebar && isSidebarOpen ? 'pointer-events-auto' : ''
@@ -51,16 +51,16 @@
       <!-- Logo Area -->
       <div class="flex h-[84px] items-center justify-between border-b border-border-default/45 px-4 pt-6 shrink-0">
         <div class="flex items-center gap-3">
-          <div class="relative flex h-9 w-9 items-center justify-center rounded-xl border border-accent-primary/22 bg-gradient-to-br from-accent-primary/80 via-accent-secondary/70 to-cyan-300/75 shadow-lg shadow-accent-primary/20">
-            <SIcon
-              name="Cat"
-              size="w-5 h-5"
-              class="text-white"
-            />
+          <div class="relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-[0.9rem] border border-border-default/50 bg-bg-elevated shadow-sm">
+            <img
+              :src="appIconUrl"
+              alt="CCR UI"
+              class="h-full w-full object-cover"
+            >
           </div>
           <div class="min-w-0">
-            <h1 class="truncate text-base font-semibold leading-none tracking-tight text-text-primary font-brand">
-              {{ appNamePrefix }} <span class="text-accent-primary">{{ appNameSuffix }}</span>
+            <h1 class="truncate text-[1.08rem] font-medium leading-none tracking-[-0.045em] text-text-primary font-brand">
+              {{ APP_NAME }}
             </h1>
             <p class="mt-1 text-[10px] font-semibold tracking-[0.18em] text-text-muted">
               {{ t('common.shell.tagline') }}
@@ -131,10 +131,10 @@
               <!-- Session Status -->
               <p class="flex items-center gap-2 text-[11px] font-mono tracking-wide">
                 <span class="text-text-muted">{{ t('common.shell.session') }}:</span>
-                <span class="flex items-center gap-1.5 font-semibold text-accent-success">
+                <span class="flex items-center gap-1.5 font-semibold text-success">
                   <span class="relative flex h-2 w-2">
-                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent-success opacity-65" />
-                    <span class="relative inline-flex h-2 w-2 rounded-full bg-accent-success shadow-[0_0_6px_rgba(100,192,166,0.65)]" />
+                    <span class="absolute inline-flex h-full w-full rounded-full bg-success/30" />
+                    <span class="relative inline-flex h-2 w-2 rounded-full bg-success" />
                   </span>
                   {{ t('common.shell.active') }}
                 </span>
@@ -153,7 +153,7 @@
           </div>
 
           <!-- Bottom accent line -->
-          <div class="absolute bottom-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-sky-400/70 to-transparent" />
+          <div class="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-accent-primary/60 to-transparent" />
         </div>
       </div>
     </div>
@@ -319,8 +319,8 @@ const route = useRoute()
 const router = useRouter()
 const { t } = useI18n()
 const { transitionName } = usePageTransition()
-const [appNamePrefix = APP_NAME, appNameSuffix = ''] = APP_NAME.split(' ')
 const appVersionLabel = APP_VERSION_LABEL
+const appIconUrl = '/icons/icon.svg'
 const navSections = mainLayoutNavSections
 const cachedViews = [
   'ConfigsView', 'CommandsView', 'CodexView', 'CodexAuthView', 'CodexProfilesView', 'CodexMcpView',
@@ -423,9 +423,8 @@ onBeforeUnmount(() => {
 <style scoped>
 .layout-shell--theme-stage {
   background:
-    radial-gradient(circle at top left, rgb(var(--color-accent-secondary-rgb) / 16%) 0%, transparent 24%),
-    radial-gradient(circle at bottom left, rgb(var(--color-accent-primary-rgb) / 10%) 0%, transparent 22%),
-    radial-gradient(circle at top right, rgb(var(--color-info-rgb) / 9%) 0%, transparent 26%),
+    radial-gradient(circle at top left, rgb(var(--color-accent-primary-rgb) / 8%) 0%, transparent 22%),
+    radial-gradient(circle at bottom right, rgb(var(--color-premium-blue-rgb) / 62%) 0%, transparent 28%),
     linear-gradient(180deg, rgb(var(--color-bg-base-rgb) / 100%), rgb(var(--color-bg-base-rgb) / 96%));
 }
 
@@ -446,8 +445,8 @@ onBeforeUnmount(() => {
   background: var(--surface-status-bg);
   backdrop-filter: var(--surface-status-blur);
   box-shadow:
-    inset 0 -1px 0 rgb(var(--color-border-default-rgb) / 42%),
-    inset 0 1px 0 rgb(255 255 255 / 8%),
+    inset 0 -1px 0 rgb(var(--color-border-default-rgb) / 18%),
+    inset 0 1px 0 rgb(255 255 255 / 10%),
     var(--surface-status-shadow);
 }
 
@@ -487,15 +486,14 @@ onBeforeUnmount(() => {
 
 .content-main--theme-stage {
   background:
-    radial-gradient(circle at top right, rgb(var(--color-accent-primary-rgb) / 14%) 0%, transparent 28%),
-    radial-gradient(circle at top left, rgb(var(--color-accent-secondary-rgb) / 12%) 0%, transparent 24%),
-    radial-gradient(circle at bottom right, rgb(var(--color-info-rgb) / 10%) 0%, transparent 26%),
+    radial-gradient(circle at top right, rgb(var(--color-accent-primary-rgb) / 10%) 0%, transparent 24%),
+    radial-gradient(circle at top left, rgb(var(--color-premium-blue-rgb) / 48%) 0%, transparent 22%),
     linear-gradient(180deg, rgb(var(--color-bg-base-rgb) / 98%), rgb(var(--color-bg-base-rgb) / 94%));
 }
 
 .content-scroll-area--theme-stage {
   background:
-    linear-gradient(180deg, rgb(var(--color-bg-base-rgb) / 10%), transparent 14rem);
+    linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 16%), transparent 14rem);
 }
 
 /* Nav Item Styles */
@@ -504,7 +502,7 @@ onBeforeUnmount(() => {
          transition-interactive duration-200;
 
   border: 1px solid rgb(var(--color-border-default-rgb) / 0%);
-  background: linear-gradient(135deg, rgb(var(--color-bg-elevated-rgb) / 0%), rgb(var(--color-bg-surface-rgb) / 0%));
+  background: linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 0%), rgb(var(--color-bg-surface-rgb) / 0%));
 }
 
 .nav-item:focus-visible {
@@ -515,11 +513,11 @@ onBeforeUnmount(() => {
   @apply text-text-primary;
 
   background:
-    linear-gradient(135deg, rgb(var(--color-bg-elevated-rgb) / 76%), rgb(var(--color-bg-surface-rgb) / 64%));
+    linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 88%), rgb(var(--color-bg-surface-rgb) / 76%));
   border-color: rgb(var(--color-border-default-rgb) / 64%);
   box-shadow:
-    0 12px 24px rgb(3 10 19 / 10%),
-    inset 0 1px 0 rgb(255 255 255 / 8%);
+    0 12px 28px rgb(29 29 31 / 10%),
+    inset 0 1px 0 rgb(255 255 255 / 12%);
 }
 
 .nav-item.router-link-active:not(.nav-item--root),
@@ -527,11 +525,11 @@ onBeforeUnmount(() => {
   @apply text-text-primary;
 
   box-shadow:
-    0 18px 32px rgb(var(--color-accent-primary-rgb) / 16%),
-    inset 0 1px 0 rgb(255 255 255 / 10%);
+    0 16px 32px rgb(var(--color-accent-primary-rgb) / 12%),
+    inset 0 1px 0 rgb(255 255 255 / 14%);
   background:
-    linear-gradient(135deg, rgb(var(--color-accent-primary-rgb) / 16%), rgb(var(--color-accent-secondary-rgb) / 10%));
-  border-color: rgb(var(--color-accent-primary-rgb) / 28%);
+    linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 92%), rgb(var(--color-bg-surface-rgb) / 82%));
+  border-color: rgb(var(--color-accent-primary-rgb) / 16%);
 }
 
 /* Active indicator strip */
@@ -541,44 +539,42 @@ onBeforeUnmount(() => {
 
   @apply absolute left-0 top-1/2 -translate-y-1/2 h-5 w-1 rounded-r-full;
 
-  background: linear-gradient(180deg, rgb(var(--color-accent-primary-rgb) / 95%), rgb(var(--color-accent-secondary-rgb) / 92%));
-  box-shadow: 0 0 8px rgb(var(--color-accent-primary-rgb) / 45%);
+  background: rgb(var(--color-accent-primary-rgb) / 100%);
+  box-shadow: 0 0 6px rgb(var(--color-accent-primary-rgb) / 24%);
 }
 
-/* User Card - Neko Kawaii Style */
 .user-card {
   background:
-    linear-gradient(135deg, rgb(var(--color-bg-elevated-rgb) / 80%) 0%, rgb(var(--color-bg-surface-rgb) / 70%) 100%);
-  backdrop-filter: blur(22px) saturate(165%);
-  border: 1px solid rgb(var(--color-border-default-rgb) / 58%);
+    linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 82%) 0%, rgb(var(--color-bg-surface-rgb) / 72%) 100%);
+  backdrop-filter: blur(24px) saturate(170%);
+  border: 1px solid rgb(var(--color-border-default-rgb) / 18%);
   box-shadow:
-    0 20px 36px rgb(3 10 19 / 24%),
-    inset 0 1px 0 rgb(255 255 255 / 12%);
+    0 18px 42px rgb(29 29 31 / 12%),
+    inset 0 1px 0 rgb(255 255 255 / 14%);
 }
 
 .user-card-accent-mesh {
   background:
-    radial-gradient(ellipse at top right, rgb(var(--color-accent-primary-rgb) / 18%), transparent 54%),
-    radial-gradient(ellipse at bottom left, rgb(var(--color-accent-secondary-rgb) / 14%), transparent 48%);
+    radial-gradient(ellipse at top right, rgb(var(--color-accent-primary-rgb) / 12%), transparent 54%),
+    radial-gradient(ellipse at bottom left, rgb(var(--color-premium-blue-rgb) / 72%), transparent 52%);
 }
 
 .user-card:hover {
-  border-color: rgb(var(--color-accent-primary-rgb) / 28%);
+  border-color: rgb(var(--color-accent-primary-rgb) / 18%);
   box-shadow:
-    0 24px 42px rgb(var(--color-accent-primary-rgb) / 14%),
-    0 8px 16px rgb(3 10 19 / 26%),
+    0 22px 46px rgb(var(--color-accent-primary-rgb) / 12%),
+    0 8px 18px rgb(29 29 31 / 14%),
     inset 0 1px 0 rgb(255 255 255 / 14%);
 }
 
-/* User Card - Light Mode Override */
 [data-theme="light"] .user-card {
   background:
-    linear-gradient(135deg, rgb(var(--color-bg-elevated-rgb) / 84%) 0%, rgb(var(--color-bg-surface-rgb) / 76%) 100%);
-  backdrop-filter: blur(24px) saturate(165%);
-  border: 1px solid rgb(var(--color-border-default-rgb) / 60%);
+    linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 86%) 0%, rgb(var(--color-bg-surface-rgb) / 78%) 100%);
+  backdrop-filter: blur(26px) saturate(175%);
+  border: 1px solid rgb(var(--color-border-default-rgb) / 18%);
   box-shadow:
-    0 18px 36px rgb(13 31 61 / 12%),
-    inset 0 1px 0 rgb(255 255 255 / 76%);
+    0 18px 40px rgb(29 29 31 / 10%),
+    inset 0 1px 0 rgb(255 255 255 / 78%);
 }
 
 [data-theme="light"] .user-card:hover {

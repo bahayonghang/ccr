@@ -152,15 +152,15 @@ const detectThemeMode = (): 'light' | 'dark' => {
 
 const buildChartTheme = (): ChartThemeState => ({
   mode: detectThemeMode(),
-  primary: readCssVar('--color-accent-primary', '#CA8FD1'),
-  secondary: readCssVar('--color-accent-secondary', '#7F78D8'),
-  tertiary: readCssVar('--color-info', '#69A8D8'),
-  quaternary: readCssVar('--color-warning', '#D6A143'),
-  textPrimary: readCssVar('--color-text-primary', '#1D1A27'),
-  textSecondary: readCssVar('--color-text-secondary', '#5C5470'),
-  textMuted: readCssVar('--color-text-muted', '#7F7694'),
-  grid: readCssVar('--color-border-subtle', 'rgb(210 202 218 / 28%)'),
-  border: readCssVar('--color-border-default', 'rgb(179 166 194 / 44%)'),
+  primary: readCssVar('--color-accent-primary', '#0071E3'),
+  secondary: readCssVar('--color-accent-secondary', '#2997FF'),
+  tertiary: readCssVar('--color-info', '#5AC8FA'),
+  quaternary: readCssVar('--color-warning', '#FF9F0A'),
+  textPrimary: readCssVar('--color-text-primary', '#1D1D1F'),
+  textSecondary: readCssVar('--color-text-secondary', '#424245'),
+  textMuted: readCssVar('--color-text-muted', '#6E6E73'),
+  grid: readCssVar('--color-border-subtle', 'rgb(29 29 31 / 8%)'),
+  border: readCssVar('--color-border-default', 'rgb(29 29 31 / 12%)'),
 })
 
 export const useUsageDashboardState = () => {

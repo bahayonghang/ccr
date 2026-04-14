@@ -65,17 +65,6 @@
       </div>
     </div>
 
-    <template v-if="normalizedVariant === 'neko'">
-      <div
-        class="absolute -top-3 left-5 z-10 h-6 w-6 bg-accent-primary transition-transform duration-300 hover:scale-110"
-        style="clip-path: polygon(50% 0%, 0% 100%, 100% 100%); transform: rotate(-15deg);"
-      />
-      <div
-        class="absolute -top-3 right-5 z-10 h-6 w-6 bg-accent-primary transition-transform duration-300 hover:scale-110"
-        style="clip-path: polygon(50% 0%, 0% 100%, 100% 100%); transform: rotate(15deg);"
-      />
-    </template>
-
     <div
       class="relative z-10 h-full"
       :class="[paddingClasses, props.bodyClass]"
@@ -237,12 +226,12 @@ const handleMouseLeave = (event: MouseEvent) => {
 }
 
 .ui-card--base {
-  @apply rounded-xl border border-white/10 shadow-sm;
+  @apply rounded-xl border shadow-sm;
 
   background: var(--color-bg-elevated);
   box-shadow:
     var(--ui-card-shadow, var(--shadow-sm)),
-    inset 0 1px 0 rgb(255 255 255 / 10%);
+    inset 0 1px 0 rgb(255 255 255 / 56%);
 }
 
 .ui-card--elevated {
@@ -264,7 +253,7 @@ const handleMouseLeave = (event: MouseEvent) => {
   backdrop-filter: var(--surface-workspace-blur);
   box-shadow:
     var(--ui-card-shadow, var(--surface-workspace-shadow)),
-    inset 0 1px 0 rgb(255 255 255 / 10%);
+    inset 0 1px 0 rgb(255 255 255 / 12%);
 }
 
 .ui-card--outline {
@@ -276,15 +265,15 @@ const handleMouseLeave = (event: MouseEvent) => {
 }
 
 .ui-card--neko {
-  @apply mt-4 overflow-visible rounded-2xl border border-accent-primary/20;
+  @apply rounded-2xl;
 
   background: var(--surface-card-bg);
-  border-color: rgb(var(--color-accent-primary-rgb) / 20%);
+  border: 1px solid rgb(var(--color-accent-primary-rgb) / 14%);
   backdrop-filter: var(--surface-card-blur);
   box-shadow:
     var(--ui-card-shadow, var(--surface-card-shadow)),
     var(--glass-inner-glow),
-    0 0 28px rgb(var(--color-accent-primary-rgb) / 18%);
+    0 18px 44px rgb(var(--color-accent-primary-rgb) / 12%);
 }
 
 .ui-card--surface-modal.ui-card--elevated,
@@ -302,8 +291,8 @@ const handleMouseLeave = (event: MouseEvent) => {
   transform: translateY(var(--ui-card-hover-translate, -0.18rem));
   box-shadow:
     var(--ui-card-hover-shadow, var(--ui-card-shadow, var(--surface-card-shadow))),
-    0 22px 44px rgb(var(--color-accent-primary-rgb) / 14%);
-  border-color: rgb(var(--color-accent-primary-rgb) / 28%);
+    0 18px 42px rgb(var(--color-accent-primary-rgb) / 10%);
+  border-color: rgb(var(--color-accent-primary-rgb) / 16%);
 }
 
 .ui-card--elevation-0 {

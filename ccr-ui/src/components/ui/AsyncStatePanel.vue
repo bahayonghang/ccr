@@ -102,9 +102,9 @@ const iconClass = computed(() => {
 })
 
 const iconContainerClass = computed(() => {
-  if (props.state === 'error') return 'bg-accent-danger/10 border-accent-danger/20'
-  if (props.state === 'runtime-unavailable') return 'bg-accent-secondary/10 border-accent-secondary/20'
-  return 'bg-bg-surface/80 border-border-default/60'
+  if (props.state === 'error') return 'bg-danger/10 border-danger/18'
+  if (props.state === 'runtime-unavailable') return 'bg-accent-primary/10 border-accent-primary/18'
+  return 'bg-bg-surface/90 border-border-default/55'
 })
 
 const panelClass = computed(() => (props.compact ? 'async-state-panel--compact' : ''))
@@ -114,10 +114,10 @@ const panelClass = computed(() => (props.compact ? 'async-state-panel--compact' 
 .async-state-panel {
   @apply flex flex-col items-center justify-center rounded-2xl px-6 py-16 text-center;
 
-  background: var(--surface-workspace-bg);
-  border: 1px solid var(--surface-workspace-border);
-  box-shadow: var(--surface-workspace-shadow);
-  backdrop-filter: var(--surface-workspace-blur);
+  background: var(--surface-card-bg);
+  border: 1px solid var(--surface-card-border);
+  box-shadow: var(--surface-card-shadow), var(--glass-inner-glow);
+  backdrop-filter: var(--surface-card-blur);
 }
 
 .async-state-panel--compact {

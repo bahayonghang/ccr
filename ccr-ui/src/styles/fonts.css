@@ -1,5 +1,11 @@
 /* ============================================
    本地字体声明 — MapleBright
-   子集化 woff2，按 unicode-range 按需加载
-   （已移至 index.html 通过 <link> 引入，避免 Vite 路径警告）
+   使用 public/fonts 下的子集化 woff2 资源
+   启动阶段由 index.html 先加载首批 subset，
+   完整字重与斜体在应用样式阶段继续补齐。
    ============================================ */
+
+@import '/fonts/maplebright/MapleBright-Regular/result.css';
+@import '/fonts/maplebright/MapleBright-Medium/result.css';
+@import '/fonts/maplebright/MapleBright-Italic/result.css';
+@import '/fonts/maplebright/MapleBright-MediumItalic/result.css';

@@ -360,13 +360,9 @@ const runtimeCopy = computed(() => getRuntimeUnavailableCopy('usage'))
   inset: 0;
   pointer-events: none;
   background:
-    radial-gradient(circle at 12% 0%, rgb(var(--color-accent-primary-rgb) / 10%), transparent 30%),
-    radial-gradient(
-      circle at 100% 18%,
-      rgb(var(--color-accent-secondary-rgb) / 10%),
-      transparent 26%
-    );
-  opacity: 0.9;
+    radial-gradient(circle at 12% 0%, rgb(var(--color-accent-primary-rgb) / 8%), transparent 28%),
+    radial-gradient(circle at 100% 18%, rgb(var(--color-premium-blue-rgb) / 80%), transparent 30%);
+  opacity: 1;
 }
 
 .usage-shell {
@@ -421,7 +417,7 @@ const runtimeCopy = computed(() => getRuntimeUnavailableCopy('usage'))
   min-height: 40px;
   min-width: 8.5rem;
   border-radius: 1rem;
-  border: 1px solid var(--surface-status-border);
+  border: 1px solid rgb(var(--color-border-default-rgb) / 14%);
   padding: 0.52rem 0.82rem;
   font-size: 0.88rem;
   color: var(--color-text-primary);
@@ -436,11 +432,11 @@ const runtimeCopy = computed(() => getRuntimeUnavailableCopy('usage'))
 }
 
 .toolbar-select:hover {
-  border-color: rgb(var(--color-accent-primary-rgb) / 28%);
+  border-color: rgb(var(--color-accent-primary-rgb) / 16%);
 }
 
 .toolbar-select:focus {
-  border-color: rgb(var(--color-accent-primary-rgb) / 40%);
+  border-color: rgb(var(--color-accent-primary-rgb) / 22%);
   box-shadow: var(--elevation-2);
 }
 
@@ -458,12 +454,12 @@ const runtimeCopy = computed(() => getRuntimeUnavailableCopy('usage'))
   flex-direction: column;
   gap: 0.45rem;
   border-radius: 1.35rem;
-  border: 1px solid rgb(var(--color-border-default-rgb) / 32%);
-  border-left: 3px solid rgb(var(--color-border-default-rgb) / 32%);
+  border: 1px solid rgb(var(--color-border-default-rgb) / 14%);
+  border-left: 3px solid rgb(var(--color-border-default-rgb) / 14%);
   padding: 0.82rem 0.95rem 0.88rem;
   background: var(--surface-status-bg);
   backdrop-filter: var(--surface-status-blur);
-  box-shadow: var(--elevation-1);
+  box-shadow: var(--elevation-1), inset 0 1px 0 rgb(255 255 255 / 12%);
   transition:
     border-color var(--motion-subtle-duration) var(--motion-subtle-ease),
     box-shadow var(--motion-subtle-duration) var(--motion-subtle-ease);
@@ -471,12 +467,12 @@ const runtimeCopy = computed(() => getRuntimeUnavailableCopy('usage'))
 
 /* ── Per-tone: rose (总请求数) ── */
 .usage-summary-card--rose {
-  border-left-color: rgb(var(--color-accent-primary-rgb) / 64%);
+  border-left-color: rgb(var(--color-accent-primary-rgb) / 60%);
 }
 
 .usage-summary-card--rose:hover {
-  border-color: rgb(var(--color-accent-primary-rgb) / 36%);
-  border-left-color: rgb(var(--color-accent-primary-rgb) / 80%);
+  border-color: rgb(var(--color-accent-primary-rgb) / 18%);
+  border-left-color: rgb(var(--color-accent-primary-rgb) / 70%);
   box-shadow: var(--elevation-2);
 }
 
@@ -491,12 +487,12 @@ const runtimeCopy = computed(() => getRuntimeUnavailableCopy('usage'))
 
 /* ── Per-tone: violet (总 Tokens) ── */
 .usage-summary-card--violet {
-  border-left-color: rgb(var(--color-accent-secondary-rgb) / 64%);
+  border-left-color: rgb(var(--color-accent-secondary-rgb) / 60%);
 }
 
 .usage-summary-card--violet:hover {
-  border-color: rgb(var(--color-accent-secondary-rgb) / 36%);
-  border-left-color: rgb(var(--color-accent-secondary-rgb) / 80%);
+  border-color: rgb(var(--color-accent-secondary-rgb) / 18%);
+  border-left-color: rgb(var(--color-accent-secondary-rgb) / 70%);
   box-shadow: var(--elevation-2);
 }
 
@@ -515,8 +511,8 @@ const runtimeCopy = computed(() => getRuntimeUnavailableCopy('usage'))
 }
 
 .usage-summary-card--sky:hover {
-  border-color: rgb(var(--color-info-rgb) / 36%);
-  border-left-color: rgb(var(--color-info-rgb) / 80%);
+  border-color: rgb(var(--color-info-rgb) / 18%);
+  border-left-color: rgb(var(--color-info-rgb) / 70%);
   box-shadow: var(--elevation-2);
 }
 
@@ -535,8 +531,8 @@ const runtimeCopy = computed(() => getRuntimeUnavailableCopy('usage'))
 }
 
 .usage-summary-card--amber:hover {
-  border-color: rgb(var(--color-warning-rgb) / 36%);
-  border-left-color: rgb(var(--color-warning-rgb) / 80%);
+  border-color: rgb(var(--color-warning-rgb) / 18%);
+  border-left-color: rgb(var(--color-warning-rgb) / 70%);
   box-shadow: var(--elevation-2);
 }
 
@@ -590,8 +586,8 @@ const runtimeCopy = computed(() => getRuntimeUnavailableCopy('usage'))
   align-items: center;
   justify-content: center;
   border-radius: 0.7rem;
-  border: 1px solid rgb(var(--color-border-default-rgb) / 20%);
-  background: rgb(var(--color-bg-elevated-rgb) / 82%);
+  border: 1px solid rgb(var(--color-border-default-rgb) / 10%);
+  background: rgb(var(--color-bg-elevated-rgb) / 92%);
   color: var(--color-text-primary);
 }
 
@@ -629,7 +625,7 @@ const runtimeCopy = computed(() => getRuntimeUnavailableCopy('usage'))
   justify-content: space-between;
   gap: 0.6rem;
   border-radius: 1.35rem;
-  border: 1px solid rgb(var(--color-border-default-rgb) / 32%);
+  border: 1px solid rgb(var(--color-border-default-rgb) / 14%);
   padding: 0.58rem 0.65rem;
   background: var(--surface-workspace-bg);
   backdrop-filter: var(--surface-workspace-blur);
@@ -669,13 +665,9 @@ const runtimeCopy = computed(() => getRuntimeUnavailableCopy('usage'))
 
 .usage-tab--active {
   color: var(--color-text-primary);
-  background: linear-gradient(
-    135deg,
-    rgb(var(--color-accent-primary-rgb) / 14%),
-    rgb(var(--color-accent-secondary-rgb) / 10%)
-  );
-  border-color: rgb(var(--color-accent-primary-rgb) / 20%);
-  box-shadow: 0 10px 24px rgb(var(--color-accent-primary-rgb) / 10%);
+  background: linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 96%), rgb(var(--color-bg-surface-rgb) / 88%));
+  border-color: rgb(var(--color-accent-primary-rgb) / 16%);
+  box-shadow: 0 10px 24px rgb(var(--color-accent-primary-rgb) / 8%);
 }
 
 .usage-content {
@@ -686,15 +678,11 @@ const runtimeCopy = computed(() => getRuntimeUnavailableCopy('usage'))
 
 .usage-warning {
   border-radius: 1.35rem;
-  border: 1px solid rgb(var(--color-warning-rgb) / 24%);
-  background: linear-gradient(
-    135deg,
-    rgb(var(--color-warning-rgb) / 14%),
-    rgb(var(--color-accent-primary-rgb) / 8%)
-  );
+  border: 1px solid rgb(var(--color-warning-rgb) / 18%);
+  background: linear-gradient(180deg, rgb(var(--color-warning-rgb) / 12%), rgb(var(--color-bg-elevated-rgb) / 90%));
   padding: 0.9rem 1rem;
   color: var(--color-text-primary);
-  box-shadow: var(--elevation-1);
+  box-shadow: var(--elevation-1), inset 0 1px 0 rgb(255 255 255 / 12%);
 }
 
 .usage-warning__detail {

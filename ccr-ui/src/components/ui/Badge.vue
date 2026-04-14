@@ -93,21 +93,21 @@ const props = withDefaults(defineProps<Props>(), {
 
 // Variant classes
 const variantClasses = {
-  default: 'bg-bg-tertiary text-white/80 border-border-color',
-  primary: 'bg-accent-primary/10 text-accent-primary border-accent-primary/20',
-  secondary: 'bg-accent-secondary/10 text-accent-secondary border-accent-secondary/20',
-  success: 'bg-accent-success/10 text-accent-success border-accent-success/20',
-  warning: 'bg-accent-warning/10 text-accent-warning border-accent-warning/20',
-  danger: 'bg-accent-danger/10 text-accent-danger border-accent-danger/20',
-  info: 'bg-accent-info/10 text-accent-info border-accent-info/20',
-  outline: 'bg-transparent text-white/80 border-border-color',
+  default: 'bg-bg-overlay/70 text-text-secondary border-border-default/60',
+  primary: 'bg-accent-primary/10 text-accent-primary border-accent-primary/18',
+  secondary: 'bg-accent-secondary/10 text-accent-secondary border-accent-secondary/18',
+  success: 'bg-success/10 text-success border-success/18',
+  warning: 'bg-warning/10 text-warning border-warning/18',
+  danger: 'bg-danger/10 text-danger border-danger/18',
+  info: 'bg-info/10 text-info border-info/18',
+  outline: 'bg-transparent text-text-secondary border-border-default/60',
 }
 
 // Platform-specific classes
 const platformClasses = {
-  claude: 'bg-platform-claude/10 text-platform-claude border-platform-claude/20',
-  codex: 'bg-platform-codex/10 text-platform-codex border-platform-codex/20',
-  gemini: 'bg-platform-gemini/10 text-platform-gemini border-platform-gemini/20',
+  claude: 'bg-platform-claude/10 text-platform-claude border-platform-claude/18',
+  codex: 'bg-platform-codex/10 text-platform-codex border-platform-codex/18',
+  gemini: 'bg-platform-gemini/10 text-platform-gemini border-platform-gemini/18',
 }
 
 // Size classes
@@ -121,7 +121,7 @@ const sizeClasses = {
 // Badge classes
 const badgeClasses = computed(() => [
   // Base styles
-  'inline-flex items-center font-medium border transition-colors duration-150',
+  'inline-flex items-center font-medium border transition-[color,background-color,border-color] duration-150',
 
   // Size
   sizeClasses[props.size],
@@ -185,7 +185,7 @@ const dotClasses = computed(() => {
 // Remove button classes
 const removeButtonClasses = computed(() => [
   'ml-0.5 -mr-1 p-0.5 rounded-full',
-  'hover:bg-black/10 dark:hover:bg-white/10',
+  'hover:bg-text-primary/6',
   'focus:outline-none focus:ring-2 focus:ring-current/30',
   'transition-colors duration-150',
 ])
