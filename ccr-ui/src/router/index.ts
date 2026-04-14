@@ -61,6 +61,12 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/HomeView.vue'),
         meta: { cache: true, depth: 0 },
       },
+      {
+        path: 'settings',
+        name: 'settings',
+        component: () => import('@/views/AppSettingsView.vue'),
+        meta: { depth: 1, group: 'settings' },
+      },
       // 主要模块 (depth: 1)
       {
         path: 'claude-code',

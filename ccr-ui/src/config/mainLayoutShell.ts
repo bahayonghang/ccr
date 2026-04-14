@@ -85,6 +85,7 @@ export const mainLayoutNavSections: MainLayoutNavSection[] = [
 
 export const mainLayoutRouteTitleMap: Record<string, string> = {
   home: 'nav.home',
+  settings: 'nav.settings',
   configs: 'nav.configs',
   skills: 'nav.skills',
   'skills-add': 'nav.addSkill',
@@ -146,6 +147,7 @@ export const mainLayoutRouteTitleMap: Record<string, string> = {
 }
 
 export const mainLayoutGroupTitleMap: Record<string, string> = {
+  settings: 'nav.settings',
   skills: 'nav.skillsHub',
   tools: 'nav.toolsCenter',
   config: 'nav.configCenter',

@@ -2,10 +2,10 @@ import { createI18n } from 'vue-i18n'
 import { logger } from '@/utils/logger'
 import { bootLocaleMessages } from './bootMessages'
 
-type SupportedLocale = 'zh-CN' | 'en-US'
+export type SupportedLocale = 'zh-CN' | 'en-US'
 type LocaleMessages = Record<string, unknown>
 
-const DEFAULT_LOCALE: SupportedLocale = 'zh-CN'
+export const DEFAULT_LOCALE: SupportedLocale = 'zh-CN'
 
 const localeLoaders: Record<SupportedLocale, () => Promise<{ default: LocaleMessages }>> = {
   'zh-CN': () => import('./locales/zh-CN'),
@@ -14,11 +14,11 @@ const localeLoaders: Record<SupportedLocale, () => Promise<{ default: LocaleMess
 
 const hydratedLocales = new Set<SupportedLocale>()
 
-const normalizeLocale = (locale: string): SupportedLocale => {
+export const normalizeLocale = (locale: string): SupportedLocale => {
   return locale === 'en-US' ? 'en-US' : DEFAULT_LOCALE
 }
 
-const getSavedLocale = (): SupportedLocale => {
+export const readStoredLocale = (): SupportedLocale => {
   try {
     return normalizeLocale(localStorage.getItem('ccr-ui-locale') || DEFAULT_LOCALE)
   } catch (error) {
@@ -34,7 +34,7 @@ const loadLocaleMessages = async (locale: SupportedLocale): Promise<LocaleMessag
   return module.default
 }
 
-const preferredLocale = getSavedLocale()
+const preferredLocale = readStoredLocale()
 
 const i18n = createI18n({
   legacy: false,

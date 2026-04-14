@@ -80,12 +80,10 @@
 <script setup lang="ts">
 import SIcon from '@/components/ui/SIcon.vue'
 import { ref, computed } from 'vue'
-import { useI18n } from 'vue-i18n'
-import { setLocale } from '@/i18n'
+import { useShellPreferencesStore } from '@/stores/shellPreferences'
 import { logger } from '@/utils/logger'
 
-const { locale, t: _t } = useI18n({ useScope: 'global' })
-
+const shellPreferencesStore = useShellPreferencesStore()
 const showDropdown = ref(false)
 
 interface Language {
@@ -99,7 +97,7 @@ const languages: Language[] = [
   { code: 'en-US', name: 'English', flag: 'US' },
 ]
 
-const currentLocale = computed(() => locale.value)
+const currentLocale = computed(() => shellPreferencesStore.locale)
 
 const currentLanguageName = computed(() => {
   const current = languages.find(lang => lang.code === currentLocale.value)
@@ -117,8 +115,7 @@ const toggleDropdown = () => {
 
 const switchLanguage = async (langCode: string) => {
   try {
-    await setLocale(langCode)
-    locale.value = langCode
+    await shellPreferencesStore.setLocalePreference(langCode)
   } catch (error) {
     logger.warn('[LanguageSwitcher] failed to switch locale', error)
   }

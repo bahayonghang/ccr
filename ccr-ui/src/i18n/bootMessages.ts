@@ -52,6 +52,7 @@ const zhCNBootMessages = {
   },
   nav: {
     home: '首页',
+    settings: '全局设置',
     ccrControl: 'CCR 控制台',
     configs: '配置管理',
     commands: '命令面板',
@@ -150,6 +151,23 @@ const zhCNBootMessages = {
     bootstrapImported: '自动导入 {count} 条 usage 记录',
     bootstrapIndexed: '自动索引 {count} 个 Sessions',
   },
+  theme: {
+    light: '浅色模式',
+    dark: '深色模式',
+    system: '跟随系统',
+  },
+  language: {
+    chinese: '中文',
+    english: 'English',
+  },
+  settings: {
+    dock: {
+      summary: '主题、语言与工作台偏好',
+    },
+    appearance: {
+      systemSummary: '跟随系统 · {resolved}',
+    },
+  },
 } as const
 
 const enUSBootMessages = {
@@ -206,6 +224,7 @@ const enUSBootMessages = {
   },
   nav: {
     home: 'Home',
+    settings: 'Settings',
     ccrControl: 'CCR Console',
     configs: 'Configurations',
     commands: 'Command Runner',
@@ -303,6 +322,23 @@ const enUSBootMessages = {
     trackedPlatforms: 'Tracked platforms',
     bootstrapImported: 'Auto-imported {count} usage records',
     bootstrapIndexed: 'Auto-indexed {count} sessions',
+  },
+  theme: {
+    light: 'Light mode',
+    dark: 'Dark mode',
+    system: 'Follow system',
+  },
+  language: {
+    chinese: '中文',
+    english: 'English',
+  },
+  settings: {
+    dock: {
+      summary: 'Theme, language, and workspace defaults',
+    },
+    appearance: {
+      systemSummary: 'Follow system · {resolved}',
+    },
   },
 } as const
 

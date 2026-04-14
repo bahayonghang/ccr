@@ -119,42 +119,71 @@
         </div>
       </nav>
 
-      <!-- Footer: User Profile -->
+      <!-- Footer: Settings Dock -->
       <div class="border-t border-border-default/40 p-3 pb-5">
-        <div class="user-card group relative overflow-hidden rounded-[1.6rem] transition-interactive duration-300">
-          <div class="absolute inset-0 bg-gradient-to-br from-accent-primary/12 via-accent-secondary/10 to-transparent opacity-90" />
-          <div class="absolute inset-0 user-card-accent-mesh" />
+        <RouterLink
+          v-slot="{ href, navigate }"
+          to="/settings"
+          custom
+        >
+          <a
+            :href="href"
+            class="settings-dock group relative block overflow-hidden rounded-[1.6rem] transition-interactive duration-300"
+            :class="{ 'settings-dock--active': isSettingsRoute }"
+            data-testid="settings-dock-link"
+            :aria-current="isSettingsRoute ? 'page' : undefined"
+            @click="navigate"
+          >
+            <div class="absolute inset-0 bg-gradient-to-br from-accent-primary/12 via-accent-secondary/10 to-transparent opacity-90" />
+            <div class="absolute inset-0 settings-dock-accent-mesh" />
 
-          <!-- Inner content -->
-          <div class="relative flex flex-col gap-3 p-3.5 backdrop-blur-md">
-            <div class="flex items-center justify-between">
-              <!-- Session Status -->
-              <p class="flex items-center gap-2 text-[11px] font-mono tracking-wide">
-                <span class="text-text-muted">{{ t('common.shell.session') }}:</span>
-                <span class="flex items-center gap-1.5 font-semibold text-success">
-                  <span class="relative flex h-2 w-2">
-                    <span class="absolute inline-flex h-full w-full rounded-full bg-success/30" />
-                    <span class="relative inline-flex h-2 w-2 rounded-full bg-success" />
-                  </span>
-                  {{ t('common.shell.active') }}
+            <div class="relative flex flex-col gap-3 p-3.5 backdrop-blur-md">
+              <div class="flex items-start justify-between gap-3">
+                <div class="space-y-1.5">
+                  <p class="flex items-center gap-2 text-[11px] font-mono tracking-wide">
+                    <span class="text-text-muted">{{ t('common.shell.session') }}:</span>
+                    <span class="flex items-center gap-1.5 font-semibold text-success">
+                      <span class="relative flex h-2 w-2">
+                        <span class="absolute inline-flex h-full w-full rounded-full bg-success/30" />
+                        <span class="relative inline-flex h-2 w-2 rounded-full bg-success" />
+                      </span>
+                      {{ t('common.shell.active') }}
+                    </span>
+                  </p>
+                  <div>
+                    <p class="text-sm font-semibold tracking-[-0.02em] text-text-primary">
+                      {{ t('nav.settings') }}
+                    </p>
+                    <p class="text-[11px] leading-5 text-text-secondary">
+                      {{ t('settings.dock.summary') }}
+                    </p>
+                  </div>
+                </div>
+
+                <div class="flex h-10 w-10 flex-none items-center justify-center rounded-2xl border border-border-default/60 bg-bg-elevated/82 text-text-primary shadow-sm transition-colors duration-200 group-hover:border-accent-primary/30 group-hover:bg-bg-surface/90 group-hover:text-accent-primary">
+                  <SIcon
+                    name="SlidersHorizontal"
+                    size="w-4 h-4"
+                  />
+                </div>
+              </div>
+
+              <div class="flex flex-wrap items-center gap-2">
+                <span class="settings-dock-pill">
+                  {{ currentThemeLabel }}
                 </span>
-              </p>
-              
-              <!-- Theme Toggle -->
-              <ThemeToggle class="relative" />
+                <span class="settings-dock-pill">
+                  {{ currentLocaleLabel }}
+                </span>
+                <span class="settings-dock-pill font-mono">
+                  {{ appVersionLabel }}
+                </span>
+              </div>
             </div>
 
-            <!-- Version -->
-            <div class="flex items-center justify-between">
-              <span class="rounded-md border border-border-default/60 bg-bg-elevated/80 px-2 py-0.5 text-[10px] font-mono text-text-muted">
-                {{ appVersionLabel }}
-              </span>
-            </div>
-          </div>
-
-          <!-- Bottom accent line -->
-          <div class="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-accent-primary/60 to-transparent" />
-        </div>
+            <div class="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-accent-primary/60 to-transparent" />
+          </a>
+        </RouterLink>
       </div>
     </div>
 
@@ -211,31 +240,6 @@
           <EnvironmentSwitcher
             v-if="isTauri && !isMobileSidebar"
           />
-          <LanguageSwitcher />
-          <div
-            v-if="isTauri && !isMobileSidebar"
-            class="h-4 w-px bg-border-default/80 mx-2"
-          />
-          <!-- Exit Toggle -->
-          <button
-            v-if="isTauri"
-            class="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors duration-200 border whitespace-nowrap flex-shrink-0"
-            :class="[
-              showExitConfirm 
-                ? 'bg-accent-primary/10 border-accent-primary/30 text-accent-primary' 
-                : 'border-border-default/70 bg-bg-elevated/75 text-text-secondary hover:text-text-primary hover:border-accent-primary/30 hover:bg-bg-surface/90 shadow-sm'
-            ]"
-            :title="showExitConfirm ? $t('common.yes') : $t('common.no')"
-            @click="toggleExitConfirm"
-          >
-            <div class="w-3 h-3 rounded-full border border-current flex items-center justify-center">
-              <div
-                class="w-1.5 h-1.5 rounded-full bg-current transition-transform duration-300"
-                :class="showExitConfirm ? 'scale-100' : 'scale-0'"
-              />
-            </div>
-            {{ $t('common.exitConfirm') }}
-          </button>
         </div>
       </div>
 
@@ -284,6 +288,7 @@
 import SIcon from '@/components/ui/SIcon.vue'
 import ScrollToTopButton from '@/components/common/ScrollToTopButton.vue'
 import { computed, defineAsyncComponent, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { storeToRefs } from 'pinia'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { APP_NAME, APP_VERSION_LABEL } from '@/config/appMeta'
@@ -294,19 +299,10 @@ import {
 } from '@/config/mainLayoutShell'
 import { usePageTransition } from '@/composables/usePageTransition'
 import { useMainLayoutShell } from '@/composables/useMainLayoutShell'
+import { useShellPreferencesStore } from '@/stores/shellPreferences'
 
 const BackendStatusBanner = defineAsyncComponent({
   loader: () => import('@/components/BackendStatusBanner.vue'),
-  suspensible: false,
-})
-
-const LanguageSwitcher = defineAsyncComponent({
-  loader: () => import('@/components/LanguageSwitcher.vue'),
-  suspensible: false,
-})
-
-const ThemeToggle = defineAsyncComponent({
-  loader: () => import('@/components/ThemeToggle.vue'),
   suspensible: false,
 })
 
@@ -330,6 +326,8 @@ const MAIN_SCROLL_TOP_THRESHOLD = 480
 const contentScrollAreaRef = ref<HTMLElement | null>(null)
 const showScrollToTop = ref(false)
 let scrollVisibilityFrame = 0
+const shellPreferencesStore = useShellPreferencesStore()
+const { theme, effectiveTheme, locale } = storeToRefs(shellPreferencesStore)
 
 const currentPageTitle = computed(() => {
   const name = route.name as string
@@ -345,6 +343,19 @@ const currentSectionTitle = computed(() => {
 })
 
 const shouldUseThemeStage = computed(() => Boolean(route.meta.hideGlobalBackground))
+const isSettingsRoute = computed(() => route.name === 'settings')
+const currentLocaleLabel = computed(() => (
+  locale.value === 'en-US' ? t('language.english') : t('language.chinese')
+))
+const currentThemeLabel = computed(() => {
+  if (theme.value === 'system') {
+    return t('settings.appearance.systemSummary', {
+      resolved: t(`theme.${effectiveTheme.value}`),
+    })
+  }
+
+  return t(`theme.${theme.value}`)
+})
 
 
 const hasSidebar = computed(() => !route.meta.hideSidebar)
@@ -356,12 +367,10 @@ const {
   isResizing,
   isSidebarOpen,
   isTauri,
-  showExitConfirm,
   showMobileBackdrop,
   sidebarShellStyle,
   sidebarToggleLabel,
   startResize,
-  toggleExitConfirm,
   toggleSidebar,
 } = useMainLayoutShell({
   hasSidebar,
@@ -543,7 +552,7 @@ onBeforeUnmount(() => {
   box-shadow: 0 0 4px rgb(var(--color-accent-primary-rgb) / 18%);
 }
 
-.user-card {
+.settings-dock {
   background:
     linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 88%) 0%, rgb(var(--color-bg-surface-rgb) / 80%) 100%);
   backdrop-filter: blur(14px) saturate(116%);
@@ -553,13 +562,7 @@ onBeforeUnmount(() => {
     inset 0 1px 0 rgb(255 251 245 / 14%);
 }
 
-.user-card-accent-mesh {
-  background:
-    radial-gradient(ellipse at top right, rgb(var(--color-accent-primary-rgb) / 10%), transparent 54%),
-    radial-gradient(ellipse at bottom left, rgb(var(--color-premium-blue-rgb) / 54%), transparent 52%);
-}
-
-.user-card:hover {
+.settings-dock:hover {
   border-color: rgb(var(--color-accent-primary-rgb) / 16%);
   box-shadow:
     0 20px 40px rgb(var(--color-accent-primary-rgb) / 10%),
@@ -567,7 +570,28 @@ onBeforeUnmount(() => {
     inset 0 1px 0 rgb(255 251 245 / 14%);
 }
 
-[data-theme="light"] .user-card {
+.settings-dock--active {
+  border-color: rgb(var(--color-accent-primary-rgb) / 18%);
+  box-shadow:
+    0 22px 42px rgb(var(--color-accent-primary-rgb) / 12%),
+    inset 0 1px 0 rgb(255 251 245 / 16%);
+}
+
+.settings-dock-accent-mesh {
+  background:
+    radial-gradient(ellipse at top right, rgb(var(--color-accent-primary-rgb) / 10%), transparent 54%),
+    radial-gradient(ellipse at bottom left, rgb(var(--color-premium-blue-rgb) / 54%), transparent 52%);
+}
+
+.settings-dock-pill {
+  @apply inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-semibold tracking-[0.12em] uppercase;
+
+  border-color: rgb(var(--color-border-default-rgb) / 56%);
+  background: rgb(var(--color-bg-elevated-rgb) / 84%);
+  color: var(--color-text-secondary);
+}
+
+[data-theme="light"] .settings-dock {
   background:
     linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 90%) 0%, rgb(var(--color-bg-surface-rgb) / 84%) 100%);
   backdrop-filter: blur(16px) saturate(120%);
@@ -577,7 +601,7 @@ onBeforeUnmount(() => {
     inset 0 1px 0 rgb(255 251 245 / 78%);
 }
 
-[data-theme="light"] .user-card:hover {
+[data-theme="light"] .settings-dock:hover {
   box-shadow: 0 20px 36px rgb(73 54 40 / 12%);
 }
 

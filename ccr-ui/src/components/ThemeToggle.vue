@@ -25,12 +25,13 @@
 <script setup lang="ts">
 import SIcon from '@/components/ui/SIcon.vue'
 import { computed } from 'vue'
-import { useThemeStore } from '@/stores/theme'
-const themeStore = useThemeStore()
+import { useShellPreferencesStore } from '@/stores/shellPreferences'
 
-const currentTheme = computed(() => themeStore.currentTheme)
+const shellPreferencesStore = useShellPreferencesStore()
+
+const currentTheme = computed(() => shellPreferencesStore.effectiveTheme)
 
 const toggleTheme = () => {
-  themeStore.toggleTheme()
+  shellPreferencesStore.toggleTheme()
 }
 </script>

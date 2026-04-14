@@ -82,13 +82,13 @@
 import SIcon from '@/components/ui/SIcon.vue'
 import AnimatedBackground from '@/components/common/AnimatedBackground.vue'
 import { computed } from 'vue'
-import { useThemeStore } from '@/stores/theme'
+import { useShellPreferencesStore } from '@/stores/shellPreferences'
 
-const themeStore = useThemeStore()
+const shellPreferencesStore = useShellPreferencesStore()
 
-const currentTheme = computed(() => themeStore.currentTheme)
+const currentTheme = computed(() => shellPreferencesStore.effectiveTheme)
 
 const toggleTheme = () => {
-  themeStore.toggleTheme()
+  shellPreferencesStore.toggleTheme()
 }
 </script>
