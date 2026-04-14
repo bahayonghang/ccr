@@ -1,6 +1,6 @@
 <template>
-  <div class="stage-page p-6 lg:p-10">
-    <div class="mx-auto max-w-7xl space-y-5">
+  <div class="codex-mcp-view">
+    <div class="codex-mcp-shell">
       <ModuleSubnav module="codex" />
 
       <section class="grid gap-4 xl:grid-cols-2">
@@ -1083,6 +1083,14 @@ onActivated(() => {
 </script>
 
 <style scoped>
+.codex-mcp-view {
+  @apply min-h-full p-6;
+}
+
+.codex-mcp-shell {
+  @apply mx-auto max-w-[1800px] space-y-5;
+}
+
 .eyebrow,
 .stat-label,
 .filter-label {
@@ -1315,6 +1323,12 @@ onActivated(() => {
   color: var(--stage-text-primary);
   font-size: 0.875rem;
   font-weight: 500;
+}
+
+.workspace-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
 }
 
 @media (width <= 1024px) {

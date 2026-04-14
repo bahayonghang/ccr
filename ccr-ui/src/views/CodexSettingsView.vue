@@ -1,571 +1,585 @@
 <template>
-  <div class="min-h-full p-5 transition-colors duration-300">
-    <div class="mb-6" />
-    <div class="max-w-[1200px] mx-auto">
-      <!-- Header -->
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-        <div class="flex items-center gap-4">
-          <h2 class="text-xl sm:text-2xl font-bold text-text-primary flex items-center">
-            <SIcon
-              name="Settings2"
-              size="w-6 h-6"
-              class="sm:w-7 sm:h-7 mr-2 text-emerald-500"
-            />
-            {{ $t('codex.settings.title') }}
-          </h2>
+  <div class="codex-settings-view">
+    <div class="codex-settings-shell">
+      <ModuleSubnav module="codex" />
+
+      <div class="codex-settings-stack">
+        <!-- Header -->
+        <div class="codex-settings-header">
+          <div class="codex-settings-header__intro">
+            <div class="codex-settings-header__icon">
+              <SIcon
+                name="Settings2"
+                size="w-6 h-6"
+                class="text-platform-codex"
+              />
+            </div>
+            <div>
+              <h1 class="codex-settings-title">
+                {{ $t('codex.settings.title') }}
+              </h1>
+              <p class="codex-settings-subtitle">
+                Codex 全局配置：模型、安全、工具链、界面与功能开关。
+              </p>
+            </div>
+          </div>
+
+          <div class="codex-settings-header__actions">
+            <RouterLink
+              to="/codex"
+              class="inline-flex"
+            >
+              <Button
+                variant="secondary"
+                surface="status"
+                density="compact"
+                motion="subtle"
+              >
+                <template #leading>
+                  <SIcon
+                    name="ArrowLeft"
+                    size="w-4 h-4"
+                  />
+                </template>
+                {{ $t('common.back') }}
+              </Button>
+            </RouterLink>
+            <Button
+              variant="primary"
+              surface="card"
+              density="compact"
+              motion="standard"
+              :disabled="saving"
+              @click="handleSave"
+            >
+              <template #leading>
+                <SIcon
+                  name="Save"
+                  size="w-4 h-4"
+                />
+              </template>
+              {{ saving ? $t('codex.settings.saving') : $t('common.save') }}
+            </Button>
+          </div>
         </div>
-        <div class="flex gap-3">
-          <RouterLink to="/codex">
+
+        <!-- Loading -->
+        <div
+          v-if="loading"
+          class="codex-settings-loading"
+        >
+          <div class="codex-settings-spinner" />
+          <span>{{ $t('common.loading') }}</span>
+        </div>
+
+        <template v-else>
+          <!-- Tab Navigation -->
+          <div
+            class="codex-settings-tabs"
+            role="tablist"
+          >
             <button
-              class="px-4 py-2 rounded-lg font-medium transition-colors glass-surface text-text-primary border border-border-default/25 hover:bg-bg-surface/70 min-h-[44px] flex items-center"
+              v-for="tab in tabs"
+              :key="tab.key"
+              role="tab"
+              :aria-selected="activeTab === tab.key"
+              class="codex-settings-tab"
+              :class="{ 'codex-settings-tab--active': activeTab === tab.key }"
+              @click="activeTab = tab.key"
             >
               <SIcon
-                name="ArrowLeft"
+                :name="tab.icon"
                 size="w-4 h-4"
-                class="mr-2"
               />
-              {{ $t('common.back') }}
+              {{ tab.label }}
             </button>
-          </RouterLink>
-          <button
-            class="px-4 py-2 rounded-lg font-medium transition-[box-shadow,transform] hover:scale-105 bg-emerald-500 text-white shadow-md hover:shadow-lg flex items-center min-h-[44px]"
-            :disabled="saving"
-            @click="handleSave"
+          </div>
+
+          <!-- Tab: 模型与推理 -->
+          <div
+            v-show="activeTab === 'model'"
+            class="space-y-6"
           >
-            <SIcon
-              name="Save"
-              size="w-4 h-4"
-              class="mr-2"
-            />
-            {{ saving ? $t('codex.settings.saving') : $t('common.save') }}
-          </button>
-        </div>
-      </div>
+            <Card
+              variant="glass"
+              class="p-5 space-y-5"
+            >
+              <h3 class="text-lg font-bold text-text-primary">
+                {{ $t('codex.settings.tabs.model') }}
+              </h3>
 
-      <!-- Loading -->
-      <div
-        v-if="loading"
-        class="text-center py-20 text-text-muted"
-      >
-        <div
-          class="loading-spinner mx-auto mb-4 w-8 h-8 border-emerald-500/30 border-t-emerald-500"
-        />
-        <span>{{ $t('common.loading') }}</span>
-      </div>
-
-      <template v-else>
-        <!-- Tab Navigation -->
-        <div
-          class="mb-6 flex gap-2 overflow-x-auto pb-2 scrollbar-thin md:flex-wrap md:overflow-x-visible md:pb-0"
-          role="tablist"
-        >
-          <button
-            v-for="tab in tabs"
-            :key="tab.key"
-            role="tab"
-            :aria-selected="activeTab === tab.key"
-            class="px-4 py-2 rounded-lg font-medium text-sm transition-colors min-h-[44px] whitespace-nowrap flex-shrink-0 flex items-center gap-2"
-            :class="
-              activeTab === tab.key
-                ? 'bg-emerald-500 text-white shadow-md'
-                : 'glass-surface text-text-primary border border-border-default/25 hover:bg-bg-surface/70'
-            "
-            @click="activeTab = tab.key"
-          >
-            <SIcon
-              :name="tab.icon"
-              size="w-4 h-4"
-            />
-            {{ tab.label }}
-          </button>
-        </div>
-
-        <!-- Tab: 模型与推理 -->
-        <div
-          v-show="activeTab === 'model'"
-          class="space-y-6"
-        >
-          <Card
-            variant="glass"
-            class="p-5 space-y-5"
-          >
-            <h3 class="text-lg font-bold text-text-primary">
-              {{ $t('codex.settings.tabs.model') }}
-            </h3>
-
-            <div>
-              <label class="block mb-1.5 text-sm font-semibold text-text-primary">{{
-                $t('codex.settings.model.model')
-              }}</label>
-              <input
-                v-model="form.model"
-                type="text"
-                :placeholder="$t('codex.settings.model.modelPlaceholder')"
-                class="settings-input"
-              >
-            </div>
-
-            <div>
-              <label class="block mb-1.5 text-sm font-semibold text-text-primary">{{
-                $t('codex.settings.model.modelProvider')
-              }}</label>
-              <input
-                v-model="form.model_provider"
-                type="text"
-                :placeholder="$t('codex.settings.model.modelProviderPlaceholder')"
-                class="settings-input"
-              >
-            </div>
-
-            <div>
-              <label class="block mb-1.5 text-sm font-semibold text-text-primary">{{
-                $t('codex.settings.model.reasoningEffort')
-              }}</label>
-              <select
-                v-model="form.model_reasoning_effort"
-                class="settings-input"
-              >
-                <option value="">
-                  --
-                </option>
-                <option
-                  v-for="o in ['low', 'medium', 'high']"
-                  :key="o"
-                  :value="o"
-                >
-                  {{ o }}
-                </option>
-              </select>
-            </div>
-
-            <div>
-              <label class="block mb-1.5 text-sm font-semibold text-text-primary">{{
-                $t('codex.settings.model.reasoningSummary')
-              }}</label>
-              <select
-                v-model="form.model_reasoning_summary"
-                class="settings-input"
-              >
-                <option value="">
-                  --
-                </option>
-                <option
-                  v-for="o in ['auto', 'concise', 'detailed', 'none']"
-                  :key="o"
-                  :value="o"
-                >
-                  {{ o }}
-                </option>
-              </select>
-            </div>
-
-            <div>
-              <label class="block mb-1.5 text-sm font-semibold text-text-primary">{{
-                $t('codex.settings.model.verbosity')
-              }}</label>
-              <select
-                v-model="form.model_verbosity"
-                class="settings-input"
-              >
-                <option value="">
-                  --
-                </option>
-                <option
-                  v-for="o in ['low', 'medium', 'high']"
-                  :key="o"
-                  :value="o"
-                >
-                  {{ o }}
-                </option>
-              </select>
-            </div>
-
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label class="block mb-1.5 text-sm font-semibold text-text-primary">{{
-                  $t('codex.settings.model.contextWindow')
+                  $t('codex.settings.model.model')
                 }}</label>
                 <input
-                  v-model.number="form.model_context_window"
-                  type="number"
-                  placeholder="128000"
+                  v-model="form.model"
+                  type="text"
+                  :placeholder="$t('codex.settings.model.modelPlaceholder')"
                   class="settings-input"
                 >
               </div>
+
               <div>
                 <label class="block mb-1.5 text-sm font-semibold text-text-primary">{{
-                  $t('codex.settings.model.autoCompactLimit')
+                  $t('codex.settings.model.modelProvider')
                 }}</label>
                 <input
-                  v-model.number="form.model_auto_compact_token_limit"
-                  type="number"
-                  placeholder="80000"
+                  v-model="form.model_provider"
+                  type="text"
+                  :placeholder="$t('codex.settings.model.modelProviderPlaceholder')"
                   class="settings-input"
                 >
               </div>
-            </div>
 
-            <div>
-              <label class="block mb-1.5 text-sm font-semibold text-text-primary">{{
-                $t('codex.settings.model.personality')
-              }}</label>
-              <select
-                v-model="form.personality"
-                class="settings-input"
-              >
-                <option value="">
-                  --
-                </option>
-                <option
-                  v-for="o in ['none', 'friendly', 'pragmatic']"
-                  :key="o"
-                  :value="o"
+              <div>
+                <label class="block mb-1.5 text-sm font-semibold text-text-primary">{{
+                  $t('codex.settings.model.reasoningEffort')
+                }}</label>
+                <select
+                  v-model="form.model_reasoning_effort"
+                  class="settings-input"
                 >
-                  {{ o }}
-                </option>
-              </select>
-            </div>
-          </Card>
-        </div>
+                  <option value="">
+                    --
+                  </option>
+                  <option
+                    v-for="o in ['low', 'medium', 'high']"
+                    :key="o"
+                    :value="o"
+                  >
+                    {{ o }}
+                  </option>
+                </select>
+              </div>
 
-        <!-- Tab: 安全与权限 -->
-        <div
-          v-show="activeTab === 'security'"
-          class="space-y-6"
-        >
-          <Card
-            variant="glass"
-            class="p-5 space-y-5"
+              <div>
+                <label class="block mb-1.5 text-sm font-semibold text-text-primary">{{
+                  $t('codex.settings.model.reasoningSummary')
+                }}</label>
+                <select
+                  v-model="form.model_reasoning_summary"
+                  class="settings-input"
+                >
+                  <option value="">
+                    --
+                  </option>
+                  <option
+                    v-for="o in ['auto', 'concise', 'detailed', 'none']"
+                    :key="o"
+                    :value="o"
+                  >
+                    {{ o }}
+                  </option>
+                </select>
+              </div>
+
+              <div>
+                <label class="block mb-1.5 text-sm font-semibold text-text-primary">{{
+                  $t('codex.settings.model.verbosity')
+                }}</label>
+                <select
+                  v-model="form.model_verbosity"
+                  class="settings-input"
+                >
+                  <option value="">
+                    --
+                  </option>
+                  <option
+                    v-for="o in ['low', 'medium', 'high']"
+                    :key="o"
+                    :value="o"
+                  >
+                    {{ o }}
+                  </option>
+                </select>
+              </div>
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label class="block mb-1.5 text-sm font-semibold text-text-primary">{{
+                    $t('codex.settings.model.contextWindow')
+                  }}</label>
+                  <input
+                    v-model.number="form.model_context_window"
+                    type="number"
+                    placeholder="128000"
+                    class="settings-input"
+                  >
+                </div>
+                <div>
+                  <label class="block mb-1.5 text-sm font-semibold text-text-primary">{{
+                    $t('codex.settings.model.autoCompactLimit')
+                  }}</label>
+                  <input
+                    v-model.number="form.model_auto_compact_token_limit"
+                    type="number"
+                    placeholder="80000"
+                    class="settings-input"
+                  >
+                </div>
+              </div>
+
+              <div>
+                <label class="block mb-1.5 text-sm font-semibold text-text-primary">{{
+                  $t('codex.settings.model.personality')
+                }}</label>
+                <select
+                  v-model="form.personality"
+                  class="settings-input"
+                >
+                  <option value="">
+                    --
+                  </option>
+                  <option
+                    v-for="o in ['none', 'friendly', 'pragmatic']"
+                    :key="o"
+                    :value="o"
+                  >
+                    {{ o }}
+                  </option>
+                </select>
+              </div>
+            </Card>
+          </div>
+
+          <!-- Tab: 安全与权限 -->
+          <div
+            v-show="activeTab === 'security'"
+            class="space-y-6"
           >
-            <h3 class="text-lg font-bold text-text-primary">
-              {{ $t('codex.settings.tabs.security') }}
-            </h3>
+            <Card
+              variant="glass"
+              class="p-5 space-y-5"
+            >
+              <h3 class="text-lg font-bold text-text-primary">
+                {{ $t('codex.settings.tabs.security') }}
+              </h3>
 
-            <div>
-              <label class="block mb-1.5 text-sm font-semibold text-text-primary">{{
-                $t('codex.settings.security.approvalPolicy')
-              }}</label>
-              <select
-                v-model="form.approval_policy"
-                class="settings-input"
-              >
-                <option value="">
-                  --
-                </option>
-                <option
-                  v-for="o in ['auto', 'on-request', 'read-only', 'full-access']"
-                  :key="o"
-                  :value="o"
+              <div>
+                <label class="block mb-1.5 text-sm font-semibold text-text-primary">{{
+                  $t('codex.settings.security.approvalPolicy')
+                }}</label>
+                <select
+                  v-model="form.approval_policy"
+                  class="settings-input"
                 >
-                  {{ o }}
-                </option>
-              </select>
-            </div>
+                  <option value="">
+                    --
+                  </option>
+                  <option
+                    v-for="o in ['auto', 'on-request', 'read-only', 'full-access']"
+                    :key="o"
+                    :value="o"
+                  >
+                    {{ o }}
+                  </option>
+                </select>
+              </div>
 
-            <div>
-              <label class="block mb-1.5 text-sm font-semibold text-text-primary">{{
-                $t('codex.settings.security.sandboxMode')
-              }}</label>
-              <input
-                v-model="form.sandbox_mode"
-                type="text"
-                placeholder="workspace-write"
-                class="settings-input"
-              >
-            </div>
-
-            <ToggleField
-              v-model="form.disable_response_storage"
-              :label="$t('codex.settings.security.disableResponseStorage')"
-            />
-
-            <div>
-              <label class="block mb-1.5 text-sm font-semibold text-text-primary">{{
-                $t('codex.settings.security.writableRoots')
-              }}</label>
-              <input
-                v-model="writableRootsStr"
-                type="text"
-                :placeholder="$t('codex.settings.security.writableRootsPlaceholder')"
-                class="settings-input"
-              >
-              <p class="text-xs text-text-muted mt-1">
-                {{ $t('codex.settings.security.writableRootsHint') }}
-              </p>
-            </div>
-
-            <ToggleField
-              v-model="sandboxNetworkAccess"
-              :label="$t('codex.settings.security.networkAccess')"
-            />
-
-            <div>
-              <label class="block mb-1.5 text-sm font-semibold text-text-primary">{{
-                $t('codex.settings.security.shellIncludeOnly')
-              }}</label>
-              <input
-                v-model="shellIncludeOnlyStr"
-                type="text"
-                :placeholder="$t('codex.settings.security.shellIncludeOnlyPlaceholder')"
-                class="settings-input"
-              >
-              <p class="text-xs text-text-muted mt-1">
-                {{ $t('codex.settings.security.shellIncludeOnlyHint') }}
-              </p>
-            </div>
-          </Card>
-        </div>
-
-        <!-- Tab: 工具与搜索 -->
-        <div
-          v-show="activeTab === 'tools'"
-          class="space-y-6"
-        >
-          <Card
-            variant="glass"
-            class="p-5 space-y-5"
-          >
-            <h3 class="text-lg font-bold text-text-primary">
-              {{ $t('codex.settings.tabs.tools') }}
-            </h3>
-
-            <div>
-              <label class="block mb-1.5 text-sm font-semibold text-text-primary">{{
-                $t('codex.settings.tools.webSearch')
-              }}</label>
-              <select
-                v-model="form.web_search"
-                class="settings-input"
-              >
-                <option value="">
-                  --
-                </option>
-                <option
-                  v-for="o in ['disabled', 'cached', 'live']"
-                  :key="o"
-                  :value="o"
+              <div>
+                <label class="block mb-1.5 text-sm font-semibold text-text-primary">{{
+                  $t('codex.settings.security.sandboxMode')
+                }}</label>
+                <input
+                  v-model="form.sandbox_mode"
+                  type="text"
+                  placeholder="workspace-write"
+                  class="settings-input"
                 >
-                  {{ o }}
-                </option>
-              </select>
-            </div>
+              </div>
 
-            <div>
-              <label class="block mb-1.5 text-sm font-semibold text-text-primary">{{
-                $t('codex.settings.tools.fileOpener')
-              }}</label>
-              <select
-                v-model="form.file_opener"
-                class="settings-input"
-              >
-                <option value="">
-                  --
-                </option>
-                <option
-                  v-for="o in ['vscode', 'cursor', 'windsurf', 'none']"
-                  :key="o"
-                  :value="o"
-                >
-                  {{ o }}
-                </option>
-              </select>
-            </div>
-
-            <ToggleField
-              v-model="toolsViewImage"
-              :label="$t('codex.settings.tools.viewImage')"
-            />
-            <ToggleField
-              v-model="toolsWebSearch"
-              :label="$t('codex.settings.tools.toolWebSearch')"
-            />
-
-            <div>
-              <label class="block mb-1.5 text-sm font-semibold text-text-primary">{{
-                $t('codex.settings.tools.developerInstructions')
-              }}</label>
-              <textarea
-                v-model="form.developer_instructions"
-                rows="3"
-                class="settings-input"
-                :placeholder="$t('codex.settings.tools.developerInstructionsPlaceholder')"
+              <ToggleField
+                v-model="form.disable_response_storage"
+                :label="$t('codex.settings.security.disableResponseStorage')"
               />
-            </div>
 
-            <div>
-              <label class="block mb-1.5 text-sm font-semibold text-text-primary">{{
-                $t('codex.settings.tools.instructions')
-              }}</label>
-              <textarea
-                v-model="form.instructions"
-                rows="3"
-                class="settings-input"
-                :placeholder="$t('codex.settings.tools.instructionsPlaceholder')"
+              <div>
+                <label class="block mb-1.5 text-sm font-semibold text-text-primary">{{
+                  $t('codex.settings.security.writableRoots')
+                }}</label>
+                <input
+                  v-model="writableRootsStr"
+                  type="text"
+                  :placeholder="$t('codex.settings.security.writableRootsPlaceholder')"
+                  class="settings-input"
+                >
+                <p class="text-xs text-text-muted mt-1">
+                  {{ $t('codex.settings.security.writableRootsHint') }}
+                </p>
+              </div>
+
+              <ToggleField
+                v-model="sandboxNetworkAccess"
+                :label="$t('codex.settings.security.networkAccess')"
               />
-            </div>
-          </Card>
-        </div>
 
-        <!-- Tab: 界面设置 -->
-        <div
-          v-show="activeTab === 'ui'"
-          class="space-y-6"
-        >
-          <Card
-            variant="glass"
-            class="p-5 space-y-5"
-          >
-            <h3 class="text-lg font-bold text-text-primary">
-              {{ $t('codex.settings.tabs.ui') }}
-            </h3>
-
-            <div>
-              <label class="block mb-1.5 text-sm font-semibold text-text-primary">{{
-                $t('codex.settings.ui.alternateScreen')
-              }}</label>
-              <select
-                v-model="tuiAlternateScreen"
-                class="settings-input"
-              >
-                <option value="">
-                  --
-                </option>
-                <option
-                  v-for="o in ['auto', 'always', 'never']"
-                  :key="o"
-                  :value="o"
+              <div>
+                <label class="block mb-1.5 text-sm font-semibold text-text-primary">{{
+                  $t('codex.settings.security.shellIncludeOnly')
+                }}</label>
+                <input
+                  v-model="shellIncludeOnlyStr"
+                  type="text"
+                  :placeholder="$t('codex.settings.security.shellIncludeOnlyPlaceholder')"
+                  class="settings-input"
                 >
-                  {{ o }}
-                </option>
-              </select>
-            </div>
+                <p class="text-xs text-text-muted mt-1">
+                  {{ $t('codex.settings.security.shellIncludeOnlyHint') }}
+                </p>
+              </div>
+            </Card>
+          </div>
 
-            <ToggleField
-              v-model="tuiAnimations"
-              :label="$t('codex.settings.ui.animations')"
-            />
-            <ToggleField
-              v-model="tuiNotifications"
-              :label="$t('codex.settings.ui.notifications')"
-            />
-            <ToggleField
-              v-model="tuiShowTooltips"
-              :label="$t('codex.settings.ui.showTooltips')"
-            />
-            <ToggleField
-              v-model="form.hide_agent_reasoning"
-              :label="$t('codex.settings.ui.hideAgentReasoning')"
-            />
-            <ToggleField
-              v-model="form.show_raw_agent_reasoning"
-              :label="$t('codex.settings.ui.showRawAgentReasoning')"
-            />
-            <ToggleField
-              v-model="form.check_for_update_on_startup"
-              :label="$t('codex.settings.ui.checkForUpdate')"
-            />
-            <ToggleField
-              v-model="form.suppress_unstable_features_warning"
-              :label="$t('codex.settings.ui.suppressUnstableWarning')"
-            />
-          </Card>
-        </div>
-
-        <!-- Tab: 功能开关 -->
-        <div
-          v-show="activeTab === 'features'"
-          class="space-y-6"
-        >
-          <Card
-            variant="glass"
-            class="p-5 space-y-5"
+          <!-- Tab: 工具与搜索 -->
+          <div
+            v-show="activeTab === 'tools'"
+            class="space-y-6"
           >
-            <h3 class="text-lg font-bold text-text-primary">
-              {{ $t('codex.settings.tabs.features') }}
-            </h3>
+            <Card
+              variant="glass"
+              class="p-5 space-y-5"
+            >
+              <h3 class="text-lg font-bold text-text-primary">
+                {{ $t('codex.settings.tabs.tools') }}
+              </h3>
 
-            <ToggleField
-              v-model="form.experimental_use_rmcp_client"
-              :label="$t('codex.settings.features.experimentalRmcp')"
-            />
-
-            <div>
-              <label class="block mb-1.5 text-sm font-semibold text-text-primary">{{
-                $t('codex.settings.features.historyPersistence')
-              }}</label>
-              <select
-                v-model="historyPersistence"
-                class="settings-input"
-              >
-                <option value="">
-                  --
-                </option>
-                <option
-                  v-for="o in ['save-all', 'none']"
-                  :key="o"
-                  :value="o"
+              <div>
+                <label class="block mb-1.5 text-sm font-semibold text-text-primary">{{
+                  $t('codex.settings.tools.webSearch')
+                }}</label>
+                <select
+                  v-model="form.web_search"
+                  class="settings-input"
                 >
-                  {{ o }}
-                </option>
-              </select>
-            </div>
+                  <option value="">
+                    --
+                  </option>
+                  <option
+                    v-for="o in ['disabled', 'cached', 'live']"
+                    :key="o"
+                    :value="o"
+                  >
+                    {{ o }}
+                  </option>
+                </select>
+              </div>
 
-            <div>
-              <label class="block mb-1.5 text-sm font-semibold text-text-primary">{{
-                $t('codex.settings.features.historyMaxBytes')
-              }}</label>
-              <input
-                v-model.number="historyMaxBytes"
-                type="number"
-                placeholder="10485760"
-                class="settings-input"
-              >
-            </div>
+              <div>
+                <label class="block mb-1.5 text-sm font-semibold text-text-primary">{{
+                  $t('codex.settings.tools.fileOpener')
+                }}</label>
+                <select
+                  v-model="form.file_opener"
+                  class="settings-input"
+                >
+                  <option value="">
+                    --
+                  </option>
+                  <option
+                    v-for="o in ['vscode', 'cursor', 'windsurf', 'none']"
+                    :key="o"
+                    :value="o"
+                  >
+                    {{ o }}
+                  </option>
+                </select>
+              </div>
 
-            <ToggleField
-              v-model="analyticsEnabled"
-              :label="$t('codex.settings.features.analytics')"
-            />
-            <ToggleField
-              v-model="feedbackEnabled"
-              :label="$t('codex.settings.features.feedback')"
-            />
+              <ToggleField
+                v-model="toolsViewImage"
+                :label="$t('codex.settings.tools.viewImage')"
+              />
+              <ToggleField
+                v-model="toolsWebSearch"
+                :label="$t('codex.settings.tools.toolWebSearch')"
+              />
 
-            <!-- Dynamic features map -->
-            <div v-if="form.features && Object.keys(form.features).length > 0">
-              <label class="block mb-2 text-sm font-semibold text-text-primary">{{
-                $t('codex.settings.features.featureFlags')
-              }}</label>
-              <div class="space-y-2">
-                <ToggleField
-                  v-for="(val, key) in form.features"
-                  :key="key"
-                  :model-value="val"
-                  :label="String(key)"
-                  @update:model-value="
-                    (v: boolean) => {
-                      if (form.features) form.features[key as string] = v
-                    }
-                  "
+              <div>
+                <label class="block mb-1.5 text-sm font-semibold text-text-primary">{{
+                  $t('codex.settings.tools.developerInstructions')
+                }}</label>
+                <textarea
+                  v-model="form.developer_instructions"
+                  rows="3"
+                  class="settings-input"
+                  :placeholder="$t('codex.settings.tools.developerInstructionsPlaceholder')"
                 />
               </div>
-            </div>
-          </Card>
-        </div>
 
-        <!-- Toast -->
-        <Transition name="fade">
-          <div
-            v-if="toast"
-            class="fixed bottom-6 right-6 z-50 px-5 py-3 rounded-xl shadow-lg text-sm font-medium"
-            :class="
-              toast.type === 'success' ? 'bg-emerald-500 text-white' : 'bg-red-500 text-white'
-            "
-          >
-            {{ toast.message }}
+              <div>
+                <label class="block mb-1.5 text-sm font-semibold text-text-primary">{{
+                  $t('codex.settings.tools.instructions')
+                }}</label>
+                <textarea
+                  v-model="form.instructions"
+                  rows="3"
+                  class="settings-input"
+                  :placeholder="$t('codex.settings.tools.instructionsPlaceholder')"
+                />
+              </div>
+            </Card>
           </div>
-        </Transition>
-      </template>
+
+          <!-- Tab: 界面设置 -->
+          <div
+            v-show="activeTab === 'ui'"
+            class="space-y-6"
+          >
+            <Card
+              variant="glass"
+              class="p-5 space-y-5"
+            >
+              <h3 class="text-lg font-bold text-text-primary">
+                {{ $t('codex.settings.tabs.ui') }}
+              </h3>
+
+              <div>
+                <label class="block mb-1.5 text-sm font-semibold text-text-primary">{{
+                  $t('codex.settings.ui.alternateScreen')
+                }}</label>
+                <select
+                  v-model="tuiAlternateScreen"
+                  class="settings-input"
+                >
+                  <option value="">
+                    --
+                  </option>
+                  <option
+                    v-for="o in ['auto', 'always', 'never']"
+                    :key="o"
+                    :value="o"
+                  >
+                    {{ o }}
+                  </option>
+                </select>
+              </div>
+
+              <ToggleField
+                v-model="tuiAnimations"
+                :label="$t('codex.settings.ui.animations')"
+              />
+              <ToggleField
+                v-model="tuiNotifications"
+                :label="$t('codex.settings.ui.notifications')"
+              />
+              <ToggleField
+                v-model="tuiShowTooltips"
+                :label="$t('codex.settings.ui.showTooltips')"
+              />
+              <ToggleField
+                v-model="form.hide_agent_reasoning"
+                :label="$t('codex.settings.ui.hideAgentReasoning')"
+              />
+              <ToggleField
+                v-model="form.show_raw_agent_reasoning"
+                :label="$t('codex.settings.ui.showRawAgentReasoning')"
+              />
+              <ToggleField
+                v-model="form.check_for_update_on_startup"
+                :label="$t('codex.settings.ui.checkForUpdate')"
+              />
+              <ToggleField
+                v-model="form.suppress_unstable_features_warning"
+                :label="$t('codex.settings.ui.suppressUnstableWarning')"
+              />
+            </Card>
+          </div>
+
+          <!-- Tab: 功能开关 -->
+          <div
+            v-show="activeTab === 'features'"
+            class="space-y-6"
+          >
+            <Card
+              variant="glass"
+              class="p-5 space-y-5"
+            >
+              <h3 class="text-lg font-bold text-text-primary">
+                {{ $t('codex.settings.tabs.features') }}
+              </h3>
+
+              <ToggleField
+                v-model="form.experimental_use_rmcp_client"
+                :label="$t('codex.settings.features.experimentalRmcp')"
+              />
+
+              <div>
+                <label class="block mb-1.5 text-sm font-semibold text-text-primary">{{
+                  $t('codex.settings.features.historyPersistence')
+                }}</label>
+                <select
+                  v-model="historyPersistence"
+                  class="settings-input"
+                >
+                  <option value="">
+                    --
+                  </option>
+                  <option
+                    v-for="o in ['save-all', 'none']"
+                    :key="o"
+                    :value="o"
+                  >
+                    {{ o }}
+                  </option>
+                </select>
+              </div>
+
+              <div>
+                <label class="block mb-1.5 text-sm font-semibold text-text-primary">{{
+                  $t('codex.settings.features.historyMaxBytes')
+                }}</label>
+                <input
+                  v-model.number="historyMaxBytes"
+                  type="number"
+                  placeholder="10485760"
+                  class="settings-input"
+                >
+              </div>
+
+              <ToggleField
+                v-model="analyticsEnabled"
+                :label="$t('codex.settings.features.analytics')"
+              />
+              <ToggleField
+                v-model="feedbackEnabled"
+                :label="$t('codex.settings.features.feedback')"
+              />
+
+              <!-- Dynamic features map -->
+              <div v-if="form.features && Object.keys(form.features).length > 0">
+                <label class="block mb-2 text-sm font-semibold text-text-primary">{{
+                  $t('codex.settings.features.featureFlags')
+                }}</label>
+                <div class="space-y-2">
+                  <ToggleField
+                    v-for="(val, key) in form.features"
+                    :key="key"
+                    :model-value="val"
+                    :label="String(key)"
+                    @update:model-value="
+                      (v: boolean) => {
+                        if (form.features) form.features[key as string] = v
+                      }
+                    "
+                  />
+                </div>
+              </div>
+            </Card>
+          </div>
+
+          <!-- Toast -->
+          <Transition name="fade">
+            <div
+              v-if="toast"
+              class="codex-settings-toast"
+              :class="toast.type === 'success' ? 'codex-settings-toast--success' : 'codex-settings-toast--error'"
+            >
+              {{ toast.message }}
+            </div>
+          </Transition>
+        </template>
+      </div>
     </div>
   </div>
 </template>
@@ -574,7 +588,9 @@
 import SIcon from '@/components/ui/SIcon.vue'
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
+import Button from '@/components/ui/Button.vue'
 import Card from '@/components/ui/Card.vue'
+import ModuleSubnav from '@/components/ModuleSubnav.vue'
 import { getCodexConfig, updateCodexConfig } from '@/api'
 import type { CodexConfig } from '@/types'
 import { logger } from '@/utils/logger'
@@ -819,7 +835,7 @@ const ToggleField = defineComponent({
         h('input', {
           type: 'checkbox',
           checked: props.modelValue ?? false,
-          class: 'w-4 h-4 rounded border-border-default/15 text-emerald-500 focus:ring-emerald-500',
+          class: 'w-4 h-4 rounded border-border-default/15 text-accent-primary focus:ring-accent-primary',
           onChange: (e: Event) => emit('update:modelValue', (e.target as HTMLInputElement).checked),
         }),
         h('span', { class: 'text-sm font-semibold text-text-primary' }, props.label),
@@ -831,8 +847,109 @@ export default { components: { ToggleField } }
 </script>
 
 <style scoped>
+.codex-settings-view {
+  @apply min-h-full p-6;
+}
+
+.codex-settings-shell {
+  @apply mx-auto max-w-[1800px];
+}
+
+.codex-settings-stack {
+  @apply mt-6 space-y-6;
+}
+
+.codex-settings-header {
+  @apply flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between;
+}
+
+.codex-settings-header__intro {
+  @apply flex items-center gap-3;
+}
+
+.codex-settings-header__actions {
+  @apply flex items-center gap-3;
+}
+
+.codex-settings-header__icon {
+  @apply flex h-12 w-12 items-center justify-center rounded-2xl border shadow-lg backdrop-blur-md;
+
+  border-color: rgb(var(--platform-codex-rgb, 245 158 11) / 20%);
+  background: rgb(var(--platform-codex-rgb, 245 158 11) / 10%);
+}
+
+.codex-settings-title {
+  @apply text-2xl font-bold;
+
+  color: var(--stage-text-primary);
+}
+
+.codex-settings-subtitle {
+  @apply mt-1 text-sm;
+
+  color: var(--stage-text-secondary);
+}
+
+.codex-settings-loading {
+  @apply flex flex-col items-center justify-center py-20 gap-4;
+
+  color: var(--stage-text-muted);
+}
+
+.codex-settings-spinner {
+  @apply w-8 h-8 rounded-full border-[3px] animate-spin;
+
+  border-color: rgb(var(--color-accent-primary-rgb) / 30%);
+  border-top-color: var(--color-accent-primary);
+}
+
+.codex-settings-tabs {
+  @apply flex gap-2 overflow-x-auto pb-2 md:flex-wrap md:overflow-x-visible md:pb-0;
+}
+
+.codex-settings-tab {
+  @apply flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors min-h-[44px] whitespace-nowrap flex-shrink-0;
+
+  background: var(--stage-surface-soft);
+  border: 1px solid var(--stage-border-soft);
+  color: var(--stage-text-primary);
+}
+
+.codex-settings-tab:hover {
+  background: rgb(var(--color-bg-surface-rgb) / 70%);
+  border-color: rgb(var(--color-border-default-rgb) / 70%);
+}
+
+.codex-settings-tab--active {
+  background: rgb(var(--color-accent-primary-rgb) / 10%);
+  border-color: rgb(var(--color-accent-primary-rgb) / 25%);
+  color: var(--color-accent-primary);
+  box-shadow: 0 4px 12px rgb(var(--color-accent-primary-rgb) / 10%);
+}
+
 .settings-input {
-  @apply w-full px-4 py-2.5 rounded-lg glass-surface border border-border-default/15 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none transition-[border-color,box-shadow] text-text-primary;
+  @apply w-full px-4 py-2.5 rounded-lg outline-none transition-[border-color,box-shadow];
+
+  background: var(--stage-surface-soft);
+  border: 1px solid var(--stage-border-soft);
+  color: var(--stage-text-primary);
+}
+
+.settings-input:focus {
+  border-color: var(--color-accent-primary);
+  box-shadow: 0 0 0 1px var(--color-accent-primary);
+}
+
+.codex-settings-toast {
+  @apply fixed bottom-6 right-6 z-50 px-5 py-3 rounded-xl shadow-lg text-sm font-medium text-white;
+}
+
+.codex-settings-toast--success {
+  background: var(--color-success);
+}
+
+.codex-settings-toast--error {
+  background: var(--color-danger);
 }
 
 .fade-enter-active,
@@ -843,18 +960,6 @@ export default { components: { ToggleField } }
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;
-}
-
-.loading-spinner {
-  border: 3px solid;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
 }
 </style>
 
