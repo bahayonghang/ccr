@@ -1543,7 +1543,7 @@ onUnmounted(() => {
   @apply min-h-[300px] w-full rounded-2xl border border-border-default/45 p-3 text-sm leading-6 text-text-primary;
 
   background-color: rgb(var(--color-bg-base-rgb) / 55%);
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-family: var(--font-mono);
 }
 
 .content-editor {
@@ -1564,7 +1564,7 @@ onUnmounted(() => {
 }
 
 .activity-row {
-  @apply flex items-start gap-3 rounded-2xl border border-white/10 bg-white/5 p-3;
+  @apply flex items-start gap-3 rounded-2xl border border-border-default/15 bg-bg-surface/70 p-3;
 }
 
 .activity-row__status {
@@ -1584,11 +1584,11 @@ onUnmounted(() => {
 }
 
 .activity-row__body {
-  @apply flex flex-col gap-0.5 text-xs text-white/60;
+  @apply flex flex-col gap-0.5 text-xs text-text-muted;
 }
 
 .activity-row__body strong {
-  @apply text-sm text-white/80;
+  @apply text-sm text-text-primary;
 }
 
 @media (width <= 1279px) {
@@ -1599,3 +1599,4 @@ onUnmounted(() => {
   }
 }
 </style>
+

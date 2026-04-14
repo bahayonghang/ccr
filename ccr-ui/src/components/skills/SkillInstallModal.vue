@@ -25,13 +25,13 @@
                 <h2 class="text-lg font-bold text-white">
                   {{ $t('skills.installSkill') }}
                 </h2>
-                <p class="text-sm text-white/80">
+                <p class="text-sm text-text-primary">
                   {{ skill?.name || marketplaceItem?.package }}
                 </p>
               </div>
             </div>
             <button
-              class="p-2 rounded-lg text-white/50 hover:text-white hover:bg-white/5 transition-colors"
+              class="p-2 rounded-lg text-text-muted hover:text-white hover:bg-bg-surface/70 transition-colors"
               @click="close"
             >
               <SIcon
@@ -48,7 +48,7 @@
               v-if="marketplaceItem"
               class="skill-info"
             >
-              <div class="flex items-center gap-2 text-sm text-white/80">
+              <div class="flex items-center gap-2 text-sm text-text-primary">
                 <SIcon
                   name="Github"
                   size="w-4 h-4"
@@ -80,7 +80,7 @@
                   <div class="flex items-center gap-2">
                     <div
                       class="w-3 h-3 rounded-full border-2 transition-colors"
-                      :class="selectedPlatforms.includes(platform.id) ? 'border-accent-primary bg-accent-primary' : 'border-white/10'"
+                      :class="selectedPlatforms.includes(platform.id) ? 'border-accent-primary bg-accent-primary' : 'border-border-default/15'"
                     />
                     <SIcon
                       :name="getPlatformIcon(platform.id)"
@@ -262,13 +262,13 @@ async function handleInstall() {
 
 <style scoped>
 .modal-content {
-  @apply bg-black/40 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl
+  @apply bg-black/40 backdrop-blur-xl border border-border-default/15 rounded-2xl shadow-2xl
          shadow-2xl overflow-hidden;
 }
 
 .modal-header {
   @apply flex items-center justify-between p-4
-         border-b border-white/5;
+         border-b border-border-default/10;
 }
 
 .modal-icon {
@@ -283,23 +283,23 @@ async function handleInstall() {
 }
 
 .skill-info {
-  @apply p-3 rounded-xl border border-white/5;
+  @apply p-3 rounded-xl border border-border-default/10;
 
   background: rgb(0 0 0 / 20%);
 }
 
 .platform-selection {
-  @apply p-4 rounded-xl border border-white/5;
+  @apply p-4 rounded-xl border border-border-default/10;
 
   background: rgb(0 0 0 / 30%);
 }
 
 .platform-option {
   @apply flex items-center justify-between p-3 rounded-xl
-         border border-white/5
-         text-sm text-white/80
+         border border-border-default/10
+         text-sm text-text-primary
          transition-colors duration-200 cursor-pointer
-         hover:border-white/10 hover:text-white;
+         hover:border-border-default/15 hover:text-white;
 
   background: rgb(0 0 0 / 20%);
 }
@@ -312,7 +312,7 @@ async function handleInstall() {
 }
 
 .platform-option--disabled {
-  @apply opacity-50 cursor-not-allowed hover:border-white/5;
+  @apply opacity-50 cursor-not-allowed hover:border-border-default/10;
 }
 
 .quick-actions {
@@ -321,8 +321,8 @@ async function handleInstall() {
 
 .quick-action {
   @apply flex items-center gap-2 px-3 py-2 rounded-lg
-         text-xs font-medium text-white/80
-         glass-surface hover:bg-white/5
+         text-xs font-medium text-text-primary
+         glass-surface hover:bg-bg-surface/70
          transition-colors;
 }
 
@@ -335,15 +335,15 @@ async function handleInstall() {
 
 .modal-footer {
   @apply flex items-center justify-end gap-2 p-4
-         border-t border-white/5;
+         border-t border-border-default/10;
 
   background: rgb(0 0 0 / 20%);
 }
 
 .btn-secondary {
   @apply px-4 py-2 rounded-xl text-sm font-semibold
-         text-white/80 hover:text-white
-         hover:bg-white/5 transition-colors;
+         text-text-primary hover:text-white
+         hover:bg-bg-surface/70 transition-colors;
 }
 
 .btn-primary {
@@ -380,3 +380,4 @@ async function handleInstall() {
   opacity: 0;
 }
 </style>
+

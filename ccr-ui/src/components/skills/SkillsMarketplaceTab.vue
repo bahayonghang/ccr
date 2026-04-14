@@ -7,7 +7,7 @@
           <SIcon
             name="Search"
             size="w-5 h-5"
-            class="absolute left-4 top-1/2 -translate-y-1/2 text-white/50"
+            class="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted"
           />
           <input
             v-model="searchQuery"
@@ -56,7 +56,7 @@
             <SIcon
               name="ArrowUpDown"
               size="w-3.5 h-3.5"
-              class="text-white/50"
+              class="text-text-muted"
             />
             <select
               v-model="sortBy"
@@ -323,7 +323,7 @@ function handleViewDetail(item: MarketplaceItem) {
 }
 
 .search-input {
-  @apply w-full glass-surface border border-white/5 rounded-xl
+  @apply w-full glass-surface border border-border-default/10 rounded-xl
          text-white
          pl-12 pr-4 py-3 text-sm font-medium
          focus:outline-none focus:ring-2 focus:ring-accent-primary/30
@@ -361,8 +361,8 @@ function handleViewDetail(item: MarketplaceItem) {
 
 .sort-select {
   @apply flex items-center gap-1.5 px-3 py-2 rounded-lg
-         glass-surface border border-white/5
-         text-sm text-white/80;
+         glass-surface border border-border-default/10
+         text-sm text-text-primary;
 }
 
 .sort-dropdown {
@@ -372,9 +372,9 @@ function handleViewDetail(item: MarketplaceItem) {
 
 .btn-batch {
   @apply flex items-center gap-1.5 px-3 py-2 rounded-lg
-         text-sm font-medium text-white/80
-         glass-surface border border-white/5
-         hover:text-white hover:border-white/10
+         text-sm font-medium text-text-primary
+         glass-surface border border-border-default/10
+         hover:text-white hover:border-border-default/15
          transition-colors;
 }
 
@@ -394,7 +394,7 @@ function handleViewDetail(item: MarketplaceItem) {
 /* Skeleton Styles */
 .skeleton-card {
   @apply flex flex-col gap-3 p-4 rounded-2xl
-         border border-white/5;
+         border border-border-default/10;
 
   background: rgb(0 0 0 / 30%);
 }
@@ -429,7 +429,7 @@ function handleViewDetail(item: MarketplaceItem) {
 
 .skeleton-footer {
   @apply flex items-center justify-between mt-auto pt-3
-         border-t border-white/5;
+         border-t border-border-default/10;
 }
 
 .skeleton-link {
@@ -444,7 +444,7 @@ function handleViewDetail(item: MarketplaceItem) {
 .batch-bar {
   @apply fixed bottom-6 left-1/2 -translate-x-1/2 z-40
          flex items-center gap-4 px-6 py-3 rounded-2xl
-         border border-white/5 shadow-2xl;
+         border border-border-default/10 shadow-2xl;
 
   background: rgb(0 0 0 / 30%);
   backdrop-filter: blur(16px);
@@ -459,8 +459,8 @@ function handleViewDetail(item: MarketplaceItem) {
 }
 
 .batch-bar__clear {
-  @apply px-3 py-1.5 rounded-lg text-sm text-white/80
-         hover:text-white hover:bg-white/5
+  @apply px-3 py-1.5 rounded-lg text-sm text-text-primary
+         hover:text-white hover:bg-bg-surface/70
          transition-colors;
 }
 
@@ -487,3 +487,4 @@ function handleViewDetail(item: MarketplaceItem) {
   transform: translateX(-50%) translateY(20px);
 }
 </style>
+

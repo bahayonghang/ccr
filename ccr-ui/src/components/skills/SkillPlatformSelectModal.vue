@@ -178,7 +178,7 @@ const toggleSelectedPlatform = (platformId: string) => {
 
 <style scoped>
 .checkbox-input {
-  @apply rounded border-white/10 text-accent-primary focus:ring-accent-primary/20;
+  @apply rounded border-border-default/15 text-accent-primary focus:ring-accent-primary/20;
 }
 
 .platform-section {
@@ -206,7 +206,7 @@ const toggleSelectedPlatform = (platformId: string) => {
 }
 
 .platform-item {
-  @apply glass-surface flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors hover:bg-white/5;
+  @apply glass-surface flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors hover:bg-bg-surface/70;
 }
 
 .platform-item--disabled {
@@ -218,11 +218,11 @@ const toggleSelectedPlatform = (platformId: string) => {
 }
 
 .platform-item__badge {
-  @apply ml-auto text-[10px] text-white/50;
+  @apply ml-auto text-[10px] text-text-muted;
 }
 
 .platform-summary {
-  @apply glass-surface flex flex-col gap-2 rounded-2xl border border-white/5 px-4 py-4;
+  @apply glass-surface flex flex-col gap-2 rounded-2xl border border-border-default/10 px-4 py-4;
 }
 
 .platform-summary__eyebrow {
@@ -234,11 +234,11 @@ const toggleSelectedPlatform = (platformId: string) => {
 }
 
 .platform-summary__package {
-  @apply truncate font-mono text-sm text-white/65;
+  @apply truncate font-mono text-sm text-text-secondary;
 }
 
 .platform-summary__list {
-  @apply max-h-32 list-disc space-y-1 overflow-y-auto pl-4 text-sm text-white/80;
+  @apply max-h-32 list-disc space-y-1 overflow-y-auto pl-4 text-sm text-text-primary;
 }
 
 .btn-install {
@@ -246,7 +246,7 @@ const toggleSelectedPlatform = (platformId: string) => {
 }
 
 .btn-cancel {
-  @apply rounded-xl px-4 py-2 text-sm font-medium text-white/80 transition-colors hover:bg-white/5 hover:text-white;
+  @apply rounded-xl px-4 py-2 text-sm font-medium text-text-primary transition-colors hover:bg-bg-surface/70 hover:text-white;
 }
 
 .platform-modal-overlay {
@@ -254,7 +254,7 @@ const toggleSelectedPlatform = (platformId: string) => {
 }
 
 .platform-modal {
-  @apply flex w-full max-w-xl flex-col gap-4 mx-4 rounded-2xl border border-white/5 p-6 shadow-2xl;
+  @apply flex w-full max-w-xl flex-col gap-4 mx-4 rounded-2xl border border-border-default/10 p-6 shadow-2xl;
 
   background: rgb(var(--color-bg-base-rgb));
 }
@@ -268,15 +268,15 @@ const toggleSelectedPlatform = (platformId: string) => {
 }
 
 .platform-modal__subtitle {
-  @apply mt-1 text-sm text-white/60;
+  @apply mt-1 text-sm text-text-muted;
 }
 
 .platform-modal__close {
-  @apply rounded-lg p-2 text-white/50 transition-colors hover:bg-white/5 hover:text-white;
+  @apply rounded-lg p-2 text-text-muted transition-colors hover:bg-bg-surface/70 hover:text-white;
 }
 
 .platform-modal__footer {
-  @apply flex items-center justify-end gap-3 border-t border-white/5 pt-3;
+  @apply flex items-center justify-end gap-3 border-t border-border-default/10 pt-3;
 }
 
 .modal-fade-enter-active,
@@ -304,3 +304,4 @@ const toggleSelectedPlatform = (platformId: string) => {
   transform: scale(0.95);
 }
 </style>
+

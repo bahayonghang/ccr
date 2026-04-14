@@ -284,12 +284,10 @@ import Button from '@/components/ui/Button.vue'
 }
 
 .gemini-brand__title {
-  @apply text-4xl font-bold tracking-tight;
+  @apply text-[2.6rem] font-semibold tracking-[-0.04em];
 
-  font-family: MapleBright, 'Microsoft YaHei UI', system-ui, sans-serif;
-  background: linear-gradient(90deg, var(--platform-gemini) 0%, var(--color-accent-secondary) 55%, var(--color-success) 100%);
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
+  font-family: var(--font-brand);
+  color: var(--stage-text-primary);
 }
 
 .gemini-brand__subtitle {
@@ -307,9 +305,9 @@ import Button from '@/components/ui/Button.vue'
 }
 
 .gemini-tag {
-  @apply flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-bold uppercase;
+  @apply flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold;
 
-  letter-spacing: 0.1em;
+  letter-spacing: 0.04em;
 }
 
 .gemini-tag--gemini {
@@ -343,9 +341,9 @@ import Button from '@/components/ui/Button.vue'
 .gemini-section-heading__title {
   color: var(--stage-text-muted);
 
-  @apply text-lg font-bold uppercase;
+  @apply text-lg font-semibold;
 
-  letter-spacing: 0.2em;
+  letter-spacing: 0.04em;
 }
 
 .gemini-section-heading__rule {
@@ -397,7 +395,7 @@ import Button from '@/components/ui/Button.vue'
 .gemini-module-card__title {
   color: var(--stage-text-primary);
 
-  @apply mb-1 text-lg font-bold transition-colors;
+  @apply mb-1 text-lg font-semibold transition-colors;
 }
 
 .gemini-module-card__desc {
@@ -407,10 +405,10 @@ import Button from '@/components/ui/Button.vue'
 }
 
 .gemini-module-card__badge {
-  @apply inline-flex rounded border px-2 py-1 font-bold uppercase;
+  @apply inline-flex rounded border px-2 py-1 font-semibold;
 
   font-size: 10px;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.04em;
 }
 
 .gemini-module-link:hover .gemini-module-card__title--gemini {
@@ -471,7 +469,7 @@ import Button from '@/components/ui/Button.vue'
 .gemini-info-card__title {
   color: var(--stage-text-primary);
 
-  @apply text-lg font-bold;
+  @apply text-lg font-semibold;
 }
 
 .gemini-info-grid {
@@ -489,7 +487,7 @@ import Button from '@/components/ui/Button.vue'
   @apply h-2 w-2 rounded-full;
 
   background: var(--platform-gemini);
-  box-shadow: 0 0 8px var(--platform-gemini);
+  box-shadow: 0 0 6px rgb(var(--color-platform-gemini-rgb) / 28%);
 }
 
 .gemini-info-feature__text {

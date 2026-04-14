@@ -2,7 +2,7 @@
   <div class="metadata-section">
     <p
       v-if="description"
-      class="text-sm leading-relaxed text-white/80"
+      class="text-sm leading-relaxed text-text-primary"
     >
       {{ description }}
     </p>
@@ -17,7 +17,7 @@
           :name="item.icon"
           size="w-3.5 h-3.5"
           class="shrink-0"
-          :class="item.iconColor ? undefined : 'text-white/50'"
+          :class="item.iconColor ? undefined : 'text-text-muted'"
           :style="item.iconColor ? { color: item.iconColor } : undefined"
         />
         <span class="meta-label">{{ item.label }}</span>
@@ -72,7 +72,7 @@ defineProps<{
 
 <style scoped>
 .metadata-section {
-  @apply rounded-xl border border-white/5 p-4 space-y-3;
+  @apply rounded-xl border border-border-default/10 p-4 space-y-3;
 
   background: rgb(0 0 0 / 20%);
 }
@@ -86,7 +86,7 @@ defineProps<{
 }
 
 .meta-label {
-  @apply text-xs text-white/50;
+  @apply text-xs text-text-muted;
 }
 
 .meta-value {
@@ -94,6 +94,7 @@ defineProps<{
 }
 
 .tag-badge {
-  @apply px-2 py-0.5 rounded-md text-[10px] font-medium glass-surface text-white/50;
+  @apply px-2 py-0.5 rounded-md text-[10px] font-medium glass-surface text-text-muted;
 }
 </style>
+

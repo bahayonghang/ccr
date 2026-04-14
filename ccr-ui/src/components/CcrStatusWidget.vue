@@ -1,9 +1,9 @@
 <template>
-  <div class="flex items-center gap-3 bg-bg-secondary/40 p-2 rounded-2xl border border-white/10 backdrop-blur-md shadow-sm transition-colors duration-300">
+  <div class="flex items-center gap-3 bg-bg-secondary/40 p-2 rounded-2xl border border-border-default/15 backdrop-blur-md shadow-sm transition-colors duration-300">
     <!-- Loading State -->
     <div
       v-if="loading"
-      class="flex items-center gap-3 px-4 py-2 rounded-xl bg-white/50 dark:glass-surface border border-white/20"
+      class="flex items-center gap-3 px-4 py-2 rounded-xl bg-bg-surface/700 dark:glass-surface border border-border-default/25"
     >
       <SIcon
         name="Loader2"
@@ -11,15 +11,15 @@
         class="animate-spin text-accent-primary"
       />
       <div class="flex flex-col">
-        <span class="text-[10px] uppercase text-white/50 font-bold">STATUS</span>
-        <span class="text-xs font-bold text-white/80">Checking...</span>
+        <span class="text-[10px] uppercase text-text-muted font-bold">STATUS</span>
+        <span class="text-xs font-bold text-text-primary">Checking...</span>
       </div>
     </div>
 
     <!-- Installed State -->
     <div
       v-else-if="installed && version"
-      class="flex items-center gap-3 px-4 py-2 rounded-xl bg-white/50 dark:glass-surface border border-white/20"
+      class="flex items-center gap-3 px-4 py-2 rounded-xl bg-bg-surface/700 dark:glass-surface border border-border-default/25"
     >
       <div class="w-8 h-8 rounded-lg bg-green-500/10 flex items-center justify-center">
         <SIcon
@@ -29,7 +29,7 @@
         />
       </div>
       <div class="flex flex-col">
-        <span class="text-[10px] uppercase text-white/50 font-bold">CCR INSTALLED</span>
+        <span class="text-[10px] uppercase text-text-muted font-bold">CCR INSTALLED</span>
         <span class="text-sm font-bold text-green-600 dark:text-green-400 font-mono">{{ version }}</span>
       </div>
     </div>
@@ -105,3 +105,4 @@ onMounted(() => {
   checkStatus()
 })
 </script>
+

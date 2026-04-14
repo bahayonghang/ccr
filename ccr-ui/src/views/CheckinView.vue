@@ -1402,7 +1402,7 @@ const openAccountDashboard = (accountId: string) => {
 
 .checkin-view__stat-value {
   margin-top: 0.25rem;
-  font-family: var(--font-mono, 'Maple Mono', monospace);
+  font-family: var(--font-mono);
   font-size: 1.5rem;
   line-height: 2rem;
   font-weight: 700;

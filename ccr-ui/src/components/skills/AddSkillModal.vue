@@ -143,7 +143,7 @@
                     {{ npxAvailable ? $t('skills.npxAvailable') : $t('skills.npxNotAvailable') }}
                     <span
                       v-if="npxVersion"
-                      class="text-white/50"
+                      class="text-text-muted"
                     >(v{{ npxVersion }})</span>
                   </span>
                 </div>
@@ -458,7 +458,7 @@ async function handleInstall() {
 
 .add-skill-modal {
   @apply flex flex-col w-full max-w-lg mx-4 rounded-2xl
-         border border-white/5 shadow-2xl
+         border border-border-default/10 shadow-2xl
          overflow-hidden;
 
   max-height: 85vh;
@@ -467,7 +467,7 @@ async function handleInstall() {
 
 .add-skill-modal__header {
   @apply flex items-center justify-between px-6 py-4
-         border-b border-white/5;
+         border-b border-border-default/10;
 }
 
 .add-skill-modal__title {
@@ -475,8 +475,8 @@ async function handleInstall() {
 }
 
 .add-skill-modal__close {
-  @apply p-2 rounded-lg text-white/50
-         hover:text-white hover:bg-white/5
+  @apply p-2 rounded-lg text-text-muted
+         hover:text-white hover:bg-bg-surface/70
          transition-colors;
 }
 
@@ -487,8 +487,8 @@ async function handleInstall() {
 
 .add-skill-tab {
   @apply flex items-center gap-1.5 px-3 py-2 rounded-lg
-         text-sm font-medium text-white/80
-         hover:text-white hover:bg-white/5
+         text-sm font-medium text-text-primary
+         hover:text-white hover:bg-bg-surface/70
          transition-colors duration-200;
 }
 
@@ -513,28 +513,28 @@ async function handleInstall() {
 }
 
 .input-icon {
-  @apply absolute left-3 w-4 h-4 text-white/50 pointer-events-none;
+  @apply absolute left-3 w-4 h-4 text-text-muted pointer-events-none;
 }
 
 .text-input {
   @apply w-full pl-10 pr-4 py-2.5 rounded-xl
          text-sm text-white
-         glass-surface border border-white/5
+         glass-surface border border-border-default/10
          focus:border-accent-primary focus:outline-none
-         placeholder:text-white/50
+         placeholder:text-text-muted
          transition-colors;
 }
 
 .browse-btn {
   @apply ml-2 flex items-center gap-1.5 px-3 py-2.5 rounded-xl shrink-0
-         text-sm font-medium text-white/80
-         glass-surface border border-white/5
-         hover:border-white/10 hover:text-white
+         text-sm font-medium text-text-primary
+         glass-surface border border-border-default/10
+         hover:border-border-default/15 hover:text-white
          transition-colors;
 }
 
 .tab-hint {
-  @apply text-xs text-white/50 leading-relaxed;
+  @apply text-xs text-text-muted leading-relaxed;
 }
 
 /* npx 状态 */
@@ -557,17 +557,17 @@ async function handleInstall() {
 
 /* Checkbox */
 .checkbox-label {
-  @apply flex items-center gap-2 text-sm text-white/80 cursor-pointer;
+  @apply flex items-center gap-2 text-sm text-text-primary cursor-pointer;
 }
 
 .checkbox-input {
-  @apply rounded border-white/10 text-accent-primary
+  @apply rounded border-border-default/15 text-accent-primary
          focus:ring-accent-primary/20;
 }
 
 /* Platform 选择 */
 .platform-section {
-  @apply flex flex-col gap-3 pt-3 border-t border-white/5;
+  @apply flex flex-col gap-3 pt-3 border-t border-border-default/10;
 }
 
 .platform-section__header {
@@ -593,7 +593,7 @@ async function handleInstall() {
 .platform-item {
   @apply flex items-center gap-2 px-3 py-2 rounded-lg
          glass-surface text-sm cursor-pointer
-         hover:bg-white/5 transition-colors;
+         hover:bg-bg-surface/70 transition-colors;
 }
 
 .platform-item--disabled {
@@ -605,19 +605,19 @@ async function handleInstall() {
 }
 
 .platform-item__badge {
-  @apply ml-auto text-[10px] text-white/50;
+  @apply ml-auto text-[10px] text-text-muted;
 }
 
 /* Footer */
 .add-skill-modal__footer {
   @apply flex items-center justify-end gap-3 px-6 py-4
-         border-t border-white/5;
+         border-t border-border-default/10;
 }
 
 .btn-cancel {
   @apply px-4 py-2 rounded-xl text-sm font-medium
-         text-white/80 hover:text-white
-         hover:bg-white/5 transition-colors;
+         text-text-primary hover:text-white
+         hover:bg-bg-surface/70 transition-colors;
 }
 
 .btn-install {
@@ -654,3 +654,4 @@ async function handleInstall() {
   transform: scale(0.95);
 }
 </style>
+

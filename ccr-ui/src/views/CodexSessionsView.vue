@@ -699,13 +699,13 @@ onActivated(() => {
 }
 
 .codex-sessions-title {
-  @apply text-2xl font-bold text-white lg:text-3xl;
+  @apply text-2xl font-bold text-text-primary lg:text-3xl;
 
-  font-family: MapleBright, 'Microsoft YaHei UI', system-ui, sans-serif;
+  font-family: var(--font-brand);
 }
 
 .codex-sessions-subtitle {
-  @apply mt-1 max-w-3xl text-sm leading-7 text-white/70;
+  @apply mt-1 max-w-3xl text-sm leading-7 text-text-secondary;
 }
 
 .codex-sessions-header__actions {
@@ -721,15 +721,15 @@ onActivated(() => {
 }
 
 .codex-sessions-stat__label {
-  @apply text-xs uppercase tracking-[0.2em] text-white/45;
+  @apply text-xs uppercase tracking-[0.2em] text-text-ghost;
 }
 
 .codex-sessions-stat__value {
-  @apply mt-2 text-2xl font-semibold text-white;
+  @apply mt-2 text-2xl font-semibold text-text-primary;
 }
 
 .codex-sessions-stat__hint {
-  @apply mt-2 text-sm text-white/60;
+  @apply mt-2 text-sm text-text-muted;
 }
 
 .codex-sessions-error {
@@ -754,15 +754,15 @@ onActivated(() => {
 }
 
 .codex-sessions-panel__title {
-  @apply text-base font-semibold text-white;
+  @apply text-base font-semibold text-text-primary;
 }
 
 .codex-sessions-panel__subtitle {
-  @apply text-sm text-white/55;
+  @apply text-sm text-text-muted;
 }
 
 .codex-sessions-loading {
-  @apply flex h-full min-h-[320px] flex-col items-center justify-center gap-3 text-sm text-white/60;
+  @apply flex h-full min-h-[320px] flex-col items-center justify-center gap-3 text-sm text-text-muted;
 }
 
 .codex-sessions-loading__spinner {
@@ -776,7 +776,7 @@ onActivated(() => {
 }
 
 .codex-session-row {
-  @apply w-full rounded-2xl border border-white/10 bg-white/5 p-4 text-left transition-all duration-200 hover:border-platform-codex/25 hover:bg-white/10;
+  @apply w-full rounded-2xl border border-border-default/15 bg-bg-surface/70 p-4 text-left transition-all duration-200 hover:border-platform-codex/25 hover:bg-bg-elevated/80;
 }
 
 .codex-session-row--active {
@@ -788,23 +788,23 @@ onActivated(() => {
 }
 
 .codex-session-row__id {
-  @apply truncate font-mono text-sm font-semibold text-white;
+  @apply truncate font-mono text-sm font-semibold text-text-primary;
 }
 
 .codex-session-row__meta {
-  @apply mt-1 text-xs text-white/45;
+  @apply mt-1 text-xs text-text-ghost;
 }
 
 .codex-session-row__badge {
-  @apply shrink-0 rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] text-white/65;
+  @apply shrink-0 rounded-full border border-border-default/15 bg-bg-surface/70 px-2.5 py-1 text-[11px] text-text-secondary;
 }
 
 .codex-session-row__preview {
-  @apply mt-3 line-clamp-3 text-sm leading-6 text-white/70;
+  @apply mt-3 line-clamp-3 text-sm leading-6 text-text-secondary;
 }
 
 .codex-session-row__footer {
-  @apply mt-3 flex items-center justify-between gap-3 text-xs text-white/45;
+  @apply mt-3 flex items-center justify-between gap-3 text-xs text-text-ghost;
 }
 
 .codex-detail-actions {
@@ -816,7 +816,7 @@ onActivated(() => {
 }
 
 .codex-detail-summary {
-  @apply rounded-2xl border border-white/10 bg-white/5 p-4;
+  @apply rounded-2xl border border-border-default/15 bg-bg-surface/70 p-4;
 }
 
 .codex-detail-summary__title-row {
@@ -824,11 +824,11 @@ onActivated(() => {
 }
 
 .codex-detail-summary__title {
-  @apply font-mono text-lg font-semibold text-white;
+  @apply font-mono text-lg font-semibold text-text-primary;
 }
 
 .codex-detail-summary__meta {
-  @apply mt-1 text-sm text-white/55;
+  @apply mt-1 text-sm text-text-muted;
 }
 
 .codex-detail-summary__pill {
@@ -840,15 +840,15 @@ onActivated(() => {
 }
 
 .codex-detail-field {
-  @apply rounded-2xl border border-white/10 bg-black/10 px-3 py-3;
+  @apply rounded-2xl border border-border-default/15 bg-bg-base/35 px-3 py-3;
 }
 
 .codex-detail-field__label {
-  @apply text-[11px] uppercase tracking-[0.18em] text-white/40;
+  @apply text-[11px] uppercase tracking-[0.18em] text-text-ghost;
 }
 
 .codex-detail-field__value {
-  @apply mt-1 block break-all text-sm text-white/80;
+  @apply mt-1 block break-all text-sm text-text-primary;
 }
 
 .codex-detail-field__value--button {
@@ -874,7 +874,7 @@ onActivated(() => {
 }
 
 .codex-message--user {
-  @apply border-white/10 bg-white/5;
+  @apply border-border-default/15 bg-bg-surface/70;
 }
 
 .codex-message__meta {
@@ -882,16 +882,18 @@ onActivated(() => {
 }
 
 .codex-message__role {
-  @apply font-semibold uppercase tracking-[0.18em] text-white/60;
+  @apply font-semibold uppercase tracking-[0.18em] text-text-muted;
 }
 
 .codex-message__time {
-  @apply text-white/35;
+  @apply text-text-ghost;
 }
 
 .codex-message__body {
-  @apply mt-3 overflow-x-auto whitespace-pre-wrap break-words text-sm leading-7 text-white/80;
+  @apply mt-3 overflow-x-auto whitespace-pre-wrap break-words text-sm leading-7 text-text-primary;
 
-  font-family: 'Maple Mono', 'Cascadia Code', monospace;
+  font-family: var(--font-mono);
 }
 </style>
+
+

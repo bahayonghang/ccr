@@ -45,7 +45,7 @@
           >
           <button
             v-if="searchQuery"
-            class="absolute right-2 top-1/2 transform -translate-y-1/2 rounded-full hover:bg-black/10 text-text-muted transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
+            class="absolute right-2 top-1/2 transform -translate-y-1/2 rounded-full hover:bg-bg-base/35 text-text-muted transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
             :aria-label="$t('common.clearSearch')"
             @click="searchQuery = ''"
           >
@@ -115,7 +115,7 @@
           >
             <div class="flex items-start justify-between mb-3">
               <div class="flex items-center gap-2">
-                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-accent-secondary/10 to-accent-secondary/10 flex items-center justify-center text-lg shadow-sm border border-white/20">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-accent-secondary/10 to-accent-secondary/10 flex items-center justify-center text-lg shadow-sm border border-border-default/25">
                   <SIcon
                     name="Palette"
                     size="w-5 h-5"
@@ -195,7 +195,7 @@
         @keydown.esc="showViewModal = false"
       >
         <div
-          class="glass-effect p-8 rounded-3xl w-full max-w-4xl max-h-[85vh] overflow-y-auto shadow-2xl border border-white/30 relative"
+          class="glass-effect p-8 rounded-3xl w-full max-w-4xl max-h-[85vh] overflow-y-auto shadow-2xl border border-border-default/30 relative"
           @click.stop
         >
           <button
@@ -274,7 +274,7 @@
       >
         <div
           ref="editModalContent"
-          class="glass-effect p-8 rounded-3xl w-full max-w-3xl max-h-[85vh] overflow-y-auto shadow-2xl border border-white/30 relative"
+          class="glass-effect p-8 rounded-3xl w-full max-w-3xl max-h-[85vh] overflow-y-auto shadow-2xl border border-border-default/30 relative"
           @click.stop
         >
           <button
@@ -351,7 +351,7 @@
                 class="flex items-center justify-center"
               >
                 <span
-                  class="loading-spinner w-4 h-4 mr-2 border-white/30 border-t-white"
+                  class="loading-spinner w-4 h-4 mr-2 border-border-default/30 border-t-white"
                   aria-hidden="true"
                 />
                 {{ $t('common.saving') }}
@@ -557,3 +557,4 @@ const handleEditModalFocusTrap = (e: KeyboardEvent) => {
   }
 }
 </script>
+

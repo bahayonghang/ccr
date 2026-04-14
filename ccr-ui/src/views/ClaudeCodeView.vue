@@ -53,13 +53,13 @@
             size="w-3 h-3"
           /> {{ $t('claudeCode.features.mcpSupport') }}
         </div>
-        <div class="claude-tag claude-tag--purple">
+        <div class="claude-tag claude-tag--secondary">
           <SIcon
             name="Bot"
             size="w-3 h-3"
           /> {{ $t('claudeCode.features.aiAgents') }}
         </div>
-        <div class="claude-tag claude-tag--cyan">
+        <div class="claude-tag claude-tag--info">
           <SIcon
             name="Cloud"
             size="w-3 h-3"
@@ -221,7 +221,7 @@
               class="claude-extension-card"
             >
               <div class="claude-extension-card__header">
-                <div class="claude-extension-card__icon claude-extension-card__icon--cyan">
+                <div class="claude-extension-card__icon claude-extension-card__icon--info">
                   <SIcon
                     name="Server"
                     size="w-5 h-5"
@@ -230,7 +230,7 @@
                 <span class="claude-extension-card__eyebrow">MCP</span>
               </div>
               <div>
-                <h3 class="claude-extension-card__title claude-extension-card__title--cyan">
+                <h3 class="claude-extension-card__title claude-extension-card__title--info">
                   {{ $t('claudeCode.modules.mcpServers.title') }}
                 </h3>
                 <p class="claude-extension-card__desc">
@@ -250,7 +250,7 @@
               class="claude-extension-card"
             >
               <div class="claude-extension-card__header">
-                <div class="claude-extension-card__icon claude-extension-card__icon--emerald">
+                <div class="claude-extension-card__icon claude-extension-card__icon--success">
                   <SIcon
                     name="Users"
                     size="w-5 h-5"
@@ -259,7 +259,7 @@
                 <span class="claude-extension-card__eyebrow">Agent</span>
               </div>
               <div>
-                <h3 class="claude-extension-card__title claude-extension-card__title--emerald">
+                <h3 class="claude-extension-card__title claude-extension-card__title--success">
                   {{ $t('claudeCode.modules.agents.title') }}
                 </h3>
                 <p class="claude-extension-card__desc">
@@ -279,7 +279,7 @@
               class="claude-extension-card"
             >
               <div class="claude-extension-card__header">
-                <div class="claude-extension-card__icon claude-extension-card__icon--red">
+                <div class="claude-extension-card__icon claude-extension-card__icon--danger">
                   <SIcon
                     name="Book"
                     size="w-5 h-5"
@@ -288,7 +288,7 @@
                 <span class="claude-extension-card__eyebrow">Skill</span>
               </div>
               <div>
-                <h3 class="claude-extension-card__title claude-extension-card__title--red">
+                <h3 class="claude-extension-card__title claude-extension-card__title--danger">
                   {{ $t('claudeCode.modules.skills.title') }}
                 </h3>
                 <p class="claude-extension-card__desc">
@@ -308,7 +308,7 @@
               class="claude-extension-card"
             >
               <div class="claude-extension-card__header">
-                <div class="claude-extension-card__icon claude-extension-card__icon--blue">
+                <div class="claude-extension-card__icon claude-extension-card__icon--primary">
                   <SIcon
                     name="Puzzle"
                     size="w-5 h-5"
@@ -317,7 +317,7 @@
                 <span class="claude-extension-card__eyebrow">Plug</span>
               </div>
               <div>
-                <h3 class="claude-extension-card__title claude-extension-card__title--blue">
+                <h3 class="claude-extension-card__title claude-extension-card__title--primary">
                   {{ $t('claudeCode.modules.plugins.title') }}
                 </h3>
                 <p class="claude-extension-card__desc">
@@ -337,7 +337,7 @@
               class="claude-extension-card"
             >
               <div class="claude-extension-card__header">
-                <div class="claude-extension-card__icon claude-extension-card__icon--amber">
+                <div class="claude-extension-card__icon claude-extension-card__icon--warning">
                   <SIcon
                     name="Terminal"
                     size="w-5 h-5"
@@ -346,7 +346,7 @@
                 <span class="claude-extension-card__eyebrow">CMD</span>
               </div>
               <div>
-                <h3 class="claude-extension-card__title claude-extension-card__title--amber">
+                <h3 class="claude-extension-card__title claude-extension-card__title--warning">
                   {{ $t('claudeCode.modules.slashCommands.title') }}
                 </h3>
                 <p class="claude-extension-card__desc">
@@ -366,7 +366,7 @@
               class="claude-extension-card"
             >
               <div class="claude-extension-card__header">
-                <div class="claude-extension-card__icon claude-extension-card__icon--violet">
+                <div class="claude-extension-card__icon claude-extension-card__icon--secondary">
                   <SIcon
                     name="SlidersHorizontal"
                     size="w-5 h-5"
@@ -375,7 +375,7 @@
                 <span class="claude-extension-card__eyebrow">CFG</span>
               </div>
               <div>
-                <h3 class="claude-extension-card__title claude-extension-card__title--violet">
+                <h3 class="claude-extension-card__title claude-extension-card__title--secondary">
                   {{ $t('claudeCode.modules.settings.title') }}
                 </h3>
                 <p class="claude-extension-card__desc">
@@ -538,16 +538,13 @@ const copyCommand = (cmd: string) => {
 .claude-header__icon {
   @apply flex h-16 w-16 items-center justify-center rounded-2xl border border-accent-primary/30 shadow-lg backdrop-blur-md;
 
-  background: linear-gradient(135deg, rgb(var(--color-accent-primary-rgb) / 20%), rgb(var(--color-accent-secondary-rgb) / 20%));
+  background: linear-gradient(180deg, rgb(var(--color-accent-primary-rgb) / 14%), rgb(var(--color-accent-secondary-rgb) / 10%));
 }
 
 .claude-header__title {
-  @apply mb-1 text-4xl font-bold tracking-tight;
+  @apply mb-1 text-[2.6rem] font-semibold tracking-[-0.04em] text-text-primary;
 
-  font-family: MapleBright, 'Microsoft YaHei UI', system-ui, sans-serif;
-  background: linear-gradient(135deg, var(--color-accent-primary) 0%, var(--color-accent-secondary) 100%);
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
+  font-family: var(--font-brand);
 }
 
 .claude-header__subtitle {
@@ -561,21 +558,21 @@ const copyCommand = (cmd: string) => {
 }
 
 .claude-tag {
-  @apply flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-bold uppercase;
+  @apply flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold;
 
-  letter-spacing: 0.1em;
+  letter-spacing: 0.04em;
 }
 
 .claude-tag--primary {
   @apply border border-accent-primary/30 bg-accent-primary/15 text-accent-primary;
 }
 
-.claude-tag--purple {
-  @apply border border-purple-500/30 bg-purple-500/15 text-purple-400;
+.claude-tag--secondary {
+  @apply border border-accent-secondary/30 bg-accent-secondary/10 text-accent-secondary;
 }
 
-.claude-tag--cyan {
-  @apply border border-cyan-500/30 bg-cyan-500/15 text-cyan-400;
+.claude-tag--info {
+  @apply border border-accent-info/30 bg-accent-info/10 text-accent-info;
 }
 
 .claude-core-grid {
@@ -666,11 +663,11 @@ const copyCommand = (cmd: string) => {
   top: 0;
   right: 0;
   filter: blur(100px);
-  background: rgb(var(--color-warning-rgb) / 4%);
+  background: rgb(var(--color-accent-primary-rgb) / 6%);
 }
 
 .group:hover .claude-market-card__glow {
-  background: rgb(var(--color-warning-rgb) / 7%);
+  background: rgb(var(--color-accent-primary-rgb) / 9%);
 }
 
 .claude-market-card__content {
@@ -687,7 +684,7 @@ const copyCommand = (cmd: string) => {
   @apply flex h-16 w-16 items-center justify-center rounded-2xl shadow-lg transition-transform duration-300 group-hover:scale-110;
 
   transform: rotate(3deg);
-  background: linear-gradient(135deg, #fb923c, #ef4444);
+  background: linear-gradient(180deg, var(--color-accent-primary), var(--color-accent-primary-active));
 }
 
 .claude-market-card__title {
@@ -697,7 +694,7 @@ const copyCommand = (cmd: string) => {
 }
 
 .claude-market-card__badge {
-  @apply rounded-md border border-orange-500/20 bg-orange-500/10 px-2 py-1 text-xs font-bold uppercase text-orange-500;
+  @apply rounded-md border border-accent-primary/20 bg-accent-primary/10 px-2 py-1 text-xs font-semibold text-accent-primary;
 }
 
 .claude-market-card__desc {
@@ -707,7 +704,7 @@ const copyCommand = (cmd: string) => {
 }
 
 .claude-market-card__cta {
-  @apply flex items-center gap-2 font-bold text-accent-warning transition-transform group-hover:translate-x-1;
+  @apply flex items-center gap-2 font-semibold text-accent-primary transition-transform group-hover:translate-x-1;
 }
 
 .claude-section-heading {
@@ -717,7 +714,7 @@ const copyCommand = (cmd: string) => {
 .claude-section-heading__title {
   color: var(--stage-text-muted);
 
-  @apply text-sm font-bold uppercase tracking-widest;
+  @apply text-sm font-semibold tracking-[0.08em];
 }
 
 .claude-section-heading__icon {
@@ -744,28 +741,28 @@ const copyCommand = (cmd: string) => {
   @apply flex h-10 w-10 items-center justify-center rounded-lg transition-transform group-hover:scale-110;
 }
 
-.claude-extension-card__icon--cyan {
-  @apply bg-cyan-500/10 text-cyan-500;
+.claude-extension-card__icon--info {
+  @apply bg-accent-info/10 text-accent-info;
 }
 
-.claude-extension-card__icon--emerald {
-  @apply bg-emerald-500/10 text-emerald-500;
+.claude-extension-card__icon--success {
+  @apply bg-accent-success/10 text-accent-success;
 }
 
-.claude-extension-card__icon--red {
-  @apply bg-red-500/10 text-red-500;
+.claude-extension-card__icon--danger {
+  @apply bg-accent-danger/10 text-accent-danger;
 }
 
-.claude-extension-card__icon--blue {
-  @apply bg-blue-500/10 text-blue-500;
+.claude-extension-card__icon--primary {
+  @apply bg-accent-primary/10 text-accent-primary;
 }
 
-.claude-extension-card__icon--amber {
-  @apply bg-amber-500/10 text-amber-500;
+.claude-extension-card__icon--warning {
+  @apply bg-accent-warning/10 text-accent-warning;
 }
 
-.claude-extension-card__icon--violet {
-  @apply bg-violet-500/10 text-violet-500;
+.claude-extension-card__icon--secondary {
+  @apply bg-accent-secondary/10 text-accent-secondary;
 }
 
 .claude-extension-card__eyebrow {
@@ -773,7 +770,7 @@ const copyCommand = (cmd: string) => {
   background: var(--stage-chip-neutral-bg);
   border: 1px solid var(--stage-chip-neutral-border);
 
-  @apply rounded px-2 py-1 font-bold uppercase;
+  @apply rounded px-2 py-1 font-semibold;
 
   font-size: 10px;
 }
@@ -784,28 +781,28 @@ const copyCommand = (cmd: string) => {
   @apply mb-1 font-bold transition-colors;
 }
 
-.claude-extension-card__title--cyan {
-  @apply group-hover:text-cyan-500;
+.claude-extension-card__title--info {
+  @apply group-hover:text-accent-info;
 }
 
-.claude-extension-card__title--emerald {
-  @apply group-hover:text-emerald-500;
+.claude-extension-card__title--success {
+  @apply group-hover:text-accent-success;
 }
 
-.claude-extension-card__title--red {
-  @apply group-hover:text-red-500;
+.claude-extension-card__title--danger {
+  @apply group-hover:text-accent-danger;
 }
 
-.claude-extension-card__title--blue {
-  @apply group-hover:text-blue-500;
+.claude-extension-card__title--primary {
+  @apply group-hover:text-accent-primary;
 }
 
-.claude-extension-card__title--amber {
-  @apply group-hover:text-amber-500;
+.claude-extension-card__title--warning {
+  @apply group-hover:text-accent-warning;
 }
 
-.claude-extension-card__title--violet {
-  @apply group-hover:text-violet-500;
+.claude-extension-card__title--secondary {
+  @apply group-hover:text-accent-secondary;
 }
 
 .claude-extension-card__desc {
@@ -825,7 +822,7 @@ const copyCommand = (cmd: string) => {
 .claude-panel__title {
   color: var(--stage-text-primary);
 
-  @apply mb-4 flex items-center gap-2 text-lg font-bold;
+  @apply mb-4 flex items-center gap-2 text-lg font-semibold;
 }
 
 .claude-stack {
@@ -889,7 +886,7 @@ const copyCommand = (cmd: string) => {
 }
 
 .claude-tip-card {
-  @apply border-accent-info/20 bg-accent-info/5 p-4;
+  @apply border-accent-info/20 bg-accent-info/10 p-4;
 }
 
 .claude-tip-card__content {
@@ -905,7 +902,7 @@ const copyCommand = (cmd: string) => {
 }
 
 .claude-tip-card__title {
-  @apply text-sm font-bold text-accent-info;
+  @apply text-sm font-semibold text-accent-info;
 }
 
 .claude-tip-card__list {

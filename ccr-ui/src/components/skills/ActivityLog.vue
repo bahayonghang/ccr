@@ -47,7 +47,7 @@ function formatTime(timestamp: number) {
 }
 
 .activity-row {
-  @apply flex items-start gap-3 rounded-2xl border border-white/10 bg-white/5 p-3;
+  @apply flex items-start gap-3 rounded-2xl border border-border-default/15 bg-bg-surface/70 p-3;
 }
 
 .activity-row__status {
@@ -67,10 +67,11 @@ function formatTime(timestamp: number) {
 }
 
 .activity-row__body {
-  @apply flex flex-col gap-0.5 text-xs text-white/60;
+  @apply flex flex-col gap-0.5 text-xs text-text-muted;
 }
 
 .activity-row__body strong {
-  @apply text-sm text-white/80;
+  @apply text-sm text-text-primary;
 }
 </style>
+

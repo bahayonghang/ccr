@@ -1,5 +1,5 @@
 <template>
-  <div class="glass-effect rounded-3xl p-6 border border-white/20">
+  <div class="glass-effect rounded-3xl p-6 border border-border-default/25">
     <!-- Header -->
     <div class="flex items-center justify-between mb-6">
       <div class="flex items-center gap-3">
@@ -291,3 +291,4 @@ onMounted(() => {
   loadSourceServers()
 })
 </script>
+

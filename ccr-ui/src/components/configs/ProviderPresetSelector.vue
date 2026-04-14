@@ -1,6 +1,6 @@
 <template>
   <section class="mb-8">
-    <label class="block text-xs font-bold uppercase tracking-wider text-white/50 mb-4">
+    <label class="block text-xs font-bold uppercase tracking-wider text-text-muted mb-4">
       {{ $t('configs.addConfig.presetProviders') }}
     </label>
 
@@ -11,7 +11,7 @@
         class="relative px-4 py-2 rounded-xl border text-sm font-medium transition-all duration-200"
         :class="selectedId === null
           ? 'bg-accent-primary/15 border-accent-primary text-accent-primary ring-1 ring-accent-primary/50'
-          : 'glass-surface border-white/10 text-white/70 hover:border-accent-primary/30 hover:text-white'"
+          : 'glass-surface border-border-default/15 text-text-secondary hover:border-accent-primary/30 hover:text-white'"
         @click="handleSelect(null)"
       >
         {{ $t('configs.addConfig.customConfig') }}
@@ -24,7 +24,7 @@
         class="relative px-4 py-2 rounded-xl border text-sm font-medium transition-all duration-200"
         :class="selectedId === preset.id
           ? 'bg-accent-primary/15 border-accent-primary text-accent-primary ring-1 ring-accent-primary/50'
-          : 'glass-surface border-white/10 text-white/70 hover:border-accent-primary/30 hover:text-white'"
+          : 'glass-surface border-border-default/15 text-text-secondary hover:border-accent-primary/30 hover:text-white'"
         @click="handleSelect(preset)"
       >
         {{ preset.name }}
@@ -39,7 +39,7 @@
     </div>
 
     <!-- 底部提示文字 -->
-    <p class="mt-3 text-xs text-white/40">
+    <p class="mt-3 text-xs text-text-ghost">
       {{ selectedId === null
         ? $t('configs.addConfig.customConfigHint')
         : $t('configs.addConfig.presetHint')
@@ -77,3 +77,4 @@ const handleSelect = (preset: ProviderPreset | null) => {
   emit('select', preset)
 }
 </script>
+

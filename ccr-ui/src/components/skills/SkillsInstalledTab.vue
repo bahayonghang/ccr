@@ -141,7 +141,7 @@ const measureElement = (element: unknown) => {
 
 /* Skeleton Styles - horizontal row layout */
 .skeleton-row {
-  @apply flex flex-row items-start gap-4 p-4 rounded-2xl border border-white/5;
+  @apply flex flex-row items-start gap-4 p-4 rounded-2xl border border-border-default/10;
 
   background: rgb(var(--color-bg-elevated-rgb) / 88%);
 }
@@ -151,13 +151,13 @@ const measureElement = (element: unknown) => {
 }
 
 .skeleton-icon {
-  @apply w-12 h-12 rounded-xl animate-pulse border border-white/10;
+  @apply w-12 h-12 rounded-xl animate-pulse border border-border-default/15;
 
   background: rgb(var(--color-bg-overlay-rgb) / 72%);
 }
 
 .skeleton-badge {
-  @apply w-14 h-4 rounded-full animate-pulse border border-white/10;
+  @apply w-14 h-4 rounded-full animate-pulse border border-border-default/15;
 
   background: rgb(var(--color-bg-overlay-rgb) / 72%);
 }
@@ -171,19 +171,19 @@ const measureElement = (element: unknown) => {
 }
 
 .skeleton-name {
-  @apply w-36 h-5 rounded animate-pulse border border-white/10;
+  @apply w-36 h-5 rounded animate-pulse border border-border-default/15;
 
   background: rgb(var(--color-bg-overlay-rgb) / 72%);
 }
 
 .skeleton-category {
-  @apply w-20 h-4 rounded-md animate-pulse border border-white/10;
+  @apply w-20 h-4 rounded-md animate-pulse border border-border-default/15;
 
   background: rgb(var(--color-bg-overlay-rgb) / 72%);
 }
 
 .skeleton-description {
-  @apply w-full h-10 rounded animate-pulse border border-white/10;
+  @apply w-full h-10 rounded animate-pulse border border-border-default/15;
 
   background: rgb(var(--color-bg-overlay-rgb) / 72%);
 }
@@ -193,13 +193,13 @@ const measureElement = (element: unknown) => {
 }
 
 .skeleton-tag {
-  @apply w-14 h-5 rounded-md animate-pulse border border-white/10;
+  @apply w-14 h-5 rounded-md animate-pulse border border-border-default/15;
 
   background: rgb(var(--color-bg-overlay-rgb) / 72%);
 }
 
 .skeleton-path {
-  @apply w-48 h-4 rounded animate-pulse border border-white/10;
+  @apply w-48 h-4 rounded animate-pulse border border-border-default/15;
 
   background: rgb(var(--color-bg-overlay-rgb) / 72%);
 }
@@ -209,8 +209,9 @@ const measureElement = (element: unknown) => {
 }
 
 .skeleton-action-btn {
-  @apply w-8 h-8 rounded-lg animate-pulse border border-white/10;
+  @apply w-8 h-8 rounded-lg animate-pulse border border-border-default/15;
 
   background: rgb(var(--color-bg-overlay-rgb) / 72%);
 }
 </style>
+

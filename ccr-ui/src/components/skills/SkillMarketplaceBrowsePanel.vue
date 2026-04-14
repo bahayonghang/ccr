@@ -50,7 +50,7 @@
           <SIcon
             name="Search"
             size="w-5 h-5"
-            class="absolute left-4 top-1/2 -translate-y-1/2 text-white/50"
+            class="absolute left-4 top-1/2 -translate-y-1/2 text-text-muted"
           />
           <input
             :value="searchQuery"
@@ -97,7 +97,7 @@
             <SIcon
               name="ArrowUpDown"
               size="w-3.5 h-3.5"
-              class="text-white/50"
+              class="text-text-muted"
             />
             <select
               :value="sortBy"
@@ -141,7 +141,7 @@
       <h3 class="mt-3 text-lg font-semibold text-white">
         {{ $t('skills.noDetectedPlatformsTitle') }}
       </h3>
-      <p class="mt-1 text-center text-sm text-white/75">
+      <p class="mt-1 text-center text-sm text-text-primary">
         {{ noPlatformHint }}
       </p>
     </div>
@@ -168,12 +168,12 @@
       <SIcon
         :name="contentMode === 'search' ? 'SearchX' : 'Store'"
         size="w-12 h-12"
-        class="text-white/50"
+        class="text-text-muted"
       />
       <h3 class="mt-4 text-lg font-semibold text-white">
         {{ emptyTitle }}
       </h3>
-      <p class="mt-1 text-sm text-white/80">
+      <p class="mt-1 text-sm text-text-primary">
         {{ emptyHint }}
       </p>
     </div>
@@ -404,7 +404,7 @@ onUnmounted(() => {
 
 <style scoped>
 .browse-section {
-  @apply flex flex-col gap-4 rounded-2xl border border-white/5 p-5;
+  @apply flex flex-col gap-4 rounded-2xl border border-border-default/10 p-5;
 
   background: rgb(0 0 0 / 30%);
 }
@@ -426,7 +426,7 @@ onUnmounted(() => {
 }
 
 .section-hint {
-  @apply text-xs text-white/50;
+  @apply text-xs text-text-muted;
 }
 
 .cache-badge {
@@ -437,9 +437,9 @@ onUnmounted(() => {
 }
 
 .btn-refresh {
-  @apply glass-surface flex items-center gap-1.5 rounded-lg border border-white/5 px-3 py-1.5
-         text-xs font-medium text-white/80 transition-colors
-         hover:border-white/10 hover:text-white disabled:opacity-50;
+  @apply glass-surface flex items-center gap-1.5 rounded-lg border border-border-default/10 px-3 py-1.5
+         text-xs font-medium text-text-primary transition-colors
+         hover:border-border-default/15 hover:text-white disabled:opacity-50;
 }
 
 .browse-controls {
@@ -451,7 +451,7 @@ onUnmounted(() => {
 }
 
 .search-input {
-  @apply glass-surface w-full rounded-xl border border-white/5
+  @apply glass-surface w-full rounded-xl border border-border-default/10
          py-3 pl-12 pr-4 text-sm font-medium text-white
          transition-[border-color,box-shadow]
          focus:border-accent-primary/50 focus:outline-none focus:ring-2 focus:ring-accent-primary/30;
@@ -481,7 +481,7 @@ onUnmounted(() => {
 }
 
 .sort-select {
-  @apply glass-surface flex items-center gap-1.5 rounded-lg border border-white/5 px-3 py-2 text-sm text-white/80;
+  @apply glass-surface flex items-center gap-1.5 rounded-lg border border-border-default/10 px-3 py-2 text-sm text-text-primary;
 }
 
 .sort-dropdown {
@@ -489,9 +489,9 @@ onUnmounted(() => {
 }
 
 .btn-batch {
-  @apply glass-surface flex items-center gap-1.5 rounded-lg border border-white/5 px-3 py-2
-         text-sm font-medium text-white/80 transition-colors
-         hover:border-white/10 hover:text-white;
+  @apply glass-surface flex items-center gap-1.5 rounded-lg border border-border-default/10 px-3 py-2
+         text-sm font-medium text-text-primary transition-colors
+         hover:border-border-default/15 hover:text-white;
 }
 
 .btn-batch--active {
@@ -501,7 +501,7 @@ onUnmounted(() => {
 }
 
 .state-box {
-  @apply flex flex-col items-center justify-center rounded-2xl border border-white/5 py-16;
+  @apply flex flex-col items-center justify-center rounded-2xl border border-border-default/10 py-16;
 
   background: rgb(0 0 0 / 20%);
 }
@@ -522,7 +522,7 @@ onUnmounted(() => {
 }
 
 .skeleton-card {
-  @apply flex flex-col gap-3 rounded-2xl border border-white/5 p-4;
+  @apply flex flex-col gap-3 rounded-2xl border border-border-default/10 p-4;
 
   background: rgb(0 0 0 / 30%);
 }
@@ -534,13 +534,13 @@ onUnmounted(() => {
 .skeleton-name { @apply glass-surface h-5 w-32 animate-pulse rounded; }
 .skeleton-desc { @apply flex flex-col gap-1.5; }
 .skeleton-line { @apply glass-surface h-3.5 animate-pulse rounded; }
-.skeleton-footer { @apply mt-auto flex items-center justify-between border-t border-white/5 pt-3; }
+.skeleton-footer { @apply mt-auto flex items-center justify-between border-t border-border-default/10 pt-3; }
 .skeleton-link { @apply glass-surface h-4 w-20 animate-pulse rounded; }
 .skeleton-btn { @apply glass-surface h-7 w-16 animate-pulse rounded-lg; }
 
 .batch-bar {
   @apply fixed bottom-6 left-1/2 z-40 flex -translate-x-1/2 items-center gap-4 rounded-2xl
-         border border-white/5 px-6 py-3 shadow-2xl;
+         border border-border-default/10 px-6 py-3 shadow-2xl;
 
   background: rgb(0 0 0 / 30%);
   backdrop-filter: blur(16px);
@@ -550,8 +550,8 @@ onUnmounted(() => {
 .batch-bar__actions { @apply flex items-center gap-2; }
 
 .batch-bar__clear {
-  @apply px-3 py-1.5 text-sm text-white/80 transition-colors
-         hover:bg-white/5 hover:text-white;
+  @apply px-3 py-1.5 text-sm text-text-primary transition-colors
+         hover:bg-bg-surface/70 hover:text-white;
 }
 
 .batch-bar__install {
@@ -570,3 +570,4 @@ onUnmounted(() => {
   transform: translateX(-50%) translateY(20px);
 }
 </style>
+

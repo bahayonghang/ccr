@@ -752,7 +752,7 @@ async function createAccount() {
 }
 
 .oauth-wizard__input--mono {
-  font-family: var(--font-mono, 'Maple Mono', monospace);
+  font-family: var(--font-mono);
 }
 
 .oauth-wizard__input--textarea {
@@ -901,7 +901,7 @@ async function createAccount() {
   border-radius: 0.25rem;
   background: rgb(24 24 27 / 100%);
   padding: 0.375rem 0.75rem;
-  font-family: var(--font-mono, 'Maple Mono', monospace);
+  font-family: var(--font-mono);
   font-size: 0.75rem;
   line-height: 1rem;
   color: rgb(212 212 216 / 100%);

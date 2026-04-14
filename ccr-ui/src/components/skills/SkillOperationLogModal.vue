@@ -26,7 +26,7 @@
               </h2>
             </div>
             <button
-              class="p-2 rounded-lg text-white/50 hover:text-white hover:bg-white/5 transition-colors"
+              class="p-2 rounded-lg text-text-muted hover:text-white hover:bg-bg-surface/70 transition-colors"
               @click="close"
             >
               <SIcon
@@ -48,7 +48,7 @@
                 size="w-8 h-8"
                 class="animate-spin text-accent-primary"
               />
-              <p class="text-white/80 text-sm mt-3">
+              <p class="text-text-primary text-sm mt-3">
                 {{ $t('common.loading') }}
               </p>
             </div>
@@ -85,9 +85,9 @@
               <SIcon
                 name="Inbox"
                 size="w-12 h-12"
-                class="text-white/50 opacity-40"
+                class="text-text-muted opacity-40"
               />
-              <p class="text-sm text-white/50 mt-3">
+              <p class="text-sm text-text-muted mt-3">
                 {{ $t('skills.noOperationLog') }}
               </p>
             </div>
@@ -283,13 +283,13 @@ function formatTime(timestamp: string): string {
 
 <style scoped>
 .modal-content {
-  @apply bg-black/40 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl
+  @apply bg-black/40 backdrop-blur-xl border border-border-default/15 rounded-2xl shadow-2xl
          shadow-2xl overflow-hidden;
 }
 
 .modal-header {
   @apply flex items-center justify-between p-4
-         border-b border-white/5 shrink-0;
+         border-b border-border-default/10 shrink-0;
 }
 
 .header-icon {
@@ -355,11 +355,11 @@ function formatTime(timestamp: string): string {
 }
 
 .log-preposition {
-  @apply text-white/50;
+  @apply text-text-muted;
 }
 
 .log-agent-name {
-  @apply font-medium text-white/80;
+  @apply font-medium text-text-primary;
 }
 
 .log-time {
@@ -402,3 +402,4 @@ function formatTime(timestamp: string): string {
   opacity: 0;
 }
 </style>
+

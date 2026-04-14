@@ -105,7 +105,7 @@
         </PageHeaderCard>
 
         <!-- Instruction Content -->
-        <div class="glass-effect rounded-2xl p-6 border border-white/20 shadow-sm">
+        <div class="glass-effect rounded-2xl p-6 border border-border-default/25 shadow-sm">
           <div class="flex items-center justify-between mb-4">
             <h2 class="text-lg font-bold text-[var(--color-text-primary)] flex items-center gap-2">
               <SIcon
@@ -290,3 +290,4 @@ const copyInstruction = async () => {
   }
 }
 </script>
+

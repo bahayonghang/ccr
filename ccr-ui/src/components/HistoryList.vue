@@ -6,7 +6,7 @@
         <h2 class="text-xl font-bold text-white">
           Operation History
         </h2>
-        <p class="text-sm text-white/80">
+        <p class="text-sm text-text-primary">
           {{ entries.length }} records found
         </p>
       </div>
@@ -26,7 +26,7 @@
     <!-- Empty State -->
     <div
       v-else-if="entries.length === 0"
-      class="flex-1 flex flex-col items-center justify-center text-white/50"
+      class="flex-1 flex flex-col items-center justify-center text-text-muted"
     >
       <div class="p-6 rounded-full glass-surface mb-4">
         <SIcon
@@ -35,7 +35,7 @@
           class="opacity-20"
         />
       </div>
-      <p class="text-lg font-medium text-white/80">
+      <p class="text-lg font-medium text-text-primary">
         No history records
       </p>
       <p class="text-sm">
@@ -102,7 +102,7 @@
                       <h3 class="font-bold text-white">
                         {{ getOperationLabel(entries[virtualRow.index].operation) }}
                       </h3>
-                      <div class="flex items-center gap-3 text-xs text-white/80 mt-1">
+                      <div class="flex items-center gap-3 text-xs text-text-primary mt-1">
                         <span class="flex items-center gap-1"><SIcon
                           name="Clock"
                           size="w-3 h-3"
@@ -127,13 +127,13 @@
                   <!-- Config Change -->
                   <div
                     v-if="entries[virtualRow.index].from_config && entries[virtualRow.index].to_config"
-                    class="flex items-center gap-2 p-2 rounded bg-white/5/50 border border-white/10 mb-2"
+                    class="flex items-center gap-2 p-2 rounded bg-bg-surface/70 border border-border-default/15 mb-2"
                   >
                     <code class="text-xs text-accent-danger bg-accent-danger/10 px-1.5 py-0.5 rounded">{{ entries[virtualRow.index].from_config }}</code>
                     <SIcon
                       name="ArrowRight"
                       size="w-3 h-3"
-                      class="text-white/50"
+                      class="text-text-muted"
                     />
                     <code class="text-xs text-accent-success bg-accent-success/10 px-1.5 py-0.5 rounded">{{ entries[virtualRow.index].to_config }}</code>
                   </div>
@@ -146,10 +146,10 @@
                     <div
                       v-for="change in entries[virtualRow.index].changes.slice(0, 3)"
                       :key="change.key"
-                      class="text-xs font-mono p-1.5 rounded bg-white/5/30 border border-white/5 grid grid-cols-[auto_1fr] gap-2"
+                      class="text-xs font-mono p-1.5 rounded bg-bg-surface/60 border border-border-default/10 grid grid-cols-[auto_1fr] gap-2"
                     >
                       <span class="font-bold text-white">{{ change.key }}</span>
-                      <div class="flex items-center gap-1 truncate text-white/50">
+                      <div class="flex items-center gap-1 truncate text-text-muted">
                         <span class="truncate">{{ change.old_value || '_' }}</span>
                         <span>→</span>
                         <span class="text-white truncate">{{ change.new_value || '_' }}</span>
@@ -163,7 +163,7 @@
                     </button>
                   </div>
                     
-                  <div class="mt-2 pt-2 border-t border-white/5 text-[10px] text-white/50 font-mono">
+                  <div class="mt-2 pt-2 border-t border-border-default/10 text-[10px] text-text-muted font-mono">
                     ID: {{ entries[virtualRow.index].id }}
                   </div>
                 </div>
@@ -236,3 +236,4 @@ const getOperationColor = (op: string) => ({
   'export': '#ec4899'
 }[op] || '#64748b')
 </script>
+

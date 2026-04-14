@@ -48,9 +48,10 @@ onMounted(async () => {
 
     <span
       v-if="isTauri && tauriVersion"
-      class="px-1.5 py-0.5 rounded bg-white/50 dark:bg-black/20 text-xs"
+      class="px-1.5 py-0.5 rounded bg-bg-surface/700 dark:bg-black/20 text-xs"
     >
       v{{ tauriVersion }}
     </span>
   </div>
 </template>
+

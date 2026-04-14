@@ -2,7 +2,7 @@
   <div class="account-list-table">
     <!-- Table Header -->
     <div
-      class="grid items-center gap-4 px-4 py-3 text-xs font-semibold uppercase tracking-wider text-white/50 border-b border-white/5 glass-effect/50 rounded-t-xl"
+      class="grid items-center gap-4 px-4 py-3 text-xs font-semibold uppercase tracking-wider text-text-muted border-b border-border-default/10 glass-effect/50 rounded-t-xl"
       :style="gridTemplateStyle"
     >
       <div class="flex items-center gap-2">
@@ -27,7 +27,7 @@
       <div
         v-for="(account, index) in accounts"
         :key="account.name"
-        class="group relative grid items-center gap-4 px-4 py-3 transition-colors duration-200 hover:bg-white/10/50"
+        class="group relative grid items-center gap-4 px-4 py-3 transition-colors duration-200 hover:bg-bg-elevated/80"
         :class="[
           account.is_current ? 'bg-platform-codex/5 hover:bg-platform-codex/10' : '',
           index === accounts.length - 1 ? 'rounded-b-xl' : ''
@@ -78,7 +78,7 @@
             </div>
             <p
               v-if="account.description"
-              class="text-xs text-white/50 truncate mt-0.5"
+              class="text-xs text-text-muted truncate mt-0.5"
             >
               {{ account.description }}
             </p>
@@ -86,7 +86,7 @@
         </div>
 
         <!-- Email Column -->
-        <div class="hidden sm:block text-sm text-white/80 truncate">
+        <div class="hidden sm:block text-sm text-text-primary truncate">
           {{ account.email || '—' }}
         </div>
 
@@ -105,7 +105,7 @@
         </div>
 
         <!-- Last Used Column -->
-        <div class="hidden lg:block text-sm text-white/50">
+        <div class="hidden lg:block text-sm text-text-muted">
           {{ account.last_used || '—' }}
         </div>
 
@@ -114,7 +114,7 @@
           <!-- Quick Switch Button (non-current, non-expired accounts) -->
           <button
             v-if="!account.is_current && !account.is_expired"
-            class="p-2 rounded-lg text-white/50 hover:text-accent-success hover:bg-accent-success/10 transition-colors duration-200 opacity-0 group-hover:opacity-100 focus:opacity-100"
+            class="p-2 rounded-lg text-text-muted hover:text-accent-success hover:bg-accent-success/10 transition-colors duration-200 opacity-0 group-hover:opacity-100 focus:opacity-100"
             :title="$t('codex.auth.switch')"
             :disabled="props.disabled"
             @click="$emit('switch', account.name)"
@@ -153,7 +153,7 @@
           <!-- Delete Button (non-virtual accounts) -->
           <button
             v-if="!account.is_virtual"
-            class="p-2 rounded-lg text-white/50 hover:text-accent-danger hover:bg-accent-danger/10 transition-colors duration-200 opacity-0 group-hover:opacity-100 focus:opacity-100"
+            class="p-2 rounded-lg text-text-muted hover:text-accent-danger hover:bg-accent-danger/10 transition-colors duration-200 opacity-0 group-hover:opacity-100 focus:opacity-100"
             :title="$t('codex.actions.delete')"
             :disabled="props.disabled"
             @click="$emit('delete', account.name)"
@@ -177,13 +177,13 @@
         <SIcon
           name="KeyRound"
           size="w-8 h-8"
-          class="text-white/50"
+          class="text-text-muted"
         />
       </div>
-      <p class="text-white/80">
+      <p class="text-text-primary">
         {{ $t('codex.auth.emptyState') }}
       </p>
-      <p class="text-sm text-white/50 mt-2">
+      <p class="text-sm text-text-muted mt-2">
         {{ $t('codex.auth.emptyStateHint') }}
       </p>
     </div>
@@ -248,7 +248,7 @@ const freshnessDotClass = (freshness: TokenFreshness) => {
 
 <style scoped>
 .account-list-table {
-  @apply glass-surface rounded-xl border border-white/5 overflow-hidden;
+  @apply glass-surface rounded-xl border border-border-default/10 overflow-hidden;
 }
 
 /* Responsive grid adjustments */
@@ -270,3 +270,4 @@ const freshnessDotClass = (freshness: TokenFreshness) => {
   }
 }
 </style>
+

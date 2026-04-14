@@ -11,7 +11,7 @@
     <template v-if="collapsed">
       <div class="flex flex-col items-center gap-3 pt-1">
         <button
-          class="p-2 rounded-lg text-white/50 hover:text-accent-primary hover:bg-white/5/50 transition-colors"
+          class="p-2 rounded-lg text-text-muted hover:text-accent-primary hover:bg-bg-surface/70 transition-colors"
           :title="$t('skills.expandPanel')"
           @click="$emit('toggle-collapse')"
         >
@@ -24,18 +24,18 @@
         <div class="w-8 h-px bg-border-subtle" />
 
         <button
-          class="p-2 rounded-lg hover:bg-white/5/50 transition-colors"
+          class="p-2 rounded-lg hover:bg-bg-surface/70 transition-colors"
           :title="$t('skills.searchPlaceholder')"
         >
           <SIcon
             name="Search"
             size="w-4 h-4"
-            class="text-white/50"
+            class="text-text-muted"
           />
         </button>
 
         <button
-          class="p-2 rounded-lg hover:bg-white/5/50 transition-colors"
+          class="p-2 rounded-lg hover:bg-bg-surface/70 transition-colors"
           :title="$t('skills.platforms')"
         >
           <SIcon
@@ -52,7 +52,7 @@
           v-for="platform in platforms"
           :key="platform.id"
           class="w-8 h-8 flex items-center justify-center rounded-lg cursor-pointer
-                 hover:bg-white/5/50 transition-colors duration-200 group relative"
+                 hover:bg-bg-surface/70 transition-colors duration-200 group relative"
           :class="selectedPlatform === platform.id ? 'bg-accent-primary/10' : ''"
           @click="selectPlatform(platform.id)"
         >
@@ -63,7 +63,7 @@
           />
           <!-- Tooltip -->
           <div
-            class="absolute left-full ml-2 px-2 py-1 bg-white/10 border border-white/5
+            class="absolute left-full ml-2 px-2 py-1 bg-bg-elevated/80 border border-border-default/10
                       rounded text-xs whitespace-nowrap opacity-0 group-hover:opacity-100
                       pointer-events-none transition-opacity z-50"
           >
@@ -86,8 +86,8 @@
           {{ $t('skills.filters') }}
         </h2>
         <button
-          class="p-1.5 rounded-lg text-white/50 hover:text-accent-primary
-                 hover:bg-white/5/80 transition-colors duration-200"
+          class="p-1.5 rounded-lg text-text-muted hover:text-accent-primary
+                 hover:bg-bg-elevated/80 transition-colors duration-200"
           :title="$t('skills.collapsePanel')"
           @click="$emit('toggle-collapse')"
         >
@@ -103,16 +103,16 @@
         <SIcon
           name="Search"
           size="w-4 h-4"
-          class="absolute left-3 top-1/2 -translate-y-1/2 text-white/50"
+          class="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted"
         />
         <input
           v-model="localSearch"
           type="text"
           :placeholder="$t('skills.searchPlaceholder')"
           class="w-full pl-10 pr-8 py-2.5 text-sm rounded-xl
-                 bg-white/5/50 border border-white/5
-                 text-white placeholder:text-white/50/50
-                 focus:border-accent-primary/50 focus:bg-white/5
+                 bg-bg-surface/70 border border-border-default/10
+                 text-white placeholder:text-text-muted/50
+                 focus:border-accent-primary/50 focus:bg-bg-surface/70
                  focus:outline-none focus:ring-2 focus:ring-accent-primary/20
                  transition-[border-color,box-shadow] duration-200"
           @input="debouncedSearchUpdate"
@@ -120,7 +120,7 @@
         <button
           v-if="localSearch"
           class="absolute right-3 top-1/2 -translate-y-1/2 p-1
-                 hover:bg-white/5 rounded-full text-white/50 transition-colors"
+                 hover:bg-bg-surface/70 rounded-full text-text-muted transition-colors"
           @click="clearSearch"
         >
           <SIcon
@@ -154,7 +154,7 @@
                 class="w-3 h-3 rounded-full border-2 transition-colors"
                 :class="selectedPlatform === 'all'
                   ? 'border-accent-primary bg-accent-primary'
-                  : 'border-white/10'"
+                  : 'border-border-default/15'"
               />
               <SIcon
                 name="LayoutGrid"
@@ -183,7 +183,7 @@
                 class="w-3 h-3 rounded-full border-2 transition-colors"
                 :class="selectedPlatform === platform.id
                   ? 'border-accent-primary bg-accent-primary'
-                  : 'border-white/10'"
+                  : 'border-border-default/15'"
               />
               <SIcon
                 :name="getPlatformIcon(platform.id)"
@@ -216,7 +216,7 @@
           <span>{{ $t('skills.source') }}</span>
         </div>
 
-        <div class="flex gap-1 p-1 rounded-xl bg-white/5/30 border border-white/5">
+        <div class="flex gap-1 p-1 rounded-xl bg-bg-surface/60 border border-border-default/10">
           <button
             v-for="opt in sourceOptions"
             :key="opt.value"
@@ -269,7 +269,7 @@
             </button>
             <button
               v-if="categories.length > maxDisplayCategories"
-              class="text-xs text-white/50 hover:text-accent-primary
+              class="text-xs text-text-muted hover:text-accent-primary
                      px-2 py-1 transition-colors"
               @click="showAllCategories = !showAllCategories"
             >
@@ -324,7 +324,7 @@
             </button>
             <button
               v-if="tags.length > maxDisplayTags"
-              class="text-xs text-white/50 hover:text-accent-primary
+              class="text-xs text-text-muted hover:text-accent-primary
                      px-2 py-1 transition-colors"
               @click="showAllTags = !showAllTags"
             >
@@ -542,17 +542,17 @@ watch(
 
 /* Filter Section */
 .filter-section {
-  @apply py-3 border-b border-white/5 last:border-b-0;
+  @apply py-3 border-b border-border-default/10 last:border-b-0;
 }
 
 .filter-section__header {
   @apply flex items-center gap-2 text-xs font-bold uppercase tracking-wide
-         text-white/80 mb-2 select-none;
+         text-text-primary mb-2 select-none;
 }
 
 .filter-section__count {
   @apply px-1.5 py-0.5 rounded text-[10px] font-bold font-mono
-         text-white/50 border border-white/10;
+         text-text-muted border border-border-default/15;
 
   background: rgb(var(--color-bg-overlay-rgb) / 72%);
 }
@@ -560,7 +560,7 @@ watch(
 /* Platform Item */
 .platform-item {
   @apply w-full flex items-center justify-between px-3 py-2 rounded-xl
-         text-sm text-white/80 cursor-pointer
+         text-sm text-text-primary cursor-pointer
          transition-colors duration-200;
 }
 
@@ -582,12 +582,12 @@ watch(
 }
 
 .platform-item--disabled:hover {
-  @apply bg-transparent text-white/80;
+  @apply bg-transparent text-text-primary;
 }
 
 .platform-item__count {
   @apply text-xs font-mono font-bold px-1.5 py-0.5 rounded
-         text-white/50 border border-white/10;
+         text-text-muted border border-border-default/15;
 
   background: rgb(var(--color-bg-overlay-rgb) / 72%);
 }
@@ -599,7 +599,7 @@ watch(
 /* Source Button */
 .source-btn {
   @apply flex-1 px-3 py-1.5 rounded-lg text-xs font-semibold
-         text-white/80 transition-colors duration-200;
+         text-text-primary transition-colors duration-200;
 }
 
 .source-btn:hover {
@@ -615,7 +615,7 @@ watch(
 /* Category Item */
 .category-item {
   @apply w-full text-left px-3 py-1.5 rounded-lg text-xs font-medium
-         text-white/80 hover:text-white
+         text-text-primary hover:text-white
          transition-colors duration-200;
 }
 
@@ -630,8 +630,8 @@ watch(
 /* Tag Item */
 .tag-item {
   @apply px-2 py-1 rounded-md text-xs font-medium
-         text-white/80 border border-white/10
-         hover:bg-white/5 hover:text-white
+         text-text-primary border border-border-default/15
+         hover:bg-bg-surface/70 hover:text-white
          transition-colors duration-200;
 
   background: rgb(var(--color-bg-overlay-rgb) / 72%);
@@ -694,3 +694,4 @@ watch(
   background: var(--color-border-default);
 }
 </style>
+

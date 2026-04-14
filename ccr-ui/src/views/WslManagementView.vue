@@ -173,14 +173,14 @@ onMounted(() => fetchDistros())
           <h1 class="text-xl font-bold text-white">
             WSL 环境管理
           </h1>
-          <p class="text-sm text-white/50">
+          <p class="text-sm text-text-muted">
             管理 Windows Subsystem for Linux 发行版配置
           </p>
         </div>
       </div>
       <div class="flex items-center gap-2">
         <button
-          class="flex items-center gap-2 px-4 py-2 rounded-lg glass-surface border border-white/20 text-white/80 hover:text-white hover:border-accent-primary/30 transition-colors text-sm"
+          class="flex items-center gap-2 px-4 py-2 rounded-lg glass-surface border border-border-default/25 text-text-primary hover:text-white hover:border-accent-primary/30 transition-colors text-sm"
           :disabled="isRefreshing"
           @click="refresh"
         >
@@ -209,16 +209,16 @@ onMounted(() => fetchDistros())
     <!-- 缓存状态 -->
     <div
       v-if="cacheStatus"
-      class="flex items-center justify-between px-4 py-2 rounded-lg glass-surface border border-white/20 text-sm"
+      class="flex items-center justify-between px-4 py-2 rounded-lg glass-surface border border-border-default/25 text-sm"
     >
       <div class="flex items-center gap-4">
         <div class="flex items-center gap-2">
           <SIcon
             name="Database"
             size="w-4 h-4"
-            class="text-white/50"
+            class="text-text-muted"
           />
-          <span class="text-white/80">缓存状态:</span>
+          <span class="text-text-primary">缓存状态:</span>
           <span
             :class="cacheStatus.has_disk_cache ? 'text-emerald-400' : 'text-text-muted'"
           >
@@ -229,8 +229,8 @@ onMounted(() => fetchDistros())
           v-if="cacheStatus.has_disk_cache"
           class="flex items-center gap-2"
         >
-          <span class="text-white/50">|</span>
-          <span class="text-white/80">缓存时间:</span>
+          <span class="text-text-muted">|</span>
+          <span class="text-text-primary">缓存时间:</span>
           <span class="text-white">{{ formatCacheAge(cacheStatus.age_secs) }}</span>
           <span
             v-if="cacheStatus.is_expired"
@@ -241,7 +241,7 @@ onMounted(() => fetchDistros())
         </div>
       </div>
       <button
-        class="flex items-center gap-1.5 px-2 py-1 rounded text-xs text-white/50 hover:text-white/80 hover: transition-colors"
+        class="flex items-center gap-1.5 px-2 py-1 rounded text-xs text-text-muted hover:text-text-primary hover: transition-colors"
         @click="clearCache"
       >
         <SIcon
@@ -263,17 +263,17 @@ onMounted(() => fetchDistros())
     <!-- 无发行版 -->
     <div
       v-else-if="distros.length === 0"
-      class="rounded-xl border border-white/10 glass-surface p-8 text-center"
+      class="rounded-xl border border-border-default/15 glass-surface p-8 text-center"
     >
       <SIcon
         name="Terminal"
         size="w-12 h-12"
-        class="mx-auto text-white/50 mb-3"
+        class="mx-auto text-text-muted mb-3"
       />
-      <p class="text-white/80 font-medium">
+      <p class="text-text-primary font-medium">
         未检测到 WSL 发行版
       </p>
-      <p class="text-sm text-white/50 mt-1">
+      <p class="text-sm text-text-muted mt-1">
         请先安装 WSL 并配置至少一个 Linux 发行版
       </p>
     </div>
@@ -285,7 +285,7 @@ onMounted(() => fetchDistros())
     >
       <!-- 左侧：发行版列表 -->
       <div class="col-span-4 space-y-3">
-        <h2 class="text-xs font-bold uppercase tracking-wider text-white/50 px-1">
+        <h2 class="text-xs font-bold uppercase tracking-wider text-text-muted px-1">
           发行版
         </h2>
         <div class="space-y-2">
@@ -293,7 +293,7 @@ onMounted(() => fetchDistros())
             v-for="distro in distros"
             :key="distro.name"
             class="w-full flex items-center gap-3 p-3 rounded-xl border transition-colors text-left"
-            :class="[ selectedDistro === distro.name ? 'bg-accent-primary/10 border-accent-primary/30 text-accent-primary' : 'glass-surface border-white/20 text-white/80 hover:text-white hover:border-border-accent' ]"
+            :class="[ selectedDistro === distro.name ? 'bg-accent-primary/10 border-accent-primary/30 text-accent-primary' : 'glass-surface border-border-default/25 text-text-primary hover:text-white hover:border-border-accent' ]"
             @click="selectDistro(distro.name)"
           >
             <SIcon
@@ -323,7 +323,7 @@ onMounted(() => fetchDistros())
       <!-- 右侧：详情面板 -->
       <div class="col-span-8 space-y-6">
         <!-- CLI 工具检测 -->
-        <div class="rounded-xl border border-white/10 glass-surface p-4">
+        <div class="rounded-xl border border-border-default/15 glass-surface p-4">
           <h3 class="text-sm font-semibold text-white mb-3">
             AI CLI 工具状态
           </h3>
@@ -345,7 +345,7 @@ onMounted(() => fetchDistros())
                 size="w-4 h-4"
                 class="text-text-muted"
               />
-              <span :class="installed ? 'text-white' : 'text-white/50'">
+              <span :class="installed ? 'text-white' : 'text-text-muted'">
                 {{ tool }}
               </span>
             </div>
@@ -353,7 +353,7 @@ onMounted(() => fetchDistros())
         </div>
 
         <!-- 配置浏览 -->
-        <div class="rounded-xl border border-white/10 glass-surface p-4">
+        <div class="rounded-xl border border-border-default/15 glass-surface p-4">
           <div class="flex items-center justify-between mb-3">
             <h3 class="text-sm font-semibold text-white flex items-center gap-2">
               <SIcon
@@ -364,7 +364,7 @@ onMounted(() => fetchDistros())
             </h3>
             <select
               v-model="selectedPlatform"
-              class="px-2 py-1 rounded-lg border border-white/10 text-xs text-white/80"
+              class="px-2 py-1 rounded-lg border border-border-default/15 text-xs text-text-primary"
               @change="readConfig"
             >
               <option
@@ -376,11 +376,11 @@ onMounted(() => fetchDistros())
               </option>
             </select>
           </div>
-          <pre class="p-3 rounded-lg text-xs text-white/80 font-mono overflow-auto max-h-64 whitespace-pre-wrap">{{ configContent || '(空)' }}</pre>
+          <pre class="p-3 rounded-lg text-xs text-text-primary font-mono overflow-auto max-h-64 whitespace-pre-wrap">{{ configContent || '(空)' }}</pre>
         </div>
 
         <!-- 同步操作 -->
-        <div class="rounded-xl border border-white/10 glass-surface p-4">
+        <div class="rounded-xl border border-border-default/15 glass-surface p-4">
           <h3 class="text-sm font-semibold text-white mb-3">
             配置同步
           </h3>
@@ -397,7 +397,7 @@ onMounted(() => fetchDistros())
               推送到 WSL
             </button>
             <button
-              class="flex items-center gap-2 px-4 py-2 rounded-lg border border-white/10 text-white/80 text-sm font-medium hover:text-white hover:border-accent-primary/30 transition-colors"
+              class="flex items-center gap-2 px-4 py-2 rounded-lg border border-border-default/15 text-text-primary text-sm font-medium hover:text-white hover:border-accent-primary/30 transition-colors"
               :disabled="isSyncing"
               @click="syncConfig('wslToLocal')"
             >
@@ -410,7 +410,7 @@ onMounted(() => fetchDistros())
           </div>
           <p
             v-if="syncMessage"
-            class="mt-2 text-xs text-white/50"
+            class="mt-2 text-xs text-text-muted"
           >
             {{ syncMessage }}
           </p>
@@ -419,3 +419,4 @@ onMounted(() => fetchDistros())
     </div>
   </div>
 </template>
+

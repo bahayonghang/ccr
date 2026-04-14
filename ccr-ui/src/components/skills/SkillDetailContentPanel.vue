@@ -9,7 +9,7 @@
         size="w-8 h-8"
         class="animate-spin text-accent-primary"
       />
-      <p class="mt-3 text-sm text-white/80">
+      <p class="mt-3 text-sm text-text-primary">
         {{ loadingLabel }}
       </p>
     </div>
@@ -62,7 +62,7 @@
         />
         <p
           v-else
-          class="py-8 text-center text-sm italic text-white/50"
+          class="py-8 text-center text-sm italic text-text-muted"
         >
           {{ noContentLabel }}
         </p>
@@ -183,7 +183,7 @@ function handleInput(event: Event) {
 }
 
 .content-divider__label {
-  @apply whitespace-nowrap text-xs font-bold uppercase tracking-wide text-white/50;
+  @apply whitespace-nowrap text-xs font-bold uppercase tracking-wide text-text-muted;
 }
 
 .content-divider::after {
@@ -195,7 +195,7 @@ function handleInput(event: Event) {
 }
 
 .markdown-content {
-  @apply rounded-xl border border-white/5 p-4 overflow-x-auto;
+  @apply rounded-xl border border-border-default/10 p-4 overflow-x-auto;
 
   background: rgb(0 0 0 / 30%);
 }
@@ -244,7 +244,7 @@ function handleInput(event: Event) {
 }
 
 .markdown-content .prose :deep(blockquote) {
-  @apply my-3 border-l-2 pl-4 text-white/80 italic;
+  @apply my-3 border-l-2 pl-4 text-text-primary italic;
 
   border-color: rgb(var(--color-accent-primary-rgb) / 30%);
 }
@@ -264,15 +264,15 @@ function handleInput(event: Event) {
 }
 
 .markdown-content .prose :deep(th) {
-  @apply border-b border-white/5 px-3 py-2 text-left font-semibold;
+  @apply border-b border-border-default/10 px-3 py-2 text-left font-semibold;
 }
 
 .markdown-content .prose :deep(td) {
-  @apply border-b border-white/5 px-3 py-2;
+  @apply border-b border-border-default/10 px-3 py-2;
 }
 
 .edit-content {
-  @apply rounded-xl border border-white/5 overflow-hidden;
+  @apply rounded-xl border border-border-default/10 overflow-hidden;
 
   background: rgb(0 0 0 / 30%);
 }
@@ -289,3 +289,4 @@ function handleInput(event: Event) {
   @apply px-4 py-2 rounded-xl text-sm font-semibold bg-accent-primary text-white transition-colors hover:bg-accent-primary/90;
 }
 </style>
+

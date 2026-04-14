@@ -1,5 +1,5 @@
 /* ============================================
-   CCR-UI Apple Reference Glass System
+   CCR-UI Claude Editorial Surface System
    Base Styles - Reset & Global Styles
    ============================================ */
 
@@ -198,7 +198,7 @@
         z-index: var(--z-toast);
         padding: var(--space-3) var(--space-6);
         background: var(--color-accent-primary);
-        color: white;
+        color: var(--color-text-inverted);
         font-weight: var(--font-semibold);
         border-radius: var(--radius-lg);
         transition: top var(--duration-fast) var(--ease-out);
@@ -211,9 +211,9 @@
     /* 统一玻璃卡片样式 (全局可用) */
     .glass-card {
         background: var(--surface-card-bg);
-        backdrop-filter: var(--liquid-glass-blur);
+        backdrop-filter: var(--surface-card-blur);
         border: 1px solid var(--surface-card-border);
-        box-shadow: var(--surface-card-shadow), var(--liquid-glass-highlight);
+        box-shadow: var(--surface-card-shadow), var(--glass-inner-glow);
         border-radius: var(--radius-xl);
         overflow: hidden;
         color: var(--color-text-primary);
@@ -289,7 +289,7 @@
         color: var(--color-text-muted);
     }
 
-    /* 品牌渐变文字 */
+    /* 品牌强调文字 */
     .brand-gradient-text {
         background: var(--gradient-brand);
         background-clip: text;

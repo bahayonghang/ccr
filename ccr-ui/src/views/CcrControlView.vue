@@ -49,7 +49,7 @@
               v{{ versionInfo.current_version }}
             </span>
           </h1>
-          <p class="text-xs text-white/80">
+          <p class="text-xs text-text-primary">
             {{ $t('ccrControl.description') }}
           </p>
         </div>
@@ -57,7 +57,7 @@
 
       <!-- 右侧装饰或状态 -->
       <div class="flex items-center justify-between gap-4 sm:justify-end">
-        <div class="flex items-center gap-2 text-xs font-mono text-white/50">
+        <div class="flex items-center gap-2 text-xs font-mono text-text-muted">
           <span class="w-2 h-2 rounded-full bg-accent-primary animate-pulse" />
           System Online
         </div>
@@ -83,7 +83,7 @@
               class="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-bold transition-colors duration-300 relative overflow-hidden group"
               :class="activeTab === tab.id 
                 ? 'bg-accent-primary/10 text-accent-primary shadow-neon-jade-sm' 
-                : 'text-white/50 hover:bg-bg-hover hover:text-white'"
+                : 'text-text-muted hover:bg-bg-hover hover:text-white'"
               @click="activeTab = tab.id"
             >
               <SIcon
@@ -120,7 +120,7 @@
                       class="flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors border border-transparent"
                       :class="selectedModuleId === mod.id
                         ? 'bg-accent-primary/20 text-accent-primary border-accent-primary/30'
-                        : 'bg-bg-secondary text-white/50 hover:bg-bg-hover hover:text-white'"
+                        : 'bg-bg-secondary text-text-muted hover:bg-bg-hover hover:text-white'"
                       @click="selectModule(mod.id)"
                     >
                       {{ mod.name }}
@@ -144,7 +144,7 @@
                     >
                       <div
                         class="mt-0.5 w-7 h-7 rounded-lg bg-bg-secondary flex items-center justify-center group-hover:scale-110 transition-transform"
-                        :class="selectedCommand?.command === cmd.command ? 'bg-accent-primary text-white' : 'text-white/50 group-hover:text-accent-primary'"
+                        :class="selectedCommand?.command === cmd.command ? 'bg-accent-primary text-white' : 'text-text-muted group-hover:text-accent-primary'"
                       >
                         <SIcon
                           name="Terminal"
@@ -158,10 +158,10 @@
                             :class="selectedCommand?.command === cmd.command ? 'text-accent-primary' : 'text-white'"
                           >{{ cmd.name }}</span>
                         </div>
-                        <div class="text-[10px] font-mono opacity-60 mb-1 text-white/80">
+                        <div class="text-[10px] font-mono opacity-60 mb-1 text-text-primary">
                           ccr {{ cmd.command }}
                         </div>
-                        <p class="text-[10px] text-white/50 line-clamp-2 leading-relaxed">
+                        <p class="text-[10px] text-text-muted line-clamp-2 leading-relaxed">
                           {{ cmd.description }}
                         </p>
                       </div>
@@ -198,7 +198,7 @@
               >
                 <div
                   v-if="favorites.length === 0"
-                  class="h-full flex flex-col items-center justify-center text-white/50"
+                  class="h-full flex flex-col items-center justify-center text-text-muted"
                 >
                   <SIcon
                     name="Star"
@@ -221,7 +221,7 @@
                     <div class="mb-2 flex items-center justify-between">
                       <span class="text-xs font-bold text-accent-warning">{{ fav.display_name || fav.command }}</span>
                     </div>
-                    <div class="mb-2 text-[10px] font-mono text-white/80">
+                    <div class="mb-2 text-[10px] font-mono text-text-primary">
                       ccr {{ fav.command }}
                     </div>
                     <div class="flex justify-end text-accent-warning">
@@ -234,7 +234,7 @@
                   </button>
                   <button
                     type="button"
-                    class="absolute right-3 top-3 rounded-md p-1 text-white/50 transition-colors hover:text-accent-danger focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-danger/40"
+                    class="absolute right-3 top-3 rounded-md p-1 text-text-muted transition-colors hover:text-accent-danger focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-danger/40"
                     :aria-label="`Remove favorite ${fav.display_name || fav.command}`"
                     @click="removeFromFavorites(fav.id)"
                   >
@@ -255,7 +255,7 @@
                 <div class="p-2 border-b border-border-color flex justify-end">
                   <button 
                     v-if="history.length > 0"
-                    class="text-[10px] flex items-center gap-1 text-white/50 hover:text-accent-danger px-2 py-1 hover:bg-bg-hover rounded transition-colors"
+                    class="text-[10px] flex items-center gap-1 text-text-muted hover:text-accent-danger px-2 py-1 hover:bg-bg-hover rounded transition-colors"
                     @click="clearHistoryData"
                   >
                     <SIcon
@@ -268,7 +268,7 @@
                 <div class="flex-1 overflow-y-auto custom-scrollbar p-2 space-y-2">
                   <div
                     v-if="history.length === 0"
-                    class="h-full flex flex-col items-center justify-center text-white/50"
+                    class="h-full flex flex-col items-center justify-center text-text-muted"
                   >
                     <SIcon
                       name="History"
@@ -293,7 +293,7 @@
                       <div class="text-xs font-mono font-bold truncate text-white">
                         {{ item.command }}
                       </div>
-                      <div class="text-[10px] text-white/50 flex items-center gap-2">
+                      <div class="text-[10px] text-text-muted flex items-center gap-2">
                         <span>{{ formatTime(item.executed_at) }}</span>
                         <span>{{ item.duration_ms }}ms</span>
                       </div>
@@ -301,7 +301,7 @@
                     <SIcon
                       name="Play"
                       size="w-3 h-3"
-                      class="text-white/50 opacity-0 group-hover:opacity-100 transition-opacity"
+                      class="text-text-muted opacity-0 group-hover:opacity-100 transition-opacity"
                     />
                   </button>
                 </div>
@@ -333,7 +333,7 @@
               <!-- 命令预览 & 执行按钮行 -->
               <div class="mb-4 flex flex-col gap-4 sm:flex-row sm:items-center">
                 <div class="flex min-w-0 flex-1 items-center gap-2 rounded-lg border border-accent-primary/20 bg-bg-secondary px-4 py-2.5 font-mono text-sm text-accent-primary shadow-inner">
-                  <span class="text-white/50 select-none">$</span>
+                  <span class="text-text-muted select-none">$</span>
                   <span class="min-w-0 truncate">ccr {{ selectedCommand.command }}</span>
                 </div>
                 <button
@@ -372,7 +372,7 @@
                   :key="arg.name"
                 >
                   <label
-                    class="block text-[10px] font-bold text-white/80 mb-1 ml-1 uppercase"
+                    class="block text-[10px] font-bold text-text-primary mb-1 ml-1 uppercase"
                     :for="argDomId(arg.name)"
                   >{{ arg.name }} <span
                     v-if="arg.required"
@@ -426,13 +426,13 @@
                       class="cursor-pointer flex-1"
                     >
                       <div class="text-xs font-medium text-white">{{ flag.name }}</div>
-                      <div class="text-[10px] font-mono text-white/50">{{ flag.flag }}</div>
+                      <div class="text-[10px] font-mono text-text-muted">{{ flag.flag }}</div>
                     </label>
                   </template>
                   <template v-else>
                     <div class="flex-1">
                       <label
-                        class="mb-1 block text-[10px] text-white/50"
+                        class="mb-1 block text-[10px] text-text-muted"
                         :for="flagDomId(flag.name)"
                       >
                         {{ flag.name }} <code class="bg-bg-tertiary px-1 rounded">{{ flag.flag }}</code>
@@ -451,7 +451,7 @@
               
             <div
               v-else
-              class="py-8 flex flex-col items-center justify-center text-white/50 opacity-50"
+              class="py-8 flex flex-col items-center justify-center text-text-muted opacity-50"
             >
               <SIcon
                 name="Terminal"
@@ -478,7 +478,7 @@
                 />
               </div>
               <span class="text-xs font-bold text-white">{{ $t('ccrControl.output') }}</span>
-              <span class="text-[10px] px-1.5 py-0.5 rounded-full bg-bg-tertiary text-white/50 font-mono">{{ outputLines.length }} lines</span>
+              <span class="text-[10px] px-1.5 py-0.5 rounded-full bg-bg-tertiary text-text-muted font-mono">{{ outputLines.length }} lines</span>
             </div>
             <div class="flex items-center gap-3">
               <!-- Exit Code Badge -->
@@ -496,7 +496,7 @@
               <!-- Clear Button -->
               <button
                 type="button"
-                class="p-1.5 rounded-lg hover:bg-bg-hover text-white/50 hover:text-accent-danger transition-[color,background-color,transform] active:scale-95"
+                class="p-1.5 rounded-lg hover:bg-bg-hover text-text-muted hover:text-accent-danger transition-[color,background-color,transform] active:scale-95"
                 :title="$t('ccrControl.clearOutput')"
                 :aria-label="$t('ccrControl.clearOutput')"
                 @click="clearOutput"
@@ -543,7 +543,7 @@
                 <div
                   v-for="(_, idx) in outputLines"
                   :key="idx" 
-                  class="break-all whitespace-pre-wrap py-[1px] font-mono text-text-secondary hover:bg-white/5 transition-colors border-l-2 border-transparent hover:border-accent-primary pl-2 -ml-2"
+                  class="break-all whitespace-pre-wrap py-[1px] font-mono text-text-secondary hover:bg-bg-surface/70 transition-colors border-l-2 border-transparent hover:border-accent-primary pl-2 -ml-2"
                 >
                   <span class="inline-block w-8 text-right mr-4 text-[10px] text-text-muted select-none opacity-50">{{ idx + 1 }}</span>
                   <span v-html="renderedOutputLines[idx] ?? ''" />
@@ -805,3 +805,4 @@ loadVersionInfo()
 :deep(.ansi-cyan-fg) { color: var(--accent-tertiary); }
 :deep(.ansi-white-fg) { color: var(--text-muted); }
 </style>
+

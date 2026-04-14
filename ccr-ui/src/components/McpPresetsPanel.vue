@@ -1,5 +1,5 @@
 <template>
-  <div class="glass-effect rounded-3xl p-6 border border-white/20 mb-6">
+  <div class="glass-effect rounded-3xl p-6 border border-border-default/25 mb-6">
     <!-- Header -->
     <div class="flex items-center justify-between mb-6">
       <div class="flex items-center gap-3">
@@ -48,7 +48,7 @@
         v-for="preset in presets"
         v-else
         :key="preset.id"
-        class="group relative rounded-2xl p-4 border border-white/10 bg-gradient-to-br from-white/5 to-white/10 hover:border-accent-secondary/30 hover:shadow-lg transition-[border-color,box-shadow] duration-300 cursor-pointer"
+        class="group relative rounded-2xl p-4 border border-border-default/15 bg-gradient-to-br from-white/5 to-white/10 hover:border-accent-secondary/30 hover:shadow-lg transition-[border-color,box-shadow] duration-300 cursor-pointer"
         @click="handlePresetClick(preset)"
       >
         <!-- Tags Badge -->
@@ -111,7 +111,7 @@
       @click="closeInstallModal"
     >
       <div
-        class="glass-effect rounded-3xl p-8 max-w-lg w-full shadow-2xl border border-white/30"
+        class="glass-effect rounded-3xl p-8 max-w-lg w-full shadow-2xl border border-border-default/30"
         @click.stop
       >
         <!-- Header -->
@@ -165,7 +165,7 @@
           <input
             v-model="apiKeyValue"
             type="password"
-            class="w-full px-4 py-3 rounded-xl bg-white/50 border border-border-default focus:border-accent-secondary focus:ring-4 focus:ring-accent-secondary/10 outline-none transition-[border-color,box-shadow] font-mono text-sm"
+            class="w-full px-4 py-3 rounded-xl bg-bg-surface/700 border border-border-default focus:border-accent-secondary focus:ring-4 focus:ring-accent-secondary/10 outline-none transition-[border-color,box-shadow] font-mono text-sm"
             :placeholder="`${$t('mcp.presets.enterApiKey')} ${selectedPreset.api_key_env}`"
           >
           <p class="text-xs text-text-muted mt-2">
@@ -371,3 +371,4 @@ onMounted(() => {
   loadPresets()
 })
 </script>
+

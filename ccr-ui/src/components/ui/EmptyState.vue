@@ -21,7 +21,7 @@
     </p>
     <button
       v-if="actionText && onAction"
-      class="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-full border border-accent-primary/10 bg-accent-primary px-5 py-2.5 text-base font-medium text-text-inverted transition-[background-color,transform,box-shadow] duration-200 ease-out hover:-translate-y-px hover:bg-accent-primary-hover hover:shadow-glow-primary active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary/30"
+      class="inline-flex min-h-[44px] items-center justify-center gap-2 rounded-full border border-accent-primary/15 bg-accent-primary px-5 py-2.5 text-base font-medium text-text-inverted transition-[background-color,transform,box-shadow] duration-200 ease-out hover:-translate-y-px hover:bg-accent-primary-hover hover:shadow-glow-primary active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary/30"
       @click="onAction"
     >
       <SIcon
@@ -63,7 +63,7 @@ withDefaults(defineProps<Props>(), {
 .empty-state__icon {
   border: 1px solid rgb(var(--color-border-default-rgb) / 10%);
   background:
-    linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 100%), rgb(var(--color-bg-surface-rgb) / 82%));
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 68%);
+    linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 100%), rgb(var(--color-bg-surface-rgb) / 88%));
+  box-shadow: inset 0 1px 0 rgb(255 251 245 / 70%);
 }
 </style>

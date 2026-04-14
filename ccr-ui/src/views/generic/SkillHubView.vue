@@ -257,8 +257,8 @@
             </div>
           </div>
 
-          <div class="glass-effect rounded-xl border border-white/20 shadow-sm overflow-hidden">
-            <div class="p-4 border-b border-white/10 flex items-center justify-between gap-3">
+          <div class="glass-effect rounded-xl border border-border-default/25 shadow-sm overflow-hidden">
+            <div class="p-4 border-b border-border-default/15 flex items-center justify-between gap-3">
               <div class="flex items-center gap-2 text-sm font-semibold text-[var(--color-text-primary)]">
                 <SIcon
                   name="Package"
@@ -549,7 +549,7 @@ onMounted(async () => {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-family: var(--font-mono, 'Maple Mono', monospace);
+  font-family: var(--font-mono);
   font-size: 1.5rem;
   line-height: 2rem;
   font-weight: 700;
@@ -721,7 +721,7 @@ onMounted(async () => {
 }
 
 .skill-hub-view__agent-count {
-  font-family: var(--font-mono, 'Maple Mono', monospace);
+  font-family: var(--font-mono);
   color: var(--color-text-secondary);
 }
 
@@ -896,7 +896,7 @@ onMounted(async () => {
 }
 
 .skill-hub-view__section-meta {
-  font-family: var(--font-mono, 'Maple Mono', monospace);
+  font-family: var(--font-mono);
   color: var(--color-text-muted);
 }
 
@@ -927,3 +927,4 @@ onMounted(async () => {
   }
 }
 </style>
+

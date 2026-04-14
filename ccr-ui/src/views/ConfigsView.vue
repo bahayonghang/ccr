@@ -104,14 +104,14 @@
             </div>
           </div>
 
-          <div class="flex gap-4 border-b border-white/5 pb-4">
+          <div class="flex gap-4 border-b border-border-default/10 pb-4">
             <button
               v-for="tab in tabs"
               :key="tab.id"
               class="flex items-center gap-2 pb-2 px-2 text-sm font-bold border-b-2 transition-colors duration-300"
               :class="activeTab === tab.id
                 ? 'border-accent-primary text-accent-primary'
-                : 'border-transparent text-white/50 hover:text-white/80'"
+                : 'border-transparent text-text-muted hover:text-text-primary'"
               @click="activeTab = tab.id"
             >
               <SIcon
@@ -511,3 +511,4 @@ const handleConfigClick = async (name: string) => {
 watch(activeTab, (val) => { if (val === 'history') loadHistory() })
 onMounted(refreshData)
 </script>
+

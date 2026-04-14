@@ -1,5 +1,5 @@
 <template>
-  <div class="glass-effect rounded-3xl p-6 border border-white/20">
+  <div class="glass-effect rounded-3xl p-6 border border-border-default/25">
     <!-- Header -->
     <div class="flex items-center justify-between mb-6">
       <div class="flex items-center gap-3">
@@ -126,7 +126,7 @@
         </div>
 
         <!-- Stats Row -->
-        <div class="flex items-center gap-4 mt-3 pt-3 border-t border-white/5">
+        <div class="flex items-center gap-4 mt-3 pt-3 border-t border-border-default/10">
           <div class="flex items-center gap-1.5 text-xs text-text-muted">
             <SIcon
               name="GitBranch"
@@ -162,8 +162,8 @@
         class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md"
         @click.self="showAddModal = false"
       >
-        <div class="w-full max-w-md m-4 bg-bg-elevated rounded-2xl border border-white/10 overflow-hidden">
-          <div class="flex items-center justify-between p-4 border-b border-white/10">
+        <div class="w-full max-w-md m-4 bg-bg-elevated rounded-2xl border border-border-default/15 overflow-hidden">
+          <div class="flex items-center justify-between p-4 border-b border-border-default/15">
             <h3 class="text-base font-bold text-text-primary">
               {{ $t('skills.repositories.addTitle') }}
             </h3>
@@ -220,7 +220,7 @@
             </div>
           </div>
 
-          <div class="flex items-center justify-end gap-3 p-4 border-t border-white/10">
+          <div class="flex items-center justify-end gap-3 p-4 border-t border-border-default/15">
             <button
               class="px-4 py-2 text-xs rounded-lg bg-bg-surface text-text-secondary"
               @click="showAddModal = false"
@@ -334,3 +334,4 @@ const formatTime = (timestamp: string) => {
   return date.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
 }
 </script>
+

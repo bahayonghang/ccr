@@ -321,19 +321,19 @@
           <!-- Empty State -->
           <div
             v-else-if="accounts.length === 0"
-            class="empty-state glass-effect rounded-2xl border border-white/5"
+            class="empty-state glass-effect rounded-2xl border border-border-default/10"
           >
             <div class="p-4 rounded-full glass-surface mb-4">
               <SIcon
                 name="KeyRound"
                 size="w-8 h-8"
-                class="text-white/50"
+                class="text-text-muted"
               />
             </div>
-            <p class="text-white/80">
+            <p class="text-text-primary">
               {{ $t('codex.auth.emptyState') }}
             </p>
-            <p class="text-sm text-white/50 mt-2">
+            <p class="text-sm text-text-muted mt-2">
               {{ $t('codex.auth.emptyStateHint') }}
             </p>
           </div>
@@ -372,7 +372,7 @@
           >
             <template #header="{ titleId }">
               <!-- Modal Header -->
-              <div class="px-6 py-4 border-b border-white/5 flex items-center justify-between sticky top-0 bg-white/5/95 backdrop-blur z-10">
+              <div class="px-6 py-4 border-b border-border-default/10 flex items-center justify-between sticky top-0 bg-bg-elevated/95 backdrop-blur z-10">
                 <h2
                   :id="titleId"
                   class="text-xl font-bold text-white"
@@ -422,7 +422,7 @@
 
               <div class="space-y-4">
                 <div class="space-y-1.5">
-                  <label class="text-sm font-semibold text-white/80">
+                  <label class="text-sm font-semibold text-text-primary">
                     {{ $t('codex.auth.fields.accountName') }} <span class="text-red-500">*</span>
                   </label>
                   <input
@@ -433,7 +433,7 @@
                   >
                 </div>
                 <div class="space-y-1.5">
-                  <label class="text-sm font-semibold text-white/80">
+                  <label class="text-sm font-semibold text-text-primary">
                     {{ $t('codex.auth.fields.description') }}
                   </label>
                   <input
@@ -444,7 +444,7 @@
                   >
                 </div>
                 <div class="space-y-1.5">
-                  <label class="text-sm font-semibold text-white/80">
+                  <label class="text-sm font-semibold text-text-primary">
                     {{ $t('codex.auth.fields.expiresAt') }}
                   </label>
                   <input
@@ -452,16 +452,16 @@
                     type="datetime-local"
                     class="input"
                   >
-                  <p class="text-xs text-white/50 mt-1">
+                  <p class="text-xs text-text-muted mt-1">
                     {{ $t('codex.auth.expiresAtHint') }}
                   </p>
                 </div>
-                <div class="flex items-center gap-3 p-3 rounded-lg glass-surface border border-white/5">
+                <div class="flex items-center gap-3 p-3 rounded-lg glass-surface border border-border-default/10">
                   <input
                     id="forceOverwrite"
                     v-model="saveForm.force"
                     type="checkbox"
-                    class="w-5 h-5 rounded border-white/10 text-accent-primary focus:ring-accent-primary/20"
+                    class="w-5 h-5 rounded border-border-default/15 text-accent-primary focus:ring-accent-primary/20"
                   >
                   <label
                     for="forceOverwrite"
@@ -475,7 +475,7 @@
 
             <template #footer>
               <!-- Footer -->
-              <div class="px-6 py-4 border-t border-white/5 flex justify-end gap-3 bg-white/5/50">
+              <div class="px-6 py-4 border-t border-border-default/10 flex justify-end gap-3 bg-bg-surface/70">
                 <Button
                   variant="secondary"
                   surface="status"
@@ -496,7 +496,7 @@
                   <template #leading>
                     <span
                       v-if="saving"
-                      class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"
+                      class="w-4 h-4 border-2 border-border-default/30 border-t-white rounded-full animate-spin"
                     />
                   </template>
                   {{ saving ? $t('codex.states.saving') : $t('codex.actions.save') }}
@@ -1114,7 +1114,7 @@ onActivated(() => {
   border-radius: 0.5rem;
   padding: 0.25rem 0.5rem;
   color: rgb(255 255 255 / 100%);
-  font-family: var(--font-mono, 'Maple Mono', monospace);
+  font-family: var(--font-mono);
 }
 
 .codex-auth-view__field-value--muted {
@@ -1209,3 +1209,4 @@ onActivated(() => {
   }
 }
 </style>
+

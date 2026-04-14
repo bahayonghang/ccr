@@ -138,7 +138,7 @@
         <!-- Tools Section -->
         <div
           v-if="agent.tools && agent.tools.length > 0"
-          class="glass-effect rounded-2xl p-6 mb-6 border border-white/20 shadow-sm"
+          class="glass-effect rounded-2xl p-6 mb-6 border border-border-default/25 shadow-sm"
         >
           <h2 class="text-lg font-bold text-text-primary flex items-center gap-2 mb-4">
             <SIcon
@@ -161,7 +161,7 @@
         </div>
 
         <!-- System Prompt Section -->
-        <div class="glass-effect rounded-2xl p-6 border border-white/20 shadow-sm">
+        <div class="glass-effect rounded-2xl p-6 border border-border-default/25 shadow-sm">
           <div class="flex items-center justify-between mb-4">
             <h2 class="text-lg font-bold text-text-primary flex items-center gap-2">
               <SIcon
@@ -214,7 +214,7 @@
       @click="showEditModal = false"
     >
       <div
-        class="glass-effect p-8 rounded-3xl w-full max-w-2xl max-h-[85vh] overflow-y-auto shadow-2xl border border-white/30 relative"
+        class="glass-effect p-8 rounded-3xl w-full max-w-2xl max-h-[85vh] overflow-y-auto shadow-2xl border border-border-default/30 relative"
         @click.stop
       >
         <button
@@ -254,7 +254,7 @@
               <div class="relative">
                 <select
                   v-model="formData.model"
-                  class="w-full px-4 py-3 rounded-xl bg-white/50 border border-border-default focus:border-accent-secondary focus:ring-4 focus:ring-accent-secondary/10 outline-none transition-colors appearance-none"
+                  class="w-full px-4 py-3 rounded-xl bg-bg-surface/700 border border-border-default focus:border-accent-secondary focus:ring-4 focus:ring-accent-secondary/10 outline-none transition-colors appearance-none"
                 >
                   <option value="claude-sonnet-4-5-20250929">
                     Claude Sonnet 4.5
@@ -283,7 +283,7 @@
                 v-model="toolInput"
                 type="text"
                 :placeholder="$t('agents.toolPlaceholder')"
-                class="flex-1 px-4 py-3 rounded-xl bg-white/50 border border-border-default focus:border-accent-secondary focus:ring-4 focus:ring-accent-secondary/10 outline-none transition-colors"
+                class="flex-1 px-4 py-3 rounded-xl bg-bg-surface/700 border border-border-default focus:border-accent-secondary focus:ring-4 focus:ring-accent-secondary/10 outline-none transition-colors"
                 @keyup.enter="addTool"
               >
               <button
@@ -320,7 +320,7 @@
             <textarea
               v-model="formData.system_prompt"
               rows="8"
-              class="w-full px-4 py-3 rounded-xl bg-white/50 border border-border-default focus:border-accent-secondary focus:ring-4 focus:ring-accent-secondary/10 outline-none transition-colors resize-y font-mono text-sm leading-relaxed"
+              class="w-full px-4 py-3 rounded-xl bg-bg-surface/700 border border-border-default focus:border-accent-secondary focus:ring-4 focus:ring-accent-secondary/10 outline-none transition-colors resize-y font-mono text-sm leading-relaxed"
               :placeholder="$t('agents.systemPromptPlaceholder')"
             />
           </div>
@@ -486,3 +486,4 @@ const copySystemPrompt = async () => {
   }
 }
 </script>
+

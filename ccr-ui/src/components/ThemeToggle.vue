@@ -1,10 +1,10 @@
 <template>
   <button
     type="button"
-    class="inline-flex min-h-[44px] min-w-[44px] flex-shrink-0 items-center justify-center rounded-xl border p-0 leading-none text-text-secondary shadow-sm transition-interactive duration-200 hover:text-accent-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary/30 focus-visible:ring-offset-2 focus-visible:ring-offset-bg-base active:scale-95"
+    class="inline-flex min-h-[44px] min-w-[44px] flex-shrink-0 items-center justify-center rounded-full border p-0 leading-none text-text-secondary shadow-sm transition-interactive duration-200 hover:text-accent-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-primary/30 focus-visible:ring-offset-2 focus-visible:ring-offset-bg-base active:scale-95"
     :title="`切换到${currentTheme === 'dark' ? '明亮' : '深色'}模式`"
     :aria-label="`切换到${currentTheme === 'dark' ? '明亮' : '深色'}模式`"
-    style="background: var(--surface-status-bg); border-color: var(--surface-status-border); backdrop-filter: var(--surface-status-blur); box-shadow: var(--surface-status-shadow), inset 0 1px 0 rgb(255 255 255 / 12%);"
+    style="background: var(--surface-status-bg); border-color: var(--surface-status-border); backdrop-filter: var(--surface-status-blur); box-shadow: var(--surface-status-shadow), inset 0 1px 0 rgb(255 251 245 / 12%);"
     @click.stop="toggleTheme"
   >
     <SIcon

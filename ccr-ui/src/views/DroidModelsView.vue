@@ -70,7 +70,7 @@
         <div
           v-for="model in models"
           :key="model.model"
-          class="glass-card p-6 transition-[transform,box-shadow,border-color] duration-300 hover:-translate-y-1 hover:border-white/30"
+          class="glass-card p-6 transition-[transform,box-shadow,border-color] duration-300 hover:-translate-y-1 hover:border-border-default/30"
         >
           <!-- 模型头部 -->
           <div class="flex items-start justify-between mb-4">
@@ -493,3 +493,4 @@ input:disabled {
   cursor: not-allowed;
 }
 </style>
+

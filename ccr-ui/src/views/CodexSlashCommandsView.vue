@@ -14,7 +14,7 @@
               <SIcon
                 name="Command"
                 size="w-6 h-6"
-                class="text-amber-300"
+                class="text-accent-warning"
               />
             </div>
 
@@ -135,7 +135,7 @@
                 <SIcon
                   name="ArrowRight"
                   size="w-4 h-4"
-                  class="text-white/35"
+                  class="text-text-ghost"
                 />
               </RouterLink>
             </div>
@@ -203,7 +203,7 @@ const shortcuts = [
 }
 
 .codex-slash-hero__icon {
-  @apply flex h-14 w-14 items-center justify-center rounded-2xl border border-amber-500/20 bg-amber-500/10;
+  @apply flex h-14 w-14 items-center justify-center rounded-2xl border border-accent-warning/20 bg-accent-warning/10;
 }
 
 .codex-slash-hero__copy {
@@ -211,17 +211,17 @@ const shortcuts = [
 }
 
 .codex-slash-kicker {
-  @apply text-xs font-semibold uppercase tracking-[0.22em] text-amber-300/80;
+  @apply text-xs font-semibold tracking-[0.08em] text-accent-warning;
 }
 
 .codex-slash-title {
-  @apply text-2xl font-bold text-white lg:text-3xl;
+  @apply text-2xl font-bold text-text-primary lg:text-3xl;
 
-  font-family: MapleBright, 'Microsoft YaHei UI', system-ui, sans-serif;
+  font-family: var(--font-brand);
 }
 
 .codex-slash-subtitle {
-  @apply max-w-3xl text-sm leading-7 text-white/70;
+  @apply max-w-3xl text-sm leading-7 text-text-secondary;
 }
 
 .codex-slash-actions {
@@ -245,31 +245,31 @@ const shortcuts = [
 }
 
 .codex-slash-panel__icon--rose {
-  @apply border-rose-500/20 bg-rose-500/10 text-rose-300;
+  @apply border-accent-danger/20 bg-accent-danger/10 text-accent-danger;
 }
 
 .codex-slash-panel__icon--emerald {
-  @apply border-emerald-500/20 bg-emerald-500/10 text-emerald-300;
+  @apply border-accent-success/20 bg-accent-success/10 text-accent-success;
 }
 
 .codex-slash-panel__title {
-  @apply text-base font-semibold text-white;
+  @apply text-base font-semibold text-text-primary;
 }
 
 .codex-slash-panel__subtitle {
-  @apply text-sm text-white/55;
+  @apply text-sm text-text-muted;
 }
 
 .codex-slash-note {
-  @apply rounded-2xl border border-white/10 bg-white/5 p-4;
+  @apply rounded-2xl border border-border-default/15 bg-bg-surface/70 p-4;
 }
 
 .codex-slash-note__title {
-  @apply text-sm font-semibold text-white;
+  @apply text-sm font-semibold text-text-primary;
 }
 
 .codex-slash-note__body {
-  @apply mt-2 text-sm leading-7 text-white/65;
+  @apply mt-2 text-sm leading-7 text-text-secondary;
 }
 
 .codex-slash-shortcuts {
@@ -277,18 +277,20 @@ const shortcuts = [
 }
 
 .codex-slash-shortcut {
-  @apply flex items-start gap-3 rounded-2xl border border-white/10 bg-white/5 p-4 transition-all duration-200 hover:border-amber-500/25 hover:bg-white/10;
+  @apply flex items-start gap-3 rounded-2xl border border-border-default/15 bg-bg-surface/70 p-4 transition-all duration-200 hover:border-accent-warning/25 hover:bg-bg-elevated/80;
 }
 
 .codex-slash-shortcut__icon {
-  @apply mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-white/70;
+  @apply mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-border-default/15 bg-bg-surface/70 text-text-secondary;
 }
 
 .codex-slash-shortcut__title {
-  @apply text-sm font-semibold text-white;
+  @apply text-sm font-semibold text-text-primary;
 }
 
 .codex-slash-shortcut__desc {
-  @apply mt-1 text-sm leading-6 text-white/60;
+  @apply mt-1 text-sm leading-6 text-text-muted;
 }
 </style>
+
+

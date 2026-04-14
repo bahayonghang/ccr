@@ -18,7 +18,7 @@
       class="relative w-full max-w-4xl max-h-[90vh] overflow-y-auto p-0 shadow-2xl animate-scale-in glass-surface"
     >
       <!-- Header -->
-      <div class="sticky top-0 z-10 px-6 py-4 border-b border-white/5 glass-surface backdrop-blur-md flex items-center justify-between">
+      <div class="sticky top-0 z-10 px-6 py-4 border-b border-border-default/10 glass-surface backdrop-blur-md flex items-center justify-between">
         <div class="flex items-center gap-3">
           <div class="p-2 rounded-lg bg-accent-success/10 text-accent-success">
             <SIcon
@@ -33,7 +33,7 @@
             >
               {{ $t('configs.addConfig.title') }}
             </h2>
-            <p class="text-xs text-white/80">
+            <p class="text-xs text-text-primary">
               {{ $t('configs.addConfig.subtitle') }}
             </p>
           </div>
@@ -73,7 +73,7 @@
               :placeholder="$t('configs.addConfig.namePlaceholder')"
             >
               <template #leading>
-                <span class="text-white/50">#</span>
+                <span class="text-text-muted">#</span>
               </template>
             </Input>
 
@@ -133,13 +133,13 @@
             </Input>
 
             <div class="w-full">
-              <label class="block text-xs font-bold uppercase tracking-wider text-white/50 mb-1.5 ml-1">
+              <label class="block text-xs font-bold uppercase tracking-wider text-text-muted mb-1.5 ml-1">
                 {{ $t('configs.addConfig.providerType') }}
               </label>
               <div class="relative">
                 <select
                   v-model="formData.provider_type"
-                  class="w-full glass-surface border border-white/20 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-accent-primary/20 appearance-none shadow-sm hover:border-border-strong cursor-pointer"
+                  class="w-full glass-surface border border-border-default/25 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-accent-primary/20 appearance-none shadow-sm hover:border-border-strong cursor-pointer"
                 >
                   <option value="">
                     {{ $t('configs.addConfig.providerUncategorized') }}
@@ -151,7 +151,7 @@
                     {{ $t('configs.addConfig.providerThirdParty') }}
                   </option>
                 </select>
-                <div class="absolute inset-y-0 right-3 flex items-center pointer-events-none text-white/50">
+                <div class="absolute inset-y-0 right-3 flex items-center pointer-events-none text-text-muted">
                   ▼
                 </div>
               </div>
@@ -194,7 +194,7 @@
       </div>
 
       <!-- Footer -->
-      <div class="sticky bottom-0 z-10 px-6 py-4 border-t border-white/5 glass-surface backdrop-blur-md flex gap-3 justify-end">
+      <div class="sticky bottom-0 z-10 px-6 py-4 border-t border-border-default/10 glass-surface backdrop-blur-md flex gap-3 justify-end">
         <Button
           variant="ghost"
           @click="handleClose"
@@ -309,3 +309,4 @@ const resetForm = () => {
 
 watch(() => props.isOpen, val => val && resetForm())
 </script>
+

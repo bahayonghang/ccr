@@ -93,7 +93,7 @@
             {{ npxAvailable ? $t('skills.npxAvailable') : $t('skills.npxNotAvailable') }}
             <span
               v-if="npxVersion"
-              class="text-white/50"
+              class="text-text-muted"
             >(v{{ npxVersion }})</span>
           </span>
         </div>
@@ -248,7 +248,7 @@ const toggleSelectedPlatform = (platformId: string) => {
 
 <style scoped>
 .manual-section {
-  @apply flex flex-col gap-4 p-5 rounded-2xl border border-white/5;
+  @apply flex flex-col gap-4 p-5 rounded-2xl border border-border-default/10;
 
   background: rgb(0 0 0 / 30%);
 }
@@ -263,8 +263,8 @@ const toggleSelectedPlatform = (platformId: string) => {
 
 .manual-tab {
   @apply flex items-center gap-1.5 px-4 py-2.5 rounded-xl
-         text-sm font-medium text-white/80
-         hover:text-white hover:bg-white/5
+         text-sm font-medium text-text-primary
+         hover:text-white hover:bg-bg-surface/70
          transition-colors duration-200;
 }
 
@@ -288,26 +288,26 @@ const toggleSelectedPlatform = (platformId: string) => {
 }
 
 .input-icon {
-  @apply absolute left-3 w-4 h-4 text-white/50 pointer-events-none;
+  @apply absolute left-3 w-4 h-4 text-text-muted pointer-events-none;
 }
 
 .text-input {
   @apply w-full pl-10 pr-4 py-2.5 rounded-xl
          text-sm text-white
-         glass-surface border border-white/5
+         glass-surface border border-border-default/10
          focus:border-accent-primary focus:outline-none
-         placeholder:text-white/50 transition-colors;
+         placeholder:text-text-muted transition-colors;
 }
 
 .browse-btn {
   @apply ml-2 flex items-center gap-1.5 px-3 py-2.5 rounded-xl shrink-0
-         text-sm font-medium text-white/80
-         glass-surface border border-white/5
-         hover:border-white/10 hover:text-white transition-colors;
+         text-sm font-medium text-text-primary
+         glass-surface border border-border-default/10
+         hover:border-border-default/15 hover:text-white transition-colors;
 }
 
 .tab-hint {
-  @apply text-xs text-white/50 leading-relaxed;
+  @apply text-xs text-text-muted leading-relaxed;
 }
 
 .npx-status {
@@ -328,15 +328,15 @@ const toggleSelectedPlatform = (platformId: string) => {
 }
 
 .checkbox-label {
-  @apply flex items-center gap-2 text-sm text-white/80 cursor-pointer;
+  @apply flex items-center gap-2 text-sm text-text-primary cursor-pointer;
 }
 
 .checkbox-input {
-  @apply rounded border-white/10 text-accent-primary focus:ring-accent-primary/20;
+  @apply rounded border-border-default/15 text-accent-primary focus:ring-accent-primary/20;
 }
 
 .platform-section {
-  @apply flex flex-col gap-3 pt-3 border-t border-white/5;
+  @apply flex flex-col gap-3 pt-3 border-t border-border-default/10;
 }
 
 .platform-section__header {
@@ -362,7 +362,7 @@ const toggleSelectedPlatform = (platformId: string) => {
 .platform-item {
   @apply flex items-center gap-2 px-3 py-2 rounded-lg
          glass-surface text-sm cursor-pointer
-         hover:bg-white/5 transition-colors;
+         hover:bg-bg-surface/70 transition-colors;
 }
 
 .platform-item--disabled {
@@ -374,11 +374,11 @@ const toggleSelectedPlatform = (platformId: string) => {
 }
 
 .platform-item__badge {
-  @apply ml-auto text-[10px] text-white/50;
+  @apply ml-auto text-[10px] text-text-muted;
 }
 
 .manual-footer {
-  @apply flex justify-end pt-3 border-t border-white/5;
+  @apply flex justify-end pt-3 border-t border-border-default/10;
 }
 
 .btn-install {
@@ -388,3 +388,4 @@ const toggleSelectedPlatform = (platformId: string) => {
          disabled:opacity-50 disabled:cursor-not-allowed transition-colors;
 }
 </style>
+

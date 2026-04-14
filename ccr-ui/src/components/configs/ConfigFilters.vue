@@ -22,7 +22,7 @@
     <div class="flex items-center gap-3">
       <!-- 排序下拉菜单 -->
       <div class="flex items-center gap-2">
-        <label class="text-sm font-medium whitespace-nowrap text-white/80">
+        <label class="text-sm font-medium whitespace-nowrap text-text-primary">
           {{ $t('configs.sort.label') }}
         </label>
         <div class="relative">
@@ -49,7 +49,7 @@
           <SIcon
             name="ChevronDown"
             size="w-4 h-4"
-            class="absolute right-2.5 top-1/2 -translate-y-1/2 text-white/50 pointer-events-none"
+            class="absolute right-2.5 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none"
           />
         </div>
       </div>
@@ -215,3 +215,4 @@ const filters = computed(() => [
   box-shadow: 0 6px 24px rgb(var(--color-accent-primary-rgb) / 40%);
 }
 </style>
+

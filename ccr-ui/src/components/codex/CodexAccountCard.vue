@@ -45,7 +45,7 @@
 
     <!-- 账户名与描述 -->
     <div class="mb-3 space-y-0.5">
-      <div class="flex items-center gap-2 text-sm text-white/50">
+      <div class="flex items-center gap-2 text-sm text-text-muted">
         <span class="font-mono font-medium">{{ account.name }}</span>
         <span
           v-if="account.is_virtual"
@@ -54,7 +54,7 @@
       </div>
       <p
         v-if="account.description"
-        class="text-xs text-white/40 truncate"
+        class="text-xs text-text-ghost truncate"
       >
         {{ account.description }}
       </p>
@@ -83,10 +83,10 @@
         class="space-y-1"
       >
         <div class="flex justify-between">
-          <div class="h-3 w-16 rounded bg-white/5 animate-pulse" />
-          <div class="h-3 w-8 rounded bg-white/5 animate-pulse" />
+          <div class="h-3 w-16 rounded bg-bg-surface/70 animate-pulse" />
+          <div class="h-3 w-8 rounded bg-bg-surface/70 animate-pulse" />
         </div>
-        <div class="h-1.5 rounded-full bg-white/5 overflow-hidden">
+        <div class="h-1.5 rounded-full bg-bg-surface/70 overflow-hidden">
           <div class="h-full w-1/2 rounded-full bg-white/[0.07] animate-pulse" />
         </div>
       </div>
@@ -104,16 +104,16 @@
             <SIcon
               name="Clock"
               size="w-3 h-3"
-              class="text-white/40"
+              class="text-text-ghost"
             />
-            <span class="text-xs text-white/50">{{ $t('codex.auth.hourlyQuota') }}</span>
+            <span class="text-xs text-text-muted">{{ $t('codex.auth.hourlyQuota') }}</span>
           </div>
           <span
             class="text-xs font-mono font-semibold"
             :class="textColorClass(quota.quota.hourly_percentage)"
           >{{ quota.quota.hourly_percentage }}%</span>
         </div>
-        <div class="h-1.5 rounded-full bg-white/5 overflow-hidden">
+        <div class="h-1.5 rounded-full bg-bg-surface/70 overflow-hidden">
           <div
             class="h-full w-full rounded-full origin-left transition-transform duration-500"
             :class="barColorClass(quota.quota.hourly_percentage)"
@@ -137,16 +137,16 @@
             <SIcon
               name="CalendarDays"
               size="w-3 h-3"
-              class="text-white/40"
+              class="text-text-ghost"
             />
-            <span class="text-xs text-white/50">{{ $t('codex.auth.weeklyQuota') }}</span>
+            <span class="text-xs text-text-muted">{{ $t('codex.auth.weeklyQuota') }}</span>
           </div>
           <span
             class="text-xs font-mono font-semibold"
             :class="textColorClass(quota.quota.weekly_percentage)"
           >{{ quota.quota.weekly_percentage }}%</span>
         </div>
-        <div class="h-1.5 rounded-full bg-white/5 overflow-hidden">
+        <div class="h-1.5 rounded-full bg-bg-surface/70 overflow-hidden">
           <div
             class="h-full w-full rounded-full origin-left transition-transform duration-500"
             :class="barColorClass(quota.quota.weekly_percentage)"
@@ -181,7 +181,7 @@
     </div>
 
     <!-- 底部：最后使用 + 操作按钮 -->
-    <div class="flex items-center justify-between pt-2 border-t border-white/5">
+    <div class="flex items-center justify-between pt-2 border-t border-border-default/10">
       <span class="text-xs text-white/25 truncate mr-2">
         {{ formatLastUsed(account.last_used) }}
       </span>
@@ -311,7 +311,7 @@ const planBadgeClass = (plan: string) => {
   if (lower === 'pro') return 'bg-purple-500/20 text-purple-400 border border-purple-500/30'
   if (lower === 'plus') return 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
   if (lower === 'team') return 'bg-teal-500/20 text-teal-400 border border-teal-500/30'
-  return 'bg-white/10 text-white/60 border border-white/10'
+  return 'bg-bg-elevated/80 text-text-muted border border-border-default/15'
 }
 
 // ── Token 新鲜度样式 ──
@@ -321,7 +321,7 @@ const freshnessTextClass = (freshness: TokenFreshness) => {
     case 'Fresh': return 'text-emerald-400'
     case 'Stale': return 'text-yellow-400'
     case 'Old': return 'text-orange-400'
-    default: return 'text-white/40'
+    default: return 'text-text-ghost'
   }
 }
 
@@ -394,8 +394,8 @@ const formatLastUsed = (raw?: string | null) => {
 
 <style scoped>
 .card-action-btn {
-  @apply p-2 rounded-lg text-white/40 transition-colors duration-200
-         hover:text-white/70 hover:bg-white/5
+  @apply p-2 rounded-lg text-text-ghost transition-colors duration-200
+         hover:text-text-secondary hover:bg-bg-surface/70
          disabled:opacity-30 disabled:cursor-not-allowed;
 }
 
@@ -404,3 +404,4 @@ const formatLastUsed = (raw?: string | null) => {
   box-shadow: 0 8px 25px -5px rgb(0 0 0 / 20%);
 }
 </style>
+

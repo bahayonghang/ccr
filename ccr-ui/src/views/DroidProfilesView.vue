@@ -70,7 +70,7 @@
         <div
           v-for="profile in profiles"
           :key="profile.name"
-          class="glass-card p-6 transition-[transform,box-shadow,border-color] duration-300 hover:-translate-y-1 hover:border-white/30"
+          class="glass-card p-6 transition-[transform,box-shadow,border-color] duration-300 hover:-translate-y-1 hover:border-border-default/30"
           :class="{ 'ring-2 ring-accent-primary/60': profile.enabled }"
         >
           <!-- Profile 头部 -->
@@ -645,3 +645,4 @@ input:disabled {
   cursor: not-allowed;
 }
 </style>
+

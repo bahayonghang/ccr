@@ -423,8 +423,8 @@ onBeforeUnmount(() => {
 <style scoped>
 .layout-shell--theme-stage {
   background:
-    radial-gradient(circle at top left, rgb(var(--color-accent-primary-rgb) / 8%) 0%, transparent 22%),
-    radial-gradient(circle at bottom right, rgb(var(--color-premium-blue-rgb) / 62%) 0%, transparent 28%),
+    radial-gradient(circle at top left, rgb(var(--color-accent-primary-rgb) / 6%) 0%, transparent 24%),
+    radial-gradient(circle at bottom right, rgb(var(--color-premium-blue-rgb) / 52%) 0%, transparent 30%),
     linear-gradient(180deg, rgb(var(--color-bg-base-rgb) / 100%), rgb(var(--color-bg-base-rgb) / 96%));
 }
 
@@ -437,8 +437,8 @@ onBeforeUnmount(() => {
   border-right: 1px solid var(--surface-shell-border);
   box-shadow:
     var(--surface-shell-shadow),
-    inset -1px 0 0 rgb(255 255 255 / 8%),
-    inset 0 1px 0 rgb(255 255 255 / 6%);
+    inset -1px 0 0 rgb(255 251 245 / 8%),
+    inset 0 1px 0 rgb(255 251 245 / 6%);
 }
 
 .topbar-glass {
@@ -446,7 +446,7 @@ onBeforeUnmount(() => {
   backdrop-filter: var(--surface-status-blur);
   box-shadow:
     inset 0 -1px 0 rgb(var(--color-border-default-rgb) / 18%),
-    inset 0 1px 0 rgb(255 255 255 / 10%),
+    inset 0 1px 0 rgb(255 251 245 / 10%),
     var(--surface-status-shadow);
 }
 
@@ -486,8 +486,8 @@ onBeforeUnmount(() => {
 
 .content-main--theme-stage {
   background:
-    radial-gradient(circle at top right, rgb(var(--color-accent-primary-rgb) / 10%) 0%, transparent 24%),
-    radial-gradient(circle at top left, rgb(var(--color-premium-blue-rgb) / 48%) 0%, transparent 22%),
+    radial-gradient(circle at top right, rgb(var(--color-accent-primary-rgb) / 8%) 0%, transparent 24%),
+    radial-gradient(circle at top left, rgb(var(--color-premium-blue-rgb) / 42%) 0%, transparent 24%),
     linear-gradient(180deg, rgb(var(--color-bg-base-rgb) / 98%), rgb(var(--color-bg-base-rgb) / 94%));
 }
 
@@ -498,7 +498,7 @@ onBeforeUnmount(() => {
 
 /* Nav Item Styles */
 .nav-item {
-  @apply relative flex items-center gap-3 overflow-hidden rounded-xl px-3 py-2.5 text-sm font-medium text-text-secondary
+  @apply relative flex items-center gap-3 overflow-hidden rounded-2xl px-3 py-2.5 text-sm font-medium text-text-secondary
          transition-interactive duration-200;
 
   border: 1px solid rgb(var(--color-border-default-rgb) / 0%);
@@ -513,11 +513,11 @@ onBeforeUnmount(() => {
   @apply text-text-primary;
 
   background:
-    linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 88%), rgb(var(--color-bg-surface-rgb) / 76%));
-  border-color: rgb(var(--color-border-default-rgb) / 64%);
+    linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 92%), rgb(var(--color-bg-surface-rgb) / 82%));
+  border-color: rgb(var(--color-border-default-rgb) / 54%);
   box-shadow:
-    0 12px 28px rgb(29 29 31 / 10%),
-    inset 0 1px 0 rgb(255 255 255 / 12%);
+    0 12px 24px rgb(73 54 40 / 8%),
+    inset 0 1px 0 rgb(255 251 245 / 12%);
 }
 
 .nav-item.router-link-active:not(.nav-item--root),
@@ -525,11 +525,11 @@ onBeforeUnmount(() => {
   @apply text-text-primary;
 
   box-shadow:
-    0 16px 32px rgb(var(--color-accent-primary-rgb) / 12%),
-    inset 0 1px 0 rgb(255 255 255 / 14%);
+    0 14px 28px rgb(var(--color-accent-primary-rgb) / 10%),
+    inset 0 1px 0 rgb(255 251 245 / 14%);
   background:
-    linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 92%), rgb(var(--color-bg-surface-rgb) / 82%));
-  border-color: rgb(var(--color-accent-primary-rgb) / 16%);
+    linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 94%), rgb(var(--color-bg-surface-rgb) / 86%));
+  border-color: rgb(var(--color-accent-primary-rgb) / 14%);
 }
 
 /* Active indicator strip */
@@ -537,48 +537,48 @@ onBeforeUnmount(() => {
 .nav-item.router-link-exact-active.nav-item--root::before {
   content: '';
 
-  @apply absolute left-0 top-1/2 -translate-y-1/2 h-5 w-1 rounded-r-full;
+  @apply absolute left-0 top-1/2 -translate-y-1/2 h-4 w-1 rounded-r-full;
 
   background: rgb(var(--color-accent-primary-rgb) / 100%);
-  box-shadow: 0 0 6px rgb(var(--color-accent-primary-rgb) / 24%);
+  box-shadow: 0 0 4px rgb(var(--color-accent-primary-rgb) / 18%);
 }
 
 .user-card {
   background:
-    linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 82%) 0%, rgb(var(--color-bg-surface-rgb) / 72%) 100%);
-  backdrop-filter: blur(24px) saturate(170%);
+    linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 88%) 0%, rgb(var(--color-bg-surface-rgb) / 80%) 100%);
+  backdrop-filter: blur(14px) saturate(116%);
   border: 1px solid rgb(var(--color-border-default-rgb) / 18%);
   box-shadow:
-    0 18px 42px rgb(29 29 31 / 12%),
-    inset 0 1px 0 rgb(255 255 255 / 14%);
+    0 18px 36px rgb(73 54 40 / 10%),
+    inset 0 1px 0 rgb(255 251 245 / 14%);
 }
 
 .user-card-accent-mesh {
   background:
-    radial-gradient(ellipse at top right, rgb(var(--color-accent-primary-rgb) / 12%), transparent 54%),
-    radial-gradient(ellipse at bottom left, rgb(var(--color-premium-blue-rgb) / 72%), transparent 52%);
+    radial-gradient(ellipse at top right, rgb(var(--color-accent-primary-rgb) / 10%), transparent 54%),
+    radial-gradient(ellipse at bottom left, rgb(var(--color-premium-blue-rgb) / 54%), transparent 52%);
 }
 
 .user-card:hover {
-  border-color: rgb(var(--color-accent-primary-rgb) / 18%);
+  border-color: rgb(var(--color-accent-primary-rgb) / 16%);
   box-shadow:
-    0 22px 46px rgb(var(--color-accent-primary-rgb) / 12%),
-    0 8px 18px rgb(29 29 31 / 14%),
-    inset 0 1px 0 rgb(255 255 255 / 14%);
+    0 20px 40px rgb(var(--color-accent-primary-rgb) / 10%),
+    0 8px 18px rgb(73 54 40 / 12%),
+    inset 0 1px 0 rgb(255 251 245 / 14%);
 }
 
 [data-theme="light"] .user-card {
   background:
-    linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 86%) 0%, rgb(var(--color-bg-surface-rgb) / 78%) 100%);
-  backdrop-filter: blur(26px) saturate(175%);
+    linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 90%) 0%, rgb(var(--color-bg-surface-rgb) / 84%) 100%);
+  backdrop-filter: blur(16px) saturate(120%);
   border: 1px solid rgb(var(--color-border-default-rgb) / 18%);
   box-shadow:
-    0 18px 40px rgb(29 29 31 / 10%),
-    inset 0 1px 0 rgb(255 255 255 / 78%);
+    0 18px 34px rgb(73 54 40 / 10%),
+    inset 0 1px 0 rgb(255 251 245 / 78%);
 }
 
 [data-theme="light"] .user-card:hover {
-  box-shadow: 0 22px 40px rgb(13 31 61 / 14%);
+  box-shadow: 0 20px 36px rgb(73 54 40 / 12%);
 }
 
 </style>

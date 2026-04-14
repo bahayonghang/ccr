@@ -5,7 +5,7 @@
       <!-- Header -->
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div class="flex items-center gap-4">
-          <h2 class="text-xl sm:text-2xl font-bold text-white flex items-center">
+          <h2 class="text-xl sm:text-2xl font-bold text-text-primary flex items-center">
             <SIcon
               name="Settings2"
               size="w-6 h-6"
@@ -17,7 +17,7 @@
         <div class="flex gap-3">
           <RouterLink to="/codex">
             <button
-              class="px-4 py-2 rounded-lg font-medium transition-colors glass-surface text-white/80 border border-white/20 hover:bg-white/5 min-h-[44px] flex items-center"
+              class="px-4 py-2 rounded-lg font-medium transition-colors glass-surface text-text-primary border border-border-default/25 hover:bg-bg-surface/70 min-h-[44px] flex items-center"
             >
               <SIcon
                 name="ArrowLeft"
@@ -45,7 +45,7 @@
       <!-- Loading -->
       <div
         v-if="loading"
-        class="text-center py-20 text-white/50"
+        class="text-center py-20 text-text-muted"
       >
         <div
           class="loading-spinner mx-auto mb-4 w-8 h-8 border-emerald-500/30 border-t-emerald-500"
@@ -68,7 +68,7 @@
             :class="
               activeTab === tab.key
                 ? 'bg-emerald-500 text-white shadow-md'
-                : 'glass-surface text-white/80 border border-white/20 hover:bg-white/5'
+                : 'glass-surface text-text-primary border border-border-default/25 hover:bg-bg-surface/70'
             "
             @click="activeTab = tab.key"
           >
@@ -89,12 +89,12 @@
             variant="glass"
             class="p-5 space-y-5"
           >
-            <h3 class="text-lg font-bold text-white">
+            <h3 class="text-lg font-bold text-text-primary">
               {{ $t('codex.settings.tabs.model') }}
             </h3>
 
             <div>
-              <label class="block mb-1.5 text-sm font-semibold text-white">{{
+              <label class="block mb-1.5 text-sm font-semibold text-text-primary">{{
                 $t('codex.settings.model.model')
               }}</label>
               <input
@@ -106,7 +106,7 @@
             </div>
 
             <div>
-              <label class="block mb-1.5 text-sm font-semibold text-white">{{
+              <label class="block mb-1.5 text-sm font-semibold text-text-primary">{{
                 $t('codex.settings.model.modelProvider')
               }}</label>
               <input
@@ -118,7 +118,7 @@
             </div>
 
             <div>
-              <label class="block mb-1.5 text-sm font-semibold text-white">{{
+              <label class="block mb-1.5 text-sm font-semibold text-text-primary">{{
                 $t('codex.settings.model.reasoningEffort')
               }}</label>
               <select
@@ -139,7 +139,7 @@
             </div>
 
             <div>
-              <label class="block mb-1.5 text-sm font-semibold text-white">{{
+              <label class="block mb-1.5 text-sm font-semibold text-text-primary">{{
                 $t('codex.settings.model.reasoningSummary')
               }}</label>
               <select
@@ -160,7 +160,7 @@
             </div>
 
             <div>
-              <label class="block mb-1.5 text-sm font-semibold text-white">{{
+              <label class="block mb-1.5 text-sm font-semibold text-text-primary">{{
                 $t('codex.settings.model.verbosity')
               }}</label>
               <select
@@ -182,7 +182,7 @@
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label class="block mb-1.5 text-sm font-semibold text-white">{{
+                <label class="block mb-1.5 text-sm font-semibold text-text-primary">{{
                   $t('codex.settings.model.contextWindow')
                 }}</label>
                 <input
@@ -193,7 +193,7 @@
                 >
               </div>
               <div>
-                <label class="block mb-1.5 text-sm font-semibold text-white">{{
+                <label class="block mb-1.5 text-sm font-semibold text-text-primary">{{
                   $t('codex.settings.model.autoCompactLimit')
                 }}</label>
                 <input
@@ -206,7 +206,7 @@
             </div>
 
             <div>
-              <label class="block mb-1.5 text-sm font-semibold text-white">{{
+              <label class="block mb-1.5 text-sm font-semibold text-text-primary">{{
                 $t('codex.settings.model.personality')
               }}</label>
               <select
@@ -237,12 +237,12 @@
             variant="glass"
             class="p-5 space-y-5"
           >
-            <h3 class="text-lg font-bold text-white">
+            <h3 class="text-lg font-bold text-text-primary">
               {{ $t('codex.settings.tabs.security') }}
             </h3>
 
             <div>
-              <label class="block mb-1.5 text-sm font-semibold text-white">{{
+              <label class="block mb-1.5 text-sm font-semibold text-text-primary">{{
                 $t('codex.settings.security.approvalPolicy')
               }}</label>
               <select
@@ -263,7 +263,7 @@
             </div>
 
             <div>
-              <label class="block mb-1.5 text-sm font-semibold text-white">{{
+              <label class="block mb-1.5 text-sm font-semibold text-text-primary">{{
                 $t('codex.settings.security.sandboxMode')
               }}</label>
               <input
@@ -280,7 +280,7 @@
             />
 
             <div>
-              <label class="block mb-1.5 text-sm font-semibold text-white">{{
+              <label class="block mb-1.5 text-sm font-semibold text-text-primary">{{
                 $t('codex.settings.security.writableRoots')
               }}</label>
               <input
@@ -289,7 +289,7 @@
                 :placeholder="$t('codex.settings.security.writableRootsPlaceholder')"
                 class="settings-input"
               >
-              <p class="text-xs text-white/50 mt-1">
+              <p class="text-xs text-text-muted mt-1">
                 {{ $t('codex.settings.security.writableRootsHint') }}
               </p>
             </div>
@@ -300,7 +300,7 @@
             />
 
             <div>
-              <label class="block mb-1.5 text-sm font-semibold text-white">{{
+              <label class="block mb-1.5 text-sm font-semibold text-text-primary">{{
                 $t('codex.settings.security.shellIncludeOnly')
               }}</label>
               <input
@@ -309,7 +309,7 @@
                 :placeholder="$t('codex.settings.security.shellIncludeOnlyPlaceholder')"
                 class="settings-input"
               >
-              <p class="text-xs text-white/50 mt-1">
+              <p class="text-xs text-text-muted mt-1">
                 {{ $t('codex.settings.security.shellIncludeOnlyHint') }}
               </p>
             </div>
@@ -325,12 +325,12 @@
             variant="glass"
             class="p-5 space-y-5"
           >
-            <h3 class="text-lg font-bold text-white">
+            <h3 class="text-lg font-bold text-text-primary">
               {{ $t('codex.settings.tabs.tools') }}
             </h3>
 
             <div>
-              <label class="block mb-1.5 text-sm font-semibold text-white">{{
+              <label class="block mb-1.5 text-sm font-semibold text-text-primary">{{
                 $t('codex.settings.tools.webSearch')
               }}</label>
               <select
@@ -351,7 +351,7 @@
             </div>
 
             <div>
-              <label class="block mb-1.5 text-sm font-semibold text-white">{{
+              <label class="block mb-1.5 text-sm font-semibold text-text-primary">{{
                 $t('codex.settings.tools.fileOpener')
               }}</label>
               <select
@@ -381,7 +381,7 @@
             />
 
             <div>
-              <label class="block mb-1.5 text-sm font-semibold text-white">{{
+              <label class="block mb-1.5 text-sm font-semibold text-text-primary">{{
                 $t('codex.settings.tools.developerInstructions')
               }}</label>
               <textarea
@@ -393,7 +393,7 @@
             </div>
 
             <div>
-              <label class="block mb-1.5 text-sm font-semibold text-white">{{
+              <label class="block mb-1.5 text-sm font-semibold text-text-primary">{{
                 $t('codex.settings.tools.instructions')
               }}</label>
               <textarea
@@ -415,12 +415,12 @@
             variant="glass"
             class="p-5 space-y-5"
           >
-            <h3 class="text-lg font-bold text-white">
+            <h3 class="text-lg font-bold text-text-primary">
               {{ $t('codex.settings.tabs.ui') }}
             </h3>
 
             <div>
-              <label class="block mb-1.5 text-sm font-semibold text-white">{{
+              <label class="block mb-1.5 text-sm font-semibold text-text-primary">{{
                 $t('codex.settings.ui.alternateScreen')
               }}</label>
               <select
@@ -480,7 +480,7 @@
             variant="glass"
             class="p-5 space-y-5"
           >
-            <h3 class="text-lg font-bold text-white">
+            <h3 class="text-lg font-bold text-text-primary">
               {{ $t('codex.settings.tabs.features') }}
             </h3>
 
@@ -490,7 +490,7 @@
             />
 
             <div>
-              <label class="block mb-1.5 text-sm font-semibold text-white">{{
+              <label class="block mb-1.5 text-sm font-semibold text-text-primary">{{
                 $t('codex.settings.features.historyPersistence')
               }}</label>
               <select
@@ -511,7 +511,7 @@
             </div>
 
             <div>
-              <label class="block mb-1.5 text-sm font-semibold text-white">{{
+              <label class="block mb-1.5 text-sm font-semibold text-text-primary">{{
                 $t('codex.settings.features.historyMaxBytes')
               }}</label>
               <input
@@ -533,7 +533,7 @@
 
             <!-- Dynamic features map -->
             <div v-if="form.features && Object.keys(form.features).length > 0">
-              <label class="block mb-2 text-sm font-semibold text-white">{{
+              <label class="block mb-2 text-sm font-semibold text-text-primary">{{
                 $t('codex.settings.features.featureFlags')
               }}</label>
               <div class="space-y-2">
@@ -819,10 +819,10 @@ const ToggleField = defineComponent({
         h('input', {
           type: 'checkbox',
           checked: props.modelValue ?? false,
-          class: 'w-4 h-4 rounded border-white/10 text-emerald-500 focus:ring-emerald-500',
+          class: 'w-4 h-4 rounded border-border-default/15 text-emerald-500 focus:ring-emerald-500',
           onChange: (e: Event) => emit('update:modelValue', (e.target as HTMLInputElement).checked),
         }),
-        h('span', { class: 'text-sm font-semibold text-white' }, props.label),
+        h('span', { class: 'text-sm font-semibold text-text-primary' }, props.label),
       ])
   },
 })
@@ -832,7 +832,7 @@ export default { components: { ToggleField } }
 
 <style scoped>
 .settings-input {
-  @apply w-full px-4 py-2.5 rounded-lg glass-surface border border-white/10 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none transition-[border-color,box-shadow] text-white;
+  @apply w-full px-4 py-2.5 rounded-lg glass-surface border border-border-default/15 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none transition-[border-color,box-shadow] text-text-primary;
 }
 
 .fade-enter-active,
@@ -857,3 +857,5 @@ export default { components: { ToggleField } }
   }
 }
 </style>
+
+

@@ -1001,8 +1001,7 @@ const handleLoadExample = () => {
   resize: none;
   border-radius: 0.5rem;
   padding: 0.5rem 0.75rem;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New',
-    monospace;
+  font-family: var(--font-mono);
   font-size: 0.875rem;
   line-height: 1.6;
 }

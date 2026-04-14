@@ -1,6 +1,6 @@
 <template>
   <div class="stats-view min-h-full space-y-6 p-4 sm:p-6">
-    <div class="glass-effect rounded-3xl border border-white/20 p-5 shadow-sm sm:p-6">
+    <div class="glass-effect rounded-3xl border border-border-default/25 p-5 shadow-sm sm:p-6">
       <div class="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
         <div class="space-y-2">
           <div class="flex items-center gap-3">
@@ -97,7 +97,7 @@
 
     <div
       v-if="loading"
-      class="glass-effect flex items-center justify-center rounded-3xl border border-white/20 py-16"
+      class="glass-effect flex items-center justify-center rounded-3xl border border-border-default/25 py-16"
       aria-live="polite"
     >
       <div class="flex flex-col items-center gap-4">
@@ -143,7 +143,7 @@
       class="space-y-6"
     >
       <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <article class="glass-effect rounded-3xl border border-white/20 p-5 shadow-sm">
+        <article class="glass-effect rounded-3xl border border-border-default/25 p-5 shadow-sm">
           <div class="flex items-start justify-between gap-4">
             <div>
               <p class="text-xs font-medium uppercase tracking-[0.24em] text-text-muted">
@@ -171,7 +171,7 @@
           </div>
         </article>
 
-        <article class="glass-effect rounded-3xl border border-white/20 p-5 shadow-sm">
+        <article class="glass-effect rounded-3xl border border-border-default/25 p-5 shadow-sm">
           <div class="flex items-start justify-between gap-4">
             <div>
               <p class="text-xs font-medium uppercase tracking-[0.24em] text-text-muted">
@@ -199,7 +199,7 @@
           </div>
         </article>
 
-        <article class="glass-effect rounded-3xl border border-white/20 p-5 shadow-sm">
+        <article class="glass-effect rounded-3xl border border-border-default/25 p-5 shadow-sm">
           <div class="flex items-start justify-between gap-4">
             <div>
               <p class="text-xs font-medium uppercase tracking-[0.24em] text-text-muted">
@@ -227,7 +227,7 @@
           </div>
         </article>
 
-        <article class="glass-effect rounded-3xl border border-white/20 p-5 shadow-sm">
+        <article class="glass-effect rounded-3xl border border-border-default/25 p-5 shadow-sm">
           <div class="flex items-start justify-between gap-4">
             <div>
               <p class="text-xs font-medium uppercase tracking-[0.24em] text-text-muted">
@@ -256,7 +256,7 @@
         </article>
       </div>
 
-      <section class="glass-effect rounded-3xl border border-white/20 p-6 shadow-sm">
+      <section class="glass-effect rounded-3xl border border-border-default/25 p-6 shadow-sm">
         <h2 class="mb-4 flex items-center gap-2 text-lg font-bold text-text-primary">
           <svg
             class="h-5 w-5 text-accent-primary"
@@ -274,7 +274,7 @@
           {{ $t('stats.tokenDetails.title') }}
         </h2>
         <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
-          <div class="rounded-2xl border border-white/10 bg-bg-surface/60 p-4">
+          <div class="rounded-2xl border border-border-default/15 bg-bg-surface/60 p-4">
             <p class="text-sm text-text-secondary">
               {{ $t('stats.tokenDetails.cacheToken') }}
             </p>
@@ -282,7 +282,7 @@
               {{ formatNumber(stats.token_stats?.total_cache_tokens ?? 0) }}
             </p>
           </div>
-          <div class="rounded-2xl border border-white/10 bg-bg-surface/60 p-4">
+          <div class="rounded-2xl border border-border-default/15 bg-bg-surface/60 p-4">
             <p class="text-sm text-text-secondary">
               {{ $t('stats.tokenDetails.cacheEfficiency') }}
             </p>
@@ -290,7 +290,7 @@
               {{ formatPercent(stats.token_stats?.cache_efficiency ?? 0) }}%
             </p>
           </div>
-          <div class="rounded-2xl border border-white/10 bg-bg-surface/60 p-4">
+          <div class="rounded-2xl border border-border-default/15 bg-bg-surface/60 p-4">
             <p class="text-sm text-text-secondary">
               {{ $t('stats.tokenDetails.totalToken') }}
             </p>
@@ -302,7 +302,7 @@
       </section>
 
       <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <section class="glass-effect rounded-3xl border border-white/20 p-6 shadow-sm">
+        <section class="glass-effect rounded-3xl border border-border-default/25 p-6 shadow-sm">
           <h2 class="mb-4 flex items-center gap-2 text-lg font-bold text-text-primary">
             <svg
               class="h-5 w-5 text-accent-primary"
@@ -323,7 +323,7 @@
             <div
               v-for="[model, cost] in sortedModels"
               :key="model"
-              class="flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-bg-surface/50 p-3 transition-colors hover:bg-bg-elevated/70"
+              class="flex items-center justify-between gap-3 rounded-2xl border border-border-default/15 bg-bg-surface/50 p-3 transition-colors hover:bg-bg-elevated/70"
             >
               <span class="text-sm font-medium text-text-secondary">{{ shortenModelName(model) }}</span>
               <span class="text-sm font-bold text-text-primary">${{ formatCost(cost) }}</span>
@@ -337,7 +337,7 @@
           </div>
         </section>
 
-        <section class="glass-effect rounded-3xl border border-white/20 p-6 shadow-sm">
+        <section class="glass-effect rounded-3xl border border-border-default/25 p-6 shadow-sm">
           <h2 class="mb-4 flex items-center gap-2 text-lg font-bold text-text-primary">
             <svg
               class="h-5 w-5 text-accent-success"
@@ -358,7 +358,7 @@
             <div
               v-for="[project, cost] in sortedProjects.slice(0, 10)"
               :key="project"
-              class="flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-bg-surface/50 p-3 transition-colors hover:bg-bg-elevated/70"
+              class="flex items-center justify-between gap-3 rounded-2xl border border-border-default/15 bg-bg-surface/50 p-3 transition-colors hover:bg-bg-elevated/70"
             >
               <span class="mr-4 flex-1 truncate text-sm font-medium text-text-secondary">{{ shortenPath(project) }}</span>
               <span class="text-sm font-bold text-text-primary">${{ formatCost(cost) }}</span>
@@ -375,7 +375,7 @@
 
       <section
         v-if="stats.trend && stats.trend.length > 0"
-        class="glass-effect rounded-3xl border border-white/20 p-6 shadow-sm"
+        class="glass-effect rounded-3xl border border-border-default/25 p-6 shadow-sm"
       >
         <h2 class="mb-4 flex items-center gap-2 text-lg font-bold text-text-primary">
           <svg
@@ -397,7 +397,7 @@
           <div
             v-for="daily in stats.trend.slice().reverse().slice(0, 7).reverse()"
             :key="daily.date"
-            class="rounded-2xl border border-white/10 bg-bg-surface/60 p-3 text-center"
+            class="rounded-2xl border border-border-default/15 bg-bg-surface/60 p-3 text-center"
           >
             <p class="text-xs font-medium text-text-muted">
               {{ daily.date }}
@@ -415,9 +415,9 @@
 
     <div
       v-if="!loading && !error && stats && stats.record_count === 0"
-      class="glass-effect rounded-3xl border border-white/20 p-10 text-center shadow-sm sm:p-16"
+      class="glass-effect rounded-3xl border border-border-default/25 p-10 text-center shadow-sm sm:p-16"
     >
-      <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full border border-white/10 bg-bg-surface/70">
+      <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full border border-border-default/15 bg-bg-surface/70">
         <svg
           class="h-8 w-8 text-text-muted"
           fill="none"
@@ -456,7 +456,7 @@
           <div
             v-for="[provider, count] in sortedProviders"
             :key="provider"
-            class="space-y-2 rounded-2xl border border-white/10 bg-bg-surface/50 p-4"
+            class="space-y-2 rounded-2xl border border-border-default/15 bg-bg-surface/50 p-4"
           >
             <div class="flex items-center justify-between gap-3 text-sm">
               <span class="truncate font-medium text-text-primary">{{ provider || 'unknown' }}</span>
@@ -605,3 +605,4 @@ const getProviderBarWidth = (count: number): number => {
   background-color: rgb(168 85 247 / 70%);
 }
 </style>
+

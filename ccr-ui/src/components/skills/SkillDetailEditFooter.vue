@@ -44,13 +44,13 @@ defineEmits<{
 
 <style scoped>
 .modal-footer {
-  @apply flex items-center justify-end gap-2 border-t border-white/5 p-4 shrink-0;
+  @apply flex items-center justify-end gap-2 border-t border-border-default/10 p-4 shrink-0;
 
   background: rgb(0 0 0 / 20%);
 }
 
 .btn-secondary {
-  @apply px-4 py-2 rounded-xl text-sm font-semibold text-white/80 transition-colors hover:bg-white/5 hover:text-white;
+  @apply px-4 py-2 rounded-xl text-sm font-semibold text-text-primary transition-colors hover:bg-bg-surface/70 hover:text-white;
 }
 
 .btn-primary {
@@ -61,3 +61,4 @@ defineEmits<{
   background: rgb(var(--color-accent-primary-rgb) / 90%);
 }
 </style>
+

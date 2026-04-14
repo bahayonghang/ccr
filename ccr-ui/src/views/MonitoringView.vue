@@ -33,7 +33,7 @@
 
       <!-- Stats Cards -->
       <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <div class="glass-effect rounded-2xl p-4 border border-white/10">
+        <div class="glass-effect rounded-2xl p-4 border border-border-default/15">
           <div class="flex items-center gap-3">
             <div class="p-2 rounded-xl bg-accent-secondary/10">
               <SIcon
@@ -53,7 +53,7 @@
           </div>
         </div>
 
-        <div class="glass-effect rounded-2xl p-4 border border-white/10">
+        <div class="glass-effect rounded-2xl p-4 border border-border-default/15">
           <div class="flex items-center gap-3">
             <div class="p-2 rounded-xl bg-accent-success/10">
               <SIcon
@@ -73,7 +73,7 @@
           </div>
         </div>
 
-        <div class="glass-effect rounded-2xl p-4 border border-white/10">
+        <div class="glass-effect rounded-2xl p-4 border border-border-default/15">
           <div class="flex items-center gap-3">
             <div class="p-2 rounded-xl bg-accent-primary/10">
               <SIcon
@@ -93,7 +93,7 @@
           </div>
         </div>
 
-        <div class="glass-effect rounded-2xl p-4 border border-white/10">
+        <div class="glass-effect rounded-2xl p-4 border border-border-default/15">
           <div class="flex items-center gap-3">
             <div class="p-2 rounded-xl bg-accent-warning/10">
               <SIcon
@@ -115,7 +115,7 @@
       </div>
 
       <!-- Logs Panel -->
-      <div class="glass-effect rounded-3xl p-6 border border-white/20">
+      <div class="glass-effect rounded-3xl p-6 border border-border-default/25">
         <div class="flex items-center justify-between mb-4">
           <h3 class="text-base font-bold text-text-primary flex items-center gap-2">
             <SIcon
@@ -273,3 +273,4 @@ const getLevelClass = (level: string) => {
   }
 }
 </script>
+

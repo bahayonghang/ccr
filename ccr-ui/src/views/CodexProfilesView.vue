@@ -17,10 +17,10 @@
                 />
               </div>
               <div>
-                <h1 class="text-2xl font-bold text-white">
+                <h1 class="text-2xl font-bold text-text-primary">
                   {{ $t('codex.profiles.title') }}
                 </h1>
-                <p class="text-sm text-white/80 mt-1">
+                <p class="text-sm text-text-primary mt-1">
                   {{ $t('codex.profiles.subtitle') }}
                 </p>
               </div>
@@ -84,10 +84,10 @@
                   />
                 </div>
                 <div>
-                  <p class="text-xs font-medium text-white/50 uppercase tracking-wider mb-1">
+                  <p class="text-xs font-medium text-text-muted uppercase tracking-wider mb-1">
                     {{ $t('codex.status.currentConfig') }}
                   </p>
-                  <p class="text-xl font-bold text-white truncate">
+                  <p class="text-xl font-bold text-text-primary truncate">
                     {{ currentProfile || $t('codex.status.notSet') }}
                   </p>
                 </div>
@@ -111,10 +111,10 @@
                   />
                 </div>
                 <div>
-                  <p class="text-xs font-medium text-white/50 uppercase tracking-wider mb-1">
+                  <p class="text-xs font-medium text-text-muted uppercase tracking-wider mb-1">
                     {{ $t('codex.status.totalProfiles') }}
                   </p>
-                  <p class="text-xl font-bold text-white">
+                  <p class="text-xl font-bold text-text-primary">
                     {{ profiles.length }}
                   </p>
                 </div>
@@ -141,10 +141,10 @@
                   />
                 </div>
                 <div>
-                  <p class="text-xs font-medium text-white/50 uppercase tracking-wider mb-1">
+                  <p class="text-xs font-medium text-text-muted uppercase tracking-wider mb-1">
                     {{ $t('codex.status.configMode') }}
                   </p>
-                  <p class="text-xl font-bold text-white">
+                  <p class="text-xl font-bold text-text-primary">
                     {{ currentConfigMode === 'official' ? $t('codex.profiles.officialConfig') : $t('codex.profiles.customRelay') }}
                   </p>
                 </div>
@@ -166,7 +166,7 @@
                 size="w-5 h-5"
                 class="text-platform-codex"
               />
-              <h3 class="text-base font-semibold text-white">
+              <h3 class="text-base font-semibold text-text-primary">
                 {{ $t('codex.profiles.quickSwitch') }}
               </h3>
             </div>
@@ -231,16 +231,16 @@
           <!-- Empty State -->
           <div
             v-else-if="profiles.length === 0"
-            class="empty-state glass-effect rounded-2xl border border-white/5"
+            class="empty-state glass-effect rounded-2xl border border-border-default/10"
           >
             <div class="p-4 rounded-full glass-surface mb-4">
               <SIcon
                 name="Boxes"
                 size="w-8 h-8"
-                class="text-white/50"
+                class="text-text-muted"
               />
             </div>
-            <p class="text-white/80">
+            <p class="text-text-primary">
               {{ $t('codex.profiles.emptyState') }}
             </p>
           </div>
@@ -271,7 +271,7 @@
                 <div class="flex items-start justify-between gap-4 mb-4">
                   <div class="flex-1 min-w-0">
                     <div class="flex items-center gap-2 mb-2">
-                      <h3 class="text-lg font-bold font-mono text-white truncate">
+                      <h3 class="text-lg font-bold font-mono text-text-primary truncate">
                         {{ profile.name }}
                       </h3>
                       <span 
@@ -295,7 +295,7 @@
                     </div>
                     <p
                       v-if="profile.description"
-                      class="text-sm text-white/80 line-clamp-1"
+                      class="text-sm text-text-primary line-clamp-1"
                     >
                       {{ profile.description }}
                     </p>
@@ -343,7 +343,7 @@
                 <!-- Info Grid -->
                 <div class="codex-profiles-card__info-grid">
                   <div class="codex-profiles-card__info-item">
-                    <span class="text-xs font-medium text-white/50 uppercase tracking-wider">
+                    <span class="text-xs font-medium text-text-muted uppercase tracking-wider">
                       {{ $t('codex.profiles.fields.baseUrl') }}
                     </span>
                     <code class="codex-profiles-card__code">
@@ -352,7 +352,7 @@
                   </div>
 
                   <div class="codex-profiles-card__info-item">
-                    <span class="text-xs font-medium text-white/50 uppercase tracking-wider">
+                    <span class="text-xs font-medium text-text-muted uppercase tracking-wider">
                       {{ $t('codex.profiles.fields.model') }}
                     </span>
                     <div class="flex items-center gap-2">
@@ -363,7 +363,7 @@
                   </div>
 
                   <div class="codex-profiles-card__info-item">
-                    <span class="text-xs font-medium text-white/50 uppercase tracking-wider">
+                    <span class="text-xs font-medium text-text-muted uppercase tracking-wider">
                       {{ $t('codex.profiles.fields.authMode') }}
                     </span>
                     <div class="flex items-center gap-2 flex-wrap">
@@ -380,7 +380,7 @@
                   </div>
 
                   <div class="codex-profiles-card__info-item">
-                    <span class="text-xs font-medium text-white/50 uppercase tracking-wider">
+                    <span class="text-xs font-medium text-text-muted uppercase tracking-wider">
                       {{ $t('codex.profiles.fields.authSource') }}
                     </span>
                     <div class="flex items-center gap-2 flex-wrap">
@@ -400,7 +400,7 @@
                     v-if="profile.env_key"
                     class="codex-profiles-card__info-item"
                   >
-                    <span class="text-xs font-medium text-white/50 uppercase tracking-wider">
+                    <span class="text-xs font-medium text-text-muted uppercase tracking-wider">
                       {{ $t('codex.profiles.fields.envKey') }}
                     </span>
                     <code class="codex-profiles-card__code">
@@ -418,7 +418,7 @@
                       <p class="text-xs font-medium uppercase tracking-wider text-emerald-300">
                         {{ $t('codex.profiles.envExportTitle') }}
                       </p>
-                      <p class="mt-1 text-xs text-white/60">
+                      <p class="mt-1 text-xs text-text-muted">
                         {{ $t('codex.profiles.envExportHint') }}
                       </p>
                     </div>
@@ -429,24 +429,24 @@
                       {{ $t('codex.profiles.copyEnvExport') }}
                     </button>
                   </div>
-                  <pre class="mt-3 overflow-x-auto rounded-lg glass-surface p-3 text-xs text-white/80"><code>{{ profile.shell_export_script }}</code></pre>
+                  <pre class="mt-3 overflow-x-auto rounded-lg glass-surface p-3 text-xs text-text-primary"><code>{{ profile.shell_export_script }}</code></pre>
                 </div>
                  
                 <div
                   v-if="profile.tags?.length || profile.provider || (profile.extra && Object.keys(profile.extra).length > 0)"
-                  class="mt-4 flex items-center justify-between border-t border-white/5 pt-3"
+                  class="mt-4 flex items-center justify-between border-t border-border-default/10 pt-3"
                 >
                   <div class="flex flex-wrap gap-1.5">
                     <span 
                       v-if="profile.provider"
-                      class="px-2 py-0.5 rounded-md text-xs font-medium glass-surface text-white/80"
+                      class="px-2 py-0.5 rounded-md text-xs font-medium glass-surface text-text-primary"
                     >
                       {{ profile.provider }}
                     </span>
                     <span 
                       v-for="tag in profile.tags" 
                       :key="tag"
-                      class="px-2 py-0.5 rounded-md text-xs font-medium glass-surface text-white/50"
+                      class="px-2 py-0.5 rounded-md text-xs font-medium glass-surface text-text-muted"
                     >
                       #{{ tag }}
                     </span>
@@ -454,7 +454,7 @@
                    
                   <div
                     v-if="profile.extra && Object.keys(profile.extra).length > 0"
-                    class="text-xs text-white/50 font-mono glass-surface px-2 py-1 rounded"
+                    class="text-xs text-text-muted font-mono glass-surface px-2 py-1 rounded"
                   >
                     +{{ Object.keys(profile.extra).length }} extras
                   </div>
@@ -1021,7 +1021,7 @@ onActivated(() => {
 }
 
 .codex-profiles-switch--idle {
-  @apply glass-effect text-white/80 hover:border-platform-codex/30 hover:bg-white/10;
+  @apply glass-effect text-text-primary hover:border-platform-codex/30 hover:bg-bg-elevated/80;
 }
 
 .codex-profiles-switch--busy {
@@ -1029,7 +1029,7 @@ onActivated(() => {
 }
 
 .codex-profiles-switch__active-indicator {
-  @apply flex h-4 w-4 items-center justify-center rounded-full bg-platform-codex text-[10px] text-white;
+  @apply flex h-4 w-4 items-center justify-center rounded-full bg-platform-codex text-[10px] text-text-primary;
 }
 
 .codex-profiles-section-heading {
@@ -1037,7 +1037,7 @@ onActivated(() => {
 }
 
 .codex-profiles-section-heading__title {
-  @apply text-xl font-bold text-white;
+  @apply text-xl font-bold text-text-primary;
 }
 
 .codex-profiles-loading {
@@ -1065,7 +1065,7 @@ onActivated(() => {
 }
 
 .codex-profiles-action-button {
-  @apply rounded-lg p-2 transition-colors hover:bg-white/10;
+  @apply rounded-lg p-2 transition-colors hover:bg-bg-elevated/80;
 }
 
 .codex-profiles-action-button--success {
@@ -1089,7 +1089,7 @@ onActivated(() => {
 }
 
 .codex-profiles-card__code {
-  @apply truncate rounded px-2 py-1 font-mono text-white glass-surface;
+  @apply truncate rounded px-2 py-1 font-mono text-text-primary glass-surface;
 }
 
 .codex-profiles-card__model-pill {
@@ -1097,7 +1097,9 @@ onActivated(() => {
 }
 
 .codex-profiles-card__meta-pill {
-  @apply rounded-md px-2 py-0.5 text-xs font-medium text-white/80 glass-surface;
+  @apply rounded-md px-2 py-0.5 text-xs font-medium text-text-primary glass-surface;
 }
 
 </style>
+
+

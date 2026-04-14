@@ -66,9 +66,9 @@
         <SIcon
           name="Cpu"
           size="w-3.5 h-3.5"
-          class="text-white/50"
+          class="text-text-muted"
         />
-        <span class="text-xs font-bold uppercase tracking-wide text-white/80">
+        <span class="text-xs font-bold uppercase tracking-wide text-text-primary">
           {{ $t('skills.allPlatformStats') }}
         </span>
         <span class="platform-overview__count">
@@ -168,9 +168,9 @@ function formatNumber(num: number): string {
 
 .stats-card {
   @apply relative flex items-center gap-3 px-4 py-3 rounded-xl
-         border border-white/5
+         border border-border-default/10
          transition-[border-color,box-shadow] duration-300
-         hover:border-white/10 hover:shadow-lg;
+         hover:border-border-default/15 hover:shadow-lg;
 
   background: rgb(var(--color-bg-elevated-rgb) / 88%);
   min-width: 140px;
@@ -211,11 +211,11 @@ function formatNumber(num: number): string {
 }
 
 .stats-card__label {
-  @apply text-[10px] text-white/80 uppercase tracking-wide;
+  @apply text-[10px] text-text-primary uppercase tracking-wide;
 }
 
 .stats-card__value--placeholder {
-  @apply text-white/55;
+  @apply text-text-muted;
 }
 
 .stats-card__trend {
@@ -224,8 +224,8 @@ function formatNumber(num: number): string {
 
 .stats-card__badge {
   @apply absolute top-2 right-2 flex items-center gap-1
-         px-1.5 py-0.5 rounded-full text-[9px] font-medium text-white/50
-         border border-white/10;
+         px-1.5 py-0.5 rounded-full text-[9px] font-medium text-text-muted
+         border border-border-default/15;
 
   background: rgb(var(--color-bg-overlay-rgb) / 80%);
 }
@@ -233,7 +233,7 @@ function formatNumber(num: number): string {
 /* Right platform overview */
 .platform-overview {
   @apply flex-1 flex flex-col gap-2 px-4 py-3 rounded-xl
-         border border-white/5;
+         border border-border-default/10;
 
   background: rgb(var(--color-bg-elevated-rgb) / 88%);
 }
@@ -244,7 +244,7 @@ function formatNumber(num: number): string {
 
 .platform-overview__count {
   @apply ml-auto px-1.5 py-0.5 rounded text-[10px] font-bold font-mono
-         text-white/50 border border-white/10;
+         text-text-muted border border-border-default/15;
 
   background: rgb(var(--color-bg-overlay-rgb) / 80%);
 }
@@ -255,8 +255,8 @@ function formatNumber(num: number): string {
 
 .platform-chip {
   @apply flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg
-         text-xs font-medium text-white/80
-         border border-white/5
+         text-xs font-medium text-text-primary
+         border border-border-default/10
          transition-colors duration-200;
 
   background: rgb(0 0 0 / 20%);
@@ -287,7 +287,7 @@ function formatNumber(num: number): string {
 
 .platform-chip__count {
   @apply px-1.5 py-0.5 rounded text-[10px] font-bold font-mono
-         text-white/50 border border-white/10;
+         text-text-muted border border-border-default/15;
 
   background: rgb(var(--color-bg-overlay-rgb) / 80%);
 }
@@ -319,3 +319,4 @@ function formatNumber(num: number): string {
   }
 }
 </style>
+

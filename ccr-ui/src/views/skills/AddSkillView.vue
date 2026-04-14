@@ -17,6 +17,7 @@ onMounted(() => {
 
 <style scoped>
 .skills-redirect {
-  @apply flex min-h-[40vh] items-center justify-center text-sm text-white/60;
+  @apply flex min-h-[40vh] items-center justify-center text-sm text-text-muted;
 }
 </style>
+

@@ -175,7 +175,7 @@ function handleClick() {
 
 <style scoped>
 .mp-card {
-  @apply relative flex flex-col gap-3 overflow-hidden rounded-2xl border border-white/10 p-4 text-white
+  @apply relative flex flex-col gap-3 overflow-hidden rounded-2xl border border-border-default/15 p-4 text-white
          transition-interactive duration-200 ease-out;
 
   background: rgb(var(--color-bg-elevated-rgb) / 92%);
@@ -187,7 +187,7 @@ function handleClick() {
 }
 
 .mp-card:hover {
-  @apply scale-[1.01] border-white/20;
+  @apply scale-[1.01] border-border-default/25;
 
   background: rgb(var(--color-bg-surface-rgb) / 96%);
   box-shadow: 0 4px 20px rgb(0 0 0 / 20%);
@@ -211,7 +211,7 @@ function handleClick() {
 }
 
 .mp-card__check {
-  @apply flex h-5 w-5 cursor-pointer items-center justify-center rounded-md border-2 border-white/20 bg-black/20 transition-colors duration-150;
+  @apply flex h-5 w-5 cursor-pointer items-center justify-center rounded-md border-2 border-border-default/25 bg-black/20 transition-colors duration-150;
 }
 
 .mp-card__check--active {
@@ -227,11 +227,11 @@ function handleClick() {
 }
 
 .mp-card__avatar {
-  @apply h-6 w-6 shrink-0 rounded-full bg-white/10;
+  @apply h-6 w-6 shrink-0 rounded-full bg-bg-elevated/80;
 }
 
 .mp-card__owner {
-  @apply truncate text-xs font-medium text-white/70;
+  @apply truncate text-xs font-medium text-text-secondary;
 }
 
 .mp-card__stars {
@@ -245,7 +245,7 @@ function handleClick() {
 }
 
 .mp-card__description {
-  @apply flex-1 text-sm leading-relaxed text-white/80;
+  @apply flex-1 text-sm leading-relaxed text-text-primary;
 
   display: -webkit-box;
   -webkit-line-clamp: 3;
@@ -254,15 +254,15 @@ function handleClick() {
 }
 
 .mp-card__description--empty {
-  @apply italic text-white/50;
+  @apply italic text-text-muted;
 }
 
 .mp-card__footer {
-  @apply mt-auto flex items-center justify-between border-t border-white/10 pt-2;
+  @apply mt-auto flex items-center justify-between border-t border-border-default/15 pt-2;
 }
 
 .mp-card__link-btn {
-  @apply flex items-center gap-1.5 text-xs text-white/50 transition-colors hover:text-white;
+  @apply flex items-center gap-1.5 text-xs text-text-muted transition-colors hover:text-white;
 }
 
 .mp-card__install-btn {
@@ -279,7 +279,8 @@ function handleClick() {
 }
 
 .mp-card__status--installing {
-  @apply bg-white/10 text-white/70;
+  @apply bg-bg-elevated/80 text-text-secondary;
 }
 </style>
+
 

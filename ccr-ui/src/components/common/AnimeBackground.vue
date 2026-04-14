@@ -1,17 +1,17 @@
 <template>
   <div
-    class="apple-background"
+    class="claude-background"
     aria-hidden="true"
   >
-    <div class="apple-background__base" />
-    <div class="apple-background__halo apple-background__halo--left" />
-    <div class="apple-background__halo apple-background__halo--right" />
-    <div class="apple-background__grain" />
+    <div class="claude-background__base" />
+    <div class="claude-background__halo claude-background__halo--left" />
+    <div class="claude-background__halo claude-background__halo--right" />
+    <div class="claude-background__grain" />
   </div>
 </template>
 
 <style scoped>
-.apple-background {
+.claude-background {
   position: fixed;
   inset: 0;
   overflow: hidden;
@@ -20,70 +20,72 @@
   background: var(--color-bg-base);
 }
 
-.apple-background__base,
-.apple-background__halo,
-.apple-background__grain {
+.claude-background__base,
+.claude-background__halo,
+.claude-background__grain {
   position: absolute;
   inset: 0;
 }
 
-.apple-background__base {
+.claude-background__base {
   background:
-    radial-gradient(circle at top left, rgb(var(--color-accent-primary-rgb) / 6%) 0%, transparent 28%),
-    radial-gradient(circle at 78% 12%, rgb(var(--color-accent-secondary-rgb) / 5%) 0%, transparent 24%),
-    linear-gradient(180deg, rgb(var(--color-bg-base-rgb) / 100%), rgb(var(--color-bg-base-rgb) / 94%));
+    radial-gradient(circle at 14% 0%, rgb(var(--color-accent-primary-rgb) / 6%) 0%, transparent 30%),
+    radial-gradient(circle at 78% 14%, rgb(var(--color-accent-secondary-rgb) / 6%) 0%, transparent 22%),
+    linear-gradient(180deg, rgb(var(--color-premium-pink-rgb) / 40%), transparent 28%),
+    linear-gradient(180deg, rgb(var(--color-bg-base-rgb) / 100%), rgb(var(--color-bg-base-rgb) / 95%));
 }
 
-.apple-background__halo {
+.claude-background__halo {
   filter: blur(88px);
-  opacity: 0.75;
+  opacity: 0.68;
 }
 
-.apple-background__halo--left {
+.claude-background__halo--left {
   inset: -8% auto auto -10%;
   width: 44vw;
   height: 44vw;
   border-radius: 50%;
-  background: rgb(var(--color-accent-primary-rgb) / 8%);
+  background: rgb(var(--color-accent-primary-rgb) / 10%);
 }
 
-.apple-background__halo--right {
+.claude-background__halo--right {
   inset: auto -10% -14% auto;
   width: 38vw;
   height: 38vw;
   border-radius: 50%;
-  background: rgb(var(--color-premium-blue-rgb) / 42%);
+  background: rgb(var(--color-premium-blue-rgb) / 52%);
 }
 
-.apple-background__grain {
-  opacity: 0.028;
+.claude-background__grain {
+  opacity: 0.032;
   background-image:
-    radial-gradient(rgb(var(--color-text-primary-rgb) / 26%) 0.7px, transparent 0.7px);
-  background-size: 18px 18px;
+    radial-gradient(rgb(var(--color-text-primary-rgb) / 24%) 0.8px, transparent 0.8px);
+  background-size: 16px 16px;
   mask-image: linear-gradient(180deg, rgb(0 0 0 / 68%), transparent);
 }
 
-[data-theme='dark'] .apple-background__base {
+[data-theme='dark'] .claude-background__base {
   background:
-    radial-gradient(circle at top left, rgb(var(--color-accent-primary-rgb) / 11%) 0%, transparent 30%),
-    radial-gradient(circle at 82% 10%, rgb(var(--color-accent-secondary-rgb) / 9%) 0%, transparent 28%),
-    linear-gradient(180deg, rgb(var(--color-bg-base-rgb) / 100%), rgb(var(--color-bg-base-rgb) / 92%));
+    radial-gradient(circle at 16% 4%, rgb(var(--color-accent-primary-rgb) / 12%) 0%, transparent 30%),
+    radial-gradient(circle at 82% 10%, rgb(var(--color-accent-secondary-rgb) / 10%) 0%, transparent 28%),
+    linear-gradient(180deg, rgb(var(--color-premium-pink-rgb) / 26%), transparent 28%),
+    linear-gradient(180deg, rgb(var(--color-bg-base-rgb) / 100%), rgb(var(--color-bg-base-rgb) / 93%));
 }
 
-[data-theme='dark'] .apple-background__halo--left {
+[data-theme='dark'] .claude-background__halo--left {
   background: rgb(var(--color-accent-primary-rgb) / 14%);
 }
 
-[data-theme='dark'] .apple-background__halo--right {
-  background: rgb(var(--color-premium-blue-rgb) / 66%);
+[data-theme='dark'] .claude-background__halo--right {
+  background: rgb(var(--color-premium-blue-rgb) / 72%);
 }
 
-[data-theme='dark'] .apple-background__grain {
-  opacity: 0.04;
+[data-theme='dark'] .claude-background__grain {
+  opacity: 0.046;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .apple-background__halo {
+  .claude-background__halo {
     display: none;
   }
 }

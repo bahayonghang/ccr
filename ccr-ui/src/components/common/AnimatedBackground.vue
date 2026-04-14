@@ -83,22 +83,24 @@ const spotlightColorClass = computed(() => `background-layer__spotlight--${props
 .background-layer__base--default,
 .background-layer__base--complex {
   background:
-    radial-gradient(circle at 10% 0%, rgb(var(--color-accent-primary-rgb) / 7%), transparent 26%),
-    radial-gradient(circle at 100% 8%, rgb(var(--color-accent-secondary-rgb) / 6%), transparent 24%),
+    radial-gradient(circle at 12% 0%, rgb(var(--color-accent-primary-rgb) / 6%), transparent 28%),
+    radial-gradient(circle at 92% 10%, rgb(var(--color-accent-secondary-rgb) / 5%), transparent 22%),
+    linear-gradient(180deg, rgb(var(--color-premium-pink-rgb) / 34%), transparent 30%),
     linear-gradient(180deg, rgb(var(--color-bg-base-rgb) / 78%), rgb(var(--color-bg-base-rgb) / 100%));
 }
 
 .background-layer__base--aurora {
   background:
-    linear-gradient(180deg, rgb(var(--color-accent-primary-rgb) / 6%), transparent 24%),
+    linear-gradient(180deg, rgb(var(--color-accent-primary-rgb) / 5%), transparent 24%),
+    radial-gradient(circle at 82% 14%, rgb(var(--color-accent-secondary-rgb) / 4%), transparent 22%),
     linear-gradient(180deg, rgb(var(--color-bg-base-rgb) / 82%), rgb(var(--color-bg-base-rgb) / 100%));
 }
 
 .background-layer__base--mesh,
 .background-layer__base--orbs {
   background:
-    radial-gradient(circle at 14% 12%, rgb(var(--color-premium-blue-rgb) / 50%), transparent 28%),
-    radial-gradient(circle at 86% 0%, rgb(var(--color-accent-primary-rgb) / 7%), transparent 24%),
+    radial-gradient(circle at 14% 12%, rgb(var(--color-premium-blue-rgb) / 44%), transparent 28%),
+    radial-gradient(circle at 86% 0%, rgb(var(--color-accent-primary-rgb) / 6%), transparent 22%),
     linear-gradient(180deg, rgb(var(--color-bg-base-rgb) / 76%), rgb(var(--color-bg-base-rgb) / 100%));
 }
 
@@ -107,15 +109,15 @@ const spotlightColorClass = computed(() => `background-layer__spotlight--${props
 }
 
 .background-layer__grain {
-  opacity: 0.02;
-  background-image: radial-gradient(rgb(var(--color-text-primary-rgb) / 26%) 0.65px, transparent 0.65px);
-  background-size: 20px 20px;
+  opacity: 0.024;
+  background-image: radial-gradient(rgb(var(--color-text-primary-rgb) / 22%) 0.8px, transparent 0.8px);
+  background-size: 18px 18px;
   mask-image: linear-gradient(180deg, rgb(0 0 0 / 72%), transparent);
 }
 
 .background-layer__halo {
-  filter: blur(96px);
-  animation: ambient-drift 16s ease-in-out infinite;
+  filter: blur(88px);
+  animation: ambient-drift 20s ease-in-out infinite;
   animation-play-state: var(--animation-state);
 }
 
@@ -124,7 +126,7 @@ const spotlightColorClass = computed(() => `background-layer__spotlight--${props
   width: 34vw;
   height: 34vw;
   border-radius: 50%;
-  background: rgb(var(--color-accent-primary-rgb) / 10%);
+  background: rgb(var(--color-accent-primary-rgb) / 9%);
 }
 
 .background-layer__halo--secondary {
@@ -132,17 +134,17 @@ const spotlightColorClass = computed(() => `background-layer__spotlight--${props
   width: 30vw;
   height: 30vw;
   border-radius: 50%;
-  background: rgb(var(--color-premium-blue-rgb) / 60%);
-  animation-duration: 20s;
+  background: rgb(var(--color-premium-blue-rgb) / 54%);
+  animation-duration: 24s;
 }
 
 .background-layer__halo--aurora {
-  background: rgb(var(--color-accent-secondary-rgb) / 10%);
+  background: rgb(var(--color-accent-secondary-rgb) / 8%);
 }
 
 .background-layer__halo--mesh,
 .background-layer__halo--orbs {
-  background: rgb(var(--color-premium-blue-rgb) / 72%);
+  background: rgb(var(--color-premium-blue-rgb) / 64%);
 }
 
 .background-layer__spotlight {
@@ -150,41 +152,41 @@ const spotlightColorClass = computed(() => `background-layer__spotlight--${props
 }
 
 .background-layer__spotlight--primary {
-  background: radial-gradient(circle at 50% 0%, rgb(var(--color-accent-primary-rgb) / 16%), transparent 52%);
+  background: radial-gradient(circle at 50% 0%, rgb(var(--color-accent-primary-rgb) / 12%), transparent 52%);
 }
 
 .background-layer__spotlight--secondary {
-  background: radial-gradient(circle at 50% 0%, rgb(var(--color-accent-secondary-rgb) / 16%), transparent 52%);
+  background: radial-gradient(circle at 50% 0%, rgb(var(--color-accent-secondary-rgb) / 12%), transparent 52%);
 }
 
 .background-layer__spotlight--success {
-  background: radial-gradient(circle at 50% 0%, rgb(var(--color-success-rgb) / 14%), transparent 52%);
+  background: radial-gradient(circle at 50% 0%, rgb(var(--color-success-rgb) / 12%), transparent 52%);
 }
 
 .background-layer__spotlight--warning {
-  background: radial-gradient(circle at 50% 0%, rgb(var(--color-warning-rgb) / 14%), transparent 52%);
+  background: radial-gradient(circle at 50% 0%, rgb(var(--color-warning-rgb) / 12%), transparent 52%);
 }
 
 .background-layer__spotlight--danger {
-  background: radial-gradient(circle at 50% 0%, rgb(var(--color-danger-rgb) / 14%), transparent 52%);
+  background: radial-gradient(circle at 50% 0%, rgb(var(--color-danger-rgb) / 12%), transparent 52%);
 }
 
 .background-layer__spotlight--info {
-  background: radial-gradient(circle at 50% 0%, rgb(var(--color-info-rgb) / 14%), transparent 52%);
+  background: radial-gradient(circle at 50% 0%, rgb(var(--color-info-rgb) / 12%), transparent 52%);
 }
 
 [data-theme='dark'] .background-layer__grain {
-  opacity: 0.032;
+  opacity: 0.04;
 }
 
 [data-theme='dark'] .background-layer__halo--primary {
-  background: rgb(var(--color-accent-primary-rgb) / 12%);
+  background: rgb(var(--color-accent-primary-rgb) / 11%);
 }
 
 [data-theme='dark'] .background-layer__halo--secondary,
 [data-theme='dark'] .background-layer__halo--mesh,
 [data-theme='dark'] .background-layer__halo--orbs {
-  background: rgb(var(--color-premium-blue-rgb) / 82%);
+  background: rgb(var(--color-premium-blue-rgb) / 72%);
 }
 
 @keyframes ambient-drift {

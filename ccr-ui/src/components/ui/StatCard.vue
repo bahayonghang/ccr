@@ -17,7 +17,7 @@
     <!-- 内容区域 -->
     <div class="flex-1 min-w-0">
       <!-- 标签 -->
-      <p class="text-sm text-white/50 truncate">
+      <p class="text-sm text-text-muted truncate">
         <slot name="label">
           {{ label }}
         </slot>
@@ -70,7 +70,7 @@
       <!-- 附加描述 -->
       <p
         v-if="description || $slots.description"
-        class="text-xs text-white/50 mt-1 truncate"
+        class="text-xs text-text-muted mt-1 truncate"
       >
         <slot name="description">
           {{ description }}
@@ -135,7 +135,7 @@ const formattedValue = computed(() => {
 const variantColors = {
   default: {
     container: 'glass-surface',
-    icon: 'text-white/80',
+    icon: 'text-text-primary',
   },
   primary: {
     container: 'bg-accent-primary/10',
@@ -163,7 +163,7 @@ const variantColors = {
 const cardClasses = computed(() => [
   'flex items-start gap-4 p-4 rounded-xl glass-surface',
   'transition-colors duration-200 ease-out',
-  props.bordered ? 'border border-white/5 hover:border-white/10' : '',
+  props.bordered ? 'border border-border-default/10 hover:border-border-default/15' : '',
 ])
 
 // 图标容器类
@@ -179,6 +179,7 @@ const changeClasses = computed(() => {
     ? 'text-accent-success'
     : props.change < 0
       ? 'text-accent-danger'
-      : 'text-white/50'
+      : 'text-text-muted'
 })
 </script>
+

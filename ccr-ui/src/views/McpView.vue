@@ -775,7 +775,7 @@ const removeEnvVar = (key: string) => {
 }
 
 .mcp-view__server-title {
-  font-family: var(--font-mono, 'Maple Mono', monospace);
+  font-family: var(--font-mono);
   color: rgb(255 255 255 / 100%);
   font-size: 1.125rem;
   line-height: 1.75rem;
@@ -838,7 +838,7 @@ const removeEnvVar = (key: string) => {
   border-color: rgb(255 255 255 / 5%);
   border-radius: 0.5rem;
   padding: 0.25rem 0.5rem;
-  font-family: var(--font-mono, 'Maple Mono', monospace);
+  font-family: var(--font-mono);
   color: rgb(255 255 255 / 100%);
 }
 
@@ -866,7 +866,7 @@ const removeEnvVar = (key: string) => {
   border-color: rgb(255 255 255 / 5%);
   border-radius: 0.5rem;
   padding: 0.25rem 0.5rem;
-  font-family: var(--font-mono, 'Maple Mono', monospace);
+  font-family: var(--font-mono);
   font-size: 0.75rem;
   line-height: 1rem;
 }
@@ -989,7 +989,7 @@ const removeEnvVar = (key: string) => {
 
 .mcp-view__input--mono,
 .mcp-view__env-code {
-  font-family: var(--font-mono, 'Maple Mono', monospace);
+  font-family: var(--font-mono);
   font-size: 0.875rem;
   line-height: 1.25rem;
 }

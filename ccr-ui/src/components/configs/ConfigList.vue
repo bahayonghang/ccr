@@ -3,7 +3,7 @@
     <!-- Loading State -->
     <div
       v-if="loading"
-      class="flex flex-col items-center justify-center py-20 text-white/50"
+      class="flex flex-col items-center justify-center py-20 text-text-muted"
     >
       <Spinner
         size="xl"
@@ -28,7 +28,7 @@
     <!-- Empty State -->
     <div
       v-else-if="configs.length === 0"
-      class="py-20 flex flex-col items-center justify-center text-white/50"
+      class="py-20 flex flex-col items-center justify-center text-text-muted"
     >
       <div class="w-16 h-16 rounded-2xl glass-surface flex items-center justify-center mb-4">
         <SIcon
@@ -79,3 +79,4 @@ defineEmits<{
   disable: [name: string]
 }>()
 </script>
+

@@ -64,7 +64,7 @@
         </div>
 
         <!-- Description -->
-        <p class="text-xs text-white/80 truncate leading-relaxed">
+        <p class="text-xs text-text-primary truncate leading-relaxed">
           {{ config.description || t('configs.noDescription') }}
         </p>
       </div>
@@ -335,3 +335,4 @@ const nameColorClass = computed(() => {
   box-shadow: 2px 0 8px rgb(6 182 212 / 30%);
 }
 </style>
+

@@ -139,21 +139,21 @@ const toneClasses = computed(() => {
 .page-header-card__glow {
   position: absolute;
   inset: auto auto 0 0;
-  width: 16rem;
-  height: 16rem;
+  width: 14rem;
+  height: 14rem;
   border-radius: 9999px;
-  filter: blur(92px);
-  opacity: 0.32;
+  filter: blur(84px);
+  opacity: 0.24;
   pointer-events: none;
   transform: translate(-28%, 38%);
 }
 
 .page-header-card__glow--primary {
-  background: rgb(var(--color-accent-primary-rgb) / 16%);
+  background: rgb(var(--color-accent-primary-rgb) / 12%);
 }
 
 .page-header-card__glow--secondary {
-  background: rgb(var(--color-premium-blue-rgb) / 56%);
+  background: rgb(var(--color-premium-blue-rgb) / 48%);
 }
 
 .page-header-card__glow--success {
@@ -171,7 +171,7 @@ const toneClasses = computed(() => {
 .page-header-card__content {
   position: relative;
   z-index: 1;
-  padding: 1.45rem 1.6rem;
+  padding: 1.35rem 1.5rem;
 }
 
 .page-header-card__top {
@@ -196,7 +196,7 @@ const toneClasses = computed(() => {
   height: 3.25rem;
   border-radius: 1rem;
   border: 1px solid rgb(var(--color-border-default-rgb) / 10%);
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 64%);
+  box-shadow: inset 0 1px 0 rgb(255 251 245 / 66%);
 }
 
 .page-header-card__icon--primary {
@@ -227,18 +227,18 @@ const toneClasses = computed(() => {
 }
 
 .page-header-card__title {
-  font-size: 1.75rem;
-  line-height: 1.08;
-  font-weight: 600;
-  letter-spacing: -0.03em;
+  font-size: 1.625rem;
+  line-height: 1.14;
+  font-weight: 620;
+  letter-spacing: -0.028em;
   color: var(--color-text-primary);
 }
 
 .page-header-card__description {
   margin-top: 0.5rem;
-  max-width: 52rem;
+  max-width: 48rem;
   color: var(--color-text-secondary);
-  line-height: 1.47;
+  line-height: 1.62;
 }
 
 .page-header-card__badge {
@@ -249,7 +249,7 @@ const toneClasses = computed(() => {
   border-radius: 9999px;
   border: 1px solid transparent;
   font-size: 0.75rem;
-  font-weight: 600;
+  font-weight: 560;
 }
 
 .page-header-card__badge--primary {
@@ -293,7 +293,7 @@ const toneClasses = computed(() => {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.625rem;
 }
 
 .page-header-card__body {

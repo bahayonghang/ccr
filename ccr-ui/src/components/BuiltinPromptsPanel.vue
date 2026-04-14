@@ -1,5 +1,5 @@
 <template>
-  <div class="glass-effect rounded-3xl p-6 border border-white/20">
+  <div class="glass-effect rounded-3xl p-6 border border-border-default/25">
     <!-- Header -->
     <div class="flex items-center justify-between mb-6">
       <div class="flex items-center gap-3">
@@ -119,9 +119,9 @@
         class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md"
         @click.self="selectedPrompt = null"
       >
-        <div class="w-full max-w-3xl max-h-[80vh] m-4 bg-bg-elevated rounded-2xl border border-white/10 overflow-hidden flex flex-col">
+        <div class="w-full max-w-3xl max-h-[80vh] m-4 bg-bg-elevated rounded-2xl border border-border-default/15 overflow-hidden flex flex-col">
           <!-- Modal Header -->
-          <div class="flex items-center justify-between p-4 border-b border-white/10">
+          <div class="flex items-center justify-between p-4 border-b border-border-default/15">
             <div class="flex items-center gap-3">
               <SIcon
                 :name="getCategoryIcon(selectedPrompt.category)"
@@ -155,7 +155,7 @@
           </div>
 
           <!-- Modal Footer -->
-          <div class="flex items-center justify-end gap-3 p-4 border-t border-white/10">
+          <div class="flex items-center justify-end gap-3 p-4 border-t border-border-default/15">
             <button
               class="px-4 py-2 text-xs rounded-lg bg-bg-surface text-text-secondary hover:text-text-primary transition-colors"
               @click="copyToClipboard(selectedPrompt.content)"
@@ -248,3 +248,4 @@ const applyPrompt = (prompt: BuiltinPrompt) => {
   selectedPrompt.value = null
 }
 </script>
+

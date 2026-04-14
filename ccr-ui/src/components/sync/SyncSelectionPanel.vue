@@ -1,5 +1,5 @@
 <template>
-  <div class="glass-effect rounded-2xl border border-white/5 p-6 transition-[transform,box-shadow] duration-300 hover:scale-[1.01] hover:border-cyan-500/30">
+  <div class="glass-effect rounded-2xl border border-border-default/10 p-6 transition-[transform,box-shadow] duration-300 hover:scale-[1.01] hover:border-cyan-500/30">
     <div class="mb-6 flex items-center justify-between">
       <div class="flex items-center gap-3">
         <div class="rounded-2xl border border-success/30 bg-success/15 p-3">
@@ -17,7 +17,7 @@
         :disabled="applying || !hasChanges"
         class="flex items-center gap-2 rounded-xl border px-4 py-2.5 font-medium transition-[color,background-color,border-color,transform] duration-300 hover:scale-105 disabled:cursor-not-allowed disabled:opacity-50"
         :class="applying || !hasChanges
-          ? 'glass-surface border-white/5 text-white/50'
+          ? 'glass-surface border-border-default/10 text-text-muted'
           : 'border-success/30 bg-success/15 text-success hover:bg-success/20'"
         @click="applySelection"
       >
@@ -47,20 +47,20 @@
               {{ $t('sync.platformSelection.configRequiredBadge') }}
             </span>
           </div>
-          <p class="mb-3 text-sm text-white/80">
+          <p class="mb-3 text-sm text-text-primary">
             {{ $t('sync.platformSelection.configDescription') }}
           </p>
           <div class="flex items-center gap-2">
             <SIcon
               name="Folder"
               size="w-4 h-4"
-              class="text-white/50"
+              class="text-text-muted"
             />
             <input
               :value="presetConfig.localPath"
               type="text"
               :aria-label="$t('sync.customFolder.localPathPlaceholder')"
-              class="glass-surface flex-1 rounded-lg border border-white/5 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/30"
+              class="glass-surface flex-1 rounded-lg border border-border-default/10 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/30"
               :placeholder="$t('sync.customFolder.localPathPlaceholder')"
               @input="updatePresetLocalPath(($event.target as HTMLInputElement).value)"
             >
@@ -265,3 +265,4 @@ interface Props {
 
 defineProps<Props>()
 </script>
+

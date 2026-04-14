@@ -163,7 +163,7 @@ const toneClass = computed(() => ({
 }
 
 .opencode-page-shell__icon {
-  @apply flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/5 shadow-lg backdrop-blur-md;
+  @apply flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-border-default/15 bg-bg-surface/70 shadow-lg backdrop-blur-md;
 }
 
 .opencode-page-shell__tone--lime {
@@ -224,3 +224,4 @@ const toneClass = computed(() => ({
   @apply flex flex-col gap-5;
 }
 </style>
+

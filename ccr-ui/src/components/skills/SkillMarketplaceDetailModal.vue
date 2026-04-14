@@ -201,14 +201,14 @@ function formatStars(stars: number): string {
 }
 
 .marketplace-detail-modal {
-  @apply flex max-h-[85vh] w-full max-w-2xl flex-col overflow-hidden rounded-3xl border border-white/10 shadow-2xl;
+  @apply flex max-h-[85vh] w-full max-w-2xl flex-col overflow-hidden rounded-3xl border border-border-default/15 shadow-2xl;
 
   background: rgb(var(--color-bg-base-rgb));
 }
 
 .marketplace-detail__header,
 .marketplace-detail__footer {
-  @apply flex items-center justify-between gap-3 border-white/5 px-6 py-4;
+  @apply flex items-center justify-between gap-3 border-border-default/10 px-6 py-4;
 }
 
 .marketplace-detail__header {
@@ -232,11 +232,11 @@ function formatStars(stars: number): string {
 }
 
 .marketplace-detail__subtitle {
-  @apply mt-1 truncate font-mono text-sm text-white/60;
+  @apply mt-1 truncate font-mono text-sm text-text-muted;
 }
 
 .marketplace-detail__close {
-  @apply rounded-xl p-2 text-white/50 transition-colors hover:bg-white/5 hover:text-white;
+  @apply rounded-xl p-2 text-text-muted transition-colors hover:bg-bg-surface/70 hover:text-white;
 }
 
 .marketplace-detail__content {
@@ -252,7 +252,7 @@ function formatStars(stars: number): string {
 .marketplace-detail__status,
 .marketplace-detail__section,
 .marketplace-detail__links {
-  @apply rounded-2xl border border-white/5 bg-black/20;
+  @apply rounded-2xl border border-border-default/10 bg-black/20;
 }
 
 .marketplace-detail__owner {
@@ -260,7 +260,7 @@ function formatStars(stars: number): string {
 }
 
 .marketplace-detail__avatar {
-  @apply h-10 w-10 rounded-full bg-white/10;
+  @apply h-10 w-10 rounded-full bg-bg-elevated/80;
 }
 
 .marketplace-detail__stat,
@@ -273,7 +273,7 @@ function formatStars(stars: number): string {
 }
 
 .marketplace-detail__badge {
-  @apply rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-white/80;
+  @apply rounded-full bg-bg-elevated/80 px-3 py-1 text-xs font-semibold text-text-primary;
 }
 
 .marketplace-detail__badge--installed {
@@ -286,7 +286,7 @@ function formatStars(stars: number): string {
 }
 
 .marketplace-detail__label {
-  @apply mb-1 text-xs font-semibold uppercase tracking-wide text-white/50;
+  @apply mb-1 text-xs font-semibold uppercase tracking-wide text-text-muted;
 }
 
 .marketplace-detail__value {
@@ -294,7 +294,7 @@ function formatStars(stars: number): string {
 }
 
 .marketplace-detail__description {
-  @apply text-sm leading-6 text-white/85;
+  @apply text-sm leading-6 text-text-primary;
 }
 
 .marketplace-detail__links {
@@ -315,7 +315,7 @@ function formatStars(stars: number): string {
 }
 
 .btn-secondary {
-  @apply text-white/80 hover:bg-white/5 hover:text-white;
+  @apply text-text-primary hover:bg-bg-surface/70 hover:text-white;
 }
 
 .modal-fade-enter-active,
@@ -339,3 +339,4 @@ function formatStars(stars: number): string {
   transform: scale(0.96);
 }
 </style>
+

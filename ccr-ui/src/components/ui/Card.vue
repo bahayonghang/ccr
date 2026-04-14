@@ -48,7 +48,7 @@
       v-if="isInteractive"
       class="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-interactive duration-300 translate-x-1 group-hover:translate-x-0 pointer-events-none"
     >
-      <div class="rounded-full bg-white/10 p-1.5 backdrop-blur-md text-text-primary">
+      <div class="rounded-full bg-bg-elevated/80 p-1.5 backdrop-blur-md text-text-primary">
         <svg
           xmlns="http://www.w3.org/2000/svg"
           width="16"
@@ -231,7 +231,7 @@ const handleMouseLeave = (event: MouseEvent) => {
   background: var(--color-bg-elevated);
   box-shadow:
     var(--ui-card-shadow, var(--shadow-sm)),
-    inset 0 1px 0 rgb(255 255 255 / 56%);
+    inset 0 1px 0 rgb(255 251 245 / 60%);
 }
 
 .ui-card--elevated {
@@ -253,7 +253,7 @@ const handleMouseLeave = (event: MouseEvent) => {
   backdrop-filter: var(--surface-workspace-blur);
   box-shadow:
     var(--ui-card-shadow, var(--surface-workspace-shadow)),
-    inset 0 1px 0 rgb(255 255 255 / 12%);
+    inset 0 1px 0 rgb(255 251 245 / 12%);
 }
 
 .ui-card--outline {
@@ -268,12 +268,12 @@ const handleMouseLeave = (event: MouseEvent) => {
   @apply rounded-2xl;
 
   background: var(--surface-card-bg);
-  border: 1px solid rgb(var(--color-accent-primary-rgb) / 14%);
+  border: 1px solid rgb(var(--color-accent-primary-rgb) / 12%);
   backdrop-filter: var(--surface-card-blur);
   box-shadow:
     var(--ui-card-shadow, var(--surface-card-shadow)),
     var(--glass-inner-glow),
-    0 18px 44px rgb(var(--color-accent-primary-rgb) / 12%);
+    0 14px 30px rgb(var(--color-accent-primary-rgb) / 10%);
 }
 
 .ui-card--surface-modal.ui-card--elevated,
@@ -288,11 +288,11 @@ const handleMouseLeave = (event: MouseEvent) => {
 }
 
 .ui-card--interactive:hover {
-  transform: translateY(var(--ui-card-hover-translate, -0.18rem));
+  transform: translateY(var(--ui-card-hover-translate, -0.12rem));
   box-shadow:
     var(--ui-card-hover-shadow, var(--ui-card-shadow, var(--surface-card-shadow))),
-    0 18px 42px rgb(var(--color-accent-primary-rgb) / 10%);
-  border-color: rgb(var(--color-accent-primary-rgb) / 16%);
+    0 14px 28px rgb(var(--color-accent-primary-rgb) / 8%);
+  border-color: rgb(var(--color-accent-primary-rgb) / 14%);
 }
 
 .ui-card--elevation-0 {
@@ -328,13 +328,13 @@ const handleMouseLeave = (event: MouseEvent) => {
 .ui-card--motion-subtle {
   --ui-card-duration: var(--motion-subtle-duration);
   --ui-card-ease: var(--motion-subtle-ease);
-  --ui-card-hover-translate: -2px;
+  --ui-card-hover-translate: -1px;
 }
 
 .ui-card--motion-standard {
   --ui-card-duration: var(--motion-standard-duration);
   --ui-card-ease: var(--motion-standard-ease);
-  --ui-card-hover-translate: -0.18rem;
+  --ui-card-hover-translate: -0.12rem;
 }
 
 .ui-card-pattern {
@@ -361,3 +361,4 @@ const handleMouseLeave = (event: MouseEvent) => {
   }
 }
 </style>
+

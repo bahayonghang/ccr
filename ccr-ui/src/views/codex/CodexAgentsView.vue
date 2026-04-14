@@ -129,7 +129,7 @@
               </div>
             </div>
 
-            <div class="rounded-3xl border border-white/15 bg-bg-card/70 p-5 shadow-xl shadow-black/10 backdrop-blur-xl">
+            <div class="rounded-3xl border border-border-default/20 bg-bg-card/70 p-5 shadow-xl shadow-black/10 backdrop-blur-xl">
               <div class="mb-4 flex flex-wrap items-center gap-3">
                 <div class="relative min-w-[260px] flex-1">
                   <SIcon
@@ -221,7 +221,7 @@
               </div>
               <div
                 v-else-if="filteredAgents.length === 0"
-                class="rounded-3xl border border-dashed border-white/15 bg-bg-surface/35 px-6 py-16 text-center"
+                class="rounded-3xl border border-dashed border-border-default/20 bg-bg-surface/35 px-6 py-16 text-center"
               >
                 <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-bg-elevated/70">
                   <SIcon
@@ -250,7 +250,7 @@
                 <article
                   v-for="agent in filteredAgents"
                   :key="agent.path"
-                  class="rounded-3xl border border-white/12 bg-bg-surface/55 p-4 transition-colors hover:border-accent-primary/30 hover:bg-bg-surface/75"
+                  class="rounded-3xl border border-border-default/15 bg-bg-surface/55 p-4 transition-colors hover:border-accent-primary/30 hover:bg-bg-surface/75"
                 >
                   <div class="flex flex-wrap items-start gap-3">
                     <input
@@ -1128,3 +1128,4 @@ function handleExportSelected() {
   color: var(--color-text-primary);
 }
 </style>
+

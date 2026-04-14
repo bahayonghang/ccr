@@ -273,7 +273,7 @@ function formatDate(timestamp: number): string {
 
 <style scoped>
 .modal-content {
-  @apply overflow-hidden rounded-2xl border border-white/10 bg-black/40 shadow-2xl backdrop-blur-xl;
+  @apply overflow-hidden rounded-2xl border border-border-default/15 bg-black/40 shadow-2xl backdrop-blur-xl;
 }
 
 .modal-fade-enter-active,
@@ -297,3 +297,4 @@ function formatDate(timestamp: number): string {
   opacity: 0;
 }
 </style>
+

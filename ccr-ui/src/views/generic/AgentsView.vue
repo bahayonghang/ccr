@@ -10,7 +10,7 @@
       <div class="flex gap-6 items-start">
         <!-- Left Sidebar (Folders) -->
         <div class="w-64 flex-shrink-0 space-y-4 hidden lg:block sticky top-6">
-          <div class="glass-effect rounded-2xl p-4 border border-white/20 shadow-sm">
+          <div class="glass-effect rounded-2xl p-4 border border-border-default/25 shadow-sm">
             <h3 class="text-xs font-bold text-text-muted uppercase tracking-wider mb-3 px-2 flex items-center justify-between">
               {{ $t(`${tPrefix}.folders.label`) }}
               <span class="bg-bg-surface px-1.5 py-0.5 rounded text-[10px]">{{ stats.total }}</span>
@@ -47,7 +47,7 @@
           </div>
 
           <!-- Stats Card -->
-          <div class="glass-effect rounded-2xl p-5 border border-white/20 shadow-sm relative overflow-hidden group">
+          <div class="glass-effect rounded-2xl p-5 border border-border-default/25 shadow-sm relative overflow-hidden group">
             <div class="absolute top-0 right-0 w-24 h-24 bg-accent-primary/10 rounded-full blur-2xl -mr-8 -mt-8 transition-colors group-hover:bg-accent-primary/20" />
             <h4 class="text-sm font-bold text-text-primary mb-1">
               Agent Status
@@ -118,7 +118,7 @@
               >
               <button
                 v-if="searchQuery"
-                class="absolute right-2 top-1/2 transform -translate-y-1/2 rounded-full hover:bg-black/10 text-text-muted transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
+                class="absolute right-2 top-1/2 transform -translate-y-1/2 rounded-full hover:bg-bg-base/35 text-text-muted transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
                 :aria-label="$t('common.clearSearch')"
                 @click="searchQuery = ''"
               >
@@ -141,7 +141,7 @@
            
           <div
             v-else-if="filteredAgents.length === 0"
-            class="text-center py-24 glass-effect rounded-3xl border border-white/20 border-dashed"
+            class="text-center py-24 glass-effect rounded-3xl border border-border-default/25 border-dashed"
           >
             <div class="bg-bg-elevated w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4">
               <SIcon
@@ -178,7 +178,7 @@
                 <div class="relative z-10 flex flex-col h-full">
                   <div class="flex items-start justify-between mb-3">
                     <div class="flex items-center gap-3 overflow-hidden">
-                      <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-accent-primary/10 to-accent-info/10 flex items-center justify-center text-lg shadow-sm border border-white/20 group-hover:scale-110 transition-transform duration-300">
+                      <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-accent-primary/10 to-accent-info/10 flex items-center justify-center text-lg shadow-sm border border-border-default/25 group-hover:scale-110 transition-transform duration-300">
                         🤖
                       </div>
                       <div class="min-w-0">
@@ -335,7 +335,7 @@
       @click="showAddForm = false"
     >
       <div
-        class="glass-effect p-8 rounded-3xl w-full max-w-2xl max-h-[85vh] overflow-y-auto shadow-2xl border border-white/30 relative"
+        class="glass-effect p-8 rounded-3xl w-full max-w-2xl max-h-[85vh] overflow-y-auto shadow-2xl border border-border-default/30 relative"
         @click.stop
       >
         <button 
@@ -365,7 +365,7 @@
               <input
                 v-model="formData.name"
                 type="text"
-                class="w-full px-4 py-3 rounded-xl bg-white/50 border border-border-default focus:border-accent-primary focus:ring-4 focus:ring-accent-primary/10 outline-none transition-colors"
+                class="w-full px-4 py-3 rounded-xl bg-bg-surface/700 border border-border-default focus:border-accent-primary focus:ring-4 focus:ring-accent-primary/10 outline-none transition-colors"
                 :placeholder="$t(`${tPrefix}.namePlaceholder` || 'Agent Name')"
               >
             </div>
@@ -375,7 +375,7 @@
               <div class="relative">
                 <select
                   v-model="formData.model"
-                  class="w-full px-4 py-3 rounded-xl bg-white/50 border border-border-default focus:border-accent-primary focus:ring-4 focus:ring-accent-primary/10 outline-none transition-colors appearance-none"
+                  class="w-full px-4 py-3 rounded-xl bg-bg-surface/700 border border-border-default focus:border-accent-primary focus:ring-4 focus:ring-accent-primary/10 outline-none transition-colors appearance-none"
                 >
                   <option value="claude-sonnet-4-5-20250929">
                     Claude Sonnet 4.5
@@ -404,7 +404,7 @@
                 v-model="toolInput"
                 type="text"
                 :placeholder="$t(`${tPrefix}.toolPlaceholder`)"
-                class="flex-1 px-4 py-3 rounded-xl bg-white/50 border border-border-default focus:border-accent-primary focus:ring-4 focus:ring-accent-primary/10 outline-none transition-colors"
+                class="flex-1 px-4 py-3 rounded-xl bg-bg-surface/700 border border-border-default focus:border-accent-primary focus:ring-4 focus:ring-accent-primary/10 outline-none transition-colors"
                 @keyup.enter="addTool"
               >
               <button
@@ -441,7 +441,7 @@
             <textarea
               v-model="formData.system_prompt"
               rows="6"
-              class="w-full px-4 py-3 rounded-xl bg-white/50 border border-border-default focus:border-accent-primary focus:ring-4 focus:ring-accent-primary/10 outline-none transition-colors resize-y font-mono text-sm leading-relaxed"
+              class="w-full px-4 py-3 rounded-xl bg-bg-surface/700 border border-border-default focus:border-accent-primary focus:ring-4 focus:ring-accent-primary/10 outline-none transition-colors resize-y font-mono text-sm leading-relaxed"
               :placeholder="$t(`${tPrefix}.systemPromptPlaceholder` || 'Enter system prompt...')"
             />
           </div>
@@ -717,3 +717,4 @@ const navigateToDetail = (agent: Agent) => {
   background: rgb(0 0 0 / 20%);
 }
 </style>
+

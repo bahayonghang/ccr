@@ -134,7 +134,7 @@ onMounted(async () => {
 
 <style scoped>
 .opencode-skills__chip {
-  @apply inline-flex items-center rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-text-secondary;
+  @apply inline-flex items-center rounded-full border border-border-default/15 bg-bg-surface/70 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-text-secondary;
 }
 
 .opencode-skills__brief,
@@ -147,7 +147,7 @@ onMounted(async () => {
 }
 
 .opencode-skills__info-card {
-  @apply rounded-3xl border border-white/10 bg-white/5 p-4;
+  @apply rounded-3xl border border-border-default/15 bg-bg-surface/70 p-4;
 }
 
 .opencode-skills__info-title {
@@ -167,7 +167,7 @@ onMounted(async () => {
 }
 
 .opencode-skills__path-card {
-  @apply rounded-3xl border border-white/10 bg-white/5 p-4;
+  @apply rounded-3xl border border-border-default/15 bg-bg-surface/70 p-4;
 }
 
 .opencode-skills__path-header {
@@ -182,3 +182,4 @@ onMounted(async () => {
   @apply mt-3 block break-all rounded-2xl bg-black/20 px-3 py-2 text-xs text-text-secondary;
 }
 </style>
+

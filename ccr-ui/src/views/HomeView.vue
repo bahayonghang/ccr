@@ -732,9 +732,9 @@ const getNodeStateClass = (platformKey: string) => {
   @apply relative min-h-full px-4 py-4 sm:px-6 sm:py-6;
 
   background:
-    radial-gradient(circle at top center, rgb(var(--color-accent-primary-rgb) / 9%) 0%, transparent 24%),
-    radial-gradient(circle at 12% 16%, rgb(var(--color-premium-blue-rgb) / 84%) 0%, transparent 28%),
-    linear-gradient(180deg, #f5f7fb 0%, #edf1f8 100%);
+    radial-gradient(circle at top center, rgb(var(--color-accent-primary-rgb) / 8%) 0%, transparent 24%),
+    radial-gradient(circle at 12% 16%, rgb(var(--color-premium-blue-rgb) / 72%) 0%, transparent 28%),
+    linear-gradient(180deg, rgb(var(--color-bg-base-rgb) / 100%), rgb(var(--color-bg-base-rgb) / 96%) 100%);
 }
 
 .home-view::before,
@@ -754,17 +754,17 @@ const getNodeStateClass = (platformKey: string) => {
 
 .home-view::after {
   background:
-    radial-gradient(circle at top, rgb(255 255 255 / 55%), transparent 34%),
-    radial-gradient(circle at bottom, rgb(29 29 31 / 8%), transparent 34%);
-  opacity: 0.62;
+    radial-gradient(circle at top, rgb(255 251 245 / 58%), transparent 34%),
+    radial-gradient(circle at bottom, rgb(var(--color-text-primary-rgb) / 6%), transparent 34%);
+  opacity: 0.56;
 }
 
 [data-theme='dark'] .home-view {
   background:
-    radial-gradient(circle at 50% -6%, rgb(var(--color-accent-primary-rgb) / 18%) 0%, transparent 25%),
-    radial-gradient(circle at 12% 16%, rgb(var(--color-premium-blue-rgb) / 42%) 0%, transparent 24%),
-    radial-gradient(circle at 88% 12%, rgb(255 255 255 / 5%) 0%, transparent 18%),
-    linear-gradient(180deg, #03060d 0%, #050913 38%, #08101a 100%);
+    radial-gradient(circle at 50% -6%, rgb(var(--color-accent-primary-rgb) / 16%) 0%, transparent 25%),
+    radial-gradient(circle at 12% 16%, rgb(var(--color-premium-blue-rgb) / 34%) 0%, transparent 24%),
+    radial-gradient(circle at 88% 12%, rgb(255 255 255 / 4%) 0%, transparent 18%),
+    linear-gradient(180deg, rgb(var(--color-bg-base-rgb) / 100%) 0%, rgb(var(--color-bg-base-rgb) / 92%) 100%);
 }
 
 [data-theme='dark'] .home-view::before {
@@ -786,16 +786,14 @@ const getNodeStateClass = (platformKey: string) => {
   position: relative;
   isolation: isolate;
   overflow: hidden;
-  border-radius: 2.3rem;
+  border-radius: 2rem;
   border: 1px solid rgb(var(--color-border-default-rgb) / 14%);
   background:
-    linear-gradient(135deg, rgb(255 255 255 / 10%), transparent 42%),
-    linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 94%), rgb(var(--color-bg-base-rgb) / 84%));
-  backdrop-filter: blur(34px) saturate(178%);
+    linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 96%), rgb(var(--color-bg-surface-rgb) / 86%));
+  backdrop-filter: blur(14px) saturate(118%);
   box-shadow:
-    0 34px 90px rgb(13 18 28 / 10%),
-    inset 0 1px 0 rgb(255 255 255 / 26%),
-    inset 0 -1px 0 rgb(255 255 255 / 5%);
+    0 26px 60px rgb(73 54 40 / 10%),
+    inset 0 1px 0 rgb(255 251 245 / 24%);
   display: grid;
   gap: 2.65rem;
   padding: 2rem;
@@ -803,14 +801,7 @@ const getNodeStateClass = (platformKey: string) => {
 }
 
 .home-poster__mesh {
-  position: absolute;
-  inset: 0;
-  background:
-    linear-gradient(180deg, rgb(255 255 255 / 24%), transparent 18%, transparent 72%, rgb(255 255 255 / 3%) 100%),
-    radial-gradient(circle at top left, rgb(var(--color-accent-primary-rgb) / 8%) 0%, transparent 26%),
-    linear-gradient(120deg, rgb(255 255 255 / 7%), transparent 44%);
-  opacity: 0.92;
-  pointer-events: none;
+  display: none;
 }
 
 .home-poster__ambient,
@@ -822,77 +813,56 @@ const getNodeStateClass = (platformKey: string) => {
 
 .home-poster__ambient {
   border-radius: 9999px;
-  filter: blur(28px);
-  opacity: 0.72;
+  filter: blur(36px);
+  opacity: 0.56;
 }
 
 .home-poster__ambient--primary {
-  top: -9rem;
-  right: 18%;
-  width: 26rem;
-  height: 26rem;
-  background: radial-gradient(circle, rgb(var(--color-accent-primary-rgb) / 20%) 0%, transparent 68%);
+  top: -7rem;
+  right: 14%;
+  width: 20rem;
+  height: 20rem;
+  background: radial-gradient(circle, rgb(var(--color-accent-primary-rgb) / 14%) 0%, transparent 68%);
   animation: home-ambient-drift 20s ease-in-out infinite;
 }
 
 .home-poster__ambient--secondary {
-  bottom: -8rem;
+  bottom: -7rem;
   left: -4rem;
-  width: 22rem;
-  height: 22rem;
-  background: radial-gradient(circle, rgb(var(--color-premium-blue-rgb) / 80%) 0%, transparent 72%);
+  width: 18rem;
+  height: 18rem;
+  background: radial-gradient(circle, rgb(var(--color-premium-blue-rgb) / 64%) 0%, transparent 72%);
   animation: home-ambient-drift 24s ease-in-out infinite reverse;
 }
 
 .home-poster__beam {
-  top: 16%;
-  left: 36%;
-  width: 56%;
-  height: 18rem;
-  transform: rotate(-12deg);
-  background: linear-gradient(90deg, transparent, rgb(var(--color-accent-primary-rgb) / 10%), transparent 72%);
-  filter: blur(46px);
-  opacity: 0.7;
+  display: none;
 }
 
 .home-poster__grain {
   inset: 0;
-  opacity: 0.05;
-  background-image: radial-gradient(rgb(var(--color-text-primary-rgb) / 36%) 0.65px, transparent 0.65px);
-  background-size: 14px 14px;
+  opacity: 0.04;
+  background-image: radial-gradient(rgb(var(--color-text-primary-rgb) / 30%) 0.75px, transparent 0.75px);
+  background-size: 15px 15px;
   mask-image: linear-gradient(180deg, rgb(0 0 0 / 54%), transparent 80%);
 }
 
 [data-theme='dark'] .home-poster {
   border-color: rgb(var(--color-border-default-rgb) / 11%);
   background:
-    linear-gradient(135deg, rgb(255 255 255 / 7%), transparent 40%),
-    radial-gradient(circle at 12% 12%, rgb(var(--color-premium-blue-rgb) / 28%) 0%, transparent 24%),
-    linear-gradient(180deg, rgb(14 18 28 / 90%), rgb(8 11 18 / 86%));
+    radial-gradient(circle at 12% 12%, rgb(var(--color-premium-blue-rgb) / 24%) 0%, transparent 24%),
+    linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 90%), rgb(var(--color-bg-base-rgb) / 86%));
   box-shadow:
-    0 40px 96px rgb(0 0 0 / 52%),
-    inset 0 1px 0 rgb(255 255 255 / 10%),
-    inset 0 -1px 0 rgb(255 255 255 / 4%);
-}
-
-[data-theme='dark'] .home-poster__mesh {
-  background:
-    linear-gradient(180deg, rgb(255 255 255 / 10%), transparent 18%, transparent 72%, rgb(255 255 255 / 3%) 100%),
-    radial-gradient(circle at top left, rgb(var(--color-accent-primary-rgb) / 10%) 0%, transparent 26%),
-    linear-gradient(120deg, rgb(255 255 255 / 4%), transparent 44%);
+    0 30px 70px rgb(0 0 0 / 42%),
+    inset 0 1px 0 rgb(255 248 240 / 8%);
 }
 
 [data-theme='dark'] .home-poster__ambient--primary {
-  background: radial-gradient(circle, rgb(var(--color-accent-primary-rgb) / 28%) 0%, transparent 70%);
+  background: radial-gradient(circle, rgb(var(--color-accent-primary-rgb) / 20%) 0%, transparent 70%);
 }
 
 [data-theme='dark'] .home-poster__ambient--secondary {
-  background: radial-gradient(circle, rgb(var(--color-premium-blue-rgb) / 46%) 0%, transparent 72%);
-}
-
-[data-theme='dark'] .home-poster__beam {
-  background: linear-gradient(90deg, transparent, rgb(var(--color-accent-primary-rgb) / 16%), transparent 70%);
-  opacity: 0.84;
+  background: radial-gradient(circle, rgb(var(--color-premium-blue-rgb) / 34%) 0%, transparent 72%);
 }
 
 [data-theme='dark'] .home-poster__grain {
@@ -912,7 +882,7 @@ const getNodeStateClass = (platformKey: string) => {
 .home-poster__eyebrow,
 .home-visual-panel__eyebrow,
 .home-usage-preview__eyebrow {
-  @apply flex items-center gap-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-text-muted;
+  @apply flex items-center gap-3 text-[11px] font-semibold tracking-[0.08em] text-text-muted;
 }
 
 .home-poster__eyebrow-line {
@@ -920,7 +890,7 @@ const getNodeStateClass = (platformKey: string) => {
 }
 
 .home-poster__welcome {
-  @apply text-sm font-medium uppercase tracking-[0.18em] text-accent-primary;
+  @apply text-sm font-medium tracking-[0.06em] text-accent-primary;
 }
 
 .home-poster__title-wrap {
@@ -929,21 +899,20 @@ const getNodeStateClass = (platformKey: string) => {
 
 .home-poster__title {
   font-family: var(--font-brand, inherit);
-  font-weight: 500;
+  font-weight: 560;
   text-wrap: balance;
 
-  @apply max-w-[10ch] text-[3.7rem] tracking-[-0.055em] text-text-primary sm:text-[4.6rem] lg:text-[5.7rem];
+  @apply max-w-[12ch] text-[3rem] tracking-[-0.045em] text-text-primary sm:text-[3.6rem] lg:text-[4.35rem];
 
-  line-height: 0.96;
-  text-shadow: 0 20px 36px rgb(0 0 0 / 10%);
+  line-height: 1;
 }
 
 .home-poster__lead {
-  @apply max-w-[38rem] text-[1.18rem] font-medium leading-[1.55] text-text-primary;
+  @apply max-w-[38rem] text-[1.08rem] font-medium leading-[1.68] text-text-primary;
 }
 
 .home-poster__description {
-  @apply max-w-[36rem] text-[0.95rem] leading-[1.82] text-text-secondary;
+  @apply max-w-[40rem] text-[0.95rem] leading-[1.8] text-text-secondary;
 }
 
 .home-poster__status-rail {
@@ -955,12 +924,12 @@ const getNodeStateClass = (platformKey: string) => {
 
   position: relative;
   overflow: hidden;
-  border: 1px solid rgb(var(--color-border-default-rgb) / 16%);
-  background: linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 88%), rgb(var(--color-bg-surface-rgb) / 78%));
-  backdrop-filter: blur(18px) saturate(175%);
+  border: 1px solid rgb(var(--color-border-default-rgb) / 14%);
+  background: linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 90%), rgb(var(--color-bg-surface-rgb) / 82%));
+  backdrop-filter: blur(10px) saturate(116%);
   box-shadow:
-    0 10px 24px rgb(13 18 28 / 6%),
-    inset 0 1px 0 rgb(255 255 255 / 18%);
+    0 10px 22px rgb(73 54 40 / 8%),
+    inset 0 1px 0 rgb(255 251 245 / 18%);
   transition:
     transform 220ms var(--ease-out),
     border-color 220ms var(--ease-out),
@@ -968,20 +937,15 @@ const getNodeStateClass = (platformKey: string) => {
 }
 
 .home-status-pill::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(120deg, rgb(255 255 255 / 10%), transparent 42%);
-  opacity: 0.8;
-  pointer-events: none;
+  display: none;
 }
 
 .home-status-pill:hover {
-  transform: translateY(-2px);
-  border-color: rgb(var(--color-accent-primary-rgb) / 20%);
+  transform: translateY(-1px);
+  border-color: rgb(var(--color-accent-primary-rgb) / 16%);
   box-shadow:
-    0 16px 28px rgb(var(--color-accent-primary-rgb) / 10%),
-    inset 0 1px 0 rgb(255 255 255 / 20%);
+    0 14px 24px rgb(var(--color-accent-primary-rgb) / 8%),
+    inset 0 1px 0 rgb(255 251 245 / 20%);
 }
 
 .home-status-pill__dot {
@@ -1006,7 +970,7 @@ const getNodeStateClass = (platformKey: string) => {
 }
 
 .home-status-pill__label {
-  @apply text-[11px] uppercase tracking-[0.14em] text-text-muted;
+  @apply text-[11px] tracking-[0.06em] text-text-muted;
 }
 
 .home-status-pill__value {
@@ -1025,31 +989,23 @@ const getNodeStateClass = (platformKey: string) => {
   @apply relative flex w-full flex-col gap-5 overflow-hidden rounded-[2rem] p-5;
 
   border: 1px solid rgb(var(--color-border-default-rgb) / 14%);
-  background:
-    linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 82%), rgb(var(--color-bg-surface-rgb) / 74%));
-  backdrop-filter: blur(28px) saturate(176%);
+  background: linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 88%), rgb(var(--color-bg-surface-rgb) / 80%));
+  backdrop-filter: blur(14px) saturate(118%);
   box-shadow:
-    0 22px 48px rgb(13 18 28 / 10%),
-    inset 0 1px 0 rgb(255 255 255 / 18%);
+    0 20px 40px rgb(73 54 40 / 9%),
+    inset 0 1px 0 rgb(255 251 245 / 18%);
 }
 
 .home-visual-panel::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background:
-    linear-gradient(180deg, rgb(255 255 255 / 14%), transparent 20%),
-    radial-gradient(circle at 86% 0%, rgb(var(--color-accent-primary-rgb) / 10%), transparent 28%);
-  pointer-events: none;
+  display: none;
 }
 
 [data-theme='dark'] .home-visual-panel {
   border-color: rgb(var(--color-border-default-rgb) / 12%);
-  background:
-    linear-gradient(180deg, rgb(19 22 31 / 82%), rgb(10 13 20 / 74%));
+  background: linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 82%), rgb(var(--color-bg-surface-rgb) / 76%));
   box-shadow:
-    0 28px 64px rgb(0 0 0 / 46%),
-    inset 0 1px 0 rgb(255 255 255 / 8%);
+    0 24px 52px rgb(0 0 0 / 38%),
+    inset 0 1px 0 rgb(255 248 240 / 8%);
 }
 
 .home-visual-panel__header {
@@ -1061,13 +1017,13 @@ const getNodeStateClass = (platformKey: string) => {
 }
 
 .home-visual-panel__badge {
-  @apply rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-accent-primary;
+  @apply rounded-full px-3 py-1 text-[11px] font-semibold tracking-[0.06em] text-accent-primary;
 
   border: 1px solid rgb(var(--color-accent-primary-rgb) / 18%);
   background: rgb(var(--color-bg-overlay-rgb) / 72%);
   box-shadow:
-    0 10px 22px rgb(var(--color-accent-primary-rgb) / 10%),
-    inset 0 1px 0 rgb(255 255 255 / 16%);
+    0 10px 18px rgb(var(--color-accent-primary-rgb) / 8%),
+    inset 0 1px 0 rgb(255 251 245 / 16%);
 }
 
 .home-visual-panel__fabric {
@@ -1077,12 +1033,11 @@ const getNodeStateClass = (platformKey: string) => {
   min-height: 320px;
   border: 1px solid rgb(var(--color-border-default-rgb) / 12%);
   background:
-    linear-gradient(180deg, rgb(255 255 255 / 16%), transparent 24%, rgb(255 255 255 / 3%) 100%),
-    radial-gradient(circle at top right, rgb(var(--color-accent-primary-rgb) / 10%) 0%, transparent 30%),
-    linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 92%), rgb(var(--color-bg-base-rgb) / 82%));
+    radial-gradient(circle at top right, rgb(var(--color-accent-primary-rgb) / 8%) 0%, transparent 30%),
+    linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 94%), rgb(var(--color-bg-base-rgb) / 84%));
   box-shadow:
-    0 18px 40px rgb(13 18 28 / 8%),
-    inset 0 1px 0 rgb(255 255 255 / 18%);
+    0 18px 32px rgb(73 54 40 / 8%),
+    inset 0 1px 0 rgb(255 251 245 / 18%);
 }
 
 .home-visual-panel__sheen,
@@ -1093,27 +1048,24 @@ const getNodeStateClass = (platformKey: string) => {
 }
 
 .home-visual-panel__sheen {
-  background: linear-gradient(115deg, transparent 0%, rgb(255 255 255 / 14%) 48%, transparent 78%);
-  transform: translateX(28%);
-  opacity: 0.42;
+  display: none;
 }
 
 .home-visual-panel__glow {
   background:
-    radial-gradient(circle at 76% 16%, rgb(var(--color-accent-primary-rgb) / 12%) 0%, transparent 22%),
-    radial-gradient(circle at 18% 82%, rgb(var(--color-premium-blue-rgb) / 78%) 0%, transparent 30%);
-  opacity: 0.85;
+    radial-gradient(circle at 76% 16%, rgb(var(--color-accent-primary-rgb) / 10%) 0%, transparent 22%),
+    radial-gradient(circle at 18% 82%, rgb(var(--color-premium-blue-rgb) / 58%) 0%, transparent 30%);
+  opacity: 0.68;
 }
 
 [data-theme='dark'] .home-visual-panel__fabric {
   border-color: rgb(var(--color-border-default-rgb) / 11%);
   background:
-    linear-gradient(180deg, rgb(255 255 255 / 8%), transparent 24%, rgb(255 255 255 / 3%) 100%),
-    radial-gradient(circle at top right, rgb(var(--color-accent-primary-rgb) / 12%) 0%, transparent 30%),
-    linear-gradient(180deg, rgb(14 18 27 / 96%), rgb(4 7 13 / 92%));
+    radial-gradient(circle at top right, rgb(var(--color-accent-primary-rgb) / 10%) 0%, transparent 30%),
+    linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 92%), rgb(var(--color-bg-base-rgb) / 88%));
   box-shadow:
-    0 22px 44px rgb(0 0 0 / 38%),
-    inset 0 1px 0 rgb(255 255 255 / 10%);
+    0 20px 40px rgb(0 0 0 / 34%),
+    inset 0 1px 0 rgb(255 248 240 / 10%);
 }
 
 [data-theme='dark'] .home-visual-panel__glow {
@@ -1145,11 +1097,11 @@ const getNodeStateClass = (platformKey: string) => {
   @apply flex items-center justify-between gap-3 rounded-[1.35rem] px-4 py-3.5;
 
   border: 1px solid rgb(var(--color-border-default-rgb) / 12%);
-  background: linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 92%), rgb(var(--color-bg-surface-rgb) / 80%));
-  backdrop-filter: blur(18px) saturate(175%);
+  background: linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 94%), rgb(var(--color-bg-surface-rgb) / 84%));
+  backdrop-filter: blur(10px) saturate(116%);
   box-shadow:
-    0 12px 28px rgb(13 18 28 / 8%),
-    inset 0 1px 0 rgb(255 255 255 / 18%);
+    0 12px 24px rgb(73 54 40 / 8%),
+    inset 0 1px 0 rgb(255 251 245 / 18%);
   transform: translateZ(0);
   transition:
     transform 220ms ease,
@@ -1159,12 +1111,12 @@ const getNodeStateClass = (platformKey: string) => {
 }
 
 .home-signal-node:hover {
-  transform: translateX(5px);
+  transform: translateX(3px);
   border-color: rgb(var(--color-accent-primary-rgb) / 18%);
-  background: linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 98%), rgb(var(--color-bg-surface-rgb) / 88%));
+  background: linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 98%), rgb(var(--color-bg-surface-rgb) / 90%));
   box-shadow:
-    0 18px 34px rgb(var(--color-accent-primary-rgb) / 10%),
-    inset 0 1px 0 rgb(255 255 255 / 20%);
+    0 16px 28px rgb(var(--color-accent-primary-rgb) / 8%),
+    inset 0 1px 0 rgb(255 251 245 / 20%);
 }
 
 .home-signal-node__meta {
@@ -1176,7 +1128,7 @@ const getNodeStateClass = (platformKey: string) => {
 }
 
 .home-signal-node__version {
-  @apply text-xs font-mono uppercase tracking-[0.12em] text-text-muted;
+  @apply text-xs font-medium tracking-[0.04em] text-text-muted;
 }
 
 .home-signal-node__state {
@@ -1199,11 +1151,11 @@ const getNodeStateClass = (platformKey: string) => {
   @apply relative flex items-end justify-between gap-4 overflow-hidden rounded-[1.55rem] px-4 py-4;
 
   border: 1px solid rgb(var(--color-border-default-rgb) / 13%);
-  background: linear-gradient(180deg, rgb(var(--color-bg-surface-rgb) / 82%), rgb(var(--color-bg-elevated-rgb) / 92%));
-  backdrop-filter: blur(22px) saturate(172%);
+  background: linear-gradient(180deg, rgb(var(--color-bg-surface-rgb) / 86%), rgb(var(--color-bg-elevated-rgb) / 94%));
+  backdrop-filter: blur(12px) saturate(118%);
   box-shadow:
-    0 16px 34px rgb(13 18 28 / 8%),
-    inset 0 1px 0 rgb(255 255 255 / 18%);
+    0 14px 28px rgb(73 54 40 / 8%),
+    inset 0 1px 0 rgb(255 251 245 / 18%);
 }
 
 .home-usage-preview::before {
@@ -1211,9 +1163,8 @@ const getNodeStateClass = (platformKey: string) => {
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(circle at top right, rgb(var(--color-accent-primary-rgb) / 12%) 0%, transparent 26%),
-    linear-gradient(180deg, rgb(255 255 255 / 8%), transparent 42%);
-  opacity: 0.92;
+    radial-gradient(circle at top right, rgb(var(--color-accent-primary-rgb) / 9%) 0%, transparent 26%);
+  opacity: 0.74;
   pointer-events: none;
 }
 
@@ -1231,48 +1182,39 @@ const getNodeStateClass = (platformKey: string) => {
   min-height: 14px;
   background: linear-gradient(
     180deg,
-    rgb(var(--color-accent-primary-rgb) / 92%) 0%,
-    rgb(var(--color-accent-secondary-rgb) / 68%) 100%
+    rgb(var(--color-accent-primary-rgb) / 80%) 0%,
+    rgb(var(--color-accent-secondary-rgb) / 62%) 100%
   );
-  box-shadow: 0 12px 18px rgb(var(--color-accent-primary-rgb) / 14%);
+  box-shadow: 0 10px 16px rgb(var(--color-accent-primary-rgb) / 12%);
   transition: transform 220ms var(--ease-out), box-shadow 220ms var(--ease-out);
 }
 
 .home-usage-preview:hover .home-usage-preview__bar {
-  transform: translateY(-2px);
-  box-shadow: 0 16px 24px rgb(var(--color-accent-primary-rgb) / 18%);
+  transform: translateY(-1px);
+  box-shadow: 0 12px 20px rgb(var(--color-accent-primary-rgb) / 14%);
 }
 
 .section-block {
   @apply relative flex flex-col gap-4 overflow-hidden rounded-[1.95rem] p-5;
 
   border: 1px solid rgb(var(--color-border-default-rgb) / 13%);
-  background:
-    linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 84%), rgb(var(--color-bg-base-rgb) / 74%));
-  backdrop-filter: blur(22px) saturate(156%);
+  background: linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 88%), rgb(var(--color-bg-base-rgb) / 78%));
+  backdrop-filter: blur(12px) saturate(118%);
   box-shadow:
-    0 22px 44px rgb(13 18 28 / 8%),
-    inset 0 1px 0 rgb(255 255 255 / 16%);
+    0 20px 36px rgb(73 54 40 / 8%),
+    inset 0 1px 0 rgb(255 251 245 / 16%);
 }
 
 .section-block::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background:
-    linear-gradient(180deg, rgb(255 255 255 / 12%), transparent 18%),
-    radial-gradient(circle at top right, rgb(var(--color-accent-primary-rgb) / 7%), transparent 24%);
-  opacity: 0.9;
-  pointer-events: none;
+  display: none;
 }
 
 [data-theme='dark'] .section-block {
   border-color: rgb(var(--color-border-default-rgb) / 11%);
-  background:
-    linear-gradient(180deg, rgb(18 21 31 / 80%), rgb(9 12 19 / 70%));
+  background: linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 82%), rgb(var(--color-bg-base-rgb) / 74%));
   box-shadow:
-    0 26px 52px rgb(0 0 0 / 32%),
-    inset 0 1px 0 rgb(255 255 255 / 8%);
+    0 24px 44px rgb(0 0 0 / 32%),
+    inset 0 1px 0 rgb(255 248 240 / 8%);
 }
 
 .section-block[data-home-actions] {
@@ -1300,14 +1242,14 @@ const getNodeStateClass = (platformKey: string) => {
 }
 
 .section-kicker {
-  @apply text-xs font-semibold tracking-[0.14em] text-text-muted;
+  @apply text-xs font-semibold tracking-[0.06em] text-text-muted;
 }
 
 .section-title {
   font-family: var(--font-brand, inherit);
-  font-weight: 500;
+  font-weight: 560;
 
-  @apply mt-1 text-[1.85rem] tracking-[-0.05em] text-text-primary;
+  @apply mt-1 text-[1.75rem] tracking-[-0.04em] text-text-primary;
 }
 
 .section-description {
@@ -1326,27 +1268,23 @@ const getNodeStateClass = (platformKey: string) => {
   @apply relative flex h-full items-center gap-4 overflow-hidden rounded-[1.6rem] px-4 py-4 transition-all duration-200;
 
   border: 1px solid rgb(var(--color-border-default-rgb) / 12%);
-  background: linear-gradient(180deg, rgb(var(--color-bg-surface-rgb) / 84%), rgb(var(--color-bg-elevated-rgb) / 94%));
-  backdrop-filter: blur(18px) saturate(162%);
+  background: linear-gradient(180deg, rgb(var(--color-bg-surface-rgb) / 88%), rgb(var(--color-bg-elevated-rgb) / 94%));
+  backdrop-filter: blur(10px) saturate(118%);
   box-shadow:
-    0 16px 28px rgb(13 18 28 / 7%),
-    inset 0 1px 0 rgb(255 255 255 / 16%);
+    0 14px 24px rgb(73 54 40 / 8%),
+    inset 0 1px 0 rgb(255 251 245 / 16%);
 }
 
 .command-strip__slot::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(120deg, rgb(255 255 255 / 10%), transparent 44%);
-  pointer-events: none;
+  display: none;
 }
 
 .command-strip__item:is(:hover, :focus-visible) .command-strip__slot {
   border-color: rgb(var(--color-accent-primary-rgb) / 18%);
-  transform: translateY(-3px);
+  transform: translateY(-1px);
   box-shadow:
-    0 22px 40px rgb(var(--color-accent-primary-rgb) / 11%),
-    inset 0 1px 0 rgb(255 255 255 / 18%);
+    0 16px 28px rgb(var(--color-accent-primary-rgb) / 8%),
+    inset 0 1px 0 rgb(255 251 245 / 18%);
 }
 
 .command-strip__copy {
@@ -1384,31 +1322,25 @@ const getNodeStateClass = (platformKey: string) => {
   @apply relative overflow-hidden rounded-[1.75rem] p-5 transition-all duration-200;
 
   border: 1px solid rgb(var(--color-border-default-rgb) / 12%);
-  background: linear-gradient(180deg, rgb(var(--color-bg-surface-rgb) / 84%), rgb(var(--color-bg-elevated-rgb) / 94%));
-  backdrop-filter: blur(22px) saturate(165%);
+  background: linear-gradient(180deg, rgb(var(--color-bg-surface-rgb) / 88%), rgb(var(--color-bg-elevated-rgb) / 94%));
+  backdrop-filter: blur(12px) saturate(118%);
   box-shadow:
-    0 18px 32px rgb(13 18 28 / 7%),
-    inset 0 1px 0 rgb(255 255 255 / 16%);
+    0 16px 28px rgb(73 54 40 / 8%),
+    inset 0 1px 0 rgb(255 251 245 / 16%);
 }
 
 .platform-feature__shell::before,
 .platform-rail__shell::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background:
-    linear-gradient(180deg, rgb(255 255 255 / 10%), transparent 18%),
-    radial-gradient(circle at 100% 0%, rgb(var(--color-accent-primary-rgb) / 8%), transparent 26%);
-  pointer-events: none;
+  display: none;
 }
 
 .platform-feature:is(:hover, :focus-visible) .platform-feature__shell,
 .platform-rail:is(:hover, :focus-visible) .platform-rail__shell {
   border-color: rgb(var(--color-accent-primary-rgb) / 18%);
-  transform: translateY(-3px);
+  transform: translateY(-1px);
   box-shadow:
-    0 24px 42px rgb(var(--color-accent-primary-rgb) / 11%),
-    inset 0 1px 0 rgb(255 255 255 / 18%);
+    0 18px 30px rgb(var(--color-accent-primary-rgb) / 8%),
+    inset 0 1px 0 rgb(255 251 245 / 18%);
 }
 
 .platform-feature__header,
@@ -1429,12 +1361,12 @@ const getNodeStateClass = (platformKey: string) => {
   border: 1px solid rgb(var(--color-border-default-rgb) / 14%);
   background: linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 100%), rgb(var(--color-bg-surface-rgb) / 84%));
   box-shadow:
-    0 10px 20px rgb(13 18 28 / 8%),
-    inset 0 1px 0 rgb(255 255 255 / 18%);
+    0 10px 18px rgb(73 54 40 / 8%),
+    inset 0 1px 0 rgb(255 251 245 / 18%);
 }
 
 .platform-feature__eyebrow {
-  @apply text-[11px] font-semibold uppercase tracking-[0.14em] text-text-muted;
+  @apply text-[11px] font-semibold tracking-[0.06em] text-text-muted;
 }
 
 .platform-feature__title,
@@ -1448,7 +1380,7 @@ const getNodeStateClass = (platformKey: string) => {
 }
 
 .platform-feature__state {
-  @apply text-xs font-semibold uppercase tracking-[0.14em] text-accent-primary;
+  @apply text-xs font-semibold tracking-[0.06em] text-accent-primary;
 }
 
 .platform-feature__arrow,

@@ -14,14 +14,14 @@
         <h2 class="truncate text-lg font-bold text-white">
           {{ title }}
         </h2>
-        <p class="truncate text-xs text-white/50">
+        <p class="truncate text-xs text-text-muted">
           {{ subtitle }}
         </p>
       </div>
     </div>
     <div class="flex shrink-0 items-center gap-1">
       <button
-        class="rounded-lg p-2 text-white/50 transition-colors hover:bg-white/5 hover:text-white"
+        class="rounded-lg p-2 text-text-muted transition-colors hover:bg-bg-surface/70 hover:text-white"
         :title="isEditMode ? previewTitle : editTitle"
         @click="$emit('toggle-mode')"
       >
@@ -37,7 +37,7 @@
         />
       </button>
       <button
-        class="rounded-lg p-2 text-white/50 transition-colors hover:bg-white/5 hover:text-white"
+        class="rounded-lg p-2 text-text-muted transition-colors hover:bg-bg-surface/70 hover:text-white"
         @click="$emit('close')"
       >
         <SIcon
@@ -70,10 +70,11 @@ defineEmits<{
 
 <style scoped>
 .modal-header {
-  @apply flex items-center justify-between border-b border-white/5 p-4 shrink-0;
+  @apply flex items-center justify-between border-b border-border-default/10 p-4 shrink-0;
 }
 
 .modal-icon {
   @apply flex h-10 w-10 items-center justify-center rounded-xl;
 }
 </style>
+

@@ -1,5 +1,5 @@
 <template>
-  <div class="glass-effect rounded-3xl p-6 border border-white/20">
+  <div class="glass-effect rounded-3xl p-6 border border-border-default/25">
     <!-- Header with Search -->
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
       <div class="flex items-center gap-3">
@@ -193,8 +193,8 @@
         class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md"
         @click.self="selectedSkillData = null"
       >
-        <div class="w-full max-w-2xl max-h-[80vh] m-4 bg-bg-elevated rounded-2xl border border-white/10 overflow-hidden flex flex-col">
-          <div class="flex items-center justify-between p-4 border-b border-white/10">
+        <div class="w-full max-w-2xl max-h-[80vh] m-4 bg-bg-elevated rounded-2xl border border-border-default/15 overflow-hidden flex flex-col">
+          <div class="flex items-center justify-between p-4 border-b border-border-default/15">
             <div class="flex items-center gap-3">
               <SIcon
                 :name="selectedSkillData.is_remote ? 'Cloud' : 'HardDrive'"
@@ -346,3 +346,4 @@ const deleteSkill = async (name: string) => {
   }
 }
 </script>
+

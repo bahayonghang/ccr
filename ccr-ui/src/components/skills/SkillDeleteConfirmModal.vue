@@ -146,7 +146,7 @@ function shortenPath(path: string): string {
 .modal-content {
   @apply flex flex-col items-center gap-4 p-6 rounded-2xl
          backdrop-blur-xl
-         border border-white/5
+         border border-border-default/10
          shadow-2xl;
 
   background: rgb(0 0 0 / 40%);
@@ -172,7 +172,7 @@ function shortenPath(path: string): string {
 /* Skill info card */
 .skill-info {
   @apply w-full flex flex-col gap-2 p-3 rounded-xl
-         border border-white/5;
+         border border-border-default/10;
 
   background: rgb(0 0 0 / 20%);
 }
@@ -186,11 +186,11 @@ function shortenPath(path: string): string {
 }
 
 .skill-info__platform {
-  @apply flex items-center gap-1.5 text-xs text-white/80;
+  @apply flex items-center gap-1.5 text-xs text-text-primary;
 }
 
 .skill-info__dir {
-  @apply flex items-center gap-1.5 text-xs text-white/50 font-mono truncate max-w-full;
+  @apply flex items-center gap-1.5 text-xs text-text-muted font-mono truncate max-w-full;
 }
 
 /* Warning message */
@@ -199,7 +199,7 @@ function shortenPath(path: string): string {
 }
 
 .warning-message__desc {
-  @apply text-sm text-white/80;
+  @apply text-sm text-text-primary;
 }
 
 .warning-message__danger {
@@ -231,8 +231,8 @@ function shortenPath(path: string): string {
 /* Delete button - small, de-emphasized */
 .btn-delete {
   @apply px-4 py-3 rounded-xl
-         text-sm font-medium text-white/50
-         border border-white/5
+         text-sm font-medium text-text-muted
+         border border-border-default/10
          transition-colors duration-200;
 
   background: transparent;
@@ -266,3 +266,4 @@ function shortenPath(path: string): string {
   opacity: 0;
 }
 </style>
+

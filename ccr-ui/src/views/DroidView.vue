@@ -326,7 +326,7 @@ import AnimatedBackground from '@/components/common/AnimatedBackground.vue'
 }
 
 .droid-brand__title {
-  @apply mb-2 text-4xl font-bold tracking-tight text-text-primary md:text-5xl;
+  @apply mb-2 text-[2.5rem] font-semibold tracking-[-0.04em] text-text-primary md:text-[3.2rem];
 }
 
 .droid-brand__subtitle {
@@ -376,7 +376,7 @@ import AnimatedBackground from '@/components/common/AnimatedBackground.vue'
 }
 
 .droid-section-title {
-  @apply mb-6 flex items-center gap-3 text-2xl font-bold text-text-primary;
+  @apply mb-6 flex items-center gap-3 text-2xl font-semibold text-text-primary;
 }
 
 .droid-feature-grid {
@@ -396,7 +396,7 @@ import AnimatedBackground from '@/components/common/AnimatedBackground.vue'
 }
 
 .droid-feature-link:hover .droid-feature-card {
-  transform: translateY(-2px);
+  transform: translateY(-1px);
 }
 
 .droid-feature-card--success:hover {
@@ -448,7 +448,7 @@ import AnimatedBackground from '@/components/common/AnimatedBackground.vue'
 }
 
 .droid-feature-card__title {
-  @apply mb-2 text-xl font-bold text-text-primary;
+  @apply mb-2 text-xl font-semibold text-text-primary;
 }
 
 .droid-feature-card__desc {
@@ -456,7 +456,7 @@ import AnimatedBackground from '@/components/common/AnimatedBackground.vue'
 }
 
 .droid-feature-card__badge {
-  @apply inline-flex items-center rounded-full border px-3 py-1.5 text-xs font-bold;
+  @apply inline-flex items-center rounded-full border px-3 py-1.5 text-xs font-semibold;
 }
 
 .droid-feature-card__badge--success {
@@ -498,7 +498,7 @@ import AnimatedBackground from '@/components/common/AnimatedBackground.vue'
 }
 
 .droid-info-card__title {
-  @apply mb-2 text-lg font-bold text-text-primary;
+  @apply mb-2 text-lg font-semibold text-text-primary;
 }
 
 .droid-info-list {

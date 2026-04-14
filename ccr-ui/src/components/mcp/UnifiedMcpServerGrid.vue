@@ -291,7 +291,7 @@ const emit = defineEmits<{
 }
 
 .server-card__code {
-  font-family: var(--font-mono, monospace);
+  font-family: var(--font-mono);
   font-size: 0.75rem;
   word-break: break-all;
   background: var(--glass-bg-medium);
@@ -317,7 +317,7 @@ const emit = defineEmits<{
   border-radius: var(--radius-sm);
   background: var(--glass-bg-medium);
   color: var(--color-text-muted);
-  font-family: var(--font-mono, monospace);
+  font-family: var(--font-mono);
 }
 
 .server-card__actions {

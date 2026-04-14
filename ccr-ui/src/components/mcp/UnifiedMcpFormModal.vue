@@ -522,7 +522,7 @@ const updateTimeout = (value: string) => {
 }
 
 .kv-item code {
-  font-family: var(--font-mono, monospace);
+  font-family: var(--font-mono);
   word-break: break-all;
   color: var(--color-text-secondary);
 }

@@ -33,7 +33,7 @@
         class="space-y-6"
       >
         <!-- Status Card -->
-        <div class="glass-effect rounded-2xl p-6 border border-white/20 shadow-sm">
+        <div class="glass-effect rounded-2xl p-6 border border-border-default/25 shadow-sm">
           <h3 class="text-lg font-bold text-text-primary mb-4 flex items-center">
             <SIcon
               name="Settings"
@@ -92,7 +92,7 @@
                 id="statusline-command"
                 v-model="config.command"
                 type="text"
-                class="w-full px-4 py-3 rounded-lg bg-white/50 border border-border-default focus:border-accent-secondary focus:ring-2 focus:ring-accent-secondary/20 outline-none transition-[border-color,box-shadow] font-mono text-sm"
+                class="w-full px-4 py-3 rounded-lg bg-bg-surface/700 border border-border-default focus:border-accent-secondary focus:ring-2 focus:ring-accent-secondary/20 outline-none transition-[border-color,box-shadow] font-mono text-sm"
                 :placeholder="$t('statusline.commandPlaceholder')"
                 aria-describedby="command-description command-help"
               >
@@ -115,7 +115,7 @@
             >
               <span
                 v-if="saving"
-                class="loading-spinner w-4 h-4 mr-2 border-white/30 border-t-white"
+                class="loading-spinner w-4 h-4 mr-2 border-border-default/30 border-t-white"
                 aria-hidden="true"
               />
               <SIcon
@@ -131,7 +131,7 @@
 
         <!-- Info Card -->
         <div
-          class="glass-effect rounded-2xl p-6 border border-white/20 shadow-sm"
+          class="glass-effect rounded-2xl p-6 border border-border-default/25 shadow-sm"
           role="region"
           aria-labelledby="about-title"
         >
@@ -233,3 +233,4 @@ const handleSave = async () => {
   }
 }
 </script>
+

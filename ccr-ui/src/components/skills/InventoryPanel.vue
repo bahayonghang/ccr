@@ -669,7 +669,7 @@ watch(selectedSkill, () => { showFullDesc.value = false })
   @apply min-h-[300px] w-full rounded-2xl border border-border-default/45 p-3 text-sm leading-6 text-text-primary;
 
   background-color: rgb(var(--color-bg-base-rgb) / 55%);
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-family: var(--font-mono);
 }
 
 .content-editor {

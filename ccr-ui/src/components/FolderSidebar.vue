@@ -1,7 +1,7 @@
 <!-- -->
 <template>
   <div
-    class="rounded-2xl p-4 shadow-sm sticky top-6 self-start hidden lg:block w-64 bg-black/20 dark:bg-black/40 backdrop-blur-xl border border-white/10 text-white"
+    class="rounded-2xl p-4 shadow-sm sticky top-6 self-start hidden lg:block w-64 bg-black/20 dark:bg-black/40 backdrop-blur-xl border border-border-default/15 text-white"
   >
     <h3
       class="text-xs font-bold uppercase tracking-wider mb-3 px-2 flex items-center justify-between"
@@ -103,3 +103,4 @@ const handleFolderClick = (folderValue: string) => {
   emit('folder-selected', folderValue)
 }
 </script>
+

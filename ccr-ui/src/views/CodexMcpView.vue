@@ -11,11 +11,11 @@
           <div class="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
             <div class="space-y-3">
               <div class="flex items-center gap-3">
-                <div class="flex h-12 w-12 items-center justify-center rounded-2xl border border-pink-500/20 bg-pink-500/10 shadow-lg backdrop-blur-md">
+                <div class="flex h-12 w-12 items-center justify-center rounded-2xl border border-accent-primary/20 bg-accent-primary/10 shadow-lg backdrop-blur-md">
                   <SIcon
                     name="Server"
                     size="w-6 h-6"
-                    class="text-pink-300"
+                    class="text-accent-primary"
                   />
                 </div>
                 <div>
@@ -32,9 +32,9 @@
               </div>
 
               <div class="flex flex-wrap gap-2">
-                <span class="chip chip-pink">control plane</span>
+                <span class="chip chip-primary">control plane</span>
                 <span class="chip chip-neutral">official mcp_servers</span>
-                <span class="chip chip-emerald">power-user density</span>
+                <span class="chip chip-success">power-user density</span>
               </div>
             </div>
 
@@ -162,28 +162,28 @@
                 <SIcon
                   name="ArrowRight"
                   size="w-4 h-4"
-                  class="text-pink-300"
+                  class="text-accent-primary"
                 /><span>{{ tt('STDIO 更适合本地工具链，HTTP 更适合远程或托管 MCP 服务。', 'Use STDIO for local toolchains and HTTP for remote or hosted MCP services.') }}</span>
               </div>
               <div class="note-row">
                 <SIcon
                   name="ArrowRight"
                   size="w-4 h-4"
-                  class="text-pink-300"
+                  class="text-accent-primary"
                 /><span>{{ tt('enabled_tools / disabled_tools 用来缩小 Codex 可见的工具面。', 'enabled_tools / disabled_tools shrink what Codex can see.') }}</span>
               </div>
               <div class="note-row">
                 <SIcon
                   name="ArrowRight"
                   size="w-4 h-4"
-                  class="text-pink-300"
+                  class="text-accent-primary"
                 /><span>{{ tt('bearer_token_env_var 与 env_http_headers 比明文 token 更可控。', 'bearer_token_env_var and env_http_headers are safer than literal tokens.') }}</span>
               </div>
               <div class="note-row">
                 <SIcon
                   name="ArrowRight"
                   size="w-4 h-4"
-                  class="text-pink-300"
+                  class="text-accent-primary"
                 /><span>{{ tt('required=true 会把 server 升级成启动时必须可用的依赖。', 'required=true upgrades a server into a startup dependency.') }}</span>
               </div>
             </div>
@@ -218,7 +218,7 @@
               <SIcon
                 name="Sparkles"
                 size="w-4 h-4"
-                class="text-pink-300"
+                class="text-accent-primary"
               />
             </button>
           </div>
@@ -400,7 +400,7 @@
                     >required</span>
                     <span
                       v-if="hasScopedTools(server)"
-                      class="mini-chip mini-chip--emerald"
+                      class="mini-chip mini-chip--success"
                     >scoped</span>
                     <span
                       v-if="hasLegacyCompatibility(server)"
@@ -1099,7 +1099,7 @@ onActivated(() => {
 }
 
 .title {
-  font-family: MapleBright, 'Microsoft YaHei UI', system-ui, sans-serif;
+  font-family: var(--font-brand);
   font-size: 1.875rem;
   font-weight: 700;
   line-height: 1.1;
@@ -1124,12 +1124,12 @@ onActivated(() => {
   font-size: 0.75rem;
 }
 
-.chip-pink,
+.chip-primary,
 .filter-pill--active,
 .toggle-pill--active {
-  border-color: rgb(236 72 153 / 20%);
-  background: rgb(236 72 153 / 10%);
-  color: rgb(249 168 212);
+  border-color: rgb(var(--color-accent-primary-rgb) / 20%);
+  background: rgb(var(--color-accent-primary-rgb) / 10%);
+  color: var(--color-accent-primary);
 }
 
 .chip-neutral,
@@ -1158,23 +1158,23 @@ onActivated(() => {
   color: var(--stage-text-secondary);
 }
 
-.chip-emerald,
-.mini-chip--emerald {
-  border-color: rgb(16 185 129 / 20%);
-  background: rgb(16 185 129 / 10%);
-  color: rgb(110 231 183);
+.chip-success,
+.mini-chip--success {
+  border-color: rgb(var(--color-success-rgb) / 20%);
+  background: rgb(var(--color-success-rgb) / 10%);
+  color: var(--color-success);
 }
 
 .mini-chip--amber {
-  border-color: rgb(245 158 11 / 20%);
-  background: rgb(245 158 11 / 10%);
-  color: rgb(252 211 77);
+  border-color: rgb(var(--color-warning-rgb) / 20%);
+  background: rgb(var(--color-warning-rgb) / 10%);
+  color: var(--color-warning);
 }
 
 .mini-chip--rose {
-  border-color: rgb(244 63 94 / 20%);
-  background: rgb(244 63 94 / 10%);
-  color: rgb(253 164 175);
+  border-color: rgb(var(--color-danger-rgb) / 20%);
+  background: rgb(var(--color-danger-rgb) / 10%);
+  color: var(--color-danger);
 }
 
 .stat-card,

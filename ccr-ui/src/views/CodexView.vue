@@ -595,7 +595,7 @@ onActivated(() => {
 .codex-hero-card__glow {
   @apply pointer-events-none absolute inset-y-0 right-0 w-72;
 
-  background: linear-gradient(270deg, rgb(var(--color-accent-primary-rgb) / 12%), rgb(var(--color-premium-blue-rgb) / 46%), transparent);
+  background: linear-gradient(270deg, rgb(var(--color-accent-primary-rgb) / 10%), rgb(var(--color-premium-blue-rgb) / 38%), transparent);
 }
 
 .codex-hero-content {
@@ -618,13 +618,13 @@ onActivated(() => {
   @apply flex h-12 w-12 items-center justify-center rounded-2xl shadow-lg backdrop-blur-md;
 
   border: 1px solid rgb(var(--color-accent-primary-rgb) / 14%);
-  background: linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 100%), rgb(var(--color-bg-surface-rgb) / 84%));
+  background: linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 100%), rgb(var(--color-bg-surface-rgb) / 90%));
 }
 
 .codex-hero-title {
   color: var(--stage-text-primary);
 
-  @apply text-3xl font-bold tracking-tight;
+  @apply text-[2.35rem] font-semibold tracking-[-0.04em];
 
   font-family: var(--font-brand);
 }
@@ -642,9 +642,9 @@ onActivated(() => {
 .codex-pill {
   color: var(--stage-chip-neutral-text);
 
-  @apply rounded-full border px-3 py-1 text-xs font-semibold uppercase;
+  @apply rounded-full border px-3 py-1 text-xs font-semibold;
 
-  letter-spacing: 0.12em;
+  letter-spacing: 0.04em;
 }
 
 .codex-pill--primary {
@@ -683,9 +683,9 @@ onActivated(() => {
 .codex-stat-label {
   color: var(--stage-text-quiet);
 
-  @apply mb-1 text-xs uppercase;
+  @apply mb-1 text-xs;
 
-  letter-spacing: 0.2em;
+  letter-spacing: 0.04em;
 }
 
 .codex-stat-value {
@@ -817,9 +817,9 @@ onActivated(() => {
 .codex-health-label {
   color: var(--stage-text-quiet);
 
-  @apply mt-4 text-xs uppercase;
+  @apply mt-4 text-xs;
 
-  letter-spacing: 0.2em;
+  letter-spacing: 0.04em;
 }
 
 .codex-health-value {
@@ -907,9 +907,9 @@ onActivated(() => {
 .codex-summary-label {
   color: var(--stage-text-quiet);
 
-  @apply mb-1 text-xs uppercase;
+  @apply mb-1 text-xs;
 
-  letter-spacing: 0.2em;
+  letter-spacing: 0.04em;
 }
 
 .codex-summary-value {

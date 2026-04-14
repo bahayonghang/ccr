@@ -1248,7 +1248,7 @@ onUnmounted(() => {
 
 .checkin-accounts-tab__metric,
 .checkin-accounts-tab__cell--mono {
-  font-family: var(--font-mono, 'Maple Mono', monospace);
+  font-family: var(--font-mono);
 }
 
 .checkin-accounts-tab__metric {
@@ -1557,7 +1557,7 @@ onUnmounted(() => {
 .checkin-accounts-tab__control--mono,
 .checkin-accounts-tab__kbd,
 .checkin-accounts-tab__code {
-  font-family: var(--font-mono, 'Maple Mono', monospace);
+  font-family: var(--font-mono);
 }
 
 .checkin-accounts-tab__control--mono {

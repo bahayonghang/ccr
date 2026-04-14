@@ -70,7 +70,7 @@
         <div
           v-for="droid in droids"
           :key="droid.name"
-          class="glass-card p-6 transition-[transform,box-shadow,border-color] duration-300 hover:-translate-y-1 hover:border-white/30"
+          class="glass-card p-6 transition-[transform,box-shadow,border-color] duration-300 hover:-translate-y-1 hover:border-border-default/30"
         >
           <!-- Droid 头部 -->
           <div class="flex items-start justify-between mb-4">
@@ -636,3 +636,4 @@ input:disabled {
   overflow: hidden;
 }
 </style>
+
