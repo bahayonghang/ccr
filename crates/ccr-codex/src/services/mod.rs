@@ -6,6 +6,8 @@ pub mod codex_registry_store;
 pub mod codex_runtime_service;
 pub mod codex_session_service;
 pub mod codex_usage_service;
+pub mod opencode_auth_service;
+pub mod opencode_usage_service;
 
 pub use codex_auth_service::{AuthReadSnapshot, CodexAuthService};
 pub use codex_history_sync_service::{
@@ -25,4 +27,8 @@ pub use codex_session_service::{
 };
 pub use codex_usage_service::{
     CodexRollingUsage, CodexUsageRecord, CodexUsageService, CodexUsageStats,
+};
+pub use opencode_auth_service::OpenCodeAuthService;
+pub use opencode_usage_service::{
+    OpenCodeRollingUsage, OpenCodeUsageRecord, OpenCodeUsageService, OpenCodeUsageStats,
 };

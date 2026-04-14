@@ -10,6 +10,7 @@ pub use ccr_config::{Platform, PlatformConfig, PlatformPaths, ProfileConfig};
 pub use ccr_core::{CcrError, Result};
 pub use managers::codex_config::{CachedCodexConfigManager, CodexConfigManager};
 pub use models::codex_auth::*;
+pub use models::opencode_auth::*;
 pub use platforms::CodexPlatform;
 pub use services::{
     AuthReadSnapshot, CodexAuthCacheAction, CodexAuthService, CodexHistoryBackupPruneResult,
@@ -18,5 +19,6 @@ pub use services::{
     CodexOAuthTokenService, CodexQuotaService, CodexRegistryStore, CodexRollingUsage,
     CodexRuntimeCommitPlan, CodexRuntimeService, CodexSessionDetail, CodexSessionExport,
     CodexSessionMessage, CodexSessionService, CodexSessionSummary, CodexUsageRecord,
-    CodexUsageService, CodexUsageStats, OAuthRepairOutcome,
+    CodexUsageService, CodexUsageStats, OAuthRepairOutcome, OpenCodeAuthService,
+    OpenCodeRollingUsage, OpenCodeUsageRecord, OpenCodeUsageService, OpenCodeUsageStats,
 };

@@ -5,6 +5,7 @@ pub mod action;
 mod app;
 pub mod codex_auth;
 mod event;
+pub mod opencode_auth;
 pub mod overlay;
 pub mod runtime;
 pub mod theme;
@@ -34,6 +35,15 @@ fn print_exit_info(app: &App) {
             println!("✅ {} 账号: {}", action, name);
         } else if let Some(err) = error {
             eprintln!("❌ {} 账号 {} 失败: {}", action, name, err);
+        }
+    }
+
+    // OpenCode auth action result
+    if let Some((action, name, success, error)) = &app.last_opencode_action {
+        if *success {
+            println!("✅ {} OpenCode 账号: {}", action, name);
+        } else if let Some(err) = error {
+            eprintln!("❌ {} OpenCode 账号 {} 失败: {}", action, name, err);
         }
     }
 }

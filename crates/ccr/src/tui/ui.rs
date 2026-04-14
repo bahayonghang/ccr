@@ -3,6 +3,7 @@
 
 use super::app::App;
 use super::codex_auth;
+use super::opencode_auth;
 use super::theme;
 use super::toast::ToastKind;
 use crate::models::{CodexRuntimeSummary, OpenAiAuthMethod, Platform, ProfileConfig};
@@ -35,7 +36,7 @@ pub fn draw(f: &mut Frame, app: &App) {
 
     render_header(f, app, chunks[0]);
 
-    let content_area = if app.current_platform() == Platform::Codex {
+    let content_area = if app.current_platform() == Platform::Codex && !app.is_opencode_auth_tab() {
         let runtime_chunks = Layout::default()
             .direction(Direction::Vertical)
             .constraints([
@@ -79,6 +80,20 @@ pub fn draw(f: &mut Frame, app: &App) {
                 chunks[2],
                 mode,
                 app.codex_auth_error.as_deref(),
+            );
+        }
+    } else if app.is_opencode_auth_tab() {
+        app.header_area.set(Some(chunks[0]));
+
+        if let Some(ref opencode_app) = app.opencode_auth_app {
+            opencode_auth::ui::draw_embedded(f, opencode_app, content_area, chunks[2], mode);
+        } else {
+            opencode_auth::ui::draw_loading_placeholder(
+                f,
+                content_area,
+                chunks[2],
+                mode,
+                app.opencode_auth_error.as_deref(),
             );
         }
     } else {
@@ -1199,6 +1214,9 @@ mod tests {
             codex_auth_app: None,
             codex_auth_error: None,
             last_codex_action: None,
+            opencode_auth_app: None,
+            opencode_auth_error: None,
+            last_opencode_action: None,
             header_area: Cell::new(None),
             list_area: Cell::new(None),
         }

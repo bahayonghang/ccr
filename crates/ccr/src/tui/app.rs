@@ -15,6 +15,7 @@ use std::cell::Cell;
 use std::sync::Arc;
 
 use super::codex_auth::CodexAuthApp;
+use super::opencode_auth::OpenCodeAuthApp;
 use super::runtime::TuiApp;
 use super::ui;
 
@@ -36,6 +37,8 @@ pub enum TabVariant {
     Profile,
     /// Codex account/auth management
     CodexAuth,
+    /// OpenCode openai account/auth management
+    OpenCodeAuth,
 }
 
 /// A tab representing one platform with its profiles loaded
@@ -107,6 +110,12 @@ pub struct App {
     pub codex_auth_error: Option<String>,
     /// Last codex auth action info (action_type, account_name, success, error)
     pub last_codex_action: Option<(String, String, bool, Option<String>)>,
+    /// Embedded OpenCode Auth app (lazy initialized)
+    pub opencode_auth_app: Option<OpenCodeAuthApp>,
+    /// Last OpenCode Auth initialization error for placeholder rendering
+    pub opencode_auth_error: Option<String>,
+    /// Last opencode auth action info (action_type, account_name, success, error)
+    pub last_opencode_action: Option<(String, String, bool, Option<String>)>,
     /// 🖱️ Cached header (tab bar) area for mouse hit-testing
     pub header_area: Cell<Option<Rect>>,
     /// 🖱️ Cached profile list area for mouse hit-testing
@@ -298,6 +307,18 @@ impl App {
                                 codex_runtime_summary: None,
                                 instance: Some(Arc::clone(&instance)),
                             });
+                            // OpenCode Auth tab (manual OpenCode openai switching)
+                            tabs.push(PlatformTab {
+                                platform,
+                                variant: TabVariant::OpenCodeAuth,
+                                label: "OpenCode Auth".to_string(),
+                                profiles: Vec::new(),
+                                profile_configs: IndexMap::new(),
+                                profile_load_error: None,
+                                current_profile_error: None,
+                                codex_runtime_summary: None,
+                                instance: Some(Arc::clone(&instance)),
+                            });
                             // Codex Profile tab (profile switching)
                             tabs.push(PlatformTab {
                                 platform,
@@ -346,6 +367,9 @@ impl App {
             codex_auth_app: None,
             codex_auth_error: None,
             last_codex_action: None,
+            opencode_auth_app: None,
+            opencode_auth_error: None,
+            last_opencode_action: None,
             header_area: Cell::new(None),
             list_area: Cell::new(None),
         };
@@ -562,9 +586,41 @@ impl App {
         self.codex_auth_app.as_mut()
     }
 
+    /// Ensure OpenCode Auth app is initialized before interaction/rendering
+    fn ensure_opencode_auth_app(&mut self) {
+        if self.opencode_auth_app.is_some() {
+            return;
+        }
+
+        match OpenCodeAuthApp::new() {
+            Ok(app) => {
+                self.opencode_auth_app = Some(app);
+                self.opencode_auth_error = None;
+            }
+            Err(e) => {
+                let err = e.to_string();
+                tracing::warn!("Failed to init OpenCodeAuthApp: {}", err);
+                self.opencode_auth_error = Some(err.clone());
+                self.toasts
+                    .push(Toast::error(format!("OpenCode Auth 初始化失败: {}", err)));
+            }
+        }
+    }
+
+    /// Get mutable OpenCode Auth app, initializing it on demand
+    fn opencode_auth_app_mut(&mut self) -> Option<&mut OpenCodeAuthApp> {
+        self.ensure_opencode_auth_app();
+        self.opencode_auth_app.as_mut()
+    }
+
     /// Check if the currently active tab is the Codex Auth variant
     pub fn is_codex_auth_tab(&self) -> bool {
         self.tabs[self.active_tab].variant == TabVariant::CodexAuth
+    }
+
+    /// Check if the currently active tab is the OpenCode Auth variant
+    pub fn is_opencode_auth_tab(&self) -> bool {
+        self.tabs[self.active_tab].variant == TabVariant::OpenCodeAuth
     }
 
     /// Pre-select Codex Auth tab (for `ccr codex` entry)
@@ -584,13 +640,23 @@ impl App {
 
     /// Notify the active tab's sub-app that it became active
     fn notify_tab_activated(&mut self) {
-        if !self.is_codex_auth_tab() {
+        let is_codex_auth = self.is_codex_auth_tab();
+        let is_opencode_auth = self.is_opencode_auth_tab();
+
+        if !is_codex_auth && !is_opencode_auth {
             self.sync_selection_to_profile_name();
             return;
         }
 
-        if let Some(codex_app) = self.codex_auth_app_mut() {
-            codex_app.on_activated();
+        if is_codex_auth {
+            if let Some(codex_app) = self.codex_auth_app_mut() {
+                codex_app.on_activated();
+            }
+            return;
+        }
+
+        if is_opencode_auth && let Some(opencode_app) = self.opencode_auth_app_mut() {
+            opencode_app.on_activated();
         }
     }
 
@@ -598,6 +664,15 @@ impl App {
     fn delegate_mouse_to_codex(&mut self, mouse: MouseEvent) -> Result<bool> {
         if let Some(codex_app) = self.codex_auth_app_mut() {
             codex_app.handle_mouse(mouse)
+        } else {
+            Ok(false)
+        }
+    }
+
+    /// Delegate mouse event to embedded OpenCodeAuthApp
+    fn delegate_mouse_to_opencode(&mut self, mouse: MouseEvent) -> Result<bool> {
+        if let Some(opencode_app) = self.opencode_auth_app_mut() {
+            opencode_app.handle_mouse(mouse)
         } else {
             Ok(false)
         }
@@ -671,6 +746,18 @@ impl TuiApp for App {
                 }
             }
             Ok(false)
+        } else if self.is_opencode_auth_tab() {
+            if key.code == KeyCode::Tab {
+                return self.dispatch(Action::NextTab);
+            }
+            if let Some(opencode_app) = self.opencode_auth_app_mut() {
+                let quit = opencode_app.handle_key(key)?;
+                if quit {
+                    self.last_opencode_action = opencode_app.last_action.clone();
+                    return Ok(true);
+                }
+            }
+            Ok(false)
         } else {
             // Profile tabs (Claude / Codex Profile): key mapping + dispatch
             let action = self.map_key(key);
@@ -703,6 +790,9 @@ impl TuiApp for App {
                 if self.is_codex_auth_tab() {
                     return self.delegate_mouse_to_codex(mouse);
                 }
+                if self.is_opencode_auth_tab() {
+                    return self.delegate_mouse_to_opencode(mouse);
+                }
 
                 // Profile tabs (Claude / Codex Profile): 列表项点击
                 if let Some(area) = self.list_area.get()
@@ -718,6 +808,9 @@ impl TuiApp for App {
                 if self.is_codex_auth_tab() {
                     return self.delegate_mouse_to_codex(mouse);
                 }
+                if self.is_opencode_auth_tab() {
+                    return self.delegate_mouse_to_opencode(mouse);
+                }
                 return self.dispatch(Action::SelectPrev);
             }
 
@@ -725,6 +818,9 @@ impl TuiApp for App {
             MouseEventKind::ScrollDown => {
                 if self.is_codex_auth_tab() {
                     return self.delegate_mouse_to_codex(mouse);
+                }
+                if self.is_opencode_auth_tab() {
+                    return self.delegate_mouse_to_opencode(mouse);
                 }
                 return self.dispatch(Action::SelectNext);
             }
@@ -737,6 +833,8 @@ impl TuiApp for App {
     fn on_tick(&mut self) -> bool {
         if self.is_codex_auth_tab() {
             self.codex_auth_app.as_mut().is_some_and(|a| a.on_tick())
+        } else if self.is_opencode_auth_tab() {
+            self.opencode_auth_app.as_mut().is_some_and(|a| a.on_tick())
         } else {
             self.toasts.tick()
         }
@@ -897,6 +995,9 @@ mod tests {
             codex_auth_app: None,
             codex_auth_error: None,
             last_codex_action: None,
+            opencode_auth_app: None,
+            opencode_auth_error: None,
+            last_opencode_action: None,
             header_area: Cell::new(None),
             list_area: Cell::new(None),
         };

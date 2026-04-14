@@ -54,6 +54,86 @@ impl CodexPaths {
     }
 }
 
+/// OpenCode 相关路径集合
+///
+/// 统一解析 CCR_DATA_DIR / CCR_ROOT / CCR_OPENCODE_DIR 环境变量，
+/// 用于 OpenCode Auth 的注册表与真实 auth.json 路径定位。
+pub struct OpenCodePaths {
+    /// CCR 平台数据目录 (~/.ccr/platforms/opencode/)
+    pub ccr_opencode_dir: PathBuf,
+    /// OpenCode 数据目录（官方默认：`$HOME/.local/share/opencode/`）
+    pub opencode_dir: PathBuf,
+}
+
+impl OpenCodePaths {
+    /// 从环境变量和默认路径解析 OpenCode 路径
+    pub fn resolve() -> Result<Self> {
+        let home =
+            dirs::home_dir().ok_or_else(|| CcrError::ConfigError("无法获取用户主目录".into()))?;
+
+        let ccr_root = if let Ok(custom) = std::env::var("CCR_DATA_DIR") {
+            PathBuf::from(custom)
+        } else if let Ok(custom) = std::env::var("CCR_ROOT") {
+            PathBuf::from(custom)
+        } else {
+            home.join(".ccr")
+        };
+        let ccr_opencode_dir = ccr_root.join("platforms/opencode");
+
+        let opencode_dir = if let Ok(custom) = std::env::var("CCR_OPENCODE_DIR") {
+            PathBuf::from(custom)
+        } else {
+            Self::resolve_default_opencode_dir(&home)
+        };
+
+        Ok(Self {
+            ccr_opencode_dir,
+            opencode_dir,
+        })
+    }
+
+    /// 官方 OpenCode storage 目录。
+    ///
+    /// 上游文档当前明确说明：
+    /// - macOS / Linux: `~/.local/share/opencode/`
+    /// - Windows: `%USERPROFILE%\\.local\\share\\opencode\\`
+    ///
+    /// 因此这里统一以 `$HOME/.local/share/opencode` 为默认值，
+    /// 并仅将系统 data-local 路径作为兼容旧实现的回退。
+    fn official_storage_dir(home: &Path) -> PathBuf {
+        home.join(".local").join("share").join("opencode")
+    }
+
+    fn resolve_default_opencode_dir(home: &Path) -> PathBuf {
+        Self::select_default_opencode_dir(
+            Self::official_storage_dir(home),
+            dirs::data_local_dir().map(|dir| dir.join("opencode")),
+        )
+    }
+
+    fn select_default_opencode_dir(official: PathBuf, legacy: Option<PathBuf>) -> PathBuf {
+        if official.exists() {
+            return official;
+        }
+
+        if let Some(legacy) = legacy {
+            if legacy.exists() {
+                return legacy;
+            }
+        }
+
+        official
+    }
+
+    /// 从显式路径构造（用于测试注入）
+    pub fn from_dirs(ccr_opencode_dir: PathBuf, opencode_dir: PathBuf) -> Self {
+        Self {
+            ccr_opencode_dir,
+            opencode_dir,
+        }
+    }
+}
+
 /// Base64 URL-safe 解码
 ///
 /// 处理带/不带 padding 的 base64url 输入，自动补齐后解码。
@@ -150,5 +230,47 @@ mod tests {
             PathBuf::from("/tmp/ccr/platforms/codex")
         );
         assert_eq!(paths.codex_dir, PathBuf::from("/tmp/codex"));
+    }
+
+    #[test]
+    fn test_opencode_paths_from_dirs() {
+        let paths = OpenCodePaths::from_dirs(
+            PathBuf::from("/tmp/ccr/platforms/opencode"),
+            PathBuf::from("/tmp/opencode"),
+        );
+        assert_eq!(
+            paths.ccr_opencode_dir,
+            PathBuf::from("/tmp/ccr/platforms/opencode")
+        );
+        assert_eq!(paths.opencode_dir, PathBuf::from("/tmp/opencode"));
+    }
+
+    #[test]
+    fn test_opencode_official_storage_dir() {
+        let dir = OpenCodePaths::official_storage_dir(Path::new("/home/test"));
+        assert_eq!(dir, PathBuf::from("/home/test/.local/share/opencode"));
+    }
+
+    #[test]
+    fn test_select_default_opencode_dir_prefers_official_path() {
+        let temp = tempfile::tempdir().unwrap();
+        let official = temp.path().join("home/.local/share/opencode");
+        let legacy = temp.path().join("legacy/opencode");
+        std::fs::create_dir_all(&official).unwrap();
+        std::fs::create_dir_all(&legacy).unwrap();
+
+        let selected = OpenCodePaths::select_default_opencode_dir(official.clone(), Some(legacy));
+        assert_eq!(selected, official);
+    }
+
+    #[test]
+    fn test_select_default_opencode_dir_falls_back_to_legacy_path() {
+        let temp = tempfile::tempdir().unwrap();
+        let official = temp.path().join("home/.local/share/opencode");
+        let legacy = temp.path().join("legacy/opencode");
+        std::fs::create_dir_all(&legacy).unwrap();
+
+        let selected = OpenCodePaths::select_default_opencode_dir(official, Some(legacy.clone()));
+        assert_eq!(selected, legacy);
     }
 }

@@ -18,4 +18,9 @@ pub use ccr_codex::models::codex_auth::{
     CodexUsageActivation, CredentialStoreKind, CurrentAuthInfo, ImportMode, ImportResult,
     LoginState, OpenAiAuthMethod, TokenFreshness, normalize_auth_map_for_intent,
 };
+#[allow(unused_imports)]
+pub use ccr_codex::models::opencode_auth::{
+    OpenCodeAuthAccount, OpenCodeAuthItem, OpenCodeAuthRegistry, OpenCodeCurrentAuthInfo,
+    OpenCodeLoginState, OpenCodeOpenAiAuth, OpenCodeReadSnapshot,
+};
 pub use ccr_config::{Platform, PlatformConfig, PlatformPaths, ProfileConfig};

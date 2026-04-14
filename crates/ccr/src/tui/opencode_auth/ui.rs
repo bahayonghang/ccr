@@ -1,0 +1,1115 @@
+// 🎨 OpenCode Auth TUI UI rendering
+// Draws the OpenCode openai account management interface with local usage stats
+
+use super::app::{
+    OpenCodeAuthApp, OpenCodeAuthUsagePanelData, OpenCodeUsageAttributionState, OpenCodeUsageState,
+    PAGE_SIZE,
+};
+use crate::models::{OpenCodeAuthItem, OpenCodeLoginState, TokenFreshness};
+use crate::services::OpenCodeUsageService;
+use crate::tui::overlay::{Overlay, render_overlay};
+use crate::tui::theme;
+use crate::tui::toast::ToastKind;
+use chrono::{Local, Utc};
+use ratatui::{
+    Frame,
+    layout::{Alignment, Constraint, Direction, Layout, Rect},
+    style::{Color, Modifier, Style},
+    text::{Line, Span},
+    widgets::{Block, Borders, Cell, Paragraph, Row, Table, Wrap},
+};
+use unicode_width::{UnicodeWidthChar, UnicodeWidthStr};
+
+const ACCOUNT_COLUMN_SPACING: u16 = 1;
+const DETAIL_LABEL_WIDTH: usize = 12;
+
+pub fn draw(f: &mut Frame, app: &OpenCodeAuthApp) {
+    let background = Block::default().style(theme::background_style());
+    f.render_widget(background, f.area());
+
+    let chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .margin(1)
+        .constraints([
+            Constraint::Length(3),
+            Constraint::Min(8),
+            Constraint::Length(12),
+            Constraint::Length(3),
+            Constraint::Length(2),
+        ])
+        .split(f.area());
+
+    draw_title(f, chunks[0], app);
+    draw_account_list_with_status(f, chunks[1], app);
+    draw_usage_panel(f, chunks[2], app);
+    draw_status_bar(f, chunks[3], app);
+    draw_help_bar(f, chunks[4], app);
+
+    if let Some(overlay) = &app.overlay {
+        render_overlay(f, overlay);
+    }
+}
+
+pub fn draw_embedded(
+    f: &mut Frame,
+    app: &OpenCodeAuthApp,
+    content_area: Rect,
+    footer_area: Rect,
+    mode: crate::tui::theme::ViewportMode,
+) {
+    match mode {
+        crate::tui::theme::ViewportMode::Compact => {
+            let content_chunks = Layout::default()
+                .direction(Direction::Vertical)
+                .constraints([Constraint::Min(8), Constraint::Length(12)])
+                .split(content_area);
+
+            draw_account_list_with_status(f, content_chunks[0], app);
+            draw_usage_panel(f, content_chunks[1], app);
+        }
+        crate::tui::theme::ViewportMode::Standard => {
+            let content_chunks = Layout::default()
+                .direction(Direction::Vertical)
+                .constraints([Constraint::Min(10), Constraint::Length(14)])
+                .split(content_area);
+
+            draw_account_list_with_status(f, content_chunks[0], app);
+            draw_usage_panel(f, content_chunks[1], app);
+        }
+        crate::tui::theme::ViewportMode::Wide => {
+            let columns = Layout::default()
+                .direction(Direction::Horizontal)
+                .constraints([Constraint::Percentage(48), Constraint::Percentage(52)])
+                .split(content_area);
+
+            draw_account_list_with_status(f, columns[0], app);
+
+            let right = Layout::default()
+                .direction(Direction::Vertical)
+                .constraints([Constraint::Length(10), Constraint::Min(12)])
+                .split(columns[1]);
+            draw_account_snapshot_panel(f, right[0], app);
+            draw_usage_panel(f, right[1], app);
+        }
+    }
+
+    draw_footer_strip(f, footer_area, app);
+
+    if let Some(overlay) = &app.overlay {
+        render_overlay(f, overlay);
+    }
+}
+
+pub fn draw_loading_placeholder(
+    f: &mut Frame,
+    content_area: Rect,
+    footer_area: Rect,
+    mode: crate::tui::theme::ViewportMode,
+    error: Option<&str>,
+) {
+    let message = error
+        .map(|err| format!("OpenCode Auth 初始化失败\n\n{err}"))
+        .unwrap_or_else(|| "正在初始化 OpenCode Auth...".to_string());
+
+    let panel = Paragraph::new(message)
+        .block(
+            Block::default()
+                .borders(Borders::ALL)
+                .border_style(Style::default().fg(theme::BORDER))
+                .title(" 🔐 OpenCode Auth ")
+                .title_style(Style::default().fg(theme::ACCENT)),
+        )
+        .alignment(Alignment::Center)
+        .wrap(Wrap { trim: true });
+    f.render_widget(panel, content_area);
+
+    if mode == crate::tui::theme::ViewportMode::Compact {
+        let help = Paragraph::new("Tab 切换")
+            .style(theme::muted_style())
+            .alignment(Alignment::Center);
+        f.render_widget(help, footer_area);
+    } else {
+        let status = Paragraph::new(if error.is_some() {
+            "初始化失败"
+        } else {
+            "加载中"
+        })
+        .style(if error.is_some() {
+            theme::error_style()
+        } else {
+            theme::info_style()
+        })
+        .block(
+            Block::default()
+                .borders(Borders::TOP)
+                .border_style(Style::default().fg(theme::BORDER))
+                .title(" Keys ")
+                .title_style(Style::default().fg(theme::ACCENT)),
+        );
+        f.render_widget(status, footer_area);
+    }
+}
+
+fn draw_title(f: &mut Frame, area: Rect, app: &OpenCodeAuthApp) {
+    let title = Paragraph::new(vec![Line::from(vec![
+        Span::styled(
+            " 🔐 OpenCode 账号管理 ",
+            Style::default()
+                .fg(theme::ACCENT)
+                .add_modifier(Modifier::BOLD),
+        ),
+        Span::raw(" | "),
+        Span::styled(login_status_text(app), login_status_style(&app.login_state)),
+    ])])
+    .block(
+        Block::default()
+            .borders(Borders::ALL)
+            .border_style(Style::default().fg(theme::BORDER))
+            .title(" CCR ")
+            .title_style(Style::default().fg(theme::ACCENT)),
+    )
+    .alignment(Alignment::Center);
+
+    f.render_widget(title, area);
+}
+
+fn draw_account_list_with_status(f: &mut Frame, area: Rect, app: &OpenCodeAuthApp) {
+    let title = format!(" 🔐 账号列表 · {} ", login_status_text(app));
+    render_account_list_panel(f, area, app, title);
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum AccountColumn {
+    Status,
+    Account,
+    Email,
+    Plan,
+    SavedAt,
+    ExpiresAt,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct AccountTableLayout {
+    columns: Vec<AccountColumn>,
+    widths: Vec<Constraint>,
+    resolved_widths: Vec<u16>,
+}
+
+impl AccountTableLayout {
+    fn new(columns: Vec<AccountColumn>, widths: Vec<Constraint>, inner_width: u16) -> Self {
+        let resolved_widths = resolve_table_widths(inner_width, &widths, ACCOUNT_COLUMN_SPACING);
+        Self {
+            columns,
+            widths,
+            resolved_widths,
+        }
+    }
+
+    fn text_width(&self, column: AccountColumn) -> usize {
+        usize::from(self.resolved_width(column))
+    }
+
+    fn resolved_width(&self, column: AccountColumn) -> u16 {
+        self.columns
+            .iter()
+            .position(|candidate| *candidate == column)
+            .and_then(|index| self.resolved_widths.get(index))
+            .copied()
+            .unwrap_or(0)
+    }
+
+    fn account_name_width(&self, account: &OpenCodeAuthItem) -> usize {
+        let reserved = if account.is_virtual { 2 } else { 0 };
+        self.text_width(AccountColumn::Account)
+            .saturating_sub(reserved)
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct AccountListRegions {
+    header: Rect,
+    body: Rect,
+}
+
+fn render_account_list_panel(f: &mut Frame, area: Rect, app: &OpenCodeAuthApp, title: String) {
+    let footer = account_list_footer_line(app);
+
+    let block = Block::default()
+        .borders(Borders::ALL)
+        .border_style(Style::default().fg(theme::BORDER))
+        .title(title)
+        .title_style(Style::default().fg(theme::ACCENT))
+        .title_bottom(footer);
+    let inner = block.inner(area);
+    f.render_widget(block, area);
+
+    if app.accounts.is_empty() {
+        app.list_area.set(None);
+        let empty = Paragraph::new(" 暂未发现可切换的 OpenCode 账号")
+            .style(theme::muted_style())
+            .alignment(Alignment::Left);
+        f.render_widget(empty, inner);
+        return;
+    }
+
+    let regions = account_list_regions(inner);
+    let layout = account_table_layout(regions.header.width);
+    app.list_area.set(Some(regions.body));
+
+    render_account_list_header(f, regions.header, &layout);
+    render_account_list_rows(f, regions.body, app, &layout);
+}
+
+fn account_list_footer_line(app: &OpenCodeAuthApp) -> Line<'static> {
+    let selected_name = app
+        .selected_account()
+        .map(|account| account.name.clone())
+        .unwrap_or_else(|| "-".to_string());
+    let selected_style = app
+        .selected_account()
+        .map(|account| {
+            if account.is_virtual {
+                theme::warning_style()
+            } else if account.is_current {
+                theme::success_style()
+            } else {
+                Style::default()
+                    .fg(theme::FG_PRIMARY)
+                    .add_modifier(Modifier::BOLD)
+            }
+        })
+        .unwrap_or_else(theme::muted_style);
+
+    Line::from(vec![
+        Span::styled(" Selected: ", theme::muted_style()),
+        Span::styled(selected_name, selected_style),
+        Span::styled("  ·  Legend: ", theme::muted_style()),
+        Span::styled("🟢 fresh", theme::success_style()),
+        Span::styled(" · ", theme::muted_style()),
+        Span::styled("🟡 stale", theme::warning_style()),
+        Span::styled(" · ", theme::muted_style()),
+        Span::styled("🔴 old", theme::error_style()),
+        Span::styled(
+            format!(
+                "  ·  Page {}/{}  ·  {} accounts  ·  PAGE_SIZE {} ",
+                app.current_page + 1,
+                app.total_pages(),
+                app.accounts.len(),
+                PAGE_SIZE
+            ),
+            theme::muted_style(),
+        ),
+    ])
+    .alignment(Alignment::Left)
+}
+
+fn account_list_regions(inner: Rect) -> AccountListRegions {
+    let chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([Constraint::Length(1), Constraint::Min(0)])
+        .split(inner);
+
+    AccountListRegions {
+        header: chunks[0],
+        body: chunks[1],
+    }
+}
+
+fn account_table_layout(inner_width: u16) -> AccountTableLayout {
+    if inner_width < 64 {
+        return AccountTableLayout::new(
+            vec![
+                AccountColumn::Status,
+                AccountColumn::Account,
+                AccountColumn::Email,
+            ],
+            vec![
+                Constraint::Length(4),
+                Constraint::Length(18),
+                Constraint::Min(12),
+            ],
+            inner_width,
+        );
+    }
+
+    if inner_width < 94 {
+        return AccountTableLayout::new(
+            vec![
+                AccountColumn::Status,
+                AccountColumn::Account,
+                AccountColumn::Email,
+                AccountColumn::Plan,
+                AccountColumn::ExpiresAt,
+            ],
+            vec![
+                Constraint::Length(4),
+                Constraint::Length(18),
+                Constraint::Length(20),
+                Constraint::Length(8),
+                Constraint::Length(10),
+            ],
+            inner_width,
+        );
+    }
+
+    AccountTableLayout::new(
+        vec![
+            AccountColumn::Status,
+            AccountColumn::Account,
+            AccountColumn::Email,
+            AccountColumn::Plan,
+            AccountColumn::SavedAt,
+            AccountColumn::ExpiresAt,
+        ],
+        vec![
+            Constraint::Length(4),
+            Constraint::Length(18),
+            Constraint::Length(24),
+            Constraint::Length(8),
+            Constraint::Length(10),
+            Constraint::Length(10),
+        ],
+        inner_width,
+    )
+}
+
+fn render_account_list_header(f: &mut Frame, area: Rect, layout: &AccountTableLayout) {
+    let header = Table::new(
+        [Row::new(layout.columns.iter().map(account_header_cell))],
+        layout.widths.clone(),
+    )
+    .column_spacing(ACCOUNT_COLUMN_SPACING)
+    .style(
+        Style::default()
+            .fg(theme::FG_SECONDARY)
+            .add_modifier(Modifier::BOLD),
+    );
+
+    f.render_widget(header, area);
+}
+
+fn render_account_list_rows(
+    f: &mut Frame,
+    area: Rect,
+    app: &OpenCodeAuthApp,
+    layout: &AccountTableLayout,
+) {
+    let selected_style = Style::default()
+        .fg(theme::BG_PRIMARY)
+        .bg(theme::CODEX_PRIMARY)
+        .add_modifier(Modifier::BOLD);
+
+    let rows =
+        app.current_page_accounts()
+            .iter()
+            .enumerate()
+            .map(|(index, account)| {
+                let row_style = if index == app.selected_index {
+                    selected_style
+                } else {
+                    Style::default()
+                };
+
+                Row::new(layout.columns.iter().map(|column| {
+                    account_cell(account, *column, layout, index == app.selected_index)
+                }))
+                .style(row_style)
+                .height(1)
+            });
+
+    let table = Table::new(rows, layout.widths.clone()).column_spacing(ACCOUNT_COLUMN_SPACING);
+    f.render_widget(table, area);
+}
+
+fn account_header_cell(column: &AccountColumn) -> Cell<'static> {
+    let label = match column {
+        AccountColumn::Status => "状态",
+        AccountColumn::Account => "账号",
+        AccountColumn::Email => "邮箱",
+        AccountColumn::Plan => "Plan",
+        AccountColumn::SavedAt => "保存",
+        AccountColumn::ExpiresAt => "到期",
+    };
+
+    Cell::from(label.to_string())
+}
+
+fn account_cell(
+    account: &OpenCodeAuthItem,
+    column: AccountColumn,
+    layout: &AccountTableLayout,
+    is_selected: bool,
+) -> Cell<'static> {
+    match column {
+        AccountColumn::Status => Cell::from(Line::from(Span::styled(
+            account.freshness.icon().to_string(),
+            if is_selected {
+                Style::default().fg(theme::FG_PRIMARY)
+            } else {
+                Style::default().fg(freshness_color(&account.freshness))
+            },
+        ))),
+        AccountColumn::Account => {
+            let name_style = if is_selected {
+                Style::default()
+                    .fg(theme::FG_PRIMARY)
+                    .add_modifier(Modifier::BOLD)
+            } else if account.is_virtual {
+                theme::warning_style().add_modifier(Modifier::ITALIC)
+            } else if account.is_current {
+                theme::success_style()
+            } else {
+                Style::default().fg(theme::FG_PRIMARY)
+            };
+
+            let mut spans = vec![Span::styled(
+                truncate_text(&account.name, layout.account_name_width(account)),
+                name_style,
+            )];
+
+            if account.is_virtual {
+                spans.push(Span::styled(
+                    " *",
+                    theme::warning_style().add_modifier(Modifier::ITALIC),
+                ));
+            }
+
+            Cell::from(Line::from(spans))
+        }
+        AccountColumn::Email => Cell::from(Line::from(Span::styled(
+            truncate_text(
+                account.email.as_deref().unwrap_or("-"),
+                layout.text_width(AccountColumn::Email),
+            ),
+            if is_selected {
+                Style::default().fg(theme::FG_PRIMARY)
+            } else {
+                theme::info_style()
+            },
+        ))),
+        AccountColumn::Plan => Cell::from(Line::from(Span::styled(
+            truncate_text(
+                account.plan_type.as_deref().unwrap_or("-"),
+                layout.text_width(AccountColumn::Plan),
+            ),
+            if is_selected {
+                Style::default().fg(theme::FG_PRIMARY)
+            } else {
+                theme::muted_style()
+            },
+        ))),
+        AccountColumn::SavedAt => Cell::from(Line::from(Span::styled(
+            format_saved_at(account),
+            Style::default().fg(theme::FG_PRIMARY),
+        ))),
+        AccountColumn::ExpiresAt => {
+            let (text, style) = format_expires_at(account);
+            Cell::from(Line::from(Span::styled(
+                text,
+                if is_selected {
+                    Style::default().fg(theme::FG_PRIMARY)
+                } else {
+                    style
+                },
+            )))
+        }
+    }
+}
+
+fn draw_account_snapshot_panel(f: &mut Frame, area: Rect, app: &OpenCodeAuthApp) {
+    let lines = app
+        .selected_account()
+        .map(account_snapshot_lines)
+        .unwrap_or_else(|| {
+            vec![
+                detail_line("Account:", "-", theme::muted_style()),
+                detail_line("State:", "-", theme::muted_style()),
+            ]
+        });
+
+    let panel = Paragraph::new(lines)
+        .block(
+            Block::default()
+                .borders(Borders::ALL)
+                .border_style(Style::default().fg(theme::CODEX_PRIMARY))
+                .title(" Focus ")
+                .title_style(theme::codex_style()),
+        )
+        .wrap(Wrap { trim: true });
+
+    f.render_widget(panel, area);
+}
+
+fn account_snapshot_lines(account: &OpenCodeAuthItem) -> Vec<Line<'static>> {
+    let account_style = if account.is_current {
+        theme::success_style()
+    } else if account.is_virtual {
+        theme::warning_style().add_modifier(Modifier::ITALIC)
+    } else {
+        Style::default()
+            .fg(theme::FG_PRIMARY)
+            .add_modifier(Modifier::BOLD)
+    };
+    let state_style = if account.is_current {
+        theme::success_style()
+    } else if account.is_virtual {
+        theme::warning_style()
+    } else {
+        Style::default().fg(theme::FG_PRIMARY)
+    };
+    let (expires_text, expires_style) = format_expires_at(account);
+
+    vec![
+        detail_line("Account:", account.name.clone(), account_style),
+        detail_line(
+            "State:",
+            format!(
+                "{}{}",
+                if account.is_current {
+                    "Current"
+                } else {
+                    "Saved"
+                },
+                if account.is_virtual {
+                    " · Virtual"
+                } else {
+                    ""
+                }
+            ),
+            state_style,
+        ),
+        detail_optional_line(
+            "OpenAI ID:",
+            account.account_id.as_deref(),
+            theme::info_style(),
+        ),
+        detail_optional_line("Email:", account.email.as_deref(), theme::info_style()),
+        detail_optional_line("Plan:", account.plan_type.as_deref(), theme::muted_style()),
+        detail_line(
+            "Freshness:",
+            account.freshness.description(),
+            Style::default().fg(freshness_color(&account.freshness)),
+        ),
+        detail_line(
+            "Saved at:",
+            format_saved_at(account),
+            Style::default().fg(theme::FG_PRIMARY),
+        ),
+        detail_line(
+            "Last used:",
+            format_last_used(account),
+            Style::default().fg(theme::FG_PRIMARY),
+        ),
+        detail_line("Expires:", expires_text, expires_style),
+    ]
+}
+
+fn detail_label_span(label: &str) -> Span<'static> {
+    Span::styled(
+        format!("{label:<DETAIL_LABEL_WIDTH$}"),
+        Style::default()
+            .fg(theme::FG_SECONDARY)
+            .add_modifier(Modifier::BOLD),
+    )
+}
+
+fn detail_line(label: &str, value: impl Into<String>, style: Style) -> Line<'static> {
+    detail_spans_line(label, vec![Span::styled(value.into(), style)])
+}
+
+fn detail_optional_line(label: &str, value: Option<&str>, style: Style) -> Line<'static> {
+    match value.map(str::trim).filter(|value| !value.is_empty()) {
+        Some(value) => detail_line(label, value.to_string(), style),
+        None => detail_line(label, "-", theme::muted_style()),
+    }
+}
+
+fn detail_spans_line(label: &str, mut spans: Vec<Span<'static>>) -> Line<'static> {
+    let mut all = vec![detail_label_span(label)];
+    all.append(&mut spans);
+    Line::from(all)
+}
+
+fn draw_status_bar(f: &mut Frame, area: Rect, app: &OpenCodeAuthApp) {
+    let (message, style) = if let Some(toast) = app.toasts.active() {
+        let style = match toast.kind {
+            ToastKind::Success => theme::success_style(),
+            ToastKind::Error => theme::error_style(),
+            ToastKind::Warning => theme::warning_style(),
+            ToastKind::Info => theme::info_style(),
+        };
+        (toast.message.as_str(), style)
+    } else {
+        ("就绪", theme::success_style())
+    };
+
+    let status = Paragraph::new(message).style(style).block(
+        Block::default()
+            .borders(Borders::ALL)
+            .border_style(Style::default().fg(theme::BORDER))
+            .title(" 状态 ")
+            .title_style(Style::default().fg(theme::ACCENT)),
+    );
+
+    f.render_widget(status, area);
+}
+
+fn draw_usage_panel(f: &mut Frame, area: Rect, app: &OpenCodeAuthApp) {
+    let title = Line::from(vec![
+        Span::styled(" 📊 ", theme::info_style()),
+        Span::styled(
+            "Usage",
+            Style::default()
+                .fg(theme::FG_PRIMARY)
+                .add_modifier(Modifier::BOLD),
+        ),
+    ]);
+
+    let mut content: Vec<Line> = Vec::new();
+
+    if let Some(panel) = app.usage_panel_data() {
+        let (scope_label, scope_style) = usage_scope_badge(&panel);
+        content.push(scope_line("Usage scope:", scope_label, scope_style));
+        content.push(scope_line(
+            "Attribution:",
+            usage_attribution_label(panel.attribution_state),
+            usage_attribution_style(panel.attribution_state),
+        ));
+        if let Some(reason) = &panel.fallback_reason {
+            content.push(Line::from(Span::styled(
+                format!("  Note: {}", reason),
+                theme::warning_style(),
+            )));
+        }
+        content.extend(usage_digest_lines(&panel));
+    } else {
+        match &app.usage_state {
+            OpenCodeUsageState::NoData => {
+                content.push(Line::from(Span::styled(
+                    "  📭 暂无本地 openai usage 数据",
+                    theme::muted_style(),
+                )));
+                content.push(Line::from(Span::styled(
+                    "  说明: 仅统计 OpenCode message 表里 providerID=openai 的 assistant 消息",
+                    theme::muted_style(),
+                )));
+            }
+            OpenCodeUsageState::Error(err) => {
+                content.push(Line::from(Span::styled(
+                    format!("  ⚠️ 统计加载失败: {}", err),
+                    theme::error_style(),
+                )));
+            }
+            OpenCodeUsageState::Loading => {
+                content.push(Line::from(Span::styled(
+                    "  ⏳ 正在加载本地 openai usage...",
+                    theme::muted_style(),
+                )));
+            }
+            OpenCodeUsageState::Loaded(_) => {}
+        }
+    }
+
+    let panel = Paragraph::new(content)
+        .block(
+            Block::default()
+                .borders(Borders::ALL)
+                .border_style(Style::default().fg(theme::BORDER))
+                .title(title)
+                .title_style(Style::default().fg(theme::ACCENT)),
+        )
+        .alignment(Alignment::Left)
+        .wrap(Wrap { trim: true });
+
+    f.render_widget(panel, area);
+}
+
+fn usage_scope_badge(panel: &OpenCodeAuthUsagePanelData) -> (String, Style) {
+    (
+        format!("{} provider", panel.provider_label),
+        theme::info_style(),
+    )
+}
+
+fn usage_attribution_label(state: OpenCodeUsageAttributionState) -> &'static str {
+    match state {
+        OpenCodeUsageAttributionState::ProviderGlobal => "provider aggregate",
+        OpenCodeUsageAttributionState::CurrentSavedSelection => {
+            "current selection · provider aggregate"
+        }
+        OpenCodeUsageAttributionState::SavedSelectionFallback => {
+            "saved selection · provider fallback"
+        }
+        OpenCodeUsageAttributionState::VirtualCurrentLogin => {
+            "unsaved current login · provider aggregate"
+        }
+    }
+}
+
+fn usage_attribution_style(state: OpenCodeUsageAttributionState) -> Style {
+    match state {
+        OpenCodeUsageAttributionState::ProviderGlobal => theme::info_style(),
+        OpenCodeUsageAttributionState::CurrentSavedSelection
+        | OpenCodeUsageAttributionState::SavedSelectionFallback
+        | OpenCodeUsageAttributionState::VirtualCurrentLogin => theme::warning_style(),
+    }
+}
+
+fn usage_digest_lines(panel: &OpenCodeAuthUsagePanelData) -> Vec<Line<'static>> {
+    let usage = &panel.rolling;
+    let five_total = usage.five_hour.total_input_tokens + usage.five_hour.total_output_tokens;
+    let seven_total = usage.seven_day.total_input_tokens + usage.seven_day.total_output_tokens;
+    let all_time = usage.all_time.total_input_tokens + usage.all_time.total_output_tokens;
+
+    let top_model = panel
+        .top_model
+        .as_ref()
+        .map(|top| {
+            format!(
+                "  Top model: {} ({}, {} req)",
+                top.model,
+                OpenCodeUsageService::format_tokens(top.total_tokens),
+                top.total_requests
+            )
+        })
+        .unwrap_or_else(|| "  Top model: -".to_string());
+
+    vec![
+        Line::from(format!(
+            "  5小时: {} tokens ({} 请求)",
+            OpenCodeUsageService::format_tokens(five_total),
+            usage.five_hour.total_requests
+        )),
+        Line::from(format!(
+            "  7天:   {} tokens ({} 请求)",
+            OpenCodeUsageService::format_tokens(seven_total),
+            usage.seven_day.total_requests
+        )),
+        Line::from(format!(
+            "  All time: {} tokens ({} 请求)",
+            OpenCodeUsageService::format_tokens(all_time),
+            usage.all_time.total_requests
+        )),
+        Line::from(format!(
+            "  Records: {} local assistant messages",
+            panel.record_count
+        )),
+        Line::from(top_model),
+    ]
+}
+
+fn draw_help_bar(f: &mut Frame, area: Rect, app: &OpenCodeAuthApp) {
+    let help_text = match &app.overlay {
+        Some(Overlay::Confirm { .. }) => "y 确认删除 | n/Esc 取消",
+        Some(Overlay::Input { .. }) => "Enter 确认 | Esc 取消",
+        None => "↑/k 上移 | ↓/j 下移 | Enter 切换 | s 保存当前 | d 删除 | r 刷新账号/统计 | q 退出",
+    };
+
+    let help = Paragraph::new(help_text)
+        .style(theme::muted_style())
+        .alignment(Alignment::Center);
+
+    f.render_widget(help, area);
+}
+
+fn draw_footer_strip(f: &mut Frame, area: Rect, app: &OpenCodeAuthApp) {
+    let message = if let Some(toast) = app.toasts.active() {
+        format!(
+            "{}  │  Tab switch  │  ↑↓/jk select  │  Enter switch  │  s save  │  d delete  │  r refresh  │  q quit",
+            toast.message
+        )
+    } else {
+        "Tab switch  │  ↑↓/jk select  │  Enter switch  │  s save  │  d delete  │  r refresh  │  q quit"
+            .to_string()
+    };
+
+    let help = Paragraph::new(message)
+        .block(
+            Block::default()
+                .borders(Borders::TOP)
+                .border_style(Style::default().fg(theme::BORDER))
+                .title(" Keys ")
+                .title_style(Style::default().fg(theme::FG_MUTED)),
+        )
+        .alignment(Alignment::Center)
+        .wrap(Wrap { trim: true });
+
+    f.render_widget(help, area);
+}
+
+fn scope_line(label: &str, value: impl Into<String>, style: Style) -> Line<'static> {
+    detail_line(label, value.into(), style)
+}
+
+fn login_status_text(app: &OpenCodeAuthApp) -> String {
+    match &app.login_state {
+        OpenCodeLoginState::NotLoggedIn => "未登录".to_string(),
+        OpenCodeLoginState::LoggedInUnsaved => "已登录 (未保存)".to_string(),
+        OpenCodeLoginState::LoggedInSaved(name) => format!("已登录: {}", name),
+    }
+}
+
+fn login_status_style(state: &OpenCodeLoginState) -> Style {
+    match state {
+        OpenCodeLoginState::NotLoggedIn => theme::error_style(),
+        OpenCodeLoginState::LoggedInUnsaved => theme::warning_style(),
+        OpenCodeLoginState::LoggedInSaved(_) => theme::success_style(),
+    }
+}
+
+fn format_saved_at(account: &OpenCodeAuthItem) -> String {
+    account
+        .saved_at
+        .map(|saved_at| {
+            saved_at
+                .with_timezone(&Local)
+                .format("%Y-%m-%d")
+                .to_string()
+        })
+        .unwrap_or_else(|| "-".to_string())
+}
+
+fn format_last_used(account: &OpenCodeAuthItem) -> String {
+    account
+        .last_used
+        .map(|last_used| {
+            last_used
+                .with_timezone(&Local)
+                .format("%Y-%m-%d %H:%M")
+                .to_string()
+        })
+        .unwrap_or_else(|| "-".to_string())
+}
+
+fn format_expires_at(account: &OpenCodeAuthItem) -> (String, Style) {
+    match account.expires_at {
+        Some(expires_at) => {
+            let expired = expires_at <= Utc::now();
+            let text = expires_at
+                .with_timezone(&Local)
+                .format("%Y-%m-%d")
+                .to_string();
+            if expired {
+                (text, theme::error_style())
+            } else {
+                (text, theme::success_style())
+            }
+        }
+        None => ("-".to_string(), theme::muted_style()),
+    }
+}
+
+fn freshness_color(freshness: &TokenFreshness) -> Color {
+    match freshness {
+        TokenFreshness::Fresh => theme::FG_SUCCESS,
+        TokenFreshness::Stale => theme::FG_WARNING,
+        TokenFreshness::Old => theme::FG_ERROR,
+        TokenFreshness::Unknown(_) => theme::FG_MUTED,
+    }
+}
+
+fn resolve_table_widths(
+    inner_width: u16,
+    constraints: &[Constraint],
+    column_spacing: u16,
+) -> Vec<u16> {
+    let spacing = column_spacing.saturating_mul(constraints.len().saturating_sub(1) as u16);
+    let mut remaining = inner_width.saturating_sub(spacing);
+    let mut resolved = vec![0; constraints.len()];
+    let mut flexible = Vec::new();
+
+    for (index, constraint) in constraints.iter().enumerate() {
+        match *constraint {
+            Constraint::Length(width) => {
+                let assigned = width.min(remaining);
+                resolved[index] = assigned;
+                remaining = remaining.saturating_sub(assigned);
+            }
+            Constraint::Min(width) => {
+                let assigned = width.min(remaining);
+                resolved[index] = assigned;
+                remaining = remaining.saturating_sub(assigned);
+                flexible.push(index);
+            }
+            _ => flexible.push(index),
+        }
+    }
+
+    if !flexible.is_empty() && remaining > 0 {
+        let share = remaining / flexible.len() as u16;
+        let remainder = remaining % flexible.len() as u16;
+
+        for (offset, index) in flexible.into_iter().enumerate() {
+            resolved[index] = resolved[index]
+                .saturating_add(share)
+                .saturating_add(u16::from((offset as u16) < remainder));
+        }
+    }
+
+    resolved
+}
+
+fn truncate_text(value: &str, max_width: usize) -> String {
+    if max_width == 0 {
+        return String::new();
+    }
+
+    if value.width() <= max_width {
+        return value.to_string();
+    }
+
+    if max_width == 1 {
+        return "…".to_string();
+    }
+
+    let mut result = String::new();
+    let mut current_width = 0;
+    for ch in value.chars() {
+        let ch_width = ch.width().unwrap_or(0);
+        if current_width + ch_width > max_width - 1 {
+            break;
+        }
+        result.push(ch);
+        current_width += ch_width;
+    }
+    result.push('…');
+    result
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::models::OpenCodeAuthItem;
+    use chrono::{Duration, TimeZone, Utc};
+    use ratatui::{Terminal, backend::TestBackend};
+
+    fn sample_account() -> OpenCodeAuthItem {
+        OpenCodeAuthItem {
+            name: "primary".to_string(),
+            account_id: Some("acc-primary".to_string()),
+            email: Some("use***@example.com".to_string()),
+            plan_type: Some("PLUS".to_string()),
+            is_current: true,
+            is_virtual: false,
+            saved_at: Some(Utc.with_ymd_and_hms(2026, 4, 14, 12, 0, 0).unwrap()),
+            last_used: Some(Utc.with_ymd_and_hms(2026, 4, 14, 18, 30, 0).unwrap()),
+            freshness: TokenFreshness::Fresh,
+            expires_at: Some(Utc::now() + Duration::days(7)),
+        }
+    }
+
+    fn sample_usage_panel() -> OpenCodeAuthUsagePanelData {
+        let mut usage = crate::services::OpenCodeRollingUsage::default();
+        usage.five_hour.total_input_tokens = 1_000;
+        usage.five_hour.total_output_tokens = 200;
+        usage.five_hour.total_requests = 2;
+        usage.seven_day.total_input_tokens = 10_000;
+        usage.seven_day.total_output_tokens = 1_500;
+        usage.seven_day.total_requests = 8;
+        usage.all_time.total_input_tokens = 45_000;
+        usage.all_time.total_output_tokens = 5_500;
+        usage.all_time.total_requests = 21;
+
+        OpenCodeAuthUsagePanelData {
+            provider_label: "openai".to_string(),
+            attribution_state: OpenCodeUsageAttributionState::SavedSelectionFallback,
+            rolling: usage,
+            record_count: 21,
+            top_model: Some(super::super::app::OpenCodeUsageTopModel {
+                model: "gpt-5.4".to_string(),
+                total_tokens: 20_000,
+                total_requests: 9,
+            }),
+            fallback_reason: Some("provider aggregate".to_string()),
+        }
+    }
+
+    fn plain_line_text(line: &Line<'_>) -> String {
+        line.spans
+            .iter()
+            .map(|span| span.content.as_ref())
+            .collect::<Vec<_>>()
+            .join("")
+    }
+
+    fn buffer_text(backend: &TestBackend) -> String {
+        let height = backend.buffer().area.height;
+        let width = backend.buffer().area.width;
+        (0..height)
+            .map(|y| {
+                (0..width)
+                    .filter_map(|x| backend.buffer().cell((x, y)))
+                    .map(|cell| cell.symbol())
+                    .collect::<Vec<_>>()
+                    .join("")
+            })
+            .collect::<Vec<_>>()
+            .join("\n")
+    }
+
+    #[test]
+    fn account_table_layout_hides_secondary_columns_on_narrow_widths() {
+        let layout = account_table_layout(58);
+        assert_eq!(
+            layout.columns,
+            vec![
+                AccountColumn::Status,
+                AccountColumn::Account,
+                AccountColumn::Email
+            ]
+        );
+    }
+
+    #[test]
+    fn account_table_layout_shows_saved_column_on_wide_widths() {
+        let layout = account_table_layout(104);
+        assert!(layout.columns.contains(&AccountColumn::SavedAt));
+        assert!(layout.columns.contains(&AccountColumn::ExpiresAt));
+    }
+
+    #[test]
+    fn account_snapshot_lines_show_identity_and_usage_metadata() {
+        let expected_last_used = format_last_used(&sample_account());
+        let lines = account_snapshot_lines(&sample_account());
+        assert!(plain_line_text(&lines[0]).contains("primary"));
+        assert!(plain_line_text(&lines[2]).contains("acc-primary"));
+        assert!(plain_line_text(&lines[4]).contains("PLUS"));
+        assert!(plain_line_text(&lines[5]).contains("Token 状态良好"));
+        assert!(plain_line_text(&lines[7]).contains(&expected_last_used));
+    }
+
+    #[test]
+    fn usage_digest_lines_include_all_time_and_top_model() {
+        let lines: Vec<String> = usage_digest_lines(&sample_usage_panel())
+            .into_iter()
+            .map(|line| plain_line_text(&line))
+            .collect();
+
+        assert!(
+            lines
+                .iter()
+                .any(|line| line.contains("All time: 50.5K tokens"))
+        );
+        assert!(lines.iter().any(|line| line.contains("Top model: gpt-5.4")));
+    }
+
+    #[test]
+    fn draw_loading_placeholder_renders_error_message() {
+        let mut terminal = Terminal::new(TestBackend::new(60, 12)).unwrap();
+        terminal
+            .draw(|frame| {
+                draw_loading_placeholder(
+                    frame,
+                    Rect::new(0, 0, 60, 10),
+                    Rect::new(0, 10, 60, 2),
+                    crate::tui::theme::ViewportMode::Compact,
+                    Some("boom"),
+                )
+            })
+            .unwrap();
+
+        let rendered = buffer_text(terminal.backend());
+        assert!(rendered.contains("OpenCode Auth"), "{rendered}");
+        assert!(rendered.contains("boom"), "{rendered}");
+    }
+}
