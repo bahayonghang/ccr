@@ -147,7 +147,7 @@
         v-if="sources.length === 0"
         class="empty-state"
       >
-        还没有添加任何来源。使用左侧表单添加 Git 仓库或本地目录。
+        已跟踪来源仓库为 0。当前 Library 仍会扫描各平台已安装 skills；如需可追踪来源，请在这里添加 Git 仓库或本地目录。
       </div>
     </div>
   </section>

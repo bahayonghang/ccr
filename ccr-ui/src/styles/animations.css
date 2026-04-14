@@ -1,5 +1,5 @@
 /* ============================================
-   CCR-UI Nekomata Kawaii Design System
+   CCR-UI Editorial Surface System
    Animations - Keyframes & Animation Classes
    ============================================ */
 
@@ -282,7 +282,7 @@
         }
     }
 
-    /* ========== 猫娘特色动画 (Neko Kawaii) ========== */
+    /* ========== 品牌强化动画（旧装饰，谨慎使用） ========== */
 
     /* 猫爪按压 - 用于按钮点击反馈 */
     @keyframes neko-press {
@@ -389,7 +389,7 @@
         }
     }
 
-    /* 猫娘呼吸灯 - 用于卡片边框发光 */
+    /* 轻呼吸灯 - 用于卡片边框发光 */
     @keyframes neko-breathe {
         0%,
         100% {
@@ -401,7 +401,7 @@
         }
     }
 
-    /* 猫娘呼吸灯 opacity 版本 - GPU 友好，避免 box-shadow 动画 */
+    /* 轻呼吸灯 opacity 版本 - GPU 友好，避免 box-shadow 动画 */
     @keyframes neko-breathe-opacity {
         0%,
         100% {
@@ -522,7 +522,7 @@
         animation: backdrop-enter var(--duration-normal) var(--ease-out) forwards;
     }
 
-    /* 猫娘特色动画类 (Neko Kawaii) */
+    /* 品牌强化动画类（旧装饰，谨慎使用） */
     .animate-neko-press {
         animation: neko-press 0.4s var(--ease-out);
     }

@@ -18,14 +18,14 @@ const zhCNBootMessages = {
     closeNavigation: '关闭导航',
     installed: '已安装',
     shell: {
-      tagline: 'Neko Console',
+      tagline: 'Operator Workbench',
       session: '当前会话',
       active: '已连接',
     },
     about: {
       menu: '关于 {name}',
       title: '关于 {name}',
-      description: '面向 Claude Code、Codex、Gemini 等 AI CLI 的统一控制台。保留 Neko 风格和 Liquid Glass 交互层，同时优先服务高频配置与运维工作流。',
+      description: '面向 Claude Code、Codex、Gemini 等 AI CLI 的统一工作台。界面采用更接近 Anthropic 的编辑式设计语言，以暖中性色表面、高对比排版和克制层级服务高频配置与运维工作流。',
       owner: '作者',
       engine: '技术栈',
       close: '我知道了喵～',
@@ -172,14 +172,14 @@ const enUSBootMessages = {
     closeNavigation: 'Close navigation',
     installed: 'Installed',
     shell: {
-      tagline: 'Neko Console',
+      tagline: 'Operator Workbench',
       session: 'Current session',
       active: 'Connected',
     },
     about: {
       menu: 'About {name}',
       title: 'About {name}',
-      description: 'A unified control console for Claude Code, Codex, Gemini, and other AI CLIs. It keeps the Neko identity and Liquid Glass layering while staying optimized for dense operational workflows.',
+      description: 'A unified workbench for Claude Code, Codex, Gemini, and other AI CLIs. The UI follows an Anthropic-like editorial direction with warm neutral surfaces, restrained depth, and high-contrast typography for dense operational workflows.',
       owner: 'Owner',
       engine: 'Engine',
       close: 'Got it',

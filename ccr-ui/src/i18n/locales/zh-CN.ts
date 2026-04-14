@@ -61,7 +61,7 @@ export default {
     openModule: '打开模块',
     installed: '已安装',
     shell: {
-      tagline: 'Neko Console',
+      tagline: 'Operator Workbench',
       session: '当前会话',
       active: '已连接',
     },
@@ -69,7 +69,7 @@ export default {
       menu: '关于 {name}',
       title: '关于 {name}',
       description:
-        '面向 Claude Code、Codex、Gemini 等 AI CLI 的统一控制台。保留 Neko 风格和 Liquid Glass 交互层，同时优先服务高频配置与运维工作流。',
+        '面向 Claude Code、Codex、Gemini 等 AI CLI 的统一工作台。界面采用更接近 Anthropic 的编辑式设计语言，以暖中性色表面、高对比排版和克制层级服务高频配置与运维工作流。',
       owner: '作者',
       engine: '技术栈',
       close: '我知道了喵～',

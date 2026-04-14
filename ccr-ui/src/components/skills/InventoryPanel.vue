@@ -1,6 +1,5 @@
 <template>
   <section class="inventory-layout">
-    <!-- 左侧：技能列表（虚拟滚动） -->
     <section class="panel">
       <div class="panel__header">
         <h2 class="panel__title">
@@ -8,7 +7,6 @@
         </h2>
         <span class="panel__link">{{ filteredSkills.length }} results</span>
       </div>
-
       <div
         ref="scrollRef"
         class="inventory-list"
@@ -42,7 +40,19 @@
                 <span class="count-badge">{{ filteredSkills[virtualRow.index]?.installCount }}</span>
               </div>
               <div class="skill-card__meta">
-                <span class="badge">{{ filteredSkills[virtualRow.index]?.origin }}</span>
+                <span
+                  class="badge"
+                  :class="originBadgeClass(filteredSkills[virtualRow.index])"
+                >
+                  {{ originBadgeText(filteredSkills[virtualRow.index]) }}
+                </span>
+                <span
+                  v-if="sourceBadgeText(filteredSkills[virtualRow.index])"
+                  class="badge badge--subtle"
+                  :title="filteredSkills[virtualRow.index]?.sourceLabel || filteredSkills[virtualRow.index]?.sourceRef || ''"
+                >
+                  {{ sourceBadgeText(filteredSkills[virtualRow.index]) }}
+                </span>
                 <span
                   v-for="inst in filteredSkills[virtualRow.index]?.installations.slice(0, 2)"
                   :key="inst.id"
@@ -50,20 +60,12 @@
                 >
                   {{ inst.platformName }}
                 </span>
-                <span
-                  v-if="(filteredSkills[virtualRow.index]?.installations.length ?? 0) > 2"
-                  class="badge"
-                >
-                  +{{ (filteredSkills[virtualRow.index]?.installations.length ?? 0) - 2 }}
-                </span>
               </div>
             </button>
           </div>
         </div>
       </div>
     </section>
-
-    <!-- 右侧：技能详情 -->
     <section class="panel">
       <div class="panel__header">
         <h2 class="panel__title">
@@ -82,101 +84,117 @@
           <span>Remove Skill</span>
         </button>
       </div>
-
       <div
         v-if="selectedSkill"
         class="detail-stack"
       >
-        <!-- 基本信息 -->
-        <div class="detail-card">
-          <h3>{{ selectedSkill.name }}</h3>
-          <p
-            class="detail-description"
-            :class="{ 'detail-description--collapsed': !showFullDesc }"
-            :title="selectedSkill.description ?? ''"
-          >
-            {{ selectedSkill.description || 'No description' }}
-          </p>
+        <div class="detail-hero">
+          <div class="detail-hero__copy">
+            <div class="flex flex-wrap items-center gap-2">
+              <span
+                class="badge"
+                :class="originSummary.badgeClass"
+              >{{ originSummary.label }}</span>
+              <span
+                class="badge badge--subtle"
+                :title="sourceSummary.valueTitle"
+              >{{ sourceSummary.label }}</span>
+            </div>
+            <h3>{{ selectedSkill.name }}</h3>
+            <p class="detail-hero__subtitle">
+              {{ sourceSummary.hint }}
+            </p>
+          </div>
           <button
-            v-if="selectedSkill.description && selectedSkill.description.length > 320"
-            type="button"
-            class="detail-description__toggle"
-            @click="showFullDesc = !showFullDesc"
+            class="console-button"
+            :disabled="mutationLoading || !selectedSkill || selectedPlatforms.length === 0"
+            @click="handleSyncSelected"
           >
-            {{ showFullDesc ? 'Show less' : 'Show more' }}
+            <SIcon
+              name="CopyPlus"
+              size="w-4 h-4"
+            />
+            <span>Sync to selected</span>
           </button>
-          <div class="detail-card__grid">
-            <div>
-              <span>Origin</span>
-              <strong>{{ selectedSkill.origin }}</strong>
+        </div>
+
+        <div class="detail-summary-grid">
+          <article class="detail-card">
+            <div class="flex items-center justify-between gap-3">
+              <span class="detail-card__eyebrow">Overview</span>
+              <button
+                v-if="selectedSkill.description && selectedSkill.description.length > 260"
+                type="button"
+                class="detail-description__toggle"
+                @click="showFullDesc = !showFullDesc"
+              >
+                {{ showFullDesc ? 'Show less' : 'Show more' }}
+              </button>
             </div>
-            <div>
-              <span>Author</span>
-              <strong>{{ selectedSkill.author || 'Unknown' }}</strong>
-            </div>
-            <div>
-              <span>Version</span>
-              <strong>{{ selectedSkill.version || 'N/A' }}</strong>
-            </div>
-            <div>
-              <span>Category</span>
-              <strong>{{ selectedSkill.category || 'Uncategorized' }}</strong>
-            </div>
-          </div>
-          <div class="skill-card__meta">
-            <span
-              v-for="tag in selectedSkill.tags"
-              :key="tag"
-              class="tag-chip tag-chip--active"
+            <p
+              class="detail-description"
+              :class="{ 'detail-description--collapsed': !showFullDesc }"
             >
-              {{ tag }}
-            </span>
+              {{ selectedSkill.description || 'No structured description found. This skill was discovered from an installed directory.' }}
+            </p>
+            <div class="detail-chip-row">
+              <span
+                v-for="tag in selectedSkill.tags"
+                :key="tag"
+                class="tag-chip"
+              >#{{ tag }}</span>
+            </div>
+          </article>
+
+          <div class="flex flex-col gap-3">
+            <article class="detail-card">
+              <span class="detail-card__eyebrow">Tracking</span>
+              <div class="detail-grid detail-grid--dual">
+                <div>
+                  <span>Origin</span>
+                  <strong>{{ originSummary.label }}</strong>
+                  <small>{{ originSummary.caption }}</small>
+                </div>
+                <div>
+                  <span>Source</span>
+                  <strong :title="sourceSummary.valueTitle">{{ sourceSummary.label }}</strong>
+                  <small>{{ sourceSummary.hint }}</small>
+                </div>
+              </div>
+            </article>
+            <article class="detail-card">
+              <span class="detail-card__eyebrow">Status</span>
+              <div class="detail-grid detail-grid--quad">
+                <div>
+                  <span>Targets</span>
+                  <strong>{{ selectedSkill.lifecycle.targetCount }}</strong>
+                  <small>Installed copies</small>
+                </div>
+                <div>
+                  <span>Healthy</span>
+                  <strong>{{ selectedSkill.lifecycle.healthyTargetCount }}</strong>
+                  <small>Ready to sync</small>
+                </div>
+                <div>
+                  <span>Last sync</span>
+                  <strong>{{ formatTimestamp(selectedSkill.lifecycle.lastSyncedAt) }}</strong>
+                  <small>Best-known write time</small>
+                </div>
+                <div>
+                  <span>Version</span>
+                  <strong>{{ selectedSkill.version || 'N/A' }}</strong>
+                  <small>{{ selectedSkill.author || 'Unknown author' }}</small>
+                </div>
+              </div>
+            </article>
           </div>
         </div>
 
-        <div class="detail-card">
-          <div class="panel__header">
-            <h2 class="panel__title">
-              Lifecycle
-            </h2>
-          </div>
-          <div class="detail-card__grid">
-            <div>
-              <span>Targets</span>
-              <strong>{{ selectedSkill.lifecycle.targetCount }}</strong>
-            </div>
-            <div>
-              <span>Healthy</span>
-              <strong>{{ selectedSkill.lifecycle.healthyTargetCount }}</strong>
-            </div>
-            <div>
-              <span>Last sync</span>
-              <strong>{{ formatTimestamp(selectedSkill.lifecycle.lastSyncedAt) }}</strong>
-            </div>
-            <div>
-              <span>Source</span>
-              <strong>{{ selectedSkill.lifecycle.sourceLabel || selectedSkill.lifecycle.sourceRef || 'N/A' }}</strong>
-            </div>
-          </div>
-        </div>
-
-        <!-- 安装列表 -->
         <div class="detail-card">
           <div class="panel__header">
             <h2 class="panel__title">
               Installations
             </h2>
-            <button
-              class="console-button"
-              :disabled="mutationLoading || !selectedSkill || selectedPlatforms.length === 0"
-              @click="handleSyncSelected"
-            >
-              <SIcon
-                name="CopyPlus"
-                size="w-4 h-4"
-              />
-              <span>Sync to selected</span>
-            </button>
           </div>
           <div class="installation-list">
             <div
@@ -191,7 +209,7 @@
                     v-if="inst.isPrimary"
                     class="badge"
                   >Primary</span>
-                  <span class="badge">{{ targetStatusMap[inst.id]?.status || 'unknown' }}</span>
+                  <span class="badge badge--subtle">{{ targetStatusMap[inst.id]?.status || 'unknown' }}</span>
                 </div>
                 <span>{{ shortenPath(inst.installPath) }}</span>
                 <span class="installation-row__meta">
@@ -223,12 +241,16 @@
           </div>
         </div>
 
-        <!-- 内容编辑 -->
         <div class="detail-card">
           <div class="panel__header">
-            <h2 class="panel__title">
-              Content
-            </h2>
+            <div>
+              <h2 class="panel__title">
+                Content Workbench
+              </h2>
+              <p class="detail-card__subtitle">
+                Rendered view strips frontmatter and highlights fenced code blocks.
+              </p>
+            </div>
             <div class="installation-row__actions">
               <button
                 class="console-button"
@@ -253,40 +275,113 @@
               </button>
             </div>
           </div>
-
-          <div class="content-layout">
-            <aside class="content-files">
-              <button
-                v-for="file in currentFiles.filter((entry) => !entry.isDir)"
-                :key="file.path"
-                data-testid="content-file-row"
-                class="content-file-row"
-                :class="{ 'content-file-row--active': file.path === selectedFilePath }"
-                @click="handleSelectFile(file.path)"
-              >
-                <span class="truncate">{{ file.path }}</span>
-              </button>
-            </aside>
-
-            <div class="content-body">
-              <textarea
-                v-if="editMode"
-                v-model="editBuffer"
-                class="content-editor"
-              />
-              <pre
-                v-else-if="selectedFilePath && selectedFilePreview"
-                class="content-preview"
-              >{{ selectedFilePreview }}</pre>
-              <pre
-                v-else
-                class="content-preview"
-              >{{ contentPreview }}</pre>
-            </div>
+          <div
+            v-if="!editMode"
+            class="content-view-switcher"
+          >
+            <button
+              v-for="view in contentViews"
+              :key="view.value"
+              class="content-view-chip"
+              :class="{ 'content-view-chip--active': contentView === view.value }"
+              @click="contentView = view.value"
+            >
+              {{ view.label }}
+            </button>
           </div>
+
+          <textarea
+            v-if="editMode"
+            v-model="editBuffer"
+            class="content-editor"
+          />
+
+          <template v-else-if="contentView === 'rendered'">
+            <div
+              v-if="renderedHtml"
+              class="rendered-layout"
+            >
+              <aside
+                v-if="tocEntries.length > 1"
+                class="content-outline"
+              >
+                <span class="content-outline__title">Outline</span>
+                <button
+                  v-for="entry in tocEntries"
+                  :key="entry.id"
+                  class="content-outline__item"
+                  :class="`content-outline__item--lvl-${entry.level}`"
+                  @click="scrollToHeading(entry.id)"
+                >
+                  {{ entry.text }}
+                </button>
+              </aside>
+              <div class="content-surface">
+                <div
+                  ref="markdownRef"
+                  class="prose"
+                  v-html="renderedHtml"
+                />
+              </div>
+            </div>
+            <pre
+              v-else
+              class="content-preview"
+            >No markdown content loaded.</pre>
+          </template>
+
+          <template v-else-if="contentView === 'raw'">
+            <div class="content-pane__toolbar">
+              <span class="content-pane__label">Raw source</span>
+              <button
+                class="console-button"
+                @click="copyToClipboard(currentContent?.raw ?? '', 'Raw content copied')"
+              >
+                <SIcon
+                  name="Copy"
+                  size="w-4 h-4"
+                />
+                <span>Copy</span>
+              </button>
+            </div>
+            <pre class="content-preview">{{ currentContent?.raw || 'No content loaded.' }}</pre>
+          </template>
+
+          <template v-else>
+            <div class="content-layout">
+              <aside class="content-files">
+                <button
+                  v-for="file in fileEntries"
+                  :key="file.path"
+                  data-testid="content-file-row"
+                  class="content-file-row"
+                  :class="{ 'content-file-row--active': file.path === selectedFilePath }"
+                  @click="handleSelectFile(file.path)"
+                >
+                  <span class="truncate">{{ file.path }}</span>
+                </button>
+              </aside>
+              <div class="content-surface">
+                <div class="content-pane__toolbar">
+                  <span class="content-pane__label">{{ selectedFilePath || 'No file selected' }}</span>
+                  <button
+                    class="console-button"
+                    :disabled="!selectedFilePreview"
+                    @click="copyToClipboard(selectedFilePreview, 'File content copied')"
+                  >
+                    <SIcon
+                      name="Copy"
+                      size="w-4 h-4"
+                    />
+                    <span>Copy</span>
+                  </button>
+                </div>
+                <pre class="content-preview">{{ selectedFilePreview || 'Select a file from the rail to inspect its content.' }}</pre>
+              </div>
+            </div>
+          </template>
         </div>
       </div>
-
       <div
         v-else
         class="empty-state"
@@ -299,18 +394,58 @@
 
 <script setup lang="ts">
 import { useVirtualizer } from '@tanstack/vue-virtual'
-import { computed, ref, watch } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
+import { marked } from 'marked'
+import hljs from 'highlight.js/lib/core'
+import bash from 'highlight.js/lib/languages/bash'
+import css from 'highlight.js/lib/languages/css'
+import diff from 'highlight.js/lib/languages/diff'
+import go from 'highlight.js/lib/languages/go'
+import javascript from 'highlight.js/lib/languages/javascript'
+import json from 'highlight.js/lib/languages/json'
+import markdown from 'highlight.js/lib/languages/markdown'
+import python from 'highlight.js/lib/languages/python'
+import rust from 'highlight.js/lib/languages/rust'
+import sql from 'highlight.js/lib/languages/sql'
+import typescript from 'highlight.js/lib/languages/typescript'
+import xml from 'highlight.js/lib/languages/xml'
+import yaml from 'highlight.js/lib/languages/yaml'
 import SIcon from '@/components/ui/SIcon.vue'
 import { useUnifiedSkills } from '@/composables/useUnifiedSkills'
 import { useUIStore } from '@/stores/ui'
-import type { Platform } from '@/types/skills'
+import type { Platform, SkillRecord } from '@/types/skills'
+import { sanitizeMarkdown } from '@/utils/sanitize'
 
-const props = defineProps<{
-  selectedPlatforms: Platform[]
-}>()
+hljs.registerLanguage('javascript', javascript)
+hljs.registerLanguage('js', javascript)
+hljs.registerLanguage('typescript', typescript)
+hljs.registerLanguage('ts', typescript)
+hljs.registerLanguage('python', python)
+hljs.registerLanguage('py', python)
+hljs.registerLanguage('bash', bash)
+hljs.registerLanguage('sh', bash)
+hljs.registerLanguage('shell', bash)
+hljs.registerLanguage('json', json)
+hljs.registerLanguage('yaml', yaml)
+hljs.registerLanguage('yml', yaml)
+hljs.registerLanguage('xml', xml)
+hljs.registerLanguage('html', xml)
+hljs.registerLanguage('css', css)
+hljs.registerLanguage('rust', rust)
+hljs.registerLanguage('rs', rust)
+hljs.registerLanguage('go', go)
+hljs.registerLanguage('golang', go)
+hljs.registerLanguage('sql', sql)
+hljs.registerLanguage('markdown', markdown)
+hljs.registerLanguage('md', markdown)
+hljs.registerLanguage('diff', diff)
 
+type ContentView = 'rendered' | 'raw' | 'files'
+type TocEntry = { id: string; text: string; level: number }
+
+const props = defineProps<{ selectedPlatforms: Platform[] }>()
 const emit = defineEmits<{
-  'select': [skillId: string]
+  'select': [skillId: string | null]
   'update:mode': [mode: 'view' | 'edit']
 }>()
 
@@ -332,13 +467,16 @@ const {
 } = useUnifiedSkills()
 
 const scrollRef = ref<HTMLElement | null>(null)
+const markdownRef = ref<HTMLElement | null>(null)
 const showFullDesc = ref(false)
 const editMode = ref(false)
+const contentView = ref<ContentView>('rendered')
 const editBuffer = ref('')
 const currentContent = ref<Awaited<ReturnType<typeof ensureContent>> | null>(null)
 const currentFiles = ref<Awaited<ReturnType<typeof ensureFiles>>>([])
 const selectedFilePath = ref<string | null>(null)
 const selectedFileContent = ref<Awaited<ReturnType<typeof ensureFileContent>> | null>(null)
+const tocEntries = ref<TocEntry[]>([])
 
 const rowVirtualizer = useVirtualizer(computed(() => ({
   count: filteredSkills.value.length,
@@ -347,16 +485,20 @@ const rowVirtualizer = useVirtualizer(computed(() => ({
   overscan: 6,
 })))
 
+const contentViews = [
+  { value: 'rendered' as ContentView, label: 'Rendered' },
+  { value: 'raw' as ContentView, label: 'Raw' },
+  { value: 'files' as ContentView, label: 'Files' },
+]
+
 const contentDirty = computed(() => currentContent.value != null && editBuffer.value !== currentContent.value.raw)
-const contentPreview = computed(() => {
-  const raw = currentContent.value?.raw ?? ''
-  return raw ? stripFrontmatter(raw) : 'No content loaded.'
-})
+const markdownSource = computed(() => stripFrontmatter(currentContent.value?.raw ?? ''))
+const renderedHtml = computed(() => markdownSource.value ? sanitizeMarkdown(marked.parse(markdownSource.value) as string) : '')
+const fileEntries = computed(() => currentFiles.value.filter((entry) => !entry.isDir))
 const selectedFilePreview = computed(() => selectedFileContent.value?.content ?? '')
-const targetStatusMap = computed(() => {
-  const entries = selectedSkill.value?.targets ?? []
-  return Object.fromEntries(entries.map((target) => [target.id, target]))
-})
+const targetStatusMap = computed(() => Object.fromEntries((selectedSkill.value?.targets ?? []).map((target) => [target.id, target])))
+const originSummary = computed(() => selectedSkill.value ? originMeta(selectedSkill.value) : { label: 'Unknown', caption: 'No skill selected', badgeClass: 'badge--unknown' })
+const sourceSummary = computed(() => selectedSkill.value ? sourceMeta(selectedSkill.value) : { label: 'N/A', hint: 'Select a skill to inspect tracking metadata.', valueTitle: '' })
 
 const measureElement = (element: unknown) => {
   rowVirtualizer.value.measureElement(element instanceof Element ? element : null)
@@ -365,15 +507,17 @@ const measureElement = (element: unknown) => {
 function formatDescription(value?: string) {
   const description = value?.trim()
   if (!description) return 'No description'
-  return description.length <= 280 ? description : description.slice(0, 280).trimEnd() + '…'
+  return description.length <= 280 ? description : `${description.slice(0, 277).trimEnd()}...`
 }
 
 function stripFrontmatter(raw: string) {
   const normalized = raw.replace(/\r\n/g, '\n').trimStart()
   const lines = normalized.split('\n')
   if (lines[0]?.trim() !== '---') return raw
-  for (let i = 1; i < lines.length; i += 1) {
-    if (lines[i].trim() === '---') return lines.slice(i + 1).join('\n').trim()
+  for (let index = 1; index < lines.length; index += 1) {
+    if (lines[index].trim() === '---') {
+      return lines.slice(index + 1).join('\n').trim()
+    }
   }
   return raw
 }
@@ -384,9 +528,49 @@ function shortenPath(path: string) {
   return parts.length <= 4 ? normalized : `.../${parts.slice(-4).join('/')}`
 }
 
+function shortenSource(value?: string) {
+  if (!value) return ''
+  if (/^https?:\/\//.test(value)) {
+    return value.replace(/^https?:\/\//, '').replace(/\/$/, '').slice(0, 42)
+  }
+  return value.length <= 42 ? value : `${value.slice(0, 39)}...`
+}
+
 function formatTimestamp(value?: number) {
-  if (!value) return 'Never'
-  return new Date(value).toLocaleString()
+  return value ? new Date(value).toLocaleString() : 'Never'
+}
+
+function originMeta(skill: SkillRecord) {
+  switch (skill.origin) {
+    case 'marketplace': return { label: 'Marketplace', caption: 'Installed from a tracked marketplace skill.', badgeClass: 'badge--marketplace' }
+    case 'github': return { label: 'GitHub', caption: 'Installed directly from a GitHub repository.', badgeClass: 'badge--github' }
+    case 'repo': return { label: 'Repo source', caption: 'Installed from a tracked source repository.', badgeClass: 'badge--repo' }
+    case 'local': return { label: 'Local import', caption: skill.sourceRef ? 'Installed from a tracked local source.' : 'Imported from a local directory.', badgeClass: 'badge--local' }
+    case 'npx': return { label: 'npx install', caption: 'Installed through an npx workflow.', badgeClass: 'badge--npx' }
+    default: return { label: 'Legacy install', caption: 'Discovered by scanning installed skill directories.', badgeClass: 'badge--unknown' }
+  }
+}
+
+function sourceMeta(skill: SkillRecord) {
+  const tracked = skill.sourceLabel || skill.sourceRef
+  return tracked
+    ? { label: shortenSource(tracked), hint: 'Tracked source metadata is available for this installation.', valueTitle: tracked }
+    : { label: 'Untracked source', hint: 'This skill was found in a platform skills directory and does not yet have tracked source metadata.', valueTitle: '' }
+}
+
+function originBadgeText(skill?: SkillRecord) {
+  return skill ? originMeta(skill).label : 'Unknown'
+}
+
+function originBadgeClass(skill?: SkillRecord) {
+  return skill ? originMeta(skill).badgeClass : 'badge--unknown'
+}
+
+function sourceBadgeText(skill?: SkillRecord) {
+  if (!skill) return ''
+  const tracked = skill.sourceLabel || skill.sourceRef
+  if (!tracked) return skill.origin === 'unknown' ? 'Untracked source' : ''
+  return shortenSource(tracked)
 }
 
 function toggleMode() {
@@ -395,25 +579,18 @@ function toggleMode() {
 }
 
 function confirmDiscardChanges() {
-  if (!contentDirty.value) {
-    return true
-  }
-
-  return window.confirm('Discard unsaved skill content changes?')
+  return !contentDirty.value || window.confirm('Discard unsaved skill content changes?')
 }
 
 function handleSelectSkill(skillId?: string) {
-  if (!skillId) return
-  if (!confirmDiscardChanges()) return
+  if (!skillId || !confirmDiscardChanges()) return
   emit('select', skillId)
   selectSkill(skillId, null)
   void ensureDetail(skillId, true)
 }
 
 function handleSelectInstallation(installationId: string) {
-  if (!selectedSkill.value) return
-  if (installationId === selectedInstallation.value?.id) return
-  if (!confirmDiscardChanges()) return
+  if (!selectedSkill.value || installationId === selectedInstallation.value?.id || !confirmDiscardChanges()) return
   selectSkill(selectedSkill.value.id, installationId)
 }
 
@@ -424,15 +601,23 @@ async function loadSelectedContent() {
     selectedFilePath.value = null
     selectedFileContent.value = null
     editBuffer.value = ''
+    tocEntries.value = []
     return
   }
+
   currentContent.value = await ensureContent(selectedSkill.value.id, selectedInstallation.value.id, true)
   currentFiles.value = await ensureFiles(selectedSkill.value.id, selectedInstallation.value.id, true)
-  selectedFilePath.value = currentFiles.value.find((file) => file.path.toLowerCase().endsWith('skill.md'))?.path ?? null
+  const preferred =
+    fileEntries.value.find((file) => file.path.toLowerCase().endsWith('skill.md')) ??
+    fileEntries.value.find((file) => file.path.toLowerCase().endsWith('.md')) ??
+    fileEntries.value[0]
+  selectedFilePath.value = preferred?.path ?? null
   selectedFileContent.value = selectedFilePath.value
     ? await ensureFileContent(selectedSkill.value.id, selectedFilePath.value, selectedInstallation.value.id, true)
     : null
   editBuffer.value = currentContent.value?.raw ?? ''
+  editMode.value = false
+  contentView.value = 'rendered'
 }
 
 async function handleSelectFile(path: string) {
@@ -447,10 +632,18 @@ async function handleSaveContent() {
     const saved = await saveContent(selectedSkill.value.id, selectedInstallation.value.id, editBuffer.value)
     currentContent.value = saved
     editBuffer.value = saved.raw
+    if (selectedFilePath.value?.toLowerCase().endsWith('skill.md')) {
+      selectedFileContent.value = {
+        skillId: saved.skillId,
+        installationId: saved.installationId,
+        path: selectedFilePath.value,
+        content: saved.raw,
+      }
+    }
     editMode.value = false
+    contentView.value = 'rendered'
     uiStore.showSuccess('Skill content saved')
-  }
-  catch (error) {
+  } catch (error) {
     uiStore.showError(error instanceof Error ? error.message : String(error))
   }
 }
@@ -458,14 +651,9 @@ async function handleSaveContent() {
 async function handleSyncSelected() {
   if (!selectedSkill.value || !selectedInstallation.value || props.selectedPlatforms.length === 0) return
   try {
-    await syncSkill({
-      skillId: selectedSkill.value.id,
-      installationId: selectedInstallation.value.id,
-      targetPlatforms: props.selectedPlatforms,
-    })
+    await syncSkill({ skillId: selectedSkill.value.id, installationId: selectedInstallation.value.id, targetPlatforms: props.selectedPlatforms })
     uiStore.showSuccess('Skill synced to selected platforms')
-  }
-  catch (error) {
+  } catch (error) {
     uiStore.showError(error instanceof Error ? error.message : String(error))
   }
 }
@@ -475,8 +663,7 @@ async function handleRemoveInstallation(installationId: string) {
   try {
     await removeInstallation(selectedSkill.value.id, installationId)
     uiStore.showSuccess('Installation removed')
-  }
-  catch (error) {
+  } catch (error) {
     uiStore.showError(error instanceof Error ? error.message : String(error))
   }
 }
@@ -485,17 +672,104 @@ async function handleRemoveSkill() {
   if (!selectedSkill.value) return
   try {
     await removeSkillRecord(selectedSkill.value.id)
+    selectSkill(null, null)
+    emit('select', null)
     currentContent.value = null
+    currentFiles.value = []
+    selectedFilePath.value = null
+    selectedFileContent.value = null
     editBuffer.value = ''
+    tocEntries.value = []
     uiStore.showSuccess('Skill removed')
-  }
-  catch (error) {
+  } catch (error) {
     uiStore.showError(error instanceof Error ? error.message : String(error))
   }
 }
 
-watch([selectedSkill, selectedInstallation], () => { void loadSelectedContent() }, { immediate: true })
-watch(selectedSkill, () => { showFullDesc.value = false })
+function slugifyHeading(text: string) {
+  return text.trim().toLowerCase().replace(/[^\w\u4e00-\u9fff\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-')
+}
+
+function extractCodeLanguage(element: HTMLElement) {
+  const match = [...element.classList].find((name) => name.startsWith('language-') || name.startsWith('lang-'))
+  return match ? match.replace(/^language-/, '').replace(/^lang-/, '') || 'code' : 'code'
+}
+
+async function copyToClipboard(value: string, successMessage: string) {
+  if (!value) return
+  if (!navigator.clipboard?.writeText) {
+    uiStore.showError('Clipboard is unavailable in this runtime')
+    return
+  }
+  try {
+    await navigator.clipboard.writeText(value)
+    uiStore.showSuccess(successMessage)
+  } catch {
+    uiStore.showError('Clipboard is unavailable in this runtime')
+  }
+}
+
+function scrollToHeading(id: string) {
+  markdownRef.value?.querySelector<HTMLElement>(`[id="${id}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+}
+
+function enhanceRenderedContent() {
+  const container = markdownRef.value
+  if (!container) return
+
+  container.querySelectorAll('.markdown-toolbar').forEach((node) => node.remove())
+  const seen = new Map<string, number>()
+  const nextToc: TocEntry[] = []
+
+  container.querySelectorAll<HTMLElement>('h1, h2, h3, h4').forEach((heading) => {
+    const text = heading.textContent?.trim()
+    if (!text) return
+    const base = slugifyHeading(text) || 'section'
+    const count = (seen.get(base) ?? 0) + 1
+    seen.set(base, count)
+    const id = count === 1 ? base : `${base}-${count}`
+    heading.id = id
+    nextToc.push({ id, text, level: Number.parseInt(heading.tagName.slice(1), 10) })
+  })
+  tocEntries.value = nextToc
+
+  container.querySelectorAll<HTMLElement>('pre code').forEach((block) => {
+    hljs.highlightElement(block)
+    const pre = block.closest('pre')
+    if (!pre?.parentElement) return
+    const toolbar = document.createElement('div')
+    toolbar.className = 'markdown-toolbar'
+    const label = document.createElement('span')
+    label.className = 'markdown-toolbar__label'
+    label.textContent = extractCodeLanguage(block)
+    const button = document.createElement('button')
+    button.type = 'button'
+    button.className = 'markdown-toolbar__copy'
+    button.textContent = 'Copy'
+    button.addEventListener('click', () => {
+      void copyToClipboard(block.innerText || block.textContent || '', 'Code block copied')
+    })
+    toolbar.append(label, button)
+    pre.parentElement.insertBefore(toolbar, pre)
+  })
+}
+
+watch([selectedSkill, selectedInstallation], () => {
+  void loadSelectedContent()
+}, { immediate: true })
+
+watch(selectedSkill, () => {
+  showFullDesc.value = false
+})
+
+watch([renderedHtml, editMode, contentView], async () => {
+  if (editMode.value || contentView.value !== 'rendered' || !renderedHtml.value) {
+    tocEntries.value = []
+    return
+  }
+  await nextTick()
+  enhanceRenderedContent()
+})
 </script>
 
 <style scoped>
@@ -521,20 +795,14 @@ watch(selectedSkill, () => { showFullDesc.value = false })
   border-color: var(--surface-card-border);
   backdrop-filter: var(--surface-card-blur);
   box-shadow: var(--elevation-1);
-  transition:
-    transform var(--motion-subtle-duration) var(--motion-subtle-ease),
-    border-color var(--motion-subtle-duration) var(--motion-subtle-ease),
-    box-shadow var(--motion-subtle-duration) var(--motion-subtle-ease),
-    background-color var(--motion-subtle-duration) var(--motion-subtle-ease);
-}
-
-.skill-card:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--elevation-2);
 }
 
 .skill-card--active {
-  background: linear-gradient(135deg, rgb(var(--color-accent-primary-rgb) / 14%), rgb(var(--color-accent-secondary-rgb) / 8%));
+  background: linear-gradient(
+    135deg,
+    rgb(var(--color-accent-primary-rgb) / 14%),
+    rgb(var(--color-accent-secondary-rgb) / 8%)
+  );
   border-color: rgb(var(--color-accent-primary-rgb) / 20%);
 }
 
@@ -555,20 +823,63 @@ watch(selectedSkill, () => { showFullDesc.value = false })
   overflow: hidden;
 }
 
-.skill-card__meta {
+.skill-card__meta,
+.detail-chip-row {
   @apply flex flex-wrap gap-2;
 }
 
-.count-badge {
-  @apply ml-auto rounded-full px-2 py-0.5 text-xs text-text-secondary;
+.count-badge,
+.badge {
+  @apply inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-medium;
 
-  background-color: rgb(var(--color-bg-base-rgb) / 68%);
+  background: rgb(var(--color-bg-base-rgb) / 58%);
+  border-color: rgb(var(--color-border-subtle-rgb) / 35%);
+}
+
+.count-badge,
+.badge--subtle {
+  @apply text-text-secondary;
+}
+
+.badge {
+  @apply text-text-primary;
+}
+
+.badge--marketplace {
+  background: rgb(251 191 36 / 12%);
+  border-color: rgb(251 191 36 / 26%);
+}
+
+.badge--github {
+  background: rgb(96 165 250 / 12%);
+  border-color: rgb(96 165 250 / 24%);
+}
+
+.badge--repo {
+  background: rgb(167 139 250 / 14%);
+  border-color: rgb(167 139 250 / 26%);
+}
+
+.badge--local {
+  background: rgb(52 211 153 / 12%);
+  border-color: rgb(52 211 153 / 22%);
+}
+
+.badge--npx {
+  background: rgb(244 114 182 / 12%);
+  border-color: rgb(244 114 182 / 22%);
+}
+
+.badge--unknown {
+  background: rgb(148 163 184 / 12%);
+  border-color: rgb(148 163 184 / 22%);
 }
 
 .detail-stack {
-  @apply flex flex-col gap-2;
+  @apply flex flex-col gap-3;
 }
 
+.detail-hero,
 .detail-card {
   @apply rounded-2xl border border-border-default/55 p-4;
 
@@ -578,12 +889,40 @@ watch(selectedSkill, () => { showFullDesc.value = false })
   box-shadow: var(--elevation-1);
 }
 
-.detail-card h3 {
-  @apply text-base font-bold text-text-primary;
+.detail-hero {
+  @apply flex flex-wrap items-start justify-between gap-4;
+
+  background:
+    radial-gradient(circle at top right, rgb(var(--color-accent-primary-rgb) / 16%), transparent 38%),
+    radial-gradient(circle at bottom left, rgb(var(--color-accent-secondary-rgb) / 12%), transparent 34%),
+    var(--surface-card-bg);
 }
 
-.detail-card p {
-  @apply mt-1 text-sm text-text-secondary;
+.detail-hero__copy {
+  @apply flex min-w-0 flex-1 flex-col gap-2;
+}
+
+.detail-hero h3 {
+  @apply text-2xl font-bold text-text-primary;
+}
+
+.detail-hero__subtitle,
+.detail-card__subtitle {
+  @apply text-sm leading-6 text-text-secondary;
+}
+
+.detail-summary-grid {
+  @apply grid gap-3 xl:grid-cols-[minmax(0,1.25fr)_minmax(0,0.95fr)];
+}
+
+.detail-card__eyebrow,
+.content-pane__label,
+.content-outline__title {
+  @apply text-[11px] font-semibold uppercase tracking-[0.16em] text-text-muted;
+}
+
+.detail-description {
+  @apply text-sm leading-7 text-text-primary;
 }
 
 .detail-description--collapsed {
@@ -594,25 +933,38 @@ watch(selectedSkill, () => { showFullDesc.value = false })
 }
 
 .detail-description__toggle {
-  @apply mt-1 text-xs font-medium text-accent-secondary hover:text-accent-secondary hover:underline;
+  @apply text-xs font-medium text-accent-secondary hover:underline;
 }
 
-.detail-card__grid {
-  @apply mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-4;
+.detail-grid {
+  @apply mt-3 grid gap-3;
 }
 
-.detail-card__grid div {
+.detail-grid--dual {
+  @apply md:grid-cols-2;
+}
+
+.detail-grid--quad {
+  @apply md:grid-cols-2 2xl:grid-cols-4;
+}
+
+.detail-grid div {
   @apply rounded-2xl border border-border-default/45 p-3;
 
   background-color: rgb(var(--color-bg-base-rgb) / 55%);
 }
 
-.detail-card__grid span {
+.detail-grid span {
   @apply mb-1 block text-xs uppercase tracking-[0.12em] text-text-muted;
 }
 
-.detail-card__grid strong {
-  @apply text-sm text-text-primary;
+.detail-grid strong {
+  @apply block text-sm text-text-primary;
+}
+
+.detail-grid small,
+.installation-row__main span {
+  @apply mt-1 block text-xs leading-5 text-text-muted;
 }
 
 .installation-list {
@@ -631,16 +983,58 @@ watch(selectedSkill, () => { showFullDesc.value = false })
   @apply flex min-w-0 flex-col gap-1;
 }
 
-.installation-row__title {
+.installation-row__title,
+.installation-row__actions,
+.content-view-switcher {
   @apply flex items-center gap-2;
 }
 
-.installation-row__main span {
-  @apply text-xs text-text-muted;
+.content-view-chip {
+  @apply rounded-full border border-border-default/45 px-3 py-1.5 text-xs font-medium text-text-secondary;
+
+  background-color: rgb(var(--color-bg-base-rgb) / 45%);
 }
 
-.installation-row__actions {
-  @apply flex items-center gap-2;
+.content-view-chip--active,
+.tag-chip,
+.content-file-row--active {
+  @apply text-text-primary;
+
+  background: linear-gradient(
+    180deg,
+    rgb(var(--color-accent-primary-rgb) / 18%),
+    rgb(var(--color-accent-secondary-rgb) / 10%)
+  );
+  border-color: rgb(var(--color-accent-primary-rgb) / 20%);
+}
+
+.rendered-layout {
+  @apply grid gap-3 xl:grid-cols-[180px_minmax(0,1fr)];
+}
+
+.content-outline,
+.content-files,
+.content-surface {
+  @apply rounded-2xl border border-border-default/45 p-3;
+
+  background-color: rgb(var(--color-bg-base-rgb) / 48%);
+}
+
+.content-outline {
+  @apply flex h-fit flex-col gap-1;
+}
+
+.content-outline__item {
+  @apply rounded-xl px-2.5 py-2 text-left text-xs text-text-secondary;
+}
+
+.content-outline__item--lvl-2 {
+  @apply pl-4;
+}
+
+.content-outline__item--lvl-3,
+.content-outline__item--lvl-4 {
+  @apply pl-6;
 }
 
 .content-layout {
@@ -648,53 +1042,119 @@ watch(selectedSkill, () => { showFullDesc.value = false })
 }
 
 .content-files {
-  @apply flex max-h-[320px] flex-col gap-2 overflow-auto rounded-2xl border border-border-default/45 p-2;
-
-  background-color: rgb(var(--color-bg-base-rgb) / 45%);
+  @apply flex max-h-[360px] flex-col gap-2 p-2;
 }
 
 .content-file-row {
   @apply rounded-xl px-3 py-2 text-left text-xs text-text-secondary;
-
-  background: transparent;
 }
 
-.content-file-row--active {
-  @apply text-text-primary;
-
-  background: linear-gradient(180deg, rgb(var(--color-accent-primary-rgb) / 18%), rgb(var(--color-accent-secondary-rgb) / 10%));
-}
-
-.content-body {
-  @apply min-h-[300px] w-full rounded-2xl border border-border-default/45 p-3 text-sm leading-6 text-text-primary;
-
-  background-color: rgb(var(--color-bg-base-rgb) / 55%);
-  font-family: var(--font-mono);
+.content-pane__toolbar {
+  @apply mb-3 flex items-center justify-between gap-3;
 }
 
 .content-editor {
-  @apply outline-none;
+  @apply min-h-[360px] w-full resize-y rounded-2xl border border-border-default/45 bg-transparent p-4 text-sm leading-7 text-text-primary outline-none;
 
-  resize: vertical;
+  font-family: var(--font-mono);
 }
 
 .content-preview {
-  @apply whitespace-pre-wrap break-words;
+  @apply whitespace-pre-wrap break-words rounded-2xl border border-border-default/35 p-4 text-sm leading-7 text-text-primary;
+
+  background-color: rgb(var(--color-bg-overlay-rgb) / 45%);
+  font-family: var(--font-mono);
+}
+
+.prose {
+  @apply max-w-none text-sm leading-7 text-text-primary;
+}
+
+.prose :deep(h1),
+.prose :deep(h2),
+.prose :deep(h3),
+.prose :deep(h4) {
+  @apply scroll-mt-20 font-semibold text-text-primary;
+}
+
+.prose :deep(h1) {
+  @apply mt-6 text-2xl;
+}
+
+.prose :deep(h2) {
+  @apply mt-5 text-xl;
+}
+
+.prose :deep(h3) {
+  @apply mt-4 text-lg;
+}
+
+.prose :deep(p),
+.prose :deep(ul),
+.prose :deep(ol) {
+  @apply my-3;
+}
+
+.prose :deep(ul),
+.prose :deep(ol) {
+  @apply pl-6;
+}
+
+.prose :deep(code) {
+  @apply rounded-md px-1.5 py-0.5 text-xs text-accent-primary;
+
+  background-color: rgb(var(--color-bg-overlay-rgb) / 65%);
+}
+
+.prose :deep(pre) {
+  @apply my-0 overflow-auto rounded-b-2xl px-4 py-4 text-xs leading-6;
+
+  background-color: rgb(var(--color-bg-overlay-rgb) / 72%);
+}
+
+.prose :deep(pre code) {
+  @apply bg-transparent p-0 text-text-primary;
+}
+
+.prose :deep(blockquote) {
+  @apply my-4 border-l-2 pl-4 italic text-text-secondary;
+
+  border-color: rgb(var(--color-accent-primary-rgb) / 25%);
+}
+
+.prose :deep(a) {
+  @apply text-accent-primary hover:underline;
+}
+
+.prose :deep(table) {
+  @apply my-4 w-full text-left text-xs;
+
+  border-collapse: collapse;
+}
+
+.prose :deep(th),
+.prose :deep(td) {
+  @apply border border-border-default/30 px-3 py-2;
+}
+
+.markdown-toolbar {
+  @apply flex items-center justify-between rounded-t-2xl border border-b-0 border-border-default/35 px-4 py-2 text-[11px] font-medium text-text-secondary;
+
+  background-color: rgb(var(--color-bg-overlay-rgb) / 55%);
+}
+
+.markdown-toolbar__label {
+  @apply uppercase tracking-[0.16em];
+}
+
+.markdown-toolbar__copy {
+  @apply rounded-full border border-border-default/35 px-3 py-1 text-[11px] text-text-primary;
+
+  background-color: rgb(var(--color-bg-base-rgb) / 45%);
 }
 
 .tag-chip {
-  @apply inline-flex items-center gap-2 rounded-xl border border-border-default/55 px-3 py-2 text-sm text-text-secondary;
-
-  background: var(--surface-status-bg);
-  border-color: var(--surface-status-border);
-  box-shadow: var(--elevation-1);
-}
-
-.tag-chip--active {
-  @apply text-text-primary;
-
-  background: linear-gradient(180deg, rgb(var(--color-accent-primary-rgb) / 18%), rgb(var(--color-accent-secondary-rgb) / 10%));
-  border-color: rgb(var(--color-accent-primary-rgb) / 20%);
+  @apply inline-flex items-center rounded-xl border px-3 py-1.5 text-xs;
 }
 
 .empty-state {
@@ -702,7 +1162,10 @@ watch(selectedSkill, () => { showFullDesc.value = false })
 }
 
 @media (width <= 1279px) {
-  .inventory-layout {
+  .inventory-layout,
+  .detail-summary-grid,
+  .rendered-layout,
+  .content-layout {
     grid-template-columns: 1fr;
   }
 }

@@ -131,24 +131,16 @@ describe('useUnifiedSkills smoke', () => {
   })
 
   it('loads onboarding candidates on demand', async () => {
-    apiMocks.skillsOnboardingCandidates.mockImplementationOnce(async () => [
-      {
-        skill_id: 'sg_skill_alpha',
-        name: 'Skill Alpha',
-        platform_ids: ['codex'],
-        installation_ids: ['ins_skill_alpha'],
-        reason: 'missing_source',
-      },
-    ])
-
     const { useUnifiedSkills } = await import('@/composables/useUnifiedSkills')
     const skillsApi = useUnifiedSkills()
 
     const candidates = await skillsApi.loadOnboardingCandidates(true)
 
-    expect(apiMocks.skillsOnboardingCandidates).toHaveBeenCalledTimes(1)
+    expect(apiMocks.getSkillHubUnified).toHaveBeenCalledTimes(1)
+    expect(apiMocks.skillsOnboardingCandidates).not.toHaveBeenCalled()
     expect(candidates).toHaveLength(1)
     expect(candidates[0]?.skillId).toBe('sg_skill_alpha')
+    expect(candidates[0]?.reason).toBe('missing_source')
     expect(skillsApi.onboardingCandidates.value).toHaveLength(1)
   })
 

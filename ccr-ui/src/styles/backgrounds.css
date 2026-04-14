@@ -1,6 +1,6 @@
 /* ============================================
-   CCR-UI Nekomata Kawaii Background System
-   Aurora Blue Mesh & Paw Patterns
+   CCR-UI Editorial Background System
+   Warm neutral stage surfaces & restrained motion
    ============================================ */
 
 /* Definition of background animations */
@@ -264,7 +264,7 @@
     animation: float-gentle 8s ease-in-out infinite;
 }
 
-/* Neko Grid Background (replaces cyber-grid) */
+/* Editorial grid background (legacy replacement for cyber-grid) */
 .bg-neko-grid {
     background-image:
         linear-gradient(to right, rgb(var(--color-accent-primary-rgb) / 3%) 1px, transparent 1px),

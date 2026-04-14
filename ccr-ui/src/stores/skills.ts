@@ -14,7 +14,6 @@ import {
   skillsFilesList,
   skillsInstall,
   skillsPrepareInstall,
-  skillsOnboardingCandidates,
   skillsRemoveInstallation,
   skillsRemoveSkill,
   skillsSourceAddGit,
@@ -452,6 +451,21 @@ function transformInstallReview(raw: unknown): SkillInstallReviewResponse {
   }
 }
 
+function deriveOnboardingCandidates(skills: SkillRecord[]): OnboardingCandidate[] {
+  return skills
+    .filter((skill) => skill.origin === 'unknown' || !skill.sourceRef)
+    .map((skill) => ({
+      skillId: skill.id,
+      name: skill.name,
+      platformIds: skill.installations
+        .map((installation) => installation.platformId)
+        .filter(isNonNull),
+      installationIds: skill.installations.map((installation) => installation.id),
+      installationPaths: skill.installations.map((installation) => installation.installPath),
+      reason: !skill.sourceRef ? 'missing_source' : 'unknown_origin',
+    }))
+}
+
 function normalizeSkillRecord(skill: SkillRecord): SkillRecord {
   const targets = skill.targets?.length ? skill.targets : toTargets(skill.installations)
   const lifecycle = skill.lifecycle?.targetCount
@@ -690,6 +704,7 @@ export const useSkillsStore = defineStore('skills', () => {
     response.skills.forEach((skill) => {
       detailCache.value.set(skill.id, skill)
     })
+    onboardingCandidates.value = deriveOnboardingCandidates(response.skills)
     triggerRef(detailCache)
     return response
   }
@@ -836,19 +851,11 @@ export const useSkillsStore = defineStore('skills', () => {
       return onboardingCandidates.value
     }
 
-    onboardingCandidates.value = asArray(await skillsOnboardingCandidates()).map((raw) => {
-      const row = asRecord(raw)
-      return {
-        skillId: String(row.skill_id ?? row.skillId ?? ''),
-        name: String(row.name ?? ''),
-        platformIds: toStringArray(row.platform_ids ?? row.platformIds)
-          .map((value) => normalizePlatform(value))
-          .filter(isNonNull),
-        installationIds: toStringArray(row.installation_ids ?? row.installationIds),
-        installationPaths: toStringArray(row.installation_paths ?? row.installationPaths),
-        reason: String(row.reason ?? 'unknown_origin') as OnboardingCandidate['reason'],
-      }
-    })
+    if (skills.value.length === 0) {
+      await loadInventory(force)
+    }
+
+    onboardingCandidates.value = deriveOnboardingCandidates(skills.value)
     return onboardingCandidates.value
   }
 

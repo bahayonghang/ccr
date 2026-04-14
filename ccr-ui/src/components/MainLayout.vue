@@ -11,7 +11,7 @@
       {{ $t('common.skipToContent') || 'Skip to content' }}
     </a>
 
-    <!-- Sidebar (Glassmorphism + Resize) -->
+    <!-- Sidebar (editorial surface + resize) -->
     <button
       v-if="showMobileBackdrop"
       type="button"
@@ -119,7 +119,7 @@
         </div>
       </nav>
 
-      <!-- Footer: User Profile - Neko Kawaii Style -->
+      <!-- Footer: User Profile -->
       <div class="border-t border-border-default/40 p-3 pb-5">
         <div class="user-card group relative overflow-hidden rounded-[1.6rem] transition-interactive duration-300">
           <div class="absolute inset-0 bg-gradient-to-br from-accent-primary/12 via-accent-secondary/10 to-transparent opacity-90" />

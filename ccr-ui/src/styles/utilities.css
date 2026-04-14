@@ -1,5 +1,5 @@
 /* ============================================
-   CCR-UI Nekomata Kawaii Design System
+   CCR-UI Editorial Surface System
    Utilities - Reusable Utility Classes
    ============================================ */
 
@@ -553,14 +553,14 @@
 
     /* ========== 渐变文字效果 ========== */
 
-    /* 品牌渐变 - 青紫渐变 */
+    /* 品牌渐变 - 克制强调 */
     .text-gradient-brand {
         background: linear-gradient(135deg, var(--color-accent-primary) 0%, var(--color-accent-secondary) 100%);
         background-clip: text;
         -webkit-text-fill-color: transparent;
     }
 
-    /* 粉色渐变 - 甜美感 */
+    /* 品牌渐变 - 柔和强调 */
     .text-gradient-cyan,
     .text-gradient-pink {
         background: linear-gradient(135deg, #F472B6 0%, #EC4899 100%);
@@ -568,7 +568,7 @@
         -webkit-text-fill-color: transparent;
     }
 
-    /* 紫色渐变 - 优雅感 */
+    /* 品牌渐变 - 冷调强调 */
     .text-gradient-purple {
         background: linear-gradient(135deg, #A78BFA 0%, #C084FC 100%);
         background-clip: text;
@@ -589,7 +589,7 @@
         -webkit-text-fill-color: transparent;
     }
 
-    /* 彩虹渐变 - 猫娘特色 */
+    /* 彩虹渐变 - 仅保留给特殊强调场景 */
     .text-gradient-rainbow {
         background: linear-gradient(90deg, #F472B6, #A78BFA, #C084FC, #34D399, #FBBF24);
         background-clip: text;

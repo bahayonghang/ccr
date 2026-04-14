@@ -14,9 +14,9 @@ export async function handleSkillsChangedPayload(
   payload: SkillsChangedPayload | undefined,
   { currentTab, loadOnboardingCandidates, refresh }: SkillsChangedHandlerDeps
 ) {
+  await refresh(Boolean(payload?.affectsMarketplace || currentTab === 'marketplace' || currentTab === 'explore'))
+
   if (payload?.affectsInventory) {
     await loadOnboardingCandidates(true)
   }
-
-  await refresh(Boolean(payload?.affectsMarketplace || currentTab === 'marketplace' || currentTab === 'explore'))
 }

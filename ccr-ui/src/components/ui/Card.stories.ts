@@ -43,9 +43,9 @@ export const Default: Story = {
     template: `
       <Card v-bind="args" class="w-72 min-h-44">
         <div class="space-y-3">
-          <p class="text-xs uppercase tracking-[0.25em] text-text-muted">Neko Console</p>
-          <h3 class="text-xl font-bold text-text-primary">Liquid glass surface</h3>
-          <p class="text-sm text-text-secondary">A shared card primitive for dense control panels and playful command surfaces.</p>
+          <p class="text-xs uppercase tracking-[0.25em] text-text-muted">Operator Workbench</p>
+          <h3 class="text-xl font-bold text-text-primary">Editorial surface</h3>
+          <p class="text-sm text-text-secondary">A shared card primitive for dense control panels with restrained, Anthropic-like hierarchy.</p>
         </div>
       </Card>
     `,
@@ -80,7 +80,7 @@ export const Glass: Story = {
   },
 }
 
-export const Neko: Story = {
+export const LegacyDecorative: Story = {
   args: {
     variant: 'neko',
     pattern: true,
@@ -95,9 +95,9 @@ export const Neko: Story = {
       <div class="pt-4">
         <Card v-bind="args" class="w-72 min-h-44">
           <div class="space-y-3">
-            <p class="text-xs uppercase tracking-[0.25em] text-text-muted">NEKO Mode</p>
-            <h3 class="text-xl font-bold text-text-primary">Playful shell chrome</h3>
-            <p class="text-sm text-text-secondary">The cat-ear silhouette is reserved for high-affinity branded panels.</p>
+            <p class="text-xs uppercase tracking-[0.25em] text-text-muted">Legacy Accent</p>
+            <h3 class="text-xl font-bold text-text-primary">Deprecated shell chrome</h3>
+            <p class="text-sm text-text-secondary">This variant is legacy-only and should not define new Anthropic-like surfaces.</p>
           </div>
         </Card>
       </div>

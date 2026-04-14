@@ -515,7 +515,7 @@ watch(
 </script>
 
 <style scoped>
-/* Panel Container - Glassmorphism */
+/* Panel Container - Editorial surface */
 .skills-filter-panel {
   @apply sticky top-6 h-fit rounded-2xl overflow-hidden;
 

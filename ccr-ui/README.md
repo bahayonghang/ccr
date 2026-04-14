@@ -12,7 +12,7 @@
 ## ✨ 特性
 
 ### 🎨 设计
-- **液态玻璃设计**: 现代化的 Glassmorphism UI
+- **编辑式表面设计**: 更接近 Anthropic-like 的克制工作台 UI
 - **响应式布局**: 完美支持桌面端和移动端
 - **双主题系统**: 亮色/暗色主题无缝切换
 - **流畅动画**: 优雅的过渡和交互效果
@@ -260,17 +260,17 @@ const configs = await listConfigs()
 
 ## 🎨 设计风格
 
-### 液态玻璃设计 (Liquid Glass)
+### 编辑式表面系统 (Anthropic-like)
 
-- **背景**: 渐变背景 + 动态模糊
-- **卡片**: `backdrop-filter: blur()` 实现玻璃态
-- **动画**: 流畅的 CSS 过渡
-- **色彩**: CSS 变量系统
+- **背景**: 暖中性色舞台背景 + 克制的层次过渡
+- **卡片**: 以高对比排版、边界和轻度半透明定义层级
+- **动画**: 低噪音、强调反馈与空间连续性的 CSS 过渡
+- **色彩**: 以中性色为主，强调色只承担状态和操作提示
 
 ### 主题系统
 
-- **亮色主题**: 蓝紫色调
-- **暗色主题**: 深色背景 + 柔和高亮
+- **亮色主题**: 米白 / 石灰 / 浅褐中性色调
+- **暗色主题**: 石墨 / 炭灰基底 + 柔和强调
 - **持久化**: localStorage 保存偏好
 - **管理**: Pinia store 统一管理
 
@@ -386,6 +386,6 @@ MIT License - 详见 [LICENSE](../../LICENSE)
 
 ---
 
-Made with ❤️ using Vue.js 3, Tauri 2.0, TypeScript, and Liquid Glass Design
+Made with ❤️ using Vue.js 3, Tauri 2.0, TypeScript, and an Anthropic-like editorial surface system
 
 **版本**: 2.5.0 | **更新**: 2025-11-08

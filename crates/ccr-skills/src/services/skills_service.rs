@@ -2901,6 +2901,34 @@ relative_path = ".iflow/skills"
     }
 
     #[test]
+    fn onboarding_candidates_work_after_inventory_scan_for_legacy_skill() {
+        let temp = tempdir().unwrap();
+        let service = build_test_service(temp.path());
+        let codex_platform = SkillsService::default_platforms()
+            .into_iter()
+            .find(|platform| platform.id == "codex")
+            .unwrap();
+        let skill_dir = temp
+            .path()
+            .join(codex_platform.relative_path)
+            .join("legacy-skill");
+        fs::create_dir_all(&skill_dir).unwrap();
+        fs::write(
+            skill_dir.join("SKILL.md"),
+            "---\nname: Legacy Skill\ndescription: demo skill\n---\n\n# Legacy Skill\n",
+        )
+        .unwrap();
+
+        let inventory = service.inventory(None).unwrap();
+        assert_eq!(inventory.skills.len(), 1);
+
+        let candidates = service.onboarding_candidates().unwrap();
+        assert_eq!(candidates.len(), 1);
+        assert_eq!(candidates[0].reason, "missing_source");
+        assert_eq!(candidates[0].name, "Legacy Skill");
+    }
+
+    #[test]
     fn file_get_rejects_parent_traversal_outside_installation() {
         let temp = tempdir().unwrap();
         let (service, skill_id, installation_id) = create_test_skill(temp.path(), "demo-skill");

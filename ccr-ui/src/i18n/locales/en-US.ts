@@ -58,14 +58,14 @@ export default {
     openModule: 'Open module',
     installed: 'Installed',
     shell: {
-      tagline: 'Neko Console',
+      tagline: 'Operator Workbench',
       session: 'Current session',
       active: 'Connected',
     },
     about: {
       menu: 'About {name}',
       title: 'About {name}',
-      description: 'A unified control console for Claude Code, Codex, Gemini, and other AI CLIs. It keeps the Neko identity and Liquid Glass layering while staying optimized for dense operational workflows.',
+      description: 'A unified workbench for Claude Code, Codex, Gemini, and other AI CLIs. The UI follows an Anthropic-like editorial direction with warm neutral surfaces, restrained depth, and high-contrast typography for dense operational workflows.',
       owner: 'Owner',
       engine: 'Engine',
       close: 'Got it',

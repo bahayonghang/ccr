@@ -20,17 +20,16 @@ These notes apply to everything under `ccr-ui/` and supplement the repository-le
 
 ### Brand Personality
 
-- The target brand tone is `geeky / playful / distinctive`.
-- Preserve a strong product identity instead of drifting into generic SaaS admin styling.
-- The UI should feel like a purpose-built control console for advanced users, with personality but without losing usability.
+- The target brand tone is `calm / precise / editorial`.
+- Preserve a strong product identity instead of drifting into generic SaaS admin styling or mascot-heavy novelty.
+- The UI should feel like a purpose-built Anthropic-like workbench for advanced users: quiet, focused, and trustworthy under high information density.
 
 ### Aesthetic Direction
 
-- Keep the purple-led palette as the main visual axis.
-- Keep Liquid Glass / Glassmorphism layering.
-- Keep anime-style background atmosphere.
-- Keep catgirl / NEKO naming and light decorative branding.
-- Remove `guofeng` styling, naming, tokens, and component variants over time; treat them as legacy, not a parallel design language.
+- Align new work to an `Anthropic-like editorial surface` direction.
+- Prefer warm neutrals, charcoal text, subtle borders, restrained translucency, and low-chroma accents over purple-led gradients or loud glass effects.
+- Treat heavy Liquid Glass / Glassmorphism, anime atmospherics, and catgirl / NEKO branding as legacy directions to remove over time.
+- Remove `guofeng`, `neko`, anime, and purple-tech styling, naming, tokens, and component variants over time; treat them as legacy, not parallel design languages.
 
 ### Accessibility And Motion
 
@@ -42,6 +41,6 @@ These notes apply to everything under `ccr-ui/` and supplement the repository-le
 ### Design Principles
 
 - Power-first UX: optimize for speed, density, and control for expert users.
-- Distinctive, not generic: keep the Neko + Liquid Glass + purple-tech identity visible.
-- Style supports usability: decorative layers must not reduce readability, navigation clarity, or task completion.
-- One visual language: converge on the Neko / Liquid Glass direction and eliminate conflicting `guofeng` branches.
+- Distinctive, not generic: express identity through calm precision, editorial hierarchy, and restrained surfaces instead of mascots, neon accents, or decorative glass.
+- Style supports usability: visual layers must improve readability, navigation clarity, and task completion rather than compete with them.
+- One visual language: converge on the Anthropic-like editorial direction and eliminate conflicting `guofeng` / `neko` branches.

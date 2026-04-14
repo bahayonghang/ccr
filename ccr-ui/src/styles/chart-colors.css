@@ -1,20 +1,20 @@
 /* ===================================
-   图表配色 - 猫娘粉紫色系 (Neko Kawaii)
+   图表配色 - 编辑式中性色 + 克制强调色
    =================================== */
 :root {
-  /* 0: 猫娘粉 (Neko Pink) */
+  /* 0: Primary accent */
   --chart-color-0: var(--accent-primary);
 
-  /* 1: 薰衣草紫 (Lavender) */
+  /* 1: Secondary accent */
   --chart-color-1: var(--accent-secondary);
 
-  /* 2: 琥珀金 (Amber) */
+  /* 2: Warning accent */
   --chart-color-2: var(--accent-warning);
 
-  /* 3: 紫罗兰 (Violet) */
+  /* 3: Tertiary accent */
   --chart-color-3: var(--accent-tertiary);
 
-  /* 4: 玫瑰红 (Rose) */
+  /* 4: Danger accent */
   --chart-color-4: var(--accent-danger);
 }
 
