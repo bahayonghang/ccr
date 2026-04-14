@@ -4,6 +4,8 @@
 use crate::core::error::{CcrError, Result};
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::thread;
+use std::time::Duration;
 use tempfile::NamedTempFile;
 use tokio::fs as async_fs;
 use uuid::Uuid;
@@ -40,6 +42,23 @@ pub struct AtomicWriter {
 /// 📝 异步原子写入器
 pub struct AsyncAtomicWriter {
     target_path: PathBuf,
+}
+
+const ATOMIC_WRITE_RETRY_LIMIT: usize = 6;
+
+#[cfg(windows)]
+fn is_windows_atomic_retry_error(error: &std::io::Error) -> bool {
+    matches!(
+        error.kind(),
+        std::io::ErrorKind::PermissionDenied
+            | std::io::ErrorKind::WouldBlock
+            | std::io::ErrorKind::Interrupted
+    ) || matches!(error.raw_os_error(), Some(5 | 32 | 33))
+}
+
+#[cfg(not(windows))]
+fn is_windows_atomic_retry_error(_: &std::io::Error) -> bool {
+    false
 }
 
 #[allow(dead_code)]
@@ -94,10 +113,7 @@ impl AtomicWriter {
             CcrError::IoError(std::io::Error::other(format!("写入临时文件失败: {}", e)))
         })?;
 
-        // 🔄 原子替换(这是关键操作)
-        temp_file.persist(&self.target_path).map_err(|e| {
-            CcrError::IoError(std::io::Error::other(format!("原子替换文件失败: {}", e)))
-        })?;
+        self.persist_temp_file(temp_file)?;
 
         tracing::debug!("✅ 文件已原子写入: {:?}", self.target_path);
         Ok(())
@@ -113,6 +129,65 @@ impl AtomicWriter {
     /// - `Err(CcrError)` - 写入失败
     pub fn write_string(&self, content: &str) -> Result<()> {
         self.write(content.as_bytes())
+    }
+
+    fn persist_temp_file(&self, temp_file: NamedTempFile) -> Result<()> {
+        #[cfg(windows)]
+        {
+            self.persist_temp_file_windows(temp_file)
+        }
+
+        #[cfg(not(windows))]
+        {
+            temp_file.persist(&self.target_path).map_err(|e| {
+                CcrError::IoError(std::io::Error::other(format!(
+                    "原子替换文件失败 (target: {}): {}",
+                    self.target_path.display(),
+                    e
+                )))
+            })?;
+            Ok(())
+        }
+    }
+
+    #[cfg(windows)]
+    fn persist_temp_file_windows(&self, temp_file: NamedTempFile) -> Result<()> {
+        let mut temp_file = temp_file;
+
+        for attempt in 0..ATOMIC_WRITE_RETRY_LIMIT {
+            match temp_file.persist(&self.target_path) {
+                Ok(_) => return Ok(()),
+                Err(error) => {
+                    let io_error = &error.error;
+                    if !is_windows_atomic_retry_error(io_error)
+                        || attempt + 1 == ATOMIC_WRITE_RETRY_LIMIT
+                    {
+                        return Err(CcrError::IoError(std::io::Error::other(format!(
+                            "原子替换文件失败 (target: {}, attempt: {}): {}",
+                            self.target_path.display(),
+                            attempt + 1,
+                            error
+                        ))));
+                    }
+
+                    tracing::warn!(
+                        target_path = %self.target_path.display(),
+                        attempt = attempt + 1,
+                        error = %io_error,
+                        "⚠️ Windows 原子写入失败，准备重试"
+                    );
+
+                    temp_file = error.file;
+                    let _ = fs::remove_file(&self.target_path);
+                    thread::sleep(Duration::from_millis(((attempt + 1) * 20) as u64));
+                }
+            }
+        }
+
+        Err(CcrError::IoError(std::io::Error::other(format!(
+            "原子替换文件失败 (target: {}): retry limit exhausted",
+            self.target_path.display()
+        ))))
     }
 }
 
@@ -220,6 +295,19 @@ mod tests {
         // 第二次覆盖写入
         writer.write_string("Second content").unwrap();
         assert_eq!(fs::read_to_string(&target_path).unwrap(), "Second content");
+    }
+
+    #[test]
+    fn test_atomic_overwrite_repeatedly() {
+        let temp_dir = tempdir().unwrap();
+        let target_path = temp_dir.path().join("test-repeat.txt");
+        let writer = AtomicWriter::new(&target_path);
+
+        for idx in 0..5 {
+            writer.write_string(&format!("content-{idx}")).unwrap();
+        }
+
+        assert_eq!(fs::read_to_string(&target_path).unwrap(), "content-4");
     }
 
     #[test]
