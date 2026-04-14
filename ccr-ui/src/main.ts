@@ -160,7 +160,9 @@ const bootstrap = async (disposeStartupErrorHandlers: () => void) => {
     })
   }
 
-  const shouldHydrateLocaleBeforeMount = import.meta.env.DEV || router.currentRoute.value.name !== 'home'
+  // bootMessages 已涵盖导航、首页、通用 key，DEV 也无需阻塞 mount；
+  // 完整语言包在 scheduleDeferredStartupTasks 中异步补齐。
+  const shouldHydrateLocaleBeforeMount = router.currentRoute.value.name !== 'home'
 
   if (shouldHydrateLocaleBeforeMount) {
     perfMark('app:i18n-prehydrate-start')

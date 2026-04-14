@@ -1328,32 +1328,25 @@ tauri-dev: _ensure-frontend-deps
     @just _tauri-dev-{{os()}}
 
 _tauri-dev-linux:
-    @echo "🖥️  启动 Tauri 桌面应用开发模式..."
-    @echo "📍 Frontend: http://localhost:{{vite_port}} (自动加载)"
-    @echo "📍 Desktop: Tauri 窗口将自动打开"
+    @echo "🖥️  构建并启动 Tauri 桌面应用..."
+    @just tauri-build
     @echo ""
-    @echo "⚡ 预热前端依赖缓存..."
-    @bun run prebundle
-    bun run tauri:dev
+    @echo "🚀 启动 CCR Desktop..."
+    ./src-tauri/target/release/ccr-desktop
 
 _tauri-dev-macos:
-    @echo "🖥️  启动 Tauri 桌面应用开发模式..."
-    @echo "📍 Frontend: http://localhost:{{vite_port}} (自动加载)"
-    @echo "📍 Desktop: Tauri 窗口将自动打开"
+    @echo "🖥️  构建并启动 Tauri 桌面应用..."
+    @just tauri-build
     @echo ""
-    @echo "⚡ 预热前端依赖缓存..."
-    @bun run prebundle
-    bun run tauri:dev
+    @echo "🚀 启动 CCR Desktop..."
+    open src-tauri/target/release/bundle/macos/CCR\ Desktop.app
 
 _tauri-dev-windows:
-    @Write-Output '🖥️  启动 Tauri 桌面应用开发模式...'
-    @Write-Output '📍 Frontend: http://localhost:{{vite_port}} (自动加载)'
-    @Write-Output '📍 Desktop: Tauri 窗口将自动打开'
+    @Write-Output '🖥️  构建并启动 Tauri 桌面应用...'
+    @just tauri-build
     @Write-Output ''
-    @powershell -ExecutionPolicy Bypass -File scripts/clean_dev.ps1 -BackendPort "{{backend_port}}" -VitePort "{{vite_port}}" -StopTauriDesktop
-    @Write-Output '⚡ 预热前端依赖缓存...'
-    @bun run prebundle
-    @bun run tauri:dev
+    @Write-Output '🚀 启动 CCR Desktop...'
+    @Start-Process -FilePath 'src-tauri\target\release\ccr-desktop.exe'
 
 # 构建 Tauri 生产版本（桌面应用）
 tauri-build: _ensure-frontend-deps

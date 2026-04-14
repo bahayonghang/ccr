@@ -40,6 +40,7 @@ export default defineConfig(({ command }) => {
       chunkSizeWarningLimit: 1000
     },
     server: {
+      host: '127.0.0.1',
       port: 15173,
       strictPort: true,
       warmup: {
@@ -65,7 +66,6 @@ export default defineConfig(({ command }) => {
         'pinia',
         '@iconify/vue',
         'vue-i18n',
-        'marked',
         'highlight.js/lib/core',
         'highlight.js/lib/languages/javascript',
         'highlight.js/lib/languages/typescript',
@@ -80,6 +80,17 @@ export default defineConfig(({ command }) => {
         'highlight.js/lib/languages/sql',
         'highlight.js/lib/languages/markdown',
         'highlight.js/lib/languages/diff',
+        // 重量级依赖：避免 noDiscovery 下运行时逐个转译，大幅缩短 dev 首屏加载
+        'apexcharts',
+        'vue3-apexcharts',
+        'marked',
+        'dompurify',
+        'isomorphic-dompurify',
+        'ansi_up',
+        '@tauri-apps/api',
+        '@tauri-apps/api/core',
+        '@tauri-apps/api/event',
+        '@tanstack/vue-virtual',
       ]
     },
     test: {
