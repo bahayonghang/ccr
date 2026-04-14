@@ -3,7 +3,7 @@
 use ccr_types::{FrontendLogInput, MonitoringEntry, MonitoringFeedQuery};
 
 use serde::{Deserialize, Serialize};
-use std::{io::ErrorKind, sync::Arc, time::Instant};
+use std::{io::ErrorKind, path::Path, sync::Arc, time::Instant};
 use tauri::State;
 use tokio::sync::Semaphore;
 use tokio::time::{Duration, timeout};
@@ -381,11 +381,41 @@ fn missing_cli_version_entry(platform: &'static str) -> CliVersionEntry {
     }
 }
 
+fn normalize_cli_probe_program(program: &str) -> String {
+    let trimmed = program.trim();
+    if trimmed.is_empty() {
+        return String::new();
+    }
+
+    #[cfg(target_os = "windows")]
+    {
+        let candidate = Path::new(trimmed);
+        let has_extension = candidate
+            .extension()
+            .and_then(|ext| ext.to_str())
+            .map(|ext| !ext.trim().is_empty())
+            .unwrap_or(false);
+
+        if !has_extension {
+            // Windows 上 npm 常会同时生成无扩展名 shim 与 .cmd 包装器。
+            // 直接执行无扩展名 shim 容易超时或拿不到版本，这里优先切到可执行包装器。
+            for ext in ["cmd", "bat", "exe", "com", "ps1"] {
+                let sibling = candidate.with_extension(ext);
+                if sibling.is_file() {
+                    return sibling.to_string_lossy().to_string();
+                }
+            }
+        }
+    }
+
+    trimmed.to_string()
+}
+
 fn build_cli_probe_targets(statuses: Option<&[CliStatus]>) -> Vec<CliProbeTarget> {
     CLI_VERSION_TOOLS
         .iter()
         .filter_map(|platform| {
-            let fallback_program = cli_command_name(platform)?.to_string();
+            let fallback_program = normalize_cli_probe_program(cli_command_name(platform)?);
 
             if *platform == "ccr" {
                 return Some(CliProbeTarget {
@@ -408,6 +438,7 @@ fn build_cli_probe_targets(statuses: Option<&[CliStatus]>) -> Vec<CliProbeTarget
                                 .path
                                 .clone()
                                 .filter(|path| !path.trim().is_empty())
+                                .map(|path| normalize_cli_probe_program(&path))
                                 .unwrap_or(fallback_program),
                             installed: Some(true),
                         }),
@@ -818,6 +849,33 @@ mod tests {
         assert_eq!(targets[3].installed, Some(false));
         assert_eq!(targets[4].platform, "droid");
         assert_eq!(targets[4].program, "C:/tools/droid.cmd");
+    }
+
+    #[cfg(target_os = "windows")]
+    #[test]
+    fn build_cli_probe_targets_prefers_windows_cmd_wrapper_for_extensionless_shim() {
+        let temp_dir = tempfile::tempdir().expect("temp dir should be created");
+        let shim_path = temp_dir.path().join("codex");
+        let cmd_path = temp_dir.path().join("codex.cmd");
+
+        std::fs::write(&shim_path, "#!/bin/sh\n").expect("shim should be written");
+        std::fs::write(&cmd_path, "@echo off\r\n").expect("cmd wrapper should be written");
+
+        let statuses = vec![CliStatus {
+            name: "codex".to_string(),
+            installed: true,
+            path: Some(shim_path.to_string_lossy().to_string()),
+            version: None,
+        }];
+
+        let targets = build_cli_probe_targets(Some(&statuses));
+        let codex_target = targets
+            .iter()
+            .find(|target| target.platform == "codex")
+            .expect("codex target should exist");
+
+        assert_eq!(codex_target.program, cmd_path.to_string_lossy());
+        assert_eq!(codex_target.installed, Some(true));
     }
 
     #[tokio::test]
