@@ -5,6 +5,7 @@ describe('router smoke', () => {
   it('keeps critical named routes registered', () => {
     const requiredRoutes = [
       'home',
+      'settings',
       'codex',
       'gemini-mcp',
       'droid',
@@ -45,6 +46,13 @@ describe('router smoke', () => {
 
     expect(routePaths).toContain('/gemini-cli/mcp')
     expect(routePaths).toContain('/droid/mcp')
+  })
+
+  it('registers the global settings route as its own navigation group', () => {
+    const settingsRoute = router.getRoutes().find((route) => route.name === 'settings')
+
+    expect(settingsRoute?.path).toBe('/settings')
+    expect(settingsRoute?.meta.group).toBe('settings')
   })
 
   it('hides the global background on routes with page-level decorative backgrounds', () => {

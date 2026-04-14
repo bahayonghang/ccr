@@ -1,4 +1,5 @@
 import { createApp, defineComponent, h, reactive, nextTick } from 'vue'
+import { createPinia } from 'pinia'
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 
 vi.mock('vue', async () => {
@@ -38,11 +39,16 @@ vi.mock('vue-router', () => ({
   }),
 }))
 
-vi.mock('vue-i18n', () => ({
-  useI18n: () => ({
-    t: (key: string) => key,
-  }),
-}))
+vi.mock('vue-i18n', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('vue-i18n')>()
+
+  return {
+    ...actual,
+    useI18n: () => ({
+      t: (key: string) => key,
+    }),
+  }
+})
 
 vi.mock('@/composables/usePageTransition', () => ({
   usePageTransition: () => ({
@@ -59,12 +65,10 @@ vi.mock('@/composables/useMainLayoutShell', () => ({
     isResizing: false,
     isSidebarOpen: false,
     isTauri: false,
-    showExitConfirm: false,
     showMobileBackdrop: false,
     sidebarShellStyle: { width: '240px' },
     sidebarToggleLabel: 'Toggle navigation',
     startResize: vi.fn(),
-    toggleExitConfirm: vi.fn(),
     toggleSidebar: vi.fn(),
   }),
 }))
@@ -92,8 +96,6 @@ const asyncStub = (name: string) => ({
 })
 
 vi.mock('@/components/BackendStatusBanner.vue', () => asyncStub('BackendStatusBanner'))
-vi.mock('@/components/LanguageSwitcher.vue', () => asyncStub('LanguageSwitcher'))
-vi.mock('@/components/ThemeToggle.vue', () => asyncStub('ThemeToggle'))
 vi.mock('@/components/EnvironmentSwitcher.vue', () => asyncStub('EnvironmentSwitcher'))
 
 import MainLayout from '@/components/MainLayout.vue'
@@ -121,6 +123,7 @@ const mountLayout = async () => {
     },
   }))
 
+  app.use(createPinia())
   app.config.globalProperties.$t = (key: string) => key
 
   app.component(
@@ -128,9 +131,19 @@ const mountLayout = async () => {
     defineComponent({
       props: {
         to: { type: [String, Object], required: true },
+        custom: { type: Boolean, default: false },
       },
-      setup(_props, { slots }) {
-        return () => h('a', {}, slots.default?.())
+      setup(props, { slots }) {
+        return () => {
+          if (props.custom) {
+            return slots.default?.({
+              href: typeof props.to === 'string' ? props.to : '/',
+              navigate: vi.fn(),
+            })
+          }
+
+          return h('a', {}, slots.default?.())
+        }
       },
     }),
   )
@@ -255,6 +268,46 @@ describe('MainLayout theme stage smoke', () => {
         top: 0,
         behavior: 'smooth',
       })
+    } finally {
+      unmount()
+    }
+  })
+
+  it('renders the settings dock as the bottom sidebar entry without legacy theme or language toggles', async () => {
+    routeState.name = 'home'
+    routeState.fullPath = '/'
+    routeState.meta.group = undefined
+    routeState.meta.hideGlobalBackground = false
+    routeState.meta.hideSidebar = false
+
+    const { el, unmount } = await mountLayout()
+
+    try {
+      const settingsDockLink = el.querySelector('[data-testid="settings-dock-link"]')
+
+      expect(settingsDockLink).not.toBeNull()
+      expect(settingsDockLink?.textContent).toContain('nav.settings')
+      expect(el.querySelector('[data-stub="LanguageSwitcher"]')).toBeNull()
+      expect(el.querySelector('[data-stub="ThemeToggle"]')).toBeNull()
+    } finally {
+      unmount()
+    }
+  })
+
+  it('marks the settings dock as active on the settings route', async () => {
+    routeState.name = 'settings'
+    routeState.fullPath = '/settings'
+    routeState.meta.group = 'settings'
+    routeState.meta.hideGlobalBackground = false
+    routeState.meta.hideSidebar = false
+
+    const { el, unmount } = await mountLayout()
+
+    try {
+      const settingsDockLink = el.querySelector('[data-testid="settings-dock-link"]')
+
+      expect(settingsDockLink?.classList.contains('settings-dock--active')).toBe(true)
+      expect(settingsDockLink?.getAttribute('aria-current')).toBe('page')
     } finally {
       unmount()
     }
