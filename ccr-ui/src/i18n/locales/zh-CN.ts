@@ -2554,6 +2554,7 @@ export default {
       fields: {
         accountId: '账户 ID',
         email: '邮箱',
+        savedAt: '保存于',
         tokenFreshness: 'Token 新鲜度',
         lastRefresh: '上次刷新',
         lastUsed: '上次使用',
@@ -2594,6 +2595,42 @@ export default {
       refreshQuota: '刷新配额',
       exportAccount: '导出账户',
       tagAccount: '标签管理',
+      filters: {
+        searchPlaceholder: '搜索账号名、邮箱或描述...',
+        statusLabel: '状态',
+        freshnessLabel: '新鲜度',
+        planLabel: '套餐',
+        sortLabel: '排序',
+        resultsCount: '{shown} / {total} 个账号',
+        noResultsTitle: '没有匹配的账号',
+        noResultsHint: '试试更短的关键词、放宽筛选条件，或清空筛选后重新查看全部账号。',
+        statusOptions: {
+          all: '全部',
+          current: '当前',
+          expired: '已过期',
+          virtual: '虚拟',
+          attention: '需关注',
+        },
+        freshnessOptions: {
+          all: '全部新鲜度',
+          Fresh: 'Fresh',
+          Stale: 'Stale',
+          Old: 'Old',
+          Unknown: 'Unknown',
+        },
+        planOptions: {
+          all: '全部套餐',
+          plus: 'Plus',
+          pro: 'Pro',
+          team: 'Team',
+          unknown: '未知',
+        },
+        sortOptions: {
+          savedDesc: '最近保存',
+          usedDesc: '最近使用',
+          nameAsc: '名称 A-Z',
+        },
+      },
     },
 
     // Plugins module

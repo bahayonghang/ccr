@@ -12,7 +12,7 @@
     <div class="flex items-start justify-between gap-2 mb-2">
       <div class="flex items-center gap-2 min-w-0">
         <span class="text-lg flex-shrink-0">{{ account.freshness_icon }}</span>
-        <span class="text-base font-semibold text-white truncate">
+        <span class="text-base font-semibold text-text-primary truncate">
           {{ account.email || account.name }}
         </span>
       </div>
@@ -49,7 +49,7 @@
         <span class="font-mono font-medium">{{ account.name }}</span>
         <span
           v-if="account.is_virtual"
-          class="text-white/30"
+          class="text-text-ghost"
         >({{ $t('codex.auth.virtual') }})</span>
       </div>
       <p
@@ -87,7 +87,7 @@
           <div class="h-3 w-8 rounded bg-bg-surface/70 animate-pulse" />
         </div>
         <div class="h-1.5 rounded-full bg-bg-surface/70 overflow-hidden">
-          <div class="h-full w-1/2 rounded-full bg-white/[0.07] animate-pulse" />
+          <div class="h-full w-1/2 rounded-full bg-bg-overlay/50 animate-pulse" />
         </div>
       </div>
     </div>
@@ -124,7 +124,7 @@
           v-if="quota.quota.hourly_reset_time"
           class="flex justify-end mt-0.5"
         >
-          <span class="text-[11px] text-white/25">
+          <span class="text-[11px] text-text-disabled">
             {{ formatReset(quota.quota.hourly_reset_time) }}
           </span>
         </div>
@@ -157,7 +157,7 @@
           v-if="quota.quota.weekly_reset_time"
           class="flex justify-end mt-0.5"
         >
-          <span class="text-[11px] text-white/25">
+          <span class="text-[11px] text-text-disabled">
             {{ formatResetDetailed(quota.quota.weekly_reset_time) }}
           </span>
         </div>
@@ -175,16 +175,24 @@
     <!-- 配额未加载 -->
     <div
       v-else-if="!quotaLoading"
-      class="mb-3 text-xs text-white/25 italic"
+      class="mb-3 text-xs text-text-disabled italic"
     >
       {{ $t('codex.auth.quotaNotQueried') }}
     </div>
 
     <!-- 底部：最后使用 + 操作按钮 -->
-    <div class="flex items-center justify-between pt-2 border-t border-border-default/10">
-      <span class="text-xs text-white/25 truncate mr-2">
-        {{ formatLastUsed(account.last_used) }}
-      </span>
+    <div class="flex items-center justify-between gap-3 pt-2 border-t border-border-default/10">
+      <div class="min-w-0 space-y-0.5">
+        <p class="text-xs text-text-disabled truncate">
+          {{ formatLastUsed(account.last_used) }}
+        </p>
+        <p
+          v-if="account.saved_at"
+          class="text-[11px] text-text-ghost truncate"
+        >
+          {{ $t('codex.auth.fields.savedAt') }} {{ formatSavedAt(account.saved_at) }}
+        </p>
+      </div>
       <div class="flex items-center gap-1">
         <!-- 标签管理 -->
         <button
@@ -390,6 +398,22 @@ const formatLastUsed = (raw?: string | null) => {
     return raw
   }
 }
+
+const formatSavedAt = (raw?: string | null) => {
+  if (!raw) return ''
+  try {
+    const date = new Date(raw)
+    if (isNaN(date.getTime())) return raw
+    const y = date.getFullYear()
+    const mm = String(date.getMonth() + 1).padStart(2, '0')
+    const dd = String(date.getDate()).padStart(2, '0')
+    const hh = String(date.getHours()).padStart(2, '0')
+    const mi = String(date.getMinutes()).padStart(2, '0')
+    return `${y}-${mm}-${dd} ${hh}:${mi}`
+  } catch {
+    return raw
+  }
+}
 </script>
 
 <style scoped>
@@ -404,4 +428,3 @@ const formatLastUsed = (raw?: string | null) => {
   box-shadow: 0 8px 25px -5px rgb(0 0 0 / 20%);
 }
 </style>
-

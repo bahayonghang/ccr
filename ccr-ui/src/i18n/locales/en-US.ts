@@ -2527,6 +2527,7 @@ export default {
       fields: {
         accountId: 'Account ID',
         email: 'Email',
+        savedAt: 'Saved',
         tokenFreshness: 'Token Freshness',
         lastRefresh: 'Last Refresh',
         lastUsed: 'Last Used',
@@ -2567,6 +2568,42 @@ export default {
       refreshQuota: 'Refresh Quota',
       exportAccount: 'Export Account',
       tagAccount: 'Manage Tags',
+      filters: {
+        searchPlaceholder: 'Search account, email or description...',
+        statusLabel: 'Status',
+        freshnessLabel: 'Freshness',
+        planLabel: 'Plan',
+        sortLabel: 'Sort',
+        resultsCount: '{shown} / {total} accounts',
+        noResultsTitle: 'No matching accounts',
+        noResultsHint: 'Try a different keyword, relax the filters, or clear them to review every account again.',
+        statusOptions: {
+          all: 'All',
+          current: 'Current',
+          expired: 'Expired',
+          virtual: 'Virtual',
+          attention: 'Needs attention',
+        },
+        freshnessOptions: {
+          all: 'All freshness',
+          Fresh: 'Fresh',
+          Stale: 'Stale',
+          Old: 'Old',
+          Unknown: 'Unknown',
+        },
+        planOptions: {
+          all: 'All plans',
+          plus: 'Plus',
+          pro: 'Pro',
+          team: 'Team',
+          unknown: 'Unknown',
+        },
+        sortOptions: {
+          savedDesc: 'Recently saved',
+          usedDesc: 'Recently used',
+          nameAsc: 'Name A-Z',
+        },
+      },
     },
 
     // Plugins module

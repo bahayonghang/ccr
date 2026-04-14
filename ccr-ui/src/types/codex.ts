@@ -229,6 +229,7 @@ export interface CodexAuthAccountItem {
   email?: string
   is_current: boolean
   is_virtual: boolean
+  saved_at?: string
   last_used?: string
   last_refresh?: string
   freshness: TokenFreshness

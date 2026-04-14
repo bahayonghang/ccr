@@ -1,0 +1,335 @@
+import { createPinia } from 'pinia'
+import { createI18n } from 'vue-i18n'
+import { createApp, defineComponent, h, nextTick } from 'vue'
+import { createMemoryHistory, createRouter } from 'vue-router'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import enUS from '@/i18n/locales/en-US'
+
+const apiMocks = vi.hoisted(() => ({
+  listCodexProfiles: vi.fn(),
+  listCodexAuthAccounts: vi.fn(),
+  getCodexAuthCurrent: vi.fn(),
+  saveCodexAuth: vi.fn(),
+  switchCodexAuth: vi.fn(),
+  deleteCodexAuth: vi.fn(),
+  detectCodexProcess: vi.fn(),
+  getCodexAllQuotas: vi.fn(),
+}))
+
+vi.mock('@/api', () => ({
+  ...apiMocks,
+}))
+
+vi.mock('@/components/ui/SIcon.vue', () => ({
+  default: defineComponent({
+    props: {
+      name: { type: String, required: true },
+      size: { type: String, default: '' },
+    },
+    setup(props) {
+      return () => h('span', { 'data-icon': props.name, class: props.size })
+    },
+  }),
+}))
+
+vi.mock('@/components/ModuleSubnav.vue', () => ({
+  default: defineComponent({
+    template: '<div data-testid="module-subnav" />',
+  }),
+}))
+
+vi.mock('@/components/ui/Card.vue', () => ({
+  default: defineComponent({
+    setup(_props, { slots }) {
+      return () => h('section', { class: 'card-stub' }, slots.default?.())
+    },
+  }),
+}))
+
+vi.mock('@/components/ui/Button.vue', () => ({
+  default: defineComponent({
+    emits: ['click'],
+    setup(_props, { slots, emit, attrs }) {
+      return () => h('button', {
+        ...attrs,
+        type: 'button',
+        onClick: (event: MouseEvent) => emit('click', event),
+      }, slots.default?.())
+    },
+  }),
+}))
+
+vi.mock('@/components/common/BaseModal.vue', () => ({
+  default: defineComponent({
+    props: {
+      modelValue: { type: Boolean, default: false },
+    },
+    emits: ['update:modelValue'],
+    setup(props, { slots }) {
+      return () => (props.modelValue
+        ? h('div', { 'data-testid': 'base-modal' }, [
+            slots.header?.({ titleId: 'modal-title' }),
+            slots.default?.(),
+            slots.footer?.(),
+          ])
+        : null)
+    },
+  }),
+}))
+
+vi.mock('@/components/ConfirmModal.vue', () => ({
+  default: defineComponent({
+    props: {
+      isOpen: { type: Boolean, default: false },
+    },
+    setup(props) {
+      return () => (props.isOpen ? h('div', { 'data-testid': 'confirm-modal' }) : null)
+    },
+  }),
+}))
+
+vi.mock('@/components/codex/CodexAccountCard.vue', () => ({
+  default: defineComponent({
+    props: {
+      account: { type: Object, required: true },
+      quota: { type: Object, default: null },
+    },
+    setup(props) {
+      return () => h(
+        'div',
+        {
+          'data-testid': 'codex-account-card',
+          'data-account-name': (props.account as { name: string }).name,
+          'data-plan-type': ((props.quota as { quota?: { plan_type?: string } } | null)?.quota?.plan_type ?? 'unknown'),
+        },
+        (props.account as { name: string }).name,
+      )
+    },
+  }),
+}))
+
+vi.mock('@/stores/ui', () => ({
+  useUIStore: () => ({
+    showError: vi.fn(),
+    showSuccess: vi.fn(),
+    showInfo: vi.fn(),
+  }),
+}))
+
+const i18n = createI18n({
+  legacy: false,
+  locale: 'en-US',
+  fallbackLocale: 'en-US',
+  missingWarn: false,
+  fallbackWarn: false,
+  messages: {
+    'en-US': enUS,
+  },
+})
+
+const flush = async () => {
+  await Promise.resolve()
+  await nextTick()
+  await Promise.resolve()
+  await nextTick()
+}
+
+const mountView = async () => {
+  const { default: CodexAuthView } = await import('@/views/CodexAuthView.vue')
+  const el = document.createElement('div')
+  document.body.appendChild(el)
+
+  const router = createRouter({
+    history: createMemoryHistory(),
+    routes: [
+      { path: '/', component: defineComponent({ template: '<div />' }) },
+      { path: '/codex', component: defineComponent({ template: '<div />' }) },
+    ],
+  })
+
+  const app = createApp(defineComponent({
+    setup() {
+      return () => h(CodexAuthView)
+    },
+  }))
+
+  app.use(createPinia())
+  app.use(i18n)
+  app.use(router)
+  await router.push('/')
+  await router.isReady()
+
+  app.mount(el)
+  await flush()
+
+  return {
+    el,
+    unmount: () => {
+      app.unmount()
+      el.remove()
+    },
+  }
+}
+
+beforeEach(() => {
+  vi.clearAllMocks()
+
+  apiMocks.listCodexProfiles.mockResolvedValue({
+    current_profile: 'default',
+    profiles: [
+      {
+        name: 'default',
+        auth_mode: 'openai_chatgpt',
+      },
+    ],
+  })
+
+  apiMocks.listCodexAuthAccounts.mockResolvedValue({
+    login_state: { type: 'LoggedInSaved', account_name: 'qq_pro' },
+    accounts: [
+      {
+        name: 'alpha-pro',
+        description: 'primary account',
+        email: 'alpha@example.com',
+        is_current: true,
+        is_virtual: false,
+        saved_at: '2026-04-14T08:00:00Z',
+        last_used: '2026-04-12T08:00:00Z',
+        last_refresh: '2026-04-14T07:00:00Z',
+        freshness: 'Fresh',
+        freshness_icon: '🟢',
+        freshness_description: 'Fresh',
+        is_expired: false,
+      },
+      {
+        name: 'beta-plus',
+        description: 'backup account',
+        email: 'beta@example.com',
+        is_current: false,
+        is_virtual: false,
+        saved_at: '2026-04-10T08:00:00Z',
+        last_used: '2026-04-14T10:30:00Z',
+        last_refresh: '2026-04-13T07:00:00Z',
+        freshness: 'Old',
+        freshness_icon: '🟠',
+        freshness_description: 'Old',
+        is_expired: true,
+      },
+      {
+        name: 'default',
+        description: 'unsaved runtime session',
+        email: 'runtime@example.com',
+        is_current: false,
+        is_virtual: true,
+        saved_at: undefined,
+        last_used: undefined,
+        last_refresh: '2026-04-13T07:00:00Z',
+        freshness: 'Unknown',
+        freshness_icon: '⚪',
+        freshness_description: 'Unknown',
+        is_expired: false,
+      },
+    ],
+  })
+
+  apiMocks.getCodexAuthCurrent.mockResolvedValue({
+    logged_in: true,
+    info: {
+      account_id: 'acct_123',
+      email: 'alpha@example.com',
+      last_refresh: '2026-04-14T07:00:00Z',
+      freshness: 'Fresh',
+      freshness_icon: '🟢',
+      freshness_description: 'Fresh',
+      is_expired: false,
+    },
+  })
+
+  apiMocks.detectCodexProcess.mockResolvedValue({ has_running_process: false, pids: [] })
+  apiMocks.getCodexAllQuotas.mockResolvedValue([
+    {
+      account_name: 'alpha-pro',
+      fetched_at: '2026-04-14T08:30:00Z',
+      quota: { plan_type: 'Pro', hourly_percentage: 88, weekly_percentage: 76 },
+    },
+    {
+      account_name: 'beta-plus',
+      fetched_at: '2026-04-14T08:30:00Z',
+      quota: { plan_type: 'Plus', hourly_percentage: 30, weekly_percentage: 22 },
+    },
+  ])
+})
+
+afterEach(() => {
+  document.body.innerHTML = ''
+})
+
+describe('CodexAuthView smoke', () => {
+  it('renders interpolated login state instead of leaking placeholders', async () => {
+    const { el, unmount } = await mountView()
+
+    try {
+      expect(el.textContent).toContain('Logged in (qq_pro)')
+      expect(el.textContent).not.toContain('{name}')
+      expect(el.querySelectorAll('[data-testid="codex-account-card"]')).toHaveLength(3)
+    } finally {
+      unmount()
+    }
+  })
+
+  it('filters accounts by search keyword and status pills', async () => {
+    const { el, unmount } = await mountView()
+
+    try {
+      const searchInput = el.querySelector<HTMLInputElement>('.codex-auth-view__search-box input')
+      expect(searchInput).not.toBeNull()
+
+      searchInput!.value = 'beta'
+      searchInput!.dispatchEvent(new Event('input', { bubbles: true }))
+      await flush()
+
+      let cards = Array.from(el.querySelectorAll<HTMLElement>('[data-testid="codex-account-card"]'))
+      expect(cards.map(card => card.dataset.accountName)).toEqual(['beta-plus'])
+
+      const allButton = Array.from(el.querySelectorAll<HTMLButtonElement>('.codex-auth-view__filter-pill'))
+        .find(button => button.textContent?.includes('All'))
+      const attentionButton = Array.from(el.querySelectorAll<HTMLButtonElement>('.codex-auth-view__filter-pill'))
+        .find(button => button.textContent?.includes('Needs attention'))
+
+      expect(allButton).not.toBeNull()
+      expect(attentionButton).not.toBeNull()
+
+      allButton!.click()
+      searchInput!.value = ''
+      searchInput!.dispatchEvent(new Event('input', { bubbles: true }))
+      attentionButton!.click()
+      await flush()
+
+      cards = Array.from(el.querySelectorAll<HTMLElement>('[data-testid="codex-account-card"]'))
+      expect(cards.map(card => card.dataset.accountName)).toEqual(['beta-plus'])
+    } finally {
+      unmount()
+    }
+  })
+
+  it('reorders cards when sort changes to recently used', async () => {
+    const { el, unmount } = await mountView()
+
+    try {
+      let cards = Array.from(el.querySelectorAll<HTMLElement>('[data-testid="codex-account-card"]'))
+      expect(cards.map(card => card.dataset.accountName)).toEqual(['alpha-pro', 'beta-plus', 'default'])
+
+      const sortSelect = el.querySelector<HTMLSelectElement>('#codex-auth-sort')
+      expect(sortSelect).not.toBeNull()
+
+      sortSelect!.value = 'used_desc'
+      sortSelect!.dispatchEvent(new Event('change', { bubbles: true }))
+      await flush()
+
+      cards = Array.from(el.querySelectorAll<HTMLElement>('[data-testid="codex-account-card"]'))
+      expect(cards.map(card => card.dataset.accountName)).toEqual(['beta-plus', 'alpha-pro', 'default'])
+    } finally {
+      unmount()
+    }
+  })
+})

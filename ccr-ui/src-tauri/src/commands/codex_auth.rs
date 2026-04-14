@@ -25,6 +25,7 @@ pub async fn codex_list_auth_accounts() -> Result<Value, String> {
                     "email": item.email,
                     "is_current": item.is_current,
                     "is_virtual": item.is_virtual,
+                    "saved_at": item.saved_at.map(|dt| dt.to_rfc3339()),
                     "last_used": item.last_used.map(|dt| dt.to_rfc3339()),
                     "last_refresh": item.last_refresh.map(|dt| dt.to_rfc3339()),
                     "freshness": freshness,

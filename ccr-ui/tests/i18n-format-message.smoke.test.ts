@@ -76,4 +76,23 @@ describe('translateWithFallback', () => {
       ),
     ).toBe('共 12 个 Profile，其中 7 个处于启用状态。')
   })
+
+  it('interpolates Codex auth login state labels when the translator leaves templates unresolved', () => {
+    const translate = (key: string, _values?: Record<string, unknown>) => {
+      if (key === 'codex.auth.loginState.loggedInSaved') {
+        return '已登录 ({name})'
+      }
+
+      return key
+    }
+
+    expect(
+      translateWithFallback(
+        translate,
+        'codex.auth.loginState.loggedInSaved',
+        '已登录 ({name})',
+        { name: 'qq_pro' },
+      ),
+    ).toBe('已登录 (qq_pro)')
+  })
 })

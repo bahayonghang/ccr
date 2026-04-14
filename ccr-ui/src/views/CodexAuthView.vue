@@ -310,6 +310,129 @@
             </Button>
           </div>
 
+          <Card
+            v-if="!loading && accounts.length > 0"
+            surface="workspace"
+            :elevation="2"
+            motion="subtle"
+            padding="lg"
+            class="codex-auth-view__filters-card"
+          >
+            <div class="codex-auth-view__filters-grid">
+              <label class="codex-auth-view__search-box">
+                <SIcon
+                  name="Search"
+                  size="w-4 h-4"
+                />
+                <input
+                  v-model="searchQuery"
+                  type="text"
+                  :placeholder="$t('codex.auth.filters.searchPlaceholder')"
+                >
+              </label>
+
+              <div class="codex-auth-view__filter-group">
+                <p class="codex-auth-view__filter-label">
+                  {{ $t('codex.auth.filters.statusLabel') }}
+                </p>
+                <div class="codex-auth-view__filter-row">
+                  <button
+                    v-for="option in statusOptions"
+                    :key="option.value"
+                    type="button"
+                    class="codex-auth-view__filter-pill"
+                    :class="{ 'codex-auth-view__filter-pill--active': statusFilter === option.value }"
+                    @click="statusFilter = option.value"
+                  >
+                    {{ option.label }}
+                  </button>
+                </div>
+              </div>
+
+              <div class="codex-auth-view__filter-group">
+                <label
+                  class="codex-auth-view__filter-label"
+                  for="codex-auth-freshness-filter"
+                >
+                  {{ $t('codex.auth.filters.freshnessLabel') }}
+                </label>
+                <select
+                  id="codex-auth-freshness-filter"
+                  v-model="freshnessFilter"
+                  class="codex-auth-view__filter-select"
+                >
+                  <option
+                    v-for="option in freshnessOptions"
+                    :key="option.value"
+                    :value="option.value"
+                  >
+                    {{ option.label }}
+                  </option>
+                </select>
+              </div>
+
+              <div class="codex-auth-view__filter-group">
+                <label
+                  class="codex-auth-view__filter-label"
+                  for="codex-auth-plan-filter"
+                >
+                  {{ $t('codex.auth.filters.planLabel') }}
+                </label>
+                <select
+                  id="codex-auth-plan-filter"
+                  v-model="planFilter"
+                  class="codex-auth-view__filter-select"
+                >
+                  <option
+                    v-for="option in planOptions"
+                    :key="option.value"
+                    :value="option.value"
+                  >
+                    {{ option.label }}
+                  </option>
+                </select>
+              </div>
+
+              <div class="codex-auth-view__filter-group">
+                <label
+                  class="codex-auth-view__filter-label"
+                  for="codex-auth-sort"
+                >
+                  {{ $t('codex.auth.filters.sortLabel') }}
+                </label>
+                <select
+                  id="codex-auth-sort"
+                  v-model="sortBy"
+                  class="codex-auth-view__filter-select"
+                >
+                  <option
+                    v-for="option in sortOptions"
+                    :key="option.value"
+                    :value="option.value"
+                  >
+                    {{ option.label }}
+                  </option>
+                </select>
+              </div>
+            </div>
+
+            <div class="codex-auth-view__filters-footer">
+              <p class="codex-auth-view__filters-summary">
+                {{ filtersResultsCount }}
+              </p>
+              <Button
+                v-if="hasActiveFilters"
+                variant="secondary"
+                surface="status"
+                density="compact"
+                motion="subtle"
+                @click="clearFilters"
+              >
+                {{ $t('common.clearFilters') }}
+              </Button>
+            </div>
+          </Card>
+
           <!-- Loading -->
           <div
             v-if="loading"
@@ -338,13 +461,42 @@
             </p>
           </div>
 
+          <div
+            v-else-if="filteredAccounts.length === 0"
+            class="empty-state glass-effect rounded-2xl border border-border-default/10"
+          >
+            <div class="p-4 rounded-full glass-surface mb-4">
+              <SIcon
+                name="Search"
+                size="w-8 h-8"
+                class="text-text-muted"
+              />
+            </div>
+            <p class="text-text-primary">
+              {{ $t('codex.auth.filters.noResultsTitle') }}
+            </p>
+            <p class="text-sm text-text-muted mt-2">
+              {{ $t('codex.auth.filters.noResultsHint') }}
+            </p>
+            <Button
+              variant="secondary"
+              surface="status"
+              density="compact"
+              motion="subtle"
+              class="mt-4"
+              @click="clearFilters"
+            >
+              {{ $t('common.clearFilters') }}
+            </Button>
+          </div>
+
           <!-- Account Card Grid -->
           <div
             v-else
             class="grid grid-cols-1 md:grid-cols-2 gap-4"
           >
             <CodexAccountCard
-              v-for="account in accounts"
+              v-for="account in filteredAccounts"
               :key="account.name"
               :account="account"
               :quota="quotaMap.get(account.name) ?? null"
@@ -375,7 +527,7 @@
               <div class="px-6 py-4 border-b border-border-default/10 flex items-center justify-between sticky top-0 bg-bg-elevated/95 backdrop-blur z-10">
                 <h2
                   :id="titleId"
-                  class="text-xl font-bold text-white"
+                  class="text-xl font-bold text-text-primary"
                 >
                   {{ $t('codex.auth.saveAccount') }}
                 </h2>
@@ -465,7 +617,7 @@
                   >
                   <label
                     for="forceOverwrite"
-                    class="text-sm font-medium text-white cursor-pointer select-none"
+                    class="text-sm font-medium text-text-primary cursor-pointer select-none"
                   >
                     {{ $t('codex.auth.forceOverwrite') }}
                   </label>
@@ -564,6 +716,11 @@ defineOptions({ name: 'CodexAuthView' })
 const { t } = useI18n()
 const uiStore = useUIStore()
 
+type AccountStatusFilter = 'all' | 'current' | 'expired' | 'virtual' | 'attention'
+type AccountFreshnessFilter = 'all' | 'Fresh' | 'Stale' | 'Old' | 'Unknown'
+type AccountPlanFilter = 'all' | 'plus' | 'pro' | 'team' | 'unknown'
+type AccountSort = 'saved_desc' | 'used_desc' | 'name_asc'
+
 const loading = ref(false)
 const saving = ref(false)
 const actionLoading = ref(false)
@@ -603,10 +760,21 @@ const saveForm = reactive({
   expires_at: '',
   force: false,
 })
+const searchQuery = ref('')
+const statusFilter = ref<AccountStatusFilter>('all')
+const freshnessFilter = ref<AccountFreshnessFilter>('all')
+const planFilter = ref<AccountPlanFilter>('all')
+const sortBy = ref<AccountSort>('saved_desc')
 
 const usesOpenAiAuthMode = (authMode?: CodexProfileAuthMode | null) => {
   return authMode === 'openai_chatgpt' || authMode === 'openai_api_key'
 }
+
+const tf = (
+  key: string,
+  fallback: string,
+  values: Record<string, string | number | boolean | null | undefined> = {},
+) => translateWithFallback(t, key, fallback, values)
 
 const extractErrorMessage = (error: unknown) => {
   if (typeof error === 'string') {
@@ -631,15 +799,23 @@ const profileGuardMessage = computed(() => {
     return t('codex.auth.profileGuard.noCurrentProfile')
   }
   if (!canManageAuthAccounts.value) {
-    return t('codex.auth.profileGuard.unsupportedProfile', {
+    return tf(
+      'codex.auth.profileGuard.unsupportedProfile',
+      'Current profile "{name}" uses "{authMode}". Codex Auth account save/switch only works for OpenAI-auth current profiles.',
+      {
       name: currentProfile.value.name,
       authMode: currentProfile.value.auth_mode || 'no_auth',
-    })
+      },
+    )
   }
-  return t('codex.auth.profileGuard.supportedProfile', {
-    name: currentProfile.value.name,
-    authMode: currentProfile.value.auth_mode || 'openai_chatgpt',
-  })
+  return tf(
+    'codex.auth.profileGuard.supportedProfile',
+    'Current profile "{name}" uses "{authMode}". Auth account save/switch is available.',
+    {
+      name: currentProfile.value.name,
+      authMode: currentProfile.value.auth_mode || 'openai_chatgpt',
+    },
+  )
 })
 
 const canSave = computed(() => {
@@ -682,19 +858,105 @@ const loginStateIconClass = computed(() => {
 const loginStateText = computed(() => {
   switch (loginState.value.type) {
     case 'LoggedInSaved':
-      return t('codex.auth.loginState.loggedInSaved', { name: loginState.value.account_name })
+      return tf('codex.auth.loginState.loggedInSaved', 'Logged in ({name})', { name: loginState.value.account_name })
     case 'LoggedInUnsaved':
       return t('codex.auth.loginState.loggedInUnsaved')
     case 'ApiKeyActive':
       return t('codex.auth.loginState.apiKeyActive')
     case 'ProviderKeyActive':
-      return t('codex.auth.loginState.providerKeyActive', { envKey: loginState.value.env_key })
+      return tf('codex.auth.loginState.providerKeyActive', 'Provider Key ({envKey})', { envKey: loginState.value.env_key })
     case 'Unknown':
-      return t('codex.auth.loginState.unknown', { type: loginState.value.raw_type })
+      return tf('codex.auth.loginState.unknown', 'Unknown state ({type})', { type: loginState.value.raw_type })
     default:
       return t('codex.auth.loginState.notLoggedIn')
   }
 })
+
+const statusOptions = computed(() => ([
+  { value: 'all' as const, label: t('codex.auth.filters.statusOptions.all') },
+  { value: 'current' as const, label: t('codex.auth.filters.statusOptions.current') },
+  { value: 'expired' as const, label: t('codex.auth.filters.statusOptions.expired') },
+  { value: 'virtual' as const, label: t('codex.auth.filters.statusOptions.virtual') },
+  { value: 'attention' as const, label: t('codex.auth.filters.statusOptions.attention') },
+]))
+
+const freshnessOptions = computed(() => ([
+  { value: 'all' as const, label: t('codex.auth.filters.freshnessOptions.all') },
+  { value: 'Fresh' as const, label: t('codex.auth.filters.freshnessOptions.Fresh') },
+  { value: 'Stale' as const, label: t('codex.auth.filters.freshnessOptions.Stale') },
+  { value: 'Old' as const, label: t('codex.auth.filters.freshnessOptions.Old') },
+  { value: 'Unknown' as const, label: t('codex.auth.filters.freshnessOptions.Unknown') },
+]))
+
+const planOptions = computed(() => ([
+  { value: 'all' as const, label: t('codex.auth.filters.planOptions.all') },
+  { value: 'plus' as const, label: t('codex.auth.filters.planOptions.plus') },
+  { value: 'pro' as const, label: t('codex.auth.filters.planOptions.pro') },
+  { value: 'team' as const, label: t('codex.auth.filters.planOptions.team') },
+  { value: 'unknown' as const, label: t('codex.auth.filters.planOptions.unknown') },
+]))
+
+const sortOptions = computed(() => ([
+  { value: 'saved_desc' as const, label: t('codex.auth.filters.sortOptions.savedDesc') },
+  { value: 'used_desc' as const, label: t('codex.auth.filters.sortOptions.usedDesc') },
+  { value: 'name_asc' as const, label: t('codex.auth.filters.sortOptions.nameAsc') },
+]))
+
+const hasActiveFilters = computed(() => {
+  return Boolean(searchQuery.value.trim())
+    || statusFilter.value !== 'all'
+    || freshnessFilter.value !== 'all'
+    || planFilter.value !== 'all'
+    || sortBy.value !== 'saved_desc'
+})
+
+const filteredAccounts = computed(() => {
+  const query = searchQuery.value.trim().toLowerCase()
+  const items = accounts.value.filter((account) => {
+    if (query) {
+      const haystack = [account.name, account.email, account.description]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase()
+      if (!haystack.includes(query)) {
+        return false
+      }
+    }
+
+    if (statusFilter.value === 'current' && !account.is_current) return false
+    if (statusFilter.value === 'expired' && !account.is_expired) return false
+    if (statusFilter.value === 'virtual' && !account.is_virtual) return false
+    if (statusFilter.value === 'attention' && !isAttentionAccount(account)) return false
+
+    if (freshnessFilter.value !== 'all' && account.freshness !== freshnessFilter.value) {
+      return false
+    }
+
+    if (planFilter.value !== 'all' && resolvePlanType(account) !== planFilter.value) {
+      return false
+    }
+
+    return true
+  })
+
+  return items.sort((left, right) => {
+    switch (sortBy.value) {
+      case 'used_desc':
+        return compareDateDesc(left.last_used, right.last_used)
+      case 'name_asc':
+        return left.name.localeCompare(right.name)
+      case 'saved_desc':
+      default:
+        return compareDateDesc(left.saved_at, right.saved_at)
+    }
+  })
+})
+
+const filtersResultsCount = computed(() => tf(
+  'codex.auth.filters.resultsCount',
+  '{shown} / {total} accounts',
+  { shown: filteredAccounts.value.length, total: accounts.value.length },
+))
 
 // Helper functions
 const freshnessClass = (freshness: TokenFreshness) => {
@@ -713,6 +975,35 @@ const formatExpiryDate = (dateStr: string) => {
   } catch {
     return dateStr
   }
+}
+
+const clearFilters = () => {
+  searchQuery.value = ''
+  statusFilter.value = 'all'
+  freshnessFilter.value = 'all'
+  planFilter.value = 'all'
+  sortBy.value = 'saved_desc'
+}
+
+const resolvePlanType = (account: CodexAuthAccountItem): AccountPlanFilter => {
+  const planType = quotaMap.value.get(account.name)?.quota?.plan_type?.trim().toLowerCase()
+  if (planType === 'plus' || planType === 'pro' || planType === 'team') {
+    return planType
+  }
+  return 'unknown'
+}
+
+const isAttentionAccount = (account: CodexAuthAccountItem) => {
+  return account.is_expired
+    || account.freshness === 'Stale'
+    || account.freshness === 'Old'
+    || Boolean(quotaMap.value.get(account.name)?.error)
+}
+
+const compareDateDesc = (left?: string | null, right?: string | null) => {
+  const leftTime = left && !Number.isNaN(Date.parse(left)) ? Date.parse(left) : Number.NEGATIVE_INFINITY
+  const rightTime = right && !Number.isNaN(Date.parse(right)) ? Date.parse(right) : Number.NEGATIVE_INFINITY
+  return rightTime - leftTime
 }
 
 // Data loading
@@ -1021,7 +1312,7 @@ onActivated(() => {
 }
 
 .codex-auth-view__title {
-  color: rgb(255 255 255 / 100%);
+  color: var(--stage-text-primary);
   font-size: 1.5rem;
   line-height: 2rem;
   font-weight: 700;
@@ -1029,7 +1320,7 @@ onActivated(() => {
 
 .codex-auth-view__subtitle {
   margin-top: 0.25rem;
-  color: rgb(255 255 255 / 80%);
+  color: var(--stage-text-secondary);
   font-size: 0.875rem;
   line-height: 1.25rem;
 }
@@ -1067,7 +1358,7 @@ onActivated(() => {
 .codex-auth-view__status-label,
 .codex-auth-view__field-label {
   margin-bottom: 0.25rem;
-  color: rgb(255 255 255 / 50%);
+  color: var(--stage-text-quiet);
   font-size: 0.75rem;
   line-height: 1rem;
   font-weight: 500;
@@ -1077,7 +1368,7 @@ onActivated(() => {
 
 .codex-auth-view__status-value,
 .codex-auth-view__overview-title {
-  color: rgb(255 255 255 / 100%);
+  color: var(--stage-text-primary);
   font-size: 1.25rem;
   line-height: 1.75rem;
   font-weight: 700;
@@ -1093,7 +1384,7 @@ onActivated(() => {
 
 .codex-auth-view__section-title,
 .codex-auth-view__guard-title {
-  color: rgb(255 255 255 / 100%);
+  color: var(--stage-text-primary);
   font-size: 1rem;
   line-height: 1.5rem;
   font-weight: 600;
@@ -1110,21 +1401,21 @@ onActivated(() => {
 }
 
 .codex-auth-view__field-code {
-  border: 1px solid rgb(255 255 255 / 5%);
+  border: 1px solid var(--stage-border-soft);
   border-radius: 0.5rem;
   padding: 0.25rem 0.5rem;
-  color: rgb(255 255 255 / 100%);
+  color: var(--stage-text-primary);
   font-family: var(--font-mono);
 }
 
 .codex-auth-view__field-value--muted {
-  color: rgb(255 255 255 / 80%);
+  color: var(--stage-text-secondary);
   font-size: 0.875rem;
   line-height: 1.25rem;
 }
 
 .codex-auth-view__field-value--faint {
-  color: rgb(255 255 255 / 50%);
+  color: var(--stage-text-muted);
   font-size: 0.875rem;
   line-height: 1.25rem;
 }
@@ -1165,20 +1456,110 @@ onActivated(() => {
 
 .codex-auth-view__guard-message {
   margin-top: 0.25rem;
-  color: rgb(255 255 255 / 70%);
+  color: var(--stage-text-secondary);
   font-size: 0.875rem;
   line-height: 1.25rem;
 }
 
 .codex-auth-view__guard-error {
   margin-top: 0.75rem;
-  border: 1px solid rgb(239 68 68 / 20%);
+  border: 1px solid rgb(var(--color-danger-rgb) / 20%);
   border-radius: 0.5rem;
-  background: rgb(239 68 68 / 10%);
+  background: rgb(var(--color-danger-rgb) / 10%);
   padding: 0.5rem 0.75rem;
-  color: rgb(252 165 165 / 100%);
+  color: var(--color-danger);
   font-size: 0.875rem;
   line-height: 1.25rem;
+}
+
+.codex-auth-view__filters-card {
+  overflow: hidden;
+}
+
+.codex-auth-view__filters-grid {
+  display: grid;
+  gap: 1rem;
+}
+
+.codex-auth-view__search-box {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  border: 1px solid var(--stage-border-soft);
+  border-radius: 9999px;
+  background: var(--stage-surface-soft);
+  padding: 0.75rem 1rem;
+  color: var(--stage-text-secondary);
+}
+
+.codex-auth-view__search-box input,
+.codex-auth-view__filter-select {
+  width: 100%;
+  min-width: 0;
+  background: transparent;
+  color: var(--stage-text-primary);
+  outline: none;
+}
+
+.codex-auth-view__search-box input::placeholder {
+  color: var(--stage-text-muted);
+}
+
+.codex-auth-view__filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+}
+
+.codex-auth-view__filter-label,
+.codex-auth-view__filters-summary {
+  color: var(--stage-text-secondary);
+  font-size: 0.75rem;
+  line-height: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.codex-auth-view__filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.codex-auth-view__filter-pill,
+.codex-auth-view__filter-select {
+  border: 1px solid var(--stage-border-soft);
+  border-radius: 9999px;
+  background: var(--stage-surface-soft);
+  color: var(--stage-text-secondary);
+  font-size: 0.75rem;
+  line-height: 1rem;
+}
+
+.codex-auth-view__filter-pill {
+  padding: 0.5rem 0.75rem;
+  transition: border-color 0.2s ease, background-color 0.2s ease, color 0.2s ease;
+}
+
+.codex-auth-view__filter-pill--active {
+  border-color: rgb(var(--color-accent-primary-rgb) / 20%);
+  background: rgb(var(--color-accent-primary-rgb) / 10%);
+  color: var(--color-accent-primary);
+}
+
+.codex-auth-view__filter-select {
+  padding: 0.75rem 1rem;
+}
+
+.codex-auth-view__filters-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--stage-border-soft);
 }
 
 @media (width >= 768px) {
@@ -1192,6 +1573,11 @@ onActivated(() => {
 }
 
 @media (width >= 1280px) {
+  .codex-auth-view__filters-grid {
+    grid-template-columns: minmax(0, 1.4fr) minmax(0, 1.4fr) minmax(0, 0.9fr) minmax(0, 0.9fr) minmax(0, 0.9fr);
+    align-items: end;
+  }
+
   .codex-auth-view__session-grid {
     grid-template-columns: repeat(5, minmax(0, 1fr));
   }
@@ -1207,6 +1593,10 @@ onActivated(() => {
   .codex-auth-view__actions {
     flex-wrap: wrap;
   }
+
+  .codex-auth-view__filters-footer {
+    flex-direction: column;
+    align-items: flex-start;
+  }
 }
 </style>
-
