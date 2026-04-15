@@ -57,6 +57,7 @@ r2d2 = { workspace = true }
 r2d2_sqlite = { workspace = true }
 rayon = "1.11"
 reqwest_dav = { version = "0.3.3", default-features = false, features = ["native-tls"] }
+rpassword = { workspace = true }
 rusqlite = { workspace = true }
 toml_edit = "0.23.9"
 tracing = { workspace = true }

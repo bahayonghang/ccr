@@ -667,6 +667,77 @@ pub struct ImportResult {
     pub overwritten: Vec<String>,
 }
 
+// ==================== 加密导出数据结构 ====================
+
+/// Argon2id KDF 参数
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct KdfParams {
+    /// 内存成本 (KiB), 默认 65536 (64MB)
+    pub m_cost: u32,
+    /// 时间成本 (迭代次数), 默认 3
+    pub t_cost: u32,
+    /// 并行度, 默认 1
+    pub p_cost: u32,
+}
+
+impl Default for KdfParams {
+    fn default() -> Self {
+        Self {
+            m_cost: 65536,
+            t_cost: 3,
+            p_cost: 1,
+        }
+    }
+}
+
+/// 加密头信息
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct EncryptionHeader {
+    /// 加密算法 ("aes-256-gcm")
+    pub algorithm: String,
+    /// 密钥派生函数 ("argon2id")
+    pub kdf: String,
+    /// KDF 参数
+    pub kdf_params: KdfParams,
+    /// 盐值 (base64)
+    pub salt: String,
+    /// Nonce (base64)
+    pub nonce: String,
+}
+
+/// 加密导出格式 (version 2.0)
+///
+/// 信封结构：可读的元数据头 + 加密的 payload
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CodexAuthEncryptedExport {
+    /// 导出格式版本 ("2.0")
+    pub version: String,
+    /// 格式标识 ("encrypted")
+    pub format: String,
+    /// 导出时间
+    pub exported_at: DateTime<Utc>,
+    /// 账号数量（无需解密即可预览）
+    pub account_count: usize,
+    /// 加密参数
+    pub encryption: EncryptionHeader,
+    /// 加密后的 payload (base64)
+    ///
+    /// 内容为 accounts JSON 的 AES-256-GCM 密文，
+    /// 信封头字段作为 AAD 绑定到 GCM 认证标签。
+    pub encrypted_payload: String,
+}
+
+/// 导入文件格式检测结果
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ImportFormat {
+    /// 明文 JSON (version 1.0)
+    PlaintextV1,
+    /// 加密信封 (version 2.0)
+    EncryptedV2,
+    /// 未知格式
+    Unknown,
+}
+
 // ==================== 配额查询数据结构 ====================
 
 /// Codex 配额信息（从 wham/usage API 解析）

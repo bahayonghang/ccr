@@ -1,6 +1,7 @@
 //! 📤 codex auth export 命令实现
 //!
 //! 导出所有账号到 JSON 文件 (交互式选择导出路径)。
+//! 当包含敏感信息时，使用密码加密保护 (AES-256-GCM + Argon2id)。
 
 #![allow(clippy::unused_async)]
 
@@ -12,6 +13,9 @@ use colored::Colorize;
 use std::fs;
 use std::io::{self, Write};
 use std::path::PathBuf;
+
+/// 密码最小长度
+const MIN_PASSWORD_LEN: usize = 6;
 
 /// 获取跨平台的 Downloads 目录
 ///
@@ -47,9 +51,37 @@ fn read_user_path() -> Option<String> {
     }
 }
 
+/// 交互式读取并确认密码
+///
+/// 返回 `Ok(password)` 或错误
+fn read_and_confirm_password() -> Result<String> {
+    println!();
+    ColorOutput::info("🔐 导出包含敏感信息，需要设置加密密码");
+
+    let password = rpassword::prompt_password("请输入密码: ")
+        .map_err(|e| CcrError::FileIoError(format!("读取密码失败: {}", e)))?;
+
+    if password.len() < MIN_PASSWORD_LEN {
+        return Err(CcrError::ConfigError(format!(
+            "密码长度不足: 最少 {} 个字符",
+            MIN_PASSWORD_LEN
+        )));
+    }
+
+    let confirm = rpassword::prompt_password("请再次确认: ")
+        .map_err(|e| CcrError::FileIoError(format!("读取确认密码失败: {}", e)))?;
+
+    if password != confirm {
+        return Err(CcrError::ConfigError("两次输入的密码不一致".to_string()));
+    }
+
+    Ok(password)
+}
+
 /// 📤 导出所有账号到 JSON 文件
 ///
 /// 将所有已保存的账号导出为 JSON 格式，支持交互式选择导出路径。
+/// 当包含敏感信息时，使用密码加密保护。
 ///
 /// # 参数
 ///
@@ -129,9 +161,19 @@ pub async fn export_command(no_secrets: bool) -> Result<()> {
             .map_err(|e| CcrError::FileIoError(format!("创建目录失败: {}", e)))?;
     }
 
-    // 执行导出
     let include_secrets = !no_secrets;
-    let json = service.export_accounts(include_secrets)?;
+
+    let json = if include_secrets {
+        // 加密导出流程：提示密码 → 加密 → 写入
+        let password = tokio::task::spawn_blocking(read_and_confirm_password)
+            .await
+            .map_err(|e| CcrError::FileIoError(format!("密码交互失败: {}", e)))??;
+
+        service.export_accounts_encrypted(&password)?
+    } else {
+        // 明文导出（仅元数据）
+        service.export_accounts(false)?
+    };
 
     // 写入文件
     fs::write(&export_path, &json)
@@ -146,7 +188,8 @@ pub async fn export_command(no_secrets: bool) -> Result<()> {
 
     if include_secrets {
         println!();
-        ColorOutput::warning("⚠️  导出文件包含敏感信息 (Token)，请妥善保管！");
+        ColorOutput::success("🔐 导出文件已加密 (AES-256-GCM + Argon2id)");
+        ColorOutput::info("导入时需要输入相同的密码");
     } else {
         ColorOutput::info("导出不包含敏感信息 (仅元数据)");
     }

@@ -1,3 +1,4 @@
+pub mod codex_auth_crypto;
 pub mod codex_auth_service;
 pub mod codex_history_sync_service;
 pub mod codex_oauth_token_service;
@@ -11,6 +12,7 @@ pub mod opencode_auth_service;
 pub mod opencode_quota_service;
 pub mod opencode_usage_service;
 
+pub use codex_auth_crypto::ExportCrypto;
 pub use codex_auth_service::{AuthReadSnapshot, CodexAuthService};
 pub use codex_history_sync_service::{
     CodexHistoryBackupPruneResult, CodexHistoryBackupSummary, CodexHistoryRestoreResult,

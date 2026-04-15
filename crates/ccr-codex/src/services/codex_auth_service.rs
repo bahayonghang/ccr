@@ -14,10 +14,11 @@ use super::codex_runtime_service::{
 use crate::managers::codex_config::CodexConfigManager;
 use crate::models::PlatformConfig;
 use crate::models::{
-    AuthIntent, AuthState, AuthStateStatus, CodexAuthAccount, CodexAuthExport,
-    CodexAuthExportAccount, CodexAuthItem, CodexAuthJson, CodexAuthRegistry, CodexRuntimeMode,
-    CodexRuntimeSummary, CredentialStoreKind, CurrentAuthInfo, ImportMode, ImportResult,
-    LoginState, OpenAiAuthMethod, PlatformPaths, TokenFreshness, normalize_auth_map_for_intent,
+    AuthIntent, AuthState, AuthStateStatus, CodexAuthAccount, CodexAuthEncryptedExport,
+    CodexAuthExport, CodexAuthExportAccount, CodexAuthItem, CodexAuthJson, CodexAuthRegistry,
+    CodexRuntimeMode, CodexRuntimeSummary, CredentialStoreKind, CurrentAuthInfo, ImportFormat,
+    ImportMode, ImportResult, LoginState, OpenAiAuthMethod, PlatformPaths, TokenFreshness,
+    normalize_auth_map_for_intent,
 };
 use crate::platforms::codex::CodexPlatform;
 use crate::utils::CodexPaths;
@@ -1400,6 +1401,86 @@ impl CodexAuthService {
 
         serde_json::to_string_pretty(&export)
             .map_err(|e| CcrError::ConfigError(format!("序列化导出数据失败: {}", e)))
+    }
+
+    /// 导出账号（加密版本）
+    ///
+    /// 内部先调用 `export_accounts(true)` 获取完整明文 JSON，
+    /// 再从中解析 accounts 字段以获取账号数量，最后加密 accounts 部分。
+    ///
+    /// # 参数
+    ///
+    /// * `password` - 用户设置的导出密码
+    ///
+    /// # 返回
+    ///
+    /// * `Ok(String)` - 加密信封格式的 JSON 字符串
+    /// * `Err(CcrError)` - 导出失败
+    pub fn export_accounts_encrypted(&self, password: &str) -> Result<String> {
+        let full_json = self.export_accounts(true)?;
+        let export_data: CodexAuthExport = serde_json::from_str(&full_json)
+            .map_err(|e| CcrError::ConfigError(format!("解析导出数据失败: {}", e)))?;
+        let account_count = export_data.accounts.len();
+        let accounts_json = serde_json::to_string(&export_data.accounts)
+            .map_err(|e| CcrError::ConfigError(format!("序列化账号数据失败: {}", e)))?;
+
+        let encrypted = super::codex_auth_crypto::ExportCrypto::encrypt_export(
+            &accounts_json,
+            password,
+            export_data.exported_at,
+            account_count,
+        )?;
+
+        serde_json::to_string_pretty(&encrypted)
+            .map_err(|e| CcrError::ConfigError(format!("序列化加密导出数据失败: {}", e)))
+    }
+
+    /// 检测导入数据格式
+    ///
+    /// 根据 JSON 内容判断是加密信封 (v2.0) 还是明文导出 (v1.0)。
+    pub fn detect_import_format(content: &str) -> ImportFormat {
+        if let Ok(v) = serde_json::from_str::<serde_json::Value>(content) {
+            if v.get("format").and_then(|f| f.as_str()) == Some("encrypted") {
+                return ImportFormat::EncryptedV2;
+            }
+            if v.get("accounts").is_some() {
+                return ImportFormat::PlaintextV1;
+            }
+        }
+        ImportFormat::Unknown
+    }
+
+    /// 解密并导入账号数据
+    ///
+    /// 从加密信封中恢复 accounts JSON，然后执行常规导入流程。
+    ///
+    /// # 参数
+    ///
+    /// * `encrypted_content` - 加密信封 JSON 字符串
+    /// * `password` - 用户输入的密码
+    /// * `mode` - 导入模式
+    /// * `force` - 是否强制覆盖
+    pub fn import_accounts_encrypted(
+        &self,
+        encrypted_content: &str,
+        password: &str,
+        mode: ImportMode,
+        force: bool,
+    ) -> Result<ImportResult> {
+        let encrypted: CodexAuthEncryptedExport = serde_json::from_str(encrypted_content)
+            .map_err(|e| CcrError::ConfigError(format!("解析加密导出数据失败: {}", e)))?;
+
+        let accounts_json =
+            super::codex_auth_crypto::ExportCrypto::decrypt_export(&encrypted, password)?;
+
+        // 重建完整的 v1.0 明文结构以复用现有 import_accounts
+        let full_export = format!(
+            r#"{{"version":"1.0","exported_at":"{}","accounts":{}}}"#,
+            encrypted.exported_at.to_rfc3339(),
+            accounts_json
+        );
+
+        self.import_accounts(&full_export, mode, force)
     }
 
     /// 导入账号数据
