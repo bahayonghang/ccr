@@ -17,7 +17,7 @@ CLI-first workflow with TUI and the full CCR UI for Claude Code, Codex, Gemini, 
   - **CLI**: Powerful command-line interface for all operations.
   - **TUI**: Interactive terminal configuration selector with Tab navigation.
   - **CCR UI**: Full-stack browser/desktop experience built with Vue 3 + Tauri.
-- **Auth Portability**: Save, export, import, and now seed compatible OpenCode auth snapshots from saved Codex accounts without overwriting existing OpenCode entries.
+- **Auth Portability**: Save, export (encrypted), import, and seed compatible OpenCode auth snapshots from saved Codex accounts without overwriting existing OpenCode entries.
 - **Smart Sync**: WebDAV-based multi-folder synchronization keeps your configs consistent across machines.
 - **Secure**: Sensitive data (API keys, tokens) is automatically masked in outputs.
 
@@ -157,14 +157,16 @@ ccr codex auth delete old-account --force
 
 ### Export & Import
 
+Exports containing secrets are **encrypted by default** using AES-256-GCM with Argon2id key derivation. This ensures safe cross-device transfer of account credentials.
+
 ```bash
-# Export all accounts to Downloads folder
+# Export all accounts (encrypted, prompts for password)
 ccr codex auth export
 
-# Export without sensitive data (tokens)
+# Export without sensitive data (no encryption needed)
 ccr codex auth export --no-secrets
 
-# Import accounts from file (interactive)
+# Import accounts from file (auto-detects encrypted/plaintext)
 ccr codex auth import
 
 # Import in replace mode (overwrite existing accounts)
@@ -173,6 +175,11 @@ ccr codex auth import --replace
 # Import with force (overwrite in merge mode)
 ccr codex auth import --force
 ```
+
+**Encryption Details:**
+- Secrets exports are encrypted with a user-provided password (AES-256-GCM + Argon2id)
+- Import auto-detects encrypted vs plaintext files and prompts for password when needed
+- Old plaintext export files remain importable (backward compatible)
 
 **Import Modes:**
 - **Merge (default)**: Skip existing accounts, only add new ones

@@ -28,8 +28,8 @@ ccr codex sync-history prune-backups [--keep <N>]
 | `switch <name>` | 切换到指定账号 |
 | `delete <name>` | 删除已保存账号 |
 | `current` | 显示当前账号信息 |
-| `export` | 导出账号到 JSON |
-| `import` | 从 JSON 导入账号 |
+| `export` | 导出账号到加密 JSON |
+| `import` | 从 JSON 导入账号（自动检测加密/明文） |
 
 ### `ccr codex sync-history`
 
@@ -84,10 +84,47 @@ ccr codex auth list
 ccr codex auth switch work
 ccr codex auth current
 
-# 导入导出
+# 导入导出（包含敏感信息时自动加密）
+ccr codex auth export
 ccr codex auth export --no-secrets
 ccr codex auth import --replace
 ```
+
+### 导出加密
+
+当导出包含敏感信息（OAuth Token、API Key）时，系统会自动提示设置密码并使用 AES-256-GCM + Argon2id 加密。
+
+**加密方案：**
+
+| 项目 | 说明 |
+|------|------|
+| 加密算法 | AES-256-GCM（认证加密） |
+| 密钥派生 | Argon2id（64MB / 3 iterations / 1 并行度） |
+| 导出格式 | JSON 信封：可读头（版本、时间、账号数）+ 加密 payload |
+| AAD 保护 | 信封头字段绑定为 GCM 认证数据，防止元数据篡改 |
+| 向后兼容 | 导入时自动识别旧版明文文件 |
+
+**导出文件格式（v2.0 加密信封）：**
+
+```json
+{
+  "version": "2.0",
+  "format": "encrypted",
+  "exported_at": "2026-04-15T12:00:00Z",
+  "account_count": 5,
+  "encryption": {
+    "algorithm": "aes-256-gcm",
+    "kdf": "argon2id",
+    "kdf_params": { "m_cost": 65536, "t_cost": 3, "p_cost": 1 },
+    "salt": "<base64>",
+    "nonce": "<base64>"
+  },
+  "encrypted_payload": "<base64>"
+}
+```
+
+无需解密即可读取的信息：导出时间、账号数量、加密参数。
+账号的所有敏感数据（Token、API Key）全部在 `encrypted_payload` 中加密保护。
 
 ## 将已保存账号迁移到 OpenCode
 
@@ -113,7 +150,7 @@ ccr opencode auth import-codex
 
 - 一个开发者维护多个 GitHub / Codex 登录身份
 - 团队共享机器，需要显式切换账号
-- 需要导入导出 Codex 登录状态做迁移或备份
+- 需要导入导出 Codex 登录状态做迁移或备份（跨设备传输自动加密保护）
 
 ## 相关文档
 

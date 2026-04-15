@@ -28,8 +28,8 @@ Without a subcommand, CCR enters the default Codex interaction path; when the TU
 | `switch <name>` | Switch to a saved account |
 | `delete <name>` | Delete a saved account |
 | `current` | Show the current account |
-| `export` | Export accounts to JSON |
-| `import` | Import accounts from JSON |
+| `export` | Export accounts to encrypted JSON |
+| `import` | Import accounts from JSON (auto-detects encrypted/plaintext) |
 
 ### `ccr codex sync-history`
 
@@ -84,10 +84,47 @@ ccr codex auth list
 ccr codex auth switch work
 ccr codex auth current
 
-# Import and export
+# Import and export (auto-encrypts when secrets are included)
+ccr codex auth export
 ccr codex auth export --no-secrets
 ccr codex auth import --replace
 ```
+
+### Export Encryption
+
+When exporting with secrets (OAuth tokens, API keys), the system automatically prompts for a password and encrypts the file using AES-256-GCM with Argon2id key derivation.
+
+**Encryption Scheme:**
+
+| Item | Details |
+|------|---------|
+| Cipher | AES-256-GCM (authenticated encryption) |
+| Key Derivation | Argon2id (64 MB / 3 iterations / 1 parallelism) |
+| Export Format | JSON envelope: readable header (version, timestamp, count) + encrypted payload |
+| AAD Protection | Envelope header fields are bound as GCM authenticated data to prevent metadata tampering |
+| Backward Compat | Import auto-detects old plaintext files |
+
+**Encrypted export format (v2.0 envelope):**
+
+```json
+{
+  "version": "2.0",
+  "format": "encrypted",
+  "exported_at": "2026-04-15T12:00:00Z",
+  "account_count": 5,
+  "encryption": {
+    "algorithm": "aes-256-gcm",
+    "kdf": "argon2id",
+    "kdf_params": { "m_cost": 65536, "t_cost": 3, "p_cost": 1 },
+    "salt": "<base64>",
+    "nonce": "<base64>"
+  },
+  "encrypted_payload": "<base64>"
+}
+```
+
+Readable without decryption: export time, account count, encryption parameters.
+All sensitive account data (tokens, API keys) is protected inside `encrypted_payload`.
 
 ## Migrate Saved Accounts into OpenCode
 
@@ -113,7 +150,7 @@ Migration guarantees:
 
 - One developer manages multiple GitHub / Codex identities
 - A shared machine needs explicit account switching
-- You want to export or import Codex auth state for backup or migration
+- You want to export or import Codex auth state for backup or migration (cross-device transfers are encrypted by default)
 
 ## Related Docs
 

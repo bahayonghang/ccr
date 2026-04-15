@@ -18,7 +18,7 @@
   - **TUI**：交互式终端配置选择器，支持Tab切换。
   - **Legacy Web API**：面向脚本、CI 和兼容场景的嵌入式 Axum 服务。
   - **CCR UI**：基于 Vue 3 + Tauri 的浏览器/桌面图形入口。
-- **认证迁移友好**：支持保存、导出、导入 Codex 账号，并可将兼容的已保存 Codex 账号安全迁移为 OpenCode 的已保存账号，且不覆盖现有 OpenCode 条目。
+- **认证迁移友好**：支持保存、导出（加密）、导入 Codex 账号，并可将兼容的已保存 Codex 账号安全迁移为 OpenCode 的已保存账号，且不覆盖现有 OpenCode 条目。
 - **智能同步**：基于 WebDAV 的多文件夹同步能力，保持多机配置一致。
 - **隐私保护**：输出时自动掩码 API Key 等敏感数据。
 
@@ -158,14 +158,16 @@ ccr codex auth delete old-account --force
 
 ### 导出与导入
 
+包含敏感信息的导出**默认加密**，使用 AES-256-GCM + Argon2id 密钥派生，确保跨设备传输账号凭据时的安全性。
+
 ```bash
-# 导出所有账号到 Downloads 文件夹
+# 导出所有账号（加密，会提示设置密码）
 ccr codex auth export
 
-# 导出时不包含敏感数据（Token）
+# 导出时不包含敏感数据（无需加密）
 ccr codex auth export --no-secrets
 
-# 从文件导入账号（交互式）
+# 从文件导入账号（自动检测加密/明文格式）
 ccr codex auth import
 
 # 使用替换模式导入（覆盖同名账号）
@@ -174,6 +176,11 @@ ccr codex auth import --replace
 # 使用强制模式导入（合并模式下覆盖已存在账号）
 ccr codex auth import --force
 ```
+
+**加密说明：**
+- 包含敏感信息的导出使用用户设置的密码加密（AES-256-GCM + Argon2id）
+- 导入时自动检测文件是加密还是明文，加密文件会提示输入密码
+- 旧版明文导出文件仍然可以正常导入（向后兼容）
 
 **导入模式说明：**
 - **合并模式（默认）**：跳过已存在的账号，只添加新账号
