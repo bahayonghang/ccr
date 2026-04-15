@@ -116,10 +116,10 @@ impl OpenCodePaths {
             return official;
         }
 
-        if let Some(legacy) = legacy {
-            if legacy.exists() {
-                return legacy;
-            }
+        if let Some(legacy) = legacy
+            && legacy.exists()
+        {
+            return legacy;
         }
 
         official

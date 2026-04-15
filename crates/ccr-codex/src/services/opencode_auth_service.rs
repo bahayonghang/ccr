@@ -2,10 +2,12 @@
 // 管理 OpenCode 的 openai provider 多账号手动切换
 
 use crate::models::{
-    OpenCodeAuthAccount, OpenCodeAuthItem, OpenCodeAuthRegistry, OpenCodeCurrentAuthInfo,
-    OpenCodeLoginState, OpenCodeOpenAiAuth, OpenCodeReadSnapshot, TokenFreshness,
+    CodexAuthJson, CodexAuthRegistry, CodexToOpenCodeMigrationItem, CodexToOpenCodeMigrationReport,
+    CodexToOpenCodeMigrationStatus, OpenAiAuthMethod, OpenCodeAuthAccount, OpenCodeAuthItem,
+    OpenCodeAuthRegistry, OpenCodeCurrentAuthInfo, OpenCodeLoginState, OpenCodeOpenAiAuth,
+    OpenCodeReadSnapshot, TokenFreshness,
 };
-use crate::utils::{OpenCodePaths, decode_base64url, ensure_private_permissions};
+use crate::utils::{CodexPaths, OpenCodePaths, decode_base64url, ensure_private_permissions};
 use ccr_core::core::atomic_writer::AtomicWriter;
 use ccr_core::core::error::{CcrError, Result};
 use chrono::{DateTime, Duration, TimeZone, Utc};
@@ -19,6 +21,8 @@ pub struct OpenCodeAuthService {
     ccr_opencode_dir: PathBuf,
     /// OpenCode 数据目录（官方默认：`$HOME/.local/share/opencode/`）
     opencode_dir: PathBuf,
+    /// 测试注入的 Codex CCR 数据目录
+    codex_ccr_dir_override: Option<PathBuf>,
 }
 
 impl OpenCodeAuthService {
@@ -28,6 +32,7 @@ impl OpenCodeAuthService {
         Ok(Self {
             ccr_opencode_dir: paths.ccr_opencode_dir,
             opencode_dir: paths.opencode_dir,
+            codex_ccr_dir_override: None,
         })
     }
 
@@ -35,6 +40,19 @@ impl OpenCodeAuthService {
         Self {
             ccr_opencode_dir,
             opencode_dir,
+            codex_ccr_dir_override: None,
+        }
+    }
+
+    pub fn from_dirs_with_codex(
+        ccr_opencode_dir: PathBuf,
+        opencode_dir: PathBuf,
+        codex_ccr_dir: PathBuf,
+    ) -> Self {
+        Self {
+            ccr_opencode_dir,
+            opencode_dir,
+            codex_ccr_dir_override: Some(codex_ccr_dir),
         }
     }
 
@@ -226,6 +244,193 @@ impl OpenCodeAuthService {
         self.save_registry(&registry)
     }
 
+    /// 从已保存的 Codex Auth 账号导入可兼容的 OpenAI OAuth 账号
+    pub fn import_saved_codex_accounts(
+        &self,
+        dry_run: bool,
+    ) -> Result<CodexToOpenCodeMigrationReport> {
+        let codex_ccr_dir = self.resolve_codex_ccr_dir()?;
+        self.import_saved_codex_accounts_from_dir(&codex_ccr_dir, dry_run)
+    }
+
+    fn import_saved_codex_accounts_from_dir(
+        &self,
+        codex_ccr_dir: &Path,
+        dry_run: bool,
+    ) -> Result<CodexToOpenCodeMigrationReport> {
+        let source_registry = Self::load_codex_registry(codex_ccr_dir)?;
+        let mut target_registry = self.load_registry()?;
+        let preserved_current_auth = target_registry.current_auth.clone();
+        let mut report = CodexToOpenCodeMigrationReport {
+            dry_run,
+            ..Default::default()
+        };
+        let mut pending_snapshots: Vec<(String, JsonValue)> = Vec::new();
+
+        for (name, account) in &source_registry.accounts {
+            if matches!(account.auth_method, Some(OpenAiAuthMethod::Api))
+                || account.account_id.starts_with("provider:")
+            {
+                report.skipped_incompatible_auth += 1;
+                report.outcomes.push(CodexToOpenCodeMigrationItem {
+                    name: name.clone(),
+                    status: CodexToOpenCodeMigrationStatus::SkippedIncompatibleAuth,
+                    account_id: Some(account.account_id.clone()),
+                    message: "仅支持 ChatGPT OAuth 账号，API key / provider 账号不会迁移"
+                        .to_string(),
+                });
+                continue;
+            }
+
+            let snapshot_path = Self::codex_account_auth_path(codex_ccr_dir, name);
+            if !snapshot_path.exists() {
+                report.skipped_missing_snapshot += 1;
+                report.outcomes.push(CodexToOpenCodeMigrationItem {
+                    name: name.clone(),
+                    status: CodexToOpenCodeMigrationStatus::SkippedMissingSnapshot,
+                    account_id: Some(account.account_id.clone()),
+                    message: format!("缺少 Codex 账号快照: {}", snapshot_path.display()),
+                });
+                continue;
+            }
+
+            let raw_content = match fs::read_to_string(&snapshot_path) {
+                Ok(content) => content,
+                Err(err) => {
+                    report.skipped_invalid_snapshot += 1;
+                    report.outcomes.push(CodexToOpenCodeMigrationItem {
+                        name: name.clone(),
+                        status: CodexToOpenCodeMigrationStatus::SkippedInvalidSnapshot,
+                        account_id: Some(account.account_id.clone()),
+                        message: format!("读取 Codex 账号快照失败: {err}"),
+                    });
+                    continue;
+                }
+            };
+
+            let auth: CodexAuthJson = match serde_json::from_str(&raw_content) {
+                Ok(auth) => auth,
+                Err(err) => {
+                    report.skipped_invalid_snapshot += 1;
+                    report.outcomes.push(CodexToOpenCodeMigrationItem {
+                        name: name.clone(),
+                        status: CodexToOpenCodeMigrationStatus::SkippedInvalidSnapshot,
+                        account_id: Some(account.account_id.clone()),
+                        message: format!("解析 Codex 账号快照失败: {err}"),
+                    });
+                    continue;
+                }
+            };
+
+            let (openai_value, info) = match self.build_openai_snapshot_from_codex(account, &auth) {
+                Ok(result) => result,
+                Err(err) => {
+                    let status = if auth
+                        .openai_api_key
+                        .as_deref()
+                        .map(str::trim)
+                        .is_some_and(|value| !value.is_empty())
+                        && auth.tokens.is_none()
+                    {
+                        report.skipped_incompatible_auth += 1;
+                        CodexToOpenCodeMigrationStatus::SkippedIncompatibleAuth
+                    } else {
+                        report.skipped_invalid_snapshot += 1;
+                        CodexToOpenCodeMigrationStatus::SkippedInvalidSnapshot
+                    };
+                    report.outcomes.push(CodexToOpenCodeMigrationItem {
+                        name: name.clone(),
+                        status,
+                        account_id: Some(account.account_id.clone()),
+                        message: err.to_string(),
+                    });
+                    continue;
+                }
+            };
+
+            if target_registry.accounts.contains_key(name) {
+                report.skipped_existing_name += 1;
+                report.outcomes.push(CodexToOpenCodeMigrationItem {
+                    name: name.clone(),
+                    status: CodexToOpenCodeMigrationStatus::SkippedExistingName,
+                    account_id: Some(info.account_id.clone()),
+                    message: format!("OpenCode 已存在同名账号 '{name}'"),
+                });
+                continue;
+            }
+
+            if let Some((existing_name, _)) = target_registry
+                .accounts
+                .iter()
+                .find(|(_, existing)| existing.account_id == info.account_id)
+            {
+                report.skipped_existing_account_id += 1;
+                report.outcomes.push(CodexToOpenCodeMigrationItem {
+                    name: name.clone(),
+                    status: CodexToOpenCodeMigrationStatus::SkippedExistingAccountId,
+                    account_id: Some(info.account_id.clone()),
+                    message: format!("OpenCode 已存在相同 account_id 的账号 '{}'", existing_name),
+                });
+                continue;
+            }
+
+            report.imported += 1;
+            report.outcomes.push(CodexToOpenCodeMigrationItem {
+                name: name.clone(),
+                status: CodexToOpenCodeMigrationStatus::Imported,
+                account_id: Some(info.account_id.clone()),
+                message: if dry_run {
+                    "可导入到 OpenCode".to_string()
+                } else {
+                    "已导入到 OpenCode".to_string()
+                },
+            });
+
+            target_registry.accounts.insert(
+                name.clone(),
+                OpenCodeAuthAccount {
+                    account_id: info.account_id.clone(),
+                    email: info
+                        .email
+                        .as_deref()
+                        .map(|email| self.mask_email(email))
+                        .or_else(|| account.email.clone()),
+                    plan_type: info.plan_type.clone(),
+                    saved_at: account.saved_at,
+                    last_used: account.last_used,
+                    expires_at: info.expires_at.or(account.expires_at),
+                },
+            );
+            pending_snapshots.push((name.clone(), openai_value));
+        }
+
+        debug_assert_eq!(target_registry.current_auth, preserved_current_auth);
+
+        if dry_run || pending_snapshots.is_empty() {
+            return Ok(report);
+        }
+
+        let mut written_paths = Vec::new();
+        for (name, snapshot) in &pending_snapshots {
+            if let Err(err) = self.write_account_snapshot(name, snapshot) {
+                for path in written_paths {
+                    let _ = fs::remove_file(path);
+                }
+                return Err(err);
+            }
+            written_paths.push(self.account_auth_path(name));
+        }
+
+        if let Err(err) = self.save_registry(&target_registry) {
+            for path in written_paths {
+                let _ = fs::remove_file(path);
+            }
+            return Err(err);
+        }
+
+        Ok(report)
+    }
+
     /// 切换到指定已保存账号
     pub fn switch_account(&self, name: &str) -> Result<()> {
         let mut registry = self.load_registry()?;
@@ -339,6 +544,86 @@ impl OpenCodeAuthService {
         Ok(())
     }
 
+    fn resolve_codex_ccr_dir(&self) -> Result<PathBuf> {
+        if let Some(path) = &self.codex_ccr_dir_override {
+            return Ok(path.clone());
+        }
+        Ok(CodexPaths::resolve()?.ccr_codex_dir)
+    }
+
+    fn load_codex_registry(codex_ccr_dir: &Path) -> Result<CodexAuthRegistry> {
+        let registry_path = codex_ccr_dir.join("auth_registry.toml");
+        if !registry_path.exists() {
+            return Ok(CodexAuthRegistry::default());
+        }
+
+        let content = fs::read_to_string(&registry_path)
+            .map_err(|e| CcrError::ConfigError(format!("读取 Codex 注册表失败: {e}")))?;
+        toml::from_str(&content)
+            .map_err(|e| CcrError::ConfigError(format!("解析 Codex 注册表失败: {e}")))
+    }
+
+    fn codex_account_auth_path(codex_ccr_dir: &Path, name: &str) -> PathBuf {
+        codex_ccr_dir.join("auth").join(format!("{name}.json"))
+    }
+
+    fn build_openai_snapshot_from_codex(
+        &self,
+        account: &crate::models::CodexAuthAccount,
+        auth: &CodexAuthJson,
+    ) -> Result<(JsonValue, OpenCodeCurrentAuthInfo)> {
+        let tokens = auth.tokens.as_ref().ok_or_else(|| {
+            CcrError::ConfigError("Codex 账号快照缺少 OAuth tokens，无法迁移".into())
+        })?;
+
+        let access_token = Self::trimmed_required(tokens.access_token.as_deref(), "access_token")?;
+        let refresh_token =
+            Self::trimmed_required(tokens.refresh_token.as_deref(), "refresh_token")?;
+        let account_id = tokens
+            .account_id
+            .as_deref()
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+            .map(str::to_string)
+            .or_else(|| {
+                let value = account.account_id.trim();
+                (!value.is_empty()).then(|| value.to_string())
+            })
+            .ok_or_else(|| CcrError::ConfigError("Codex 账号快照缺少 account_id".into()))?;
+
+        let access_claims = Self::decode_jwt_claims(&access_token);
+        let id_claims = tokens.id_token.as_deref().and_then(Self::decode_jwt_claims);
+        let email = Self::claim_string(id_claims.as_ref(), "email")
+            .or_else(|| Self::claim_string(access_claims.as_ref(), "email"));
+        let plan = Self::claim_string(access_claims.as_ref(), "chatgpt_plan_type")
+            .or_else(|| Self::claim_string(access_claims.as_ref(), "plan"))
+            .or_else(|| Self::claim_string(id_claims.as_ref(), "chatgpt_plan_type"))
+            .or_else(|| Self::claim_string(id_claims.as_ref(), "plan"))
+            .map(|value| value.trim().to_ascii_lowercase());
+        let expires = Self::claim_i64(access_claims.as_ref(), "exp")
+            .map(Self::normalize_unix_timestamp_millis);
+
+        let mut raw = serde_json::Map::new();
+        raw.insert("type".to_string(), JsonValue::String("oauth".to_string()));
+        raw.insert("access".to_string(), JsonValue::String(access_token));
+        raw.insert("refresh".to_string(), JsonValue::String(refresh_token));
+        raw.insert("accountId".to_string(), JsonValue::String(account_id));
+
+        if let Some(expires) = expires {
+            raw.insert("expires".to_string(), JsonValue::Number(expires.into()));
+        }
+        if let Some(email) = email {
+            raw.insert("email".to_string(), JsonValue::String(email));
+        }
+        if let Some(plan) = plan {
+            raw.insert("plan".to_string(), JsonValue::String(plan));
+        }
+
+        let openai_value = JsonValue::Object(raw);
+        let info = self.extract_current_auth_info(&openai_value)?;
+        Ok((openai_value, info))
+    }
+
     fn extract_current_auth_info(&self, openai: &JsonValue) -> Result<OpenCodeCurrentAuthInfo> {
         let auth: OpenCodeOpenAiAuth = serde_json::from_value(openai.clone()).map_err(|e| {
             CcrError::ConfigError(format!("解析 OpenCode openai provider 失败: {e}"))
@@ -420,6 +705,33 @@ impl OpenCodeAuthService {
             .map(str::trim)
             .filter(|value| !value.is_empty())
             .map(str::to_string)
+    }
+
+    fn claim_i64(claims: Option<&JsonValue>, key: &str) -> Option<i64> {
+        let value = claims?.get(key)?;
+        value.as_i64().or_else(|| {
+            value
+                .as_str()
+                .and_then(|raw| raw.trim().parse::<i64>().ok())
+        })
+    }
+
+    fn normalize_unix_timestamp_millis(value: i64) -> i64 {
+        if value >= 1_000_000_000_000 {
+            value
+        } else {
+            value.saturating_mul(1000)
+        }
+    }
+
+    fn trimmed_required(value: Option<&str>, field: &str) -> Result<String> {
+        value
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+            .map(str::to_string)
+            .ok_or_else(|| {
+                CcrError::ConfigError(format!("Codex 账号快照缺少有效的 {field}，无法迁移"))
+            })
     }
 
     fn unix_millis_to_datetime(value: i64) -> Option<DateTime<Utc>> {
@@ -522,17 +834,88 @@ mod tests {
         )
     }
 
-    fn fake_access_token(email: &str, account_id: &str, plan: &str) -> String {
+    fn create_migration_test_service() -> (
+        OpenCodeAuthService,
+        tempfile::TempDir,
+        tempfile::TempDir,
+        PathBuf,
+    ) {
+        let ccr = tempdir().unwrap();
+        let opencode = tempdir().unwrap();
+        let codex_ccr_dir = ccr.path().join("platforms").join("codex");
+        (
+            OpenCodeAuthService::from_dirs_with_codex(
+                ccr.path().join("platforms").join("opencode"),
+                opencode.path().to_path_buf(),
+                codex_ccr_dir.clone(),
+            ),
+            ccr,
+            opencode,
+            codex_ccr_dir,
+        )
+    }
+
+    fn fake_jwt(payload: JsonValue) -> String {
         let header = URL_SAFE_NO_PAD.encode(r#"{"alg":"none","typ":"JWT"}"#);
-        let payload = URL_SAFE_NO_PAD.encode(
-            json!({
-                "email": email,
-                "chatgpt_account_id": account_id,
-                "chatgpt_plan_type": plan
-            })
-            .to_string(),
-        );
+        let payload = URL_SAFE_NO_PAD.encode(payload.to_string());
         format!("{header}.{payload}.signature")
+    }
+
+    fn fake_access_token(email: &str, account_id: &str, plan: &str) -> String {
+        fake_jwt(json!({
+            "email": email,
+            "chatgpt_account_id": account_id,
+            "chatgpt_plan_type": plan
+        }))
+    }
+
+    fn sample_codex_auth_json(
+        email: &str,
+        account_id: &str,
+        plan: &str,
+        expires_at: DateTime<Utc>,
+    ) -> CodexAuthJson {
+        CodexAuthJson {
+            openai_api_key: None,
+            tokens: Some(crate::models::CodexAuthTokens {
+                id_token: Some(fake_jwt(json!({
+                    "email": email
+                }))),
+                access_token: Some(fake_jwt(json!({
+                    "email": email,
+                    "chatgpt_account_id": account_id,
+                    "chatgpt_plan_type": plan,
+                    "exp": expires_at.timestamp()
+                }))),
+                refresh_token: Some(format!("rt_{account_id}")),
+                account_id: Some(account_id.to_string()),
+            }),
+            last_refresh: Some(Utc::now().to_rfc3339()),
+        }
+    }
+
+    fn write_codex_registry(
+        codex_ccr_dir: &Path,
+        name: &str,
+        account: crate::models::CodexAuthAccount,
+    ) {
+        std::fs::create_dir_all(codex_ccr_dir.join("auth")).unwrap();
+        let mut registry = CodexAuthRegistry::default();
+        registry.accounts.insert(name.to_string(), account);
+        std::fs::write(
+            codex_ccr_dir.join("auth_registry.toml"),
+            toml::to_string_pretty(&registry).unwrap(),
+        )
+        .unwrap();
+    }
+
+    fn write_codex_snapshot(codex_ccr_dir: &Path, name: &str, auth: &CodexAuthJson) {
+        std::fs::create_dir_all(codex_ccr_dir.join("auth")).unwrap();
+        std::fs::write(
+            codex_ccr_dir.join("auth").join(format!("{name}.json")),
+            serde_json::to_string_pretty(auth).unwrap(),
+        )
+        .unwrap();
     }
 
     fn sample_openai_provider(
@@ -689,6 +1072,335 @@ mod tests {
         let registry = service.load_registry().unwrap();
         assert!(!registry.accounts.contains_key("work"));
         assert!(!service.account_auth_path("work").exists());
+    }
+
+    #[test]
+    fn import_saved_codex_accounts_migrates_valid_oauth_account() {
+        let (service, _ccr, opencode, codex_ccr_dir) = create_migration_test_service();
+        let expires_at = Utc::now() + Duration::days(10);
+        let saved_at = Utc::now() - Duration::days(2);
+        let last_used = Utc::now() - Duration::hours(3);
+        write_codex_registry(
+            &codex_ccr_dir,
+            "work",
+            crate::models::CodexAuthAccount {
+                description: Some("Work".to_string()),
+                account_id: "acc-1".to_string(),
+                auth_method: Some(OpenAiAuthMethod::Chatgpt),
+                email: Some("use***@example.com".to_string()),
+                saved_at,
+                last_used: Some(last_used),
+                last_refresh: Some(Utc::now()),
+                expires_at: Some(expires_at),
+            },
+        );
+        write_codex_snapshot(
+            &codex_ccr_dir,
+            "work",
+            &sample_codex_auth_json("user@example.com", "acc-1", "plus", expires_at),
+        );
+        let mut target_registry = OpenCodeAuthRegistry {
+            current_auth: Some("existing".to_string()),
+            ..Default::default()
+        };
+        target_registry.accounts.insert(
+            "existing".to_string(),
+            OpenCodeAuthAccount {
+                account_id: "existing-acc".to_string(),
+                email: Some("exi***@example.com".to_string()),
+                plan_type: Some("PLUS".to_string()),
+                saved_at: Utc::now(),
+                last_used: None,
+                expires_at: Some(expires_at),
+            },
+        );
+        service.save_registry(&target_registry).unwrap();
+        std::fs::write(
+            opencode.path().join("auth.json"),
+            serde_json::to_string_pretty(&json!({
+                "github": { "token": "gh-token" }
+            }))
+            .unwrap(),
+        )
+        .unwrap();
+
+        let report = service.import_saved_codex_accounts(false).unwrap();
+
+        assert_eq!(report.imported, 1);
+        assert_eq!(report.total(), 1);
+
+        let registry = service.load_registry().unwrap();
+        let imported = registry.accounts.get("work").unwrap();
+        assert_eq!(imported.account_id, "acc-1");
+        assert_eq!(imported.plan_type.as_deref(), Some("PLUS"));
+        assert_eq!(imported.email.as_deref(), Some("use***@example.com"));
+        assert_eq!(imported.saved_at, saved_at);
+        assert_eq!(imported.last_used, Some(last_used));
+        assert_eq!(registry.current_auth.as_deref(), Some("existing"));
+
+        let snapshot: JsonValue = serde_json::from_str(
+            &std::fs::read_to_string(service.account_auth_path("work")).unwrap(),
+        )
+        .unwrap();
+        assert_eq!(
+            snapshot.get("accountId").and_then(JsonValue::as_str),
+            Some("acc-1")
+        );
+        assert_eq!(
+            snapshot.get("refresh").and_then(JsonValue::as_str),
+            Some("rt_acc-1")
+        );
+        assert_eq!(
+            snapshot.get("plan").and_then(JsonValue::as_str),
+            Some("plus")
+        );
+
+        let runtime_root: JsonValue = serde_json::from_str(
+            &std::fs::read_to_string(opencode.path().join("auth.json")).unwrap(),
+        )
+        .unwrap();
+        assert_eq!(
+            runtime_root
+                .get("github")
+                .and_then(|value| value.get("token"))
+                .and_then(JsonValue::as_str),
+            Some("gh-token")
+        );
+        assert!(runtime_root.get("openai").is_none());
+    }
+
+    #[test]
+    fn import_saved_codex_accounts_skips_api_key_accounts_as_incompatible() {
+        let (service, _ccr, _opencode, codex_ccr_dir) = create_migration_test_service();
+        write_codex_registry(
+            &codex_ccr_dir,
+            "api",
+            crate::models::CodexAuthAccount {
+                description: None,
+                account_id: "api:sk-123".to_string(),
+                auth_method: Some(OpenAiAuthMethod::Api),
+                email: None,
+                saved_at: Utc::now(),
+                last_used: None,
+                last_refresh: None,
+                expires_at: None,
+            },
+        );
+        write_codex_snapshot(
+            &codex_ccr_dir,
+            "api",
+            &CodexAuthJson {
+                openai_api_key: Some("sk-test".to_string()),
+                tokens: None,
+                last_refresh: None,
+            },
+        );
+
+        let report = service.import_saved_codex_accounts(false).unwrap();
+
+        assert_eq!(report.imported, 0);
+        assert_eq!(report.skipped_incompatible_auth, 1);
+        assert!(service.load_registry().unwrap().accounts.is_empty());
+    }
+
+    #[test]
+    fn import_saved_codex_accounts_skips_missing_snapshot() {
+        let (service, _ccr, _opencode, codex_ccr_dir) = create_migration_test_service();
+        write_codex_registry(
+            &codex_ccr_dir,
+            "missing",
+            crate::models::CodexAuthAccount {
+                description: None,
+                account_id: "acc-missing".to_string(),
+                auth_method: Some(OpenAiAuthMethod::Chatgpt),
+                email: None,
+                saved_at: Utc::now(),
+                last_used: None,
+                last_refresh: None,
+                expires_at: None,
+            },
+        );
+
+        let report = service.import_saved_codex_accounts(false).unwrap();
+        assert_eq!(report.skipped_missing_snapshot, 1);
+        assert!(service.load_registry().unwrap().accounts.is_empty());
+    }
+
+    #[test]
+    fn import_saved_codex_accounts_skips_invalid_snapshot() {
+        let (service, _ccr, _opencode, codex_ccr_dir) = create_migration_test_service();
+        write_codex_registry(
+            &codex_ccr_dir,
+            "broken",
+            crate::models::CodexAuthAccount {
+                description: None,
+                account_id: "acc-broken".to_string(),
+                auth_method: Some(OpenAiAuthMethod::Chatgpt),
+                email: None,
+                saved_at: Utc::now(),
+                last_used: None,
+                last_refresh: None,
+                expires_at: None,
+            },
+        );
+        std::fs::create_dir_all(codex_ccr_dir.join("auth")).unwrap();
+        std::fs::write(
+            codex_ccr_dir.join("auth").join("broken.json"),
+            serde_json::to_string_pretty(&json!({
+                "tokens": {
+                    "access_token": "only-access"
+                }
+            }))
+            .unwrap(),
+        )
+        .unwrap();
+
+        let report = service.import_saved_codex_accounts(false).unwrap();
+        assert_eq!(report.skipped_invalid_snapshot, 1);
+        assert!(service.load_registry().unwrap().accounts.is_empty());
+    }
+
+    #[test]
+    fn import_saved_codex_accounts_skips_existing_name_conflict() {
+        let (service, _ccr, _opencode, codex_ccr_dir) = create_migration_test_service();
+        let expires_at = Utc::now() + Duration::days(7);
+        write_codex_registry(
+            &codex_ccr_dir,
+            "work",
+            crate::models::CodexAuthAccount {
+                description: None,
+                account_id: "acc-source".to_string(),
+                auth_method: Some(OpenAiAuthMethod::Chatgpt),
+                email: None,
+                saved_at: Utc::now(),
+                last_used: None,
+                last_refresh: None,
+                expires_at: Some(expires_at),
+            },
+        );
+        write_codex_snapshot(
+            &codex_ccr_dir,
+            "work",
+            &sample_codex_auth_json("user@example.com", "acc-source", "plus", expires_at),
+        );
+
+        let mut target_registry = OpenCodeAuthRegistry {
+            current_auth: Some("work".to_string()),
+            ..Default::default()
+        };
+        target_registry.accounts.insert(
+            "work".to_string(),
+            OpenCodeAuthAccount {
+                account_id: "acc-target".to_string(),
+                email: Some("tar***@example.com".to_string()),
+                plan_type: Some("PLUS".to_string()),
+                saved_at: Utc::now(),
+                last_used: None,
+                expires_at: Some(expires_at),
+            },
+        );
+        service.save_registry(&target_registry).unwrap();
+
+        let report = service.import_saved_codex_accounts(false).unwrap();
+        let registry = service.load_registry().unwrap();
+        assert_eq!(report.skipped_existing_name, 1);
+        assert_eq!(registry.current_auth.as_deref(), Some("work"));
+        assert_eq!(registry.accounts["work"].account_id, "acc-target");
+    }
+
+    #[test]
+    fn import_saved_codex_accounts_skips_existing_account_id_conflict() {
+        let (service, _ccr, _opencode, codex_ccr_dir) = create_migration_test_service();
+        let expires_at = Utc::now() + Duration::days(7);
+        write_codex_registry(
+            &codex_ccr_dir,
+            "source",
+            crate::models::CodexAuthAccount {
+                description: None,
+                account_id: "acc-shared".to_string(),
+                auth_method: Some(OpenAiAuthMethod::Chatgpt),
+                email: None,
+                saved_at: Utc::now(),
+                last_used: None,
+                last_refresh: None,
+                expires_at: Some(expires_at),
+            },
+        );
+        write_codex_snapshot(
+            &codex_ccr_dir,
+            "source",
+            &sample_codex_auth_json("user@example.com", "acc-shared", "plus", expires_at),
+        );
+
+        let mut target_registry = OpenCodeAuthRegistry::default();
+        target_registry.accounts.insert(
+            "existing".to_string(),
+            OpenCodeAuthAccount {
+                account_id: "acc-shared".to_string(),
+                email: Some("exi***@example.com".to_string()),
+                plan_type: Some("PLUS".to_string()),
+                saved_at: Utc::now(),
+                last_used: None,
+                expires_at: Some(expires_at),
+            },
+        );
+        service.save_registry(&target_registry).unwrap();
+
+        let report = service.import_saved_codex_accounts(false).unwrap();
+        assert_eq!(report.skipped_existing_account_id, 1);
+        assert!(!service.account_auth_path("source").exists());
+    }
+
+    #[test]
+    fn import_saved_codex_accounts_dry_run_does_not_write_files() {
+        let (service, _ccr, opencode, codex_ccr_dir) = create_migration_test_service();
+        let expires_at = Utc::now() + Duration::days(7);
+        write_codex_registry(
+            &codex_ccr_dir,
+            "preview",
+            crate::models::CodexAuthAccount {
+                description: None,
+                account_id: "acc-preview".to_string(),
+                auth_method: Some(OpenAiAuthMethod::Chatgpt),
+                email: None,
+                saved_at: Utc::now(),
+                last_used: Some(Utc::now()),
+                last_refresh: Some(Utc::now()),
+                expires_at: Some(expires_at),
+            },
+        );
+        write_codex_snapshot(
+            &codex_ccr_dir,
+            "preview",
+            &sample_codex_auth_json("preview@example.com", "acc-preview", "pro", expires_at),
+        );
+        std::fs::write(
+            opencode.path().join("auth.json"),
+            serde_json::to_string_pretty(&json!({
+                "openai": { "type": "oauth", "accountId": "runtime-acc" }
+            }))
+            .unwrap(),
+        )
+        .unwrap();
+
+        let report = service.import_saved_codex_accounts(true).unwrap();
+
+        assert!(report.dry_run);
+        assert_eq!(report.imported, 1);
+        assert!(service.load_registry().unwrap().accounts.is_empty());
+        assert!(!service.account_auth_path("preview").exists());
+
+        let runtime_root: JsonValue = serde_json::from_str(
+            &std::fs::read_to_string(opencode.path().join("auth.json")).unwrap(),
+        )
+        .unwrap();
+        assert_eq!(
+            runtime_root
+                .get("openai")
+                .and_then(|value| value.get("accountId"))
+                .and_then(JsonValue::as_str),
+            Some("runtime-acc")
+        );
     }
 
     #[test]

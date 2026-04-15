@@ -67,7 +67,8 @@ impl CodexAuthService {
         })
     }
 
-    pub(crate) fn from_dirs(ccr_codex_dir: PathBuf, codex_dir: PathBuf) -> Self {
+    /// 从显式路径构造（用于测试注入与非标准工作目录场景）
+    pub fn from_dirs(ccr_codex_dir: PathBuf, codex_dir: PathBuf) -> Self {
         Self {
             ccr_codex_dir,
             codex_dir,

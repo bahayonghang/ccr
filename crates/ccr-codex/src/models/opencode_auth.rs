@@ -169,6 +169,89 @@ pub struct OpenCodeReadSnapshot {
     pub current_expires_at: Option<DateTime<Utc>>,
 }
 
+/// Codex -> OpenCode 迁移单账号结果类型
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum CodexToOpenCodeMigrationStatus {
+    Imported,
+    SkippedExistingName,
+    SkippedExistingAccountId,
+    SkippedIncompatibleAuth,
+    SkippedMissingSnapshot,
+    SkippedInvalidSnapshot,
+}
+
+/// Codex -> OpenCode 单账号迁移结果
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct CodexToOpenCodeMigrationItem {
+    /// 源 Codex 账号名称
+    pub name: String,
+
+    /// 迁移结果
+    pub status: CodexToOpenCodeMigrationStatus,
+
+    /// 账号 ID（当可提取时）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub account_id: Option<String>,
+
+    /// 人类可读原因
+    pub message: String,
+}
+
+/// Codex -> OpenCode 迁移汇总报告
+#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq, Eq)]
+pub struct CodexToOpenCodeMigrationReport {
+    /// 是否为 dry-run
+    #[serde(default)]
+    pub dry_run: bool,
+
+    /// 可导入 / 已导入数量
+    #[serde(default)]
+    pub imported: usize,
+
+    /// 因目标同名而跳过
+    #[serde(default)]
+    pub skipped_existing_name: usize,
+
+    /// 因目标存在相同 account_id 而跳过
+    #[serde(default)]
+    pub skipped_existing_account_id: usize,
+
+    /// 因源认证类型不兼容而跳过
+    #[serde(default)]
+    pub skipped_incompatible_auth: usize,
+
+    /// 因缺失源快照而跳过
+    #[serde(default)]
+    pub skipped_missing_snapshot: usize,
+
+    /// 因源快照无效而跳过
+    #[serde(default)]
+    pub skipped_invalid_snapshot: usize,
+
+    /// 逐账号结果
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub outcomes: Vec<CodexToOpenCodeMigrationItem>,
+}
+
+impl CodexToOpenCodeMigrationReport {
+    pub fn skipped_total(&self) -> usize {
+        self.skipped_existing_name
+            + self.skipped_existing_account_id
+            + self.skipped_incompatible_auth
+            + self.skipped_missing_snapshot
+            + self.skipped_invalid_snapshot
+    }
+
+    pub fn total(&self) -> usize {
+        self.imported + self.skipped_total()
+    }
+
+    pub fn has_importable_accounts(&self) -> bool {
+        self.imported > 0
+    }
+}
+
 #[cfg(test)]
 #[allow(clippy::unwrap_used)]
 mod tests {
@@ -299,5 +382,23 @@ saved_at = "2026-01-01T00:00:00Z"
             OpenCodeLoginState::LoggedInUnsaved,
             OpenCodeLoginState::NotLoggedIn
         );
+    }
+
+    #[test]
+    fn codex_to_opencode_migration_report_totals() {
+        let report = CodexToOpenCodeMigrationReport {
+            dry_run: true,
+            imported: 2,
+            skipped_existing_name: 1,
+            skipped_existing_account_id: 1,
+            skipped_incompatible_auth: 1,
+            skipped_missing_snapshot: 1,
+            skipped_invalid_snapshot: 1,
+            outcomes: vec![],
+        };
+
+        assert_eq!(report.skipped_total(), 5);
+        assert_eq!(report.total(), 7);
+        assert!(report.has_importable_accounts());
     }
 }

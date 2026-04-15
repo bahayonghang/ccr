@@ -20,5 +20,6 @@ pub use services::{
     CodexRuntimeCommitPlan, CodexRuntimeService, CodexSessionDetail, CodexSessionExport,
     CodexSessionMessage, CodexSessionService, CodexSessionSummary, CodexUsageRecord,
     CodexUsageService, CodexUsageStats, OAuthRepairOutcome, OpenCodeAuthService,
-    OpenCodeRollingUsage, OpenCodeUsageRecord, OpenCodeUsageService, OpenCodeUsageStats,
+    OpenCodeQuotaService, OpenCodeRollingUsage, OpenCodeUsageRecord, OpenCodeUsageService,
+    OpenCodeUsageStats,
 };
