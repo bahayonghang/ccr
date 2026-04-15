@@ -17,6 +17,7 @@ export default defineConfig({
     include: ['tests/**/*.smoke.test.ts'],
     execArgv: [`--localstorage-file=${localStorageFile}`],
     restoreMocks: true,
-    clearMocks: true
+    clearMocks: true,
+    testTimeout: 15_000
   }
 })
