@@ -148,6 +148,8 @@ export default {
     gemini: 'Gemini',
     droid: 'Factory Droid',
     mcp: 'MCP 服务器',
+    mcpManager: 'MCP 管理中心',
+    skillsManager: 'Skill 管理中心',
     agents: 'Agents',
     subagents: 'Subagents',
     slashCommands: '斜杠命令',
@@ -851,6 +853,7 @@ export default {
   },
   mcp: {
     // McpView - MCP Servers Management
+    searchServers: '搜索服务器...',
     title: 'MCP 服务器管理',
     subtitle: 'Model Context Protocol 服务器配置和管理',
     badge: 'MCP',

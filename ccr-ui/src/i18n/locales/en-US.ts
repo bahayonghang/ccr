@@ -144,6 +144,8 @@ export default {
     gemini: 'Gemini',
     droid: 'Factory Droid',
     mcp: 'MCP Servers',
+    mcpManager: 'MCP Manager',
+    skillsManager: 'Skill Manager',
     agents: 'Agents',
     subagents: 'Subagents',
     slashCommands: 'Slash Commands',
@@ -821,6 +823,7 @@ export default {
   },
   mcp: {
     // McpView - MCP Servers Management
+    searchServers: 'Search servers...',
     title: 'MCP Server Management',
     subtitle: 'Model Context Protocol server configuration and management',
     badge: 'MCP',

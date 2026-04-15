@@ -187,8 +187,13 @@ const routes: RouteRecordRaw[] = [
       {
         path: 'mcp/unified',
         name: 'mcp-unified',
-        component: () => import('@/views/mcp/UnifiedMcpView.vue'),
-        meta: { cache: true, hideSidebar: true, depth: 1, group: 'config' },
+        redirect: '/mcp-manager',
+      },
+      {
+        path: 'mcp-manager',
+        name: 'mcp-manager',
+        component: () => import('@/views/mcp/McpManagerView.vue'),
+        meta: { cache: true, depth: 1, group: 'config' },
       },
       {
         path: 'slash-commands',
@@ -209,30 +214,35 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/generic/AgentDetailView.vue'),
         meta: { depth: 2, group: 'config' },
       },
-      // Skills Hub (depth: 1, group: 'skills')
+      // Skills Hub — 旧页面 redirect 到新 manager
       {
         path: 'skills',
         name: 'skills',
-        component: () => import('@/views/skills/SkillsView.vue'),
+        redirect: '/skills-manager',
+      },
+      {
+        path: 'skills-manager',
+        name: 'skills-manager',
+        component: () => import('@/views/skills/SkillsManagerView.vue'),
         meta: { cache: true, depth: 1, group: 'skills' },
       },
       {
         path: 'skills/add',
         name: 'skills-add',
-        redirect: '/skills?tab=explore',
+        redirect: '/skills-manager',
       },
       {
         path: 'skills/hub',
-        redirect: '/skills?tab=explore',
+        redirect: '/skills-manager',
       },
       {
         path: 'skills/:platform/:name',
-        redirect: '/skills',
+        redirect: '/skills-manager',
       },
       {
         path: 'market',
         name: 'market',
-        redirect: '/skills?tab=explore',
+        redirect: '/skills-manager',
       },
       // 配置组 (depth: 1, group: 'config')
       {

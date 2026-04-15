@@ -35,10 +35,10 @@ describe('router smoke', () => {
     expect(statsRoute?.redirect).toBe('/usage')
   })
 
-  it('redirects /market to the unified skills marketplace', () => {
+  it('redirects /market to the unified skills manager', () => {
     const marketRoute = router.getRoutes().find(route => route.path === '/market')
 
-    expect(marketRoute?.redirect).toBe('/skills?tab=explore')
+    expect(marketRoute?.redirect).toBe('/skills-manager')
   })
 
   it('preserves generated platform child route paths', () => {
