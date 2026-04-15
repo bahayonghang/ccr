@@ -90,7 +90,42 @@ ccr codex auth current
 
 This path is Codex-specific and should be documented as a first-class workflow rather than hidden inside generic profile docs.
 
-## Workflow 7: Switch to the graphical interface
+## Workflow 7: Migrate saved Codex auth into OpenCode
+
+```bash
+# Preview which accounts are importable
+ccr opencode auth import-codex --dry-run
+
+# Import compatible saved Codex accounts into OpenCode
+ccr opencode auth import-codex
+
+# Emit a machine-readable migration report
+ccr opencode auth import-codex --json
+```
+
+Use this when:
+
+- you already saved multiple Codex accounts in CCR
+- you want OpenCode to reuse those accounts without reauthenticating one by one
+- you want additive import semantics instead of overwriting existing OpenCode entries
+
+Behavior boundaries:
+
+- imports only Codex accounts already saved in CCR
+- accepts only compatible ChatGPT OAuth-backed accounts
+- never overwrites existing OpenCode accounts
+- never switches the current OpenCode runtime login
+- reports skip reasons for conflicts, missing snapshots, and invalid snapshots
+
+If you want to inspect the OpenCode auth view interactively first:
+
+```bash
+ccr opencode
+```
+
+Then press `i` on the OpenCode Auth tab to preview and confirm the import inside TUI.
+
+## Workflow 8: Switch to the graphical interface
 
 ```bash
 ccr ui

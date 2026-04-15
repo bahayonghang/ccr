@@ -5,6 +5,7 @@ export type ClaudeProfileFormSectionId = (typeof CLAUDE_PROFILE_FORM_SECTION_IDS
 export interface ClaudeProfileEditorForm {
   name: string
   description: string
+  auth_mode: 'subscription' | 'api_key'
   base_url: string
   auth_token: string
   model: string

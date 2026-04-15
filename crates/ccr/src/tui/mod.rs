@@ -3,6 +3,8 @@
 
 pub mod action;
 mod app;
+mod auth_refresh;
+pub mod claude_auth;
 pub mod codex_auth;
 mod event;
 pub mod opencode_auth;
@@ -29,6 +31,15 @@ fn print_exit_info(app: &App) {
         }
     }
 
+    // Claude auth action result
+    if let Some((action, name, success, error)) = &app.last_claude_action {
+        if *success {
+            println!("✅ {} Claude 官方账号: {}", action, name);
+        } else if let Some(err) = error {
+            eprintln!("❌ {} Claude 官方账号 {} 失败: {}", action, name, err);
+        }
+    }
+
     // Codex auth action result
     if let Some((action, name, success, error)) = &app.last_codex_action {
         if *success {
@@ -51,7 +62,7 @@ fn print_exit_info(app: &App) {
 /// Run the main profile-switching TUI.
 pub fn run_tui() -> Result<()> {
     let mut guard = TerminalGuard::new()?;
-    let mut app = App::new()?;
+    let mut app = App::new()?.with_claude_auth_tab();
     let mut events = EventHandler::new(250);
 
     run_loop(&mut guard, &mut app, &mut events)?;
@@ -72,6 +83,34 @@ pub fn run_tui_with_codex_auth() -> Result<()> {
     run_loop(&mut guard, &mut app, &mut events)?;
 
     // Must drop guard BEFORE printing so terminal leaves alternate screen first
+    drop(guard);
+    print_exit_info(&app);
+
+    Ok(())
+}
+
+/// Run the main TUI pre-selected to the Claude Auth tab.
+pub fn run_tui_with_claude_auth() -> Result<()> {
+    let mut guard = TerminalGuard::new()?;
+    let mut app = App::new()?.with_claude_auth_tab();
+    let mut events = EventHandler::new(250);
+
+    run_loop(&mut guard, &mut app, &mut events)?;
+
+    drop(guard);
+    print_exit_info(&app);
+
+    Ok(())
+}
+
+/// Run the main TUI pre-selected to the OpenCode Auth tab.
+pub fn run_tui_with_opencode_auth() -> Result<()> {
+    let mut guard = TerminalGuard::new()?;
+    let mut app = App::new()?.with_opencode_auth_tab();
+    let mut events = EventHandler::new(250);
+
+    run_loop(&mut guard, &mut app, &mut events)?;
+
     drop(guard);
     print_exit_info(&app);
 

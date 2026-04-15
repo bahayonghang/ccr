@@ -9,6 +9,7 @@ CCR's current CLI falls into five groups: platform and initialization, profiles 
 | [`init`](./init) | Initialize the configuration root | entrypoint for the current layout |
 | [`platform`](./platform) | Manage the platform registry | list / switch / current / info / init |
 | [`codex`](./codex) | Manage Codex multi-account auth | `ccr codex auth *` |
+| [`opencode`](./opencode) | OpenCode auth migration and entrypoint | `ccr opencode` / `ccr opencode auth import-codex` |
 | [`add`](./add) / [`delete`](./delete) | Create or remove profiles | operates on the current platform |
 | [`list`](./list) / [`current`](./current) / [`switch`](./switch) | Inspect or switch profiles | `ccr <name>` is the shortcut form of `switch` |
 | [`temp`](./temp) / [`temp-token`](./temp-token) | Temporary overrides for the active settings | `temp` is interactive, `temp-token` is command-line driven |
@@ -50,6 +51,8 @@ ccr
 
 - [`init`](./init)
 - [`platform`](./platform)
+- [`codex`](./codex)
+- [`opencode`](./opencode)
 
 ### Profiles and overrides
 
@@ -87,7 +90,6 @@ ccr
 
 ### Extensions and maintenance
 
-- [`codex`](./codex)
 - [`skills`](./skills)
 - [`prompts`](./prompts)
 - [`update`](./update)

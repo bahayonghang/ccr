@@ -64,13 +64,16 @@ impl Cli {
     /// 🖥️ 检测是否为 TUI 模式
     ///
     /// 当没有指定子命令和配置名称时，会进入 TUI 模式
-    /// `ccr codex` 无参数也视为 TUI 模式
+    /// `ccr codex` / `ccr opencode` 无参数也视为 TUI 路由模式
     #[cfg(feature = "tui")]
     pub fn is_tui_mode(&self) -> bool {
         if self.command.is_none() && self.config_name.is_none() {
             return true;
         }
-        matches!(self.command, Some(Commands::Codex { action: None }))
+        matches!(
+            self.command,
+            Some(Commands::Codex { action: None }) | Some(Commands::OpenCode { action: None })
+        )
     }
 }
 
@@ -407,6 +410,28 @@ pub enum Commands {
     Codex {
         #[command(subcommand)]
         action: Option<super::subcommands::codex::CodexAction>,
+    },
+
+    /// 🔐 OpenCode 多账号管理
+    ///
+    /// 管理 OpenCode openai provider 的多账号快照
+    /// 示例: ccr opencode auth import-codex
+    /// 提示: 直接运行 `ccr opencode` 可启动 TUI 界面
+    #[command(name = "opencode")]
+    OpenCode {
+        #[command(subcommand)]
+        action: Option<super::subcommands::opencode::OpenCodeAction>,
+    },
+
+    /// 🔐 Claude 官方订阅账号管理
+    ///
+    /// 管理 Claude Code 官方订阅凭据快照
+    /// 示例: ccr claude auth list
+    ///       ccr claude auth save work
+    ///       ccr claude auth switch personal
+    Claude {
+        #[command(subcommand)]
+        action: Option<super::subcommands::claude::ClaudeAction>,
     },
 
     /// 📚 Session 管理

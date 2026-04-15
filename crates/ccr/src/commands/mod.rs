@@ -14,9 +14,11 @@
 pub mod common;
 
 // 📦 子模块
+pub mod claude;
 pub mod codex;
 pub mod data;
 pub mod lifecycle;
+pub mod opencode;
 pub mod platform;
 pub mod profile;
 

@@ -14,13 +14,16 @@ ccr
 ```bash
 # Codex 路径下，无 action 时也会进入 TUI
 ccr codex
+
+# OpenCode 路径下，无 action 时也会进入 OpenCode Auth 页签
+ccr opencode
 ```
 
 ## 键盘操作
 
 | 按键 | 功能 |
 |---|---|
-| `Tab` | 在 Claude / Codex 页签之间切换 |
+| `Tab` | 在可用页签之间切换 |
 | `←` / `→` / `h` / `l` | 翻页 |
 | `↑` / `↓` / `j` / `k` | 选择配置 |
 | `Enter` | 应用并退出 |
@@ -30,7 +33,7 @@ ccr codex
 ## 当前定位
 
 - 适合纯终端环境下的 profile 浏览与切换
-- 适合快速在 Claude / Codex 配置之间来回切换
+- 适合快速在 Claude / Codex / OpenCode 相关页签之间来回切换
 - 不替代 `ccr <command>` 的精确命令面
 
 ## 技术事实
@@ -38,6 +41,7 @@ ccr codex
 - 默认构建启用 `tui` feature
 - 入口判断位于 `Cli::is_tui_mode()`
 - 无子命令行为位于 `CommandDispatcher::handle_no_subcommand()`
+- OpenCode Auth 页签支持 `i` 键预览并确认导入兼容的已保存 Codex 账号
 
 ## 示例
 
@@ -46,10 +50,14 @@ ccr
 # Tab 切平台
 # ↑↓ 选配置
 # Enter 应用并退出
+
+ccr opencode
+# 在 OpenCode Auth 页签按 i，预览并确认导入兼容的已保存 Codex 账号
 ```
 
 ## 相关页面
 
+- [`opencode`](./opencode.md)
 - [`list`](./list.md)
 - [`switch`](./switch.md)
 - [`current`](./current.md)

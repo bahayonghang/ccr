@@ -16,6 +16,7 @@ use tauri::State;
 use ccr_config::{Platform, PlatformConfig, ProfileConfig};
 use ccr_skills::{PromptPreset, PromptsManager};
 use ccr::platforms::ClaudePlatform;
+use ccr::services::ClaudeAuthService;
 use ccr_store::{BudgetManager, CostTracker};
 
 use crate::platform::local::LocalEnvironment;
@@ -1008,6 +1009,26 @@ fn build_profile_from_config(config: &Value) -> Result<ProfileConfig, String> {
         profile.platform_data = platform_data.into_iter().collect();
     }
 
+    if let Some(raw) = obj.get("auth_mode") {
+        match raw {
+            Value::Null => {
+                profile
+                    .platform_data
+                    .shift_remove(ClaudePlatform::AUTH_MODE_FIELD);
+            }
+            Value::String(value) if !value.trim().is_empty() => {
+                profile.platform_data.insert(
+                    ClaudePlatform::AUTH_MODE_FIELD.to_string(),
+                    Value::String(value.trim().to_string()),
+                );
+            }
+            Value::String(_) => {
+                return Err("字段 'auth_mode' 不能为空字符串".to_string());
+            }
+            _ => return Err("字段 'auth_mode' 必须是字符串".to_string()),
+        }
+    }
+
     Ok(profile)
 }
 
@@ -1054,11 +1075,35 @@ fn patch_profile_with_config(profile: &mut ProfileConfig, config: &Value) -> Res
         profile.platform_data = platform_data.into_iter().collect();
     }
 
+    if let Some(raw) = obj.get("auth_mode") {
+        match raw {
+            Value::Null => {
+                profile
+                    .platform_data
+                    .shift_remove(ClaudePlatform::AUTH_MODE_FIELD);
+            }
+            Value::String(value) if !value.trim().is_empty() => {
+                profile.platform_data.insert(
+                    ClaudePlatform::AUTH_MODE_FIELD.to_string(),
+                    Value::String(value.trim().to_string()),
+                );
+            }
+            Value::String(_) => {
+                return Err("字段 'auth_mode' 不能为空字符串".to_string());
+            }
+            _ => return Err("字段 'auth_mode' 必须是字符串".to_string()),
+        }
+    }
+
     Ok(())
 }
 
 fn profile_to_json(current_profile: Option<&str>, name: String, profile: ProfileConfig) -> Value {
     let is_current = current_profile == Some(name.as_str());
+    let auth_mode = ClaudePlatform::profile_auth_mode(&profile);
+    let auth_source = ClaudePlatform::profile_auth_source(&profile);
+    let mut extra = profile.platform_data.clone();
+    extra.shift_remove(ClaudePlatform::AUTH_MODE_FIELD);
 
     json!({
         "name": name,
@@ -1074,8 +1119,155 @@ fn profile_to_json(current_profile: Option<&str>, name: String, profile: Profile
         "usage_count": profile.usage_count,
         "enabled": profile.enabled,
         "platform_data": profile.platform_data,
+        "auth_mode": auth_mode.as_str(),
+        "auth_source": auth_source,
         "is_current": is_current,
+        "extra": extra,
     })
+}
+
+#[tauri::command]
+pub async fn claude_list_auth_accounts() -> Result<Value, String> {
+    tokio::task::spawn_blocking(|| {
+        let service =
+            ClaudeAuthService::new().map_err(|e| format!("初始化 Claude Auth 服务失败: {e}"))?;
+        let snapshot = service
+            .read_auth_snapshot()
+            .map_err(|e| format!("读取认证快照失败: {e}"))?;
+        let accounts = service
+            .build_account_items(&snapshot)
+            .map_err(|e| format!("列出账号失败: {e}"))?;
+        let runtime_summary = service
+            .get_runtime_summary()
+            .map_err(|e| format!("读取运行时摘要失败: {e}"))?;
+
+        let accounts: Vec<Value> = accounts
+            .into_iter()
+            .map(|item| {
+                let freshness = &item.freshness;
+                json!({
+                    "name": item.name,
+                    "description": item.description,
+                    "email": item.email,
+                    "billing_type": item.billing_type,
+                    "subscription_type": item.subscription_type,
+                    "rate_limit_tier": item.rate_limit_tier,
+                    "is_current": item.is_current,
+                    "saved_at": item.saved_at.to_rfc3339(),
+                    "last_used": item.last_used.map(|dt| dt.to_rfc3339()),
+                    "expires_at": item.expires_at.map(|dt| dt.to_rfc3339()),
+                    "is_expired": ClaudeAuthService::is_expired(item.expires_at),
+                    "freshness": freshness,
+                    "freshness_icon": freshness.icon(),
+                    "freshness_description": freshness.description(),
+                })
+            })
+            .collect();
+
+        Ok(json!({
+            "accounts": accounts,
+            "login_state": snapshot.login_state,
+            "runtime_summary": runtime_summary,
+            "current_profile_auth_mode": runtime_summary.current_profile_auth_mode.map(|mode| mode.as_str()),
+        }))
+    })
+    .await
+    .map_err(|e| format!("任务执行失败: {e}"))?
+}
+
+#[tauri::command]
+pub async fn claude_get_auth_current() -> Result<Value, String> {
+    tokio::task::spawn_blocking(|| {
+        let service =
+            ClaudeAuthService::new().map_err(|e| format!("初始化 Claude Auth 服务失败: {e}"))?;
+        let runtime_summary = service
+            .get_runtime_summary()
+            .map_err(|e| format!("读取运行时摘要失败: {e}"))?;
+        let current_info = service.get_current_auth_info().ok();
+        let logged_in = current_info.is_some();
+
+        let info = current_info.map(|info| {
+            let freshness = &info.freshness;
+            json!({
+                "account_uuid": info.account_uuid,
+                "email": info.email,
+                "billing_type": info.billing_type,
+                "subscription_type": info.subscription_type,
+                "rate_limit_tier": info.rate_limit_tier,
+                "expires_at": info.expires_at.map(|dt| dt.to_rfc3339()),
+                "is_expired": ClaudeAuthService::is_expired(info.expires_at),
+                "freshness": freshness,
+                "freshness_icon": freshness.icon(),
+                "freshness_description": freshness.description(),
+            })
+        });
+
+        Ok(json!({
+            "logged_in": logged_in,
+            "info": info,
+            "runtime_summary": runtime_summary,
+            "login_state": runtime_summary.login_state,
+        }))
+    })
+    .await
+    .map_err(|e| format!("任务执行失败: {e}"))?
+}
+
+#[tauri::command]
+pub async fn claude_save_auth(
+    name: String,
+    description: Option<String>,
+    force: Option<bool>,
+) -> Result<Value, String> {
+    tokio::task::spawn_blocking(move || {
+        let service =
+            ClaudeAuthService::new().map_err(|e| format!("初始化 Claude Auth 服务失败: {e}"))?;
+        service
+            .save_current(&name, description, force.unwrap_or(false))
+            .map_err(|e| format!("{e}"))?;
+        Ok(json!({
+            "success": true,
+            "message": format!("Claude 官方账号 '{}' 已成功保存", name),
+        }))
+    })
+    .await
+    .map_err(|e| format!("任务执行失败: {e}"))?
+}
+
+#[tauri::command]
+pub async fn claude_switch_auth(name: String) -> Result<Value, String> {
+    let name_resp = name.clone();
+    tokio::task::spawn_blocking(move || {
+        let service =
+            ClaudeAuthService::new().map_err(|e| format!("初始化 Claude Auth 服务失败: {e}"))?;
+        service.switch_account(&name).map_err(|e| format!("{e}"))?;
+        Ok::<_, String>(())
+    })
+    .await
+    .map_err(|e| format!("任务执行失败: {e}"))??;
+
+    Ok(json!({
+        "success": true,
+        "message": format!("已切换到 Claude 官方账号 '{}'", name_resp),
+    }))
+}
+
+#[tauri::command]
+pub async fn claude_delete_auth(name: String) -> Result<Value, String> {
+    let name_resp = name.clone();
+    tokio::task::spawn_blocking(move || {
+        let service =
+            ClaudeAuthService::new().map_err(|e| format!("初始化 Claude Auth 服务失败: {e}"))?;
+        service.delete_account(&name).map_err(|e| format!("{e}"))?;
+        Ok::<_, String>(())
+    })
+    .await
+    .map_err(|e| format!("任务执行失败: {e}"))??;
+
+    Ok(json!({
+        "success": true,
+        "message": format!("Claude 官方账号 '{}' 已成功删除", name_resp),
+    }))
 }
 
 /// 列出所有 Claude Code Profiles（~/.ccr/platforms/claude/profiles.toml）。

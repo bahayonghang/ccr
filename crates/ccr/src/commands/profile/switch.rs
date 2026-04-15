@@ -120,6 +120,40 @@ pub async fn switch_command_for_platform(config_name: &str, platform_name: &str)
         ]);
     }
 
+    if platform == Platform::Claude {
+        let auth_mode = target_section
+            .other
+            .get("auth_mode")
+            .and_then(|value| value.as_str())
+            .unwrap_or_else(|| {
+                if target_section.base_url.is_some() || target_section.auth_token.is_some() {
+                    "api_key"
+                } else {
+                    "subscription"
+                }
+            });
+        let auth_source = if auth_mode == "subscription" {
+            "subscription".to_string()
+        } else {
+            target_section
+                .provider
+                .as_deref()
+                .map(str::trim)
+                .filter(|value| !value.is_empty())
+                .map(|provider| format!("provider:{provider}"))
+                .unwrap_or_else(|| "settings:anthropic_env".to_string())
+        };
+
+        config_table.add_row(vec![
+            Cell::new("认证模式"),
+            Cell::new(auth_mode).fg(TableColor::Cyan),
+        ]);
+        config_table.add_row(vec![
+            Cell::new("认证来源"),
+            Cell::new(auth_source).fg(TableColor::Cyan),
+        ]);
+    }
+
     // Base URL
     if let Some(base_url) = &target_section.base_url {
         config_table.add_row(vec![

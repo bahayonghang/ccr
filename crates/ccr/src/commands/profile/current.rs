@@ -9,7 +9,7 @@ use crate::managers::PlatformConfigManager;
 use crate::models::{
     AuthIntent, AuthState, AuthStateStatus, OpenAiAuthMethod, Platform, PlatformPaths,
 };
-use crate::platforms::create_platform;
+use crate::platforms::{ClaudePlatform, create_platform};
 use crate::services::{CodexAuthService, SettingsService};
 use ccr_config::profile_to_section;
 use ccr_core::Validatable;
@@ -204,6 +204,17 @@ pub async fn current_command() -> Result<()> {
         config_table.add_row(vec![
             Cell::new("提供商").fg(TableColor::Yellow),
             Cell::new(provider).fg(TableColor::Cyan),
+        ]);
+    }
+
+    if platform == Platform::Claude {
+        config_table.add_row(vec![
+            Cell::new("认证模式").fg(TableColor::Yellow),
+            Cell::new(ClaudePlatform::profile_auth_mode(profile).as_str()).fg(TableColor::Cyan),
+        ]);
+        config_table.add_row(vec![
+            Cell::new("认证来源").fg(TableColor::Yellow),
+            Cell::new(ClaudePlatform::profile_auth_source(profile)).fg(TableColor::Cyan),
         ]);
     }
 

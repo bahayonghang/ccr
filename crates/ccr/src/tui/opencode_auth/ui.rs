@@ -3,10 +3,10 @@
 
 use super::app::{
     OpenCodeAuthApp, OpenCodeAuthUsagePanelData, OpenCodeUsageAttributionState, OpenCodeUsageState,
-    PAGE_SIZE,
+    PAGE_SIZE, QuotaState,
 };
 use crate::models::{OpenCodeAuthItem, OpenCodeLoginState, TokenFreshness};
-use crate::services::OpenCodeUsageService;
+use crate::services::{OpenCodeQuotaService, OpenCodeUsageService};
 use crate::tui::overlay::{Overlay, render_overlay};
 use crate::tui::theme;
 use crate::tui::toast::ToastKind;
@@ -658,7 +658,7 @@ fn draw_usage_panel(f: &mut Frame, area: Rect, app: &OpenCodeAuthApp) {
     let title = Line::from(vec![
         Span::styled(" 📊 ", theme::info_style()),
         Span::styled(
-            "Usage",
+            "Usage & Quota",
             Style::default()
                 .fg(theme::FG_PRIMARY)
                 .add_modifier(Modifier::BOLD),
@@ -666,6 +666,116 @@ fn draw_usage_panel(f: &mut Frame, area: Rect, app: &OpenCodeAuthApp) {
     ]);
 
     let mut content: Vec<Line> = Vec::new();
+
+    content.push(scope_line(
+        "Quota scope:",
+        "selected account",
+        theme::success_style(),
+    ));
+
+    match &app.quota_state {
+        QuotaState::Idle => {
+            content.push(Line::from(Span::styled(
+                "  ⏳ 将按层级刷新选中账号配额...",
+                theme::muted_style(),
+            )));
+        }
+        QuotaState::Loading { .. } if app.selected_quota().is_none() => {
+            content.push(Line::from(Span::styled(
+                "  ⏳ 正在查询当前账号配额...",
+                theme::warning_style(),
+            )));
+        }
+        QuotaState::Error { .. } if app.selected_quota().is_none() => {
+            if let Some(err) = app.selected_quota_error() {
+                content.push(Line::from(Span::styled(
+                    format!("  ⚠️ 配额查询失败: {}", err),
+                    theme::error_style(),
+                )));
+            }
+        }
+        _ => {
+            if let Some(aq) = app.selected_quota() {
+                if let Some(ref quota) = aq.quota {
+                    let account_label = aq.email.as_deref().unwrap_or(&aq.account_name);
+                    content.push(Line::from(vec![
+                        Span::styled("  配额 ", theme::info_style()),
+                        Span::styled(format!("({})", account_label), theme::muted_style()),
+                    ]));
+
+                    if app.is_selected_quota_loading() {
+                        content.push(Line::from(Span::styled(
+                            "  ⏳ 正在刷新选中账号配额...",
+                            theme::warning_style(),
+                        )));
+                    }
+
+                    let h_color = percent_color(quota.hourly_percentage);
+                    let h_bar = progress_bar(quota.hourly_percentage, 10);
+                    let h_reset = quota
+                        .hourly_reset_time
+                        .map(|value| {
+                            format!(
+                                "  重置: {}",
+                                OpenCodeQuotaService::format_reset_duration(value)
+                            )
+                        })
+                        .unwrap_or_default();
+                    content.push(Line::from(vec![
+                        Span::styled("  5h限额: ", Style::default().fg(theme::FG_PRIMARY)),
+                        Span::styled(h_bar, Style::default().fg(h_color)),
+                        Span::styled(
+                            format!(" {}%", quota.hourly_percentage),
+                            Style::default().fg(h_color),
+                        ),
+                        Span::styled(h_reset, theme::muted_style()),
+                    ]));
+
+                    let w_color = percent_color(quota.weekly_percentage);
+                    let w_bar = progress_bar(quota.weekly_percentage, 10);
+                    let w_reset = quota
+                        .weekly_reset_time
+                        .map(|value| {
+                            let relative = OpenCodeQuotaService::format_reset_duration(value);
+                            let dt = chrono::DateTime::from_timestamp(value, 0)
+                                .map(|dt| dt.with_timezone(&chrono::Local));
+                            if let Some(local) = dt {
+                                format!("  重置: {} ({})", relative, local.format("%m/%d %H:%M"))
+                            } else {
+                                format!("  重置: {}", relative)
+                            }
+                        })
+                        .unwrap_or_default();
+                    content.push(Line::from(vec![
+                        Span::styled("  周限额: ", Style::default().fg(theme::FG_PRIMARY)),
+                        Span::styled(w_bar, Style::default().fg(w_color)),
+                        Span::styled(
+                            format!(" {}%", quota.weekly_percentage),
+                            Style::default().fg(w_color),
+                        ),
+                        Span::styled(w_reset, theme::muted_style()),
+                    ]));
+
+                    if let Some(ref plan) = quota.plan_type {
+                        content.push(Line::from(vec![
+                            Span::styled("  订阅: ", Style::default().fg(theme::FG_PRIMARY)),
+                            Span::styled(plan.clone(), theme::info_style()),
+                        ]));
+                    }
+                } else if let Some(ref err) = aq.error {
+                    content.push(Line::from(Span::styled(
+                        format!("  ⚠️ {}: {}", aq.account_name, err),
+                        theme::error_style(),
+                    )));
+                }
+            }
+        }
+    }
+
+    content.push(Line::from(Span::styled(
+        "  ────────────────────────────────",
+        theme::muted_style(),
+    )));
 
     if let Some(panel) = app.usage_panel_data() {
         let (scope_label, scope_style) = usage_scope_badge(&panel);
@@ -722,6 +832,22 @@ fn draw_usage_panel(f: &mut Frame, area: Rect, app: &OpenCodeAuthApp) {
         .wrap(Wrap { trim: true });
 
     f.render_widget(panel, area);
+}
+
+fn percent_color(pct: i32) -> Color {
+    if pct >= 60 {
+        theme::FG_SUCCESS
+    } else if pct >= 30 {
+        theme::FG_WARNING
+    } else {
+        theme::FG_ERROR
+    }
+}
+
+fn progress_bar(pct: i32, width: usize) -> String {
+    let filled = ((pct as usize) * width / 100).min(width);
+    let empty = width - filled;
+    format!("{}{}", "█".repeat(filled), "░".repeat(empty))
 }
 
 fn usage_scope_badge(panel: &OpenCodeAuthUsagePanelData) -> (String, Style) {
@@ -801,8 +927,11 @@ fn usage_digest_lines(panel: &OpenCodeAuthUsagePanelData) -> Vec<Line<'static>> 
 fn draw_help_bar(f: &mut Frame, area: Rect, app: &OpenCodeAuthApp) {
     let help_text = match &app.overlay {
         Some(Overlay::Confirm { .. }) => "y 确认删除 | n/Esc 取消",
+        Some(Overlay::ImportCodexConfirm { .. }) => "y 确认导入 | n/Esc 取消",
         Some(Overlay::Input { .. }) => "Enter 确认 | Esc 取消",
-        None => "↑/k 上移 | ↓/j 下移 | Enter 切换 | s 保存当前 | d 删除 | r 刷新账号/统计 | q 退出",
+        None => {
+            "↑/k 上移 | ↓/j 下移 | Enter 切换 | s 保存当前 | i 导入 Codex | d 删除 | r 刷新账号/统计 | q 退出"
+        }
     };
 
     let help = Paragraph::new(help_text)
@@ -815,11 +944,11 @@ fn draw_help_bar(f: &mut Frame, area: Rect, app: &OpenCodeAuthApp) {
 fn draw_footer_strip(f: &mut Frame, area: Rect, app: &OpenCodeAuthApp) {
     let message = if let Some(toast) = app.toasts.active() {
         format!(
-            "{}  │  Tab switch  │  ↑↓/jk select  │  Enter switch  │  s save  │  d delete  │  r refresh  │  q quit",
+            "{}  │  Tab switch  │  ↑↓/jk select  │  Enter switch  │  s save  │  i import  │  d delete  │  r refresh  │  q quit",
             toast.message
         )
     } else {
-        "Tab switch  │  ↑↓/jk select  │  Enter switch  │  s save  │  d delete  │  r refresh  │  q quit"
+        "Tab switch  │  ↑↓/jk select  │  Enter switch  │  s save  │  i import  │  d delete  │  r refresh  │  q quit"
             .to_string()
     };
 
@@ -981,7 +1110,9 @@ mod tests {
     use super::*;
     use crate::models::OpenCodeAuthItem;
     use chrono::{Duration, TimeZone, Utc};
+    use indexmap::IndexMap;
     use ratatui::{Terminal, backend::TestBackend};
+    use std::path::PathBuf;
 
     fn sample_account() -> OpenCodeAuthItem {
         OpenCodeAuthItem {
@@ -1047,6 +1178,10 @@ mod tests {
             .join("\n")
     }
 
+    fn compact_text(value: &str) -> String {
+        value.chars().filter(|ch| !ch.is_whitespace()).collect()
+    }
+
     #[test]
     fn account_table_layout_hides_secondary_columns_on_narrow_widths() {
         let layout = account_table_layout(58);
@@ -1091,6 +1226,68 @@ mod tests {
                 .any(|line| line.contains("All time: 50.5K tokens"))
         );
         assert!(lines.iter().any(|line| line.contains("Top model: gpt-5.4")));
+    }
+
+    #[test]
+    fn draw_usage_panel_shows_quota_and_provider_usage_together() {
+        let service =
+            crate::services::OpenCodeAuthService::from_dirs(PathBuf::from("."), PathBuf::from("."));
+        let mut app = crate::tui::opencode_auth::app::OpenCodeAuthApp::from_service(service)
+            .expect("test opencode auth app should initialize from injected service");
+        app.accounts = vec![sample_account()];
+        app.selected_index = 0;
+        app.quota_state = QuotaState::Loaded {
+            cache: IndexMap::from([(
+                "primary".to_string(),
+                crate::models::CodexAccountQuota {
+                    account_name: "primary".to_string(),
+                    email: Some("use***@example.com".to_string()),
+                    quota: Some(crate::models::CodexQuota {
+                        hourly_percentage: 48,
+                        hourly_reset_time: None,
+                        hourly_window_minutes: Some(300),
+                        hourly_window_present: Some(true),
+                        weekly_percentage: 72,
+                        weekly_reset_time: None,
+                        weekly_window_minutes: Some(10080),
+                        weekly_window_present: Some(true),
+                        plan_type: Some("PLUS".to_string()),
+                        raw_data: None,
+                    }),
+                    error: None,
+                    fetched_at: Utc::now(),
+                },
+            )]),
+        };
+        app.usage_state = OpenCodeUsageState::Loaded(Box::new(
+            crate::tui::opencode_auth::app::OpenCodeUsageDataset {
+                provider_id: "openai".to_string(),
+                rolling: sample_usage_panel().rolling,
+                records: vec![crate::services::OpenCodeUsageRecord {
+                    session_id: "ses-1".to_string(),
+                    timestamp: Utc::now(),
+                    input_tokens: 1200,
+                    output_tokens: 240,
+                    provider: Some("openai".to_string()),
+                    model: Some("gpt-5.4".to_string()),
+                }],
+            },
+        ));
+
+        let mut terminal = Terminal::new(TestBackend::new(90, 18)).unwrap();
+        terminal
+            .draw(|frame| draw_usage_panel(frame, frame.area(), &app))
+            .unwrap();
+
+        let rendered = buffer_text(terminal.backend());
+        let compact = compact_text(&rendered);
+        assert!(compact.contains("Usage&Quota"), "{rendered}");
+        assert!(compact.contains("Quotascope:selectedaccount"), "{rendered}");
+        assert!(compact.contains("Usagescope:openaiprovider"), "{rendered}");
+        assert!(
+            compact.contains("Records:1localassistantmessages"),
+            "{rendered}"
+        );
     }
 
     #[test]

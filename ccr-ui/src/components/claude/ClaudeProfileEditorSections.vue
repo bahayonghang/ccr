@@ -213,6 +213,31 @@
       </div>
 
       <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <div class="lg:col-span-2">
+          <label
+            for="claude-profile-auth-mode"
+            class="mb-2 block text-sm font-medium text-text-secondary"
+          >
+            认证模式
+          </label>
+          <select
+            id="claude-profile-auth-mode"
+            :value="form.auth_mode"
+            :class="textFieldClass"
+            @change="updateTextField('auth_mode', $event)"
+          >
+            <option value="subscription">
+              subscription（官方订阅）
+            </option>
+            <option value="api_key">
+              api_key（第三方 / ANTHROPIC_*）
+            </option>
+          </select>
+          <p class="mt-1.5 text-xs text-text-muted">
+            subscription 模式会清空 `ANTHROPIC_*` 并回落到本机官方登录；api_key 模式会写入 `ANTHROPIC_*` 覆盖。
+          </p>
+        </div>
+
         <div>
           <label
             for="claude-profile-account"

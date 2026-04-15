@@ -46,6 +46,7 @@ pub struct PlatformProfileCreateArgs {
     pub provider_type: Option<String>,
     pub account: Option<String>,
     pub tags: Vec<String>,
+    pub auth_mode: Option<String>,
     pub disabled: bool,
     pub json: bool,
 }
@@ -58,6 +59,7 @@ fn parse_platform(platform_name: &str) -> Result<Platform> {
 fn editable_fields(platform: Platform) -> &'static [&'static str] {
     match platform {
         Platform::Codex => ccr_codex::CodexPlatform::editable_fields(),
+        Platform::Claude => crate::platforms::ClaudePlatform::editable_fields(),
         _ => DEFAULT_EDITABLE_FIELDS,
     }
 }
@@ -123,6 +125,24 @@ fn update_profile_field(
         "provider" => profile.provider = if clear { None } else { value },
         "provider_type" => profile.provider_type = if clear { None } else { value },
         "account" => profile.account = if clear { None } else { value },
+        "auth_mode" => {
+            if clear {
+                profile
+                    .platform_data
+                    .shift_remove(crate::platforms::ClaudePlatform::AUTH_MODE_FIELD);
+            } else {
+                let value = value
+                    .ok_or_else(|| CcrError::ValidationError("auth_mode 需要非空字符串".into()))?;
+                let trimmed = value.trim();
+                if trimmed.is_empty() {
+                    return Err(CcrError::ValidationError("auth_mode 不能为空字符串".into()));
+                }
+                profile.platform_data.insert(
+                    crate::platforms::ClaudePlatform::AUTH_MODE_FIELD.to_string(),
+                    serde_json::Value::String(trimmed.to_string()),
+                );
+            }
+        }
         "tags" => {
             if clear {
                 profile.tags = None;
@@ -168,6 +188,7 @@ pub async fn platform_profile_create_command(args: PlatformProfileCreateArgs) ->
         provider_type,
         account,
         tags,
+        auth_mode,
         disabled,
         json,
     } = args;
@@ -205,6 +226,12 @@ pub async fn platform_profile_create_command(args: PlatformProfileCreateArgs) ->
     profile.account = account.filter(|value| !value.trim().is_empty());
     profile.tags = normalize_tags(tags);
     profile.enabled = Some(!disabled);
+    if let Some(auth_mode) = auth_mode.filter(|value| !value.trim().is_empty()) {
+        profile.platform_data.insert(
+            crate::platforms::ClaudePlatform::AUTH_MODE_FIELD.to_string(),
+            serde_json::Value::String(auth_mode.trim().to_string()),
+        );
+    }
 
     platform_impl.save_profile(profile_name, &profile)?;
 

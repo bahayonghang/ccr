@@ -3,8 +3,10 @@
 
 #![allow(clippy::unused_async)]
 
-use crate::services::{ConfigService, SettingsService};
-use ccr_core::Validatable;
+use crate::managers::PlatformConfigManager;
+use crate::models::{ClaudeProfileAuthMode, PlatformConfig};
+use crate::platforms::ClaudePlatform;
+use crate::services::{ClaudeAuthService, ConfigService, SettingsService};
 use ccr_core::core::error::Result;
 use ccr_core::core::logging::ColorOutput;
 use colored::*;
@@ -90,6 +92,11 @@ pub async fn validate_command() -> Result<()> {
     ColorOutput::separator();
     println!();
 
+    let current_platform = PlatformConfigManager::with_default()
+        .and_then(|manager| manager.load())
+        .map(|config| config.current_platform)
+        .unwrap_or_else(|_| "claude".to_string());
+
     // 使用 SettingsService 验证 Claude Code 设置
     ColorOutput::step("验证 Claude Code 设置 (~/.claude/settings.json)");
     let settings_service = match SettingsService::with_default() {
@@ -111,7 +118,21 @@ pub async fn validate_command() -> Result<()> {
                     .display()
             ));
 
-            // 验证环境变量
+            let claude_profile_auth_mode = if current_platform == "claude" {
+                ClaudePlatform::new()
+                    .and_then(|platform| {
+                        let current_profile = platform.get_current_profile()?;
+                        let profiles = platform.load_profiles()?;
+                        Ok(current_profile.and_then(|name| {
+                            profiles.get(&name).map(ClaudePlatform::profile_auth_mode)
+                        }))
+                    })
+                    .ok()
+                    .flatten()
+            } else {
+                None
+            };
+
             println!();
             ColorOutput::step("环境变量验证");
 
@@ -131,9 +152,12 @@ pub async fn validate_command() -> Result<()> {
                         has_warnings = true;
                     }
                     None => {
-                        // ANTHROPIC_SMALL_FAST_MODEL 是可选的
-                        if var_name.contains("SMALL_FAST_MODEL") {
-                            println!("  {} {}: 未设置(可选)", "○".dimmed(), var_name);
+                        let is_optional = var_name.contains("SMALL_FAST_MODEL");
+                        let is_subscription_mode =
+                            claude_profile_auth_mode == Some(ClaudeProfileAuthMode::Subscription);
+
+                        if is_optional || is_subscription_mode {
+                            println!("  {} {}: 未设置", "○".dimmed(), var_name);
                         } else {
                             println!("  {} {}: 未设置", "✗".red(), var_name);
                             has_errors = true;
@@ -143,12 +167,50 @@ pub async fn validate_command() -> Result<()> {
             }
 
             println!();
-            match settings.validate() {
-                Ok(_) => ColorOutput::success("设置验证通过"),
-                Err(e) => {
-                    ColorOutput::error(&format!("设置验证失败: {}", e));
-                    has_errors = true;
+            match claude_profile_auth_mode {
+                Some(ClaudeProfileAuthMode::Subscription) => {
+                    ColorOutput::info("当前 Claude Profile 使用 subscription 模式");
+                    let auth_service = ClaudeAuthService::new()?;
+                    let snapshot = auth_service.read_auth_snapshot()?;
+                    if let Some(info) = snapshot.current_info {
+                        if let Some(email) = info.email {
+                            ColorOutput::info(&format!(
+                                "检测到官方登录邮箱: {}",
+                                auth_service.mask_email(&email)
+                            ));
+                        }
+                        if let Some(subscription_type) = info.subscription_type {
+                            ColorOutput::info(&format!("订阅类型: {}", subscription_type));
+                        }
+                        if let Some(rate_limit_tier) = info.rate_limit_tier {
+                            ColorOutput::info(&format!("速率档位: {}", rate_limit_tier));
+                        }
+                    } else {
+                        ColorOutput::error("未检测到 Claude 官方订阅凭据");
+                        has_errors = true;
+                    }
+
+                    if snapshot.runtime_usable {
+                        ColorOutput::success("subscription 凭据验证通过");
+                    } else {
+                        ColorOutput::error("subscription 凭据不存在、无法解析或已过期");
+                        has_errors = true;
+                    }
+
+                    if settings.has_anthropic_overrides() {
+                        ColorOutput::warning(
+                            "subscription 模式下检测到 ANTHROPIC_* 覆盖；实际运行时可能仍受 API key 覆盖影响",
+                        );
+                        has_warnings = true;
+                    }
                 }
+                _ => match settings.validate_api_key_mode() {
+                    Ok(_) => ColorOutput::success("设置验证通过"),
+                    Err(e) => {
+                        ColorOutput::error(&format!("设置验证失败: {}", e));
+                        has_errors = true;
+                    }
+                },
             }
         }
         Err(e) => {

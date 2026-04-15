@@ -653,7 +653,7 @@ fn draw_usage_panel(f: &mut Frame, area: Rect, app: &CodexAuthApp) {
     match &app.quota_state {
         QuotaState::Idle => {
             content.push(Line::from(Span::styled(
-                "  按 b 查询配额余额",
+                "  ⏳ 将自动按层级刷新选中账号配额（按 b 可强刷）",
                 theme::muted_style(),
             )));
         }
@@ -939,6 +939,7 @@ fn is_refresh_token_reused_error(message: &str) -> bool {
 fn draw_help_bar(f: &mut Frame, area: Rect, app: &CodexAuthApp) {
     let help_text = match &app.overlay {
         Some(Overlay::Confirm { .. }) => "y 确认删除 | n/Esc 取消",
+        Some(Overlay::ImportCodexConfirm { .. }) => "y 确认 | n/Esc 取消",
         Some(Overlay::Input { .. }) => "Enter 确认 | Esc 取消",
         None => {
             "↑/k 上移 | ↓/j 下移 | Enter 切换 | s 保存当前 | d 删除 | r 刷新 | R 修复 | b 配额 | q 退出"
@@ -1153,6 +1154,7 @@ mod tests {
     use super::*;
     use chrono::{TimeZone, Utc};
     use ratatui::{Terminal, backend::TestBackend};
+    use std::path::PathBuf;
 
     fn sample_account() -> crate::models::CodexAuthItem {
         crate::models::CodexAuthItem {
@@ -1186,6 +1188,25 @@ mod tests {
             .join("")
             .trim_end()
             .to_string()
+    }
+
+    fn buffer_text(backend: &TestBackend) -> String {
+        let height = backend.buffer().area.height;
+        let width = backend.buffer().area.width;
+        (0..height)
+            .map(|y| {
+                (0..width)
+                    .filter_map(|x| backend.buffer().cell((x, y)))
+                    .map(|cell| cell.symbol())
+                    .collect::<Vec<_>>()
+                    .join("")
+            })
+            .collect::<Vec<_>>()
+            .join("\n")
+    }
+
+    fn compact_text(value: &str) -> String {
+        value.chars().filter(|ch| !ch.is_whitespace()).collect()
     }
 
     #[test]
@@ -1314,5 +1335,68 @@ mod tests {
                 .any(|line| line.contains("All time: 60.0K tokens"))
         );
         assert!(lines.iter().any(|line| line.contains("Top model: gpt-5.4")));
+    }
+
+    #[test]
+    fn draw_usage_panel_keeps_quota_and_local_attribution_note() {
+        let service =
+            crate::services::CodexAuthService::from_dirs(PathBuf::from("."), PathBuf::from("."));
+        let mut app = crate::tui::codex_auth::app::CodexAuthApp::from_service(service)
+            .expect("test codex auth app should initialize from injected service");
+        app.accounts = vec![sample_account()];
+        app.selected_index = 0;
+        app.quota_state = QuotaState::Loaded {
+            cache: indexmap::IndexMap::from([(
+                "codexcn".to_string(),
+                crate::models::CodexAccountQuota {
+                    account_name: "codexcn".to_string(),
+                    email: Some("bah***@gmail.com".to_string()),
+                    quota: Some(crate::models::CodexQuota {
+                        hourly_percentage: 52,
+                        hourly_reset_time: None,
+                        hourly_window_minutes: Some(300),
+                        hourly_window_present: Some(true),
+                        weekly_percentage: 41,
+                        weekly_reset_time: None,
+                        weekly_window_minutes: Some(10080),
+                        weekly_window_present: Some(true),
+                        plan_type: Some("plus".to_string()),
+                        raw_data: None,
+                    }),
+                    error: None,
+                    fetched_at: Utc::now(),
+                },
+            )]),
+        };
+        app.usage_state = UsageState::Loaded(crate::tui::codex_auth::app::CodexUsageDataset {
+            global: crate::services::CodexUsageService::compute_rolling_usage_for_records(&[
+                crate::services::CodexUsageRecord {
+                    session_id: "global-only".to_string(),
+                    timestamp: Utc::now(),
+                    input_tokens: 1200,
+                    output_tokens: 240,
+                    model: Some("gpt-5.4".to_string()),
+                },
+            ]),
+            records: vec![crate::services::CodexUsageRecord {
+                session_id: "global-only".to_string(),
+                timestamp: Utc::now(),
+                input_tokens: 1200,
+                output_tokens: 240,
+                model: Some("gpt-5.4".to_string()),
+            }],
+        });
+
+        let mut terminal = Terminal::new(TestBackend::new(90, 18)).unwrap();
+        terminal
+            .draw(|frame| draw_usage_panel(frame, frame.area(), &app))
+            .unwrap();
+
+        let rendered = buffer_text(terminal.backend());
+        let compact = compact_text(&rendered);
+        assert!(compact.contains("Usage&Quota"), "{rendered}");
+        assert!(compact.contains("Quotascope:selectedaccount"), "{rendered}");
+        assert!(compact.contains("Attribution:globalfallback"), "{rendered}");
+        assert!(compact.contains("Note:CCR"), "{rendered}");
     }
 }

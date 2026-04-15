@@ -21,6 +21,13 @@ pub enum Overlay {
         /// Description lines
         message: Vec<String>,
     },
+    /// Confirmation dialog for Codex -> OpenCode import
+    ImportCodexConfirm {
+        /// Dialog title
+        title: String,
+        /// Description lines
+        message: Vec<String>,
+    },
     /// Text input dialog
     Input {
         /// Dialog title
@@ -46,6 +53,14 @@ impl Overlay {
                 "此操作不可撤销！".to_string(),
             ],
             subject,
+        }
+    }
+
+    /// Create a confirmation overlay for importing saved Codex accounts
+    pub fn confirm_import_codex(message: Vec<String>) -> Self {
+        Self::ImportCodexConfirm {
+            title: "导入 Codex 账号".to_string(),
+            message,
         }
     }
 
@@ -134,6 +149,44 @@ pub fn render_overlay(f: &mut Frame, overlay: &Overlay) {
                         .border_style(Style::default().fg(Color::Yellow))
                         .title(format!(" {} ", title))
                         .title_style(Style::default().fg(Color::Yellow)),
+                );
+
+            f.render_widget(popup, area);
+        }
+        Overlay::ImportCodexConfirm { title, message } => {
+            let area = centered_rect(56, 36, full_area);
+            f.render_widget(Clear, area);
+
+            let mut lines = vec![
+                Line::from(""),
+                Line::from(Span::styled(
+                    "⇄ 导入 Codex 账号",
+                    Style::default()
+                        .fg(Color::Cyan)
+                        .add_modifier(Modifier::BOLD),
+                )),
+                Line::from(""),
+            ];
+
+            for msg in message {
+                lines.push(Line::from(msg.as_str()));
+            }
+
+            lines.push(Line::from(""));
+            lines.push(Line::from(Span::styled(
+                "按 y 确认导入 | 按 n 或 Esc 取消",
+                Style::default().fg(Color::DarkGray),
+            )));
+
+            let popup = Paragraph::new(lines)
+                .alignment(Alignment::Center)
+                .wrap(Wrap { trim: true })
+                .block(
+                    Block::default()
+                        .borders(Borders::ALL)
+                        .border_style(Style::default().fg(Color::Cyan))
+                        .title(format!(" {} ", title))
+                        .title_style(Style::default().fg(Color::Cyan)),
                 );
 
             f.render_widget(popup, area);

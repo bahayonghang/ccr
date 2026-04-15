@@ -27,6 +27,7 @@ Current facts:
 - the default build enables the `tui` feature
 - `ccr` with no subcommand and no `config_name` enters TUI
 - `ccr codex` with no action is also treated as TUI mode
+- `ccr opencode` with no action opens the OpenCode Auth tab
 
 ## 2. Profile switching
 
@@ -106,7 +107,26 @@ This service owns:
 - backup rotation for auth documents
 - import/export and switching
 
-## 6. WebDAV sync
+## 6. OpenCode auth migration
+
+```mermaid
+flowchart TD
+  A[ccr opencode auth import-codex] --> B[OpenCodeAuthService]
+  B --> C[read CCR-managed Codex registry and auth snapshots]
+  C --> D[filter compatible ChatGPT OAuth accounts]
+  D --> E[check OpenCode name and accountId conflicts]
+  E --> F[write OpenCode snapshots and registry entries only for new accounts]
+  F --> G[leave the current OpenCode runtime auth.json untouched]
+```
+
+This flow owns:
+
+- reading only Codex accounts already saved in CCR, not an unsaved runtime login
+- mapping compatible Codex token payloads into OpenCode `openai` OAuth snapshots
+- skipping API-key entries, missing snapshots, invalid snapshots, and conflicts
+- producing a structured migration report shared by CLI and TUI
+
+## 7. WebDAV sync
 
 ```mermaid
 flowchart TD

@@ -73,7 +73,54 @@ ccr sync all status
 ccr sync push -i
 ```
 
-## 7. 会话、Provider、技能与提示词
+## 7. Codex 多账号 auth
+
+```bash
+ccr codex auth save work
+ccr codex auth list
+ccr codex auth switch work
+ccr codex auth current
+```
+
+适用场景：
+- 一人维护多个 Codex / GitHub 登录身份
+- 需要把当前 Codex 登录保存为命名账号
+- 需要导出、导入或切换已保存账号
+
+## 8. Codex -> OpenCode auth 迁移
+
+```bash
+# 先预览可迁移账号
+ccr opencode auth import-codex --dry-run
+
+# 再导入兼容账号
+ccr opencode auth import-codex
+
+# 需要脚本消费结果时输出 JSON
+ccr opencode auth import-codex --json
+```
+
+这个流程适用于：
+- 已经在 CCR 中保存了一批 Codex 账号
+- 想让 OpenCode 也能直接切换这些账号
+- 希望迁移是增量导入，而不是覆盖当前 OpenCode 设置
+
+行为边界：
+- 只导入已保存的 Codex 账号
+- 只接受兼容的 ChatGPT OAuth 账号
+- 不覆盖现有 OpenCode 账号
+- 不切换当前 OpenCode 运行时登录
+- 会报告跳过原因，方便后续清理或补录
+
+如果你想直接进入 OpenCode Auth 页签做可视化查看：
+
+```bash
+ccr opencode
+```
+
+在 OpenCode Auth 页签里，按 `i` 可预览并确认导入兼容的已保存 Codex 账号。
+
+## 9. 会话、Provider、技能与提示词
 
 ```bash
 ccr sessions list
@@ -85,7 +132,7 @@ ccr skills list
 ccr prompts list
 ```
 
-## 8. 成本与预算
+## 10. 成本与预算
 
 ```bash
 ccr stats summary --range week --by-model --details
@@ -95,7 +142,7 @@ ccr pricing list --verbose
 ccr pricing set my-model --input 3.0 --output 15.0
 ```
 
-## 9. 什么时候进入图形界面
+## 11. 什么时候进入图形界面
 
 ```bash
 ccr ui -p 15173 --backend-port 38081

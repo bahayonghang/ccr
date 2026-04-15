@@ -3,6 +3,7 @@
 //! 测试 Provider 端点的连通性和 API Key 有效性。
 
 use crate::managers::config::ConfigSection;
+use crate::services::ClaudeAuthService;
 use ccr_core::core::error::{CcrError, Result};
 use ccr_core::core::http::HTTP_CLIENT;
 use serde::{Deserialize, Serialize};
@@ -93,6 +94,15 @@ impl HealthCheckService {
 
     /// 测试单个 Provider
     pub async fn check(&self, name: &str, config: &ConfigSection) -> HealthCheckResult {
+        if config
+            .other
+            .get("auth_mode")
+            .and_then(toml::Value::as_str)
+            .is_some_and(|value| value == "subscription")
+        {
+            return self.check_claude_subscription(name, config);
+        }
+
         let base_url = config
             .base_url
             .clone()
@@ -149,6 +159,62 @@ impl HealthCheckService {
                     available_models: vec![],
                 }
             }
+        }
+    }
+
+    fn check_claude_subscription(&self, name: &str, config: &ConfigSection) -> HealthCheckResult {
+        let service = match ClaudeAuthService::new() {
+            Ok(service) => service,
+            Err(error) => {
+                return HealthCheckResult {
+                    provider_name: name.to_string(),
+                    base_url: "subscription://local".to_string(),
+                    status: HealthStatus::Unknown,
+                    latency_ms: None,
+                    error: Some(format!("初始化 Claude Auth 服务失败: {error}")),
+                    model_available: false,
+                    available_models: vec![],
+                };
+            }
+        };
+
+        match service.read_auth_snapshot() {
+            Ok(snapshot) => {
+                let (status, error) = if snapshot.runtime_usable {
+                    (HealthStatus::Healthy, None)
+                } else if snapshot.current_info.is_some() {
+                    (
+                        HealthStatus::Degraded,
+                        Some("官方订阅凭据已过期或等待刷新".to_string()),
+                    )
+                } else {
+                    (
+                        HealthStatus::Unhealthy,
+                        Some("未检测到 Claude 官方订阅凭据".to_string()),
+                    )
+                };
+
+                let model_available = config.model.is_none() || snapshot.runtime_usable;
+
+                HealthCheckResult {
+                    provider_name: name.to_string(),
+                    base_url: "subscription://local".to_string(),
+                    status,
+                    latency_ms: None,
+                    error,
+                    model_available,
+                    available_models: config.model.clone().into_iter().collect(),
+                }
+            }
+            Err(error) => HealthCheckResult {
+                provider_name: name.to_string(),
+                base_url: "subscription://local".to_string(),
+                status: HealthStatus::Unknown,
+                latency_ms: None,
+                error: Some(error.to_string()),
+                model_available: false,
+                available_models: vec![],
+            },
         }
     }
 

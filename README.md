@@ -17,6 +17,7 @@ CLI-first workflow with TUI and the full CCR UI for Claude Code, Codex, Gemini, 
   - **CLI**: Powerful command-line interface for all operations.
   - **TUI**: Interactive terminal configuration selector with Tab navigation.
   - **CCR UI**: Full-stack browser/desktop experience built with Vue 3 + Tauri.
+- **Auth Portability**: Save, export, import, and now seed compatible OpenCode auth snapshots from saved Codex accounts without overwriting existing OpenCode entries.
 - **Smart Sync**: WebDAV-based multi-folder synchronization keeps your configs consistent across machines.
 - **Secure**: Sensitive data (API keys, tokens) is automatically masked in outputs.
 
@@ -94,7 +95,7 @@ ccr
 **Keyboard Shortcuts:**
 | Key | Action |
 |-----|--------|
-| `Tab` | Switch between Claude/Codex platforms |
+| `Tab` | Switch between available tabs |
 | `←` / `→` | Navigate pages (when >20 configs) |
 | `↑` / `↓` / `j` / `k` | Select configuration |
 | `Enter` | Apply selected configuration and exit |
@@ -102,7 +103,7 @@ ccr
 | `q` / `Esc` | Quit |
 
 **Features:**
-- Dual-tab interface for Claude Code and Codex CLI
+- Multi-tab interface for Claude, Codex, and OpenCode-related views
 - Pagination support (20 configs per page)
 - Real-time status messages at the bottom
 - Platform-specific color themes (Orange for Claude, Purple for Codex)
@@ -178,11 +179,34 @@ ccr codex auth import --force
 - **Merge + --force**: Overwrite existing accounts with imported data
 - **Replace**: Always overwrite accounts with the same name
 
+### Codex -> OpenCode Auth Migration
+
+```bash
+# Preview what can be imported into OpenCode
+ccr opencode auth import-codex --dry-run
+
+# Import compatible saved Codex accounts into OpenCode
+ccr opencode auth import-codex
+
+# Emit the migration report as JSON
+ccr opencode auth import-codex --json
+```
+
+**Migration behavior:**
+- Imports only **saved** Codex accounts with ChatGPT OAuth tokens
+- Skips API-key-only or incompatible Codex auth snapshots
+- Never overwrites existing OpenCode accounts
+- Never switches the current OpenCode runtime login as part of the import
+- Reports skipped accounts by reason, including name conflicts, account ID conflicts, missing snapshots, and invalid snapshots
+
 ### Interactive TUI
 
 Launch the Codex account management interface:
 ```bash
 ccr codex
+
+# Launch the OpenCode Auth tab directly
+ccr opencode
 ```
 
 **Features:**
@@ -190,6 +214,7 @@ ccr codex
 - 🟢 Fresh (<1 day) | 🟡 Stale (1-7 days) | 🔴 Old (>7 days)
 - Process detection warnings before switching
 - Email masking for privacy (e.g., `use***@example.com`)
+- On the OpenCode Auth tab, press `i` to preview and confirm importing compatible saved Codex accounts
 
 ## 🔄 Auto Update
 

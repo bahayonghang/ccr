@@ -7,6 +7,7 @@ export interface ModuleSubnavItem {
 const moduleSubnavMap: Record<string, ModuleSubnavItem[]> = {
   'claude-code': [
     { label: 'Configs', href: '/configs', icon: 'Settings' },
+    { label: 'Auth', href: '/claude-code/auth', icon: 'KeyRound' },
     { label: 'Profiles 配置', href: '/claude-code/profiles', icon: 'Settings' },
     { label: '云同步', href: '/sync', icon: 'Cloud' },
     { label: 'MCP', href: '/mcp', icon: 'Server' },

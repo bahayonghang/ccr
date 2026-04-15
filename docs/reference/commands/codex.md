@@ -89,6 +89,26 @@ ccr codex auth export --no-secrets
 ccr codex auth import --replace
 ```
 
+## 将已保存账号迁移到 OpenCode
+
+如果你已经在 CCR 中保存了一批 Codex 账号，并希望让 OpenCode 也能直接切换这些账号，请使用 `opencode` 命令组：
+
+```bash
+# 先预览可迁移账号
+ccr opencode auth import-codex --dry-run
+
+# 再导入兼容账号
+ccr opencode auth import-codex
+```
+
+迁移保证：
+
+- 只读取 CCR 已保存的 Codex 账号，不读取未保存的运行时登录态
+- 只导入兼容的 ChatGPT OAuth 账号
+- 不覆盖已有 OpenCode 账号
+- 不切换当前 OpenCode 运行时登录
+- 会按原因报告跳过项
+
 ## 何时使用
 
 - 一个开发者维护多个 GitHub / Codex 登录身份
@@ -97,5 +117,6 @@ ccr codex auth import --replace
 
 ## 相关文档
 
+- [`opencode`](./opencode)
 - [平台支持](/reference/platforms/)
 - [UI 模块地图](/guide/ui-modules)

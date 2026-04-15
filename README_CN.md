@@ -18,6 +18,7 @@
   - **TUI**：交互式终端配置选择器，支持Tab切换。
   - **Legacy Web API**：面向脚本、CI 和兼容场景的嵌入式 Axum 服务。
   - **CCR UI**：基于 Vue 3 + Tauri 的浏览器/桌面图形入口。
+- **认证迁移友好**：支持保存、导出、导入 Codex 账号，并可将兼容的已保存 Codex 账号安全迁移为 OpenCode 的已保存账号，且不覆盖现有 OpenCode 条目。
 - **智能同步**：基于 WebDAV 的多文件夹同步能力，保持多机配置一致。
 - **隐私保护**：输出时自动掩码 API Key 等敏感数据。
 
@@ -95,7 +96,7 @@ ccr
 **键盘快捷键：**
 | 按键 | 功能 |
 |------|------|
-| `Tab` | 切换 Claude/Codex 平台 |
+| `Tab` | 在可用页签之间切换 |
 | `←` / `→` | 翻页（配置超过 20 个时） |
 | `↑` / `↓` / `j` / `k` | 选择配置 |
 | `Enter` | 应用选中的配置并退出 |
@@ -103,7 +104,7 @@ ccr
 | `q` / `Esc` | 退出 |
 
 **功能特性：**
-- 双 Tab 界面：Claude Code 和 Codex CLI
+- 多页签界面：Claude、Codex 与 OpenCode 相关视图
 - 分页支持（每页 20 个配置）
 - 底部实时状态消息
 - 平台专属配色（Claude 橙色，Codex 紫色）
@@ -179,11 +180,35 @@ ccr codex auth import --force
 - **合并 + --force**：强制覆盖已存在的账号
 - **替换模式**：始终覆盖同名账号
 
+### Codex -> OpenCode Auth 迁移
+
+```bash
+# 预览有哪些已保存的 Codex 账号可以导入 OpenCode
+ccr opencode auth import-codex --dry-run
+
+# 将兼容的已保存 Codex 账号导入 OpenCode
+ccr opencode auth import-codex
+
+# 输出机器可读的 JSON 迁移报告
+ccr opencode auth import-codex --json
+```
+
+**迁移行为：**
+- 只导入已经保存到 CCR 的 Codex 账号，不会读取未保存的临时运行时登录态
+- 仅支持带 ChatGPT OAuth Token 的兼容 Codex 账号
+- 会跳过仅 API Key、快照损坏或缺少快照的账号
+- 不会覆盖已存在的 OpenCode 账号
+- 不会在导入过程中切换当前 OpenCode 运行时登录
+- 会按原因报告跳过项，包括同名冲突、`accountId` 冲突、缺少快照和无效快照
+
 ### 交互式 TUI
 
 启动 Codex 账号管理界面：
 ```bash
 ccr codex
+
+# 直接进入 OpenCode Auth 页签
+ccr opencode
 ```
 
 **功能特性：**
@@ -191,6 +216,7 @@ ccr codex
 - 🟢 新鲜 (<1天) | 🟡 陈旧 (1-7天) | 🔴 过期 (>7天)
 - 切换前进程检测警告
 - 邮箱脱敏保护隐私（如 `use***@example.com`）
+- 在 OpenCode Auth 页签中，按 `i` 可预览并确认导入兼容的已保存 Codex 账号
 
 ## 🔄 自动更新
 

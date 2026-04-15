@@ -61,8 +61,11 @@ export interface ClaudeProfile {
   tags?: string[] | null
   usage_count?: number | null
   enabled?: boolean | null
+  auth_mode?: ClaudeProfileAuthMode | null
+  auth_source?: string | null
   platform_data?: Record<string, unknown>
   is_current: boolean
+  extra?: Record<string, unknown> | null
 }
 
 export interface ClaudeProfileRequest {
@@ -78,6 +81,7 @@ export interface ClaudeProfileRequest {
   tags?: string[]
   usage_count?: number
   enabled?: boolean
+  auth_mode?: ClaudeProfileAuthMode | null
   platform_data?: Record<string, unknown>
   extra?: Record<string, unknown>
 }
@@ -85,4 +89,81 @@ export interface ClaudeProfileRequest {
 export interface ClaudeProfilesResponse {
   profiles: ClaudeProfile[]
   current_profile: string | null
+}
+
+export type ClaudeProfileAuthMode = 'subscription' | 'api_key'
+
+export type ClaudeTokenFreshness = 'Fresh' | 'Stale' | 'Old' | 'Unknown' | (string & {})
+
+export type ClaudeLoginState =
+  | { type: 'NotLoggedIn' }
+  | { type: 'LoggedInUnsaved' }
+  | { type: 'LoggedInSaved'; account_name: string }
+  | { type: 'ApiKeyActive' }
+
+export type ClaudeRuntimeMode =
+  | 'profile_only'
+  | 'profile_with_auth'
+  | 'profile_pending_auth'
+  | 'runtime_only'
+  | 'unresolved'
+
+export interface ClaudeRuntimeSummary {
+  mode: ClaudeRuntimeMode
+  current_profile_name?: string | null
+  current_profile_provider?: string | null
+  current_profile_auth_mode?: ClaudeProfileAuthMode | null
+  current_profile_auth_source?: string | null
+  current_auth_name?: string | null
+  login_state: ClaudeLoginState
+}
+
+export interface ClaudeAuthAccountItem {
+  name: string
+  description?: string | null
+  email?: string | null
+  billing_type?: string | null
+  subscription_type?: string | null
+  rate_limit_tier?: string | null
+  is_current: boolean
+  saved_at: string
+  last_used?: string | null
+  expires_at?: string | null
+  is_expired: boolean
+  freshness: ClaudeTokenFreshness
+  freshness_icon: string
+  freshness_description: string
+}
+
+export interface ClaudeAuthCurrentInfo {
+  account_uuid?: string | null
+  email?: string | null
+  billing_type?: string | null
+  subscription_type?: string | null
+  rate_limit_tier?: string | null
+  expires_at?: string | null
+  is_expired: boolean
+  freshness: ClaudeTokenFreshness
+  freshness_icon: string
+  freshness_description: string
+}
+
+export interface ClaudeAuthListResponse {
+  accounts: ClaudeAuthAccountItem[]
+  login_state: ClaudeLoginState
+  runtime_summary: ClaudeRuntimeSummary
+  current_profile_auth_mode?: ClaudeProfileAuthMode | null
+}
+
+export interface ClaudeAuthCurrentResponse {
+  logged_in: boolean
+  info?: ClaudeAuthCurrentInfo | null
+  runtime_summary: ClaudeRuntimeSummary
+  login_state: ClaudeLoginState
+}
+
+export interface ClaudeAuthSaveRequest {
+  name: string
+  description?: string | null
+  force?: boolean
 }

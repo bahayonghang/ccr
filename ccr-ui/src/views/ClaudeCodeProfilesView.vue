@@ -515,6 +515,7 @@ const modalSectionRefs = ref<Record<ClaudeProfileFormSectionId, HTMLElement | nu
 const form = reactive<ClaudeProfileEditorForm>({
   name: '',
   description: '',
+  auth_mode: 'subscription',
   base_url: '',
   auth_token: '',
   model: '',
@@ -641,12 +642,18 @@ function updateFormField(field: keyof ClaudeProfileEditorForm, value: string | b
     return
   }
 
+  if (field === 'auth_mode') {
+    form.auth_mode = value === 'api_key' ? 'api_key' : 'subscription'
+    return
+  }
+
   form[field] = String(value) as ClaudeProfileEditorForm[typeof field]
 }
 
 const buildRequest = (): ClaudeProfileRequest => ({
   name: form.name.trim(),
   description: normalizeOptional(form.description),
+  auth_mode: form.auth_mode,
   base_url: normalizeOptional(form.base_url),
   auth_token: normalizeOptional(form.auth_token),
   model: normalizeOptional(form.model),
@@ -661,6 +668,7 @@ const buildRequest = (): ClaudeProfileRequest => ({
 const resetForm = () => {
   form.name = ''
   form.description = ''
+  form.auth_mode = 'subscription'
   form.base_url = ''
   form.auth_token = ''
   form.model = ''
@@ -693,6 +701,7 @@ const openAddForm = () => {
 const openEditForm = (profile: ClaudeProfile) => {
   form.name = profile.name
   form.description = profile.description || ''
+  form.auth_mode = profile.auth_mode || 'subscription'
   form.base_url = profile.base_url || ''
   form.auth_token = profile.auth_token || ''
   form.model = profile.model || ''

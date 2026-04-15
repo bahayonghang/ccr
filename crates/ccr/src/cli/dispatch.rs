@@ -110,6 +110,9 @@ impl CommandDispatcher {
             Some(Commands::Check { action }) => Self::dispatch_check(action).await,
 
             Some(Commands::Codex { action }) => Self::dispatch_codex(action).await,
+            Some(Commands::OpenCode { action }) => Self::dispatch_opencode(action).await,
+
+            Some(Commands::Claude { action }) => Self::dispatch_claude(action).await,
 
             Some(Commands::Sessions(args)) => {
                 crate::commands::sessions_cmd::execute(args.clone()).await
@@ -328,6 +331,7 @@ impl CommandDispatcher {
                     provider_type,
                     account,
                     tags,
+                    auth_mode,
                     disabled,
                     json,
                 } => {
@@ -344,6 +348,7 @@ impl CommandDispatcher {
                             provider_type: provider_type.clone(),
                             account: account.clone(),
                             tags: tags.clone(),
+                            auth_mode: auth_mode.clone(),
                             disabled: *disabled,
                             json: *json,
                         },
@@ -553,6 +558,92 @@ impl CommandDispatcher {
                 }
                 CodexAuthAction::Import { replace, force } => {
                     crate::commands::codex::auth::import_command(*replace, *force).await
+                }
+            },
+        }
+    }
+
+    /// OpenCode 命令分发
+    async fn dispatch_opencode(
+        action: &Option<crate::cli::subcommands::OpenCodeAction>,
+    ) -> Result<(), CcrError> {
+        use crate::cli::subcommands::{OpenCodeAction, OpenCodeAuthAction};
+
+        match action {
+            None => {
+                #[cfg(feature = "tui")]
+                {
+                    crate::tui::opencode_auth::run_opencode_auth_tui()
+                }
+                #[cfg(not(feature = "tui"))]
+                {
+                    help::print_subcommand_help("opencode");
+                    Ok(())
+                }
+            }
+            Some(OpenCodeAction::Help) => {
+                help::print_subcommand_help("opencode");
+                Ok(())
+            }
+            Some(OpenCodeAction::Auth { action }) => match action {
+                OpenCodeAuthAction::Help => {
+                    help::print_nested_subcommand_help(&["opencode", "auth"]);
+                    Ok(())
+                }
+                OpenCodeAuthAction::ImportCodex { dry_run, json } => {
+                    crate::commands::opencode::auth::import_codex_command(*dry_run, *json).await
+                }
+            },
+        }
+    }
+
+    /// Claude 命令分发
+    async fn dispatch_claude(
+        action: &Option<crate::cli::subcommands::ClaudeAction>,
+    ) -> Result<(), CcrError> {
+        use crate::cli::subcommands::{ClaudeAction, ClaudeAuthAction};
+
+        match action {
+            None => {
+                #[cfg(feature = "tui")]
+                {
+                    crate::tui::claude_auth::run_claude_auth_tui()
+                }
+                #[cfg(not(feature = "tui"))]
+                {
+                    crate::commands::claude::auth::list::list_command().await
+                }
+            }
+            Some(ClaudeAction::Help) => {
+                help::print_subcommand_help("claude");
+                Ok(())
+            }
+            Some(ClaudeAction::Auth { action }) => match action {
+                ClaudeAuthAction::Help => {
+                    help::print_nested_subcommand_help(&["claude", "auth"]);
+                    Ok(())
+                }
+                ClaudeAuthAction::Save {
+                    name,
+                    description,
+                    force,
+                } => {
+                    crate::commands::claude::auth::save::save_command(
+                        name,
+                        description.clone(),
+                        *force,
+                    )
+                    .await
+                }
+                ClaudeAuthAction::List => crate::commands::claude::auth::list::list_command().await,
+                ClaudeAuthAction::Switch { name } => {
+                    crate::commands::claude::auth::switch::switch_command(name).await
+                }
+                ClaudeAuthAction::Delete { name, force } => {
+                    crate::commands::claude::auth::delete::delete_command(name, *force).await
+                }
+                ClaudeAuthAction::Current { json } => {
+                    crate::commands::claude::auth::current::current_command(*json).await
                 }
             },
         }

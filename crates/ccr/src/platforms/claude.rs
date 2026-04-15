@@ -14,11 +14,14 @@
 use crate::managers::PlatformConfigManager;
 use crate::managers::config::{CcsConfig, ConfigSection};
 use crate::managers::settings::{ClaudeSettings, SettingsManager};
-use crate::models::{Platform, PlatformConfig, PlatformPaths, ProfileConfig};
+use crate::models::{
+    ClaudeProfileAuthMode, Platform, PlatformConfig, PlatformPaths, ProfileConfig,
+};
 use ccr_config::platforms::base;
 use ccr_core::Validatable;
 use ccr_core::core::error::{CcrError, Result};
 use indexmap::IndexMap;
+use serde_json::json;
 use std::fs;
 use std::path::PathBuf;
 
@@ -35,6 +38,20 @@ pub struct ClaudePlatform {
 }
 
 impl ClaudePlatform {
+    pub const AUTH_MODE_FIELD: &str = "auth_mode";
+    pub const EDITABLE_FIELDS: &[&str] = &[
+        "description",
+        "base_url",
+        "auth_token",
+        "model",
+        "small_fast_model",
+        "provider",
+        "provider_type",
+        "account",
+        "tags",
+        "auth_mode",
+    ];
+
     /// 🏗️ 创建新的 Claude Platform 实例
     pub fn new() -> Result<Self> {
         let paths = PlatformPaths::new(Platform::Claude)?;
@@ -133,6 +150,72 @@ impl ClaudePlatform {
             None => Ok(None),
         }
     }
+
+    pub fn editable_fields() -> &'static [&'static str] {
+        Self::EDITABLE_FIELDS
+    }
+
+    pub fn profile_auth_mode(profile: &ProfileConfig) -> ClaudeProfileAuthMode {
+        crate::services::ClaudeAuthService::resolve_profile_auth_mode(profile)
+    }
+
+    pub fn profile_auth_source(profile: &ProfileConfig) -> String {
+        match Self::profile_auth_mode(profile) {
+            ClaudeProfileAuthMode::Subscription => "subscription".to_string(),
+            ClaudeProfileAuthMode::ApiKey => profile
+                .provider
+                .as_deref()
+                .map(str::trim)
+                .filter(|value| !value.is_empty())
+                .map(|provider| format!("provider:{provider}"))
+                .unwrap_or_else(|| "settings:anthropic_env".to_string()),
+        }
+    }
+
+    fn normalize_profile(profile: &mut ProfileConfig) {
+        let auth_mode = Self::profile_auth_mode(profile);
+        profile
+            .platform_data
+            .insert(Self::AUTH_MODE_FIELD.to_string(), json!(auth_mode.as_str()));
+    }
+
+    fn validate_optional_subscription_fields(section: &ConfigSection) -> Result<()> {
+        if let Some(base_url) = &section.base_url {
+            let base_url = base_url.trim();
+            if base_url.is_empty() {
+                return Err(CcrError::ValidationError("base_url 不能为空字符串".into()));
+            }
+            if !base_url.starts_with("http://") && !base_url.starts_with("https://") {
+                return Err(CcrError::ValidationError(
+                    "base_url 必须以 http:// 或 https:// 开头".into(),
+                ));
+            }
+        }
+
+        if let Some(auth_token) = &section.auth_token
+            && auth_token.trim().is_empty()
+        {
+            return Err(CcrError::ValidationError(
+                "auth_token 不能为空字符串".into(),
+            ));
+        }
+
+        if let Some(model) = &section.model
+            && model.trim().is_empty()
+        {
+            return Err(CcrError::ValidationError("model 不能为空字符串".into()));
+        }
+
+        if let Some(model) = &section.small_fast_model
+            && model.trim().is_empty()
+        {
+            return Err(CcrError::ValidationError(
+                "small_fast_model 不能为空字符串".into(),
+            ));
+        }
+
+        Ok(())
+    }
 }
 
 impl PlatformConfig for ClaudePlatform {
@@ -153,7 +236,9 @@ impl PlatformConfig for ClaudePlatform {
         self.validate_profile(profile)?;
 
         let mut profiles = self.load_profiles()?;
-        profiles.insert(name.to_string(), profile.clone());
+        let mut normalized = profile.clone();
+        Self::normalize_profile(&mut normalized);
+        profiles.insert(name.to_string(), normalized);
         self.save_profiles(&profiles)
     }
 
@@ -181,8 +266,8 @@ impl PlatformConfig for ClaudePlatform {
         // 转换为 ConfigSection
         let section = Self::profile_to_section(profile)?;
 
-        // 验证
-        section.validate()?;
+        let auth_mode = Self::profile_auth_mode(profile);
+        self.validate_profile(profile)?;
 
         // 加载当前设置
         let mut settings = self
@@ -190,8 +275,14 @@ impl PlatformConfig for ClaudePlatform {
             .load()
             .unwrap_or_else(|_| ClaudeSettings::new());
 
-        // 更新设置
-        settings.update_from_config(&section);
+        match auth_mode {
+            ClaudeProfileAuthMode::Subscription => {
+                settings.clear_anthropic_vars();
+            }
+            ClaudeProfileAuthMode::ApiKey => {
+                settings.update_from_config(&section);
+            }
+        }
 
         // 原子保存
         self.settings_manager.save_atomic(&settings)?;
@@ -205,9 +296,13 @@ impl PlatformConfig for ClaudePlatform {
     }
 
     fn validate_profile(&self, profile: &ProfileConfig) -> Result<()> {
-        // 转换为 ConfigSection 并验证
         let section = Self::profile_to_section(profile)?;
-        section.validate()
+        match Self::profile_auth_mode(profile) {
+            ClaudeProfileAuthMode::Subscription => {
+                Self::validate_optional_subscription_fields(&section)
+            }
+            ClaudeProfileAuthMode::ApiKey => section.validate(),
+        }
     }
 
     fn get_current_profile(&self) -> Result<Option<String>> {
@@ -299,6 +394,15 @@ mod tests {
             .with_base_url(format!("https://{name}.example.com"))
             .with_auth_token(format!("sk-{name}"))
             .with_model(format!("claude-{name}"))
+    }
+
+    fn make_subscription_profile(name: &str) -> ProfileConfig {
+        let mut profile = ProfileConfig::new().with_model(format!("claude-{name}"));
+        profile.platform_data.insert(
+            ClaudePlatform::AUTH_MODE_FIELD.to_string(),
+            json!("subscription"),
+        );
+        profile
     }
 
     fn read_profiles_config(root: &std::path::Path) -> CcsConfig {
@@ -513,6 +617,63 @@ mod tests {
         })();
 
         drop(env);
+        result.unwrap();
+    }
+
+    #[test]
+    fn test_subscription_profile_can_save_and_apply_without_api_key() {
+        let _guard = ENV_LOCK.lock().unwrap();
+        let _env = TestEnv::new();
+
+        let result = (|| -> Result<()> {
+            let platform = ClaudePlatform::new()?;
+            let profile = make_subscription_profile("official");
+            platform.save_profile("official", &profile)?;
+            platform.apply_profile("official")?;
+
+            let settings = SettingsManager::with_default()?.load()?;
+            assert!(!settings.has_anthropic_overrides());
+
+            Ok(())
+        })();
+
+        result.unwrap();
+    }
+
+    #[test]
+    fn test_subscription_profile_apply_clears_only_anthropic_overrides() {
+        let _guard = ENV_LOCK.lock().unwrap();
+        let _env = TestEnv::new();
+
+        let result = (|| -> Result<()> {
+            let platform = ClaudePlatform::new()?;
+            let profile = make_subscription_profile("official");
+            platform.save_profile("official", &profile)?;
+
+            let mut settings = ClaudeSettings::new();
+            settings.env.insert(
+                "ANTHROPIC_BASE_URL".into(),
+                "https://old.example.com".into(),
+            );
+            settings
+                .env
+                .insert("ANTHROPIC_AUTH_TOKEN".into(), "sk-old".into());
+            settings.env.insert("KEEP_ME".into(), "value".into());
+            SettingsManager::with_default()?.save_atomic(&settings)?;
+
+            platform.apply_profile("official")?;
+
+            let settings = SettingsManager::with_default()?.load()?;
+            assert!(!settings.env.contains_key("ANTHROPIC_BASE_URL"));
+            assert!(!settings.env.contains_key("ANTHROPIC_AUTH_TOKEN"));
+            assert_eq!(
+                settings.env.get("KEEP_ME").map(String::as_str),
+                Some("value")
+            );
+
+            Ok(())
+        })();
+
         result.unwrap();
     }
 }

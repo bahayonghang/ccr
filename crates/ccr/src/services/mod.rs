@@ -8,6 +8,7 @@
 // - ✅ 统一错误处理和验证
 
 pub mod backup_service;
+pub mod claude_auth_service;
 pub mod config_service;
 pub mod health_check;
 pub mod history_service;
@@ -34,9 +35,11 @@ pub use ccr_codex::{
     CodexOAuthTokenService, CodexQuotaService, CodexRollingUsage, CodexRuntimeCommitPlan,
     CodexRuntimeService, CodexSessionDetail, CodexSessionExport, CodexSessionMessage,
     CodexSessionService, CodexSessionSummary, CodexUsageRecord, CodexUsageService, CodexUsageStats,
-    OpenCodeAuthService, OpenCodeReadSnapshot, OpenCodeRollingUsage, OpenCodeUsageRecord,
-    OpenCodeUsageService, OpenCodeUsageStats,
+    OpenCodeAuthService, OpenCodeQuotaService, OpenCodeReadSnapshot, OpenCodeRollingUsage,
+    OpenCodeUsageRecord, OpenCodeUsageService, OpenCodeUsageStats,
 };
+#[allow(unused_imports)]
+pub use claude_auth_service::{ClaudeAuthItem, ClaudeAuthReadSnapshot, ClaudeAuthService};
 #[allow(unused_imports)]
 pub use config_service::ConfigService;
 #[allow(unused_imports)]

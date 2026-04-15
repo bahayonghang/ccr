@@ -89,6 +89,26 @@ ccr codex auth export --no-secrets
 ccr codex auth import --replace
 ```
 
+## Migrate Saved Accounts into OpenCode
+
+If you already have a saved set of Codex accounts in CCR and want OpenCode to reuse them, move through the `opencode` command group:
+
+```bash
+# Preview which saved Codex accounts can be imported
+ccr opencode auth import-codex --dry-run
+
+# Import compatible accounts
+ccr opencode auth import-codex
+```
+
+Migration guarantees:
+
+- reads only Codex accounts already saved in CCR, not an unsaved runtime login
+- imports only compatible ChatGPT OAuth-backed accounts
+- never overwrites existing OpenCode accounts
+- never switches the current OpenCode runtime login
+- reports skipped accounts by reason
+
 ## When to Use It
 
 - One developer manages multiple GitHub / Codex identities
@@ -97,5 +117,6 @@ ccr codex auth import --replace
 
 ## Related Docs
 
+- [`opencode`](./opencode)
 - [Platform Support](/en/reference/platforms/)
 - [UI Module Map](/en/guide/ui-modules)

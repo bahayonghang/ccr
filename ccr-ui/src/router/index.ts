@@ -87,6 +87,12 @@ const routes: RouteRecordRaw[] = [
         meta: { depth: 2, group: 'claude-code' },
       },
       {
+        path: 'claude-code/auth',
+        name: 'claude-code-auth',
+        component: () => import('@/views/ClaudeAuthView.vue'),
+        meta: { depth: 2, group: 'claude-code' },
+      },
+      {
         path: 'codex',
         name: 'codex',
         component: () => import('@/views/CodexView.vue'),

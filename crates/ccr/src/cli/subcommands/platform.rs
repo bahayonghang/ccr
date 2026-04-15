@@ -100,6 +100,8 @@ pub enum PlatformProfileAction {
         account: Option<String>,
         #[arg(long = "tag")]
         tags: Vec<String>,
+        #[arg(long = "auth-mode")]
+        auth_mode: Option<String>,
         #[arg(long)]
         disabled: bool,
         /// 以 JSON 输出结果（供扩展消费）

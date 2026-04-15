@@ -9,6 +9,7 @@ CCR 当前 CLI 主要分成五组：平台与初始化、profile 与临时覆盖
 | [`init`](./init) | 初始化配置目录 | 当前目录布局入口 |
 | [`platform`](./platform) | 管理平台注册表 | list / switch / current / info / init |
 | [`codex`](./codex) | 管理 Codex 多账号 | `ccr codex auth *` |
+| [`opencode`](./opencode) | OpenCode auth 迁移与入口 | `ccr opencode` / `ccr opencode auth import-codex` |
 | [`add`](./add) / [`delete`](./delete) | 增删 profile | 面向当前平台 |
 | [`list`](./list) / [`current`](./current) / [`switch`](./switch) | 查看与切换 profile | `ccr <name>` 是 `switch` 快捷方式 |
 | [`temp`](./temp) / [`temp-token`](./temp-token) | 临时覆盖当前设置 | `temp` 为交互式，`temp-token` 为命令式 |
@@ -50,6 +51,8 @@ ccr
 
 - [`init`](./init)
 - [`platform`](./platform)
+- [`codex`](./codex)
+- [`opencode`](./opencode)
 
 ### Profile 与临时覆盖
 
@@ -87,7 +90,6 @@ ccr
 
 ### 扩展与维护
 
-- [`codex`](./codex)
 - [`skills`](./skills)
 - [`prompts`](./prompts)
 - [`update`](./update)

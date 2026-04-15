@@ -20,7 +20,13 @@ pub use ccr_codex::models::codex_auth::{
 };
 #[allow(unused_imports)]
 pub use ccr_codex::models::opencode_auth::{
+    CodexToOpenCodeMigrationItem, CodexToOpenCodeMigrationReport, CodexToOpenCodeMigrationStatus,
     OpenCodeAuthAccount, OpenCodeAuthItem, OpenCodeAuthRegistry, OpenCodeCurrentAuthInfo,
     OpenCodeLoginState, OpenCodeOpenAiAuth, OpenCodeReadSnapshot,
 };
 pub use ccr_config::{Platform, PlatformConfig, PlatformPaths, ProfileConfig};
+#[allow(unused_imports)]
+pub use ccr_types::{
+    ClaudeAuthAccount, ClaudeAuthRegistry, ClaudeCurrentAuthInfo, ClaudeLoginState,
+    ClaudeProfileAuthMode, ClaudeRuntimeMode, ClaudeRuntimeSummary,
+};

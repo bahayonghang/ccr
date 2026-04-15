@@ -13,10 +13,15 @@
 //! - `ClaudeSettings.output_style` serializes as `outputStyle` and accepts legacy `output_style`
 //! - `hooks` serializes as the official grouped object format and accepts legacy arrays on input
 
+mod claude_auth;
 mod claude_settings;
 mod codex_auth;
 mod monitoring;
 
+pub use claude_auth::{
+    ClaudeAuthAccount, ClaudeAuthRegistry, ClaudeCurrentAuthInfo, ClaudeLoginState,
+    ClaudeProfileAuthMode, ClaudeRuntimeMode, ClaudeRuntimeSummary,
+};
 pub use claude_settings::{
     Agent, ClaudeSettings, Hook, HookMatcherGroup, HooksConfig, McpServer, Plugin, SlashCommand,
     default_true, is_false,

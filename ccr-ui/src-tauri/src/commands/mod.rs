@@ -89,6 +89,11 @@ macro_rules! generate_handler_common {
         claude::claude_update_profile,
         claude::claude_delete_profile,
         claude::claude_apply_profile,
+        claude::claude_list_auth_accounts,
+        claude::claude_get_auth_current,
+        claude::claude_save_auth,
+        claude::claude_switch_auth,
+        claude::claude_delete_auth,
         // —— Codex ——
         codex::codex_list_profiles,
         codex::codex_list_models,

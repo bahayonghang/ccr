@@ -2,6 +2,7 @@
 // Renders dynamic multi-platform profile switcher interface
 
 use super::app::App;
+use super::claude_auth;
 use super::codex_auth;
 use super::opencode_auth;
 use super::theme;
@@ -68,7 +69,21 @@ pub fn draw(f: &mut Frame, app: &App) {
         chunks[1]
     };
 
-    if app.is_codex_auth_tab() {
+    if app.is_claude_auth_tab() {
+        app.header_area.set(Some(chunks[0]));
+
+        if let Some(ref claude_app) = app.claude_auth_app {
+            claude_auth::ui::draw_embedded(f, claude_app, content_area, chunks[2], mode);
+        } else {
+            claude_auth::ui::draw_loading_placeholder(
+                f,
+                content_area,
+                chunks[2],
+                mode,
+                app.claude_auth_error.as_deref(),
+            );
+        }
+    } else if app.is_codex_auth_tab() {
         app.header_area.set(Some(chunks[0]));
 
         if let Some(ref codex_app) = app.codex_auth_app {
@@ -335,7 +350,7 @@ fn render_header(f: &mut Frame, app: &App, area: Rect) {
     let current_label = format!(
         " {} {} ",
         app.current_platform().icon(),
-        app.current_platform().display_name()
+        app.current_tab().label
     );
 
     let tabs = Tabs::new(tab_titles)
@@ -1202,6 +1217,7 @@ mod tests {
                 profile_configs,
                 profile_load_error: None,
                 current_profile_error: None,
+                claude_runtime_summary: None,
                 codex_runtime_summary: None,
                 instance: None,
             }],
@@ -1211,6 +1227,9 @@ mod tests {
             selected_profile_name: Some(profile.name),
             toasts: ToastManager::new(),
             last_applied: None,
+            claude_auth_app: None,
+            claude_auth_error: None,
+            last_claude_action: None,
             codex_auth_app: None,
             codex_auth_error: None,
             last_codex_action: None,

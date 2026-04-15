@@ -27,19 +27,35 @@
           </div>
         </div>
 
-        <RouterLink to="/">
-          <Button
-            variant="ghost"
-            class="group"
-          >
-            <SIcon
-              name="Home"
-              size="w-4 h-4"
-              class="mr-2 group-hover:text-accent-primary transition-colors"
-            />
-            {{ $t('claudeCode.backToHome') }}
-          </Button>
-        </RouterLink>
+        <div class="flex items-center gap-3">
+          <RouterLink to="/claude-code/auth">
+            <Button
+              variant="ghost"
+              class="group"
+            >
+              <SIcon
+                name="KeyRound"
+                size="w-4 h-4"
+                class="mr-2 group-hover:text-accent-primary transition-colors"
+              />
+              Auth
+            </Button>
+          </RouterLink>
+
+          <RouterLink to="/">
+            <Button
+              variant="ghost"
+              class="group"
+            >
+              <SIcon
+                name="Home"
+                size="w-4 h-4"
+                class="mr-2 group-hover:text-accent-primary transition-colors"
+              />
+              {{ $t('claudeCode.backToHome') }}
+            </Button>
+          </RouterLink>
+        </div>
       </header>
 
       <!-- FEATURES TAGS -->

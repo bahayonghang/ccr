@@ -124,6 +124,42 @@ impl ClaudeSettings {
 
         status
     }
+
+    /// 🔍 是否存在任何 Claude API key 覆盖
+    pub fn has_anthropic_overrides(&self) -> bool {
+        self.env.keys().any(|key| key.starts_with("ANTHROPIC_"))
+    }
+
+    /// ✅ 严格验证 API key 模式所需环境变量
+    pub fn validate_api_key_mode(&self) -> Result<()> {
+        let base_url = self.env.get(ANTHROPIC_BASE_URL).ok_or_else(|| {
+            CcrError::ValidationError("缺少必需的环境变量: ANTHROPIC_BASE_URL".into())
+        })?;
+
+        if base_url.trim().is_empty() {
+            return Err(CcrError::ValidationError(
+                "环境变量不能为空: ANTHROPIC_BASE_URL".into(),
+            ));
+        }
+
+        if !base_url.starts_with("http://") && !base_url.starts_with("https://") {
+            return Err(CcrError::ValidationError(
+                "ANTHROPIC_BASE_URL 必须以 http:// 或 https:// 开头".into(),
+            ));
+        }
+
+        let auth_token = self.env.get(ANTHROPIC_AUTH_TOKEN).ok_or_else(|| {
+            CcrError::ValidationError("缺少必需的环境变量: ANTHROPIC_AUTH_TOKEN".into())
+        })?;
+
+        if auth_token.trim().is_empty() {
+            return Err(CcrError::ValidationError(
+                "环境变量不能为空: ANTHROPIC_AUTH_TOKEN".into(),
+            ));
+        }
+
+        Ok(())
+    }
 }
 
 impl Default for ClaudeSettings {
@@ -133,33 +169,16 @@ impl Default for ClaudeSettings {
 }
 
 impl Validatable for ClaudeSettings {
-    /// ✅ 验证关键环境变量是否存在
+    /// ✅ 验证 Claude settings 中的 ANTHROPIC_* 覆盖
     ///
-    /// 必需变量:
-    /// - ANTHROPIC_BASE_URL
-    /// - ANTHROPIC_AUTH_TOKEN
+    /// 官方订阅模式下允许完全没有 ANTHROPIC_*；
+    /// 一旦存在覆盖，则按 API key 模式严格校验。
     fn validate(&self) -> Result<()> {
-        let required_vars = [ANTHROPIC_BASE_URL, ANTHROPIC_AUTH_TOKEN];
-
-        for var in required_vars {
-            match self.env.get(var) {
-                None => {
-                    return Err(CcrError::ValidationError(format!(
-                        "缺少必需的环境变量: {}",
-                        var
-                    )));
-                }
-                Some(value) if value.is_empty() => {
-                    return Err(CcrError::ValidationError(format!(
-                        "环境变量不能为空: {}",
-                        var
-                    )));
-                }
-                Some(_) => {} // OK
-            }
+        if !self.has_anthropic_overrides() {
+            return Ok(());
         }
 
-        Ok(())
+        self.validate_api_key_mode()
     }
 }
 
@@ -914,8 +933,8 @@ mod tests {
     fn test_claude_settings_validate() {
         let mut settings = ClaudeSettings::new();
 
-        // 缺少必需变量应该失败
-        assert!(settings.validate().is_err());
+        // 官方订阅模式下允许没有 ANTHROPIC_* 覆盖
+        assert!(settings.validate().is_ok());
 
         // 添加必需变量
         settings
@@ -926,6 +945,17 @@ mod tests {
             .insert("ANTHROPIC_AUTH_TOKEN".into(), "token".into());
 
         assert!(settings.validate().is_ok());
+    }
+
+    #[test]
+    fn test_claude_settings_validate_api_key_mode_rejects_partial_overrides() {
+        let mut settings = ClaudeSettings::new();
+        settings
+            .env
+            .insert("ANTHROPIC_BASE_URL".into(), "https://test.com".into());
+
+        assert!(settings.validate().is_err());
+        assert!(settings.validate_api_key_mode().is_err());
     }
 
     #[test]

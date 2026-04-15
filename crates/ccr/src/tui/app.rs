@@ -1,6 +1,6 @@
 // TUI application state — Tab-based dispatch (Claude + Codex only)
 
-use crate::models::CodexRuntimeSummary;
+use crate::models::{ClaudeRuntimeSummary, CodexRuntimeSummary};
 use crate::models::{Platform, PlatformConfig, PlatformPaths, ProfileConfig};
 use crate::platforms::create_platform;
 use crate::tui::action::Action;
@@ -14,6 +14,7 @@ use ratatui::widgets::{Block, Borders};
 use std::cell::Cell;
 use std::sync::Arc;
 
+use super::claude_auth::ClaudeAuthApp;
 use super::codex_auth::CodexAuthApp;
 use super::opencode_auth::OpenCodeAuthApp;
 use super::runtime::TuiApp;
@@ -35,6 +36,8 @@ pub struct ProfileItem {
 pub enum TabVariant {
     /// Standard profile switching (Claude, Codex Profile)
     Profile,
+    /// Claude official subscription account/auth management
+    ClaudeAuth,
     /// Codex account/auth management
     CodexAuth,
     /// OpenCode openai account/auth management
@@ -50,6 +53,7 @@ pub struct PlatformTab {
     pub profile_configs: IndexMap<String, ProfileConfig>,
     pub profile_load_error: Option<String>,
     pub current_profile_error: Option<String>,
+    pub claude_runtime_summary: Option<ClaudeRuntimeSummary>,
     pub codex_runtime_summary: Option<CodexRuntimeSummary>,
     pub instance: Option<Arc<dyn PlatformConfig>>,
 }
@@ -59,6 +63,7 @@ struct ProfileTabData {
     profile_configs: IndexMap<String, ProfileConfig>,
     profile_load_error: Option<String>,
     current_profile_error: Option<String>,
+    claude_runtime_summary: Option<ClaudeRuntimeSummary>,
     codex_runtime_summary: Option<CodexRuntimeSummary>,
 }
 
@@ -104,6 +109,12 @@ pub struct App {
     pub toasts: ToastManager,
     /// Last applied profile info (platform_name, profile_name, success, error)
     pub last_applied: Option<(String, String, bool, Option<String>)>,
+    /// Embedded Claude Auth app (lazy initialized)
+    pub claude_auth_app: Option<ClaudeAuthApp>,
+    /// Last Claude Auth initialization error for placeholder rendering
+    pub claude_auth_error: Option<String>,
+    /// Last Claude auth action info (action_type, account_name, success, error)
+    pub last_claude_action: Option<(String, String, bool, Option<String>)>,
     /// Embedded Codex Auth app (lazy initialized)
     pub codex_auth_app: Option<CodexAuthApp>,
     /// Last Codex Auth initialization error for placeholder rendering
@@ -142,6 +153,14 @@ impl App {
             None
         };
 
+        let claude_runtime_summary = if platform == Platform::Claude {
+            crate::services::ClaudeAuthService::new()
+                .ok()
+                .and_then(|service| service.get_runtime_summary().ok())
+        } else {
+            None
+        };
+
         match instance.load_profiles() {
             Ok(profile_configs) => {
                 let profiles = profile_configs
@@ -157,6 +176,7 @@ impl App {
                     profile_configs,
                     profile_load_error: None,
                     current_profile_error,
+                    claude_runtime_summary,
                     codex_runtime_summary,
                 }
             }
@@ -168,6 +188,7 @@ impl App {
                     profile_configs: IndexMap::new(),
                     profile_load_error: Some(err),
                     current_profile_error,
+                    claude_runtime_summary,
                     codex_runtime_summary,
                 }
             }
@@ -284,12 +305,25 @@ impl App {
                         Platform::Claude => {
                             tabs.push(PlatformTab {
                                 platform,
+                                variant: TabVariant::ClaudeAuth,
+                                label: "Claude Auth".to_string(),
+                                profiles: Vec::new(),
+                                profile_configs: IndexMap::new(),
+                                profile_load_error: None,
+                                current_profile_error: None,
+                                claude_runtime_summary: tab_data.claude_runtime_summary.clone(),
+                                codex_runtime_summary: None,
+                                instance: Some(Arc::clone(&instance)),
+                            });
+                            tabs.push(PlatformTab {
+                                platform,
                                 variant: TabVariant::Profile,
                                 label: platform.display_name().to_string(),
                                 profiles: tab_data.profiles,
                                 profile_configs: tab_data.profile_configs,
                                 profile_load_error: tab_data.profile_load_error,
                                 current_profile_error: tab_data.current_profile_error,
+                                claude_runtime_summary: tab_data.claude_runtime_summary,
                                 codex_runtime_summary: tab_data.codex_runtime_summary,
                                 instance: Some(instance),
                             });
@@ -304,6 +338,7 @@ impl App {
                                 profile_configs: IndexMap::new(),
                                 profile_load_error: None,
                                 current_profile_error: None,
+                                claude_runtime_summary: None,
                                 codex_runtime_summary: None,
                                 instance: Some(Arc::clone(&instance)),
                             });
@@ -316,6 +351,7 @@ impl App {
                                 profile_configs: IndexMap::new(),
                                 profile_load_error: None,
                                 current_profile_error: None,
+                                claude_runtime_summary: None,
                                 codex_runtime_summary: None,
                                 instance: Some(Arc::clone(&instance)),
                             });
@@ -328,6 +364,7 @@ impl App {
                                 profile_configs: tab_data.profile_configs,
                                 profile_load_error: tab_data.profile_load_error,
                                 current_profile_error: tab_data.current_profile_error,
+                                claude_runtime_summary: None,
                                 codex_runtime_summary: tab_data.codex_runtime_summary,
                                 instance: Some(instance),
                             });
@@ -345,12 +382,25 @@ impl App {
         if tabs.is_empty() {
             tabs.push(PlatformTab {
                 platform: Platform::Claude,
+                variant: TabVariant::ClaudeAuth,
+                label: "Claude Auth".to_string(),
+                profiles: Vec::new(),
+                profile_configs: IndexMap::new(),
+                profile_load_error: None,
+                current_profile_error: None,
+                claude_runtime_summary: None,
+                codex_runtime_summary: None,
+                instance: None,
+            });
+            tabs.push(PlatformTab {
+                platform: Platform::Claude,
                 variant: TabVariant::Profile,
                 label: Platform::Claude.display_name().to_string(),
                 profiles: Vec::new(),
                 profile_configs: IndexMap::new(),
                 profile_load_error: None,
                 current_profile_error: None,
+                claude_runtime_summary: None,
                 codex_runtime_summary: None,
                 instance: None,
             });
@@ -364,6 +414,9 @@ impl App {
             selected_profile_name: None,
             toasts: ToastManager::new(),
             last_applied: None,
+            claude_auth_app: None,
+            claude_auth_error: None,
+            last_claude_action: None,
             codex_auth_app: None,
             codex_auth_error: None,
             last_codex_action: None,
@@ -551,6 +604,7 @@ impl App {
                 tab.profile_configs = tab_data.profile_configs;
                 tab.profile_load_error = tab_data.profile_load_error;
                 tab.current_profile_error = tab_data.current_profile_error;
+                tab.claude_runtime_summary = tab_data.claude_runtime_summary;
                 tab.codex_runtime_summary = tab_data.codex_runtime_summary;
             }
         }
@@ -558,6 +612,33 @@ impl App {
     }
 
     // -- Tab helpers --
+
+    /// Ensure Claude Auth app is initialized before interaction/rendering
+    fn ensure_claude_auth_app(&mut self) {
+        if self.claude_auth_app.is_some() {
+            return;
+        }
+
+        match ClaudeAuthApp::new() {
+            Ok(app) => {
+                self.claude_auth_app = Some(app);
+                self.claude_auth_error = None;
+            }
+            Err(e) => {
+                let err = e.to_string();
+                tracing::warn!("Failed to init ClaudeAuthApp: {}", err);
+                self.claude_auth_error = Some(err.clone());
+                self.toasts
+                    .push(Toast::error(format!("Claude Auth 初始化失败: {}", err)));
+            }
+        }
+    }
+
+    /// Get mutable Claude Auth app, initializing it on demand
+    fn claude_auth_app_mut(&mut self) -> Option<&mut ClaudeAuthApp> {
+        self.ensure_claude_auth_app();
+        self.claude_auth_app.as_mut()
+    }
 
     /// Ensure Codex Auth app is initialized before interaction/rendering
     fn ensure_codex_auth_app(&mut self) {
@@ -613,6 +694,11 @@ impl App {
         self.opencode_auth_app.as_mut()
     }
 
+    /// Check if the currently active tab is the Claude Auth variant
+    pub fn is_claude_auth_tab(&self) -> bool {
+        self.tabs[self.active_tab].variant == TabVariant::ClaudeAuth
+    }
+
     /// Check if the currently active tab is the Codex Auth variant
     pub fn is_codex_auth_tab(&self) -> bool {
         self.tabs[self.active_tab].variant == TabVariant::CodexAuth
@@ -621,6 +707,21 @@ impl App {
     /// Check if the currently active tab is the OpenCode Auth variant
     pub fn is_opencode_auth_tab(&self) -> bool {
         self.tabs[self.active_tab].variant == TabVariant::OpenCodeAuth
+    }
+
+    /// Pre-select Claude Auth tab (for `ccr claude` entry)
+    pub fn with_claude_auth_tab(mut self) -> Self {
+        if let Some(idx) = self
+            .tabs
+            .iter()
+            .position(|t| t.variant == TabVariant::ClaudeAuth)
+        {
+            self.remember_selected_profile();
+            self.active_tab = idx;
+            self.sync_selection_to_profile_name();
+            self.notify_tab_activated();
+        }
+        self
     }
 
     /// Pre-select Codex Auth tab (for `ccr codex` entry)
@@ -638,13 +739,36 @@ impl App {
         self
     }
 
+    /// Pre-select OpenCode Auth tab (for `ccr opencode` entry)
+    pub fn with_opencode_auth_tab(mut self) -> Self {
+        if let Some(idx) = self
+            .tabs
+            .iter()
+            .position(|t| t.variant == TabVariant::OpenCodeAuth)
+        {
+            self.remember_selected_profile();
+            self.active_tab = idx;
+            self.sync_selection_to_profile_name();
+            self.notify_tab_activated();
+        }
+        self
+    }
+
     /// Notify the active tab's sub-app that it became active
     fn notify_tab_activated(&mut self) {
+        let is_claude_auth = self.is_claude_auth_tab();
         let is_codex_auth = self.is_codex_auth_tab();
         let is_opencode_auth = self.is_opencode_auth_tab();
 
-        if !is_codex_auth && !is_opencode_auth {
+        if !is_claude_auth && !is_codex_auth && !is_opencode_auth {
             self.sync_selection_to_profile_name();
+            return;
+        }
+
+        if is_claude_auth {
+            if let Some(claude_app) = self.claude_auth_app_mut() {
+                claude_app.on_activated();
+            }
             return;
         }
 
@@ -657,6 +781,15 @@ impl App {
 
         if is_opencode_auth && let Some(opencode_app) = self.opencode_auth_app_mut() {
             opencode_app.on_activated();
+        }
+    }
+
+    /// Delegate mouse event to embedded ClaudeAuthApp
+    fn delegate_mouse_to_claude(&mut self, mouse: MouseEvent) -> Result<bool> {
+        if let Some(claude_app) = self.claude_auth_app_mut() {
+            claude_app.handle_mouse(mouse)
+        } else {
+            Ok(false)
         }
     }
 
@@ -732,7 +865,19 @@ impl TuiApp for App {
             return Ok(true);
         }
 
-        if self.is_codex_auth_tab() {
+        if self.is_claude_auth_tab() {
+            if key.code == KeyCode::Tab {
+                return self.dispatch(Action::NextTab);
+            }
+            if let Some(claude_app) = self.claude_auth_app_mut() {
+                let quit = claude_app.handle_key(key)?;
+                if quit {
+                    self.last_claude_action = claude_app.last_action.clone();
+                    return Ok(true);
+                }
+            }
+            Ok(false)
+        } else if self.is_codex_auth_tab() {
             // Tab key: switch to next tab (intercepted before CodexAuthApp)
             if key.code == KeyCode::Tab {
                 return self.dispatch(Action::NextTab);
@@ -787,6 +932,9 @@ impl TuiApp for App {
                 }
 
                 // Codex Auth tab: 委托给 CodexAuthApp
+                if self.is_claude_auth_tab() {
+                    return self.delegate_mouse_to_claude(mouse);
+                }
                 if self.is_codex_auth_tab() {
                     return self.delegate_mouse_to_codex(mouse);
                 }
@@ -805,6 +953,9 @@ impl TuiApp for App {
 
             // 🖱️ 滚轮上
             MouseEventKind::ScrollUp => {
+                if self.is_claude_auth_tab() {
+                    return self.delegate_mouse_to_claude(mouse);
+                }
                 if self.is_codex_auth_tab() {
                     return self.delegate_mouse_to_codex(mouse);
                 }
@@ -816,6 +967,9 @@ impl TuiApp for App {
 
             // 🖱️ 滚轮下
             MouseEventKind::ScrollDown => {
+                if self.is_claude_auth_tab() {
+                    return self.delegate_mouse_to_claude(mouse);
+                }
                 if self.is_codex_auth_tab() {
                     return self.delegate_mouse_to_codex(mouse);
                 }
@@ -831,7 +985,9 @@ impl TuiApp for App {
     }
 
     fn on_tick(&mut self) -> bool {
-        if self.is_codex_auth_tab() {
+        if self.is_claude_auth_tab() {
+            self.claude_auth_app.as_mut().is_some_and(|a| a.on_tick())
+        } else if self.is_codex_auth_tab() {
             self.codex_auth_app.as_mut().is_some_and(|a| a.on_tick())
         } else if self.is_opencode_auth_tab() {
             self.opencode_auth_app.as_mut().is_some_and(|a| a.on_tick())
@@ -983,6 +1139,7 @@ mod tests {
                 profile_configs: IndexMap::<String, ProfileConfig>::new(),
                 profile_load_error: Some("load failed".to_string()),
                 current_profile_error: Some("current failed".to_string()),
+                claude_runtime_summary: None,
                 codex_runtime_summary: None,
                 instance: None,
             }],
@@ -992,6 +1149,9 @@ mod tests {
             selected_profile_name: None,
             toasts: ToastManager::new(),
             last_applied: None,
+            claude_auth_app: None,
+            claude_auth_error: None,
+            last_claude_action: None,
             codex_auth_app: None,
             codex_auth_error: None,
             last_codex_action: None,
@@ -1006,6 +1166,112 @@ mod tests {
         assert_eq!(app.current_profile_status_error(), Some("current failed"));
         assert!(app.selected_profile().is_none());
         assert!(app.selected_profile_config().is_none());
+    }
+
+    #[test]
+    fn with_claude_auth_tab_selects_claude_auth_variant() {
+        let app = App {
+            tabs: vec![
+                PlatformTab {
+                    platform: Platform::Claude,
+                    variant: TabVariant::Profile,
+                    label: "Claude Code".to_string(),
+                    profiles: Vec::new(),
+                    profile_configs: IndexMap::<String, ProfileConfig>::new(),
+                    profile_load_error: None,
+                    current_profile_error: None,
+                    claude_runtime_summary: None,
+                    codex_runtime_summary: None,
+                    instance: None,
+                },
+                PlatformTab {
+                    platform: Platform::Claude,
+                    variant: TabVariant::ClaudeAuth,
+                    label: "Claude Auth".to_string(),
+                    profiles: Vec::new(),
+                    profile_configs: IndexMap::<String, ProfileConfig>::new(),
+                    profile_load_error: None,
+                    current_profile_error: None,
+                    claude_runtime_summary: None,
+                    codex_runtime_summary: None,
+                    instance: None,
+                },
+            ],
+            active_tab: 0,
+            selected_index: 0,
+            current_page: 0,
+            selected_profile_name: None,
+            toasts: ToastManager::new(),
+            last_applied: None,
+            claude_auth_app: None,
+            claude_auth_error: None,
+            last_claude_action: None,
+            codex_auth_app: None,
+            codex_auth_error: None,
+            last_codex_action: None,
+            opencode_auth_app: None,
+            opencode_auth_error: None,
+            last_opencode_action: None,
+            header_area: Cell::new(None),
+            list_area: Cell::new(None),
+        }
+        .with_claude_auth_tab();
+
+        assert_eq!(app.active_tab, 1);
+        assert!(app.is_claude_auth_tab());
+    }
+
+    #[test]
+    fn with_opencode_auth_tab_selects_opencode_auth_variant() {
+        let app = App {
+            tabs: vec![
+                PlatformTab {
+                    platform: Platform::Claude,
+                    variant: TabVariant::Profile,
+                    label: "Claude Code".to_string(),
+                    profiles: Vec::new(),
+                    profile_configs: IndexMap::<String, ProfileConfig>::new(),
+                    profile_load_error: None,
+                    current_profile_error: None,
+                    claude_runtime_summary: None,
+                    codex_runtime_summary: None,
+                    instance: None,
+                },
+                PlatformTab {
+                    platform: Platform::Codex,
+                    variant: TabVariant::OpenCodeAuth,
+                    label: "OpenCode Auth".to_string(),
+                    profiles: Vec::new(),
+                    profile_configs: IndexMap::<String, ProfileConfig>::new(),
+                    profile_load_error: None,
+                    current_profile_error: None,
+                    claude_runtime_summary: None,
+                    codex_runtime_summary: None,
+                    instance: None,
+                },
+            ],
+            active_tab: 0,
+            selected_index: 0,
+            current_page: 0,
+            selected_profile_name: None,
+            toasts: ToastManager::new(),
+            last_applied: None,
+            claude_auth_app: None,
+            claude_auth_error: None,
+            last_claude_action: None,
+            codex_auth_app: None,
+            codex_auth_error: None,
+            last_codex_action: None,
+            opencode_auth_app: None,
+            opencode_auth_error: None,
+            last_opencode_action: None,
+            header_area: Cell::new(None),
+            list_area: Cell::new(None),
+        }
+        .with_opencode_auth_tab();
+
+        assert_eq!(app.active_tab, 1);
+        assert!(app.is_opencode_auth_tab());
     }
 
     struct FailingPlatform {

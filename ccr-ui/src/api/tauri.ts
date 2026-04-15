@@ -818,6 +818,41 @@ export const applyClaudeProfile = async <T = UnknownRecord>(name: string): Promi
   return invoke('claude_apply_profile', { name })
 }
 
+// ── Claude Auth ──
+
+/** 列出所有已保存的 Claude 官方账号 */
+export const listClaudeAuthAccounts = async <T = UnknownRecord>(): Promise<T> => {
+  return invoke('claude_list_auth_accounts')
+}
+
+/** 获取当前 Claude 官方登录状态 */
+export const getClaudeAuthCurrent = async <T = UnknownRecord>(): Promise<T> => {
+  return invoke('claude_get_auth_current')
+}
+
+/** 保存当前 Claude 官方登录 */
+export const saveClaudeAuth = async <T = UnknownRecord>(request: {
+  name: string
+  description?: string | null
+  force?: boolean
+}): Promise<T> => {
+  return invoke('claude_save_auth', {
+    name: request.name,
+    description: request.description ?? null,
+    force: request.force ?? false,
+  })
+}
+
+/** 切换到指定 Claude 官方账号 */
+export const switchClaudeAuth = async <T = UnknownRecord>(name: string): Promise<T> => {
+  return invoke('claude_switch_auth', { name })
+}
+
+/** 删除指定 Claude 官方账号 */
+export const deleteClaudeAuth = async <T = UnknownRecord>(name: string): Promise<T> => {
+  return invoke('claude_delete_auth', { name })
+}
+
 // ════════════════════════════════════════════════════════════
 // 5. Codex 平台
 // ════════════════════════════════════════════════════════════

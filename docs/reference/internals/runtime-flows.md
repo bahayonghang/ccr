@@ -27,6 +27,7 @@ sequenceDiagram
 - 默认构建启用 `tui` feature
 - `ccr` 无子命令且无 `config_name` 时进入 TUI
 - `ccr codex` 在无 action 时也被视为 TUI 模式
+- `ccr opencode` 在无 action 时也会进入 OpenCode Auth 页签
 
 ## 2. Profile 切换
 
@@ -106,7 +107,26 @@ flowchart TD
 - 当前 auth 的备份与轮转
 - 导入 / 导出与切换
 
-## 6. WebDAV 同步
+## 6. OpenCode auth 迁移
+
+```mermaid
+flowchart TD
+  A[ccr opencode auth import-codex] --> B[OpenCodeAuthService]
+  B --> C[读取 CCR 已保存的 Codex registry 和 auth 快照]
+  C --> D[筛选兼容的 ChatGPT OAuth 账号]
+  D --> E[检查 OpenCode 中同名和 accountId 冲突]
+  E --> F[只为新账号写入 OpenCode snapshot 和 registry]
+  F --> G[保持当前 OpenCode runtime auth.json 不变]
+```
+
+该流程负责：
+
+- 只读取已保存的 Codex 账号，不读取未保存的运行时登录
+- 将兼容的 Codex Token 结构映射为 OpenCode `openai` OAuth 快照
+- 跳过 API Key、缺少快照、无效快照和冲突账号
+- 输出结构化迁移报告，供 CLI 和 TUI 复用
+
+## 7. WebDAV 同步
 
 ```mermaid
 flowchart TD
