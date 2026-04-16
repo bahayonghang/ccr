@@ -3,7 +3,7 @@
     <section class="overview-tab__canvas overview-tab__hero">
       <div class="overview-tab__trend glass-panel rounded-[30px] p-4">
         <div class="overview-tab__panel-head">
-          <div>
+          <div class="overview-tab__trend-copy">
             <p class="overview-tab__eyebrow">
               {{ $t('usage.dashboard.chart.trendEyebrow') }}
             </p>
@@ -13,6 +13,25 @@
             <p class="overview-tab__panel-subtitle">
               {{ trendSubtitle }}
             </p>
+
+            <div
+              v-if="trendLegendItems.length > 0"
+              class="overview-tab__trend-legend"
+            >
+              <span
+                v-for="item in trendLegendItems"
+                :key="item.id"
+                class="overview-tab__trend-legend-item"
+                :class="`overview-tab__trend-legend-item--${item.tone}`"
+              >
+                <span
+                  class="overview-tab__trend-legend-dot"
+                  aria-hidden="true"
+                />
+                <span class="overview-tab__trend-legend-label">{{ item.label }}</span>
+                <strong class="overview-tab__trend-legend-value">{{ item.value }}</strong>
+              </span>
+            </div>
           </div>
 
           <span class="overview-tab__trend-chip">
@@ -222,7 +241,7 @@
 </template>
 
 <script setup lang="ts">
-import type { Component } from 'vue'
+import { computed, type Component } from 'vue'
 import type { ModelStat, ProjectStat } from '@/types/usage'
 import type { ModelDistributionSlice } from '@/views/usage/usageDashboardPresentation'
 import UsageModelDistributionCard from './UsageModelDistributionCard.vue'
@@ -271,9 +290,36 @@ interface Props {
   shortenPath: (path: string) => string
 }
 
-defineProps<Props>()
-
 const formatShare = (value: number) => `${Math.round(value * 100)}%`
+
+const props = defineProps<Props>()
+
+type TrendLegendTone = 'primary' | 'secondary' | 'tertiary'
+
+type TrendLegendItem = {
+  id: string
+  label: string
+  value: string
+  tone: TrendLegendTone
+}
+
+const formatTrendLegendValue = (value: number) => {
+  if (value >= 1e9) return `${(value / 1e9).toFixed(1)}B`
+  if (value >= 1e6) return `${(value / 1e6).toFixed(1)}M`
+  if (value >= 1e3) return `${(value / 1e3).toFixed(1)}K`
+  return value.toLocaleString()
+}
+
+const trendLegendTones: TrendLegendTone[] = ['primary', 'secondary', 'tertiary']
+
+const trendLegendItems = computed<TrendLegendItem[]>(() =>
+  props.trendSeries.slice(0, 3).map((series, index) => ({
+    id: `${series.name}-${index}`,
+    label: series.name,
+    value: formatTrendLegendValue(series.data.reduce((sum, point) => sum + point.y, 0)),
+    tone: trendLegendTones[index] ?? 'primary',
+  }))
+)
 
 type InsightTone = 'violet' | 'rose' | 'sky' | 'amber'
 
@@ -339,6 +385,12 @@ const getInsightTone = (id: string): InsightTone => insightToneById[id] ?? 'viol
   margin-bottom: 0.1rem;
 }
 
+.overview-tab__trend-copy {
+  display: grid;
+  gap: 0.45rem;
+  min-width: 0;
+}
+
 .overview-tab__eyebrow {
   color: var(--color-text-muted);
   font-size: 0.66rem;
@@ -379,6 +431,59 @@ const getInsightTone = (id: string): InsightTone => insightToneById[id] ?? 'viol
   letter-spacing: 0.04em;
 }
 
+.overview-tab__trend-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+}
+
+.overview-tab__trend-legend-item {
+  --overview-trend-rgb: var(--color-accent-primary-rgb);
+
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.42rem;
+  border-radius: 9999px;
+  border: 1px solid rgb(var(--overview-trend-rgb) / 16%);
+  background: rgb(var(--overview-trend-rgb) / 9%);
+  padding: 0.36rem 0.68rem;
+  color: var(--color-text-secondary);
+  font-size: 0.72rem;
+}
+
+.overview-tab__trend-legend-item--primary {
+  --overview-trend-rgb: var(--color-accent-primary-rgb);
+}
+
+.overview-tab__trend-legend-item--secondary {
+  --overview-trend-rgb: var(--color-accent-secondary-rgb);
+}
+
+.overview-tab__trend-legend-item--tertiary {
+  --overview-trend-rgb: var(--color-info-rgb);
+}
+
+.overview-tab__trend-legend-dot {
+  width: 0.48rem;
+  height: 0.48rem;
+  flex-shrink: 0;
+  border-radius: 9999px;
+  background: rgb(var(--overview-trend-rgb) / 88%);
+  box-shadow: 0 0 0 4px rgb(var(--overview-trend-rgb) / 12%);
+}
+
+.overview-tab__trend-legend-label {
+  min-width: 0;
+  color: var(--color-text-secondary);
+}
+
+.overview-tab__trend-legend-value {
+  color: var(--color-text-primary);
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+
 .overview-tab__empty,
 .overview-tab__rank-empty {
   display: flex;
@@ -413,6 +518,22 @@ const getInsightTone = (id: string): InsightTone => insightToneById[id] ?? 'viol
   display: block;
   height: 100%;
   width: 100%;
+}
+
+.overview-tab__chart :deep(.apexcharts-canvas),
+.overview-tab__chart :deep(.apexcharts-inner),
+.overview-tab__chart :deep(.apexcharts-svg) {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.overview-tab__chart :deep(svg) {
+  height: 100% !important;
+  max-width: none;
+}
+
+.overview-tab__chart :deep(.apexcharts-legend) {
+  display: none !important;
 }
 
 .overview-tab__empty--trend {

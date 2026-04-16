@@ -20,7 +20,13 @@ const usageStore = reactive({
   logsModelFilter: undefined as string | undefined,
   lastImportResults: [] as Array<{ platform: string; error?: string }>,
   warning: '',
-  currentImportJob: null as null | { warnings: string[]; status: string; files_total: number; files_scanned: number; records_imported: number },
+  currentImportJob: null as null | {
+    warnings: string[]
+    status: string
+    files_total: number
+    files_scanned: number
+    records_imported: number
+  },
   hasNoUsageData: false,
   isBootstrapping: false,
   importing: false,
@@ -71,10 +77,12 @@ const translationTemplates: Record<string, string> = {
   'usage.dashboard.chart.bucket.day': 'Daily',
   'usage.dashboard.chart.bucket.week': 'Weekly',
   'usage.dashboard.chart.bucket.month': 'Monthly',
-  'usage.dashboard.chart.trendSubtitle': '{window}, aggregated by {granularity}, {points} key points',
+  'usage.dashboard.chart.trendSubtitle':
+    '{window}, aggregated by {granularity}, {points} key points',
   'usage.dashboard.chart.others': 'Others',
   'usage.dashboard.chart.distributionAllVisible': '{total} models are visible in this window',
-  'usage.dashboard.chart.distributionSubtitle': 'Showing the top {visible} models; the remaining {total} are grouped into Others',
+  'usage.dashboard.chart.distributionSubtitle':
+    'Showing the top {visible} models; the remaining {total} are grouped into Others',
   'usage.dashboard.highlights.density': 'Trend Density',
   'usage.dashboard.highlights.densityDetail': '{points} key points across {window}',
   'usage.dashboard.highlights.topModel': 'Top Model',
@@ -134,12 +142,14 @@ const mountComposable = async () => {
   const el = document.createElement('div')
   document.body.appendChild(el)
 
-  const app = createApp(defineComponent({
-    setup() {
-      state = useUsageDashboardState()
-      return () => h('div')
-    },
-  }))
+  const app = createApp(
+    defineComponent({
+      setup() {
+        state = useUsageDashboardState()
+        return () => h('div')
+      },
+    })
+  )
 
   app.mount(el)
   await flushPromises()
@@ -197,10 +207,7 @@ describe('usage dashboard state smoke', () => {
         expect(usageStore.initializeDashboard).toHaveBeenCalledTimes(1)
         expect(usageStore.startAutoRefresh).toHaveBeenCalledTimes(1)
       })
-      expect(addEventListenerSpy).not.toHaveBeenCalledWith(
-        'visibilitychange',
-        expect.any(Function),
-      )
+      expect(addEventListenerSpy).not.toHaveBeenCalledWith('visibilitychange', expect.any(Function))
     } finally {
       unmount()
     }
@@ -263,9 +270,11 @@ describe('usage dashboard state smoke', () => {
       state.selectedPlatform.value = 'codex'
       state.onFilterChange()
 
-      expect(usageStore.setFilters).toHaveBeenCalledWith(expect.objectContaining({
-        platform: 'codex',
-      }))
+      expect(usageStore.setFilters).toHaveBeenCalledWith(
+        expect.objectContaining({
+          platform: 'codex',
+        })
+      )
       expect(state.selectedPlatformLabel.value).toBe('Codex')
     } finally {
       unmount()
@@ -342,7 +351,12 @@ describe('usage dashboard state smoke', () => {
       { model: 'gemini-flash', request_count: 48, total_tokens: 30000, total_cost: 6.1 },
     ]
     usageStore.projectStats = [
-      { project_path: 'D:/workspace/heavy-project', request_count: 80, total_tokens: 36000, total_cost: 15.6 },
+      {
+        project_path: 'D:/workspace/heavy-project',
+        request_count: 80,
+        total_tokens: 36000,
+        total_cost: 15.6,
+      },
     ]
 
     const { state, unmount } = await mountComposable()
@@ -377,7 +391,12 @@ describe('usage dashboard state smoke', () => {
       { model: 'gemini-flash', request_count: 48, total_tokens: 30000, total_cost: 6.1 },
     ]
     usageStore.projectStats = [
-      { project_path: 'D:/workspace/heavy-project', request_count: 80, total_tokens: 36000, total_cost: 15.6 },
+      {
+        project_path: 'D:/workspace/heavy-project',
+        request_count: 80,
+        total_tokens: 36000,
+        total_cost: 15.6,
+      },
     ]
     usageStore.trends = [
       {
@@ -425,6 +444,7 @@ describe('usage dashboard state smoke', () => {
     try {
       expect(state.trendOptions.value.theme.mode).toBe('dark')
       expect(state.trendOptions.value.chart.parentHeightOffset).toBe(0)
+      expect(state.trendOptions.value.legend).toMatchObject({ show: false })
       expect(state.trendOptions.value.markers).toMatchObject({
         size: 0,
         hover: { size: 0, sizeOffset: 0 },

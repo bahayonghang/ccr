@@ -528,15 +528,10 @@ export const useUsageDashboardState = () => {
     grid: {
       borderColor: chartTheme.value.grid,
       strokeDashArray: 4,
-      padding: { left: 4, right: 4, bottom: 2, top: 0 },
+      padding: { left: 4, right: 6, bottom: 2, top: 6 },
     },
     legend: {
-      position: 'top' as const,
-      horizontalAlign: 'left' as const,
-      labels: { colors: chartTheme.value.textSecondary },
-      fontSize: '12px',
-      itemMargin: { horizontal: 12, vertical: 0 },
-      markers: { size: 5, offsetX: -2 },
+      show: false,
     },
   }))
 
