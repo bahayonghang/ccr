@@ -620,6 +620,8 @@ fn render_profile_details(f: &mut Frame, app: &App, area: Rect) {
 
     let lines = if platform == Platform::Codex {
         codex_profile_detail_lines(profile.name.as_str(), config, profile.is_current)
+    } else if platform == Platform::Claude {
+        claude_profile_detail_lines(profile.name.as_str(), config, profile.is_current)
     } else {
         generic_profile_detail_lines(profile.name.as_str(), config, profile.is_current)
     };
@@ -785,6 +787,68 @@ fn codex_profile_detail_lines(
         detail_line("tags", tags_text(config)),
         detail_line("token", token_state),
     ]
+}
+
+fn claude_profile_detail_lines(
+    name: &str,
+    config: &ProfileConfig,
+    is_current: bool,
+) -> Vec<Line<'static>> {
+    let auth_mode = crate::platforms::ClaudePlatform::profile_auth_mode(config);
+    let provider_type = opt_text(config.provider_type.as_deref());
+    let provider = opt_text(config.provider.as_deref());
+    let token_state = if matches!(auth_mode, crate::models::ClaudeProfileAuthMode::ApiKey) {
+        if config
+            .auth_token
+            .as_ref()
+            .is_some_and(|token| !token.trim().is_empty())
+        {
+            "configured".to_string()
+        } else {
+            "missing".to_string()
+        }
+    } else {
+        "subscription".to_string()
+    };
+
+    let mut lines = vec![
+        section_line(" Overview "),
+        detail_line("name", name.to_string()),
+        detail_line("current", yes_no(is_current)),
+        detail_line("enabled", yes_no(config.is_enabled())),
+        detail_line("description", opt_text(config.description.as_deref())),
+        Line::from(""),
+        section_line(" Engine "),
+        detail_line("base_url", opt_text(config.base_url.as_deref())),
+        detail_line("model", opt_text(config.model.as_deref())),
+        detail_line("small_fast", opt_text(config.small_fast_model.as_deref())),
+        detail_line("account", opt_text(config.account.as_deref())),
+        Line::from(""),
+        section_line(" Routing/Auth "),
+        detail_line("auth_mode", auth_mode.as_str().to_string()),
+        detail_line(
+            "auth_source",
+            crate::platforms::ClaudePlatform::profile_auth_source(config),
+        ),
+        detail_line("token", token_state),
+    ];
+
+    if provider_type != "-" {
+        lines.push(detail_line("provider_type", provider_type));
+    }
+
+    if provider != "-" {
+        lines.push(detail_line("provider", provider));
+    }
+
+    lines.extend([
+        Line::from(""),
+        section_line(" Activity "),
+        detail_line("usage_count", config.usage_count().to_string()),
+        detail_line("tags", tags_text(config)),
+    ]);
+
+    lines
 }
 
 fn section_line(title: &str) -> Line<'static> {

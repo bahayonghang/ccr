@@ -114,6 +114,8 @@ export interface ClaudeRuntimeSummary {
   current_profile_provider?: string | null
   current_profile_auth_mode?: ClaudeProfileAuthMode | null
   current_profile_auth_source?: string | null
+  current_login_name?: string | null
+  official_login_state: ClaudeLoginState
   current_auth_name?: string | null
   login_state: ClaudeLoginState
 }
@@ -126,6 +128,7 @@ export interface ClaudeAuthAccountItem {
   subscription_type?: string | null
   rate_limit_tier?: string | null
   is_current: boolean
+  is_logged_in?: boolean
   saved_at: string
   last_used?: string | null
   expires_at?: string | null

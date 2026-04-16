@@ -284,7 +284,8 @@ fn draw_help_bar(f: &mut Frame, area: Rect, app: &ClaudeAuthApp) {
     let text = if let Some(toast) = app.toasts.active() {
         format!("{}  │  Tab 切换", toast.message)
     } else {
-        "Tab 切换  │  官方账号切换只写入 ~/.claude/.credentials.json".to_string()
+        "Tab 切换  │  ● 当前生效  ◐ 仅已登录  │  官方账号切换只写入 ~/.claude/.credentials.json"
+            .to_string()
     };
 
     let bar = Paragraph::new(text)
@@ -295,7 +296,13 @@ fn draw_help_bar(f: &mut Frame, area: Rect, app: &ClaudeAuthApp) {
 
 fn account_row(account: &ClaudeAuthItem, selected: bool) -> Line<'static> {
     let selector = if selected { "▶" } else { " " };
-    let current = if account.is_current { "●" } else { "○" };
+    let current = if account.is_current {
+        "●"
+    } else if account.is_logged_in {
+        "◐"
+    } else {
+        "○"
+    };
     let email = account.email.as_deref().unwrap_or("-");
     let plan = account.subscription_type.as_deref().unwrap_or("-");
     let freshness = account.freshness.icon();
@@ -311,6 +318,8 @@ fn account_row(account: &ClaudeAuthItem, selected: bool) -> Line<'static> {
             .add_modifier(Modifier::BOLD)
     } else if account.is_current {
         theme::list_current_style()
+    } else if account.is_logged_in {
+        theme::info_style()
     } else {
         theme::list_normal_style()
     };
@@ -330,10 +339,7 @@ fn context_lines(app: &ClaudeAuthApp) -> Vec<Line<'static>> {
         ));
         lines.push(kv_line(
             "profile",
-            summary
-                .current_profile_name
-                .clone()
-                .unwrap_or_else(|| "-".to_string()),
+            summary.profile_label(),
             theme::FG_PRIMARY,
         ));
         lines.push(kv_line(
@@ -351,6 +357,16 @@ fn context_lines(app: &ClaudeAuthApp) -> Vec<Line<'static>> {
                 .clone()
                 .unwrap_or_else(|| "-".to_string()),
             theme::FG_INFO,
+        ));
+        lines.push(kv_line(
+            "login",
+            summary.official_login_label(),
+            theme::FG_INFO,
+        ));
+        lines.push(kv_line(
+            "effective_auth",
+            summary.auth_label(),
+            theme::FG_SUCCESS,
         ));
         lines.push(kv_line(
             "current_auth",
@@ -416,6 +432,15 @@ fn context_lines(app: &ClaudeAuthApp) -> Vec<Line<'static>> {
             if account.is_current { "yes" } else { "no" }.to_string(),
             if account.is_current {
                 theme::FG_SUCCESS
+            } else {
+                theme::FG_MUTED
+            },
+        ));
+        lines.push(kv_line(
+            "logged_in",
+            if account.is_logged_in { "yes" } else { "no" }.to_string(),
+            if account.is_logged_in {
+                theme::FG_INFO
             } else {
                 theme::FG_MUTED
             },
@@ -488,12 +513,24 @@ fn kv_line(key: &str, value: String, color: ratatui::style::Color) -> Line<'stat
 }
 
 fn login_status_text(app: &ClaudeAuthApp) -> String {
+    if let Some(summary) = &app.runtime_summary {
+        return match &summary.login_state {
+            ClaudeLoginState::NotLoggedIn => "未登录".to_string(),
+            ClaudeLoginState::LoggedInUnsaved => "已登录 (未保存)".to_string(),
+            ClaudeLoginState::LoggedInSaved { account_name } => {
+                format!("已登录并保存: {account_name}")
+            }
+            ClaudeLoginState::ApiKeyActive => summary.current_login_name.as_ref().map_or_else(
+                || "当前 Profile 使用 API Key".to_string(),
+                |account_name| format!("当前 Profile 使用 API Key · 官方已登录 {account_name}"),
+            ),
+        };
+    }
+
     match &app.login_state {
         ClaudeLoginState::NotLoggedIn => "未登录".to_string(),
         ClaudeLoginState::LoggedInUnsaved => "已登录 (未保存)".to_string(),
-        ClaudeLoginState::LoggedInSaved { account_name } => {
-            format!("已登录并保存: {account_name}")
-        }
+        ClaudeLoginState::LoggedInSaved { account_name } => format!("已登录并保存: {account_name}"),
         ClaudeLoginState::ApiKeyActive => "当前 Profile 使用 API Key".to_string(),
     }
 }
@@ -576,5 +613,35 @@ mod tests {
         .unwrap();
         app.login_state = ClaudeLoginState::ApiKeyActive;
         assert_eq!(login_status_text(&app), "当前 Profile 使用 API Key");
+    }
+
+    #[test]
+    fn login_status_text_shows_logged_in_account_when_api_key_profile_is_active() {
+        let root = tempfile::tempdir().unwrap();
+        let home = root.path().join("home");
+        let mut app = ClaudeAuthApp::from_service(ClaudeAuthService::from_parts(
+            home.join(".ccr").join("platforms").join("claude"),
+            home.join(".claude"),
+            home.join(".claude.json"),
+        ))
+        .unwrap();
+        app.runtime_summary = Some(crate::models::ClaudeRuntimeSummary {
+            mode: crate::models::ClaudeRuntimeMode::ProfileOnly,
+            current_profile_name: Some("main_pro".to_string()),
+            current_profile_provider: Some("pro".to_string()),
+            current_profile_auth_mode: Some(crate::models::ClaudeProfileAuthMode::ApiKey),
+            current_profile_auth_source: Some("provider:pro".to_string()),
+            current_login_name: Some("work".to_string()),
+            official_login_state: ClaudeLoginState::LoggedInSaved {
+                account_name: "work".to_string(),
+            },
+            current_auth_name: None,
+            login_state: ClaudeLoginState::ApiKeyActive,
+        });
+
+        assert_eq!(
+            login_status_text(&app),
+            "当前 Profile 使用 API Key · 官方已登录 work"
+        );
     }
 }

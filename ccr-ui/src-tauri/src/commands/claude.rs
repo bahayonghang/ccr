@@ -13,10 +13,10 @@ use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value, json};
 use tauri::State;
 
-use ccr_config::{Platform, PlatformConfig, ProfileConfig};
-use ccr_skills::{PromptPreset, PromptsManager};
 use ccr::platforms::ClaudePlatform;
 use ccr::services::ClaudeAuthService;
+use ccr_config::{Platform, PlatformConfig, ProfileConfig};
+use ccr_skills::{PromptPreset, PromptsManager};
 use ccr_store::{BudgetManager, CostTracker};
 
 use crate::platform::local::LocalEnvironment;
@@ -1134,12 +1134,12 @@ pub async fn claude_list_auth_accounts() -> Result<Value, String> {
         let snapshot = service
             .read_auth_snapshot()
             .map_err(|e| format!("读取认证快照失败: {e}"))?;
-        let accounts = service
-            .build_account_items(&snapshot)
-            .map_err(|e| format!("列出账号失败: {e}"))?;
         let runtime_summary = service
             .get_runtime_summary()
             .map_err(|e| format!("读取运行时摘要失败: {e}"))?;
+        let accounts = service
+            .build_account_items(&snapshot, Some(&runtime_summary))
+            .map_err(|e| format!("列出账号失败: {e}"))?;
 
         let accounts: Vec<Value> = accounts
             .into_iter()
@@ -1153,6 +1153,7 @@ pub async fn claude_list_auth_accounts() -> Result<Value, String> {
                     "subscription_type": item.subscription_type,
                     "rate_limit_tier": item.rate_limit_tier,
                     "is_current": item.is_current,
+                    "is_logged_in": item.is_logged_in,
                     "saved_at": item.saved_at.to_rfc3339(),
                     "last_used": item.last_used.map(|dt| dt.to_rfc3339()),
                     "expires_at": item.expires_at.map(|dt| dt.to_rfc3339()),

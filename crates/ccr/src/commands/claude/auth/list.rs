@@ -13,7 +13,8 @@ use comfy_table::{
 pub async fn list_command() -> Result<()> {
     let service = ClaudeAuthService::new()?;
     let snapshot = service.read_auth_snapshot()?;
-    let accounts = service.build_account_items(&snapshot)?;
+    let runtime_summary = service.get_runtime_summary().ok();
+    let accounts = service.build_account_items(&snapshot, runtime_summary.as_ref())?;
 
     println!();
     ColorOutput::title("Claude 官方账号列表");
@@ -58,7 +59,13 @@ pub async fn list_command() -> Result<()> {
         ]);
 
     for account in &accounts {
-        let status = if account.is_current { ">> 当前" } else { "" };
+        let status = if account.is_current {
+            ">> 生效"
+        } else if account.is_logged_in {
+            "↪ 已登录"
+        } else {
+            ""
+        };
         let expires_at = account
             .expires_at
             .map(|dt| {
@@ -76,11 +83,15 @@ pub async fn list_command() -> Result<()> {
         table.add_row(vec![
             Cell::new(status).fg(if account.is_current {
                 TableColor::Green
+            } else if account.is_logged_in {
+                TableColor::Cyan
             } else {
                 TableColor::White
             }),
             Cell::new(&account.name).fg(if account.is_current {
                 TableColor::Green
+            } else if account.is_logged_in {
+                TableColor::Cyan
             } else {
                 TableColor::White
             }),
@@ -99,6 +110,12 @@ pub async fn list_command() -> Result<()> {
     println!();
 
     if snapshot.current_info.is_some() {
+        if let Some(summary) = runtime_summary {
+            ColorOutput::info(&format!("当前 Profile: {}", summary.profile_label()));
+            ColorOutput::info(&format!("当前官方登录: {}", summary.official_login_label()));
+            ColorOutput::info(&format!("当前生效认证: {}", summary.auth_label()));
+            println!();
+        }
         ColorOutput::info("提示:");
         println!("  • 使用 'ccr claude auth current' 查看当前官方登录详情");
         println!("  • 使用 'ccr claude auth switch <名称>' 切换官方账号");

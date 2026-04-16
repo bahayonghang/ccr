@@ -37,20 +37,21 @@ pub async fn current_command(json: bool) -> Result<()> {
     println!();
 
     ColorOutput::info(&format!("运行时模式: {}", runtime_summary.mode.label()));
-    if let Some(profile_name) = &runtime_summary.current_profile_name {
-        ColorOutput::info(&format!(
-            "当前 Profile: {}",
-            profile_name.bright_green().bold()
-        ));
-    } else {
-        ColorOutput::info("当前 Profile: (未绑定)");
-    }
+    ColorOutput::info(&format!(
+        "当前 Profile: {}",
+        runtime_summary.profile_label().bright_green().bold()
+    ));
     if let Some(auth_mode) = runtime_summary.current_profile_auth_mode {
         ColorOutput::info(&format!("Profile 认证模式: {}", auth_mode.as_str()));
     }
     if let Some(auth_source) = &runtime_summary.current_profile_auth_source {
         ColorOutput::info(&format!("认证来源: {}", auth_source));
     }
+    ColorOutput::info(&format!(
+        "当前官方登录: {}",
+        runtime_summary.official_login_label()
+    ));
+    ColorOutput::info(&format!("当前生效认证: {}", runtime_summary.auth_label()));
 
     match &runtime_summary.login_state {
         ClaudeLoginState::NotLoggedIn => {
@@ -72,7 +73,14 @@ pub async fn current_command(json: bool) -> Result<()> {
         }
         ClaudeLoginState::ApiKeyActive => {
             println!();
-            ColorOutput::info("当前由 API key profile 控制，不使用官方订阅凭据");
+            if let Some(account_name) = &runtime_summary.current_login_name {
+                ColorOutput::info(&format!(
+                    "当前由 API key profile 控制；官方账号 '{}' 已登录但未生效",
+                    account_name.bright_green().bold()
+                ));
+            } else {
+                ColorOutput::info("当前由 API key profile 控制，不使用官方订阅凭据");
+            }
         }
     }
 

@@ -158,8 +158,77 @@ pub struct ClaudeRuntimeSummary {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub current_profile_auth_source: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub current_login_name: Option<String>,
+    pub official_login_state: ClaudeLoginState,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub current_auth_name: Option<String>,
     pub login_state: ClaudeLoginState,
+}
+
+impl ClaudeRuntimeSummary {
+    pub fn profile_label(&self) -> String {
+        let Some(name) = &self.current_profile_name else {
+            return "未绑定".to_string();
+        };
+
+        let mut parts = vec![name.clone()];
+
+        if let Some(provider) = self
+            .current_profile_provider
+            .as_deref()
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+        {
+            parts.push(provider.to_string());
+        }
+
+        if let Some(auth_mode) = self.current_profile_auth_mode {
+            parts.push(auth_mode.as_str().to_string());
+        }
+
+        if matches!(
+            self.current_profile_auth_mode,
+            Some(ClaudeProfileAuthMode::ApiKey)
+        ) && let Some(source) = self
+            .current_profile_auth_source
+            .as_deref()
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+        {
+            parts.push(source.to_string());
+        }
+
+        parts.join(" · ")
+    }
+
+    pub fn official_login_label(&self) -> String {
+        match &self.official_login_state {
+            ClaudeLoginState::NotLoggedIn => "未登录".to_string(),
+            ClaudeLoginState::LoggedInUnsaved => "已登录 (未保存)".to_string(),
+            ClaudeLoginState::LoggedInSaved { account_name } => format!("已登录: {account_name}"),
+            ClaudeLoginState::ApiKeyActive => "API Key 模式".to_string(),
+        }
+    }
+
+    pub fn auth_label(&self) -> String {
+        match self.current_profile_auth_mode {
+            Some(ClaudeProfileAuthMode::ApiKey) => self
+                .current_profile_auth_source
+                .as_deref()
+                .map(|source| format!("Profile / {source}"))
+                .unwrap_or_else(|| "Profile / API Key".to_string()),
+            Some(ClaudeProfileAuthMode::Subscription) => self
+                .current_auth_name
+                .clone()
+                .map(|name| format!("Official / {name}"))
+                .unwrap_or_else(|| "Official / 未就绪".to_string()),
+            None => self
+                .current_auth_name
+                .clone()
+                .map(|name| format!("Official / {name}"))
+                .unwrap_or_else(|| "未解析".to_string()),
+        }
+    }
 }
 
 #[cfg(test)]
@@ -189,5 +258,29 @@ mod tests {
         let value = serde_json::to_value(&state).unwrap();
         assert_eq!(value["type"], "LoggedInSaved");
         assert_eq!(value["account_name"], "work");
+    }
+
+    #[test]
+    fn test_runtime_summary_labels_distinguish_login_from_effective_auth() {
+        let summary = ClaudeRuntimeSummary {
+            mode: ClaudeRuntimeMode::ProfileOnly,
+            current_profile_name: Some("main_pro".to_string()),
+            current_profile_provider: Some("bah***@gmail.com".to_string()),
+            current_profile_auth_mode: Some(ClaudeProfileAuthMode::ApiKey),
+            current_profile_auth_source: Some("provider:pro".to_string()),
+            current_login_name: Some("official-main".to_string()),
+            official_login_state: ClaudeLoginState::LoggedInSaved {
+                account_name: "official-main".to_string(),
+            },
+            current_auth_name: None,
+            login_state: ClaudeLoginState::ApiKeyActive,
+        };
+
+        assert_eq!(
+            summary.profile_label(),
+            "main_pro · bah***@gmail.com · api_key · provider:pro"
+        );
+        assert_eq!(summary.official_login_label(), "已登录: official-main");
+        assert_eq!(summary.auth_label(), "Profile / provider:pro");
     }
 }

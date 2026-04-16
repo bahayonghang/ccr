@@ -35,6 +35,7 @@ pub struct ClaudeAuthItem {
     pub subscription_type: Option<String>,
     pub rate_limit_tier: Option<String>,
     pub is_current: bool,
+    pub is_logged_in: bool,
     pub saved_at: DateTime<Utc>,
     pub last_used: Option<DateTime<Utc>>,
     pub expires_at: Option<DateTime<Utc>>,
@@ -457,7 +458,17 @@ impl ClaudeAuthService {
     pub fn build_account_items(
         &self,
         snapshot: &ClaudeAuthReadSnapshot,
+        runtime_summary: Option<&ClaudeRuntimeSummary>,
     ) -> Result<Vec<ClaudeAuthItem>> {
+        let current_login_name = runtime_summary
+            .and_then(|summary| summary.current_login_name.as_deref())
+            .or(snapshot.current_account_name.as_deref());
+        let current_auth_name = if let Some(summary) = runtime_summary {
+            summary.current_auth_name.as_deref()
+        } else {
+            snapshot.current_account_name.as_deref()
+        };
+
         let mut items = snapshot
             .registry
             .accounts
@@ -469,7 +480,8 @@ impl ClaudeAuthService {
                 billing_type: account.billing_type.clone(),
                 subscription_type: account.subscription_type.clone(),
                 rate_limit_tier: account.rate_limit_tier.clone(),
-                is_current: snapshot.current_account_name.as_deref() == Some(name.as_str()),
+                is_current: current_auth_name == Some(name.as_str()),
+                is_logged_in: current_login_name == Some(name.as_str()),
                 saved_at: account.saved_at,
                 last_used: account.last_used,
                 expires_at: account.expires_at,
@@ -483,7 +495,8 @@ impl ClaudeAuthService {
 
     pub fn list_accounts(&self) -> Result<Vec<ClaudeAuthItem>> {
         let snapshot = self.read_auth_snapshot()?;
-        self.build_account_items(&snapshot)
+        let runtime_summary = self.get_runtime_summary().ok();
+        self.build_account_items(&snapshot, runtime_summary.as_ref())
     }
 
     pub fn save_current(
@@ -606,10 +619,12 @@ impl ClaudeAuthService {
             None => ClaudeRuntimeMode::Unresolved,
         };
 
+        let official_login_state = snapshot.login_state.clone();
         let login_state = match current_profile_auth_mode {
             Some(ClaudeProfileAuthMode::ApiKey) => ClaudeLoginState::ApiKeyActive,
-            _ => snapshot.login_state,
+            _ => official_login_state.clone(),
         };
+        let current_login_name = snapshot.current_account_name.clone();
 
         let current_auth_name = match mode {
             ClaudeRuntimeMode::ProfileWithAuth | ClaudeRuntimeMode::RuntimeOnly => {
@@ -626,6 +641,8 @@ impl ClaudeAuthService {
             current_profile_provider,
             current_profile_auth_mode,
             current_profile_auth_source,
+            current_login_name,
+            official_login_state,
             current_auth_name,
             login_state,
         })
@@ -819,6 +836,38 @@ mod tests {
         let registry = env.service.load_registry().unwrap();
         assert!(registry.accounts.is_empty());
         assert!(registry.current_auth.is_none());
+    }
+
+    #[test]
+    fn test_build_account_items_distinguishes_logged_in_from_effective_auth() {
+        let env = TestEnv::new();
+        env.write_credentials(Utc::now() + Duration::days(14));
+        env.write_metadata();
+        env.service
+            .save_current("work", Some("Work account".to_string()), false)
+            .unwrap();
+
+        let snapshot = env.service.read_auth_snapshot().unwrap();
+        let runtime_summary = ClaudeRuntimeSummary {
+            mode: ClaudeRuntimeMode::ProfileOnly,
+            current_profile_name: Some("main_pro".to_string()),
+            current_profile_provider: Some("pro".to_string()),
+            current_profile_auth_mode: Some(ClaudeProfileAuthMode::ApiKey),
+            current_profile_auth_source: Some("provider:pro".to_string()),
+            current_login_name: Some("work".to_string()),
+            official_login_state: snapshot.login_state.clone(),
+            current_auth_name: None,
+            login_state: ClaudeLoginState::ApiKeyActive,
+        };
+
+        let accounts = env
+            .service
+            .build_account_items(&snapshot, Some(&runtime_summary))
+            .unwrap();
+
+        assert_eq!(accounts.len(), 1);
+        assert!(accounts[0].is_logged_in);
+        assert!(!accounts[0].is_current);
     }
 
     #[test]

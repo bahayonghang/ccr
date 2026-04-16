@@ -2,7 +2,8 @@
 // 管理 Claude 官方订阅账号快照的保存 / 切换 / 删除
 
 use crate::models::{
-    ClaudeAuthRegistry, ClaudeCurrentAuthInfo, ClaudeLoginState, ClaudeRuntimeSummary,
+    ClaudeAuthRegistry, ClaudeCurrentAuthInfo, ClaudeLoginState, ClaudeProfileAuthMode,
+    ClaudeRuntimeMode, ClaudeRuntimeSummary,
 };
 use crate::services::{ClaudeAuthItem, ClaudeAuthService};
 use crate::tui::overlay::Overlay;
@@ -60,10 +61,10 @@ impl ClaudeAuthApp {
     pub(crate) fn from_service(service: ClaudeAuthService) -> Result<Self> {
         let snapshot = service.read_auth_snapshot()?;
         let runtime_summary = service.get_runtime_summary().ok();
-        let accounts = service.build_account_items(&snapshot)?;
+        let accounts = service.build_account_items(&snapshot, runtime_summary.as_ref())?;
         let preferred = accounts
             .iter()
-            .position(|account| account.is_current)
+            .position(|account| account.is_current || account.is_logged_in)
             .unwrap_or(0);
         let current_page = preferred / PAGE_SIZE;
         let page_len = page_slice_len(&accounts, current_page);
@@ -100,12 +101,15 @@ impl ClaudeAuthApp {
         let snapshot = self.service.read_auth_snapshot()?;
         self.current_info = snapshot.current_info.clone();
         self.auth_registry = snapshot.registry.clone();
-        self.accounts = self.service.build_account_items(&snapshot)?;
+        self.runtime_summary = self.service.get_runtime_summary().ok();
+        self.accounts = self
+            .service
+            .build_account_items(&snapshot, self.runtime_summary.as_ref())?;
 
         let preferred = self
             .accounts
             .iter()
-            .position(|account| account.is_current)
+            .position(|account| account.is_current || account.is_logged_in)
             .unwrap_or(0);
         self.current_page = preferred / PAGE_SIZE;
         let page_len = self.current_page_accounts().len();
@@ -115,7 +119,6 @@ impl ClaudeAuthApp {
             preferred % PAGE_SIZE
         };
 
-        self.runtime_summary = self.service.get_runtime_summary().ok();
         self.login_state = self
             .runtime_summary
             .as_ref()
@@ -362,7 +365,32 @@ impl ClaudeAuthApp {
         };
 
         if account.is_current {
-            self.toasts.push(Toast::info("已经是当前官方账号"));
+            self.toasts.push(Toast::info("已经是当前生效的官方账号"));
+            return Ok(false);
+        }
+
+        if account.is_logged_in {
+            let message = match self.runtime_summary.as_ref() {
+                Some(summary)
+                    if matches!(
+                        summary.current_profile_auth_mode,
+                        Some(ClaudeProfileAuthMode::ApiKey)
+                    ) =>
+                {
+                    let profile = summary
+                        .current_profile_name
+                        .clone()
+                        .unwrap_or_else(|| "当前 Profile".to_string());
+                    format!(
+                        "当前已登录该官方账号，但 {profile} 正在使用 API Key；切到 subscription Profile 后才会生效"
+                    )
+                }
+                Some(summary) if matches!(summary.mode, ClaudeRuntimeMode::ProfilePendingAuth) => {
+                    "当前登录就是该官方账号，但订阅凭据不可用或已过期".to_string()
+                }
+                _ => "当前登录已经是该官方账号".to_string(),
+            };
+            self.toasts.push(Toast::info(message));
             return Ok(false);
         }
 
