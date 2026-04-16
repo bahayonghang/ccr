@@ -108,6 +108,7 @@ impl CommandDispatcher {
             }
 
             Some(Commands::Check { action }) => Self::dispatch_check(action).await,
+            Some(Commands::Doctor(args)) => crate::commands::doctor_command(args.clone()).await,
 
             Some(Commands::Codex { action }) => Self::dispatch_codex(action).await,
             Some(Commands::OpenCode { action }) => Self::dispatch_opencode(action).await,
@@ -696,6 +697,7 @@ impl CommandDispatcher {
         println!("  ccr add               添加新配置");
         println!("  ccr delete <name>     删除配置");
         println!("  ccr validate          验证配置");
+        println!("  ccr doctor            运行统一体检");
         println!("  ccr optimize          优化配置文件结构");
         println!("  ccr history           查看历史");
         println!("  ccr export            导出配置");

@@ -6,8 +6,6 @@
 
 ```bash
 ccr validate
-# 或使用别名
-ccr check
 ```
 
 ## 检查项目
@@ -67,6 +65,8 @@ Configuration File: /home/user/.ccs_config.toml
 ```
 
 ## 使用场景
+
+如果你想先看一个统一总览，再决定是否深入排查某一类问题，优先使用 [`ccr doctor`](./doctor)。
 
 ### 添加新配置后
 
@@ -218,6 +218,10 @@ fi
 ```
 
 ## 相关命令
+
+- [`doctor`](./doctor)：统一体检入口
+- [`check`](./check)：只做局部冲突检测
+- [`provider`](./provider)：只做 Provider 健康检查
 
 - [init](./init) - 重新初始化配置
 - [list](./list) - 查看所有配置状态

@@ -17,6 +17,7 @@ pub mod common;
 pub mod claude;
 pub mod codex;
 pub mod data;
+pub mod doctor_cmd;
 pub mod lifecycle;
 pub mod opencode;
 pub mod platform;
@@ -73,6 +74,7 @@ pub use data::{StatsArgs, stats_command};
 
 // 🔧 其他命令
 pub use check_cmd::check_conflicts_command;
+pub use doctor_cmd::doctor_command;
 pub use sync_content_selector::SyncContentSelector;
 pub use temp_cmd::temp_command;
 pub use temp_token::{temp_token_clear, temp_token_set, temp_token_show};

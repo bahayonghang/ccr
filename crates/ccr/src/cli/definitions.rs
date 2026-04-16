@@ -400,6 +400,14 @@ pub enum Commands {
         action: super::subcommands::check::CheckAction,
     },
 
+    /// 🩺 统一体检
+    ///
+    /// 聚合 CCR 本地环境、平台配置、当前 profile、认证状态和可选在线探活
+    /// 示例: ccr doctor
+    ///       ccr doctor --online
+    ///       ccr doctor --all-platforms --verbose
+    Doctor(crate::commands::doctor_cmd::DoctorArgs),
+
     /// 🔐 Codex 多账号管理
     ///
     /// 管理 Codex CLI 的多账号登录状态

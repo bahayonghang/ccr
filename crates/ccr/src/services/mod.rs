@@ -10,6 +10,7 @@
 pub mod backup_service;
 pub mod claude_auth_service;
 pub mod config_service;
+pub mod doctor_service;
 pub mod health_check;
 pub mod history_service;
 pub mod multi_backup_service;
@@ -42,6 +43,10 @@ pub use ccr_codex::{
 pub use claude_auth_service::{ClaudeAuthItem, ClaudeAuthReadSnapshot, ClaudeAuthService};
 #[allow(unused_imports)]
 pub use config_service::ConfigService;
+#[allow(unused_imports)]
+pub use doctor_service::{
+    DoctorCheck, DoctorReport, DoctorRunOptions, DoctorService, DoctorStatus,
+};
 #[allow(unused_imports)]
 pub use history_service::HistoryService;
 #[allow(unused_imports)]

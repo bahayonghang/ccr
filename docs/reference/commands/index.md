@@ -1,6 +1,6 @@
 # 命令总览
 
-CCR 当前 CLI 主要分成五组：平台与初始化、profile 与临时覆盖、数据与同步、界面与成本、扩展与维护。
+CCR 当前 CLI 主要分成六组：平台与初始化、profile 与临时覆盖、数据与同步、诊断、界面与成本、扩展与维护。
 
 ## 命令清单
 
@@ -16,7 +16,7 @@ CCR 当前 CLI 主要分成五组：平台与初始化、profile 与临时覆盖
 | [`validate`](./validate) / [`enable`](./enable) / [`disable`](./disable) / [`clear`](./clear) / [`optimize`](./optimize) | 校验与整理配置 | |
 | [`history`](./history) / [`export`](./export) / [`import`](./import) / [`clean`](./clean) | 审计、导入、导出、清理 | |
 | [`sync`](./sync) | WebDAV 同步 | 目录注册、push/pull/status |
-| [`sessions`](./sessions) / [`provider`](./provider) / [`check`](./check) | 会话、健康检查、冲突检测 | 诊断向命令组 |
+| [`doctor`](./doctor) / [`sessions`](./sessions) / [`provider`](./provider) / [`check`](./check) | 统一体检、会话、健康检查、冲突检测 | 诊断向命令组 |
 | [`ui`](./ui) / [`tui`](./tui) | 图形界面与终端交互模式 | `ui` 为推荐图形入口；`tui` 页说明直接运行 `ccr` 的行为 |
 | [`stats`](./stats) / [`budget`](./budget) / [`pricing`](./pricing) | 成本与预算 | 依赖统计与定价数据 |
 | [`skills`](./skills) / [`prompts`](./prompts) | 扩展能力管理 | |
@@ -76,6 +76,7 @@ ccr
 - [`import`](./import)
 - [`clean`](./clean)
 - [`sync`](./sync)
+- [`doctor`](./doctor)
 - [`sessions`](./sessions)
 - [`provider`](./provider)
 - [`check`](./check)

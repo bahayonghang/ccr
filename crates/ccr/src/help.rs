@@ -342,6 +342,47 @@ pub fn print_top_help() {
     );
     println!("{}", sp_table);
 
+    // 诊断与检查
+    section_title("诊断与检查");
+    let mut diag_table = make_table(w, &headers);
+    if wide {
+        diag_table.set_constraints(vec![
+            ColumnConstraint::Absolute(Width::Fixed(12)),
+            ColumnConstraint::LowerBoundary(Width::Fixed(20)),
+            ColumnConstraint::UpperBoundary(Width::Fixed(28)),
+        ]);
+    } else {
+        diag_table.set_constraints(vec![
+            ColumnConstraint::Absolute(Width::Fixed(12)),
+            ColumnConstraint::LowerBoundary(Width::Fixed(20)),
+        ]);
+    }
+    add_row(
+        &mut diag_table,
+        "doctor",
+        "统一体检（环境、平台、profile、auth、冲突）",
+        Some("ccr doctor --all-platforms"),
+    );
+    add_row(
+        &mut diag_table,
+        "provider",
+        "Provider 健康检查",
+        Some("ccr provider test --all"),
+    );
+    add_row(
+        &mut diag_table,
+        "check",
+        "局部冲突检查",
+        Some("ccr check conflicts"),
+    );
+    add_row(
+        &mut diag_table,
+        "sessions",
+        "会话索引与搜索",
+        Some("ccr sessions list"),
+    );
+    println!("{}", diag_table);
+
     // 统计与维护
     section_title("统计与维护");
     let mut mv_table = make_table(w, &headers);

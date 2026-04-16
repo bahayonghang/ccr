@@ -2,6 +2,8 @@
 
 `ccr provider` 用于验证当前配置中的 Provider 是否可达，以及 API Key 是否有效。
 
+如果你想先拿到一份统一诊断总览，请优先使用 [`ccr doctor`](./doctor)；`provider` 适合在你已经定位到“就是 Provider/连通性问题”之后做定向检查。
+
 ## 用法
 
 ```bash
@@ -46,6 +48,12 @@ ccr provider verify work
 - 新建 profile 后做连通性验收
 - 批量体检所有当前配置
 - 排查 model、token、base URL 相关问题
+
+## 与其他诊断命令的边界
+
+- [`doctor`](./doctor)：统一体检入口；默认本地只读，`--online` 时才追加在线探活
+- [`validate`](./validate)：静态校验配置和 settings
+- [`check`](./check)：只做本地冲突扫描
 
 ## 注意
 
