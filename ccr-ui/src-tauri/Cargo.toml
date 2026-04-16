@@ -2,7 +2,7 @@
 
 [package]
 name = "ccr-desktop"
-version = "5.8.5"
+version = "5.8.6"
 description = "CCR Desktop - Tauri Application"
 authors = ["CCR Team"]
 edition = "2024"
@@ -28,7 +28,7 @@ ccr-types = { path = "../../crates/ccr-types" }
 ccr-db = { path = "../../crates/ccr-db" }
 
 # Tauri framework
-tauri = { version = "=2.10.3", features = [] }
+tauri = { version = "=2.10.3", features = ["tray-icon"] }
 tauri-plugin-dialog = "2"
 
 # Serialization

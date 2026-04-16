@@ -4,11 +4,13 @@
 
 use std::collections::{HashMap, VecDeque};
 use std::num::NonZeroUsize;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::sync::Mutex;
 use std::sync::atomic::AtomicBool;
 use std::time::{Duration, Instant};
 
+use ccr_core::core::AtomicWriter;
 use ccr_db::database::pool::DbPool;
 use ccr_db::services::log_persistence::{LogPersistenceService, LogStorageConfig};
 use chrono::{DateTime, Utc};
@@ -25,6 +27,7 @@ pub const DEFAULT_CACHE_MAX_ENTRIES: usize = 1000;
 pub const DEFAULT_SSH_STATE_TTL_SECS: i64 = 30 * 60;
 pub const DEFAULT_SSH_PASSWORD_TTL_SECS: u64 = 10 * 60;
 const METRIC_SAMPLE_CAPACITY: usize = 2048;
+const DESKTOP_SHELL_PREFS_FILE: &str = "desktop-shell.json";
 
 /// SSH 连接运行时状态（仅内存持有，不持久化）
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -41,6 +44,15 @@ pub struct SshRuntimeState {
 pub struct SshPasswordEntry {
     pub value: String,
     pub cached_at: Instant,
+}
+
+/// Tray 点击锚点（物理像素）
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, PartialEq, Eq)]
+pub struct TrayAnchor {
+    pub x: i32,
+    pub y: i32,
+    pub width: u32,
+    pub height: u32,
 }
 
 /// Tauri managed state —— 通过 `app.manage(AppState::new(...))` 注册。
@@ -83,11 +95,20 @@ pub struct AppState {
     /// 当前活跃的 Session 索引任务 ID
     active_session_index_job_id: RwLock<Option<String>>,
 
-    /// 应用设置
-    pub settings: Mutex<AppSettings>,
+    /// 桌面壳层偏好（持久化到 ~/.ccr/desktop-shell.json）
+    pub settings: Mutex<DesktopShellPreferences>,
 
     /// 退出确认标志 —— 用于打破 CloseRequested 事件循环
     pub exit_confirmed: AtomicBool,
+
+    /// 强制退出标志 —— 用于 tray quit 等路径绕过 hide-to-tray 逻辑
+    pub force_exit_requested: AtomicBool,
+
+    /// 最近一次 tray 事件的图标锚点，用于定位紧凑面板
+    pub tray_anchor: Mutex<Option<TrayAnchor>>,
+
+    /// 最近一次 tray 菜单里可切换账号列表（按菜单顺序）
+    pub tray_switch_accounts: Mutex<Vec<String>>,
 
     /// 事件日志环形缓冲区
     pub event_log: EventLog,
@@ -105,10 +126,66 @@ pub struct CacheEntry {
     pub expires_at: Instant,
 }
 
-/// 应用设置
-#[derive(Debug, Clone, Default, serde::Serialize, serde::Deserialize)]
-pub struct AppSettings {
-    pub skip_exit_confirm: bool,
+/// 桌面壳层偏好
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, PartialEq, Eq)]
+pub struct DesktopShellPreferences {
+    #[serde(default = "default_confirm_before_exit")]
+    pub confirm_before_exit: bool,
+    #[serde(default)]
+    pub close_to_tray: bool,
+    #[serde(default = "default_open_panel_on_tray_click")]
+    pub open_panel_on_tray_click: bool,
+}
+
+fn default_confirm_before_exit() -> bool {
+    true
+}
+
+fn default_open_panel_on_tray_click() -> bool {
+    true
+}
+
+impl Default for DesktopShellPreferences {
+    fn default() -> Self {
+        Self {
+            confirm_before_exit: true,
+            close_to_tray: false,
+            open_panel_on_tray_click: true,
+        }
+    }
+}
+
+impl DesktopShellPreferences {
+    fn default_path() -> Result<PathBuf, String> {
+        let home = dirs::home_dir().ok_or_else(|| "无法获取用户主目录".to_string())?;
+        Ok(home.join(".ccr").join(DESKTOP_SHELL_PREFS_FILE))
+    }
+
+    pub fn load() -> Result<Self, String> {
+        Self::load_from_path(&Self::default_path()?)
+    }
+
+    pub fn load_from_path(path: &Path) -> Result<Self, String> {
+        if !path.exists() {
+            return Ok(Self::default());
+        }
+
+        let content =
+            std::fs::read_to_string(path).map_err(|e| format!("读取桌面壳层偏好失败: {e}"))?;
+        serde_json::from_str(&content).map_err(|e| format!("解析桌面壳层偏好失败: {e}"))
+    }
+
+    pub fn save(&self) -> Result<(), String> {
+        Self::save_to_path(&Self::default_path()?, self)
+    }
+
+    pub fn save_to_path(path: &Path, value: &Self) -> Result<(), String> {
+        let content = serde_json::to_string_pretty(value)
+            .map_err(|e| format!("序列化桌面壳层偏好失败: {e}"))?;
+        AtomicWriter::new(path)
+            .write_string(&content)
+            .map_err(|e| format!("写入桌面壳层偏好失败: {e}"))
+    }
 }
 
 /// 运行时指标快照
@@ -132,6 +209,11 @@ impl AppState {
             .build()
             .expect("failed to build reqwest client");
 
+        let settings = DesktopShellPreferences::load().unwrap_or_else(|error| {
+            tracing::warn!("[app] failed to load desktop shell preferences: {error}");
+            DesktopShellPreferences::default()
+        });
+
         let cache_cap =
             NonZeroUsize::new(DEFAULT_CACHE_MAX_ENTRIES).expect("cache capacity must be non-zero");
 
@@ -149,12 +231,76 @@ impl AppState {
             active_usage_import_job_id: RwLock::new(None),
             session_index_jobs: RwLock::new(HashMap::new()),
             active_session_index_job_id: RwLock::new(None),
-            settings: Mutex::new(AppSettings::default()),
+            settings: Mutex::new(settings),
             exit_confirmed: AtomicBool::new(false),
+            force_exit_requested: AtomicBool::new(false),
+            tray_anchor: Mutex::new(None),
+            tray_switch_accounts: Mutex::new(Vec::new()),
             event_log: EventLog::with_limits(500, 10 * 1024, 5 * 1024 * 1024),
             command_durations_ms: Mutex::new(VecDeque::new()),
             db_query_durations_ms: Mutex::new(VecDeque::new()),
         }
+    }
+
+    /// 读取当前桌面壳层偏好快照
+    pub fn desktop_shell_preferences(&self) -> Result<DesktopShellPreferences, String> {
+        self.settings
+            .lock()
+            .map(|settings| settings.clone())
+            .map_err(|e| format!("Failed to access desktop shell preferences: {e}"))
+    }
+
+    /// 更新并持久化桌面壳层偏好
+    pub fn update_desktop_shell_preferences<F>(
+        &self,
+        updater: F,
+    ) -> Result<DesktopShellPreferences, String>
+    where
+        F: FnOnce(&mut DesktopShellPreferences),
+    {
+        let mut settings = self
+            .settings
+            .lock()
+            .map_err(|e| format!("Failed to access desktop shell preferences: {e}"))?;
+        updater(&mut settings);
+        settings.save()?;
+        Ok(settings.clone())
+    }
+
+    /// 记录最近一次 tray 图标锚点
+    pub fn set_tray_anchor(&self, anchor: Option<TrayAnchor>) -> Result<(), String> {
+        let mut tray_anchor = self
+            .tray_anchor
+            .lock()
+            .map_err(|e| format!("Failed to access tray anchor: {e}"))?;
+        *tray_anchor = anchor;
+        Ok(())
+    }
+
+    /// 获取最近一次 tray 图标锚点
+    pub fn tray_anchor(&self) -> Result<Option<TrayAnchor>, String> {
+        self.tray_anchor
+            .lock()
+            .map(|anchor| anchor.clone())
+            .map_err(|e| format!("Failed to access tray anchor: {e}"))
+    }
+
+    /// 覆盖 tray 菜单里的可切换账号映射
+    pub fn set_tray_switch_accounts(&self, accounts: Vec<String>) -> Result<(), String> {
+        let mut switch_accounts = self
+            .tray_switch_accounts
+            .lock()
+            .map_err(|e| format!("Failed to access tray switch accounts: {e}"))?;
+        *switch_accounts = accounts;
+        Ok(())
+    }
+
+    /// 通过菜单下标解析账号名
+    pub fn tray_switch_account_name(&self, index: usize) -> Result<Option<String>, String> {
+        self.tray_switch_accounts
+            .lock()
+            .map(|accounts| accounts.get(index).cloned())
+            .map_err(|e| format!("Failed to access tray switch accounts: {e}"))
     }
 
     /// 从缓存获取值（未过期时返回 Some）
@@ -432,6 +578,37 @@ impl AppState {
             command_p95_ms,
             db_query_p95_ms,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::DesktopShellPreferences;
+
+    #[test]
+    fn desktop_shell_preferences_round_trip_via_json_file() {
+        let temp_dir = tempfile::tempdir().expect("temp dir should exist");
+        let path = temp_dir.path().join("desktop-shell.json");
+        let prefs = DesktopShellPreferences {
+            confirm_before_exit: false,
+            close_to_tray: true,
+            open_panel_on_tray_click: false,
+        };
+
+        DesktopShellPreferences::save_to_path(&path, &prefs).expect("prefs should save");
+        let loaded = DesktopShellPreferences::load_from_path(&path).expect("prefs should load");
+
+        assert_eq!(loaded, prefs);
+    }
+
+    #[test]
+    fn desktop_shell_preferences_defaults_when_file_is_missing() {
+        let temp_dir = tempfile::tempdir().expect("temp dir should exist");
+        let path = temp_dir.path().join("missing.json");
+
+        let loaded = DesktopShellPreferences::load_from_path(&path).expect("prefs should load");
+
+        assert_eq!(loaded, DesktopShellPreferences::default());
     }
 }
 

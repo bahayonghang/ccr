@@ -1,6 +1,10 @@
 import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
-import { getSkipExitConfirm, setSkipExitConfirm } from '@/api/runtime/environment'
+import {
+  shellGetPreferences,
+  shellSetPreferences,
+  type DesktopShellPreferences,
+} from '@/api/runtime/environment'
 import {
   normalizeLocale,
   readStoredLocale,
@@ -57,6 +61,8 @@ export const useShellPreferencesStore = defineStore('shellPreferences', () => {
   const locale = ref<SupportedLocale>(readStoredLocale())
   const sidebarWidth = ref<number>(readStoredSidebarWidth())
   const confirmBeforeExit = ref(true)
+  const closeToTray = ref(false)
+  const openPanelOnTrayClick = ref(true)
   const perfTelemetryEnabled = ref(isPerfTelemetryEnabled())
   const runtimeHydrated = ref(false)
 
@@ -104,13 +110,40 @@ export const useShellPreferencesStore = defineStore('shellPreferences', () => {
     updateSidebarWidth(DEFAULT_SIDEBAR_WIDTH)
   }
 
+  const syncRuntimePreferences = async (
+    patch?: Partial<DesktopShellPreferences>
+  ): Promise<DesktopShellPreferences | null> => {
+    try {
+      const current = await shellGetPreferences()
+      const next = {
+        ...current,
+        confirm_before_exit: confirmBeforeExit.value,
+        close_to_tray: closeToTray.value,
+        open_panel_on_tray_click: openPanelOnTrayClick.value,
+        ...patch,
+      }
+      const saved = await shellSetPreferences(next)
+      confirmBeforeExit.value = saved.confirm_before_exit
+      closeToTray.value = saved.close_to_tray
+      openPanelOnTrayClick.value = saved.open_panel_on_tray_click
+      return saved
+    } catch {
+      return null
+    }
+  }
+
   const hydrateRuntimePreferences = async (): Promise<void> => {
     if (runtimeHydrated.value) return
 
     try {
-      confirmBeforeExit.value = !(await getSkipExitConfirm())
+      const preferences = await shellGetPreferences()
+      confirmBeforeExit.value = preferences.confirm_before_exit
+      closeToTray.value = preferences.close_to_tray
+      openPanelOnTrayClick.value = preferences.open_panel_on_tray_click
     } catch {
       confirmBeforeExit.value = true
+      closeToTray.value = false
+      openPanelOnTrayClick.value = true
     } finally {
       runtimeHydrated.value = true
     }
@@ -118,7 +151,17 @@ export const useShellPreferencesStore = defineStore('shellPreferences', () => {
 
   const setConfirmBeforeExitPreference = async (enabled: boolean): Promise<void> => {
     confirmBeforeExit.value = enabled
-    await setSkipExitConfirm(!enabled)
+    await syncRuntimePreferences({ confirm_before_exit: enabled })
+  }
+
+  const setCloseToTrayPreference = async (enabled: boolean): Promise<void> => {
+    closeToTray.value = enabled
+    await syncRuntimePreferences({ close_to_tray: enabled })
+  }
+
+  const setOpenPanelOnTrayClickPreference = async (enabled: boolean): Promise<void> => {
+    openPanelOnTrayClick.value = enabled
+    await syncRuntimePreferences({ open_panel_on_tray_click: enabled })
   }
 
   const setPerfTelemetryPreference = (enabled: boolean): void => {
@@ -133,6 +176,8 @@ export const useShellPreferencesStore = defineStore('shellPreferences', () => {
     localeLabel,
     sidebarWidth,
     confirmBeforeExit,
+    closeToTray,
+    openPanelOnTrayClick,
     perfTelemetryEnabled,
     runtimeHydrated,
     initializeTheme,
@@ -144,6 +189,8 @@ export const useShellPreferencesStore = defineStore('shellPreferences', () => {
     resetLayout,
     hydrateRuntimePreferences,
     setConfirmBeforeExit: setConfirmBeforeExitPreference,
+    setCloseToTray: setCloseToTrayPreference,
+    setOpenPanelOnTrayClick: setOpenPanelOnTrayClickPreference,
     setPerfTelemetryPreference,
   }
 })

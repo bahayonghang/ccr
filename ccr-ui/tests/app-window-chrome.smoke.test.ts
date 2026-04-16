@@ -10,6 +10,14 @@ const mountAppWithChrome = async (showCustomTitlebar: boolean) => {
         hideGlobalBackground: false,
       },
     }),
+    useRouter: () => ({
+      currentRoute: {
+        value: {
+          fullPath: '/',
+        },
+      },
+      push: vi.fn(),
+    }),
   }))
 
   const stub = (name: string) => ({

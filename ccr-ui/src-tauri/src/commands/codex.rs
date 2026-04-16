@@ -299,6 +299,8 @@ mod profiles;
 mod sessions;
 #[path = "codex_settings.rs"]
 mod settings;
+#[path = "codex_tray.rs"]
+mod tray;
 #[path = "codex_usage.rs"]
 mod usage;
 
@@ -309,6 +311,7 @@ pub use mcp::*;
 pub use profiles::*;
 pub use sessions::*;
 pub use settings::*;
+pub use tray::*;
 pub use usage::*;
 
 // ── 文件 I/O 辅助函数 ──
@@ -2044,8 +2047,7 @@ model = "legacy-model"
             )
             .map_err(|e| format!("写入官方 config.toml 失败: {e}"))?;
 
-            let platform = CodexPlatform::new()
-                .map_err(|e| format!("创建 Codex 平台失败: {e}"))?;
+            let platform = CodexPlatform::new().map_err(|e| format!("创建 Codex 平台失败: {e}"))?;
             let mut profile = ProfileConfig::new();
             profile.model = Some("real-model".to_string());
             platform

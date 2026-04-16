@@ -15,6 +15,7 @@ pub mod gemini;
 pub mod mcp_presets;
 pub mod opencode;
 pub mod pricing;
+pub mod shell;
 pub mod skills;
 pub mod ssh;
 pub mod stats;
@@ -139,6 +140,7 @@ macro_rules! generate_handler_common {
         codex::codex_switch_auth,
         codex::codex_delete_auth,
         codex::codex_detect_process,
+        codex::codex_get_tray_snapshot,
         codex::codex_get_all_quotas,
         codex::codex_get_quota,
         // —— Gemini ——
@@ -349,6 +351,11 @@ macro_rules! generate_handler_common {
         // —— 退出确认 ——
         config::get_skip_exit_confirm,
         config::set_skip_exit_confirm,
+        // —— Desktop Shell ——
+        shell::shell_get_preferences,
+        shell::shell_set_preferences,
+        shell::shell_show_main_window,
+        shell::shell_request_quit,
         // —— 系统扩展 ——
         system::update_ccr,
         system::get_cli_version,

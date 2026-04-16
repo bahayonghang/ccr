@@ -8,7 +8,11 @@ import { useUIStore } from '@/stores/ui'
 import { logger } from '@/utils/logger'
 import { scheduleAfterPaint, scheduleWhenIdle } from '@/utils/scheduling'
 import { installStartupErrorHandlers, reportStartupFailure } from '@/utils/startupRecovery'
-import { showCurrentWindowIfTauri } from '@/utils/tauriWindow'
+import {
+  CODEX_TRAY_PANEL_WINDOW_LABEL,
+  getCurrentWindowSafe,
+  showCurrentWindowIfTauri,
+} from '@/utils/tauriWindow'
 import { applyInitialTheme } from '@/utils/themeBootstrap'
 import { flushPerfTelemetryOnce, initPerfTelemetry, perfMark, perfMeasure } from '@/utils/perfTelemetry'
 import { getErrorMessage } from '@/types/api'
@@ -134,6 +138,17 @@ const awaitRouterReadyWithTimeout = async (timeoutMs = 3000): Promise<boolean> =
   return router.currentRoute.value.matched.length > 0
 }
 
+const prepareWindowRoute = async (): Promise<void> => {
+  const win = await getCurrentWindowSafe()
+  if (!win) {
+    return
+  }
+
+  if (win.label === CODEX_TRAY_PANEL_WINDOW_LABEL && router.currentRoute.value.path !== '/tray/codex') {
+    await router.replace('/tray/codex')
+  }
+}
+
 const bootstrap = async (disposeStartupErrorHandlers: () => void) => {
   perfMark('app:bootstrap-start')
 
@@ -143,6 +158,8 @@ const bootstrap = async (disposeStartupErrorHandlers: () => void) => {
   app.use(router)
   app.use(i18n)
   configureAppErrorHandler(app)
+
+  await prepareWindowRoute()
 
   const routerReady = await awaitRouterReadyWithTimeout()
   if (!routerReady) {

@@ -475,6 +475,42 @@ export interface CodexAccountQuota {
   fetched_at: string
 }
 
+export interface CodexTrayAccountRow {
+  name: string
+  description?: string
+  email?: string
+  is_current: boolean
+  is_virtual: boolean
+  saved_at?: string
+  last_used?: string
+  last_refresh?: string
+  freshness: TokenFreshness
+  freshness_icon: string
+  freshness_description: string
+  expires_at?: string
+  is_expired: boolean
+  can_switch: boolean
+  quota?: CodexQuota
+  quota_error?: string
+  quota_fetched_at?: string
+}
+
+export interface CodexTraySnapshot {
+  fetched_at: string
+  runtime_mode: string
+  runtime_description: string
+  profile_label: string
+  auth_label: string
+  current_profile_name?: string
+  current_profile_provider?: string
+  current_profile_auth_mode?: CodexProfileAuthMode | string
+  current_auth_name?: string
+  login_state: LoginState
+  can_manage_accounts: boolean
+  current_account?: CodexTrayAccountRow | null
+  accounts: CodexTrayAccountRow[]
+}
+
 // ============ Codex Session Types ============
 
 export interface CodexSessionSummary {

@@ -12,8 +12,9 @@
 </template>
 
 <script setup lang="ts">
-import { computed, defineAsyncComponent } from 'vue'
-import { useRoute } from 'vue-router'
+import { computed, defineAsyncComponent, onMounted, onUnmounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { getCurrentWindowSafe } from '@/utils/tauriWindow'
 import { getWindowChromeTopInset, shouldUseCustomTitlebar } from '@/utils/windowChrome'
 
 const Titlebar = defineAsyncComponent({
@@ -37,8 +38,10 @@ const GlobalConfirmDialog = defineAsyncComponent({
 })
 
 const route = useRoute()
+const router = useRouter()
 const showCustomTitlebar = shouldUseCustomTitlebar()
 const windowChromeTopInset = getWindowChromeTopInset()
+let stopShellNavigate: (() => void) | null = null
 
 const showGlobalBackground = computed(() => {
   return !route.meta.hideGlobalBackground
@@ -48,5 +51,25 @@ const appShellStyle = computed(() => {
   return windowChromeTopInset > 0
     ? { paddingTop: `${windowChromeTopInset}px` }
     : undefined
+})
+
+onMounted(async () => {
+  const win = await getCurrentWindowSafe()
+  if (!win) {
+    return
+  }
+
+  stopShellNavigate = await win.listen<string>('shell:navigate', async (event) => {
+    if (!event.payload || router.currentRoute.value.fullPath === event.payload) {
+      return
+    }
+
+    await router.push(event.payload)
+  })
+})
+
+onUnmounted(() => {
+  stopShellNavigate?.()
+  stopShellNavigate = null
 })
 </script>

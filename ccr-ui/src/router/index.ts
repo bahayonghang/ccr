@@ -52,6 +52,12 @@ const genericPlatformRoutes: RouteRecordRaw[] = genericPlatformDescriptorList.fl
 
 const routes: RouteRecordRaw[] = [
   {
+    path: '/tray/codex',
+    name: 'codex-tray-panel',
+    component: () => import('@/views/tray/CodexTrayPanelView.vue'),
+    meta: { depth: 0, group: 'codex-tray', hideGlobalBackground: true },
+  },
+  {
     path: '/',
     component: () => import('@/components/MainLayout.vue'),
     children: [

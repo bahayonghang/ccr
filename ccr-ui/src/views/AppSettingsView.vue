@@ -216,6 +216,58 @@
                   </button>
                 </div>
 
+                <div class="app-settings-row">
+                  <div class="app-settings-row__copy">
+                    <h3 class="app-settings-row__title">
+                      {{ t('settings.shell.closeToTrayTitle') }}
+                    </h3>
+                    <p class="app-settings-row__description">
+                      {{ t('settings.shell.closeToTrayDescription') }}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    role="switch"
+                    class="app-settings-switch"
+                    :class="{ 'app-settings-switch--active': closeToTray }"
+                    :aria-checked="closeToTray"
+                    data-testid="settings-close-to-tray-toggle"
+                    @click="toggleCloseToTray"
+                  >
+                    <span class="app-settings-switch__track" />
+                    <span class="app-settings-switch__thumb" />
+                    <span class="app-settings-switch__label">
+                      {{ closeToTray ? t('settings.enabled') : t('settings.disabled') }}
+                    </span>
+                  </button>
+                </div>
+
+                <div class="app-settings-row">
+                  <div class="app-settings-row__copy">
+                    <h3 class="app-settings-row__title">
+                      {{ t('settings.shell.openPanelOnTrayClickTitle') }}
+                    </h3>
+                    <p class="app-settings-row__description">
+                      {{ t('settings.shell.openPanelOnTrayClickDescription') }}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    role="switch"
+                    class="app-settings-switch"
+                    :class="{ 'app-settings-switch--active': openPanelOnTrayClick }"
+                    :aria-checked="openPanelOnTrayClick"
+                    data-testid="settings-open-panel-on-tray-click-toggle"
+                    @click="toggleOpenPanelOnTrayClick"
+                  >
+                    <span class="app-settings-switch__track" />
+                    <span class="app-settings-switch__thumb" />
+                    <span class="app-settings-switch__label">
+                      {{ openPanelOnTrayClick ? t('settings.enabled') : t('settings.disabled') }}
+                    </span>
+                  </button>
+                </div>
+
                 <div class="app-settings-row app-settings-row--slider">
                   <div class="app-settings-row__copy">
                     <h3 class="app-settings-row__title">
@@ -353,7 +405,16 @@ type SectionKey = 'appearance' | 'language' | 'shell' | 'diagnostics'
 
 const { t } = useI18n()
 const shellPreferencesStore = useShellPreferencesStore()
-const { confirmBeforeExit, effectiveTheme, locale, perfTelemetryEnabled, sidebarWidth, theme } =
+const {
+  closeToTray,
+  confirmBeforeExit,
+  effectiveTheme,
+  locale,
+  openPanelOnTrayClick,
+  perfTelemetryEnabled,
+  sidebarWidth,
+  theme,
+} =
   storeToRefs(shellPreferencesStore)
 
 const runtimeVersion = ref<string | null>(null)
@@ -481,6 +542,14 @@ const setLocalePreference = async (nextLocale: string) => {
 
 const toggleConfirmBeforeExit = async () => {
   await shellPreferencesStore.setConfirmBeforeExit(!confirmBeforeExit.value)
+}
+
+const toggleCloseToTray = async () => {
+  await shellPreferencesStore.setCloseToTray(!closeToTray.value)
+}
+
+const toggleOpenPanelOnTrayClick = async () => {
+  await shellPreferencesStore.setOpenPanelOnTrayClick(!openPanelOnTrayClick.value)
 }
 
 const togglePerfTelemetry = () => {

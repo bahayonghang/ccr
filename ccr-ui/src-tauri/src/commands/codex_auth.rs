@@ -1,4 +1,5 @@
 use super::*;
+use crate::desktop_shell;
 
 /// 列出所有 Codex Auth 账号
 #[tauri::command]
@@ -88,6 +89,7 @@ pub async fn codex_get_auth_current() -> Result<Value, String> {
 /// 保存当前登录到命名账号
 #[tauri::command]
 pub async fn codex_save_auth(
+    app: tauri::AppHandle,
     state: State<'_, AppState>,
     name: String,
     description: Option<String>,
@@ -122,12 +124,17 @@ pub async fn codex_save_auth(
     .map_err(|e| format!("任务执行失败: {e}"))??;
 
     invalidate_codex_dashboard_overview_cache(&state).await;
+    let _ = desktop_shell::refresh_codex_tray(&app, true).await;
     Ok(response)
 }
 
 /// 切换到指定账号
 #[tauri::command]
-pub async fn codex_switch_auth(state: State<'_, AppState>, name: String) -> Result<Value, String> {
+pub async fn codex_switch_auth(
+    app: tauri::AppHandle,
+    state: State<'_, AppState>,
+    name: String,
+) -> Result<Value, String> {
     let name_resp = name.clone();
     tokio::task::spawn_blocking(move || {
         let service =
@@ -141,12 +148,17 @@ pub async fn codex_switch_auth(state: State<'_, AppState>, name: String) -> Resu
     .map_err(|e| format!("任务执行失败: {e}"))??;
 
     invalidate_codex_dashboard_overview_cache(&state).await;
+    let _ = desktop_shell::refresh_codex_tray(&app, true).await;
     Ok(json!({ "success": true, "message": format!("已切换到 Codex Auth 账号 '{name_resp}'") }))
 }
 
 /// 删除指定账号
 #[tauri::command]
-pub async fn codex_delete_auth(state: State<'_, AppState>, name: String) -> Result<Value, String> {
+pub async fn codex_delete_auth(
+    app: tauri::AppHandle,
+    state: State<'_, AppState>,
+    name: String,
+) -> Result<Value, String> {
     let name_resp = name.clone();
     tokio::task::spawn_blocking(move || {
         let service =
@@ -160,6 +172,7 @@ pub async fn codex_delete_auth(state: State<'_, AppState>, name: String) -> Resu
     .map_err(|e| format!("任务执行失败: {e}"))??;
 
     invalidate_codex_dashboard_overview_cache(&state).await;
+    let _ = desktop_shell::refresh_codex_tray(&app, true).await;
     Ok(json!({ "success": true, "message": format!("Codex Auth 账号 '{name_resp}' 已成功删除") }))
 }
 

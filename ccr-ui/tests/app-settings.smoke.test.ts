@@ -4,19 +4,19 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const runtimeMocks = vi.hoisted(() => ({
   getEnvironmentName: vi.fn(),
-  getSkipExitConfirm: vi.fn(),
   getTauriVersion: vi.fn(),
   isTauriEnvironment: vi.fn(),
-  setSkipExitConfirm: vi.fn(),
+  shellGetPreferences: vi.fn(),
+  shellSetPreferences: vi.fn(),
   syncNativeWindowAppearance: vi.fn(),
 }))
 
 vi.mock('@/api/runtime/environment', () => ({
   getEnvironmentName: (...args: unknown[]) => runtimeMocks.getEnvironmentName(...args),
-  getSkipExitConfirm: (...args: unknown[]) => runtimeMocks.getSkipExitConfirm(...args),
   getTauriVersion: (...args: unknown[]) => runtimeMocks.getTauriVersion(...args),
   isTauriEnvironment: (...args: unknown[]) => runtimeMocks.isTauriEnvironment(...args),
-  setSkipExitConfirm: (...args: unknown[]) => runtimeMocks.setSkipExitConfirm(...args),
+  shellGetPreferences: (...args: unknown[]) => runtimeMocks.shellGetPreferences(...args),
+  shellSetPreferences: (...args: unknown[]) => runtimeMocks.shellSetPreferences(...args),
 }))
 
 vi.mock('@/utils/nativeWindowAppearance', () => ({
@@ -94,17 +94,21 @@ beforeEach(() => {
   installMatchMedia(true)
 
   runtimeMocks.getEnvironmentName.mockReset()
-  runtimeMocks.getSkipExitConfirm.mockReset()
   runtimeMocks.getTauriVersion.mockReset()
   runtimeMocks.isTauriEnvironment.mockReset()
-  runtimeMocks.setSkipExitConfirm.mockReset()
+  runtimeMocks.shellGetPreferences.mockReset()
+  runtimeMocks.shellSetPreferences.mockReset()
   runtimeMocks.syncNativeWindowAppearance.mockReset()
 
   runtimeMocks.getEnvironmentName.mockReturnValue('tauri')
-  runtimeMocks.getSkipExitConfirm.mockResolvedValue(true)
   runtimeMocks.getTauriVersion.mockResolvedValue('2.10.1')
   runtimeMocks.isTauriEnvironment.mockReturnValue(true)
-  runtimeMocks.setSkipExitConfirm.mockResolvedValue(undefined)
+  runtimeMocks.shellGetPreferences.mockResolvedValue({
+    confirm_before_exit: false,
+    close_to_tray: false,
+    open_panel_on_tray_click: true,
+  })
+  runtimeMocks.shellSetPreferences.mockImplementation(async (preferences) => preferences)
 })
 
 afterEach(() => {
@@ -169,7 +173,11 @@ describe('AppSettingsView smoke', () => {
       exitToggle?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
       await flush()
 
-      expect(runtimeMocks.setSkipExitConfirm).toHaveBeenCalledWith(false)
+      expect(runtimeMocks.shellSetPreferences).toHaveBeenCalledWith({
+        confirm_before_exit: true,
+        close_to_tray: false,
+        open_panel_on_tray_click: true,
+      })
       expect(exitToggle?.getAttribute('aria-checked')).toBe('true')
 
       perfToggle?.dispatchEvent(new MouseEvent('click', { bubbles: true }))

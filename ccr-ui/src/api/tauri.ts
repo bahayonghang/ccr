@@ -1174,6 +1174,11 @@ export const deleteCodexAuth = async <T = UnknownRecord>(name: string): Promise<
   return invoke('codex_delete_auth', { name })
 }
 
+/** 获取 Codex tray 紧凑快照 */
+export const getCodexTraySnapshot = async <T = UnknownRecord>(force?: boolean): Promise<T> => {
+  return invoke('codex_get_tray_snapshot', { force })
+}
+
 /** 检测 Codex 进程 */
 export const detectCodexProcess = async <T = UnknownRecord>(): Promise<T> => {
   return invoke('codex_detect_process')

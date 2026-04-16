@@ -3,6 +3,7 @@
 
 mod checkin_jobs;
 mod commands;
+mod desktop_shell;
 mod events;
 mod monitoring;
 mod platform;
@@ -25,10 +26,6 @@ use state::{AppState, DEFAULT_SSH_PASSWORD_TTL_SECS, DEFAULT_SSH_STATE_TTL_SECS}
 
 /// 退出流程标志，避免重复触发清理与关闭逻辑。
 static EXIT_REQUESTED: AtomicBool = AtomicBool::new(false);
-
-fn should_confirm_app_exit(window_label: &str) -> bool {
-    window_label == "main"
-}
 
 #[cfg(target_os = "macos")]
 fn configure_main_window_chrome(window: &tauri::WebviewWindow) -> tauri::Result<()> {
@@ -88,6 +85,16 @@ fn main() {
                 tracing::warn!("[app] skills watcher init failed: {e}");
                 std::io::Error::other(e)
             })?;
+            desktop_shell::install_desktop_shell(app.handle()).map_err(std::io::Error::other)?;
+
+            let tray_refresh_handle = app.handle().clone();
+            tauri::async_runtime::spawn(async move {
+                if let Err(error) =
+                    desktop_shell::refresh_codex_tray(&tray_refresh_handle, false).await
+                {
+                    tracing::debug!("[tray] initial refresh skipped: {error}");
+                }
+            });
 
             // 异步初始化环境注册表，避免阻塞启动流程。
             let app_handle = app.handle().clone();
@@ -192,58 +199,76 @@ fn main() {
             tracing::info!("[app] setup complete");
             Ok(())
         })
-        .on_window_event(|window, event| {
-            if let WindowEvent::CloseRequested { api, .. } = event {
-                if !should_confirm_app_exit(window.label()) {
+        .on_window_event(|window, event| match event {
+            WindowEvent::CloseRequested { api, .. } => {
+                if desktop_shell::is_tray_panel_window(window.label()) {
+                    api.prevent_close();
+                    let _ = window.hide();
+                    return;
+                }
+
+                if window.label() != "main" {
                     return;
                 }
 
                 let state = window.state::<AppState>();
-
-                // 已确认退出时直接放行，避免再次弹窗造成循环。
-                if state
-                    .exit_confirmed
-                    .load(std::sync::atomic::Ordering::SeqCst)
-                {
-                    return;
-                }
-
-                // 允许用户通过设置跳过退出确认。
-                let skip_confirm = match state.settings.lock() {
-                    Ok(settings) => settings.skip_exit_confirm,
-                    Err(e) => {
-                        tracing::warn!("[app] failed to access UI settings during exit flow: {e}");
-                        false
+                let preferences = match state.desktop_shell_preferences() {
+                    Ok(settings) => settings,
+                    Err(error) => {
+                        tracing::warn!(
+                            "[app] failed to access shell preferences during exit flow: {error}"
+                        );
+                        state::DesktopShellPreferences::default()
                     }
                 };
+                let action = desktop_shell::resolve_main_window_close_action(
+                    &preferences,
+                    state
+                        .exit_confirmed
+                        .load(std::sync::atomic::Ordering::SeqCst),
+                    state
+                        .force_exit_requested
+                        .load(std::sync::atomic::Ordering::SeqCst),
+                );
 
-                if skip_confirm {
-                    return;
-                }
-
-                // 拦截默认关闭行为，弹出确认框后再决定是否真正退出。
-                api.prevent_close();
-                let window = window.clone();
-                window
-                    .dialog()
-                    .message("Are you sure you want to close CCR Desktop?")
-                    .title("Confirm Exit")
-                    .kind(MessageDialogKind::Warning)
-                    .buttons(MessageDialogButtons::OkCancelCustom(
-                        "Exit".to_string(),
-                        "Cancel".to_string(),
-                    ))
-                    .show(move |confirmed| {
-                        if confirmed {
-                            // 先设置确认标志，再调用 window.close()，避免再次触发拦截逻辑。
-                            let state = window.state::<AppState>();
-                            state
-                                .exit_confirmed
-                                .store(true, std::sync::atomic::Ordering::SeqCst);
-                            let _ = window.close();
+                match action {
+                    desktop_shell::MainWindowCloseAction::AllowExit => {}
+                    desktop_shell::MainWindowCloseAction::HideToTray => {
+                        api.prevent_close();
+                        if let Err(error) = window.hide() {
+                            tracing::warn!("[app] failed to hide main window to tray: {error}");
                         }
-                    });
+                    }
+                    desktop_shell::MainWindowCloseAction::ConfirmExit => {
+                        api.prevent_close();
+                        let window = window.clone();
+                        window
+                            .dialog()
+                            .message("Are you sure you want to close CCR Desktop?")
+                            .title("Confirm Exit")
+                            .kind(MessageDialogKind::Warning)
+                            .buttons(MessageDialogButtons::OkCancelCustom(
+                                "Exit".to_string(),
+                                "Cancel".to_string(),
+                            ))
+                            .show(move |confirmed| {
+                                if confirmed {
+                                    let state = window.state::<AppState>();
+                                    state
+                                        .exit_confirmed
+                                        .store(true, std::sync::atomic::Ordering::SeqCst);
+                                    let _ = window.close();
+                                }
+                            });
+                    }
+                }
             }
+            WindowEvent::Focused(false) if desktop_shell::is_tray_panel_window(window.label()) => {
+                if let Err(error) = window.hide() {
+                    tracing::debug!("[tray] failed to auto-hide panel on blur: {error}");
+                }
+            }
+            _ => {}
         })
         .invoke_handler(commands::generate_handler())
         .build(tauri::generate_context!())
@@ -268,13 +293,22 @@ fn main() {
 
 #[cfg(test)]
 mod tests {
-    use super::should_confirm_app_exit;
+    use crate::desktop_shell::{MainWindowCloseAction, resolve_main_window_close_action};
+    use crate::state::DesktopShellPreferences;
 
     #[test]
-    fn only_main_window_requires_exit_confirmation() {
-        assert!(should_confirm_app_exit("main"));
-        assert!(!should_confirm_app_exit("waf-login-builtin-anyrouter"));
-        assert!(!should_confirm_app_exit("oauth-login"));
+    fn close_action_hides_main_window_to_tray_when_enabled() {
+        let action = resolve_main_window_close_action(
+            &DesktopShellPreferences {
+                confirm_before_exit: true,
+                close_to_tray: true,
+                open_panel_on_tray_click: true,
+            },
+            false,
+            false,
+        );
+
+        assert_eq!(action, MainWindowCloseAction::HideToTray);
     }
 
     #[cfg(target_os = "macos")]
@@ -331,9 +365,8 @@ async fn import_usage_data() -> Result<(), String> {
     // CostTracker 默认使用与 CLI 一致的目录 `~/.ccr/costs/`。
     // 这里只校验 storage dir 可访问，真正的导入由其他命令触发。
     tokio::task::spawn_blocking(|| {
-        let _storage_dir =
-            ccr_store::CostTracker::default_storage_dir()
-                .map_err(|e| format!("Storage dir: {e}"))?;
+        let _storage_dir = ccr_store::CostTracker::default_storage_dir()
+            .map_err(|e| format!("Storage dir: {e}"))?;
         Ok(())
     })
     .await

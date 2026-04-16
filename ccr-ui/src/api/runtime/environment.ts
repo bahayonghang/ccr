@@ -3,6 +3,12 @@ import { isTauriRuntime } from '@/utils/tauriRuntime'
 
 const SKIP_EXIT_CONFIRM_KEY = 'ccr_skip_exit_confirm'
 
+export interface DesktopShellPreferences {
+  confirm_before_exit: boolean
+  close_to_tray: boolean
+  open_panel_on_tray_click: boolean
+}
+
 export interface EnvironmentInfo {
   id: string
   name: string
@@ -48,9 +54,28 @@ export const refreshEnvironments = async (): Promise<EnvironmentInfo[]> => {
   return invoke('refresh_environments')
 }
 
+export const shellGetPreferences = async (): Promise<DesktopShellPreferences> => {
+  return invoke('shell_get_preferences')
+}
+
+export const shellSetPreferences = async (
+  preferences: DesktopShellPreferences
+): Promise<DesktopShellPreferences> => {
+  return invoke('shell_set_preferences', { preferences })
+}
+
+export const shellShowMainWindow = async (targetRoute?: string): Promise<void> => {
+  await invoke('shell_show_main_window', { targetRoute })
+}
+
+export const shellRequestQuit = async (): Promise<void> => {
+  await invoke('shell_request_quit')
+}
+
 export const getSkipExitConfirm = async (): Promise<boolean> => {
   try {
-    return await invoke('get_skip_exit_confirm')
+    const preferences = await shellGetPreferences()
+    return !preferences.confirm_before_exit
   } catch {
     return localStorage.getItem(SKIP_EXIT_CONFIRM_KEY) === '1'
   }
@@ -58,7 +83,11 @@ export const getSkipExitConfirm = async (): Promise<boolean> => {
 
 export const setSkipExitConfirm = async (skip: boolean): Promise<void> => {
   try {
-    await invoke('set_skip_exit_confirm', { skip })
+    const preferences = await shellGetPreferences()
+    await shellSetPreferences({
+      ...preferences,
+      confirm_before_exit: !skip,
+    })
     return
   } catch {
     localStorage.setItem(SKIP_EXIT_CONFIRM_KEY, skip ? '1' : '0')

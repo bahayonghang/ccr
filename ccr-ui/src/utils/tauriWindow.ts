@@ -2,6 +2,8 @@ import type { Window as TauriWindow } from '@tauri-apps/api/window'
 import { logger } from '@/utils/logger'
 import { isTauriRuntime } from '@/utils/tauriRuntime'
 
+export const CODEX_TRAY_PANEL_WINDOW_LABEL = 'codex-tray-panel'
+
 let windowPromise: Promise<TauriWindow | null> | null = null
 
 const waitForTauriRuntime = async (timeoutMs = 3000): Promise<boolean> => {
@@ -48,6 +50,10 @@ export const getCurrentWindowSafe = async (): Promise<TauriWindow | null> => {
 export const showCurrentWindowIfTauri = async (): Promise<void> => {
   const win = await getCurrentWindowSafe()
   if (!win) {
+    return
+  }
+
+  if (win.label === CODEX_TRAY_PANEL_WINDOW_LABEL) {
     return
   }
 
