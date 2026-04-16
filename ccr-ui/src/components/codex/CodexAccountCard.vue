@@ -58,6 +58,23 @@
       >
         {{ account.description }}
       </p>
+      <div class="flex flex-wrap items-center gap-1.5 text-[11px] text-text-muted">
+        <span class="codex-account-chip">
+          {{ authMethodLabel(account.auth_method) }}
+        </span>
+        <span
+          v-if="account.api_provider_name"
+          class="codex-account-chip"
+        >
+          {{ account.api_provider_name }}
+        </span>
+        <span
+          v-else-if="account.api_base_url"
+          class="codex-account-chip codex-account-chip--muted"
+        >
+          {{ account.api_base_url }}
+        </span>
+      </div>
       <div class="flex items-center gap-1.5 text-xs">
         <span
           class="inline-flex items-center gap-1"
@@ -342,6 +359,17 @@ const freshnessDotClass = (freshness: TokenFreshness) => {
   }
 }
 
+const authMethodLabel = (method?: string) => {
+  switch (method) {
+    case 'chatgpt':
+      return 'ChatGPT OAuth'
+    case 'api':
+      return 'API Key'
+    default:
+      return 'Managed Auth'
+  }
+}
+
 // ── 重置时间格式化 ──
 
 const formatReset = (timestamp: number) => {
@@ -421,6 +449,14 @@ const formatSavedAt = (raw?: string | null) => {
   @apply p-2 rounded-lg text-text-ghost transition-colors duration-200
          hover:text-text-secondary hover:bg-bg-surface/70
          disabled:opacity-30 disabled:cursor-not-allowed;
+}
+
+.codex-account-chip {
+  @apply inline-flex items-center rounded-full border border-border-default/20 bg-bg-surface/70 px-2 py-0.5;
+}
+
+.codex-account-chip--muted {
+  @apply max-w-full truncate;
 }
 
 .codex-account-card:hover {

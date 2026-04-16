@@ -452,7 +452,7 @@ dependencies = [
 
 [[package]]
 name = "ccr"
-version = "5.8.6"
+version = "5.8.7"
 dependencies = [
  "anyhow",
  "base64 0.22.1",
@@ -489,7 +489,6 @@ dependencies = [
  "thiserror 2.0.18",
  "tokio",
  "toml 1.1.2+spec-1.1.0",
- "toml_edit 0.23.10+spec-1.0.0",
  "tracing",
  "tracing-appender",
  "tracing-log",
@@ -502,7 +501,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-codex"
-version = "5.8.6"
+version = "5.8.7"
 dependencies = [
  "aes-gcm",
  "argon2",
@@ -529,7 +528,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-config"
-version = "5.8.6"
+version = "5.8.7"
 dependencies = [
  "ccr-core",
  "chrono",
@@ -544,7 +543,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-core"
-version = "5.8.6"
+version = "5.8.7"
 dependencies = [
  "anyhow",
  "colored",
@@ -570,7 +569,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-db"
-version = "5.8.6"
+version = "5.8.7"
 dependencies = [
  "aes-gcm",
  "anyhow",
@@ -603,10 +602,11 @@ dependencies = [
 
 [[package]]
 name = "ccr-desktop"
-version = "5.8.6"
+version = "5.8.7"
 dependencies = [
  "aes-gcm",
  "async-trait",
+ "base64 0.22.1",
  "ccr",
  "ccr-codex",
  "ccr-config",
@@ -626,6 +626,7 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_yaml",
+ "sha2 0.11.0",
  "sysinfo",
  "tauri",
  "tauri-build",
@@ -643,7 +644,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-skills"
-version = "5.8.6"
+version = "5.8.7"
 dependencies = [
  "blake3",
  "ccr-config",
@@ -661,7 +662,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-store"
-version = "5.8.6"
+version = "5.8.7"
 dependencies = [
  "blake3",
  "ccr-config",
@@ -683,7 +684,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-sync"
-version = "5.8.6"
+version = "5.8.7"
 dependencies = [
  "ccr-config",
  "ccr-core",
@@ -701,7 +702,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-types"
-version = "5.8.6"
+version = "5.8.7"
 dependencies = [
  "chrono",
  "serde",
@@ -779,9 +780,9 @@ dependencies = [
 
 [[package]]
 name = "clap"
-version = "4.6.0"
+version = "4.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b193af5b67834b676abd72466a96c1024e6a6ad978a1f484bd90b85c94041351"
+checksum = "1ddb117e43bbf7dacf0a4190fef4d345b9bad68dfc649cb349e7d17d28428e51"
 dependencies = [
  "clap_builder",
  "clap_derive",
@@ -801,9 +802,9 @@ dependencies = [
 
 [[package]]
 name = "clap_derive"
-version = "4.6.0"
+version = "4.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1110bd8a634a1ab8cb04345d8d878267d57c3cf1b38d91b71af6686408bbca6a"
+checksum = "f2ce8604710f6733aa641a2b3731eaa1e8b3d9973d5e3565da11800813f997a9"
 dependencies = [
  "heck 0.5.0",
  "proc-macro2",
@@ -5095,19 +5096,6 @@ dependencies = [
 
 [[package]]
 name = "toml_edit"
-version = "0.23.10+spec-1.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "84c8b9f757e028cee9fa244aea147aab2a9ec09d5325a9b01e0a49730c2b5269"
-dependencies = [
- "indexmap 2.14.0",
- "toml_datetime 0.7.5+spec-1.1.0",
- "toml_parser",
- "toml_writer",
- "winnow 0.7.15",
-]
-
-[[package]]
-name = "toml_edit"
 version = "0.25.4+spec-1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7193cbd0ce53dc966037f54351dbbcf0d5a642c7f0038c382ef9e677ce8c13f2"
@@ -5428,9 +5416,9 @@ checksum = "06abde3611657adf66d383f00b093d7faecc7fa57071cce2578660c9f1010821"
 
 [[package]]
 name = "uuid"
-version = "1.23.0"
+version = "1.23.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5ac8b6f42ead25368cf5b098aeb3dc8a1a2c05a3eee8a9a1a68c640edbfc79d9"
+checksum = "ddd74a9687298c6858e9b88ec8935ec45d22e8fd5e6394fa1bd4e99a87789c76"
 dependencies = [
  "getrandom 0.4.2",
  "js-sys",

@@ -2,7 +2,7 @@
 
 [package]
 name = "ccr-desktop"
-version = "5.8.6"
+version = "5.8.7"
 description = "CCR Desktop - Tauri Application"
 authors = ["CCR Team"]
 edition = "2024"
@@ -68,6 +68,8 @@ aes-gcm = "0.10"
 # UUID
 uuid = { version = "1.21", features = ["v4"] }
 chrono = { version = "0.4", features = ["serde"] }
+base64 = "0.22.1"
+sha2 = "0.11.0"
 
 # Database (direct access for AppState)
 r2d2 = "0.8"

@@ -14,6 +14,19 @@ const apiMocks = vi.hoisted(() => ({
   deleteCodexAuth: vi.fn(),
   detectCodexProcess: vi.fn(),
   getCodexAllQuotas: vi.fn(),
+  codexOAuthLoginStart: vi.fn(),
+  codexOAuthLoginCompleted: vi.fn(),
+  codexOAuthLoginCancel: vi.fn(),
+  codexOAuthSubmitCallbackUrl: vi.fn(),
+  codexIsOAuthPortInUse: vi.fn(),
+  codexReleaseOAuthPort: vi.fn(),
+  codexOpenExternalUrl: vi.fn(),
+  codexImportAuthPayload: vi.fn(),
+  codexImportAuthFromLocal: vi.fn(),
+  codexAddAuthWithApiKey: vi.fn(),
+  codexListModelProviders: vi.fn(),
+  codexSaveModelProvider: vi.fn(),
+  codexDeleteModelProvider: vi.fn(),
 }))
 
 vi.mock('@/api', () => ({
@@ -50,11 +63,16 @@ vi.mock('@/components/ui/Button.vue', () => ({
   default: defineComponent({
     emits: ['click'],
     setup(_props, { slots, emit, attrs }) {
-      return () => h('button', {
-        ...attrs,
-        type: 'button',
-        onClick: (event: MouseEvent) => emit('click', event),
-      }, slots.default?.())
+      return () =>
+        h(
+          'button',
+          {
+            ...attrs,
+            type: 'button',
+            onClick: (event: MouseEvent) => emit('click', event),
+          },
+          slots.default?.()
+        )
     },
   }),
 }))
@@ -66,13 +84,14 @@ vi.mock('@/components/common/BaseModal.vue', () => ({
     },
     emits: ['update:modelValue'],
     setup(props, { slots }) {
-      return () => (props.modelValue
-        ? h('div', { 'data-testid': 'base-modal' }, [
-            slots.header?.({ titleId: 'modal-title' }),
-            slots.default?.(),
-            slots.footer?.(),
-          ])
-        : null)
+      return () =>
+        props.modelValue
+          ? h('div', { 'data-testid': 'base-modal' }, [
+              slots.header?.({ titleId: 'modal-title' }),
+              slots.default?.(),
+              slots.footer?.(),
+            ])
+          : null
     },
   }),
 }))
@@ -95,15 +114,18 @@ vi.mock('@/components/codex/CodexAccountCard.vue', () => ({
       quota: { type: Object, default: null },
     },
     setup(props) {
-      return () => h(
-        'div',
-        {
-          'data-testid': 'codex-account-card',
-          'data-account-name': (props.account as { name: string }).name,
-          'data-plan-type': ((props.quota as { quota?: { plan_type?: string } } | null)?.quota?.plan_type ?? 'unknown'),
-        },
-        (props.account as { name: string }).name,
-      )
+      return () =>
+        h(
+          'div',
+          {
+            'data-testid': 'codex-account-card',
+            'data-account-name': (props.account as { name: string }).name,
+            'data-plan-type':
+              (props.quota as { quota?: { plan_type?: string } } | null)?.quota?.plan_type ??
+              'unknown',
+          },
+          (props.account as { name: string }).name
+        )
     },
   }),
 }))
@@ -147,11 +169,13 @@ const mountView = async () => {
     ],
   })
 
-  const app = createApp(defineComponent({
-    setup() {
-      return () => h(CodexAuthView)
-    },
-  }))
+  const app = createApp(
+    defineComponent({
+      setup() {
+        return () => h(CodexAuthView)
+      },
+    })
+  )
 
   app.use(createPinia())
   app.use(i18n)
@@ -258,6 +282,8 @@ beforeEach(() => {
       quota: { plan_type: 'Plus', hourly_percentage: 30, weekly_percentage: 22 },
     },
   ])
+  apiMocks.codexIsOAuthPortInUse.mockResolvedValue(false)
+  apiMocks.codexListModelProviders.mockResolvedValue({ providers: [] })
 })
 
 afterEach(() => {
@@ -289,12 +315,14 @@ describe('CodexAuthView smoke', () => {
       await flush()
 
       let cards = Array.from(el.querySelectorAll<HTMLElement>('[data-testid="codex-account-card"]'))
-      expect(cards.map(card => card.dataset.accountName)).toEqual(['beta-plus'])
+      expect(cards.map((card) => card.dataset.accountName)).toEqual(['beta-plus'])
 
-      const allButton = Array.from(el.querySelectorAll<HTMLButtonElement>('.codex-auth-view__filter-pill'))
-        .find(button => button.textContent?.includes('All'))
-      const attentionButton = Array.from(el.querySelectorAll<HTMLButtonElement>('.codex-auth-view__filter-pill'))
-        .find(button => button.textContent?.includes('Needs attention'))
+      const allButton = Array.from(
+        el.querySelectorAll<HTMLButtonElement>('.codex-auth-view__filter-pill')
+      ).find((button) => button.textContent?.includes('All'))
+      const attentionButton = Array.from(
+        el.querySelectorAll<HTMLButtonElement>('.codex-auth-view__filter-pill')
+      ).find((button) => button.textContent?.includes('Needs attention'))
 
       expect(allButton).not.toBeNull()
       expect(attentionButton).not.toBeNull()
@@ -306,7 +334,7 @@ describe('CodexAuthView smoke', () => {
       await flush()
 
       cards = Array.from(el.querySelectorAll<HTMLElement>('[data-testid="codex-account-card"]'))
-      expect(cards.map(card => card.dataset.accountName)).toEqual(['beta-plus'])
+      expect(cards.map((card) => card.dataset.accountName)).toEqual(['beta-plus'])
     } finally {
       unmount()
     }
@@ -317,7 +345,11 @@ describe('CodexAuthView smoke', () => {
 
     try {
       let cards = Array.from(el.querySelectorAll<HTMLElement>('[data-testid="codex-account-card"]'))
-      expect(cards.map(card => card.dataset.accountName)).toEqual(['alpha-pro', 'beta-plus', 'default'])
+      expect(cards.map((card) => card.dataset.accountName)).toEqual([
+        'alpha-pro',
+        'beta-plus',
+        'default',
+      ])
 
       const sortSelect = el.querySelector<HTMLSelectElement>('#codex-auth-sort')
       expect(sortSelect).not.toBeNull()
@@ -327,7 +359,137 @@ describe('CodexAuthView smoke', () => {
       await flush()
 
       cards = Array.from(el.querySelectorAll<HTMLElement>('[data-testid="codex-account-card"]'))
-      expect(cards.map(card => card.dataset.accountName)).toEqual(['beta-plus', 'alpha-pro', 'default'])
+      expect(cards.map((card) => card.dataset.accountName)).toEqual([
+        'beta-plus',
+        'alpha-pro',
+        'default',
+      ])
+    } finally {
+      unmount()
+    }
+  })
+
+  it('passes preferredAccountName through the API key add flow', async () => {
+    apiMocks.codexAddAuthWithApiKey.mockResolvedValue({
+      success: true,
+      account_name: 'editorial_api',
+      switched: false,
+    })
+
+    const { el, unmount } = await mountView()
+
+    try {
+      const openButton = Array.from(el.querySelectorAll<HTMLButtonElement>('button')).find(
+        (button) => button.textContent?.includes('Add account')
+      )
+      expect(openButton).not.toBeNull()
+      openButton!.click()
+      await flush()
+
+      const apiTab = Array.from(el.querySelectorAll<HTMLButtonElement>('button')).find((button) =>
+        button.textContent?.includes('API Key')
+      )
+      expect(apiTab).not.toBeNull()
+      apiTab!.click()
+      await flush()
+
+      const nameInput = el.querySelector<HTMLInputElement>(
+        '[data-testid="codex-add-account-name-input"]'
+      )
+      const apiKeyInput = Array.from(el.querySelectorAll<HTMLInputElement>('input')).find(
+        (input) => input.placeholder === 'sk-...'
+      )
+      expect(nameInput).not.toBeNull()
+      expect(apiKeyInput).not.toBeNull()
+
+      nameInput!.value = 'editorial_api'
+      nameInput!.dispatchEvent(new Event('input', { bubbles: true }))
+      apiKeyInput!.value = 'sk-live-test'
+      apiKeyInput!.dispatchEvent(new Event('input', { bubbles: true }))
+      await flush()
+
+      const saveButton = Array.from(el.querySelectorAll<HTMLButtonElement>('button')).find(
+        (button) => button.textContent?.includes('Save API account')
+      )
+      expect(saveButton).not.toBeNull()
+      saveButton!.click()
+      await flush()
+
+      expect(apiMocks.codexAddAuthWithApiKey).toHaveBeenCalledWith(
+        expect.objectContaining({
+          apiKey: 'sk-live-test',
+          preferredAccountName: 'editorial_api',
+        })
+      )
+    } finally {
+      unmount()
+    }
+  })
+
+  it('passes preferredAccountName for single JSON imports and locks naming for bundles', async () => {
+    apiMocks.codexImportAuthPayload.mockResolvedValue({
+      success: true,
+      imported: 1,
+      switched: false,
+      results: [],
+    })
+
+    const { el, unmount } = await mountView()
+
+    try {
+      const openButton = Array.from(el.querySelectorAll<HTMLButtonElement>('button')).find(
+        (button) => button.textContent?.includes('Add account')
+      )
+      expect(openButton).not.toBeNull()
+      openButton!.click()
+      await flush()
+
+      const tokenTab = Array.from(el.querySelectorAll<HTMLButtonElement>('button')).find((button) =>
+        button.textContent?.includes('Token / JSON')
+      )
+      expect(tokenTab).not.toBeNull()
+      tokenTab!.click()
+      await flush()
+
+      const nameInput = el.querySelector<HTMLInputElement>(
+        '[data-testid="codex-add-account-name-input"]'
+      )
+      const helper = el.querySelector<HTMLElement>('[data-testid="codex-add-account-name-helper"]')
+      const jsonTextarea = el.querySelector<HTMLTextAreaElement>('.codex-auth-view__textarea--mono')
+      expect(nameInput).not.toBeNull()
+      expect(helper).not.toBeNull()
+      expect(jsonTextarea).not.toBeNull()
+
+      nameInput!.value = 'single_import'
+      nameInput!.dispatchEvent(new Event('input', { bubbles: true }))
+      jsonTextarea!.value = JSON.stringify({ OPENAI_API_KEY: 'sk-from-json' })
+      jsonTextarea!.dispatchEvent(new Event('input', { bubbles: true }))
+      await flush()
+
+      const importButton = Array.from(el.querySelectorAll<HTMLButtonElement>('button')).find(
+        (button) => button.textContent?.includes('Import payload')
+      )
+      expect(importButton).not.toBeNull()
+      importButton!.click()
+      await flush()
+
+      expect(apiMocks.codexImportAuthPayload).toHaveBeenCalledWith(
+        expect.objectContaining({
+          preferredAccountName: 'single_import',
+        })
+      )
+
+      jsonTextarea!.value = JSON.stringify({
+        version: '1.0',
+        accounts: {
+          alpha: { account_id: 'a1' },
+        },
+      })
+      jsonTextarea!.dispatchEvent(new Event('input', { bubbles: true }))
+      await flush()
+
+      expect(nameInput!.disabled).toBe(true)
+      expect(helper!.textContent).toContain('embedded account names')
     } finally {
       unmount()
     }

@@ -24,7 +24,7 @@
                       Codex
                     </h1>
                     <p class="codex-hero-subtitle">
-                      先看当前账号、配置健康度和下一步，再进入细项管理。
+                      先看当前账号、配置健康度和下一步，再进入账号管理、供应商和会话细项。
                     </p>
                   </div>
                 </div>
@@ -51,7 +51,7 @@
                       size="w-4 h-4"
                       class="mr-2"
                     />
-                    账号
+                    账号管理
                   </Button>
                 </RouterLink>
                 <RouterLink to="/codex/sessions">

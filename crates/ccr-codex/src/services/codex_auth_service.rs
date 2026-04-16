@@ -32,6 +32,8 @@ use tracing::{debug, warn};
 /// 备份保留数量
 #[allow(dead_code)]
 const MAX_BACKUPS: usize = 10;
+const OPENAI_DEFAULT_BASE_URL: &str = "https://api.openai.com/v1";
+const THIRD_PARTY_RUNTIME_PROVIDER_KEY: &str = "custom";
 
 /// Codex Auth 服务
 ///
@@ -341,6 +343,82 @@ impl CodexAuthService {
         )
     }
 
+    fn extract_jwt_claim(auth: &CodexAuthJson, claim: &str) -> Option<String> {
+        let id_token = auth.tokens.as_ref()?.id_token.as_ref()?;
+        let parts: Vec<&str> = id_token.split('.').collect();
+        if parts.len() != 3 {
+            return None;
+        }
+
+        let payload = parts[1];
+        let decoded = crate::utils::decode_base64url(payload)?;
+        let payload_str = String::from_utf8(decoded).ok()?;
+        let payload_json: serde_json::Value = serde_json::from_str(&payload_str).ok()?;
+
+        payload_json
+            .get(claim)
+            .and_then(|value| value.as_str())
+            .map(str::to_string)
+    }
+
+    fn auth_json_to_raw_map(
+        auth: &CodexAuthJson,
+    ) -> Result<serde_json::Map<String, serde_json::Value>> {
+        serde_json::to_value(auth)
+            .map_err(|e| CcrError::ConfigError(format!("序列化 auth.json 失败: {}", e)))?
+            .as_object()
+            .cloned()
+            .ok_or_else(|| CcrError::ConfigError("auth.json 必须为对象".into()))
+    }
+
+    fn resolve_account_id_from_auth(
+        &self,
+        auth: &CodexAuthJson,
+        raw: &serde_json::Map<String, serde_json::Value>,
+    ) -> String {
+        if let Some(account_id) = auth
+            .tokens
+            .as_ref()
+            .and_then(|tokens| tokens.account_id.as_ref())
+            .map(|value| value.trim())
+            .filter(|value| !value.is_empty())
+        {
+            return account_id.to_string();
+        }
+
+        if let Some(openai_key) = raw
+            .get("OPENAI_API_KEY")
+            .and_then(|value| value.as_str())
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+        {
+            return format!("api:{}", Self::key_fingerprint(openai_key));
+        }
+
+        if let Some((env_key, provider_key)) = Self::find_provider_api_key(raw) {
+            return format!("provider:{env_key}:{}", Self::key_fingerprint(provider_key));
+        }
+
+        if let Some(subject) = Self::extract_jwt_claim(auth, "sub")
+            .map(|value| value.trim().to_string())
+            .filter(|value| !value.is_empty())
+        {
+            return format!("oauth:{subject}");
+        }
+
+        if let Some(access_token) = auth
+            .tokens
+            .as_ref()
+            .and_then(|tokens| tokens.access_token.as_ref())
+            .map(|value| value.trim())
+            .filter(|value| !value.is_empty())
+        {
+            return format!("oauth-token:{}", Self::key_fingerprint(access_token));
+        }
+
+        "unknown".to_string()
+    }
+
     fn key_fingerprint(value: &str) -> String {
         let trimmed = value.trim();
         if trimmed.is_empty() {
@@ -523,26 +601,7 @@ impl CodexAuthService {
             )));
         }
 
-        let mut account_id = docs
-            .auth
-            .tokens
-            .as_ref()
-            .and_then(|t| t.account_id.clone())
-            .unwrap_or_else(|| "unknown".to_string());
-
-        if account_id == "unknown" {
-            if let Some(openai_key) = docs.raw.get("OPENAI_API_KEY").and_then(|v| v.as_str())
-                && !openai_key.trim().is_empty()
-            {
-                account_id = format!("api:{}", Self::key_fingerprint(openai_key));
-            }
-
-            if account_id == "unknown"
-                && let Some((env_key, provider_key)) = Self::find_provider_api_key(&docs.raw)
-            {
-                account_id = format!("provider:{env_key}:{}", Self::key_fingerprint(provider_key));
-            }
-        }
+        let account_id = self.resolve_account_id_from_auth(&docs.auth, &docs.raw);
 
         let email = self.extract_email_from_jwt(&docs.auth);
 
@@ -818,6 +877,8 @@ impl CodexAuthService {
             description,
             account_id: current_info.account_id,
             auth_method: Some(auth_method),
+            api_base_url: None,
+            api_provider_name: None,
             email: current_info.email.map(|e| self.mask_email(&e)),
             saved_at: Utc::now(),
             last_used: Some(Utc::now()),
@@ -844,6 +905,108 @@ impl CodexAuthService {
     pub fn list_accounts(&self) -> Result<Vec<CodexAuthItem>> {
         let snapshot = self.read_auth_snapshot()?;
         self.build_account_items(&snapshot)
+    }
+
+    pub fn build_export_account_from_auth_json(
+        &self,
+        auth: CodexAuthJson,
+        description: Option<String>,
+        expires_at: Option<DateTime<Utc>>,
+        api_base_url: Option<String>,
+        api_provider_name: Option<String>,
+    ) -> Result<CodexAuthExportAccount> {
+        let raw = Self::auth_json_to_raw_map(&auth)?;
+        let auth_state = Self::build_auth_state_from_raw(CredentialStoreKind::File, &raw);
+
+        let auth_method = match auth_state.intent {
+            AuthIntent::OpenAiAuth { method } => Some(method),
+            AuthIntent::ProviderEnvKey { .. } | AuthIntent::NoAuth => None,
+        };
+
+        let account_id = self.resolve_account_id_from_auth(&auth, &raw);
+        let email = self
+            .extract_email_from_jwt(&auth)
+            .map(|value| self.mask_email(&value));
+        let last_refresh = auth
+            .last_refresh
+            .as_deref()
+            .and_then(|value| DateTime::parse_from_rfc3339(value).ok())
+            .map(|value| value.with_timezone(&Utc));
+
+        Ok(CodexAuthExportAccount {
+            description,
+            account_id,
+            auth_method,
+            api_base_url: api_base_url
+                .map(|value| value.trim().to_string())
+                .filter(|value| !value.is_empty()),
+            api_provider_name: api_provider_name
+                .map(|value| value.trim().to_string())
+                .filter(|value| !value.is_empty()),
+            email,
+            saved_at: Utc::now(),
+            last_used: Some(Utc::now()),
+            last_refresh,
+            expires_at,
+            auth_data: Some(auth),
+        })
+    }
+
+    pub fn load_current_auth_json(&self) -> Result<CodexAuthJson> {
+        Ok(self.load_current_auth_documents()?.auth)
+    }
+
+    pub fn suggest_account_name(&self, hint: Option<&str>) -> Result<String> {
+        let registry = self.load_registry()?;
+        let mut base = hint
+            .map(Self::sanitize_account_name_hint)
+            .filter(|value| !value.is_empty())
+            .unwrap_or_else(|| "account".to_string());
+
+        if base == "default" {
+            base = "account".to_string();
+        }
+
+        if !registry.accounts.contains_key(&base) {
+            self.validate_account_name(&base)?;
+            return Ok(base);
+        }
+
+        for index in 2..=999 {
+            let suffix = format!("-{index}");
+            let max_base_len = 32usize.saturating_sub(suffix.len());
+            let trimmed = if base.len() > max_base_len {
+                base[..max_base_len]
+                    .trim_end_matches(['-', '_'])
+                    .to_string()
+            } else {
+                base.clone()
+            };
+            let candidate = format!("{}{}", trimmed, suffix);
+            if !registry.accounts.contains_key(&candidate) {
+                self.validate_account_name(&candidate)?;
+                return Ok(candidate);
+            }
+        }
+
+        Err(CcrError::ValidationError(
+            "无法为账号生成唯一名称，请手动指定".into(),
+        ))
+    }
+
+    pub fn reserve_explicit_account_name(&self, name: &str) -> Result<String> {
+        let explicit = name.trim();
+        self.validate_account_name(explicit)?;
+
+        let registry = self.load_registry()?;
+        if registry.accounts.contains_key(explicit) {
+            return Err(CcrError::ValidationError(format!(
+                "账号 '{}' 已存在，请更换名称",
+                explicit
+            )));
+        }
+
+        Ok(explicit.to_string())
     }
 
     pub fn build_account_items(&self, snapshot: &AuthReadSnapshot) -> Result<Vec<CodexAuthItem>> {
@@ -913,10 +1076,14 @@ impl CodexAuthService {
             )));
         }
 
+        let account = registry
+            .accounts
+            .get(name)
+            .cloned()
+            .ok_or_else(|| CcrError::ConfigError(format!("账号 '{}' 不存在", name)))?;
+
         // 检查是否过期
-        if let Some(account) = registry.accounts.get(name)
-            && Self::is_expired(account.expires_at)
-        {
+        if Self::is_expired(account.expires_at) {
             return Err(CcrError::ValidationError(format!(
                 "账号 '{}' 已过期，无法切换。请更新或保存新的登录。",
                 name
@@ -949,10 +1116,7 @@ impl CodexAuthService {
                 OpenAiAuthMethod::Api => "api".to_string(),
             }),
         );
-
-        // 清理 Profile 模式残留的 model_provider 和 model_providers
-        root.remove("model_provider");
-        root.remove("model_providers");
+        Self::apply_account_route_config(root, &account, auth_method);
 
         let runtime_service = self.runtime_service()?;
         runtime_service.commit_plan(CodexRuntimeCommitPlan {
@@ -1221,32 +1385,7 @@ impl CodexAuthService {
 
     /// 从 JWT 中提取邮箱
     fn extract_email_from_jwt(&self, auth: &CodexAuthJson) -> Option<String> {
-        let id_token = auth.tokens.as_ref()?.id_token.as_ref()?;
-
-        // JWT 格式: header.payload.signature
-        let parts: Vec<&str> = id_token.split('.').collect();
-        if parts.len() != 3 {
-            return None;
-        }
-
-        // 解码 payload (base64url)
-        let payload = parts[1];
-        let decoded = self.base64url_decode(payload)?;
-        let payload_str = String::from_utf8(decoded).ok()?;
-
-        // 解析 JSON
-        let payload_json: serde_json::Value = serde_json::from_str(&payload_str).ok()?;
-
-        // 提取 email 字段
-        payload_json
-            .get("email")
-            .and_then(|v| v.as_str())
-            .map(|s| s.to_string())
-    }
-
-    /// Base64URL 解码
-    fn base64url_decode(&self, input: &str) -> Option<Vec<u8>> {
-        crate::utils::decode_base64url(input)
+        Self::extract_jwt_claim(auth, "email")
     }
 
     // ==================== 注册表管理 ====================
@@ -1316,6 +1455,95 @@ impl CodexAuthService {
         Ok(())
     }
 
+    fn sanitize_account_name_hint(input: &str) -> String {
+        let mut output = String::with_capacity(input.len());
+        let mut previous_is_separator = false;
+
+        for ch in input.chars() {
+            let normalized = ch.to_ascii_lowercase();
+            if normalized.is_ascii_alphanumeric() {
+                output.push(normalized);
+                previous_is_separator = false;
+                continue;
+            }
+
+            if matches!(normalized, '-' | '_' | '.' | '@' | ' ') && !previous_is_separator {
+                output.push('-');
+                previous_is_separator = true;
+            }
+        }
+
+        let trimmed = output.trim_matches('-').trim_matches('_').to_string();
+        let truncated = if trimmed.len() > 32 {
+            trimmed[..32].trim_end_matches(['-', '_']).to_string()
+        } else {
+            trimmed
+        };
+
+        if truncated.is_empty() {
+            "account".to_string()
+        } else {
+            truncated
+        }
+    }
+
+    fn apply_account_route_config(
+        root: &mut toml::map::Map<String, toml::Value>,
+        account: &CodexAuthAccount,
+        auth_method: OpenAiAuthMethod,
+    ) {
+        root.remove("model_provider");
+        root.remove("model_providers");
+
+        let explicit_base_url = account
+            .api_base_url
+            .as_deref()
+            .map(str::trim)
+            .filter(|value| !value.is_empty());
+
+        if explicit_base_url.is_none() {
+            return;
+        }
+
+        root.insert(
+            "model_provider".into(),
+            toml::Value::String(THIRD_PARTY_RUNTIME_PROVIDER_KEY.to_string()),
+        );
+
+        let provider_name = account
+            .api_provider_name
+            .as_deref()
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+            .map(str::to_string)
+            .unwrap_or_else(|| "custom".to_string());
+
+        let base_url = explicit_base_url
+            .unwrap_or(OPENAI_DEFAULT_BASE_URL)
+            .to_string();
+
+        let requires_openai_auth = match auth_method {
+            OpenAiAuthMethod::Chatgpt => true,
+            OpenAiAuthMethod::Api => account.api_base_url.is_none(),
+        };
+
+        let mut provider_table = toml::map::Map::new();
+        provider_table.insert("name".into(), toml::Value::String(provider_name));
+        provider_table.insert("base_url".into(), toml::Value::String(base_url));
+        provider_table.insert("wire_api".into(), toml::Value::String("responses".into()));
+        provider_table.insert(
+            "requires_openai_auth".into(),
+            toml::Value::Boolean(requires_openai_auth),
+        );
+
+        let mut providers = toml::map::Map::new();
+        providers.insert(
+            THIRD_PARTY_RUNTIME_PROVIDER_KEY.to_string(),
+            toml::Value::Table(provider_table),
+        );
+        root.insert("model_providers".into(), toml::Value::Table(providers));
+    }
+
     /// 邮箱脱敏
     pub fn mask_email(&self, email: &str) -> String {
         if let Some(at_pos) = email.find('@') {
@@ -1383,6 +1611,8 @@ impl CodexAuthService {
                     description: account.description.clone(),
                     account_id: account.account_id.clone(),
                     auth_method: account.auth_method,
+                    api_base_url: account.api_base_url.clone(),
+                    api_provider_name: account.api_provider_name.clone(),
                     email: account.email.clone(),
                     saved_at: account.saved_at,
                     last_used: account.last_used,
@@ -1614,6 +1844,8 @@ impl CodexAuthService {
                 description: import_account.description,
                 account_id: import_account.account_id,
                 auth_method: import_account.auth_method,
+                api_base_url: import_account.api_base_url,
+                api_provider_name: import_account.api_provider_name,
                 email: import_account.email,
                 saved_at: import_account.saved_at,
                 last_used: import_account.last_used,
@@ -1989,6 +2221,25 @@ mod tests {
         assert!(service.validate_account_name(&invalid_name).is_err());
     }
 
+    #[test]
+    fn test_reserve_explicit_account_name_rejects_duplicates() {
+        let (service, _ccr, codex) = create_test_service();
+
+        let auth_path = codex.path().join("auth.json");
+        let auth_content = create_test_auth_json("test-id", "2026-01-08T03:09:53.894843900Z");
+        fs::write(&auth_path, auth_content).unwrap();
+        service.save_current("existing", None, None, false).unwrap();
+
+        let duplicate = service.reserve_explicit_account_name("existing");
+        assert!(duplicate.is_err());
+        assert!(duplicate.unwrap_err().to_string().contains("已存在"));
+
+        assert_eq!(
+            service.reserve_explicit_account_name("fresh-name").unwrap(),
+            "fresh-name"
+        );
+    }
+
     // ==================== Token 新鲜度测试 ====================
 
     #[test]
@@ -2068,6 +2319,8 @@ mod tests {
                 description: Some("Test".to_string()),
                 account_id: "acc-123".to_string(),
                 auth_method: Some(OpenAiAuthMethod::Chatgpt),
+                api_base_url: None,
+                api_provider_name: None,
                 email: Some("tes***@example.com".to_string()),
                 saved_at: Utc::now(),
                 last_used: None,
@@ -2355,6 +2608,125 @@ mod tests {
     }
 
     #[test]
+    fn test_switch_account_clears_custom_route_for_plain_openai_accounts() {
+        let (service, _ccr, codex) = create_test_service();
+
+        fs::write(
+            codex.path().join("config.toml"),
+            r#"
+cli_auth_credentials_store = "file"
+model_provider = "custom"
+
+[model_providers.custom]
+name = "legacy"
+base_url = "https://legacy.example.com/v1"
+wire_api = "responses"
+requires_openai_auth = true
+"#,
+        )
+        .unwrap();
+
+        let auth_path = codex.path().join("auth.json");
+        fs::write(
+            &auth_path,
+            create_test_auth_json("test-id", "2026-01-08T03:09:53.894843900Z"),
+        )
+        .unwrap();
+
+        let platform = service.platform().unwrap();
+        platform
+            .save_profile("official", &official_profile())
+            .unwrap();
+        platform.apply_profile("official").unwrap();
+
+        service
+            .save_current("plain-openai", None, None, false)
+            .unwrap();
+        service.switch_account("plain-openai").unwrap();
+
+        let config = service
+            .codex_config_manager()
+            .unwrap()
+            .load_config()
+            .unwrap();
+        let root = config.as_table().unwrap();
+        assert_eq!(
+            root.get("forced_login_method")
+                .and_then(|value| value.as_str()),
+            Some("chatgpt")
+        );
+        assert!(
+            root.get("model_provider").is_none(),
+            "plain OpenAI auth switch should not write custom model_provider"
+        );
+        assert!(
+            root.get("model_providers").is_none(),
+            "plain OpenAI auth switch should clear legacy custom providers"
+        );
+    }
+
+    #[test]
+    fn test_switch_account_keeps_custom_route_for_explicit_base_url_accounts() {
+        let (service, _ccr, codex) = create_test_service();
+
+        let platform = service.platform().unwrap();
+        platform
+            .save_profile("official-api", &official_profile())
+            .unwrap();
+        platform.apply_profile("official-api").unwrap();
+
+        let auth_path = codex.path().join("auth.json");
+        fs::write(
+            &auth_path,
+            r#"{
+                "OPENAI_API_KEY": "sk-explicit-base-url",
+                "last_refresh": "2026-01-08T03:09:53.894843900Z"
+            }"#,
+        )
+        .unwrap();
+
+        service
+            .save_current("relay-account", None, None, false)
+            .unwrap();
+
+        let mut registry = service.load_registry().unwrap();
+        let account = registry.accounts.get_mut("relay-account").unwrap();
+        account.api_base_url = Some("https://relay.example.com/v1".to_string());
+        account.api_provider_name = Some("relay-edge".to_string());
+        account.auth_method = Some(OpenAiAuthMethod::Api);
+        service.save_registry(&registry).unwrap();
+
+        service.switch_account("relay-account").unwrap();
+
+        let config = service
+            .codex_config_manager()
+            .unwrap()
+            .load_config()
+            .unwrap();
+        let root = config.as_table().unwrap();
+        assert_eq!(
+            root.get("model_provider").and_then(|value| value.as_str()),
+            Some("custom")
+        );
+        let providers = root
+            .get("model_providers")
+            .and_then(|value| value.as_table())
+            .unwrap();
+        let custom = providers
+            .get("custom")
+            .and_then(|value| value.as_table())
+            .unwrap();
+        assert_eq!(
+            custom.get("name").and_then(|value| value.as_str()),
+            Some("relay-edge")
+        );
+        assert_eq!(
+            custom.get("base_url").and_then(|value| value.as_str()),
+            Some("https://relay.example.com/v1")
+        );
+    }
+
+    #[test]
     fn test_delete_nonexistent_account() {
         let (service, _ccr, _codex) = create_test_service();
 
@@ -2453,14 +2825,14 @@ mod tests {
 
     #[test]
     fn test_base64url_decode() {
-        let (service, _ccr, _codex) = create_test_service();
+        let (_service, _ccr, _codex) = create_test_service();
 
         // 标准 base64url 编码的 "test"
-        let decoded = service.base64url_decode("dGVzdA").unwrap();
+        let decoded = crate::utils::decode_base64url("dGVzdA").unwrap();
         assert_eq!(decoded, b"test");
 
         // 带 padding 的情况
-        let decoded2 = service.base64url_decode("dGVzdA==").unwrap();
+        let decoded2 = crate::utils::decode_base64url("dGVzdA==").unwrap();
         assert_eq!(decoded2, b"test");
     }
 
@@ -2556,6 +2928,8 @@ mod tests {
                 description: Some("Test".to_string()),
                 account_id: "acc-123".to_string(),
                 auth_method: Some(OpenAiAuthMethod::Chatgpt),
+                api_base_url: None,
+                api_provider_name: None,
                 email: Some("tes***@example.com".to_string()),
                 saved_at: Utc::now(),
                 last_used: None,
@@ -2587,6 +2961,8 @@ mod tests {
                 description: Some("Test".to_string()),
                 account_id: "acc-123".to_string(),
                 auth_method: Some(OpenAiAuthMethod::Chatgpt),
+                api_base_url: None,
+                api_provider_name: None,
                 email: Some("tes***@example.com".to_string()),
                 saved_at: Utc::now(),
                 last_used: None,

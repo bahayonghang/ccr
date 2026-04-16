@@ -231,6 +231,14 @@ pub struct CodexAuthAccount {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub auth_method: Option<OpenAiAuthMethod>,
 
+    /// API Key 账号绑定的 Base URL（可选）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub api_base_url: Option<String>,
+
+    /// API Key 账号绑定的供应商名称（可选）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub api_provider_name: Option<String>,
+
     /// 邮箱 (脱敏后存储)
     #[serde(skip_serializing_if = "Option::is_none")]
     pub email: Option<String>,
@@ -621,6 +629,14 @@ pub struct CodexAuthExportAccount {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub auth_method: Option<OpenAiAuthMethod>,
 
+    /// API Key 账号绑定的 Base URL（可选）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub api_base_url: Option<String>,
+
+    /// API Key 账号绑定的供应商名称（可选）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub api_provider_name: Option<String>,
+
     /// 邮箱 (脱敏后存储)
     #[serde(skip_serializing_if = "Option::is_none")]
     pub email: Option<String>,
@@ -967,6 +983,8 @@ mod tests {
             description: Some("Test account".to_string()),
             account_id: "acc-123".to_string(),
             auth_method: Some(OpenAiAuthMethod::Api),
+            api_base_url: None,
+            api_provider_name: None,
             email: Some("t***@example.com".to_string()),
             saved_at: Utc::now(),
             last_used: None,
@@ -991,6 +1009,8 @@ mod tests {
             description: None,
             account_id: "acc-456".to_string(),
             auth_method: None,
+            api_base_url: None,
+            api_provider_name: None,
             email: None,
             saved_at: Utc::now(),
             last_used: None,
@@ -1020,6 +1040,8 @@ mod tests {
                 description: Some("Main account".to_string()),
                 account_id: "acc-main".to_string(),
                 auth_method: Some(OpenAiAuthMethod::Chatgpt),
+                api_base_url: None,
+                api_provider_name: None,
                 email: Some("m***@example.com".to_string()),
                 saved_at: Utc::now(),
                 last_used: Some(Utc::now()),

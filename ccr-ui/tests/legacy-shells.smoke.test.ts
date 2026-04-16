@@ -14,6 +14,19 @@ const apiMocks = vi.hoisted(() => ({
   deleteCodexAuth: vi.fn(),
   detectCodexProcess: vi.fn(),
   getCodexAllQuotas: vi.fn(),
+  codexOAuthLoginStart: vi.fn(),
+  codexOAuthLoginCompleted: vi.fn(),
+  codexOAuthLoginCancel: vi.fn(),
+  codexOAuthSubmitCallbackUrl: vi.fn(),
+  codexIsOAuthPortInUse: vi.fn(),
+  codexReleaseOAuthPort: vi.fn(),
+  codexOpenExternalUrl: vi.fn(),
+  codexImportAuthPayload: vi.fn(),
+  codexImportAuthFromLocal: vi.fn(),
+  codexAddAuthWithApiKey: vi.fn(),
+  codexListModelProviders: vi.fn(),
+  codexSaveModelProvider: vi.fn(),
+  codexDeleteModelProvider: vi.fn(),
   listCodexModels: vi.fn(),
   getCodexProfile: vi.fn(),
   addCodexProfile: vi.fn(),
@@ -227,6 +240,8 @@ beforeEach(() => {
   apiMocks.getCodexAuthCurrent.mockResolvedValue({ logged_in: false, info: null })
   apiMocks.detectCodexProcess.mockResolvedValue({ has_running_process: false, pids: [] })
   apiMocks.getCodexAllQuotas.mockResolvedValue([])
+  apiMocks.codexIsOAuthPortInUse.mockResolvedValue(false)
+  apiMocks.codexListModelProviders.mockResolvedValue({ providers: [] })
   apiMocks.listCodexModels.mockResolvedValue({ builtin_models: ['gpt-5.4'], custom_models: [] })
   apiMocks.getOpenCodeConfig.mockResolvedValue({})
   apiMocks.getOpenCodeTuiSettings.mockResolvedValue({})

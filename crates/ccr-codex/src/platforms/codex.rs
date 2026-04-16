@@ -1711,6 +1711,8 @@ requires_openai_auth = true
                         description: None,
                         account_id: "acc-1".to_string(),
                         auth_method: Some(OpenAiAuthMethod::Chatgpt),
+                        api_base_url: None,
+                        api_provider_name: None,
                         email: None,
                         saved_at: chrono::Utc::now(),
                         last_used: None,

@@ -591,6 +591,8 @@ mod tests {
                 description: None,
                 account_id: "acc-1".to_string(),
                 auth_method: Some(crate::models::OpenAiAuthMethod::Chatgpt),
+                api_base_url: None,
+                api_provider_name: None,
                 email: None,
                 saved_at: Utc::now(),
                 last_used: None,

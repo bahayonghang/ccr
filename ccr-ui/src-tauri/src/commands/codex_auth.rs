@@ -1,5 +1,790 @@
 use super::*;
 use crate::desktop_shell;
+use crate::process;
+use base64::Engine;
+use base64::engine::general_purpose::URL_SAFE_NO_PAD;
+use ccr_codex::services::CodexModelProviderStoreService;
+use ccr_codex::{
+    CodexAuthJson, CodexAuthService, CodexModelProviderApiKey, CodexModelProviderRecord,
+    ImportMode, OpenAiAuthMethod, Platform, PlatformPaths,
+};
+use chrono::{DateTime, Utc};
+use reqwest::Url;
+use serde::{Deserialize, Serialize};
+use serde_json::{Map as JsonMap, Value as JsonValue, json};
+use sha2::{Digest, Sha256};
+use std::io::ErrorKind;
+use std::path::PathBuf;
+use std::process::Stdio;
+use std::sync::{LazyLock, Mutex};
+use tauri::{AppHandle, Emitter, State};
+use uuid::Uuid;
+
+const OAUTH_CLIENT_ID: &str = "app_EMoamEEZ73f0CkXaXp7hrann";
+const OAUTH_AUTHORIZE_URL: &str = "https://auth.openai.com/oauth/authorize";
+const OAUTH_TOKEN_URL: &str = "https://auth.openai.com/oauth/token";
+const OAUTH_SCOPE: &str = "openid profile email offline_access";
+const OAUTH_ORIGINATOR: &str = "codex_vscode";
+const OAUTH_CALLBACK_PORT: u16 = 1455;
+const OAUTH_TIMEOUT_SECONDS: i64 = 300;
+const OAUTH_PENDING_FILE: &str = "oauth_pending.json";
+
+static OAUTH_PENDING_STATE: LazyLock<Mutex<Option<CodexOAuthPendingState>>> =
+    LazyLock::new(|| Mutex::new(None));
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct CodexOAuthPendingState {
+    login_id: String,
+    auth_url: String,
+    redirect_uri: String,
+    code_verifier: String,
+    state: String,
+    port: u16,
+    expires_at: i64,
+    callback_url: Option<String>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+struct CodexOAuthTokenResponse {
+    id_token: String,
+    access_token: String,
+    refresh_token: Option<String>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CodexAuthImportPayload {
+    content: String,
+    switch_after_import: Option<bool>,
+    preferred_account_name: Option<String>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CodexApiKeyAddPayload {
+    api_key: String,
+    api_base_url: Option<String>,
+    provider_name: Option<String>,
+    save_provider: Option<bool>,
+    switch_after_add: Option<bool>,
+    preferred_account_name: Option<String>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CodexModelProviderUpsertPayload {
+    id: Option<String>,
+    name: String,
+    base_url: String,
+    website_url: Option<String>,
+    api_key_url: Option<String>,
+    api_key_name: Option<String>,
+    api_key: Option<String>,
+}
+
+fn now_ts() -> i64 {
+    Utc::now().timestamp()
+}
+
+fn oauth_pending_path() -> Result<PathBuf, String> {
+    let paths = PlatformPaths::new(Platform::Codex)
+        .map_err(|e| format!("解析 Codex 平台路径失败: {e}"))?;
+    Ok(paths.platform_dir.join(OAUTH_PENDING_FILE))
+}
+
+fn load_oauth_pending_from_disk() -> Result<Option<CodexOAuthPendingState>, String> {
+    let path = oauth_pending_path()?;
+    if !path.exists() {
+        return Ok(None);
+    }
+
+    let content =
+        std::fs::read_to_string(&path).map_err(|e| format!("读取 OAuth pending 状态失败: {e}"))?;
+    let state: CodexOAuthPendingState = serde_json::from_str(&content)
+        .map_err(|e| format!("解析 OAuth pending 状态失败: {e}"))?;
+    if state.expires_at <= now_ts() {
+        let _ = std::fs::remove_file(path);
+        return Ok(None);
+    }
+    Ok(Some(state))
+}
+
+fn persist_oauth_pending(state: Option<&CodexOAuthPendingState>) -> Result<(), String> {
+    let path = oauth_pending_path()?;
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent).map_err(|e| format!("创建 OAuth 状态目录失败: {e}"))?;
+    }
+
+    match state {
+        Some(value) => {
+            let content = serde_json::to_string_pretty(value)
+                .map_err(|e| format!("序列化 OAuth pending 状态失败: {e}"))?;
+            ccr_core::core::AtomicWriter::new(&path)
+                .write_string(&content)
+                .map_err(|e| format!("写入 OAuth pending 状态失败: {e}"))?;
+            ccr_codex::utils::ensure_private_permissions(&path);
+        }
+        None => {
+            if path.exists() {
+                std::fs::remove_file(&path)
+                    .map_err(|e| format!("清理 OAuth pending 状态失败: {e}"))?;
+            }
+        }
+    }
+
+    Ok(())
+}
+
+fn hydrate_oauth_pending_if_needed() -> Result<(), String> {
+    let mut guard = OAUTH_PENDING_STATE
+        .lock()
+        .map_err(|_| "OAuth pending 状态锁定失败".to_string())?;
+    if guard.is_none() {
+        *guard = load_oauth_pending_from_disk()?;
+    }
+    Ok(())
+}
+
+fn set_oauth_pending(state: Option<CodexOAuthPendingState>) -> Result<(), String> {
+    {
+        let mut guard = OAUTH_PENDING_STATE
+            .lock()
+            .map_err(|_| "OAuth pending 状态锁定失败".to_string())?;
+        *guard = state.clone();
+    }
+    persist_oauth_pending(state.as_ref())
+}
+
+fn current_pending_state() -> Result<Option<CodexOAuthPendingState>, String> {
+    hydrate_oauth_pending_if_needed()?;
+    let guard = OAUTH_PENDING_STATE
+        .lock()
+        .map_err(|_| "OAuth pending 状态锁定失败".to_string())?;
+    Ok(guard.clone())
+}
+
+fn generate_code_verifier() -> String {
+    format!("{}{}", Uuid::new_v4().simple(), Uuid::new_v4().simple())
+}
+
+fn generate_code_challenge(code_verifier: &str) -> String {
+    let digest = Sha256::digest(code_verifier.as_bytes());
+    URL_SAFE_NO_PAD.encode(digest)
+}
+
+fn build_oauth_authorize_url(
+    redirect_uri: &str,
+    code_challenge: &str,
+    state: &str,
+) -> Result<String, String> {
+    let url = Url::parse_with_params(
+        OAUTH_AUTHORIZE_URL,
+        &[
+            ("response_type", "code"),
+            ("client_id", OAUTH_CLIENT_ID),
+            ("redirect_uri", redirect_uri),
+            ("scope", OAUTH_SCOPE),
+            ("code_challenge", code_challenge),
+            ("code_challenge_method", "S256"),
+            ("id_token_add_organizations", "true"),
+            ("codex_cli_simplified_flow", "true"),
+            ("state", state),
+            ("originator", OAUTH_ORIGINATOR),
+        ],
+    )
+    .map_err(|e| format!("构造 OAuth 授权链接失败: {e}"))?;
+    Ok(url.to_string())
+}
+
+fn find_available_oauth_port() -> Result<u16, String> {
+    match std::net::TcpListener::bind(("127.0.0.1", OAUTH_CALLBACK_PORT)) {
+        Ok(listener) => {
+            drop(listener);
+            Ok(OAUTH_CALLBACK_PORT)
+        }
+        Err(error) if error.kind() == ErrorKind::AddrInUse => Err(format!(
+            "无法绑定端口 {OAUTH_CALLBACK_PORT}: {}",
+            error
+        )),
+        Err(error) => Err(format!("无法绑定端口 {OAUTH_CALLBACK_PORT}: {error}")),
+    }
+}
+
+fn callback_url_from_path(path: &str, port: u16) -> Result<Url, String> {
+    let raw = path.trim();
+    if raw.is_empty() {
+        return Err("回调地址不能为空".to_string());
+    }
+
+    if raw.starts_with("http://") || raw.starts_with("https://") {
+        return Url::parse(raw).map_err(|e| format!("回调地址格式无效: {e}"));
+    }
+
+    if raw.starts_with('/') {
+        return Url::parse(&format!("http://localhost:{port}{raw}"))
+            .map_err(|e| format!("回调地址格式无效: {e}"));
+    }
+
+    Url::parse(&format!(
+        "http://localhost:{port}/auth/callback?{}",
+        raw.trim_start_matches('?')
+    ))
+    .map_err(|e| format!("回调地址格式无效: {e}"))
+}
+
+fn html_response(title: &str, description: &str) -> String {
+    format!(
+        "<!doctype html><html><head><meta charset=\"utf-8\"><title>{title}</title></head><body style=\"font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; padding: 24px; background: #0f172a; color: #e2e8f0;\"><h2 style=\"margin:0 0 8px;\">{title}</h2><p style=\"margin:0; color:#cbd5e1;\">{description}</p><p style=\"margin-top:16px; font-size:12px; color:#94a3b8;\">You can return to CCR now.</p></body></html>"
+    )
+}
+
+fn parse_http_request_path(request: &str) -> Option<String> {
+    let first_line = request.lines().next()?;
+    let mut parts = first_line.split_whitespace();
+    let method = parts.next()?;
+    let path = parts.next()?;
+    if method.eq_ignore_ascii_case("GET") {
+        Some(path.to_string())
+    } else {
+        None
+    }
+}
+
+async fn start_oauth_callback_listener(
+    app: AppHandle,
+    state: CodexOAuthPendingState,
+) -> Result<(), String> {
+    let listener = tokio::net::TcpListener::bind(("127.0.0.1", state.port))
+        .await
+        .map_err(|e| format!("启动 OAuth 回调监听失败: {e}"))?;
+
+    loop {
+        if let Some(current) = current_pending_state()? {
+            if current.login_id != state.login_id || current.state != state.state {
+                break;
+            }
+            if current.expires_at <= now_ts() {
+                set_oauth_pending(None)?;
+                let payload = json!({
+                    "loginId": state.login_id,
+                    "callbackUrl": state.redirect_uri,
+                    "timeoutSeconds": OAUTH_TIMEOUT_SECONDS,
+                });
+                let _ = app.emit("codex-oauth-login-timeout", payload);
+                break;
+            }
+        } else {
+            break;
+        }
+
+        let accepted = tokio::time::timeout(
+            std::time::Duration::from_secs(1),
+            listener.accept(),
+        )
+        .await;
+
+        let Ok(Ok((mut stream, _))) = accepted else {
+            continue;
+        };
+
+        let mut buffer = vec![0_u8; 8192];
+        let size = tokio::io::AsyncReadExt::read(&mut stream, &mut buffer)
+            .await
+            .unwrap_or(0);
+        let request_text = String::from_utf8_lossy(&buffer[..size]).to_string();
+        let Some(path) = parse_http_request_path(&request_text) else {
+            let _ = tokio::io::AsyncWriteExt::write_all(
+                &mut stream,
+                format!(
+                    "HTTP/1.1 400 Bad Request\r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+                    html_response("Invalid request", "CCR expected an OAuth callback request.").len(),
+                    html_response("Invalid request", "CCR expected an OAuth callback request.")
+                )
+                .as_bytes(),
+            )
+            .await;
+            continue;
+        };
+
+        let parsed_url = callback_url_from_path(&path, state.port)?;
+        let code = parsed_url
+            .query_pairs()
+            .find(|(key, _)| key == "code")
+            .map(|(_, value)| value.to_string())
+            .unwrap_or_default();
+        let callback_state = parsed_url
+            .query_pairs()
+            .find(|(key, _)| key == "state")
+            .map(|(_, value)| value.to_string())
+            .unwrap_or_default();
+
+        let (status_line, body) = if callback_state != state.state {
+            (
+                "HTTP/1.1 400 Bad Request",
+                html_response("OAuth state mismatch", "The callback state does not match the current CCR login request."),
+            )
+        } else if code.is_empty() {
+            (
+                "HTTP/1.1 400 Bad Request",
+                html_response("OAuth code missing", "OpenAI returned without an authorization code."),
+            )
+        } else {
+            let callback_url = parsed_url.to_string();
+            let next = CodexOAuthPendingState {
+                callback_url: Some(callback_url.clone()),
+                ..state.clone()
+            };
+            set_oauth_pending(Some(next))?;
+            let payload = json!({ "loginId": state.login_id });
+            let _ = app.emit("codex-oauth-login-completed", payload);
+            (
+                "HTTP/1.1 200 OK",
+                html_response("Authorization received", "CCR captured the OpenAI callback. Finish the login back in the app."),
+            )
+        };
+
+        let response = format!(
+            "{status_line}\r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+            body.len(),
+            body
+        );
+        let _ = tokio::io::AsyncWriteExt::write_all(&mut stream, response.as_bytes()).await;
+    }
+
+    Ok(())
+}
+
+pub fn restore_pending_oauth_listener(app: AppHandle) {
+    let Ok(Some(state)) = load_oauth_pending_from_disk() else {
+        return;
+    };
+    if state.expires_at <= now_ts() {
+        let _ = persist_oauth_pending(None);
+        return;
+    }
+    let _ = set_oauth_pending(Some(state.clone()));
+    tauri::async_runtime::spawn(async move {
+        let _ = start_oauth_callback_listener(app, state).await;
+    });
+}
+
+async fn exchange_oauth_tokens(
+    code: &str,
+    code_verifier: &str,
+    redirect_uri: &str,
+) -> Result<CodexOAuthTokenResponse, String> {
+    let client = reqwest::Client::new();
+    let params = [
+        ("grant_type", "authorization_code"),
+        ("code", code),
+        ("redirect_uri", redirect_uri),
+        ("client_id", OAUTH_CLIENT_ID),
+        ("code_verifier", code_verifier),
+    ];
+
+    let response = client
+        .post(OAUTH_TOKEN_URL)
+        .form(&params)
+        .send()
+        .await
+        .map_err(|e| format!("Token 请求失败: {e}"))?;
+
+    let status = response.status();
+    let body = response
+        .text()
+        .await
+        .map_err(|e| format!("读取 Token 响应失败: {e}"))?;
+
+    if !status.is_success() {
+        return Err(format!("Token 交换失败: status={status}, body={body}"));
+    }
+
+    serde_json::from_str::<CodexOAuthTokenResponse>(&body)
+        .map_err(|e| format!("解析 Token 响应失败: {e}"))
+}
+
+fn oauth_state_from_login_id(login_id: &str) -> Result<CodexOAuthPendingState, String> {
+    let state = current_pending_state()?
+        .ok_or_else(|| "当前没有进行中的 Codex OAuth 流程".to_string())?;
+    if state.login_id != login_id {
+        return Err("OAuth 登录流程已变化，请刷新授权链接后重试".to_string());
+    }
+    Ok(state)
+}
+
+fn json_value_to_auth(value: JsonValue) -> Result<CodexAuthJson, String> {
+    serde_json::from_value(value).map_err(|e| format!("解析认证数据失败: {e}"))
+}
+
+fn derive_email_from_auth(auth: &CodexAuthJson) -> Option<String> {
+    let id_token = auth.tokens.as_ref()?.id_token.as_ref()?;
+    let parts: Vec<&str> = id_token.split('.').collect();
+    if parts.len() != 3 {
+        return None;
+    }
+    let decoded = ccr_codex::utils::decode_base64url(parts[1])?;
+    let payload: JsonValue = serde_json::from_slice(&decoded).ok()?;
+    payload
+        .get("email")
+        .and_then(|value| value.as_str())
+        .map(str::to_string)
+}
+
+fn derive_name_hint(auth: &CodexAuthJson, provider_name: Option<&str>) -> Option<String> {
+    if let Some(email) = derive_email_from_auth(auth) {
+        return email.split('@').next().map(|value| value.to_string());
+    }
+
+    if let Some(provider_name) = provider_name
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+    {
+        return Some(provider_name.to_string());
+    }
+
+    if auth.openai_api_key.as_deref().map(str::trim).filter(|value| !value.is_empty()).is_some() {
+        return Some("openai-api".to_string());
+    }
+
+    auth.tokens
+        .as_ref()
+        .and_then(|tokens| tokens.account_id.as_ref())
+        .map(|value| value.to_string())
+}
+
+fn single_account_import_payload(
+    account_name: &str,
+    export_account: ccr_codex::CodexAuthExportAccount,
+) -> Result<String, String> {
+    let mut accounts = JsonMap::new();
+    accounts.insert(
+        account_name.to_string(),
+        serde_json::to_value(export_account)
+            .map_err(|e| format!("序列化导入账号失败: {e}"))?,
+    );
+
+    serde_json::to_string(&json!({
+        "version": "1.0",
+        "exported_at": Utc::now().to_rfc3339(),
+        "accounts": accounts,
+    }))
+    .map_err(|e| format!("构造导入数据失败: {e}"))
+}
+
+fn parse_optional_rfc3339(value: Option<String>) -> Result<Option<DateTime<Utc>>, String> {
+    value
+        .as_deref()
+        .map(|raw| {
+            DateTime::parse_from_rfc3339(raw)
+                .map(|value| value.with_timezone(&Utc))
+                .map_err(|e| format!("expires_at 必须是 RFC3339 时间: {e}"))
+        })
+        .transpose()
+}
+
+fn normalize_url(value: Option<String>) -> Option<String> {
+    value
+        .map(|raw| raw.trim().trim_end_matches('/').to_string())
+        .filter(|raw| !raw.is_empty())
+}
+
+fn normalize_account_name(value: Option<String>) -> Option<String> {
+    value.map(|raw| raw.trim().to_string()).filter(|raw| !raw.is_empty())
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum ImportPayloadShape {
+    Single,
+    Multiple,
+    Bundle,
+}
+
+fn detect_import_payload_shape(content: &str) -> Result<ImportPayloadShape, String> {
+    let raw: JsonValue =
+        serde_json::from_str(content).map_err(|e| format!("解析 JSON 输入失败: {e}"))?;
+
+    match raw {
+        JsonValue::Object(map) => {
+            if map.get("accounts").is_some() {
+                Ok(ImportPayloadShape::Bundle)
+            } else {
+                Ok(ImportPayloadShape::Single)
+            }
+        }
+        JsonValue::Array(items) => {
+            if items.len() == 1 {
+                Ok(ImportPayloadShape::Single)
+            } else {
+                Ok(ImportPayloadShape::Multiple)
+            }
+        }
+        _ => Err("仅支持对象或数组格式的认证 JSON".to_string()),
+    }
+}
+
+fn provider_record_from_payload(
+    payload: CodexModelProviderUpsertPayload,
+) -> Result<CodexModelProviderRecord, String> {
+    let now = Utc::now();
+    let provider_id = payload
+        .id
+        .map(|value| value.trim().to_string())
+        .filter(|value| !value.is_empty())
+        .unwrap_or_else(|| Uuid::new_v4().to_string());
+
+    let base_url = normalize_url(Some(payload.base_url))
+        .ok_or_else(|| "Base URL 不能为空".to_string())?;
+    let name = payload.name.trim().to_string();
+    if name.is_empty() {
+        return Err("供应商名称不能为空".to_string());
+    }
+
+    let api_keys = payload
+        .api_key
+        .map(|api_key| api_key.trim().to_string())
+        .filter(|api_key| !api_key.is_empty())
+        .map(|api_key| {
+            vec![CodexModelProviderApiKey {
+                id: Uuid::new_v4().to_string(),
+                name: payload
+                    .api_key_name
+                    .as_deref()
+                    .map(str::trim)
+                    .filter(|value| !value.is_empty())
+                    .unwrap_or("Primary")
+                    .to_string(),
+                api_key,
+                created_at: now,
+                updated_at: now,
+            }]
+        })
+        .unwrap_or_default();
+
+    Ok(CodexModelProviderRecord {
+        id: provider_id,
+        name,
+        base_url,
+        website_url: normalize_url(payload.website_url),
+        api_key_url: normalize_url(payload.api_key_url),
+        api_keys,
+        created_at: now,
+        updated_at: now,
+    })
+}
+
+fn open_external_url(url: &str) -> Result<(), String> {
+    if url.trim().is_empty() {
+        return Err("URL 不能为空".to_string());
+    }
+
+    #[cfg(target_os = "windows")]
+    let mut command = {
+        let mut cmd = process::std_command("rundll32");
+        cmd.arg("url.dll,FileProtocolHandler").arg(url);
+        cmd
+    };
+
+    #[cfg(target_os = "macos")]
+    let mut command = {
+        let mut cmd = process::std_command("open");
+        cmd.arg(url);
+        cmd
+    };
+
+    #[cfg(all(unix, not(target_os = "macos")))]
+    let mut command = {
+        let mut cmd = process::std_command("xdg-open");
+        cmd.arg(url);
+        cmd
+    };
+
+    command.stdout(Stdio::null()).stderr(Stdio::null());
+    command
+        .spawn()
+        .map_err(|e| format!("打开浏览器失败: {e}"))?;
+    Ok(())
+}
+
+fn discover_port_processes(port: u16) -> Result<Vec<u32>, String> {
+    #[cfg(target_os = "windows")]
+    {
+        let output = process::std_command("netstat")
+            .args(["-ano", "-p", "tcp"])
+            .output()
+            .map_err(|e| format!("执行 netstat 失败: {e}"))?;
+        let text = String::from_utf8_lossy(&output.stdout);
+        let mut pids = Vec::new();
+        for line in text.lines() {
+            if !(line.contains(&format!(":{port}")) && line.contains("LISTENING")) {
+                continue;
+            }
+            if let Some(pid) = line.split_whitespace().last().and_then(|value| value.parse::<u32>().ok()) {
+                pids.push(pid);
+            }
+        }
+        pids.sort_unstable();
+        pids.dedup();
+        return Ok(pids);
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    {
+        let output = process::std_command("lsof")
+            .args(["-nP", &format!("-iTCP:{port}"), "-sTCP:LISTEN", "-t"])
+            .output()
+            .map_err(|e| format!("执行 lsof 失败: {e}"))?;
+        let text = String::from_utf8_lossy(&output.stdout);
+        let mut pids = text
+            .lines()
+            .filter_map(|line| line.trim().parse::<u32>().ok())
+            .collect::<Vec<_>>();
+        pids.sort_unstable();
+        pids.dedup();
+        Ok(pids)
+    }
+}
+
+fn kill_port_processes(port: u16) -> Result<u32, String> {
+    let pids = discover_port_processes(port)?;
+    if pids.is_empty() {
+        return Ok(0);
+    }
+
+    for pid in &pids {
+        #[cfg(target_os = "windows")]
+        {
+            process::std_command("taskkill")
+                .args(["/PID", &pid.to_string(), "/F"])
+                .status()
+                .map_err(|e| format!("结束占用端口进程失败: {e}"))?;
+        }
+
+        #[cfg(not(target_os = "windows"))]
+        {
+            process::std_command("kill")
+                .args(["-9", &pid.to_string()])
+                .status()
+                .map_err(|e| format!("结束占用端口进程失败: {e}"))?;
+        }
+    }
+
+    Ok(pids.len() as u32)
+}
+
+fn account_item_to_value(
+    item: ccr_codex::CodexAuthItem,
+    snapshot: &ccr_codex::AuthReadSnapshot,
+) -> Value {
+    let freshness = &item.freshness;
+    let is_expired = CodexAuthService::is_expired(item.expires_at);
+    let registry_account = snapshot.registry.accounts.get(&item.name);
+    let auth_method = registry_account
+        .and_then(|account| account.auth_method)
+        .map(|method| match method {
+            OpenAiAuthMethod::Chatgpt => "chatgpt".to_string(),
+            OpenAiAuthMethod::Api => "api".to_string(),
+        });
+
+    json!({
+        "name": item.name,
+        "description": item.description,
+        "email": item.email,
+        "is_current": item.is_current,
+        "is_virtual": item.is_virtual,
+        "saved_at": item.saved_at.map(|dt| dt.to_rfc3339()),
+        "last_used": item.last_used.map(|dt| dt.to_rfc3339()),
+        "last_refresh": item.last_refresh.map(|dt| dt.to_rfc3339()),
+        "freshness": freshness,
+        "freshness_icon": freshness.icon(),
+        "freshness_description": freshness.description(),
+        "expires_at": item.expires_at.map(|dt| dt.to_rfc3339()),
+        "is_expired": is_expired,
+        "auth_method": auth_method,
+        "api_base_url": registry_account.and_then(|account| account.api_base_url.clone()),
+        "api_provider_name": registry_account.and_then(|account| account.api_provider_name.clone()),
+    })
+}
+
+fn finalize_account_mutation(
+    service: &CodexAuthService,
+    export_account: ccr_codex::CodexAuthExportAccount,
+    preferred_name: Option<String>,
+    switch_after_import: bool,
+) -> Result<Value, String> {
+    let explicit_name = normalize_account_name(preferred_name);
+    let name_hint = explicit_name.clone().or_else(|| {
+        derive_name_hint(
+            &export_account.auth_data.clone().unwrap_or(CodexAuthJson {
+                openai_api_key: None,
+                tokens: None,
+                last_refresh: None,
+            }),
+            export_account.api_provider_name.as_deref(),
+        )
+    });
+
+    let account_name = if let Some(name) = explicit_name {
+        service
+            .reserve_explicit_account_name(&name)
+            .map_err(|e| format!("校验账号名称失败: {e}"))?
+    } else {
+        service
+            .suggest_account_name(name_hint.as_deref())
+            .map_err(|e| format!("生成账号名称失败: {e}"))?
+    };
+    let payload = single_account_import_payload(&account_name, export_account)?;
+    service
+        .import_accounts(&payload, ImportMode::Merge, false)
+        .map_err(|e| format!("导入账号失败: {e}"))?;
+
+    if switch_after_import {
+        service
+            .switch_account(&account_name)
+            .map_err(|e| format!("切换账号失败: {e}"))?;
+    }
+
+    Ok(json!({
+        "success": true,
+        "account_name": account_name,
+        "switched": switch_after_import,
+    }))
+}
+
+fn parse_import_entries(content: &str) -> Result<Vec<(Option<String>, CodexAuthJson)>, String> {
+    let raw: JsonValue =
+        serde_json::from_str(content).map_err(|e| format!("解析 JSON 输入失败: {e}"))?;
+
+    if raw.get("accounts").is_some() {
+        let auth_service =
+            CodexAuthService::new().map_err(|e| format!("初始化 Codex Auth 服务失败: {e}"))?;
+        auth_service
+            .import_accounts(content, ImportMode::Merge, false)
+            .map_err(|e| format!("导入账号失败: {e}"))?;
+        return Ok(Vec::new());
+    }
+
+    match raw {
+        JsonValue::Object(_) => {
+            let auth = json_value_to_auth(raw)?;
+            Ok(vec![(None, auth)])
+        }
+        JsonValue::Array(items) => items
+            .into_iter()
+            .map(|item| {
+                let hint = item
+                    .get("name")
+                    .or_else(|| item.get("email"))
+                    .or_else(|| item.get("id"))
+                    .and_then(|value| value.as_str())
+                    .map(str::to_string);
+                let auth = json_value_to_auth(item)?;
+                Ok((hint, auth))
+            })
+            .collect(),
+        _ => Err("仅支持对象或数组格式的认证 JSON".to_string()),
+    }
+}
 
 /// 列出所有 Codex Auth 账号
 #[tauri::command]
@@ -15,28 +800,10 @@ pub async fn codex_list_auth_accounts() -> Result<Value, String> {
             .build_account_items(&snapshot)
             .map_err(|e| format!("列出账号失败: {e}"))?;
 
-        let accounts: Vec<Value> = accounts
+        let accounts = accounts
             .into_iter()
-            .map(|item| {
-                let freshness = &item.freshness;
-                let is_expired = CodexAuthService::is_expired(item.expires_at);
-                json!({
-                    "name": item.name,
-                    "description": item.description,
-                    "email": item.email,
-                    "is_current": item.is_current,
-                    "is_virtual": item.is_virtual,
-                    "saved_at": item.saved_at.map(|dt| dt.to_rfc3339()),
-                    "last_used": item.last_used.map(|dt| dt.to_rfc3339()),
-                    "last_refresh": item.last_refresh.map(|dt| dt.to_rfc3339()),
-                    "freshness": freshness,
-                    "freshness_icon": freshness.icon(),
-                    "freshness_description": freshness.description(),
-                    "expires_at": item.expires_at.map(|dt| dt.to_rfc3339()),
-                    "is_expired": is_expired,
-                })
-            })
-            .collect();
+            .map(|item| account_item_to_value(item, &snapshot))
+            .collect::<Vec<_>>();
 
         Ok(json!({ "accounts": accounts, "login_state": snapshot.login_state }))
     })
@@ -62,6 +829,10 @@ pub async fn codex_get_auth_current() -> Result<Value, String> {
                 let is_expired = CodexAuthService::is_expired(expires_at);
                 Some(json!({
                     "account_id": current.account_id,
+                    "auth_method": current.auth_method.map(|method| match method {
+                        OpenAiAuthMethod::Chatgpt => "chatgpt",
+                        OpenAiAuthMethod::Api => "api",
+                    }),
                     "email": current.email,
                     "last_refresh": current.last_refresh.map(|dt| dt.to_rfc3339()),
                     "freshness": freshness,
@@ -74,10 +845,8 @@ pub async fn codex_get_auth_current() -> Result<Value, String> {
             None => None,
         };
 
-        let logged_in = info.is_some();
-
         Ok(json!({
-            "logged_in": logged_in,
+            "logged_in": info.is_some(),
             "info": info,
             "login_state": snapshot.login_state,
         }))
@@ -89,7 +858,7 @@ pub async fn codex_get_auth_current() -> Result<Value, String> {
 /// 保存当前登录到命名账号
 #[tauri::command]
 pub async fn codex_save_auth(
-    app: tauri::AppHandle,
+    app: AppHandle,
     state: State<'_, AppState>,
     name: String,
     description: Option<String>,
@@ -99,23 +868,10 @@ pub async fn codex_save_auth(
     let response = tokio::task::spawn_blocking(move || -> Result<Value, String> {
         let service =
             CodexAuthService::new().map_err(|e| format!("初始化 Codex Auth 服务失败: {e}"))?;
-
-        let parsed_expires_at = expires_at
-            .as_deref()
-            .map(|value| {
-                DateTime::parse_from_rfc3339(value)
-                    .map(|dt| dt.with_timezone(&Utc))
-                    .map_err(|e| format!("expires_at 必须是 RFC3339 时间: {e}"))
-            })
-            .transpose()?;
+        let parsed_expires_at = parse_optional_rfc3339(expires_at)?;
 
         service
-            .save_current(
-                &name,
-                description,
-                parsed_expires_at,
-                force.unwrap_or(false),
-            )
+            .save_current(&name, description, parsed_expires_at, force.unwrap_or(false))
             .map_err(|e| format!("{e}"))?;
 
         Ok(json!({ "success": true, "message": format!("Codex Auth 账号 '{name}' 已成功保存") }))
@@ -131,7 +887,7 @@ pub async fn codex_save_auth(
 /// 切换到指定账号
 #[tauri::command]
 pub async fn codex_switch_auth(
-    app: tauri::AppHandle,
+    app: AppHandle,
     state: State<'_, AppState>,
     name: String,
 ) -> Result<Value, String> {
@@ -139,9 +895,7 @@ pub async fn codex_switch_auth(
     tokio::task::spawn_blocking(move || {
         let service =
             CodexAuthService::new().map_err(|e| format!("初始化 Codex Auth 服务失败: {e}"))?;
-
         service.switch_account(&name).map_err(|e| format!("{e}"))?;
-
         Ok::<_, String>(())
     })
     .await
@@ -155,7 +909,7 @@ pub async fn codex_switch_auth(
 /// 删除指定账号
 #[tauri::command]
 pub async fn codex_delete_auth(
-    app: tauri::AppHandle,
+    app: AppHandle,
     state: State<'_, AppState>,
     name: String,
 ) -> Result<Value, String> {
@@ -163,9 +917,7 @@ pub async fn codex_delete_auth(
     tokio::task::spawn_blocking(move || {
         let service =
             CodexAuthService::new().map_err(|e| format!("初始化 Codex Auth 服务失败: {e}"))?;
-
         service.delete_account(&name).map_err(|e| format!("{e}"))?;
-
         Ok::<_, String>(())
     })
     .await
@@ -186,24 +938,405 @@ pub async fn codex_detect_process() -> Result<Value, String> {
         let pids = service.detect_codex_process();
         let has_running_process = !pids.is_empty();
 
-        let warning = if has_running_process {
-            Some(format!(
+        let warning = has_running_process.then(|| {
+            format!(
                 "检测到 {} 个运行中的 Codex 进程 (PID: {})，切换账号前请先关闭这些进程",
                 pids.len(),
                 pids.iter()
-                    .map(|p| p.to_string())
+                    .map(|pid| pid.to_string())
                     .collect::<Vec<_>>()
                     .join(", ")
-            ))
-        } else {
-            None
-        };
+            )
+        });
 
         Ok(json!({
             "has_running_process": has_running_process,
             "pids": pids,
             "warning": warning,
         }))
+    })
+    .await
+    .map_err(|e| format!("任务执行失败: {e}"))?
+}
+
+#[tauri::command]
+pub async fn codex_oauth_login_start(app: AppHandle) -> Result<Value, String> {
+    hydrate_oauth_pending_if_needed()?;
+    if let Some(existing) = current_pending_state()? {
+        if existing.expires_at > now_ts() {
+            return Ok(json!({
+                "loginId": existing.login_id,
+                "authUrl": existing.auth_url,
+            }));
+        }
+        set_oauth_pending(None)?;
+    }
+
+    let port = find_available_oauth_port()?;
+    let login_id = Uuid::new_v4().to_string();
+    let state = Uuid::new_v4().to_string();
+    let code_verifier = generate_code_verifier();
+    let code_challenge = generate_code_challenge(&code_verifier);
+    let redirect_uri = format!("http://localhost:{port}/auth/callback");
+    let auth_url = build_oauth_authorize_url(&redirect_uri, &code_challenge, &state)?;
+
+    let pending = CodexOAuthPendingState {
+        login_id: login_id.clone(),
+        auth_url: auth_url.clone(),
+        redirect_uri,
+        code_verifier,
+        state,
+        port,
+        expires_at: now_ts() + OAUTH_TIMEOUT_SECONDS,
+        callback_url: None,
+    };
+    set_oauth_pending(Some(pending.clone()))?;
+
+    tauri::async_runtime::spawn(async move {
+        let _ = start_oauth_callback_listener(app, pending).await;
+    });
+
+    Ok(json!({ "loginId": login_id, "authUrl": auth_url }))
+}
+
+#[tauri::command]
+pub async fn codex_oauth_login_completed(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    login_id: String,
+    preferred_account_name: Option<String>,
+) -> Result<Value, String> {
+    let pending = oauth_state_from_login_id(&login_id)?;
+    let callback_url = pending
+        .callback_url
+        .clone()
+        .ok_or_else(|| "尚未收到 OAuth 回调，请在浏览器授权后重试".to_string())?;
+    let parsed = Url::parse(&callback_url).map_err(|e| format!("解析回调地址失败: {e}"))?;
+    let callback_state = parsed
+        .query_pairs()
+        .find(|(key, _)| key == "state")
+        .map(|(_, value)| value.to_string())
+        .unwrap_or_default();
+    if callback_state != pending.state {
+        return Err("OAuth state 校验失败，请重新发起授权".to_string());
+    }
+
+    let code = parsed
+        .query_pairs()
+        .find(|(key, _)| key == "code")
+        .map(|(_, value)| value.to_string())
+        .unwrap_or_default();
+    if code.is_empty() {
+        return Err("OAuth 回调中缺少 code 参数".to_string());
+    }
+
+    let tokens = exchange_oauth_tokens(&code, &pending.code_verifier, &pending.redirect_uri).await?;
+    let auth = CodexAuthJson {
+        openai_api_key: None,
+        tokens: Some(ccr_codex::CodexAuthTokens {
+            id_token: Some(tokens.id_token),
+            access_token: Some(tokens.access_token),
+            refresh_token: tokens.refresh_token,
+            account_id: None,
+        }),
+        last_refresh: Some(Utc::now().to_rfc3339()),
+    };
+
+    let response = tokio::task::spawn_blocking(move || {
+        let service =
+            CodexAuthService::new().map_err(|e| format!("初始化 Codex Auth 服务失败: {e}"))?;
+        let export = service
+            .build_export_account_from_auth_json(auth, None, None, None, None)
+            .map_err(|e| format!("构建 OAuth 账号失败: {e}"))?;
+        finalize_account_mutation(&service, export, preferred_account_name, true)
+    })
+    .await
+    .map_err(|e| format!("任务执行失败: {e}"))??;
+
+    set_oauth_pending(None)?;
+    invalidate_codex_dashboard_overview_cache(&state).await;
+    let _ = desktop_shell::refresh_codex_tray(&app, true).await;
+    Ok(response)
+}
+
+#[tauri::command]
+pub fn codex_oauth_login_cancel(login_id: Option<String>) -> Result<(), String> {
+    let Some(current) = current_pending_state()? else {
+        return Ok(());
+    };
+    if let Some(login_id) = login_id
+        && current.login_id != login_id
+    {
+        return Err("指定的 OAuth 登录会话已变化".to_string());
+    }
+    set_oauth_pending(None)
+}
+
+#[tauri::command]
+pub fn codex_oauth_submit_callback_url(
+    app: AppHandle,
+    login_id: String,
+    callback_url: String,
+) -> Result<(), String> {
+    let current = oauth_state_from_login_id(&login_id)?;
+    let parsed = Url::parse(&callback_url).map_err(|e| format!("解析回调地址失败: {e}"))?;
+    let callback_state = parsed
+        .query_pairs()
+        .find(|(key, _)| key == "state")
+        .map(|(_, value)| value.to_string())
+        .unwrap_or_default();
+    let code = parsed
+        .query_pairs()
+        .find(|(key, _)| key == "code")
+        .map(|(_, value)| value.to_string())
+        .unwrap_or_default();
+
+    if callback_state != current.state {
+        return Err("OAuth state 校验失败，请确认复制的是当前授权链接完成后的回调地址".to_string());
+    }
+    if code.is_empty() {
+        return Err("回调地址中缺少 code 参数".to_string());
+    }
+
+    set_oauth_pending(Some(CodexOAuthPendingState {
+        callback_url: Some(callback_url),
+        ..current.clone()
+    }))?;
+    let _ = app.emit("codex-oauth-login-completed", json!({ "loginId": login_id }));
+    Ok(())
+}
+
+#[tauri::command]
+pub fn codex_is_oauth_port_in_use() -> Result<bool, String> {
+    Ok(std::net::TcpListener::bind(("127.0.0.1", OAUTH_CALLBACK_PORT)).is_err())
+}
+
+#[tauri::command]
+pub fn codex_release_oauth_port() -> Result<u32, String> {
+    kill_port_processes(OAUTH_CALLBACK_PORT)
+}
+
+#[tauri::command]
+pub async fn codex_open_external_url(url: String) -> Result<(), String> {
+    tokio::task::spawn_blocking(move || open_external_url(&url))
+        .await
+        .map_err(|e| format!("任务执行失败: {e}"))?
+}
+
+#[tauri::command]
+pub async fn codex_import_auth_payload(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    payload: CodexAuthImportPayload,
+) -> Result<Value, String> {
+    let switch_after_import = payload.switch_after_import.unwrap_or(false);
+    let content = payload.content;
+    let preferred_account_name = normalize_account_name(payload.preferred_account_name);
+
+    let result = tokio::task::spawn_blocking(move || {
+        let service =
+            CodexAuthService::new().map_err(|e| format!("初始化 Codex Auth 服务失败: {e}"))?;
+
+        let payload_shape = detect_import_payload_shape(&content)?;
+        if preferred_account_name.is_some() && payload_shape != ImportPayloadShape::Single {
+            return Err("自定义名称仅支持单账号导入；批量/导出包导入请保留原始命名策略".to_string());
+        }
+
+        match parse_import_entries(&content) {
+            Ok(entries) if entries.is_empty() => Ok(json!({ "success": true, "imported": 0, "switched": false })),
+            Ok(entries) => {
+                let mut imported = Vec::new();
+                for (index, (hint, auth)) in entries.into_iter().enumerate() {
+                    let export = service
+                        .build_export_account_from_auth_json(auth, None, None, None, None)
+                        .map_err(|e| format!("构建导入账号失败: {e}"))?;
+                    let response = finalize_account_mutation(
+                        &service,
+                        export,
+                        if index == 0 {
+                            preferred_account_name.clone().or(hint)
+                        } else {
+                            hint
+                        },
+                        switch_after_import && index == 0,
+                    )?;
+                    imported.push(response);
+                }
+                Ok(json!({
+                    "success": true,
+                    "imported": imported.len(),
+                    "results": imported,
+                    "switched": switch_after_import && !imported.is_empty(),
+                }))
+            }
+            Err(error) => Err(error),
+        }
+    })
+    .await
+    .map_err(|e| format!("任务执行失败: {e}"))??;
+
+    invalidate_codex_dashboard_overview_cache(&state).await;
+    let _ = desktop_shell::refresh_codex_tray(&app, true).await;
+    Ok(result)
+}
+
+#[tauri::command]
+pub async fn codex_import_auth_from_local(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    preferred_account_name: Option<String>,
+) -> Result<Value, String> {
+    let result = tokio::task::spawn_blocking(move || {
+        let service =
+            CodexAuthService::new().map_err(|e| format!("初始化 Codex Auth 服务失败: {e}"))?;
+        let auth = service
+            .load_current_auth_json()
+            .map_err(|e| format!("读取本地 Codex 认证失败: {e}"))?;
+        let export = service
+            .build_export_account_from_auth_json(auth, None, None, None, None)
+            .map_err(|e| format!("构建本地导入账号失败: {e}"))?;
+        finalize_account_mutation(
+            &service,
+            export,
+            normalize_account_name(preferred_account_name),
+            false,
+        )
+    })
+    .await
+    .map_err(|e| format!("任务执行失败: {e}"))??;
+
+    invalidate_codex_dashboard_overview_cache(&state).await;
+    let _ = desktop_shell::refresh_codex_tray(&app, true).await;
+    Ok(result)
+}
+
+#[tauri::command]
+pub async fn codex_add_auth_with_api_key(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    payload: CodexApiKeyAddPayload,
+) -> Result<Value, String> {
+    let response = tokio::task::spawn_blocking(move || {
+        let api_key = payload.api_key.trim().to_string();
+        if api_key.is_empty() {
+            return Err("API Key 不能为空".to_string());
+        }
+
+        let api_base_url = normalize_url(payload.api_base_url);
+        let provider_name = payload
+            .provider_name
+            .map(|value| value.trim().to_string())
+            .filter(|value| !value.is_empty());
+
+        let service =
+            CodexAuthService::new().map_err(|e| format!("初始化 Codex Auth 服务失败: {e}"))?;
+        let auth = CodexAuthJson {
+            openai_api_key: Some(api_key.clone()),
+            tokens: None,
+            last_refresh: None,
+        };
+        let export = service
+            .build_export_account_from_auth_json(
+                auth,
+                None,
+                None,
+                api_base_url.clone(),
+                provider_name.clone(),
+            )
+            .map_err(|e| format!("构建 API Key 账号失败: {e}"))?;
+
+        if payload.save_provider.unwrap_or(false)
+            && let Some(base_url) = api_base_url.clone()
+        {
+            let provider_store = CodexModelProviderStoreService::new()
+                .map_err(|e| format!("初始化供应商存储失败: {e}"))?;
+            let now = Utc::now();
+            let provider = CodexModelProviderRecord {
+                id: Uuid::new_v4().to_string(),
+                name: provider_name.clone().unwrap_or_else(|| "Custom Provider".to_string()),
+                base_url,
+                website_url: None,
+                api_key_url: None,
+                api_keys: vec![CodexModelProviderApiKey {
+                    id: Uuid::new_v4().to_string(),
+                    name: "Primary".to_string(),
+                    api_key,
+                    created_at: now,
+                    updated_at: now,
+                }],
+                created_at: now,
+                updated_at: now,
+            };
+            let _ = provider_store.upsert_provider(provider);
+        }
+
+        finalize_account_mutation(
+            &service,
+            export,
+            normalize_account_name(payload.preferred_account_name)
+                .or(provider_name.or_else(|| Some("openai-api".to_string()))),
+            payload.switch_after_add.unwrap_or(false),
+        )
+    })
+    .await
+    .map_err(|e| format!("任务执行失败: {e}"))??;
+
+    invalidate_codex_dashboard_overview_cache(&state).await;
+    let _ = desktop_shell::refresh_codex_tray(&app, true).await;
+    Ok(response)
+}
+
+#[tauri::command]
+pub async fn codex_list_model_providers() -> Result<Value, String> {
+    tokio::task::spawn_blocking(|| {
+        let service = CodexModelProviderStoreService::new()
+            .map_err(|e| format!("初始化供应商存储失败: {e}"))?;
+        let store = service
+            .load()
+            .map_err(|e| format!("读取供应商列表失败: {e}"))?;
+        Ok(json!({ "providers": store.providers }))
+    })
+    .await
+    .map_err(|e| format!("任务执行失败: {e}"))?
+}
+
+#[tauri::command]
+pub async fn codex_save_model_provider(
+    payload: CodexModelProviderUpsertPayload,
+) -> Result<Value, String> {
+    tokio::task::spawn_blocking(move || {
+        let service = CodexModelProviderStoreService::new()
+            .map_err(|e| format!("初始化供应商存储失败: {e}"))?;
+        let existing = service
+            .load()
+            .map_err(|e| format!("读取供应商列表失败: {e}"))?;
+        let mut provider = provider_record_from_payload(payload)?;
+        if let Some(previous) = existing.providers.iter().find(|item| item.id == provider.id) {
+            provider.created_at = previous.created_at;
+            if provider.api_keys.is_empty() {
+                provider.api_keys = previous.api_keys.clone();
+            }
+        }
+        provider.updated_at = Utc::now();
+
+        let saved = service
+            .upsert_provider(provider)
+            .map_err(|e| format!("保存供应商失败: {e}"))?;
+        Ok(json!({ "provider": saved }))
+    })
+    .await
+    .map_err(|e| format!("任务执行失败: {e}"))?
+}
+
+#[tauri::command]
+pub async fn codex_delete_model_provider(provider_id: String) -> Result<Value, String> {
+    tokio::task::spawn_blocking(move || {
+        let service = CodexModelProviderStoreService::new()
+            .map_err(|e| format!("初始化供应商存储失败: {e}"))?;
+        service
+            .delete_provider(&provider_id)
+            .map_err(|e| format!("删除供应商失败: {e}"))?;
+        Ok(json!({ "success": true }))
     })
     .await
     .map_err(|e| format!("任务执行失败: {e}"))?

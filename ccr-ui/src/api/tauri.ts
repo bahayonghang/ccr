@@ -293,7 +293,10 @@ function resolveCodexAgentMutation(
   return { name, config: request, context }
 }
 
-function resolveCodexAgentNameAndContext(arg1: string | object): { name: string; context?: UnknownRecord } {
+function resolveCodexAgentNameAndContext(arg1: string | object): {
+  name: string
+  context?: UnknownRecord
+} {
   if (typeof arg1 === 'string') {
     return { name: arg1 }
   }
@@ -946,9 +949,11 @@ export const toggleCodexAgent = async <T = UnknownRecord>(
 }
 
 /** 重命名 Codex Agent */
-export const renameCodexAgent = async <T = UnknownRecord>(
-  payload: { name: string; newName: string; context?: unknown }
-): Promise<T> => {
+export const renameCodexAgent = async <T = UnknownRecord>(payload: {
+  name: string
+  newName: string
+  context?: unknown
+}): Promise<T> => {
   return invoke('codex_rename_agent', {
     name: payload.name,
     newName: payload.newName,
@@ -957,14 +962,12 @@ export const renameCodexAgent = async <T = UnknownRecord>(
 }
 
 /** 复制 Codex Agent */
-export const copyCodexAgent = async <T = UnknownRecord>(
-  payload: {
-    name: string
-    sourceContext?: unknown
-    targetContext?: unknown
-    targetName?: string
-  }
-): Promise<T> => {
+export const copyCodexAgent = async <T = UnknownRecord>(payload: {
+  name: string
+  sourceContext?: unknown
+  targetContext?: unknown
+  targetName?: string
+}): Promise<T> => {
   return invoke('codex_copy_agent', {
     name: payload.name,
     sourceContext: resolveCodexAgentContext(payload.sourceContext),
@@ -974,9 +977,10 @@ export const copyCodexAgent = async <T = UnknownRecord>(
 }
 
 /** 校验 Codex Agent 原始 TOML */
-export const validateCodexAgentToml = async <T = UnknownRecord>(
-  payload: { name: string; context?: unknown }
-): Promise<T> => {
+export const validateCodexAgentToml = async <T = UnknownRecord>(payload: {
+  name: string
+  context?: unknown
+}): Promise<T> => {
   return invoke('codex_validate_agent_toml', {
     name: payload.name,
     context: resolveCodexAgentContext(payload.context),
@@ -1004,7 +1008,9 @@ export const syncCodexAgentSource = async <T = UnknownRecord>(sourceId: string):
 }
 
 /** 获取 Codex GitHub agent source catalog */
-export const getCodexAgentSourceCatalog = async <T = UnknownRecord>(sourceId: string): Promise<T> => {
+export const getCodexAgentSourceCatalog = async <T = UnknownRecord>(
+  sourceId: string
+): Promise<T> => {
   return invoke('codex_get_agent_source_catalog', { sourceId })
 }
 
@@ -1031,17 +1037,23 @@ export const syncCodexSourceInstall = async <T = UnknownRecord>(installId: strin
 }
 
 /** 强制以上游覆盖 tracked install */
-export const forceSyncCodexSourceInstall = async <T = UnknownRecord>(installId: string): Promise<T> => {
+export const forceSyncCodexSourceInstall = async <T = UnknownRecord>(
+  installId: string
+): Promise<T> => {
   return invoke('codex_sync_source_install', { request: { installId, force: true } })
 }
 
 /** 接受本地修改为新的 tracked baseline */
-export const acceptLocalCodexSourceInstall = async <T = UnknownRecord>(installId: string): Promise<T> => {
+export const acceptLocalCodexSourceInstall = async <T = UnknownRecord>(
+  installId: string
+): Promise<T> => {
   return invoke('codex_accept_local_source_install', { request: { installId } })
 }
 
 /** 取消 tracked install 关联但保留本地文件 */
-export const untrackCodexSourceInstall = async <T = UnknownRecord>(installId: string): Promise<T> => {
+export const untrackCodexSourceInstall = async <T = UnknownRecord>(
+  installId: string
+): Promise<T> => {
   return invoke('codex_untrack_source_install', { request: { installId } })
 }
 
@@ -1184,6 +1196,73 @@ export const detectCodexProcess = async <T = UnknownRecord>(): Promise<T> => {
   return invoke('codex_detect_process')
 }
 
+export const codexOAuthLoginStart = async <T = UnknownRecord>(): Promise<T> => {
+  return invoke('codex_oauth_login_start')
+}
+
+export const codexOAuthLoginCompleted = async <T = UnknownRecord>(
+  loginId: string,
+  preferredAccountName?: string | null
+): Promise<T> => {
+  return invoke('codex_oauth_login_completed', {
+    loginId,
+    preferredAccountName: preferredAccountName ?? null,
+  })
+}
+
+export const codexOAuthLoginCancel = async (loginId?: string | null): Promise<void> => {
+  await invoke('codex_oauth_login_cancel', { loginId: loginId ?? null })
+}
+
+export const codexOAuthSubmitCallbackUrl = async (
+  loginId: string,
+  callbackUrl: string
+): Promise<void> => {
+  await invoke('codex_oauth_submit_callback_url', { loginId, callbackUrl })
+}
+
+export const codexIsOAuthPortInUse = async <T = boolean>(): Promise<T> => {
+  return invoke('codex_is_oauth_port_in_use')
+}
+
+export const codexReleaseOAuthPort = async <T = number>(): Promise<T> => {
+  return invoke('codex_release_oauth_port')
+}
+
+export const codexOpenExternalUrl = async (url: string): Promise<void> => {
+  await invoke('codex_open_external_url', { url })
+}
+
+export const codexImportAuthPayload = async <T = UnknownRecord>(payload: unknown): Promise<T> => {
+  return invoke('codex_import_auth_payload', { payload: asRecord(payload) })
+}
+
+export const codexImportAuthFromLocal = async <T = UnknownRecord>(
+  preferredAccountName?: string | null
+): Promise<T> => {
+  return invoke('codex_import_auth_from_local', {
+    preferredAccountName: preferredAccountName ?? null,
+  })
+}
+
+export const codexAddAuthWithApiKey = async <T = UnknownRecord>(payload: unknown): Promise<T> => {
+  return invoke('codex_add_auth_with_api_key', { payload: asRecord(payload) })
+}
+
+export const codexListModelProviders = async <T = UnknownRecord>(): Promise<T> => {
+  return invoke('codex_list_model_providers')
+}
+
+export const codexSaveModelProvider = async <T = UnknownRecord>(payload: unknown): Promise<T> => {
+  return invoke('codex_save_model_provider', { payload: asRecord(payload) })
+}
+
+export const codexDeleteModelProvider = async <T = UnknownRecord>(
+  providerId: string
+): Promise<T> => {
+  return invoke('codex_delete_model_provider', { providerId })
+}
+
 export interface CodexDashboardUsageSection {
   total_requests: number
   total_input_tokens: number
@@ -1256,14 +1335,14 @@ export interface CodexCommandOptions {
 
 /** 获取 Codex 仪表盘概览 */
 export const getCodexDashboardOverview = async <T = CodexDashboardOverview>(
-  options?: CodexCommandOptions,
+  options?: CodexCommandOptions
 ): Promise<T> => {
   return invoke('codex_get_dashboard_overview', { force: options?.force })
 }
 
 /** 获取 Codex 仪表盘用量摘要 */
 export const getCodexDashboardUsageSummary = async <T = CodexDashboardUsageSummary>(
-  options?: CodexCommandOptions,
+  options?: CodexCommandOptions
 ): Promise<T> => {
   return invoke('codex_get_dashboard_usage_summary', { force: options?.force })
 }
@@ -1841,7 +1920,9 @@ export const getOpenCodeTuiSettings = async <T = UnknownRecord>(): Promise<T> =>
 }
 
 /** 更新 OpenCode TUI 配置 */
-export const updateOpenCodeTuiSettings = async <T = UnknownRecord>(settings: unknown): Promise<T> => {
+export const updateOpenCodeTuiSettings = async <T = UnknownRecord>(
+  settings: unknown
+): Promise<T> => {
   return invoke('opencode_update_tui_settings', { settings })
 }
 
@@ -1881,8 +1962,9 @@ function normalizedOpenCodeMcpServers(settings: UnknownRecord) {
 }
 
 function normalizedOpenCodePlugins(settings: UnknownRecord): string[] {
-  const pluginList = asArray(settings.plugin)
-    .filter((item): item is string => typeof item === 'string')
+  const pluginList = asArray(settings.plugin).filter(
+    (item): item is string => typeof item === 'string'
+  )
   if (pluginList.length > 0) return [...new Set(pluginList)]
 
   const legacyPlugins = pickRecord(settings, 'plugins')
@@ -2031,9 +2113,10 @@ export const listOpenCodePlugins = async <T = string[]>(): Promise<T> => {
 export const addOpenCodePlugin = async <T = string[]>(
   pluginOrName: string | object
 ): Promise<T> => {
-  const name = typeof pluginOrName === 'string'
-    ? pluginOrName
-    : String(asRecord(pluginOrName).name ?? asRecord(pluginOrName).npm ?? '')
+  const name =
+    typeof pluginOrName === 'string'
+      ? pluginOrName
+      : String(asRecord(pluginOrName).name ?? asRecord(pluginOrName).npm ?? '')
 
   const settings = await getOpenCodeConfig<UnknownRecord>()
   const nextPlugins = [...normalizedOpenCodePlugins(settings)]
@@ -3106,7 +3189,7 @@ export const skillsContentGet = async <T = UnknownRecord>(
 
 export const skillsFilesList = async <T = UnknownRecord>(
   skillId: string,
-  installationId?: string | null,
+  installationId?: string | null
 ): Promise<T> => {
   return invoke('skills_files_list', { skillId, installationId: installationId ?? null })
 }
@@ -3114,7 +3197,7 @@ export const skillsFilesList = async <T = UnknownRecord>(
 export const skillsFileGet = async <T = UnknownRecord>(
   skillId: string,
   path: string,
-  installationId?: string | null,
+  installationId?: string | null
 ): Promise<T> => {
   return invoke('skills_file_get', { skillId, path, installationId: installationId ?? null })
 }
@@ -3242,7 +3325,7 @@ export const scanSkillRepository = async <T = UnknownRecord>(sourceId: string): 
 
 export const getSkillHubTrending = async <T = UnknownRecord>(
   page = 1,
-  pageSize = 20,
+  pageSize = 20
 ): Promise<T> => {
   return skillsMarketplaceList(null, page, pageSize)
 }
@@ -3250,7 +3333,7 @@ export const getSkillHubTrending = async <T = UnknownRecord>(
 export const searchSkillHubMarketplace = async <T = UnknownRecord>(
   query: string,
   page = 1,
-  pageSize = 20,
+  pageSize = 20
 ): Promise<T> => {
   return skillsMarketplaceList(query, page, pageSize)
 }
@@ -3266,7 +3349,9 @@ export const getSkillHubAgentSkills = async <T = UnknownRecord>(agentName: strin
 
 export const installSkillHubSkill = async <T = UnknownRecord>(data: unknown): Promise<T> => {
   const payload = asRecord(data)
-  const agents = asArray(payload.agents).filter((value): value is string => typeof value === 'string')
+  const agents = asArray(payload.agents).filter(
+    (value): value is string => typeof value === 'string'
+  )
   return skillsInstall({
     source_kind: 'marketplace',
     source_ref: String(payload.url ?? payload.package ?? ''),
@@ -3286,7 +3371,7 @@ export const getSkillHubUnified = async <T = UnknownRecord>(platform?: string): 
 
 export const getSkillHubSkillContent = async <T = UnknownRecord>(
   skillId: string,
-  installationId?: string | null,
+  installationId?: string | null
 ): Promise<T> => {
   return skillsContentGet(skillId, installationId ?? null)
 }
@@ -3294,7 +3379,7 @@ export const getSkillHubSkillContent = async <T = UnknownRecord>(
 export const saveSkillHubSkillContent = async <T = UnknownRecord>(
   skillId: string,
   installationIdOrContent: string,
-  maybeContent?: string,
+  maybeContent?: string
 ): Promise<T> => {
   if (maybeContent == null) {
     return updateSkillContent(skillId, installationIdOrContent)

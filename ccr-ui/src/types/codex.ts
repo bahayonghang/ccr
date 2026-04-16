@@ -229,6 +229,9 @@ export interface CodexAuthAccountItem {
   email?: string
   is_current: boolean
   is_virtual: boolean
+  auth_method?: 'chatgpt' | 'api' | string
+  api_base_url?: string
+  api_provider_name?: string
   saved_at?: string
   last_used?: string
   last_refresh?: string
@@ -244,6 +247,7 @@ export interface CodexAuthAccountItem {
 /** Codex Auth 当前信息 */
 export interface CodexAuthCurrentInfo {
   account_id: string
+  auth_method?: 'chatgpt' | 'api' | string
   email?: string
   last_refresh?: string
   freshness: TokenFreshness
@@ -282,6 +286,58 @@ export interface CodexAuthProcessResponse {
   has_running_process: boolean
   pids: number[]
   warning?: string
+}
+
+export interface CodexOAuthStartResponse {
+  loginId: string
+  authUrl: string
+}
+
+export interface CodexAuthMutationResponse {
+  success: boolean
+  account_name?: string
+  switched?: boolean
+  imported?: number
+  results?: unknown[]
+  message?: string
+}
+
+export interface CodexImportAuthPayload {
+  content: string
+  switchAfterImport?: boolean
+  preferredAccountName?: string | null
+}
+
+export interface CodexAddApiKeyAuthPayload {
+  apiKey: string
+  apiBaseUrl?: string | null
+  providerName?: string | null
+  saveProvider?: boolean
+  switchAfterAdd?: boolean
+  preferredAccountName?: string | null
+}
+
+export interface CodexModelProviderApiKey {
+  id: string
+  name: string
+  api_key: string
+  created_at: string
+  updated_at: string
+}
+
+export interface CodexModelProviderRecord {
+  id: string
+  name: string
+  base_url: string
+  website_url?: string | null
+  api_key_url?: string | null
+  api_keys: CodexModelProviderApiKey[]
+  created_at: string
+  updated_at: string
+}
+
+export interface CodexModelProvidersResponse {
+  providers: CodexModelProviderRecord[]
 }
 
 // ============ Codex Agent Management Types ============

@@ -96,6 +96,8 @@ fn main() {
                 }
             });
 
+            crate::commands::codex::restore_pending_oauth_listener(app.handle().clone());
+
             // 异步初始化环境注册表，避免阻塞启动流程。
             let app_handle = app.handle().clone();
             tauri::async_runtime::spawn(async move {

@@ -386,7 +386,7 @@ export function useCodexDashboard() {
     if (!data.auth.logged_in) {
       actions.push({
         title: '先完成账号登录',
-        description: '进入 Auth 页面登录或切换到可用账号，避免后续流程卡住。',
+        description: '进入账号管理页，用 OAuth、API Key、Token JSON 或本地导入补齐可用账号。',
         to: '/codex/auth',
         icon: 'LogIn',
         tone: 'danger',
