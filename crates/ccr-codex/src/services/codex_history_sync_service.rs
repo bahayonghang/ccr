@@ -2066,13 +2066,18 @@ mod tests {
         fs::write(path, content).unwrap();
     }
 
+    fn format_test_timestamp(timestamp: DateTime<Utc>) -> String {
+        timestamp.format("%Y-%m-%dT%H:%M:%S.000Z").to_string()
+    }
+
     fn write_rollout(path: &Path, id: &str, provider: &str) {
+        let session_at = Utc::now() - chrono::Duration::days(2);
         write_rollout_with_timestamps(
             path,
             id,
             provider,
-            "2026-04-09T00:00:00.000Z",
-            "2026-04-09T00:00:01.000Z",
+            &format_test_timestamp(session_at),
+            &format_test_timestamp(session_at + chrono::Duration::seconds(1)),
             r"E:\Repo",
         );
     }
@@ -2262,20 +2267,22 @@ mod tests {
         let old_path = service
             .codex_home
             .join("sessions/2026/04/09/rollout-old.jsonl");
+        let recent_at = Utc::now() - chrono::Duration::days(2);
+        let old_at = Utc::now() - chrono::Duration::days(20);
         write_rollout_with_timestamps(
             &recent_path,
             "thread-recent",
             "custom",
-            "2026-04-08T00:00:00.000Z",
-            "2026-04-09T00:00:01.000Z",
+            &format_test_timestamp(recent_at),
+            &format_test_timestamp(recent_at + chrono::Duration::seconds(1)),
             r"E:\Recent",
         );
         write_rollout_with_timestamps(
             &old_path,
             "thread-old",
             "custom",
-            "2026-03-20T00:00:00.000Z",
-            "2026-03-20T00:00:01.000Z",
+            &format_test_timestamp(old_at),
+            &format_test_timestamp(old_at + chrono::Duration::seconds(1)),
             r"E:\Old",
         );
         write_state_db(
@@ -2335,12 +2342,13 @@ mod tests {
         let old_path = service
             .codex_home
             .join("sessions/2026/04/09/rollout-old.jsonl");
+        let old_at = Utc::now() - chrono::Duration::days(20);
         write_rollout_with_timestamps(
             &old_path,
             "thread-old",
             "custom",
-            "2026-03-20T00:00:00.000Z",
-            "2026-03-20T00:00:01.000Z",
+            &format_test_timestamp(old_at),
+            &format_test_timestamp(old_at + chrono::Duration::seconds(1)),
             r"E:\Old",
         );
         write_state_db(
