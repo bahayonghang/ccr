@@ -41,9 +41,10 @@ pub fn reload(app_handle: &AppHandle) -> Result<(), String> {
                     .and_then(|name| name.to_str())
                     .is_some_and(|name| name == "sources.json")
             });
-            let affects_marketplace = event.paths.iter().any(|path| {
-                path.to_string_lossy().contains("skills.sh")
-            });
+            let affects_marketplace = event
+                .paths
+                .iter()
+                .any(|path| path.to_string_lossy().contains("skills.sh"));
             let payload = serde_json::json!({
                 "paths": event
                     .paths

@@ -66,8 +66,7 @@ pub async fn sync_push(force: Option<bool>) -> Result<SyncOperationResult, Strin
         .map_err(|e| format!("Failed to create SyncService: {e}"))?;
 
     // 3. 获取本地路径
-    let local_path = get_ccr_sync_path()
-        .map_err(|e| format!("Failed to get sync path: {e}"))?;
+    let local_path = get_ccr_sync_path().map_err(|e| format!("Failed to get sync path: {e}"))?;
 
     // 4. 执行推送
     service
@@ -108,8 +107,7 @@ pub async fn sync_pull(force: Option<bool>) -> Result<SyncOperationResult, Strin
         .map_err(|e| format!("Failed to create SyncService: {e}"))?;
 
     // 3. 获取本地路径
-    let local_path = get_ccr_sync_path()
-        .map_err(|e| format!("Failed to get sync path: {e}"))?;
+    let local_path = get_ccr_sync_path().map_err(|e| format!("Failed to get sync path: {e}"))?;
 
     // 4. 执行拉取
     service

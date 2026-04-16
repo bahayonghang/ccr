@@ -5,10 +5,9 @@
 
 use ccr_skills::{
     MarketplaceListResponse, MarketplaceSkill, NpxStatus, SkillContent, SkillFileContent,
-    SkillFileEntry, SkillOperationResponse, SkillRecord, SkillSourceRecord,
-    SkillsInstallRequest, SkillsInstallReviewResponse, SkillsInventoryQuery,
-    SkillsInventoryResponse, SkillsNpxCapabilities, SkillsOnboardingCandidate, SkillsService,
-    SkillsSyncRequest,
+    SkillFileEntry, SkillOperationResponse, SkillRecord, SkillSourceRecord, SkillsInstallRequest,
+    SkillsInstallReviewResponse, SkillsInventoryQuery, SkillsInventoryResponse,
+    SkillsNpxCapabilities, SkillsOnboardingCandidate, SkillsService, SkillsSyncRequest,
 };
 use serde::Serialize;
 use tauri_plugin_dialog::DialogExt;

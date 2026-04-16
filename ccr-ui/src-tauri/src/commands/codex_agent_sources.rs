@@ -5,8 +5,8 @@ use super::agents::{
 use super::{codex_agents_dir, invalidate_codex_dashboard_overview_cache};
 use crate::state::AppState;
 use chrono::{DateTime, Utc};
-use reqwest::header::ETAG;
 use reqwest::StatusCode;
+use reqwest::header::ETAG;
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use std::fs;
@@ -440,7 +440,12 @@ fn source_record(entry: &CodexAgentSourceEntry) -> CodexAgentSourceRecord {
 
 fn is_stale_scan(timestamp: &str) -> bool {
     DateTime::parse_from_rfc3339(timestamp)
-        .map(|value| Utc::now().signed_duration_since(value.with_timezone(&Utc)).num_seconds() >= CATALOG_STALE_AFTER_SECS)
+        .map(|value| {
+            Utc::now()
+                .signed_duration_since(value.with_timezone(&Utc))
+                .num_seconds()
+                >= CATALOG_STALE_AFTER_SECS
+        })
         .unwrap_or(true)
 }
 
@@ -647,10 +652,7 @@ async fn github_get_text(state: &AppState, url: reqwest::Url) -> Result<String, 
 
 enum GitHubConditionalJson<T> {
     NotModified,
-    Modified {
-        value: T,
-        etag: Option<String>,
-    },
+    Modified { value: T, etag: Option<String> },
 }
 
 async fn github_get_json_conditional<T: for<'de> Deserialize<'de>>(
@@ -1485,7 +1487,9 @@ pub async fn codex_untrack_source_install(
         .map(|entry| entry.installed_name.clone())
         .ok_or_else(|| format!("Install '{}' 不存在", request.install_id))?;
 
-    installs.installs.retain(|entry| entry.id != request.install_id);
+    installs
+        .installs
+        .retain(|entry| entry.id != request.install_id);
     if installs.installs.len() == initial_len {
         return Err(format!("Install '{}' 不存在", request.install_id));
     }
