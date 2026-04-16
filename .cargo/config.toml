@@ -5,9 +5,13 @@
 # 增量编译（默认已启用，显式声明以防意外关闭）
 incremental = true
 
-# MSVC 专属：生成完整 PDB（VS 2025+ 不再支持 FASTLINK）
+# MSVC 专属链接器配置
+# 注意：/DEBUG:FULL 已移除以加速 dev build（节省 20-40% 编译时间）
+# 如需完整 PDB 调试符号，请使用: cargo build --release
+# 或临时传入: RUSTFLAGS="-C link-arg=/DEBUG:FULL" cargo build
 [target.x86_64-pc-windows-msvc]
-rustflags = ["-C", "link-arg=/DEBUG:FULL"]
+# 未来安装 LLVM 后可启用 lld-link 加速链接：
+# linker = "lld-link"
 
 # 提示：快速开发命令
 # - cargo check                     # 快速语法检查（不生成二进制）

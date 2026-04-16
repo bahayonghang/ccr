@@ -59,7 +59,6 @@ rayon = "1.11"
 reqwest_dav = { version = "0.3.3", default-features = false, features = ["native-tls"] }
 rpassword = { workspace = true }
 rusqlite = { workspace = true }
-toml_edit = "0.23.9"
 tracing = { workspace = true }
 tracing-appender = "0.2.4"
 tracing-log = "0.2"

@@ -14,7 +14,7 @@ default-members = ["crates/ccr"]
 resolver = "3"
 
 [workspace.package]
-version = "5.8.6"
+version = "5.8.7"
 
 [workspace.dependencies]
 # Async runtime
@@ -30,7 +30,7 @@ tokio = { version = "1.52.0", features = [
 ] }
 
 # CLI
-clap = { version = "4.6.0", features = ["cargo", "derive"] }
+clap = { version = "4.6.1", features = ["cargo", "derive"] }
 
 # Error handling
 anyhow = "1.0.102"
@@ -67,7 +67,7 @@ r2d2_sqlite = "0.33.0"
 tracing = "0.1.43"
 
 # Identity & Crypto
-uuid = { version = "1.23.0", features = ["serde", "v4"] }
+uuid = { version = "1.23.1", features = ["serde", "v4"] }
 aes-gcm = "0.10"
 argon2 = "0.5"
 rand = "0.10.1"
@@ -98,8 +98,9 @@ tower-http = { version = "0.6.8", default-features = false, features = [
 
 [profile.dev]
 opt-level = 0
-debug = 1
+debug = "line-tables-only"
 incremental = true
+codegen-units = 256
 
 [profile.dev.package."*"]
 opt-level = 1
