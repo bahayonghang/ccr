@@ -2,14 +2,16 @@
   <div class="checkin-view">
     <!-- 页面标题与操作 -->
     <div class="checkin-view__header">
-      <div>
+      <div class="checkin-view__header-copy">
         <h1 class="checkin-view__title">
-          <SIcon
-            name="ClipboardList"
-            size="w-8 h-8"
-            class="checkin-view__title-icon"
-          />
-          签到管理
+          <span class="checkin-view__title-icon-shell">
+            <SIcon
+              name="ClipboardList"
+              size="w-6 h-6"
+              class="checkin-view__title-icon"
+            />
+          </span>
+          <span class="checkin-view__title-label">签到管理</span>
         </h1>
         <p class="checkin-view__subtitle">
           管理所有平台的自动签到任务和 Cookie
@@ -674,25 +676,55 @@ const openAccountDashboard = (accountId: string) => {
   gap: 1rem;
 }
 
+.checkin-view__header-copy {
+  min-width: 0;
+}
+
 .checkin-view__title {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  color: rgb(255 255 255 / 100%);
-  font-size: 1.875rem;
-  line-height: 2.25rem;
-  font-weight: 700;
+  color: var(--text-primary);
+  font-size: 2rem;
+  line-height: 1.1;
+  font-weight: 600;
+  letter-spacing: -0.045em;
+  font-kerning: normal;
+}
+
+.checkin-view__title-icon-shell {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  flex-shrink: 0;
+  border-radius: 0.875rem;
+  border: 1px solid rgb(var(--color-accent-primary-rgb) / 16%);
+  background: rgb(var(--color-accent-primary-rgb) / 10%);
+  box-shadow: inset 0 1px 0 rgb(255 248 240 / 42%);
 }
 
 .checkin-view__title-icon {
   color: var(--accent-primary);
 }
 
+.dark .checkin-view__title-icon-shell {
+  border-color: rgb(var(--color-accent-primary-rgb) / 26%);
+  background: rgb(var(--color-accent-primary-rgb) / 14%);
+  box-shadow: inset 0 1px 0 rgb(255 248 240 / 10%);
+}
+
+.checkin-view__title-label {
+  min-width: 0;
+}
+
 .checkin-view__subtitle {
-  margin-top: 0.5rem;
+  max-width: 40ch;
+  margin-top: 0.625rem;
   color: var(--text-secondary);
-  font-size: 0.875rem;
-  line-height: 1.25rem;
+  font-size: 0.9375rem;
+  line-height: 1.5rem;
 }
 
 .checkin-view__actions {
@@ -1503,12 +1535,12 @@ const openAccountDashboard = (accountId: string) => {
 
 .checkin-view__tab-button--inactive {
   border-color: transparent;
-  color: rgb(255 255 255 / 80%);
+  color: var(--text-muted);
 }
 
 .checkin-view__tab-button--inactive:hover {
-  border-color: rgb(255 255 255 / 10%);
-  color: rgb(255 255 255 / 100%);
+  border-color: rgb(var(--color-border-default-rgb) / 42%);
+  color: var(--text-primary);
 }
 
 @media (width <= 900px) {
