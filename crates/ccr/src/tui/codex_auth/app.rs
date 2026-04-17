@@ -709,9 +709,9 @@ impl CodexAuthApp {
     /// Execute rename using the current RenameInput overlay
     fn commit_rename(&mut self, force: bool) -> Result<()> {
         let (source, new_name) = match &mut self.overlay {
-            Some(Overlay::RenameInput {
-                source, buffer, ..
-            }) => (source.clone(), std::mem::take(buffer)),
+            Some(Overlay::RenameInput { source, buffer, .. }) => {
+                (source.clone(), std::mem::take(buffer))
+            }
             _ => return Ok(()),
         };
 
@@ -752,10 +752,8 @@ impl CodexAuthApp {
                     *buffer = trimmed.clone();
                 }
                 if !force && msg.contains("已存在") {
-                    self.toasts.push(Toast::warning(format!(
-                        "{} · 按 Ctrl+F 强制覆盖",
-                        msg
-                    )));
+                    self.toasts
+                        .push(Toast::warning(format!("{} · 按 Ctrl+F 强制覆盖", msg)));
                 } else {
                     self.toasts.push(Toast::error(format!("重命名失败: {}", e)));
                 }
@@ -1217,6 +1215,7 @@ mod tests {
             name: name.to_string(),
             description: None,
             email: None,
+            plan_type: None,
             is_current: true,
             is_virtual: false,
             saved_at: Some(Utc.with_ymd_and_hms(2026, 4, 13, 10, 0, 0).unwrap()),
@@ -1241,6 +1240,7 @@ mod tests {
                 api_base_url: None,
                 api_provider_name: None,
                 email: None,
+                plan_type: None,
                 saved_at: Utc::now(),
                 last_used: None,
                 last_refresh: None,
@@ -1335,6 +1335,7 @@ mod tests {
                 api_base_url: None,
                 api_provider_name: None,
                 email: None,
+                plan_type: None,
                 saved_at: Utc::now(),
                 last_used: None,
                 last_refresh: None,
@@ -1423,6 +1424,7 @@ mod tests {
                 name: "main".to_string(),
                 description: None,
                 email: None,
+                plan_type: None,
                 is_current: true,
                 is_virtual: false,
                 saved_at: Some(now - Duration::days(5)),
@@ -1435,6 +1437,7 @@ mod tests {
                 name: "alt-1".to_string(),
                 description: None,
                 email: None,
+                plan_type: None,
                 is_current: false,
                 is_virtual: false,
                 saved_at: Some(now - Duration::days(4)),
@@ -1447,6 +1450,7 @@ mod tests {
                 name: "alt-2".to_string(),
                 description: None,
                 email: None,
+                plan_type: None,
                 is_current: false,
                 is_virtual: false,
                 saved_at: Some(now - Duration::days(3)),
@@ -1459,6 +1463,7 @@ mod tests {
                 name: "alt-3".to_string(),
                 description: None,
                 email: None,
+                plan_type: None,
                 is_current: false,
                 is_virtual: false,
                 saved_at: Some(now - Duration::days(2)),
@@ -1494,6 +1499,7 @@ mod tests {
                 name: "main".to_string(),
                 description: None,
                 email: None,
+                plan_type: None,
                 is_current: true,
                 is_virtual: false,
                 saved_at: Some(now - Duration::days(3)),
@@ -1506,6 +1512,7 @@ mod tests {
                 name: "cold".to_string(),
                 description: None,
                 email: None,
+                plan_type: None,
                 is_current: false,
                 is_virtual: false,
                 saved_at: Some(now - Duration::days(1)),

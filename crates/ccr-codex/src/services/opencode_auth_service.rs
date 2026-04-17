@@ -15,6 +15,8 @@ use serde_json::{Map as JsonMap, Value as JsonValue};
 use std::fs;
 use std::path::{Path, PathBuf};
 
+use super::openai_quota_core::normalize_openai_plan;
+
 /// OpenCode Auth 服务
 pub struct OpenCodeAuthService {
     /// CCR 平台数据目录 (~/.ccr/platforms/opencode/)
@@ -170,7 +172,10 @@ impl OpenCodeAuthService {
                     name: name.clone(),
                     account_id: Some(account.account_id.clone()),
                     email: account.email.clone(),
-                    plan_type: account.plan_type.clone(),
+                    plan_type: account
+                        .plan_type
+                        .clone()
+                        .or_else(|| self.load_saved_account_plan_type(name)),
                     is_current,
                     is_virtual: false,
                     saved_at: Some(account.saved_at),
@@ -395,7 +400,7 @@ impl OpenCodeAuthService {
                         .as_deref()
                         .map(|email| self.mask_email(email))
                         .or_else(|| account.email.clone()),
-                    plan_type: info.plan_type.clone(),
+                    plan_type: info.plan_type.clone().or_else(|| account.plan_type.clone()),
                     saved_at: account.saved_at,
                     last_used: account.last_used,
                     expires_at: info.expires_at.or(account.expires_at),
@@ -516,6 +521,12 @@ impl OpenCodeAuthService {
         Ok(())
     }
 
+    fn load_saved_account_plan_type(&self, name: &str) -> Option<String> {
+        let content = fs::read_to_string(self.account_auth_path(name)).ok()?;
+        let value: JsonValue = serde_json::from_str(&content).ok()?;
+        self.extract_current_auth_info(&value).ok()?.plan_type
+    }
+
     fn write_account_snapshot(&self, name: &str, openai: &JsonValue) -> Result<()> {
         self.ensure_storage_dirs()?;
         let content = serde_json::to_string_pretty(openai)
@@ -599,7 +610,8 @@ impl OpenCodeAuthService {
             .or_else(|| Self::claim_string(access_claims.as_ref(), "plan"))
             .or_else(|| Self::claim_string(id_claims.as_ref(), "chatgpt_plan_type"))
             .or_else(|| Self::claim_string(id_claims.as_ref(), "plan"))
-            .map(|value| value.trim().to_ascii_lowercase());
+            .map(|value| normalize_openai_plan(&value))
+            .filter(|value| !value.is_empty());
         let expires = Self::claim_i64(access_claims.as_ref(), "exp")
             .map(Self::normalize_unix_timestamp_millis);
 
@@ -739,7 +751,7 @@ impl OpenCodeAuthService {
     }
 
     fn normalize_plan(plan: &str) -> String {
-        plan.trim().to_ascii_uppercase()
+        normalize_openai_plan(plan)
     }
 
     /// 计算 token 新鲜度（基于 expires）
@@ -959,7 +971,7 @@ mod tests {
         let info = snapshot.current_info.unwrap();
         assert_eq!(info.account_id, "acc-1");
         assert_eq!(info.email.as_deref(), Some("user@example.com"));
-        assert_eq!(info.plan_type.as_deref(), Some("PLUS"));
+        assert_eq!(info.plan_type.as_deref(), Some("plus"));
         assert_eq!(snapshot.login_state, OpenCodeLoginState::LoggedInUnsaved);
     }
 
@@ -982,7 +994,7 @@ mod tests {
             registry.accounts["work"].email.as_deref(),
             Some("use***@example.com")
         );
-        assert_eq!(registry.accounts["work"].plan_type.as_deref(), Some("PLUS"));
+        assert_eq!(registry.accounts["work"].plan_type.as_deref(), Some("plus"));
         assert!(service.account_auth_path("work").exists());
 
         let snapshot = service.read_auth_snapshot().unwrap();
@@ -1090,6 +1102,7 @@ mod tests {
                 api_base_url: None,
                 api_provider_name: None,
                 email: Some("use***@example.com".to_string()),
+                plan_type: None,
                 saved_at,
                 last_used: Some(last_used),
                 last_refresh: Some(Utc::now()),
@@ -1110,7 +1123,7 @@ mod tests {
             OpenCodeAuthAccount {
                 account_id: "existing-acc".to_string(),
                 email: Some("exi***@example.com".to_string()),
-                plan_type: Some("PLUS".to_string()),
+                plan_type: Some("plus".to_string()),
                 saved_at: Utc::now(),
                 last_used: None,
                 expires_at: Some(expires_at),
@@ -1134,7 +1147,7 @@ mod tests {
         let registry = service.load_registry().unwrap();
         let imported = registry.accounts.get("work").unwrap();
         assert_eq!(imported.account_id, "acc-1");
-        assert_eq!(imported.plan_type.as_deref(), Some("PLUS"));
+        assert_eq!(imported.plan_type.as_deref(), Some("plus"));
         assert_eq!(imported.email.as_deref(), Some("use***@example.com"));
         assert_eq!(imported.saved_at, saved_at);
         assert_eq!(imported.last_used, Some(last_used));
@@ -1184,6 +1197,7 @@ mod tests {
                 api_base_url: None,
                 api_provider_name: None,
                 email: None,
+                plan_type: None,
                 saved_at: Utc::now(),
                 last_used: None,
                 last_refresh: None,
@@ -1220,6 +1234,7 @@ mod tests {
                 api_base_url: None,
                 api_provider_name: None,
                 email: None,
+                plan_type: None,
                 saved_at: Utc::now(),
                 last_used: None,
                 last_refresh: None,
@@ -1245,6 +1260,7 @@ mod tests {
                 api_base_url: None,
                 api_provider_name: None,
                 email: None,
+                plan_type: None,
                 saved_at: Utc::now(),
                 last_used: None,
                 last_refresh: None,
@@ -1282,6 +1298,7 @@ mod tests {
                 api_base_url: None,
                 api_provider_name: None,
                 email: None,
+                plan_type: None,
                 saved_at: Utc::now(),
                 last_used: None,
                 last_refresh: None,
@@ -1303,7 +1320,7 @@ mod tests {
             OpenCodeAuthAccount {
                 account_id: "acc-target".to_string(),
                 email: Some("tar***@example.com".to_string()),
-                plan_type: Some("PLUS".to_string()),
+                plan_type: Some("plus".to_string()),
                 saved_at: Utc::now(),
                 last_used: None,
                 expires_at: Some(expires_at),
@@ -1332,6 +1349,7 @@ mod tests {
                 api_base_url: None,
                 api_provider_name: None,
                 email: None,
+                plan_type: None,
                 saved_at: Utc::now(),
                 last_used: None,
                 last_refresh: None,
@@ -1350,7 +1368,7 @@ mod tests {
             OpenCodeAuthAccount {
                 account_id: "acc-shared".to_string(),
                 email: Some("exi***@example.com".to_string()),
-                plan_type: Some("PLUS".to_string()),
+                plan_type: Some("plus".to_string()),
                 saved_at: Utc::now(),
                 last_used: None,
                 expires_at: Some(expires_at),
@@ -1377,6 +1395,7 @@ mod tests {
                 api_base_url: None,
                 api_provider_name: None,
                 email: None,
+                plan_type: None,
                 saved_at: Utc::now(),
                 last_used: Some(Utc::now()),
                 last_refresh: Some(Utc::now()),

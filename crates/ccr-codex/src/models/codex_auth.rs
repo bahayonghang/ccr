@@ -243,6 +243,10 @@ pub struct CodexAuthAccount {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub email: Option<String>,
 
+    /// OpenAI 账号类型 (plus / team / pro 20x)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub plan_type: Option<String>,
+
     /// 保存时间
     pub saved_at: DateTime<Utc>,
 
@@ -351,6 +355,9 @@ pub struct CodexAuthItem {
 
     /// 脱敏后的邮箱
     pub email: Option<String>,
+
+    /// OpenAI 账号类型
+    pub plan_type: Option<String>,
 
     /// 是否为当前激活账号
     pub is_current: bool,
@@ -533,6 +540,9 @@ pub struct CurrentAuthInfo {
     /// 邮箱 (原始)
     pub email: Option<String>,
 
+    /// OpenAI 账号类型
+    pub plan_type: Option<String>,
+
     /// 最后刷新时间
     pub last_refresh: Option<DateTime<Utc>>,
 
@@ -640,6 +650,10 @@ pub struct CodexAuthExportAccount {
     /// 邮箱 (脱敏后存储)
     #[serde(skip_serializing_if = "Option::is_none")]
     pub email: Option<String>,
+
+    /// OpenAI 账号类型
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub plan_type: Option<String>,
 
     /// 保存时间
     pub saved_at: DateTime<Utc>,
@@ -986,6 +1000,7 @@ mod tests {
             api_base_url: None,
             api_provider_name: None,
             email: Some("t***@example.com".to_string()),
+            plan_type: None,
             saved_at: Utc::now(),
             last_used: None,
             last_refresh: Some(Utc::now()),
@@ -1012,6 +1027,7 @@ mod tests {
             api_base_url: None,
             api_provider_name: None,
             email: None,
+            plan_type: None,
             saved_at: Utc::now(),
             last_used: None,
             last_refresh: None,
@@ -1043,6 +1059,7 @@ mod tests {
                 api_base_url: None,
                 api_provider_name: None,
                 email: Some("m***@example.com".to_string()),
+                plan_type: None,
                 saved_at: Utc::now(),
                 last_used: Some(Utc::now()),
                 last_refresh: Some(Utc::now()),

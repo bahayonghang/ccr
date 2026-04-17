@@ -27,7 +27,7 @@
     </header>
 
     <article class="tray-switch__current">
-      <div class="min-w-0">
+      <div class="tray-switch__current-main min-w-0">
         <p class="tray-switch__current-title">
           {{ currentAccount?.email || currentAccount?.name || snapshot.auth_label }}
         </p>
@@ -35,9 +35,14 @@
           {{ snapshot.current_profile_name || snapshot.profile_label }}
         </p>
       </div>
-      <span class="tray-switch__badge">
-        {{ snapshot.runtime_description }}
-      </span>
+      <div class="tray-switch__current-meta">
+        <span class="tray-switch__badge">
+          {{ snapshot.runtime_description }}
+        </span>
+        <span class="tray-switch__badge tray-switch__badge--soft">
+          {{ snapshot.auth_label }}
+        </span>
+      </div>
     </article>
 
     <div
@@ -66,38 +71,41 @@
         :class="{ 'tray-switch__row--current': account.is_current }"
         :data-testid="`tray-switch-row-${account.name}`"
       >
-        <div class="min-w-0">
-          <p class="tray-switch__row-title">
-            {{ account.email || account.name }}
-          </p>
+        <div class="tray-switch__row-main min-w-0">
+          <div class="tray-switch__row-title-line">
+            <p class="tray-switch__row-title">
+              {{ account.email || account.name }}
+            </p>
+            <span
+              class="tray-switch__status"
+              :class="statusClass(account)"
+            >
+              {{ statusLabel(account) }}
+            </span>
+          </div>
           <p class="tray-switch__row-subtitle">
             {{ account.name }} · {{ account.freshness_description }}
           </p>
         </div>
 
-        <div class="tray-switch__row-actions">
-          <span
-            class="tray-switch__status"
-            :class="statusClass(account)"
-          >
-            {{ statusLabel(account) }}
-          </span>
-
-          <button
-            v-if="account.can_switch"
-            type="button"
-            class="tray-switch__action"
-            :disabled="busyAccount === account.name"
-            @click="$emit('switch', account.name)"
-          >
-            <SIcon
-              :name="busyAccount === account.name ? 'RefreshCw' : 'ArrowLeftRight'"
-              size="w-4 h-4"
-              :class="{ 'animate-spin': busyAccount === account.name }"
-            />
-            <span>{{ t('codex.auth.switch') }}</span>
-          </button>
-        </div>
+        <button
+          v-if="account.can_switch"
+          type="button"
+          class="tray-switch__action"
+          :disabled="busyAccount === account.name"
+          @click="$emit('switch', account.name)"
+        >
+          <SIcon
+            :name="busyAccount === account.name ? 'RefreshCw' : 'ArrowLeftRight'"
+            size="w-4 h-4"
+            :class="{ 'animate-spin': busyAccount === account.name }"
+          />
+          <span>{{ t('codex.auth.switch') }}</span>
+        </button>
+        <span
+          v-else
+          class="tray-switch__row-placeholder"
+        />
       </article>
     </section>
 
@@ -167,25 +175,14 @@ const statusClass = (account: CodexTrayAccountRow) => {
   display: flex;
   flex: 1;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
   min-height: 0;
 }
 
-.tray-switch__header,
-.tray-switch__current,
-.tray-switch__row,
-.tray-switch__row-actions,
-.tray-switch__footer {
+.tray-switch__header {
   display: flex;
   align-items: center;
-  gap: 10px;
-}
-
-.tray-switch__header,
-.tray-switch__current,
-.tray-switch__row,
-.tray-switch__footer {
-  justify-content: space-between;
+  gap: 12px;
 }
 
 .tray-switch__back,
@@ -195,7 +192,7 @@ const statusClass = (account: CodexTrayAccountRow) => {
   align-items: center;
   gap: 8px;
   border: 1px solid rgb(var(--color-border-default-rgb) / 52%);
-  border-radius: 14px;
+  border-radius: 16px;
   background: rgb(var(--color-bg-base-rgb) / 78%);
   color: var(--color-text-secondary);
   padding: 10px 12px;
@@ -216,24 +213,32 @@ const statusClass = (account: CodexTrayAccountRow) => {
 .tray-switch__eyebrow {
   color: var(--color-text-muted);
   font-size: 11px;
-  letter-spacing: 0.14em;
+  font-weight: 700;
+  letter-spacing: 0.18em;
   text-transform: uppercase;
 }
 
 .tray-switch__title {
+  margin-top: 3px;
   color: var(--color-text-primary);
-  font-size: 1rem;
+  font-size: 1.1rem;
   font-weight: 700;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.04em;
 }
 
 .tray-switch__current,
 .tray-switch__row,
 .tray-switch__empty {
   border: 1px solid rgb(var(--color-border-default-rgb) / 42%);
-  border-radius: 18px;
-  background: rgb(var(--color-bg-base-rgb) / 50%);
-  padding: 12px;
+  border-radius: 22px;
+  background: linear-gradient(180deg, rgb(var(--color-bg-base-rgb) / 66%), rgb(var(--color-bg-base-rgb) / 50%));
+  padding: 14px;
+}
+
+.tray-switch__current {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 .tray-switch__current-title,
@@ -241,16 +246,25 @@ const statusClass = (account: CodexTrayAccountRow) => {
 .tray-switch__empty p:first-child {
   color: var(--color-text-primary);
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 700;
+  line-height: 1.35;
 }
 
 .tray-switch__current-subtitle,
 .tray-switch__row-subtitle,
 .tray-switch__empty p:last-child {
-  margin-top: 2px;
+  margin-top: 4px;
   color: var(--color-text-secondary);
   font-size: 11px;
   line-height: 1.45;
+}
+
+.tray-switch__current-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid rgb(var(--color-border-default-rgb) / 28%);
 }
 
 .tray-switch__badge,
@@ -258,7 +272,7 @@ const statusClass = (account: CodexTrayAccountRow) => {
   display: inline-flex;
   align-items: center;
   border-radius: 999px;
-  padding: 4px 8px;
+  padding: 5px 9px;
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.12em;
@@ -269,6 +283,12 @@ const statusClass = (account: CodexTrayAccountRow) => {
   border: 1px solid rgb(var(--color-border-default-rgb) / 52%);
   background: rgb(var(--color-bg-base-rgb) / 84%);
   color: var(--color-text-muted);
+}
+
+.tray-switch__badge--soft {
+  border-color: rgb(var(--color-accent-primary-rgb) / 18%);
+  background: rgb(var(--color-accent-primary-rgb) / 8%);
+  color: var(--color-accent-primary);
 }
 
 .tray-switch__list {
@@ -282,15 +302,35 @@ const statusClass = (account: CodexTrayAccountRow) => {
 }
 
 .tray-switch__row {
+  display: flex;
   align-items: center;
+  gap: 12px;
 }
 
 .tray-switch__row--current {
   border-color: rgb(var(--color-accent-primary-rgb) / 24%);
-  background: rgb(var(--color-accent-primary-rgb) / 7%);
+  background: linear-gradient(180deg, rgb(var(--color-accent-primary-rgb) / 9%), rgb(var(--color-accent-primary-rgb) / 4%));
 }
 
-.tray-switch__row-actions {
+.tray-switch__row-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.tray-switch__row-title-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.tray-switch__action {
+  flex-shrink: 0;
+}
+
+.tray-switch__row-placeholder {
+  width: 1px;
+  height: 1px;
   flex-shrink: 0;
 }
 
@@ -300,8 +340,8 @@ const statusClass = (account: CodexTrayAccountRow) => {
 }
 
 .tray-switch__status--current {
-  background: rgb(16 185 129 / 12%);
-  color: rgb(16 185 129 / 100%);
+  background: rgb(96 143 88 / 14%);
+  color: rgb(96 143 88 / 100%);
 }
 
 .tray-switch__status--danger {
@@ -320,7 +360,9 @@ const statusClass = (account: CodexTrayAccountRow) => {
 }
 
 .tray-switch__empty {
+  display: flex;
   align-items: flex-start;
+  gap: 10px;
 }
 
 .tray-switch__footer {
@@ -328,6 +370,15 @@ const statusClass = (account: CodexTrayAccountRow) => {
 }
 
 .tray-switch__footer-action {
-  margin-left: auto;
+  width: 100%;
+  justify-content: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tray-switch__back,
+  .tray-switch__action,
+  .tray-switch__footer-action {
+    transition: none;
+  }
 }
 </style>

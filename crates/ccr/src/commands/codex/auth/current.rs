@@ -403,6 +403,7 @@ mod tests {
             account_id: "acc-123".to_string(),
             auth_method: Some(OpenAiAuthMethod::Chatgpt),
             email: Some("user@example.com".to_string()),
+            plan_type: None,
             last_refresh: Some(
                 DateTime::parse_from_rfc3339("2026-04-07T12:00:00Z")
                     .unwrap()

@@ -183,6 +183,7 @@ mod tests {
             email: Some(format!("{name}@example.com")),
             is_current,
             is_virtual: false,
+            plan_type: None,
             saved_at: Some(Utc::now()),
             last_used: None,
             last_refresh: None,

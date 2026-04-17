@@ -5,35 +5,44 @@
   >
     <article class="tray-overview__hero">
       <div class="tray-overview__hero-main">
-        <div class="tray-overview__hero-icon">
-          <SIcon
-            name="KeyRound"
-            size="w-5 h-5"
-          />
+        <div class="tray-overview__hero-lead">
+          <div class="tray-overview__hero-icon">
+            <SIcon
+              name="KeyRound"
+              size="w-5 h-5"
+            />
+          </div>
+          <div class="min-w-0">
+            <p class="tray-overview__eyebrow">
+              {{ profileLine }}
+            </p>
+            <div class="tray-overview__title-row">
+              <p class="tray-overview__headline">
+                {{ accountHeadline }}
+              </p>
+              <span
+                v-if="currentAccount?.quota?.plan_type"
+                class="tray-overview__plan-badge"
+              >
+                {{ currentAccount.quota.plan_type }}
+              </span>
+            </div>
+            <p class="tray-overview__support">
+              {{ currentAccount?.freshness_description || snapshot.auth_label }}
+            </p>
+          </div>
         </div>
-        <div class="min-w-0">
-          <p class="tray-overview__eyebrow">
-            {{ profileLine }}
-          </p>
-          <p class="tray-overview__headline">
-            {{ accountHeadline }}
-          </p>
-        </div>
-      </div>
 
-      <div class="tray-overview__meta">
-        <span class="tray-overview__pill">
-          {{ snapshot.runtime_description }}
-        </span>
-        <span class="tray-overview__pill">
-          {{ snapshot.auth_label }}
-        </span>
-        <span
-          v-if="currentAccount?.quota?.plan_type"
-          class="tray-overview__pill tray-overview__pill--accent"
-        >
-          {{ currentAccount.quota.plan_type }}
-        </span>
+        <div class="tray-overview__route-grid">
+          <div class="tray-overview__route-item">
+            <span class="tray-overview__route-label">{{ t('codex.auth.tray.runtimeLabel') }}</span>
+            <strong class="tray-overview__route-value">{{ snapshot.runtime_description }}</strong>
+          </div>
+          <div class="tray-overview__route-item">
+            <span class="tray-overview__route-label">{{ t('codex.auth.tray.authRouteLabel') }}</span>
+            <strong class="tray-overview__route-value">{{ snapshot.auth_label }}</strong>
+          </div>
+        </div>
       </div>
     </article>
 
@@ -42,10 +51,23 @@
       class="tray-overview__quota-grid"
       data-testid="tray-overview-quotas"
     >
-      <article class="tray-overview__quota-card">
-        <div class="tray-overview__quota-row">
-          <span>{{ t('codex.auth.hourlyQuota') }}</span>
-          <strong>{{ currentAccount.quota.hourly_percentage }}%</strong>
+      <article
+        class="tray-overview__quota-card"
+        :class="quotaToneClass(currentAccount.quota.hourly_percentage)"
+      >
+        <div class="tray-overview__quota-head">
+          <div>
+            <p class="tray-overview__quota-label">
+              {{ t('codex.auth.hourlyQuota') }}
+            </p>
+            <p
+              v-if="currentAccount.quota.hourly_reset_time"
+              class="tray-overview__quota-note"
+            >
+              {{ t('codex.auth.tray.resetIn') }} {{ formatReset(currentAccount.quota.hourly_reset_time) }}
+            </p>
+          </div>
+          <strong class="tray-overview__quota-value">{{ currentAccount.quota.hourly_percentage }}%</strong>
         </div>
         <div class="tray-overview__progress">
           <span
@@ -53,31 +75,32 @@
             :style="{ transform: `scaleX(${quotaScale(currentAccount.quota.hourly_percentage)})` }"
           />
         </div>
-        <p
-          v-if="currentAccount.quota.hourly_reset_time"
-          class="tray-overview__quota-note"
-        >
-          {{ formatReset(currentAccount.quota.hourly_reset_time) }}
-        </p>
       </article>
 
-      <article class="tray-overview__quota-card">
-        <div class="tray-overview__quota-row">
-          <span>{{ t('codex.auth.weeklyQuota') }}</span>
-          <strong>{{ currentAccount.quota.weekly_percentage }}%</strong>
+      <article
+        class="tray-overview__quota-card"
+        :class="quotaToneClass(currentAccount.quota.weekly_percentage)"
+      >
+        <div class="tray-overview__quota-head">
+          <div>
+            <p class="tray-overview__quota-label">
+              {{ t('codex.auth.weeklyQuota') }}
+            </p>
+            <p
+              v-if="currentAccount.quota.weekly_reset_time"
+              class="tray-overview__quota-note"
+            >
+              {{ t('codex.auth.tray.resetIn') }} {{ formatResetDetailed(currentAccount.quota.weekly_reset_time) }}
+            </p>
+          </div>
+          <strong class="tray-overview__quota-value">{{ currentAccount.quota.weekly_percentage }}%</strong>
         </div>
         <div class="tray-overview__progress">
           <span
-            class="tray-overview__progress-fill tray-overview__progress-fill--secondary"
+            class="tray-overview__progress-fill"
             :style="{ transform: `scaleX(${quotaScale(currentAccount.quota.weekly_percentage)})` }"
           />
         </div>
-        <p
-          v-if="currentAccount.quota.weekly_reset_time"
-          class="tray-overview__quota-note"
-        >
-          {{ formatResetDetailed(currentAccount.quota.weekly_reset_time) }}
-        </p>
       </article>
     </section>
 
@@ -148,6 +171,7 @@
 
     <footer class="tray-overview__footer">
       <span class="tray-overview__footer-note">
+        <span class="tray-overview__footer-dot" />
         {{ currentAccount?.freshness_description || snapshot.auth_label }}
       </span>
       <button
@@ -197,6 +221,12 @@ const profileLine = computed(() => {
 
 const quotaScale = (value: number) => Math.min(Math.max(value, 0), 100) / 100
 
+const quotaToneClass = (value: number) => {
+  if (value >= 85) return 'tray-overview__quota-card--critical'
+  if (value >= 60) return 'tray-overview__quota-card--warning'
+  return 'tray-overview__quota-card--healthy'
+}
+
 const formatReset = (timestamp: number) => {
   const now = Math.floor(Date.now() / 1000)
   const remaining = timestamp - now
@@ -229,7 +259,7 @@ const formatResetDetailed = (timestamp: number) => {
   display: flex;
   flex: 1;
   flex-direction: column;
-  gap: 14px;
+  gap: 16px;
   min-height: 0;
 }
 
@@ -237,104 +267,177 @@ const formatResetDetailed = (timestamp: number) => {
 .tray-overview__quota-card,
 .tray-overview__quota-status {
   border: 1px solid rgb(var(--color-border-default-rgb) / 42%);
-  border-radius: 18px;
-  background: rgb(var(--color-bg-base-rgb) / 50%);
+  border-radius: 22px;
+  background: linear-gradient(180deg, rgb(var(--color-bg-base-rgb) / 66%), rgb(var(--color-bg-base-rgb) / 48%));
 }
 
 .tray-overview__hero {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 14px;
+  padding: 16px;
 }
 
 .tray-overview__hero-main {
   display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.tray-overview__hero-lead {
+  display: flex;
   min-width: 0;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
 }
 
 .tray-overview__hero-icon {
   display: inline-flex;
+  width: 48px;
+  height: 48px;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
-  border-radius: 14px;
-  background: rgb(var(--color-accent-primary-rgb) / 14%);
-  color: var(--color-accent-primary);
   flex-shrink: 0;
+  border: 1px solid rgb(var(--color-accent-primary-rgb) / 18%);
+  border-radius: 16px;
+  background:
+    radial-gradient(circle at top, rgb(var(--color-accent-primary-rgb) / 16%), transparent 72%),
+    rgb(var(--color-bg-elevated-rgb) / 92%);
+  color: var(--color-accent-primary);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 12%);
 }
 
 .tray-overview__eyebrow {
   color: var(--color-text-muted);
-  font-size: 12px;
-  line-height: 1.4;
+  font-size: 11px;
+  line-height: 1.35;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.tray-overview__title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+  flex-wrap: wrap;
 }
 
 .tray-overview__headline {
   color: var(--color-text-primary);
-  font-size: 16px;
+  font-size: 1.28rem;
   font-weight: 700;
-  line-height: 1.4;
+  line-height: 1.08;
+  letter-spacing: -0.05em;
 }
 
-.tray-overview__meta {
-  display: flex;
-  max-width: 42%;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: 6px;
-}
-
-.tray-overview__pill {
+.tray-overview__plan-badge {
   display: inline-flex;
   align-items: center;
-  border: 1px solid rgb(var(--color-border-default-rgb) / 52%);
+  padding: 4px 8px;
+  border: 1px solid rgb(var(--color-accent-primary-rgb) / 20%);
   border-radius: 999px;
-  background: rgb(var(--color-bg-base-rgb) / 84%);
-  color: var(--color-text-muted);
-  padding: 5px 8px;
+  background: rgb(var(--color-accent-primary-rgb) / 10%);
+  color: var(--color-accent-primary);
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
 }
 
-.tray-overview__pill--accent {
-  border-color: rgb(var(--color-accent-primary-rgb) / 24%);
-  background: rgb(var(--color-accent-primary-rgb) / 10%);
-  color: var(--color-accent-primary);
+.tray-overview__support {
+  margin-top: 6px;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.tray-overview__route-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgb(var(--color-border-default-rgb) / 28%);
+}
+
+.tray-overview__route-item {
+  min-width: 0;
+}
+
+.tray-overview__route-label {
+  display: block;
+  color: var(--color-text-muted);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.tray-overview__route-value {
+  display: block;
+  margin-top: 5px;
+  color: var(--color-text-primary);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
 }
 
 .tray-overview__quota-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
+  gap: 12px;
 }
 
 .tray-overview__quota-card {
-  padding: 12px;
+  padding: 14px 14px 13px;
 }
 
-.tray-overview__quota-row {
+.tray-overview__quota-card--healthy {
+  border-color: rgb(89 123 83 / 26%);
+}
+
+.tray-overview__quota-card--healthy .tray-overview__progress-fill {
+  background: linear-gradient(90deg, rgb(96 143 88 / 100%), rgb(151 182 105 / 100%));
+}
+
+.tray-overview__quota-card--warning {
+  border-color: rgb(181 132 63 / 30%);
+}
+
+.tray-overview__quota-card--warning .tray-overview__progress-fill {
+  background: linear-gradient(90deg, rgb(202 140 58 / 100%), rgb(222 170 88 / 100%));
+}
+
+.tray-overview__quota-card--critical {
+  border-color: rgb(185 101 70 / 32%);
+}
+
+.tray-overview__quota-card--critical .tray-overview__progress-fill {
+  background: linear-gradient(90deg, rgb(193 103 73 / 100%), rgb(221 137 84 / 100%));
+}
+
+.tray-overview__quota-head {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  gap: 10px;
-  color: var(--color-text-secondary);
-  font-size: 12px;
+  gap: 12px;
 }
 
-.tray-overview__quota-row strong {
+.tray-overview__quota-label {
   color: var(--color-text-primary);
-  font-size: 13px;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.tray-overview__quota-value {
+  color: var(--color-text-primary);
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: -0.05em;
+  line-height: 1;
 }
 
 .tray-overview__progress {
-  margin-top: 8px;
+  margin-top: 12px;
   height: 6px;
   overflow: hidden;
   border-radius: 999px;
@@ -346,15 +449,10 @@ const formatResetDetailed = (timestamp: number) => {
   width: 100%;
   height: 100%;
   transform-origin: left center;
-  background: linear-gradient(90deg, rgb(16 185 129 / 100%), rgb(59 130 246 / 100%));
-}
-
-.tray-overview__progress-fill--secondary {
-  background: linear-gradient(90deg, rgb(245 158 11 / 100%), rgb(236 72 153 / 100%));
 }
 
 .tray-overview__quota-note {
-  margin-top: 8px;
+  margin-top: 4px;
   color: var(--color-text-muted);
   font-size: 11px;
   line-height: 1.4;
@@ -363,8 +461,8 @@ const formatResetDetailed = (timestamp: number) => {
 .tray-overview__quota-status {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 12px;
+  gap: 10px;
+  padding: 14px;
   color: var(--color-text-secondary);
   font-size: 12px;
   line-height: 1.45;
@@ -373,7 +471,7 @@ const formatResetDetailed = (timestamp: number) => {
 .tray-overview__actions {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
+  gap: 12px;
 }
 
 .tray-overview__action,
@@ -388,16 +486,22 @@ const formatResetDetailed = (timestamp: number) => {
   justify-content: center;
   gap: 8px;
   border: 1px solid rgb(var(--color-border-default-rgb) / 52%);
-  border-radius: 16px;
-  background: rgb(var(--color-bg-base-rgb) / 80%);
+  border-radius: 18px;
+  background: rgb(var(--color-bg-base-rgb) / 78%);
   color: var(--color-text-secondary);
-  padding: 11px 12px;
+  padding: 12px 13px;
   font-size: 12px;
   font-weight: 600;
 }
 
 .tray-overview__action--primary {
   grid-column: 1 / -1;
+  justify-content: space-between;
+  border-color: rgb(var(--color-accent-primary-rgb) / 22%);
+  background:
+    linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 98%), rgb(var(--color-bg-surface-rgb) / 88%));
+  color: var(--color-text-primary);
+  box-shadow: 0 14px 30px rgb(var(--color-accent-primary-rgb) / 8%);
 }
 
 .tray-overview__action:hover:not(:disabled),
@@ -418,7 +522,7 @@ const formatResetDetailed = (timestamp: number) => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
+  gap: 12px;
   color: var(--color-text-muted);
   font-size: 12px;
   line-height: 1.45;
@@ -442,13 +546,33 @@ const formatResetDetailed = (timestamp: number) => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
+  gap: 12px;
   margin-top: auto;
 }
 
 .tray-overview__footer-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   color: var(--color-text-muted);
   font-size: 11px;
   line-height: 1.4;
+}
+
+.tray-overview__footer-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: rgb(var(--color-accent-primary-rgb) / 72%);
+  box-shadow: 0 0 0 4px rgb(var(--color-accent-primary-rgb) / 10%);
+  flex-shrink: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tray-overview__action,
+  .tray-overview__secondary,
+  .tray-overview__link {
+    transition: none;
+  }
 }
 </style>

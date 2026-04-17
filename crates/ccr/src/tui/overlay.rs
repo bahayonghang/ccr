@@ -121,9 +121,7 @@ impl Overlay {
     /// Take the input value, draining the buffer
     pub fn take_input(&mut self) -> String {
         match self {
-            Self::Input { buffer, .. } | Self::RenameInput { buffer, .. } => {
-                std::mem::take(buffer)
-            }
+            Self::Input { buffer, .. } | Self::RenameInput { buffer, .. } => std::mem::take(buffer),
             _ => String::new(),
         }
     }

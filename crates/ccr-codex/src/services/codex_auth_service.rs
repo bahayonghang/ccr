@@ -11,6 +11,7 @@
 use super::codex_runtime_service::{
     CodexAuthCacheAction, CodexRuntimeCommitPlan, CodexRuntimeService,
 };
+use super::openai_quota_core::normalize_openai_plan;
 use crate::managers::codex_config::CodexConfigManager;
 use crate::models::PlatformConfig;
 use crate::models::{
@@ -361,6 +362,40 @@ impl CodexAuthService {
             .map(str::to_string)
     }
 
+    fn decode_jwt_claims(token: &str) -> Option<serde_json::Value> {
+        let parts: Vec<&str> = token.split('.').collect();
+        if parts.len() != 3 {
+            return None;
+        }
+
+        let decoded = crate::utils::decode_base64url(parts[1])?;
+        let payload = String::from_utf8(decoded).ok()?;
+        serde_json::from_str(&payload).ok()
+    }
+
+    fn claim_string(claims: Option<&serde_json::Value>, claim: &str) -> Option<String> {
+        claims
+            .and_then(|payload| payload.get(claim))
+            .and_then(|value| value.as_str())
+            .map(str::to_string)
+    }
+
+    fn extract_plan_type_from_auth(&self, auth: &CodexAuthJson) -> Option<String> {
+        let tokens = auth.tokens.as_ref()?;
+        let access_claims = tokens
+            .access_token
+            .as_deref()
+            .and_then(Self::decode_jwt_claims);
+        let id_claims = tokens.id_token.as_deref().and_then(Self::decode_jwt_claims);
+
+        Self::claim_string(access_claims.as_ref(), "chatgpt_plan_type")
+            .or_else(|| Self::claim_string(access_claims.as_ref(), "plan"))
+            .or_else(|| Self::claim_string(id_claims.as_ref(), "chatgpt_plan_type"))
+            .or_else(|| Self::claim_string(id_claims.as_ref(), "plan"))
+            .map(|value| normalize_openai_plan(&value))
+            .filter(|value| !value.is_empty())
+    }
+
     fn auth_json_to_raw_map(
         auth: &CodexAuthJson,
     ) -> Result<serde_json::Map<String, serde_json::Value>> {
@@ -604,6 +639,7 @@ impl CodexAuthService {
         let account_id = self.resolve_account_id_from_auth(&docs.auth, &docs.raw);
 
         let email = self.extract_email_from_jwt(&docs.auth);
+        let plan_type = self.extract_plan_type_from_auth(&docs.auth);
 
         let last_refresh = docs
             .auth
@@ -622,6 +658,7 @@ impl CodexAuthService {
             account_id,
             auth_method,
             email,
+            plan_type,
             last_refresh,
             freshness,
         })
@@ -880,6 +917,7 @@ impl CodexAuthService {
             api_base_url: None,
             api_provider_name: None,
             email: current_info.email.map(|e| self.mask_email(&e)),
+            plan_type: current_info.plan_type,
             saved_at: Utc::now(),
             last_used: Some(Utc::now()),
             last_refresh: current_info.last_refresh,
@@ -927,6 +965,7 @@ impl CodexAuthService {
         let email = self
             .extract_email_from_jwt(&auth)
             .map(|value| self.mask_email(&value));
+        let plan_type = self.extract_plan_type_from_auth(&auth);
         let last_refresh = auth
             .last_refresh
             .as_deref()
@@ -944,6 +983,7 @@ impl CodexAuthService {
                 .map(|value| value.trim().to_string())
                 .filter(|value| !value.is_empty()),
             email,
+            plan_type,
             saved_at: Utc::now(),
             last_used: Some(Utc::now()),
             last_refresh,
@@ -1020,6 +1060,7 @@ impl CodexAuthService {
                 name: "default".to_string(),
                 description: Some("(未保存的当前登录)".to_string()),
                 email: info.email.clone().map(|e| self.mask_email(&e)),
+                plan_type: info.plan_type.clone(),
                 is_current: true,
                 is_virtual: true,
                 saved_at: None,
@@ -1048,6 +1089,10 @@ impl CodexAuthService {
                 name: name.clone(),
                 description: account.description.clone(),
                 email: account.email.clone(),
+                plan_type: account
+                    .plan_type
+                    .clone()
+                    .or_else(|| self.load_saved_account_plan_type(name)),
                 is_current,
                 is_virtual: false,
                 saved_at: Some(account.saved_at),
@@ -1404,6 +1449,13 @@ impl CodexAuthService {
         super::codex_registry_store::CodexRegistryStore::new(&self.ccr_codex_dir)
     }
 
+    fn load_saved_account_plan_type(&self, name: &str) -> Option<String> {
+        let auth_path = self.account_auth_path(name);
+        let raw = self.load_auth_raw_map(&auth_path).ok()?;
+        let auth: CodexAuthJson = serde_json::from_value(serde_json::Value::Object(raw)).ok()?;
+        self.extract_plan_type_from_auth(&auth)
+    }
+
     pub fn update_account_description(
         &self,
         name: &str,
@@ -1481,9 +1533,8 @@ impl CodexAuthService {
 
             let conflict_auth = self.account_auth_path(new_name);
             if conflict_auth.exists() {
-                fs::remove_file(&conflict_auth).map_err(|e| {
-                    CcrError::ConfigError(format!("删除冲突 auth 文件失败: {}", e))
-                })?;
+                fs::remove_file(&conflict_auth)
+                    .map_err(|e| CcrError::ConfigError(format!("删除冲突 auth 文件失败: {}", e)))?;
             }
 
             registry.accounts.shift_remove(new_name);
@@ -1508,9 +1559,8 @@ impl CodexAuthService {
                         rename_err, copy_err
                     ))
                 })?;
-                fs::remove_file(&src_path).map_err(|e| {
-                    CcrError::ConfigError(format!("清理旧 auth 文件失败: {}", e))
-                })?;
+                fs::remove_file(&src_path)
+                    .map_err(|e| CcrError::ConfigError(format!("清理旧 auth 文件失败: {}", e)))?;
             }
             crate::utils::ensure_private_permissions(&dst_path);
         }
@@ -1544,9 +1594,8 @@ impl CodexAuthService {
 
         self.save_registry(&registry)?;
 
-        let updated = renamed_account.ok_or_else(|| {
-            CcrError::ConfigError("rename 内部错误：未找到重命名后的账号".into())
-        })?;
+        let updated = renamed_account
+            .ok_or_else(|| CcrError::ConfigError("rename 内部错误：未找到重命名后的账号".into()))?;
 
         debug!("已重命名 Codex 账号: {} -> {}", old_name, new_name);
         Ok(updated)
@@ -1744,6 +1793,10 @@ impl CodexAuthService {
                     api_base_url: account.api_base_url.clone(),
                     api_provider_name: account.api_provider_name.clone(),
                     email: account.email.clone(),
+                    plan_type: account
+                        .plan_type
+                        .clone()
+                        .or_else(|| self.load_saved_account_plan_type(name)),
                     saved_at: account.saved_at,
                     last_used: account.last_used,
                     last_refresh: account.last_refresh,
@@ -1977,6 +2030,7 @@ impl CodexAuthService {
                 api_base_url: import_account.api_base_url,
                 api_provider_name: import_account.api_provider_name,
                 email: import_account.email,
+                plan_type: import_account.plan_type,
                 saved_at: import_account.saved_at,
                 last_used: import_account.last_used,
                 last_refresh: import_account.last_refresh,
@@ -2049,6 +2103,18 @@ mod tests {
                 "last_refresh": "{}"
             }}"#,
             account_id, last_refresh
+        )
+    }
+
+    fn fake_jwt(payload: serde_json::Value) -> String {
+        let header = r#"{"alg":"none","typ":"JWT"}"#;
+        format!(
+            "{}.{}.signature",
+            base64::Engine::encode(&base64::engine::general_purpose::URL_SAFE_NO_PAD, header),
+            base64::Engine::encode(
+                &base64::engine::general_purpose::URL_SAFE_NO_PAD,
+                payload.to_string()
+            )
         )
     }
 
@@ -2452,6 +2518,7 @@ mod tests {
                 api_base_url: None,
                 api_provider_name: None,
                 email: Some("tes***@example.com".to_string()),
+                plan_type: None,
                 saved_at: Utc::now(),
                 last_used: None,
                 last_refresh: None,
@@ -2912,9 +2979,7 @@ requires_openai_auth = true
         )
         .unwrap();
 
-        service
-            .save_current("src", None, None, false)
-            .unwrap();
+        service.save_current("src", None, None, false).unwrap();
         service.rename_account("src", "dst", false).unwrap();
 
         let registry = service.load_registry().unwrap();
@@ -2946,9 +3011,7 @@ requires_openai_auth = true
         .unwrap();
 
         service.save_current("alpha", None, None, false).unwrap();
-        service
-            .save_current("beta", None, None, true)
-            .unwrap();
+        service.save_current("beta", None, None, true).unwrap();
 
         let result = service.rename_account("alpha", "beta", false);
         assert!(result.is_err());
@@ -3162,6 +3225,63 @@ requires_openai_auth = true
         assert!(email.is_none());
     }
 
+    #[test]
+    fn test_extract_plan_type_prefers_access_token_claims() {
+        let (service, _ccr, _codex) = create_test_service();
+
+        let auth = CodexAuthJson {
+            openai_api_key: None,
+            tokens: Some(CodexAuthTokens {
+                id_token: Some(fake_jwt(json!({
+                    "plan": "TEAM"
+                }))),
+                access_token: Some(fake_jwt(json!({
+                    "chatgpt_plan_type": "PRO_20X"
+                }))),
+                refresh_token: None,
+                account_id: Some("test-id".to_string()),
+            }),
+            last_refresh: None,
+        };
+
+        let plan_type = service.extract_plan_type_from_auth(&auth);
+        assert_eq!(plan_type.as_deref(), Some("pro 20x"));
+    }
+
+    #[test]
+    fn test_save_current_persists_plan_type_from_runtime_tokens() {
+        let (service, _ccr, codex) = create_test_service();
+
+        let auth_path = codex.path().join("auth.json");
+        let auth_json = json!({
+            "tokens": {
+                "id_token": fake_jwt(json!({
+                    "email": "test@example.com",
+                    "sub": "subject-123"
+                })),
+                "access_token": fake_jwt(json!({
+                    "chatgpt_plan_type": "TEAM"
+                })),
+                "refresh_token": "rt_test",
+                "account_id": "acc-team"
+            },
+            "last_refresh": "2026-01-08T03:09:53.894843900Z"
+        });
+        fs::write(
+            &auth_path,
+            serde_json::to_string_pretty(&auth_json).unwrap(),
+        )
+        .unwrap();
+
+        service.save_current("team", None, None, false).unwrap();
+
+        let registry = service.load_registry().unwrap();
+        assert_eq!(registry.accounts["team"].plan_type.as_deref(), Some("team"));
+
+        let items = service.list_accounts().unwrap();
+        assert_eq!(items[0].plan_type.as_deref(), Some("team"));
+    }
+
     // ==================== 进程检测测试 ====================
 
     #[test]
@@ -3221,6 +3341,7 @@ requires_openai_auth = true
                 api_base_url: None,
                 api_provider_name: None,
                 email: Some("tes***@example.com".to_string()),
+                plan_type: None,
                 saved_at: Utc::now(),
                 last_used: None,
                 last_refresh: None,
@@ -3254,6 +3375,7 @@ requires_openai_auth = true
                 api_base_url: None,
                 api_provider_name: None,
                 email: Some("tes***@example.com".to_string()),
+                plan_type: None,
                 saved_at: Utc::now(),
                 last_used: None,
                 last_refresh: None,

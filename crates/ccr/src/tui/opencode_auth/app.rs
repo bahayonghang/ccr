@@ -1071,6 +1071,7 @@ mod tests {
                 api_base_url: None,
                 api_provider_name: None,
                 email: None,
+                plan_type: None,
                 saved_at: Utc::now(),
                 last_used: None,
                 last_refresh: Some(Utc::now()),

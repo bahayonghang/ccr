@@ -91,6 +91,21 @@ pub(crate) struct OpenAiQuotaFetchOutcome {
     pub(crate) quota: CodexQuota,
 }
 
+/// 统一格式化 OpenAI 账号类型标签。
+///
+/// 示例：
+/// - `PLUS` / `plus` -> `plus`
+/// - `TEAM` -> `team`
+/// - `PRO_20X` / `pro-20x` -> `pro 20x`
+pub(crate) fn normalize_openai_plan(plan: &str) -> String {
+    plan.trim()
+        .replace(['_', '-'], " ")
+        .split_whitespace()
+        .map(|segment| segment.to_ascii_lowercase())
+        .collect::<Vec<_>>()
+        .join(" ")
+}
+
 #[derive(Debug, Clone)]
 struct CachedQuotaEntry {
     outcome: OpenAiQuotaFetchOutcome,
@@ -453,7 +468,11 @@ impl OpenAiQuotaCore {
             weekly_reset_time,
             weekly_window_minutes,
             weekly_window_present: Some(secondary.is_some()),
-            plan_type: usage.plan_type.clone(),
+            plan_type: usage
+                .plan_type
+                .as_deref()
+                .map(normalize_openai_plan)
+                .filter(|value| !value.is_empty()),
             raw_data,
         })
     }
@@ -629,6 +648,14 @@ mod tests {
             OpenAiQuotaCore::format_reset_duration(now + 49 * 3600),
             "2d1h"
         );
+    }
+
+    #[test]
+    fn normalize_openai_plan_formats_common_variants() {
+        assert_eq!(normalize_openai_plan("PLUS"), "plus");
+        assert_eq!(normalize_openai_plan("TEAM"), "team");
+        assert_eq!(normalize_openai_plan("PRO_20X"), "pro 20x");
+        assert_eq!(normalize_openai_plan("pro-20x"), "pro 20x");
     }
 
     #[test]

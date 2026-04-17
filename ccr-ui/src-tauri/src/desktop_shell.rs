@@ -18,7 +18,7 @@ pub const TRAY_ICON_ID: &str = "ccr-tray";
 pub const TRAY_PANEL_WINDOW_LABEL: &str = "codex-tray-panel";
 
 const MAIN_WINDOW_LABEL: &str = "main";
-const TRAY_PANEL_WIDTH: i32 = 420;
+const TRAY_PANEL_WIDTH: i32 = 456;
 const TRAY_PANEL_HEIGHT: i32 = 620;
 const TRAY_PANEL_MARGIN: i32 = 12;
 

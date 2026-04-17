@@ -28,12 +28,7 @@ struct CodexAuthRenameOutput {
 /// * `new_name` - 目标新名称
 /// * `force`    - 当新名称已存在时是否强制覆盖
 /// * `json`     - 是否以 JSON 格式输出
-pub async fn rename_command(
-    old_name: &str,
-    new_name: &str,
-    force: bool,
-    json: bool,
-) -> Result<()> {
+pub async fn rename_command(old_name: &str, new_name: &str, force: bool, json: bool) -> Result<()> {
     let service = CodexAuthService::new()?;
     let updated = service
         .rename_account(old_name, new_name, force)
@@ -41,10 +36,7 @@ pub async fn rename_command(
             // 常见冲突错误补充 --force 提示
             let msg = e.to_string();
             if !force && msg.contains("已存在") {
-                CcrError::ConfigError(format!(
-                    "{}\n提示: 使用 --force 覆盖同名账号",
-                    msg
-                ))
+                CcrError::ConfigError(format!("{}\n提示: 使用 --force 覆盖同名账号", msg))
             } else {
                 e
             }

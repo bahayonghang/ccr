@@ -94,9 +94,9 @@ enum AccountColumn {
     Status,
     Account,
     Email,
+    Plan,
     SavedAt,
     ExpiresAt,
-    Description,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -120,7 +120,7 @@ impl AccountTableLayout {
         let width = usize::from(self.resolved_width(column));
 
         match column {
-            AccountColumn::Account | AccountColumn::Email | AccountColumn::Description => width,
+            AccountColumn::Account | AccountColumn::Email | AccountColumn::Plan => width,
             _ => width,
         }
     }
@@ -329,7 +329,7 @@ fn account_table_layout(inner_width: u16) -> AccountTableLayout {
                 AccountColumn::Status,
                 AccountColumn::Account,
                 AccountColumn::Email,
-                AccountColumn::SavedAt,
+                AccountColumn::Plan,
                 AccountColumn::ExpiresAt,
             ],
             vec![
@@ -348,9 +348,9 @@ fn account_table_layout(inner_width: u16) -> AccountTableLayout {
             AccountColumn::Status,
             AccountColumn::Account,
             AccountColumn::Email,
+            AccountColumn::Plan,
             AccountColumn::SavedAt,
             AccountColumn::ExpiresAt,
-            AccountColumn::Description,
         ],
         vec![
             Constraint::Length(4),
@@ -358,7 +358,7 @@ fn account_table_layout(inner_width: u16) -> AccountTableLayout {
             Constraint::Length(24),
             Constraint::Length(10),
             Constraint::Length(10),
-            Constraint::Min(12),
+            Constraint::Length(10),
         ],
         inner_width,
     )
@@ -415,9 +415,9 @@ fn account_header_cell(column: &AccountColumn) -> Cell<'static> {
         AccountColumn::Status => "状态",
         AccountColumn::Account => "账号",
         AccountColumn::Email => "邮箱",
+        AccountColumn::Plan => "类型",
         AccountColumn::SavedAt => "保存",
         AccountColumn::ExpiresAt => "到期",
-        AccountColumn::Description => "备注",
     };
 
     Cell::from(label.to_string())
@@ -477,6 +477,20 @@ fn account_cell(
                 },
             )))
         }
+        AccountColumn::Plan => {
+            let plan = truncate_text(
+                account.plan_type.as_deref().unwrap_or("-"),
+                layout.text_width(AccountColumn::Plan),
+            );
+            Cell::from(Line::from(Span::styled(
+                plan,
+                if is_selected {
+                    Style::default().fg(theme::FG_PRIMARY)
+                } else {
+                    theme::muted_style()
+                },
+            )))
+        }
         AccountColumn::SavedAt => Cell::from(Line::from(Span::styled(
             format_saved_at(account),
             Style::default().fg(theme::FG_PRIMARY),
@@ -489,20 +503,6 @@ fn account_cell(
                     Style::default().fg(theme::FG_PRIMARY)
                 } else {
                     style
-                },
-            )))
-        }
-        AccountColumn::Description => {
-            let description = truncate_text(
-                account.description.as_deref().unwrap_or("-"),
-                layout.text_width(AccountColumn::Description),
-            );
-            Cell::from(Line::from(Span::styled(
-                description,
-                if is_selected {
-                    Style::default().fg(theme::FG_SECONDARY)
-                } else {
-                    theme::muted_style()
                 },
             )))
         }
@@ -734,10 +734,13 @@ fn draw_usage_panel(f: &mut Frame, area: Rect, app: &CodexAuthApp) {
                         Span::styled(w_reset, theme::muted_style()),
                     ]));
 
-                    if let Some(ref plan) = quota.plan_type {
+                    if let Some(plan) = quota.plan_type.as_deref().or_else(|| {
+                        app.selected_account()
+                            .and_then(|account| account.plan_type.as_deref())
+                    }) {
                         content.push(Line::from(vec![
                             Span::styled("  订阅: ", Style::default().fg(theme::FG_PRIMARY)),
-                            Span::styled(plan.clone(), theme::info_style()),
+                            Span::styled(plan.to_string(), theme::info_style()),
                         ]));
                     }
                 } else if let Some(ref err) = aq.error {
@@ -872,6 +875,7 @@ fn account_snapshot_lines(account: &crate::models::CodexAuthItem) -> Vec<Line<'s
             state_style,
         ),
         detail_optional_line("Email:", account.email.as_deref(), theme::info_style()),
+        detail_optional_line("Plan:", account.plan_type.as_deref(), theme::info_style()),
         detail_line(
             "Freshness:",
             account.freshness.description(),
@@ -1162,6 +1166,7 @@ mod tests {
             name: "codexcn".to_string(),
             description: Some("Primary account".to_string()),
             email: Some("bah***@gmail.com".to_string()),
+            plan_type: Some("plus".to_string()),
             is_current: true,
             is_virtual: false,
             saved_at: Some(Utc.with_ymd_and_hms(2026, 4, 5, 12, 0, 0).unwrap()),
@@ -1225,7 +1230,7 @@ mod tests {
     }
 
     #[test]
-    fn account_table_layout_shows_description_on_wide_widths() {
+    fn account_table_layout_shows_plan_on_wide_widths() {
         let layout = account_table_layout(108);
         assert_eq!(
             layout.columns,
@@ -1233,9 +1238,9 @@ mod tests {
                 AccountColumn::Status,
                 AccountColumn::Account,
                 AccountColumn::Email,
+                AccountColumn::Plan,
                 AccountColumn::SavedAt,
                 AccountColumn::ExpiresAt,
-                AccountColumn::Description,
             ]
         );
         assert_eq!(layout.widths.len(), 6);
@@ -1248,7 +1253,7 @@ mod tests {
 
         assert_eq!(narrow.resolved_width(AccountColumn::Status), 4);
         assert_eq!(narrow.resolved_width(AccountColumn::Email), 38);
-        assert_eq!(wide.resolved_width(AccountColumn::Description), 37);
+        assert_eq!(wide.resolved_width(AccountColumn::Plan), 10);
     }
 
     #[test]
@@ -1265,11 +1270,13 @@ mod tests {
         let lines = account_snapshot_lines(&sample_account());
 
         assert!(plain_line_text(&lines[0]).contains("codexcn"));
-        assert!(plain_line_text(&lines[3]).contains("Token 状态良好"));
-        assert!(plain_line_text(&lines[6]).contains("Primary account"));
+        assert!(plain_line_text(&lines[3]).contains("plus"));
+        assert!(plain_line_text(&lines[4]).contains("Token 状态良好"));
+        assert!(plain_line_text(&lines[7]).contains("Primary account"));
         assert_eq!(lines[0].spans[0].style.fg, Some(theme::FG_SECONDARY));
         assert_eq!(lines[0].spans[1].style.fg, Some(theme::FG_SUCCESS));
         assert_eq!(lines[2].spans[1].style.fg, Some(theme::FG_INFO));
+        assert_eq!(lines[3].spans[1].style.fg, Some(theme::FG_INFO));
     }
 
     #[test]

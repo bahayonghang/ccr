@@ -1714,6 +1714,7 @@ requires_openai_auth = true
                         api_base_url: None,
                         api_provider_name: None,
                         email: None,
+                        plan_type: None,
                         saved_at: chrono::Utc::now(),
                         last_used: None,
                         last_refresh: None,

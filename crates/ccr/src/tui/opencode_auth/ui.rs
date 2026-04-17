@@ -426,7 +426,7 @@ fn account_header_cell(column: &AccountColumn) -> Cell<'static> {
         AccountColumn::Status => "状态",
         AccountColumn::Account => "账号",
         AccountColumn::Email => "邮箱",
-        AccountColumn::Plan => "Plan",
+        AccountColumn::Plan => "类型",
         AccountColumn::SavedAt => "保存",
         AccountColumn::ExpiresAt => "到期",
     };
@@ -756,10 +756,13 @@ fn draw_usage_panel(f: &mut Frame, area: Rect, app: &OpenCodeAuthApp) {
                         Span::styled(w_reset, theme::muted_style()),
                     ]));
 
-                    if let Some(ref plan) = quota.plan_type {
+                    if let Some(plan) = quota.plan_type.as_deref().or_else(|| {
+                        app.selected_account()
+                            .and_then(|account| account.plan_type.as_deref())
+                    }) {
                         content.push(Line::from(vec![
                             Span::styled("  订阅: ", Style::default().fg(theme::FG_PRIMARY)),
-                            Span::styled(plan.clone(), theme::info_style()),
+                            Span::styled(plan.to_string(), theme::info_style()),
                         ]));
                     }
                 } else if let Some(ref err) = aq.error {

@@ -2,7 +2,7 @@
   <main class="codex-tray-panel">
     <section class="codex-tray-panel__shell">
       <header class="codex-tray-panel__header">
-        <div>
+        <div class="codex-tray-panel__header-copy">
           <p class="codex-tray-panel__eyebrow">
             CCR Desktop
           </p>
@@ -13,6 +13,7 @@
         <button
           type="button"
           class="codex-tray-panel__icon-button"
+          title="Refresh"
           :disabled="loading"
           @click="loadSnapshot(true)"
         >
@@ -27,6 +28,7 @@
       <div
         v-if="error"
         class="codex-tray-panel__callout codex-tray-panel__callout--danger"
+        aria-live="polite"
       >
         <SIcon
           name="AlertTriangle"
@@ -104,59 +106,66 @@ const {
 <style scoped>
 .codex-tray-panel {
   min-height: 100vh;
-  padding: 12px;
+  padding: 14px;
   background:
-    radial-gradient(circle at top, rgb(var(--color-accent-primary-rgb) / 10%), transparent 48%),
+    radial-gradient(circle at 14% 0%, rgb(var(--color-accent-primary-rgb) / 10%), transparent 28%),
+    radial-gradient(circle at 100% 100%, rgb(var(--color-accent-primary-rgb) / 6%), transparent 22%),
     rgb(var(--color-bg-base-rgb) / 100%);
 }
 
 .codex-tray-panel__shell {
   display: flex;
-  min-height: calc(100vh - 24px);
+  min-height: calc(100vh - 28px);
   flex-direction: column;
-  gap: 14px;
+  gap: 16px;
   overflow: hidden;
   border: 1px solid rgb(var(--color-border-default-rgb) / 44%);
-  border-radius: 24px;
+  border-radius: 28px;
   background:
-    linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 96%), rgb(var(--color-bg-surface-rgb) / 92%));
+    linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 97%), rgb(var(--color-bg-surface-rgb) / 92%));
   box-shadow:
-    0 24px 56px rgb(32 28 24 / 18%),
+    0 30px 68px rgb(32 28 24 / 18%),
     inset 0 1px 0 rgb(255 255 255 / 10%);
-  padding: 14px;
+  padding: 16px;
 }
 
 .codex-tray-panel__header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
+  gap: 12px;
+}
+
+.codex-tray-panel__header-copy {
+  min-width: 0;
 }
 
 .codex-tray-panel__eyebrow {
   color: var(--color-text-muted);
   font-size: 11px;
   font-weight: 600;
-  letter-spacing: 0.18em;
+  letter-spacing: 0.22em;
   text-transform: uppercase;
 }
 
 .codex-tray-panel__title {
   color: var(--color-text-primary);
-  font-size: 1.1rem;
+  margin-top: 2px;
+  font-size: 1.42rem;
   font-weight: 700;
-  letter-spacing: -0.04em;
+  letter-spacing: -0.05em;
+  line-height: 1.05;
 }
 
 .codex-tray-panel__icon-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 34px;
-  height: 34px;
+  width: 38px;
+  height: 38px;
   border: 1px solid rgb(var(--color-border-default-rgb) / 52%);
   border-radius: 999px;
-  background: rgb(var(--color-bg-base-rgb) / 80%);
+  background: rgb(var(--color-bg-base-rgb) / 72%);
   color: var(--color-text-secondary);
   transition: border-color 0.18s ease, background-color 0.18s ease, color 0.18s ease, transform 0.18s ease;
 }
@@ -176,11 +185,11 @@ const {
 .codex-tray-panel__callout {
   display: flex;
   align-items: flex-start;
-  gap: 8px;
+  gap: 10px;
   border: 1px solid rgb(var(--color-border-default-rgb) / 42%);
-  border-radius: 18px;
-  background: rgb(var(--color-bg-base-rgb) / 48%);
-  padding: 12px;
+  border-radius: 20px;
+  background: rgb(var(--color-bg-base-rgb) / 52%);
+  padding: 13px 14px;
   color: var(--color-text-secondary);
   font-size: 12px;
   line-height: 1.45;
@@ -190,5 +199,11 @@ const {
   border-color: rgb(var(--color-danger-rgb) / 26%);
   background: rgb(var(--color-danger-rgb) / 10%);
   color: var(--color-danger);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .codex-tray-panel__icon-button {
+    transition: none;
+  }
 }
 </style>
