@@ -198,6 +198,26 @@ fn main() {
             // 注册 shutdown notify，供退出时通知后台任务收尾。
             app.manage(shutdown_notify);
 
+            // skills_ext 回收站：启动时 fire-and-forget 清理过期条目（> 7 天）。
+            // 失败不影响应用启动；日志级别 warn 便于观察。
+            tauri::async_runtime::spawn(async move {
+                match tokio::task::spawn_blocking(|| {
+                    ccr_skills::skills_ext::FsTrashStore::open()
+                        .and_then(|store| store.purge_expired())
+                })
+                .await
+                {
+                    Ok(Ok(0)) => tracing::debug!("[skills_ext] 回收站无过期条目"),
+                    Ok(Ok(n)) => tracing::info!("[skills_ext] 启动时清理了 {n} 条过期回收站条目"),
+                    Ok(Err(error)) => {
+                        tracing::warn!("[skills_ext] 回收站清理失败: {error}")
+                    }
+                    Err(join_error) => {
+                        tracing::warn!("[skills_ext] 回收站清理任务 join 失败: {join_error}")
+                    }
+                }
+            });
+
             tracing::info!("[app] setup complete");
             Ok(())
         })

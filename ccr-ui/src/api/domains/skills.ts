@@ -18,4 +18,17 @@ export {
   skillsSourceSync,
   skillsSourcesList,
   skillsSync,
+  // skills_ext Phase 5 — versioning / trash / toggle
+  skillsVersionList,
+  skillsVersionGet,
+  skillsVersionSnapshot,
+  skillsVersionDiff,
+  skillsVersionRollback,
+  skillsTrashList,
+  skillsTrashSoftDelete,
+  skillsTrashRestore,
+  skillsTrashPurge,
+  skillsToggleSet,
+  skillsToggleListDisabled,
+  skillsTaxonomyAnalyze,
 } from '../tauri'

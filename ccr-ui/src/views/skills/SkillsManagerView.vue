@@ -1,5 +1,23 @@
 <template>
   <div class="skills-manager-view">
+    <!-- P1-6 接入：Trash 抽屉入口 + 面板 -->
+    <div class="skills-manager-view__trash-bar">
+      <button
+        type="button"
+        class="skills-manager-view__trash-toggle"
+        :aria-expanded="showTrash"
+        @click="showTrash = !showTrash"
+      >
+        {{ showTrash ? '▼' : '▶' }} Trash
+      </button>
+    </div>
+    <SkillTrashPanel
+      v-if="showTrash"
+      class="skills-manager-view__trash-panel"
+      @restored="handleRestored"
+      @purged="handlePurged"
+    />
+
     <MasterDetailLayout list-width="22rem">
       <template #list>
         <SkillListPanel
@@ -81,6 +99,7 @@ import SkillDetailPanel from '@/components/skills/SkillDetailPanel.vue'
 import SkillCreatePanel from '@/components/skills/SkillCreatePanel.vue'
 import SkillImportPanel from '@/components/skills/SkillImportPanel.vue'
 import SkillImportGithubPanel from '@/components/skills/SkillImportGithubPanel.vue'
+import SkillTrashPanel from '@/components/skills/SkillTrashPanel.vue'
 import { useSkillsManager } from '@/composables/useSkillsManager'
 import { useUIStore } from '@/stores/ui'
 import type { SkillRecord, Platform } from '@/types/skills'
@@ -121,6 +140,18 @@ const allPlatforms = computed(() => platforms?.value ?? [])
 // 批量删除
 const showBulkDeleteDialog = ref(false)
 const bulkDeleting = ref(false)
+
+// P1-6：回收站抽屉状态
+const showTrash = ref(false)
+
+function handleRestored(path: string) {
+  uiStore.showSuccess(`Restored skill to ${path}`)
+  void refresh()
+}
+
+function handlePurged(_trashId: string) {
+  uiStore.showSuccess('Trash entry purged')
+}
 
 const bulkDeleteItems = computed<BulkDeleteItem[]>(() =>
   selectedGroups.value.map(s => ({ key: s.id, label: s.name, badge: s.origin })),
@@ -192,5 +223,25 @@ async function handleImportGithub(url: string) {
 .skills-manager-view {
   height: 100%;
   overflow: hidden;
+}
+
+.skills-manager-view__trash-bar {
+  @apply flex items-center justify-end px-3 py-1;
+}
+
+.skills-manager-view__trash-toggle {
+  @apply rounded-full border border-border-default/55 px-3 py-1 text-xs text-text-secondary;
+
+  background: var(--surface-status-bg);
+}
+
+.skills-manager-view__trash-toggle[aria-expanded="true"] {
+  @apply text-text-primary;
+
+  border-color: rgb(var(--color-accent-primary-rgb) / 40%);
+}
+
+.skills-manager-view__trash-panel {
+  @apply mx-3 my-2;
 }
 </style>

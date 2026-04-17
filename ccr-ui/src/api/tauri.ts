@@ -3290,6 +3290,78 @@ export const skillsPickFolder = async <T = UnknownRecord>(): Promise<T> => {
   return invoke('skills_pick_folder')
 }
 
+// ============================================================================
+// skills_ext — Phase 5: 版本历史 / 回收站 / 启用禁用
+// ============================================================================
+
+export const skillsVersionList = async <T = UnknownRecord>(installPath: string): Promise<T> => {
+  return invoke('skills_version_list', { installPath })
+}
+
+export const skillsVersionGet = async <T = UnknownRecord>(
+  installPath: string,
+  versionId: string
+): Promise<T> => {
+  return invoke('skills_version_get', { installPath, versionId })
+}
+
+export const skillsVersionSnapshot = async <T = UnknownRecord>(
+  installPath: string,
+  skillName: string,
+  message: string,
+  source: 'auto' | 'manual' = 'manual'
+): Promise<T> => {
+  return invoke('skills_version_snapshot', { installPath, skillName, message, source })
+}
+
+export const skillsVersionDiff = async <T = UnknownRecord>(
+  installPath: string,
+  oldId: string,
+  newId: string
+): Promise<T> => {
+  return invoke('skills_version_diff', { installPath, oldId, newId })
+}
+
+export const skillsVersionRollback = async <T = UnknownRecord>(
+  installPath: string,
+  versionId: string
+): Promise<T> => {
+  return invoke('skills_version_rollback', { installPath, versionId })
+}
+
+export const skillsTrashList = async <T = UnknownRecord>(): Promise<T> => {
+  return invoke('skills_trash_list')
+}
+
+export const skillsTrashSoftDelete = async <T = UnknownRecord>(
+  installPath: string,
+  skillName: string
+): Promise<T> => {
+  return invoke('skills_trash_soft_delete', { installPath, skillName })
+}
+
+export const skillsTrashRestore = async <T = UnknownRecord>(trashId: string): Promise<T> => {
+  return invoke('skills_trash_restore', { trashId })
+}
+
+export const skillsTrashPurge = async (trashId: string): Promise<boolean> => {
+  return invoke('skills_trash_purge', { trashId })
+}
+
+export const skillsToggleSet = async (skillName: string, enabled: boolean): Promise<boolean> => {
+  return invoke('skills_toggle_set', { skillName, enabled })
+}
+
+export const skillsToggleListDisabled = async (): Promise<string[]> => {
+  return invoke('skills_toggle_list_disabled')
+}
+
+export const skillsTaxonomyAnalyze = async <T = UnknownRecord>(
+  items: unknown[]
+): Promise<T> => {
+  return invoke('skills_taxonomy_analyze', { items })
+}
+
 // Legacy Skills aliases kept temporarily so remaining components compile during the refactor.
 export const deleteSkill = async <T = UnknownRecord>(skillId: string): Promise<T> => {
   return skillsRemoveSkill(skillId)

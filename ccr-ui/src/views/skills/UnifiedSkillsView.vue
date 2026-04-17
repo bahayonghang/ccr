@@ -332,6 +332,35 @@
               </div>
             </div>
           </section>
+
+          <!-- Phase 12 接入：智能分析（分类 + 合并建议） -->
+          <section
+            v-if="routeState.tab === 'inventory'"
+            class="panel"
+          >
+            <div class="panel__header">
+              <h2 class="panel__title">
+                Smart Analysis
+              </h2>
+              <button
+                class="panel__link"
+                :disabled="taxonomyLoading"
+                @click="runSmartAnalysis"
+              >
+                {{ taxonomyLoading ? 'Analyzing…' : 'Run' }}
+              </button>
+            </div>
+            <SkillCategoryFilter
+              v-if="taxonomyCategories.length > 0"
+              :categories="taxonomyCategories"
+              :selected-id="selectedCategoryId"
+              @select="selectedCategoryId = $event"
+            />
+            <SkillMergeSuggestionsPanel
+              v-if="taxonomyMergeSuggestions.length > 0"
+              :suggestions="taxonomyMergeSuggestions"
+            />
+          </section>
         </aside>
 
         <div class="console-main">
@@ -344,7 +373,7 @@
                 <h2 class="panel__title">
                   Inventory
                 </h2>
-                <span class="panel__link">{{ filteredSkills.length }} results</span>
+                <span class="panel__link">{{ visibleSkills.length }} results</span>
               </div>
 
               <div
@@ -354,7 +383,7 @@
                 <div :style="{ height: `${rowVirtualizer.getTotalSize()}px`, position: 'relative' }">
                   <div
                     v-for="virtualRow in rowVirtualizer.getVirtualItems()"
-                    :key="filteredSkills[virtualRow.index]?.id"
+                    :key="visibleSkills[virtualRow.index]?.id"
                     class="inventory-row"
                     :style="{ transform: `translateY(${virtualRow.start}px)` }"
                   >
@@ -362,37 +391,53 @@
                       :ref="measureElement"
                       :data-index="virtualRow.index"
                       class="skill-card"
-                      :class="{ 'skill-card--active': filteredSkills[virtualRow.index]?.id === selectedSkill?.id }"
-                      @click="handleSelectSkill(filteredSkills[virtualRow.index]?.id)"
+                      :class="{
+                        'skill-card--active': visibleSkills[virtualRow.index]?.id === selectedSkill?.id,
+                        'skill-card--conflict': visibleSkills[virtualRow.index] && isInConflict(visibleSkills[virtualRow.index].id),
+                        'skill-card--disabled': visibleSkills[virtualRow.index] && isDisabled(visibleSkills[virtualRow.index].name),
+                      }"
+                      @click="handleSelectSkill(visibleSkills[virtualRow.index]?.id)"
                     >
                       <div class="skill-card__head">
                         <div class="min-w-0">
                           <h3 class="truncate">
-                            {{ filteredSkills[virtualRow.index]?.name }}
+                            {{ visibleSkills[virtualRow.index]?.name }}
                           </h3>
                           <p
                             class="skill-card__desc"
-                            :title="filteredSkills[virtualRow.index]?.description ?? ''"
+                            :title="visibleSkills[virtualRow.index]?.description ?? ''"
                           >
-                            {{ formatSkillDescription(filteredSkills[virtualRow.index]?.description) }}
+                            {{ formatSkillDescription(visibleSkills[virtualRow.index]?.description) }}
                           </p>
                         </div>
-                        <span class="console-tab__count">{{ filteredSkills[virtualRow.index]?.installCount }}</span>
+                        <span class="console-tab__count">{{ visibleSkills[virtualRow.index]?.installCount }}</span>
                       </div>
                       <div class="skill-card__meta">
-                        <span class="badge">{{ filteredSkills[virtualRow.index]?.origin }}</span>
+                        <span class="badge">{{ visibleSkills[virtualRow.index]?.origin }}</span>
                         <span
-                          v-for="installation in filteredSkills[virtualRow.index]?.installations.slice(0, 2)"
+                          v-if="visibleSkills[virtualRow.index] && isInConflict(visibleSkills[virtualRow.index].id)"
+                          class="badge badge--conflict"
+                        >
+                          {{ t('skillsExt.badge.conflict') }}
+                        </span>
+                        <span
+                          v-if="visibleSkills[virtualRow.index] && isDisabled(visibleSkills[virtualRow.index].name)"
+                          class="badge badge--disabled"
+                        >
+                          {{ t('skillsExt.toggle.disabled') }}
+                        </span>
+                        <span
+                          v-for="installation in visibleSkills[virtualRow.index]?.installations.slice(0, 2)"
                           :key="installation.id"
                           class="badge"
                         >
                           {{ installation.platformName }}
                         </span>
                         <span
-                          v-if="(filteredSkills[virtualRow.index]?.installations.length ?? 0) > 2"
+                          v-if="(visibleSkills[virtualRow.index]?.installations.length ?? 0) > 2"
                           class="badge"
                         >
-                          +{{ (filteredSkills[virtualRow.index]?.installations.length ?? 0) - 2 }}
+                          +{{ (visibleSkills[virtualRow.index]?.installations.length ?? 0) - 2 }}
                         </span>
                       </div>
                     </button>
@@ -774,7 +819,12 @@ import { useRoute, useRouter } from 'vue-router'
 import PageHeaderCard from '@/components/PageHeaderCard.vue'
 import AsyncStatePanel from '@/components/ui/AsyncStatePanel.vue'
 import SIcon from '@/components/ui/SIcon.vue'
+import SkillCategoryFilter from '@/components/skills/SkillCategoryFilter.vue'
+import SkillMergeSuggestionsPanel from '@/components/skills/SkillMergeSuggestionsPanel.vue'
+import { useSkillTaxonomy } from '@/composables/useSkillTaxonomy'
+import { useSkillToggle } from '@/composables/useSkillToggle'
 import { useUnifiedSkills } from '@/composables/useUnifiedSkills'
+import { useI18n } from 'vue-i18n'
 import { useUIStore } from '@/stores/ui'
 import { PLATFORM_CONFIG } from '@/types/skills'
 import { getRuntimeUnavailableCopy } from '@/utils/runtimeState'
@@ -845,7 +895,7 @@ const editBuffer = ref('')
 const showFullDetailDescription = ref(false)
 let stopSkillsEvent: null | (() => void) = null
 const rowVirtualizer = useVirtualizer(computed(() => ({
-  count: filteredSkills.value.length,
+  count: visibleSkills.value.length,
   getScrollElement: () => inventoryScrollRef.value,
   estimateSize: () => 140,
   overscan: 6,
@@ -1218,6 +1268,51 @@ watch(
 
 let searchTimer = 0
 
+// Phase 12：智能分析（分类 + 合并建议 + 冲突）
+const {
+  categories: taxonomyCategories,
+  classifications: taxonomyClassifications,
+  mergeSuggestions: taxonomyMergeSuggestions,
+  loading: taxonomyLoading,
+  analyze,
+  isInConflict,
+} = useSkillTaxonomy()
+const selectedCategoryId = ref<string | null>(null)
+
+// Phase 13：禁用开关（基于 ~/.claude/settings.json permissions.deny[]）
+const { refresh: refreshDisabled, isDisabled } = useSkillToggle()
+
+const { t } = useI18n()
+
+// 分类映射：skillId -> categoryId，用于按分类筛选
+const classificationMap = computed(() => {
+  const map = new Map<string, string>()
+  for (const c of taxonomyClassifications.value) {
+    map.set(c.skillId, c.categoryId)
+  }
+  return map
+})
+
+// 最终可见列表：在 filteredSkills 基础上叠加 selectedCategoryId 过滤
+const visibleSkills = computed(() => {
+  if (!selectedCategoryId.value) return filteredSkills.value
+  const map = classificationMap.value
+  return filteredSkills.value.filter(skill => map.get(skill.id) === selectedCategoryId.value)
+})
+
+async function runSmartAnalysis() {
+  if (runtimeUnavailable.value) return
+  const items = filteredSkills.value.map((skill) => ({
+    id: skill.id,
+    name: skill.name,
+    description: skill.description ?? '',
+    frontmatterCategory: skill.category ?? null,
+    realPath: skill.installations?.[0]?.installPath ?? skill.id,
+  }))
+  await analyze(items)
+}
+
+// Phase 13：SkillCard 冲突徽章使用 isInConflict，禁用徽章使用 isDisabled
 onMounted(async () => {
   if (runtimeUnavailable.value) {
     return
@@ -1225,6 +1320,7 @@ onMounted(async () => {
 
   await initialize(false)
   await loadNpxStatus(true)
+  void refreshDisabled()
   if (routeState.value.tab === 'marketplace') {
     await loadMarketplace()
   }
@@ -1233,6 +1329,7 @@ onMounted(async () => {
     const { listen } = await import('@tauri-apps/api/event')
     stopSkillsEvent = await listen('skills-changed', async () => {
       await refresh(routeState.value.tab === 'marketplace')
+      void refreshDisabled()
     })
   }
 })
@@ -1561,6 +1658,30 @@ onUnmounted(() => {
 
   background: var(--surface-status-bg);
   border-color: var(--surface-status-border);
+}
+
+.badge--conflict {
+  @apply text-rose-100;
+
+  background-color: rgb(244 63 94 / 22%);
+  border-color: rgb(244 63 94 / 45%);
+}
+
+.badge--disabled {
+  @apply text-text-muted;
+
+  background-color: rgb(var(--color-bg-base-rgb) / 55%);
+  border-color: rgb(var(--color-border-default-rgb) / 55%);
+  opacity: 0.8;
+}
+
+.skill-card--conflict {
+  border-color: rgb(244 63 94 / 55%);
+  box-shadow: 0 0 0 1px rgb(244 63 94 / 25%), var(--elevation-1);
+}
+
+.skill-card--disabled {
+  opacity: 0.65;
 }
 
 .activity-row {

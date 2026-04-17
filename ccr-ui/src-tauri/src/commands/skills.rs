@@ -278,3 +278,280 @@ pub async fn skills_pick_folder(app: tauri::AppHandle) -> Result<FolderPickResul
     let path = rx.await.map_err(|error| format!("Dialog error: {error}"))?;
     Ok(FolderPickResult { path })
 }
+
+// ============================================================================
+// Phase 5 — skills_ext Tauri 命令层
+// 版本历史 / 回收站 / 启用禁用开关。领域逻辑全部落在 `ccr_skills::skills_ext`。
+// ============================================================================
+
+use ccr_skills::skills_ext::{
+    DiffResult, FsTrashStore, FsVersionStore, SnapshotSource, ToggleStore, TrashEntry, Version,
+    VersionMeta,
+};
+use std::path::PathBuf;
+
+fn map_versioning_error<T>(
+    result: Result<T, ccr_skills::skills_ext::VersioningError>,
+) -> Result<T, String> {
+    result.map_err(|e| e.to_string())
+}
+
+fn map_trash_error<T>(result: Result<T, ccr_skills::skills_ext::TrashError>) -> Result<T, String> {
+    result.map_err(|e| e.to_string())
+}
+
+fn map_toggle_error<T>(
+    result: Result<T, ccr_skills::skills_ext::ToggleError>,
+) -> Result<T, String> {
+    result.map_err(|e| e.to_string())
+}
+
+// ------------------- Version Store --------------------------
+
+#[tauri::command]
+pub async fn skills_version_list(install_path: String) -> Result<Vec<VersionMeta>, String> {
+    tokio::task::spawn_blocking(move || {
+        let store = map_versioning_error(FsVersionStore::open())?;
+        map_versioning_error(store.history(&PathBuf::from(install_path)))
+    })
+    .await
+    .map_err(map_join_error)?
+}
+
+#[tauri::command]
+pub async fn skills_version_get(
+    install_path: String,
+    version_id: String,
+) -> Result<Option<Version>, String> {
+    tokio::task::spawn_blocking(move || {
+        let store = map_versioning_error(FsVersionStore::open())?;
+        map_versioning_error(store.get(&PathBuf::from(install_path), &version_id))
+    })
+    .await
+    .map_err(map_join_error)?
+}
+
+#[tauri::command]
+pub async fn skills_version_snapshot(
+    install_path: String,
+    skill_name: String,
+    message: String,
+    source: Option<String>, // "auto" | "manual"；默认 manual
+) -> Result<VersionMeta, String> {
+    tokio::task::spawn_blocking(move || {
+        let store = map_versioning_error(FsVersionStore::open())?;
+        let snapshot_source = match source.as_deref() {
+            Some("auto") => SnapshotSource::Auto,
+            _ => SnapshotSource::Manual,
+        };
+        map_versioning_error(store.snapshot(
+            &PathBuf::from(install_path),
+            &skill_name,
+            &message,
+            snapshot_source,
+        ))
+    })
+    .await
+    .map_err(map_join_error)?
+}
+
+#[tauri::command]
+pub async fn skills_version_diff(
+    install_path: String,
+    old_id: String,
+    new_id: String,
+) -> Result<Option<DiffResult>, String> {
+    tokio::task::spawn_blocking(move || {
+        let store = map_versioning_error(FsVersionStore::open())?;
+        map_versioning_error(store.diff(&PathBuf::from(install_path), &old_id, &new_id))
+    })
+    .await
+    .map_err(map_join_error)?
+}
+
+#[tauri::command]
+pub async fn skills_version_rollback(
+    app: tauri::AppHandle,
+    install_path: String,
+    version_id: String,
+) -> Result<VersionMeta, String> {
+    let meta = tokio::task::spawn_blocking(move || {
+        let store = map_versioning_error(FsVersionStore::open())?;
+        map_versioning_error(store.rollback(&PathBuf::from(install_path), &version_id))
+    })
+    .await
+    .map_err(map_join_error)?;
+    // 回滚改写了 skill 目录，主动触发 watcher 刷新
+    let _ = crate::skills_watcher::reload(&app);
+    meta
+}
+
+// ------------------- Trash Store ----------------------------
+
+#[tauri::command]
+pub async fn skills_trash_list() -> Result<Vec<TrashEntry>, String> {
+    tokio::task::spawn_blocking(move || {
+        let store = map_trash_error(FsTrashStore::open())?;
+        map_trash_error(store.list())
+    })
+    .await
+    .map_err(map_join_error)?
+}
+
+#[tauri::command]
+pub async fn skills_trash_soft_delete(
+    app: tauri::AppHandle,
+    install_path: String,
+    skill_name: String,
+) -> Result<TrashEntry, String> {
+    let entry = tokio::task::spawn_blocking(move || {
+        let store = map_trash_error(FsTrashStore::open())?;
+        map_trash_error(store.move_to_trash(&PathBuf::from(install_path), &skill_name))
+    })
+    .await
+    .map_err(map_join_error)?;
+    // 源 skill 目录已被移走，watcher 感知变化
+    let _ = crate::skills_watcher::reload(&app);
+    entry
+}
+
+#[tauri::command]
+pub async fn skills_trash_restore(
+    app: tauri::AppHandle,
+    trash_id: String,
+) -> Result<String, String> {
+    let path = tokio::task::spawn_blocking(move || {
+        let store = map_trash_error(FsTrashStore::open())?;
+        map_trash_error(store.restore(&trash_id)).map(|p| p.to_string_lossy().into_owned())
+    })
+    .await
+    .map_err(map_join_error)?;
+    let _ = crate::skills_watcher::reload(&app);
+    path
+}
+
+#[tauri::command]
+pub async fn skills_trash_purge(trash_id: String) -> Result<bool, String> {
+    tokio::task::spawn_blocking(move || {
+        let store = map_trash_error(FsTrashStore::open())?;
+        map_trash_error(store.permanent_delete(&trash_id))
+    })
+    .await
+    .map_err(map_join_error)?
+}
+
+// ------------------- Toggle (permissions.deny) --------------
+
+#[tauri::command]
+pub async fn skills_toggle_set(skill_name: String, enabled: bool) -> Result<bool, String> {
+    tokio::task::spawn_blocking(move || {
+        let store = map_toggle_error(ToggleStore::open())?;
+        map_toggle_error(store.set_enabled(&skill_name, enabled))?;
+        Ok::<bool, String>(enabled)
+    })
+    .await
+    .map_err(map_join_error)?
+}
+
+#[tauri::command]
+pub async fn skills_toggle_list_disabled() -> Result<Vec<String>, String> {
+    tokio::task::spawn_blocking(move || {
+        let store = map_toggle_error(ToggleStore::open())?;
+        map_toggle_error(store.list_disabled())
+    })
+    .await
+    .map_err(map_join_error)?
+}
+
+// ------------------- Taxonomy / Conflicts / Health (Phase 6-7) ---
+
+use ccr_skills::skills_ext::{
+    CategorySummary as TaxonomyCategorySummary, Classification, ConflictGroup, HealthReport,
+    MergeSuggestion, SkillInput, classify_all as taxonomy_classify_all, compute_health,
+    detect_conflicts as scanner_detect_conflicts, enabled_plugin_install_locations,
+    merge_suggestions as taxonomy_merge_suggestions,
+};
+
+/// 前端 payload：用于分类/冲突/建议的最小字段。
+#[derive(serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TaxonomyInput {
+    pub id: String,
+    pub name: String,
+    #[serde(default)]
+    pub description: String,
+    #[serde(default)]
+    pub frontmatter_category: Option<String>,
+    #[serde(default)]
+    pub real_path: Option<String>,
+}
+
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TaxonomyResponse {
+    pub classifications: Vec<Classification>,
+    pub categories: Vec<TaxonomyCategorySummary>,
+    pub merge_suggestions: Vec<MergeSuggestion>,
+    pub conflicts: Vec<ConflictGroup>,
+    pub health: HealthReport,
+}
+
+#[tauri::command]
+pub async fn skills_taxonomy_analyze(
+    items: Vec<TaxonomyInput>,
+) -> Result<TaxonomyResponse, String> {
+    tokio::task::spawn_blocking(move || {
+        // 转 SkillInput（借用 items 字段）
+        let inputs: Vec<SkillInput> = items
+            .iter()
+            .map(|it| SkillInput {
+                id: &it.id,
+                name: &it.name,
+                description: &it.description,
+                frontmatter_category: it.frontmatter_category.as_deref(),
+            })
+            .collect();
+
+        let (classifications, categories) = taxonomy_classify_all(&inputs);
+        let merge = taxonomy_merge_suggestions(&inputs, &classifications);
+
+        // Conflicts：name + real_path，real_path 缺失时用 id 兜底保证唯一
+        let conflict_entries: Vec<(&str, &str, &str)> = items
+            .iter()
+            .map(|it| {
+                (
+                    it.id.as_str(),
+                    it.name.as_str(),
+                    it.real_path.as_deref().unwrap_or(it.id.as_str()),
+                )
+            })
+            .collect();
+        let conflicts = scanner_detect_conflicts(&conflict_entries);
+
+        // Health 汇总
+        let disabled_names: Vec<String> = match ccr_skills::skills_ext::ToggleStore::open() {
+            Ok(store) => store.list_disabled().unwrap_or_default(),
+            Err(_) => Vec::new(),
+        };
+        let plugin_count = dirs::home_dir()
+            .map(|home| enabled_plugin_install_locations(&home).len())
+            .unwrap_or(0);
+        let health = compute_health(
+            items.len(),
+            &conflicts,
+            &merge,
+            &disabled_names,
+            plugin_count,
+        );
+
+        Ok::<_, String>(TaxonomyResponse {
+            classifications,
+            categories,
+            merge_suggestions: merge,
+            conflicts,
+            health,
+        })
+    })
+    .await
+    .map_err(map_join_error)?
+}

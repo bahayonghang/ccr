@@ -1,6 +1,7 @@
 pub mod managers;
 pub mod models;
 pub mod services;
+pub mod skills_ext;
 
 pub use managers::builtin_prompts::{
     BuiltinPrompt, PromptCategory, PromptVariable, get_builtin_prompts, get_prompt_by_id,

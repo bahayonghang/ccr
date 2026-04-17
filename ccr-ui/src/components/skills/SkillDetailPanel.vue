@@ -147,14 +147,23 @@
         </div>
         <pre class="detail-content-preview">{{ content }}</pre>
       </section>
+
+      <!-- P1-6 UI 接入：版本历史面板（仅在有 installPath 时渲染） -->
+      <SkillVersionHistoryPanel
+        v-if="firstInstallPath"
+        :install-path="firstInstallPath"
+        :skill-name="skill.name"
+        @rolled-back="handleRollbackRefresh"
+      />
     </template>
   </div>
 </template>
 
 <script setup lang="ts">
-import { watch, ref } from 'vue'
+import { computed, watch, ref } from 'vue'
 import AgentIcons from '@/components/common/AgentIcons.vue'
 import SIcon from '@/components/ui/SIcon.vue'
+import SkillVersionHistoryPanel from '@/components/skills/SkillVersionHistoryPanel.vue'
 import type { SkillRecord, Platform } from '@/types/skills'
 
 const props = defineProps<{
@@ -163,13 +172,30 @@ const props = defineProps<{
   ensureContent: (skillId: string, installationId?: string | null, force?: boolean) => Promise<{ raw: string } | null>
 }>()
 
-defineEmits<{
+const emit = defineEmits<{
   remove: [skillId: string]
   removeInstallation: [skillId: string, installationId: string]
   sync: [skill: SkillRecord]
 }>()
 
+// 保留 `emit` 便于未来扩展向父组件派发 rollback 事件；当前仅内部消费
+void emit
+
 const content = ref<string | null>(null)
+
+// P1-6：版本历史/回滚使用 installPath 作为存储主键
+const firstInstallPath = computed<string | null>(
+  () => props.skill?.installations?.[0]?.installPath ?? null,
+)
+
+function handleRollbackRefresh() {
+  // 回滚后重新拉 content 预览，便于用户看到恢复结果
+  const id = props.skill?.id
+  if (!id) return
+  void props.ensureContent(id, props.skill?.installations?.[0]?.id, true).then((result) => {
+    content.value = result?.raw ?? null
+  })
+}
 
 watch(() => props.skill?.id, async (id) => {
   content.value = null
