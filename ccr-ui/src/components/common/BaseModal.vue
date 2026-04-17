@@ -200,7 +200,7 @@ const backdropClasses = computed(() => [
   'absolute inset-0',
   props.surface === 'solid'
     ? 'bg-black/40 dark:bg-black/60'
-    : 'bg-black/30 dark:bg-black/50 backdrop-blur-md',
+    : 'bg-black/30 dark:bg-black/60 backdrop-blur-md',
 ])
 
 // 模态框容器类
@@ -208,11 +208,11 @@ const modalClasses = computed(() => [
   // 基础样式
   'relative w-full overflow-hidden rounded-2xl',
   // 玻璃态效果
-  'bg-white/80 dark:bg-bg-card/90 backdrop-blur-xl backdrop-saturate-150',
+  'bg-white/80 dark:bg-bg-elevated/90 backdrop-blur-xl backdrop-saturate-150',
   'border border-border-color/50',
   'shadow-xl shadow-black/10',
   // 暗黑模式调整
-  'dark:bg-bg-card/90 dark:border-border-color/30',
+  'dark:border-border-color/30',
   'dark:shadow-2xl dark:shadow-black/30',
   surfaceClasses[props.surface],
   // 尺寸

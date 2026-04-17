@@ -129,7 +129,7 @@
               </div>
             </div>
 
-            <div class="rounded-3xl border border-border-default/20 bg-bg-card/70 p-5 shadow-xl shadow-black/10 backdrop-blur-xl">
+            <div class="rounded-3xl border border-border-default/20 bg-bg-elevated/70 p-5 shadow-xl shadow-black/10 backdrop-blur-xl">
               <div class="mb-4 flex flex-wrap items-center gap-3">
                 <div class="relative min-w-[260px] flex-1">
                   <SIcon
