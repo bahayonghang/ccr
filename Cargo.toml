@@ -14,7 +14,7 @@ default-members = ["crates/ccr"]
 resolver = "3"
 
 [workspace.package]
-version = "5.8.7"
+version = "5.8.8"
 
 [workspace.dependencies]
 # Async runtime
