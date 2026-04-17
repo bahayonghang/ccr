@@ -224,6 +224,20 @@
           />
         </button>
 
+        <!-- 重命名账户 -->
+        <button
+          v-if="!account.is_virtual"
+          class="card-action-btn hover:text-accent-primary hover:bg-accent-primary/10"
+          :title="$t('codex.auth.renameAccount')"
+          :disabled="disabled"
+          @click.stop="$emit('rename', account.name)"
+        >
+          <SIcon
+            name="Pencil"
+            size="w-4 h-4"
+          />
+        </button>
+
         <!-- 切换账户 -->
         <button
           v-if="!isCurrent && !account.is_expired"
@@ -313,6 +327,7 @@ defineEmits<{
   refresh: [name: string]
   tag: [name: string]
   export: [name: string]
+  rename: [name: string]
 }>()
 
 // ── 配额进度条颜色 ──

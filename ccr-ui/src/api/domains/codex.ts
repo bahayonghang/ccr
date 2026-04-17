@@ -43,6 +43,7 @@ export {
   saveCodexAuth,
   switchCodexAuth,
   deleteCodexAuth,
+  renameCodexAuth,
   codexOAuthLoginStart,
   codexOAuthLoginCompleted,
   codexOAuthLoginCancel,

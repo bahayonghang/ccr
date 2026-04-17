@@ -1186,6 +1186,15 @@ export const deleteCodexAuth = async <T = UnknownRecord>(name: string): Promise<
   return invoke('codex_delete_auth', { name })
 }
 
+/** 重命名 Codex Auth */
+export const renameCodexAuth = async <T = UnknownRecord>(
+  oldName: string,
+  newName: string,
+  force = false
+): Promise<T> => {
+  return invoke('codex_rename_auth', { oldName, newName, force })
+}
+
 /** 获取 Codex tray 紧凑快照 */
 export const getCodexTraySnapshot = async <T = UnknownRecord>(force?: boolean): Promise<T> => {
   return invoke('codex_get_tray_snapshot', { force })

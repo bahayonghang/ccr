@@ -139,6 +139,7 @@ macro_rules! generate_handler_common {
         codex::codex_save_auth,
         codex::codex_switch_auth,
         codex::codex_delete_auth,
+        codex::codex_rename_auth,
         codex::codex_detect_process,
         codex::codex_oauth_login_start,
         codex::codex_oauth_login_completed,

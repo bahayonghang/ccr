@@ -928,6 +928,44 @@ pub async fn codex_delete_auth(
     Ok(json!({ "success": true, "message": format!("Codex Auth 账号 '{name_resp}' 已成功删除") }))
 }
 
+/// 重命名指定账号
+///
+/// 同步迁移 auth 文件、registry 键顺序以及 usage_ledger 归因记录。
+/// 默认拒绝同名冲突，传入 `force=true` 时备份并覆盖占位账号。
+#[tauri::command]
+pub async fn codex_rename_auth(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    old_name: String,
+    new_name: String,
+    force: Option<bool>,
+) -> Result<Value, String> {
+    let old_resp = old_name.clone();
+    let new_resp = new_name.clone();
+    let force_flag = force.unwrap_or(false);
+
+    let account = tokio::task::spawn_blocking(move || -> Result<Value, String> {
+        let service =
+            CodexAuthService::new().map_err(|e| format!("初始化 Codex Auth 服务失败: {e}"))?;
+        let updated = service
+            .rename_account(&old_name, &new_name, force_flag)
+            .map_err(|e| format!("{e}"))?;
+        serde_json::to_value(&updated).map_err(|e| format!("序列化账号元数据失败: {e}"))
+    })
+    .await
+    .map_err(|e| format!("任务执行失败: {e}"))??;
+
+    invalidate_codex_dashboard_overview_cache(&state).await;
+    let _ = desktop_shell::refresh_codex_tray(&app, true).await;
+    Ok(json!({
+        "success": true,
+        "old_name": old_resp,
+        "new_name": new_resp,
+        "account": account,
+        "message": format!("已重命名 Codex Auth '{old_resp}' -> '{new_resp}'"),
+    }))
+}
+
 /// 检测运行中的 Codex 进程
 #[tauri::command]
 pub async fn codex_detect_process() -> Result<Value, String> {
