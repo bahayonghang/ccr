@@ -941,8 +941,9 @@ fn draw_help_bar(f: &mut Frame, area: Rect, app: &CodexAuthApp) {
         Some(Overlay::Confirm { .. }) => "y 确认删除 | n/Esc 取消",
         Some(Overlay::ImportCodexConfirm { .. }) => "y 确认 | n/Esc 取消",
         Some(Overlay::Input { .. }) => "Enter 确认 | Esc 取消",
+        Some(Overlay::RenameInput { .. }) => "Enter 保存 | Ctrl+F 强制覆盖 | Esc 取消",
         None => {
-            "↑/k 上移 | ↓/j 下移 | Enter 切换 | s 保存当前 | d 删除 | r 刷新 | R 修复 | b 配额 | q 退出"
+            "↑/k 上移 | ↓/j 下移 | Enter 切换 | s 保存当前 | n 重命名 | d 删除 | r 刷新 | R 修复 | b 配额 | q 退出"
         }
     };
 

@@ -1422,6 +1422,136 @@ impl CodexAuthService {
         Ok(updated)
     }
 
+    /// 重命名已保存的 Codex 账号
+    ///
+    /// 原子性地迁移 auth 文件、registry 键顺序以及 usage_ledger 归因记录，
+    /// 保证 auth.json 本身不变（因为账号身份由 account_id 决定，而非名称）。
+    ///
+    /// # 参数
+    /// * `old_name` - 当前账号名称（必须已存在）
+    /// * `new_name` - 目标新名称（通过 validate_account_name 校验）
+    /// * `force`    - 当 `new_name` 已被其他账号占用时是否强制覆盖
+    ///
+    /// # 行为
+    /// - `old_name == new_name` 时视为空操作并返回原账号信息
+    /// - `new_name` 冲突且 `force=false` 时返回 ConfigError
+    /// - `force=true` 时对被覆盖目标执行备份 + 删除，再执行重命名
+    /// - 迁移完成后同步：registry.accounts 键、current_auth 指针、usage_ledger 中的 account_name
+    pub fn rename_account(
+        &self,
+        old_name: &str,
+        new_name: &str,
+        force: bool,
+    ) -> Result<CodexAuthAccount> {
+        self.ensure_managed_auth_supported("重命名账号")?;
+
+        // 空操作：同名直接返回
+        if old_name == new_name {
+            let registry = self.load_registry()?;
+            return registry.accounts.get(old_name).cloned().ok_or_else(|| {
+                CcrError::ResourceNotFound(format!("Codex auth account '{}'", old_name))
+            });
+        }
+
+        // 校验目标名称
+        self.validate_account_name(new_name)?;
+
+        let mut registry = self.load_registry()?;
+
+        // 源账号必须存在
+        if !registry.accounts.contains_key(old_name) {
+            return Err(CcrError::ResourceNotFound(format!(
+                "Codex auth account '{}'",
+                old_name
+            )));
+        }
+
+        // 处理目标名称冲突
+        let needs_conflict_cleanup = registry.accounts.contains_key(new_name);
+        if needs_conflict_cleanup {
+            if !force {
+                return Err(CcrError::ConfigError(format!(
+                    "账号 '{}' 已存在，使用 force 覆盖或先删除",
+                    new_name
+                )));
+            }
+
+            // 备份即将被覆盖的目标，留下可恢复痕迹
+            let _ = self.backup_account_auth(new_name);
+
+            let conflict_auth = self.account_auth_path(new_name);
+            if conflict_auth.exists() {
+                fs::remove_file(&conflict_auth).map_err(|e| {
+                    CcrError::ConfigError(format!("删除冲突 auth 文件失败: {}", e))
+                })?;
+            }
+
+            registry.accounts.shift_remove(new_name);
+        }
+
+        // 备份源 auth 与 registry，再执行文件搬迁
+        let _ = self.backup_account_auth(old_name);
+        let _ = self.backup_registry();
+
+        let src_path = self.account_auth_path(old_name);
+        let dst_path = self.account_auth_path(new_name);
+        if src_path.exists() {
+            if let Some(parent) = dst_path.parent() {
+                fs::create_dir_all(parent)
+                    .map_err(|e| CcrError::ConfigError(format!("创建存储目录失败: {}", e)))?;
+            }
+            if let Err(rename_err) = fs::rename(&src_path, &dst_path) {
+                // 跨卷或锁定场景下的兼容回退：copy + remove
+                fs::copy(&src_path, &dst_path).map_err(|copy_err| {
+                    CcrError::ConfigError(format!(
+                        "移动 auth 文件失败 (rename: {}, copy: {})",
+                        rename_err, copy_err
+                    ))
+                })?;
+                fs::remove_file(&src_path).map_err(|e| {
+                    CcrError::ConfigError(format!("清理旧 auth 文件失败: {}", e))
+                })?;
+            }
+            crate::utils::ensure_private_permissions(&dst_path);
+        }
+
+        // 重建 accounts IndexMap，保持原插入顺序
+        let original_accounts = std::mem::take(&mut registry.accounts);
+        let mut rebuilt: indexmap::IndexMap<String, CodexAuthAccount> =
+            indexmap::IndexMap::with_capacity(original_accounts.len());
+        let mut renamed_account: Option<CodexAuthAccount> = None;
+        for (key, value) in original_accounts {
+            if key == old_name {
+                renamed_account = Some(value.clone());
+                rebuilt.insert(new_name.to_string(), value);
+            } else {
+                rebuilt.insert(key, value);
+            }
+        }
+        registry.accounts = rebuilt;
+
+        // 更新 current_auth 指针
+        if registry.current_auth.as_deref() == Some(old_name) {
+            registry.current_auth = Some(new_name.to_string());
+        }
+
+        // 同步 usage_ledger 中的 account_name，避免归因断层
+        for entry in registry.usage_ledger.iter_mut() {
+            if entry.account_name == old_name {
+                entry.account_name = new_name.to_string();
+            }
+        }
+
+        self.save_registry(&registry)?;
+
+        let updated = renamed_account.ok_or_else(|| {
+            CcrError::ConfigError("rename 内部错误：未找到重命名后的账号".into())
+        })?;
+
+        debug!("已重命名 Codex 账号: {} -> {}", old_name, new_name);
+        Ok(updated)
+    }
+
     // ==================== 辅助方法 ====================
 
     /// 验证账号名称
@@ -2733,6 +2863,166 @@ requires_openai_auth = true
         let result = service.delete_account("nonexistent");
         assert!(result.is_err());
         assert!(result.unwrap_err().to_string().contains("不存在"));
+    }
+
+    // ==================== 重命名测试 ====================
+
+    #[test]
+    fn test_rename_account_moves_file_and_updates_registry() {
+        let (service, _ccr, codex) = create_test_service();
+
+        let auth_path = codex.path().join("auth.json");
+        fs::write(
+            &auth_path,
+            create_test_auth_json("acc-rename", "2026-04-10T10:00:00Z"),
+        )
+        .unwrap();
+
+        service
+            .save_current("old_name", Some("rename me".to_string()), None, false)
+            .unwrap();
+        service
+            .rename_account("old_name", "new_name", false)
+            .unwrap();
+
+        let registry = service.load_registry().unwrap();
+        assert!(registry.accounts.contains_key("new_name"));
+        assert!(!registry.accounts.contains_key("old_name"));
+        assert_eq!(registry.current_auth.as_deref(), Some("new_name"));
+
+        // 源文件已搬迁
+        let old_path = service.account_auth_path("old_name");
+        let new_path = service.account_auth_path("new_name");
+        assert!(!old_path.exists(), "旧 auth 文件应被清理");
+        assert!(new_path.exists(), "新 auth 文件应存在");
+
+        // 描述元数据保留
+        let account = registry.accounts.get("new_name").unwrap();
+        assert_eq!(account.description.as_deref(), Some("rename me"));
+    }
+
+    #[test]
+    fn test_rename_account_preserves_usage_ledger_attribution() {
+        let (service, _ccr, codex) = create_test_service();
+
+        let auth_path = codex.path().join("auth.json");
+        fs::write(
+            &auth_path,
+            create_test_auth_json("acc-ledger", "2026-04-10T10:00:00Z"),
+        )
+        .unwrap();
+
+        service
+            .save_current("src", None, None, false)
+            .unwrap();
+        service.rename_account("src", "dst", false).unwrap();
+
+        let registry = service.load_registry().unwrap();
+        assert!(
+            registry
+                .usage_ledger
+                .iter()
+                .all(|entry| entry.account_name != "src"),
+            "ledger 不应残留旧名称"
+        );
+        assert!(
+            registry
+                .usage_ledger
+                .iter()
+                .any(|entry| entry.account_name == "dst"),
+            "ledger 应改写为新名称"
+        );
+    }
+
+    #[test]
+    fn test_rename_account_rejects_conflict_without_force() {
+        let (service, _ccr, codex) = create_test_service();
+
+        let auth_path = codex.path().join("auth.json");
+        fs::write(
+            &auth_path,
+            create_test_auth_json("acc-a", "2026-04-10T10:00:00Z"),
+        )
+        .unwrap();
+
+        service.save_current("alpha", None, None, false).unwrap();
+        service
+            .save_current("beta", None, None, true)
+            .unwrap();
+
+        let result = service.rename_account("alpha", "beta", false);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("已存在"));
+
+        let registry = service.load_registry().unwrap();
+        assert!(registry.accounts.contains_key("alpha"));
+        assert!(registry.accounts.contains_key("beta"));
+    }
+
+    #[test]
+    fn test_rename_account_force_overwrites_conflict() {
+        let (service, _ccr, codex) = create_test_service();
+
+        let auth_path = codex.path().join("auth.json");
+        fs::write(
+            &auth_path,
+            create_test_auth_json("acc-f", "2026-04-10T10:00:00Z"),
+        )
+        .unwrap();
+
+        service.save_current("alpha", None, None, false).unwrap();
+        service.save_current("beta", None, None, true).unwrap();
+
+        service.rename_account("alpha", "beta", true).unwrap();
+
+        let registry = service.load_registry().unwrap();
+        assert!(registry.accounts.contains_key("beta"));
+        assert!(!registry.accounts.contains_key("alpha"));
+    }
+
+    #[test]
+    fn test_rename_account_rejects_invalid_new_name() {
+        let (service, _ccr, codex) = create_test_service();
+
+        let auth_path = codex.path().join("auth.json");
+        fs::write(
+            &auth_path,
+            create_test_auth_json("acc-v", "2026-04-10T10:00:00Z"),
+        )
+        .unwrap();
+
+        service.save_current("keep", None, None, false).unwrap();
+
+        let result = service.rename_account("keep", "bad name!", false);
+        assert!(result.is_err());
+
+        // default 是保留名称
+        let result_default = service.rename_account("keep", "default", false);
+        assert!(result_default.is_err());
+    }
+
+    #[test]
+    fn test_rename_account_same_name_is_noop() {
+        let (service, _ccr, codex) = create_test_service();
+
+        let auth_path = codex.path().join("auth.json");
+        fs::write(
+            &auth_path,
+            create_test_auth_json("acc-same", "2026-04-10T10:00:00Z"),
+        )
+        .unwrap();
+
+        service.save_current("stable", None, None, false).unwrap();
+        let result = service.rename_account("stable", "stable", false);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_rename_account_missing_source_errors() {
+        let (service, _ccr, _codex) = create_test_service();
+
+        let result = service.rename_account("ghost", "phantom", false);
+        assert!(result.is_err());
     }
 
     // ==================== 虚拟 default 账号测试 ====================

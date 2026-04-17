@@ -245,6 +245,7 @@ fn draw_footer_strip(f: &mut Frame, area: Rect, app: &ClaudeAuthApp) {
         Some(Overlay::Confirm { .. }) => "y 确认删除 | n/Esc 取消",
         Some(Overlay::ImportCodexConfirm { .. }) => "y 确认 | n/Esc 取消",
         Some(Overlay::Input { .. }) => "输入账号名 | Enter 保存 | Esc 取消",
+        Some(Overlay::RenameInput { .. }) => "输入新名称 | Enter 保存 | Esc 取消",
         None => "↑↓/jk 选择 | ←→/h l 翻页 | Enter 切换 | s 保存当前 | d 删除 | r 刷新 | q 退出",
     };
 

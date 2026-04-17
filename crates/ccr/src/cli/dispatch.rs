@@ -551,6 +551,15 @@ impl CommandDispatcher {
                 CodexAuthAction::Delete { name, force } => {
                     crate::commands::codex::auth::delete_command(name, *force).await
                 }
+                CodexAuthAction::Rename {
+                    old_name,
+                    new_name,
+                    force,
+                    json,
+                } => {
+                    crate::commands::codex::auth::rename_command(old_name, new_name, *force, *json)
+                        .await
+                }
                 CodexAuthAction::Current { json } => {
                     crate::commands::codex::auth::current_command(*json).await
                 }

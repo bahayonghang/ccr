@@ -39,6 +39,17 @@ pub enum Overlay {
         /// Input constraint hint
         hint: String,
     },
+    /// Rename input dialog (carries source account name context)
+    RenameInput {
+        /// Dialog title
+        title: String,
+        /// Source account name being renamed
+        source: String,
+        /// Current input buffer (new name)
+        buffer: String,
+        /// Input constraint hint
+        hint: String,
+    },
 }
 
 impl Overlay {
@@ -74,26 +85,45 @@ impl Overlay {
         }
     }
 
+    /// Create a rename overlay pre-filled with the source account name
+    pub fn rename_input(source: impl Into<String>) -> Self {
+        let source = source.into();
+        Self::RenameInput {
+            title: "重命名账号".to_string(),
+            buffer: source.clone(),
+            source,
+            hint: "(Enter 保存 · Esc 取消 · 只能含字母/数字/_/-)".to_string(),
+        }
+    }
+
     /// Push a character to input buffer (Input variant only)
     pub fn push_char(&mut self, c: char) {
-        if let Self::Input { buffer, .. } = self
-            && buffer.len() < 32
-        {
-            buffer.push(c);
+        match self {
+            Self::Input { buffer, .. } | Self::RenameInput { buffer, .. } => {
+                if buffer.len() < 32 {
+                    buffer.push(c);
+                }
+            }
+            _ => {}
         }
     }
 
     /// Pop a character from input buffer (Input variant only)
     pub fn pop_char(&mut self) {
-        if let Self::Input { buffer, .. } = self {
-            buffer.pop();
+        match self {
+            Self::Input { buffer, .. } | Self::RenameInput { buffer, .. } => {
+                buffer.pop();
+            }
+            _ => {}
         }
     }
 
     /// Take the input value, draining the buffer
     pub fn take_input(&mut self) -> String {
         match self {
-            Self::Input { buffer, .. } => std::mem::take(buffer),
+            Self::Input { buffer, .. } | Self::RenameInput { buffer, .. } => {
+                std::mem::take(buffer)
+            }
             _ => String::new(),
         }
     }
@@ -238,6 +268,58 @@ pub fn render_overlay(f: &mut Frame, overlay: &Overlay) {
                         .border_style(Style::default().fg(Color::Cyan))
                         .title(format!(" {} ", title))
                         .title_style(Style::default().fg(Color::Cyan)),
+                );
+
+            f.render_widget(popup, area);
+        }
+        Overlay::RenameInput {
+            title,
+            source,
+            buffer,
+            hint,
+        } => {
+            let area = centered_rect(54, 34, full_area);
+            f.render_widget(Clear, area);
+
+            let lines = vec![
+                Line::from(""),
+                Line::from(Span::styled(
+                    "✏️ 重命名已保存账号",
+                    Style::default()
+                        .fg(Color::Magenta)
+                        .add_modifier(Modifier::BOLD),
+                )),
+                Line::from(""),
+                Line::from(format!("当前名称: {}", source)),
+                Line::from(""),
+                Line::from("新名称:"),
+                Line::from(Span::styled(
+                    format!("▶ {}_", buffer),
+                    Style::default()
+                        .fg(Color::White)
+                        .add_modifier(Modifier::BOLD),
+                )),
+                Line::from(""),
+                Line::from(Span::styled(
+                    hint.as_str(),
+                    Style::default().fg(Color::DarkGray),
+                )),
+                Line::from(""),
+                Line::from(Span::styled(
+                    "Enter 确认 · Ctrl+F 强制覆盖 · Esc 取消",
+                    Style::default().fg(Color::DarkGray),
+                )),
+            ];
+
+            let popup = Paragraph::new(lines)
+                .alignment(Alignment::Center)
+                .wrap(Wrap { trim: true })
+                .block(
+                    Block::default()
+                        .borders(Borders::ALL)
+                        .border_style(Style::default().fg(Color::Magenta))
+                        .title(format!(" {} ", title))
+                        .title_style(Style::default().fg(Color::Magenta)),
                 );
 
             f.render_widget(popup, area);

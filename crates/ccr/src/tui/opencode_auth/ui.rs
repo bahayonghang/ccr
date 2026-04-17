@@ -929,6 +929,7 @@ fn draw_help_bar(f: &mut Frame, area: Rect, app: &OpenCodeAuthApp) {
         Some(Overlay::Confirm { .. }) => "y 确认删除 | n/Esc 取消",
         Some(Overlay::ImportCodexConfirm { .. }) => "y 确认导入 | n/Esc 取消",
         Some(Overlay::Input { .. }) => "Enter 确认 | Esc 取消",
+        Some(Overlay::RenameInput { .. }) => "Enter 保存 | Esc 取消",
         None => {
             "↑/k 上移 | ↓/j 下移 | Enter 切换 | s 保存当前 | i 导入 Codex | d 删除 | r 刷新账号/统计 | q 退出"
         }

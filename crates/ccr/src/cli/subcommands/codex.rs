@@ -215,6 +215,27 @@ pub enum CodexAuthAction {
         force: bool,
     },
 
+    /// 重命名已保存账号
+    ///
+    /// 原子地迁移 auth 文件、registry 与 usage_ledger 归因，不需要重新登录。
+    /// 示例: ccr codex auth rename old new
+    ///       ccr codex auth rename old new --force  # 覆盖同名账号
+    Rename {
+        /// 当前账号名称
+        old_name: String,
+
+        /// 新账号名称 (只能包含字母、数字、下划线和连字符)
+        new_name: String,
+
+        /// 当新名称已存在时强制覆盖
+        #[arg(short, long)]
+        force: bool,
+
+        /// 以 JSON 格式输出
+        #[arg(long)]
+        json: bool,
+    },
+
     /// 显示当前账号信息
     ///
     /// 显示当前 ~/.codex/auth.json 的账号信息

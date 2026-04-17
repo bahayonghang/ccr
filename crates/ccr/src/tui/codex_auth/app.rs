@@ -525,6 +525,15 @@ impl CodexAuthApp {
                     }
                 }
             }
+            KeyCode::Char('n') => {
+                if let Some(account) = self.selected_account() {
+                    if account.is_virtual {
+                        self.toasts.push(Toast::warning("未保存的登录无法重命名"));
+                    } else {
+                        self.overlay = Some(Overlay::rename_input(account.name.clone()));
+                    }
+                }
+            }
             KeyCode::Char('r') => {
                 self.reload_accounts()?;
                 self.rebuild_quota_refresh_plan(false);
@@ -575,11 +584,11 @@ impl CodexAuthApp {
 
     /// Dispatch overlay key events by variant
     fn handle_overlay_key(&mut self, key: KeyEvent) -> Result<bool> {
-        let is_confirm = matches!(self.overlay, Some(Overlay::Confirm { .. }));
-        if is_confirm {
-            return self.handle_confirm_key(key);
+        match &self.overlay {
+            Some(Overlay::Confirm { .. }) => self.handle_confirm_key(key),
+            Some(Overlay::RenameInput { .. }) => self.handle_rename_input_key(key),
+            _ => self.handle_input_key(key),
         }
-        self.handle_input_key(key)
     }
 
     /// Handle confirm overlay keys
@@ -659,6 +668,100 @@ impl CodexAuthApp {
             _ => {}
         }
         Ok(false)
+    }
+
+    /// Handle rename input overlay keys
+    /// - Enter: 尝试普通重命名（已存在时提示使用 Ctrl+F 强制覆盖）
+    /// - Ctrl+F: 强制覆盖同名账号
+    /// - Esc: 取消
+    fn handle_rename_input_key(&mut self, key: KeyEvent) -> Result<bool> {
+        let is_ctrl_f = matches!(key.code, KeyCode::Char('f') | KeyCode::Char('F'))
+            && key.modifiers.contains(KeyModifiers::CONTROL);
+
+        match key.code {
+            KeyCode::Enter => {
+                self.commit_rename(false)?;
+            }
+            KeyCode::Char(_) if is_ctrl_f => {
+                self.commit_rename(true)?;
+            }
+            KeyCode::Esc => {
+                self.overlay = None;
+                self.toasts.push(Toast::info("已取消重命名"));
+            }
+            KeyCode::Backspace => {
+                if let Some(overlay) = &mut self.overlay {
+                    overlay.pop_char();
+                }
+            }
+            KeyCode::Char(c) => {
+                if (c.is_ascii_alphanumeric() || c == '_' || c == '-')
+                    && let Some(overlay) = &mut self.overlay
+                {
+                    overlay.push_char(c);
+                }
+            }
+            _ => {}
+        }
+        Ok(false)
+    }
+
+    /// Execute rename using the current RenameInput overlay
+    fn commit_rename(&mut self, force: bool) -> Result<()> {
+        let (source, new_name) = match &mut self.overlay {
+            Some(Overlay::RenameInput {
+                source, buffer, ..
+            }) => (source.clone(), std::mem::take(buffer)),
+            _ => return Ok(()),
+        };
+
+        let trimmed = new_name.trim().to_string();
+        if trimmed.is_empty() {
+            self.toasts.push(Toast::warning("新名称不能为空"));
+            if let Some(Overlay::RenameInput { buffer, .. }) = &mut self.overlay {
+                *buffer = source.clone();
+            }
+            return Ok(());
+        }
+
+        if trimmed == source {
+            self.overlay = None;
+            self.toasts.push(Toast::info("名称未变化"));
+            return Ok(());
+        }
+
+        match self.service.rename_account(&source, &trimmed, force) {
+            Ok(_) => {
+                self.last_action = Some((
+                    "已重命名".to_string(),
+                    format!("{} -> {}", source, trimmed),
+                    true,
+                    None,
+                ));
+                self.toasts.push(Toast::success(format!(
+                    "已重命名: {} -> {}",
+                    source, trimmed
+                )));
+                self.overlay = None;
+                self.reload_accounts()?;
+            }
+            Err(e) => {
+                let msg = e.to_string();
+                // 把输入还原到 buffer，方便继续编辑
+                if let Some(Overlay::RenameInput { buffer, .. }) = &mut self.overlay {
+                    *buffer = trimmed.clone();
+                }
+                if !force && msg.contains("已存在") {
+                    self.toasts.push(Toast::warning(format!(
+                        "{} · 按 Ctrl+F 强制覆盖",
+                        msg
+                    )));
+                } else {
+                    self.toasts.push(Toast::error(format!("重命名失败: {}", e)));
+                }
+            }
+        }
+        Ok(())
     }
 
     // ═══════════════════════════════════════════════════════════
