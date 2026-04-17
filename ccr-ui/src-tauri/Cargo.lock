@@ -452,7 +452,7 @@ dependencies = [
 
 [[package]]
 name = "ccr"
-version = "5.8.8"
+version = "5.9.0"
 dependencies = [
  "anyhow",
  "base64 0.22.1",
@@ -501,7 +501,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-codex"
-version = "5.8.8"
+version = "5.9.0"
 dependencies = [
  "aes-gcm",
  "argon2",
@@ -528,7 +528,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-config"
-version = "5.8.8"
+version = "5.9.0"
 dependencies = [
  "ccr-core",
  "chrono",
@@ -543,7 +543,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-core"
-version = "5.8.8"
+version = "5.9.0"
 dependencies = [
  "anyhow",
  "colored",
@@ -569,7 +569,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-db"
-version = "5.8.8"
+version = "5.9.0"
 dependencies = [
  "aes-gcm",
  "anyhow",
@@ -602,7 +602,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-desktop"
-version = "5.8.8"
+version = "5.9.0"
 dependencies = [
  "aes-gcm",
  "async-trait",
@@ -644,7 +644,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-skills"
-version = "5.8.8"
+version = "5.9.0"
 dependencies = [
  "blake3",
  "ccr-config",
@@ -662,7 +662,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-store"
-version = "5.8.8"
+version = "5.9.0"
 dependencies = [
  "blake3",
  "ccr-config",
@@ -684,7 +684,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-sync"
-version = "5.8.8"
+version = "5.9.0"
 dependencies = [
  "ccr-config",
  "ccr-core",
@@ -702,7 +702,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-types"
-version = "5.8.8"
+version = "5.9.0"
 dependencies = [
  "chrono",
  "serde",
@@ -4953,9 +4953,9 @@ dependencies = [
 
 [[package]]
 name = "tokio"
-version = "1.52.0"
+version = "1.52.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a91135f59b1cbf38c91e73cf3386fca9bb77915c45ce2771460c9d92f0f3d776"
+checksum = "b67dee974fe86fd92cc45b7a95fdd2f99a36a6d7b0d431a231178d3d670bbcc6"
 dependencies = [
  "bytes",
  "libc",
