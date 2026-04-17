@@ -4,7 +4,9 @@
 use crate::core::error::{CcrError, Result};
 use std::fs;
 use std::path::{Path, PathBuf};
+#[cfg(windows)]
 use std::thread;
+#[cfg(windows)]
 use std::time::Duration;
 use tempfile::NamedTempFile;
 use tokio::fs as async_fs;
@@ -44,6 +46,7 @@ pub struct AsyncAtomicWriter {
     target_path: PathBuf,
 }
 
+#[cfg(windows)]
 const ATOMIC_WRITE_RETRY_LIMIT: usize = 6;
 
 #[cfg(windows)]
@@ -54,11 +57,6 @@ fn is_windows_atomic_retry_error(error: &std::io::Error) -> bool {
             | std::io::ErrorKind::WouldBlock
             | std::io::ErrorKind::Interrupted
     ) || matches!(error.raw_os_error(), Some(5 | 32 | 33))
-}
-
-#[cfg(not(windows))]
-fn is_windows_atomic_retry_error(_: &std::io::Error) -> bool {
-    false
 }
 
 #[allow(dead_code)]
