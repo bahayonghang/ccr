@@ -297,6 +297,7 @@ import {
   mainLayoutNavSections,
   mainLayoutRouteTitleMap,
 } from '@/config/mainLayoutShell'
+import { translateWithFallback } from '@/i18n/formatMessage'
 import { usePageTransition } from '@/composables/usePageTransition'
 import { useMainLayoutShell } from '@/composables/useMainLayoutShell'
 import { useShellPreferencesStore } from '@/stores/shellPreferences'
@@ -349,9 +350,13 @@ const currentLocaleLabel = computed(() => (
 ))
 const currentThemeLabel = computed(() => {
   if (theme.value === 'system') {
-    return t('settings.appearance.systemSummary', {
-      resolved: t(`theme.${effectiveTheme.value}`),
-    })
+    const resolvedLabel = t(`theme.${effectiveTheme.value}`)
+    return translateWithFallback(
+      t,
+      'settings.appearance.systemSummary',
+      `${t('theme.system')} · {resolved}`,
+      { resolved: resolvedLabel },
+    )
   }
 
   return t(`theme.${theme.value}`)

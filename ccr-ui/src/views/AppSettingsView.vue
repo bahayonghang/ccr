@@ -398,6 +398,7 @@ import Card from '@/components/ui/Card.vue'
 import SIcon from '@/components/ui/SIcon.vue'
 import { useI18n } from 'vue-i18n'
 import { getEnvironmentName, getTauriVersion, isTauriEnvironment } from '@/api/runtime/environment'
+import { translateWithFallback } from '@/i18n/formatMessage'
 import { useShellPreferencesStore } from '@/stores/shellPreferences'
 import type { ThemeMode } from '@/utils/themeBootstrap'
 
@@ -465,9 +466,13 @@ const localeLabel = computed(() => (
 
 const themeSummaryLabel = computed(() => {
   if (theme.value === 'system') {
-    return t('settings.appearance.systemSummary', {
-      resolved: t(`theme.${effectiveTheme.value}`),
-    })
+    const resolvedLabel = t(`theme.${effectiveTheme.value}`)
+    return translateWithFallback(
+      t,
+      'settings.appearance.systemSummary',
+      `${t('theme.system')} · {resolved}`,
+      { resolved: resolvedLabel },
+    )
   }
 
   return t(`theme.${theme.value}`)
