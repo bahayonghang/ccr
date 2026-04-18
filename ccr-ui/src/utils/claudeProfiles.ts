@@ -191,9 +191,14 @@ const OFFICIAL_CLAUDE_BASE_URLS = new Set([
 
 const normalizeBaseUrl = (baseUrl?: string | null): string => normalizeOptionalValue(baseUrl).replace(/\/+$/, '')
 
-const isCustomClaudeProfileBaseUrl = (baseUrl?: string | null): boolean => {
+export const isCustomClaudeProfileBaseUrl = (baseUrl?: string | null): boolean => {
   const normalized = normalizeBaseUrl(baseUrl)
   return !!normalized && !OFFICIAL_CLAUDE_BASE_URLS.has(normalized)
+}
+
+export const isOfficialClaudeProfileBaseUrl = (baseUrl?: string | null): boolean => {
+  const normalized = normalizeBaseUrl(baseUrl)
+  return !!normalized && OFFICIAL_CLAUDE_BASE_URLS.has(normalized)
 }
 
 const compareProfiles = (left: ClaudeProfile, right: ClaudeProfile): number => {

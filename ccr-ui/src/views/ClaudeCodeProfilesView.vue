@@ -1794,8 +1794,8 @@ onBeforeUnmount(() => {
 
 /* ── Overview 与列表的视觉分隔 ── */
 .claude-profiles-view .page-header-card__body {
-  padding-top: 1.25rem;
-  border-top: 1px solid rgb(var(--color-border-default-rgb) / 22%);
+  padding-top: 1rem;
+  border-top: 1px solid rgb(var(--color-border-default-rgb) / 18%);
 }
 
 /* ── 搜索高亮样式 ── */
