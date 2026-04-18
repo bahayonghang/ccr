@@ -93,12 +93,6 @@
           <h2 class="claude-auth-view__panel-title">
             当前运行时官方登录
           </h2>
-          <span
-            class="claude-auth-view__freshness"
-            :class="freshnessClass(currentInfo.freshness)"
-          >
-            {{ currentInfo.freshness_icon }} {{ currentInfo.freshness_description }}
-          </span>
         </div>
 
         <div class="claude-auth-view__detail-grid">
@@ -146,10 +140,7 @@
             <p class="claude-auth-view__detail-label">
               Access Token 到期
             </p>
-            <p
-              class="claude-auth-view__detail-value"
-              :class="{ 'text-red-400': currentInfo.is_expired }"
-            >
+            <p class="claude-auth-view__detail-value">
               {{ currentInfo.expires_at ? formatDate(currentInfo.expires_at) : '-' }}
             </p>
           </div>
@@ -222,16 +213,11 @@
                 </td>
                 <td>{{ account.email || '-' }}</td>
                 <td>{{ account.subscription_type || '-' }}</td>
-                <td :class="{ 'text-red-400': account.is_expired }">
+                <td>
                   {{ account.expires_at ? formatDate(account.expires_at) : '-' }}
                 </td>
                 <td>
-                  <span
-                    class="claude-auth-view__freshness"
-                    :class="freshnessClass(account.freshness)"
-                  >
-                    {{ account.freshness_icon }} {{ account.freshness_description }}
-                  </span>
+                  {{ account.is_current ? '当前生效' : account.is_logged_in ? '已登录' : '已保存' }}
                 </td>
                 <td>
                   <div class="claude-auth-view__row-actions">
@@ -339,7 +325,6 @@ import type {
   ClaudeAuthSaveRequest,
   ClaudeLoginState,
   ClaudeRuntimeSummary,
-  ClaudeTokenFreshness,
 } from '@/types'
 import { logger } from '@/utils/logger'
 import { useUIStore } from '@/stores/ui'
@@ -412,19 +397,6 @@ const currentProfileLabel = computed(() => {
     ? `${summary.current_profile_name} · ${authMode}`
     : summary.current_profile_name
 })
-
-const freshnessClass = (freshness: ClaudeTokenFreshness) => {
-  switch (freshness) {
-    case 'Fresh':
-      return 'claude-auth-view__freshness--fresh'
-    case 'Stale':
-      return 'claude-auth-view__freshness--stale'
-    case 'Old':
-      return 'claude-auth-view__freshness--old'
-    default:
-      return ''
-  }
-}
 
 const formatDate = (date: string) => {
   try {

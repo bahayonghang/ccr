@@ -217,13 +217,10 @@ beforeEach(() => {
         email: 'alpha@example.com',
         is_current: true,
         is_virtual: false,
+        plan_type: 'Pro',
         saved_at: '2026-04-14T08:00:00Z',
         last_used: '2026-04-12T08:00:00Z',
         last_refresh: '2026-04-14T07:00:00Z',
-        freshness: 'Fresh',
-        freshness_icon: '🟢',
-        freshness_description: 'Fresh',
-        is_expired: false,
       },
       {
         name: 'beta-plus',
@@ -231,13 +228,10 @@ beforeEach(() => {
         email: 'beta@example.com',
         is_current: false,
         is_virtual: false,
+        plan_type: 'Plus',
         saved_at: '2026-04-10T08:00:00Z',
         last_used: '2026-04-14T10:30:00Z',
         last_refresh: '2026-04-13T07:00:00Z',
-        freshness: 'Old',
-        freshness_icon: '🟠',
-        freshness_description: 'Old',
-        is_expired: true,
       },
       {
         name: 'default',
@@ -248,10 +242,6 @@ beforeEach(() => {
         saved_at: undefined,
         last_used: undefined,
         last_refresh: '2026-04-13T07:00:00Z',
-        freshness: 'Unknown',
-        freshness_icon: '⚪',
-        freshness_description: 'Unknown',
-        is_expired: false,
       },
     ],
   })
@@ -261,11 +251,8 @@ beforeEach(() => {
     info: {
       account_id: 'acct_123',
       email: 'alpha@example.com',
+      plan_type: 'Pro',
       last_refresh: '2026-04-14T07:00:00Z',
-      freshness: 'Fresh',
-      freshness_icon: '🟢',
-      freshness_description: 'Fresh',
-      is_expired: false,
     },
   })
 
@@ -320,21 +307,21 @@ describe('CodexAuthView smoke', () => {
       const allButton = Array.from(
         el.querySelectorAll<HTMLButtonElement>('.codex-auth-view__filter-pill')
       ).find((button) => button.textContent?.includes('All'))
-      const attentionButton = Array.from(
+      const currentButton = Array.from(
         el.querySelectorAll<HTMLButtonElement>('.codex-auth-view__filter-pill')
-      ).find((button) => button.textContent?.includes('Needs attention'))
+      ).find((button) => button.textContent?.includes('Current'))
 
       expect(allButton).not.toBeNull()
-      expect(attentionButton).not.toBeNull()
+      expect(currentButton).not.toBeNull()
 
       allButton!.click()
       searchInput!.value = ''
       searchInput!.dispatchEvent(new Event('input', { bubbles: true }))
-      attentionButton!.click()
+      currentButton!.click()
       await flush()
 
       cards = Array.from(el.querySelectorAll<HTMLElement>('[data-testid="codex-account-card"]'))
-      expect(cards.map((card) => card.dataset.accountName)).toEqual(['beta-plus'])
+      expect(cards.map((card) => card.dataset.accountName)).toEqual(['alpha-pro'])
     } finally {
       unmount()
     }

@@ -4,6 +4,7 @@
 use std::collections::VecDeque;
 
 /// 刷新优先级层级。
+#[allow(dead_code)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum RefreshTier {
     /// 当前高亮 / 当前 runtime 账号
@@ -15,6 +16,7 @@ pub enum RefreshTier {
 }
 
 /// 刷新触发原因。
+#[allow(dead_code)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RefreshReason {
     TabActivated,

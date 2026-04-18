@@ -2,9 +2,7 @@
 
 #![allow(clippy::unused_async)]
 
-use crate::models::{
-    ClaudeCurrentAuthInfo, ClaudeLoginState, ClaudeRuntimeSummary, TokenFreshness,
-};
+use crate::models::{ClaudeCurrentAuthInfo, ClaudeLoginState, ClaudeRuntimeSummary};
 use crate::services::ClaudeAuthService;
 use ccr_core::core::error::Result;
 use ccr_core::core::logging::ColorOutput;
@@ -110,27 +108,11 @@ fn display_current_auth_info(service: &ClaudeAuthService, info: &ClaudeCurrentAu
     }
     if let Some(expires_at) = info.expires_at {
         let local = expires_at.with_timezone(&chrono::Local);
-        let expired = ClaudeAuthService::is_expired(Some(expires_at));
-        if expired {
-            ColorOutput::warning(&format!(
-                "Access Token 已过期: {}",
-                local.format("%Y-%m-%d %H:%M:%S")
-            ));
-        } else {
-            ColorOutput::info(&format!(
-                "Access Token 到期时间: {}",
-                local.format("%Y-%m-%d %H:%M:%S")
-            ));
-        }
+        ColorOutput::info(&format!(
+            "Access Token 到期时间: {}",
+            local.format("%Y-%m-%d %H:%M:%S")
+        ));
     }
-
-    let freshness = match &info.freshness {
-        TokenFreshness::Fresh => "🟢 Fresh".green(),
-        TokenFreshness::Stale => "🟡 Stale".yellow(),
-        TokenFreshness::Old => "🔴 Old".red(),
-        TokenFreshness::Unknown(_) => "⚪ Unknown".white(),
-    };
-    ColorOutput::info(&format!("Token 状态: {}", freshness));
 }
 
 fn mask_uuid(value: &str) -> String {

@@ -2,13 +2,28 @@
   <main class="codex-tray-panel">
     <section class="codex-tray-panel__shell">
       <header class="codex-tray-panel__header">
-        <div class="codex-tray-panel__header-copy">
-          <p class="codex-tray-panel__eyebrow">
-            CCR Desktop
-          </p>
-          <h1 class="codex-tray-panel__title">
-            Codex Tray
-          </h1>
+        <div
+          class="codex-tray-panel__drag-surface"
+          :class="{ 'codex-tray-panel__drag-surface--dragging': isDragging }"
+          :title="$t('codex.auth.tray.dragWindow')"
+          @mousedown.left.prevent="startPanelDrag"
+        >
+          <span
+            class="codex-tray-panel__drag-grip"
+            aria-hidden="true"
+          >
+            <span />
+            <span />
+            <span />
+          </span>
+          <div class="codex-tray-panel__header-copy">
+            <p class="codex-tray-panel__eyebrow">
+              CCR Desktop
+            </p>
+            <h1 class="codex-tray-panel__title">
+              Codex Tray
+            </h1>
+          </div>
         </div>
         <button
           type="button"
@@ -91,6 +106,7 @@ const {
   error,
   goToOverview,
   goToSwitchScreen,
+  isDragging,
   loadSnapshot,
   loading,
   openAuth,
@@ -99,6 +115,7 @@ const {
   quit,
   screen,
   snapshot,
+  startPanelDrag,
   switchAccount,
 } = useCodexTrayPanel()
 </script>
@@ -134,6 +151,38 @@ const {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+}
+
+.codex-tray-panel__drag-surface {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  align-items: center;
+  gap: 12px;
+  cursor: grab;
+  user-select: none;
+}
+
+.codex-tray-panel__drag-surface--dragging {
+  cursor: grabbing;
+}
+
+.codex-tray-panel__drag-grip {
+  display: inline-grid;
+  grid-template-columns: repeat(2, 4px);
+  gap: 4px;
+  padding: 8px 6px;
+  border: 1px solid rgb(var(--color-border-default-rgb) / 32%);
+  border-radius: 14px;
+  background: rgb(var(--color-bg-base-rgb) / 60%);
+  flex-shrink: 0;
+}
+
+.codex-tray-panel__drag-grip span {
+  width: 4px;
+  height: 4px;
+  border-radius: 999px;
+  background: rgb(var(--color-text-muted-rgb, 148 163 184) / 88%);
 }
 
 .codex-tray-panel__header-copy {

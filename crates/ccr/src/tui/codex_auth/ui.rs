@@ -2,14 +2,14 @@
 // Draws the Codex multi-account management interface
 
 use super::app::{
-    CodexAuthApp, CodexAuthUsagePanelData, CodexUsageAttributionState, CodexUsageScope, QuotaState,
-    UsageState,
+    CodexAuthApp, CodexAuthUsagePanelData, CodexUsageAttributionState, CodexUsageScope,
+    PreviewMetricWindow, QuotaPreviewCellState, QuotaState, UsageState,
 };
 use crate::services::{CodexQuotaService, CodexUsageService};
 use crate::tui::overlay::{Overlay, render_overlay};
 use crate::tui::theme;
 use crate::tui::toast::ToastKind;
-use chrono::{Local, Utc};
+use chrono::Local;
 use ratatui::{
     Frame,
     layout::{Alignment, Constraint, Direction, Layout, Rect},
@@ -95,7 +95,10 @@ enum AccountColumn {
     Account,
     Email,
     Plan,
-    SavedAt,
+    QuotaSummary,
+    HourlyQuota,
+    WeeklyQuota,
+    RefreshedAt,
     ExpiresAt,
 }
 
@@ -120,7 +123,13 @@ impl AccountTableLayout {
         let width = usize::from(self.resolved_width(column));
 
         match column {
-            AccountColumn::Account | AccountColumn::Email | AccountColumn::Plan => width,
+            AccountColumn::Account
+            | AccountColumn::Email
+            | AccountColumn::Plan
+            | AccountColumn::QuotaSummary
+            | AccountColumn::HourlyQuota
+            | AccountColumn::WeeklyQuota
+            | AccountColumn::RefreshedAt => width,
             _ => width,
         }
     }
@@ -211,6 +220,22 @@ fn detail_optional_line(label: &str, value: Option<&str>, style: Style) -> Line<
     }
 }
 
+fn preview_reset_detail_line(
+    label: &str,
+    preview_value: String,
+    preview_style: Style,
+    reset_value: String,
+) -> Line<'static> {
+    detail_spans_line(
+        label,
+        vec![
+            Span::styled(preview_value, preview_style),
+            Span::styled("  Reset ", theme::muted_style()),
+            Span::styled(reset_value, theme::muted_style()),
+        ],
+    )
+}
+
 fn detail_spans_line(label: &str, mut spans: Vec<Span<'static>>) -> Line<'static> {
     let mut all = vec![detail_label_span(label)];
     all.append(&mut spans);
@@ -272,6 +297,14 @@ fn account_list_footer_line(app: &CodexAuthApp) -> Line<'static> {
         })
         .unwrap_or_else(theme::muted_style);
 
+    let preview_hint = if app.is_activation_gate_pending() {
+        "  ·  速览将在 1s 后展开 "
+    } else if app.selected_preview_entry().is_some() {
+        "  ·  全账号速览已就绪 "
+    } else {
+        "  ·  速览待命 "
+    };
+
     Line::from(vec![
         Span::styled(" Selected: ", theme::muted_style()),
         Span::styled(selected_name, selected_style),
@@ -290,6 +323,7 @@ fn account_list_footer_line(app: &CodexAuthApp) -> Line<'static> {
             ),
             theme::muted_style(),
         ),
+        Span::styled(preview_hint, theme::muted_style()),
     ])
     .alignment(Alignment::Left)
 }
@@ -307,37 +341,39 @@ fn account_list_regions(inner: Rect) -> AccountListRegions {
 }
 
 fn account_table_layout(inner_width: u16) -> AccountTableLayout {
-    if inner_width < 64 {
+    if inner_width < 70 {
         return AccountTableLayout::new(
             vec![
                 AccountColumn::Status,
                 AccountColumn::Account,
-                AccountColumn::Email,
+                AccountColumn::QuotaSummary,
             ],
             vec![
                 Constraint::Length(4),
-                Constraint::Length(16),
-                Constraint::Min(12),
+                Constraint::Length(18),
+                Constraint::Min(16),
             ],
             inner_width,
         );
     }
 
-    if inner_width < 92 {
+    if inner_width < 106 {
         return AccountTableLayout::new(
             vec![
                 AccountColumn::Status,
                 AccountColumn::Account,
                 AccountColumn::Email,
-                AccountColumn::Plan,
-                AccountColumn::ExpiresAt,
+                AccountColumn::HourlyQuota,
+                AccountColumn::WeeklyQuota,
+                AccountColumn::RefreshedAt,
             ],
             vec![
                 Constraint::Length(4),
-                Constraint::Length(16),
-                Constraint::Min(16),
-                Constraint::Length(10),
-                Constraint::Length(10),
+                Constraint::Length(18),
+                Constraint::Min(18),
+                Constraint::Length(6),
+                Constraint::Length(6),
+                Constraint::Length(7),
             ],
             inner_width,
         );
@@ -349,15 +385,19 @@ fn account_table_layout(inner_width: u16) -> AccountTableLayout {
             AccountColumn::Account,
             AccountColumn::Email,
             AccountColumn::Plan,
-            AccountColumn::SavedAt,
+            AccountColumn::HourlyQuota,
+            AccountColumn::WeeklyQuota,
+            AccountColumn::RefreshedAt,
             AccountColumn::ExpiresAt,
         ],
         vec![
             Constraint::Length(4),
             Constraint::Length(18),
             Constraint::Length(24),
-            Constraint::Length(10),
-            Constraint::Length(10),
+            Constraint::Length(8),
+            Constraint::Length(6),
+            Constraint::Length(6),
+            Constraint::Length(7),
             Constraint::Length(10),
         ],
         inner_width,
@@ -388,23 +428,23 @@ fn render_account_list_rows(
         .fg(theme::BG_PRIMARY)
         .add_modifier(Modifier::BOLD);
 
-    let rows =
-        app.current_page_accounts()
-            .iter()
-            .enumerate()
-            .map(|(idx, account)| {
-                let row_style = if idx == app.selected_index {
-                    selected_style
-                } else {
-                    Style::default()
-                };
+    let rows = app
+        .current_page_accounts()
+        .iter()
+        .enumerate()
+        .map(|(idx, account)| {
+            let row_style = if idx == app.selected_index {
+                selected_style
+            } else {
+                Style::default()
+            };
 
-                Row::new(layout.columns.iter().map(|column| {
-                    account_cell(account, *column, layout, idx == app.selected_index)
-                }))
-                .style(row_style)
-                .height(1)
-            });
+            Row::new(layout.columns.iter().map(|column| {
+                account_cell(account, app, *column, layout, idx == app.selected_index)
+            }))
+            .style(row_style)
+            .height(1)
+        });
 
     let table = Table::new(rows, layout.widths.clone()).column_spacing(ACCOUNT_COLUMN_SPACING);
     f.render_widget(table, area);
@@ -416,8 +456,11 @@ fn account_header_cell(column: &AccountColumn) -> Cell<'static> {
         AccountColumn::Account => "账号",
         AccountColumn::Email => "邮箱",
         AccountColumn::Plan => "类型",
-        AccountColumn::SavedAt => "保存",
-        AccountColumn::ExpiresAt => "到期",
+        AccountColumn::QuotaSummary => "配额",
+        AccountColumn::HourlyQuota => "5h",
+        AccountColumn::WeeklyQuota => "7d",
+        AccountColumn::RefreshedAt => "重置",
+        AccountColumn::ExpiresAt => "刷新",
     };
 
     Cell::from(label.to_string())
@@ -425,17 +468,28 @@ fn account_header_cell(column: &AccountColumn) -> Cell<'static> {
 
 fn account_cell(
     account: &crate::models::CodexAuthItem,
+    app: &CodexAuthApp,
     column: AccountColumn,
     layout: &AccountTableLayout,
     is_selected: bool,
 ) -> Cell<'static> {
     match column {
         AccountColumn::Status => Cell::from(Line::from(Span::styled(
-            account.freshness.icon().to_string(),
+            if account.is_current {
+                "●".to_string()
+            } else if account.is_virtual {
+                "◐".to_string()
+            } else {
+                "○".to_string()
+            },
             if is_selected {
                 Style::default().fg(theme::FG_PRIMARY)
+            } else if account.is_current {
+                theme::success_style()
+            } else if account.is_virtual {
+                theme::warning_style()
             } else {
-                Style::default().fg(freshness_color(&account.freshness))
+                theme::muted_style()
             },
         ))),
         AccountColumn::Account => {
@@ -491,10 +545,36 @@ fn account_cell(
                 },
             )))
         }
-        AccountColumn::SavedAt => Cell::from(Line::from(Span::styled(
-            format_saved_at(account),
-            Style::default().fg(theme::FG_PRIMARY),
-        ))),
+        AccountColumn::QuotaSummary => {
+            let five = app.preview_cell_for_account(&account.name, PreviewMetricWindow::FiveHour);
+            let seven = app.preview_cell_for_account(&account.name, PreviewMetricWindow::SevenDay);
+            let reset = app.preview_reset_cell_for_account(&account.name);
+            let summary_style = preview_summary_style(&five, &seven, is_selected);
+            let summary_text = if layout.columns.contains(&AccountColumn::RefreshedAt) {
+                format!("{}/{}", five.text, seven.text)
+            } else {
+                format!("{}/{}·{}", five.text, seven.text, reset.text)
+            };
+            Cell::from(Line::from(Span::styled(summary_text, summary_style)))
+        }
+        AccountColumn::HourlyQuota => preview_metric_cell(
+            app.preview_cell_for_account(&account.name, PreviewMetricWindow::FiveHour),
+            PreviewMetricWindow::FiveHour,
+            is_selected,
+            layout.text_width(AccountColumn::HourlyQuota),
+        ),
+        AccountColumn::WeeklyQuota => preview_metric_cell(
+            app.preview_cell_for_account(&account.name, PreviewMetricWindow::SevenDay),
+            PreviewMetricWindow::SevenDay,
+            is_selected,
+            layout.text_width(AccountColumn::WeeklyQuota),
+        ),
+        AccountColumn::RefreshedAt => preview_metric_cell(
+            app.preview_reset_cell_for_account(&account.name),
+            PreviewMetricWindow::FiveHour,
+            is_selected,
+            layout.text_width(AccountColumn::RefreshedAt),
+        ),
         AccountColumn::ExpiresAt => {
             let (text, style) = format_expires_at(account);
             Cell::from(Line::from(Span::styled(
@@ -506,6 +586,75 @@ fn account_cell(
                 },
             )))
         }
+    }
+}
+
+fn preview_metric_cell(
+    cell: super::app::QuotaPreviewCell,
+    _window: PreviewMetricWindow,
+    is_selected: bool,
+    width: usize,
+) -> Cell<'static> {
+    let text = truncate_text(&cell.text, width);
+    Cell::from(Line::from(Span::styled(
+        text,
+        preview_cell_style(&cell, is_selected),
+    )))
+}
+
+fn preview_summary_style(
+    left: &super::app::QuotaPreviewCell,
+    right: &super::app::QuotaPreviewCell,
+    is_selected: bool,
+) -> Style {
+    if is_selected {
+        return Style::default()
+            .fg(theme::FG_PRIMARY)
+            .add_modifier(Modifier::BOLD);
+    }
+
+    match (left.state, right.state) {
+        (QuotaPreviewCellState::Error, _) | (_, QuotaPreviewCellState::Error) => {
+            theme::error_style()
+        }
+        (QuotaPreviewCellState::Waiting, _) | (_, QuotaPreviewCellState::Waiting) => {
+            theme::warning_style()
+        }
+        (QuotaPreviewCellState::Loading, _) | (_, QuotaPreviewCellState::Loading) => {
+            theme::muted_style()
+        }
+        (QuotaPreviewCellState::Ready, QuotaPreviewCellState::Ready) => {
+            if left.text == "ERR" || right.text == "ERR" {
+                theme::error_style()
+            } else {
+                Style::default().fg(theme::FG_PRIMARY)
+            }
+        }
+        _ => theme::muted_style(),
+    }
+}
+
+fn preview_cell_style(cell: &super::app::QuotaPreviewCell, is_selected: bool) -> Style {
+    if is_selected {
+        return Style::default()
+            .fg(theme::FG_PRIMARY)
+            .add_modifier(Modifier::BOLD);
+    }
+
+    match cell.state {
+        QuotaPreviewCellState::Ready => {
+            let percentage = cell
+                .text
+                .trim_end_matches('%')
+                .parse::<i32>()
+                .ok()
+                .map(percent_color)
+                .unwrap_or(theme::FG_PRIMARY);
+            Style::default().fg(percentage)
+        }
+        QuotaPreviewCellState::Waiting => theme::warning_style(),
+        QuotaPreviewCellState::Loading | QuotaPreviewCellState::Empty => theme::muted_style(),
+        QuotaPreviewCellState::Error => theme::error_style(),
     }
 }
 
@@ -572,27 +721,12 @@ fn format_saved_at(account: &crate::models::CodexAuthItem) -> String {
 }
 
 fn format_expires_at(account: &crate::models::CodexAuthItem) -> (String, Style) {
-    match account.expires_at {
+    match account.last_refresh {
         Some(ts) => {
-            let expired = ts <= Utc::now();
             let text = ts.with_timezone(&Local).format("%Y-%m-%d").to_string();
-            let style = if expired {
-                theme::error_style()
-            } else {
-                theme::success_style()
-            };
-            (text, style)
+            (text, theme::info_style())
         }
         None => ("-".to_string(), theme::muted_style()),
-    }
-}
-
-fn freshness_color(freshness: &crate::models::TokenFreshness) -> Color {
-    match freshness {
-        crate::models::TokenFreshness::Fresh => theme::FG_SUCCESS,
-        crate::models::TokenFreshness::Stale => theme::FG_WARNING,
-        crate::models::TokenFreshness::Old => theme::FG_ERROR,
-        crate::models::TokenFreshness::Unknown(_) => theme::FG_MUTED,
     }
 }
 
@@ -643,19 +777,31 @@ fn draw_usage_panel(f: &mut Frame, area: Rect, app: &CodexAuthApp) {
         )));
     }
 
+    content.push(Line::from(Span::styled(
+        "  列表已用于全账号速览；此处聚焦当前选中账号的完整配额与本地 usage。",
+        theme::muted_style(),
+    )));
+
     // ── 配额余额区域 ──
     content.push(scope_line(
         "Quota scope:",
         "selected account",
         theme::success_style(),
     ));
+    content.push(scope_line(
+        "Quota reset:",
+        app.selected_preview_reset_text(),
+        theme::muted_style(),
+    ));
 
     match &app.quota_state {
         QuotaState::Idle => {
-            content.push(Line::from(Span::styled(
-                "  ⏳ 将自动按层级刷新选中账号配额（按 b 可强刷）",
-                theme::muted_style(),
-            )));
+            let idle_message = if app.is_activation_gate_pending() {
+                "  ⏳ 停留 1s 后自动展开全账号速览，并同步带出当前账号详情"
+            } else {
+                "  ⏳ 已缓存全账号速览；按 b 强刷当前账号，按 r 刷新账号与本地统计"
+            };
+            content.push(Line::from(Span::styled(idle_message, theme::muted_style())));
         }
         QuotaState::Loading { .. } if app.selected_quota().is_none() => {
             content.push(Line::from(Span::styled(
@@ -781,25 +927,32 @@ fn draw_usage_panel(f: &mut Frame, area: Rect, app: &CodexAuthApp) {
         }
         content.extend(usage_digest_lines(&panel));
     } else {
-        match &app.usage_state {
-            UsageState::NoData => {
-                content.push(Line::from(Span::styled(
-                    "  📭 暂无本地使用数据",
-                    theme::muted_style(),
-                )));
-            }
-            UsageState::Error(err) => {
-                content.push(Line::from(Span::styled(
-                    format!("  ⚠️ 统计加载失败: {}", err),
-                    theme::error_style(),
-                )));
-            }
-            UsageState::Loaded(_) => {}
-            UsageState::Loading => {
-                content.push(Line::from(Span::styled(
-                    "  ⏳ 加载中...",
-                    theme::muted_style(),
-                )));
+        if app.is_activation_gate_pending() {
+            content.push(Line::from(Span::styled(
+                "  ⏳ 停留 1s 后自动加载本地 usage，并与列表速览一起就位",
+                theme::muted_style(),
+            )));
+        } else {
+            match &app.usage_state {
+                UsageState::NoData => {
+                    content.push(Line::from(Span::styled(
+                        "  📭 暂无本地使用数据",
+                        theme::muted_style(),
+                    )));
+                }
+                UsageState::Error(err) => {
+                    content.push(Line::from(Span::styled(
+                        format!("  ⚠️ 统计加载失败: {}", err),
+                        theme::error_style(),
+                    )));
+                }
+                UsageState::Loaded(_) => {}
+                UsageState::Loading => {
+                    content.push(Line::from(Span::styled(
+                        "  ⏳ 加载中...",
+                        theme::muted_style(),
+                    )));
+                }
             }
         }
     }
@@ -836,7 +989,10 @@ fn progress_bar(pct: i32, width: usize) -> String {
     format!("{}{}", "█".repeat(filled), "░".repeat(empty))
 }
 
-fn account_snapshot_lines(account: &crate::models::CodexAuthItem) -> Vec<Line<'static>> {
+fn account_snapshot_lines(
+    app: &CodexAuthApp,
+    account: &crate::models::CodexAuthItem,
+) -> Vec<Line<'static>> {
     let account_style = if account.is_current {
         theme::success_style()
     } else if account.is_virtual {
@@ -853,7 +1009,25 @@ fn account_snapshot_lines(account: &crate::models::CodexAuthItem) -> Vec<Line<'s
     } else {
         Style::default().fg(theme::FG_PRIMARY)
     };
-    let (expires_text, expires_style) = format_expires_at(account);
+    let (refresh_text, refresh_style) = format_expires_at(account);
+    let preview_five = app.preview_cell_for_account(&account.name, PreviewMetricWindow::FiveHour);
+    let preview_seven = app.preview_cell_for_account(&account.name, PreviewMetricWindow::SevenDay);
+    let preview_five_style = preview_cell_style(&preview_five, false);
+    let preview_seven_style = preview_cell_style(&preview_seven, false);
+    let (hourly_reset, weekly_reset) = app
+        .selected_quota()
+        .and_then(|quota| quota.quota.as_ref())
+        .map(|quota| {
+            (
+                crate::tui::codex_auth::app::CodexAuthApp::quota_reset_detail_text(
+                    quota.hourly_reset_time,
+                ),
+                crate::tui::codex_auth::app::CodexAuthApp::quota_reset_detail_text(
+                    quota.weekly_reset_time,
+                ),
+            )
+        })
+        .unwrap_or_else(|| ("-".to_string(), "-".to_string()));
 
     vec![
         detail_line("Account:", account.name.clone(), account_style),
@@ -877,21 +1051,13 @@ fn account_snapshot_lines(account: &crate::models::CodexAuthItem) -> Vec<Line<'s
         detail_optional_line("Email:", account.email.as_deref(), theme::info_style()),
         detail_optional_line("Plan:", account.plan_type.as_deref(), theme::info_style()),
         detail_line(
-            "Freshness:",
-            account.freshness.description(),
-            Style::default().fg(freshness_color(&account.freshness)),
-        ),
-        detail_line(
             "Saved at:",
             format_saved_at(account),
             Style::default().fg(theme::FG_PRIMARY),
         ),
-        detail_line("Expires:", expires_text, expires_style),
-        detail_optional_line(
-            "Description:",
-            account.description.as_deref(),
-            theme::muted_style(),
-        ),
+        detail_line("Last refresh:", refresh_text, refresh_style),
+        preview_reset_detail_line("5h:", preview_five.text, preview_five_style, hourly_reset),
+        preview_reset_detail_line("7d:", preview_seven.text, preview_seven_style, weekly_reset),
     ]
 }
 
@@ -1002,7 +1168,7 @@ pub fn draw_embedded(
 
             let right = Layout::default()
                 .direction(Direction::Vertical)
-                .constraints([Constraint::Length(8), Constraint::Min(12)])
+                .constraints([Constraint::Length(13), Constraint::Min(12)])
                 .split(columns[1]);
             draw_account_snapshot_panel(f, right[0], app);
             draw_usage_panel(f, right[1], app);
@@ -1076,7 +1242,7 @@ fn draw_account_list_with_status(f: &mut Frame, area: Rect, app: &CodexAuthApp) 
 fn draw_account_snapshot_panel(f: &mut Frame, area: Rect, app: &CodexAuthApp) {
     let lines = app
         .selected_account()
-        .map(account_snapshot_lines)
+        .map(|account| account_snapshot_lines(app, account))
         .unwrap_or_else(|| {
             vec![
                 detail_line("Account:", "-", theme::muted_style()),
@@ -1100,11 +1266,11 @@ fn draw_account_snapshot_panel(f: &mut Frame, area: Rect, app: &CodexAuthApp) {
 fn draw_footer_strip(f: &mut Frame, area: Rect, app: &CodexAuthApp) {
     let message = if let Some(toast) = app.toasts.active() {
         format!(
-            "{}  │  Tab switch  │  ↑↓/jk select  │  Enter switch  │  s save  │  b quota  │  q quit",
+            "{}  │  Tab switch  │  ↑↓/jk select  │  Enter switch  │  s save  │  b quota  │  r refresh  │  q quit",
             toast.message
         )
     } else {
-        "Tab switch  │  ↑↓/jk select  │  Enter switch  │  s save  │  d delete  │  b quota  │  q quit"
+        "Tab switch  │  ↑↓/jk select  │  Enter switch  │  s save  │  d delete  │  b quota  │  r refresh  │  q quit"
             .to_string()
     };
 
@@ -1172,8 +1338,6 @@ mod tests {
             saved_at: Some(Utc.with_ymd_and_hms(2026, 4, 5, 12, 0, 0).unwrap()),
             last_used: None,
             last_refresh: None,
-            freshness: crate::models::TokenFreshness::Fresh,
-            expires_at: None,
         }
     }
 
@@ -1223,7 +1387,7 @@ mod tests {
             vec![
                 AccountColumn::Status,
                 AccountColumn::Account,
-                AccountColumn::Email
+                AccountColumn::QuotaSummary
             ]
         );
         assert_eq!(layout.widths.len(), 3);
@@ -1239,11 +1403,13 @@ mod tests {
                 AccountColumn::Account,
                 AccountColumn::Email,
                 AccountColumn::Plan,
-                AccountColumn::SavedAt,
+                AccountColumn::HourlyQuota,
+                AccountColumn::WeeklyQuota,
+                AccountColumn::RefreshedAt,
                 AccountColumn::ExpiresAt,
             ]
         );
-        assert_eq!(layout.widths.len(), 6);
+        assert_eq!(layout.widths.len(), 8);
     }
 
     #[test]
@@ -1252,8 +1418,8 @@ mod tests {
         let wide = account_table_layout(108);
 
         assert_eq!(narrow.resolved_width(AccountColumn::Status), 4);
-        assert_eq!(narrow.resolved_width(AccountColumn::Email), 38);
-        assert_eq!(wide.resolved_width(AccountColumn::Plan), 10);
+        assert_eq!(narrow.resolved_width(AccountColumn::QuotaSummary), 36);
+        assert_eq!(wide.resolved_width(AccountColumn::Plan), 8);
     }
 
     #[test]
@@ -1266,13 +1432,61 @@ mod tests {
     }
 
     #[test]
-    fn account_snapshot_lines_include_freshness_description_and_semantic_styles() {
-        let lines = account_snapshot_lines(&sample_account());
+    fn account_snapshot_lines_show_identity_and_refresh_metadata() {
+        let service =
+            crate::services::CodexAuthService::from_dirs(PathBuf::from("."), PathBuf::from("."));
+        let mut app = crate::tui::codex_auth::app::CodexAuthApp::from_service(service)
+            .expect("test codex auth app should initialize from injected service");
+        app.accounts = vec![sample_account()];
+        app.selected_index = 0;
+        app.preview_cache.insert(
+            "codexcn".to_string(),
+            crate::tui::codex_auth::app::QuotaPreviewEntry {
+                quota: crate::models::CodexAccountQuota {
+                    account_name: "codexcn".to_string(),
+                    email: Some("bah***@gmail.com".to_string()),
+                    quota: Some(crate::models::CodexQuota {
+                        hourly_percentage: 95,
+                        hourly_reset_time: Some(
+                            (Utc::now()
+                                + chrono::Duration::hours(3)
+                                + chrono::Duration::minutes(11))
+                            .timestamp(),
+                        ),
+                        hourly_window_minutes: Some(300),
+                        hourly_window_present: Some(true),
+                        weekly_percentage: 33,
+                        weekly_reset_time: Some(
+                            (Utc::now()
+                                + chrono::Duration::days(2)
+                                + chrono::Duration::hours(3)
+                                + chrono::Duration::minutes(17))
+                            .timestamp(),
+                        ),
+                        weekly_window_minutes: Some(10080),
+                        weekly_window_present: Some(true),
+                        plan_type: Some("plus".to_string()),
+                        raw_data: None,
+                    }),
+                    error: None,
+                    fetched_at: Utc::now(),
+                },
+            },
+        );
+        let lines = account_snapshot_lines(&app, &sample_account());
 
         assert!(plain_line_text(&lines[0]).contains("codexcn"));
         assert!(plain_line_text(&lines[3]).contains("plus"));
-        assert!(plain_line_text(&lines[4]).contains("Token 状态良好"));
-        assert!(plain_line_text(&lines[7]).contains("Primary account"));
+        assert!(plain_line_text(&lines[4]).contains("Saved at:"));
+        assert!(plain_line_text(&lines[5]).contains("Last refresh:"));
+        assert!(plain_line_text(&lines[6]).contains("5h:"));
+        assert!(plain_line_text(&lines[6]).contains("95%"));
+        assert!(plain_line_text(&lines[6]).contains("Reset"));
+        assert!(plain_line_text(&lines[6]).contains("m"));
+        assert!(plain_line_text(&lines[7]).contains("7d:"));
+        assert!(plain_line_text(&lines[7]).contains("33%"));
+        assert!(plain_line_text(&lines[7]).contains("Reset"));
+        assert!(plain_line_text(&lines[7]).contains("m"));
         assert_eq!(lines[0].spans[0].style.fg, Some(theme::FG_SECONDARY));
         assert_eq!(lines[0].spans[1].style.fg, Some(theme::FG_SUCCESS));
         assert_eq!(lines[2].spans[1].style.fg, Some(theme::FG_INFO));
@@ -1280,10 +1494,50 @@ mod tests {
     }
 
     #[test]
-    fn account_table_render_keeps_email_visible_when_space_is_available() {
+    fn account_table_render_keeps_status_and_quota_summary_visible_in_compact_layout() {
         let layout = account_table_layout(60);
         let mut terminal = Terminal::new(TestBackend::new(60, 1)).unwrap();
         let account = sample_account();
+        let service =
+            crate::services::CodexAuthService::from_dirs(PathBuf::from("."), PathBuf::from("."));
+        let mut app = crate::tui::codex_auth::app::CodexAuthApp::from_service(service)
+            .expect("test codex auth app should initialize from injected service");
+        app.accounts = vec![account.clone()];
+        app.selected_index = 0;
+        app.preview_cache.insert(
+            "codexcn".to_string(),
+            crate::tui::codex_auth::app::QuotaPreviewEntry {
+                quota: crate::models::CodexAccountQuota {
+                    account_name: "codexcn".to_string(),
+                    email: None,
+                    quota: Some(crate::models::CodexQuota {
+                        hourly_percentage: 95,
+                        hourly_reset_time: Some(
+                            (Utc::now()
+                                + chrono::Duration::hours(3)
+                                + chrono::Duration::minutes(11))
+                            .timestamp(),
+                        ),
+                        hourly_window_minutes: Some(300),
+                        hourly_window_present: Some(true),
+                        weekly_percentage: 33,
+                        weekly_reset_time: Some(
+                            (Utc::now()
+                                + chrono::Duration::days(2)
+                                + chrono::Duration::hours(3)
+                                + chrono::Duration::minutes(17))
+                            .timestamp(),
+                        ),
+                        weekly_window_minutes: Some(10080),
+                        weekly_window_present: Some(true),
+                        plan_type: None,
+                        raw_data: None,
+                    }),
+                    error: None,
+                    fetched_at: Utc::now(),
+                },
+            },
+        );
 
         terminal
             .draw(|frame| {
@@ -1291,7 +1545,7 @@ mod tests {
                     layout
                         .columns
                         .iter()
-                        .map(|column| account_cell(&account, *column, &layout, false)),
+                        .map(|column| account_cell(&account, &app, *column, &layout, false)),
                 );
                 let table =
                     Table::new([row], layout.widths.clone()).column_spacing(ACCOUNT_COLUMN_SPACING);
@@ -1300,10 +1554,63 @@ mod tests {
             .unwrap();
 
         let rendered = buffer_line_text(terminal.backend(), 0);
-        assert!(rendered.contains("🟢"), "{rendered}");
+        assert!(rendered.contains("●"), "{rendered}");
         assert!(rendered.contains("codexcn"), "{rendered}");
-        assert!(rendered.contains("bah***@gmail.com"), "{rendered}");
-        assert!(!rendered.contains("bah***@gmai…"), "{rendered}");
+        assert!(rendered.contains("95%/33%"), "{rendered}");
+    }
+
+    #[test]
+    fn draw_account_snapshot_panel_keeps_weekly_reset_visible() {
+        let service =
+            crate::services::CodexAuthService::from_dirs(PathBuf::from("."), PathBuf::from("."));
+        let mut app = crate::tui::codex_auth::app::CodexAuthApp::from_service(service)
+            .expect("test codex auth app should initialize from injected service");
+        app.accounts = vec![sample_account()];
+        app.selected_index = 0;
+        app.preview_cache.insert(
+            "codexcn".to_string(),
+            crate::tui::codex_auth::app::QuotaPreviewEntry {
+                quota: crate::models::CodexAccountQuota {
+                    account_name: "codexcn".to_string(),
+                    email: Some("bah***@gmail.com".to_string()),
+                    quota: Some(crate::models::CodexQuota {
+                        hourly_percentage: 95,
+                        hourly_reset_time: Some(
+                            (Utc::now()
+                                + chrono::Duration::hours(4)
+                                + chrono::Duration::minutes(59))
+                            .timestamp(),
+                        ),
+                        hourly_window_minutes: Some(300),
+                        hourly_window_present: Some(true),
+                        weekly_percentage: 33,
+                        weekly_reset_time: Some(
+                            (Utc::now()
+                                + chrono::Duration::days(5)
+                                + chrono::Duration::hours(6)
+                                + chrono::Duration::minutes(13))
+                            .timestamp(),
+                        ),
+                        weekly_window_minutes: Some(10080),
+                        weekly_window_present: Some(true),
+                        plan_type: Some("plus".to_string()),
+                        raw_data: None,
+                    }),
+                    error: None,
+                    fetched_at: Utc::now(),
+                },
+            },
+        );
+
+        let mut terminal = Terminal::new(TestBackend::new(100, 13)).unwrap();
+        terminal
+            .draw(|frame| draw_account_snapshot_panel(frame, frame.area(), &app))
+            .unwrap();
+
+        let rendered = buffer_text(terminal.backend());
+        assert!(rendered.contains("7d:"), "{rendered}");
+        assert!(rendered.contains("Reset"), "{rendered}");
+        assert!(rendered.contains("5d6h13m"), "{rendered}");
     }
 
     #[test]
@@ -1361,11 +1668,15 @@ mod tests {
                     email: Some("bah***@gmail.com".to_string()),
                     quota: Some(crate::models::CodexQuota {
                         hourly_percentage: 52,
-                        hourly_reset_time: None,
+                        hourly_reset_time: Some(
+                            (Utc::now() + chrono::Duration::hours(3)).timestamp(),
+                        ),
                         hourly_window_minutes: Some(300),
                         hourly_window_present: Some(true),
                         weekly_percentage: 41,
-                        weekly_reset_time: None,
+                        weekly_reset_time: Some(
+                            (Utc::now() + chrono::Duration::days(2)).timestamp(),
+                        ),
                         weekly_window_minutes: Some(10080),
                         weekly_window_present: Some(true),
                         plan_type: Some("plus".to_string()),
@@ -1404,6 +1715,8 @@ mod tests {
         let compact = compact_text(&rendered);
         assert!(compact.contains("Usage&Quota"), "{rendered}");
         assert!(compact.contains("Quotascope:selectedaccount"), "{rendered}");
+        assert!(compact.contains("Quotareset:"), "{rendered}");
+        assert!(compact.contains("重置:"), "{rendered}");
         assert!(compact.contains("Attribution:globalfallback"), "{rendered}");
         assert!(compact.contains("Note:CCR"), "{rendered}");
     }

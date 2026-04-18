@@ -13,7 +13,7 @@
       <!-- 区块间分隔线 -->
       <div
         v-if="index > 0"
-        class="mb-8 flex items-center gap-4"
+        class="mb-6 flex items-center gap-3"
         aria-hidden="true"
       >
         <div class="h-px flex-1 bg-border-default/25" />
@@ -24,39 +24,42 @@
       </div>
 
       <!-- Provider 区块头部 -->
-      <div class="mb-4 flex items-center gap-4">
+      <div class="mb-3 flex items-center gap-3">
         <!-- provider 色彩竖条 -->
         <div
-          class="h-12 w-1 shrink-0 rounded-full"
+          class="h-10 w-1 shrink-0 rounded-full"
           :style="{ backgroundColor: `rgb(var(${sectionColors[section.providerKey]?.rgbVar || '--color-accent-secondary-rgb'}))` }"
         />
 
         <!-- provider 图标 -->
         <div
-          class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
+          class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl"
           :style="{ backgroundColor: `rgb(var(${sectionColors[section.providerKey]?.rgbVar || '--color-accent-secondary-rgb'}) / 0.1)` }"
         >
           <SIcon
             :name="sectionIcons[section.providerKey] || 'Server'"
-            size="w-5 h-5"
+            size="w-4.5 h-4.5"
             :style="{ color: `rgb(var(${sectionColors[section.providerKey]?.rgbVar || '--color-accent-secondary-rgb'}))` }"
           />
         </div>
 
         <!-- 标题和统计 -->
         <div class="min-w-0 flex-1">
-          <div class="flex flex-wrap items-center gap-2.5">
-            <h2 class="truncate text-xl font-semibold tracking-tight text-text-primary">
+          <div class="flex flex-wrap items-center gap-2">
+            <h2 class="truncate text-[1.15rem] font-semibold tracking-tight text-text-primary">
               {{ section.title }}
             </h2>
             <span
-              class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium"
+              class="inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-medium"
               :style="{
                 backgroundColor: `rgb(var(${sectionColors[section.providerKey]?.rgbVar || '--color-accent-secondary-rgb'}) / 0.1)`,
                 color: `rgb(var(${sectionColors[section.providerKey]?.rgbVar || '--color-accent-secondary-rgb'}))`,
               }"
             >
               {{ getProviderNavCount(section.count) }}
+            </span>
+            <span class="inline-flex items-center rounded-full border border-border-default/40 bg-bg-elevated/62 px-2.5 py-0.5 text-[11px] text-text-muted">
+              {{ getProviderEnabledCount(section.enabledCount) }}
             </span>
             <span
               v-if="section.isCurrentProvider"
@@ -66,9 +69,6 @@
               {{ $t('claudeProfiles.currentBadge') }}
             </span>
           </div>
-          <p class="mt-1 text-sm text-text-muted">
-            {{ getProviderSectionSummary(section.count, section.enabledCount) }}
-          </p>
         </div>
       </div>
 
@@ -124,13 +124,12 @@ const getProviderNavCount = (count: number) => translateWithFallback(
   '{count} 个 Profile',
   { count },
 )
-const getProviderSectionSummary = (count: number, enabled: number) =>
-  translateWithFallback(
-    t,
-    'claudeProfiles.providerSectionSummary',
-    '共 {count} 个 Profile，其中 {enabled} 个处于启用状态。',
-    { count, enabled },
-  )
+const getProviderEnabledCount = (count: number) => translateWithFallback(
+  t,
+  'claudeProfiles.providerEnabledCount',
+  '{count} 已启用',
+  { count },
+)
 
 // 默认色彩配置
 const defaultColor: ProviderColorConfig = {

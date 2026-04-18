@@ -6,12 +6,11 @@
     :glow="isCurrent"
     glow-color="success"
     :style="isCurrent ? { borderLeft: '3px solid rgb(96, 165, 250)' } : {}"
-    :class="[account.is_expired ? 'opacity-60' : '', 'codex-account-card']"
+    class="codex-account-card"
   >
     <!-- 头部：账户信息 + 徽章 -->
     <div class="flex items-start justify-between gap-2 mb-2">
       <div class="flex items-center gap-2 min-w-0">
-        <span class="text-lg flex-shrink-0">{{ account.freshness_icon }}</span>
         <span class="text-base font-semibold text-text-primary truncate">
           {{ account.email || account.name }}
         </span>
@@ -24,14 +23,6 @@
           pill
         >
           {{ $t('codex.auth.currentBadge') }}
-        </Badge>
-        <Badge
-          v-if="account.is_expired"
-          variant="danger"
-          size="xs"
-          pill
-        >
-          {{ $t('codex.auth.expiredBadge') }}
         </Badge>
         <span
           v-if="quota?.quota?.plan_type"
@@ -73,18 +64,6 @@
           class="codex-account-chip codex-account-chip--muted"
         >
           {{ account.api_base_url }}
-        </span>
-      </div>
-      <div class="flex items-center gap-1.5 text-xs">
-        <span
-          class="inline-flex items-center gap-1"
-          :class="freshnessTextClass(account.freshness)"
-        >
-          <span
-            class="w-1.5 h-1.5 rounded-full"
-            :class="freshnessDotClass(account.freshness)"
-          />
-          {{ account.freshness_description }}
         </span>
       </div>
     </div>
@@ -240,7 +219,7 @@
 
         <!-- 切换账户 -->
         <button
-          v-if="!isCurrent && !account.is_expired"
+          v-if="!isCurrent"
           class="card-action-btn hover:text-accent-success hover:bg-accent-success/10"
           :title="$t('codex.auth.switch')"
           :disabled="disabled"
@@ -302,7 +281,7 @@
 import Card from '@/components/ui/Card.vue'
 import Badge from '@/components/ui/Badge.vue'
 import SIcon from '@/components/ui/SIcon.vue'
-import type { CodexAuthAccountItem, CodexAccountQuota, TokenFreshness } from '@/types'
+import type { CodexAuthAccountItem, CodexAccountQuota } from '@/types'
 
 interface Props {
   account: CodexAuthAccountItem
@@ -352,26 +331,6 @@ const planBadgeClass = (plan: string) => {
   if (lower === 'plus') return 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
   if (lower === 'team') return 'bg-teal-500/20 text-teal-400 border border-teal-500/30'
   return 'bg-bg-elevated/80 text-text-muted border border-border-default/15'
-}
-
-// ── Token 新鲜度样式 ──
-
-const freshnessTextClass = (freshness: TokenFreshness) => {
-  switch (freshness) {
-    case 'Fresh': return 'text-emerald-400'
-    case 'Stale': return 'text-yellow-400'
-    case 'Old': return 'text-orange-400'
-    default: return 'text-text-ghost'
-  }
-}
-
-const freshnessDotClass = (freshness: TokenFreshness) => {
-  switch (freshness) {
-    case 'Fresh': return 'bg-emerald-500'
-    case 'Stale': return 'bg-yellow-500'
-    case 'Old': return 'bg-orange-500'
-    default: return 'bg-gray-500'
-  }
 }
 
 const authMethodLabel = (method?: string) => {

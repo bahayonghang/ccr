@@ -2,8 +2,8 @@
 // 管理 Claude 官方订阅账号快照的保存 / 切换 / 删除
 
 use crate::models::{
-    ClaudeAuthRegistry, ClaudeCurrentAuthInfo, ClaudeLoginState, ClaudeProfileAuthMode,
-    ClaudeRuntimeMode, ClaudeRuntimeSummary,
+    ClaudeAuthRegistry, ClaudeCurrentAuthInfo, ClaudeLoginState, ClaudeRuntimeMode,
+    ClaudeRuntimeSummary,
 };
 use crate::services::{ClaudeAuthItem, ClaudeAuthService};
 use crate::tui::overlay::Overlay;
@@ -369,35 +369,19 @@ impl ClaudeAuthApp {
             return Ok(false);
         }
 
-        if account.is_logged_in {
+        let api_key_override_active = self
+            .runtime_summary
+            .as_ref()
+            .is_some_and(|summary| matches!(summary.login_state, ClaudeLoginState::ApiKeyActive));
+
+        if account.is_logged_in && !api_key_override_active {
             let message = match self.runtime_summary.as_ref() {
-                Some(summary)
-                    if matches!(
-                        summary.current_profile_auth_mode,
-                        Some(ClaudeProfileAuthMode::ApiKey)
-                    ) =>
-                {
-                    let profile = summary
-                        .current_profile_name
-                        .clone()
-                        .unwrap_or_else(|| "当前 Profile".to_string());
-                    format!(
-                        "当前已登录该官方账号，但 {profile} 正在使用 API Key；切到 subscription Profile 后才会生效"
-                    )
-                }
                 Some(summary) if matches!(summary.mode, ClaudeRuntimeMode::ProfilePendingAuth) => {
-                    "当前登录就是该官方账号，但订阅凭据不可用或已过期".to_string()
+                    "当前登录就是该官方账号，但订阅凭据暂不可用".to_string()
                 }
                 _ => "当前登录已经是该官方账号".to_string(),
             };
             self.toasts.push(Toast::info(message));
-            return Ok(false);
-        }
-
-        if ClaudeAuthService::is_expired(account.expires_at) {
-            self.toasts.push(Toast::warning(
-                "该账号快照已过期，请重新运行 `claude login` 后再保存",
-            ));
             return Ok(false);
         }
 

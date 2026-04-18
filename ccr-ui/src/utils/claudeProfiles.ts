@@ -157,6 +157,23 @@ export interface ClaudeProfileSection {
   profiles: ClaudeProfile[]
 }
 
+export interface ClaudeProfilesOverviewSummary {
+  totalProfiles: number
+  enabledProfilesCount: number
+  disabledProfilesCount: number
+  providerSectionsCount: number
+  unsetProviderProfilesCount: number
+  configuredModelProfilesCount: number
+  configuredFastModelProfilesCount: number
+  subscriptionProfilesCount: number
+  apiKeyProfilesCount: number
+  accountProfilesCount: number
+  customBaseUrlProfilesCount: number
+  taggedProfilesCount: number
+  missingModelProfilesCount: number
+  missingAccountProfilesCount: number
+}
+
 export interface NormalizedClaudeProfilesState {
   currentProfile: string | null
   profiles: ClaudeProfile[]
@@ -165,6 +182,19 @@ export interface NormalizedClaudeProfilesState {
 
 const normalizeProvider = (provider?: string | null): string => provider?.trim() ?? ''
 const normalizeSearchValue = (value?: string | null): string => value?.trim().toLowerCase() ?? ''
+const normalizeOptionalValue = (value?: string | null): string => value?.trim() ?? ''
+
+const OFFICIAL_CLAUDE_BASE_URLS = new Set([
+  'https://api.anthropic.com',
+  'https://api.anthropic.com/v1',
+])
+
+const normalizeBaseUrl = (baseUrl?: string | null): string => normalizeOptionalValue(baseUrl).replace(/\/+$/, '')
+
+const isCustomClaudeProfileBaseUrl = (baseUrl?: string | null): boolean => {
+  const normalized = normalizeBaseUrl(baseUrl)
+  return !!normalized && !OFFICIAL_CLAUDE_BASE_URLS.has(normalized)
+}
 
 const compareProfiles = (left: ClaudeProfile, right: ClaudeProfile): number => {
   if (left.is_current !== right.is_current) {
@@ -319,4 +349,37 @@ export const createClaudeProfileSections = (
 
       return left.title.localeCompare(right.title, undefined, { sensitivity: 'base' })
     })
+}
+
+export const createClaudeProfilesOverviewSummary = (
+  profiles: ClaudeProfile[],
+  unsetLabel = 'Unspecified Provider'
+): ClaudeProfilesOverviewSummary => {
+  const providerSectionsCount = createClaudeProfileSections(profiles, unsetLabel).length
+
+  const enabledProfilesCount = profiles.filter(profile => profile.enabled !== false).length
+  const configuredModelProfilesCount = profiles.filter(profile => normalizeOptionalValue(profile.model).length > 0).length
+  const configuredFastModelProfilesCount = profiles.filter(profile => normalizeOptionalValue(profile.small_fast_model).length > 0).length
+  const subscriptionProfilesCount = profiles.filter(profile => (profile.auth_mode ?? 'subscription') === 'subscription').length
+  const apiKeyProfilesCount = profiles.filter(profile => profile.auth_mode === 'api_key').length
+  const accountProfilesCount = profiles.filter(profile => normalizeOptionalValue(profile.account).length > 0).length
+  const customBaseUrlProfilesCount = profiles.filter(profile => isCustomClaudeProfileBaseUrl(profile.base_url)).length
+  const taggedProfilesCount = profiles.filter(profile => (profile.tags?.length ?? 0) > 0).length
+
+  return {
+    totalProfiles: profiles.length,
+    enabledProfilesCount,
+    disabledProfilesCount: Math.max(profiles.length - enabledProfilesCount, 0),
+    providerSectionsCount,
+    unsetProviderProfilesCount: profiles.filter(profile => getClaudeProfileProviderKey(profile.provider) === CLAUDE_PROFILE_UNSET_PROVIDER_KEY).length,
+    configuredModelProfilesCount,
+    configuredFastModelProfilesCount,
+    subscriptionProfilesCount,
+    apiKeyProfilesCount,
+    accountProfilesCount,
+    customBaseUrlProfilesCount,
+    taggedProfilesCount,
+    missingModelProfilesCount: Math.max(profiles.length - configuredModelProfilesCount, 0),
+    missingAccountProfilesCount: Math.max(profiles.length - accountProfilesCount, 0),
+  }
 }

@@ -54,6 +54,27 @@ impl CodexQuotaService {
         self.fetch_current_quota_inner(true).await
     }
 
+    /// 按给定账号顺序批量查询配额。
+    ///
+    /// 特殊 key:
+    /// - `default`: 当前 runtime 登录
+    pub async fn fetch_quotas_for_accounts(
+        &self,
+        account_names: &[String],
+    ) -> Vec<CodexAccountQuota> {
+        self.fetch_quotas_for_accounts_inner(account_names, false)
+            .await
+    }
+
+    /// 按给定账号顺序批量查询配额（强制 refresh token）。
+    pub async fn fetch_quotas_for_accounts_force_refresh(
+        &self,
+        account_names: &[String],
+    ) -> Vec<CodexAccountQuota> {
+        self.fetch_quotas_for_accounts_inner(account_names, true)
+            .await
+    }
+
     /// 并发查询所有已保存账号的配额。
     pub async fn fetch_all_quotas(&self) -> Vec<CodexAccountQuota> {
         self.fetch_all_quotas_inner(false).await
@@ -230,6 +251,20 @@ impl CodexQuotaService {
             return vec![];
         }
 
+        let account_names = registry.accounts.keys().cloned().collect::<Vec<_>>();
+        self.fetch_quotas_for_accounts_inner(&account_names, force_refresh)
+            .await
+    }
+
+    async fn fetch_quotas_for_accounts_inner(
+        &self,
+        account_names: &[String],
+        force_refresh: bool,
+    ) -> Vec<CodexAccountQuota> {
+        if account_names.is_empty() {
+            return Vec::new();
+        }
+
         use futures::future::join_all;
         use std::sync::Arc;
         use tokio::sync::Semaphore;
@@ -238,23 +273,38 @@ impl CodexQuotaService {
         let ccr_codex_dir = self.ccr_codex_dir.clone();
         let codex_dir = self.codex_dir.clone();
 
-        let tasks: Vec<_> = registry
-            .accounts
-            .keys()
+        let tasks: Vec<_> = account_names
+            .iter()
             .map(|name| {
                 let semaphore = semaphore.clone();
                 let ccr_codex_dir = ccr_codex_dir.clone();
                 let codex_dir = codex_dir.clone();
                 let name = name.clone();
                 async move {
-                    let _permit = semaphore.acquire().await;
+                    let permit = match semaphore.acquire_owned().await {
+                        Ok(permit) => permit,
+                        Err(error) => {
+                            return CodexAccountQuota {
+                                account_name: name,
+                                email: None,
+                                quota: None,
+                                error: Some(format!("获取并发许可失败: {error}")),
+                                fetched_at: Utc::now(),
+                            };
+                        }
+                    };
+                    let _permit = permit;
                     let service = CodexQuotaService {
                         ccr_codex_dir,
                         codex_dir,
                     };
-                    service
-                        .fetch_account_quota_inner(&name, force_refresh)
-                        .await
+                    if name == "default" {
+                        service.fetch_current_quota_inner(force_refresh).await
+                    } else {
+                        service
+                            .fetch_account_quota_inner(&name, force_refresh)
+                            .await
+                    }
                 }
             })
             .collect();

@@ -1,8 +1,6 @@
 use super::*;
 
-use ccr_codex::{
-    CodexAccountQuota, CodexAuthItem, CodexQuota, CodexRuntimeMode, LoginState, TokenFreshness,
-};
+use ccr_codex::{CodexAccountQuota, CodexAuthItem, CodexQuota, CodexRuntimeMode, LoginState};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CodexTrayAccountRow {
@@ -14,11 +12,7 @@ pub struct CodexTrayAccountRow {
     pub saved_at: Option<String>,
     pub last_used: Option<String>,
     pub last_refresh: Option<String>,
-    pub freshness: String,
-    pub freshness_icon: String,
-    pub freshness_description: String,
-    pub expires_at: Option<String>,
-    pub is_expired: bool,
+    pub plan_type: Option<String>,
     pub can_switch: bool,
     pub quota: Option<CodexQuota>,
     pub quota_error: Option<String>,
@@ -104,15 +98,6 @@ pub async fn codex_get_tray_snapshot(force: Option<bool>) -> Result<CodexTraySna
     compute_codex_tray_snapshot(force.unwrap_or(false)).await
 }
 
-fn freshness_to_string(freshness: &TokenFreshness) -> String {
-    match freshness {
-        TokenFreshness::Fresh => "Fresh".to_string(),
-        TokenFreshness::Stale => "Stale".to_string(),
-        TokenFreshness::Old => "Old".to_string(),
-        TokenFreshness::Unknown(raw) => raw.clone(),
-    }
-}
-
 fn runtime_mode_to_string(mode: CodexRuntimeMode) -> String {
     match mode {
         CodexRuntimeMode::ProfileOnly => "profile_only".to_string(),
@@ -124,7 +109,10 @@ fn runtime_mode_to_string(mode: CodexRuntimeMode) -> String {
 }
 
 fn should_query_current_quota(mode: CodexRuntimeMode) -> bool {
-    !matches!(mode, CodexRuntimeMode::ProfileOnly | CodexRuntimeMode::Unresolved)
+    !matches!(
+        mode,
+        CodexRuntimeMode::ProfileOnly | CodexRuntimeMode::Unresolved
+    )
 }
 
 fn build_tray_account_rows(
@@ -147,14 +135,8 @@ fn build_tray_account_rows(
                 saved_at: item.saved_at.map(|dt| dt.to_rfc3339()),
                 last_used: item.last_used.map(|dt| dt.to_rfc3339()),
                 last_refresh: item.last_refresh.map(|dt| dt.to_rfc3339()),
-                freshness: freshness_to_string(&item.freshness),
-                freshness_icon: item.freshness.icon().to_string(),
-                freshness_description: item.freshness.description().to_string(),
-                expires_at: item.expires_at.map(|dt| dt.to_rfc3339()),
-                is_expired: CodexAuthService::is_expired(item.expires_at),
-                can_switch: can_manage_accounts
-                    && !item.is_current
-                    && !CodexAuthService::is_expired(item.expires_at),
+                plan_type: item.plan_type,
+                can_switch: can_manage_accounts && !item.is_current,
                 quota: quota.and_then(|entry| entry.quota.clone()),
                 quota_error: quota.and_then(|entry| entry.error.clone()),
                 quota_fetched_at: quota.map(|entry| entry.fetched_at.to_rfc3339()),
@@ -187,14 +169,15 @@ mod tests {
             saved_at: Some(Utc::now()),
             last_used: None,
             last_refresh: None,
-            freshness: TokenFreshness::Fresh,
-            expires_at: None,
         }
     }
 
     #[test]
     fn tray_snapshot_only_attaches_quota_to_current_account() {
-        let items = vec![sample_auth_item("current", true), sample_auth_item("other", false)];
+        let items = vec![
+            sample_auth_item("current", true),
+            sample_auth_item("other", false),
+        ];
         let quota = CodexAccountQuota {
             account_name: "default".to_string(),
             email: Some("current@example.com".to_string()),
@@ -232,7 +215,9 @@ mod tests {
     fn tray_snapshot_skips_quota_lookup_for_profile_only_mode() {
         assert!(!should_query_current_quota(CodexRuntimeMode::ProfileOnly));
         assert!(!should_query_current_quota(CodexRuntimeMode::Unresolved));
-        assert!(should_query_current_quota(CodexRuntimeMode::ProfileWithAuth));
+        assert!(should_query_current_quota(
+            CodexRuntimeMode::ProfileWithAuth
+        ));
         assert!(should_query_current_quota(CodexRuntimeMode::RuntimeOnly));
     }
 }

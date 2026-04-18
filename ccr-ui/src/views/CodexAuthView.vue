@@ -303,17 +303,11 @@
                 </div>
                 <div class="codex-auth-view__session-field">
                   <span class="codex-auth-view__field-label">
-                    {{ $t('codex.auth.fields.tokenFreshness') }}
+                    {{ tf('codex.auth.fields.planType', 'Plan') }}
                   </span>
-                  <div class="codex-auth-view__field-inline">
-                    <span>{{ currentInfo.freshness_icon }}</span>
-                    <span
-                      class="codex-auth-view__field-value codex-auth-view__field-value--strong"
-                      :class="freshnessClass(currentInfo.freshness)"
-                    >
-                      {{ currentInfo.freshness_description }}
-                    </span>
-                  </div>
+                  <span class="codex-auth-view__field-value codex-auth-view__field-value--muted">
+                    {{ currentInfo.plan_type || $t('codex.auth.status.notAvailable') }}
+                  </span>
                 </div>
                 <div class="codex-auth-view__session-field">
                   <span class="codex-auth-view__field-label">
@@ -322,35 +316,6 @@
                   <span class="codex-auth-view__field-value codex-auth-view__field-value--muted">
                     {{ currentInfo.last_refresh || $t('codex.auth.status.notAvailable') }}
                   </span>
-                </div>
-                <div class="codex-auth-view__session-field">
-                  <span class="codex-auth-view__field-label">
-                    {{ $t('codex.auth.fields.expiresAt') }}
-                  </span>
-                  <div class="codex-auth-view__field-inline">
-                    <span
-                      v-if="currentInfo.is_expired"
-                      class="codex-auth-view__expired-badge"
-                    >
-                      <SIcon
-                        name="AlertTriangle"
-                        size="w-3 h-3"
-                      />
-                      {{ $t('codex.auth.expired') }}
-                    </span>
-                    <span
-                      v-else-if="currentInfo.expires_at"
-                      class="codex-auth-view__field-value codex-auth-view__field-value--muted"
-                    >
-                      {{ formatExpiryDate(currentInfo.expires_at) }}
-                    </span>
-                    <span
-                      v-else
-                      class="codex-auth-view__field-value codex-auth-view__field-value--faint"
-                    >
-                      {{ $t('codex.auth.noExpiry') }}
-                    </span>
-                  </div>
                 </div>
               </div>
             </Card>
@@ -434,27 +399,6 @@
                   </div>
                 </div>
 
-                <div class="codex-auth-view__filter-group">
-                  <label
-                    class="codex-auth-view__filter-label"
-                    for="codex-auth-freshness-filter"
-                  >
-                    {{ $t('codex.auth.filters.freshnessLabel') }}
-                  </label>
-                  <select
-                    id="codex-auth-freshness-filter"
-                    v-model="freshnessFilter"
-                    class="codex-auth-view__filter-select"
-                  >
-                    <option
-                      v-for="option in freshnessOptions"
-                      :key="option.value"
-                      :value="option.value"
-                    >
-                      {{ option.label }}
-                    </option>
-                  </select>
-                </div>
 
                 <div class="codex-auth-view__filter-group">
                   <label
@@ -1078,19 +1022,6 @@
                     class="input"
                     :placeholder="$t('codex.auth.placeholders.description')"
                   >
-                </div>
-                <div class="space-y-1.5">
-                  <label class="text-sm font-semibold text-text-primary">
-                    {{ $t('codex.auth.fields.expiresAt') }}
-                  </label>
-                  <input
-                    v-model="saveForm.expires_at"
-                    type="datetime-local"
-                    class="input"
-                  >
-                  <p class="text-xs text-text-muted mt-1">
-                    {{ $t('codex.auth.expiresAtHint') }}
-                  </p>
                 </div>
                 <div class="codex-auth-view__save-toggle">
                   <input
@@ -2021,7 +1952,6 @@ import type {
   CodexProfilesResponse,
   CodexProfileAuthMode,
   LoginState,
-  TokenFreshness,
 } from '@/types'
 import { logger } from '@/utils/logger'
 import { isTauriRuntime } from '@/utils/tauriRuntime'
@@ -2032,8 +1962,7 @@ defineOptions({ name: 'CodexAuthView' })
 const { t } = useI18n()
 const uiStore = useUIStore()
 
-type AccountStatusFilter = 'all' | 'current' | 'expired' | 'virtual' | 'attention'
-type AccountFreshnessFilter = 'all' | 'Fresh' | 'Stale' | 'Old' | 'Unknown'
+type AccountStatusFilter = 'all' | 'current' | 'virtual' | 'attention'
 type AccountPlanFilter = 'all' | 'plus' | 'pro' | 'team' | 'unknown'
 type AccountSort = 'saved_desc' | 'used_desc' | 'name_asc'
 type ManagerTab = 'accounts' | 'providers'
@@ -2099,7 +2028,6 @@ const REFRESH_TTL_MS = 30_000
 const saveForm = reactive({
   name: '',
   description: '',
-  expires_at: '',
   force: false,
 })
 
@@ -2132,7 +2060,6 @@ const providerForm = reactive({
 
 const searchQuery = ref('')
 const statusFilter = ref<AccountStatusFilter>('all')
-const freshnessFilter = ref<AccountFreshnessFilter>('all')
 const planFilter = ref<AccountPlanFilter>('all')
 const sortBy = ref<AccountSort>('saved_desc')
 
@@ -2422,17 +2349,8 @@ const loginStateText = computed(() => {
 const statusOptions = computed(() => [
   { value: 'all' as const, label: t('codex.auth.filters.statusOptions.all') },
   { value: 'current' as const, label: t('codex.auth.filters.statusOptions.current') },
-  { value: 'expired' as const, label: t('codex.auth.filters.statusOptions.expired') },
   { value: 'virtual' as const, label: t('codex.auth.filters.statusOptions.virtual') },
   { value: 'attention' as const, label: t('codex.auth.filters.statusOptions.attention') },
-])
-
-const freshnessOptions = computed(() => [
-  { value: 'all' as const, label: t('codex.auth.filters.freshnessOptions.all') },
-  { value: 'Fresh' as const, label: t('codex.auth.filters.freshnessOptions.Fresh') },
-  { value: 'Stale' as const, label: t('codex.auth.filters.freshnessOptions.Stale') },
-  { value: 'Old' as const, label: t('codex.auth.filters.freshnessOptions.Old') },
-  { value: 'Unknown' as const, label: t('codex.auth.filters.freshnessOptions.Unknown') },
 ])
 
 const planOptions = computed(() => [
@@ -2453,7 +2371,6 @@ const hasActiveFilters = computed(() => {
   return (
     Boolean(searchQuery.value.trim()) ||
     statusFilter.value !== 'all' ||
-    freshnessFilter.value !== 'all' ||
     planFilter.value !== 'all' ||
     sortBy.value !== 'saved_desc'
   )
@@ -2479,13 +2396,8 @@ const filteredAccounts = computed(() => {
     }
 
     if (statusFilter.value === 'current' && !account.is_current) return false
-    if (statusFilter.value === 'expired' && !account.is_expired) return false
     if (statusFilter.value === 'virtual' && !account.is_virtual) return false
     if (statusFilter.value === 'attention' && !isAttentionAccount(account)) return false
-
-    if (freshnessFilter.value !== 'all' && account.freshness !== freshnessFilter.value) {
-      return false
-    }
 
     if (planFilter.value !== 'all' && resolvePlanType(account) !== planFilter.value) {
       return false
@@ -2513,28 +2425,6 @@ const filtersResultsCount = computed(() =>
     total: accounts.value.length,
   })
 )
-
-const freshnessClass = (freshness: TokenFreshness) => {
-  switch (freshness) {
-    case 'Fresh':
-      return 'text-emerald-500'
-    case 'Stale':
-      return 'text-yellow-500'
-    case 'Old':
-      return 'text-orange-500'
-    default:
-      return 'text-text-muted'
-  }
-}
-
-const formatExpiryDate = (dateStr: string) => {
-  try {
-    const date = new Date(dateStr)
-    return date.toLocaleString()
-  } catch {
-    return dateStr
-  }
-}
 
 const formatAuthMethod = (method?: string | null) => {
   switch (method) {
@@ -2566,7 +2456,6 @@ const formatProviderUpdatedAt = (value?: string | null, detailed = false) => {
 const clearFilters = () => {
   searchQuery.value = ''
   statusFilter.value = 'all'
-  freshnessFilter.value = 'all'
   planFilter.value = 'all'
   sortBy.value = 'saved_desc'
 }
@@ -2592,12 +2481,7 @@ const resolvePlanType = (account: CodexAuthAccountItem): AccountPlanFilter => {
 }
 
 const isAttentionAccount = (account: CodexAuthAccountItem) => {
-  return (
-    account.is_expired ||
-    account.freshness === 'Stale' ||
-    account.freshness === 'Old' ||
-    Boolean(quotaMap.value.get(account.name)?.error)
-  )
+  return Boolean(quotaMap.value.get(account.name)?.error)
 }
 
 const compareDateDesc = (left?: string | null, right?: string | null) => {
@@ -2739,7 +2623,6 @@ const handleSave = async () => {
 
   saveForm.name = currentInfo.value?.email?.split('@')[0] || ''
   saveForm.description = ''
-  saveForm.expires_at = ''
   saveForm.force = false
   showSaveForm.value = true
 }
@@ -2758,15 +2641,9 @@ const handleConfirmSave = async () => {
 
   try {
     saving.value = true
-    let expiresAt: string | undefined
-    if (saveForm.expires_at) {
-      expiresAt = new Date(saveForm.expires_at).toISOString()
-    }
-
     const payload: CodexAuthSaveRequest = {
       name: saveForm.name.trim(),
       description: saveForm.description.trim() || undefined,
-      expires_at: expiresAt,
       force: saveForm.force,
     }
     await saveCodexAuth(payload)

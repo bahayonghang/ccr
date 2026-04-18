@@ -74,11 +74,6 @@ pub async fn list_command() -> Result<()> {
                     .to_string()
             })
             .unwrap_or_else(|| "-".to_string());
-        let expires_at = if ClaudeAuthService::is_expired(account.expires_at) {
-            format!("🔒 {expires_at}")
-        } else {
-            expires_at
-        };
 
         table.add_row(vec![
             Cell::new(status).fg(if account.is_current {
@@ -97,11 +92,7 @@ pub async fn list_command() -> Result<()> {
             }),
             Cell::new(account.email.as_deref().unwrap_or("-")),
             Cell::new(account.subscription_type.as_deref().unwrap_or("-")),
-            Cell::new(expires_at).fg(if ClaudeAuthService::is_expired(account.expires_at) {
-                TableColor::Red
-            } else {
-                TableColor::White
-            }),
+            Cell::new(expires_at),
             Cell::new(account.description.as_deref().unwrap_or("-")).fg(TableColor::Blue),
         ]);
     }

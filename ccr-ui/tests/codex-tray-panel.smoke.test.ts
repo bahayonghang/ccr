@@ -23,6 +23,7 @@ vi.mock('@/composables/useCodexTrayPanel', async () => {
   const loading = ref(false)
   const busyAccount = ref<string | null>(null)
   const error = ref<string | null>(null)
+  const isDragging = ref(false)
 
   const currentAccount = computed(() => snapshot.value?.current_account ?? null)
   const accounts = computed(() => snapshot.value?.accounts ?? [])
@@ -33,6 +34,7 @@ vi.mock('@/composables/useCodexTrayPanel', async () => {
   const openUsage = vi.fn()
   const openAuth = vi.fn()
   const quit = vi.fn()
+  const startPanelDrag = vi.fn()
   const switchAccount = vi.fn()
   const goToSwitchScreen = vi.fn(() => {
     if (canManageAccounts.value) {
@@ -60,6 +62,7 @@ vi.mock('@/composables/useCodexTrayPanel', async () => {
       error,
       goToOverview,
       goToSwitchScreen,
+      isDragging,
       loadSnapshot,
       loading,
       openAuth,
@@ -68,6 +71,7 @@ vi.mock('@/composables/useCodexTrayPanel', async () => {
       quit,
       screen,
       snapshot,
+      startPanelDrag,
       switchAccount,
     }),
     __trayPanelTestState: {
@@ -77,6 +81,7 @@ vi.mock('@/composables/useCodexTrayPanel', async () => {
       openMain,
       openUsage,
       quit,
+      startPanelDrag,
       switchAccount,
     },
   }
@@ -110,10 +115,7 @@ const sampleSnapshot = (canManageAccounts = true) => ({
     email: '103***@qq.com',
     is_current: true,
     is_virtual: false,
-    freshness: 'Fresh',
-    freshness_icon: '🟢',
-    freshness_description: 'Fresh',
-    is_expired: false,
+    last_refresh: '2026-04-16T09:40:00Z',
     can_switch: false,
     quota: {
       hourly_percentage: 87,
@@ -129,10 +131,7 @@ const sampleSnapshot = (canManageAccounts = true) => ({
       email: '103***@qq.com',
       is_current: true,
       is_virtual: false,
-      freshness: 'Fresh',
-      freshness_icon: '🟢',
-      freshness_description: 'Fresh',
-      is_expired: false,
+      last_refresh: '2026-04-16T09:40:00Z',
       can_switch: false,
     },
     {
@@ -140,10 +139,7 @@ const sampleSnapshot = (canManageAccounts = true) => ({
       email: 'backup@example.com',
       is_current: false,
       is_virtual: false,
-      freshness: 'Stale',
-      freshness_icon: '🟡',
-      freshness_description: 'Stale',
-      is_expired: false,
+      last_refresh: '2026-04-15T18:00:00Z',
       can_switch: canManageAccounts,
     },
   ],
@@ -224,6 +220,22 @@ describe('codex tray panel', () => {
     }
   })
 
+  it('routes overview action buttons through the existing shell helpers', async () => {
+    const trayPanelModule = await import('@/composables/useCodexTrayPanel')
+    const { el, unmount } = await mountView()
+
+    try {
+      ;(el.querySelector('[data-testid="tray-action-open-usage"]') as HTMLButtonElement).click()
+      ;(el.querySelector('[data-testid="tray-action-open-main"]') as HTMLButtonElement).click()
+      await flush()
+
+      expect(trayPanelModule.__trayPanelTestState.openUsage).toHaveBeenCalledTimes(1)
+      expect(trayPanelModule.__trayPanelTestState.openMain).toHaveBeenCalledTimes(1)
+    } finally {
+      unmount()
+    }
+  })
+
   it('disables the switch action when account management is unavailable', async () => {
     const trayPanelModule = await import('@/composables/useCodexTrayPanel')
     trayPanelModule.__trayPanelTestState.seed(sampleSnapshot(false))
@@ -234,6 +246,10 @@ describe('codex tray panel', () => {
       const trigger = el.querySelector('[data-testid="tray-action-switch"]') as HTMLButtonElement
       expect(trigger.disabled).toBe(true)
       expect(el.textContent).toContain('Switching is unavailable for the current profile.')
+
+      ;(el.querySelector('[data-testid="tray-action-open-auth"]') as HTMLButtonElement).click()
+      await flush()
+      expect(trayPanelModule.__trayPanelTestState.openAuth).toHaveBeenCalledTimes(1)
     } finally {
       unmount()
     }

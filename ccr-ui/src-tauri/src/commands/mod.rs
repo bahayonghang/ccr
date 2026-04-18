@@ -383,6 +383,8 @@ macro_rules! generate_handler_common {
         shell::shell_set_preferences,
         shell::shell_show_main_window,
         shell::shell_request_quit,
+        shell::shell_begin_tray_panel_drag,
+        shell::shell_complete_tray_panel_drag,
         // —— 系统扩展 ——
         system::update_ccr,
         system::get_cli_version,

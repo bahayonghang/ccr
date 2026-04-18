@@ -1,14 +1,18 @@
 // 🔐 Claude Auth 服务层
 // 管理 Claude 官方订阅凭据与 CCR 自管账号快照
 
+use crate::managers::{ClaudeSettings, SettingsManager};
 use crate::models::{
     ClaudeAuthAccount, ClaudeAuthRegistry, ClaudeCurrentAuthInfo, ClaudeLoginState,
     ClaudeProfileAuthMode, ClaudeRuntimeMode, ClaudeRuntimeSummary, PlatformConfig, ProfileConfig,
-    TokenFreshness,
 };
 use crate::platforms::ClaudePlatform;
+use ccr_config::managers::config::CcsConfig;
+use ccr_config::platforms::base as platform_base;
+use ccr_core::core::LockManager;
 use ccr_core::core::error::{CcrError, Result};
-use chrono::{DateTime, Duration, TimeZone, Utc};
+use chrono::{DateTime, TimeZone, Utc};
+use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 use serde_json::{Map as JsonMap, Value as JsonValue};
 use std::fs;
@@ -39,7 +43,6 @@ pub struct ClaudeAuthItem {
     pub saved_at: DateTime<Utc>,
     pub last_used: Option<DateTime<Utc>>,
     pub expires_at: Option<DateTime<Utc>>,
-    pub freshness: TokenFreshness,
 }
 
 struct RuntimeAuthRead {
@@ -188,6 +191,94 @@ impl ClaudeAuthService {
         self.ccr_claude_dir.join("auth")
     }
 
+    fn settings_path(&self) -> PathBuf {
+        self.claude_dir.join("settings.json")
+    }
+
+    fn settings_manager(&self) -> SettingsManager {
+        SettingsManager::new(
+            self.settings_path(),
+            self.claude_dir.join("backups"),
+            LockManager::new(self.claude_dir.join(".locks")),
+        )
+    }
+
+    fn load_settings(&self) -> Result<ClaudeSettings> {
+        match self.settings_manager().load() {
+            Ok(settings) => Ok(settings),
+            Err(CcrError::SettingsMissing(_)) => Ok(ClaudeSettings::new()),
+            Err(err) => Err(err),
+        }
+    }
+
+    fn profiles_path(&self) -> PathBuf {
+        self.ccr_claude_dir.join("profiles.toml")
+    }
+
+    fn load_profiles(&self) -> Result<IndexMap<String, ProfileConfig>> {
+        platform_base::load_profiles_from_toml(&self.profiles_path())
+    }
+
+    fn current_profile_from_file(
+        &self,
+        profiles: &IndexMap<String, ProfileConfig>,
+    ) -> Result<Option<String>> {
+        let path = self.profiles_path();
+        if !path.exists() {
+            return Ok(None);
+        }
+
+        let content = match fs::read_to_string(path) {
+            Ok(content) => content,
+            Err(_) => return Ok(None),
+        };
+
+        let parsed = match toml::from_str::<CcsConfig>(&content) {
+            Ok(parsed) => parsed,
+            Err(_) => return Ok(None),
+        };
+
+        let current = parsed.current_config.trim();
+        if current.is_empty() || !profiles.contains_key(current) {
+            return Ok(None);
+        }
+
+        Ok(Some(current.to_string()))
+    }
+
+    fn current_profile(&self) -> Result<Option<(String, ProfileConfig)>> {
+        let profiles = self.load_profiles()?;
+        let Some(current_name) = self.current_profile_from_file(&profiles)? else {
+            return Ok(None);
+        };
+
+        Ok(profiles
+            .get(&current_name)
+            .cloned()
+            .map(|profile| (current_name, profile)))
+    }
+
+    fn clear_profile_api_key_overrides_if_needed(&self) -> Result<bool> {
+        let Some((_, profile)) = self.current_profile()? else {
+            return Ok(false);
+        };
+        if !matches!(
+            Self::resolve_profile_auth_mode(&profile),
+            ClaudeProfileAuthMode::ApiKey
+        ) {
+            return Ok(false);
+        }
+
+        let mut settings = self.load_settings()?;
+        if !settings.has_anthropic_overrides() {
+            return Ok(false);
+        }
+
+        settings.clear_anthropic_vars();
+        self.settings_manager().save_atomic(&settings)?;
+        Ok(true)
+    }
+
     fn account_snapshot_path(&self, name: &str) -> PathBuf {
         self.auth_storage_dir().join(format!("{name}.json"))
     }
@@ -307,11 +398,7 @@ impl ClaudeAuthService {
         let info = credentials
             .as_ref()
             .map(|doc| self.build_current_info(doc, metadata.as_ref()));
-        let usable = info
-            .as_ref()
-            .and_then(|info| info.expires_at)
-            .map(|expires_at| !Self::is_expired(Some(expires_at)))
-            .unwrap_or(false);
+        let usable = info.is_some();
 
         RuntimeAuthRead { info, usable }
     }
@@ -335,7 +422,6 @@ impl ClaudeAuthService {
             subscription_type: oauth.subscription_type.clone(),
             rate_limit_tier: oauth.rate_limit_tier.clone(),
             expires_at,
-            freshness: Self::calculate_freshness(expires_at),
         }
     }
 
@@ -408,25 +494,6 @@ impl ClaudeAuthService {
         })
     }
 
-    pub fn calculate_freshness(expires_at: Option<DateTime<Utc>>) -> TokenFreshness {
-        let Some(expires_at) = expires_at else {
-            return TokenFreshness::unknown();
-        };
-
-        let remaining = expires_at.signed_duration_since(Utc::now());
-        if remaining <= Duration::days(1) {
-            TokenFreshness::Old
-        } else if remaining <= Duration::days(7) {
-            TokenFreshness::Stale
-        } else {
-            TokenFreshness::Fresh
-        }
-    }
-
-    pub fn is_expired(expires_at: Option<DateTime<Utc>>) -> bool {
-        expires_at.is_some_and(|expires_at| expires_at <= Utc::now())
-    }
-
     pub fn read_auth_snapshot(&self) -> Result<ClaudeAuthReadSnapshot> {
         let registry = self.load_registry()?;
         let runtime = self.load_current_runtime_auth();
@@ -485,7 +552,6 @@ impl ClaudeAuthService {
                 saved_at: account.saved_at,
                 last_used: account.last_used,
                 expires_at: account.expires_at,
-                freshness: Self::calculate_freshness(account.expires_at),
             })
             .collect::<Vec<_>>();
 
@@ -559,6 +625,7 @@ impl ClaudeAuthService {
         let runtime_content = serde_json::to_vec_pretty(&snapshot.credentials)
             .map_err(|e| CcrError::SettingsError(format!("序列化 Claude 凭据失败: {e}")))?;
         self.write_atomic(&self.credentials_path(), &runtime_content)?;
+        self.clear_profile_api_key_overrides_if_needed()?;
 
         account.last_used = Some(Utc::now());
         registry.current_auth = Some(name.to_string());
@@ -591,10 +658,12 @@ impl ClaudeAuthService {
         let snapshot = self.read_auth_snapshot()?;
         let platform = ClaudePlatform::new()?;
         let current_profile_name = platform.get_current_profile()?;
+        let settings_has_anthropic_overrides = self.load_settings()?.has_anthropic_overrides();
 
         let mut current_profile_provider = None;
         let mut current_profile_auth_mode = None;
         let mut current_profile_auth_source = None;
+        let mut api_key_profile_override_active = false;
 
         if let Some(profile_name) = current_profile_name.as_ref() {
             let profiles = platform.load_profiles()?;
@@ -602,6 +671,9 @@ impl ClaudeAuthService {
                 current_profile_provider = profile.provider.clone();
                 let auth_mode = Self::resolve_profile_auth_mode(profile);
                 current_profile_auth_source = Some(Self::profile_auth_source(profile, auth_mode));
+                api_key_profile_override_active =
+                    matches!(auth_mode, ClaudeProfileAuthMode::ApiKey)
+                        && settings_has_anthropic_overrides;
                 current_profile_auth_mode = Some(auth_mode);
             }
         }
@@ -614,15 +686,24 @@ impl ClaudeAuthService {
                     ClaudeRuntimeMode::ProfilePendingAuth
                 }
             }
-            Some(ClaudeProfileAuthMode::ApiKey) => ClaudeRuntimeMode::ProfileOnly,
+            Some(ClaudeProfileAuthMode::ApiKey) => {
+                if api_key_profile_override_active {
+                    ClaudeRuntimeMode::ProfileOnly
+                } else if snapshot.runtime_usable {
+                    ClaudeRuntimeMode::ProfileWithAuth
+                } else {
+                    ClaudeRuntimeMode::ProfilePendingAuth
+                }
+            }
             None if snapshot.runtime_usable => ClaudeRuntimeMode::RuntimeOnly,
             None => ClaudeRuntimeMode::Unresolved,
         };
 
         let official_login_state = snapshot.login_state.clone();
-        let login_state = match current_profile_auth_mode {
-            Some(ClaudeProfileAuthMode::ApiKey) => ClaudeLoginState::ApiKeyActive,
-            _ => official_login_state.clone(),
+        let login_state = if api_key_profile_override_active {
+            ClaudeLoginState::ApiKeyActive
+        } else {
+            official_login_state.clone()
         };
         let current_login_name = snapshot.current_account_name.clone();
 
@@ -706,16 +787,32 @@ impl ClaudeAuthService {
 #[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
+    use chrono::Duration;
     use serde_json::json;
+    use std::sync::{LazyLock, Mutex, MutexGuard};
     use tempfile::TempDir;
+
+    static ENV_LOCK: LazyLock<Mutex<()>> = LazyLock::new(|| Mutex::new(()));
+
+    fn restore_env_var(key: &str, previous: Option<String>) {
+        unsafe {
+            match previous {
+                Some(value) => std::env::set_var(key, value),
+                None => std::env::remove_var(key),
+            }
+        }
+    }
 
     struct TestEnv {
         _root: TempDir,
+        _env_guard: MutexGuard<'static, ()>,
+        previous_ccr_root: Option<String>,
         service: ClaudeAuthService,
     }
 
     impl TestEnv {
         fn new() -> Self {
+            let env_guard = ENV_LOCK.lock().unwrap();
             let root = tempfile::tempdir().unwrap();
             let home = root.path().join("home");
             let ccr_claude_dir = home.join(".ccr").join("platforms").join("claude");
@@ -723,8 +820,14 @@ mod tests {
             let claude_json_path = home.join(".claude.json");
             fs::create_dir_all(&ccr_claude_dir).unwrap();
             fs::create_dir_all(&claude_dir).unwrap();
+            let previous_ccr_root = std::env::var("CCR_ROOT").ok();
+            unsafe {
+                std::env::set_var("CCR_ROOT", home.join(".ccr"));
+            }
 
             Self {
+                _env_guard: env_guard,
+                previous_ccr_root,
                 service: ClaudeAuthService::from_parts(
                     ccr_claude_dir,
                     claude_dir,
@@ -732,6 +835,18 @@ mod tests {
                 ),
                 _root: root,
             }
+        }
+
+        fn write_settings(&self, value: JsonValue) {
+            fs::write(
+                self.service.settings_path(),
+                serde_json::to_string_pretty(&value).unwrap(),
+            )
+            .unwrap();
+        }
+
+        fn write_profiles(&self, content: &str) {
+            fs::write(self.service.profiles_path(), content).unwrap();
         }
 
         fn write_credentials(&self, expires_at: DateTime<Utc>) {
@@ -786,20 +901,10 @@ mod tests {
         }
     }
 
-    #[test]
-    fn test_calculate_freshness_from_expiry() {
-        assert_eq!(
-            ClaudeAuthService::calculate_freshness(Some(Utc::now() + Duration::days(14))),
-            TokenFreshness::Fresh
-        );
-        assert_eq!(
-            ClaudeAuthService::calculate_freshness(Some(Utc::now() + Duration::days(3))),
-            TokenFreshness::Stale
-        );
-        assert_eq!(
-            ClaudeAuthService::calculate_freshness(Some(Utc::now() - Duration::minutes(1))),
-            TokenFreshness::Old
-        );
+    impl Drop for TestEnv {
+        fn drop(&mut self) {
+            restore_env_var("CCR_ROOT", self.previous_ccr_root.clone());
+        }
     }
 
     #[test]
@@ -919,5 +1024,52 @@ mod tests {
             ClaudeAuthService::resolve_profile_auth_mode(&profile),
             ClaudeProfileAuthMode::ApiKey
         );
+    }
+
+    #[test]
+    fn test_switch_account_clears_api_key_profile_overrides_and_reactivates_official_auth() {
+        let env = TestEnv::new();
+        env.write_credentials(Utc::now() + Duration::days(14));
+        env.write_metadata();
+        env.service.save_current("work", None, false).unwrap();
+        env.write_profiles(
+            r#"
+default_config = "anyrouter"
+current_config = "anyrouter"
+
+[anyrouter]
+base_url = "https://example.com"
+auth_token = "sk-profile"
+provider = "anyrouter"
+auth_mode = "api_key"
+"#,
+        );
+        env.write_settings(json!({
+            "env": {
+                "ANTHROPIC_BASE_URL": "https://example.com",
+                "ANTHROPIC_AUTH_TOKEN": "sk-profile",
+                "ANTHROPIC_MODEL": "claude-3-7-sonnet"
+            }
+        }));
+
+        env.service.switch_account("work").unwrap();
+
+        let settings = env.service.load_settings().unwrap();
+        assert!(!settings.has_anthropic_overrides());
+
+        let summary = env.service.get_runtime_summary().unwrap();
+        assert_eq!(summary.mode, ClaudeRuntimeMode::ProfileWithAuth);
+        assert_eq!(
+            summary.login_state,
+            ClaudeLoginState::LoggedInSaved {
+                account_name: "work".to_string()
+            }
+        );
+        assert_eq!(
+            summary.current_profile_auth_mode,
+            Some(ClaudeProfileAuthMode::ApiKey)
+        );
+        assert_eq!(summary.current_auth_name.as_deref(), Some("work"));
+        assert_eq!(summary.auth_label(), "Official / work");
     }
 }

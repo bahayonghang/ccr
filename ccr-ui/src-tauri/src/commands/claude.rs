@@ -1144,7 +1144,6 @@ pub async fn claude_list_auth_accounts() -> Result<Value, String> {
         let accounts: Vec<Value> = accounts
             .into_iter()
             .map(|item| {
-                let freshness = &item.freshness;
                 json!({
                     "name": item.name,
                     "description": item.description,
@@ -1157,10 +1156,6 @@ pub async fn claude_list_auth_accounts() -> Result<Value, String> {
                     "saved_at": item.saved_at.to_rfc3339(),
                     "last_used": item.last_used.map(|dt| dt.to_rfc3339()),
                     "expires_at": item.expires_at.map(|dt| dt.to_rfc3339()),
-                    "is_expired": ClaudeAuthService::is_expired(item.expires_at),
-                    "freshness": freshness,
-                    "freshness_icon": freshness.icon(),
-                    "freshness_description": freshness.description(),
                 })
             })
             .collect();
@@ -1188,7 +1183,6 @@ pub async fn claude_get_auth_current() -> Result<Value, String> {
         let logged_in = current_info.is_some();
 
         let info = current_info.map(|info| {
-            let freshness = &info.freshness;
             json!({
                 "account_uuid": info.account_uuid,
                 "email": info.email,
@@ -1196,10 +1190,6 @@ pub async fn claude_get_auth_current() -> Result<Value, String> {
                 "subscription_type": info.subscription_type,
                 "rate_limit_tier": info.rate_limit_tier,
                 "expires_at": info.expires_at.map(|dt| dt.to_rfc3339()),
-                "is_expired": ClaudeAuthService::is_expired(info.expires_at),
-                "freshness": freshness,
-                "freshness_icon": freshness.icon(),
-                "freshness_description": freshness.description(),
             })
         });
 

@@ -313,9 +313,7 @@ export function useCodexDashboard() {
 
     const authTone: CodexDashboardTone = !data.auth.logged_in
       ? 'danger'
-      : data.auth.current?.is_expired
-        ? 'warning'
-        : 'success'
+      : 'success'
 
     const profileTone: CodexDashboardTone =
       data.profiles.total === 0 ? 'danger' : !data.profiles.current_profile ? 'warning' : 'success'
@@ -339,7 +337,9 @@ export function useCodexDashboard() {
         title: '当前账号',
         value: currentAccountLabel.value,
         detail: data.auth.logged_in
-          ? data.auth.current?.freshness_description || '已登录，可继续使用'
+          ? data.auth.current?.last_refresh
+            ? `最近刷新 ${formatDateTime(data.auth.current.last_refresh)}`
+            : '已登录，可继续使用'
           : '尚未登录 Codex 账号',
         tone: authTone,
         icon: 'ShieldCheck',

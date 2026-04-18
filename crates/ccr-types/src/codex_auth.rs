@@ -5,81 +5,6 @@
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::{Value, json};
 
-const TOKEN_UNKNOWN_LABEL: &str = "Unknown";
-
-/// Token freshness status
-///
-/// Indicates how recently the token was refreshed.
-/// Serializes to CamelCase to match frontend TypeScript types.
-/// Unknown values are preserved for forward compatibility.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum TokenFreshness {
-    /// Fresh (< 1 day)
-    Fresh,
-    /// Stale (1-7 days)
-    Stale,
-    /// Old (> 7 days)
-    Old,
-    /// Unknown or unrecognized value (keeps raw string)
-    Unknown(String),
-}
-
-impl TokenFreshness {
-    /// Canonical unknown value used by current system.
-    pub fn unknown() -> Self {
-        Self::Unknown(TOKEN_UNKNOWN_LABEL.to_string())
-    }
-
-    /// Get display icon
-    pub fn icon(&self) -> &'static str {
-        match self {
-            TokenFreshness::Fresh => "🟢",
-            TokenFreshness::Stale => "🟡",
-            TokenFreshness::Old => "🔴",
-            TokenFreshness::Unknown(_) => "⚪",
-        }
-    }
-
-    /// Get description text
-    pub fn description(&self) -> &'static str {
-        match self {
-            TokenFreshness::Fresh => "Token 状态良好",
-            TokenFreshness::Stale => "Token 可能需要刷新",
-            TokenFreshness::Old => "Token 可能已过期，建议重新登录",
-            TokenFreshness::Unknown(_) => "无法确定 Token 状态",
-        }
-    }
-}
-
-impl Serialize for TokenFreshness {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        match self {
-            TokenFreshness::Fresh => serializer.serialize_str("Fresh"),
-            TokenFreshness::Stale => serializer.serialize_str("Stale"),
-            TokenFreshness::Old => serializer.serialize_str("Old"),
-            TokenFreshness::Unknown(raw) => serializer.serialize_str(raw),
-        }
-    }
-}
-
-impl<'de> Deserialize<'de> for TokenFreshness {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        let raw = String::deserialize(deserializer)?;
-        match raw.as_str() {
-            "Fresh" => Ok(TokenFreshness::Fresh),
-            "Stale" => Ok(TokenFreshness::Stale),
-            "Old" => Ok(TokenFreshness::Old),
-            _ => Ok(TokenFreshness::Unknown(raw)),
-        }
-    }
-}
-
 /// TUI login state
 ///
 /// Represents the current login status for Codex authentication.
@@ -184,47 +109,6 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_token_freshness_serialization() {
-        // Test CamelCase serialization
-        assert_eq!(
-            serde_json::to_string(&TokenFreshness::Fresh).unwrap(),
-            "\"Fresh\""
-        );
-        assert_eq!(
-            serde_json::to_string(&TokenFreshness::Stale).unwrap(),
-            "\"Stale\""
-        );
-        assert_eq!(
-            serde_json::to_string(&TokenFreshness::Old).unwrap(),
-            "\"Old\""
-        );
-        assert_eq!(
-            serde_json::to_string(&TokenFreshness::unknown()).unwrap(),
-            "\"Unknown\""
-        );
-        assert_eq!(
-            serde_json::to_string(&TokenFreshness::Unknown("VeryFresh".to_string())).unwrap(),
-            "\"VeryFresh\""
-        );
-    }
-
-    #[test]
-    fn test_token_freshness_deserialization() {
-        assert_eq!(
-            serde_json::from_str::<TokenFreshness>("\"Fresh\"").unwrap(),
-            TokenFreshness::Fresh
-        );
-        assert_eq!(
-            serde_json::from_str::<TokenFreshness>("\"Stale\"").unwrap(),
-            TokenFreshness::Stale
-        );
-        assert_eq!(
-            serde_json::from_str::<TokenFreshness>("\"VeryFresh\"").unwrap(),
-            TokenFreshness::Unknown("VeryFresh".to_string())
-        );
-    }
-
-    #[test]
     fn test_login_state_serialization() {
         // NotLoggedIn
         let json = serde_json::to_string(&LoginState::NotLoggedIn).unwrap();
@@ -301,21 +185,5 @@ mod tests {
         let serialized = serde_json::to_string(&state).unwrap();
         assert!(serialized.contains("\"type\":\"LoggedInFromCloud\""));
         assert!(serialized.contains("\"region\":\"us-east-1\""));
-    }
-
-    #[test]
-    fn test_token_freshness_icon() {
-        assert_eq!(TokenFreshness::Fresh.icon(), "🟢");
-        assert_eq!(TokenFreshness::Stale.icon(), "🟡");
-        assert_eq!(TokenFreshness::Old.icon(), "🔴");
-        assert_eq!(TokenFreshness::unknown().icon(), "⚪");
-    }
-
-    #[test]
-    fn test_token_freshness_description() {
-        assert!(!TokenFreshness::Fresh.description().is_empty());
-        assert!(!TokenFreshness::Stale.description().is_empty());
-        assert!(!TokenFreshness::Old.description().is_empty());
-        assert!(!TokenFreshness::unknown().description().is_empty());
     }
 }

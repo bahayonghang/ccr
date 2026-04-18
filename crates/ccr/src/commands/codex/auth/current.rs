@@ -4,11 +4,11 @@
 
 #![allow(clippy::unused_async)]
 
-use crate::models::{AuthIntent, AuthState, LoginState, TokenFreshness};
+use crate::models::{AuthIntent, AuthState, LoginState};
 use crate::services::CodexAuthService;
 use ccr_core::core::error::Result;
 use ccr_core::core::logging::ColorOutput;
-use chrono::{DateTime, Local, Utc};
+use chrono::{DateTime, Utc};
 use colored::Colorize;
 use serde::Serialize;
 
@@ -28,8 +28,9 @@ struct CurrentAuthInfoJsonOutput {
     #[serde(skip_serializing_if = "Option::is_none")]
     email: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    plan_type: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     last_refresh: Option<DateTime<Utc>>,
-    freshness: TokenFreshness,
 }
 
 #[derive(Debug, Serialize)]
@@ -57,8 +58,8 @@ fn build_json_output(
             account_id: info.account_id.clone(),
             auth_method: info.auth_method,
             email: info.email.clone(),
+            plan_type: info.plan_type.clone(),
             last_refresh: info.last_refresh,
-            freshness: info.freshness.clone(),
         }),
     }
 }
@@ -130,7 +131,7 @@ pub async fn current_command(json: bool) -> Result<()> {
             // 显示详细信息
             if let Ok(info) = service.get_current_auth_info() {
                 println!();
-                display_auth_info(&service, &info, &auth_state, None); // 未保存的账号没有过期时间
+                display_auth_info(&service, &info, &auth_state);
 
                 println!();
                 ColorOutput::warning("当前登录尚未保存");
@@ -146,13 +147,8 @@ pub async fn current_command(json: bool) -> Result<()> {
 
             // 显示详细信息
             if let Ok(info) = service.get_current_auth_info() {
-                let expires_at = service
-                    .load_registry()
-                    .ok()
-                    .and_then(|reg| reg.accounts.get(&name).and_then(|a| a.expires_at));
-
                 println!();
-                display_auth_info(&service, &info, &auth_state, expires_at);
+                display_auth_info(&service, &info, &auth_state);
             }
 
             println!();
@@ -165,7 +161,7 @@ pub async fn current_command(json: bool) -> Result<()> {
 
             if let Ok(info) = service.get_current_auth_info() {
                 println!();
-                display_auth_info(&service, &info, &auth_state, None);
+                display_auth_info(&service, &info, &auth_state);
             }
         }
         LoginState::ApiKeyActive => {
@@ -173,7 +169,7 @@ pub async fn current_command(json: bool) -> Result<()> {
 
             if let Ok(info) = service.get_current_auth_info() {
                 println!();
-                display_auth_info(&service, &info, &auth_state, None);
+                display_auth_info(&service, &info, &auth_state);
             }
 
             println!();
@@ -186,7 +182,7 @@ pub async fn current_command(json: bool) -> Result<()> {
 
             if let Ok(info) = service.get_current_auth_info() {
                 println!();
-                display_auth_info(&service, &info, &auth_state, None);
+                display_auth_info(&service, &info, &auth_state);
             }
 
             println!();
@@ -203,7 +199,6 @@ fn display_auth_info(
     service: &CodexAuthService,
     info: &crate::models::CurrentAuthInfo,
     auth_state: &AuthState,
-    expires_at: Option<DateTime<Utc>>,
 ) {
     ColorOutput::info(&format!("认证意图: {}", render_intent(&auth_state.intent)));
     ColorOutput::info(&format!("凭据存储: {}", auth_state.store.as_str()));
@@ -221,15 +216,9 @@ fn display_auth_info(
         "Account ID: {}",
         mask_account_id(&info.account_id)
     ));
-
-    // Token 新鲜度
-    let freshness_str = match &info.freshness {
-        TokenFreshness::Fresh => "🟢 新鲜 (< 1 天)".green().to_string(),
-        TokenFreshness::Stale => "🟡 陈旧 (1-7 天)".yellow().to_string(),
-        TokenFreshness::Old => "🔴 过期 (> 7 天)".red().to_string(),
-        TokenFreshness::Unknown(_) => "⚪ 未知".white().to_string(),
-    };
-    ColorOutput::info(&format!("Token 状态: {}", freshness_str));
+    if let Some(plan_type) = &info.plan_type {
+        ColorOutput::info(&format!("套餐: {}", plan_type));
+    }
 
     // 最后刷新时间
     if let Some(last_refresh) = &info.last_refresh {
@@ -238,22 +227,6 @@ fn display_auth_info(
             "最后刷新: {}",
             local_time.format("%Y-%m-%d %H:%M:%S")
         ));
-    }
-
-    // 到期时间
-    if let Some(exp_at) = expires_at {
-        let expired = CodexAuthService::is_expired(Some(exp_at));
-        let local_ts = exp_at.with_timezone(&Local).format("%Y-%m-%d %H:%M");
-        let label = if expired {
-            format!("🔒 已过期: {}", local_ts)
-        } else {
-            format!("到期: {}", local_ts)
-        };
-        if expired {
-            ColorOutput::error(&label);
-        } else {
-            ColorOutput::info(&label);
-        }
     }
 }
 
@@ -403,13 +376,12 @@ mod tests {
             account_id: "acc-123".to_string(),
             auth_method: Some(OpenAiAuthMethod::Chatgpt),
             email: Some("user@example.com".to_string()),
-            plan_type: None,
+            plan_type: Some("plus".to_string()),
             last_refresh: Some(
                 DateTime::parse_from_rfc3339("2026-04-07T12:00:00Z")
                     .unwrap()
                     .with_timezone(&Utc),
             ),
-            freshness: TokenFreshness::Fresh,
         };
 
         let output = build_json_output(
@@ -437,8 +409,8 @@ mod tests {
             Some("user@example.com")
         );
         assert_eq!(
-            auth_info.get("freshness").and_then(|value| value.as_str()),
-            Some("Fresh")
+            auth_info.get("plan_type").and_then(|value| value.as_str()),
+            Some("plus")
         );
     }
 }

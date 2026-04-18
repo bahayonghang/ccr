@@ -55,6 +55,40 @@ pub struct TrayAnchor {
     pub height: u32,
 }
 
+/// Tray 紧凑面板的手动位置（物理像素）
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, PartialEq, Eq)]
+pub struct TrayPanelManualPosition {
+    pub x: i32,
+    pub y: i32,
+}
+
+/// Tray 紧凑面板的定位模式
+#[derive(Debug, Clone, Copy, serde::Serialize, serde::Deserialize, PartialEq, Eq, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum TrayPanelPlacementMode {
+    #[default]
+    Anchored,
+    Manual,
+}
+
+/// Tray 紧凑面板的持久化布局状态
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize, PartialEq, Eq)]
+pub struct TrayPanelPlacementState {
+    #[serde(default)]
+    pub placement_mode: TrayPanelPlacementMode,
+    #[serde(default)]
+    pub manual_position: Option<TrayPanelManualPosition>,
+}
+
+impl Default for TrayPanelPlacementState {
+    fn default() -> Self {
+        Self {
+            placement_mode: TrayPanelPlacementMode::Anchored,
+            manual_position: None,
+        }
+    }
+}
+
 /// Tauri managed state —— 通过 `app.manage(AppState::new(...))` 注册。
 pub struct AppState {
     /// SQLite 连接池（来自 ccr-db）
@@ -110,6 +144,9 @@ pub struct AppState {
     /// 最近一次 tray 菜单里可切换账号列表（按菜单顺序）
     pub tray_switch_accounts: Mutex<Vec<String>>,
 
+    /// tray 紧凑面板是否正处于原生拖拽中
+    pub tray_panel_drag_active: AtomicBool,
+
     /// 事件日志环形缓冲区
     pub event_log: EventLog,
 
@@ -135,6 +172,8 @@ pub struct DesktopShellPreferences {
     pub close_to_tray: bool,
     #[serde(default = "default_open_panel_on_tray_click")]
     pub open_panel_on_tray_click: bool,
+    #[serde(default)]
+    pub tray_panel: TrayPanelPlacementState,
 }
 
 fn default_confirm_before_exit() -> bool {
@@ -151,6 +190,7 @@ impl Default for DesktopShellPreferences {
             confirm_before_exit: true,
             close_to_tray: false,
             open_panel_on_tray_click: true,
+            tray_panel: TrayPanelPlacementState::default(),
         }
     }
 }
@@ -236,6 +276,7 @@ impl AppState {
             force_exit_requested: AtomicBool::new(false),
             tray_anchor: Mutex::new(None),
             tray_switch_accounts: Mutex::new(Vec::new()),
+            tray_panel_drag_active: AtomicBool::new(false),
             event_log: EventLog::with_limits(500, 10 * 1024, 5 * 1024 * 1024),
             command_durations_ms: Mutex::new(VecDeque::new()),
             db_query_durations_ms: Mutex::new(VecDeque::new()),
@@ -301,6 +342,37 @@ impl AppState {
             .lock()
             .map(|accounts| accounts.get(index).cloned())
             .map_err(|e| format!("Failed to access tray switch accounts: {e}"))
+    }
+
+    /// 标记 tray 面板是否处于拖拽过程，避免拖动期间被 blur 自动隐藏。
+    pub fn set_tray_panel_drag_active(&self, active: bool) {
+        self.tray_panel_drag_active
+            .store(active, std::sync::atomic::Ordering::SeqCst);
+    }
+
+    /// 读取 tray 面板拖拽标记
+    pub fn tray_panel_drag_active(&self) -> bool {
+        self.tray_panel_drag_active
+            .load(std::sync::atomic::Ordering::SeqCst)
+    }
+
+    /// 将 tray 面板位置切换为手动模式并持久化
+    pub fn set_tray_panel_manual_position(
+        &self,
+        position: TrayPanelManualPosition,
+    ) -> Result<DesktopShellPreferences, String> {
+        self.update_desktop_shell_preferences(|settings| {
+            settings.tray_panel.placement_mode = TrayPanelPlacementMode::Manual;
+            settings.tray_panel.manual_position = Some(position);
+        })
+    }
+
+    /// 清理 tray 面板手动定位，回退到 anchored 模式
+    pub fn reset_tray_panel_manual_position(&self) -> Result<DesktopShellPreferences, String> {
+        self.update_desktop_shell_preferences(|settings| {
+            settings.tray_panel.placement_mode = TrayPanelPlacementMode::Anchored;
+            settings.tray_panel.manual_position = None;
+        })
     }
 
     /// 从缓存获取值（未过期时返回 Some）
@@ -583,7 +655,10 @@ impl AppState {
 
 #[cfg(test)]
 mod tests {
-    use super::DesktopShellPreferences;
+    use super::{
+        DesktopShellPreferences, TrayPanelManualPosition, TrayPanelPlacementMode,
+        TrayPanelPlacementState,
+    };
 
     #[test]
     fn desktop_shell_preferences_round_trip_via_json_file() {
@@ -593,6 +668,10 @@ mod tests {
             confirm_before_exit: false,
             close_to_tray: true,
             open_panel_on_tray_click: false,
+            tray_panel: TrayPanelPlacementState {
+                placement_mode: TrayPanelPlacementMode::Manual,
+                manual_position: Some(TrayPanelManualPosition { x: 640, y: 96 }),
+            },
         };
 
         DesktopShellPreferences::save_to_path(&path, &prefs).expect("prefs should save");
@@ -609,6 +688,29 @@ mod tests {
         let loaded = DesktopShellPreferences::load_from_path(&path).expect("prefs should load");
 
         assert_eq!(loaded, DesktopShellPreferences::default());
+    }
+
+    #[test]
+    fn desktop_shell_preferences_load_legacy_files_with_default_tray_panel_state() {
+        let temp_dir = tempfile::tempdir().expect("temp dir should exist");
+        let path = temp_dir.path().join("legacy.json");
+
+        std::fs::write(
+            &path,
+            r#"{
+                "confirm_before_exit": false,
+                "close_to_tray": true,
+                "open_panel_on_tray_click": false
+            }"#,
+        )
+        .expect("legacy prefs should write");
+
+        let loaded = DesktopShellPreferences::load_from_path(&path).expect("prefs should load");
+
+        assert!(!loaded.confirm_before_exit);
+        assert!(loaded.close_to_tray);
+        assert!(!loaded.open_panel_on_tray_click);
+        assert_eq!(loaded.tray_panel, TrayPanelPlacementState::default());
     }
 }
 

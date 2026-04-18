@@ -12,7 +12,9 @@ use ccr_codex::CodexAuthService;
 use crate::commands::codex::{
     CodexTraySnapshot, compute_codex_tray_snapshot, invalidate_codex_dashboard_overview_cache,
 };
-use crate::state::{AppState, DesktopShellPreferences, TrayAnchor};
+use crate::state::{
+    AppState, DesktopShellPreferences, TrayAnchor, TrayPanelManualPosition, TrayPanelPlacementMode,
+};
 
 pub const TRAY_ICON_ID: &str = "ccr-tray";
 pub const TRAY_PANEL_WINDOW_LABEL: &str = "codex-tray-panel";
@@ -388,7 +390,47 @@ fn position_tray_panel_window<R: Runtime>(
     app: &AppHandle<R>,
     panel: &WebviewWindow<R>,
 ) -> Result<(), String> {
-    let anchor = app.state::<AppState>().tray_anchor()?;
+    let state = app.state::<AppState>();
+    let preferences = state.desktop_shell_preferences()?;
+
+    if preferences.tray_panel.placement_mode == TrayPanelPlacementMode::Manual {
+        let manual_position = preferences.tray_panel.manual_position.as_ref();
+        let manual_monitor = match manual_position {
+            Some(position) => panel
+                .monitor_from_point(position.x as f64, position.y as f64)
+                .map_err(|e| format!("定位 tray 手动位置所在显示器失败: {e}"))?,
+            None => None,
+        };
+        let manual_work_area = manual_monitor.as_ref().map(work_area_from_monitor);
+        let manual_size = resolve_panel_size_for_work_area(manual_work_area.as_ref());
+
+        if let Some(target) = resolve_manual_panel_position_for_work_area(
+            manual_position,
+            manual_work_area.as_ref(),
+            &manual_size,
+        ) {
+            if manual_position
+                .is_some_and(|position| position.x != target.x || position.y != target.y)
+            {
+                state.set_tray_panel_manual_position(TrayPanelManualPosition {
+                    x: target.x,
+                    y: target.y,
+                })?;
+            }
+
+            panel
+                .set_size(manual_size)
+                .map_err(|e| format!("调整 tray 面板尺寸失败: {e}"))?;
+            panel
+                .set_position(target)
+                .map_err(|e| format!("定位 tray 面板失败: {e}"))?;
+            return Ok(());
+        }
+
+        state.reset_tray_panel_manual_position()?;
+    }
+
+    let anchor = state.tray_anchor()?;
     let monitor = monitor_for_anchor(app, anchor.as_ref())?;
     let work_area = monitor.as_ref().map(work_area_from_monitor);
     let size = resolve_panel_size_for_work_area(work_area.as_ref());
@@ -443,7 +485,9 @@ fn resolve_panel_position_for_work_area(
     let panel_width = panel_size.width as i32;
     let panel_height = panel_size.height as i32;
     let fallback = work_area
-        .map(|work_area| fallback_panel_position_for_work_area(work_area, panel_width, panel_height))
+        .map(|work_area| {
+            fallback_panel_position_for_work_area(work_area, panel_width, panel_height)
+        })
         .unwrap_or_else(|| PhysicalPosition::new(64, 64));
 
     let Some(anchor) = anchor else {
@@ -476,6 +520,26 @@ fn resolve_panel_position_for_work_area(
     };
 
     PhysicalPosition::new(x, y)
+}
+
+fn resolve_manual_panel_position_for_work_area(
+    manual_position: Option<&TrayPanelManualPosition>,
+    work_area: Option<&PanelWorkArea>,
+    panel_size: &PhysicalSize<u32>,
+) -> Option<PhysicalPosition<i32>> {
+    let manual_position = manual_position?;
+    let work_area = work_area?;
+    let panel_width = panel_size.width as i32;
+    let panel_height = panel_size.height as i32;
+    let min_x = work_area.x;
+    let min_y = work_area.y;
+    let max_x = (work_area.x + work_area.width - panel_width).max(min_x);
+    let max_y = (work_area.y + work_area.height - panel_height).max(min_y);
+
+    Some(PhysicalPosition::new(
+        manual_position.x.clamp(min_x, max_x),
+        manual_position.y.clamp(min_y, max_y),
+    ))
 }
 
 fn work_area_from_monitor(monitor: &Monitor) -> PanelWorkArea {
@@ -698,8 +762,13 @@ fn build_account_switch_label(account: &crate::commands::codex::CodexTrayAccount
     {
         parts.push(email.to_string());
     }
-    if account.is_expired {
-        parts.push("expired".to_string());
+    if let Some(last_refresh) = account
+        .last_refresh
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+    {
+        parts.push(format!("refreshed {last_refresh}"));
     }
     truncate_text(&parts.join(" · "), 64)
 }
@@ -762,9 +831,11 @@ mod tests {
     use super::{
         DesktopShellPreferences, MainWindowCloseAction, PanelWorkArea, TRAY_PANEL_HEIGHT,
         TRAY_PANEL_WIDTH, TrayAnchor, resolve_main_window_close_action,
-        resolve_panel_position_for_work_area, resolve_panel_size_for_work_area,
+        resolve_manual_panel_position_for_work_area, resolve_panel_position_for_work_area,
+        resolve_panel_size_for_work_area,
     };
-    use tauri::PhysicalSize;
+    use crate::state::TrayPanelManualPosition;
+    use tauri::{PhysicalPosition, PhysicalSize};
 
     #[test]
     fn close_to_tray_beats_exit_confirmation() {
@@ -773,6 +844,7 @@ mod tests {
                 confirm_before_exit: true,
                 close_to_tray: true,
                 open_panel_on_tray_click: true,
+                ..DesktopShellPreferences::default()
             },
             false,
             false,
@@ -842,5 +914,39 @@ mod tests {
 
         assert_eq!(size.width, 336);
         assert_eq!(size.height, 496);
+    }
+
+    #[test]
+    fn manual_tray_panel_position_is_preserved_inside_work_area() {
+        let size = PhysicalSize::new(TRAY_PANEL_WIDTH as u32, TRAY_PANEL_HEIGHT as u32);
+        let position = resolve_manual_panel_position_for_work_area(
+            Some(&TrayPanelManualPosition { x: 728, y: 112 }),
+            Some(&PanelWorkArea {
+                x: 0,
+                y: 0,
+                width: 1600,
+                height: 900,
+            }),
+            &size,
+        );
+
+        assert_eq!(position, Some(PhysicalPosition::new(728, 112)));
+    }
+
+    #[test]
+    fn manual_tray_panel_position_clamps_back_into_work_area() {
+        let size = PhysicalSize::new(TRAY_PANEL_WIDTH as u32, TRAY_PANEL_HEIGHT as u32);
+        let position = resolve_manual_panel_position_for_work_area(
+            Some(&TrayPanelManualPosition { x: 1400, y: 420 }),
+            Some(&PanelWorkArea {
+                x: 0,
+                y: 0,
+                width: 1440,
+                height: 852,
+            }),
+            &size,
+        );
+
+        assert_eq!(position, Some(PhysicalPosition::new(1104, 332)));
     }
 }

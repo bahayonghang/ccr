@@ -3,7 +3,7 @@
 use tauri::{AppHandle, State};
 
 use crate::desktop_shell;
-use crate::state::{AppState, DesktopShellPreferences};
+use crate::state::{AppState, DesktopShellPreferences, TrayPanelManualPosition};
 
 #[tauri::command]
 pub async fn shell_get_preferences(
@@ -43,4 +43,24 @@ pub async fn shell_show_main_window(
 #[tauri::command]
 pub async fn shell_request_quit(app: AppHandle) -> Result<(), String> {
     desktop_shell::request_quit(&app)
+}
+
+#[tauri::command]
+pub fn shell_begin_tray_panel_drag(state: State<'_, AppState>) -> Result<(), String> {
+    state.set_tray_panel_drag_active(true);
+    Ok(())
+}
+
+#[tauri::command]
+pub fn shell_complete_tray_panel_drag(
+    state: State<'_, AppState>,
+    position: Option<TrayPanelManualPosition>,
+) -> Result<(), String> {
+    state.set_tray_panel_drag_active(false);
+
+    if let Some(position) = position {
+        state.set_tray_panel_manual_position(position)?;
+    }
+
+    Ok(())
 }

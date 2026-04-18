@@ -611,23 +611,13 @@ fn build_codex_dashboard_overview_payload(
         .iter()
         .find(|item| item.is_current)
         .map(|item| item.name.clone());
-    let expired_accounts = auth_accounts
-        .iter()
-        .filter(|item| CodexAuthService::is_expired(item.expires_at))
-        .count();
     let current_auth = auth_snapshot.current_info.as_ref().map(|current| {
-        let freshness = &current.freshness;
-        let expires_at = auth_snapshot.current_expires_at;
         json!({
             "name": current_auth_name,
             "account_id": current.account_id,
             "email": current.email,
+            "plan_type": current.plan_type,
             "last_refresh": current.last_refresh.map(|dt| dt.to_rfc3339()),
-            "freshness": freshness,
-            "freshness_icon": freshness.icon(),
-            "freshness_description": freshness.description(),
-            "expires_at": expires_at.map(|dt| dt.to_rfc3339()),
-            "is_expired": CodexAuthService::is_expired(expires_at),
         })
     });
 
@@ -666,7 +656,6 @@ fn build_codex_dashboard_overview_payload(
             "login_state": auth_snapshot.login_state,
             "store": auth_state.store.as_str(),
             "saved_accounts_total": auth_accounts.len(),
-            "expired_accounts_total": expired_accounts,
             "current": current_auth,
         },
         "profiles": {

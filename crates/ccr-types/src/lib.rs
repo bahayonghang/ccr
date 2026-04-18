@@ -26,5 +26,5 @@ pub use claude_settings::{
     Agent, ClaudeSettings, Hook, HookMatcherGroup, HooksConfig, McpServer, Plugin, SlashCommand,
     default_true, is_false,
 };
-pub use codex_auth::{LoginState, TokenFreshness};
+pub use codex_auth::LoginState;
 pub use monitoring::{FrontendLogInput, MonitoringEntry, MonitoringFeedQuery, MonitoringLevel};

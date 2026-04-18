@@ -1,6 +1,6 @@
 <template>
   <article
-    class="relative overflow-hidden rounded-[26px] border bg-bg-elevated/88 px-5 py-5 shadow-[0_16px_28px_rgba(0,0,0,0.08),inset_0_1px_0_rgba(255,255,255,0.04)] backdrop-blur-xl transition-[border-color,transform,box-shadow,background-color] duration-200 hover:-translate-y-0.5 hover:border-border-strong hover:shadow-[0_20px_36px_rgba(0,0,0,0.12)]"
+    class="relative overflow-hidden rounded-[24px] border bg-bg-elevated/88 px-4 py-3.5 shadow-[0_14px_24px_rgba(0,0,0,0.08),inset_0_1px_0_rgba(255,255,255,0.04)] backdrop-blur-xl transition-[border-color,transform,box-shadow,background-color] duration-200 hover:-translate-y-0.5 hover:border-border-strong hover:shadow-[0_18px_30px_rgba(0,0,0,0.1)]"
     :class="profile.is_current
       ? 'border-transparent'
       : 'border-border-default/65'"
@@ -8,31 +8,30 @@
   >
     <!-- 左侧状态条 -->
     <div
-      class="absolute bottom-4 left-0 top-4 w-1 rounded-full transition-all duration-300"
+      class="absolute bottom-3 left-0 top-3 w-1 rounded-full transition-all duration-300"
       :class="statusBarClass"
       :style="profile.is_current ? { backgroundColor: `rgb(var(${providerColor.rgbVar}))`, boxShadow: `0 0 12px rgb(var(${providerColor.rgbVar}) / 0.45)` } : {}"
     />
 
-    <div class="flex flex-col gap-4">
-      <!-- 头部：名称 + badges + 操作按钮 -->
-      <div class="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-        <div class="min-w-0 space-y-3 pl-1">
-          <div class="flex flex-wrap items-center gap-2.5">
+    <div class="flex flex-col gap-3">
+      <div class="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
+        <div class="min-w-0 space-y-2 pl-1">
+          <div class="flex flex-wrap items-center gap-2">
             <h3
-              class="max-w-full truncate text-lg font-semibold tracking-tight text-text-primary"
+              class="max-w-full truncate text-[1.12rem] font-semibold tracking-tight text-text-primary"
               :title="profile.name"
               v-html="highlightedName"
             />
 
             <span
-              class="inline-flex min-h-[28px] items-center rounded-full px-3 py-1 text-xs font-medium"
+              class="inline-flex min-h-[26px] items-center rounded-full px-2.5 py-1 text-[11px] font-medium"
               :class="stateBadgeClass"
             >
               {{ stateLabel }}
             </span>
 
             <span
-              class="inline-flex min-h-[28px] items-center gap-1.5 rounded-full border border-border-default/50 bg-bg-elevated/72 px-3 py-1 text-xs"
+              class="inline-flex min-h-[26px] items-center gap-1.5 rounded-full border border-border-default/50 bg-bg-elevated/72 px-2.5 py-1 text-[11px]"
               :style="{ color: `rgb(var(${providerColor.rgbVar}))` }"
             >
               <span
@@ -44,25 +43,25 @@
 
             <span
               v-if="profile.provider_type"
-              class="inline-flex min-h-[28px] items-center rounded-full border border-border-default/40 bg-bg-surface/72 px-3 py-1 text-xs text-text-muted"
+              class="inline-flex min-h-[26px] items-center rounded-full border border-border-default/40 bg-bg-surface/72 px-2.5 py-1 text-[11px] text-text-muted"
             >
               {{ profile.provider_type }}
             </span>
-          </div>
 
-          <p
-            class="max-w-4xl text-sm leading-6"
-            :class="profile.description ? 'text-text-secondary' : 'text-text-muted'"
-            v-html="highlightedDescription"
-          />
+            <span
+              v-for="tag in compactTags"
+              :key="tag"
+              class="inline-flex min-h-[24px] items-center rounded-full border border-accent-secondary/15 bg-accent-secondary/6 px-2 py-0.5 text-[11px] text-accent-secondary/85"
+            >
+              <span class="opacity-50">#</span>{{ tag }}
+            </span>
+          </div>
         </div>
 
-        <!-- 操作按钮区 -->
         <div class="flex shrink-0 items-center gap-2 self-start">
-          <!-- 主 CTA: Apply / 当前活跃标识 -->
           <span
             v-if="profile.is_current"
-            class="inline-flex min-h-[40px] items-center gap-2 rounded-2xl px-4 py-2 text-sm font-medium"
+            class="inline-flex min-h-[36px] items-center gap-2 rounded-xl px-3.5 py-2 text-sm font-medium"
             :style="{
               backgroundColor: `rgb(var(${providerColor.rgbVar}) / 0.1)`,
               color: `rgb(var(${providerColor.rgbVar}))`,
@@ -84,7 +83,7 @@
             v-else
             type="button"
             :disabled="profile.enabled === false"
-            class="inline-flex min-h-[40px] items-center justify-center gap-2 rounded-2xl px-4 py-2 text-sm font-medium transition-all duration-200 hover:shadow-lg active:scale-[0.97] focus:outline-none focus:ring-2 focus:ring-offset-1"
+            class="inline-flex min-h-[36px] items-center justify-center gap-2 rounded-xl px-3.5 py-2 text-sm font-medium transition-all duration-200 hover:shadow-lg active:scale-[0.97] focus:outline-none focus:ring-2 focus:ring-offset-1"
             :class="profile.enabled === false ? 'cursor-not-allowed opacity-55 hover:shadow-none active:scale-100' : ''"
             :style="{
               background: `linear-gradient(to bottom, rgb(var(${providerColor.rgbVar}) / 0.14), rgb(var(${providerColor.rgbVar}) / 0.08))`,
@@ -102,10 +101,9 @@
             {{ $t('claudeProfiles.applyProfile') }}
           </button>
 
-          <!-- 次要操作 -->
           <button
             type="button"
-            class="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-border-default/50 bg-bg-surface text-text-secondary transition-colors hover:border-border-default hover:bg-bg-elevated hover:text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-secondary/20"
+            class="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-border-default/50 bg-bg-surface text-text-secondary transition-colors hover:border-border-default hover:bg-bg-elevated hover:text-text-primary focus:outline-none focus:ring-2 focus:ring-accent-secondary/20"
             :title="$t('claudeProfiles.editTooltip')"
             @click="$emit('edit')"
           >
@@ -117,7 +115,7 @@
 
           <button
             type="button"
-            class="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-border-default/50 bg-bg-surface text-text-secondary transition-colors hover:border-accent-danger/30 hover:bg-accent-danger/10 hover:text-accent-danger focus:outline-none focus:ring-2 focus:ring-accent-danger/20"
+            class="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-border-default/50 bg-bg-surface text-text-secondary transition-colors hover:border-accent-danger/30 hover:bg-accent-danger/10 hover:text-accent-danger focus:outline-none focus:ring-2 focus:ring-accent-danger/20"
             :title="$t('claudeProfiles.deleteTooltip')"
             @click="$emit('delete')"
           >
@@ -129,8 +127,20 @@
         </div>
       </div>
 
-      <!-- 技术字段详情 -->
-      <dl class="grid gap-x-6 gap-y-3 rounded-[22px] border border-border-default/45 bg-bg-surface/62 px-4 py-4 md:grid-cols-2 2xl:grid-cols-4">
+      <div class="grid gap-x-4 gap-y-2 border-t border-border-default/35 pt-3 md:grid-cols-2 xl:grid-cols-[minmax(0,1.45fr)_repeat(4,minmax(0,0.9fr))]">
+        <div
+          class="min-w-0 md:col-span-2 xl:col-span-1"
+        >
+          <p class="text-[11px] font-semibold uppercase tracking-[0.2em] text-text-muted">
+            {{ $t('claudeProfiles.descLabel') }}
+          </p>
+          <p
+            class="mt-1 line-clamp-2 text-sm leading-5"
+            :class="profile.description ? 'text-text-secondary' : 'text-text-muted'"
+            v-html="highlightedDescription"
+          />
+        </div>
+
         <div
           v-for="item in detailItems"
           :key="item.label"
@@ -140,11 +150,10 @@
             {{ item.label }}
           </dt>
           <dd
-            class="mt-1.5 truncate text-sm"
+            class="mt-1 truncate text-sm"
             :class="item.mono ? 'font-mono text-[13px]' : ''"
             :title="item.fullValue"
           >
-            <!-- base_url: 协议低亮度 + host 正常色 -->
             <template v-if="item.type === 'url' && item.parsedUrl">
               <span class="text-accent-info/60">{{ item.parsedUrl.protocol }}</span>
               <span class="text-text-primary">{{ item.parsedUrl.host }}</span>
@@ -153,33 +162,17 @@
                 class="text-text-muted"
               >{{ item.parsedUrl.path }}</span>
             </template>
-            <!-- model: provider 色渲染 -->
             <template v-else-if="item.type === 'model' && item.value !== $t('claudeProfiles.notSet')">
               <span
                 class="font-medium"
                 :style="{ color: `rgb(var(${providerColor.rgbVar}))` }"
               >{{ item.value }}</span>
             </template>
-            <!-- 其他字段 / 未设置 -->
             <template v-else>
               <span class="text-text-primary">{{ item.value }}</span>
             </template>
           </dd>
         </div>
-      </dl>
-
-      <!-- Tags -->
-      <div
-        v-if="profile.tags?.length"
-        class="flex flex-wrap gap-2"
-      >
-        <span
-          v-for="tag in profile.tags"
-          :key="tag"
-          class="inline-flex min-h-[26px] items-center rounded-full border border-accent-secondary/15 bg-accent-secondary/6 px-2.5 py-0.5 text-xs text-accent-secondary/85 transition-colors hover:bg-accent-secondary/10"
-        >
-          <span class="opacity-50">#</span>{{ tag }}
-        </span>
       </div>
     </div>
   </article>
@@ -277,6 +270,8 @@ const highlightedDescription = computed(() =>
     props.searchQuery || '',
   ),
 )
+
+const compactTags = computed(() => props.profile.tags ?? [])
 
 // 详情字段
 interface DetailItem {

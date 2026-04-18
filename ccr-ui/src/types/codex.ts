@@ -210,9 +210,6 @@ export interface CodexConfigResponse {
 
 // ============ Codex Auth Management Types ============
 
-/** Token 新鲜度 */
-export type TokenFreshness = 'Fresh' | 'Stale' | 'Old' | 'Unknown' | (string & {})
-
 /** 登录状态 (tagged union) */
 export type LoginState =
   | { type: 'NotLoggedIn' }
@@ -235,13 +232,7 @@ export interface CodexAuthAccountItem {
   saved_at?: string
   last_used?: string
   last_refresh?: string
-  freshness: TokenFreshness
-  freshness_icon: string
-  freshness_description: string
-  /** 到期时间 (ISO 8601) */
-  expires_at?: string
-  /** 是否已过期 */
-  is_expired: boolean
+  plan_type?: string
 }
 
 /** Codex Auth 当前信息 */
@@ -249,14 +240,8 @@ export interface CodexAuthCurrentInfo {
   account_id: string
   auth_method?: 'chatgpt' | 'api' | string
   email?: string
+  plan_type?: string
   last_refresh?: string
-  freshness: TokenFreshness
-  freshness_icon: string
-  freshness_description: string
-  /** 到期时间 (ISO 8601) */
-  expires_at?: string
-  /** 是否已过期 */
-  is_expired: boolean
 }
 
 /** Codex Auth 账号列表响应 */
@@ -276,8 +261,6 @@ export interface CodexAuthCurrentResponse {
 export interface CodexAuthSaveRequest {
   name: string
   description?: string
-  /** 到期时间 (ISO 8601) */
-  expires_at?: string
   force?: boolean
 }
 
@@ -540,11 +523,7 @@ export interface CodexTrayAccountRow {
   saved_at?: string
   last_used?: string
   last_refresh?: string
-  freshness: TokenFreshness
-  freshness_icon: string
-  freshness_description: string
-  expires_at?: string
-  is_expired: boolean
+  plan_type?: string
   can_switch: boolean
   quota?: CodexQuota
   quota_error?: string

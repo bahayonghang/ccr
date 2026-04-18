@@ -93,8 +93,6 @@ export interface ClaudeProfilesResponse {
 
 export type ClaudeProfileAuthMode = 'subscription' | 'api_key'
 
-export type ClaudeTokenFreshness = 'Fresh' | 'Stale' | 'Old' | 'Unknown' | (string & {})
-
 export type ClaudeLoginState =
   | { type: 'NotLoggedIn' }
   | { type: 'LoggedInUnsaved' }
@@ -132,10 +130,6 @@ export interface ClaudeAuthAccountItem {
   saved_at: string
   last_used?: string | null
   expires_at?: string | null
-  is_expired: boolean
-  freshness: ClaudeTokenFreshness
-  freshness_icon: string
-  freshness_description: string
 }
 
 export interface ClaudeAuthCurrentInfo {
@@ -145,10 +139,6 @@ export interface ClaudeAuthCurrentInfo {
   subscription_type?: string | null
   rate_limit_tier?: string | null
   expires_at?: string | null
-  is_expired: boolean
-  freshness: ClaudeTokenFreshness
-  freshness_icon: string
-  freshness_description: string
 }
 
 export interface ClaudeAuthListResponse {

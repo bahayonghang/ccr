@@ -12,7 +12,7 @@
         {{ $t('codex.auth.table.email') }}
       </div>
       <div class="hidden md:block">
-        {{ $t('codex.auth.table.tokenStatus') }}
+        {{ $t('codex.auth.fields.lastRefresh') }}
       </div>
       <div class="hidden lg:block">
         {{ $t('codex.auth.table.lastUsed') }}
@@ -42,7 +42,6 @@
 
         <!-- Name Column -->
         <div class="flex items-center gap-3 min-w-0">
-          <span class="text-lg flex-shrink-0">{{ account.freshness_icon }}</span>
           <div class="min-w-0 flex-1">
             <div class="flex items-center gap-2 flex-wrap">
               <span class="font-mono font-semibold text-white truncate">
@@ -64,17 +63,6 @@
               >
                 {{ $t('codex.auth.virtualBadge') }}
               </span>
-              <!-- Expired Badge -->
-              <span
-                v-if="account.is_expired"
-                class="flex-shrink-0 inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-full bg-red-500/20 text-red-500 border border-red-500/30"
-              >
-                <SIcon
-                  name="AlertCircle"
-                  size="w-2.5 h-2.5"
-                />
-                {{ $t('codex.auth.expiredBadge') }}
-              </span>
             </div>
             <p
               v-if="account.description"
@@ -90,18 +78,9 @@
           {{ account.email || '—' }}
         </div>
 
-        <!-- Token Status Column -->
-        <div class="hidden md:flex items-center gap-2">
-          <span
-            class="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-lg"
-            :class="freshnessClasses(account.freshness)"
-          >
-            <span
-              class="w-1.5 h-1.5 rounded-full"
-              :class="freshnessDotClass(account.freshness)"
-            />
-            {{ account.freshness_description }}
-          </span>
+        <!-- Last Refresh Column -->
+        <div class="hidden md:flex items-center gap-2 text-sm text-text-muted">
+          {{ account.last_refresh || '—' }}
         </div>
 
         <!-- Last Used Column -->
@@ -111,9 +90,9 @@
 
         <!-- Actions Column -->
         <div class="flex items-center justify-end gap-1">
-          <!-- Quick Switch Button (non-current, non-expired accounts) -->
+          <!-- Quick Switch Button -->
           <button
-            v-if="!account.is_current && !account.is_expired"
+            v-if="!account.is_current"
             class="p-2 rounded-lg text-text-muted hover:text-accent-success hover:bg-accent-success/10 transition-colors duration-200 opacity-0 group-hover:opacity-100 focus:opacity-100"
             :title="$t('codex.auth.switch')"
             :disabled="props.disabled"
@@ -125,18 +104,6 @@
               :class="{ 'animate-spin': props.busyName === account.name && props.busyAction === 'switch' }"
             />
           </button>
-
-          <!-- Expired Account Warning -->
-          <div
-            v-else-if="account.is_expired && !account.is_current"
-            class="p-2 text-red-500"
-            :title="$t('codex.auth.expiredCannotSwitch')"
-          >
-            <SIcon
-              name="AlertCircle"
-              size="w-4 h-4"
-            />
-          </div>
 
           <!-- Current Account Indicator -->
           <div
@@ -193,7 +160,7 @@
 <script setup lang="ts">
 import SIcon from '@/components/ui/SIcon.vue'
 import { computed } from 'vue'
-import type { CodexAuthAccountItem, TokenFreshness } from '@/types'
+import type { CodexAuthAccountItem } from '@/types'
 
 interface Props {
   accounts: CodexAuthAccountItem[]
@@ -218,32 +185,6 @@ const gridTemplateStyle = computed(() => ({
   gridTemplateColumns: 'minmax(180px, 2fr) minmax(120px, 1fr) minmax(100px, auto) minmax(100px, auto) auto'
 }))
 
-// Token freshness styling
-const freshnessClasses = (freshness: TokenFreshness) => {
-  switch (freshness) {
-    case 'Fresh':
-      return 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20'
-    case 'Stale':
-      return 'bg-yellow-500/10 text-yellow-500 border border-yellow-500/20'
-    case 'Old':
-      return 'bg-orange-500/10 text-orange-500 border border-orange-500/20'
-    default:
-      return 'bg-gray-500/10 text-text-muted border border-gray-500/20'
-  }
-}
-
-const freshnessDotClass = (freshness: TokenFreshness) => {
-  switch (freshness) {
-    case 'Fresh':
-      return 'bg-emerald-500'
-    case 'Stale':
-      return 'bg-yellow-500'
-    case 'Old':
-      return 'bg-orange-500'
-    default:
-      return 'bg-gray-500'
-  }
-}
 </script>
 
 <style scoped>

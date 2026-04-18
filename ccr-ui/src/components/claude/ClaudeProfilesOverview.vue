@@ -1,145 +1,91 @@
 <template>
-  <div class="space-y-4">
-    <!-- 统计区：当前 Profile + 总数 / 已启用 -->
-    <div class="grid gap-3 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
-      <!-- 当前活跃 Profile -->
-      <section class="rounded-[24px] border border-border-default/50 bg-bg-surface/62 px-4 py-4">
-        <p class="text-xs font-semibold uppercase tracking-[0.24em] text-text-muted">
-          {{ $t('claudeProfiles.currentProfile') }}
-        </p>
-        <div class="mt-3 flex flex-wrap items-center gap-3">
-          <p
-            class="max-w-full truncate text-xl font-semibold tracking-tight text-text-primary"
-            :title="currentProfileName || $t('claudeProfiles.notSet')"
+  <div class="space-y-3.5">
+    <div class="grid gap-3 xl:grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)]">
+      <section class="rounded-[26px] border border-border-default/50 bg-bg-surface/64 px-4 py-4 shadow-[0_14px_30px_rgba(15,12,18,0.06)]">
+        <div class="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+          <div class="min-w-0">
+            <p class="text-xs font-semibold uppercase tracking-[0.22em] text-text-muted">
+              {{ $t('claudeProfiles.currentProfile') }}
+            </p>
+            <div class="mt-2 flex flex-wrap items-center gap-2.5">
+              <p
+                class="max-w-full truncate text-[1.35rem] font-semibold tracking-tight text-text-primary"
+                :title="currentProfileName || $t('claudeProfiles.notSet')"
+              >
+                {{ currentProfileName || $t('claudeProfiles.notSet') }}
+              </p>
+              <span
+                v-if="currentProfileName"
+                class="inline-flex items-center gap-2 rounded-full border border-accent-secondary/24 bg-accent-secondary/10 px-3 py-1 text-xs font-medium text-accent-secondary"
+              >
+                <span class="h-1.5 w-1.5 rounded-full bg-current opacity-85" />
+                {{ currentProfileStatusLabel }}
+              </span>
+            </div>
+            <p class="mt-2 max-w-3xl text-sm leading-5 text-text-secondary">
+              {{ currentProfileDescription }}
+            </p>
+          </div>
+
+          <div
+            v-if="currentProfileChips.length > 0"
+            class="flex flex-wrap gap-2"
           >
-            {{ currentProfileName || $t('claudeProfiles.notSet') }}
-          </p>
-          <span
-            v-if="currentProfileName"
-            class="inline-flex items-center gap-2 rounded-full border border-accent-secondary/25 bg-accent-secondary/10 px-3 py-1 text-xs font-medium text-accent-secondary"
-          >
-            <span class="h-2 w-2 rounded-full bg-current opacity-80" />
-            {{ currentProfileStatusLabel }}
-          </span>
+            <span
+              v-for="chip in currentProfileChips"
+              :key="chip"
+              class="inline-flex min-h-[28px] items-center rounded-full border border-border-default/45 bg-bg-elevated/72 px-3 py-1 text-xs font-medium text-text-secondary"
+            >
+              {{ chip }}
+            </span>
+          </div>
         </div>
       </section>
 
-      <!-- 统计卡片 (含图标) -->
       <dl class="grid gap-3 sm:grid-cols-2">
-        <div class="flex items-center gap-3 rounded-[24px] border border-border-default/45 bg-bg-surface/56 px-4 py-4">
-          <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-accent-secondary/10 text-accent-secondary">
-            <SIcon
-              name="Layers"
-              size="w-5 h-5"
-            />
+        <article
+          v-for="tile in overviewTiles"
+          :key="tile.label"
+          class="relative overflow-hidden rounded-[22px] border border-border-default/45 bg-bg-surface/58 px-3.5 py-3.5 shadow-[0_12px_28px_rgba(12,10,16,0.05)]"
+        >
+          <div class="flex items-start gap-3">
+            <span
+              class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border"
+              :class="tile.iconToneClass"
+            >
+              <SIcon
+                :name="tile.icon"
+                size="w-4 h-4"
+              />
+            </span>
+            <div class="min-w-0">
+              <dt class="text-[11px] font-semibold uppercase tracking-[0.2em] text-text-muted">
+                {{ tile.label }}
+              </dt>
+              <dd
+                class="mt-1 text-[1.45rem] font-semibold tracking-tight"
+                :class="tile.valueToneClass"
+              >
+                {{ tile.value }}
+              </dd>
+              <p class="mt-1 text-xs leading-5 text-text-secondary">
+                {{ tile.detail }}
+              </p>
+            </div>
           </div>
-          <div>
-            <dt class="text-xs font-semibold uppercase tracking-[0.22em] text-text-muted">
-              {{ $t('claudeProfiles.totalCount') }}
-            </dt>
-            <dd class="mt-0.5 text-2xl font-semibold tracking-tight text-text-primary">
-              {{ totalProfiles }}
-            </dd>
-          </div>
-        </div>
-
-        <div class="flex items-center gap-3 rounded-[24px] border border-border-default/45 bg-bg-surface/56 px-4 py-4">
-          <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-accent-success/10 text-accent-success">
-            <SIcon
-              name="CheckCircle"
-              size="w-5 h-5"
-            />
-          </div>
-          <div>
-            <dt class="text-xs font-semibold uppercase tracking-[0.22em] text-text-muted">
-              {{ $t('claudeProfiles.enabledCount') }}
-            </dt>
-            <dd class="mt-0.5 text-2xl font-semibold tracking-tight text-text-primary">
-              {{ enabledProfilesCount }}
-            </dd>
-          </div>
-        </div>
+        </article>
       </dl>
     </div>
 
-    <!-- 快速切换：按 Provider 分组 -->
-    <section
-      v-if="quickSwitchProfiles.length > 0"
-      class="rounded-[24px] border border-border-default/45 bg-bg-surface/56 px-4 py-4"
-    >
-      <div class="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
-        <div>
-          <p class="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.24em] text-text-muted">
-            <SIcon
-              name="Shuffle"
-              size="w-3.5 h-3.5"
-            />
-            {{ $t('claudeProfiles.quickSwitch') }}
-          </p>
-          <p class="mt-1 text-sm text-text-secondary">
-            {{ $t('claudeProfiles.quickSwitchHint') }}
-          </p>
-        </div>
-        <p class="text-xs text-text-muted">
-          {{ enabledProfilesCount }} / {{ totalProfiles }}
-        </p>
-      </div>
-
-      <div
-        class="mt-4 space-y-3"
-        :class="totalProfiles > 20 ? 'max-h-[260px] overflow-y-auto pr-1' : ''"
+    <section class="flex flex-wrap gap-2 rounded-[20px] border border-border-default/42 bg-bg-surface/52 px-3.5 py-3">
+      <span
+        v-for="item in ribbonItems"
+        :key="item.label"
+        class="inline-flex min-h-[30px] items-center gap-2 rounded-full border border-border-default/42 bg-bg-elevated/64 px-3 py-1 text-xs text-text-secondary"
       >
-        <div
-          v-for="group in groupedProfiles"
-          :key="group.providerKey"
-        >
-          <!-- Provider 分组标签 -->
-          <div class="mb-2 flex items-center gap-2">
-            <span
-              class="h-1.5 w-1.5 shrink-0 rounded-full"
-              :style="{ backgroundColor: `rgb(var(${group.color.rgbVar}))` }"
-            />
-            <span
-              class="text-[10px] font-semibold uppercase tracking-[0.2em]"
-              :style="{ color: `rgb(var(${group.color.rgbVar}) / 0.7)` }"
-            >
-              {{ group.label }}
-            </span>
-            <span class="text-[10px] text-text-ghost">
-              {{ group.profiles.length }}
-            </span>
-          </div>
-
-          <!-- 组内 Profile pills -->
-          <div class="flex flex-wrap gap-1.5">
-            <button
-              v-for="profile in group.profiles"
-              :key="profile.name"
-              type="button"
-              :disabled="profile.is_current || profile.enabled === false"
-              class="inline-flex min-h-[32px] items-center gap-1.5 rounded-full border px-3 py-1 text-[0.78rem] font-medium transition-[background-color,border-color,color,transform] duration-200 hover:-translate-y-px"
-              :class="profile.is_current
-                ? ''
-                : (profile.enabled === false
-                  ? 'cursor-not-allowed border-border-default/35 bg-bg-elevated/34 text-text-muted opacity-60'
-                  : 'border-border-default/50 bg-bg-elevated/60 text-text-secondary hover:border-border-default hover:bg-bg-elevated/92 hover:text-text-primary')"
-              :style="profile.is_current ? {
-                borderColor: `rgb(var(${group.color.rgbVar}) / 0.28)`,
-                backgroundColor: `rgb(var(${group.color.rgbVar}) / 0.12)`,
-                color: `rgb(var(${group.color.rgbVar}))`,
-              } : {}"
-              @click="$emit('apply', profile.name)"
-            >
-              <span
-                class="h-1.5 w-1.5 rounded-full"
-                :class="profile.is_current ? '' : (profile.enabled !== false ? 'bg-accent-success/80' : 'bg-accent-danger/80')"
-                :style="profile.is_current ? { backgroundColor: `rgb(var(${group.color.rgbVar}))` } : {}"
-              />
-              <span class="max-w-[16rem] truncate">{{ profile.name }}</span>
-            </button>
-          </div>
-        </div>
-      </div>
+        <span class="font-medium text-text-muted">{{ item.label }}</span>
+        <strong class="font-semibold text-text-primary">{{ item.value }}</strong>
+      </span>
     </section>
   </div>
 </template>
@@ -148,19 +94,13 @@
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import SIcon from '@/components/ui/SIcon.vue'
-import { translateWithFallback } from '@/i18n/formatMessage'
 import type { ClaudeProfile } from '@/types'
-import { groupProfilesByProvider, type ProviderGroup } from '@/utils/claudeProfiles'
+import type { ClaudeProfilesOverviewSummary } from '@/utils/claudeProfiles'
 
 const props = defineProps<{
   currentProfile: ClaudeProfile | null
-  enabledProfilesCount: number
-  quickSwitchProfiles: ClaudeProfile[]
-  totalProfiles: number
-}>()
-
-defineEmits<{
-  apply: [name: string]
+  providerUnsetLabel: string
+  summary: ClaudeProfilesOverviewSummary
 }>()
 
 const { t } = useI18n()
@@ -172,14 +112,109 @@ const currentProfileStatusLabel = computed(() => (
     : t('claudeProfiles.currentlyActive')
 ))
 
-const groupedProfiles = computed<ProviderGroup[]>(() =>
-  groupProfilesByProvider(
-    props.quickSwitchProfiles,
-    translateWithFallback(
-      t,
-      'claudeProfiles.providerUnset',
-      '未设置 Provider',
-    ),
-  ),
-)
+const formatAuthMode = (authMode?: string | null) => {
+  if (authMode === 'api_key') return t('claudeProfiles.authModeApiKey')
+  if (authMode === 'subscription') return t('claudeProfiles.authModeSubscription')
+  return null
+}
+
+const currentProfileDescription = computed(() => {
+  const description = props.currentProfile?.description?.trim()
+  if (description) return description
+
+  return props.currentProfile
+    ? t('claudeProfiles.currentProfileSummaryFallback')
+    : t('claudeProfiles.currentProfileMissingHint')
+})
+
+const currentProfileChips = computed(() => {
+  const profile = props.currentProfile
+  if (!profile) return []
+
+  const chips: string[] = [
+    profile.provider?.trim() || props.providerUnsetLabel,
+  ]
+
+  if (profile.provider_type?.trim()) {
+    chips.push(profile.provider_type.trim())
+  }
+
+  if (profile.account?.trim()) {
+    chips.push(`@${profile.account.trim()}`)
+  }
+
+  const authMode = formatAuthMode(profile.auth_mode)
+  if (authMode) {
+    chips.push(authMode)
+  }
+
+  return chips
+})
+
+const overviewTiles = computed(() => ([
+  {
+    label: t('claudeProfiles.overviewProfilesLabel'),
+    value: String(props.summary.totalProfiles),
+    detail: t('claudeProfiles.overviewProfilesDetail', {
+      enabled: props.summary.enabledProfilesCount,
+      disabled: props.summary.disabledProfilesCount,
+    }),
+    icon: 'Layers',
+    iconToneClass: 'border-accent-secondary/18 bg-accent-secondary/10 text-accent-secondary',
+    valueToneClass: 'text-text-primary',
+  },
+  {
+    label: t('claudeProfiles.overviewProvidersLabel'),
+    value: String(props.summary.providerSectionsCount),
+    detail: t('claudeProfiles.overviewProvidersDetail', {
+      sections: props.summary.providerSectionsCount,
+      missing: props.summary.unsetProviderProfilesCount,
+    }),
+    icon: 'PanelLeftOpen',
+    iconToneClass: 'border-info/18 bg-info/10 text-info',
+    valueToneClass: 'text-info',
+  },
+  {
+    label: t('claudeProfiles.overviewModelsLabel'),
+    value: String(props.summary.configuredModelProfilesCount),
+    detail: t('claudeProfiles.overviewModelsDetail', {
+      primary: props.summary.configuredModelProfilesCount,
+      fast: props.summary.configuredFastModelProfilesCount,
+    }),
+    icon: 'Cpu',
+    iconToneClass: 'border-accent-primary/18 bg-accent-primary/10 text-accent-primary',
+    valueToneClass: 'text-accent-primary',
+  },
+  {
+    label: t('claudeProfiles.overviewAccessLabel'),
+    value: String(props.summary.accountProfilesCount),
+    detail: t('claudeProfiles.overviewAccessDetail', {
+      subscription: props.summary.subscriptionProfilesCount,
+      apiKey: props.summary.apiKeyProfilesCount,
+      accounts: props.summary.accountProfilesCount,
+    }),
+    icon: 'ShieldCheck',
+    iconToneClass: 'border-accent-success/18 bg-accent-success/10 text-accent-success',
+    valueToneClass: 'text-accent-success',
+  },
+]))
+
+const ribbonItems = computed(() => ([
+  {
+    label: t('claudeProfiles.overviewRibbonCustomBaseUrl'),
+    value: String(props.summary.customBaseUrlProfilesCount),
+  },
+  {
+    label: t('claudeProfiles.overviewRibbonTagged'),
+    value: String(props.summary.taggedProfilesCount),
+  },
+  {
+    label: t('claudeProfiles.overviewRibbonMissingModel'),
+    value: String(props.summary.missingModelProfilesCount),
+  },
+  {
+    label: t('claudeProfiles.overviewRibbonMissingAccount'),
+    value: String(props.summary.missingAccountProfilesCount),
+  },
+]))
 </script>

@@ -97,7 +97,7 @@ pub async fn list_command() -> Result<()> {
             Cell::new("邮箱")
                 .add_attribute(Attribute::Bold)
                 .fg(TableColor::Cyan),
-            Cell::new("到期")
+            Cell::new("最近刷新")
                 .add_attribute(Attribute::Bold)
                 .fg(TableColor::Cyan),
             Cell::new("添加日期")
@@ -135,23 +135,18 @@ pub async fn list_command() -> Result<()> {
         let email = account.email.as_deref().unwrap_or("-");
         let email_cell = Cell::new(email);
 
-        // 到期列
-        let (expire_label, expire_color) = match account.expires_at {
-            Some(ts) => {
-                let expired = CodexAuthService::is_expired(account.expires_at);
-                let local_ts = ts
-                    .with_timezone(&Local)
-                    .format("%Y-%m-%d %H:%M")
-                    .to_string();
-                if expired {
-                    (format!("🔒 {}", local_ts), TableColor::Red)
-                } else {
-                    (local_ts, TableColor::Green)
-                }
-            }
-            None => ("-".to_string(), TableColor::White),
-        };
-        let expire_cell = Cell::new(expire_label).fg(expire_color);
+        // 最近刷新列
+        let refresh_cell = Cell::new(
+            account
+                .last_refresh
+                .map(|ts| {
+                    ts.with_timezone(&Local)
+                        .format("%Y-%m-%d %H:%M")
+                        .to_string()
+                })
+                .unwrap_or_else(|| "-".to_string()),
+        )
+        .fg(TableColor::White);
 
         // 添加日期列
         let saved_at = account
@@ -168,7 +163,7 @@ pub async fn list_command() -> Result<()> {
             status,
             name_cell,
             email_cell,
-            expire_cell,
+            refresh_cell,
             saved_at_cell,
             desc_cell,
         ]);
@@ -187,18 +182,6 @@ pub async fn list_command() -> Result<()> {
 
     println!("{}", table);
     println!();
-
-    // 统计过期账号
-    let expired_count = accounts
-        .iter()
-        .filter(|a| CodexAuthService::is_expired(a.expires_at))
-        .count();
-    if expired_count > 0 {
-        ColorOutput::warning(&format!(
-            "有 {} 个账号已过期，切换将被阻止。",
-            expired_count
-        ));
-    }
 
     // 统计信息
     let saved_count = accounts.iter().filter(|a| !a.is_virtual).count();

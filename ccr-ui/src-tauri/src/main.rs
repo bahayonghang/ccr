@@ -286,6 +286,10 @@ fn main() {
                 }
             }
             WindowEvent::Focused(false) if desktop_shell::is_tray_panel_window(window.label()) => {
+                let state = window.state::<AppState>();
+                if state.tray_panel_drag_active() {
+                    return;
+                }
                 if let Err(error) = window.hide() {
                     tracing::debug!("[tray] failed to auto-hide panel on blur: {error}");
                 }
@@ -325,6 +329,7 @@ mod tests {
                 confirm_before_exit: true,
                 close_to_tray: true,
                 open_panel_on_tray_click: true,
+                ..DesktopShellPreferences::default()
             },
             false,
             false,

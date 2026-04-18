@@ -6,9 +6,6 @@ use indexmap::IndexMap;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-// Re-export shared types
-pub use ccr_types::TokenFreshness;
-
 /// OpenCode auth.json 中 openai provider 的已知字段
 ///
 /// 实际文件可能包含更多未知字段，因此通过 `extra` 保留原始 payload。
@@ -126,9 +123,6 @@ pub struct OpenCodeAuthItem {
     /// 最后使用时间
     pub last_used: Option<DateTime<Utc>>,
 
-    /// Token 新鲜度
-    pub freshness: TokenFreshness,
-
     /// 到期时间
     pub expires_at: Option<DateTime<Utc>>,
 }
@@ -153,8 +147,6 @@ pub struct OpenCodeCurrentAuthInfo {
     pub email: Option<String>,
     /// 订阅类型
     pub plan_type: Option<String>,
-    /// Token 新鲜度
-    pub freshness: TokenFreshness,
     /// 到期时间
     pub expires_at: Option<DateTime<Utc>>,
 }
@@ -166,7 +158,6 @@ pub struct OpenCodeReadSnapshot {
     pub current_info: Option<OpenCodeCurrentAuthInfo>,
     pub registry: OpenCodeAuthRegistry,
     pub current_account_name: Option<String>,
-    pub current_expires_at: Option<DateTime<Utc>>,
 }
 
 /// Codex -> OpenCode 迁移单账号结果类型

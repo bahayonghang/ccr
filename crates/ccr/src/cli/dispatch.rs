@@ -515,16 +515,10 @@ impl CommandDispatcher {
                 CodexAuthAction::Save {
                     name,
                     description,
-                    expires_at,
                     force,
                 } => {
-                    crate::commands::codex::auth::save_command(
-                        name,
-                        description.clone(),
-                        expires_at.clone(),
-                        *force,
-                    )
-                    .await
+                    crate::commands::codex::auth::save_command(name, description.clone(), *force)
+                        .await
                 }
                 CodexAuthAction::Update {
                     name,

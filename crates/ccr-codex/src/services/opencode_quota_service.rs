@@ -13,6 +13,9 @@ use serde_json::{Map as JsonMap, Value as JsonValue};
 use std::fs;
 use std::path::{Path, PathBuf};
 
+/// 并发查询上限
+const MAX_CONCURRENT: usize = 5;
+
 /// OpenCode quota 查询服务。
 pub struct OpenCodeQuotaService {
     /// CCR OpenCode 平台目录 (~/.ccr/platforms/opencode/)
@@ -51,6 +54,27 @@ impl OpenCodeQuotaService {
 
     pub async fn fetch_current_quota_force_refresh(&self) -> CodexAccountQuota {
         self.fetch_current_quota_inner(true).await
+    }
+
+    /// 按给定账号顺序批量查询配额。
+    ///
+    /// 特殊 key:
+    /// - `current-login`: 当前 runtime 登录
+    pub async fn fetch_quotas_for_accounts(
+        &self,
+        account_names: &[String],
+    ) -> Vec<CodexAccountQuota> {
+        self.fetch_quotas_for_accounts_inner(account_names, false)
+            .await
+    }
+
+    /// 按给定账号顺序批量查询配额（强制 refresh token）。
+    pub async fn fetch_quotas_for_accounts_force_refresh(
+        &self,
+        account_names: &[String],
+    ) -> Vec<CodexAccountQuota> {
+        self.fetch_quotas_for_accounts_inner(account_names, true)
+            .await
     }
 
     pub fn format_reset_duration(reset_timestamp: i64) -> String {
@@ -160,6 +184,62 @@ impl OpenCodeQuotaService {
             error: None,
             fetched_at,
         }
+    }
+
+    async fn fetch_quotas_for_accounts_inner(
+        &self,
+        account_names: &[String],
+        force_refresh: bool,
+    ) -> Vec<CodexAccountQuota> {
+        if account_names.is_empty() {
+            return Vec::new();
+        }
+
+        use futures::future::join_all;
+        use std::sync::Arc;
+        use tokio::sync::Semaphore;
+
+        let semaphore = Arc::new(Semaphore::new(MAX_CONCURRENT));
+        let ccr_opencode_dir = self.ccr_opencode_dir.clone();
+        let opencode_dir = self.opencode_dir.clone();
+
+        let tasks: Vec<_> = account_names
+            .iter()
+            .map(|name| {
+                let semaphore = semaphore.clone();
+                let ccr_opencode_dir = ccr_opencode_dir.clone();
+                let opencode_dir = opencode_dir.clone();
+                let name = name.clone();
+                async move {
+                    let permit = match semaphore.acquire_owned().await {
+                        Ok(permit) => permit,
+                        Err(error) => {
+                            return CodexAccountQuota {
+                                account_name: name,
+                                email: None,
+                                quota: None,
+                                error: Some(format!("获取并发许可失败: {error}")),
+                                fetched_at: Utc::now(),
+                            };
+                        }
+                    };
+                    let _permit = permit;
+                    let service = OpenCodeQuotaService {
+                        ccr_opencode_dir,
+                        opencode_dir,
+                    };
+                    if name == "current-login" {
+                        service.fetch_current_quota_inner(force_refresh).await
+                    } else {
+                        service
+                            .fetch_account_quota_inner(&name, force_refresh)
+                            .await
+                    }
+                }
+            })
+            .collect();
+
+        join_all(tasks).await
     }
 
     fn load_snapshot_from_saved_file(path: &Path) -> Result<OpenAiQuotaSnapshot> {

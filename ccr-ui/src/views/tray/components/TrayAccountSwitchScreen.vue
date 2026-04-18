@@ -84,7 +84,9 @@
             </span>
           </div>
           <p class="tray-switch__row-subtitle">
-            {{ account.name }} · {{ account.freshness_description }}
+            {{ account.name }}<template v-if="account.last_refresh">
+              · 最近刷新 {{ account.last_refresh }}
+            </template>
           </p>
         </div>
 
@@ -150,9 +152,6 @@ const statusLabel = (account: CodexTrayAccountRow) => {
   if (account.is_current) {
     return t('codex.auth.currentBadge')
   }
-  if (account.is_expired) {
-    return t('codex.auth.expiredBadge')
-  }
   if (!props.canManageAccounts) {
     return t('codex.auth.tray.unavailableInCurrentProfile')
   }
@@ -164,7 +163,6 @@ const statusLabel = (account: CodexTrayAccountRow) => {
 
 const statusClass = (account: CodexTrayAccountRow) => {
   if (account.is_current) return 'tray-switch__status--current'
-  if (account.is_expired) return 'tray-switch__status--danger'
   if (!account.can_switch || !props.canManageAccounts) return 'tray-switch__status--muted'
   return 'tray-switch__status--available'
 }

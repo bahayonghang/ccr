@@ -18,14 +18,14 @@ use crate::models::{
     AuthIntent, AuthState, AuthStateStatus, CodexAuthAccount, CodexAuthEncryptedExport,
     CodexAuthExport, CodexAuthExportAccount, CodexAuthItem, CodexAuthJson, CodexAuthRegistry,
     CodexRuntimeMode, CodexRuntimeSummary, CredentialStoreKind, CurrentAuthInfo, ImportFormat,
-    ImportMode, ImportResult, LoginState, OpenAiAuthMethod, PlatformPaths, TokenFreshness,
+    ImportMode, ImportResult, LoginState, OpenAiAuthMethod, PlatformPaths,
     normalize_auth_map_for_intent,
 };
 use crate::platforms::codex::CodexPlatform;
 use crate::utils::CodexPaths;
 use ccr_core::core::error::{CcrError, Result};
 use ccr_core::core::lock::LockManager;
-use chrono::{DateTime, Duration, Utc};
+use chrono::{DateTime, Utc};
 use std::path::PathBuf;
 use std::{env, fs};
 use tracing::{debug, warn};
@@ -58,7 +58,6 @@ pub struct AuthReadSnapshot {
     pub current_info: Option<CurrentAuthInfo>,
     pub registry: CodexAuthRegistry,
     pub current_account_name: Option<String>,
-    pub current_expires_at: Option<DateTime<Utc>>,
 }
 
 impl CodexAuthService {
@@ -532,12 +531,6 @@ impl CodexAuthService {
 
         let current_account_name =
             Self::matched_saved_account_name(&registry, current_info.as_ref());
-        let current_expires_at = current_account_name.as_ref().and_then(|name| {
-            registry
-                .accounts
-                .get(name)
-                .and_then(|account| account.expires_at)
-        });
         let login_state = Self::compute_login_state(
             &auth_state,
             current_info.as_ref(),
@@ -550,7 +543,6 @@ impl CodexAuthService {
             current_info,
             registry,
             current_account_name,
-            current_expires_at,
         })
     }
 
@@ -648,7 +640,6 @@ impl CodexAuthService {
             .and_then(|s| DateTime::parse_from_rfc3339(s).ok())
             .map(|dt| dt.with_timezone(&Utc));
 
-        let freshness = self.calculate_freshness(last_refresh);
         let auth_method = match &auth_state.intent {
             AuthIntent::OpenAiAuth { method } => Some(*method),
             AuthIntent::ProviderEnvKey { .. } | AuthIntent::NoAuth => None,
@@ -660,7 +651,6 @@ impl CodexAuthService {
             email,
             plan_type,
             last_refresh,
-            freshness,
         })
     }
 
@@ -854,13 +844,7 @@ impl CodexAuthService {
     // ==================== 账号管理操作 ====================
 
     /// 保存当前登录到指定名称
-    pub fn save_current(
-        &self,
-        name: &str,
-        description: Option<String>,
-        expires_at: Option<DateTime<Utc>>,
-        force: bool,
-    ) -> Result<()> {
+    pub fn save_current(&self, name: &str, description: Option<String>, force: bool) -> Result<()> {
         self.ensure_managed_auth_supported("保存账号")?;
         let auth_state = self.get_auth_state();
 
@@ -921,7 +905,7 @@ impl CodexAuthService {
             saved_at: Utc::now(),
             last_used: Some(Utc::now()),
             last_refresh: current_info.last_refresh,
-            expires_at,
+            expires_at: None,
         };
 
         registry.accounts.insert(name.to_string(), account);
@@ -1066,8 +1050,6 @@ impl CodexAuthService {
                 saved_at: None,
                 last_used: None,
                 last_refresh: info.last_refresh,
-                freshness: info.freshness.clone(),
-                expires_at: None, // 虚拟项没有过期时间
             });
         }
 
@@ -1082,9 +1064,6 @@ impl CodexAuthService {
                 _ => false,
             };
 
-            // 计算新鲜度 (从保存的 auth 文件读取)
-            let freshness = self.get_account_freshness(name);
-
             items.push(CodexAuthItem {
                 name: name.clone(),
                 description: account.description.clone(),
@@ -1098,8 +1077,6 @@ impl CodexAuthService {
                 saved_at: Some(account.saved_at),
                 last_used: account.last_used,
                 last_refresh: account.last_refresh,
-                freshness,
-                expires_at: account.expires_at,
             });
         }
 
@@ -1126,14 +1103,6 @@ impl CodexAuthService {
             .get(name)
             .cloned()
             .ok_or_else(|| CcrError::ConfigError(format!("账号 '{}' 不存在", name)))?;
-
-        // 检查是否过期
-        if Self::is_expired(account.expires_at) {
-            return Err(CcrError::ValidationError(format!(
-                "账号 '{}' 已过期，无法切换。请更新或保存新的登录。",
-                name
-            )));
-        }
 
         let src = self.account_auth_path(name);
         let incoming = self.load_auth_raw_map(&src)?;
@@ -1378,52 +1347,6 @@ impl CodexAuthService {
     /// 检测是否有 Codex 进程正在运行（5 秒缓存节流）
     pub fn detect_codex_process(&self) -> Vec<u32> {
         Self::cached_codex_processes()
-    }
-
-    // ==================== Token 新鲜度 ====================
-
-    /// 计算 Token 新鲜度
-    pub fn calculate_freshness(&self, last_refresh: Option<DateTime<Utc>>) -> TokenFreshness {
-        let Some(refresh_time) = last_refresh else {
-            return TokenFreshness::unknown();
-        };
-
-        let now = Utc::now();
-        let age = now.signed_duration_since(refresh_time);
-
-        if age < Duration::days(1) {
-            TokenFreshness::Fresh
-        } else if age < Duration::days(7) {
-            TokenFreshness::Stale
-        } else {
-            TokenFreshness::Old
-        }
-    }
-
-    /// 获取指定账号的 Token 新鲜度
-    fn get_account_freshness(&self, name: &str) -> TokenFreshness {
-        let auth_path = self.account_auth_path(name);
-        if !auth_path.exists() {
-            return TokenFreshness::unknown();
-        }
-
-        let content = match fs::read_to_string(&auth_path) {
-            Ok(c) => c,
-            Err(_) => return TokenFreshness::unknown(),
-        };
-
-        let auth: CodexAuthJson = match serde_json::from_str(&content) {
-            Ok(a) => a,
-            Err(_) => return TokenFreshness::unknown(),
-        };
-
-        let last_refresh = auth
-            .last_refresh
-            .as_ref()
-            .and_then(|s| DateTime::parse_from_rfc3339(s).ok())
-            .map(|dt| dt.with_timezone(&Utc));
-
-        self.calculate_freshness(last_refresh)
     }
 
     // ==================== JWT 解析 ====================
@@ -2052,15 +1975,6 @@ impl CodexAuthService {
 
         Ok(result)
     }
-
-    /// 判断账号是否过期
-    pub fn is_expired(expires_at: Option<DateTime<Utc>>) -> bool {
-        if let Some(ts) = expires_at {
-            ts <= Utc::now()
-        } else {
-            false
-        }
-    }
 }
 
 #[cfg(test)]
@@ -2068,6 +1982,7 @@ impl CodexAuthService {
 mod tests {
     use super::*;
     use crate::models::{CodexAuthTokens, CodexRuntimeMode, ProfileConfig};
+    use chrono::Duration;
     use serde_json::json;
     use tempfile::TempDir;
 
@@ -2256,7 +2171,7 @@ mod tests {
             .save_profile("official", &official_profile())
             .unwrap();
         platform.apply_profile("official").unwrap();
-        service.save_current("work", None, None, false).unwrap();
+        service.save_current("work", None, false).unwrap();
 
         let summary = service.get_runtime_summary().unwrap();
         assert_eq!(summary.mode, CodexRuntimeMode::ProfileWithAuth);
@@ -2305,7 +2220,7 @@ mod tests {
             create_test_auth_json("test-id", "2026-01-08T03:09:53.894843900Z"),
         )
         .unwrap();
-        service.save_current("work", None, None, false).unwrap();
+        service.save_current("work", None, false).unwrap();
 
         let summary = service.get_runtime_summary().unwrap();
         assert_eq!(summary.mode, CodexRuntimeMode::RuntimeOnly);
@@ -2330,7 +2245,7 @@ mod tests {
         )
         .unwrap();
 
-        service.save_current("plus", None, None, false).unwrap();
+        service.save_current("plus", None, false).unwrap();
         service.switch_account("plus").unwrap();
 
         let summary = service.get_runtime_summary().unwrap();
@@ -2424,7 +2339,7 @@ mod tests {
         let auth_path = codex.path().join("auth.json");
         let auth_content = create_test_auth_json("test-id", "2026-01-08T03:09:53.894843900Z");
         fs::write(&auth_path, auth_content).unwrap();
-        service.save_current("existing", None, None, false).unwrap();
+        service.save_current("existing", None, false).unwrap();
 
         let duplicate = service.reserve_explicit_account_name("existing");
         assert!(duplicate.is_err());
@@ -2433,63 +2348,6 @@ mod tests {
         assert_eq!(
             service.reserve_explicit_account_name("fresh-name").unwrap(),
             "fresh-name"
-        );
-    }
-
-    // ==================== Token 新鲜度测试 ====================
-
-    #[test]
-    fn test_calculate_freshness() {
-        let (service, _ccr, _codex) = create_test_service();
-
-        // Fresh: < 1 day
-        let fresh_time = Utc::now() - Duration::hours(12);
-        assert_eq!(
-            service.calculate_freshness(Some(fresh_time)),
-            TokenFreshness::Fresh
-        );
-
-        // Stale: 1-7 days
-        let stale_time = Utc::now() - Duration::days(3);
-        assert_eq!(
-            service.calculate_freshness(Some(stale_time)),
-            TokenFreshness::Stale
-        );
-
-        // Old: > 7 days
-        let old_time = Utc::now() - Duration::days(10);
-        assert_eq!(
-            service.calculate_freshness(Some(old_time)),
-            TokenFreshness::Old
-        );
-
-        // Unknown
-        assert_eq!(service.calculate_freshness(None), TokenFreshness::unknown());
-    }
-
-    #[test]
-    fn test_calculate_freshness_boundary() {
-        let (service, _ccr, _codex) = create_test_service();
-
-        // 刚好 1 天 - 应该是 Stale
-        let one_day = Utc::now() - Duration::days(1);
-        assert_eq!(
-            service.calculate_freshness(Some(one_day)),
-            TokenFreshness::Stale
-        );
-
-        // 刚好 7 天 - 应该是 Old
-        let seven_days = Utc::now() - Duration::days(7);
-        assert_eq!(
-            service.calculate_freshness(Some(seven_days)),
-            TokenFreshness::Old
-        );
-
-        // 刚刚刷新 - 应该是 Fresh
-        let just_now = Utc::now();
-        assert_eq!(
-            service.calculate_freshness(Some(just_now)),
-            TokenFreshness::Fresh
         );
     }
 
@@ -2654,7 +2512,7 @@ mod tests {
         assert_eq!(state.status, AuthStateStatus::Unsupported);
 
         let err = service
-            .save_current("work", Some("unsupported".to_string()), None, false)
+            .save_current("work", Some("unsupported".to_string()), false)
             .unwrap_err()
             .to_string();
         assert!(err.contains("cli_auth_credentials_store"));
@@ -2673,7 +2531,7 @@ mod tests {
 
         // 2. 保存账号
         service
-            .save_current("account1", Some("First account".to_string()), None, false)
+            .save_current("account1", Some("First account".to_string()), false)
             .unwrap();
 
         // 验证保存成功
@@ -2687,7 +2545,7 @@ mod tests {
         fs::write(&auth_path, auth_content2).unwrap();
 
         service
-            .save_current("account2", Some("Second account".to_string()), None, false)
+            .save_current("account2", Some("Second account".to_string()), false)
             .unwrap();
 
         // 验证两个账号
@@ -2720,12 +2578,10 @@ mod tests {
         fs::write(&auth_path, auth_content).unwrap();
 
         // 第一次保存
-        service
-            .save_current("myaccount", None, None, false)
-            .unwrap();
+        service.save_current("myaccount", None, false).unwrap();
 
         // 第二次保存同名 - 应该失败
-        let result = service.save_current("myaccount", None, None, false);
+        let result = service.save_current("myaccount", None, false);
         assert!(result.is_err());
         assert!(result.unwrap_err().to_string().contains("已存在"));
     }
@@ -2740,12 +2596,10 @@ mod tests {
         fs::write(&auth_path, auth_content).unwrap();
 
         // 第一次保存
-        service
-            .save_current("myaccount", None, None, false)
-            .unwrap();
+        service.save_current("myaccount", None, false).unwrap();
 
         // 第二次保存同名 with force - 应该成功
-        let result = service.save_current("myaccount", Some("Updated".to_string()), None, true);
+        let result = service.save_current("myaccount", Some("Updated".to_string()), true);
         assert!(result.is_ok());
 
         // 验证描述已更新
@@ -2777,7 +2631,7 @@ mod tests {
         .unwrap();
 
         service
-            .save_current("merged", Some("merge test".to_string()), None, false)
+            .save_current("merged", Some("merge test".to_string()), false)
             .unwrap();
 
         let account_path = service.account_auth_path("merged");
@@ -2836,9 +2690,7 @@ requires_openai_auth = true
             .unwrap();
         platform.apply_profile("official").unwrap();
 
-        service
-            .save_current("plain-openai", None, None, false)
-            .unwrap();
+        service.save_current("plain-openai", None, false).unwrap();
         service.switch_account("plain-openai").unwrap();
 
         let config = service
@@ -2882,9 +2734,7 @@ requires_openai_auth = true
         )
         .unwrap();
 
-        service
-            .save_current("relay-account", None, None, false)
-            .unwrap();
+        service.save_current("relay-account", None, false).unwrap();
 
         let mut registry = service.load_registry().unwrap();
         let account = registry.accounts.get_mut("relay-account").unwrap();
@@ -2946,7 +2796,7 @@ requires_openai_auth = true
         .unwrap();
 
         service
-            .save_current("old_name", Some("rename me".to_string()), None, false)
+            .save_current("old_name", Some("rename me".to_string()), false)
             .unwrap();
         service
             .rename_account("old_name", "new_name", false)
@@ -2979,7 +2829,7 @@ requires_openai_auth = true
         )
         .unwrap();
 
-        service.save_current("src", None, None, false).unwrap();
+        service.save_current("src", None, false).unwrap();
         service.rename_account("src", "dst", false).unwrap();
 
         let registry = service.load_registry().unwrap();
@@ -3010,8 +2860,8 @@ requires_openai_auth = true
         )
         .unwrap();
 
-        service.save_current("alpha", None, None, false).unwrap();
-        service.save_current("beta", None, None, true).unwrap();
+        service.save_current("alpha", None, false).unwrap();
+        service.save_current("beta", None, true).unwrap();
 
         let result = service.rename_account("alpha", "beta", false);
         assert!(result.is_err());
@@ -3033,8 +2883,8 @@ requires_openai_auth = true
         )
         .unwrap();
 
-        service.save_current("alpha", None, None, false).unwrap();
-        service.save_current("beta", None, None, true).unwrap();
+        service.save_current("alpha", None, false).unwrap();
+        service.save_current("beta", None, true).unwrap();
 
         service.rename_account("alpha", "beta", true).unwrap();
 
@@ -3054,7 +2904,7 @@ requires_openai_auth = true
         )
         .unwrap();
 
-        service.save_current("keep", None, None, false).unwrap();
+        service.save_current("keep", None, false).unwrap();
 
         let result = service.rename_account("keep", "bad name!", false);
         assert!(result.is_err());
@@ -3075,7 +2925,7 @@ requires_openai_auth = true
         )
         .unwrap();
 
-        service.save_current("stable", None, None, false).unwrap();
+        service.save_current("stable", None, false).unwrap();
         let result = service.rename_account("stable", "stable", false);
         assert!(result.is_ok());
     }
@@ -3117,9 +2967,7 @@ requires_openai_auth = true
         fs::write(&auth_path, auth_content).unwrap();
 
         // 保存账号
-        service
-            .save_current("myaccount", None, None, false)
-            .unwrap();
+        service.save_current("myaccount", None, false).unwrap();
 
         // 列出账号 - 不应该有虚拟 default
         let accounts = service.list_accounts().unwrap();
@@ -3273,7 +3121,7 @@ requires_openai_auth = true
         )
         .unwrap();
 
-        service.save_current("team", None, None, false).unwrap();
+        service.save_current("team", None, false).unwrap();
 
         let registry = service.load_registry().unwrap();
         assert_eq!(registry.accounts["team"].plan_type.as_deref(), Some("team"));
@@ -3293,35 +3141,6 @@ requires_openai_auth = true
         let pids = service.detect_codex_process();
         // 返回类型正确即可
         assert!(pids.is_empty() || !pids.is_empty());
-    }
-
-    // ==================== 账号过期测试 ====================
-
-    #[test]
-    fn test_is_expired_none() {
-        // None 不视为过期
-        assert!(!CodexAuthService::is_expired(None));
-    }
-
-    #[test]
-    fn test_is_expired_future() {
-        // 未来时间不过期
-        let future = Utc::now() + Duration::days(30);
-        assert!(!CodexAuthService::is_expired(Some(future)));
-    }
-
-    #[test]
-    fn test_is_expired_past() {
-        // 过去时间已过期
-        let past = Utc::now() - Duration::days(1);
-        assert!(CodexAuthService::is_expired(Some(past)));
-    }
-
-    #[test]
-    fn test_is_expired_boundary() {
-        // 刚好现在 - 应该视为过期
-        let now = Utc::now();
-        assert!(CodexAuthService::is_expired(Some(now)));
     }
 
     #[test]
@@ -3394,7 +3213,7 @@ requires_openai_auth = true
     }
 
     #[test]
-    fn test_switch_to_expired_account_blocked() {
+    fn test_switch_to_legacy_expired_account_still_succeeds() {
         let (service, _ccr, codex) = create_test_service();
 
         // 创建 auth.json
@@ -3402,25 +3221,27 @@ requires_openai_auth = true
         let auth_content = create_test_auth_json("test-id", "2026-01-08T03:09:53.894843900Z");
         fs::write(&auth_path, auth_content).unwrap();
 
-        // 保存账号并设置过期时间为过去
+        // 保存账号，再注入旧版过期字段
         let past = Utc::now() - Duration::days(1);
         service
-            .save_current(
-                "expired-account",
-                Some("Expired".to_string()),
-                Some(past),
-                false,
-            )
+            .save_current("expired-account", Some("Expired".to_string()), false)
             .unwrap();
+        let mut registry = service.load_registry().unwrap();
+        registry
+            .accounts
+            .get_mut("expired-account")
+            .unwrap()
+            .expires_at = Some(past);
+        service.save_registry(&registry).unwrap();
 
         // 创建另一个 auth.json 以便切换
         let auth_content2 = create_test_auth_json("test-id-2", "2026-01-09T03:09:53.894843900Z");
         fs::write(&auth_path, auth_content2).unwrap();
 
-        // 尝试切换到过期账号 - 应该失败
-        let result = service.switch_account("expired-account");
-        assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("已过期"));
+        service.switch_account("expired-account").unwrap();
+
+        let registry = service.load_registry().unwrap();
+        assert_eq!(registry.current_auth.as_deref(), Some("expired-account"));
     }
 
     #[test]
@@ -3432,16 +3253,18 @@ requires_openai_auth = true
         let auth_content = create_test_auth_json("test-id", "2026-01-08T03:09:53.894843900Z");
         fs::write(&auth_path, auth_content).unwrap();
 
-        // 保存账号并设置过期时间为未来
+        // 保存账号，再注入旧版过期字段
         let future = Utc::now() + Duration::days(30);
         service
-            .save_current(
-                "valid-account",
-                Some("Valid".to_string()),
-                Some(future),
-                false,
-            )
+            .save_current("valid-account", Some("Valid".to_string()), false)
             .unwrap();
+        let mut registry = service.load_registry().unwrap();
+        registry
+            .accounts
+            .get_mut("valid-account")
+            .unwrap()
+            .expires_at = Some(future);
+        service.save_registry(&registry).unwrap();
 
         // 创建另一个 auth.json 以便切换
         let auth_content2 = create_test_auth_json("test-id-2", "2026-01-09T03:09:53.894843900Z");
@@ -3453,7 +3276,7 @@ requires_openai_auth = true
     }
 
     #[test]
-    fn test_list_accounts_includes_expiry() {
+    fn test_list_accounts_ignores_legacy_expiry_metadata() {
         let (service, _ccr, codex) = create_test_service();
 
         // 创建 auth.json
@@ -3461,16 +3284,17 @@ requires_openai_auth = true
         let auth_content = create_test_auth_json("test-id", "2026-01-08T03:09:53.894843900Z");
         fs::write(&auth_path, auth_content).unwrap();
 
-        // 保存账号并设置过期时间
+        // 保存账号并注入旧版过期字段
         let future = Utc::now() + Duration::days(30);
-        service
-            .save_current("with-expiry", None, Some(future), false)
-            .unwrap();
+        service.save_current("with-expiry", None, false).unwrap();
+        let mut registry = service.load_registry().unwrap();
+        registry.accounts.get_mut("with-expiry").unwrap().expires_at = Some(future);
+        service.save_registry(&registry).unwrap();
 
         // 列出账号
         let accounts = service.list_accounts().unwrap();
         let account = accounts.iter().find(|a| a.name == "with-expiry").unwrap();
-        assert!(account.expires_at.is_some());
+        assert!(account.last_refresh.is_some());
     }
 
     // ==================== 导入账号测试 ====================
@@ -3484,12 +3308,7 @@ requires_openai_auth = true
         let auth_content = create_test_auth_json("existing-id", "2026-01-08T03:09:53.894843900Z");
         fs::write(&auth_path, auth_content).unwrap();
         service
-            .save_current(
-                "existing",
-                Some("Existing account".to_string()),
-                None,
-                false,
-            )
+            .save_current("existing", Some("Existing account".to_string()), false)
             .unwrap();
 
         // 准备导入数据（包含同名账号和新账号）
@@ -3551,12 +3370,7 @@ requires_openai_auth = true
         let auth_content = create_test_auth_json("existing-id", "2026-01-08T03:09:53.894843900Z");
         fs::write(&auth_path, auth_content).unwrap();
         service
-            .save_current(
-                "existing",
-                Some("Existing account".to_string()),
-                None,
-                false,
-            )
+            .save_current("existing", Some("Existing account".to_string()), false)
             .unwrap();
 
         // 准备导入数据
@@ -3621,12 +3435,7 @@ requires_openai_auth = true
         let auth_content = create_test_auth_json("existing-id", "2026-01-08T03:09:53.894843900Z");
         fs::write(&auth_path, auth_content).unwrap();
         service
-            .save_current(
-                "existing",
-                Some("Existing account".to_string()),
-                None,
-                false,
-            )
+            .save_current("existing", Some("Existing account".to_string()), false)
             .unwrap();
 
         let import_json = r#"{
@@ -3689,12 +3498,7 @@ requires_openai_auth = true
         let auth_content = create_test_auth_json("existing-id", "2026-01-08T03:09:53.894843900Z");
         fs::write(&auth_path, auth_content).unwrap();
         service
-            .save_current(
-                "existing",
-                Some("Existing account".to_string()),
-                None,
-                false,
-            )
+            .save_current("existing", Some("Existing account".to_string()), false)
             .unwrap();
 
         // 准备导入数据

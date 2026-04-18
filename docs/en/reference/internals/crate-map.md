@@ -69,7 +69,7 @@ This page expands the `architecture` page by describing the current responsibili
 ### Current public surface
 
 - `ClaudeSettings` and related nested types for settings, hooks, MCP, slash commands, agents, and plugins
-- `LoginState` and `TokenFreshness` for Codex auth state
+- `LoginState` for Codex auth state
 - `MonitoringEntry`, `FrontendLogInput`, and `MonitoringFeedQuery` for monitoring data
 
 ### Design focus

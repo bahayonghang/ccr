@@ -1300,17 +1300,12 @@ export interface CodexDashboardOverview {
     login_state?: string
     store?: string
     saved_accounts_total: number
-    expired_accounts_total: number
     current?: {
       name?: string | null
       account_id?: string
       email?: string
+      plan_type?: string
       last_refresh?: string | null
-      freshness?: string
-      freshness_icon?: string
-      freshness_description?: string
-      expires_at?: string | null
-      is_expired?: boolean
     } | null
   }
   profiles: {

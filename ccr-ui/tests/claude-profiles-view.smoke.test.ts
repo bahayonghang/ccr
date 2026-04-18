@@ -228,6 +228,24 @@ afterEach(() => {
 })
 
 describe('ClaudeCodeProfilesView smoke', () => {
+  it('renders overview statistics for profile density and config coverage', async () => {
+    const { el, unmount } = await mountView()
+
+    try {
+      expect(el.textContent).toContain('Profiles')
+      expect(el.textContent).toContain('3 已启用 · 1 已停用')
+      expect(el.textContent).toContain('3 个分组 · 1 未设置 Provider')
+      expect(el.textContent).toContain('2 主模型 · 2 快速模型')
+      expect(el.textContent).toContain('4 订阅 · 0 API Key · 2 账号')
+      expect(el.textContent).toContain('自定义 Endpoint')
+      expect(el.textContent).toContain('带标签')
+      expect(el.textContent).toContain('缺少主模型')
+      expect(el.textContent).toContain('缺少账号')
+    } finally {
+      unmount()
+    }
+  })
+
   it('limits quick-switch actions to the filtered profile set', async () => {
     const { el, unmount } = await mountView()
 
@@ -235,6 +253,7 @@ describe('ClaudeCodeProfilesView smoke', () => {
       expect(el.textContent).toContain('未设置 Provider')
       expect(el.textContent).not.toContain('Unspecified Provider')
       expect(el.textContent).not.toContain('Other')
+      expect(el.textContent).toContain('4 个候选')
 
       expect(findQuickSwitchButtons(el).map(button => button.textContent?.trim())).toEqual([
         'zeta-current',
@@ -253,6 +272,7 @@ describe('ClaudeCodeProfilesView smoke', () => {
       expect(findQuickSwitchButtons(el).map(button => button.textContent?.trim())).toEqual([
         'missing-provider',
       ])
+      expect(el.textContent).toContain('1 个候选')
       expect(el.textContent).not.toContain('{count}')
       expect(el.textContent).not.toContain('{enabled}')
     } finally {

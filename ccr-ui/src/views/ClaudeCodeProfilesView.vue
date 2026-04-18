@@ -76,10 +76,8 @@
 
         <ClaudeProfilesOverview
           :current-profile="currentProfileRecord"
-          :enabled-profiles-count="enabledProfilesCount"
-          :quick-switch-profiles="filteredProfiles"
-          :total-profiles="profiles.length"
-          @apply="handleApply"
+          :provider-unset-label="providerUnsetLabel"
+          :summary="overviewSummary"
         />
       </PageHeaderCard>
 
@@ -134,6 +132,56 @@
         <p class="claude-profiles-view__search-hint">
           {{ $t('claudeProfiles.searchHint') }}
         </p>
+
+        <section
+          v-if="filteredProfiles.length > 0"
+          class="claude-profiles-view__command-strip"
+        >
+          <div class="claude-profiles-view__command-strip-head">
+            <div>
+              <p class="claude-profiles-view__command-strip-title">
+                {{ $t('claudeProfiles.quickSwitchStripTitle') }}
+              </p>
+              <p class="claude-profiles-view__command-strip-hint">
+                {{ $t('claudeProfiles.quickSwitchStripHint') }}
+              </p>
+            </div>
+            <span class="claude-profiles-view__command-strip-count">
+              {{ quickSwitchStripCountLabel }}
+            </span>
+          </div>
+
+          <div
+            class="claude-profiles-view__command-strip-scroll"
+            role="toolbar"
+            :aria-label="$t('claudeProfiles.quickSwitch')"
+          >
+            <button
+              v-for="profile in filteredProfiles"
+              :key="profile.name"
+              type="button"
+              :disabled="profile.is_current || profile.enabled === false"
+              class="claude-profiles-view__command-pill"
+              :class="profile.is_current
+                ? 'claude-profiles-view__command-pill--current'
+                : (profile.enabled === false
+                  ? 'claude-profiles-view__command-pill--disabled'
+                  : 'claude-profiles-view__command-pill--idle')"
+              :title="profile.provider?.trim() || providerUnsetLabel"
+              @click="handleApply(profile.name)"
+            >
+              <span
+                class="claude-profiles-view__command-pill-dot"
+                :class="profile.is_current
+                  ? 'claude-profiles-view__command-pill-dot--current'
+                  : (profile.enabled === false
+                    ? 'claude-profiles-view__command-pill-dot--disabled'
+                    : 'claude-profiles-view__command-pill-dot--enabled')"
+              />
+              <span class="truncate">{{ profile.name }}</span>
+            </button>
+          </div>
+        </section>
       </section>
 
       <div
@@ -483,7 +531,12 @@ import type {
   ClaudeProfileFormSectionId,
 } from '@/types/claudeProfileEditor'
 import { getErrorMessage } from '@/types/api'
-import { createClaudeProfileSections, filterClaudeProfiles, normalizeClaudeProfilesState } from '@/utils/claudeProfiles'
+import {
+  createClaudeProfilesOverviewSummary,
+  createClaudeProfileSections,
+  filterClaudeProfiles,
+  normalizeClaudeProfilesState,
+} from '@/utils/claudeProfiles'
 import { logger } from '@/utils/logger'
 import { CLAUDE_PROFILE_FORM_SECTION_IDS } from '@/types/claudeProfileEditor'
 
@@ -530,11 +583,11 @@ const form = reactive<ClaudeProfileEditorForm>({
 const trimmedSearchQuery = computed(() => searchQuery.value.trim())
 const hasActiveSearch = computed(() => trimmedSearchQuery.value.length > 0)
 const currentProfileRecord = computed(() => profiles.value.find(profile => profile.is_current) ?? null)
-const enabledProfilesCount = computed(() => profiles.value.filter(profile => profile.enabled !== false).length)
 const providerUnsetLabel = computed(() => t('claudeProfiles.providerUnset'))
 const providerSections = computed(() => createClaudeProfileSections(profiles.value, providerUnsetLabel.value))
 const filteredProfiles = computed(() => filterClaudeProfiles(profiles.value, trimmedSearchQuery.value))
 const visibleProviderSections = computed(() => createClaudeProfileSections(filteredProfiles.value, providerUnsetLabel.value))
+const overviewSummary = computed(() => createClaudeProfilesOverviewSummary(profiles.value, providerUnsetLabel.value))
 const showSearchRail = computed(() => !loading.value && !loadError.value && profiles.value.length > 0)
 const showNavigation = computed(() => !loading.value && !loadError.value && visibleProviderSections.value.length > 1)
 const isEditingCurrent = computed(() => isEditing.value && editingName.value === currentProfileRecord.value?.name)
@@ -561,6 +614,12 @@ const searchProvidersCountLabel = computed(() => translateWithFallback(
     matched: visibleProviderSections.value.length,
     total: providerSections.value.length,
   },
+))
+const quickSwitchStripCountLabel = computed(() => translateWithFallback(
+  t,
+  'claudeProfiles.quickSwitchStripCount',
+  '{matched} 个候选',
+  { matched: filteredProfiles.value.length },
 ))
 
 const modalEyebrow = computed(() => (
@@ -1389,7 +1448,7 @@ onBeforeUnmount(() => {
 .claude-profiles-view__shell {
   max-width: 1680px;
   margin: 0 auto;
-  gap: 2rem;
+  gap: 1.6rem;
 }
 
 .claude-profiles-view__search-rail {
@@ -1458,6 +1517,122 @@ onBeforeUnmount(() => {
   font-size: 0.82rem;
   line-height: 1.4;
   color: var(--color-text-muted);
+}
+
+.claude-profiles-view__command-strip {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  padding-top: 0.15rem;
+}
+
+.claude-profiles-view__command-strip-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.claude-profiles-view__command-strip-title {
+  font-size: 0.72rem;
+  line-height: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.claude-profiles-view__command-strip-hint {
+  margin-top: 0.18rem;
+  font-size: 0.8rem;
+  line-height: 1.3;
+  color: var(--color-text-secondary);
+}
+
+.claude-profiles-view__command-strip-count {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.9rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  border: 1px solid rgb(var(--color-border-default-rgb) / 45%);
+  background: rgb(var(--color-bg-elevated-rgb) / 68%);
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.claude-profiles-view__command-strip-scroll {
+  display: flex;
+  gap: 0.55rem;
+  overflow-x: auto;
+  padding-bottom: 0.15rem;
+  scrollbar-width: thin;
+}
+
+.claude-profiles-view__command-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  flex: 0 0 auto;
+  min-height: 2rem;
+  max-width: 15rem;
+  padding: 0.38rem 0.8rem;
+  border: 1px solid rgb(var(--color-border-default-rgb) / 45%);
+  border-radius: 9999px;
+  font-size: 0.8rem;
+  line-height: 1rem;
+  font-weight: 600;
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.claude-profiles-view__command-pill--idle {
+  background: rgb(var(--color-bg-elevated-rgb) / 68%);
+  color: var(--color-text-secondary);
+}
+
+.claude-profiles-view__command-pill--idle:hover {
+  border-color: rgb(var(--color-border-default-rgb) / 75%);
+  background: rgb(var(--color-bg-elevated-rgb) / 94%);
+  color: var(--color-text-primary);
+  transform: translateY(-1px);
+}
+
+.claude-profiles-view__command-pill--current {
+  border-color: rgb(var(--color-accent-secondary-rgb) / 28%);
+  background: rgb(var(--color-accent-secondary-rgb) / 12%);
+  color: rgb(var(--color-accent-secondary-rgb) / 100%);
+}
+
+.claude-profiles-view__command-pill--disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+  background: rgb(var(--color-bg-elevated-rgb) / 44%);
+  color: var(--color-text-muted);
+}
+
+.claude-profiles-view__command-pill-dot {
+  width: 0.42rem;
+  height: 0.42rem;
+  flex-shrink: 0;
+  border-radius: 9999px;
+}
+
+.claude-profiles-view__command-pill-dot--current {
+  background: rgb(var(--color-accent-secondary-rgb) / 100%);
+}
+
+.claude-profiles-view__command-pill-dot--enabled {
+  background: rgb(var(--color-success-rgb) / 100%);
+}
+
+.claude-profiles-view__command-pill-dot--disabled {
+  background: rgb(var(--color-danger-rgb) / 100%);
 }
 
 .claude-profiles-view__breadcrumb,
@@ -1610,6 +1785,10 @@ onBeforeUnmount(() => {
 
   .claude-profiles-view__search-rail {
     padding: 0.9rem;
+  }
+
+  .claude-profiles-view__command-strip-head {
+    align-items: flex-start;
   }
 }
 

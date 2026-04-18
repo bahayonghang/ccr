@@ -1,6 +1,8 @@
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { getCodexTraySnapshot, switchCodexAuth } from '@/api/tauri'
 import {
+  shellBeginTrayPanelDrag,
+  shellCompleteTrayPanelDrag,
   shellRequestQuit,
   shellShowMainWindow,
 } from '@/api/runtime/environment'
@@ -8,12 +10,34 @@ import type { CodexTraySnapshot } from '@/types'
 import { logger } from '@/utils/logger'
 import { getCurrentWindowSafe } from '@/utils/tauriWindow'
 
+const TRAY_PANEL_MANUAL_MOVE_THRESHOLD_PX = 12
+
+export interface TrayPanelWindowPosition {
+  x: number
+  y: number
+}
+
+export const shouldPersistTrayPanelManualPosition = (
+  beforePosition: TrayPanelWindowPosition | null,
+  afterPosition: TrayPanelWindowPosition
+): boolean => {
+  if (!beforePosition) {
+    return true
+  }
+
+  return (
+    Math.abs(afterPosition.x - beforePosition.x) >= TRAY_PANEL_MANUAL_MOVE_THRESHOLD_PX ||
+    Math.abs(afterPosition.y - beforePosition.y) >= TRAY_PANEL_MANUAL_MOVE_THRESHOLD_PX
+  )
+}
+
 export function useCodexTrayPanel() {
   const snapshot = ref<CodexTraySnapshot | null>(null)
   const screen = ref<'overview' | 'switch'>('overview')
   const loading = ref(false)
   const busyAccount = ref<string | null>(null)
   const error = ref<string | null>(null)
+  const isDragging = ref(false)
 
   let stopRefreshEvent: (() => void) | null = null
 
@@ -68,6 +92,43 @@ export function useCodexTrayPanel() {
     await shellRequestQuit()
   }
 
+  const startPanelDrag = async () => {
+    const win = await getCurrentWindowSafe()
+    if (!win || win.label !== 'codex-tray-panel') {
+      return
+    }
+
+    let beforePosition: { x: number; y: number } | null = null
+    try {
+      beforePosition = await win.outerPosition()
+    } catch (positionError) {
+      logger.warn('Failed to read tray panel position before dragging:', positionError)
+    }
+
+    isDragging.value = true
+
+    try {
+      await shellBeginTrayPanelDrag()
+      await win.startDragging()
+
+      const afterPosition = await win.outerPosition()
+      const moved = shouldPersistTrayPanelManualPosition(beforePosition, afterPosition)
+
+      await shellCompleteTrayPanelDrag(
+        moved ? { x: afterPosition.x, y: afterPosition.y } : null
+      )
+    } catch (dragError) {
+      logger.error('Failed to drag Codex tray panel:', dragError)
+      try {
+        await shellCompleteTrayPanelDrag(null)
+      } catch (cleanupError) {
+        logger.warn('Failed to clear tray panel drag state:', cleanupError)
+      }
+    } finally {
+      isDragging.value = false
+    }
+  }
+
   const goToSwitchScreen = () => {
     if (!canOpenSwitchScreen.value) {
       return
@@ -107,6 +168,7 @@ export function useCodexTrayPanel() {
     error,
     goToOverview,
     goToSwitchScreen,
+    isDragging,
     loading,
     openAuth,
     openMain,
@@ -114,7 +176,8 @@ export function useCodexTrayPanel() {
     quit,
     screen,
     snapshot,
-    switchAccount,
     loadSnapshot,
+    startPanelDrag,
+    switchAccount,
   }
 }

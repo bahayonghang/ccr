@@ -12,7 +12,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::{Map as JsonMap, Value as JsonValue};
 
 // Re-export shared types from ccr-types
-pub use ccr_types::{LoginState, TokenFreshness};
+pub use ccr_types::LoginState;
 
 /// OpenAI 认证方式
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
@@ -374,12 +374,6 @@ pub struct CodexAuthItem {
 
     /// 最后刷新时间
     pub last_refresh: Option<DateTime<Utc>>,
-
-    /// Token 新鲜度
-    pub freshness: TokenFreshness,
-
-    /// 到期时间
-    pub expires_at: Option<DateTime<Utc>>,
 }
 
 /// Codex 当前运行时的控制模式
@@ -545,9 +539,6 @@ pub struct CurrentAuthInfo {
 
     /// 最后刷新时间
     pub last_refresh: Option<DateTime<Utc>>,
-
-    /// Token 新鲜度
-    pub freshness: TokenFreshness,
 }
 
 /// TUI 输入模式
@@ -945,15 +936,6 @@ mod tests {
 
         let no_auth_normalized = normalize_auth_map_for_intent(&AuthIntent::NoAuth, &auth);
         assert!(no_auth_normalized.is_empty());
-    }
-
-    #[test]
-    fn test_token_freshness_icon() {
-        // Icons are now emoji from ccr-types
-        assert_eq!(TokenFreshness::Fresh.icon(), "🟢");
-        assert_eq!(TokenFreshness::Stale.icon(), "🟡");
-        assert_eq!(TokenFreshness::Old.icon(), "🔴");
-        assert_eq!(TokenFreshness::unknown().icon(), "⚪");
     }
 
     #[test]

@@ -117,7 +117,7 @@ Important boundaries:
 ### `ccr-types`
 
 - `ClaudeSettings`: shared Claude settings model
-- `LoginState` / `TokenFreshness`: Codex auth state models
+- `LoginState`: Codex auth login state models
 - `MonitoringEntry` / `FrontendLogInput`: monitoring and frontend log payloads
 
 This crate is about compatibility rather than business orchestration:

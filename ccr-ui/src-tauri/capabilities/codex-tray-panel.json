@@ -1,0 +1,13 @@
+{
+  "$schema": "https://schema.tauri.app/config/2.0.0/capability.json",
+  "identifier": "codex-tray-panel-capability",
+  "description": "Capabilities for the Codex tray panel window",
+  "windows": ["codex-tray-panel"],
+  "permissions": [
+    "core:default",
+    "core:event:default",
+    "core:event:allow-listen",
+    "core:event:allow-emit",
+    "core:window:allow-start-dragging"
+  ]
+}

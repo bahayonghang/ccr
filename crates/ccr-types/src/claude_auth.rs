@@ -2,7 +2,6 @@
 //!
 //! Shared types for Claude subscription and API key management.
 
-use crate::codex_auth::TokenFreshness;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
@@ -119,7 +118,6 @@ pub struct ClaudeCurrentAuthInfo {
     pub rate_limit_tier: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub expires_at: Option<DateTime<Utc>>,
-    pub freshness: TokenFreshness,
 }
 
 /// Claude runtime control mode.
@@ -211,18 +209,20 @@ impl ClaudeRuntimeSummary {
     }
 
     pub fn auth_label(&self) -> String {
-        match self.current_profile_auth_mode {
-            Some(ClaudeProfileAuthMode::ApiKey) => self
+        match self.mode {
+            ClaudeRuntimeMode::ProfileOnly => self
                 .current_profile_auth_source
                 .as_deref()
                 .map(|source| format!("Profile / {source}"))
                 .unwrap_or_else(|| "Profile / API Key".to_string()),
-            Some(ClaudeProfileAuthMode::Subscription) => self
+            ClaudeRuntimeMode::ProfileWithAuth
+            | ClaudeRuntimeMode::ProfilePendingAuth
+            | ClaudeRuntimeMode::RuntimeOnly => self
                 .current_auth_name
                 .clone()
                 .map(|name| format!("Official / {name}"))
                 .unwrap_or_else(|| "Official / 未就绪".to_string()),
-            None => self
+            ClaudeRuntimeMode::Unresolved => self
                 .current_auth_name
                 .clone()
                 .map(|name| format!("Official / {name}"))

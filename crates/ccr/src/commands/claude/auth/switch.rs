@@ -2,6 +2,7 @@
 
 #![allow(clippy::unused_async)]
 
+use crate::models::ClaudeLoginState;
 use crate::services::ClaudeAuthService;
 use ccr_core::core::error::Result;
 use ccr_core::core::logging::ColorOutput;
@@ -9,6 +10,10 @@ use colored::Colorize;
 
 pub async fn switch_command(name: &str) -> Result<()> {
     let service = ClaudeAuthService::new()?;
+    let had_api_key_override = service
+        .get_runtime_summary()
+        .ok()
+        .is_some_and(|summary| matches!(summary.login_state, ClaudeLoginState::ApiKeyActive));
 
     match service.switch_account(name) {
         Ok(()) => {
@@ -19,9 +24,11 @@ pub async fn switch_command(name: &str) -> Result<()> {
             ));
             println!();
             ColorOutput::info("提示:");
-            println!("  • 已仅更新 ~/.claude/.credentials.json");
-            println!("  • 若当前 Profile 为 subscription，Claude Code 将回落到该官方账号");
-            println!("  • 若当前 Profile 为 api_key，仍以 ANTHROPIC_* 覆盖为准");
+            println!("  • 已更新 ~/.claude/.credentials.json");
+            if had_api_key_override {
+                println!("  • 已清理 settings.json 中当前 Profile 写入的 ANTHROPIC_* 覆盖");
+            }
+            println!("  • Claude Code 现在会优先回落到该官方账号");
         }
         Err(e) => {
             ColorOutput::error(&format!("切换失败: {}", e));

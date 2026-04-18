@@ -58,19 +58,10 @@ pub async fn switch_command(name: &str) -> Result<()> {
             ColorOutput::success(&format!("已切换到账号: {}", name.bright_green().bold()));
 
             // 显示切换后的账号信息
-            if let Ok(info) = service.get_current_auth_info() {
-                if let Some(email) = &info.email {
-                    ColorOutput::info(&format!("邮箱: {}", service.mask_email(email)));
-                }
-
-                // 显示 Token 新鲜度
-                let freshness_str = match &info.freshness {
-                    crate::models::TokenFreshness::Fresh => "🟢 新鲜 (< 1 天)".green(),
-                    crate::models::TokenFreshness::Stale => "🟡 陈旧 (1-7 天)".yellow(),
-                    crate::models::TokenFreshness::Old => "🔴 过期 (> 7 天)".red(),
-                    crate::models::TokenFreshness::Unknown(_) => "⚪ 未知".white(),
-                };
-                ColorOutput::info(&format!("Token 状态: {}", freshness_str));
+            if let Ok(info) = service.get_current_auth_info()
+                && let Some(email) = &info.email
+            {
+                ColorOutput::info(&format!("邮箱: {}", service.mask_email(email)));
             }
 
             println!();

@@ -30,11 +30,9 @@ const overviewResponse = {
   auth: {
     logged_in: true,
     saved_accounts_total: 1,
-    expired_accounts_total: 0,
     current: {
       name: 'primary',
-      freshness_description: '已登录，可继续使用',
-      is_expired: false,
+      last_refresh: '2026-03-30T10:00:00.000Z',
     },
   },
   profiles: {

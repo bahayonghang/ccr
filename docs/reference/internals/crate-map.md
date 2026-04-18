@@ -75,7 +75,7 @@
 ### 当前公开面
 
 - `ClaudeSettings` 及其子结构：settings、hooks、MCP、slash commands、agents、plugins
-- `LoginState`、`TokenFreshness`：Codex auth 状态表达
+- `LoginState`：Codex auth 状态表达
 - `MonitoringEntry`、`FrontendLogInput`、`MonitoringFeedQuery`：监控输入输出
 
 ### 设计重点

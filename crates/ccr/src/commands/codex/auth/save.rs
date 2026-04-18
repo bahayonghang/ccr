@@ -17,19 +17,13 @@ use colored::Colorize;
 ///
 /// * `name` - 账号名称
 /// * `description` - 账号描述 (可选)
-/// * `expires_at` - 到期时间 (RFC3339，可选)
 /// * `force` - 是否强制覆盖已存在的账号
 ///
 /// # 返回
 ///
 /// * `Ok(())` - 保存成功
 /// * `Err(CcrError)` - 保存失败
-pub async fn save_command(
-    name: &str,
-    description: Option<String>,
-    expires_at: Option<String>,
-    force: bool,
-) -> Result<()> {
+pub async fn save_command(name: &str, description: Option<String>, force: bool) -> Result<()> {
     let service = CodexAuthService::new()?;
     let auth_state = service.get_auth_state();
 
@@ -57,29 +51,13 @@ pub async fn save_command(
     }
 
     // 执行保存
-    // 解析 expires_at
-    let expires_at = if let Some(ts) = expires_at {
-        match chrono::DateTime::parse_from_rfc3339(&ts) {
-            Ok(dt) => Some(dt.with_timezone(&chrono::Utc)),
-            Err(_) => {
-                ColorOutput::error("expires_at 格式错误，需为 RFC3339，例如 2026-02-01T00:00:00Z");
-                return Ok(());
-            }
-        }
-    } else {
-        None
-    };
-
-    match service.save_current(name, description.clone(), expires_at, force) {
+    match service.save_current(name, description.clone(), force) {
         Ok(()) => {
             println!();
             ColorOutput::success(&format!("已保存账号: {}", name.bright_green().bold()));
 
             if let Some(desc) = description {
                 ColorOutput::info(&format!("描述: {}", desc));
-            }
-            if let Some(exp) = expires_at {
-                ColorOutput::info(&format!("到期时间: {}", exp.to_rfc3339()));
             }
 
             // 显示当前账号信息

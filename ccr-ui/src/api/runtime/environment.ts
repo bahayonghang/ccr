@@ -7,6 +7,17 @@ export interface DesktopShellPreferences {
   confirm_before_exit: boolean
   close_to_tray: boolean
   open_panel_on_tray_click: boolean
+  tray_panel: TrayPanelPlacementState
+}
+
+export interface TrayPanelManualPosition {
+  x: number
+  y: number
+}
+
+export interface TrayPanelPlacementState {
+  placement_mode: 'anchored' | 'manual'
+  manual_position: TrayPanelManualPosition | null
 }
 
 export interface EnvironmentInfo {
@@ -70,6 +81,16 @@ export const shellShowMainWindow = async (targetRoute?: string): Promise<void> =
 
 export const shellRequestQuit = async (): Promise<void> => {
   await invoke('shell_request_quit')
+}
+
+export const shellBeginTrayPanelDrag = async (): Promise<void> => {
+  await invoke('shell_begin_tray_panel_drag')
+}
+
+export const shellCompleteTrayPanelDrag = async (
+  position?: TrayPanelManualPosition | null
+): Promise<void> => {
+  await invoke('shell_complete_tray_panel_drag', { position: position ?? null })
 }
 
 export const getSkipExitConfirm = async (): Promise<boolean> => {

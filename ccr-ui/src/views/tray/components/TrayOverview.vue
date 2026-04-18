@@ -28,7 +28,7 @@
               </span>
             </div>
             <p class="tray-overview__support">
-              {{ currentAccount?.freshness_description || snapshot.auth_label }}
+              {{ currentAccount?.last_refresh ? `最近刷新 ${currentAccount.last_refresh}` : snapshot.auth_label }}
             </p>
           </div>
         </div>
@@ -133,6 +133,7 @@
       <button
         type="button"
         class="tray-overview__action"
+        data-testid="tray-action-open-usage"
         @click="$emit('open-usage')"
       >
         <SIcon
@@ -145,6 +146,7 @@
       <button
         type="button"
         class="tray-overview__action"
+        data-testid="tray-action-open-main"
         @click="$emit('open-main')"
       >
         <SIcon
@@ -163,6 +165,7 @@
       <button
         type="button"
         class="tray-overview__link"
+        data-testid="tray-action-open-auth"
         @click="$emit('open-auth')"
       >
         {{ t('codex.auth.tray.openAuth') }}
@@ -172,7 +175,7 @@
     <footer class="tray-overview__footer">
       <span class="tray-overview__footer-note">
         <span class="tray-overview__footer-dot" />
-        {{ currentAccount?.freshness_description || snapshot.auth_label }}
+        {{ currentAccount?.last_refresh ? `最近刷新 ${currentAccount.last_refresh}` : snapshot.auth_label }}
       </span>
       <button
         type="button"

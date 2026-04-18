@@ -3,7 +3,6 @@
 
 use crate::models::{
     CodexAccountQuota, CodexAuthItem, CodexAuthRegistry, CodexRuntimeSummary, LoginState,
-    TokenFreshness,
 };
 use crate::services::AuthReadSnapshot;
 use crate::services::{
@@ -21,12 +20,15 @@ use std::sync::mpsc::TryRecvError;
 
 use crate::tui::runtime::TuiApp;
 use crate::tui::toast::{Toast, ToastManager};
+use chrono::Utc;
 use indexmap::IndexMap;
 use std::path::PathBuf;
 
 /// Maximum accounts per page
 pub const PAGE_SIZE: usize = 10;
+const ACTIVATION_DELAY_TICKS: u32 = 4;
 const QUOTA_REFRESH_INTERVAL_TICKS: u32 = 4;
+const PREVIEW_TTL_SECS: i64 = 60;
 const CURRENT_RUNTIME_ACCOUNT_KEY: &str = "default";
 
 #[derive(Debug, Clone)]
@@ -77,6 +79,32 @@ pub enum UsageState {
     Error(String),
     /// No data
     NoData,
+}
+
+#[derive(Debug, Clone)]
+pub struct QuotaPreviewEntry {
+    pub quota: CodexAccountQuota,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PreviewMetricWindow {
+    FiveHour,
+    SevenDay,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum QuotaPreviewCellState {
+    Waiting,
+    Loading,
+    Ready,
+    Error,
+    Empty,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct QuotaPreviewCell {
+    pub text: String,
+    pub state: QuotaPreviewCellState,
 }
 
 /// Quota query state
@@ -134,6 +162,8 @@ pub struct CodexAuthApp {
         Option<std::sync::mpsc::Receiver<std::result::Result<CodexAccountQuota, (String, String)>>>,
     /// Usage async result receiver
     usage_rx: Option<std::sync::mpsc::Receiver<UsageState>>,
+    /// 全账号 preview 批量查询结果
+    preview_rx: Option<std::sync::mpsc::Receiver<Vec<CodexAccountQuota>>>,
     /// Codex directory
     #[allow(dead_code)]
     codex_dir: Option<PathBuf>,
@@ -143,6 +173,10 @@ pub struct CodexAuthApp {
     quota_refresh: RefreshSchedulerState<String>,
     /// Whether a quota refresh confirmation is pending
     pub pending_quota_confirm: bool,
+    /// 账号预览缓存（供列表速览与右侧 Focus 共用）
+    pub(crate) preview_cache: IndexMap<String, QuotaPreviewEntry>,
+    /// 激活页签后的 1s 延迟门控
+    activation_delay_ticks: Option<u32>,
 }
 
 #[allow(dead_code)]
@@ -179,10 +213,13 @@ impl CodexAuthApp {
             quota_state: QuotaState::Idle,
             quota_rx: None,
             usage_rx: None,
+            preview_rx: None,
             codex_dir,
             list_area: Cell::new(None),
             quota_refresh: RefreshSchedulerState::new(QUOTA_REFRESH_INTERVAL_TICKS),
             pending_quota_confirm: false,
+            preview_cache: IndexMap::new(),
+            activation_delay_ticks: None,
         })
     }
 
@@ -195,6 +232,8 @@ impl CodexAuthApp {
         if self.selected_index >= self.accounts.len() {
             self.selected_index = self.accounts.len().saturating_sub(1);
         }
+
+        self.reconcile_preview_cache();
 
         Ok(())
     }
@@ -231,7 +270,9 @@ impl CodexAuthApp {
     /// Reload account list
     pub fn reload_accounts(&mut self) -> Result<()> {
         let snapshot = self.service.read_auth_snapshot()?;
-        self.apply_snapshot(snapshot)
+        self.apply_snapshot(snapshot)?;
+        self.arm_activation_gate();
+        Ok(())
     }
 
     /// Get current page accounts
@@ -262,7 +303,10 @@ impl CodexAuthApp {
 
     pub fn selected_quota(&self) -> Option<&CodexAccountQuota> {
         let selected_name = self.selected_account()?.name.as_str();
-        self.quota_cache().get(selected_name)
+        self.preview_cache
+            .get(selected_name)
+            .map(|entry| &entry.quota)
+            .or_else(|| self.quota_cache().get(selected_name))
     }
 
     pub fn is_selected_quota_loading(&self) -> bool {
@@ -286,8 +330,124 @@ impl CodexAuthApp {
             {
                 Some(message.as_str())
             }
-            _ => None,
+            _ => self
+                .selected_account()
+                .and_then(|account| self.preview_cache.get(&account.name))
+                .and_then(|entry| entry.quota.error.as_deref()),
         }
+    }
+
+    pub fn selected_preview_entry(&self) -> Option<&QuotaPreviewEntry> {
+        let selected_name = self.selected_account()?.name.as_str();
+        self.preview_cache.get(selected_name)
+    }
+
+    pub fn selected_preview_reset_text(&self) -> String {
+        self.selected_preview_entry()
+            .map(|entry| Self::preview_reset_detail_summary_text(&entry.quota))
+            .unwrap_or_else(|| {
+                if self.is_activation_gate_pending() {
+                    "等待 1s 激活门控".to_string()
+                } else if self.preview_rx.is_some() {
+                    "正在批量查询…".to_string()
+                } else {
+                    "-".to_string()
+                }
+            })
+    }
+
+    pub fn preview_reset_cell_for_account(&self, account_name: &str) -> QuotaPreviewCell {
+        if let Some(entry) = self.preview_cache.get(account_name) {
+            if entry.quota.error.is_some() {
+                return QuotaPreviewCell {
+                    text: "ERR".to_string(),
+                    state: QuotaPreviewCellState::Error,
+                };
+            }
+
+            return QuotaPreviewCell {
+                text: Self::preview_reset_summary_text(&entry.quota),
+                state: QuotaPreviewCellState::Ready,
+            };
+        }
+
+        if self.is_activation_gate_pending() {
+            return QuotaPreviewCell {
+                text: "1s…".to_string(),
+                state: QuotaPreviewCellState::Waiting,
+            };
+        }
+
+        if self.preview_rx.is_some()
+            || self
+                .quota_refresh
+                .in_flight_key()
+                .is_some_and(|key| key == account_name)
+        {
+            return QuotaPreviewCell {
+                text: "…".to_string(),
+                state: QuotaPreviewCellState::Loading,
+            };
+        }
+
+        QuotaPreviewCell {
+            text: "-".to_string(),
+            state: QuotaPreviewCellState::Empty,
+        }
+    }
+
+    pub fn preview_cell_for_account(
+        &self,
+        account_name: &str,
+        window: PreviewMetricWindow,
+    ) -> QuotaPreviewCell {
+        if let Some(entry) = self.preview_cache.get(account_name) {
+            if let Some(quota) = entry.quota.quota.as_ref() {
+                let value = match window {
+                    PreviewMetricWindow::FiveHour => quota.hourly_percentage,
+                    PreviewMetricWindow::SevenDay => quota.weekly_percentage,
+                };
+                return QuotaPreviewCell {
+                    text: format!("{value}%"),
+                    state: QuotaPreviewCellState::Ready,
+                };
+            }
+
+            if entry.quota.error.is_some() {
+                return QuotaPreviewCell {
+                    text: "ERR".to_string(),
+                    state: QuotaPreviewCellState::Error,
+                };
+            }
+        }
+
+        if self.is_activation_gate_pending() {
+            return QuotaPreviewCell {
+                text: "1s…".to_string(),
+                state: QuotaPreviewCellState::Waiting,
+            };
+        }
+
+        if self.preview_rx.is_some()
+            || self
+                .quota_refresh
+                .in_flight_key()
+                .is_some_and(|key| key == account_name)
+        {
+            return QuotaPreviewCell {
+                text: "…".to_string(),
+                state: QuotaPreviewCellState::Loading,
+            };
+        }
+
+        QuotaPreviewCell {
+            text: "-".to_string(),
+            state: QuotaPreviewCellState::Empty,
+        }
+    }
+
+    pub fn is_activation_gate_pending(&self) -> bool {
+        self.activation_delay_ticks.is_some()
     }
 
     fn quota_cache(&self) -> &IndexMap<String, CodexAccountQuota> {
@@ -447,6 +607,140 @@ impl CodexAuthApp {
             .collect()
     }
 
+    fn preview_account_keys(&self) -> Vec<String> {
+        let mut keys = Vec::with_capacity(self.accounts.len());
+        for account in &self.accounts {
+            if !keys.iter().any(|existing| existing == &account.name) {
+                keys.push(account.name.clone());
+            }
+        }
+        keys
+    }
+
+    fn reconcile_preview_cache(&mut self) {
+        let valid_keys = self.preview_account_keys();
+        self.preview_cache
+            .retain(|key, _| valid_keys.iter().any(|candidate| candidate == key));
+    }
+
+    fn preview_keys_to_refresh(&self, force_refresh: bool) -> Vec<String> {
+        self.preview_account_keys()
+            .into_iter()
+            .filter(|key| force_refresh || self.preview_entry_needs_refresh(key))
+            .collect()
+    }
+
+    fn preview_entry_needs_refresh(&self, account_key: &str) -> bool {
+        self.preview_cache
+            .get(account_key)
+            .is_none_or(Self::is_preview_entry_stale)
+    }
+
+    fn is_preview_entry_stale(entry: &QuotaPreviewEntry) -> bool {
+        (Utc::now() - entry.quota.fetched_at).num_seconds() >= PREVIEW_TTL_SECS
+    }
+
+    fn preview_reset_summary_text(quota: &CodexAccountQuota) -> String {
+        match quota.quota.as_ref() {
+            Some(quota) => format!(
+                "{}/{}",
+                Self::short_reset_label(quota.hourly_reset_time),
+                Self::short_reset_label(quota.weekly_reset_time)
+            ),
+            None if quota.error.is_some() => "ERR".to_string(),
+            None => "-".to_string(),
+        }
+    }
+
+    fn preview_reset_detail_summary_text(quota: &CodexAccountQuota) -> String {
+        match quota.quota.as_ref() {
+            Some(quota) => format!(
+                "{}/{}",
+                Self::detailed_reset_label(quota.hourly_reset_time),
+                Self::detailed_reset_label(quota.weekly_reset_time)
+            ),
+            None if quota.error.is_some() => "ERR".to_string(),
+            None => "-".to_string(),
+        }
+    }
+
+    fn short_reset_label(reset_timestamp: Option<i64>) -> String {
+        let Some(reset_timestamp) = reset_timestamp else {
+            return "-".to_string();
+        };
+        let seconds = (reset_timestamp - Utc::now().timestamp()).max(0);
+        if seconds < 3600 {
+            format!("{}m", seconds / 60)
+        } else if seconds < 86_400 {
+            format!("{}h", seconds / 3600)
+        } else {
+            format!("{}d", seconds / 86_400)
+        }
+    }
+
+    fn detailed_reset_label(reset_timestamp: Option<i64>) -> String {
+        reset_timestamp
+            .map(Self::long_reset_label)
+            .unwrap_or_else(|| "-".to_string())
+    }
+
+    pub fn quota_reset_detail_text(reset_timestamp: Option<i64>) -> String {
+        let Some(reset_timestamp) = reset_timestamp else {
+            return "-".to_string();
+        };
+        let dt = chrono::DateTime::from_timestamp(reset_timestamp, 0)
+            .map(|value| value.with_timezone(&chrono::Local));
+        let relative = Self::long_reset_label(reset_timestamp);
+        if let Some(local) = dt {
+            format!("{} ({})", relative, local.format("%m/%d %H:%M"))
+        } else {
+            relative
+        }
+    }
+
+    fn long_reset_label(reset_timestamp: i64) -> String {
+        let seconds = (reset_timestamp - Utc::now().timestamp()).max(0);
+        if seconds < 3600 {
+            format!("{}m", seconds / 60)
+        } else if seconds < 86_400 {
+            let hours = seconds / 3600;
+            let minutes = (seconds % 3600) / 60;
+            if minutes == 0 {
+                format!("{hours}h")
+            } else {
+                format!("{hours}h{minutes}m")
+            }
+        } else {
+            let days = seconds / 86_400;
+            let hours = (seconds % 86_400) / 3600;
+            let minutes = (seconds % 3600) / 60;
+            if hours == 0 && minutes == 0 {
+                format!("{days}d")
+            } else if minutes == 0 {
+                format!("{days}d{hours}h")
+            } else if hours == 0 {
+                format!("{days}d{minutes}m")
+            } else {
+                format!("{days}d{hours}h{minutes}m")
+            }
+        }
+    }
+
+    fn arm_activation_gate(&mut self) {
+        if self.usage_rx.is_some() || self.preview_rx.is_some() {
+            self.activation_delay_ticks = None;
+            return;
+        }
+
+        let needs_preview = !self.preview_keys_to_refresh(false).is_empty();
+        // 本地 usage 每次激活后延迟重读一次，但快速切页不会触发。
+        if needs_preview || self.usage_rx.is_none() {
+            self.activation_delay_ticks = Some(ACTIVATION_DELAY_TICKS);
+        } else {
+            self.activation_delay_ticks = None;
+        }
+    }
+
     // ═══════════════════════════════════════════════════════════
     // Key handlers
     // ═══════════════════════════════════════════════════════════
@@ -536,8 +830,10 @@ impl CodexAuthApp {
             }
             KeyCode::Char('r') => {
                 self.reload_accounts()?;
-                self.rebuild_quota_refresh_plan(false);
-                self.toasts.push(Toast::info("已刷新账号列表"));
+                self.start_usage_fetch();
+                self.rebuild_quota_refresh_plan(true);
+                self.try_start_quota_refresh(true);
+                self.toasts.push(Toast::info("已刷新账号与统计"));
             }
             KeyCode::Char('R') => {
                 if let Some(account) = self.selected_account().cloned() {
@@ -634,7 +930,7 @@ impl CodexAuthApp {
                 };
 
                 if !name.is_empty() {
-                    match self.service.save_current(&name, None, None, false) {
+                    match self.service.save_current(&name, None, false) {
                         Ok(()) => {
                             self.last_action =
                                 Some(("已保存".to_string(), name.clone(), true, None));
@@ -813,7 +1109,12 @@ impl CodexAuthApp {
 
     fn maybe_request_quota_for_selection_change(&mut self, previous: Option<String>) {
         let current = self.selected_account().map(|account| account.name.clone());
-        if current != previous {
+        if current != previous
+            && !self.is_activation_gate_pending()
+            && current
+                .as_deref()
+                .is_some_and(|account_name| self.preview_entry_needs_refresh(account_name))
+        {
             self.queue_selected_quota_refresh(
                 RefreshTier::HoverOnly,
                 RefreshReason::SelectionChanged,
@@ -834,12 +1135,6 @@ impl CodexAuthApp {
 
             if account.is_current {
                 self.toasts.push(Toast::info("已经是当前账号"));
-                return Ok(false);
-            }
-
-            // Expiry check
-            if CodexAuthService::is_expired(account.expires_at) {
-                self.toasts.push(Toast::warning("账号已过期，无法切换"));
                 return Ok(false);
             }
 
@@ -869,20 +1164,9 @@ impl CodexAuthApp {
         Ok(false)
     }
 
-    /// Get freshness display text
-    pub fn freshness_text(freshness: TokenFreshness) -> &'static str {
-        match freshness {
-            TokenFreshness::Fresh => "🟢 新鲜",
-            TokenFreshness::Stale => "🟡 陈旧",
-            TokenFreshness::Old => "🔴 过期",
-            TokenFreshness::Unknown(_) => "⚪ 未知",
-        }
-    }
-
     /// Called when this tab becomes active (e.g., tab switch)
     pub fn on_activated(&mut self) {
-        self.start_usage_fetch();
-        self.rebuild_quota_refresh_plan(false);
+        self.arm_activation_gate();
     }
 
     /// Start async usage fetch in background thread
@@ -902,61 +1186,74 @@ impl CodexAuthApp {
         });
     }
 
-    fn selected_quota_key(&self) -> Option<String> {
-        self.selected_account().map(|account| account.name.clone())
-    }
+    fn start_preview_prefetch(&mut self, force_refresh: bool) -> bool {
+        if self.preview_rx.is_some() {
+            return false;
+        }
 
-    fn warm_quota_account_names(&self) -> Vec<String> {
-        let mut candidates: Vec<_> = self
-            .accounts
-            .iter()
-            .filter(|account| {
-                !account.is_virtual && !CodexAuthService::is_expired(account.expires_at)
-            })
-            .map(|account| (account.name.clone(), account.last_used, account.saved_at))
-            .collect();
+        let account_names = self.preview_keys_to_refresh(force_refresh);
+        if account_names.is_empty() {
+            return false;
+        }
 
-        candidates.sort_by(|left, right| {
-            right
-                .1
-                .cmp(&left.1)
-                .then_with(|| right.2.cmp(&left.2))
-                .then_with(|| left.0.cmp(&right.0))
+        let (tx, rx) = std::sync::mpsc::channel();
+        self.preview_rx = Some(rx);
+
+        std::thread::spawn(move || {
+            let quotas = match tokio::runtime::Runtime::new() {
+                Ok(rt) => rt.block_on(async {
+                    match CodexQuotaService::new() {
+                        Ok(service) => {
+                            if force_refresh {
+                                service
+                                    .fetch_quotas_for_accounts_force_refresh(&account_names)
+                                    .await
+                            } else {
+                                service.fetch_quotas_for_accounts(&account_names).await
+                            }
+                        }
+                        Err(error) => account_names
+                            .iter()
+                            .map(|account_name| CodexAccountQuota {
+                                account_name: account_name.clone(),
+                                email: None,
+                                quota: None,
+                                error: Some(format!("初始化配额服务失败: {error}")),
+                                fetched_at: Utc::now(),
+                            })
+                            .collect(),
+                    }
+                }),
+                Err(error) => account_names
+                    .iter()
+                    .map(|account_name| CodexAccountQuota {
+                        account_name: account_name.clone(),
+                        email: None,
+                        quota: None,
+                        error: Some(format!("创建运行时失败: {error}")),
+                        fetched_at: Utc::now(),
+                    })
+                    .collect(),
+            };
+            let _ = tx.send(quotas);
         });
 
-        candidates
-            .into_iter()
-            .take(3)
-            .map(|(name, _, _)| name)
-            .collect()
+        true
+    }
+
+    fn selected_quota_key(&self) -> Option<String> {
+        self.selected_account().map(|account| account.name.clone())
     }
 
     fn rebuild_quota_refresh_plan(&mut self, force_selected_refresh: bool) {
         self.quota_refresh.clear_pending();
 
-        if let Some(selected_key) = self.selected_quota_key() {
+        if force_selected_refresh && let Some(selected_key) = self.selected_quota_key() {
             self.quota_refresh.push(RefreshTask::new(
                 selected_key.clone(),
                 RefreshTier::Current,
-                if force_selected_refresh {
-                    RefreshReason::ManualRefresh
-                } else {
-                    RefreshReason::TabActivated
-                },
+                RefreshReason::ManualRefresh,
                 force_selected_refresh,
-            ));
-        }
-
-        let selected_key = self.selected_quota_key();
-        for account_name in self.warm_quota_account_names() {
-            if selected_key.as_deref() == Some(account_name.as_str()) {
-                continue;
-            }
-            self.quota_refresh.push(RefreshTask::new(
-                account_name,
-                RefreshTier::WarmTop3,
-                RefreshReason::TabActivated,
-                false,
             ));
         }
 
@@ -1063,6 +1360,28 @@ impl CodexAuthApp {
         }
     }
 
+    fn poll_preview_result(&mut self) -> bool {
+        let Some(rx) = &self.preview_rx else {
+            return false;
+        };
+
+        match rx.try_recv() {
+            Ok(quotas) => {
+                for quota in quotas {
+                    self.preview_cache
+                        .insert(quota.account_name.clone(), QuotaPreviewEntry { quota });
+                }
+                self.preview_rx = None;
+                true
+            }
+            Err(TryRecvError::Empty) => false,
+            Err(TryRecvError::Disconnected) => {
+                self.preview_rx = None;
+                true
+            }
+        }
+    }
+
     /// Poll remote quota fetch result and return whether it changed visible state
     fn poll_quota_result(&mut self) -> bool {
         let Some(rx) = &self.quota_rx else {
@@ -1073,13 +1392,17 @@ impl CodexAuthApp {
             Ok(Ok(quota)) => {
                 let mut cache = self.quota_cache().clone();
                 let account_name = quota.account_name.clone();
-                cache.insert(account_name.clone(), quota);
+                cache.insert(account_name.clone(), quota.clone());
+                self.preview_cache
+                    .insert(account_name.clone(), QuotaPreviewEntry { quota });
                 self.quota_state = QuotaState::Loaded { cache };
                 self.quota_refresh.finish(&account_name);
                 self.quota_rx = None;
                 true
             }
             Ok(Err((account_name, message))) => {
+                let error_account_name = account_name.clone();
+                let error_message = message.clone();
                 let cache = self.quota_cache().clone();
                 self.quota_state = QuotaState::Error {
                     account_name,
@@ -1090,6 +1413,18 @@ impl CodexAuthApp {
                     self.quota_refresh.finish(account_name);
                 }
                 self.quota_rx = None;
+                self.preview_cache.insert(
+                    error_account_name.clone(),
+                    QuotaPreviewEntry {
+                        quota: CodexAccountQuota {
+                            account_name: error_account_name,
+                            email: None,
+                            quota: None,
+                            error: Some(error_message),
+                            fetched_at: Utc::now(),
+                        },
+                    },
+                );
                 true
             }
             Err(TryRecvError::Empty) => false,
@@ -1107,6 +1442,18 @@ impl CodexAuthApp {
                     cache,
                 };
                 self.quota_refresh.finish(&account_name);
+                self.preview_cache.insert(
+                    account_name.clone(),
+                    QuotaPreviewEntry {
+                        quota: CodexAccountQuota {
+                            account_name: account_name.clone(),
+                            email: None,
+                            quota: None,
+                            error: Some("配额查询通道已断开".to_string()),
+                            fetched_at: Utc::now(),
+                        },
+                    },
+                );
                 self.quota_rx = None;
                 true
             }
@@ -1171,7 +1518,20 @@ impl TuiApp for CodexAuthApp {
     fn on_tick(&mut self) -> bool {
         let mut needs_redraw = self.toasts.tick();
 
+        if let Some(remaining) = self.activation_delay_ticks.as_mut() {
+            needs_redraw = true;
+            if *remaining > 0 {
+                *remaining -= 1;
+            }
+            if *remaining == 0 {
+                self.activation_delay_ticks = None;
+                self.start_usage_fetch();
+                needs_redraw |= self.start_preview_prefetch(false);
+            }
+        }
+
         needs_redraw |= self.poll_usage_result();
+        needs_redraw |= self.poll_preview_result();
         needs_redraw |= self.poll_quota_result();
         self.quota_refresh.tick();
 
@@ -1221,8 +1581,6 @@ mod tests {
             saved_at: Some(Utc.with_ymd_and_hms(2026, 4, 13, 10, 0, 0).unwrap()),
             last_used: None,
             last_refresh: None,
-            freshness: TokenFreshness::Fresh,
-            expires_at: None,
         }
     }
 
@@ -1409,15 +1767,18 @@ mod tests {
             quota_state: QuotaState::Idle,
             quota_rx: None,
             usage_rx: None,
+            preview_rx: None,
             codex_dir: None,
             list_area: Cell::new(None),
             quota_refresh: RefreshSchedulerState::new(QUOTA_REFRESH_INTERVAL_TICKS),
             pending_quota_confirm: false,
+            preview_cache: IndexMap::new(),
+            activation_delay_ticks: None,
         }
     }
 
     #[test]
-    fn on_activated_queues_selected_then_top_accounts_with_one_second_gap() {
+    fn on_activated_waits_one_second_before_starting_usage_and_preview_fetch() {
         let now = Utc::now();
         let accounts = vec![
             CodexAuthItem {
@@ -1430,8 +1791,6 @@ mod tests {
                 saved_at: Some(now - Duration::days(5)),
                 last_used: Some(now - Duration::hours(1)),
                 last_refresh: None,
-                freshness: TokenFreshness::Fresh,
-                expires_at: None,
             },
             CodexAuthItem {
                 name: "alt-1".to_string(),
@@ -1443,8 +1802,6 @@ mod tests {
                 saved_at: Some(now - Duration::days(4)),
                 last_used: Some(now - Duration::hours(2)),
                 last_refresh: None,
-                freshness: TokenFreshness::Fresh,
-                expires_at: None,
             },
             CodexAuthItem {
                 name: "alt-2".to_string(),
@@ -1456,8 +1813,6 @@ mod tests {
                 saved_at: Some(now - Duration::days(3)),
                 last_used: Some(now - Duration::hours(3)),
                 last_refresh: None,
-                freshness: TokenFreshness::Fresh,
-                expires_at: None,
             },
             CodexAuthItem {
                 name: "alt-3".to_string(),
@@ -1469,26 +1824,88 @@ mod tests {
                 saved_at: Some(now - Duration::days(2)),
                 last_used: Some(now - Duration::hours(4)),
                 last_refresh: None,
-                freshness: TokenFreshness::Fresh,
-                expires_at: None,
             },
         ];
         let mut app = make_test_app(accounts, 0);
 
         app.on_activated();
 
-        assert!(app.usage_rx.is_some());
-        assert_eq!(app.quota_refresh.pending_len(), 3);
-        assert!(app.quota_refresh.next_ready(false).is_none());
-        for _ in 0..QUOTA_REFRESH_INTERVAL_TICKS {
-            app.quota_refresh.tick();
+        assert_eq!(app.activation_delay_ticks, Some(ACTIVATION_DELAY_TICKS));
+        assert!(app.usage_rx.is_none());
+        assert!(app.preview_rx.is_none());
+
+        for _ in 0..(ACTIVATION_DELAY_TICKS - 1) {
+            assert!(app.on_tick());
+            assert!(app.usage_rx.is_none());
+            assert!(app.preview_rx.is_none());
         }
-        let next = app
-            .quota_refresh
-            .next_ready(false)
-            .expect("selected quota task should become ready after initial cooldown");
-        assert_eq!(next.key, "main");
-        assert_eq!(next.tier, RefreshTier::Current);
+
+        assert!(app.on_tick());
+        assert!(
+            app.usage_rx.is_some() || !matches!(app.usage_state, UsageState::Loading),
+            "usage fetch should have started or completed"
+        );
+        assert!(
+            app.preview_rx.is_some() || !app.preview_cache.is_empty(),
+            "preview prefetch should have started or completed"
+        );
+    }
+
+    #[test]
+    fn preview_keys_to_refresh_reuses_fresh_cache_but_refreshes_stale_or_missing_entries() {
+        let now = Utc::now();
+        let accounts = vec![
+            CodexAuthItem {
+                name: "main".to_string(),
+                description: None,
+                email: None,
+                plan_type: None,
+                is_current: true,
+                is_virtual: false,
+                saved_at: Some(now - Duration::days(3)),
+                last_used: Some(now - Duration::hours(1)),
+                last_refresh: None,
+            },
+            CodexAuthItem {
+                name: "alt".to_string(),
+                description: None,
+                email: None,
+                plan_type: None,
+                is_current: false,
+                is_virtual: false,
+                saved_at: Some(now - Duration::days(2)),
+                last_used: Some(now - Duration::hours(2)),
+                last_refresh: None,
+            },
+        ];
+        let mut app = make_test_app(accounts, 0);
+        app.preview_cache.insert(
+            "main".to_string(),
+            QuotaPreviewEntry {
+                quota: CodexAccountQuota {
+                    account_name: "main".to_string(),
+                    email: None,
+                    quota: None,
+                    error: Some("fresh".to_string()),
+                    fetched_at: Utc::now(),
+                },
+            },
+        );
+        app.preview_cache.insert(
+            "alt".to_string(),
+            QuotaPreviewEntry {
+                quota: CodexAccountQuota {
+                    account_name: "alt".to_string(),
+                    email: None,
+                    quota: None,
+                    error: Some("stale".to_string()),
+                    fetched_at: Utc::now() - chrono::Duration::seconds(PREVIEW_TTL_SECS + 5),
+                },
+            },
+        );
+
+        let pending = app.preview_keys_to_refresh(false);
+        assert_eq!(pending, vec!["alt".to_string()]);
     }
 
     #[test]
@@ -1505,8 +1922,6 @@ mod tests {
                 saved_at: Some(now - Duration::days(3)),
                 last_used: Some(now - Duration::hours(1)),
                 last_refresh: None,
-                freshness: TokenFreshness::Fresh,
-                expires_at: None,
             },
             CodexAuthItem {
                 name: "cold".to_string(),
@@ -1518,8 +1933,6 @@ mod tests {
                 saved_at: Some(now - Duration::days(1)),
                 last_used: None,
                 last_refresh: None,
-                freshness: TokenFreshness::Fresh,
-                expires_at: None,
             },
         ];
         let mut app = make_test_app(accounts, 0);

@@ -118,7 +118,7 @@ flowchart TD
 ### `ccr-types`
 
 - `ClaudeSettings`：跨 CLI/UI 共享的 Claude settings 结构
-- `LoginState` / `TokenFreshness`：Codex auth 状态表达
+- `LoginState`：Codex auth 登录状态表达
 - `MonitoringEntry` / `FrontendLogInput`：监控与前端日志输入
 
 这个 crate 的重点不是业务逻辑，而是：

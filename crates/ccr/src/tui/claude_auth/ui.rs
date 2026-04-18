@@ -2,7 +2,7 @@
 // 绘制 Claude 官方订阅账号管理终端界面
 
 use super::app::{ClaudeAuthApp, PAGE_SIZE};
-use crate::models::{ClaudeLoginState, TokenFreshness};
+use crate::models::ClaudeLoginState;
 use crate::services::ClaudeAuthItem;
 use crate::tui::overlay::{Overlay, render_overlay};
 use crate::tui::theme;
@@ -306,11 +306,7 @@ fn account_row(account: &ClaudeAuthItem, selected: bool) -> Line<'static> {
     };
     let email = account.email.as_deref().unwrap_or("-");
     let plan = account.subscription_type.as_deref().unwrap_or("-");
-    let freshness = account.freshness.icon();
-    let text = format!(
-        "{selector} {current} {}  {email}  {plan}  {freshness}",
-        account.name
-    );
+    let text = format!("{selector} {current} {}  {email}  {plan}", account.name);
 
     let style = if selected {
         Style::default()
@@ -411,12 +407,7 @@ fn context_lines(app: &ClaudeAuthApp) -> Vec<Line<'static>> {
         lines.push(kv_line(
             "expires",
             format_datetime(info.expires_at),
-            freshness_color(&info.freshness),
-        ));
-        lines.push(kv_line(
-            "freshness",
-            info.freshness.description().to_string(),
-            freshness_color(&info.freshness),
+            theme::FG_INFO,
         ));
     } else {
         lines.push(Line::from(
@@ -480,12 +471,7 @@ fn context_lines(app: &ClaudeAuthApp) -> Vec<Line<'static>> {
         lines.push(kv_line(
             "expires",
             format_datetime(account.expires_at),
-            freshness_color(&account.freshness),
-        ));
-        lines.push(kv_line(
-            "freshness",
-            account.freshness.description().to_string(),
-            freshness_color(&account.freshness),
+            theme::FG_INFO,
         ));
     } else {
         lines.push(Line::from("  当前没有选中的已保存账号"));
@@ -547,15 +533,6 @@ fn login_status_style(state: &ClaudeLoginState) -> Style {
     }
 }
 
-fn freshness_color(freshness: &TokenFreshness) -> ratatui::style::Color {
-    match freshness {
-        TokenFreshness::Fresh => theme::FG_SUCCESS,
-        TokenFreshness::Stale => theme::FG_WARNING,
-        TokenFreshness::Old => theme::FG_ERROR,
-        TokenFreshness::Unknown(_) => theme::FG_MUTED,
-    }
-}
-
 fn format_datetime(value: Option<DateTime<Utc>>) -> String {
     value
         .map(|dt| {
@@ -612,6 +589,7 @@ mod tests {
             home.join(".claude.json"),
         ))
         .unwrap();
+        app.runtime_summary = None;
         app.login_state = ClaudeLoginState::ApiKeyActive;
         assert_eq!(login_status_text(&app), "当前 Profile 使用 API Key");
     }

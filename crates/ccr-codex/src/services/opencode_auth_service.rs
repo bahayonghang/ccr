@@ -5,12 +5,12 @@ use crate::models::{
     CodexAuthJson, CodexAuthRegistry, CodexToOpenCodeMigrationItem, CodexToOpenCodeMigrationReport,
     CodexToOpenCodeMigrationStatus, OpenAiAuthMethod, OpenCodeAuthAccount, OpenCodeAuthItem,
     OpenCodeAuthRegistry, OpenCodeCurrentAuthInfo, OpenCodeLoginState, OpenCodeOpenAiAuth,
-    OpenCodeReadSnapshot, TokenFreshness,
+    OpenCodeReadSnapshot,
 };
 use crate::utils::{CodexPaths, OpenCodePaths, decode_base64url, ensure_private_permissions};
 use ccr_core::core::atomic_writer::AtomicWriter;
 use ccr_core::core::error::{CcrError, Result};
-use chrono::{DateTime, Duration, TimeZone, Utc};
+use chrono::{DateTime, TimeZone, Utc};
 use serde_json::{Map as JsonMap, Value as JsonValue};
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -122,7 +122,6 @@ impl OpenCodeAuthService {
         };
         let current_account_name =
             Self::matched_saved_account_name(&registry, current_info.as_ref());
-        let current_expires_at = current_info.as_ref().and_then(|info| info.expires_at);
         let login_state = match (current_info.as_ref(), current_account_name.as_ref()) {
             (Some(_), Some(name)) => OpenCodeLoginState::LoggedInSaved(name.clone()),
             (Some(_), None) => OpenCodeLoginState::LoggedInUnsaved,
@@ -134,7 +133,6 @@ impl OpenCodeAuthService {
             current_info,
             registry,
             current_account_name,
-            current_expires_at,
         })
     }
 
@@ -157,7 +155,6 @@ impl OpenCodeAuthService {
                 is_virtual: true,
                 saved_at: None,
                 last_used: None,
-                freshness: info.freshness.clone(),
                 expires_at: info.expires_at,
             });
         }
@@ -180,15 +177,6 @@ impl OpenCodeAuthService {
                     is_virtual: false,
                     saved_at: Some(account.saved_at),
                     last_used: account.last_used,
-                    freshness: if is_current {
-                        snapshot
-                            .current_info
-                            .as_ref()
-                            .map(|info| info.freshness.clone())
-                            .unwrap_or_else(|| self.calculate_freshness(account.expires_at))
-                    } else {
-                        self.calculate_freshness(account.expires_at)
-                    },
                     expires_at: account.expires_at,
                 }
             })
@@ -439,16 +427,10 @@ impl OpenCodeAuthService {
     /// 切换到指定已保存账号
     pub fn switch_account(&self, name: &str) -> Result<()> {
         let mut registry = self.load_registry()?;
-        let account =
+        let _account =
             registry.accounts.get(name).cloned().ok_or_else(|| {
                 CcrError::ResourceNotFound(format!("OpenCode auth account '{name}'"))
             })?;
-
-        if Self::is_expired(account.expires_at) {
-            return Err(CcrError::ValidationError(format!(
-                "账号 '{name}' 已过期，请重新登录 OpenCode 后再保存"
-            )));
-        }
 
         let snapshot_path = self.account_auth_path(name);
         if !snapshot_path.exists() {
@@ -678,13 +660,10 @@ impl OpenCodeAuthService {
             });
 
         let expires_at = auth.expires.and_then(Self::unix_millis_to_datetime);
-        let freshness = self.calculate_freshness(expires_at);
-
         Ok(OpenCodeCurrentAuthInfo {
             account_id,
             email,
             plan_type,
-            freshness,
             expires_at,
         })
     }
@@ -754,23 +733,6 @@ impl OpenCodeAuthService {
         normalize_openai_plan(plan)
     }
 
-    /// 计算 token 新鲜度（基于 expires）
-    pub fn calculate_freshness(&self, expires_at: Option<DateTime<Utc>>) -> TokenFreshness {
-        match expires_at {
-            None => TokenFreshness::unknown(),
-            Some(expires_at) => {
-                let remaining = expires_at - Utc::now();
-                if remaining <= Duration::zero() {
-                    TokenFreshness::Old
-                } else if remaining <= Duration::days(1) {
-                    TokenFreshness::Stale
-                } else {
-                    TokenFreshness::Fresh
-                }
-            }
-        }
-    }
-
     /// 验证账号名称
     fn validate_account_name(&self, name: &str) -> Result<()> {
         if name.is_empty() {
@@ -815,11 +777,6 @@ impl OpenCodeAuthService {
         } else {
             email.to_string()
         }
-    }
-
-    /// 判断账号是否已过期
-    pub fn is_expired(expires_at: Option<DateTime<Utc>>) -> bool {
-        expires_at.is_some_and(|expires_at| expires_at <= Utc::now())
     }
 }
 
@@ -1049,7 +1006,7 @@ mod tests {
     }
 
     #[test]
-    fn switch_account_blocks_expired_account() {
+    fn switch_account_allows_saved_account_with_legacy_expiry() {
         let (service, _ccr, _opencode) = create_test_service();
         let future = (Utc::now() + Duration::days(7)).timestamp_millis();
         write_auth_json(
@@ -1064,8 +1021,10 @@ mod tests {
             Some(Utc::now() - Duration::hours(1));
         service.save_registry(&registry).unwrap();
 
-        let err = service.switch_account("expired").unwrap_err();
-        assert!(err.to_string().contains("已过期"));
+        service.switch_account("expired").unwrap();
+
+        let registry = service.load_registry().unwrap();
+        assert_eq!(registry.current_auth.as_deref(), Some("expired"));
     }
 
     #[test]
@@ -1434,24 +1393,5 @@ mod tests {
                 .and_then(JsonValue::as_str),
             Some("runtime-acc")
         );
-    }
-
-    #[test]
-    fn calculate_freshness_uses_expiry_window() {
-        let (service, _ccr, _opencode) = create_test_service();
-        let fresh = Utc::now() + Duration::days(2);
-        let stale = Utc::now() + Duration::hours(12);
-        let old = Utc::now() - Duration::minutes(1);
-
-        assert_eq!(
-            service.calculate_freshness(Some(fresh)),
-            TokenFreshness::Fresh
-        );
-        assert_eq!(
-            service.calculate_freshness(Some(stale)),
-            TokenFreshness::Stale
-        );
-        assert_eq!(service.calculate_freshness(Some(old)), TokenFreshness::Old);
-        assert_eq!(service.calculate_freshness(None), TokenFreshness::unknown());
     }
 }
