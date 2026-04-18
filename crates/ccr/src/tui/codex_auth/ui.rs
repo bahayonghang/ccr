@@ -349,8 +349,8 @@ fn account_table_layout(inner_width: u16) -> AccountTableLayout {
                 AccountColumn::QuotaSummary,
             ],
             vec![
-                Constraint::Length(4),
-                Constraint::Length(18),
+                Constraint::Length(3),
+                Constraint::Length(20),
                 Constraint::Min(16),
             ],
             inner_width,
@@ -368,12 +368,12 @@ fn account_table_layout(inner_width: u16) -> AccountTableLayout {
                 AccountColumn::RefreshedAt,
             ],
             vec![
-                Constraint::Length(4),
-                Constraint::Length(18),
-                Constraint::Min(18),
+                Constraint::Length(3),
+                Constraint::Length(20),
+                Constraint::Min(28),
                 Constraint::Length(6),
                 Constraint::Length(6),
-                Constraint::Length(7),
+                Constraint::Length(10),
             ],
             inner_width,
         );
@@ -391,14 +391,14 @@ fn account_table_layout(inner_width: u16) -> AccountTableLayout {
             AccountColumn::ExpiresAt,
         ],
         vec![
-            Constraint::Length(4),
-            Constraint::Length(18),
-            Constraint::Length(24),
-            Constraint::Length(8),
-            Constraint::Length(6),
-            Constraint::Length(6),
-            Constraint::Length(7),
+            Constraint::Length(3),
+            Constraint::Length(20),
+            Constraint::Min(28),
             Constraint::Length(10),
+            Constraint::Length(6),
+            Constraint::Length(6),
+            Constraint::Length(10),
+            Constraint::Length(12),
         ],
         inner_width,
     )
@@ -423,10 +423,7 @@ fn render_account_list_rows(
     app: &CodexAuthApp,
     layout: &AccountTableLayout,
 ) {
-    let selected_style = Style::default()
-        .bg(theme::CODEX_PRIMARY)
-        .fg(theme::BG_PRIMARY)
-        .add_modifier(Modifier::BOLD);
+    let selected_style = theme::selected_row_style();
 
     let rows = app
         .current_page_accounts()
@@ -648,7 +645,7 @@ fn preview_cell_style(cell: &super::app::QuotaPreviewCell, is_selected: bool) ->
                 .trim_end_matches('%')
                 .parse::<i32>()
                 .ok()
-                .map(percent_color)
+                .map(theme::quota_color)
                 .unwrap_or(theme::FG_PRIMARY);
             Style::default().fg(percentage)
         }
@@ -758,7 +755,7 @@ fn draw_status_bar(f: &mut Frame, area: Rect, app: &CodexAuthApp) {
 /// Draw usage panel (quota + local stats)
 fn draw_usage_panel(f: &mut Frame, area: Rect, app: &CodexAuthApp) {
     let title = Line::from(vec![
-        Span::styled(" 📊 ", theme::info_style()),
+        Span::styled("📊 ", theme::card_block_style()),
         Span::styled(
             "Usage & Quota",
             Style::default()
@@ -839,7 +836,7 @@ fn draw_usage_panel(f: &mut Frame, area: Rect, app: &CodexAuthApp) {
                         )));
                     }
 
-                    let h_color = percent_color(quota.hourly_percentage);
+                    let h_color = theme::quota_color(quota.hourly_percentage);
                     let h_bar = progress_bar(quota.hourly_percentage, 10);
                     let h_reset = quota
                         .hourly_reset_time
@@ -855,7 +852,7 @@ fn draw_usage_panel(f: &mut Frame, area: Rect, app: &CodexAuthApp) {
                         Span::styled(h_reset, theme::muted_style()),
                     ]));
 
-                    let w_color = percent_color(quota.weekly_percentage);
+                    let w_color = theme::quota_color(quota.weekly_percentage);
                     let w_bar = progress_bar(quota.weekly_percentage, 10);
                     let w_reset = quota
                         .weekly_reset_time
@@ -971,15 +968,10 @@ fn draw_usage_panel(f: &mut Frame, area: Rect, app: &CodexAuthApp) {
     f.render_widget(panel, area);
 }
 
-/// 百分比颜色：>=60% Green, 30-59% Yellow, <30% Red
+/// 百分比颜色：使用主题的5级渐变
+#[allow(dead_code)]
 fn percent_color(pct: i32) -> Color {
-    if pct >= 60 {
-        theme::FG_SUCCESS
-    } else if pct >= 30 {
-        theme::FG_WARNING
-    } else {
-        theme::FG_ERROR
-    }
+    theme::quota_color(pct)
 }
 
 /// 生成文本进度条
@@ -1161,7 +1153,7 @@ pub fn draw_embedded(
         crate::tui::theme::ViewportMode::Wide => {
             let columns = Layout::default()
                 .direction(Direction::Horizontal)
-                .constraints([Constraint::Percentage(48), Constraint::Percentage(52)])
+                .constraints([Constraint::Percentage(60), Constraint::Percentage(40)])
                 .split(content_area);
 
             draw_account_list_with_status(f, columns[0], app);
@@ -1417,9 +1409,9 @@ mod tests {
         let narrow = account_table_layout(60);
         let wide = account_table_layout(108);
 
-        assert_eq!(narrow.resolved_width(AccountColumn::Status), 4);
-        assert_eq!(narrow.resolved_width(AccountColumn::QuotaSummary), 36);
-        assert_eq!(wide.resolved_width(AccountColumn::Plan), 8);
+        assert_eq!(narrow.resolved_width(AccountColumn::Status), 3);
+        assert_eq!(narrow.resolved_width(AccountColumn::QuotaSummary), 35);
+        assert_eq!(wide.resolved_width(AccountColumn::Plan), 10);
     }
 
     #[test]

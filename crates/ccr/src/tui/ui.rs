@@ -199,7 +199,7 @@ fn root_constraints(mode: theme::ViewportMode) -> Vec<Constraint> {
 fn wide_profile_workspace_layout(area: Rect) -> (Rect, Rect) {
     let columns = Layout::default()
         .direction(Direction::Horizontal)
-        .constraints([Constraint::Percentage(48), Constraint::Percentage(52)])
+        .constraints([Constraint::Percentage(54), Constraint::Percentage(46)])
         .split(area);
     (columns[0], columns[1])
 }
@@ -207,7 +207,7 @@ fn wide_profile_workspace_layout(area: Rect) -> (Rect, Rect) {
 fn profile_list_rail_layout(area: Rect) -> (Rect, Rect) {
     let chunks = Layout::default()
         .direction(Direction::Vertical)
-        .constraints([Constraint::Min(8), Constraint::Length(7)])
+        .constraints([Constraint::Min(8), Constraint::Length(6)])
         .split(area);
     (chunks[0], chunks[1])
 }
@@ -666,16 +666,14 @@ fn render_profile_summary_block(
 
 fn render_profile_status_strip(f: &mut Frame, app: &App, area: Rect, profile_name: &str) {
     let block = Block::default()
-        .borders(Borders::ALL)
-        .border_set(symbols::border::ROUNDED)
+        .borders(Borders::TOP)
         .border_style(Style::default().fg(theme::BORDER))
         .title(" Status ")
         .title_style(
             Style::default()
                 .fg(theme::FG_SECONDARY)
                 .add_modifier(Modifier::BOLD),
-        )
-        .padding(Padding::horizontal(1));
+        );
 
     let mut text = footer_text(app);
     if let Some(action) = last_apply_message(profile_name, app.last_applied.as_ref()) {
@@ -987,8 +985,11 @@ fn profile_meta_strings(
 
     vec![
         selection,
-        format!("Profiles: {total_profiles}"),
-        format!("Page: {}/{}", current_page + 1, total_pages.max(1)),
+        format!(
+            "Profiles: {total_profiles} · Page: {}/{}",
+            current_page + 1,
+            total_pages.max(1)
+        ),
         "Legend: ● current · ▶ selected".to_string(),
         "Enter apply · r reload · Tab switch".to_string(),
     ]
@@ -999,7 +1000,7 @@ fn profile_summary_strings(
     name: &str,
     config: &ProfileConfig,
     is_current: bool,
-    last_applied: Option<&(String, String, bool, Option<String>)>,
+    _last_applied: Option<&(String, String, bool, Option<String>)>,
 ) -> Vec<String> {
     let mut lines = vec![
         format!("Name: {name}"),
@@ -1033,11 +1034,6 @@ fn profile_summary_strings(
             opt_text(config.base_url.as_deref())
         ));
     }
-
-    lines.push(format!(
-        "Last action: {}",
-        last_apply_message(name, last_applied).unwrap_or_else(|| "None this session".to_string())
-    ));
 
     lines
 }
@@ -1317,16 +1313,16 @@ mod tests {
     fn wide_profile_workspace_layout_favors_list_rail_more_than_before() {
         let (list_area, context_area) = wide_profile_workspace_layout(Rect::new(0, 0, 120, 20));
 
-        assert_eq!(list_area.width, 58);
-        assert_eq!(context_area.width, 62);
+        assert!(list_area.width > context_area.width);
+        assert_eq!(list_area.width + context_area.width, 120);
     }
 
     #[test]
     fn profile_list_rail_layout_keeps_full_selection_panel_visible() {
         let (list_area, meta_area) = profile_list_rail_layout(Rect::new(0, 0, 58, 20));
 
-        assert_eq!(list_area.height, 13);
-        assert_eq!(meta_area.height, 7);
+        assert_eq!(list_area.height, 14);
+        assert_eq!(meta_area.height, 6);
     }
 
     #[test]
@@ -1367,12 +1363,16 @@ mod tests {
         let lines = profile_meta_strings(15, 1, 2, Some(&profile));
 
         assert!(lines.iter().any(|line| line.contains("Selected: fovts")));
-        assert!(lines.iter().any(|line| line.contains("Page: 2/2")));
+        assert!(
+            lines
+                .iter()
+                .any(|line| line.contains("Profiles: 15 · Page: 2/2"))
+        );
         assert!(lines.iter().any(|line| line.contains("Legend:")));
     }
 
     #[test]
-    fn profile_summary_strings_include_last_apply_feedback() {
+    fn profile_summary_strings_focus_on_primary_profile_facts() {
         let mut config = ProfileConfig::new();
         config.description = Some("fovts 公益".to_string());
         config.model = Some("gpt-5.4".to_string());
@@ -1391,11 +1391,27 @@ mod tests {
                 .any(|line| line.contains("Status: Current · Enabled"))
         );
         assert!(lines.iter().any(|line| line.contains("Model: gpt-5.4")));
-        assert!(
-            lines
-                .iter()
-                .any(|line| line.contains("Last action: Applied successfully"))
-        );
+        assert!(!lines.iter().any(|line| line.contains("Last action:")));
+    }
+
+    #[test]
+    fn profile_status_strip_surfaces_last_apply_feedback() {
+        let profile = ProfileItem {
+            name: "fovts".to_string(),
+            description: Some("fovts 公益".to_string()),
+            is_current: true,
+        };
+        let mut app = sample_profile_app(profile, ProfileConfig::new());
+        app.last_applied = Some(("Codex Profile".to_string(), "fovts".to_string(), true, None));
+
+        let mut terminal = Terminal::new(TestBackend::new(72, 3)).unwrap();
+        terminal
+            .draw(|frame| render_profile_status_strip(frame, &app, frame.area(), "fovts"))
+            .unwrap();
+
+        let rendered = buffer_text(terminal.backend());
+        assert!(rendered.contains("Applied successfully"), "{rendered}");
+        assert!(rendered.contains("Enter apply"), "{rendered}");
     }
 
     #[test]

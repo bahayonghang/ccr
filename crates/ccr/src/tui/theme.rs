@@ -62,6 +62,29 @@ pub const BG_PRIMARY: Color = Color::Rgb(15, 23, 42); // #0f172a - deep blue bla
 pub const BORDER_DEFAULT: Color = Color::Rgb(71, 85, 105); // #475569
 
 // ═══════════════════════════════════════════════════════════
+// Extended color palette for enhanced UI
+// ═══════════════════════════════════════════════════════════
+
+/// Accent colors - for emphasis and grouping
+pub const ACCENT_CYAN: Color = Color::Rgb(34, 211, 238); // #22d3ee - cyan
+pub const ACCENT_PURPLE: Color = Color::Rgb(168, 85, 247); // #a855f7 - purple
+#[allow(dead_code)]
+pub const ACCENT_GOLD: Color = Color::Rgb(251, 191, 36); // #fbbf24 - gold
+
+/// Background colors - for cards and grouping
+#[allow(dead_code)]
+pub const BG_CARD: Color = Color::Rgb(30, 41, 59); // #1e293b - card background
+#[allow(dead_code)]
+pub const BG_HOVER: Color = Color::Rgb(51, 65, 85); // #334155 - hover background
+#[allow(dead_code)]
+pub const BG_SELECTED: Color = Color::Rgb(71, 85, 105); // #475569 - selected background
+
+/// Border colors - for separation and emphasis
+pub const BORDER_LIGHT: Color = Color::Rgb(100, 116, 139); // #64748b - light border
+#[allow(dead_code)]
+pub const BORDER_ACCENT: Color = Color::Rgb(99, 102, 241); // #6366f1 - accent border
+
+// ═══════════════════════════════════════════════════════════
 // Aliases (kept for semantic clarity)
 // ═══════════════════════════════════════════════════════════
 
@@ -214,4 +237,38 @@ pub fn codex_style() -> Style {
     Style::default()
         .fg(CODEX_PRIMARY)
         .add_modifier(Modifier::BOLD)
+}
+
+// ═══════════════════════════════════════════════════════════
+// Enhanced style functions for optimized UI
+// ═══════════════════════════════════════════════════════════
+
+/// Get quota color based on percentage (5-level gradient)
+pub fn quota_color(percentage: i32) -> Color {
+    match percentage {
+        90..=100 => Color::Rgb(34, 197, 94), // #22c55e - green (充足)
+        70..=89 => Color::Rgb(132, 204, 22), // #84cc16 - lime (良好)
+        50..=69 => Color::Rgb(234, 179, 8),  // #eab308 - yellow (注意)
+        30..=49 => Color::Rgb(249, 115, 22), // #f97316 - orange (警告)
+        _ => Color::Rgb(239, 68, 68),        // #ef4444 - red (危险)
+    }
+}
+
+/// Enhanced selected row style with purple accent
+pub fn selected_row_style() -> Style {
+    Style::default()
+        .bg(ACCENT_PURPLE)
+        .fg(Color::White)
+        .add_modifier(Modifier::BOLD)
+}
+
+/// Card block style with cyan accent
+pub fn card_block_style() -> Style {
+    Style::default().fg(ACCENT_CYAN)
+}
+
+/// Separator style
+#[allow(dead_code)]
+pub fn separator_style() -> Style {
+    Style::default().fg(BORDER_LIGHT)
 }

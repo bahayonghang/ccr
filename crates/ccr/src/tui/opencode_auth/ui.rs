@@ -3,7 +3,7 @@
 
 use super::app::{
     OpenCodeAuthApp, OpenCodeAuthUsagePanelData, OpenCodeUsageAttributionState, OpenCodeUsageState,
-    PAGE_SIZE, PreviewMetricWindow, QuotaPreviewCellState, QuotaState,
+    PreviewMetricWindow, QuotaPreviewCellState, QuotaState,
 };
 use crate::models::{OpenCodeAuthItem, OpenCodeLoginState};
 use crate::services::{OpenCodeQuotaService, OpenCodeUsageService};
@@ -79,14 +79,14 @@ pub fn draw_embedded(
         crate::tui::theme::ViewportMode::Wide => {
             let columns = Layout::default()
                 .direction(Direction::Horizontal)
-                .constraints([Constraint::Percentage(48), Constraint::Percentage(52)])
+                .constraints([Constraint::Percentage(60), Constraint::Percentage(40)])
                 .split(content_area);
 
             draw_account_list_with_status(f, columns[0], app);
 
             let right = Layout::default()
                 .direction(Direction::Vertical)
-                .constraints([Constraint::Length(14), Constraint::Min(12)])
+                .constraints([Constraint::Length(13), Constraint::Min(12)])
                 .split(columns[1]);
             draw_account_snapshot_panel(f, right[0], app);
             draw_usage_panel(f, right[1], app);
@@ -255,6 +255,11 @@ fn render_account_list_panel(f: &mut Frame, area: Rect, app: &OpenCodeAuthApp, t
         return;
     }
 
+    if inner.height < 2 {
+        app.list_area.set(Some(inner));
+        return;
+    }
+
     let regions = account_list_regions(inner);
     let layout = account_table_layout(regions.header.width);
     app.list_area.set(Some(regions.body));
@@ -302,11 +307,10 @@ fn account_list_footer_line(app: &OpenCodeAuthApp) -> Line<'static> {
         Span::styled("🔴 old", theme::error_style()),
         Span::styled(
             format!(
-                "  ·  Page {}/{}  ·  {} accounts  ·  PAGE_SIZE {} ",
+                "  ·  Page {}/{}  ·  {} accounts ",
                 app.current_page + 1,
                 app.total_pages(),
-                app.accounts.len(),
-                PAGE_SIZE
+                app.accounts.len()
             ),
             theme::muted_style(),
         ),
@@ -336,8 +340,8 @@ fn account_table_layout(inner_width: u16) -> AccountTableLayout {
                 AccountColumn::QuotaSummary,
             ],
             vec![
-                Constraint::Length(4),
-                Constraint::Length(18),
+                Constraint::Length(3),
+                Constraint::Length(20),
                 Constraint::Min(16),
             ],
             inner_width,
@@ -355,12 +359,12 @@ fn account_table_layout(inner_width: u16) -> AccountTableLayout {
                 AccountColumn::RefreshedAt,
             ],
             vec![
-                Constraint::Length(4),
-                Constraint::Length(18),
-                Constraint::Min(18),
+                Constraint::Length(3),
+                Constraint::Length(20),
+                Constraint::Min(28),
                 Constraint::Length(6),
                 Constraint::Length(6),
-                Constraint::Length(7),
+                Constraint::Length(10),
             ],
             inner_width,
         );
@@ -378,13 +382,13 @@ fn account_table_layout(inner_width: u16) -> AccountTableLayout {
             AccountColumn::ExpiresAt,
         ],
         vec![
-            Constraint::Length(4),
-            Constraint::Length(18),
-            Constraint::Length(24),
-            Constraint::Length(8),
+            Constraint::Length(3),
+            Constraint::Length(20),
+            Constraint::Min(28),
+            Constraint::Length(10),
             Constraint::Length(6),
             Constraint::Length(6),
-            Constraint::Length(7),
+            Constraint::Length(10),
             Constraint::Length(10),
         ],
         inner_width,
@@ -412,10 +416,7 @@ fn render_account_list_rows(
     app: &OpenCodeAuthApp,
     layout: &AccountTableLayout,
 ) {
-    let selected_style = Style::default()
-        .fg(theme::BG_PRIMARY)
-        .bg(theme::CODEX_PRIMARY)
-        .add_modifier(Modifier::BOLD);
+    let selected_style = theme::selected_row_style();
 
     let rows = app
         .current_page_accounts()
@@ -609,7 +610,11 @@ fn preview_summary_style(
             theme::muted_style()
         }
         (QuotaPreviewCellState::Ready, QuotaPreviewCellState::Ready) => {
-            Style::default().fg(theme::FG_PRIMARY)
+            if left.text == "ERR" || right.text == "ERR" {
+                theme::error_style()
+            } else {
+                Style::default().fg(theme::FG_PRIMARY)
+            }
         }
         _ => theme::muted_style(),
     }
@@ -629,7 +634,7 @@ fn preview_cell_style(cell: &super::app::QuotaPreviewCell, is_selected: bool) ->
                 .trim_end_matches('%')
                 .parse::<i32>()
                 .ok()
-                .map(percent_color)
+                .map(theme::quota_color)
                 .unwrap_or(theme::FG_PRIMARY);
             Style::default().fg(percentage)
         }
@@ -815,7 +820,7 @@ fn draw_status_bar(f: &mut Frame, area: Rect, app: &OpenCodeAuthApp) {
 
 fn draw_usage_panel(f: &mut Frame, area: Rect, app: &OpenCodeAuthApp) {
     let title = Line::from(vec![
-        Span::styled(" 📊 ", theme::info_style()),
+        Span::styled("📊 ", theme::card_block_style()),
         Span::styled(
             "Usage & Quota",
             Style::default()
@@ -881,7 +886,7 @@ fn draw_usage_panel(f: &mut Frame, area: Rect, app: &OpenCodeAuthApp) {
                         )));
                     }
 
-                    let h_color = percent_color(quota.hourly_percentage);
+                    let h_color = theme::quota_color(quota.hourly_percentage);
                     let h_bar = progress_bar(quota.hourly_percentage, 10);
                     let h_reset = quota
                         .hourly_reset_time
@@ -902,7 +907,7 @@ fn draw_usage_panel(f: &mut Frame, area: Rect, app: &OpenCodeAuthApp) {
                         Span::styled(h_reset, theme::muted_style()),
                     ]));
 
-                    let w_color = percent_color(quota.weekly_percentage);
+                    let w_color = theme::quota_color(quota.weekly_percentage);
                     let w_bar = progress_bar(quota.weekly_percentage, 10);
                     let w_reset = quota
                         .weekly_reset_time
@@ -1015,14 +1020,9 @@ fn draw_usage_panel(f: &mut Frame, area: Rect, app: &OpenCodeAuthApp) {
     f.render_widget(panel, area);
 }
 
+#[allow(dead_code)]
 fn percent_color(pct: i32) -> Color {
-    if pct >= 60 {
-        theme::FG_SUCCESS
-    } else if pct >= 30 {
-        theme::FG_WARNING
-    } else {
-        theme::FG_ERROR
-    }
+    theme::quota_color(pct)
 }
 
 fn progress_bar(pct: i32, width: usize) -> String {
@@ -1362,6 +1362,16 @@ mod tests {
         assert!(layout.columns.contains(&AccountColumn::WeeklyQuota));
         assert!(layout.columns.contains(&AccountColumn::RefreshedAt));
         assert!(layout.columns.contains(&AccountColumn::ExpiresAt));
+    }
+
+    #[test]
+    fn account_table_layout_resolves_flexible_widths_from_available_space() {
+        let narrow = account_table_layout(60);
+        let wide = account_table_layout(108);
+
+        assert_eq!(narrow.resolved_width(AccountColumn::Status), 3);
+        assert_eq!(narrow.resolved_width(AccountColumn::QuotaSummary), 35);
+        assert_eq!(wide.resolved_width(AccountColumn::Plan), 10);
     }
 
     #[test]
