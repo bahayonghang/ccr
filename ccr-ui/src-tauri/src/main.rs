@@ -28,14 +28,18 @@ use state::{AppState, DEFAULT_SSH_PASSWORD_TTL_SECS, DEFAULT_SSH_STATE_TTL_SECS}
 static EXIT_REQUESTED: AtomicBool = AtomicBool::new(false);
 
 #[cfg(target_os = "macos")]
-fn configure_main_window_chrome(window: &tauri::WebviewWindow) -> tauri::Result<()> {
+pub(crate) fn configure_main_window_chrome<R: tauri::Runtime>(
+    window: &tauri::WebviewWindow<R>,
+) -> tauri::Result<()> {
     window.set_decorations(true)?;
     window.set_title_bar_style(tauri::TitleBarStyle::Visible)?;
     Ok(())
 }
 
 #[cfg(not(target_os = "macos"))]
-fn configure_main_window_chrome(window: &tauri::WebviewWindow) -> tauri::Result<()> {
+pub(crate) fn configure_main_window_chrome<R: tauri::Runtime>(
+    window: &tauri::WebviewWindow<R>,
+) -> tauri::Result<()> {
     window.set_decorations(true)?;
     Ok(())
 }

@@ -12,6 +12,7 @@ use ccr_codex::CodexAuthService;
 use crate::commands::codex::{
     CodexTraySnapshot, compute_codex_tray_snapshot, invalidate_codex_dashboard_overview_cache,
 };
+use crate::configure_main_window_chrome;
 use crate::state::{
     AppState, DesktopShellPreferences, TrayAnchor, TrayPanelManualPosition, TrayPanelPlacementMode,
 };
@@ -202,7 +203,7 @@ pub async fn show_main_window<R: Runtime>(
 ) -> Result<(), String> {
     hide_tray_panel(app)?;
 
-    let main_window = main_window(app)?;
+    let main_window = ensure_main_window(app)?;
     if main_window
         .is_minimized()
         .map_err(|e| format!("读取主窗口最小化状态失败: {e}"))?
@@ -431,7 +432,7 @@ fn position_tray_panel_window<R: Runtime>(
     }
 
     let anchor = state.tray_anchor()?;
-    let monitor = monitor_for_anchor(app, anchor.as_ref())?;
+    let monitor = monitor_for_anchor(panel, anchor.as_ref())?;
     let work_area = monitor.as_ref().map(work_area_from_monitor);
     let size = resolve_panel_size_for_work_area(work_area.as_ref());
     let target = resolve_panel_position_for_work_area(anchor.as_ref(), work_area.as_ref(), &size);
@@ -447,34 +448,30 @@ fn position_tray_panel_window<R: Runtime>(
 }
 
 fn monitor_for_anchor<R: Runtime>(
-    app: &AppHandle<R>,
+    panel: &WebviewWindow<R>,
     anchor: Option<&TrayAnchor>,
 ) -> Result<Option<Monitor>, String> {
-    let main_window = app.get_webview_window(MAIN_WINDOW_LABEL);
-
+    // 优先使用 tray 锚点命中的显示器；这样多显示器场景下即便主窗口缺席也能贴对屏。
     if let Some(anchor) = anchor
-        && let Some(window) = &main_window
-    {
-        return window
+        && let Some(monitor) = panel
             .monitor_from_point(anchor.x as f64, anchor.y as f64)
-            .map_err(|e| format!("定位 tray 所在显示器失败: {e}"));
-    }
-
-    if let Some(window) = &main_window
-        && let Some(current_monitor) = window
-            .current_monitor()
-            .map_err(|e| format!("读取当前显示器失败: {e}"))?
+            .map_err(|e| format!("定位 tray 所在显示器失败: {e}"))?
     {
-        return Ok(Some(current_monitor));
+        return Ok(Some(monitor));
     }
 
-    if let Some(window) = &main_window {
-        return window
-            .primary_monitor()
-            .map_err(|e| format!("读取主显示器失败: {e}"));
+    // 回落到 panel 窗口当前所在的显示器。
+    if let Some(monitor) = panel
+        .current_monitor()
+        .map_err(|e| format!("读取 tray 面板当前显示器失败: {e}"))?
+    {
+        return Ok(Some(monitor));
     }
 
-    Ok(None)
+    // 最后兜底主显示器；如果系统无显示器则返回 None。
+    panel
+        .primary_monitor()
+        .map_err(|e| format!("读取主显示器失败: {e}"))
 }
 
 fn resolve_panel_position_for_work_area(
@@ -495,10 +492,9 @@ fn resolve_panel_position_for_work_area(
     };
 
     let Some(work_area) = work_area else {
-        return PhysicalPosition::new(
-            (anchor.x - (panel_width / 2)).max(0),
-            (anchor.y + anchor.height as i32 + TRAY_PANEL_MARGIN).max(0),
-        );
+        // 无显示器信息时优先把面板抬到锚点上方，避免任务栏在底部时面板坠出屏外。
+        let y = (anchor.y - panel_height - TRAY_PANEL_MARGIN).max(0);
+        return PhysicalPosition::new((anchor.x - (panel_width / 2)).max(0), y);
     };
 
     let min_x = work_area.x;
@@ -576,9 +572,31 @@ fn fallback_panel_position_for_work_area(
     PhysicalPosition::new(x.max(work_area.x), y.max(work_area.y))
 }
 
-fn main_window<R: Runtime>(app: &AppHandle<R>) -> Result<WebviewWindow<R>, String> {
-    app.get_webview_window(MAIN_WINDOW_LABEL)
-        .ok_or_else(|| "找不到主窗口".to_string())
+fn ensure_main_window<R: Runtime>(app: &AppHandle<R>) -> Result<WebviewWindow<R>, String> {
+    if let Some(window) = app.get_webview_window(MAIN_WINDOW_LABEL) {
+        return Ok(window);
+    }
+
+    // 主 webview 已被销毁（用户确认退出/关闭），按 tauri.conf.json 的主窗口配置重建，
+    // 并复用 main.rs 里的 chrome 装饰逻辑，保持和首次启动一致的标题栏与边框。
+    let config = app
+        .config()
+        .app
+        .windows
+        .iter()
+        .find(|w| w.label == MAIN_WINDOW_LABEL)
+        .cloned()
+        .ok_or_else(|| "tauri.conf.json 中缺少主窗口配置".to_string())?;
+
+    let window = WebviewWindowBuilder::from_config(app, &config)
+        .map_err(|e| format!("读取主窗口配置失败: {e}"))?
+        .build()
+        .map_err(|e| format!("重建主窗口失败: {e}"))?;
+
+    configure_main_window_chrome(&window)
+        .map_err(|e| format!("初始化主窗口 chrome 失败: {e}"))?;
+
+    Ok(window)
 }
 
 fn build_loading_tray_menu<R: Runtime, M: Manager<R>>(
@@ -904,6 +922,44 @@ mod tests {
     }
 
     #[test]
+    fn tray_panel_falls_back_above_anchor_when_work_area_missing() {
+        // 主窗口销毁且显示器探测失败时，锚点位于任务栏底部，面板必须抬到锚点上方，
+        // 而不是坠到锚点下方（那会超出屏幕底端）。
+        let position = resolve_panel_position_for_work_area(
+            Some(&TrayAnchor {
+                x: 1500,
+                y: 1040,
+                width: 0,
+                height: 0,
+            }),
+            None,
+            &PhysicalSize::new(TRAY_PANEL_WIDTH as u32, TRAY_PANEL_HEIGHT as u32),
+        );
+
+        assert_eq!(position.y, 1040 - TRAY_PANEL_HEIGHT - 12);
+        assert!(position.y > 0);
+        assert!(position.x >= 0);
+    }
+
+    #[test]
+    fn tray_panel_fallback_clamps_to_zero_when_anchor_near_top() {
+        // 锚点贴近屏幕顶部时，上移的目标 y 不应变成负数。
+        let position = resolve_panel_position_for_work_area(
+            Some(&TrayAnchor {
+                x: 120,
+                y: 10,
+                width: 0,
+                height: 0,
+            }),
+            None,
+            &PhysicalSize::new(TRAY_PANEL_WIDTH as u32, TRAY_PANEL_HEIGHT as u32),
+        );
+
+        assert_eq!(position.y, 0);
+        assert_eq!(position.x, 0);
+    }
+
+    #[test]
     fn tray_panel_clamps_size_to_small_work_area() {
         let size = resolve_panel_size_for_work_area(Some(&PanelWorkArea {
             x: 0,
@@ -947,6 +1003,7 @@ mod tests {
             &size,
         );
 
-        assert_eq!(position, Some(PhysicalPosition::new(1104, 332)));
+        // 1440x852 的工作区扣掉 456x620 的面板后，右下角合法上限应为 (984, 232)。
+        assert_eq!(position, Some(PhysicalPosition::new(984, 232)));
     }
 }
