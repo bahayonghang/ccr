@@ -5,7 +5,7 @@
 
 > 历史说明：CCR 最早来自 `Claude Code Configuration Switcher`。现在仓库已经演进为多平台 AI CLI 工作区。
 
-![Version](https://img.shields.io/badge/version-5.1.4-blue.svg) ![License](https://img.shields.io/badge/license-MIT-green.svg) ![Build](https://img.shields.io/badge/build-passing-brightgreen.svg)
+![Version](https://img.shields.io/badge/version-5.9.4-blue.svg) ![License](https://img.shields.io/badge/license-MIT-green.svg) ![Build](https://img.shields.io/badge/build-passing-brightgreen.svg)
 
 ---
 
@@ -108,6 +108,28 @@ ccr
 - 分页支持（每页 20 个配置）
 - 底部实时状态消息
 - 平台专属配色（Claude 橙色，Codex 紫色）
+
+## 📖 帮助与版本
+
+```bash
+# 任务导向总帮助
+ccr --help
+
+# 查看嵌套命令帮助
+ccr help platform
+ccr help codex auth
+ccr help opencode auth
+
+# 给脚本 / CI 用的简短版本号
+ccr --version
+ccr -V
+
+# 给人看的详细版本信息
+ccr version
+```
+
+只需要版本号时，用 `ccr --version`。  
+想看当前安装说明和主要入口时，用 `ccr version`。
 
 ## 🖥️ CCR UI
 

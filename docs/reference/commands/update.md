@@ -450,7 +450,7 @@ ccr switch $CURRENT
 ccr export -o ~/backups/ccr-backup-$(date +%Y%m%d_%H%M%S).toml
 
 # 备份二进制(可选)
-cp ~/.cargo/bin/ccr ~/.cargo/bin/ccr.$(ccr version | head -1 | awk '{print $2}')
+cp ~/.cargo/bin/ccr ~/.cargo/bin/ccr.$(ccr --version | awk '{print $2}')
 
 # 执行更新
 ccr update
@@ -488,13 +488,13 @@ ccr update
 
 ```bash
 # 创建更新日志
-echo "$(date): Updated CCR from $(ccr version) to latest" >> ~/ccr-updates.log
+echo "$(date): Updated CCR from $(ccr --version | awk '{print $2}') to latest" >> ~/ccr-updates.log
 
 # 更新
 ccr update
 
 # 记录新版本
-echo "$(date): Now running $(ccr version)" >> ~/ccr-updates.log
+echo "$(date): Now running $(ccr --version | awk '{print $2}')" >> ~/ccr-updates.log
 ```
 
 ## 相关命令

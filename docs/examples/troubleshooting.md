@@ -411,6 +411,7 @@ ccr platform --help
 ccr switch --help
 
 # 查看版本信息
+ccr version
 ccr --version
 ```
 
@@ -421,7 +422,7 @@ ccr --version
 
 ### 报告问题
 提交 Issue 时请包含:
-1. CCR 版本: `ccr --version`
+1. CCR 版本: `ccr --version`（如需详细安装摘要，再补 `ccr version`）
 2. 操作系统: `uname -a`
 3. 配置文件 (去除敏感信息): `cat ~/.ccr/config.toml`
 4. 错误日志: `CCR_LOG_LEVEL=debug ccr <command> 2>&1`

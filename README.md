@@ -5,7 +5,7 @@ CLI-first workflow with TUI and the full CCR UI for Claude Code, Codex, Gemini, 
 
 > Historical note: CCR started as `Claude Code Configuration Switcher`. The repository now tracks a broader multi-platform AI CLI workspace.
 
-![Version](https://img.shields.io/badge/version-5.1.4-blue.svg) ![License](https://img.shields.io/badge/license-MIT-green.svg) ![Build](https://img.shields.io/badge/build-passing-brightgreen.svg)
+![Version](https://img.shields.io/badge/version-5.9.4-blue.svg) ![License](https://img.shields.io/badge/license-MIT-green.svg) ![Build](https://img.shields.io/badge/build-passing-brightgreen.svg)
 
 ---
 
@@ -107,6 +107,28 @@ ccr
 - Pagination support (20 configs per page)
 - Real-time status messages at the bottom
 - Platform-specific color themes (Orange for Claude, Purple for Codex)
+
+## 📖 Help & Version
+
+```bash
+# Task-oriented root help
+ccr --help
+
+# Task-oriented nested help
+ccr help platform
+ccr help codex auth
+ccr help opencode auth
+
+# Short version output for scripts / CI
+ccr --version
+ccr -V
+
+# Detailed human-readable version summary
+ccr version
+```
+
+Use `ccr --version` when you only need the version string.  
+Use `ccr version` when you want the current install summary and the main entrypoints.
 
 ## 🖥️ CCR UI
 

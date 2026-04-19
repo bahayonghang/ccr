@@ -45,6 +45,21 @@ ccr ui -p 15173 --backend-port 38081
 ccr
 ```
 
+## 全局帮助与版本
+
+```bash
+ccr --help
+ccr help platform
+ccr help codex auth
+ccr help opencode auth
+ccr --version
+ccr version
+```
+
+- `ccr --help` / `ccr help ...`：任务导向帮助
+- `ccr --version`：简短版本号，适合脚本和 CI
+- `ccr version`：详细版本信息，适合人工查看
+
 ## 按任务找命令
 
 ### 初始化与平台

@@ -45,6 +45,21 @@ If you prefer the terminal interactive mode:
 ccr
 ```
 
+## Global Help and Version
+
+```bash
+ccr --help
+ccr help platform
+ccr help codex auth
+ccr help opencode auth
+ccr --version
+ccr version
+```
+
+- `ccr --help` / `ccr help ...`: task-oriented help
+- `ccr --version`: short version string for scripts and CI
+- `ccr version`: detailed version summary for humans
+
 ## Commands by Task
 
 ### Platform and init
