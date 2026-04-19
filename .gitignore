@@ -75,6 +75,8 @@ progress.md
 
 # Project-local generated directories
 openspec/
+# ref/ holds external reference repos (aghub/ClaudeBar/skills-hub/…) for local browsing only.
+# Their nested CLAUDE.md files must not influence this project — treat as read-only mirrors.
 ref/
 outputs/
 ccr-ui/src-tauri/bin/
