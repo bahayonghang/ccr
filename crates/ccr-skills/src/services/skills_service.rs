@@ -1254,7 +1254,7 @@ impl SkillsService {
             })
             .collect::<Vec<_>>();
 
-        skills.sort_by(|left, right| left.name.to_lowercase().cmp(&right.name.to_lowercase()));
+        skills.sort_by_key(|skill| skill.name.to_lowercase());
         Ok((skills, platform_summaries))
     }
 
@@ -1804,7 +1804,7 @@ impl SkillsService {
             .into_iter()
             .map(|source| self.source_record(&source))
             .collect::<Vec<_>>();
-        sources.sort_by(|left, right| left.name.to_lowercase().cmp(&right.name.to_lowercase()));
+        sources.sort_by_key(|source| source.name.to_lowercase());
         Ok(sources)
     }
 

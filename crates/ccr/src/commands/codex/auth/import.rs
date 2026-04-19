@@ -40,7 +40,7 @@ fn scan_downloads_for_exports() -> Result<Vec<PathBuf>> {
         })
         .collect();
 
-    files.sort_by(|a, b| b.1.cmp(&a.1));
+    files.sort_by_key(|entry| std::cmp::Reverse(entry.1));
     Ok(files.into_iter().map(|(path, _)| path).collect())
 }
 

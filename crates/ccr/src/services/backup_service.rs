@@ -121,7 +121,7 @@ impl BackupService {
             })
             .collect();
 
-        backups.sort_by(|a, b| b.modified.cmp(&a.modified));
+        backups.sort_by_key(|backup| std::cmp::Reverse(backup.modified));
         Ok(backups)
     }
 

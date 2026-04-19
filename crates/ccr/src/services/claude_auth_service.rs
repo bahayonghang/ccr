@@ -555,7 +555,7 @@ impl ClaudeAuthService {
             })
             .collect::<Vec<_>>();
 
-        items.sort_by(|left, right| right.saved_at.cmp(&left.saved_at));
+        items.sort_by_key(|item| std::cmp::Reverse(item.saved_at));
         Ok(items)
     }
 

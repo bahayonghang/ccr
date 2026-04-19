@@ -629,7 +629,7 @@ impl SettingsManager {
             }
         }
 
-        backups.sort_by(|a, b| b.1.cmp(&a.1));
+        backups.sort_by_key(|entry| std::cmp::Reverse(entry.1));
         Ok(backups.into_iter().map(|(path, _)| path).collect())
     }
 

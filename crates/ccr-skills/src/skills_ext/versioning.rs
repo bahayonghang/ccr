@@ -275,7 +275,7 @@ impl FsVersionStore {
             versions.push(VersionMeta::from(&v));
         }
 
-        versions.sort_by(|a, b| b.timestamp.cmp(&a.timestamp));
+        versions.sort_by_key(|version| std::cmp::Reverse(version.timestamp));
         Ok(versions)
     }
 

@@ -99,10 +99,8 @@ impl Overlay {
     /// Push a character to input buffer (Input variant only)
     pub fn push_char(&mut self, c: char) {
         match self {
-            Self::Input { buffer, .. } | Self::RenameInput { buffer, .. } => {
-                if buffer.len() < 32 {
-                    buffer.push(c);
-                }
+            Self::Input { buffer, .. } | Self::RenameInput { buffer, .. } if buffer.len() < 32 => {
+                buffer.push(c);
             }
             _ => {}
         }

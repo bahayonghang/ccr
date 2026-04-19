@@ -258,7 +258,7 @@ impl FsTrashStore {
             entries.push(entry);
         }
 
-        entries.sort_by(|a, b| b.deleted_at.cmp(&a.deleted_at));
+        entries.sort_by_key(|entry| std::cmp::Reverse(entry.deleted_at));
         Ok(entries)
     }
 

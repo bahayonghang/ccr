@@ -194,10 +194,8 @@ impl ClaudeAuthApp {
             KeyCode::Down | KeyCode::Char('j') => self.move_down(),
             KeyCode::PageUp | KeyCode::Char('h') => self.prev_page(),
             KeyCode::PageDown | KeyCode::Char('l') => self.next_page(),
-            KeyCode::Enter => {
-                if self.switch_selected_account()? {
-                    return Ok(true);
-                }
+            KeyCode::Enter if self.switch_selected_account()? => {
+                return Ok(true);
             }
             KeyCode::Char('s') => {
                 if self.current_info.is_some() {
