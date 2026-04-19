@@ -53,6 +53,9 @@ pub struct CheckinDashboardDay {
     pub is_checked_in: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub income_increment: Option<f64>,
+    /// 当日从签到记录解析出的奖励金额（优先 balance_after-before，否则解析 reward 字串）
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub reward_amount: Option<f64>,
     pub current_balance: f64,
     pub total_consumed: f64,
     pub total_quota: f64,
@@ -74,6 +77,9 @@ pub struct CheckinDashboardTrendPoint {
     pub date: String,
     pub total_quota: f64,
     pub income_increment: f64,
+    /// 当日奖励金额（来自签到记录；无则 0.0）
+    #[serde(default)]
+    pub reward_amount: f64,
     pub current_balance: f64,
     pub is_checked_in: bool,
 }

@@ -10,14 +10,14 @@ use crate::models::checkin::{
     BalanceHistoryResponse, BalanceSnapshot, CheckinAccountDashboardResponse,
     CheckinDashboardAccount, CheckinDashboardCalendar, CheckinDashboardDay,
     CheckinDashboardMonthStats, CheckinDashboardStreak, CheckinDashboardTrend,
-    CheckinDashboardTrendPoint, CheckinProvider, CheckinRecord, CheckinRecordsResponse,
-    CheckinStatus, CookieCredentials,
+    CheckinDashboardTrendPoint, CheckinProvider, CheckinRecord, CheckinRecordInfo,
+    CheckinRecordsResponse, CheckinStatus, CookieCredentials,
 };
-use chrono::{Datelike, Duration as ChronoDuration, NaiveDate, Utc};
+use chrono::{Datelike, Duration as ChronoDuration, Local, NaiveDate};
 use once_cell::sync::Lazy;
 use reqwest::{Client, Proxy};
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 use std::path::PathBuf;
 use std::time::Duration;
 use tokio::sync::Mutex;
@@ -1481,10 +1481,17 @@ impl CheckinService {
             .list_by_account(account_id)
             .map_err(|e| CheckinServiceError::Balance(e.to_string()))?;
 
+        // 先取签到记录作为「是否签到 / 奖励金额」的主源；没有记录的账号则全部依赖余额差兜底。
+        let record_manager = RecordManager::new();
+        let record_resp = record_manager
+            .get_by_account(account_id, None)
+            .map_err(|e| CheckinServiceError::Record(e.to_string()))?;
+
         let daily_summaries = build_daily_summaries(&snapshots);
-        let streak = compute_streak(&daily_summaries);
-        let calendar = build_calendar(account_id, year, month, &daily_summaries)?;
-        let trend = build_trend(account_id, days, &daily_summaries)?;
+        let daily_checkins = build_daily_checkins(&record_resp.records);
+        let streak = compute_streak(&daily_checkins);
+        let calendar = build_calendar(account_id, year, month, &daily_checkins, &daily_summaries)?;
+        let trend = build_trend(account_id, days, &daily_checkins, &daily_summaries)?;
 
         Ok(CheckinAccountDashboardResponse {
             account: dashboard_account,
@@ -1621,43 +1628,136 @@ fn build_daily_summaries(snapshots: &[BalanceSnapshot]) -> Vec<DailySummary> {
         })
         .collect();
 
-    daily.sort_by(|a, b| a.date.cmp(&b.date));
+    daily.sort_by_key(|entry| entry.date);
     daily
 }
 
-fn compute_streak(daily: &[DailySummary]) -> CheckinDashboardStreak {
-    let mut prev_total: Option<f64> = None;
-    let mut current_streak = 0u32;
+#[derive(Debug, Clone)]
+struct DailyCheckin {
+    /// 该日至少存在一条 success / already_checked_in 记录
+    checked_in: bool,
+    /// 当日可识别的奖励金额（货币单位遵循 balance 字段）；无法解析时为 None
+    reward_amount: Option<f64>,
+}
+
+/// 按本地日期聚合签到记录。
+/// - `checked_in` = 任一条 `status == Success || AlreadyCheckedIn`
+/// - `reward_amount` 优先 `balance_after - balance_before`，其次解析 `reward` 字串中的带符号数字
+fn build_daily_checkins(records: &[CheckinRecordInfo]) -> BTreeMap<NaiveDate, DailyCheckin> {
+    let mut result: BTreeMap<NaiveDate, DailyCheckin> = BTreeMap::new();
+
+    for record in records {
+        let is_checked_in = matches!(
+            record.status,
+            CheckinStatus::Success | CheckinStatus::AlreadyCheckedIn
+        );
+        if !is_checked_in {
+            continue;
+        }
+
+        let date = record.checked_in_at.with_timezone(&Local).date_naive();
+
+        let reward_from_balance = match (record.balance_before, record.balance_after) {
+            (Some(before), Some(after)) => {
+                let diff = after - before;
+                if diff > 0.0 { Some(diff) } else { None }
+            }
+            _ => None,
+        };
+        let reward_from_string = record.reward.as_deref().and_then(parse_reward_amount);
+        let candidate = reward_from_balance.or(reward_from_string);
+
+        let entry = result.entry(date).or_insert(DailyCheckin {
+            checked_in: true,
+            reward_amount: None,
+        });
+        entry.checked_in = true;
+        entry.reward_amount = match (entry.reward_amount, candidate) {
+            (Some(a), Some(b)) if b > a => Some(b),
+            (Some(a), _) => Some(a),
+            (None, other) => other,
+        };
+    }
+
+    result
+}
+
+/// 解析 reward 字串中的带符号数字前缀。
+/// 例如 `"+10 积分" → 10.0`、`"+$2.50" → 2.50`、`"+2美元" → 2.0`、`"+1天" → 1.0`。
+fn parse_reward_amount(reward: &str) -> Option<f64> {
+    let trimmed = reward.trim();
+    if trimmed.is_empty() {
+        return None;
+    }
+
+    let mut iter = trimmed.chars().peekable();
+    let mut buf = String::new();
+
+    if matches!(iter.peek(), Some('+') | Some('-')) {
+        buf.push(iter.next()?);
+    }
+    // 跳过货币符号 / 空格等非数字前缀
+    while let Some(&c) = iter.peek() {
+        if c.is_ascii_digit() || c == '.' {
+            break;
+        }
+        iter.next();
+    }
+
+    let mut saw_digit = false;
+    let mut saw_dot = false;
+    while let Some(&c) = iter.peek() {
+        if c.is_ascii_digit() {
+            buf.push(c);
+            saw_digit = true;
+            iter.next();
+        } else if c == '.' && !saw_dot {
+            buf.push(c);
+            saw_dot = true;
+            iter.next();
+        } else {
+            break;
+        }
+    }
+
+    if !saw_digit {
+        return None;
+    }
+    buf.parse::<f64>().ok()
+}
+
+fn compute_streak(daily_checkins: &BTreeMap<NaiveDate, DailyCheckin>) -> CheckinDashboardStreak {
     let mut longest_streak = 0u32;
     let mut total_check_in_days = 0u32;
     let mut last_check_in_date: Option<NaiveDate> = None;
+    let mut running_streak = 0u32;
 
-    for day in daily {
-        let is_checked_in = prev_total.is_none_or(|prev| day.total_quota > prev);
-
-        if is_checked_in {
-            current_streak = match last_check_in_date {
-                Some(prev_date) if day.date.signed_duration_since(prev_date).num_days() == 1 => {
-                    if current_streak == 0 {
-                        1
-                    } else {
-                        current_streak + 1
-                    }
-                }
-                _ => 1,
-            };
-
-            longest_streak = longest_streak.max(current_streak);
-            total_check_in_days += 1;
-            last_check_in_date = Some(day.date);
-        } else if let Some(prev_date) = last_check_in_date
-            && day.date.signed_duration_since(prev_date).num_days() > 1
-        {
-            current_streak = 0;
+    for (date, day) in daily_checkins {
+        if !day.checked_in {
+            continue;
         }
-
-        prev_total = Some(day.total_quota);
+        total_check_in_days += 1;
+        running_streak = match last_check_in_date {
+            Some(prev) if date.signed_duration_since(prev).num_days() == 1 => running_streak + 1,
+            _ => 1,
+        };
+        longest_streak = longest_streak.max(running_streak);
+        last_check_in_date = Some(*date);
     }
+
+    // 当前连续仅当最后签到发生在今天或昨天（本地日）时延续
+    let current_streak = match last_check_in_date {
+        Some(last) => {
+            let today = Local::now().date_naive();
+            let gap = today.signed_duration_since(last).num_days();
+            if (0..=1).contains(&gap) {
+                running_streak
+            } else {
+                0
+            }
+        }
+        None => 0,
+    };
 
     CheckinDashboardStreak {
         current_streak,
@@ -1671,7 +1771,8 @@ fn build_calendar(
     account_id: &str,
     year: i32,
     month: u32,
-    daily: &[DailySummary],
+    daily_checkins: &BTreeMap<NaiveDate, DailyCheckin>,
+    daily_summaries: &[DailySummary],
 ) -> Result<CheckinDashboardCalendar> {
     let _first_day = NaiveDate::from_ymd_opt(year, month, 1)
         .ok_or_else(|| CheckinServiceError::Api("Invalid month".to_string()))?;
@@ -1687,62 +1788,78 @@ fn build_calendar(
         .ok_or_else(|| CheckinServiceError::Api("Invalid month".to_string()))?;
 
     let total_days = last_day.day();
-    let mut daily_map: HashMap<NaiveDate, &DailySummary> = HashMap::new();
-    for item in daily {
-        daily_map.insert(item.date, item);
-    }
 
-    let mut days = Vec::new();
-    let mut prev_total: Option<f64> = None;
+    let summary_map: HashMap<NaiveDate, &DailySummary> =
+        daily_summaries.iter().map(|s| (s.date, s)).collect();
+
+    let today = Local::now().date_naive();
+
+    let mut days = Vec::with_capacity(total_days as usize);
     let mut checked_in_days = 0u32;
     let mut total_quota_increment = 0.0;
+    let mut days_up_to_today = 0u32;
+    let mut prev_total: Option<f64> = None;
 
     for day in 1..=total_days {
         let date = NaiveDate::from_ymd_opt(year, month, day)
             .ok_or_else(|| CheckinServiceError::Api("Invalid date".to_string()))?;
         let date_str = date.format("%Y-%m-%d").to_string();
 
-        if let Some(summary) = daily_map.get(&date) {
-            let income_increment = prev_total.and_then(|prev| {
-                let diff = summary.total_quota - prev;
-                if diff > 0.0 { Some(diff) } else { None }
-            });
+        let daily_checkin = daily_checkins.get(&date);
+        let summary = summary_map.get(&date).copied();
 
-            let is_checked_in = income_increment.is_some() || prev_total.is_none();
+        let is_checked_in = daily_checkin.map(|d| d.checked_in).unwrap_or(false);
+        let reward_amount = daily_checkin.and_then(|d| d.reward_amount);
 
-            if is_checked_in {
-                checked_in_days += 1;
-                if let Some(inc) = income_increment {
-                    total_quota_increment += inc;
-                } else if prev_total.is_none() && summary.total_quota > 0.0 {
-                    total_quota_increment += summary.total_quota;
+        // income_increment 优先来自签到记录的 reward_amount，否则回落到相邻余额差
+        let income_increment =
+            reward_amount.or_else(|| match (prev_total, summary.map(|s| s.total_quota)) {
+                (Some(prev), Some(curr)) => {
+                    let diff = curr - prev;
+                    if diff > 0.0 { Some(diff) } else { None }
                 }
+                _ => None,
+            });
+
+        if date <= today {
+            days_up_to_today += 1;
+        }
+        if is_checked_in {
+            checked_in_days += 1;
+            if let Some(inc) = income_increment {
+                total_quota_increment += inc;
             }
+        }
 
-            days.push(CheckinDashboardDay {
-                date: date_str,
-                is_checked_in,
-                income_increment,
-                current_balance: summary.remaining_quota,
-                total_consumed: summary.used_quota,
-                total_quota: summary.total_quota,
-            });
+        let (current_balance, total_consumed, total_quota) = summary
+            .map(|s| (s.remaining_quota, s.used_quota, s.total_quota))
+            .unwrap_or((0.0, 0.0, 0.0));
 
-            prev_total = Some(summary.total_quota);
-        } else {
-            days.push(CheckinDashboardDay {
-                date: date_str,
-                is_checked_in: false,
-                income_increment: None,
-                current_balance: 0.0,
-                total_consumed: 0.0,
-                total_quota: 0.0,
-            });
+        days.push(CheckinDashboardDay {
+            date: date_str,
+            is_checked_in,
+            income_increment,
+            reward_amount,
+            current_balance,
+            total_consumed,
+            total_quota,
+        });
+
+        if let Some(s) = summary {
+            prev_total = Some(s.total_quota);
         }
     }
 
-    let check_in_rate = if total_days > 0 {
-        (checked_in_days as f64 / total_days as f64) * 100.0
+    // 签到率：当前月以 "本月已到今天为止的天数" 作分母，避免月底前未来日拉低分母；
+    // 历史/未来月份仍按 total_days。
+    let is_current_month = today.year() == year && today.month() == month;
+    let rate_denominator = if is_current_month {
+        days_up_to_today.max(1)
+    } else {
+        total_days
+    };
+    let check_in_rate = if rate_denominator > 0 {
+        (checked_in_days as f64 / rate_denominator as f64) * 100.0
     } else {
         0.0
     };
@@ -1764,7 +1881,8 @@ fn build_calendar(
 fn build_trend(
     account_id: &str,
     days: u32,
-    daily: &[DailySummary],
+    daily_checkins: &BTreeMap<NaiveDate, DailyCheckin>,
+    daily_summaries: &[DailySummary],
 ) -> Result<CheckinDashboardTrend> {
     if days == 0 || days > 365 {
         return Err(CheckinServiceError::Api(
@@ -1772,32 +1890,51 @@ fn build_trend(
         ));
     }
 
-    let end_date = Utc::now().date_naive();
+    let end_date = Local::now().date_naive();
     let start_date = end_date - ChronoDuration::days(days as i64 - 1);
 
-    let mut data_points = Vec::new();
-    let mut prev_total: Option<f64> = None;
+    let summary_map: HashMap<NaiveDate, &DailySummary> =
+        daily_summaries.iter().map(|s| (s.date, s)).collect();
 
-    for item in daily
+    // 窗口内每一天都输出一个点，方便前端画固定列数的热力柱
+    let mut data_points = Vec::with_capacity(days as usize);
+    let mut last_known_quota = daily_summaries
         .iter()
-        .filter(|d| d.date >= start_date && d.date <= end_date)
-    {
-        let income_increment = prev_total.map_or(0.0, |prev| {
-            let diff = item.total_quota - prev;
-            if diff > 0.0 { diff } else { 0.0 }
-        });
+        .rev()
+        .find(|s| s.date < start_date)
+        .map(|s| s.total_quota)
+        .unwrap_or(0.0);
+    let mut last_known_balance = daily_summaries
+        .iter()
+        .rev()
+        .find(|s| s.date < start_date)
+        .map(|s| s.remaining_quota)
+        .unwrap_or(0.0);
 
-        let is_checked_in = income_increment > 0.0 || prev_total.is_none();
+    let mut date = start_date;
+    while date <= end_date {
+        if let Some(s) = summary_map.get(&date) {
+            last_known_quota = s.total_quota;
+            last_known_balance = s.remaining_quota;
+        }
+
+        let daily_checkin = daily_checkins.get(&date);
+        let is_checked_in = daily_checkin.map(|d| d.checked_in).unwrap_or(false);
+        let reward_amount = daily_checkin.and_then(|d| d.reward_amount).unwrap_or(0.0);
 
         data_points.push(CheckinDashboardTrendPoint {
-            date: item.date.format("%Y-%m-%d").to_string(),
-            total_quota: item.total_quota,
-            income_increment,
-            current_balance: item.remaining_quota,
+            date: date.format("%Y-%m-%d").to_string(),
+            total_quota: last_known_quota,
+            income_increment: reward_amount,
+            reward_amount,
+            current_balance: last_known_balance,
             is_checked_in,
         });
 
-        prev_total = Some(item.total_quota);
+        match date.succ_opt() {
+            Some(next) => date = next,
+            None => break,
+        }
     }
 
     Ok(CheckinDashboardTrend {
@@ -1875,5 +2012,169 @@ mod tests {
         let mut keys = json_object_keys(&serde_json::json!({ "ret": 1, "message": "ok" }));
         keys.sort();
         assert_eq!(keys, vec!["message".to_string(), "ret".to_string()]);
+    }
+
+    use chrono::{TimeZone, Utc as ChronoUtc};
+
+    fn record_info(
+        account_id: &str,
+        status: CheckinStatus,
+        reward: Option<&str>,
+        balance_before: Option<f64>,
+        balance_after: Option<f64>,
+        checked_in_at: chrono::DateTime<ChronoUtc>,
+    ) -> CheckinRecordInfo {
+        CheckinRecordInfo {
+            id: "test-id".to_string(),
+            account_id: account_id.to_string(),
+            account_name: None,
+            provider_name: None,
+            status,
+            message: None,
+            error_code: None,
+            reward: reward.map(|s| s.to_string()),
+            balance_before,
+            balance_after,
+            balance_change: match (balance_before, balance_after) {
+                (Some(b), Some(a)) => Some(a - b),
+                _ => None,
+            },
+            checked_in_at,
+        }
+    }
+
+    #[test]
+    fn test_parse_reward_amount_variants() {
+        assert_eq!(parse_reward_amount("+10 积分"), Some(10.0));
+        assert_eq!(parse_reward_amount("+$2.50"), Some(2.50));
+        assert_eq!(parse_reward_amount("+2美元"), Some(2.0));
+        assert_eq!(parse_reward_amount("+1天"), Some(1.0));
+        assert_eq!(parse_reward_amount("-3"), Some(-3.0));
+        assert_eq!(parse_reward_amount(""), None);
+        assert_eq!(parse_reward_amount("签到成功"), None);
+    }
+
+    #[test]
+    fn test_build_daily_checkins_record_without_balance() {
+        // 场景：有签到记录但没有余额快照字段 → is_checked_in=true, reward_amount=None
+        let ts = ChronoUtc.with_ymd_and_hms(2026, 4, 19, 3, 0, 0).unwrap();
+        let records = vec![record_info(
+            "acc-1",
+            CheckinStatus::Success,
+            None,
+            None,
+            None,
+            ts,
+        )];
+
+        let map = build_daily_checkins(&records);
+        assert_eq!(map.len(), 1);
+        let (_, day) = map.iter().next().unwrap();
+        assert!(day.checked_in);
+        assert_eq!(day.reward_amount, None);
+    }
+
+    #[test]
+    fn test_build_daily_checkins_reward_from_balance_delta() {
+        // 场景：balance_before=10, balance_after=12 → reward_amount=Some(2.0)
+        let ts = ChronoUtc.with_ymd_and_hms(2026, 4, 19, 3, 0, 0).unwrap();
+        let records = vec![record_info(
+            "acc-1",
+            CheckinStatus::Success,
+            None,
+            Some(10.0),
+            Some(12.0),
+            ts,
+        )];
+
+        let map = build_daily_checkins(&records);
+        let (_, day) = map.iter().next().unwrap();
+        assert!(day.checked_in);
+        assert_eq!(day.reward_amount, Some(2.0));
+    }
+
+    #[test]
+    fn test_build_daily_checkins_falls_back_to_reward_string() {
+        // balance 缺失时应从 reward 字串解析
+        let ts = ChronoUtc.with_ymd_and_hms(2026, 4, 19, 3, 0, 0).unwrap();
+        let records = vec![record_info(
+            "acc-1",
+            CheckinStatus::Success,
+            Some("+5 积分"),
+            None,
+            None,
+            ts,
+        )];
+
+        let map = build_daily_checkins(&records);
+        let (_, day) = map.iter().next().unwrap();
+        assert_eq!(day.reward_amount, Some(5.0));
+    }
+
+    #[test]
+    fn test_build_daily_checkins_excludes_failed() {
+        // 失败的记录不应计入签到
+        let ts = ChronoUtc.with_ymd_and_hms(2026, 4, 19, 3, 0, 0).unwrap();
+        let records = vec![record_info(
+            "acc-1",
+            CheckinStatus::Failed,
+            None,
+            None,
+            None,
+            ts,
+        )];
+
+        let map = build_daily_checkins(&records);
+        assert!(map.is_empty());
+    }
+
+    #[test]
+    fn test_compute_streak_from_records() {
+        // 构造三条连续本地日签到（03:00 UTC ≈ 东八区 11:00）
+        let day1 = ChronoUtc.with_ymd_and_hms(2026, 4, 17, 3, 0, 0).unwrap();
+        let day2 = ChronoUtc.with_ymd_and_hms(2026, 4, 18, 3, 0, 0).unwrap();
+        let day3 = ChronoUtc.with_ymd_and_hms(2026, 4, 19, 3, 0, 0).unwrap();
+        let records = vec![
+            record_info("acc-1", CheckinStatus::Success, None, None, None, day1),
+            record_info("acc-1", CheckinStatus::Success, None, None, None, day2),
+            record_info("acc-1", CheckinStatus::Success, None, None, None, day3),
+        ];
+
+        let map = build_daily_checkins(&records);
+        let streak = compute_streak(&map);
+        assert_eq!(streak.longest_streak, 3);
+        assert_eq!(streak.total_check_in_days, 3);
+        assert!(streak.last_check_in_date.is_some());
+    }
+
+    #[test]
+    fn test_build_calendar_marks_day_even_without_balance_snapshot() {
+        // 关键回归：只有 CheckinRecord 没有 BalanceSnapshot 时，日历仍应打点、签到率>0
+        let ts = ChronoUtc.with_ymd_and_hms(2026, 4, 19, 3, 0, 0).unwrap();
+        let records = vec![record_info(
+            "acc-1",
+            CheckinStatus::Success,
+            None,
+            Some(10.0),
+            Some(12.0),
+            ts,
+        )];
+
+        let daily_checkins = build_daily_checkins(&records);
+        let daily_summaries: Vec<DailySummary> = Vec::new();
+
+        let calendar = build_calendar("acc-1", 2026, 4, &daily_checkins, &daily_summaries).unwrap();
+
+        let target_date = daily_checkins.keys().next().copied().unwrap();
+        let target_day = calendar
+            .days
+            .iter()
+            .find(|d| d.date == target_date.format("%Y-%m-%d").to_string())
+            .unwrap();
+
+        assert!(target_day.is_checked_in);
+        assert_eq!(target_day.reward_amount, Some(2.0));
+        assert!(calendar.month_stats.checked_in_days >= 1);
+        assert!(calendar.month_stats.check_in_rate > 0.0);
     }
 }

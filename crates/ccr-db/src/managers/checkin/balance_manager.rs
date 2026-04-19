@@ -83,7 +83,7 @@ impl BalanceManager {
         })?;
 
         // Sort ascending by time (repo returns DESC)
-        balances.sort_by(|a, b| a.recorded_at.cmp(&b.recorded_at));
+        balances.sort_by_key(|balance| balance.recorded_at);
         Ok(balances)
     }
 

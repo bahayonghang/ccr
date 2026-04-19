@@ -438,6 +438,8 @@ export interface CheckinDashboardDay {
   date: string
   is_checked_in: boolean
   income_increment?: number | null
+  /** 当日奖励金额（后端解析 balance delta 或 reward 字串；无则缺省） */
+  reward_amount?: number | null
   current_balance: number
   total_consumed: number
   total_quota: number
@@ -457,6 +459,8 @@ export interface CheckinDashboardTrendPoint {
   date: string
   total_quota: number
   income_increment: number
+  /** 当日奖励金额（无则 0） */
+  reward_amount: number
   current_balance: number
   is_checked_in: boolean
 }

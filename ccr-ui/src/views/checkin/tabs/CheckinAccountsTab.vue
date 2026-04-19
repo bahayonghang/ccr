@@ -1544,6 +1544,17 @@ onUnmounted(() => {
   background: rgb(var(--color-bg-surface-rgb) / 72%);
 }
 
+.checkin-accounts-tab__control option,
+.checkin-accounts-tab__select option {
+  background: rgb(var(--color-bg-elevated-rgb) / 100%);
+  color: var(--text-primary);
+}
+
+.checkin-accounts-tab__control option:disabled,
+.checkin-accounts-tab__select option:disabled {
+  color: var(--text-muted);
+}
+
 .checkin-accounts-tab__control--textarea {
   resize: vertical;
   min-height: 120px;
