@@ -258,7 +258,7 @@ impl CostTracker {
         }
 
         // 按时间排序
-        records.sort_by(|a, b| b.timestamp.cmp(&a.timestamp));
+        records.sort_by_key(|record| std::cmp::Reverse(record.timestamp));
 
         Ok(records)
     }
@@ -318,7 +318,7 @@ impl CostTracker {
         }
 
         // 按时间排序
-        records.sort_by(|a, b| b.timestamp.cmp(&a.timestamp));
+        records.sort_by_key(|record| std::cmp::Reverse(record.timestamp));
 
         Ok(records)
     }

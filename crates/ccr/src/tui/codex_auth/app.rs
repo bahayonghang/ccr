@@ -342,6 +342,7 @@ impl CodexAuthApp {
         self.preview_cache.get(selected_name)
     }
 
+    #[allow(dead_code)]
     pub fn selected_preview_reset_text(&self) -> String {
         self.selected_preview_entry()
             .map(|entry| Self::preview_reset_detail_summary_text(&entry.quota))
@@ -394,6 +395,14 @@ impl CodexAuthApp {
             text: "-".to_string(),
             state: QuotaPreviewCellState::Empty,
         }
+    }
+
+    /// 返回指定账号的完整 quota 快照(若已缓存)。
+    /// UI 层的 5h / 7d 单元格需要基于它读 reset 时间戳拼括号文案。
+    pub fn preview_quota_for_account(&self, account_name: &str) -> Option<&CodexAccountQuota> {
+        self.preview_cache
+            .get(account_name)
+            .map(|entry| &entry.quota)
     }
 
     pub fn preview_cell_for_account(
@@ -652,6 +661,7 @@ impl CodexAuthApp {
         }
     }
 
+    #[allow(dead_code)]
     fn preview_reset_detail_summary_text(quota: &CodexAccountQuota) -> String {
         match quota.quota.as_ref() {
             Some(quota) => format!(
@@ -678,6 +688,7 @@ impl CodexAuthApp {
         }
     }
 
+    #[allow(dead_code)]
     fn detailed_reset_label(reset_timestamp: Option<i64>) -> String {
         reset_timestamp
             .map(Self::long_reset_label)
@@ -794,10 +805,8 @@ impl CodexAuthApp {
             KeyCode::PageDown | KeyCode::Char('l') => {
                 self.next_page();
             }
-            KeyCode::Enter => {
-                if self.switch_selected_account()? {
-                    return Ok(true);
-                }
+            KeyCode::Enter if self.switch_selected_account()? => {
+                return Ok(true);
             }
             KeyCode::Char('s') => match &self.login_state {
                 LoginState::LoggedInUnsaved => {

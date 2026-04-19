@@ -145,7 +145,7 @@ impl CodexUsageService {
         }
 
         // 按时间排序
-        records.sort_by(|a, b| a.timestamp.cmp(&b.timestamp));
+        records.sort_by_key(|record| record.timestamp);
 
         Ok(records)
     }

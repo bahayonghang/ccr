@@ -180,14 +180,12 @@ fn draw_account_list_with_status(f: &mut Frame, area: Rect, app: &OpenCodeAuthAp
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum AccountColumn {
-    Status,
     Account,
     Email,
     Plan,
     QuotaSummary,
     HourlyQuota,
     WeeklyQuota,
-    RefreshedAt,
     ExpiresAt,
 }
 
@@ -332,39 +330,27 @@ fn account_list_regions(inner: Rect) -> AccountListRegions {
 }
 
 fn account_table_layout(inner_width: u16) -> AccountTableLayout {
-    if inner_width < 70 {
+    if inner_width < 64 {
         return AccountTableLayout::new(
-            vec![
-                AccountColumn::Status,
-                AccountColumn::Account,
-                AccountColumn::QuotaSummary,
-            ],
-            vec![
-                Constraint::Length(3),
-                Constraint::Length(20),
-                Constraint::Min(16),
-            ],
+            vec![AccountColumn::Account, AccountColumn::QuotaSummary],
+            vec![Constraint::Length(20), Constraint::Min(16)],
             inner_width,
         );
     }
 
-    if inner_width < 106 {
+    if inner_width < 96 {
         return AccountTableLayout::new(
             vec![
-                AccountColumn::Status,
                 AccountColumn::Account,
                 AccountColumn::Email,
                 AccountColumn::HourlyQuota,
                 AccountColumn::WeeklyQuota,
-                AccountColumn::RefreshedAt,
             ],
             vec![
-                Constraint::Length(3),
                 Constraint::Length(20),
-                Constraint::Min(28),
-                Constraint::Length(6),
-                Constraint::Length(6),
-                Constraint::Length(10),
+                Constraint::Min(22),
+                Constraint::Length(12),
+                Constraint::Length(12),
             ],
             inner_width,
         );
@@ -372,23 +358,19 @@ fn account_table_layout(inner_width: u16) -> AccountTableLayout {
 
     AccountTableLayout::new(
         vec![
-            AccountColumn::Status,
             AccountColumn::Account,
             AccountColumn::Email,
             AccountColumn::Plan,
             AccountColumn::HourlyQuota,
             AccountColumn::WeeklyQuota,
-            AccountColumn::RefreshedAt,
             AccountColumn::ExpiresAt,
         ],
         vec![
-            Constraint::Length(3),
             Constraint::Length(20),
-            Constraint::Min(28),
+            Constraint::Min(22),
             Constraint::Length(10),
-            Constraint::Length(6),
-            Constraint::Length(6),
-            Constraint::Length(10),
+            Constraint::Length(12),
+            Constraint::Length(12),
             Constraint::Length(10),
         ],
         inner_width,
@@ -442,14 +424,12 @@ fn render_account_list_rows(
 
 fn account_header_cell(column: &AccountColumn) -> Cell<'static> {
     let label = match column {
-        AccountColumn::Status => "状态",
         AccountColumn::Account => "账号",
         AccountColumn::Email => "邮箱",
         AccountColumn::Plan => "类型",
         AccountColumn::QuotaSummary => "配额",
         AccountColumn::HourlyQuota => "5h",
         AccountColumn::WeeklyQuota => "7d",
-        AccountColumn::RefreshedAt => "重置",
         AccountColumn::ExpiresAt => "到期",
     };
 
@@ -464,24 +444,6 @@ fn account_cell(
     is_selected: bool,
 ) -> Cell<'static> {
     match column {
-        AccountColumn::Status => Cell::from(Line::from(Span::styled(
-            if account.is_current {
-                "●".to_string()
-            } else if account.is_virtual {
-                "◐".to_string()
-            } else {
-                "○".to_string()
-            },
-            if is_selected {
-                Style::default().fg(theme::FG_PRIMARY)
-            } else if account.is_current {
-                theme::success_style()
-            } else if account.is_virtual {
-                theme::warning_style()
-            } else {
-                theme::muted_style()
-            },
-        ))),
         AccountColumn::Account => {
             let name_style = if is_selected {
                 Style::default()
@@ -536,31 +498,33 @@ fn account_cell(
             let seven = app.preview_cell_for_account(&account.name, PreviewMetricWindow::SevenDay);
             let reset = app.preview_reset_cell_for_account(&account.name);
             let summary_style = preview_summary_style(&five, &seven, is_selected);
-            let summary_text = if layout.columns.contains(&AccountColumn::RefreshedAt) {
-                format!("{}/{}", five.text, seven.text)
-            } else {
-                format!("{}/{}·{}", five.text, seven.text, reset.text)
-            };
-            Cell::from(Line::from(Span::styled(summary_text, summary_style)))
+            let summary_text = format!("{}/{}·{}", five.text, seven.text, reset.text);
+            Cell::from(Line::from(Span::styled(
+                truncate_text(
+                    &summary_text,
+                    layout.text_width(AccountColumn::QuotaSummary),
+                ),
+                summary_style,
+            )))
         }
-        AccountColumn::HourlyQuota => preview_metric_cell(
-            app.preview_cell_for_account(&account.name, PreviewMetricWindow::FiveHour),
-            PreviewMetricWindow::FiveHour,
-            is_selected,
-            layout.text_width(AccountColumn::HourlyQuota),
-        ),
-        AccountColumn::WeeklyQuota => preview_metric_cell(
-            app.preview_cell_for_account(&account.name, PreviewMetricWindow::SevenDay),
-            PreviewMetricWindow::SevenDay,
-            is_selected,
-            layout.text_width(AccountColumn::WeeklyQuota),
-        ),
-        AccountColumn::RefreshedAt => preview_metric_cell(
-            app.preview_reset_cell_for_account(&account.name),
-            PreviewMetricWindow::FiveHour,
-            is_selected,
-            layout.text_width(AccountColumn::RefreshedAt),
-        ),
+        AccountColumn::HourlyQuota => {
+            let cell = app.preview_cell_for_account(&account.name, PreviewMetricWindow::FiveHour);
+            let reset = reset_duration_text(app, &account.name, QuotaWindow::Hourly);
+            let text = compose_quota_cell_text(&cell.text, reset.as_deref());
+            Cell::from(Line::from(Span::styled(
+                truncate_text(&text, layout.text_width(AccountColumn::HourlyQuota)),
+                preview_cell_style(&cell, is_selected),
+            )))
+        }
+        AccountColumn::WeeklyQuota => {
+            let cell = app.preview_cell_for_account(&account.name, PreviewMetricWindow::SevenDay);
+            let reset = reset_duration_text(app, &account.name, QuotaWindow::Weekly);
+            let text = compose_quota_cell_text(&cell.text, reset.as_deref());
+            Cell::from(Line::from(Span::styled(
+                truncate_text(&text, layout.text_width(AccountColumn::WeeklyQuota)),
+                preview_cell_style(&cell, is_selected),
+            )))
+        }
         AccountColumn::ExpiresAt => {
             let (text, style) = format_expires_at(account);
             Cell::from(Line::from(Span::styled(
@@ -575,17 +539,40 @@ fn account_cell(
     }
 }
 
-fn preview_metric_cell(
-    cell: super::app::QuotaPreviewCell,
-    _window: PreviewMetricWindow,
-    is_selected: bool,
-    width: usize,
-) -> Cell<'static> {
-    let text = truncate_text(&cell.text, width);
-    Cell::from(Line::from(Span::styled(
-        text,
-        preview_cell_style(&cell, is_selected),
-    )))
+#[derive(Clone, Copy)]
+enum QuotaWindow {
+    Hourly,
+    Weekly,
+}
+
+/// 从 preview 缓存读取指定窗口的 reset 时间戳,并转成形如 `3h11m` / `2d3h` 的短字符串。
+/// 仅用于行内 5h / 7d 单元格。quota 尚未缓存时返回 `None`。
+fn reset_duration_text(
+    app: &OpenCodeAuthApp,
+    account_name: &str,
+    window: QuotaWindow,
+) -> Option<String> {
+    let quota = app
+        .preview_quota_for_account(account_name)?
+        .quota
+        .as_ref()?;
+    let ts = match window {
+        QuotaWindow::Hourly => quota.hourly_reset_time?,
+        QuotaWindow::Weekly => quota.weekly_reset_time?,
+    };
+    Some(OpenCodeQuotaService::format_reset_duration(ts))
+}
+
+/// 把百分比文案 (`"52%"` / `"ERR"` / `"…"`) 与重置时间组合为 `"52% (3h11m)"`。
+/// 仅在百分比是就绪值且 reset 存在时拼括号;加载/错误态直接返回原文本。
+fn compose_quota_cell_text(percent_text: &str, reset: Option<&str>) -> String {
+    match reset {
+        Some(reset) if !reset.is_empty() && !matches!(percent_text, "-" | "…" | "1s…" | "ERR") =>
+        {
+            format!("{percent_text} ({reset})")
+        }
+        _ => percent_text.to_string(),
+    }
 }
 
 fn preview_summary_style(
@@ -840,11 +827,6 @@ fn draw_usage_panel(f: &mut Frame, area: Rect, app: &OpenCodeAuthApp) {
         "Quota scope:",
         "selected account",
         theme::success_style(),
-    ));
-    content.push(scope_line(
-        "Quota reset:",
-        app.selected_preview_reset_text(),
-        theme::muted_style(),
     ));
 
     match &app.quota_state {
@@ -1347,11 +1329,7 @@ mod tests {
         let layout = account_table_layout(58);
         assert_eq!(
             layout.columns,
-            vec![
-                AccountColumn::Status,
-                AccountColumn::Account,
-                AccountColumn::QuotaSummary
-            ]
+            vec![AccountColumn::Account, AccountColumn::QuotaSummary]
         );
     }
 
@@ -1360,7 +1338,7 @@ mod tests {
         let layout = account_table_layout(108);
         assert!(layout.columns.contains(&AccountColumn::HourlyQuota));
         assert!(layout.columns.contains(&AccountColumn::WeeklyQuota));
-        assert!(layout.columns.contains(&AccountColumn::RefreshedAt));
+        assert!(layout.columns.contains(&AccountColumn::Plan));
         assert!(layout.columns.contains(&AccountColumn::ExpiresAt));
     }
 
@@ -1369,8 +1347,10 @@ mod tests {
         let narrow = account_table_layout(60);
         let wide = account_table_layout(108);
 
-        assert_eq!(narrow.resolved_width(AccountColumn::Status), 3);
-        assert_eq!(narrow.resolved_width(AccountColumn::QuotaSummary), 35);
+        assert_eq!(narrow.resolved_width(AccountColumn::Account), 20);
+        assert!(narrow.resolved_width(AccountColumn::QuotaSummary) >= 16);
+        assert_eq!(wide.resolved_width(AccountColumn::HourlyQuota), 12);
+        assert_eq!(wide.resolved_width(AccountColumn::WeeklyQuota), 12);
         assert_eq!(wide.resolved_width(AccountColumn::Plan), 10);
     }
 
@@ -1448,6 +1428,121 @@ mod tests {
     }
 
     #[test]
+    fn hourly_cell_appends_reset_in_parentheses() {
+        let account = sample_account();
+        let service =
+            crate::services::OpenCodeAuthService::from_dirs(PathBuf::from("."), PathBuf::from("."));
+        let mut app = crate::tui::opencode_auth::app::OpenCodeAuthApp::from_service(service)
+            .expect("test opencode auth app should initialize from injected service");
+        app.accounts = vec![account.clone()];
+        app.selected_index = 0;
+        app.preview_cache.insert(
+            "primary".to_string(),
+            crate::tui::opencode_auth::app::QuotaPreviewEntry {
+                quota: crate::models::CodexAccountQuota {
+                    account_name: "primary".to_string(),
+                    email: None,
+                    quota: Some(crate::models::CodexQuota {
+                        hourly_percentage: 52,
+                        hourly_reset_time: Some(
+                            (Utc::now()
+                                + chrono::Duration::hours(3)
+                                + chrono::Duration::minutes(11))
+                            .timestamp(),
+                        ),
+                        hourly_window_minutes: Some(300),
+                        hourly_window_present: Some(true),
+                        weekly_percentage: 41,
+                        weekly_reset_time: Some(
+                            (Utc::now() + chrono::Duration::days(2) + chrono::Duration::hours(3))
+                                .timestamp(),
+                        ),
+                        weekly_window_minutes: Some(10080),
+                        weekly_window_present: Some(true),
+                        plan_type: Some("PLUS".to_string()),
+                        raw_data: None,
+                    }),
+                    error: None,
+                    fetched_at: Utc::now(),
+                },
+            },
+        );
+
+        let layout = account_table_layout(100);
+        let cell = account_cell(&account, &app, AccountColumn::HourlyQuota, &layout, false);
+        let mut terminal = Terminal::new(TestBackend::new(20, 1)).unwrap();
+        terminal
+            .draw(|frame| {
+                let table = Table::new([Row::new(vec![cell])], vec![Constraint::Length(20)]);
+                frame.render_widget(table, frame.area());
+            })
+            .unwrap();
+        let rendered = (0..terminal.backend().buffer().area.width)
+            .filter_map(|x| terminal.backend().buffer().cell((x, 0)))
+            .map(|cell| cell.symbol())
+            .collect::<String>();
+        assert!(rendered.contains("52%"), "{rendered}");
+        assert!(rendered.contains("(3h"), "{rendered}");
+        assert!(rendered.contains("m)"), "{rendered}");
+    }
+
+    #[test]
+    fn weekly_cell_appends_reset_in_parentheses() {
+        let account = sample_account();
+        let service =
+            crate::services::OpenCodeAuthService::from_dirs(PathBuf::from("."), PathBuf::from("."));
+        let mut app = crate::tui::opencode_auth::app::OpenCodeAuthApp::from_service(service)
+            .expect("test opencode auth app should initialize from injected service");
+        app.accounts = vec![account.clone()];
+        app.selected_index = 0;
+        app.preview_cache.insert(
+            "primary".to_string(),
+            crate::tui::opencode_auth::app::QuotaPreviewEntry {
+                quota: crate::models::CodexAccountQuota {
+                    account_name: "primary".to_string(),
+                    email: None,
+                    quota: Some(crate::models::CodexQuota {
+                        hourly_percentage: 10,
+                        hourly_reset_time: Some(
+                            (Utc::now() + chrono::Duration::hours(1)).timestamp(),
+                        ),
+                        hourly_window_minutes: Some(300),
+                        hourly_window_present: Some(true),
+                        weekly_percentage: 41,
+                        weekly_reset_time: Some(
+                            (Utc::now() + chrono::Duration::days(2) + chrono::Duration::hours(3))
+                                .timestamp(),
+                        ),
+                        weekly_window_minutes: Some(10080),
+                        weekly_window_present: Some(true),
+                        plan_type: Some("PLUS".to_string()),
+                        raw_data: None,
+                    }),
+                    error: None,
+                    fetched_at: Utc::now(),
+                },
+            },
+        );
+
+        let layout = account_table_layout(100);
+        let cell = account_cell(&account, &app, AccountColumn::WeeklyQuota, &layout, false);
+        let mut terminal = Terminal::new(TestBackend::new(20, 1)).unwrap();
+        terminal
+            .draw(|frame| {
+                let table = Table::new([Row::new(vec![cell])], vec![Constraint::Length(20)]);
+                frame.render_widget(table, frame.area());
+            })
+            .unwrap();
+        let rendered = (0..terminal.backend().buffer().area.width)
+            .filter_map(|x| terminal.backend().buffer().cell((x, 0)))
+            .map(|cell| cell.symbol())
+            .collect::<String>();
+        assert!(rendered.contains("41%"), "{rendered}");
+        assert!(rendered.contains("(2d"), "{rendered}");
+        assert!(rendered.contains("h)"), "{rendered}");
+    }
+
+    #[test]
     fn draw_usage_panel_shows_quota_and_provider_usage_together() {
         let service =
             crate::services::OpenCodeAuthService::from_dirs(PathBuf::from("."), PathBuf::from("."));
@@ -1506,7 +1601,6 @@ mod tests {
         let compact = compact_text(&rendered);
         assert!(compact.contains("Usage&Quota"), "{rendered}");
         assert!(compact.contains("Quotascope:selectedaccount"), "{rendered}");
-        assert!(compact.contains("Quotareset:"), "{rendered}");
         assert!(compact.contains("重置:"), "{rendered}");
         assert!(compact.contains("Usagescope:openaiprovider"), "{rendered}");
         assert!(
