@@ -126,16 +126,10 @@ impl CommandDispatcher {
             None => Self::handle_no_subcommand(cli).await,
 
             // 帮助命令
-            Some(Commands::Help { subcmd }) => match subcmd.as_deref() {
-                Some(name) => {
-                    help::print_subcommand_help(name);
-                    Ok(())
-                }
-                None => {
-                    help::print_top_help();
-                    Ok(())
-                }
-            },
+            Some(Commands::Help { path }) => {
+                help::print_command_help(path);
+                Ok(())
+            }
         }
     }
 
@@ -683,37 +677,22 @@ impl CommandDispatcher {
         ColorOutput::key_value("描述", env!("CARGO_PKG_DESCRIPTION"), 2);
         println!();
 
-        ColorOutput::info("CCR 特性:");
-        println!("  直接写入 Claude Code 设置文件 (~/.claude/settings.json)");
-        println!("  文件锁机制确保并发安全");
-        println!("  完整的操作历史和审计追踪");
-        println!("  配置备份和恢复功能");
-        println!("  自动配置验证");
-        println!("  WebDAV 云端同步（支持坚果云）");
+        ColorOutput::info("常用入口:");
+        println!("  ccr --version         输出简短版本号（适合脚本和 CI）");
+        println!("  ccr --help            查看任务导向总帮助");
+        println!("  ccr help codex auth   查看 Codex Auth 帮助");
+        println!("  ccr help opencode auth 查看 OpenCode 导入帮助");
         println!();
 
-        ColorOutput::info("常用命令:");
-        println!("  ccr init              初始化配置文件");
-        println!("  ccr list              列出所有配置");
-        println!("  ccr current           显示当前状态");
-        println!("  ccr switch <name>     切换配置");
-        println!("  ccr add               添加新配置");
-        println!("  ccr delete <name>     删除配置");
-        println!("  ccr validate          验证配置");
-        println!("  ccr doctor            运行统一体检");
-        println!("  ccr optimize          优化配置文件结构");
-        println!("  ccr history           查看历史");
-        println!("  ccr export            导出配置");
-        println!("  ccr import <file>     导入配置");
-        println!("  ccr clean             清理旧备份");
-        println!("  ccr sync config       配置云端同步");
-        println!("  ccr sync push         上传配置到云端");
-        println!("  ccr sync push -i      交互式选择上传内容");
-        println!("  ccr sync pull         从云端下载配置");
-        println!("  ccr update            更新到最新版本");
+        ColorOutput::info("核心任务:");
+        println!("  平台切换: ccr platform list -> ccr platform switch <platform>");
+        println!("  Codex 账号: ccr codex auth current -> ccr codex auth switch <name>");
+        println!(
+            "  OpenCode 导入: ccr opencode auth import-codex --dry-run -> ccr opencode auth import-codex"
+        );
         println!();
 
-        ColorOutput::info("更多帮助: ccr --help");
+        ColorOutput::info("详细版本说明: ccr version --help");
     }
 }
 

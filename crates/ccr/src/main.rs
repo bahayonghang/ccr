@@ -25,7 +25,7 @@ mod cli;
 #[cfg(feature = "tui")]
 use ccr_core::init_file_only_logger;
 use ccr_core::init_logger;
-use clap::Parser;
+use clap::FromArgMatches;
 use cli::{Cli, CommandDispatcher};
 
 /// 🎯 主函数入口
@@ -38,7 +38,8 @@ use cli::{Cli, CommandDispatcher};
 #[tokio::main]
 async fn main() {
     // 📝 解析命令行参数（先解析以确定模式）
-    let cli = Cli::parse();
+    let matches = cli::build_cli_command().get_matches();
+    let cli = Cli::from_arg_matches(&matches).unwrap_or_else(|err| err.exit());
 
     // 🔧 根据模式初始化日志系统
     // TUI 模式下仅输出到文件，避免日志覆盖 TUI 界面
@@ -59,12 +60,9 @@ async fn main() {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use clap::CommandFactory;
-
     #[test]
     fn test_cli_parsing() {
         // 测试基本的 CLI 解析
-        Cli::command().debug_assert();
+        crate::cli::build_cli_command().debug_assert();
     }
 }

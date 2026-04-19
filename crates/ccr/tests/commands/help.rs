@@ -1,0 +1,87 @@
+#![allow(clippy::unwrap_used)]
+
+use std::process::Command;
+
+fn run_help(args: &[&str]) -> String {
+    let output = Command::new(env!("CARGO_BIN_EXE_ccr"))
+        .args(args)
+        .env("NO_COLOR", "1")
+        .env("CLICOLOR", "0")
+        .env("COLUMNS", "120")
+        .output()
+        .unwrap();
+
+    assert!(
+        output.status.success(),
+        "command failed: {:?}\nstdout:\n{}\nstderr:\n{}",
+        args,
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    String::from_utf8_lossy(&output.stdout).into_owned()
+}
+
+#[test]
+fn root_help_includes_guided_tasks() {
+    let stdout = run_help(&["--help"]);
+
+    assert!(stdout.contains("常用任务:"));
+    assert!(stdout.contains("切换平台"));
+    assert!(stdout.contains("切换 Codex Auth"));
+    assert!(stdout.contains("把 Codex 订阅导入 OpenCode"));
+}
+
+#[test]
+fn help_subcommand_matches_root_help() {
+    let direct_help = run_help(&["--help"]);
+    let help_command = run_help(&["help"]);
+
+    assert_eq!(help_command, direct_help);
+}
+
+#[test]
+fn help_subcommand_supports_nested_codex_auth_path() {
+    let direct_help = run_help(&["codex", "auth", "--help"]);
+    let help_command = run_help(&["help", "codex", "auth"]);
+
+    assert_eq!(help_command, direct_help);
+    assert!(help_command.contains("ccr.exe codex auth") || help_command.contains("ccr codex auth"));
+    assert!(help_command.contains("cli_auth_credentials_store = file"));
+}
+
+#[test]
+fn help_subcommand_supports_platform_path() {
+    let direct_help = run_help(&["platform", "--help"]);
+    let help_command = run_help(&["help", "platform"]);
+
+    assert_eq!(help_command, direct_help);
+    assert!(help_command.contains("ccr platform list"));
+    assert!(help_command.contains("ccr platform switch codex"));
+    assert!(help_command.contains("ccr platform current"));
+}
+
+#[test]
+fn opencode_auth_help_includes_preview_and_boundary() {
+    let stdout = run_help(&["opencode", "auth", "--help"]);
+
+    assert!(stdout.contains("import-codex --dry-run"));
+    assert!(stdout.contains("只迁移 ChatGPT OAuth 账号"));
+    assert!(stdout.contains("API key / provider 账号会跳过"));
+}
+
+#[test]
+fn version_flag_returns_short_version_output() {
+    let stdout = run_help(&["--version"]);
+
+    assert!(stdout.contains("5.9.4"));
+    assert!(!stdout.contains("常用入口"));
+}
+
+#[test]
+fn version_subcommand_reports_short_flag_usage_hint() {
+    let stdout = run_help(&["version", "--help"]);
+
+    assert!(stdout.contains("ccr --version"));
+    assert!(stdout.contains("ccr -V"));
+}

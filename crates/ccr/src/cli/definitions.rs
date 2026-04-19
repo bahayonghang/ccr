@@ -39,7 +39,6 @@ use clap::{Parser, Subcommand};
 
 {all-args}{after-help}",
     override_usage = "ccr [选项] [配置名称] [命令]",
-    disable_version_flag = true,
     disable_help_subcommand = true
 )]
 pub struct Cli {
@@ -83,11 +82,13 @@ pub enum Commands {
     /// 帮助子命令（美化版）
     ///
     /// 示例: ccr help            # 顶层帮助
-    ///       ccr help switch     # 指定子命令帮助
+    ///       ccr help platform   # 指定子命令帮助
+    ///       ccr help codex auth # 指定嵌套子命令帮助
     #[command(name = "help")]
     Help {
-        /// 可选：指定要查看帮助的子命令名称
-        subcmd: Option<String>,
+        /// 可选：指定要查看帮助的命令路径
+        #[arg(value_name = "COMMAND_PATH")]
+        path: Vec<String>,
     },
 
     /// 列出所有可用的配置方案
