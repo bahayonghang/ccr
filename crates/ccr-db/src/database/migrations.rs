@@ -2,7 +2,7 @@
 // Handles schema creation and data migration from legacy JSON files
 
 use chrono::{DateTime, Utc};
-use rusqlite::Connection;
+use rusqlite::{Connection, params};
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::Path;
@@ -977,6 +977,118 @@ pub fn run_migration_v10(conn: &Connection) -> MigrationResult<()> {
     Ok(())
 }
 
+/// Run migration v11: extend usage archive metadata and durable checkpoint/session tables
+pub fn run_migration_v11(conn: &Connection) -> MigrationResult<()> {
+    if is_migration_applied(conn, 11)? {
+        debug!("Migration v11 already applied, skipping");
+        return Ok(());
+    }
+
+    info!("Running migration v11: usage archive durability tables");
+
+    if !table_has_column(conn, "usage_sources", "source_state")? {
+        conn.execute(
+            "ALTER TABLE usage_sources ADD COLUMN source_state TEXT NOT NULL DEFAULT 'live'",
+            [],
+        )
+        .map_err(|e| MigrationError::Database(e.to_string()))?;
+    }
+    if !table_has_column(conn, "usage_sources", "file_size")? {
+        conn.execute("ALTER TABLE usage_sources ADD COLUMN file_size INTEGER", [])
+            .map_err(|e| MigrationError::Database(e.to_string()))?;
+    }
+    if !table_has_column(conn, "usage_sources", "modified_at")? {
+        conn.execute("ALTER TABLE usage_sources ADD COLUMN modified_at TEXT", [])
+            .map_err(|e| MigrationError::Database(e.to_string()))?;
+    }
+    if !table_has_column(conn, "usage_sources", "last_seen_at")? {
+        conn.execute("ALTER TABLE usage_sources ADD COLUMN last_seen_at TEXT", [])
+            .map_err(|e| MigrationError::Database(e.to_string()))?;
+    }
+    if !table_has_column(conn, "usage_sources", "raw_deleted_at")? {
+        conn.execute(
+            "ALTER TABLE usage_sources ADD COLUMN raw_deleted_at TEXT",
+            [],
+        )
+        .map_err(|e| MigrationError::Database(e.to_string()))?;
+    }
+
+    conn.execute_batch(
+        "CREATE INDEX IF NOT EXISTS idx_usage_sources_platform_state
+             ON usage_sources (platform, source_state);
+
+         CREATE TABLE IF NOT EXISTS usage_history_cursor (
+             platform TEXT PRIMARY KEY,
+             recent_window_days INTEGER NOT NULL DEFAULT 30,
+             last_history_file_path TEXT,
+             last_history_file_modified_at TEXT,
+             last_history_offset INTEGER NOT NULL DEFAULT 0,
+             recent_completed_at TEXT,
+             history_completed_at TEXT,
+             updated_at TEXT NOT NULL
+         );
+
+         CREATE TABLE IF NOT EXISTS usage_codex_checkpoint (
+             source_id TEXT PRIMARY KEY,
+             session_id TEXT NOT NULL,
+             project_path TEXT NOT NULL,
+             model TEXT,
+             last_line_number INTEGER NOT NULL DEFAULT 0,
+             input_tokens INTEGER NOT NULL DEFAULT 0,
+             cached_input_tokens INTEGER NOT NULL DEFAULT 0,
+             output_tokens INTEGER NOT NULL DEFAULT 0,
+             prefers_turn_completed INTEGER NOT NULL DEFAULT 0,
+             updated_at TEXT NOT NULL
+         );
+
+         CREATE TABLE IF NOT EXISTS usage_session_archive (
+             archive_id TEXT PRIMARY KEY,
+             session_id TEXT NOT NULL,
+             platform TEXT NOT NULL,
+             title TEXT,
+             cwd TEXT NOT NULL,
+             file_path TEXT NOT NULL,
+             file_hash TEXT,
+             message_count INTEGER NOT NULL DEFAULT 0,
+             created_at TEXT NOT NULL,
+             updated_at TEXT NOT NULL,
+             source_state TEXT NOT NULL DEFAULT 'live',
+             last_seen_at TEXT,
+             raw_deleted_at TEXT,
+             archived_at TEXT NOT NULL
+         );
+
+         CREATE UNIQUE INDEX IF NOT EXISTS idx_usage_session_archive_file_path
+             ON usage_session_archive (file_path);
+         CREATE INDEX IF NOT EXISTS idx_usage_session_archive_platform_created_at
+             ON usage_session_archive (platform, created_at DESC);
+         CREATE INDEX IF NOT EXISTS idx_usage_session_archive_platform_state
+             ON usage_session_archive (platform, source_state);",
+    )
+    .map_err(|e| MigrationError::Database(e.to_string()))?;
+
+    let now = Utc::now().to_rfc3339();
+    conn.execute(
+        INSERT_MIGRATION_SQL,
+        params![11, "usage_archive_durability_tables", now],
+    )
+    .map_err(|e| MigrationError::Database(e.to_string()))?;
+
+    info!("Migration v11 completed successfully");
+    Ok(())
+}
+
+fn table_exists(conn: &Connection, table_name: &str) -> MigrationResult<bool> {
+    let count: i64 = conn
+        .query_row(
+            "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = ?1",
+            [table_name],
+            |row| row.get(0),
+        )
+        .map_err(|e| MigrationError::Database(e.to_string()))?;
+    Ok(count > 0)
+}
+
 /// Run all migrations (schema + legacy data import)
 /// This is the main entry point called during initialization
 pub fn run_all_migrations(conn: &Connection, home_dir: &Path) -> MigrationResult<()> {
@@ -1010,6 +1122,9 @@ pub fn run_all_migrations(conn: &Connection, home_dir: &Path) -> MigrationResult
     // Step 1.13: Run v10 migration (drop raw_response from checkin_balances)
     run_migration_v10(conn)?;
 
+    // Step 1.14: Run v11 migration (usage archive durability tables)
+    run_migration_v11(conn)?;
+
     // Step 2: Import legacy data if not done and files exist
     if !is_legacy_migration_done(conn)? {
         if has_legacy_data(home_dir) {
@@ -1037,11 +1152,442 @@ pub fn run_all_migrations(conn: &Connection, home_dir: &Path) -> MigrationResult
     Ok(())
 }
 
+pub fn migrate_usage_archive_from_legacy_dbs(
+    conn: &Connection,
+    home_dir: &Path,
+    legacy_ui_db_path: &Path,
+) -> MigrationResult<()> {
+    const LEGACY_USAGE_IMPORT_VERSION: i32 = 1001;
+    const LEGACY_SESSION_SEED_VERSION: i32 = 1002;
+
+    /*
+     * ========================================================================
+     * 步骤1：迁移旧 ccr-ui usage 数据
+     * ========================================================================
+     * 目标：
+     * 1) 将 ~/.ccr-ui/ccr-ui.db 中既有的 usage 表搬迁到新的 archive 库
+     * 2) 仅迁移 usage 相关表，不触碰旧库中的其他 UI/checkin/ssh 数据
+     */
+    info!("开始迁移旧 usage archive 数据...");
+    if !is_migration_applied(conn, LEGACY_USAGE_IMPORT_VERSION)? {
+        if legacy_ui_db_path.exists() {
+            let legacy_conn = Connection::open(legacy_ui_db_path)
+                .map_err(|e| MigrationError::Database(e.to_string()))?;
+
+            if table_exists(&legacy_conn, "usage_sources")? {
+                let tx = conn
+                    .unchecked_transaction()
+                    .map_err(|e| MigrationError::Database(e.to_string()))?;
+
+                {
+                    let mut stmt = legacy_conn
+                        .prepare(
+                            "SELECT id, platform, file_path, file_hash, last_offset, updated_at
+                             FROM usage_sources",
+                        )
+                        .map_err(|e| MigrationError::Database(e.to_string()))?;
+                    let rows = stmt
+                        .query_map([], |row| {
+                            Ok((
+                                row.get::<_, String>(0)?,
+                                row.get::<_, String>(1)?,
+                                row.get::<_, String>(2)?,
+                                row.get::<_, String>(3)?,
+                                row.get::<_, i64>(4)?,
+                                row.get::<_, String>(5)?,
+                            ))
+                        })
+                        .map_err(|e| MigrationError::Database(e.to_string()))?;
+
+                    for row in rows {
+                        let (id, platform, file_path, file_hash, last_offset, updated_at) =
+                            row.map_err(|e| MigrationError::Database(e.to_string()))?;
+                        tx.execute(
+                            "INSERT OR IGNORE INTO usage_sources (
+                                id, platform, file_path, file_hash, last_offset,
+                                source_state, file_size, modified_at, last_seen_at, raw_deleted_at, updated_at
+                             ) VALUES (?1, ?2, ?3, ?4, ?5, 'live', NULL, NULL, ?6, NULL, ?6)",
+                            params![id, platform, file_path, file_hash, last_offset, updated_at],
+                        )
+                        .map_err(|e| MigrationError::Database(e.to_string()))?;
+                    }
+                }
+
+                if table_exists(&legacy_conn, "usage_records")? {
+                    let mut stmt = legacy_conn
+                        .prepare(
+                            "SELECT id, platform, project_path, record_json, recorded_at, source_id,
+                                    model, input_tokens, output_tokens, cache_read_tokens, cost_usd
+                             FROM usage_records",
+                        )
+                        .map_err(|e| MigrationError::Database(e.to_string()))?;
+                    let rows = stmt
+                        .query_map([], |row| {
+                            Ok((
+                                row.get::<_, String>(0)?,
+                                row.get::<_, String>(1)?,
+                                row.get::<_, String>(2)?,
+                                row.get::<_, String>(3)?,
+                                row.get::<_, String>(4)?,
+                                row.get::<_, String>(5)?,
+                                row.get::<_, Option<String>>(6)?,
+                                row.get::<_, i64>(7).unwrap_or(0),
+                                row.get::<_, i64>(8).unwrap_or(0),
+                                row.get::<_, i64>(9).unwrap_or(0),
+                                row.get::<_, f64>(10).unwrap_or(0.0),
+                            ))
+                        })
+                        .map_err(|e| MigrationError::Database(e.to_string()))?;
+
+                    for row in rows {
+                        let (
+                            id,
+                            platform,
+                            project_path,
+                            record_json,
+                            recorded_at,
+                            source_id,
+                            model,
+                            input_tokens,
+                            output_tokens,
+                            cache_read_tokens,
+                            cost_usd,
+                        ) = row.map_err(|e| MigrationError::Database(e.to_string()))?;
+                        tx.execute(
+                            "INSERT OR IGNORE INTO usage_records (
+                                id, platform, project_path, record_json, recorded_at, source_id,
+                                model, input_tokens, output_tokens, cache_read_tokens, cost_usd
+                             ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
+                            params![
+                                id,
+                                platform,
+                                project_path,
+                                record_json,
+                                recorded_at,
+                                source_id,
+                                model,
+                                input_tokens,
+                                output_tokens,
+                                cache_read_tokens,
+                                cost_usd
+                            ],
+                        )
+                        .map_err(|e| MigrationError::Database(e.to_string()))?;
+                    }
+                }
+
+                if table_exists(&legacy_conn, "usage_daily_agg")? {
+                    let mut stmt = legacy_conn
+                        .prepare(
+                            "SELECT date, platform, request_count, input_tokens, output_tokens, cache_read_tokens, cost_usd
+                             FROM usage_daily_agg",
+                        )
+                        .map_err(|e| MigrationError::Database(e.to_string()))?;
+                    let rows = stmt
+                        .query_map([], |row| {
+                            Ok((
+                                row.get::<_, String>(0)?,
+                                row.get::<_, String>(1)?,
+                                row.get::<_, i64>(2)?,
+                                row.get::<_, i64>(3)?,
+                                row.get::<_, i64>(4)?,
+                                row.get::<_, i64>(5)?,
+                                row.get::<_, f64>(6)?,
+                            ))
+                        })
+                        .map_err(|e| MigrationError::Database(e.to_string()))?;
+
+                    for row in rows {
+                        let (
+                            date,
+                            platform,
+                            request_count,
+                            input_tokens,
+                            output_tokens,
+                            cache_read_tokens,
+                            cost_usd,
+                        ) = row.map_err(|e| MigrationError::Database(e.to_string()))?;
+                        tx.execute(
+                            "INSERT OR IGNORE INTO usage_daily_agg (
+                                date, platform, request_count, input_tokens, output_tokens, cache_read_tokens, cost_usd
+                             ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+                            params![
+                                date,
+                                platform,
+                                request_count,
+                                input_tokens,
+                                output_tokens,
+                                cache_read_tokens,
+                                cost_usd
+                            ],
+                        )
+                        .map_err(|e| MigrationError::Database(e.to_string()))?;
+                    }
+                }
+
+                tx.commit()
+                    .map_err(|e| MigrationError::Database(e.to_string()))?;
+            }
+        }
+
+        conn.execute(
+            INSERT_MIGRATION_SQL,
+            params![
+                LEGACY_USAGE_IMPORT_VERSION,
+                "usage_archive_import_from_legacy_ui_db",
+                Utc::now().to_rfc3339()
+            ],
+        )
+        .map_err(|e| MigrationError::Database(e.to_string()))?;
+    }
+    info!("旧 usage archive 数据迁移完成");
+
+    /*
+     * ========================================================================
+     * 步骤2：播种最小 session 摘要归档
+     * ========================================================================
+     * 目标：
+     * 1) 从 ~/.ccr/data.db 的 sessions 表恢复最小 session 摘要
+     * 2) 为首页概览提供 durable archive，不再依赖原始 session 文件仍然存在
+     */
+    info!("开始播种 session 摘要归档...");
+    if !is_migration_applied(conn, LEGACY_SESSION_SEED_VERSION)? {
+        let session_db_path = home_dir.join(".ccr").join("data.db");
+        if session_db_path.exists() {
+            let session_conn = Connection::open(&session_db_path)
+                .map_err(|e| MigrationError::Database(e.to_string()))?;
+
+            if table_exists(&session_conn, "sessions")? {
+                let archived_at = Utc::now().to_rfc3339();
+                let tx = conn
+                    .unchecked_transaction()
+                    .map_err(|e| MigrationError::Database(e.to_string()))?;
+                let mut stmt = session_conn
+                    .prepare(
+                        "SELECT id, platform, title, cwd, file_path, file_hash, created_at, updated_at, message_count, indexed_at
+                         FROM sessions",
+                    )
+                    .map_err(|e| MigrationError::Database(e.to_string()))?;
+                let rows = stmt
+                    .query_map([], |row| {
+                        Ok((
+                            row.get::<_, String>(0)?,
+                            row.get::<_, String>(1)?,
+                            row.get::<_, Option<String>>(2)?,
+                            row.get::<_, String>(3)?,
+                            row.get::<_, String>(4)?,
+                            row.get::<_, String>(5)?,
+                            row.get::<_, String>(6)?,
+                            row.get::<_, String>(7)?,
+                            row.get::<_, i64>(8)?,
+                            row.get::<_, String>(9)?,
+                        ))
+                    })
+                    .map_err(|e| MigrationError::Database(e.to_string()))?;
+
+                for row in rows {
+                    let (
+                        session_id,
+                        platform,
+                        title,
+                        cwd,
+                        file_path,
+                        file_hash,
+                        created_at,
+                        updated_at,
+                        message_count,
+                        indexed_at,
+                    ) = row.map_err(|e| MigrationError::Database(e.to_string()))?;
+                    let source_state = if Path::new(&file_path).exists() {
+                        "live"
+                    } else {
+                        "missing"
+                    };
+                    let raw_deleted_at = if source_state == "missing" {
+                        Some(Utc::now().to_rfc3339())
+                    } else {
+                        None
+                    };
+
+                    tx.execute(
+                        "INSERT OR IGNORE INTO usage_session_archive (
+                            archive_id, session_id, platform, title, cwd, file_path, file_hash,
+                            message_count, created_at, updated_at, source_state, last_seen_at, raw_deleted_at, archived_at
+                         ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14)",
+                        params![
+                            format!("{platform}:{session_id}:{file_path}"),
+                            session_id,
+                            platform,
+                            title,
+                            cwd,
+                            file_path,
+                            file_hash,
+                            message_count,
+                            created_at,
+                            updated_at,
+                            source_state,
+                            indexed_at,
+                            raw_deleted_at,
+                            archived_at
+                        ],
+                    )
+                    .map_err(|e| MigrationError::Database(e.to_string()))?;
+                }
+
+                tx.commit()
+                    .map_err(|e| MigrationError::Database(e.to_string()))?;
+            }
+        }
+
+        conn.execute(
+            INSERT_MIGRATION_SQL,
+            params![
+                LEGACY_SESSION_SEED_VERSION,
+                "usage_session_archive_seed_from_ccr_store",
+                Utc::now().to_rfc3339()
+            ],
+        )
+        .map_err(|e| MigrationError::Database(e.to_string()))?;
+    }
+    info!("session 摘要归档播种完成");
+
+    Ok(())
+}
+
 #[cfg(test)]
 #[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
     use rusqlite::Connection;
+    use std::fs;
+    use tempfile::TempDir;
+
+    fn create_legacy_usage_db(path: &Path) {
+        if let Some(parent) = path.parent() {
+            fs::create_dir_all(parent).unwrap();
+        }
+
+        let conn = Connection::open(path).unwrap();
+        conn.execute_batch(
+            "CREATE TABLE usage_sources (
+                 id TEXT PRIMARY KEY,
+                 platform TEXT NOT NULL,
+                 file_path TEXT NOT NULL,
+                 file_hash TEXT NOT NULL,
+                 last_offset INTEGER NOT NULL DEFAULT 0,
+                 updated_at TEXT NOT NULL
+             );
+             CREATE TABLE usage_records (
+                 id TEXT PRIMARY KEY,
+                 platform TEXT NOT NULL,
+                 project_path TEXT NOT NULL,
+                 record_json TEXT NOT NULL,
+                 recorded_at TEXT NOT NULL,
+                 source_id TEXT NOT NULL,
+                 model TEXT,
+                 input_tokens INTEGER DEFAULT 0,
+                 output_tokens INTEGER DEFAULT 0,
+                 cache_read_tokens INTEGER DEFAULT 0,
+                 cost_usd REAL DEFAULT 0
+             );
+             CREATE TABLE usage_daily_agg (
+                 date TEXT NOT NULL,
+                 platform TEXT NOT NULL,
+                 request_count INTEGER DEFAULT 0,
+                 input_tokens INTEGER DEFAULT 0,
+                 output_tokens INTEGER DEFAULT 0,
+                 cache_read_tokens INTEGER DEFAULT 0,
+                 cost_usd REAL DEFAULT 0,
+                 PRIMARY KEY (date, platform)
+             );",
+        )
+        .unwrap();
+
+        let now = Utc::now().to_rfc3339();
+        conn.execute(
+            "INSERT INTO usage_sources (id, platform, file_path, file_hash, last_offset, updated_at)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+            params![
+                "legacy-source-1",
+                "codex",
+                "C:/tmp/legacy-rollout.jsonl",
+                "hash-legacy",
+                256_i64,
+                now
+            ],
+        )
+        .unwrap();
+        conn.execute(
+            "INSERT INTO usage_records (
+                id, platform, project_path, record_json, recorded_at, source_id,
+                model, input_tokens, output_tokens, cache_read_tokens, cost_usd
+             ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
+            params![
+                "legacy-record-1",
+                "codex",
+                "D:/Documents/Code/Github/ccr",
+                "{\"model\":\"gpt-5.4\"}",
+                Utc::now().to_rfc3339(),
+                "legacy-source-1",
+                "gpt-5.4",
+                120_i64,
+                40_i64,
+                20_i64,
+                1.25_f64
+            ],
+        )
+        .unwrap();
+        conn.execute(
+            "INSERT INTO usage_daily_agg (
+                date, platform, request_count, input_tokens, output_tokens, cache_read_tokens, cost_usd
+             ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+            params!["2026-04-20", "codex", 1_i64, 120_i64, 40_i64, 20_i64, 1.25_f64],
+        )
+        .unwrap();
+    }
+
+    fn create_legacy_session_store(path: &Path) {
+        if let Some(parent) = path.parent() {
+            fs::create_dir_all(parent).unwrap();
+        }
+
+        let conn = Connection::open(path).unwrap();
+        conn.execute_batch(
+            "CREATE TABLE sessions (
+                 id TEXT PRIMARY KEY,
+                 platform TEXT NOT NULL,
+                 title TEXT,
+                 cwd TEXT NOT NULL,
+                 file_path TEXT NOT NULL,
+                 file_hash TEXT NOT NULL,
+                 created_at TEXT NOT NULL,
+                 updated_at TEXT NOT NULL,
+                 message_count INTEGER NOT NULL DEFAULT 0,
+                 indexed_at TEXT NOT NULL
+             );",
+        )
+        .unwrap();
+
+        let now = Utc::now().to_rfc3339();
+        conn.execute(
+            "INSERT INTO sessions (
+                id, platform, title, cwd, file_path, file_hash, created_at, updated_at, message_count, indexed_at
+             ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
+            params![
+                "session-1",
+                "codex",
+                "Archived Codex Session",
+                "D:/Documents/Code/Github/ccr",
+                "C:/tmp/deleted-session.jsonl",
+                "file-hash-1",
+                now,
+                now,
+                7_i64,
+                now
+            ],
+        )
+        .unwrap();
+    }
 
     #[test]
     fn test_initial_migration() {
@@ -1271,5 +1817,82 @@ mod tests {
             )
             .unwrap();
         assert_eq!(count, 1);
+    }
+
+    #[test]
+    fn test_migrate_usage_archive_from_legacy_dbs_is_idempotent() {
+        let home = TempDir::new().unwrap();
+        let legacy_ui_db_path = home.path().join(".ccr-ui").join("ccr-ui.db");
+        let legacy_session_db_path = home.path().join(".ccr").join("data.db");
+        create_legacy_usage_db(&legacy_ui_db_path);
+        create_legacy_session_store(&legacy_session_db_path);
+
+        let archive_conn = Connection::open_in_memory().unwrap();
+        run_all_migrations(&archive_conn, home.path()).unwrap();
+
+        migrate_usage_archive_from_legacy_dbs(&archive_conn, home.path(), &legacy_ui_db_path)
+            .unwrap();
+        migrate_usage_archive_from_legacy_dbs(&archive_conn, home.path(), &legacy_ui_db_path)
+            .unwrap();
+
+        let usage_source_count: i64 = archive_conn
+            .query_row("SELECT COUNT(*) FROM usage_sources", [], |row| row.get(0))
+            .unwrap();
+        let usage_record_count: i64 = archive_conn
+            .query_row("SELECT COUNT(*) FROM usage_records", [], |row| row.get(0))
+            .unwrap();
+        let usage_daily_count: i64 = archive_conn
+            .query_row("SELECT COUNT(*) FROM usage_daily_agg", [], |row| row.get(0))
+            .unwrap();
+        let session_archive_count: i64 = archive_conn
+            .query_row("SELECT COUNT(*) FROM usage_session_archive", [], |row| {
+                row.get(0)
+            })
+            .unwrap();
+        let source_state: String = archive_conn
+            .query_row(
+                "SELECT source_state FROM usage_sources WHERE id = 'legacy-source-1'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        let session_state: String = archive_conn
+            .query_row(
+                "SELECT source_state FROM usage_session_archive WHERE session_id = 'session-1'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        let session_deleted_at: Option<String> = archive_conn
+            .query_row(
+                "SELECT raw_deleted_at FROM usage_session_archive WHERE session_id = 'session-1'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        let usage_marker_count: i64 = archive_conn
+            .query_row(
+                "SELECT COUNT(*) FROM migrations WHERE version = 1001",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        let session_marker_count: i64 = archive_conn
+            .query_row(
+                "SELECT COUNT(*) FROM migrations WHERE version = 1002",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+
+        assert_eq!(usage_source_count, 1);
+        assert_eq!(usage_record_count, 1);
+        assert_eq!(usage_daily_count, 1);
+        assert_eq!(session_archive_count, 1);
+        assert_eq!(source_state, "live");
+        assert_eq!(session_state, "missing");
+        assert!(session_deleted_at.is_some());
+        assert_eq!(usage_marker_count, 1);
+        assert_eq!(session_marker_count, 1);
     }
 }

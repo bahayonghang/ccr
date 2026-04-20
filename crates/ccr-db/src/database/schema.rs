@@ -1,10 +1,10 @@
 // Database schema definitions for unified SQLite storage
-// Schema version: 10
+// Schema version: 11
 // See: openspec/changes/add-unified-sqlite-storage/proposal.md
 
 /// Current schema version for migration tracking
 #[allow(dead_code)]
-pub const SCHEMA_VERSION: i32 = 10;
+pub const SCHEMA_VERSION: i32 = 11;
 
 /// Database file path relative to user home directory
 pub const DB_RELATIVE_PATH: &str = ".ccr-ui/ccr-ui.db";
@@ -172,6 +172,11 @@ CREATE TABLE IF NOT EXISTS usage_sources (
     file_path TEXT NOT NULL,
     file_hash TEXT NOT NULL,
     last_offset INTEGER NOT NULL,
+    source_state TEXT NOT NULL DEFAULT 'live',
+    file_size INTEGER,
+    modified_at TEXT,
+    last_seen_at TEXT,
+    raw_deleted_at TEXT,
     updated_at TEXT NOT NULL
 );
 
@@ -180,6 +185,9 @@ CREATE INDEX IF NOT EXISTS idx_usage_sources_platform
 
 CREATE INDEX IF NOT EXISTS idx_usage_sources_file_path
     ON usage_sources (file_path);
+
+CREATE INDEX IF NOT EXISTS idx_usage_sources_platform_state
+    ON usage_sources (platform, source_state);
 
 -- Usage Records: individual usage entries
 CREATE TABLE IF NOT EXISTS usage_records (
@@ -225,6 +233,59 @@ CREATE TABLE IF NOT EXISTS usage_daily_agg (
     cost_usd REAL DEFAULT 0,
     PRIMARY KEY (date, platform)
 );
+
+-- Usage History Cursor: persistent recent/history progress markers
+CREATE TABLE IF NOT EXISTS usage_history_cursor (
+    platform TEXT PRIMARY KEY,
+    recent_window_days INTEGER NOT NULL DEFAULT 30,
+    last_history_file_path TEXT,
+    last_history_file_modified_at TEXT,
+    last_history_offset INTEGER NOT NULL DEFAULT 0,
+    recent_completed_at TEXT,
+    history_completed_at TEXT,
+    updated_at TEXT NOT NULL
+);
+
+-- Usage Codex Checkpoint: avoids rebuilding append checkpoints from usage_records
+CREATE TABLE IF NOT EXISTS usage_codex_checkpoint (
+    source_id TEXT PRIMARY KEY,
+    session_id TEXT NOT NULL,
+    project_path TEXT NOT NULL,
+    model TEXT,
+    last_line_number INTEGER NOT NULL DEFAULT 0,
+    input_tokens INTEGER NOT NULL DEFAULT 0,
+    cached_input_tokens INTEGER NOT NULL DEFAULT 0,
+    output_tokens INTEGER NOT NULL DEFAULT 0,
+    prefers_turn_completed INTEGER NOT NULL DEFAULT 0,
+    updated_at TEXT NOT NULL
+);
+
+-- Usage Session Archive: durable minimal session summaries for home usage overview
+CREATE TABLE IF NOT EXISTS usage_session_archive (
+    archive_id TEXT PRIMARY KEY,
+    session_id TEXT NOT NULL,
+    platform TEXT NOT NULL,
+    title TEXT,
+    cwd TEXT NOT NULL,
+    file_path TEXT NOT NULL,
+    file_hash TEXT,
+    message_count INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    source_state TEXT NOT NULL DEFAULT 'live',
+    last_seen_at TEXT,
+    raw_deleted_at TEXT,
+    archived_at TEXT NOT NULL
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_usage_session_archive_file_path
+    ON usage_session_archive (file_path);
+
+CREATE INDEX IF NOT EXISTS idx_usage_session_archive_platform_created_at
+    ON usage_session_archive (platform, created_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_usage_session_archive_platform_state
+    ON usage_session_archive (platform, source_state);
 
 -- 鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺愨晲鈺?
 -- SSH Host Management Tables

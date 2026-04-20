@@ -16,6 +16,19 @@ use crate::core::error::DbError;
 /// 全局连接池单例
 static GLOBAL_POOL: OnceLock<DbPool> = OnceLock::new();
 
+fn resolve_ccr_root() -> Result<PathBuf, DbError> {
+    if let Ok(custom_root) = std::env::var("CCR_DATA_DIR") {
+        return Ok(PathBuf::from(custom_root));
+    }
+
+    if let Ok(custom_root) = std::env::var("CCR_ROOT") {
+        return Ok(PathBuf::from(custom_root));
+    }
+
+    let home = dirs::home_dir().ok_or(DbError::HomeDirNotFound)?;
+    Ok(home.join(".ccr"))
+}
+
 /// 获取数据库文件路径: `~/.ccr-ui/ccr-ui.db`
 pub fn get_db_path() -> Result<PathBuf, DbError> {
     let home = dirs::home_dir().ok_or(DbError::HomeDirNotFound)?;
@@ -24,6 +37,17 @@ pub fn get_db_path() -> Result<PathBuf, DbError> {
         std::fs::create_dir_all(&db_dir).map_err(|e| DbError::DirectoryCreation(e.to_string()))?;
     }
     Ok(db_dir.join("ccr-ui.db"))
+}
+
+/// 获取 usage analytics 数据库文件路径: `~/.ccr/analytics/usage.db`
+pub fn get_usage_archive_db_path() -> Result<PathBuf, DbError> {
+    let ccr_root = resolve_ccr_root()?;
+    let analytics_dir = ccr_root.join("analytics");
+    if !analytics_dir.exists() {
+        std::fs::create_dir_all(&analytics_dir)
+            .map_err(|e| DbError::DirectoryCreation(e.to_string()))?;
+    }
+    Ok(analytics_dir.join("usage.db"))
 }
 
 /// 初始化全局连接池并运行迁移
@@ -55,6 +79,25 @@ pub fn create_app_pool() -> Result<DbPool, DbError> {
     let conn = pool.get().map_err(|e| DbError::PoolGet(e.to_string()))?;
     let home_dir = dirs::home_dir().ok_or(DbError::HomeDirNotFound)?;
     migrations::run_all_migrations(&conn, &home_dir)
+        .map_err(|e| DbError::Migration(e.to_string()))?;
+
+    Ok(pool)
+}
+
+/// 创建 usage analytics 连接池实例（用于 durable archive / usage 查询）
+pub fn create_usage_archive_pool() -> Result<DbPool, DbError> {
+    let db_path = get_usage_archive_db_path()?;
+    let config = PoolConfig {
+        max_size: 8,
+        ..Default::default()
+    };
+    let pool = pool::create_pool(&db_path, Some(config))?;
+
+    let conn = pool.get().map_err(|e| DbError::PoolGet(e.to_string()))?;
+    let home_dir = dirs::home_dir().ok_or(DbError::HomeDirNotFound)?;
+    migrations::run_all_migrations(&conn, &home_dir)
+        .map_err(|e| DbError::Migration(e.to_string()))?;
+    migrations::migrate_usage_archive_from_legacy_dbs(&conn, &home_dir, &get_db_path()?)
         .map_err(|e| DbError::Migration(e.to_string()))?;
 
     Ok(pool)

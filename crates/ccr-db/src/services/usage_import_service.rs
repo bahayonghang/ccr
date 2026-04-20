@@ -15,7 +15,7 @@ use tracing::{debug, info, warn};
 use uuid::Uuid;
 use walkdir::WalkDir;
 
-use crate::database::{self, repositories::usage_repo};
+use crate::database::{self, pool::DbPool, repositories::usage_repo};
 
 /// Import configuration
 #[derive(Debug, Clone)]
@@ -49,6 +49,7 @@ pub struct ImportResult {
 /// Usage import service
 pub struct UsageImportService {
     config: ImportConfig,
+    db_pool: DbPool,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -85,7 +86,22 @@ struct GeminiTokenUsage {
 
 impl UsageImportService {
     pub fn new(config: ImportConfig) -> Self {
-        Self { config }
+        let db_pool = database::get_pool()
+            .cloned()
+            .expect("UsageImportService requires initialized database pool");
+        Self { config, db_pool }
+    }
+
+    pub fn with_pool(config: ImportConfig, db_pool: DbPool) -> Self {
+        Self { config, db_pool }
+    }
+
+    fn with_connection<F, T>(&self, f: F) -> Result<T, String>
+    where
+        F: FnOnce(&rusqlite::Connection) -> Result<T, rusqlite::Error>,
+    {
+        let conn = self.db_pool.get().map_err(|e| e.to_string())?;
+        f(&conn).map_err(|e| e.to_string())
     }
 
     pub fn list_usage_files(&self, platform: &str) -> Result<Vec<PathBuf>, String> {
@@ -134,19 +150,18 @@ impl UsageImportService {
     /// Delete imported records and checkpoints for all sources of a platform.
     pub fn reset_platform_sources(&self, platform: &str) -> Result<(usize, usize), String> {
         let sources =
-            database::with_connection(|conn| usage_repo::get_sources_by_platform(conn, platform))
-                .map_err(|e| e.to_string())?;
+            self.with_connection(|conn| usage_repo::get_sources_by_platform(conn, platform))?;
 
         let mut deleted_sources = 0usize;
         let mut deleted_records = 0usize;
 
         for source in sources {
-            let removed_records = database::with_connection(|conn| {
+            let removed_records = self.with_connection(|conn| {
                 let removed_records = usage_repo::delete_records_by_source(conn, &source.id)?;
+                let _ = usage_repo::delete_codex_checkpoint(conn, &source.id)?;
                 let _ = usage_repo::delete_source(conn, &source.id)?;
                 Ok::<usize, rusqlite::Error>(removed_records)
-            })
-            .map_err(|e| e.to_string())?;
+            })?;
 
             deleted_sources += 1;
             deleted_records += removed_records;
@@ -228,8 +243,7 @@ impl UsageImportService {
 
         // Check if we have a source record for this file
         let existing_source =
-            database::with_connection(|conn| usage_repo::get_source_by_path(conn, &file_path_str))
-                .map_err(|e| e.to_string())?;
+            self.with_connection(|conn| usage_repo::get_source_by_path(conn, &file_path_str))?;
 
         let mut codex_append_checkpoint = None;
         let (source_id, start_offset) = match existing_source {
@@ -237,10 +251,12 @@ impl UsageImportService {
                 if is_codex {
                     if current_file_size < source.last_offset {
                         debug!("Codex session shrank, re-importing: {:?}", file_path);
-                        database::with_connection(|conn| {
+                        self.with_connection(|conn| {
                             usage_repo::delete_records_by_source(conn, &source.id)
-                        })
-                        .map_err(|e| e.to_string())?;
+                        })?;
+                        self.with_connection(|conn| {
+                            usage_repo::delete_codex_checkpoint(conn, &source.id).map(|_| ())
+                        })?;
                         (source.id, 0i64)
                     } else if current_file_size == source.last_offset {
                         if source.file_hash == current_hash {
@@ -250,10 +266,12 @@ impl UsageImportService {
                             "Codex session changed in-place, re-importing: {:?}",
                             file_path
                         );
-                        database::with_connection(|conn| {
+                        self.with_connection(|conn| {
                             usage_repo::delete_records_by_source(conn, &source.id)
-                        })
-                        .map_err(|e| e.to_string())?;
+                        })?;
+                        self.with_connection(|conn| {
+                            usage_repo::delete_codex_checkpoint(conn, &source.id).map(|_| ())
+                        })?;
                         (source.id, 0i64)
                     } else {
                         let stable_prefix_len =
@@ -271,10 +289,12 @@ impl UsageImportService {
                                 "Codex session prefix changed, re-importing from start: {:?}",
                                 file_path
                             );
-                            database::with_connection(|conn| {
+                            self.with_connection(|conn| {
                                 usage_repo::delete_records_by_source(conn, &source.id)
-                            })
-                            .map_err(|e| e.to_string())?;
+                            })?;
+                            self.with_connection(|conn| {
+                                usage_repo::delete_codex_checkpoint(conn, &source.id).map(|_| ())
+                            })?;
                             (source.id, 0i64)
                         }
                     }
@@ -287,18 +307,16 @@ impl UsageImportService {
                         "Session file changed, re-importing from start: {:?}",
                         file_path
                     );
-                    database::with_connection(|conn| {
+                    self.with_connection(|conn| {
                         usage_repo::delete_records_by_source(conn, &source.id)
-                    })
-                    .map_err(|e| e.to_string())?;
+                    })?;
                     (source.id, 0i64)
                 } else if source.file_hash != current_hash {
                     // File changed, need to re-import from beginning
                     debug!("File hash changed, re-importing: {:?}", file_path);
-                    database::with_connection(|conn| {
+                    self.with_connection(|conn| {
                         usage_repo::delete_records_by_source(conn, &source.id)
-                    })
-                    .map_err(|e| e.to_string())?;
+                    })?;
                     (source.id, 0i64)
                 } else {
                     // Claude/Gemini: continue from last offset
@@ -352,8 +370,9 @@ impl UsageImportService {
 
         if !records.is_empty() {
             // Insert records into database
-            database::with_connection(|conn| usage_repo::insert_records_batch(conn, &records))
-                .map_err(|e| e.to_string())?;
+            self.with_connection(|conn| {
+                usage_repo::insert_records_batch(conn, &records).map(|_| ())
+            })?;
         }
 
         // Update source record
@@ -363,11 +382,22 @@ impl UsageImportService {
             file_path: file_path_str,
             file_hash: current_hash,
             last_offset: new_offset,
+            source_state: usage_repo::UsageSourceState::Live,
+            file_size: Some(current_file_size),
+            modified_at: std::fs::metadata(file_path)
+                .ok()
+                .and_then(|meta| meta.modified().ok())
+                .map(DateTime::<Utc>::from),
+            last_seen_at: Some(Utc::now()),
+            raw_deleted_at: None,
             updated_at: Utc::now(),
         };
 
-        database::with_connection(|conn| usage_repo::upsert_source(conn, &source))
-            .map_err(|e| e.to_string())?;
+        self.with_connection(|conn| usage_repo::upsert_source(conn, &source))?;
+
+        if is_codex {
+            self.persist_codex_checkpoint(&source.id)?;
+        }
 
         Ok((imported, skipped))
     }
@@ -376,9 +406,31 @@ impl UsageImportService {
         &self,
         source_id: &str,
     ) -> Result<Option<CodexAppendCheckpoint>, String> {
+        if let Some(checkpoint) =
+            self.with_connection(|conn| usage_repo::get_codex_checkpoint(conn, source_id))?
+        {
+            return Ok(Some(CodexAppendCheckpoint {
+                session_id: checkpoint.session_id,
+                model: checkpoint.model,
+                project_path: checkpoint.project_path,
+                last_line_number: checkpoint.last_line_number as u64,
+                prefers_turn_completed: checkpoint.prefers_turn_completed,
+                last_cumulative_usage: CodexTokenUsage {
+                    input_tokens: checkpoint.input_tokens.max(0) as u64,
+                    cached_input_tokens: checkpoint.cached_input_tokens.max(0) as u64,
+                    output_tokens: checkpoint.output_tokens.max(0) as u64,
+                },
+            }));
+        }
+
         let records =
-            database::with_connection(|conn| usage_repo::get_records_by_source(conn, source_id))
-                .map_err(|e| e.to_string())?;
+            self.with_connection(|conn| usage_repo::get_records_by_source(conn, source_id))?;
+        Ok(Self::build_codex_append_checkpoint_from_records(records))
+    }
+
+    fn build_codex_append_checkpoint_from_records(
+        records: Vec<usage_repo::UsageRecord>,
+    ) -> Option<CodexAppendCheckpoint> {
         let latest = records
             .into_iter()
             .filter_map(|record| {
@@ -386,9 +438,7 @@ impl UsageImportService {
             })
             .max_by_key(|(line_number, _)| *line_number);
 
-        let Some((last_line_number, latest_record)) = latest else {
-            return Ok(None);
-        };
+        let (last_line_number, latest_record) = latest?;
 
         let session_id = latest_record
             .id
@@ -413,14 +463,14 @@ impl UsageImportService {
                 .unwrap_or_default()
         };
 
-        Ok(Some(CodexAppendCheckpoint {
+        Some(CodexAppendCheckpoint {
             session_id,
             model: latest_record.model,
             project_path: latest_record.project_path,
             last_line_number,
             prefers_turn_completed,
             last_cumulative_usage,
-        }))
+        })
     }
 
     /// Read lines from a file starting at offset
@@ -1727,6 +1777,33 @@ impl UsageImportService {
             .to_string()
     }
 
+    fn persist_codex_checkpoint(&self, source_id: &str) -> Result<(), String> {
+        let records =
+            self.with_connection(|conn| usage_repo::get_records_by_source(conn, source_id))?;
+        let Some(checkpoint) = Self::build_codex_append_checkpoint_from_records(records) else {
+            return Ok(());
+        };
+
+        self.with_connection(|conn| {
+            usage_repo::upsert_codex_checkpoint(
+                conn,
+                &usage_repo::UsageCodexCheckpoint {
+                    source_id: source_id.to_string(),
+                    session_id: checkpoint.session_id,
+                    project_path: checkpoint.project_path,
+                    model: checkpoint.model,
+                    last_line_number: checkpoint.last_line_number as i64,
+                    input_tokens: checkpoint.last_cumulative_usage.input_tokens as i64,
+                    cached_input_tokens: checkpoint.last_cumulative_usage.cached_input_tokens
+                        as i64,
+                    output_tokens: checkpoint.last_cumulative_usage.output_tokens as i64,
+                    prefers_turn_completed: checkpoint.prefers_turn_completed,
+                    updated_at: Utc::now(),
+                },
+            )
+        })
+    }
+
     /// Get cached records from database
     #[allow(dead_code)]
     pub fn get_records(
@@ -1734,8 +1811,7 @@ impl UsageImportService {
         platform: &str,
         limit: usize,
     ) -> Result<Vec<usage_repo::UsageRecord>, String> {
-        database::with_connection(|conn| usage_repo::get_recent_records(conn, platform, limit))
-            .map_err(|e| e.to_string())
+        self.with_connection(|conn| usage_repo::get_recent_records(conn, platform, limit))
     }
 }
 
@@ -1753,6 +1829,9 @@ mod tests {
 
     fn reset_usage_tables() {
         database::with_connection(|conn| {
+            conn.execute("DELETE FROM usage_session_archive", [])?;
+            conn.execute("DELETE FROM usage_codex_checkpoint", [])?;
+            conn.execute("DELETE FROM usage_history_cursor", [])?;
             conn.execute("DELETE FROM usage_records", [])?;
             conn.execute("DELETE FROM usage_sources", [])?;
             conn.execute("DELETE FROM usage_daily_agg", [])?;
@@ -1770,6 +1849,7 @@ mod tests {
 
     #[test]
     fn test_extract_project_path() {
+        setup();
         let service = UsageImportService::new(ImportConfig::default());
 
         let path = PathBuf::from("/home/user/.claude/projects/myproject/usage.jsonl");
@@ -1800,6 +1880,7 @@ mod tests {
 
     #[test]
     fn test_parse_usage_record() {
+        setup();
         let service = UsageImportService::new(ImportConfig::default());
 
         let json: Value = serde_json::from_str(
@@ -1825,6 +1906,7 @@ mod tests {
 
     #[test]
     fn test_parse_usage_record_nested() {
+        setup();
         let service = UsageImportService::new(ImportConfig::default());
 
         let json: Value = serde_json::from_str(
@@ -1848,6 +1930,7 @@ mod tests {
 
     #[test]
     fn test_parse_usage_record_invalid() {
+        setup();
         let service = UsageImportService::new(ImportConfig::default());
 
         // No usage data
@@ -1865,6 +1948,7 @@ mod tests {
 
     #[test]
     fn test_extract_project_path_codex() {
+        setup();
         let service = UsageImportService::new(ImportConfig::default());
 
         let path = PathBuf::from("/home/user/.codex/sessions/2026/01/15/rollout-abc123.jsonl");
@@ -1874,6 +1958,7 @@ mod tests {
 
     #[test]
     fn test_extract_project_path_qwen() {
+        setup();
         let service = UsageImportService::new(ImportConfig::default());
 
         let path =
@@ -2128,6 +2213,11 @@ mod tests {
             file_path: "/tmp/codex-rollout.jsonl".to_string(),
             file_hash: "hash-a".to_string(),
             last_offset: 128,
+            source_state: usage_repo::UsageSourceState::Live,
+            file_size: Some(2048),
+            modified_at: Some(Utc::now()),
+            last_seen_at: Some(Utc::now()),
+            raw_deleted_at: None,
             updated_at: Utc::now(),
         };
         let claude_source = usage_repo::UsageSource {
@@ -2136,6 +2226,11 @@ mod tests {
             file_path: "/tmp/claude-usage.jsonl".to_string(),
             file_hash: "hash-b".to_string(),
             last_offset: 128,
+            source_state: usage_repo::UsageSourceState::Live,
+            file_size: Some(1024),
+            modified_at: Some(Utc::now()),
+            last_seen_at: Some(Utc::now()),
+            raw_deleted_at: None,
             updated_at: Utc::now(),
         };
 
@@ -2358,6 +2453,7 @@ mod tests {
 
     #[test]
     fn test_calculate_cost_codex_models() {
+        setup();
         let service = UsageImportService::new(ImportConfig::default());
 
         // codex-mini: (0.15, 0.60, 0.0375) per 1M tokens

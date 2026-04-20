@@ -6,6 +6,33 @@ use rusqlite::{Connection, Row, params};
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum UsageSourceState {
+    #[default]
+    Live,
+    Missing,
+    DeletedByUser,
+}
+
+impl UsageSourceState {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Self::Live => "live",
+            Self::Missing => "missing",
+            Self::DeletedByUser => "deleted_by_user",
+        }
+    }
+
+    fn from_raw(value: &str) -> Self {
+        match value {
+            "missing" => Self::Missing,
+            "deleted_by_user" => Self::DeletedByUser,
+            _ => Self::Live,
+        }
+    }
+}
+
 /// Usage source - tracks imported files with offsets
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UsageSource {
@@ -14,15 +41,32 @@ pub struct UsageSource {
     pub file_path: String,
     pub file_hash: String,
     pub last_offset: i64,
+    pub source_state: UsageSourceState,
+    pub file_size: Option<i64>,
+    pub modified_at: Option<DateTime<Utc>>,
+    pub last_seen_at: Option<DateTime<Utc>>,
+    pub raw_deleted_at: Option<DateTime<Utc>>,
     pub updated_at: DateTime<Utc>,
 }
 
 impl UsageSource {
     fn from_row(row: &Row<'_>) -> Result<Self, rusqlite::Error> {
-        let updated_at_str: String = row.get(5)?;
+        let updated_at_str: String = row.get(10)?;
         let updated_at = DateTime::parse_from_rfc3339(&updated_at_str)
             .map(|dt| dt.with_timezone(&Utc))
             .unwrap_or_else(|_| Utc::now());
+        let modified_at = row
+            .get::<_, Option<String>>(7)?
+            .and_then(|value| DateTime::parse_from_rfc3339(&value).ok())
+            .map(|dt| dt.with_timezone(&Utc));
+        let last_seen_at = row
+            .get::<_, Option<String>>(8)?
+            .and_then(|value| DateTime::parse_from_rfc3339(&value).ok())
+            .map(|dt| dt.with_timezone(&Utc));
+        let raw_deleted_at = row
+            .get::<_, Option<String>>(9)?
+            .and_then(|value| DateTime::parse_from_rfc3339(&value).ok())
+            .map(|dt| dt.with_timezone(&Utc));
 
         Ok(Self {
             id: row.get(0)?,
@@ -30,9 +74,78 @@ impl UsageSource {
             file_path: row.get(2)?,
             file_hash: row.get(3)?,
             last_offset: row.get(4)?,
+            source_state: UsageSourceState::from_raw(&row.get::<_, String>(5)?),
+            file_size: row.get(6)?,
+            modified_at,
+            last_seen_at,
+            raw_deleted_at,
             updated_at,
         })
     }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UsageSourceStateCounts {
+    pub live: i64,
+    pub missing: i64,
+    pub deleted_by_user: i64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UsageHistoryCursor {
+    pub platform: String,
+    pub recent_window_days: i64,
+    pub last_history_file_path: Option<String>,
+    pub last_history_file_modified_at: Option<DateTime<Utc>>,
+    pub last_history_offset: i64,
+    pub recent_completed_at: Option<DateTime<Utc>>,
+    pub history_completed_at: Option<DateTime<Utc>>,
+    pub updated_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UsageCodexCheckpoint {
+    pub source_id: String,
+    pub session_id: String,
+    pub project_path: String,
+    pub model: Option<String>,
+    pub last_line_number: i64,
+    pub input_tokens: i64,
+    pub cached_input_tokens: i64,
+    pub output_tokens: i64,
+    pub prefers_turn_completed: bool,
+    pub updated_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UsageSessionArchiveEntry {
+    pub archive_id: String,
+    pub session_id: String,
+    pub platform: String,
+    pub title: Option<String>,
+    pub cwd: String,
+    pub file_path: String,
+    pub file_hash: Option<String>,
+    pub message_count: i64,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+    pub source_state: UsageSourceState,
+    pub last_seen_at: Option<DateTime<Utc>>,
+    pub raw_deleted_at: Option<DateTime<Utc>>,
+    pub archived_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SessionArchivePlatformSummary {
+    pub platform: String,
+    pub session_count: i64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SessionArchiveDailyTrend {
+    pub date: String,
+    pub platform: String,
+    pub session_count: i64,
 }
 
 /// Usage record - individual usage entry from log files
@@ -86,7 +199,8 @@ pub fn get_source_by_path(
     file_path: &str,
 ) -> Result<Option<UsageSource>, rusqlite::Error> {
     let mut stmt = conn.prepare(
-        "SELECT id, platform, file_path, file_hash, last_offset, updated_at
+        "SELECT id, platform, file_path, file_hash, last_offset, source_state,
+                file_size, modified_at, last_seen_at, raw_deleted_at, updated_at
          FROM usage_sources WHERE file_path = ?1",
     )?;
 
@@ -104,14 +218,20 @@ pub fn get_source_by_path(
 pub fn upsert_source(conn: &Connection, source: &UsageSource) -> Result<(), rusqlite::Error> {
     conn.execute(
         "INSERT OR REPLACE INTO usage_sources
-         (id, platform, file_path, file_hash, last_offset, updated_at)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+         (id, platform, file_path, file_hash, last_offset, source_state,
+          file_size, modified_at, last_seen_at, raw_deleted_at, updated_at)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
         params![
             source.id,
             source.platform,
             source.file_path,
             source.file_hash,
             source.last_offset,
+            source.source_state.as_str(),
+            source.file_size,
+            source.modified_at.map(|value| value.to_rfc3339()),
+            source.last_seen_at.map(|value| value.to_rfc3339()),
+            source.raw_deleted_at.map(|value| value.to_rfc3339()),
             source.updated_at.to_rfc3339(),
         ],
     )?;
@@ -125,7 +245,8 @@ pub fn get_sources_by_platform(
     platform: &str,
 ) -> Result<Vec<UsageSource>, rusqlite::Error> {
     let mut stmt = conn.prepare(
-        "SELECT id, platform, file_path, file_hash, last_offset, updated_at
+        "SELECT id, platform, file_path, file_hash, last_offset, source_state,
+                file_size, modified_at, last_seen_at, raw_deleted_at, updated_at
          FROM usage_sources WHERE platform = ?1
          ORDER BY file_path ASC",
     )?;
@@ -142,6 +263,95 @@ pub fn get_sources_by_platform(
 #[allow(dead_code)]
 pub fn delete_source(conn: &Connection, id: &str) -> Result<usize, rusqlite::Error> {
     conn.execute("DELETE FROM usage_sources WHERE id = ?1", params![id])
+}
+
+pub fn get_source_state_counts(
+    conn: &Connection,
+    platform: Option<&str>,
+) -> Result<UsageSourceStateCounts, rusqlite::Error> {
+    let mut counts = UsageSourceStateCounts {
+        live: 0,
+        missing: 0,
+        deleted_by_user: 0,
+    };
+
+    if let Some(platform) = platform {
+        let mut stmt = conn.prepare(
+            "SELECT source_state, COUNT(*) FROM usage_sources WHERE platform = ?1 GROUP BY source_state",
+        )?;
+        let rows = stmt.query_map(params![platform], |row| {
+            Ok((row.get::<_, String>(0)?, row.get::<_, i64>(1)?))
+        })?;
+        for row in rows.flatten() {
+            match UsageSourceState::from_raw(&row.0) {
+                UsageSourceState::Live => counts.live = row.1,
+                UsageSourceState::Missing => counts.missing = row.1,
+                UsageSourceState::DeletedByUser => counts.deleted_by_user = row.1,
+            }
+        }
+    } else {
+        let mut stmt =
+            conn.prepare("SELECT source_state, COUNT(*) FROM usage_sources GROUP BY source_state")?;
+        let rows = stmt.query_map([], |row| {
+            Ok((row.get::<_, String>(0)?, row.get::<_, i64>(1)?))
+        })?;
+        for row in rows.flatten() {
+            match UsageSourceState::from_raw(&row.0) {
+                UsageSourceState::Live => counts.live = row.1,
+                UsageSourceState::Missing => counts.missing = row.1,
+                UsageSourceState::DeletedByUser => counts.deleted_by_user = row.1,
+            }
+        }
+    }
+
+    Ok(counts)
+}
+
+pub fn mark_sources_missing_by_platform(
+    conn: &Connection,
+    platform: &str,
+    seen_paths: &[String],
+) -> Result<usize, rusqlite::Error> {
+    let tx = conn.unchecked_transaction()?;
+    let now = Utc::now().to_rfc3339();
+
+    let mut stmt = tx.prepare(
+        "SELECT file_path FROM usage_sources
+         WHERE platform = ?1 AND source_state = 'live'",
+    )?;
+    let rows = stmt.query_map(params![platform], |row| row.get::<_, String>(0))?;
+    let seen: HashSet<&str> = seen_paths.iter().map(String::as_str).collect();
+    let mut changed = 0usize;
+
+    for row in rows.flatten() {
+        if seen.contains(row.as_str()) {
+            continue;
+        }
+        changed += tx.execute(
+            "UPDATE usage_sources
+             SET source_state = 'missing', raw_deleted_at = COALESCE(raw_deleted_at, ?1), updated_at = ?1
+             WHERE platform = ?2 AND file_path = ?3",
+            params![now, platform, row],
+        )?;
+    }
+
+    drop(stmt);
+    tx.commit()?;
+    Ok(changed)
+}
+
+pub fn mark_source_deleted_by_path(
+    conn: &Connection,
+    platform: &str,
+    file_path: &str,
+) -> Result<usize, rusqlite::Error> {
+    let now = Utc::now().to_rfc3339();
+    conn.execute(
+        "UPDATE usage_sources
+         SET source_state = 'deleted_by_user', raw_deleted_at = COALESCE(raw_deleted_at, ?1), updated_at = ?1
+         WHERE platform = ?2 AND file_path = ?3",
+        params![now, platform, file_path],
+    )
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -411,6 +621,357 @@ pub fn delete_records_by_source(
 
     tx.commit()?;
     Ok(deleted)
+}
+
+pub fn get_history_cursor(
+    conn: &Connection,
+    platform: &str,
+) -> Result<Option<UsageHistoryCursor>, rusqlite::Error> {
+    let mut stmt = conn.prepare(
+        "SELECT platform, recent_window_days, last_history_file_path, last_history_file_modified_at,
+                last_history_offset, recent_completed_at, history_completed_at, updated_at
+         FROM usage_history_cursor
+         WHERE platform = ?1",
+    )?;
+
+    let result = stmt.query_row(params![platform], |row| {
+        Ok(UsageHistoryCursor {
+            platform: row.get(0)?,
+            recent_window_days: row.get(1)?,
+            last_history_file_path: row.get(2)?,
+            last_history_file_modified_at: row
+                .get::<_, Option<String>>(3)?
+                .and_then(|value| DateTime::parse_from_rfc3339(&value).ok())
+                .map(|dt| dt.with_timezone(&Utc)),
+            last_history_offset: row.get(4)?,
+            recent_completed_at: row
+                .get::<_, Option<String>>(5)?
+                .and_then(|value| DateTime::parse_from_rfc3339(&value).ok())
+                .map(|dt| dt.with_timezone(&Utc)),
+            history_completed_at: row
+                .get::<_, Option<String>>(6)?
+                .and_then(|value| DateTime::parse_from_rfc3339(&value).ok())
+                .map(|dt| dt.with_timezone(&Utc)),
+            updated_at: row
+                .get::<_, String>(7)
+                .ok()
+                .and_then(|value| DateTime::parse_from_rfc3339(&value).ok())
+                .map(|dt| dt.with_timezone(&Utc))
+                .unwrap_or_else(Utc::now),
+        })
+    });
+
+    match result {
+        Ok(cursor) => Ok(Some(cursor)),
+        Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
+        Err(error) => Err(error),
+    }
+}
+
+pub fn upsert_history_cursor(
+    conn: &Connection,
+    cursor: &UsageHistoryCursor,
+) -> Result<(), rusqlite::Error> {
+    conn.execute(
+        "INSERT INTO usage_history_cursor (
+            platform, recent_window_days, last_history_file_path, last_history_file_modified_at,
+            last_history_offset, recent_completed_at, history_completed_at, updated_at
+         ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)
+         ON CONFLICT(platform) DO UPDATE SET
+            recent_window_days = excluded.recent_window_days,
+            last_history_file_path = excluded.last_history_file_path,
+            last_history_file_modified_at = excluded.last_history_file_modified_at,
+            last_history_offset = excluded.last_history_offset,
+            recent_completed_at = excluded.recent_completed_at,
+            history_completed_at = excluded.history_completed_at,
+            updated_at = excluded.updated_at",
+        params![
+            cursor.platform,
+            cursor.recent_window_days,
+            cursor.last_history_file_path,
+            cursor
+                .last_history_file_modified_at
+                .map(|value| value.to_rfc3339()),
+            cursor.last_history_offset,
+            cursor.recent_completed_at.map(|value| value.to_rfc3339()),
+            cursor.history_completed_at.map(|value| value.to_rfc3339()),
+            cursor.updated_at.to_rfc3339(),
+        ],
+    )?;
+    Ok(())
+}
+
+pub fn get_codex_checkpoint(
+    conn: &Connection,
+    source_id: &str,
+) -> Result<Option<UsageCodexCheckpoint>, rusqlite::Error> {
+    let mut stmt = conn.prepare(
+        "SELECT source_id, session_id, project_path, model, last_line_number,
+                input_tokens, cached_input_tokens, output_tokens, prefers_turn_completed, updated_at
+         FROM usage_codex_checkpoint
+         WHERE source_id = ?1",
+    )?;
+    let result = stmt.query_row(params![source_id], |row| {
+        Ok(UsageCodexCheckpoint {
+            source_id: row.get(0)?,
+            session_id: row.get(1)?,
+            project_path: row.get(2)?,
+            model: row.get(3)?,
+            last_line_number: row.get(4)?,
+            input_tokens: row.get(5)?,
+            cached_input_tokens: row.get(6)?,
+            output_tokens: row.get(7)?,
+            prefers_turn_completed: row.get::<_, i64>(8).unwrap_or(0) > 0,
+            updated_at: row
+                .get::<_, String>(9)
+                .ok()
+                .and_then(|value| DateTime::parse_from_rfc3339(&value).ok())
+                .map(|dt| dt.with_timezone(&Utc))
+                .unwrap_or_else(Utc::now),
+        })
+    });
+
+    match result {
+        Ok(checkpoint) => Ok(Some(checkpoint)),
+        Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
+        Err(error) => Err(error),
+    }
+}
+
+pub fn upsert_codex_checkpoint(
+    conn: &Connection,
+    checkpoint: &UsageCodexCheckpoint,
+) -> Result<(), rusqlite::Error> {
+    conn.execute(
+        "INSERT INTO usage_codex_checkpoint (
+            source_id, session_id, project_path, model, last_line_number,
+            input_tokens, cached_input_tokens, output_tokens, prefers_turn_completed, updated_at
+         ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)
+         ON CONFLICT(source_id) DO UPDATE SET
+            session_id = excluded.session_id,
+            project_path = excluded.project_path,
+            model = excluded.model,
+            last_line_number = excluded.last_line_number,
+            input_tokens = excluded.input_tokens,
+            cached_input_tokens = excluded.cached_input_tokens,
+            output_tokens = excluded.output_tokens,
+            prefers_turn_completed = excluded.prefers_turn_completed,
+            updated_at = excluded.updated_at",
+        params![
+            checkpoint.source_id,
+            checkpoint.session_id,
+            checkpoint.project_path,
+            checkpoint.model,
+            checkpoint.last_line_number,
+            checkpoint.input_tokens,
+            checkpoint.cached_input_tokens,
+            checkpoint.output_tokens,
+            if checkpoint.prefers_turn_completed {
+                1
+            } else {
+                0
+            },
+            checkpoint.updated_at.to_rfc3339(),
+        ],
+    )?;
+    Ok(())
+}
+
+pub fn delete_codex_checkpoint(
+    conn: &Connection,
+    source_id: &str,
+) -> Result<usize, rusqlite::Error> {
+    conn.execute(
+        "DELETE FROM usage_codex_checkpoint WHERE source_id = ?1",
+        params![source_id],
+    )
+}
+
+pub fn upsert_session_archive_entry(
+    conn: &Connection,
+    entry: &UsageSessionArchiveEntry,
+) -> Result<(), rusqlite::Error> {
+    conn.execute(
+        "INSERT INTO usage_session_archive (
+            archive_id, session_id, platform, title, cwd, file_path, file_hash,
+            message_count, created_at, updated_at, source_state, last_seen_at, raw_deleted_at, archived_at
+         ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14)
+         ON CONFLICT(file_path) DO UPDATE SET
+            archive_id = excluded.archive_id,
+            session_id = excluded.session_id,
+            platform = excluded.platform,
+            title = excluded.title,
+            cwd = excluded.cwd,
+            file_hash = excluded.file_hash,
+            message_count = excluded.message_count,
+            created_at = excluded.created_at,
+            updated_at = excluded.updated_at,
+            source_state = excluded.source_state,
+            last_seen_at = excluded.last_seen_at,
+            raw_deleted_at = excluded.raw_deleted_at,
+            archived_at = excluded.archived_at",
+        params![
+            entry.archive_id,
+            entry.session_id,
+            entry.platform,
+            entry.title,
+            entry.cwd,
+            entry.file_path,
+            entry.file_hash,
+            entry.message_count,
+            entry.created_at.to_rfc3339(),
+            entry.updated_at.to_rfc3339(),
+            entry.source_state.as_str(),
+            entry.last_seen_at.map(|value| value.to_rfc3339()),
+            entry.raw_deleted_at.map(|value| value.to_rfc3339()),
+            entry.archived_at.to_rfc3339(),
+        ],
+    )?;
+    Ok(())
+}
+
+pub fn mark_session_archive_missing_by_platform(
+    conn: &Connection,
+    platform: &str,
+    seen_paths: &[String],
+) -> Result<usize, rusqlite::Error> {
+    let tx = conn.unchecked_transaction()?;
+    let now = Utc::now().to_rfc3339();
+    let seen: HashSet<&str> = seen_paths.iter().map(String::as_str).collect();
+    let mut stmt = tx.prepare(
+        "SELECT file_path FROM usage_session_archive
+         WHERE platform = ?1 AND source_state = 'live'",
+    )?;
+    let rows = stmt.query_map(params![platform], |row| row.get::<_, String>(0))?;
+    let mut changed = 0usize;
+
+    for row in rows.flatten() {
+        if seen.contains(row.as_str()) {
+            continue;
+        }
+        changed += tx.execute(
+            "UPDATE usage_session_archive
+             SET source_state = 'missing', raw_deleted_at = COALESCE(raw_deleted_at, ?1), updated_at = ?1
+             WHERE platform = ?2 AND file_path = ?3",
+            params![now, platform, row],
+        )?;
+    }
+
+    drop(stmt);
+    tx.commit()?;
+    Ok(changed)
+}
+
+pub fn mark_session_archive_deleted_by_path(
+    conn: &Connection,
+    platform: &str,
+    file_path: &str,
+) -> Result<usize, rusqlite::Error> {
+    let now = Utc::now().to_rfc3339();
+    conn.execute(
+        "UPDATE usage_session_archive
+         SET source_state = 'deleted_by_user', raw_deleted_at = COALESCE(raw_deleted_at, ?1), updated_at = ?1
+         WHERE platform = ?2 AND file_path = ?3",
+        params![now, platform, file_path],
+    )
+}
+
+pub fn has_any_session_archive(conn: &Connection) -> Result<bool, rusqlite::Error> {
+    let count: i64 = conn.query_row("SELECT COUNT(*) FROM usage_session_archive", [], |row| {
+        row.get(0)
+    })?;
+    Ok(count > 0)
+}
+
+pub fn get_session_archive_platform_summaries(
+    conn: &Connection,
+    start: &Option<String>,
+    end: &Option<String>,
+) -> Result<Vec<SessionArchivePlatformSummary>, rusqlite::Error> {
+    let mut clauses = Vec::new();
+    let mut bind_params: Vec<Box<dyn rusqlite::types::ToSql>> = Vec::new();
+
+    if let Some(start) = start {
+        clauses.push("created_at >= ?");
+        bind_params.push(Box::new(start.clone()));
+    }
+    if let Some(end) = end {
+        clauses.push("created_at <= ?");
+        bind_params.push(Box::new(end.clone()));
+    }
+
+    let where_sql = if clauses.is_empty() {
+        String::new()
+    } else {
+        format!(" WHERE {}", clauses.join(" AND "))
+    };
+    let sql = format!(
+        "SELECT platform, COUNT(*)
+         FROM usage_session_archive{}
+         GROUP BY platform
+         ORDER BY platform ASC",
+        where_sql
+    );
+
+    let params_ref: Vec<&dyn rusqlite::types::ToSql> =
+        bind_params.iter().map(|param| param.as_ref()).collect();
+    let mut stmt = conn.prepare(&sql)?;
+    let rows = stmt
+        .query_map(params_ref.as_slice(), |row| {
+            Ok(SessionArchivePlatformSummary {
+                platform: row.get(0)?,
+                session_count: row.get(1)?,
+            })
+        })?
+        .filter_map(|row| row.ok())
+        .collect();
+    Ok(rows)
+}
+
+pub fn get_session_archive_daily_trends(
+    conn: &Connection,
+    start: &Option<String>,
+    end: &Option<String>,
+) -> Result<Vec<SessionArchiveDailyTrend>, rusqlite::Error> {
+    let mut clauses = Vec::new();
+    let mut bind_params: Vec<Box<dyn rusqlite::types::ToSql>> = Vec::new();
+
+    if let Some(start) = start {
+        clauses.push("created_at >= ?");
+        bind_params.push(Box::new(start.clone()));
+    }
+    if let Some(end) = end {
+        clauses.push("created_at <= ?");
+        bind_params.push(Box::new(end.clone()));
+    }
+
+    let where_sql = if clauses.is_empty() {
+        String::new()
+    } else {
+        format!(" WHERE {}", clauses.join(" AND "))
+    };
+    let sql = format!(
+        "SELECT substr(created_at, 1, 10), platform, COUNT(*)
+         FROM usage_session_archive{}
+         GROUP BY substr(created_at, 1, 10), platform
+         ORDER BY substr(created_at, 1, 10) ASC, platform ASC",
+        where_sql
+    );
+
+    let params_ref: Vec<&dyn rusqlite::types::ToSql> =
+        bind_params.iter().map(|param| param.as_ref()).collect();
+    let mut stmt = conn.prepare(&sql)?;
+    let rows = stmt
+        .query_map(params_ref.as_slice(), |row| {
+            Ok(SessionArchiveDailyTrend {
+                date: row.get(0)?,
+                platform: row.get(1)?,
+                session_count: row.get(2)?,
+            })
+        })?
+        .filter_map(|row| row.ok())
+        .collect();
+    Ok(rows)
 }
 
 // ═══════════════════════════════════════════════════════════
@@ -1011,13 +1572,56 @@ mod tests {
     fn setup_test_db() -> Connection {
         let conn = Connection::open_in_memory().unwrap();
         conn.execute_batch(CREATE_TABLES_SQL).unwrap();
-        // 添加 v3 列（CREATE_TABLES_SQL 是 v1 schema，不含新列）
+        // 添加 v3/v11 列（CREATE_TABLES_SQL 是早期 schema，不含后续扩展）
         for stmt in &[
             "ALTER TABLE usage_records ADD COLUMN model TEXT",
             "ALTER TABLE usage_records ADD COLUMN input_tokens INTEGER DEFAULT 0",
             "ALTER TABLE usage_records ADD COLUMN output_tokens INTEGER DEFAULT 0",
             "ALTER TABLE usage_records ADD COLUMN cache_read_tokens INTEGER DEFAULT 0",
             "ALTER TABLE usage_records ADD COLUMN cost_usd REAL DEFAULT 0",
+            "ALTER TABLE usage_sources ADD COLUMN source_state TEXT NOT NULL DEFAULT 'live'",
+            "ALTER TABLE usage_sources ADD COLUMN file_size INTEGER",
+            "ALTER TABLE usage_sources ADD COLUMN modified_at TEXT",
+            "ALTER TABLE usage_sources ADD COLUMN last_seen_at TEXT",
+            "ALTER TABLE usage_sources ADD COLUMN raw_deleted_at TEXT",
+            "CREATE TABLE IF NOT EXISTS usage_history_cursor (
+                platform TEXT PRIMARY KEY,
+                recent_window_days INTEGER NOT NULL DEFAULT 30,
+                last_history_file_path TEXT,
+                last_history_file_modified_at TEXT,
+                last_history_offset INTEGER NOT NULL DEFAULT 0,
+                recent_completed_at TEXT,
+                history_completed_at TEXT,
+                updated_at TEXT NOT NULL
+            )",
+            "CREATE TABLE IF NOT EXISTS usage_codex_checkpoint (
+                source_id TEXT PRIMARY KEY,
+                session_id TEXT NOT NULL,
+                project_path TEXT NOT NULL,
+                model TEXT,
+                last_line_number INTEGER NOT NULL DEFAULT 0,
+                input_tokens INTEGER NOT NULL DEFAULT 0,
+                cached_input_tokens INTEGER NOT NULL DEFAULT 0,
+                output_tokens INTEGER NOT NULL DEFAULT 0,
+                prefers_turn_completed INTEGER NOT NULL DEFAULT 0,
+                updated_at TEXT NOT NULL
+            )",
+            "CREATE TABLE IF NOT EXISTS usage_session_archive (
+                archive_id TEXT PRIMARY KEY,
+                session_id TEXT NOT NULL,
+                platform TEXT NOT NULL,
+                title TEXT,
+                cwd TEXT NOT NULL,
+                file_path TEXT NOT NULL,
+                file_hash TEXT,
+                message_count INTEGER NOT NULL DEFAULT 0,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                source_state TEXT NOT NULL DEFAULT 'live',
+                last_seen_at TEXT,
+                raw_deleted_at TEXT,
+                archived_at TEXT NOT NULL
+            )",
         ] {
             let _ = conn.execute_batch(stmt);
         }
@@ -1034,6 +1638,11 @@ mod tests {
             file_path: "/home/user/.claude/projects/test/usage.jsonl".to_string(),
             file_hash: "abc123".to_string(),
             last_offset: 1024,
+            source_state: UsageSourceState::Live,
+            file_size: Some(1024),
+            modified_at: Some(Utc::now()),
+            last_seen_at: Some(Utc::now()),
+            raw_deleted_at: None,
             updated_at: Utc::now(),
         };
 
@@ -1187,6 +1796,11 @@ mod tests {
             file_path: "/test.jsonl".to_string(),
             file_hash: "hash123".to_string(),
             last_offset: 0,
+            source_state: UsageSourceState::Live,
+            file_size: Some(512),
+            modified_at: Some(Utc::now()),
+            last_seen_at: Some(Utc::now()),
+            raw_deleted_at: None,
             updated_at: Utc::now(),
         };
         upsert_source(&conn, &source).unwrap();
