@@ -74,7 +74,7 @@ fn opencode_auth_help_includes_preview_and_boundary() {
 fn version_flag_returns_short_version_output() {
     let stdout = run_help(&["--version"]);
 
-    assert!(stdout.contains("5.9.4"));
+    assert!(stdout.contains(env!("CARGO_PKG_VERSION")));
     assert!(!stdout.contains("常用入口"));
 }
 
