@@ -1,28 +1,29 @@
 # Repository Guidelines
 
 ## Project Structure & Module Organization
-This repository is a Rust workspace with a Vue/Tauri UI. `crates/ccr/src/` contains the main CLI, TUI, web API, and service layers. `crates/ccr-db/` holds database-facing services and models, while `crates/ccr-types/` provides shared types used across crates. `crates/ccr/tests/` stores workspace integration tests, organized by feature areas such as commands, managers, platforms, and workflows. `ccr-ui/` contains the Vue 3 frontend, Tauri shell in `ccr-ui/src-tauri/`, and lightweight frontend tests in `ccr-ui/tests/`. Keep `docs/`, `scripts/`, and `examples/` at the repository root; `outputs/` is a collected-artifacts directory and should not be used as a native build output.
+`crates/` is the Rust workspace. `crates/ccr` is the installable CLI/TUI entry point, while shared logic lives in crates such as `ccr-core`, `ccr-config`, `ccr-codex`, `ccr-db`, and `ccr-types`. `ccr-ui/` contains the Vue 3 + Tauri app (`src/`, `src-tauri/`, `tests/`). `ccr-vscode/` contains the VS Code extension (`src/providers`, `src/services`). `docs/` holds VitePress docs. `scripts/` and `tests/scripts/` hold repo automation and version-sync checks.
 
 ## Build, Test, and Development Commands
-Prefer root `just` recipes so local checks match CI:
-
-- `just check` — fast Rust workspace compile check.
-- `just test` — full Rust test suite with `--test-threads=1`.
-- `just lint-strict` — CI-grade Clippy, including `clippy::unwrap_used`.
-- `just frontend-check` — frontend type-check, lint, build, and docs build.
-- `just ui-dev` — start the UI development flow.
-- `just tauri-dev` — run the desktop app locally.
-- `just ci` — full repository validation.
+- `just build` — build the Rust CLI in debug mode.
+- `just test` — run Rust workspace tests.
+- `just ci` — run the repo-wide CI path: version checks, fmt, clippy, tests, build, audit, and frontend checks.
+- `just ui-dev` / `just ui-check` — develop or validate the Tauri UI.
+- `cd ccr-ui && bun run dev` — run the web UI locally.
+- `cd ccr-ui && bun run test` — run i18n and Vitest smoke tests.
+- `cd ccr-vscode && npm run build && npm test` — build and test the VS Code extension.
 
 ## Coding Style & Naming Conventions
-Rust follows `rustfmt`; use `snake_case` for modules/functions and `PascalCase` for types. Prefer `Result`-based error handling and avoid `unwrap`/`expect` in production code. Keep internal implementation comments in Chinese and public API docs in English. Frontend code uses TypeScript, Vue 3, and `<script setup lang="ts">`; keep 2-space indentation, no semicolons, single quotes, and follow `ccr-ui/.prettierrc`, `ccr-ui/eslint.config.js`, and `ccr-ui/.stylelintrc.json`. Name Vue components `PascalCase.vue`; use `camelCase` for composables, stores, and utilities.
+Rust code must stay `cargo fmt` and clippy clean. Prefer `Result`-based error handling. Do not add `unwrap` or `expect` in production paths. Rust files and modules use `snake_case`; structs, enums, and traits use `PascalCase`.
+
+Frontend and extension code use 2-space indentation, single quotes, and no semicolons. Vue components use `PascalCase.vue`. Follow existing store, service, and component patterns before adding new abstractions.
 
 ## Testing Guidelines
-Add tests close to the changed surface. Put Rust integration coverage in `crates/ccr/tests/` and keep frontend checks in `ccr-ui/tests/`. Run focused checks first, then broader suites. Use `cargo test --workspace --all-features -- --test-threads=1` for Rust and `cd ccr-ui && npm test` for frontend smoke tests. No fixed coverage threshold is defined, but each behavior change should include a regression test or a short rationale.
+Keep Rust integration tests under `crates/*/tests` and group them by feature area. UI smoke tests belong in `ccr-ui/tests/*.smoke.test.ts`. VS Code tests live beside source as `*.test.ts`. Run the narrowest relevant command while iterating, then finish with `just ci`, `just frontend-check`, or `just vscode-ci`.
 
 ## Commit & Pull Request Guidelines
-Git history follows Conventional Commits with scope and optional emoji, for example `feat(tauri): ✨ add profile switch` or `fix(core): 🐛 handle missing config`. Keep commits scoped to one concern when possible. PRs should include a concise summary, impacted areas, verification commands, linked issues, and screenshots or GIFs for `ccr-ui`/Tauri changes. Call out config, schema, or migration impacts explicitly.
+Recent history uses Chinese Conventional Commits with scopes and emoji, for example `feat(认证TUI): ✨ ...`, `docs(帮助文档): 📝 ...`, and `chore(release): 🔧 ...`. Keep commits atomic and scoped to one surface.
+
+PRs should state the affected area (`CLI`, `ccr-ui`, `ccr-vscode`, docs), link the issue when available, list the verification commands you ran, and include screenshots or GIFs for UI and extension changes.
 
 ## Security & Configuration Tips
-Do not commit real tokens, exported auth data, or local machine state. Use `examples/` and `*.example.*` files for shareable samples. When changing config or sync logic, preserve masking, backup, and atomic-write behavior.
-
+Never commit personal config, tokens, or local runtime files from home-directory toolchains. Use examples and fixtures instead. When editing config flows, preserve backup, masking, and atomic-write behavior.
