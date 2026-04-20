@@ -89,6 +89,7 @@ pub async fn codex_delete_session(
     state: State<'_, AppState>,
     file_path: String,
 ) -> Result<Value, String> {
+    let target_file_path = file_path.clone();
     let response = tokio::task::spawn_blocking(move || -> Result<Value, String> {
         let codex_dir = dirs::home_dir()
             .ok_or_else(|| "无法获取用户主目录".to_string())?
@@ -105,6 +106,23 @@ pub async fn codex_delete_session(
     })
     .await
     .map_err(|e| format!("任务执行失败: {e}"))??;
+
+    let conn = state
+        .usage_db_pool
+        .get()
+        .map_err(|e| format!("读取 usage archive 数据库失败: {e}"))?;
+    ccr_db::database::repositories::usage_repo::mark_source_deleted_by_path(
+        &conn,
+        "codex",
+        &target_file_path,
+    )
+    .map_err(|e| format!("更新 usage source 归档状态失败: {e}"))?;
+    ccr_db::database::repositories::usage_repo::mark_session_archive_deleted_by_path(
+        &conn,
+        "codex",
+        &target_file_path,
+    )
+    .map_err(|e| format!("更新 session 摘要归档状态失败: {e}"))?;
 
     invalidate_codex_session_inventory_cache()?;
     invalidate_codex_dashboard_overview_cache(&state).await;

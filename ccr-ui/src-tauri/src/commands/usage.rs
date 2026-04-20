@@ -5,7 +5,7 @@ use std::path::PathBuf;
 use std::time::Instant;
 
 use ccr_config::Platform;
-use ccr_store::sessions::{SessionFilter, SessionIndexer, SessionSummary, parser::SessionParser};
+use ccr_store::sessions::{SessionIndexer, parser::SessionParser};
 use chrono::{Duration, Utc};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -80,6 +80,17 @@ pub struct ImportAllUsageResponse {
     pub summary: UsageImportSummary,
 }
 
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct UsageArchiveDiagnostics {
+    pub archive_root: String,
+    pub live_sources: u64,
+    pub missing_sources: u64,
+    pub deleted_sources: u64,
+    pub archived_sessions: u64,
+    pub recent_completed_at: Option<String>,
+    pub history_completed_at: Option<String>,
+}
+
 #[derive(Debug, Clone, Serialize)]
 pub struct StartUsageImportJobResponse {
     pub job_id: String,
@@ -96,6 +107,7 @@ pub struct StartSessionIndexJobResponse {
 struct UsageImportJobFile {
     platform: String,
     path: PathBuf,
+    file_size: i64,
     modified_at: Option<std::time::SystemTime>,
 }
 
@@ -144,6 +156,7 @@ pub struct HomeUsageOverviewResponse {
     pub by_platform: BTreeMap<String, HomeOverviewPlatformStats>,
     pub series: Vec<HomeOverviewSeriesItem>,
     pub bootstrap: HomeOverviewBootstrap,
+    pub archive: UsageArchiveDiagnostics,
     pub empty_reason: Option<String>,
     pub last_updated: String,
 }
@@ -155,23 +168,11 @@ struct HomeUsageSnapshot {
     daily_by_platform: BTreeMap<String, BTreeMap<String, HomeOverviewPlatformStats>>,
 }
 
-fn list_home_sessions(
-    indexer: &SessionIndexer,
-    from_date: Option<chrono::DateTime<Utc>>,
-    to_date: Option<chrono::DateTime<Utc>>,
-    limit: Option<usize>,
-) -> Vec<SessionSummary> {
-    let filter = SessionFilter {
-        platform: None,
-        from_date,
-        to_date,
-        cwd_prefix: None,
-        limit,
-        offset: None,
-        today_only: false,
-    };
-
-    indexer.list(filter).unwrap_or_default()
+struct HomeSessionSnapshot {
+    total_sessions: u64,
+    has_any_sessions: bool,
+    by_platform: BTreeMap<String, HomeOverviewPlatformStats>,
+    daily_by_platform: BTreeMap<String, BTreeMap<String, HomeOverviewPlatformStats>>,
 }
 
 fn elapsed_ms(started: Instant) -> f64 {
@@ -274,6 +275,85 @@ fn session_index_file_count(platform: Platform) -> u64 {
         .unwrap_or(0)
 }
 
+fn archive_entry_from_session(
+    platform_label: &str,
+    session: &ccr_store::sessions::Session,
+) -> ccr_db::database::repositories::usage_repo::UsageSessionArchiveEntry {
+    ccr_db::database::repositories::usage_repo::UsageSessionArchiveEntry {
+        archive_id: format!(
+            "{}:{}:{}",
+            platform_label,
+            session.id,
+            session.file_path.display()
+        ),
+        session_id: session.id.clone(),
+        platform: platform_label.to_string(),
+        title: session.title.clone(),
+        cwd: session.cwd.display().to_string(),
+        file_path: session.file_path.display().to_string(),
+        file_hash: Some(session.file_hash.clone()),
+        message_count: i64::from(session.message_count),
+        created_at: session.created_at,
+        updated_at: session.updated_at,
+        source_state: ccr_db::database::repositories::usage_repo::UsageSourceState::Live,
+        last_seen_at: Some(Utc::now()),
+        raw_deleted_at: None,
+        archived_at: Utc::now(),
+    }
+}
+
+fn sync_platform_session_archive(
+    usage_db_pool: &ccr_db::database::pool::DbPool,
+    platform: Platform,
+) -> Result<(), String> {
+    let platform_label = session_index_platform_label(platform).to_string();
+    let Some(session_dir) = SessionParser::get_platform_session_dir(&platform) else {
+        let conn = usage_db_pool.get().map_err(|e| format!("DB error: {e}"))?;
+        ccr_db::database::repositories::usage_repo::mark_session_archive_missing_by_platform(
+            &conn,
+            &platform_label,
+            &[],
+        )
+        .map_err(|e| format!("Session archive reconcile error: {e}"))?;
+        return Ok(());
+    };
+
+    let files = SessionParser::scan_directory(&session_dir, platform)
+        .map_err(|error| format!("Session archive scan failed: {error}"))?;
+    let seen_paths = files
+        .iter()
+        .map(|path| path.display().to_string())
+        .collect::<Vec<_>>();
+    let (sessions, _stats) = SessionParser::parse_files(&files, platform);
+    let conn = usage_db_pool.get().map_err(|e| format!("DB error: {e}"))?;
+
+    /*
+     * ========================================================================
+     * 步骤1：刷新当前平台的最小 session 摘要归档
+     * ========================================================================
+     * 目标：
+     * 1) 将 parser 产出的最小 session 摘要持久化到 usage_session_archive
+     * 2) 保留 durable archive，不依赖原始 session 文件持续存在
+     */
+    tracing::info!("[usage-session-archive] start sync platform={platform_label}");
+    for session in sessions {
+        ccr_db::database::repositories::usage_repo::upsert_session_archive_entry(
+            &conn,
+            &archive_entry_from_session(&platform_label, &session),
+        )
+        .map_err(|e| format!("Session archive upsert error: {e}"))?;
+    }
+    tracing::info!("[usage-session-archive] finish sync platform={platform_label}");
+
+    ccr_db::database::repositories::usage_repo::mark_session_archive_missing_by_platform(
+        &conn,
+        &platform_label,
+        &seen_paths,
+    )
+    .map_err(|e| format!("Session archive reconcile error: {e}"))?;
+    Ok(())
+}
+
 fn platform_scope_label(platform: Option<&str>) -> String {
     platform.unwrap_or("all").to_string()
 }
@@ -307,12 +387,35 @@ fn sort_job_files(files: &mut [UsageImportJobFile]) {
     });
 }
 
+fn system_time_to_utc(value: std::time::SystemTime) -> chrono::DateTime<Utc> {
+    chrono::DateTime::<Utc>::from(value)
+}
+
+fn source_requires_import(
+    source: &ccr_db::database::repositories::usage_repo::UsageSource,
+    file_size: i64,
+    modified_at: Option<std::time::SystemTime>,
+) -> bool {
+    if source.source_state != ccr_db::database::repositories::usage_repo::UsageSourceState::Live {
+        return true;
+    }
+
+    if source.file_size != Some(file_size) {
+        return true;
+    }
+
+    let modified_at = modified_at.map(system_time_to_utc);
+    source.modified_at != modified_at
+}
+
 fn build_usage_import_plan(
+    usage_db_pool: ccr_db::database::pool::DbPool,
     platforms: &[String],
     recent_window_days: usize,
 ) -> Result<(Vec<UsageImportJobFile>, Vec<UsageImportJobFile>), String> {
-    let service = ccr_db::services::usage_import_service::UsageImportService::new(
+    let service = ccr_db::services::usage_import_service::UsageImportService::with_pool(
         ccr_db::services::usage_import_service::ImportConfig::default(),
+        usage_db_pool.clone(),
     );
 
     let cutoff = std::time::SystemTime::now()
@@ -325,13 +428,33 @@ fn build_usage_import_plan(
     let mut history = Vec::new();
 
     for platform in platforms {
+        let existing_sources = {
+            let conn = usage_db_pool.get().map_err(|e| format!("DB error: {e}"))?;
+            ccr_db::database::repositories::usage_repo::get_sources_by_platform(&conn, platform)
+                .map_err(|e| format!("Source lookup error: {e}"))?
+                .into_iter()
+                .map(|source| (source.file_path.clone(), source))
+                .collect::<std::collections::HashMap<_, _>>()
+        };
+        let mut seen_paths = Vec::new();
+
         for path in service.list_usage_files(platform)? {
-            let modified_at = std::fs::metadata(&path)
-                .and_then(|meta| meta.modified())
-                .ok();
+            let metadata = std::fs::metadata(&path).ok();
+            let file_size = metadata.as_ref().map(|meta| meta.len() as i64).unwrap_or(0);
+            let modified_at = metadata.as_ref().and_then(|meta| meta.modified().ok());
+            let file_path = path.display().to_string();
+            seen_paths.push(file_path.clone());
+
+            if let Some(source) = existing_sources.get(&file_path)
+                && !source_requires_import(source, file_size, modified_at)
+            {
+                continue;
+            }
+
             let job_file = UsageImportJobFile {
                 platform: platform.clone(),
                 path,
+                file_size,
                 modified_at,
             };
 
@@ -341,6 +464,14 @@ fn build_usage_import_plan(
                 history.push(job_file);
             }
         }
+
+        let conn = usage_db_pool.get().map_err(|e| format!("DB error: {e}"))?;
+        ccr_db::database::repositories::usage_repo::mark_sources_missing_by_platform(
+            &conn,
+            platform,
+            &seen_paths,
+        )
+        .map_err(|e| format!("Source reconcile error: {e}"))?;
     }
 
     sort_job_files(&mut recent);
@@ -354,9 +485,46 @@ fn build_usage_import_plan(
     Ok((recent, history))
 }
 
+fn upsert_usage_history_cursor(
+    usage_db_pool: &ccr_db::database::pool::DbPool,
+    platform: &str,
+    recent_window_days: usize,
+    file: Option<&UsageImportJobFile>,
+    recent_completed_at: Option<chrono::DateTime<Utc>>,
+    history_completed_at: Option<chrono::DateTime<Utc>>,
+) -> Result<(), String> {
+    let conn = usage_db_pool.get().map_err(|e| format!("DB error: {e}"))?;
+    let existing =
+        ccr_db::database::repositories::usage_repo::get_history_cursor(&conn, platform)
+            .map_err(|e| format!("History cursor lookup error: {e}"))?;
+    let cursor = ccr_db::database::repositories::usage_repo::UsageHistoryCursor {
+        platform: platform.to_string(),
+        recent_window_days: recent_window_days as i64,
+        last_history_file_path: file.map(|entry| entry.path.display().to_string()).or_else(|| {
+            existing
+                .as_ref()
+                .and_then(|cursor| cursor.last_history_file_path.clone())
+        }),
+        last_history_file_modified_at: file
+            .and_then(|entry| entry.modified_at.map(system_time_to_utc))
+            .or_else(|| existing.as_ref().and_then(|cursor| cursor.last_history_file_modified_at)),
+        last_history_offset: file
+            .map(|entry| entry.file_size)
+            .unwrap_or_else(|| existing.as_ref().map(|cursor| cursor.last_history_offset).unwrap_or(0)),
+        recent_completed_at: recent_completed_at.or_else(|| existing.as_ref().and_then(|cursor| cursor.recent_completed_at)),
+        history_completed_at: history_completed_at.or_else(|| existing.as_ref().and_then(|cursor| cursor.history_completed_at)),
+        updated_at: Utc::now(),
+    };
+
+    ccr_db::database::repositories::usage_repo::upsert_history_cursor(&conn, &cursor)
+        .map_err(|e| format!("History cursor upsert error: {e}"))
+}
+
 async fn process_usage_import_phase(
     app_handle: &AppHandle,
+    usage_db_pool: ccr_db::database::pool::DbPool,
     job_id: &str,
+    recent_window_days: usize,
     files_total: usize,
     stage: UsageImportJobStage,
     files: &[UsageImportJobFile],
@@ -377,10 +545,12 @@ async fn process_usage_import_phase(
 
         let platform = file.platform.clone();
         let path = file.path.clone();
+        let db_pool = usage_db_pool.clone();
         let import_started = Instant::now();
         let import_result = tokio::task::spawn_blocking(move || {
-            let service = ccr_db::services::usage_import_service::UsageImportService::new(
+            let service = ccr_db::services::usage_import_service::UsageImportService::with_pool(
                 ccr_db::services::usage_import_service::ImportConfig::default(),
+                db_pool,
             );
             service.import_file_path(&platform, &path)
         })
@@ -406,6 +576,17 @@ async fn process_usage_import_phase(
                     emit_usage_import_job_snapshot(app_handle, "usage:job-progress", &snapshot)
                         .await;
                 }
+
+                if matches!(stage, UsageImportJobStage::ImportingHistory) {
+                    upsert_usage_history_cursor(
+                        &usage_db_pool,
+                        &file.platform,
+                        recent_window_days,
+                        Some(file),
+                        None,
+                        None,
+                    )?;
+                }
             }
             Err(error) => {
                 if let Some(platform_result) = results_by_platform.get_mut(&file.platform) {
@@ -426,6 +607,17 @@ async fn process_usage_import_phase(
                     emit_usage_import_job_snapshot(app_handle, "usage:job-progress", &snapshot)
                         .await;
                 }
+
+                if matches!(stage, UsageImportJobStage::ImportingHistory) {
+                    upsert_usage_history_cursor(
+                        &usage_db_pool,
+                        &file.platform,
+                        recent_window_days,
+                        Some(file),
+                        None,
+                        None,
+                    )?;
+                }
             }
         }
     }
@@ -440,6 +632,7 @@ async fn run_usage_import_job(
     recent_window_days: usize,
     reset_sources: bool,
 ) {
+    let usage_db_pool = app_handle.state::<AppState>().usage_db_pool.clone();
     let platforms = match platform.as_deref() {
         Some(value) => vec![value.to_string()],
         None => HOME_USAGE_PLATFORMS
@@ -453,9 +646,11 @@ async fn run_usage_import_job(
             for platform_name in &platforms {
                 let platform_name = platform_name.clone();
                 let source_target = platform_name.clone();
+                let db_pool = usage_db_pool.clone();
                 let source_count = tokio::task::spawn_blocking(move || {
-                    let service = ccr_db::services::usage_import_service::UsageImportService::new(
+                    let service = ccr_db::services::usage_import_service::UsageImportService::with_pool(
                         ccr_db::services::usage_import_service::ImportConfig::default(),
+                        db_pool,
                     );
                     service
                         .list_usage_files(&source_target)
@@ -472,9 +667,11 @@ async fn run_usage_import_job(
                 }
 
                 let reset_target = platform_name.clone();
+                let db_pool = usage_db_pool.clone();
                 let reset_result = tokio::task::spawn_blocking(move || {
-                    let service = ccr_db::services::usage_import_service::UsageImportService::new(
+                    let service = ccr_db::services::usage_import_service::UsageImportService::with_pool(
                         ccr_db::services::usage_import_service::ImportConfig::default(),
+                        db_pool,
                     );
                     service.reset_platform_sources(&reset_target)
                 })
@@ -498,7 +695,9 @@ async fn run_usage_import_job(
         }
 
         let (recent_files, history_files) =
-            build_usage_import_plan(&platforms, recent_window_days)?;
+            build_usage_import_plan(usage_db_pool.clone(), &platforms, recent_window_days)?;
+        let archive_diagnostics = load_archive_diagnostics(&usage_db_pool, platform.as_deref())?;
+        let history_cursor_hit = load_history_cursor_hit(&usage_db_pool, &platforms)?;
         let files_total = recent_files.len() + history_files.len();
         let mut results_by_platform = create_platform_results(&platforms);
 
@@ -506,6 +705,10 @@ async fn run_usage_import_job(
             .state::<AppState>()
             .update_usage_import_job(&job_id, |job: &mut UsageImportJobSnapshot| {
                 job.files_total = files_total;
+                job.history_cursor_hit = history_cursor_hit;
+                job.live_sources = archive_diagnostics.live_sources as usize;
+                job.missing_sources = archive_diagnostics.missing_sources as usize;
+                job.deleted_sources = archive_diagnostics.deleted_sources as usize;
                 job.updated_at = Utc::now().to_rfc3339();
             })
             .await
@@ -515,7 +718,9 @@ async fn run_usage_import_job(
 
         process_usage_import_phase(
             &app_handle,
+            usage_db_pool.clone(),
             &job_id,
+            recent_window_days,
             files_total,
             UsageImportJobStage::ImportingRecent,
             &recent_files,
@@ -533,15 +738,45 @@ async fn run_usage_import_job(
             emit_usage_import_job_snapshot(&app_handle, "usage:job-recent-ready", &snapshot).await;
         }
 
+        for platform_name in &platforms {
+            upsert_usage_history_cursor(
+                &usage_db_pool,
+                platform_name,
+                recent_window_days,
+                None,
+                Some(Utc::now()),
+                if history_files.is_empty() {
+                    Some(Utc::now())
+                } else {
+                    None
+                },
+            )?;
+        }
+
         process_usage_import_phase(
             &app_handle,
+            usage_db_pool.clone(),
             &job_id,
+            recent_window_days,
             files_total,
             UsageImportJobStage::ImportingHistory,
             &history_files,
             &mut results_by_platform,
         )
         .await?;
+
+        if !history_files.is_empty() {
+            for platform_name in &platforms {
+                upsert_usage_history_cursor(
+                    &usage_db_pool,
+                    platform_name,
+                    recent_window_days,
+                    None,
+                    None,
+                    Some(Utc::now()),
+                )?;
+            }
+        }
 
         let results = results_by_platform.into_values().collect::<Vec<_>>();
         let summary = build_import_summary(&results);
@@ -589,6 +824,7 @@ async fn run_usage_import_job(
 
 async fn run_session_index_job(app_handle: AppHandle, job_id: String) {
     let platforms = session_index_platforms();
+    let usage_db_pool = app_handle.state::<AppState>().usage_db_pool.clone();
 
     let execution = async {
         let files_total: u64 = platforms
@@ -631,6 +867,7 @@ async fn run_session_index_job(app_handle: AppHandle, job_id: String) {
 
             match indexer.index_platform(platform) {
                 Ok(stats) => {
+                    sync_platform_session_archive(&usage_db_pool, platform)?;
                     completed_files += stats.files_scanned;
                     if let Some(snapshot) = app_handle
                         .state::<AppState>()
@@ -712,6 +949,7 @@ fn empty_home_platform_map() -> BTreeMap<String, HomeOverviewPlatformStats> {
     map
 }
 
+#[cfg(test)]
 fn normalize_home_platform(raw: &str) -> Option<&'static str> {
     match raw.trim().to_lowercase().as_str() {
         "claude" | "claude-code" | "claude code" => Some("claude"),
@@ -845,6 +1083,130 @@ fn load_home_usage_presence(pool: &ccr_db::database::pool::DbPool) -> Result<boo
     Ok(summary.total_requests > 0)
 }
 
+fn load_home_session_snapshot(
+    pool: &ccr_db::database::pool::DbPool,
+    start_date: &str,
+    end_date: &str,
+) -> Result<HomeSessionSnapshot, String> {
+    let conn = pool.get().map_err(|e| format!("DB error: {e}"))?;
+    let start = Some(start_date.to_string());
+    let end = Some(end_date.to_string());
+
+    let summaries =
+        ccr_db::database::repositories::usage_repo::get_session_archive_platform_summaries(
+            &conn, &start, &end,
+        )
+        .map_err(|e| format!("Session summary query error: {e}"))?;
+    let trends = ccr_db::database::repositories::usage_repo::get_session_archive_daily_trends(
+        &conn, &start, &end,
+    )
+    .map_err(|e| format!("Session trend query error: {e}"))?;
+    let has_any_sessions =
+        ccr_db::database::repositories::usage_repo::has_any_session_archive(&conn)
+            .map_err(|e| format!("Session archive presence query error: {e}"))?;
+
+    let mut by_platform = empty_home_platform_map();
+    let mut daily_by_platform = BTreeMap::new();
+    let mut total_sessions = 0u64;
+
+    for summary in summaries {
+        total_sessions += non_negative_i64(summary.session_count);
+        if let Some(stats) = by_platform.get_mut(summary.platform.as_str()) {
+            stats.sessions = non_negative_i64(summary.session_count);
+        }
+    }
+
+    for trend in trends {
+        let day_entry = daily_by_platform
+            .entry(trend.date.clone())
+            .or_insert_with(empty_home_platform_map);
+        if let Some(stats) = day_entry.get_mut(trend.platform.as_str()) {
+            stats.sessions = non_negative_i64(trend.session_count);
+        }
+    }
+
+    Ok(HomeSessionSnapshot {
+        total_sessions,
+        has_any_sessions,
+        by_platform,
+        daily_by_platform,
+    })
+}
+
+fn load_archive_diagnostics(
+    pool: &ccr_db::database::pool::DbPool,
+    platform: Option<&str>,
+) -> Result<UsageArchiveDiagnostics, String> {
+    let conn = pool.get().map_err(|e| format!("DB error: {e}"))?;
+    let counts = ccr_db::database::repositories::usage_repo::get_source_state_counts(&conn, platform)
+        .map_err(|e| format!("Source state query error: {e}"))?;
+    let archived_sessions = ccr_db::database::repositories::usage_repo::get_session_archive_platform_summaries(
+        &conn,
+        &None,
+        &None,
+    )
+    .map_err(|e| format!("Archived session summary query error: {e}"))?
+    .into_iter()
+    .map(|item| non_negative_i64(item.session_count))
+    .sum();
+
+    let mut recent_completed_at: Option<String> = None;
+    let mut history_completed_at: Option<String> = None;
+    let cursor_platforms = platform
+        .map(|value| vec![value.to_string()])
+        .unwrap_or_else(|| HOME_USAGE_PLATFORMS.iter().map(|value| value.to_string()).collect());
+
+    for cursor_platform in cursor_platforms {
+        if let Some(cursor) =
+            ccr_db::database::repositories::usage_repo::get_history_cursor(&conn, &cursor_platform)
+                .map_err(|e| format!("History cursor query error: {e}"))?
+        {
+            if let Some(recent) = cursor.recent_completed_at {
+                let raw = recent.to_rfc3339();
+                if recent_completed_at.as_ref().is_none_or(|current| raw > *current) {
+                    recent_completed_at = Some(raw);
+                }
+            }
+            if let Some(history) = cursor.history_completed_at {
+                let raw = history.to_rfc3339();
+                if history_completed_at.as_ref().is_none_or(|current| raw > *current) {
+                    history_completed_at = Some(raw);
+                }
+            }
+        }
+    }
+
+    Ok(UsageArchiveDiagnostics {
+        archive_root: ccr_db::database::get_usage_archive_db_path()
+            .map_err(|e| format!("Archive root error: {e}"))?
+            .display()
+            .to_string(),
+        live_sources: counts.live.max(0) as u64,
+        missing_sources: counts.missing.max(0) as u64,
+        deleted_sources: counts.deleted_by_user.max(0) as u64,
+        archived_sessions,
+        recent_completed_at,
+        history_completed_at,
+    })
+}
+
+fn load_history_cursor_hit(
+    pool: &ccr_db::database::pool::DbPool,
+    platforms: &[String],
+) -> Result<bool, String> {
+    let conn = pool.get().map_err(|e| format!("DB error: {e}"))?;
+    for platform in platforms {
+        if ccr_db::database::repositories::usage_repo::get_history_cursor(&conn, platform)
+            .map_err(|e| format!("History cursor query error: {e}"))?
+            .is_some()
+        {
+            return Ok(true);
+        }
+    }
+
+    Ok(false)
+}
+
 /// 获取用量汇总数据
 #[tauri::command]
 pub async fn get_usage_summary_v2(
@@ -854,7 +1216,7 @@ pub async fn get_usage_summary_v2(
     end_date: Option<String>,
 ) -> Result<Value, String> {
     let command_started = Instant::now();
-    let pool = state.db_pool.clone();
+    let pool = state.usage_db_pool.clone();
     let result = tokio::task::spawn_blocking(move || {
         let db_started = Instant::now();
         let conn = pool.get().map_err(|e| format!("DB error: {e}"))?;
@@ -885,7 +1247,7 @@ pub async fn get_usage_trends_v2(
     end_date: Option<String>,
 ) -> Result<Value, String> {
     let command_started = Instant::now();
-    let pool = state.db_pool.clone();
+    let pool = state.usage_db_pool.clone();
     let result = tokio::task::spawn_blocking(move || {
         let db_started = Instant::now();
         let conn = pool.get().map_err(|e| format!("DB error: {e}"))?;
@@ -916,7 +1278,7 @@ pub async fn get_usage_by_model_v2(
     end_date: Option<String>,
 ) -> Result<Value, String> {
     let command_started = Instant::now();
-    let pool = state.db_pool.clone();
+    let pool = state.usage_db_pool.clone();
     let result = tokio::task::spawn_blocking(move || {
         let db_started = Instant::now();
         let conn = pool.get().map_err(|e| format!("DB error: {e}"))?;
@@ -947,7 +1309,7 @@ pub async fn get_usage_by_project_v2(
     end_date: Option<String>,
 ) -> Result<Value, String> {
     let command_started = Instant::now();
-    let pool = state.db_pool.clone();
+    let pool = state.usage_db_pool.clone();
     let result = tokio::task::spawn_blocking(move || {
         let db_started = Instant::now();
         let conn = pool.get().map_err(|e| format!("DB error: {e}"))?;
@@ -977,7 +1339,7 @@ pub async fn get_usage_heatmap_v2(
     days: Option<i64>,
 ) -> Result<Value, String> {
     let command_started = Instant::now();
-    let pool = state.db_pool.clone();
+    let pool = state.usage_db_pool.clone();
     let days = days.unwrap_or(365).max(1);
 
     let result = tokio::task::spawn_blocking(move || {
@@ -1018,7 +1380,7 @@ pub async fn get_usage_logs_v2(
         .include_total
         .unwrap_or(matches!(mode, UsageLogsMode::Offset));
 
-    let pool = state.db_pool.clone();
+    let pool = state.usage_db_pool.clone();
     let platform = query.platform.clone();
     let model = query.model.clone();
     let start_date = query.start_date.clone();
@@ -1092,12 +1454,13 @@ pub async fn get_usage_dashboard_v2(
     include_heatmap: Option<bool>,
 ) -> Result<Value, String> {
     let command_started = Instant::now();
-    let pool = state.db_pool.clone();
+    let pool = state.usage_db_pool.clone();
     let heatmap_days = heatmap_days.unwrap_or(365).max(1);
     let include_heatmap = include_heatmap.unwrap_or(false);
     let result = tokio::task::spawn_blocking(move || {
         let db_started = Instant::now();
         let conn = pool.get().map_err(|e| format!("DB error: {e}"))?;
+        let archive = load_archive_diagnostics(&pool, platform.as_deref())?;
 
         let summary = ccr_db::database::repositories::usage_repo::get_usage_summary(
             &conn,
@@ -1149,6 +1512,7 @@ pub async fn get_usage_dashboard_v2(
             "trends": trends,
             "model_stats": by_model,
             "project_stats": by_project,
+            "archive": archive,
             "heatmap": heatmap.map(|data| serde_json::json!({ "data": data })),
             "generated_at": chrono::Utc::now().to_rfc3339(),
         }))
@@ -1170,7 +1534,7 @@ pub async fn get_home_usage_overview_v2(
     days: Option<usize>,
 ) -> Result<Value, String> {
     let command_started = Instant::now();
-    let pool = state.db_pool.clone();
+    let pool = state.usage_db_pool.clone();
     let days = days.unwrap_or(30).max(1);
     let active_usage_job = state.get_active_usage_import_job().await;
     let active_usage_job_id = active_usage_job.as_ref().map(|job| job.job_id.clone());
@@ -1193,45 +1557,27 @@ pub async fn get_home_usage_overview_v2(
         let end_date = end_day.format("%Y-%m-%d").to_string();
         let has_any_usage = load_home_usage_presence(&pool)?;
         let mut usage_snapshot = load_home_usage_snapshot(&pool, &start_date, &end_date)?;
-
-        let session_start = start_day
-            .and_hms_opt(0, 0, 0)
-            .ok_or_else(|| "Invalid session start date".to_string())?
-            .and_utc();
-        let session_end = end_day
-            .and_hms_opt(23, 59, 59)
-            .ok_or_else(|| "Invalid session end date".to_string())?
-            .and_utc();
-
-        let mut sessions: Vec<SessionSummary> = Vec::new();
-        let mut has_any_sessions = false;
-        if let Ok(indexer) = SessionIndexer::new() {
-            has_any_sessions = !list_home_sessions(&indexer, None, None, Some(1)).is_empty();
-            if has_any_sessions {
-                sessions =
-                    list_home_sessions(&indexer, Some(session_start), Some(session_end), None);
-            }
-        }
+        let session_snapshot = load_home_session_snapshot(&pool, &start_date, &end_date)?;
+        let archive = load_archive_diagnostics(&pool, None)?;
+        let has_any_sessions = session_snapshot.has_any_sessions;
         let needs_usage_import = !has_any_usage;
         let needs_session_index = !has_any_sessions && has_any_raw_sessions();
 
-        for session in &sessions {
-            let platform_name = session.platform.to_string();
-            let Some(platform) = normalize_home_platform(&platform_name) else {
-                continue;
-            };
-            let date = session.created_at.format("%Y-%m-%d").to_string();
-
-            if let Some(stats) = usage_snapshot.by_platform.get_mut(platform) {
-                stats.sessions += 1;
+        for (platform_name, session_stats) in &session_snapshot.by_platform {
+            if let Some(stats) = usage_snapshot.by_platform.get_mut(platform_name.as_str()) {
+                stats.sessions = session_stats.sessions;
             }
+        }
 
+        for (date, session_day_stats) in session_snapshot.daily_by_platform {
             let day_entry = usage_snapshot
                 .daily_by_platform
                 .entry(date)
                 .or_insert_with(empty_home_platform_map);
-            if let Some(stats) = day_entry.get_mut(platform) {
-                stats.sessions += 1;
+            for (platform_name, session_stats) in session_day_stats {
+                if let Some(stats) = day_entry.get_mut(platform_name.as_str()) {
+                    stats.sessions = session_stats.sessions;
+                }
             }
         }
 
@@ -1253,7 +1599,7 @@ pub async fn get_home_usage_overview_v2(
             })
             .collect::<Vec<_>>();
 
-        let total_sessions = sessions.len() as u64;
+        let total_sessions = session_snapshot.total_sessions;
         let total_requests = non_negative_i64(usage_snapshot.summary.total_requests);
         let total_tokens = non_negative_i64(
             usage_snapshot.summary.total_input_tokens + usage_snapshot.summary.total_output_tokens,
@@ -1286,6 +1632,7 @@ pub async fn get_home_usage_overview_v2(
             by_platform: usage_snapshot.by_platform,
             series,
             bootstrap,
+            archive,
             empty_reason: detect_home_empty_reason(
                 total_requests,
                 total_sessions,
@@ -1346,12 +1693,14 @@ pub async fn get_session_index_job_status_v2(
 #[tauri::command]
 pub async fn import_usage_v2(
     app_handle: tauri::AppHandle,
-    _state: State<'_, AppState>,
+    state: State<'_, AppState>,
     platform: String,
 ) -> Result<Value, String> {
+    let usage_db_pool = state.usage_db_pool.clone();
     let result = tokio::task::spawn_blocking(move || {
-        let service = ccr_db::services::usage_import_service::UsageImportService::new(
+        let service = ccr_db::services::usage_import_service::UsageImportService::with_pool(
             ccr_db::services::usage_import_service::ImportConfig::default(),
+            usage_db_pool,
         );
         service
             .import_platform(&platform)
@@ -1381,15 +1730,17 @@ pub async fn import_usage_v2(
 #[tauri::command]
 pub async fn import_all_usage_v2(
     app_handle: tauri::AppHandle,
-    _state: State<'_, AppState>,
+    state: State<'_, AppState>,
 ) -> Result<Value, String> {
     use std::sync::Arc;
     use tokio::sync::Semaphore;
 
     let semaphore = Arc::new(Semaphore::new(2));
+    let usage_db_pool = state.usage_db_pool.clone();
     let mut tasks = tokio::task::JoinSet::new();
     for platform in HOME_USAGE_PLATFORMS {
         let sem = Arc::clone(&semaphore);
+        let db_pool = usage_db_pool.clone();
         let platform_name = platform.to_string();
         tasks.spawn(async move {
             let _permit = sem
@@ -1399,8 +1750,9 @@ pub async fn import_all_usage_v2(
 
             let import_platform = platform_name.clone();
             tokio::task::spawn_blocking(move || {
-                let service = ccr_db::services::usage_import_service::UsageImportService::new(
+                let service = ccr_db::services::usage_import_service::UsageImportService::with_pool(
                     ccr_db::services::usage_import_service::ImportConfig::default(),
+                    db_pool,
                 );
                 service
                     .import_platform(&import_platform)

@@ -9,6 +9,7 @@ import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 import { listen, type UnlistenFn } from '@tauri-apps/api/event'
 import type {
+  UsageArchiveDiagnostics,
   DailyTrend,
   HeatmapResponse,
   ImportAllUsageResponse,
@@ -83,7 +84,8 @@ interface FetchOptions {
   force?: boolean
 }
 
-type UsageDashboardPayload = Omit<UsageDashboardResponse, 'heatmap' | 'generated_at'> & {
+type UsageDashboardPayload = Omit<UsageDashboardResponse, 'heatmap' | 'generated_at' | 'archive'> & {
+  archive?: UsageArchiveDiagnostics | null
   heatmap?: HeatmapResponse
   by_model?: ModelStat[]
   by_project?: ProjectStat[]
@@ -112,6 +114,7 @@ export const useUsageStore = defineStore('usage', () => {
   const projectStats = ref<ProjectStat[]>([])
   const heatmap = ref<HeatmapResponse | null>(null)
   const logs = ref<PaginatedLogs | null>(null)
+  const archive = ref<UsageArchiveDiagnostics | null>(null)
 
   const loading = ref(true)
   const logsLoading = ref(false)
@@ -193,6 +196,7 @@ export const useUsageStore = defineStore('usage', () => {
     // 兼容后端 "by_model" / "model_stats" 两种字段名
     modelStats.value = data.model_stats ?? data.by_model ?? []
     projectStats.value = data.project_stats ?? data.by_project ?? []
+    archive.value = data.archive ?? null
     if (includeHeatmap && data.heatmap) {
       heatmap.value = data.heatmap
     }
@@ -498,6 +502,7 @@ export const useUsageStore = defineStore('usage', () => {
               trends: trendsData ?? [],
               model_stats: modelData ?? [],
               project_stats: projectData ?? [],
+              archive: archive.value ?? undefined,
               heatmap: includeHeatmap ? heatmap.value ?? undefined : undefined,
             },
             ts: Date.now(),
@@ -806,6 +811,7 @@ export const useUsageStore = defineStore('usage', () => {
     projectStats,
     heatmap,
     logs,
+    archive,
     loading,
     logsLoading,
     error,

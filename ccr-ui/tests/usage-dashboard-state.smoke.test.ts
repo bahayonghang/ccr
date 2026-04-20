@@ -17,6 +17,15 @@ const usageStore = reactive({
     mode?: string
   },
   logsLoading: false,
+  archive: null as null | {
+    archive_root: string
+    live_sources: number
+    missing_sources: number
+    deleted_sources: number
+    archived_sessions: number
+    recent_completed_at?: string | null
+    history_completed_at?: string | null
+  },
   logsModelFilter: undefined as string | undefined,
   lastImportResults: [] as Array<{ platform: string; error?: string }>,
   warning: '',
@@ -99,9 +108,10 @@ const translationTemplates: Record<string, string> = {
   'usage.dashboard.diagnostics.repairNeeded': 'Codex history should be repaired',
   'usage.dashboard.diagnostics.codexRepairHint': 'Detected {unknown} broken records',
   'usage.dashboard.diagnostics.healthy': 'Raw records look healthy',
-  'usage.dashboard.diagnostics.rawLogsHint': 'Inspect raw logs here',
-  'usage.dashboard.diagnostics.repairCodex': 'Repair Codex history',
-  'usage.dashboard.diagnostics.repairingCodex': 'Rebuilding Codex history...',
+  'usage.dashboard.diagnostics.rawLogsHint':
+    'Use this area to debug imports and archive quality; deleting raw sessions does not remove archived history.',
+  'usage.dashboard.diagnostics.repairCodex': 'Rebuild Codex archive index',
+  'usage.dashboard.diagnostics.repairingCodex': 'Rebuilding Codex archive...',
 }
 
 const interpolate = (template: string, values?: Record<string, unknown>) => {
@@ -174,6 +184,7 @@ beforeEach(() => {
   usageStore.projectStats = []
   usageStore.logs = null
   usageStore.logsLoading = false
+  usageStore.archive = null
   usageStore.logsModelFilter = undefined
   usageStore.lastImportResults = []
   usageStore.warning = ''
@@ -358,6 +369,15 @@ describe('usage dashboard state smoke', () => {
         total_cost: 15.6,
       },
     ]
+    usageStore.archive = {
+      archive_root: 'C:/Users/test/.ccr/analytics/usage.db',
+      live_sources: 3,
+      missing_sources: 1,
+      deleted_sources: 2,
+      archived_sessions: 14,
+      recent_completed_at: '2026-04-01T00:00:00Z',
+      history_completed_at: '2026-04-02T00:00:00Z',
+    }
 
     const { state, unmount } = await mountComposable()
 
@@ -368,7 +388,16 @@ describe('usage dashboard state smoke', () => {
         'cost',
         'cache',
       ])
-      expect(state.dashboardMetaItems.value).toHaveLength(4)
+      expect(state.dashboardMetaItems.value).toHaveLength(7)
+      expect(state.dashboardMetaItems.value.map((item) => item.id)).toEqual([
+        'scope',
+        'window',
+        'models',
+        'projects',
+        'archive',
+        'archive-root',
+        'archive-time',
+      ])
       expect(state.topModelRankings.value[0]?.label).toBe('claude-opus')
       expect(state.topProjectRankings.value[0]?.title).toBe('D:/workspace/heavy-project')
     } finally {

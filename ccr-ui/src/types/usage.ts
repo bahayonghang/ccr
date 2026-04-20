@@ -79,12 +79,23 @@ export interface HeatmapResponse {
   data: Record<string, number>
 }
 
+export interface UsageArchiveDiagnostics {
+  archive_root: string
+  live_sources: number
+  missing_sources: number
+  deleted_sources: number
+  archived_sessions: number
+  recent_completed_at?: string | null
+  history_completed_at?: string | null
+}
+
 /** 仪表盘聚合响应 */
 export interface UsageDashboardResponse {
   summary: UsageSummary
   trends: DailyTrend[]
   model_stats: ModelStat[]
   project_stats: ProjectStat[]
+  archive: UsageArchiveDiagnostics
   heatmap: HeatmapResponse
   generated_at: string
 }
@@ -135,6 +146,7 @@ export interface HomeUsageOverviewResponse {
   by_platform: Record<string, HomeOverviewPlatformStats>
   series: HomeOverviewSeriesItem[]
   bootstrap: HomeOverviewBootstrap
+  archive: UsageArchiveDiagnostics
   empty_reason?: 'no_usage_logs' | 'no_session_index' | 'no_usage_and_sessions'
   last_updated: string
 }
@@ -189,6 +201,10 @@ export interface UsageImportJobSnapshot {
   error?: string | null
   results: ImportResult[]
   summary?: UsageImportSummary | null
+  history_cursor_hit?: boolean
+  live_sources?: number
+  missing_sources?: number
+  deleted_sources?: number
 }
 
 export interface StartUsageImportJobResponse {

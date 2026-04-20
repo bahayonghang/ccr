@@ -77,10 +77,14 @@ fn main() {
                 tracing::error!("[app] failed to create app database pool: {e}");
                 Box::new(e) as Box<dyn std::error::Error>
             })?;
+            let usage_db_pool = ccr_db::database::create_usage_archive_pool().map_err(|e| {
+                tracing::error!("[app] failed to create usage archive database pool: {e}");
+                Box::new(e) as Box<dyn std::error::Error>
+            })?;
             tracing::info!("[app] database initialized (global + app pool)");
 
             // 构建并注册全局 AppState。
-            let app_state = AppState::new(db_pool);
+            let app_state = AppState::new(db_pool, usage_db_pool);
 
             // 先注册 Local 环境，其他环境在异步初始化完成后写入 managed state。
             app.manage(app_state);

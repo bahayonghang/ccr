@@ -94,6 +94,9 @@ pub struct AppState {
     /// SQLite 连接池（来自 ccr-db）
     pub db_pool: DbPool,
 
+    /// Usage archive SQLite 连接池（durable analytics，位于 ~/.ccr/analytics/usage.db）
+    pub usage_db_pool: DbPool,
+
     /// HTTP 客户端（复用连接池，用于 CheckIn 等外部请求）
     pub http_client: reqwest::Client,
 
@@ -242,7 +245,7 @@ pub struct RuntimeMetricsSnapshot {
 
 impl AppState {
     /// 创建新的应用状态实例
-    pub fn new(db_pool: DbPool) -> Self {
+    pub fn new(db_pool: DbPool, usage_db_pool: DbPool) -> Self {
         let http_client = reqwest::Client::builder()
             .cookie_store(true)
             .timeout(Duration::from_secs(30))
@@ -259,6 +262,7 @@ impl AppState {
 
         Self {
             db_pool,
+            usage_db_pool,
             http_client,
             cache: RwLock::new(LruCache::new(cache_cap)),
             inflight_cache_keys: RwLock::new(HashMap::new()),

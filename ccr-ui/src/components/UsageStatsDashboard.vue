@@ -321,7 +321,13 @@ const diagnosticMessage = computed(() => {
 const bootstrapNotes = computed(() => {
   const notes: string[] = []
   const bootstrap = overview.value?.bootstrap
+  const archive = overview.value?.archive
   if (!bootstrap) return notes
+  if (archive) {
+    notes.push(
+      `Archive ${formatNumber(archive.archived_sessions)} · L ${formatNumber(archive.live_sources)} / M ${formatNumber(archive.missing_sources)} / D ${formatNumber(archive.deleted_sources)}`
+    )
+  }
   if (overviewStore.currentUsageJob) {
     notes.push(
       t('usageStats.warmingUsageProgress', {

@@ -79,6 +79,11 @@ const shortenPath = (path: string) => {
   return parts.length > 2 ? `.../${parts.slice(-2).join('/')}` : path
 }
 
+const formatArchiveTimestamp = (value: string | null | undefined, locale: string) => {
+  if (!value) return '—'
+  return formatDateTime(value, locale)
+}
+
 const getTimeRange = (days: number) => {
   const end = new Date()
   const start = new Date(end.getTime() - days * 86400000)
@@ -371,6 +376,8 @@ export const useUsageDashboardState = () => {
   const dashboardMetaItems = computed<DashboardMetaItem[]>(() => {
     if (!dashboardReady.value) return []
 
+    const archive = store.archive
+
     return [
       {
         id: 'scope',
@@ -391,6 +398,28 @@ export const useUsageDashboardState = () => {
         id: 'projects',
         label: translateDashboardText('usage.dashboard.meta.projects', undefined, 'Projects'),
         value: store.projectStats.length.toLocaleString(),
+      },
+      {
+        id: 'archive',
+        label: 'Archive',
+        value: archive
+          ? `L ${archive.live_sources} · M ${archive.missing_sources} · D ${archive.deleted_sources}`
+          : '—',
+      },
+      {
+        id: 'archive-root',
+        label: 'Archive Root',
+        value: archive ? shortenPath(archive.archive_root) : '—',
+      },
+      {
+        id: 'archive-time',
+        label: 'Last Sync',
+        value: archive
+          ? formatArchiveTimestamp(
+              archive.history_completed_at ?? archive.recent_completed_at,
+              locale.value
+            )
+          : '—',
       },
     ]
   })
@@ -783,28 +812,32 @@ export const useUsageDashboardState = () => {
     const latestRecordAt = latestLogTimestamp.value
       ? formatDateTime(latestLogTimestamp.value, locale.value)
       : t('usage.dashboard.diagnostics.noRecentRecord')
+    const archive = store.archive
+    const archiveDetail = archive
+      ? `Archive ${archive.archived_sessions} · L ${archive.live_sources} / M ${archive.missing_sources} / D ${archive.deleted_sources}`
+      : t('usage.dashboard.diagnostics.rawLogsHint')
 
     if (codexRepairRecommended.value) {
       return {
         totalRecords: logsTotalCount.value.toLocaleString(),
         latestRecordAt,
         healthLabel: t('usage.dashboard.diagnostics.repairNeeded'),
-        healthDetail: t('usage.dashboard.diagnostics.codexRepairHint', {
+        healthDetail: `${t('usage.dashboard.diagnostics.codexRepairHint', {
           unknown: (unknownModelStat.value?.request_count ?? 0).toLocaleString(),
-        }),
+        })} · ${archiveDetail}`,
         repairRecommended: true,
         canRepairCodex: true,
       }
     }
 
     return {
-      totalRecords: logsTotalCount.value.toLocaleString(),
-      latestRecordAt,
-      healthLabel: t('usage.dashboard.diagnostics.healthy'),
-      healthDetail: t('usage.dashboard.diagnostics.rawLogsHint'),
-      repairRecommended: false,
-      canRepairCodex: selectedPlatform.value === 'codex',
-    }
+        totalRecords: logsTotalCount.value.toLocaleString(),
+        latestRecordAt,
+        healthLabel: t('usage.dashboard.diagnostics.healthy'),
+        healthDetail: archiveDetail,
+        repairRecommended: false,
+        canRepairCodex: selectedPlatform.value === 'codex',
+      }
   })
   const diagnosticsEmptyMessage = computed(() =>
     logModelFilter.value
