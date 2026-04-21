@@ -2627,74 +2627,26 @@ export const getCliVersion = async <T = UnknownRecord>(
 }
 
 // ════════════════════════════════════════════════════════════
-// 14. 转换器 (Converter)
+// 14. 转换器 (Converter) —— 实现已迁移至 ./domains/converter
 // ════════════════════════════════════════════════════════════
-
-/** 转换配置格式 */
-export const convertConfig = async <T = UnknownRecord>(request: unknown): Promise<T> => {
-  return invoke('convert_config', { request })
-}
+export { convertConfig } from './domains/converter'
 
 // ════════════════════════════════════════════════════════════
-// 15. UI 状态 (Favorites / Recent Items)
+// 15. UI 状态 (Favorites / Recent Items) —— 实现已迁移至 ./domains/uiState
 // ════════════════════════════════════════════════════════════
-
-/** 获取收藏列表 */
-export const getFavorites = async <T = UnknownRecord>(): Promise<T> => {
-  return invoke('get_favorites')
-}
-
-/** 添加收藏 */
-export const addFavorite = async <T = UnknownRecord>(
-  command: string,
-  args: string[],
-  displayName: string | undefined,
-  module: string
-): Promise<T> => {
-  return invoke('add_favorite', { command, args, displayName, module })
-}
-
-/** 移除收藏 */
-export const removeFavorite = async <T = UnknownRecord>(id: string): Promise<T> => {
-  return invoke('remove_favorite', { id })
-}
-
-/** 获取最近项目 */
-export const getRecentItems = async <T = UnknownRecord>(limit?: number): Promise<T> => {
-  return invoke('get_recent_items', { limit })
-}
-
-/** 添加最近项目 */
-export const addRecentItem = async <T = UnknownRecord>(
-  command: string,
-  args: string[],
-  success: boolean,
-  durationMs: number
-): Promise<T> => {
-  return invoke('add_recent_item', { command, args, success, durationMs })
-}
-
-/** 清空最近项目 */
-export const clearRecentItems = async <T = UnknownRecord>(): Promise<T> => {
-  return invoke('clear_recent_items')
-}
+export {
+  getFavorites,
+  addFavorite,
+  removeFavorite,
+  getRecentItems,
+  addRecentItem,
+  clearRecentItems,
+} from './domains/uiState'
 
 // ════════════════════════════════════════════════════════════
-// 16. WAF
+// 16. WAF —— 实现已迁移至 ./domains/waf
 // ════════════════════════════════════════════════════════════
-
-/** 打开 WAF 登录窗口 */
-export const openWafLogin = async <T = UnknownRecord>(
-  loginUrl: string,
-  providerId: string
-): Promise<T> => {
-  return invoke('open_waf_login', { loginUrl, providerId })
-}
-
-/** 获取 WAF Cookie 状态 */
-export const getWafCookieStatus = async <T = UnknownRecord>(providerId: string): Promise<T> => {
-  return invoke('get_waf_cookie_status', { providerId })
-}
+export { openWafLogin, getWafCookieStatus } from './domains/waf'
 
 // ════════════════════════════════════════════════════════════
 // 17. 统一 MCP (Unified MCP)
