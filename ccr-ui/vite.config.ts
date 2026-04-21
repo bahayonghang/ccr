@@ -26,18 +26,23 @@ export default defineConfig(({ command }) => {
     },
     build: {
       outDir: 'dist',
-      reportCompressedSize: true,
+      reportCompressedSize: false,
       rollupOptions: {
         output: {
           manualChunks: {
             'vue-vendor': ['vue', 'vue-router', 'pinia'],
             'ui-vendor': ['@iconify/vue'],
             'charts-vendor': ['apexcharts', 'vue3-apexcharts'],
-            'i18n-vendor': ['vue-i18n']
+            'i18n-vendor': ['vue-i18n'],
+            'markdown-vendor': ['marked', 'dompurify', 'highlight.js'],
+            'search-vendor': ['fuse.js'],
+            'tauri-vendor': ['@tauri-apps/api'],
+            'virtual-vendor': ['@tanstack/vue-virtual'],
+            'term-vendor': ['ansi_up']
           }
         }
       },
-      chunkSizeWarningLimit: 1000
+      chunkSizeWarningLimit: 500
     },
     server: {
       host: '127.0.0.1',
@@ -85,7 +90,6 @@ export default defineConfig(({ command }) => {
         'vue3-apexcharts',
         'marked',
         'dompurify',
-        'isomorphic-dompurify',
         'ansi_up',
         '@tauri-apps/api',
         '@tauri-apps/api/core',
