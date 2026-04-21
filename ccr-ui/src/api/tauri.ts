@@ -337,23 +337,29 @@ export const getTauriVersion = async (): Promise<string | null> => {
 
 const SKIP_EXIT_CONFIRM_KEY = 'ccr_skip_exit_confirm'
 
-/** 获取是否跳过退出确认（优先 Tauri 命令，失败回退本地存储） */
+/**
+ * 获取是否跳过退出确认。
+ * - Tauri 环境：走 invoke('get_skip_exit_confirm')；失败则直接抛出，避免与后端状态不一致
+ * - Web 环境：回退到 localStorage
+ */
 export const getSkipExitConfirm = async (): Promise<boolean> => {
-  try {
+  if (isTauriEnvironment()) {
     return await invoke('get_skip_exit_confirm')
-  } catch {
-    return localStorage.getItem(SKIP_EXIT_CONFIRM_KEY) === '1'
   }
+  return localStorage.getItem(SKIP_EXIT_CONFIRM_KEY) === '1'
 }
 
-/** 设置是否跳过退出确认（优先 Tauri 命令，失败回退本地存储） */
+/**
+ * 设置是否跳过退出确认。
+ * - Tauri 环境：走 invoke('set_skip_exit_confirm')；失败则直接抛出
+ * - Web 环境：写入 localStorage
+ */
 export const setSkipExitConfirm = async (skip: boolean): Promise<void> => {
-  try {
+  if (isTauriEnvironment()) {
     await invoke('set_skip_exit_confirm', { skip })
     return
-  } catch {
-    localStorage.setItem(SKIP_EXIT_CONFIRM_KEY, skip ? '1' : '0')
   }
+  localStorage.setItem(SKIP_EXIT_CONFIRM_KEY, skip ? '1' : '0')
 }
 
 /** 兼容旧用法：TauriAPI.getTauriVersion() */
@@ -362,79 +368,25 @@ export const TauriAPI = {
 }
 
 // ════════════════════════════════════════════════════════════
-// 2. 配置管理 (Config)
+// 2. 配置管理 (Config) —— 实现已迁移至 ./domains/config
 // ════════════════════════════════════════════════════════════
-
-/** 列出所有配置（包装为 { configs: [...] } 格式供前端消费） */
-export const listConfigs = async <T = UnknownRecord>(): Promise<T> => {
-  const configs = await invoke('list_configs')
-  return { configs } as T
-}
-
-/** 切换到指定配置 */
-export const switchConfig = async <T = UnknownRecord>(name: string): Promise<T> => {
-  return invoke('switch_config', { name })
-}
-
-/** 添加新配置（兼容 addConfig(name, config) 与 addConfig({name,...})） */
-export const addConfig = async <T = UnknownRecord>(
-  nameOrData: string | object,
-  config?: unknown
-): Promise<T> => {
-  if (typeof nameOrData === 'string') {
-    return invoke('add_config', { name: nameOrData, config })
-  }
-  const data = asRecord(nameOrData)
-  const { name, ...rest } = data
-  return invoke('add_config', { name, config: rest })
-}
-
-/** 删除指定配置 */
-export const deleteConfig = async <T = UnknownRecord>(name: string): Promise<T> => {
-  return invoke('delete_config', { name })
-}
-
-/** 重命名配置 */
-export const renameConfig = async <T = UnknownRecord>(
-  oldName: string,
-  newName: string
-): Promise<T> => {
-  return invoke('rename_config', { oldName, newName })
-}
-
-/** 复制配置 */
-export const duplicateConfig = async <T = UnknownRecord>(
-  name: string,
-  newName: string
-): Promise<T> => {
-  return invoke('duplicate_config', { name, newName })
-}
-
-/** 验证所有配置 */
-export const validateConfigs = async <T = UnknownRecord>(): Promise<T> => {
-  return invoke('validate_configs')
-}
-
-/** 导入配置 */
-export const importConfig = async <T = UnknownRecord>(data: unknown): Promise<T> => {
-  return invoke('import_config', { data })
-}
-
-/** 导出配置 */
-export const exportConfig = async <T = UnknownRecord>(name?: string): Promise<T> => {
-  return invoke('export_config', { name })
-}
-
-/** 获取历史记录（包装为 { entries: [...] } 格式供前端消费） */
-export const getHistory = async <T = UnknownRecord>(limit?: number): Promise<T> => {
-  const entries = await invoke('get_history', { limit: limit ?? 100 })
-  return { entries } as T
-}
-
-/** 清理历史记录 */
-export const clearHistory = async <T = UnknownRecord>(): Promise<T> => {
-  return invoke('clear_history')
-}
+// 以下 re-export 保持 `from '@/api/tauri'` 的历史导入兼容，
+// 推荐新代码使用 `from '@/api/domains/config'` 或 `configApi.*`。
+export {
+  listConfigs,
+  switchConfig,
+  addConfig,
+  updateConfig,
+  deleteConfig,
+  renameConfig,
+  duplicateConfig,
+  validateConfigs,
+  importConfig,
+  exportConfig,
+  getHistory,
+  clearHistory,
+  cleanBackups,
+} from './domains/config'
 
 // ════════════════════════════════════════════════════════════
 // 3. 同步 (Sync / WebDAV)
@@ -3033,9 +2985,9 @@ export const getCommandHelp = async <T = UnknownRecord>(command: string): Promis
   return invoke('get_ccr_command_help', { command })
 }
 
-/** 启用配置（通过 switchConfig 实现） */
+/** 启用配置（等价于 switchConfig，直接 invoke 避免同文件 re-export 循环） */
 export const enableConfig = async <T = UnknownRecord>(name: string): Promise<T> => {
-  return switchConfig(name)
+  return invoke('switch_config', { name })
 }
 
 /** 禁用配置（通过 update_config 设置 enabled=false） */
@@ -3049,19 +3001,6 @@ export const getConfig = async <T = UnknownRecord>(name: string): Promise<T> => 
   const configs = Array.isArray(result) ? result : pickArray(result, 'configs')
   const found = configs.find((item) => isRecord(item) && String(item.name ?? '') === name)
   return (found ?? null) as T
-}
-
-/** 更新配置 */
-export const updateConfig = async <T = UnknownRecord>(
-  name: string,
-  config: unknown
-): Promise<T> => {
-  return invoke('update_config', { name, data: config })
-}
-
-/** 清理备份 */
-export const cleanBackups = async <T = UnknownRecord>(_days?: number): Promise<T> => {
-  return invoke('clean_backups')
 }
 
 // ── MCP 预设 / 同步 / 内置提示词 ──
