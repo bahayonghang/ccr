@@ -51,7 +51,7 @@ pub fn insert_provider(
 /// Get all providers
 #[allow(dead_code)]
 pub fn get_all_providers(conn: &Connection) -> Result<Vec<CheckinProvider>, rusqlite::Error> {
-    let mut stmt = conn.prepare(
+    let mut stmt = conn.prepare_cached(
         "SELECT id, name, base_url, checkin_path, balance_path, user_info_path,
                 auth_header, auth_prefix, enabled, created_at, updated_at
          FROM checkin_providers
@@ -156,7 +156,7 @@ pub fn insert_account(conn: &Connection, account: &CheckinAccount) -> Result<(),
 /// Get all accounts
 #[allow(dead_code)]
 pub fn get_all_accounts(conn: &Connection) -> Result<Vec<CheckinAccount>, rusqlite::Error> {
-    let mut stmt = conn.prepare(
+    let mut stmt = conn.prepare_cached(
         "SELECT id, provider_id, name, cookies_json_encrypted, api_user, enabled,
                 created_at, updated_at, last_checkin_at, last_balance_check_at, extra_config
          FROM checkin_accounts
@@ -176,7 +176,7 @@ pub fn get_accounts_by_provider(
     conn: &Connection,
     provider_id: &str,
 ) -> Result<Vec<CheckinAccount>, rusqlite::Error> {
-    let mut stmt = conn.prepare(
+    let mut stmt = conn.prepare_cached(
         "SELECT id, provider_id, name, cookies_json_encrypted, api_user, enabled,
                 created_at, updated_at, last_checkin_at, last_balance_check_at, extra_config
          FROM checkin_accounts
@@ -194,7 +194,7 @@ pub fn get_accounts_by_provider(
 /// Get enabled accounts
 #[allow(dead_code)]
 pub fn get_enabled_accounts(conn: &Connection) -> Result<Vec<CheckinAccount>, rusqlite::Error> {
-    let mut stmt = conn.prepare(
+    let mut stmt = conn.prepare_cached(
         "SELECT id, provider_id, name, cookies_json_encrypted, api_user, enabled,
                 created_at, updated_at, last_checkin_at, last_balance_check_at, extra_config
          FROM checkin_accounts
@@ -323,7 +323,7 @@ pub fn get_records_by_account(
     account_id: &str,
     limit: usize,
 ) -> Result<Vec<CheckinRecord>, rusqlite::Error> {
-    let mut stmt = conn.prepare(
+    let mut stmt = conn.prepare_cached(
         "SELECT id, account_id, status, message, error_code, reward, balance_before, balance_after, checked_in_at
          FROM checkin_records
          WHERE account_id = ?1
@@ -344,7 +344,7 @@ pub fn get_all_records(
     conn: &Connection,
     limit: usize,
 ) -> Result<Vec<CheckinRecord>, rusqlite::Error> {
-    let mut stmt = conn.prepare(
+    let mut stmt = conn.prepare_cached(
         "SELECT id, account_id, status, message, error_code, reward, balance_before, balance_after, checked_in_at
          FROM checkin_records
          ORDER BY checked_in_at DESC
@@ -640,7 +640,7 @@ pub fn get_today_records(
         .expect("Invalid time: 00:00:00");
     let today_start_str = today_start.and_utc().to_rfc3339();
 
-    let mut stmt = conn.prepare(
+    let mut stmt = conn.prepare_cached(
         "SELECT id, account_id, status, message, error_code, reward, balance_before, balance_after, checked_in_at
          FROM checkin_records
          WHERE account_id = ?1 AND checked_in_at >= ?2
@@ -725,7 +725,7 @@ pub fn get_balance_history(
     account_id: &str,
     limit: usize,
 ) -> Result<Vec<BalanceSnapshot>, rusqlite::Error> {
-    let mut stmt = conn.prepare(
+    let mut stmt = conn.prepare_cached(
         "SELECT id, account_id, total_quota, used_quota, remaining_quota, currency, recorded_at
          FROM checkin_balances
          WHERE account_id = ?1
@@ -759,7 +759,7 @@ pub fn get_all_balances(
     conn: &Connection,
     limit: usize,
 ) -> Result<Vec<BalanceSnapshot>, rusqlite::Error> {
-    let mut stmt = conn.prepare(
+    let mut stmt = conn.prepare_cached(
         "SELECT id, account_id, total_quota, used_quota, remaining_quota, currency, recorded_at
          FROM checkin_balances
          ORDER BY recorded_at DESC
@@ -779,7 +779,7 @@ pub fn get_latest_balances_for_all(
     conn: &Connection,
 ) -> Result<Vec<BalanceSnapshot>, rusqlite::Error> {
     // Using window function to get latest per account
-    let mut stmt = conn.prepare(
+    let mut stmt = conn.prepare_cached(
         "SELECT id, account_id, total_quota, used_quota, remaining_quota, currency, recorded_at
          FROM checkin_balances b1
          WHERE recorded_at = (

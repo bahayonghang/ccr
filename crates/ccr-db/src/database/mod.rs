@@ -144,7 +144,7 @@ pub fn is_initialized() -> bool {
 }
 
 /// 初始化测试数据库（内存 SQLite）
-#[cfg(test)]
+#[allow(dead_code)]
 pub fn initialize_for_test() -> Result<(), DbError> {
     if is_initialized() {
         return Ok(());

@@ -86,10 +86,6 @@ impl Database {
     pub fn migrate(&self) -> Result<()> {
         let conn = self.conn()?;
 
-        // 启用 WAL 模式以提高并发性能
-        conn.execute_batch("PRAGMA journal_mode=WAL; PRAGMA synchronous=NORMAL;")
-            .map_err(|e| CcrError::DatabaseError(format!("无法设置 PRAGMA: {}", e)))?;
-
         // 创建迁移表
         conn.execute(
             "CREATE TABLE IF NOT EXISTS migrations (

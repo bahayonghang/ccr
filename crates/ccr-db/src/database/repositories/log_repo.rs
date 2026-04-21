@@ -76,7 +76,7 @@ pub fn insert_logs_batch(
 
     conn.execute_batch("BEGIN IMMEDIATE TRANSACTION")?;
     let result = (|| {
-        let mut stmt = conn.prepare(
+        let mut stmt = conn.prepare_cached(
             "INSERT OR REPLACE INTO log_entries (
                 id,
                 timestamp,
@@ -295,7 +295,7 @@ pub fn get_log_stats(conn: &Connection) -> Result<LogStats, rusqlite::Error> {
 
 #[allow(dead_code)]
 pub fn get_available_dates(conn: &Connection) -> Result<Vec<String>, rusqlite::Error> {
-    let mut stmt = conn.prepare(
+    let mut stmt = conn.prepare_cached(
         "SELECT DISTINCT substr(timestamp, 1, 10) as date FROM log_entries ORDER BY date DESC",
     )?;
 

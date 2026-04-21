@@ -274,7 +274,7 @@ impl HistoryManager {
     pub fn load(&self) -> Result<Vec<HistoryEntry>> {
         let conn = self.db.conn()?;
         let mut stmt = conn
-            .prepare(
+            .prepare_cached(
                 "SELECT id, timestamp, actor, operation, result, result_message, from_config, to_config, backup_path, extra, notes, env_changes
                  FROM history ORDER BY timestamp DESC",
             )
@@ -298,7 +298,7 @@ impl HistoryManager {
     pub fn get_recent(&self, limit: usize) -> Result<Vec<HistoryEntry>> {
         let conn = self.db.conn()?;
         let mut stmt = conn
-            .prepare(
+            .prepare_cached(
                 "SELECT id, timestamp, actor, operation, result, result_message, from_config, to_config, backup_path, extra, notes, env_changes
                  FROM history ORDER BY timestamp DESC LIMIT ?1",
             )
@@ -322,7 +322,7 @@ impl HistoryManager {
     pub fn filter_by_operation(&self, op_type: OperationType) -> Result<Vec<HistoryEntry>> {
         let conn = self.db.conn()?;
         let mut stmt = conn
-            .prepare(
+            .prepare_cached(
                 "SELECT id, timestamp, actor, operation, result, result_message, from_config, to_config, backup_path, extra, notes, env_changes
                  FROM history WHERE operation = ?1 ORDER BY timestamp DESC",
             )
@@ -381,7 +381,7 @@ impl HistoryManager {
         let mut operations_by_type = std::collections::HashMap::new();
         {
             let mut stmt = conn
-                .prepare("SELECT operation, COUNT(*) FROM history GROUP BY operation")
+                .prepare_cached("SELECT operation, COUNT(*) FROM history GROUP BY operation")
                 .map_err(|e| CcrError::HistoryError(format!("统计查询失败: {}", e)))?;
             let rows = stmt
                 .query_map([], |row| {

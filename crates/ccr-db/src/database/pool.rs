@@ -12,6 +12,7 @@ use std::path::Path;
 use tracing::info;
 
 use crate::core::error::DbError;
+use ccr_core::core::sqlite::create_memory_sqlite_pool;
 use ccr_core::core::sqlite::{
     DbConnection as CoreDbConnection, DbPool as CoreDbPool, PoolConfig as CorePoolConfig,
     create_sqlite_pool,
@@ -25,31 +26,8 @@ pub type DbPool = CoreDbPool;
 #[allow(dead_code)]
 pub type PooledConn = CoreDbConnection;
 
-/// 连接池配置
-/// NOTE: 当前为 Phase 1 基础设施，Phase 2 会在自定义配置时使用
-#[allow(dead_code)]
-#[derive(Debug, Clone)]
-pub struct PoolConfig {
-    /// 最大连接数（默认 10）
-    pub max_size: u32,
-    /// 最小空闲连接数（默认 2）
-    pub min_idle: Option<u32>,
-    /// 连接超时时间（默认 30 秒）
-    pub connection_timeout: std::time::Duration,
-    /// 空闲连接超时时间（默认 10 分钟）
-    pub idle_timeout: Option<std::time::Duration>,
-}
-
-impl Default for PoolConfig {
-    fn default() -> Self {
-        Self {
-            max_size: 10,
-            min_idle: Some(2),
-            connection_timeout: std::time::Duration::from_secs(30),
-            idle_timeout: Some(std::time::Duration::from_secs(600)),
-        }
-    }
-}
+/// 连接池配置别名
+pub type PoolConfig = CorePoolConfig;
 
 /// 创建数据库连接池
 ///
@@ -69,26 +47,17 @@ pub fn create_pool(db_path: &Path, config: Option<PoolConfig>) -> Result<DbPool,
         config.min_idle
     );
 
-    let pool = create_sqlite_pool(
-        db_path,
-        Some(CorePoolConfig {
-            max_size: config.max_size,
-            min_idle: config.min_idle,
-            connection_timeout: config.connection_timeout,
-            idle_timeout: config.idle_timeout,
-        }),
-    )
-    .map_err(|e| DbError::Pool(e.to_string()))?;
+    let pool =
+        create_sqlite_pool(db_path, Some(config)).map_err(|e| DbError::Pool(e.to_string()))?;
 
     info!("Database connection pool created successfully");
     Ok(pool)
 }
 
 /// 创建内存数据库连接池（用于测试）
-#[cfg(test)]
+#[allow(dead_code)]
 pub fn create_memory_pool() -> Result<DbPool, DbError> {
-    let pool = ccr_core::core::sqlite::create_memory_sqlite_pool()
-        .map_err(|e| DbError::Pool(e.to_string()))?;
+    let pool = create_memory_sqlite_pool().map_err(|e| DbError::Pool(e.to_string()))?;
 
     Ok(pool)
 }

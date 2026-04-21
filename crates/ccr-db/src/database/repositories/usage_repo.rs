@@ -198,7 +198,7 @@ pub fn get_source_by_path(
     conn: &Connection,
     file_path: &str,
 ) -> Result<Option<UsageSource>, rusqlite::Error> {
-    let mut stmt = conn.prepare(
+    let mut stmt = conn.prepare_cached(
         "SELECT id, platform, file_path, file_hash, last_offset, source_state,
                 file_size, modified_at, last_seen_at, raw_deleted_at, updated_at
          FROM usage_sources WHERE file_path = ?1",
@@ -244,7 +244,7 @@ pub fn get_sources_by_platform(
     conn: &Connection,
     platform: &str,
 ) -> Result<Vec<UsageSource>, rusqlite::Error> {
-    let mut stmt = conn.prepare(
+    let mut stmt = conn.prepare_cached(
         "SELECT id, platform, file_path, file_hash, last_offset, source_state,
                 file_size, modified_at, last_seen_at, raw_deleted_at, updated_at
          FROM usage_sources WHERE platform = ?1
@@ -276,7 +276,7 @@ pub fn get_source_state_counts(
     };
 
     if let Some(platform) = platform {
-        let mut stmt = conn.prepare(
+        let mut stmt = conn.prepare_cached(
             "SELECT source_state, COUNT(*) FROM usage_sources WHERE platform = ?1 GROUP BY source_state",
         )?;
         let rows = stmt.query_map(params![platform], |row| {
@@ -290,8 +290,9 @@ pub fn get_source_state_counts(
             }
         }
     } else {
-        let mut stmt =
-            conn.prepare("SELECT source_state, COUNT(*) FROM usage_sources GROUP BY source_state")?;
+        let mut stmt = conn.prepare_cached(
+            "SELECT source_state, COUNT(*) FROM usage_sources GROUP BY source_state",
+        )?;
         let rows = stmt.query_map([], |row| {
             Ok((row.get::<_, String>(0)?, row.get::<_, i64>(1)?))
         })?;
@@ -315,7 +316,7 @@ pub fn mark_sources_missing_by_platform(
     let tx = conn.unchecked_transaction()?;
     let now = Utc::now().to_rfc3339();
 
-    let mut stmt = tx.prepare(
+    let mut stmt = tx.prepare_cached(
         "SELECT file_path FROM usage_sources
          WHERE platform = ?1 AND source_state = 'live'",
     )?;
@@ -596,7 +597,7 @@ pub fn delete_records_by_source(
 ) -> Result<usize, rusqlite::Error> {
     let mut affected_keys = HashSet::new();
     {
-        let mut stmt = conn.prepare(
+        let mut stmt = conn.prepare_cached(
             "SELECT DISTINCT substr(recorded_at, 1, 10), platform
              FROM usage_records
              WHERE source_id = ?1",
@@ -627,7 +628,7 @@ pub fn get_history_cursor(
     conn: &Connection,
     platform: &str,
 ) -> Result<Option<UsageHistoryCursor>, rusqlite::Error> {
-    let mut stmt = conn.prepare(
+    let mut stmt = conn.prepare_cached(
         "SELECT platform, recent_window_days, last_history_file_path, last_history_file_modified_at,
                 last_history_offset, recent_completed_at, history_completed_at, updated_at
          FROM usage_history_cursor
@@ -705,7 +706,7 @@ pub fn get_codex_checkpoint(
     conn: &Connection,
     source_id: &str,
 ) -> Result<Option<UsageCodexCheckpoint>, rusqlite::Error> {
-    let mut stmt = conn.prepare(
+    let mut stmt = conn.prepare_cached(
         "SELECT source_id, session_id, project_path, model, last_line_number,
                 input_tokens, cached_input_tokens, output_tokens, prefers_turn_completed, updated_at
          FROM usage_codex_checkpoint
@@ -838,7 +839,7 @@ pub fn mark_session_archive_missing_by_platform(
     let tx = conn.unchecked_transaction()?;
     let now = Utc::now().to_rfc3339();
     let seen: HashSet<&str> = seen_paths.iter().map(String::as_str).collect();
-    let mut stmt = tx.prepare(
+    let mut stmt = tx.prepare_cached(
         "SELECT file_path FROM usage_session_archive
          WHERE platform = ?1 AND source_state = 'live'",
     )?;
