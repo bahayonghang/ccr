@@ -17,6 +17,7 @@ fn test_sync_content_selection_flow() {
     let ccr_root = temp_dir.path().join(".ccr");
 
     // 设置CCR_ROOT环境变量
+    // SAFETY: 测试仅在当前进程临时设置 CCR_ROOT，结束前会显式清理。
     unsafe {
         std::env::set_var("CCR_ROOT", ccr_root.to_str().unwrap());
     }
@@ -80,6 +81,7 @@ fn test_sync_content_selection_flow() {
     assert!(paths.contains(&"platforms/claude".to_string()));
 
     // 清理环境变量
+    // SAFETY: 仅清理本测试设置的 CCR_ROOT，避免影响其他测试。
     unsafe {
         std::env::remove_var("CCR_ROOT");
     }
@@ -91,6 +93,7 @@ fn test_sync_content_type_detection() {
     let temp_dir = tempdir().unwrap();
     let ccr_root = temp_dir.path().join(".ccr");
 
+    // SAFETY: 测试仅在当前进程临时设置 CCR_ROOT，结束前会显式清理。
     unsafe {
         std::env::set_var("CCR_ROOT", ccr_root.to_str().unwrap());
     }
@@ -105,6 +108,7 @@ fn test_sync_content_type_detection() {
     assert!(!SyncContentType::Qwen.exists());
 
     // 清理环境变量
+    // SAFETY: 仅清理本测试设置的 CCR_ROOT，避免影响其他测试。
     unsafe {
         std::env::remove_var("CCR_ROOT");
     }

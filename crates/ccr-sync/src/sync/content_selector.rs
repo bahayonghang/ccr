@@ -371,6 +371,7 @@ mod tests {
             .unwrap_or_else(|poisoned| poisoned.into_inner());
         let temp_dir = tempdir().unwrap();
         let ccr_root = temp_dir.path().join(".ccr");
+        // SAFETY: 仅在测试中覆写 CCR_ROOT，作用域结束前会显式清理。
         unsafe {
             std::env::set_var("CCR_ROOT", ccr_root.to_str().unwrap());
         }
@@ -390,6 +391,7 @@ mod tests {
         assert!(paths.contains(&"config.toml".to_string()));
 
         // 清理环境变量
+        // SAFETY: 仅清理当前测试设置的 CCR_ROOT，避免影响其他测试。
         unsafe {
             std::env::remove_var("CCR_ROOT");
         }
@@ -402,6 +404,7 @@ mod tests {
             .unwrap_or_else(|poisoned| poisoned.into_inner());
         let temp_dir = tempdir().unwrap();
         let ccr_root = temp_dir.path().join(".ccr");
+        // SAFETY: 仅在测试中覆写 CCR_ROOT，作用域结束前会显式清理。
         unsafe {
             std::env::set_var("CCR_ROOT", ccr_root.to_str().unwrap());
         }
@@ -413,6 +416,7 @@ mod tests {
         // Claude 默认不存在，因为我们没有创建对应的目录或文件
 
         // 清理环境变量
+        // SAFETY: 仅清理当前测试设置的 CCR_ROOT，避免影响其他测试。
         unsafe {
             std::env::remove_var("CCR_ROOT");
         }
@@ -427,10 +431,12 @@ mod tests {
         let ccr_root = temp_dir.path().join(".ccr");
 
         // 确保清理任何现有的CCR_ROOT
+        // SAFETY: 仅清理测试进程中的 CCR_ROOT，随后会设置测试专用目录。
         unsafe {
             std::env::remove_var("CCR_ROOT");
         }
 
+        // SAFETY: 仅在测试中覆写 CCR_ROOT，作用域结束前会显式清理。
         unsafe {
             std::env::set_var("CCR_ROOT", ccr_root.to_str().unwrap());
         }
@@ -477,6 +483,7 @@ mod tests {
         );
 
         // 清理环境变量
+        // SAFETY: 仅清理当前测试设置的 CCR_ROOT，避免影响其他测试。
         unsafe {
             std::env::remove_var("CCR_ROOT");
         }

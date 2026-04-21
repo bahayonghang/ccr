@@ -564,6 +564,7 @@ mod tests {
     static ENV_LOCK: LazyLock<Mutex<()>> = LazyLock::new(|| Mutex::new(()));
 
     fn restore_env_var(key: &str, previous: Option<String>) {
+        // SAFETY: 仅在测试中恢复当前进程环境变量，调用方保证作用域内串行使用。
         unsafe {
             match previous {
                 Some(value) => std::env::set_var(key, value),
@@ -626,6 +627,7 @@ mod tests {
         let temp_dir = tempfile::tempdir().unwrap();
         let previous_root = std::env::var("CCR_ROOT").ok();
 
+        // SAFETY: 测试需要临时覆写进程环境变量来隔离 CCR 根目录，作用域结束后会恢复。
         unsafe {
             std::env::set_var("CCR_ROOT", temp_dir.path());
         }
@@ -664,6 +666,7 @@ mod tests {
         let temp_dir = tempfile::tempdir().unwrap();
         let previous_root = std::env::var("CCR_ROOT").ok();
 
+        // SAFETY: 测试需要临时覆写进程环境变量来隔离 CCR 根目录，作用域结束后会恢复。
         unsafe {
             std::env::set_var("CCR_ROOT", temp_dir.path());
         }

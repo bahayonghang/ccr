@@ -1690,6 +1690,7 @@ requires_openai_auth = true
         let ccr_root = temp_dir.path().join("ccr");
         let codex_dir = temp_dir.path().join("codex");
 
+        // SAFETY: 测试仅在当前进程临时设置 Codex 相关环境变量，结束后会显式清理。
         unsafe {
             std::env::set_var("CCR_ROOT", ccr_root.to_str().unwrap());
             std::env::set_var("CCR_DATA_DIR", ccr_root.to_str().unwrap());
@@ -1803,6 +1804,7 @@ requires_openai_auth = true
             "rt_latest"
         );
 
+        // SAFETY: 仅清理当前测试设置的环境变量，避免影响其他测试。
         unsafe {
             std::env::remove_var("CCR_ROOT");
             std::env::remove_var("CCR_DATA_DIR");
@@ -1816,6 +1818,7 @@ requires_openai_auth = true
         let ccr_root = temp_dir.path().join("ccr");
         let codex_dir = temp_dir.path().join("codex");
 
+        // SAFETY: 测试仅在当前进程临时设置 Codex 相关环境变量，结束后会显式清理。
         unsafe {
             std::env::set_var("CCR_ROOT", ccr_root.to_str().unwrap());
             std::env::set_var("CCR_CODEX_DIR", codex_dir.to_str().unwrap());
@@ -1868,6 +1871,7 @@ requires_openai_auth = true
             Some("mistral-key-123")
         );
 
+        // SAFETY: 仅清理当前测试设置的环境变量，避免影响其他测试。
         unsafe {
             std::env::remove_var("CCR_ROOT");
             std::env::remove_var("CCR_CODEX_DIR");
@@ -1877,6 +1881,7 @@ requires_openai_auth = true
     #[test]
     fn test_official_resets_config() {
         let temp_dir = tempfile::tempdir().unwrap();
+        // SAFETY: 测试仅在当前进程临时设置 CCR_CODEX_DIR，结束后会显式清理。
         unsafe {
             std::env::set_var("CCR_CODEX_DIR", temp_dir.path().to_str().unwrap());
         }
@@ -1904,6 +1909,7 @@ requires_openai_auth = true
         let after = config_manager.load_config().unwrap();
         assert!(after.as_table().unwrap().is_empty());
 
+        // SAFETY: 仅清理当前测试设置的 CCR_CODEX_DIR，避免影响其他测试。
         unsafe {
             std::env::remove_var("CCR_CODEX_DIR");
         }
@@ -1912,6 +1918,7 @@ requires_openai_auth = true
     #[test]
     fn test_apply_official_profile_overlays_managed_fields() {
         let temp_dir = tempfile::tempdir().unwrap();
+        // SAFETY: 测试仅在当前进程临时设置 CCR_CODEX_DIR，结束后会显式清理。
         unsafe {
             std::env::set_var("CCR_CODEX_DIR", temp_dir.path().to_str().unwrap());
         }
@@ -2018,6 +2025,7 @@ env_key = "MISTRAL_API_KEY"
             "official switch should preserve non-auth metadata"
         );
 
+        // SAFETY: 仅清理当前测试设置的 CCR_CODEX_DIR，避免影响其他测试。
         unsafe {
             std::env::remove_var("CCR_CODEX_DIR");
         }
@@ -2026,6 +2034,7 @@ env_key = "MISTRAL_API_KEY"
     #[test]
     fn test_apply_third_party_profile_succeeds_on_non_file_store() {
         let temp_dir = tempfile::tempdir().unwrap();
+        // SAFETY: 测试仅在当前进程临时设置 CCR_CODEX_DIR，结束后会显式清理。
         unsafe {
             std::env::set_var("CCR_CODEX_DIR", temp_dir.path().to_str().unwrap());
         }
@@ -2060,6 +2069,7 @@ env_key = "MISTRAL_API_KEY"
             result.err()
         );
 
+        // SAFETY: 仅清理当前测试设置的 CCR_CODEX_DIR，避免影响其他测试。
         unsafe {
             std::env::remove_var("CCR_CODEX_DIR");
         }
@@ -2068,6 +2078,7 @@ env_key = "MISTRAL_API_KEY"
     #[test]
     fn test_third_party_preserves_fields() {
         let temp_dir = tempfile::tempdir().unwrap();
+        // SAFETY: 测试仅在当前进程临时设置 CCR_CODEX_DIR，结束后会显式清理。
         unsafe {
             std::env::set_var("CCR_CODEX_DIR", temp_dir.path().to_str().unwrap());
         }
@@ -2111,6 +2122,7 @@ env_key = "MISTRAL_API_KEY"
             Some("test-provider")
         );
 
+        // SAFETY: 仅清理当前测试设置的 CCR_CODEX_DIR，避免影响其他测试。
         unsafe {
             std::env::remove_var("CCR_CODEX_DIR");
         }
@@ -2119,6 +2131,7 @@ env_key = "MISTRAL_API_KEY"
     #[test]
     fn test_apply_third_party_writes_config() {
         let temp_dir = tempfile::tempdir().unwrap();
+        // SAFETY: 测试仅在当前进程临时设置 CCR_CODEX_DIR，结束后会显式清理。
         unsafe {
             std::env::set_var("CCR_CODEX_DIR", temp_dir.path().to_str().unwrap());
         }
@@ -2208,6 +2221,7 @@ env_key = "MISTRAL_API_KEY"
             );
         }
 
+        // SAFETY: 仅清理当前测试设置的 CCR_CODEX_DIR，避免影响其他测试。
         unsafe {
             std::env::remove_var("CCR_CODEX_DIR");
         }
@@ -2216,6 +2230,7 @@ env_key = "MISTRAL_API_KEY"
     #[test]
     fn test_third_party_writes_env_key() {
         let temp_dir = tempfile::tempdir().unwrap();
+        // SAFETY: 测试仅在当前进程临时设置 CCR_CODEX_DIR，结束后会显式清理。
         unsafe {
             std::env::set_var("CCR_CODEX_DIR", temp_dir.path().to_str().unwrap());
         }
@@ -2289,6 +2304,7 @@ env_key = "MISTRAL_API_KEY"
             }
         }
 
+        // SAFETY: 仅清理当前测试设置的 CCR_CODEX_DIR，避免影响其他测试。
         unsafe {
             std::env::remove_var("CCR_CODEX_DIR");
         }
@@ -2297,6 +2313,7 @@ env_key = "MISTRAL_API_KEY"
     #[test]
     fn test_switching_from_openai_auth_to_provider_env_key_clears_openai_key() {
         let temp_dir = tempfile::tempdir().unwrap();
+        // SAFETY: 测试仅在当前进程临时设置 CCR_CODEX_DIR，结束后会显式清理。
         unsafe {
             std::env::set_var("CCR_CODEX_DIR", temp_dir.path().to_str().unwrap());
         }
@@ -2378,6 +2395,7 @@ env_key = "MISTRAL_API_KEY"
             Some("MISTRAL_API_KEY")
         );
 
+        // SAFETY: 仅清理当前测试设置的 CCR_CODEX_DIR，避免影响其他测试。
         unsafe {
             std::env::remove_var("CCR_CODEX_DIR");
         }
@@ -2386,6 +2404,7 @@ env_key = "MISTRAL_API_KEY"
     #[test]
     fn test_third_party_default_auth_key() {
         let temp_dir = tempfile::tempdir().unwrap();
+        // SAFETY: 测试仅在当前进程临时设置 CCR_CODEX_DIR，结束后会显式清理。
         unsafe {
             std::env::set_var("CCR_CODEX_DIR", temp_dir.path().to_str().unwrap());
         }
@@ -2457,6 +2476,7 @@ env_key = "MISTRAL_API_KEY"
             }
         }
 
+        // SAFETY: 仅清理当前测试设置的 CCR_CODEX_DIR，避免影响其他测试。
         unsafe {
             std::env::remove_var("CCR_CODEX_DIR");
         }
@@ -2465,6 +2485,7 @@ env_key = "MISTRAL_API_KEY"
     #[test]
     fn test_third_party_default_auth_key_clears_stale_chatgpt_auth_metadata() {
         let temp_dir = tempfile::tempdir().unwrap();
+        // SAFETY: 测试仅在当前进程临时设置 CCR_CODEX_DIR，结束后会显式清理。
         unsafe {
             std::env::set_var("CCR_CODEX_DIR", temp_dir.path().to_str().unwrap());
         }
@@ -2530,6 +2551,7 @@ env_key = "MISTRAL_API_KEY"
             Some("api")
         );
 
+        // SAFETY: 仅清理当前测试设置的 CCR_CODEX_DIR，避免影响其他测试。
         unsafe {
             std::env::remove_var("CCR_CODEX_DIR");
         }
@@ -2538,6 +2560,7 @@ env_key = "MISTRAL_API_KEY"
     #[test]
     fn test_provider_model_explicit_is_ignored() {
         let temp_dir = tempfile::tempdir().unwrap();
+        // SAFETY: 测试仅在当前进程临时设置 CCR_CODEX_DIR，结束后会显式清理。
         unsafe {
             std::env::set_var("CCR_CODEX_DIR", temp_dir.path().to_str().unwrap());
         }
@@ -2607,6 +2630,7 @@ env_key = "MISTRAL_API_KEY"
             }
         }
 
+        // SAFETY: 仅清理当前测试设置的 CCR_CODEX_DIR，避免影响其他测试。
         unsafe {
             std::env::remove_var("CCR_CODEX_DIR");
         }
@@ -2615,6 +2639,7 @@ env_key = "MISTRAL_API_KEY"
     #[test]
     fn test_third_party_clears_stale_optional_provider_fields() {
         let temp_dir = tempfile::tempdir().unwrap();
+        // SAFETY: 测试仅在当前进程临时设置 CCR_CODEX_DIR，结束后会显式清理。
         unsafe {
             std::env::set_var("CCR_CODEX_DIR", temp_dir.path().to_str().unwrap());
         }
@@ -2712,6 +2737,7 @@ env_key = "MISTRAL_API_KEY"
             provider
         );
 
+        // SAFETY: 仅清理当前测试设置的 CCR_CODEX_DIR，避免影响其他测试。
         unsafe {
             std::env::remove_var("CCR_CODEX_DIR");
         }
@@ -2720,6 +2746,7 @@ env_key = "MISTRAL_API_KEY"
     #[test]
     fn test_requires_openai_auth_ignores_env_key_and_clears_provider_token() {
         let temp_dir = tempfile::tempdir().unwrap();
+        // SAFETY: 测试仅在当前进程临时设置 CCR_CODEX_DIR，结束后会显式清理。
         unsafe {
             std::env::set_var("CCR_CODEX_DIR", temp_dir.path().to_str().unwrap());
         }
@@ -2816,6 +2843,7 @@ env_key = "MISTRAL_API_KEY"
             "env_key should be ignored/removed when requires_openai_auth=true"
         );
 
+        // SAFETY: 仅清理当前测试设置的 CCR_CODEX_DIR，避免影响其他测试。
         unsafe {
             std::env::remove_var("CCR_CODEX_DIR");
         }

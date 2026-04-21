@@ -28,6 +28,7 @@ fn setup_test_env() -> TempDir {
     let temp_dir = TempDir::new().unwrap();
 
     // 设置环境变量指向临时目录
+    // SAFETY: 测试仅在当前进程临时设置 CCR_ROOT，清理函数会恢复干净状态。
     unsafe {
         std::env::set_var("CCR_ROOT", temp_dir.path().to_str().unwrap());
     }
@@ -40,6 +41,7 @@ fn setup_test_env() -> TempDir {
 
 /// 清理测试环境
 fn cleanup_test_env(temp_dir: TempDir) {
+    // SAFETY: 仅清理本测试设置的 CCR_ROOT，避免污染后续测试。
     unsafe {
         std::env::remove_var("CCR_ROOT");
     }
