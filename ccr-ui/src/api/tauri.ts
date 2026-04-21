@@ -389,54 +389,18 @@ export {
 } from './domains/config'
 
 // ════════════════════════════════════════════════════════════
-// 3. 同步 (Sync / WebDAV)
+// 3. 同步 (Sync / WebDAV) —— 实现已迁移至 ./domains/sync
 // ════════════════════════════════════════════════════════════
-
-/** 推送配置到远端 */
-export const pushSync = async <T = UnknownRecord>(force?: boolean): Promise<T> => {
-  return invoke('sync_push', { force })
-}
-
-/** 从远端拉取配置 */
-export const pullSync = async <T = UnknownRecord>(force?: boolean): Promise<T> => {
-  return invoke('sync_pull', { force })
-}
-
-/** 获取同步状态 */
-export const getSyncStatus = async <T = SyncStatusResponse>(): Promise<T> => {
-  return invoke('sync_status')
-}
-
-/** getSyncInfo - 同 getSyncStatus 的别名 */
-export const getSyncInfo = getSyncStatus
-
-/** 列出同步文件夹 */
-export const listSyncFolders = async <T = SyncFolderItem[] | CommandResultLike>(): Promise<T> => {
-  return invoke('list_sync_folders')
-}
-
-/** 添加同步文件夹 */
-export const addSyncFolder = async <T = UnknownRecord>(
-  name: string,
-  localPath: string,
-  remotePath: string
-): Promise<T> => {
-  return invoke('add_sync_folder', { name, localPath, remotePath })
-}
-
-/** 更新同步文件夹 */
-export const updateSyncFolder = async <T = UnknownRecord>(
-  id: string,
-  name?: string,
-  enabled?: boolean
-): Promise<T> => {
-  return invoke('update_sync_folder', { id, name, enabled })
-}
-
-/** 删除同步文件夹 */
-export const deleteSyncFolder = async <T = UnknownRecord>(id: string): Promise<T> => {
-  return invoke('delete_sync_folder', { id })
-}
+export {
+  pushSync,
+  pullSync,
+  getSyncStatus,
+  getSyncInfo,
+  listSyncFolders,
+  addSyncFolder,
+  updateSyncFolder,
+  deleteSyncFolder,
+} from './domains/sync'
 
 // ════════════════════════════════════════════════════════════
 // 4. Claude Code 平台
