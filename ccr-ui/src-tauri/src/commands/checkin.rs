@@ -26,7 +26,9 @@ use ccr_checkin::services::checkin_service::{CheckinExecutionResult, CheckinServ
 
 use chrono::Datelike;
 
-use crate::checkin_jobs::{CheckinJobLogEntry, CheckinJobSnapshot, CheckinJobStatus};
+use crate::checkin_jobs::{
+    CheckinJobDelta, CheckinJobLogEntry, CheckinJobSnapshot, CheckinJobStatus,
+};
 use crate::monitoring::{checkin_job_entry, record_monitoring_entry, should_persist};
 use crate::state::AppState;
 
@@ -178,6 +180,23 @@ async fn emit_checkin_job_snapshot(
     let persist = should_persist(entry.level, &entry.event_type);
     record_monitoring_entry(app_handle, entry, persist).await;
 }
+
+/// Progress 事件专用：推送 delta 载荷 + 同步用 snapshot 构造 monitoring 条目。
+/// 事件通道 `checkin:job-delta`，前端 applyDelta 合并到本地完整快照。
+async fn emit_checkin_job_delta(
+    app_handle: &AppHandle,
+    snapshot: &CheckinJobSnapshot,
+    delta: &CheckinJobDelta,
+) {
+    const EVENT: &str = "checkin:job-delta";
+    if let Err(error) = app_handle.emit(EVENT, delta.clone()) {
+        tracing::warn!(event = EVENT, ?error, job_id = %delta.job_id, "Failed to emit checkin job delta");
+    }
+
+    let entry = checkin_job_entry("checkin:job-progress", snapshot);
+    let persist = should_persist(entry.level, &entry.event_type);
+    record_monitoring_entry(app_handle, entry, persist).await;
+}
 async fn execute_checkin_job_accounts(
     app_handle: AppHandle,
     job_id: String,
@@ -202,11 +221,11 @@ async fn execute_checkin_job_accounts(
                 .map_err(|e| format!("Failed to acquire checkin permit: {}", e))?;
 
             let state = app_handle.state::<AppState>();
-            if let Some(snapshot) = state
-                .update_checkin_job(&job_id, |job| job.mark_processing(&meta.account_id))
+            if let Some((snapshot, delta)) = state
+                .update_checkin_job_and_delta(&job_id, |job| job.mark_processing(&meta.account_id))
                 .await
             {
-                emit_checkin_job_snapshot(&app_handle, "checkin:job-progress", &snapshot).await;
+                emit_checkin_job_delta(&app_handle, &snapshot, &delta).await;
             }
 
             let service = CheckinService::with_client(checkin_dir, http_client);
@@ -220,11 +239,11 @@ async fn execute_checkin_job_accounts(
                 };
 
             let state = app_handle.state::<AppState>();
-            if let Some(snapshot) = state
-                .update_checkin_job(&job_id, |job| job.apply_result(result))
+            if let Some((snapshot, delta)) = state
+                .update_checkin_job_and_delta(&job_id, |job| job.apply_result(result))
                 .await
             {
-                emit_checkin_job_snapshot(&app_handle, "checkin:job-progress", &snapshot).await;
+                emit_checkin_job_delta(&app_handle, &snapshot, &delta).await;
             }
 
             Ok::<(), String>(())
@@ -248,8 +267,8 @@ async fn execute_checkin_job_accounts(
 
     if task_failed {
         let state = app_handle.state::<AppState>();
-        if let Some(snapshot) = state
-            .update_checkin_job(&job_id, |job| {
+        if let Some((snapshot, delta)) = state
+            .update_checkin_job_and_delta(&job_id, |job| {
                 job.mark_pending_failed("签到任务异常终止");
                 if !matches!(
                     job.status,
@@ -260,7 +279,7 @@ async fn execute_checkin_job_accounts(
             })
             .await
         {
-            emit_checkin_job_snapshot(&app_handle, "checkin:job-progress", &snapshot).await;
+            emit_checkin_job_delta(&app_handle, &snapshot, &delta).await;
         }
     }
 

@@ -6,6 +6,7 @@ import type {
   AccountInfo,
   CheckinDisplayResponse,
   CheckinFlowPhase,
+  CheckinJobDelta,
   CheckinJobSnapshot,
   CheckinLogEntry,
   CheckinResponse,
@@ -66,6 +67,36 @@ export const createCheckinJobRuntime = (
     }
   }
 
+  /**
+   * 合并后端 progress delta 到本地快照。
+   * - 仅在当前激活 jobId 匹配时生效
+   * - changedLogs 按 account_id 更新或追加
+   * - newResults 直接 push
+   */
+  const applyCheckinJobDelta = (delta: CheckinJobDelta) => {
+    if (refs.activeCheckinJobId.value !== delta.jobId) return
+
+    refs.checkinProgress.value = {
+      total: delta.total,
+      completed: delta.completed,
+      currentAccountName: delta.currentAccountName,
+    }
+
+    if (delta.changedLogs.length > 0) {
+      const nextLogs = [...refs.checkinLogs.value]
+      for (const rawLog of delta.changedLogs) {
+        const mapped = mapCheckinJobLogEntry(rawLog)
+        const idx = nextLogs.findIndex((entry) => entry.accountId === rawLog.account_id)
+        if (idx >= 0) {
+          nextLogs.splice(idx, 1, mapped)
+        } else {
+          nextLogs.push(mapped)
+        }
+      }
+      refs.checkinLogs.value = nextLogs
+    }
+  }
+
   const finalizeCheckinJob = async (snapshot: CheckinJobSnapshot) => {
     if (refs.activeCheckinJobId.value !== snapshot.job_id) return
 
@@ -122,9 +153,8 @@ export const createCheckinJobRuntime = (
       refs.activeCheckinJobId.value = response.job_id
       applyCheckinJobSnapshot(response.snapshot)
 
-      const handleProgressSnapshot = (snapshot: CheckinJobSnapshot) => {
-        if (refs.activeCheckinJobId.value !== snapshot.job_id) return
-        applyCheckinJobSnapshot(snapshot)
+      const handleDelta = (delta: CheckinJobDelta) => {
+        applyCheckinJobDelta(delta)
       }
 
       const handleTerminalSnapshot = (snapshot: CheckinJobSnapshot) => {
@@ -132,8 +162,8 @@ export const createCheckinJobRuntime = (
       }
 
       checkinJobUnlisteners.push(
-        await listen<CheckinJobSnapshot>('checkin:job-progress', (event) => {
-          handleProgressSnapshot(event.payload)
+        await listen<CheckinJobDelta>('checkin:job-delta', (event) => {
+          handleDelta(event.payload)
         })
       )
       checkinJobUnlisteners.push(

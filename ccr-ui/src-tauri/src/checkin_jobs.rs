@@ -62,6 +62,27 @@ pub struct CheckinJobSnapshot {
     pub finished_at: Option<String>,
 }
 
+/// 签到任务增量事件载荷。
+///
+/// 用于 progress 事件 emit，仅携带相对上一次快照的变化，避免 IPC 流量随批量账号规模 O(N²) 增长。
+/// 前端通过 job_id 将 delta 合并到本地完整快照。
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CheckinJobDelta {
+    pub job_id: String,
+    pub status: CheckinJobStatus,
+    pub completed: usize,
+    pub total: usize,
+    pub current_account_name: String,
+    pub summary: CheckinJobSummary,
+    /// 本次 tick 相对上一次变化的 log 条目（按 account_id 定位）
+    pub changed_logs: Vec<CheckinJobLogEntry>,
+    /// 本次新增的 result（首次出现）
+    pub new_results: Vec<CheckinExecutionResult>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub finished_at: Option<String>,
+}
+
 impl CheckinJobLogEntry {
     pub fn pending(account_id: String, account_name: String, provider_name: String) -> Self {
         Self {

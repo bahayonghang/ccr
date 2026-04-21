@@ -227,6 +227,22 @@ export interface CheckinJobSnapshot {
   finished_at?: string
 }
 
+/**
+ * 签到任务增量事件载荷（对应后端 CheckinJobDelta，serde camelCase）。
+ * progress 事件（checkin:job-delta）使用此类型；前端通过 jobId 合并到本地快照。
+ */
+export interface CheckinJobDelta {
+  jobId: string
+  status: CheckinJobStatus
+  completed: number
+  total: number
+  currentAccountName: string
+  summary: CheckinSummary
+  changedLogs: CheckinJobLogEntryPayload[]
+  newResults: CheckinExecutionResult[]
+  finishedAt?: string
+}
+
 export interface StartCheckinJobResponse {
   job_id: string
   snapshot: CheckinJobSnapshot
