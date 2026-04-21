@@ -1,7 +1,7 @@
 use chrono::Utc;
 use serde::Serialize;
 
-use ccr_db::services::checkin_service::CheckinExecutionResult;
+use ccr_checkin::services::checkin_service::CheckinExecutionResult;
 
 #[derive(Debug, Clone, Copy, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
@@ -137,11 +137,11 @@ impl CheckinJobSnapshot {
             .find(|entry| entry.account_id == result.account_id)
         {
             log.status = match result.status {
-                ccr_db::models::checkin::CheckinStatus::Success => CheckinJobLogStatus::Success,
-                ccr_db::models::checkin::CheckinStatus::AlreadyCheckedIn => {
+                ccr_checkin::models::checkin::CheckinStatus::Success => CheckinJobLogStatus::Success,
+                ccr_checkin::models::checkin::CheckinStatus::AlreadyCheckedIn => {
                     CheckinJobLogStatus::AlreadyCheckedIn
                 }
-                ccr_db::models::checkin::CheckinStatus::Failed => CheckinJobLogStatus::Failed,
+                ccr_checkin::models::checkin::CheckinStatus::Failed => CheckinJobLogStatus::Failed,
             };
             log.message = result.message.clone();
             log.error_code = result.error_code.clone();
@@ -152,11 +152,11 @@ impl CheckinJobSnapshot {
 
         self.completed += 1;
         match result.status {
-            ccr_db::models::checkin::CheckinStatus::Success => self.summary.success += 1,
-            ccr_db::models::checkin::CheckinStatus::AlreadyCheckedIn => {
+            ccr_checkin::models::checkin::CheckinStatus::Success => self.summary.success += 1,
+            ccr_checkin::models::checkin::CheckinStatus::AlreadyCheckedIn => {
                 self.summary.already_checked_in += 1
             }
-            ccr_db::models::checkin::CheckinStatus::Failed => self.summary.failed += 1,
+            ccr_checkin::models::checkin::CheckinStatus::Failed => self.summary.failed += 1,
         }
         self.results.push(result);
 
@@ -194,7 +194,7 @@ impl CheckinJobSnapshot {
                     account_id: log.account_id.clone(),
                     account_name: log.account_name.clone(),
                     provider_name: log.provider_name.clone(),
-                    status: ccr_db::models::checkin::CheckinStatus::Failed,
+                    status: ccr_checkin::models::checkin::CheckinStatus::Failed,
                     message: Some(message.to_string()),
                     error_code: Some("task_error".to_string()),
                     reward: None,
@@ -232,7 +232,7 @@ impl CheckinJobSnapshot {
                     account_id: log.account_id.clone(),
                     account_name: log.account_name.clone(),
                     provider_name: log.provider_name.clone(),
-                    status: ccr_db::models::checkin::CheckinStatus::Failed,
+                    status: ccr_checkin::models::checkin::CheckinStatus::Failed,
                     message: Some("签到超时".to_string()),
                     error_code: Some("timeout".to_string()),
                     reward: None,

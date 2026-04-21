@@ -8,7 +8,7 @@
 //! 4. `open_waf_login` 等待 cookie 或 60 秒超时后关闭窗口
 //! 5. cookie 保存到 WafCookieManager（SQLite，默认 24h 缓存）
 
-use ccr_db::managers::checkin::WafCookieManager;
+use ccr_checkin::managers::checkin::WafCookieManager;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Mutex;

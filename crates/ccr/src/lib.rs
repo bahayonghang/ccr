@@ -124,18 +124,13 @@
 //!
 //! 完整的配置示例和故障排除指南请参考 `docs/examples/` 目录。
 
-// 分层模块
-pub mod application;
-pub mod commands;
-pub mod managers;
-pub mod models;
-pub mod platforms;
-pub mod services;
-pub mod sync;
+pub mod cli;
+mod help;
 
-// 可选功能模块
+pub use ccr_cli::{application, commands, managers, models, platforms, services, sync};
+
 #[cfg(feature = "tui")]
-pub mod tui;
+pub use ccr_tui::tui;
 
 // ═══════════════════════════════════════════════════════════
 // 核心类型导出

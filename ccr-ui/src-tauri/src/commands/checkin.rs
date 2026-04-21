@@ -13,16 +13,16 @@ use tokio::task::JoinSet;
 use tokio::time::timeout;
 use uuid::Uuid;
 
-use ccr_db::managers::checkin::{
+use ccr_checkin::managers::checkin::{
     AccountManager, BalanceManager, ExportManager, ProviderManager, RecordManager,
     WafCookieManager, get_checkin_dir,
 };
-use ccr_db::models::checkin::{
+use ccr_checkin::models::checkin::{
     CheckinStatus, CreateAccountRequest, CreateProviderRequest, ExportOptions,
     UpdateAccountRequest, UpdateProviderRequest,
 };
-use ccr_db::services::cdk_service::{CdkExtraConfig, CdkService};
-use ccr_db::services::checkin_service::{CheckinExecutionResult, CheckinService};
+use ccr_checkin::services::cdk_service::{CdkExtraConfig, CdkService};
+use ccr_checkin::services::checkin_service::{CheckinExecutionResult, CheckinService};
 
 use chrono::Datelike;
 
@@ -595,9 +595,9 @@ pub async fn batch_checkin(
 
     for result in &results {
         match result.status {
-            ccr_db::models::checkin::CheckinStatus::Success => success += 1,
-            ccr_db::models::checkin::CheckinStatus::AlreadyCheckedIn => already_checked_in += 1,
-            ccr_db::models::checkin::CheckinStatus::Failed => failed += 1,
+            ccr_checkin::models::checkin::CheckinStatus::Success => success += 1,
+            ccr_checkin::models::checkin::CheckinStatus::AlreadyCheckedIn => already_checked_in += 1,
+            ccr_checkin::models::checkin::CheckinStatus::Failed => failed += 1,
         }
     }
 
@@ -814,7 +814,7 @@ pub async fn execute_cdk_recharge(
             .map_err(|e| format!("Provider not found: {}", e))?;
 
         // Look up builtin provider CDK config
-        use ccr_db::managers::checkin::builtin_providers::get_builtin_providers;
+        use ccr_checkin::managers::checkin::builtin_providers::get_builtin_providers;
         let builtin_providers = get_builtin_providers();
         let cdk_config = builtin_providers
             .iter()
@@ -829,7 +829,7 @@ pub async fn execute_cdk_recharge(
         let extra_config = CdkExtraConfig::from_json(&account.extra_config);
 
         // Decrypt cookies for topup request
-        use ccr_db::core::crypto::CryptoManager;
+        use ccr_checkin::core::crypto::CryptoManager;
         let crypto = CryptoManager::new(&checkin_dir)
             .map_err(|e| format!("Crypto initialization error: {}", e))?;
         let cookies_json = crypto
@@ -1038,7 +1038,7 @@ pub async fn delete_waf_cookie(_state: State<'_, AppState>, id: String) -> Resul
 #[tauri::command]
 pub async fn list_builtin_providers() -> Result<Value, String> {
     run_blocking(|| {
-        use ccr_db::managers::checkin::builtin_providers::get_builtin_providers;
+        use ccr_checkin::managers::checkin::builtin_providers::get_builtin_providers;
         let providers = get_builtin_providers();
         let total = providers.len();
         Ok(serde_json::json!({
@@ -1052,7 +1052,7 @@ pub async fn list_builtin_providers() -> Result<Value, String> {
 #[tauri::command]
 pub async fn add_builtin_provider(provider_id: String) -> Result<Value, String> {
     run_blocking(move || {
-        use ccr_db::managers::checkin::builtin_providers::get_builtin_providers;
+        use ccr_checkin::managers::checkin::builtin_providers::get_builtin_providers;
 
         let providers = get_builtin_providers();
         let builtin = providers
@@ -1093,7 +1093,7 @@ pub async fn get_checkin_account_cookies(
             .get(&account_id)
             .map_err(|e| format!("Account not found: {}", e))?;
 
-        use ccr_db::core::crypto::CryptoManager;
+        use ccr_checkin::core::crypto::CryptoManager;
         let crypto = CryptoManager::new(&checkin_dir)
             .map_err(|e| format!("Crypto initialization error: {}", e))?;
         let cookies_json = crypto
@@ -1112,10 +1112,10 @@ pub async fn get_checkin_account_cookies(
 #[tauri::command]
 pub async fn export_checkin_config(options: Option<Value>) -> Result<Value, String> {
     let checkin_dir = checkin_dir_str()?;
-    let opts: ccr_db::models::checkin::ExportOptions = if let Some(v) = options {
+    let opts: ccr_checkin::models::checkin::ExportOptions = if let Some(v) = options {
         serde_json::from_value(v).map_err(|e| format!("Invalid export options: {}", e))?
     } else {
-        ccr_db::models::checkin::ExportOptions::default()
+        ccr_checkin::models::checkin::ExportOptions::default()
     };
     run_blocking(move || {
         let export_manager = ExportManager::new(&checkin_dir);
@@ -1130,7 +1130,7 @@ pub async fn export_checkin_config(options: Option<Value>) -> Result<Value, Stri
 #[tauri::command]
 pub async fn preview_checkin_import(data: Value) -> Result<Value, String> {
     let checkin_dir = checkin_dir_str()?;
-    let export_data: ccr_db::models::checkin::ExportData =
+    let export_data: ccr_checkin::models::checkin::ExportData =
         serde_json::from_value(data).map_err(|e| format!("Invalid import data: {}", e))?;
     run_blocking(move || {
         let export_manager = ExportManager::new(&checkin_dir);
@@ -1145,12 +1145,12 @@ pub async fn preview_checkin_import(data: Value) -> Result<Value, String> {
 #[tauri::command]
 pub async fn import_checkin_config(data: Value, options: Option<Value>) -> Result<Value, String> {
     let checkin_dir = checkin_dir_str()?;
-    let export_data: ccr_db::models::checkin::ExportData =
+    let export_data: ccr_checkin::models::checkin::ExportData =
         serde_json::from_value(data).map_err(|e| format!("Invalid import data: {}", e))?;
-    let import_opts: ccr_db::models::checkin::ImportOptions = if let Some(v) = options {
+    let import_opts: ccr_checkin::models::checkin::ImportOptions = if let Some(v) = options {
         serde_json::from_value(v).map_err(|e| format!("Invalid import options: {}", e))?
     } else {
-        ccr_db::models::checkin::ImportOptions::default()
+        ccr_checkin::models::checkin::ImportOptions::default()
     };
     run_blocking(move || {
         let export_manager = ExportManager::new(&checkin_dir);

@@ -332,7 +332,79 @@ dependencies = [
 
 [[package]]
 name = "ccr"
-version = "5.9.5"
+version = "6.0.0"
+dependencies = [
+ "anyhow",
+ "base64",
+ "blake3",
+ "ccr-cli",
+ "ccr-codex",
+ "ccr-config",
+ "ccr-core",
+ "ccr-skills",
+ "ccr-store",
+ "ccr-sync",
+ "ccr-tui",
+ "ccr-types",
+ "chrono",
+ "clap",
+ "colored",
+ "comfy-table",
+ "dialoguer",
+ "dirs",
+ "filetime",
+ "fs4",
+ "futures",
+ "indexmap",
+ "once_cell",
+ "rayon",
+ "reqwest",
+ "reqwest_dav",
+ "rpassword",
+ "serde",
+ "serde_json",
+ "sysinfo",
+ "tempfile",
+ "thiserror 2.0.18",
+ "tokio",
+ "toml",
+ "tracing",
+ "tracing-appender",
+ "tracing-log",
+ "tracing-subscriber",
+ "unicode-width",
+ "urlencoding",
+ "uuid",
+ "walkdir",
+]
+
+[[package]]
+name = "ccr-checkin"
+version = "6.0.0"
+dependencies = [
+ "aes-gcm",
+ "base64",
+ "ccr-core",
+ "ccr-db",
+ "ccr-types",
+ "chrono",
+ "dirs",
+ "futures",
+ "once_cell",
+ "reqwest",
+ "rusqlite",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "thiserror 2.0.18",
+ "tokio",
+ "tracing",
+ "uuid",
+]
+
+[[package]]
+name = "ccr-cli"
+version = "6.0.0"
 dependencies = [
  "anyhow",
  "base64",
@@ -348,7 +420,6 @@ dependencies = [
  "clap",
  "colored",
  "comfy-table",
- "crossterm",
  "dialoguer",
  "dirs",
  "filetime",
@@ -356,14 +427,10 @@ dependencies = [
  "futures",
  "indexmap",
  "once_cell",
- "r2d2",
- "r2d2_sqlite",
- "ratatui",
  "rayon",
  "reqwest",
  "reqwest_dav",
  "rpassword",
- "rusqlite",
  "serde",
  "serde_json",
  "sysinfo",
@@ -383,7 +450,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-codex"
-version = "5.9.5"
+version = "6.0.0"
 dependencies = [
  "aes-gcm",
  "argon2",
@@ -411,7 +478,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-config"
-version = "5.9.5"
+version = "6.0.0"
 dependencies = [
  "ccr-core",
  "chrono",
@@ -426,7 +493,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-core"
-version = "5.9.5"
+version = "6.0.0"
 dependencies = [
  "anyhow",
  "colored",
@@ -452,7 +519,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-db"
-version = "5.9.5"
+version = "6.0.0"
 dependencies = [
  "aes-gcm",
  "anyhow",
@@ -485,7 +552,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-skills"
-version = "5.9.5"
+version = "6.0.0"
 dependencies = [
  "blake3",
  "ccr-config",
@@ -504,7 +571,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-store"
-version = "5.9.5"
+version = "6.0.0"
 dependencies = [
  "blake3",
  "ccr-config",
@@ -526,7 +593,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-sync"
-version = "5.9.5"
+version = "6.0.0"
 dependencies = [
  "ccr-config",
  "ccr-core",
@@ -544,8 +611,29 @@ dependencies = [
 ]
 
 [[package]]
+name = "ccr-tui"
+version = "6.0.0"
+dependencies = [
+ "base64",
+ "ccr-cli",
+ "ccr-codex",
+ "ccr-core",
+ "chrono",
+ "crossterm",
+ "dirs",
+ "indexmap",
+ "ratatui",
+ "serde_json",
+ "tempfile",
+ "tokio",
+ "toml",
+ "tracing",
+ "unicode-width",
+]
+
+[[package]]
 name = "ccr-types"
-version = "5.9.5"
+version = "6.0.0"
 dependencies = [
  "chrono",
  "serde",

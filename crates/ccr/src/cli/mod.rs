@@ -1,12 +1,5 @@
-// CLI 模块 - 命令行接口定义和命令分发
-//
-// 提供统一的 CLI 结构定义和命令路由机制
-
-pub mod definitions;
 pub mod dispatch;
-pub mod help_config;
-pub mod subcommands;
 
-pub use definitions::{Cli, Commands};
+pub use ccr_cli::cli::subcommands;
+pub use ccr_cli::cli::{Cli, Commands, build_cli_command};
 pub use dispatch::CommandDispatcher;
-pub use help_config::build_cli_command;

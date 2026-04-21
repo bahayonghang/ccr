@@ -1,7 +1,6 @@
 // ⚙️ 配置类型定义
 // 📦 ProviderType, ConfigSection, GlobalSettings
 
-use crate::managers::sync_config::SyncConfig;
 use ccr_core::core::error::{CcrError, Result};
 use ccr_core::utils::{AutoCompletable, Validatable};
 use indexmap::IndexMap;
@@ -253,9 +252,4 @@ pub struct GlobalSettings {
     /// 🎨 TUI 主题名称 (预留字段)
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tui_theme: Option<String>,
-
-    /// ☁️ WebDAV 同步配置（已废弃，保留向后兼容）
-    #[serde(skip_serializing_if = "Option::is_none")]
-    #[deprecated(note = "Use SyncConfigManager to manage sync configuration")]
-    pub sync: Option<SyncConfig>,
 }

@@ -1,0 +1,32 @@
+[package]
+name = "ccr-tui"
+version.workspace = true
+edition = "2024"
+rust-version = "1.90"
+authors = ["Yonghang Li"]
+description = "CCR terminal UI crate"
+license = "MIT"
+repository = "https://github.com/bahayonghang/ccr"
+
+[lib]
+name = "ccr_tui"
+path = "src/lib.rs"
+
+[dependencies]
+ccr-cli = { path = "../ccr-cli" }
+ccr-core = { path = "../ccr-core" }
+ccr-codex = { path = "../ccr-codex" }
+chrono = { workspace = true }
+crossterm = "0.29.0"
+dirs = { workspace = true }
+indexmap = { workspace = true }
+ratatui = "0.30.0"
+serde_json = { workspace = true }
+tokio = { workspace = true }
+tracing = { workspace = true }
+unicode-width = "0.2.2"
+
+[dev-dependencies]
+base64 = { workspace = true }
+tempfile = { workspace = true }
+toml = { workspace = true }

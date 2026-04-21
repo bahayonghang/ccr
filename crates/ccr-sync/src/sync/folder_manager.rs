@@ -12,12 +12,13 @@
 #![allow(dead_code)]
 
 use crate::sync::folder::{FolderStats, SyncFolder, SyncFoldersConfig, WebDavConfig, expand_path};
-use ccr_config::SyncConfigManager;
 use ccr_core::core::error::{CcrError, Result};
 use ccr_core::core::fileio;
 use ccr_core::core::lock::LockManager;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
+
+use super::config::SyncConfigManager;
 
 /// 🔧 Sync文件夹管理器
 ///
@@ -717,13 +718,14 @@ mod tests {
         let sync_config_path = temp_dir.path().join("sync.toml");
 
         // 设置环境变量指向临时目录
+        // SAFETY: 仅在测试中覆写当前进程的 sync 配置路径，测试结束后立即清理。
         unsafe {
             std::env::set_var("CCR_SYNC_FOLDERS_CONFIG", &sync_folders_path);
             std::env::set_var("CCR_SYNC_CONFIG_PATH", &sync_config_path);
         }
 
         // 创建旧版 sync.toml
-        let old_config = ccr_config::SyncConfig {
+        let old_config = crate::sync::config::SyncConfig {
             enabled: true,
             webdav_url: "https://dav.example.com/".to_string(),
             username: "test@example.com".to_string(),
@@ -732,7 +734,7 @@ mod tests {
             auto_sync: false,
         };
 
-        let sync_config_manager = ccr_config::SyncConfigManager::new(&sync_config_path);
+        let sync_config_manager = SyncConfigManager::new(&sync_config_path);
         sync_config_manager.save(&old_config).unwrap();
 
         // 执行迁移
@@ -762,6 +764,7 @@ mod tests {
         assert!(!migrated_again, "第二次迁移应该跳过");
 
         // 清理环境变量
+        // SAFETY: 仅清理本测试先前设置的进程环境变量，避免污染后续用例。
         unsafe {
             std::env::remove_var("CCR_SYNC_FOLDERS_CONFIG");
             std::env::remove_var("CCR_SYNC_CONFIG_PATH");

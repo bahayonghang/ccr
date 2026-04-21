@@ -4,13 +4,11 @@ pub mod managers;
 pub mod models;
 pub mod platforms;
 pub mod services;
-pub mod sync;
 
 pub use ccr_core::{AutoCompletable, CcrError, Result, Validatable};
 pub use managers::{
     CcsConfig, ConfigManager, ConfigSection, ConfigValidator, GlobalSettings, PlatformConfigEntry,
-    PlatformConfigManager, ProviderType, SyncConfig, SyncConfigManager, UnifiedConfig,
-    ValidationReport,
+    PlatformConfigManager, ProviderType, UnifiedConfig, ValidationReport,
 };
 pub use models::{Platform, PlatformConfig, PlatformPaths, ProfileConfig};
 pub use platforms::base::{
