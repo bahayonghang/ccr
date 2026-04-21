@@ -95,6 +95,12 @@ thiserror = "2"
 lru = "0.16.3"
 notify = "8.2.0"
 
+# Lock-free 配置快照（供同步 tray/回调读取 AppState 偏好）
+arc-swap = "1"
+
+# 高并发缓存（替代 RwLock<LruCache>，读路径无需 write 锁、内置分段）
+moka = { version = "0.12", features = ["future"] }
+
 # File locking for cache
 fs4 = "0.13"
 

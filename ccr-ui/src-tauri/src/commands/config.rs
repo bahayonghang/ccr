@@ -470,7 +470,7 @@ pub async fn update_config(name: String, data: serde_json::Value) -> Result<Stri
 
 #[tauri::command]
 pub async fn get_skip_exit_confirm(state: State<'_, AppState>) -> Result<bool, String> {
-    Ok(!state.desktop_shell_preferences()?.confirm_before_exit)
+    Ok(!state.desktop_shell_preferences().confirm_before_exit)
 }
 
 #[tauri::command]

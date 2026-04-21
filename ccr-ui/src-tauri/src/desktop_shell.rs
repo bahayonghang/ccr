@@ -125,7 +125,7 @@ pub async fn refresh_codex_tray<R: Runtime>(app: &AppHandle<R>, force: bool) -> 
                     .iter()
                     .map(|item| item.name.clone())
                     .collect(),
-            )?;
+            );
             let menu = build_snapshot_tray_menu(app, &snapshot)?;
             tray.set_menu(Some(menu))
                 .map_err(|e| format!("更新 tray 菜单失败: {e}"))?;
@@ -134,7 +134,7 @@ pub async fn refresh_codex_tray<R: Runtime>(app: &AppHandle<R>, force: bool) -> 
         }
         Err(error) => {
             app.state::<AppState>()
-                .set_tray_switch_accounts(Vec::new())?;
+                .set_tray_switch_accounts(Vec::new());
             let menu = build_error_tray_menu(app, &error)?;
             tray.set_menu(Some(menu))
                 .map_err(|e| format!("更新 tray 菜单失败: {e}"))?;
@@ -264,7 +264,7 @@ pub async fn handle_tray_icon_event<R: Runtime>(
             )?;
 
             if button == MouseButton::Left && button_state == MouseButtonState::Up {
-                let preferences = app.state::<AppState>().desktop_shell_preferences()?;
+                let preferences = app.state::<AppState>().desktop_shell_preferences();
                 if preferences.open_panel_on_tray_click {
                     toggle_tray_panel(app).await?;
                 } else {
@@ -273,7 +273,7 @@ pub async fn handle_tray_icon_event<R: Runtime>(
                         y: position.y as i32,
                         width: 0,
                         height: 0,
-                    }))?;
+                    }));
                     show_main_window(app, None).await?;
                 }
             }
@@ -324,7 +324,7 @@ async fn switch_auth_from_menu<R: Runtime>(
     let index = index_text
         .parse::<usize>()
         .map_err(|e| format!("解析账户菜单序号失败: {e}"))?;
-    let Some(account_name) = app.state::<AppState>().tray_switch_account_name(index)? else {
+    let Some(account_name) = app.state::<AppState>().tray_switch_account_name(index) else {
         return Ok(());
     };
 
@@ -345,7 +345,8 @@ async fn switch_auth_from_menu<R: Runtime>(
 }
 
 fn update_tray_anchor<R: Runtime>(app: &AppHandle<R>, anchor: TrayAnchor) -> Result<(), String> {
-    app.state::<AppState>().set_tray_anchor(Some(anchor))
+    app.state::<AppState>().set_tray_anchor(Some(anchor));
+    Ok(())
 }
 
 fn ensure_tray_panel_window<R: Runtime>(app: &AppHandle<R>) -> Result<WebviewWindow<R>, String> {
@@ -392,7 +393,7 @@ fn position_tray_panel_window<R: Runtime>(
     panel: &WebviewWindow<R>,
 ) -> Result<(), String> {
     let state = app.state::<AppState>();
-    let preferences = state.desktop_shell_preferences()?;
+    let preferences = state.desktop_shell_preferences();
 
     if preferences.tray_panel.placement_mode == TrayPanelPlacementMode::Manual {
         let manual_position = preferences.tray_panel.manual_position.as_ref();
@@ -431,7 +432,7 @@ fn position_tray_panel_window<R: Runtime>(
         state.reset_tray_panel_manual_position()?;
     }
 
-    let anchor = state.tray_anchor()?;
+    let anchor = state.tray_anchor();
     let monitor = monitor_for_anchor(panel, anchor.as_ref())?;
     let work_area = monitor.as_ref().map(work_area_from_monitor);
     let size = resolve_panel_size_for_work_area(work_area.as_ref());

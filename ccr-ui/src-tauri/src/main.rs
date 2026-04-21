@@ -242,15 +242,7 @@ fn main() {
                 }
 
                 let state = window.state::<AppState>();
-                let preferences = match state.desktop_shell_preferences() {
-                    Ok(settings) => settings,
-                    Err(error) => {
-                        tracing::warn!(
-                            "[app] failed to access shell preferences during exit flow: {error}"
-                        );
-                        state::DesktopShellPreferences::default()
-                    }
-                };
+                let preferences = state.desktop_shell_preferences();
                 let action = desktop_shell::resolve_main_window_close_action(
                     &preferences,
                     state
@@ -356,38 +348,51 @@ mod tests {
     }
 }
 
-/// 后台维护任务循环，定期清理缓存并尝试刷新用量数据。
+/// 后台维护任务循环：60s 基础 tick，按 tick 数分频执行不同粒度的清理。
+/// - 每 60s  : cache_cleanup
+/// - 每 300s : ssh 运行时状态 + 密码缓存 cleanup（tick % 5 == 0）
+/// - 每 600s : 监控日志 cleanup + usage import probe（tick % 10 == 0）
+/// shutdown 信号到达时，最多等 60s 退出（tick 粒度）。
 async fn run_background_tasks(app_handle: tauri::AppHandle, shutdown: Arc<Notify>) {
-    tracing::info!("[background] starting background tasks");
+    tracing::info!("[background] starting background tasks (60s base tick)");
 
+    let mut tick: u64 = 0;
     loop {
         tokio::select! {
             _ = shutdown.notified() => {
                 tracing::info!("[background] shutdown signal received");
                 break;
             }
-            _ = tokio::time::sleep(std::time::Duration::from_secs(300)) => {
+            _ = tokio::time::sleep(std::time::Duration::from_secs(60)) => {
                 if EXIT_REQUESTED.load(Ordering::SeqCst) {
                     break;
                 }
+                tick += 1;
 
-                // 定期执行缓存、SSH 状态与监控日志清理。
                 let state = app_handle.state::<AppState>();
-                state.cache_cleanup().await;
-                state
-                    .cleanup_ssh_runtime_states(DEFAULT_SSH_STATE_TTL_SECS)
-                    .await;
-                state
-                    .cleanup_ssh_password_cache(DEFAULT_SSH_PASSWORD_TTL_SECS)
-                    .await;
-                state.monitoring_logs.cleanup_old_logs().await;
 
-                // 尝试刷新 usage 数据；失败时仅记录调试日志，不影响后台循环。
-                if let Err(e) = import_usage_data().await {
-                    tracing::debug!("[background] usage import skipped: {e}");
+                // 每 60s：LRU 缓存过期清理
+                state.cache_cleanup().await;
+
+                // 每 5min：SSH 运行时状态与密码缓存清理
+                if tick.is_multiple_of(5) {
+                    state
+                        .cleanup_ssh_runtime_states(DEFAULT_SSH_STATE_TTL_SECS)
+                        .await;
+                    state
+                        .cleanup_ssh_password_cache(DEFAULT_SSH_PASSWORD_TTL_SECS)
+                        .await;
                 }
 
-                tracing::debug!("[background] periodic maintenance completed");
+                // 每 10min：监控日志清理 + usage import probe
+                if tick.is_multiple_of(10) {
+                    state.monitoring_logs.cleanup_old_logs().await;
+                    if let Err(e) = import_usage_data().await {
+                        tracing::debug!("[background] usage import skipped: {e}");
+                    }
+                }
+
+                tracing::debug!("[background] maintenance tick {tick}");
             }
         }
     }

@@ -9,7 +9,7 @@ use crate::state::{AppState, DesktopShellPreferences, TrayPanelManualPosition};
 pub async fn shell_get_preferences(
     state: State<'_, AppState>,
 ) -> Result<DesktopShellPreferences, String> {
-    state.desktop_shell_preferences()
+    Ok(state.desktop_shell_preferences())
 }
 
 #[tauri::command]

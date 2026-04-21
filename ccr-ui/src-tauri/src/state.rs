@@ -2,22 +2,24 @@
 //!
 //! 持有 SQLite 连接池、HTTP 客户端、内存缓存和执行环境注册表。
 
-use std::collections::{HashMap, VecDeque};
-use std::num::NonZeroUsize;
+use std::collections::{HashMap, HashSet, VecDeque};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::sync::Mutex;
 use std::sync::atomic::AtomicBool;
 use std::time::{Duration, Instant};
 
+use arc_swap::ArcSwap;
 use ccr_core::core::AtomicWriter;
 use ccr_db::database::pool::DbPool;
 use ccr_db::services::log_persistence::{LogPersistenceService, LogStorageConfig};
 use chrono::{DateTime, Utc};
-use lru::LruCache;
+use moka::future::Cache as MokaCache;
 use tokio::sync::{Notify, RwLock};
 
-use crate::checkin_jobs::CheckinJobSnapshot;
+use crate::checkin_jobs::{
+    CheckinJobDelta, CheckinJobLogEntry, CheckinJobLogStatus, CheckinJobSnapshot,
+};
 use crate::events::{EventLog, EventLogStats};
 use crate::platform::EnvironmentRegistry;
 use crate::session_index_jobs::{SessionIndexJobSnapshot, SessionIndexJobStatus};
@@ -100,8 +102,8 @@ pub struct AppState {
     /// HTTP 客户端（复用连接池，用于 CheckIn 等外部请求）
     pub http_client: reqwest::Client,
 
-    /// 内存缓存层（LRU + TTL）
-    pub cache: RwLock<LruCache<String, CacheEntry>>,
+    /// 内存缓存层（moka 并发分段，读路径无需写锁；per-entry TTL 由 CacheEntry.expires_at 承载）
+    pub cache: MokaCache<String, CacheEntry>,
 
     /// 缓存填充中的请求去重表
     inflight_cache_keys: RwLock<HashMap<String, Arc<Notify>>>,
@@ -133,7 +135,8 @@ pub struct AppState {
     active_session_index_job_id: RwLock<Option<String>>,
 
     /// 桌面壳层偏好（持久化到 ~/.ccr/desktop-shell.json）
-    pub settings: Mutex<DesktopShellPreferences>,
+    /// 采用 ArcSwap 无锁读，同步路径（tray 回调、on_window_event 闭包）可直接 load()
+    pub settings: ArcSwap<DesktopShellPreferences>,
 
     /// 退出确认标志 —— 用于打破 CloseRequested 事件循环
     pub exit_confirmed: AtomicBool,
@@ -142,10 +145,12 @@ pub struct AppState {
     pub force_exit_requested: AtomicBool,
 
     /// 最近一次 tray 事件的图标锚点，用于定位紧凑面板
-    pub tray_anchor: Mutex<Option<TrayAnchor>>,
+    /// ArcSwap：同步 tray 回调需无锁读
+    pub tray_anchor: ArcSwap<Option<TrayAnchor>>,
 
     /// 最近一次 tray 菜单里可切换账号列表（按菜单顺序）
-    pub tray_switch_accounts: Mutex<Vec<String>>,
+    /// ArcSwap：tray 菜单回调（同步）读取
+    pub tray_switch_accounts: ArcSwap<Vec<String>>,
 
     /// tray 紧凑面板是否正处于原生拖拽中
     pub tray_panel_drag_active: AtomicBool,
@@ -153,14 +158,15 @@ pub struct AppState {
     /// 事件日志环形缓冲区
     pub event_log: EventLog,
 
-    /// 命令耗时采样（毫秒）
+    /// 命令耗时采样（毫秒） —— std::sync::Mutex，短暂持锁不跨 await
     command_durations_ms: Mutex<VecDeque<f64>>,
 
-    /// DB 查询耗时采样（毫秒）
+    /// DB 查询耗时采样（毫秒） —— std::sync::Mutex，短暂持锁不跨 await
     db_query_durations_ms: Mutex<VecDeque<f64>>,
 }
 
 /// 缓存条目
+#[derive(Clone)]
 pub struct CacheEntry {
     pub value: serde_json::Value,
     pub expires_at: Instant,
@@ -257,14 +263,15 @@ impl AppState {
             DesktopShellPreferences::default()
         });
 
-        let cache_cap =
-            NonZeroUsize::new(DEFAULT_CACHE_MAX_ENTRIES).expect("cache capacity must be non-zero");
+        let cache = MokaCache::builder()
+            .max_capacity(DEFAULT_CACHE_MAX_ENTRIES as u64)
+            .build();
 
         Self {
             db_pool,
             usage_db_pool,
             http_client,
-            cache: RwLock::new(LruCache::new(cache_cap)),
+            cache,
             inflight_cache_keys: RwLock::new(HashMap::new()),
             env_registry: RwLock::new(EnvironmentRegistry::new()),
             ssh_runtime_states: RwLock::new(HashMap::new()),
@@ -275,11 +282,11 @@ impl AppState {
             active_usage_import_job_id: RwLock::new(None),
             session_index_jobs: RwLock::new(HashMap::new()),
             active_session_index_job_id: RwLock::new(None),
-            settings: Mutex::new(settings),
+            settings: ArcSwap::from_pointee(settings),
             exit_confirmed: AtomicBool::new(false),
             force_exit_requested: AtomicBool::new(false),
-            tray_anchor: Mutex::new(None),
-            tray_switch_accounts: Mutex::new(Vec::new()),
+            tray_anchor: ArcSwap::from_pointee(None),
+            tray_switch_accounts: ArcSwap::from_pointee(Vec::new()),
             tray_panel_drag_active: AtomicBool::new(false),
             event_log: EventLog::with_limits(500, 10 * 1024, 5 * 1024 * 1024),
             command_durations_ms: Mutex::new(VecDeque::new()),
@@ -287,15 +294,14 @@ impl AppState {
         }
     }
 
-    /// 读取当前桌面壳层偏好快照
-    pub fn desktop_shell_preferences(&self) -> Result<DesktopShellPreferences, String> {
-        self.settings
-            .lock()
-            .map(|settings| settings.clone())
-            .map_err(|e| format!("Failed to access desktop shell preferences: {e}"))
+    /// 读取当前桌面壳层偏好快照（无锁读，同步路径/async 路径通用）
+    pub fn desktop_shell_preferences(&self) -> DesktopShellPreferences {
+        (**self.settings.load()).clone()
     }
 
-    /// 更新并持久化桌面壳层偏好
+    /// 更新桌面壳层偏好并异步持久化。
+    /// 同步：更新 ArcSwap 快照立即对后续读取可见。
+    /// 异步：save() 为同步文件 IO，扔到独立线程以免阻塞调用方（tray 回调/命令）。
     pub fn update_desktop_shell_preferences<F>(
         &self,
         updater: F,
@@ -303,49 +309,38 @@ impl AppState {
     where
         F: FnOnce(&mut DesktopShellPreferences),
     {
-        let mut settings = self
-            .settings
-            .lock()
-            .map_err(|e| format!("Failed to access desktop shell preferences: {e}"))?;
-        updater(&mut settings);
-        settings.save()?;
-        Ok(settings.clone())
+        let mut next: DesktopShellPreferences = (**self.settings.load()).clone();
+        updater(&mut next);
+        self.settings.store(Arc::new(next.clone()));
+
+        let to_save = next.clone();
+        std::thread::spawn(move || {
+            if let Err(error) = to_save.save() {
+                tracing::warn!("[state] 持久化桌面壳层偏好失败: {error}");
+            }
+        });
+
+        Ok(next)
     }
 
-    /// 记录最近一次 tray 图标锚点
-    pub fn set_tray_anchor(&self, anchor: Option<TrayAnchor>) -> Result<(), String> {
-        let mut tray_anchor = self
-            .tray_anchor
-            .lock()
-            .map_err(|e| format!("Failed to access tray anchor: {e}"))?;
-        *tray_anchor = anchor;
-        Ok(())
+    /// 记录最近一次 tray 图标锚点（同步，无锁写）
+    pub fn set_tray_anchor(&self, anchor: Option<TrayAnchor>) {
+        self.tray_anchor.store(Arc::new(anchor));
     }
 
-    /// 获取最近一次 tray 图标锚点
-    pub fn tray_anchor(&self) -> Result<Option<TrayAnchor>, String> {
-        self.tray_anchor
-            .lock()
-            .map(|anchor| anchor.clone())
-            .map_err(|e| format!("Failed to access tray anchor: {e}"))
+    /// 获取最近一次 tray 图标锚点（同步，无锁读）
+    pub fn tray_anchor(&self) -> Option<TrayAnchor> {
+        (**self.tray_anchor.load()).clone()
     }
 
-    /// 覆盖 tray 菜单里的可切换账号映射
-    pub fn set_tray_switch_accounts(&self, accounts: Vec<String>) -> Result<(), String> {
-        let mut switch_accounts = self
-            .tray_switch_accounts
-            .lock()
-            .map_err(|e| format!("Failed to access tray switch accounts: {e}"))?;
-        *switch_accounts = accounts;
-        Ok(())
+    /// 覆盖 tray 菜单里的可切换账号映射（同步，无锁写）
+    pub fn set_tray_switch_accounts(&self, accounts: Vec<String>) {
+        self.tray_switch_accounts.store(Arc::new(accounts));
     }
 
-    /// 通过菜单下标解析账号名
-    pub fn tray_switch_account_name(&self, index: usize) -> Result<Option<String>, String> {
-        self.tray_switch_accounts
-            .lock()
-            .map(|accounts| accounts.get(index).cloned())
-            .map_err(|e| format!("Failed to access tray switch accounts: {e}"))
+    /// 通过菜单下标解析账号名（同步，无锁读）
+    pub fn tray_switch_account_name(&self, index: usize) -> Option<String> {
+        self.tray_switch_accounts.load().get(index).cloned()
     }
 
     /// 标记 tray 面板是否处于拖拽过程，避免拖动期间被 blur 自动隐藏。
@@ -360,7 +355,7 @@ impl AppState {
             .load(std::sync::atomic::Ordering::SeqCst)
     }
 
-    /// 将 tray 面板位置切换为手动模式并持久化
+    /// 将 tray 面板位置切换为手动模式并持久化（同步，save 在独立线程）
     pub fn set_tray_panel_manual_position(
         &self,
         position: TrayPanelManualPosition,
@@ -371,7 +366,7 @@ impl AppState {
         })
     }
 
-    /// 清理 tray 面板手动定位，回退到 anchored 模式
+    /// 清理 tray 面板手动定位，回退到 anchored 模式（同步，save 在独立线程）
     pub fn reset_tray_panel_manual_position(&self) -> Result<DesktopShellPreferences, String> {
         self.update_desktop_shell_preferences(|settings| {
             settings.tray_panel.placement_mode = TrayPanelPlacementMode::Anchored;
@@ -382,38 +377,32 @@ impl AppState {
     /// 从缓存获取值（未过期时返回 Some）
     #[allow(dead_code)]
     pub async fn cache_get(&self, key: &str) -> Option<serde_json::Value> {
-        let now = Instant::now();
-        let mut cache = self.cache.write().await;
-        match cache
-            .get(key)
-            .map(|entry| (entry.value.clone(), entry.expires_at > now))
-        {
-            Some((value, true)) => Some(value),
-            Some((_value, false)) => {
-                cache.pop(key);
-                None
-            }
-            None => None,
+        let entry = self.cache.get(key).await?;
+        if entry.expires_at > Instant::now() {
+            Some(entry.value)
+        } else {
+            self.cache.invalidate(key).await;
+            None
         }
     }
 
     /// 设置缓存值（指定 TTL 秒数）
     #[allow(dead_code)]
     pub async fn cache_set(&self, key: String, value: serde_json::Value, ttl_secs: u64) {
-        let mut cache = self.cache.write().await;
-        cache.put(
-            key,
-            CacheEntry {
-                value,
-                expires_at: Instant::now() + Duration::from_secs(ttl_secs),
-            },
-        );
+        self.cache
+            .insert(
+                key,
+                CacheEntry {
+                    value,
+                    expires_at: Instant::now() + Duration::from_secs(ttl_secs),
+                },
+            )
+            .await;
     }
 
     /// 删除指定缓存值
     pub async fn cache_remove(&self, key: &str) {
-        let mut cache = self.cache.write().await;
-        cache.pop(key);
+        self.cache.invalidate(key).await;
     }
 
     /// 注册缓存填充任务；已存在时返回等待中的 notifier。
@@ -437,17 +426,27 @@ impl AppState {
         }
     }
 
-    /// 清理过期缓存
+    /// 清理过期缓存。
+    ///
+    /// moka 的 max_capacity 已自动驱逐老旧条目，但 per-entry TTL（CacheEntry.expires_at）
+    /// 在 get 时才惰性检查。该方法遍历所有条目主动清理已过期项，避免 stale 空间占用。
     pub async fn cache_cleanup(&self) {
         let now = Instant::now();
-        let mut cache = self.cache.write().await;
-        let expired_keys: Vec<String> = cache
+        let expired_keys: Vec<String> = self
+            .cache
             .iter()
-            .filter_map(|(key, entry)| (entry.expires_at <= now).then_some(key.clone()))
+            .filter_map(|(key, entry)| {
+                if entry.expires_at <= now {
+                    Some((*key).clone())
+                } else {
+                    None
+                }
+            })
             .collect();
         for key in expired_keys {
-            cache.pop(&key);
+            self.cache.invalidate(&key).await;
         }
+        self.cache.run_pending_tasks().await;
     }
 
     /// 清理过期 SSH 运行时状态
@@ -504,6 +503,70 @@ impl AppState {
         let snapshot = jobs.get_mut(job_id)?;
         mutator(snapshot);
         Some(snapshot.clone())
+    }
+
+    /// 同步更新任务并返回 (完整 snapshot, 相对 mutator 前的 delta)。
+    ///
+    /// delta 仅包含 mutator 期间发生变化的 log 条目与新增的 result，
+    /// 供 progress 事件 emit 使用，避免批量签到时每次推送整个 snapshot 造成 O(N²) IPC 流量。
+    pub async fn update_checkin_job_and_delta<F>(
+        &self,
+        job_id: &str,
+        mutator: F,
+    ) -> Option<(CheckinJobSnapshot, CheckinJobDelta)>
+    where
+        F: FnOnce(&mut CheckinJobSnapshot),
+    {
+        let mut jobs = self.checkin_jobs.write().await;
+        let snapshot = jobs.get_mut(job_id)?;
+
+        // mutator 前捕获快照，用于差分
+        let old_logs: HashMap<String, (CheckinJobLogStatus, String)> = snapshot
+            .logs
+            .iter()
+            .map(|log| (log.account_id.clone(), (log.status, log.timestamp.clone())))
+            .collect();
+        let old_result_ids: HashSet<String> = snapshot
+            .results
+            .iter()
+            .map(|r| r.account_id.clone())
+            .collect();
+
+        mutator(snapshot);
+        let new_snapshot = snapshot.clone();
+
+        let changed_logs: Vec<CheckinJobLogEntry> = new_snapshot
+            .logs
+            .iter()
+            .filter(|log| match old_logs.get(&log.account_id) {
+                Some((old_status, old_ts)) => {
+                    *old_status != log.status || *old_ts != log.timestamp
+                }
+                None => true,
+            })
+            .cloned()
+            .collect();
+
+        let new_results = new_snapshot
+            .results
+            .iter()
+            .filter(|r| !old_result_ids.contains(&r.account_id))
+            .cloned()
+            .collect();
+
+        let delta = CheckinJobDelta {
+            job_id: new_snapshot.job_id.clone(),
+            status: new_snapshot.status,
+            completed: new_snapshot.completed,
+            total: new_snapshot.total,
+            current_account_name: new_snapshot.current_account_name.clone(),
+            summary: new_snapshot.summary.clone(),
+            changed_logs,
+            new_results,
+            finished_at: new_snapshot.finished_at.clone(),
+        };
+
+        Some((new_snapshot, delta))
     }
 
     pub async fn insert_usage_import_job(&self, snapshot: UsageImportJobSnapshot) {
@@ -625,7 +688,7 @@ impl AppState {
 
     /// 获取运行时指标快照
     pub async fn runtime_metrics_snapshot(&self) -> RuntimeMetricsSnapshot {
-        let cache_entries = self.cache.read().await.len();
+        let cache_entries = self.cache.entry_count() as usize;
         let ssh_state_count = self.ssh_runtime_states.read().await.len();
         let ssh_password_cache_count = self.ssh_password_cache.read().await.len();
         let EventLogStats {
