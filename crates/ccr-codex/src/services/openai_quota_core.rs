@@ -6,6 +6,7 @@ use chrono::Utc;
 use reqwest::header::{ACCEPT, AUTHORIZATION, HeaderMap, HeaderValue};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::future::Future;
 use std::hash::{DefaultHasher, Hash, Hasher};
 use std::sync::{LazyLock, Mutex};
 use std::time::{Duration, Instant};
@@ -117,13 +118,14 @@ pub(crate) struct OpenAiQuotaCore;
 
 impl OpenAiQuotaCore {
     /// 查询 quota；必要时刷新 access token，并通过调用方回写新 token。
-    pub(crate) async fn fetch_quota<F>(
+    pub(crate) async fn fetch_quota<F, Fut>(
         snapshot: OpenAiQuotaSnapshot,
         force_refresh: bool,
         mut persist_tokens: F,
     ) -> std::result::Result<OpenAiQuotaFetchOutcome, String>
     where
-        F: FnMut(&TokenRefreshResponse) -> std::result::Result<(), String>,
+        F: FnMut(TokenRefreshResponse) -> Fut,
+        Fut: Future<Output = std::result::Result<(), String>>,
     {
         let mut access_token = snapshot.access_token.trim().to_string();
         if access_token.is_empty() {
@@ -161,7 +163,7 @@ impl OpenAiQuotaCore {
                 .as_deref()
                 .ok_or_else(|| "Token 已过期且缺少 refresh_token".to_string())?;
             let new_tokens = Self::refresh_access_token(rt).await?;
-            persist_tokens(&new_tokens)?;
+            persist_tokens(new_tokens.clone()).await?;
             access_token = new_tokens.access_token.clone();
             if let Some(new_refresh) = new_tokens.refresh_token.clone() {
                 refresh_token = Some(new_refresh);
@@ -190,7 +192,7 @@ impl OpenAiQuotaCore {
                     && let Some(rt) = refresh_token.as_deref()
                 {
                     let new_tokens = Self::refresh_access_token(rt).await?;
-                    persist_tokens(&new_tokens)?;
+                    persist_tokens(new_tokens.clone()).await?;
                     access_token = new_tokens.access_token.clone();
                     if let Some(new_refresh) = new_tokens.refresh_token.clone() {
                         refresh_token = Some(new_refresh);

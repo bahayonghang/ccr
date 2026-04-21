@@ -6,12 +6,14 @@ use super::openai_quota_core::{
 };
 use crate::models::{CodexAccountQuota, OpenCodeOpenAiAuth};
 use crate::utils::{OpenCodePaths, ensure_private_permissions};
-use ccr_core::core::atomic_writer::AtomicWriter;
+use ccr_core::core::atomic_writer::AsyncAtomicWriter;
 use ccr_core::core::error::{CcrError, Result};
 use chrono::Utc;
 use serde_json::{Map as JsonMap, Value as JsonValue};
+#[cfg(test)]
 use std::fs;
 use std::path::{Path, PathBuf};
+use tokio::fs as async_fs;
 
 /// 并发查询上限
 const MAX_CONCURRENT: usize = 5;
@@ -98,7 +100,7 @@ impl OpenCodeQuotaService {
     ) -> CodexAccountQuota {
         let now = Utc::now();
         let auth_path = self.account_auth_path(account_name);
-        let snapshot = match Self::load_snapshot_from_saved_file(&auth_path) {
+        let snapshot = match Self::load_snapshot_from_saved_file(&auth_path).await {
             Ok(snapshot) => snapshot,
             Err(error) => {
                 return CodexAccountQuota {
@@ -113,7 +115,8 @@ impl OpenCodeQuotaService {
         let fallback_email = snapshot.email.clone();
 
         match Self::fetch_snapshot_quota(snapshot, force_refresh, |tokens| {
-            Self::persist_saved_tokens(&auth_path, tokens)
+            let auth_path = auth_path.clone();
+            async move { Self::persist_saved_tokens(&auth_path, &tokens).await }
         })
         .await
         {
@@ -131,7 +134,7 @@ impl OpenCodeQuotaService {
     async fn fetch_current_quota_inner(&self, force_refresh: bool) -> CodexAccountQuota {
         let now = Utc::now();
         let auth_path = self.auth_json_path();
-        let snapshot = match Self::load_snapshot_from_current_auth(&auth_path) {
+        let snapshot = match Self::load_snapshot_from_current_auth(&auth_path).await {
             Ok(snapshot) => snapshot,
             Err(error) => {
                 return CodexAccountQuota {
@@ -146,7 +149,8 @@ impl OpenCodeQuotaService {
         let fallback_email = snapshot.email.clone();
 
         match Self::fetch_snapshot_quota(snapshot, force_refresh, |tokens| {
-            Self::persist_current_tokens(&auth_path, tokens)
+            let auth_path = auth_path.clone();
+            async move { Self::persist_current_tokens(&auth_path, &tokens).await }
         })
         .await
         {
@@ -161,13 +165,14 @@ impl OpenCodeQuotaService {
         }
     }
 
-    async fn fetch_snapshot_quota<F>(
+    async fn fetch_snapshot_quota<F, Fut>(
         snapshot: OpenAiQuotaSnapshot,
         force_refresh: bool,
         persist_tokens: F,
     ) -> std::result::Result<OpenAiQuotaFetchOutcome, String>
     where
-        F: FnMut(&TokenRefreshResponse) -> std::result::Result<(), String>,
+        F: FnMut(TokenRefreshResponse) -> Fut,
+        Fut: std::future::Future<Output = std::result::Result<(), String>>,
     {
         OpenAiQuotaCore::fetch_quota(snapshot, force_refresh, persist_tokens).await
     }
@@ -242,8 +247,8 @@ impl OpenCodeQuotaService {
         join_all(tasks).await
     }
 
-    fn load_snapshot_from_saved_file(path: &Path) -> Result<OpenAiQuotaSnapshot> {
-        let content = fs::read_to_string(path).map_err(|error| {
+    async fn load_snapshot_from_saved_file(path: &Path) -> Result<OpenAiQuotaSnapshot> {
+        let content = async_fs::read_to_string(path).await.map_err(|error| {
             CcrError::ConfigError(format!("读取 OpenCode 账号快照失败: {error}"))
         })?;
         let auth: OpenCodeOpenAiAuth = serde_json::from_str(&content).map_err(|error| {
@@ -252,8 +257,8 @@ impl OpenCodeQuotaService {
         Self::build_snapshot(auth)
     }
 
-    fn load_snapshot_from_current_auth(path: &Path) -> Result<OpenAiQuotaSnapshot> {
-        let content = fs::read_to_string(path).map_err(|error| {
+    async fn load_snapshot_from_current_auth(path: &Path) -> Result<OpenAiQuotaSnapshot> {
+        let content = async_fs::read_to_string(path).await.map_err(|error| {
             CcrError::ConfigError(format!("读取 OpenCode auth.json 失败: {error}"))
         })?;
         let root: JsonMap<String, JsonValue> = serde_json::from_str(&content).map_err(|error| {
@@ -287,11 +292,12 @@ impl OpenCodeQuotaService {
         })
     }
 
-    fn persist_saved_tokens(
+    async fn persist_saved_tokens(
         path: &Path,
         new_tokens: &TokenRefreshResponse,
     ) -> std::result::Result<(), String> {
-        let content = fs::read_to_string(path)
+        let content = async_fs::read_to_string(path)
+            .await
             .map_err(|error| format!("读取 OpenCode 账号快照失败: {error}"))?;
         let mut auth: OpenCodeOpenAiAuth = serde_json::from_str(&content)
             .map_err(|error| format!("解析 OpenCode 账号快照失败: {error}"))?;
@@ -307,18 +313,20 @@ impl OpenCodeQuotaService {
 
         let serialized = serde_json::to_string_pretty(&auth)
             .map_err(|error| format!("序列化 OpenCode 账号快照失败: {error}"))?;
-        AtomicWriter::new(path)
-            .write_string(&serialized)
+        AsyncAtomicWriter::new(path)
+            .write_string_async(&serialized)
+            .await
             .map_err(|error| format!("写回 OpenCode 账号快照失败: {error}"))?;
         ensure_private_permissions(path);
         Ok(())
     }
 
-    fn persist_current_tokens(
+    async fn persist_current_tokens(
         path: &Path,
         new_tokens: &TokenRefreshResponse,
     ) -> std::result::Result<(), String> {
-        let content = fs::read_to_string(path)
+        let content = async_fs::read_to_string(path)
+            .await
             .map_err(|error| format!("读取 OpenCode auth.json 失败: {error}"))?;
         let mut root: JsonMap<String, JsonValue> = serde_json::from_str(&content)
             .map_err(|error| format!("解析 OpenCode auth.json 失败: {error}"))?;
@@ -346,8 +354,9 @@ impl OpenCodeQuotaService {
         );
         let serialized = serde_json::to_string_pretty(&root)
             .map_err(|error| format!("序列化 OpenCode auth.json 失败: {error}"))?;
-        AtomicWriter::new(path)
-            .write_string(&serialized)
+        AsyncAtomicWriter::new(path)
+            .write_string_async(&serialized)
+            .await
             .map_err(|error| format!("写回 OpenCode auth.json 失败: {error}"))?;
         ensure_private_permissions(path);
         Ok(())
@@ -390,7 +399,12 @@ mod tests {
         )
         .unwrap();
 
-        let snapshot = OpenCodeQuotaService::load_snapshot_from_saved_file(&snapshot_path).unwrap();
+        let runtime = tokio::runtime::Runtime::new().unwrap();
+        let snapshot = runtime
+            .block_on(OpenCodeQuotaService::load_snapshot_from_saved_file(
+                &snapshot_path,
+            ))
+            .unwrap();
         assert_eq!(snapshot.account_id.as_deref(), Some("acc-1"));
         assert_eq!(snapshot.email.as_deref(), Some("user@example.com"));
         assert_eq!(snapshot.refresh_token.as_deref(), Some("refresh-token"));
@@ -410,15 +424,17 @@ mod tests {
         )
         .unwrap();
 
-        OpenCodeQuotaService::persist_current_tokens(
-            &auth_path,
-            &TokenRefreshResponse {
-                access_token: "new-access".to_string(),
-                id_token: Some("new-id".to_string()),
-                refresh_token: Some("new-refresh".to_string()),
-            },
-        )
-        .unwrap();
+        let runtime = tokio::runtime::Runtime::new().unwrap();
+        runtime
+            .block_on(OpenCodeQuotaService::persist_current_tokens(
+                &auth_path,
+                &TokenRefreshResponse {
+                    access_token: "new-access".to_string(),
+                    id_token: Some("new-id".to_string()),
+                    refresh_token: Some("new-refresh".to_string()),
+                },
+            ))
+            .unwrap();
 
         let root: JsonValue =
             serde_json::from_str(&fs::read_to_string(&auth_path).unwrap()).unwrap();
@@ -452,15 +468,17 @@ mod tests {
         )
         .unwrap();
 
-        OpenCodeQuotaService::persist_saved_tokens(
-            &snapshot_path,
-            &TokenRefreshResponse {
-                access_token: "rotated-access".to_string(),
-                id_token: None,
-                refresh_token: Some("rotated-refresh".to_string()),
-            },
-        )
-        .unwrap();
+        let runtime = tokio::runtime::Runtime::new().unwrap();
+        runtime
+            .block_on(OpenCodeQuotaService::persist_saved_tokens(
+                &snapshot_path,
+                &TokenRefreshResponse {
+                    access_token: "rotated-access".to_string(),
+                    id_token: None,
+                    refresh_token: Some("rotated-refresh".to_string()),
+                },
+            ))
+            .unwrap();
 
         let saved: JsonValue =
             serde_json::from_str(&fs::read_to_string(&snapshot_path).unwrap()).unwrap();

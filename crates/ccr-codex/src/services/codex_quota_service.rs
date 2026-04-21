@@ -3,10 +3,11 @@
 
 use crate::models::{CodexAccountQuota, CodexAuthJson, CodexAuthRegistry};
 use crate::utils::{CodexPaths, ensure_private_permissions};
-use ccr_core::core::atomic_writer::AtomicWriter;
+use ccr_core::core::atomic_writer::AsyncAtomicWriter;
 use ccr_core::core::error::Result;
 use chrono::Utc;
 use std::path::{Path, PathBuf};
+use tokio::fs;
 use tracing::{debug, warn};
 
 use super::codex_oauth_token_service::CodexOAuthTokenService;
@@ -104,7 +105,7 @@ impl CodexQuotaService {
     ) -> CodexAccountQuota {
         let fetched_at = Utc::now();
         let auth_path = self.account_auth_path(account_name);
-        let snapshot = match Self::load_snapshot_from_path(&auth_path) {
+        let snapshot = match Self::load_snapshot_from_path(&auth_path).await {
             Ok(snapshot) => snapshot,
             Err(error) => {
                 return CodexAccountQuota {
@@ -120,7 +121,7 @@ impl CodexQuotaService {
         match self
             .fetch_saved_snapshot_with_repair(
                 account_name,
-                &auth_path,
+                auth_path.clone(),
                 snapshot.clone(),
                 force_refresh,
             )
@@ -140,7 +141,7 @@ impl CodexQuotaService {
     async fn fetch_current_quota_inner(&self, force_refresh: bool) -> CodexAccountQuota {
         let fetched_at = Utc::now();
         let auth_path = self.current_auth_path();
-        let snapshot = match Self::load_snapshot_from_path(&auth_path) {
+        let snapshot = match Self::load_snapshot_from_path(&auth_path).await {
             Ok(snapshot) => snapshot,
             Err(error) => {
                 return CodexAccountQuota {
@@ -154,7 +155,8 @@ impl CodexQuotaService {
         };
 
         match Self::fetch_snapshot_quota(snapshot.clone(), force_refresh, |tokens| {
-            Self::update_auth_file(&auth_path, tokens)
+            let auth_path = auth_path.clone();
+            async move { Self::update_auth_file(&auth_path, &tokens).await }
         })
         .await
         {
@@ -172,12 +174,13 @@ impl CodexQuotaService {
     async fn fetch_saved_snapshot_with_repair(
         &self,
         account_name: &str,
-        auth_path: &Path,
+        auth_path: PathBuf,
         snapshot: OpenAiQuotaSnapshot,
         force_refresh: bool,
     ) -> std::result::Result<OpenAiQuotaFetchOutcome, String> {
         match Self::fetch_snapshot_quota(snapshot, force_refresh, |tokens| {
-            Self::update_auth_file(auth_path, tokens)
+            let auth_path = auth_path.clone();
+            async move { Self::update_auth_file(&auth_path, &tokens).await }
         })
         .await
         {
@@ -211,10 +214,12 @@ impl CodexQuotaService {
                     }
                 }
 
-                let repaired_snapshot = Self::load_snapshot_from_path(auth_path)
+                let repaired_snapshot = Self::load_snapshot_from_path(&auth_path)
+                    .await
                     .map_err(|repair_error| repair_error.to_string())?;
                 Self::fetch_snapshot_quota(repaired_snapshot, force_refresh, |tokens| {
-                    Self::update_auth_file(auth_path, tokens)
+                    let auth_path = auth_path.clone();
+                    async move { Self::update_auth_file(&auth_path, &tokens).await }
                 })
                 .await
             }
@@ -222,19 +227,20 @@ impl CodexQuotaService {
         }
     }
 
-    async fn fetch_snapshot_quota<F>(
+    async fn fetch_snapshot_quota<F, Fut>(
         snapshot: OpenAiQuotaSnapshot,
         force_refresh: bool,
         persist_tokens: F,
     ) -> std::result::Result<OpenAiQuotaFetchOutcome, String>
     where
-        F: FnMut(&TokenRefreshResponse) -> std::result::Result<(), String>,
+        F: FnMut(TokenRefreshResponse) -> Fut,
+        Fut: std::future::Future<Output = std::result::Result<(), String>>,
     {
         OpenAiQuotaCore::fetch_quota(snapshot, force_refresh, persist_tokens).await
     }
 
     async fn fetch_all_quotas_inner(&self, force_refresh: bool) -> Vec<CodexAccountQuota> {
-        let registry = match self.load_registry() {
+        let registry = match self.load_registry().await {
             Ok(registry) => registry,
             Err(error) => {
                 return vec![CodexAccountQuota {
@@ -334,12 +340,19 @@ impl CodexQuotaService {
         self.ccr_codex_dir.join("auth").join(format!("{name}.json"))
     }
 
-    fn load_registry(&self) -> Result<CodexAuthRegistry> {
-        super::codex_registry_store::CodexRegistryStore::new(&self.ccr_codex_dir).load()
+    async fn load_registry(&self) -> Result<CodexAuthRegistry> {
+        let ccr_codex_dir = self.ccr_codex_dir.clone();
+        tokio::task::spawn_blocking(move || {
+            super::codex_registry_store::CodexRegistryStore::new(&ccr_codex_dir).load()
+        })
+        .await
+        .map_err(|error| {
+            ccr_core::core::error::CcrError::ConfigError(format!("读取注册表任务失败: {error}"))
+        })?
     }
 
-    fn load_snapshot_from_path(path: &Path) -> Result<OpenAiQuotaSnapshot> {
-        let auth_json = std::fs::read_to_string(path).map_err(|error| {
+    async fn load_snapshot_from_path(path: &Path) -> Result<OpenAiQuotaSnapshot> {
+        let auth_json = fs::read_to_string(path).await.map_err(|error| {
             ccr_core::core::error::CcrError::ConfigError(format!("读取 auth 文件失败: {error}"))
         })?;
         let auth: CodexAuthJson = serde_json::from_str(&auth_json).map_err(|error| {
@@ -360,11 +373,12 @@ impl CodexQuotaService {
         })
     }
 
-    fn update_auth_file(
+    async fn update_auth_file(
         auth_path: &Path,
         new_tokens: &TokenRefreshResponse,
     ) -> std::result::Result<(), String> {
-        let original_json = std::fs::read_to_string(auth_path)
+        let original_json = fs::read_to_string(auth_path)
+            .await
             .map_err(|error| format!("读取 auth 文件失败: {error}"))?;
         let mut value: serde_json::Value = serde_json::from_str(&original_json)
             .map_err(|error| format!("解析 auth JSON 失败: {error}"))?;
@@ -394,8 +408,9 @@ impl CodexQuotaService {
 
         let content = serde_json::to_string_pretty(&value)
             .map_err(|error| format!("序列化 auth 文件失败: {error}"))?;
-        AtomicWriter::new(auth_path)
-            .write_string(&content)
+        AsyncAtomicWriter::new(auth_path)
+            .write_string_async(&content)
+            .await
             .map_err(|error| format!("写回 auth 文件失败: {error}"))?;
         ensure_private_permissions(auth_path);
         Ok(())
@@ -465,7 +480,10 @@ mod tests {
         }));
         write_auth_file(&auth_path, &token, "refresh-token");
 
-        let snapshot = CodexQuotaService::load_snapshot_from_path(&auth_path).unwrap();
+        let runtime = tokio::runtime::Runtime::new().unwrap();
+        let snapshot = runtime
+            .block_on(CodexQuotaService::load_snapshot_from_path(&auth_path))
+            .unwrap();
         assert_eq!(snapshot.account_id.as_deref(), Some("acc-1"));
         assert_eq!(snapshot.refresh_token.as_deref(), Some("refresh-token"));
         assert!(snapshot.email.is_none());
@@ -482,15 +500,17 @@ mod tests {
         }));
         write_auth_file(&auth_path, &token, "refresh-token");
 
-        CodexQuotaService::update_auth_file(
-            &auth_path,
-            &TokenRefreshResponse {
-                access_token: "rotated-access".to_string(),
-                id_token: Some("rotated-id".to_string()),
-                refresh_token: Some("rotated-refresh".to_string()),
-            },
-        )
-        .unwrap();
+        let runtime = tokio::runtime::Runtime::new().unwrap();
+        runtime
+            .block_on(CodexQuotaService::update_auth_file(
+                &auth_path,
+                &TokenRefreshResponse {
+                    access_token: "rotated-access".to_string(),
+                    id_token: Some("rotated-id".to_string()),
+                    refresh_token: Some("rotated-refresh".to_string()),
+                },
+            ))
+            .unwrap();
 
         let saved: serde_json::Value =
             serde_json::from_str(&std::fs::read_to_string(&auth_path).unwrap()).unwrap();
