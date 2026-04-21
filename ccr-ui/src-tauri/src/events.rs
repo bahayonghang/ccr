@@ -208,14 +208,39 @@ impl EventLog {
 }
 
 /// 事件通道名称常量
+///
+/// 所有面向前端的 `app_handle.emit(channel, payload)` 应优先引用此处常量，
+/// 便于前端对齐订阅名并在重构时一次性更新。
 #[allow(dead_code)]
 pub mod channels {
+    // —— 签到 ——
     pub const CHECKIN_COMPLETED: &str = "checkin:completed";
     pub const CHECKIN_FAILED: &str = "checkin:failed";
+    pub const CHECKIN_JOB_DELTA: &str = "checkin:job-delta";
+    pub const CHECKIN_JOB_PROGRESS: &str = "checkin:job-progress";
+    pub const CHECKIN_JOB_FINISHED: &str = "checkin:job-finished";
+    pub const CHECKIN_JOB_TIMEOUT: &str = "checkin:job-timeout";
+
+    // —— 同步 / 通用 ——
     pub const SYNC_STATUS: &str = "sync:status";
     pub const TASK_PROGRESS: &str = "task:progress";
     pub const NOTIFICATION: &str = "app:notification";
-    pub const ENVIRONMENT_CHANGED: &str = "env:changed";
-    pub const USAGE_IMPORT: &str = "usage:import-completed";
     pub const MONITORING_ENTRY: &str = "app:monitoring";
+    pub const APP_LOG: &str = "app-log";
+    pub const TOKEN_STATS: &str = "token-stats";
+
+    // —— 环境 ——
+    pub const ENVIRONMENT_CHANGED: &str = "env:changed";
+    pub const ENV_REFRESH_REQUESTED: &str = "env:refresh-requested";
+
+    // —— 用量 ——
+    pub const USAGE_IMPORT: &str = "usage:import-completed";
+
+    // —— Codex OAuth / Tray ——
+    pub const CODEX_OAUTH_LOGIN_TIMEOUT: &str = "codex-oauth-login-timeout";
+    pub const CODEX_OAUTH_LOGIN_COMPLETED: &str = "codex-oauth-login-completed";
+    pub const CODEX_TRAY_REFRESH: &str = "codex-tray:refresh";
+
+    // —— Skills ——
+    pub const SKILLS_CHANGED: &str = "skills-changed";
 }
