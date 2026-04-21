@@ -8,8 +8,8 @@
  * - 多选模式 + 批量操作
  */
 
-import Fuse from 'fuse.js'
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import { useFuzzySearch } from '@/composables/useFuzzySearch'
 import { useUnifiedSkills } from '@/composables/useUnifiedSkills'
 import type { SkillRecord, Platform } from '@/types/skills'
 import type { SkillGroup, SkillPanelMode } from '@/types/skillsManager'
@@ -22,7 +22,6 @@ export function useSkillsManager() {
   // ============ 面板状态 ============
 
   const panelMode = ref<SkillPanelMode>({ type: 'empty' })
-  const searchQuery = ref('')
   const selectedKeys = ref<Set<string>>(new Set())
   const isMultiSelectMode = ref(false)
   const selectedPlatforms = ref<Platform[]>([])
@@ -52,22 +51,15 @@ export function useSkillsManager() {
 
   // ============ Fuse.js 搜索 ============
 
-  const fuse = computed(() =>
-    new Fuse(groupedSkills.value, {
-      keys: [
-        { name: 'name', weight: 2 },
-        { name: 'description', weight: 1 },
-        { name: 'origin', weight: 0.5 },
-      ],
-      threshold: 0.4,
-      includeScore: true,
-    }),
+  const { query: searchQuery, results: filteredGroups } = useFuzzySearch<SkillGroup>(
+    groupedSkills,
+    [
+      { name: 'name', weight: 2 },
+      { name: 'description', weight: 1 },
+      { name: 'origin', weight: 0.5 },
+    ],
+    { threshold: 0.4, includeScore: true },
   )
-
-  const filteredGroups = computed<SkillGroup[]>(() => {
-    if (!searchQuery.value.trim()) return groupedSkills.value
-    return fuse.value.search(searchQuery.value).map(r => r.item)
-  })
 
   // ============ 统计 ============
 

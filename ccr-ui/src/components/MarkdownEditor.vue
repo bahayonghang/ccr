@@ -79,10 +79,9 @@
 
 <script setup lang="ts">
 import SIcon from '@/components/ui/SIcon.vue'
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { marked } from 'marked'
-import { sanitizeMarkdown } from '@/utils/sanitize'
+import { renderMarkdown } from '@/composables/useMarkdownRender'
 
 const { t } = useI18n({ useScope: 'global' })
 
@@ -135,9 +134,8 @@ const renderedHtml = computed(() => {
     '<code class="px-1.5 py-0.5 rounded bg-accent-primary/20 text-accent-primary text-xs">{{$1}}</code>'
   )
 
-  // 使用 marked 渲染 Markdown
-  const html = marked(content, { breaks: true, gfm: true }) as string
-  return sanitizeMarkdown(html)
+  // 使用统一的 markdown 渲染入口（内置 sanitize + highlight 注册）
+  return renderMarkdown(content, { breaks: true, gfm: true })
 })
 
 // 同步外部值到内部
@@ -171,14 +169,6 @@ const insertVariable = (key: string) => {
     textarea.setSelectionRange(start + key.length, start + key.length)
   }, 0)
 }
-
-onMounted(() => {
-  // 配置 marked 选项（marked v12+ 使用 .use() 替代已废弃的 .setOptions()）
-  marked.use({
-    breaks: true,
-    gfm: true
-  })
-})
 </script>
 
 <style scoped>

@@ -8,8 +8,8 @@
  * - 多选模式 + 批量操作
  */
 
-import Fuse from 'fuse.js'
 import { computed, onMounted, ref, watch } from 'vue'
+import { useFuzzySearch } from '@/composables/useFuzzySearch'
 import { useUnifiedMcp } from '@/composables/useUnifiedMcp'
 import type { UnifiedMcpServer } from '@/types/unifiedMcp'
 import type { McpGroup, McpPanelMode } from '@/types/mcpManager'
@@ -20,7 +20,6 @@ export function useMcpManager() {
   // ============ 面板状态 ============
 
   const panelMode = ref<McpPanelMode>({ type: 'empty' })
-  const searchQuery = ref('')
   const selectedKeys = ref<Set<string>>(new Set())
   const isMultiSelectMode = ref(false)
 
@@ -48,22 +47,15 @@ export function useMcpManager() {
 
   // ============ Fuse.js 搜索 ============
 
-  const fuse = computed(() =>
-    new Fuse(groupedServers.value, {
-      keys: [
-        { name: 'name', weight: 2 },
-        { name: 'transportLabel', weight: 1 },
-        { name: 'platforms', weight: 0.5 },
-      ],
-      threshold: 0.4,
-      includeScore: true,
-    }),
+  const { query: searchQuery, results: filteredGroups } = useFuzzySearch<McpGroup>(
+    groupedServers,
+    [
+      { name: 'name', weight: 2 },
+      { name: 'transportLabel', weight: 1 },
+      { name: 'platforms', weight: 0.5 },
+    ],
+    { threshold: 0.4, includeScore: true },
   )
-
-  const filteredGroups = computed<McpGroup[]>(() => {
-    if (!searchQuery.value.trim()) return groupedServers.value
-    return fuse.value.search(searchQuery.value).map(r => r.item)
-  })
 
   // ============ 选中状态 ============
 

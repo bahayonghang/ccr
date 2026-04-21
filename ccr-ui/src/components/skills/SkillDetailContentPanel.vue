@@ -89,47 +89,8 @@ import SIcon from '@/components/ui/SIcon.vue'
 import SkillDetailMetadata from '@/components/skills/SkillDetailMetadata.vue'
 import type { SkillContent } from '@/types/skills'
 import type { SkillDetailMetaItem } from '@/types/skillDetailModal'
-import { sanitizeMarkdown } from '@/utils/sanitize'
 import { computed, nextTick, ref, watch } from 'vue'
-import { marked } from 'marked'
-import hljs from 'highlight.js/lib/core'
-import javascript from 'highlight.js/lib/languages/javascript'
-import typescript from 'highlight.js/lib/languages/typescript'
-import python from 'highlight.js/lib/languages/python'
-import bash from 'highlight.js/lib/languages/bash'
-import json from 'highlight.js/lib/languages/json'
-import yaml from 'highlight.js/lib/languages/yaml'
-import xml from 'highlight.js/lib/languages/xml'
-import css from 'highlight.js/lib/languages/css'
-import rust from 'highlight.js/lib/languages/rust'
-import go from 'highlight.js/lib/languages/go'
-import sql from 'highlight.js/lib/languages/sql'
-import markdown from 'highlight.js/lib/languages/markdown'
-import diff from 'highlight.js/lib/languages/diff'
-
-hljs.registerLanguage('javascript', javascript)
-hljs.registerLanguage('js', javascript)
-hljs.registerLanguage('typescript', typescript)
-hljs.registerLanguage('ts', typescript)
-hljs.registerLanguage('python', python)
-hljs.registerLanguage('py', python)
-hljs.registerLanguage('bash', bash)
-hljs.registerLanguage('sh', bash)
-hljs.registerLanguage('shell', bash)
-hljs.registerLanguage('json', json)
-hljs.registerLanguage('yaml', yaml)
-hljs.registerLanguage('yml', yaml)
-hljs.registerLanguage('xml', xml)
-hljs.registerLanguage('html', xml)
-hljs.registerLanguage('css', css)
-hljs.registerLanguage('rust', rust)
-hljs.registerLanguage('rs', rust)
-hljs.registerLanguage('go', go)
-hljs.registerLanguage('golang', go)
-hljs.registerLanguage('sql', sql)
-hljs.registerLanguage('markdown', markdown)
-hljs.registerLanguage('md', markdown)
-hljs.registerLanguage('diff', diff)
+import { renderMarkdown, highlightCodeBlocks } from '@/composables/useMarkdownRender'
 
 const props = defineProps<{
   isContentLoading: boolean
@@ -152,18 +113,12 @@ const emit = defineEmits<{
 
 const markdownRef = ref<HTMLElement | null>(null)
 
-const renderedHtml = computed(() => {
-  if (!props.skillContent?.content) return ''
-  const html = marked.parse(props.skillContent.content) as string
-  return sanitizeMarkdown(html)
-})
+const renderedHtml = computed(() => renderMarkdown(props.skillContent?.content ?? ''))
 
 watch(renderedHtml, () => {
   if (!props.isEditMode && renderedHtml.value) {
     nextTick(() => {
-      markdownRef.value?.querySelectorAll('pre code').forEach((block) => {
-        hljs.highlightElement(block as HTMLElement)
-      })
+      highlightCodeBlocks(markdownRef.value)
     })
   }
 })
