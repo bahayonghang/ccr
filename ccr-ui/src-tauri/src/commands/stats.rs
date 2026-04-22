@@ -1,9 +1,23 @@
 //! 统计命令 — 费用概览、热力图、会话统计。
+//!
+//! WP-H Phase 2a（缓存子目标）：把 stats 命令统一接入 `AppState` singleflight 缓存，
+//! TTL 30 秒，避免每次前端访问都触发 JSONL 全量扫描。真正的 SQL 聚合归档查询
+//! 留给后续 Phase 2b（usage_db_pool + usage_repo 聚合 SQL）。
 
-use std::collections::{HashMap, HashSet};
+use std::{
+    collections::{HashMap, HashSet},
+    future::Future,
+};
 
 use ccr_store::CostTracker;
 use chrono::{Duration, Utc};
+use tauri::State;
+
+use crate::state::{AppState, CacheFillRegistration};
+
+/// 默认 stats 缓存 TTL（秒）。30s 可以吸收一次页面内的连续刷新抖动，
+/// 同时保证数据不至于严重滞后。
+const STATS_CACHE_TTL_SECS: u64 = 30;
 
 /// 平台每日统计累加器 (内部使用)
 #[derive(Default)]
@@ -25,18 +39,64 @@ fn normalize_platform(raw: &str) -> &'static str {
     }
 }
 
-/// 费用概览 — 直接返回核心库的完整 CostStats
-///
-/// 前端 StatsView.vue 期望: CostStats { total_cost, record_count, token_stats, by_provider, by_model, by_project, trend? }
-#[tauri::command]
-pub async fn get_cost_overview(period: Option<String>) -> Result<serde_json::Value, String> {
-    let period = period.unwrap_or_else(|| "today".to_string());
+/// 统一创建 CostTracker，避免每个 compute 函数重复展开同一段样板代码。
+fn create_cost_tracker() -> Result<CostTracker, String> {
+    let storage_dir =
+        CostTracker::default_storage_dir().map_err(|e| format!("Failed to get stats dir: {e}"))?;
+    CostTracker::new(storage_dir).map_err(|e| format!("Failed to create cost tracker: {e}"))
+}
 
-    let data = tokio::task::spawn_blocking(move || {
-        let storage_dir = CostTracker::default_storage_dir()
-            .map_err(|e| format!("Failed to get stats dir: {e}"))?;
-        let tracker = CostTracker::new(storage_dir)
-            .map_err(|e| format!("Failed to create cost tracker: {e}"))?;
+/// 统一封装 stats singleflight 缓存。
+async fn run_cached_stats_command<F, Fut>(
+    state: &AppState,
+    cache_key: String,
+    compute: F,
+) -> Result<serde_json::Value, String>
+where
+    F: Fn() -> Fut,
+    Fut: Future<Output = Result<serde_json::Value, String>>,
+{
+    if let Some(cached) = state.cache_get(&cache_key).await {
+        tracing::debug!(cache_key = %cache_key, "stats cache hit");
+        return Ok(cached);
+    }
+
+    match state.begin_cache_fill(&cache_key).await {
+        CacheFillRegistration::Wait(notify) => {
+            tracing::debug!(cache_key = %cache_key, "stats cache wait");
+            notify.notified().await;
+            if let Some(cached) = state.cache_get(&cache_key).await {
+                tracing::debug!(cache_key = %cache_key, "stats cache hit after wait");
+                return Ok(cached);
+            }
+            tracing::debug!(cache_key = %cache_key, "stats cache fallback compute");
+            compute().await
+        }
+        CacheFillRegistration::Leader => match compute().await {
+            Ok(payload) => {
+                state
+                    .cache_set(cache_key.clone(), payload.clone(), STATS_CACHE_TTL_SECS)
+                    .await;
+                state.finish_cache_fill(&cache_key).await;
+                tracing::debug!(cache_key = %cache_key, "stats cache fill complete");
+                Ok(payload)
+            }
+            Err(err) => {
+                state.finish_cache_fill(&cache_key).await;
+                Err(err)
+            }
+        },
+    }
+}
+
+/// 计算费用概览（compute 函数，供 cached 命令与 Wait 降级路径共用）。
+///
+/// 提取为独立 async 函数的目的：
+/// 1) 让 command 层能在 Leader 和 Wait 两条路径上都调用它，无需 FnOnce Clone；
+/// 2) `spawn_blocking` 内部是同步 CostTracker 读取，隔离在 blocking 池上。
+async fn compute_cost_overview(period: String) -> Result<serde_json::Value, String> {
+    tokio::task::spawn_blocking(move || {
+        let tracker = create_cost_tracker()?;
 
         let now = Utc::now();
         let start = match period.as_str() {
@@ -58,23 +118,15 @@ pub async fn get_cost_overview(period: Option<String>) -> Result<serde_json::Val
         serde_json::to_value(&stats).map_err(|e| format!("Serialize error: {e}"))
     })
     .await
-    .map_err(|e| format!("Task join error: {e}"))??;
-
-    Ok(data)
+    .map_err(|e| format!("Task join error: {e}"))?
 }
 
-#[tauri::command]
-pub async fn get_heatmap_data(
+async fn compute_heatmap_data(
     platform: Option<String>,
-    days: Option<usize>,
+    days: usize,
 ) -> Result<serde_json::Value, String> {
-    let days = days.unwrap_or(365);
-
-    let data = tokio::task::spawn_blocking(move || {
-        let storage_dir = CostTracker::default_storage_dir()
-            .map_err(|e| format!("Failed to get stats dir: {e}"))?;
-        let tracker = CostTracker::new(storage_dir)
-            .map_err(|e| format!("Failed to create cost tracker: {e}"))?;
+    tokio::task::spawn_blocking(move || {
+        let tracker = create_cost_tracker()?;
 
         let now = Utc::now();
         let start = now - Duration::days(days as i64);
@@ -110,18 +162,12 @@ pub async fn get_heatmap_data(
         }))
     })
     .await
-    .map_err(|e| format!("Task join error: {e}"))??;
-
-    Ok(data)
+    .map_err(|e| format!("Task join error: {e}"))?
 }
 
-#[tauri::command]
-pub async fn get_session_stats(platform: Option<String>) -> Result<serde_json::Value, String> {
-    let data = tokio::task::spawn_blocking(move || {
-        let storage_dir = CostTracker::default_storage_dir()
-            .map_err(|e| format!("Failed to get stats dir: {e}"))?;
-        let tracker = CostTracker::new(storage_dir)
-            .map_err(|e| format!("Failed to create cost tracker: {e}"))?;
+async fn compute_session_stats(platform: Option<String>) -> Result<serde_json::Value, String> {
+    tokio::task::spawn_blocking(move || {
+        let tracker = create_cost_tracker()?;
 
         let today_cost = tracker
             .get_today_cost()
@@ -149,27 +195,19 @@ pub async fn get_session_stats(platform: Option<String>) -> Result<serde_json::V
         }))
     })
     .await
-    .map_err(|e| format!("Task join error: {e}"))??;
-
-    Ok(data)
+    .map_err(|e| format!("Task join error: {e}"))?
 }
 
-#[tauri::command]
-pub async fn get_cost_trend(period: Option<String>) -> Result<serde_json::Value, String> {
-    let period = period.unwrap_or_else(|| "month".to_string());
+async fn compute_cost_trend(period: String) -> Result<serde_json::Value, String> {
+    tokio::task::spawn_blocking(move || {
+        let tracker = create_cost_tracker()?;
 
-    let data = tokio::task::spawn_blocking(move || {
-        let storage_dir = CostTracker::default_storage_dir()
-            .map_err(|e| format!("Failed to get stats dir: {e}"))?;
-        let tracker = CostTracker::new(storage_dir)
-            .map_err(|e| format!("Failed to create cost tracker: {e}"))?;
-
-        let now = chrono::Utc::now();
+        let now = Utc::now();
         let start = match period.as_str() {
-            "week" => now - chrono::Duration::days(7),
-            "month" => now - chrono::Duration::days(30),
-            "year" => now - chrono::Duration::days(365),
-            _ => now - chrono::Duration::days(30),
+            "week" => now - Duration::days(7),
+            "month" => now - Duration::days(30),
+            "year" => now - Duration::days(365),
+            _ => now - Duration::days(30),
         };
 
         let records = tracker
@@ -205,22 +243,15 @@ pub async fn get_cost_trend(period: Option<String>) -> Result<serde_json::Value,
         Ok::<_, String>(serde_json::json!({ "trend": trend }))
     })
     .await
-    .map_err(|e| format!("Task join error: {e}"))??;
-
-    Ok(data)
+    .map_err(|e| format!("Task join error: {e}"))?
 }
 
-/// 按模型分组成本 — 直接返回扁平 map
-#[tauri::command]
-pub async fn get_cost_by_model() -> Result<serde_json::Value, String> {
-    let data = tokio::task::spawn_blocking(move || {
-        let storage_dir = CostTracker::default_storage_dir()
-            .map_err(|e| format!("Failed to get stats dir: {e}"))?;
-        let tracker = CostTracker::new(storage_dir)
-            .map_err(|e| format!("Failed to create cost tracker: {e}"))?;
+async fn compute_cost_by_model() -> Result<serde_json::Value, String> {
+    tokio::task::spawn_blocking(move || {
+        let tracker = create_cost_tracker()?;
 
-        let now = chrono::Utc::now();
-        let start = now - chrono::Duration::days(30);
+        let now = Utc::now();
+        let start = now - Duration::days(30);
         let stats = tracker
             .generate_stats(start, now)
             .map_err(|e| format!("Failed to generate stats: {e}"))?;
@@ -228,22 +259,15 @@ pub async fn get_cost_by_model() -> Result<serde_json::Value, String> {
         serde_json::to_value(&stats.by_model).map_err(|e| format!("Serialize error: {e}"))
     })
     .await
-    .map_err(|e| format!("Task join error: {e}"))??;
-
-    Ok(data)
+    .map_err(|e| format!("Task join error: {e}"))?
 }
 
-/// 按项目分组成本 — 直接返回扁平 map
-#[tauri::command]
-pub async fn get_cost_by_project() -> Result<serde_json::Value, String> {
-    let data = tokio::task::spawn_blocking(move || {
-        let storage_dir = CostTracker::default_storage_dir()
-            .map_err(|e| format!("Failed to get stats dir: {e}"))?;
-        let tracker = CostTracker::new(storage_dir)
-            .map_err(|e| format!("Failed to create cost tracker: {e}"))?;
+async fn compute_cost_by_project() -> Result<serde_json::Value, String> {
+    tokio::task::spawn_blocking(move || {
+        let tracker = create_cost_tracker()?;
 
-        let now = chrono::Utc::now();
-        let start = now - chrono::Duration::days(30);
+        let now = Utc::now();
+        let start = now - Duration::days(30);
         let stats = tracker
             .generate_stats(start, now)
             .map_err(|e| format!("Failed to generate stats: {e}"))?;
@@ -251,24 +275,15 @@ pub async fn get_cost_by_project() -> Result<serde_json::Value, String> {
         serde_json::to_value(&stats.by_project).map_err(|e| format!("Serialize error: {e}"))
     })
     .await
-    .map_err(|e| format!("Task join error: {e}"))??;
-
-    Ok(data)
+    .map_err(|e| format!("Task join error: {e}"))?
 }
 
-/// Provider 使用统计 — 直接返回扁平 Record<string, number>
-///
-/// 前端 StatsView.vue 期望: Record<string, number> (provider -> count)
-#[tauri::command]
-pub async fn get_provider_usage() -> Result<serde_json::Value, String> {
-    let data = tokio::task::spawn_blocking(move || {
-        let storage_dir = CostTracker::default_storage_dir()
-            .map_err(|e| format!("Failed to get stats dir: {e}"))?;
-        let tracker = CostTracker::new(storage_dir)
-            .map_err(|e| format!("Failed to create cost tracker: {e}"))?;
+async fn compute_provider_usage() -> Result<serde_json::Value, String> {
+    tokio::task::spawn_blocking(move || {
+        let tracker = create_cost_tracker()?;
 
-        let now = chrono::Utc::now();
-        let start = now - chrono::Duration::days(30);
+        let now = Utc::now();
+        let start = now - Duration::days(30);
         let stats = tracker
             .generate_stats(start, now)
             .map_err(|e| format!("Failed to generate stats: {e}"))?;
@@ -276,20 +291,12 @@ pub async fn get_provider_usage() -> Result<serde_json::Value, String> {
         serde_json::to_value(&stats.by_provider).map_err(|e| format!("Serialize error: {e}"))
     })
     .await
-    .map_err(|e| format!("Task join error: {e}"))??;
-
-    Ok(data)
+    .map_err(|e| format!("Task join error: {e}"))?
 }
 
-#[tauri::command]
-pub async fn get_top_sessions(limit: Option<usize>) -> Result<serde_json::Value, String> {
-    let limit = limit.unwrap_or(10);
-
-    let data = tokio::task::spawn_blocking(move || {
-        let storage_dir = CostTracker::default_storage_dir()
-            .map_err(|e| format!("Failed to get stats dir: {e}"))?;
-        let tracker = CostTracker::new(storage_dir)
-            .map_err(|e| format!("Failed to create cost tracker: {e}"))?;
+async fn compute_top_sessions(limit: usize) -> Result<serde_json::Value, String> {
+    tokio::task::spawn_blocking(move || {
+        let tracker = create_cost_tracker()?;
 
         let sessions = tracker
             .get_top_sessions(limit)
@@ -303,18 +310,12 @@ pub async fn get_top_sessions(limit: Option<usize>) -> Result<serde_json::Value,
         Ok::<_, String>(serde_json::json!({ "sessions": result }))
     })
     .await
-    .map_err(|e| format!("Task join error: {e}"))??;
-
-    Ok(data)
+    .map_err(|e| format!("Task join error: {e}"))?
 }
 
-#[tauri::command]
-pub async fn get_stats_summary() -> Result<serde_json::Value, String> {
-    let data = tokio::task::spawn_blocking(move || {
-        let storage_dir = CostTracker::default_storage_dir()
-            .map_err(|e| format!("Failed to get stats dir: {e}"))?;
-        let tracker = CostTracker::new(storage_dir)
-            .map_err(|e| format!("Failed to create cost tracker: {e}"))?;
+async fn compute_stats_summary() -> Result<serde_json::Value, String> {
+    tokio::task::spawn_blocking(move || {
+        let tracker = create_cost_tracker()?;
 
         let today = tracker
             .get_today_cost()
@@ -329,31 +330,19 @@ pub async fn get_stats_summary() -> Result<serde_json::Value, String> {
         Ok::<_, String>(serde_json::json!({
             "today": today,
             "week": week,
-            "month": month,
+                "month": month,
         }))
     })
     .await
-    .map_err(|e| format!("Task join error: {e}"))??;
-
-    Ok(data)
+    .map_err(|e| format!("Task join error: {e}"))?
 }
 
-/// 每日统计 — 返回 DailyStatsResponse 格式 (含 per-platform 分平台数据)
-///
-/// 前端 UsageStatsDashboard.vue 期望:
-/// { daily_stats: DailyStatsItem[], summary: UsageStatsSummary, last_updated: string }
-#[tauri::command]
-pub async fn get_daily_stats(days: Option<usize>) -> Result<serde_json::Value, String> {
-    let days = days.unwrap_or(30);
+async fn compute_daily_stats(days: usize) -> Result<serde_json::Value, String> {
+    tokio::task::spawn_blocking(move || {
+        let tracker = create_cost_tracker()?;
 
-    let data = tokio::task::spawn_blocking(move || {
-        let storage_dir = CostTracker::default_storage_dir()
-            .map_err(|e| format!("Failed to get stats dir: {e}"))?;
-        let tracker = CostTracker::new(storage_dir)
-            .map_err(|e| format!("Failed to create cost tracker: {e}"))?;
-
-        let now = chrono::Utc::now();
-        let start = now - chrono::Duration::days(days as i64);
+        let now = Utc::now();
+        let start = now - Duration::days(days as i64);
 
         let records = tracker
             .read_by_time_range(start, now)
@@ -460,11 +449,133 @@ pub async fn get_daily_stats(days: Option<usize>) -> Result<serde_json::Value, S
                 "total_duration_seconds": total_duration_seconds,
                 "by_platform": serde_json::Value::Object(by_platform),
             },
-            "last_updated": chrono::Utc::now().to_rfc3339(),
+            "last_updated": Utc::now().to_rfc3339(),
         }))
     })
     .await
-    .map_err(|e| format!("Task join error: {e}"))??;
+    .map_err(|e| format!("Task join error: {e}"))?
+}
 
-    Ok(data)
+/// 费用概览 — 直接返回核心库的完整 CostStats
+///
+/// 前端 StatsView.vue 期望: CostStats { total_cost, record_count, token_stats, by_provider, by_model, by_project, trend? }
+#[tauri::command]
+pub async fn get_cost_overview(
+    state: State<'_, AppState>,
+    period: Option<String>,
+) -> Result<serde_json::Value, String> {
+    let period = period.unwrap_or_else(|| "today".to_string());
+    let cache_key = format!("stats:cost_overview:{period}");
+    run_cached_stats_command(state.inner(), cache_key, move || {
+        compute_cost_overview(period.clone())
+    })
+    .await
+}
+
+#[tauri::command]
+pub async fn get_heatmap_data(
+    state: State<'_, AppState>,
+    platform: Option<String>,
+    days: Option<usize>,
+) -> Result<serde_json::Value, String> {
+    let days = days.unwrap_or(365);
+    let platform_key = platform.as_deref().unwrap_or("all");
+    let cache_key = format!("stats:heatmap:platform={platform_key}:days={days}");
+    run_cached_stats_command(state.inner(), cache_key, move || {
+        compute_heatmap_data(platform.clone(), days)
+    })
+    .await
+}
+
+#[tauri::command]
+pub async fn get_session_stats(
+    state: State<'_, AppState>,
+    platform: Option<String>,
+) -> Result<serde_json::Value, String> {
+    let platform_key = platform.as_deref().unwrap_or("all");
+    let cache_key = format!("stats:session_stats:platform={platform_key}");
+    run_cached_stats_command(state.inner(), cache_key, move || {
+        compute_session_stats(platform.clone())
+    })
+    .await
+}
+
+#[tauri::command]
+pub async fn get_cost_trend(
+    state: State<'_, AppState>,
+    period: Option<String>,
+) -> Result<serde_json::Value, String> {
+    let period = period.unwrap_or_else(|| "month".to_string());
+    let cache_key = format!("stats:cost_trend:{period}");
+    run_cached_stats_command(state.inner(), cache_key, move || {
+        compute_cost_trend(period.clone())
+    })
+    .await
+}
+
+/// 按模型分组成本 — 直接返回扁平 map
+#[tauri::command]
+pub async fn get_cost_by_model(state: State<'_, AppState>) -> Result<serde_json::Value, String> {
+    run_cached_stats_command(state.inner(), "stats:cost_by_model".to_string(), || {
+        compute_cost_by_model()
+    })
+    .await
+}
+
+/// 按项目分组成本 — 直接返回扁平 map
+#[tauri::command]
+pub async fn get_cost_by_project(
+    state: State<'_, AppState>,
+) -> Result<serde_json::Value, String> {
+    run_cached_stats_command(state.inner(), "stats:cost_by_project".to_string(), || {
+        compute_cost_by_project()
+    })
+    .await
+}
+
+/// Provider 使用统计 — 直接返回扁平 Record<string, number>
+///
+/// 前端 StatsView.vue 期望: Record<string, number> (provider -> count)
+#[tauri::command]
+pub async fn get_provider_usage(
+    state: State<'_, AppState>,
+) -> Result<serde_json::Value, String> {
+    run_cached_stats_command(state.inner(), "stats:provider_usage".to_string(), || {
+        compute_provider_usage()
+    })
+    .await
+}
+
+#[tauri::command]
+pub async fn get_top_sessions(
+    state: State<'_, AppState>,
+    limit: Option<usize>,
+) -> Result<serde_json::Value, String> {
+    let limit = limit.unwrap_or(10);
+    let cache_key = format!("stats:top_sessions:limit={limit}");
+    run_cached_stats_command(state.inner(), cache_key, move || compute_top_sessions(limit)).await
+}
+
+#[tauri::command]
+pub async fn get_stats_summary(
+    state: State<'_, AppState>,
+) -> Result<serde_json::Value, String> {
+    run_cached_stats_command(state.inner(), "stats:summary".to_string(), || {
+        compute_stats_summary()
+    })
+    .await
+}
+
+/// 每日统计 — 返回 DailyStatsResponse 格式 (含 per-platform 分平台数据)
+///
+/// 前端 UsageStatsDashboard.vue 期望:
+/// { daily_stats: DailyStatsItem[], summary: UsageStatsSummary, last_updated: string }
+#[tauri::command]
+pub async fn get_daily_stats(
+    state: State<'_, AppState>,
+    days: Option<usize>,
+) -> Result<serde_json::Value, String> {
+    let days = days.unwrap_or(30);
+    let cache_key = format!("stats:daily_stats:days={days}");
+    run_cached_stats_command(state.inner(), cache_key, move || compute_daily_stats(days)).await
 }

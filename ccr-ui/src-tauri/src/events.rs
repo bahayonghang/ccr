@@ -228,6 +228,9 @@ pub mod channels {
     pub const MONITORING_ENTRY: &str = "app:monitoring";
     pub const APP_LOG: &str = "app-log";
     pub const TOKEN_STATS: &str = "token-stats";
+    /// fire-and-forget 后台任务 panic / join 失败时广播给前端。
+    /// payload: `{ "name": <task-label>, "error": <display-string> }`
+    pub const APP_TASK_PANICKED: &str = "app:task-panicked";
 
     // —— 环境 ——
     pub const ENVIRONMENT_CHANGED: &str = "env:changed";

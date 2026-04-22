@@ -17,15 +17,52 @@ mod usage_jobs;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 
-use tauri::{Manager, RunEvent, WindowEvent};
+use tauri::{Emitter, Manager, RunEvent, WindowEvent};
 use tauri_plugin_dialog::{DialogExt, MessageDialogButtons, MessageDialogKind};
 use tokio::sync::Notify;
 
+use crate::events::channels;
 use platform::local::LocalEnvironment;
 use state::{AppState, DEFAULT_SSH_PASSWORD_TTL_SECS, DEFAULT_SSH_STATE_TTL_SECS};
 
 /// 退出流程标志，避免重复触发清理与关闭逻辑。
 static EXIT_REQUESTED: AtomicBool = AtomicBool::new(false);
+
+/// fire-and-forget 后台任务监督封装。
+///
+/// 目标：
+/// 1) 任务 panic 不吞没 —— 通过内嵌 `tokio::spawn` + `JoinError::is_panic()` 捕获；
+/// 2) panic / join 失败统一广播 `channels::APP_TASK_PANICKED`，前端监控面板可据此报警；
+/// 3) cancel 属于正常关闭路径，仅 debug 日志。
+fn spawn_supervised<F>(app: tauri::AppHandle, name: &'static str, fut: F)
+where
+    F: std::future::Future<Output = ()> + Send + 'static,
+{
+    tauri::async_runtime::spawn(async move {
+        let handle = tokio::spawn(fut);
+        match handle.await {
+            Ok(()) => {}
+            Err(error) if error.is_cancelled() => {
+                tracing::debug!("[supervised] task '{name}' cancelled");
+            }
+            Err(error) => {
+                if error.is_panic() {
+                    tracing::error!("[supervised] task '{name}' panicked: {error}");
+                } else {
+                    tracing::warn!("[supervised] task '{name}' join error: {error}");
+                }
+                if let Err(emit_err) = app.emit(
+                    channels::APP_TASK_PANICKED,
+                    serde_json::json!({ "name": name, "error": error.to_string() }),
+                ) {
+                    tracing::warn!(
+                        "[supervised] failed to emit APP_TASK_PANICKED for '{name}': {emit_err}"
+                    );
+                }
+            }
+        }
+    });
+}
 
 #[cfg(target_os = "macos")]
 pub(crate) fn configure_main_window_chrome<R: tauri::Runtime>(
@@ -96,19 +133,23 @@ fn main() {
             desktop_shell::install_desktop_shell(app.handle()).map_err(std::io::Error::other)?;
 
             let tray_refresh_handle = app.handle().clone();
-            tauri::async_runtime::spawn(async move {
-                if let Err(error) =
-                    desktop_shell::refresh_codex_tray(&tray_refresh_handle, false).await
-                {
-                    tracing::debug!("[tray] initial refresh skipped: {error}");
-                }
-            });
+            spawn_supervised(
+                tray_refresh_handle.clone(),
+                "codex-tray:initial-refresh",
+                async move {
+                    if let Err(error) =
+                        desktop_shell::refresh_codex_tray(&tray_refresh_handle, false).await
+                    {
+                        tracing::debug!("[tray] initial refresh skipped: {error}");
+                    }
+                },
+            );
 
             crate::commands::codex::restore_pending_oauth_listener(app.handle().clone());
 
             // 异步初始化环境注册表，避免阻塞启动流程。
             let app_handle = app.handle().clone();
-            tauri::async_runtime::spawn(async move {
+            spawn_supervised(app_handle.clone(), "env-registry:init", async move {
                 let state = app_handle.state::<AppState>();
 
                 // Phase C1：在 Windows 上探测 WSL 发行版，失败时仅记录日志。
@@ -199,16 +240,21 @@ fn main() {
             let shutdown_notify = Arc::new(Notify::new());
             let shutdown_clone = shutdown_notify.clone();
 
-            tauri::async_runtime::spawn(async move {
-                run_background_tasks(app_handle, shutdown_clone).await;
-            });
+            let bg_supervisor_handle = app_handle.clone();
+            spawn_supervised(
+                bg_supervisor_handle,
+                "background-maintenance",
+                async move {
+                    run_background_tasks(app_handle, shutdown_clone).await;
+                },
+            );
 
             // 注册 shutdown notify，供退出时通知后台任务收尾。
             app.manage(shutdown_notify);
 
             // skills_ext 回收站：启动时 fire-and-forget 清理过期条目（> 7 天）。
             // 失败不影响应用启动；日志级别 warn 便于观察。
-            tauri::async_runtime::spawn(async move {
+            spawn_supervised(app.handle().clone(), "skills-ext:purge-trash", async move {
                 match tokio::task::spawn_blocking(|| {
                     ccr_skills::skills_ext::FsTrashStore::open()
                         .and_then(|store| store.purge_expired())
@@ -352,7 +398,7 @@ mod tests {
 /// - 每 60s  : cache_cleanup
 /// - 每 300s : ssh 运行时状态 + 密码缓存 cleanup（tick % 5 == 0）
 /// - 每 600s : 监控日志 cleanup + usage import probe（tick % 10 == 0）
-/// shutdown 信号到达时，最多等 60s 退出（tick 粒度）。
+///   shutdown 信号到达时，最多等 60s 退出（tick 粒度）。
 async fn run_background_tasks(app_handle: tauri::AppHandle, shutdown: Arc<Notify>) {
     tracing::info!("[background] starting background tasks (60s base tick)");
 
