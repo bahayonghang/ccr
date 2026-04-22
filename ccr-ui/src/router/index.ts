@@ -6,6 +6,17 @@ import { initPerfTelemetry, recordRouteTiming } from '@/utils/perfTelemetry'
 declare module 'vue-router' {
   interface RouteMeta {
     cache?: boolean
+    /**
+     * keep-alive include 用的组件 name。
+     *
+     * Vue `<keep-alive :include>` 匹配的是组件自身的 name（`<script setup>`
+     * 从文件名推导），而不是 route.name。路由名是 kebab-case，组件名通常是
+     * PascalCase，两者不一致。此字段让 router 成为缓存列表的唯一事实源，
+     * MainLayout 从 `meta.cache === true` 的路由派生 `cacheKey` 数组。
+     *
+     * 规则：只要 `meta.cache === true`，就必须同时给出 `cacheKey`。
+     */
+    cacheKey?: string
     hideGlobalBackground?: boolean
     stream?: boolean
     /** 路由层级深度: 0=首页, 1=顶级页面, 2=子页面 */
@@ -65,7 +76,7 @@ const routes: RouteRecordRaw[] = [
         path: '',
         name: 'home',
         component: () => import('@/views/HomeView.vue'),
-        meta: { cache: true, depth: 0 },
+        meta: { cache: true, cacheKey: 'HomeView', depth: 0 },
       },
       {
         path: 'settings',
@@ -102,7 +113,7 @@ const routes: RouteRecordRaw[] = [
         path: 'codex',
         name: 'codex',
         component: () => import('@/views/CodexView.vue'),
-        meta: { depth: 1, group: 'codex' },
+        meta: { cache: true, cacheKey: 'CodexView', depth: 1, group: 'codex' },
       },
       {
         path: 'gemini-cli',
@@ -121,13 +132,13 @@ const routes: RouteRecordRaw[] = [
         path: 'ccr-control',
         name: 'ccr-control',
         component: () => import('@/views/CcrControlView.vue'),
-        meta: { cache: true, depth: 1, group: 'tools' },
+        meta: { cache: true, cacheKey: 'CcrControlView', depth: 1, group: 'tools' },
       },
       {
         path: 'commands/:client?',
         name: 'commands',
         component: () => import('@/views/CommandsView.vue'),
-        meta: { cache: true, stream: true, depth: 1, group: 'tools' },
+        meta: { cache: true, cacheKey: 'CommandsView', stream: true, depth: 1, group: 'tools' },
       },
       {
         path: 'converter',
@@ -146,7 +157,7 @@ const routes: RouteRecordRaw[] = [
         path: 'configs',
         name: 'configs',
         component: () => import('@/views/ConfigsView.vue'),
-        meta: { cache: true, depth: 1, group: 'config', hideGlobalBackground: true },
+        meta: { cache: true, cacheKey: 'ConfigsView', depth: 1, group: 'config', hideGlobalBackground: true },
       },
       {
         path: 'stats',
@@ -169,7 +180,7 @@ const routes: RouteRecordRaw[] = [
         path: 'usage',
         name: 'usage',
         component: () => import('@/views/UsageDashboardView.vue'),
-        meta: { cache: true, depth: 1, group: 'data', hideGlobalBackground: true },
+        meta: { cache: true, cacheKey: 'UsageDashboardView', depth: 1, group: 'data', hideGlobalBackground: true },
       },
       {
         path: 'monitoring',
@@ -199,7 +210,7 @@ const routes: RouteRecordRaw[] = [
         path: 'mcp-manager',
         name: 'mcp-manager',
         component: () => import('@/views/mcp/McpManagerView.vue'),
-        meta: { cache: true, depth: 1, group: 'config' },
+        meta: { cache: true, cacheKey: 'McpManagerView', depth: 1, group: 'config' },
       },
       {
         path: 'slash-commands',
@@ -230,7 +241,7 @@ const routes: RouteRecordRaw[] = [
         path: 'skills-manager',
         name: 'skills-manager',
         component: () => import('@/views/skills/SkillsManagerView.vue'),
-        meta: { cache: true, depth: 1, group: 'skills' },
+        meta: { cache: true, cacheKey: 'SkillsManagerView', depth: 1, group: 'skills' },
       },
       {
         path: 'skills/add',
@@ -294,13 +305,13 @@ const routes: RouteRecordRaw[] = [
         path: 'codex/mcp',
         name: 'codex-mcp',
         component: () => import('@/views/CodexMcpView.vue'),
-        meta: { depth: 2, group: 'codex' },
+        meta: { cache: true, cacheKey: 'CodexMcpView', depth: 2, group: 'codex' },
       },
       {
         path: 'codex/profiles',
         name: 'codex-profiles',
         component: () => import('@/views/CodexProfilesView.vue'),
-        meta: { depth: 2, group: 'codex' },
+        meta: { cache: true, cacheKey: 'CodexProfilesView', depth: 2, group: 'codex' },
       },
       {
         path: 'codex/agents',
@@ -324,7 +335,7 @@ const routes: RouteRecordRaw[] = [
         path: 'codex/auth',
         name: 'codex-auth',
         component: () => import('@/views/CodexAuthView.vue'),
-        meta: { depth: 2, group: 'codex' },
+        meta: { cache: true, cacheKey: 'CodexAuthView', depth: 2, group: 'codex' },
       },
       {
         path: 'codex/settings',
@@ -490,3 +501,28 @@ if (perfEnabled) {
 }
 
 export default router
+
+/**
+ * 扁平化路由树，收集所有 `meta.cache === true` 且带 `cacheKey` 的组件名。
+ *
+ * 用于 `<keep-alive :include>` —— Vue keep-alive 匹配组件自身的 name
+ * （`<script setup>` 从文件名推导），路由 name 是 kebab-case 不能直接用。
+ * 此函数保证 cachedViews 来自路由单一事实源，不再依赖视图硬编码数组。
+ */
+export function collectCachedComponentNames(
+  source: ReadonlyArray<RouteRecordRaw> = routes,
+): string[] {
+  const names = new Set<string>()
+  const walk = (records: ReadonlyArray<RouteRecordRaw>): void => {
+    for (const record of records) {
+      if (record.meta?.cache === true && typeof record.meta.cacheKey === 'string') {
+        names.add(record.meta.cacheKey)
+      }
+      if (record.children && record.children.length > 0) {
+        walk(record.children)
+      }
+    }
+  }
+  walk(source)
+  return Array.from(names)
+}

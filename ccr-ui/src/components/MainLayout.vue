@@ -301,6 +301,7 @@ import { translateWithFallback } from '@/i18n/formatMessage'
 import { usePageTransition } from '@/composables/usePageTransition'
 import { useMainLayoutShell } from '@/composables/useMainLayoutShell'
 import { useShellPreferencesStore } from '@/stores/shellPreferences'
+import { collectCachedComponentNames } from '@/router'
 
 const BackendStatusBanner = defineAsyncComponent({
   loader: () => import('@/components/BackendStatusBanner.vue'),
@@ -319,10 +320,7 @@ const { transitionName } = usePageTransition()
 const appVersionLabel = APP_VERSION_LABEL
 const appIconUrl = '/icons/icon.svg'
 const navSections = mainLayoutNavSections
-const cachedViews = [
-  'ConfigsView', 'CommandsView', 'CodexView', 'CodexAuthView', 'CodexProfilesView', 'CodexMcpView',
-  'UnifiedSkillsView',
-]
+const cachedViews = collectCachedComponentNames()
 const MAIN_SCROLL_TOP_THRESHOLD = 480
 const contentScrollAreaRef = ref<HTMLElement | null>(null)
 const showScrollToTop = ref(false)

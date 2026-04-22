@@ -32,12 +32,17 @@ const routeState = reactive({
   },
 })
 
-vi.mock('vue-router', () => ({
-  useRoute: () => routeState,
-  useRouter: () => ({
-    back: vi.fn(),
-  }),
-}))
+vi.mock('vue-router', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('vue-router')>()
+
+  return {
+    ...actual,
+    useRoute: () => routeState,
+    useRouter: () => ({
+      back: vi.fn(),
+    }),
+  }
+})
 
 vi.mock('vue-i18n', async (importOriginal) => {
   const actual = await importOriginal<typeof import('vue-i18n')>()

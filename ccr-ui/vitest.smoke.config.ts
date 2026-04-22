@@ -16,6 +16,7 @@ export default defineConfig({
     environment: 'jsdom',
     include: ['tests/**/*.smoke.test.ts'],
     execArgv: [`--localstorage-file=${localStorageFile}`],
+    setupFiles: ['./tests/setup/localStorage.ts'],
     restoreMocks: true,
     clearMocks: true,
     testTimeout: 15_000
