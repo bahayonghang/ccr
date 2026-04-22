@@ -158,6 +158,27 @@ const VERSION_AFTER_LONG_HELP: &str = "\
     ccr --version
     ccr -V";
 
+const CLEAN_LONG_ABOUT: &str = "\
+清理两类文件：
+
+- 旧备份文件
+- planning-with-files 生成的规划文件";
+
+const CLEAN_AFTER_LONG_HELP: &str = "\
+常用任务:
+  清理旧备份
+    先预览: ccr clean --dry-run
+    清理 30 天前的备份: ccr clean --days 30
+
+  清理当前目录下的规划文件
+    先预览: ccr clean planfiles --dry-run
+    执行清理: ccr clean planfiles
+
+边界:
+  - `ccr clean` 只处理 ~/.claude/backups 下的 .bak 文件
+  - `ccr clean planfiles` 只处理 task_plan.md / findings.md / progress.md
+  - `ccr clean planfiles` 默认不跟随符号链接目录";
+
 pub fn build_cli_command() -> Command {
     Cli::command()
         .help_template(ROOT_HELP_TEMPLATE)
@@ -171,6 +192,7 @@ pub fn build_cli_command() -> Command {
         .mut_subcommand("version", configure_version_command)
         .mut_subcommand("codex", configure_codex_command)
         .mut_subcommand("opencode", configure_opencode_command)
+        .mut_subcommand("clean", configure_clean_command)
 }
 
 fn configure_help_command(cmd: Command) -> Command {
@@ -190,6 +212,12 @@ fn configure_version_command(cmd: Command) -> Command {
     cmd.help_template(SUBCOMMAND_HELP_TEMPLATE)
         .long_about(VERSION_LONG_ABOUT)
         .after_long_help(VERSION_AFTER_LONG_HELP)
+}
+
+fn configure_clean_command(cmd: Command) -> Command {
+    cmd.help_template(SUBCOMMAND_HELP_TEMPLATE)
+        .long_about(CLEAN_LONG_ABOUT)
+        .after_long_help(CLEAN_AFTER_LONG_HELP)
 }
 
 fn configure_codex_command(cmd: Command) -> Command {

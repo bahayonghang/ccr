@@ -1,3 +1,6 @@
+#[path = "commands/clean.rs"]
+mod clean;
+
 #[path = "commands/doctor.rs"]
 mod doctor;
 

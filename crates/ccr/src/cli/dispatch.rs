@@ -3,7 +3,7 @@
 // 将 CLI 命令路由到对应的处理函数
 
 use crate::cli::subcommands::{AllSyncAction, FolderAction};
-use crate::cli::{Cli, Commands};
+use crate::cli::{CleanAction, Cli, Commands};
 use crate::help;
 use ccr_core::core::error::CcrError;
 use std::result::Result;
@@ -73,11 +73,19 @@ impl CommandDispatcher {
                 crate::commands::import_command(input.clone(), mode, *backup, auto_yes || *force)
                     .await
             }
-            Some(Commands::Clean {
-                days,
-                dry_run,
-                force,
-            }) => crate::commands::clean_command(*days, *dry_run, auto_yes || *force).await,
+            Some(Commands::Clean(args)) => match &args.action {
+                Some(CleanAction::Planfiles(planfiles_args)) => {
+                    crate::commands::clean_planfiles_command(
+                        planfiles_args.dry_run,
+                        auto_yes || planfiles_args.force,
+                    )
+                    .await
+                }
+                None => {
+                    crate::commands::clean_command(args.days, args.dry_run, auto_yes || args.force)
+                        .await
+                }
+            },
             Some(Commands::Clear { force }) => {
                 crate::commands::clear_command(auto_yes || *force).await
             }

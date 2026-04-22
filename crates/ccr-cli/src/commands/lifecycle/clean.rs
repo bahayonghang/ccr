@@ -1,11 +1,34 @@
-// 🧹 clean 命令实现 - 清理旧备份文件
-// 📅 根据时间策略删除过期的 .bak 备份文件
+// 🧹 clean 命令实现
+// 📅 支持清理旧备份文件，也支持递归清理规划文件
 
 #![allow(clippy::unused_async)]
 
 use crate::services::{BackupService, ConfigService};
 use ccr_core::core::error::{CcrError, Result};
 use ccr_core::core::logging::ColorOutput;
+use std::fs;
+use std::path::{Path, PathBuf};
+use walkdir::WalkDir;
+
+const PLANFILES_TARGETS: [&str; 3] = ["task_plan.md", "findings.md", "progress.md"];
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct PlanfileMatch {
+    path: PathBuf,
+    size: u64,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+struct PlanfilesCleanResult {
+    matches: Vec<PlanfileMatch>,
+    total_size: u64,
+}
+
+impl PlanfilesCleanResult {
+    fn matched_count(&self) -> usize {
+        self.matches.len()
+    }
+}
 
 /// 🧹 清理旧备份文件
 ///
@@ -56,19 +79,7 @@ pub async fn clean_command(days: u64, dry_run: bool, force: bool) -> Result<()> 
         ColorOutput::info("提示: 使用 --dry-run 参数可以先预览将要删除的文件");
         println!();
 
-        let confirmed = tokio::task::spawn_blocking(|| -> std::io::Result<bool> {
-            use std::io::{self, Write};
-            print!("确认执行清理操作? (y/N): ");
-            io::stdout().flush()?;
-
-            let mut input = String::new();
-            io::stdin().read_line(&mut input)?;
-            Ok(input.trim().eq_ignore_ascii_case("y"))
-        })
-        .await
-        .map_err(|e| CcrError::FileIoError(format!("读取确认输入失败: {}", e)))??;
-
-        if !confirmed {
+        if !confirm_cleanup("确认执行清理操作?").await? {
             ColorOutput::info("已取消清理操作");
             return Ok(());
         }
@@ -128,4 +139,349 @@ pub async fn clean_command(days: u64, dry_run: bool, force: bool) -> Result<()> 
     }
 
     Ok(())
+}
+
+/// 🧹 递归清理当前目录下的规划文件
+pub async fn clean_planfiles_command(dry_run: bool, force: bool) -> Result<()> {
+    /*
+     * ========================================================================
+     * 步骤1：扫描规划文件
+     * ========================================================================
+     * 目标目录：当前工作目录
+     * 操作：
+     * 1) 递归扫描 task_plan.md、findings.md、progress.md
+     * 2) 汇总命中路径和空间占用
+     */
+    tracing::info!(dry_run, force, "开始扫描规划文件");
+
+    let current_dir = std::env::current_dir()
+        .map_err(|e| CcrError::FileIoError(format!("获取当前目录失败: {}", e)))?;
+
+    ColorOutput::title("清理规划文件");
+    println!();
+    ColorOutput::info(&format!("扫描目录: {}", current_dir.display()));
+    ColorOutput::info("目标文件: task_plan.md, findings.md, progress.md");
+
+    if dry_run {
+        ColorOutput::warning("⚠ 模拟运行模式(不会实际删除文件)");
+    }
+
+    let result = scan_planfiles(&current_dir)?;
+    if result.matched_count() == 0 {
+        ColorOutput::success("✓ 没有找到需要清理的规划文件");
+        tracing::info!("当前目录下没有规划文件");
+        return Ok(());
+    }
+
+    println!();
+    ColorOutput::separator();
+    println!();
+
+    ColorOutput::step("命中文件");
+    for entry in &result.matches {
+        // 1.1 输出命中路径，便于 dry-run 和确认前核对
+        ColorOutput::info(&format!(
+            "命中: {}",
+            display_match_path(&current_dir, &entry.path)
+        ));
+    }
+
+    println!();
+    ColorOutput::info(&format!("命中数量: {} 个", result.matched_count()));
+    if result.total_size > 0 {
+        ColorOutput::info(&format!(
+            "{}: {:.2} MB",
+            if dry_run {
+                "预计释放空间"
+            } else {
+                "待释放空间"
+            },
+            result.total_size as f64 / 1024.0 / 1024.0
+        ));
+    }
+
+    // 1.2 非 dry-run 模式下确认删除
+    if !dry_run && !force {
+        println!();
+        ColorOutput::warning("⚠️  警告: 即将删除当前目录下的规划文件！");
+        ColorOutput::info("提示: 使用 --dry-run 参数可以先预览将要删除的文件");
+        println!();
+
+        if !confirm_cleanup("确认执行规划文件清理操作?").await? {
+            ColorOutput::info("已取消清理操作");
+            return Ok(());
+        }
+    }
+
+    if dry_run {
+        println!();
+        ColorOutput::info("提示: 运行 'ccr clean planfiles' 执行实际清理");
+        tracing::info!(matched = result.matched_count(), "规划文件预览完成");
+        return Ok(());
+    }
+
+    println!();
+    ColorOutput::separator();
+    println!();
+
+    /*
+     * ========================================================================
+     * 步骤2：删除命中的规划文件
+     * ========================================================================
+     * 目标文件：步骤1命中的规划文件
+     * 操作：
+     * 1) 逐个删除命中的规划文件
+     * 2) 输出最终统计结果
+     */
+    tracing::info!(matched = result.matched_count(), "开始删除规划文件");
+
+    let status_msg = if force {
+        "⚡ 执行清理 (自动确认模式)"
+    } else {
+        "执行清理"
+    };
+    ColorOutput::step(status_msg);
+
+    delete_planfiles(&result)?;
+
+    println!();
+    ColorOutput::separator();
+    println!();
+
+    ColorOutput::title("清理摘要");
+    println!();
+    ColorOutput::success(&format!("✓ 已删除文件: {} 个", result.matched_count()));
+    if result.total_size > 0 {
+        ColorOutput::success(&format!(
+            "✓ 释放空间: {:.2} MB",
+            result.total_size as f64 / 1024.0 / 1024.0
+        ));
+    }
+
+    tracing::info!(
+        deleted_count = result.matched_count(),
+        total_size = result.total_size,
+        "规划文件清理完成"
+    );
+    Ok(())
+}
+
+async fn confirm_cleanup(question: &str) -> Result<bool> {
+    tokio::task::spawn_blocking({
+        let question = question.to_string();
+        move || -> std::io::Result<bool> {
+            use std::io::{self, Write};
+
+            print!("{question} (y/N): ");
+            io::stdout().flush()?;
+
+            let mut input = String::new();
+            io::stdin().read_line(&mut input)?;
+            Ok(input.trim().eq_ignore_ascii_case("y"))
+        }
+    })
+    .await
+    .map_err(|e| CcrError::FileIoError(format!("读取确认输入失败: {}", e)))?
+    .map_err(|e| CcrError::FileIoError(format!("读取确认输入失败: {}", e)))
+}
+
+fn scan_planfiles(root: &Path) -> Result<PlanfilesCleanResult> {
+    let mut matches = Vec::new();
+    let mut total_size = 0_u64;
+
+    // 1.1 默认不跟随符号链接，避免跨目录误删
+    for entry in WalkDir::new(root).follow_links(false) {
+        let entry = entry.map_err(|e| CcrError::FileIoError(format!("递归扫描目录失败: {}", e)))?;
+        if !entry.file_type().is_file() || !is_planfile_target(entry.path()) {
+            continue;
+        }
+
+        // 1.2 读取文件大小，后续直接复用统计结果
+        let metadata = entry
+            .metadata()
+            .map_err(|e| CcrError::FileIoError(format!("读取文件元数据失败: {}", e)))?;
+        let size = metadata.len();
+
+        total_size += size;
+        matches.push(PlanfileMatch {
+            path: entry.path().to_path_buf(),
+            size,
+        });
+    }
+
+    matches.sort_by(|left, right| left.path.cmp(&right.path));
+    Ok(PlanfilesCleanResult {
+        matches,
+        total_size,
+    })
+}
+
+fn delete_planfiles(result: &PlanfilesCleanResult) -> Result<()> {
+    for entry in &result.matches {
+        // 2.1 逐个删除，任何失败都保留明确错误
+        fs::remove_file(&entry.path)
+            .map_err(|e| CcrError::FileIoError(format!("删除文件失败: {}", e)))?;
+    }
+
+    Ok(())
+}
+
+fn is_planfile_target(path: &Path) -> bool {
+    path.file_name()
+        .and_then(|value| value.to_str())
+        .map(|name| PLANFILES_TARGETS.contains(&name))
+        .unwrap_or(false)
+}
+
+fn display_match_path(root: &Path, path: &Path) -> String {
+    path.strip_prefix(root)
+        .unwrap_or(path)
+        .display()
+        .to_string()
+}
+
+#[cfg(test)]
+#[allow(clippy::unwrap_used)]
+mod tests {
+    use super::*;
+    use std::fs::{self, File};
+    use std::io::Write;
+    use tempfile::tempdir;
+
+    #[test]
+    fn scan_planfiles_matches_nested_targets() {
+        let temp_dir = tempdir().unwrap();
+        let nested = temp_dir.path().join("nested").join("child");
+        fs::create_dir_all(&nested).unwrap();
+
+        fs::write(temp_dir.path().join("task_plan.md"), "root task").unwrap();
+        fs::write(nested.join("findings.md"), "nested findings").unwrap();
+        fs::write(nested.join("progress.md"), "nested progress").unwrap();
+        fs::write(temp_dir.path().join("README.md"), "keep").unwrap();
+
+        let result = scan_planfiles(temp_dir.path()).unwrap();
+
+        assert_eq!(result.matched_count(), 3);
+        assert_eq!(
+            result
+                .matches
+                .iter()
+                .map(|entry| entry.path.file_name().unwrap().to_str().unwrap())
+                .collect::<Vec<_>>(),
+            vec!["findings.md", "progress.md", "task_plan.md"]
+        );
+    }
+
+    #[test]
+    fn delete_planfiles_removes_only_target_files() {
+        let temp_dir = tempdir().unwrap();
+        let nested = temp_dir.path().join("nested");
+        fs::create_dir_all(&nested).unwrap();
+
+        fs::write(temp_dir.path().join("task_plan.md"), "root task").unwrap();
+        fs::write(nested.join("findings.md"), "nested findings").unwrap();
+        fs::write(nested.join("notes.md"), "keep").unwrap();
+
+        let result = scan_planfiles(temp_dir.path()).unwrap();
+        delete_planfiles(&result).unwrap();
+
+        assert!(!temp_dir.path().join("task_plan.md").exists());
+        assert!(!nested.join("findings.md").exists());
+        assert!(nested.join("notes.md").exists());
+    }
+
+    #[test]
+    fn display_match_path_prefers_relative_output() {
+        let root = PathBuf::from("D:/workspace/project");
+        let path = root.join("nested").join("task_plan.md");
+
+        assert_eq!(
+            display_match_path(&root, &path),
+            PathBuf::from("nested")
+                .join("task_plan.md")
+                .display()
+                .to_string()
+        );
+    }
+
+    #[test]
+    fn backup_service_clean() {
+        let temp_dir = tempdir().unwrap();
+        let backup_dir = temp_dir.path().to_path_buf();
+
+        // 创建测试备份文件
+        let old_file = backup_dir.join("old.bak");
+        let new_file = backup_dir.join("new.bak");
+        let other_file = backup_dir.join("other.txt");
+
+        File::create(&old_file).unwrap().write_all(b"old").unwrap();
+        File::create(&new_file).unwrap().write_all(b"new").unwrap();
+        File::create(&other_file)
+            .unwrap()
+            .write_all(b"other")
+            .unwrap();
+
+        // 设置旧文件的修改时间为 10 天前
+        let old_time =
+            std::time::SystemTime::now() - std::time::Duration::from_secs(10 * 24 * 60 * 60);
+        filetime::set_file_mtime(&old_file, filetime::FileTime::from_system_time(old_time))
+            .unwrap();
+
+        let service = BackupService::new(backup_dir);
+
+        // 清理 7 天前的文件(dry run)
+        let result = service.clean_old_backups(7, true).unwrap();
+        assert_eq!(result.deleted_count, 1); // old.bak 应该被标记删除
+        assert_eq!(result.skipped_count, 1); // new.bak 应该被保留
+        assert!(old_file.exists()); // dry run 不应实际删除
+
+        // 实际清理
+        let result = service.clean_old_backups(7, false).unwrap();
+        assert_eq!(result.deleted_count, 1);
+        assert!(!old_file.exists()); // 应该被删除
+        assert!(new_file.exists()); // 应该保留
+        assert!(other_file.exists()); // 非 .bak 文件应该保留
+    }
+
+    #[test]
+    fn backup_service_scan() {
+        let temp_dir = tempdir().unwrap();
+        let backup_dir = temp_dir.path().to_path_buf();
+
+        // 创建多个备份文件
+        for i in 0..5 {
+            let filename = format!("backup{}.bak", i);
+            File::create(backup_dir.join(&filename))
+                .unwrap()
+                .write_all(format!("content{}", i).as_bytes())
+                .unwrap();
+        }
+
+        let service = BackupService::new(backup_dir);
+        let backups = service.scan_backup_directory().unwrap();
+
+        assert_eq!(backups.len(), 5);
+        // 验证按修改时间排序
+        for i in 0..backups.len() - 1 {
+            assert!(backups[i].modified >= backups[i + 1].modified);
+        }
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn scan_planfiles_does_not_follow_symlink_directories() {
+        use std::os::unix::fs::symlink;
+
+        let temp_dir = tempdir().unwrap();
+        let external_dir = tempdir().unwrap();
+        let linked = temp_dir.path().join("linked");
+
+        fs::write(external_dir.path().join("task_plan.md"), "outside task").unwrap();
+        symlink(external_dir.path(), &linked).unwrap();
+
+        let result = scan_planfiles(temp_dir.path()).unwrap();
+
+        assert_eq!(result.matched_count(), 0);
+        assert!(external_dir.path().join("task_plan.md").exists());
+    }
 }

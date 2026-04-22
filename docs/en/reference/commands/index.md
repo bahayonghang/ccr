@@ -14,7 +14,7 @@ CCR's current CLI falls into five groups: platform and initialization, profiles 
 | [`list`](./list) / [`current`](./current) / [`switch`](./switch) | Inspect or switch profiles | `ccr <name>` is the shortcut form of `switch` |
 | [`temp`](./temp) / [`temp-token`](./temp-token) | Temporary overrides for the active settings | `temp` is interactive, `temp-token` is command-line driven |
 | [`validate`](./validate) / [`enable`](./enable) / [`disable`](./disable) / [`clear`](./clear) / [`optimize`](./optimize) | Validate and tidy configuration | |
-| [`history`](./history) / [`export`](./export) / [`import`](./import) / [`clean`](./clean) | Audit, export, import, cleanup | |
+| [`history`](./history) / [`export`](./export) / [`import`](./import) / [`clean`](./clean) | Audit, export, import, cleanup | `clean` supports backups and `planfiles` |
 | [`sync`](./sync) | WebDAV sync | folder registry, push/pull/status |
 | [`sessions`](./sessions) / [`provider`](./provider) / [`check`](./check) | Session search, provider health, conflict checks | diagnostic command groups |
 | [`ui`](./ui) / [`tui`](./tui) | Graphical UI and terminal interactive mode | `ui` is the recommended graphical entry; the `tui` page explains the bare `ccr` behavior |

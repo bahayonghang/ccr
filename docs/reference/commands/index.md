@@ -14,7 +14,7 @@ CCR 当前 CLI 主要分成六组：平台与初始化、profile 与临时覆盖
 | [`list`](./list) / [`current`](./current) / [`switch`](./switch) | 查看与切换 profile | `ccr <name>` 是 `switch` 快捷方式 |
 | [`temp`](./temp) / [`temp-token`](./temp-token) | 临时覆盖当前设置 | `temp` 为交互式，`temp-token` 为命令式 |
 | [`validate`](./validate) / [`enable`](./enable) / [`disable`](./disable) / [`clear`](./clear) / [`optimize`](./optimize) | 校验与整理配置 | |
-| [`history`](./history) / [`export`](./export) / [`import`](./import) / [`clean`](./clean) | 审计、导入、导出、清理 | |
+| [`history`](./history) / [`export`](./export) / [`import`](./import) / [`clean`](./clean) | 审计、导入、导出、清理 | `clean` 支持旧备份和 `planfiles` |
 | [`sync`](./sync) | WebDAV 同步 | 目录注册、push/pull/status |
 | [`doctor`](./doctor) / [`sessions`](./sessions) / [`provider`](./provider) / [`check`](./check) | 统一体检、会话、健康检查、冲突检测 | 诊断向命令组 |
 | [`ui`](./ui) / [`tui`](./tui) | 图形界面与终端交互模式 | `ui` 为推荐图形入口；`tui` 页说明直接运行 `ccr` 的行为 |

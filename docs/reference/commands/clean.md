@@ -1,6 +1,6 @@
-# clean - 清理旧备份
+# clean - 清理备份或规划文件
 
-清理旧的备份文件以释放磁盘空间。
+清理旧的备份文件，或递归清理当前目录下的规划文件。
 
 ::: tip 重要更新
 从 CCR 1.1.5 开始，所有备份操作（`switch`、`init --force`、`import`）都会**自动保留最近10个备份**，无需手动清理。`clean` 命令主要用于清理更早期的备份或手动管理备份策略。
@@ -10,20 +10,32 @@
 
 ```bash
 ccr clean [OPTIONS]
+ccr clean planfiles [OPTIONS]
 ```
 
 ## 选项
 
+### 备份清理
+
 - `--days <N>`: 保留最近 N 天的备份(默认：7)
 - `--dry-run`: 预览清理操作但不实际删除
+
+### 规划文件清理
+
+- `planfiles`: 递归清理当前目录及子目录里的规划文件
+- `--dry-run`: 预览清理操作但不实际删除
+- `--force`: 跳过确认提示，直接删除命中的规划文件
 
 ## 功能特性
 
 - 自动清理旧备份文件
+- 递归清理 `planning-with-files` 生成的规划文件
 - 可配置保留期限(默认 7 天)
 - 预览模式可先查看将删除的文件
 - 显示释放的磁盘空间
 - 仅删除 `~/.claude/backups/` 中的 `.bak` 文件
+- `planfiles` 仅删除 `task_plan.md`、`findings.md`、`progress.md`
+- `planfiles` 默认不跟随符号链接目录
 - **智能备份管理**：自动保留最近10个备份
 
 ## 示例
@@ -40,7 +52,23 @@ ccr clean --dry-run
 
 # 清理 14 天前的备份
 ccr clean --days 14
+
+# 预览当前目录下的规划文件清理
+ccr clean planfiles --dry-run
+
+# 直接清理当前目录下的规划文件
+ccr clean planfiles
 ```
+
+## 规划文件清理
+
+`ccr clean planfiles` 用于清理 `planning-with-files` skill 生成的三类固定文件：
+
+- `task_plan.md`
+- `findings.md`
+- `progress.md`
+
+命令会从当前工作目录开始递归扫描子目录，输出命中路径、命中数量和空间统计。
 
 ## 示例输出
 
@@ -79,6 +107,26 @@ Would delete: 2 files
 Would free: 4.4 KB
 
 ✓ Dry run completed (no files deleted)
+```
+
+### 规划文件清理
+
+```bash
+$ ccr clean planfiles --dry-run
+清理规划文件
+============
+
+[INFO] 扫描目录: /path/to/project
+[INFO] 目标文件: task_plan.md, findings.md, progress.md
+[WARN] ⚠ 模拟运行模式(不会实际删除文件)
+
+[STEP] 命中文件
+[INFO] 命中: task_plan.md
+[INFO] 命中: docs/findings.md
+[INFO] 命中: work/progress.md
+
+[INFO] 命中数量: 3 个
+[INFO] 预计释放空间: 0.02 MB
 ```
 
 ### 无文件需要清理

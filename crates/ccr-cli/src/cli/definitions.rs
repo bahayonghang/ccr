@@ -2,7 +2,7 @@
 //
 // 定义 CCR 命令行接口的结构，包括主结构和所有子命令
 
-use clap::{Parser, Subcommand};
+use clap::{Args, Parser, Subcommand};
 
 /// 🎯 Claude Code Configuration Switcher - 配置管理工具
 #[derive(Parser)]
@@ -242,23 +242,13 @@ pub enum Commands {
         force: bool,
     },
 
-    /// 清理过期的备份文件
+    /// 清理备份文件或规划文件
     ///
-    /// 删除 ~/.claude/backups/ 目录中的旧备份文件,释放磁盘空间
+    /// 默认清理 ~/.claude/backups/ 目录中的旧备份文件。
+    /// 也支持 `ccr clean planfiles` 递归清理当前目录下的规划文件。
     /// 示例: ccr clean -d 30 --dry-run
-    Clean {
-        /// 清理 N 天前的备份文件(默认: 7 天)
-        #[arg(short, long, default_value_t = 7)]
-        days: u64,
-
-        /// 模拟运行(dry-run)：仅显示将要删除的文件,不实际删除
-        #[arg(long)]
-        dry_run: bool,
-
-        /// 跳过确认提示，直接清理（危险操作）
-        #[arg(short, long)]
-        force: bool,
-    },
+    ///       ccr clean planfiles --dry-run
+    Clean(CleanArgs),
 
     /// 清理 CCR 写入的配置
     ///
@@ -458,4 +448,95 @@ pub enum Commands {
     ///       ccr provider test my-config --verbose
     ///       ccr provider verify my-config
     Provider(crate::commands::provider_cmd::ProviderArgs),
+}
+
+/// 🧹 clean 命令参数
+#[derive(Args, Debug, Clone)]
+#[command(args_conflicts_with_subcommands = true)]
+pub struct CleanArgs {
+    /// clean 子命令
+    #[command(subcommand)]
+    pub action: Option<CleanAction>,
+
+    /// 清理 N 天前的备份文件(默认: 7 天)
+    #[arg(short, long, default_value_t = 7)]
+    pub days: u64,
+
+    /// 模拟运行(dry-run)：仅显示将要删除的文件,不实际删除
+    #[arg(long)]
+    pub dry_run: bool,
+
+    /// 跳过确认提示，直接清理（危险操作）
+    #[arg(short, long)]
+    pub force: bool,
+}
+
+/// 🧹 clean 子命令枚举
+#[derive(Subcommand, Debug, Clone)]
+pub enum CleanAction {
+    /// 递归清理当前目录及子目录中的规划文件
+    Planfiles(CleanPlanfilesArgs),
+}
+
+/// 🧹 clean planfiles 命令参数
+#[derive(Args, Debug, Clone, Default)]
+pub struct CleanPlanfilesArgs {
+    /// 模拟运行(dry-run)：仅显示将要删除的文件,不实际删除
+    #[arg(long)]
+    pub dry_run: bool,
+
+    /// 跳过确认提示，直接清理（危险操作）
+    #[arg(short, long)]
+    pub force: bool,
+}
+
+#[cfg(test)]
+#[allow(clippy::unwrap_used)]
+mod tests {
+    use super::*;
+    use clap::Parser;
+
+    #[test]
+    fn clean_backup_flags_still_parse() {
+        let cli = Cli::try_parse_from(["ccr", "clean", "--days", "30", "--dry-run"]).unwrap();
+
+        match cli.command {
+            Some(Commands::Clean(args)) => {
+                assert!(args.action.is_none());
+                assert_eq!(args.days, 30);
+                assert!(args.dry_run);
+                assert!(!args.force);
+            }
+            other => panic!("unexpected command: {:?}", other.map(|_| "other")),
+        }
+    }
+
+    #[test]
+    fn clean_planfiles_subcommand_parses() {
+        let cli = Cli::try_parse_from(["ccr", "clean", "planfiles", "--dry-run"]).unwrap();
+
+        match cli.command {
+            Some(Commands::Clean(args)) => match args.action {
+                Some(CleanAction::Planfiles(planfiles)) => {
+                    assert!(planfiles.dry_run);
+                    assert!(!planfiles.force);
+                }
+                other => panic!("unexpected clean action: {:?}", other.map(|_| "other")),
+            },
+            other => panic!("unexpected command: {:?}", other.map(|_| "other")),
+        }
+    }
+
+    #[test]
+    fn clean_planfiles_inherits_global_yes() {
+        let cli = Cli::try_parse_from(["ccr", "-y", "clean", "planfiles"]).unwrap();
+
+        assert!(cli.auto_yes);
+        match cli.command {
+            Some(Commands::Clean(args)) => {
+                assert!(matches!(args.action, Some(CleanAction::Planfiles(_))));
+            }
+            other => panic!("unexpected command: {:?}", other.map(|_| "other")),
+        }
+    }
 }

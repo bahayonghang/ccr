@@ -62,6 +62,16 @@ fn help_subcommand_supports_platform_path() {
 }
 
 #[test]
+fn help_subcommand_supports_clean_path() {
+    let direct_help = run_help(&["clean", "--help"]);
+    let help_command = run_help(&["help", "clean"]);
+
+    assert_eq!(help_command, direct_help);
+    assert!(help_command.contains("ccr clean --dry-run"));
+    assert!(help_command.contains("ccr clean planfiles --dry-run"));
+}
+
+#[test]
 fn opencode_auth_help_includes_preview_and_boundary() {
     let stdout = run_help(&["opencode", "auth", "--help"]);
 
