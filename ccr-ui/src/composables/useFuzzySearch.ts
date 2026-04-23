@@ -1,8 +1,8 @@
 /**
  * useFuzzySearch —— 统一封装 fuse.js 的模糊搜索 composable
  *
- * 抽走 useSkillsManager / useMcpManager 中重复的 Fuse 构造与过滤逻辑，
- * 同时让两个页面共享同一份 fuse.js 打包入口（命中 search-vendor chunk）。
+ * 抽走多处列表页里重复的 Fuse 构造与过滤逻辑，
+ * 同时让页面共享同一份 fuse.js 打包入口（命中 search-vendor chunk）。
  *
  * 用法：
  *   const { query, results } = useFuzzySearch(

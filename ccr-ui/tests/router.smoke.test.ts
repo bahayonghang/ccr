@@ -20,7 +20,6 @@ describe('router smoke', () => {
       'opencode',
       'opencode-agents',
       'opencode-commands',
-      'opencode-skills',
       'opencode-settings',
     ]
 
@@ -35,10 +34,22 @@ describe('router smoke', () => {
     expect(statsRoute?.redirect).toBe('/usage')
   })
 
-  it('redirects /market to the unified skills manager', () => {
+  it('redirects skills legacy entrypoints to the migration bridge', () => {
+    const skillsRoute = router.getRoutes().find(route => route.path === '/skills')
     const marketRoute = router.getRoutes().find(route => route.path === '/market')
+    const skillsAddRoute = router.getRoutes().find(route => route.path === '/skills/add')
+    const skillsHubRoute = router.getRoutes().find(route => route.path === '/skills/hub')
+    const skillsDetailRoute = router.getRoutes().find(route => route.path === '/skills/:platform/:name')
+    const skillsManagerRoute = router.getRoutes().find(route => route.path === '/skills-manager')
+    const opencodeSkillsRoute = router.getRoutes().find(route => route.path === '/opencode/skills')
 
-    expect(marketRoute?.redirect).toBe('/skills-manager')
+    expect(skillsRoute?.redirect).toBeUndefined()
+    expect(marketRoute?.redirect).toBe('/skills')
+    expect(skillsAddRoute?.redirect).toBe('/skills')
+    expect(skillsHubRoute?.redirect).toBe('/skills')
+    expect(skillsDetailRoute?.redirect).toBe('/skills')
+    expect(skillsManagerRoute?.redirect).toBe('/skills')
+    expect(opencodeSkillsRoute?.redirect).toBe('/skills')
   })
 
   it('preserves generated platform child route paths', () => {
@@ -68,7 +79,6 @@ describe('router smoke', () => {
       'opencode-mcp',
       'opencode-agents',
       'opencode-commands',
-      'opencode-skills',
       'opencode-plugins',
       'opencode-settings',
     ]

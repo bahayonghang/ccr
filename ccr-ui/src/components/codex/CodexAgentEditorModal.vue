@@ -145,7 +145,7 @@
           </label>
         </div>
 
-        <div class="grid gap-4 md:grid-cols-2">
+        <div>
           <label class="space-y-2 text-sm text-text-secondary">
             <span class="font-semibold text-text-primary">mcp_servers JSON</span>
             <textarea
@@ -153,16 +153,6 @@
               rows="6"
               class="codex-agent-textarea font-mono text-[13px]"
               placeholder="{&quot;docs&quot;:{&quot;url&quot;:&quot;https://developers.openai.com/mcp&quot;}}"
-            />
-          </label>
-
-          <label class="space-y-2 text-sm text-text-secondary">
-            <span class="font-semibold text-text-primary">skills.config JSON</span>
-            <textarea
-              v-model="skillsConfigJson"
-              rows="6"
-              class="codex-agent-textarea font-mono text-[13px]"
-              placeholder="[{&quot;path&quot;:&quot;/Users/me/.agents/skills/docs-editor/SKILL.md&quot;,&quot;enabled&quot;:false}]"
             />
           </label>
         </div>
@@ -236,7 +226,6 @@ const form = reactive<CodexAgentRequest>({
 
 const nicknameCandidatesText = ref('')
 const mcpServersJson = ref('')
-const skillsConfigJson = ref('')
 const rawToml = ref('')
 const useRawToml = ref(false)
 const errorMessage = ref('')
@@ -259,7 +248,6 @@ function resetForm() {
   form.sandboxMode = props.agent?.sandboxMode ?? ''
   nicknameCandidatesText.value = (props.agent?.nicknameCandidates ?? []).join(', ')
   mcpServersJson.value = props.agent?.mcpServers ? JSON.stringify(props.agent.mcpServers, null, 2) : ''
-  skillsConfigJson.value = props.agent?.skillsConfig ? JSON.stringify(props.agent.skillsConfig, null, 2) : ''
   rawToml.value = props.agent?.rawToml ?? ''
   useRawToml.value = !!props.agent?.parseError
   errorMessage.value = ''
@@ -318,7 +306,6 @@ function handleSubmit() {
         .map(item => item.trim())
         .filter(Boolean),
       mcpServers: parseOptionalJson('mcp_servers JSON', mcpServersJson.value) ?? null,
-      skillsConfig: parseOptionalJson('skills.config JSON', skillsConfigJson.value) ?? null,
     })
   } catch (error) {
     errorMessage.value = error instanceof Error ? error.message : String(error)

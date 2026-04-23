@@ -1,7 +1,7 @@
 /**
  * useMarkdownRender —— 统一封装 marked + DOMPurify + highlight.js
  *
- * 抽走之前散落在 InventoryPanel / SkillDetailContentPanel / MarkdownEditor 中的
+ * 抽走之前散落在各处 Markdown 区块里的
  * 重复 import（marked + 13 种 hljs 语言 + sanitize），保持行为一致并消除冗余打包。
  *
  * 导出：

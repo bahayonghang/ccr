@@ -1,10 +1,10 @@
-//! OpenCode 命令：Settings / TUI / Agents / Commands / Plugins / Skills。
+//! OpenCode 命令：Settings / TUI / Agents / Commands / Plugins。
 //!
 //! 以官方 OpenCode 文档为准：
 //! - `~/.config/opencode/opencode.json` 作为主配置
 //! - `~/.config/opencode/tui.json` 作为 TUI 配置
-//! - `~/.config/opencode/{agents,commands,plugins,skills}` 作为全局目录
-//! - `.opencode/{agents,commands,plugins,skills}` 作为项目目录
+//! - `~/.config/opencode/{agents,commands,plugins}` 作为全局目录
+//! - `.opencode/{agents,commands,plugins}` 作为项目目录
 //!
 //! 兼容读取旧路径 `~/.opencode/*`，但所有写入都会落到新路径。
 
@@ -86,18 +86,6 @@ pub struct OpenCodePluginFileRecord {
     pub path: String,
     pub scope: String,
     pub size: u64,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct OpenCodeSkillLocationRecord {
-    pub kind: String,
-    pub scope: String,
-    pub path: String,
-    pub exists: bool,
-    pub skill_count: usize,
-    #[serde(skip_serializing_if = "Vec::is_empty", default)]
-    pub skills: Vec<String>,
 }
 
 #[derive(Debug, Clone, Deserialize, Default)]
@@ -755,85 +743,6 @@ fn scan_plugin_files(dir: &Path, scope: &str) -> Result<Vec<OpenCodePluginFileRe
     Ok(files)
 }
 
-fn count_skills_in_dir(dir: &Path) -> (usize, Vec<String>) {
-    if !dir.exists() {
-        return (0, Vec::new());
-    }
-
-    let mut skills = fs::read_dir(dir)
-        .ok()
-        .into_iter()
-        .flatten()
-        .filter_map(|entry| entry.ok())
-        .filter_map(|entry| {
-            let path = entry.path();
-            if !path.is_dir() || !path.join("SKILL.md").exists() {
-                return None;
-            }
-            path.file_name()
-                .and_then(|value| value.to_str())
-                .map(str::to_string)
-        })
-        .collect::<Vec<_>>();
-    skills.sort();
-    (skills.len(), skills)
-}
-
-fn build_skill_locations(
-    home: &Path,
-    project_root: Option<&Path>,
-) -> Vec<OpenCodeSkillLocationRecord> {
-    let mut locations = Vec::new();
-
-    let mut push_location = |kind: &str, scope: &str, path: PathBuf| {
-        let (skill_count, skills) = count_skills_in_dir(&path);
-        locations.push(OpenCodeSkillLocationRecord {
-            kind: kind.to_string(),
-            scope: scope.to_string(),
-            path: path.to_string_lossy().to_string(),
-            exists: path.exists(),
-            skill_count,
-            skills,
-        });
-    };
-
-    push_location(
-        "opencode",
-        "global",
-        opencode_config_dir_from_home(home).join("skills"),
-    );
-    push_location(
-        "claude-compatible",
-        "global",
-        home.join(".claude").join("skills"),
-    );
-    push_location(
-        "agents-compatible",
-        "global",
-        home.join(".agents").join("skills"),
-    );
-
-    if let Some(project_root) = project_root {
-        push_location(
-            "opencode",
-            "project",
-            project_root.join(".opencode").join("skills"),
-        );
-        push_location(
-            "claude-compatible",
-            "project",
-            project_root.join(".claude").join("skills"),
-        );
-        push_location(
-            "agents-compatible",
-            "project",
-            project_root.join(".agents").join("skills"),
-        );
-    }
-
-    locations
-}
-
 #[tauri::command]
 pub async fn opencode_get_settings() -> Result<Value, String> {
     let primary = opencode_config_path()?;
@@ -1061,14 +970,6 @@ pub async fn opencode_list_local_plugins() -> Result<Value, String> {
     serde_json::to_value(records).map_err(|e| format!("序列化 OpenCode 本地插件失败: {e}"))
 }
 
-#[tauri::command]
-pub async fn opencode_list_skill_locations() -> Result<Value, String> {
-    let home = opencode_home_dir()?;
-    let project_root = current_project_root();
-    serde_json::to_value(build_skill_locations(&home, project_root.as_deref()))
-        .map_err(|e| format!("序列化 OpenCode skills 目录失败: {e}"))
-}
-
 #[cfg(test)]
 #[allow(clippy::unwrap_used)]
 mod tests {
@@ -1148,36 +1049,6 @@ mod tests {
         assert_eq!(record.temperature, Some(0.1));
         assert_eq!(record.other.unwrap()["custom_flag"], json!(true));
         assert!(record.path.ends_with("review.md"));
-    }
-
-    #[test]
-    fn skill_location_inventory_scans_global_and_project_dirs() {
-        let temp = tempdir().unwrap();
-        let home = temp.path().join("home");
-        let project = temp.path().join("project");
-        fs::create_dir_all(home.join(".config/opencode/skills/release")).unwrap();
-        fs::create_dir_all(project.join(".opencode/skills/debug")).unwrap();
-        fs::write(
-            home.join(".config/opencode/skills/release/SKILL.md"),
-            "# release",
-        )
-        .unwrap();
-        fs::write(project.join(".opencode/skills/debug/SKILL.md"), "# debug").unwrap();
-
-        let locations = build_skill_locations(&home, Some(project.as_path()));
-        let global_opencode = locations
-            .iter()
-            .find(|item| item.scope == "global" && item.kind == "opencode")
-            .unwrap();
-        let project_opencode = locations
-            .iter()
-            .find(|item| item.scope == "project" && item.kind == "opencode")
-            .unwrap();
-
-        assert_eq!(global_opencode.skill_count, 1);
-        assert_eq!(project_opencode.skill_count, 1);
-        assert_eq!(global_opencode.skills, vec!["release".to_string()]);
-        assert_eq!(project_opencode.skills, vec!["debug".to_string()]);
     }
 
     #[test]

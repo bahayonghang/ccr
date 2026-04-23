@@ -27,7 +27,7 @@
                       OpenCode
                     </h1>
                     <p class="opencode-hero-subtitle">
-                      把 provider、MCP、agents、commands、skills、plugins 与 runtime 配置收敛到一个高密度控制台。
+                      把 provider、MCP、agents、commands、plugins 与 runtime 配置收敛到一个高密度控制台。
                     </p>
                   </div>
                 </div>
@@ -180,23 +180,6 @@
               <strong>{{ shareLabel }}</strong>
             </div>
           </div>
-
-          <div class="opencode-side-panel__footer">
-            <div>
-              <p class="opencode-side-panel__footer-label">
-                skills discovery
-              </p>
-              <p class="opencode-side-panel__footer-value">
-                {{ skillLocationSummary }}
-              </p>
-            </div>
-            <RouterLink
-              to="/opencode/skills"
-              class="opencode-text-link"
-            >
-              打开 Skills
-            </RouterLink>
-          </div>
         </Card>
       </section>
 
@@ -348,7 +331,7 @@
               Local discovery
             </h2>
             <p class="opencode-panel__description">
-              这里汇总本地插件文件和 skills 目录发现结果，判断 global / project 面是否已经落地。
+              这里汇总本地插件文件，快速判断当前环境是否已经落地到本机目录。
             </p>
           </div>
           <div class="opencode-discovery-grid">
@@ -357,13 +340,6 @@
               <strong class="opencode-discovery-card__value">{{ localPlugins.length }}</strong>
               <p class="opencode-discovery-card__detail">
                 {{ localPlugins.slice(0, 2).map((item) => item.name).join(', ') || 'No plugin files detected' }}
-              </p>
-            </div>
-            <div class="opencode-discovery-card">
-              <span class="opencode-discovery-card__label">Skill locations</span>
-              <strong class="opencode-discovery-card__value">{{ skillLocations.length }}</strong>
-              <p class="opencode-discovery-card__detail">
-                {{ skillLocationSummary }}
               </p>
             </div>
             <div class="opencode-discovery-card">
@@ -395,7 +371,6 @@ import {
   listOpenCodeMcpServers,
   listOpenCodePlugins,
   listOpenCodeProviders,
-  listOpenCodeSkillLocations,
 } from '@/api'
 import {
   opencodeBuiltInTools,
@@ -411,7 +386,6 @@ import type {
   OpenCodeMcpServer,
   OpenCodePluginPackage,
   OpenCodeProviderConfig,
-  OpenCodeSkillLocation,
   OpenCodeTuiConfig,
 } from '@/types'
 
@@ -424,7 +398,6 @@ const agents = ref<OpenCodeAgent[]>([])
 const commands = ref<OpenCodeCommand[]>([])
 const plugins = ref<OpenCodePluginPackage[]>([])
 const localPlugins = ref<OpenCodeLocalPluginFile[]>([])
-const skillLocations = ref<OpenCodeSkillLocation[]>([])
 
 const configPathLabel = '~/.config/opencode/opencode.json'
 const tuiPathLabel = '~/.config/opencode/tui.json'
@@ -443,15 +416,6 @@ const serverLabel = computed(() => {
   return `${host}:${port}`
 })
 const webLabel = computed(() => config.value.server?.cors?.length ? 'cors configured' : 'same host')
-const skillLocationSummary = computed(() => {
-  const active = skillLocations.value.filter((item) => item.exists && item.skillCount > 0)
-  if (active.length === 0) return 'No active OpenCode-compatible skill directories'
-  return active
-    .slice(0, 3)
-    .map((item) => `${item.kind}:${item.skillCount}`)
-    .join(' · ')
-})
-
 async function loadOverview() {
   loading.value = true
   try {
@@ -464,7 +428,6 @@ async function loadOverview() {
       commandList,
       pluginList,
       localPluginList,
-      skillLocationList,
     ] = await Promise.all([
       getOpenCodeConfig<OpenCodeConfig>(),
       getOpenCodeTuiSettings<OpenCodeTuiConfig>(),
@@ -474,7 +437,6 @@ async function loadOverview() {
       listOpenCodeCommands<OpenCodeCommand[]>(),
       listOpenCodePlugins<string[]>(),
       listOpenCodeLocalPlugins<OpenCodeLocalPluginFile[]>(),
-      listOpenCodeSkillLocations<OpenCodeSkillLocation[]>(),
     ])
 
     config.value = configValue
@@ -485,7 +447,6 @@ async function loadOverview() {
     commands.value = commandList
     plugins.value = pluginList.map((name) => ({ name }))
     localPlugins.value = localPluginList
-    skillLocations.value = skillLocationList
   } finally {
     loading.value = false
   }
@@ -602,7 +563,6 @@ onMounted(() => {
 
 .opencode-stat-label,
 .opencode-runtime-chip__label,
-.opencode-side-panel__footer-label,
 .opencode-discovery-card__label {
   @apply text-[11px] font-semibold uppercase tracking-[0.16em] text-text-muted;
 }
@@ -613,8 +573,7 @@ onMounted(() => {
 }
 
 .opencode-stat-detail,
-.opencode-discovery-card__detail,
-.opencode-side-panel__footer-value {
+.opencode-discovery-card__detail {
   @apply mt-2 text-sm leading-6 text-text-secondary;
 }
 
@@ -643,14 +602,6 @@ onMounted(() => {
 
 .opencode-runtime-chip {
   @apply flex min-w-[150px] flex-1 flex-col items-start gap-1 border-border-default/55 bg-bg-base/35;
-}
-
-.opencode-side-panel__footer {
-  @apply mt-4 flex items-center justify-between gap-4 rounded-3xl border border-border-default/55 bg-bg-base/30 p-4;
-}
-
-.opencode-text-link {
-  @apply text-sm font-medium text-lime-200 transition-colors hover:text-lime-100;
 }
 
 .opencode-capability-card {

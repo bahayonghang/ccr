@@ -252,7 +252,3 @@ export const deleteOpenCodePlugin = async <T = string[]>(name: string): Promise<
 export const listOpenCodeLocalPlugins = async <T = UnknownRecord[]>(): Promise<T> => {
   return invoke('opencode_list_local_plugins')
 }
-
-export const listOpenCodeSkillLocations = async <T = UnknownRecord[]>(): Promise<T> => {
-  return invoke('opencode_list_skill_locations')
-}

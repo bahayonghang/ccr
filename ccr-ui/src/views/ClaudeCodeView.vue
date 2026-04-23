@@ -168,50 +168,6 @@
         </RouterLink>
       </section>
 
-      <!-- MARKET BANNER -->
-      <section class="animate-slide-up">
-        <RouterLink
-          to="/skills?tab=marketplace"
-          class="block group"
-        >
-          <Card
-            variant="glass"
-            hover
-            glow
-            class="claude-market-card"
-          >
-            <div class="claude-market-card__glow" />
-              
-            <div class="claude-market-card__content">
-              <div class="claude-market-card__copy">
-                <div class="claude-market-card__icon">
-                  <SIcon
-                    name="ShoppingBag"
-                    size="w-8 h-8"
-                  />
-                </div>
-                <div>
-                  <h2 class="claude-market-card__title">
-                    {{ $t('market.title') }}
-                    <span class="claude-market-card__badge">Beta</span>
-                  </h2>
-                  <p class="claude-market-card__desc">
-                    {{ $t('market.description') }}
-                  </p>
-                </div>
-              </div>
-              <div class="claude-market-card__cta">
-                <span>{{ $t('market.explore') }}</span>
-                <SIcon
-                  name="ArrowRight"
-                  size="w-5 h-5"
-                />
-              </div>
-            </div>
-          </Card>
-        </RouterLink>
-      </section>
-
       <!-- EXTENDED MODULES -->
       <section class="animate-slide-up">
         <div class="claude-section-heading">
@@ -280,35 +236,6 @@
                 </h3>
                 <p class="claude-extension-card__desc">
                   {{ $t('claudeCode.modules.agents.desc') }}
-                </p>
-              </div>
-            </Card>
-          </RouterLink>
-
-          <RouterLink
-            to="/skills"
-            class="group"
-          >
-            <Card
-              variant="elevated"
-              hover
-              class="claude-extension-card"
-            >
-              <div class="claude-extension-card__header">
-                <div class="claude-extension-card__icon claude-extension-card__icon--danger">
-                  <SIcon
-                    name="Book"
-                    size="w-5 h-5"
-                  />
-                </div>
-                <span class="claude-extension-card__eyebrow">Skill</span>
-              </div>
-              <div>
-                <h3 class="claude-extension-card__title claude-extension-card__title--danger">
-                  {{ $t('claudeCode.modules.skills.title') }}
-                </h3>
-                <p class="claude-extension-card__desc">
-                  {{ $t('claudeCode.modules.skills.desc') }}
                 </p>
               </div>
             </Card>
@@ -667,60 +594,6 @@ const copyCommand = (cmd: string) => {
   color: var(--stage-text-secondary);
 
   @apply leading-relaxed;
-}
-
-.claude-market-card {
-  @apply relative overflow-hidden border-accent-warning/20 p-8;
-}
-
-.claude-market-card__glow {
-  @apply absolute -mr-20 -mt-20 h-96 w-96 rounded-full transition-colors;
-
-  top: 0;
-  right: 0;
-  filter: blur(100px);
-  background: rgb(var(--color-accent-primary-rgb) / 6%);
-}
-
-.group:hover .claude-market-card__glow {
-  background: rgb(var(--color-accent-primary-rgb) / 9%);
-}
-
-.claude-market-card__content {
-  @apply relative z-10 flex flex-col justify-between gap-6 md:flex-row md:items-center;
-}
-
-.claude-market-card__copy {
-  @apply flex items-start gap-6;
-}
-
-.claude-market-card__icon {
-  color: var(--color-text-inverted);
-
-  @apply flex h-16 w-16 items-center justify-center rounded-2xl shadow-lg transition-transform duration-300 group-hover:scale-110;
-
-  transform: rotate(3deg);
-  background: linear-gradient(180deg, var(--color-accent-primary), var(--color-accent-primary-active));
-}
-
-.claude-market-card__title {
-  color: var(--stage-text-primary);
-
-  @apply mb-2 flex items-center gap-3 text-2xl font-bold;
-}
-
-.claude-market-card__badge {
-  @apply rounded-md border border-accent-primary/20 bg-accent-primary/10 px-2 py-1 text-xs font-semibold text-accent-primary;
-}
-
-.claude-market-card__desc {
-  color: var(--stage-text-secondary);
-
-  @apply max-w-xl text-lg;
-}
-
-.claude-market-card__cta {
-  @apply flex items-center gap-2 font-semibold text-accent-primary transition-transform group-hover:translate-x-1;
 }
 
 .claude-section-heading {

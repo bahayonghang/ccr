@@ -19,7 +19,7 @@ Required structure:
 Current examples:
 - `/usage`
 - `/agents`
-- `/market`
+- `/monitoring`
 
 ### 2. List / Detail Workspace Template
 
@@ -32,8 +32,7 @@ Required structure:
 - async states rendered through shared state primitives
 
 Current examples:
-- `/skills`
-- `/mcp/unified`
+- `/mcp-manager`
 - `/claude-code/profiles`
 
 ### 3. Settings / Form Template
@@ -47,7 +46,7 @@ Required structure:
 - secondary guidance or status stacked beside the form when needed
 
 Current examples:
-- `/skills/add`
+- `/configs`
 - `/sync`
 - `/statusline`
 

@@ -231,35 +231,35 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/generic/AgentDetailView.vue'),
         meta: { depth: 2, group: 'config' },
       },
-      // Skills Hub — 旧页面 redirect 到新 manager
+      // Skills migration bridge
       {
         path: 'skills',
         name: 'skills',
-        redirect: '/skills-manager',
+        component: () => import('@/views/SkillsMigrationView.vue'),
+        meta: { depth: 1, group: 'config' },
       },
       {
         path: 'skills-manager',
         name: 'skills-manager',
-        component: () => import('@/views/skills/SkillsManagerView.vue'),
-        meta: { cache: true, cacheKey: 'SkillsManagerView', depth: 1, group: 'skills' },
+        redirect: '/skills',
       },
       {
         path: 'skills/add',
         name: 'skills-add',
-        redirect: '/skills-manager',
+        redirect: '/skills',
       },
       {
         path: 'skills/hub',
-        redirect: '/skills-manager',
+        redirect: '/skills',
       },
       {
         path: 'skills/:platform/:name',
-        redirect: '/skills-manager',
+        redirect: '/skills',
       },
       {
         path: 'market',
         name: 'market',
-        redirect: '/skills-manager',
+        redirect: '/skills',
       },
       // 配置组 (depth: 1, group: 'config')
       {
@@ -415,7 +415,7 @@ const routes: RouteRecordRaw[] = [
       {
         path: 'opencode/skills',
         name: 'opencode-skills',
-        component: () => import('@/views/OpenCodeSkillsView.vue'),
+        redirect: '/skills',
         meta: { depth: 2, group: 'opencode', hideGlobalBackground: true },
       },
       {

@@ -54,7 +54,6 @@ const apiMocks = vi.hoisted(() => ({
   deleteOpenCodeCommand: vi.fn(),
   listOpenCodePlugins: vi.fn(),
   listOpenCodeLocalPlugins: vi.fn(),
-  listOpenCodeSkillLocations: vi.fn(),
   listOpenCodeThemes: vi.fn(),
   addOpenCodePlugin: vi.fn(),
   deleteOpenCodePlugin: vi.fn(),
@@ -211,7 +210,6 @@ beforeEach(() => {
   apiMocks.deleteOpenCodeCommand.mockReset()
   apiMocks.listOpenCodePlugins.mockReset()
   apiMocks.listOpenCodeLocalPlugins.mockReset()
-  apiMocks.listOpenCodeSkillLocations.mockReset()
   apiMocks.listOpenCodeThemes.mockReset()
   apiMocks.addOpenCodePlugin.mockReset()
   apiMocks.deleteOpenCodePlugin.mockReset()
@@ -251,7 +249,6 @@ beforeEach(() => {
   apiMocks.listOpenCodeCommands.mockResolvedValue([])
   apiMocks.listOpenCodePlugins.mockResolvedValue([])
   apiMocks.listOpenCodeLocalPlugins.mockResolvedValue([])
-  apiMocks.listOpenCodeSkillLocations.mockResolvedValue([])
   apiMocks.listOpenCodeThemes.mockResolvedValue([])
 })
 
@@ -352,18 +349,6 @@ describe('legacy shell pages smoke', () => {
     try {
       expect(el.textContent).toContain('Runtime config')
       expect(el.textContent).toContain('TUI config')
-    } finally {
-      unmount()
-    }
-  })
-
-  it('renders OpenCode skills shell', async () => {
-    const { default: OpenCodeSkillsView } = await import('@/views/OpenCodeSkillsView.vue')
-    const { el, unmount } = await mountView(OpenCodeSkillsView)
-
-    try {
-      expect(el.textContent).toContain('Skills hub')
-      expect(el.textContent).toContain('Resolved locations')
     } finally {
       unmount()
     }

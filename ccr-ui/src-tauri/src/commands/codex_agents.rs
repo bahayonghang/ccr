@@ -857,4 +857,47 @@ mod tests {
         let table = table_from_config(&config, "fallback").unwrap();
         assert_eq!(optional_string(&table, "name").as_deref(), Some("override"));
     }
+
+    #[test]
+    fn merge_structured_config_preserves_existing_skills_config_when_omitted() {
+        let mut table = toml::value::Table::new();
+        table.insert("name".into(), toml::Value::String("existing".into()));
+        table.insert("description".into(), toml::Value::String("old".into()));
+        table.insert(
+            "developer_instructions".into(),
+            toml::Value::String("do work".into()),
+        );
+
+        let mut skills = toml::value::Table::new();
+        skills.insert(
+            "config".into(),
+            toml::Value::Array(vec![toml::Value::Table(toml::value::Table::from_iter([
+                ("path".into(), toml::Value::String("/tmp/docs/SKILL.md".into())),
+                ("enabled".into(), toml::Value::Boolean(false)),
+            ]))]),
+        );
+        table.insert("skills".into(), toml::Value::Table(skills));
+
+        let config = serde_json::json!({
+            "description": "new",
+            "model": "gpt-5.4"
+        });
+
+        let merged =
+            merge_structured_config(table, config.as_object().unwrap(), "existing").unwrap();
+        let skills_table = merged
+            .get("skills")
+            .and_then(toml::Value::as_table)
+            .expect("skills table should remain");
+        let skills_config = skills_table
+            .get("config")
+            .and_then(toml::Value::as_array)
+            .expect("skills.config should remain");
+
+        assert_eq!(skills_config.len(), 1);
+        assert_eq!(
+            optional_string(&merged, "model").as_deref(),
+            Some("gpt-5.4")
+        );
+    }
 }

@@ -26,12 +26,6 @@ export const mainLayoutNavSections: MainLayoutNavSection[] = [
         icon: 'Server',
         iconClass: 'text-accent-secondary/85 group-hover:text-accent-secondary transition-colors',
       },
-      {
-        to: '/skills-manager',
-        labelKey: 'nav.skillsManager',
-        icon: 'Package',
-        iconClass: 'text-accent-primary/85 group-hover:text-accent-primary transition-colors',
-      },
     ],
   },
   {
@@ -87,11 +81,8 @@ export const mainLayoutRouteTitleMap: Record<string, string> = {
   home: 'nav.home',
   settings: 'nav.settings',
   configs: 'nav.configs',
-  skills: 'nav.skills',
-  'skills-manager': 'nav.skillsManager',
-  'skills-add': 'nav.addSkill',
-  market: 'nav.market',
-  'skill-detail': 'nav.skills',
+  skills: 'nav.skillsMigration',
+  market: 'nav.skillsMigration',
   'claude-code': 'nav.claudeCode',
   'claude-code-auth': 'nav.auth',
   'claude-code-settings': 'common.settings',
@@ -122,7 +113,7 @@ export const mainLayoutRouteTitleMap: Record<string, string> = {
   'opencode-mcp': 'nav.mcp',
   'opencode-agents': 'nav.agents',
   'opencode-commands': 'nav.commands',
-  'opencode-skills': 'nav.skills',
+  'opencode-skills': 'nav.skillsMigration',
   'opencode-plugins': 'nav.plugins',
   'opencode-settings': 'common.settings',
   'ccr-control': 'nav.ccrControl',
@@ -151,7 +142,6 @@ export const mainLayoutRouteTitleMap: Record<string, string> = {
 
 export const mainLayoutGroupTitleMap: Record<string, string> = {
   settings: 'nav.settings',
-  skills: 'nav.skillsHub',
   tools: 'nav.toolsCenter',
   config: 'nav.configCenter',
   data: 'nav.dataCenter',
@@ -176,5 +166,4 @@ export const mainLayoutCachedViews = [
   'CodexSessionsView',
   'GeminiCliView',
   'McpManagerView',
-  'SkillsManagerView',
 ]

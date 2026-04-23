@@ -32,7 +32,6 @@ The smoke suite validates a minimal but high-value UI baseline without introduci
 
 - Router manifest coverage for critical named routes
 - `/stats -> /usage` redirect protection
-- `skills` store filter/reset behavior
 - `usage` store default/computed state behavior
 
 ## Usage

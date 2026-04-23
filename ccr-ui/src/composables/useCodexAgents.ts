@@ -7,7 +7,6 @@ import {
   listCodexAgents,
   listCodexModels,
   renameCodexAgent,
-  skillsPickFolder,
   updateCodexAgent,
   validateCodexAgentToml,
 } from '@/api'
@@ -122,8 +121,10 @@ export function useCodexAgents() {
   }
 
   const chooseProjectContext = async () => {
-    const result = await skillsPickFolder<{ path?: string | null }>()
-    const path = result?.path ?? null
+    const initialValue = lastProjectRoot.value ?? ''
+    const path = typeof window !== 'undefined' && typeof window.prompt === 'function'
+      ? window.prompt('Enter Codex project root path', initialValue)
+      : null
     if (!path) {
       return false
     }

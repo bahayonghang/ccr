@@ -55,15 +55,6 @@
             >
               {{ $t('home.actionCommandRunner') }}
             </Button>
-            <Button
-              variant="glass"
-              density="compact"
-              surface="card"
-              motion="subtle"
-              @click="router.push('/skills?tab=explore')"
-            >
-              {{ $t('nav.skills') }}
-            </Button>
           </div>
         </div>
 

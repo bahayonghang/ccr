@@ -8,10 +8,6 @@ export interface AgentDetailRouteParams {
   name: string
 }
 
-export interface SkillDetailRouteParams {
-  name: string
-}
-
 export interface CheckinAccountDashboardRouteParams {
   accountId: string
 }

@@ -69,34 +69,6 @@ export interface BuiltinPrompt {
   content: string
 }
 
-export interface SkillRepository {
-  name: string
-  url: string
-  branch?: string
-  description?: string
-  updated_at?: string
-  is_official?: boolean
-  skill_count?: number
-  last_synced?: string
-}
-
-export interface Skill {
-  name: string
-  description?: string
-  path: string
-  instruction: string
-  metadata?: {
-    author?: string
-    version?: string
-    license?: string
-    category?: string
-    tags?: string[]
-    updated_at?: string
-  }
-  is_remote?: boolean
-  repository?: string
-}
-
 export interface ClaudeSettingsData {
   model?: string
   availableModels?: string[]
@@ -138,37 +110,6 @@ export interface ClaudeSettingsData {
     pr?: string
   }
   [key: string]: unknown
-}
-
-export interface SkillHubAgentSummary {
-  id: string
-  display_name: string
-  global_skills_dir?: string
-  detected: boolean
-  installed_count: number
-}
-
-export interface SkillHubInstalledSkill {
-  name: string
-  description?: string
-  skill_dir: string
-}
-
-export interface SkillHubMarketplaceItem {
-  package: string
-  owner: string
-  repo: string
-  skill?: string
-  skills_sh_url: string
-  description?: string
-  author_avatar?: string
-  stars?: number
-}
-
-export interface SkillHubMarketplaceResponse {
-  items: SkillHubMarketplaceItem[]
-  total: number
-  cached: boolean
 }
 
 export interface SyncResult {
@@ -564,7 +505,6 @@ export {
   addOpenCodePlugin,
   deleteOpenCodePlugin,
   listOpenCodeLocalPlugins,
-  listOpenCodeSkillLocations,
 } from './domains/opencode'
 
 // ════════════════════════════════════════════════════════════
@@ -870,68 +810,6 @@ export const getBuiltinPromptsByCategory = async <T = UnknownRecord>(
 ): Promise<T> => {
   return invoke('get_builtin_prompts_by_category', { category })
 }
-
-// ── Skills —— 实现已迁移至 ./domains/skills ──
-export {
-  listSkills,
-  addSkill,
-  skillsInventory,
-  skillsDetail,
-  skillsContentGet,
-  skillsFilesList,
-  skillsFileGet,
-  skillsOnboardingCandidates,
-  skillsContentSave,
-  skillsInstall,
-  skillsPrepareInstall,
-  skillsSync,
-  skillsRemoveInstallation,
-  skillsRemoveSkill,
-  skillsSourcesList,
-  skillsSourceAddGit,
-  skillsSourceAddLocal,
-  skillsSourceSync,
-  skillsSourceRemove,
-  skillsMarketplaceList,
-  skillsMarketplaceDetail,
-  skillsNpxStatus,
-  skillsNpxCapabilities,
-  skillsPickFolder,
-  skillsVersionList,
-  skillsVersionGet,
-  skillsVersionSnapshot,
-  skillsVersionDiff,
-  skillsVersionRollback,
-  skillsTrashList,
-  skillsTrashSoftDelete,
-  skillsTrashRestore,
-  skillsTrashPurge,
-  skillsToggleSet,
-  skillsToggleListDisabled,
-  skillsTaxonomyAnalyze,
-  deleteSkill,
-  getSkillDetail,
-  updateSkillContent,
-  listSkillRepositories,
-  addSkillRepository,
-  removeSkillRepository,
-  scanSkillRepository,
-  getSkillHubTrending,
-  searchSkillHubMarketplace,
-  getSkillHubAgents,
-  getSkillHubAgentSkills,
-  installSkillHubSkill,
-  removeSkillHubSkill,
-  getSkillHubUnified,
-  getSkillHubSkillContent,
-  saveSkillHubSkillContent,
-  importSkillFromGithub,
-  importSkillFromLocal,
-  importSkillViaNpx,
-  batchInstallSkills,
-  checkNpxAvailability,
-  browseForFolder,
-} from './domains/skills'
 
 // ── Axios / HTTP 核心（不再需要） ──
 

@@ -4,7 +4,7 @@
     class="mp-pagination"
   >
     <span class="mp-pagination__info">
-      {{ $t('skills.paginationInfo', { start: startItem, end: endItem, total: totalItems }) }}
+      {{ infoLabel }}
     </span>
 
     <div class="mp-pagination__controls">
@@ -75,8 +75,9 @@
 </template>
 
 <script setup lang="ts">
-import SIcon from '@/components/ui/SIcon.vue'
 import { computed } from 'vue'
+import SIcon from '@/components/ui/SIcon.vue'
+
 const props = defineProps<{
   currentPage: number
   totalItems: number
@@ -99,7 +100,8 @@ const endItem = computed(() =>
   Math.min(props.currentPage * props.pageSize, props.totalItems)
 )
 
-// 生成可见页码列表（含省略号 -1）
+const infoLabel = computed(() => `${startItem.value}-${endItem.value} / ${props.totalItems}`)
+
 const visiblePages = computed(() => {
   const total = totalPages.value
   const current = props.currentPage
@@ -110,14 +112,12 @@ const visiblePages = computed(() => {
     return pages
   }
 
-  // 始终显示第1页
   pages.push(1)
 
   if (current > 3) {
-    pages.push(-1) // 省略号
+    pages.push(-1)
   }
 
-  // 中间页码
   const start = Math.max(2, current - 1)
   const end = Math.min(total - 1, current + 1)
   for (let i = start; i <= end; i++) {
@@ -125,10 +125,9 @@ const visiblePages = computed(() => {
   }
 
   if (current < total - 2) {
-    pages.push(-1) // 省略号
+    pages.push(-1)
   }
 
-  // 始终显示最后一页
   pages.push(total)
 
   return pages
@@ -156,24 +155,23 @@ function goTo(page: number) {
 }
 
 .mp-pagination__btn {
-  @apply p-1.5 rounded-lg text-text-muted
-         hover:text-white hover:bg-bg-surface/70
-         disabled:opacity-30 disabled:cursor-not-allowed
-         transition-colors;
+  @apply rounded-lg p-1.5 text-text-muted
+         transition-colors
+         hover:bg-bg-surface/70 hover:text-white
+         disabled:cursor-not-allowed disabled:opacity-30;
 }
 
 .mp-pagination__page {
-  @apply min-w-[32px] h-8 rounded-lg text-sm font-medium text-text-primary
-         hover:text-white hover:bg-bg-surface/70
-         transition-colors;
+  @apply h-8 min-w-[32px] rounded-lg text-sm font-medium text-text-primary
+         transition-colors
+         hover:bg-bg-surface/70 hover:text-white;
 }
 
 .mp-pagination__page--active {
-  @apply text-white bg-accent-primary hover:bg-accent-primary;
+  @apply bg-accent-primary text-white hover:bg-accent-primary;
 }
 
 .mp-pagination__ellipsis {
-  @apply min-w-[32px] h-8 text-sm text-text-muted cursor-default;
+  @apply h-8 min-w-[32px] cursor-default text-sm text-text-muted;
 }
 </style>
-

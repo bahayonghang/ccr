@@ -211,35 +211,6 @@
             class="mt-4 w-full rounded-2xl border border-border-default/55 bg-bg-base/45 px-4 py-3 font-mono text-sm text-text-primary"
           />
         </Card>
-
-        <Card
-          variant="glass"
-          class="p-5"
-        >
-          <h2 class="text-lg font-semibold text-text-primary">
-            Local discovery
-          </h2>
-          <div class="mt-4 space-y-3">
-            <div
-              v-for="location in skillLocations"
-              :key="location.path"
-              class="rounded-2xl border border-border-default/55 bg-bg-base/35 p-4"
-            >
-              <div class="flex items-center justify-between gap-3">
-                <strong class="text-sm text-text-primary">{{ location.kind }} · {{ location.scope }}</strong>
-                <span
-                  class="rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em]"
-                  :class="location.exists ? 'bg-emerald-300/10 text-emerald-200' : 'bg-bg-base/45 text-text-secondary'"
-                >
-                  {{ location.exists ? `${location.skillCount} skills` : 'missing' }}
-                </span>
-              </div>
-              <p class="mt-2 break-all font-mono text-xs text-text-muted">
-                {{ location.path }}
-              </p>
-            </div>
-          </div>
-        </Card>
       </div>
     </div>
   </OpenCodePageShell>
@@ -252,14 +223,13 @@ import Button from '@/components/ui/Button.vue'
 import SIcon from '@/components/ui/SIcon.vue'
 import OpenCodePageShell from '@/components/opencode/OpenCodePageShell.vue'
 import { useUIStore } from '@/stores/ui'
-import { getOpenCodeConfig, getOpenCodeTuiSettings, listOpenCodeSkillLocations, listOpenCodeThemes, updateOpenCodeConfig, updateOpenCodeTuiSettings } from '@/api'
-import type { OpenCodeConfig, OpenCodeSkillLocation, OpenCodeTheme, OpenCodeTuiConfig } from '@/types'
+import { getOpenCodeConfig, getOpenCodeTuiSettings, listOpenCodeThemes, updateOpenCodeConfig, updateOpenCodeTuiSettings } from '@/api'
+import type { OpenCodeConfig, OpenCodeTheme, OpenCodeTuiConfig } from '@/types'
 import { formatJsonInput, normalizeStringListInput, parseJsonInput } from '@/utils/opencode'
 
 const uiStore = useUIStore()
 const saving = ref(false)
 const themes = ref<OpenCodeTheme[]>([])
-const skillLocations = ref<OpenCodeSkillLocation[]>([])
 
 const form = reactive({
   model: '',
@@ -281,11 +251,10 @@ const form = reactive({
 
 async function loadSettings() {
   try {
-    const [config, tui, themeList, locations] = await Promise.all([
+    const [config, tui, themeList] = await Promise.all([
       getOpenCodeConfig<OpenCodeConfig>(),
       getOpenCodeTuiSettings<OpenCodeTuiConfig>(),
       listOpenCodeThemes<OpenCodeTheme[]>(),
-      listOpenCodeSkillLocations<OpenCodeSkillLocation[]>(),
     ])
 
     form.model = config.model || ''
@@ -306,7 +275,6 @@ async function loadSettings() {
     form.keybindsJson = formatJsonInput(tui.keybinds || {})
 
     themes.value = themeList
-    skillLocations.value = locations
   } catch (error) {
     uiStore.showError(error instanceof Error ? error.message : String(error))
   }

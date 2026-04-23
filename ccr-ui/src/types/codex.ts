@@ -357,7 +357,6 @@ export interface CodexAgentRecord {
   modelReasoningEffort?: string
   sandboxMode?: string
   mcpServers?: Record<string, unknown>
-  skillsConfig?: unknown
   other?: Record<string, unknown>
   rawToml?: string
   parseError?: string
@@ -388,7 +387,6 @@ export interface CodexAgentUpsertRequest {
   modelReasoningEffort?: string | null
   sandboxMode?: string | null
   mcpServers?: Record<string, unknown> | null
-  skillsConfig?: unknown
   other?: Record<string, unknown> | null
   rawToml?: string | null
   newName?: string | null
@@ -440,7 +438,6 @@ export interface CodexRemoteAgentRecord {
   modelReasoningEffort?: string
   sandboxMode?: string
   mcpServers?: Record<string, unknown>
-  skillsConfig?: unknown
   other?: Record<string, unknown>
   rawToml: string
   parseError?: string

@@ -13,7 +13,6 @@ const moduleSubnavMap: Record<string, ModuleSubnavItem[]> = {
     { label: 'MCP', href: '/mcp', icon: 'Server' },
     { label: 'Slash Commands', href: '/slash-commands', icon: 'Command' },
     { label: 'Agents', href: '/agents', icon: 'Bot' },
-    { label: 'Skills', href: '/skills', icon: 'Book' },
     { label: 'Plugins', href: '/plugins', icon: 'Puzzle' },
   ],
   codex: [
@@ -41,14 +40,8 @@ const moduleSubnavMap: Record<string, ModuleSubnavItem[]> = {
     { label: 'MCP', href: '/opencode/mcp', icon: 'Server' },
     { label: 'Agents', href: '/opencode/agents', icon: 'Bot' },
     { label: 'Commands', href: '/opencode/commands', icon: 'Command' },
-    { label: 'Skills', href: '/opencode/skills', icon: 'BookOpen' },
     { label: 'Plugins', href: '/opencode/plugins', icon: 'Puzzle' },
     { label: 'Settings', href: '/opencode/settings', icon: 'SlidersHorizontal' },
-  ],
-  skills: [
-    { label: 'Skills 库', href: '/skills', icon: 'Package' },
-    { label: '添加 Skill', href: '/skills/add', icon: 'PlusCircle' },
-    { label: 'Market', href: '/skills?tab=explore', icon: 'Store' },
   ],
   converter: [{ label: 'CLI 配置转换', href: '/converter', icon: 'ArrowLeftRight' }],
 }

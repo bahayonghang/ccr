@@ -1,4 +1,4 @@
-export type RuntimeLimitedFeature = 'skills' | 'usage' | 'commands' | 'sync' | 'generic'
+export type RuntimeLimitedFeature = 'usage' | 'commands' | 'sync' | 'generic'
 
 const INVOKE_UNAVAILABLE_PATTERNS = [
   /reading ['"]invoke['"]/i,
@@ -19,11 +19,6 @@ export const getRuntimeUnavailableCopy = (feature: RuntimeLimitedFeature) => {
   }
 
   switch (feature) {
-    case 'skills':
-      return {
-        ...common,
-        description: 'Skills 库依赖本地 CLI 环境、文件系统和 Tauri invoke bridge。Web 预览只验证布局与交互，不执行实际技能仓库读写。',
-      }
     case 'usage':
       return {
         ...common,

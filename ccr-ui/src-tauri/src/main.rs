@@ -9,7 +9,6 @@ mod monitoring;
 mod platform;
 mod process;
 mod session_index_jobs;
-mod skills_watcher;
 mod ssh;
 mod state;
 mod usage_jobs;
@@ -125,11 +124,6 @@ fn main() {
 
             // 先注册 Local 环境，其他环境在异步初始化完成后写入 managed state。
             app.manage(app_state);
-            app.manage(skills_watcher::SkillsWatcherState::default());
-            skills_watcher::reload(app.handle()).map_err(|e| {
-                tracing::warn!("[app] skills watcher init failed: {e}");
-                std::io::Error::other(e)
-            })?;
             desktop_shell::install_desktop_shell(app.handle()).map_err(std::io::Error::other)?;
 
             let tray_refresh_handle = app.handle().clone();
@@ -251,26 +245,6 @@ fn main() {
 
             // 注册 shutdown notify，供退出时通知后台任务收尾。
             app.manage(shutdown_notify);
-
-            // skills_ext 回收站：启动时 fire-and-forget 清理过期条目（> 7 天）。
-            // 失败不影响应用启动；日志级别 warn 便于观察。
-            spawn_supervised(app.handle().clone(), "skills-ext:purge-trash", async move {
-                match tokio::task::spawn_blocking(|| {
-                    ccr_skills::skills_ext::FsTrashStore::open()
-                        .and_then(|store| store.purge_expired())
-                })
-                .await
-                {
-                    Ok(Ok(0)) => tracing::debug!("[skills_ext] 回收站无过期条目"),
-                    Ok(Ok(n)) => tracing::info!("[skills_ext] 启动时清理了 {n} 条过期回收站条目"),
-                    Ok(Err(error)) => {
-                        tracing::warn!("[skills_ext] 回收站清理失败: {error}")
-                    }
-                    Err(join_error) => {
-                        tracing::warn!("[skills_ext] 回收站清理任务 join 失败: {join_error}")
-                    }
-                }
-            });
 
             tracing::info!("[app] setup complete");
             Ok(())

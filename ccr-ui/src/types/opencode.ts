@@ -5,7 +5,6 @@
  * - https://opencode.ai/docs/config/
  * - https://opencode.ai/docs/agents/
  * - https://opencode.ai/docs/commands/
- * - https://opencode.ai/docs/skills/
  * - https://opencode.ai/docs/tools/
  * - https://opencode.ai/docs/plugins/
  */
@@ -181,15 +180,6 @@ export interface OpenCodeLocalPluginFile {
   path: string
   scope: OpenCodeScope
   size: number
-}
-
-export interface OpenCodeSkillLocation {
-  kind: string
-  scope: OpenCodeScope
-  path: string
-  exists: boolean
-  skillCount: number
-  skills: string[]
 }
 
 export interface OpenCodeConfig {

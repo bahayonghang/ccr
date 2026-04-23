@@ -60,14 +60,6 @@ export const opencodeCapabilityCards: OpenCodeCapabilityCard[] = [
     tone: 'amber',
   },
   {
-    id: 'skills',
-    title: 'Skills',
-    description: '复用统一 Skills Hub，但默认聚焦 OpenCode 平台。',
-    href: '/opencode/skills',
-    icon: 'BookOpen',
-    tone: 'emerald',
-  },
-  {
     id: 'plugins',
     title: 'Plugins',
     description: '同时管理 npm 插件和本地插件文件目录。',
@@ -136,12 +128,7 @@ export const opencodeConfigTopology: OpenCodeTopologyMeta[] = [
   },
   {
     title: 'Project modules',
-    path: '.opencode/{agents,commands,plugins,skills}',
-    description: '项目级 agents / commands / plugins / skills 目录。',
-  },
-  {
-    title: 'Compatibility',
-    path: '.claude/skills + .agents/skills',
-    description: 'OpenCode 会兼容发现 Claude / Agents 风格的 skills。',
+    path: '.opencode/{agents,commands,plugins}',
+    description: '项目级 agents / commands / plugins 目录。',
   },
 ]

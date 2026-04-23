@@ -16,7 +16,6 @@ pub mod mcp_presets;
 pub mod opencode;
 pub mod pricing;
 pub mod shell;
-pub mod skills;
 pub mod ssh;
 pub mod stats;
 pub mod sync;
@@ -206,7 +205,6 @@ macro_rules! generate_handler_common {
         opencode::opencode_update_command,
         opencode::opencode_delete_command,
         opencode::opencode_list_local_plugins,
-        opencode::opencode_list_skill_locations,
         // —— CheckIn ——
         checkin::list_providers,
         checkin::add_provider,
@@ -301,42 +299,6 @@ macro_rules! generate_handler_common {
         mcp_presets::list_source_mcp_servers,
         mcp_presets::sync_mcp_server,
         mcp_presets::sync_all_mcp_servers,
-        // —— Skills Domain ——
-        skills::skills_inventory,
-        skills::skills_detail,
-        skills::skills_content_get,
-        skills::skills_files_list,
-        skills::skills_file_get,
-        skills::skills_onboarding_candidates,
-        skills::skills_content_save,
-        skills::skills_prepare_install,
-        skills::skills_install,
-        skills::skills_sync,
-        skills::skills_remove_installation,
-        skills::skills_remove_skill,
-        skills::skills_sources_list,
-        skills::skills_source_add_git,
-        skills::skills_source_add_local,
-        skills::skills_source_sync,
-        skills::skills_source_remove,
-        skills::skills_marketplace_list,
-        skills::skills_marketplace_detail,
-        skills::skills_npx_status,
-        skills::skills_npx_capabilities,
-        skills::skills_pick_folder,
-        // —— skills_ext (Phase 5: 版本历史 / 回收站 / 启用禁用) ——
-        skills::skills_version_list,
-        skills::skills_version_get,
-        skills::skills_version_snapshot,
-        skills::skills_version_diff,
-        skills::skills_version_rollback,
-        skills::skills_trash_list,
-        skills::skills_trash_soft_delete,
-        skills::skills_trash_restore,
-        skills::skills_trash_purge,
-        skills::skills_toggle_set,
-        skills::skills_toggle_list_disabled,
-        skills::skills_taxonomy_analyze,
         // —— Usage V2 ——
         usage::get_usage_summary_v2,
         usage::get_usage_trends_v2,

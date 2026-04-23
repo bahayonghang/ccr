@@ -365,33 +365,7 @@ export const CCR_MODULES: CcrModule[] = [
       }
     ]
   },
-  // 6. 技能管理
-  {
-    id: 'skills',
-    name: '技能管理',
-    icon: 'Puzzle',
-    description: '管理 AI 助手的技能',
-    commands: [
-      {
-        name: '列出技能',
-        command: 'skills list',
-        description: '列出已安装的技能'
-      },
-      {
-        name: '扫描目录',
-        command: 'skills scan',
-        description: '扫描技能目录',
-        args: [{ name: 'path', description: '技能目录路径', required: true, type: 'string', placeholder: '~/skills' }]
-      },
-      {
-        name: '安装技能',
-        command: 'skills install',
-        description: '安装技能',
-        args: [{ name: 'path', description: '技能路径', required: true, type: 'string', placeholder: '~/skills/my-skill' }]
-      }
-    ]
-  },
-  // 7. 提示词管理
+  // 6. 提示词管理
   {
     id: 'prompts',
     name: '提示词管理',
@@ -416,7 +390,7 @@ export const CCR_MODULES: CcrModule[] = [
       }
     ]
   },
-  // 8. 统计 (web feature)
+  // 7. 统计 (web feature)
   {
     id: 'stats',
     name: '使用统计',
@@ -440,7 +414,7 @@ export const CCR_MODULES: CcrModule[] = [
       }
     ]
   },
-  // 9. 系统命令
+  // 8. 系统命令
   {
     id: 'system',
     name: '系统命令',
