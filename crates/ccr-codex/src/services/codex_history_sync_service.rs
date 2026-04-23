@@ -2025,6 +2025,56 @@ fn collect_known_sidebar_projects(
     collect_sidebar_project_candidates(&workspace_roots, codex_home)
 }
 
+#[cfg(not(windows))]
+fn rewrite_rollout_first_line_portable(
+    change: &SessionChange,
+) -> Result<Option<AppliedSessionBackupEntry>> {
+    let metadata = fs::metadata(&change.path)?;
+    let modified_ms = metadata
+        .modified()
+        .ok()
+        .and_then(|value| value.duration_since(UNIX_EPOCH).ok())
+        .map(|value| value.as_millis())
+        .unwrap_or(0);
+    if metadata.len() != change.original_size || modified_ms != change.original_modified_ms {
+        return Ok(None);
+    }
+
+    let mut file = File::open(&change.path).map_err(map_io_error)?;
+    let record = read_first_line_from_handle(&mut file)?;
+    if record.first_line != change.original_first_line || record.offset != change.original_offset {
+        return Ok(None);
+    }
+
+    let mut rest = Vec::new();
+    file.seek(SeekFrom::Start(change.original_offset))
+        .map_err(map_io_error)?;
+    file.read_to_end(&mut rest).map_err(map_io_error)?;
+
+    let parent = change
+        .path
+        .parent()
+        .ok_or_else(|| CcrError::FileIoError("无法解析 rollout 目录".into()))?;
+    let mut temp = NamedTempFile::new_in(parent)
+        .map_err(|err| CcrError::FileIoError(format!("创建 rollout 临时文件失败: {}", err)))?;
+    temp.write_all(change.updated_first_line.as_bytes())
+        .map_err(map_io_error)?;
+    if !change.original_separator.is_empty() {
+        temp.write_all(change.original_separator.as_bytes())
+            .map_err(map_io_error)?;
+    }
+    temp.write_all(&rest).map_err(map_io_error)?;
+    temp.flush().map_err(map_io_error)?;
+    temp.persist(&change.path)
+        .map_err(|err| CcrError::FileIoError(format!("替换 rollout 文件失败: {}", err)))?;
+
+    Ok(Some(AppliedSessionBackupEntry {
+        path: change.path.clone(),
+        original_first_line: change.original_first_line.clone(),
+        original_separator: change.original_separator.clone(),
+    }))
+}
+
 #[cfg(test)]
 #[allow(clippy::unwrap_used)]
 mod tests {
@@ -2469,54 +2519,4 @@ mod tests {
         assert_eq!(prune.deleted_count, 1);
         assert_eq!(prune.remaining_count, 2);
     }
-}
-
-#[cfg(not(windows))]
-fn rewrite_rollout_first_line_portable(
-    change: &SessionChange,
-) -> Result<Option<AppliedSessionBackupEntry>> {
-    let metadata = fs::metadata(&change.path)?;
-    let modified_ms = metadata
-        .modified()
-        .ok()
-        .and_then(|value| value.duration_since(UNIX_EPOCH).ok())
-        .map(|value| value.as_millis())
-        .unwrap_or(0);
-    if metadata.len() != change.original_size || modified_ms != change.original_modified_ms {
-        return Ok(None);
-    }
-
-    let mut file = File::open(&change.path).map_err(map_io_error)?;
-    let record = read_first_line_from_handle(&mut file)?;
-    if record.first_line != change.original_first_line || record.offset != change.original_offset {
-        return Ok(None);
-    }
-
-    let mut rest = Vec::new();
-    file.seek(SeekFrom::Start(change.original_offset))
-        .map_err(map_io_error)?;
-    file.read_to_end(&mut rest).map_err(map_io_error)?;
-
-    let parent = change
-        .path
-        .parent()
-        .ok_or_else(|| CcrError::FileIoError("无法解析 rollout 目录".into()))?;
-    let mut temp = NamedTempFile::new_in(parent)
-        .map_err(|err| CcrError::FileIoError(format!("创建 rollout 临时文件失败: {}", err)))?;
-    temp.write_all(change.updated_first_line.as_bytes())
-        .map_err(map_io_error)?;
-    if !change.original_separator.is_empty() {
-        temp.write_all(change.original_separator.as_bytes())
-            .map_err(map_io_error)?;
-    }
-    temp.write_all(&rest).map_err(map_io_error)?;
-    temp.flush().map_err(map_io_error)?;
-    temp.persist(&change.path)
-        .map_err(|err| CcrError::FileIoError(format!("替换 rollout 文件失败: {}", err)))?;
-
-    Ok(Some(AppliedSessionBackupEntry {
-        path: change.path.clone(),
-        original_first_line: change.original_first_line.clone(),
-        original_separator: change.original_separator.clone(),
-    }))
 }
