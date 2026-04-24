@@ -127,11 +127,13 @@ export { getRecentEvents, getRuntimeMetrics } from './events'
 // ── Shell / 环境 辅助（来自 runtime/environment，保持 systemApi 契约） ──
 
 export {
+  detectSkillportApp,
   detectSkillsManageApp,
   getEnvironmentName,
   getSkipExitConfirm,
   getTauriVersion,
   isTauriEnvironment,
+  openSkillportApp,
   openSkillsManageApp,
   shellGetPreferences,
   shellRequestQuit,
@@ -143,6 +145,9 @@ export {
 } from '../runtime/environment'
 
 export type {
+  SkillportAppPlatform,
+  SkillportAppSource,
+  SkillportAppStatus,
   SkillsManageAppPlatform,
   SkillsManageAppSource,
   SkillsManageAppStatus,

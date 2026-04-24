@@ -14,11 +14,11 @@
         <p class="skills-migration-view__copy">
           之后请改用独立应用
           <a
-            :href="skillsManageRepoUrl"
+            :href="skillportRepoUrl"
             target="_blank"
             rel="noreferrer"
             class="skills-migration-view__link"
-          >skills-manage</a>
+          >skillport</a>
           处理 skills。
         </p>
 
@@ -45,7 +45,7 @@
             data-testid="skills-migration-primary"
             disabled
           >
-            检测 skills-manage…
+            检测 skillport…
           </button>
 
           <button
@@ -57,22 +57,22 @@
             @click="handlePrimaryAction"
           >
             <img
-              :src="skillsManageBadgeUrl"
+              :src="skillportBadgeUrl"
               alt=""
               class="skills-migration-view__primary-icon"
             >
-            <span>{{ isOpening ? '正在打开…' : '打开 skills-manage' }}</span>
+            <span>{{ isOpening ? '正在打开…' : '打开 skillport' }}</span>
           </button>
 
           <a
             v-else
-            :href="skillsManageRepoUrl"
+            :href="skillportRepoUrl"
             target="_blank"
             rel="noreferrer"
             class="skills-migration-view__primary"
             data-testid="skills-migration-primary"
           >
-            前往 skills-manage 仓库
+            前往 skillport 仓库
           </a>
 
           <button
@@ -103,7 +103,7 @@
 
         <div class="skills-migration-view__helper-links">
           <a
-            :href="skillsManageRepoUrl"
+            :href="skillportRepoUrl"
             target="_blank"
             rel="noreferrer"
             class="skills-migration-view__helper-link"
@@ -124,14 +124,14 @@
         <article class="skills-migration-view__card">
           <h2>现在去哪里</h2>
           <p>
-            skills 的浏览、安装和管理统一改到 skills-manage。CCR UI 只负责 CLI 配置、运行态和数据面。
+            skills 的浏览、安装和管理统一改到 skillport。CCR UI 只负责 CLI 配置、运行态和数据面。
           </p>
         </article>
 
         <article class="skills-migration-view__card">
           <h2>怎么开始</h2>
           <p>
-            如果本机已安装 skills-manage，这里会直接显示打开按钮。还没安装时，请先去仓库查看最新安装说明。
+            如果本机已安装 skillport，这里会直接显示打开按钮。还没安装时，请先去仓库查看最新安装说明。
           </p>
         </article>
       </section>
@@ -142,21 +142,21 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
-import skillsManageBadgeUrl from '@/assets/skills-manage-badge.svg'
+import skillportBadgeUrl from '@/assets/skillport-badge.svg'
 import {
-  detectSkillsManageApp,
+  detectSkillportApp,
   isTauriEnvironment,
-  openSkillsManageApp,
-  type SkillsManageAppStatus,
+  openSkillportApp,
+  type SkillportAppStatus,
 } from '@/api/domains/system'
 import { logger } from '@/utils/logger'
 
-const skillsManageRepoUrl = 'https://github.com/iamzhihuix/skills-manage'
+const skillportRepoUrl = 'https://github.com/bahayonghang/skills-manage-windows'
 
 const isDetecting = ref(false)
 const isOpening = ref(false)
 const launchError = ref('')
-const appStatus = ref<SkillsManageAppStatus>({
+const appStatus = ref<SkillportAppStatus>({
   supported: false,
   installed: false,
   platform: 'other',
@@ -179,7 +179,7 @@ const statusPillClass = computed(() => {
 
 const statusSummary = computed(() => {
   if (isDetecting.value) {
-    return '正在检查本机是否已经安装 skills-manage。'
+    return '正在检查本机是否已经安装 skillport。'
   }
 
   if (appStatus.value.installed) {
@@ -195,7 +195,7 @@ const statusSummary = computed(() => {
 
 /*
  * ========================================================================
- * 步骤1：同步 skills-manage 探测状态
+ * 步骤1：同步 skillport 探测状态
  * ========================================================================
  * 目标：
  * 1) 在进入迁移页时拿到可渲染的安装状态
@@ -205,7 +205,7 @@ const statusSummary = computed(() => {
  * 2) 当前运行环境是否具备 Tauri 能力
  */
 const refreshAppStatus = async (): Promise<void> => {
-  logger.info('[skills-migration] 开始探测 skills-manage 状态')
+  logger.info('[skills-migration] 开始探测 skillport 状态')
 
   // 1.1 清理上一轮错误并进入探测态
   isDetecting.value = true
@@ -224,7 +224,7 @@ const refreshAppStatus = async (): Promise<void> => {
     }
 
     // 1.3 读取后端探测结果并刷新前端状态
-    appStatus.value = await detectSkillsManageApp()
+    appStatus.value = await detectSkillportApp()
   } catch (error) {
     // 1.4 探测失败时回退到保守状态，仍保留仓库入口
     appStatus.value = {
@@ -234,11 +234,11 @@ const refreshAppStatus = async (): Promise<void> => {
       source: 'not_found',
     }
     launchError.value = '自动检测失败，请先查看仓库说明后再重试。'
-    logger.warn('[skills-migration] 探测 skills-manage 状态失败', error)
+    logger.warn('[skills-migration] 探测 skillport 状态失败', error)
   } finally {
     // 1.5 结束探测态，允许用户继续操作
     isDetecting.value = false
-    logger.info('[skills-migration] skills-manage 状态探测完成', {
+    logger.info('[skills-migration] skillport 状态探测完成', {
       supported: appStatus.value.supported,
       installed: appStatus.value.installed,
       platform: appStatus.value.platform,
@@ -264,7 +264,7 @@ const handlePrimaryAction = async (): Promise<void> => {
     return
   }
 
-  logger.info('[skills-migration] 开始打开 skills-manage')
+  logger.info('[skills-migration] 开始打开 skillport')
 
   // 2.2 进入打开态并清理旧错误
   isOpening.value = true
@@ -272,15 +272,15 @@ const handlePrimaryAction = async (): Promise<void> => {
 
   try {
     // 2.3 调用后端打开独立应用
-    await openSkillsManageApp()
+    await openSkillportApp()
   } catch (error) {
     // 2.4 打开失败时保留仓库入口，并给出页内错误提示
-    launchError.value = '已检测到 skills-manage，但拉起失败。请先查看仓库说明，确认安装是否完整。'
-    logger.error('[skills-migration] 打开 skills-manage 失败', error)
+    launchError.value = '已检测到 skillport，但拉起失败。请先查看仓库说明，确认安装是否完整。'
+    logger.error('[skills-migration] 打开 skillport 失败', error)
   } finally {
     // 2.5 结束打开态，允许再次尝试
     isOpening.value = false
-    logger.info('[skills-migration] 打开 skills-manage 流程结束')
+    logger.info('[skills-migration] 打开 skillport 流程结束')
   }
 }
 

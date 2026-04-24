@@ -244,6 +244,11 @@ const routes: RouteRecordRaw[] = [
         redirect: '/skills',
       },
       {
+        path: 'skillport-manager',
+        name: 'skillport-manager',
+        redirect: '/skills',
+      },
+      {
         path: 'skills/add',
         name: 'skills-add',
         redirect: '/skills',

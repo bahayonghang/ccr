@@ -3,15 +3,15 @@ import { createMemoryHistory, createRouter } from 'vue-router'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const systemMocks = vi.hoisted(() => ({
-  detectSkillsManageApp: vi.fn(),
+  detectSkillportApp: vi.fn(),
   isTauriEnvironment: vi.fn(),
-  openSkillsManageApp: vi.fn(),
+  openSkillportApp: vi.fn(),
 }))
 
 vi.mock('@/api/domains/system', () => ({
-  detectSkillsManageApp: (...args: unknown[]) => systemMocks.detectSkillsManageApp(...args),
+  detectSkillportApp: (...args: unknown[]) => systemMocks.detectSkillportApp(...args),
   isTauriEnvironment: (...args: unknown[]) => systemMocks.isTauriEnvironment(...args),
-  openSkillsManageApp: (...args: unknown[]) => systemMocks.openSkillsManageApp(...args),
+  openSkillportApp: (...args: unknown[]) => systemMocks.openSkillportApp(...args),
 }))
 
 vi.mock('@/utils/logger', () => ({
@@ -66,18 +66,18 @@ beforeEach(() => {
   document.body.innerHTML = ''
   vi.resetModules()
 
-  systemMocks.detectSkillsManageApp.mockReset()
+  systemMocks.detectSkillportApp.mockReset()
   systemMocks.isTauriEnvironment.mockReset()
-  systemMocks.openSkillsManageApp.mockReset()
+  systemMocks.openSkillportApp.mockReset()
 
   systemMocks.isTauriEnvironment.mockReturnValue(true)
-  systemMocks.detectSkillsManageApp.mockResolvedValue({
+  systemMocks.detectSkillportApp.mockResolvedValue({
     supported: true,
     installed: false,
     platform: 'windows',
     source: 'not_found',
   })
-  systemMocks.openSkillsManageApp.mockResolvedValue(undefined)
+  systemMocks.openSkillportApp.mockResolvedValue(undefined)
 })
 
 afterEach(() => {
@@ -86,7 +86,7 @@ afterEach(() => {
 
 describe('SkillsMigrationView smoke', () => {
   it('renders the installed state with a launch button', async () => {
-    systemMocks.detectSkillsManageApp.mockResolvedValue({
+    systemMocks.detectSkillportApp.mockResolvedValue({
       supported: true,
       installed: true,
       platform: 'windows',
@@ -98,7 +98,7 @@ describe('SkillsMigrationView smoke', () => {
 
     try {
       expect(el.textContent).toContain('已检测到本机安装')
-      expect(el.querySelector('[data-testid="skills-migration-primary"]')?.textContent).toContain('打开 skills-manage')
+      expect(el.querySelector('[data-testid="skills-migration-primary"]')?.textContent).toContain('打开 skillport')
     } finally {
       unmount()
     }
@@ -112,8 +112,8 @@ describe('SkillsMigrationView smoke', () => {
       expect(el.textContent).toContain('当前没有检测到本机安装')
 
       const primaryLink = el.querySelector<HTMLAnchorElement>('[data-testid="skills-migration-primary"]')
-      expect(primaryLink?.textContent).toContain('前往 skills-manage 仓库')
-      expect(primaryLink?.getAttribute('href')).toBe('https://github.com/iamzhihuix/skills-manage')
+      expect(primaryLink?.textContent).toContain('前往 skillport 仓库')
+      expect(primaryLink?.getAttribute('href')).toBe('https://github.com/bahayonghang/skills-manage-windows')
     } finally {
       unmount()
     }
@@ -126,7 +126,7 @@ describe('SkillsMigrationView smoke', () => {
     const { el, unmount } = await mountView(SkillsMigrationView)
 
     try {
-      expect(systemMocks.detectSkillsManageApp).not.toHaveBeenCalled()
+      expect(systemMocks.detectSkillportApp).not.toHaveBeenCalled()
       expect(el.textContent).toContain('当前运行环境暂不支持自动检测')
     } finally {
       unmount()
@@ -134,13 +134,13 @@ describe('SkillsMigrationView smoke', () => {
   })
 
   it('keeps the repository fallback visible when launching fails', async () => {
-    systemMocks.detectSkillsManageApp.mockResolvedValue({
+    systemMocks.detectSkillportApp.mockResolvedValue({
       supported: true,
       installed: true,
       platform: 'macos',
       source: 'bundle_id',
     })
-    systemMocks.openSkillsManageApp.mockRejectedValue(new Error('launch failed'))
+    systemMocks.openSkillportApp.mockRejectedValue(new Error('launch failed'))
 
     const { default: SkillsMigrationView } = await import('@/views/SkillsMigrationView.vue')
     const { el, unmount } = await mountView(SkillsMigrationView)
@@ -150,10 +150,10 @@ describe('SkillsMigrationView smoke', () => {
       primaryButton?.click()
       await flush()
 
-      expect(el.querySelector('[data-testid="skills-migration-error"]')?.textContent).toContain('已检测到 skills-manage，但拉起失败')
+      expect(el.querySelector('[data-testid="skills-migration-error"]')?.textContent).toContain('已检测到 skillport，但拉起失败')
 
       const helperLink = el.querySelector<HTMLAnchorElement>('.skills-migration-view__helper-link')
-      expect(helperLink?.getAttribute('href')).toBe('https://github.com/iamzhihuix/skills-manage')
+      expect(helperLink?.getAttribute('href')).toBe('https://github.com/bahayonghang/skills-manage-windows')
     } finally {
       unmount()
     }

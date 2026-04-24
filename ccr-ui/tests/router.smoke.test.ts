@@ -41,6 +41,7 @@ describe('router smoke', () => {
     const skillsHubRoute = router.getRoutes().find(route => route.path === '/skills/hub')
     const skillsDetailRoute = router.getRoutes().find(route => route.path === '/skills/:platform/:name')
     const skillsManagerRoute = router.getRoutes().find(route => route.path === '/skills-manager')
+    const skillportManagerRoute = router.getRoutes().find(route => route.path === '/skillport-manager')
     const opencodeSkillsRoute = router.getRoutes().find(route => route.path === '/opencode/skills')
 
     expect(skillsRoute?.redirect).toBeUndefined()
@@ -49,6 +50,7 @@ describe('router smoke', () => {
     expect(skillsHubRoute?.redirect).toBe('/skills')
     expect(skillsDetailRoute?.redirect).toBe('/skills')
     expect(skillsManagerRoute?.redirect).toBe('/skills')
+    expect(skillportManagerRoute?.redirect).toBe('/skills')
     expect(opencodeSkillsRoute?.redirect).toBe('/skills')
   })
 

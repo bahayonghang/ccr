@@ -9,33 +9,35 @@ use crate::process;
 use crate::state::{AppState, DesktopShellPreferences, TrayPanelManualPosition};
 
 #[cfg(target_os = "macos")]
-const SKILLS_MANAGE_BUNDLE_ID: &str = "com.iamzhihuix.skillsmanage";
-const SKILLS_MANAGE_APP_NAME: &str = "skills-manage";
+const SKILLPORT_BUNDLE_IDS: [&str; 2] = ["com.bahayonghang.skillport", "com.iamzhihuix.skillsmanage"];
+const SKILLPORT_APP_NAMES: [&str; 2] = ["skillport", "skills-manage"];
 
-/// `skills-manage` 检测结果。
+/// `skillport` 检测结果。
 #[derive(Debug, Clone, Serialize, PartialEq, Eq)]
-pub struct SkillsManageAppStatus {
+pub struct SkillportAppStatus {
     pub supported: bool,
     pub installed: bool,
     pub platform: String,
     pub source: String,
 }
 
+pub type SkillsManageAppStatus = SkillportAppStatus;
+
 #[derive(Debug, Clone)]
-struct SkillsManageDiscovery {
-    status: SkillsManageAppStatus,
-    launch_target: Option<SkillsManageLaunchTarget>,
+struct SkillportDiscovery {
+    status: SkillportAppStatus,
+    launch_target: Option<SkillportLaunchTarget>,
 }
 
 #[derive(Debug, Clone)]
-enum SkillsManageLaunchTarget {
+enum SkillportLaunchTarget {
     #[cfg(target_os = "macos")]
-    BundleId(&'static str),
+    BundleId(String),
     #[cfg(target_os = "windows")]
     Executable(std::path::PathBuf),
 }
 
-impl SkillsManageAppStatus {
+impl SkillportAppStatus {
     #[cfg(not(any(target_os = "macos", target_os = "windows")))]
     fn unsupported() -> Self {
         Self {
@@ -143,7 +145,7 @@ pub fn shell_complete_tray_panel_drag(
 
 /*
  * ========================================================================
- * 步骤3：探测 skills-manage 安装状态
+ * 步骤3：探测 skillport 安装状态
  * ========================================================================
  * 目标：
  * 1) 在不暴露本机路径给前端的前提下返回安装状态
@@ -151,18 +153,31 @@ pub fn shell_complete_tray_panel_drag(
  */
 #[tauri::command]
 pub async fn shell_detect_skills_manage_app() -> Result<SkillsManageAppStatus, String> {
-    tracing::info!("[shell] 开始探测 skills-manage 安装状态");
+    shell_detect_skillport_app().await
+}
 
-    let status = tokio::task::spawn_blocking(|| detect_skills_manage_app().status)
+/*
+ * ========================================================================
+ * 步骤3：探测 skillport 安装状态
+ * ========================================================================
+ * 目标：
+ * 1) 在不暴露本机路径给前端的前提下返回安装状态
+ * 2) 为 `/skills` 迁移页提供稳定三态来源
+ */
+#[tauri::command]
+pub async fn shell_detect_skillport_app() -> Result<SkillportAppStatus, String> {
+    tracing::info!("[shell] 开始探测 skillport 安装状态");
+
+    let status = tokio::task::spawn_blocking(|| detect_skillport_app().status)
         .await
-        .map_err(|error| format!("探测 skills-manage 失败: {error}"))?;
+        .map_err(|error| format!("探测 skillport 失败: {error}"))?;
 
     tracing::info!(
         supported = status.supported,
         installed = status.installed,
         platform = %status.platform,
         source = %status.source,
-        "[shell] skills-manage 安装状态探测完成"
+        "[shell] skillport 安装状态探测完成"
     );
 
     Ok(status)
@@ -170,7 +185,7 @@ pub async fn shell_detect_skills_manage_app() -> Result<SkillsManageAppStatus, S
 
 /*
  * ========================================================================
- * 步骤4：打开 skills-manage
+ * 步骤4：打开 skillport
  * ========================================================================
  * 目标：
  * 1) 按平台重新探测后拉起独立应用
@@ -178,24 +193,37 @@ pub async fn shell_detect_skills_manage_app() -> Result<SkillsManageAppStatus, S
  */
 #[tauri::command]
 pub async fn shell_open_skills_manage_app() -> Result<(), String> {
-    tracing::info!("[shell] 开始打开 skills-manage");
+    shell_open_skillport_app().await
+}
+
+/*
+ * ========================================================================
+ * 步骤4：打开 skillport
+ * ========================================================================
+ * 目标：
+ * 1) 按平台重新探测后拉起独立应用
+ * 2) 避免前端状态过期导致的盲开
+ */
+#[tauri::command]
+pub async fn shell_open_skillport_app() -> Result<(), String> {
+    tracing::info!("[shell] 开始打开 skillport");
 
     tokio::task::spawn_blocking(|| {
-        let discovery = detect_skills_manage_app();
+        let discovery = detect_skillport_app();
         if !discovery.status.supported {
-            return Err("当前平台暂不支持自动打开 skills-manage".to_string());
+            return Err("当前平台暂不支持自动打开 skillport".to_string());
         }
 
         let Some(target) = discovery.launch_target.as_ref() else {
-            return Err("未检测到 skills-manage，请先前往仓库查看安装说明".to_string());
+            return Err("未检测到 skillport，请先前往仓库查看安装说明".to_string());
         };
 
-        launch_skills_manage(target)
+        launch_skillport(target)
     })
     .await
-    .map_err(|error| format!("打开 skills-manage 失败: {error}"))??;
+    .map_err(|error| format!("打开 skillport 失败: {error}"))??;
 
-    tracing::info!("[shell] 打开 skills-manage 请求已发出");
+    tracing::info!("[shell] 打开 skillport 请求已发出");
     Ok(())
 }
 
@@ -215,19 +243,19 @@ fn current_platform_name() -> &'static str {
 }
 
 #[cfg(target_os = "macos")]
-fn detect_skills_manage_app() -> SkillsManageDiscovery {
-    detect_skills_manage_app_macos()
+fn detect_skillport_app() -> SkillportDiscovery {
+    detect_skillport_app_macos()
 }
 
 #[cfg(target_os = "windows")]
-fn detect_skills_manage_app() -> SkillsManageDiscovery {
-    detect_skills_manage_app_windows()
+fn detect_skillport_app() -> SkillportDiscovery {
+    detect_skillport_app_windows()
 }
 
 #[cfg(not(any(target_os = "macos", target_os = "windows")))]
-fn detect_skills_manage_app() -> SkillsManageDiscovery {
-    SkillsManageDiscovery {
-        status: SkillsManageAppStatus::unsupported(),
+fn detect_skillport_app() -> SkillportDiscovery {
+    SkillportDiscovery {
+        status: SkillportAppStatus::unsupported(),
         launch_target: None,
     }
 }
@@ -241,36 +269,38 @@ fn spawn_detached(mut command: std::process::Command, error_label: &str) -> Resu
 }
 
 #[cfg(target_os = "macos")]
-fn launch_skills_manage(target: &SkillsManageLaunchTarget) -> Result<(), String> {
-    let SkillsManageLaunchTarget::BundleId(bundle_id) = target;
+fn launch_skillport(target: &SkillportLaunchTarget) -> Result<(), String> {
+    let SkillportLaunchTarget::BundleId(bundle_id) = target;
     let mut command = process::std_command("open");
-    command.args(["-b", bundle_id]);
+    command.args(["-b", bundle_id.as_str()]);
     spawn_detached(command, "调用 open 失败")
 }
 
 #[cfg(target_os = "windows")]
-fn launch_skills_manage(target: &SkillsManageLaunchTarget) -> Result<(), String> {
-    let SkillsManageLaunchTarget::Executable(path) = target;
+fn launch_skillport(target: &SkillportLaunchTarget) -> Result<(), String> {
+    let SkillportLaunchTarget::Executable(path) = target;
     let command = process::std_command(path);
     spawn_detached(command, "启动可执行文件失败")
 }
 
 #[cfg(not(any(target_os = "macos", target_os = "windows")))]
-fn launch_skills_manage(_target: &SkillsManageLaunchTarget) -> Result<(), String> {
-    Err("当前平台没有可用的 skills-manage 启动方式".to_string())
+fn launch_skillport(_target: &SkillportLaunchTarget) -> Result<(), String> {
+    Err("当前平台没有可用的 skillport 启动方式".to_string())
 }
 
 #[cfg(target_os = "macos")]
-fn detect_skills_manage_app_macos() -> SkillsManageDiscovery {
-    if macos_bundle_exists(SKILLS_MANAGE_BUNDLE_ID) {
-        return SkillsManageDiscovery {
-            status: SkillsManageAppStatus::installed("bundle_id"),
-            launch_target: Some(SkillsManageLaunchTarget::BundleId(SKILLS_MANAGE_BUNDLE_ID)),
-        };
+fn detect_skillport_app_macos() -> SkillportDiscovery {
+    for bundle_id in SKILLPORT_BUNDLE_IDS {
+        if macos_bundle_exists(bundle_id) {
+            return SkillportDiscovery {
+                status: SkillportAppStatus::installed("bundle_id"),
+                launch_target: Some(SkillportLaunchTarget::BundleId(bundle_id.to_string())),
+            };
+        }
     }
 
-    SkillsManageDiscovery {
-        status: SkillsManageAppStatus::not_found(),
+    SkillportDiscovery {
+        status: SkillportAppStatus::not_found(),
         launch_target: None,
     }
 }
@@ -287,11 +317,11 @@ fn macos_bundle_exists(bundle_id: &str) -> bool {
 }
 
 #[cfg(target_os = "windows")]
-fn detect_skills_manage_app_windows() -> SkillsManageDiscovery {
-    if let Some(path) = find_skills_manage_from_windows_registry() {
-        return SkillsManageDiscovery {
-            status: SkillsManageAppStatus::installed("registry"),
-            launch_target: Some(SkillsManageLaunchTarget::Executable(path)),
+fn detect_skillport_app_windows() -> SkillportDiscovery {
+    if let Some(path) = find_skillport_from_windows_registry() {
+        return SkillportDiscovery {
+            status: SkillportAppStatus::installed("registry"),
+            launch_target: Some(SkillportLaunchTarget::Executable(path)),
         };
     }
 
@@ -299,20 +329,20 @@ fn detect_skills_manage_app_windows() -> SkillsManageDiscovery {
         .into_iter()
         .find(|candidate| candidate.is_file())
     {
-        return SkillsManageDiscovery {
-            status: SkillsManageAppStatus::installed("known_path"),
-            launch_target: Some(SkillsManageLaunchTarget::Executable(path)),
+        return SkillportDiscovery {
+            status: SkillportAppStatus::installed("known_path"),
+            launch_target: Some(SkillportLaunchTarget::Executable(path)),
         };
     }
 
-    SkillsManageDiscovery {
-        status: SkillsManageAppStatus::not_found(),
+    SkillportDiscovery {
+        status: SkillportAppStatus::not_found(),
         launch_target: None,
     }
 }
 
 #[cfg(target_os = "windows")]
-fn find_skills_manage_from_windows_registry() -> Option<std::path::PathBuf> {
+fn find_skillport_from_windows_registry() -> Option<std::path::PathBuf> {
     use winreg::{
         RegKey,
         enums::{HKEY_CURRENT_USER, HKEY_LOCAL_MACHINE},
@@ -348,11 +378,11 @@ fn find_skills_manage_from_windows_registry() -> Option<std::path::PathBuf> {
                 continue;
             };
 
-            if !is_skills_manage_display_name(&display_name) {
+            if !is_skillport_display_name(&display_name) {
                 continue;
             }
 
-            if let Some(path) = resolve_skills_manage_path_from_registry(&entry_key) {
+            if let Some(path) = resolve_skillport_path_from_registry(&entry_key) {
                 return Some(path);
             }
         }
@@ -362,12 +392,15 @@ fn find_skills_manage_from_windows_registry() -> Option<std::path::PathBuf> {
 }
 
 #[cfg(target_os = "windows")]
-fn is_skills_manage_display_name(value: &str) -> bool {
-    value.trim().eq_ignore_ascii_case(SKILLS_MANAGE_APP_NAME)
+fn is_skillport_display_name(value: &str) -> bool {
+    let trimmed = value.trim();
+    SKILLPORT_APP_NAMES
+        .iter()
+        .any(|candidate| trimmed.eq_ignore_ascii_case(candidate))
 }
 
 #[cfg(target_os = "windows")]
-fn resolve_skills_manage_path_from_registry(
+fn resolve_skillport_path_from_registry(
     entry_key: &winreg::RegKey,
 ) -> Option<std::path::PathBuf> {
     if let Ok(display_icon) = entry_key.get_value::<String, _>("DisplayIcon")
@@ -380,10 +413,11 @@ fn resolve_skills_manage_path_from_registry(
     if let Ok(install_location) = entry_key.get_value::<String, _>("InstallLocation") {
         let root = trim_wrapped_quotes(install_location.trim());
         if !root.is_empty() {
-            let candidate =
-                std::path::PathBuf::from(root).join(format!("{SKILLS_MANAGE_APP_NAME}.exe"));
-            if candidate.is_file() {
-                return Some(candidate);
+            for app_name in SKILLPORT_APP_NAMES {
+                let candidate = std::path::PathBuf::from(root).join(format!("{app_name}.exe"));
+                if candidate.is_file() {
+                    return Some(candidate);
+                }
             }
         }
     }
@@ -424,20 +458,23 @@ fn windows_candidate_paths_from_roots(
 ) -> Vec<std::path::PathBuf> {
     use std::{collections::HashSet, path::PathBuf};
 
-    let executable_name = format!("{SKILLS_MANAGE_APP_NAME}.exe");
     let mut seen = HashSet::new();
     let mut candidates = Vec::new();
 
     if let Some(root) = local_app_data {
-        candidates.push(
-            root.join("Programs")
-                .join(SKILLS_MANAGE_APP_NAME)
-                .join(&executable_name),
-        );
+        for app_name in SKILLPORT_APP_NAMES {
+            candidates.push(
+                root.join("Programs")
+                    .join(app_name)
+                    .join(format!("{app_name}.exe")),
+            );
+        }
     }
 
     for root in [program_files, program_files_x86].into_iter().flatten() {
-        candidates.push(root.join(SKILLS_MANAGE_APP_NAME).join(&executable_name));
+        for app_name in SKILLPORT_APP_NAMES {
+            candidates.push(root.join(app_name).join(format!("{app_name}.exe")));
+        }
     }
 
     candidates
@@ -460,19 +497,16 @@ mod tests {
             trim_wrapped_quotes(r#""C:\Apps\skills-manage.exe""#),
             r#"C:\Apps\skills-manage.exe"#
         );
-        assert_eq!(trim_wrapped_quotes(" skills-manage "), "skills-manage");
+        assert_eq!(trim_wrapped_quotes(" skillport "), "skillport");
     }
 
     #[cfg(target_os = "windows")]
     #[test]
     fn normalize_windows_display_icon_path_strips_resource_suffix() {
-        let normalized = normalize_windows_display_icon_path(r#""C:\Apps\skills-manage.exe",0"#)
+        let normalized = normalize_windows_display_icon_path(r#""C:\Apps\skillport.exe",0"#)
             .expect("path should parse");
 
-        assert_eq!(
-            normalized,
-            std::path::PathBuf::from(r#"C:\Apps\skills-manage.exe"#)
-        );
+        assert_eq!(normalized, std::path::PathBuf::from(r#"C:\Apps\skillport.exe"#));
     }
 
     #[cfg(target_os = "windows")]
@@ -488,9 +522,16 @@ mod tests {
             candidates,
             vec![
                 std::path::PathBuf::from(
+                    r"C:\Users\demo\AppData\Local\Programs\skillport\skillport.exe"
+                ),
+                std::path::PathBuf::from(
                     r"C:\Users\demo\AppData\Local\Programs\skills-manage\skills-manage.exe"
                 ),
+                std::path::PathBuf::from(r"C:\Program Files\skillport\skillport.exe"),
                 std::path::PathBuf::from(r"C:\Program Files\skills-manage\skills-manage.exe"),
+                std::path::PathBuf::from(
+                    r"C:\Program Files (x86)\skillport\skillport.exe"
+                ),
                 std::path::PathBuf::from(r"C:\Program Files (x86)\skills-manage\skills-manage.exe"),
             ]
         );
@@ -499,7 +540,8 @@ mod tests {
     #[cfg(target_os = "windows")]
     #[test]
     fn exact_display_name_match_is_required() {
-        assert!(is_skills_manage_display_name("skills-manage"));
-        assert!(!is_skills_manage_display_name("skills-manage beta"));
+        assert!(is_skillport_display_name("skillport"));
+        assert!(is_skillport_display_name("skills-manage"));
+        assert!(!is_skillport_display_name("skillport beta"));
     }
 }

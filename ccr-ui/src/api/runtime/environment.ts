@@ -20,15 +20,19 @@ export interface TrayPanelPlacementState {
   manual_position: TrayPanelManualPosition | null
 }
 
-export type SkillsManageAppPlatform = 'windows' | 'macos' | 'other'
-export type SkillsManageAppSource = 'bundle_id' | 'registry' | 'known_path' | 'unsupported' | 'not_found'
+export type SkillportAppPlatform = 'windows' | 'macos' | 'other'
+export type SkillportAppSource = 'bundle_id' | 'registry' | 'known_path' | 'unsupported' | 'not_found'
 
-export interface SkillsManageAppStatus {
+export interface SkillportAppStatus {
   supported: boolean
   installed: boolean
-  platform: SkillsManageAppPlatform
-  source: SkillsManageAppSource
+  platform: SkillportAppPlatform
+  source: SkillportAppSource
 }
+
+export type SkillsManageAppPlatform = SkillportAppPlatform
+export type SkillsManageAppSource = SkillportAppSource
+export type SkillsManageAppStatus = SkillportAppStatus
 
 export interface EnvironmentInfo {
   id: string
@@ -103,12 +107,22 @@ export const shellCompleteTrayPanelDrag = async (
   await invoke('shell_complete_tray_panel_drag', { position: position ?? null })
 }
 
-export const detectSkillsManageApp = async (): Promise<SkillsManageAppStatus> => {
-  return invoke('shell_detect_skills_manage_app')
+export const detectSkillportApp = async (): Promise<SkillportAppStatus> => {
+  return invoke('shell_detect_skillport_app')
 }
 
+export const openSkillportApp = async (): Promise<void> => {
+  await invoke('shell_open_skillport_app')
+}
+
+// Legacy aliases kept for migration period.
+export const detectSkillsManageApp = async (): Promise<SkillsManageAppStatus> => {
+  return detectSkillportApp()
+}
+
+// Legacy aliases kept for migration period.
 export const openSkillsManageApp = async (): Promise<void> => {
-  await invoke('shell_open_skills_manage_app')
+  await openSkillportApp()
 }
 
 export const getSkipExitConfirm = async (): Promise<boolean> => {
