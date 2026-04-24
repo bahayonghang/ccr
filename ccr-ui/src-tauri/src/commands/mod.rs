@@ -347,6 +347,8 @@ macro_rules! generate_handler_common {
         shell::shell_request_quit,
         shell::shell_begin_tray_panel_drag,
         shell::shell_complete_tray_panel_drag,
+        shell::shell_detect_skills_manage_app,
+        shell::shell_open_skills_manage_app,
         // —— 系统扩展 ——
         system::update_ccr,
         system::get_cli_version,

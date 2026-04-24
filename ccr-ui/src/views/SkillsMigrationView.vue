@@ -14,7 +14,7 @@
         <p class="skills-migration-view__copy">
           之后请改用独立应用
           <a
-            href="https://github.com/iamzhihuix/skills-manage"
+            :href="skillsManageRepoUrl"
             target="_blank"
             rel="noreferrer"
             class="skills-migration-view__link"
@@ -22,21 +22,94 @@
           处理 skills。
         </p>
 
+        <div
+          class="skills-migration-view__status"
+          data-testid="skills-migration-status"
+        >
+          <span
+            class="skills-migration-view__status-pill"
+            :class="statusPillClass"
+          >
+            {{ statusPillLabel }}
+          </span>
+          <p class="skills-migration-view__status-copy">
+            {{ statusSummary }}
+          </p>
+        </div>
+
         <div class="skills-migration-view__actions">
+          <button
+            v-if="isDetecting"
+            type="button"
+            class="skills-migration-view__primary skills-migration-view__primary--pending"
+            data-testid="skills-migration-primary"
+            disabled
+          >
+            检测 skills-manage…
+          </button>
+
+          <button
+            v-else-if="appStatus.installed"
+            type="button"
+            class="skills-migration-view__primary"
+            data-testid="skills-migration-primary"
+            :disabled="isOpening"
+            @click="handlePrimaryAction"
+          >
+            <img
+              :src="skillsManageBadgeUrl"
+              alt=""
+              class="skills-migration-view__primary-icon"
+            >
+            <span>{{ isOpening ? '正在打开…' : '打开 skills-manage' }}</span>
+          </button>
+
           <a
-            href="https://github.com/iamzhihuix/skills-manage"
+            v-else
+            :href="skillsManageRepoUrl"
             target="_blank"
             rel="noreferrer"
             class="skills-migration-view__primary"
+            data-testid="skills-migration-primary"
           >
-            打开 skills-manage
+            前往 skills-manage 仓库
           </a>
+
+          <button
+            type="button"
+            class="skills-migration-view__secondary"
+            data-testid="skills-migration-refresh"
+            :disabled="isDetecting"
+            @click="refreshAppStatus"
+          >
+            重新检测
+          </button>
+
           <RouterLink
             to="/configs"
             class="skills-migration-view__secondary"
           >
             返回配置管理
           </RouterLink>
+        </div>
+
+        <p
+          v-if="launchError"
+          class="skills-migration-view__error"
+          data-testid="skills-migration-error"
+        >
+          {{ launchError }}
+        </p>
+
+        <div class="skills-migration-view__helper-links">
+          <a
+            :href="skillsManageRepoUrl"
+            target="_blank"
+            rel="noreferrer"
+            class="skills-migration-view__helper-link"
+          >
+            查看仓库说明
+          </a>
         </div>
       </section>
 
@@ -58,7 +131,7 @@
         <article class="skills-migration-view__card">
           <h2>怎么开始</h2>
           <p>
-            截至 2026-04-23，上游最新 release 是 v0.8.0，发布日期 2026-04-20。Windows 先按仓库说明源码运行。
+            如果本机已安装 skills-manage，这里会直接显示打开按钮。还没安装时，请先去仓库查看最新安装说明。
           </p>
         </article>
       </section>
@@ -67,7 +140,153 @@
 </template>
 
 <script setup lang="ts">
+import { computed, onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
+import skillsManageBadgeUrl from '@/assets/skills-manage-badge.svg'
+import {
+  detectSkillsManageApp,
+  isTauriEnvironment,
+  openSkillsManageApp,
+  type SkillsManageAppStatus,
+} from '@/api/domains/system'
+import { logger } from '@/utils/logger'
+
+const skillsManageRepoUrl = 'https://github.com/iamzhihuix/skills-manage'
+
+const isDetecting = ref(false)
+const isOpening = ref(false)
+const launchError = ref('')
+const appStatus = ref<SkillsManageAppStatus>({
+  supported: false,
+  installed: false,
+  platform: 'other',
+  source: 'unsupported',
+})
+
+const statusPillLabel = computed(() => {
+  if (isDetecting.value) return '正在检测'
+  if (appStatus.value.installed) return '已检测到安装'
+  if (appStatus.value.supported) return '未检测到安装'
+  return '当前环境不支持'
+})
+
+const statusPillClass = computed(() => {
+  if (isDetecting.value) return 'skills-migration-view__status-pill--pending'
+  if (appStatus.value.installed) return 'skills-migration-view__status-pill--ready'
+  if (appStatus.value.supported) return 'skills-migration-view__status-pill--empty'
+  return 'skills-migration-view__status-pill--unsupported'
+})
+
+const statusSummary = computed(() => {
+  if (isDetecting.value) {
+    return '正在检查本机是否已经安装 skills-manage。'
+  }
+
+  if (appStatus.value.installed) {
+    return '已检测到本机安装，可以直接从这里拉起独立应用。'
+  }
+
+  if (appStatus.value.supported) {
+    return '当前没有检测到本机安装，请先前往仓库查看最新安装说明。'
+  }
+
+  return '当前运行环境暂不支持自动检测，请直接前往仓库查看说明。'
+})
+
+/*
+ * ========================================================================
+ * 步骤1：同步 skills-manage 探测状态
+ * ========================================================================
+ * 目标：
+ * 1) 在进入迁移页时拿到可渲染的安装状态
+ * 2) 让未安装、已安装、当前环境不支持三种分支稳定落地
+ * 数据源：
+ * 1) Tauri shell 探测命令
+ * 2) 当前运行环境是否具备 Tauri 能力
+ */
+const refreshAppStatus = async (): Promise<void> => {
+  logger.info('[skills-migration] 开始探测 skills-manage 状态')
+
+  // 1.1 清理上一轮错误并进入探测态
+  isDetecting.value = true
+  launchError.value = ''
+
+  try {
+    // 1.2 非 Tauri 环境直接走不支持分支，避免无意义 invoke
+    if (!isTauriEnvironment()) {
+      appStatus.value = {
+        supported: false,
+        installed: false,
+        platform: 'other',
+        source: 'unsupported',
+      }
+      return
+    }
+
+    // 1.3 读取后端探测结果并刷新前端状态
+    appStatus.value = await detectSkillsManageApp()
+  } catch (error) {
+    // 1.4 探测失败时回退到保守状态，仍保留仓库入口
+    appStatus.value = {
+      supported: true,
+      installed: false,
+      platform: 'other',
+      source: 'not_found',
+    }
+    launchError.value = '自动检测失败，请先查看仓库说明后再重试。'
+    logger.warn('[skills-migration] 探测 skills-manage 状态失败', error)
+  } finally {
+    // 1.5 结束探测态，允许用户继续操作
+    isDetecting.value = false
+    logger.info('[skills-migration] skills-manage 状态探测完成', {
+      supported: appStatus.value.supported,
+      installed: appStatus.value.installed,
+      platform: appStatus.value.platform,
+      source: appStatus.value.source,
+    })
+  }
+}
+
+/*
+ * ========================================================================
+ * 步骤2：拉起已检测到的独立应用
+ * ========================================================================
+ * 目标：
+ * 1) 只在已检测到安装时触发打开动作
+ * 2) 打开失败时保留仓库回退入口，不把用户卡死在按钮上
+ * 数据源：
+ * 1) 当前探测状态
+ * 2) Tauri shell 打开命令
+ */
+const handlePrimaryAction = async (): Promise<void> => {
+  // 2.1 非已安装分支直接退出，避免误触
+  if (!appStatus.value.installed) {
+    return
+  }
+
+  logger.info('[skills-migration] 开始打开 skills-manage')
+
+  // 2.2 进入打开态并清理旧错误
+  isOpening.value = true
+  launchError.value = ''
+
+  try {
+    // 2.3 调用后端打开独立应用
+    await openSkillsManageApp()
+  } catch (error) {
+    // 2.4 打开失败时保留仓库入口，并给出页内错误提示
+    launchError.value = '已检测到 skills-manage，但拉起失败。请先查看仓库说明，确认安装是否完整。'
+    logger.error('[skills-migration] 打开 skills-manage 失败', error)
+  } finally {
+    // 2.5 结束打开态，允许再次尝试
+    isOpening.value = false
+    logger.info('[skills-migration] 打开 skills-manage 流程结束')
+  }
+}
+
+onMounted(() => {
+  void refreshAppStatus()
+})
 </script>
 
 <style scoped>
@@ -103,6 +322,34 @@ import { RouterLink } from 'vue-router'
   @apply font-semibold text-accent-primary hover:underline;
 }
 
+.skills-migration-view__status {
+  @apply mt-6 flex flex-col gap-3 rounded-[24px] border border-border-default/50 bg-bg-surface/70 p-4;
+}
+
+.skills-migration-view__status-pill {
+  @apply inline-flex w-fit items-center rounded-full px-3 py-1 text-xs font-semibold tracking-[0.12em];
+}
+
+.skills-migration-view__status-pill--pending {
+  @apply border border-border-default/60 bg-bg-overlay/70 text-text-primary;
+}
+
+.skills-migration-view__status-pill--ready {
+  @apply border border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-300;
+}
+
+.skills-migration-view__status-pill--empty {
+  @apply border border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300;
+}
+
+.skills-migration-view__status-pill--unsupported {
+  @apply border border-border-default/50 bg-bg-base/60 text-text-secondary;
+}
+
+.skills-migration-view__status-copy {
+  @apply text-sm leading-7 text-text-secondary;
+}
+
 .skills-migration-view__actions {
   @apply mt-6 flex flex-wrap gap-3;
 }
@@ -113,11 +360,36 @@ import { RouterLink } from 'vue-router'
 }
 
 .skills-migration-view__primary {
-  @apply bg-accent-primary text-white hover:bg-accent-primary/90;
+  @apply gap-2 bg-accent-primary text-white hover:bg-accent-primary/90;
+}
+
+.skills-migration-view__primary:disabled,
+.skills-migration-view__secondary:disabled {
+  @apply cursor-not-allowed opacity-70;
+}
+
+.skills-migration-view__primary--pending {
+  @apply bg-accent-primary/70;
+}
+
+.skills-migration-view__primary-icon {
+  @apply h-5 w-5 rounded-lg;
 }
 
 .skills-migration-view__secondary {
   @apply border border-border-default/60 bg-bg-base/50 text-text-primary hover:bg-bg-surface/70;
+}
+
+.skills-migration-view__error {
+  @apply mt-4 rounded-2xl border border-rose-500/20 bg-rose-500/10 px-4 py-3 text-sm leading-6 text-rose-700 dark:text-rose-200;
+}
+
+.skills-migration-view__helper-links {
+  @apply mt-4 flex flex-wrap gap-4;
+}
+
+.skills-migration-view__helper-link {
+  @apply text-sm font-medium text-text-secondary underline-offset-4 hover:text-text-primary hover:underline;
 }
 
 .skills-migration-view__grid {

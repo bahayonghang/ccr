@@ -20,6 +20,16 @@ export interface TrayPanelPlacementState {
   manual_position: TrayPanelManualPosition | null
 }
 
+export type SkillsManageAppPlatform = 'windows' | 'macos' | 'other'
+export type SkillsManageAppSource = 'bundle_id' | 'registry' | 'known_path' | 'unsupported' | 'not_found'
+
+export interface SkillsManageAppStatus {
+  supported: boolean
+  installed: boolean
+  platform: SkillsManageAppPlatform
+  source: SkillsManageAppSource
+}
+
 export interface EnvironmentInfo {
   id: string
   name: string
@@ -91,6 +101,14 @@ export const shellCompleteTrayPanelDrag = async (
   position?: TrayPanelManualPosition | null
 ): Promise<void> => {
   await invoke('shell_complete_tray_panel_drag', { position: position ?? null })
+}
+
+export const detectSkillsManageApp = async (): Promise<SkillsManageAppStatus> => {
+  return invoke('shell_detect_skills_manage_app')
+}
+
+export const openSkillsManageApp = async (): Promise<void> => {
+  await invoke('shell_open_skills_manage_app')
 }
 
 export const getSkipExitConfirm = async (): Promise<boolean> => {
