@@ -494,25 +494,41 @@ fn upsert_usage_history_cursor(
     history_completed_at: Option<chrono::DateTime<Utc>>,
 ) -> Result<(), String> {
     let conn = usage_db_pool.get().map_err(|e| format!("DB error: {e}"))?;
-    let existing =
-        ccr_db::database::repositories::usage_repo::get_history_cursor(&conn, platform)
-            .map_err(|e| format!("History cursor lookup error: {e}"))?;
+    let existing = ccr_db::database::repositories::usage_repo::get_history_cursor(&conn, platform)
+        .map_err(|e| format!("History cursor lookup error: {e}"))?;
     let cursor = ccr_db::database::repositories::usage_repo::UsageHistoryCursor {
         platform: platform.to_string(),
         recent_window_days: recent_window_days as i64,
-        last_history_file_path: file.map(|entry| entry.path.display().to_string()).or_else(|| {
-            existing
-                .as_ref()
-                .and_then(|cursor| cursor.last_history_file_path.clone())
-        }),
+        last_history_file_path: file
+            .map(|entry| entry.path.display().to_string())
+            .or_else(|| {
+                existing
+                    .as_ref()
+                    .and_then(|cursor| cursor.last_history_file_path.clone())
+            }),
         last_history_file_modified_at: file
             .and_then(|entry| entry.modified_at.map(system_time_to_utc))
-            .or_else(|| existing.as_ref().and_then(|cursor| cursor.last_history_file_modified_at)),
-        last_history_offset: file
-            .map(|entry| entry.file_size)
-            .unwrap_or_else(|| existing.as_ref().map(|cursor| cursor.last_history_offset).unwrap_or(0)),
-        recent_completed_at: recent_completed_at.or_else(|| existing.as_ref().and_then(|cursor| cursor.recent_completed_at)),
-        history_completed_at: history_completed_at.or_else(|| existing.as_ref().and_then(|cursor| cursor.history_completed_at)),
+            .or_else(|| {
+                existing
+                    .as_ref()
+                    .and_then(|cursor| cursor.last_history_file_modified_at)
+            }),
+        last_history_offset: file.map(|entry| entry.file_size).unwrap_or_else(|| {
+            existing
+                .as_ref()
+                .map(|cursor| cursor.last_history_offset)
+                .unwrap_or(0)
+        }),
+        recent_completed_at: recent_completed_at.or_else(|| {
+            existing
+                .as_ref()
+                .and_then(|cursor| cursor.recent_completed_at)
+        }),
+        history_completed_at: history_completed_at.or_else(|| {
+            existing
+                .as_ref()
+                .and_then(|cursor| cursor.history_completed_at)
+        }),
         updated_at: Utc::now(),
     };
 
@@ -648,10 +664,11 @@ async fn run_usage_import_job(
                 let source_target = platform_name.clone();
                 let db_pool = usage_db_pool.clone();
                 let source_count = tokio::task::spawn_blocking(move || {
-                    let service = ccr_db::services::usage_import_service::UsageImportService::with_pool(
-                        ccr_db::services::usage_import_service::ImportConfig::default(),
-                        db_pool,
-                    );
+                    let service =
+                        ccr_db::services::usage_import_service::UsageImportService::with_pool(
+                            ccr_db::services::usage_import_service::ImportConfig::default(),
+                            db_pool,
+                        );
                     service
                         .list_usage_files(&source_target)
                         .map(|files| files.len())
@@ -669,10 +686,11 @@ async fn run_usage_import_job(
                 let reset_target = platform_name.clone();
                 let db_pool = usage_db_pool.clone();
                 let reset_result = tokio::task::spawn_blocking(move || {
-                    let service = ccr_db::services::usage_import_service::UsageImportService::with_pool(
-                        ccr_db::services::usage_import_service::ImportConfig::default(),
-                        db_pool,
-                    );
+                    let service =
+                        ccr_db::services::usage_import_service::UsageImportService::with_pool(
+                            ccr_db::services::usage_import_service::ImportConfig::default(),
+                            db_pool,
+                        );
                     service.reset_platform_sources(&reset_target)
                 })
                 .await
@@ -1138,23 +1156,28 @@ fn load_archive_diagnostics(
     platform: Option<&str>,
 ) -> Result<UsageArchiveDiagnostics, String> {
     let conn = pool.get().map_err(|e| format!("DB error: {e}"))?;
-    let counts = ccr_db::database::repositories::usage_repo::get_source_state_counts(&conn, platform)
-        .map_err(|e| format!("Source state query error: {e}"))?;
-    let archived_sessions = ccr_db::database::repositories::usage_repo::get_session_archive_platform_summaries(
-        &conn,
-        &None,
-        &None,
-    )
-    .map_err(|e| format!("Archived session summary query error: {e}"))?
-    .into_iter()
-    .map(|item| non_negative_i64(item.session_count))
-    .sum();
+    let counts =
+        ccr_db::database::repositories::usage_repo::get_source_state_counts(&conn, platform)
+            .map_err(|e| format!("Source state query error: {e}"))?;
+    let archived_sessions =
+        ccr_db::database::repositories::usage_repo::get_session_archive_platform_summaries(
+            &conn, &None, &None,
+        )
+        .map_err(|e| format!("Archived session summary query error: {e}"))?
+        .into_iter()
+        .map(|item| non_negative_i64(item.session_count))
+        .sum();
 
     let mut recent_completed_at: Option<String> = None;
     let mut history_completed_at: Option<String> = None;
     let cursor_platforms = platform
         .map(|value| vec![value.to_string()])
-        .unwrap_or_else(|| HOME_USAGE_PLATFORMS.iter().map(|value| value.to_string()).collect());
+        .unwrap_or_else(|| {
+            HOME_USAGE_PLATFORMS
+                .iter()
+                .map(|value| value.to_string())
+                .collect()
+        });
 
     for cursor_platform in cursor_platforms {
         if let Some(cursor) =
@@ -1163,13 +1186,19 @@ fn load_archive_diagnostics(
         {
             if let Some(recent) = cursor.recent_completed_at {
                 let raw = recent.to_rfc3339();
-                if recent_completed_at.as_ref().is_none_or(|current| raw > *current) {
+                if recent_completed_at
+                    .as_ref()
+                    .is_none_or(|current| raw > *current)
+                {
                     recent_completed_at = Some(raw);
                 }
             }
             if let Some(history) = cursor.history_completed_at {
                 let raw = history.to_rfc3339();
-                if history_completed_at.as_ref().is_none_or(|current| raw > *current) {
+                if history_completed_at
+                    .as_ref()
+                    .is_none_or(|current| raw > *current)
+                {
                     history_completed_at = Some(raw);
                 }
             }
