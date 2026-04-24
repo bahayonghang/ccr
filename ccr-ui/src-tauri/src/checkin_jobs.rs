@@ -158,7 +158,9 @@ impl CheckinJobSnapshot {
             .find(|entry| entry.account_id == result.account_id)
         {
             log.status = match result.status {
-                ccr_checkin::models::checkin::CheckinStatus::Success => CheckinJobLogStatus::Success,
+                ccr_checkin::models::checkin::CheckinStatus::Success => {
+                    CheckinJobLogStatus::Success
+                }
                 ccr_checkin::models::checkin::CheckinStatus::AlreadyCheckedIn => {
                     CheckinJobLogStatus::AlreadyCheckedIn
                 }

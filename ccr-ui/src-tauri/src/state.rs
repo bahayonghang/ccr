@@ -539,9 +539,7 @@ impl AppState {
             .logs
             .iter()
             .filter(|log| match old_logs.get(&log.account_id) {
-                Some((old_status, old_ts)) => {
-                    *old_status != log.status || *old_ts != log.timestamp
-                }
+                Some((old_status, old_ts)) => *old_status != log.status || *old_ts != log.timestamp,
                 None => true,
             })
             .cloned()

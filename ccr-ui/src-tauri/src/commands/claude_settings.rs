@@ -27,8 +27,8 @@ pub async fn claude_update_settings(
 #[tauri::command]
 pub async fn claude_get_output_styles() -> Result<Value, String> {
     tokio::task::spawn_blocking(|| {
-        let dir =
-            output_styles_dir().map_err(|e| format!("Cannot determine output-styles dir: {}", e))?;
+        let dir = output_styles_dir()
+            .map_err(|e| format!("Cannot determine output-styles dir: {}", e))?;
 
         if !dir.exists() {
             return Ok(serde_json::json!({ "styles": [] }));
@@ -68,8 +68,8 @@ pub async fn claude_get_output_styles() -> Result<Value, String> {
 #[tauri::command]
 pub async fn claude_update_output_styles(styles: Value) -> Result<Value, String> {
     tokio::task::spawn_blocking(move || {
-        let dir =
-            output_styles_dir().map_err(|e| format!("Cannot determine output-styles dir: {}", e))?;
+        let dir = output_styles_dir()
+            .map_err(|e| format!("Cannot determine output-styles dir: {}", e))?;
 
         fs::create_dir_all(&dir)
             .map_err(|e| format!("Failed to create output-styles dir: {}", e))?;

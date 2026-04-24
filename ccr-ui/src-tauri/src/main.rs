@@ -235,13 +235,9 @@ fn main() {
             let shutdown_clone = shutdown_notify.clone();
 
             let bg_supervisor_handle = app_handle.clone();
-            spawn_supervised(
-                bg_supervisor_handle,
-                "background-maintenance",
-                async move {
-                    run_background_tasks(app_handle, shutdown_clone).await;
-                },
-            );
+            spawn_supervised(bg_supervisor_handle, "background-maintenance", async move {
+                run_background_tasks(app_handle, shutdown_clone).await;
+            });
 
             // 注册 shutdown notify，供退出时通知后台任务收尾。
             app.manage(shutdown_notify);

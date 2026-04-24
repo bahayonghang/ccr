@@ -524,9 +524,7 @@ pub async fn get_cost_by_model(state: State<'_, AppState>) -> Result<serde_json:
 
 /// 按项目分组成本 — 直接返回扁平 map
 #[tauri::command]
-pub async fn get_cost_by_project(
-    state: State<'_, AppState>,
-) -> Result<serde_json::Value, String> {
+pub async fn get_cost_by_project(state: State<'_, AppState>) -> Result<serde_json::Value, String> {
     run_cached_stats_command(state.inner(), "stats:cost_by_project".to_string(), || {
         compute_cost_by_project()
     })
@@ -537,9 +535,7 @@ pub async fn get_cost_by_project(
 ///
 /// 前端 StatsView.vue 期望: Record<string, number> (provider -> count)
 #[tauri::command]
-pub async fn get_provider_usage(
-    state: State<'_, AppState>,
-) -> Result<serde_json::Value, String> {
+pub async fn get_provider_usage(state: State<'_, AppState>) -> Result<serde_json::Value, String> {
     run_cached_stats_command(state.inner(), "stats:provider_usage".to_string(), || {
         compute_provider_usage()
     })
@@ -553,13 +549,14 @@ pub async fn get_top_sessions(
 ) -> Result<serde_json::Value, String> {
     let limit = limit.unwrap_or(10);
     let cache_key = format!("stats:top_sessions:limit={limit}");
-    run_cached_stats_command(state.inner(), cache_key, move || compute_top_sessions(limit)).await
+    run_cached_stats_command(state.inner(), cache_key, move || {
+        compute_top_sessions(limit)
+    })
+    .await
 }
 
 #[tauri::command]
-pub async fn get_stats_summary(
-    state: State<'_, AppState>,
-) -> Result<serde_json::Value, String> {
+pub async fn get_stats_summary(state: State<'_, AppState>) -> Result<serde_json::Value, String> {
     run_cached_stats_command(state.inner(), "stats:summary".to_string(), || {
         compute_stats_summary()
     })

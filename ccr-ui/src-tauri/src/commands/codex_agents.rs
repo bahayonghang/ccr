@@ -872,7 +872,10 @@ mod tests {
         skills.insert(
             "config".into(),
             toml::Value::Array(vec![toml::Value::Table(toml::value::Table::from_iter([
-                ("path".into(), toml::Value::String("/tmp/docs/SKILL.md".into())),
+                (
+                    "path".into(),
+                    toml::Value::String("/tmp/docs/SKILL.md".into()),
+                ),
                 ("enabled".into(), toml::Value::Boolean(false)),
             ]))]),
         );

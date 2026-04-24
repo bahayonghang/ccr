@@ -615,7 +615,9 @@ pub async fn batch_checkin(
     for result in &results {
         match result.status {
             ccr_checkin::models::checkin::CheckinStatus::Success => success += 1,
-            ccr_checkin::models::checkin::CheckinStatus::AlreadyCheckedIn => already_checked_in += 1,
+            ccr_checkin::models::checkin::CheckinStatus::AlreadyCheckedIn => {
+                already_checked_in += 1
+            }
             ccr_checkin::models::checkin::CheckinStatus::Failed => failed += 1,
         }
     }

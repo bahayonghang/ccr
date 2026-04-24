@@ -243,5 +243,4 @@ pub mod channels {
     pub const CODEX_OAUTH_LOGIN_TIMEOUT: &str = "codex-oauth-login-timeout";
     pub const CODEX_OAUTH_LOGIN_COMPLETED: &str = "codex-oauth-login-completed";
     pub const CODEX_TRAY_REFRESH: &str = "codex-tray:refresh";
-
 }

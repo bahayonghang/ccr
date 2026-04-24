@@ -133,8 +133,7 @@ pub async fn refresh_codex_tray<R: Runtime>(app: &AppHandle<R>, force: bool) -> 
             Ok(())
         }
         Err(error) => {
-            app.state::<AppState>()
-                .set_tray_switch_accounts(Vec::new());
+            app.state::<AppState>().set_tray_switch_accounts(Vec::new());
             let menu = build_error_tray_menu(app, &error)?;
             tray.set_menu(Some(menu))
                 .map_err(|e| format!("更新 tray 菜单失败: {e}"))?;
@@ -594,8 +593,7 @@ fn ensure_main_window<R: Runtime>(app: &AppHandle<R>) -> Result<WebviewWindow<R>
         .build()
         .map_err(|e| format!("重建主窗口失败: {e}"))?;
 
-    configure_main_window_chrome(&window)
-        .map_err(|e| format!("初始化主窗口 chrome 失败: {e}"))?;
+    configure_main_window_chrome(&window).map_err(|e| format!("初始化主窗口 chrome 失败: {e}"))?;
 
     Ok(window)
 }

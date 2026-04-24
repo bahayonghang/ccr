@@ -206,22 +206,22 @@ fn output_styles_dir() -> std::io::Result<PathBuf> {
 // ── 子模块导出 ──
 // ═══════════════════════════════════════════════════════════
 
-#[path = "claude_settings.rs"]
-mod settings;
-#[path = "claude_mcp.rs"]
-mod mcp;
 #[path = "claude_agents.rs"]
 mod agents;
-#[path = "claude_slash.rs"]
-mod slash;
-#[path = "claude_plugins.rs"]
-mod plugins;
-#[path = "claude_hooks.rs"]
-mod hooks;
 #[path = "claude_auth.rs"]
 mod auth;
+#[path = "claude_hooks.rs"]
+mod hooks;
+#[path = "claude_mcp.rs"]
+mod mcp;
+#[path = "claude_plugins.rs"]
+mod plugins;
 #[path = "claude_profiles.rs"]
 mod profiles;
+#[path = "claude_settings.rs"]
+mod settings;
+#[path = "claude_slash.rs"]
+mod slash;
 
 pub use agents::*;
 pub use auth::*;
