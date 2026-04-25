@@ -15,12 +15,12 @@ pub use models::opencode_auth::*;
 pub use platforms::CodexPlatform;
 pub use services::{
     AuthReadSnapshot, CodexAuthCacheAction, CodexAuthService, CodexHistoryBackupPruneResult,
-    CodexHistoryBackupSummary, CodexHistoryRestoreResult, CodexHistorySyncOptions,
-    CodexHistorySyncResult, CodexHistorySyncService, CodexHistorySyncStatus,
-    CodexModelProviderStoreService, CodexOAuthTokenService, CodexQuotaService, CodexRegistryStore,
-    CodexRollingUsage, CodexRuntimeCommitPlan, CodexRuntimeService, CodexSessionDetail,
-    CodexSessionExport, CodexSessionMessage, CodexSessionService, CodexSessionSummary,
-    CodexUsageRecord, CodexUsageService, CodexUsageStats, OAuthRepairOutcome, OpenCodeAuthService,
-    OpenCodeQuotaService, OpenCodeRollingUsage, OpenCodeUsageRecord, OpenCodeUsageService,
-    OpenCodeUsageStats,
+    CodexHistoryBackupSummary, CodexHistoryProviderBuckets, CodexHistoryRestoreResult,
+    CodexHistorySyncOptions, CodexHistorySyncResult, CodexHistorySyncService,
+    CodexHistorySyncStatus, CodexModelProviderStoreService, CodexOAuthTokenService,
+    CodexQuotaService, CodexRegistryStore, CodexRollingUsage, CodexRuntimeCommitPlan,
+    CodexRuntimeService, CodexSessionDetail, CodexSessionExport, CodexSessionMessage,
+    CodexSessionService, CodexSessionSummary, CodexUsageRecord, CodexUsageService, CodexUsageStats,
+    OAuthRepairOutcome, OpenCodeAuthService, OpenCodeQuotaService, OpenCodeRollingUsage,
+    OpenCodeUsageRecord, OpenCodeUsageService, OpenCodeUsageStats,
 };

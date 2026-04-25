@@ -31,13 +31,14 @@ pub use ccr_codex::services::codex_session_service::CodexSessionInventory;
 #[allow(unused_imports)]
 pub use ccr_codex::{
     AuthReadSnapshot, CodexAuthCacheAction, CodexAuthService, CodexHistoryBackupPruneResult,
-    CodexHistoryBackupSummary, CodexHistoryRestoreResult, CodexHistorySyncOptions,
-    CodexHistorySyncResult, CodexHistorySyncService, CodexHistorySyncStatus,
-    CodexOAuthTokenService, CodexQuotaService, CodexRollingUsage, CodexRuntimeCommitPlan,
-    CodexRuntimeService, CodexSessionDetail, CodexSessionExport, CodexSessionMessage,
-    CodexSessionService, CodexSessionSummary, CodexUsageRecord, CodexUsageService, CodexUsageStats,
-    OpenCodeAuthService, OpenCodeQuotaService, OpenCodeReadSnapshot, OpenCodeRollingUsage,
-    OpenCodeUsageRecord, OpenCodeUsageService, OpenCodeUsageStats,
+    CodexHistoryBackupSummary, CodexHistoryProviderBuckets, CodexHistoryRestoreResult,
+    CodexHistorySyncOptions, CodexHistorySyncResult, CodexHistorySyncService,
+    CodexHistorySyncStatus, CodexOAuthTokenService, CodexQuotaService, CodexRollingUsage,
+    CodexRuntimeCommitPlan, CodexRuntimeService, CodexSessionDetail, CodexSessionExport,
+    CodexSessionMessage, CodexSessionService, CodexSessionSummary, CodexUsageRecord,
+    CodexUsageService, CodexUsageStats, OpenCodeAuthService, OpenCodeQuotaService,
+    OpenCodeReadSnapshot, OpenCodeRollingUsage, OpenCodeUsageRecord, OpenCodeUsageService,
+    OpenCodeUsageStats,
 };
 #[allow(unused_imports)]
 pub use claude_auth_service::{ClaudeAuthItem, ClaudeAuthReadSnapshot, ClaudeAuthService};

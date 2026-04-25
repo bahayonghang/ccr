@@ -16,9 +16,9 @@ pub mod opencode_usage_service;
 pub use codex_auth_crypto::ExportCrypto;
 pub use codex_auth_service::{AuthReadSnapshot, CodexAuthService};
 pub use codex_history_sync_service::{
-    CodexHistoryBackupPruneResult, CodexHistoryBackupSummary, CodexHistoryRestoreResult,
-    CodexHistorySyncOptions, CodexHistorySyncResult, CodexHistorySyncService,
-    CodexHistorySyncStatus,
+    CodexHistoryBackupPruneResult, CodexHistoryBackupSummary, CodexHistoryProviderBuckets,
+    CodexHistoryRestoreResult, CodexHistorySyncOptions, CodexHistorySyncResult,
+    CodexHistorySyncService, CodexHistorySyncStatus,
 };
 pub use codex_model_provider_store::CodexModelProviderStoreService;
 pub use codex_oauth_token_service::{CodexOAuthTokenService, OAuthRepairOutcome};

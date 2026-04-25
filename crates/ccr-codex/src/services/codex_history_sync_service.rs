@@ -6,6 +6,7 @@ use crate::managers::CodexConfigManager;
 use ccr_core::core::error::{CcrError, Result};
 use ccr_core::core::lock::LockManager;
 use chrono::{DateTime, Utc};
+use filetime::FileTime;
 use rusqlite::types::Value as SqlValue;
 use rusqlite::{Connection, params_from_iter};
 use serde::{Deserialize, Serialize};
@@ -61,6 +62,7 @@ pub struct CodexHistorySyncStatus {
     pub current_provider: String,
     pub current_provider_implicit: bool,
     pub rollout_counts: CodexHistoryProviderBuckets,
+    pub recent_rollout_counts: CodexHistoryProviderBuckets,
     pub sqlite_counts: Option<CodexHistoryProviderBuckets>,
     pub backup_root: PathBuf,
     pub backup_summary: CodexHistoryBackupSummary,
@@ -71,7 +73,11 @@ pub struct CodexHistorySyncResult {
     pub codex_home: PathBuf,
     pub target_provider: String,
     pub previous_provider: String,
-    pub backup_dir: PathBuf,
+    pub backup_dir: Option<PathBuf>,
+    pub dry_run: bool,
+    pub max_age_days: u64,
+    pub rollout_counts: CodexHistoryProviderBuckets,
+    pub sqlite_counts: Option<CodexHistoryProviderBuckets>,
     pub changed_rollout_files: usize,
     pub added_sidebar_projects: usize,
     pub skipped_locked_rollout_files: Vec<PathBuf>,
@@ -85,6 +91,7 @@ pub struct CodexHistoryRestoreResult {
     pub codex_home: PathBuf,
     pub backup_dir: PathBuf,
     pub target_provider: String,
+    pub restored_state: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -93,6 +100,7 @@ pub struct CodexHistorySyncOptions {
     pub keep_count: usize,
     pub max_age_days: u64,
     pub sqlite_busy_timeout: Duration,
+    pub dry_run: bool,
 }
 
 impl Default for CodexHistorySyncOptions {
@@ -102,6 +110,7 @@ impl Default for CodexHistorySyncOptions {
             keep_count: DEFAULT_KEEP_COUNT,
             max_age_days: DEFAULT_MAX_AGE_DAYS,
             sqlite_busy_timeout: SQLITE_BUSY_TIMEOUT,
+            dry_run: false,
         }
     }
 }
@@ -148,6 +157,7 @@ struct SessionChange {
     original_offset: u64,
     original_size: u64,
     original_modified_ms: u128,
+    original_modified_time: FileTime,
     updated_first_line: String,
 }
 
@@ -294,6 +304,10 @@ impl CodexHistorySyncService {
         let rollout_counts = self
             .scan_session_changes("__status_only__", None)?
             .provider_counts;
+        let recent_cutoff = Utc::now() - chrono::Duration::days(DEFAULT_MAX_AGE_DAYS as i64);
+        let recent_rollout_counts = self
+            .scan_session_changes("__status_only__", Some(recent_cutoff))?
+            .provider_counts;
         let sqlite_counts = self.read_sqlite_provider_counts()?;
         let backup_summary = self.backup_summary()?;
 
@@ -302,6 +316,7 @@ impl CodexHistorySyncService {
             current_provider: current.provider,
             current_provider_implicit: current.implicit,
             rollout_counts,
+            recent_rollout_counts,
             sqlite_counts,
             backup_root: self.backup_root(),
             backup_summary,
@@ -325,11 +340,18 @@ impl CodexHistorySyncService {
             .lock_resource(LOCK_RESOURCE, LOCK_TIMEOUT)?;
 
         let current = self.current_provider()?;
-        let target_provider = options
+        let explicit_provider = options
             .provider
             .as_deref()
             .map(str::trim)
-            .filter(|value| !value.is_empty())
+            .filter(|value| !value.is_empty());
+        if explicit_provider.is_none() && current.implicit {
+            return Err(CcrError::ValidationError(
+                "sync-history requires --provider when config.toml has no root model_provider; use --provider openai or --provider custom".to_string(),
+            ));
+        }
+
+        let target_provider = explicit_provider
             .map(str::to_string)
             .unwrap_or_else(|| current.provider.clone());
         let cutoff = Utc::now() - chrono::Duration::days(options.max_age_days as i64);
@@ -338,6 +360,31 @@ impl CodexHistorySyncService {
         let sidebar_plan = self.prepare_sidebar_sync(
             self.read_sqlite_project_paths(options.sqlite_busy_timeout, &scan.thread_candidates)?,
         )?;
+        let sqlite_preview = self.preview_sqlite_provider_update(
+            &target_provider,
+            options.sqlite_busy_timeout,
+            &scan.thread_candidates,
+        )?;
+        let sqlite_counts = self.read_sqlite_provider_counts()?;
+        if options.dry_run {
+            return Ok(CodexHistorySyncResult {
+                codex_home: self.codex_home.clone(),
+                target_provider,
+                previous_provider: current.provider,
+                backup_dir: None,
+                dry_run: true,
+                max_age_days: options.max_age_days,
+                rollout_counts: scan.provider_counts,
+                sqlite_counts,
+                changed_rollout_files: scan.changes.len(),
+                added_sidebar_projects: sidebar_plan.added_projects.len(),
+                skipped_locked_rollout_files: Vec::new(),
+                sqlite_rows_updated: sqlite_preview.updated_rows,
+                sqlite_present: sqlite_preview.database_present,
+                backup_cleanup: None,
+            });
+        }
+
         self.assert_sqlite_writable(options.sqlite_busy_timeout)?;
 
         let backup_dir = self.create_backup(&target_provider, &sidebar_plan)?;
@@ -368,7 +415,11 @@ impl CodexHistorySyncService {
                     codex_home: self.codex_home.clone(),
                     target_provider,
                     previous_provider: current.provider,
-                    backup_dir,
+                    backup_dir: Some(backup_dir),
+                    dry_run: false,
+                    max_age_days: options.max_age_days,
+                    rollout_counts: scan.provider_counts,
+                    sqlite_counts,
                     changed_rollout_files: apply_result.applied_changes.len(),
                     added_sidebar_projects: sidebar_plan.added_projects.len(),
                     skipped_locked_rollout_files: apply_result.skipped_locked_paths,
@@ -390,6 +441,21 @@ impl CodexHistorySyncService {
     }
 
     pub fn restore<P: AsRef<Path>>(&self, backup_dir: P) -> Result<CodexHistoryRestoreResult> {
+        self.restore_inner(backup_dir, false)
+    }
+
+    pub fn restore_with_state<P: AsRef<Path>>(
+        &self,
+        backup_dir: P,
+    ) -> Result<CodexHistoryRestoreResult> {
+        self.restore_inner(backup_dir, true)
+    }
+
+    fn restore_inner<P: AsRef<Path>>(
+        &self,
+        backup_dir: P,
+        restore_state: bool,
+    ) -> Result<CodexHistoryRestoreResult> {
         let _lock = self
             .lock_manager
             .lock_resource(LOCK_RESOURCE, LOCK_TIMEOUT)?;
@@ -398,13 +464,16 @@ impl CodexHistorySyncService {
         let metadata = self.read_backup_metadata(&backup_dir)?;
         let session_entries = self.read_session_manifest(&backup_dir)?;
         self.restore_session_entries(&session_entries)?;
-        self.restore_global_state_from_backup(&backup_dir, &metadata)?;
-        self.restore_sqlite_from_backup(&backup_dir, &metadata)?;
+        if restore_state {
+            self.restore_global_state_from_backup(&backup_dir, &metadata)?;
+            self.restore_sqlite_from_backup(&backup_dir, &metadata)?;
+        }
 
         Ok(CodexHistoryRestoreResult {
             codex_home: self.codex_home.clone(),
             backup_dir,
             target_provider: metadata.target_provider,
+            restored_state: restore_state,
         })
     }
 
@@ -506,14 +575,6 @@ impl CodexHistorySyncService {
                     continue;
                 };
 
-                let current_provider = payload
-                    .get("model_provider")
-                    .and_then(|value| value.as_str())
-                    .filter(|value| !value.trim().is_empty())
-                    .unwrap_or("(missing)")
-                    .to_string();
-                increment_provider_count(&mut provider_counts, scope, &current_provider);
-
                 let (_, updated_at) = extract_rollout_time_bounds(&path)?;
                 if cutoff
                     .map(|value| updated_at < value.timestamp())
@@ -521,6 +582,14 @@ impl CodexHistorySyncService {
                 {
                     continue;
                 }
+
+                let current_provider = payload
+                    .get("model_provider")
+                    .and_then(|value| value.as_str())
+                    .filter(|value| !value.trim().is_empty())
+                    .unwrap_or("(missing)")
+                    .to_string();
+                increment_provider_count(&mut provider_counts, scope, &current_provider);
 
                 if let Some(id) = payload
                     .get("id")
@@ -540,6 +609,7 @@ impl CodexHistorySyncService {
                 }
 
                 let metadata = fs::metadata(&path)?;
+                let modified_time = FileTime::from_last_modification_time(&metadata);
                 let modified_ms = metadata
                     .modified()
                     .ok()
@@ -565,6 +635,7 @@ impl CodexHistorySyncService {
                     original_offset: first_line.offset,
                     original_size: metadata.len(),
                     original_modified_ms: modified_ms,
+                    original_modified_time: modified_time,
                     updated_first_line: serde_json::to_string(&updated).map_err(|err| {
                         CcrError::ConfigError(format!("序列化 session_meta 失败: {}", err))
                     })?,
@@ -1028,6 +1099,64 @@ impl CodexHistorySyncService {
             restore_rollout_first_line(entry)?;
         }
         Ok(())
+    }
+
+    fn preview_sqlite_provider_update(
+        &self,
+        target_provider: &str,
+        busy_timeout: Duration,
+        thread_candidates: &[RolloutThreadCandidate],
+    ) -> Result<SqliteUpdateResult> {
+        let db_path = self.codex_home.join(SQLITE_FILE_NAME);
+        if !db_path.exists() {
+            return Ok(SqliteUpdateResult {
+                updated_rows: 0,
+                database_present: false,
+            });
+        }
+
+        let conn = Connection::open(&db_path).map_err(|err| {
+            CcrError::DatabaseError(format!("open state_5.sqlite failed: {}", err))
+        })?;
+        conn.busy_timeout(busy_timeout).map_err(|err| {
+            CcrError::DatabaseError(format!("set SQLite busy timeout failed: {}", err))
+        })?;
+
+        let candidate_ids: Vec<&str> = thread_candidates
+            .iter()
+            .map(|candidate| candidate.id.as_str())
+            .collect();
+        if candidate_ids.is_empty() {
+            return Ok(SqliteUpdateResult {
+                updated_rows: 0,
+                database_present: true,
+            });
+        }
+
+        let placeholders = std::iter::repeat_n("?", candidate_ids.len())
+            .collect::<Vec<_>>()
+            .join(", ");
+        let sql = format!(
+            "SELECT COUNT(*) FROM threads WHERE COALESCE(model_provider, '') <> ?1 AND id IN ({})",
+            placeholders
+        );
+        let params = std::iter::once(target_provider).chain(candidate_ids.iter().copied());
+        let existing_updates: i64 = conn
+            .query_row(&sql, params_from_iter(params), |row| row.get(0))
+            .map_err(|err| {
+                CcrError::DatabaseError(format!("preview SQLite provider update failed: {}", err))
+            })?;
+
+        let existing_ids = load_existing_thread_ids(&conn)?;
+        let missing_rows = thread_candidates
+            .iter()
+            .filter(|candidate| !existing_ids.contains(&candidate.id))
+            .count();
+
+        Ok(SqliteUpdateResult {
+            updated_rows: existing_updates as usize + missing_rows,
+            database_present: true,
+        })
     }
 
     fn update_sqlite_provider(
@@ -1739,6 +1868,8 @@ fn rewrite_rollout_first_line_windows(
     }
     file.write_all(&rest).map_err(map_io_error)?;
     file.flush().map_err(map_io_error)?;
+    drop(file);
+    restore_file_mtime(&change.path, change.original_modified_time)?;
 
     Ok(Some(AppliedSessionBackupEntry {
         path: change.path.clone(),
@@ -1849,6 +1980,11 @@ fn map_io_error(err: std::io::Error) -> CcrError {
         return CcrError::FileLockError(format!("rollout 文件正在被占用: {}", err));
     }
     CcrError::IoError(err)
+}
+
+fn restore_file_mtime(path: &Path, modified_time: FileTime) -> Result<()> {
+    filetime::set_file_mtime(path, modified_time)
+        .map_err(|err| CcrError::FileIoError(format!("restore rollout mtime failed: {}", err)))
 }
 
 fn is_locked_file_io_error(err: &std::io::Error) -> bool {
@@ -2065,6 +2201,7 @@ fn rewrite_rollout_first_line_portable(
     }
     temp.write_all(&rest).map_err(map_io_error)?;
     temp.flush().map_err(map_io_error)?;
+    restore_file_mtime(temp.path(), change.original_modified_time)?;
     temp.persist(&change.path)
         .map_err(|err| CcrError::FileIoError(format!("替换 rollout 文件失败: {}", err)))?;
 
@@ -2202,6 +2339,116 @@ mod tests {
     }
 
     #[test]
+    fn sync_rejects_implicit_openai_without_provider() {
+        let dir = tempdir().unwrap();
+        let service = create_service(dir.path());
+        write_config(&service.codex_home, None);
+
+        let err = service
+            .sync(CodexHistorySyncOptions::default())
+            .unwrap_err();
+        assert!(err.to_string().contains("--provider"));
+    }
+
+    #[test]
+    fn sync_accepts_explicit_custom_when_current_provider_is_implicit() {
+        let dir = tempdir().unwrap();
+        let service = create_service(dir.path());
+        write_config(&service.codex_home, None);
+        write_global_state(
+            &service.codex_home,
+            r#"{"electron-saved-workspace-roots":[],"project-order":[],"thread-workspace-root-hints":{}}"#,
+        );
+        let session_path = service
+            .codex_home
+            .join("sessions/2026/04/09/rollout-a.jsonl");
+        write_rollout(&session_path, "thread-a", "openai");
+        write_state_db(
+            &service.codex_home,
+            &[("thread-a", "openai", false, r"E:\Repo")],
+        );
+
+        let result = service
+            .sync(CodexHistorySyncOptions {
+                provider: Some("custom".to_string()),
+                ..Default::default()
+            })
+            .unwrap();
+        assert_eq!(result.target_provider, "custom");
+        assert_eq!(result.changed_rollout_files, 1);
+        assert_eq!(result.sqlite_rows_updated, 1);
+
+        let rollout = fs::read_to_string(&session_path).unwrap();
+        assert!(rollout.contains(r#""model_provider":"custom""#));
+
+        let conn = Connection::open(service.codex_home.join(SQLITE_FILE_NAME)).unwrap();
+        let provider: String = conn
+            .query_row(
+                "SELECT model_provider FROM threads WHERE id = 'thread-a'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(provider, "custom");
+    }
+
+    #[test]
+    fn sync_dry_run_previews_without_writing_state() {
+        let dir = tempdir().unwrap();
+        let service = create_service(dir.path());
+        write_config(&service.codex_home, Some("openai"));
+        let original_state = r#"{"electron-saved-workspace-roots":[],"project-order":[],"thread-workspace-root-hints":{"thread-a":"E:\\Repo"}}"#;
+        write_global_state(&service.codex_home, original_state);
+        let session_path = service
+            .codex_home
+            .join("sessions/2026/04/09/rollout-a.jsonl");
+        write_rollout(&session_path, "thread-a", "custom");
+        write_state_db(
+            &service.codex_home,
+            &[("thread-a", "custom", false, r"E:\Repo")],
+        );
+
+        let result = service
+            .sync(CodexHistorySyncOptions {
+                dry_run: true,
+                ..Default::default()
+            })
+            .unwrap();
+        assert!(result.dry_run);
+        assert!(result.backup_dir.is_none());
+        assert_eq!(result.changed_rollout_files, 1);
+        assert_eq!(result.sqlite_rows_updated, 1);
+        assert_eq!(result.added_sidebar_projects, 1);
+        assert_eq!(result.rollout_counts.sessions.get("custom"), Some(&1));
+        assert_eq!(
+            result
+                .sqlite_counts
+                .as_ref()
+                .unwrap()
+                .sessions
+                .get("custom"),
+            Some(&1)
+        );
+        assert!(!service.backup_root().exists());
+
+        let rollout = fs::read_to_string(&session_path).unwrap();
+        assert!(rollout.contains(r#""model_provider":"custom""#));
+        let global_state =
+            fs::read_to_string(service.codex_home.join(GLOBAL_STATE_FILE_NAME)).unwrap();
+        assert_eq!(global_state, original_state);
+
+        let conn = Connection::open(service.codex_home.join(SQLITE_FILE_NAME)).unwrap();
+        let provider: String = conn
+            .query_row(
+                "SELECT model_provider FROM threads WHERE id = 'thread-a'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(provider, "custom");
+    }
+
+    #[test]
     fn sync_rewrites_rollout_sqlite_and_sidebar_then_restore_reverts() {
         let dir = tempdir().unwrap();
         let service = create_service(dir.path());
@@ -2242,9 +2489,20 @@ mod tests {
             fs::read_to_string(service.codex_home.join(GLOBAL_STATE_FILE_NAME)).unwrap();
         assert!(global_state.contains(r#"E:\\Repo"#));
 
-        service.restore(&result.backup_dir).unwrap();
+        service
+            .restore(result.backup_dir.as_ref().unwrap())
+            .unwrap();
         let rollout = fs::read_to_string(&session_path).unwrap();
         assert!(rollout.contains(r#""model_provider":"custom""#));
+
+        let provider: String = conn
+            .query_row(
+                "SELECT model_provider FROM threads WHERE id = 'thread-a'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(provider, "openai");
     }
 
     #[test]
@@ -2457,11 +2715,8 @@ mod tests {
             r"E:\RecentMtime",
         );
         write_rollout_without_timestamps(&old_path, "thread-old-mtime", "custom", r"E:\OldMtime");
-        filetime::set_file_mtime(
-            &recent_path,
-            FileTime::from_unix_time(Utc::now().timestamp() - 2 * 24 * 3600, 0),
-        )
-        .unwrap();
+        let recent_mtime = FileTime::from_unix_time(Utc::now().timestamp() - 2 * 24 * 3600, 0);
+        filetime::set_file_mtime(&recent_path, recent_mtime).unwrap();
         filetime::set_file_mtime(
             &old_path,
             FileTime::from_unix_time(Utc::now().timestamp() - 20 * 24 * 3600, 0),
@@ -2483,6 +2738,9 @@ mod tests {
         let old_rollout = fs::read_to_string(&old_path).unwrap();
         assert!(recent_rollout.contains(r#""model_provider":"openai""#));
         assert!(old_rollout.contains(r#""model_provider":"custom""#));
+        let actual_mtime =
+            FileTime::from_last_modification_time(&fs::metadata(&recent_path).unwrap());
+        assert_eq!(actual_mtime, recent_mtime);
     }
 
     #[test]

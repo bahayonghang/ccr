@@ -36,7 +36,7 @@ CCR 保留 `custom` 作为第三方 Codex profile 的运行时 provider 命名�
 
 这意味着 `model_provider` 在第三方模式下表示 CCR 保留的运行时命名空间，而不是上游厂商名。历史遗留的 `[model_providers.<legacy_id>]` 表可能继续存在，但当前运行时只使用 `custom`。
 
-如果你已经切换了运行时 provider，但旧历史在 Codex CLI / App 中仍然不可见，请使用 `ccr codex sync-history` 同步 rollout / SQLite / 侧边栏元数据。
+如果你已经切换了运行时 provider，但旧历史在 Codex CLI / App 中仍然不可见，请使用 `ccr codex sync-history --provider <ID>` 同步 rollout / SQLite / 侧边栏元数据。URL+Key profile 在 CCR 中的运行时 provider 是 `custom`；想让最近 `openai` 会话在 URL+Key profile 下可见时，用 `--provider custom`。想恢复官方 profile 视图时，用 `--provider openai`。建议先加 `--dry-run` 预览。
 
 ## 字段配置（重点）
 

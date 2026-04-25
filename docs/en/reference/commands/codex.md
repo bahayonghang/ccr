@@ -7,9 +7,9 @@
 ```bash
 ccr codex
 ccr codex auth <ACTION> [OPTIONS]
-ccr codex sync-history [--provider <ID>] [--keep <N>] [--codex-home <PATH>]
+ccr codex sync-history --provider <ID> [--keep <N>] [--max-age-days <DAYS>] [--dry-run] [--codex-home <PATH>]
 ccr codex sync-history status
-ccr codex sync-history restore <BACKUP_DIR>
+ccr codex sync-history restore <BACKUP_DIR> [--restore-state]
 ccr codex sync-history prune-backups [--keep <N>]
 ```
 
@@ -41,30 +41,41 @@ Scope:
 - Syncs `threads.model_provider` inside `~/.codex/state_5.sqlite`
 - Conservatively restores missing sidebar project entries in `.codex-global-state.json`
 - Creates recoverable backups under `.codex/backups_state/sync-history/`
+- Processes only the latest 7 days by default; use `--max-age-days` to change the window
+- Preserves rollout mtime after rewriting so Codex Resume `Updated` sorting is not bulk-refreshed
 
 Supported subcommands:
 
 | Subcommand | Purpose |
 |------------|---------|
-| `sync-history` | Sync to the current root `model_provider`, or to `--provider` if provided |
-| `sync-history status` | Show the current provider plus rollout / SQLite distribution |
-| `sync-history restore <backup-dir>` | Restore from a backup directory |
+| `sync-history --provider <ID>` | Sync to an explicit target provider; if the root `model_provider` is missing, `--provider` is required |
+| `sync-history --dry-run` | Preview rollout / SQLite / sidebar changes without creating backups or writing state |
+| `sync-history status` | Show the current Codex runtime provider, rollout / SQLite distribution, and recent 7-day provider distribution |
+| `sync-history restore <backup-dir>` | Restore only rollout provider fields recorded in the manifest by default |
+| `sync-history restore <backup-dir> --restore-state` | Also restore the old `state_5.sqlite` and global state; this can overwrite thread metadata created after the backup |
 | `sync-history prune-backups` | Remove old backups |
 
 Examples:
 
 ```bash
-# Sync to the current root model_provider in ~/.codex/config.toml
-ccr codex sync-history
+# Preview the recent 7-day changes first
+ccr codex sync-history --provider custom --dry-run
 
-# Explicitly sync to custom
+# CCR URL+Key profiles use custom as the Codex runtime provider
+# Use custom to make recent openai sessions visible under a URL+Key profile
 ccr codex sync-history --provider custom
+
+# Use openai to restore the official profile view
+ccr codex sync-history --provider openai
 
 # Inspect current state
 ccr codex sync-history status
 
-# Restore from a previous backup
+# Normal restore only rolls back rollout provider fields from the manifest
 ccr codex sync-history restore C:\Users\you\.codex\backups_state\sync-history\20260409T101530123Z
+
+# Restore SQLite / global state only when you need the older full snapshot
+ccr codex sync-history restore C:\Users\you\.codex\backups_state\sync-history\20260409T101530123Z --restore-state
 
 # Keep only the latest 3 backups
 ccr codex sync-history prune-backups --keep 3

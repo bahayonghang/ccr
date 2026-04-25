@@ -14,12 +14,14 @@ pub async fn sync_command(
     provider: Option<String>,
     keep: Option<usize>,
     max_age_days: u64,
+    dry_run: bool,
     codex_home: Option<String>,
 ) -> Result<()> {
     let service = build_service(codex_home)?;
     let mut options = CodexHistorySyncOptions {
         provider,
         max_age_days,
+        dry_run,
         ..Default::default()
     };
     if let Some(keep) = keep {
@@ -27,7 +29,7 @@ pub async fn sync_command(
     }
 
     let result = service.sync(options)?;
-    print_sync_result("Synchronized", &result);
+    print_sync_result(&result);
     Ok(())
 }
 
@@ -38,9 +40,17 @@ pub async fn status_command(codex_home: Option<String>) -> Result<()> {
     Ok(())
 }
 
-pub async fn restore_command(backup_dir: &str, codex_home: Option<String>) -> Result<()> {
+pub async fn restore_command(
+    backup_dir: &str,
+    codex_home: Option<String>,
+    restore_state: bool,
+) -> Result<()> {
     let service = build_service(codex_home)?;
-    let result = service.restore(backup_dir)?;
+    let result = if restore_state {
+        service.restore_with_state(backup_dir)?
+    } else {
+        service.restore(backup_dir)?
+    };
 
     ColorOutput::success("已恢复 sync-history 备份");
     ColorOutput::info(&format!("Codex home: {}", result.codex_home.display()));
@@ -49,6 +59,15 @@ pub async fn restore_command(backup_dir: &str, codex_home: Option<String>) -> Re
         "Provider at backup time: {}",
         result.target_provider
     ));
+    if result.restored_state {
+        ColorOutput::warning(
+            "Restored state_5.sqlite and global state; this can overwrite metadata created after the backup.",
+        );
+    } else {
+        ColorOutput::warning(
+            "Restored rollout provider metadata only. Use --restore-state only when you intentionally want the older SQLite/global-state snapshot.",
+        );
+    }
     Ok(())
 }
 
@@ -69,7 +88,7 @@ fn build_service(codex_home: Option<String>) -> Result<CodexHistorySyncService> 
 fn print_status(status: &CodexHistorySyncStatus) {
     println!("Codex home: {}", status.codex_home.display());
     println!(
-        "Current provider: {}{}",
+        "Codex runtime provider: {}{}",
         status.current_provider,
         if status.current_provider_implicit {
             " (implicit default)"
@@ -94,6 +113,16 @@ fn print_status(status: &CodexHistorySyncStatus) {
         format_counts(&status.rollout_counts.archived_sessions)
     );
     println!();
+    println!("Recent rollout files (last 7 days):");
+    println!(
+        "  sessions: {}",
+        format_counts(&status.recent_rollout_counts.sessions)
+    );
+    println!(
+        "  archived_sessions: {}",
+        format_counts(&status.recent_rollout_counts.archived_sessions)
+    );
+    println!();
     println!("SQLite state:");
     if let Some(sqlite_counts) = &status.sqlite_counts {
         println!("  sessions: {}", format_counts(&sqlite_counts.sessions));
@@ -104,19 +133,65 @@ fn print_status(status: &CodexHistorySyncStatus) {
     } else {
         println!("  state_5.sqlite not found");
     }
+    println!();
+    println!(
+        "Rollout / SQLite difference: {}",
+        format_bucket_diff(&status.rollout_counts, status.sqlite_counts.as_ref())
+    );
 }
 
-fn print_sync_result(label: &str, result: &CodexHistorySyncResult) {
-    println!("{label} provider: {}", result.target_provider);
+fn print_sync_result(result: &CodexHistorySyncResult) {
+    println!("Provider metadata target: {}", result.target_provider);
+    println!("Mode: {}", if result.dry_run { "dry-run" } else { "write" });
+    println!("Max age filter: last {} day(s)", result.max_age_days);
     println!("Codex home: {}", result.codex_home.display());
-    println!("Backup: {}", result.backup_dir.display());
-    println!("Updated rollout files: {}", result.changed_rollout_files);
-    println!("Added sidebar projects: {}", result.added_sidebar_projects);
+    println!(
+        "Filtered rollout sessions: {}",
+        format_counts(&result.rollout_counts.sessions)
+    );
+    println!(
+        "Filtered rollout archived_sessions: {}",
+        format_counts(&result.rollout_counts.archived_sessions)
+    );
+    if let Some(sqlite_counts) = &result.sqlite_counts {
+        println!(
+            "SQLite sessions before sync: {}",
+            format_counts(&sqlite_counts.sessions)
+        );
+        println!(
+            "SQLite archived_sessions before sync: {}",
+            format_counts(&sqlite_counts.archived_sessions)
+        );
+    } else {
+        println!("SQLite provider distribution: state_5.sqlite not found");
+    }
+    if let Some(backup_dir) = &result.backup_dir {
+        println!("Backup: {}", backup_dir.display());
+    } else {
+        println!("Backup: not created");
+    }
+    let rollout_label = if result.dry_run {
+        "Rollout files to update"
+    } else {
+        "Updated rollout files"
+    };
+    let sidebar_label = if result.dry_run {
+        "Sidebar projects to add"
+    } else {
+        "Added sidebar projects"
+    };
+    println!("{}: {}", rollout_label, result.changed_rollout_files);
+    println!("{}: {}", sidebar_label, result.added_sidebar_projects);
     if result.sqlite_present {
-        println!("Updated SQLite rows: {}", result.sqlite_rows_updated);
+        let sqlite_label = if result.dry_run {
+            "SQLite rows to update/insert"
+        } else {
+            "Updated SQLite rows"
+        };
+        println!("{}: {}", sqlite_label, result.sqlite_rows_updated);
     } else {
         println!(
-            "Updated SQLite rows: {} (state_5.sqlite not found)",
+            "SQLite rows to update/insert: {} (state_5.sqlite not found)",
             result.sqlite_rows_updated
         );
     }
@@ -164,6 +239,57 @@ fn format_counts(counts: &std::collections::BTreeMap<String, usize>) -> String {
         .map(|(provider, count)| format!("{provider}: {count}"))
         .collect::<Vec<_>>()
         .join(", ")
+}
+
+fn format_bucket_diff(
+    rollout_counts: &crate::services::CodexHistoryProviderBuckets,
+    sqlite_counts: Option<&crate::services::CodexHistoryProviderBuckets>,
+) -> String {
+    let Some(sqlite_counts) = sqlite_counts else {
+        return "state_5.sqlite not found".to_string();
+    };
+
+    let mut diffs = Vec::new();
+    append_count_diffs(
+        "sessions",
+        &rollout_counts.sessions,
+        &sqlite_counts.sessions,
+        &mut diffs,
+    );
+    append_count_diffs(
+        "archived_sessions",
+        &rollout_counts.archived_sessions,
+        &sqlite_counts.archived_sessions,
+        &mut diffs,
+    );
+
+    if diffs.is_empty() {
+        "none".to_string()
+    } else {
+        diffs.join("; ")
+    }
+}
+
+fn append_count_diffs(
+    scope: &str,
+    rollout: &std::collections::BTreeMap<String, usize>,
+    sqlite: &std::collections::BTreeMap<String, usize>,
+    diffs: &mut Vec<String>,
+) {
+    let providers = rollout
+        .keys()
+        .chain(sqlite.keys())
+        .cloned()
+        .collect::<std::collections::BTreeSet<_>>();
+    for provider in providers {
+        let rollout_count = rollout.get(&provider).copied().unwrap_or_default();
+        let sqlite_count = sqlite.get(&provider).copied().unwrap_or_default();
+        if rollout_count != sqlite_count {
+            diffs.push(format!(
+                "{scope}/{provider}: rollout {rollout_count}, sqlite {sqlite_count}"
+            ));
+        }
+    }
 }
 
 fn format_bytes(bytes: u64) -> String {

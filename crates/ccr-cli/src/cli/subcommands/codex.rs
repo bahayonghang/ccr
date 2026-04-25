@@ -59,8 +59,9 @@ pub enum CodexAction {
     ///
     /// 修复官方/第三方 provider 切换后历史会话不可见的问题。
     /// 默认仅同步最近 7 天内的对话，避免导入过久远的历史记录。
-    /// 示例: ccr codex sync-history
+    /// 示例: ccr codex sync-history --provider custom --dry-run
     ///       ccr codex sync-history --provider custom
+    ///       ccr codex sync-history --provider openai
     ///       ccr codex sync-history --max-age-days 30
     ///       ccr codex sync-history status
     SyncHistory {
@@ -75,6 +76,10 @@ pub enum CodexAction {
         /// 最大导入会话年龄（天）；默认仅同步最近 7 天内的对话
         #[arg(long, default_value_t = 7)]
         max_age_days: u64,
+
+        /// Preview rollout / SQLite changes without writing backups or state.
+        #[arg(long)]
+        dry_run: bool,
 
         /// 指定 Codex home 目录（默认使用 ~/.codex 或 CCR_CODEX_DIR）
         #[arg(long)]
@@ -104,6 +109,10 @@ pub enum CodexSyncHistoryAction {
         /// 指定 Codex home 目录（默认使用 ~/.codex 或 CCR_CODEX_DIR）
         #[arg(long)]
         codex_home: Option<String>,
+
+        /// Restore backed up global state and state_5.sqlite as well as rollout metadata.
+        #[arg(long)]
+        restore_state: bool,
     },
 
     /// 清理旧的 sync-history 备份

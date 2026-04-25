@@ -36,7 +36,7 @@ For every third-party profile:
 
 That means `model_provider` represents CCR's reserved runtime namespace in third-party mode, not the upstream vendor name. Legacy `[model_providers.<legacy_id>]` tables may still remain in the file, but the active runtime path is `custom`.
 
-If you have already switched the runtime provider but old history is still invisible in Codex CLI / App, use `ccr codex sync-history` to sync rollout, SQLite, and sidebar metadata.
+If you have already switched the runtime provider but old history is still invisible in Codex CLI / App, use `ccr codex sync-history --provider <ID>` to sync rollout, SQLite, and sidebar metadata. CCR URL+Key profiles use `custom` as the Codex runtime provider; use `--provider custom` to make recent `openai` sessions visible under a URL+Key profile. Use `--provider openai` to restore the official profile view. Prefer `--dry-run` first.
 
 ## Key Fields (model / effort / url / key)
 

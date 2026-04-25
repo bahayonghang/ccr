@@ -7,9 +7,9 @@
 ```bash
 ccr codex
 ccr codex auth <ACTION> [OPTIONS]
-ccr codex sync-history [--provider <ID>] [--keep <N>] [--codex-home <PATH>]
+ccr codex sync-history --provider <ID> [--keep <N>] [--max-age-days <DAYS>] [--dry-run] [--codex-home <PATH>]
 ccr codex sync-history status
-ccr codex sync-history restore <BACKUP_DIR>
+ccr codex sync-history restore <BACKUP_DIR> [--restore-state]
 ccr codex sync-history prune-backups [--keep <N>]
 ```
 
@@ -41,30 +41,41 @@ ccr codex sync-history prune-backups [--keep <N>]
 - 同步 `~/.codex/state_5.sqlite` 中 `threads.model_provider`
 - 保守补齐 `.codex-global-state.json` 中缺失的侧边栏项目项
 - 在 `.codex/backups_state/sync-history/` 下创建可恢复备份
+- 默认只处理最近 7 天会话；可用 `--max-age-days` 调整窗口
+- 改写 rollout 后保留原始 mtime，避免 Codex Resume 的 `Updated` 排序被批量刷新
 
 支持的子命令：
 
 | 子命令 | 说明 |
 |--------|------|
-| `sync-history` | 同步到当前 root `model_provider`，或 `--provider` 指定的目标 provider |
-| `sync-history status` | 查看当前 provider 与 rollout / SQLite 分布 |
-| `sync-history restore <backup-dir>` | 从指定备份恢复 |
+| `sync-history --provider <ID>` | 同步到显式指定的目标 provider；root `model_provider` 缺失时必须传 `--provider` |
+| `sync-history --dry-run` | 只预览 rollout / SQLite / sidebar 将修改的数量，不创建备份、不写状态 |
+| `sync-history status` | 查看当前 Codex runtime provider、rollout / SQLite 分布、最近 7 天 provider 分布 |
+| `sync-history restore <backup-dir>` | 默认只按 manifest 恢复 rollout provider 字段 |
+| `sync-history restore <backup-dir> --restore-state` | 同时恢复旧 `state_5.sqlite` 和全局状态，可能覆盖备份后新增线程元数据 |
 | `sync-history prune-backups` | 清理旧备份 |
 
 常见示例：
 
 ```bash
-# 同步到当前 ~/.codex/config.toml 的根级 model_provider
-ccr codex sync-history
+# 先预览最近 7 天将被改写的会话
+ccr codex sync-history --provider custom --dry-run
 
-# 显式同步到 custom
+# URL+Key profile 在 CCR 中的运行时 provider 是 custom
+# 想让最近 openai 会话在 URL+Key profile 下可见，用 custom
 ccr codex sync-history --provider custom
+
+# 想恢复官方 profile 视图，用 openai
+ccr codex sync-history --provider openai
 
 # 查看当前状态
 ccr codex sync-history status
 
-# 恢复某次备份
+# 普通恢复只回滚 rollout manifest 中记录的 provider 字段
 ccr codex sync-history restore C:\Users\you\.codex\backups_state\sync-history\20260409T101530123Z
+
+# 需要完整回到旧快照时才恢复 SQLite / 全局状态
+ccr codex sync-history restore C:\Users\you\.codex\backups_state\sync-history\20260409T101530123Z --restore-state
 
 # 只保留最近 3 份备份
 ccr codex sync-history prune-backups --keep 3
