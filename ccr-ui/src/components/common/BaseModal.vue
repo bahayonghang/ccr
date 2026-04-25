@@ -13,6 +13,9 @@
       <div
         v-if="modelValue"
         class="base-modal-root fixed inset-0 flex items-center justify-center p-4"
+        @pointerdown.self="handleBackdropPointerDown"
+        @pointerup="handleBackdropPointerUp"
+        @pointercancel="clearBackdropPointer"
         @click.self="handleBackdropClick"
       >
         <!-- 背景遮罩 -->
@@ -136,6 +139,12 @@ interface Props {
   contentClass?: string
 }
 
+interface BackdropPointerState {
+  id: number
+  startX: number
+  startY: number
+}
+
 // Emits
 const emit = defineEmits<{
   'update:modelValue': [value: boolean]
@@ -162,6 +171,8 @@ const slots = useSlots()
 // Refs
 const modalRef = ref<HTMLElement | null>(null)
 const isOpenRef = computed(() => props.modelValue)
+const backdropPointer = ref<BackdropPointerState | null>(null)
+const BACKDROP_DRAG_THRESHOLD_PX = 6
 
 // 生成唯一 ID
 const titleId = useUniqueId('modal-title')
@@ -248,10 +259,40 @@ function handleClose() {
   emit('close')
 }
 
-function handleBackdropClick() {
-  if (props.closeOnBackdrop && !props.persistent) {
-    handleClose()
+function canCloseFromBackdrop() {
+  return props.closeOnBackdrop && !props.persistent
+}
+
+function clearBackdropPointer() {
+  backdropPointer.value = null
+}
+
+function handleBackdropPointerDown(event: PointerEvent) {
+  if (!canCloseFromBackdrop()) return
+
+  backdropPointer.value = {
+    id: event.pointerId,
+    startX: event.clientX,
+    startY: event.clientY,
   }
+}
+
+function handleBackdropPointerUp(event: PointerEvent) {
+  const pointer = backdropPointer.value
+  clearBackdropPointer()
+
+  if (!pointer || pointer.id !== event.pointerId || !canCloseFromBackdrop()) return
+  if (event.target !== event.currentTarget) return
+
+  const deltaX = Math.abs(event.clientX - pointer.startX)
+  const deltaY = Math.abs(event.clientY - pointer.startY)
+  if (deltaX > BACKDROP_DRAG_THRESHOLD_PX || deltaY > BACKDROP_DRAG_THRESHOLD_PX) return
+
+  handleClose()
+}
+
+function handleBackdropClick() {
+  clearBackdropPointer()
 }
 
 function handleAfterEnter() {
