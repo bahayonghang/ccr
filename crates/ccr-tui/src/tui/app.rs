@@ -518,15 +518,20 @@ impl App {
                 }
             }
             Action::SelectPrev => {
-                if self.selected_index > 0 {
-                    self.selected_index -= 1;
+                let page_len = self.current_page_profiles().len();
+                let next_index =
+                    super::selection::previous_index_in_page(page_len, self.selected_index);
+                if self.selected_index != next_index {
+                    self.selected_index = next_index;
                     self.remember_selected_profile();
                 }
             }
             Action::SelectNext => {
                 let page_len = self.current_page_profiles().len();
-                if page_len > 0 && self.selected_index < page_len - 1 {
-                    self.selected_index += 1;
+                let next_index =
+                    super::selection::next_index_in_page(page_len, self.selected_index);
+                if self.selected_index != next_index {
+                    self.selected_index = next_index;
                     self.remember_selected_profile();
                 }
             }
@@ -1134,6 +1139,71 @@ mod tests {
         assert_eq!(tab_hit_test(header, 1, 35, 3, 0), Some(1));
         // Click at col 65 → tab index 2
         assert_eq!(tab_hit_test(header, 1, 65, 3, 0), Some(2));
+    }
+
+    fn profile_navigation_app(count: usize, selected_index: usize, current_page: usize) -> App {
+        let profiles = (1..=count)
+            .map(|index| ProfileItem {
+                name: format!("profile-{index:02}"),
+                description: None,
+                is_current: index == 1,
+            })
+            .collect();
+
+        App {
+            tabs: vec![PlatformTab {
+                platform: Platform::Claude,
+                variant: TabVariant::Profile,
+                label: "Claude Code".to_string(),
+                profiles,
+                profile_configs: IndexMap::<String, ProfileConfig>::new(),
+                profile_load_error: None,
+                current_profile_error: None,
+                claude_runtime_summary: None,
+                codex_runtime_summary: None,
+                instance: None,
+            }],
+            active_tab: 0,
+            selected_index,
+            current_page,
+            selected_profile_name: None,
+            toasts: ToastManager::new(),
+            last_applied: None,
+            claude_auth_app: None,
+            claude_auth_error: None,
+            last_claude_action: None,
+            codex_auth_app: None,
+            codex_auth_error: None,
+            last_codex_action: None,
+            opencode_auth_app: None,
+            opencode_auth_error: None,
+            last_opencode_action: None,
+            header_area: Cell::new(None),
+            list_area: Cell::new(None),
+            task_executor: AsyncTaskExecutor::from_current_or_test(),
+        }
+    }
+
+    #[test]
+    fn navigation_wrap_profile_select_prev_stays_on_current_page() {
+        let mut app = profile_navigation_app(28, 0, 0);
+
+        app.dispatch(Action::SelectPrev).unwrap();
+
+        assert_eq!(app.current_page, 0);
+        assert_eq!(app.selected_index, PAGE_SIZE - 1);
+        assert_eq!(app.selected_profile_name.as_deref(), Some("profile-10"));
+    }
+
+    #[test]
+    fn navigation_wrap_profile_select_next_stays_on_current_page() {
+        let mut app = profile_navigation_app(28, PAGE_SIZE - 1, 0);
+
+        app.dispatch(Action::SelectNext).unwrap();
+
+        assert_eq!(app.current_page, 0);
+        assert_eq!(app.selected_index, 0);
+        assert_eq!(app.selected_profile_name.as_deref(), Some("profile-01"));
     }
 
     #[test]

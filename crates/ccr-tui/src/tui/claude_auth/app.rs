@@ -324,22 +324,17 @@ impl ClaudeAuthApp {
     }
 
     fn move_up(&mut self) {
-        if self.selected_index > 0 {
-            self.selected_index -= 1;
-        } else if self.current_page > 0 {
-            self.current_page -= 1;
-            self.selected_index = self.current_page_accounts().len().saturating_sub(1);
-        }
+        self.selected_index = super::super::selection::previous_index_in_page(
+            self.current_page_accounts().len(),
+            self.selected_index,
+        );
     }
 
     fn move_down(&mut self) {
-        let page_accounts = self.current_page_accounts();
-        if self.selected_index + 1 < page_accounts.len() {
-            self.selected_index += 1;
-        } else if self.current_page + 1 < self.total_pages() {
-            self.current_page += 1;
-            self.selected_index = 0;
-        }
+        self.selected_index = super::super::selection::next_index_in_page(
+            self.current_page_accounts().len(),
+            self.selected_index,
+        );
     }
 
     fn prev_page(&mut self) {
@@ -474,6 +469,8 @@ impl TuiApp for ClaudeAuthApp {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use chrono::Utc;
+    use std::path::PathBuf;
 
     #[test]
     fn should_refresh_when_cache_missing() {
@@ -505,5 +502,64 @@ mod tests {
             AUTH_SNAPSHOT_CACHE_TTL,
             now
         ));
+    }
+
+    fn navigation_account(index: usize) -> ClaudeAuthItem {
+        ClaudeAuthItem {
+            name: format!("account-{index:02}"),
+            description: None,
+            email: None,
+            billing_type: None,
+            subscription_type: None,
+            rate_limit_tier: None,
+            is_current: false,
+            is_logged_in: false,
+            saved_at: Utc::now(),
+            last_used: None,
+            expires_at: None,
+        }
+    }
+
+    fn navigation_app(
+        accounts: Vec<ClaudeAuthItem>,
+        selected_index: usize,
+        current_page: usize,
+    ) -> ClaudeAuthApp {
+        ClaudeAuthApp {
+            accounts,
+            selected_index,
+            current_page,
+            overlay: None,
+            toasts: ToastManager::new(),
+            should_quit: false,
+            login_state: ClaudeLoginState::NotLoggedIn,
+            current_info: None,
+            runtime_summary: None,
+            auth_registry: ClaudeAuthRegistry::default(),
+            service: ClaudeAuthService::from_parts(
+                PathBuf::from("."),
+                PathBuf::from("."),
+                PathBuf::from(".claude.json"),
+            ),
+            last_action: None,
+            list_area: Cell::new(None),
+            last_refresh_at: None,
+        }
+    }
+
+    #[test]
+    fn navigation_wrap_claude_auth_stays_on_current_page() {
+        let accounts = (1..=12).map(navigation_account).collect();
+        let mut app = navigation_app(accounts, 0, 1);
+
+        app.move_up();
+
+        assert_eq!(app.current_page, 1);
+        assert_eq!(app.selected_index, 1);
+
+        app.move_down();
+
+        assert_eq!(app.current_page, 1);
+        assert_eq!(app.selected_index, 0);
     }
 }

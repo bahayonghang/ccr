@@ -1124,24 +1124,19 @@ impl OpenCodeAuthApp {
 
     fn move_up(&mut self) {
         let before = self.selected_account().map(|account| account.name.clone());
-        if self.selected_index > 0 {
-            self.selected_index -= 1;
-        } else if self.current_page > 0 {
-            self.current_page -= 1;
-            self.selected_index = self.current_page_accounts().len().saturating_sub(1);
-        }
+        self.selected_index = super::super::selection::previous_index_in_page(
+            self.current_page_accounts().len(),
+            self.selected_index,
+        );
         self.maybe_request_quota_for_selection_change(before);
     }
 
     fn move_down(&mut self) {
         let before = self.selected_account().map(|account| account.name.clone());
-        let page_accounts = self.current_page_accounts();
-        if self.selected_index + 1 < page_accounts.len() {
-            self.selected_index += 1;
-        } else if self.current_page + 1 < self.total_pages() {
-            self.current_page += 1;
-            self.selected_index = 0;
-        }
+        self.selected_index = super::super::selection::next_index_in_page(
+            self.current_page_accounts().len(),
+            self.selected_index,
+        );
         self.maybe_request_quota_for_selection_change(before);
     }
 
@@ -1559,6 +1554,69 @@ mod tests {
             preview_task_active: false,
             quota_task_active: false,
         }
+    }
+
+    fn navigation_account(index: usize) -> OpenCodeAuthItem {
+        let now = Utc::now();
+        OpenCodeAuthItem {
+            name: format!("account-{index:02}"),
+            account_id: Some(format!("acc-{index:02}")),
+            email: None,
+            plan_type: Some("PLUS".to_string()),
+            is_current: index == 1,
+            is_virtual: false,
+            saved_at: Some(now - Duration::days(index as i64)),
+            last_used: None,
+            expires_at: Some(now + Duration::days(7)),
+        }
+    }
+
+    fn navigation_accounts(count: usize) -> Vec<OpenCodeAuthItem> {
+        (1..=count).map(navigation_account).collect()
+    }
+
+    fn make_refresh_test_app_on_page(
+        accounts: Vec<OpenCodeAuthItem>,
+        selected_index: usize,
+        current_page: usize,
+    ) -> OpenCodeAuthApp {
+        let mut app = make_refresh_test_app(accounts, selected_index);
+        app.current_page = current_page;
+        app
+    }
+
+    #[test]
+    fn navigation_wrap_opencode_auth_stays_on_current_page() {
+        let mut app = make_refresh_test_app_on_page(navigation_accounts(12), 0, 1);
+
+        app.move_up();
+
+        assert_eq!(app.current_page, 1);
+        assert_eq!(app.selected_index, 1);
+
+        app.move_down();
+
+        assert_eq!(app.current_page, 1);
+        assert_eq!(app.selected_index, 0);
+    }
+
+    #[test]
+    fn navigation_wrap_opencode_auth_enqueues_hover_refresh_for_wrapped_account() {
+        let mut app = make_refresh_test_app_on_page(navigation_accounts(12), 1, 1);
+        app.quota_refresh.set_cooldown(1);
+
+        app.move_down();
+
+        assert_eq!(app.current_page, 1);
+        assert_eq!(
+            app.selected_account().map(|account| account.name.as_str()),
+            Some("account-11")
+        );
+        assert_eq!(app.quota_refresh.pending_len(), 1);
+        app.quota_refresh.tick();
+        let next = app.quota_refresh.next_ready(false).unwrap();
+        assert_eq!(next.key, "account-11");
+        assert_eq!(next.tier, RefreshTier::HoverOnly);
     }
 
     #[test]

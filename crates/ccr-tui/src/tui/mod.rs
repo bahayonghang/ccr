@@ -10,6 +10,7 @@ mod event;
 pub mod opencode_auth;
 pub mod overlay;
 pub mod runtime;
+mod selection;
 pub mod theme;
 pub mod toast;
 mod ui;
