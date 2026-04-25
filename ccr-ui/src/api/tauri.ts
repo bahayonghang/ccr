@@ -314,6 +314,7 @@ export {
   listPrompts,
   updatePrompts,
   listClaudeProfiles,
+  exportClaudeProfiles,
   getClaudeProfile,
   addClaudeProfile,
   updateClaudeProfile,
@@ -331,6 +332,7 @@ export {
 // ════════════════════════════════════════════════════════════
 export {
   listCodexProfiles,
+  exportCodexProfiles,
   getCodexConfig,
   updateCodexConfig,
   listCodexMcpServers,

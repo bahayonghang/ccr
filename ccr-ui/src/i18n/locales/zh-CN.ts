@@ -457,6 +457,8 @@ export default {
     },
   },
   claudeProfiles: {
+    exportSuccess: 'Claude Profiles 已导出',
+    exportFailed: '导出 Claude Profiles 失败',
     breadcrumbProfiles: 'Profiles',
     title: 'Claude Profiles 管理',
     consoleEyebrow: 'Claude Control Console',
@@ -2025,6 +2027,8 @@ export default {
 
     // Profiles module
     profiles: {
+      exportSuccess: 'Codex Profiles 已导出',
+      exportFailed: '导出 Codex Profiles 失败',
       title: '配置管理',
       subtitle: '管理 Codex 平台 profiles.toml（CCR Unified 模式）',
       breadcrumb: 'Profiles 配置',

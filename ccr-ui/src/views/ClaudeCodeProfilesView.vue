@@ -62,6 +62,19 @@
 
           <button
             type="button"
+            class="claude-profiles-view__header-button claude-profiles-view__header-button--secondary"
+            :disabled="loading || isRefreshing || isSaving || isExporting"
+            @click="handleExportProfiles()"
+          >
+            <SIcon
+              name="Download"
+              size="w-4 h-4"
+            />
+            {{ $t('common.export') }}
+          </button>
+
+          <button
+            type="button"
             class="claude-profiles-view__header-button claude-profiles-view__header-button--primary"
             :disabled="isSaving"
             @click="openAddForm()"
@@ -512,6 +525,7 @@ import {
   addClaudeProfile,
   applyClaudeProfile,
   deleteClaudeProfile,
+  exportClaudeProfiles,
   listClaudeProfiles,
   updateClaudeProfile,
 } from '@/api'
@@ -539,11 +553,20 @@ import {
 } from '@/utils/claudeProfiles'
 import { logger } from '@/utils/logger'
 import { CLAUDE_PROFILE_FORM_SECTION_IDS } from '@/types/claudeProfileEditor'
+import { downloadTextFile } from '@/utils/download'
+import { useUIStore } from '@/stores/ui'
+
+interface ProfilesExportResponse {
+  content: string
+  filename: string
+}
 
 const { t } = useI18n()
+const uiStore = useUIStore()
 
 const loading = ref(true)
 const isRefreshing = ref(false)
+const isExporting = ref(false)
 const loadError = ref<string | null>(null)
 const refreshError = ref<string | null>(null)
 const profiles = ref<ClaudeProfile[]>([])
@@ -951,6 +974,21 @@ const loadProfiles = async (options: { preserveData?: boolean } = {}) => {
 
 const refreshProfiles = async () => {
   await loadProfiles({ preserveData: profiles.value.length > 0 })
+}
+
+const handleExportProfiles = async () => {
+  isExporting.value = true
+
+  try {
+    const payload = await exportClaudeProfiles<ProfilesExportResponse>(true)
+    downloadTextFile(payload.filename, payload.content, 'application/toml;charset=utf-8')
+    uiStore.showSuccess(t('claudeProfiles.exportSuccess'))
+  } catch (error) {
+    logger.error('Failed to export Claude profiles:', error)
+    uiStore.showError(getErrorMessage(error, t('claudeProfiles.exportFailed')))
+  } finally {
+    isExporting.value = false
+  }
 }
 
 const handleSave = async () => {

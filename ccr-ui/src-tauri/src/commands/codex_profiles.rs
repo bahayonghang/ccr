@@ -1,4 +1,5 @@
 use super::*;
+use std::path::Path;
 
 /// 列出 CCR Codex profiles（~/.ccr/platforms/codex/profiles.toml）
 #[tauri::command]
@@ -170,6 +171,90 @@ pub async fn codex_apply_profile(
 }
 
 /// 获取 Codex profile 导出的环境变量与 shell 脚本
+fn codex_profiles_export_payload_from_path(
+    profiles_file: &Path,
+    filename_prefix: &str,
+    include_secrets: bool,
+) -> Result<Value, String> {
+    if !include_secrets {
+        return Err("Redacted profiles export is not supported".to_string());
+    }
+
+    let content = fs::read_to_string(profiles_file)
+        .map_err(|e| format!("Failed to read profiles.toml: {e}"))?;
+    let timestamp = chrono::Local::now().format("%Y%m%d-%H%M%S");
+    let filename = format!("{filename_prefix}-{timestamp}.toml");
+
+    Ok(json!({
+        "content": content,
+        "filename": filename,
+    }))
+}
+
+fn codex_profiles_export_payload(include_secrets: bool) -> Result<Value, String> {
+    let paths = PlatformPaths::new(Platform::Codex)
+        .map_err(|e| format!("Failed to resolve Codex Profiles path: {e}"))?;
+    codex_profiles_export_payload_from_path(
+        &paths.profiles_file,
+        "ccr-codex-profiles",
+        include_secrets,
+    )
+}
+
+#[tauri::command]
+pub async fn codex_export_profiles(include_secrets: bool) -> Result<Value, String> {
+    tokio::task::spawn_blocking(move || codex_profiles_export_payload(include_secrets))
+        .await
+        .map_err(|e| format!("任务执行失败: {e}"))?
+}
+
+#[cfg(test)]
+mod export_tests {
+    use super::*;
+
+    #[test]
+    fn codex_export_profiles_reads_raw_toml_and_filename() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let profiles_file = temp_dir.path().join("profiles.toml");
+        let content = "[profiles.demo]\nauth_token = \"secret\"\n";
+        fs::write(&profiles_file, content).unwrap();
+
+        let payload =
+            codex_profiles_export_payload_from_path(&profiles_file, "ccr-codex-profiles", true)
+                .unwrap();
+        let filename = payload["filename"].as_str().unwrap();
+
+        assert_eq!(payload["content"].as_str(), Some(content));
+        assert!(filename.starts_with("ccr-codex-profiles-"));
+        assert!(filename.ends_with(".toml"));
+    }
+
+    #[test]
+    fn codex_export_profiles_reports_missing_file() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let profiles_file = temp_dir.path().join("missing.toml");
+
+        let error =
+            codex_profiles_export_payload_from_path(&profiles_file, "ccr-codex-profiles", true)
+                .unwrap_err();
+
+        assert!(error.contains("Failed to read profiles.toml"));
+    }
+
+    #[test]
+    fn codex_export_profiles_rejects_redacted_mode() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let profiles_file = temp_dir.path().join("profiles.toml");
+        fs::write(&profiles_file, "[profiles.demo]\n").unwrap();
+
+        let error =
+            codex_profiles_export_payload_from_path(&profiles_file, "ccr-codex-profiles", false)
+                .unwrap_err();
+
+        assert_eq!(error, "Redacted profiles export is not supported");
+    }
+}
+
 #[tauri::command]
 pub async fn codex_get_profile_env(name: String) -> Result<Value, String> {
     tokio::task::spawn_blocking(move || {

@@ -318,6 +318,10 @@ export const listClaudeProfiles = async <T = UnknownRecord>(): Promise<T> => {
   return invoke('claude_list_profiles')
 }
 
+export const exportClaudeProfiles = async <T = UnknownRecord>(includeSecrets = true): Promise<T> => {
+  return invoke('claude_export_profiles', { includeSecrets })
+}
+
 export const getClaudeProfile = async <T = UnknownRecord>(name: string): Promise<T> => {
   return invoke('claude_get_profile', { name })
 }

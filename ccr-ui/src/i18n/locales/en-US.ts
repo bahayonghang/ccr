@@ -579,6 +579,8 @@ export default {
     loadFailed: 'Unable to read Claude profiles',
     refreshFailedTitle: 'Failed to refresh Claude profiles',
     refreshFailedHint: 'The current list is still available, so you can retry later or keep working with the visible data.',
+    exportSuccess: 'Claude Profiles exported',
+    exportFailed: 'Failed to export Claude Profiles',
     deleteConfirm: 'Are you sure you want to delete Profile "{name}"?',
     confirmApply: 'Are you sure you want to apply Profile "{name}"? This will sync the active Claude configuration.',
     operationFailed: 'Operation failed',
@@ -1995,6 +1997,8 @@ export default {
 
     // Profiles module
     profiles: {
+      exportSuccess: 'Codex Profiles exported',
+      exportFailed: 'Failed to export Codex Profiles',
       title: 'Profiles Management',
       subtitle: 'Manage Codex platform profiles.toml (CCR Unified mode)',
       breadcrumb: 'Profiles Config',
@@ -2122,6 +2126,8 @@ export default {
         extraJsonInvalid: 'Advanced fields must be a valid JSON object',
       },
       messages: {
+        exportSuccess: 'Codex Profiles exported',
+        exportFailed: 'Failed to export Codex Profiles',
         loadFailed: 'Failed to load Codex Profiles',
         addSuccess: '✓ Profile added successfully',
         updateSuccess: '✓ Profile updated successfully',

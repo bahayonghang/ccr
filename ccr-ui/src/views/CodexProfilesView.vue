@@ -48,6 +48,23 @@
               </RouterLink>
 
               <Button
+                variant="secondary"
+                surface="status"
+                density="compact"
+                motion="standard"
+                :disabled="loading || saving || actionLoading || exporting"
+                @click="handleExportProfiles"
+              >
+                <template #leading>
+                  <SIcon
+                    name="Download"
+                    size="w-4 h-4"
+                  />
+                </template>
+                {{ $t('common.export') }}
+              </Button>
+
+              <Button
                 variant="primary"
                 surface="card"
                 density="compact"
@@ -511,7 +528,7 @@ import SIcon from '@/components/ui/SIcon.vue'
 import { computed, onActivated, onMounted, reactive, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { addCodexCustomModel, addCodexProfile, applyCodexProfile, deleteCodexProfile, getCodexProfile, listCodexModels, listCodexProfiles, updateCodexProfile } from '@/api'
+import { addCodexCustomModel, addCodexProfile, applyCodexProfile, deleteCodexProfile, exportCodexProfiles, getCodexProfile, listCodexModels, listCodexProfiles, updateCodexProfile } from '@/api'
 import { translateWithFallback } from '@/i18n/formatMessage'
 import type {
   CodexAddCustomModelResponse,
@@ -536,8 +553,14 @@ import {
 } from '@/utils/codexProfileEditor'
 import { logger } from '@/utils/logger'
 import { useUIStore } from '@/stores/ui'
+import { downloadTextFile } from '@/utils/download'
 
 defineOptions({ name: 'CodexProfilesView' })
+
+interface ProfilesExportResponse {
+  content: string
+  filename: string
+}
 
 const { t } = useI18n()
 const uiStore = useUIStore()
@@ -545,6 +568,7 @@ const uiStore = useUIStore()
 const loading = ref(false)
 const saving = ref(false)
 const actionLoading = ref(false)
+const exporting = ref(false)
 
 const profiles = ref<CodexProfile[]>([])
 const currentProfile = ref<string | null>(null)
@@ -719,6 +743,21 @@ const ensureLoaded = async (force = false) => {
     return
   }
   await loadProfiles()
+}
+
+const handleExportProfiles = async () => {
+  exporting.value = true
+
+  try {
+    const payload = await exportCodexProfiles<ProfilesExportResponse>(true)
+    downloadTextFile(payload.filename, payload.content, 'application/toml;charset=utf-8')
+    uiStore.showSuccess(t('codex.profiles.exportSuccess'))
+  } catch (error) {
+    logger.error('Failed to export codex profiles:', error)
+    uiStore.showError(extractErrorMessage(error) || t('codex.profiles.exportFailed'))
+  } finally {
+    exporting.value = false
+  }
 }
 
 const openConfirmDialog = (options: {

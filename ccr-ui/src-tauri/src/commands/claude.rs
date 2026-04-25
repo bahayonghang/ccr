@@ -15,7 +15,7 @@ use tauri::State;
 
 use ccr::platforms::ClaudePlatform;
 use ccr::services::ClaudeAuthService;
-use ccr_config::{Platform, PlatformConfig, ProfileConfig};
+use ccr_config::{Platform, PlatformConfig, PlatformPaths, ProfileConfig};
 use ccr_skills::{PromptPreset, PromptsManager};
 use ccr_store::{BudgetManager, CostTracker};
 

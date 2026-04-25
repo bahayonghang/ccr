@@ -1,5 +1,6 @@
 import { createApp, defineComponent, h, nextTick } from 'vue'
 import { createI18n } from 'vue-i18n'
+import { createPinia } from 'pinia'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import zhCnMessages from '@/i18n/locales/zh-CN'
 
@@ -9,6 +10,7 @@ const apiMocks = vi.hoisted(() => ({
   updateClaudeProfile: vi.fn(),
   deleteClaudeProfile: vi.fn(),
   applyClaudeProfile: vi.fn(),
+  exportClaudeProfiles: vi.fn(),
 }))
 
 vi.mock('@/api', () => ({
@@ -17,6 +19,7 @@ vi.mock('@/api', () => ({
   updateClaudeProfile: apiMocks.updateClaudeProfile,
   deleteClaudeProfile: apiMocks.deleteClaudeProfile,
   applyClaudeProfile: apiMocks.applyClaudeProfile,
+  exportClaudeProfiles: apiMocks.exportClaudeProfiles,
 }))
 
 vi.mock('vue-router', () => ({
@@ -182,6 +185,7 @@ const mountView = async () => {
       'zh-CN': zhCnMessages,
     },
   }))
+  app.use(createPinia())
 
   app.mount(el)
   await flushPromises()
@@ -212,14 +216,28 @@ beforeEach(() => {
   apiMocks.updateClaudeProfile.mockReset()
   apiMocks.deleteClaudeProfile.mockReset()
   apiMocks.applyClaudeProfile.mockReset()
+  apiMocks.exportClaudeProfiles.mockReset()
 
   apiMocks.listClaudeProfiles.mockResolvedValue({
     profiles: cloneProfiles(),
     current_profile: 'zeta-current',
   })
+  apiMocks.exportClaudeProfiles.mockResolvedValue({
+    content: '[profiles.zeta-current]\nauth_token = "secret"\n',
+    filename: 'ccr-claude-profiles-test.toml',
+  })
 
   vi.stubGlobal('confirm', vi.fn(() => true))
   vi.stubGlobal('alert', vi.fn())
+  Object.defineProperty(URL, 'createObjectURL', {
+    configurable: true,
+    value: vi.fn(() => 'blob:ccr-claude-profiles-test'),
+  })
+  Object.defineProperty(URL, 'revokeObjectURL', {
+    configurable: true,
+    value: vi.fn(),
+  })
+  vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => undefined)
 })
 
 afterEach(() => {
@@ -392,6 +410,26 @@ describe('ClaudeCodeProfilesView smoke', () => {
       expect(searchInput!.value).toBe('local')
       expect(el.textContent).toContain('missing-provider-refreshed')
       expect(el.textContent).not.toContain('Temporary local sandbox')
+    } finally {
+      unmount()
+    }
+  })
+
+  it('exports the full Claude profiles TOML', async () => {
+    const { el, unmount } = await mountView()
+
+    try {
+      const exportButton = el.querySelector('[data-icon="Download"]')?.closest('button') as HTMLButtonElement | null
+
+      expect(exportButton).not.toBeNull()
+
+      exportButton!.click()
+      await flushPromises()
+
+      expect(apiMocks.exportClaudeProfiles).toHaveBeenCalledWith(true)
+      expect(URL.createObjectURL).toHaveBeenCalled()
+      expect(HTMLAnchorElement.prototype.click).toHaveBeenCalled()
+      expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:ccr-claude-profiles-test')
     } finally {
       unmount()
     }

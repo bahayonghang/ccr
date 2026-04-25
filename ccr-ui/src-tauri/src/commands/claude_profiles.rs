@@ -1,4 +1,5 @@
 use super::*;
+use std::path::Path;
 
 /// 列出所有 Claude Code Profiles（~/.ccr/platforms/claude/profiles.toml）。
 #[tauri::command]
@@ -155,6 +156,90 @@ pub async fn claude_delete_profile(name: String) -> Result<Value, String> {
 }
 
 /// 应用 Profile。
+fn claude_profiles_export_payload_from_path(
+    profiles_file: &Path,
+    filename_prefix: &str,
+    include_secrets: bool,
+) -> Result<Value, String> {
+    if !include_secrets {
+        return Err("Redacted profiles export is not supported".to_string());
+    }
+
+    let content = fs::read_to_string(profiles_file)
+        .map_err(|e| format!("Failed to read profiles.toml: {e}"))?;
+    let timestamp = chrono::Local::now().format("%Y%m%d-%H%M%S");
+    let filename = format!("{filename_prefix}-{timestamp}.toml");
+
+    Ok(json!({
+        "content": content,
+        "filename": filename,
+    }))
+}
+
+fn claude_profiles_export_payload(include_secrets: bool) -> Result<Value, String> {
+    let paths = PlatformPaths::new(Platform::Claude)
+        .map_err(|e| format!("Failed to resolve Claude Profiles path: {e}"))?;
+    claude_profiles_export_payload_from_path(
+        &paths.profiles_file,
+        "ccr-claude-profiles",
+        include_secrets,
+    )
+}
+
+#[tauri::command]
+pub async fn claude_export_profiles(include_secrets: bool) -> Result<Value, String> {
+    tokio::task::spawn_blocking(move || claude_profiles_export_payload(include_secrets))
+        .await
+        .map_err(|e| format!("任务执行失败: {e}"))?
+}
+
+#[cfg(test)]
+mod export_tests {
+    use super::*;
+
+    #[test]
+    fn claude_export_profiles_reads_raw_toml_and_filename() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let profiles_file = temp_dir.path().join("profiles.toml");
+        let content = "[profiles.demo]\nauth_token = \"secret\"\n";
+        fs::write(&profiles_file, content).unwrap();
+
+        let payload =
+            claude_profiles_export_payload_from_path(&profiles_file, "ccr-claude-profiles", true)
+                .unwrap();
+        let filename = payload["filename"].as_str().unwrap();
+
+        assert_eq!(payload["content"].as_str(), Some(content));
+        assert!(filename.starts_with("ccr-claude-profiles-"));
+        assert!(filename.ends_with(".toml"));
+    }
+
+    #[test]
+    fn claude_export_profiles_reports_missing_file() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let profiles_file = temp_dir.path().join("missing.toml");
+
+        let error =
+            claude_profiles_export_payload_from_path(&profiles_file, "ccr-claude-profiles", true)
+                .unwrap_err();
+
+        assert!(error.contains("Failed to read profiles.toml"));
+    }
+
+    #[test]
+    fn claude_export_profiles_rejects_redacted_mode() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let profiles_file = temp_dir.path().join("profiles.toml");
+        fs::write(&profiles_file, "[profiles.demo]\n").unwrap();
+
+        let error =
+            claude_profiles_export_payload_from_path(&profiles_file, "ccr-claude-profiles", false)
+                .unwrap_err();
+
+        assert_eq!(error, "Redacted profiles export is not supported");
+    }
+}
+
 #[tauri::command]
 pub async fn claude_apply_profile(name: String) -> Result<Value, String> {
     tokio::task::spawn_blocking(move || {

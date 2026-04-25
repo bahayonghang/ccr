@@ -33,6 +33,7 @@ const apiMocks = vi.hoisted(() => ({
   updateCodexProfile: vi.fn(),
   deleteCodexProfile: vi.fn(),
   applyCodexProfile: vi.fn(),
+  exportCodexProfiles: vi.fn(),
   addCodexCustomModel: vi.fn(),
   listOpenCodeProviders: vi.fn(),
   getOpenCodeConfig: vi.fn(),
@@ -189,6 +190,7 @@ beforeEach(() => {
   apiMocks.updateCodexProfile.mockReset()
   apiMocks.deleteCodexProfile.mockReset()
   apiMocks.applyCodexProfile.mockReset()
+  apiMocks.exportCodexProfiles.mockReset()
   apiMocks.addCodexCustomModel.mockReset()
   apiMocks.listOpenCodeProviders.mockReset()
   apiMocks.getOpenCodeConfig.mockReset()
@@ -236,6 +238,10 @@ beforeEach(() => {
     login_state: { type: 'NotLoggedIn' },
   })
   apiMocks.getCodexAuthCurrent.mockResolvedValue({ logged_in: false, info: null })
+  apiMocks.exportCodexProfiles.mockResolvedValue({
+    content: '[profiles.default]\nauth_token = "secret"\n',
+    filename: 'ccr-codex-profiles-test.toml',
+  })
   apiMocks.detectCodexProcess.mockResolvedValue({ has_running_process: false, pids: [] })
   apiMocks.getCodexAllQuotas.mockResolvedValue([])
   apiMocks.codexIsOAuthPortInUse.mockResolvedValue(false)
@@ -250,6 +256,15 @@ beforeEach(() => {
   apiMocks.listOpenCodePlugins.mockResolvedValue([])
   apiMocks.listOpenCodeLocalPlugins.mockResolvedValue([])
   apiMocks.listOpenCodeThemes.mockResolvedValue([])
+  Object.defineProperty(URL, 'createObjectURL', {
+    configurable: true,
+    value: vi.fn(() => 'blob:ccr-codex-profiles-test'),
+  })
+  Object.defineProperty(URL, 'revokeObjectURL', {
+    configurable: true,
+    value: vi.fn(),
+  })
+  vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => undefined)
 })
 
 afterEach(() => {
@@ -277,6 +292,34 @@ describe('legacy shell pages smoke', () => {
     try {
       expect(el.textContent).toContain('Profile')
       expect(el.textContent).toContain('Official Config')
+    } finally {
+      unmount()
+    }
+  })
+
+  it('exports Codex profiles TOML from the profiles shell', async () => {
+    const { default: CodexProfilesView } = await import('@/views/CodexProfilesView.vue')
+    const { el, unmount } = await mountView(CodexProfilesView)
+
+    try {
+      await Promise.resolve()
+      await nextTick()
+      await nextTick()
+
+      const exportButton = el.querySelector('[data-icon="Download"]')?.closest('button') as HTMLButtonElement | null
+
+      expect(exportButton).not.toBeNull()
+      expect(exportButton!.disabled).toBe(false)
+
+      exportButton!.click()
+      await Promise.resolve()
+      await nextTick()
+      await nextTick()
+
+      expect(apiMocks.exportCodexProfiles).toHaveBeenCalledWith(true)
+      expect(URL.createObjectURL).toHaveBeenCalled()
+      expect(HTMLAnchorElement.prototype.click).toHaveBeenCalled()
+      expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:ccr-codex-profiles-test')
     } finally {
       unmount()
     }

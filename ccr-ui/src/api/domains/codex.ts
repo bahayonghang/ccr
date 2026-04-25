@@ -73,6 +73,10 @@ export const listCodexProfiles = async <T = UnknownRecord>(): Promise<T> => {
 }
 
 /** 获取 Codex 配置 */
+export const exportCodexProfiles = async <T = UnknownRecord>(includeSecrets = true): Promise<T> => {
+  return invoke('codex_export_profiles', { includeSecrets })
+}
+
 export const getCodexConfig = async <T = UnknownRecord>(): Promise<T> => {
   return invoke('codex_get_settings')
 }
