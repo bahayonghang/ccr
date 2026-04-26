@@ -1,6 +1,7 @@
 // Usage tracking repository
 // Handles CRUD operations for usage sources and records
 
+use ccr_types::ModelRateCatalog;
 use chrono::{DateTime, Utc};
 use rusqlite::{Connection, Row, params};
 use serde::{Deserialize, Serialize};
@@ -162,7 +163,12 @@ pub struct UsageRecord {
     pub input_tokens: i64,
     pub output_tokens: i64,
     pub cache_read_tokens: i64,
+    pub cache_creation_tokens: i64,
     pub cost_usd: f64,
+    pub cost_with_cache_usd: f64,
+    pub cost_without_cache_usd: f64,
+    pub pricing_status: String,
+    pub pricing_source: Option<String>,
 }
 
 impl UsageRecord {
@@ -183,7 +189,15 @@ impl UsageRecord {
             input_tokens: row.get::<_, i64>(7).unwrap_or(0),
             output_tokens: row.get::<_, i64>(8).unwrap_or(0),
             cache_read_tokens: row.get::<_, i64>(9).unwrap_or(0),
-            cost_usd: row.get::<_, f64>(10).unwrap_or(0.0),
+            cache_creation_tokens: row.get::<_, i64>(10).unwrap_or(0),
+            cost_usd: row.get::<_, f64>(11).unwrap_or(0.0),
+            cost_with_cache_usd: row.get::<_, f64>(12).unwrap_or(0.0),
+            cost_without_cache_usd: row.get::<_, f64>(13).unwrap_or(0.0),
+            pricing_status: row
+                .get::<_, Option<String>>(14)
+                .unwrap_or(None)
+                .unwrap_or_else(|| "unpriced".to_string()),
+            pricing_source: row.get::<_, Option<String>>(15).unwrap_or(None),
         })
     }
 }
@@ -365,8 +379,9 @@ pub fn insert_record(conn: &Connection, record: &UsageRecord) -> Result<(), rusq
     conn.execute(
         "INSERT OR REPLACE INTO usage_records
          (id, platform, project_path, record_json, recorded_at, source_id,
-          model, input_tokens, output_tokens, cache_read_tokens, cost_usd)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
+          model, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens,
+          cost_usd, cost_with_cache_usd, cost_without_cache_usd, pricing_status, pricing_source)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16)",
         params![
             record.id,
             record.platform,
@@ -378,7 +393,12 @@ pub fn insert_record(conn: &Connection, record: &UsageRecord) -> Result<(), rusq
             record.input_tokens,
             record.output_tokens,
             record.cache_read_tokens,
+            record.cache_creation_tokens,
             record.cost_usd,
+            record.cost_with_cache_usd,
+            record.cost_without_cache_usd,
+            record.pricing_status,
+            record.pricing_source,
         ],
     )?;
     // Sync daily aggregation
@@ -400,8 +420,9 @@ pub fn insert_records_batch(
     let mut stmt = tx.prepare(
         "INSERT OR REPLACE INTO usage_records
          (id, platform, project_path, record_json, recorded_at, source_id,
-          model, input_tokens, output_tokens, cache_read_tokens, cost_usd)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
+          model, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens,
+          cost_usd, cost_with_cache_usd, cost_without_cache_usd, pricing_status, pricing_source)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16)",
     )?;
 
     let mut count = 0;
@@ -417,7 +438,12 @@ pub fn insert_records_batch(
             record.input_tokens,
             record.output_tokens,
             record.cache_read_tokens,
+            record.cache_creation_tokens,
             record.cost_usd,
+            record.cost_with_cache_usd,
+            record.cost_without_cache_usd,
+            record.pricing_status,
+            record.pricing_source,
         ])?;
         count += 1;
     }
@@ -533,7 +559,7 @@ fn refresh_daily_agg_entry(
     Ok(())
 }
 
-const USAGE_RECORD_COLUMNS: &str = "id, platform, project_path, record_json, recorded_at, source_id, model, input_tokens, output_tokens, cache_read_tokens, cost_usd";
+const USAGE_RECORD_COLUMNS: &str = "id, platform, project_path, record_json, recorded_at, source_id, model, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, cost_with_cache_usd, cost_without_cache_usd, pricing_status, pricing_source";
 
 /// Get recent records by platform
 #[allow(dead_code)]
@@ -1008,6 +1034,16 @@ pub struct ModelStat {
     pub request_count: i64,
     pub total_tokens: i64,
     pub total_cost: f64,
+    pub input_tokens: i64,
+    pub output_tokens: i64,
+    pub cache_read_tokens: i64,
+    pub cache_creation_tokens: i64,
+    pub cost_with_cache: f64,
+    pub cost_without_cache: f64,
+    pub cache_savings: f64,
+    pub pricing_status: String,
+    pub pricing_source: Option<String>,
+    pub pricing_rate: Option<String>,
 }
 
 /// 项目统计
@@ -1326,23 +1362,56 @@ pub fn get_model_stats(
     let (where_sql, bind_params) = build_where_clause(platform, start, end);
     let sql = format!(
         "SELECT COALESCE(model,'unknown'), COUNT(*),
-                SUM(input_tokens + output_tokens + cache_read_tokens),
-                SUM(cost_usd)
+                COALESCE(SUM(input_tokens), 0),
+                COALESCE(SUM(output_tokens), 0),
+                COALESCE(SUM(cache_read_tokens), 0),
+                COALESCE(SUM(cache_creation_tokens), 0),
+                COALESCE(SUM(input_tokens + output_tokens + cache_read_tokens + cache_creation_tokens), 0),
+                COALESCE(SUM(cost_usd), 0),
+                COALESCE(SUM(cost_with_cache_usd), 0),
+                COALESCE(SUM(cost_without_cache_usd), 0),
+                CASE
+                  WHEN SUM(CASE WHEN pricing_status = 'unpriced' THEN 1 ELSE 0 END) > 0 THEN 'unpriced'
+                  WHEN SUM(CASE WHEN pricing_status = 'legacy_alias' THEN 1 ELSE 0 END) > 0 THEN 'legacy_alias'
+                  ELSE 'priced'
+                END,
+                MAX(pricing_source)
          FROM usage_records{}
-         GROUP BY model ORDER BY COUNT(*) DESC",
+         GROUP BY COALESCE(model,'unknown') ORDER BY COUNT(*) DESC",
         where_sql
     );
 
     let params_ref: Vec<&dyn rusqlite::types::ToSql> =
         bind_params.iter().map(|p| p.as_ref()).collect();
+    let catalog = ModelRateCatalog::official();
     let mut stmt = conn.prepare(&sql)?;
     let rows = stmt
         .query_map(params_ref.as_slice(), |row| {
+            let model = row.get::<_, String>(0)?;
+            let total_cost = row.get::<_, f64>(7).unwrap_or(0.0);
+            let mut cost_with_cache = row.get::<_, f64>(8).unwrap_or(0.0);
+            let cost_without_cache = row.get::<_, f64>(9).unwrap_or(0.0);
+            if cost_with_cache == 0.0 && total_cost != 0.0 {
+                cost_with_cache = total_cost;
+            }
             Ok(ModelStat {
-                model: row.get(0)?,
+                pricing_rate: catalog.rate_summary(&model),
+                model,
                 request_count: row.get(1)?,
-                total_tokens: row.get::<_, i64>(2).unwrap_or(0),
-                total_cost: row.get::<_, f64>(3).unwrap_or(0.0),
+                input_tokens: row.get::<_, i64>(2).unwrap_or(0),
+                output_tokens: row.get::<_, i64>(3).unwrap_or(0),
+                cache_read_tokens: row.get::<_, i64>(4).unwrap_or(0),
+                cache_creation_tokens: row.get::<_, i64>(5).unwrap_or(0),
+                total_tokens: row.get::<_, i64>(6).unwrap_or(0),
+                total_cost,
+                cost_with_cache,
+                cost_without_cache,
+                cache_savings: (cost_without_cache - cost_with_cache).max(0.0),
+                pricing_status: row
+                    .get::<_, Option<String>>(10)
+                    .unwrap_or(None)
+                    .unwrap_or_else(|| "unpriced".to_string()),
+                pricing_source: row.get::<_, Option<String>>(11).unwrap_or(None),
             })
         })?
         .filter_map(|r| r.ok())
@@ -1684,7 +1753,12 @@ mod tests {
             input_tokens: 0,
             output_tokens: 0,
             cache_read_tokens: 0,
+            cache_creation_tokens: 0,
             cost_usd: 0.0,
+            cost_with_cache_usd: 0.0,
+            cost_without_cache_usd: 0.0,
+            pricing_status: "unpriced".to_string(),
+            pricing_source: Some("unpriced".to_string()),
         };
 
         // Insert
@@ -1717,7 +1791,12 @@ mod tests {
                 input_tokens: 0,
                 output_tokens: 0,
                 cache_read_tokens: 0,
+                cache_creation_tokens: 0,
                 cost_usd: 0.0,
+                cost_with_cache_usd: 0.0,
+                cost_without_cache_usd: 0.0,
+                pricing_status: "unpriced".to_string(),
+                pricing_source: Some("unpriced".to_string()),
             })
             .collect();
 
@@ -1749,7 +1828,12 @@ mod tests {
                 input_tokens: 100,
                 output_tokens: 20,
                 cache_read_tokens: 10,
+                cache_creation_tokens: 0,
                 cost_usd: 1.0,
+                cost_with_cache_usd: 1.0,
+                cost_without_cache_usd: 1.0,
+                pricing_status: "priced".to_string(),
+                pricing_source: Some("test".to_string()),
             },
             UsageRecord {
                 id: "r-b".to_string(),
@@ -1762,7 +1846,12 @@ mod tests {
                 input_tokens: 200,
                 output_tokens: 40,
                 cache_read_tokens: 20,
+                cache_creation_tokens: 0,
                 cost_usd: 2.0,
+                cost_with_cache_usd: 2.0,
+                cost_without_cache_usd: 2.0,
+                pricing_status: "priced".to_string(),
+                pricing_source: Some("test".to_string()),
             },
         ];
 
@@ -1817,7 +1906,12 @@ mod tests {
             input_tokens: 0,
             output_tokens: 0,
             cache_read_tokens: 0,
+            cache_creation_tokens: 0,
             cost_usd: 0.0,
+            cost_with_cache_usd: 0.0,
+            cost_without_cache_usd: 0.0,
+            pricing_status: "unpriced".to_string(),
+            pricing_source: Some("unpriced".to_string()),
         };
         insert_record(&conn, &record).unwrap();
     }
@@ -1840,7 +1934,12 @@ mod tests {
                 input_tokens: 100,
                 output_tokens: 50,
                 cache_read_tokens: 10,
+                cache_creation_tokens: 0,
                 cost_usd: 1.0,
+                cost_with_cache_usd: 1.0,
+                cost_without_cache_usd: 1.0,
+                pricing_status: "priced".to_string(),
+                pricing_source: Some("test".to_string()),
             },
             UsageRecord {
                 id: "codex-day1".to_string(),
@@ -1855,7 +1954,12 @@ mod tests {
                 input_tokens: 40,
                 output_tokens: 20,
                 cache_read_tokens: 0,
+                cache_creation_tokens: 0,
                 cost_usd: 0.4,
+                cost_with_cache_usd: 0.4,
+                cost_without_cache_usd: 0.4,
+                pricing_status: "priced".to_string(),
+                pricing_source: Some("test".to_string()),
             },
             UsageRecord {
                 id: "claude-day2".to_string(),
@@ -1870,7 +1974,12 @@ mod tests {
                 input_tokens: 80,
                 output_tokens: 20,
                 cache_read_tokens: 5,
+                cache_creation_tokens: 0,
                 cost_usd: 0.8,
+                cost_with_cache_usd: 0.8,
+                cost_without_cache_usd: 0.8,
+                pricing_status: "priced".to_string(),
+                pricing_source: Some("test".to_string()),
             },
         ];
         insert_records_batch(&conn, &records).unwrap();
@@ -1926,7 +2035,12 @@ mod tests {
                 input_tokens: 10,
                 output_tokens: 10,
                 cache_read_tokens: 0,
+                cache_creation_tokens: 0,
                 cost_usd: 0.1,
+                cost_with_cache_usd: 0.1,
+                cost_without_cache_usd: 0.1,
+                pricing_status: "priced".to_string(),
+                pricing_source: Some("test".to_string()),
             },
             UsageRecord {
                 id: "r2".to_string(),
@@ -1941,7 +2055,12 @@ mod tests {
                 input_tokens: 20,
                 output_tokens: 20,
                 cache_read_tokens: 0,
+                cache_creation_tokens: 0,
                 cost_usd: 0.2,
+                cost_with_cache_usd: 0.2,
+                cost_without_cache_usd: 0.2,
+                pricing_status: "priced".to_string(),
+                pricing_source: Some("test".to_string()),
             },
             UsageRecord {
                 id: "r3".to_string(),
@@ -1956,7 +2075,12 @@ mod tests {
                 input_tokens: 30,
                 output_tokens: 30,
                 cache_read_tokens: 0,
+                cache_creation_tokens: 0,
                 cost_usd: 0.3,
+                cost_with_cache_usd: 0.3,
+                cost_without_cache_usd: 0.3,
+                pricing_status: "priced".to_string(),
+                pricing_source: Some("test".to_string()),
             },
         ];
 
@@ -1997,7 +2121,12 @@ mod tests {
                 input_tokens: i,
                 output_tokens: i,
                 cache_read_tokens: 0,
+                cache_creation_tokens: 0,
                 cost_usd: i as f64 / 100.0,
+                cost_with_cache_usd: i as f64 / 100.0,
+                cost_without_cache_usd: i as f64 / 100.0,
+                pricing_status: "priced".to_string(),
+                pricing_source: Some("test".to_string()),
             });
         }
         insert_records_batch(&conn, &records).unwrap();

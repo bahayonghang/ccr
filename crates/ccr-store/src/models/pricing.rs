@@ -175,6 +175,13 @@ impl PricingConfig {
     /// 加载内置的 Claude 模型定价
     pub fn with_claude_defaults() -> Self {
         let mut config = Self::new();
+        let defaults = ModelPricing::default_pricing();
+        if !defaults.is_empty() {
+            for (model, pricing) in defaults {
+                config.set_pricing(model, pricing);
+            }
+            return config;
+        }
 
         // Claude Opus 4.5
         config.set_pricing(
@@ -361,8 +368,8 @@ mod tests {
         // 验证 Opus 4.5 定价
         let opus = config.get_pricing("claude-opus-4-5-20251101");
         assert!(opus.is_some());
-        assert_eq!(opus.unwrap().input_price, 15.0);
-        assert_eq!(opus.unwrap().output_price, 75.0);
+        assert_eq!(opus.unwrap().input_price, 5.0);
+        assert_eq!(opus.unwrap().output_price, 25.0);
 
         // 验证 Sonnet 4.5 定价
         let sonnet = config.get_pricing("claude-sonnet-4-5-20250929");

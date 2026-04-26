@@ -426,7 +426,7 @@ mod tests {
 
         let opus = manager.get_pricing("claude-opus-4-5-20251101");
         assert!(opus.is_some());
-        assert_eq!(opus.unwrap().input_price, 15.0);
-        assert_eq!(opus.unwrap().output_price, 75.0);
+        assert_eq!(opus.unwrap().input_price, 5.0);
+        assert_eq!(opus.unwrap().output_price, 25.0);
     }
 }

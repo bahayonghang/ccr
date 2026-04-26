@@ -1,10 +1,10 @@
 // Database schema definitions for unified SQLite storage
-// Schema version: 11
+// Schema version: 13
 // See: openspec/changes/add-unified-sqlite-storage/proposal.md
 
 /// Current schema version for migration tracking
 #[allow(dead_code)]
-pub const SCHEMA_VERSION: i32 = 11;
+pub const SCHEMA_VERSION: i32 = 13;
 
 /// Database file path relative to user home directory
 pub const DB_RELATIVE_PATH: &str = ".ccr-ui/ccr-ui.db";
@@ -201,7 +201,12 @@ CREATE TABLE IF NOT EXISTS usage_records (
     input_tokens INTEGER DEFAULT 0,
     output_tokens INTEGER DEFAULT 0,
     cache_read_tokens INTEGER DEFAULT 0,
-    cost_usd REAL DEFAULT 0
+    cache_creation_tokens INTEGER DEFAULT 0,
+    cost_usd REAL DEFAULT 0,
+    cost_with_cache_usd REAL DEFAULT 0,
+    cost_without_cache_usd REAL DEFAULT 0,
+    pricing_status TEXT NOT NULL DEFAULT 'unpriced',
+    pricing_source TEXT
 );
 
 CREATE INDEX IF NOT EXISTS idx_usage_records_platform_recorded_at

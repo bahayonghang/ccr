@@ -16,6 +16,7 @@
 mod claude_auth;
 mod claude_settings;
 mod codex_auth;
+mod model_rate_catalog;
 mod monitoring;
 
 pub use claude_auth::{
@@ -27,4 +28,8 @@ pub use claude_settings::{
     default_true, is_false,
 };
 pub use codex_auth::LoginState;
+pub use model_rate_catalog::{
+    ModelRate, ModelRateCatalog, ModelRateOverride, PricingComputation, normalize_model_id,
+    official_model_rate_override_for, official_model_rate_overrides,
+};
 pub use monitoring::{FrontendLogInput, MonitoringEntry, MonitoringFeedQuery, MonitoringLevel};

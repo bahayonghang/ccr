@@ -1,6 +1,7 @@
 // 📊 CCR 统计数据模型
 // 定义成本、使用统计相关的数据结构
 
+use ccr_types::official_model_rate_overrides;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -104,6 +105,26 @@ pub struct ModelPricing {
 impl ModelPricing {
     /// 获取默认的模型定价表
     pub fn default_pricing() -> HashMap<String, ModelPricing> {
+        let official: HashMap<String, ModelPricing> = official_model_rate_overrides()
+            .into_iter()
+            .map(|item| {
+                let model = item.model;
+                (
+                    model.clone(),
+                    ModelPricing {
+                        model,
+                        input_price: item.input_price,
+                        output_price: item.output_price,
+                        cache_read_price: item.cache_read_price,
+                        cache_write_price: item.cache_write_price,
+                    },
+                )
+            })
+            .collect();
+        if !official.is_empty() {
+            return official;
+        }
+
         let mut pricing = HashMap::new();
 
         // Claude 3.5 Sonnet

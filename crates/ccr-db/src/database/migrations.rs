@@ -1,6 +1,7 @@
 // Database migrations for unified SQLite storage
 // Handles schema creation and data migration from legacy JSON files
 
+use ccr_types::ModelRateCatalog;
 use chrono::{DateTime, Utc};
 use rusqlite::{Connection, params};
 use serde::{Deserialize, Serialize};
@@ -1078,6 +1079,186 @@ pub fn run_migration_v11(conn: &Connection) -> MigrationResult<()> {
     Ok(())
 }
 
+/// Run migration v13: add catalog-backed usage pricing fields and reprice usage records.
+pub fn run_migration_v13(conn: &Connection) -> MigrationResult<()> {
+    if is_migration_applied(conn, 13)? && has_usage_pricing_columns(conn)? {
+        debug!("Migration v13 already applied, skipping");
+        return Ok(());
+    }
+
+    info!("Running migration v13: usage pricing catalog reprice");
+
+    add_usage_pricing_column(
+        conn,
+        "cache_creation_tokens",
+        "ALTER TABLE usage_records ADD COLUMN cache_creation_tokens INTEGER DEFAULT 0",
+    )?;
+    add_usage_pricing_column(
+        conn,
+        "cost_with_cache_usd",
+        "ALTER TABLE usage_records ADD COLUMN cost_with_cache_usd REAL DEFAULT 0",
+    )?;
+    add_usage_pricing_column(
+        conn,
+        "cost_without_cache_usd",
+        "ALTER TABLE usage_records ADD COLUMN cost_without_cache_usd REAL DEFAULT 0",
+    )?;
+    add_usage_pricing_column(
+        conn,
+        "pricing_status",
+        "ALTER TABLE usage_records ADD COLUMN pricing_status TEXT NOT NULL DEFAULT 'unpriced'",
+    )?;
+    add_usage_pricing_column(
+        conn,
+        "pricing_source",
+        "ALTER TABLE usage_records ADD COLUMN pricing_source TEXT",
+    )?;
+
+    reprice_usage_records(conn)?;
+    refresh_usage_daily_agg(conn)?;
+
+    let now = Utc::now().to_rfc3339();
+    conn.execute(
+        "INSERT OR IGNORE INTO migrations (version, name, applied_at) VALUES (?, ?, ?)",
+        rusqlite::params![13, "usage_pricing_catalog_reprice", now],
+    )
+    .map_err(|e| MigrationError::Database(e.to_string()))?;
+
+    info!("Migration v13 completed successfully");
+    Ok(())
+}
+
+fn has_usage_pricing_columns(conn: &Connection) -> MigrationResult<bool> {
+    for column in [
+        "cache_creation_tokens",
+        "cost_with_cache_usd",
+        "cost_without_cache_usd",
+        "pricing_status",
+        "pricing_source",
+    ] {
+        if !table_has_column(conn, "usage_records", column)? {
+            return Ok(false);
+        }
+    }
+    Ok(true)
+}
+
+fn add_usage_pricing_column(
+    conn: &Connection,
+    column_name: &str,
+    alter_sql: &str,
+) -> MigrationResult<()> {
+    if !table_has_column(conn, "usage_records", column_name)? {
+        conn.execute(alter_sql, [])
+            .map_err(|e| MigrationError::Database(e.to_string()))?;
+    }
+    Ok(())
+}
+
+fn reprice_usage_records(conn: &Connection) -> MigrationResult<()> {
+    let catalog = ModelRateCatalog::official();
+    let mut stmt = conn
+        .prepare(
+            "SELECT id, COALESCE(model, 'unknown'), input_tokens, output_tokens,
+                    cache_read_tokens, cache_creation_tokens, record_json
+             FROM usage_records",
+        )
+        .map_err(|e| MigrationError::Database(e.to_string()))?;
+
+    let rows = stmt
+        .query_map([], |row| {
+            Ok((
+                row.get::<_, String>(0)?,
+                row.get::<_, String>(1)?,
+                row.get::<_, i64>(2).unwrap_or(0),
+                row.get::<_, i64>(3).unwrap_or(0),
+                row.get::<_, i64>(4).unwrap_or(0),
+                row.get::<_, i64>(5).unwrap_or(0),
+                row.get::<_, String>(6).unwrap_or_default(),
+            ))
+        })
+        .map_err(|e| MigrationError::Database(e.to_string()))?
+        .filter_map(|row| row.ok())
+        .collect::<Vec<_>>();
+
+    drop(stmt);
+
+    let mut update_stmt = conn
+        .prepare(
+            "UPDATE usage_records
+             SET cache_creation_tokens = ?1,
+                 cost_usd = ?2,
+                 cost_with_cache_usd = ?3,
+                 cost_without_cache_usd = ?4,
+                 pricing_status = ?5,
+                 pricing_source = ?6
+             WHERE id = ?7",
+        )
+        .map_err(|e| MigrationError::Database(e.to_string()))?;
+
+    for (id, model, input, output, cache_read, stored_cache_creation, record_json) in rows {
+        let cache_creation = if stored_cache_creation > 0 {
+            stored_cache_creation
+        } else {
+            extract_cache_creation_tokens_from_json(&record_json)
+        };
+        let pricing = catalog.calculate(&model, input, output, cache_read, cache_creation);
+
+        update_stmt
+            .execute(rusqlite::params![
+                cache_creation,
+                pricing.cost_with_cache_usd,
+                pricing.cost_with_cache_usd,
+                pricing.cost_without_cache_usd,
+                pricing.pricing_status,
+                pricing.pricing_source,
+                id
+            ])
+            .map_err(|e| MigrationError::Database(e.to_string()))?;
+    }
+
+    Ok(())
+}
+
+fn extract_cache_creation_tokens_from_json(record_json: &str) -> i64 {
+    let Ok(json) = serde_json::from_str::<serde_json::Value>(record_json) else {
+        return 0;
+    };
+
+    let usage = json
+        .get("usage")
+        .or_else(|| json.get("message").and_then(|message| message.get("usage")));
+
+    usage
+        .and_then(|usage| {
+            usage
+                .get("cache_creation_input_tokens")
+                .or_else(|| usage.get("cache_creation_tokens"))
+                .or_else(|| usage.get("cache_write_input_tokens"))
+                .and_then(|value| value.as_i64())
+        })
+        .unwrap_or(0)
+}
+
+fn refresh_usage_daily_agg(conn: &Connection) -> MigrationResult<()> {
+    conn.execute("DELETE FROM usage_daily_agg", [])
+        .map_err(|e| MigrationError::Database(e.to_string()))?;
+    conn.execute_batch(
+        "INSERT OR REPLACE INTO usage_daily_agg (
+             date, platform, request_count, input_tokens, output_tokens, cache_read_tokens, cost_usd
+         )
+         SELECT DATE(recorded_at), platform, COUNT(*),
+                COALESCE(SUM(input_tokens), 0),
+                COALESCE(SUM(output_tokens), 0),
+                COALESCE(SUM(cache_read_tokens), 0),
+                COALESCE(SUM(cost_usd), 0)
+         FROM usage_records
+         GROUP BY DATE(recorded_at), platform;",
+    )
+    .map_err(|e| MigrationError::Database(e.to_string()))?;
+    Ok(())
+}
+
 fn table_exists(conn: &Connection, table_name: &str) -> MigrationResult<bool> {
     let count: i64 = conn
         .query_row(
@@ -1148,6 +1329,9 @@ pub fn run_all_migrations(conn: &Connection, home_dir: &Path) -> MigrationResult
     } else {
         debug!("Legacy data migration already completed");
     }
+
+    // Step 3: Recalculate usage costs after all legacy/live rows are present.
+    run_migration_v13(conn)?;
 
     Ok(())
 }
@@ -1685,6 +1869,125 @@ mod tests {
         let count: i32 = conn
             .query_row(
                 "SELECT COUNT(*) FROM migrations WHERE version = 2",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(count, 1);
+    }
+
+    #[test]
+    fn test_migration_v13_reprices_usage_records_and_handles_legacy_v12_marker() {
+        let conn = Connection::open_in_memory().unwrap();
+        run_initial_migration(&conn).unwrap();
+
+        conn.execute("DROP TABLE usage_records", []).unwrap();
+        conn.execute_batch(
+            "CREATE TABLE usage_records (
+                id TEXT PRIMARY KEY,
+                platform TEXT NOT NULL,
+                project_path TEXT NOT NULL,
+                record_json TEXT NOT NULL,
+                recorded_at TEXT NOT NULL,
+                source_id TEXT NOT NULL,
+                model TEXT,
+                input_tokens INTEGER DEFAULT 0,
+                output_tokens INTEGER DEFAULT 0,
+                cache_read_tokens INTEGER DEFAULT 0,
+                cost_usd REAL DEFAULT 0
+             );",
+        )
+        .unwrap();
+        conn.execute(
+            "INSERT INTO migrations (version, name, applied_at)
+             VALUES (12, 'usage_record_json_min_snapshot', ?1)",
+            params![Utc::now().to_rfc3339()],
+        )
+        .unwrap();
+
+        conn.execute(
+            "INSERT INTO usage_records (
+                id, platform, project_path, record_json, recorded_at, source_id,
+                model, input_tokens, output_tokens, cache_read_tokens, cost_usd
+             ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
+            params![
+                "opus-record",
+                "claude",
+                "D:/Documents/Code/Github/ccr",
+                "{\"usage\":{\"cache_creation_input_tokens\":1000000}}",
+                "2026-04-20T08:00:00Z",
+                "source-opus",
+                "claude-opus-4-6",
+                1_000_000_i64,
+                1_000_000_i64,
+                1_000_000_i64,
+                99.0_f64
+            ],
+        )
+        .unwrap();
+        conn.execute(
+            "INSERT INTO usage_daily_agg (
+                date, platform, request_count, input_tokens, output_tokens, cache_read_tokens, cost_usd
+             ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+            params![
+                "2026-04-20",
+                "claude",
+                1_i64,
+                1_i64,
+                1_i64,
+                1_i64,
+                99.0_f64
+            ],
+        )
+        .unwrap();
+
+        run_migration_v13(&conn).unwrap();
+
+        let (cache_creation, cost, with_cache, no_cache, status, source): (
+            i64,
+            f64,
+            f64,
+            f64,
+            String,
+            String,
+        ) = conn
+            .query_row(
+                "SELECT cache_creation_tokens, cost_usd, cost_with_cache_usd,
+                        cost_without_cache_usd, pricing_status, pricing_source
+                 FROM usage_records WHERE id = 'opus-record'",
+                [],
+                |row| {
+                    Ok((
+                        row.get(0)?,
+                        row.get(1)?,
+                        row.get(2)?,
+                        row.get(3)?,
+                        row.get(4)?,
+                        row.get(5)?,
+                    ))
+                },
+            )
+            .unwrap();
+
+        assert_eq!(cache_creation, 1_000_000);
+        assert!((cost - 36.75).abs() < 0.000_001);
+        assert!((with_cache - 36.75).abs() < 0.000_001);
+        assert!((no_cache - 40.0).abs() < 0.000_001);
+        assert_eq!(status, "priced");
+        assert_eq!(source, "official:anthropic");
+
+        let daily_cost: f64 = conn
+            .query_row(
+                "SELECT cost_usd FROM usage_daily_agg WHERE date = '2026-04-20' AND platform = 'claude'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert!((daily_cost - 36.75).abs() < 0.000_001);
+
+        let count: i32 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM migrations WHERE version = 13",
                 [],
                 |row| row.get(0),
             )

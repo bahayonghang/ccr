@@ -3,6 +3,7 @@
 // Tracks per-file offsets and hashes for efficient import
 
 use ccr_core::{is_qwen_chat_file, qwen_project_dir_name_from_chat_path, qwen_projects_dir};
+use ccr_types::{ModelRateCatalog, PricingComputation};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -50,6 +51,7 @@ pub struct ImportResult {
 pub struct UsageImportService {
     config: ImportConfig,
     db_pool: DbPool,
+    pricing_catalog: ModelRateCatalog,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -89,11 +91,31 @@ impl UsageImportService {
         let db_pool = database::get_pool()
             .cloned()
             .expect("UsageImportService requires initialized database pool");
-        Self { config, db_pool }
+        Self {
+            config,
+            db_pool,
+            pricing_catalog: ModelRateCatalog::official(),
+        }
     }
 
     pub fn with_pool(config: ImportConfig, db_pool: DbPool) -> Self {
-        Self { config, db_pool }
+        Self {
+            config,
+            db_pool,
+            pricing_catalog: ModelRateCatalog::official(),
+        }
+    }
+
+    pub fn with_pool_and_catalog(
+        config: ImportConfig,
+        db_pool: DbPool,
+        pricing_catalog: ModelRateCatalog,
+    ) -> Self {
+        Self {
+            config,
+            db_pool,
+            pricing_catalog,
+        }
     }
 
     fn with_connection<F, T>(&self, f: F) -> Result<T, String>
@@ -644,29 +666,21 @@ impl UsageImportService {
                         let delta_cached = cur_cached.saturating_sub(prev_cached_input_tokens);
                         let delta_output = cur_output.saturating_sub(prev_output_tokens);
 
-                        if delta_input > 0 || delta_output > 0 {
+                        if delta_input > 0 || delta_output > 0 || delta_cached > 0 {
                             let record_id = format!("{}:{}", session_id, line_number);
-                            let model_name = current_model.as_deref().unwrap_or("unknown");
-                            let cost = self.calculate_cost(
-                                model_name,
+                            token_count_records.push(self.build_usage_record(
+                                record_id,
+                                "codex",
+                                resolved_project_path.clone(),
+                                json.to_string(),
+                                event_ts,
+                                source_id,
+                                current_model.clone(),
                                 delta_input as i64,
                                 delta_output as i64,
                                 delta_cached as i64,
-                            );
-
-                            token_count_records.push(usage_repo::UsageRecord {
-                                id: record_id,
-                                platform: "codex".to_string(),
-                                project_path: resolved_project_path.clone(),
-                                record_json: json.to_string(),
-                                recorded_at: event_ts,
-                                source_id: source_id.to_string(),
-                                model: current_model.clone(),
-                                input_tokens: delta_input as i64,
-                                output_tokens: delta_output as i64,
-                                cache_read_tokens: delta_cached as i64,
-                                cost_usd: cost,
-                            });
+                                0,
+                            ));
                         }
 
                         prev_input_tokens = cur_input;
@@ -696,29 +710,21 @@ impl UsageImportService {
                         .and_then(|v| v.as_u64())
                         .unwrap_or(0);
 
-                    if input > 0 || output > 0 {
+                    if input > 0 || output > 0 || cached > 0 {
                         let record_id = format!("{}:{}", session_id, line_number);
-                        let model_name = current_model.as_deref().unwrap_or("unknown");
-                        let cost = self.calculate_cost(
-                            model_name,
+                        turn_completed_records.push(self.build_usage_record(
+                            record_id,
+                            "codex",
+                            resolved_project_path.clone(),
+                            json.to_string(),
+                            event_ts,
+                            source_id,
+                            current_model.clone(),
                             input as i64,
                             output as i64,
                             cached as i64,
-                        );
-
-                        turn_completed_records.push(usage_repo::UsageRecord {
-                            id: record_id,
-                            platform: "codex".to_string(),
-                            project_path: resolved_project_path.clone(),
-                            record_json: json.to_string(),
-                            recorded_at: event_ts,
-                            source_id: source_id.to_string(),
-                            model: current_model.clone(),
-                            input_tokens: input as i64,
-                            output_tokens: output as i64,
-                            cache_read_tokens: cached as i64,
-                            cost_usd: cost,
-                        });
+                            0,
+                        ));
                     }
                 } else {
                     skipped += 1;
@@ -812,29 +818,21 @@ impl UsageImportService {
                             .saturating_sub(prev_cached_input_tokens);
                         let delta_output = usage.output_tokens.saturating_sub(prev_output_tokens);
 
-                        if delta_input > 0 || delta_output > 0 {
+                        if delta_input > 0 || delta_output > 0 || delta_cached > 0 {
                             let record_id = format!("{}:{}", checkpoint.session_id, line_number);
-                            let model_name = current_model.as_deref().unwrap_or("unknown");
-                            let cost = self.calculate_cost(
-                                model_name,
+                            token_count_records.push(self.build_usage_record(
+                                record_id,
+                                "codex",
+                                checkpoint.project_path.clone(),
+                                json.to_string(),
+                                event_ts,
+                                source_id,
+                                current_model.clone(),
                                 delta_input as i64,
                                 delta_output as i64,
                                 delta_cached as i64,
-                            );
-
-                            token_count_records.push(usage_repo::UsageRecord {
-                                id: record_id,
-                                platform: "codex".to_string(),
-                                project_path: checkpoint.project_path.clone(),
-                                record_json: json.to_string(),
-                                recorded_at: event_ts,
-                                source_id: source_id.to_string(),
-                                model: current_model.clone(),
-                                input_tokens: delta_input as i64,
-                                output_tokens: delta_output as i64,
-                                cache_read_tokens: delta_cached as i64,
-                                cost_usd: cost,
-                            });
+                                0,
+                            ));
                         }
 
                         prev_input_tokens = usage.input_tokens;
@@ -863,29 +861,21 @@ impl UsageImportService {
                         .and_then(|v| v.as_u64())
                         .unwrap_or(0);
 
-                    if input > 0 || output > 0 {
+                    if input > 0 || output > 0 || cached > 0 {
                         let record_id = format!("{}:{}", checkpoint.session_id, line_number);
-                        let model_name = current_model.as_deref().unwrap_or("unknown");
-                        let cost = self.calculate_cost(
-                            model_name,
+                        turn_completed_records.push(self.build_usage_record(
+                            record_id,
+                            "codex",
+                            checkpoint.project_path.clone(),
+                            json.to_string(),
+                            event_ts,
+                            source_id,
+                            current_model.clone(),
                             input as i64,
                             output as i64,
                             cached as i64,
-                        );
-
-                        turn_completed_records.push(usage_repo::UsageRecord {
-                            id: record_id,
-                            platform: "codex".to_string(),
-                            project_path: checkpoint.project_path.clone(),
-                            record_json: json.to_string(),
-                            recorded_at: event_ts,
-                            source_id: source_id.to_string(),
-                            model: current_model.clone(),
-                            input_tokens: input as i64,
-                            output_tokens: output as i64,
-                            cache_read_tokens: cached as i64,
-                            cost_usd: cost,
-                        });
+                            0,
+                        ));
                     }
                 } else {
                     skipped += 1;
@@ -1061,32 +1051,25 @@ impl UsageImportService {
                 .and_then(|v| v.as_str())
                 .map(|s| s.to_string());
 
-            let cost = self.calculate_cost(
-                model.as_deref().unwrap_or("unknown"),
-                usage.input_tokens,
-                usage.output_tokens,
-                usage.cached_input_tokens,
-            );
-
             let record_id = message
                 .get("id")
                 .and_then(|v| v.as_str())
                 .map(|s| s.to_string())
                 .unwrap_or_else(|| format!("{}:{}", session_id, index + 1));
 
-            records.push(usage_repo::UsageRecord {
-                id: record_id,
-                platform: "gemini".to_string(),
-                project_path: resolved_project_path.clone(),
-                record_json: message.to_string(),
+            records.push(self.build_usage_record(
+                record_id,
+                "gemini",
+                resolved_project_path.clone(),
+                message.to_string(),
                 recorded_at,
-                source_id: source_id.to_string(),
+                source_id,
                 model,
-                input_tokens: usage.input_tokens,
-                output_tokens: usage.output_tokens,
-                cache_read_tokens: usage.cached_input_tokens,
-                cost_usd: cost,
-            });
+                usage.input_tokens,
+                usage.output_tokens,
+                usage.cached_input_tokens,
+                0,
+            ));
         }
 
         Ok((records, file_size, skipped))
@@ -1415,26 +1398,19 @@ impl UsageImportService {
         record_json: &Value,
         usage: GeminiTokenUsage,
     ) -> usage_repo::UsageRecord {
-        let cost_usd = self.calculate_cost(
-            model.as_deref().unwrap_or("unknown"),
+        self.build_usage_record(
+            format!("{session_id}:{record_kind}:{line_number}"),
+            "qwen",
+            project_path.to_string(),
+            record_json.to_string(),
+            recorded_at,
+            source_id,
+            model,
             usage.input_tokens,
             usage.output_tokens,
             usage.cached_input_tokens,
-        );
-
-        usage_repo::UsageRecord {
-            id: format!("{session_id}:{record_kind}:{line_number}"),
-            platform: "qwen".to_string(),
-            project_path: project_path.to_string(),
-            record_json: record_json.to_string(),
-            recorded_at,
-            source_id: source_id.to_string(),
-            model,
-            input_tokens: usage.input_tokens,
-            output_tokens: usage.output_tokens,
-            cache_read_tokens: usage.cached_input_tokens,
-            cost_usd,
-        }
+            0,
+        )
     }
 
     fn extract_qwen_assistant_usage(record: &Value) -> Option<GeminiTokenUsage> {
@@ -1613,42 +1589,80 @@ impl UsageImportService {
             .or_else(|| json.get("message").and_then(|m| m.get("usage")));
 
         // Must have at least one token field
-        let (input_tokens, output_tokens, cache_read_tokens) = if let Some(usage) = usage_obj {
-            let input = usage
-                .get("input_tokens")
-                .and_then(|v| v.as_i64())
-                .unwrap_or(0);
-            let output = usage
-                .get("output_tokens")
-                .and_then(|v| v.as_i64())
-                .unwrap_or(0);
-            let cache = usage
-                .get("cache_read_input_tokens")
-                .and_then(|v| v.as_i64())
-                .unwrap_or(0);
-            if input == 0 && output == 0 && cache == 0 {
+        let (input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens) =
+            if let Some(usage) = usage_obj {
+                let input = usage
+                    .get("input_tokens")
+                    .and_then(|v| v.as_i64())
+                    .unwrap_or(0);
+                let output = usage
+                    .get("output_tokens")
+                    .and_then(|v| v.as_i64())
+                    .unwrap_or(0);
+                let cache = usage
+                    .get("cache_read_input_tokens")
+                    .and_then(|v| v.as_i64())
+                    .unwrap_or(0);
+                let cache_creation = usage
+                    .get("cache_creation_input_tokens")
+                    .or_else(|| usage.get("cache_creation_tokens"))
+                    .and_then(|v| v.as_i64())
+                    .unwrap_or(0);
+                if input == 0 && output == 0 && cache == 0 && cache_creation == 0 {
+                    return None;
+                }
+                (input, output, cache, cache_creation)
+            } else {
                 return None;
-            }
-            (input, output, cache)
-        } else {
-            return None;
-        };
+            };
 
         // Store the original JSON for flexibility
         let record_json = json.to_string();
 
         // 计算费用（简化：使用内联定价表）
-        let cost_usd = self.calculate_cost(
+        Some(self.build_usage_record(
+            uuid.to_string(),
+            platform,
+            project_path.to_string(),
+            record_json,
+            recorded_at,
+            source_id,
+            model,
+            input_tokens,
+            output_tokens,
+            cache_read_tokens,
+            cache_creation_tokens,
+        ))
+    }
+
+    /// 根据模型名称计算费用（每百万 token 定价）
+    #[allow(clippy::too_many_arguments)]
+    fn build_usage_record(
+        &self,
+        id: String,
+        platform: &str,
+        project_path: String,
+        record_json: String,
+        recorded_at: DateTime<Utc>,
+        source_id: &str,
+        model: Option<String>,
+        input_tokens: i64,
+        output_tokens: i64,
+        cache_read_tokens: i64,
+        cache_creation_tokens: i64,
+    ) -> usage_repo::UsageRecord {
+        let pricing = self.calculate_pricing(
             model.as_deref().unwrap_or("unknown"),
             input_tokens,
             output_tokens,
             cache_read_tokens,
+            cache_creation_tokens,
         );
 
-        Some(usage_repo::UsageRecord {
-            id: uuid.to_string(),
+        usage_repo::UsageRecord {
+            id,
             platform: platform.to_string(),
-            project_path: project_path.to_string(),
+            project_path,
             record_json,
             recorded_at,
             source_id: source_id.to_string(),
@@ -1656,42 +1670,31 @@ impl UsageImportService {
             input_tokens,
             output_tokens,
             cache_read_tokens,
-            cost_usd,
-        })
+            cache_creation_tokens,
+            cost_usd: pricing.cost_with_cache_usd,
+            cost_with_cache_usd: pricing.cost_with_cache_usd,
+            cost_without_cache_usd: pricing.cost_without_cache_usd,
+            pricing_status: pricing.pricing_status,
+            pricing_source: Some(pricing.pricing_source),
+        }
     }
 
-    /// 根据模型名称计算费用（每百万 token 定价）
+    fn calculate_pricing(
+        &self,
+        model: &str,
+        input: i64,
+        output: i64,
+        cache_read: i64,
+        cache_creation: i64,
+    ) -> PricingComputation {
+        self.pricing_catalog
+            .calculate(model, input, output, cache_read, cache_creation)
+    }
+
+    #[cfg(test)]
     fn calculate_cost(&self, model: &str, input: i64, output: i64, cache: i64) -> f64 {
-        // (input_cost, output_cost, cache_read_cost) per million tokens
-        let (ic, oc, cc) = if model.contains("opus") {
-            (15.0, 75.0, 1.5)
-        } else if model.contains("sonnet") {
-            (3.0, 15.0, 0.3)
-        } else if model.contains("haiku") {
-            (0.8, 4.0, 0.08)
-        } else if model.contains("codex-mini") {
-            // OpenAI Codex Mini
-            (0.15, 0.60, 0.0375)
-        } else if model.contains("o4-mini") {
-            // OpenAI o4-mini
-            (0.55, 2.20, 0.1375)
-        } else if model == "o3" || model.starts_with("o3-") {
-            // OpenAI o3
-            (2.0, 8.0, 0.50)
-        } else if model.contains("gpt-5") {
-            // OpenAI GPT-5
-            (2.0, 8.0, 0.50)
-        } else if model.contains("gpt-4") {
-            // OpenAI GPT-4 variants (gpt-4, gpt-4.1, etc.)
-            (2.0, 8.0, 0.5)
-        } else if model.contains("gemini") && model.contains("pro") {
-            (1.25, 10.0, 0.315)
-        } else if model.contains("gemini") && model.contains("flash") {
-            (0.15, 0.6, 0.0375)
-        } else {
-            (0.0, 0.0, 0.0)
-        };
-        (input as f64 * ic + output as f64 * oc + cache as f64 * cc) / 1_000_000.0
+        self.calculate_pricing(model, input, output, cache, 0)
+            .cost_with_cache_usd
     }
 
     /// Calculate file hash (first 4KB for efficiency)
@@ -1821,10 +1824,19 @@ mod tests {
     use super::*;
     use crate::database;
     use std::io::Write;
+    use std::sync::{Mutex, MutexGuard, OnceLock};
     use tempfile::TempDir;
 
-    fn setup() {
+    fn test_db_lock() -> MutexGuard<'static, ()> {
+        static TEST_DB_LOCK: OnceLock<Mutex<()>> = OnceLock::new();
+        TEST_DB_LOCK.get_or_init(|| Mutex::new(())).lock().unwrap()
+    }
+
+    fn setup() -> MutexGuard<'static, ()> {
+        let guard = test_db_lock();
         database::initialize_for_test().unwrap();
+        reset_usage_tables();
+        guard
     }
 
     fn reset_usage_tables() {
@@ -1849,7 +1861,7 @@ mod tests {
 
     #[test]
     fn test_extract_project_path() {
-        setup();
+        let _guard = setup();
         let service = UsageImportService::new(ImportConfig::default());
 
         let path = PathBuf::from("/home/user/.claude/projects/myproject/usage.jsonl");
@@ -1859,7 +1871,7 @@ mod tests {
 
     #[test]
     fn test_calculate_file_hash() {
-        setup();
+        let _guard = setup();
 
         let temp_dir = TempDir::new().unwrap();
         let file_path = temp_dir.path().join("test.jsonl");
@@ -1880,7 +1892,7 @@ mod tests {
 
     #[test]
     fn test_parse_usage_record() {
-        setup();
+        let _guard = setup();
         let service = UsageImportService::new(ImportConfig::default());
 
         let json: Value = serde_json::from_str(
@@ -1906,7 +1918,7 @@ mod tests {
 
     #[test]
     fn test_parse_usage_record_nested() {
-        setup();
+        let _guard = setup();
         let service = UsageImportService::new(ImportConfig::default());
 
         let json: Value = serde_json::from_str(
@@ -1930,7 +1942,7 @@ mod tests {
 
     #[test]
     fn test_parse_usage_record_invalid() {
-        setup();
+        let _guard = setup();
         let service = UsageImportService::new(ImportConfig::default());
 
         // No usage data
@@ -1948,7 +1960,7 @@ mod tests {
 
     #[test]
     fn test_extract_project_path_codex() {
-        setup();
+        let _guard = setup();
         let service = UsageImportService::new(ImportConfig::default());
 
         let path = PathBuf::from("/home/user/.codex/sessions/2026/01/15/rollout-abc123.jsonl");
@@ -1958,7 +1970,7 @@ mod tests {
 
     #[test]
     fn test_extract_project_path_qwen() {
-        setup();
+        let _guard = setup();
         let service = UsageImportService::new(ImportConfig::default());
 
         let path =
@@ -1969,7 +1981,7 @@ mod tests {
 
     #[test]
     fn test_read_codex_session_token_count() {
-        setup();
+        let _guard = setup();
 
         let temp_dir = TempDir::new().unwrap();
         let file_path = temp_dir.path().join("rollout-test.jsonl");
@@ -2003,7 +2015,7 @@ mod tests {
 
     #[test]
     fn test_read_codex_session_turn_completed() {
-        setup();
+        let _guard = setup();
 
         let temp_dir = TempDir::new().unwrap();
         let file_path = temp_dir.path().join("rollout-tc.jsonl");
@@ -2027,7 +2039,7 @@ mod tests {
 
     #[test]
     fn test_read_codex_session_turn_context_updates_model() {
-        setup();
+        let _guard = setup();
 
         let temp_dir = TempDir::new().unwrap();
         let file_path = temp_dir.path().join("rollout-ctx.jsonl");
@@ -2050,7 +2062,7 @@ mod tests {
 
     #[test]
     fn test_read_codex_session_dedup_prefers_turn_completed() {
-        setup();
+        let _guard = setup();
 
         let temp_dir = TempDir::new().unwrap();
         let file_path = temp_dir.path().join("rollout-dedup.jsonl");
@@ -2074,7 +2086,7 @@ mod tests {
 
     #[test]
     fn test_read_codex_session_current_format_uses_cwd_and_total_token_usage() {
-        setup();
+        let _guard = setup();
 
         let temp_dir = TempDir::new().unwrap();
         let file_path = temp_dir.path().join("rollout-current.jsonl");
@@ -2102,7 +2114,7 @@ mod tests {
 
     #[test]
     fn test_import_file_persists_current_format_codex_records() {
-        setup();
+        let _guard = setup();
 
         let temp_dir = TempDir::new().unwrap();
         let file_dir = temp_dir
@@ -2148,7 +2160,7 @@ mod tests {
 
     #[test]
     fn test_import_file_appends_codex_session_tail_without_reimporting_history() {
-        setup();
+        let _guard = setup();
 
         let temp_dir = TempDir::new().unwrap();
         let file_dir = temp_dir
@@ -2204,7 +2216,7 @@ mod tests {
 
     #[test]
     fn test_reset_platform_sources_clears_records_and_checkpoints() {
-        setup();
+        let _guard = setup();
         reset_usage_tables();
 
         let codex_source = usage_repo::UsageSource {
@@ -2245,7 +2257,12 @@ mod tests {
             input_tokens: 100,
             output_tokens: 40,
             cache_read_tokens: 0,
+            cache_creation_tokens: 0,
             cost_usd: 0.0,
+            cost_with_cache_usd: 0.0,
+            cost_without_cache_usd: 0.0,
+            pricing_status: "unpriced".to_string(),
+            pricing_source: Some("unpriced".to_string()),
         };
         let claude_record = usage_repo::UsageRecord {
             id: "claude-record".to_string(),
@@ -2258,7 +2275,12 @@ mod tests {
             input_tokens: 120,
             output_tokens: 60,
             cache_read_tokens: 0,
+            cache_creation_tokens: 0,
             cost_usd: 1.2,
+            cost_with_cache_usd: 1.2,
+            cost_without_cache_usd: 1.2,
+            pricing_status: "priced".to_string(),
+            pricing_source: Some("test".to_string()),
         };
 
         database::with_connection(|conn| {
@@ -2319,7 +2341,7 @@ mod tests {
 
     #[test]
     fn test_read_gemini_session_uses_tokens_and_project_root() {
-        setup();
+        let _guard = setup();
 
         let temp_dir = TempDir::new().unwrap();
         let project_dir = temp_dir.path().join("tmp").join("ccr");
@@ -2378,7 +2400,7 @@ mod tests {
 
     #[test]
     fn test_import_file_persists_gemini_session_records() {
-        setup();
+        let _guard = setup();
         reset_usage_tables();
 
         let temp_dir = TempDir::new().unwrap();
@@ -2453,7 +2475,7 @@ mod tests {
 
     #[test]
     fn test_calculate_cost_codex_models() {
-        setup();
+        let _guard = setup();
         let service = UsageImportService::new(ImportConfig::default());
 
         // codex-mini: (0.15, 0.60, 0.0375) per 1M tokens
@@ -2470,8 +2492,87 @@ mod tests {
     }
 
     #[test]
+    fn test_calculate_cost_current_model_catalog() {
+        let _guard = setup();
+        let service = UsageImportService::new(ImportConfig::default());
+
+        let cases = [
+            ("claude-opus-4-6", 1_000_000, 1_000_000, 1_000_000, 30.5),
+            ("claude-opus-4.7", 1_000_000, 1_000_000, 1_000_000, 30.5),
+            ("claude-haiku-4-5", 1_000_000, 1_000_000, 1_000_000, 6.1),
+            ("gpt-5.4", 100_000, 100_000, 100_000, 1.775),
+            ("gpt-5.5", 100_000, 100_000, 100_000, 3.55),
+            ("gpt-5.4-mini", 100_000, 100_000, 100_000, 0.5325),
+            ("gpt-5.3-codex", 100_000, 100_000, 100_000, 1.5925),
+            (
+                "gemini-3-flash-preview",
+                1_000_000,
+                1_000_000,
+                1_000_000,
+                3.55,
+            ),
+        ];
+
+        for (model, input, output, cache, expected) in cases {
+            let cost = service.calculate_cost(model, input, output, cache);
+            assert!((cost - expected).abs() < 0.000_001, "{model}: {cost}");
+        }
+    }
+
+    #[test]
+    fn test_calculate_cost_long_context_tiers() {
+        let _guard = setup();
+        let service = UsageImportService::new(ImportConfig::default());
+
+        let gpt = service.calculate_cost("gpt-5.4", 273_000, 1_000_000, 0);
+        assert!((gpt - 23.865).abs() < 0.000_001);
+
+        let gemini = service.calculate_cost("gemini-3.1-pro-preview", 201_000, 1_000_000, 0);
+        assert!((gemini - 18.804).abs() < 0.000_001);
+    }
+
+    #[test]
+    fn test_parse_usage_record_cache_creation_and_unpriced() {
+        let _guard = setup();
+        let service = UsageImportService::new(ImportConfig::default());
+        let json = serde_json::json!({
+            "uuid": "claude-cache-create",
+            "timestamp": "2026-04-01T08:00:00Z",
+            "model": "claude-sonnet-4-6",
+            "usage": {
+                "input_tokens": 1_000_000,
+                "output_tokens": 1_000_000,
+                "cache_read_input_tokens": 1_000_000,
+                "cache_creation_input_tokens": 1_000_000
+            }
+        });
+
+        let record = service
+            .parse_usage_record(&json, "claude", "/workspace", "source-cache")
+            .unwrap();
+        assert_eq!(record.cache_creation_tokens, 1_000_000);
+        assert!((record.cost_with_cache_usd - 22.05).abs() < 0.000_001);
+        assert_eq!(record.pricing_status, "priced");
+
+        let unknown_json = serde_json::json!({
+            "uuid": "unknown-cache-create",
+            "timestamp": "2026-04-01T08:00:00Z",
+            "model": "coder-model",
+            "usage": {
+                "input_tokens": 1,
+                "output_tokens": 1
+            }
+        });
+        let unknown = service
+            .parse_usage_record(&unknown_json, "claude", "/workspace", "source-unknown")
+            .unwrap();
+        assert_eq!(unknown.pricing_status, "unpriced");
+        assert_eq!(unknown.cost_with_cache_usd, 0.0);
+    }
+
+    #[test]
     fn test_read_qwen_session_parses_usage_metadata_and_task_execution() {
-        setup();
+        let _guard = setup();
         reset_usage_tables();
 
         let temp_dir = TempDir::new().unwrap();
@@ -2515,7 +2616,7 @@ mod tests {
 
     #[test]
     fn test_import_file_persists_qwen_session_records() {
-        setup();
+        let _guard = setup();
         reset_usage_tables();
 
         let temp_dir = TempDir::new().unwrap();
