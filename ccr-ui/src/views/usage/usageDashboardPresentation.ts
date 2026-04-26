@@ -25,6 +25,7 @@ export interface ModelDistributionSlice {
 }
 
 const DAY_MS = 86_400_000
+const modelCost = (model: ModelStat) => model.cost_with_cache ?? model.total_cost
 
 const parseUtcDate = (value: string) => {
   const [year, month, day] = value.split('-').map(Number)
@@ -120,8 +121,8 @@ export const groupModelDistribution = (
   maxVisible = 6,
 ): ModelDistributionSlice[] => {
   const sorted = [...modelStats].sort((left, right) => {
-    if (right.total_cost !== left.total_cost) {
-      return right.total_cost - left.total_cost
+    if (modelCost(right) !== modelCost(left)) {
+      return modelCost(right) - modelCost(left)
     }
     if (right.total_tokens !== left.total_tokens) {
       return right.total_tokens - left.total_tokens
@@ -129,23 +130,23 @@ export const groupModelDistribution = (
     return right.request_count - left.request_count
   })
 
-  const totalCost = sorted.reduce((sum, item) => sum + item.total_cost, 0)
+  const totalCost = sorted.reduce((sum, item) => sum + modelCost(item), 0)
   const visible = sorted.slice(0, maxVisible)
   const hidden = sorted.slice(maxVisible)
 
   const slices = visible.map((item) => ({
     id: item.model,
     label: item.model,
-    totalCost: item.total_cost,
+    totalCost: modelCost(item),
     totalTokens: item.total_tokens,
     requestCount: item.request_count,
-    share: totalCost > 0 ? item.total_cost / totalCost : 0,
+    share: totalCost > 0 ? modelCost(item) / totalCost : 0,
     childCount: 1,
     isOther: false,
   }))
 
   if (hidden.length > 0) {
-    const otherCost = hidden.reduce((sum, item) => sum + item.total_cost, 0)
+    const otherCost = hidden.reduce((sum, item) => sum + modelCost(item), 0)
     const otherTokens = hidden.reduce((sum, item) => sum + item.total_tokens, 0)
     const otherRequests = hidden.reduce((sum, item) => sum + item.request_count, 0)
 

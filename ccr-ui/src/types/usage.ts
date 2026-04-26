@@ -26,6 +26,16 @@ export interface ModelStat {
   request_count: number
   total_tokens: number
   total_cost: number
+  input_tokens?: number
+  output_tokens?: number
+  cache_read_tokens?: number
+  cache_creation_tokens?: number
+  cost_with_cache?: number
+  cost_without_cache?: number
+  cache_savings?: number
+  pricing_status?: string
+  pricing_source?: string | null
+  pricing_rate?: string | null
 }
 
 /** 项目统计 */
@@ -48,7 +58,12 @@ export interface UsageRecordV2 {
   input_tokens: number
   output_tokens: number
   cache_read_tokens: number
+  cache_creation_tokens?: number
   cost_usd: number
+  cost_with_cache_usd?: number
+  cost_without_cache_usd?: number
+  pricing_status?: string
+  pricing_source?: string | null
 }
 
 /** 分页日志 */

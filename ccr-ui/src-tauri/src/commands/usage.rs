@@ -5,7 +5,11 @@ use std::path::PathBuf;
 use std::time::Instant;
 
 use ccr_config::Platform;
-use ccr_store::sessions::{SessionIndexer, parser::SessionParser};
+use ccr_store::{
+    ModelPricing, PricingManager,
+    sessions::{SessionIndexer, parser::SessionParser},
+};
+use ccr_types::{ModelRateCatalog, ModelRateOverride, official_model_rate_override_for};
 use chrono::{Duration, Utc};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -199,6 +203,71 @@ fn normalize_import_result(
         completed: result.completed,
         error: None,
     }
+}
+
+fn same_price(left: f64, right: f64) -> bool {
+    (left - right).abs() < 0.000_001
+}
+
+fn same_optional_price(left: Option<f64>, right: Option<f64>) -> bool {
+    match (left, right) {
+        (Some(left), Some(right)) => same_price(left, right),
+        (None, None) => true,
+        _ => false,
+    }
+}
+
+fn same_model_rate_price(left: &ModelRateOverride, right: &ModelRateOverride) -> bool {
+    same_price(left.input_price, right.input_price)
+        && same_price(left.output_price, right.output_price)
+        && same_optional_price(left.cache_read_price, right.cache_read_price)
+        && same_optional_price(left.cache_write_price, right.cache_write_price)
+}
+
+fn custom_rate_override(model: String, pricing: ModelPricing) -> Option<ModelRateOverride> {
+    let rate = ModelRateOverride {
+        model,
+        input_price: pricing.input_price,
+        output_price: pricing.output_price,
+        cache_read_price: pricing.cache_read_price,
+        cache_write_price: pricing.cache_write_price,
+    };
+
+    official_model_rate_override_for(&rate.model)
+        .is_none_or(|official| !same_model_rate_price(&rate, &official))
+        .then_some(rate)
+}
+
+fn usage_pricing_catalog() -> ModelRateCatalog {
+    let manager = match PricingManager::with_default() {
+        Ok(manager) => manager,
+        Err(error) => {
+            tracing::warn!(?error, "Failed to load pricing overrides; using official catalog");
+            return ModelRateCatalog::official();
+        }
+    };
+
+    let overrides = manager
+        .export_pricing()
+        .into_iter()
+        .filter_map(|(model, pricing)| custom_rate_override(model, pricing))
+        .collect::<Vec<_>>();
+
+    if overrides.is_empty() {
+        ModelRateCatalog::official()
+    } else {
+        ModelRateCatalog::with_overrides(overrides)
+    }
+}
+
+fn build_usage_import_service(
+    usage_db_pool: ccr_db::database::pool::DbPool,
+) -> ccr_db::services::usage_import_service::UsageImportService {
+    ccr_db::services::usage_import_service::UsageImportService::with_pool_and_catalog(
+        ccr_db::services::usage_import_service::ImportConfig::default(),
+        usage_db_pool,
+        usage_pricing_catalog(),
+    )
 }
 
 fn build_import_summary(results: &[UsageImportResultV2]) -> UsageImportSummary {
@@ -413,10 +482,7 @@ fn build_usage_import_plan(
     platforms: &[String],
     recent_window_days: usize,
 ) -> Result<(Vec<UsageImportJobFile>, Vec<UsageImportJobFile>), String> {
-    let service = ccr_db::services::usage_import_service::UsageImportService::with_pool(
-        ccr_db::services::usage_import_service::ImportConfig::default(),
-        usage_db_pool.clone(),
-    );
+    let service = build_usage_import_service(usage_db_pool.clone());
 
     let cutoff = std::time::SystemTime::now()
         .checked_sub(std::time::Duration::from_secs(
@@ -564,10 +630,7 @@ async fn process_usage_import_phase(
         let db_pool = usage_db_pool.clone();
         let import_started = Instant::now();
         let import_result = tokio::task::spawn_blocking(move || {
-            let service = ccr_db::services::usage_import_service::UsageImportService::with_pool(
-                ccr_db::services::usage_import_service::ImportConfig::default(),
-                db_pool,
-            );
+            let service = build_usage_import_service(db_pool);
             service.import_file_path(&platform, &path)
         })
         .await
@@ -664,11 +727,7 @@ async fn run_usage_import_job(
                 let source_target = platform_name.clone();
                 let db_pool = usage_db_pool.clone();
                 let source_count = tokio::task::spawn_blocking(move || {
-                    let service =
-                        ccr_db::services::usage_import_service::UsageImportService::with_pool(
-                            ccr_db::services::usage_import_service::ImportConfig::default(),
-                            db_pool,
-                        );
+                    let service = build_usage_import_service(db_pool);
                     service
                         .list_usage_files(&source_target)
                         .map(|files| files.len())
@@ -686,11 +745,7 @@ async fn run_usage_import_job(
                 let reset_target = platform_name.clone();
                 let db_pool = usage_db_pool.clone();
                 let reset_result = tokio::task::spawn_blocking(move || {
-                    let service =
-                        ccr_db::services::usage_import_service::UsageImportService::with_pool(
-                            ccr_db::services::usage_import_service::ImportConfig::default(),
-                            db_pool,
-                        );
+                    let service = build_usage_import_service(db_pool);
                     service.reset_platform_sources(&reset_target)
                 })
                 .await
@@ -1727,10 +1782,7 @@ pub async fn import_usage_v2(
 ) -> Result<Value, String> {
     let usage_db_pool = state.usage_db_pool.clone();
     let result = tokio::task::spawn_blocking(move || {
-        let service = ccr_db::services::usage_import_service::UsageImportService::with_pool(
-            ccr_db::services::usage_import_service::ImportConfig::default(),
-            usage_db_pool,
-        );
+        let service = build_usage_import_service(usage_db_pool);
         service
             .import_platform(&platform)
             .map_err(|e| format!("Import error: {e}"))
@@ -1779,10 +1831,7 @@ pub async fn import_all_usage_v2(
 
             let import_platform = platform_name.clone();
             tokio::task::spawn_blocking(move || {
-                let service = ccr_db::services::usage_import_service::UsageImportService::with_pool(
-                    ccr_db::services::usage_import_service::ImportConfig::default(),
-                    db_pool,
-                );
+                let service = build_usage_import_service(db_pool);
                 service
                     .import_platform(&import_platform)
                     .map(normalize_import_result)
@@ -2025,5 +2074,35 @@ mod tests {
         assert_eq!(summary.imported_records, 0);
         assert_eq!(summary.processed_files, 0);
         assert!(!summary.has_partial);
+    }
+
+    #[test]
+    fn pricing_defaults_are_not_treated_as_overrides() {
+        let pricing = ModelPricing {
+            model: "claude-opus-4.6".to_string(),
+            input_price: 5.0,
+            output_price: 25.0,
+            cache_read_price: Some(0.5),
+            cache_write_price: Some(6.25),
+        };
+
+        assert!(custom_rate_override("anthropic/claude-opus-4.6".to_string(), pricing).is_none());
+    }
+
+    #[test]
+    fn custom_pricing_is_kept_as_override() {
+        let pricing = ModelPricing {
+            model: "gpt-5.4".to_string(),
+            input_price: 9.0,
+            output_price: 18.0,
+            cache_read_price: Some(0.9),
+            cache_write_price: Some(9.0),
+        };
+
+        let override_rate = custom_rate_override("gpt-5.4".to_string(), pricing).unwrap();
+
+        assert_eq!(override_rate.model, "gpt-5.4");
+        assert_eq!(override_rate.input_price, 9.0);
+        assert_eq!(override_rate.output_price, 18.0);
     }
 }

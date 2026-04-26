@@ -35,7 +35,14 @@
             <col class="models-tab__col models-tab__col--model">
             <col class="models-tab__col models-tab__col--requests">
             <col class="models-tab__col models-tab__col--tokens">
+            <col class="models-tab__col models-tab__col--tokens">
+            <col class="models-tab__col models-tab__col--tokens">
+            <col class="models-tab__col models-tab__col--tokens">
+            <col class="models-tab__col models-tab__col--rate">
             <col class="models-tab__col models-tab__col--cost">
+            <col class="models-tab__col models-tab__col--cost">
+            <col class="models-tab__col models-tab__col--cost">
+            <col class="models-tab__col models-tab__col--status">
             <col class="models-tab__col models-tab__col--share">
           </colgroup>
           <thead>
@@ -46,10 +53,31 @@
                 {{ $t('usage.dashboard.table.requests') }}
               </th>
               <th class="is-right">
-                {{ $t('usage.dashboard.table.tokens') }}
+                {{ $t('usage.dashboard.table.input') }}
               </th>
               <th class="is-right">
-                {{ $t('usage.dashboard.table.cost') }}
+                {{ $t('usage.dashboard.table.output') }}
+              </th>
+              <th class="is-right">
+                {{ $t('usage.dashboard.table.cacheRead') }}
+              </th>
+              <th class="is-right">
+                {{ $t('usage.dashboard.table.cacheWrite') }}
+              </th>
+              <th>
+                {{ $t('usage.dashboard.table.rate') }}
+              </th>
+              <th class="is-right">
+                {{ $t('usage.dashboard.table.costWithCache') }}
+              </th>
+              <th class="is-right">
+                {{ $t('usage.dashboard.table.costWithoutCache') }}
+              </th>
+              <th class="is-right">
+                {{ $t('usage.dashboard.table.cacheSavings') }}
+              </th>
+              <th>
+                {{ $t('usage.dashboard.table.pricingStatus') }}
               </th>
               <th class="is-right">
                 {{ $t('usage.dashboard.table.share') }}
@@ -76,13 +104,40 @@
                 {{ model.request_count.toLocaleString() }}
               </td>
               <td class="is-right">
-                {{ formatTokens(model.total_tokens) }}
+                {{ formatTokens(inputTokens(model)) }}
               </td>
               <td class="is-right">
-                {{ formatCost(model.total_cost) }}
+                {{ formatTokens(outputTokens(model)) }}
               </td>
               <td class="is-right">
-                {{ formatShare(model.total_cost) }}
+                {{ formatTokens(cacheReadTokens(model)) }}
+              </td>
+              <td class="is-right">
+                {{ formatTokens(cacheCreationTokens(model)) }}
+              </td>
+              <td>
+                <span class="models-tab__rate">{{ pricingRate(model) }}</span>
+              </td>
+              <td class="is-right">
+                {{ formatCost(costWithCache(model)) }}
+              </td>
+              <td class="is-right">
+                {{ formatCost(costWithoutCache(model)) }}
+              </td>
+              <td class="is-right">
+                {{ formatCost(cacheSavings(model)) }}
+              </td>
+              <td>
+                <span
+                  class="models-tab__status"
+                  :class="`models-tab__status--${pricingStatus(model)}`"
+                  :title="model.pricing_source || pricingStatus(model)"
+                >
+                  {{ $t(pricingStatusKey(model)) }}
+                </span>
+              </td>
+              <td class="is-right">
+                {{ formatShare(costWithCache(model)) }}
               </td>
             </tr>
           </tbody>
@@ -121,16 +176,38 @@ interface Props {
 const props = defineProps<Props>()
 
 const totalCost = computed(() =>
-  props.modelStats.reduce((sum, item) => sum + item.total_cost, 0),
+  props.modelStats.reduce((sum, item) => sum + costWithCache(item), 0),
 )
 
 const sortedModels = computed(() =>
   [...props.modelStats].sort((left, right) =>
-    right.total_cost - left.total_cost ||
+    costWithCache(right) - costWithCache(left) ||
     right.total_tokens - left.total_tokens ||
     right.request_count - left.request_count,
   ),
 )
+
+const inputTokens = (model: ModelStat) => model.input_tokens ?? model.total_tokens
+const outputTokens = (model: ModelStat) => model.output_tokens ?? 0
+const cacheReadTokens = (model: ModelStat) => model.cache_read_tokens ?? 0
+const cacheCreationTokens = (model: ModelStat) => model.cache_creation_tokens ?? 0
+const costWithCache = (model: ModelStat) => model.cost_with_cache ?? model.total_cost
+const costWithoutCache = (model: ModelStat) =>
+  model.cost_without_cache ?? model.total_cost
+const cacheSavings = (model: ModelStat) =>
+  model.cache_savings ?? Math.max(0, costWithoutCache(model) - costWithCache(model))
+const pricingRate = (model: ModelStat) => model.pricing_rate || '-'
+const pricingStatus = (model: ModelStat) => model.pricing_status || 'priced'
+const pricingStatusKey = (model: ModelStat) => {
+  switch (pricingStatus(model)) {
+    case 'unpriced':
+      return 'usage.dashboard.table.statusUnpriced'
+    case 'legacy_alias':
+      return 'usage.dashboard.table.statusLegacyAlias'
+    default:
+      return 'usage.dashboard.table.statusPriced'
+  }
+}
 
 const formatShare = (value: number) => {
   if (totalCost.value <= 0) return '0%'
@@ -179,7 +256,7 @@ const formatShare = (value: number) => {
 }
 
 .models-tab__table {
-  min-width: 58rem;
+  min-width: 106rem;
   width: 100%;
   border-collapse: separate;
   border-spacing: 0;
@@ -225,6 +302,36 @@ const formatShare = (value: number) => {
   white-space: nowrap;
 }
 
+.models-tab__rate {
+  color: var(--color-text-muted);
+  font-size: 0.78rem;
+  white-space: nowrap;
+}
+
+.models-tab__status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 4.8rem;
+  border-radius: 999px;
+  padding: 0.2rem 0.55rem;
+  background: rgb(var(--color-success-rgb) / 10%);
+  color: var(--color-success);
+  font-size: 0.74rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.models-tab__status--legacy_alias {
+  background: rgb(var(--color-warning-rgb) / 12%);
+  color: var(--color-warning);
+}
+
+.models-tab__status--unpriced {
+  background: rgb(var(--color-danger-rgb) / 10%);
+  color: var(--color-danger);
+}
+
 .models-tab__table .is-right {
   text-align: right;
 }
@@ -244,7 +351,7 @@ const formatShare = (value: number) => {
 }
 
 .models-tab__col--model {
-  width: 26rem;
+  width: 24rem;
 }
 
 .models-tab__col--requests,
@@ -252,5 +359,13 @@ const formatShare = (value: number) => {
 .models-tab__col--cost,
 .models-tab__col--share {
   width: 9rem;
+}
+
+.models-tab__col--rate {
+  width: 10rem;
+}
+
+.models-tab__col--status {
+  width: 8rem;
 }
 </style>

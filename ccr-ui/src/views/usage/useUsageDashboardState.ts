@@ -2,7 +2,7 @@ import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useUsageStore } from '@/stores/usage'
 import { ensureLocaleLoaded } from '@/i18n'
-import type { Platform } from '@/types/usage'
+import type { ModelStat, Platform } from '@/types/usage'
 import { isTauriRuntime } from '@/utils/tauriRuntime'
 import {
   aggregateDailyTrends,
@@ -71,6 +71,7 @@ const formatCost = (value: number) => (value >= 1 ? `$${value.toFixed(2)}` : `$$
 
 const formatPercent = (value: number) => `${(value * 100).toFixed(1)}%`
 const formatDateTime = (value: string, locale: string) => new Date(value).toLocaleString(locale)
+const modelCost = (model: ModelStat) => model.cost_with_cache ?? model.total_cost
 
 const hasTemplatePlaceholder = (value: string) => /\{[a-zA-Z_][a-zA-Z0-9_]*\}/.test(value)
 
@@ -709,7 +710,7 @@ export const useUsageDashboardState = () => {
           topModel?.model ??
           translateDashboardText('usage.dashboard.table.noData', undefined, 'No data'),
         detail: topModel
-          ? `${formatCost(topModel.total_cost)} · ${formatTokens(topModel.total_tokens)}`
+          ? `${formatCost(modelCost(topModel))} · ${formatTokens(topModel.total_tokens)}`
           : translateDashboardText('usage.dashboard.table.noData', undefined, 'No data'),
       },
       {
@@ -752,12 +753,12 @@ export const useUsageDashboardState = () => {
   const topModelRankings = computed<OverviewRankItem[]>(() => {
     if (!dashboardReady.value) return []
 
-    const totalCost = store.modelStats.reduce((sum, item) => sum + item.total_cost, 0)
+    const totalCost = store.modelStats.reduce((sum, item) => sum + modelCost(item), 0)
 
     return [...store.modelStats]
       .sort(
         (left, right) =>
-          right.total_cost - left.total_cost ||
+          modelCost(right) - modelCost(left) ||
           right.total_tokens - left.total_tokens ||
           right.request_count - left.request_count
       )
@@ -767,8 +768,8 @@ export const useUsageDashboardState = () => {
         label: item.model,
         title: item.model,
         detail: `${item.request_count.toLocaleString()} ${translateDashboardText('usage.dashboard.table.requests', undefined, 'requests')} · ${formatTokens(item.total_tokens)}`,
-        value: formatCost(item.total_cost),
-        share: totalCost > 0 ? item.total_cost / totalCost : 0,
+        value: formatCost(modelCost(item)),
+        share: totalCost > 0 ? modelCost(item) / totalCost : 0,
       }))
   })
 
