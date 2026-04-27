@@ -271,6 +271,26 @@ fn main() {
 
                 match action {
                     desktop_shell::MainWindowCloseAction::AllowExit => {}
+                    desktop_shell::MainWindowCloseAction::RequestQuit => {
+                        /*
+                         * ========================================================================
+                         * 步骤1：显式退出桌面进程
+                         * ========================================================================
+                         * 目标：
+                         * 1) 关闭到托盘未启用时，点 X 直接退出桌面进程
+                         * 2) 不依赖 last-window 退出，避免隐藏 tray 面板让进程继续驻留
+                         */
+                        tracing::info!("[app] main window close requests desktop quit");
+
+                        // 1.1 拦截默认 close，统一交给显式退出路径处理
+                        api.prevent_close();
+
+                        // 1.2 请求退出进程，并让 tray quit 复用同一条退出链路
+                        if let Err(error) = desktop_shell::request_quit(window.app_handle()) {
+                            tracing::warn!("[app] failed to request quit from close action: {error}");
+                        }
+                        tracing::info!("[app] desktop quit request dispatched from close action");
+                    }
                     desktop_shell::MainWindowCloseAction::HideToTray => {
                         api.prevent_close();
                         if let Err(error) = window.hide() {
@@ -280,6 +300,7 @@ fn main() {
                     desktop_shell::MainWindowCloseAction::ConfirmExit => {
                         api.prevent_close();
                         let window = window.clone();
+                        let app_handle = window.app_handle().clone();
                         window
                             .dialog()
                             .message("Are you sure you want to close CCR Desktop?")
@@ -291,11 +312,25 @@ fn main() {
                             ))
                             .show(move |confirmed| {
                                 if confirmed {
-                                    let state = window.state::<AppState>();
-                                    state
-                                        .exit_confirmed
-                                        .store(true, std::sync::atomic::Ordering::SeqCst);
-                                    let _ = window.close();
+                                    /*
+                                     * ========================================================================
+                                     * 步骤2：确认后退出桌面进程
+                                     * ========================================================================
+                                     * 目标：
+                                     * 1) 用户确认退出后进入显式退出路径
+                                     * 2) 避免 window.close 只关闭主窗口而留下隐藏 tray 面板
+                                     */
+                                    tracing::info!("[app] confirmed close requests desktop quit");
+
+                                    // 2.1 通过桌面壳层退出路径设置退出标志并关闭进程
+                                    if let Err(error) = desktop_shell::request_quit(&app_handle) {
+                                        tracing::warn!(
+                                            "[app] failed to request quit after confirmation: {error}"
+                                        );
+                                    }
+                                    tracing::info!(
+                                        "[app] desktop quit request dispatched after confirmation"
+                                    );
                                 }
                             });
                     }
@@ -352,6 +387,22 @@ mod tests {
         );
 
         assert_eq!(action, MainWindowCloseAction::HideToTray);
+    }
+
+    #[test]
+    fn close_action_requests_quit_when_close_to_tray_and_confirm_are_disabled() {
+        let action = resolve_main_window_close_action(
+            &DesktopShellPreferences {
+                confirm_before_exit: false,
+                close_to_tray: false,
+                open_panel_on_tray_click: true,
+                ..DesktopShellPreferences::default()
+            },
+            false,
+            false,
+        );
+
+        assert_eq!(action, MainWindowCloseAction::RequestQuit);
     }
 
     #[cfg(target_os = "macos")]

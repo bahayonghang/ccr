@@ -47,6 +47,7 @@ struct PanelWorkArea {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MainWindowCloseAction {
     AllowExit,
+    RequestQuit,
     HideToTray,
     ConfirmExit,
 }
@@ -72,7 +73,7 @@ pub fn resolve_main_window_close_action(
         return MainWindowCloseAction::ConfirmExit;
     }
 
-    MainWindowCloseAction::AllowExit
+    MainWindowCloseAction::RequestQuit
 }
 
 pub fn install_desktop_shell<R: Runtime>(app: &AppHandle<R>) -> Result<(), String> {
