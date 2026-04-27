@@ -1443,7 +1443,7 @@ export default {
       exitConfirmTitle: 'Confirm before exit',
       exitConfirmDescription: 'Require an extra confirmation before closing the desktop window.',
       closeToTrayTitle: 'Close to tray',
-      closeToTrayDescription: 'Hide the main window into the system tray instead of exiting the desktop runtime.',
+      closeToTrayDescription: 'When enabled, the close button hides the main window. When disabled, it exits the desktop runtime.',
       openPanelOnTrayClickTitle: 'Open panel on tray click',
       openPanelOnTrayClickDescription: 'Use left click on the tray icon to toggle the compact Codex panel instead of reopening the full window.',
       sidebarWidthTitle: 'Sidebar width',
