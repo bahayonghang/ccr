@@ -1160,13 +1160,23 @@ impl CodexPlatform {
     }
 
     fn clear_current_profile_registry(&self) -> Result<()> {
-        let manager = PlatformConfigManager::with_default()?;
-        let mut unified = manager.load()?;
+        let manager = PlatformConfigManager::new(&self.paths.registry_file);
+        let mut unified = manager.load_or_create_default()?;
         if let Ok(entry) = unified.get_platform_mut("codex") {
             entry.current_profile = None;
             entry.last_used = Some(chrono::Utc::now().to_rfc3339());
         }
         manager.save(&unified)
+    }
+
+    fn current_profile_from_registry(&self) -> Result<Option<String>> {
+        let manager = PlatformConfigManager::new(&self.paths.registry_file);
+        let unified = manager.load()?;
+
+        match unified.get_platform("codex") {
+            Ok(entry) => Ok(entry.current_profile.clone()),
+            Err(_) => Ok(None),
+        }
     }
 
     fn fallback_current_profile_from_file(&self) -> Result<Option<String>> {
@@ -1202,7 +1212,7 @@ impl CodexPlatform {
                 Ok(Self::spec_matches_runtime_without_auth(&spec, &config))
             };
 
-        match base::get_current_profile_from_registry("codex")? {
+        match self.current_profile_from_registry()? {
             Some(current) => {
                 let profiles = self.load_profiles()?;
                 let Some(profile) = profiles.get(&current) else {

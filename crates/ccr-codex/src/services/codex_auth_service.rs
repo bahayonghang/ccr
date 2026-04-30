@@ -1984,7 +1984,39 @@ mod tests {
     use crate::models::{CodexAuthTokens, CodexRuntimeMode, ProfileConfig};
     use chrono::Duration;
     use serde_json::json;
+    use std::ffi::OsString;
+    use std::sync::{LazyLock, Mutex};
     use tempfile::TempDir;
+
+    static ENV_LOCK: LazyLock<Mutex<()>> = LazyLock::new(|| Mutex::new(()));
+
+    struct EnvVarGuard {
+        key: &'static str,
+        previous: Option<OsString>,
+    }
+
+    impl EnvVarGuard {
+        fn set(key: &'static str, value: &std::path::Path) -> Self {
+            let previous = std::env::var_os(key);
+            // SAFETY: tests that use process-wide environment variables hold ENV_LOCK.
+            unsafe {
+                std::env::set_var(key, value);
+            }
+            Self { key, previous }
+        }
+    }
+
+    impl Drop for EnvVarGuard {
+        fn drop(&mut self) {
+            // SAFETY: tests that use process-wide environment variables hold ENV_LOCK.
+            unsafe {
+                match &self.previous {
+                    Some(value) => std::env::set_var(self.key, value),
+                    None => std::env::remove_var(self.key),
+                }
+            }
+        }
+    }
 
     /// 创建测试用的 service 实例
     fn create_test_service() -> (CodexAuthService, TempDir, TempDir) {
@@ -2209,6 +2241,43 @@ mod tests {
             Some("provider:DUCK_API_KEY")
         );
         assert_eq!(summary.auth_label(), "Provider / DUCK_API_KEY");
+    }
+
+    #[test]
+    fn test_get_runtime_summary_ignores_global_registry_current_profile() {
+        let _guard = ENV_LOCK.lock().unwrap();
+        let global_ccr = TempDir::new().unwrap();
+        let _ccr_root = EnvVarGuard::set("CCR_ROOT", global_ccr.path());
+
+        let manager = ccr_config::PlatformConfigManager::with_default().unwrap();
+        let mut global_registry = manager.load_or_create_default().unwrap();
+        if global_registry.get_platform("codex").is_err() {
+            global_registry
+                .register_platform(
+                    "codex".to_string(),
+                    ccr_config::PlatformConfigEntry::default(),
+                )
+                .unwrap();
+        }
+        global_registry
+            .set_platform_profile("codex", "stale-global-profile")
+            .unwrap();
+        manager.save(&global_registry).unwrap();
+
+        let (service, _ccr, _codex) = create_test_service();
+        let platform = service.platform().unwrap();
+        platform
+            .save_profile("duck", &provider_env_profile())
+            .unwrap();
+        platform.apply_profile("duck").unwrap();
+
+        let summary = service.get_runtime_summary().unwrap();
+        assert_eq!(summary.mode, CodexRuntimeMode::ProfileOnly);
+        assert_eq!(summary.current_profile_name.as_deref(), Some("duck"));
+        assert_eq!(
+            summary.current_profile_auth_mode,
+            Some(crate::models::CodexProfileAuthMode::ProviderEnvKey)
+        );
     }
 
     #[test]

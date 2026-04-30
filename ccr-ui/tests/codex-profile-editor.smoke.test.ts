@@ -75,6 +75,8 @@ const i18n = createI18n({
           openAiAuthOn: 'Uses OpenAI auth',
           openAiAuthOff: 'Direct runtime auth',
           modalFooterHint: 'Footer hint',
+          nameCreateHint: 'Create name hint',
+          nameRenameHint: 'Rename name hint',
           baseUrlRequiredHint: 'Base URL required',
           baseUrlOptionalHint: 'Base URL optional',
           envKeyHint: 'Env key hint',
@@ -261,6 +263,19 @@ describe('CodexProfileEditorModal smoke', () => {
       await Promise.resolve()
 
       expect(helperMocks.copyToClipboard).toHaveBeenCalledWith('sk-test-123')
+    } finally {
+      unmount()
+    }
+  })
+
+  it('keeps the name input editable while editing an existing profile', async () => {
+    const { el, unmount } = await mountModal(createForm())
+
+    try {
+      const input = el.querySelector<HTMLInputElement>('[data-testid="codex-profile-name-input"]')
+
+      expect(input?.disabled).toBe(false)
+      expect(el.textContent).toContain('Rename name hint')
     } finally {
       unmount()
     }

@@ -28,7 +28,7 @@
                 :id="titleId"
                 class="editor-shell-title text-2xl font-semibold tracking-tight"
               >
-                {{ isEditing ? editingName : $t('codex.profiles.addProfile') }}
+                {{ form.name.trim() || editingName || $t('codex.profiles.addProfile') }}
               </h2>
               <span
                 class="editor-pill px-3 py-1 text-xs font-medium"
@@ -118,13 +118,16 @@
                 </label>
                 <input
                   id="codex-profile-name"
+                  data-testid="codex-profile-name-input"
                   :value="form.name"
-                  :disabled="isEditing"
                   type="text"
                   class="editor-input w-full rounded-[20px] px-4 py-3 text-sm"
                   :placeholder="$t('codex.profiles.placeholders.name')"
                   @input="updateTextField('name', $event)"
                 >
+                <p class="mt-2 text-xs text-text-muted">
+                  {{ isEditing ? $t('codex.profiles.nameRenameHint') : $t('codex.profiles.nameCreateHint') }}
+                </p>
               </div>
 
               <div>
