@@ -263,9 +263,9 @@ dependencies = [
 
 [[package]]
 name = "blake3"
-version = "1.8.4"
+version = "1.8.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4d2d5991425dfd0785aed03aedcf0b321d61975c9b5b3689c774a2610ae0b51e"
+checksum = "0aa83c34e62843d924f905e0f5c866eb1dd6545fc4d719e803d9ba6030371fce"
 dependencies = [
  "arrayref",
  "arrayvec",
@@ -332,7 +332,7 @@ dependencies = [
 
 [[package]]
 name = "ccr"
-version = "6.0.3"
+version = "6.0.4"
 dependencies = [
  "anyhow",
  "base64",
@@ -380,7 +380,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-checkin"
-version = "6.0.3"
+version = "6.0.4"
 dependencies = [
  "aes-gcm",
  "base64",
@@ -404,7 +404,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-cli"
-version = "6.0.3"
+version = "6.0.4"
 dependencies = [
  "anyhow",
  "base64",
@@ -450,7 +450,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-codex"
-version = "6.0.3"
+version = "6.0.4"
 dependencies = [
  "aes-gcm",
  "argon2",
@@ -478,7 +478,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-config"
-version = "6.0.3"
+version = "6.0.4"
 dependencies = [
  "ccr-core",
  "chrono",
@@ -493,7 +493,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-core"
-version = "6.0.3"
+version = "6.0.4"
 dependencies = [
  "anyhow",
  "colored",
@@ -519,7 +519,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-db"
-version = "6.0.3"
+version = "6.0.4"
 dependencies = [
  "aes-gcm",
  "anyhow",
@@ -552,7 +552,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-skills"
-version = "6.0.3"
+version = "6.0.4"
 dependencies = [
  "blake3",
  "ccr-config",
@@ -571,7 +571,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-store"
-version = "6.0.3"
+version = "6.0.4"
 dependencies = [
  "blake3",
  "ccr-config",
@@ -594,7 +594,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-sync"
-version = "6.0.3"
+version = "6.0.4"
 dependencies = [
  "ccr-config",
  "ccr-core",
@@ -613,7 +613,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-tui"
-version = "6.0.3"
+version = "6.0.4"
 dependencies = [
  "base64",
  "ccr-cli",
@@ -634,7 +634,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-types"
-version = "6.0.3"
+version = "6.0.4"
 dependencies = [
  "chrono",
  "serde",
@@ -2718,9 +2718,9 @@ checksum = "dc897dd8d9e8bd1ed8cdad82b5966c3e0ecae09fb1907d58efaa013543185d0a"
 
 [[package]]
 name = "reqwest"
-version = "0.13.2"
+version = "0.13.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ab3f43e3283ab1488b624b44b0e988d0acea0b3214e694730a055cb6b2efa801"
+checksum = "62e0021ea2c22aed41653bc7e1419abb2c97e038ff2c33d0e1309e49a97deec0"
 dependencies = [
  "base64",
  "bytes",
@@ -2776,13 +2776,13 @@ dependencies = [
 
 [[package]]
 name = "rpassword"
-version = "7.4.0"
+version = "7.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "66d4c8b64f049c6721ec8ccec37ddfc3d641c4a7fca57e8f2a89de509c73df39"
+checksum = "2501c67132bd19c3005b0111fba298907ef002c8c1cf68e25634707e38bf66fe"
 dependencies = [
  "libc",
  "rtoolbox",
- "windows-sys 0.59.0",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]
