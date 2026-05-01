@@ -9,7 +9,6 @@ pub mod codex;
 pub mod command_exec;
 pub mod config;
 pub mod converter;
-pub mod droid;
 pub mod environment;
 pub mod gemini;
 pub mod mcp_presets;
@@ -170,26 +169,6 @@ macro_rules! generate_handler_common {
         gemini::gemini_update_slash_command,
         gemini::gemini_delete_slash_command,
         gemini::gemini_list_extensions,
-        // —— Droid ——
-        droid::droid_get_settings,
-        droid::droid_update_settings,
-        droid::droid_list_mcp_servers,
-        droid::droid_add_mcp_server,
-        droid::droid_update_mcp_server,
-        droid::droid_delete_mcp_server,
-        droid::droid_list_agents,
-        droid::droid_add_agent,
-        droid::droid_update_agent,
-        droid::droid_delete_agent,
-        droid::droid_list_plugins,
-        droid::droid_add_plugin,
-        droid::droid_update_plugin,
-        droid::droid_delete_plugin,
-        droid::droid_list_slash_commands,
-        droid::droid_add_slash_command,
-        droid::droid_update_slash_command,
-        droid::droid_delete_slash_command,
-        droid::droid_list_models,
         // —— OpenCode ——
         opencode::opencode_get_settings,
         opencode::opencode_update_settings,

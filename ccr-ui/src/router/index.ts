@@ -121,12 +121,6 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/GeminiCliView.vue'),
         meta: { depth: 1, group: 'gemini', hideGlobalBackground: true },
       },
-      {
-        path: 'droid',
-        name: 'droid',
-        component: () => import('@/views/DroidView.vue'),
-        meta: { depth: 1, group: 'droid', hideGlobalBackground: true },
-      },
       // 工具中心 (depth: 1, group: 'tools')
       {
         path: 'ccr-control',
@@ -354,37 +348,6 @@ const routes: RouteRecordRaw[] = [
         name: 'gemini-slash-commands',
         component: () => import('@/views/GeminiSlashCommandsView.vue'),
         meta: { depth: 2, group: 'gemini' },
-      },
-      // Droid 子页面 (depth: 2, group: 'droid')
-      {
-        path: 'droid/slash-commands',
-        name: 'droid-slash-commands',
-        component: () => import('@/views/DroidSlashCommandsView.vue'),
-        meta: { depth: 2, group: 'droid' },
-      },
-      {
-        path: 'droid/plugins',
-        name: 'droid-plugins',
-        component: () => import('@/views/DroidPluginsView.vue'),
-        meta: { depth: 2, group: 'droid' },
-      },
-      {
-        path: 'droid/models',
-        name: 'droid-models',
-        component: () => import('@/views/DroidModelsView.vue'),
-        meta: { depth: 2, group: 'droid' },
-      },
-      {
-        path: 'droid/profiles',
-        name: 'droid-profiles',
-        component: () => import('@/views/DroidProfilesView.vue'),
-        meta: { depth: 2, group: 'droid' },
-      },
-      {
-        path: 'droid/droids',
-        name: 'droid-droids',
-        component: () => import('@/views/DroidDroidsView.vue'),
-        meta: { depth: 2, group: 'droid' },
       },
       // OpenCode 子页面 (depth: 2, group: 'opencode')
       {

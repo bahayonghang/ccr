@@ -81,7 +81,6 @@ impl SshEnvironment {
             "claude" => format!("{home}/.claude"),
             "codex" => format!("{home}/.codex"),
             "gemini" => format!("{home}/.gemini"),
-            "droid" => format!("{home}/.droid"),
             "opencode" => format!("{home}/.opencode"),
             _ => return Err(EnvError::PlatformNotSupported(platform.to_string())),
         };
@@ -142,7 +141,6 @@ impl ExecutionEnvironment for SshEnvironment {
                     "claude" => "Claude Code",
                     "codex" => "Codex CLI",
                     "gemini" => "Gemini CLI",
-                    "droid" => "Droid",
                     "opencode" => "OpenCode",
                     _ => s.name.as_str(),
                 }
@@ -234,7 +232,7 @@ impl ExecutionEnvironment for SshEnvironment {
     }
 
     async fn detect_cli_status(&self) -> Result<Vec<CliStatus>, EnvError> {
-        let tools = ["claude", "codex", "gemini", "droid", "opencode"];
+        let tools = ["claude", "codex", "gemini", "opencode"];
         let mut result = Vec::new();
 
         for tool in tools {

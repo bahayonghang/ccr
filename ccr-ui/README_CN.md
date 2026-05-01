@@ -7,7 +7,7 @@
 ### 核心功能
 - **配置管理**：可视化查看、切换、验证、导入/导出、历史记录、备份管理，覆盖全部 CLI 能力
 - **命令执行**：图形化运行所有 CCR 命令，实时查看命令输出
-- **多平台支持**：统一管理 Claude Code、Codex、Gemini CLI、Factory Droid 等 AI 工具配置
+- **多平台支持**：统一管理 Claude Code、Codex、Gemini CLI 等 AI 工具配置
 - **WebDAV 同步**：多目录同步、注册管理、批量与单目录 push/pull/status
 - **格式转换**：不同平台配置间的互相转换（Claude ↔ Codex ↔ Gemini）
 - **签到管理**：中转站多账号签到、余额查询、历史记录追踪
@@ -19,7 +19,6 @@
 | Claude Code | ✅ 完全支持 | Anthropic 官方 CLI | `~/.claude/settings.json` |
 | Codex | ✅ 完全支持 | Codex CLI | `~/.codex/config.json` |
 | Gemini CLI | ✅ 完全支持 | Google Gemini CLI | `~/.gemini/settings.json` |
-| Factory Droid | ✅ 完全支持 | Factory AI Droid CLI | `~/.factory/settings.json` |
 
 ## 快速开始
 
@@ -445,7 +444,6 @@ kill -9 <PID>
 - **Claude Code**: `~/.claude/settings.json`
 - **Codex**: `~/.codex/config.json`
 - **Gemini CLI**: `~/.gemini/settings.json`
-- **Factory Droid**: `~/.factory/settings.json`
 
 ### CCR UI 相关
 - **日志**: `~/.ccr/logs/` 或 `./ccr-ui/logs/`
@@ -469,7 +467,6 @@ A:
 - Claude Code: `~/.claude/settings.json`
 - Codex: `~/.codex/config.json`
 - Gemini: `~/.gemini/settings.json`
-- Factory Droid: `~/.factory/settings.json`
 
 ### Q: 如何添加新的 CLI 工具支持？
 A:

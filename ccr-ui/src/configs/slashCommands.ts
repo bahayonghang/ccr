@@ -5,7 +5,6 @@ import {
   listSlashCommands, addSlashCommand, updateSlashCommand, deleteSlashCommand, toggleSlashCommand,
   listCodexSlashCommands, addCodexSlashCommand, updateCodexSlashCommand, deleteCodexSlashCommand, toggleCodexSlashCommand,
   listGeminiSlashCommands, addGeminiSlashCommand, updateGeminiSlashCommand, deleteGeminiSlashCommand, toggleGeminiSlashCommand,
-  listDroidSlashCommands, addDroidSlashCommand, updateDroidSlashCommand, deleteDroidSlashCommand
 } from '@/api'
 
 type UnknownRecord = Record<string, unknown>
@@ -161,49 +160,11 @@ export const geminiConfig: PlatformConfig = {
   }
 }
 
-// Droid 平台配置
-export const droidConfig: PlatformConfig = {
-  api: {
-    list: async () => {
-      return await listDroidSlashCommands<{ commands: SlashCommand[]; folders: string[] }>()
-    },
-    add: async (cmd: SlashCommandRequest) => {
-      await addDroidSlashCommand(getRequestName(cmd), cmd)
-    },
-    update: async (name: string, cmd: SlashCommandRequest) => {
-      await updateDroidSlashCommand(name, cmd)
-    },
-    delete: async (name: string) => {
-      await deleteDroidSlashCommand(name)
-    },
-    toggle: async (name: string) => {
-      await updateDroidSlashCommand(name, { enabled: true })
-    }
-  },
-  i18n: {
-    prefix: 'droid.slashCommands'
-  },
-  theme: 'css-variable',
-  route: {
-    homePath: '/droid',
-    module: 'droid'
-  },
-  platform: {
-    name: 'droid',
-    displayName: 'Droid'
-  },
-  features: {
-    breadcrumb: false,
-    glassEffect: false
-  }
-}
-
 // 配置映射
 export const platformConfigs = {
   'claude-code': claudeCodeConfig,
   'codex': codexConfig,
   'gemini-cli': geminiConfig,
-  'droid': droidConfig
 } as const
 
 // 类型导出

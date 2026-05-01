@@ -1,6 +1,6 @@
 // Config converter type definitions
 
-export type CliType = 'claude-code' | 'codex' | 'gemini' | 'droid';
+export type CliType = 'claude-code' | 'codex' | 'gemini';
 
 export interface ConverterRequest {
   source_format: CliType;

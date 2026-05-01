@@ -207,14 +207,13 @@ const loading = ref(false)
 const syncing = ref(false)
 const syncingServer = ref<string | null>(null)
 const sourceServers = ref<McpServerInfo[]>([])
-const selectedPlatforms = ref<string[]>(['codex', 'gemini', 'droid'])
+const selectedPlatforms = ref<string[]>(['codex', 'gemini'])
 const syncResults = ref<Record<string, SyncResult[]>>({})
 
 // Available platforms (excluding Claude as it's the source)
 const platforms = [
   { id: 'codex', name: 'Codex', icon: '💻' },
   { id: 'gemini', name: 'Gemini', icon: '✨' },
-  { id: 'droid', name: 'Droid', icon: '🤖' }
 ]
 
 // Toggle platform selection

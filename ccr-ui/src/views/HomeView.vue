@@ -251,17 +251,6 @@ const platforms = computed<HomePlatformRecord[]>(() => [
     mode: 'managed',
     isRuntimeCli: false,
   },
-  {
-    title: t('home.factoryDroidTitle'),
-    desc: t('home.factoryDroidDesc'),
-    path: '/droid',
-    icon: 'Bot',
-    iconClass: 'text-accent-secondary',
-    platformKey: 'droid',
-    role: t('home.platformRoleManaged'),
-    mode: 'managed',
-    isRuntimeCli: false,
-  },
 ])
 
 const runtimeCliCount = computed(() => platforms.value.filter((platform) => platform.isRuntimeCli).length)

@@ -90,7 +90,7 @@ enum CliProbeMode {
     Full,
 }
 
-const CLI_VERSION_TOOLS: [&str; 5] = ["ccr", "claude", "codex", "gemini", "droid"];
+const CLI_VERSION_TOOLS: [&str; 4] = ["ccr", "claude", "codex", "gemini"];
 
 #[derive(Debug, Clone)]
 struct CliProbeTarget {
@@ -359,7 +359,6 @@ fn cli_command_name(tool: &str) -> Option<&'static str> {
         "claude" => Some("claude"),
         "codex" => Some("codex"),
         "gemini" => Some("gemini"),
-        "droid" => Some("droid"),
         _ => None,
     }
 }
@@ -523,7 +522,6 @@ fn normalize_cli_tool(tool: &str) -> Option<&'static str> {
         "claude" => Some("claude"),
         "codex" => Some("codex"),
         "gemini" => Some("gemini"),
-        "droid" => Some("droid"),
         _ => None,
     }
 }
@@ -791,14 +789,14 @@ mod tests {
                 .get("versions")
                 .and_then(|v| v.as_object())
                 .map(|m| m.len()),
-            Some(5)
+            Some(4)
         );
         assert_eq!(
             payload
                 .get("entries")
                 .and_then(|v| v.as_array())
                 .map(|a| a.len()),
-            Some(5)
+            Some(4)
         );
 
         // fast 模式下应在合理时间内返回，避免回归导致探测超时
@@ -809,7 +807,6 @@ mod tests {
     fn normalize_cli_tool_rejects_unknown_tool() {
         assert_eq!(normalize_cli_tool("codex"), Some("codex"));
         assert_eq!(normalize_cli_tool(" CODEX "), Some("codex"));
-        assert_eq!(normalize_cli_tool("droid"), Some("droid"));
         assert_eq!(normalize_cli_tool("unknown"), None);
     }
 
@@ -828,17 +825,11 @@ mod tests {
                 path: None,
                 version: None,
             },
-            CliStatus {
-                name: "droid".to_string(),
-                installed: true,
-                path: Some("C:/tools/droid.cmd".to_string()),
-                version: None,
-            },
         ];
 
         let targets = build_cli_probe_targets(Some(&statuses));
 
-        assert_eq!(targets.len(), 5);
+        assert_eq!(targets.len(), 4);
         assert_eq!(targets[0].platform, "ccr");
         assert_eq!(targets[1].platform, "claude");
         assert_eq!(targets[1].installed, Some(false));
@@ -847,8 +838,6 @@ mod tests {
         assert_eq!(targets[2].installed, Some(true));
         assert_eq!(targets[3].platform, "gemini");
         assert_eq!(targets[3].installed, Some(false));
-        assert_eq!(targets[4].platform, "droid");
-        assert_eq!(targets[4].program, "C:/tools/droid.cmd");
     }
 
     #[cfg(target_os = "windows")]

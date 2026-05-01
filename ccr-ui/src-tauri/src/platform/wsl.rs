@@ -533,7 +533,6 @@ impl WslEnvironment {
             "claude" => format!("{home}/.claude"),
             "codex" => format!("{home}/.codex"),
             "gemini" => format!("{home}/.gemini"),
-            "droid" => format!("{home}/.droid"),
             "opencode" => format!("{home}/.opencode"),
             _ => return Err(EnvError::PlatformNotSupported(platform.to_string())),
         };
@@ -565,7 +564,7 @@ impl ExecutionEnvironment for WslEnvironment {
                     "-d", &distro,
                     "--",
                     "sh", "-c",
-                    "which claude 2>/dev/null; which codex 2>/dev/null; which gemini 2>/dev/null; which droid 2>/dev/null; which opencode 2>/dev/null",
+                    "which claude 2>/dev/null; which codex 2>/dev/null; which gemini 2>/dev/null; which opencode 2>/dev/null",
                 ])
                 .output()
         })
@@ -580,7 +579,6 @@ impl ExecutionEnvironment for WslEnvironment {
             ("claude", "Claude Code"),
             ("codex", "Codex CLI"),
             ("gemini", "Gemini CLI"),
-            ("droid", "Droid"),
             ("opencode", "OpenCode"),
         ];
 
@@ -698,7 +696,7 @@ impl ExecutionEnvironment for WslEnvironment {
 
     async fn detect_cli_status(&self) -> Result<Vec<CliStatus>, EnvError> {
         let distro = self.distro.name.clone();
-        let tools = ["claude", "codex", "gemini", "droid", "opencode"];
+        let tools = ["claude", "codex", "gemini", "opencode"];
 
         let mut statuses = Vec::new();
 
@@ -796,7 +794,6 @@ pub fn sync_config_blocking(
         "claude" => local_home.join(".claude"),
         "codex" => local_home.join(".codex"),
         "gemini" => local_home.join(".gemini"),
-        "droid" => local_home.join(".droid"),
         "opencode" => local_home.join(".opencode"),
         _ => return Err(EnvError::PlatformNotSupported(platform.to_string())),
     };

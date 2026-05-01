@@ -4,14 +4,14 @@ export interface GenericPlatformFeatureRoute {
 }
 
 export interface GenericPlatformDescriptor {
-  id: 'gemini' | 'droid'
-  rootPath: 'gemini-cli' | 'droid'
+  id: 'gemini'
+  rootPath: 'gemini-cli'
   color: string
   mcp: GenericPlatformFeatureRoute & {
     i18nPrefix: string
   }
   agents: GenericPlatformFeatureRoute & {
-    module: 'gemini' | 'droid'
+    module: 'gemini'
   }
   plugins?: GenericPlatformFeatureRoute & {
     i18nPrefix: string
@@ -39,21 +39,6 @@ export const genericPlatformDescriptors = {
       name: 'gemini-plugins',
       i18nPrefix: 'gemini.plugins',
       sidebarModule: 'gemini-cli',
-    },
-  },
-  droid: {
-    id: 'droid',
-    rootPath: 'droid',
-    color: '#ec4899',
-    mcp: {
-      path: 'mcp',
-      name: 'droid-mcp',
-      i18nPrefix: 'droid.mcp',
-    },
-    agents: {
-      path: 'agents',
-      name: 'droid-agents',
-      module: 'droid',
     },
   },
 } as const satisfies Record<string, GenericPlatformDescriptor>

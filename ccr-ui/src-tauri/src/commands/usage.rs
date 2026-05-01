@@ -315,13 +315,8 @@ async fn emit_session_index_job_snapshot(
     }
 }
 
-fn session_index_platforms() -> [Platform; 4] {
-    [
-        Platform::Claude,
-        Platform::Codex,
-        Platform::Gemini,
-        Platform::Droid,
-    ]
+fn session_index_platforms() -> [Platform; 3] {
+    [Platform::Claude, Platform::Codex, Platform::Gemini]
 }
 
 fn session_index_platform_label(platform: Platform) -> &'static str {
@@ -329,7 +324,6 @@ fn session_index_platform_label(platform: Platform) -> &'static str {
         Platform::Claude => "claude",
         Platform::Codex => "codex",
         Platform::Gemini => "gemini",
-        Platform::Droid => "droid",
         _ => "legacy",
     }
 }
@@ -1076,7 +1070,6 @@ fn has_any_raw_sessions() -> bool {
         Platform::Claude,
         Platform::Codex,
         Platform::Gemini,
-        Platform::Droid,
     ] {
         let Some(session_dir) = SessionParser::get_platform_session_dir(&platform) else {
             continue;

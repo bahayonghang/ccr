@@ -8,8 +8,6 @@ describe('router smoke', () => {
       'settings',
       'codex',
       'gemini-mcp',
-      'droid',
-      'droid-mcp',
       'usage',
       'monitoring',
       'mcp',
@@ -58,7 +56,8 @@ describe('router smoke', () => {
     const routePaths = router.getRoutes().map((route) => route.path)
 
     expect(routePaths).toContain('/gemini-cli/mcp')
-    expect(routePaths).toContain('/droid/mcp')
+    expect(routePaths).not.toContain('/droid')
+    expect(routePaths).not.toContain('/droid/mcp')
   })
 
   it('registers the global settings route as its own navigation group', () => {
@@ -72,7 +71,6 @@ describe('router smoke', () => {
     const routeNames = [
       'claude-code',
       'gemini-cli',
-      'droid',
       'sync',
       'configs',
       'usage',

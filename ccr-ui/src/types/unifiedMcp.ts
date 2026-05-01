@@ -61,7 +61,7 @@ export interface UnifiedMcpRequest {
 // ============ 辅助类型 ============
 
 /** 支持的平台列表 */
-export type UnifiedMcpPlatform = 'claude' | 'codex' | 'gemini' | 'droid'
+export type UnifiedMcpPlatform = 'claude' | 'codex' | 'gemini'
 
 /** 平台元信息（用于 UI 展示） */
 export interface PlatformMeta {

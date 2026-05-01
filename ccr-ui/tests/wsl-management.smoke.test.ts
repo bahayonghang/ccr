@@ -160,6 +160,8 @@ describe('WslManagementView smoke', () => {
 
       expect(el.textContent).toContain('Ubuntu-22.04')
       expect(el.textContent).toContain('config = "ok"')
+      const options = Array.from(el.querySelectorAll('option')).map((option) => option.textContent?.trim())
+      expect(options).not.toContain('droid')
     } finally {
       unmount()
     }

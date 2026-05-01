@@ -24,6 +24,12 @@ const monitoringState = vi.hoisted(() => ({
   ],
 }))
 
+const translationTemplates = vi.hoisted(() => ({
+  'home.systemMetricHost': '主机：{host}',
+  'home.systemMetricMemory': '已用 {used} / {total} GB',
+  'home.usageLastUpdated': '更新于 {time}',
+}))
+
 vi.mock('vue-router', () => ({
   useRouter: () => ({
     push: vi.fn(),
@@ -51,7 +57,6 @@ vi.mock('@/api/runtime/system', () => ({
       { platform: 'claude', installed: true, version: '1.0.0', status: 'ok' },
       { platform: 'codex', installed: true, version: '2.1.0', status: 'ok' },
       { platform: 'gemini', installed: true, version: '3.2.0', status: 'ok' },
-      { platform: 'droid', installed: true, version: '0.1.0', status: 'ok' },
     ],
   })),
 }))
@@ -77,15 +82,15 @@ vi.mock('@tauri-apps/api/event', () => ({
 
 vi.mock('vue-i18n', () => ({
   useI18n: () => ({
-    t: (key: string, params?: Record<string, string | number>) => {
-      if (!params) return key
-      return Object.entries(params).reduce(
-        (message, [name, value]) => message.replace(`{${name}}`, String(value)),
-        key,
-      )
+    t: (key: string) => {
+      return translationTemplates[key as keyof typeof translationTemplates] ?? key
     },
   }),
 }))
+
+const findPlaceholderLeaks = (text: string) => {
+  return text.match(/\{[a-zA-Z_][a-zA-Z0-9_]*\}/g) ?? []
+}
 
 vi.mock('@/utils/scheduling', () => ({
   scheduleWhenIdle: (callback: () => void) => {
@@ -247,8 +252,13 @@ describe('HomeView smoke', () => {
       expect(el.textContent).toContain('11.4%')
       expect(el.textContent).toContain('27.3%')
       expect(el.textContent).toContain('3/3')
+      expect(el.textContent).toContain('主机：workstation')
+      expect(el.textContent).toContain('已用 17.5 / 64.0 GB')
       expect(el.textContent).toContain('Usage archive refreshed')
       expect(el.textContent).toContain('1.2K')
+      expect(el.textContent).toContain('更新于')
+      expect(el.textContent).not.toContain('Factory Droid')
+      expect(findPlaceholderLeaks(el.textContent || '')).toEqual([])
     } finally {
       unmount()
     }
@@ -293,5 +303,6 @@ describe('HomeView smoke', () => {
     ].join('\n')
 
     expect(homeCopy).not.toMatch(/喵|meow|脉冲|pulse/i)
+    expect(homeCopy).not.toMatch(/Factory Droid|Droids/i)
   })
 })

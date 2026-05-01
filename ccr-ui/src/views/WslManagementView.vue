@@ -29,7 +29,7 @@ const cliStatus = ref<WslCliStatus>({})
 const selectedPlatform = ref('claude')
 const cacheStatus = ref<WslCacheStatus | null>(null)
 
-const platforms = ['claude', 'codex', 'gemini', 'droid']
+const platforms = ['claude', 'codex', 'gemini']
 
 const stateColor = (state: string) => {
   switch (state.toLowerCase()) {

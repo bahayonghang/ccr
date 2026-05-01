@@ -101,6 +101,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { translateWithFallback } from '@/i18n/formatMessage'
 import SIcon from '@/components/ui/SIcon.vue'
 import type { HomeUsageOverviewResponse } from '@/types/usage'
 import type { HomeUsageMetric } from './types'
@@ -227,7 +228,12 @@ const emptyDescription = computed(() => {
 })
 
 const lastUpdatedLabel = computed(() => (
-  t('home.usageLastUpdated', { time: formatDateTime(props.overview?.last_updated) })
+  translateWithFallback(
+    t,
+    'home.usageLastUpdated',
+    '更新于 {time}',
+    { time: formatDateTime(props.overview?.last_updated) },
+  )
 ))
 </script>
 

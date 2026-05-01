@@ -22,8 +22,6 @@ export {
   updateCodexConfig,
   getGeminiConfig,
   updateGeminiConfig,
-  getDroidSettings,
-  updateDroidSettings,
   getOpenCodeConfig,
   updateOpenCodeConfig,
 } from '../tauri'

@@ -51,12 +51,6 @@ export const mainLayoutNavSections: MainLayoutNavSection[] = [
         iconClass: 'text-platform-gemini/90 group-hover:text-platform-gemini transition-colors',
       },
       {
-        to: '/droid',
-        labelKey: 'nav.droid',
-        icon: 'Bot',
-        iconClass: 'text-accent-secondary/90 group-hover:text-accent-secondary transition-colors',
-      },
-      {
         to: '/opencode',
         labelKey: 'nav.opencode',
         icon: 'TerminalSquare',
@@ -100,14 +94,6 @@ export const mainLayoutRouteTitleMap: Record<string, string> = {
   'gemini-agents': 'nav.agents',
   'gemini-slash-commands': 'nav.slashCommands',
   'gemini-plugins': 'nav.plugins',
-  droid: 'nav.droid',
-  'droid-mcp': 'nav.mcp',
-  'droid-agents': 'nav.agents',
-  'droid-slash-commands': 'nav.slashCommands',
-  'droid-plugins': 'nav.plugins',
-  'droid-models': 'nav.models',
-  'droid-profiles': 'nav.profiles',
-  'droid-droids': 'nav.droids',
   opencode: 'nav.opencode',
   'opencode-providers': 'nav.providers',
   'opencode-mcp': 'nav.mcp',
@@ -149,7 +135,6 @@ export const mainLayoutGroupTitleMap: Record<string, string> = {
   'claude-code': 'nav.claudeCode',
   codex: 'nav.codex',
   gemini: 'nav.gemini',
-  droid: 'nav.droid',
   opencode: 'nav.opencode',
 }
 

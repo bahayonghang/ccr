@@ -1,7 +1,7 @@
 /**
  * usePlatformMcp - 通用平台 MCP 服务器管理 Composable
  * 
- * 消除各平台 MCP 视图中的重复代码（GeminiMcpView、DroidMcpView）
+ * 消除各平台 MCP 视图中的重复代码（当前复用于 Gemini MCP 视图）
  * 
  * @example
  * const { servers, loading, loadServers, addServer, updateServer, deleteServer } = usePlatformMcp('gemini')
@@ -11,14 +11,11 @@ import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useUIStore } from '@/stores/ui'
 import { listGeminiMcpServers, addGeminiMcpServer, updateGeminiMcpServer, deleteGeminiMcpServer } from '@/api'
-import { listDroidMcpServers, addDroidMcpServer, updateDroidMcpServer, deleteDroidMcpServer } from '@/api'
 import { genericPlatformDescriptors, type GenericPlatformId } from '@/config/platformDescriptors'
 import { logger } from '@/utils/logger'
 import type {
     GeminiMcpServer,
     GeminiMcpServerRequest,
-    DroidMcpServer,
-    DroidMcpServerRequest,
 } from '@/types'
 
 // ============ 类型定义 ============
@@ -106,45 +103,6 @@ const platformApiMap: Record<
         },
         deleteApi: deleteGeminiMcpServer,
     },
-    droid: {
-        listApi: async () => {
-            const servers = await listDroidMcpServers<DroidMcpServer[]>()
-            return servers.map((s: DroidMcpServer) => ({
-                name: s.name,
-                command: s.command,
-                url: s.url || s.httpUrl,
-                args: s.args,
-                env: s.env,
-                headers: s.headers,
-                timeout: s.timeout,
-            }))
-        },
-        addApi: async (req) => {
-            const droidReq: DroidMcpServerRequest = {
-                name: req.name,
-                command: req.command,
-                args: req.args,
-                env: req.env,
-                url: req.url,
-                headers: req.headers,
-                timeout: req.timeout,
-            }
-            return addDroidMcpServer(droidReq)
-        },
-        updateApi: async (name, req) => {
-            const droidReq: DroidMcpServerRequest = {
-                name: req.name,
-                command: req.command,
-                args: req.args,
-                env: req.env,
-                url: req.url,
-                headers: req.headers,
-                timeout: req.timeout,
-            }
-            return updateDroidMcpServer(name, droidReq)
-        },
-        deleteApi: deleteDroidMcpServer,
-    },
 }
 
 const platformConfigs: Record<PlatformType, PlatformConfig> = {
@@ -153,12 +111,6 @@ const platformConfigs: Record<PlatformType, PlatformConfig> = {
         i18nPrefix: genericPlatformDescriptors.gemini.mcp.i18nPrefix,
         parentPath: `/${genericPlatformDescriptors.gemini.rootPath}`,
         ...platformApiMap.gemini,
-    },
-    droid: {
-        color: genericPlatformDescriptors.droid.color,
-        i18nPrefix: genericPlatformDescriptors.droid.mcp.i18nPrefix,
-        parentPath: `/${genericPlatformDescriptors.droid.rootPath}`,
-        ...platformApiMap.droid,
     },
 }
 

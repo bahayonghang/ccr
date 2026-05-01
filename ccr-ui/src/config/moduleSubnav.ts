@@ -29,12 +29,6 @@ const moduleSubnavMap: Record<string, ModuleSubnavItem[]> = {
     { label: 'Slash Commands', href: '/gemini-cli/slash-commands', icon: 'Command' },
     { label: 'Plugins', href: '/gemini-cli/plugins', icon: 'Puzzle' },
   ],
-  droid: [
-    { label: 'MCP', href: '/droid/mcp', icon: 'Server' },
-    { label: 'Agents', href: '/droid/agents', icon: 'Bot' },
-    { label: 'Slash Commands', href: '/droid/slash-commands', icon: 'Command' },
-    { label: 'Plugins', href: '/droid/plugins', icon: 'Puzzle' },
-  ],
   opencode: [
     { label: 'Providers', href: '/opencode/providers', icon: 'Layers' },
     { label: 'MCP', href: '/opencode/mcp', icon: 'Server' },

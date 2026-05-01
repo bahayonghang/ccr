@@ -10,7 +10,6 @@ fn parse_platform(s: &str) -> Option<Platform> {
         "claude" => Some(Platform::Claude),
         "codex" => Some(Platform::Codex),
         "gemini" => Some(Platform::Gemini),
-        "droid" => Some(Platform::Droid),
         _ => None,
     }
 }
@@ -20,7 +19,6 @@ fn requested_platform_ids(platforms: Option<Vec<String>>) -> Vec<String> {
         vec![
             "codex".to_string(),
             "gemini".to_string(),
-            "droid".to_string(),
         ]
     })
 }

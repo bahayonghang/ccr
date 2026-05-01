@@ -11,18 +11,17 @@
  *   4. Claude Code 平台
  *   5. Codex 平台
  *   6. Gemini 平台
- *   7. Droid 平台
- *   8. OpenCode 平台
- *   9. 签到 (CheckIn)
- *  10. 统计 (Stats)
- *  11. 系统 (System)
- *  12. 转换器 (Converter)
- *  13. UI 状态 (Favorites / Recent Items)
- *  14. WAF
- *  15. 统一 MCP (Unified MCP)
- *  16. 事件 (Events)
- *  17. 环境管理 (Environment)
- *  18. HTTP-only 桩函数 (无 Tauri 命令对应)
+ *   7. OpenCode 平台
+ *   8. 签到 (CheckIn)
+ *   9. 统计 (Stats)
+ *  10. 系统 (System)
+ *  11. 转换器 (Converter)
+ *  12. UI 状态 (Favorites / Recent Items)
+ *  13. WAF
+ *  14. 统一 MCP (Unified MCP)
+ *  15. 事件 (Events)
+ *  16. 环境管理 (Environment)
+ *  17. HTTP-only 桩函数 (无 Tauri 命令对应)
  */
 
 import { invoke } from '@tauri-apps/api/core'
@@ -128,11 +127,6 @@ export interface OAuthAuthorizeUrlResponse {
 export interface OAuthAuthorizeUrlRequest {
   provider_id: string
   oauth_type: 'github' | 'linuxdo'
-}
-
-export interface DroidPlugin {
-  id: string
-  data: Record<string, unknown>
 }
 
 export interface SyncFolderItem {
@@ -442,42 +436,7 @@ export {
 } from './domains/gemini'
 
 // ════════════════════════════════════════════════════════════
-// 7. Droid 平台 —— 实现已迁移至 ./domains/droid
-// ════════════════════════════════════════════════════════════
-export {
-  getDroidSettings,
-  updateDroidSettings,
-  listDroidMcpServers,
-  addDroidMcpServer,
-  updateDroidMcpServer,
-  deleteDroidMcpServer,
-  listDroidAgents,
-  getDroidAgent,
-  addDroidAgent,
-  updateDroidAgent,
-  deleteDroidAgent,
-  listDroidPlugins,
-  addDroidPlugin,
-  updateDroidPlugin,
-  deleteDroidPlugin,
-  listDroidSlashCommands,
-  addDroidSlashCommand,
-  updateDroidSlashCommand,
-  deleteDroidSlashCommand,
-  listDroidModels,
-  addDroidModel,
-  updateDroidModel,
-  deleteDroidModel,
-  listDroidProfiles,
-  addDroidProfile,
-  updateDroidProfile,
-  deleteDroidProfile,
-  switchDroidProfile,
-} from './domains/droid'
-
-// ════════════════════════════════════════════════════════════
-// ════════════════════════════════════════════════════════════
-// 10. OpenCode 平台 —— 实现已迁移至 ./domains/opencode
+// 7. OpenCode 平台 —— 实现已迁移至 ./domains/opencode
 // ════════════════════════════════════════════════════════════
 export {
   getOpenCodeConfig,

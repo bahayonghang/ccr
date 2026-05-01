@@ -62,6 +62,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { hasTemplatePlaceholder, translateWithFallback } from '@/i18n/formatMessage'
 import SIcon from '@/components/ui/SIcon.vue'
 import type { SystemInfo } from '@/types'
 import type { HomeUsageOverviewResponse } from '@/types/usage'
@@ -93,6 +94,15 @@ const formatFixed = (value?: number) => {
   return value.toFixed(1)
 }
 
+const safeHostname = computed(() => {
+  const hostname = props.systemInfo?.hostname?.trim()
+  if (!hostname || hasTemplatePlaceholder(hostname)) {
+    return t('home.systemMetricUnknown')
+  }
+
+  return hostname
+})
+
 const usageStatus = computed(() => {
   if (props.usageLoading) return t('home.usagePreparing')
   if (!props.overview) return t('home.usageUnavailable')
@@ -104,17 +114,27 @@ const metrics = computed(() => [
   {
     label: t('home.cpuUsage'),
     value: formatPercent(props.systemInfo?.cpu_usage),
-    hint: t('home.systemMetricHost', { host: props.systemInfo?.hostname ?? t('home.systemMetricUnknown') }),
+    hint: translateWithFallback(
+      t,
+      'home.systemMetricHost',
+      '主机：{host}',
+      { host: safeHostname.value },
+    ),
     tone: 'neutral',
   },
   {
     label: t('home.memoryUsage'),
     value: formatPercent(props.systemInfo?.memory_usage_percent),
     hint: props.systemInfo
-      ? t('home.systemMetricMemory', {
-          used: formatFixed(props.systemInfo.used_memory_gb),
-          total: formatFixed(props.systemInfo.total_memory_gb),
-        })
+      ? translateWithFallback(
+          t,
+          'home.systemMetricMemory',
+          '已用 {used} / {total} GB',
+          {
+            used: formatFixed(props.systemInfo.used_memory_gb),
+            total: formatFixed(props.systemInfo.total_memory_gb),
+          },
+        )
       : t('home.systemMetricPending'),
     tone: 'neutral',
   },

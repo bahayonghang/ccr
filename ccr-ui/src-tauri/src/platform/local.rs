@@ -55,12 +55,6 @@ impl ExecutionEnvironment for LocalEnvironment {
                 version: None,
             },
             PlatformInfo {
-                name: "droid".to_string(),
-                display_name: "Droid".to_string(),
-                installed: true,
-                version: None,
-            },
-            PlatformInfo {
                 name: "opencode".to_string(),
                 display_name: "OpenCode".to_string(),
                 installed: true,
@@ -97,7 +91,7 @@ impl ExecutionEnvironment for LocalEnvironment {
     }
 
     async fn detect_cli_status(&self) -> Result<Vec<CliStatus>, EnvError> {
-        let tools = ["claude", "codex", "gemini", "droid", "opencode"];
+        let tools = ["claude", "codex", "gemini", "opencode"];
         let mut statuses = Vec::new();
 
         for tool in &tools {
@@ -126,7 +120,6 @@ fn resolve_config_path(
         "claude" => home.join(".claude"),
         "codex" => home.join(".codex"),
         "gemini" => home.join(".gemini"),
-        "droid" => home.join(".droid"),
         "opencode" => home.join(".opencode"),
         _ => return Err(EnvError::PlatformNotSupported(platform.to_string())),
     };

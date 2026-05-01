@@ -481,7 +481,7 @@ import type { Agent, AgentRequest } from '@/types'
 import { logger } from '@/utils/logger'
 
 const props = defineProps<{
-  module: 'gemini' | 'agents' | 'droid'
+  module: 'gemini' | 'agents'
 }>()
 
 const { t } = useI18n()
@@ -518,8 +518,7 @@ const PAGE_SIZE = 20
 
 const moduleNavModule = computed(() => {
   if (props.module === 'agents') return 'claude-code'
-  if (props.module === 'gemini') return 'gemini-cli'
-  return props.module
+  return 'gemini-cli'
 })
 
 // Reload agents when module changes
@@ -621,11 +620,6 @@ const removeTool = (tool: string) => {
   }
 }
 
-const getAgentApiName = (agent: Agent) => {
-  if (props.module !== 'droid') return agent.name
-  return agent.folder ? `${agent.folder}/${agent.name}` : agent.name
-}
-
 const handleSubmit = async () => {
   if (!formData.value.name || !formData.value.model) {
     uiStore.showWarning(t(`${tPrefix.value}.validation.required`))
@@ -640,7 +634,7 @@ const handleSubmit = async () => {
   
   try {
     if (editingAgent.value) {
-      await updateAgent(getAgentApiName(editingAgent.value), request)
+      await updateAgent(editingAgent.value.name, request)
       uiStore.showSuccess(t('common.saveSuccess'))
     } else {
       await addAgent(request)
@@ -655,7 +649,7 @@ const handleSubmit = async () => {
 }
 
 const handleDelete = async (agent: Agent) => {
-  const displayName = getAgentApiName(agent)
+  const displayName = agent.name
   const confirmed = await uiStore.requestConfirm({
     title: t('common.delete'),
     message: t(`${tPrefix.value}.deleteConfirm`, { name: displayName }),
@@ -665,7 +659,7 @@ const handleDelete = async (agent: Agent) => {
   })
   if (!confirmed) return
   try {
-    await deleteAgent(getAgentApiName(agent))
+    await deleteAgent(agent.name)
     uiStore.showSuccess(t(`${tPrefix.value}.deleteSuccess`))
   } catch (err) {
     logger.error('Delete failed:', err)
@@ -675,7 +669,7 @@ const handleDelete = async (agent: Agent) => {
 
 const handleToggle = async (agent: Agent) => {
   try {
-    await toggleAgent(getAgentApiName(agent))
+    await toggleAgent(agent.name)
     uiStore.showSuccess(
       agent.disabled
         ? t(`${tPrefix.value}.enableSuccess`, { name: agent.name })

@@ -1,6 +1,5 @@
 import { ref } from 'vue'
 import { listGeminiAgents, addGeminiAgent, updateGeminiAgent, deleteGeminiAgent, toggleGeminiAgent } from '@/api'
-import { listDroidAgents, addDroidAgent, updateDroidAgent, deleteDroidAgent } from '@/api'
 import { listConfigs, getHistory } from '@/api'
 import { listAgents, getAgent as apiGetAgent, addAgent, updateAgent, deleteAgent, toggleAgent } from '@/api'
 import { genericPlatformDescriptors } from '@/config/platformDescriptors'
@@ -30,13 +29,6 @@ const apiMap: Record<ModuleType, AgentApi> = {
         update: updateGeminiAgent,
         delete: deleteGeminiAgent,
         toggle: toggleGeminiAgent
-    },
-    droid: {
-        list: listDroidAgents,
-        add: addDroidAgent,
-        update: updateDroidAgent,
-        delete: deleteDroidAgent,
-        toggle: async () => { throw new Error('Droid agents do not support toggle') }
     },
     agents: {
         list: listAgents,
