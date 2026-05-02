@@ -4,12 +4,12 @@
 
 use ccr_core::{is_qwen_chat_file, qwen_project_dir_name_from_chat_path, qwen_projects_dir};
 use ccr_types::{ModelRateCatalog, PricingComputation};
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, TimeZone, Utc};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use sha2::{Digest, Sha256};
 use std::fs::{self, File};
-use std::io::{BufRead, BufReader, Seek, SeekFrom};
+use std::io::{BufRead, BufReader, Read, Seek, SeekFrom};
 use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
 use tracing::{debug, info, warn};
@@ -54,6 +54,8 @@ pub struct UsageImportService {
     pricing_catalog: ModelRateCatalog,
 }
 
+const IMPORT_ALL_PLATFORMS: [&str; 4] = ["claude", "codex", "gemini", "opencode"];
+
 #[derive(Debug, Clone, Default)]
 struct CodexSessionMeta {
     session_id: String,
@@ -84,6 +86,15 @@ struct GeminiTokenUsage {
     input_tokens: i64,
     cached_input_tokens: i64,
     output_tokens: i64,
+}
+
+#[derive(Debug, Clone)]
+struct OpenCodeMessageRow {
+    rowid: i64,
+    message_id: Option<String>,
+    session_id: Option<String>,
+    time_updated: Option<i64>,
+    data: String,
 }
 
 impl UsageImportService {
@@ -126,6 +137,26 @@ impl UsageImportService {
         f(&conn).map_err(|e| e.to_string())
     }
 
+    fn opencode_storage_dir() -> Result<PathBuf, String> {
+        if let Ok(custom) = std::env::var("CCR_OPENCODE_DIR") {
+            return Ok(PathBuf::from(custom));
+        }
+
+        let home_dir = dirs::home_dir().ok_or("Could not find home directory")?;
+        let official = home_dir.join(".local").join("share").join("opencode");
+        if official.exists() {
+            return Ok(official);
+        }
+
+        if let Some(legacy) = dirs::data_local_dir().map(|dir| dir.join("opencode"))
+            && legacy.exists()
+        {
+            return Ok(legacy);
+        }
+
+        Ok(official)
+    }
+
     pub fn list_usage_files(&self, platform: &str) -> Result<Vec<PathBuf>, String> {
         let projects_dir = match platform {
             "claude" => dirs::home_dir()
@@ -142,6 +173,10 @@ impl UsageImportService {
                 .ok_or("Could not find home directory")?
                 .join(".gemini/tmp"),
             "qwen" => qwen_projects_dir().ok_or("Could not resolve Qwen runtime directory")?,
+            "opencode" => {
+                let db_path = Self::opencode_storage_dir()?.join("opencode.db");
+                return Ok(db_path.exists().then_some(db_path).into_iter().collect());
+            }
             _ => return Err(format!("Unsupported platform: {}", platform)),
         };
 
@@ -199,6 +234,46 @@ impl UsageImportService {
 
     /// Import usage data for a platform incrementally
     pub fn import_platform(&self, platform: &str) -> Result<ImportResult, String> {
+        if platform == "all" {
+            return self.import_all_supported_platforms();
+        }
+
+        self.import_single_platform(platform)
+    }
+
+    fn import_all_supported_platforms(&self) -> Result<ImportResult, String> {
+        let start = Instant::now();
+        let mut files_processed = 0usize;
+        let mut records_imported = 0usize;
+        let mut records_skipped = 0usize;
+        let mut completed = true;
+
+        for platform in IMPORT_ALL_PLATFORMS {
+            match self.import_single_platform(platform) {
+                Ok(result) => {
+                    files_processed += result.files_processed;
+                    records_imported += result.records_imported;
+                    records_skipped += result.records_skipped;
+                    completed &= result.completed;
+                }
+                Err(error) => {
+                    completed = false;
+                    warn!(platform, ?error, "Failed to import usage platform");
+                }
+            }
+        }
+
+        Ok(ImportResult {
+            platform: "all".to_string(),
+            files_processed,
+            records_imported,
+            records_skipped,
+            duration_ms: start.elapsed().as_millis() as u64,
+            completed,
+        })
+    }
+
+    fn import_single_platform(&self, platform: &str) -> Result<ImportResult, String> {
         let start = Instant::now();
         let time_budget = Duration::from_secs(self.config.time_budget_secs);
         let usage_files = self.list_usage_files(platform)?;
@@ -252,6 +327,7 @@ impl UsageImportService {
     /// Import a single file incrementally
     fn import_file(&self, platform: &str, file_path: &Path) -> Result<(usize, usize), String> {
         let file_path_str = file_path.to_str().ok_or("Invalid file path")?.to_string();
+        let is_opencode_db = platform == "opencode";
         let is_codex = platform == "codex";
         let is_gemini_session = platform == "gemini" && Self::is_gemini_session_file(file_path);
         let is_qwen_session = platform == "qwen" && Self::is_qwen_session_file(file_path);
@@ -260,8 +336,13 @@ impl UsageImportService {
             .map(|metadata| metadata.len() as i64)
             .unwrap_or(0);
 
-        // Calculate current file hash (first 4KB for efficiency)
-        let current_hash = self.calculate_file_hash(file_path)?;
+        // OpenCode uses a mutable SQLite database, so hash the full file instead of
+        // using the append-log prefix optimization.
+        let current_hash = if is_opencode_db {
+            self.calculate_full_file_hash(file_path)?
+        } else {
+            self.calculate_file_hash(file_path)?
+        };
 
         // Check if we have a source record for this file
         let existing_source =
@@ -270,7 +351,20 @@ impl UsageImportService {
         let mut codex_append_checkpoint = None;
         let (source_id, start_offset) = match existing_source {
             Some(source) => {
-                if is_codex {
+                if is_opencode_db {
+                    if current_file_size == source.last_offset && source.file_hash == current_hash {
+                        return Ok((0, 0));
+                    }
+
+                    debug!(
+                        "OpenCode usage database changed, re-importing: {:?}",
+                        file_path
+                    );
+                    self.with_connection(|conn| {
+                        usage_repo::delete_records_by_source(conn, &source.id)
+                    })?;
+                    (source.id, 0i64)
+                } else if is_codex {
                     if current_file_size < source.last_offset {
                         debug!("Codex session shrank, re-importing: {:?}", file_path);
                         self.with_connection(|conn| {
@@ -378,6 +472,8 @@ impl UsageImportService {
                 self.read_gemini_session(file_path, &project_path, &source_id)?
             } else if is_qwen_session {
                 self.read_qwen_session(file_path, &project_path, &source_id)?
+            } else if is_opencode_db {
+                self.read_opencode_db(file_path, &project_path, &source_id)?
             } else {
                 self.read_lines_from_offset(
                     file_path,
@@ -744,6 +840,348 @@ impl UsageImportService {
         };
 
         Ok((records, file_size, skipped))
+    }
+
+    fn read_opencode_db(
+        &self,
+        file_path: &Path,
+        project_path: &str,
+        source_id: &str,
+    ) -> Result<(Vec<usage_repo::UsageRecord>, i64, usize), String> {
+        let file_size = std::fs::metadata(file_path)
+            .map(|metadata| metadata.len() as i64)
+            .unwrap_or(0);
+        let connection = match rusqlite::Connection::open_with_flags(
+            file_path,
+            rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY,
+        ) {
+            Ok(connection) => connection,
+            Err(error) => {
+                warn!(?error, path = %file_path.display(), "Failed to open OpenCode usage database");
+                return Ok((Vec::new(), file_size, 0));
+            }
+        };
+
+        let columns = match Self::opencode_message_columns(&connection) {
+            Ok(columns) => columns,
+            Err(error) => {
+                warn!(?error, path = %file_path.display(), "Failed to inspect OpenCode message schema");
+                return Ok((Vec::new(), file_size, 0));
+            }
+        };
+        if columns.is_empty() || !Self::has_column(&columns, "data") {
+            return Ok((Vec::new(), file_size, 0));
+        }
+
+        let id_expr = if Self::has_column(&columns, "id") {
+            "id"
+        } else {
+            "NULL"
+        };
+        let session_expr = if Self::has_column(&columns, "session_id") {
+            "session_id"
+        } else {
+            "NULL"
+        };
+        let time_expr = if Self::has_column(&columns, "time_updated") {
+            "time_updated"
+        } else if Self::has_column(&columns, "time_created") {
+            "time_created"
+        } else {
+            "NULL"
+        };
+        let order_expr = if Self::has_column(&columns, "time_updated") {
+            "time_updated"
+        } else if Self::has_column(&columns, "time_created") {
+            "time_created"
+        } else {
+            "rowid"
+        };
+        let sql = format!(
+            "SELECT rowid, {id_expr}, {session_expr}, {time_expr}, data FROM message ORDER BY {order_expr} ASC, rowid ASC"
+        );
+
+        let mut statement = match connection.prepare(&sql) {
+            Ok(statement) => statement,
+            Err(error) => {
+                warn!(?error, path = %file_path.display(), "Failed to prepare OpenCode usage query");
+                return Ok((Vec::new(), file_size, 0));
+            }
+        };
+
+        let rows = match statement.query_map([], |row| {
+            Ok(OpenCodeMessageRow {
+                rowid: row.get(0)?,
+                message_id: row.get(1)?,
+                session_id: row.get(2)?,
+                time_updated: row.get(3)?,
+                data: row.get(4)?,
+            })
+        }) {
+            Ok(rows) => rows,
+            Err(error) => {
+                warn!(?error, path = %file_path.display(), "Failed to read OpenCode usage rows");
+                return Ok((Vec::new(), file_size, 0));
+            }
+        };
+
+        let fallback_project_path = if project_path.trim().is_empty() || project_path == "unknown" {
+            file_path
+                .parent()
+                .map(|path| path.display().to_string())
+                .unwrap_or_else(|| "opencode".to_string())
+        } else {
+            project_path.to_string()
+        };
+        let mut records = Vec::new();
+        let mut skipped = 0usize;
+
+        for row in rows {
+            let row = match row {
+                Ok(row) => row,
+                Err(_) => {
+                    skipped += 1;
+                    continue;
+                }
+            };
+
+            if let Some(record) =
+                self.parse_opencode_message_row(row, source_id, &fallback_project_path)
+            {
+                records.push(record);
+            } else {
+                skipped += 1;
+            }
+        }
+
+        Ok((records, file_size, skipped))
+    }
+
+    fn opencode_message_columns(
+        connection: &rusqlite::Connection,
+    ) -> Result<Vec<String>, rusqlite::Error> {
+        let mut statement = connection.prepare("PRAGMA table_info(message)")?;
+        let columns = statement
+            .query_map([], |row| row.get::<_, String>(1))?
+            .filter_map(|row| row.ok())
+            .collect();
+        Ok(columns)
+    }
+
+    fn has_column(columns: &[String], column: &str) -> bool {
+        columns.iter().any(|value| value == column)
+    }
+
+    fn parse_opencode_message_row(
+        &self,
+        row: OpenCodeMessageRow,
+        source_id: &str,
+        fallback_project_path: &str,
+    ) -> Option<usage_repo::UsageRecord> {
+        let json: Value = serde_json::from_str(&row.data).ok()?;
+        let role = json
+            .get("role")
+            .or_else(|| json.get("type"))
+            .and_then(Value::as_str);
+        if role != Some("assistant") {
+            return None;
+        }
+
+        let usage = Self::extract_opencode_token_usage(&json)?;
+        let provider = Self::extract_opencode_provider(&json);
+        let model = Self::extract_opencode_model(&json, provider.as_deref());
+        let recorded_at = Self::extract_opencode_recorded_at(&json).or_else(|| {
+            row.time_updated
+                .and_then(Self::timestamp_from_unix_seconds_or_millis)
+        })?;
+        let session_id = row
+            .session_id
+            .or_else(|| Self::find_string_by_keys(&json, &["sessionID", "sessionId", "session_id"]))
+            .unwrap_or_else(|| "unknown".to_string());
+        let record_id = row
+            .message_id
+            .filter(|value| !value.trim().is_empty())
+            .map(|message_id| format!("opencode:{message_id}"))
+            .unwrap_or_else(|| {
+                let time_key = row
+                    .time_updated
+                    .map(|value| value.to_string())
+                    .unwrap_or_else(|| row.rowid.to_string());
+                format!("opencode:{session_id}:{time_key}")
+            });
+        let project_path = Self::extract_opencode_project_path(&json).unwrap_or_else(|| {
+            if session_id != "unknown" {
+                format!("opencode:{session_id}")
+            } else {
+                fallback_project_path.to_string()
+            }
+        });
+
+        Some(self.build_usage_record(
+            record_id,
+            "opencode",
+            project_path,
+            json.to_string(),
+            recorded_at,
+            source_id,
+            model,
+            usage.input_tokens,
+            usage.output_tokens,
+            usage.cached_input_tokens,
+            0,
+        ))
+    }
+
+    fn extract_opencode_token_usage(message: &Value) -> Option<GeminiTokenUsage> {
+        let tokens = message.get("tokens")?;
+        let input_tokens =
+            Self::direct_i64_by_keys(tokens, &["input", "input_tokens", "inputTokens"])
+                .unwrap_or(0);
+        let cached_input_tokens = Self::direct_i64_by_keys(
+            tokens,
+            &[
+                "cached",
+                "cache",
+                "cache_read",
+                "cacheRead",
+                "cached_input_tokens",
+                "cache_read_input_tokens",
+            ],
+        )
+        .unwrap_or(0);
+        let output_tokens =
+            Self::direct_i64_by_keys(tokens, &["output", "output_tokens", "outputTokens"])
+                .unwrap_or(0);
+
+        if input_tokens == 0 && cached_input_tokens == 0 && output_tokens == 0 {
+            return None;
+        }
+
+        Some(GeminiTokenUsage {
+            input_tokens,
+            cached_input_tokens,
+            output_tokens,
+        })
+    }
+
+    fn extract_opencode_provider(message: &Value) -> Option<String> {
+        message
+            .get("providerID")
+            .or_else(|| message.get("provider_id"))
+            .or_else(|| message.get("provider"))
+            .and_then(Value::as_str)
+            .or_else(|| {
+                message
+                    .get("model")
+                    .and_then(|model| {
+                        model
+                            .get("providerID")
+                            .or_else(|| model.get("provider_id"))
+                            .or_else(|| model.get("provider"))
+                    })
+                    .and_then(Value::as_str)
+            })
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+            .map(str::to_string)
+    }
+
+    fn extract_opencode_model(message: &Value, provider: Option<&str>) -> Option<String> {
+        let model = message
+            .get("modelID")
+            .or_else(|| message.get("model_id"))
+            .and_then(Value::as_str)
+            .or_else(|| {
+                message.get("model").and_then(|model| {
+                    model.as_str().or_else(|| {
+                        model
+                            .get("modelID")
+                            .or_else(|| model.get("model_id"))
+                            .or_else(|| model.get("id"))
+                            .and_then(Value::as_str)
+                    })
+                })
+            })
+            .map(str::trim)
+            .filter(|value| !value.is_empty())?;
+
+        if model.contains('/') {
+            return Some(model.to_string());
+        }
+
+        provider
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+            .map(|provider| format!("{provider}/{model}"))
+            .or_else(|| Some(model.to_string()))
+    }
+
+    fn extract_opencode_project_path(message: &Value) -> Option<String> {
+        Self::find_string_by_keys(
+            message,
+            &[
+                "cwd",
+                "projectRoot",
+                "project_root",
+                "workspace",
+                "workspacePath",
+                "workspace_path",
+            ],
+        )
+        .map(|value| value.trim().to_string())
+        .filter(|value| !value.is_empty())
+    }
+
+    fn extract_opencode_recorded_at(message: &Value) -> Option<DateTime<Utc>> {
+        if let Some(time) = message.get("time") {
+            for key in ["completed", "updated", "created"] {
+                if let Some(timestamp) = time.get(key).and_then(Self::timestamp_from_json_value) {
+                    return Some(timestamp);
+                }
+            }
+        }
+
+        for key in [
+            "timeCompleted",
+            "time_completed",
+            "timeUpdated",
+            "time_updated",
+            "timestamp",
+            "createdAt",
+            "created_at",
+        ] {
+            if let Some(timestamp) = message.get(key).and_then(Self::timestamp_from_json_value) {
+                return Some(timestamp);
+            }
+        }
+
+        None
+    }
+
+    fn timestamp_from_json_value(value: &Value) -> Option<DateTime<Utc>> {
+        match value {
+            Value::Number(number) => number
+                .as_i64()
+                .or_else(|| number.as_u64().and_then(|value| i64::try_from(value).ok()))
+                .and_then(Self::timestamp_from_unix_seconds_or_millis),
+            Value::String(text) => DateTime::parse_from_rfc3339(text)
+                .map(|datetime| datetime.with_timezone(&Utc))
+                .ok()
+                .or_else(|| {
+                    text.parse::<i64>()
+                        .ok()
+                        .and_then(Self::timestamp_from_unix_seconds_or_millis)
+                }),
+            _ => None,
+        }
+    }
+
+    fn timestamp_from_unix_seconds_or_millis(value: i64) -> Option<DateTime<Utc>> {
+        if value.abs() < 100_000_000_000 {
+            Utc.timestamp_opt(value, 0).single()
+        } else {
+            Utc.timestamp_millis_opt(value).single()
+        }
     }
 
     fn read_codex_session_from_offset(
@@ -1525,6 +1963,11 @@ impl UsageImportService {
         Self::find_value_by_keys(value, keys).and_then(Self::value_as_i64)
     }
 
+    fn direct_i64_by_keys(value: &Value, keys: &[&str]) -> Option<i64> {
+        keys.iter()
+            .find_map(|key| value.get(*key).and_then(Self::value_as_i64))
+    }
+
     fn value_as_i64(value: &Value) -> Option<i64> {
         match value {
             Value::Number(number) => number
@@ -1702,6 +2145,23 @@ impl UsageImportService {
         self.calculate_file_hash_with_limit(file_path, 4096)
     }
 
+    fn calculate_full_file_hash(&self, file_path: &Path) -> Result<String, String> {
+        let mut file = File::open(file_path).map_err(|e| e.to_string())?;
+        let mut hasher = Sha256::new();
+        let mut buffer = [0u8; 8192];
+
+        loop {
+            let bytes_read = file.read(&mut buffer).map_err(|e| e.to_string())?;
+            if bytes_read == 0 {
+                break;
+            }
+            hasher.update(&buffer[..bytes_read]);
+        }
+
+        let hash = hasher.finalize();
+        Ok(hash.iter().map(|byte| format!("{byte:02x}")).collect())
+    }
+
     fn calculate_file_hash_with_limit(
         &self,
         file_path: &Path,
@@ -1711,8 +2171,7 @@ impl UsageImportService {
         let mut reader = BufReader::new(file);
         let mut buffer = vec![0u8; limit];
 
-        let bytes_read =
-            std::io::Read::read(&mut reader, &mut buffer).map_err(|e| e.to_string())?;
+        let bytes_read = reader.read(&mut buffer).map_err(|e| e.to_string())?;
 
         let mut hasher = Sha256::new();
         hasher.update(&buffer[..bytes_read]);
@@ -1759,6 +2218,13 @@ impl UsageImportService {
             && let Some(project_dir_name) = qwen_project_dir_name_from_chat_path(file_path)
         {
             return project_dir_name;
+        }
+
+        if platform == "opencode" {
+            return file_path
+                .parent()
+                .map(|path| path.display().to_string())
+                .unwrap_or_else(|| "opencode".to_string());
         }
 
         // Claude/Gemini: projects 目录结构
@@ -2471,6 +2937,321 @@ mod tests {
                 stat.project_path == r"D:\Documents\Code\Github\ccr\ccr-ui\backend"
             })
         );
+    }
+
+    fn create_opencode_message_table(conn: &rusqlite::Connection) {
+        conn.execute_batch(
+            r#"
+            CREATE TABLE message (
+                id TEXT PRIMARY KEY,
+                session_id TEXT NOT NULL,
+                time_created INTEGER NOT NULL,
+                time_updated INTEGER NOT NULL,
+                data TEXT NOT NULL
+            );
+            "#,
+        )
+        .unwrap();
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn insert_opencode_message(
+        conn: &rusqlite::Connection,
+        id: &str,
+        session_id: &str,
+        time_updated: i64,
+        role: &str,
+        provider_id: &str,
+        model_id: &str,
+        input_tokens: i64,
+        output_tokens: i64,
+    ) {
+        conn.execute(
+            "INSERT INTO message (id, session_id, time_created, time_updated, data)
+             VALUES (?1, ?2, ?3, ?4, ?5)",
+            (
+                id,
+                session_id,
+                time_updated,
+                time_updated,
+                serde_json::json!({
+                    "role": role,
+                    "providerID": provider_id,
+                    "modelID": model_id,
+                    "time": { "completed": time_updated },
+                    "tokens": { "input": input_tokens, "output": output_tokens }
+                })
+                .to_string(),
+            ),
+        )
+        .unwrap();
+    }
+
+    #[test]
+    fn test_read_opencode_db_imports_assistant_token_rows_for_all_providers() {
+        let _guard = setup();
+        reset_usage_tables();
+
+        let temp_dir = TempDir::new().unwrap();
+        let db_path = temp_dir.path().join("opencode.db");
+        let conn = rusqlite::Connection::open(&db_path).unwrap();
+        create_opencode_message_table(&conn);
+        let now = Utc
+            .with_ymd_and_hms(2026, 4, 1, 8, 0, 0)
+            .unwrap()
+            .timestamp_millis();
+        insert_opencode_message(
+            &conn,
+            "msg-openai",
+            "ses-1",
+            now,
+            "assistant",
+            "openai",
+            "gpt-5.4",
+            1200,
+            240,
+        );
+        insert_opencode_message(
+            &conn,
+            "msg-copilot",
+            "ses-2",
+            now + 1,
+            "assistant",
+            "github-copilot",
+            "claude-opus-4.6",
+            2000,
+            400,
+        );
+        insert_opencode_message(
+            &conn,
+            "msg-user",
+            "ses-3",
+            now + 2,
+            "user",
+            "openai",
+            "gpt-5.4",
+            9999,
+            9999,
+        );
+        insert_opencode_message(
+            &conn,
+            "msg-zero",
+            "ses-4",
+            now + 3,
+            "assistant",
+            "openai",
+            "gpt-5.4",
+            0,
+            0,
+        );
+        drop(conn);
+
+        let service = UsageImportService::new(ImportConfig::default());
+        let (records, offset, skipped) = service
+            .read_opencode_db(
+                &db_path,
+                temp_dir.path().to_string_lossy().as_ref(),
+                "src-opencode",
+            )
+            .unwrap();
+
+        assert_eq!(offset, std::fs::metadata(&db_path).unwrap().len() as i64);
+        assert_eq!(records.len(), 2);
+        assert_eq!(skipped, 2);
+        assert_eq!(records[0].id, "opencode:msg-openai");
+        assert_eq!(records[0].platform, "opencode");
+        assert_eq!(records[0].project_path, "opencode:ses-1");
+        assert_eq!(records[0].model.as_deref(), Some("openai/gpt-5.4"));
+        assert_eq!(records[0].input_tokens, 1200);
+        assert_eq!(records[0].output_tokens, 240);
+        assert_eq!(
+            records[1].model.as_deref(),
+            Some("github-copilot/claude-opus-4.6")
+        );
+        assert_eq!(records[1].input_tokens, 2000);
+        assert_eq!(records[1].output_tokens, 400);
+    }
+
+    #[test]
+    fn test_opencode_record_id_falls_back_to_session_and_time() {
+        let _guard = setup();
+        reset_usage_tables();
+
+        let temp_dir = TempDir::new().unwrap();
+        let db_path = temp_dir.path().join("opencode.db");
+        let conn = rusqlite::Connection::open(&db_path).unwrap();
+        conn.execute_batch(
+            r#"
+            CREATE TABLE message (
+                session_id TEXT NOT NULL,
+                time_updated INTEGER NOT NULL,
+                data TEXT NOT NULL
+            );
+            "#,
+        )
+        .unwrap();
+        let now = Utc
+            .with_ymd_and_hms(2026, 4, 1, 8, 0, 0)
+            .unwrap()
+            .timestamp_millis();
+        conn.execute(
+            "INSERT INTO message (session_id, time_updated, data) VALUES (?1, ?2, ?3)",
+            (
+                "ses-fallback",
+                now,
+                serde_json::json!({
+                    "role": "assistant",
+                    "providerID": "openai",
+                    "modelID": "gpt-5.4",
+                    "tokens": { "input": 11, "output": 7 }
+                })
+                .to_string(),
+            ),
+        )
+        .unwrap();
+        drop(conn);
+
+        let service = UsageImportService::new(ImportConfig::default());
+        let (records, _offset, skipped) = service
+            .read_opencode_db(
+                &db_path,
+                temp_dir.path().to_string_lossy().as_ref(),
+                "src-opencode",
+            )
+            .unwrap();
+
+        assert_eq!(skipped, 0);
+        assert_eq!(records.len(), 1);
+        assert_eq!(records[0].id, format!("opencode:ses-fallback:{now}"));
+    }
+
+    #[test]
+    fn test_import_file_reimports_opencode_db_without_duplicate_counts() {
+        let _guard = setup();
+        reset_usage_tables();
+
+        let temp_dir = TempDir::new().unwrap();
+        let db_path = temp_dir.path().join("opencode.db");
+        let conn = rusqlite::Connection::open(&db_path).unwrap();
+        create_opencode_message_table(&conn);
+        let now = Utc
+            .with_ymd_and_hms(2026, 4, 1, 8, 0, 0)
+            .unwrap()
+            .timestamp_millis();
+        insert_opencode_message(
+            &conn,
+            "msg-1",
+            "ses-1",
+            now,
+            "assistant",
+            "openai",
+            "gpt-5.4",
+            100,
+            20,
+        );
+        drop(conn);
+
+        let service = UsageImportService::new(ImportConfig::default());
+        let (first_imported, first_skipped) = service.import_file("opencode", &db_path).unwrap();
+        assert_eq!(first_imported, 1);
+        assert_eq!(first_skipped, 0);
+
+        let (second_imported, second_skipped) = service.import_file("opencode", &db_path).unwrap();
+        assert_eq!(second_imported, 0);
+        assert_eq!(second_skipped, 0);
+
+        let conn = rusqlite::Connection::open(&db_path).unwrap();
+        insert_opencode_message(
+            &conn,
+            "msg-2",
+            "ses-2",
+            now + 1,
+            "assistant",
+            "github-copilot",
+            "claude-opus-4.6",
+            200,
+            40,
+        );
+        drop(conn);
+
+        let (third_imported, third_skipped) = service.import_file("opencode", &db_path).unwrap();
+        assert_eq!(third_imported, 2);
+        assert_eq!(third_skipped, 0);
+
+        let file_path_str = db_path.to_string_lossy().to_string();
+        let (records, summary, sources) = database::with_connection(|conn| {
+            let source = usage_repo::get_source_by_path(conn, &file_path_str)?
+                .expect("source should exist after opencode import");
+            let records = usage_repo::get_records_by_source(conn, &source.id)?;
+            let summary =
+                usage_repo::get_usage_summary(conn, &Some("opencode".to_string()), &None, &None)?;
+            let sources = usage_repo::get_sources_by_platform(conn, "opencode")?;
+            Ok((records, summary, sources))
+        })
+        .unwrap();
+
+        assert_eq!(sources.len(), 1);
+        assert_eq!(records.len(), 2);
+        assert_eq!(summary.total_requests, 2);
+        assert_eq!(summary.total_input_tokens, 300);
+        assert_eq!(summary.total_output_tokens, 60);
+    }
+
+    #[test]
+    fn test_import_platform_all_includes_opencode() {
+        let _guard = setup();
+        reset_usage_tables();
+
+        let temp_dir = TempDir::new().unwrap();
+        let db_path = temp_dir.path().join("opencode.db");
+        let conn = rusqlite::Connection::open(&db_path).unwrap();
+        create_opencode_message_table(&conn);
+        let now = Utc
+            .with_ymd_and_hms(2026, 4, 1, 8, 0, 0)
+            .unwrap()
+            .timestamp_millis();
+        insert_opencode_message(
+            &conn,
+            "msg-all",
+            "ses-all",
+            now,
+            "assistant",
+            "openai",
+            "gpt-5.4",
+            50,
+            10,
+        );
+        drop(conn);
+
+        let previous_opencode_dir = std::env::var("CCR_OPENCODE_DIR").ok();
+        let result = {
+            // SAFETY: Usage import tests are serialized by `setup()` before mutating process
+            // environment used by OpenCode path discovery.
+            unsafe {
+                std::env::set_var("CCR_OPENCODE_DIR", temp_dir.path());
+            }
+            let result = UsageImportService::new(ImportConfig::default()).import_platform("all");
+            match previous_opencode_dir {
+                Some(value) => unsafe {
+                    std::env::set_var("CCR_OPENCODE_DIR", value);
+                },
+                None => unsafe {
+                    std::env::remove_var("CCR_OPENCODE_DIR");
+                },
+            }
+            result
+        }
+        .unwrap();
+        assert_eq!(result.platform, "all");
+        assert!(result.records_imported >= 1);
+
+        let summary = database::with_connection(|conn| {
+            usage_repo::get_usage_summary(conn, &Some("opencode".to_string()), &None, &None)
+        })
+        .unwrap();
+        assert_eq!(summary.total_requests, 1);
+        assert_eq!(summary.total_input_tokens, 50);
+        assert_eq!(summary.total_output_tokens, 10);
     }
 
     #[test]

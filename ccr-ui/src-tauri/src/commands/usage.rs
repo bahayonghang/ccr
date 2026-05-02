@@ -115,7 +115,7 @@ struct UsageImportJobFile {
     modified_at: Option<std::time::SystemTime>,
 }
 
-const HOME_USAGE_PLATFORMS: [&str; 3] = ["claude", "codex", "gemini"];
+const HOME_USAGE_PLATFORMS: [&str; 4] = ["claude", "codex", "gemini", "opencode"];
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
 pub struct HomeOverviewPlatformStats {
@@ -152,6 +152,7 @@ pub struct HomeOverviewSeriesItem {
     pub claude: HomeOverviewPlatformStats,
     pub codex: HomeOverviewPlatformStats,
     pub gemini: HomeOverviewPlatformStats,
+    pub opencode: HomeOverviewPlatformStats,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -242,7 +243,10 @@ fn usage_pricing_catalog() -> ModelRateCatalog {
     let manager = match PricingManager::with_default() {
         Ok(manager) => manager,
         Err(error) => {
-            tracing::warn!(?error, "Failed to load pricing overrides; using official catalog");
+            tracing::warn!(
+                ?error,
+                "Failed to load pricing overrides; using official catalog"
+            );
             return ModelRateCatalog::official();
         }
     };
@@ -1024,6 +1028,7 @@ fn normalize_home_platform(raw: &str) -> Option<&'static str> {
         "gemini" | "gemini-cli" | "gemini cli" | "google-gemini" | "google gemini" => {
             Some("gemini")
         }
+        "opencode" | "open-code" | "open code" => Some("opencode"),
         _ => None,
     }
 }
@@ -1066,11 +1071,7 @@ fn detect_home_empty_reason(
 }
 
 fn has_any_raw_sessions() -> bool {
-    for platform in [
-        Platform::Claude,
-        Platform::Codex,
-        Platform::Gemini,
-    ] {
+    for platform in [Platform::Claude, Platform::Codex, Platform::Gemini] {
         let Some(session_dir) = SessionParser::get_platform_session_dir(&platform) else {
             continue;
         };
@@ -1672,6 +1673,7 @@ pub async fn get_home_usage_overview_v2(
                     claude: day_stats.remove("claude").unwrap_or_default(),
                     codex: day_stats.remove("codex").unwrap_or_default(),
                     gemini: day_stats.remove("gemini").unwrap_or_default(),
+                    opencode: day_stats.remove("opencode").unwrap_or_default(),
                 }
             })
             .collect::<Vec<_>>();
@@ -1949,6 +1951,7 @@ mod tests {
         assert_eq!(normalize_home_platform("Claude Code"), Some("claude"));
         assert_eq!(normalize_home_platform("openai-codex"), Some("codex"));
         assert_eq!(normalize_home_platform("gemini-cli"), Some("gemini"));
+        assert_eq!(normalize_home_platform("Open Code"), Some("opencode"));
         assert_eq!(normalize_home_platform("legacy-cli"), None);
         assert_eq!(normalize_home_platform("unknown"), None);
     }
