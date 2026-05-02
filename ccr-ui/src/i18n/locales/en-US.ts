@@ -1514,6 +1514,7 @@ export default {
       claude: '🤖 Claude',
       codex: '💻 Codex',
       gemini: '✨ Gemini',
+      opencode: '⌘ OpenCode',
     },
 
     actions: {

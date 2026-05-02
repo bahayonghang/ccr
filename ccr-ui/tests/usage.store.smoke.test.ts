@@ -149,6 +149,35 @@ describe('usage store smoke', () => {
     expect(store.error).toBeNull()
   })
 
+  it('normalizes opencode import results into store summary state', async () => {
+    const api = await import('@/api')
+    vi.mocked(api.importUsageV2).mockResolvedValue({
+      platform: 'opencode',
+      files_processed: 1,
+      records_imported: 7,
+      records_skipped: 2,
+      duration_ms: 11,
+      completed: true,
+      error: null
+    })
+
+    const { useUsageStore } = await import('@/stores/usage')
+    const store = useUsageStore()
+    const result = await store.triggerImport('opencode')
+
+    expect(api.importUsageV2).toHaveBeenCalledWith('opencode')
+    expect((result as ImportAllUsageResponse).summary).toEqual({
+      success_count: 1,
+      failure_count: 0,
+      imported_records: 7,
+      processed_files: 1,
+      has_partial: false
+    })
+    expect(store.lastImportResults[0]?.platform).toBe('opencode')
+    expect(store.error).toBeNull()
+  })
+
+
   it('starts a background usage import job and stores the active snapshot', async () => {
     const api = await import('@/api')
     vi.mocked(api.startUsageImportJobV2).mockResolvedValue({

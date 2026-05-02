@@ -265,6 +265,7 @@ export const useUsageDashboardState = () => {
       claude: 'Claude',
       codex: 'Codex',
       gemini: 'Gemini',
+      opencode: 'OpenCode',
     }
 
     return translateDashboardText(

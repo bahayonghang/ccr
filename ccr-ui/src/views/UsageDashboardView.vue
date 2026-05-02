@@ -46,6 +46,9 @@
               <option value="gemini">
                 Gemini
               </option>
+              <option value="opencode">
+                OpenCode
+              </option>
             </select>
             <select
               v-model="selectedDays"

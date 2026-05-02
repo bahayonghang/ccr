@@ -1,6 +1,6 @@
 <template>
   <div class="usage-stats-chart h-72 relative select-none">
-    <div class="absolute top-0 right-0 flex items-center gap-4 text-xs z-10">
+    <div class="absolute top-0 right-0 flex flex-wrap justify-end gap-x-4 gap-y-1 text-xs z-10">
       <div class="flex items-center gap-1.5">
         <span class="w-3 h-3 rounded-[2px] bg-orange-500" />
         <span class="text-text-secondary">Codex</span>
@@ -12,6 +12,10 @@
       <div class="flex items-center gap-1.5">
         <span class="w-3 h-3 rounded-[2px] bg-blue-500" />
         <span class="text-text-secondary">Gemini</span>
+      </div>
+      <div class="flex items-center gap-1.5">
+        <span class="w-3 h-3 rounded-[2px] bg-cyan-500" />
+        <span class="text-text-secondary">OpenCode</span>
       </div>
     </div>
 
@@ -71,6 +75,16 @@
               :class="[
                 { 'opacity-90': hoveredIndex !== null && hoveredIndex !== index },
                 row.codexCorner,
+              ]"
+            />
+            <div
+              v-if="row.opencode > 0"
+              class="w-full bg-cyan-500"
+              data-platform="opencode"
+              :style="{ height: `${row.opencodeHeight}px` }"
+              :class="[
+                { 'opacity-90': hoveredIndex !== null && hoveredIndex !== index },
+                row.opencodeCorner,
               ]"
             />
           </div>
@@ -138,6 +152,15 @@
               {{ formatValue(hoveredRow.gemini) }}
             </span>
           </div>
+          <div class="flex items-center justify-between gap-6">
+            <div class="flex items-center gap-1.5">
+              <span class="w-2 h-2 rounded-[1px] bg-cyan-500" />
+              <span class="text-text-secondary">OpenCode</span>
+            </div>
+            <span class="text-text-primary font-mono font-medium">
+              {{ formatValue(hoveredRow.opencode) }}
+            </span>
+          </div>
         </div>
       </div>
     </Transition>
@@ -165,7 +188,7 @@ let hoverRafId: number | null = null
 
 const getValue = (
   item: HomeOverviewSeriesItem,
-  platform: 'claude' | 'codex' | 'gemini'
+  platform: 'claude' | 'codex' | 'gemini' | 'opencode'
 ): number => {
   const stats = item?.[platform]
   if (!stats) return 0
@@ -190,6 +213,7 @@ const maxValue = computed(() => {
       getValue(item, 'claude')
       + getValue(item, 'codex')
       + getValue(item, 'gemini')
+      + getValue(item, 'opencode')
     if (total > max) max = total
   }
   return max || 1
@@ -207,11 +231,13 @@ const chartRows = computed(() => {
     const codex = getValue(item, 'codex')
     const claude = getValue(item, 'claude')
     const gemini = getValue(item, 'gemini')
+    const opencode = getValue(item, 'opencode')
 
     const codexCorner =
-      gemini === 0 && claude === 0 && codex > 0 ? 'rounded-t-[2px]' : ''
-    const claudeCorner = gemini === 0 && claude > 0 ? 'rounded-t-[2px]' : ''
-    const geminiCorner = gemini > 0 ? 'rounded-t-[2px]' : ''
+      opencode === 0 && gemini === 0 && claude === 0 && codex > 0 ? 'rounded-t-[2px]' : ''
+    const claudeCorner = opencode === 0 && gemini === 0 && claude > 0 ? 'rounded-t-[2px]' : ''
+    const geminiCorner = opencode === 0 && gemini > 0 ? 'rounded-t-[2px]' : ''
+    const opencodeCorner = opencode > 0 ? 'rounded-t-[2px]' : ''
 
     const date = new Date(item.date)
     const prevDate = index > 0 ? new Date(rows[index - 1].date) : null
@@ -224,12 +250,15 @@ const chartRows = computed(() => {
       codex,
       claude,
       gemini,
+      opencode,
       codexHeight: getBarHeight(codex),
       claudeHeight: getBarHeight(claude),
       geminiHeight: getBarHeight(gemini),
+      opencodeHeight: getBarHeight(opencode),
       codexCorner,
       claudeCorner,
       geminiCorner,
+      opencodeCorner,
       isMonthStart,
       showDate,
       dayLabel: date.getDate().toString(),

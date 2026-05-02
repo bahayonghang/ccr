@@ -62,6 +62,7 @@ const createOverview = (bootstrap?: Partial<{
     claude: { sessions: 0, requests: 0, tokens: 0 },
     codex: { sessions: 0, requests: 0, tokens: 0 },
     gemini: { sessions: 0, requests: 0, tokens: 0 },
+    opencode: { sessions: 0, requests: 0, tokens: 0 },
   },
   series: [],
   archive: {

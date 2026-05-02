@@ -168,7 +168,7 @@
 
       <div class="h-px bg-gradient-to-r from-transparent via-border-default/50 to-transparent" />
 
-      <div class="grid grid-cols-2 gap-3 lg:grid-cols-5">
+      <div class="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
         <div
           v-for="card in platformCards"
           :key="card.key"
@@ -285,7 +285,8 @@ const hasSeriesDataForMode = (
     const claudeValue = getChartValue('claude', mode)(item)
     const codexValue = getChartValue('codex', mode)(item)
     const geminiValue = getChartValue('gemini', mode)(item)
-    return claudeValue + codexValue + geminiValue > 0
+    const opencodeValue = getChartValue('opencode', mode)(item)
+    return claudeValue + codexValue + geminiValue + opencodeValue > 0
   })
 }
 
@@ -453,6 +454,15 @@ const platformCards = computed(() => {
         'bg-blue-500/5 border-blue-500/20 hover:border-blue-500/40 hover:bg-blue-500/10',
       dotClass: 'bg-blue-500 ring-blue-500/20',
       titleClass: 'text-blue-400',
+    },
+    {
+      key: 'opencode',
+      label: 'OpenCode',
+      stats: getPlatformStats('opencode'),
+      containerClass:
+        'bg-cyan-500/5 border-cyan-500/20 hover:border-cyan-500/40 hover:bg-cyan-500/10',
+      dotClass: 'bg-cyan-500 ring-cyan-500/20',
+      titleClass: 'text-cyan-400',
     },
   ]
 })

@@ -292,6 +292,25 @@ describe('usage dashboard state smoke', () => {
     }
   })
 
+  it('accepts opencode as a dashboard filter platform', async () => {
+    tauriRuntime = true
+    const { state, unmount } = await mountComposable()
+
+    try {
+      state.selectedPlatform.value = 'opencode'
+      state.onFilterChange()
+
+      expect(usageStore.setFilters).toHaveBeenCalledWith(
+        expect.objectContaining({
+          platform: 'opencode',
+        })
+      )
+      expect(state.selectedPlatformLabel.value).toBe('OpenCode')
+    } finally {
+      unmount()
+    }
+  })
+
   it('exposes codex repair diagnostics when codex records look unhealthy', async () => {
     tauriRuntime = true
     usageStore.summary = {

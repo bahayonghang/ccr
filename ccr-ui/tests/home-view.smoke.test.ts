@@ -121,12 +121,13 @@ const createOverview = (overrides?: {
     total_requests: overrides?.empty ? 0 : 1240,
     total_tokens: overrides?.empty ? 0 : 980000,
     active_days: 30,
-    platforms: overrides?.empty ? 0 : 3,
+    platforms: overrides?.empty ? 0 : 4,
   },
   by_platform: {
     claude: { sessions: overrides?.empty ? 0 : 8, requests: overrides?.empty ? 0 : 520, tokens: overrides?.empty ? 0 : 420000 },
     codex: { sessions: overrides?.empty ? 0 : 7, requests: overrides?.empty ? 0 : 640, tokens: overrides?.empty ? 0 : 510000 },
     gemini: { sessions: overrides?.empty ? 0 : 3, requests: overrides?.empty ? 0 : 80, tokens: overrides?.empty ? 0 : 50000 },
+    opencode: { sessions: 0, requests: overrides?.empty ? 0 : 40, tokens: overrides?.empty ? 0 : 15000 },
   },
   series: overrides?.empty
     ? []
@@ -136,12 +137,14 @@ const createOverview = (overrides?: {
           claude: { sessions: 2, requests: 100, tokens: 10000 },
           codex: { sessions: 1, requests: 180, tokens: 20000 },
           gemini: { sessions: 0, requests: 20, tokens: 1000 },
+          opencode: { sessions: 0, requests: 12, tokens: 4000 },
         },
         {
           date: '2026-04-28',
           claude: { sessions: 3, requests: 220, tokens: 12000 },
           codex: { sessions: 2, requests: 240, tokens: 23000 },
           gemini: { sessions: 1, requests: 30, tokens: 1200 },
+          opencode: { sessions: 0, requests: 28, tokens: 11000 },
         },
       ],
   archive: {
@@ -273,7 +276,8 @@ describe('HomeView smoke', () => {
     try {
       expect(el.textContent).toContain('home.activityEmptyTitle')
       expect(el.textContent).toContain('usageStats.noUsageAndSessions')
-      expect(el.textContent).toContain('home.platformUsageUntracked')
+      expect(el.textContent).toContain('home.opencodeTitle')
+      expect(el.textContent).toContain('home.platformStatRequests0')
     } finally {
       unmount()
     }

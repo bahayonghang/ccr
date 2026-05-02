@@ -67,6 +67,8 @@ const CLI_PLATFORM_ALIASES: Record<string, string> = {
   codex: 'codex',
   gemini: 'gemini-cli',
   'gemini-cli': 'gemini-cli',
+  opencode: 'opencode',
+  'open-code': 'opencode',
 }
 
 const normalizeHomeCliPlatform = (platform: string) => {
@@ -247,6 +249,7 @@ const platforms = computed<HomePlatformRecord[]>(() => [
     icon: 'TerminalSquare',
     iconClass: 'text-accent-info',
     platformKey: 'opencode',
+    usageKey: 'opencode',
     role: t('home.platformRoleManaged'),
     mode: 'managed',
     isRuntimeCli: false,

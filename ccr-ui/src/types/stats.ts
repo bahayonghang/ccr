@@ -79,6 +79,7 @@ export interface DailyStatsItem {
   claude: PlatformDailyStats;
   codex: PlatformDailyStats;
   gemini: PlatformDailyStats;
+  opencode?: PlatformDailyStats;
 }
 
 /** 使用统计汇总 */

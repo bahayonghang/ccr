@@ -16,12 +16,14 @@ const mountChart = async () => {
             claude: { sessions: 0, requests: 3, tokens: 300 },
             codex: { sessions: 0, requests: 5, tokens: 500 },
             gemini: { sessions: 0, requests: 17, tokens: 1700 },
+            opencode: { sessions: 0, requests: 11, tokens: 1100 },
           },
           {
             date: '2026-04-02',
             claude: { sessions: 0, requests: 1, tokens: 100 },
             codex: { sessions: 0, requests: 2, tokens: 200 },
             gemini: { sessions: 0, requests: 9, tokens: 900 },
+            opencode: { sessions: 0, requests: 4, tokens: 400 },
           },
         ],
       })
@@ -66,6 +68,8 @@ describe('usage stats chart smoke', () => {
       const tooltip = el.querySelector('.absolute.z-20') as HTMLElement | null
       expect(tooltip?.textContent).toContain('Gemini')
       expect(tooltip?.textContent).toContain('17')
+      expect(tooltip?.textContent).toContain('OpenCode')
+      expect(tooltip?.textContent).toContain('11')
     } finally {
       unmount()
     }

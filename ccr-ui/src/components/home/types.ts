@@ -17,7 +17,7 @@ export interface HomePlatformRecord {
   icon: IconName
   iconClass: string
   platformKey: string
-  usageKey?: 'claude' | 'codex' | 'gemini'
+  usageKey?: 'claude' | 'codex' | 'gemini' | 'opencode'
   role: string
   mode: HomePlatformMode
   isRuntimeCli: boolean
