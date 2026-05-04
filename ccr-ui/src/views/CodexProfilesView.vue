@@ -1,535 +1,292 @@
-<!-- -->
+<!--
+  Codex Profiles 视图 — 单列模式重构
+  - 视觉：Anthropic Design「ccr-codex-profile」暖中性表面 + 琥珀点缀
+  - 编辑流程不动：icon 按钮触发现有 CodexProfileEditorModal
+  - 键盘：/ 聚焦搜索；⌘K 命令面板；⌘1-9 切换启用 profile；Esc 关闭面板
+-->
 <template>
   <div class="codex-profiles-view">
-    <div class="codex-profiles-shell">
-      <div class="codex-profiles-stack">
-        <ModuleSubnav module="codex" />
+    <ModuleSubnav module="codex" />
 
-        <main class="codex-profiles-main">
-          <!-- Header Section -->
-          <div class="codex-profiles-header">
-            <div class="codex-profiles-header__intro">
-              <div class="codex-profiles-header__icon">
-                <SIcon
-                  name="Settings"
-                  size="w-6 h-6"
-                  class="text-platform-codex"
-                />
-              </div>
-              <div>
-                <h1 class="text-2xl font-bold text-text-primary">
-                  {{ $t('codex.profiles.title') }}
-                </h1>
-                <p class="text-sm text-text-primary mt-1">
-                  {{ $t('codex.profiles.subtitle') }}
-                </p>
-              </div>
-            </div>
+    <main class="cp-shell">
+      <div class="cp-main">
+        <ProfilesHeader
+          :loading="loading"
+          :exporting="exporting"
+          @add="handleAdd"
+          @export="handleExportProfiles"
+          @reload="reloadProfiles"
+          @open-palette="paletteOpen = true"
+        />
 
-            <div class="codex-profiles-header__actions">
-              <RouterLink
-                to="/codex"
-                class="inline-flex"
-              >
-                <Button
-                  variant="secondary"
-                  surface="status"
-                  density="compact"
-                  motion="subtle"
-                >
-                  <template #leading>
-                    <SIcon
-                      name="ArrowLeft"
-                      size="w-4 h-4"
-                    />
-                  </template>
-                  {{ $t('codex.profiles.backToCodex') }}
-                </Button>
-              </RouterLink>
+        <ProfilesStatStrip
+          :current="currentProfile"
+          :total="profiles.length"
+          :enabled="enabledCount"
+          :mode="currentConfigMode"
+          :last-write="lastWriteHint"
+        />
 
-              <Button
-                variant="secondary"
-                surface="status"
-                density="compact"
-                motion="standard"
-                :disabled="loading || saving || actionLoading || exporting"
-                @click="handleExportProfiles"
-              >
-                <template #leading>
-                  <SIcon
-                    name="Download"
-                    size="w-4 h-4"
-                  />
-                </template>
-                {{ $t('common.export') }}
-              </Button>
+        <ProfilesQuickRail
+          :profiles="profiles"
+          :current-name="currentProfile"
+          :disabled="actionLoading"
+          :busy-name="busyAction === 'apply' ? busyProfileName : null"
+          @apply="handleApply"
+        />
 
-              <Button
-                variant="primary"
-                surface="card"
-                density="compact"
-                motion="standard"
-                @click="handleAdd"
-              >
-                <template #leading>
-                  <SIcon
-                    name="Plus"
-                    size="w-4 h-4"
-                  />
-                </template>
-                {{ $t('codex.profiles.addProfile') }}
-              </Button>
-            </div>
+        <ProfilesToolbar
+          ref="toolbarRef"
+          :query="query"
+          :status-filter="statusFilter"
+          :tag-filter="tagFilter"
+          :sort-by="sortBy"
+          :view-mode="viewMode"
+          :result-count="filtered.length"
+          :total="profiles.length"
+          :all-tags="allTags"
+          @update:query="query = $event"
+          @update:status-filter="statusFilter = $event"
+          @update:tag-filter="tagFilter = $event"
+          @update:sort-by="sortBy = $event"
+          @update:view-mode="viewMode = $event"
+        />
+
+        <div
+          v-if="loading"
+          class="cp-loading"
+        >
+          <div class="cp-loading__spinner" />
+        </div>
+
+        <div
+          v-else-if="profiles.length === 0"
+          class="cp-empty"
+        >
+          <SIcon
+            name="Boxes"
+            size="w-7 h-7"
+          />
+          <div class="cp-empty__title">
+            {{ $t('codex.profiles.emptyState') }}
           </div>
-
-          <!-- Status Cards -->
-          <div class="codex-profiles-status-grid">
-            <!-- Current Config -->
-            <Card
-              surface="status"
-              :elevation="2"
-              motion="subtle"
-              :gradient-border="true"
-              glow-color="warning"
-              class="group codex-profiles-status-card"
-            >
-              <div class="flex items-center gap-4">
-                <div class="codex-profiles-status-icon codex-profiles-status-icon--warning">
-                  <SIcon
-                    name="Zap"
-                    size="w-6 h-6"
-                  />
-                </div>
-                <div>
-                  <p class="text-xs font-medium text-text-muted uppercase tracking-wider mb-1">
-                    {{ $t('codex.status.currentConfig') }}
-                  </p>
-                  <p class="text-xl font-bold text-text-primary truncate">
-                    {{ currentProfile || $t('codex.status.notSet') }}
-                  </p>
-                </div>
-              </div>
-            </Card>
-
-            <!-- Total Profiles -->
-            <Card
-              surface="status"
-              :elevation="2"
-              motion="subtle"
-              :interactive="true"
-              glow-color="primary"
-              class="group codex-profiles-status-card"
-            >
-              <div class="flex items-center gap-4">
-                <div class="codex-profiles-status-icon codex-profiles-status-icon--primary">
-                  <SIcon
-                    name="Layers"
-                    size="w-6 h-6"
-                  />
-                </div>
-                <div>
-                  <p class="text-xs font-medium text-text-muted uppercase tracking-wider mb-1">
-                    {{ $t('codex.status.totalProfiles') }}
-                  </p>
-                  <p class="text-xl font-bold text-text-primary">
-                    {{ profiles.length }}
-                  </p>
-                </div>
-              </div>
-            </Card>
-
-            <!-- Config Mode -->
-            <Card
-              surface="status"
-              :elevation="2"
-              motion="subtle"
-              :interactive="true"
-              :glow-color="currentConfigMode === 'official' ? 'success' : 'secondary'"
-              class="group codex-profiles-status-card"
-            >
-              <div class="flex items-center gap-4">
-                <div 
-                  class="codex-profiles-status-icon"
-                  :class="currentConfigMode === 'official' ? 'codex-profiles-status-icon--official' : 'codex-profiles-status-icon--relay'"
-                >
-                  <SIcon
-                    :name="currentConfigMode === 'official' ? 'Globe' : 'Server'"
-                    size="w-6 h-6"
-                  />
-                </div>
-                <div>
-                  <p class="text-xs font-medium text-text-muted uppercase tracking-wider mb-1">
-                    {{ $t('codex.status.configMode') }}
-                  </p>
-                  <p class="text-xl font-bold text-text-primary">
-                    {{ currentConfigMode === 'official' ? $t('codex.profiles.officialConfig') : $t('codex.profiles.customRelay') }}
-                  </p>
-                </div>
-              </div>
-            </Card>
+          <div class="cp-empty__hint">
+            {{ $t('codex.profiles.emptyHint') }}
           </div>
-
-          <!-- Quick Switch -->
-          <Card
-            v-if="profiles.length > 0"
-            surface="workspace"
-            :elevation="2"
-            motion="subtle"
-            padding="lg"
+          <button
+            type="button"
+            class="cp-btn cp-btn--primary"
+            @click="handleAdd"
           >
-            <div class="flex items-center gap-2 mb-4">
-              <SIcon
-                name="Shuffle"
-                size="w-5 h-5"
-                class="text-platform-codex"
-              />
-              <h3 class="text-base font-semibold text-text-primary">
-                {{ $t('codex.profiles.quickSwitch') }}
-              </h3>
-            </div>
-            <div class="codex-profiles-switches">
-              <button
-                v-for="profile in profiles"
-                :key="profile.name"
-                class="codex-profiles-switch"
-                :class="[
-                  profile.name === currentProfile ? 'codex-profiles-switch--active' : 'codex-profiles-switch--idle',
-                  actionLoading ? 'codex-profiles-switch--busy' : '',
-                ]"
-                :disabled="actionLoading"
-                @click="handleApply(profile.name)"
-              >
-                <SIcon
-                  v-if="isOfficialConfig(profile)"
-                  name="Star"
-                  size="w-3.5 h-3.5"
-                  :class="profile.name === currentProfile ? 'text-platform-codex' : 'text-yellow-500'"
-                />
-                <SIcon
-                  v-if="busyProfileName === profile.name && busyAction === 'apply'"
-                  name="RefreshCw"
-                  size="w-3.5 h-3.5"
-                  class="animate-spin"
-                />
-                <span>{{ profile.name }}</span>
-                <div 
-                  v-if="profile.name === currentProfile" 
-                  class="codex-profiles-switch__active-indicator"
-                >
-                  <SIcon
-                    name="Check"
-                    size="w-2.5 h-2.5"
-                  />
-                </div>
-              </button>
-            </div>
-          </Card>
+            <SIcon
+              name="Plus"
+              size="w-3.5 h-3.5"
+            />
+            {{ $t('codex.profiles.addProfile') }}
+          </button>
+        </div>
 
-          <!-- Profile List Title -->
-          <div class="codex-profiles-section-heading">
-            <h2 class="codex-profiles-section-heading__title">
-              <SIcon
-                name="ListFilter"
-                size="w-5 h-5"
-                class="text-platform-codex"
-              />
-              {{ $t('codex.profiles.listTitle') }}
-            </h2>
+        <div
+          v-else-if="filtered.length === 0"
+          class="cp-empty"
+        >
+          <SIcon
+            name="Search"
+            size="w-7 h-7"
+          />
+          <div class="cp-empty__title">
+            {{ $t('codex.profiles.empty.noResults', { query }) }}
           </div>
-            
-          <!-- Loading State -->
-          <div
-            v-if="loading"
-            class="codex-profiles-loading"
+          <button
+            type="button"
+            class="cp-btn cp-btn--ghost"
+            @click="resetFilters"
           >
-            <div class="codex-profiles-loading__spinner" />
-          </div>
+            {{ $t('codex.profiles.empty.clearFilters') }}
+          </button>
+        </div>
 
-          <!-- Empty State -->
-          <div
-            v-else-if="profiles.length === 0"
-            class="empty-state glass-effect rounded-2xl border border-border-default/10"
+        <template v-else-if="viewMode === 'list'">
+          <ProfilesSection
+            v-if="enabledList.length > 0"
+            :title="$t('codex.profiles.groups.enabled')"
+            :count="enabledList.length"
           >
-            <div class="p-4 rounded-full glass-surface mb-4">
-              <SIcon
-                name="Boxes"
-                size="w-8 h-8"
-                class="text-text-muted"
-              />
+            <div class="cp-list-head">
+              <span />
+              <span>{{ $t('codex.profiles.fields.name') }}</span>
+              <span>{{ $t('codex.profiles.description') }}</span>
+              <span>{{ $t('codex.profiles.fields.baseUrl') }}</span>
+              <span>{{ $t('codex.profiles.fields.model') }}</span>
+              <span>{{ $t('codex.profiles.fields.authMode') }}</span>
+              <span>{{ $t('codex.profiles.fields.tags') }}</span>
+              <span class="cp-list-head__right">{{ $t('codex.profiles.toolbar.actionsLabel') }}</span>
             </div>
-            <p class="text-text-primary">
-              {{ $t('codex.profiles.emptyState') }}
-            </p>
-          </div>
-
-          <!-- Profile Grid -->
-          <div
-            v-else
-            class="codex-profiles-grid"
-          >
-            <Card 
-              v-for="profile in profiles" 
+            <ProfileRow
+              v-for="profile in enabledList"
               :key="profile.name"
-              surface="card"
-              :elevation="2"
-              motion="subtle"
-              class="group codex-profiles-card"
-              :class="[currentProfile && profile.name === currentProfile ? 'config-card-active' : '']"
-              :glow-color="currentProfile && profile.name === currentProfile ? 'warning' : 'primary'"
-              padding="lg"
-            >
-              <!-- Active Indicator Background -->
-              <div 
-                v-if="currentProfile && profile.name === currentProfile"
-                class="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-platform-codex/10 to-transparent -mr-8 -mt-8 rounded-bl-full pointer-events-none"
+              :profile="profile"
+              :is-current="profile.name === currentProfile"
+              :busy-action="busyProfileName === profile.name ? busyAction : null"
+              :disabled="actionLoading"
+              @apply="handleApply"
+              @edit="handleEdit"
+              @delete="handleDelete"
+            />
+          </ProfilesSection>
+
+          <ProfilesSection
+            v-if="disabledList.length > 0"
+            :title="$t('codex.profiles.groups.disabled')"
+            :count="disabledList.length"
+          >
+            <ProfileRow
+              v-for="profile in disabledList"
+              :key="profile.name"
+              :profile="profile"
+              :is-current="profile.name === currentProfile"
+              :busy-action="busyProfileName === profile.name ? busyAction : null"
+              :disabled="actionLoading"
+              @apply="handleApply"
+              @edit="handleEdit"
+              @delete="handleDelete"
+            />
+          </ProfilesSection>
+        </template>
+
+        <template v-else>
+          <ProfilesSection
+            v-if="enabledList.length > 0"
+            :title="$t('codex.profiles.groups.enabled')"
+            :count="enabledList.length"
+          >
+            <div class="cp-grid">
+              <ProfileCard
+                v-for="profile in enabledList"
+                :key="profile.name"
+                :profile="profile"
+                :is-current="profile.name === currentProfile"
+                :busy-action="busyProfileName === profile.name ? busyAction : null"
+                :disabled="actionLoading"
+                @apply="handleApply"
+                @edit="handleEdit"
+                @delete="handleDelete"
+                @copy-env="copyProfileEnv"
               />
+            </div>
+          </ProfilesSection>
 
-              <div class="relative z-10">
-                <div class="flex items-start justify-between gap-4 mb-4">
-                  <div class="flex-1 min-w-0">
-                    <div class="flex items-center gap-2 mb-2">
-                      <h3 class="text-lg font-bold font-mono text-text-primary truncate">
-                        {{ profile.name }}
-                      </h3>
-                      <span 
-                        v-if="currentProfile && profile.name === currentProfile"
-                        class="badge badge-primary"
-                      >
-                        {{ $t('codex.profiles.currentBadge') }}
-                      </span>
-                      <span 
-                        v-else-if="profile.enabled === false"
-                        class="badge badge-danger"
-                      >
-                        {{ $t('codex.states.disabled') }}
-                      </span>
-                      <span 
-                        v-else
-                        class="badge badge-success"
-                      >
-                        {{ $t('codex.states.enabled') }}
-                      </span>
-                    </div>
-                    <p
-                      v-if="profile.description"
-                      class="text-sm text-text-primary line-clamp-1"
-                    >
-                      {{ profile.description }}
-                    </p>
-                  </div>
-                   
-                  <!-- Actions -->
-                  <div class="codex-profiles-card__actions">
-                    <button 
-                      class="codex-profiles-action-button codex-profiles-action-button--success"
-                      :title="$t('codex.profiles.apply')"
-                      :disabled="actionLoading"
-                      @click.stop="handleApply(profile.name)"
-                    >
-                      <SIcon
-                        :name="busyProfileName === profile.name && busyAction === 'apply' ? 'RefreshCw' : 'Check'"
-                        size="w-4 h-4"
-                        :class="{ 'animate-spin': busyProfileName === profile.name && busyAction === 'apply' }"
-                      />
-                    </button>
-                    <button 
-                      class="codex-profiles-action-button codex-profiles-action-button--primary"
-                      :title="$t('codex.actions.edit')"
-                      @click.stop="handleEdit(profile.name)"
-                    >
-                      <SIcon
-                        name="Edit2"
-                        size="w-4 h-4"
-                      />
-                    </button>
-                    <button 
-                      class="codex-profiles-action-button codex-profiles-action-button--danger"
-                      :title="$t('codex.actions.delete')"
-                      :disabled="actionLoading"
-                      @click.stop="handleDelete(profile.name)"
-                    >
-                      <SIcon
-                        :name="busyProfileName === profile.name && busyAction === 'delete' ? 'RefreshCw' : 'Trash2'"
-                        size="w-4 h-4"
-                        :class="{ 'animate-spin': busyProfileName === profile.name && busyAction === 'delete' }"
-                      />
-                    </button>
-                  </div>
-                </div>
-
-                <!-- Info Grid -->
-                <div class="codex-profiles-card__info-grid">
-                  <div class="codex-profiles-card__info-item">
-                    <span class="text-xs font-medium text-text-muted uppercase tracking-wider">
-                      {{ $t('codex.profiles.fields.baseUrl') }}
-                    </span>
-                    <code class="codex-profiles-card__code">
-                      {{ profileBaseUrl(profile) }}
-                    </code>
-                  </div>
-
-                  <div class="codex-profiles-card__info-item">
-                    <span class="text-xs font-medium text-text-muted uppercase tracking-wider">
-                      {{ $t('codex.profiles.fields.model') }}
-                    </span>
-                    <div class="flex items-center gap-2">
-                      <span class="codex-profiles-card__model-pill">
-                        {{ profile.model }}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div class="codex-profiles-card__info-item">
-                    <span class="text-xs font-medium text-text-muted uppercase tracking-wider">
-                      {{ $t('codex.profiles.fields.authMode') }}
-                    </span>
-                    <div class="flex items-center gap-2 flex-wrap">
-                      <span class="codex-profiles-card__meta-pill">
-                        {{ authModeLabel(profile.auth_mode) }}
-                      </span>
-                      <span
-                        v-if="profile.openai_login_method"
-                        class="px-2 py-0.5 rounded-md text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
-                      >
-                        {{ profile.openai_login_method }}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div class="codex-profiles-card__info-item">
-                    <span class="text-xs font-medium text-text-muted uppercase tracking-wider">
-                      {{ $t('codex.profiles.fields.authSource') }}
-                    </span>
-                    <div class="flex items-center gap-2 flex-wrap">
-                      <code class="codex-profiles-card__code">
-                        {{ profile.auth_source || $t('codex.profiles.notAvailable') }}
-                      </code>
-                      <span
-                        v-if="profile.credential_store"
-                        class="px-2 py-0.5 rounded-md text-xs font-medium bg-sky-500/10 text-sky-300 border border-sky-500/20"
-                      >
-                        {{ profile.credential_store }}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div
-                    v-if="profile.env_key"
-                    class="codex-profiles-card__info-item"
-                  >
-                    <span class="text-xs font-medium text-text-muted uppercase tracking-wider">
-                      {{ $t('codex.profiles.fields.envKey') }}
-                    </span>
-                    <code class="codex-profiles-card__code">
-                      {{ profile.env_key }}
-                    </code>
-                  </div>
-                </div>
-
-                <div
-                  v-if="profile.shell_export_script"
-                  class="mt-4 rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-3"
-                >
-                  <div class="flex items-start justify-between gap-3">
-                    <div class="min-w-0">
-                      <p class="text-xs font-medium uppercase tracking-wider text-emerald-300">
-                        {{ $t('codex.profiles.envExportTitle') }}
-                      </p>
-                      <p class="mt-1 text-xs text-text-muted">
-                        {{ $t('codex.profiles.envExportHint') }}
-                      </p>
-                    </div>
-                    <button
-                      class="btn btn-secondary btn-sm"
-                      @click.stop="copyProfileEnv(profile)"
-                    >
-                      {{ $t('codex.profiles.copyEnvExport') }}
-                    </button>
-                  </div>
-                  <pre class="mt-3 overflow-x-auto rounded-lg glass-surface p-3 text-xs text-text-primary"><code>{{ profile.shell_export_script }}</code></pre>
-                </div>
-                 
-                <div
-                  v-if="profile.tags?.length || profile.provider || (profile.extra && Object.keys(profile.extra).length > 0)"
-                  class="mt-4 flex items-center justify-between border-t border-border-default/10 pt-3"
-                >
-                  <div class="flex flex-wrap gap-1.5">
-                    <span 
-                      v-if="profile.provider"
-                      class="px-2 py-0.5 rounded-md text-xs font-medium glass-surface text-text-primary"
-                    >
-                      {{ profile.provider }}
-                    </span>
-                    <span 
-                      v-for="tag in profile.tags" 
-                      :key="tag"
-                      class="px-2 py-0.5 rounded-md text-xs font-medium glass-surface text-text-muted"
-                    >
-                      #{{ tag }}
-                    </span>
-                  </div>
-                   
-                  <div
-                    v-if="profile.extra && Object.keys(profile.extra).length > 0"
-                    class="text-xs text-text-muted font-mono glass-surface px-2 py-1 rounded"
-                  >
-                    +{{ Object.keys(profile.extra).length }} extras
-                  </div>
-                </div>
-              </div>
-            </Card>
-          </div>
-            
-          <CodexProfileEditorModal
-            :model-value="showForm"
-            :editing-name="editingName"
-            :saving="saving"
-            :form="form"
-            :update-field="updateFormField"
-            :available-auth-mode-options="availableAuthModeOptions"
-            :model-catalog="modelCatalog"
-            :selected-model-option="selectedModelOption"
-            :custom-model-input="customModelInput"
-            :requires-base-url="requiresBaseUrl"
-            :requires-secret="requiresSecret"
-            :requires-env-key="requiresEnvKey"
-            :auth-token-hint="authTokenHint"
-            :is-deprecated-auth-mode="isDeprecatedAuthMode(form.auth_mode)"
-            :display-open-ai-login-method="displayOpenAiLoginMethod"
-            :auth-mode-label="authModeLabel"
-            @update:model-value="handleFormModelValue"
-            @update:selected-model-option="selectedModelOption = $event"
-            @update:custom-model-input="customModelInput = $event"
-            @save="handleSave"
-          />
-
-          <ConfirmModal
-            v-model:is-open="showConfirmModal"
-            :type="confirmDialog.type"
-            :title="confirmDialog.title"
-            :message="confirmDialog.message"
-            :confirm-text="confirmDialog.confirmText"
-            :cancel-text="$t('common.cancel')"
-            @confirm="executeConfirmedAction"
-          />
-        </main>
+          <ProfilesSection
+            v-if="disabledList.length > 0"
+            :title="$t('codex.profiles.groups.disabled')"
+            :count="disabledList.length"
+          >
+            <div class="cp-grid">
+              <ProfileCard
+                v-for="profile in disabledList"
+                :key="profile.name"
+                :profile="profile"
+                :is-current="profile.name === currentProfile"
+                :busy-action="busyProfileName === profile.name ? busyAction : null"
+                :disabled="actionLoading"
+                @apply="handleApply"
+                @edit="handleEdit"
+                @delete="handleDelete"
+                @copy-env="copyProfileEnv"
+              />
+            </div>
+          </ProfilesSection>
+        </template>
       </div>
-    </div>
+
+      <ProfilesContextRail
+        :profiles="profiles"
+        :current="currentProfile"
+        :active-profile="activeProfile"
+        @apply="handleApply"
+        @edit="handleEdit"
+      />
+    </main>
+
+    <CommandPalette
+      :open="paletteOpen"
+      :profiles="profiles"
+      @update:open="paletteOpen = $event"
+      @apply="handleApply"
+      @add="handleAdd"
+      @export="handleExportProfiles"
+      @reload="reloadProfiles"
+      @import="handleAdd"
+    />
+
+    <CodexProfileEditorModal
+      :model-value="showForm"
+      :editing-name="editingName"
+      :saving="saving"
+      :form="form"
+      :update-field="updateFormField"
+      :available-auth-mode-options="availableAuthModeOptions"
+      :model-catalog="modelCatalog"
+      :selected-model-option="selectedModelOption"
+      :custom-model-input="customModelInput"
+      :requires-base-url="requiresBaseUrl"
+      :requires-secret="requiresSecret"
+      :requires-env-key="requiresEnvKey"
+      :auth-token-hint="authTokenHint"
+      :is-deprecated-auth-mode="isDeprecatedAuthMode(form.auth_mode)"
+      :display-open-ai-login-method="displayOpenAiLoginMethod"
+      :auth-mode-label="authModeLabel"
+      @update:model-value="handleFormModelValue"
+      @update:selected-model-option="selectedModelOption = $event"
+      @update:custom-model-input="customModelInput = $event"
+      @save="handleSave"
+    />
+
+    <ConfirmModal
+      v-model:is-open="showConfirmModal"
+      :type="confirmDialog.type"
+      :title="confirmDialog.title"
+      :message="confirmDialog.message"
+      :confirm-text="confirmDialog.confirmText"
+      :cancel-text="$t('common.cancel')"
+      @confirm="executeConfirmedAction"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
+import { computed, h, onActivated, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
+import {
+  addCodexCustomModel,
+  addCodexProfile,
+  applyCodexProfile,
+  deleteCodexProfile,
+  exportCodexProfiles,
+  getCodexProfile,
+  listCodexModels,
+  listCodexProfiles,
+  updateCodexProfile,
+} from '@/api'
 import CodexProfileEditorModal from '@/components/codex/CodexProfileEditorModal.vue'
+import CommandPalette from '@/components/codex/profiles/CommandPalette.vue'
+import ProfileCard from '@/components/codex/profiles/ProfileCard.vue'
+import ProfileRow from '@/components/codex/profiles/ProfileRow.vue'
+import ProfilesContextRail from '@/components/codex/profiles/ProfilesContextRail.vue'
+import ProfilesHeader from '@/components/codex/profiles/ProfilesHeader.vue'
+import ProfilesQuickRail from '@/components/codex/profiles/ProfilesQuickRail.vue'
+import ProfilesStatStrip from '@/components/codex/profiles/ProfilesStatStrip.vue'
+import ProfilesToolbar, { type CodexProfilesViewMode } from '@/components/codex/profiles/ProfilesToolbar.vue'
 import ConfirmModal from '@/components/ConfirmModal.vue'
 import ModuleSubnav from '@/components/ModuleSubnav.vue'
-import Button from '@/components/ui/Button.vue'
-import Card from '@/components/ui/Card.vue'
 import SIcon from '@/components/ui/SIcon.vue'
-import { computed, onActivated, onMounted, reactive, ref } from 'vue'
-import { RouterLink } from 'vue-router'
-import { useI18n } from 'vue-i18n'
-import { addCodexCustomModel, addCodexProfile, applyCodexProfile, deleteCodexProfile, exportCodexProfiles, getCodexProfile, listCodexModels, listCodexProfiles, updateCodexProfile } from '@/api'
+import {
+  useCodexProfilesFilter,
+  type CodexProfilesSortBy,
+  type CodexProfilesStatusFilter,
+} from '@/composables/useCodexProfilesFilter'
 import { translateWithFallback } from '@/i18n/formatMessage'
+import { useUIStore } from '@/stores/ui'
 import type {
   CodexAddCustomModelResponse,
   CodexModelsResponse,
@@ -551,20 +308,17 @@ import {
   resolveModelSelection,
   usesOpenAiAuthMode,
 } from '@/utils/codexProfileEditor'
-import { logger } from '@/utils/logger'
-import { useUIStore } from '@/stores/ui'
 import { downloadTextFile } from '@/utils/download'
+import { logger } from '@/utils/logger'
 
 defineOptions({ name: 'CodexProfilesView' })
 
-interface ProfilesExportResponse {
-  content: string
-  filename: string
-}
+interface ProfilesExportResponse { content: string, filename: string }
 
 const { t } = useI18n()
 const uiStore = useUIStore()
 
+// ===== 加载与状态 =====
 const loading = ref(false)
 const saving = ref(false)
 const actionLoading = ref(false)
@@ -577,42 +331,55 @@ const codexCustomModels = ref<string[]>([])
 const selectedModelOption = ref<string>('')
 const customModelInput = ref('')
 
+// ===== 编辑表单与确认弹窗 =====
 const showForm = ref(false)
 const editingName = ref<string | null>(null)
 const busyProfileName = ref<string | null>(null)
 const busyAction = ref<'apply' | 'delete' | null>(null)
 const showConfirmModal = ref(false)
 const lastLoadedAt = ref(0)
+const lastWriteHint = ref<string | null>(null)
 const confirmDialog = reactive<{
   title: string
   message: string
   confirmText: string
   type: 'danger' | 'info' | 'warning'
-}>({
-  title: '',
-  message: '',
-  confirmText: '',
-  type: 'warning',
-})
+}>({ title: '', message: '', confirmText: '', type: 'warning' })
 let confirmedAction: (() => Promise<void>) | null = null
 
 const REFRESH_TTL_MS = 30_000
 
-const extractErrorMessage = (error: unknown) => {
-  if (typeof error === 'string') {
-    return error
-  }
-  if (error && typeof error === 'object') {
-    const candidate = error as { message?: unknown, error?: unknown, cause?: unknown }
-    for (const value of [candidate.message, candidate.error, candidate.cause]) {
-      if (typeof value === 'string' && value.trim()) {
-        return value
-      }
-    }
-  }
-  return null
-}
+// ===== 列表筛选状态 =====
+const query = ref('')
+const statusFilter = ref<CodexProfilesStatusFilter>('all')
+const tagFilter = ref<string | null>(null)
+const sortBy = ref<CodexProfilesSortBy>('recent')
+const viewMode = ref<CodexProfilesViewMode>('card')
+const paletteOpen = ref(false)
+const toolbarRef = ref<InstanceType<typeof ProfilesToolbar> | null>(null)
 
+const { allTags, filtered, enabledList, disabledList, activeProfile } = useCodexProfilesFilter({
+  profiles,
+  currentProfile,
+  query,
+  statusFilter,
+  tagFilter,
+  sortBy,
+})
+
+const enabledCount = computed(() =>
+  profiles.value.filter(p => p.enabled !== false).length,
+)
+
+const isOfficialConfig = (profile: CodexProfile) => !profile.base_url?.trim()
+
+const currentConfigMode = computed<'official' | 'custom'>(() => {
+  if (!currentProfile.value) return 'official'
+  const found = profiles.value.find(p => p.name === currentProfile.value)
+  return found && isOfficialConfig(found) ? 'official' : 'custom'
+})
+
+// ===== 派生 =====
 const modelCatalog = computed(() => {
   const merged = [...codexBuiltinModels.value, ...codexCustomModels.value]
   return merged.filter((model, index) => merged.indexOf(model) === index)
@@ -626,52 +393,8 @@ const availableAuthModeOptions = computed(() => {
   return options
 })
 
-const isOfficialConfig = (profile: CodexProfile) => {
-  return !profile.base_url?.trim()
-}
-
-const authModeLabel = (authMode?: CodexProfileAuthMode | null) => {
-  return t(`codex.profiles.authModes.${authMode || 'no_auth'}`)
-}
-
-const profileBaseUrl = (profile: CodexProfile) => {
-  return profile.base_url?.trim() || t('codex.profiles.officialBaseUrl')
-}
-
-const buildShellExportFallback = (profile: CodexProfile) => {
-  const envExport = profile.env_export
-  if (!envExport || Object.keys(envExport).length === 0) {
-    return ''
-  }
-  return Object.entries(envExport)
-    .map(([key, value]) => `export ${key}=${JSON.stringify(value)}`)
-    .join('\n')
-}
-
-const copyProfileEnv = async (profile: CodexProfile) => {
-  const script = profile.shell_export_script || buildShellExportFallback(profile)
-  if (!script) {
-    return
-  }
-
-  try {
-    const copied = await copyToClipboard(script)
-    if (!copied) {
-      throw new Error('copy failed')
-    }
-    uiStore.showSuccess(t('codex.profiles.messages.envExportCopied'))
-  } catch (error) {
-    logger.error('Failed to copy profile env export:', error)
-    uiStore.showError(t('codex.profiles.messages.envExportCopyFailed'))
-  }
-}
-
-// 当前配置模式
-const currentConfigMode = computed(() => {
-  if (!currentProfile.value) return 'official'
-  const profile = profiles.value.find(p => p.name === currentProfile.value)
-  return profile && isOfficialConfig(profile) ? 'official' : 'custom'
-})
+const authModeLabel = (authMode?: CodexProfileAuthMode | null) =>
+  t(`codex.profiles.authModes.${authMode || 'no_auth'}`)
 
 const form = reactive(createCodexProfileEditorForm())
 
@@ -681,33 +404,58 @@ const updateFormField = (field: keyof CodexProfileEditorForm, value: string | bo
   } else {
     form[field] = String(value) as never
   }
-
-  if (field === 'auth_mode') {
-    syncDerivedAuthFields()
-  }
+  if (field === 'auth_mode') syncDerivedAuthFields()
 }
 
 const requiresBaseUrl = computed(() => !usesOpenAiAuthMode(form.auth_mode))
 const requiresSecret = computed(() => form.auth_mode === 'openai_api_key')
 const requiresEnvKey = computed(() => form.auth_mode === 'provider_env_key')
-const displayOpenAiLoginMethod = computed(() => authModeToLoginMethod(form.auth_mode) || t('codex.profiles.notAvailable'))
-const resolvedModelValue = computed(() => {
-  return selectedModelOption.value === CUSTOM_MODEL_OPTION
+const displayOpenAiLoginMethod = computed(
+  () => authModeToLoginMethod(form.auth_mode) || t('codex.profiles.notAvailable'),
+)
+const resolvedModelValue = computed(() =>
+  selectedModelOption.value === CUSTOM_MODEL_OPTION
     ? normalizeModelName(customModelInput.value)
-    : normalizeModelName(selectedModelOption.value)
-})
+    : normalizeModelName(selectedModelOption.value),
+)
 const authTokenHint = computed(() => {
-  if (form.auth_mode === 'openai_chatgpt') {
-    return t('codex.profiles.authTokenHints.openai_chatgpt')
-  }
-  if (form.auth_mode === 'openai_api_key') {
-    return t('codex.profiles.authTokenHints.openai_api_key')
-  }
-  if (form.auth_mode === 'provider_env_key') {
-    return t('codex.profiles.authTokenHints.provider_env_key')
-  }
+  if (form.auth_mode === 'openai_chatgpt')   return t('codex.profiles.authTokenHints.openai_chatgpt')
+  if (form.auth_mode === 'openai_api_key')   return t('codex.profiles.authTokenHints.openai_api_key')
+  if (form.auth_mode === 'provider_env_key') return t('codex.profiles.authTokenHints.provider_env_key')
   return t('codex.profiles.authTokenHints.no_auth')
 })
+
+const extractErrorMessage = (error: unknown): string | null => {
+  if (typeof error === 'string') return error
+  if (error && typeof error === 'object') {
+    const c = error as { message?: unknown, error?: unknown, cause?: unknown }
+    for (const v of [c.message, c.error, c.cause]) {
+      if (typeof v === 'string' && v.trim()) return v
+    }
+  }
+  return null
+}
+
+const buildShellExportFallback = (profile: CodexProfile) => {
+  const envExport = profile.env_export
+  if (!envExport || Object.keys(envExport).length === 0) return ''
+  return Object.entries(envExport)
+    .map(([key, value]) => `export ${key}=${JSON.stringify(value)}`)
+    .join('\n')
+}
+
+const copyProfileEnv = async (profile: CodexProfile) => {
+  const script = profile.shell_export_script || buildShellExportFallback(profile)
+  if (!script) return
+  try {
+    const ok = await copyToClipboard(script)
+    if (!ok) throw new Error('copy failed')
+    uiStore.showSuccess(t('codex.profiles.messages.envExportCopied'))
+  } catch (error) {
+    logger.error('Failed to copy profile env export:', error)
+    uiStore.showError(t('codex.profiles.messages.envExportCopyFailed'))
+  }
+}
 
 const loadModels = async () => {
   try {
@@ -729,6 +477,7 @@ const loadProfiles = async () => {
     profiles.value = profilesData.profiles || []
     currentProfile.value = profilesData.current_profile ?? null
     lastLoadedAt.value = Date.now()
+    lastWriteHint.value = new Date().toLocaleTimeString()
   } catch (error) {
     logger.error('Failed to load codex profiles:', error)
     uiStore.showError(t('codex.states.loadFailed'))
@@ -737,17 +486,16 @@ const loadProfiles = async () => {
   }
 }
 
+const reloadProfiles = () => loadProfiles()
+
 const ensureLoaded = async (force = false) => {
   if (loading.value) return
-  if (!force && lastLoadedAt.value && Date.now() - lastLoadedAt.value < REFRESH_TTL_MS) {
-    return
-  }
+  if (!force && lastLoadedAt.value && Date.now() - lastLoadedAt.value < REFRESH_TTL_MS) return
   await loadProfiles()
 }
 
 const handleExportProfiles = async () => {
   exporting.value = true
-
   try {
     const payload = await exportCodexProfiles<ProfilesExportResponse>(true)
     downloadTextFile(payload.filename, payload.content, 'application/toml;charset=utf-8')
@@ -804,11 +552,7 @@ const openFormModal = async (name?: string) => {
   await loadModels()
   resetForm()
   showForm.value = true
-
-  if (!name) {
-    return
-  }
-
+  if (!name) return
   const profile = await getCodexProfile<CodexProfile>(name)
   applyProfileToForm(profile)
 }
@@ -839,9 +583,7 @@ const handleProfileAction = async (
   }
 }
 
-const handleAdd = async () => {
-  await openFormModal()
-}
+const handleAdd = async () => { await openFormModal() }
 
 const handleEdit = async (name: string) => {
   try {
@@ -860,42 +602,32 @@ const handleCloseForm = () => {
 
 const handleFormModelValue = (value: boolean) => {
   showForm.value = value
-  if (!value) {
-    editingName.value = null
-  }
+  if (!value) editingName.value = null
 }
 
 const syncDerivedAuthFields = () => {
   form.openai_login_method = authModeToLoginMethod(form.auth_mode) ?? null
   form.requires_openai_auth = usesOpenAiAuthMode(form.auth_mode)
-
-  if (!requiresEnvKey.value) {
-    form.env_key = ''
-  }
+  if (!requiresEnvKey.value) form.env_key = ''
 }
 
 const handleSave = async () => {
   syncDerivedAuthFields()
 
   if (!form.name.trim()) {
-    uiStore.showError(t('codex.profiles.validation.nameRequired'))
-    return
+    uiStore.showError(t('codex.profiles.validation.nameRequired')); return
   }
   if (requiresBaseUrl.value && !form.base_url?.trim()) {
-    uiStore.showError(t('codex.profiles.validation.baseUrlRequired'))
-    return
+    uiStore.showError(t('codex.profiles.validation.baseUrlRequired')); return
   }
   if (requiresSecret.value && !form.auth_token?.trim()) {
-    uiStore.showError(t('codex.profiles.validation.authTokenRequired'))
-    return
+    uiStore.showError(t('codex.profiles.validation.authTokenRequired')); return
   }
   if (requiresEnvKey.value && !form.env_key?.trim()) {
-    uiStore.showError(t('codex.profiles.validation.envKeyRequired'))
-    return
+    uiStore.showError(t('codex.profiles.validation.envKeyRequired')); return
   }
   if (!resolvedModelValue.value) {
-    uiStore.showError(t('codex.profiles.validation.modelRequired'))
-    return
+    uiStore.showError(t('codex.profiles.validation.modelRequired')); return
   }
 
   const request = buildCodexProfileRequest(form, resolvedModelValue.value)
@@ -906,7 +638,7 @@ const handleSave = async () => {
     if (selectedModelOption.value === CUSTOM_MODEL_OPTION) {
       const response = await addCodexCustomModel<CodexAddCustomModelResponse>(resolvedModelValue.value)
       const models = response.models || []
-      codexCustomModels.value = models.filter(model => !codexBuiltinModels.value.includes(model))
+      codexCustomModels.value = models.filter(m => !codexBuiltinModels.value.includes(m))
     }
     if (editingName.value) {
       await updateCodexProfile(editingName.value, request)
@@ -915,9 +647,7 @@ const handleSave = async () => {
     }
     handleCloseForm()
     await loadProfiles()
-    uiStore.showSuccess(
-      isEditing ? t('codex.profiles.updateProfile') : t('codex.profiles.addProfile')
-    )
+    uiStore.showSuccess(isEditing ? t('codex.profiles.updateProfile') : t('codex.profiles.addProfile'))
   } catch (error) {
     logger.error('Failed to save codex profile:', error)
     uiStore.showError(extractErrorMessage(error) || t('codex.states.saveFailed'))
@@ -926,13 +656,10 @@ const handleSave = async () => {
   }
 }
 
-const formatProfileConfirmMessage = (
-  key: string,
-  name: string,
-  fallback: string,
-) => translateWithFallback(t, key, fallback, { name })
+const formatProfileConfirmMessage = (key: string, name: string, fallback: string) =>
+  translateWithFallback(t, key, fallback, { name })
 
-const handleDelete = async (name: string) => {
+const handleDelete = (name: string) => {
   openConfirmDialog({
     title: t('codex.actions.delete'),
     message: formatProfileConfirmMessage(
@@ -944,8 +671,7 @@ const handleDelete = async (name: string) => {
     type: 'danger',
     action: async () => {
       await handleProfileAction(
-        name,
-        'delete',
+        name, 'delete',
         () => deleteCodexProfile(name),
         t('codex.actions.delete'),
         t('codex.states.deleteFailed'),
@@ -954,7 +680,7 @@ const handleDelete = async (name: string) => {
   })
 }
 
-const handleApply = async (name: string) => {
+const handleApply = (name: string) => {
   openConfirmDialog({
     title: t('codex.profiles.apply'),
     message: formatProfileConfirmMessage(
@@ -966,8 +692,7 @@ const handleApply = async (name: string) => {
     type: 'warning',
     action: async () => {
       await handleProfileAction(
-        name,
-        'apply',
+        name, 'apply',
         () => applyCodexProfile(name),
         t('codex.profiles.apply'),
         t('codex.states.saveFailed'),
@@ -976,169 +701,267 @@ const handleApply = async (name: string) => {
   })
 }
 
+const resetFilters = () => {
+  query.value = ''
+  statusFilter.value = 'all'
+  tagFilter.value = null
+}
+
+// ===== 简易分组容器：标题 + 计数 + 内容插槽（functional component） =====
+const ProfilesSection = (
+  props: { title: string, count: number },
+  { slots }: { slots: { default?: () => unknown } },
+) => {
+  // children 由父组件 v-slot 传入，运行时已是 VNode[]；TS 推断收紧到 VNodeChild
+  // 这里跳过 h() 第三参的严格签名检查，等价于直接挂载子节点
+  const children = (slots.default?.() ?? []) as never
+  return h('section', { class: 'cp-section' }, [
+    h('div', { class: 'cp-section__head' }, [
+      h(SIcon, { name: 'Folder', size: 'w-3.5 h-3.5', class: 'cp-section__icon' }),
+      h('span', { class: 'cp-section__title' }, props.title),
+      h('span', { class: 'cp-section__count' }, String(props.count)),
+    ]),
+    h('div', { class: 'cp-section__body' }, children),
+  ])
+}
+;(ProfilesSection as unknown as { props: string[] }).props = ['title', 'count']
+
+// ===== 键盘快捷键：/ ⌘K ⌘1-9 Esc =====
+const isEditableTarget = (el: EventTarget | null): boolean => {
+  if (!(el instanceof HTMLElement)) return false
+  const tag = el.tagName
+  return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || el.isContentEditable
+}
+
+const onWindowKeyDown = (event: KeyboardEvent) => {
+  if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
+    event.preventDefault()
+    paletteOpen.value = !paletteOpen.value
+    return
+  }
+  if ((event.metaKey || event.ctrlKey) && /^[1-9]$/.test(event.key)) {
+    const idx = Number.parseInt(event.key, 10) - 1
+    const enabledOnly = profiles.value.filter(p => p.enabled !== false)
+    const target = enabledOnly[idx]
+    if (target) {
+      event.preventDefault()
+      handleApply(target.name)
+    }
+    return
+  }
+  if (event.key === '/' && !isEditableTarget(event.target)) {
+    event.preventDefault()
+    toolbarRef.value?.focusSearch()
+    return
+  }
+  if (event.key === 'Escape' && paletteOpen.value) {
+    paletteOpen.value = false
+  }
+}
+
 onMounted(async () => {
+  window.addEventListener('keydown', onWindowKeyDown)
   await ensureLoaded(true)
 })
 
-onActivated(() => {
-  void ensureLoaded(false)
+onBeforeUnmount(() => {
+  window.removeEventListener('keydown', onWindowKeyDown)
 })
+
+onActivated(() => { void ensureLoaded(false) })
 </script>
 
 <style scoped>
+/* 作用域设计令牌：仅在本视图内生效，不污染全局 */
 .codex-profiles-view {
-  @apply min-h-full p-6;
+  /* 背景层 → 全局 token */
+  --cp-bg-0: var(--color-bg-base);
+  --cp-bg-1: var(--color-bg-elevated);
+  --cp-bg-2: var(--color-bg-surface);
+  --cp-bg-3: var(--color-bg-overlay);
+  --cp-bg-4: rgb(var(--color-bg-overlay-rgb) / 88%);
+
+  /* 边框 → 全局 token */
+  --cp-line: var(--color-border-subtle);
+  --cp-line-2: var(--color-border-default);
+
+  /* 文字阶 → 全局 token */
+  --cp-ink-0: var(--color-text-primary);
+  --cp-ink-1: var(--color-text-secondary);
+  --cp-ink-2: var(--color-text-muted);
+  --cp-ink-3: var(--color-text-ghost);
+  --cp-ink-4: var(--color-text-disabled);
+
+  /* 主色 → Claude Clay（与 Auth 页同源） */
+  --cp-accent: var(--color-accent-primary);
+  --cp-accent-soft: rgb(var(--color-accent-primary-rgb) / 14%);
+  --cp-accent-line: rgb(var(--color-accent-primary-rgb) / 35%);
+  --cp-on-accent: var(--color-text-inverted);
+
+  /* 状态色 → 全局 token */
+  --cp-good: var(--color-success);
+  --cp-warn: var(--color-warning);
+  --cp-danger: var(--color-danger);
+  --cp-info: var(--color-info);
+  --cp-mono: var(--font-mono, 'MapleBright', monospace);
+
+  min-height: 100%;
+  padding: 24px;
+  background: var(--color-bg-base);
+  color: var(--cp-ink-1);
+  font-size: 13px;
+  line-height: 1.5;
 }
 
-.codex-profiles-shell {
-  @apply mx-auto max-w-[1800px];
+.cp-shell {
+  max-width: 1440px;
+  margin: 16px auto 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 18px;
 }
 
-.codex-profiles-stack {
-  @apply mt-6 space-y-6;
+.cp-main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
 }
 
-.codex-profiles-main {
-  @apply flex w-full min-w-0 flex-col gap-6;
+@media (width >= 1280px) {
+  .cp-shell {
+    grid-template-columns: minmax(0, 1fr) 320px;
+    align-items: start;
+  }
 }
 
-.codex-profiles-header {
-  @apply flex items-center justify-between;
+.cp-section { margin-bottom: 18px; }
+
+.cp-section__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 6px 2px 12px;
+  color: var(--cp-ink-2);
+  font-size: 13px;
+  font-weight: 600;
 }
 
-.codex-profiles-header__intro,
-.codex-profiles-header__actions,
-.codex-profiles-section-heading__title,
-.codex-profiles-switches {
-  @apply flex items-center gap-3;
+.cp-section__icon { color: var(--cp-accent); }
+.cp-section__title { color: var(--cp-ink-1); }
+
+.cp-section__count {
+  margin-left: 4px;
+  color: var(--cp-ink-4);
+  font-family: var(--cp-mono);
+  font-size: 11px;
 }
 
-.codex-profiles-header__icon {
-  @apply rounded-xl bg-platform-codex/10 p-2;
+.cp-section__body { display: contents; }
+
+.cp-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr); /* 单列模式 */
+  gap: 14px;
 }
 
-.codex-profiles-status-grid {
-  @apply grid grid-cols-1 gap-4 md:grid-cols-3;
+.cp-list-head {
+  display: grid;
+  grid-template-columns: 12px minmax(120px, 160px) minmax(0, 1.2fr) minmax(0, 1.5fr) minmax(80px, 110px) minmax(80px, 120px) minmax(60px, 1fr) auto;
+  gap: 12px;
+  padding: 8px 14px;
+  background: var(--cp-bg-2);
+  border: 1px solid var(--cp-line);
+  border-radius: 8px 8px 0 0;
+  color: var(--cp-ink-3);
+  font-family: var(--cp-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
 }
 
-.codex-profiles-status-card {
-  @apply overflow-hidden;
+.cp-list-head__right { text-align: right; }
+
+.cp-loading {
+  display: flex;
+  justify-content: center;
+  padding: 80px 0;
 }
 
-.codex-profiles-status-icon {
-  @apply rounded-xl p-3 transition-transform duration-300;
+.cp-loading__spinner {
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  border: 3px solid var(--cp-line-2);
+  border-top-color: var(--cp-accent);
+  animation: cp-spin 1s linear infinite;
 }
 
-.group:hover .codex-profiles-status-icon {
-  transform: scale(1.1);
+.cp-empty {
+  background: var(--cp-bg-1);
+  border: 1px dashed var(--cp-line-2);
+  border-radius: 12px;
+  padding: 60px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  color: var(--cp-ink-3);
+  font-size: 13px;
+  text-align: center;
 }
 
-.codex-profiles-status-icon--warning {
-  @apply bg-yellow-500/10 text-yellow-500;
+.cp-empty__title {
+  color: var(--cp-ink-1);
+  font-weight: 500;
 }
 
-.codex-profiles-status-icon--primary {
-  @apply bg-indigo-500/10 text-indigo-500;
+.cp-empty__hint {
+  color: var(--cp-ink-3);
+  font-size: 12px;
 }
 
-.codex-profiles-status-icon--official {
-  @apply bg-emerald-500/10 text-emerald-500;
+.cp-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border-radius: 7px;
+  font-size: 12.5px;
+  font-weight: 500;
+  font-family: inherit;
+  background: var(--cp-bg-2);
+  border: 1px solid var(--cp-line-2);
+  color: var(--cp-ink-1);
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
 }
 
-.codex-profiles-status-icon--relay {
-  @apply bg-pink-500/10 text-pink-500;
+.cp-btn:hover:not(:disabled) {
+  background: var(--cp-bg-3);
+  color: var(--cp-ink-0);
 }
 
-.codex-profiles-switch {
-  @apply relative flex items-center gap-2.5 rounded-xl px-4 py-2.5 text-sm font-medium transition-all duration-300;
+.cp-btn--primary {
+  background: var(--cp-accent);
+  border-color: var(--cp-accent);
+  color: var(--cp-on-accent);
+  font-weight: 600;
 }
 
-.codex-profiles-switch--active {
-  @apply glass-effect-strong border border-platform-codex/50 text-platform-codex;
-
-  box-shadow: 0 0 15px rgb(245 158 11 / 20%);
+.cp-btn--ghost {
+  background: transparent;
+  border-color: var(--cp-line);
+  color: var(--cp-ink-2);
 }
 
-.codex-profiles-switch--idle {
-  @apply glass-effect text-text-primary hover:border-platform-codex/30 hover:bg-bg-elevated/80;
+@keyframes cp-spin { to { transform: rotate(360deg); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .cp-btn { transition: none; }
+  .cp-loading__spinner { animation: none; }
 }
 
-.codex-profiles-switch--busy {
-  @apply cursor-not-allowed opacity-60;
+@media (width <= 720px) {
+  .codex-profiles-view { padding: 16px; }
 }
-
-.codex-profiles-switch__active-indicator {
-  @apply flex h-4 w-4 items-center justify-center rounded-full bg-platform-codex text-[10px] text-text-primary;
-}
-
-.codex-profiles-section-heading {
-  @apply flex items-center justify-between;
-}
-
-.codex-profiles-section-heading__title {
-  @apply text-xl font-bold text-text-primary;
-}
-
-.codex-profiles-loading {
-  @apply flex justify-center py-20;
-}
-
-.codex-profiles-loading__spinner {
-  @apply h-12 w-12 animate-spin rounded-full border-4 border-transparent border-r-accent-secondary border-t-accent-primary;
-}
-
-.codex-profiles-grid {
-  @apply grid grid-cols-1 gap-4 xl:grid-cols-2;
-}
-
-.codex-profiles-card {
-  @apply relative overflow-hidden transition-[box-shadow,transform] duration-300 hover:-translate-y-1 hover:shadow-xl;
-}
-
-.codex-profiles-card__actions {
-  @apply flex items-center gap-1 opacity-100 transition-opacity duration-200 xl:opacity-0;
-}
-
-.group:hover .codex-profiles-card__actions {
-  opacity: 1;
-}
-
-.codex-profiles-action-button {
-  @apply rounded-lg p-2 transition-colors hover:bg-bg-elevated/80;
-}
-
-.codex-profiles-action-button--success {
-  @apply text-accent-success;
-}
-
-.codex-profiles-action-button--primary {
-  @apply text-accent-primary;
-}
-
-.codex-profiles-action-button--danger {
-  @apply text-accent-danger;
-}
-
-.codex-profiles-card__info-grid {
-  @apply grid grid-cols-1 gap-x-6 gap-y-3 text-sm sm:grid-cols-2;
-}
-
-.codex-profiles-card__info-item {
-  @apply flex flex-col gap-1;
-}
-
-.codex-profiles-card__code {
-  @apply truncate rounded px-2 py-1 font-mono text-text-primary glass-surface;
-}
-
-.codex-profiles-card__model-pill {
-  @apply rounded bg-accent-primary/5 px-2 py-0.5 font-mono text-accent-primary;
-}
-
-.codex-profiles-card__meta-pill {
-  @apply rounded-md px-2 py-0.5 text-xs font-medium text-text-primary glass-surface;
-}
-
 </style>
-
-
