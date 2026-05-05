@@ -1,3 +1,3 @@
-- [ ] 删除droid
-- [ ] 补充opencode的用量统计
-- [ ] 
+- [x] 删除droid
+- [x] 补充opencode的用量统计
+- [ ] 优化使用统计逻辑
