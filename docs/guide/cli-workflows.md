@@ -41,7 +41,7 @@ ccr delete <name>
 ccr validate
 ccr history -l 50
 ccr optimize
-ccr clean --days 30 --dry-run
+ccr clean backups --days 30 --dry-run
 ccr clear --force
 ```
 
@@ -50,7 +50,7 @@ ccr clear --force
 ```bash
 ccr export -o configs.toml --no-secrets
 ccr import configs.toml --merge --backup
-ccr clean --days 30 --dry-run
+ccr clean backups --days 30 --dry-run
 ```
 
 ## 5. 临时覆盖与快速实验

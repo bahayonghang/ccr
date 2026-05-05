@@ -1,24 +1,33 @@
-# clean - 清理备份或规划文件
+# clean - 交互式清理入口
 
-清理旧的备份文件，或递归清理当前目录下的规划文件。
+裸 `ccr clean` 会进入交互式清理菜单；脚本和自动化场景应显式使用 `ccr clean planfiles` 或 `ccr clean backups`。
 
 ::: tip 重要更新
-从 CCR 1.1.5 开始，所有备份操作（`switch`、`init --force`、`import`）都会**自动保留最近10个备份**，无需手动清理。`clean` 命令主要用于清理更早期的备份或手动管理备份策略。
+从 CCR 1.1.5 开始，所有备份操作（`switch`、`init --force`、`import`）都会**自动保留最近10个备份**，无需手动清理。`clean backups` 主要用于清理更早期的备份或手动管理备份策略。
 :::
 
 ## 用法
 
 ```bash
-ccr clean [OPTIONS]
+ccr clean
 ccr clean planfiles [OPTIONS]
+ccr clean backups [OPTIONS]
+```
+
+兼容旧脚本的备份入口仍可用：
+
+```bash
+ccr clean --days 30 --dry-run
+ccr clean --force
 ```
 
 ## 选项
 
-### 备份清理
+### 交互式菜单
 
-- `--days <N>`: 保留最近 N 天的备份(默认：7)
-- `--dry-run`: 预览清理操作但不实际删除
+- 裸 `ccr clean`：显示已注册清理目标的编号菜单，当前包含 `planfiles` 和 `backups`
+- 输入目标编号执行对应清理；直接回车执行默认编号 `1.planfiles`；输入 `q` 或 `0` 取消
+- `ccr -y clean`：执行默认编号并跳过目标命令的确认提示
 
 ### 规划文件清理
 
@@ -26,38 +35,57 @@ ccr clean planfiles [OPTIONS]
 - `--dry-run`: 预览清理操作但不实际删除
 - `--force`: 跳过确认提示，直接删除命中的规划文件
 
+### 备份清理
+
+- `backups`: 显式清理旧备份文件
+- `--days <N>`: 保留最近 N 天的备份(默认：7)
+- `--dry-run`: 预览清理操作但不实际删除
+- `--force`: 跳过确认提示，直接删除命中的旧备份
+
 ## 功能特性
 
-- 自动清理旧备份文件
+- 裸命令提供交互式清理菜单
 - 递归清理 `planning-with-files` 生成的规划文件
-- 可配置保留期限(默认 7 天)
+- 自动清理旧备份文件
+- 可配置备份保留期限(默认 7 天)
 - 预览模式可先查看将删除的文件
 - 显示释放的磁盘空间
-- 仅删除 `~/.claude/backups/` 中的 `.bak` 文件
 - `planfiles` 仅删除 `task_plan.md`、`findings.md`、`progress.md`
 - `planfiles` 默认不跟随符号链接目录
+- `backups` 仅删除 `~/.claude/backups/` 中的 `.bak` 文件
 - **智能备份管理**：自动保留最近10个备份
 
 ## 示例
 
 ```bash
-# 清理 7 天前的备份(默认)
+# 打开交互式清理菜单
 ccr clean
 
-# 清理 30 天前的备份
-ccr clean --days 30
-
-# 预览清理(不实际删除)
-ccr clean --dry-run
-
-# 清理 14 天前的备份
-ccr clean --days 14
+# 自动执行默认编号并跳过确认
+ccr -y clean
 
 # 预览当前目录下的规划文件清理
 ccr clean planfiles --dry-run
 
 # 直接清理当前目录下的规划文件
-ccr clean planfiles
+ccr clean planfiles --force
+
+# 预览旧备份清理
+ccr clean backups --dry-run
+
+# 清理 30 天前的备份
+ccr clean backups --days 30
+```
+
+## 交互式菜单
+
+裸 `ccr clean` 会显示当前注册的清理目标。每个目标占用一个编号，后续新增目标只需要注册到菜单即可出现为 `2`、`3` 等编号。
+
+```text
+清理内容（输入编号执行，回车 = 1，输入 q 取消）
+1.planfiles - 清理 task_plan.md / findings.md / progress.md
+2.backups - 清理 7 天前旧备份
+请选择清理内容 [默认 1]:
 ```
 
 ## 规划文件清理
@@ -68,48 +96,9 @@ ccr clean planfiles
 - `findings.md`
 - `progress.md`
 
-命令会从当前工作目录开始递归扫描子目录，输出命中路径、命中数量和空间统计。
+命令会从当前工作目录开始递归扫描子目录，输出命中路径、命中数量和空间统计。它不会跟随符号链接目录。
 
-## 示例输出
-
-### 正常清理
-
-```bash
-$ ccr clean
-Cleaning old backups...
-────────────────────────────────────────────────────────────────
-Retention period: 7 days
-Backup directory: /home/user/.claude/backups
-
-Files to be deleted:
-  ✗ settings_20250101_100000_anthropic.json.bak (8 days old, 2.3 KB)
-  ✗ settings_20250102_120000_anyrouter.json.bak (7 days old, 2.1 KB)
-  ✗ settings_20250103_150000_anthropic.json.bak (6 days old, 2.3 KB)
-
-✓ Deleted 3 backup files
-✓ Freed 6.7 KB of disk space
-```
-
-### 预览模式
-
-```bash
-$ ccr clean --dry-run
-Cleaning old backups (DRY RUN)...
-────────────────────────────────────────────────────────────────
-Retention period: 7 days
-Backup directory: /home/user/.claude/backups
-
-Files that would be deleted:
-  ✗ settings_20250101_100000_anthropic.json.bak (8 days old, 2.3 KB)
-  ✗ settings_20250102_120000_anyrouter.json.bak (7 days old, 2.1 KB)
-
-Would delete: 2 files
-Would free: 4.4 KB
-
-✓ Dry run completed (no files deleted)
-```
-
-### 规划文件清理
+### 规划文件清理输出
 
 ```bash
 $ ccr clean planfiles --dry-run
@@ -129,18 +118,9 @@ $ ccr clean planfiles --dry-run
 [INFO] 预计释放空间: 0.02 MB
 ```
 
-### 无文件需要清理
+## 备份清理
 
-```bash
-$ ccr clean
-Cleaning old backups...
-────────────────────────────────────────────────────────────────
-Retention period: 7 days
-Backup directory: /home/user/.claude/backups
-
-✓ No old backup files to clean
-All backups are within retention period
-```
+`ccr clean backups` 会扫描 `~/.claude/backups/` 下的 `.bak` 文件，并按修改时间删除超过保留期的旧备份。旧脚本入口 `ccr clean --days ...`、`ccr clean --dry-run` 和 `ccr clean --force` 仍保留兼容，但新文档和新脚本建议使用显式 `backups` 目标。
 
 ## 备份文件命名
 
@@ -176,10 +156,10 @@ CCR 现在会自动管理备份，大多数情况下你不需要手动运行 `cl
 
 ```bash
 # 每周日清理 30 天前的备份
-0 0 * * 0 ccr clean --days 30
+0 0 * * 0 ccr clean backups --days 30
 
 # 每月清理 60 天前的备份
-0 0 1 * * ccr clean --days 60
+0 0 1 * * ccr clean backups --days 60
 ```
 
 ### 2. 释放空间
@@ -191,10 +171,10 @@ CCR 现在会自动管理备份，大多数情况下你不需要手动运行 `cl
 du -sh ~/.claude/backups/
 
 # 清理 7 天前的备份
-ccr clean --days 7
+ccr clean backups --days 7
 
 # 清理更多备份
-ccr clean --days 3
+ccr clean backups --days 3
 ```
 
 ### 3. 清理前预览
@@ -203,10 +183,10 @@ ccr clean --days 3
 
 ```bash
 # 预览将要删除的文件
-ccr clean --dry-run
+ccr clean backups --dry-run
 
 # 确认后执行实际清理
-ccr clean
+ccr clean backups
 ```
 
 ### 4. 紧急清理
@@ -215,7 +195,7 @@ ccr clean
 
 ```bash
 # 仅保留最近 1 天的备份
-ccr clean --days 1
+ccr clean backups --days 1
 
 # 或手动删除所有旧备份
 rm ~/.claude/backups/*.bak
@@ -227,13 +207,13 @@ rm ~/.claude/backups/*.bak
 
 ```bash
 # 开发环境：保留 7 天
-ccr clean --days 7
+ccr clean backups --days 7
 
 # 生产环境：保留 30 天
-ccr clean --days 30
+ccr clean backups --days 30
 
 # 重要项目：保留 90 天
-ccr clean --days 90
+ccr clean backups --days 90
 ```
 
 ## 清理逻辑
@@ -272,13 +252,13 @@ ccr clean --days 90
 
 ```bash
 # 每天：清理 7 天前的备份
-0 0 * * * ccr clean --days 7
+0 0 * * * ccr clean backups --days 7
 
 # 每周：清理 30 天前的备份
-0 0 * * 0 ccr clean --days 30
+0 0 * * 0 ccr clean backups --days 30
 
 # 每月：清理 90 天前的备份
-0 0 1 * * ccr clean --days 90
+0 0 1 * * ccr clean backups --days 90
 ```
 
 ### 2. 手动归档重要备份
@@ -289,7 +269,7 @@ mkdir -p ~/archives/ccr-backups
 cp ~/.claude/backups/settings_20250101_*.bak ~/archives/ccr-backups/
 
 # 清理旧备份
-ccr clean --days 7
+ccr clean backups --days 7
 ```
 
 ### 3. 监控备份空间
@@ -301,7 +281,7 @@ BACKUP_SIZE=$(du -sm ~/.claude/backups | cut -f1)
 
 if [ $BACKUP_SIZE -gt 100 ]; then
   echo "Warning: Backup directory exceeds 100MB"
-  ccr clean --days 7
+  ccr clean backups --days 7
 fi
 ```
 
@@ -312,7 +292,7 @@ fi
 ccr export -o ~/backups/ccr-weekly-$(date +%Y%m%d).toml
 
 # 清理临时备份
-ccr clean --days 7
+ccr clean backups --days 7
 ```
 
 ## 手动清理
@@ -384,7 +364,7 @@ sudo photorec
 :::
 
 ::: warning 注意
-- `clean` 命令仅清理自动备份,不影响手动导出的配置
+- `clean backups` 仅清理自动备份,不影响手动导出的配置
 - 删除的备份文件无法恢复
 - 建议在清理前先导出当前配置
 :::

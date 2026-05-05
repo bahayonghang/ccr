@@ -8,7 +8,7 @@ mod init;
 mod optimize;
 mod validate;
 
-pub use clean::{clean_command, clean_planfiles_command};
+pub use clean::{clean_backups_command, clean_menu_command, clean_planfiles_command};
 pub use clear::clear_command;
 pub use init::init_command;
 pub use optimize::optimize_command;

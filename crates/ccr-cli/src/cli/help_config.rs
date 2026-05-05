@@ -159,25 +159,36 @@ const VERSION_AFTER_LONG_HELP: &str = "\
     ccr -V";
 
 const CLEAN_LONG_ABOUT: &str = "\
-清理两类文件：
+裸 `ccr clean` 会进入交互式清理菜单。
 
-- 旧备份文件
-- planning-with-files 生成的规划文件";
+可显式清理两类目标：
+
+- planning-with-files 生成的规划文件
+- 旧备份文件";
 
 const CLEAN_AFTER_LONG_HELP: &str = "\
 常用任务:
-  清理旧备份
-    先预览: ccr clean --dry-run
-    清理 30 天前的备份: ccr clean --days 30
+  交互式清理菜单
+    打开菜单: ccr clean
+    自动执行默认编号: ccr -y clean
 
   清理当前目录下的规划文件
     先预览: ccr clean planfiles --dry-run
     执行清理: ccr clean planfiles
 
+  清理旧备份
+    先预览: ccr clean backups --dry-run
+    清理 30 天前的备份: ccr clean backups --days 30
+
+  兼容旧脚本
+    ccr clean --dry-run
+    ccr clean --days 30
+
 边界:
-  - `ccr clean` 只处理 ~/.claude/backups 下的 .bak 文件
+  - 裸 `ccr clean` 显示编号菜单，回车默认执行 1.planfiles，输入 q 取消
   - `ccr clean planfiles` 只处理 task_plan.md / findings.md / progress.md
-  - `ccr clean planfiles` 默认不跟随符号链接目录";
+  - `ccr clean planfiles` 默认不跟随符号链接目录
+  - `ccr clean backups` 只处理 ~/.claude/backups 下的 .bak 文件";
 
 pub fn build_cli_command() -> Command {
     Cli::command()

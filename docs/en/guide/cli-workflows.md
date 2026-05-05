@@ -47,7 +47,7 @@ Pair it with:
 
 ```bash
 ccr export -o configs.toml --no-secrets
-ccr clean --days 30 --dry-run
+ccr clean backups --days 30 --dry-run
 ```
 
 ## Workflow 4: Diagnose problems

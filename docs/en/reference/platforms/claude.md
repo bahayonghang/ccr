@@ -268,7 +268,7 @@ openrouter-claude
 ccr export -o backup-$(date +%Y%m%d).toml
 
 # Clean old backups
-ccr clean -d 30
+ccr clean backups -d 30
 
 # Update CCR regularly
 ccr update --check

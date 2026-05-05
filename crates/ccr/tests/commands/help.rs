@@ -67,8 +67,9 @@ fn help_subcommand_supports_clean_path() {
     let help_command = run_help(&["help", "clean"]);
 
     assert_eq!(help_command, direct_help);
-    assert!(help_command.contains("ccr clean --dry-run"));
+    assert!(help_command.contains("打开菜单: ccr clean"));
     assert!(help_command.contains("ccr clean planfiles --dry-run"));
+    assert!(help_command.contains("ccr clean backups --dry-run"));
 }
 
 #[test]

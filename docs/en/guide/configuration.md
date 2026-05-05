@@ -76,7 +76,7 @@ ccr disable <name> --force
 ccr validate
 ccr history --limit 20
 ccr optimize
-ccr clean --days 30 --dry-run
+ccr clean backups --days 30 --dry-run
 ```
 
 ### Import, export, and restore

@@ -319,7 +319,7 @@ ccr switch new-profile
 ccr history --platform gemini
 
 # Clean old backups when needed
-ccr clean --days 30 --dry-run
+ccr clean backups --days 30 --dry-run
 ```
 
 ### History Tracking
@@ -576,7 +576,7 @@ ccr history                 # View operation history
 
 # Backup review
 ccr history --platform gemini
-ccr clean --days 30 --dry-run
+ccr clean backups --days 30 --dry-run
 ```
 
 ## See Also

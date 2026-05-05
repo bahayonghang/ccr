@@ -62,7 +62,7 @@ pub use lifecycle::clear_command;
 pub use lifecycle::init_command;
 pub use lifecycle::optimize_command;
 pub use lifecycle::validate_command;
-pub use lifecycle::{clean_command, clean_planfiles_command};
+pub use lifecycle::{clean_backups_command, clean_menu_command, clean_planfiles_command};
 
 // 📦 Data 命令
 pub use data::export_command;

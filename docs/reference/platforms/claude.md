@@ -520,7 +520,7 @@ tags = ["free", "development", "primary"]
 ccr delete old-profile
 
 # Clean old backups (older than 7 days)
-ccr clean -d 7
+ccr clean backups -d 7
 
 # Optimize config file structure
 ccr optimize

@@ -4,6 +4,8 @@
 
 use clap::{Args, Parser, Subcommand};
 
+pub const DEFAULT_CLEAN_BACKUP_DAYS: u64 = 7;
+
 /// 🎯 Claude Code Configuration Switcher - 配置管理工具
 #[derive(Parser)]
 #[command(name = "ccr")]
@@ -242,12 +244,13 @@ pub enum Commands {
         force: bool,
     },
 
-    /// 清理备份文件或规划文件
+    /// 交互式清理备份文件或规划文件
     ///
-    /// 默认清理 ~/.claude/backups/ 目录中的旧备份文件。
-    /// 也支持 `ccr clean planfiles` 递归清理当前目录下的规划文件。
-    /// 示例: ccr clean -d 30 --dry-run
+    /// 裸 `ccr clean` 会进入交互式菜单。
+    /// 也支持显式目标 `ccr clean planfiles` 和 `ccr clean backups`。
+    /// 示例: ccr clean
     ///       ccr clean planfiles --dry-run
+    ///       ccr clean backups -d 30 --dry-run
     Clean(CleanArgs),
 
     /// 清理 CCR 写入的配置
@@ -458,10 +461,39 @@ pub struct CleanArgs {
     #[command(subcommand)]
     pub action: Option<CleanAction>,
 
-    /// 清理 N 天前的备份文件(默认: 7 天)
-    #[arg(short, long, default_value_t = 7)]
-    pub days: u64,
+    /// 兼容入口：清理 N 天前的备份文件(未指定时由交互菜单处理)
+    #[arg(short, long)]
+    pub days: Option<u64>,
 
+    /// 兼容入口：模拟运行备份清理,不实际删除
+    #[arg(long)]
+    pub dry_run: bool,
+
+    /// 兼容入口：跳过备份清理确认提示，直接清理（危险操作）
+    #[arg(short, long)]
+    pub force: bool,
+}
+
+impl CleanArgs {
+    /// 判断裸 `ccr clean` 是否使用旧备份清理兼容参数。
+    pub fn has_legacy_backup_flags(&self) -> bool {
+        self.days.is_some() || self.dry_run || self.force
+    }
+}
+
+/// 🧹 clean 子命令枚举
+#[derive(Subcommand, Debug, Clone)]
+pub enum CleanAction {
+    /// 递归清理当前目录及子目录中的规划文件
+    Planfiles(CleanPlanfilesArgs),
+
+    /// 显式清理旧备份文件
+    Backups(CleanBackupsArgs),
+}
+
+/// 🧹 clean planfiles 命令参数
+#[derive(Args, Debug, Clone, Default)]
+pub struct CleanPlanfilesArgs {
     /// 模拟运行(dry-run)：仅显示将要删除的文件,不实际删除
     #[arg(long)]
     pub dry_run: bool,
@@ -471,16 +503,13 @@ pub struct CleanArgs {
     pub force: bool,
 }
 
-/// 🧹 clean 子命令枚举
-#[derive(Subcommand, Debug, Clone)]
-pub enum CleanAction {
-    /// 递归清理当前目录及子目录中的规划文件
-    Planfiles(CleanPlanfilesArgs),
-}
+/// 🧹 clean backups 命令参数
+#[derive(Args, Debug, Clone)]
+pub struct CleanBackupsArgs {
+    /// 清理 N 天前的备份文件(默认: 7 天)
+    #[arg(short, long, default_value_t = DEFAULT_CLEAN_BACKUP_DAYS)]
+    pub days: u64,
 
-/// 🧹 clean planfiles 命令参数
-#[derive(Args, Debug, Clone, Default)]
-pub struct CleanPlanfilesArgs {
     /// 模拟运行(dry-run)：仅显示将要删除的文件,不实际删除
     #[arg(long)]
     pub dry_run: bool,
@@ -497,15 +526,32 @@ mod tests {
     use clap::Parser;
 
     #[test]
+    fn clean_without_flags_parses_as_interactive_menu() {
+        let cli = Cli::try_parse_from(["ccr", "clean"]).unwrap();
+
+        match cli.command {
+            Some(Commands::Clean(args)) => {
+                assert!(args.action.is_none());
+                assert_eq!(args.days, None);
+                assert!(!args.dry_run);
+                assert!(!args.force);
+                assert!(!args.has_legacy_backup_flags());
+            }
+            other => panic!("unexpected command: {:?}", other.map(|_| "other")),
+        }
+    }
+
+    #[test]
     fn clean_backup_flags_still_parse() {
         let cli = Cli::try_parse_from(["ccr", "clean", "--days", "30", "--dry-run"]).unwrap();
 
         match cli.command {
             Some(Commands::Clean(args)) => {
                 assert!(args.action.is_none());
-                assert_eq!(args.days, 30);
+                assert_eq!(args.days, Some(30));
                 assert!(args.dry_run);
                 assert!(!args.force);
+                assert!(args.has_legacy_backup_flags());
             }
             other => panic!("unexpected command: {:?}", other.map(|_| "other")),
         }
@@ -520,6 +566,24 @@ mod tests {
                 Some(CleanAction::Planfiles(planfiles)) => {
                     assert!(planfiles.dry_run);
                     assert!(!planfiles.force);
+                }
+                other => panic!("unexpected clean action: {:?}", other.map(|_| "other")),
+            },
+            other => panic!("unexpected command: {:?}", other.map(|_| "other")),
+        }
+    }
+
+    #[test]
+    fn clean_backups_subcommand_parses() {
+        let cli =
+            Cli::try_parse_from(["ccr", "clean", "backups", "--days", "30", "--dry-run"]).unwrap();
+
+        match cli.command {
+            Some(Commands::Clean(args)) => match args.action {
+                Some(CleanAction::Backups(backups)) => {
+                    assert_eq!(backups.days, 30);
+                    assert!(backups.dry_run);
+                    assert!(!backups.force);
                 }
                 other => panic!("unexpected clean action: {:?}", other.map(|_| "other")),
             },

@@ -3,6 +3,7 @@
 
 #![allow(clippy::unused_async)]
 
+use crate::cli::definitions::DEFAULT_CLEAN_BACKUP_DAYS;
 use crate::services::{BackupService, ConfigService};
 use ccr_core::core::error::{CcrError, Result};
 use ccr_core::core::logging::ColorOutput;
@@ -11,6 +12,41 @@ use std::path::{Path, PathBuf};
 use walkdir::WalkDir;
 
 const PLANFILES_TARGETS: [&str; 3] = ["task_plan.md", "findings.md", "progress.md"];
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum CleanTarget {
+    Planfiles,
+    Backups,
+}
+
+#[derive(Debug, Clone, Copy)]
+struct CleanTargetSpec {
+    target: CleanTarget,
+    name: &'static str,
+    description: &'static str,
+    default_selected: bool,
+}
+
+const CLEAN_TARGETS: [CleanTargetSpec; 2] = [
+    CleanTargetSpec {
+        target: CleanTarget::Planfiles,
+        name: "planfiles",
+        description: "清理 task_plan.md / findings.md / progress.md",
+        default_selected: true,
+    },
+    CleanTargetSpec {
+        target: CleanTarget::Backups,
+        name: "backups",
+        description: "清理 7 天前旧备份",
+        default_selected: false,
+    },
+];
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum CleanMenuSelection {
+    Target(CleanTarget),
+    Cancel,
+}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct PlanfileMatch {
@@ -30,6 +66,41 @@ impl PlanfilesCleanResult {
     }
 }
 
+/// 🧹 交互式清理入口
+///
+/// 裸 `ccr clean` 进入编号菜单。回车选择默认编号，`-y/--yes`
+/// 会执行默认编号并跳过目标命令的确认。
+pub async fn clean_menu_command(auto_yes: bool) -> Result<()> {
+    ColorOutput::title("交互式清理");
+    println!();
+
+    let default_index = default_clean_menu_index(&CLEAN_TARGETS);
+    render_clean_target_menu(default_index);
+
+    let (target, force_target_confirmation) = if auto_yes {
+        let spec = &CLEAN_TARGETS[default_index];
+        ColorOutput::info(&format!(
+            "⚡ 自动确认模式已启用，将执行默认清理项: {}",
+            spec.name
+        ));
+        (spec.target, true)
+    } else {
+        match prompt_clean_target_selection(default_index).await? {
+            Some(target) => (target, false),
+            None => {
+                println!();
+                ColorOutput::info("未选择任何清理项");
+                return Ok(());
+            }
+        }
+    };
+
+    println!();
+    run_clean_target(target, force_target_confirmation).await?;
+
+    Ok(())
+}
+
 /// 🧹 清理旧备份文件
 ///
 /// 执行流程:
@@ -43,7 +114,7 @@ impl PlanfilesCleanResult {
 /// - days: 保留天数(删除 N 天前的文件)
 /// - dry_run: 模拟运行(不实际删除)
 /// - force: 跳过确认提示（危险操作）
-pub async fn clean_command(days: u64, dry_run: bool, force: bool) -> Result<()> {
+pub async fn clean_backups_command(days: u64, dry_run: bool, force: bool) -> Result<()> {
     ColorOutput::title("清理备份文件");
     println!();
 
@@ -135,7 +206,7 @@ pub async fn clean_command(days: u64, dry_run: bool, force: bool) -> Result<()> 
 
     if dry_run {
         println!();
-        ColorOutput::info("提示: 运行 'ccr clean' (不带 --dry-run) 执行实际清理");
+        ColorOutput::info("提示: 运行 'ccr clean backups' (不带 --dry-run) 执行实际清理");
     }
 
     Ok(())
@@ -207,7 +278,7 @@ pub async fn clean_planfiles_command(dry_run: bool, force: bool) -> Result<()> {
         ColorOutput::info("提示: 使用 --dry-run 参数可以先预览将要删除的文件");
         println!();
 
-        if !confirm_cleanup("确认执行规划文件清理操作?").await? {
+        if !confirm_cleanup_default_yes("确认执行规划文件清理操作?").await? {
             ColorOutput::info("已取消清理操作");
             return Ok(());
         }
@@ -266,23 +337,128 @@ pub async fn clean_planfiles_command(dry_run: bool, force: bool) -> Result<()> {
     Ok(())
 }
 
+async fn run_clean_target(target: CleanTarget, force: bool) -> Result<()> {
+    match target {
+        CleanTarget::Planfiles => clean_planfiles_command(false, force).await,
+        CleanTarget::Backups => {
+            clean_backups_command(DEFAULT_CLEAN_BACKUP_DAYS, false, force).await
+        }
+    }
+}
+
+fn default_clean_menu_index(targets: &[CleanTargetSpec]) -> usize {
+    targets
+        .iter()
+        .position(|spec| spec.default_selected)
+        .unwrap_or(0)
+}
+
+fn render_clean_target_menu(default_index: usize) {
+    println!(
+        "清理内容（输入编号执行，回车 = {}，输入 q 取消）",
+        default_index + 1
+    );
+
+    for (index, spec) in CLEAN_TARGETS.iter().enumerate() {
+        println!("{}.{} - {}", index + 1, spec.name, spec.description);
+    }
+}
+
+async fn prompt_clean_target_selection(default_index: usize) -> Result<Option<CleanTarget>> {
+    loop {
+        let input =
+            read_prompt_line(format!("请选择清理内容 [默认 {}]: ", default_index + 1)).await?;
+
+        match parse_clean_menu_selection(&input, &CLEAN_TARGETS, default_index) {
+            Some(CleanMenuSelection::Target(target)) => return Ok(Some(target)),
+            Some(CleanMenuSelection::Cancel) => return Ok(None),
+            None => {
+                ColorOutput::warning(&format!(
+                    "无效编号，请输入 1-{}，或输入 q 取消",
+                    CLEAN_TARGETS.len()
+                ));
+            }
+        }
+    }
+}
+
 async fn confirm_cleanup(question: &str) -> Result<bool> {
+    confirm_cleanup_with_default(question, false).await
+}
+
+async fn confirm_cleanup_default_yes(question: &str) -> Result<bool> {
+    confirm_cleanup_with_default(question, true).await
+}
+
+async fn confirm_cleanup_with_default(question: &str, default_yes: bool) -> Result<bool> {
+    let default_hint = if default_yes { "Y/n" } else { "y/N" };
+    confirm_yes_no(format!("{question} ({default_hint}): "), default_yes).await
+}
+
+async fn confirm_yes_no(prompt: String, default_yes: bool) -> Result<bool> {
+    let input = read_prompt_line(prompt).await?;
+    Ok(parse_yes_no_answer(input.trim(), default_yes))
+}
+
+async fn read_prompt_line(prompt: String) -> Result<String> {
     tokio::task::spawn_blocking({
-        let question = question.to_string();
-        move || -> std::io::Result<bool> {
+        move || -> std::io::Result<String> {
             use std::io::{self, Write};
 
-            print!("{question} (y/N): ");
+            print!("{prompt}");
             io::stdout().flush()?;
 
             let mut input = String::new();
             io::stdin().read_line(&mut input)?;
-            Ok(input.trim().eq_ignore_ascii_case("y"))
+            Ok(input)
         }
     })
     .await
     .map_err(|e| CcrError::FileIoError(format!("读取确认输入失败: {}", e)))?
     .map_err(|e| CcrError::FileIoError(format!("读取确认输入失败: {}", e)))
+}
+
+fn parse_clean_menu_selection(
+    input: &str,
+    targets: &[CleanTargetSpec],
+    default_index: usize,
+) -> Option<CleanMenuSelection> {
+    let trimmed = input.trim();
+    if trimmed.is_empty() {
+        return targets
+            .get(default_index)
+            .map(|spec| CleanMenuSelection::Target(spec.target));
+    }
+
+    if trimmed.eq_ignore_ascii_case("q")
+        || trimmed.eq_ignore_ascii_case("quit")
+        || trimmed.eq_ignore_ascii_case("cancel")
+        || trimmed == "0"
+    {
+        return Some(CleanMenuSelection::Cancel);
+    }
+
+    let selected_number = trimmed.parse::<usize>().ok()?;
+    let selected_index = selected_number.checked_sub(1)?;
+    targets
+        .get(selected_index)
+        .map(|spec| CleanMenuSelection::Target(spec.target))
+}
+
+fn parse_yes_no_answer(input: &str, default_yes: bool) -> bool {
+    if input.is_empty() {
+        return default_yes;
+    }
+
+    if input.eq_ignore_ascii_case("y") || input.eq_ignore_ascii_case("yes") {
+        return true;
+    }
+
+    if input.eq_ignore_ascii_case("n") || input.eq_ignore_ascii_case("no") {
+        return false;
+    }
+
+    false
 }
 
 fn scan_planfiles(root: &Path) -> Result<PlanfilesCleanResult> {
@@ -402,6 +578,70 @@ mod tests {
                 .display()
                 .to_string()
         );
+    }
+
+    #[test]
+    fn yes_no_prompt_defaults_to_yes_for_empty_input() {
+        assert!(parse_yes_no_answer("", true));
+        assert!(!parse_yes_no_answer("", false));
+        assert!(parse_yes_no_answer("yes", false));
+        assert!(!parse_yes_no_answer("n", true));
+    }
+
+    #[test]
+    fn clean_menu_selection_defaults_to_planfiles() {
+        let default_index = default_clean_menu_index(&CLEAN_TARGETS);
+
+        assert_eq!(
+            parse_clean_menu_selection("", &CLEAN_TARGETS, default_index),
+            Some(CleanMenuSelection::Target(CleanTarget::Planfiles))
+        );
+    }
+
+    #[test]
+    fn clean_menu_selection_parses_registered_target_numbers() {
+        let default_index = default_clean_menu_index(&CLEAN_TARGETS);
+
+        assert_eq!(
+            parse_clean_menu_selection("2", &CLEAN_TARGETS, default_index),
+            Some(CleanMenuSelection::Target(CleanTarget::Backups))
+        );
+    }
+
+    #[test]
+    fn clean_menu_selection_accepts_cancel_inputs() {
+        let default_index = default_clean_menu_index(&CLEAN_TARGETS);
+
+        assert_eq!(
+            parse_clean_menu_selection("q", &CLEAN_TARGETS, default_index),
+            Some(CleanMenuSelection::Cancel)
+        );
+        assert_eq!(
+            parse_clean_menu_selection("0", &CLEAN_TARGETS, default_index),
+            Some(CleanMenuSelection::Cancel)
+        );
+    }
+
+    #[test]
+    fn clean_menu_selection_rejects_unknown_numbers() {
+        let default_index = default_clean_menu_index(&CLEAN_TARGETS);
+
+        assert_eq!(
+            parse_clean_menu_selection("3", &CLEAN_TARGETS, default_index),
+            None
+        );
+    }
+
+    #[test]
+    fn clean_targets_register_planfiles_and_backups_with_planfiles_default() {
+        assert_eq!(
+            CLEAN_TARGETS
+                .iter()
+                .map(|spec| spec.name)
+                .collect::<Vec<_>>(),
+            vec!["planfiles", "backups"]
+        );
+        assert_eq!(default_clean_menu_index(&CLEAN_TARGETS), 0);
     }
 
     #[test]

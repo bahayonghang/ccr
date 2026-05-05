@@ -3,7 +3,7 @@
 // 将 CLI 命令路由到对应的处理函数
 
 use crate::cli::subcommands::{AllSyncAction, FolderAction};
-use crate::cli::{CleanAction, Cli, Commands};
+use crate::cli::{CleanAction, Cli, Commands, DEFAULT_CLEAN_BACKUP_DAYS};
 use crate::help;
 use ccr_core::core::error::CcrError;
 use std::result::Result;
@@ -81,9 +81,25 @@ impl CommandDispatcher {
                     )
                     .await
                 }
+                Some(CleanAction::Backups(backups_args)) => {
+                    crate::commands::clean_backups_command(
+                        backups_args.days,
+                        backups_args.dry_run,
+                        auto_yes || backups_args.force,
+                    )
+                    .await
+                }
                 None => {
-                    crate::commands::clean_command(args.days, args.dry_run, auto_yes || args.force)
+                    if args.has_legacy_backup_flags() {
+                        crate::commands::clean_backups_command(
+                            args.days.unwrap_or(DEFAULT_CLEAN_BACKUP_DAYS),
+                            args.dry_run,
+                            auto_yes || args.force,
+                        )
                         .await
+                    } else {
+                        crate::commands::clean_menu_command(auto_yes).await
+                    }
                 }
             },
             Some(Commands::Clear { force }) => {
