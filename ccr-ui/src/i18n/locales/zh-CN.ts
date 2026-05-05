@@ -592,6 +592,13 @@ export default {
     accountPlaceholder: '例如：work-account',
     accountHelper: '建议填写可识别的账号或环境名，避免切换时混淆。',
     authTokenLabel: 'Auth Token',
+    authTokenActions: {
+      show: '显示 Auth Token',
+      hide: '隐藏 Auth Token',
+      copy: '复制 Auth Token',
+    },
+    authTokenCopied: 'Auth Token 已复制',
+    authTokenCopyFailed: '复制 Auth Token 失败',
     authTokenPlaceholder: '留空表示不修改',
     authTokenHelper: '敏感信息会以密码字段呈现；仅在需要覆盖当前值时修改。',
     tagsLabel: '标签（逗号分隔）',

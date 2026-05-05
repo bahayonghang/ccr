@@ -567,6 +567,13 @@ export default {
     authTokenLabel: 'Auth Token',
     authTokenPlaceholder: 'Leave blank to keep unchanged',
     authTokenHelper: 'Sensitive values stay in a password field; only change this when you intend to replace the current token.',
+    authTokenActions: {
+      show: 'Show Auth Token',
+      hide: 'Hide Auth Token',
+      copy: 'Copy Auth Token',
+    },
+    authTokenCopied: 'Auth Token copied',
+    authTokenCopyFailed: 'Failed to copy Auth Token',
     tagsLabel: 'Tags (comma-separated)',
     tagsPlaceholder: 'e.g. work, production',
     tagsHelper: 'Separate multiple tags with commas so the row stays easy to scan.',

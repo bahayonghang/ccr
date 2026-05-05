@@ -1213,8 +1213,35 @@ onBeforeUnmount(() => {
   color: var(--editor-ink);
 }
 
+.claude-profile-editor-modal .editor-icon-button {
+  display: inline-flex;
+  height: 36px;
+  width: 36px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--editor-hairline-soft);
+  border-radius: 14px;
+  background: rgb(var(--color-bg-elevated-rgb) / 56%);
+  color: var(--editor-ink-muted);
+  transition: background-color 180ms ease, border-color 180ms ease, color 180ms ease, transform 180ms ease;
+}
+
+.claude-profile-editor-modal .editor-icon-button:hover {
+  border-color: var(--editor-hairline);
+  background: rgb(var(--color-bg-elevated-rgb) / 78%);
+  color: var(--editor-ink);
+  transform: translateY(-1px);
+}
+
+.claude-profile-editor-modal .editor-icon-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+  transform: none;
+}
+
 .claude-profile-editor-modal .editor-close-button:focus-visible,
 .claude-profile-editor-modal .editor-button:focus-visible,
+.claude-profile-editor-modal .editor-icon-button:focus-visible,
 .claude-profile-editor-modal .editor-input:focus-visible,
 .claude-profile-editor-modal .editor-nav-button:focus-visible {
   outline: 2px solid rgb(var(--color-accent-primary-rgb) / 50%);

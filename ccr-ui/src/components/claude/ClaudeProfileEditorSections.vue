@@ -285,14 +285,46 @@
           >
             {{ $t('claudeProfiles.authTokenLabel') }}
           </label>
-          <input
-            id="claude-profile-auth-token"
-            :value="form.auth_token"
-            type="password"
-            :placeholder="$t('claudeProfiles.authTokenPlaceholder')"
-            :class="monospaceFieldClass"
-            @input="updateTextField('auth_token', $event)"
-          >
+          <div class="relative">
+            <input
+              id="claude-profile-auth-token"
+              :value="form.auth_token"
+              data-testid="claude-auth-token-input"
+              :type="showAuthToken ? 'text' : 'password'"
+              :placeholder="$t('claudeProfiles.authTokenPlaceholder')"
+              :class="[monospaceFieldClass, 'pr-24']"
+              @input="updateTextField('auth_token', $event)"
+            >
+            <div class="absolute right-3 top-1/2 flex -translate-y-1/2 items-center gap-1">
+              <button
+                type="button"
+                data-testid="claude-auth-token-visibility"
+                class="editor-icon-button"
+                :aria-label="showAuthToken ? $t('claudeProfiles.authTokenActions.hide') : $t('claudeProfiles.authTokenActions.show')"
+                :title="showAuthToken ? $t('claudeProfiles.authTokenActions.hide') : $t('claudeProfiles.authTokenActions.show')"
+                @click="showAuthToken = !showAuthToken"
+              >
+                <SIcon
+                  :name="showAuthToken ? 'EyeOff' : 'Eye'"
+                  size="w-4 h-4"
+                />
+              </button>
+              <button
+                type="button"
+                data-testid="claude-auth-token-copy"
+                class="editor-icon-button"
+                :aria-label="$t('claudeProfiles.authTokenActions.copy')"
+                :disabled="!form.auth_token.trim()"
+                :title="$t('claudeProfiles.authTokenActions.copy')"
+                @click="copyAuthToken"
+              >
+                <SIcon
+                  name="Copy"
+                  size="w-4 h-4"
+                />
+              </button>
+            </div>
+          </div>
           <p class="mt-1.5 text-xs text-text-muted">
             {{ $t('claudeProfiles.authTokenHelper') }}
           </p>
@@ -384,8 +416,12 @@
 
 <script setup lang="ts">
 import type { ComponentPublicInstance } from 'vue'
+import { ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import SIcon from '@/components/ui/SIcon.vue'
+import { useUIStore } from '@/stores/ui'
 import type { ClaudeProfileEditorForm, ClaudeProfileFormSectionId } from '@/types/claudeProfileEditor'
+import { copyToClipboard } from '@/utils/codexHelpers'
 
 const props = defineProps<{
   editingName: string
@@ -400,6 +436,10 @@ const props = defineProps<{
   updateFormField: (field: keyof ClaudeProfileEditorForm, value: string | boolean) => void
 }>()
 
+const { t } = useI18n()
+const uiStore = useUIStore()
+const showAuthToken = ref(false)
+
 function updateTextField(field: keyof ClaudeProfileEditorForm, event: Event) {
   props.updateFormField(field, (event.target as HTMLInputElement).value)
 }
@@ -411,4 +451,20 @@ function updateTextAreaField(field: keyof ClaudeProfileEditorForm, event: Event)
 function updateCheckboxField(field: keyof ClaudeProfileEditorForm, event: Event) {
   props.updateFormField(field, (event.target as HTMLInputElement).checked)
 }
+
+async function copyAuthToken() {
+  const token = props.form.auth_token.trim()
+  if (!token) return
+
+  const ok = await copyToClipboard(token)
+  if (ok) {
+    uiStore.showSuccess(t('claudeProfiles.authTokenCopied'))
+  } else {
+    uiStore.showError(t('claudeProfiles.authTokenCopyFailed'))
+  }
+}
+
+watch(() => props.editingName, () => {
+  showAuthToken.value = false
+})
 </script>
