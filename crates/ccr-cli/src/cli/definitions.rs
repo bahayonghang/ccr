@@ -100,13 +100,13 @@ pub enum Commands {
     #[command(alias = "ls")]
     List,
 
-    /// 显示当前激活的配置状态
+    /// 显示当前 Claude/Codex 运行状态总览
     ///
-    /// 查看当前正在使用的配置方案详情,包括所有环境变量设置
+    /// 默认显示 Claude 与 Codex 双平台摘要；使用 --verbose 查看诊断详情
     /// 别名: status, show (推荐使用 ccr status)
     #[command(alias = "status")]
     #[command(alias = "show")]
-    Current,
+    Current(CurrentArgs),
 
     /// 切换到指定的配置方案
     ///
@@ -474,6 +474,18 @@ pub struct CleanArgs {
     pub force: bool,
 }
 
+/// 当前状态命令参数
+#[derive(Args, Debug, Clone, Default)]
+pub struct CurrentArgs {
+    /// 显示旧版诊断详情，包括路径、完整 profile 字段和环境变量状态
+    #[arg(long)]
+    pub verbose: bool,
+
+    /// 以 JSON 输出 Claude/Codex 双平台结构化摘要
+    #[arg(long, conflicts_with = "verbose")]
+    pub json: bool,
+}
+
 impl CleanArgs {
     /// 判断裸 `ccr clean` 是否使用旧备份清理兼容参数。
     pub fn has_legacy_backup_flags(&self) -> bool {
@@ -599,6 +611,45 @@ mod tests {
         match cli.command {
             Some(Commands::Clean(args)) => {
                 assert!(matches!(args.action, Some(CleanAction::Planfiles(_))));
+            }
+            other => panic!("unexpected command: {:?}", other.map(|_| "other")),
+        }
+    }
+
+    #[test]
+    fn current_status_verbose_alias_parses() {
+        let cli = Cli::try_parse_from(["ccr", "status", "--verbose"]).unwrap();
+
+        match cli.command {
+            Some(Commands::Current(args)) => {
+                assert!(args.verbose);
+                assert!(!args.json);
+            }
+            other => panic!("unexpected command: {:?}", other.map(|_| "other")),
+        }
+    }
+
+    #[test]
+    fn current_json_parses() {
+        let cli = Cli::try_parse_from(["ccr", "current", "--json"]).unwrap();
+
+        match cli.command {
+            Some(Commands::Current(args)) => {
+                assert!(!args.verbose);
+                assert!(args.json);
+            }
+            other => panic!("unexpected command: {:?}", other.map(|_| "other")),
+        }
+    }
+
+    #[test]
+    fn show_verbose_alias_parses() {
+        let cli = Cli::try_parse_from(["ccr", "show", "--verbose"]).unwrap();
+
+        match cli.command {
+            Some(Commands::Current(args)) => {
+                assert!(args.verbose);
+                assert!(!args.json);
             }
             other => panic!("unexpected command: {:?}", other.map(|_| "other")),
         }

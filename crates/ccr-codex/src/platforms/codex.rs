@@ -765,9 +765,9 @@ impl CodexPlatform {
         let disable_response_storage = Self::platform_bool(profile, "disable_response_storage");
         let explicit_credential_store = Self::resolve_credential_store_override(profile)?;
         let auth_mode = Self::resolve_profile_auth_mode(profile);
-        let (route, auto_promote_api_key) = if Self::is_official_profile(profile) {
+        let (route, effective_auth_mode) = if Self::is_official_profile(profile) {
             let relay_base_url = Self::trimmed(profile.base_url.as_ref());
-            (RouteSelection::Official { relay_base_url }, false)
+            (RouteSelection::Official { relay_base_url }, auth_mode)
         } else {
             let base_url = Self::trimmed(profile.base_url.as_ref()).ok_or_else(|| {
                 CcrError::ValidationError("Codex profile 缺少 base_url (api_endpoint)".into())
@@ -776,15 +776,19 @@ impl CodexPlatform {
             let mut requires_openai_auth = Self::resolve_requires_openai_auth(profile);
             let env_key = Self::platform_string(profile, "env_key");
 
-            // 自动修正：第三方 profile 配置了 auth_token 但没有任何令牌传递路径
-            // (requires_openai_auth=false 且无 env_key)，自动启用 requires_openai_auth
-            // 确保令牌通过 auth.json OPENAI_API_KEY 传递给 Codex CLI
-            let auto_promote = auth_token.is_some()
+            // 向后兼容：第三方 profile 配置了 auth_token 但未显式声明传递方式时，
+            // resolve_profile_auth_mode 会把它解释为 OpenAI API key 模式。这里同步
+            // 路由层的 requires_openai_auth，确保 status/switch/validate 使用同一语义。
+            let auto_promote_api_key = auth_token.is_some()
                 && !requires_openai_auth
                 && env_key.is_none()
                 && matches!(auth_mode, CodexProfileAuthMode::NoAuth);
-            if auto_promote {
-                tracing::info!(
+            if auto_promote_api_key
+                || (matches!(auth_mode, CodexProfileAuthMode::OpenAiApiKey)
+                    && !requires_openai_auth
+                    && env_key.is_none())
+            {
+                tracing::debug!(
                     "第三方 profile 配置了 auth_token 但未指定传递方式，自动启用 requires_openai_auth"
                 );
                 requires_openai_auth = true;
@@ -798,16 +802,12 @@ impl CodexPlatform {
                     requires_openai_auth,
                     env_key,
                 },
-                auto_promote,
+                if auto_promote_api_key {
+                    CodexProfileAuthMode::OpenAiApiKey
+                } else {
+                    auth_mode
+                },
             )
-        };
-
-        // 若自动启用了 requires_openai_auth，同步提升 auth_mode 为 OpenAiApiKey
-        // 使 resolve_auth_selection 将 auth_token 写入 auth.json 而非忽略
-        let effective_auth_mode = if auto_promote_api_key {
-            CodexProfileAuthMode::OpenAiApiKey
-        } else {
-            auth_mode
         };
 
         let auth =

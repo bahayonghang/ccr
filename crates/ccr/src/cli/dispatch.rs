@@ -24,7 +24,9 @@ impl CommandDispatcher {
         match &cli.command {
             // 简单命令（无参数）
             Some(Commands::List) => crate::commands::list_command().await,
-            Some(Commands::Current) => crate::commands::current_command().await,
+            Some(Commands::Current(args)) => {
+                crate::commands::current_command(args.verbose, args.json).await
+            }
             Some(Commands::Add) => crate::commands::add_command().await,
             Some(Commands::Validate) => crate::commands::validate_command().await,
             Some(Commands::Optimize) => crate::commands::optimize_command().await,
@@ -170,7 +172,7 @@ impl CommandDispatcher {
             }
             #[cfg(not(feature = "tui"))]
             {
-                crate::commands::current_command().await
+                crate::commands::current_command(false, false).await
             }
         }
     }
