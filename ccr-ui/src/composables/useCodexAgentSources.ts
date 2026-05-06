@@ -57,13 +57,32 @@ export function useCodexAgentSources() {
     }
   }
 
+  async function refreshSelectedSourceLifecycle(options: {
+    sourceId?: string | null
+    sync?: boolean
+    reloadSources?: boolean
+  } = {}) {
+    const sourceId = options.sourceId ?? selectedSourceId.value
+    if (!sourceId) {
+      catalog.value = null
+      return
+    }
+
+    if (options.sync) {
+      await syncCodexAgentSource(sourceId)
+    }
+    if (options.reloadSources ?? true) {
+      await refreshSources()
+    }
+    await loadCatalog(sourceId)
+  }
+
   async function addSource(url: string) {
     mutating.value = true
     try {
       const source = await addCodexAgentSource<CodexAgentSourceRecord>(url)
-      await refreshSources()
       selectedSourceId.value = source.id
-      await loadCatalog(source.id)
+      await refreshSelectedSourceLifecycle({ sourceId: source.id })
     } finally {
       mutating.value = false
     }
@@ -78,9 +97,7 @@ export function useCodexAgentSources() {
         catalog.value = null
       }
       await refreshSources()
-      if (selectedSourceId.value) {
-        await loadCatalog(selectedSourceId.value)
-      }
+      await refreshSelectedSourceLifecycle({ reloadSources: false })
     } finally {
       mutating.value = false
     }
@@ -89,9 +106,7 @@ export function useCodexAgentSources() {
   async function syncSource(sourceId: string) {
     mutating.value = true
     try {
-      await syncCodexAgentSource(sourceId)
-      await refreshSources()
-      await loadCatalog(sourceId)
+      await refreshSelectedSourceLifecycle({ sourceId, sync: true })
     } finally {
       mutating.value = false
     }
@@ -117,11 +132,7 @@ export function useCodexAgentSources() {
     mutating.value = true
     try {
       const result = await syncCodexSourceInstall(installId)
-      if (selectedSourceId.value) {
-        await syncCodexAgentSource(selectedSourceId.value)
-        await refreshSources()
-        await loadCatalog(selectedSourceId.value)
-      }
+      await refreshSelectedSourceLifecycle({ sync: true })
       return result
     } finally {
       mutating.value = false
@@ -132,11 +143,7 @@ export function useCodexAgentSources() {
     mutating.value = true
     try {
       const result = await forceSyncCodexSourceInstall(installId)
-      if (selectedSourceId.value) {
-        await syncCodexAgentSource(selectedSourceId.value)
-        await refreshSources()
-        await loadCatalog(selectedSourceId.value)
-      }
+      await refreshSelectedSourceLifecycle({ sync: true })
       return result
     } finally {
       mutating.value = false
@@ -147,9 +154,7 @@ export function useCodexAgentSources() {
     mutating.value = true
     try {
       const result = await acceptLocalCodexSourceInstall(installId)
-      if (selectedSourceId.value) {
-        await loadCatalog(selectedSourceId.value)
-      }
+      await refreshSelectedSourceLifecycle({ reloadSources: false })
       return result
     } finally {
       mutating.value = false
@@ -160,9 +165,7 @@ export function useCodexAgentSources() {
     mutating.value = true
     try {
       const result = await untrackCodexSourceInstall(installId)
-      if (selectedSourceId.value) {
-        await loadCatalog(selectedSourceId.value)
-      }
+      await refreshSelectedSourceLifecycle({ reloadSources: false })
       return result
     } finally {
       mutating.value = false
