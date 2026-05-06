@@ -1,5 +1,7 @@
 use super::*;
-use std::path::Path;
+use crate::commands::profile_lifecycle::{
+    profiles_export_payload_from_path, resolve_profile_target_name,
+};
 
 /// 列出 CCR Codex profiles（~/.ccr/platforms/codex/profiles.toml）
 #[tauri::command]
@@ -100,21 +102,6 @@ pub async fn codex_add_profile(
 }
 
 /// 更新 Codex profile（核心字段覆盖 + extra/platform_data 整体替换）
-fn resolve_codex_profile_target_name(name: &str, config: &Value) -> Result<String, String> {
-    let Some(raw) = config.get("name") else {
-        return Ok(name.to_string());
-    };
-
-    let target = raw
-        .as_str()
-        .ok_or_else(|| "Codex Profile 名称必须是字符串".to_string())?
-        .trim();
-    if target.is_empty() {
-        return Err("Codex Profile 名称不能为空".to_string());
-    }
-
-    Ok(target.to_string())
-}
 
 fn update_codex_profile_payload(name: String, config: Value) -> Result<Value, String> {
     let platform = CodexPlatform::new().map_err(|e| format!("初始化 Codex 平台失败: {e}"))?;
@@ -128,7 +115,7 @@ fn update_codex_profile_payload(name: String, config: Value) -> Result<Value, St
         .get(&name)
         .cloned()
         .ok_or_else(|| format!("Codex Profile '{name}' 不存在"))?;
-    let target_name = resolve_codex_profile_target_name(&name, &config)?;
+    let target_name = resolve_profile_target_name("Codex", &name, &config)?;
 
     if target_name != name && profiles.contains_key(&target_name) {
         return Err(format!("Codex Profile '{target_name}' 已存在"));
@@ -212,30 +199,11 @@ pub async fn codex_apply_profile(
 }
 
 /// 获取 Codex profile 导出的环境变量与 shell 脚本
-fn codex_profiles_export_payload_from_path(
-    profiles_file: &Path,
-    filename_prefix: &str,
-    include_secrets: bool,
-) -> Result<Value, String> {
-    if !include_secrets {
-        return Err("Redacted profiles export is not supported".to_string());
-    }
-
-    let content = fs::read_to_string(profiles_file)
-        .map_err(|e| format!("Failed to read profiles.toml: {e}"))?;
-    let timestamp = chrono::Local::now().format("%Y%m%d-%H%M%S");
-    let filename = format!("{filename_prefix}-{timestamp}.toml");
-
-    Ok(json!({
-        "content": content,
-        "filename": filename,
-    }))
-}
 
 fn codex_profiles_export_payload(include_secrets: bool) -> Result<Value, String> {
     let paths = PlatformPaths::new(Platform::Codex)
         .map_err(|e| format!("Failed to resolve Codex Profiles path: {e}"))?;
-    codex_profiles_export_payload_from_path(
+    profiles_export_payload_from_path(
         &paths.profiles_file,
         "ccr-codex-profiles",
         include_secrets,
@@ -262,7 +230,7 @@ mod export_tests {
         fs::write(&profiles_file, content).unwrap();
 
         let payload =
-            codex_profiles_export_payload_from_path(&profiles_file, "ccr-codex-profiles", true)
+            profiles_export_payload_from_path(&profiles_file, "ccr-codex-profiles", true)
                 .unwrap();
         let filename = payload["filename"].as_str().unwrap();
 
@@ -277,7 +245,7 @@ mod export_tests {
         let profiles_file = temp_dir.path().join("missing.toml");
 
         let error =
-            codex_profiles_export_payload_from_path(&profiles_file, "ccr-codex-profiles", true)
+            profiles_export_payload_from_path(&profiles_file, "ccr-codex-profiles", true)
                 .unwrap_err();
 
         assert!(error.contains("Failed to read profiles.toml"));
@@ -290,7 +258,7 @@ mod export_tests {
         fs::write(&profiles_file, "[profiles.demo]\n").unwrap();
 
         let error =
-            codex_profiles_export_payload_from_path(&profiles_file, "ccr-codex-profiles", false)
+            profiles_export_payload_from_path(&profiles_file, "ccr-codex-profiles", false)
                 .unwrap_err();
 
         assert_eq!(error, "Redacted profiles export is not supported");
@@ -303,6 +271,7 @@ mod update_tests {
     use super::*;
     use ccr_config::{PlatformConfig, get_current_profile_from_registry, load_profiles_from_toml};
     use serde_json::json;
+    use std::path::Path;
     use std::sync::{LazyLock, Mutex};
 
     static ENV_LOCK: LazyLock<Mutex<()>> = LazyLock::new(|| Mutex::new(()));

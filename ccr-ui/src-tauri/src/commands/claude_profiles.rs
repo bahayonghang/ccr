@@ -1,5 +1,7 @@
 use super::*;
-use std::path::Path;
+use crate::commands::profile_lifecycle::{
+    profiles_export_payload_from_path, resolve_profile_target_name,
+};
 
 /// 列出所有 Claude Code Profiles（~/.ccr/platforms/claude/profiles.toml）。
 #[tauri::command]
@@ -97,13 +99,7 @@ pub async fn claude_update_profile(name: String, request: Value) -> Result<Value
             .cloned()
             .ok_or_else(|| format!("Claude Profile '{name}' 不存在"))?;
 
-        let target_name = request
-            .get("name")
-            .and_then(|v| v.as_str())
-            .map(str::trim)
-            .filter(|v| !v.is_empty())
-            .unwrap_or(name.as_str())
-            .to_string();
+        let target_name = resolve_profile_target_name("Claude", &name, &request)?;
         if target_name != name && profiles.contains_key(&target_name) {
             return Err(format!("Claude Profile '{target_name}' 已存在"));
         }
@@ -156,30 +152,11 @@ pub async fn claude_delete_profile(name: String) -> Result<Value, String> {
 }
 
 /// 应用 Profile。
-fn claude_profiles_export_payload_from_path(
-    profiles_file: &Path,
-    filename_prefix: &str,
-    include_secrets: bool,
-) -> Result<Value, String> {
-    if !include_secrets {
-        return Err("Redacted profiles export is not supported".to_string());
-    }
-
-    let content = fs::read_to_string(profiles_file)
-        .map_err(|e| format!("Failed to read profiles.toml: {e}"))?;
-    let timestamp = chrono::Local::now().format("%Y%m%d-%H%M%S");
-    let filename = format!("{filename_prefix}-{timestamp}.toml");
-
-    Ok(json!({
-        "content": content,
-        "filename": filename,
-    }))
-}
 
 fn claude_profiles_export_payload(include_secrets: bool) -> Result<Value, String> {
     let paths = PlatformPaths::new(Platform::Claude)
         .map_err(|e| format!("Failed to resolve Claude Profiles path: {e}"))?;
-    claude_profiles_export_payload_from_path(
+    profiles_export_payload_from_path(
         &paths.profiles_file,
         "ccr-claude-profiles",
         include_secrets,
@@ -205,7 +182,7 @@ mod export_tests {
         fs::write(&profiles_file, content).unwrap();
 
         let payload =
-            claude_profiles_export_payload_from_path(&profiles_file, "ccr-claude-profiles", true)
+            profiles_export_payload_from_path(&profiles_file, "ccr-claude-profiles", true)
                 .unwrap();
         let filename = payload["filename"].as_str().unwrap();
 
@@ -220,7 +197,7 @@ mod export_tests {
         let profiles_file = temp_dir.path().join("missing.toml");
 
         let error =
-            claude_profiles_export_payload_from_path(&profiles_file, "ccr-claude-profiles", true)
+            profiles_export_payload_from_path(&profiles_file, "ccr-claude-profiles", true)
                 .unwrap_err();
 
         assert!(error.contains("Failed to read profiles.toml"));
@@ -233,7 +210,7 @@ mod export_tests {
         fs::write(&profiles_file, "[profiles.demo]\n").unwrap();
 
         let error =
-            claude_profiles_export_payload_from_path(&profiles_file, "ccr-claude-profiles", false)
+            profiles_export_payload_from_path(&profiles_file, "ccr-claude-profiles", false)
                 .unwrap_err();
 
         assert_eq!(error, "Redacted profiles export is not supported");

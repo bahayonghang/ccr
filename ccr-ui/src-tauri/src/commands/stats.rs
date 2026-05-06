@@ -4,21 +4,18 @@
 //! TTL 30 秒，避免每次前端访问都触发 JSONL 全量扫描。真正的 SQL 聚合归档查询
 //! 留给后续 Phase 2b（usage_db_pool + usage_repo 聚合 SQL）。
 
-use std::{
-    collections::{HashMap, HashSet},
-    future::Future,
-};
+use std::collections::{HashMap, HashSet};
 
-use ccr_store::CostTracker;
 use chrono::{Duration, Utc};
 use tauri::State;
 
-use crate::state::{AppState, CacheFillRegistration};
+use crate::{
+    state::AppState,
+    stats_snapshot::{create_cost_tracker, normalize_usage_platform, run_cached_stats_command},
+};
 
 /// 默认 stats 缓存 TTL（秒）。30s 可以吸收一次页面内的连续刷新抖动，
 /// 同时保证数据不至于严重滞后。
-const STATS_CACHE_TTL_SECS: u64 = 30;
-
 /// 平台每日统计累加器 (内部使用)
 #[derive(Default)]
 struct PlatformAccum {
@@ -29,65 +26,6 @@ struct PlatformAccum {
     duration_ms: u64,
 }
 
-/// 归一化平台名称为前端期望的三种之一: claude / codex / gemini
-fn normalize_platform(raw: &str) -> &'static str {
-    match raw.to_lowercase().as_str() {
-        "claude" | "claude-code" | "claude code" => "claude",
-        "codex" | "openai-codex" | "openai codex" => "codex",
-        "gemini" | "google-gemini" | "google gemini" => "gemini",
-        _ => "claude", // 未知平台默认归入 claude
-    }
-}
-
-/// 统一创建 CostTracker，避免每个 compute 函数重复展开同一段样板代码。
-fn create_cost_tracker() -> Result<CostTracker, String> {
-    let storage_dir =
-        CostTracker::default_storage_dir().map_err(|e| format!("Failed to get stats dir: {e}"))?;
-    CostTracker::new(storage_dir).map_err(|e| format!("Failed to create cost tracker: {e}"))
-}
-
-/// 统一封装 stats singleflight 缓存。
-async fn run_cached_stats_command<F, Fut>(
-    state: &AppState,
-    cache_key: String,
-    compute: F,
-) -> Result<serde_json::Value, String>
-where
-    F: Fn() -> Fut,
-    Fut: Future<Output = Result<serde_json::Value, String>>,
-{
-    if let Some(cached) = state.cache_get(&cache_key).await {
-        tracing::debug!(cache_key = %cache_key, "stats cache hit");
-        return Ok(cached);
-    }
-
-    match state.begin_cache_fill(&cache_key).await {
-        CacheFillRegistration::Wait(notify) => {
-            tracing::debug!(cache_key = %cache_key, "stats cache wait");
-            notify.notified().await;
-            if let Some(cached) = state.cache_get(&cache_key).await {
-                tracing::debug!(cache_key = %cache_key, "stats cache hit after wait");
-                return Ok(cached);
-            }
-            tracing::debug!(cache_key = %cache_key, "stats cache fallback compute");
-            compute().await
-        }
-        CacheFillRegistration::Leader => match compute().await {
-            Ok(payload) => {
-                state
-                    .cache_set(cache_key.clone(), payload.clone(), STATS_CACHE_TTL_SECS)
-                    .await;
-                state.finish_cache_fill(&cache_key).await;
-                tracing::debug!(cache_key = %cache_key, "stats cache fill complete");
-                Ok(payload)
-            }
-            Err(err) => {
-                state.finish_cache_fill(&cache_key).await;
-                Err(err)
-            }
-        },
-    }
-}
 
 /// 计算费用概览（compute 函数，供 cached 命令与 Wait 降级路径共用）。
 ///
@@ -358,7 +296,7 @@ async fn compute_daily_stats(days: usize) -> Result<serde_json::Value, String> {
                 .as_deref()
                 .filter(|p| !p.is_empty())
                 .unwrap_or("claude");
-            let platform = normalize_platform(raw_platform).to_string();
+            let platform = normalize_usage_platform(raw_platform).to_string();
 
             let day_entry = daily_platform.entry(date).or_default();
             let plat_entry = day_entry.entry(platform).or_default();

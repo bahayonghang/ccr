@@ -11,6 +11,7 @@ mod process;
 mod session_index_jobs;
 mod ssh;
 mod state;
+mod stats_snapshot;
 mod usage_jobs;
 
 use std::sync::Arc;

@@ -14,6 +14,7 @@ pub mod gemini;
 pub mod mcp_presets;
 pub mod opencode;
 pub mod pricing;
+pub mod profile_lifecycle;
 pub mod shell;
 pub mod ssh;
 pub mod stats;
