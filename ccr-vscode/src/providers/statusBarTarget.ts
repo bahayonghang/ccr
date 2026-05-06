@@ -1,7 +1,11 @@
 import type { PlatformInfo } from "../models/types";
+import {
+  STATUS_BAR_PLATFORM_NAMES,
+  type PlatformCapabilityId,
+} from "../models/platformCapabilities";
 
 export type StatusBarMode = "pinned" | "current" | "hidden";
-export type StatusBarPlatformName = "claude" | "codex";
+export type StatusBarPlatformName = Extract<PlatformCapabilityId, "claude" | "codex">;
 
 export interface StatusBarTargetInput {
   platforms: PlatformInfo[];
@@ -19,7 +23,7 @@ export interface StatusBarTargetResult {
   warning?: string;
 }
 
-const SUPPORTED_STATUS_BAR_PLATFORMS: StatusBarPlatformName[] = ["claude", "codex"];
+const SUPPORTED_STATUS_BAR_PLATFORMS = STATUS_BAR_PLATFORM_NAMES as readonly StatusBarPlatformName[];
 
 export function normalizeStatusBarMode(mode: string | undefined): StatusBarMode {
   switch (mode) {

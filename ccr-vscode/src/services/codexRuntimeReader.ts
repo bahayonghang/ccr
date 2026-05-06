@@ -632,6 +632,37 @@ async function loadLocalFallbackSnapshot(
   );
 }
 
+async function loadCliJsonSnapshot(
+  binaryPath: string | undefined,
+): Promise<{ snapshot: CodexRuntimeSnapshot | null; fallbackWarning?: string }> {
+  const result = await execCodexAuthCurrentJson<RawCodexRuntimeSnapshot>();
+  if (result.success && result.data) {
+    return { snapshot: normalizeSnapshot(result.data, binaryPath) };
+  }
+
+  return {
+    snapshot: null,
+    fallbackWarning: result.stderr || "CLI JSON runtime probe failed; using local fallback.",
+  };
+}
+
+async function loadRuntimeSnapshotFromCapabilities(): Promise<CodexRuntimeSnapshot> {
+  const capabilities = await detectCcrCapabilities();
+
+  if (!capabilities.supportsCodexAuthCurrentJson) {
+    return loadLocalFallbackSnapshot(capabilities.binaryPath);
+  }
+
+  const cliResult = await loadCliJsonSnapshot(capabilities.binaryPath);
+  if (cliResult.snapshot) {
+    return cliResult.snapshot;
+  }
+
+  return loadLocalFallbackSnapshot(capabilities.binaryPath, [
+    cliResult.fallbackWarning ?? "CLI JSON runtime probe failed; using local fallback.",
+  ]);
+}
+
 export function getCachedCodexRuntimeSnapshot(): CodexRuntimeSnapshot | null {
   return cachedSnapshot;
 }
@@ -651,22 +682,7 @@ export function ensureCodexRuntimeSnapshot(onChange?: () => void): void {
     return;
   }
 
-  inflight = (async () => {
-    const capabilities = await detectCcrCapabilities();
-
-    if (capabilities.supportsCodexAuthCurrentJson) {
-      const result = await execCodexAuthCurrentJson<RawCodexRuntimeSnapshot>();
-      if (result.success && result.data) {
-        return normalizeSnapshot(result.data, capabilities.binaryPath);
-      }
-
-      return loadLocalFallbackSnapshot(capabilities.binaryPath, [
-        result.stderr || "CLI JSON runtime probe failed; using local fallback.",
-      ]);
-    }
-
-    return loadLocalFallbackSnapshot(capabilities.binaryPath);
-  })()
+  inflight = loadRuntimeSnapshotFromCapabilities()
     .then((snapshot) => {
       cachedSnapshot = snapshot;
       cachedError = null;

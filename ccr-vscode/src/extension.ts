@@ -32,6 +32,7 @@ import {
   type ProfileCreateRequest,
   type ProfileCreationPlatform,
 } from "./models/types";
+import { PLATFORM_CAPABILITIES } from "./models/platformCapabilities";
 import { ProfileEditorPanel } from "./providers/profileEditorPanel";
 import { normalizeFieldValue } from "./providers/profileEditorPanel.helpers";
 import { invalidateCodexRuntimeCache } from "./services/codexRuntimeReader";
@@ -313,10 +314,13 @@ export async function activate(context: vscode.ExtensionContext): Promise<void> 
   context.subscriptions.push(
     vscode.commands.registerCommand("ccr.selectStatusBarPlatform", async () => {
       const picked = await vscode.window.showQuickPick(
-        [
-          { label: "Claude Code", platformName: "claude", picked: true },
-          { label: "Codex", platformName: "codex", picked: true },
-        ],
+        PLATFORM_CAPABILITIES
+          .filter((capability) => capability.supportsStatusBar)
+          .map((capability) => ({
+            label: capability.displayName,
+            platformName: capability.id,
+            picked: true,
+          })),
         {
           canPickMany: true,
           placeHolder: "Select enabled status bar items for pinned mode",
