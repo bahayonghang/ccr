@@ -67,6 +67,9 @@ cmake-build-*/
 .trae/
 .kiro/
 .workflow/
+.opencode/
+.trellis/
+
 
 # File-based planning artifacts
 task_plan.md
