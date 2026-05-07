@@ -9,7 +9,6 @@ export type StatusBarPlatformName = Extract<PlatformCapabilityId, "claude" | "co
 
 export interface StatusBarTargetInput {
   platforms: PlatformInfo[];
-  currentPlatform?: string;
   mode?: string;
   pinnedPlatform?: string;
   showClaude?: boolean;
@@ -64,14 +63,14 @@ export function resolveStatusBarItems(input: StatusBarTargetInput): StatusBarTar
   }
 
   if (mode === "current") {
-    const currentPlatform = enabledPlatforms.find((platform) => platform.name === input.currentPlatform)
-      ?? enabledPlatforms[0];
+    const currentPlatforms = enabledPlatforms.filter((platform) => Boolean(platform.currentProfile));
+    const targets = currentPlatforms.length > 0 ? currentPlatforms : enabledPlatforms;
 
-    return [{
+    return targets.map((platform) => ({
       mode,
       visible: true,
-      platform: currentPlatform,
-    }];
+      platform,
+    }));
   }
 
   return enabledPlatforms.map((platform) => ({

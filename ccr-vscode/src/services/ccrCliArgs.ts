@@ -18,12 +18,18 @@ export interface CodexAuthUpdateData {
 
 export type ProfileFieldValue = string | number | boolean | string[] | undefined;
 
+type ProfileScopedAction = "create" | "set-field" | "enable" | "disable" | "delete" | "switch" | "off";
+
+function buildPlatformScopedProfileArgs(platformName: string, action: ProfileScopedAction, rest: string[] = []): string[] {
+  return [platformName, "profile", action, ...rest];
+}
+
 export function buildPlatformProfileCreateArgs(
   platformName: ProfileCreationPlatform,
   profileName: string,
   config: ProfileCreateRequest,
 ): string[] {
-  const args = ["platform", "profile", "create", platformName, profileName, "--json"];
+  const args = buildPlatformScopedProfileArgs(platformName, "create", [profileName, "--json"]);
 
   if (config.description) args.push("--description", config.description);
   if (config.base_url) args.push("--base-url", config.base_url);
@@ -52,7 +58,7 @@ export function buildPlatformProfileSetFieldArgs(
   field: string,
   value: ProfileFieldValue,
 ): string[] {
-  const args = ["platform", "profile", "set-field", platformName, profileName, field, "--json"];
+  const args = buildPlatformScopedProfileArgs(platformName, "set-field", [profileName, field, "--json"]);
 
   if (value === undefined || value === "") {
     args.push("--clear");
@@ -66,7 +72,7 @@ export function buildPlatformProfileSetFieldArgs(
 }
 
 export function buildPlatformProfileEnableArgs(platformName: string, profileName: string): string[] {
-  return ["platform", "profile", "enable", platformName, profileName, "--json"];
+  return buildPlatformScopedProfileArgs(platformName, "enable", [profileName, "--json"]);
 }
 
 export function buildPlatformProfileDisableArgs(
@@ -74,7 +80,7 @@ export function buildPlatformProfileDisableArgs(
   profileName: string,
   force = false,
 ): string[] {
-  const args = ["platform", "profile", "disable", platformName, profileName, "--json"];
+  const args = buildPlatformScopedProfileArgs(platformName, "disable", [profileName, "--json"]);
   if (force) {
     args.push("--force");
   }
@@ -86,11 +92,35 @@ export function buildPlatformProfileDeleteArgs(
   profileName: string,
   force = false,
 ): string[] {
-  const args = ["platform", "profile", "delete", platformName, profileName, "--json"];
+  const args = buildPlatformScopedProfileArgs(platformName, "delete", [profileName, "--json"]);
   if (force) {
     args.push("--force");
   }
   return args;
+}
+
+export function buildPlatformProfileSwitchArgs(platformName: string, profileName: string): string[] {
+  return buildPlatformScopedProfileArgs(platformName, "switch", [profileName]);
+}
+
+export function buildPlatformProfileOffArgs(platformName: string): string[] {
+  return buildPlatformScopedProfileArgs(platformName, "off", ["--json"]);
+}
+
+export function buildClaudeProfileSwitchArgs(profileName: string): string[] {
+  return buildPlatformProfileSwitchArgs("claude", profileName);
+}
+
+export function buildCodexProfileSwitchArgs(profileName: string): string[] {
+  return buildPlatformProfileSwitchArgs("codex", profileName);
+}
+
+export function buildClaudeProfileOffArgs(): string[] {
+  return buildPlatformProfileOffArgs("claude");
+}
+
+export function buildCodexProfileOffArgs(): string[] {
+  return buildPlatformProfileOffArgs("codex");
 }
 
 export function buildCodexAuthUpdateArgs(name: string, description: string | undefined): string[] {

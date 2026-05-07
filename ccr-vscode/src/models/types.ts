@@ -25,10 +25,10 @@ export interface PlatformConfigEntry {
  * alongside `default_platform` and `current_platform`.
  */
 export interface UnifiedConfig {
-  default_platform: string;
-  current_platform: string;
+  default_platform?: string;
+  current_platform?: string;
   /** Flattened platform entries — keys are platform short names */
-  [platform: string]: string | PlatformConfigEntry;
+  [platform: string]: string | PlatformConfigEntry | undefined;
 }
 
 // ── Profiles: ~/.ccr/platforms/{name}/profiles.toml ──
@@ -93,6 +93,7 @@ export interface PlatformInfo {
   icon: string;
   enabled: boolean;
   currentProfile?: string;
+  lastUsed?: string;
 }
 
 /** Parsed profile info for TreeView consumption */

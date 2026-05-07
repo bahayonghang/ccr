@@ -137,7 +137,6 @@ export class StatusBarProvider implements vscode.Disposable {
     this.fallbackItem.hide();
     const targets = resolveStatusBarItems({
       platforms: registry.platforms,
-      currentPlatform: registry.currentPlatform,
       mode,
       showClaude,
       showCodex,

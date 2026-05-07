@@ -43,27 +43,24 @@ describe("statusBarTarget", () => {
   it("resolves both items by default in pinned mode", () => {
     const result = resolveStatusBarItems({
       platforms,
-      currentPlatform: "claude",
       mode: "pinned",
     });
 
     assert.deepEqual(result.map((item) => item.platform?.name), ["claude", "codex"]);
   });
 
-  it("follows only the current platform in current mode", () => {
+  it("shows every platform with an active profile in current mode", () => {
     const result = resolveStatusBarItems({
       platforms,
-      currentPlatform: "codex",
       mode: "current",
     });
 
-    assert.deepEqual(result.map((item) => item.platform?.name), ["codex"]);
+    assert.deepEqual(result.map((item) => item.platform?.name), ["claude", "codex"]);
   });
 
-  it("falls back to first enabled platform in current mode when current platform is unsupported", () => {
+  it("falls back to enabled platforms in current mode when no active profiles exist", () => {
     const result = resolveStatusBarItems({
-      platforms,
-      currentPlatform: "gemini",
+      platforms: platforms.map((platform) => ({ ...platform, currentProfile: undefined })),
       mode: "current",
       showClaude: false,
       showCodex: true,
@@ -75,7 +72,6 @@ describe("statusBarTarget", () => {
   it("hides all items in hidden mode", () => {
     const result = resolveStatusBarItems({
       platforms,
-      currentPlatform: "claude",
       mode: "hidden",
     });
 
@@ -85,7 +81,6 @@ describe("statusBarTarget", () => {
   it("can disable codex item independently", () => {
     const result = resolveStatusBarItems({
       platforms,
-      currentPlatform: "claude",
       mode: "pinned",
       showClaude: true,
       showCodex: false,
@@ -97,7 +92,6 @@ describe("statusBarTarget", () => {
   it("keeps single target compatibility with first visible platform", () => {
     const result = resolveStatusBarTarget({
       platforms,
-      currentPlatform: "claude",
       mode: "pinned",
       showClaude: false,
       showCodex: true,

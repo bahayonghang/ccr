@@ -69,17 +69,16 @@ describe("tomlReader", () => {
 
     it("parses config.toml with platform entries", async () => {
       const configToml = `
-default_platform = "claude"
-current_platform = "claude"
-
 [claude]
 enabled = true
 current_profile = "anthropic"
 description = "Claude Code"
+last_used = "2026-05-07T10:00:00Z"
 
 [codex]
 enabled = true
 current_profile = "default"
+last_used = "2026-05-06T10:00:00Z"
 `;
       fs.writeFileSync(path.join(tmpDir, "config.toml"), configToml, "utf-8");
 
@@ -90,6 +89,7 @@ current_profile = "default"
       assert.equal(result!.platforms.length, 2);
       assert.equal(result!.platforms[0].name, "claude");
       assert.equal(result!.platforms[1].name, "codex");
+      assert.equal("currentPlatform" in result!, false);
     });
   });
 

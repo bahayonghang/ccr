@@ -18,7 +18,13 @@ import {
   buildPlatformProfileDeleteArgs,
   buildPlatformProfileDisableArgs,
   buildPlatformProfileEnableArgs,
+  buildPlatformProfileOffArgs,
   buildPlatformProfileSetFieldArgs,
+  buildPlatformProfileSwitchArgs,
+  buildClaudeProfileOffArgs,
+  buildClaudeProfileSwitchArgs,
+  buildCodexProfileOffArgs,
+  buildCodexProfileSwitchArgs,
   type CodexAuthUpdateData,
   type PlatformProfileMutationData,
   type ProfileFieldValue,
@@ -159,14 +165,30 @@ export async function detectCcrCapabilities(force = false): Promise<CcrCapabilit
   return capabilityInflight;
 }
 
-/** Execute `ccr platform switch <name>` — switch active platform */
-export async function execPlatformSwitch(platformName: string): Promise<CliResult> {
-  return execCcr(["platform", "switch", platformName]);
+export async function execClaudeProfileSwitch(profileName: string): Promise<CliResult> {
+  return execCcr(buildClaudeProfileSwitchArgs(profileName));
 }
 
-/** Execute `ccr switch <name>` — switch profile within current platform */
-export async function execProfileSwitch(profileName: string): Promise<CliResult> {
-  return execCcr(["switch", profileName]);
+export async function execCodexProfileSwitch(profileName: string): Promise<CliResult> {
+  return execCcr(buildCodexProfileSwitchArgs(profileName));
+}
+
+export async function execClaudeProfileOff(): Promise<CliJsonResult<PlatformProfileMutationData>> {
+  return execCcrJson(buildClaudeProfileOffArgs());
+}
+
+export async function execCodexProfileOff(): Promise<CliJsonResult<PlatformProfileMutationData>> {
+  return execCcrJson(buildCodexProfileOffArgs());
+}
+
+/** Execute `ccr <platform> profile switch <name>` */
+export async function execProfileSwitch(platformName: string, profileName: string): Promise<CliResult> {
+  return execCcr(buildPlatformProfileSwitchArgs(platformName, profileName));
+}
+
+/** Execute `ccr <platform> profile off --json` */
+export async function execProfileOff(platformName: string): Promise<CliJsonResult<PlatformProfileMutationData>> {
+  return execCcrJson(buildPlatformProfileOffArgs(platformName));
 }
 
 /** Execute `ccr codex auth switch <name>` — switch active Codex auth account */

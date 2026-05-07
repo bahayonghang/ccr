@@ -10,16 +10,16 @@ import { StatusBarProvider } from "./providers/statusBarProvider";
 import { CcrWatcher } from "./services/ccrWatcher";
 import {
   checkCcrAvailability,
+  execClaudeProfileSwitch,
   execCodexAuthDelete,
   execCodexAuthSwitch,
   execCodexAuthUpdate,
-  execPlatformSwitch,
+  execCodexProfileSwitch,
   execPlatformProfileCreate,
   execPlatformProfileDelete,
   execPlatformProfileDisable,
   execPlatformProfileEnable,
   execPlatformProfileSetField,
-  execProfileSwitch,
   invalidateCcrCapabilityCache,
 } from "./services/ccrCli";
 import { readCodexAuthAccounts } from "./services/codexAuthReader";
@@ -364,6 +364,11 @@ async function doSwitch(
   const available = await checkCcrAvailability();
   if (!available) return;
 
+  if (platform !== "claude" && platform !== "codex") {
+    vscode.window.showErrorMessage(`Profile switching is not available for '${platform}'.`);
+    return;
+  }
+
   await vscode.window.withProgress(
     {
       location: vscode.ProgressLocation.Notification,
@@ -371,20 +376,9 @@ async function doSwitch(
       cancellable: false,
     },
     async () => {
-      const registry = await readRegistry();
-      const currentPlatform = registry?.currentPlatform ?? "";
-
-      if (currentPlatform !== platform) {
-        const platResult = await execPlatformSwitch(platform);
-        if (!platResult.success) {
-          vscode.window.showErrorMessage(
-            `Platform switch failed: ${platResult.stderr || "Unknown error"}`,
-          );
-          return;
-        }
-      }
-
-      const result = await execProfileSwitch(profileName);
+      const result = platform === "codex"
+        ? await execCodexProfileSwitch(profileName)
+        : await execClaudeProfileSwitch(profileName);
       if (result.success) {
         vscode.window.showInformationMessage(`Switched to profile '${profileName}'.`);
       } else {

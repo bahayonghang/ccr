@@ -2,11 +2,17 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import {
   buildCodexAuthUpdateArgs,
+  buildClaudeProfileOffArgs,
+  buildClaudeProfileSwitchArgs,
+  buildCodexProfileOffArgs,
+  buildCodexProfileSwitchArgs,
   buildPlatformProfileCreateArgs,
   buildPlatformProfileDeleteArgs,
   buildPlatformProfileDisableArgs,
   buildPlatformProfileEnableArgs,
+  buildPlatformProfileOffArgs,
   buildPlatformProfileSetFieldArgs,
+  buildPlatformProfileSwitchArgs,
 } from "./ccrCliArgs.js";
 
 describe("ccrCli arg builders", () => {
@@ -23,7 +29,7 @@ describe("ccrCli arg builders", () => {
     });
 
     assert.deepEqual(args, [
-      "platform", "profile", "create", "claude", "work", "--json",
+      "claude", "profile", "create", "work", "--json",
       "--description", "Work profile",
       "--base-url", "https://api.example.com/v1",
       "--auth-token", "secret",
@@ -39,32 +45,62 @@ describe("ccrCli arg builders", () => {
   it("builds set-field args for scalar and array values", () => {
     assert.deepEqual(
       buildPlatformProfileSetFieldArgs("claude", "work", "model", "claude-opus"),
-      ["platform", "profile", "set-field", "claude", "work", "model", "--json", "--value", "claude-opus"],
+      ["claude", "profile", "set-field", "work", "model", "--json", "--value", "claude-opus"],
     );
 
     assert.deepEqual(
       buildPlatformProfileSetFieldArgs("codex", "prod", "tags", ["prod", "shared"]),
-      ["platform", "profile", "set-field", "codex", "prod", "tags", "--json", "--value-json", "[\"prod\",\"shared\"]"],
+      ["codex", "profile", "set-field", "prod", "tags", "--json", "--value-json", "[\"prod\",\"shared\"]"],
     );
 
     assert.deepEqual(
       buildPlatformProfileSetFieldArgs("claude", "work", "model", undefined),
-      ["platform", "profile", "set-field", "claude", "work", "model", "--json", "--clear"],
+      ["claude", "profile", "set-field", "work", "model", "--json", "--clear"],
     );
   });
 
   it("builds enable/disable/delete args with force when requested", () => {
     assert.deepEqual(
       buildPlatformProfileEnableArgs("claude", "work"),
-      ["platform", "profile", "enable", "claude", "work", "--json"],
+      ["claude", "profile", "enable", "work", "--json"],
     );
     assert.deepEqual(
       buildPlatformProfileDisableArgs("claude", "work", true),
-      ["platform", "profile", "disable", "claude", "work", "--json", "--force"],
+      ["claude", "profile", "disable", "work", "--json", "--force"],
     );
     assert.deepEqual(
       buildPlatformProfileDeleteArgs("codex", "old", true),
-      ["platform", "profile", "delete", "codex", "old", "--json", "--force"],
+      ["codex", "profile", "delete", "old", "--json", "--force"],
+    );
+  });
+
+  it("builds named Claude and Codex profile wrappers", () => {
+    assert.deepEqual(
+      buildClaudeProfileSwitchArgs("work"),
+      ["claude", "profile", "switch", "work"],
+    );
+    assert.deepEqual(
+      buildCodexProfileSwitchArgs("team"),
+      ["codex", "profile", "switch", "team"],
+    );
+    assert.deepEqual(
+      buildClaudeProfileOffArgs(),
+      ["claude", "profile", "off", "--json"],
+    );
+    assert.deepEqual(
+      buildCodexProfileOffArgs(),
+      ["codex", "profile", "off", "--json"],
+    );
+  });
+
+  it("builds platform-scoped profile switch and off args", () => {
+    assert.deepEqual(
+      buildPlatformProfileSwitchArgs("codex", "work"),
+      ["codex", "profile", "switch", "work"],
+    );
+    assert.deepEqual(
+      buildPlatformProfileOffArgs("claude"),
+      ["claude", "profile", "off", "--json"],
     );
   });
 

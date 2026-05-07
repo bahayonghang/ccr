@@ -31,14 +31,13 @@ function isNotFoundError(error: unknown): boolean {
 }
 
 /** Read and parse the unified registry */
-export async function readRegistry(): Promise<{ platforms: PlatformInfo[]; currentPlatform: string } | null> {
+export async function readRegistry(): Promise<{ platforms: PlatformInfo[] } | null> {
   const registryPath = getRegistryPath();
 
   try {
     const content = await fs.promises.readFile(registryPath, "utf-8");
     const raw = TOML.parse(content) as unknown as UnifiedConfig;
 
-    const currentPlatform = raw.current_platform ?? "claude";
     const platforms: PlatformInfo[] = [];
 
     for (const [key, value] of Object.entries(raw)) {
@@ -53,18 +52,24 @@ export async function readRegistry(): Promise<{ platforms: PlatformInfo[]; curre
           icon: getPlatformIcon(key),
           enabled: entry.enabled ?? true,
           currentProfile: entry.current_profile,
+          lastUsed: entry.last_used,
         });
       }
     }
 
-    // Sort: current platform first, then alphabetical
+    // Sort enabled platforms first, then platforms with active profiles, recency, and name.
     platforms.sort((a, b) => {
-      if (a.name === currentPlatform) return -1;
-      if (b.name === currentPlatform) return 1;
+      if (a.enabled !== b.enabled) return a.enabled ? -1 : 1;
+      const aHasProfile = Boolean(a.currentProfile);
+      const bHasProfile = Boolean(b.currentProfile);
+      if (aHasProfile !== bHasProfile) return aHasProfile ? -1 : 1;
+      const aLastUsed = a.lastUsed ?? "";
+      const bLastUsed = b.lastUsed ?? "";
+      if (aLastUsed !== bLastUsed) return bLastUsed.localeCompare(aLastUsed);
       return a.name.localeCompare(b.name);
     });
 
-    return { platforms, currentPlatform };
+    return { platforms };
   } catch (err) {
     if (isNotFoundError(err)) {
       return null;
