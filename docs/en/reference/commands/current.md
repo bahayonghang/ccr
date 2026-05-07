@@ -1,28 +1,35 @@
-# `ccr current`
+# current - Runtime Overview
 
-## Overview
-
-Command: `ccr current`
+`ccr current` now shows Claude Runtime and Codex Runtime side by side instead of a single “current platform”.
 
 ## Usage
 
 ```bash
-ccr current [OPTIONS]
-```
-
-## Options
-
-Run `ccr current --help` for detailed options.
-
-## Examples
-
-```bash
-# Basic usage
 ccr current
+ccr current --verbose
+ccr current --json
 ```
 
-## See Also
+## Output model
 
-- [Command Reference](./index)
-- [Quick Start](/en/guide/quick-start)
-- [Configuration Guide](/en/guide/configuration)
+Default output includes:
+
+- a Claude Runtime status card
+- a Codex Runtime status card
+- current profile / provider / auth / health summary for each platform
+
+`--verbose` additionally shows:
+
+- registry target details
+- platform paths
+- current profile details
+- environment/settings diagnostics
+
+`--json` returns:
+
+- `schema_version`
+- `generated_at`
+- `claude`
+- `codex`
+
+> The top level no longer includes `current_platform`.

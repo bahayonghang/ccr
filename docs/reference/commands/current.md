@@ -1,158 +1,52 @@
-# current - 显示当前配置
+# current - 运行时状态总览
 
-以表格形式展示当前配置的完整详情和环境变量状态，让配置信息一目了然。
+`ccr current` 现在展示的是并列的 Claude Runtime 与 Codex Runtime，而不是单一“当前平台”。
 
 ## 用法
 
 ```bash
 ccr current
-# 或使用别名
-ccr status
-ccr show
+ccr current --verbose
+ccr current --json
 ```
 
-## 输出信息
+## 输出模型
 
-以两个精美表格展示：
-1. **配置详情表** - 当前配置的所有关键信息
-2. **环境变量表** - Claude Code 环境变量的状态和值
+默认输出：
 
-## 示例输出
+- Claude Runtime 状态卡片
+- Codex Runtime 状态卡片
+- 每个平台的当前 profile / provider / auth / health 摘要
 
-### 表格 1: 配置详情
+`--verbose` 额外显示：
 
-```
-当前配置详情
-═══════════════════════════════════════════════════════════════
+- registry 目标信息
+- 对应平台路径
+- 当前 profile 详情
+- 环境变量与设置细节
 
-╔═══════════════╤═══════════════════════════════════════════════╗
-║ 属性          │ 值                                            ║
-╠═══════════════╪═══════════════════════════════════════════════╣
-║ 配置名称      │ anyrouter_main                                ║
-║ 描述          │ Anyrouter 主要配置 - 高速稳定                ║
-║ 提供商类型    │ 🔄 官方中转                                   ║
-║ 提供商        │ anyrouter                                     ║
-║ Base URL      │ https://api.anyrouter.ai/v1                   ║
-║ Auth Token    │ sk-a...cdef (已脱敏)                          ║
-║ 主模型        │ claude-3-5-sonnet-20241022                    ║
-║ 快速小模型    │ claude-3-5-haiku-20241022                     ║
-║ 账号标识      │ 👤 github_5953                                ║
-║ 标签          │ 🏷️  stable, high-speed, recommended          ║
-╚═══════════════╧═══════════════════════════════════════════════╝
-```
+`--json` 输出：
 
-### 表格 2: 环境变量状态
+- `schema_version`
+- `generated_at`
+- `claude`
+- `codex`
 
-```
-Claude Code 环境变量
-═══════════════════════════════════════════════════════════════
+> 顶层不再输出 `current_platform`。
 
-╔═══════════════════════════╤═══════════════════════════════════════════╤═══════════╗
-║ 环境变量                  │ 当前值                                    │ 状态      ║
-╠═══════════════════════════╪═══════════════════════════════════════════╪═══════════╣
-║ ANTHROPIC_BASE_URL        │ https://api.anyrouter.ai/v1               │ ✓ 已设置  ║
-║ ANTHROPIC_AUTH_TOKEN      │ sk-a...cdef                               │ ✓ 已设置  ║
-║ ANTHROPIC_MODEL           │ claude-3-5-sonnet-20241022                │ ✓ 已设置  ║
-║ ANTHROPIC_SMALL_FAST_MODEL│ claude-3-5-haiku-20241022                 │ ✓ 已设置  ║
-╚═══════════════════════════╧═══════════════════════════════════════════╧═══════════╝
-
-✓ 当前配置: anyrouter_main
-─────────────────────────────────────────────────────────
-💡 提示: 使用 'ccr list' 查看所有配置
-```
-
-**颜色说明：**
-- ✓ 绿色 - 环境变量已正确设置（必需）
-- ○ 黄色 - 环境变量未设置（可选）
-- 敏感信息自动脱敏显示
-
-## 输出详解
-
-### 配置详情表说明
-
-| 属性 | 说明 | 示例 |
-|------|------|------|
-| 配置名称 | 当前配置的标识符 | `anyrouter_main` |
-| 描述 | 配置用途描述 | `Anyrouter 主要配置 - 高速稳定` |
-| 提供商类型 | 🔄 官方中转 / 🤖 第三方模型 | `🔄 官方中转` |
-| 提供商 | 服务提供商名称 | `anyrouter` |
-| Base URL | API 端点地址 | `https://api.anyrouter.ai/v1` |
-| Auth Token | API 令牌（自动脱敏） | `sk-a...cdef` |
-| 主模型 | 默认使用的 AI 模型 | `claude-3-5-sonnet-20241022` |
-| 快速小模型 | 轻量级快速模型 | `claude-3-5-haiku-20241022` |
-| 账号标识 | 账号识别信息 | `👤 github_5953` |
-| 标签 | 配置分类标签 | `🏷️  stable, high-speed` |
-
-### 环境变量表说明
-
-显示 Claude Code 实际使用的环境变量：
-
-| 环境变量 | 用途 | 必需性 |
-|----------|------|--------|
-| `ANTHROPIC_BASE_URL` | API 端点地址 | ✓ 必需 |
-| `ANTHROPIC_AUTH_TOKEN` | API 认证令牌 | ✓ 必需 |
-| `ANTHROPIC_MODEL` | 默认 AI 模型 | ✓ 必需 |
-| `ANTHROPIC_SMALL_FAST_MODEL` | 轻量级模型 | ○ 可选 |
-
-**状态指示：**
-- **✓ 已设置** (绿色) - 必需变量已正确配置
-- **○ 未设置** (黄色) - 可选变量未配置
-
-## 使用场景
-
-### 确认当前配置
-
-在执行重要操作前，通过表格快速确认配置：
+## 适用场景
 
 ```bash
 ccr current
-# 查看配置详情表，确认 Base URL、模型等关键信息
+ccr current --verbose
 ```
 
-### 检查环境变量
+- 确认 Claude / Codex 哪个 runtime 正在就绪
+- 观察 profile mode、official auth、provider key 等状态
+- 给 VS Code、脚本或调试流程提供统一 runtime 总览
 
-通过环境变量表验证 Claude Code 的配置：
+## 相关页面
 
-```bash
-ccr current
-# 查看环境变量表，确认所有必需变量都已设置（✓ 标记）
-```
-
-### 验证切换结果
-
-切换配置后，立即查看新配置的详情：
-
-```bash
-ccr switch anyrouter
-ccr current
-# 通过表格对比，确认切换是否成功
-```
-
-### 诊断配置问题
-
-当 Claude Code 行为异常时，检查配置：
-
-```bash
-ccr current
-# 检查环境变量表，查看是否有未设置的必需变量
-# 确认 Auth Token 是否正确（脱敏显示）
-```
-
-## 与 list 的区别
-
-| 命令 | 展示内容 | 使用场景 |
-|------|----------|----------|
-| `ccr list` | 所有配置的概览表格 | 对比多个配置，选择切换目标 |
-| `ccr current` | 当前配置的详细信息 | 查看当前配置的完整细节 |
-
-**选择建议：**
-- 需要**对比**多个配置 → 使用 `ccr list`
-- 需要查看**当前**配置详情 → 使用 `ccr current`
-
-## 相关命令
-
-- [list](./list) - 查看所有配置
-- [add](./add) - 添加新配置
-- [delete](./delete) - 删除配置
-- [switch](./switch) - 切换配置
-- [validate](./validate) - 验证当前配置
+- [platform](./platform)
+- [validate](./validate)
+- [迁移指南](/reference/migration)

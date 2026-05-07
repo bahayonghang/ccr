@@ -1,58 +1,32 @@
 # 迁移指南
 
-本文只说明当前仓库布局和入口选择如何对应旧文档中的历史说法，不把旧命令当成当前支持面。
+本页说明从旧的全局平台 / profile 路由模型迁移到显式 Claude Runtime / Codex Runtime 模型。
 
-## 入口映射
+## 命令迁移速查表
 
-| 历史说法 | 当前做法 | 说明 |
+| 旧命令 | 当前做法 | 说明 |
 |---|---|---|
-| `ccr web` | `ccr ui` | 图形入口已独立为 `ccr ui` + `ccr-ui` 工程 |
-| 内置 Web API | 无直接替代 | 当前 UI 通过 `ccr-ui/src-tauri` 复用 crate，不再暴露内置 HTTP 路由 |
-| `ccr tui` | 直接运行 `ccr` | 默认构建下，无子命令时进入 TUI |
-| `ccr migrate` | 手动初始化当前布局，再导入或重建 profile | 当前命令面不再文档化单独的迁移子命令 |
+| `ccr switch <name>` | `ccr claude profile switch <name>` / `ccr codex profile switch <name>` | 不再隐式推断平台 |
+| `ccr <name>` | 同上 | 快捷入口已退休 |
+| `ccr platform switch <platform>` | 不再作为 auth/profile 主路径 | 改用显式 profile/auth 命令 |
+| `ccr platform current` | `ccr current` | 查看双 runtime |
+| `ccr platform profile ...` | `ccr claude profile ...` / `ccr codex profile ...` | 平台级 profile 命令已显式分离 |
 
-## 路径映射
+## registry 迁移
 
-| 旧路径 | 当前路径 | 说明 |
-|---|---|---|
-| `src/` | `crates/ccr/src/` | 主 CLI crate |
-| `tests/` | `crates/ccr/tests/` | CLI 集成测试 |
-| `ccr-db/` | `crates/ccr-db/` | 数据库与桌面侧服务 |
-| `ccr-types/` | `crates/ccr-types/` | 共享类型 |
-| `ccr-ui/backend/` | `ccr-ui/src-tauri/` | Tauri 桌面壳 |
-| `ccr-ui/frontend/` | `ccr-ui/src/` | Vue 前端源码 |
+- 旧文件可继续包含 `default_platform` / `current_platform`
+- 读取时仍兼容这些字段
+- 但当前路由真相已经变为各平台条目的 `current_profile`
 
-## 迁移到当前工作区的建议顺序
+## 用户心智迁移
 
-1. 用当前入口重新建立基本目录：
+旧心智：
 
-```bash
-ccr init
-ccr platform list
-```
+- 先选一个“当前平台”
+- 再用通用 `switch` 切 profile
 
-2. 如需图形入口，使用：
+新心智：
 
-```bash
-ccr ui
-```
-
-3. 如果你手上已经有可导入的 profile 文件，用：
-
-```bash
-ccr import <file> --merge --backup
-```
-
-4. 如果你只有旧配置文件而没有现成导入包，把旧文件当参考源，逐个平台重建 profile。
-
-## 保留与移除
-
-- 保留：Legacy 配置文件、旧路径、旧入口的历史背景说明
-- 移除：把旧 Web API、`ccr web`、`ccr migrate` 当成当前可执行文档入口
-
-## 相关页面
-
-- [架构设计](/reference/architecture)
-- [Crate 地图](/reference/internals/crate-map)
-- [命令参考](/reference/commands/)
-- [入口选择](/guide/entrypoints)
+- `ccr current` 先看 Claude / Codex 双 runtime 状态
+- 直接进入 `ccr claude profile ...` 或 `ccr codex profile ...`
+- official auth 与 profile routing 分开表达

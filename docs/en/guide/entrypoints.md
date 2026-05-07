@@ -1,60 +1,34 @@
 # Entrypoints
 
-This page documents the current entrypoints only. The removed built-in Web API and `ccr web` are no longer part of the supported surface.
+This page documents only the currently supported entrypoints. The built-in Web API, `ccr web`, and the old global platform-switching model are no longer the recommended path.
 
-## Current Entrypoints
+## Current entrypoints
 
 | Entrypoint | Role | Best for |
 |---|---|---|
-| `ccr <command>` | primary CLI surface | automation, scripts, exact command execution |
-| `ccr` | default TUI entrypoint | interactive profile switching in a terminal |
-| `ccr ui` | recommended graphical entrypoint | module browsing and day-to-day visual workflows |
-| `ccr-ui` | standalone UI project | frontend development and Tauri desktop work |
+| `ccr <command>` | main CLI surface | automation, scripts, precise command execution |
+| `ccr` | default TUI entrypoint | interactive browsing and switching in a terminal |
+| `ccr ui` | recommended graphical entrypoint | module browsing, status inspection, and day-to-day visual management |
+| `ccr-ui` | standalone UI project directory | frontend development and Tauri desktop work |
 
-## How To Choose
+## How to choose
 
 ### Choose the CLI
 
-Use the CLI when:
-
-- you need a stable script surface
-- you want one exact operation
-- you are wiring CCR into shell aliases, CI, or automation
-
-Typical entrypoints:
-
 ```bash
-ccr platform list
-ccr switch <name>
+ccr current
+ccr claude profile list
+ccr codex auth list
 ccr sync all status
-ccr sessions list
 ```
 
 ### Choose the TUI
-
-Use the TUI when:
-
-- you stay inside a terminal
-- your main task is browsing and switching profiles
-- you want a fast keyboard-driven selector
-
-In the default build, launch it with:
 
 ```bash
 ccr
 ```
 
-See [`tui mode`](/en/reference/commands/tui) for the exact behavior.
-
 ### Choose CCR UI
-
-Use CCR UI when:
-
-- you need to move across multiple capability areas
-- you want visual access to skills, monitoring, sessions, statusline, checkin, and related modules
-- you want CCR to use a local `ccr-ui/` checkout during development
-
-Launch it with:
 
 ```bash
 ccr ui
@@ -63,13 +37,14 @@ ccr ui -p 15173 --backend-port 38081
 
 ## Boundaries
 
-- `ccr` remains the source of truth; its commands are defined in `crates/ccr/src/cli/definitions.rs`
-- `ccr ui` is a graphical entrypoint, not a second configuration system
-- `ccr-ui` is the project directory name, not the main command ordinary users need to memorize
+- `ccr current` is the runtime-overview entrypoint.
+- `ccr claude profile ...` and `ccr codex profile ...` are the main auth/profile routes.
+- `ccr platform list` remains a registry compatibility view.
+- `ccr switch <name>`, `ccr <name>`, and `ccr platform switch/current/...` are retired.
 
-## Related Pages
+## Related docs
 
 - [CLI Workflows](/en/guide/cli-workflows)
+- [Configuration Model](/en/guide/configuration)
 - [UI Overview](/en/guide/ui-overview)
-- [UI Module Map](/en/guide/ui-modules)
 - [TUI Mode](/en/reference/commands/tui)

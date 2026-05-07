@@ -1,75 +1,44 @@
-# platform - 平台注册表
+# platform - 平台注册表兼容视图
 
-管理 `~/.ccr/config.toml` 中的平台状态、当前平台指针和平台初始化。
+`ccr platform` 现在只保留注册表视图语义，不再承担 auth/profile 路由主路径。
 
-## 用法
-
-```bash
-ccr platform <ACTION> [OPTIONS]
-```
-
-## 子命令
-
-### list
-
-```bash
-ccr platform list [--json]
-```
-
-列出当前已知平台和状态。
-
-### switch
-
-```bash
-ccr platform switch <platform>
-```
-
-切换当前活动平台，但不会修改其他平台的 profile 内容。
-
-### current
-
-```bash
-ccr platform current [--json]
-```
-
-显示当前平台。
-
-### info
-
-```bash
-ccr platform info <platform> [--json]
-```
-
-查看指定平台的状态、路径与说明。
-
-### init
-
-```bash
-ccr platform init <platform>
-```
-
-为平台创建目录结构与模板文件。
-
-## 当前平台键
-
-| 平台键 | 状态 | 备注 |
-|--------|------|------|
-| `claude` | 已实现 | 默认主线平台 |
-| `codex` | 已实现 | 支持 `ccr codex auth` |
-| `gemini` | 已实现 | Unified Mode 管理 |
-| `droid` | 已实现 | 写入 `~/.factory/settings.json` |
-| `qwen` | 预留 / Stub | 当前核心实现返回未支持 |
-
-## 常见命令
+## 当前推荐用法
 
 ```bash
 ccr platform list
-ccr platform switch claude
-ccr platform info droid
-ccr platform init gemini
+ccr current
 ```
 
-## 相关文档
+- `ccr platform list`：查看平台注册表、启用状态、每个平台的 `current_profile`
+- `ccr current`：查看 Claude Runtime / Codex Runtime 实际状态
 
-- [平台支持](/reference/platforms/)
-- [快速开始](/guide/quick-start)
+## 已退休子命令
+
+以下子命令会返回迁移指引，而不是继续作为主路径执行：
+
+- `ccr platform switch <platform>`
+- `ccr platform current`
+- `ccr platform info <platform>`
+- `ccr platform init <platform>`
+- `ccr platform profile ...`
+
+## 迁移映射
+
+| 旧路径 | 新路径 |
+|---|---|
+| `ccr platform switch claude` | `ccr claude profile switch <name>` 或 `ccr claude auth ...` |
+| `ccr platform switch codex` | `ccr codex profile switch <name>` 或 `ccr codex auth ...` |
+| `ccr platform current` | `ccr current` |
+| `ccr platform profile create claude ...` | `ccr claude profile create ...` |
+| `ccr platform profile create codex ...` | `ccr codex profile create ...` |
+
+## 说明
+
+- 旧 registry 中的 `default_platform` / `current_platform` 仍可兼容读取。
+- 但当前 auth/profile 路由真相是各平台自己的 `current_profile`。
+
+## 相关页面
+
+- [current](./current)
+- [CLI 工作流](/guide/cli-workflows)
+- [迁移指南](/reference/migration)

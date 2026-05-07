@@ -3,8 +3,8 @@ layout: home
 
 hero:
   name: "CCR"
-  text: "Unified entrypoint for AI CLI configuration management"
-  tagline: "CLI-first workflow, with TUI and the full CCR UI"
+  text: "Unified management for AI CLI configuration and runtime state"
+  tagline: "CLI-first, explicit Claude Runtime / Codex Runtime, with TUI and CCR UI"
   image:
     src: /logo.svg
     alt: CCR
@@ -25,13 +25,13 @@ const choosePaths = [
   {
     icon: '⚡',
     title: 'Start with the CLI',
-    details: 'Use CCR as the main entrypoint for profile lifecycle, platform switching, sync, budget, history, and sessions.',
+    details: 'Day-to-day runtime work centers on ccr current, ccr claude profile, and ccr codex profile.',
     link: '/en/guide/cli-workflows'
   },
   {
     icon: '🖥️',
-    title: 'Use CCR UI for visual workflows',
-    details: 'CCR UI is the recommended visual entrypoint for module browsing, dashboards, and platform-oriented management.',
+    title: 'Use CCR UI visually',
+    details: 'The Vue + Tauri UI shares the same registry, profiles, history, and backups.',
     link: '/en/guide/ui-overview'
   }
 ]
@@ -39,39 +39,39 @@ const choosePaths = [
 const capabilityCards = [
   {
     icon: '🔀',
-    title: 'Unified platform registry',
-    details: 'Manage isolated profiles, history, and backups across claude, codex, gemini, droid, and reserved platform keys.',
-    link: '/en/reference/platforms/'
+    title: 'Explicit dual runtime model',
+    details: 'Claude and Codex are shown side by side instead of relying on a global current_platform switch.',
+    link: '/en/reference/commands/current'
+  },
+  {
+    icon: '🔐',
+    title: 'Platform-scoped profile commands',
+    details: 'Use ccr claude profile ... and ccr codex profile ... for runtime routing.',
+    link: '/en/reference/commands/'
   },
   {
     icon: '☁️',
     title: 'WebDAV sync',
-    details: 'Folder registry, batch push/pull, and interactive selection for multi-machine config sync.',
+    details: 'Folder registration plus single-folder and batch push/pull/status flows.',
     link: '/en/reference/commands/sync'
   },
   {
     icon: '📚',
     title: 'Sessions / Provider / Skills',
-    details: 'CCR groups session indexing, provider health checks, skills, and prompts into the same operational CLI surface.',
+    details: 'Session indexing, provider health, and extension surfaces share one CLI.',
     link: '/en/reference/commands/'
-  },
-  {
-    icon: '📊',
-    title: 'Cost controls',
-    details: 'Stats, pricing, and budget commands share one reporting model for spend-aware workflows.',
-    link: '/en/reference/commands/stats'
   },
   {
     icon: '🛡️',
     title: 'Safe writes',
-    details: 'Atomic writes, locking, and backups reduce risk during settings updates and imports.',
-    link: '/en/guide/quick-start'
+    details: 'File locking, atomic writes, backups, and audit history protect configuration changes.',
+    link: '/en/guide/configuration'
   },
   {
     icon: '🏗️',
-    title: 'Architecture and integration',
-    details: 'Use the architecture and internals reference to understand crate boundaries, runtime flows, and migration context.',
-    link: '/en/reference/architecture'
+    title: 'Architecture and migration references',
+    details: 'Workspace layering, runtime flows, and migration mappings are documented together.',
+    link: '/en/reference/migration'
   }
 ]
 </script>
@@ -79,66 +79,32 @@ const capabilityCards = [
 <HomeFeatures badge="Choose Your Path" title="How To Use CCR" :features="choosePaths" />
 <HomeFeatures badge="Capability Map" badge-type="info" title="What This Project Covers" :features="capabilityCards" />
 
-## Quick Install
-- Rust 1.90+
-- Optional: Node.js 18+ and Bun 1.0+ when developing `ccr-ui`
-- Recommended: `just`
-
-```bash
-cargo install --git https://github.com/bahayonghang/ccr ccr
-```
-
-Source install and workspace layout live in [Quick Start](/en/guide/quick-start).
-
 ## Five-Minute Start
 
 ```bash
 ccr init
-ccr platform list
+ccr current
 ccr add
-ccr list
-ccr switch <name>
+ccr claude profile list
+ccr claude profile switch <name>
 ccr validate
 ```
-
-Then continue with:
-- [CLI Workflows](/en/guide/cli-workflows)
-- [Entrypoints](/en/guide/entrypoints)
-- [UI Overview](/en/guide/ui-overview)
-- [Command Reference](/en/reference/commands/)
 
 ## Support Matrix
 
 | Platform | Status | Notes |
 |----------|--------|-------|
-| Claude Code | ✅ Implemented | Default primary platform with direct settings writes |
-| Codex | ✅ Implemented | Profile, auth, and MCP-oriented workflows |
-| Gemini CLI | ✅ Implemented | Isolated profile, history, and backup structure |
-| Factory Droid | ✅ Implemented | Present in both CLI platform docs and CCR UI modules |
-| Qwen CLI | 🚧 Reserved / Partial | Platform key and UI grouping exist; treat as reserved/partial in docs |
-
-See [Platform Support](/en/reference/platforms/) for the detailed matrix.
+| Claude Code | ✅ Implemented | dual official-auth + profile runtime surface |
+| Codex | ✅ Implemented | auth, profile, and sync-history all supported |
+| Gemini CLI | ✅ Implemented | still part of the broader platform and data domain |
+| Factory Droid | ✅ Implemented | still present in the broader platform domain |
+| Qwen CLI | 🚧 Reserved / Partial | reserved key plus partial data-domain support |
 
 ## Common Entry Points
 
 ```bash
+ccr current --verbose
+ccr codex auth current
+ccr codex profile list
 ccr ui -p 15173 --backend-port 38081
-ccr sync config
-ccr sessions list
-ccr provider test --all
-ccr stats summary --range week --details
 ```
-
-## Documentation Map
-- [Quick Start](/en/guide/quick-start)
-- [CLI Workflows](/en/guide/cli-workflows)
-- [Entrypoints](/en/guide/entrypoints)
-- [UI Overview](/en/guide/ui-overview)
-- [UI Modules](/en/guide/ui-modules)
-- [Architecture](/en/reference/architecture)
-
-## License
-MIT License
-
-## Contributing
-Issues and Pull Requests are welcome.

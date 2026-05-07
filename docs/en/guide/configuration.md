@@ -1,21 +1,21 @@
 # Configuration Model
 
-This page explains CCR's current configuration modes, directory layout, platform status, and shared resources.
+This page explains CCR's current configuration modes, directory layout, and the new runtime/profile source of truth.
 
 ## Modes
 
 | Mode | When to use it | Primary location | Notes |
 |------|----------------|------------------|-------|
-| Unified Mode | Multi-platform workflows, recommended default | `~/.ccr/` | Platform registry, profiles, history, backups, and logs are organized by platform. |
-| Legacy Mode | CCS compatibility, single-platform Claude workflows | `~/.ccs_config.toml` | Keeps the old single-file configuration path. |
+| Unified Mode | Multi-platform workflows, recommended default | `~/.ccr/` | Registry, profiles, history, backups, and logs are grouped by platform. |
+| Legacy Mode | Old CCS compatibility, single-platform Claude flows | `~/.ccs_config.toml` | Keeps the historical single-file path. |
 
 Detection order:
 
 1. `CCR_ROOT` is set
 2. `~/.ccr/config.toml` exists
-3. Fall back to Legacy Mode
+3. fall back to Legacy Mode
 
-## Unified Mode Layout
+## Unified layout
 
 ```text
 ~/.ccr/
@@ -25,7 +25,7 @@ Detection order:
 │   ├── codex/
 │   ├── gemini/
 │   ├── droid/
-│   ├── qwen/
+│   └── qwen/
 ├── history/
 ├── backups/
 ├── logs/
@@ -34,12 +34,24 @@ Detection order:
 
 Key points:
 
-- `config.toml`: platform registry and current-platform pointer.
-- `platforms/<name>/profiles.toml`: profile set for that platform.
-- `history/` and `backups/`: global records and rollback assets.
-- `ccr-ui/`: downloaded or cached UI project used by `ccr ui`.
+- `config.toml`: platform registry; the routing truth now lives in each platform entry's `current_profile`.
+- `platforms/<name>/profiles.toml`: the profile set for that platform.
+- `history/` / `backups/`: audit and rollback assets.
+- `ccr-ui/`: frontend/runtime assets used by `ccr ui`.
 
-## Platform Status
+## Runtime/profile source of truth
+
+Auth/profile routing has moved to explicit command families:
+
+- `ccr claude auth ...` / `ccr codex auth ...`: official-auth account surface
+- `ccr claude profile ...` / `ccr codex profile ...`: runtime/profile routing surface
+- `ccr current`: parallel Claude Runtime + Codex Runtime overview
+
+Inside `~/.ccr/config.toml`, the per-platform `current_profile` field is the routing truth.
+
+Older registries may still contain `default_platform` / `current_platform`, but they are no longer the auth/profile routing truth.
+
+## Platform status
 
 | Platform | Status | Profile file | Settings target |
 |----------|--------|--------------|-----------------|
@@ -48,62 +60,28 @@ Key points:
 | Gemini | Implemented | `~/.ccr/platforms/gemini/profiles.toml` | `~/.ccr/platforms/gemini/settings.json` |
 | Droid | Implemented | `~/.ccr/platforms/droid/profiles.toml` | `~/.factory/settings.json` |
 | Qwen | Reserved / Stub | `~/.ccr/platforms/qwen/profiles.toml` | `~/.ccr/platforms/qwen/settings.json` |
-> Qwen remains a reserved/stub platform until the core implementation says otherwise.
 
-## Common Lifecycle
-
-### Initialize and switch platforms
+## Common operations
 
 ```bash
 ccr init
+ccr current
 ccr platform list
-ccr platform switch claude
-```
-
-### Manage profiles
-
-```bash
 ccr add
-ccr list
-ccr switch <name>
-ccr enable <name>
-ccr disable <name> --force
-```
-
-### Validate, inspect history, and clean up
-
-```bash
+ccr claude profile switch <name>
+ccr codex profile switch <name>
 ccr validate
-ccr history --limit 20
-ccr optimize
-ccr clean backups --days 30 --dry-run
+ccr doctor
 ```
 
-### Import, export, and restore
+## Relationship to CCR UI and VS Code
 
-```bash
-ccr export -o configs.toml --no-secrets
-ccr import configs.toml --merge --backup
-```
+- CLI, `ccr-ui`, and `ccr-vscode` share the same `~/.ccr/` registry and profile files.
+- The dual-runtime model shown by `ccr current` is also the model UI and VS Code should reflect.
+- `ccr platform list` remains a compatibility registry view rather than a global active-platform switch.
 
-## Temporary Overrides and Immediate Writes
-
-CCR separates three write paths:
-
-- `ccr switch`: reads a profile and writes the target settings.
-- `ccr temp`: interactively writes a temporary configuration without relying on an existing profile.
-- `ccr temp-token`: applies command-line token / base URL / model overrides to the active settings.
-
-Those commands do not change CLI defaults, but they do change the currently active settings file.
-
-## Relationship to CCR UI
-
-- CLI and `ccr-ui` share the same `~/.ccr/` data source.
-- The UI can expose more surfaces than the CLI, but it must not become a second source of truth.
-- Platform status, defaults, and API routes still come from the codebase definitions.
-
-## Related Docs
+## Related docs
 
 - [CLI Workflows](/en/guide/cli-workflows)
-- [UI Overview](/en/guide/ui-overview)
+- [Quick Start](/en/guide/quick-start)
 - [Platform Support](/en/reference/platforms/)

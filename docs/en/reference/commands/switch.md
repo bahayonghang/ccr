@@ -1,28 +1,24 @@
-# `ccr switch`
+# switch - Retired Legacy Profile Switch Entrypoint
 
-## Overview
+`ccr switch <config_name>` used to infer a target platform from global `current_platform` state. That entrypoint is now retired.
 
-Command: `ccr switch`
-
-## Usage
+## Current behavior
 
 ```bash
-ccr switch [OPTIONS]
+ccr switch <config_name>
 ```
 
-## Options
+now returns a migration error that points to explicit platform-scoped commands.
 
-Run `ccr switch --help` for detailed options.
-
-## Examples
+## Use these instead
 
 ```bash
-# Basic usage
-ccr switch
+ccr claude profile switch <config_name>
+ccr codex profile switch <config_name>
 ```
 
-## See Also
+## Why it was retired
 
-- [Command Reference](./index)
-- [Quick Start](/en/guide/quick-start)
-- [Configuration Guide](/en/guide/configuration)
+- the global `current_platform` / `default_platform` model was misleading
+- Claude and Codex now need explicit runtime state
+- VS Code, doctor, validate, and `ccr current` already moved to per-platform state

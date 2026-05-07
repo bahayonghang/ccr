@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+
+### 🔄 Runtime/Profile Model Migration
+
+- **Breaking**: retired legacy global auth/profile routing commands such as `ccr switch <name>`, `ccr <name>`, and `ccr platform switch/current/profile ...` as the primary user path
+- Added explicit `ccr claude profile ...` and `ccr codex profile ...` runtime/profile flows
+- `ccr current` now reports Claude Runtime and Codex Runtime side by side
+- JSON output from `ccr current --json` now centers on `schema_version`, `generated_at`, `claude`, and `codex`; top-level `current_platform` is removed
+- Registry routing truth moved to each platform entry's `current_profile`; legacy `default_platform` / `current_platform` remain read-compatible only
+- VS Code, validate, and doctor now align with the explicit per-platform runtime model
+
+### 📚 Documentation Updates
+
+- Updated homepage, quick start, CLI workflows, configuration model, migration guide, and command reference pages to teach explicit Claude/Codex runtime routing
+- Updated Claude/Codex platform pages and runtime-flow reference to remove the old global active-platform narrative
+- Updated `README.md`, `README_CN.md`, and `ccr-vscode/CLAUDE.md` to match the migrated runtime model
+
 ### 🎉 Added
 
 - **Unified Mode by Default**: `ccr init` now creates `~/.ccr/` directory structure with multi-platform support

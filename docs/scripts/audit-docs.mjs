@@ -14,7 +14,7 @@ const readIfExists = (...segments) => {
 }
 
 const configText = readIfExists('docs', '.vitepress', 'config.mjs')
-const cliDefinitions = read('crates', 'ccr', 'src', 'cli', 'definitions.rs')
+const cliDefinitions = read('crates', 'ccr-cli', 'src', 'cli', 'definitions.rs')
 
 const failures = new Set()
 const ignoredParityFiles = new Set([

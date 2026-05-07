@@ -1,75 +1,38 @@
-# platform - Platform Registry
+# platform - Registry Compatibility View
 
-Manage platform state, the current-platform pointer, and platform initialization in `~/.ccr/config.toml`.
+`ccr platform` now acts as a registry-facing compatibility surface rather than the main auth/profile routing path.
 
-## Usage
-
-```bash
-ccr platform <ACTION> [OPTIONS]
-```
-
-## Subcommands
-
-### list
-
-```bash
-ccr platform list [--json]
-```
-
-Lists known platforms and their status.
-
-### switch
-
-```bash
-ccr platform switch <platform>
-```
-
-Switches the active platform without modifying profiles on other platforms.
-
-### current
-
-```bash
-ccr platform current [--json]
-```
-
-Shows the active platform.
-
-### info
-
-```bash
-ccr platform info <platform> [--json]
-```
-
-Shows status, paths, and descriptive metadata for the requested platform.
-
-### init
-
-```bash
-ccr platform init <platform>
-```
-
-Creates the directory structure and template files for a platform.
-
-## Current Platform Keys
-
-| Key | Status | Notes |
-|-----|--------|-------|
-| `claude` | Implemented | Mainline default platform |
-| `codex` | Implemented | Also exposes `ccr codex auth` |
-| `gemini` | Implemented | Managed in Unified Mode |
-| `droid` | Implemented | Writes to `~/.factory/settings.json` |
-| `qwen` | Reserved / Stub | Core implementation currently reports unsupported |
-
-## Common Examples
+## Recommended current usage
 
 ```bash
 ccr platform list
-ccr platform switch claude
-ccr platform info droid
-ccr platform init gemini
+ccr current
 ```
 
-## Related Docs
+- `ccr platform list`: inspect registry entries, enabled state, and each platform's `current_profile`
+- `ccr current`: inspect real Claude Runtime / Codex Runtime state
 
-- [Platform Support](/en/reference/platforms/)
-- [Quick Start](/en/guide/quick-start)
+## Retired subcommands
+
+These subcommands now return migration guidance instead of acting as the main path:
+
+- `ccr platform switch <platform>`
+- `ccr platform current`
+- `ccr platform info <platform>`
+- `ccr platform init <platform>`
+- `ccr platform profile ...`
+
+## Migration map
+
+| Legacy path | Current path |
+|---|---|
+| `ccr platform switch claude` | `ccr claude profile switch <name>` or `ccr claude auth ...` |
+| `ccr platform switch codex` | `ccr codex profile switch <name>` or `ccr codex auth ...` |
+| `ccr platform current` | `ccr current` |
+| `ccr platform profile create claude ...` | `ccr claude profile create ...` |
+| `ccr platform profile create codex ...` | `ccr codex profile create ...` |
+
+## Notes
+
+- old `default_platform` / `current_platform` fields can still be read from older registries
+- the routing truth is now each platform's own `current_profile`

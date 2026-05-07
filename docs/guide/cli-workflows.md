@@ -1,159 +1,106 @@
 # CLI 工作流
 
-本页按任务组织 CCR 的核心 CLI 能力，而不是按命令字母表展开。
+本页按任务组织 CCR 的核心 CLI 路径。当前推荐的 auth/profile 主路径是显式的 Claude Runtime 与 Codex Runtime，而不是旧的“全局当前平台”。
 
-## 1. 初始化与平台切换
+## 工作流 1：初始化并确认运行时状态
 
 ```bash
 ccr init
+ccr current
 ccr platform list
-ccr platform switch codex
-ccr platform current
 ```
 
 适用场景：
-- 首次初始化 Unified Mode
-- 在 Claude / Codex / Gemini / Droid 之间切换当前工作平台
-- 确认当前平台是否正确
+- 首次初始化 `~/.ccr/`
+- 确认 Claude / Codex 当前 runtime 是否就绪
+- 查看平台注册表中的已启用平台与 `current_profile`
 
-## 2. Profile 生命周期
+> `ccr platform list` 现在是注册表兼容视图；实际运行时状态请看 `ccr current`。
+
+## 工作流 2：Claude Runtime / Profile
 
 ```bash
 ccr add
-ccr list
-ccr current
-ccr switch <name>
-ccr enable <name>
-ccr disable <name> --force
-ccr delete <name>
+ccr claude profile list
+ccr claude profile switch <name>
+ccr claude profile current
+ccr claude profile off
 ```
 
-建议顺序：
-1. `ccr add`
-2. `ccr list`
-3. `ccr switch <name>`
-4. `ccr current`
-5. 需要时再做 `enable/disable/delete`
+适用场景：
+- 为 Claude Code 写入 `~/.claude/settings.json`
+- 在 official auth runtime 与 profile/API-key runtime 之间切换
+- 退出 profile mode，回到 Claude official auth runtime
 
-## 3. 校验、历史与清理
+## 工作流 3：Codex Runtime / Profile
 
 ```bash
+ccr codex auth current
+ccr codex profile list
+ccr codex profile switch <name>
+ccr codex profile current
+ccr codex profile off
+```
+
+适用场景：
+- 保留 Codex official auth 登录态，同时切换第三方 profile
+- 在 `~/.codex/config.toml` / `~/.codex/auth.json` 间应用或退出 profile runtime
+- 明确区分 `codex auth`（账号）与 `codex profile`（运行时路由）
+
+## 工作流 4：校验与诊断
+
+```bash
+ccr current --verbose
 ccr validate
+ccr doctor
+```
+
+当前行为：
+- `ccr current --verbose` 显示双 runtime 总览 + registry 目标信息
+- `ccr validate` 分别检查 Claude / Codex 的 profile-auth 状态
+- `ccr doctor` 默认面向已配置的 Claude / Codex runtime target
+
+## 工作流 5：同步、历史与清理
+
+```bash
 ccr history -l 50
-ccr optimize
-ccr clean backups --days 30 --dry-run
-ccr clear --force
-```
-
-## 4. 导入、导出与整理
-
-```bash
-ccr export -o configs.toml --no-secrets
-ccr import configs.toml --merge --backup
-ccr clean backups --days 30 --dry-run
-```
-
-## 5. 临时覆盖与快速实验
-
-```bash
-ccr temp-token set sk-test-xxx --base-url https://api.example.com/v1 --model claude-opus-4
-ccr temp-token show
-ccr temp-token clear
-ccr temp
-```
-
-## 6. 同步与多目录
-
-```bash
 ccr sync config
-ccr sync folder add claude ~/.claude -r /ccr-sync/claude
-ccr sync folder enable claude
-ccr sync claude push
 ccr sync all status
-ccr sync push -i
+ccr clean backups --days 30 --dry-run
 ```
 
-## 7. Codex 多账号 auth
+## 工作流 6：Codex 多账号与 OpenCode 迁移
 
 ```bash
 ccr codex auth save work
 ccr codex auth list
 ccr codex auth switch work
-ccr codex auth current
-```
-
-适用场景：
-- 一人维护多个 Codex / GitHub 登录身份
-- 需要把当前 Codex 登录保存为命名账号
-- 需要导出、导入或切换已保存账号
-
-## 8. Codex -> OpenCode auth 迁移
-
-```bash
-# 先预览可迁移账号
 ccr opencode auth import-codex --dry-run
-
-# 再导入兼容账号
-ccr opencode auth import-codex
-
-# 需要脚本消费结果时输出 JSON
-ccr opencode auth import-codex --json
 ```
 
-这个流程适用于：
-- 已经在 CCR 中保存了一批 Codex 账号
-- 想让 OpenCode 也能直接切换这些账号
-- 希望迁移是增量导入，而不是覆盖当前 OpenCode 设置
-
-行为边界：
-- 只导入已保存的 Codex 账号
-- 只接受兼容的 ChatGPT OAuth 账号
-- 不覆盖现有 OpenCode 账号
-- 不切换当前 OpenCode 运行时登录
-- 会报告跳过原因，方便后续清理或补录
-
-如果你想直接进入 OpenCode Auth 页签做可视化查看：
-
-```bash
-ccr opencode
-```
-
-在 OpenCode Auth 页签里，按 `i` 可预览并确认导入兼容的已保存 Codex 账号。
-
-## 9. 会话、Provider、技能与提示词
-
-```bash
-ccr sessions list
-ccr sessions search "refactor"
-ccr sessions resume <id>
-ccr provider test --all
-ccr provider verify <name>
-ccr skills list
-ccr prompts list
-```
-
-## 10. 成本与预算
-
-```bash
-ccr stats summary --range week --by-model --details
-ccr budget status
-ccr budget set --monthly 200 --warn-at 90 --enable
-ccr pricing list --verbose
-ccr pricing set my-model --input 3.0 --output 15.0
-```
-
-## 11. 什么时候进入图形界面
+## 工作流 7：进入图形界面
 
 ```bash
 ccr ui -p 15173 --backend-port 38081
 ccr
 ```
 
-- `ccr ui`：推荐的图形界面入口
-- `ccr`：默认构建下的终端交互界面
+- `ccr ui`：推荐的图形入口
+- `ccr`：默认终端交互入口（TUI）
+
+## 迁移速查表
+
+| 旧命令 | 当前做法 |
+|---|---|
+| `ccr switch <name>` | `ccr claude profile switch <name>` 或 `ccr codex profile switch <name>` |
+| `ccr <name>` | 同上；快捷入口已退休 |
+| `ccr platform switch <platform>` | auth/profile 路由已退休；改用显式 runtime/profile 命令 |
+| `ccr platform current` | `ccr current` |
+| `ccr platform profile ...` | `ccr claude profile ...` / `ccr codex profile ...` |
 
 ## 相关页面
+
 - [`快速开始`](/guide/quick-start)
+- [`配置模型`](/guide/configuration)
 - [`入口选择`](/guide/entrypoints)
-- [`UI 概览`](/guide/ui-overview)
 - [`命令参考`](/reference/commands/)

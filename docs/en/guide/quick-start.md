@@ -1,6 +1,6 @@
 # Quick Start
 
-Use this page for the first-run path only: install CCR, initialize the workspace, create one profile, and understand how `ccr`, `ccr ui`, and `ccr-ui` fit together.
+This page covers the shortest first-run path: install CCR, initialize it, create the first profile, and understand how `ccr`, `ccr ui`, and `ccr-ui` fit together.
 
 ## Requirements
 - Rust 1.90+
@@ -23,51 +23,40 @@ cd ccr
 cargo install --path crates/ccr
 ```
 
-Workspace notes:
-- The installable CLI crate lives in `crates/ccr`
-- `crates/ccr-db` and `crates/ccr-types` provide supporting crates
-- `docs/`, `scripts/`, and `examples/` stay at repository root
-
 ## Initialize CCR
 
-CCR defaults to Unified Mode:
-
 ```bash
 ccr init
 ```
 
-Core layout:
-
-```text
-~/.ccr/
-├── config.toml
-├── platforms/
-│   ├── claude/
-│   ├── codex/
-│   ├── gemini/
-│   ├── qwen/
-│   └── droid/
-├── history/
-└── backups/
-```
-
-If you still need legacy single-file mode:
+After initialization, inspect the runtime overview first:
 
 ```bash
-export CCR_LEGACY_MODE=1
-ccr init
-```
-
-## Create Your First Profile
-
-```bash
+ccr current
 ccr platform list
-ccr add
-ccr list
-ccr switch <name>
 ```
 
-Smallest daily loop:
+## Create and switch your first Claude profile
+
+```bash
+ccr add
+ccr claude profile list
+ccr claude profile switch <name>
+ccr claude profile current
+ccr claude profile off
+```
+
+## Switch your first Codex profile
+
+```bash
+ccr codex auth current
+ccr codex profile list
+ccr codex profile switch <name>
+ccr codex profile current
+ccr codex profile off
+```
+
+## Smallest daily loop
 
 ```bash
 ccr current
@@ -75,17 +64,34 @@ ccr validate
 ccr history -l 20
 ```
 
-## Graphical Entry Point
+## Graphical entrypoint
 
 ```bash
 ccr ui -p 15173 --backend-port 38081
 ```
 
-- `ccr`: primary CLI/TUI entrypoint
-- `ccr ui`: launches the standalone `ccr-ui` graphical interface
-- `ccr-ui`: project directory for frontend development and Tauri desktop runtime
+- `ccr`: main CLI / TUI entrypoint
+- `ccr ui`: graphical entrypoint
+- `ccr-ui`: project directory for frontend development and Tauri runtime work
 
-## Where To Go Next
-- Day-to-day command organization: [CLI Workflows](/en/guide/cli-workflows)
-- Runtime modes and startup chain: [UI Overview](/en/guide/ui-overview)
-- Full command surface: [Command Reference](/en/reference/commands/)
+## Migration note
+
+These legacy commands are retired:
+
+- `ccr switch <name>`
+- `ccr <name>`
+- `ccr platform switch <platform>`
+- `ccr platform current`
+
+Use these instead:
+
+- `ccr claude profile switch <name>`
+- `ccr codex profile switch <name>`
+- `ccr current`
+
+## Where to go next
+
+- [CLI Workflows](/en/guide/cli-workflows)
+- [Configuration Model](/en/guide/configuration)
+- [Entrypoints](/en/guide/entrypoints)
+- [Command Reference](/en/reference/commands/)
