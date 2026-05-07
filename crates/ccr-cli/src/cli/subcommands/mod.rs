@@ -7,12 +7,13 @@ pub mod claude;
 pub mod codex;
 pub mod opencode;
 pub mod platform;
+pub mod profile_args;
 pub mod sync;
 pub mod ui;
 
 pub use check::CheckAction;
-pub use claude::{ClaudeAction, ClaudeAuthAction};
-pub use codex::{CodexAction, CodexAuthAction};
+pub use claude::{ClaudeAction, ClaudeAuthAction, ClaudeProfileAction};
+pub use codex::{CodexAction, CodexAuthAction, CodexProfileAction};
 pub use opencode::{OpenCodeAction, OpenCodeAuthAction};
 pub use platform::PlatformAction;
 pub use sync::{AllSyncAction, FolderAction, SyncAction};

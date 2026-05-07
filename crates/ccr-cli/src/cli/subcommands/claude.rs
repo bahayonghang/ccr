@@ -4,6 +4,11 @@
 
 use clap::Subcommand;
 
+use super::profile_args::{
+    ProfileCreateActionArgs, ProfileDisableActionArgs, ProfileNameJsonActionArgs,
+    ProfileOffActionArgs, ProfileSetFieldActionArgs,
+};
+
 /// Claude 子命令
 #[derive(Subcommand)]
 #[command(disable_help_subcommand = true)]
@@ -15,6 +20,12 @@ pub enum ClaudeAction {
     Auth {
         #[command(subcommand)]
         action: ClaudeAuthAction,
+    },
+
+    /// Profile 路由与模式管理
+    Profile {
+        #[command(subcommand)]
+        action: Box<ClaudeProfileAction>,
     },
 }
 
@@ -64,4 +75,50 @@ pub enum ClaudeAuthAction {
         #[arg(long)]
         json: bool,
     },
+}
+
+/// Claude Profile 子命令
+#[derive(Subcommand)]
+#[command(disable_help_subcommand = true)]
+pub enum ClaudeProfileAction {
+    /// 显示 Claude Profile 命令帮助
+    Help,
+
+    /// 显示当前 Claude profile/runtime 状态
+    Current {
+        /// 以 JSON 格式输出
+        #[arg(long)]
+        json: bool,
+    },
+
+    /// 列出 Claude profiles
+    List {
+        /// 以 JSON 格式输出
+        #[arg(long)]
+        json: bool,
+    },
+
+    /// 切换到指定 Claude profile
+    Switch {
+        /// 要切换到的 profile 名称
+        name: String,
+    },
+
+    /// 退出当前 profile 路由，回到 official auth runtime
+    /// Create a new Claude profile
+    Create(ProfileCreateActionArgs),
+
+    /// Update one Claude profile field
+    SetField(ProfileSetFieldActionArgs),
+
+    /// Enable a Claude profile
+    Enable(ProfileNameJsonActionArgs),
+
+    /// Disable a Claude profile
+    Disable(ProfileDisableActionArgs),
+
+    /// Delete a Claude profile
+    Delete(ProfileDisableActionArgs),
+
+    Off(ProfileOffActionArgs),
 }

@@ -326,9 +326,7 @@ mod tests {
     use crate::managers::PlatformConfigManager;
     use crate::managers::{PlatformConfigEntry, UnifiedConfig};
     use std::fs;
-    use std::sync::{LazyLock, Mutex};
-
-    static ENV_LOCK: LazyLock<Mutex<()>> = LazyLock::new(|| Mutex::new(()));
+    use std::sync::MutexGuard;
 
     fn restore_env_var(key: &str, previous: Option<String>) {
         // SAFETY: 仅在测试中恢复当前进程环境变量，调用方保证作用域内串行使用。
@@ -346,10 +344,12 @@ mod tests {
         previous_settings: Option<String>,
         previous_backup: Option<String>,
         previous_lock: Option<String>,
+        _env_guard: MutexGuard<'static, ()>,
     }
 
     impl TestEnv {
         fn new() -> Self {
+            let env_guard = crate::test_support::env_lock();
             let root = tempfile::tempdir().unwrap();
             let settings_path = root.path().join("claude").join("settings.json");
             let backup_dir = root.path().join("claude").join("backups");
@@ -374,6 +374,7 @@ mod tests {
                 previous_settings,
                 previous_backup,
                 previous_lock,
+                _env_guard: env_guard,
             }
         }
 
@@ -465,7 +466,6 @@ mod tests {
 
     #[test]
     fn test_apply_profile_auto_registers_missing_claude_platform() {
-        let _guard = ENV_LOCK.lock().unwrap();
         let _env = TestEnv::new();
 
         let result = (|| -> Result<()> {
@@ -509,7 +509,6 @@ mod tests {
 
     #[test]
     fn test_get_current_profile_prefers_profiles_file_and_repairs_registry() {
-        let _guard = ENV_LOCK.lock().unwrap();
         let env = TestEnv::new();
 
         let result = (|| -> Result<()> {
@@ -537,7 +536,6 @@ mod tests {
 
     #[test]
     fn test_get_current_profile_repairs_profiles_file_from_valid_registry() {
-        let _guard = ENV_LOCK.lock().unwrap();
         let env = TestEnv::new();
 
         let result = (|| -> Result<()> {
@@ -564,7 +562,6 @@ mod tests {
 
     #[test]
     fn test_get_current_profile_returns_none_when_registry_and_file_are_invalid() {
-        let _guard = ENV_LOCK.lock().unwrap();
         let env = TestEnv::new();
 
         let result = (|| -> Result<()> {
@@ -592,7 +589,6 @@ mod tests {
 
     #[test]
     fn test_delete_current_profile_keeps_registry_and_file_on_same_fallback() {
-        let _guard = ENV_LOCK.lock().unwrap();
         let env = TestEnv::new();
 
         let result = (|| -> Result<()> {
@@ -624,7 +620,6 @@ mod tests {
 
     #[test]
     fn test_subscription_profile_can_save_and_apply_without_api_key() {
-        let _guard = ENV_LOCK.lock().unwrap();
         let _env = TestEnv::new();
 
         let result = (|| -> Result<()> {
@@ -644,7 +639,6 @@ mod tests {
 
     #[test]
     fn test_subscription_profile_apply_clears_only_anthropic_overrides() {
-        let _guard = ENV_LOCK.lock().unwrap();
         let _env = TestEnv::new();
 
         let result = (|| -> Result<()> {

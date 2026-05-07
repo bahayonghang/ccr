@@ -3,3 +3,4 @@
 //! 管理 Claude 官方订阅账号快照。
 
 pub mod auth;
+pub mod profile;

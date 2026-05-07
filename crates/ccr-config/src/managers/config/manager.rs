@@ -37,8 +37,13 @@ impl ConfigManager {
         let platform_config_manager = crate::managers::PlatformConfigManager::new(unified_path);
         let unified_config = platform_config_manager.load_or_create_default()?;
 
-        let platform = &unified_config.current_platform;
-        Self::build_for_platform(&unified_root, platform)
+        let platform = unified_config
+            .list_enabled_platforms()
+            .into_iter()
+            .next()
+            .cloned()
+            .unwrap_or_else(|| "claude".to_string());
+        Self::build_for_platform(&unified_root, &platform)
     }
 
     /// 🎯 为指定平台创建 ConfigManager

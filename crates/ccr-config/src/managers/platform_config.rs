@@ -63,10 +63,12 @@ impl Default for PlatformConfigEntry {
 pub struct UnifiedConfig {
     /// 🎯 默认平台
     #[serde(default = "default_platform")]
+    #[serde(skip_serializing)]
     pub default_platform: String,
 
     /// ▶️ 当前激活的平台
     #[serde(default = "default_platform")]
+    #[serde(skip_serializing)]
     pub current_platform: String,
 
     /// 📋 平台注册表(使用 flatten 序列化)
@@ -118,7 +120,14 @@ impl UnifiedConfig {
     }
 
     /// ▶️ 获取当前平台的注册信息
+    /// Reset legacy routing fields before saving a migrated registry.
+    pub fn clean_legacy_routing_fields(&mut self) {
+        self.default_platform = default_platform();
+        self.current_platform = default_platform();
+    }
+
     #[allow(dead_code)]
+    #[deprecated(note = "use get_current_profile(platform_name) instead")]
     pub fn get_current_platform(&self) -> Result<&PlatformConfigEntry> {
         self.get_platform(&self.current_platform)
     }
@@ -126,6 +135,7 @@ impl UnifiedConfig {
     /// 🔄 切换当前平台
     ///
     /// 切换前会验证目标平台是否存在且启用
+    #[deprecated(note = "active-platform routing is retired; use per-platform current_profile")]
     pub fn set_current_platform(&mut self, name: &str) -> Result<()> {
         // ✅ 验证平台存在
         let registry = self.get_platform(name)?;
@@ -235,6 +245,24 @@ impl UnifiedConfig {
         let registry = self.get_platform(platform_name)?;
         Ok(registry.current_profile.as_deref())
     }
+
+    /// Set the current profile for a specific platform.
+    pub fn set_current_profile(
+        &mut self,
+        platform_name: &str,
+        profile_name: Option<&str>,
+    ) -> Result<()> {
+        let registry = self.get_platform_mut(platform_name)?;
+        registry.current_profile = profile_name.map(str::to_string);
+        registry.last_used = Some(chrono::Utc::now().to_rfc3339());
+        tracing::debug!("set platform {} current profile", platform_name);
+        Ok(())
+    }
+
+    /// Get the current profile for a specific platform.
+    pub fn get_current_profile(&self, platform_name: &str) -> Result<Option<&str>> {
+        self.get_platform_profile(platform_name)
+    }
 }
 
 /// 🔧 平台配置管理器
@@ -337,8 +365,10 @@ impl PlatformConfigManager {
     ///
     /// ⚠️ **并发安全**: 此方法不加锁，调用方需要在外层使用 CONFIG_LOCK 保护 RMW 序列
     pub fn save(&self, config: &UnifiedConfig) -> Result<()> {
+        let mut clean_config = config.clone();
+        clean_config.clean_legacy_routing_fields();
         // 使用统一的 fileio 写入 TOML（会自动创建父目录）
-        fileio::write_toml(&self.config_path, config)?;
+        fileio::write_toml(&self.config_path, &clean_config)?;
 
         tracing::debug!("✅ 平台配置文件已保存: {:?}", self.config_path);
         Ok(())
@@ -492,7 +522,7 @@ mod tests {
     }
 
     #[test]
-    fn test_set_current_platform() {
+    fn test_set_current_profile() {
         let mut config = UnifiedConfig::default();
 
         // 添加新平台
@@ -507,8 +537,16 @@ mod tests {
         );
 
         // 切换到 codex
-        config.set_current_platform("codex").unwrap();
-        assert_eq!(config.current_platform, "codex");
+        config
+            .set_current_profile("codex", Some("default"))
+            .unwrap();
+        assert_eq!(
+            config.get_current_profile("codex").unwrap(),
+            Some("default")
+        );
+
+        config.set_current_profile("codex", None).unwrap();
+        assert_eq!(config.get_current_profile("codex").unwrap(), None);
     }
 
     #[test]

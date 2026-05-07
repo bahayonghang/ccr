@@ -6,8 +6,6 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PlatformListOutput {
     pub config_file: String,
-    pub default_platform: String,
-    pub current_platform: String,
     pub platforms: Vec<PlatformListItem>,
 }
 
@@ -15,8 +13,6 @@ pub struct PlatformListOutput {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PlatformListItem {
     pub name: String,
-    pub is_current: bool,
-    pub is_default: bool,
     pub enabled: bool,
     pub current_profile: Option<String>,
     pub description: String,

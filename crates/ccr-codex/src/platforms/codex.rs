@@ -18,8 +18,10 @@ use crate::services::{
 use ccr_config::CcsConfig;
 use ccr_config::PlatformConfigManager;
 use ccr_config::platforms::base;
+use ccr_core::core::AtomicWriter;
 use ccr_core::core::error::{CcrError, Result};
 use indexmap::IndexMap;
+use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
 use std::path::Path;
 use std::path::PathBuf;
@@ -27,6 +29,7 @@ use std::path::PathBuf;
 const THIRD_PARTY_RUNTIME_PROVIDER_KEY: &str = "custom";
 const OPENAI_PROVIDER_KEY: &str = "openai";
 const OPENAI_DEFAULT_BASE_URL: &str = "https://api.openai.com/v1";
+const PROFILE_ENTRY_AUTH_STATE_FILE: &str = "profile_entry_auth_state.json";
 const CODEX_EDITABLE_FIELDS: &[&str] = &[
     "description",
     "model",
@@ -73,6 +76,12 @@ struct SwitchSpec {
     credential_store_override: Option<CredentialStoreKind>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct ProfileEntryAuthState {
+    exists: bool,
+    content: Option<String>,
+}
+
 /// 💻 Codex Platform 实现
 ///
 /// ## 配置文件
@@ -102,8 +111,16 @@ impl CodexPlatform {
             .to_path_buf()
     }
 
+    fn profile_entry_auth_state_path(&self) -> PathBuf {
+        self.paths.platform_dir.join(PROFILE_ENTRY_AUTH_STATE_FILE)
+    }
+
     pub fn editable_fields() -> &'static [&'static str] {
         CODEX_EDITABLE_FIELDS
+    }
+
+    pub fn has_profile_entry_auth_backup(&self) -> bool {
+        self.profile_entry_auth_state_path().exists()
     }
 
     /// 🏗️ 创建新的 Codex Platform 实例
@@ -1016,6 +1033,155 @@ impl CodexPlatform {
         })
     }
 
+    fn capture_profile_entry_auth_state(&self) -> Result<()> {
+        if self.has_profile_entry_auth_backup() {
+            return Ok(());
+        }
+
+        let auth_path = self.config_manager.auth_path();
+        let state = if auth_path.exists() {
+            let content = std::fs::read_to_string(auth_path).map_err(|error| {
+                CcrError::ConfigError(format!(
+                    "读取 Codex 入口 auth.json 失败 {}: {}",
+                    auth_path.display(),
+                    error
+                ))
+            })?;
+            ProfileEntryAuthState {
+                exists: true,
+                content: Some(content),
+            }
+        } else {
+            ProfileEntryAuthState {
+                exists: false,
+                content: None,
+            }
+        };
+
+        let serialized = serde_json::to_string_pretty(&state).map_err(|error| {
+            CcrError::ConfigError(format!("序列化 Codex 入口 auth 快照失败: {}", error))
+        })?;
+        let backup_path = self.profile_entry_auth_state_path();
+        AtomicWriter::new(&backup_path).write_string(&serialized)?;
+        crate::utils::ensure_private_permissions(&backup_path);
+        Ok(())
+    }
+
+    fn restore_profile_entry_auth_state(&self) -> Result<bool> {
+        let backup_path = self.profile_entry_auth_state_path();
+        if !backup_path.exists() {
+            return Ok(false);
+        }
+
+        let raw = std::fs::read_to_string(&backup_path).map_err(|error| {
+            CcrError::ConfigError(format!(
+                "读取 Codex 入口 auth 快照失败 {}: {}",
+                backup_path.display(),
+                error
+            ))
+        })?;
+        let state: ProfileEntryAuthState = serde_json::from_str(&raw).map_err(|error| {
+            CcrError::ConfigError(format!(
+                "解析 Codex 入口 auth 快照失败 {}: {}",
+                backup_path.display(),
+                error
+            ))
+        })?;
+
+        let auth_path = self.config_manager.auth_path();
+        if state.exists {
+            let content = state
+                .content
+                .ok_or_else(|| CcrError::ConfigError("Codex 入口 auth 快照缺少内容".into()))?;
+            AtomicWriter::new(auth_path).write_string(&content)?;
+            crate::utils::ensure_private_permissions(auth_path);
+        } else if auth_path.exists() {
+            std::fs::remove_file(auth_path).map_err(|error| {
+                CcrError::ConfigError(format!(
+                    "删除 Codex auth.json 失败 {}: {}",
+                    auth_path.display(),
+                    error
+                ))
+            })?;
+        }
+
+        std::fs::remove_file(&backup_path).map_err(|error| {
+            CcrError::ConfigError(format!(
+                "清理 Codex 入口 auth 快照失败 {}: {}",
+                backup_path.display(),
+                error
+            ))
+        })?;
+        Ok(true)
+    }
+
+    fn apply_runtime_route_without_auth(
+        &self,
+        route: &RouteSelection,
+        credential_store_override: Option<CredentialStoreKind>,
+    ) -> Result<()> {
+        let mut config = self.config_manager.load_config()?;
+        let root = Self::ensure_toml_table(&mut config)?;
+
+        root.remove("model");
+        root.remove("approval_policy");
+        root.remove("sandbox_mode");
+        root.remove("model_reasoning_effort");
+        root.remove("disable_response_storage");
+        root.remove("forced_login_method");
+        root.remove("sandbox_workspace_write");
+
+        if let Some(store) = credential_store_override {
+            root.insert(
+                "cli_auth_credentials_store".into(),
+                toml::Value::String(store.as_str().to_string()),
+            );
+        }
+
+        match route {
+            RouteSelection::Official { relay_base_url } => {
+                root.insert(
+                    "model_provider".into(),
+                    toml::Value::String(THIRD_PARTY_RUNTIME_PROVIDER_KEY.into()),
+                );
+
+                let providers = Self::providers_table_mut(root, true)?.expect("providers table");
+                providers.remove(OPENAI_PROVIDER_KEY);
+
+                let mut provider_table = toml::map::Map::new();
+                provider_table.insert(
+                    "name".into(),
+                    toml::Value::String(OPENAI_PROVIDER_KEY.into()),
+                );
+                provider_table.insert(
+                    "base_url".into(),
+                    toml::Value::String(
+                        relay_base_url
+                            .clone()
+                            .unwrap_or_else(|| OPENAI_DEFAULT_BASE_URL.to_string()),
+                    ),
+                );
+                provider_table.insert("wire_api".into(), toml::Value::String("responses".into()));
+                provider_table.insert("requires_openai_auth".into(), toml::Value::Boolean(true));
+                providers.insert(
+                    THIRD_PARTY_RUNTIME_PROVIDER_KEY.to_string(),
+                    toml::Value::Table(provider_table),
+                );
+            }
+            RouteSelection::ThirdPartyCustom { .. } => {
+                return Err(CcrError::ValidationError(
+                    "Codex official runtime restore does not support third-party routes".into(),
+                ));
+            }
+        }
+
+        Self::cleanup_model_providers(root);
+        self.runtime_service.commit_plan(CodexRuntimeCommitPlan {
+            config: Some(config),
+            auth_cache: CodexAuthCacheAction::Preserve,
+        })
+    }
+
     // ═══════════════════════════════════════════════════════════
     // 🏛️ 官方模式
     // ═══════════════════════════════════════════════════════════
@@ -1025,6 +1191,18 @@ impl CodexPlatform {
         let current_auth_intent = self.current_runtime_auth_intent()?;
         let spec = Self::build_switch_spec(OPENAI_PROVIDER_KEY, profile, &current_auth_intent)?;
         self.apply_switch_spec(&spec)
+    }
+
+    pub fn clear_active_profile_runtime(&self) -> Result<()> {
+        self.apply_runtime_route_without_auth(
+            &RouteSelection::Official {
+                relay_base_url: None,
+            },
+            Some(CredentialStoreKind::File),
+        )?;
+        self.restore_profile_entry_auth_state()?;
+        self.clear_current_profile_registry()?;
+        Ok(())
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -1317,6 +1495,7 @@ impl PlatformConfig for CodexPlatform {
 
         // 验证
         self.validate_profile(profile)?;
+        self.capture_profile_entry_auth_state()?;
 
         // 两路分发: Official / ThirdParty
         if Self::is_official_profile(profile) {

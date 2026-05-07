@@ -107,7 +107,7 @@ mod tests {
     #[test]
     fn doctor_renderer_prints_expected_summary() {
         let mut report = DoctorReport {
-            scope: "global + current platform (claude)".to_string(),
+            scope: "global + configured Claude/Codex runtimes (claude)".to_string(),
             online: false,
             summary: Default::default(),
             checks: Vec::new(),

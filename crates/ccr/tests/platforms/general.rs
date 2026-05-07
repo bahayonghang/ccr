@@ -14,10 +14,12 @@
 //
 // 共计: 22 个单元测试
 
+use crate::{PlatformTestEnv, setup_platform_test_env};
 use ccr::{
     CcrError, Platform, PlatformConfigManager, PlatformPaths, ProfileConfig, create_platform,
 };
-use tempfile::TempDir;
+
+type TempDir = PlatformTestEnv;
 
 // ═══════════════════════════════════════════════════════════
 // 测试辅助函数
@@ -25,7 +27,7 @@ use tempfile::TempDir;
 
 /// 创建临时测试环境
 fn setup_test_env() -> TempDir {
-    let temp_dir = TempDir::new().unwrap();
+    let temp_dir = setup_platform_test_env();
 
     // 设置环境变量指向临时目录
     // SAFETY: 测试仅在当前进程临时设置 CCR_ROOT，清理函数会恢复干净状态。
@@ -186,8 +188,6 @@ fn test_platform_config_manager_create_default() {
     let config = manager.load_or_create_default().unwrap();
 
     // 验证默认配置
-    assert_eq!(config.default_platform, "claude");
-    assert_eq!(config.current_platform, "claude");
     assert!(config.platforms.contains_key("claude"));
     assert!(config.platforms.get("claude").unwrap().enabled);
 
@@ -238,12 +238,17 @@ fn test_platform_config_manager_switch_platform() {
         .unwrap();
 
     // 切换到 Codex
-    config.set_current_platform("codex").unwrap();
+    config
+        .set_current_profile("codex", Some("default"))
+        .unwrap();
     manager.save(&config).unwrap();
 
     // 验证切换
     let reloaded = manager.load().unwrap();
-    assert_eq!(reloaded.current_platform, "codex");
+    assert_eq!(
+        reloaded.get_current_profile("codex").unwrap(),
+        Some("default")
+    );
 
     cleanup_test_env(_temp_dir);
 }
@@ -478,12 +483,17 @@ fn test_unified_config_persistence() {
         .unwrap();
 
     // 切换配置
-    config.set_current_platform("codex").unwrap();
+    config
+        .set_current_profile("codex", Some("default"))
+        .unwrap();
     manager.save(&config).unwrap();
 
     // 重新加载并验证
     let reloaded = manager.load().unwrap();
-    assert_eq!(reloaded.current_platform, "codex");
+    assert_eq!(
+        reloaded.get_current_profile("codex").unwrap(),
+        Some("default")
+    );
 
     cleanup_test_env(_temp_dir);
 }

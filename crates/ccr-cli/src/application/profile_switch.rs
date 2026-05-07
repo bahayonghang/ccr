@@ -2,7 +2,6 @@ use crate::application::types::{SwitchProfileRequest, SwitchProfileResult};
 use crate::managers::settings::SettingsManager;
 use crate::managers::{
     HistoryEntry, HistoryManager, OperationDetails, OperationResult, OperationType,
-    PlatformConfigManager,
 };
 use crate::models::Platform;
 use crate::platforms::create_platform;
@@ -13,14 +12,11 @@ use std::str::FromStr;
 
 #[allow(dead_code)]
 pub async fn switch_profile(request: SwitchProfileRequest) -> Result<SwitchProfileResult> {
-    let platform_name = match request.platform_name {
-        Some(name) => name,
-        None => {
-            let platform_config_mgr = PlatformConfigManager::with_default()?;
-            let unified_config = platform_config_mgr.load()?;
-            unified_config.current_platform
-        }
-    };
+    let platform_name = request.platform_name.ok_or_else(|| {
+        CcrError::ValidationError(
+            "platform_name is required; use platform-scoped profile switching".into(),
+        )
+    })?;
 
     switch_profile_for_platform(&request.config_name, &platform_name).await
 }

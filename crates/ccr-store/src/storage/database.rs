@@ -23,9 +23,15 @@ impl Database {
     ///
     /// 默认路径: `~/.ccr/data.db`
     pub fn init_default() -> Result<Self> {
-        let ccr_dir = dirs::home_dir()
-            .ok_or_else(|| CcrError::ConfigError("无法获取用户目录".to_string()))?
-            .join(".ccr");
+        let ccr_dir = if let Ok(custom) = std::env::var("CCR_DATA_DIR") {
+            PathBuf::from(custom)
+        } else if let Ok(custom) = std::env::var("CCR_ROOT") {
+            PathBuf::from(custom)
+        } else {
+            dirs::home_dir()
+                .ok_or_else(|| CcrError::ConfigError("无法获取用户目录".to_string()))?
+                .join(".ccr")
+        };
 
         std::fs::create_dir_all(&ccr_dir).map_err(|e| {
             CcrError::DatabaseError(format!("无法创建 CCR 目录 {}: {}", ccr_dir.display(), e))

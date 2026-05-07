@@ -100,6 +100,14 @@ impl Platform {
             .filter(|p| p.is_implemented())
             .collect()
     }
+
+    /// Platforms that support auth/profile command surfaces.
+    ///
+    /// Keep this narrower than [`Self::all`] because Gemini/Qwen/Droid remain
+    /// valid in usage, sync, and session domains.
+    pub fn auth_profile_supported() -> &'static [Platform] {
+        &[Platform::Claude, Platform::Codex]
+    }
 }
 
 impl fmt::Display for Platform {
@@ -524,6 +532,7 @@ mod tests {
         let platforms = Platform::all();
         assert_eq!(platforms.len(), 5);
         assert!(platforms.contains(&Platform::Claude));
+        assert!(platforms.contains(&Platform::Gemini));
         assert!(platforms.contains(&Platform::Qwen));
         assert!(platforms.contains(&Platform::Droid));
     }
@@ -535,6 +544,17 @@ mod tests {
         assert!(implemented.contains(&Platform::Claude));
         assert!(implemented.contains(&Platform::Droid));
         assert!(!implemented.contains(&Platform::Qwen));
+    }
+
+    #[test]
+    fn test_auth_profile_supported_is_narrower_than_all_platforms() {
+        let supported = Platform::auth_profile_supported();
+        assert_eq!(supported, &[Platform::Claude, Platform::Codex]);
+
+        let all = Platform::all();
+        assert!(all.contains(&Platform::Gemini));
+        assert!(all.contains(&Platform::Qwen));
+        assert!(all.contains(&Platform::Droid));
     }
 
     #[test]

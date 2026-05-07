@@ -13,8 +13,10 @@
 //
 // 共计: 10 个集成测试
 
+use crate::{PlatformTestEnv, setup_platform_test_env};
 use ccr::{Platform, PlatformConfigManager, PlatformPaths, ProfileConfig, create_platform};
-use tempfile::TempDir;
+
+type TempDir = PlatformTestEnv;
 
 // ═══════════════════════════════════════════════════════════
 // 测试辅助函数
@@ -22,7 +24,7 @@ use tempfile::TempDir;
 
 /// 创建临时测试环境
 fn setup_test_env() -> TempDir {
-    let temp_dir = TempDir::new().unwrap();
+    let temp_dir = setup_platform_test_env();
 
     // 设置环境变量指向临时目录
     // SAFETY: 测试仅在当前进程临时设置 CCR_ROOT，清理函数会恢复干净状态。
@@ -97,7 +99,6 @@ fn test_platform_switching_workflow() {
     let mut config = manager.load_or_create_default().unwrap();
 
     // 验证初始状态
-    assert_eq!(config.current_platform, "claude");
     assert!(config.platforms.contains_key("claude"));
 
     // 2. 注册 Codex 平台
@@ -128,12 +129,15 @@ fn test_platform_switching_workflow() {
     codex.save_profile("github", &codex_profile).unwrap();
 
     // 5. 切换到 Codex 平台
-    config.set_current_platform("codex").unwrap();
+    config.set_current_profile("codex", Some("github")).unwrap();
     manager.save(&config).unwrap();
 
     // 6. 验证切换成功
     let reloaded = manager.load().unwrap();
-    assert_eq!(reloaded.current_platform, "codex");
+    assert_eq!(
+        reloaded.get_current_profile("codex").unwrap(),
+        Some("github")
+    );
 
     // 7. 验证 profiles 依然独立存在
     let claude_profiles = claude.load_profiles().unwrap();
@@ -144,11 +148,16 @@ fn test_platform_switching_workflow() {
 
     // 8. 切换回 Claude
     let mut config = manager.load().unwrap();
-    config.set_current_platform("claude").unwrap();
+    config
+        .set_current_profile("claude", Some("official"))
+        .unwrap();
     manager.save(&config).unwrap();
 
     let final_config = manager.load().unwrap();
-    assert_eq!(final_config.current_platform, "claude");
+    assert_eq!(
+        final_config.get_current_profile("claude").unwrap(),
+        Some("official")
+    );
 
     cleanup_test_env(_temp_dir);
 }
@@ -318,14 +327,19 @@ fn test_platform_config_persistence_and_reload() {
     }
 
     // 设置当前平台为 Codex
-    config.set_current_platform("codex").unwrap();
+    config
+        .set_current_profile("codex", Some("codex-official"))
+        .unwrap();
     manager.save(&config).unwrap();
 
     // 重新加载并验证
     let reloaded = manager.load().unwrap();
 
     // 验证当前平台
-    assert_eq!(reloaded.current_platform, "codex");
+    assert_eq!(
+        reloaded.get_current_profile("codex").unwrap(),
+        Some("codex-official")
+    );
 
     // 验证所有平台都已注册
     assert!(reloaded.platforms.contains_key("claude"));
@@ -480,12 +494,17 @@ fn test_multiple_platform_switches() {
     let platforms = vec!["claude", "codex", "gemini", "claude", "gemini", "codex"];
 
     for platform in platforms {
-        config.set_current_platform(platform).unwrap();
+        config
+            .set_current_profile(platform, Some("selected"))
+            .unwrap();
         manager.save(&config).unwrap();
 
         // 重新加载验证
         let reloaded = manager.load().unwrap();
-        assert_eq!(reloaded.current_platform, platform);
+        assert_eq!(
+            reloaded.get_current_profile(platform).unwrap(),
+            Some("selected")
+        );
 
         // 更新本地配置引用
         config = reloaded;
@@ -493,7 +512,10 @@ fn test_multiple_platform_switches() {
 
     // 最终验证
     let final_config = manager.load().unwrap();
-    assert_eq!(final_config.current_platform, "codex");
+    assert_eq!(
+        final_config.get_current_profile("codex").unwrap(),
+        Some("selected")
+    );
 
     cleanup_test_env(_temp_dir);
 }
@@ -605,8 +627,6 @@ fn test_end_to_end_complete_workflow() {
     // 1. 初始化配置系统
     let manager = PlatformConfigManager::with_default().unwrap();
     let mut config = manager.load_or_create_default().unwrap();
-    assert_eq!(config.current_platform, "claude");
-
     // 2. 为 Claude 创建 profiles
     let claude = create_platform(Platform::Claude).unwrap();
     let claude_official = create_claude_profile("official");
@@ -625,7 +645,7 @@ fn test_end_to_end_complete_workflow() {
     config
         .register_platform("codex".to_string(), codex_entry)
         .unwrap();
-    config.set_current_platform("codex").unwrap();
+    config.set_current_profile("codex", Some("github")).unwrap();
     manager.save(&config).unwrap();
 
     // 4. 为 Codex 创建 profiles
@@ -635,7 +655,10 @@ fn test_end_to_end_complete_workflow() {
 
     // 5. 验证当前平台是 Codex
     let reloaded = manager.load().unwrap();
-    assert_eq!(reloaded.current_platform, "codex");
+    assert_eq!(
+        reloaded.get_current_profile("codex").unwrap(),
+        Some("github")
+    );
 
     // 6. 验证 Claude profiles 依然存在
     let claude_profiles = claude.load_profiles().unwrap();
@@ -650,12 +673,17 @@ fn test_end_to_end_complete_workflow() {
 
     // 8. 切换回 Claude
     let mut config = manager.load().unwrap();
-    config.set_current_platform("claude").unwrap();
+    config
+        .set_current_profile("claude", Some("official"))
+        .unwrap();
     manager.save(&config).unwrap();
 
     // 9. 最终验证
     let final_config = manager.load().unwrap();
-    assert_eq!(final_config.current_platform, "claude");
+    assert_eq!(
+        final_config.get_current_profile("claude").unwrap(),
+        Some("official")
+    );
 
     // 10. 清理：删除一个 Claude profile
     claude.delete_profile("custom").unwrap();

@@ -14,6 +14,7 @@ pub mod doctor_service;
 pub mod health_check;
 pub mod history_service;
 pub mod multi_backup_service;
+pub mod runtime_overview_service;
 pub mod settings_service;
 #[allow(dead_code)]
 pub mod skills_service;
@@ -52,6 +53,10 @@ pub use doctor_service::{
 pub use history_service::HistoryService;
 #[allow(unused_imports)]
 pub use multi_backup_service::MultiBackupService;
+#[allow(unused_imports)]
+pub use runtime_overview_service::{
+    PlatformStatusCard, RuntimeOverview, RuntimeOverviewService, StatusAuthKind, StatusHealth,
+};
 #[allow(unused_imports)]
 pub use settings_service::SettingsService;
 #[allow(unused_imports)]

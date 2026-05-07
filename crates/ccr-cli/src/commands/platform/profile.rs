@@ -52,8 +52,17 @@ pub struct PlatformProfileCreateArgs {
 }
 
 fn parse_platform(platform_name: &str) -> Result<Platform> {
-    Platform::from_str(platform_name)
-        .map_err(|_| CcrError::PlatformNotFound(platform_name.to_string()))
+    let platform = Platform::from_str(platform_name)
+        .map_err(|_| CcrError::PlatformNotFound(platform_name.to_string()))?;
+
+    if Platform::auth_profile_supported().contains(&platform) {
+        Ok(platform)
+    } else {
+        Err(CcrError::PlatformNotSupported(format!(
+            "{} auth/profile commands support only claude and codex",
+            platform
+        )))
+    }
 }
 
 fn editable_fields(platform: Platform) -> &'static [&'static str] {
@@ -374,6 +383,16 @@ mod tests {
             profile.tags,
             Some(vec!["work".to_string(), "team".to_string()])
         );
+    }
+
+    #[test]
+    fn test_parse_platform_rejects_non_auth_profile_platforms() {
+        for platform_name in ["gemini", "qwen", "droid"] {
+            let err = parse_platform(platform_name).unwrap_err();
+            assert!(matches!(err, CcrError::PlatformNotSupported(_)));
+            assert!(err.to_string().contains(platform_name));
+            assert!(err.to_string().contains("claude and codex"));
+        }
     }
 
     #[test]

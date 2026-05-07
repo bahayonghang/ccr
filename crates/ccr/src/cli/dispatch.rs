@@ -163,7 +163,9 @@ impl CommandDispatcher {
     async fn handle_no_subcommand(cli: &Cli) -> Result<(), CcrError> {
         if let Some(config_name) = &cli.config_name {
             // 快捷切换配置
-            crate::commands::switch_command(config_name).await
+            Err(crate::commands::migration::legacy_shortcut_error(
+                config_name,
+            ))
         } else {
             // 打开TUI配置选择器
             #[cfg(feature = "tui")]
@@ -318,125 +320,27 @@ impl CommandDispatcher {
         action: &crate::cli::subcommands::PlatformAction,
     ) -> Result<(), CcrError> {
         use crate::cli::subcommands::PlatformAction;
-        use crate::cli::subcommands::platform::PlatformProfileAction;
-
         match action {
             PlatformAction::Help => {
                 help::print_subcommand_help("platform");
                 Ok(())
             }
             PlatformAction::List { json } => crate::commands::platform_list_command(*json).await,
-            PlatformAction::Switch { platform_name } => {
-                crate::commands::platform_switch_command(platform_name).await
-            }
-            PlatformAction::Current { json } => {
-                crate::commands::platform_current_command(*json).await
-            }
-            PlatformAction::Info {
-                platform_name,
-                json,
-            } => crate::commands::platform_info_command(platform_name, *json).await,
-            PlatformAction::Init { platform_name } => {
-                crate::commands::platform_init_command(platform_name).await
-            }
-            PlatformAction::Profile { action } => match action.as_ref() {
-                PlatformProfileAction::Create {
-                    platform_name,
-                    name,
-                    description,
-                    base_url,
-                    auth_token,
-                    model,
-                    small_fast_model,
-                    provider,
-                    provider_type,
-                    account,
-                    tags,
-                    auth_mode,
-                    disabled,
-                    json,
-                } => {
-                    crate::commands::platform::platform_profile_create_command(
-                        crate::commands::platform::PlatformProfileCreateArgs {
-                            platform_name: platform_name.clone(),
-                            name: name.clone(),
-                            description: description.clone(),
-                            base_url: base_url.clone(),
-                            auth_token: auth_token.clone(),
-                            model: model.clone(),
-                            small_fast_model: small_fast_model.clone(),
-                            provider: provider.clone(),
-                            provider_type: provider_type.clone(),
-                            account: account.clone(),
-                            tags: tags.clone(),
-                            auth_mode: auth_mode.clone(),
-                            disabled: *disabled,
-                            json: *json,
-                        },
-                    )
-                    .await
-                }
-                PlatformProfileAction::SetField {
-                    platform_name,
-                    name,
-                    field,
-                    value,
-                    value_json,
-                    clear,
-                    json,
-                } => {
-                    crate::commands::platform::platform_profile_set_field_command(
-                        platform_name,
-                        name,
-                        field,
-                        value.clone(),
-                        value_json.clone(),
-                        *clear,
-                        *json,
-                    )
-                    .await
-                }
-                PlatformProfileAction::Enable {
-                    platform_name,
-                    name,
-                    json,
-                } => {
-                    crate::commands::platform::platform_profile_enable_command(
-                        platform_name,
-                        name,
-                        *json,
-                    )
-                    .await
-                }
-                PlatformProfileAction::Disable {
-                    platform_name,
-                    name,
-                    force,
-                    json,
-                } => {
-                    crate::commands::platform::platform_profile_disable_command(
-                        platform_name,
-                        name,
-                        *force,
-                        *json,
-                    )
-                    .await
-                }
-                PlatformProfileAction::Delete {
-                    platform_name,
-                    name,
-                    force,
-                    json,
-                } => {
-                    crate::commands::platform::platform_profile_delete_command(
-                        platform_name,
-                        name,
-                        *force,
-                        *json,
-                    )
-                    .await
-                }
-            },
+            PlatformAction::Switch { .. } => Err(
+                crate::commands::migration::legacy_platform_command_error("switch"),
+            ),
+            PlatformAction::Current { .. } => Err(
+                crate::commands::migration::legacy_platform_command_error("current"),
+            ),
+            PlatformAction::Info { .. } => Err(
+                crate::commands::migration::legacy_platform_command_error("info"),
+            ),
+            PlatformAction::Init { .. } => Err(
+                crate::commands::migration::legacy_platform_command_error("init"),
+            ),
+            PlatformAction::Profile { .. } => Err(
+                crate::commands::migration::legacy_platform_command_error("profile"),
+            ),
         }
     }
 
@@ -458,7 +362,7 @@ impl CommandDispatcher {
         action: &Option<crate::cli::subcommands::CodexAction>,
     ) -> Result<(), CcrError> {
         use crate::cli::subcommands::codex::CodexSyncHistoryAction;
-        use crate::cli::subcommands::{CodexAction, CodexAuthAction};
+        use crate::cli::subcommands::{CodexAction, CodexAuthAction, CodexProfileAction};
 
         match action {
             // 无子命令时启动主 TUI 的 Codex Auth 视图
@@ -481,6 +385,39 @@ impl CommandDispatcher {
             Some(CodexAction::Env { name }) => {
                 crate::commands::codex::env::env_command(name.as_deref()).await
             }
+            Some(CodexAction::Profile { action }) => match action {
+                CodexProfileAction::Help => {
+                    help::print_nested_subcommand_help(&["codex", "profile"]);
+                    Ok(())
+                }
+                CodexProfileAction::Current { json } => {
+                    crate::commands::codex::profile::current_command(*json).await
+                }
+                CodexProfileAction::List { json } => {
+                    crate::commands::codex::profile::list_command(*json).await
+                }
+                CodexProfileAction::Switch { name } => {
+                    crate::commands::codex::profile::switch_command(name).await
+                }
+                CodexProfileAction::Create(args) => {
+                    crate::commands::codex::profile::create_command(args.clone()).await
+                }
+                CodexProfileAction::SetField(args) => {
+                    crate::commands::codex::profile::set_field_command(args.clone()).await
+                }
+                CodexProfileAction::Enable(args) => {
+                    crate::commands::codex::profile::enable_command(args.clone()).await
+                }
+                CodexProfileAction::Disable(args) => {
+                    crate::commands::codex::profile::disable_command(args.clone()).await
+                }
+                CodexProfileAction::Delete(args) => {
+                    crate::commands::codex::profile::delete_command(args.clone()).await
+                }
+                CodexProfileAction::Off(args) => {
+                    crate::commands::codex::profile::off_command(args.json).await
+                }
+            },
             Some(CodexAction::Quota {
                 account,
                 json,
@@ -629,7 +566,7 @@ impl CommandDispatcher {
     async fn dispatch_claude(
         action: &Option<crate::cli::subcommands::ClaudeAction>,
     ) -> Result<(), CcrError> {
-        use crate::cli::subcommands::{ClaudeAction, ClaudeAuthAction};
+        use crate::cli::subcommands::{ClaudeAction, ClaudeAuthAction, ClaudeProfileAction};
 
         match action {
             None => {
@@ -646,6 +583,39 @@ impl CommandDispatcher {
                 help::print_subcommand_help("claude");
                 Ok(())
             }
+            Some(ClaudeAction::Profile { action }) => match action.as_ref() {
+                ClaudeProfileAction::Help => {
+                    help::print_nested_subcommand_help(&["claude", "profile"]);
+                    Ok(())
+                }
+                ClaudeProfileAction::Current { json } => {
+                    crate::commands::claude::profile::current_command(*json).await
+                }
+                ClaudeProfileAction::List { json } => {
+                    crate::commands::claude::profile::list_command(*json).await
+                }
+                ClaudeProfileAction::Switch { name } => {
+                    crate::commands::claude::profile::switch_command(name).await
+                }
+                ClaudeProfileAction::Create(args) => {
+                    crate::commands::claude::profile::create_command(args.clone()).await
+                }
+                ClaudeProfileAction::SetField(args) => {
+                    crate::commands::claude::profile::set_field_command(args.clone()).await
+                }
+                ClaudeProfileAction::Enable(args) => {
+                    crate::commands::claude::profile::enable_command(args.clone()).await
+                }
+                ClaudeProfileAction::Disable(args) => {
+                    crate::commands::claude::profile::disable_command(args.clone()).await
+                }
+                ClaudeProfileAction::Delete(args) => {
+                    crate::commands::claude::profile::delete_command(args.clone()).await
+                }
+                ClaudeProfileAction::Off(args) => {
+                    crate::commands::claude::profile::off_command(args.json).await
+                }
+            },
             Some(ClaudeAction::Auth { action }) => match action {
                 ClaudeAuthAction::Help => {
                     help::print_nested_subcommand_help(&["claude", "auth"]);

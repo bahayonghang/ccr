@@ -4,6 +4,11 @@
 
 use clap::Subcommand;
 
+use super::profile_args::{
+    ProfileCreateActionArgs, ProfileDisableActionArgs, ProfileNameJsonActionArgs,
+    ProfileOffActionArgs, ProfileSetFieldActionArgs,
+};
+
 /// Codex 子命令
 ///
 /// 管理 Codex CLI 的多账号登录状态
@@ -24,6 +29,12 @@ pub enum CodexAction {
     Auth {
         #[command(subcommand)]
         action: CodexAuthAction,
+    },
+
+    /// Profile 路由与模式管理
+    Profile {
+        #[command(subcommand)]
+        action: CodexProfileAction,
     },
 
     /// 输出当前或指定 profile 的环境变量导出脚本
@@ -88,6 +99,51 @@ pub enum CodexAction {
         #[command(subcommand)]
         action: Option<CodexSyncHistoryAction>,
     },
+}
+
+#[derive(Subcommand)]
+#[command(disable_help_subcommand = true)]
+pub enum CodexProfileAction {
+    /// 显示 Codex Profile 命令帮助
+    Help,
+
+    /// 显示当前 Codex profile/runtime 状态
+    Current {
+        /// 以 JSON 格式输出
+        #[arg(long)]
+        json: bool,
+    },
+
+    /// 列出 Codex profiles
+    List {
+        /// 以 JSON 格式输出
+        #[arg(long)]
+        json: bool,
+    },
+
+    /// 切换到指定 Codex profile
+    Switch {
+        /// 要切换到的 profile 名称
+        name: String,
+    },
+
+    /// 退出当前 profile 路由，回到 official auth runtime
+    /// Create a new Codex profile
+    Create(ProfileCreateActionArgs),
+
+    /// Update one Codex profile field
+    SetField(ProfileSetFieldActionArgs),
+
+    /// Enable a Codex profile
+    Enable(ProfileNameJsonActionArgs),
+
+    /// Disable a Codex profile
+    Disable(ProfileDisableActionArgs),
+
+    /// Delete a Codex profile
+    Delete(ProfileDisableActionArgs),
+
+    Off(ProfileOffActionArgs),
 }
 
 /// Codex 历史同步子命令

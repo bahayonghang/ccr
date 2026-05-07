@@ -8,5 +8,6 @@
 
 pub mod auth;
 pub mod env;
+pub mod profile;
 pub mod quota;
 pub mod sync_history;

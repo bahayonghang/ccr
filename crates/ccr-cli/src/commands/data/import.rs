@@ -235,6 +235,7 @@ mod tests {
 
     #[test]
     fn test_merge_configs() {
+        let _env_guard = crate::test_support::env_lock();
         let _guard = CONFIG_LOCK
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner());

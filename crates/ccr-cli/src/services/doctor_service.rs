@@ -183,8 +183,9 @@ impl DoctorProviderProbe for LiveDoctorProviderProbe {
 
 struct GlobalDoctorContext {
     unified: Option<UnifiedConfig>,
-    current_platform: Option<Platform>,
     configured_platforms: Vec<Platform>,
+    claude_target: Option<Platform>,
+    codex_target: Option<Platform>,
 }
 
 struct ResolvedScope {
@@ -253,8 +254,9 @@ impl DoctorService {
     fn collect_global_checks(&self, report: &mut DoctorReport) -> GlobalDoctorContext {
         let mut context = GlobalDoctorContext {
             unified: None,
-            current_platform: None,
             configured_platforms: Vec::new(),
+            claude_target: None,
+            codex_target: None,
         };
 
         let platform_manager = match PlatformConfigManager::with_default() {
@@ -338,59 +340,6 @@ impl DoctorService {
             }
         }
 
-        match context.unified.as_ref() {
-            Some(unified) => match Platform::from_str(&unified.current_platform) {
-                Ok(platform) if platform.is_implemented() => {
-                    context.current_platform = Some(platform);
-                    report.push(
-                        DoctorCheck::ok(
-                            "global.current_platform",
-                            format!("Current platform is {}.", platform.short_name()),
-                        )
-                        .with_detail(format!(
-                            "Registry entry points to {}.",
-                            platform.display_name()
-                        )),
-                    );
-                }
-                Ok(platform) => {
-                    report.push(
-                        DoctorCheck::fail(
-                            "global.current_platform",
-                            format!(
-                                "Current platform '{}' is not implemented.",
-                                platform.short_name()
-                            ),
-                        )
-                        .with_recommendation(
-                            "Switch to an implemented platform such as claude, codex, gemini, or droid.",
-                        ),
-                    );
-                }
-                Err(error) => {
-                    report.push(
-                        DoctorCheck::fail(
-                            "global.current_platform",
-                            "Current platform could not be parsed from the registry.",
-                        )
-                        .with_detail(error.to_string())
-                        .with_recommendation(
-                            "Update ~/.ccr/config.toml to a supported platform name.",
-                        ),
-                    );
-                }
-            },
-            None => {
-                report.push(
-                    DoctorCheck::fail(
-                        "global.current_platform",
-                        "Current platform could not be resolved because the registry is unavailable.",
-                    )
-                    .with_recommendation("Restore ~/.ccr/config.toml before rerunning doctor."),
-                );
-            }
-        }
-
         let detector = PlatformDetector::new();
         let detected_platforms = match detector.detect_configured_platforms() {
             Ok(platforms) => platforms,
@@ -410,6 +359,12 @@ impl DoctorService {
         let (configured_platforms, unknown_registry_platforms) =
             Self::merge_configured_platforms(context.unified.as_ref(), detected_platforms);
         context.configured_platforms = configured_platforms.clone();
+        context.claude_target = configured_platforms
+            .contains(&Platform::Claude)
+            .then_some(Platform::Claude);
+        context.codex_target = configured_platforms
+            .contains(&Platform::Codex)
+            .then_some(Platform::Codex);
 
         if configured_platforms.is_empty() {
             report.push(
@@ -454,9 +409,38 @@ impl DoctorService {
             );
         }
 
+        Self::push_runtime_target_check(report, Platform::Claude, context.claude_target.is_some());
+        Self::push_runtime_target_check(report, Platform::Codex, context.codex_target.is_some());
+
         self.collect_conflict_check(report);
 
         context
+    }
+
+    fn push_runtime_target_check(report: &mut DoctorReport, platform: Platform, configured: bool) {
+        let platform_name = platform.short_name();
+        let check_id = format!("global.{platform_name}.runtime");
+
+        if configured {
+            report.push(DoctorCheck::ok(
+                check_id,
+                format!("{} runtime target is configured.", platform.display_name()),
+            ));
+        } else {
+            report.push(
+                DoctorCheck::skip(
+                    check_id,
+                    format!(
+                        "{} runtime target is not configured.",
+                        platform.display_name()
+                    ),
+                )
+                .with_recommendation(format!(
+                    "Create a {} profile before expecting runtime/profile validation for this platform.",
+                    platform_name
+                )),
+            );
+        }
     }
 
     fn collect_conflict_check(&self, report: &mut DoctorReport) {
@@ -565,12 +549,21 @@ impl DoctorService {
             };
         }
 
+        let targets = [context.claude_target, context.codex_target]
+            .into_iter()
+            .flatten()
+            .collect::<Vec<_>>();
+
         ResolvedScope {
-            label: context
-                .current_platform
-                .map(|platform| format!("global + current platform ({})", platform.short_name()))
-                .unwrap_or_else(|| "global + current platform".to_string()),
-            targets: context.current_platform.into_iter().collect(),
+            label: if targets.is_empty() {
+                "global + configured Claude/Codex runtimes".to_string()
+            } else {
+                format!(
+                    "global + configured Claude/Codex runtimes ({})",
+                    Self::format_platform_names(&targets)
+                )
+            },
+            targets,
         }
     }
 
@@ -859,7 +852,7 @@ impl DoctorService {
                 )),
             ),
             None => (
-                DoctorStatus::Fail,
+                DoctorStatus::Skip,
                 format!(
                     "No valid current {} profile could be resolved.",
                     platform_name
@@ -1393,10 +1386,7 @@ mod tests {
     use indexmap::IndexMap;
     use std::collections::HashMap;
     use std::sync::atomic::{AtomicUsize, Ordering};
-    use std::sync::{LazyLock, Mutex};
     use tempfile::tempdir;
-
-    static ENV_LOCK: LazyLock<Mutex<()>> = LazyLock::new(|| Mutex::new(()));
 
     struct CountingProbe {
         calls: Arc<AtomicUsize>,
@@ -1444,7 +1434,7 @@ mod tests {
 
     impl TestEnv {
         fn new() -> Self {
-            let guard = ENV_LOCK.lock().unwrap();
+            let guard = crate::test_support::env_lock();
             let temp_dir = tempdir().unwrap();
             let home = temp_dir.path().join("home");
             let root = home.join(".ccr");
@@ -1512,6 +1502,24 @@ mod tests {
                 },
             );
             manager.save(&unified).unwrap();
+        }
+
+        fn write_unified_config_without_legacy_routing_fields(
+            &self,
+            platform: &str,
+            current_profile: &str,
+        ) {
+            fs::write(
+                self.root.join("config.toml"),
+                format!(
+                    r#"
+[{platform}]
+enabled = true
+current_profile = "{current_profile}"
+"#
+                ),
+            )
+            .unwrap();
         }
 
         fn write_claude_profile(&self, name: &str) {
@@ -1623,7 +1631,7 @@ mod tests {
     #[tokio::test]
     async fn doctor_service_skips_online_probe_by_default() {
         let env = TestEnv::new();
-        env.write_unified_config("claude", "main");
+        env.write_unified_config_without_legacy_routing_fields("claude", "main");
         env.write_claude_profile("main");
         env.write_claude_settings();
 
@@ -1643,6 +1651,28 @@ mod tests {
 
         assert_eq!(calls.load(Ordering::SeqCst), 0);
         assert_eq!(report.summary.failed, 0);
+        assert_eq!(
+            report.scope,
+            "global + configured Claude/Codex runtimes (claude)"
+        );
+        assert!(
+            report.checks.iter().any(
+                |check| check.id == "global.claude.runtime" && check.status == DoctorStatus::Ok
+            )
+        );
+        assert!(
+            report
+                .checks
+                .iter()
+                .any(|check| check.id == "global.codex.runtime"
+                    && check.status == DoctorStatus::Skip)
+        );
+        assert!(
+            report
+                .checks
+                .iter()
+                .all(|check| check.id != "global.current_platform")
+        );
     }
 
     #[tokio::test]

@@ -221,7 +221,7 @@ fn codex_no_auth_section() -> ConfigSection {
 }
 
 #[test]
-fn doctor_reports_healthy_current_platform() {
+fn doctor_reports_healthy_configured_claude_runtime() {
     let fixture = DoctorFixture::new();
     fixture.write_unified_config("claude", &[("claude", "main")]);
     fixture.write_profile("claude", "main", claude_api_key_section());
@@ -231,7 +231,29 @@ fn doctor_reports_healthy_current_platform() {
 
     assert!(output.status.success(), "{:?}", output.status);
     assert_eq!(json["summary"]["failed"], 0);
-    assert_eq!(json["scope"], "global + current platform (claude)");
+    assert_eq!(
+        json["scope"],
+        "global + configured Claude/Codex runtimes (claude)"
+    );
+    let checks = json["checks"].as_array().unwrap();
+    assert!(
+        checks
+            .iter()
+            .any(|check| check["id"] == "global.claude.runtime" && check["status"] == "ok")
+    );
+    assert!(
+        checks
+            .iter()
+            .any(|check| check["id"] == "global.codex.runtime" && check["status"] == "skip")
+    );
+    assert!(
+        checks
+            .iter()
+            .all(|check| check["id"] != "global.current_platform")
+    );
+    let saved_registry = fs::read_to_string(fixture.root.join("config.toml")).unwrap();
+    assert!(!saved_registry.contains("current_platform"));
+    assert!(!saved_registry.contains("default_platform"));
 }
 
 #[test]
@@ -301,4 +323,35 @@ fn doctor_rejects_conflicting_scope_flags() {
 
     assert!(!output.status.success());
     assert!(String::from_utf8_lossy(&output.stderr).contains("cannot be used with"));
+}
+
+#[test]
+fn doctor_default_scope_does_not_follow_legacy_current_platform() {
+    let fixture = DoctorFixture::new();
+    fs::write(
+        fixture.root.join("config.toml"),
+        r#"
+default_platform = "claude"
+current_platform = "codex"
+
+[claude]
+enabled = true
+current_profile = "main"
+"#,
+    )
+    .unwrap();
+    fixture.write_profile("claude", "main", claude_api_key_section());
+    fixture.write_claude_api_key_settings();
+
+    let (output, json) = fixture.run_json(&["doctor", "--json"]);
+
+    assert!(output.status.success(), "{:?}", output.status);
+    assert_eq!(
+        json["scope"],
+        "global + configured Claude/Codex runtimes (claude)"
+    );
+    assert!(json["checks"].as_array().unwrap().iter().all(|check| {
+        check["id"] != "global.current_platform" && !check["id"].as_str().unwrap().contains("codex")
+            || check["id"] == "global.codex.runtime"
+    }));
 }

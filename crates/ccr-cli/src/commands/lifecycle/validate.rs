@@ -3,10 +3,9 @@
 
 #![allow(clippy::unused_async)]
 
-use crate::managers::PlatformConfigManager;
-use crate::models::{ClaudeProfileAuthMode, PlatformConfig};
-use crate::platforms::ClaudePlatform;
-use crate::services::{ClaudeAuthService, ConfigService, SettingsService};
+use crate::models::{AuthStateStatus, ClaudeProfileAuthMode, CodexProfileAuthMode, PlatformConfig};
+use crate::platforms::{ClaudePlatform, CodexPlatform};
+use crate::services::{ClaudeAuthService, CodexAuthService, ConfigService, SettingsService};
 use ccr_core::core::error::Result;
 use ccr_core::core::logging::ColorOutput;
 use colored::*;
@@ -92,10 +91,8 @@ pub async fn validate_command() -> Result<()> {
     ColorOutput::separator();
     println!();
 
-    let current_platform = PlatformConfigManager::with_default()
-        .and_then(|manager| manager.load())
-        .map(|config| config.current_platform)
-        .unwrap_or_else(|_| "claude".to_string());
+    let claude_profile_auth_mode = resolve_claude_profile_auth_mode();
+    let codex_profile_auth_mode = resolve_codex_profile_auth_mode();
 
     // 使用 SettingsService 验证 Claude Code 设置
     ColorOutput::step("验证 Claude Code 设置 (~/.claude/settings.json)");
@@ -118,21 +115,6 @@ pub async fn validate_command() -> Result<()> {
                     .display()
             ));
 
-            let claude_profile_auth_mode = if current_platform == "claude" {
-                ClaudePlatform::new()
-                    .and_then(|platform| {
-                        let current_profile = platform.get_current_profile()?;
-                        let profiles = platform.load_profiles()?;
-                        Ok(current_profile.and_then(|name| {
-                            profiles.get(&name).map(ClaudePlatform::profile_auth_mode)
-                        }))
-                    })
-                    .ok()
-                    .flatten()
-            } else {
-                None
-            };
-
             println!();
             ColorOutput::step("环境变量验证");
 
@@ -153,10 +135,11 @@ pub async fn validate_command() -> Result<()> {
                     }
                     None => {
                         let is_optional = var_name.contains("SMALL_FAST_MODEL");
+                        let is_profile_unconfigured = claude_profile_auth_mode.is_none();
                         let is_subscription_mode =
                             claude_profile_auth_mode == Some(ClaudeProfileAuthMode::Subscription);
 
-                        if is_optional || is_subscription_mode {
+                        if is_optional || is_subscription_mode || is_profile_unconfigured {
                             println!("  {} {}: 未设置", "○".dimmed(), var_name);
                         } else {
                             println!("  {} {}: 未设置", "✗".red(), var_name);
@@ -204,19 +187,62 @@ pub async fn validate_command() -> Result<()> {
                         has_warnings = true;
                     }
                 }
-                _ => match settings.validate_api_key_mode() {
+                Some(ClaudeProfileAuthMode::ApiKey) => match settings.validate_api_key_mode() {
                     Ok(_) => ColorOutput::success("设置验证通过"),
                     Err(e) => {
                         ColorOutput::error(&format!("设置验证失败: {}", e));
                         has_errors = true;
                     }
                 },
+                None => {
+                    ColorOutput::info(
+                        "Claude current profile is not resolved; skipping Claude runtime/auth validation",
+                    );
+                }
             }
         }
         Err(e) => {
             ColorOutput::warning(&format!("设置文件不存在或无法读取: {}", e));
-            ColorOutput::info("提示: 运行 'ccr switch <config>' 来初始化设置");
+            ColorOutput::info("提示: 运行 'ccr claude profile switch <profile>' 来初始化设置");
             has_warnings = true;
+        }
+    }
+
+    println!();
+    ColorOutput::separator();
+    println!();
+    ColorOutput::step("验证 Codex runtime/profile 状态");
+    match codex_profile_auth_mode {
+        Some(auth_mode) => {
+            ColorOutput::info(&format!(
+                "当前 Codex Profile 使用 {} 模式",
+                auth_mode.as_str()
+            ));
+            match CodexAuthService::new() {
+                Ok(auth_service) => {
+                    let auth_state = auth_service.get_auth_state();
+                    if auth_mode.uses_openai_auth() {
+                        if auth_state.status == AuthStateStatus::Valid {
+                            ColorOutput::success("Codex OpenAI 认证状态可用");
+                        } else {
+                            ColorOutput::error(&format!(
+                                "Codex OpenAI 认证状态不可用: {}",
+                                auth_state.reason
+                            ));
+                            has_errors = true;
+                        }
+                    } else {
+                        ColorOutput::success("Codex Profile 不需要 managed OpenAI auth");
+                    }
+                }
+                Err(e) => {
+                    ColorOutput::warning(&format!("Codex auth service 无法初始化: {}", e));
+                    has_warnings = true;
+                }
+            }
+        }
+        None => {
+            ColorOutput::info("Codex 未解析到当前 Profile，跳过 Codex runtime/auth 验证");
         }
     }
 
@@ -224,6 +250,30 @@ pub async fn validate_command() -> Result<()> {
     ColorOutput::separator();
 
     generate_report(has_errors, has_warnings)
+}
+
+fn resolve_claude_profile_auth_mode() -> Option<ClaudeProfileAuthMode> {
+    ClaudePlatform::new()
+        .and_then(|platform| {
+            let current_profile = platform.get_current_profile()?;
+            let profiles = platform.load_profiles()?;
+            Ok(current_profile
+                .and_then(|name| profiles.get(&name).map(ClaudePlatform::profile_auth_mode)))
+        })
+        .ok()
+        .flatten()
+}
+
+fn resolve_codex_profile_auth_mode() -> Option<CodexProfileAuthMode> {
+    CodexPlatform::new()
+        .and_then(|platform| {
+            let current_profile = platform.get_current_profile()?;
+            let profiles = platform.load_profiles()?;
+            Ok(current_profile
+                .and_then(|name| profiles.get(&name).map(CodexPlatform::profile_auth_mode)))
+        })
+        .ok()
+        .flatten()
 }
 
 fn generate_report(has_errors: bool, has_warnings: bool) -> Result<()> {
@@ -244,7 +294,9 @@ fn generate_report(has_errors: bool, has_warnings: bool) -> Result<()> {
         println!("  1. 检查配置文件格式是否正确");
         println!("  2. 确保所有必填字段都已填写");
         println!("  3. 运行 'ccr list' 查看可用配置");
-        println!("  4. 运行 'ccr switch <config>' 切换到有效配置");
+        println!(
+            "  4. 运行 'ccr claude profile switch <profile>' 或 'ccr codex profile switch <profile>' 切换到有效配置"
+        );
     }
 
     if has_warnings {

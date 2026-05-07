@@ -50,8 +50,35 @@ mod tests {
     use crate::managers::config::{CcsConfig, ConfigManager, ConfigSection, GlobalSettings};
     use crate::services::ConfigService;
     use indexmap::IndexMap;
+    use std::path::Path;
     use std::sync::Arc;
     use tempfile::tempdir;
+
+    struct EnvVarGuard {
+        key: &'static str,
+        previous: Option<String>,
+    }
+
+    impl EnvVarGuard {
+        fn set_path(key: &'static str, value: &Path) -> Self {
+            let previous = std::env::var(key).ok();
+            unsafe {
+                std::env::set_var(key, value);
+            }
+            Self { key, previous }
+        }
+    }
+
+    impl Drop for EnvVarGuard {
+        fn drop(&mut self) {
+            unsafe {
+                match self.previous.take() {
+                    Some(value) => std::env::set_var(self.key, value),
+                    None => std::env::remove_var(self.key),
+                }
+            }
+        }
+    }
 
     fn create_test_config_with_disabled() -> CcsConfig {
         let mut sections = IndexMap::new();
@@ -83,7 +110,9 @@ mod tests {
 
     #[test]
     fn test_enable_config() {
+        let _env_guard = crate::test_support::env_lock();
         let temp_dir = tempdir().unwrap();
+        let _lock_dir = EnvVarGuard::set_path("CCR_LOCK_DIR", &temp_dir.path().join("locks"));
         let config_path = temp_dir.path().join(".ccs_config.toml");
 
         // 创建测试配置

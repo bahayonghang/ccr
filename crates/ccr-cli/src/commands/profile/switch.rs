@@ -9,7 +9,6 @@
 #![allow(clippy::unused_async)]
 
 use crate::application::profile_switch::switch_profile_for_platform as run_switch_profile_for_platform;
-use crate::managers::PlatformConfigManager;
 use crate::managers::settings::SettingsManager;
 use crate::models::Platform;
 use crate::platforms::create_platform;
@@ -26,9 +25,7 @@ use comfy_table::{
 /// 这是一个原子性操作,确保配置切换的完整性和可追溯性
 pub async fn switch_command(config_name: &str) -> Result<()> {
     // 🔍 加载平台配置
-    let platform_config_mgr = PlatformConfigManager::with_default()?;
-    let unified_config = platform_config_mgr.load()?;
-    switch_command_for_platform(config_name, &unified_config.current_platform).await
+    Err(crate::commands::migration::legacy_switch_error(config_name))
 }
 
 /// 🔄 在指定平台内切换到配置

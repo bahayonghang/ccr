@@ -626,10 +626,12 @@ mod tests {
         let _guard = ENV_LOCK.lock().unwrap();
         let temp_dir = tempfile::tempdir().unwrap();
         let previous_root = std::env::var("CCR_ROOT").ok();
+        let previous_lock_dir = std::env::var("CCR_LOCK_DIR").ok();
 
         // SAFETY: 测试需要临时覆写进程环境变量来隔离 CCR 根目录，作用域结束后会恢复。
         unsafe {
             std::env::set_var("CCR_ROOT", temp_dir.path());
+            std::env::set_var("CCR_LOCK_DIR", temp_dir.path().join(".locks"));
         }
 
         let result = (|| -> Result<()> {
@@ -657,6 +659,7 @@ mod tests {
         })();
 
         restore_env_var("CCR_ROOT", previous_root);
+        restore_env_var("CCR_LOCK_DIR", previous_lock_dir);
         result.unwrap();
     }
 
@@ -665,10 +668,12 @@ mod tests {
         let _guard = ENV_LOCK.lock().unwrap();
         let temp_dir = tempfile::tempdir().unwrap();
         let previous_root = std::env::var("CCR_ROOT").ok();
+        let previous_lock_dir = std::env::var("CCR_LOCK_DIR").ok();
 
         // SAFETY: 测试需要临时覆写进程环境变量来隔离 CCR 根目录，作用域结束后会恢复。
         unsafe {
             std::env::set_var("CCR_ROOT", temp_dir.path());
+            std::env::set_var("CCR_LOCK_DIR", temp_dir.path().join(".locks"));
         }
 
         let result = (|| -> Result<()> {
@@ -691,6 +696,7 @@ mod tests {
         })();
 
         restore_env_var("CCR_ROOT", previous_root);
+        restore_env_var("CCR_LOCK_DIR", previous_lock_dir);
         result.unwrap();
     }
 
