@@ -9,7 +9,8 @@ use crate::process;
 use crate::state::{AppState, DesktopShellPreferences, TrayPanelManualPosition};
 
 #[cfg(target_os = "macos")]
-const SKILLPORT_BUNDLE_IDS: [&str; 2] = ["com.bahayonghang.skillport", "com.iamzhihuix.skillsmanage"];
+const SKILLPORT_BUNDLE_IDS: [&str; 2] =
+    ["com.bahayonghang.skillport", "com.iamzhihuix.skillsmanage"];
 const SKILLPORT_APP_NAMES: [&str; 2] = ["skillport", "skills-manage"];
 
 /// `skillport` 检测结果。
@@ -400,9 +401,7 @@ fn is_skillport_display_name(value: &str) -> bool {
 }
 
 #[cfg(target_os = "windows")]
-fn resolve_skillport_path_from_registry(
-    entry_key: &winreg::RegKey,
-) -> Option<std::path::PathBuf> {
+fn resolve_skillport_path_from_registry(entry_key: &winreg::RegKey) -> Option<std::path::PathBuf> {
     if let Ok(display_icon) = entry_key.get_value::<String, _>("DisplayIcon")
         && let Some(path) = normalize_windows_display_icon_path(&display_icon)
         && path.is_file()
@@ -506,7 +505,10 @@ mod tests {
         let normalized = normalize_windows_display_icon_path(r#""C:\Apps\skillport.exe",0"#)
             .expect("path should parse");
 
-        assert_eq!(normalized, std::path::PathBuf::from(r#"C:\Apps\skillport.exe"#));
+        assert_eq!(
+            normalized,
+            std::path::PathBuf::from(r#"C:\Apps\skillport.exe"#)
+        );
     }
 
     #[cfg(target_os = "windows")]
@@ -529,9 +531,7 @@ mod tests {
                 ),
                 std::path::PathBuf::from(r"C:\Program Files\skillport\skillport.exe"),
                 std::path::PathBuf::from(r"C:\Program Files\skills-manage\skills-manage.exe"),
-                std::path::PathBuf::from(
-                    r"C:\Program Files (x86)\skillport\skillport.exe"
-                ),
+                std::path::PathBuf::from(r"C:\Program Files (x86)\skillport\skillport.exe"),
                 std::path::PathBuf::from(r"C:\Program Files (x86)\skills-manage\skills-manage.exe"),
             ]
         );

@@ -156,11 +156,7 @@ pub async fn claude_delete_profile(name: String) -> Result<Value, String> {
 fn claude_profiles_export_payload(include_secrets: bool) -> Result<Value, String> {
     let paths = PlatformPaths::new(Platform::Claude)
         .map_err(|e| format!("Failed to resolve Claude Profiles path: {e}"))?;
-    profiles_export_payload_from_path(
-        &paths.profiles_file,
-        "ccr-claude-profiles",
-        include_secrets,
-    )
+    profiles_export_payload_from_path(&paths.profiles_file, "ccr-claude-profiles", include_secrets)
 }
 
 #[tauri::command]
@@ -182,8 +178,7 @@ mod export_tests {
         fs::write(&profiles_file, content).unwrap();
 
         let payload =
-            profiles_export_payload_from_path(&profiles_file, "ccr-claude-profiles", true)
-                .unwrap();
+            profiles_export_payload_from_path(&profiles_file, "ccr-claude-profiles", true).unwrap();
         let filename = payload["filename"].as_str().unwrap();
 
         assert_eq!(payload["content"].as_str(), Some(content));
@@ -196,9 +191,8 @@ mod export_tests {
         let temp_dir = tempfile::tempdir().unwrap();
         let profiles_file = temp_dir.path().join("missing.toml");
 
-        let error =
-            profiles_export_payload_from_path(&profiles_file, "ccr-claude-profiles", true)
-                .unwrap_err();
+        let error = profiles_export_payload_from_path(&profiles_file, "ccr-claude-profiles", true)
+            .unwrap_err();
 
         assert!(error.contains("Failed to read profiles.toml"));
     }
@@ -209,9 +203,8 @@ mod export_tests {
         let profiles_file = temp_dir.path().join("profiles.toml");
         fs::write(&profiles_file, "[profiles.demo]\n").unwrap();
 
-        let error =
-            profiles_export_payload_from_path(&profiles_file, "ccr-claude-profiles", false)
-                .unwrap_err();
+        let error = profiles_export_payload_from_path(&profiles_file, "ccr-claude-profiles", false)
+            .unwrap_err();
 
         assert_eq!(error, "Redacted profiles export is not supported");
     }

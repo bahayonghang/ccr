@@ -15,12 +15,7 @@ fn parse_platform(s: &str) -> Option<Platform> {
 }
 
 fn requested_platform_ids(platforms: Option<Vec<String>>) -> Vec<String> {
-    platforms.unwrap_or_else(|| {
-        vec![
-            "codex".to_string(),
-            "gemini".to_string(),
-        ]
-    })
+    platforms.unwrap_or_else(|| vec!["codex".to_string(), "gemini".to_string()])
 }
 
 #[tauri::command]

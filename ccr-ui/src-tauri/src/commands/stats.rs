@@ -26,7 +26,6 @@ struct PlatformAccum {
     duration_ms: u64,
 }
 
-
 /// 计算费用概览（compute 函数，供 cached 命令与 Wait 降级路径共用）。
 ///
 /// 提取为独立 async 函数的目的：

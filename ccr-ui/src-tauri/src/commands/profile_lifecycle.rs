@@ -55,8 +55,8 @@ mod tests {
 
     #[test]
     fn target_name_rejects_blank_values() {
-        let error = resolve_profile_target_name("Claude", "current", &json!({ "name": " " }))
-            .unwrap_err();
+        let error =
+            resolve_profile_target_name("Claude", "current", &json!({ "name": " " })).unwrap_err();
         assert!(error.contains("不能为空"));
     }
 }
