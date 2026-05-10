@@ -71,7 +71,8 @@ const formatCost = (value: number) => (value >= 1 ? `$${value.toFixed(2)}` : `$$
 
 const formatPercent = (value: number) => `${(value * 100).toFixed(1)}%`
 const formatDateTime = (value: string, locale: string) => new Date(value).toLocaleString(locale)
-const modelCost = (model: ModelStat) => model.cost_with_cache ?? model.total_cost
+const modelCost = (model: ModelStat) => model.cost_with_cache ?? 0
+const outputSeriesName = 'Output'
 
 const hasTemplatePlaceholder = (value: string) => /\{[a-zA-Z_][a-zA-Z0-9_]*\}/.test(value)
 
@@ -85,11 +86,22 @@ const formatArchiveTimestamp = (value: string | null | undefined, locale: string
   return formatDateTime(value, locale)
 }
 
-const getTimeRange = (days: number) => {
-  const end = new Date()
-  const start = new Date(end.getTime() - days * 86400000)
-  return { start: start.toISOString().slice(0, 10), end: end.toISOString().slice(0, 10) }
+export const formatLocalDate = (date: Date) => {
+  const year = date.getFullYear()
+  const month = `${date.getMonth() + 1}`.padStart(2, '0')
+  const day = `${date.getDate()}`.padStart(2, '0')
+  return `${year}-${month}-${day}`
 }
+
+export const getLocalDateWindow = (days: number, endDate = new Date()) => {
+  const normalizedDays = Math.max(1, Math.floor(days))
+  const end = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate())
+  const start = new Date(end)
+  start.setDate(end.getDate() - (normalizedDays - 1))
+  return { start: formatLocalDate(start), end: formatLocalDate(end) }
+}
+
+const getTimeRange = getLocalDateWindow
 
 const parseUtcDate = (value: string) => {
   const [year, month, day] = value.split('-').map(Number)
@@ -281,7 +293,6 @@ export const useUsageDashboardState = () => {
     const summary = store.summary
     if (!summary) return []
 
-    const totalTokens = summary.total_input_tokens + summary.total_output_tokens
     const averageCostPerRequest =
       summary.total_requests > 0
         ? formatCost(summary.total_cost_usd / summary.total_requests)
@@ -314,14 +325,15 @@ export const useUsageDashboardState = () => {
           undefined,
           'Total Tokens'
         ),
-        value: formatTokens(totalTokens),
+        value: formatTokens(summary.total_tokens),
         detail: translateDashboardText(
           'usage.dashboard.cards.tokensDetail',
           {
             input: formatTokens(summary.total_input_tokens),
             output: formatTokens(summary.total_output_tokens),
+            cache: formatTokens(summary.total_cache_read_tokens),
           },
-          `${formatTokens(summary.total_input_tokens)} in · ${formatTokens(summary.total_output_tokens)} out`
+          `${formatTokens(summary.total_input_tokens)} in · ${formatTokens(summary.total_output_tokens)} out · ${formatTokens(summary.total_cache_read_tokens)} cache read`
         ),
         icon: 'Layers',
         tone: 'violet',
@@ -345,7 +357,7 @@ export const useUsageDashboardState = () => {
         label: translateDashboardText(
           'usage.dashboard.cards.cacheEfficiency',
           undefined,
-          'Cache Efficiency'
+          'Cache Reuse Rate'
         ),
         value: formatPercent(summary.cache_efficiency),
         detail: translateDashboardText(
@@ -353,7 +365,7 @@ export const useUsageDashboardState = () => {
           {
             tokens: formatTokens(summary.total_cache_read_tokens),
           },
-          `${formatTokens(summary.total_cache_read_tokens)} cache read`
+          `cache read / (input + cache read) · ${formatTokens(summary.total_cache_read_tokens)} cache read`
         ),
         icon: 'Cpu',
         tone: 'amber',
@@ -435,29 +447,35 @@ export const useUsageDashboardState = () => {
     }))
   )
 
-  const trendSeries = computed(() => [
-    {
-      name: translateDashboardText('usage.dashboard.chart.input', undefined, 'Input'),
-      data: trendBuckets.value.map((item) => ({
-        x: `${item.startDate}T00:00:00Z`,
-        y: item.inputTokens,
-      })),
-    },
-    {
-      name: translateDashboardText('usage.dashboard.chart.output', undefined, 'Output'),
-      data: trendBuckets.value.map((item) => ({
-        x: `${item.startDate}T00:00:00Z`,
-        y: item.outputTokens,
-      })),
-    },
-    {
-      name: translateDashboardText('usage.dashboard.chart.cache', undefined, 'Cache'),
-      data: trendBuckets.value.map((item) => ({
-        x: `${item.startDate}T00:00:00Z`,
-        y: item.cacheReadTokens,
-      })),
-    },
-  ])
+  const trendSeries = computed(() => {
+    const inputName = translateDashboardText('usage.dashboard.chart.input', undefined, 'Input')
+    const outputName = translateDashboardText('usage.dashboard.chart.output', undefined, outputSeriesName)
+    const cacheName = translateDashboardText('usage.dashboard.chart.cache', undefined, 'Cache Read')
+
+    return [
+      {
+        name: inputName,
+        data: trendBuckets.value.map((item) => ({
+          x: `${item.startDate}T00:00:00Z`,
+          y: item.inputTokens,
+        })),
+      },
+      {
+        name: outputName,
+        data: trendBuckets.value.map((item) => ({
+          x: `${item.startDate}T00:00:00Z`,
+          y: item.outputTokens,
+        })),
+      },
+      {
+        name: cacheName,
+        data: trendBuckets.value.map((item) => ({
+          x: `${item.startDate}T00:00:00Z`,
+          y: item.cacheReadTokens,
+        })),
+      },
+    ]
+  })
 
   const trendGranularityLabel = computed(() => {
     const fallbacks: Record<TrendGranularity, string> = {
@@ -521,12 +539,32 @@ export const useUsageDashboardState = () => {
       axisBorder: { show: false },
       axisTicks: { color: chartTheme.value.grid },
     },
-    yaxis: {
-      labels: {
-        style: { colors: chartTheme.value.textMuted },
-        formatter: (value: number) => formatTokens(value),
+    yaxis: [
+      {
+        seriesName: trendSeries.value[0]?.name,
+        labels: {
+          style: { colors: chartTheme.value.textMuted },
+          formatter: (value: number) => formatTokens(value),
+        },
       },
-    },
+      {
+        seriesName: trendSeries.value[1]?.name,
+        opposite: true,
+        showAlways: true,
+        labels: {
+          style: { colors: chartTheme.value.textMuted },
+          formatter: (value: number) => formatTokens(value),
+        },
+      },
+      {
+        seriesName: trendSeries.value[2]?.name,
+        show: false,
+        labels: {
+          style: { colors: chartTheme.value.textMuted },
+          formatter: (value: number) => formatTokens(value),
+        },
+      },
+    ],
     markers: {
       size: 0,
       hover: {
@@ -562,7 +600,12 @@ export const useUsageDashboardState = () => {
       padding: { left: 4, right: 6, bottom: 2, top: 6 },
     },
     legend: {
-      show: false,
+      show: true,
+      showForSingleSeries: true,
+      position: 'top' as const,
+      horizontalAlign: 'right' as const,
+      labels: { colors: chartTheme.value.textSecondary },
+      markers: { strokeWidth: 0 },
     },
   }))
 
@@ -744,7 +787,7 @@ export const useUsageDashboardState = () => {
               {
                 percent: formatPercent(store.summary.cache_efficiency),
               },
-              `Cache efficiency ${formatPercent(store.summary.cache_efficiency)}`
+              `Cache reuse ${formatPercent(store.summary.cache_efficiency)}`
             )
           : translateDashboardText('usage.dashboard.table.noData', undefined, 'No data'),
       },

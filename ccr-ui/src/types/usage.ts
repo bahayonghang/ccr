@@ -3,6 +3,7 @@
 /** 使用量汇总 */
 export interface UsageSummary {
   total_requests: number
+  total_tokens: number
   total_input_tokens: number
   total_output_tokens: number
   total_cache_read_tokens: number
@@ -14,9 +15,11 @@ export interface UsageSummary {
 export interface DailyTrend {
   date: string
   request_count: number
+  total_tokens: number
   input_tokens: number
   output_tokens: number
   cache_read_tokens: number
+  cache_creation_tokens: number
   cost_usd: number
 }
 
@@ -193,9 +196,9 @@ export interface ImportAllUsageResponse {
   summary: UsageImportSummary
 }
 
-export type UsageImportJobStatus = 'pending' | 'running' | 'recent_ready' | 'finished' | 'failed'
+export type UsageImportJobStatus = 'pending' | 'running' | 'recent_ready' | 'finished' | 'failed' | 'cancelled'
 
-export type UsageImportJobStage = 'queued' | 'importing_recent' | 'importing_history' | 'finished' | 'failed'
+export type UsageImportJobStage = 'queued' | 'importing_recent' | 'importing_history' | 'finished' | 'failed' | 'cancelled'
 
 export interface UsageImportJobSnapshot {
   job_id: string

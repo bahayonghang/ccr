@@ -98,13 +98,13 @@ export const useHomeUsageOverviewStore = defineStore('homeUsageOverview', () => 
     if (snapshot.job_id !== activeUsageJobId) return
 
     currentUsageJob.value = snapshot
-    usageWarmupRunning.value = snapshot.status !== 'finished' && snapshot.status !== 'failed'
+    usageWarmupRunning.value = snapshot.status !== 'finished' && snapshot.status !== 'failed' && snapshot.status !== 'cancelled'
 
     if (snapshot.status === 'recent_ready' || snapshot.status === 'finished') {
       await refreshActiveOverview()
     }
 
-    if (snapshot.status === 'finished' || snapshot.status === 'failed') {
+    if (snapshot.status === 'finished' || snapshot.status === 'failed' || snapshot.status === 'cancelled') {
       usageWarmupRunning.value = false
       activeUsageJobId = null
       await clearUsageJobListeners()

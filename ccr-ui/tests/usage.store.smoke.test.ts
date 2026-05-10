@@ -25,6 +25,7 @@ vi.mock('@/api', () => ({
   getUsageDashboardV2: vi.fn().mockResolvedValue({
     summary: {
       total_requests: 0,
+      total_tokens: 0,
       total_input_tokens: 0,
       total_output_tokens: 0,
       total_cache_read_tokens: 0,
@@ -55,6 +56,7 @@ vi.mock('@/api', () => ({
   }),
   getUsageSummaryV2: vi.fn().mockResolvedValue({
     total_requests: 0,
+    total_tokens: 0,
     total_input_tokens: 0,
     total_output_tokens: 0,
     total_cache_read_tokens: 0,
@@ -107,6 +109,7 @@ describe('usage store smoke', () => {
 
     const summary: UsageSummary = {
       total_requests: 3,
+      total_tokens: 195,
       total_input_tokens: 120,
       total_output_tokens: 45,
       total_cache_read_tokens: 30,
@@ -115,9 +118,29 @@ describe('usage store smoke', () => {
     }
     store.summary = summary
 
-    expect(store.totalTokens).toBe(165)
+    expect(store.totalTokens).toBe(195)
     expect(store.hasUsageData).toBe(true)
     expect(store.hasNoUsageData).toBe(false)
+  })
+
+
+
+  it('uses backend total_tokens instead of deriving input plus output', async () => {
+    const { useUsageStore } = await import('@/stores/usage')
+    const store = useUsageStore()
+
+    store.summary = {
+      total_requests: 1,
+      total_tokens: 195,
+      total_input_tokens: 120,
+      total_output_tokens: 45,
+      total_cache_read_tokens: 30,
+      total_cost_usd: 0.1,
+      cache_efficiency: 0.2,
+    }
+
+    expect(store.totalTokens).toBe(195)
+    expect(store.totalTokens).not.toBe(165)
   })
 
   it('normalizes single-platform import results into store summary state', async () => {
@@ -174,6 +197,38 @@ describe('usage store smoke', () => {
       has_partial: false
     })
     expect(store.lastImportResults[0]?.platform).toBe('opencode')
+    expect(store.error).toBeNull()
+  })
+
+  it('treats a missing optional OpenCode database as an absent source, not an import error', async () => {
+    const api = await import('@/api')
+    vi.mocked(api.importUsageV2).mockResolvedValue({
+      platform: 'opencode',
+      files_processed: 0,
+      records_imported: 0,
+      records_skipped: 0,
+      duration_ms: 0,
+      completed: false,
+      error: 'OpenCode SQLite DB 缺失'
+    })
+
+    const { useUsageStore } = await import('@/stores/usage')
+    const store = useUsageStore()
+    const result = await store.triggerImport('opencode')
+
+    expect((result as ImportAllUsageResponse).summary).toEqual({
+      success_count: 1,
+      failure_count: 0,
+      imported_records: 0,
+      processed_files: 0,
+      has_partial: false
+    })
+    expect(store.lastImportResults[0]).toMatchObject({
+      platform: 'opencode',
+      completed: true,
+      error: null
+    })
+    expect(store.warning).toBeNull()
     expect(store.error).toBeNull()
   })
 
@@ -262,6 +317,73 @@ describe('usage store smoke', () => {
     expect(api.startUsageImportJobV2).toHaveBeenCalledWith('codex', 30, true)
   })
 
+  it('normalizes missing OpenCode DB from background job snapshots', async () => {
+    const api = await import('@/api')
+    vi.mocked(api.startUsageImportJobV2).mockResolvedValue({
+      job_id: 'usage-import-opencode',
+      snapshot: {
+        job_id: 'usage-import-opencode',
+        status: 'finished',
+        stage: 'finished',
+        platform_scope: 'opencode',
+        recent_window_days: 30,
+        files_total: 1,
+        files_scanned: 1,
+        files_imported: 0,
+        records_imported: 0,
+        records_skipped: 0,
+        history_cursor_hit: false,
+        live_sources: 0,
+        missing_sources: 0,
+        deleted_sources: 0,
+        started_at: '2026-04-01T00:00:00Z',
+        updated_at: '2026-04-01T00:00:00Z',
+        recent_ready_at: '2026-04-01T00:00:00Z',
+        finished_at: '2026-04-01T00:00:00Z',
+        current_file: null,
+        warnings: ['opencode: OpenCode SQLite DB 缺失'],
+        error: 'opencode: OpenCode SQLite DB 缺失',
+        results: [{
+          platform: 'opencode',
+          files_processed: 0,
+          records_imported: 0,
+          records_skipped: 0,
+          duration_ms: 0,
+          completed: false,
+          error: 'OpenCode SQLite DB 缺失'
+        }],
+        summary: {
+          success_count: 0,
+          failure_count: 1,
+          imported_records: 0,
+          processed_files: 0,
+          has_partial: true,
+        },
+      },
+    })
+
+    const { useUsageStore } = await import('@/stores/usage')
+    const store = useUsageStore()
+    await store.startImportJob({ platform: 'opencode', recentDays: 30, reason: 'manual' })
+
+    expect(store.lastImportSummary).toEqual({
+      success_count: 1,
+      failure_count: 0,
+      imported_records: 0,
+      processed_files: 0,
+      has_partial: false,
+    })
+    expect(store.lastImportResults[0]).toMatchObject({
+      platform: 'opencode',
+      completed: true,
+      error: null,
+    })
+    expect(store.currentImportJob?.warnings).toEqual([])
+    expect(store.currentImportJob?.error).toBeNull()
+    expect(store.error).toBeNull()
+    expect(store.warning).toBeNull()
+  })
+
   it('uses cursor paging when fetching diagnostics logs', async () => {
     const api = await import('@/api')
     const { useUsageStore } = await import('@/stores/usage')
@@ -348,6 +470,10 @@ describe('usage store smoke', () => {
         files_imported: 0,
         records_imported: 0,
         records_skipped: 0,
+        history_cursor_hit: false,
+        live_sources: 0,
+        missing_sources: 0,
+        deleted_sources: 0,
         started_at: '2026-04-01T00:00:00Z',
         updated_at: '2026-04-01T00:00:00Z',
         recent_ready_at: null,
@@ -370,6 +496,10 @@ describe('usage store smoke', () => {
       files_imported: 0,
       records_imported: 0,
       records_skipped: 0,
+      history_cursor_hit: false,
+      live_sources: 0,
+      missing_sources: 0,
+      deleted_sources: 0,
       started_at: '2026-04-01T00:00:00Z',
       updated_at: '2026-04-01T00:00:00Z',
       recent_ready_at: null,
@@ -402,6 +532,10 @@ describe('usage store smoke', () => {
         files_imported: 1,
         records_imported: 24,
         records_skipped: 0,
+        history_cursor_hit: false,
+        live_sources: 0,
+        missing_sources: 0,
+        deleted_sources: 0,
         started_at: '2026-04-01T00:00:00Z',
         updated_at: '2026-04-01T00:00:01Z',
         recent_ready_at: null,
@@ -430,6 +564,10 @@ describe('usage store smoke', () => {
         files_imported: 2,
         records_imported: 48,
         records_skipped: 0,
+        history_cursor_hit: false,
+        live_sources: 0,
+        missing_sources: 0,
+        deleted_sources: 0,
         started_at: '2026-04-01T00:00:00Z',
         updated_at: '2026-04-01T00:00:01Z',
         recent_ready_at: null,
@@ -458,6 +596,10 @@ describe('usage store smoke', () => {
         files_imported: 12,
         records_imported: 96,
         records_skipped: 0,
+        history_cursor_hit: false,
+        live_sources: 0,
+        missing_sources: 0,
+        deleted_sources: 0,
         started_at: '2026-04-01T00:00:00Z',
         updated_at: '2026-04-01T00:00:05Z',
         recent_ready_at: '2026-04-01T00:00:04Z',

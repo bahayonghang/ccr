@@ -40,7 +40,7 @@ const mountModelsTab = async (modelStats: ModelStat[]) => {
   const modelDistribution: ModelDistributionSlice[] = modelStats.map((model, index) => ({
     id: model.model,
     label: model.model,
-    totalCost: model.cost_with_cache ?? model.total_cost,
+    totalCost: model.cost_with_cache ?? 0,
     totalTokens: model.total_tokens,
     requestCount: model.request_count,
     share: index === 0 ? 1 : 0,
@@ -124,6 +124,39 @@ describe('UsageModelsTab smoke', () => {
       expect(text).toContain('unknown-model')
       expect(text).toContain('Unpriced')
       expect(mounted.el.querySelector('.models-tab__status--unpriced')).not.toBeNull()
+    } finally {
+      mounted.unmount()
+    }
+  })
+
+  it('renders zero cache savings without deriving from cost delta', async () => {
+    const mounted = await mountModelsTab([
+      {
+        model: 'zero-saving-model',
+        request_count: 1,
+        total_tokens: 100,
+        total_cost: 9,
+        input_tokens: 60,
+        output_tokens: 40,
+        cache_read_tokens: 0,
+        cache_creation_tokens: 0,
+        cost_with_cache: 4,
+        cost_without_cache: 10,
+        cache_savings: 0,
+        pricing_status: 'priced',
+        pricing_source: 'official',
+        pricing_rate: '1/2',
+      },
+    ])
+
+    try {
+      const text = mounted.el.textContent ?? ''
+
+      expect(text).toContain('zero-saving-model')
+      expect(text).toContain('$4.00')
+      expect(text).toContain('$10.00')
+      expect(text).toContain('$0.00')
+      expect(text).not.toContain('$6.00')
     } finally {
       mounted.unmount()
     }

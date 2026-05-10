@@ -152,6 +152,11 @@ export const getUsageImportJobStatusV2 = async <T = UnknownRecord>(jobId: string
   return invoke('get_usage_import_job_status_v2', { jobId })
 }
 
+/** V2: 取消 usage 后台导入任务 */
+export const cancelUsageImportJobV2 = async <T = UnknownRecord>(jobId: string): Promise<T> => {
+  return invoke('cancel_usage_import_job_v2', { jobId })
+}
+
 /** V2: 导入单平台 usage */
 export const importUsageV2 = async <T = UnknownRecord>(platform: string): Promise<T> => {
   return invoke('import_usage_v2', { platform })

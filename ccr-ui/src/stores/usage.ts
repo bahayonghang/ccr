@@ -62,6 +62,48 @@ const LAZY_HEATMAP_LOAD = parseEnvFlag(import.meta.env.VITE_PERF_HEATMAP_LAZY_LO
 
 const nowMs = () => (typeof performance !== 'undefined' ? performance.now() : Date.now())
 
+const OPTIONAL_ABSENT_USAGE_SOURCE_MESSAGES: Partial<Record<Platform, string[]>> = {
+  opencode: ['OpenCode SQLite DB 缺失'],
+}
+
+const isOptionalAbsentUsageSource = (result: ImportResult): boolean => {
+  const platform = result.platform as Platform
+  const markers = OPTIONAL_ABSENT_USAGE_SOURCE_MESSAGES[platform]
+  if (!markers || !result.error) return false
+  return markers.some(marker => result.error?.includes(marker))
+}
+
+const isOptionalAbsentUsageSourceWarning = (warning: string): boolean =>
+  Object.values(OPTIONAL_ABSENT_USAGE_SOURCE_MESSAGES).some(markers =>
+    markers?.some(marker => warning.includes(marker)),
+  )
+
+const toUserVisibleImportResult = (result: ImportResult): ImportResult => {
+  if (!isOptionalAbsentUsageSource(result)) return result
+
+  return {
+    ...result,
+    completed: true,
+    error: null,
+  }
+}
+
+const normalizeUserVisibleImportResults = (results: ImportResult[]): ImportResult[] =>
+  results.map(toUserVisibleImportResult)
+
+const normalizeUserVisibleImportJob = (job: UsageImportJobSnapshot): UsageImportJobSnapshot => {
+  const results = normalizeUserVisibleImportResults(job.results)
+  const warnings = job.warnings.filter(warning => !isOptionalAbsentUsageSourceWarning(warning))
+  const error = job.error && isOptionalAbsentUsageSourceWarning(job.error) ? null : job.error
+
+  return {
+    ...job,
+    error,
+    warnings,
+    results,
+  }
+}
+
 const recordPerfMetric = (
   name: string,
   value: number,
@@ -148,10 +190,7 @@ export const useUsageStore = defineStore('usage', () => {
   const dashboardCache = new Map<string, UsageDashboardCacheEntry>()
 
   // ═══ Computed ═══
-  const totalTokens = computed(() => {
-    if (!summary.value) return 0
-    return summary.value.total_input_tokens + summary.value.total_output_tokens
-  })
+  const totalTokens = computed(() => summary.value?.total_tokens ?? 0)
 
   const logsTotalPages = computed(() => {
     const total = logs.value?.total
@@ -243,25 +282,30 @@ export const useUsageStore = defineStore('usage', () => {
     platformOverride?: Platform,
   ): ImportAllUsageResponse => {
     if (isImportAllUsageResponse(payload)) {
-      return payload
+      const results = normalizeUserVisibleImportResults(payload.results)
+      return {
+        ...payload,
+        results,
+        summary: buildImportSummary(results),
+      }
     }
 
     const result: ImportResult = platformOverride
       ? { ...payload, platform: platformOverride }
       : payload
+    const results = normalizeUserVisibleImportResults([result])
     return {
-      results: [result],
-      summary: buildImportSummary([result]),
+      results,
+      summary: buildImportSummary(results),
     }
   }
 
   const isTerminalImportJob = (job: UsageImportJobSnapshot | null | undefined) =>
-    job?.status === 'finished' || job?.status === 'failed'
+    job?.status === 'finished' || job?.status === 'failed' || job?.status === 'cancelled'
 
   const syncImportFeedbackFromJob = (job: UsageImportJobSnapshot | null) => {
-    currentImportJob.value = job ?? null
-
     if (!job) {
+      currentImportJob.value = null
       importing.value = false
       isBootstrapping.value = false
       return
@@ -270,28 +314,36 @@ export const useUsageStore = defineStore('usage', () => {
     importing.value = !isTerminalImportJob(job)
     isBootstrapping.value = activeImportReason === 'bootstrap' && importing.value
 
-    if (job.results.length > 0) {
-      lastImportResults.value = job.results
+    const visibleJob = normalizeUserVisibleImportJob(job)
+    const visibleResults = visibleJob.results
+    const visibleSummary = visibleJob.summary ? buildImportSummary(visibleResults) : null
+    currentImportJob.value = {
+      ...visibleJob,
+      summary: visibleSummary ?? visibleJob.summary,
     }
-    if (job.summary) {
-      lastImportSummary.value = job.summary
-      const failedDetails = job.results
+
+    if (visibleResults.length > 0) {
+      lastImportResults.value = visibleResults
+    }
+    if (visibleSummary) {
+      lastImportSummary.value = visibleSummary
+      const failedDetails = visibleResults
         .filter(result => result.error)
         .map(result => `${result.platform}: ${result.error}`)
         .join('\n')
 
-      if (job.summary.failure_count === job.results.length && job.results.length > 0) {
+      if (visibleSummary.failure_count === visibleResults.length && visibleResults.length > 0) {
         error.value = failedDetails || job.error || '未能导入本地 usage 日志，请检查日志目录或导入错误'
         warning.value = null
-      } else if (job.summary.has_partial) {
-        warning.value = failedDetails || job.warnings[0] || '仅导入部分 usage 数据，可重试继续导入'
+      } else if (visibleSummary.has_partial) {
+        warning.value = failedDetails || visibleJob.warnings[0] || '仅导入部分 usage 数据，可重试继续导入'
       } else {
         warning.value = null
       }
     }
 
-    if (job.status === 'failed') {
-      error.value = job.error || '后台导入任务失败'
+    if (job.status === 'failed' && (!visibleSummary || visibleSummary.failure_count > 0)) {
+      error.value = visibleJob.error || '后台导入任务失败'
     }
   }
 
@@ -396,7 +448,7 @@ export const useUsageStore = defineStore('usage', () => {
     ])
 
     const latest = await getUsageImportJobStatusV2<UsageImportJobSnapshot>(jobId)
-    const trigger = latest.status === 'failed'
+    const trigger = latest.status === 'failed' || latest.status === 'cancelled'
       ? 'failed'
       : latest.status === 'finished'
         ? 'finished'
@@ -647,7 +699,7 @@ export const useUsageStore = defineStore('usage', () => {
       return response
     } catch (e) {
       const message = e instanceof Error ? e.message : String(e)
-      const fallback: ImportAllUsageResponse = {
+      const fallback = normalizeImportResponse({
         results: [{
           platform: requestedPlatform ?? 'all',
           files_processed: 0,
@@ -662,14 +714,14 @@ export const useUsageStore = defineStore('usage', () => {
           failure_count: 1,
           imported_records: 0,
           processed_files: 0,
-          has_partial: true,
-        },
-      }
+            has_partial: true,
+          },
+      })
 
       lastImportSummary.value = fallback.summary
       lastImportResults.value = fallback.results
       warning.value = null
-      error.value = message
+      error.value = fallback.summary.failure_count > 0 ? message : null
       return fallback
     } finally {
       importing.value = false

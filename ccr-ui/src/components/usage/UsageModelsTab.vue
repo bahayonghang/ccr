@@ -191,11 +191,11 @@ const inputTokens = (model: ModelStat) => model.input_tokens ?? model.total_toke
 const outputTokens = (model: ModelStat) => model.output_tokens ?? 0
 const cacheReadTokens = (model: ModelStat) => model.cache_read_tokens ?? 0
 const cacheCreationTokens = (model: ModelStat) => model.cache_creation_tokens ?? 0
-const costWithCache = (model: ModelStat) => model.cost_with_cache ?? model.total_cost
+const costWithCache = (model: ModelStat) => model.cost_with_cache ?? 0
 const costWithoutCache = (model: ModelStat) =>
-  model.cost_without_cache ?? model.total_cost
+  model.cost_without_cache ?? 0
 const cacheSavings = (model: ModelStat) =>
-  model.cache_savings ?? Math.max(0, costWithoutCache(model) - costWithCache(model))
+  model.cache_savings ?? 0
 const pricingRate = (model: ModelStat) => model.pricing_rate || '-'
 const pricingStatus = (model: ModelStat) => model.pricing_status || 'priced'
 const pricingStatusKey = (model: ModelStat) => {

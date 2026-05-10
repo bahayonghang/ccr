@@ -1,11 +1,12 @@
 import { createApp, defineComponent, h, nextTick, reactive } from 'vue'
+import type { DailyTrend, UsageSummary } from '@/types/usage'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 let localeHydrated = false
 
 const usageStore = reactive({
-  summary: null,
-  trends: [],
+  summary: null as UsageSummary | null,
+  trends: [] as DailyTrend[],
   modelStats: [],
   projectStats: [],
   logs: null as null | {
@@ -75,14 +76,14 @@ const translationTemplates: Record<string, string> = {
   'usage.dashboard.cards.totalRequests': 'Total Requests',
   'usage.dashboard.cards.requestsDetail': '{models} models · {projects} projects',
   'usage.dashboard.cards.totalTokens': 'Total Tokens',
-  'usage.dashboard.cards.tokensDetail': '{input} in · {output} out',
+  'usage.dashboard.cards.tokensDetail': '{input} in · {output} out · {cache} cache read',
   'usage.dashboard.cards.totalCost': 'Total Cost',
   'usage.dashboard.cards.costDetail': '{average} per request',
-  'usage.dashboard.cards.cacheEfficiency': 'Cache Efficiency',
-  'usage.dashboard.cards.cacheDetail': '{tokens} cache read',
+  'usage.dashboard.cards.cacheEfficiency': 'Cache Reuse Rate',
+  'usage.dashboard.cards.cacheDetail': 'cache read / (input + cache read) · {tokens} cache read',
   'usage.dashboard.chart.input': 'Input',
   'usage.dashboard.chart.output': 'Output',
-  'usage.dashboard.chart.cache': 'Cache',
+  'usage.dashboard.chart.cache': 'Cache Read',
   'usage.dashboard.chart.bucket.day': 'Daily',
   'usage.dashboard.chart.bucket.week': 'Weekly',
   'usage.dashboard.chart.bucket.month': 'Monthly',
@@ -97,7 +98,7 @@ const translationTemplates: Record<string, string> = {
   'usage.dashboard.highlights.topModel': 'Top Model',
   'usage.dashboard.highlights.topProject': 'Top Project',
   'usage.dashboard.highlights.cacheRead': 'Cache Read',
-  'usage.dashboard.highlights.cacheReadDetail': 'Cache efficiency {percent}',
+  'usage.dashboard.highlights.cacheReadDetail': 'Cache reuse {percent}',
   'usage.dashboard.table.requests': 'requests',
   'usage.dashboard.table.noData': 'No data',
   'usage.dashboard.meta.scope': 'Scope',
@@ -144,6 +145,16 @@ const flushPromises = async () => {
   await Promise.resolve()
   await nextTick()
   await nextTick()
+}
+
+const withFakeNow = async <T>(isoTimestamp: string, callback: () => Promise<T>) => {
+  vi.useFakeTimers()
+  vi.setSystemTime(new Date(isoTimestamp))
+  try {
+    return await callback()
+  } finally {
+    vi.useRealTimers()
+  }
 }
 
 const mountComposable = async () => {
@@ -315,6 +326,7 @@ describe('usage dashboard state smoke', () => {
     tauriRuntime = true
     usageStore.summary = {
       total_requests: 42,
+      total_tokens: 43800,
       total_input_tokens: 42000,
       total_output_tokens: 1800,
       total_cache_read_tokens: 0,
@@ -370,6 +382,7 @@ describe('usage dashboard state smoke', () => {
     tauriRuntime = true
     usageStore.summary = {
       total_requests: 120,
+      total_tokens: 69000,
       total_input_tokens: 42000,
       total_output_tokens: 18000,
       total_cache_read_tokens: 9000,
@@ -428,6 +441,7 @@ describe('usage dashboard state smoke', () => {
     tauriRuntime = true
     usageStore.summary = {
       total_requests: 120,
+      total_tokens: 69000,
       total_input_tokens: 42000,
       total_output_tokens: 18000,
       total_cache_read_tokens: 9000,
@@ -450,9 +464,11 @@ describe('usage dashboard state smoke', () => {
       {
         date: '2026-03-01',
         request_count: 8,
+        total_tokens: 2120,
         input_tokens: 1200,
         output_tokens: 600,
         cache_read_tokens: 300,
+        cache_creation_tokens: 20,
         cost_usd: 1.2,
       },
     ]
@@ -484,6 +500,90 @@ describe('usage dashboard state smoke', () => {
     }
   })
 
+  it('uses a local inclusive 7 day window instead of UTC ISO slicing', async () => {
+    await withFakeNow('2026-05-10T00:30:00+08:00', async () => {
+      tauriRuntime = true
+      const { state, unmount } = await mountComposable()
+
+      try {
+        state.selectedDays.value = 7
+        state.onFilterChange()
+
+        expect(usageStore.setFilters).toHaveBeenLastCalledWith(
+          expect.objectContaining({
+            start: '2026-05-04',
+            end: '2026-05-10',
+          })
+        )
+      } finally {
+        unmount()
+      }
+    })
+  })
+
+  it('renders total token card from backend total_tokens and keeps cache formula copy visible', async () => {
+    tauriRuntime = true
+    usageStore.summary = {
+      total_requests: 3,
+      total_tokens: 195,
+      total_input_tokens: 120,
+      total_output_tokens: 45,
+      total_cache_read_tokens: 30,
+      total_cost_usd: 1.5,
+      cache_efficiency: 0.2,
+    }
+
+    const { state, unmount } = await mountComposable()
+
+    try {
+      const tokenCard = state.summaryCards.value.find((card) => card.id === 'tokens')
+      const cacheCard = state.summaryCards.value.find((card) => card.id === 'cache')
+
+      expect(tokenCard?.value).toBe('195')
+      expect(tokenCard?.detail).toContain('30 cache read')
+      expect(cacheCard?.label).toBe('Cache Reuse Rate')
+      expect(cacheCard?.detail).toContain('cache read / (input + cache read)')
+    } finally {
+      unmount()
+    }
+  })
+
+  it('keeps all three trend series visible with a dedicated output axis for skewed data', async () => {
+    tauriRuntime = true
+    usageStore.trends = [
+      {
+        date: '2026-05-08',
+        request_count: 4,
+        total_tokens: 15110,
+        input_tokens: 10000,
+        output_tokens: 10,
+        cache_read_tokens: 5000,
+        cache_creation_tokens: 100,
+        cost_usd: 0.1,
+      } satisfies DailyTrend,
+    ]
+
+    const { state, unmount } = await mountComposable()
+
+    try {
+      expect(state.trendSeries.value.map((series) => series.name)).toEqual([
+        'Input',
+        'Output',
+        'Cache Read',
+      ])
+      expect(state.trendSeries.value.every((series) => series.data.length === 1)).toBe(true)
+      expect(state.trendOptions.value.legend).toMatchObject({ show: true })
+      expect(state.trendOptions.value.yaxis.length).toBeGreaterThanOrEqual(3)
+      expect(state.trendOptions.value.yaxis[1]).toMatchObject({
+        opposite: true,
+        showAlways: true,
+        seriesName: 'Output',
+      })
+    } finally {
+      unmount()
+    }
+  })
+
   it('keeps chart theme in sync with the document theme', async () => {
     tauriRuntime = true
     document.documentElement.setAttribute('data-theme', 'dark')
@@ -492,7 +592,7 @@ describe('usage dashboard state smoke', () => {
     try {
       expect(state.trendOptions.value.theme.mode).toBe('dark')
       expect(state.trendOptions.value.chart.parentHeightOffset).toBe(0)
-      expect(state.trendOptions.value.legend).toMatchObject({ show: false })
+      expect(state.trendOptions.value.legend).toMatchObject({ show: true })
       expect(state.trendOptions.value.markers).toMatchObject({
         size: 0,
         hover: { size: 0, sizeOffset: 0 },

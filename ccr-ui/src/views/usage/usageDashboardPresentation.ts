@@ -9,7 +9,9 @@ export interface UsageTrendBucket {
   requestCount: number
   inputTokens: number
   outputTokens: number
+  totalTokens: number
   cacheReadTokens: number
+  cacheCreationTokens: number
   costUsd: number
 }
 
@@ -25,7 +27,7 @@ export interface ModelDistributionSlice {
 }
 
 const DAY_MS = 86_400_000
-const modelCost = (model: ModelStat) => model.cost_with_cache ?? model.total_cost
+const modelCost = (model: ModelStat) => model.cost_with_cache ?? 0
 
 const parseUtcDate = (value: string) => {
   const [year, month, day] = value.split('-').map(Number)
@@ -78,9 +80,11 @@ export const aggregateDailyTrends = (
     if (existing) {
       existing.endDate = item.date > existing.endDate ? item.date : existing.endDate
       existing.requestCount += item.request_count
+      existing.totalTokens += item.total_tokens
       existing.inputTokens += item.input_tokens
       existing.outputTokens += item.output_tokens
       existing.cacheReadTokens += item.cache_read_tokens
+      existing.cacheCreationTokens += item.cache_creation_tokens
       existing.costUsd += item.cost_usd
       continue
     }
@@ -90,9 +94,11 @@ export const aggregateDailyTrends = (
       startDate: key,
       endDate: item.date,
       requestCount: item.request_count,
+      totalTokens: item.total_tokens,
       inputTokens: item.input_tokens,
       outputTokens: item.output_tokens,
       cacheReadTokens: item.cache_read_tokens,
+      cacheCreationTokens: item.cache_creation_tokens,
       costUsd: item.cost_usd,
     })
   }

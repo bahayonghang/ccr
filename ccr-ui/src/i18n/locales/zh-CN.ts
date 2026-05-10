@@ -1611,11 +1611,11 @@ export default {
         totalRequests: '总请求数',
         requestsDetail: '{models} 个模型 · {projects} 个项目',
         totalTokens: '总 Tokens',
-        tokensDetail: '{input} 输入 · {output} 输出',
+        tokensDetail: '{input} 输入 · {output} 输出 · {cache} 缓存读取',
         totalCost: '总费用',
         costDetail: '平均每次请求 {average}',
-        cacheEfficiency: '缓存效率',
-        cacheDetail: '{tokens} 缓存读取',
+        cacheEfficiency: '缓存复用率',
+        cacheDetail: 'cache read / (input + cache read) · {tokens} 缓存读取',
       },
 
       chart: {
@@ -1634,7 +1634,7 @@ export default {
         statusPriced: '已定价',
         statusLegacyAlias: '旧别名',
         statusUnpriced: '未定价',
-        cache: '缓存',
+        cache: '缓存读取',
         noTrend: '暂无趋势数据',
         costByModel: '模型费用分布',
         distributionSubtitle: '前 {visible} 个模型单独显示，其余 {total} 个归入 Others',
@@ -1658,7 +1658,7 @@ export default {
         topModel: '头部模型',
         topProject: '头部项目',
         cacheRead: '缓存读取',
-        cacheReadDetail: '缓存效率 {percent}',
+        cacheReadDetail: '缓存复用率 {percent}',
       },
 
       rankings: {

@@ -533,6 +533,7 @@ export {
   ensureSessionIndexV2,
   getSessionIndexJobStatusV2,
   getUsageImportJobStatusV2,
+  cancelUsageImportJobV2,
   importUsageV2,
   importAllUsageV2,
   getHomeUsageOverviewV2,
