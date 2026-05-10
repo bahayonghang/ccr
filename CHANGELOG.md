@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### 🔧 改进
+
+- **ccr-ui 使用统计迁移到 llmusage**：
+  - Usage Dashboard / Home Overview / Logs / Heatmap / Import Job 改由 llmusage 0.5.1 本地 SQLite 运行时提供数据
+  - llmusage 数据默认遵循 `LLMUSAGE_HOME`，未设置时写入 `~/.llmusage/llmusage.db`；不自动读取、合并或迁移旧 `~/.ccr/llmusage`
+  - 模型双价、`cache_savings`、`recorded_at`、分页日志等字段由后端适配层直接返回，前端移除旧的二次成本 fallback 派生
+  - 导入任务保留既有 `usage:job-progress` / `usage:job-recent-ready` / `usage:job-finished` / `usage:job-failed` 事件，并新增取消命令桥接到 llmusage JobRegistry
+
+### ⚠️ 弃用
+
+- `ccr-db` 中旧的 usage dashboard 聚合查询与 `usage_import_service` 已标记为 legacy 兼容面；新的 ccr-ui 使用统计链路应走 llmusage 适配层。
+
 ### ✨ 新功能
 
 - **TUI 鼠标支持**：
