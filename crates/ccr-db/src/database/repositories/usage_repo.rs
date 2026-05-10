@@ -1003,6 +1003,10 @@ pub fn get_session_archive_daily_trends(
 
 // ═══════════════════════════════════════════════════════════
 // V2 聚合查询
+//
+// Deprecated ccr-db dashboard surface: ccr-ui usage dashboard reads
+// llmusage via `ccr-ui/src-tauri/src/llmusage_adapter` now. Keep these
+// queries for legacy database compatibility and old tests only.
 // ═══════════════════════════════════════════════════════════
 
 /// 使用量汇总
@@ -1197,6 +1201,10 @@ fn build_logs_where_clause(
 }
 
 /// 获取使用量汇总
+#[deprecated(
+    since = "0.7.0",
+    note = "legacy ccr-db usage summary query; ccr-ui usage dashboard now reads llmusage Dashboard::overview."
+)]
 #[allow(dead_code)]
 pub fn get_usage_summary(
     conn: &Connection,
@@ -1238,6 +1246,10 @@ pub fn get_usage_summary(
 }
 
 /// 获取每日趋势（从预聚合表查询）
+#[deprecated(
+    since = "0.7.0",
+    note = "legacy ccr-db daily trend query; ccr-ui usage dashboard now reads llmusage Dashboard::trends_daily."
+)]
 #[allow(dead_code)]
 pub fn get_daily_trends(
     conn: &Connection,
@@ -1275,6 +1287,10 @@ pub fn get_daily_trends(
 }
 
 /// 获取按平台聚合的汇总（从预聚合表查询）
+#[deprecated(
+    since = "0.7.0",
+    note = "legacy ccr-db platform summary query; ccr-ui usage dashboard now reads llmusage Dashboard payloads."
+)]
 #[allow(dead_code)]
 pub fn get_platform_summaries(
     conn: &Connection,
@@ -1311,6 +1327,10 @@ pub fn get_platform_summaries(
 }
 
 /// 获取按 (date, platform) 聚合的趋势（从预聚合表查询）
+#[deprecated(
+    since = "0.7.0",
+    note = "legacy ccr-db platform trend query; ccr-ui usage dashboard now reads llmusage Dashboard payloads."
+)]
 #[allow(dead_code)]
 pub fn get_daily_platform_trends(
     conn: &Connection,
@@ -1352,6 +1372,10 @@ pub fn get_daily_platform_trends(
 }
 
 /// 获取模型统计
+#[deprecated(
+    since = "0.7.0",
+    note = "legacy ccr-db model stats query; ccr-ui usage dashboard now reads llmusage Dashboard::model_breakdown."
+)]
 #[allow(dead_code)]
 pub fn get_model_stats(
     conn: &Connection,
@@ -1420,6 +1444,10 @@ pub fn get_model_stats(
 }
 
 /// 获取项目统计
+#[deprecated(
+    since = "0.7.0",
+    note = "legacy ccr-db project stats query; ccr-ui usage dashboard now reads llmusage Dashboard::project_breakdown."
+)]
 #[allow(dead_code)]
 pub fn get_project_stats(
     conn: &Connection,
@@ -1455,6 +1483,10 @@ pub fn get_project_stats(
 }
 
 /// 获取热力图数据（从预聚合表查询）
+#[deprecated(
+    since = "0.7.0",
+    note = "legacy ccr-db heatmap query; ccr-ui usage dashboard now reads llmusage Dashboard::heatmap."
+)]
 #[allow(dead_code)]
 pub fn get_heatmap_data(
     conn: &Connection,
@@ -1485,6 +1517,10 @@ pub fn get_heatmap_data(
 }
 
 /// 获取分页日志
+#[deprecated(
+    since = "0.7.0",
+    note = "legacy ccr-db offset log query; ccr-ui usage dashboard now reads llmusage Dashboard::logs."
+)]
 #[allow(dead_code, clippy::too_many_arguments)]
 pub fn get_paginated_logs(
     conn: &Connection,
@@ -1551,6 +1587,10 @@ fn format_cursor(record: &UsageRecord) -> String {
 }
 
 /// 基于游标分页日志（Keyset Pagination）
+#[deprecated(
+    since = "0.7.0",
+    note = "legacy ccr-db cursor log query; ccr-ui usage dashboard now reads llmusage Dashboard::logs."
+)]
 #[allow(dead_code, clippy::too_many_arguments)]
 pub fn get_logs_by_cursor(
     conn: &Connection,
@@ -1633,7 +1673,7 @@ pub fn get_logs_by_cursor(
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used)]
+#[allow(clippy::unwrap_used, deprecated)]
 mod tests {
     use super::*;
     use crate::database::schema::CREATE_TABLES_SQL;

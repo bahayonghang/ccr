@@ -48,6 +48,10 @@ pub struct ImportResult {
 }
 
 /// Usage import service
+#[deprecated(
+    since = "0.7.0",
+    note = "ccr-ui usage import now uses llmusage::sync::JobRegistry; retain only for legacy ccr-db data compatibility."
+)]
 pub struct UsageImportService {
     config: ImportConfig,
     db_pool: DbPool,
@@ -97,6 +101,7 @@ struct OpenCodeMessageRow {
     data: String,
 }
 
+#[allow(deprecated)]
 impl UsageImportService {
     pub fn new(config: ImportConfig) -> Self {
         let db_pool = database::get_pool()
@@ -2285,7 +2290,7 @@ impl UsageImportService {
 }
 
 #[cfg(test)]
-#[allow(clippy::unwrap_used)]
+#[allow(clippy::unwrap_used, deprecated)]
 mod tests {
     use super::*;
     use crate::database;
