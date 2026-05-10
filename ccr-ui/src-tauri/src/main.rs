@@ -5,6 +5,7 @@ mod checkin_jobs;
 mod commands;
 mod desktop_shell;
 mod events;
+mod llmusage_adapter;
 mod monitoring;
 mod platform;
 mod process;
@@ -118,10 +119,14 @@ fn main() {
                 tracing::error!("[app] failed to create usage archive database pool: {e}");
                 Box::new(e) as Box<dyn std::error::Error>
             })?;
-            tracing::info!("[app] database initialized (global + app pool)");
+            let llmusage = llmusage_adapter::LlmusageHandle::init().map_err(|e| {
+                tracing::error!("[app] failed to initialize llmusage runtime: {e}");
+                std::io::Error::other(e)
+            })?;
+            tracing::info!("[app] database initialized (global + app pool + llmusage)");
 
             // 构建并注册全局 AppState。
-            let app_state = AppState::new(db_pool, usage_db_pool);
+            let app_state = AppState::new(db_pool, usage_db_pool, llmusage);
 
             // 先注册 Local 环境，其他环境在异步初始化完成后写入 managed state。
             app.manage(app_state);

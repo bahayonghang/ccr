@@ -294,6 +294,7 @@ macro_rules! generate_handler_common {
         usage::get_session_index_job_status_v2,
         usage::start_usage_import_job_v2,
         usage::get_usage_import_job_status_v2,
+        usage::cancel_usage_import_job_v2,
         usage::import_usage_v2,
         usage::import_all_usage_v2,
         // —— 命令执行 ——

@@ -11,6 +11,7 @@ pub enum UsageImportJobStatus {
     RecentReady,
     Finished,
     Failed,
+    Cancelled,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, PartialEq, Eq)]
@@ -21,6 +22,7 @@ pub enum UsageImportJobStage {
     ImportingHistory,
     Finished,
     Failed,
+    Cancelled,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -98,22 +100,6 @@ impl UsageImportJobSnapshot {
         self.touch();
     }
 
-    pub fn record_file_result(
-        &mut self,
-        current_file: Option<String>,
-        imported: usize,
-        skipped: usize,
-    ) {
-        self.files_scanned += 1;
-        if imported > 0 {
-            self.files_imported += 1;
-        }
-        self.records_imported += imported;
-        self.records_skipped += skipped;
-        self.current_file = current_file;
-        self.touch();
-    }
-
     pub fn push_warning(&mut self, warning: String) {
         self.warnings.push(warning);
         if self.warnings.len() > 20 {
@@ -159,6 +145,15 @@ impl UsageImportJobSnapshot {
         self.status = UsageImportJobStatus::Failed;
         self.stage = UsageImportJobStage::Failed;
         self.error = Some(message.into());
+        self.current_file = None;
+        let now = Utc::now().to_rfc3339();
+        self.finished_at = Some(now.clone());
+        self.updated_at = now;
+    }
+
+    pub fn mark_cancelled(&mut self) {
+        self.status = UsageImportJobStatus::Cancelled;
+        self.stage = UsageImportJobStage::Cancelled;
         self.current_file = None;
         let now = Utc::now().to_rfc3339();
         self.finished_at = Some(now.clone());

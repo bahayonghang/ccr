@@ -21,6 +21,7 @@ ccr-skills = { path = "../../crates/ccr-skills" }
 ccr-store = { path = "../../crates/ccr-store" }
 ccr-sync = { path = "../../crates/ccr-sync" }
 ccr-checkin = { path = "../../crates/ccr-checkin" }
+llmusage = { path = "../../../../CLI/llmusage", default-features = false }
 
 # CCR 类型定义 - Claude Settings 子类型（Agent、Plugin、Hook 等）
 ccr-types = { path = "../../crates/ccr-types" }

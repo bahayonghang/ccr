@@ -21,6 +21,7 @@ use crate::checkin_jobs::{
     CheckinJobDelta, CheckinJobLogEntry, CheckinJobLogStatus, CheckinJobSnapshot,
 };
 use crate::events::{EventLog, EventLogStats};
+use crate::llmusage_adapter::LlmusageHandle;
 use crate::platform::EnvironmentRegistry;
 use crate::session_index_jobs::{SessionIndexJobSnapshot, SessionIndexJobStatus};
 use crate::usage_jobs::{UsageImportJobSnapshot, UsageImportJobStatus};
@@ -98,6 +99,9 @@ pub struct AppState {
 
     /// Usage archive SQLite 连接池（durable analytics，位于 ~/.ccr/analytics/usage.db）
     pub usage_db_pool: DbPool,
+
+    /// llmusage 0.5.x runtime（durable analytics，位于 CCR root 下的 llmusage/）
+    pub llmusage: Arc<LlmusageHandle>,
 
     /// HTTP 客户端（复用连接池，用于 CheckIn 等外部请求）
     pub http_client: reqwest::Client,
@@ -251,7 +255,7 @@ pub struct RuntimeMetricsSnapshot {
 
 impl AppState {
     /// 创建新的应用状态实例
-    pub fn new(db_pool: DbPool, usage_db_pool: DbPool) -> Self {
+    pub fn new(db_pool: DbPool, usage_db_pool: DbPool, llmusage: LlmusageHandle) -> Self {
         let http_client = reqwest::Client::builder()
             .cookie_store(true)
             .timeout(Duration::from_secs(30))
@@ -270,6 +274,7 @@ impl AppState {
         Self {
             db_pool,
             usage_db_pool,
+            llmusage: Arc::new(llmusage),
             http_client,
             cache,
             inflight_cache_keys: RwLock::new(HashMap::new()),
@@ -585,7 +590,9 @@ impl AppState {
         let snapshot = jobs.get(&active_job_id)?.clone();
         if matches!(
             snapshot.status,
-            UsageImportJobStatus::Finished | UsageImportJobStatus::Failed
+            UsageImportJobStatus::Finished
+                | UsageImportJobStatus::Failed
+                | UsageImportJobStatus::Cancelled
         ) {
             return None;
         }
@@ -608,7 +615,9 @@ impl AppState {
 
         if matches!(
             cloned.status,
-            UsageImportJobStatus::Finished | UsageImportJobStatus::Failed
+            UsageImportJobStatus::Finished
+                | UsageImportJobStatus::Failed
+                | UsageImportJobStatus::Cancelled
         ) {
             let mut active = self.active_usage_import_job_id.write().await;
             if active.as_deref() == Some(job_id) {

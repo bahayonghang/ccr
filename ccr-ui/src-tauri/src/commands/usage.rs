@@ -1,22 +1,22 @@
 //! Usage V2 命令模块，基于 SQLite 查询与导入用量数据。
 
 use std::collections::BTreeMap;
-use std::path::PathBuf;
 use std::time::Instant;
 
 use ccr_config::Platform;
-use ccr_store::{
-    ModelPricing, PricingManager,
-    sessions::{SessionIndexer, parser::SessionParser},
-};
-use ccr_types::{ModelRateCatalog, ModelRateOverride, official_model_rate_override_for};
-use chrono::{Duration, Utc};
+use ccr_store::sessions::{SessionIndexer, parser::SessionParser};
+use chrono::{Duration, Local, Utc};
+use llmusage::models::SourceKind;
+use llmusage::parsers::{SourceSyncStats, SyncSummaryEvent};
+use llmusage::sync::SyncOptions;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use tauri::{AppHandle, Emitter, Manager, State};
+use tokio::sync::mpsc;
 use uuid::Uuid;
 
 use crate::events::{self, UsageImportPayload};
+use crate::llmusage_adapter::{build_filter, canonical_source_id, platform_scope_label, queries};
 use crate::monitoring::{emit_and_record_monitoring_event, should_persist, usage_import_entry};
 use crate::session_index_jobs::SessionIndexJobSnapshot;
 use crate::state::AppState;
@@ -46,16 +46,6 @@ pub struct UsageLogsQuery {
     #[serde(alias = "includeTotal")]
     pub include_total: Option<bool>,
     pub mode: Option<UsageLogsMode>,
-}
-
-#[derive(Debug, Clone, Serialize)]
-pub struct PaginatedLogsV2 {
-    pub records: Vec<ccr_db::database::repositories::usage_repo::UsageRecord>,
-    pub total: Option<i64>,
-    pub page: i64,
-    pub page_size: i64,
-    pub next_cursor: Option<String>,
-    pub mode: UsageLogsMode,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -105,14 +95,6 @@ pub struct StartUsageImportJobResponse {
 pub struct StartSessionIndexJobResponse {
     pub job_id: String,
     pub snapshot: SessionIndexJobSnapshot,
-}
-
-#[derive(Debug, Clone)]
-struct UsageImportJobFile {
-    platform: String,
-    path: PathBuf,
-    file_size: i64,
-    modified_at: Option<std::time::SystemTime>,
 }
 
 const HOME_USAGE_PLATFORMS: [&str; 4] = ["claude", "codex", "gemini", "opencode"];
@@ -167,7 +149,8 @@ pub struct HomeUsageOverviewResponse {
 }
 
 struct HomeUsageSnapshot {
-    summary: ccr_db::database::repositories::usage_repo::UsageSummary,
+    total_requests: u64,
+    total_tokens: u64,
     active_days: u64,
     by_platform: BTreeMap<String, HomeOverviewPlatformStats>,
     daily_by_platform: BTreeMap<String, BTreeMap<String, HomeOverviewPlatformStats>>,
@@ -192,86 +175,32 @@ fn record_db_duration(state: &AppState, db_ms: f64) {
     state.record_db_query_duration_ms(db_ms);
 }
 
-fn normalize_import_result(
-    result: ccr_db::services::usage_import_service::ImportResult,
-) -> UsageImportResultV2 {
+fn is_optional_source_absent(source: SourceKind, error: &str) -> bool {
+    source == SourceKind::Opencode && error.contains("OpenCode SQLite DB 缺失")
+}
+
+fn source_import_result(source: SourceKind, stats: &SourceSyncStats) -> UsageImportResultV2 {
+    let ignored_absent_source = stats
+        .last_error
+        .as_deref()
+        .is_some_and(|error| is_optional_source_absent(source, error));
+
     UsageImportResultV2 {
-        platform: result.platform,
-        files_processed: result.files_processed,
-        records_imported: result.records_imported,
-        records_skipped: result.records_skipped,
-        duration_ms: result.duration_ms,
-        completed: result.completed,
-        error: None,
+        platform: source.as_str().to_string(),
+        files_processed: stats.files_processed,
+        records_imported: stats.events_inserted,
+        records_skipped: stats.events_seen.saturating_sub(stats.events_inserted),
+        duration_ms: stats
+            .parse_ms
+            .saturating_add(stats.write_ms)
+            .saturating_add(stats.lock_wait_ms),
+        completed: ignored_absent_source || stats.last_error.is_none(),
+        error: if ignored_absent_source {
+            None
+        } else {
+            stats.last_error.clone()
+        },
     }
-}
-
-fn same_price(left: f64, right: f64) -> bool {
-    (left - right).abs() < 0.000_001
-}
-
-fn same_optional_price(left: Option<f64>, right: Option<f64>) -> bool {
-    match (left, right) {
-        (Some(left), Some(right)) => same_price(left, right),
-        (None, None) => true,
-        _ => false,
-    }
-}
-
-fn same_model_rate_price(left: &ModelRateOverride, right: &ModelRateOverride) -> bool {
-    same_price(left.input_price, right.input_price)
-        && same_price(left.output_price, right.output_price)
-        && same_optional_price(left.cache_read_price, right.cache_read_price)
-        && same_optional_price(left.cache_write_price, right.cache_write_price)
-}
-
-fn custom_rate_override(model: String, pricing: ModelPricing) -> Option<ModelRateOverride> {
-    let rate = ModelRateOverride {
-        model,
-        input_price: pricing.input_price,
-        output_price: pricing.output_price,
-        cache_read_price: pricing.cache_read_price,
-        cache_write_price: pricing.cache_write_price,
-    };
-
-    official_model_rate_override_for(&rate.model)
-        .is_none_or(|official| !same_model_rate_price(&rate, &official))
-        .then_some(rate)
-}
-
-fn usage_pricing_catalog() -> ModelRateCatalog {
-    let manager = match PricingManager::with_default() {
-        Ok(manager) => manager,
-        Err(error) => {
-            tracing::warn!(
-                ?error,
-                "Failed to load pricing overrides; using official catalog"
-            );
-            return ModelRateCatalog::official();
-        }
-    };
-
-    let overrides = manager
-        .export_pricing()
-        .into_iter()
-        .filter_map(|(model, pricing)| custom_rate_override(model, pricing))
-        .collect::<Vec<_>>();
-
-    if overrides.is_empty() {
-        ModelRateCatalog::official()
-    } else {
-        ModelRateCatalog::with_overrides(overrides)
-    }
-}
-
-fn build_usage_import_service(
-    usage_db_pool: ccr_db::database::pool::DbPool,
-) -> ccr_db::services::usage_import_service::UsageImportService {
-    ccr_db::services::usage_import_service::UsageImportService::with_pool_and_catalog(
-        ccr_db::services::usage_import_service::ImportConfig::default(),
-        usage_db_pool,
-        usage_pricing_catalog(),
-    )
 }
 
 fn build_import_summary(results: &[UsageImportResultV2]) -> UsageImportSummary {
@@ -297,6 +226,28 @@ fn build_import_summary(results: &[UsageImportResultV2]) -> UsageImportSummary {
         processed_files,
         has_partial,
     }
+}
+
+fn default_import_results(platform: Option<&str>) -> Vec<UsageImportResultV2> {
+    platform
+        .map(|platform| vec![platform.to_string()])
+        .unwrap_or_else(|| {
+            HOME_USAGE_PLATFORMS
+                .iter()
+                .map(|platform| (*platform).to_string())
+                .collect()
+        })
+        .into_iter()
+        .map(|platform| UsageImportResultV2 {
+            platform,
+            files_processed: 0,
+            records_imported: 0,
+            records_skipped: 0,
+            duration_ms: 0,
+            completed: true,
+            error: None,
+        })
+        .collect()
 }
 
 async fn emit_usage_import_job_snapshot(
@@ -421,476 +372,389 @@ fn sync_platform_session_archive(
     Ok(())
 }
 
-fn platform_scope_label(platform: Option<&str>) -> String {
-    platform.unwrap_or("all").to_string()
-}
-
-fn create_platform_results(platforms: &[String]) -> BTreeMap<String, UsageImportResultV2> {
-    platforms
-        .iter()
-        .map(|platform| {
-            (
-                platform.clone(),
-                UsageImportResultV2 {
-                    platform: platform.clone(),
-                    files_processed: 0,
-                    records_imported: 0,
-                    records_skipped: 0,
-                    duration_ms: 0,
-                    completed: true,
-                    error: None,
-                },
-            )
-        })
-        .collect()
-}
-
-fn sort_job_files(files: &mut [UsageImportJobFile]) {
-    files.sort_by(|left, right| {
-        right
-            .modified_at
-            .cmp(&left.modified_at)
-            .then_with(|| left.path.cmp(&right.path))
-    });
-}
-
-fn system_time_to_utc(value: std::time::SystemTime) -> chrono::DateTime<Utc> {
-    chrono::DateTime::<Utc>::from(value)
-}
-
-fn source_requires_import(
-    source: &ccr_db::database::repositories::usage_repo::UsageSource,
-    file_size: i64,
-    modified_at: Option<std::time::SystemTime>,
-) -> bool {
-    if source.source_state != ccr_db::database::repositories::usage_repo::UsageSourceState::Live {
-        return true;
-    }
-
-    if source.file_size != Some(file_size) {
-        return true;
-    }
-
-    let modified_at = modified_at.map(system_time_to_utc);
-    source.modified_at != modified_at
-}
-
-fn build_usage_import_plan(
-    usage_db_pool: ccr_db::database::pool::DbPool,
-    platforms: &[String],
-    recent_window_days: usize,
-) -> Result<(Vec<UsageImportJobFile>, Vec<UsageImportJobFile>), String> {
-    let service = build_usage_import_service(usage_db_pool.clone());
-
-    let cutoff = std::time::SystemTime::now()
-        .checked_sub(std::time::Duration::from_secs(
-            recent_window_days.max(1) as u64 * 24 * 60 * 60,
-        ))
-        .unwrap_or(std::time::SystemTime::UNIX_EPOCH);
-
-    let mut recent = Vec::new();
-    let mut history = Vec::new();
-
-    for platform in platforms {
-        let existing_sources = {
-            let conn = usage_db_pool.get().map_err(|e| format!("DB error: {e}"))?;
-            ccr_db::database::repositories::usage_repo::get_sources_by_platform(&conn, platform)
-                .map_err(|e| format!("Source lookup error: {e}"))?
-                .into_iter()
-                .map(|source| (source.file_path.clone(), source))
-                .collect::<std::collections::HashMap<_, _>>()
-        };
-        let mut seen_paths = Vec::new();
-
-        for path in service.list_usage_files(platform)? {
-            let metadata = std::fs::metadata(&path).ok();
-            let file_size = metadata.as_ref().map(|meta| meta.len() as i64).unwrap_or(0);
-            let modified_at = metadata.as_ref().and_then(|meta| meta.modified().ok());
-            let file_path = path.display().to_string();
-            seen_paths.push(file_path.clone());
-
-            if let Some(source) = existing_sources.get(&file_path)
-                && !source_requires_import(source, file_size, modified_at)
-            {
-                continue;
-            }
-
-            let job_file = UsageImportJobFile {
-                platform: platform.clone(),
-                path,
-                file_size,
-                modified_at,
-            };
-
-            if modified_at.is_some_and(|modified| modified >= cutoff) {
-                recent.push(job_file);
-            } else {
-                history.push(job_file);
-            }
+async fn run_usage_import_job(
+    app_handle: AppHandle,
+    job_id: String,
+    platform: Option<String>,
+    mut rx: mpsc::Receiver<llmusage::sync::JobEvent>,
+) {
+    if let Err(error) =
+        bridge_llmusage_import_events(&app_handle, &job_id, platform.as_deref(), &mut rx).await
+    {
+        tracing::error!(job_id = %job_id, ?error, "Usage import job failed");
+        if let Some(snapshot) = sync_llmusage_failure_snapshot(&app_handle, &job_id, error).await {
+            emit_usage_import_job_snapshot(&app_handle, "usage:job-failed", &snapshot).await;
         }
-
-        let conn = usage_db_pool.get().map_err(|e| format!("DB error: {e}"))?;
-        ccr_db::database::repositories::usage_repo::mark_sources_missing_by_platform(
-            &conn,
-            platform,
-            &seen_paths,
-        )
-        .map_err(|e| format!("Source reconcile error: {e}"))?;
     }
-
-    sort_job_files(&mut recent);
-    sort_job_files(&mut history);
-
-    if recent.is_empty() && !history.is_empty() {
-        let promote_count = history.len().min(12);
-        recent.extend(history.drain(0..promote_count));
-    }
-
-    Ok((recent, history))
 }
 
-fn upsert_usage_history_cursor(
-    usage_db_pool: &ccr_db::database::pool::DbPool,
-    platform: &str,
-    recent_window_days: usize,
-    file: Option<&UsageImportJobFile>,
-    recent_completed_at: Option<chrono::DateTime<Utc>>,
-    history_completed_at: Option<chrono::DateTime<Utc>>,
-) -> Result<(), String> {
-    let conn = usage_db_pool.get().map_err(|e| format!("DB error: {e}"))?;
-    let existing = ccr_db::database::repositories::usage_repo::get_history_cursor(&conn, platform)
-        .map_err(|e| format!("History cursor lookup error: {e}"))?;
-    let cursor = ccr_db::database::repositories::usage_repo::UsageHistoryCursor {
-        platform: platform.to_string(),
-        recent_window_days: recent_window_days as i64,
-        last_history_file_path: file
-            .map(|entry| entry.path.display().to_string())
-            .or_else(|| {
-                existing
-                    .as_ref()
-                    .and_then(|cursor| cursor.last_history_file_path.clone())
-            }),
-        last_history_file_modified_at: file
-            .and_then(|entry| entry.modified_at.map(system_time_to_utc))
-            .or_else(|| {
-                existing
-                    .as_ref()
-                    .and_then(|cursor| cursor.last_history_file_modified_at)
-            }),
-        last_history_offset: file.map(|entry| entry.file_size).unwrap_or_else(|| {
-            existing
-                .as_ref()
-                .map(|cursor| cursor.last_history_offset)
-                .unwrap_or(0)
-        }),
-        recent_completed_at: recent_completed_at.or_else(|| {
-            existing
-                .as_ref()
-                .and_then(|cursor| cursor.recent_completed_at)
-        }),
-        history_completed_at: history_completed_at.or_else(|| {
-            existing
-                .as_ref()
-                .and_then(|cursor| cursor.history_completed_at)
-        }),
-        updated_at: Utc::now(),
-    };
-
-    ccr_db::database::repositories::usage_repo::upsert_history_cursor(&conn, &cursor)
-        .map_err(|e| format!("History cursor upsert error: {e}"))
-}
-
-async fn process_usage_import_phase(
+async fn bridge_llmusage_import_events(
     app_handle: &AppHandle,
-    usage_db_pool: ccr_db::database::pool::DbPool,
     job_id: &str,
-    recent_window_days: usize,
-    files_total: usize,
-    stage: UsageImportJobStage,
-    files: &[UsageImportJobFile],
-    results_by_platform: &mut BTreeMap<String, UsageImportResultV2>,
+    platform: Option<&str>,
+    rx: &mut mpsc::Receiver<llmusage::sync::JobEvent>,
 ) -> Result<(), String> {
-    for file in files {
-        let display_path = file.path.display().to_string();
+    let mut results_by_platform = BTreeMap::<String, UsageImportResultV2>::new();
+    let mut saw_terminal_event = false;
 
-        if let Some(snapshot) = app_handle
-            .state::<AppState>()
-            .update_usage_import_job(job_id, |job: &mut UsageImportJobSnapshot| {
-                job.mark_running(stage, files_total, Some(display_path.clone()));
-            })
-            .await
-        {
-            emit_usage_import_job_snapshot(app_handle, "usage:job-progress", &snapshot).await;
+    while let Some(event) = rx.recv().await {
+        if state_usage_import_job_is_terminal(app_handle, job_id).await {
+            return Ok(());
         }
 
-        let platform = file.platform.clone();
-        let path = file.path.clone();
-        let db_pool = usage_db_pool.clone();
-        let import_started = Instant::now();
-        let import_result = tokio::task::spawn_blocking(move || {
-            let service = build_usage_import_service(db_pool);
-            service.import_file_path(&platform, &path)
-        })
-        .await
-        .map_err(|error| format!("Import task join error: {error}"))?;
-
-        match import_result {
-            Ok((imported, skipped)) => {
-                if let Some(platform_result) = results_by_platform.get_mut(&file.platform) {
-                    platform_result.files_processed += 1;
-                    platform_result.records_imported += imported;
-                    platform_result.records_skipped += skipped;
-                    platform_result.duration_ms += import_started.elapsed().as_millis() as u64;
-                }
-
+        match event {
+            llmusage::sync::JobEvent::Started { files_total, .. } => {
                 if let Some(snapshot) = app_handle
                     .state::<AppState>()
                     .update_usage_import_job(job_id, |job: &mut UsageImportJobSnapshot| {
-                        job.record_file_result(Some(display_path.clone()), imported, skipped);
+                        job.mark_running(
+                            UsageImportJobStage::ImportingRecent,
+                            files_total as usize,
+                            None,
+                        );
                     })
                     .await
                 {
                     emit_usage_import_job_snapshot(app_handle, "usage:job-progress", &snapshot)
                         .await;
                 }
-
-                if matches!(stage, UsageImportJobStage::ImportingHistory) {
-                    upsert_usage_history_cursor(
-                        &usage_db_pool,
-                        &file.platform,
-                        recent_window_days,
-                        Some(file),
-                        None,
-                        None,
-                    )?;
-                }
             }
-            Err(error) => {
-                if let Some(platform_result) = results_by_platform.get_mut(&file.platform) {
-                    platform_result.files_processed += 1;
-                    platform_result.duration_ms += import_started.elapsed().as_millis() as u64;
-                    platform_result.completed = false;
-                    platform_result.error = Some(error.clone());
-                }
-
+            llmusage::sync::JobEvent::BootstrapStarted
+            | llmusage::sync::JobEvent::MigrationStarted { .. }
+            | llmusage::sync::JobEvent::MigrationFinished { .. }
+            | llmusage::sync::JobEvent::LockWaiting { .. }
+            | llmusage::sync::JobEvent::LockAcquired { .. } => {
                 if let Some(snapshot) = app_handle
                     .state::<AppState>()
                     .update_usage_import_job(job_id, |job: &mut UsageImportJobSnapshot| {
-                        job.record_file_result(Some(display_path.clone()), 0, 0);
-                        job.push_warning(format!("{}: {}", display_path, error));
+                        job.mark_running(
+                            UsageImportJobStage::ImportingRecent,
+                            job.files_total,
+                            None,
+                        );
                     })
                     .await
                 {
                     emit_usage_import_job_snapshot(app_handle, "usage:job-progress", &snapshot)
                         .await;
                 }
-
-                if matches!(stage, UsageImportJobStage::ImportingHistory) {
-                    upsert_usage_history_cursor(
-                        &usage_db_pool,
-                        &file.platform,
-                        recent_window_days,
-                        Some(file),
-                        None,
-                        None,
-                    )?;
+            }
+            llmusage::sync::JobEvent::SourceStarted {
+                source,
+                files_total,
+            } => {
+                if let Some(snapshot) = app_handle
+                    .state::<AppState>()
+                    .update_usage_import_job(job_id, |job: &mut UsageImportJobSnapshot| {
+                        job.mark_running(
+                            UsageImportJobStage::ImportingRecent,
+                            files_total as usize,
+                            Some(source.as_str().to_string()),
+                        );
+                    })
+                    .await
+                {
+                    emit_usage_import_job_snapshot(app_handle, "usage:job-progress", &snapshot)
+                        .await;
                 }
             }
+            llmusage::sync::JobEvent::Progress {
+                source,
+                files_scanned,
+                records_imported,
+                current_file,
+            } => {
+                if let Some(snapshot) = app_handle
+                    .state::<AppState>()
+                    .update_usage_import_job(job_id, |job: &mut UsageImportJobSnapshot| {
+                        job.status = crate::usage_jobs::UsageImportJobStatus::Running;
+                        job.stage = UsageImportJobStage::ImportingRecent;
+                        job.files_scanned = files_scanned as usize;
+                        job.records_imported = records_imported as usize;
+                        job.current_file =
+                            current_file.or_else(|| Some(source.as_str().to_string()));
+                        job.updated_at = Utc::now().to_rfc3339();
+                    })
+                    .await
+                {
+                    emit_usage_import_job_snapshot(app_handle, "usage:job-progress", &snapshot)
+                        .await;
+                }
+            }
+            llmusage::sync::JobEvent::RecentReady { source: _ } => {
+                if let Some(snapshot) = app_handle
+                    .state::<AppState>()
+                    .update_usage_import_job(job_id, |job: &mut UsageImportJobSnapshot| {
+                        job.mark_recent_ready(true);
+                    })
+                    .await
+                {
+                    emit_usage_import_job_snapshot(app_handle, "usage:job-recent-ready", &snapshot)
+                        .await;
+                }
+            }
+            llmusage::sync::JobEvent::SourceFinished { source, stats } => {
+                let result = source_import_result(source, &stats);
+                let result_error = result.error.clone();
+                results_by_platform.insert(source.as_str().to_string(), result);
+                let files_processed = results_by_platform
+                    .values()
+                    .map(|result| result.files_processed)
+                    .sum();
+                let records_imported = results_by_platform
+                    .values()
+                    .map(|result| result.records_imported)
+                    .sum();
+                let records_skipped = results_by_platform
+                    .values()
+                    .map(|result| result.records_skipped)
+                    .sum();
+                let files_imported = results_by_platform
+                    .values()
+                    .filter(|result| result.records_imported > 0)
+                    .map(|result| result.files_processed)
+                    .sum();
+                if let Some(snapshot) = app_handle
+                    .state::<AppState>()
+                    .update_usage_import_job(job_id, |job: &mut UsageImportJobSnapshot| {
+                        job.status = crate::usage_jobs::UsageImportJobStatus::Running;
+                        job.stage = UsageImportJobStage::ImportingHistory;
+                        job.files_total = job.files_total.max(files_processed);
+                        job.files_scanned = files_processed;
+                        job.files_imported = files_imported;
+                        job.records_imported = records_imported;
+                        job.records_skipped = records_skipped;
+                        job.current_file = None;
+                        if let Some(error) = result_error {
+                            job.push_warning(format!("{}: {}", source.as_str(), error));
+                        }
+                        job.updated_at = Utc::now().to_rfc3339();
+                    })
+                    .await
+                {
+                    emit_usage_import_job_snapshot(app_handle, "usage:job-progress", &snapshot)
+                        .await;
+                }
+            }
+            llmusage::sync::JobEvent::Finished { summary } => {
+                saw_terminal_event = true;
+                finish_llmusage_import_job(
+                    app_handle,
+                    job_id,
+                    platform,
+                    results_by_platform,
+                    summary,
+                )
+                .await?;
+                break;
+            }
+            llmusage::sync::JobEvent::Failed { error } => {
+                return Err(error);
+            }
+            llmusage::sync::JobEvent::Cancelled => {
+                saw_terminal_event = true;
+                if let Some(snapshot) = app_handle
+                    .state::<AppState>()
+                    .update_usage_import_job(job_id, |job: &mut UsageImportJobSnapshot| {
+                        job.mark_cancelled();
+                    })
+                    .await
+                {
+                    emit_usage_import_job_snapshot(app_handle, "usage:job-failed", &snapshot).await;
+                }
+                break;
+            }
         }
+    }
+
+    if !saw_terminal_event {
+        return Err("Usage import job ended before a terminal event was emitted".to_string());
     }
 
     Ok(())
 }
 
-async fn run_usage_import_job(
-    app_handle: AppHandle,
-    job_id: String,
-    platform: Option<String>,
-    recent_window_days: usize,
-    reset_sources: bool,
-) {
-    let usage_db_pool = app_handle.state::<AppState>().usage_db_pool.clone();
-    let platforms = match platform.as_deref() {
-        Some(value) => vec![value.to_string()],
-        None => HOME_USAGE_PLATFORMS
-            .iter()
-            .map(|value| (*value).to_string())
-            .collect(),
+async fn state_usage_import_job_is_terminal(app_handle: &AppHandle, job_id: &str) -> bool {
+    app_handle
+        .state::<AppState>()
+        .get_usage_import_job(job_id)
+        .await
+        .is_some_and(|snapshot| {
+            matches!(
+                snapshot.status,
+                crate::usage_jobs::UsageImportJobStatus::Finished
+                    | crate::usage_jobs::UsageImportJobStatus::Failed
+                    | crate::usage_jobs::UsageImportJobStatus::Cancelled
+            )
+        })
+}
+
+async fn finish_llmusage_import_job(
+    app_handle: &AppHandle,
+    job_id: &str,
+    platform: Option<&str>,
+    mut results_by_platform: BTreeMap<String, UsageImportResultV2>,
+    summary_event: SyncSummaryEvent,
+) -> Result<(), String> {
+    let mut results = if results_by_platform.is_empty() {
+        default_import_results(canonical_source_id(platform).as_deref())
+    } else {
+        results_by_platform
+            .values_mut()
+            .for_each(|result| result.completed = result.error.is_none());
+        results_by_platform.into_values().collect::<Vec<_>>()
     };
+    results.sort_by(|left, right| left.platform.cmp(&right.platform));
 
-    let execution = async {
-        if reset_sources {
-            for platform_name in &platforms {
-                let platform_name = platform_name.clone();
-                let source_target = platform_name.clone();
-                let db_pool = usage_db_pool.clone();
-                let source_count = tokio::task::spawn_blocking(move || {
-                    let service = build_usage_import_service(db_pool);
-                    service
-                        .list_usage_files(&source_target)
-                        .map(|files| files.len())
-                })
-                .await
-                .map_err(|error| format!("Repair preflight join error: {error}"))??;
+    let mut summary = build_import_summary(&results);
+    summary.imported_records = summary.imported_records.max(summary_event.total_inserted);
+    let final_snapshot = app_handle
+        .state::<AppState>()
+        .update_usage_import_job(job_id, |job: &mut UsageImportJobSnapshot| {
+            job.files_total = job.files_total.max(summary_event.sources);
+            job.records_imported = job.records_imported.max(summary_event.total_inserted);
+            job.mark_finished(results.clone(), summary.clone());
+        })
+        .await
+        .ok_or_else(|| format!("Usage import job '{}' not found", job_id))?;
 
-                if source_count == 0 {
-                    return Err(format!(
-                        "No usage source files found for {}. Refusing to reset imported history.",
-                        platform_name
-                    ));
-                }
+    let payload = UsageImportPayload {
+        imported_count: summary.imported_records,
+        platform: platform_scope_label(platform),
+    };
+    let entry = usage_import_entry(&payload);
+    let persist = should_persist(entry.level, &entry.event_type);
+    emit_and_record_monitoring_event(
+        app_handle,
+        events::channels::USAGE_IMPORT,
+        &payload,
+        entry,
+        persist,
+    )
+    .await;
 
-                let reset_target = platform_name.clone();
-                let db_pool = usage_db_pool.clone();
-                let reset_result = tokio::task::spawn_blocking(move || {
-                    let service = build_usage_import_service(db_pool);
-                    service.reset_platform_sources(&reset_target)
-                })
-                .await
-                .map_err(|error| format!("Repair task join error: {error}"))??;
+    emit_usage_import_job_snapshot(app_handle, "usage:job-finished", &final_snapshot).await;
+    Ok(())
+}
 
-                if let Some(snapshot) = app_handle
-                    .state::<AppState>()
-                    .update_usage_import_job(&job_id, |job: &mut UsageImportJobSnapshot| {
-                        job.push_warning(format!(
-                            "Reset {} sources and {} records for {} before re-import",
-                            reset_result.0, reset_result.1, platform_name
-                        ));
-                    })
-                    .await
-                {
-                    emit_usage_import_job_snapshot(&app_handle, "usage:job-progress", &snapshot)
-                        .await;
-                }
-            }
-        }
+async fn sync_llmusage_failure_snapshot(
+    app_handle: &AppHandle,
+    job_id: &str,
+    fallback_error: String,
+) -> Option<UsageImportJobSnapshot> {
+    let llmusage_snapshot = app_handle
+        .state::<AppState>()
+        .llmusage
+        .jobs()
+        .snapshot(job_id);
 
-        let (recent_files, history_files) =
-            build_usage_import_plan(usage_db_pool.clone(), &platforms, recent_window_days)?;
-        let archive_diagnostics = load_archive_diagnostics(&usage_db_pool, platform.as_deref())?;
-        let history_cursor_hit = load_history_cursor_hit(&usage_db_pool, &platforms)?;
-        let files_total = recent_files.len() + history_files.len();
-        let mut results_by_platform = create_platform_results(&platforms);
-
-        if let Some(snapshot) = app_handle
-            .state::<AppState>()
-            .update_usage_import_job(&job_id, |job: &mut UsageImportJobSnapshot| {
-                job.files_total = files_total;
-                job.history_cursor_hit = history_cursor_hit;
-                job.live_sources = archive_diagnostics.live_sources as usize;
-                job.missing_sources = archive_diagnostics.missing_sources as usize;
-                job.deleted_sources = archive_diagnostics.deleted_sources as usize;
-                job.updated_at = Utc::now().to_rfc3339();
-            })
-            .await
-        {
-            emit_usage_import_job_snapshot(&app_handle, "usage:job-progress", &snapshot).await;
-        }
-
-        process_usage_import_phase(
-            &app_handle,
-            usage_db_pool.clone(),
-            &job_id,
-            recent_window_days,
-            files_total,
-            UsageImportJobStage::ImportingRecent,
-            &recent_files,
-            &mut results_by_platform,
+    app_handle
+        .state::<AppState>()
+        .update_usage_import_job(
+            job_id,
+            |job: &mut UsageImportJobSnapshot| match llmusage_snapshot
+                .as_ref()
+                .map(|snapshot| snapshot.status)
+            {
+                Some(llmusage::sync::JobStatus::Cancelled) => job.mark_cancelled(),
+                _ => job.mark_failed(
+                    llmusage_snapshot
+                        .as_ref()
+                        .and_then(|snapshot| snapshot.error.clone())
+                        .unwrap_or_else(|| fallback_error.clone()),
+                ),
+            },
         )
-        .await?;
+        .await
+}
 
-        if let Some(snapshot) = app_handle
-            .state::<AppState>()
-            .update_usage_import_job(&job_id, |job: &mut UsageImportJobSnapshot| {
-                job.mark_recent_ready(!history_files.is_empty());
-            })
-            .await
-        {
-            emit_usage_import_job_snapshot(&app_handle, "usage:job-recent-ready", &snapshot).await;
-        }
+async fn run_llmusage_sync_all(
+    state: &AppState,
+    recent_days: Option<u32>,
+    rebuild: bool,
+) -> Result<Vec<UsageImportResultV2>, String> {
+    let (_job_id, rx) = state.llmusage.jobs().start(
+        state.llmusage.store(),
+        SyncOptions {
+            rebuild,
+            recent_days,
+            source: None,
+            parallelism: None,
+        },
+    );
 
-        for platform_name in &platforms {
-            upsert_usage_history_cursor(
-                &usage_db_pool,
-                platform_name,
-                recent_window_days,
-                None,
-                Some(Utc::now()),
-                if history_files.is_empty() {
-                    Some(Utc::now())
+    collect_llmusage_sync_results(rx, None).await
+}
+
+async fn run_llmusage_sync_once(
+    state: &AppState,
+    source: Option<String>,
+    recent_days: Option<u32>,
+    rebuild: bool,
+) -> Result<UsageImportResultV2, String> {
+    let requested_source = source.clone();
+    let (_job_id, rx) = state.llmusage.jobs().start(
+        state.llmusage.store(),
+        SyncOptions {
+            rebuild,
+            recent_days,
+            source,
+            parallelism: None,
+        },
+    );
+
+    let mut results = collect_llmusage_sync_results(rx, requested_source.as_deref()).await?;
+    Ok(results
+        .pop()
+        .unwrap_or_else(|| default_import_results(requested_source.as_deref()).remove(0)))
+}
+
+async fn collect_llmusage_sync_results(
+    mut rx: mpsc::Receiver<llmusage::sync::JobEvent>,
+    fallback_source: Option<&str>,
+) -> Result<Vec<UsageImportResultV2>, String> {
+    let mut results_by_platform = BTreeMap::<String, UsageImportResultV2>::new();
+
+    while let Some(event) = rx.recv().await {
+        match event {
+            llmusage::sync::JobEvent::SourceFinished { source, stats } => {
+                results_by_platform.insert(
+                    source.as_str().to_string(),
+                    source_import_result(source, &stats),
+                );
+            }
+            llmusage::sync::JobEvent::Finished { summary } => {
+                let mut results = if results_by_platform.is_empty() {
+                    default_import_results(fallback_source)
                 } else {
-                    None
-                },
-            )?;
-        }
-
-        process_usage_import_phase(
-            &app_handle,
-            usage_db_pool.clone(),
-            &job_id,
-            recent_window_days,
-            files_total,
-            UsageImportJobStage::ImportingHistory,
-            &history_files,
-            &mut results_by_platform,
-        )
-        .await?;
-
-        if !history_files.is_empty() {
-            for platform_name in &platforms {
-                upsert_usage_history_cursor(
-                    &usage_db_pool,
-                    platform_name,
-                    recent_window_days,
-                    None,
-                    None,
-                    Some(Utc::now()),
-                )?;
+                    results_by_platform.into_values().collect()
+                };
+                let imported_records = results
+                    .iter()
+                    .map(|result| result.records_imported)
+                    .sum::<usize>();
+                if summary.total_inserted > imported_records
+                    && let Some(first) = results.first_mut()
+                {
+                    first.records_imported = first.records_imported.max(summary.total_inserted);
+                    first.records_skipped = first
+                        .records_skipped
+                        .max(summary.total_seen.saturating_sub(summary.total_inserted));
+                }
+                results.sort_by(|left, right| left.platform.cmp(&right.platform));
+                return Ok(results);
             }
-        }
-
-        let results = results_by_platform.into_values().collect::<Vec<_>>();
-        let summary = build_import_summary(&results);
-
-        let final_snapshot = app_handle
-            .state::<AppState>()
-            .update_usage_import_job(&job_id, |job: &mut UsageImportJobSnapshot| {
-                job.mark_finished(results.clone(), summary.clone());
-            })
-            .await
-            .ok_or_else(|| format!("Usage import job '{}' not found", job_id))?;
-
-        let payload = UsageImportPayload {
-            imported_count: summary.imported_records,
-            platform: platform_scope_label(platform.as_deref()),
-        };
-        let entry = usage_import_entry(&payload);
-        let persist = should_persist(entry.level, &entry.event_type);
-        emit_and_record_monitoring_event(
-            &app_handle,
-            events::channels::USAGE_IMPORT,
-            &payload,
-            entry,
-            persist,
-        )
-        .await;
-
-        emit_usage_import_job_snapshot(&app_handle, "usage:job-finished", &final_snapshot).await;
-        Ok::<(), String>(())
-    };
-
-    if let Err(error) = execution.await {
-        tracing::error!(job_id = %job_id, ?error, "Usage import job failed");
-        if let Some(snapshot) = app_handle
-            .state::<AppState>()
-            .update_usage_import_job(&job_id, |job: &mut UsageImportJobSnapshot| {
-                job.mark_failed(error.clone())
-            })
-            .await
-        {
-            emit_usage_import_job_snapshot(&app_handle, "usage:job-failed", &snapshot).await;
+            llmusage::sync::JobEvent::Failed { error } => {
+                return Err(error);
+            }
+            llmusage::sync::JobEvent::Cancelled => {
+                return Err("Usage import job was cancelled".to_string());
+            }
+            _ => {}
         }
     }
+
+    Err("Usage import job ended before a terminal event was emitted".to_string())
 }
 
 async fn run_session_index_job(app_handle: AppHandle, job_id: String) {
@@ -1037,17 +901,21 @@ fn non_negative_i64(value: i64) -> u64 {
     value.max(0) as u64
 }
 
-fn build_home_date_range(days: usize) -> Vec<String> {
+fn local_usage_date_window(days: usize) -> (chrono::NaiveDate, chrono::NaiveDate) {
     let safe_days = days.max(1);
-    let end = Utc::now().date_naive();
+    let end = Local::now().date_naive();
     let start = end - Duration::days((safe_days - 1) as i64);
+    (start, end)
+}
 
+fn format_local_usage_date(date: chrono::NaiveDate) -> String {
+    date.format("%Y-%m-%d").to_string()
+}
+
+fn build_home_date_range_from(start: chrono::NaiveDate, days: usize) -> Vec<String> {
+    let safe_days = days.max(1);
     (0..safe_days)
-        .map(|offset| {
-            (start + Duration::days(offset as i64))
-                .format("%Y-%m-%d")
-                .to_string()
-        })
+        .map(|offset| format_local_usage_date(start + Duration::days(offset as i64)))
         .collect()
 }
 
@@ -1089,65 +957,104 @@ fn has_any_raw_sessions() -> bool {
 }
 
 fn load_home_usage_snapshot(
-    pool: &ccr_db::database::pool::DbPool,
-    start_date: &str,
-    end_date: &str,
+    dashboard: &llmusage::Dashboard,
+    filter: &llmusage::QueryFilter,
 ) -> Result<HomeUsageSnapshot, String> {
-    let conn = pool.get().map_err(|e| format!("DB error: {e}"))?;
-    let start = Some(start_date.to_string());
-    let end = Some(end_date.to_string());
-    let summary =
-        ccr_db::database::repositories::usage_repo::get_usage_summary(&conn, &None, &start, &end)
-            .map_err(|e| format!("Summary query error: {e}"))?;
-
-    let trends =
-        ccr_db::database::repositories::usage_repo::get_daily_trends(&conn, &None, &start, &end)
-            .map_err(|e| format!("Trend query error: {e}"))?;
-    let platform_summaries =
-        ccr_db::database::repositories::usage_repo::get_platform_summaries(&conn, &start, &end)
-            .map_err(|e| format!("Platform summary query error: {e}"))?;
-    let platform_trends =
-        ccr_db::database::repositories::usage_repo::get_daily_platform_trends(&conn, &start, &end)
-            .map_err(|e| format!("Platform trend query error: {e}"))?;
-
+    let payload = dashboard
+        .home_overview(filter)
+        .map_err(|e| format!("Home usage overview query error: {e}"))?;
     let mut by_platform = empty_home_platform_map();
-    let mut daily_by_platform = BTreeMap::new();
-
-    for platform_summary in platform_summaries {
-        if let Some(stats) = by_platform.get_mut(platform_summary.platform.as_str()) {
-            stats.requests = non_negative_i64(platform_summary.request_count);
-            stats.tokens = non_negative_i64(platform_summary.total_tokens);
+    for (platform, stats) in payload.by_platform {
+        if let Some(target) = by_platform.get_mut(platform.as_str()) {
+            target.requests = non_negative_i64(stats.requests);
+            target.tokens = non_negative_i64(stats.tokens);
         }
     }
 
-    for trend in platform_trends {
-        let day_entry = daily_by_platform
-            .entry(trend.date.clone())
-            .or_insert_with(empty_home_platform_map);
-        if let Some(stats) = day_entry.get_mut(trend.platform.as_str()) {
-            stats.requests = non_negative_i64(trend.request_count);
-            stats.tokens = non_negative_i64(trend.input_tokens + trend.output_tokens);
+    let mut daily_by_platform = BTreeMap::new();
+    for item in payload.series {
+        let mut day_stats = empty_home_platform_map();
+        if let Some(stats) = day_stats.get_mut("claude") {
+            stats.requests = non_negative_i64(item.claude.requests);
+            stats.tokens = non_negative_i64(item.claude.tokens);
         }
+        if let Some(stats) = day_stats.get_mut("codex") {
+            stats.requests = non_negative_i64(item.codex.requests);
+            stats.tokens = non_negative_i64(item.codex.tokens);
+        }
+        if let Some(stats) = day_stats.get_mut("gemini") {
+            stats.requests = non_negative_i64(item.gemini.requests);
+            stats.tokens = non_negative_i64(item.gemini.tokens);
+        }
+        if let Some(stats) = day_stats.get_mut("opencode") {
+            stats.requests = non_negative_i64(item.opencode.requests);
+            stats.tokens = non_negative_i64(item.opencode.tokens);
+        }
+        daily_by_platform.insert(item.date, day_stats);
     }
 
     Ok(HomeUsageSnapshot {
-        summary,
-        active_days: trends
-            .iter()
-            .filter(|trend| trend.request_count > 0)
-            .count() as u64,
+        total_requests: non_negative_i64(payload.summary.total_requests),
+        total_tokens: non_negative_i64(payload.summary.total_tokens),
+        active_days: non_negative_i64(payload.summary.active_days),
         by_platform,
         daily_by_platform,
     })
 }
 
-fn load_home_usage_presence(pool: &ccr_db::database::pool::DbPool) -> Result<bool, String> {
-    let conn = pool.get().map_err(|e| format!("DB error: {e}"))?;
-    let summary =
-        ccr_db::database::repositories::usage_repo::get_usage_summary(&conn, &None, &None, &None)
-            .map_err(|e| format!("Presence query error: {e}"))?;
+fn load_home_usage_presence(dashboard: &llmusage::Dashboard) -> Result<bool, String> {
+    let summary = dashboard
+        .overview(&llmusage::QueryFilter::default())
+        .map_err(|e| format!("Usage presence query error: {e}"))?;
 
-    Ok(summary.total_requests > 0)
+    Ok(summary.total_events > 0)
+}
+
+fn load_llmusage_archive_diagnostics(
+    dashboard: &llmusage::Dashboard,
+    archived_sessions: u64,
+) -> Result<UsageArchiveDiagnostics, String> {
+    let diagnostics = dashboard
+        .diagnostics()
+        .map_err(|e| format!("Archive diagnostics query error: {e}"))?;
+    let mut recent_completed_at: Option<String> = None;
+    let mut history_completed_at: Option<String> = None;
+    let mut live_sources = 0u64;
+    let mut missing_sources = 0u64;
+    let mut deleted_sources = 0u64;
+
+    for source in diagnostics.by_source {
+        live_sources = live_sources.saturating_add(source.live_files);
+        missing_sources = missing_sources.saturating_add(source.missing_files);
+        deleted_sources = deleted_sources.saturating_add(source.deleted_files);
+        recent_completed_at = queries::max_rfc3339(recent_completed_at, source.recent_completed_at);
+        history_completed_at =
+            queries::max_rfc3339(history_completed_at, source.history_completed_at);
+    }
+
+    Ok(UsageArchiveDiagnostics {
+        archive_root: diagnostics.archive_root,
+        live_sources,
+        missing_sources,
+        deleted_sources,
+        archived_sessions,
+        recent_completed_at,
+        history_completed_at,
+    })
+}
+
+fn count_archived_sessions(pool: &ccr_db::database::pool::DbPool) -> Result<u64, String> {
+    let conn = pool.get().map_err(|e| format!("DB error: {e}"))?;
+    ccr_db::database::repositories::usage_repo::get_session_archive_platform_summaries(
+        &conn, &None, &None,
+    )
+    .map_err(|e| format!("Archived session summary query error: {e}"))
+    .map(|items| {
+        items
+            .into_iter()
+            .map(|item| non_negative_i64(item.session_count))
+            .sum()
+    })
 }
 
 fn load_home_session_snapshot(
@@ -1200,91 +1107,6 @@ fn load_home_session_snapshot(
     })
 }
 
-fn load_archive_diagnostics(
-    pool: &ccr_db::database::pool::DbPool,
-    platform: Option<&str>,
-) -> Result<UsageArchiveDiagnostics, String> {
-    let conn = pool.get().map_err(|e| format!("DB error: {e}"))?;
-    let counts =
-        ccr_db::database::repositories::usage_repo::get_source_state_counts(&conn, platform)
-            .map_err(|e| format!("Source state query error: {e}"))?;
-    let archived_sessions =
-        ccr_db::database::repositories::usage_repo::get_session_archive_platform_summaries(
-            &conn, &None, &None,
-        )
-        .map_err(|e| format!("Archived session summary query error: {e}"))?
-        .into_iter()
-        .map(|item| non_negative_i64(item.session_count))
-        .sum();
-
-    let mut recent_completed_at: Option<String> = None;
-    let mut history_completed_at: Option<String> = None;
-    let cursor_platforms = platform
-        .map(|value| vec![value.to_string()])
-        .unwrap_or_else(|| {
-            HOME_USAGE_PLATFORMS
-                .iter()
-                .map(|value| value.to_string())
-                .collect()
-        });
-
-    for cursor_platform in cursor_platforms {
-        if let Some(cursor) =
-            ccr_db::database::repositories::usage_repo::get_history_cursor(&conn, &cursor_platform)
-                .map_err(|e| format!("History cursor query error: {e}"))?
-        {
-            if let Some(recent) = cursor.recent_completed_at {
-                let raw = recent.to_rfc3339();
-                if recent_completed_at
-                    .as_ref()
-                    .is_none_or(|current| raw > *current)
-                {
-                    recent_completed_at = Some(raw);
-                }
-            }
-            if let Some(history) = cursor.history_completed_at {
-                let raw = history.to_rfc3339();
-                if history_completed_at
-                    .as_ref()
-                    .is_none_or(|current| raw > *current)
-                {
-                    history_completed_at = Some(raw);
-                }
-            }
-        }
-    }
-
-    Ok(UsageArchiveDiagnostics {
-        archive_root: ccr_db::database::get_usage_archive_db_path()
-            .map_err(|e| format!("Archive root error: {e}"))?
-            .display()
-            .to_string(),
-        live_sources: counts.live.max(0) as u64,
-        missing_sources: counts.missing.max(0) as u64,
-        deleted_sources: counts.deleted_by_user.max(0) as u64,
-        archived_sessions,
-        recent_completed_at,
-        history_completed_at,
-    })
-}
-
-fn load_history_cursor_hit(
-    pool: &ccr_db::database::pool::DbPool,
-    platforms: &[String],
-) -> Result<bool, String> {
-    let conn = pool.get().map_err(|e| format!("DB error: {e}"))?;
-    for platform in platforms {
-        if ccr_db::database::repositories::usage_repo::get_history_cursor(&conn, platform)
-            .map_err(|e| format!("History cursor query error: {e}"))?
-            .is_some()
-        {
-            return Ok(true);
-        }
-    }
-
-    Ok(false)
-}
-
 /// 获取用量汇总数据
 #[tauri::command]
 pub async fn get_usage_summary_v2(
@@ -1294,18 +1116,17 @@ pub async fn get_usage_summary_v2(
     end_date: Option<String>,
 ) -> Result<Value, String> {
     let command_started = Instant::now();
-    let pool = state.usage_db_pool.clone();
+    let llmusage = state.llmusage.clone();
     let result = tokio::task::spawn_blocking(move || {
         let db_started = Instant::now();
-        let conn = pool.get().map_err(|e| format!("DB error: {e}"))?;
-        let summary = ccr_db::database::repositories::usage_repo::get_usage_summary(
-            &conn,
-            &platform,
-            &start_date,
-            &end_date,
-        )
-        .map_err(|e| format!("Query error: {e}"))?;
-        Ok::<_, String>((summary, elapsed_ms(db_started)))
+        let filter = build_filter(platform, None, start_date, end_date)?;
+        let dashboard = llmusage
+            .dashboard()
+            .map_err(|e| format!("Dashboard open error: {e}"))?;
+        let summary = dashboard
+            .overview(&filter)
+            .map_err(|e| format!("Summary query error: {e}"))?;
+        Ok::<_, String>((queries::to_usage_summary(summary), elapsed_ms(db_started)))
     })
     .await
     .map_err(|e| format!("Task join error: {e}"))?;
@@ -1325,18 +1146,17 @@ pub async fn get_usage_trends_v2(
     end_date: Option<String>,
 ) -> Result<Value, String> {
     let command_started = Instant::now();
-    let pool = state.usage_db_pool.clone();
+    let llmusage = state.llmusage.clone();
     let result = tokio::task::spawn_blocking(move || {
         let db_started = Instant::now();
-        let conn = pool.get().map_err(|e| format!("DB error: {e}"))?;
-        let trends = ccr_db::database::repositories::usage_repo::get_daily_trends(
-            &conn,
-            &platform,
-            &start_date,
-            &end_date,
-        )
-        .map_err(|e| format!("Query error: {e}"))?;
-        Ok::<_, String>((trends, elapsed_ms(db_started)))
+        let filter = build_filter(platform, None, start_date, end_date)?;
+        let dashboard = llmusage
+            .dashboard()
+            .map_err(|e| format!("Dashboard open error: {e}"))?;
+        let trends = dashboard
+            .trends_daily(&filter)
+            .map_err(|e| format!("Trends query error: {e}"))?;
+        Ok::<_, String>((queries::to_daily_trends(trends), elapsed_ms(db_started)))
     })
     .await
     .map_err(|e| format!("Task join error: {e}"))?;
@@ -1356,18 +1176,17 @@ pub async fn get_usage_by_model_v2(
     end_date: Option<String>,
 ) -> Result<Value, String> {
     let command_started = Instant::now();
-    let pool = state.usage_db_pool.clone();
+    let llmusage = state.llmusage.clone();
     let result = tokio::task::spawn_blocking(move || {
         let db_started = Instant::now();
-        let conn = pool.get().map_err(|e| format!("DB error: {e}"))?;
-        let stats = ccr_db::database::repositories::usage_repo::get_model_stats(
-            &conn,
-            &platform,
-            &start_date,
-            &end_date,
-        )
-        .map_err(|e| format!("Query error: {e}"))?;
-        Ok::<_, String>((stats, elapsed_ms(db_started)))
+        let filter = build_filter(platform, None, start_date, end_date)?;
+        let dashboard = llmusage
+            .dashboard()
+            .map_err(|e| format!("Dashboard open error: {e}"))?;
+        let stats = dashboard
+            .model_breakdown(&filter)
+            .map_err(|e| format!("Model stats query error: {e}"))?;
+        Ok::<_, String>((queries::to_model_stats(stats), elapsed_ms(db_started)))
     })
     .await
     .map_err(|e| format!("Task join error: {e}"))?;
@@ -1387,18 +1206,17 @@ pub async fn get_usage_by_project_v2(
     end_date: Option<String>,
 ) -> Result<Value, String> {
     let command_started = Instant::now();
-    let pool = state.usage_db_pool.clone();
+    let llmusage = state.llmusage.clone();
     let result = tokio::task::spawn_blocking(move || {
         let db_started = Instant::now();
-        let conn = pool.get().map_err(|e| format!("DB error: {e}"))?;
-        let stats = ccr_db::database::repositories::usage_repo::get_project_stats(
-            &conn,
-            &platform,
-            &start_date,
-            &end_date,
-        )
-        .map_err(|e| format!("Query error: {e}"))?;
-        Ok::<_, String>((stats, elapsed_ms(db_started)))
+        let filter = build_filter(platform, None, start_date, end_date)?;
+        let dashboard = llmusage
+            .dashboard()
+            .map_err(|e| format!("Dashboard open error: {e}"))?;
+        let stats = dashboard
+            .project_breakdown(&filter)
+            .map_err(|e| format!("Project stats query error: {e}"))?;
+        Ok::<_, String>((queries::to_project_stats(stats), elapsed_ms(db_started)))
     })
     .await
     .map_err(|e| format!("Task join error: {e}"))?;
@@ -1409,7 +1227,7 @@ pub async fn get_usage_by_project_v2(
     serde_json::to_value(stats).map_err(|e| format!("Serialize error: {e}"))
 }
 
-/// 获取热力图数据（V2，来自 SQLite usage_daily_agg）
+/// 获取热力图数据（V2，来自 llmusage usage_bucket_30m）
 #[tauri::command]
 pub async fn get_usage_heatmap_v2(
     state: State<'_, AppState>,
@@ -1417,20 +1235,20 @@ pub async fn get_usage_heatmap_v2(
     days: Option<i64>,
 ) -> Result<Value, String> {
     let command_started = Instant::now();
-    let pool = state.usage_db_pool.clone();
-    let days = days.unwrap_or(365).max(1);
+    let llmusage = state.llmusage.clone();
+    let days = days.unwrap_or(365).clamp(1, 366) as u32;
 
     let result = tokio::task::spawn_blocking(move || {
         let db_started = Instant::now();
-        let conn = pool.get().map_err(|e| format!("DB error: {e}"))?;
-        let heatmap =
-            ccr_db::database::repositories::usage_repo::get_heatmap_data(&conn, &platform, days)
-                .map_err(|e| format!("Query error: {e}"))?;
-
+        let filter = build_filter(platform, None, None, None)?;
+        let dashboard = llmusage
+            .dashboard()
+            .map_err(|e| format!("Dashboard open error: {e}"))?;
+        let heatmap = dashboard
+            .heatmap(&filter, days)
+            .map_err(|e| format!("Heatmap query error: {e}"))?;
         Ok::<_, String>((
-            serde_json::json!({
-                "data": heatmap,
-            }),
+            queries::to_heatmap_response(heatmap),
             elapsed_ms(db_started),
         ))
     })
@@ -1440,10 +1258,10 @@ pub async fn get_usage_heatmap_v2(
     record_command_duration(&state, command_started);
     let (heatmap, db_ms) = result?;
     record_db_duration(&state, db_ms);
-    Ok(heatmap)
+    serde_json::to_value(heatmap).map_err(|e| format!("Serialize error: {e}"))
 }
 
-/// 获取用量日志列表，支持游标与分页两种模式
+/// 获取用量日志列表，保持前端 cursor 分页契约
 #[tauri::command]
 pub async fn get_usage_logs_v2(
     state: State<'_, AppState>,
@@ -1451,14 +1269,11 @@ pub async fn get_usage_logs_v2(
 ) -> Result<Value, String> {
     let command_started = Instant::now();
 
-    let mode = query.mode.unwrap_or_default();
-    let page = query.page.unwrap_or(1).max(1);
     let page_size = query.page_size.unwrap_or(50).clamp(1, 500);
-    let include_total = query
-        .include_total
-        .unwrap_or(matches!(mode, UsageLogsMode::Offset));
-
-    let pool = state.usage_db_pool.clone();
+    let include_total = query.include_total.unwrap_or(false);
+    let _requested_page = query.page.unwrap_or(1).max(1);
+    let _requested_mode = query.mode.unwrap_or_default();
+    let llmusage = state.llmusage.clone();
     let platform = query.platform.clone();
     let model = query.model.clone();
     let start_date = query.start_date.clone();
@@ -1467,37 +1282,24 @@ pub async fn get_usage_logs_v2(
 
     let result = tokio::task::spawn_blocking(move || {
         let db_started = Instant::now();
-        let conn = pool.get().map_err(|e| format!("DB error: {e}"))?;
+        let filter = build_filter(platform, model, start_date, end_date)?;
+        let dashboard = llmusage
+            .dashboard()
+            .map_err(|e| format!("Dashboard open error: {e}"))?;
+        let logs = dashboard
+            .logs(&llmusage::LogsQuery {
+                filter,
+                page_size: page_size as u32,
+                cursor,
+                include_total,
+                include_raw_json: true,
+            })
+            .map_err(|e| format!("Logs query error: {e}"))?;
 
-        let logs = match mode {
-            UsageLogsMode::Cursor => {
-                ccr_db::database::repositories::usage_repo::get_logs_by_cursor(
-                    &conn,
-                    &platform,
-                    &start_date,
-                    &end_date,
-                    page_size,
-                    &model,
-                    &cursor,
-                    include_total,
-                )
-            }
-            UsageLogsMode::Offset => {
-                ccr_db::database::repositories::usage_repo::get_paginated_logs(
-                    &conn,
-                    &platform,
-                    &start_date,
-                    &end_date,
-                    page,
-                    page_size,
-                    &model,
-                    include_total,
-                )
-            }
-        }
-        .map_err(|e| format!("Query error: {e}"))?;
-
-        Ok::<_, String>((logs, elapsed_ms(db_started)))
+        Ok::<_, String>((
+            queries::to_paginated_logs(logs, page_size),
+            elapsed_ms(db_started),
+        ))
     })
     .await
     .map_err(|e| format!("Task join error: {e}"))?;
@@ -1505,20 +1307,7 @@ pub async fn get_usage_logs_v2(
     record_command_duration(&state, command_started);
     let (logs, db_ms) = result?;
     record_db_duration(&state, db_ms);
-
-    let normalized = PaginatedLogsV2 {
-        records: logs.records,
-        total: logs.total,
-        page: if matches!(mode, UsageLogsMode::Cursor) {
-            page
-        } else {
-            logs.page
-        },
-        page_size: logs.page_size,
-        next_cursor: logs.next_cursor,
-        mode,
-    };
-    serde_json::to_value(normalized).map_err(|e| format!("Serialize error: {e}"))
+    serde_json::to_value(logs).map_err(|e| format!("Serialize error: {e}"))
 }
 
 /// 获取用量仪表盘数据，聚合汇总、趋势、模型与项目统计
@@ -1532,54 +1321,43 @@ pub async fn get_usage_dashboard_v2(
     include_heatmap: Option<bool>,
 ) -> Result<Value, String> {
     let command_started = Instant::now();
-    let pool = state.usage_db_pool.clone();
-    let heatmap_days = heatmap_days.unwrap_or(365).max(1);
+    let llmusage = state.llmusage.clone();
+    let usage_db_pool = state.usage_db_pool.clone();
+    let heatmap_days = heatmap_days.unwrap_or(365).clamp(1, 366) as u32;
     let include_heatmap = include_heatmap.unwrap_or(false);
     let result = tokio::task::spawn_blocking(move || {
         let db_started = Instant::now();
-        let conn = pool.get().map_err(|e| format!("DB error: {e}"))?;
-        let archive = load_archive_diagnostics(&pool, platform.as_deref())?;
+        let filter = build_filter(platform, None, start_date, end_date)?;
+        let dashboard = llmusage
+            .dashboard()
+            .map_err(|e| format!("Dashboard open error: {e}"))?;
 
-        let summary = ccr_db::database::repositories::usage_repo::get_usage_summary(
-            &conn,
-            &platform,
-            &start_date,
-            &end_date,
-        )
-        .map_err(|e| format!("Summary query error: {e}"))?;
-
-        let trends = ccr_db::database::repositories::usage_repo::get_daily_trends(
-            &conn,
-            &platform,
-            &start_date,
-            &end_date,
-        )
-        .map_err(|e| format!("Trends query error: {e}"))?;
-
-        let by_model = ccr_db::database::repositories::usage_repo::get_model_stats(
-            &conn,
-            &platform,
-            &start_date,
-            &end_date,
-        )
-        .map_err(|e| format!("Model stats query error: {e}"))?;
-
-        let by_project = ccr_db::database::repositories::usage_repo::get_project_stats(
-            &conn,
-            &platform,
-            &start_date,
-            &end_date,
-        )
-        .map_err(|e| format!("Project stats query error: {e}"))?;
-
+        let summary = dashboard
+            .overview(&filter)
+            .map(queries::to_usage_summary)
+            .map_err(|e| format!("Summary query error: {e}"))?;
+        let trends = dashboard
+            .trends_daily(&filter)
+            .map(queries::to_daily_trends)
+            .map_err(|e| format!("Trends query error: {e}"))?;
+        let model_stats = dashboard
+            .model_breakdown(&filter)
+            .map(queries::to_model_stats)
+            .map_err(|e| format!("Model stats query error: {e}"))?;
+        let project_stats = dashboard
+            .project_breakdown(&filter)
+            .map(queries::to_project_stats)
+            .map_err(|e| format!("Project stats query error: {e}"))?;
+        let archive = load_llmusage_archive_diagnostics(
+            &dashboard,
+            count_archived_sessions(&usage_db_pool)?,
+        )?;
         let heatmap = if include_heatmap {
             Some(
-                ccr_db::database::repositories::usage_repo::get_heatmap_data(
-                    &conn,
-                    &platform,
-                    heatmap_days,
-                )
-                .map_err(|e| format!("Heatmap query error: {e}"))?,
+                dashboard
+                    .heatmap(&filter, heatmap_days)
+                    .map(queries::to_heatmap_response)
+                    .map_err(|e| format!("Heatmap query error: {e}"))?,
             )
         } else {
             None
@@ -1588,11 +1366,11 @@ pub async fn get_usage_dashboard_v2(
         Ok::<Value, String>(serde_json::json!({
             "summary": summary,
             "trends": trends,
-            "model_stats": by_model,
-            "project_stats": by_project,
+            "model_stats": model_stats,
+            "project_stats": project_stats,
             "archive": archive,
-            "heatmap": heatmap.map(|data| serde_json::json!({ "data": data })),
-            "generated_at": chrono::Utc::now().to_rfc3339(),
+            "heatmap": heatmap,
+            "generated_at": queries::generated_at(),
         }))
         .map(|payload| (payload, elapsed_ms(db_started)))
     })
@@ -1605,7 +1383,7 @@ pub async fn get_usage_dashboard_v2(
     Ok(dashboard)
 }
 
-/// 获取首页工作区概览数据，统一 usage + session 统计链路。
+/// 获取首页工作区概览数据，统一 llmusage usage + ccr session 统计链路。
 #[tauri::command]
 pub async fn get_home_usage_overview_v2(
     state: State<'_, AppState>,
@@ -1613,6 +1391,7 @@ pub async fn get_home_usage_overview_v2(
 ) -> Result<Value, String> {
     let command_started = Instant::now();
     let pool = state.usage_db_pool.clone();
+    let llmusage = state.llmusage.clone();
     let days = days.unwrap_or(30).max(1);
     let active_usage_job = state.get_active_usage_import_job().await;
     let active_usage_job_id = active_usage_job.as_ref().map(|job| job.job_id.clone());
@@ -1629,14 +1408,18 @@ pub async fn get_home_usage_overview_v2(
 
     let result = tokio::task::spawn_blocking(move || {
         let db_started = Instant::now();
-        let end_day = Utc::now().date_naive();
-        let start_day = end_day - Duration::days((days - 1) as i64);
-        let start_date = start_day.format("%Y-%m-%d").to_string();
-        let end_date = end_day.format("%Y-%m-%d").to_string();
-        let has_any_usage = load_home_usage_presence(&pool)?;
-        let mut usage_snapshot = load_home_usage_snapshot(&pool, &start_date, &end_date)?;
+        let (start_day, end_day) = local_usage_date_window(days);
+        let start_date = format_local_usage_date(start_day);
+        let end_date = format_local_usage_date(end_day);
+        let filter = build_filter(None, None, Some(start_date.clone()), Some(end_date.clone()))?;
+        let dashboard = llmusage
+            .dashboard()
+            .map_err(|e| format!("Dashboard open error: {e}"))?;
+        let has_any_usage = load_home_usage_presence(&dashboard)?;
+        let mut usage_snapshot = load_home_usage_snapshot(&dashboard, &filter)?;
         let session_snapshot = load_home_session_snapshot(&pool, &start_date, &end_date)?;
-        let archive = load_archive_diagnostics(&pool, None)?;
+        let archive =
+            load_llmusage_archive_diagnostics(&dashboard, count_archived_sessions(&pool)?)?;
         let has_any_sessions = session_snapshot.has_any_sessions;
         let needs_usage_import = !has_any_usage;
         let needs_session_index = !has_any_sessions && has_any_raw_sessions();
@@ -1647,10 +1430,10 @@ pub async fn get_home_usage_overview_v2(
             }
         }
 
-        for (date, session_day_stats) in session_snapshot.daily_by_platform {
+        for (date, session_day_stats) in &session_snapshot.daily_by_platform {
             let day_entry = usage_snapshot
                 .daily_by_platform
-                .entry(date)
+                .entry(date.clone())
                 .or_insert_with(empty_home_platform_map);
             for (platform_name, session_stats) in session_day_stats {
                 if let Some(stats) = day_entry.get_mut(platform_name.as_str()) {
@@ -1659,7 +1442,7 @@ pub async fn get_home_usage_overview_v2(
             }
         }
 
-        let date_range = build_home_date_range(days);
+        let date_range = build_home_date_range_from(start_day, days);
         let series = date_range
             .into_iter()
             .map(|date| {
@@ -1679,10 +1462,8 @@ pub async fn get_home_usage_overview_v2(
             .collect::<Vec<_>>();
 
         let total_sessions = session_snapshot.total_sessions;
-        let total_requests = non_negative_i64(usage_snapshot.summary.total_requests);
-        let total_tokens = non_negative_i64(
-            usage_snapshot.summary.total_input_tokens + usage_snapshot.summary.total_output_tokens,
-        );
+        let total_requests = usage_snapshot.total_requests;
+        let total_tokens = usage_snapshot.total_tokens;
         let platforms = usage_snapshot
             .by_platform
             .values()
@@ -1775,18 +1556,13 @@ pub async fn import_usage_v2(
     state: State<'_, AppState>,
     platform: String,
 ) -> Result<Value, String> {
-    let usage_db_pool = state.usage_db_pool.clone();
-    let result = tokio::task::spawn_blocking(move || {
-        let service = build_usage_import_service(usage_db_pool);
-        service
-            .import_platform(&platform)
-            .map_err(|e| format!("Import error: {e}"))
-    })
-    .await
-    .map_err(|e| format!("Task join error: {e}"))??;
+    let source = canonical_source_id(Some(&platform))
+        .ok_or_else(|| format!("Unsupported usage platform '{platform}'"))?;
+    let result = run_llmusage_sync_once(&state, Some(source.clone()), None, false).await?;
 
+    let summary = build_import_summary(std::slice::from_ref(&result));
     let payload = UsageImportPayload {
-        imported_count: result.records_imported,
+        imported_count: summary.imported_records,
         platform: result.platform.clone(),
     };
     let entry = usage_import_entry(&payload);
@@ -1800,95 +1576,34 @@ pub async fn import_usage_v2(
     )
     .await;
 
-    serde_json::to_value(normalize_import_result(result))
-        .map_err(|e| format!("Serialize error: {e}"))
+    serde_json::to_value(result).map_err(|e| format!("Serialize error: {e}"))
 }
+
 #[tauri::command]
 pub async fn import_all_usage_v2(
     app_handle: tauri::AppHandle,
     state: State<'_, AppState>,
 ) -> Result<Value, String> {
-    use std::sync::Arc;
-    use tokio::sync::Semaphore;
-
-    let semaphore = Arc::new(Semaphore::new(2));
-    let usage_db_pool = state.usage_db_pool.clone();
-    let mut tasks = tokio::task::JoinSet::new();
-    for platform in HOME_USAGE_PLATFORMS {
-        let sem = Arc::clone(&semaphore);
-        let db_pool = usage_db_pool.clone();
-        let platform_name = platform.to_string();
-        tasks.spawn(async move {
-            let _permit = sem
-                .acquire_owned()
-                .await
-                .map_err(|e| (platform_name.clone(), format!("Semaphore error: {e}")))?;
-
-            let import_platform = platform_name.clone();
-            tokio::task::spawn_blocking(move || {
-                let service = build_usage_import_service(db_pool);
-                service
-                    .import_platform(&import_platform)
-                    .map(normalize_import_result)
-                    .map_err(|e| (import_platform, e))
-            })
-            .await
-            .map_err(|e| (platform_name.clone(), format!("Task join error: {e}")))?
-            .map_err(|(platform, error)| (platform, error.to_string()))
-        });
-    }
-
-    let mut results: Vec<UsageImportResultV2> = Vec::new();
-    while let Some(result) = tasks.join_next().await {
-        match result {
-            Ok(Ok(import_result)) => {
-                let payload = UsageImportPayload {
-                    imported_count: import_result.records_imported,
-                    platform: import_result.platform.clone(),
-                };
-                let entry = usage_import_entry(&payload);
-                let persist = should_persist(entry.level, &entry.event_type);
-                emit_and_record_monitoring_event(
-                    &app_handle,
-                    events::channels::USAGE_IMPORT,
-                    &payload,
-                    entry,
-                    persist,
-                )
-                .await;
-
-                results.push(import_result);
-            }
-            Ok(Err((platform, error))) => {
-                results.push(UsageImportResultV2 {
-                    platform,
-                    files_processed: 0,
-                    records_imported: 0,
-                    records_skipped: 0,
-                    duration_ms: 0,
-                    completed: false,
-                    error: Some(error),
-                });
-            }
-            Err(e) => {
-                results.push(UsageImportResultV2 {
-                    platform: "unknown".to_string(),
-                    files_processed: 0,
-                    records_imported: 0,
-                    records_skipped: 0,
-                    duration_ms: 0,
-                    completed: false,
-                    error: Some(format!("Join error: {e}")),
-                });
-            }
-        }
-    }
+    let mut results = run_llmusage_sync_all(&state, None, false).await?;
 
     results.sort_by(|left, right| left.platform.cmp(&right.platform));
-    let response = ImportAllUsageResponse {
-        summary: build_import_summary(&results),
-        results,
+    let summary = build_import_summary(&results);
+    let payload = UsageImportPayload {
+        imported_count: summary.imported_records,
+        platform: "all".to_string(),
     };
+    let entry = usage_import_entry(&payload);
+    let persist = should_persist(entry.level, &entry.event_type);
+    emit_and_record_monitoring_event(
+        &app_handle,
+        events::channels::USAGE_IMPORT,
+        &payload,
+        entry,
+        persist,
+    )
+    .await;
+
+    let response = ImportAllUsageResponse { summary, results };
 
     serde_json::to_value(response).map_err(|e| format!("Serialize error: {e}"))
 }
@@ -1910,7 +1625,16 @@ pub async fn start_usage_import_job_v2(
     }
 
     let recent_window_days = recent_days.unwrap_or(30).max(1);
-    let job_id = format!("usage-import-{}", Uuid::new_v4());
+    let source = canonical_source_id(platform.as_deref());
+    let (job_id, rx) = state.llmusage.jobs().start(
+        state.llmusage.store(),
+        SyncOptions {
+            rebuild: reset_sources.unwrap_or(false),
+            recent_days: Some(recent_window_days as u32),
+            source,
+            parallelism: None,
+        },
+    );
     let snapshot = UsageImportJobSnapshot::new(
         job_id.clone(),
         platform_scope_label(platform.as_deref()),
@@ -1922,8 +1646,7 @@ pub async fn start_usage_import_job_v2(
         app_handle,
         job_id.clone(),
         platform,
-        recent_window_days,
-        reset_sources.unwrap_or(false),
+        rx,
     ));
 
     serde_json::to_value(StartUsageImportJobResponse { job_id, snapshot })
@@ -1942,6 +1665,31 @@ pub async fn get_usage_import_job_status_v2(
 
     serde_json::to_value(snapshot).map_err(|e| format!("Serialization error: {e}"))
 }
+
+#[tauri::command]
+pub async fn cancel_usage_import_job_v2(
+    app_handle: tauri::AppHandle,
+    state: State<'_, AppState>,
+    job_id: String,
+) -> Result<Value, String> {
+    let cancelled = state.llmusage.jobs().cancel(&job_id);
+    if !cancelled {
+        tracing::warn!(
+            ccr_job_id = %job_id,
+            "No matching llmusage job id found for usage import cancellation"
+        );
+    }
+
+    let snapshot = state
+        .update_usage_import_job(&job_id, |job: &mut UsageImportJobSnapshot| {
+            job.mark_cancelled();
+        })
+        .await
+        .ok_or_else(|| format!("Usage import job '{}' not found", job_id))?;
+
+    emit_usage_import_job_snapshot(&app_handle, "usage:job-failed", &snapshot).await;
+    serde_json::to_value(snapshot).map_err(|e| format!("Serialization error: {e}"))
+}
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1954,6 +1702,23 @@ mod tests {
         assert_eq!(normalize_home_platform("Open Code"), Some("opencode"));
         assert_eq!(normalize_home_platform("legacy-cli"), None);
         assert_eq!(normalize_home_platform("unknown"), None);
+    }
+
+    #[test]
+    fn home_date_range_is_inclusive_for_requested_days() {
+        let start = chrono::NaiveDate::from_ymd_opt(2026, 5, 4).expect("valid date");
+        assert_eq!(
+            build_home_date_range_from(start, 7),
+            vec![
+                "2026-05-04".to_string(),
+                "2026-05-05".to_string(),
+                "2026-05-06".to_string(),
+                "2026-05-07".to_string(),
+                "2026-05-08".to_string(),
+                "2026-05-09".to_string(),
+                "2026-05-10".to_string(),
+            ]
+        );
     }
 
     #[test]
@@ -2073,32 +1838,64 @@ mod tests {
     }
 
     #[test]
-    fn pricing_defaults_are_not_treated_as_overrides() {
-        let pricing = ModelPricing {
-            model: "claude-opus-4.6".to_string(),
-            input_price: 5.0,
-            output_price: 25.0,
-            cache_read_price: Some(0.5),
-            cache_write_price: Some(6.25),
-        };
+    fn source_import_result_maps_llmusage_stats_to_ccr_contract() {
+        let result = source_import_result(
+            SourceKind::Codex,
+            &SourceSyncStats {
+                source: SourceKind::Codex,
+                files_processed: 3,
+                changed_files: 2,
+                events_seen: 12,
+                events_inserted: 9,
+                parse_ms: 4,
+                write_ms: 5,
+                lock_wait_ms: 1,
+                ..SourceSyncStats::default()
+            },
+        );
 
-        assert!(custom_rate_override("anthropic/claude-opus-4.6".to_string(), pricing).is_none());
+        assert_eq!(result.platform, "codex");
+        assert_eq!(result.files_processed, 3);
+        assert_eq!(result.records_imported, 9);
+        assert_eq!(result.records_skipped, 3);
+        assert_eq!(result.duration_ms, 10);
+        assert!(result.completed);
+        assert_eq!(result.error, None);
     }
 
     #[test]
-    fn custom_pricing_is_kept_as_override() {
-        let pricing = ModelPricing {
-            model: "gpt-5.4".to_string(),
-            input_price: 9.0,
-            output_price: 18.0,
-            cache_read_price: Some(0.9),
-            cache_write_price: Some(9.0),
-        };
+    fn source_import_result_treats_missing_opencode_db_as_optional_absent_source() {
+        let result = source_import_result(
+            SourceKind::Opencode,
+            &SourceSyncStats {
+                source: SourceKind::Opencode,
+                last_error: Some("OpenCode SQLite DB 缺失".to_string()),
+                ..SourceSyncStats::default()
+            },
+        );
 
-        let override_rate = custom_rate_override("gpt-5.4".to_string(), pricing).unwrap();
+        assert_eq!(result.platform, "opencode");
+        assert!(result.completed);
+        assert_eq!(result.error, None);
 
-        assert_eq!(override_rate.model, "gpt-5.4");
-        assert_eq!(override_rate.input_price, 9.0);
-        assert_eq!(override_rate.output_price, 18.0);
+        let summary = build_import_summary(&[result]);
+        assert_eq!(summary.success_count, 1);
+        assert_eq!(summary.failure_count, 0);
+        assert!(!summary.has_partial);
+    }
+
+    #[test]
+    fn source_import_result_keeps_real_opencode_errors_actionable() {
+        let result = source_import_result(
+            SourceKind::Opencode,
+            &SourceSyncStats {
+                source: SourceKind::Opencode,
+                last_error: Some("no such table: message".to_string()),
+                ..SourceSyncStats::default()
+            },
+        );
+
+        assert!(!result.completed);
+        assert_eq!(result.error.as_deref(), Some("no such table: message"));
     }
 }
