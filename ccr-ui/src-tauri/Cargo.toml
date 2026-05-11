@@ -21,7 +21,10 @@ ccr-skills = { path = "../../crates/ccr-skills" }
 ccr-store = { path = "../../crates/ccr-store" }
 ccr-sync = { path = "../../crates/ccr-sync" }
 ccr-checkin = { path = "../../crates/ccr-checkin" }
-llmusage = { path = "../../../../CLI/llmusage", default-features = false }
+# llmusage 上游：通过 git 远端依赖，避免 path 依赖在其他机器上找不到本地 CLI/llmusage 目录。
+# rev 锁到 origin/main HEAD（llmusage 0.5.3，含 SourceSyncStats.absent typed 字段）；
+# llmusage 升级时同步 bump 这里的 rev。
+llmusage = { git = "https://github.com/bahayonghang/llmuasage.git", rev = "9bdac1462ec362faa37d363feea7d8908b858d66", default-features = false }
 
 # CCR 类型定义 - Claude Settings 子类型（Agent、Plugin、Hook 等）
 ccr-types = { path = "../../crates/ccr-types" }

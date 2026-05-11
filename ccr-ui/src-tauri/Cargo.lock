@@ -3051,7 +3051,8 @@ checksum = "11d3d7f243d5c5a8b9bb5d6dd2b1602c0cb0b9db1621bafc7ed66e35ff9fe092"
 
 [[package]]
 name = "llmusage"
-version = "0.5.1"
+version = "0.5.3"
+source = "git+https://github.com/bahayonghang/llmuasage.git?rev=9bdac1462ec362faa37d363feea7d8908b858d66#9bdac1462ec362faa37d363feea7d8908b858d66"
 dependencies = [
  "anyhow",
  "axum",
