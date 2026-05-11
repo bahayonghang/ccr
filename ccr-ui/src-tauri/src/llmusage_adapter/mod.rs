@@ -11,6 +11,7 @@ use std::sync::Mutex;
 
 use chrono::NaiveDate;
 use llmusage::models::SourceKind;
+use llmusage::parsers::SourceSyncStats;
 use llmusage::store::{BootstrapOptions, Store};
 use llmusage::sync::JobRegistry;
 use llmusage::{AppPaths, Dashboard, QueryFilter, ReportTimezone};
@@ -81,6 +82,19 @@ pub fn canonical_source_id(raw: Option<&str>) -> Option<String> {
 
 pub fn platform_scope_label(raw: Option<&str>) -> String {
     canonical_source_id(raw).unwrap_or_else(|| "all".to_string())
+}
+
+/// 判定 llmusage `SourceSyncStats` 是否表示 optional source 缺失。
+///
+/// llmusage 0.5.3 起在 `SourceSyncStats` 加了 typed `absent: bool` 字段，缺失的
+/// optional source（如 OpenCode 没装）写 true；其他 source 默认 false。本函数
+/// 收口对该字段的读取，未来 absent 语义扩展（例如多种缺失原因）只改一处。
+///
+/// 调用方应通过本函数判断，不要再嗅探 `last_error` 字符串。前端
+/// `UsageImportResultV2.is_optional_absent` typed 字段由 `source_import_result`
+/// 写入，前端按 typed 字段消费。
+pub fn is_optional_source_absent(stats: &SourceSyncStats) -> bool {
+    stats.absent
 }
 
 fn parse_source_filter(raw: &str) -> Option<SourceKind> {

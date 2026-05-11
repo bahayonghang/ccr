@@ -1,4 +1,30 @@
 //! Usage V2 命令模块，基于 SQLite 查询与导入用量数据。
+//!
+//! # 数据源边界（v6.1.0 deliberate 双链路）
+//!
+//! 本模块同时消费两条独立数据链路：
+//!
+//! - **usage events** 走 [`crate::llmusage_adapter`] → llmusage Store
+//!   (`~/.llmusage/llmusage.db`)，覆盖仪表盘、趋势、模型/项目分布、成本、heatmap、
+//!   logs 分页、source 状态机等查询（仪表盘主链路）。
+//! - **session_archive**（会话归档摘要）暂存 `ccr_db::database::repositories::usage_repo`
+//!   (`~/.ccr/analytics/usage.db`)，覆盖 `upsert_session_archive_entry` /
+//!   `mark_session_archive_missing_by_platform` /
+//!   `mark_session_archive_deleted_by_path` /
+//!   `get_session_archive_platform_summaries` /
+//!   `get_session_archive_daily_trends` / `has_any_session_archive` 等调用。
+//!
+//! ## 为什么是双链路
+//!
+//! 长期目标是把 session_archive 也迁到 llmusage 上游 schema（见
+//! `docs/llmusage-integration-prd.md` §9c 与 follow-up issue
+//! <https://github.com/bahayonghang/ccr/issues/35>）。在 llmusage 补齐
+//! "session 摘要"表 + dashboard API 之前，本仓保留 ccr_db 旁路。
+//!
+//! ## 给 reviewer
+//!
+//! 凡是 `ccr_db::database::repositories::usage_repo::*session_archive*` 调用
+//! 都属于这条旁路，不是漏迁。usage events 链路里出现 `usage_repo` 引用才是 bug。
 
 use std::collections::BTreeMap;
 use std::time::Instant;
@@ -16,7 +42,9 @@ use tokio::sync::mpsc;
 use uuid::Uuid;
 
 use crate::events::{self, UsageImportPayload};
-use crate::llmusage_adapter::{build_filter, canonical_source_id, platform_scope_label, queries};
+use crate::llmusage_adapter::{
+    build_filter, canonical_source_id, is_optional_source_absent, platform_scope_label, queries,
+};
 use crate::monitoring::{emit_and_record_monitoring_event, should_persist, usage_import_entry};
 use crate::session_index_jobs::SessionIndexJobSnapshot;
 use crate::state::AppState;
@@ -39,12 +67,14 @@ pub struct UsageLogsQuery {
     pub start_date: Option<String>,
     #[serde(alias = "endDate")]
     pub end_date: Option<String>,
+    #[allow(dead_code)]
     pub page: Option<i64>,
     #[serde(alias = "pageSize")]
     pub page_size: Option<i64>,
     pub cursor: Option<String>,
     #[serde(alias = "includeTotal")]
     pub include_total: Option<bool>,
+    #[allow(dead_code)]
     pub mode: Option<UsageLogsMode>,
 }
 
@@ -57,6 +87,11 @@ pub struct UsageImportResultV2 {
     pub duration_ms: u64,
     pub completed: bool,
     pub error: Option<String>,
+    /// optional source（如 OpenCode）缺失安装时为 true。
+    /// 前端依此判断"导入失败"是不是用户没装这个 optional source 的正常情况，
+    /// 不要嗅探 `error` 字符串。
+    #[serde(default)]
+    pub is_optional_absent: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -175,15 +210,8 @@ fn record_db_duration(state: &AppState, db_ms: f64) {
     state.record_db_query_duration_ms(db_ms);
 }
 
-fn is_optional_source_absent(source: SourceKind, error: &str) -> bool {
-    source == SourceKind::Opencode && error.contains("OpenCode SQLite DB 缺失")
-}
-
 fn source_import_result(source: SourceKind, stats: &SourceSyncStats) -> UsageImportResultV2 {
-    let ignored_absent_source = stats
-        .last_error
-        .as_deref()
-        .is_some_and(|error| is_optional_source_absent(source, error));
+    let ignored_absent_source = is_optional_source_absent(stats);
 
     UsageImportResultV2 {
         platform: source.as_str().to_string(),
@@ -200,6 +228,7 @@ fn source_import_result(source: SourceKind, stats: &SourceSyncStats) -> UsageImp
         } else {
             stats.last_error.clone()
         },
+        is_optional_absent: ignored_absent_source,
     }
 }
 
@@ -246,6 +275,7 @@ fn default_import_results(platform: Option<&str>) -> Vec<UsageImportResultV2> {
             duration_ms: 0,
             completed: true,
             error: None,
+            is_optional_absent: false,
         })
         .collect()
 }
@@ -526,6 +556,8 @@ async fn bridge_llmusage_import_events(
                         job.records_skipped = records_skipped;
                         job.current_file = None;
                         if let Some(error) = result_error {
+                            // source_import_result 在 absent 路径已把 error 置 None（typed
+                            // `is_optional_absent: true`），所以这里只会进真正的 source 错误。
                             job.push_warning(format!("{}: {}", source.as_str(), error));
                         }
                         job.updated_at = Utc::now().to_rfc3339();
@@ -546,6 +578,9 @@ async fn bridge_llmusage_import_events(
                     summary,
                 )
                 .await?;
+                // break 之前排空 channel，避免 llmusage 在 channel 关闭时把后续残留事件
+                // (例如 Cancelled) 当作 Drop 副作用错误上报。
+                while rx.try_recv().is_ok() {}
                 break;
             }
             llmusage::sync::JobEvent::Failed { error } => {
@@ -562,6 +597,7 @@ async fn bridge_llmusage_import_events(
                 {
                     emit_usage_import_job_snapshot(app_handle, "usage:job-failed", &snapshot).await;
                 }
+                while rx.try_recv().is_ok() {}
                 break;
             }
         }
@@ -802,7 +838,16 @@ async fn run_session_index_job(app_handle: AppHandle, job_id: String) {
 
             match indexer.index_platform(platform) {
                 Ok(stats) => {
-                    sync_platform_session_archive(&usage_db_pool, platform)?;
+                    // sync_platform_session_archive 内部做 SQLite get + upsert 是同步阻塞 IO，
+                    // 必须放到 spawn_blocking 里跑，避免占用 tokio worker 线程。
+                    let archive_pool = usage_db_pool.clone();
+                    tokio::task::spawn_blocking(move || {
+                        sync_platform_session_archive(&archive_pool, platform)
+                    })
+                    .await
+                    .map_err(|join_err| {
+                        format!("Session archive sync task panicked: {join_err}")
+                    })??;
                     completed_files += stats.files_scanned;
                     if let Some(snapshot) = app_handle
                         .state::<AppState>()
@@ -1271,8 +1316,9 @@ pub async fn get_usage_logs_v2(
 
     let page_size = query.page_size.unwrap_or(50).clamp(1, 500);
     let include_total = query.include_total.unwrap_or(false);
-    let _requested_page = query.page.unwrap_or(1).max(1);
-    let _requested_mode = query.mode.unwrap_or_default();
+    // 注：query.page / query.mode 历史上为 offset 模式预留，但 cursor 模式已够用，
+    //     llmusage 上游 logs() 也只接受 cursor。直到 offset 模式真正落地前，这两个
+    //     字段在前端契约里保留可空、在后端这里完全忽略。
     let llmusage = state.llmusage.clone();
     let platform = query.platform.clone();
     let model = query.model.clone();
@@ -1788,6 +1834,7 @@ mod tests {
                 duration_ms: 10,
                 completed: true,
                 error: None,
+                is_optional_absent: false,
             },
             UsageImportResultV2 {
                 platform: "codex".into(),
@@ -1797,6 +1844,7 @@ mod tests {
                 duration_ms: 0,
                 completed: false,
                 error: Some("boom".into()),
+                is_optional_absent: false,
             },
         ]);
 
@@ -1818,6 +1866,7 @@ mod tests {
                 duration_ms: 3,
                 completed: true,
                 error: None,
+                is_optional_absent: false,
             },
             UsageImportResultV2 {
                 platform: "gemini".into(),
@@ -1827,6 +1876,7 @@ mod tests {
                 duration_ms: 4,
                 completed: true,
                 error: None,
+                is_optional_absent: false,
             },
         ]);
 
@@ -1869,6 +1919,9 @@ mod tests {
             SourceKind::Opencode,
             &SourceSyncStats {
                 source: SourceKind::Opencode,
+                // llmusage 0.5.3+ 在 absent 路径同时填 typed flag + 旧 last_error 文案；
+                // 下游只看 typed 字段，文案保留作 user-facing message。
+                absent: true,
                 last_error: Some("OpenCode SQLite DB 缺失".to_string()),
                 ..SourceSyncStats::default()
             },
@@ -1877,6 +1930,7 @@ mod tests {
         assert_eq!(result.platform, "opencode");
         assert!(result.completed);
         assert_eq!(result.error, None);
+        assert!(result.is_optional_absent);
 
         let summary = build_import_summary(&[result]);
         assert_eq!(summary.success_count, 1);
