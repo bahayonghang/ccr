@@ -209,7 +209,10 @@ describe('usage store smoke', () => {
       records_skipped: 0,
       duration_ms: 0,
       completed: false,
-      error: 'OpenCode SQLite DB 缺失'
+      error: 'OpenCode SQLite DB 缺失',
+      // 模拟新契约：后端通过 typed `is_optional_absent` 标记 OpenCode optional 缺失，
+      // 前端 normalize 据此把 completed→true / error→null。
+      is_optional_absent: true,
     })
 
     const { useUsageStore } = await import('@/stores/usage')
@@ -341,8 +344,10 @@ describe('usage store smoke', () => {
         recent_ready_at: '2026-04-01T00:00:00Z',
         finished_at: '2026-04-01T00:00:00Z',
         current_file: null,
-        warnings: ['opencode: OpenCode SQLite DB 缺失'],
-        error: 'opencode: OpenCode SQLite DB 缺失',
+        // 后端 push_warning 之前已过滤 absent，warnings 不应含 absent 文案；
+        // job-level error 也不再嗅探 absent，保持空。
+        warnings: [],
+        error: null,
         results: [{
           platform: 'opencode',
           files_processed: 0,
@@ -350,7 +355,9 @@ describe('usage store smoke', () => {
           records_skipped: 0,
           duration_ms: 0,
           completed: false,
-          error: 'OpenCode SQLite DB 缺失'
+          error: 'OpenCode SQLite DB 缺失',
+          // 新契约：后端通过 typed 字段标记 absent，前端不再嗅探 error 字符串。
+          is_optional_absent: true,
         }],
         summary: {
           success_count: 0,

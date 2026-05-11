@@ -62,24 +62,19 @@ const LAZY_HEATMAP_LOAD = parseEnvFlag(import.meta.env.VITE_PERF_HEATMAP_LAZY_LO
 
 const nowMs = () => (typeof performance !== 'undefined' ? performance.now() : Date.now())
 
-const OPTIONAL_ABSENT_USAGE_SOURCE_MESSAGES: Partial<Record<Platform, string[]>> = {
-  opencode: ['OpenCode SQLite DB 缺失'],
-}
-
-const isOptionalAbsentUsageSource = (result: ImportResult): boolean => {
-  const platform = result.platform as Platform
-  const markers = OPTIONAL_ABSENT_USAGE_SOURCE_MESSAGES[platform]
-  if (!markers || !result.error) return false
-  return markers.some(marker => result.error?.includes(marker))
-}
-
-const isOptionalAbsentUsageSourceWarning = (warning: string): boolean =>
-  Object.values(OPTIONAL_ABSENT_USAGE_SOURCE_MESSAGES).some(markers =>
-    markers?.some(marker => warning.includes(marker)),
-  )
+/**
+ * optional source（如 OpenCode 缺安装）的导入结果应被前端视为"正常未导入"，
+ * 不显示成失败。后端 `UsageImportResultV2.is_optional_absent` 给出 typed 标志，
+ * 这里直接读，不要嗅探 error message。
+ *
+ * 后端 push_warning 之前已过滤 absent，所以 job.warnings 里也不会再出现 absent
+ * 文案；前端无需再做 warning 过滤。
+ */
+const isOptionalAbsentImportResult = (result: ImportResult): boolean =>
+  result.is_optional_absent === true
 
 const toUserVisibleImportResult = (result: ImportResult): ImportResult => {
-  if (!isOptionalAbsentUsageSource(result)) return result
+  if (!isOptionalAbsentImportResult(result)) return result
 
   return {
     ...result,
@@ -93,13 +88,9 @@ const normalizeUserVisibleImportResults = (results: ImportResult[]): ImportResul
 
 const normalizeUserVisibleImportJob = (job: UsageImportJobSnapshot): UsageImportJobSnapshot => {
   const results = normalizeUserVisibleImportResults(job.results)
-  const warnings = job.warnings.filter(warning => !isOptionalAbsentUsageSourceWarning(warning))
-  const error = job.error && isOptionalAbsentUsageSourceWarning(job.error) ? null : job.error
 
   return {
     ...job,
-    error,
-    warnings,
     results,
   }
 }
@@ -186,7 +177,9 @@ export const useUsageStore = defineStore('usage', () => {
   let requestSerial = 0
   let inFlightKey: string | null = null
   let inFlightPromise: Promise<void> | null = null
-  let logsCursorStack: Array<string | null> = [null]
+  // 使用 ref 而不是 setup-store 闭包 let，HMR 重载后游标栈状态可预测；
+  // 此 cursor 仅在 store 内部使用，不进 return（消费者不应直接读写）。
+  const logsCursorStack = ref<Array<string | null>>([null])
   const dashboardCache = new Map<string, UsageDashboardCacheEntry>()
 
   // ═══ Computed ═══
@@ -600,16 +593,16 @@ export const useUsageStore = defineStore('usage', () => {
 
       if (direction === 'reset') {
         targetPage = 1
-        logsCursorStack = [null]
+        logsCursorStack.value = [null]
       } else if (direction === 'next') {
         if (!logs.value?.next_cursor) return
-        logsCursorStack[targetPage] = logs.value.next_cursor
+        logsCursorStack.value[targetPage] = logs.value.next_cursor
         targetPage += 1
       } else if (direction === 'prev') {
         targetPage = Math.max(1, targetPage - 1)
       }
 
-      const currentCursor = logsCursorStack[targetPage - 1] ?? null
+      const currentCursor = logsCursorStack.value[targetPage - 1] ?? null
       const previousTotal = logs.value?.total ?? null
       logsPage.value = targetPage
 
@@ -801,6 +794,14 @@ export const useUsageStore = defineStore('usage', () => {
     }, FILTER_DEBOUNCE_MS)
   }
 
+  /**
+   * 设置日志模型过滤器。统一通过 store action 写入，禁止外部 composable 直接 mutate
+   * `store.logsModelFilter`，保持 store state 单向流动。
+   */
+  function setLogsModelFilter(value: string | undefined) {
+    logsModelFilter.value = value
+  }
+
   /** 启动自动刷新 */
   const coreAutoRefresh = usePolledData(
     async () => {
@@ -902,6 +903,7 @@ export const useUsageStore = defineStore('usage', () => {
     triggerImport,
     clearImportFeedback,
     setFilters,
+    setLogsModelFilter,
     startAutoRefresh,
     stopAutoRefresh,
   }

@@ -61,12 +61,14 @@ export interface UsageRecordV2 {
   input_tokens: number
   output_tokens: number
   cache_read_tokens: number
-  cache_creation_tokens?: number
+  // 后端 UsageRecordDto 全是 required（pricing_source 为 Option<String> -> string | null）。
+  // 这些字段对齐后端契约，不再 optional；前端无需 ?? 0 / ?? '' 防御代码。
+  cache_creation_tokens: number
   cost_usd: number
-  cost_with_cache_usd?: number
-  cost_without_cache_usd?: number
-  pricing_status?: string
-  pricing_source?: string | null
+  cost_with_cache_usd: number
+  cost_without_cache_usd: number
+  pricing_status: string
+  pricing_source: string | null
 }
 
 /** 分页日志 */
@@ -179,6 +181,13 @@ export interface ImportResult {
   duration_ms: number
   completed: boolean
   error?: string | null
+  /**
+   * optional source（如 OpenCode）缺失安装时为 true。
+   * 用此 typed 标志判断"导入失败"是不是用户没装这个 optional source 的正常情况，
+   * 不要嗅探 `error` 字符串。后端契约见 `ccr-ui/src-tauri/src/commands/usage.rs`
+   * 的 `UsageImportResultV2`。
+   */
+  is_optional_absent?: boolean
 }
 
 /** 导入摘要 */
