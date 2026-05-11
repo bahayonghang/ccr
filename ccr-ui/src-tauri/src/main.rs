@@ -125,8 +125,9 @@ fn main() {
             })?;
             tracing::info!("[app] database initialized (global + app pool + llmusage)");
 
-            // 构建并注册全局 AppState。
-            let app_state = AppState::new(db_pool, usage_db_pool, llmusage);
+            // 构建并注册全局 AppState（启动期错误返 Result，不 panic 跨 FFI）。
+            let app_state = AppState::try_new(db_pool, usage_db_pool, llmusage)
+                .map_err(std::io::Error::other)?;
 
             // 先注册 Local 环境，其他环境在异步初始化完成后写入 managed state。
             app.manage(app_state);
@@ -460,8 +461,8 @@ async fn run_background_tasks(app_handle: tauri::AppHandle, shutdown: Arc<Notify
                 // 每 10min：监控日志清理 + usage import probe
                 if tick.is_multiple_of(10) {
                     state.monitoring_logs.cleanup_old_logs().await;
-                    if let Err(e) = import_usage_data().await {
-                        tracing::debug!("[background] usage import skipped: {e}");
+                    if let Err(e) = verify_usage_storage_dir().await {
+                        tracing::debug!("[background] usage storage dir check skipped: {e}");
                     }
                 }
 
@@ -473,10 +474,13 @@ async fn run_background_tasks(app_handle: tauri::AppHandle, shutdown: Arc<Notify
     tracing::info!("[background] background tasks stopped");
 }
 
-/// 检查并准备 Usage 导入所需的 JSONL 存储目录。
-async fn import_usage_data() -> Result<(), String> {
+/// 检查 Usage 导入所需的 JSONL 存储目录可访问。
+///
+/// 只校验目录可解析，真正的导入由其他命令触发；这里在启动期跑一次，便于
+/// 在日志中尽早暴露 storage 配置错误。函数名旧版叫 `import_usage_data`，
+/// 但事实上从来不做导入，已改名以反映其真实职责。
+async fn verify_usage_storage_dir() -> Result<(), String> {
     // CostTracker 默认使用与 CLI 一致的目录 `~/.ccr/costs/`。
-    // 这里只校验 storage dir 可访问，真正的导入由其他命令触发。
     tokio::task::spawn_blocking(|| {
         let _storage_dir = ccr_store::CostTracker::default_storage_dir()
             .map_err(|e| format!("Storage dir: {e}"))?;

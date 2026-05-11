@@ -92,7 +92,7 @@ impl Default for TrayPanelPlacementState {
     }
 }
 
-/// Tauri managed state —— 通过 `app.manage(AppState::new(...))` 注册。
+/// Tauri managed state —— 通过 `app.manage(AppState::try_new(...)?)` 注册。
 pub struct AppState {
     /// SQLite 连接池（来自 ccr-db）
     pub db_pool: DbPool,
@@ -214,6 +214,7 @@ impl DesktopShellPreferences {
         Ok(home.join(".ccr").join(DESKTOP_SHELL_PREFS_FILE))
     }
 
+    #[allow(dead_code)]
     pub fn load() -> Result<Self, String> {
         Self::load_from_path(&Self::default_path()?)
     }
@@ -226,6 +227,52 @@ impl DesktopShellPreferences {
         let content =
             std::fs::read_to_string(path).map_err(|e| format!("读取桌面壳层偏好失败: {e}"))?;
         serde_json::from_str(&content).map_err(|e| format!("解析桌面壳层偏好失败: {e}"))
+    }
+
+    /// 加载偏好；失败时把原文件 mv 到 `desktop-shell.json.corrupt-{timestamp}` 隔离，
+    /// 然后返回 default。**不**删除用户原始数据，方便事后排查。
+    ///
+    /// 调用方拿到 default 后会写回干净副本（AtomicWriter），原损坏文件以 `.corrupt-*`
+    /// 后缀就地保留。
+    ///
+    /// TODO: P3.2 后续在 quarantine 发生时通过 Tauri event channel 通知前端弹 banner，
+    /// 当前仅在日志里记录。
+    pub fn load_or_quarantine_corrupt() -> Self {
+        let Ok(path) = Self::default_path() else {
+            tracing::warn!(
+                "[app] failed to resolve desktop shell preferences path; using default"
+            );
+            return Self::default();
+        };
+        Self::load_or_quarantine_corrupt_at(&path)
+    }
+
+    pub fn load_or_quarantine_corrupt_at(path: &Path) -> Self {
+        if !path.exists() {
+            return Self::default();
+        }
+        match Self::load_from_path(path) {
+            Ok(prefs) => prefs,
+            Err(error) => {
+                tracing::error!(
+                    "[app] failed to load desktop shell preferences from {}: {error}",
+                    path.display()
+                );
+                let timestamp = Utc::now().format("%Y%m%dT%H%M%SZ");
+                let backup = path.with_extension(format!("json.corrupt-{timestamp}"));
+                match std::fs::rename(path, &backup) {
+                    Ok(()) => tracing::info!(
+                        "[app] quarantined corrupt desktop shell preferences to {}",
+                        backup.display()
+                    ),
+                    Err(mv_err) => tracing::warn!(
+                        "[app] failed to quarantine corrupt desktop shell preferences to {}: {mv_err}",
+                        backup.display()
+                    ),
+                }
+                Self::default()
+            }
+        }
     }
 
     pub fn save(&self) -> Result<(), String> {
@@ -254,24 +301,28 @@ pub struct RuntimeMetricsSnapshot {
 }
 
 impl AppState {
-    /// 创建新的应用状态实例
-    pub fn new(db_pool: DbPool, usage_db_pool: DbPool, llmusage: LlmusageHandle) -> Self {
+    /// 创建新的应用状态实例。
+    ///
+    /// `try_new` 返回 `Result` 而不是 panic，避免启动期间错误跨 FFI 边界 abort 进程。
+    /// 调用方应在 Tauri `setup` 闭包里 `?` 传播错误，让运行时把错误对话框推给用户。
+    pub fn try_new(
+        db_pool: DbPool,
+        usage_db_pool: DbPool,
+        llmusage: LlmusageHandle,
+    ) -> Result<Self, String> {
         let http_client = reqwest::Client::builder()
             .cookie_store(true)
             .timeout(Duration::from_secs(30))
             .build()
-            .expect("failed to build reqwest client");
+            .map_err(|e| format!("failed to build reqwest client: {e}"))?;
 
-        let settings = DesktopShellPreferences::load().unwrap_or_else(|error| {
-            tracing::warn!("[app] failed to load desktop shell preferences: {error}");
-            DesktopShellPreferences::default()
-        });
+        let settings = DesktopShellPreferences::load_or_quarantine_corrupt();
 
         let cache = MokaCache::builder()
             .max_capacity(DEFAULT_CACHE_MAX_ENTRIES as u64)
             .build();
 
-        Self {
+        Ok(Self {
             db_pool,
             usage_db_pool,
             llmusage: Arc::new(llmusage),
@@ -296,7 +347,7 @@ impl AppState {
             event_log: EventLog::with_limits(500, 10 * 1024, 5 * 1024 * 1024),
             command_durations_ms: Mutex::new(VecDeque::new()),
             db_query_durations_ms: Mutex::new(VecDeque::new()),
-        }
+        })
     }
 
     /// 读取当前桌面壳层偏好快照（无锁读，同步路径/async 路径通用）
@@ -585,8 +636,9 @@ impl AppState {
     }
 
     pub async fn get_active_usage_import_job(&self) -> Option<UsageImportJobSnapshot> {
-        let active_job_id = self.active_usage_import_job_id.read().await.clone()?;
+        // 锁顺序统一为 jobs → active，避免与 update_usage_import_job 反向序导致 read/write 死锁。
         let jobs = self.usage_import_jobs.read().await;
+        let active_job_id = self.active_usage_import_job_id.read().await.clone()?;
         let snapshot = jobs.get(&active_job_id)?.clone();
         if matches!(
             snapshot.status,
@@ -607,11 +659,13 @@ impl AppState {
     where
         F: FnOnce(&mut UsageImportJobSnapshot),
     {
+        // 持 jobs 写锁期间一并完成 active_id 同步，统一锁序 jobs → active，
+        // 避免在 drop(jobs) 与拿 active 之间出现窗口让其他写者把 active 改向其他 job
+        // 然后被本调用错误清空。
         let mut jobs = self.usage_import_jobs.write().await;
         let snapshot = jobs.get_mut(job_id)?;
         mutator(snapshot);
         let cloned = snapshot.clone();
-        drop(jobs);
 
         if matches!(
             cloned.status,
@@ -641,8 +695,9 @@ impl AppState {
     }
 
     pub async fn get_active_session_index_job(&self) -> Option<SessionIndexJobSnapshot> {
-        let active_job_id = self.active_session_index_job_id.read().await.clone()?;
+        // 锁顺序与 update_session_index_job 对齐：jobs → active。
         let jobs = self.session_index_jobs.read().await;
+        let active_job_id = self.active_session_index_job_id.read().await.clone()?;
         let snapshot = jobs.get(&active_job_id)?.clone();
         if matches!(
             snapshot.status,
@@ -661,11 +716,11 @@ impl AppState {
     where
         F: FnOnce(&mut SessionIndexJobSnapshot),
     {
+        // 持 jobs 写锁期间一并完成 active_id 同步；锁序与 update_usage_import_job 一致。
         let mut jobs = self.session_index_jobs.write().await;
         let snapshot = jobs.get_mut(job_id)?;
         mutator(snapshot);
         let cloned = snapshot.clone();
-        drop(jobs);
 
         if matches!(
             cloned.status,
