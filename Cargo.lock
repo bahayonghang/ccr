@@ -2497,9 +2497,9 @@ dependencies = [
 
 [[package]]
 name = "r2d2_sqlite"
-version = "0.33.0"
+version = "0.34.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5576df16239e4e422c4835c8ed00be806d4491855c7847dba60b7aa8408b469b"
+checksum = "f9a289c0a3bf56505c470efa2366e76010f1d892e2492a2f96b223386d63b7e2"
 dependencies = [
  "r2d2",
  "rusqlite",
@@ -3405,9 +3405,9 @@ dependencies = [
 
 [[package]]
 name = "tokio"
-version = "1.52.2"
+version = "1.52.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "110a78583f19d5cdb2c5ccf321d1290344e71313c6c37d43520d386027d18386"
+checksum = "8fc7f01b389ac15039e4dc9531aa973a135d7a4135281b12d7c1bc79fd57fffe"
 dependencies = [
  "bytes",
  "libc",

@@ -557,7 +557,7 @@ dependencies = [
 
 [[package]]
 name = "ccr"
-version = "6.1.0"
+version = "6.1.1"
 dependencies = [
  "anyhow",
  "base64 0.22.1",
@@ -604,7 +604,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-checkin"
-version = "6.1.0"
+version = "6.1.1"
 dependencies = [
  "aes-gcm",
  "base64 0.22.1",
@@ -627,7 +627,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-cli"
-version = "6.1.0"
+version = "6.1.1"
 dependencies = [
  "anyhow",
  "base64 0.22.1",
@@ -673,7 +673,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-codex"
-version = "6.1.0"
+version = "6.1.1"
 dependencies = [
  "aes-gcm",
  "argon2",
@@ -701,7 +701,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-config"
-version = "6.1.0"
+version = "6.1.1"
 dependencies = [
  "ccr-core",
  "chrono",
@@ -716,7 +716,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-core"
-version = "6.1.0"
+version = "6.1.1"
 dependencies = [
  "anyhow",
  "colored",
@@ -742,7 +742,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-db"
-version = "6.1.0"
+version = "6.1.1"
 dependencies = [
  "aes-gcm",
  "anyhow",
@@ -775,7 +775,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-desktop"
-version = "6.1.0"
+version = "6.1.1"
 dependencies = [
  "aes-gcm",
  "arc-swap",
@@ -821,7 +821,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-skills"
-version = "6.1.0"
+version = "6.1.1"
 dependencies = [
  "blake3",
  "ccr-config",
@@ -839,7 +839,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-store"
-version = "6.1.0"
+version = "6.1.1"
 dependencies = [
  "blake3",
  "ccr-config",
@@ -862,7 +862,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-sync"
-version = "6.1.0"
+version = "6.1.1"
 dependencies = [
  "ccr-config",
  "ccr-core",
@@ -880,7 +880,7 @@ dependencies = [
 
 [[package]]
 name = "ccr-types"
-version = "6.1.0"
+version = "6.1.1"
 dependencies = [
  "chrono",
  "serde",
@@ -4146,9 +4146,9 @@ dependencies = [
 
 [[package]]
 name = "r2d2_sqlite"
-version = "0.33.0"
+version = "0.34.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5576df16239e4e422c4835c8ed00be806d4491855c7847dba60b7aa8408b469b"
+checksum = "f9a289c0a3bf56505c470efa2366e76010f1d892e2492a2f96b223386d63b7e2"
 dependencies = [
  "r2d2",
  "rusqlite",
