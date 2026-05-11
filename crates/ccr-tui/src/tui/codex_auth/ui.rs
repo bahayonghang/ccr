@@ -20,7 +20,7 @@ use ratatui::{
 use unicode_width::{UnicodeWidthChar, UnicodeWidthStr};
 
 /// 🎨 Draw main interface
-pub fn draw(f: &mut Frame, app: &CodexAuthApp) {
+pub fn draw(f: &mut Frame, app: &mut CodexAuthApp) {
     // Unified background
     let background = Block::default().style(theme::background_style());
     f.render_widget(background, f.area());
@@ -85,7 +85,7 @@ fn draw_title(f: &mut Frame, area: Rect, app: &CodexAuthApp) {
     f.render_widget(title, area);
 }
 
-fn draw_account_list(f: &mut Frame, area: Rect, app: &CodexAuthApp) {
+fn draw_account_list(f: &mut Frame, area: Rect, app: &mut CodexAuthApp) {
     render_account_list_panel(f, area, app, " 账号列表 ".to_string());
 }
 
@@ -300,17 +300,22 @@ fn detail_spans_line(label: &str, mut spans: Vec<Span<'static>>) -> Line<'static
     Line::from(all)
 }
 
-fn render_account_list_panel(f: &mut Frame, area: Rect, app: &CodexAuthApp, title: String) {
-    let page_info = account_list_footer_line(app);
-
+fn render_account_list_panel(f: &mut Frame, area: Rect, app: &mut CodexAuthApp, title: String) {
     let block = Block::default()
         .borders(Borders::ALL)
         .border_style(Style::default().fg(theme::BORDER))
         .title(title)
-        .title_style(Style::default().fg(theme::ACCENT))
-        .title_bottom(page_info);
+        .title_style(Style::default().fg(theme::ACCENT));
 
     let inner = block.inner(area);
+    if !app.accounts.is_empty() && inner.height >= 2 {
+        let regions = account_list_regions(inner);
+        app.sync_page_size(crate::tui::pagination::visible_page_size(
+            regions.body.height,
+        ));
+    }
+
+    let block = block.title_bottom(account_list_footer_line(app));
     f.render_widget(block, area);
 
     if app.accounts.is_empty() {
@@ -1169,7 +1174,7 @@ fn draw_help_bar(f: &mut Frame, area: Rect, app: &CodexAuthApp) {
 /// `footer_area` is the bottom section (shortcuts + toast in Claude tab).
 pub fn draw_embedded(
     f: &mut Frame,
-    app: &CodexAuthApp,
+    app: &mut CodexAuthApp,
     content_area: Rect,
     footer_area: Rect,
     mode: crate::tui::theme::ViewportMode,
@@ -1269,7 +1274,7 @@ pub fn draw_loading_placeholder(
     }
 }
 
-fn draw_account_list_with_status(f: &mut Frame, area: Rect, app: &CodexAuthApp) {
+fn draw_account_list_with_status(f: &mut Frame, area: Rect, app: &mut CodexAuthApp) {
     let title = format!(" 🔐 账号列表 · {} ", login_status_text(app));
     render_account_list_panel(f, area, app, title);
 }

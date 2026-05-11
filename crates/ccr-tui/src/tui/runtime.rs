@@ -164,7 +164,7 @@ pub trait TuiApp {
     }
 
     /// Render the current state to the frame.
-    fn render(&self, frame: &mut Frame);
+    fn render(&mut self, frame: &mut Frame);
 }
 
 /// RAII guard that sets up the terminal on creation and restores it on drop.
@@ -315,7 +315,7 @@ pub fn run_loop<A: TuiApp>(
     }
 }
 
-fn draw_frame<A: TuiApp>(guard: &mut TerminalGuard, app: &A) -> Result<()> {
+fn draw_frame<A: TuiApp>(guard: &mut TerminalGuard, app: &mut A) -> Result<()> {
     guard
         .terminal_mut()
         .draw(|f| app.render(f))

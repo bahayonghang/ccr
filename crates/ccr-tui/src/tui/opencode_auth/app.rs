@@ -11,6 +11,9 @@ use crate::services::{
 };
 use crate::tui::auth_refresh::{RefreshReason, RefreshSchedulerState, RefreshTask, RefreshTier};
 use crate::tui::overlay::Overlay;
+use crate::tui::pagination::{
+    DEFAULT_PAGE_SIZE, index_in_page, page_for_index, page_slice, total_pages,
+};
 use crate::tui::runtime::{AsyncTaskExecutor, TuiApp};
 use crate::tui::toast::{Toast, ToastManager};
 use ccr_core::core::error::Result;
@@ -23,8 +26,6 @@ use std::cell::Cell;
 use std::path::PathBuf;
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender, error::TryRecvError};
 
-/// Maximum accounts per page
-pub const PAGE_SIZE: usize = 10;
 const ACTIVATION_DELAY_TICKS: u32 = 4;
 const QUOTA_REFRESH_INTERVAL_TICKS: u32 = 4;
 const PREVIEW_TTL_SECS: i64 = 60;
@@ -129,6 +130,8 @@ pub struct OpenCodeAuthApp {
     pub selected_index: usize,
     /// Current page (0-based)
     pub current_page: usize,
+    /// Page capacity derived from visible account rows
+    pub page_size: usize,
     /// Active overlay (None = normal mode)
     pub overlay: Option<Overlay>,
     /// Toast notification manager
@@ -197,13 +200,20 @@ impl OpenCodeAuthApp {
         let selected_index = accounts
             .iter()
             .position(|account| account.is_current)
+            .map(|index| index_in_page(index, DEFAULT_PAGE_SIZE))
+            .unwrap_or(0);
+        let current_page = accounts
+            .iter()
+            .position(|account| account.is_current)
+            .map(|index| page_for_index(index, DEFAULT_PAGE_SIZE))
             .unwrap_or(0);
         let opencode_dir = service.opencode_dir().to_path_buf();
 
         Ok(Self {
             accounts,
             selected_index,
-            current_page: 0,
+            current_page,
+            page_size: DEFAULT_PAGE_SIZE,
             overlay: None,
             toasts: ToastManager::new(),
             should_quit: false,
@@ -237,12 +247,12 @@ impl OpenCodeAuthApp {
             .iter()
             .position(|account| account.is_current)
             .unwrap_or(0);
-        self.current_page = preferred / PAGE_SIZE;
+        self.current_page = page_for_index(preferred, self.page_size);
         let page_len = self.current_page_accounts().len();
         self.selected_index = if page_len == 0 {
             0
         } else {
-            preferred % PAGE_SIZE
+            index_in_page(preferred, self.page_size)
         };
         self.reconcile_preview_cache();
 
@@ -285,27 +295,43 @@ impl OpenCodeAuthApp {
 
     /// Get current page accounts
     pub fn current_page_accounts(&self) -> &[OpenCodeAuthItem] {
-        let start = self.current_page * PAGE_SIZE;
-        let end = (start + PAGE_SIZE).min(self.accounts.len());
-        if start >= self.accounts.len() {
-            &[]
-        } else {
-            &self.accounts[start..end]
-        }
+        page_slice(&self.accounts, self.current_page, self.page_size)
     }
 
     /// Get total pages
     pub fn total_pages(&self) -> usize {
-        if self.accounts.is_empty() {
-            1
-        } else {
-            self.accounts.len().div_ceil(PAGE_SIZE)
-        }
+        total_pages(self.accounts.len(), self.page_size)
     }
 
     /// Get currently selected account
     pub fn selected_account(&self) -> Option<&OpenCodeAuthItem> {
         self.current_page_accounts().get(self.selected_index)
+    }
+
+    pub fn sync_page_size(&mut self, page_size: usize) {
+        let page_size = page_size.max(1);
+        if self.page_size == page_size {
+            return;
+        }
+
+        let selected_name = self.selected_account().map(|account| account.name.clone());
+        self.page_size = page_size;
+
+        if let Some(name) = selected_name
+            && let Some(index) = self
+                .accounts
+                .iter()
+                .position(|account| account.name == name)
+        {
+            self.current_page = page_for_index(index, self.page_size);
+            self.selected_index = index_in_page(index, self.page_size);
+            return;
+        }
+
+        let index = (self.current_page * self.page_size + self.selected_index)
+            .min(self.accounts.len().saturating_sub(1));
+        self.current_page = page_for_index(index, self.page_size);
+        self.selected_index = index_in_page(index, self.page_size);
     }
 
     pub fn selected_quota(&self) -> Option<&CodexAccountQuota> {
@@ -1284,7 +1310,7 @@ impl TuiApp for OpenCodeAuthApp {
         needs_redraw
     }
 
-    fn render(&self, frame: &mut Frame) {
+    fn render(&mut self, frame: &mut Frame) {
         super::ui::draw(frame, self);
     }
 }
@@ -1533,6 +1559,7 @@ mod tests {
             accounts,
             selected_index,
             current_page: 0,
+            page_size: DEFAULT_PAGE_SIZE,
             overlay: None,
             toasts: ToastManager::new(),
             should_quit: false,
@@ -1617,6 +1644,47 @@ mod tests {
         let next = app.quota_refresh.next_ready(false).unwrap();
         assert_eq!(next.key, "account-11");
         assert_eq!(next.tier, RefreshTier::HoverOnly);
+    }
+
+    #[test]
+    fn current_page_accounts_respects_dynamic_page_size() {
+        let mut app = make_refresh_test_app(navigation_accounts(20), 0);
+
+        app.sync_page_size(14);
+
+        assert_eq!(app.current_page_accounts().len(), 14);
+        assert_eq!(app.total_pages(), 2);
+
+        app.sync_page_size(25);
+
+        assert_eq!(app.current_page_accounts().len(), 20);
+        assert_eq!(app.total_pages(), 1);
+    }
+
+    #[test]
+    fn page_size_growth_preserves_selected_account_identity() {
+        let mut app = make_refresh_test_app_on_page(navigation_accounts(28), 2, 1);
+
+        assert_eq!(
+            app.selected_account().map(|account| account.name.as_str()),
+            Some("account-13")
+        );
+
+        app.sync_page_size(20);
+
+        assert_eq!(app.page_size, 20);
+        assert_eq!(app.current_page, 0);
+        assert_eq!(app.selected_index, 12);
+        assert_eq!(
+            app.selected_account().map(|account| account.name.as_str()),
+            Some("account-13")
+        );
+    }
+
+    #[test]
+    fn account_list_hit_test_ignores_blank_rows_when_page_has_fewer_items_than_space() {
+        let area = Rect::new(4, 7, 60, 14);
+        assert_eq!(account_list_hit_test(area, 15, 5), None);
     }
 
     #[test]

@@ -23,7 +23,7 @@ use unicode_width::{UnicodeWidthChar, UnicodeWidthStr};
 const ACCOUNT_COLUMN_SPACING: u16 = 1;
 const DETAIL_LABEL_WIDTH: usize = 12;
 
-pub fn draw(f: &mut Frame, app: &OpenCodeAuthApp) {
+pub fn draw(f: &mut Frame, app: &mut OpenCodeAuthApp) {
     let background = Block::default().style(theme::background_style());
     f.render_widget(background, f.area());
 
@@ -52,7 +52,7 @@ pub fn draw(f: &mut Frame, app: &OpenCodeAuthApp) {
 
 pub fn draw_embedded(
     f: &mut Frame,
-    app: &OpenCodeAuthApp,
+    app: &mut OpenCodeAuthApp,
     content_area: Rect,
     footer_area: Rect,
     mode: crate::tui::theme::ViewportMode,
@@ -173,7 +173,7 @@ fn draw_title(f: &mut Frame, area: Rect, app: &OpenCodeAuthApp) {
     f.render_widget(title, area);
 }
 
-fn draw_account_list_with_status(f: &mut Frame, area: Rect, app: &OpenCodeAuthApp) {
+fn draw_account_list_with_status(f: &mut Frame, area: Rect, app: &mut OpenCodeAuthApp) {
     let title = format!(" 🔐 账号列表 · {} ", login_status_text(app));
     render_account_list_panel(f, area, app, title);
 }
@@ -232,16 +232,21 @@ struct AccountListRegions {
     body: Rect,
 }
 
-fn render_account_list_panel(f: &mut Frame, area: Rect, app: &OpenCodeAuthApp, title: String) {
-    let footer = account_list_footer_line(app);
-
+fn render_account_list_panel(f: &mut Frame, area: Rect, app: &mut OpenCodeAuthApp, title: String) {
     let block = Block::default()
         .borders(Borders::ALL)
         .border_style(Style::default().fg(theme::BORDER))
         .title(title)
-        .title_style(Style::default().fg(theme::ACCENT))
-        .title_bottom(footer);
+        .title_style(Style::default().fg(theme::ACCENT));
     let inner = block.inner(area);
+    if !app.accounts.is_empty() && inner.height >= 2 {
+        let regions = account_list_regions(inner);
+        app.sync_page_size(crate::tui::pagination::visible_page_size(
+            regions.body.height,
+        ));
+    }
+
+    let block = block.title_bottom(account_list_footer_line(app));
     f.render_widget(block, area);
 
     if app.accounts.is_empty() {

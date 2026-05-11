@@ -23,7 +23,7 @@ use ratatui::{
 // ═══════════════════════════════════════════════════════════
 
 /// Render the main UI (responsive to terminal size)
-pub fn draw(f: &mut Frame, app: &App) {
+pub fn draw(f: &mut Frame, app: &mut App) {
     let background = Block::default().style(theme::background_style());
     f.render_widget(background, f.area());
 
@@ -72,7 +72,7 @@ pub fn draw(f: &mut Frame, app: &App) {
     if app.is_claude_auth_tab() {
         app.header_area.set(Some(chunks[0]));
 
-        if let Some(ref claude_app) = app.claude_auth_app {
+        if let Some(ref mut claude_app) = app.claude_auth_app {
             claude_auth::ui::draw_embedded(f, claude_app, content_area, chunks[2], mode);
         } else {
             claude_auth::ui::draw_loading_placeholder(
@@ -86,7 +86,7 @@ pub fn draw(f: &mut Frame, app: &App) {
     } else if app.is_codex_auth_tab() {
         app.header_area.set(Some(chunks[0]));
 
-        if let Some(ref codex_app) = app.codex_auth_app {
+        if let Some(ref mut codex_app) = app.codex_auth_app {
             codex_auth::ui::draw_embedded(f, codex_app, content_area, chunks[2], mode);
         } else {
             codex_auth::ui::draw_loading_placeholder(
@@ -100,7 +100,7 @@ pub fn draw(f: &mut Frame, app: &App) {
     } else if app.is_opencode_auth_tab() {
         app.header_area.set(Some(chunks[0]));
 
-        if let Some(ref opencode_app) = app.opencode_auth_app {
+        if let Some(ref mut opencode_app) = app.opencode_auth_app {
             opencode_auth::ui::draw_embedded(f, opencode_app, content_area, chunks[2], mode);
         } else {
             opencode_auth::ui::draw_loading_placeholder(
@@ -382,7 +382,7 @@ fn render_header(f: &mut Frame, app: &App, area: Rect) {
 // Profile list rendering
 // ═══════════════════════════════════════════════════════════
 
-fn render_profile_workspace(f: &mut Frame, app: &App, area: Rect, mode: theme::ViewportMode) {
+fn render_profile_workspace(f: &mut Frame, app: &mut App, area: Rect, mode: theme::ViewportMode) {
     match mode {
         theme::ViewportMode::Compact => {
             render_profile_list_panel(f, app, area);
@@ -406,15 +406,22 @@ fn render_profile_workspace(f: &mut Frame, app: &App, area: Rect, mode: theme::V
     }
 }
 
-fn render_profile_list_rail(f: &mut Frame, app: &App, area: Rect) {
+fn render_profile_list_rail(f: &mut Frame, app: &mut App, area: Rect) {
     let (list_area, meta_area) = profile_list_rail_layout(area);
 
     render_profile_list_panel(f, app, list_area);
     render_profile_meta_panel(f, app, meta_area);
 }
 
-fn render_profile_list_panel(f: &mut Frame, app: &App, area: Rect) {
+fn render_profile_list_panel(f: &mut Frame, app: &mut App, area: Rect) {
     app.list_area.set(Some(area));
+    let content_height = Block::default()
+        .borders(Borders::ALL)
+        .padding(Padding::horizontal(1))
+        .inner(area)
+        .height;
+    app.sync_profile_page_size(super::pagination::visible_page_size(content_height));
+
     let profiles = app.current_page_profiles();
     let all_profiles = app.current_profiles();
     let platform = app.current_platform();
@@ -426,12 +433,12 @@ fn render_profile_list_panel(f: &mut Frame, app: &App, area: Rect) {
     let visible_start = if total_profiles == 0 {
         0
     } else {
-        app.current_page * super::app::PAGE_SIZE + 1
+        app.current_page * app.page_size + 1
     };
     let visible_end = if total_profiles == 0 {
         0
     } else {
-        app.current_page * super::app::PAGE_SIZE + profiles.len()
+        app.current_page * app.page_size + profiles.len()
     };
     let title = if all_profiles.is_empty() {
         format!(" {} Profiles ", platform_name)
@@ -1284,6 +1291,7 @@ mod tests {
             active_tab: 0,
             selected_index: 0,
             current_page: 0,
+            page_size: crate::tui::pagination::DEFAULT_PAGE_SIZE,
             selected_profile_name: Some(profile.name),
             toasts: ToastManager::new(),
             last_applied: None,

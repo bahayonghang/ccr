@@ -9,6 +9,7 @@ pub mod codex_auth;
 mod event;
 pub mod opencode_auth;
 pub mod overlay;
+mod pagination;
 pub mod runtime;
 mod selection;
 pub mod theme;

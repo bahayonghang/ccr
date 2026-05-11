@@ -66,7 +66,7 @@ struct AccountListRegions {
     body: Rect,
 }
 
-pub fn draw(f: &mut Frame, app: &ClaudeAuthApp) {
+pub fn draw(f: &mut Frame, app: &mut ClaudeAuthApp) {
     let background = Block::default().style(theme::background_style());
     f.render_widget(background, f.area());
 
@@ -94,7 +94,7 @@ pub fn draw(f: &mut Frame, app: &ClaudeAuthApp) {
 
 pub fn draw_embedded(
     f: &mut Frame,
-    app: &ClaudeAuthApp,
+    app: &mut ClaudeAuthApp,
     content_area: Rect,
     footer_area: Rect,
     mode: crate::tui::theme::ViewportMode,
@@ -201,21 +201,28 @@ fn draw_title(f: &mut Frame, area: Rect, app: &ClaudeAuthApp) {
     f.render_widget(title, area);
 }
 
-fn draw_account_list_with_status(f: &mut Frame, area: Rect, app: &ClaudeAuthApp) {
+fn draw_account_list_with_status(f: &mut Frame, area: Rect, app: &mut ClaudeAuthApp) {
     let title = format!(" 🔐 账号列表 · {} ", list_status_text(app));
     render_account_list_panel(f, area, app, title);
 }
 
-fn render_account_list_panel(f: &mut Frame, area: Rect, app: &ClaudeAuthApp, title: String) {
+fn render_account_list_panel(f: &mut Frame, area: Rect, app: &mut ClaudeAuthApp, title: String) {
     let block = Block::default()
         .borders(Borders::ALL)
         .border_style(Style::default().fg(theme::CLAUDE_PRIMARY))
         .title(title)
         .title_style(theme::claude_style())
-        .title_bottom(account_list_footer_line(app))
         .padding(Padding::horizontal(1));
 
     let inner = block.inner(area);
+    if !app.accounts.is_empty() && inner.height >= 2 {
+        let regions = account_list_regions(inner);
+        app.sync_page_size(crate::tui::pagination::visible_page_size(
+            regions.body.height,
+        ));
+    }
+
+    let block = block.title_bottom(account_list_footer_line(app));
     f.render_widget(block, area);
 
     if app.accounts.is_empty() {

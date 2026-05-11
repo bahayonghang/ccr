@@ -17,11 +17,9 @@ use std::sync::Arc;
 use super::claude_auth::ClaudeAuthApp;
 use super::codex_auth::CodexAuthApp;
 use super::opencode_auth::OpenCodeAuthApp;
+use super::pagination::{DEFAULT_PAGE_SIZE, page_for_index, page_slice, total_pages};
 use super::runtime::{AsyncTaskExecutor, TuiApp};
 use super::ui;
-
-/// Maximum profiles per page
-pub const PAGE_SIZE: usize = 10;
 
 /// A single profile entry for display
 #[derive(Debug, Clone)]
@@ -103,6 +101,8 @@ pub struct App {
     pub selected_index: usize,
     /// Current page number (0-based)
     pub current_page: usize,
+    /// 当前列表可见行数驱动的分页容量
+    pub page_size: usize,
     /// 当前选中的 profile 名称（跨刷新保持同步）
     pub selected_profile_name: Option<String>,
     /// Toast notification manager
@@ -214,7 +214,7 @@ impl App {
         }
 
         let clamped_index = self.selected_index.min(page_len.saturating_sub(1));
-        let index = self.current_page * PAGE_SIZE + clamped_index;
+        let index = self.current_page * self.page_size + clamped_index;
         (index < self.current_profiles().len()).then_some(index)
     }
 
@@ -284,8 +284,8 @@ impl App {
                 .min(total.saturating_sub(1))
         };
 
-        self.current_page = preferred_index / PAGE_SIZE;
-        self.selected_index = preferred_index % PAGE_SIZE;
+        self.current_page = page_for_index(preferred_index, self.page_size);
+        self.selected_index = super::pagination::index_in_page(preferred_index, self.page_size);
         self.remember_selected_profile();
     }
 
@@ -418,6 +418,7 @@ impl App {
             active_tab: 0,
             selected_index: 0,
             current_page: 0,
+            page_size: DEFAULT_PAGE_SIZE,
             selected_profile_name: None,
             toasts: ToastManager::new(),
             last_applied: None,
@@ -454,23 +455,35 @@ impl App {
     }
 
     pub fn current_page_profiles(&self) -> &[ProfileItem] {
-        let all = self.current_profiles();
-        let start = self.current_page * PAGE_SIZE;
-        let end = (start + PAGE_SIZE).min(all.len());
-        if start >= all.len() {
-            &[]
-        } else {
-            &all[start..end]
-        }
+        page_slice(self.current_profiles(), self.current_page, self.page_size)
     }
 
     pub fn total_pages(&self) -> usize {
-        let total = self.current_profiles().len();
-        if total == 0 {
-            1
-        } else {
-            total.div_ceil(PAGE_SIZE)
+        total_pages(self.current_profiles().len(), self.page_size)
+    }
+
+    pub fn sync_profile_page_size(&mut self, page_size: usize) {
+        let page_size = page_size.max(1);
+        if self.page_size == page_size {
+            return;
         }
+
+        let selected_name = self.selected_profile().map(|profile| profile.name.clone());
+        self.page_size = page_size;
+
+        if let Some(name) = selected_name
+            && let Some(index) = self
+                .current_profiles()
+                .iter()
+                .position(|profile| profile.name == name)
+        {
+            self.current_page = page_for_index(index, self.page_size);
+            self.selected_index = super::pagination::index_in_page(index, self.page_size);
+            self.selected_profile_name = Some(name);
+            return;
+        }
+
+        self.sync_selection_to_profile_name();
     }
 
     // -- Key to Action mapping (pure logic, no side effects) --
@@ -1009,7 +1022,7 @@ impl TuiApp for App {
         }
     }
 
-    fn render(&self, frame: &mut Frame) {
+    fn render(&mut self, frame: &mut Frame) {
         ui::draw(frame, self);
     }
 }
@@ -1062,6 +1075,12 @@ mod tests {
         let area = Rect::new(0, 5, 40, 12);
         // Only 3 items in the list, click on row index 3 (4th position)
         assert_eq!(list_hit_test(area, 9, 3), None);
+    }
+
+    #[test]
+    fn list_hit_test_ignores_blank_rows_when_page_has_fewer_items_than_space() {
+        let area = Rect::new(0, 5, 40, 18);
+        assert_eq!(list_hit_test(area, 15, 5), None);
     }
 
     #[test]
@@ -1166,6 +1185,7 @@ mod tests {
             active_tab: 0,
             selected_index,
             current_page,
+            page_size: DEFAULT_PAGE_SIZE,
             selected_profile_name: None,
             toasts: ToastManager::new(),
             last_applied: None,
@@ -1191,19 +1211,77 @@ mod tests {
         app.dispatch(Action::SelectPrev).unwrap();
 
         assert_eq!(app.current_page, 0);
-        assert_eq!(app.selected_index, PAGE_SIZE - 1);
+        assert_eq!(app.selected_index, DEFAULT_PAGE_SIZE - 1);
         assert_eq!(app.selected_profile_name.as_deref(), Some("profile-10"));
     }
 
     #[test]
     fn navigation_wrap_profile_select_next_stays_on_current_page() {
-        let mut app = profile_navigation_app(28, PAGE_SIZE - 1, 0);
+        let mut app = profile_navigation_app(28, DEFAULT_PAGE_SIZE - 1, 0);
 
         app.dispatch(Action::SelectNext).unwrap();
 
         assert_eq!(app.current_page, 0);
         assert_eq!(app.selected_index, 0);
         assert_eq!(app.selected_profile_name.as_deref(), Some("profile-01"));
+    }
+
+    #[test]
+    fn current_page_profiles_respects_dynamic_page_size() {
+        let mut app = profile_navigation_app(20, 0, 0);
+
+        app.sync_profile_page_size(14);
+
+        assert_eq!(app.current_page_profiles().len(), 14);
+        assert_eq!(app.total_pages(), 2);
+
+        app.sync_profile_page_size(25);
+
+        assert_eq!(app.current_page_profiles().len(), 20);
+        assert_eq!(app.total_pages(), 1);
+    }
+
+    #[test]
+    fn profile_page_size_growth_preserves_selected_profile_identity() {
+        let mut app = profile_navigation_app(28, 2, 1);
+
+        assert_eq!(
+            app.selected_profile().map(|profile| profile.name.as_str()),
+            Some("profile-13")
+        );
+
+        app.sync_profile_page_size(20);
+
+        assert_eq!(app.page_size, 20);
+        assert_eq!(app.current_page, 0);
+        assert_eq!(app.selected_index, 12);
+        assert_eq!(app.selected_profile_name.as_deref(), Some("profile-13"));
+        assert_eq!(
+            app.selected_profile().map(|profile| profile.name.as_str()),
+            Some("profile-13")
+        );
+    }
+
+    #[test]
+    fn profile_mouse_click_on_blank_row_keeps_selection() {
+        let mut app = profile_navigation_app(5, 1, 0);
+        app.sync_profile_page_size(14);
+        app.list_area.set(Some(Rect::new(0, 5, 40, 18)));
+
+        let result = app.handle_mouse(MouseEvent {
+            kind: MouseEventKind::Down(MouseButton::Left),
+            column: 2,
+            row: 15,
+            modifiers: KeyModifiers::NONE,
+        });
+
+        assert!(result.is_ok());
+        assert_eq!(app.selected_index, 1);
+        assert_eq!(app.selected_profile_name.as_deref(), Some("profile-02"));
+        assert_eq!(
+            app.selected_profile().map(|profile| profile.name.as_str()),
+            Some("profile-02")
+        );
     }
 
     #[test]
@@ -1224,6 +1302,7 @@ mod tests {
             active_tab: 0,
             selected_index: 0,
             current_page: 0,
+            page_size: DEFAULT_PAGE_SIZE,
             selected_profile_name: None,
             toasts: ToastManager::new(),
             last_applied: None,
@@ -1279,6 +1358,7 @@ mod tests {
             active_tab: 0,
             selected_index: 0,
             current_page: 0,
+            page_size: DEFAULT_PAGE_SIZE,
             selected_profile_name: None,
             toasts: ToastManager::new(),
             last_applied: None,
@@ -1333,6 +1413,7 @@ mod tests {
             active_tab: 0,
             selected_index: 0,
             current_page: 0,
+            page_size: DEFAULT_PAGE_SIZE,
             selected_profile_name: None,
             toasts: ToastManager::new(),
             last_applied: None,

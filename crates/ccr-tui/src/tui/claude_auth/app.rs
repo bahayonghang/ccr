@@ -7,6 +7,9 @@ use crate::models::{
 };
 use crate::services::{ClaudeAuthItem, ClaudeAuthService};
 use crate::tui::overlay::Overlay;
+use crate::tui::pagination::{
+    DEFAULT_PAGE_SIZE, index_in_page, page_for_index, page_slice, total_pages,
+};
 use crate::tui::runtime::TuiApp;
 use crate::tui::toast::{Toast, ToastManager};
 use ccr_core::core::error::Result;
@@ -16,8 +19,6 @@ use ratatui::layout::Rect;
 use std::cell::Cell;
 use std::time::{Duration, Instant};
 
-/// 每页显示的账号数量
-pub const PAGE_SIZE: usize = 10;
 const AUTH_SNAPSHOT_CACHE_TTL: Duration = Duration::from_secs(5);
 
 /// Claude Auth TUI 应用
@@ -28,6 +29,8 @@ pub struct ClaudeAuthApp {
     pub selected_index: usize,
     /// 当前页（0-based）
     pub current_page: usize,
+    /// 当前列表可见行数驱动的分页容量
+    pub page_size: usize,
     /// 活动中的弹窗
     pub overlay: Option<Overlay>,
     /// Toast 管理器
@@ -66,12 +69,12 @@ impl ClaudeAuthApp {
             .iter()
             .position(|account| account.is_current || account.is_logged_in)
             .unwrap_or(0);
-        let current_page = preferred / PAGE_SIZE;
-        let page_len = page_slice_len(&accounts, current_page);
+        let current_page = page_for_index(preferred, DEFAULT_PAGE_SIZE);
+        let page_len = page_slice(&accounts, current_page, DEFAULT_PAGE_SIZE).len();
         let selected_index = if page_len == 0 {
             0
         } else {
-            preferred % PAGE_SIZE
+            index_in_page(preferred, DEFAULT_PAGE_SIZE)
         };
 
         let login_state = runtime_summary
@@ -83,6 +86,7 @@ impl ClaudeAuthApp {
             accounts,
             selected_index,
             current_page,
+            page_size: DEFAULT_PAGE_SIZE,
             overlay: None,
             toasts: ToastManager::new(),
             should_quit: false,
@@ -111,12 +115,12 @@ impl ClaudeAuthApp {
             .iter()
             .position(|account| account.is_current || account.is_logged_in)
             .unwrap_or(0);
-        self.current_page = preferred / PAGE_SIZE;
+        self.current_page = page_for_index(preferred, self.page_size);
         let page_len = self.current_page_accounts().len();
         self.selected_index = if page_len == 0 {
             0
         } else {
-            preferred % PAGE_SIZE
+            index_in_page(preferred, self.page_size)
         };
 
         self.login_state = self
@@ -149,27 +153,43 @@ impl ClaudeAuthApp {
 
     /// 获取当前页账号
     pub fn current_page_accounts(&self) -> &[ClaudeAuthItem] {
-        let start = self.current_page * PAGE_SIZE;
-        let end = (start + PAGE_SIZE).min(self.accounts.len());
-        if start >= self.accounts.len() {
-            &[]
-        } else {
-            &self.accounts[start..end]
-        }
+        page_slice(&self.accounts, self.current_page, self.page_size)
     }
 
     /// 获取总页数
     pub fn total_pages(&self) -> usize {
-        if self.accounts.is_empty() {
-            1
-        } else {
-            self.accounts.len().div_ceil(PAGE_SIZE)
-        }
+        total_pages(self.accounts.len(), self.page_size)
     }
 
     /// 获取当前选中账号
     pub fn selected_account(&self) -> Option<&ClaudeAuthItem> {
         self.current_page_accounts().get(self.selected_index)
+    }
+
+    pub fn sync_page_size(&mut self, page_size: usize) {
+        let page_size = page_size.max(1);
+        if self.page_size == page_size {
+            return;
+        }
+
+        let selected_name = self.selected_account().map(|account| account.name.clone());
+        self.page_size = page_size;
+
+        if let Some(name) = selected_name
+            && let Some(index) = self
+                .accounts
+                .iter()
+                .position(|account| account.name == name)
+        {
+            self.current_page = page_for_index(index, self.page_size);
+            self.selected_index = index_in_page(index, self.page_size);
+            return;
+        }
+
+        let index = (self.current_page * self.page_size + self.selected_index)
+            .min(self.accounts.len().saturating_sub(1));
+        self.current_page = page_for_index(index, self.page_size);
+        self.selected_index = index_in_page(index, self.page_size);
     }
 
     /// 当页签被激活时刷新本地状态
@@ -407,12 +427,6 @@ impl ClaudeAuthApp {
     }
 }
 
-fn page_slice_len(accounts: &[ClaudeAuthItem], page: usize) -> usize {
-    let start = page * PAGE_SIZE;
-    let end = (start + PAGE_SIZE).min(accounts.len());
-    end.saturating_sub(start)
-}
-
 fn account_list_hit_test(area: Rect, mouse_row: u16, page_len: usize) -> Option<usize> {
     if mouse_row < area.y || mouse_row >= area.y + area.height {
         return None;
@@ -461,7 +475,7 @@ impl TuiApp for ClaudeAuthApp {
         self.toasts.tick()
     }
 
-    fn render(&self, frame: &mut Frame) {
+    fn render(&mut self, frame: &mut Frame) {
         super::ui::draw(frame, self);
     }
 }
@@ -529,6 +543,7 @@ mod tests {
             accounts,
             selected_index,
             current_page,
+            page_size: DEFAULT_PAGE_SIZE,
             overlay: None,
             toasts: ToastManager::new(),
             should_quit: false,
@@ -561,5 +576,48 @@ mod tests {
 
         assert_eq!(app.current_page, 1);
         assert_eq!(app.selected_index, 0);
+    }
+
+    #[test]
+    fn current_page_accounts_respects_dynamic_page_size() {
+        let accounts = (1..=20).map(navigation_account).collect();
+        let mut app = navigation_app(accounts, 0, 0);
+
+        app.sync_page_size(14);
+
+        assert_eq!(app.current_page_accounts().len(), 14);
+        assert_eq!(app.total_pages(), 2);
+
+        app.sync_page_size(25);
+
+        assert_eq!(app.current_page_accounts().len(), 20);
+        assert_eq!(app.total_pages(), 1);
+    }
+
+    #[test]
+    fn page_size_growth_preserves_selected_account_identity() {
+        let accounts = (1..=28).map(navigation_account).collect();
+        let mut app = navigation_app(accounts, 2, 1);
+
+        assert_eq!(
+            app.selected_account().map(|account| account.name.as_str()),
+            Some("account-13")
+        );
+
+        app.sync_page_size(20);
+
+        assert_eq!(app.page_size, 20);
+        assert_eq!(app.current_page, 0);
+        assert_eq!(app.selected_index, 12);
+        assert_eq!(
+            app.selected_account().map(|account| account.name.as_str()),
+            Some("account-13")
+        );
+    }
+
+    #[test]
+    fn account_list_hit_test_ignores_blank_rows_when_page_has_fewer_items_than_space() {
+        let area = Rect::new(4, 7, 60, 14);
+        assert_eq!(account_list_hit_test(area, 15, 5), None);
     }
 }
