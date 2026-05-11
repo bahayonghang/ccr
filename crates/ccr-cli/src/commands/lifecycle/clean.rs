@@ -9,7 +9,7 @@ use ccr_core::core::error::{CcrError, Result};
 use ccr_core::core::logging::ColorOutput;
 use std::fs;
 use std::path::{Path, PathBuf};
-use walkdir::WalkDir;
+use std::time::{Duration, Instant};
 
 const PLANFILES_TARGETS: [&str; 3] = ["task_plan.md", "findings.md", "progress.md"];
 
@@ -58,12 +58,22 @@ struct PlanfileMatch {
 struct PlanfilesCleanResult {
     matches: Vec<PlanfileMatch>,
     total_size: u64,
+    stats: PlanfilesScanStats,
 }
 
 impl PlanfilesCleanResult {
     fn matched_count(&self) -> usize {
         self.matches.len()
     }
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+struct PlanfilesScanStats {
+    visited_dirs: usize,
+    candidate_checks: usize,
+    candidate_elapsed: Duration,
+    traversal_elapsed: Duration,
+    scan_elapsed: Duration,
 }
 
 /// 🧹 交互式清理入口
@@ -238,6 +248,16 @@ pub async fn clean_planfiles_command(dry_run: bool, force: bool) -> Result<()> {
     }
 
     let result = scan_planfiles(&current_dir)?;
+    tracing::info!(
+        matched = result.matched_count(),
+        total_size = result.total_size,
+        visited_dirs = result.stats.visited_dirs,
+        candidate_checks = result.stats.candidate_checks,
+        candidate_ms = result.stats.candidate_elapsed.as_millis(),
+        traversal_ms = result.stats.traversal_elapsed.as_millis(),
+        scan_ms = result.stats.scan_elapsed.as_millis(),
+        "规划文件扫描完成"
+    );
     if result.matched_count() == 0 {
         ColorOutput::success("✓ 没有找到需要清理的规划文件");
         tracing::info!("当前目录下没有规划文件");
@@ -249,6 +269,7 @@ pub async fn clean_planfiles_command(dry_run: bool, force: bool) -> Result<()> {
     println!();
 
     ColorOutput::step("命中文件");
+    let hit_processing_started = Instant::now();
     for entry in &result.matches {
         // 1.1 输出命中路径，便于 dry-run 和确认前核对
         ColorOutput::info(&format!(
@@ -256,6 +277,11 @@ pub async fn clean_planfiles_command(dry_run: bool, force: bool) -> Result<()> {
             display_match_path(&current_dir, &entry.path)
         ));
     }
+    tracing::debug!(
+        matched = result.matched_count(),
+        hit_processing_ms = hit_processing_started.elapsed().as_millis(),
+        "规划文件命中处理完成"
+    );
 
     println!();
     ColorOutput::info(&format!("命中数量: {} 个", result.matched_count()));
@@ -313,7 +339,13 @@ pub async fn clean_planfiles_command(dry_run: bool, force: bool) -> Result<()> {
     };
     ColorOutput::step(status_msg);
 
+    let delete_started = Instant::now();
     delete_planfiles(&result)?;
+    tracing::info!(
+        deleted_count = result.matched_count(),
+        delete_ms = delete_started.elapsed().as_millis(),
+        "规划文件删除完成"
+    );
 
     println!();
     ColorOutput::separator();
@@ -462,34 +494,76 @@ fn parse_yes_no_answer(input: &str, default_yes: bool) -> bool {
 }
 
 fn scan_planfiles(root: &Path) -> Result<PlanfilesCleanResult> {
+    let scan_started = Instant::now();
     let mut matches = Vec::new();
     let mut total_size = 0_u64;
+    let mut stats = PlanfilesScanStats::default();
+    let mut pending_dirs = vec![root.to_path_buf()];
 
-    // 1.1 默认不跟随符号链接，避免跨目录误删
-    for entry in WalkDir::new(root).follow_links(false) {
-        let entry = entry.map_err(|e| CcrError::FileIoError(format!("递归扫描目录失败: {}", e)))?;
-        if !entry.file_type().is_file() || !is_planfile_target(entry.path()) {
-            continue;
+    while let Some(dir) = pending_dirs.pop() {
+        stats.visited_dirs += 1;
+
+        for target in PLANFILES_TARGETS {
+            stats.candidate_checks += 1;
+            let candidate_started = Instant::now();
+            let candidate = dir.join(target);
+
+            if let Some(planfile_match) = read_planfile_candidate(candidate)? {
+                total_size += planfile_match.size;
+                matches.push(planfile_match);
+            }
+
+            stats.candidate_elapsed += candidate_started.elapsed();
         }
 
-        // 1.2 读取文件大小，后续直接复用统计结果
-        let metadata = entry
-            .metadata()
-            .map_err(|e| CcrError::FileIoError(format!("读取文件元数据失败: {}", e)))?;
-        let size = metadata.len();
+        let traversal_started = Instant::now();
+        let entries = fs::read_dir(&dir)
+            .map_err(|e| CcrError::FileIoError(format!("递归扫描目录失败: {}", e)))?;
 
-        total_size += size;
-        matches.push(PlanfileMatch {
-            path: entry.path().to_path_buf(),
-            size,
-        });
+        for entry in entries {
+            let entry =
+                entry.map_err(|e| CcrError::FileIoError(format!("递归扫描目录失败: {}", e)))?;
+            let file_type = entry
+                .file_type()
+                .map_err(|e| CcrError::FileIoError(format!("读取文件类型失败: {}", e)))?;
+
+            // 默认不跟随符号链接目录，避免跨目录误删。
+            if file_type.is_dir() {
+                pending_dirs.push(entry.path());
+            }
+        }
+        stats.traversal_elapsed += traversal_started.elapsed();
     }
 
     matches.sort_by(|left, right| left.path.cmp(&right.path));
+    stats.scan_elapsed = scan_started.elapsed();
     Ok(PlanfilesCleanResult {
         matches,
         total_size,
+        stats,
     })
+}
+
+fn read_planfile_candidate(path: PathBuf) -> Result<Option<PlanfileMatch>> {
+    let metadata = match fs::symlink_metadata(&path) {
+        Ok(metadata) => metadata,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(None),
+        Err(error) => {
+            return Err(CcrError::FileIoError(format!(
+                "读取文件元数据失败: {}",
+                error
+            )));
+        }
+    };
+
+    if !metadata.file_type().is_file() {
+        return Ok(None);
+    }
+
+    Ok(Some(PlanfileMatch {
+        path,
+        size: metadata.len(),
+    }))
 }
 
 fn delete_planfiles(result: &PlanfilesCleanResult) -> Result<()> {
@@ -502,6 +576,7 @@ fn delete_planfiles(result: &PlanfilesCleanResult) -> Result<()> {
     Ok(())
 }
 
+#[cfg(test)]
 fn is_planfile_target(path: &Path) -> bool {
     path.file_name()
         .and_then(|value| value.to_str())
@@ -546,6 +621,71 @@ mod tests {
                 .collect::<Vec<_>>(),
             vec!["findings.md", "progress.md", "task_plan.md"]
         );
+        assert_eq!(result.stats.candidate_checks, result.stats.visited_dirs * 3);
+    }
+
+    #[test]
+    fn scan_planfiles_matches_legacy_full_walk_for_hidden_and_ignored_dirs() {
+        let temp_dir = tempdir().unwrap();
+        let hidden = temp_dir.path().join(".hidden");
+        let ignored = temp_dir.path().join("ignored");
+        let nested = temp_dir.path().join("nested");
+        fs::create_dir_all(&hidden).unwrap();
+        fs::create_dir_all(&ignored).unwrap();
+        fs::create_dir_all(&nested).unwrap();
+
+        fs::write(temp_dir.path().join(".gitignore"), "ignored/\n").unwrap();
+        fs::write(hidden.join("task_plan.md"), "hidden task").unwrap();
+        fs::write(ignored.join("findings.md"), "ignored findings").unwrap();
+        fs::write(nested.join("progress.md"), "nested progress").unwrap();
+        fs::write(ignored.join("README.md"), "keep").unwrap();
+
+        let result = scan_planfiles(temp_dir.path()).unwrap();
+        let actual_paths = result
+            .matches
+            .iter()
+            .map(|entry| entry.path.clone())
+            .collect::<Vec<_>>();
+        let legacy_paths = legacy_full_walk_planfile_paths(temp_dir.path());
+
+        assert_eq!(actual_paths, legacy_paths);
+        assert_eq!(result.matched_count(), 3);
+    }
+
+    #[test]
+    fn scan_planfiles_large_tree_smoke_finds_targets_without_timing_contract() {
+        let temp_dir = tempdir().unwrap();
+
+        for dir_index in 0..40 {
+            let dir = temp_dir.path().join(format!("dir-{dir_index:02}"));
+            fs::create_dir_all(&dir).unwrap();
+
+            for file_index in 0..15 {
+                fs::write(
+                    dir.join(format!("ordinary-{file_index:02}.md")),
+                    "ordinary file",
+                )
+                .unwrap();
+            }
+        }
+
+        fs::write(temp_dir.path().join("dir-03").join("task_plan.md"), "task").unwrap();
+        fs::write(
+            temp_dir.path().join("dir-17").join("findings.md"),
+            "findings",
+        )
+        .unwrap();
+        fs::write(
+            temp_dir.path().join("dir-39").join("progress.md"),
+            "progress",
+        )
+        .unwrap();
+
+        let result = scan_planfiles(temp_dir.path()).unwrap();
+
+        assert_eq!(result.matched_count(), 3);
+        assert_eq!(result.stats.visited_dirs, 41);
+        assert_eq!(result.stats.candidate_checks, 123);
     }
 
     #[test]
@@ -723,5 +863,18 @@ mod tests {
 
         assert_eq!(result.matched_count(), 0);
         assert!(external_dir.path().join("task_plan.md").exists());
+    }
+
+    fn legacy_full_walk_planfile_paths(root: &Path) -> Vec<PathBuf> {
+        let mut paths = walkdir::WalkDir::new(root)
+            .follow_links(false)
+            .into_iter()
+            .map(|entry| entry.unwrap())
+            .filter(|entry| entry.file_type().is_file() && is_planfile_target(entry.path()))
+            .map(|entry| entry.path().to_path_buf())
+            .collect::<Vec<_>>();
+
+        paths.sort();
+        paths
     }
 }

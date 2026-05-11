@@ -123,6 +123,35 @@ fn clean_planfiles_yes_removes_only_target_files() {
     assert!(nested.join("notes.md").exists());
 }
 
+#[test]
+fn clean_planfiles_dry_run_includes_hidden_and_ignored_dirs() {
+    let temp_dir = tempfile::tempdir().unwrap();
+    let home_dir = tempfile::tempdir().unwrap();
+    let hidden = temp_dir.path().join(".hidden");
+    let ignored = temp_dir.path().join("ignored");
+
+    write_file(&temp_dir.path().join(".gitignore"), "ignored/\n");
+    write_file(&hidden.join("task_plan.md"), "hidden task");
+    write_file(&ignored.join("findings.md"), "ignored findings");
+
+    let output = run_clean(
+        &["clean", "planfiles", "--dry-run"],
+        temp_dir.path(),
+        home_dir.path(),
+    );
+    let stdout = String::from_utf8_lossy(&output.stdout);
+
+    assert!(
+        output.status.success(),
+        "stdout:\n{}\nstderr:\n{}",
+        stdout,
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert!(stdout.contains("命中数量: 2 个"));
+    assert!(hidden.join("task_plan.md").exists());
+    assert!(ignored.join("findings.md").exists());
+}
+
 #[cfg(unix)]
 #[test]
 fn clean_planfiles_dry_run_skips_symlink_directories() {
