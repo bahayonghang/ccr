@@ -11,6 +11,7 @@ use crate::state::{AppState, DesktopShellPreferences, TrayPanelManualPosition};
 #[cfg(target_os = "macos")]
 const SKILLPORT_BUNDLE_IDS: [&str; 2] =
     ["com.bahayonghang.skillport", "com.iamzhihuix.skillsmanage"];
+#[cfg(target_os = "windows")]
 const SKILLPORT_APP_NAMES: [&str; 2] = ["skillport", "skills-manage"];
 
 /// `skillport` 检测结果。
@@ -482,6 +483,7 @@ fn windows_candidate_paths_from_roots(
         .collect::<Vec<PathBuf>>()
 }
 
+#[cfg(target_os = "windows")]
 fn trim_wrapped_quotes(value: &str) -> &str {
     value.trim().trim_matches('"')
 }
@@ -490,6 +492,7 @@ fn trim_wrapped_quotes(value: &str) -> &str {
 mod tests {
     use super::*;
 
+    #[cfg(target_os = "windows")]
     #[test]
     fn trim_wrapped_quotes_removes_outer_quotes() {
         assert_eq!(
