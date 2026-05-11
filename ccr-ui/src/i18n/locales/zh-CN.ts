@@ -1599,6 +1599,10 @@ export default {
       import: '导入',
       importing: '导入中...',
       bootstrapping: '自动导入中...',
+      importJobBanner: {
+        recent: '最近数据已就绪，历史数据仍在后台补齐中。已扫描 {scanned}/{total} 个文件，累计导入 {records} 条记录。',
+        running: '正在后台导入 usage 数据。已扫描 {scanned}/{total} 个文件，累计导入 {records} 条记录；你可以继续切换页面。',
+      },
 
       tabs: {
         overview: '总览',

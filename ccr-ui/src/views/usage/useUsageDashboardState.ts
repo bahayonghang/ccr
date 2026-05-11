@@ -14,6 +14,24 @@ import {
 
 type UsageSummaryCardTone = 'rose' | 'violet' | 'sky' | 'amber'
 
+/**
+ * ApexCharts formatter callback 上下文。
+ *
+ * ApexCharts 自带 `ApexTooltip` / `ApexDataLabels` type 把第二个参数 `opts` 标成 `any`，
+ * 等于让所有调用方手写 `any`。这里收口为最小可用形态——只列我们实际访问的字段，
+ * 让 TypeScript 在 build 期发现错字 / 调错 API；对其余字段的访问保持 fail-fast。
+ *
+ * 字段都是 optional：donut 图没有 `dataPointIndex`，bar 图也不一定有 `globals.seriesTotals`，
+ * 调用方按需 narrow。
+ */
+interface ApexFormatterContext {
+  dataPointIndex?: number
+  seriesIndex?: number
+  globals?: {
+    seriesTotals?: number[]
+  }
+}
+
 type UsageSummaryCard = {
   id: string
   label: string
@@ -250,7 +268,7 @@ export const useUsageDashboardState = () => {
   }
 
   const loadLogs = async (direction: 'reset' | 'next' | 'prev' | 'same' = 'reset') => {
-    store.logsModelFilter = logModelFilter.value || undefined
+    store.setLogsModelFilter(logModelFilter.value || undefined)
     await store.fetchLogs(direction)
   }
 
@@ -580,9 +598,8 @@ export const useUsageDashboardState = () => {
       shared: true,
       intersect: false,
       x: {
-        // ApexCharts 会把第二个参数作为上下文对象传入，这里只取数据点索引。
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        formatter: (_value: string, context: any) => {
+        // ApexCharts 把 formatter 的 context 类型标成 any，这里收口到本地 ApexFormatterContext。
+        formatter: (_value: string, context: ApexFormatterContext) => {
           const bucket = trendBuckets.value[context?.dataPointIndex ?? -1]
           if (!bucket) return _value
           return formatTrendTooltipLabel(
@@ -688,10 +705,12 @@ export const useUsageDashboardState = () => {
               label: t('usage.dashboard.cards.totalCost'),
               fontSize: '10px',
               color: chartTheme.value.textMuted,
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              formatter: (context: any) =>
+              formatter: (context: ApexFormatterContext) =>
                 formatCost(
-                  context.globals.seriesTotals.reduce((sum: number, item: number) => sum + item, 0)
+                  (context.globals?.seriesTotals ?? []).reduce(
+                    (sum: number, item: number) => sum + item,
+                    0,
+                  ),
                 ),
             },
           },
@@ -928,17 +947,15 @@ export const useUsageDashboardState = () => {
     if (!job || !store.importing) return null
 
     const totalFiles = Math.max(job.files_total, job.files_scanned)
-    const isZh = locale.value.startsWith('zh')
-
-    if (job.status === 'recent_ready') {
-      return isZh
-        ? `最近数据已就绪，历史数据仍在后台补齐中。已扫描 ${job.files_scanned}/${totalFiles} 个文件，累计导入 ${job.records_imported.toLocaleString()} 条记录。`
-        : `Recent data is ready. Historical data is still backfilling in the background. Scanned ${job.files_scanned}/${totalFiles} files and imported ${job.records_imported.toLocaleString()} records so far.`
+    const params = {
+      scanned: job.files_scanned,
+      total: totalFiles,
+      records: job.records_imported.toLocaleString(),
     }
 
-    return isZh
-      ? `正在后台导入 usage 数据。已扫描 ${job.files_scanned}/${totalFiles} 个文件，累计导入 ${job.records_imported.toLocaleString()} 条记录；你可以继续切换页面。`
-      : `Usage import is running in the background. Scanned ${job.files_scanned}/${totalFiles} files and imported ${job.records_imported.toLocaleString()} records so far; you can keep navigating.`
+    return job.status === 'recent_ready'
+      ? t('usage.dashboard.importJobBanner.recent', params)
+      : t('usage.dashboard.importJobBanner.running', params)
   })
   const importJobWarnings = computed(() => store.currentImportJob?.warnings ?? [])
   const showEmptyState = computed(() => store.hasNoUsageData)

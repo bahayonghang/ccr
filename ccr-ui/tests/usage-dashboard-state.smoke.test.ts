@@ -45,6 +45,7 @@ const usageStore = reactive({
   startAutoRefresh: vi.fn(),
   stopAutoRefresh: vi.fn(),
   setFilters: vi.fn(),
+  setLogsModelFilter: vi.fn(),
   startImportJob: vi.fn(async () => undefined),
   triggerImport: vi.fn(async () => undefined),
   fetchLogs: vi.fn(),
@@ -208,6 +209,7 @@ beforeEach(() => {
   usageStore.startAutoRefresh.mockClear()
   usageStore.stopAutoRefresh.mockClear()
   usageStore.setFilters.mockClear()
+  usageStore.setLogsModelFilter.mockClear()
   usageStore.startImportJob.mockClear()
   usageStore.triggerImport.mockClear()
   usageStore.fetchLogs.mockClear()

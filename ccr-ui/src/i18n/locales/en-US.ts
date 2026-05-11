@@ -1580,6 +1580,10 @@ export default {
       import: 'Import',
       importing: 'Importing...',
       bootstrapping: 'Bootstrapping...',
+      importJobBanner: {
+        recent: 'Recent data is ready. Historical data is still backfilling in the background. Scanned {scanned}/{total} files and imported {records} records so far.',
+        running: 'Usage import is running in the background. Scanned {scanned}/{total} files and imported {records} records so far; you can keep navigating.',
+      },
       tabs: {
         overview: 'Overview',
         models: 'Models',
