@@ -8,12 +8,12 @@ use crate::cli::subcommands::profile_args::{
 use crate::commands::platform::{
     PlatformProfileCreateArgs, platform_profile_create_command, platform_profile_delete_command,
     platform_profile_disable_command, platform_profile_enable_command,
-    platform_profile_set_field_command,
+    platform_profile_set_field_command, print_status_card,
 };
 use crate::commands::profile::switch_command_for_platform;
 use crate::models::Platform;
 use crate::platforms::{ClaudePlatform, create_platform};
-use crate::services::{PlatformStatusCard, RuntimeOverviewService};
+use crate::services::RuntimeOverviewService;
 use ccr_core::core::error::Result;
 use ccr_core::core::logging::ColorOutput;
 use colored::Colorize;
@@ -219,72 +219,4 @@ pub async fn off_command(json: bool) -> Result<()> {
     }
 
     Ok(())
-}
-
-fn print_status_card(card: &PlatformStatusCard) {
-    let mut table = Table::new();
-    table
-        .load_preset(UTF8_FULL)
-        .set_content_arrangement(ContentArrangement::DynamicFullWidth)
-        .set_header(vec![
-            Cell::new(card.display_name.as_str())
-                .add_attribute(Attribute::Bold)
-                .fg(TableColor::Cyan),
-            Cell::new(render_health(card.health))
-                .add_attribute(Attribute::Bold)
-                .fg(health_color(card.health)),
-        ]);
-
-    table.add_row(vec![
-        Cell::new("Profile").fg(TableColor::Yellow),
-        Cell::new(card.profile.as_str())
-            .fg(TableColor::Green)
-            .add_attribute(Attribute::Bold),
-    ]);
-    if let Some(provider) = card.provider.as_deref().filter(|value| !value.is_empty()) {
-        table.add_row(vec![Cell::new("Provider"), Cell::new(provider)]);
-    }
-    if let Some(model) = card.model.as_deref().filter(|value| !value.is_empty()) {
-        table.add_row(vec![Cell::new("主模型"), Cell::new(model)]);
-    }
-    table.add_row(vec![
-        Cell::new("认证").fg(TableColor::Yellow),
-        Cell::new(card.auth.as_str()).fg(auth_color(card.auth_kind)),
-    ]);
-    table.add_row(vec![Cell::new("说明"), Cell::new(card.note.as_str())]);
-
-    println!("{table}");
-}
-
-fn render_health(health: crate::services::StatusHealth) -> &'static str {
-    match health {
-        crate::services::StatusHealth::Ready => "✓ 就绪",
-        crate::services::StatusHealth::NeedsLogin => "⚠ 需登录",
-        crate::services::StatusHealth::Invalid => "✗ 无效",
-        crate::services::StatusHealth::Unsupported => "○ 不支持",
-        crate::services::StatusHealth::Error => "✗ 错误",
-    }
-}
-
-fn health_color(health: crate::services::StatusHealth) -> TableColor {
-    match health {
-        crate::services::StatusHealth::Ready => TableColor::Green,
-        crate::services::StatusHealth::NeedsLogin => TableColor::Yellow,
-        crate::services::StatusHealth::Invalid | crate::services::StatusHealth::Error => {
-            TableColor::Red
-        }
-        crate::services::StatusHealth::Unsupported => TableColor::DarkGrey,
-    }
-}
-
-fn auth_color(kind: crate::services::StatusAuthKind) -> TableColor {
-    match kind {
-        crate::services::StatusAuthKind::OfficialAuth => TableColor::Green,
-        crate::services::StatusAuthKind::ThirdPartyApi
-        | crate::services::StatusAuthKind::ProviderKey => TableColor::Cyan,
-        crate::services::StatusAuthKind::NoAuth => TableColor::DarkGrey,
-        crate::services::StatusAuthKind::Missing | crate::services::StatusAuthKind::Unknown => {
-            TableColor::Yellow
-        }
-    }
 }

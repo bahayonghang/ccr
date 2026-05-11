@@ -16,6 +16,7 @@ mod info;
 mod init;
 mod list;
 mod profile;
+mod profile_card;
 mod switch;
 
 // 公共数据结构
@@ -30,6 +31,7 @@ pub use profile::{
     platform_profile_disable_command, platform_profile_enable_command,
     platform_profile_set_field_command,
 };
+pub use profile_card::print_status_card;
 pub use switch::platform_switch_command;
 
 // 内部类型（供子模块使用）
