@@ -131,6 +131,9 @@ fn main() {
 
             // 先注册 Local 环境，其他环境在异步初始化完成后写入 managed state。
             app.manage(app_state);
+            app.manage(std::sync::Arc::new(
+                ccr_cli::services::install_service::InstallService::new(),
+            ));
             desktop_shell::install_desktop_shell(app.handle()).map_err(std::io::Error::other)?;
 
             let tray_refresh_handle = app.handle().clone();

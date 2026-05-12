@@ -11,6 +11,7 @@ pub mod config;
 pub mod converter;
 pub mod environment;
 pub mod gemini;
+pub mod install;
 pub mod mcp_presets;
 pub mod opencode;
 pub mod pricing;
@@ -338,6 +339,15 @@ macro_rules! generate_handler_common {
         system::update_ccr,
         system::get_cli_version,
         system::get_cli_versions,
+        // —— llmusage 安装流程 ——
+        install::llmusage_install_detect,
+        install::llmusage_install_probe_capabilities,
+        install::llmusage_install_plan,
+        install::llmusage_install_execute,
+        install::llmusage_install_cancel,
+        install::llmusage_install_recent,
+        install::llmusage_install_manual_catalog,
+        install::llmusage_install_check,
         $($extra,)*
         ]
     };
