@@ -278,6 +278,12 @@
         </div>
       </template>
     </div>
+
+    <!-- llmusage Install Dialog -->
+    <LlmusageInstallDialog
+      v-model:is-open="showInstallDialog"
+      @retry-import="doImportAfterInstall"
+    />
   </div>
 </template>
 
@@ -285,6 +291,7 @@
 import { computed, defineAsyncComponent } from 'vue'
 import AsyncStatePanel from '@/components/ui/AsyncStatePanel.vue'
 import Button from '@/components/ui/Button.vue'
+import LlmusageInstallDialog from '@/components/usage/LlmusageInstallDialog.vue'
 import PageHeaderCard from '@/components/PageHeaderCard.vue'
 import SIcon from '@/components/ui/SIcon.vue'
 import UsageLogsTab from '@/components/usage/UsageLogsTab.vue'
@@ -304,6 +311,7 @@ const {
   dashboardReady,
   dashboardMetaItems,
   doImport,
+  doImportAfterInstall,
   emptyStateDescription,
   emptyStateTitle,
   formatCost,
@@ -334,6 +342,7 @@ const {
   shortenPath,
   shouldLoadCharts,
   showEmptyState,
+  showInstallDialog,
   store,
   trendSubtitle,
   summaryCards,

@@ -259,7 +259,32 @@ export const useUsageDashboardState = () => {
     }
   }
 
+  const showInstallDialog = ref(false)
+
   const doImport = async () => {
+    // Pre-check: is llmusage available?
+    try {
+      const { llmusageInstallDetect } = await import('@/api/domains/install')
+      const detection = await llmusageInstallDetect()
+      if (detection.status === 'absent') {
+        // Show install dialog instead of starting import
+        showInstallDialog.value = true
+        return
+      }
+    } catch {
+      // If the check itself fails (e.g. command not registered), proceed with import
+      // and let the existing error handling surface the issue.
+    }
+
+    await store.startImportJob({
+      platform: undefined,
+      reason: 'manual',
+      recentDays: selectedDays.value,
+    })
+  }
+
+  const doImportAfterInstall = async () => {
+    showInstallDialog.value = false
     await store.startImportJob({
       platform: undefined,
       reason: 'manual',
@@ -1024,6 +1049,7 @@ export const useUsageDashboardState = () => {
     dashboardReady,
     dashboardMetaItems,
     doImport,
+    doImportAfterInstall,
     emptyStateDescription,
     emptyStateTitle,
     formatCost,
@@ -1055,6 +1081,7 @@ export const useUsageDashboardState = () => {
     shortenPath,
     shouldLoadCharts,
     showEmptyState,
+    showInstallDialog,
     store,
     trendSubtitle,
     summaryCards,
