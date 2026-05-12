@@ -426,6 +426,7 @@ dependencies = [
  "fs4",
  "futures",
  "indexmap",
+ "libc",
  "once_cell",
  "rayon",
  "reqwest",
@@ -437,6 +438,7 @@ dependencies = [
  "tempfile",
  "thiserror 2.0.18",
  "tokio",
+ "tokio-util",
  "toml",
  "tracing",
  "tracing-appender",
@@ -3449,6 +3451,7 @@ dependencies = [
  "bytes",
  "futures-core",
  "futures-sink",
+ "futures-util",
  "pin-project-lite",
  "tokio",
 ]
