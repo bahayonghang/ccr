@@ -13,6 +13,13 @@ pub mod config_service;
 pub mod doctor_service;
 pub mod health_check;
 pub mod history_service;
+pub mod install_catalog;
+pub mod install_detect;
+pub mod install_exec;
+pub mod install_plan;
+pub mod install_ring_buffer;
+pub mod install_service;
+pub mod install_types;
 pub mod multi_backup_service;
 pub mod runtime_overview_service;
 pub mod settings_service;
@@ -67,3 +74,12 @@ pub use sync_service::SyncService;
 pub use ui_service::UiService;
 #[allow(unused_imports)]
 pub use validate_service::ValidateService;
+
+// Install flow (llmusage detection + guided install)
+#[allow(unused_imports)]
+pub use install_service::InstallService;
+#[allow(unused_imports)]
+pub use install_types::{
+    AttemptId, CancelResult, DetectionResult, HostCapabilities, InstallEvent, InstallFlowError,
+    InstallPlan, ManualCatalog, PlanOutcome, RingBufferSnapshot,
+};
