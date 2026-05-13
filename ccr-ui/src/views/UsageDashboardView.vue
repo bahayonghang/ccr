@@ -146,11 +146,20 @@
         <AsyncStatePanel
           v-else-if="store.error"
           state="error"
-          title="Unable to load usage data"
+          :title="$t('usage.states.loadFailed')"
           :description="store.error"
-          action-label="Retry"
+          :action-label="$t('common.retry')"
           action-icon="RefreshCw"
           @action="onFilterChange"
+        />
+
+        <AsyncStatePanel
+          v-else-if="store.dashboardUnsupported"
+          state="empty"
+          :title="unsupportedStateTitle"
+          :description="unsupportedStateDescription"
+          icon="Database"
+          compact
         />
 
         <AsyncStatePanel
@@ -181,11 +190,11 @@
           </div>
 
           <div
-            v-if="warningMessage"
+            v-if="unsupportedSyncMessage || warningMessage"
             class="usage-warning"
           >
             <div class="font-medium">
-              {{ warningMessage }}
+              {{ unsupportedSyncMessage || warningMessage }}
             </div>
             <div
               v-for="detail in importDetails"
@@ -355,6 +364,9 @@ const {
   distributionSubtitle,
   modelDistribution,
   updateLogModelFilter,
+  unsupportedStateDescription,
+  unsupportedStateTitle,
+  unsupportedSyncMessage,
   warningMessage,
 } = useUsageDashboardState()
 

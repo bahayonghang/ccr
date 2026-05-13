@@ -35,7 +35,7 @@ const mountLogsTab = async (repairRecommended = false) => {
             input_tokens: 120,
             output_tokens: 24,
             cache_read_tokens: 0,
-            cost_usd: 0,
+            cost_with_cache_usd: 0,
           },
         ],
         logsPage: 1,

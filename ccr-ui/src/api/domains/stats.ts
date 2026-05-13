@@ -30,6 +30,11 @@ export const getHeatmapData = async <T = UnknownRecord>(
 // ── V2 Usage ──
 
 /** V2: 获取使用量汇总 */
+export const getUsageCapabilitiesV2 = async <T = UnknownRecord>(): Promise<T> => {
+  return invoke('get_usage_capabilities_v2')
+}
+
+/** V2: 获取使用量汇总 */
 export const getUsageSummaryV2 = async <T = UnknownRecord>(
   platform?: string,
   startDate?: string,

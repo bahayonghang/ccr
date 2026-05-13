@@ -1571,6 +1571,82 @@ export default {
     },
 
     // Dashboard V2
+
+    unsupported: {
+      cli_missing: {
+        title: 'llmusage command not found',
+        description: 'Usage import requires the llmusage CLI to be installed and available on PATH. Install it, then import again or refresh this page.',
+      },
+      db_missing: {
+        title: 'Waiting for the llmusage database',
+        description: 'No llmusage database was found yet. Run llmusage sync, or start an import from this page before viewing usage stats.',
+      },
+      db_unreadable: {
+        title: 'Cannot read the llmusage database',
+        description: 'CCR UI only opens the llmusage database read-only. Check that the database path exists and is readable by the current user.',
+      },
+      schema_unsupported: {
+        title: 'Unsupported llmusage database schema',
+        description: 'The current llmusage database schema is older than the minimum version CCR UI supports. Upgrade llmusage and sync again.',
+      },
+      missing_table: {
+        title: 'llmusage table missing',
+        description: 'The current llmusage database does not expose a table required by this view yet. Upgrade or resync llmusage.',
+      },
+      missing_column: {
+        title: 'llmusage column missing',
+        description: 'The current llmusage database does not expose a field required by this view yet. Upgrade or resync llmusage.',
+      },
+      waiting_for_llmusage: {
+        title: 'Waiting for llmusage support',
+        description: 'This feature needs a stable llmusage CLI or database contract. CCR UI keeps the entry visible but will not fabricate data.',
+      },
+    },
+
+    install: {
+      dialog: {
+        title: 'llmusage Not Installed',
+        detecting: 'Detecting llmusage installation status...',
+        description: 'llmusage is the core dependency for CCR usage analytics. It parses and aggregates token usage data from each AI platform (Claude Code, Codex, Gemini, OpenCode).',
+        detectedAbsent: 'llmusage was not found on this system, so import cannot proceed. Choose how to install it:',
+        detectedPlatform: 'Detected platform:',
+        recommend: 'Recommended:',
+        autoInstall: '🚀 Auto Install',
+        manualInstall: '📋 Manual Install',
+        unsupportedPM: 'No supported package manager detected — please install manually.',
+        installing: 'Installing llmusage...',
+        cancel: 'Cancel',
+        waitingOutput: 'Waiting for output...',
+        succeeded: 'llmusage installed successfully!',
+        succeededVersionDuration: 'Version: {version} · Took: {duration}',
+        succeededHint: 'Auto retrying import...',
+        failed: 'Installation failed',
+        cancelled: 'Installation cancelled',
+        back: 'Back',
+        retry: 'Retry',
+        recheck: '🔍 Re-check',
+        rechecking: 'Checking...',
+        manualIntro: 'Run one of the following commands in your terminal to install llmusage:',
+        docsLabel: '📖 Docs:',
+        copy: 'Copy',
+        copied: 'Copied ✓',
+        platformUnknown: 'Unknown',
+        versionUnknown: 'unknown',
+        stage: {
+          resolving: 'Resolving dependencies...',
+          downloading: 'Downloading...',
+          compiling: 'Compiling...',
+          installing: 'Installing...',
+          finalizing: 'Finalizing...',
+        },
+        duration: {
+          ms: '{n}ms',
+          seconds: '{n}s',
+          minutes: '{m}m {s}s',
+        },
+      },
+    },
+
     dashboard: {
       allPlatforms: 'All Platforms',
       days7: '7 Days',

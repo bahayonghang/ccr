@@ -19,6 +19,7 @@ import type {
   Platform,
   ProjectStat,
   StartUsageImportJobResponse,
+  UsageCapabilityReport,
   UsageDashboardResponse,
   UsageImportJobSnapshot,
   UsageImportSummary,
@@ -29,6 +30,7 @@ import {
   getUsageImportJobStatusV2,
   getUsageByModelV2,
   getUsageByProjectV2,
+  getUsageCapabilitiesV2,
   getUsageDashboardV2,
   getUsageHeatmapV2,
   getUsageLogsV2,
@@ -148,6 +150,7 @@ export const useUsageStore = defineStore('usage', () => {
   const heatmap = ref<HeatmapResponse | null>(null)
   const logs = ref<PaginatedLogs | null>(null)
   const archive = ref<UsageArchiveDiagnostics | null>(null)
+  const usageCapabilities = ref<UsageCapabilityReport | null>(null)
 
   const loading = ref(true)
   const logsLoading = ref(false)
@@ -212,6 +215,12 @@ export const useUsageStore = defineStore('usage', () => {
 
   const hasUsageData = computed(() => (summary.value?.total_requests ?? 0) > 0)
   const hasNoUsageData = computed(() => !loading.value && !error.value && !hasUsageData.value)
+  const dashboardCapability = computed(() => usageCapabilities.value?.features.overview ?? null)
+  const syncCapability = computed(() => usageCapabilities.value?.features.sync_json_events ?? null)
+  const dashboardUnsupported = computed(() => {
+    const capability = dashboardCapability.value
+    return Boolean(capability && !capability.supported)
+  })
 
   const buildFetchKey = (includeHeatmap: boolean) =>
     [
@@ -232,6 +241,29 @@ export const useUsageStore = defineStore('usage', () => {
     if (includeHeatmap && data.heatmap) {
       heatmap.value = data.heatmap
     }
+  }
+
+  const clearDashboardPayload = () => {
+    summary.value = null
+    trends.value = []
+    modelStats.value = []
+    projectStats.value = []
+    heatmap.value = null
+    logs.value = null
+    archive.value = null
+  }
+
+  const refreshUsageCapabilities = async (force = false) => {
+    if (!isTauriRuntime()) return usageCapabilities.value
+    if (!force && usageCapabilities.value) return usageCapabilities.value
+
+    try {
+      usageCapabilities.value = await getUsageCapabilitiesV2<UsageCapabilityReport>()
+    } catch (capabilityError) {
+      logger.error('[usage] failed to load llmusage capabilities', capabilityError)
+    }
+
+    return usageCapabilities.value
   }
 
   const applyFilters = (opts: { platform?: Platform; start?: string; end?: string }) => {
@@ -507,6 +539,21 @@ export const useUsageStore = defineStore('usage', () => {
     const promise = (async () => {
       try {
         let requestCount = 0
+        const capabilities = await refreshUsageCapabilities(force)
+        const overviewCapability = capabilities?.features.overview
+
+        if (overviewCapability && !overviewCapability.supported) {
+          clearDashboardPayload()
+          dashboardCache.delete(key)
+          if (!preserveError) {
+            error.value = null
+          }
+          lastUpdated.value = new Date()
+          recordPerfMetric('usage_dashboard_unsupported', 1, {
+            reason: overviewCapability.reason ?? 'unknown',
+          })
+          return
+        }
 
         if (USE_DASHBOARD_API) {
           requestCount = 1
@@ -596,7 +643,10 @@ export const useUsageStore = defineStore('usage', () => {
         logsCursorStack.value = [null]
       } else if (direction === 'next') {
         if (!logs.value?.next_cursor) return
-        logsCursorStack.value[targetPage] = logs.value.next_cursor
+        // next_cursor 类型为 string | null | undefined；写 undefined 进 stack 后
+        // prev 翻页取出会变成 undefined，进 getUsageLogsV2 时与 null 行为不一致，
+        // 导致分页错位。这里强制规范化为 null，与 stack 元素类型对齐。
+        logsCursorStack.value[targetPage] = logs.value.next_cursor ?? null
         targetPage += 1
       } else if (direction === 'prev') {
         targetPage = Math.max(1, targetPage - 1)
@@ -707,8 +757,9 @@ export const useUsageStore = defineStore('usage', () => {
           failure_count: 1,
           imported_records: 0,
           processed_files: 0,
-            has_partial: true,
-          },
+          // 全失败时只有一条失败结果，没有"部分成功"的语义；改成 false 与 build_import_summary 对齐。
+          has_partial: false,
+        },
       })
 
       lastImportSummary.value = fallback.summary
@@ -761,6 +812,10 @@ export const useUsageStore = defineStore('usage', () => {
     applyFilters(opts)
     await fetchAll({ includeHeatmap: !LAZY_HEATMAP_LOAD, reason: 'initialize' })
 
+    if (dashboardUnsupported.value) {
+      return
+    }
+
     if ((summary.value?.total_requests ?? 0) > 0) {
       return
     }
@@ -770,6 +825,12 @@ export const useUsageStore = defineStore('usage', () => {
     }
 
     bootstrapAttempted.value = true
+
+    const sync = syncCapability.value
+    if (sync && !sync.supported) {
+      return
+    }
+
     await startImportJob({
       platform: undefined,
       reason: 'bootstrap',
@@ -865,6 +926,7 @@ export const useUsageStore = defineStore('usage', () => {
     heatmap,
     logs,
     archive,
+    usageCapabilities,
     loading,
     logsLoading,
     error,
@@ -890,11 +952,15 @@ export const useUsageStore = defineStore('usage', () => {
     showLogsPager,
     hasUsageData,
     hasNoUsageData,
+    dashboardCapability,
+    syncCapability,
+    dashboardUnsupported,
     // flags
     useDashboardApi: USE_DASHBOARD_API,
     // actions
     initializeDashboard,
     fetchAll,
+    refreshUsageCapabilities,
     fetchHeatmap,
     fetchLogs,
     nextLogsPage,

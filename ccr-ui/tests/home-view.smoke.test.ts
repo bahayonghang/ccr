@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const apiMocks = vi.hoisted(() => ({
   getHomeUsageOverviewV2: vi.fn(),
+  getUsageCapabilitiesV2: vi.fn(),
   ensureSessionIndexV2: vi.fn(),
   getSessionIndexJobStatusV2: vi.fn(),
   getUsageImportJobStatusV2: vi.fn(),
@@ -171,6 +172,20 @@ const createOverview = (overrides?: {
   last_updated: '2026-04-29T09:00:00Z',
 })
 
+const createSupportedCapabilities = () => ({
+  cli_available: true,
+  cli_version: 'llmusage 0.0.0-test',
+  root_dir: 'C:/Users/test/.llmusage',
+  db_path: 'C:/Users/test/.llmusage/llmusage.db',
+  db_exists: true,
+  db_readable: true,
+  schema_version: 10,
+  features: {
+    home_overview: { supported: true, reason: null, detail: null },
+    sync_json_events: { supported: true, reason: null, detail: null },
+  },
+})
+
 const flushPromises = async () => {
   await Promise.resolve()
   await Promise.resolve()
@@ -234,6 +249,7 @@ beforeEach(() => {
     },
   ]
   apiMocks.getHomeUsageOverviewV2.mockResolvedValue(createOverview())
+  apiMocks.getUsageCapabilitiesV2.mockResolvedValue(createSupportedCapabilities())
 })
 
 afterEach(() => {

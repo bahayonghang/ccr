@@ -148,7 +148,7 @@
             {{ formatTokens(record.output_tokens) }}
           </div>
           <div class="diagnostics-tab__cell is-right">
-            {{ formatCost(record.cost_usd) }}
+            {{ formatCost(record.cost_with_cache_usd) }}
           </div>
         </div>
       </div>

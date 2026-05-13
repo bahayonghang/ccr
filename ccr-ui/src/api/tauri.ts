@@ -529,6 +529,7 @@ export {
   getUsageHeatmapV2,
   getUsageLogsV2,
   getUsageDashboardV2,
+  getUsageCapabilitiesV2,
   startUsageImportJobV2,
   ensureSessionIndexV2,
   getSessionIndexJobStatusV2,

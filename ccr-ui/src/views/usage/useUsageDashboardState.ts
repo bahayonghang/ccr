@@ -2,7 +2,7 @@ import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useUsageStore } from '@/stores/usage'
 import { ensureLocaleLoaded } from '@/i18n'
-import type { ModelStat, Platform } from '@/types/usage'
+import type { ModelStat, Platform, UsageFeatureCapability, UsageUnsupportedReason } from '@/types/usage'
 import { isTauriRuntime } from '@/utils/tauriRuntime'
 import {
   aggregateDailyTrends,
@@ -102,6 +102,22 @@ const shortenPath = (path: string) => {
 const formatArchiveTimestamp = (value: string | null | undefined, locale: string) => {
   if (!value) return '—'
   return formatDateTime(value, locale)
+}
+
+const normalizeUnsupportedReason = (reason: UsageUnsupportedReason | null | undefined) => {
+  if (
+    reason === 'cli_missing' ||
+    reason === 'db_missing' ||
+    reason === 'db_unreadable' ||
+    reason === 'schema_unsupported' ||
+    reason === 'missing_table' ||
+    reason === 'missing_column' ||
+    reason === 'waiting_for_llmusage'
+  ) {
+    return reason
+  }
+
+  return 'waiting_for_llmusage'
 }
 
 export const formatLocalDate = (date: Date) => {
@@ -960,6 +976,65 @@ export const useUsageDashboardState = () => {
     return t('usage.dashboard.import')
   })
 
+  const dashboardUnsupportedCapability = computed<UsageFeatureCapability | null>(() => {
+    const capability = store.dashboardCapability
+    if (!capability || capability.supported) return null
+    return capability
+  })
+
+  const syncUnsupportedCapability = computed<UsageFeatureCapability | null>(() => {
+    const capability = store.syncCapability
+    if (!capability || capability.supported) return null
+    return capability
+  })
+
+  const unsupportedStateTitle = computed(() => {
+    const reason = normalizeUnsupportedReason(dashboardUnsupportedCapability.value?.reason)
+    return translateDashboardText(
+      `usage.unsupported.${reason}.title`,
+      undefined,
+      translateDashboardText(
+        'usage.unsupported.waiting_for_llmusage.title',
+        undefined,
+        'Waiting for llmusage support'
+      )
+    )
+  })
+
+  const unsupportedStateDescription = computed(() => {
+    const capability = dashboardUnsupportedCapability.value
+    const reason = normalizeUnsupportedReason(capability?.reason)
+    const translated = translateDashboardText(
+      `usage.unsupported.${reason}.description`,
+      undefined,
+      translateDashboardText(
+        'usage.unsupported.waiting_for_llmusage.description',
+        undefined,
+        'The installed llmusage runtime does not expose this usage view yet.'
+      )
+    )
+
+    return capability?.detail ? `${translated} ${capability.detail}` : translated
+  })
+
+  const unsupportedSyncMessage = computed(() => {
+    const capability = syncUnsupportedCapability.value
+    if (!capability) return null
+
+    const reason = normalizeUnsupportedReason(capability.reason)
+    const translated = translateDashboardText(
+      `usage.unsupported.${reason}.description`,
+      undefined,
+      translateDashboardText(
+        'usage.unsupported.cli_missing.description',
+        undefined,
+        'Install llmusage and run a sync before usage data can be imported.'
+      )
+    )
+
+    return capability.detail ? `${translated} ${capability.detail}` : translated
+  })
+
   const importDetails = computed(() =>
     store.lastImportResults
       .filter((result) => result.error)
@@ -1058,6 +1133,9 @@ export const useUsageDashboardState = () => {
     importDetails,
     importJobBanner,
     importJobWarnings,
+    unsupportedStateDescription,
+    unsupportedStateTitle,
+    unsupportedSyncMessage,
     loadLogs,
     diagnosticsEmptyDetail,
     diagnosticsEmptyMessage,

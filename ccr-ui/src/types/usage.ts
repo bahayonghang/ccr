@@ -64,7 +64,6 @@ export interface UsageRecordV2 {
   // 后端 UsageRecordDto 全是 required（pricing_source 为 Option<String> -> string | null）。
   // 这些字段对齐后端契约，不再 optional；前端无需 ?? 0 / ?? '' 防御代码。
   cache_creation_tokens: number
-  cost_usd: number
   cost_with_cache_usd: number
   cost_without_cache_usd: number
   pricing_status: string
@@ -118,6 +117,32 @@ export interface UsageDashboardResponse {
   archive: UsageArchiveDiagnostics
   heatmap: HeatmapResponse
   generated_at: string
+}
+
+export type UsageUnsupportedReason =
+  | 'cli_missing'
+  | 'db_missing'
+  | 'db_unreadable'
+  | 'schema_unsupported'
+  | 'missing_table'
+  | 'missing_column'
+  | 'waiting_for_llmusage'
+
+export interface UsageFeatureCapability {
+  supported: boolean
+  reason?: UsageUnsupportedReason | null
+  detail?: string | null
+}
+
+export interface UsageCapabilityReport {
+  cli_available: boolean
+  cli_version?: string | null
+  root_dir: string
+  db_path: string
+  db_exists: boolean
+  db_readable: boolean
+  schema_version?: number | null
+  features: Record<string, UsageFeatureCapability>
 }
 
 /** 首页概览视图模式 */

@@ -20,6 +20,7 @@ vi.mock('@/utils/tauriRuntime', () => ({
 }))
 
 vi.mock('@/api', () => ({
+  getUsageCapabilitiesV2: vi.fn().mockResolvedValue(createSupportedCapabilities()),
   getUsageByModelV2: vi.fn().mockResolvedValue([]),
   getUsageByProjectV2: vi.fn().mockResolvedValue([]),
   getUsageDashboardV2: vi.fn().mockResolvedValue({
@@ -78,6 +79,20 @@ vi.mock('@/api', () => ({
   importUsageV2: vi.fn(),
   startUsageImportJobV2: vi.fn(),
 }))
+
+const createSupportedCapabilities = () => ({
+  cli_available: true,
+  cli_version: 'llmusage 0.0.0-test',
+  root_dir: 'C:/Users/test/.llmusage',
+  db_path: 'C:/Users/test/.llmusage/llmusage.db',
+  db_exists: true,
+  db_readable: true,
+  schema_version: 10,
+  features: {
+    overview: { supported: true, reason: null, detail: null },
+    sync_json_events: { supported: true, reason: null, detail: null },
+  },
+})
 
 const flushPromises = async () => {
   await Promise.resolve()

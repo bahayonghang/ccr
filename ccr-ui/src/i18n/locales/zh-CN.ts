@@ -1590,6 +1590,82 @@ export default {
     },
 
     // Dashboard V2
+
+    unsupported: {
+      cli_missing: {
+        title: '未找到 llmusage 命令',
+        description: '使用统计导入需要先安装并暴露 llmusage CLI；安装后请重新导入或刷新页面。',
+      },
+      db_missing: {
+        title: '等待 llmusage 数据库',
+        description: '尚未发现 llmusage 数据库。请先运行 llmusage sync，或在本页执行导入后再查看统计。',
+      },
+      db_unreadable: {
+        title: '无法读取 llmusage 数据库',
+        description: 'CCR UI 只会以只读方式打开 llmusage 数据库；请确认数据库路径存在且当前用户可读取。',
+      },
+      schema_unsupported: {
+        title: 'llmusage 数据库版本不兼容',
+        description: '当前 llmusage 数据库 schema 低于 CCR UI 支持的最低版本。请升级 llmusage 并重新同步数据。',
+      },
+      missing_table: {
+        title: 'llmusage 数据表缺失',
+        description: '当前 llmusage 数据库尚未提供此页面需要的数据表。请升级或重新同步 llmusage。',
+      },
+      missing_column: {
+        title: 'llmusage 数据列缺失',
+        description: '当前 llmusage 数据库尚未提供此页面需要的字段。请升级或重新同步 llmusage。',
+      },
+      waiting_for_llmusage: {
+        title: '等待 llmusage 支持',
+        description: '此功能需要 llmusage 暴露稳定的 CLI 或数据库契约；CCR UI 会保持入口可见，但不会伪造数据。',
+      },
+    },
+
+    install: {
+      dialog: {
+        title: 'llmusage 未安装',
+        detecting: '正在检测 llmusage 安装状态...',
+        description: 'llmusage 是 CCR 使用统计功能的核心依赖，用于解析和聚合各 AI 平台（Claude Code、Codex、Gemini、OpenCode）的 token 使用数据。',
+        detectedAbsent: '检测到当前系统未安装 llmusage，导入功能无法正常工作。请选择安装方式：',
+        detectedPlatform: '检测到平台：',
+        recommend: '推荐：',
+        autoInstall: '🚀 自动安装',
+        manualInstall: '📋 手动安装',
+        unsupportedPM: '未检测到可用的包管理器，请使用手动安装。',
+        installing: '正在安装 llmusage...',
+        cancel: '取消',
+        waitingOutput: '等待输出...',
+        succeeded: 'llmusage 安装成功！',
+        succeededVersionDuration: '版本：{version} · 耗时：{duration}',
+        succeededHint: '正在自动重试导入...',
+        failed: '安装失败',
+        cancelled: '安装已取消',
+        back: '返回',
+        retry: '重试',
+        recheck: '🔍 重新检测',
+        rechecking: '检测中...',
+        manualIntro: '请在终端中执行以下命令安装 llmusage：',
+        docsLabel: '📖 文档：',
+        copy: '复制',
+        copied: '已复制 ✓',
+        platformUnknown: '未知',
+        versionUnknown: '未知',
+        stage: {
+          resolving: '解析依赖...',
+          downloading: '下载中...',
+          compiling: '编译中...',
+          installing: '安装中...',
+          finalizing: '完成中...',
+        },
+        duration: {
+          ms: '{n}ms',
+          seconds: '{n}s',
+          minutes: '{m}m {s}s',
+        },
+      },
+    },
+
     dashboard: {
       allPlatforms: '全部平台',
       days7: '近 7 天',

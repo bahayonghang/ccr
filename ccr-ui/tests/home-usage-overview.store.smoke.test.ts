@@ -28,6 +28,7 @@ vi.mock('@/utils/logger', () => ({
 
 vi.mock('@/api', () => ({
   ensureSessionIndexV2: vi.fn(),
+  getUsageCapabilitiesV2: vi.fn(),
   getHomeUsageOverviewV2: vi.fn(),
   getSessionIndexJobStatusV2: vi.fn(),
   getUsageImportJobStatusV2: vi.fn(),
@@ -39,6 +40,20 @@ const flushPromises = async () => {
   await Promise.resolve()
   await Promise.resolve()
 }
+
+const createSupportedCapabilities = () => ({
+  cli_available: true,
+  cli_version: 'llmusage 0.0.0-test',
+  root_dir: 'C:/Users/test/.llmusage',
+  db_path: 'C:/Users/test/.llmusage/llmusage.db',
+  db_exists: true,
+  db_readable: true,
+  schema_version: 10,
+  features: {
+    home_overview: { supported: true, reason: null, detail: null },
+    sync_json_events: { supported: true, reason: null, detail: null },
+  },
+})
 
 const createOverview = (bootstrap?: Partial<{
   usage_job_id: string | null
@@ -91,12 +106,15 @@ const createOverview = (bootstrap?: Partial<{
 })
 
 describe('home usage overview store smoke', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     setActivePinia(createPinia())
     eventListeners.clear()
     listenMock.mockClear()
     tauriRuntimeMock.mockReturnValue(true)
     vi.useRealTimers()
+
+    const api = await import('@/api')
+    vi.mocked(api.getUsageCapabilitiesV2).mockResolvedValue(createSupportedCapabilities())
   })
 
   afterEach(async () => {

@@ -3,6 +3,7 @@ import { ref } from 'vue'
 import { listen, type UnlistenFn } from '@tauri-apps/api/event'
 import {
   ensureSessionIndexV2,
+  getUsageCapabilitiesV2,
   getHomeUsageOverviewV2,
   getSessionIndexJobStatusV2,
   getUsageImportJobStatusV2,
@@ -12,6 +13,7 @@ import { logger } from '@/utils/logger'
 import { isTauriRuntime } from '@/utils/tauriRuntime'
 import type {
   HomeUsageOverviewResponse,
+  UsageCapabilityReport,
   SessionIndexJobSnapshot,
   StartSessionIndexJobResponse,
   StartUsageImportJobResponse,
@@ -36,6 +38,7 @@ export const useHomeUsageOverviewStore = defineStore('homeUsageOverview', () => 
   const lastSessionWarmupIndexed = ref(0)
   const currentUsageJob = ref<UsageImportJobSnapshot | null>(null)
   const currentSessionJob = ref<SessionIndexJobSnapshot | null>(null)
+  const usageCapabilities = ref<UsageCapabilityReport | null>(null)
 
   const overviewCache = new Map<number, { data: HomeUsageOverviewResponse; ts: number }>()
 
@@ -189,6 +192,13 @@ export const useHomeUsageOverviewStore = defineStore('homeUsageOverview', () => 
   const maybeWarmOverview = async (data: HomeUsageOverviewResponse, days: number) => {
     if (!isTauriRuntime()) return
 
+    if (usageCapabilities.value) {
+      const overviewCap = usageCapabilities.value.features.home_overview
+      const syncCap = usageCapabilities.value.features.sync_json_events
+      if (overviewCap && !overviewCap.supported) return
+      if (syncCap && !syncCap.supported && data.bootstrap.needs_usage_import) return
+    }
+
     if (data.bootstrap.is_warm) {
       clearRetryProbe()
       return
@@ -265,6 +275,9 @@ export const useHomeUsageOverviewStore = defineStore('homeUsageOverview', () => 
     }
 
     try {
+      if (isTauriRuntime()) {
+        usageCapabilities.value = await getUsageCapabilitiesV2<UsageCapabilityReport>()
+      }
       const data = await getHomeUsageOverviewV2<HomeUsageOverviewResponse>(days)
       overview.value = data
       error.value = null
@@ -303,6 +316,7 @@ export const useHomeUsageOverviewStore = defineStore('homeUsageOverview', () => 
     lastSessionWarmupIndexed,
     currentUsageJob,
     currentSessionJob,
+    usageCapabilities,
     loadOverview,
     invalidate,
     teardown,
