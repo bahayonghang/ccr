@@ -4,9 +4,10 @@
 //!
 //! 本模块同时消费两条独立数据链路：
 //!
-//! - **usage events** 走 [`crate::llmusage_adapter`] → llmusage Store
-//!   (`~/.llmusage/llmusage.db`)，覆盖仪表盘、趋势、模型/项目分布、成本、heatmap、
-//!   logs 分页、source 状态机等查询（仪表盘主链路）。
+//! - **usage events** 走 [`crate::llmusage_adapter`]：导入只调用已安装的
+//!   `llmusage` CLI，渲染只读 `~/.llmusage/llmusage.db`，覆盖仪表盘、趋势、模型/项目分布、成本、heatmap、
+//!   logs 分页、source 状态机等查询（仪表盘主链路）。ccr-ui 不再链接 llmusage crate，
+//!   也不 bootstrap / migrate / repair 这份 DB。
 //! - **session_archive**（会话归档摘要）暂存 `ccr_db::database::repositories::usage_repo`
 //!   (`~/.ccr/analytics/usage.db`)，覆盖 `upsert_session_archive_entry` /
 //!   `mark_session_archive_missing_by_platform` /
@@ -32,18 +33,16 @@ use std::time::Instant;
 use ccr_config::Platform;
 use ccr_store::sessions::{SessionIndexer, parser::SessionParser};
 use chrono::{Duration, Local, Utc};
-use llmusage::models::SourceKind;
-use llmusage::parsers::{SourceSyncStats, SyncSummaryEvent};
-use llmusage::sync::SyncOptions;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use tauri::{AppHandle, Emitter, Manager, State};
-use tokio::sync::mpsc;
 use uuid::Uuid;
 
 use crate::events::{self, UsageImportPayload};
 use crate::llmusage_adapter::{
-    build_filter, canonical_source_id, is_optional_source_absent, platform_scope_label, queries,
+    JobEvent, LogsQuery as LlmusageLogsQuery, SourceKind, SourceSyncStats, SyncCommandOptions,
+    SyncSummaryEvent, build_filter, canonical_source_id, is_optional_source_absent,
+    platform_scope_label, queries,
 };
 use crate::monitoring::{emit_and_record_monitoring_event, should_persist, usage_import_entry};
 use crate::session_index_jobs::SessionIndexJobSnapshot;
@@ -130,6 +129,11 @@ pub struct StartUsageImportJobResponse {
 pub struct StartSessionIndexJobResponse {
     pub job_id: String,
     pub snapshot: SessionIndexJobSnapshot,
+}
+
+#[tauri::command]
+pub async fn get_usage_capabilities_v2(state: State<'_, AppState>) -> Result<Value, String> {
+    serde_json::to_value(state.llmusage.capabilities()).map_err(|e| format!("Serialize error: {e}"))
 }
 
 const HOME_USAGE_PLATFORMS: [&str; 4] = ["claude", "codex", "gemini", "opencode"];
@@ -406,208 +410,199 @@ async fn run_usage_import_job(
     app_handle: AppHandle,
     job_id: String,
     platform: Option<String>,
-    mut rx: mpsc::Receiver<llmusage::sync::JobEvent>,
+    options: SyncCommandOptions,
 ) {
-    if let Err(error) =
-        bridge_llmusage_import_events(&app_handle, &job_id, platform.as_deref(), &mut rx).await
-    {
+    let state = app_handle.state::<AppState>();
+    let cli = state.llmusage.cli().clone();
+    let cancel_token = tokio_util::sync::CancellationToken::new();
+    state
+        .register_usage_import_cancel_token(&job_id, cancel_token.clone())
+        .await;
+    let results_by_platform = std::sync::Arc::new(tokio::sync::Mutex::new(BTreeMap::<
+        String,
+        UsageImportResultV2,
+    >::new()));
+    let platform_for_bridge = platform.clone();
+    let results_for_bridge = results_by_platform.clone();
+    let job_id_for_bridge = job_id.clone();
+    let app_for_bridge = app_handle.clone();
+
+    let execution = crate::llmusage_adapter::cli::run_sync_stream(
+        &cli,
+        options,
+        cancel_token.clone(),
+        move |event| {
+            let app_handle = app_for_bridge.clone();
+            let job_id = job_id_for_bridge.clone();
+            let platform = platform_for_bridge.clone();
+            let results_by_platform = results_for_bridge.clone();
+            async move {
+                bridge_llmusage_import_event(
+                    &app_handle,
+                    &job_id,
+                    platform.as_deref(),
+                    event,
+                    &results_by_platform,
+                )
+                .await
+            }
+        },
+    )
+    .await;
+
+    // 子进程已退出 / 取消 / 报错都到这里，统一清理 cancel token 防泄漏。
+    let _ = app_handle
+        .state::<AppState>()
+        .take_usage_import_cancel_token(&job_id)
+        .await;
+
+    if let Err(error) = execution {
         tracing::error!(job_id = %job_id, ?error, "Usage import job failed");
-        if let Some(snapshot) = sync_llmusage_failure_snapshot(&app_handle, &job_id, error).await {
+        if let Some(snapshot) =
+            sync_llmusage_failure_snapshot(&app_handle, &job_id, error.to_string()).await
+        {
             emit_usage_import_job_snapshot(&app_handle, "usage:job-failed", &snapshot).await;
         }
     }
 }
 
-async fn bridge_llmusage_import_events(
+async fn bridge_llmusage_import_event(
     app_handle: &AppHandle,
     job_id: &str,
     platform: Option<&str>,
-    rx: &mut mpsc::Receiver<llmusage::sync::JobEvent>,
+    event: JobEvent,
+    results_by_platform: &tokio::sync::Mutex<BTreeMap<String, UsageImportResultV2>>,
 ) -> Result<(), String> {
-    let mut results_by_platform = BTreeMap::<String, UsageImportResultV2>::new();
-    let mut saw_terminal_event = false;
-
-    while let Some(event) = rx.recv().await {
-        if state_usage_import_job_is_terminal(app_handle, job_id).await {
-            return Ok(());
-        }
-
-        match event {
-            llmusage::sync::JobEvent::Started { files_total, .. } => {
-                if let Some(snapshot) = app_handle
-                    .state::<AppState>()
-                    .update_usage_import_job(job_id, |job: &mut UsageImportJobSnapshot| {
-                        job.mark_running(
-                            UsageImportJobStage::ImportingRecent,
-                            files_total as usize,
-                            None,
-                        );
-                    })
-                    .await
-                {
-                    emit_usage_import_job_snapshot(app_handle, "usage:job-progress", &snapshot)
-                        .await;
-                }
-            }
-            llmusage::sync::JobEvent::BootstrapStarted
-            | llmusage::sync::JobEvent::MigrationStarted { .. }
-            | llmusage::sync::JobEvent::MigrationFinished { .. }
-            | llmusage::sync::JobEvent::LockWaiting { .. }
-            | llmusage::sync::JobEvent::LockAcquired { .. } => {
-                if let Some(snapshot) = app_handle
-                    .state::<AppState>()
-                    .update_usage_import_job(job_id, |job: &mut UsageImportJobSnapshot| {
-                        job.mark_running(
-                            UsageImportJobStage::ImportingRecent,
-                            job.files_total,
-                            None,
-                        );
-                    })
-                    .await
-                {
-                    emit_usage_import_job_snapshot(app_handle, "usage:job-progress", &snapshot)
-                        .await;
-                }
-            }
-            llmusage::sync::JobEvent::SourceStarted {
-                source,
-                files_total,
-            } => {
-                if let Some(snapshot) = app_handle
-                    .state::<AppState>()
-                    .update_usage_import_job(job_id, |job: &mut UsageImportJobSnapshot| {
-                        job.mark_running(
-                            UsageImportJobStage::ImportingRecent,
-                            files_total as usize,
-                            Some(source.as_str().to_string()),
-                        );
-                    })
-                    .await
-                {
-                    emit_usage_import_job_snapshot(app_handle, "usage:job-progress", &snapshot)
-                        .await;
-                }
-            }
-            llmusage::sync::JobEvent::Progress {
-                source,
-                files_scanned,
-                records_imported,
-                current_file,
-            } => {
-                if let Some(snapshot) = app_handle
-                    .state::<AppState>()
-                    .update_usage_import_job(job_id, |job: &mut UsageImportJobSnapshot| {
-                        job.status = crate::usage_jobs::UsageImportJobStatus::Running;
-                        job.stage = UsageImportJobStage::ImportingRecent;
-                        job.files_scanned = files_scanned as usize;
-                        job.records_imported = records_imported as usize;
-                        job.current_file =
-                            current_file.or_else(|| Some(source.as_str().to_string()));
-                        job.updated_at = Utc::now().to_rfc3339();
-                    })
-                    .await
-                {
-                    emit_usage_import_job_snapshot(app_handle, "usage:job-progress", &snapshot)
-                        .await;
-                }
-            }
-            llmusage::sync::JobEvent::RecentReady { source: _ } => {
-                if let Some(snapshot) = app_handle
-                    .state::<AppState>()
-                    .update_usage_import_job(job_id, |job: &mut UsageImportJobSnapshot| {
-                        job.mark_recent_ready(true);
-                    })
-                    .await
-                {
-                    emit_usage_import_job_snapshot(app_handle, "usage:job-recent-ready", &snapshot)
-                        .await;
-                }
-            }
-            llmusage::sync::JobEvent::SourceFinished { source, stats } => {
-                let result = source_import_result(source, &stats);
-                let result_error = result.error.clone();
-                results_by_platform.insert(source.as_str().to_string(), result);
-                let files_processed = results_by_platform
-                    .values()
-                    .map(|result| result.files_processed)
-                    .sum();
-                let records_imported = results_by_platform
-                    .values()
-                    .map(|result| result.records_imported)
-                    .sum();
-                let records_skipped = results_by_platform
-                    .values()
-                    .map(|result| result.records_skipped)
-                    .sum();
-                let files_imported = results_by_platform
-                    .values()
-                    .filter(|result| result.records_imported > 0)
-                    .map(|result| result.files_processed)
-                    .sum();
-                if let Some(snapshot) = app_handle
-                    .state::<AppState>()
-                    .update_usage_import_job(job_id, |job: &mut UsageImportJobSnapshot| {
-                        job.status = crate::usage_jobs::UsageImportJobStatus::Running;
-                        job.stage = UsageImportJobStage::ImportingHistory;
-                        job.files_total = job.files_total.max(files_processed);
-                        job.files_scanned = files_processed;
-                        job.files_imported = files_imported;
-                        job.records_imported = records_imported;
-                        job.records_skipped = records_skipped;
-                        job.current_file = None;
-                        if let Some(error) = result_error {
-                            // source_import_result 在 absent 路径已把 error 置 None（typed
-                            // `is_optional_absent: true`），所以这里只会进真正的 source 错误。
-                            job.push_warning(format!("{}: {}", source.as_str(), error));
-                        }
-                        job.updated_at = Utc::now().to_rfc3339();
-                    })
-                    .await
-                {
-                    emit_usage_import_job_snapshot(app_handle, "usage:job-progress", &snapshot)
-                        .await;
-                }
-            }
-            llmusage::sync::JobEvent::Finished { summary } => {
-                saw_terminal_event = true;
-                finish_llmusage_import_job(
-                    app_handle,
-                    job_id,
-                    platform,
-                    results_by_platform,
-                    summary,
-                )
-                .await?;
-                // break 之前排空 channel，避免 llmusage 在 channel 关闭时把后续残留事件
-                // (例如 Cancelled) 当作 Drop 副作用错误上报。
-                while rx.try_recv().is_ok() {}
-                break;
-            }
-            llmusage::sync::JobEvent::Failed { error } => {
-                return Err(error);
-            }
-            llmusage::sync::JobEvent::Cancelled => {
-                saw_terminal_event = true;
-                if let Some(snapshot) = app_handle
-                    .state::<AppState>()
-                    .update_usage_import_job(job_id, |job: &mut UsageImportJobSnapshot| {
-                        job.mark_cancelled();
-                    })
-                    .await
-                {
-                    emit_usage_import_job_snapshot(app_handle, "usage:job-failed", &snapshot).await;
-                }
-                while rx.try_recv().is_ok() {}
-                break;
-            }
-        }
+    if state_usage_import_job_is_terminal(app_handle, job_id).await {
+        return Ok(());
     }
 
-    if !saw_terminal_event {
-        return Err("Usage import job ended before a terminal event was emitted".to_string());
+    match event {
+        JobEvent::Started { files_total, .. } => {
+            update_usage_job_progress(app_handle, job_id, |job| {
+                job.mark_running(
+                    UsageImportJobStage::ImportingRecent,
+                    files_total as usize,
+                    None,
+                );
+            })
+            .await;
+        }
+        JobEvent::BootstrapStarted
+        | JobEvent::MigrationStarted { .. }
+        | JobEvent::MigrationFinished { .. }
+        | JobEvent::LockWaiting { .. }
+        | JobEvent::LockAcquired { .. } => {
+            update_usage_job_progress(app_handle, job_id, |job| {
+                job.mark_running(UsageImportJobStage::ImportingRecent, job.files_total, None);
+            })
+            .await;
+        }
+        JobEvent::SourceStarted {
+            source,
+            files_total,
+        } => {
+            update_usage_job_progress(app_handle, job_id, |job| {
+                job.mark_running(
+                    UsageImportJobStage::ImportingRecent,
+                    files_total as usize,
+                    Some(source.as_str().to_string()),
+                );
+            })
+            .await;
+        }
+        JobEvent::Progress {
+            source,
+            files_scanned,
+            records_imported,
+            current_file,
+        } => {
+            update_usage_job_progress(app_handle, job_id, |job| {
+                job.status = crate::usage_jobs::UsageImportJobStatus::Running;
+                job.stage = UsageImportJobStage::ImportingRecent;
+                job.files_scanned = files_scanned as usize;
+                job.records_imported = records_imported as usize;
+                job.current_file = current_file.or_else(|| Some(source.as_str().to_string()));
+                job.updated_at = Utc::now().to_rfc3339();
+            })
+            .await;
+        }
+        JobEvent::RecentReady { .. } => {
+            if let Some(snapshot) = app_handle
+                .state::<AppState>()
+                .update_usage_import_job(job_id, |job: &mut UsageImportJobSnapshot| {
+                    job.mark_recent_ready(true);
+                })
+                .await
+            {
+                emit_usage_import_job_snapshot(app_handle, "usage:job-recent-ready", &snapshot)
+                    .await;
+            }
+        }
+        JobEvent::SourceFinished { source, stats } => {
+            let result = source_import_result(source, &stats);
+            let result_error = result.error.clone();
+            let mut guard = results_by_platform.lock().await;
+            guard.insert(source.as_str().to_string(), result);
+            let files_processed = guard.values().map(|result| result.files_processed).sum();
+            let records_imported = guard.values().map(|result| result.records_imported).sum();
+            let records_skipped = guard.values().map(|result| result.records_skipped).sum();
+            let files_imported = guard
+                .values()
+                .filter(|result| result.records_imported > 0)
+                .map(|result| result.files_processed)
+                .sum();
+            drop(guard);
+
+            update_usage_job_progress(app_handle, job_id, |job| {
+                job.status = crate::usage_jobs::UsageImportJobStatus::Running;
+                job.stage = UsageImportJobStage::ImportingHistory;
+                job.files_total = job.files_total.max(files_processed);
+                job.files_scanned = files_processed;
+                job.files_imported = files_imported;
+                job.records_imported = records_imported;
+                job.records_skipped = records_skipped;
+                job.current_file = None;
+                if let Some(error) = result_error {
+                    job.push_warning(format!("{}: {}", source.as_str(), error));
+                }
+                job.updated_at = Utc::now().to_rfc3339();
+            })
+            .await;
+        }
+        JobEvent::Finished { summary } => {
+            let guard = results_by_platform.lock().await;
+            finish_llmusage_import_job(app_handle, job_id, platform, guard.clone(), summary)
+                .await?;
+        }
+        JobEvent::Failed { error } => return Err(error),
+        JobEvent::Cancelled => {
+            if let Some(snapshot) = app_handle
+                .state::<AppState>()
+                .update_usage_import_job(job_id, |job: &mut UsageImportJobSnapshot| {
+                    job.mark_cancelled();
+                })
+                .await
+            {
+                emit_usage_import_job_snapshot(app_handle, "usage:job-failed", &snapshot).await;
+            }
+        }
     }
 
     Ok(())
+}
+
+async fn update_usage_job_progress<F>(app_handle: &AppHandle, job_id: &str, updater: F)
+where
+    F: FnOnce(&mut UsageImportJobSnapshot),
+{
+    if let Some(snapshot) = app_handle
+        .state::<AppState>()
+        .update_usage_import_job(job_id, updater)
+        .await
+    {
+        emit_usage_import_job_snapshot(app_handle, "usage:job-progress", &snapshot).await;
+    }
 }
 
 async fn state_usage_import_job_is_terminal(app_handle: &AppHandle, job_id: &str) -> bool {
@@ -678,29 +673,11 @@ async fn sync_llmusage_failure_snapshot(
     job_id: &str,
     fallback_error: String,
 ) -> Option<UsageImportJobSnapshot> {
-    let llmusage_snapshot = app_handle
-        .state::<AppState>()
-        .llmusage
-        .jobs()
-        .snapshot(job_id);
-
     app_handle
         .state::<AppState>()
-        .update_usage_import_job(
-            job_id,
-            |job: &mut UsageImportJobSnapshot| match llmusage_snapshot
-                .as_ref()
-                .map(|snapshot| snapshot.status)
-            {
-                Some(llmusage::sync::JobStatus::Cancelled) => job.mark_cancelled(),
-                _ => job.mark_failed(
-                    llmusage_snapshot
-                        .as_ref()
-                        .and_then(|snapshot| snapshot.error.clone())
-                        .unwrap_or_else(|| fallback_error.clone()),
-                ),
-            },
-        )
+        .update_usage_import_job(job_id, |job: &mut UsageImportJobSnapshot| {
+            job.mark_failed(fallback_error.clone());
+        })
         .await
 }
 
@@ -709,17 +686,17 @@ async fn run_llmusage_sync_all(
     recent_days: Option<u32>,
     rebuild: bool,
 ) -> Result<Vec<UsageImportResultV2>, String> {
-    let (_job_id, rx) = state.llmusage.jobs().start(
-        state.llmusage.store(),
-        SyncOptions {
+    let events = crate::llmusage_adapter::run_sync_collect(
+        state.llmusage.cli(),
+        SyncCommandOptions {
             rebuild,
             recent_days,
             source: None,
-            parallelism: None,
         },
-    );
-
-    collect_llmusage_sync_results(rx, None).await
+    )
+    .await
+    .map_err(|error| error.to_string())?;
+    collect_llmusage_sync_results(events, None)
 }
 
 async fn run_llmusage_sync_once(
@@ -729,37 +706,40 @@ async fn run_llmusage_sync_once(
     rebuild: bool,
 ) -> Result<UsageImportResultV2, String> {
     let requested_source = source.clone();
-    let (_job_id, rx) = state.llmusage.jobs().start(
-        state.llmusage.store(),
-        SyncOptions {
+    let parsed_source = source
+        .as_deref()
+        .and_then(crate::llmusage_adapter::parse_source_filter);
+    let events = crate::llmusage_adapter::run_sync_collect(
+        state.llmusage.cli(),
+        SyncCommandOptions {
             rebuild,
             recent_days,
-            source,
-            parallelism: None,
+            source: parsed_source,
         },
-    );
-
-    let mut results = collect_llmusage_sync_results(rx, requested_source.as_deref()).await?;
+    )
+    .await
+    .map_err(|error| error.to_string())?;
+    let mut results = collect_llmusage_sync_results(events, requested_source.as_deref())?;
     Ok(results
         .pop()
         .unwrap_or_else(|| default_import_results(requested_source.as_deref()).remove(0)))
 }
 
-async fn collect_llmusage_sync_results(
-    mut rx: mpsc::Receiver<llmusage::sync::JobEvent>,
+fn collect_llmusage_sync_results(
+    events: Vec<JobEvent>,
     fallback_source: Option<&str>,
 ) -> Result<Vec<UsageImportResultV2>, String> {
     let mut results_by_platform = BTreeMap::<String, UsageImportResultV2>::new();
 
-    while let Some(event) = rx.recv().await {
+    for event in events {
         match event {
-            llmusage::sync::JobEvent::SourceFinished { source, stats } => {
+            JobEvent::SourceFinished { source, stats } => {
                 results_by_platform.insert(
                     source.as_str().to_string(),
                     source_import_result(source, &stats),
                 );
             }
-            llmusage::sync::JobEvent::Finished { summary } => {
+            JobEvent::Finished { summary } => {
                 let mut results = if results_by_platform.is_empty() {
                     default_import_results(fallback_source)
                 } else {
@@ -780,12 +760,8 @@ async fn collect_llmusage_sync_results(
                 results.sort_by(|left, right| left.platform.cmp(&right.platform));
                 return Ok(results);
             }
-            llmusage::sync::JobEvent::Failed { error } => {
-                return Err(error);
-            }
-            llmusage::sync::JobEvent::Cancelled => {
-                return Err("Usage import job was cancelled".to_string());
-            }
+            JobEvent::Failed { error } => return Err(error),
+            JobEvent::Cancelled => return Err("Usage import job was cancelled".to_string()),
             _ => {}
         }
     }
@@ -1002,8 +978,8 @@ fn has_any_raw_sessions() -> bool {
 }
 
 fn load_home_usage_snapshot(
-    dashboard: &llmusage::Dashboard,
-    filter: &llmusage::QueryFilter,
+    dashboard: &crate::llmusage_adapter::Dashboard,
+    filter: &crate::llmusage_adapter::QueryFilter,
 ) -> Result<HomeUsageSnapshot, String> {
     let payload = dashboard
         .home_overview(filter)
@@ -1047,16 +1023,18 @@ fn load_home_usage_snapshot(
     })
 }
 
-fn load_home_usage_presence(dashboard: &llmusage::Dashboard) -> Result<bool, String> {
+fn load_home_usage_presence(
+    dashboard: &crate::llmusage_adapter::Dashboard,
+) -> Result<bool, String> {
     let summary = dashboard
-        .overview(&llmusage::QueryFilter::default())
+        .overview(&crate::llmusage_adapter::QueryFilter::default())
         .map_err(|e| format!("Usage presence query error: {e}"))?;
 
     Ok(summary.total_events > 0)
 }
 
 fn load_llmusage_archive_diagnostics(
-    dashboard: &llmusage::Dashboard,
+    dashboard: &crate::llmusage_adapter::Dashboard,
     archived_sessions: u64,
 ) -> Result<UsageArchiveDiagnostics, String> {
     let diagnostics = dashboard
@@ -1333,7 +1311,7 @@ pub async fn get_usage_logs_v2(
             .dashboard()
             .map_err(|e| format!("Dashboard open error: {e}"))?;
         let logs = dashboard
-            .logs(&llmusage::LogsQuery {
+            .logs(&LlmusageLogsQuery {
                 filter,
                 page_size: page_size as u32,
                 cursor,
@@ -1671,16 +1649,15 @@ pub async fn start_usage_import_job_v2(
     }
 
     let recent_window_days = recent_days.unwrap_or(30).max(1);
-    let source = canonical_source_id(platform.as_deref());
-    let (job_id, rx) = state.llmusage.jobs().start(
-        state.llmusage.store(),
-        SyncOptions {
-            rebuild: reset_sources.unwrap_or(false),
-            recent_days: Some(recent_window_days as u32),
-            source,
-            parallelism: None,
-        },
-    );
+    let source = platform
+        .as_deref()
+        .and_then(crate::llmusage_adapter::parse_source_filter);
+    let job_id = format!("llmusage-cli-{}", Uuid::new_v4());
+    let options = SyncCommandOptions {
+        rebuild: reset_sources.unwrap_or(false),
+        recent_days: Some(recent_window_days as u32),
+        source,
+    };
     let snapshot = UsageImportJobSnapshot::new(
         job_id.clone(),
         platform_scope_label(platform.as_deref()),
@@ -1692,7 +1669,7 @@ pub async fn start_usage_import_job_v2(
         app_handle,
         job_id.clone(),
         platform,
-        rx,
+        options,
     ));
 
     serde_json::to_value(StartUsageImportJobResponse { job_id, snapshot })
@@ -1718,11 +1695,18 @@ pub async fn cancel_usage_import_job_v2(
     state: State<'_, AppState>,
     job_id: String,
 ) -> Result<Value, String> {
-    let cancelled = state.llmusage.jobs().cancel(&job_id);
-    if !cancelled {
+    // 先取出 token 触发子进程退出；llmusage 0.5.3 没有 graceful contract，
+    // 这里走 kill 让本机资源立即释放，配合 run_sync_stream 内的 cancel 分支返回 cancelled。
+    if let Some(token) = state.take_usage_import_cancel_token(&job_id).await {
+        token.cancel();
+        tracing::info!(
+            ccr_job_id = %job_id,
+            "llmusage sync subprocess cancel signal sent (kill)"
+        );
+    } else {
         tracing::warn!(
             ccr_job_id = %job_id,
-            "No matching llmusage job id found for usage import cancellation"
+            "no cancel token registered for usage import job; only marking local snapshot cancelled"
         );
     }
 

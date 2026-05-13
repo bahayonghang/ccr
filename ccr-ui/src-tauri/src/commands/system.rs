@@ -3,9 +3,9 @@
 use ccr_types::{FrontendLogInput, MonitoringEntry, MonitoringFeedQuery};
 
 use serde::{Deserialize, Serialize};
-use std::{io::ErrorKind, sync::Arc, time::Instant};
 #[cfg(target_os = "windows")]
 use std::path::Path;
+use std::{io::ErrorKind, sync::Arc, time::Instant};
 use tauri::State;
 use tokio::sync::Semaphore;
 use tokio::time::{Duration, timeout};

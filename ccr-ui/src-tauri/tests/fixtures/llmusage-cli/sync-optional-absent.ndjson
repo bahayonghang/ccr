@@ -1,0 +1,2 @@
+{"event":"source_finished","source":"opencode","stats":{"source":"opencode","absent":true,"last_error":"OpenCode SQLite DB missing"}}
+{"event":"finished","summary":{"sources":1,"total_seen":0,"total_inserted":0}}

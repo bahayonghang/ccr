@@ -16,12 +16,13 @@ use ccr_db::services::log_persistence::{LogPersistenceService, LogStorageConfig}
 use chrono::{DateTime, Utc};
 use moka::future::Cache as MokaCache;
 use tokio::sync::{Notify, RwLock};
+use tokio_util::sync::CancellationToken;
 
 use crate::checkin_jobs::{
     CheckinJobDelta, CheckinJobLogEntry, CheckinJobLogStatus, CheckinJobSnapshot,
 };
 use crate::events::{EventLog, EventLogStats};
-use crate::llmusage_adapter::LlmusageHandle;
+use crate::llmusage_adapter::LlmusageRuntime;
 use crate::platform::EnvironmentRegistry;
 use crate::session_index_jobs::{SessionIndexJobSnapshot, SessionIndexJobStatus};
 use crate::usage_jobs::{UsageImportJobSnapshot, UsageImportJobStatus};
@@ -100,8 +101,8 @@ pub struct AppState {
     /// Usage archive SQLite 连接池（durable analytics，位于 ~/.ccr/analytics/usage.db）
     pub usage_db_pool: DbPool,
 
-    /// llmusage 0.5.x runtime（durable analytics，位于 CCR root 下的 llmusage/）
-    pub llmusage: Arc<LlmusageHandle>,
+    /// llmusage runtime boundary（CLI + read-only SQLite；启动时不 bootstrap/migrate DB）
+    pub llmusage: Arc<LlmusageRuntime>,
 
     /// HTTP 客户端（复用连接池，用于 CheckIn 等外部请求）
     pub http_client: reqwest::Client,
@@ -128,6 +129,10 @@ pub struct AppState {
 
     /// Usage 导入后台任务快照
     pub usage_import_jobs: RwLock<HashMap<String, UsageImportJobSnapshot>>,
+
+    /// Usage 导入任务的 cancel token（job_id -> token）
+    /// 用于 cancel 路径同时向子进程发 kill 信号，本地标记与子进程退出双轨。
+    usage_import_cancel_tokens: RwLock<HashMap<String, CancellationToken>>,
 
     /// 当前活跃的 Usage 导入任务 ID
     active_usage_import_job_id: RwLock<Option<String>>,
@@ -239,9 +244,7 @@ impl DesktopShellPreferences {
     /// 当前仅在日志里记录。
     pub fn load_or_quarantine_corrupt() -> Self {
         let Ok(path) = Self::default_path() else {
-            tracing::warn!(
-                "[app] failed to resolve desktop shell preferences path; using default"
-            );
+            tracing::warn!("[app] failed to resolve desktop shell preferences path; using default");
             return Self::default();
         };
         Self::load_or_quarantine_corrupt_at(&path)
@@ -308,7 +311,7 @@ impl AppState {
     pub fn try_new(
         db_pool: DbPool,
         usage_db_pool: DbPool,
-        llmusage: LlmusageHandle,
+        llmusage: LlmusageRuntime,
     ) -> Result<Self, String> {
         let http_client = reqwest::Client::builder()
             .cookie_store(true)
@@ -335,6 +338,7 @@ impl AppState {
             monitoring_logs: LogPersistenceService::new(LogStorageConfig::default()),
             checkin_jobs: RwLock::new(HashMap::new()),
             usage_import_jobs: RwLock::new(HashMap::new()),
+            usage_import_cancel_tokens: RwLock::new(HashMap::new()),
             active_usage_import_job_id: RwLock::new(None),
             session_index_jobs: RwLock::new(HashMap::new()),
             active_session_index_job_id: RwLock::new(None),
@@ -628,6 +632,26 @@ impl AppState {
         jobs.insert(snapshot.job_id.clone(), snapshot.clone());
         let mut active = self.active_usage_import_job_id.write().await;
         *active = Some(snapshot.job_id);
+    }
+
+    /// 登记 cancel token；当前 job 启动子进程前调用一次。
+    pub async fn register_usage_import_cancel_token(
+        &self,
+        job_id: &str,
+        token: CancellationToken,
+    ) {
+        let mut tokens = self.usage_import_cancel_tokens.write().await;
+        tokens.insert(job_id.to_string(), token);
+    }
+
+    /// 移除并取出 cancel token；cancel 命令调用以触发子进程退出，
+    /// 子进程自然结束的清理路径也会调用以避免泄漏。
+    pub async fn take_usage_import_cancel_token(
+        &self,
+        job_id: &str,
+    ) -> Option<CancellationToken> {
+        let mut tokens = self.usage_import_cancel_tokens.write().await;
+        tokens.remove(job_id)
     }
 
     pub async fn get_usage_import_job(&self, job_id: &str) -> Option<UsageImportJobSnapshot> {

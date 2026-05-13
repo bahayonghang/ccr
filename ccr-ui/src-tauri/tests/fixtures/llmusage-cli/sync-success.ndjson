@@ -1,0 +1,8 @@
+{"event":"started","job_id":"cli","files_total":0}
+{"event":"lock_waiting","timeout_ms":30000}
+{"event":"lock_acquired","wait_ms":0}
+{"event":"source_started","source":"codex","files_total":1}
+{"event":"progress","source":"codex","files_scanned":1,"records_imported":2,"current_file":"history.jsonl"}
+{"event":"recent_ready","source":"codex"}
+{"event":"source_finished","source":"codex","stats":{"source":"codex","files_processed":1,"events_seen":2,"events_inserted":2}}
+{"event":"finished","summary":{"sources":1,"total_seen":2,"total_inserted":2}}

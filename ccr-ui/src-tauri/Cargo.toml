@@ -2,7 +2,7 @@
 
 [package]
 name = "ccr-desktop"
-version = "6.1.1"
+version = "6.1.2"
 description = "CCR Desktop - Tauri Application"
 authors = ["CCR Team"]
 edition = "2024"
@@ -22,11 +22,6 @@ ccr-store = { path = "../../crates/ccr-store" }
 ccr-sync = { path = "../../crates/ccr-sync" }
 ccr-checkin = { path = "../../crates/ccr-checkin" }
 ccr-cli = { path = "../../crates/ccr-cli" }
-# llmusage 上游：通过 git 远端依赖，避免 path 依赖在其他机器上找不到本地 CLI/llmusage 目录。
-# rev 锁到 origin/main HEAD（llmusage 0.5.3，含 SourceSyncStats.absent typed 字段）；
-# llmusage 升级时同步 bump 这里的 rev。
-llmusage = { git = "https://github.com/bahayonghang/llmuasage.git", rev = "9bdac1462ec362faa37d363feea7d8908b858d66", default-features = false }
-
 # CCR 类型定义 - Claude Settings 子类型（Agent、Plugin、Hook 等）
 ccr-types = { path = "../../crates/ccr-types" }
 
@@ -52,6 +47,8 @@ tokio = { version = "1.49", features = [
     "fs",
     "process",
 ] }
+# 子进程取消信号（用于 llmusage sync 的 cancel 路径）
+tokio-util = { version = "0.7", features = ["rt"] }
 
 # HTTP client
 reqwest = { version = "0.13.2", default-features = false, features = [
@@ -79,6 +76,7 @@ sha2 = "0.11.0"
 
 # Database (direct access for AppState)
 r2d2 = "0.8"
+rusqlite = { version = "0.39.0", features = ["bundled"] }
 
 # Async trait support
 async-trait = "0.1"

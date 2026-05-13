@@ -20,11 +20,11 @@ This page explains the move from the old global platform/profile routing model t
 
 ## ccr-ui usage analytics migration to llmusage
 
-ccr-ui Usage Dashboard now reads from the `llmusage` 0.5.1 runtime instead of the legacy `ccr-db` usage importer. This only changes the desktop usage analytics path. It does not change Claude / Codex profiles, the ccr-ui SessionIndexer, or the legacy Stats / budget pages. The old `ccr-db` usage schema remains for compatibility, but it is no longer the new data source for Usage Dashboard.
+ccr-ui Usage Dashboard now treats `llmusage` as an external runtime instead of using the legacy `ccr-db` usage importer: sync/import calls the installed `llmusage` CLI, rendering reads the `llmusage` SQLite database read-only, and ccr-ui no longer links the upstream `llmusage` Rust crate. This only changes the desktop usage analytics path. It does not change Claude / Codex profiles, the ccr-ui SessionIndexer, or the legacy Stats / budget pages. The old `ccr-db` usage schema remains for compatibility, but it is no longer the new data source for Usage Dashboard.
 
 ### Data location
 
-By default, ccr-ui follows llmusage's standard `AppPaths::discover()` resolution:
+By default, ccr-ui uses a root resolution order aligned with the llmusage CLI:
 
 1. `LLMUSAGE_HOME`
 2. `~/.llmusage`
@@ -45,9 +45,9 @@ llmusage sync --rebuild --recent-days 30
 
 ### First run and resync
 
-- Opening the ccr-ui Usage page and starting an import now uses llmusage `JobRegistry` while preserving the existing `usage:job-progress`, `usage:job-recent-ready`, `usage:job-finished`, and `usage:job-failed` events.
+- Opening the ccr-ui Usage page and starting an import now runs `llmusage --home <root> sync --json-events` and bridges CLI events into the existing `usage:job-progress`, `usage:job-recent-ready`, `usage:job-finished`, and `usage:job-failed` events.
 - ccr-ui keeps its previous 30-day recent import window by default. Use the CLI command above, or a future maintenance entry point, when you need a full rebuild.
-- `cache_savings`, dual-cost fields, and log `recorded_at` now come directly from the llmusage adapter, so the frontend no longer derives them from `total_cost` or cost deltas.
+- `cache_savings`, dual-cost fields, and log `recorded_at` now come from the ccr-ui read-only SQL adapter over llmusage tables/views, so the frontend no longer derives them from `total_cost` or cost deltas.
 
 ### Rollback and compatibility boundary
 

@@ -284,6 +284,7 @@ macro_rules! generate_handler_common {
         mcp_presets::sync_all_mcp_servers,
         // —— Usage V2 ——
         usage::get_usage_summary_v2,
+        usage::get_usage_capabilities_v2,
         usage::get_usage_trends_v2,
         usage::get_usage_by_model_v2,
         usage::get_usage_by_project_v2,

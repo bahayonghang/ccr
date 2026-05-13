@@ -1,11 +1,46 @@
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 
 use chrono::{DateTime, Utc};
-use llmusage::query::HeatmapPoint;
-use llmusage::{
-    DailyTrendPoint, LogRecord, LogsPage, ModelBreakdown, OverviewPayload, ProjectBreakdown,
-};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Clone, Default, Serialize, PartialEq)]
+pub struct TokenSummary {
+    pub input_tokens: i64,
+    pub cache_read_tokens: i64,
+    pub output_tokens: i64,
+    pub reasoning_output_tokens: i64,
+    pub total_tokens: i64,
+}
+
+impl TokenSummary {
+    pub fn output_tokens_with_reasoning(&self) -> i64 {
+        self.output_tokens + self.reasoning_output_tokens
+    }
+
+    pub fn cache_efficiency(&self) -> f64 {
+        let denominator = self.input_tokens + self.cache_read_tokens;
+        if denominator == 0 {
+            0.0
+        } else {
+            self.cache_read_tokens as f64 / denominator as f64
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq)]
+pub struct OverviewPayload {
+    pub generated_at: String,
+    pub total: TokenSummary,
+    pub last_24h: TokenSummary,
+    pub source_count: i64,
+    pub bucket_count: i64,
+    pub total_events: i64,
+    pub last_24h_events: i64,
+    pub total_cost_usd: f64,
+    pub cache_efficiency: f64,
+    pub last_sync_at: Option<String>,
+    pub last_export_at: Option<String>,
+}
 
 #[derive(Debug, Clone, Serialize, PartialEq)]
 pub struct UsageSummaryDto {
@@ -31,6 +66,24 @@ pub struct DailyTrendDto {
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq)]
+pub struct ModelBreakdown {
+    pub model: String,
+    pub input_tokens: i64,
+    pub cache_read_tokens: i64,
+    pub cache_creation_tokens: i64,
+    pub output_tokens: i64,
+    pub reasoning_output_tokens: i64,
+    pub total_tokens: i64,
+    pub event_count: i64,
+    pub cost_with_cache_usd: f64,
+    pub cost_without_cache_usd: f64,
+    pub cache_savings_usd: f64,
+    pub pricing_status: String,
+    pub pricing_source: Option<String>,
+    pub pricing_rate: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq)]
 pub struct ModelStatDto {
     pub model: String,
     pub request_count: i64,
@@ -49,11 +102,28 @@ pub struct ModelStatDto {
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq)]
+pub struct ProjectBreakdown {
+    pub project_hash: String,
+    pub project_label: String,
+    pub project_ref: Option<String>,
+    pub total_tokens: i64,
+    pub event_count: i64,
+    pub total_cost_usd: f64,
+    pub project_path: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq)]
 pub struct ProjectStatDto {
     pub project_path: String,
     pub request_count: i64,
     pub total_tokens: i64,
     pub total_cost: f64,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq)]
+pub struct HeatmapPoint {
+    pub date: String,
+    pub event_count: i64,
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq)]
@@ -74,7 +144,6 @@ pub struct UsageRecordDto {
     pub output_tokens: i64,
     pub cache_read_tokens: i64,
     pub cache_creation_tokens: i64,
-    pub cost_usd: f64,
     pub cost_with_cache_usd: f64,
     pub cost_without_cache_usd: f64,
     pub pricing_status: String,
@@ -91,6 +160,38 @@ pub struct PaginatedLogsDto {
     pub mode: String,
 }
 
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
+pub struct HomeOverviewPlatformStats {
+    pub sessions: i64,
+    pub requests: i64,
+    pub tokens: i64,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq, Eq)]
+pub struct HomeOverviewSummary {
+    pub total_sessions: i64,
+    pub total_requests: i64,
+    pub total_tokens: i64,
+    pub active_days: i64,
+    pub platforms: i64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct HomeOverviewSeriesItem {
+    pub date: String,
+    pub claude: HomeOverviewPlatformStats,
+    pub codex: HomeOverviewPlatformStats,
+    pub gemini: HomeOverviewPlatformStats,
+    pub opencode: HomeOverviewPlatformStats,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct HomeOverviewPayload {
+    pub summary: HomeOverviewSummary,
+    pub by_platform: BTreeMap<String, HomeOverviewPlatformStats>,
+    pub series: Vec<HomeOverviewSeriesItem>,
+}
+
 pub fn to_usage_summary(payload: OverviewPayload) -> UsageSummaryDto {
     UsageSummaryDto {
         total_requests: payload.total_events,
@@ -103,20 +204,8 @@ pub fn to_usage_summary(payload: OverviewPayload) -> UsageSummaryDto {
     }
 }
 
-pub fn to_daily_trends(points: Vec<DailyTrendPoint>) -> Vec<DailyTrendDto> {
+pub fn to_daily_trends(points: Vec<DailyTrendDto>) -> Vec<DailyTrendDto> {
     points
-        .into_iter()
-        .map(|point| DailyTrendDto {
-            date: point.date,
-            request_count: point.event_count,
-            total_tokens: point.total_tokens,
-            input_tokens: point.input_tokens,
-            output_tokens: point.output_tokens,
-            cache_read_tokens: point.cache_read_tokens,
-            cache_creation_tokens: point.cache_creation_tokens,
-            cost_usd: point.cost_with_cache_usd,
-        })
-        .collect()
 }
 
 pub fn to_model_stats(rows: Vec<ModelBreakdown>) -> Vec<ModelStatDto> {
@@ -129,7 +218,7 @@ pub fn to_model_stats(rows: Vec<ModelBreakdown>) -> Vec<ModelStatDto> {
             input_tokens: row.input_tokens,
             output_tokens: row.output_tokens + row.reasoning_output_tokens,
             cache_read_tokens: row.cache_read_tokens,
-            cache_creation_tokens: 0,
+            cache_creation_tokens: row.cache_creation_tokens,
             cost_with_cache: row.cost_with_cache_usd,
             cost_without_cache: row.cost_without_cache_usd,
             cache_savings: row.cache_savings_usd,
@@ -163,40 +252,17 @@ pub fn to_heatmap_response(points: Vec<HeatmapPoint>) -> HeatmapResponseDto {
     }
 }
 
-pub fn to_paginated_logs(page: LogsPage, page_size: i64) -> PaginatedLogsDto {
+pub fn to_paginated_logs(
+    page: crate::llmusage_adapter::db::LogsPage,
+    page_size: i64,
+) -> PaginatedLogsDto {
     PaginatedLogsDto {
-        records: page.records.into_iter().map(to_usage_record).collect(),
+        records: page.records,
         total: page.total,
         page: 1,
         page_size,
         next_cursor: page.next_cursor,
         mode: "cursor".to_string(),
-    }
-}
-
-fn to_usage_record(record: LogRecord) -> UsageRecordDto {
-    UsageRecordDto {
-        id: record.id,
-        platform: record.platform,
-        project_path: record
-            .project_path
-            .or(record.project_ref)
-            .or(record.project_label)
-            .or(record.project_hash)
-            .unwrap_or_default(),
-        record_json: record.raw_json.unwrap_or_default(),
-        recorded_at: record.event_at,
-        source_id: record.source_id,
-        model: non_empty(record.model),
-        input_tokens: record.input_tokens,
-        output_tokens: record.output_tokens + record.reasoning_output_tokens,
-        cache_read_tokens: record.cache_read_tokens,
-        cache_creation_tokens: record.cache_creation_tokens,
-        cost_usd: record.cost_with_cache_usd,
-        cost_with_cache_usd: record.cost_with_cache_usd,
-        cost_without_cache_usd: record.cost_without_cache_usd,
-        pricing_status: record.pricing_status,
-        pricing_source: record.pricing_source,
     }
 }
 
@@ -228,7 +294,6 @@ pub fn max_rfc3339(left: Option<String>, right: Option<String>) -> Option<String
 #[cfg(test)]
 mod tests {
     use super::*;
-    use llmusage::query::TokenSummary;
 
     #[test]
     fn maps_overview_to_existing_usage_summary_contract() {
@@ -257,24 +322,6 @@ mod tests {
         assert_eq!(summary.total_output_tokens, 23);
         assert_eq!(summary.total_cache_read_tokens, 5);
         assert_eq!(summary.total_cost_usd, 0.42);
-    }
-
-    #[test]
-    fn maps_daily_trends_to_token_debug_contract() {
-        let trends = to_daily_trends(vec![DailyTrendPoint {
-            date: "2026-05-10".to_string(),
-            input_tokens: 100,
-            cache_read_tokens: 40,
-            cache_creation_tokens: 12,
-            output_tokens: 30,
-            total_tokens: 182,
-            event_count: 5,
-            cost_with_cache_usd: 0.25,
-        }]);
-
-        assert_eq!(trends[0].total_tokens, 182);
-        assert_eq!(trends[0].cache_creation_tokens, 12);
-        assert_eq!(trends[0].cost_usd, 0.25);
     }
 
     #[test]

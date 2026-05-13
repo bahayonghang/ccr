@@ -33,11 +33,11 @@
 
 ## ccr-ui 使用统计迁移到 llmusage
 
-ccr-ui 的 Usage Dashboard 已从 `ccr-db` 内置用量导入器迁移到 `llmusage` 0.5.1 运行时。这个迁移只影响桌面端使用统计链路，不改变 Claude / Codex profile、SessionIndexer 或预算/Stats 页面。旧的 `ccr-db` usage schema 会保留以兼容历史数据，但不再作为 Usage Dashboard 的新数据源。
+ccr-ui 的 Usage Dashboard 已从 `ccr-db` 内置用量导入器迁移到外部 `llmusage` 运行时：导入/同步只调用已安装的 `llmusage` CLI，页面渲染只读 `llmusage` SQLite 数据库，不再链接上游 `llmusage` Rust crate。这个迁移只影响桌面端使用统计链路，不改变 Claude / Codex profile、SessionIndexer 或预算/Stats 页面。旧的 `ccr-db` usage schema 会保留以兼容历史数据，但不再作为 Usage Dashboard 的新数据源。
 
 ### 数据位置
 
-默认情况下，ccr-ui 遵循 llmusage 标准的 `AppPaths::discover()` 解析顺序：
+默认情况下，ccr-ui 使用与 llmusage CLI 对齐的 root 解析顺序：
 
 1. `LLMUSAGE_HOME`
 2. `~/.llmusage`
@@ -58,9 +58,9 @@ llmusage sync --rebuild --recent-days 30
 
 ### 首次启动与重新同步
 
-- 打开 ccr-ui 的 Usage 页面后，导入按钮会触发 llmusage `JobRegistry`，并继续发出既有 `usage:job-progress`、`usage:job-recent-ready`、`usage:job-finished`、`usage:job-failed` 事件。
+- 打开 ccr-ui 的 Usage 页面后，导入按钮会执行 `llmusage --home <root> sync --json-events`，并把 CLI 事件桥接成既有 `usage:job-progress`、`usage:job-recent-ready`、`usage:job-finished`、`usage:job-failed` 事件。
 - ccr-ui 保留 30 天 recent window 的默认导入行为；需要全量重建时，使用上面的 CLI 命令或后续专门的维护入口。
-- `cache_savings`、双成本字段和日志 `recorded_at` 现在由 llmusage 后端适配层直接提供，前端不再从 `total_cost` 或成本差值二次推导。
+- `cache_savings`、双成本字段和日志 `recorded_at` 现在来自 ccr-ui 对 llmusage SQLite 表/视图的只读查询适配层，前端不再从 `total_cost` 或成本差值二次推导。
 
 ### 回滚与兼容边界
 

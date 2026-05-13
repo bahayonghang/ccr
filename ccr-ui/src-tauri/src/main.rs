@@ -119,11 +119,14 @@ fn main() {
                 tracing::error!("[app] failed to create usage archive database pool: {e}");
                 Box::new(e) as Box<dyn std::error::Error>
             })?;
-            let llmusage = llmusage_adapter::LlmusageHandle::init().map_err(|e| {
-                tracing::error!("[app] failed to initialize llmusage runtime: {e}");
+            let llmusage = llmusage_adapter::LlmusageRuntime::discover().map_err(|e| {
+                tracing::error!("[app] failed to resolve llmusage runtime paths: {e}");
                 std::io::Error::other(e)
             })?;
-            tracing::info!("[app] database initialized (global + app pool + llmusage)");
+            tracing::info!(
+                llmusage_db = %llmusage.paths().db_path.display(),
+                "[app] database initialized (global + app pool); llmusage will be read on demand"
+            );
 
             // 构建并注册全局 AppState（启动期错误返 Result，不 panic 跨 FFI）。
             let app_state = AppState::try_new(db_pool, usage_db_pool, llmusage)
