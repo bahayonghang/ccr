@@ -212,7 +212,12 @@ mod tests {
 
         let snap = handle.snapshot();
         assert!(snap.terminal.is_some());
-        assert!(snap.terminal.as_ref().unwrap().is_terminal());
+        assert!(
+            snap.terminal
+                .as_ref()
+                .expect("terminal event should be recorded")
+                .is_terminal()
+        );
     }
 
     #[test]
