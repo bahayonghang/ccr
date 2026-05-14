@@ -121,6 +121,92 @@
                 </button>
               </div>
             </Card>
+
+            <Card
+              variant="glass"
+              class-name="app-settings-card app-settings-card--tight"
+            >
+              <div class="app-settings-card__header">
+                <div>
+                  <p class="app-settings-card__eyebrow">
+                    {{ t('settings.appearance.flavor.eyebrow') }}
+                  </p>
+                  <h2 class="app-settings-card__title">
+                    {{ t('settings.appearance.flavor.title') }}
+                  </h2>
+                </div>
+                <p class="app-settings-card__description">
+                  {{ t('settings.appearance.flavor.description') }}
+                </p>
+              </div>
+
+              <div class="app-settings-option-grid">
+                <button
+                  v-for="option in flavorOptions"
+                  :key="option.value"
+                  type="button"
+                  class="app-settings-option"
+                  :class="{ 'app-settings-option--active': flavor === option.value }"
+                  :data-testid="`settings-flavor-${option.value}`"
+                  :aria-pressed="flavor === option.value"
+                  @click="setFlavor(option.value)"
+                >
+                  <div class="app-settings-option__meta">
+                    <span
+                      class="app-settings-option__swatch"
+                      :style="{ background: option.preview }"
+                    />
+                    <span>
+                      <span class="app-settings-option__title">{{ option.label }}</span>
+                      <span class="app-settings-option__caption">{{ option.description }}</span>
+                    </span>
+                  </div>
+                  <span class="app-settings-option__status">
+                    {{ flavor === option.value ? t('settings.active') : option.badge }}
+                  </span>
+                </button>
+              </div>
+            </Card>
+
+            <Card
+              variant="glass"
+              class-name="app-settings-card app-settings-card--tight"
+            >
+              <div class="app-settings-card__header">
+                <div>
+                  <p class="app-settings-card__eyebrow">
+                    {{ t('settings.appearance.accent.eyebrow') }}
+                  </p>
+                  <h2 class="app-settings-card__title">
+                    {{ t('settings.appearance.accent.title') }}
+                  </h2>
+                </div>
+                <p class="app-settings-card__description">
+                  {{ t('settings.appearance.accent.description') }}
+                </p>
+              </div>
+
+              <div
+                class="app-settings-accent-grid"
+                role="radiogroup"
+                :aria-label="t('settings.appearance.accent.title')"
+              >
+                <button
+                  v-for="option in accentOptions"
+                  :key="option.value"
+                  type="button"
+                  role="radio"
+                  class="app-settings-accent-swatch"
+                  :class="{ 'app-settings-accent-swatch--active': accent === option.value }"
+                  :aria-checked="accent === option.value"
+                  :aria-label="option.label"
+                  :title="option.label"
+                  :data-testid="`settings-accent-${option.value}`"
+                  :style="{ '--accent-swatch-color': option.preview }"
+                  @click="setAccent(option.value)"
+                />
+              </div>
+            </Card>
           </section>
 
           <section :ref="setSectionRef('language')">
@@ -400,16 +486,18 @@ import { useI18n } from 'vue-i18n'
 import { getEnvironmentName, getTauriVersion, isTauriEnvironment } from '@/api/runtime/environment'
 import { translateWithFallback } from '@/i18n/formatMessage'
 import { useShellPreferencesStore } from '@/stores/shellPreferences'
-import type { ThemeMode } from '@/utils/themeBootstrap'
+import type { AccentMode, FlavorMode, ThemeMode } from '@/utils/themeBootstrap'
 
 type SectionKey = 'appearance' | 'language' | 'shell' | 'diagnostics'
 
 const { t } = useI18n()
 const shellPreferencesStore = useShellPreferencesStore()
 const {
+  accent,
   closeToTray,
   confirmBeforeExit,
   effectiveTheme,
+  flavor,
   locale,
   openPanelOnTrayClick,
   perfTelemetryEnabled,
@@ -502,6 +590,55 @@ const themeOptions = computed(() => [
   },
 ])
 
+interface FlavorOption {
+  value: FlavorMode
+  label: string
+  description: string
+  badge: string
+  preview: string
+}
+
+interface AccentOption {
+  value: AccentMode
+  label: string
+  preview: string
+}
+
+const flavorOptions = computed<FlavorOption[]>(() => [
+  {
+    value: 'clay',
+    label: t('settings.appearance.flavor.clay'),
+    description: t('settings.appearance.flavor.clayDescription'),
+    badge: t('settings.appearance.dayBadge'),
+    preview: 'linear-gradient(135deg, #f4ede3 0%, #fbf6ee 60%, #fffaf3 100%)',
+  },
+  {
+    value: 'paper',
+    label: t('settings.appearance.flavor.paper'),
+    description: t('settings.appearance.flavor.paperDescription'),
+    badge: t('settings.appearance.dayBadge'),
+    preview: 'linear-gradient(135deg, #fafafa 0%, #ffffff 60%, #f4f4f5 100%)',
+  },
+  {
+    value: 'graphite',
+    label: t('settings.appearance.flavor.graphite'),
+    description: t('settings.appearance.flavor.graphiteDescription'),
+    badge: t('settings.appearance.nightBadge'),
+    preview: 'linear-gradient(135deg, #ececee 0%, #f6f6f8 60%, #2e3036 100%)',
+  },
+])
+
+const accentOptions = computed<AccentOption[]>(() => [
+  { value: 'clay', label: t('settings.appearance.accent.clay'), preview: '#d97757' },
+  { value: 'sand', label: t('settings.appearance.accent.sand'), preview: '#b99666' },
+  { value: 'sage', label: t('settings.appearance.accent.sage'), preview: '#5b8a62' },
+  { value: 'sky', label: t('settings.appearance.accent.sky'), preview: '#7d97b6' },
+  { value: 'mauve', label: t('settings.appearance.accent.mauve'), preview: '#9c7f94' },
+  { value: 'amber', label: t('settings.appearance.accent.amber'), preview: '#bc8540' },
+  { value: 'rose', label: t('settings.appearance.accent.rose'), preview: '#c76953' },
+  { value: 'slate', label: t('settings.appearance.accent.slate'), preview: '#857367' },
+])
+
 const languageOptions = computed(() => [
   {
     value: 'zh-CN',
@@ -539,6 +676,14 @@ const scrollToSection = async (key: SectionKey) => {
 
 const setTheme = (nextTheme: ThemeMode) => {
   shellPreferencesStore.setTheme(nextTheme)
+}
+
+const setFlavor = (nextFlavor: FlavorMode) => {
+  shellPreferencesStore.setFlavor(nextFlavor)
+}
+
+const setAccent = (nextAccent: AccentMode) => {
+  shellPreferencesStore.setAccent(nextAccent)
 }
 
 const setLocalePreference = async (nextLocale: string) => {
@@ -705,6 +850,10 @@ onMounted(async () => {
   @apply flex flex-col gap-5;
 }
 
+.app-settings-content > section {
+  @apply flex flex-col gap-4;
+}
+
 .app-settings-card {
   @apply p-5 sm:p-6;
 }
@@ -768,6 +917,52 @@ onMounted(async () => {
   border-color: rgb(var(--color-accent-primary-rgb) / 24%);
   background: rgb(var(--color-accent-primary-rgb) / 12%);
   color: var(--color-accent-primary);
+}
+
+.app-settings-option__swatch {
+  @apply flex h-10 w-10 flex-none items-center justify-center rounded-2xl border;
+
+  border-color: rgb(var(--color-border-default-rgb) / 46%);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 12%);
+}
+
+.app-settings-card--tight {
+  @apply p-4 sm:p-5;
+}
+
+.app-settings-accent-grid {
+  @apply mt-5 flex flex-wrap gap-3;
+}
+
+.app-settings-accent-swatch {
+  @apply relative h-9 w-9 cursor-pointer rounded-full border transition-[transform,border-color,box-shadow] duration-200;
+
+  background: var(--accent-swatch-color);
+  border-color: rgb(var(--color-border-default-rgb) / 46%);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 14%),
+    0 1px 2px rgb(0 0 0 / 6%);
+}
+
+.app-settings-accent-swatch:hover {
+  transform: scale(1.08);
+  border-color: rgb(var(--color-border-default-rgb) / 72%);
+}
+
+.app-settings-accent-swatch:focus-visible {
+  outline: none;
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 14%),
+    0 0 0 3px rgb(var(--color-accent-primary-rgb) / 30%);
+}
+
+.app-settings-accent-swatch--active {
+  transform: scale(1.12);
+  border-color: var(--color-accent-primary);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 14%),
+    0 0 0 2px var(--color-bg-elevated),
+    0 0 0 4px var(--color-accent-primary);
 }
 
 .app-settings-stack {
