@@ -594,8 +594,6 @@ const form = reactive<ClaudeProfileEditorForm>({
   auth_mode: 'subscription',
   base_url: '',
   auth_token: '',
-  model: '',
-  small_fast_model: '',
   default_opus_model: '',
   default_sonnet_model: '',
   default_haiku_model: '',
@@ -743,8 +741,8 @@ const buildRequest = (): ClaudeProfileRequest => ({
   auth_mode: form.auth_mode,
   base_url: normalizeOptional(form.base_url),
   auth_token: normalizeOptional(form.auth_token),
-  model: normalizeOptional(form.model),
-  small_fast_model: normalizeOptional(form.small_fast_model),
+  model: null,
+  small_fast_model: null,
   default_opus_model: normalizeOptional(form.default_opus_model) ?? null,
   default_sonnet_model: normalizeOptional(form.default_sonnet_model) ?? null,
   default_haiku_model: normalizeOptional(form.default_haiku_model) ?? null,
@@ -763,8 +761,6 @@ const resetForm = () => {
   form.auth_mode = 'subscription'
   form.base_url = ''
   form.auth_token = ''
-  form.model = ''
-  form.small_fast_model = ''
   form.default_opus_model = ''
   form.default_sonnet_model = ''
   form.default_haiku_model = ''
@@ -795,19 +791,20 @@ const openAddForm = () => {
   prepareFormWorkspace()
 }
 
+const VALID_EFFORT_LEVELS = ['low', 'medium', 'high', 'xhigh', 'max'] as const
+
 const openEditForm = (profile: ClaudeProfile) => {
   form.name = profile.name
   form.description = profile.description || ''
   form.auth_mode = profile.auth_mode || 'subscription'
   form.base_url = profile.base_url || ''
   form.auth_token = profile.auth_token || ''
-  form.model = profile.model || ''
-  form.small_fast_model = profile.small_fast_model || ''
   form.default_opus_model = profile.default_opus_model || ''
   form.default_sonnet_model = profile.default_sonnet_model || ''
   form.default_haiku_model = profile.default_haiku_model || ''
   form.subagent_model = profile.subagent_model || ''
-  form.effort_level = profile.effort_level || ''
+  const rawEffort = profile.effort_level || ''
+  form.effort_level = (VALID_EFFORT_LEVELS as readonly string[]).includes(rawEffort) ? rawEffort : ''
   form.provider = profile.provider || ''
   form.provider_type = profile.provider_type || ''
   form.account = profile.account || ''
@@ -1131,30 +1128,28 @@ onBeforeUnmount(() => {
 
 <style>
 .claude-profile-editor-modal {
-  --editor-shell-bg: linear-gradient(180deg, rgb(255 252 255 / 96%), rgb(255 244 249 / 92%));
-  --editor-shell-border: rgb(var(--color-border-default-rgb) / 82%);
-  --editor-shell-shadow: 0 28px 80px rgb(173 141 191 / 20%), 0 12px 32px rgb(104 70 123 / 10%);
-  --editor-shell-highlight:
-    radial-gradient(circle at top right, rgb(var(--color-accent-secondary-rgb) / 12%), transparent 40%),
-    radial-gradient(circle at top left, rgb(var(--color-accent-primary-rgb) / 10%), transparent 32%);
-  --editor-panel-bg: rgb(255 251 253 / 82%);
-  --editor-panel-muted-bg: linear-gradient(180deg, rgb(252 247 251 / 96%), rgb(247 239 248 / 90%));
-  --editor-panel-head-bg: linear-gradient(180deg, rgb(255 252 254 / 98%), rgb(250 243 250 / 90%));
-  --editor-input-bg: rgb(247 240 247 / 94%);
-  --editor-input-bg-hover: rgb(253 247 252 / 98%);
-  --editor-input-bg-focus: rgb(255 250 255 / 100%);
-  --editor-input-border: rgb(var(--color-border-default-rgb) / 84%);
-  --editor-input-border-strong: rgb(var(--color-accent-secondary-rgb) / 34%);
-  --editor-hairline: rgb(var(--color-border-default-rgb) / 72%);
-  --editor-hairline-soft: rgb(var(--color-border-default-rgb) / 46%);
+  --editor-shell-bg: linear-gradient(180deg, rgb(var(--color-bg-surface-rgb) / 96%), rgb(var(--color-bg-elevated-rgb) / 92%));
+  --editor-shell-border: rgb(var(--color-border-default-rgb) / 72%);
+  --editor-shell-shadow: 0 28px 80px rgb(var(--color-accent-primary-rgb) / 10%), 0 12px 32px rgb(var(--color-text-primary-rgb) / 8%);
+  --editor-shell-highlight: radial-gradient(circle at top right, rgb(var(--color-accent-primary-rgb) / 10%), transparent 42%);
+  --editor-panel-bg: rgb(var(--color-bg-surface-rgb) / 88%);
+  --editor-panel-muted-bg: rgb(var(--color-bg-overlay-rgb) / 60%);
+  --editor-panel-head-bg: rgb(var(--color-bg-elevated-rgb) / 96%);
+  --editor-input-bg: rgb(var(--color-bg-elevated-rgb) / 94%);
+  --editor-input-bg-hover: rgb(var(--color-bg-surface-rgb) / 96%);
+  --editor-input-bg-focus: rgb(var(--color-bg-surface-rgb) / 100%);
+  --editor-input-border: rgb(var(--color-border-default-rgb) / 80%);
+  --editor-input-border-strong: rgb(var(--color-accent-primary-rgb) / 38%);
+  --editor-hairline: rgb(var(--color-border-default-rgb) / 64%);
+  --editor-hairline-soft: rgb(var(--color-border-default-rgb) / 40%);
   --editor-ink: rgb(var(--color-text-primary-rgb) / 96%);
   --editor-ink-muted: rgb(var(--color-text-secondary-rgb) / 90%);
   --editor-ink-soft: rgb(var(--color-text-muted-rgb) / 86%);
   --editor-placeholder: rgb(var(--color-text-muted-rgb) / 74%);
-  --editor-panel-shadow: 0 20px 48px rgb(188 157 205 / 16%), inset 0 1px 0 rgb(255 255 255 / 64%);
-  --editor-muted-shadow: 0 14px 34px rgb(188 157 205 / 12%), inset 0 1px 0 rgb(255 255 255 / 42%);
-  --editor-ring: 0 0 0 3px rgb(var(--color-accent-secondary-rgb) / 14%);
-  --editor-scrollbar-thumb: rgb(var(--color-accent-secondary-rgb) / 34%);
+  --editor-panel-shadow: inset 0 1px 0 rgb(var(--color-bg-surface-rgb) / 60%), 0 12px 28px rgb(var(--color-text-primary-rgb) / 4%);
+  --editor-muted-shadow: none;
+  --editor-ring: 0 0 0 3px rgb(var(--color-accent-primary-rgb) / 16%);
+  --editor-scrollbar-thumb: rgb(var(--color-accent-primary-rgb) / 34%);
   --editor-scrollbar-track: rgb(var(--color-bg-overlay-rgb) / 30%);
 
   position: relative;
@@ -1168,31 +1163,10 @@ onBeforeUnmount(() => {
 
 :root[class~='dark'] .claude-profile-editor-modal,
 [data-theme='dark'] .claude-profile-editor-modal {
-  --editor-shell-bg: linear-gradient(180deg, rgb(31 20 41 / 96%), rgb(24 15 33 / 94%));
-  --editor-shell-border: rgb(123 98 149 / 42%);
-  --editor-shell-shadow: 0 32px 90px rgb(8 4 12 / 58%), 0 18px 42px rgb(17 10 24 / 42%);
-  --editor-shell-highlight:
-    radial-gradient(circle at top right, rgb(var(--color-accent-secondary-rgb) / 14%), transparent 44%),
-    radial-gradient(circle at top left, rgb(var(--color-accent-primary-rgb) / 11%), transparent 34%);
-  --editor-panel-bg: linear-gradient(180deg, rgb(46 31 60 / 86%), rgb(39 26 52 / 82%));
-  --editor-panel-muted-bg: linear-gradient(180deg, rgb(58 41 73 / 90%), rgb(50 35 64 / 84%));
-  --editor-panel-head-bg: linear-gradient(180deg, rgb(58 42 74 / 92%), rgb(47 33 62 / 82%));
-  --editor-input-bg: rgb(69 51 86 / 88%);
-  --editor-input-bg-hover: rgb(77 58 96 / 92%);
-  --editor-input-bg-focus: rgb(84 64 103 / 96%);
-  --editor-input-border: rgb(121 96 147 / 46%);
-  --editor-input-border-strong: rgb(var(--color-accent-secondary-rgb) / 44%);
-  --editor-hairline: rgb(123 98 149 / 42%);
-  --editor-hairline-soft: rgb(123 98 149 / 28%);
-  --editor-ink: rgb(253 242 248 / 98%);
-  --editor-ink-muted: rgb(236 206 244 / 86%);
-  --editor-ink-soft: rgb(203 169 221 / 78%);
-  --editor-placeholder: rgb(196 165 214 / 70%);
-  --editor-panel-shadow: 0 24px 60px rgb(6 3 10 / 42%), inset 0 1px 0 rgb(255 255 255 / 6%);
-  --editor-muted-shadow: 0 16px 40px rgb(6 3 10 / 34%), inset 0 1px 0 rgb(255 255 255 / 5%);
-  --editor-ring: 0 0 0 3px rgb(var(--color-accent-secondary-rgb) / 18%);
-  --editor-scrollbar-thumb: rgb(var(--color-accent-secondary-rgb) / 48%);
-  --editor-scrollbar-track: rgb(31 20 41 / 36%);
+  --editor-shell-shadow: 0 32px 90px rgb(0 0 0 / 56%), 0 18px 42px rgb(0 0 0 / 36%);
+  --editor-panel-shadow: inset 0 1px 0 rgb(255 255 255 / 6%), 0 16px 32px rgb(0 0 0 / 24%);
+  --editor-muted-shadow: none;
+  --editor-scrollbar-track: rgb(var(--color-bg-base-rgb) / 36%);
 }
 
 .claude-profile-editor-modal::before {
@@ -1228,13 +1202,13 @@ onBeforeUnmount(() => {
 .claude-profile-editor-modal .editor-hero-icon,
 .claude-profile-editor-modal .editor-summary-icon,
 .claude-profile-editor-modal .editor-section-icon {
-  background: rgb(var(--color-accent-secondary-rgb) / 12%);
-  color: rgb(var(--color-accent-secondary-rgb) / 95%);
-  box-shadow: 0 12px 24px rgb(var(--color-accent-secondary-rgb) / 12%);
+  background: rgb(var(--color-accent-primary-rgb) / 12%);
+  color: rgb(var(--color-accent-primary-rgb) / 100%);
+  box-shadow: 0 12px 24px rgb(var(--color-accent-primary-rgb) / 12%);
 }
 
 .claude-profile-editor-modal .editor-shell-eyebrow {
-  color: rgb(var(--color-accent-secondary-rgb) / 90%);
+  color: rgb(var(--color-accent-primary-rgb) / 90%);
 }
 
 .claude-profile-editor-modal .editor-shell-title {
@@ -1329,7 +1303,6 @@ onBeforeUnmount(() => {
 .claude-profile-editor-modal .editor-empty-hint {
   border: 1px solid var(--editor-hairline-soft);
   background: var(--editor-panel-muted-bg);
-  box-shadow: var(--editor-muted-shadow);
 }
 
 .claude-profile-editor-modal .editor-info-icon {
@@ -1357,16 +1330,16 @@ onBeforeUnmount(() => {
 }
 
 .claude-profile-editor-modal .editor-nav-button--active {
-  border-color: rgb(var(--color-accent-secondary-rgb) / 34%);
-  background: linear-gradient(180deg, rgb(var(--color-accent-secondary-rgb) / 12%), rgb(var(--color-accent-secondary-rgb) / 8%));
+  border-color: rgb(var(--color-accent-primary-rgb) / 34%);
+  background: linear-gradient(180deg, rgb(var(--color-accent-primary-rgb) / 12%), rgb(var(--color-accent-primary-rgb) / 8%));
   color: var(--editor-ink);
-  box-shadow: 0 14px 32px rgb(var(--color-accent-secondary-rgb) / 12%);
+  box-shadow: 0 14px 32px rgb(var(--color-accent-primary-rgb) / 12%);
 }
 
 .claude-profile-editor-modal .editor-nav-button--active .editor-nav-button__icon {
-  border-color: rgb(var(--color-accent-secondary-rgb) / 30%);
-  background: rgb(var(--color-accent-secondary-rgb) / 14%);
-  color: rgb(var(--color-accent-secondary-rgb) / 98%);
+  border-color: rgb(var(--color-accent-primary-rgb) / 30%);
+  background: rgb(var(--color-accent-primary-rgb) / 14%);
+  color: rgb(var(--color-accent-primary-rgb) / 100%);
 }
 
 .claude-profile-editor-modal .editor-tag,
@@ -1433,7 +1406,7 @@ onBeforeUnmount(() => {
 .claude-profile-editor-modal input[type='checkbox'] {
   border-color: var(--editor-input-border);
   background: rgb(var(--color-bg-elevated-rgb) / 62%);
-  color: rgb(var(--color-accent-secondary-rgb) / 100%);
+  color: rgb(var(--color-accent-primary-rgb) / 100%);
 }
 
 .claude-profile-editor-modal input[type='checkbox']:focus {
@@ -1452,9 +1425,9 @@ onBeforeUnmount(() => {
 
 .claude-profile-editor-modal .editor-pill--current,
 .claude-profile-editor-modal .editor-pill--info {
-  border-color: rgb(var(--color-accent-secondary-rgb) / 20%);
-  background: rgb(var(--color-accent-secondary-rgb) / 12%);
-  color: rgb(var(--color-accent-secondary-rgb) / 100%);
+  border-color: rgb(var(--color-accent-primary-rgb) / 22%);
+  background: rgb(var(--color-accent-primary-rgb) / 12%);
+  color: rgb(var(--color-accent-primary-rgb) / 100%);
 }
 
 .claude-profile-editor-modal .editor-pill--success {
@@ -1503,14 +1476,14 @@ onBeforeUnmount(() => {
 }
 
 .claude-profile-editor-modal .editor-button--primary {
-  border-color: rgb(var(--color-accent-secondary-rgb) / 26%);
-  background: linear-gradient(180deg, rgb(var(--color-accent-secondary-rgb) / 14%), rgb(var(--color-accent-secondary-rgb) / 10%));
-  color: rgb(var(--color-accent-secondary-rgb) / 100%);
-  box-shadow: 0 12px 24px rgb(var(--color-accent-secondary-rgb) / 12%);
+  border-color: rgb(var(--color-accent-primary-rgb) / 28%);
+  background: linear-gradient(180deg, rgb(var(--color-accent-primary-rgb) / 18%), rgb(var(--color-accent-primary-rgb) / 12%));
+  color: rgb(var(--color-accent-primary-rgb) / 100%);
+  box-shadow: 0 12px 24px rgb(var(--color-accent-primary-rgb) / 14%);
 }
 
 .claude-profile-editor-modal .editor-button--primary:hover {
-  background: linear-gradient(180deg, rgb(var(--color-accent-secondary-rgb) / 20%), rgb(var(--color-accent-secondary-rgb) / 14%));
+  background: linear-gradient(180deg, rgb(var(--color-accent-primary-rgb) / 24%), rgb(var(--color-accent-primary-rgb) / 16%));
 }
 
 .claude-profiles-view {

@@ -128,47 +128,7 @@
           </p>
         </div>
 
-        <div>
-          <label
-            for="claude-profile-model"
-            class="mb-2 block text-sm font-medium text-text-secondary"
-          >
-            {{ $t('claudeProfiles.modelLabel') }}
-          </label>
-          <input
-            id="claude-profile-model"
-            :value="form.model"
-            type="text"
-            :placeholder="$t('claudeProfiles.modelPlaceholder')"
-            :class="monospaceFieldClass"
-            @input="updateTextField('model', $event)"
-          >
-          <p class="mt-1.5 text-xs text-text-muted">
-            {{ $t('claudeProfiles.modelHelper') }}
-          </p>
-        </div>
-
-        <div>
-          <label
-            for="claude-profile-small-fast-model"
-            class="mb-2 block text-sm font-medium text-text-secondary"
-          >
-            {{ $t('claudeProfiles.smallFastModelLabel') }}
-          </label>
-          <input
-            id="claude-profile-small-fast-model"
-            :value="form.small_fast_model"
-            type="text"
-            :placeholder="$t('claudeProfiles.smallFastModelPlaceholder')"
-            :class="monospaceFieldClass"
-            @input="updateTextField('small_fast_model', $event)"
-          >
-          <p class="mt-1.5 text-xs text-text-muted">
-            {{ $t('claudeProfiles.smallFastModelHelper') }}
-          </p>
-        </div>
-
-        <div>
+        <div class="lg:col-span-2">
           <label
             for="claude-profile-provider"
             class="mb-2 block text-sm font-medium text-text-secondary"
@@ -190,35 +150,24 @@
       </div>
 
       <div class="mt-5 editor-panel-muted rounded-[24px] p-4">
-        <button
-          type="button"
-          class="flex w-full items-start gap-3 text-left"
-          :aria-expanded="showAdvancedModels"
-          :aria-label="showAdvancedModels
-            ? $t('claudeProfiles.advancedModelsToggleCollapse')
-            : $t('claudeProfiles.advancedModelsToggleExpand')"
-          @click="showAdvancedModels = !showAdvancedModels"
-        >
+        <div class="flex items-start gap-3">
           <span class="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center">
             <SIcon
-              :name="showAdvancedModels ? 'ChevronDown' : 'ChevronRight'"
+              name="Sparkles"
               size="w-4 h-4"
             />
           </span>
-          <span class="min-w-0 flex-1">
+          <div class="min-w-0 flex-1">
             <span class="block text-sm font-semibold text-text-primary">
               {{ $t('claudeProfiles.advancedModelsTitle') }}
             </span>
             <span class="mt-1 block text-xs leading-5 text-text-muted">
               {{ $t('claudeProfiles.advancedModelsDescription') }}
             </span>
-          </span>
-        </button>
+          </div>
+        </div>
 
-        <div
-          v-if="showAdvancedModels"
-          class="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2"
-        >
+        <div class="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2">
           <div>
             <label
               for="claude-profile-default-opus-model"
@@ -306,14 +255,31 @@
             >
               {{ $t('claudeProfiles.effortLevelLabel') }}
             </label>
-            <input
+            <select
               id="claude-profile-effort-level"
               :value="form.effort_level"
-              type="text"
-              :placeholder="$t('claudeProfiles.effortLevelPlaceholder')"
-              :class="monospaceFieldClass"
-              @input="updateTextField('effort_level', $event)"
+              :class="textFieldClass"
+              @change="updateTextField('effort_level', $event)"
             >
+              <option value="">
+                {{ $t('claudeProfiles.effortLevelOptionDefault') }}
+              </option>
+              <option value="low">
+                {{ $t('claudeProfiles.effortLevelOptionLow') }}
+              </option>
+              <option value="medium">
+                {{ $t('claudeProfiles.effortLevelOptionMedium') }}
+              </option>
+              <option value="high">
+                {{ $t('claudeProfiles.effortLevelOptionHigh') }}
+              </option>
+              <option value="xhigh">
+                {{ $t('claudeProfiles.effortLevelOptionXhigh') }}
+              </option>
+              <option value="max">
+                {{ $t('claudeProfiles.effortLevelOptionMax') }}
+              </option>
+            </select>
             <p class="mt-1.5 text-xs text-text-muted">
               {{ $t('claudeProfiles.effortLevelHelper') }}
             </p>
@@ -349,7 +315,7 @@
             for="claude-profile-auth-mode"
             class="mb-2 block text-sm font-medium text-text-secondary"
           >
-            认证模式
+            {{ $t('claudeProfiles.authModeLabel') }}
           </label>
           <select
             id="claude-profile-auth-mode"
@@ -358,14 +324,14 @@
             @change="updateTextField('auth_mode', $event)"
           >
             <option value="subscription">
-              subscription（官方订阅）
+              {{ $t('claudeProfiles.authModeOptionSubscription') }}
             </option>
             <option value="api_key">
-              api_key（第三方 / ANTHROPIC_*）
+              {{ $t('claudeProfiles.authModeOptionApiKey') }}
             </option>
           </select>
           <p class="mt-1.5 text-xs text-text-muted">
-            subscription 模式会清空 `ANTHROPIC_*` 并回落到本机官方登录；api_key 模式会写入 `ANTHROPIC_*` 覆盖。
+            {{ $t('claudeProfiles.authModeHelper') }}
           </p>
         </div>
 
@@ -547,7 +513,7 @@
 
 <script setup lang="ts">
 import type { ComponentPublicInstance } from 'vue'
-import { onMounted, ref, watch } from 'vue'
+import { ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import SIcon from '@/components/ui/SIcon.vue'
 import { useUIStore } from '@/stores/ui'
@@ -570,23 +536,6 @@ const props = defineProps<{
 const { t } = useI18n()
 const uiStore = useUIStore()
 const showAuthToken = ref(false)
-const showAdvancedModels = ref(false)
-
-function hasAdvancedModelValues() {
-  return Boolean(
-    props.form.default_opus_model?.trim()
-    || props.form.default_sonnet_model?.trim()
-    || props.form.default_haiku_model?.trim()
-    || props.form.subagent_model?.trim()
-    || props.form.effort_level?.trim(),
-  )
-}
-
-onMounted(() => {
-  if (hasAdvancedModelValues()) {
-    showAdvancedModels.value = true
-  }
-})
 
 function updateTextField(field: keyof ClaudeProfileEditorForm, event: Event) {
   props.updateFormField(field, (event.target as HTMLInputElement).value)
@@ -614,6 +563,5 @@ async function copyAuthToken() {
 
 watch(() => props.editingName, () => {
   showAuthToken.value = false
-  showAdvancedModels.value = hasAdvancedModelValues()
 })
 </script>

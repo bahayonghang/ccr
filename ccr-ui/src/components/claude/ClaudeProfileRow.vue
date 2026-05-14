@@ -294,22 +294,34 @@ const detailItems = computed<DetailItem[]>(() => {
       type: 'url',
       parsedUrl: props.profile.base_url?.trim() ? parseUrl(props.profile.base_url.trim()) : null,
     },
-    {
-      label: t('claudeProfiles.modelLabel'),
-      value: displayValue(props.profile.model),
-      fullValue: displayValue(props.profile.model),
-      mono: true,
-      type: 'model',
-    },
   ]
 
-  if (props.profile.small_fast_model?.trim()) {
+  const advancedFields: Array<{ value: string | null | undefined, label: string }> = [
+    { value: props.profile.default_opus_model, label: t('claudeProfiles.defaultOpusModelLabel') },
+    { value: props.profile.default_sonnet_model, label: t('claudeProfiles.defaultSonnetModelLabel') },
+    { value: props.profile.default_haiku_model, label: t('claudeProfiles.defaultHaikuModelLabel') },
+    { value: props.profile.subagent_model, label: t('claudeProfiles.subagentModelLabel') },
+  ]
+
+  for (const field of advancedFields) {
+    if (field.value?.trim()) {
+      items.push({
+        label: field.label,
+        value: field.value,
+        fullValue: field.value,
+        mono: true,
+        type: 'model',
+      })
+    }
+  }
+
+  if (props.profile.effort_level?.trim()) {
     items.push({
-      label: t('claudeProfiles.smallFastModelLabel'),
-      value: props.profile.small_fast_model,
-      fullValue: props.profile.small_fast_model,
+      label: t('claudeProfiles.effortLevelLabel'),
+      value: props.profile.effort_level,
+      fullValue: props.profile.effort_level,
       mono: true,
-      type: 'model',
+      type: 'text',
     })
   }
 

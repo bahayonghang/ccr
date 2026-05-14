@@ -78,8 +78,8 @@ export interface ClaudeProfileRequest {
   description?: string
   base_url?: string
   auth_token?: string
-  model?: string
-  small_fast_model?: string
+  model?: string | null
+  small_fast_model?: string | null
   default_opus_model?: string | null
   default_sonnet_model?: string | null
   default_haiku_model?: string | null
