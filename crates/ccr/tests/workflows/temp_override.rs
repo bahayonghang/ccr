@@ -42,6 +42,7 @@ fn create_test_config() -> ConfigSection {
         usage_count: Some(0),
         enabled: Some(true),
         other: indexmap::IndexMap::new(),
+        ..Default::default()
     }
 }
 

@@ -55,6 +55,11 @@ export interface ClaudeProfile {
   auth_token?: string | null
   model?: string | null
   small_fast_model?: string | null
+  default_opus_model?: string | null
+  default_sonnet_model?: string | null
+  default_haiku_model?: string | null
+  subagent_model?: string | null
+  effort_level?: string | null
   provider?: string | null
   provider_type?: string | null
   account?: string | null
@@ -75,6 +80,11 @@ export interface ClaudeProfileRequest {
   auth_token?: string
   model?: string
   small_fast_model?: string
+  default_opus_model?: string | null
+  default_sonnet_model?: string | null
+  default_haiku_model?: string | null
+  subagent_model?: string | null
+  effort_level?: string | null
   provider?: string
   provider_type?: string
   account?: string

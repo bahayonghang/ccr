@@ -28,6 +28,7 @@ fn create_test_section(name: &str) -> ConfigSection {
         usage_count: Some(0),
         enabled: Some(true),
         other: IndexMap::new(),
+        ..Default::default()
     }
 }
 
@@ -131,6 +132,7 @@ fn test_config_service_validation() {
         usage_count: Some(0),
         enabled: Some(true),
         other: IndexMap::new(),
+        ..Default::default()
     };
     config.sections.insert("invalid".into(), invalid_section);
 
@@ -790,6 +792,7 @@ fn test_auto_complete_missing_fields() {
         usage_count: None, // 缺失字段
         enabled: None,     // 缺失字段
         other: IndexMap::new(),
+        ..Default::default()
     };
 
     // 调用自动补全

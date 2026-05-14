@@ -162,6 +162,7 @@ fn claude_api_key_section() -> ConfigSection {
         usage_count: Some(0),
         enabled: Some(true),
         other: IndexMap::new(),
+        ..Default::default()
     }
 }
 
@@ -184,6 +185,7 @@ fn codex_openai_chatgpt_section() -> ConfigSection {
         usage_count: Some(0),
         enabled: Some(true),
         other,
+        ..Default::default()
     }
 }
 

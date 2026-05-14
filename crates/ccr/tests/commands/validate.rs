@@ -95,6 +95,7 @@ current_profile = "main"
                 usage_count: Some(0),
                 enabled: Some(true),
                 other: IndexMap::new(),
+                ..Default::default()
             },
         );
         manager.save(&config).unwrap();

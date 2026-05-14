@@ -55,13 +55,12 @@
             id="claude-profile-name"
             :value="form.name"
             type="text"
-            :disabled="isEditing"
             :placeholder="$t('claudeProfiles.namePlaceholder')"
             :class="textFieldClass"
             @input="updateTextField('name', $event)"
           >
           <p class="mt-1.5 text-xs text-text-muted">
-            {{ isEditing ? $t('claudeProfiles.readonlyNameHint') : $t('claudeProfiles.nameHelper') }}
+            {{ isEditing ? $t('claudeProfiles.renameWarningHint') : $t('claudeProfiles.nameHelper') }}
           </p>
         </div>
 
@@ -187,6 +186,138 @@
           <p class="mt-1.5 text-xs text-text-muted">
             {{ $t('claudeProfiles.providerHelper') }}
           </p>
+        </div>
+      </div>
+
+      <div class="mt-5 editor-panel-muted rounded-[24px] p-4">
+        <button
+          type="button"
+          class="flex w-full items-start gap-3 text-left"
+          :aria-expanded="showAdvancedModels"
+          :aria-label="showAdvancedModels
+            ? $t('claudeProfiles.advancedModelsToggleCollapse')
+            : $t('claudeProfiles.advancedModelsToggleExpand')"
+          @click="showAdvancedModels = !showAdvancedModels"
+        >
+          <span class="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center">
+            <SIcon
+              :name="showAdvancedModels ? 'ChevronDown' : 'ChevronRight'"
+              size="w-4 h-4"
+            />
+          </span>
+          <span class="min-w-0 flex-1">
+            <span class="block text-sm font-semibold text-text-primary">
+              {{ $t('claudeProfiles.advancedModelsTitle') }}
+            </span>
+            <span class="mt-1 block text-xs leading-5 text-text-muted">
+              {{ $t('claudeProfiles.advancedModelsDescription') }}
+            </span>
+          </span>
+        </button>
+
+        <div
+          v-if="showAdvancedModels"
+          class="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-2"
+        >
+          <div>
+            <label
+              for="claude-profile-default-opus-model"
+              class="mb-2 block text-sm font-medium text-text-secondary"
+            >
+              {{ $t('claudeProfiles.defaultOpusModelLabel') }}
+            </label>
+            <input
+              id="claude-profile-default-opus-model"
+              :value="form.default_opus_model"
+              type="text"
+              :placeholder="$t('claudeProfiles.defaultOpusModelPlaceholder')"
+              :class="monospaceFieldClass"
+              @input="updateTextField('default_opus_model', $event)"
+            >
+            <p class="mt-1.5 text-xs text-text-muted">
+              {{ $t('claudeProfiles.defaultOpusModelHelper') }}
+            </p>
+          </div>
+
+          <div>
+            <label
+              for="claude-profile-default-sonnet-model"
+              class="mb-2 block text-sm font-medium text-text-secondary"
+            >
+              {{ $t('claudeProfiles.defaultSonnetModelLabel') }}
+            </label>
+            <input
+              id="claude-profile-default-sonnet-model"
+              :value="form.default_sonnet_model"
+              type="text"
+              :placeholder="$t('claudeProfiles.defaultSonnetModelPlaceholder')"
+              :class="monospaceFieldClass"
+              @input="updateTextField('default_sonnet_model', $event)"
+            >
+            <p class="mt-1.5 text-xs text-text-muted">
+              {{ $t('claudeProfiles.defaultSonnetModelHelper') }}
+            </p>
+          </div>
+
+          <div>
+            <label
+              for="claude-profile-default-haiku-model"
+              class="mb-2 block text-sm font-medium text-text-secondary"
+            >
+              {{ $t('claudeProfiles.defaultHaikuModelLabel') }}
+            </label>
+            <input
+              id="claude-profile-default-haiku-model"
+              :value="form.default_haiku_model"
+              type="text"
+              :placeholder="$t('claudeProfiles.defaultHaikuModelPlaceholder')"
+              :class="monospaceFieldClass"
+              @input="updateTextField('default_haiku_model', $event)"
+            >
+            <p class="mt-1.5 text-xs text-text-muted">
+              {{ $t('claudeProfiles.defaultHaikuModelHelper') }}
+            </p>
+          </div>
+
+          <div>
+            <label
+              for="claude-profile-subagent-model"
+              class="mb-2 block text-sm font-medium text-text-secondary"
+            >
+              {{ $t('claudeProfiles.subagentModelLabel') }}
+            </label>
+            <input
+              id="claude-profile-subagent-model"
+              :value="form.subagent_model"
+              type="text"
+              :placeholder="$t('claudeProfiles.subagentModelPlaceholder')"
+              :class="monospaceFieldClass"
+              @input="updateTextField('subagent_model', $event)"
+            >
+            <p class="mt-1.5 text-xs text-text-muted">
+              {{ $t('claudeProfiles.subagentModelHelper') }}
+            </p>
+          </div>
+
+          <div class="lg:col-span-2">
+            <label
+              for="claude-profile-effort-level"
+              class="mb-2 block text-sm font-medium text-text-secondary"
+            >
+              {{ $t('claudeProfiles.effortLevelLabel') }}
+            </label>
+            <input
+              id="claude-profile-effort-level"
+              :value="form.effort_level"
+              type="text"
+              :placeholder="$t('claudeProfiles.effortLevelPlaceholder')"
+              :class="monospaceFieldClass"
+              @input="updateTextField('effort_level', $event)"
+            >
+            <p class="mt-1.5 text-xs text-text-muted">
+              {{ $t('claudeProfiles.effortLevelHelper') }}
+            </p>
+          </div>
         </div>
       </div>
     </section>
@@ -416,7 +547,7 @@
 
 <script setup lang="ts">
 import type { ComponentPublicInstance } from 'vue'
-import { ref, watch } from 'vue'
+import { onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import SIcon from '@/components/ui/SIcon.vue'
 import { useUIStore } from '@/stores/ui'
@@ -439,6 +570,23 @@ const props = defineProps<{
 const { t } = useI18n()
 const uiStore = useUIStore()
 const showAuthToken = ref(false)
+const showAdvancedModels = ref(false)
+
+function hasAdvancedModelValues() {
+  return Boolean(
+    props.form.default_opus_model?.trim()
+    || props.form.default_sonnet_model?.trim()
+    || props.form.default_haiku_model?.trim()
+    || props.form.subagent_model?.trim()
+    || props.form.effort_level?.trim(),
+  )
+}
+
+onMounted(() => {
+  if (hasAdvancedModelValues()) {
+    showAdvancedModels.value = true
+  }
+})
 
 function updateTextField(field: keyof ClaudeProfileEditorForm, event: Event) {
   props.updateFormField(field, (event.target as HTMLInputElement).value)
@@ -466,5 +614,6 @@ async function copyAuthToken() {
 
 watch(() => props.editingName, () => {
   showAuthToken.value = false
+  showAdvancedModels.value = hasAdvancedModelValues()
 })
 </script>

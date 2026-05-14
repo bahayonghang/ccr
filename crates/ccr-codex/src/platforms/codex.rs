@@ -1647,6 +1647,7 @@ mod tests {
             usage_count: Some(0),
             enabled: Some(true),
             platform_data: IndexMap::new(),
+            ..Default::default()
         };
         assert!(CodexPlatform::is_official_profile(&official));
 
@@ -1722,6 +1723,7 @@ mod tests {
             usage_count: Some(0),
             enabled: Some(true),
             platform_data: IndexMap::new(),
+            ..Default::default()
         };
         custom_profile
             .platform_data
@@ -1778,6 +1780,7 @@ mod tests {
             usage_count: Some(0),
             enabled: Some(true),
             platform_data: IndexMap::new(),
+            ..Default::default()
         };
         github_profile
             .platform_data
@@ -1972,6 +1975,7 @@ requires_openai_auth = true
                 data.insert("auth_mode".into(), json!("openai_api_key"));
                 data
             },
+            ..Default::default()
         };
 
         let spec = CodexPlatform::build_switch_spec(
@@ -2027,6 +2031,7 @@ requires_openai_auth = true
             usage_count: Some(0),
             enabled: Some(true),
             platform_data: IndexMap::new(),
+            ..Default::default()
         };
         profile
             .platform_data
@@ -2156,6 +2161,7 @@ env_key = "MISTRAL_API_KEY"
             usage_count: Some(0),
             enabled: Some(true),
             platform_data: IndexMap::new(),
+            ..Default::default()
         };
         profile
             .platform_data
@@ -2242,6 +2248,7 @@ env_key = "MISTRAL_API_KEY"
             usage_count: Some(0),
             enabled: Some(true),
             platform_data: IndexMap::new(),
+            ..Default::default()
         };
         profile
             .platform_data
@@ -2340,6 +2347,7 @@ env_key = "MISTRAL_API_KEY"
             usage_count: Some(0),
             enabled: Some(true),
             platform_data: IndexMap::new(),
+            ..Default::default()
         };
         profile
             .platform_data
@@ -2439,6 +2447,7 @@ env_key = "MISTRAL_API_KEY"
             usage_count: Some(0),
             enabled: Some(true),
             platform_data: IndexMap::new(),
+            ..Default::default()
         };
         profile
             .platform_data
@@ -2535,6 +2544,7 @@ env_key = "MISTRAL_API_KEY"
             usage_count: Some(0),
             enabled: Some(true),
             platform_data: IndexMap::new(),
+            ..Default::default()
         };
         profile
             .platform_data
@@ -2613,6 +2623,7 @@ env_key = "MISTRAL_API_KEY"
             usage_count: Some(0),
             enabled: Some(true),
             platform_data: IndexMap::new(),
+            ..Default::default()
         };
         profile
             .platform_data
@@ -2707,6 +2718,7 @@ env_key = "MISTRAL_API_KEY"
             usage_count: Some(0),
             enabled: Some(true),
             platform_data: IndexMap::new(),
+            ..Default::default()
         };
         profile
             .platform_data
@@ -2769,6 +2781,7 @@ env_key = "MISTRAL_API_KEY"
             usage_count: Some(0),
             enabled: Some(true),
             platform_data: IndexMap::new(),
+            ..Default::default()
         };
         profile
             .platform_data
@@ -2886,6 +2899,7 @@ env_key = "MISTRAL_API_KEY"
             usage_count: Some(0),
             enabled: Some(true),
             platform_data: IndexMap::new(),
+            ..Default::default()
         };
         profile
             .platform_data
@@ -2971,6 +2985,7 @@ env_key = "MISTRAL_API_KEY"
             usage_count: Some(0),
             enabled: Some(true),
             platform_data: IndexMap::new(),
+            ..Default::default()
         };
         profile
             .platform_data

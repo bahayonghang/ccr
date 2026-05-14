@@ -258,6 +258,7 @@ mod tests {
             usage_count: Some(0),
             enabled: Some(true),
             other: IndexMap::new(),
+            ..Default::default()
         }
     }
 
@@ -275,6 +276,7 @@ mod tests {
             usage_count: Some(0),
             enabled: Some(true),
             other: IndexMap::new(),
+            ..Default::default()
         }
     }
 

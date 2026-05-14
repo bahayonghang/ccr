@@ -414,6 +414,21 @@ fn patch_profile_with_config(profile: &mut ProfileConfig, config: &Value) -> Res
     if let Some(raw) = obj.get("small_fast_model") {
         profile.small_fast_model = parse_string_field(raw, "small_fast_model")?;
     }
+    if let Some(raw) = obj.get("default_opus_model") {
+        profile.default_opus_model = parse_string_field(raw, "default_opus_model")?;
+    }
+    if let Some(raw) = obj.get("default_sonnet_model") {
+        profile.default_sonnet_model = parse_string_field(raw, "default_sonnet_model")?;
+    }
+    if let Some(raw) = obj.get("default_haiku_model") {
+        profile.default_haiku_model = parse_string_field(raw, "default_haiku_model")?;
+    }
+    if let Some(raw) = obj.get("subagent_model") {
+        profile.subagent_model = parse_string_field(raw, "subagent_model")?;
+    }
+    if let Some(raw) = obj.get("effort_level") {
+        profile.effort_level = parse_string_field(raw, "effort_level")?;
+    }
     if let Some(raw) = obj.get("provider") {
         profile.provider = parse_string_field(raw, "provider")?;
     }
@@ -474,6 +489,11 @@ fn profile_to_json(current_profile: Option<&str>, name: String, profile: Profile
         "auth_token": profile.auth_token,
         "model": profile.model,
         "small_fast_model": profile.small_fast_model,
+        "default_opus_model": profile.default_opus_model,
+        "default_sonnet_model": profile.default_sonnet_model,
+        "default_haiku_model": profile.default_haiku_model,
+        "subagent_model": profile.subagent_model,
+        "effort_level": profile.effort_level,
         "provider": profile.provider,
         "provider_type": profile.provider_type,
         "account": profile.account,

@@ -596,6 +596,11 @@ const form = reactive<ClaudeProfileEditorForm>({
   auth_token: '',
   model: '',
   small_fast_model: '',
+  default_opus_model: '',
+  default_sonnet_model: '',
+  default_haiku_model: '',
+  subagent_model: '',
+  effort_level: '',
   provider: '',
   provider_type: '',
   account: '',
@@ -740,6 +745,11 @@ const buildRequest = (): ClaudeProfileRequest => ({
   auth_token: normalizeOptional(form.auth_token),
   model: normalizeOptional(form.model),
   small_fast_model: normalizeOptional(form.small_fast_model),
+  default_opus_model: normalizeOptional(form.default_opus_model) ?? null,
+  default_sonnet_model: normalizeOptional(form.default_sonnet_model) ?? null,
+  default_haiku_model: normalizeOptional(form.default_haiku_model) ?? null,
+  subagent_model: normalizeOptional(form.subagent_model) ?? null,
+  effort_level: normalizeOptional(form.effort_level) ?? null,
   provider: normalizeOptional(form.provider),
   provider_type: normalizeOptional(form.provider_type),
   account: normalizeOptional(form.account),
@@ -755,6 +765,11 @@ const resetForm = () => {
   form.auth_token = ''
   form.model = ''
   form.small_fast_model = ''
+  form.default_opus_model = ''
+  form.default_sonnet_model = ''
+  form.default_haiku_model = ''
+  form.subagent_model = ''
+  form.effort_level = ''
   form.provider = ''
   form.provider_type = ''
   form.account = ''
@@ -788,6 +803,11 @@ const openEditForm = (profile: ClaudeProfile) => {
   form.auth_token = profile.auth_token || ''
   form.model = profile.model || ''
   form.small_fast_model = profile.small_fast_model || ''
+  form.default_opus_model = profile.default_opus_model || ''
+  form.default_sonnet_model = profile.default_sonnet_model || ''
+  form.default_haiku_model = profile.default_haiku_model || ''
+  form.subagent_model = profile.subagent_model || ''
+  form.effort_level = profile.effort_level || ''
   form.provider = profile.provider || ''
   form.provider_type = profile.provider_type || ''
   form.account = profile.account || ''
@@ -992,7 +1012,31 @@ const handleExportProfiles = async () => {
 }
 
 const handleSave = async () => {
-  if (!form.name.trim()) return
+  const trimmedName = form.name.trim()
+  if (!trimmedName) return
+
+  // 重命名场景：name 改了。先做客户端唯一性校验 + 弹二次确认
+  const isRenaming = isEditing.value && trimmedName !== editingName.value
+  if (isRenaming) {
+    const collision = profiles.value.some(p => p.name === trimmedName && p.name !== editingName.value)
+    if (collision) {
+      saveError.value = translateWithFallback(
+        t,
+        'claudeProfiles.renameConflict',
+        '名称 "{name}" 已被其它 Profile 占用，请换一个名称。',
+        { name: trimmedName },
+      )
+      return
+    }
+
+    const confirmed = confirm(translateWithFallback(
+      t,
+      'claudeProfiles.renameConfirmBody',
+      '将 "{old}" 重命名为 "{new}"。旧名称会被删除；若当前激活，激活指针会自动迁移到新名。',
+      { old: editingName.value, new: trimmedName },
+    ))
+    if (!confirmed) return
+  }
 
   isSaving.value = true
   saveError.value = null

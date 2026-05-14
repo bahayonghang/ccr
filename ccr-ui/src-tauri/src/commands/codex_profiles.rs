@@ -300,6 +300,7 @@ mod update_tests {
             usage_count: Some(0),
             enabled: Some(true),
             platform_data: Default::default(),
+            ..Default::default()
         };
         profile
             .platform_data

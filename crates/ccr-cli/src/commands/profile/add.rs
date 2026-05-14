@@ -123,6 +123,7 @@ pub async fn add_command() -> Result<()> {
         usage_count: Some(0), // 初始使用次数为 0
         enabled: Some(true),  // 默认启用
         other: IndexMap::new(),
+        ..Default::default()
     };
 
     // 验证配置

@@ -326,6 +326,7 @@ mod tests {
             usage_count: Some(0),
             enabled: Some(true),
             platform_data: IndexMap::new(),
+            ..Default::default()
         };
 
         assert!(platform.validate_profile(&valid_profile).is_ok());

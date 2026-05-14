@@ -161,6 +161,7 @@ pub async fn add_config(
             usage_count: Some(0),
             enabled: Some(true),
             other: Default::default(),
+            ..Default::default()
         };
 
         config.set_section(name.clone(), section);

@@ -27,6 +27,7 @@ fn create_test_config_section(name: &str) -> ConfigSection {
         usage_count: Some(0),
         enabled: Some(true),
         other: IndexMap::new(),
+        ..Default::default()
     }
 }
 
@@ -125,6 +126,7 @@ fn test_config_section_validation() {
         usage_count: Some(0),
         enabled: Some(true),
         other: IndexMap::new(),
+        ..Default::default()
     };
     assert!(invalid.validate().is_err());
 

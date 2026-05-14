@@ -162,6 +162,26 @@ pub struct ProfileConfig {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub small_fast_model: Option<String>,
 
+    /// 🧠 Opus 默认模型映射 (ANTHROPIC_DEFAULT_OPUS_MODEL)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub default_opus_model: Option<String>,
+
+    /// 🎼 Sonnet 默认模型映射 (ANTHROPIC_DEFAULT_SONNET_MODEL)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub default_sonnet_model: Option<String>,
+
+    /// 🍃 Haiku 默认模型映射 (ANTHROPIC_DEFAULT_HAIKU_MODEL)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub default_haiku_model: Option<String>,
+
+    /// 🤖 子代理模型 (CLAUDE_CODE_SUBAGENT_MODEL)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub subagent_model: Option<String>,
+
+    /// 🎚️ 思考强度 (CLAUDE_CODE_EFFORT_LEVEL)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub effort_level: Option<String>,
+
     /// 🏢 提供商名称
     #[serde(skip_serializing_if = "Option::is_none")]
     pub provider: Option<String>,
@@ -202,6 +222,11 @@ impl ProfileConfig {
             auth_token: None,
             model: None,
             small_fast_model: None,
+            default_opus_model: None,
+            default_sonnet_model: None,
+            default_haiku_model: None,
+            subagent_model: None,
+            effort_level: None,
             provider: None,
             provider_type: None,
             account: None,

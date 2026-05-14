@@ -10,6 +10,11 @@ export interface ClaudeProfileEditorForm {
   auth_token: string
   model: string
   small_fast_model: string
+  default_opus_model: string
+  default_sonnet_model: string
+  default_haiku_model: string
+  subagent_model: string
+  effort_level: string
   provider: string
   provider_type: string
   account: string

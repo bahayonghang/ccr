@@ -29,6 +29,14 @@ const ANTHROPIC_BASE_URL: &str = "ANTHROPIC_BASE_URL";
 const ANTHROPIC_AUTH_TOKEN: &str = "ANTHROPIC_AUTH_TOKEN";
 const ANTHROPIC_MODEL: &str = "ANTHROPIC_MODEL";
 const ANTHROPIC_SMALL_FAST_MODEL: &str = "ANTHROPIC_SMALL_FAST_MODEL";
+const ANTHROPIC_DEFAULT_OPUS_MODEL: &str = "ANTHROPIC_DEFAULT_OPUS_MODEL";
+const ANTHROPIC_DEFAULT_SONNET_MODEL: &str = "ANTHROPIC_DEFAULT_SONNET_MODEL";
+const ANTHROPIC_DEFAULT_HAIKU_MODEL: &str = "ANTHROPIC_DEFAULT_HAIKU_MODEL";
+const CLAUDE_CODE_SUBAGENT_MODEL: &str = "CLAUDE_CODE_SUBAGENT_MODEL";
+const CLAUDE_CODE_EFFORT_LEVEL: &str = "CLAUDE_CODE_EFFORT_LEVEL";
+
+/// 🧹 不带 ANTHROPIC_ 前缀但同样由 ccr 托管的 env key 列表
+const NON_ANTHROPIC_MANAGED_KEYS: &[&str] = &[CLAUDE_CODE_SUBAGENT_MODEL, CLAUDE_CODE_EFFORT_LEVEL];
 
 /// 🎨 Claude Code 设置结构
 ///
@@ -65,10 +73,22 @@ impl ClaudeSettings {
         tracing::debug!("🧹 清空所有 ANTHROPIC_* 环境变量");
     }
 
+    /// 🧹 清空所有由 ccr 托管的 env key
+    ///
+    /// 在 ANTHROPIC_* 之外还覆盖 CLAUDE_CODE_SUBAGENT_MODEL / CLAUDE_CODE_EFFORT_LEVEL,
+    /// 这些键由 Profile 显式配置, 切换 Profile 时也必须随之清理。
+    pub fn clear_managed_vars(&mut self) {
+        self.clear_anthropic_vars();
+        for key in NON_ANTHROPIC_MANAGED_KEYS {
+            self.env.remove(*key);
+        }
+        tracing::debug!("🧹 清空所有受 ccr 托管的环境变量");
+    }
+
     /// 🔄 从配置节更新环境变量
     ///
     /// 执行流程:
-    /// 1. 🧹 先清空所有旧的 ANTHROPIC_* 变量
+    /// 1. 🧹 先清空所有受管理的 env key
     /// 2. ➕ 根据配置节设置新的环境变量
     ///
     /// 映射关系:
@@ -76,9 +96,14 @@ impl ClaudeSettings {
     /// - auth_token → ANTHROPIC_AUTH_TOKEN
     /// - model → ANTHROPIC_MODEL
     /// - small_fast_model → ANTHROPIC_SMALL_FAST_MODEL
+    /// - default_opus_model → ANTHROPIC_DEFAULT_OPUS_MODEL
+    /// - default_sonnet_model → ANTHROPIC_DEFAULT_SONNET_MODEL
+    /// - default_haiku_model → ANTHROPIC_DEFAULT_HAIKU_MODEL
+    /// - subagent_model → CLAUDE_CODE_SUBAGENT_MODEL
+    /// - effort_level → CLAUDE_CODE_EFFORT_LEVEL
     pub fn update_from_config(&mut self, section: &ConfigSection) {
-        // 🧹 清空旧的 ANTHROPIC_* 变量
-        self.clear_anthropic_vars();
+        // 🧹 清空旧的受管理 env key
+        self.clear_managed_vars();
 
         // 🌐 设置 base_url
         if let Some(base_url) = &section.base_url {
@@ -103,6 +128,36 @@ impl ClaudeSettings {
                 .insert(ANTHROPIC_SMALL_FAST_MODEL.to_string(), small_model.clone());
         }
 
+        // 🧠 设置 default_opus_model
+        if let Some(value) = &section.default_opus_model {
+            self.env
+                .insert(ANTHROPIC_DEFAULT_OPUS_MODEL.to_string(), value.clone());
+        }
+
+        // 🎼 设置 default_sonnet_model
+        if let Some(value) = &section.default_sonnet_model {
+            self.env
+                .insert(ANTHROPIC_DEFAULT_SONNET_MODEL.to_string(), value.clone());
+        }
+
+        // 🍃 设置 default_haiku_model
+        if let Some(value) = &section.default_haiku_model {
+            self.env
+                .insert(ANTHROPIC_DEFAULT_HAIKU_MODEL.to_string(), value.clone());
+        }
+
+        // 🤖 设置 subagent_model
+        if let Some(value) = &section.subagent_model {
+            self.env
+                .insert(CLAUDE_CODE_SUBAGENT_MODEL.to_string(), value.clone());
+        }
+
+        // 🎚️ 设置 effort_level
+        if let Some(value) = &section.effort_level {
+            self.env
+                .insert(CLAUDE_CODE_EFFORT_LEVEL.to_string(), value.clone());
+        }
+
         tracing::info!("✅ 环境变量已从配置更新");
     }
 
@@ -116,6 +171,9 @@ impl ClaudeSettings {
             ANTHROPIC_AUTH_TOKEN,
             ANTHROPIC_MODEL,
             ANTHROPIC_SMALL_FAST_MODEL,
+            ANTHROPIC_DEFAULT_OPUS_MODEL,
+            ANTHROPIC_DEFAULT_SONNET_MODEL,
+            ANTHROPIC_DEFAULT_HAIKU_MODEL,
         ];
 
         for var in vars {
@@ -891,6 +949,23 @@ mod tests {
             usage_count: Some(0),
             enabled: Some(true),
             other: IndexMap::new(),
+            ..Default::default()
+        }
+    }
+
+    fn create_deepseek_like_section() -> ConfigSection {
+        ConfigSection {
+            description: Some("DeepSeek".into()),
+            base_url: Some("https://api.deepseek.com/anthropic".into()),
+            auth_token: Some("sk-deepseek".into()),
+            model: Some("deepseek-v4-pro".into()),
+            small_fast_model: Some("deepseek-v4-flash".into()),
+            default_opus_model: Some("deepseek-v4-pro".into()),
+            default_sonnet_model: Some("deepseek-v4-pro".into()),
+            default_haiku_model: Some("deepseek-v4-flash".into()),
+            subagent_model: Some("deepseek-v4-flash".into()),
+            effort_level: Some("max".into()),
+            ..Default::default()
         }
     }
 
@@ -913,6 +988,57 @@ mod tests {
             settings.env.get("ANTHROPIC_MODEL"),
             Some(&"test-model".to_string())
         );
+    }
+
+    #[test]
+    fn test_claude_settings_update_from_config_writes_extended_envs() {
+        let mut settings = ClaudeSettings::new();
+        let config = create_deepseek_like_section();
+
+        settings.update_from_config(&config);
+
+        assert_eq!(
+            settings.env.get("ANTHROPIC_DEFAULT_OPUS_MODEL"),
+            Some(&"deepseek-v4-pro".to_string())
+        );
+        assert_eq!(
+            settings.env.get("ANTHROPIC_DEFAULT_SONNET_MODEL"),
+            Some(&"deepseek-v4-pro".to_string())
+        );
+        assert_eq!(
+            settings.env.get("ANTHROPIC_DEFAULT_HAIKU_MODEL"),
+            Some(&"deepseek-v4-flash".to_string())
+        );
+        assert_eq!(
+            settings.env.get("CLAUDE_CODE_SUBAGENT_MODEL"),
+            Some(&"deepseek-v4-flash".to_string())
+        );
+        assert_eq!(
+            settings.env.get("CLAUDE_CODE_EFFORT_LEVEL"),
+            Some(&"max".to_string())
+        );
+    }
+
+    #[test]
+    fn test_claude_settings_clear_managed_vars_drops_claude_code_keys() {
+        let mut settings = ClaudeSettings::new();
+        settings
+            .env
+            .insert("ANTHROPIC_BASE_URL".into(), "test".into());
+        settings
+            .env
+            .insert("CLAUDE_CODE_SUBAGENT_MODEL".into(), "x".into());
+        settings
+            .env
+            .insert("CLAUDE_CODE_EFFORT_LEVEL".into(), "max".into());
+        settings.env.insert("OTHER_VAR".into(), "keep".into());
+
+        settings.clear_managed_vars();
+
+        assert!(!settings.env.contains_key("ANTHROPIC_BASE_URL"));
+        assert!(!settings.env.contains_key("CLAUDE_CODE_SUBAGENT_MODEL"));
+        assert!(!settings.env.contains_key("CLAUDE_CODE_EFFORT_LEVEL"));
+        assert!(settings.env.contains_key("OTHER_VAR"));
     }
 
     #[test]

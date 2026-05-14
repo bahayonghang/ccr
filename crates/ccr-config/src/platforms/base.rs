@@ -133,6 +133,11 @@ pub fn section_to_profile(section: &ConfigSection) -> ProfileConfig {
         auth_token: section.auth_token.clone(),
         model: section.model.clone(),
         small_fast_model: section.small_fast_model.clone(),
+        default_opus_model: section.default_opus_model.clone(),
+        default_sonnet_model: section.default_sonnet_model.clone(),
+        default_haiku_model: section.default_haiku_model.clone(),
+        subagent_model: section.subagent_model.clone(),
+        effort_level: section.effort_level.clone(),
         provider: section.provider.clone(),
         provider_type: section
             .provider_type
@@ -164,6 +169,11 @@ pub fn profile_to_section(profile: &ProfileConfig) -> Result<ConfigSection> {
         auth_token: profile.auth_token.clone(),
         model: profile.model.clone(),
         small_fast_model: profile.small_fast_model.clone(),
+        default_opus_model: profile.default_opus_model.clone(),
+        default_sonnet_model: profile.default_sonnet_model.clone(),
+        default_haiku_model: profile.default_haiku_model.clone(),
+        subagent_model: profile.subagent_model.clone(),
+        effort_level: profile.effort_level.clone(),
         provider: profile.provider.clone(),
         provider_type,
         account: profile.account.clone(),
@@ -588,6 +598,7 @@ mod tests {
             usage_count: Some(5),
             enabled: Some(true),
             other: indexmap::IndexMap::new(),
+            ..Default::default()
         };
 
         let profile = section_to_profile(&section);

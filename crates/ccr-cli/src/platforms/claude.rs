@@ -277,7 +277,7 @@ impl PlatformConfig for ClaudePlatform {
 
         match auth_mode {
             ClaudeProfileAuthMode::Subscription => {
-                settings.clear_anthropic_vars();
+                settings.clear_managed_vars();
             }
             ClaudeProfileAuthMode::ApiKey => {
                 settings.update_from_config(&section);
@@ -315,6 +315,11 @@ impl PlatformConfig for ClaudePlatform {
             "ANTHROPIC_AUTH_TOKEN".into(),
             "ANTHROPIC_MODEL".into(),
             "ANTHROPIC_SMALL_FAST_MODEL".into(),
+            "ANTHROPIC_DEFAULT_OPUS_MODEL".into(),
+            "ANTHROPIC_DEFAULT_SONNET_MODEL".into(),
+            "ANTHROPIC_DEFAULT_HAIKU_MODEL".into(),
+            "CLAUDE_CODE_SUBAGENT_MODEL".into(),
+            "CLAUDE_CODE_EFFORT_LEVEL".into(),
         ]
     }
 }
@@ -436,6 +441,7 @@ mod tests {
             usage_count: Some(0),
             enabled: Some(true),
             other: indexmap::IndexMap::new(),
+            ..Default::default()
         };
 
         let profile = ClaudePlatform::section_to_profile(&section);
