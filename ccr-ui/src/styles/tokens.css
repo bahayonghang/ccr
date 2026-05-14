@@ -588,3 +588,244 @@
     --breakpoint-xl: 1280px;
     --breakpoint-2xl: 1536px;
 }
+
+/* ========== Flavor：底色族（与 data-theme 正交） ========== */
+
+/* clay 为默认，等价 :root + [data-theme="light/dark"]，无需显式块 */
+
+/* --- paper（亮）：更纯净的纸面感 --- */
+[data-flavor="paper"] {
+    --color-bg-base: #fafafa;
+    --color-bg-base-rgb: 250 250 250;
+    --color-bg-elevated: #fff;
+    --color-bg-elevated-rgb: 255 255 255;
+    --color-bg-surface: #f4f4f5;
+    --color-bg-surface-rgb: 244 244 245;
+    --color-bg-overlay: #e5e5e7;
+    --color-bg-overlay-rgb: 229 229 231;
+    --color-text-primary: #1a1a1c;
+    --color-text-primary-rgb: 26 26 28;
+    --color-text-secondary: #3f3f46;
+    --color-text-secondary-rgb: 63 63 70;
+    --color-text-muted: #6b6b70;
+    --color-text-muted-rgb: 107 107 112;
+    --color-border-default: rgb(20 20 22 / 12%);
+    --color-border-default-rgb: 20 20 22;
+}
+
+/* --- paper（暗）--- */
+[data-theme="dark"][data-flavor="paper"] {
+    --color-bg-base: #1a1a1c;
+    --color-bg-base-rgb: 26 26 28;
+    --color-bg-elevated: #232325;
+    --color-bg-elevated-rgb: 35 35 37;
+    --color-bg-surface: #2a2a2d;
+    --color-bg-surface-rgb: 42 42 45;
+    --color-bg-overlay: #34343a;
+    --color-bg-overlay-rgb: 52 52 58;
+    --color-text-primary: #f2f2f4;
+    --color-text-primary-rgb: 242 242 244;
+    --color-text-secondary: #d4d4d8;
+    --color-text-secondary-rgb: 212 212 216;
+    --color-text-muted: #a1a1a8;
+    --color-text-muted-rgb: 161 161 168;
+    --color-border-default: rgb(240 240 244 / 12%);
+    --color-border-default-rgb: 240 240 244;
+}
+
+/* --- graphite（亮）：冷中性轴 --- */
+[data-flavor="graphite"] {
+    --color-bg-base: #ececee;
+    --color-bg-base-rgb: 236 236 238;
+    --color-bg-elevated: #f6f6f8;
+    --color-bg-elevated-rgb: 246 246 248;
+    --color-bg-surface: #fafafc;
+    --color-bg-surface-rgb: 250 250 252;
+    --color-bg-overlay: #dcdce0;
+    --color-bg-overlay-rgb: 220 220 224;
+    --color-text-primary: #1f2024;
+    --color-text-primary-rgb: 31 32 36;
+    --color-text-secondary: #43464c;
+    --color-text-secondary-rgb: 67 70 76;
+    --color-text-muted: #6a6e76;
+    --color-text-muted-rgb: 106 110 118;
+    --color-border-default: rgb(31 32 36 / 13%);
+    --color-border-default-rgb: 31 32 36;
+}
+
+/* --- graphite（暗）--- */
+[data-theme="dark"][data-flavor="graphite"] {
+    --color-bg-base: #14161a;
+    --color-bg-base-rgb: 20 22 26;
+    --color-bg-elevated: #1d1f23;
+    --color-bg-elevated-rgb: 29 31 35;
+    --color-bg-surface: #25272c;
+    --color-bg-surface-rgb: 37 39 44;
+    --color-bg-overlay: #2e3036;
+    --color-bg-overlay-rgb: 46 48 54;
+    --color-text-primary: #eceef2;
+    --color-text-primary-rgb: 236 238 242;
+    --color-text-secondary: #c7cad1;
+    --color-text-secondary-rgb: 199 202 209;
+    --color-text-muted: #989ca6;
+    --color-text-muted-rgb: 152 156 166;
+    --color-border-default: rgb(236 238 242 / 12%);
+    --color-border-default-rgb: 236 238 242;
+}
+
+/* ========== Accent：强调色覆盖（仅 primary 家族 + border-accent） ========== */
+
+/* 每个 accent 提供 light/dark 两套覆盖。clay 显式声明以便从其他 accent 切回时恢复。 */
+
+/* --- clay（默认）--- */
+[data-accent="clay"] {
+    --color-accent-primary: #d97757;
+    --color-accent-primary-hover: #e48667;
+    --color-accent-primary-active: #c96c4d;
+    --color-accent-primary-rgb: 217 119 87;
+    --color-accent-primary-glow: rgb(217 119 87 / 10%);
+    --color-border-accent: rgb(217 119 87 / 18%);
+}
+
+[data-theme="dark"][data-accent="clay"] {
+    --color-accent-primary: #e79a77;
+    --color-accent-primary-hover: #efaa89;
+    --color-accent-primary-active: #d88b69;
+    --color-accent-primary-rgb: 231 154 119;
+    --color-accent-primary-glow: rgb(231 154 119 / 16%);
+    --color-border-accent: rgb(231 154 119 / 24%);
+}
+
+/* --- sand --- */
+[data-accent="sand"] {
+    --color-accent-primary: #b99666;
+    --color-accent-primary-hover: #c6a777;
+    --color-accent-primary-active: #a98658;
+    --color-accent-primary-rgb: 185 150 102;
+    --color-accent-primary-glow: rgb(185 150 102 / 10%);
+    --color-border-accent: rgb(185 150 102 / 18%);
+}
+
+[data-theme="dark"][data-accent="sand"] {
+    --color-accent-primary: #d0ae86;
+    --color-accent-primary-hover: #d9bb96;
+    --color-accent-primary-active: #c3a177;
+    --color-accent-primary-rgb: 208 174 134;
+    --color-accent-primary-glow: rgb(208 174 134 / 16%);
+    --color-border-accent: rgb(208 174 134 / 24%);
+}
+
+/* --- sage --- */
+[data-accent="sage"] {
+    --color-accent-primary: #5b8a62;
+    --color-accent-primary-hover: #67996f;
+    --color-accent-primary-active: #4f7855;
+    --color-accent-primary-rgb: 91 138 98;
+    --color-accent-primary-glow: rgb(91 138 98 / 10%);
+    --color-border-accent: rgb(91 138 98 / 18%);
+}
+
+[data-theme="dark"][data-accent="sage"] {
+    --color-accent-primary: #7cab82;
+    --color-accent-primary-hover: #8bbb91;
+    --color-accent-primary-active: #6fa176;
+    --color-accent-primary-rgb: 124 171 130;
+    --color-accent-primary-glow: rgb(124 171 130 / 16%);
+    --color-border-accent: rgb(124 171 130 / 24%);
+}
+
+/* --- sky --- */
+[data-accent="sky"] {
+    --color-accent-primary: #7d97b6;
+    --color-accent-primary-hover: #8ea8c6;
+    --color-accent-primary-active: #6e88a8;
+    --color-accent-primary-rgb: 125 151 182;
+    --color-accent-primary-glow: rgb(125 151 182 / 10%);
+    --color-border-accent: rgb(125 151 182 / 18%);
+}
+
+[data-theme="dark"][data-accent="sky"] {
+    --color-accent-primary: #98afc9;
+    --color-accent-primary-hover: #a7bdd4;
+    --color-accent-primary-active: #88a0bd;
+    --color-accent-primary-rgb: 152 175 201;
+    --color-accent-primary-glow: rgb(152 175 201 / 16%);
+    --color-border-accent: rgb(152 175 201 / 24%);
+}
+
+/* --- mauve --- */
+[data-accent="mauve"] {
+    --color-accent-primary: #9c7f94;
+    --color-accent-primary-hover: #ac8ea4;
+    --color-accent-primary-active: #8a6f83;
+    --color-accent-primary-rgb: 156 127 148;
+    --color-accent-primary-glow: rgb(156 127 148 / 10%);
+    --color-border-accent: rgb(156 127 148 / 18%);
+}
+
+[data-theme="dark"][data-accent="mauve"] {
+    --color-accent-primary: #b89bb0;
+    --color-accent-primary-hover: #c4abbc;
+    --color-accent-primary-active: #a78ca0;
+    --color-accent-primary-rgb: 184 155 176;
+    --color-accent-primary-glow: rgb(184 155 176 / 16%);
+    --color-border-accent: rgb(184 155 176 / 24%);
+}
+
+/* --- amber --- */
+[data-accent="amber"] {
+    --color-accent-primary: #bc8540;
+    --color-accent-primary-hover: #ca9453;
+    --color-accent-primary-active: #a87534;
+    --color-accent-primary-rgb: 188 133 64;
+    --color-accent-primary-glow: rgb(188 133 64 / 10%);
+    --color-border-accent: rgb(188 133 64 / 18%);
+}
+
+[data-theme="dark"][data-accent="amber"] {
+    --color-accent-primary: #d6a76d;
+    --color-accent-primary-hover: #dfb47d;
+    --color-accent-primary-active: #c4965d;
+    --color-accent-primary-rgb: 214 167 109;
+    --color-accent-primary-glow: rgb(214 167 109 / 16%);
+    --color-border-accent: rgb(214 167 109 / 24%);
+}
+
+/* --- rose --- */
+[data-accent="rose"] {
+    --color-accent-primary: #c76953;
+    --color-accent-primary-hover: #d57a65;
+    --color-accent-primary-active: #b35a47;
+    --color-accent-primary-rgb: 199 105 83;
+    --color-accent-primary-glow: rgb(199 105 83 / 10%);
+    --color-border-accent: rgb(199 105 83 / 18%);
+}
+
+[data-theme="dark"][data-accent="rose"] {
+    --color-accent-primary: #db8a73;
+    --color-accent-primary-hover: #e59b86;
+    --color-accent-primary-active: #c87a63;
+    --color-accent-primary-rgb: 219 138 115;
+    --color-accent-primary-glow: rgb(219 138 115 / 16%);
+    --color-border-accent: rgb(219 138 115 / 24%);
+}
+
+/* --- slate --- */
+[data-accent="slate"] {
+    --color-accent-primary: #857367;
+    --color-accent-primary-hover: #948276;
+    --color-accent-primary-active: #74635a;
+    --color-accent-primary-rgb: 133 115 103;
+    --color-accent-primary-glow: rgb(133 115 103 / 10%);
+    --color-border-accent: rgb(133 115 103 / 18%);
+}
+
+[data-theme="dark"][data-accent="slate"] {
+    --color-accent-primary: #b9a695;
+    --color-accent-primary-hover: #c4b3a3;
+    --color-accent-primary-active: #a69585;
+    --color-accent-primary-rgb: 185 166 149;
+    --color-accent-primary-glow: rgb(185 166 149 / 16%);
+    --color-border-accent: rgb(185 166 149 / 24%);
+}
+
