@@ -13,10 +13,18 @@ import {
 } from '@/i18n'
 import { isPerfTelemetryEnabled, setPerfTelemetryEnabled } from '@/utils/perfTelemetry'
 import {
+  applyAccentToDocument,
+  applyFlavorToDocument,
   applyThemeToDocument,
+  persistAccent,
+  persistFlavor,
   persistTheme,
+  readStoredAccent,
+  readStoredFlavor,
   readStoredTheme,
   resolveThemeMode,
+  type AccentMode,
+  type FlavorMode,
   type ResolvedThemeMode,
   type ThemeMode,
 } from '@/utils/themeBootstrap'
@@ -58,6 +66,8 @@ const persistSidebarWidth = (value: number): void => {
 export const useShellPreferencesStore = defineStore('shellPreferences', () => {
   const theme = ref<ThemeMode>(readStoredTheme())
   const effectiveTheme = ref<ResolvedThemeMode>(resolveThemeMode(theme.value))
+  const flavor = ref<FlavorMode>(readStoredFlavor())
+  const accent = ref<AccentMode>(readStoredAccent())
   const locale = ref<SupportedLocale>(readStoredLocale())
   const sidebarWidth = ref<number>(readStoredSidebarWidth())
   const confirmBeforeExit = ref(true)
@@ -70,7 +80,11 @@ export const useShellPreferencesStore = defineStore('shellPreferences', () => {
 
   const initializeTheme = (): void => {
     theme.value = readStoredTheme()
+    flavor.value = readStoredFlavor()
+    accent.value = readStoredAccent()
     effectiveTheme.value = applyThemeToDocument(theme.value)
+    applyFlavorToDocument(flavor.value)
+    applyAccentToDocument(accent.value)
   }
 
   const setThemePreference = (nextTheme: ThemeMode): void => {
@@ -82,6 +96,18 @@ export const useShellPreferencesStore = defineStore('shellPreferences', () => {
   const toggleThemePreference = (): void => {
     const nextTheme = effectiveTheme.value === 'dark' ? 'light' : 'dark'
     setThemePreference(nextTheme)
+  }
+
+  const setFlavorPreference = (nextFlavor: FlavorMode): void => {
+    flavor.value = nextFlavor
+    persistFlavor(nextFlavor)
+    applyFlavorToDocument(nextFlavor)
+  }
+
+  const setAccentPreference = (nextAccent: AccentMode): void => {
+    accent.value = nextAccent
+    persistAccent(nextAccent)
+    applyAccentToDocument(nextAccent)
   }
 
   const setLocalePreference = async (nextLocale: string): Promise<SupportedLocale> => {
@@ -172,6 +198,8 @@ export const useShellPreferencesStore = defineStore('shellPreferences', () => {
   return {
     theme,
     effectiveTheme,
+    flavor,
+    accent,
     locale,
     localeLabel,
     sidebarWidth,
@@ -183,6 +211,8 @@ export const useShellPreferencesStore = defineStore('shellPreferences', () => {
     initializeTheme,
     setTheme: setThemePreference,
     toggleTheme: toggleThemePreference,
+    setFlavor: setFlavorPreference,
+    setAccent: setAccentPreference,
     setLocalePreference,
     updateSidebarWidth,
     commitSidebarWidth,

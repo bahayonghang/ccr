@@ -1,8 +1,35 @@
 export type ThemeMode = 'light' | 'dark' | 'system'
 export type ResolvedThemeMode = 'light' | 'dark'
+export type FlavorMode = 'clay' | 'paper' | 'graphite'
+export type AccentMode =
+  | 'clay'
+  | 'sand'
+  | 'sage'
+  | 'sky'
+  | 'mauve'
+  | 'amber'
+  | 'rose'
+  | 'slate'
 
 const THEME_STORAGE_KEY = 'ccr-theme'
+const FLAVOR_STORAGE_KEY = 'ccr-flavor'
+const ACCENT_STORAGE_KEY = 'ccr-accent'
 const THEME_MEDIA_QUERY = '(prefers-color-scheme: dark)'
+
+export const FLAVOR_MODES: readonly FlavorMode[] = ['clay', 'paper', 'graphite'] as const
+export const ACCENT_MODES: readonly AccentMode[] = [
+  'clay',
+  'sand',
+  'sage',
+  'sky',
+  'mauve',
+  'amber',
+  'rose',
+  'slate',
+] as const
+
+export const DEFAULT_FLAVOR: FlavorMode = 'clay'
+export const DEFAULT_ACCENT: AccentMode = 'clay'
 
 let systemThemeMediaQuery: MediaQueryList | null = null
 let systemThemeListenerRegistered = false
@@ -83,9 +110,79 @@ export const persistTheme = (theme: ThemeMode): void => {
   }
 }
 
+const isFlavorMode = (value: unknown): value is FlavorMode => {
+  return typeof value === 'string' && (FLAVOR_MODES as readonly string[]).includes(value)
+}
+
+const isAccentMode = (value: unknown): value is AccentMode => {
+  return typeof value === 'string' && (ACCENT_MODES as readonly string[]).includes(value)
+}
+
+export const readStoredFlavor = (): FlavorMode => {
+  if (typeof window === 'undefined') {
+    return DEFAULT_FLAVOR
+  }
+
+  try {
+    const stored = localStorage.getItem(FLAVOR_STORAGE_KEY)
+    return isFlavorMode(stored) ? stored : DEFAULT_FLAVOR
+  } catch {
+    return DEFAULT_FLAVOR
+  }
+}
+
+export const readStoredAccent = (): AccentMode => {
+  if (typeof window === 'undefined') {
+    return DEFAULT_ACCENT
+  }
+
+  try {
+    const stored = localStorage.getItem(ACCENT_STORAGE_KEY)
+    return isAccentMode(stored) ? stored : DEFAULT_ACCENT
+  } catch {
+    return DEFAULT_ACCENT
+  }
+}
+
+export const persistFlavor = (flavor: FlavorMode): void => {
+  if (typeof window === 'undefined') return
+
+  try {
+    localStorage.setItem(FLAVOR_STORAGE_KEY, flavor)
+  } catch {
+    // 忽略存储异常，保留当前 UI 状态即可。
+  }
+}
+
+export const persistAccent = (accent: AccentMode): void => {
+  if (typeof window === 'undefined') return
+
+  try {
+    localStorage.setItem(ACCENT_STORAGE_KEY, accent)
+  } catch {
+    // 忽略存储异常，保留当前 UI 状态即可。
+  }
+}
+
+export const applyFlavorToDocument = (flavor: FlavorMode): FlavorMode => {
+  if (typeof document !== 'undefined') {
+    document.documentElement.setAttribute('data-flavor', flavor)
+  }
+  return flavor
+}
+
+export const applyAccentToDocument = (accent: AccentMode): AccentMode => {
+  if (typeof document !== 'undefined') {
+    document.documentElement.setAttribute('data-accent', accent)
+  }
+  return accent
+}
+
 export const applyInitialTheme = (): ThemeMode => {
   const theme = readStoredTheme()
   applyThemeToDocument(theme)
+  applyFlavorToDocument(readStoredFlavor())
+  applyAccentToDocument(readStoredAccent())
   return theme
 }
 

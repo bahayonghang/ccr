@@ -44,6 +44,8 @@ beforeEach(() => {
   localStorage.clear()
   document.documentElement.className = ''
   document.documentElement.removeAttribute('data-theme')
+  document.documentElement.removeAttribute('data-flavor')
+  document.documentElement.removeAttribute('data-accent')
   vi.resetModules()
 })
 
@@ -81,6 +83,65 @@ describe('themeBootstrap smoke', () => {
 
     expect(document.documentElement.getAttribute('data-theme')).toBe('light')
     expect(document.documentElement.classList.contains('dark')).toBe(false)
+    themeBootstrap.__resetThemeBootstrapForTests()
+  })
+
+  it('defaults flavor and accent to clay when nothing is persisted and seeds DOM dataset attributes', async () => {
+    installMatchMediaController(false)
+
+    const themeBootstrap = await import('@/utils/themeBootstrap')
+
+    expect(themeBootstrap.readStoredFlavor()).toBe('clay')
+    expect(themeBootstrap.readStoredAccent()).toBe('clay')
+
+    themeBootstrap.applyInitialTheme()
+    await flushAsyncImport()
+
+    expect(document.documentElement.getAttribute('data-flavor')).toBe('clay')
+    expect(document.documentElement.getAttribute('data-accent')).toBe('clay')
+    themeBootstrap.__resetThemeBootstrapForTests()
+  })
+
+  it('persists and rehydrates non-default flavor and accent independently of theme mode', async () => {
+    localStorage.setItem('ccr-theme', 'system')
+    localStorage.setItem('ccr-flavor', 'graphite')
+    localStorage.setItem('ccr-accent', 'sage')
+    installMatchMediaController(true)
+
+    const themeBootstrap = await import('@/utils/themeBootstrap')
+
+    expect(themeBootstrap.readStoredFlavor()).toBe('graphite')
+    expect(themeBootstrap.readStoredAccent()).toBe('sage')
+
+    themeBootstrap.applyInitialTheme()
+    await flushAsyncImport()
+
+    expect(document.documentElement.getAttribute('data-theme')).toBe('dark')
+    expect(document.documentElement.getAttribute('data-flavor')).toBe('graphite')
+    expect(document.documentElement.getAttribute('data-accent')).toBe('sage')
+
+    themeBootstrap.persistFlavor('paper')
+    themeBootstrap.applyFlavorToDocument('paper')
+    expect(localStorage.getItem('ccr-flavor')).toBe('paper')
+    expect(document.documentElement.getAttribute('data-flavor')).toBe('paper')
+
+    themeBootstrap.persistAccent('amber')
+    themeBootstrap.applyAccentToDocument('amber')
+    expect(localStorage.getItem('ccr-accent')).toBe('amber')
+    expect(document.documentElement.getAttribute('data-accent')).toBe('amber')
+
+    themeBootstrap.__resetThemeBootstrapForTests()
+  })
+
+  it('rejects invalid flavor and accent values from storage and falls back to clay', async () => {
+    localStorage.setItem('ccr-flavor', 'macchiato')
+    localStorage.setItem('ccr-accent', 'lavender')
+    installMatchMediaController(false)
+
+    const themeBootstrap = await import('@/utils/themeBootstrap')
+
+    expect(themeBootstrap.readStoredFlavor()).toBe('clay')
+    expect(themeBootstrap.readStoredAccent()).toBe('clay')
     themeBootstrap.__resetThemeBootstrapForTests()
   })
 })
