@@ -3,7 +3,7 @@
     <div class="checkin-accounts-tab__panel">
       <div class="checkin-accounts-tab__toolbar">
         <h2 class="checkin-accounts-tab__title">
-          签到账号
+          {{ t('checkin.accounts.title') }}
         </h2>
         <!-- 搜索和过滤区域 -->
         <div class="checkin-accounts-tab__filters">
@@ -12,7 +12,7 @@
             <input
               v-model="searchQuery"
               type="text"
-              placeholder="搜索账号..."
+              :placeholder="t('checkin.accounts.searchPlaceholder')"
               class="checkin-accounts-tab__input checkin-accounts-tab__input--search"
             >
             <svg
@@ -35,7 +35,7 @@
             class="checkin-accounts-tab__input checkin-accounts-tab__select"
           >
             <option value="all">
-              全部提供商
+              {{ t('checkin.accounts.allProviders') }}
             </option>
             <option
               v-for="p in providers"
@@ -65,18 +65,24 @@
                 d="M12 4v16m8-8H4"
               />
             </svg>
-            <span>添加账号</span>
+            <span>{{ t('checkin.accounts.addAccount') }}</span>
           </button>
           <button
             :disabled="builtinProviders.filter((p) => p.oauth_config).length === 0"
             class="checkin-accounts-tab__action-button checkin-accounts-tab__action-button--secondary"
+            :title="
+              builtinProviders.filter((p) => p.oauth_config).length === 0
+                ? t('checkin.actions.oauthLoginUnavailable')
+                : t('checkin.actions.oauthLoginTitle')
+            "
             @click="emit('show-oauth-wizard')"
           >
             <SIcon
               name="Shield"
               size="w-5 h-5"
+              class="checkin-accounts-tab__action-button-icon"
             />
-            <span>OAuth 登录</span>
+            <span>{{ t('checkin.actions.oauthLogin') }}</span>
           </button>
         </div>
       </div>
@@ -87,7 +93,7 @@
       v-if="accounts.length === 0"
       class="checkin-accounts-tab__empty"
     >
-      {{ providers.length === 0 ? '请先添加提供商' : '暂无账号，点击上方按钮添加' }}
+      {{ providers.length === 0 ? t('checkin.accounts.emptyNoProviders') : t('checkin.accounts.emptyNoAccounts') }}
     </div>
     <div
       v-else
@@ -97,22 +103,22 @@
         <thead class="checkin-accounts-tab__table-head">
           <tr>
             <th class="checkin-accounts-tab__th">
-              账号名
+              {{ t('checkin.accounts.columns.account') }}
             </th>
             <th class="checkin-accounts-tab__th checkin-accounts-tab__th--right">
-              余额
+              {{ t('checkin.accounts.columns.balance') }}
             </th>
             <th class="checkin-accounts-tab__th checkin-accounts-tab__th--right">
-              总额度
+              {{ t('checkin.accounts.columns.totalQuota') }}
             </th>
             <th class="checkin-accounts-tab__th checkin-accounts-tab__th--right">
-              历史消耗
+              {{ t('checkin.accounts.columns.totalConsumed') }}
             </th>
             <th class="checkin-accounts-tab__th">
-              最后签到
+              {{ t('checkin.accounts.columns.lastCheckin') }}
             </th>
             <th class="checkin-accounts-tab__th checkin-accounts-tab__th--actions">
-              操作
+              {{ t('checkin.accounts.columns.actions') }}
             </th>
           </tr>
         </thead>
@@ -192,14 +198,18 @@
                 <button
                   :disabled="props.checkinLoading"
                   class="checkin-accounts-tab__mini-button"
+                  :title="props.checkinLoading ? t('checkin.actions.checking') : t('checkin.actions.checkIn')"
                   @click="emit('checkin', account.id)"
                 >
                   <SIcon
-                    name="Calendar"
+                    :name="props.checkinLoading ? 'Loader2' : 'Calendar'"
                     size="w-3 h-3"
-                    class="checkin-accounts-tab__mini-button-icon"
+                    :class="[
+                      'checkin-accounts-tab__mini-button-icon',
+                      { 'animate-spin': props.checkinLoading },
+                    ]"
                   />
-                  签到
+                  <span class="checkin-accounts-tab__mini-button-label">{{ props.checkinLoading ? t('checkin.actions.checking') : t('checkin.actions.checkIn') }}</span>
                 </button>
                 <div class="checkin-accounts-tab__menu-wrap">
                   <button
@@ -241,19 +251,19 @@
         class="checkin-accounts-tab__menu-item checkin-accounts-tab__menu-item--top"
         @click="emit('refresh-balance', activeMenuAccount.id); closeAccountMenu()"
       >
-        刷新余额
+        {{ t('checkin.actions.refreshBalance') }}
       </button>
       <button
         class="checkin-accounts-tab__menu-item"
         @click="openAccountModal(activeMenuAccount); closeAccountMenu()"
       >
-        编辑
+        {{ t('checkin.accounts.edit') }}
       </button>
       <button
         class="checkin-accounts-tab__menu-item checkin-accounts-tab__menu-item--danger"
         @click="deleteAccount(activeMenuAccount.id); closeAccountMenu()"
       >
-        删除
+        {{ t('checkin.accounts.delete') }}
       </button>
     </div>
   </Teleport>
@@ -269,7 +279,7 @@
       <div class="checkin-accounts-tab__modal-header">
         <div class="checkin-accounts-tab__modal-header-copy">
           <p class="checkin-accounts-tab__modal-eyebrow">
-            {{ editingAccount ? '更新签到凭证与扩展配置' : '创建新的签到账号入口' }}
+            {{ editingAccount ? t('checkin.accounts.modal.editEyebrow') : t('checkin.accounts.modal.createEyebrow') }}
           </p>
           <h3
             :id="titleId"
@@ -280,13 +290,13 @@
               size="w-5 h-5"
               class="checkin-accounts-tab__modal-title-icon"
             />
-            {{ editingAccount ? '编辑账号' : '添加账号' }}
+            {{ editingAccount ? t('checkin.accounts.editAccount') : t('checkin.accounts.addAccount') }}
           </h3>
           <p class="checkin-accounts-tab__modal-subtitle">
             {{
               editingAccount
-                ? '留空的 Session 不会覆盖旧凭证，适合只调整名称、开关或扩展配置。'
-                : '支持直接录入单值 Session，也支持完整 cookies JSON。'
+                ? t('checkin.accounts.modal.editSubtitle')
+                : t('checkin.accounts.modal.createSubtitle')
             }}
           </p>
         </div>
@@ -298,16 +308,16 @@
             v-if="selectedBuiltinProvider?.requires_waf_bypass"
             class="checkin-accounts-tab__modal-badge checkin-accounts-tab__modal-badge--warning"
           >
-            需要 WAF
+            {{ t('checkin.accounts.modal.requiresWaf') }}
           </span>
         </div>
       </div>
     </template>
 
     <div class="checkin-accounts-tab__modal-intro">
-      <span class="checkin-accounts-tab__modal-intro-pill"> Session 支持单值 / JSON </span>
-      <span class="checkin-accounts-tab__modal-intro-pill"> API User 为必填 </span>
-      <span class="checkin-accounts-tab__modal-intro-pill"> 编辑时空白不覆盖旧凭证 </span>
+      <span class="checkin-accounts-tab__modal-intro-pill">{{ t('checkin.accounts.modal.introSession') }}</span>
+      <span class="checkin-accounts-tab__modal-intro-pill">{{ t('checkin.accounts.modal.introApiUser') }}</span>
+      <span class="checkin-accounts-tab__modal-intro-pill">{{ t('checkin.accounts.modal.introNoOverwrite') }}</span>
     </div>
 
     <div class="checkin-accounts-tab__modal-scroll">
@@ -319,7 +329,7 @@
         <!-- 提供商选择 -->
         <div class="checkin-accounts-tab__field">
           <label class="checkin-accounts-tab__label">
-            <span class="text-red-500">*</span> 提供商
+            <span class="text-red-500">*</span> {{ t('checkin.accounts.fields.provider') }}
           </label>
           <select
             v-model="accountForm.provider_id"
@@ -328,7 +338,7 @@
             class="checkin-accounts-tab__control"
           >
             <option value="">
-              选择提供商
+              {{ t('checkin.accounts.fields.selectProvider') }}
             </option>
             <option
               v-for="p in providers"
@@ -343,14 +353,14 @@
         <!-- 账号名称 -->
         <div class="checkin-accounts-tab__field">
           <label class="checkin-accounts-tab__label">
-            <span class="text-red-500">*</span> 账号名称
+            <span class="text-red-500">*</span> {{ t('checkin.accounts.fields.accountName') }}
           </label>
           <input
             v-model="accountForm.name"
             type="text"
             required
             class="checkin-accounts-tab__control"
-            placeholder="例如: 主账号"
+            :placeholder="t('checkin.accounts.fields.accountNamePlaceholder')"
           >
         </div>
 
@@ -364,14 +374,14 @@
             <span
               v-if="editingAccount"
               class="text-text-muted font-normal"
-            >(留空不修改)</span>
+            >{{ t('checkin.accounts.fields.leaveBlank') }}</span>
           </label>
           <textarea
             v-model="accountForm.session"
             :required="!editingAccount"
             rows="5"
             class="checkin-accounts-tab__control checkin-accounts-tab__control--textarea checkin-accounts-tab__control--mono"
-            placeholder="可直接粘贴 session 值，或完整 cookies JSON"
+            :placeholder="t('checkin.accounts.fields.sessionPlaceholder')"
           />
           <p class="checkin-accounts-tab__hint checkin-accounts-tab__hint--with-icon">
             <svg
@@ -387,8 +397,7 @@
                 d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
               />
             </svg>
-            可直接粘贴 session 值，后台会自动包装为 cookies JSON；如果你已经拿到完整 cookies
-            JSON，也可以直接粘贴
+            {{ t('checkin.accounts.fields.sessionHint') }}
           </p>
         </div>
 
@@ -405,8 +414,18 @@
             placeholder="12345"
           >
           <p class="checkin-accounts-tab__hint">
-            使用 session / cookies 登录时必须填写。优先从 Local Storage 的
-            <code>user.id</code> 获取，也可从请求头里的 <code>new-api-user</code> 找到
+            <i18n-t
+              keypath="checkin.accounts.fields.apiUserHint"
+              scope="global"
+              tag="span"
+            >
+              <template #userId>
+                <code>user.id</code>
+              </template>
+              <template #header>
+                <code>new-api-user</code>
+              </template>
+            </i18n-t>
           </p>
         </div>
 
@@ -415,12 +434,12 @@
           class="checkin-accounts-tab__notice checkin-accounts-tab__notice--warning"
         >
           <p class="checkin-accounts-tab__notice-title checkin-accounts-tab__notice-title--warning">
-            {{ selectedBuiltinProvider.name }} 需要额外的 WAF 步骤
+            {{ t('checkin.accounts.waf.title', { provider: selectedBuiltinProvider.name }) }}
           </p>
           <ol class="checkin-accounts-tab__notice-list checkin-accounts-tab__notice-list--warning">
-            <li>先保存 <code>session / cookies</code> 和 <code>api_user</code></li>
-            <li>回到“提供商”页，为 {{ selectedBuiltinProvider.name }} 点击“获取 Cookie”</li>
-            <li>获取 WAF Cookie 的网页登录过程，必须与签到请求使用同一代理/出口</li>
+            <li>{{ t('checkin.accounts.waf.stepSave') }}</li>
+            <li>{{ t('checkin.accounts.waf.stepProviders', { provider: selectedBuiltinProvider.name }) }}</li>
+            <li>{{ t('checkin.accounts.waf.stepProxy') }}</li>
           </ol>
         </div>
 
@@ -430,14 +449,13 @@
           class="checkin-accounts-tab__notice checkin-accounts-tab__notice--amber"
         >
           <p class="checkin-accounts-tab__notice-title checkin-accounts-tab__notice-title--amber">
-            🎰 CDK 充值配置
+            {{ t('checkin.accounts.cdk.title') }}
             <span class="checkin-accounts-tab__notice-title-meta">
-              ({{ selectedProviderCdkConfig.cdk_type }} - 可选)
+              {{ t('checkin.accounts.cdk.typeOptional', { type: selectedProviderCdkConfig.cdk_type }) }}
             </span>
           </p>
           <p class="checkin-accounts-tab__notice-copy">
-            此提供商支持 CDK 充值码自动获取，签到后会自动尝试获取并充值。
-            需要配置对应福利站的登录凭证。
+            {{ t('checkin.accounts.cdk.description') }}
           </p>
 
           <!-- runawaytime: fuli cookies -->
@@ -455,7 +473,7 @@
               placeholder="{&quot;session&quot;: &quot;xxx&quot;, &quot;token&quot;: &quot;xxx&quot;}"
             />
             <p class="checkin-accounts-tab__hint checkin-accounts-tab__hint--amber">
-              输入 fuli.hxi.me 的登录 Cookies（JSON 格式）
+              {{ t('checkin.accounts.cdk.cookiesHint', { site: 'fuli.hxi.me' }) }}
             </p>
           </div>
 
@@ -474,7 +492,7 @@
               placeholder="{&quot;session&quot;: &quot;xxx&quot;}"
             />
             <p class="checkin-accounts-tab__hint checkin-accounts-tab__hint--amber">
-              输入 tw.b4u.qzz.io 的登录 Cookies（JSON 格式）
+              {{ t('checkin.accounts.cdk.cookiesHint', { site: 'tw.b4u.qzz.io' }) }}
             </p>
           </div>
 
@@ -493,7 +511,7 @@
               placeholder="eyJhbGciOiJIUzI1NiIs..."
             >
             <p class="checkin-accounts-tab__hint checkin-accounts-tab__hint--amber">
-              输入 up.x666.me 的 JWT Access Token
+              {{ t('checkin.accounts.cdk.accessTokenHint', { site: 'up.x666.me' }) }}
             </p>
           </div>
         </div>
@@ -514,22 +532,19 @@
                 d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
               />
             </svg>
-            如何获取 Session
+            {{ t('checkin.accounts.help.title') }}
           </p>
           <ol class="checkin-accounts-tab__notice-list checkin-accounts-tab__notice-list--info">
-            <li>按 <kbd class="checkin-accounts-tab__kbd">F12</kbd> 打开浏览器开发者工具</li>
+            <li>{{ t('checkin.accounts.help.stepOpenDevtools') }}</li>
             <li>
-              转到 <span class="font-medium">Application</span> 标签页 →
-              <span class="font-medium">Cookies</span>
+              {{ t('checkin.accounts.help.stepApplicationCookies') }}
             </li>
             <li>
-              选择目标站点，找到 <code class="checkin-accounts-tab__code">session</code> 这一行
+              {{ t('checkin.accounts.help.stepFindSession') }}
             </li>
-            <li>复制 session 的值，直接粘贴到上方输入框</li>
+            <li>{{ t('checkin.accounts.help.stepCopySession') }}</li>
             <li>
-              再到 <span class="font-medium">Local Storage</span> →
-              <code class="checkin-accounts-tab__code">user</code>，取其中的
-              <code class="checkin-accounts-tab__code">id</code> 作为 API User
+              {{ t('checkin.accounts.help.stepApiUser') }}
             </li>
           </ol>
         </div>
@@ -546,7 +561,7 @@
             for="account-enabled"
             class="checkin-accounts-tab__checkbox-label"
           >
-            启用此账号
+            {{ t('checkin.accounts.fields.enabled') }}
           </label>
         </div>
       </form>
@@ -559,14 +574,14 @@
           class="checkin-accounts-tab__form-button checkin-accounts-tab__form-button--secondary"
           @click="showAccountModal = false"
         >
-          取消
+          {{ t('common.cancel') }}
         </button>
         <button
           type="submit"
           form="checkin-account-form"
           class="checkin-accounts-tab__form-button checkin-accounts-tab__form-button--primary"
         >
-          {{ editingAccount ? '保存变更' : '创建账号' }}
+          {{ editingAccount ? t('checkin.accounts.modal.saveChanges') : t('checkin.accounts.modal.createAccount') }}
         </button>
       </div>
     </template>
@@ -577,6 +592,7 @@
 import BaseModal from '@/components/common/BaseModal.vue'
 import SIcon from '@/components/ui/SIcon.vue'
 import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import {
   createCheckinAccount,
   updateCheckinAccount,
@@ -603,6 +619,7 @@ const emit = defineEmits<{
 }>()
 
 const uiStore = useUIStore()
+const { t, locale } = useI18n()
 
 interface CheckinAccountCookiesResponse {
   cookies_json: string
@@ -667,7 +684,7 @@ const selectedBuiltinProvider = computed(() => {
 })
 
 const modalProviderLabel = computed(() => {
-  if (!accountForm.value.provider_id) return '待选择提供商'
+  if (!accountForm.value.provider_id) return t('checkin.accounts.modal.providerPending')
   return selectedBuiltinProvider.value?.name || getProviderName(accountForm.value.provider_id)
 })
 
@@ -708,7 +725,7 @@ const getProviderName = (providerId: string) => {
 }
 
 const formatDate = (dateStr: string) => {
-  return new Date(dateStr).toLocaleString('zh-CN')
+  return new Date(dateStr).toLocaleString(locale.value)
 }
 
 const getErrorMessage = (error: unknown, fallback: string) =>
@@ -883,7 +900,7 @@ const saveAccount = async () => {
       try {
         extraConfig.fuli_cookies = JSON.parse(accountForm.value.fuli_cookies)
       } catch {
-        uiStore.showError('fuli cookies JSON 格式错误')
+        uiStore.showError(t('checkin.accounts.errors.invalidFuliCookies'))
         return
       }
     }
@@ -891,7 +908,7 @@ const saveAccount = async () => {
       try {
         extraConfig.b4u_cdk_cookies = JSON.parse(accountForm.value.b4u_cdk_cookies)
       } catch {
-        uiStore.showError('b4u cookies JSON 格式错误')
+        uiStore.showError(t('checkin.accounts.errors.invalidB4uCookies'))
         return
       }
     }
@@ -901,7 +918,7 @@ const saveAccount = async () => {
     const extraConfigJson = Object.keys(extraConfig).length > 0 ? JSON.stringify(extraConfig) : '{}'
 
     if (!apiUser) {
-      uiStore.showError('请输入 API User。使用 session / cookies 登录的站点必须提供该值。')
+      uiStore.showError(t('checkin.accounts.errors.apiUserRequired'))
       return
     }
 
@@ -924,7 +941,7 @@ const saveAccount = async () => {
       await updateCheckinAccount(editingAccount.value.id, updateData)
     } else {
       if (!cookiesJson) {
-        uiStore.showError('请输入 Session 值')
+        uiStore.showError(t('checkin.accounts.errors.sessionRequired'))
         return
       }
       await createCheckinAccount({
@@ -938,16 +955,16 @@ const saveAccount = async () => {
     showAccountModal.value = false
     emit('refresh')
   } catch (e: unknown) {
-    uiStore.showError('保存失败: ' + getErrorMessage(e, '未知错误'))
+    uiStore.showError(t('checkin.accounts.errors.saveFailed', { error: getErrorMessage(e, t('checkin.errors.unknown')) }))
   }
 }
 
 const deleteAccount = async (id: string) => {
   const confirmed = await uiStore.requestConfirm({
-    title: '删除账号',
-    message: '确定要删除此账号吗？',
-    confirmText: '删除',
-    cancelText: '取消',
+    title: t('checkin.accounts.deleteAccount'),
+    message: t('checkin.accounts.deleteConfirm'),
+    confirmText: t('checkin.accounts.delete'),
+    cancelText: t('common.cancel'),
     type: 'danger',
     surface: 'solid',
   })
@@ -956,7 +973,7 @@ const deleteAccount = async (id: string) => {
     await apiDeleteAccount(id)
     emit('refresh')
   } catch (e: unknown) {
-    uiStore.showError('删除失败: ' + getErrorMessage(e, '未知错误'))
+    uiStore.showError(t('checkin.accounts.errors.deleteFailed', { error: getErrorMessage(e, t('checkin.errors.unknown')) }))
   }
 }
 
@@ -1114,40 +1131,74 @@ onUnmounted(() => {
 .checkin-accounts-tab__mini-button,
 .checkin-accounts-tab__form-button {
   border-radius: 0.75rem;
-  color: white;
   transition:
     background-color 0.2s ease,
-    opacity 0.2s ease;
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    color 0.2s ease,
+    opacity 0.2s ease,
+    transform 0.2s ease;
 }
 
 .checkin-accounts-tab__action-button {
   min-height: 44px;
   gap: 0.5rem;
+  border: 1px solid transparent;
   padding: 0.5rem 1rem;
+  color: white;
+  font-weight: 700;
+  white-space: nowrap;
 }
 
 .checkin-accounts-tab__action-button:disabled,
 .checkin-accounts-tab__mini-button:disabled {
   cursor: not-allowed;
-  opacity: 0.5;
+  opacity: 0.62;
+  filter: grayscale(0.35);
 }
 
-.checkin-accounts-tab__action-button--primary,
-.checkin-accounts-tab__mini-button {
+.checkin-accounts-tab__action-button--primary {
   background: var(--accent-primary);
 }
 
-.checkin-accounts-tab__action-button--primary:hover:not(:disabled),
-.checkin-accounts-tab__mini-button:hover:not(:disabled) {
+.checkin-accounts-tab__action-button--primary:hover:not(:disabled) {
   background: rgb(var(--color-accent-primary-rgb) / 88%);
 }
 
 .checkin-accounts-tab__action-button--secondary {
-  background: var(--accent-secondary);
+  border-color: rgb(125 211 252 / 32%);
+  background:
+    radial-gradient(circle at 16% 0%, rgb(56 189 248 / 22%), transparent 34%),
+    linear-gradient(135deg, rgb(15 23 42 / 94%), rgb(17 24 39 / 86%));
+  color: rgb(236 253 245 / 96%);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 12%),
+    0 0 0 1px rgb(20 184 166 / 10%),
+    0 14px 28px rgb(15 23 42 / 18%),
+    0 0 22px rgb(20 184 166 / 10%);
 }
 
 .checkin-accounts-tab__action-button--secondary:hover:not(:disabled) {
-  background: rgb(var(--color-accent-secondary-rgb) / 88%);
+  border-color: rgb(94 234 212 / 48%);
+  color: white;
+  transform: translateY(-1px);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 16%),
+    0 0 0 1px rgb(20 184 166 / 18%),
+    0 18px 36px rgb(15 23 42 / 24%),
+    0 0 28px rgb(20 184 166 / 18%);
+}
+
+.checkin-accounts-tab__action-button--secondary:disabled {
+  border-color: rgb(var(--color-border-default-rgb) / 54%);
+  background:
+    linear-gradient(135deg, rgb(var(--color-bg-elevated-rgb) / 54%), rgb(var(--color-bg-surface-rgb) / 48%));
+  color: var(--text-muted);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 8%);
+}
+
+.checkin-accounts-tab__action-button-icon {
+  filter: drop-shadow(0 0 8px rgb(20 184 166 / 36%));
 }
 
 .checkin-accounts-tab__empty {
@@ -1290,14 +1341,46 @@ onUnmounted(() => {
 .checkin-accounts-tab__mini-button {
   display: inline-flex;
   align-items: center;
-  min-height: 40px;
-  padding: 0.375rem 0.75rem;
+  justify-content: center;
+  gap: 0.35rem;
+  min-width: 5.75rem;
+  min-height: 36px;
+  border: 1px solid rgb(45 212 191 / 32%);
+  padding: 0.375rem 0.7rem;
   font-size: 0.75rem;
-  font-weight: 500;
+  font-weight: 700;
+  line-height: 1rem;
+  color: rgb(236 253 245);
+  white-space: nowrap;
+  background:
+    radial-gradient(circle at 20% 0%, rgb(94 234 212 / 24%), transparent 36%),
+    linear-gradient(135deg, rgb(15 118 110 / 94%), rgb(22 163 74 / 88%));
+  box-shadow:
+    inset 0 1px 0 rgb(236 253 245 / 14%),
+    0 10px 22px rgb(15 118 110 / 18%);
+}
+
+.checkin-accounts-tab__mini-button:hover:not(:disabled) {
+  border-color: rgb(94 234 212 / 54%);
+  transform: translateY(-1px);
+  box-shadow:
+    inset 0 1px 0 rgb(236 253 245 / 18%),
+    0 14px 26px rgb(15 118 110 / 26%);
+}
+
+.checkin-accounts-tab__mini-button:disabled {
+  border-color: rgb(var(--color-border-default-rgb) / 44%);
+  background: rgb(var(--color-bg-elevated-rgb) / 42%);
+  color: var(--text-muted);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 8%);
 }
 
 .checkin-accounts-tab__mini-button-icon {
-  margin-right: 0.25rem;
+  flex-shrink: 0;
+}
+
+.checkin-accounts-tab__mini-button-label {
+  white-space: nowrap;
 }
 
 .checkin-accounts-tab__menu-wrap {

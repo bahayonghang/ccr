@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { AccountInfo, CheckinProvider } from '@/types/checkin'
 import * as checkinApi from '@/api'
 import CheckinAccountsTab from '@/views/checkin/tabs/CheckinAccountsTab.vue'
+import { createI18nStub } from './helpers/i18n-stub'
 
 vi.mock('@/components/ui/SIcon.vue', () => ({
   default: defineComponent({
@@ -78,7 +79,7 @@ const accounts: AccountInfo[] = [
   } as AccountInfo,
 ]
 
-const openAccountEditor = async (el: HTMLElement) => {
+const openAccountEditor = async (el: HTMLElement, editLabel = 'Edit') => {
   const trigger = el.querySelector<HTMLButtonElement>('.checkin-accounts-tab__menu-trigger')
   expect(trigger).not.toBeNull()
 
@@ -102,7 +103,7 @@ const openAccountEditor = async (el: HTMLElement) => {
 
   const editButton = Array.from(
     document.body.querySelectorAll<HTMLButtonElement>('.checkin-accounts-tab__menu-item')
-  ).find(button => button.textContent?.includes('编辑'))
+  ).find(button => button.textContent?.includes(editLabel))
 
   expect(editButton).not.toBeNull()
   editButton!.dispatchEvent(new MouseEvent('click', { bubbles: true }))
@@ -112,13 +113,13 @@ const openAccountEditor = async (el: HTMLElement) => {
 
 const getCookiesTextarea = (el: HTMLElement) =>
   el.querySelector<HTMLTextAreaElement>(
-    'textarea[placeholder="可直接粘贴 session 值，或完整 cookies JSON"]'
+    '.checkin-accounts-tab__control--textarea.checkin-accounts-tab__control--mono'
   )
 
 const getApiUserInput = (el: HTMLElement) =>
   el.querySelector<HTMLInputElement>('input[placeholder="12345"]')
 
-const mountTab = async () => {
+const mountTab = async (locale: 'en-US' | 'zh-CN' = 'en-US') => {
   const el = document.createElement('div')
   document.body.appendChild(el)
 
@@ -141,6 +142,7 @@ const mountTab = async () => {
     })
   )
 
+  app.use(createI18nStub(locale))
   app.mount(el)
   await nextTick()
 
@@ -159,8 +161,41 @@ afterEach(() => {
 })
 
 describe('CheckinAccountsTab smoke', () => {
+  it('renders account actions in English with no-wrap single account button', async () => {
+    const { el, unmount } = await mountTab('en-US')
+
+    try {
+      expect(el.textContent).toContain('Account Management')
+      expect(el.textContent).toContain('OAuth Login')
+      expect(el.textContent).toContain('Check in')
+      expect(el.textContent).not.toContain('签到账号')
+      expect(el.textContent).not.toContain('OAuth 登录')
+
+      const miniButton = el.querySelector<HTMLButtonElement>('.checkin-accounts-tab__mini-button')
+      const miniLabel = el.querySelector<HTMLElement>('.checkin-accounts-tab__mini-button-label')
+      expect(miniButton).not.toBeNull()
+      expect(miniLabel).not.toBeNull()
+      expect(miniButton?.className).toContain('checkin-accounts-tab__mini-button')
+      expect(miniLabel?.textContent).toBe('Check in')
+    } finally {
+      unmount()
+    }
+  })
+
+  it('renders account actions in Chinese', async () => {
+    const { el, unmount } = await mountTab('zh-CN')
+
+    try {
+      expect(el.textContent).toContain('签到账号')
+      expect(el.textContent).toContain('OAuth 登录')
+      expect(el.textContent).toContain('签到')
+    } finally {
+      unmount()
+    }
+  })
+
   it('teleports the account action menu to body to avoid table clipping', async () => {
-    const { el, unmount } = await mountTab()
+    const { el, unmount } = await mountTab('zh-CN')
 
     try {
       const trigger = el.querySelector<HTMLButtonElement>('.checkin-accounts-tab__menu-trigger')

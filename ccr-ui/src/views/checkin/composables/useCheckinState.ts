@@ -1,4 +1,5 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import {
   addBuiltinProvider as apiAddBuiltinProvider,
   queryCheckinBalance,
@@ -37,6 +38,7 @@ export {
  * 提供所有 tab 组件共享的状态、计算属性和操作函数
  */
 export function useCheckinState() {
+  const { t, locale } = useI18n()
   const getErrorMessage = (error: unknown, fallback: string) =>
     error instanceof Error ? error.message : fallback
 
@@ -180,10 +182,10 @@ export function useCheckinState() {
   // Tab 配置
   // ═══════════════════════════════════════════════════════════
   const tabs = [
-    { id: 'accounts' as const, name: '账号管理', icon: 'Users' },
-    { id: 'providers' as const, name: '提供商', icon: 'Building2' },
-    { id: 'records' as const, name: '签到记录', icon: 'FileText' },
-    { id: 'import-export' as const, name: '导入导出', icon: 'Package' },
+    { id: 'accounts' as const, nameKey: 'checkin.tabs.accounts', icon: 'Users' },
+    { id: 'providers' as const, nameKey: 'checkin.tabs.providers', icon: 'Building2' },
+    { id: 'records' as const, nameKey: 'checkin.tabs.records', icon: 'FileText' },
+    { id: 'import-export' as const, nameKey: 'checkin.tabs.importExport', icon: 'Package' },
   ]
 
   // ═══════════════════════════════════════════════════════════
@@ -245,7 +247,7 @@ export function useCheckinState() {
         reloadStats: true,
       })
     } catch (e: unknown) {
-      alert('刷新余额失败: ' + getErrorMessage(e, '未知错误'))
+      alert(t('checkin.errors.refreshBalanceFailed', { error: getErrorMessage(e, t('checkin.errors.unknown')) }))
     }
   }
 
@@ -258,7 +260,7 @@ export function useCheckinState() {
       await apiAddBuiltinProvider(builtinId)
       await loadAllData()
     } catch (e: unknown) {
-      alert('添加失败: ' + getErrorMessage(e, '未知错误'))
+      alert(t('checkin.errors.addProviderFailed', { error: getErrorMessage(e, t('checkin.errors.unknown')) }))
       logger.error('Failed to add builtin provider', e)
     }
   }
@@ -276,7 +278,7 @@ export function useCheckinState() {
   }
 
   const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleString('zh-CN')
+    return new Date(dateStr).toLocaleString(locale.value)
   }
 
   const getStatusClass = (status: string) => {
@@ -295,11 +297,11 @@ export function useCheckinState() {
   const getStatusText = (status: string) => {
     switch (status) {
       case 'success':
-        return '成功'
+        return t('checkin.status.success')
       case 'already_checked_in':
-        return '已签到'
+        return t('checkin.status.already_checked_in')
       case 'failed':
-        return '失败'
+        return t('checkin.status.failed')
       default:
         return status
     }
@@ -308,10 +310,10 @@ export function useCheckinState() {
   const buildCheckinDetail = (item: CheckinExecutionResult, fallback: string) => {
     const details: string[] = []
     if (item.reward) {
-      details.push(`奖励: ${item.reward}`)
+      details.push(t('checkin.detail.reward', { reward: item.reward }))
     }
     if (item.balance !== undefined && item.balance !== null) {
-      details.push(`余额: ${item.balance}`)
+      details.push(t('checkin.detail.balance', { balance: item.balance }))
     }
     if (item.message) {
       details.push(item.message)
@@ -319,24 +321,25 @@ export function useCheckinState() {
     return details.length > 0 ? details.join(' · ') : fallback
   }
 
-  const getSuccessDetail = (item: CheckinDisplayResult) => buildCheckinDetail(item, '签到成功')
+  const getSuccessDetail = (item: CheckinDisplayResult) =>
+    buildCheckinDetail(item, t('checkin.detail.checkinSuccess'))
 
   const getAlreadyCheckedInDetail = (item: CheckinDisplayResult) =>
-    buildCheckinDetail(item, '今日已签到')
+    buildCheckinDetail(item, t('checkin.detail.todayAlreadyCheckedIn'))
 
   const getErrorHint = (code?: string): string | null => {
     if (!code) return null
     const hints: Record<string, string> = {
-      cookie_expired: '建议：请更新 Cookie',
-      waf_blocked: '建议：先获取 WAF Cookie，再确认网页登录与签到请求的代理/出口一致',
-      cf_blocked: '建议：在有 GUI 的环境中获取 cf_clearance 后重试',
-      network_error: '建议：检查网络连接',
-      timeout: '建议：稍后重试',
-      crypto_error: '建议：重新导入 Cookie',
-      provider_error: '建议：检查提供商设置',
-      account_error: '建议：检查账号设置',
-      task_error: '建议：稍后重试',
-      api_error: '建议：查看详细信息',
+      cookie_expired: t('checkin.errors.hints.cookie_expired'),
+      waf_blocked: t('checkin.errors.hints.waf_blocked'),
+      cf_blocked: t('checkin.errors.hints.cf_blocked'),
+      network_error: t('checkin.errors.hints.network_error'),
+      timeout: t('checkin.errors.hints.timeout'),
+      crypto_error: t('checkin.errors.hints.crypto_error'),
+      provider_error: t('checkin.errors.hints.provider_error'),
+      account_error: t('checkin.errors.hints.account_error'),
+      task_error: t('checkin.errors.hints.task_error'),
+      api_error: t('checkin.errors.hints.api_error'),
     }
     return hints[code] ?? null
   }
@@ -344,22 +347,22 @@ export function useCheckinState() {
   const getErrorLabel = (code?: string): string | null => {
     if (!code) return null
     const labels: Record<string, string> = {
-      cookie_expired: 'Cookie 过期',
-      waf_blocked: 'WAF 拦截',
-      cf_blocked: 'CF 挑战',
-      network_error: '网络错误',
-      timeout: '超时',
-      crypto_error: '解密失败',
-      provider_error: '提供商异常',
-      account_error: '账号异常',
-      task_error: '任务异常',
-      api_error: 'API 错误',
+      cookie_expired: t('checkin.errors.labels.cookie_expired'),
+      waf_blocked: t('checkin.errors.labels.waf_blocked'),
+      cf_blocked: t('checkin.errors.labels.cf_blocked'),
+      network_error: t('checkin.errors.labels.network_error'),
+      timeout: t('checkin.errors.labels.timeout'),
+      crypto_error: t('checkin.errors.labels.crypto_error'),
+      provider_error: t('checkin.errors.labels.provider_error'),
+      account_error: t('checkin.errors.labels.account_error'),
+      task_error: t('checkin.errors.labels.task_error'),
+      api_error: t('checkin.errors.labels.api_error'),
     }
     return labels[code] ?? code
   }
 
   const getFailedDetail = (item: CheckinDisplayResult) => {
-    let detail = item.message || '未知原因'
+    let detail = item.message || t('checkin.errors.unknownReason')
     const hint = getErrorHint(item.error_code)
     if (hint) {
       detail = `${detail}（${hint}）`

@@ -6,10 +6,10 @@ import { createI18n } from 'vue-i18n'
 import enUS from '@/i18n/locales/en-US'
 import zhCN from '@/i18n/locales/zh-CN'
 
-export function createI18nStub() {
+export function createI18nStub(locale: 'en-US' | 'zh-CN' = 'en-US') {
   return createI18n({
     legacy: false,
-    locale: 'en-US',
+    locale,
     fallbackLocale: 'en-US',
     messages: {
       'en-US': enUS,

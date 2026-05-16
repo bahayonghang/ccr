@@ -11,10 +11,10 @@
               class="checkin-view__title-icon"
             />
           </span>
-          <span class="checkin-view__title-label">签到管理</span>
+          <span class="checkin-view__title-label">{{ t('checkin.title') }}</span>
         </h1>
         <p class="checkin-view__subtitle">
-          管理所有平台的自动签到任务和 Cookie
+          {{ t('checkin.description') }}
         </p>
       </div>
       <div class="checkin-view__actions">
@@ -37,7 +37,7 @@
               d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
             />
           </svg>
-          <span>{{ checkinLoading ? '签到中...' : '一键签到' }}</span>
+          <span>{{ checkinLoading ? t('checkin.actions.checkingAll') : t('checkin.actions.checkAll') }}</span>
         </button>
         <button
           :disabled="balanceRefreshing || accounts.length === 0"
@@ -58,7 +58,7 @@
               d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
             />
           </svg>
-          <span>{{ balanceRefreshing ? '刷新中...' : '刷新余额' }}</span>
+          <span>{{ balanceRefreshing ? t('checkin.actions.refreshing') : t('checkin.actions.refreshBalances') }}</span>
         </button>
       </div>
     </div>
@@ -90,7 +90,7 @@
         </svg>
         <div class="checkin-view__error-body">
           <h3 class="checkin-view__error-title">
-            加载失败
+            {{ t('checkin.errors.loadFailed') }}
           </h3>
           <p class="checkin-view__error-message">
             {{ error }}
@@ -158,8 +158,8 @@
             >
               {{
                 checkinFlowPhase === 'recovering'
-                  ? '正在自动处理 WAF'
-                  : checkinResult.summary.failed > 0 ? '签到完成，部分失败' : '签到完成'
+                  ? t('checkin.result.recoveringTitle')
+                  : checkinResult.summary.failed > 0 ? t('checkin.result.completedWithFailures') : t('checkin.result.completed')
               }}
             </h3>
           </div>
@@ -170,24 +170,24 @@
                 name="CheckCircle"
                 size="w-3.5 h-3.5"
               />
-              成功 {{ checkinResult.summary.success }}
+              {{ t('checkin.result.summarySuccess', { count: checkinResult.summary.success }) }}
             </span>
             <span class="checkin-view__result-badge checkin-view__result-badge--info">
               <SIcon
                 name="Calendar"
                 size="w-3.5 h-3.5"
               />
-              已签到 {{ checkinResult.summary.already_checked_in }}
+              {{ t('checkin.result.summaryAlready', { count: checkinResult.summary.already_checked_in }) }}
             </span>
             <span class="checkin-view__result-badge checkin-view__result-badge--danger">
               <SIcon
                 name="XCircle"
                 size="w-3.5 h-3.5"
               />
-              失败 {{ checkinResult.summary.failed }}
+              {{ t('checkin.result.summaryFailed', { count: checkinResult.summary.failed }) }}
             </span>
             <span class="checkin-view__result-badge checkin-view__result-badge--neutral">
-              总计 {{ checkinResult.summary.total }}
+              {{ t('checkin.result.summaryTotal', { count: checkinResult.summary.total }) }}
             </span>
           </div>
           <div class="checkin-view__result-grid">
@@ -203,7 +203,7 @@
                 />
                 <div>
                   <p class="checkin-view__callout-title checkin-view__callout-title--recovery">
-                    正在自动处理 WAF
+                    {{ t('checkin.result.recoveringTitle') }}
                   </p>
                   <p class="checkin-view__callout-message checkin-view__callout-message--recovery">
                     {{ wafRecoveryMessage }}
@@ -212,7 +212,7 @@
                     v-if="wafRecoveryProviderName"
                     class="checkin-view__callout-meta checkin-view__callout-meta--recovery"
                   >
-                    当前提供商：{{ wafRecoveryProviderName }}
+                    {{ t('checkin.result.currentProvider', { provider: wafRecoveryProviderName }) }}
                   </p>
                 </div>
               </div>
@@ -224,16 +224,14 @@
               <div class="checkin-view__callout-layout checkin-view__callout-layout--split">
                 <div>
                   <p class="checkin-view__callout-title checkin-view__callout-title--waf">
-                    {{ wafRecoveryRunning ? '自动补救中，若失败可手动处理' : '检测到 WAF 挑战页' }}
+                    {{ wafRecoveryRunning ? t('checkin.waf.runningTitle') : t('checkin.waf.detectedTitle') }}
                   </p>
                   <p class="checkin-view__callout-message checkin-view__callout-message--waf">
                     <template v-if="wafRecoveryRunning">
-                      系统正在尝试自动获取 WAF Cookie 并重试受影响账号。
-                      如果自动补救失败，再前往“提供商”页手动获取 Cookie 并重试。
+                      {{ t('checkin.waf.runningMessage') }}
                     </template>
                     <template v-else>
-                      这通常不是 Cookie 本身失效，而是 AnyRouter 这类站点先返回了阿里云 WAF 的 HTML 挑战页。
-                      先去“提供商”页获取 WAF Cookie，再确保网页登录与签到请求走同一代理/出口后重试。
+                      {{ t('checkin.waf.detectedMessage') }}
                     </template>
                   </p>
                 </div>
@@ -241,7 +239,7 @@
                   class="checkin-view__callout-action"
                   @click="activeTab = 'providers'"
                 >
-                  前往提供商页
+                  {{ t('checkin.actions.openProviders') }}
                 </button>
               </div>
             </div>
@@ -251,7 +249,7 @@
               class="checkin-view__result-section"
             >
               <p class="checkin-view__result-section-title checkin-view__result-section-title--success">
-                成功结果（{{ successCheckinResults.length }}）
+                {{ t('checkin.result.successTitle', { count: successCheckinResults.length }) }}
               </p>
               <div class="checkin-view__result-list">
                 <div
@@ -276,13 +274,13 @@
                         v-if="item.reward"
                         class="checkin-view__result-tag checkin-view__result-tag--reward"
                       >
-                        奖励 {{ item.reward }}
+                        {{ t('checkin.result.reward', { reward: item.reward }) }}
                       </span>
                       <span
                         v-if="item.waf_recovery_attempted && item.waf_recovered"
                         class="checkin-view__result-tag checkin-view__result-tag--recovery"
                       >
-                        自动补救后成功
+                        {{ t('checkin.result.recoverySuccess') }}
                       </span>
                     </div>
                     <p class="checkin-view__result-message checkin-view__result-message--success">
@@ -298,7 +296,7 @@
               class="checkin-view__result-section"
             >
               <p class="checkin-view__result-section-title checkin-view__result-section-title--danger">
-                失败结果（{{ failedCheckinResults.length }}）
+                {{ t('checkin.result.failedTitle', { count: failedCheckinResults.length }) }}
               </p>
               <div class="checkin-view__result-list">
                 <div
@@ -329,7 +327,7 @@
                         v-if="item.waf_recovery_attempted && item.waf_recovered === false"
                         class="checkin-view__result-tag checkin-view__result-tag--recovery"
                       >
-                        自动补救后仍失败
+                        {{ t('checkin.result.recoveryStillFailed') }}
                       </span>
                     </div>
                     <p class="checkin-view__result-message checkin-view__result-message--danger">
@@ -346,7 +344,7 @@
             class="checkin-view__result-section checkin-view__result-section--spaced"
           >
             <p class="checkin-view__result-section-title checkin-view__result-section-title--info">
-              已签到（{{ alreadyCheckedInResults.length }}）
+              {{ t('checkin.result.alreadyTitle', { count: alreadyCheckedInResults.length }) }}
             </p>
             <div class="checkin-view__result-list">
               <div
@@ -371,7 +369,7 @@
                       v-if="item.waf_recovery_attempted && item.waf_recovered"
                       class="checkin-view__result-tag checkin-view__result-tag--recovery"
                     >
-                      自动补救后完成
+                      {{ t('checkin.result.recoveryCompleted') }}
                     </span>
                   </div>
                   <p class="checkin-view__result-message checkin-view__result-message--info">
@@ -417,7 +415,7 @@
         <div class="checkin-view__stat-card">
           <div>
             <p class="checkin-view__stat-label">
-              当前余额
+              {{ t('checkin.stats.currentBalance') }}
             </p>
             <p class="checkin-view__stat-value checkin-view__stat-value--success">
               ${{ totalStatistics.currentBalance.toFixed(2) }}
@@ -443,7 +441,7 @@
         <div class="checkin-view__stat-card">
           <div>
             <p class="checkin-view__stat-label">
-              总额度
+              {{ t('checkin.stats.totalQuota') }}
             </p>
             <p class="checkin-view__stat-value checkin-view__stat-value--info">
               ${{ totalStatistics.totalQuota.toFixed(2) }}
@@ -469,7 +467,7 @@
         <div class="checkin-view__stat-card">
           <div>
             <p class="checkin-view__stat-label">
-              已消耗
+              {{ t('checkin.stats.totalConsumed') }}
             </p>
             <p class="checkin-view__stat-value checkin-view__stat-value--warning">
               ${{ totalStatistics.totalConsumed.toFixed(2) }}
@@ -511,7 +509,7 @@
               :name="tab.icon"
               size="w-4 h-4"
             />
-            {{ tab.name }}
+            {{ t(tab.nameKey) }}
           </button>
         </nav>
       </div>
@@ -552,10 +550,10 @@
     <!-- 一键签到确认弹窗 -->
     <ConfirmModal
       :is-open="showCheckinConfirm"
-      title="确认一键签到"
-      :message="`即将对 ${enabledAccounts.length} 个启用账号执行签到操作，是否继续？`"
-      confirm-text="开始签到"
-      cancel-text="取消"
+      :title="t('checkin.dialog.confirmAllTitle')"
+      :message="t('checkin.dialog.confirmAllMessage', { count: enabledAccounts.length })"
+      :confirm-text="t('checkin.dialog.startCheckin')"
+      :cancel-text="t('common.cancel')"
       type="info"
       surface="solid"
       @confirm="handleCheckinConfirm"
@@ -592,6 +590,7 @@ defineOptions({ name: 'CheckinView' })
 
 import SIcon from '@/components/ui/SIcon.vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useCheckinState } from './checkin/composables/useCheckinState'
 // Tab 组件
 import CheckinProvidersTab from './checkin/tabs/CheckinProvidersTab.vue'
@@ -604,6 +603,7 @@ import CheckinProgressModal from '@/components/CheckinProgressModal.vue'
 import OAuthWizardModal from '@/views/checkin/components/OAuthWizardModal.vue'
 // 图标：去除未使用项，仅保留当前界面需要的图标
 const router = useRouter()
+const { t } = useI18n()
 
 const {
   // 状态
@@ -734,33 +734,71 @@ const openAccountDashboard = (accountId: string) => {
 }
 
 .checkin-view__action-button {
+  position: relative;
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  border-radius: 0.5rem;
-  padding: 0.5rem 1rem;
+  min-height: 44px;
+  border: 1px solid transparent;
+  border-radius: 0.875rem;
+  padding: 0.55rem 1.05rem;
   color: rgb(255 255 255 / 100%);
-  transition: background-color 0.2s ease, opacity 0.2s ease;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 14%),
+    0 14px 30px rgb(15 23 42 / 14%);
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    opacity 0.2s ease,
+    transform 0.2s ease,
+    filter 0.2s ease;
 }
 
 .checkin-view__action-button:disabled {
-  opacity: 0.5;
+  cursor: not-allowed;
+  opacity: 0.58;
+  filter: grayscale(0.32);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 8%);
+}
+
+.checkin-view__action-button:hover:not(:disabled) {
+  transform: translateY(-1px);
 }
 
 .checkin-view__action-button--checkin {
-  background: rgb(22 163 74 / 100%);
+  border-color: rgb(74 222 128 / 34%);
+  background:
+    radial-gradient(circle at 15% 0%, rgb(34 197 94 / 34%), transparent 35%),
+    linear-gradient(135deg, rgb(20 184 166 / 96%), rgb(22 163 74 / 98%));
+  box-shadow:
+    inset 0 1px 0 rgb(236 253 245 / 18%),
+    0 0 0 1px rgb(34 197 94 / 10%),
+    0 16px 34px rgb(22 163 74 / 24%);
 }
 
 .checkin-view__action-button--checkin:hover:not(:disabled) {
-  background: rgb(21 128 61 / 100%);
+  border-color: rgb(134 239 172 / 48%);
+  box-shadow:
+    inset 0 1px 0 rgb(236 253 245 / 22%),
+    0 0 0 1px rgb(34 197 94 / 18%),
+    0 20px 42px rgb(22 163 74 / 32%);
 }
 
 .checkin-view__action-button--balance {
-  background: rgb(37 99 235 / 100%);
+  border-color: rgb(96 165 250 / 32%);
+  background:
+    radial-gradient(circle at 15% 0%, rgb(125 211 252 / 30%), transparent 35%),
+    linear-gradient(135deg, rgb(37 99 235 / 96%), rgb(79 70 229 / 96%));
 }
 
 .checkin-view__action-button--balance:hover:not(:disabled) {
-  background: rgb(29 78 216 / 100%);
+  border-color: rgb(147 197 253 / 46%);
+  box-shadow:
+    inset 0 1px 0 rgb(239 246 255 / 18%),
+    0 18px 38px rgb(37 99 235 / 26%);
 }
 
 .checkin-view__loading {
