@@ -29,6 +29,8 @@ export interface ModelDistributionSlice {
 const DAY_MS = 86_400_000
 const modelCost = (model: ModelStat) => model.cost_with_cache ?? 0
 
+type ModelDistributionMetric = 'cost' | 'tokens'
+
 const parseUtcDate = (value: string) => {
   const [year, month, day] = value.split('-').map(Number)
   return new Date(Date.UTC(year, (month || 1) - 1, day || 1))
@@ -122,21 +124,34 @@ export const expandTrendBucketEnd = (bucket: UsageTrendBucket, granularity: Tren
   return formatUtcDate(new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth() + 1, 0)))
 }
 
-export const groupModelDistribution = (
+const groupModelsByMetric = (
   modelStats: ModelStat[],
   maxVisible = 6,
+  metric: ModelDistributionMetric,
 ): ModelDistributionSlice[] => {
   const sorted = [...modelStats].sort((left, right) => {
-    if (modelCost(right) !== modelCost(left)) {
+    if (metric === 'tokens' && right.total_tokens !== left.total_tokens) {
+      return right.total_tokens - left.total_tokens
+    }
+
+    if (metric === 'cost' && modelCost(right) !== modelCost(left)) {
       return modelCost(right) - modelCost(left)
     }
+
     if (right.total_tokens !== left.total_tokens) {
       return right.total_tokens - left.total_tokens
     }
+
+    if (modelCost(right) !== modelCost(left)) {
+      return modelCost(right) - modelCost(left)
+    }
+
     return right.request_count - left.request_count
   })
 
   const totalCost = sorted.reduce((sum, item) => sum + modelCost(item), 0)
+  const totalTokens = sorted.reduce((sum, item) => sum + item.total_tokens, 0)
+  const shareDenominator = metric === 'tokens' ? totalTokens : totalCost
   const visible = sorted.slice(0, maxVisible)
   const hidden = sorted.slice(maxVisible)
 
@@ -146,7 +161,9 @@ export const groupModelDistribution = (
     totalCost: modelCost(item),
     totalTokens: item.total_tokens,
     requestCount: item.request_count,
-    share: totalCost > 0 ? modelCost(item) / totalCost : 0,
+    share: shareDenominator > 0
+      ? (metric === 'tokens' ? item.total_tokens : modelCost(item)) / shareDenominator
+      : 0,
     childCount: 1,
     isOther: false,
   }))
@@ -162,7 +179,9 @@ export const groupModelDistribution = (
       totalCost: otherCost,
       totalTokens: otherTokens,
       requestCount: otherRequests,
-      share: totalCost > 0 ? otherCost / totalCost : 0,
+      share: shareDenominator > 0
+        ? (metric === 'tokens' ? otherTokens : otherCost) / shareDenominator
+        : 0,
       childCount: hidden.length,
       isOther: true,
     })
@@ -170,3 +189,13 @@ export const groupModelDistribution = (
 
   return slices
 }
+
+export const groupModelDistribution = (
+  modelStats: ModelStat[],
+  maxVisible = 6,
+): ModelDistributionSlice[] => groupModelsByMetric(modelStats, maxVisible, 'cost')
+
+export const groupModelTokenDistribution = (
+  modelStats: ModelStat[],
+  maxVisible = 6,
+): ModelDistributionSlice[] => groupModelsByMetric(modelStats, maxVisible, 'tokens')

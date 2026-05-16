@@ -1734,6 +1734,7 @@ export default {
         cache: 'Cache Read',
         noTrend: 'No trend data',
         costByModel: 'Cost by Model',
+        tokensByModel: 'Token Usage by Model',
         distributionSubtitle: 'Showing the top {visible} models; the remaining {total} are grouped into Others',
         distributionAllVisible: '{total} models are visible in this window',
         modelTableSubtitle: 'Sorted by request volume to surface the models you lean on most',
@@ -1766,7 +1767,7 @@ export default {
       },
       models: {
         title: 'Model Workspace',
-        subtitle: 'Sort by cost while keeping request volume, token load, and share in view.',
+        subtitle: 'Sort by token usage while keeping request volume, cost, and share in view.',
       },
       projects: {
         title: 'Project Workspace',

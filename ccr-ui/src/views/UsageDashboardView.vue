@@ -245,10 +245,10 @@
               :format-cost="formatCost"
               :format-tokens="formatTokens"
               :model-stats="store.modelStats"
-              :model-distribution="modelDistribution"
+              :model-distribution="modelTokenDistribution"
               :pie-colors="pieColors"
-              :pie-options="pieOptions"
-              :pie-series="pieSeries"
+              :pie-options="modelTokenPieOptions"
+              :pie-series="modelTokenPieSeries"
               :should-load-charts="shouldLoadCharts"
             />
           </template>
@@ -363,6 +363,9 @@ const {
   trendSeries,
   distributionSubtitle,
   modelDistribution,
+  modelTokenDistribution,
+  modelTokenPieOptions,
+  modelTokenPieSeries,
   updateLogModelFilter,
   unsupportedStateDescription,
   unsupportedStateTitle,

@@ -6,6 +6,7 @@ import type { ModelStat } from '@/types/usage'
 
 const translations: Record<string, string> = {
   'usage.dashboard.chart.costByModel': 'Cost by Model',
+  'usage.dashboard.chart.tokensByModel': 'Token Usage by Model',
   'usage.dashboard.models.title': 'Models',
   'usage.dashboard.models.subtitle': 'Model cost and token profile',
   'usage.dashboard.table.model': 'Model',
@@ -44,6 +45,8 @@ const mountModelsTab = async (modelStats: ModelStat[]) => {
     totalTokens: model.total_tokens,
     requestCount: model.request_count,
     share: index === 0 ? 1 : 0,
+    childCount: 1,
+    isOther: false,
   }))
 
   const app = createApp(UsageModelsTab, {
@@ -73,6 +76,55 @@ const mountModelsTab = async (modelStats: ModelStat[]) => {
 }
 
 describe('UsageModelsTab smoke', () => {
+  it('sorts model rows and share by token usage rather than cost', async () => {
+    const mounted = await mountModelsTab([
+      {
+        model: 'expensive-small',
+        request_count: 3,
+        total_tokens: 1000,
+        total_cost: 100,
+        input_tokens: 700,
+        output_tokens: 300,
+        cache_read_tokens: 0,
+        cache_creation_tokens: 0,
+        cost_with_cache: 100,
+        cost_without_cache: 100,
+        cache_savings: 0,
+        pricing_status: 'priced',
+        pricing_source: 'official',
+        pricing_rate: '100',
+      },
+      {
+        model: 'cheap-large',
+        request_count: 2,
+        total_tokens: 10000,
+        total_cost: 1,
+        input_tokens: 8000,
+        output_tokens: 2000,
+        cache_read_tokens: 0,
+        cache_creation_tokens: 0,
+        cost_with_cache: 1,
+        cost_without_cache: 1,
+        cache_savings: 0,
+        pricing_status: 'priced',
+        pricing_source: 'official',
+        pricing_rate: '1',
+      },
+    ])
+
+    try {
+      const rows = mounted.el.querySelectorAll('tbody tr')
+
+      expect(mounted.el.textContent).toContain('Token Usage by Model')
+      expect(rows[0]?.textContent).toContain('cheap-large')
+      expect(rows[0]?.textContent).toContain('91%')
+      expect(rows[1]?.textContent).toContain('expensive-small')
+      expect(rows[1]?.textContent).toContain('9%')
+    } finally {
+      mounted.unmount()
+    }
+  })
+
   it('renders pricing columns, cache savings, and unpriced status', async () => {
     const mounted = await mountModelsTab([
       {

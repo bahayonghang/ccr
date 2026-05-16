@@ -79,7 +79,7 @@
                   </span>
                 </div>
                 <div class="distribution-card__meta">
-                  {{ formatCost(slice.totalCost) }} · {{ formatTokens(slice.totalTokens) }}
+                  {{ formatSliceMeta(slice) }}
                 </div>
               </div>
             </div>
@@ -109,6 +109,8 @@
 import { computed, type Component } from 'vue'
 import type { ModelDistributionSlice } from '@/views/usage/usageDashboardPresentation'
 
+type DistributionMetric = 'cost' | 'tokens'
+
 interface Props {
   title: string
   subtitle?: string
@@ -120,10 +122,12 @@ interface Props {
   modelDistribution: ModelDistributionSlice[]
   formatCost: (value: number) => string
   formatTokens: (value: number) => string
+  metric?: DistributionMetric
   variant?: 'panel' | 'embedded'
 }
 
 const props = withDefaults(defineProps<Props>(), {
+  metric: 'cost',
   variant: 'panel',
 })
 
@@ -136,6 +140,11 @@ const hasData = computed(() => {
 })
 
 const chartHeight = computed(() => (props.variant === 'embedded' ? 196 : 240))
+
+const formatSliceMeta = (slice: ModelDistributionSlice) =>
+  props.metric === 'tokens'
+    ? `${props.formatTokens(slice.totalTokens)} · ${props.formatCost(slice.totalCost)}`
+    : `${props.formatCost(slice.totalCost)} · ${props.formatTokens(slice.totalTokens)}`
 </script>
 
 <style scoped>

@@ -3,6 +3,7 @@ import type { DailyTrend, ModelStat } from '@/types/usage'
 import {
   aggregateDailyTrends,
   groupModelDistribution,
+  groupModelTokenDistribution,
   selectTrendGranularity,
 } from '@/views/usage/usageDashboardPresentation'
 
@@ -93,5 +94,36 @@ describe('usage dashboard presentation helpers', () => {
       requestCount: 7,
     })
     expect(slices.reduce((sum, slice) => sum + slice.totalCost, 0)).toBe(36)
+  })
+
+  it('can group model distribution by token usage for the models tab', () => {
+    const models: ModelStat[] = [
+      {
+        model: 'expensive-small',
+        request_count: 3,
+        total_tokens: 1000,
+        total_cost: 100,
+        cost_with_cache: 100,
+      },
+      {
+        model: 'cheap-large',
+        request_count: 2,
+        total_tokens: 10000,
+        total_cost: 1,
+        cost_with_cache: 1,
+      },
+    ]
+
+    const costSlices = groupModelDistribution(models)
+    const tokenSlices = groupModelTokenDistribution(models)
+
+    expect(costSlices[0]).toMatchObject({
+      id: 'expensive-small',
+      share: 100 / 101,
+    })
+    expect(tokenSlices[0]).toMatchObject({
+      id: 'cheap-large',
+      share: 10000 / 11000,
+    })
   })
 })

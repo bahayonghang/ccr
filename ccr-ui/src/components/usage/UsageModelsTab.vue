@@ -10,7 +10,8 @@
       :pie-series="pieSeries"
       :should-load-charts="shouldLoadCharts"
       :subtitle="distributionSubtitle"
-      :title="$t('usage.dashboard.chart.costByModel')"
+      metric="tokens"
+      :title="$t('usage.dashboard.chart.tokensByModel')"
     />
 
     <section class="models-tab__workspace glass-panel rounded-[26px] p-4">
@@ -137,7 +138,7 @@
                 </span>
               </td>
               <td class="is-right">
-                {{ formatShare(costWithCache(model)) }}
+                {{ formatShare(model.total_tokens) }}
               </td>
             </tr>
           </tbody>
@@ -175,14 +176,14 @@ interface Props {
 
 const props = defineProps<Props>()
 
-const totalCost = computed(() =>
-  props.modelStats.reduce((sum, item) => sum + costWithCache(item), 0),
+const totalTokens = computed(() =>
+  props.modelStats.reduce((sum, item) => sum + item.total_tokens, 0),
 )
 
 const sortedModels = computed(() =>
   [...props.modelStats].sort((left, right) =>
-    costWithCache(right) - costWithCache(left) ||
     right.total_tokens - left.total_tokens ||
+    costWithCache(right) - costWithCache(left) ||
     right.request_count - left.request_count,
   ),
 )
@@ -210,8 +211,8 @@ const pricingStatusKey = (model: ModelStat) => {
 }
 
 const formatShare = (value: number) => {
-  if (totalCost.value <= 0) return '0%'
-  return `${Math.round((value / totalCost.value) * 100)}%`
+  if (totalTokens.value <= 0) return '0%'
+  return `${Math.round((value / totalTokens.value) * 100)}%`
 }
 </script>
 

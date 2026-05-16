@@ -1766,6 +1766,7 @@ export default {
         cache: '缓存读取',
         noTrend: '暂无趋势数据',
         costByModel: '模型费用分布',
+        tokensByModel: '模型用量分布',
         distributionSubtitle: '前 {visible} 个模型单独显示，其余 {total} 个归入 Others',
         distributionAllVisible: '当前窗口共 {total} 个模型，已全部显示',
         modelTableSubtitle: '按请求频次排序，帮助识别最常用模型',
@@ -1801,7 +1802,7 @@ export default {
 
       models: {
         title: '模型工作区',
-        subtitle: '按费用排序查看每个模型的请求量、Token 负载与成本占比。',
+        subtitle: '按 Token 用量排序查看每个模型的请求量、费用与用量占比。',
       },
 
       projects: {

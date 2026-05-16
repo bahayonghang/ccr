@@ -439,6 +439,36 @@ describe('usage dashboard state smoke', () => {
     }
   })
 
+  it('keeps overview model distribution cost-based while exposing token-based models data', async () => {
+    tauriRuntime = true
+    usageStore.modelStats = [
+      {
+        model: 'expensive-small',
+        request_count: 3,
+        total_tokens: 1000,
+        total_cost: 100,
+        cost_with_cache: 100,
+      },
+      {
+        model: 'cheap-large',
+        request_count: 2,
+        total_tokens: 10000,
+        total_cost: 1,
+        cost_with_cache: 1,
+      },
+    ]
+
+    const { state, unmount } = await mountComposable()
+
+    try {
+      expect(state.modelDistribution.value[0]?.label).toBe('expensive-small')
+      expect(state.modelTokenDistribution.value[0]?.label).toBe('cheap-large')
+      expect(state.modelTokenPieSeries.value).toEqual([10000, 1000])
+    } finally {
+      unmount()
+    }
+  })
+
   it('hydrates interpolated dashboard copy without leaking placeholder literals', async () => {
     tauriRuntime = true
     usageStore.summary = {

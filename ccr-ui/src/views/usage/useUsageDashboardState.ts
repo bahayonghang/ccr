@@ -8,7 +8,9 @@ import {
   aggregateDailyTrends,
   expandTrendBucketEnd,
   groupModelDistribution,
+  groupModelTokenDistribution,
   selectTrendGranularity,
+  type ModelDistributionSlice,
   type TrendGranularity,
 } from './usageDashboardPresentation'
 
@@ -68,6 +70,8 @@ type ChartThemeState = {
   grid: string
   border: string
 }
+
+type ModelDistributionMetric = 'cost' | 'tokens'
 
 type UsageDiagnosticsSummary = {
   totalRecords: string
@@ -676,7 +680,19 @@ export const useUsageDashboardState = () => {
     }))
   )
 
+  const modelTokenDistribution = computed(() =>
+    groupModelTokenDistribution(store.modelStats, 6).map((item) => ({
+      ...item,
+      label: item.isOther
+        ? translateDashboardText('usage.dashboard.chart.others', undefined, 'Others')
+        : item.label,
+    }))
+  )
+
   const pieSeries = computed(() => modelDistribution.value.map((item) => item.totalCost))
+  const modelTokenPieSeries = computed(() =>
+    modelTokenDistribution.value.map((item) => item.totalTokens)
+  )
 
   const pieColors = computed(() => {
     const palette = [
@@ -690,7 +706,10 @@ export const useUsageDashboardState = () => {
       '#93C5FD',
     ]
 
-    return palette.slice(0, Math.max(modelDistribution.value.length, 1))
+    return palette.slice(
+      0,
+      Math.max(modelDistribution.value.length, modelTokenDistribution.value.length, 1)
+    )
   })
 
   const distributionSubtitle = computed(() => {
@@ -716,11 +735,14 @@ export const useUsageDashboardState = () => {
     )
   })
 
-  const pieOptions = computed(() => ({
+  const buildDistributionPieOptions = (
+    metric: ModelDistributionMetric,
+    distribution: ModelDistributionSlice[],
+  ) => ({
     chart: { background: 'transparent', fontFamily: 'inherit' },
     theme: { mode: chartTheme.value.mode },
     colors: pieColors.value,
-    labels: modelDistribution.value.map((item) => item.label),
+    labels: distribution.map((item) => item.label),
     legend: { show: false },
     plotOptions: {
       pie: {
@@ -739,20 +761,32 @@ export const useUsageDashboardState = () => {
               fontSize: '15px',
               fontWeight: 600,
               color: chartTheme.value.textPrimary,
-              formatter: (value: string) => formatCost(Number(value)),
+              formatter: (value: string) =>
+                metric === 'tokens' ? formatTokens(Number(value)) : formatCost(Number(value)),
             },
             total: {
               show: true,
-              label: t('usage.dashboard.cards.totalCost'),
+              label: t(
+                metric === 'tokens'
+                  ? 'usage.dashboard.cards.totalTokens'
+                  : 'usage.dashboard.cards.totalCost'
+              ),
               fontSize: '10px',
               color: chartTheme.value.textMuted,
               formatter: (context: ApexFormatterContext) =>
-                formatCost(
-                  (context.globals?.seriesTotals ?? []).reduce(
-                    (sum: number, item: number) => sum + item,
-                    0,
-                  ),
-                ),
+                metric === 'tokens'
+                  ? formatTokens(
+                      (context.globals?.seriesTotals ?? []).reduce(
+                        (sum: number, item: number) => sum + item,
+                        0,
+                      )
+                    )
+                  : formatCost(
+                      (context.globals?.seriesTotals ?? []).reduce(
+                        (sum: number, item: number) => sum + item,
+                        0,
+                      )
+                    ),
             },
           },
         },
@@ -775,9 +809,17 @@ export const useUsageDashboardState = () => {
     },
     tooltip: {
       theme: chartTheme.value.mode,
-      y: { formatter: (value: number) => formatCost(value) },
+      y: {
+        formatter: (value: number) =>
+          metric === 'tokens' ? formatTokens(value) : formatCost(value),
+      },
     },
-  }))
+  })
+
+  const pieOptions = computed(() => buildDistributionPieOptions('cost', modelDistribution.value))
+  const modelTokenPieOptions = computed(() =>
+    buildDistributionPieOptions('tokens', modelTokenDistribution.value)
+  )
 
   const overviewHighlights = computed(() => {
     if (!dashboardReady.value) return []
@@ -1171,6 +1213,9 @@ export const useUsageDashboardState = () => {
     topProjectRankings,
     distributionSubtitle,
     modelDistribution,
+    modelTokenDistribution,
+    modelTokenPieOptions,
+    modelTokenPieSeries,
     updateLogModelFilter,
     warningMessage,
   }
