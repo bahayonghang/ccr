@@ -1728,6 +1728,11 @@ export default {
         recent: '最近数据已就绪，历史数据仍在后台补齐中。已扫描 {scanned}/{total} 个文件，累计导入 {records} 条记录。',
         running: '正在后台导入 usage 数据。已扫描 {scanned}/{total} 个文件，累计导入 {records} 条记录；你可以继续切换页面。',
       },
+      toolbar: {
+        eyebrow: 'llmusage 只读仪表盘',
+        platform: '平台',
+        window: '窗口',
+      },
 
       tabs: {
         overview: '总览',
@@ -1745,6 +1750,9 @@ export default {
         costDetail: '平均每次请求 {average}',
         cacheEfficiency: '缓存复用率',
         cacheDetail: 'cache read / (input + cache read) · {tokens} 缓存读取',
+        average: '平均',
+        peak: '峰值',
+        sparklineLabel: '{metric} 在 {window} 内的趋势',
       },
 
       chart: {
@@ -1803,11 +1811,18 @@ export default {
       models: {
         title: '模型工作区',
         subtitle: '按 Token 用量排序查看每个模型的请求量、费用与用量占比。',
+        summaryTotalTokens: '总 Tokens',
+        summaryInputOutput: '输入 / 输出',
+        summaryTotalCost: '总费用',
+        summaryCacheSavings: '缓存节省',
+        summaryRequests: '请求数',
+        summaryModels: '个模型',
       },
 
       projects: {
         title: '项目工作区',
         subtitle: '从工作区维度追踪成本、Token 与请求量，定位长期高消耗路径。',
+        shareProgress: '项目费用占比',
       },
 
       meta: {
@@ -1828,14 +1843,26 @@ export default {
         platform: '平台',
         input: '输入',
         output: '输出',
+        cacheRead: '缓存读取',
+        cacheWrite: '缓存写入',
+        rate: '单价',
+        costWithCache: '带缓存',
+        costWithoutCache: '无缓存',
+        cacheSavings: '节省',
+        pricingStatus: '定价',
+        statusPriced: '已定价',
+        statusLegacyAlias: '旧别名',
+        statusUnpriced: '未定价',
         noData: '暂无数据',
       },
 
       logs: {
         title: '原始记录与诊断',
         subtitle: '查看逐条 usage 记录、导入结果，并在需要时修复平台历史数据。',
+        filterLabel: '模型搜索',
         filterPlaceholder: '按模型筛选...',
         search: '搜索',
+        pageStatus: '第 {page} / {pages} 页',
         prev: '上一页',
         next: '下一页',
         noLogs: '未找到原始记录',
@@ -1848,6 +1875,8 @@ export default {
         noRecentRecord: '暂无最近记录',
         healthy: '原始记录正常',
         rawLogsHint: '这一区域用于排查导入与归档质量；删除原始对话不会清除归档。',
+        ready: '就绪',
+        needsAction: '需处理',
         repairNeeded: '建议修复 Codex 历史记录',
         codexRepairHint:
           '检测到 {unknown} 条 Codex 记录缺少模型信息或费用异常，建议先重建历史导入。',

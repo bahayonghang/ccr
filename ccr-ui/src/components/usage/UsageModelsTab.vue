@@ -28,6 +28,27 @@
 
       <div
         v-if="sortedModels.length > 0"
+        class="models-tab__summary-grid"
+      >
+        <article class="models-tab__summary-card">
+          <span>{{ $t('usage.dashboard.models.summaryTotalTokens') }}</span>
+          <strong>{{ formatTokens(totalTokens) }}</strong>
+          <small>{{ $t('usage.dashboard.models.summaryInputOutput') }} · {{ inputOutputSummary }}</small>
+        </article>
+        <article class="models-tab__summary-card">
+          <span>{{ $t('usage.dashboard.models.summaryTotalCost') }}</span>
+          <strong>{{ formatCost(totalCost) }}</strong>
+          <small>{{ $t('usage.dashboard.models.summaryCacheSavings') }} · {{ formatCost(totalSavings) }}</small>
+        </article>
+        <article class="models-tab__summary-card">
+          <span>{{ $t('usage.dashboard.models.summaryRequests') }}</span>
+          <strong>{{ totalRequests.toLocaleString() }}</strong>
+          <small>{{ sortedModels.length.toLocaleString() }} {{ $t('usage.dashboard.models.summaryModels') }}</small>
+        </article>
+      </div>
+
+      <div
+        v-if="sortedModels.length > 0"
         class="models-tab__table-shell"
       >
         <table class="models-tab__table">
@@ -179,6 +200,24 @@ const props = defineProps<Props>()
 const totalTokens = computed(() =>
   props.modelStats.reduce((sum, item) => sum + item.total_tokens, 0),
 )
+const totalCost = computed(() =>
+  props.modelStats.reduce((sum, item) => sum + costWithCache(item), 0),
+)
+const totalSavings = computed(() =>
+  props.modelStats.reduce((sum, item) => sum + cacheSavings(item), 0),
+)
+const totalRequests = computed(() =>
+  props.modelStats.reduce((sum, item) => sum + item.request_count, 0),
+)
+const totalInputTokens = computed(() =>
+  props.modelStats.reduce((sum, item) => sum + inputTokens(item), 0),
+)
+const totalOutputTokens = computed(() =>
+  props.modelStats.reduce((sum, item) => sum + outputTokens(item), 0),
+)
+const inputOutputSummary = computed(() =>
+  `${props.formatTokens(totalInputTokens.value)} / ${props.formatTokens(totalOutputTokens.value)}`
+)
 
 const sortedModels = computed(() =>
   [...props.modelStats].sort((left, right) =>
@@ -246,6 +285,48 @@ const formatShare = (value: number) => {
   color: var(--color-text-secondary);
   font-size: 0.82rem;
   line-height: 1.6;
+}
+
+.models-tab__summary-grid {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.models-tab__summary-card {
+  display: grid;
+  gap: 0.28rem;
+  min-width: 0;
+  border-radius: 1rem;
+  border: 1px solid rgb(var(--color-border-default-rgb) / 14%);
+  background:
+    linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 54%), rgb(var(--color-bg-surface-rgb) / 28%)),
+    radial-gradient(circle at 100% 0%, rgb(var(--color-accent-primary-rgb) / 9%), transparent 46%);
+  padding: 0.82rem 0.92rem;
+}
+
+.models-tab__summary-card span {
+  color: var(--color-text-muted);
+  font-size: 0.66rem;
+  font-weight: 740;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.models-tab__summary-card strong {
+  color: var(--color-text-primary);
+  font-size: 1.28rem;
+  font-weight: 720;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+}
+
+.models-tab__summary-card small {
+  overflow: hidden;
+  color: var(--color-text-secondary);
+  font-size: 0.76rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .models-tab__table-shell {
@@ -368,5 +449,11 @@ const formatShare = (value: number) => {
 
 .models-tab__col--status {
   width: 8rem;
+}
+
+@media (width < 960px) {
+  .models-tab__summary-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 </style>

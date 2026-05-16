@@ -14,7 +14,14 @@ import {
   type TrendGranularity,
 } from './usageDashboardPresentation'
 
-type UsageSummaryCardTone = 'rose' | 'violet' | 'sky' | 'amber'
+export type UsageSummaryCardTone = 'rose' | 'violet' | 'sky' | 'amber'
+type UsageSummaryCardDeltaTone = 'up' | 'down' | 'flat'
+type UsageSummaryCardMetric = 'requests' | 'tokens' | 'cost' | 'cache'
+
+export type UsageSparklinePoint = {
+  label: string
+  value: number
+}
 
 /**
  * ApexCharts formatter callback 上下文。
@@ -34,13 +41,30 @@ interface ApexFormatterContext {
   }
 }
 
-type UsageSummaryCard = {
-  id: string
+interface ApexCustomTooltipContext {
+  dataPointIndex?: number
+  series?: number[][]
+  w?: {
+    globals?: {
+      colors?: string[]
+      seriesNames?: string[]
+    }
+  }
+}
+
+export type UsageSummaryCard = {
+  id: UsageSummaryCardMetric
   label: string
   value: string
   detail: string
   icon: string
   tone: UsageSummaryCardTone
+  sparkline: UsageSparklinePoint[]
+  sparklineLabel: string
+  averageLabel: string
+  peakLabel: string
+  deltaLabel: string
+  deltaTone: UsageSummaryCardDeltaTone
 }
 
 type DashboardMetaItem = {
@@ -92,9 +116,25 @@ const formatTokens = (value: number) =>
 const formatCost = (value: number) => (value >= 1 ? `$${value.toFixed(2)}` : `$${value.toFixed(4)}`)
 
 const formatPercent = (value: number) => `${(value * 100).toFixed(1)}%`
+const formatCompactCount = (value: number) =>
+  value >= 1e6
+    ? `${(value / 1e6).toFixed(1)}M`
+    : value >= 1e3
+      ? `${(value / 1e3).toFixed(1)}K`
+      : Number.isInteger(value)
+        ? value.toLocaleString()
+        : value.toFixed(1)
 const formatDateTime = (value: string, locale: string) => new Date(value).toLocaleString(locale)
 const modelCost = (model: ModelStat) => model.cost_with_cache ?? 0
 const outputSeriesName = 'Output'
+
+const escapeTooltipText = (value: string) =>
+  value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
 
 const hasTemplatePlaceholder = (value: string) => /\{[a-zA-Z_][a-zA-Z0-9_]*\}/.test(value)
 
@@ -350,92 +390,6 @@ export const useUsageDashboardState = () => {
     )
   })
 
-  const summaryCards = computed<UsageSummaryCard[]>(() => {
-    if (!dashboardReady.value) return []
-
-    const summary = store.summary
-    if (!summary) return []
-
-    const averageCostPerRequest =
-      summary.total_requests > 0
-        ? formatCost(summary.total_cost_usd / summary.total_requests)
-        : formatCost(0)
-
-    return [
-      {
-        id: 'requests',
-        label: translateDashboardText(
-          'usage.dashboard.cards.totalRequests',
-          undefined,
-          'Total Requests'
-        ),
-        value: summary.total_requests.toLocaleString(),
-        detail: translateDashboardText(
-          'usage.dashboard.cards.requestsDetail',
-          {
-            models: store.modelStats.length,
-            projects: store.projectStats.length,
-          },
-          `${store.modelStats.length} models · ${store.projectStats.length} projects`
-        ),
-        icon: 'Activity',
-        tone: 'rose',
-      },
-      {
-        id: 'tokens',
-        label: translateDashboardText(
-          'usage.dashboard.cards.totalTokens',
-          undefined,
-          'Total Tokens'
-        ),
-        value: formatTokens(summary.total_tokens),
-        detail: translateDashboardText(
-          'usage.dashboard.cards.tokensDetail',
-          {
-            input: formatTokens(summary.total_input_tokens),
-            output: formatTokens(summary.total_output_tokens),
-            cache: formatTokens(summary.total_cache_read_tokens),
-          },
-          `${formatTokens(summary.total_input_tokens)} in · ${formatTokens(summary.total_output_tokens)} out · ${formatTokens(summary.total_cache_read_tokens)} cache read`
-        ),
-        icon: 'Layers',
-        tone: 'violet',
-      },
-      {
-        id: 'cost',
-        label: translateDashboardText('usage.dashboard.cards.totalCost', undefined, 'Total Cost'),
-        value: formatCost(summary.total_cost_usd),
-        detail: translateDashboardText(
-          'usage.dashboard.cards.costDetail',
-          {
-            average: averageCostPerRequest,
-          },
-          `${averageCostPerRequest} per request`
-        ),
-        icon: 'Wallet',
-        tone: 'sky',
-      },
-      {
-        id: 'cache',
-        label: translateDashboardText(
-          'usage.dashboard.cards.cacheEfficiency',
-          undefined,
-          'Cache Reuse Rate'
-        ),
-        value: formatPercent(summary.cache_efficiency),
-        detail: translateDashboardText(
-          'usage.dashboard.cards.cacheDetail',
-          {
-            tokens: formatTokens(summary.total_cache_read_tokens),
-          },
-          `cache read / (input + cache read) · ${formatTokens(summary.total_cache_read_tokens)} cache read`
-        ),
-        icon: 'Cpu',
-        tone: 'amber',
-      },
-    ]
-  })
-
   const selectedWindowLabel = computed(() => {
     const labels: Record<number, { key: string; fallback: string }> = {
       7: { key: 'usage.dashboard.days7', fallback: '7 Days' },
@@ -509,6 +463,174 @@ export const useUsageDashboardState = () => {
       displayEndDate: expandTrendBucketEnd(bucket, trendGranularity.value),
     }))
   )
+
+  const summarySparklinePoints = computed<Record<UsageSummaryCardMetric, UsageSparklinePoint[]>>(() => {
+    const buckets = trendBuckets.value
+    const requestPoints = buckets.map((item) => ({ label: item.startDate, value: item.requestCount }))
+    const tokenPoints = buckets.map((item) => ({ label: item.startDate, value: item.totalTokens }))
+    const costPoints = buckets.map((item) => ({ label: item.startDate, value: item.costUsd }))
+    const cachePoints = buckets.map((item) => {
+      const denominator = item.inputTokens + item.cacheReadTokens
+      return {
+        label: item.startDate,
+        value: denominator > 0 ? item.cacheReadTokens / denominator : 0,
+      }
+    })
+
+    return {
+      requests: requestPoints,
+      tokens: tokenPoints,
+      cost: costPoints,
+      cache: cachePoints,
+    }
+  })
+
+  const buildMetricStats = (
+    metric: UsageSummaryCardMetric,
+    formatter: (value: number) => string,
+  ) => {
+    const points = summarySparklinePoints.value[metric]
+    if (points.length === 0) {
+      return {
+        averageLabel: formatter(0),
+        peakLabel: formatter(0),
+        deltaLabel: '0%',
+        deltaTone: 'flat' as UsageSummaryCardDeltaTone,
+      }
+    }
+
+    const values = points.map((point) => point.value)
+    const average = values.reduce((sum, value) => sum + value, 0) / values.length
+    const peak = Math.max(...values)
+    const first = values[0] ?? 0
+    const last = values.at(-1) ?? 0
+    const delta = first > 0 ? (last - first) / first : last > 0 ? 1 : 0
+    const deltaTone: UsageSummaryCardDeltaTone = delta > 0.005 ? 'up' : delta < -0.005 ? 'down' : 'flat'
+    const sign = delta > 0 ? '+' : ''
+
+    return {
+      averageLabel: formatter(average),
+      peakLabel: formatter(peak),
+      deltaLabel: `${sign}${(delta * 100).toFixed(0)}%`,
+      deltaTone,
+    }
+  }
+
+  const buildSummaryCard = (
+    card: Omit<UsageSummaryCard, 'sparkline' | 'sparklineLabel' | 'averageLabel' | 'peakLabel' | 'deltaLabel' | 'deltaTone'>,
+    formatter: (value: number) => string,
+  ): UsageSummaryCard => {
+    const stats = buildMetricStats(card.id, formatter)
+
+    return {
+      ...card,
+      sparkline: summarySparklinePoints.value[card.id],
+      sparklineLabel: translateDashboardText(
+        'usage.dashboard.cards.sparklineLabel',
+        { metric: card.label, window: selectedWindowLabel.value },
+        `${card.label} trend for ${selectedWindowLabel.value}`,
+      ),
+      ...stats,
+    }
+  }
+
+  const summaryCards = computed<UsageSummaryCard[]>(() => {
+    if (!dashboardReady.value) return []
+
+    const summary = store.summary
+    if (!summary) return []
+
+    const averageCostPerRequest =
+      summary.total_requests > 0
+        ? formatCost(summary.total_cost_usd / summary.total_requests)
+        : formatCost(0)
+
+    return [
+      buildSummaryCard(
+        {
+          id: 'requests',
+          label: translateDashboardText(
+            'usage.dashboard.cards.totalRequests',
+            undefined,
+            'Total Requests',
+          ),
+          value: summary.total_requests.toLocaleString(),
+          detail: translateDashboardText(
+            'usage.dashboard.cards.requestsDetail',
+            {
+              models: store.modelStats.length,
+              projects: store.projectStats.length,
+            },
+            `${store.modelStats.length} models · ${store.projectStats.length} projects`,
+          ),
+          icon: 'Activity',
+          tone: 'rose',
+        },
+        formatCompactCount,
+      ),
+      buildSummaryCard(
+        {
+          id: 'tokens',
+          label: translateDashboardText(
+            'usage.dashboard.cards.totalTokens',
+            undefined,
+            'Total Tokens',
+          ),
+          value: formatTokens(summary.total_tokens),
+          detail: translateDashboardText(
+            'usage.dashboard.cards.tokensDetail',
+            {
+              input: formatTokens(summary.total_input_tokens),
+              output: formatTokens(summary.total_output_tokens),
+              cache: formatTokens(summary.total_cache_read_tokens),
+            },
+            `${formatTokens(summary.total_input_tokens)} in · ${formatTokens(summary.total_output_tokens)} out · ${formatTokens(summary.total_cache_read_tokens)} cache read`,
+          ),
+          icon: 'Layers',
+          tone: 'violet',
+        },
+        formatTokens,
+      ),
+      buildSummaryCard(
+        {
+          id: 'cost',
+          label: translateDashboardText('usage.dashboard.cards.totalCost', undefined, 'Total Cost'),
+          value: formatCost(summary.total_cost_usd),
+          detail: translateDashboardText(
+            'usage.dashboard.cards.costDetail',
+            {
+              average: averageCostPerRequest,
+            },
+            `${averageCostPerRequest} per request`,
+          ),
+          icon: 'Wallet',
+          tone: 'sky',
+        },
+        formatCost,
+      ),
+      buildSummaryCard(
+        {
+          id: 'cache',
+          label: translateDashboardText(
+            'usage.dashboard.cards.cacheEfficiency',
+            undefined,
+            'Cache Reuse Rate',
+          ),
+          value: formatPercent(summary.cache_efficiency),
+          detail: translateDashboardText(
+            'usage.dashboard.cards.cacheDetail',
+            {
+              tokens: formatTokens(summary.total_cache_read_tokens),
+            },
+            `cache read / (input + cache read) · ${formatTokens(summary.total_cache_read_tokens)} cache read`,
+          ),
+          icon: 'Cpu',
+          tone: 'amber',
+        },
+        formatPercent,
+      ),
+    ]
+  })
 
   const trendSeries = computed(() => {
     const inputName = translateDashboardText('usage.dashboard.chart.input', undefined, 'Input')
@@ -642,6 +764,28 @@ export const useUsageDashboardState = () => {
       theme: chartTheme.value.mode,
       shared: true,
       intersect: false,
+      custom: (context: ApexCustomTooltipContext) => {
+        const index = context.dataPointIndex ?? -1
+        const bucket = trendBuckets.value[index]
+        if (!bucket) return ''
+
+        const label = formatTrendTooltipLabel(
+          bucket.startDate,
+          bucket.displayEndDate,
+          trendGranularity.value,
+          locale.value,
+        )
+        const colors = context.w?.globals?.colors ?? []
+        const names = context.w?.globals?.seriesNames ?? []
+        const rows = (context.series ?? []).map((series, seriesIndex) => {
+          const name = escapeTooltipText(names[seriesIndex] ?? trendSeries.value[seriesIndex]?.name ?? '')
+          const value = formatTokens(series[index] ?? 0)
+          const color = colors[seriesIndex] ?? chartTheme.value.primary
+          return `<div class="usage-chart-tooltip__row"><span><i style="background:${color}"></i>${name}</span><strong>${value}</strong></div>`
+        }).join('')
+
+        return `<div class="usage-chart-tooltip"><div class="usage-chart-tooltip__title">${escapeTooltipText(label)}</div>${rows}<div class="usage-chart-tooltip__row usage-chart-tooltip__row--cost"><span>${escapeTooltipText(translateDashboardText('usage.dashboard.table.cost', undefined, 'Cost'))}</span><strong>${formatCost(bucket.costUsd)}</strong></div></div>`
+      },
       x: {
         // ApexCharts 把 formatter 的 context 类型标成 any，这里收口到本地 ApexFormatterContext。
         formatter: (_value: string, context: ApexFormatterContext) => {

@@ -13,69 +13,46 @@
 
     <div
       v-if="sortedProjects.length > 0"
-      class="projects-tab__table-shell"
+      class="projects-tab__list"
     >
-      <table class="projects-tab__table">
-        <colgroup>
-          <col class="projects-tab__col projects-tab__col--rank">
-          <col class="projects-tab__col projects-tab__col--project">
-          <col class="projects-tab__col projects-tab__col--requests">
-          <col class="projects-tab__col projects-tab__col--tokens">
-          <col class="projects-tab__col projects-tab__col--cost">
-          <col class="projects-tab__col projects-tab__col--share">
-        </colgroup>
-        <thead>
-          <tr>
-            <th>#</th>
-            <th>{{ $t('usage.dashboard.table.project') }}</th>
-            <th class="is-right">
-              {{ $t('usage.dashboard.table.requests') }}
-            </th>
-            <th class="is-right">
-              {{ $t('usage.dashboard.table.tokens') }}
-            </th>
-            <th class="is-right">
-              {{ $t('usage.dashboard.table.cost') }}
-            </th>
-            <th class="is-right">
-              {{ $t('usage.dashboard.table.share') }}
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr
-            v-for="(project, index) in sortedProjects"
-            :key="project.project_path"
-          >
-            <td class="projects-tab__rank-cell">
-              {{ index + 1 }}
-            </td>
-            <td>
-              <div
-                class="projects-tab__project-name"
-                :title="project.project_path"
-              >
-                {{ shortenPath(project.project_path) }}
-              </div>
-              <div class="projects-tab__project-path">
-                {{ project.project_path }}
-              </div>
-            </td>
-            <td class="is-right">
-              {{ project.request_count.toLocaleString() }}
-            </td>
-            <td class="is-right">
-              {{ formatTokens(project.total_tokens) }}
-            </td>
-            <td class="is-right">
+      <article
+        v-for="(project, index) in sortedProjects"
+        :key="project.project_path"
+        class="projects-tab__item"
+      >
+        <span class="projects-tab__rank-cell">{{ index + 1 }}</span>
+
+        <div class="projects-tab__project-copy">
+          <div class="projects-tab__project-line">
+            <strong
+              class="projects-tab__project-name"
+              :title="project.project_path"
+            >
+              {{ projectName(project.project_path) }}
+            </strong>
+            <span class="projects-tab__project-cost">
               {{ formatCost(project.total_cost) }}
-            </td>
-            <td class="is-right">
-              {{ formatShare(project.total_cost) }}
-            </td>
-          </tr>
-        </tbody>
-      </table>
+            </span>
+          </div>
+
+          <div class="projects-tab__project-path">
+            {{ project.project_path }}
+          </div>
+
+          <div class="projects-tab__metrics">
+            <span>{{ formatTokens(project.total_tokens) }} {{ $t('usage.dashboard.table.tokens') }}</span>
+            <span>{{ project.request_count.toLocaleString() }} {{ $t('usage.dashboard.table.requests') }}</span>
+            <span>{{ formatShare(project.total_cost) }} {{ $t('usage.dashboard.table.share') }}</span>
+          </div>
+
+          <div
+            class="projects-tab__progress"
+            :aria-label="$t('usage.dashboard.projects.shareProgress')"
+          >
+            <span :style="{ width: `${Math.max(costShare(project.total_cost) * 100, 4)}%` }" />
+          </div>
+        </div>
+      </article>
     </div>
 
     <div
@@ -116,6 +93,14 @@ const formatShare = (value: number) => {
   if (totalCost.value <= 0) return '0%'
   return `${Math.round((value / totalCost.value) * 100)}%`
 }
+
+const costShare = (value: number) => (totalCost.value > 0 ? value / totalCost.value : 0)
+
+const projectName = (path: string) => {
+  const normalized = path.replace(/\\/g, '/')
+  const parts = normalized.split('/').filter(Boolean)
+  return parts.at(-1) ?? props.shortenPath(path)
+}
 </script>
 
 <style scoped>
@@ -145,64 +130,81 @@ const formatShare = (value: number) => {
   line-height: 1.6;
 }
 
-.projects-tab__table-shell {
+.projects-tab__list {
+  display: grid;
+  gap: 0.7rem;
   max-height: 38rem;
   overflow: auto;
-  border-radius: 1.15rem;
-  border: 1px solid rgb(var(--color-border-default-rgb) / 18%);
-  background: rgb(var(--color-bg-elevated-rgb) / 44%);
+  padding-right: 0.15rem;
 }
 
-.projects-tab__table {
-  min-width: 64rem;
-  width: 100%;
-  border-collapse: separate;
-  border-spacing: 0;
+.projects-tab__item {
+  display: grid;
+  grid-template-columns: 2.4rem minmax(0, 1fr);
+  gap: 0.78rem;
+  align-items: start;
+  border-radius: 1.18rem;
+  border: 1px solid rgb(var(--color-border-default-rgb) / 14%);
+  background:
+    linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 50%), rgb(var(--color-bg-surface-rgb) / 26%)),
+    radial-gradient(circle at 100% 0%, rgb(var(--color-accent-secondary-rgb) / 8%), transparent 42%);
+  padding: 0.82rem 0.9rem;
+  transition:
+    border-color var(--motion-subtle-duration) var(--motion-subtle-ease),
+    transform var(--motion-subtle-duration) var(--motion-subtle-ease);
 }
 
-.projects-tab__table thead th {
-  position: sticky;
-  top: 0;
-  z-index: 1;
-  padding: 0.85rem 1rem;
-  border-bottom: 1px solid rgb(var(--color-border-default-rgb) / 18%);
-  background: rgb(var(--color-bg-elevated-rgb) / 94%);
-  color: var(--color-text-muted);
-  font-size: 0.74rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-align: left;
-  text-transform: uppercase;
-}
-
-.projects-tab__table tbody td {
-  padding: 0.92rem 1rem;
-  border-bottom: 1px solid rgb(var(--color-border-default-rgb) / 12%);
-  color: var(--color-text-secondary);
-  font-size: 0.9rem;
-  font-variant-numeric: tabular-nums;
-  vertical-align: top;
-}
-
-.projects-tab__table tbody tr:hover {
-  background: rgb(var(--color-accent-primary-rgb) / 6%);
+.projects-tab__item:hover {
+  transform: translateY(-1px);
+  border-color: rgb(var(--color-accent-primary-rgb) / 18%);
 }
 
 .projects-tab__rank-cell {
+  display: inline-flex;
+  width: 2rem;
+  height: 2rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.82rem;
+  background: rgb(var(--color-accent-primary-rgb) / 10%);
   color: var(--color-text-primary);
+  font-size: 0.82rem;
   font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.projects-tab__project-copy {
+  display: grid;
+  min-width: 0;
+  gap: 0.34rem;
+}
+
+.projects-tab__project-line {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
 }
 
 .projects-tab__project-name {
   overflow: hidden;
   color: var(--color-text-primary);
-  font-weight: 600;
+  font-size: 0.95rem;
+  font-weight: 680;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
+.projects-tab__project-cost {
+  flex-shrink: 0;
+  color: var(--color-text-primary);
+  font-size: 0.98rem;
+  font-weight: 720;
+  font-variant-numeric: tabular-nums;
+}
+
 .projects-tab__project-path {
-  margin-top: 0.2rem;
   overflow: hidden;
   color: var(--color-text-muted);
   font-size: 0.76rem;
@@ -210,8 +212,27 @@ const formatShare = (value: number) => {
   white-space: nowrap;
 }
 
-.projects-tab__table .is-right {
-  text-align: right;
+.projects-tab__metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.8rem;
+  color: var(--color-text-secondary);
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.projects-tab__progress {
+  height: 0.42rem;
+  overflow: hidden;
+  border-radius: 9999px;
+  background: rgb(var(--color-border-default-rgb) / 18%);
+}
+
+.projects-tab__progress span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, rgb(var(--color-accent-primary-rgb) / 86%), rgb(var(--color-info-rgb) / 82%));
 }
 
 .projects-tab__empty {
@@ -224,18 +245,15 @@ const formatShare = (value: number) => {
   color: var(--color-text-muted);
 }
 
-.projects-tab__col--rank {
-  width: 4rem;
-}
+@media (width < 720px) {
+  .projects-tab__item {
+    grid-template-columns: minmax(0, 1fr);
+  }
 
-.projects-tab__col--project {
-  width: 32rem;
-}
-
-.projects-tab__col--requests,
-.projects-tab__col--tokens,
-.projects-tab__col--cost,
-.projects-tab__col--share {
-  width: 9rem;
+  .projects-tab__project-line {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 0.3rem;
+  }
 }
 </style>

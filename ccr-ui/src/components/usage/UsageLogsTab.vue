@@ -11,13 +11,16 @@
       </div>
 
       <div class="diagnostics-tab__filter-rail">
-        <input
-          :value="logModelFilter"
-          :placeholder="$t('usage.dashboard.logs.filterPlaceholder')"
-          class="toolbar-select diagnostics-tab__filter-input"
-          @input="updateLogModelFilter(($event.target as HTMLInputElement).value)"
-          @keyup.enter="loadLogs('reset')"
-        >
+        <label class="diagnostics-tab__filter-field">
+          <span>{{ $t('usage.dashboard.logs.filterLabel') }}</span>
+          <input
+            :value="logModelFilter"
+            :placeholder="$t('usage.dashboard.logs.filterPlaceholder')"
+            class="toolbar-select diagnostics-tab__filter-input"
+            @input="updateLogModelFilter(($event.target as HTMLInputElement).value)"
+            @keyup.enter="loadLogs('reset')"
+          >
+        </label>
         <button
           class="diagnostics-tab__filter-action"
           @click="loadLogs('reset')"
@@ -48,9 +51,19 @@
         <span class="diagnostics-tab__summary-label">
           {{ $t('usage.dashboard.diagnostics.dataHealth') }}
         </span>
-        <strong class="diagnostics-tab__summary-value diagnostics-tab__summary-value--small">
-          {{ diagnosticsSummary.healthLabel }}
-        </strong>
+        <div class="diagnostics-tab__health-row">
+          <strong class="diagnostics-tab__summary-value diagnostics-tab__summary-value--small">
+            {{ diagnosticsSummary.healthLabel }}
+          </strong>
+          <span
+            class="diagnostics-tab__health-pill"
+            :class="{
+              'diagnostics-tab__health-pill--warning': diagnosticsSummary.repairRecommended,
+            }"
+          >
+            {{ diagnosticsSummary.repairRecommended ? $t('usage.dashboard.diagnostics.needsAction') : $t('usage.dashboard.diagnostics.ready') }}
+          </span>
+        </div>
         <span class="diagnostics-tab__summary-detail">
           {{ diagnosticsSummary.healthDetail }}
         </span>
@@ -158,6 +171,9 @@
       v-if="showPager"
       class="diagnostics-tab__pager"
     >
+      <span class="diagnostics-tab__pager-status">
+        {{ $t('usage.dashboard.logs.pageStatus', { page: logsPage, pages: hasLogsTotal ? logsTotalPages : '?' }) }}
+      </span>
       <button
         class="diagnostics-tab__pager-button"
         :disabled="!canPrevLogs"
@@ -257,7 +273,21 @@ defineProps<Props>()
 .diagnostics-tab__filter-rail {
   display: flex;
   flex-wrap: wrap;
+  align-items: flex-end;
   gap: 0.65rem;
+}
+
+.diagnostics-tab__filter-field {
+  display: grid;
+  gap: 0.28rem;
+}
+
+.diagnostics-tab__filter-field span {
+  color: var(--color-text-muted);
+  font-size: 0.64rem;
+  font-weight: 740;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
 }
 
 .diagnostics-tab__filter-input {
@@ -328,6 +358,34 @@ defineProps<Props>()
   color: var(--color-text-secondary);
   font-size: 0.8rem;
   line-height: 1.55;
+}
+
+.diagnostics-tab__health-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.diagnostics-tab__health-pill {
+  display: inline-flex;
+  min-height: 1.35rem;
+  align-items: center;
+  border-radius: 9999px;
+  border: 1px solid rgb(var(--color-success-rgb) / 16%);
+  background: rgb(var(--color-success-rgb) / 9%);
+  padding: 0 0.48rem;
+  color: var(--color-success);
+  font-size: 0.66rem;
+  font-weight: 760;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.diagnostics-tab__health-pill--warning {
+  border-color: rgb(var(--color-warning-rgb) / 20%);
+  background: rgb(var(--color-warning-rgb) / 10%);
+  color: var(--color-warning);
 }
 
 .diagnostics-tab__repair-callout {
@@ -443,6 +501,7 @@ defineProps<Props>()
 
 .diagnostics-tab__pager {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: center;
   gap: 0.75rem;
@@ -463,6 +522,14 @@ defineProps<Props>()
 .diagnostics-tab__pager-text {
   color: var(--color-text-secondary);
   font-size: 0.82rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.diagnostics-tab__pager-status {
+  flex-basis: 100%;
+  color: var(--color-text-muted);
+  font-size: 0.76rem;
+  text-align: center;
   font-variant-numeric: tabular-nums;
 }
 
