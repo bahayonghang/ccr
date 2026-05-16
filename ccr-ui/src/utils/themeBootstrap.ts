@@ -1,6 +1,13 @@
 export type ThemeMode = 'light' | 'dark' | 'system'
 export type ResolvedThemeMode = 'light' | 'dark'
-export type FlavorMode = 'clay' | 'paper' | 'graphite'
+export type FlavorMode =
+  | 'clay'
+  | 'paper'
+  | 'graphite'
+  | 'latte'
+  | 'frappe'
+  | 'macchiato'
+  | 'mocha'
 export type AccentMode =
   | 'clay'
   | 'sand'
@@ -16,7 +23,15 @@ const FLAVOR_STORAGE_KEY = 'ccr-flavor'
 const ACCENT_STORAGE_KEY = 'ccr-accent'
 const THEME_MEDIA_QUERY = '(prefers-color-scheme: dark)'
 
-export const FLAVOR_MODES: readonly FlavorMode[] = ['clay', 'paper', 'graphite'] as const
+export const FLAVOR_MODES: readonly FlavorMode[] = [
+  'clay',
+  'paper',
+  'graphite',
+  'latte',
+  'frappe',
+  'macchiato',
+  'mocha',
+] as const
 export const ACCENT_MODES: readonly AccentMode[] = [
   'clay',
   'sand',

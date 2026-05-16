@@ -626,6 +626,34 @@ const flavorOptions = computed<FlavorOption[]>(() => [
     badge: t('settings.appearance.nightBadge'),
     preview: 'linear-gradient(135deg, #ececee 0%, #f6f6f8 60%, #2e3036 100%)',
   },
+  {
+    value: 'latte',
+    label: t('settings.appearance.flavor.latte'),
+    description: t('settings.appearance.flavor.latteDescription'),
+    badge: t('settings.appearance.dayBadge'),
+    preview: 'linear-gradient(135deg, #eff1f5 0%, #e6e9ef 58%, #7287fd 100%)',
+  },
+  {
+    value: 'frappe',
+    label: t('settings.appearance.flavor.frappe'),
+    description: t('settings.appearance.flavor.frappeDescription'),
+    badge: t('settings.appearance.nightBadge'),
+    preview: 'linear-gradient(135deg, #303446 0%, #414559 58%, #babbf1 100%)',
+  },
+  {
+    value: 'macchiato',
+    label: t('settings.appearance.flavor.macchiato'),
+    description: t('settings.appearance.flavor.macchiatoDescription'),
+    badge: t('settings.appearance.nightBadge'),
+    preview: 'linear-gradient(135deg, #24273a 0%, #363a4f 58%, #b7bdf8 100%)',
+  },
+  {
+    value: 'mocha',
+    label: t('settings.appearance.flavor.mocha'),
+    description: t('settings.appearance.flavor.mochaDescription'),
+    badge: t('settings.appearance.nightBadge'),
+    preview: 'linear-gradient(135deg, #1e1e2e 0%, #313244 58%, #b4befe 100%)',
+  },
 ])
 
 const accentOptions = computed<AccentOption[]>(() => [

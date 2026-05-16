@@ -104,26 +104,26 @@ describe('themeBootstrap smoke', () => {
 
   it('persists and rehydrates non-default flavor and accent independently of theme mode', async () => {
     localStorage.setItem('ccr-theme', 'system')
-    localStorage.setItem('ccr-flavor', 'graphite')
+    localStorage.setItem('ccr-flavor', 'mocha')
     localStorage.setItem('ccr-accent', 'sage')
     installMatchMediaController(true)
 
     const themeBootstrap = await import('@/utils/themeBootstrap')
 
-    expect(themeBootstrap.readStoredFlavor()).toBe('graphite')
+    expect(themeBootstrap.readStoredFlavor()).toBe('mocha')
     expect(themeBootstrap.readStoredAccent()).toBe('sage')
 
     themeBootstrap.applyInitialTheme()
     await flushAsyncImport()
 
     expect(document.documentElement.getAttribute('data-theme')).toBe('dark')
-    expect(document.documentElement.getAttribute('data-flavor')).toBe('graphite')
+    expect(document.documentElement.getAttribute('data-flavor')).toBe('mocha')
     expect(document.documentElement.getAttribute('data-accent')).toBe('sage')
 
-    themeBootstrap.persistFlavor('paper')
-    themeBootstrap.applyFlavorToDocument('paper')
-    expect(localStorage.getItem('ccr-flavor')).toBe('paper')
-    expect(document.documentElement.getAttribute('data-flavor')).toBe('paper')
+    themeBootstrap.persistFlavor('latte')
+    themeBootstrap.applyFlavorToDocument('latte')
+    expect(localStorage.getItem('ccr-flavor')).toBe('latte')
+    expect(document.documentElement.getAttribute('data-flavor')).toBe('latte')
 
     themeBootstrap.persistAccent('amber')
     themeBootstrap.applyAccentToDocument('amber')
@@ -133,8 +133,21 @@ describe('themeBootstrap smoke', () => {
     themeBootstrap.__resetThemeBootstrapForTests()
   })
 
-  it('rejects invalid flavor and accent values from storage and falls back to clay', async () => {
-    localStorage.setItem('ccr-flavor', 'macchiato')
+  it('accepts all Catppuccin flavor values from storage', async () => {
+    installMatchMediaController(false)
+
+    const themeBootstrap = await import('@/utils/themeBootstrap')
+
+    for (const flavor of ['latte', 'frappe', 'macchiato', 'mocha'] as const) {
+      localStorage.setItem('ccr-flavor', flavor)
+      expect(themeBootstrap.readStoredFlavor()).toBe(flavor)
+    }
+
+    themeBootstrap.__resetThemeBootstrapForTests()
+  })
+
+  it('rejects unknown flavor and accent values from storage and falls back to clay', async () => {
+    localStorage.setItem('ccr-flavor', 'neko')
     localStorage.setItem('ccr-accent', 'lavender')
     installMatchMediaController(false)
 

@@ -134,12 +134,16 @@ describe('AppSettingsView smoke', () => {
       const sidebarSlider = el.querySelector<HTMLInputElement>('[data-testid="settings-sidebar-width-slider"]')
       const exitToggle = el.querySelector('[data-testid="settings-confirm-exit-toggle"]')
       const perfToggle = el.querySelector('[data-testid="settings-perf-toggle"]')
+      const flavorOptions = ['clay', 'paper', 'graphite', 'latte', 'frappe', 'macchiato', 'mocha']
 
       expect(systemThemeButton?.getAttribute('aria-pressed')).toBe('true')
       expect(englishButton?.getAttribute('aria-pressed')).toBe('true')
       expect(sidebarSlider?.value).toBe('312')
       expect(exitToggle?.getAttribute('aria-checked')).toBe('false')
       expect(perfToggle?.getAttribute('aria-checked')).toBe('true')
+      for (const option of flavorOptions) {
+        expect(el.querySelector(`[data-testid="settings-flavor-${option}"]`)).toBeTruthy()
+      }
 
       const darkThemeButton = el.querySelector<HTMLElement>('[data-testid="settings-theme-dark"]')
       darkThemeButton?.click()
@@ -147,6 +151,14 @@ describe('AppSettingsView smoke', () => {
 
       expect(localStorage.getItem('ccr-theme')).toBe('dark')
       expect(document.documentElement.getAttribute('data-theme')).toBe('dark')
+
+      const mochaFlavorButton = el.querySelector<HTMLElement>('[data-testid="settings-flavor-mocha"]')
+      mochaFlavorButton?.click()
+      await flush()
+
+      expect(localStorage.getItem('ccr-flavor')).toBe('mocha')
+      expect(document.documentElement.getAttribute('data-flavor')).toBe('mocha')
+      expect(mochaFlavorButton?.getAttribute('aria-pressed')).toBe('true')
 
       const chineseButton = el.querySelector<HTMLElement>('[data-testid="settings-language-zh-CN"]')
       chineseButton?.click()
