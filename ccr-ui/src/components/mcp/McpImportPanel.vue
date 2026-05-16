@@ -38,6 +38,27 @@
         </select>
       </div>
 
+      <div
+        v-if="targetPlatform === 'claude'"
+        class="form-field"
+      >
+        <label class="form-field__label">Claude scope</label>
+        <select
+          v-model="targetScope"
+          class="form-field__input"
+        >
+          <option value="user">
+            User — ~/.claude.json
+          </option>
+          <option value="local">
+            Local — current project entry
+          </option>
+          <option value="project">
+            Project — repository .mcp.json
+          </option>
+        </select>
+      </div>
+
       <div class="form-field">
         <label class="form-field__label">JSON configuration</label>
         <textarea
@@ -128,11 +149,12 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   cancel: []
-  import: [servers: ParsedServer[], platform: string]
+  import: [servers: ParsedServer[], platform: string, scope?: string]
 }>()
 
 const jsonInput = ref('')
 const targetPlatform = ref<UnifiedMcpPlatform>(props.platforms[0] ?? 'claude')
+const targetScope = ref('user')
 const parseError = ref('')
 const parsedServers = ref<ParsedServer[]>([])
 
@@ -185,7 +207,12 @@ watch(jsonInput, (value) => {
 
 function handleImport() {
   if (parsedServers.value.length > 0) {
-    emit('import', parsedServers.value, targetPlatform.value)
+    emit(
+      'import',
+      parsedServers.value,
+      targetPlatform.value,
+      targetPlatform.value === 'claude' ? targetScope.value : undefined,
+    )
   }
 }
 </script>

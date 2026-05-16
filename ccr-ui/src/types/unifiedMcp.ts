@@ -10,16 +10,22 @@
 export interface UnifiedMcpServer {
     platform: string
     name: string
-    command: string | null
-    url: string | null
+    command?: string | null
+    url?: string | null
     args: string[]
     env: Record<string, string>
-    headers: Record<string, string> | null
-    timeout: number | null
+    headers?: Record<string, string> | null
+    timeout?: number | null
     disabled: boolean
-    cwd: string | null
-    trust: boolean | null
-    include_tools: string[] | null
+    cwd?: string | null
+    trust?: boolean | null
+    include_tools?: string[] | null
+    scope?: McpScope | string | null
+    source_path?: string | null
+    approval_state?: McpApprovalState | string | null
+    effective?: boolean
+    hidden_by?: string | null
+    raw_config?: Record<string, unknown> | null
 }
 
 /** 平台 MCP 能力矩阵 */
@@ -38,6 +44,16 @@ export interface PlatformMcpCapability {
 export interface UnifiedMcpListResponse {
     servers: UnifiedMcpServer[]
     capabilities: PlatformMcpCapability[]
+    diagnostics?: UnifiedMcpDiagnostic[]
+    total?: number
+}
+
+export interface UnifiedMcpDiagnostic {
+    level: 'info' | 'warning' | 'error' | string
+    message: string
+    source_path?: string | null
+    scope?: string | null
+    matched?: boolean | null
 }
 
 // ============ 请求类型 ============
@@ -46,6 +62,7 @@ export interface UnifiedMcpListResponse {
 export interface UnifiedMcpRequest {
     platform: string
     name: string
+    scope?: McpScope | string | null
     command?: string | null
     url?: string | null
     args?: string[] | null
@@ -62,6 +79,9 @@ export interface UnifiedMcpRequest {
 
 /** 支持的平台列表 */
 export type UnifiedMcpPlatform = 'claude' | 'codex' | 'gemini'
+export type McpScope = 'local' | 'project' | 'user'
+export type McpScopeFilter = 'effective' | McpScope | 'hidden'
+export type McpApprovalState = 'approved' | 'pending' | 'disabled'
 
 /** 平台元信息（用于 UI 展示） */
 export interface PlatformMeta {

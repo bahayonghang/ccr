@@ -25,24 +25,52 @@ export function useMcpManager() {
 
   // ============ 分组逻辑 ============
 
-  /** 按名称聚合: 同名 MCP 跨平台归为一组 */
-  const groupedServers = computed<McpGroup[]>(() => {
+  function createGroup(name: string, items: UnifiedMcpServer[]): McpGroup {
+    const sortedItems = [...items].sort((a, b) => {
+      const order = { local: 0, project: 1, user: 2 } as Record<string, number>
+      const scopeOrder = (order[String(a.scope)] ?? 9) - (order[String(b.scope)] ?? 9)
+      if (scopeOrder !== 0) return scopeOrder
+      return String(a.platform).localeCompare(String(b.platform))
+    })
+    const first = sortedItems.find(item => item.effective !== false && !item.hidden_by) ?? sortedItems[0]
+    const isHttp = !!first.url
+    return {
+      name,
+      transportType: isHttp ? 'http' as const : 'stdio' as const,
+      transportLabel: isHttp ? (first.url ?? '') : (first.command ?? ''),
+      items: sortedItems,
+      platforms: [...new Set(sortedItems.map(s => s.platform))],
+      effectiveItem: first,
+      scopes: [...new Set(sortedItems.map(s => String(s.scope ?? 'global')))],
+      hiddenCount: sortedItems.filter(s => s.effective === false || !!s.hidden_by).length,
+    }
+  }
+
+  /** 按名称聚合: 同名 MCP 跨平台归为一组，保留完整 precedence stack */
+  const allGroupedServers = computed<McpGroup[]>(() => {
     const map = new Map<string, UnifiedMcpServer[]>()
     for (const server of mcp.servers.value) {
       const existing = map.get(server.name) ?? []
       map.set(server.name, [...existing, server])
     }
-    return Array.from(map.entries()).map(([name, items]) => {
-      const first = items[0]
-      const isHttp = !!first.url
-      return {
-        name,
-        transportType: isHttp ? 'http' as const : 'stdio' as const,
-        transportLabel: isHttp ? (first.url ?? '') : (first.command ?? ''),
-        items,
-        platforms: [...new Set(items.map(s => s.platform))],
-      }
-    })
+    return Array.from(map.entries()).map(([name, items]) => createGroup(name, items))
+  })
+
+  const groupedServers = computed<McpGroup[]>(() => {
+    const filter = mcp.filterScope.value
+    if (filter === 'effective') {
+      return allGroupedServers.value.filter(group =>
+        group.items.some(item => item.effective !== false && !item.hidden_by),
+      )
+    }
+    if (filter === 'hidden') {
+      return allGroupedServers.value.filter(group =>
+        group.items.some(item => item.effective === false || !!item.hidden_by),
+      )
+    }
+    return allGroupedServers.value.filter(group =>
+      group.items.some(item => item.scope === filter),
+    )
   })
 
   // ============ Fuse.js 搜索 ============
@@ -63,11 +91,11 @@ export function useMcpManager() {
   const activeGroup = computed<McpGroup | null>(() => {
     if (panelMode.value.type === 'detail' && 'groupName' in panelMode.value) {
       const targetName = (panelMode.value as { groupName: string }).groupName
-      return groupedServers.value.find(g => g.name === targetName) ?? null
+      return allGroupedServers.value.find(g => g.name === targetName) ?? null
     }
     if (panelMode.value.type === 'edit' && 'groupName' in panelMode.value) {
       const targetName = (panelMode.value as { groupName: string }).groupName
-      return groupedServers.value.find(g => g.name === targetName) ?? null
+      return allGroupedServers.value.find(g => g.name === targetName) ?? null
     }
     // 默认选中第一个
     if (panelMode.value.type === 'empty' && filteredGroups.value.length > 0) {
@@ -87,7 +115,7 @@ export function useMcpManager() {
 
   /** 多选模式下选中的 groups */
   const selectedGroups = computed(() =>
-    groupedServers.value.filter(g => selectedKeys.value.has(g.name)),
+    allGroupedServers.value.filter(g => selectedKeys.value.has(g.name)),
   )
 
   // ============ 操作 ============
@@ -110,7 +138,11 @@ export function useMcpManager() {
   function openCreate() {
     selectedKeys.value = new Set()
     panelMode.value = { type: 'create' }
-    mcp.openAddForm()
+    const filter = mcp.filterScope.value
+    const scope = filter === 'local' || filter === 'project' || filter === 'user'
+      ? filter
+      : 'user'
+    mcp.openAddForm('claude', scope)
   }
 
   function openImport() {
@@ -119,9 +151,9 @@ export function useMcpManager() {
   }
 
   function openEdit(groupName: string) {
-    const group = groupedServers.value.find(g => g.name === groupName)
+    const group = allGroupedServers.value.find(g => g.name === groupName)
     if (group && group.items.length > 0) {
-      mcp.openEditForm(group.items[0])
+      mcp.openEditForm(group.effectiveItem ?? group.items[0])
       panelMode.value = { type: 'edit', groupName }
     }
   }
@@ -183,6 +215,8 @@ export function useMcpManager() {
     loading: mcp.loading,
     error: mcp.error,
     capabilities: mcp.capabilities,
+    diagnostics: mcp.diagnostics,
+    sourceDiagnostics: mcp.sourceDiagnostics,
     showForm: mcp.showForm,
     editingServer: mcp.editingServer,
     isHttpMode: mcp.isHttpMode,
@@ -194,6 +228,9 @@ export function useMcpManager() {
     headerValue: mcp.headerValue,
     includeToolInput: mcp.includeToolInput,
     currentCapability: mcp.currentCapability,
+    filterScope: mcp.filterScope,
+    scopeCounts: mcp.scopeCounts,
+    filteredServers: mcp.filteredServers,
     submitForm: mcp.submitForm,
     addEnvVar: mcp.addEnvVar,
     removeEnvVar: mcp.removeEnvVar,

@@ -4,7 +4,6 @@
 //! 所有读写操作直接访问 ~/.claude/settings.json（通过 ccr::SettingsManager）和
 //! ~/.claude.json（内联实现 ClaudeConfigManager 逻辑）。
 
-use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -22,74 +21,6 @@ use ccr_store::{BudgetManager, CostTracker};
 use crate::platform::local::LocalEnvironment;
 use crate::platform::{EnvError, ExecutionEnvironment};
 use crate::state::AppState;
-
-// ── 内联 ClaudeConfigManager（读写 ~/.claude.json 的 MCP 服务器）──
-
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
-struct ClaudeConfig {
-    #[serde(default, rename = "mcpServers")]
-    mcp_servers: HashMap<String, McpServerEntry>,
-    #[serde(flatten)]
-    other: HashMap<String, Value>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-struct McpServerEntry {
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub command: Option<String>,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    pub args: Vec<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub env: Option<HashMap<String, String>>,
-    #[serde(skip_serializing_if = "Option::is_none", rename = "type")]
-    pub server_type: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub url: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub disabled: Option<bool>,
-    #[serde(flatten)]
-    pub other: HashMap<String, Value>,
-}
-
-fn claude_json_path() -> std::io::Result<PathBuf> {
-    let home = std::env::var("HOME")
-        .or_else(|_| std::env::var("USERPROFILE"))
-        .map_err(|_| {
-            std::io::Error::new(
-                std::io::ErrorKind::NotFound,
-                "HOME/USERPROFILE environment variable not set",
-            )
-        })?;
-    Ok(PathBuf::from(home).join(".claude.json"))
-}
-
-fn read_claude_config() -> std::io::Result<ClaudeConfig> {
-    let path = claude_json_path()?;
-    if !path.exists() {
-        return Ok(ClaudeConfig::default());
-    }
-    let content = fs::read_to_string(&path)?;
-    serde_json::from_str(&content).map_err(|e| {
-        std::io::Error::new(
-            std::io::ErrorKind::InvalidData,
-            format!("Failed to parse .claude.json: {}", e),
-        )
-    })
-}
-
-fn write_claude_config(config: &ClaudeConfig) -> std::io::Result<()> {
-    let path = claude_json_path()?;
-    if let Some(parent) = path.parent() {
-        fs::create_dir_all(parent)?;
-    }
-    let content = serde_json::to_string_pretty(config)
-        .map_err(|e| std::io::Error::new(std::io::ErrorKind::InvalidData, e.to_string()))?;
-    // Write via temp file for atomicity
-    let tmp_path = path.with_extension("json.tmp");
-    fs::write(&tmp_path, content)?;
-    fs::rename(&tmp_path, &path)?;
-    Ok(())
-}
 
 // ── Settings（~/.claude/settings.json）Helper ──
 //
@@ -511,6 +442,7 @@ fn profile_to_json(current_profile: Option<&str>, name: String, profile: Profile
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::collections::HashMap;
     use std::sync::Mutex;
 
     use crate::platform::{CliStatus, EnvironmentType, PlatformInfo};

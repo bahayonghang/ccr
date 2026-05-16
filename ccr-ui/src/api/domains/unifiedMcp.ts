@@ -4,11 +4,19 @@
  * 对应后端 commands::unified_mcp::* 命令。
  * 真迁移自 tauri.ts 第 17 分组。
  *
- * update 走 "delete + add" 组合以复用后端命令；toggle 当前仅支持 Claude 平台。
+ * Claude update 走后端 merge 更新，避免 toggle/update 丢失原始 command/args/env。
+ * 其它平台暂保留 delete + add 兼容路径。
  */
 
 import { invoke } from '@tauri-apps/api/core'
 import { asRecord, type UnknownRecord } from '../_shared'
+
+export interface UnifiedMcpImportResult {
+  name: string
+  ok: boolean
+  message?: string
+  error?: string
+}
 
 /** 列出所有平台的 MCP 服务器（统一视图） */
 export const listUnifiedMcp = async <T = UnknownRecord>(
@@ -23,10 +31,36 @@ export const addUnifiedMcp = async <T = UnknownRecord>(request: unknown): Promis
   return invoke('unified_add_mcp_server', { request })
 }
 
+/** 批量导入：逐条调用 add API，保留每条成功/失败结果。 */
+export const importUnifiedMcpServers = async (
+  requests: unknown[],
+): Promise<UnifiedMcpImportResult[]> => {
+  const results: UnifiedMcpImportResult[] = []
+  for (const request of requests) {
+    const record = asRecord(request)
+    const name = typeof record.name === 'string' ? record.name : '(unnamed)'
+    try {
+      const response = asRecord(await addUnifiedMcp<UnknownRecord>(request))
+      results.push({
+        name,
+        ok: true,
+        message: typeof response.message === 'string' ? response.message : undefined,
+      })
+    } catch (err) {
+      results.push({
+        name,
+        ok: false,
+        error: err instanceof Error ? err.message : String(err),
+      })
+    }
+  }
+  return results
+}
+
 /**
- * 更新统一 MCP 服务器（删除 + 添加两步）。
+ * 更新统一 MCP 服务器。
  *
- * 后端没有独立的 update 命令，删除失败默认视为"原本不存在"并忽略。
+ * Claude 使用后端 merge 更新；其它平台保留 delete + add 兼容路径。
  */
 export const updateUnifiedMcp = async <T = UnknownRecord>(
   platformOrRequest: string | object,
@@ -39,10 +73,19 @@ export const updateUnifiedMcp = async <T = UnknownRecord>(
       ? { ...requestRecord, platform: platformOrRequest, name }
       : asRecord(platformOrRequest)
 
+  if (mergedRequest.platform === 'claude') {
+    return invoke('unified_update_mcp_server', {
+      platform: mergedRequest.platform,
+      name: mergedRequest.name,
+      request: mergedRequest,
+    })
+  }
+
   try {
     await invoke('unified_delete_mcp_server', {
       platform: mergedRequest.platform,
       name: mergedRequest.name,
+      scope: mergedRequest.scope,
     })
   } catch {
     // 删除失败默认视为原本不存在，继续添加
@@ -55,8 +98,9 @@ export const updateUnifiedMcp = async <T = UnknownRecord>(
 export const deleteUnifiedMcp = async <T = UnknownRecord>(
   platform: string,
   name: string,
+  scope?: string,
 ): Promise<T> => {
-  return invoke('unified_delete_mcp_server', { platform, name })
+  return invoke('unified_delete_mcp_server', { platform, name, scope })
 }
 
 /**
@@ -68,9 +112,10 @@ export const toggleUnifiedMcp = async <T = UnknownRecord>(
   platform: string,
   name: string,
   disabled?: boolean,
+  scope?: string,
 ): Promise<T> => {
   if (platform === 'claude') {
-    return invoke('claude_update_mcp_server', { name, config: { disabled: disabled ?? true } })
+    return invoke('claude_update_mcp_server', { name, config: { disabled: disabled ?? true }, scope })
   }
   throw new Error(`[Tauri] toggleUnifiedMcp: 平台 ${platform} 不支持启用/禁用切换`)
 }

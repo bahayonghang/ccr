@@ -5,6 +5,7 @@
 pub mod builtin_prompts;
 pub mod checkin;
 pub mod claude;
+pub mod claude_mcp_config;
 pub mod codex;
 pub mod command_exec;
 pub mod config;
@@ -238,6 +239,7 @@ macro_rules! generate_handler_common {
         // —— 统一 MCP ——
         unified_mcp::unified_list_mcp_servers,
         unified_mcp::unified_add_mcp_server,
+        unified_mcp::unified_update_mcp_server,
         unified_mcp::unified_delete_mcp_server,
         // —— 事件查询 ——
         system::get_recent_events,

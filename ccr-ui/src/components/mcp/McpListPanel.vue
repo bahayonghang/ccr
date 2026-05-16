@@ -106,8 +106,19 @@
           />
         </div>
         <div class="mcp-list-item__content">
-          <span class="mcp-list-item__name">{{ group.name }}</span>
+          <span class="mcp-list-item__name">
+            {{ group.name }}
+            <span
+              v-if="group.hiddenCount"
+              class="mcp-list-item__hidden-count"
+            >
+              +{{ group.hiddenCount }} hidden
+            </span>
+          </span>
           <span class="mcp-list-item__transport">{{ shortenLabel(group.transportLabel) }}</span>
+          <span class="mcp-list-item__scopes">
+            {{ (group.scopes ?? []).join(' / ') }}
+          </span>
         </div>
         <AgentIcons
           :agents="group.platforms"
@@ -234,6 +245,9 @@ function shortenLabel(label: string, max = 40): string {
 }
 
 .mcp-list-item__name {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
   font-size: 0.8125rem;
   font-weight: 500;
   color: var(--color-text-primary);
@@ -242,11 +256,34 @@ function shortenLabel(label: string, max = 40): string {
   white-space: nowrap;
 }
 
+.mcp-list-item__hidden-count {
+  flex-shrink: 0;
+  border-radius: 999px;
+  padding: 0.06rem 0.35rem;
+  background: rgb(var(--color-warning-rgb, 245 158 11) / 10%);
+  color: rgb(var(--color-warning-rgb, 245 158 11) / 92%);
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
 .mcp-list-item__transport {
   font-size: 0.6875rem;
   color: var(--color-text-muted);
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mcp-list-item__scopes {
+  color: rgb(var(--color-accent-primary-rgb) / 82%);
+  font-size: 0.62rem;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
   white-space: nowrap;
 }
 

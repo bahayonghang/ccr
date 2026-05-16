@@ -18,6 +18,12 @@ export interface McpGroup {
   items: UnifiedMcpServer[]
   /** 关联的平台 ID 列表 */
   platforms: string[]
+  /** 当前按 precedence 选出的生效实例 */
+  effectiveItem?: UnifiedMcpServer
+  /** 当前组涉及的 scope */
+  scopes?: string[]
+  /** 被覆盖或未生效的实例数 */
+  hiddenCount?: number
 }
 
 /** 右侧面板状态 */

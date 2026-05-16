@@ -1,18 +1,20 @@
 //! 统一 MCP 管理命令 — 跨平台 MCP 服务器聚合 CRUD。
 //!
-//! 适配器模式：读取各平台配置文件，以统一的 `UnifiedMcpServer` 格式返回，
-//! 写入时根据 `platform` 字段分发到对应平台的配置文件。
+//! Claude Code 使用 `claude_mcp_config` 统一解析 local/project/user scope 与
+//! precedence；Codex/Gemini 暂保留既有配置语义。
 
 use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
 
-use serde::{Deserialize, Serialize};
-use serde_json::Value;
+use serde::{Deserialize, Deserializer, Serialize};
+use serde_json::{Map, Value};
 
-// ── 统一数据模型 ──
+use crate::commands::claude_mcp_config::{
+    ClaudeMcpDiagnostic, add_claude_mcp_server_default, delete_claude_mcp_server_default,
+    list_claude_mcp_default, parse_scope, update_claude_mcp_server_default,
+};
 
-/// 统一 MCP 服务器表示
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UnifiedMcpServer {
     pub platform: String,
@@ -26,76 +28,92 @@ pub struct UnifiedMcpServer {
     #[serde(default)]
     pub env: HashMap<String, String>,
     #[serde(default)]
+    pub headers: HashMap<String, String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub timeout: Option<i64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub cwd: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub trust: Option<bool>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub include_tools: Vec<String>,
+    #[serde(default)]
     pub disabled: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub scope: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub source_path: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub approval_state: Option<String>,
+    #[serde(default)]
+    pub effective: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub hidden_by: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub raw_config: Option<Value>,
 }
 
-/// 平台能力矩阵
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PlatformMcpCapability {
     pub platform: String,
     pub supports_toggle: bool,
     pub supports_url: bool,
+    pub supports_headers: bool,
+    pub supports_timeout: bool,
+    pub supports_cwd: bool,
+    pub supports_trust: bool,
+    pub supports_include_tools: bool,
 }
 
-/// 添加/更新请求
 #[derive(Debug, Clone, Deserialize)]
 pub struct UnifiedMcpRequest {
     pub platform: String,
     pub name: String,
+    #[serde(default)]
+    pub scope: Option<String>,
     pub command: Option<String>,
     pub url: Option<String>,
-    #[serde(default)]
+    #[serde(default, deserialize_with = "default_when_null")]
     pub args: Vec<String>,
-    #[serde(default)]
+    #[serde(default, deserialize_with = "default_when_null")]
     pub env: HashMap<String, String>,
+    #[serde(default, deserialize_with = "default_when_null")]
+    pub headers: HashMap<String, String>,
     #[serde(default)]
-    pub disabled: bool,
+    pub timeout: Option<i64>,
+    #[serde(default)]
+    pub cwd: Option<String>,
+    #[serde(default)]
+    pub trust: Option<bool>,
+    #[serde(default, deserialize_with = "default_when_null")]
+    pub include_tools: Vec<String>,
+    #[serde(default)]
+    pub disabled: Option<bool>,
 }
 
-// ── 工具函数 ──
+fn default_when_null<'de, D, T>(deserializer: D) -> Result<T, D::Error>
+where
+    D: Deserializer<'de>,
+    T: Deserialize<'de> + Default,
+{
+    Ok(Option::<T>::deserialize(deserializer)?.unwrap_or_default())
+}
 
 fn home_dir() -> Result<PathBuf, String> {
     dirs::home_dir().ok_or_else(|| "Cannot determine home directory".to_string())
 }
 
-// ── 平台适配器 — 列表 ──
-
-fn list_claude_mcp() -> Result<Vec<UnifiedMcpServer>, String> {
-    let path = home_dir()?.join(".claude.json");
-    if !path.exists() {
-        return Ok(vec![]);
-    }
-    let content = fs::read_to_string(&path).map_err(|e| format!("Read .claude.json: {e}"))?;
-    let config: Value =
-        serde_json::from_str(&content).map_err(|e| format!("Parse .claude.json: {e}"))?;
-
-    let Some(servers) = config.get("mcpServers").and_then(|v| v.as_object()) else {
-        return Ok(vec![]);
-    };
-
-    Ok(servers
-        .iter()
-        .map(|(name, v)| UnifiedMcpServer {
-            platform: "claude".into(),
-            name: name.clone(),
-            command: v.get("command").and_then(|c| c.as_str()).map(String::from),
-            url: v.get("url").and_then(|u| u.as_str()).map(String::from),
-            args: v
-                .get("args")
-                .and_then(|a| a.as_array())
-                .map(|a| {
-                    a.iter()
-                        .filter_map(|v| v.as_str().map(String::from))
-                        .collect()
-                })
-                .unwrap_or_default(),
-            env: v
-                .get("env")
-                .and_then(|e| serde_json::from_value(e.clone()).ok())
-                .unwrap_or_default(),
-            disabled: v.get("disabled").and_then(|d| d.as_bool()).unwrap_or(false),
+fn value_string_array(value: Option<&Value>) -> Vec<String> {
+    value
+        .and_then(Value::as_array)
+        .map(|items| {
+            items
+                .iter()
+                .filter_map(Value::as_str)
+                .map(ToString::to_string)
+                .collect()
         })
-        .collect())
+        .unwrap_or_default()
 }
 
 fn list_codex_mcp() -> Result<Vec<UnifiedMcpServer>, String> {
@@ -108,7 +126,7 @@ fn list_codex_mcp() -> Result<Vec<UnifiedMcpServer>, String> {
         .map_err(|e| format!("Parse codex config: {e}"))
         .and_then(|v| serde_json::to_value(v).map_err(|e| format!("Convert codex config: {e}")))?;
 
-    let Some(servers) = config.get("mcp_servers").and_then(|v| v.as_object()) else {
+    let Some(servers) = config.get("mcp_servers").and_then(Value::as_object) else {
         return Ok(vec![]);
     };
 
@@ -117,22 +135,25 @@ fn list_codex_mcp() -> Result<Vec<UnifiedMcpServer>, String> {
         .map(|(name, v)| UnifiedMcpServer {
             platform: "codex".into(),
             name: name.clone(),
-            command: v.get("command").and_then(|c| c.as_str()).map(String::from),
-            url: v.get("url").and_then(|u| u.as_str()).map(String::from),
-            args: v
-                .get("args")
-                .and_then(|a| a.as_array())
-                .map(|a| {
-                    a.iter()
-                        .filter_map(|v| v.as_str().map(String::from))
-                        .collect()
-                })
-                .unwrap_or_default(),
+            command: v.get("command").and_then(Value::as_str).map(String::from),
+            url: v.get("url").and_then(Value::as_str).map(String::from),
+            args: value_string_array(v.get("args")),
             env: v
                 .get("env")
                 .and_then(|e| serde_json::from_value(e.clone()).ok())
                 .unwrap_or_default(),
+            headers: HashMap::new(),
+            timeout: None,
+            cwd: None,
+            trust: None,
+            include_tools: Vec::new(),
             disabled: false,
+            scope: None,
+            source_path: Some(path.to_string_lossy().to_string()),
+            approval_state: None,
+            effective: true,
+            hidden_by: None,
+            raw_config: None,
         })
         .collect())
 }
@@ -146,7 +167,7 @@ fn list_gemini_mcp() -> Result<Vec<UnifiedMcpServer>, String> {
     let config: Value =
         serde_json::from_str(&content).map_err(|e| format!("Parse gemini settings: {e}"))?;
 
-    let Some(servers) = config.get("mcpServers").and_then(|v| v.as_object()) else {
+    let Some(servers) = config.get("mcpServers").and_then(Value::as_object) else {
         return Ok(vec![]);
     };
 
@@ -155,27 +176,28 @@ fn list_gemini_mcp() -> Result<Vec<UnifiedMcpServer>, String> {
         .map(|(name, v)| UnifiedMcpServer {
             platform: "gemini".into(),
             name: name.clone(),
-            command: v.get("command").and_then(|c| c.as_str()).map(String::from),
+            command: v.get("command").and_then(Value::as_str).map(String::from),
             url: None,
-            args: v
-                .get("args")
-                .and_then(|a| a.as_array())
-                .map(|a| {
-                    a.iter()
-                        .filter_map(|v| v.as_str().map(String::from))
-                        .collect()
-                })
-                .unwrap_or_default(),
+            args: value_string_array(v.get("args")),
             env: v
                 .get("env")
                 .and_then(|e| serde_json::from_value(e.clone()).ok())
                 .unwrap_or_default(),
+            headers: HashMap::new(),
+            timeout: None,
+            cwd: None,
+            trust: None,
+            include_tools: Vec::new(),
             disabled: false,
+            scope: None,
+            source_path: Some(path.to_string_lossy().to_string()),
+            approval_state: None,
+            effective: true,
+            hidden_by: None,
+            raw_config: None,
         })
         .collect())
 }
-
-// ── 能力矩阵 ──
 
 fn capabilities() -> Vec<PlatformMcpCapability> {
     vec![
@@ -183,25 +205,35 @@ fn capabilities() -> Vec<PlatformMcpCapability> {
             platform: "claude".into(),
             supports_toggle: true,
             supports_url: true,
+            supports_headers: true,
+            supports_timeout: true,
+            supports_cwd: true,
+            supports_trust: true,
+            supports_include_tools: true,
         },
         PlatformMcpCapability {
             platform: "codex".into(),
             supports_toggle: false,
             supports_url: true,
+            supports_headers: false,
+            supports_timeout: false,
+            supports_cwd: false,
+            supports_trust: false,
+            supports_include_tools: false,
         },
         PlatformMcpCapability {
             platform: "gemini".into(),
             supports_toggle: false,
             supports_url: false,
+            supports_headers: false,
+            supports_timeout: false,
+            supports_cwd: false,
+            supports_trust: false,
+            supports_include_tools: false,
         },
     ]
 }
 
-// ═══════════════════════════════════════════════════════════
-// ── Tauri Commands ──
-// ═══════════════════════════════════════════════════════════
-
-/// 列出所有（或指定）平台的 MCP 服务器
 #[tauri::command]
 pub async fn unified_list_mcp_servers(
     platforms: Option<Vec<String>>,
@@ -218,16 +250,53 @@ pub async fn unified_list_mcp_servers(
         };
 
         let mut servers = Vec::new();
+        let mut diagnostics: Vec<ClaudeMcpDiagnostic> = Vec::new();
         for platform in &targets {
-            let result = match *platform {
-                "claude" => list_claude_mcp(),
-                "codex" => list_codex_mcp(),
-                "gemini" => list_gemini_mcp(),
-                _ => continue,
-            };
-            match result {
-                Ok(s) => servers.extend(s),
-                Err(e) => tracing::warn!(platform, error = %e, "Failed to list MCP servers"),
+            match *platform {
+                "claude" => match list_claude_mcp_default() {
+                    Ok(list) => {
+                        diagnostics.extend(list.diagnostics);
+                        servers.extend(list.servers.into_iter().map(|server| UnifiedMcpServer {
+                            platform: server.platform,
+                            name: server.name,
+                            command: server.command,
+                            url: server.url,
+                            args: server.args,
+                            env: server.env,
+                            headers: server.headers,
+                            timeout: server.timeout,
+                            cwd: server.cwd,
+                            trust: server.trust,
+                            include_tools: server.include_tools,
+                            disabled: server.disabled,
+                            scope: Some(server.scope),
+                            source_path: server.source_path,
+                            approval_state: server.approval_state,
+                            effective: server.effective,
+                            hidden_by: server.hidden_by,
+                            raw_config: server.raw_config,
+                        }));
+                    }
+                    Err(e) => {
+                        tracing::warn!(platform, error = %e, "Failed to list MCP servers");
+                        diagnostics.push(ClaudeMcpDiagnostic {
+                            level: "error".into(),
+                            message: e,
+                            source_path: None,
+                            scope: Some("claude".into()),
+                            matched: None,
+                        });
+                    }
+                },
+                "codex" => match list_codex_mcp() {
+                    Ok(s) => servers.extend(s),
+                    Err(e) => tracing::warn!(platform, error = %e, "Failed to list MCP servers"),
+                },
+                "gemini" => match list_gemini_mcp() {
+                    Ok(s) => servers.extend(s),
+                    Err(e) => tracing::warn!(platform, error = %e, "Failed to list MCP servers"),
+                },
+                _ => {}
             }
         }
 
@@ -235,52 +304,146 @@ pub async fn unified_list_mcp_servers(
             .into_iter()
             .filter(|c| targets.contains(&c.platform.as_str()))
             .collect();
+        let total = servers.len();
 
         Ok(serde_json::json!({
             "servers": servers,
             "capabilities": caps,
-            "total": servers.len(),
+            "diagnostics": diagnostics,
+            "total": total,
         }))
     })
     .await
     .map_err(|e| format!("Task join error: {e}"))?
 }
 
-/// 添加 MCP 服务器到指定平台（分发到对应平台的 config 文件）
+fn request_to_config(request: &UnifiedMcpRequest) -> Value {
+    let mut config = Map::new();
+    let has_command = request
+        .command
+        .as_deref()
+        .is_some_and(|value| !value.trim().is_empty());
+    let has_url = request
+        .url
+        .as_deref()
+        .is_some_and(|value| !value.trim().is_empty());
+
+    if let Some(command) = request
+        .command
+        .as_ref()
+        .map(|value| value.trim())
+        .filter(|value| !value.is_empty())
+    {
+        config.insert("command".into(), Value::String(command.to_string()));
+    } else if request.platform == "claude" && has_url {
+        config.insert("command".into(), Value::Null);
+    }
+
+    if let Some(url) = request
+        .url
+        .as_ref()
+        .map(|value| value.trim())
+        .filter(|value| !value.is_empty())
+    {
+        if request.platform == "claude" {
+            config.insert("type".into(), Value::String("http".into()));
+        }
+        config.insert("url".into(), Value::String(url.to_string()));
+    } else if request.platform == "claude" && has_command {
+        config.insert("type".into(), Value::Null);
+        config.insert("url".into(), Value::Null);
+    }
+
+    if !request.args.is_empty() {
+        config.insert(
+            "args".into(),
+            Value::Array(request.args.iter().cloned().map(Value::String).collect()),
+        );
+    } else if request.platform == "claude" && has_url {
+        config.insert("args".into(), Value::Null);
+    }
+
+    if !request.env.is_empty() {
+        config.insert(
+            "env".into(),
+            serde_json::to_value(&request.env).unwrap_or_else(|_| Value::Object(Map::new())),
+        );
+    }
+
+    if request.platform == "claude" {
+        if !request.headers.is_empty() {
+            config.insert(
+                "headers".into(),
+                serde_json::to_value(&request.headers)
+                    .unwrap_or_else(|_| Value::Object(Map::new())),
+            );
+        }
+        if let Some(timeout) = request.timeout {
+            config.insert("timeout".into(), Value::Number(timeout.into()));
+        }
+        if let Some(cwd) = request.cwd.as_ref().filter(|value| !value.is_empty()) {
+            config.insert("cwd".into(), Value::String(cwd.clone()));
+        }
+        if let Some(trust) = request.trust {
+            config.insert("trust".into(), Value::Bool(trust));
+        }
+        if !request.include_tools.is_empty() {
+            config.insert(
+                "include_tools".into(),
+                Value::Array(
+                    request
+                        .include_tools
+                        .iter()
+                        .cloned()
+                        .map(Value::String)
+                        .collect(),
+                ),
+            );
+        }
+        if let Some(disabled) = request.disabled {
+            config.insert("disabled".into(), Value::Bool(disabled));
+        }
+    } else if request.disabled.unwrap_or(false) {
+        // Codex/Gemini keep the previous unified add/delete semantics and do
+        // not receive Claude-only fields such as headers, trust, or scope.
+        config.insert("disabled".into(), Value::Bool(true));
+    }
+
+    Value::Object(config)
+}
+
 #[tauri::command]
 pub async fn unified_add_mcp_server(
     request: UnifiedMcpRequest,
 ) -> Result<serde_json::Value, String> {
-    if request.name.is_empty() {
+    if request.name.trim().is_empty() {
         return Err("name cannot be empty".to_string());
     }
-    if request.command.is_none() && request.url.is_none() {
+    let has_command = request
+        .command
+        .as_deref()
+        .is_some_and(|value| !value.trim().is_empty());
+    let has_url = request
+        .url
+        .as_deref()
+        .is_some_and(|value| !value.trim().is_empty());
+    if !has_command && !has_url {
         return Err("Must provide command (stdio) or url (http)".to_string());
     }
 
     let platform = request.platform.clone();
     let name = request.name.clone();
 
-    // 分发到对应平台的 invoke 命令逻辑
-    // 这里复用前端已有的 per-platform 逻辑：构建 config Value 并调用对应写入
     tokio::task::spawn_blocking(move || {
-        let config = serde_json::json!({
-            "command": request.command,
-            "url": request.url,
-            "args": request.args,
-            "env": request.env,
-            "disabled": request.disabled,
-        });
+        let config = request_to_config(&request);
 
         match platform.as_str() {
             "claude" => {
-                let mut cc = read_claude_config_for_unified()?;
-                let entry: serde_json::Map<String, Value> =
-                    serde_json::from_value(config).map_err(|e| format!("Invalid config: {e}"))?;
-                cc.as_object_mut()
-                    .and_then(|o| o.get_mut("mcpServers").and_then(|s| s.as_object_mut()))
-                    .map(|servers| servers.insert(name.clone(), Value::Object(entry)));
-                write_claude_config_for_unified(&cc)?;
+                add_claude_mcp_server_default(
+                    name.clone(),
+                    config,
+                    parse_scope(request.scope.as_deref()),
+                )?;
             }
             "codex" | "gemini" => {
                 let (path, key) = platform_config_info(&platform)?;
@@ -307,28 +470,46 @@ pub async fn unified_add_mcp_server(
     .map_err(|e| format!("Task join error: {e}"))?
 }
 
-/// 删除指定平台的 MCP 服务器
 #[tauri::command]
-pub async fn unified_delete_mcp_server(platform: String, name: String) -> Result<String, String> {
+pub async fn unified_update_mcp_server(
+    platform: String,
+    name: String,
+    request: UnifiedMcpRequest,
+) -> Result<serde_json::Value, String> {
+    tokio::task::spawn_blocking(move || {
+        let config = request_to_config(&request);
+        match platform.as_str() {
+            "claude" => update_claude_mcp_server_default(
+                name,
+                config,
+                parse_scope(request.scope.as_deref()),
+            ),
+            _ => Err(format!(
+                "Unified MCP update is only implemented for Claude; platform {platform} still uses add/delete"
+            )),
+        }
+    })
+    .await
+    .map_err(|e| format!("Task join error: {e}"))?
+}
+
+#[tauri::command]
+pub async fn unified_delete_mcp_server(
+    platform: String,
+    name: String,
+    scope: Option<String>,
+) -> Result<String, String> {
     tokio::task::spawn_blocking(move || {
         match platform.as_str() {
             "claude" => {
-                let mut cc = read_claude_config_for_unified()?;
-                let removed = cc
-                    .as_object_mut()
-                    .and_then(|o| o.get_mut("mcpServers").and_then(|s| s.as_object_mut()))
-                    .and_then(|servers| servers.remove(&name));
-                if removed.is_none() {
-                    return Err(format!("MCP server '{name}' not found on {platform}"));
-                }
-                write_claude_config_for_unified(&cc)?;
+                delete_claude_mcp_server_default(name.clone(), parse_scope(scope.as_deref()))?;
             }
             "codex" | "gemini" => {
                 let (path, key) = platform_config_info(&platform)?;
                 let mut cfg = read_json_config(&path)?;
                 let removed = cfg
                     .as_object_mut()
-                    .and_then(|o| o.get_mut(&key).and_then(|s| s.as_object_mut()))
+                    .and_then(|o| o.get_mut(&key).and_then(Value::as_object_mut))
                     .and_then(|servers| servers.remove(&name));
                 if removed.is_none() {
                     return Err(format!("MCP server '{name}' not found on {platform}"));
@@ -342,8 +523,6 @@ pub async fn unified_delete_mcp_server(platform: String, name: String) -> Result
     .await
     .map_err(|e| format!("Task join error: {e}"))?
 }
-
-// ── 内部工具函数 ──
 
 fn platform_config_info(platform: &str) -> Result<(PathBuf, String), String> {
     let home = home_dir()?;
@@ -366,7 +545,6 @@ fn read_json_config(path: &PathBuf) -> Result<Value, String> {
     }
     let content = fs::read_to_string(path).map_err(|e| format!("Read config: {e}"))?;
 
-    // codex uses TOML
     if path.extension().and_then(|e| e.to_str()) == Some("toml") {
         let toml_val: toml::Value =
             toml::from_str(&content).map_err(|e| format!("Parse TOML: {e}"))?;
@@ -382,7 +560,6 @@ fn write_json_config(path: &PathBuf, config: &Value) -> Result<(), String> {
     }
 
     let content = if path.extension().and_then(|e| e.to_str()) == Some("toml") {
-        // codex: convert back to TOML
         let toml_val: toml::Value =
             serde_json::from_value(config.clone()).map_err(|e| format!("Convert to TOML: {e}"))?;
         toml::to_string_pretty(&toml_val).map_err(|e| format!("Serialize TOML: {e}"))?
@@ -390,28 +567,8 @@ fn write_json_config(path: &PathBuf, config: &Value) -> Result<(), String> {
         serde_json::to_string_pretty(config).map_err(|e| format!("Serialize JSON: {e}"))?
     };
 
-    // 原子写入
     let tmp = path.with_extension("tmp");
     fs::write(&tmp, &content).map_err(|e| format!("Write temp file: {e}"))?;
     fs::rename(&tmp, path).map_err(|e| format!("Rename config: {e}"))?;
-    Ok(())
-}
-
-fn read_claude_config_for_unified() -> Result<Value, String> {
-    let path = home_dir()?.join(".claude.json");
-    if !path.exists() {
-        return Ok(serde_json::json!({"mcpServers": {}}));
-    }
-    let content = fs::read_to_string(&path).map_err(|e| format!("Read .claude.json: {e}"))?;
-    serde_json::from_str(&content).map_err(|e| format!("Parse .claude.json: {e}"))
-}
-
-fn write_claude_config_for_unified(config: &Value) -> Result<(), String> {
-    let path = home_dir()?.join(".claude.json");
-    let content =
-        serde_json::to_string_pretty(config).map_err(|e| format!("Serialize .claude.json: {e}"))?;
-    let tmp = path.with_extension("json.tmp");
-    fs::write(&tmp, &content).map_err(|e| format!("Write temp: {e}"))?;
-    fs::rename(&tmp, &path).map_err(|e| format!("Rename .claude.json: {e}"))?;
     Ok(())
 }

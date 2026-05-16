@@ -1,6 +1,103 @@
 <template>
   <div class="mcp-manager-view">
-    <MasterDetailLayout list-width="20rem">
+    <header class="mcp-manager-hero">
+      <div class="mcp-manager-hero__copy">
+        <p class="mcp-manager-hero__eyebrow">
+          Claude Code / MCP workbench
+        </p>
+        <h1>MCP Manager</h1>
+        <p>
+          Audit effective servers, scope precedence, and project approval state without hiding
+          overridden configuration.
+        </p>
+      </div>
+      <div class="mcp-manager-hero__actions">
+        <button
+          type="button"
+          class="mcp-action mcp-action--ghost"
+          @click="refresh"
+        >
+          <SIcon
+            name="RefreshCw"
+            size="w-4 h-4"
+            :class="{ 'animate-spin': loading }"
+          />
+          Refresh
+        </button>
+        <button
+          type="button"
+          class="mcp-action mcp-action--ghost"
+          @click="openImport"
+        >
+          <SIcon
+            name="Download"
+            size="w-4 h-4"
+          />
+          Import
+        </button>
+        <button
+          type="button"
+          class="mcp-action mcp-action--primary"
+          @click="openCreate"
+        >
+          <SIcon
+            name="Plus"
+            size="w-4 h-4"
+          />
+          Add server
+        </button>
+      </div>
+      <div class="mcp-manager-hero__metrics">
+        <span><strong>{{ scopeCounts.effective }}</strong> effective</span>
+        <span><strong>{{ scopeCounts.local }}</strong> local</span>
+        <span><strong>{{ scopeCounts.project }}</strong> project</span>
+        <span><strong>{{ scopeCounts.user }}</strong> user</span>
+      </div>
+    </header>
+
+    <details
+      class="mcp-presets-drawer"
+      @toggle="showPresetsDrawer = ($event.target as HTMLDetailsElement).open"
+    >
+      <summary>
+        <span>Install presets</span>
+        <em>Optional quick install and cross-platform sync helpers</em>
+      </summary>
+      <div
+        v-if="showPresetsDrawer"
+        class="mcp-presets-drawer__content"
+      >
+        <McpPresetsPanel @installed="refresh" />
+        <McpSyncPanel @synced="refresh" />
+      </div>
+    </details>
+
+    <div class="mcp-scope-rail">
+      <button
+        v-for="scope in scopeFilterOptions"
+        :key="scope.value"
+        type="button"
+        class="mcp-scope-chip"
+        :class="{ 'mcp-scope-chip--active': filterScope === scope.value }"
+        @click="filterScope = scope.value"
+      >
+        <span>{{ scope.label }}</span>
+        <strong>{{ scopeCounts[scope.value] }}</strong>
+      </button>
+    </div>
+
+    <div
+      v-if="error"
+      class="mcp-alert mcp-alert--error"
+    >
+      <SIcon
+        name="AlertTriangle"
+        size="w-4 h-4"
+      />
+      {{ error }}
+    </div>
+
+    <MasterDetailLayout list-width="23rem">
       <template #list>
         <McpListPanel
           :groups="filteredGroups"
@@ -19,7 +116,6 @@
       </template>
 
       <template #detail>
-        <!-- 创建面板 -->
         <McpCreatePanel
           v-if="panelMode.type === 'create'"
           :is-editing="false"
@@ -47,7 +143,6 @@
           @remove-header="removeHeader"
         />
 
-        <!-- 编辑面板 -->
         <McpCreatePanel
           v-else-if="panelMode.type === 'edit'"
           :is-editing="true"
@@ -75,7 +170,6 @@
           @remove-header="removeHeader"
         />
 
-        <!-- 导入面板 -->
         <McpImportPanel
           v-else-if="panelMode.type === 'import'"
           :platforms="ALL_PLATFORMS"
@@ -84,10 +178,10 @@
           @import="handleImportServers"
         />
 
-        <!-- 详情面板 (默认) -->
         <McpDetailPanel
           v-else
           :group="activeGroup"
+          :diagnostics="sourceDiagnostics"
           @edit="openEdit"
           @delete="handleDeleteGroup"
           @toggle="handleToggle"
@@ -112,19 +206,25 @@ import { computed, ref } from 'vue'
 import MasterDetailLayout from '@/components/common/MasterDetailLayout.vue'
 import BulkDeleteDialog from '@/components/common/BulkDeleteDialog.vue'
 import type { BulkDeleteItem } from '@/components/common/BulkDeleteDialog.vue'
+import SIcon from '@/components/ui/SIcon.vue'
 import McpListPanel from '@/components/mcp/McpListPanel.vue'
 import McpDetailPanel from '@/components/mcp/McpDetailPanel.vue'
 import McpCreatePanel from '@/components/mcp/McpCreatePanel.vue'
 import McpImportPanel from '@/components/mcp/McpImportPanel.vue'
+import McpPresetsPanel from '@/components/McpPresetsPanel.vue'
+import McpSyncPanel from '@/components/McpSyncPanel.vue'
+import { importUnifiedMcpServers } from '@/api'
 import { useMcpManager } from '@/composables/useMcpManager'
 import { useUIStore } from '@/stores/ui'
 import type { McpGroup } from '@/types/mcpManager'
-import type { UnifiedMcpRequest, UnifiedMcpServer } from '@/types/unifiedMcp'
+import type { McpScopeFilter, UnifiedMcpRequest, UnifiedMcpServer } from '@/types/unifiedMcp'
 
 const uiStore = useUIStore()
+const showPresetsDrawer = ref(false)
 
 const {
   loading,
+  error,
   formData,
   isHttpMode,
   argInput,
@@ -136,6 +236,9 @@ const {
   ALL_PLATFORMS,
   panelMode,
   searchQuery,
+  filterScope,
+  scopeCounts,
+  sourceDiagnostics,
   filteredGroups,
   activeGroup,
   effectiveSelectedKeys,
@@ -158,6 +261,14 @@ const {
   toggleServer,
 } = useMcpManager()
 
+const scopeFilterOptions: Array<{ value: McpScopeFilter; label: string }> = [
+  { value: 'effective', label: 'Effective' },
+  { value: 'local', label: 'Local' },
+  { value: 'project', label: 'Project' },
+  { value: 'user', label: 'User' },
+  { value: 'hidden', label: 'Hidden' },
+]
+
 // 批量删除状态
 const showBulkDeleteDialog = ref(false)
 const bulkDeleting = ref(false)
@@ -175,6 +286,12 @@ function handleUpdateField(field: keyof UnifiedMcpRequest, value: unknown) {
 }
 
 async function handleSubmit() {
+  if (formData.value.scope === 'project') {
+    const confirmed = window.confirm(
+      'Project scope writes to .mcp.json in this repository. Continue?',
+    )
+    if (!confirmed) return
+  }
   const success = await submitForm()
   if (success) closePanel()
 }
@@ -197,6 +314,11 @@ async function confirmBulkDelete() {
 }
 
 async function handleDeleteGroup(group: McpGroup) {
+  const confirmed = window.confirm(
+    `Delete all ${group.items.length} instance(s) of "${group.name}" across visible scopes?`,
+  )
+  if (!confirmed) return
+
   try {
     await deleteGroup(group)
     uiStore.showSuccess(`Deleted ${group.name}`)
@@ -212,9 +334,35 @@ async function handleToggle(server: UnifiedMcpServer) {
 async function handleImportServers(
   servers: Array<{ name: string; type: string; command?: string; args?: string[]; url?: string; env?: Record<string, string>; headers?: Record<string, string> }>,
   platform: string,
+  scope?: string,
 ) {
-  // TODO: 批量导入 — 逐个调用 addUnifiedMcp
-  uiStore.showSuccess(`Imported ${servers.length} server(s) to ${platform}`)
+  if (scope === 'project') {
+    const confirmed = window.confirm(
+      'Project scope import writes to .mcp.json in this repository. Continue?',
+    )
+    if (!confirmed) return
+  }
+
+  const requests = servers.map(server => ({
+    platform,
+    scope,
+    name: server.name,
+    command: server.command ?? null,
+    args: server.args ?? [],
+    url: server.url ?? null,
+    env: server.env ?? {},
+    headers: server.headers ?? {},
+    disabled: false,
+  }))
+  const results = await importUnifiedMcpServers(requests)
+  const failed = results.filter(result => !result.ok)
+  if (failed.length > 0) {
+    uiStore.showError(`Imported ${results.length - failed.length}/${results.length}; failed: ${
+      failed.map(item => `${item.name}: ${item.error ?? 'unknown error'}`).join('; ')
+    }`)
+  } else {
+    uiStore.showSuccess(`Imported ${results.length} server(s) to ${platform}`)
+  }
   closePanel()
   await refresh()
 }
@@ -224,5 +372,211 @@ async function handleImportServers(
 .mcp-manager-view {
   height: 100%;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  background:
+    radial-gradient(circle at 8% 0%, rgb(var(--color-accent-primary-rgb) / 8%), transparent 30%),
+    linear-gradient(180deg, rgb(var(--color-bg-base-rgb) / 98%), rgb(var(--color-bg-elevated-rgb) / 72%));
+}
+
+.mcp-manager-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 1rem 1.5rem;
+  padding: 1.5rem 1.75rem 1.1rem;
+  border-bottom: 1px solid rgb(var(--color-border-default-rgb) / 42%);
+}
+
+.mcp-manager-hero__copy {
+  max-width: 52rem;
+}
+
+.mcp-manager-hero__eyebrow {
+  margin-bottom: 0.35rem;
+  color: rgb(var(--color-accent-primary-rgb) / 92%);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.mcp-manager-hero h1 {
+  color: var(--color-text-primary);
+  font-family: Georgia, 'Times New Roman', var(--font-sans);
+  font-size: clamp(1.55rem, 2.8vw, 2.45rem);
+  line-height: 1.05;
+  letter-spacing: -0.04em;
+}
+
+.mcp-manager-hero p:not(.mcp-manager-hero__eyebrow) {
+  margin-top: 0.55rem;
+  color: var(--color-text-secondary);
+  font-size: 0.9rem;
+  line-height: 1.55;
+}
+
+.mcp-manager-hero__actions {
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  gap: 0.55rem;
+}
+
+.mcp-manager-hero__metrics {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+}
+
+.mcp-manager-hero__metrics span,
+.mcp-scope-chip {
+  border: 1px solid rgb(var(--color-border-default-rgb) / 44%);
+  border-radius: 999px;
+  background: rgb(var(--color-bg-surface-rgb) / 52%);
+  color: var(--color-text-muted);
+}
+
+.mcp-manager-hero__metrics span {
+  padding: 0.32rem 0.65rem;
+  font-size: 0.72rem;
+}
+
+.mcp-manager-hero__metrics strong {
+  color: var(--color-text-primary);
+}
+
+.mcp-presets-drawer {
+  border-bottom: 1px solid rgb(var(--color-border-default-rgb) / 36%);
+  padding: 0 1.75rem;
+}
+
+.mcp-presets-drawer summary {
+  display: flex;
+  align-items: baseline;
+  gap: 0.65rem;
+  padding: 0.85rem 0;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  list-style: none;
+}
+
+.mcp-presets-drawer summary::-webkit-details-marker {
+  display: none;
+}
+
+.mcp-presets-drawer summary span {
+  color: var(--color-text-primary);
+  font-size: 0.8rem;
+  font-weight: 760;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.mcp-presets-drawer summary em {
+  color: var(--color-text-muted);
+  font-size: 0.76rem;
+  font-style: normal;
+}
+
+.mcp-presets-drawer__content {
+  max-height: 32rem;
+  overflow-y: auto;
+  padding: 0.4rem 0 1rem;
+}
+
+.mcp-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  min-height: 2.25rem;
+  border-radius: 999px;
+  padding: 0 0.85rem;
+  font-size: 0.8rem;
+  font-weight: 650;
+  transition:
+    border-color var(--motion-subtle-duration) var(--motion-subtle-ease),
+    background-color var(--motion-subtle-duration) var(--motion-subtle-ease),
+    transform var(--motion-subtle-duration) var(--motion-subtle-ease);
+}
+
+.mcp-action:hover {
+  transform: translateY(-1px);
+}
+
+.mcp-action--ghost {
+  border: 1px solid rgb(var(--color-border-default-rgb) / 48%);
+  background: rgb(var(--color-bg-surface-rgb) / 56%);
+  color: var(--color-text-secondary);
+}
+
+.mcp-action--primary {
+  border: 1px solid rgb(var(--color-accent-primary-rgb) / 28%);
+  background: linear-gradient(180deg, rgb(var(--color-accent-primary-rgb) / 20%), rgb(var(--color-accent-primary-rgb) / 10%));
+  color: var(--color-text-primary);
+}
+
+.mcp-scope-rail {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.85rem 1.75rem;
+  border-bottom: 1px solid rgb(var(--color-border-default-rgb) / 36%);
+}
+
+.mcp-scope-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.38rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 650;
+  transition:
+    color var(--motion-subtle-duration) var(--motion-subtle-ease),
+    border-color var(--motion-subtle-duration) var(--motion-subtle-ease),
+    background-color var(--motion-subtle-duration) var(--motion-subtle-ease);
+}
+
+.mcp-scope-chip strong {
+  color: var(--color-text-primary);
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+}
+
+.mcp-scope-chip--active {
+  border-color: rgb(var(--color-accent-primary-rgb) / 34%);
+  background: rgb(var(--color-accent-primary-rgb) / 10%);
+  color: var(--color-text-primary);
+}
+
+.mcp-alert {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.75rem 1.75rem 0;
+  border-radius: 0.85rem;
+  padding: 0.7rem 0.85rem;
+  font-size: 0.82rem;
+}
+
+.mcp-alert--error {
+  border: 1px solid rgb(var(--color-danger-rgb, 239 68 68) / 26%);
+  background: rgb(var(--color-danger-rgb, 239 68 68) / 8%);
+  color: var(--color-danger, #ef4444);
+}
+
+.mcp-manager-view :deep(.master-detail) {
+  flex: 1;
+  min-height: 0;
+}
+
+@media (width <= 980px) {
+  .mcp-manager-hero {
+    grid-template-columns: 1fr;
+  }
+
+  .mcp-manager-hero__actions {
+    justify-content: flex-start;
+  }
 }
 </style>

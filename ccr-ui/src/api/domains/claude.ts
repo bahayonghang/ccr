@@ -39,26 +39,42 @@ export const listMcpServers = async <T = UnknownRecord>(): Promise<T> => {
 export const addMcpServer = async <T = UnknownRecord>(
   nameOrRequest: string | object,
   config?: unknown,
+  scope?: string,
 ): Promise<T> => {
   const { name, config: resolvedConfig } = resolveNameAndConfig(nameOrRequest, config)
-  return invoke('claude_add_mcp_server', { name, config: resolvedConfig })
+  delete resolvedConfig.scope
+  const requestScope = scope ?? (isRecord(nameOrRequest) && typeof nameOrRequest.scope === 'string'
+    ? nameOrRequest.scope
+    : undefined)
+  return invoke('claude_add_mcp_server', { name, config: resolvedConfig, scope: requestScope })
 }
 
 /** 更新 Claude Code MCP 服务器 */
 export const updateMcpServer = async <T = UnknownRecord>(
   nameOrRequest: string | object,
   config?: unknown,
+  scope?: string,
 ): Promise<T> => {
   const { name, config: resolvedConfig } = resolveNameAndConfig(nameOrRequest, config)
-  return invoke('claude_update_mcp_server', { name, config: resolvedConfig })
+  delete resolvedConfig.scope
+  const requestScope = scope ?? (isRecord(nameOrRequest) && typeof nameOrRequest.scope === 'string'
+    ? nameOrRequest.scope
+    : isRecord(config) && typeof config.scope === 'string'
+      ? config.scope
+      : undefined)
+  return invoke('claude_update_mcp_server', { name, config: resolvedConfig, scope: requestScope })
 }
 
 /** 删除 Claude Code MCP 服务器 */
 export const deleteMcpServer = async <T = UnknownRecord>(
   nameOrRequest: string | object,
+  scope?: string,
 ): Promise<T> => {
   const name = resolveName(nameOrRequest)
-  return invoke('claude_delete_mcp_server', { name })
+  const requestScope = scope ?? (isRecord(nameOrRequest) && typeof nameOrRequest.scope === 'string'
+    ? nameOrRequest.scope
+    : undefined)
+  return invoke('claude_delete_mcp_server', { name, scope: requestScope })
 }
 
 /** 切换 MCP 服务器启用/禁用（通过 disabled 字段实现） */
@@ -70,6 +86,7 @@ export const toggleMcpServer = async <T = UnknownRecord>(
     return invoke('claude_update_mcp_server', {
       name: nameOrRequest,
       config: { disabled: !!disabled },
+      scope: undefined,
     })
   }
   const name = resolveName(nameOrRequest)
@@ -80,7 +97,8 @@ export const toggleMcpServer = async <T = UnknownRecord>(
       : typeof request.disabled === 'boolean'
         ? request.disabled
         : true
-  return invoke('claude_update_mcp_server', { name, config: { disabled: resolvedDisabled } })
+  const scope = typeof request.scope === 'string' ? request.scope : undefined
+  return invoke('claude_update_mcp_server', { name, config: { disabled: resolvedDisabled }, scope })
 }
 
 // ── Claude Agents ──

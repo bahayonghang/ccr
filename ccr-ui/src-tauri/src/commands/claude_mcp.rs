@@ -1,89 +1,53 @@
-use super::*;
+use serde_json::Value;
+
+use crate::commands::claude_mcp_config::{
+    add_claude_mcp_server_default, delete_claude_mcp_server_default, list_claude_mcp_default,
+    parse_scope, update_claude_mcp_server_default,
+};
 
 #[tauri::command]
 pub async fn claude_list_mcp_servers() -> Result<Value, String> {
     tokio::task::spawn_blocking(|| {
-        let config =
-            read_claude_config().map_err(|e| format!("Failed to read .claude.json: {}", e))?;
-
-        let servers: Vec<Value> = config
-            .mcp_servers
-            .into_iter()
-            .map(|(name, server)| {
-                serde_json::json!({
-                    "name": name,
-                    "command": server.command.unwrap_or_default(),
-                    "args": server.args,
-                    "env": server.env.unwrap_or_default(),
-                    "type": server.server_type,
-                    "url": server.url,
-                    "disabled": server.disabled.unwrap_or(false),
-                })
-            })
-            .collect();
-
-        Ok(serde_json::json!({ "servers": servers }))
+        let list = list_claude_mcp_default()?;
+        serde_json::to_value(list).map_err(|e| format!("Serialize Claude MCP list: {e}"))
     })
     .await
     .map_err(|e| format!("Task join error: {}", e))?
 }
 
 #[tauri::command]
-pub async fn claude_add_mcp_server(name: String, config: Value) -> Result<Value, String> {
+pub async fn claude_add_mcp_server(
+    name: String,
+    config: Value,
+    scope: Option<String>,
+) -> Result<Value, String> {
     tokio::task::spawn_blocking(move || {
-        let mut claude_config =
-            read_claude_config().map_err(|e| format!("Failed to read .claude.json: {}", e))?;
-
-        let entry: McpServerEntry = serde_json::from_value(config)
-            .map_err(|e| format!("Invalid MCP server config: {}", e))?;
-
-        claude_config.mcp_servers.insert(name, entry);
-        write_claude_config(&claude_config)
-            .map_err(|e| format!("Failed to write .claude.json: {}", e))?;
-
-        Ok(serde_json::json!({ "success": true }))
+        add_claude_mcp_server_default(name, config, parse_scope(scope.as_deref()))
     })
     .await
     .map_err(|e| format!("Task join error: {}", e))?
 }
 
 #[tauri::command]
-pub async fn claude_update_mcp_server(name: String, config: Value) -> Result<Value, String> {
+pub async fn claude_update_mcp_server(
+    name: String,
+    config: Value,
+    scope: Option<String>,
+) -> Result<Value, String> {
     tokio::task::spawn_blocking(move || {
-        let mut claude_config =
-            read_claude_config().map_err(|e| format!("Failed to read .claude.json: {}", e))?;
-
-        if !claude_config.mcp_servers.contains_key(&name) {
-            return Err(format!("MCP server '{}' not found", name));
-        }
-
-        let entry: McpServerEntry = serde_json::from_value(config)
-            .map_err(|e| format!("Invalid MCP server config: {}", e))?;
-
-        claude_config.mcp_servers.insert(name, entry);
-        write_claude_config(&claude_config)
-            .map_err(|e| format!("Failed to write .claude.json: {}", e))?;
-
-        Ok(serde_json::json!({ "success": true }))
+        update_claude_mcp_server_default(name, config, parse_scope(scope.as_deref()))
     })
     .await
     .map_err(|e| format!("Task join error: {}", e))?
 }
 
 #[tauri::command]
-pub async fn claude_delete_mcp_server(name: String) -> Result<String, String> {
+pub async fn claude_delete_mcp_server(
+    name: String,
+    scope: Option<String>,
+) -> Result<String, String> {
     tokio::task::spawn_blocking(move || {
-        let mut claude_config =
-            read_claude_config().map_err(|e| format!("Failed to read .claude.json: {}", e))?;
-
-        if claude_config.mcp_servers.remove(&name).is_none() {
-            return Err(format!("MCP server '{}' not found", name));
-        }
-
-        write_claude_config(&claude_config)
-            .map_err(|e| format!("Failed to write .claude.json: {}", e))?;
-
-        Ok(format!("MCP server '{}' deleted", name))
+        delete_claude_mcp_server_default(name, parse_scope(scope.as_deref()))
     })
     .await
     .map_err(|e| format!("Task join error: {}", e))?

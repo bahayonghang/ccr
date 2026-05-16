@@ -184,7 +184,7 @@
 
         <div class="claude-extension-grid">
           <RouterLink
-            to="/mcp"
+            to="/mcp-manager"
             class="group"
           >
             <Card

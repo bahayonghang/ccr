@@ -39,6 +39,34 @@
         </select>
       </div>
 
+      <div
+        v-if="formData.platform === 'claude'"
+        class="form-field"
+      >
+        <label class="form-field__label">Claude scope</label>
+        <select
+          :value="formData.scope ?? 'user'"
+          class="form-field__input"
+          @change="updateField('scope', ($event.target as HTMLSelectElement).value)"
+        >
+          <option value="user">
+            User — ~/.claude.json
+          </option>
+          <option value="local">
+            Local — current project entry
+          </option>
+          <option value="project">
+            Project — repository .mcp.json
+          </option>
+        </select>
+        <p
+          v-if="formData.scope === 'project'"
+          class="form-field__hint form-field__hint--warning"
+        >
+          Project scope writes to <code>.mcp.json</code> and can be committed with this repository.
+        </p>
+      </div>
+
       <!-- 名称 -->
       <div class="form-field">
         <label class="form-field__label">Name <span class="text-red-400">*</span></label>
@@ -141,7 +169,7 @@
             class="kv-editor__row"
           >
             <span class="kv-editor__key">{{ key }}</span>
-            <span class="kv-editor__value">{{ value }}</span>
+            <span class="kv-editor__value">{{ maskValue(String(value)) }}</span>
             <button
               type="button"
               class="kv-editor__remove"
@@ -196,7 +224,7 @@
             class="kv-editor__row"
           >
             <span class="kv-editor__key">{{ key }}</span>
-            <span class="kv-editor__value">{{ value }}</span>
+            <span class="kv-editor__value">{{ maskValue(String(value)) }}</span>
             <button
               type="button"
               class="kv-editor__remove"
@@ -308,6 +336,13 @@ const emit = defineEmits<{
 function updateField(field: keyof UnifiedMcpRequest, value: unknown) {
   emit('updateField', field, value)
 }
+
+function maskValue(value: string): string {
+  if (!value) return ''
+  if (value.includes('•')) return value
+  if (value.length <= 8) return '••••••'
+  return `${value.slice(0, 4)}••••${value.slice(-2)}`
+}
 </script>
 
 <style scoped>
@@ -384,6 +419,20 @@ function updateField(field: keyof UnifiedMcpRequest, value: unknown) {
 .form-field__input:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.form-field__hint {
+  color: var(--color-text-muted);
+  font-size: 0.72rem;
+  line-height: 1.45;
+}
+
+.form-field__hint code {
+  font-family: var(--font-mono);
+}
+
+.form-field__hint--warning {
+  color: rgb(var(--color-warning-rgb, 245 158 11) / 92%);
 }
 
 .form-field__input--mono {

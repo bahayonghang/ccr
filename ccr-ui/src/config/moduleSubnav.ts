@@ -10,7 +10,7 @@ const moduleSubnavMap: Record<string, ModuleSubnavItem[]> = {
     { label: 'Auth', href: '/claude-code/auth', icon: 'KeyRound' },
     { label: 'Profiles 配置', href: '/claude-code/profiles', icon: 'Settings' },
     { label: '云同步', href: '/sync', icon: 'Cloud' },
-    { label: 'MCP', href: '/mcp', icon: 'Server' },
+    { label: 'MCP', href: '/mcp-manager', icon: 'Server' },
     { label: 'Slash Commands', href: '/slash-commands', icon: 'Command' },
     { label: 'Agents', href: '/agents', icon: 'Bot' },
     { label: 'Plugins', href: '/plugins', icon: 'Puzzle' },

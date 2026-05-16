@@ -25,6 +25,8 @@ import type {
     UnifiedMcpPlatform,
     PlatformMeta,
     UnifiedMcpListResponse,
+    UnifiedMcpDiagnostic,
+    McpScopeFilter,
 } from '@/types/unifiedMcp'
 
 type UnknownRecord = Record<string, unknown>
@@ -58,6 +60,7 @@ export function useUnifiedMcp() {
     // 响应式状态
     const servers = ref<UnifiedMcpServer[]>([])
     const capabilities = ref<PlatformMcpCapability[]>([])
+    const diagnostics = ref<UnifiedMcpDiagnostic[]>([])
     const loading = ref(false)
     const error = ref<string | null>(null)
 
@@ -65,6 +68,7 @@ export function useUnifiedMcp() {
     const filterPlatform = ref<UnifiedMcpPlatform | ''>('')
     const filterKeyword = ref('')
     const filterProtocol = ref<'all' | 'stdio' | 'http'>('all')
+    const filterScope = ref<McpScopeFilter>('effective')
 
     // 表单状态
     const showForm = ref(false)
@@ -96,6 +100,14 @@ export function useUnifiedMcp() {
             result = result.filter(s => s.url)
         }
 
+        if (filterScope.value === 'effective') {
+            result = result.filter(s => s.effective !== false && !s.hidden_by)
+        } else if (filterScope.value === 'hidden') {
+            result = result.filter(s => s.effective === false || !!s.hidden_by)
+        } else {
+            result = result.filter(s => s.scope === filterScope.value)
+        }
+
         // 按关键字过滤
         if (filterKeyword.value) {
             const kw = filterKeyword.value.toLowerCase()
@@ -108,6 +120,16 @@ export function useUnifiedMcp() {
 
         return result
     })
+
+    const scopeCounts = computed<Record<McpScopeFilter, number>>(() => ({
+        effective: servers.value.filter(s => s.effective !== false && !s.hidden_by).length,
+        local: servers.value.filter(s => s.scope === 'local').length,
+        project: servers.value.filter(s => s.scope === 'project').length,
+        user: servers.value.filter(s => s.scope === 'user').length,
+        hidden: servers.value.filter(s => s.effective === false || !!s.hidden_by).length,
+    }))
+
+    const sourceDiagnostics = computed(() => diagnostics.value)
 
     /** 各平台服务器数量统计 */
     const platformCounts = computed(() => {
@@ -126,7 +148,7 @@ export function useUnifiedMcp() {
 
     /** 是否有活跃过滤器 */
     const hasActiveFilters = computed(() =>
-        !!filterPlatform.value || !!filterKeyword.value || filterProtocol.value !== 'all'
+        !!filterPlatform.value || !!filterKeyword.value || filterProtocol.value !== 'all' || filterScope.value !== 'effective'
     )
 
     // ============ CRUD 操作 ============
@@ -137,8 +159,9 @@ export function useUnifiedMcp() {
         error.value = null
         try {
             const resp = await listUnifiedMcp<UnifiedMcpListResponse>(platform)
-            servers.value = resp.servers
-            capabilities.value = resp.capabilities
+            servers.value = Array.isArray(resp.servers) ? resp.servers : []
+            capabilities.value = Array.isArray(resp.capabilities) ? resp.capabilities : []
+            diagnostics.value = Array.isArray(resp.diagnostics) ? resp.diagnostics : []
         } catch (err) {
             const msg = err instanceof Error ? err.message : 'Unknown error'
             error.value = msg
@@ -171,6 +194,9 @@ export function useUnifiedMcp() {
         if (!editingServer.value || !validateForm()) return false
         const { platform, name } = editingServer.value
         const request = buildRequest()
+        if (!request.scope && typeof editingServer.value.scope === 'string') {
+            request.scope = editingServer.value.scope
+        }
         try {
             const message = await updateUnifiedMcp<string | UnknownRecord>(platform, name, request)
             uiStore.showSuccess(toSuccessMessage(message, '更新成功'))
@@ -187,7 +213,11 @@ export function useUnifiedMcp() {
     /** 删除服务器 */
     async function deleteServer(server: UnifiedMcpServer): Promise<boolean> {
         try {
-            const message = await deleteUnifiedMcp<string | UnknownRecord>(server.platform, server.name)
+            const message = await deleteUnifiedMcp<string | UnknownRecord>(
+                server.platform,
+                server.name,
+                typeof server.scope === 'string' ? server.scope : undefined,
+            )
             uiStore.showSuccess(toSuccessMessage(message, '删除成功'))
             await loadServers()
             return true
@@ -201,7 +231,12 @@ export function useUnifiedMcp() {
     /** 切换服务器启停 */
     async function toggleServer(server: UnifiedMcpServer): Promise<boolean> {
         try {
-            const result = await toggleUnifiedMcp<string | UnknownRecord>(server.platform, server.name)
+            const result = await toggleUnifiedMcp<string | UnknownRecord>(
+                server.platform,
+                server.name,
+                !server.disabled,
+                typeof server.scope === 'string' ? server.scope : undefined,
+            )
             uiStore.showSuccess(toSuccessMessage(result, '状态已更新'))
             await loadServers()
             return true
@@ -215,11 +250,12 @@ export function useUnifiedMcp() {
     // ============ 表单操作 ============
 
     /** 打开添加表单 */
-    function openAddForm(platform?: UnifiedMcpPlatform): void {
+    function openAddForm(platform?: UnifiedMcpPlatform, scope: UnifiedMcpRequest['scope'] = 'user'): void {
         editingServer.value = null
         isHttpMode.value = false
         formData.value = createEmptyForm()
         if (platform) formData.value.platform = platform
+        formData.value.scope = formData.value.platform === 'claude' ? scope : null
         resetFormInputs()
         showForm.value = true
     }
@@ -231,6 +267,7 @@ export function useUnifiedMcp() {
         formData.value = {
             platform: server.platform,
             name: server.name,
+            scope: server.scope ?? 'user',
             command: server.command,
             url: server.url,
             args: server.args?.length ? server.args : null,
@@ -306,6 +343,7 @@ export function useUnifiedMcp() {
         filterPlatform.value = ''
         filterKeyword.value = ''
         filterProtocol.value = 'all'
+        filterScope.value = 'effective'
     }
 
     // ============ 辅助方法 ============
@@ -313,6 +351,7 @@ export function useUnifiedMcp() {
     function createEmptyForm(): UnifiedMcpRequest {
         return {
             platform: 'claude',
+            scope: 'user',
             name: '',
             command: null,
             url: null,
@@ -357,20 +396,61 @@ export function useUnifiedMcp() {
             .map(t => t.trim())
             .filter(Boolean)
 
+        const env = formData.value.env ? { ...formData.value.env } : null
+        const headers = formData.value.headers ? { ...formData.value.headers } : null
+
+        if (editingServer.value) {
+            stripUnchangedSecretPreviews(env, editingServer.value.env ?? {})
+            stripUnchangedSecretPreviews(headers, editingServer.value.headers ?? {})
+        }
+
         const request: UnifiedMcpRequest = {
             ...formData.value,
-            args: args.length > 0 ? args : null,
-            include_tools: includeTools.length > 0 ? includeTools : null,
+            args,
+            include_tools: includeTools,
+            env: env ?? {},
+            headers: headers ?? {},
+        }
+
+        if (request.platform !== 'claude') {
+            request.scope = null
+            request.headers = null
+            request.timeout = null
+            request.cwd = null
+            request.trust = null
+            request.include_tools = null
+            request.disabled = null
         }
 
         // 按模式清理字段
         if (isHttpMode.value) {
             request.command = null
+            request.args = null
         } else {
             request.url = null
         }
 
+        if (editingServer.value) {
+            if (!args.length) request.args = null
+            if (!includeTools.length) request.include_tools = null
+            if (!Object.keys(env ?? {}).length) request.env = null
+            if (!Object.keys(headers ?? {}).length) request.headers = null
+        }
+
         return request
+    }
+
+    function stripUnchangedSecretPreviews(
+        patch: Record<string, string> | null,
+        current: Record<string, string> | null | undefined,
+    ): void {
+        if (!patch) return
+
+        for (const [key, value] of Object.entries(patch)) {
+            if (value.includes('•') && value === current?.[key]) {
+                delete patch[key]
+            }
+        }
     }
 
     /** 判断平台是否支持某能力 */
@@ -392,6 +472,8 @@ export function useUnifiedMcp() {
         // 数据状态
         servers,
         capabilities,
+        diagnostics,
+        sourceDiagnostics,
         loading,
         error,
 
@@ -399,8 +481,10 @@ export function useUnifiedMcp() {
         filterPlatform,
         filterKeyword,
         filterProtocol,
+        filterScope,
         filteredServers,
         platformCounts,
+        scopeCounts,
         hasActiveFilters,
         resetFilters,
 

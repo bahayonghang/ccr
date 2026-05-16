@@ -192,8 +192,7 @@ const routes: RouteRecordRaw[] = [
       {
         path: 'mcp',
         name: 'mcp',
-        component: () => import('@/views/McpView.vue'),
-        meta: { depth: 1, group: 'config' },
+        redirect: '/mcp-manager',
       },
       {
         path: 'mcp/unified',

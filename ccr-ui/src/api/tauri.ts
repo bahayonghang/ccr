@@ -600,6 +600,7 @@ export {
   updateUnifiedMcp,
   deleteUnifiedMcp,
   toggleUnifiedMcp,
+  importUnifiedMcpServers,
 } from './domains/unifiedMcp'
 
 // ════════════════════════════════════════════════════════════
