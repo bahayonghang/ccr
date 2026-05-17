@@ -167,6 +167,29 @@ describe('codex dashboard smoke', () => {
     }
   })
 
+  it('uses the most critical next action as the primary action', async () => {
+    const mounted = await mountComposable()
+
+    try {
+      mounted.state.overview.value = {
+        ...overviewResponse,
+        auth: {
+          ...overviewResponse.auth,
+          logged_in: false,
+          current: null,
+        },
+      }
+      await nextTick()
+
+      expect(mounted.state.primaryAction.value.to).toBe('/codex/auth')
+      expect(mounted.state.primaryAction.value.tone).toBe('danger')
+      expect(mounted.state.primaryAction.value.icon).toBe('LogIn')
+      expect(mounted.state.nextActions.value[0]).toEqual(mounted.state.primaryAction.value)
+    } finally {
+      mounted.unmount()
+    }
+  })
+
   it('derives overview-driven content without waiting for usage summary', async () => {
     const mounted = await mountComposable()
 
@@ -178,9 +201,38 @@ describe('codex dashboard smoke', () => {
 
       expect(mounted.state.nextActions.value).toHaveLength(1)
       expect(mounted.state.nextActions.value[0]?.to).toBe('/codex/mcp')
+      expect(mounted.state.primaryAction.value.to).toBe('/codex/mcp')
       expect(mounted.state.usageLoading.value).toBe(true)
       expect(mounted.state.usageSummary.value).toBeNull()
-      expect(mounted.state.healthItems.value.find((item) => item.key === 'usage')?.value).toBe('分析中')
+
+      const usageReadiness = mounted.state.readinessItems.value.find((item) => item.key === 'usage')
+      expect(usageReadiness?.value).toBe('codex.dashboard.usage.loading')
+      expect(usageReadiness?.statusLabel).toBe('codex.dashboard.statusLabels.checking')
+      expect(usageReadiness?.tone).toBe('neutral')
+    } finally {
+      mounted.unmount()
+    }
+  })
+
+  it('keeps a refreshable fallback when backend data is unavailable', async () => {
+    getCodexDashboardOverviewMock.mockRejectedValueOnce(new Error('backend down'))
+    getCodexDashboardUsageSummaryMock.mockRejectedValueOnce(new Error('usage down'))
+
+    const mounted = await mountComposable()
+
+    try {
+      await mounted.state.refresh(true)
+      await flushPromises()
+
+      expect(mounted.state.overview.value).toBeNull()
+      expect(mounted.state.overviewError.value).toBe('backend down')
+      expect(mounted.state.error.value).toBe('backend down')
+      expect(mounted.state.nextActions.value).toEqual([])
+      expect(mounted.state.primaryAction.value).toMatchObject({
+        to: '/codex/auth',
+        icon: 'RefreshCw',
+        tone: 'neutral',
+      })
     } finally {
       mounted.unmount()
     }

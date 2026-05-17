@@ -2315,6 +2315,155 @@ export default {
       usageStatusTip: '在活跃的 Codex 会话中运行 /status 查看实时限制。',
     },
 
+    dashboard: {
+      header: {
+        eyebrow: 'Codex Command Center',
+        workflow: '任务导向工作台',
+        subtitle: '先判断能不能开工，再给出下一步和关键配置安全状态。',
+        refresh: '刷新',
+        version: '版本',
+        profile: 'Profile',
+        account: '账号',
+      },
+      statusLabels: {
+        ready: 'Ready',
+        blocked: 'Blocked',
+        attention: 'Attention',
+        checking: 'Checking',
+        idle: 'Idle',
+      },
+      readiness: {
+        eyebrow: 'Readiness Board',
+        title: '开工条件',
+        subtitle: '账号、Profile、安全策略和用量新鲜度只保留可行动信号。',
+        auth: {
+          title: '当前账号',
+          refreshed: '最近刷新 {time}',
+          ready: '已登录，可继续使用',
+          missing: '尚未登录 Codex 账号',
+        },
+        profiles: {
+          title: '当前 Profile',
+          detail: '共 {total} 个，启用 {enabled} 个',
+        },
+        config: {
+          title: '模型与权限',
+          noModel: '未配置模型',
+          noApproval: '未设置审批',
+          noSandbox: '未设置沙箱',
+          detail: '{approval} · {sandbox}',
+        },
+        usage: {
+          title: '用量新鲜度',
+          activity: '最近活动 {time}',
+          loadingDetail: '正在读取最近使用记录',
+          emptyDetail: '尚未发现最近活动记录',
+        },
+      },
+      usageFreshness: {
+        fresh: 'Fresh',
+        stale: 'Stale',
+        old: 'Old',
+        empty: 'Empty',
+      },
+      actionConsole: {
+        eyebrow: 'Action Console',
+        title: '下一步',
+        subtitle: '最多显示两个最重要动作，避免把配置入口伪装成待办事项。',
+      },
+      actions: {
+        login: {
+          title: '先完成账号登录',
+          description: '进入账号管理页，用 OAuth、API Key、Token JSON 或本地导入补齐可用账号。',
+        },
+        createProfile: {
+          title: '创建首个 Profile',
+          description: '先准备一个可切换的 Profile，把模型、鉴权和策略固定下来。',
+        },
+        selectProfile: {
+          title: '指定当前 Profile',
+          description: '已有配置但未激活当前 Profile，建议先切换到默认工作配置。',
+        },
+        completeSettings: {
+          title: '补齐 CLI 安全设置',
+          description: '检查模型、审批策略和沙箱模式，确保日常工作流可直接使用。',
+        },
+        addMcp: {
+          title: '接入 MCP 能力',
+          description: '如果你要把 Codex 接到本地工具链，现在可以添加第一个 MCP 服务器。',
+        },
+        openSessions: {
+          title: '回到最近会话',
+          description: '会话记录已经可用，可以直接从工作台继续查看上下文和导出记录。',
+        },
+        ready: {
+          title: '工作流已经就绪',
+          description: '账号、Profile 和核心配置都可用，可以直接开始日常使用或微调扩展能力。',
+        },
+        refresh: {
+          title: '重新读取状态',
+          description: '概览暂不可用，先刷新本地 Codex 状态。',
+        },
+      },
+      management: {
+        eyebrow: 'Manage',
+        title: '管理入口',
+        subtitle: '保留 Auth、Profiles、Settings、MCP、Agents、Sessions 六个入口，但降低视觉重量。',
+        auth: {
+          title: 'Auth',
+          description: '查看当前会话、保存账号和过期状态。',
+          badge: '{count} 个账号',
+        },
+        profiles: {
+          title: 'Profiles',
+          description: '管理默认工作配置，快速切换不同模型与策略。',
+          badge: '{count} 个 Profile',
+        },
+        settings: {
+          title: 'Settings',
+          description: '补齐模型、审批、沙箱和推理相关设置。',
+          badge: '{model}',
+        },
+        mcp: {
+          title: 'MCP',
+          description: '维护工具接入能力，把工作流扩展到本地或远端环境。',
+          badge: '{count} 个服务',
+        },
+        agents: {
+          title: 'Agents',
+          description: '复用现有 Agent 管理面板，维护 Codex 专用智能体。',
+          badge: '{count} 个 Agent',
+        },
+        sessions: {
+          title: 'Sessions',
+          description: '进入 Codex 会话工作台，查看上下文、导出记录和复制会话。',
+          badge: '{count} 个会话',
+        },
+      },
+      usage: {
+        requests: '请求',
+        tokens: 'Tokens',
+        model: '活跃模型',
+        lastActivity: '最近活动',
+        loading: '分析中',
+        unknownModel: '未识别',
+        noActivity: '暂无记录',
+      },
+      empty: {
+        readinessTitle: '暂时还没有开工状态',
+        readinessDescription: '概览数据尚未可用，可以先刷新一次重试。',
+        actionsTitle: '正在准备下一步动作',
+        actionsDescription: '概览数据尚未可用，可以先刷新一次重试。',
+        managementTitle: '暂时还没有管理入口数据',
+        managementDescription: '可以先刷新一次，或者进入 Auth / Profiles 页面补齐基础配置。',
+      },
+      error: {
+        title: '仪表盘概览加载失败',
+        usageTitle: '用量摘要加载失败',
+      },
+    },
+
+
     // Common actions
     actions: {
       add: '添加',

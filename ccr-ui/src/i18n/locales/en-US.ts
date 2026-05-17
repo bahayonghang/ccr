@@ -2286,6 +2286,155 @@ export default {
       usageStatusTip: 'Run /status in an active Codex session for real-time limits.',
     },
 
+    dashboard: {
+      header: {
+        eyebrow: 'Codex Command Center',
+        workflow: 'task-first workbench',
+        subtitle: 'Answer whether Codex is ready, what to do next, and whether the key safety settings are safe before opening details.',
+        refresh: 'Refresh',
+        version: 'Version',
+        profile: 'Profile',
+        account: 'Account',
+      },
+      statusLabels: {
+        ready: 'Ready',
+        blocked: 'Blocked',
+        attention: 'Attention',
+        checking: 'Checking',
+        idle: 'Idle',
+      },
+      readiness: {
+        eyebrow: 'Readiness Board',
+        title: 'Ready to start',
+        subtitle: 'Account, profile, safety policy, and usage freshness are reduced to actionable signals.',
+        auth: {
+          title: 'Current account',
+          refreshed: 'Refreshed {time}',
+          ready: 'Signed in and ready',
+          missing: 'No Codex account is signed in',
+        },
+        profiles: {
+          title: 'Current profile',
+          detail: '{total} total, {enabled} enabled',
+        },
+        config: {
+          title: 'Model and permissions',
+          noModel: 'No model configured',
+          noApproval: 'No approval policy',
+          noSandbox: 'No sandbox mode',
+          detail: '{approval} · {sandbox}',
+        },
+        usage: {
+          title: 'Usage freshness',
+          activity: 'Last activity {time}',
+          loadingDetail: 'Reading recent usage records',
+          emptyDetail: 'No recent activity found yet',
+        },
+      },
+      usageFreshness: {
+        fresh: 'Fresh',
+        stale: 'Stale',
+        old: 'Old',
+        empty: 'Empty',
+      },
+      actionConsole: {
+        eyebrow: 'Action Console',
+        title: 'Next step',
+        subtitle: 'Show only the two most important actions so management links do not masquerade as tasks.',
+      },
+      actions: {
+        login: {
+          title: 'Sign in first',
+          description: 'Open account management and add a usable account via OAuth, API key, token JSON, or local import.',
+        },
+        createProfile: {
+          title: 'Create the first profile',
+          description: 'Prepare a switchable profile so model, auth, and safety policy are pinned down.',
+        },
+        selectProfile: {
+          title: 'Select the current profile',
+          description: 'Profiles exist but none is active. Switch to the default work profile first.',
+        },
+        completeSettings: {
+          title: 'Complete CLI safety settings',
+          description: 'Review model, approval policy, and sandbox mode so the daily workflow can start safely.',
+        },
+        addMcp: {
+          title: 'Add MCP capability',
+          description: 'If Codex should reach local tools, add the first MCP server now.',
+        },
+        openSessions: {
+          title: 'Return to recent sessions',
+          description: 'Session history is available. Continue from the workbench, inspect context, or export records.',
+        },
+        ready: {
+          title: 'Workflow is ready',
+          description: 'Account, profile, and core settings are available. Start daily work or fine-tune extensions.',
+        },
+        refresh: {
+          title: 'Read status again',
+          description: 'Overview data is unavailable. Refresh the local Codex state first.',
+        },
+      },
+      management: {
+        eyebrow: 'Manage',
+        title: 'Management',
+        subtitle: 'Keep Auth, Profiles, Settings, MCP, Agents, and Sessions available with lower visual weight.',
+        auth: {
+          title: 'Auth',
+          description: 'Inspect the current session, saved accounts, and expiry state.',
+          badge: '{count} accounts',
+        },
+        profiles: {
+          title: 'Profiles',
+          description: 'Manage default work profiles and switch model or policy sets quickly.',
+          badge: '{count} profiles',
+        },
+        settings: {
+          title: 'Settings',
+          description: 'Complete model, approval, sandbox, and reasoning settings.',
+          badge: '{model}',
+        },
+        mcp: {
+          title: 'MCP',
+          description: 'Maintain tool connections for local or remote workflow capabilities.',
+          badge: '{count} servers',
+        },
+        agents: {
+          title: 'Agents',
+          description: 'Reuse the agent manager to maintain Codex-specific agents.',
+          badge: '{count} agents',
+        },
+        sessions: {
+          title: 'Sessions',
+          description: 'Open the Codex session workbench to inspect context, export, and copy sessions.',
+          badge: '{count} sessions',
+        },
+      },
+      usage: {
+        requests: 'Requests',
+        tokens: 'Tokens',
+        model: 'Active model',
+        lastActivity: 'Last activity',
+        loading: 'Analyzing',
+        unknownModel: 'Unknown',
+        noActivity: 'No record',
+      },
+      empty: {
+        readinessTitle: 'No readiness state yet',
+        readinessDescription: 'Overview data is not available yet. Refresh once to retry.',
+        actionsTitle: 'Preparing next actions',
+        actionsDescription: 'Overview data is not available yet. Refresh once to retry.',
+        managementTitle: 'No management data yet',
+        managementDescription: 'Refresh once, or open Auth / Profiles to complete the base configuration.',
+      },
+      error: {
+        title: 'Dashboard overview failed to load',
+        usageTitle: 'Usage summary failed to load',
+      },
+    },
+
+
     // Common actions
     actions: {
       add: 'Add',

@@ -1,387 +1,178 @@
 <template>
   <div class="codex-view stage-page">
     <div class="codex-shell">
-      <section class="codex-grid codex-grid--hero">
-        <Card
-          variant="glass"
-          class="codex-hero-card"
-        >
-          <div class="codex-hero-card__glow" />
+      <section class="codex-command-header">
+        <div class="codex-command-header__status" />
 
-          <div class="codex-hero-content">
-            <div class="codex-hero-header">
-              <div class="codex-hero-copy">
-                <div class="codex-hero-title-row">
-                  <div class="codex-hero-icon">
-                    <SIcon
-                      name="Code2"
-                      size="w-6 h-6"
-                      class="text-accent-primary"
-                    />
-                  </div>
-                  <div>
-                    <h1 class="codex-hero-title">
-                      Codex
-                    </h1>
-                    <p class="codex-hero-subtitle">
-                      先看当前账号、配置健康度和下一步，再进入账号管理、供应商和会话细项。
-                    </p>
-                  </div>
-                </div>
-
-                <div class="codex-pill-row">
-                  <span class="codex-pill codex-pill--primary"> workflow first </span>
-                  <span class="codex-pill codex-pill--neutral">
-                    {{ versionLabel }}
-                  </span>
-                  <span class="codex-pill codex-pill--info">
-                    {{ currentProfileLabel }}
-                  </span>
-                </div>
-              </div>
-
-              <div class="codex-action-row">
-                <RouterLink to="/codex/auth">
-                  <Button
-                    variant="glass"
-                    size="sm"
-                  >
-                    <SIcon
-                      name="KeyRound"
-                      size="w-4 h-4"
-                      class="mr-2"
-                    />
-                    账号管理
-                  </Button>
-                </RouterLink>
-                <RouterLink to="/codex/sessions">
-                  <Button
-                    variant="glass"
-                    size="sm"
-                  >
-                    <SIcon
-                      name="MessagesSquare"
-                      size="w-4 h-4"
-                      class="mr-2"
-                    />
-                    会话
-                  </Button>
-                </RouterLink>
-                <RouterLink to="/codex/profiles">
-                  <Button
-                    variant="glass"
-                    size="sm"
-                  >
-                    <SIcon
-                      name="Folders"
-                      size="w-4 h-4"
-                      class="mr-2"
-                    />
-                    Profiles
-                  </Button>
-                </RouterLink>
-                <RouterLink to="/codex/agents">
-                  <Button
-                    variant="glass"
-                    size="sm"
-                  >
-                    <SIcon
-                      name="Bot"
-                      size="w-4 h-4"
-                      class="mr-2"
-                    />
-                    Agents
-                  </Button>
-                </RouterLink>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  :disabled="loading"
-                  @click="refresh(true)"
-                >
-                  <SIcon
-                    name="RefreshCw"
-                    size="w-4 h-4"
-                    class="mr-2"
-                    :class="{ 'animate-spin': loading }"
-                  />
-                  刷新
-                </Button>
-              </div>
+        <div class="codex-command-header__main">
+          <div class="codex-command-header__copy">
+            <div class="codex-eyebrow-row">
+              <span class="codex-eyebrow">{{ $t('codex.dashboard.header.eyebrow') }}</span>
+              <span class="codex-status-dot" />
+              <span class="codex-eyebrow codex-eyebrow--muted">{{ $t('codex.dashboard.header.workflow') }}</span>
             </div>
 
-            <div class="codex-hero-stats">
-              <div class="codex-stat-card">
-                <p class="codex-stat-label">
-                  当前账号
-                </p>
-                <p
-                  class="codex-stat-value truncate"
-                  :title="currentAccountLabel"
-                >
-                  {{ currentAccountLabel }}
-                </p>
+            <div class="codex-title-row">
+              <div class="codex-mark">
+                <SIcon
+                  name="Code2"
+                  size="w-6 h-6"
+                />
               </div>
-              <div class="codex-stat-card">
-                <p class="codex-stat-label">
-                  累计请求
-                </p>
-                <p class="codex-stat-value">
-                  {{ usageTotalRequests }}
-                </p>
-              </div>
-              <div class="codex-stat-card">
-                <p class="codex-stat-label">
-                  累计 Tokens
-                </p>
-                <p class="codex-stat-value">
-                  {{ usageTotalTokens }}
+              <div>
+                <h1 class="codex-title">
+                  Codex
+                </h1>
+                <p class="codex-subtitle">
+                  {{ $t('codex.dashboard.header.subtitle') }}
                 </p>
               </div>
             </div>
           </div>
-        </Card>
 
-        <Card
-          variant="glass"
-          class="codex-panel"
-        >
-          <div class="codex-panel-header">
-            <div class="codex-panel-icon codex-panel-icon--amber">
-              <SIcon
-                name="Route"
-                size="w-5 h-5"
-                class="text-amber-300"
-              />
-            </div>
-            <div>
-              <h2 class="codex-panel-title">
-                下一步
-              </h2>
-              <p class="codex-panel-subtitle">
-                只保留最该先做的动作
-              </p>
-            </div>
-          </div>
-
-          <div
-            v-if="nextActions.length"
-            class="codex-stack"
-          >
-            <RouterLink
-              v-for="action in nextActions"
-              :key="action.title"
-              :to="action.to"
-              class="codex-action-card"
+          <div class="codex-command-actions">
+            <Button
+              variant="ghost"
+              size="sm"
+              :disabled="loading"
+              @click="refresh(true)"
             >
-              <div class="flex items-start gap-3">
-                <div
-                  class="codex-tone-icon"
-                  :class="toneClassMap[action.tone]"
-                >
-                  <SIcon
-                    :name="action.icon"
-                    size="w-5 h-5"
-                  />
-                </div>
-                <div class="min-w-0 flex-1">
-                  <div class="flex items-center justify-between gap-3">
-                    <h3 class="codex-action-title">
-                      {{ action.title }}
-                    </h3>
-                    <SIcon
-                      name="ArrowRight"
-                      size="w-4 h-4"
-                      class="codex-action-arrow shrink-0"
-                    />
-                  </div>
-                  <p class="codex-action-description">
-                    {{ action.description }}
-                  </p>
-                </div>
-              </div>
+              <SIcon
+                name="RefreshCw"
+                size="w-4 h-4"
+                class="mr-2"
+                :class="{ 'animate-spin': loading }"
+              />
+              {{ $t('codex.dashboard.header.refresh') }}
+            </Button>
+
+            <RouterLink :to="primaryAction.to">
+              <Button
+                :variant="primaryButtonVariant"
+                size="md"
+              >
+                <SIcon
+                  :name="primaryAction.icon"
+                  size="w-4 h-4"
+                  class="mr-2"
+                />
+                {{ primaryAction.title }}
+              </Button>
             </RouterLink>
           </div>
+        </div>
 
-          <div
-            v-else-if="overviewLoading"
-            class="codex-stack"
-          >
-            <div class="codex-skeleton codex-skeleton--panel" />
-            <div class="codex-skeleton codex-skeleton--panel" />
+        <div class="codex-command-meta">
+          <div class="codex-meta-chip">
+            <span>{{ $t('codex.dashboard.header.version') }}</span>
+            <strong>{{ versionLabel }}</strong>
           </div>
-
-          <EmptyState
-            v-else
-            icon="Route"
-            title="正在准备下一步动作"
-            description="概览数据尚未可用，可以先刷新一次重试。"
-            action-text="立即刷新"
-            action-icon="RefreshCw"
-            :on-action="() => refresh(true)"
-          />
-        </Card>
+          <div class="codex-meta-chip">
+            <span>{{ $t('codex.dashboard.header.profile') }}</span>
+            <strong>{{ currentProfileLabel }}</strong>
+          </div>
+          <div class="codex-meta-chip codex-meta-chip--wide">
+            <span>{{ $t('codex.dashboard.header.account') }}</span>
+            <strong :title="currentAccountLabel">{{ currentAccountLabel }}</strong>
+          </div>
+        </div>
       </section>
 
-      <section class="codex-grid codex-grid--health">
-        <template v-if="healthItems.length">
+      <section class="codex-readiness-board">
+        <div class="codex-section-heading">
+          <div>
+            <p class="codex-section-kicker">
+              {{ $t('codex.dashboard.readiness.eyebrow') }}
+            </p>
+            <h2 class="codex-section-title">
+              {{ $t('codex.dashboard.readiness.title') }}
+            </h2>
+          </div>
+          <p class="codex-section-description">
+            {{ $t('codex.dashboard.readiness.subtitle') }}
+          </p>
+        </div>
+
+        <div
+          v-if="readinessItems.length"
+          class="codex-readiness-grid"
+        >
           <RouterLink
-            v-for="item in healthItems"
+            v-for="item in readinessItems"
             :key="item.key"
             :to="item.to"
-            class="group"
+            class="codex-readiness-item"
+            :class="`codex-readiness-item--${item.tone}`"
           >
-            <Card
-              variant="elevated"
-              hover
-              class="codex-health-card"
-            >
-              <div class="flex items-start justify-between gap-3">
+            <div class="codex-readiness-item__axis" />
+            <div class="codex-readiness-item__body">
+              <div class="codex-readiness-item__topline">
                 <div
-                  class="codex-tone-icon codex-tone-icon--large"
+                  class="codex-tone-icon"
                   :class="toneClassMap[item.tone]"
                 >
                   <SIcon
                     :name="item.icon"
-                    size="w-5 h-5"
+                    size="w-4 h-4"
                   />
                 </div>
-                <span class="codex-health-eyebrow"> 状态 </span>
+                <span class="codex-readiness-status">{{ item.statusLabel }}</span>
               </div>
-              <p class="codex-health-label">
+              <p class="codex-readiness-label">
                 {{ item.title }}
               </p>
-              <p class="codex-health-value">
+              <p class="codex-readiness-value">
                 {{ item.value }}
               </p>
-              <p class="codex-health-detail">
+              <p class="codex-readiness-detail">
                 {{ item.detail }}
               </p>
-            </Card>
+            </div>
+            <SIcon
+              name="ArrowUpRight"
+              size="w-4 h-4"
+              class="codex-readiness-arrow"
+            />
           </RouterLink>
-        </template>
+        </div>
 
-        <template v-else-if="overviewLoading">
-          <Card
+        <div
+          v-else-if="overviewLoading"
+          class="codex-readiness-grid"
+        >
+          <div
             v-for="n in 4"
-            :key="`health-skeleton-${n}`"
-            variant="elevated"
-            class="codex-health-card"
-          >
-            <div class="codex-skeleton codex-skeleton--icon mb-4" />
-            <div class="codex-skeleton codex-skeleton--line mb-3" />
-            <div class="codex-skeleton codex-skeleton--line mb-2" />
-            <div class="codex-skeleton codex-skeleton--detail" />
-          </Card>
-        </template>
+            :key="`readiness-skeleton-${n}`"
+            class="codex-skeleton codex-skeleton--readiness"
+          />
+        </div>
+
+        <EmptyState
+          v-else
+          icon="ShieldCheck"
+          :title="$t('codex.dashboard.empty.readinessTitle')"
+          :description="$t('codex.dashboard.empty.readinessDescription')"
+          :action-text="$t('codex.dashboard.header.refresh')"
+          action-icon="RefreshCw"
+          :on-action="() => refresh(true)"
+        />
       </section>
 
-      <section class="codex-grid codex-grid--manage">
+      <section class="codex-action-console">
         <Card
           variant="glass"
-          class="codex-panel codex-panel--wide"
+          class="codex-console-card codex-console-card--actions"
         >
-          <div class="codex-section-header">
+          <div class="codex-console-header">
             <div>
-              <h2 class="codex-panel-title">
-                管理入口
-              </h2>
-              <p class="codex-panel-description">
-                把细项管理降级成次级入口，需要时再深入。
+              <p class="codex-section-kicker">
+                {{ $t('codex.dashboard.actionConsole.eyebrow') }}
               </p>
-            </div>
-            <RouterLink
-              to="/codex/settings"
-              class="codex-text-link"
-            >
-              打开设置
-            </RouterLink>
-          </div>
-
-          <div
-            v-if="managementLinks.length"
-            class="codex-grid codex-grid--links"
-          >
-            <RouterLink
-              v-for="link in managementLinks"
-              :key="link.to"
-              :to="link.to"
-              class="group"
-            >
-              <Card
-                variant="glass"
-                hover
-                class="codex-link-card"
-              >
-                <div class="codex-link-card__header">
-                  <div
-                    class="codex-tone-icon"
-                    :class="toneClassMap[link.tone]"
-                  >
-                    <SIcon
-                      :name="link.icon"
-                      size="w-5 h-5"
-                    />
-                  </div>
-                  <span class="codex-link-badge">
-                    {{ link.badge }}
-                  </span>
-                </div>
-                <h3 class="codex-link-title">
-                  {{ link.title }}
-                </h3>
-                <p class="codex-link-description">
-                  {{ link.description }}
-                </p>
-              </Card>
-            </RouterLink>
-          </div>
-
-          <div
-            v-else-if="overviewLoading"
-            class="codex-grid codex-grid--links"
-          >
-            <Card
-              v-for="n in 6"
-              :key="`link-skeleton-${n}`"
-              variant="glass"
-              class="codex-link-card"
-            >
-              <div class="codex-skeleton codex-skeleton--icon mb-4" />
-              <div class="codex-skeleton codex-skeleton--line mb-3" />
-              <div class="codex-skeleton codex-skeleton--detail" />
-            </Card>
-          </div>
-
-          <EmptyState
-            v-else
-            icon="Folders"
-            title="暂时还没有管理入口数据"
-            description="可以先刷新一次，或者进入 Auth / Profiles 页面补齐基础配置。"
-            action-text="立即刷新"
-            action-icon="RefreshCw"
-            :on-action="() => refresh(true)"
-          />
-        </Card>
-
-        <Card
-          variant="glass"
-          class="codex-panel"
-        >
-          <div class="codex-panel-header">
-            <div class="codex-panel-icon codex-panel-icon--indigo">
-              <SIcon
-                name="Sparkles"
-                size="w-5 h-5"
-                class="text-indigo-300"
-              />
-            </div>
-            <div>
-              <h2 class="codex-panel-title">
-                工作流摘要
+              <h2 class="codex-section-title">
+                {{ $t('codex.dashboard.actionConsole.title') }}
               </h2>
-              <p class="codex-panel-subtitle">
-                一眼确认是否可以直接开工
+              <p class="codex-console-subtitle">
+                {{ $t('codex.dashboard.actionConsole.subtitle') }}
               </p>
             </div>
           </div>
@@ -390,122 +181,180 @@
             v-if="error && !overview"
             class="codex-alert codex-alert--danger"
           >
-            <p class="mb-2 font-medium">
-              仪表盘概览加载失败
-            </p>
-            <p class="break-words">
-              {{ error }}
-            </p>
+            <div>
+              <p class="codex-alert-title">
+                {{ $t('codex.dashboard.error.title') }}
+              </p>
+              <p class="codex-alert-message">
+                {{ error }}
+              </p>
+            </div>
+            <Button
+              variant="glass"
+              size="sm"
+              @click="refresh(true)"
+            >
+              <SIcon
+                name="RefreshCw"
+                size="w-4 h-4"
+                class="mr-2"
+              />
+              {{ $t('codex.dashboard.header.refresh') }}
+            </Button>
           </div>
 
           <div
-            v-else-if="!overview && overviewLoading"
-            class="codex-stack"
+            v-if="visibleNextActions.length"
+            class="codex-next-list"
           >
-            <div class="codex-skeleton" />
-            <div class="codex-skeleton" />
-            <div class="codex-skeleton" />
+            <RouterLink
+              v-for="(action, index) in visibleNextActions"
+              :key="action.title"
+              :to="action.to"
+              class="codex-next-item"
+              :class="`codex-next-item--${action.tone}`"
+            >
+              <span class="codex-next-index">{{ index + 1 }}</span>
+              <div
+                class="codex-tone-icon codex-tone-icon--large"
+                :class="toneClassMap[action.tone]"
+              >
+                <SIcon
+                  :name="action.icon"
+                  size="w-5 h-5"
+                />
+              </div>
+              <div class="codex-next-copy">
+                <h3>{{ action.title }}</h3>
+                <p>{{ action.description }}</p>
+              </div>
+              <SIcon
+                name="ArrowRight"
+                size="w-4 h-4"
+                class="codex-next-arrow"
+              />
+            </RouterLink>
+          </div>
+
+          <div
+            v-else-if="overviewLoading"
+            class="codex-next-list"
+          >
+            <div class="codex-skeleton codex-skeleton--next" />
+            <div class="codex-skeleton codex-skeleton--next" />
           </div>
 
           <EmptyState
             v-else-if="!overview"
-            icon="Inbox"
-            title="暂时还没有仪表盘数据"
-            description="可以先刷新一次，或者进入 Auth / Profiles 页面补齐基础配置。"
-            action-text="立即刷新"
+            icon="Route"
+            :title="$t('codex.dashboard.empty.actionsTitle')"
+            :description="$t('codex.dashboard.empty.actionsDescription')"
+            :action-text="$t('codex.dashboard.header.refresh')"
             action-icon="RefreshCw"
             :on-action="() => refresh(true)"
           />
 
+          <div class="codex-usage-strip">
+            <div class="codex-usage-strip__item">
+              <span>{{ $t('codex.dashboard.usage.requests') }}</span>
+              <strong>{{ usageTotalRequests }}</strong>
+            </div>
+            <div class="codex-usage-strip__item">
+              <span>{{ $t('codex.dashboard.usage.tokens') }}</span>
+              <strong>{{ usageTotalTokens }}</strong>
+            </div>
+            <div class="codex-usage-strip__item codex-usage-strip__item--wide">
+              <span>{{ $t('codex.dashboard.usage.model') }}</span>
+              <strong>
+                {{ usageSummary?.top_model?.model || overview?.config.model || (usageLoading ? $t('codex.dashboard.usage.loading') : $t('codex.dashboard.usage.unknownModel')) }}
+              </strong>
+            </div>
+            <div class="codex-usage-strip__item codex-usage-strip__item--wide">
+              <span>{{ $t('codex.dashboard.usage.lastActivity') }}</span>
+              <strong>
+                {{ usageSummary?.last_activity_at ? formatDateTime(usageSummary.last_activity_at) : (usageLoading ? $t('codex.dashboard.usage.loading') : $t('codex.dashboard.usage.noActivity')) }}
+              </strong>
+            </div>
+          </div>
+
           <div
-            v-else
-            class="codex-stack"
+            v-if="usageError && !usageSummary"
+            class="codex-alert codex-alert--warning"
           >
-            <div class="codex-summary-card">
-              <p class="codex-summary-label">
-                活跃模型
-              </p>
-              <p class="codex-summary-value">
-                {{ usageSummary?.top_model?.model || overview.config.model || (usageLoading ? '分析中' : '未识别') }}
-              </p>
-              <p class="codex-summary-description">
-                {{
-                  usageSummary?.top_model
-                    ? `近阶段请求 ${usageSummary.top_model.total_requests} 次，输出 ${formatTokens(usageSummary.top_model.total_output_tokens)} tokens`
-                    : usageLoading
-                      ? '正在计算模型活跃度'
-                      : '暂无按模型维度的活跃数据'
-                }}
-              </p>
-            </div>
+            <p class="codex-alert-title">
+              {{ $t('codex.dashboard.error.usageTitle') }}
+            </p>
+            <p class="codex-alert-message">
+              {{ usageError }}
+            </p>
+          </div>
+        </Card>
 
-            <div class="codex-summary-card">
-              <p class="codex-summary-label">
-                扩展能力库存
+        <Card
+          variant="glass"
+          class="codex-console-card codex-console-card--manage"
+        >
+          <div class="codex-console-header codex-console-header--compact">
+            <div>
+              <p class="codex-section-kicker">
+                {{ $t('codex.dashboard.management.eyebrow') }}
               </p>
-              <div class="codex-inventory-grid">
-                <div>
-                  <p class="codex-inventory-key">
-                    MCP
-                  </p>
-                  <p class="codex-inventory-value">
-                    {{ overview.inventory.mcp_servers_total }}
-                  </p>
-                </div>
-                <div>
-                  <p class="codex-inventory-key">
-                    Config Profiles
-                  </p>
-                  <p class="codex-inventory-value">
-                    {{ overview.inventory.config_profiles_total }}
-                  </p>
-                </div>
-                <div>
-                  <p class="codex-inventory-key">
-                    Agents
-                  </p>
-                  <p class="codex-inventory-value">
-                    {{ overview.inventory.agents_total }}
-                  </p>
-                </div>
-                <div>
-                  <p class="codex-inventory-key">
-                    Sessions
-                  </p>
-                  <p class="codex-inventory-value">
-                    {{ overview.inventory.sessions_total }}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div class="codex-summary-card">
-              <p class="codex-summary-label">
-                最近活动
-              </p>
-              <p class="codex-summary-description codex-summary-description--compact">
-                {{
-                  usageSummary?.last_activity_at
-                    ? `最近活动时间 ${formatDateTime(usageSummary.last_activity_at)}`
-                    : usageLoading
-                      ? '正在读取最近活动记录'
-                      : '尚未发现最近活动记录'
-                }}
-              </p>
-            </div>
-
-            <div
-              v-if="usageError && !usageSummary"
-              class="codex-alert codex-alert--warning"
-            >
-              <p class="mb-1 font-medium">
-                用量摘要加载失败
-              </p>
-              <p class="break-words">
-                {{ usageError }}
+              <h2 class="codex-section-title">
+                {{ $t('codex.dashboard.management.title') }}
+              </h2>
+              <p class="codex-console-subtitle">
+                {{ $t('codex.dashboard.management.subtitle') }}
               </p>
             </div>
           </div>
+
+          <div
+            v-if="compactInventory.length"
+            class="codex-manage-list"
+          >
+            <RouterLink
+              v-for="item in compactInventory"
+              :key="item.key"
+              :to="item.to"
+              class="codex-manage-row"
+            >
+              <div
+                class="codex-tone-icon"
+                :class="toneClassMap[item.tone]"
+              >
+                <SIcon
+                  :name="item.icon"
+                  size="w-4 h-4"
+                />
+              </div>
+              <div class="codex-manage-copy">
+                <span>{{ item.title }}</span>
+                <small>{{ item.detail }}</small>
+              </div>
+              <strong>{{ item.value }}</strong>
+            </RouterLink>
+          </div>
+
+          <div
+            v-else-if="overviewLoading"
+            class="codex-manage-list"
+          >
+            <div
+              v-for="n in 6"
+              :key="`manage-skeleton-${n}`"
+              class="codex-skeleton codex-skeleton--manage"
+            />
+          </div>
+
+          <EmptyState
+            v-else
+            icon="Folders"
+            :title="$t('codex.dashboard.empty.managementTitle')"
+            :description="$t('codex.dashboard.empty.managementDescription')"
+            :action-text="$t('codex.dashboard.header.refresh')"
+            action-icon="RefreshCw"
+            :on-action="() => refresh(true)"
+          />
         </Card>
       </section>
     </div>
@@ -513,12 +362,12 @@
 </template>
 
 <script setup lang="ts">
-import { onActivated, onMounted } from 'vue'
+import { computed, onActivated, onMounted } from 'vue'
 import Button from '@/components/ui/Button.vue'
 import Card from '@/components/ui/Card.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
 import SIcon from '@/components/ui/SIcon.vue'
-import { useCodexDashboard } from '@/composables/useCodexDashboard'
+import { useCodexDashboard, type CodexDashboardTone } from '@/composables/useCodexDashboard'
 
 defineOptions({ name: 'CodexView' })
 
@@ -535,20 +384,28 @@ const {
   currentProfileLabel,
   usageTotalRequests,
   usageTotalTokens,
-  healthItems,
+  readinessItems,
   nextActions,
-  managementLinks,
-  formatTokens,
+  primaryAction,
+  compactInventory,
   formatDateTime,
   refresh,
 } = useCodexDashboard()
 
-const toneClassMap = {
+const toneClassMap: Record<CodexDashboardTone, string> = {
   success: 'codex-tone-icon--success',
   warning: 'codex-tone-icon--warning',
   danger: 'codex-tone-icon--danger',
   neutral: 'codex-tone-icon--neutral',
-} as const
+}
+
+const visibleNextActions = computed(() => nextActions.value.slice(0, 2))
+
+const primaryButtonVariant = computed(() => {
+  if (primaryAction.value.tone === 'danger') return 'danger'
+  if (primaryAction.value.tone === 'success') return 'success'
+  return 'primary'
+})
 
 onMounted(() => {
   void refresh(false)
@@ -568,382 +425,389 @@ onActivated(() => {
   @apply mx-auto max-w-7xl space-y-5;
 }
 
-.codex-grid {
-  @apply grid gap-4;
+.codex-command-header,
+.codex-readiness-board,
+.codex-console-card {
+  border: 1px solid var(--stage-border-soft);
+  background:
+    linear-gradient(135deg, rgb(var(--color-bg-elevated-rgb) / 92%), rgb(var(--color-bg-surface-rgb) / 84%)),
+    var(--stage-surface-medium);
+
+  @apply relative overflow-hidden rounded-[2rem];
 }
 
-.codex-grid--hero {
-  @apply grid-cols-1 xl:grid-cols-3;
+.codex-command-header {
+  @apply p-5 lg:p-6;
 }
 
-.codex-grid--health {
-  @apply grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4;
+.codex-command-header__status {
+  @apply pointer-events-none absolute inset-x-6 top-0 h-px;
+
+  background: linear-gradient(90deg, transparent, rgb(var(--color-accent-primary-rgb) / 52%), transparent);
 }
 
-.codex-grid--manage {
-  @apply grid-cols-1 xl:grid-cols-3;
+.codex-command-header__main {
+  @apply relative z-10 flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between;
 }
 
-.codex-grid--links {
-  @apply grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3;
+.codex-command-header__copy {
+  @apply min-w-0 space-y-4;
 }
 
-.codex-hero-card {
-  @apply relative overflow-hidden p-6 xl:col-span-2;
+.codex-eyebrow-row {
+  @apply flex flex-wrap items-center gap-2;
 }
 
-.codex-hero-card__glow {
-  @apply pointer-events-none absolute inset-y-0 right-0 w-72;
+.codex-eyebrow {
+  color: var(--color-accent-primary);
 
-  background: linear-gradient(270deg, rgb(var(--color-accent-primary-rgb) / 10%), rgb(var(--color-premium-blue-rgb) / 38%), transparent);
+  @apply text-xs font-semibold uppercase tracking-[0.2em];
 }
 
-.codex-hero-content {
-  @apply relative z-10 space-y-5;
+.codex-eyebrow--muted {
+  color: var(--stage-text-quiet);
 }
 
-.codex-hero-header {
-  @apply flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between;
+.codex-status-dot {
+  background: var(--color-accent-primary);
+  box-shadow: 0 0 0 4px rgb(var(--color-accent-primary-rgb) / 10%);
+
+  @apply h-2 w-2 rounded-full;
 }
 
-.codex-hero-copy {
-  @apply space-y-3;
+.codex-title-row {
+  @apply flex items-center gap-4;
 }
 
-.codex-hero-title-row {
-  @apply flex items-center gap-3;
-}
-
-.codex-hero-icon {
-  @apply flex h-12 w-12 items-center justify-center rounded-2xl shadow-lg backdrop-blur-md;
-
-  border: 1px solid rgb(var(--color-accent-primary-rgb) / 14%);
-  background: linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 100%), rgb(var(--color-bg-surface-rgb) / 90%));
-}
-
-.codex-hero-title {
-  color: var(--stage-text-primary);
-
-  @apply text-[2.35rem] font-semibold tracking-[-0.04em];
-
-  font-family: var(--font-brand);
-}
-
-.codex-hero-subtitle {
-  color: var(--stage-text-secondary);
-
-  @apply text-sm;
-}
-
-.codex-pill-row {
-  @apply flex flex-wrap gap-2;
-}
-
-.codex-pill {
-  color: var(--stage-chip-neutral-text);
-
-  @apply rounded-full border px-3 py-1 text-xs font-semibold;
-
-  letter-spacing: 0.04em;
-}
-
-.codex-pill--primary {
-  border-color: rgb(var(--color-accent-primary-rgb) / 16%);
+.codex-mark {
+  border: 1px solid rgb(var(--color-accent-primary-rgb) / 20%);
   background: rgb(var(--color-accent-primary-rgb) / 10%);
   color: var(--color-accent-primary);
+
+  @apply flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl;
 }
 
-.codex-pill--neutral {
-  background: var(--stage-chip-neutral-bg);
-  border-color: var(--stage-chip-neutral-border);
-  color: var(--stage-chip-neutral-text);
+.codex-title {
+  color: var(--stage-text-primary);
+  font-family: var(--font-brand);
+
+  @apply text-[2.65rem] font-semibold leading-none tracking-[-0.055em];
 }
 
-.codex-pill--info {
-  border-color: rgb(var(--color-info-rgb) / 16%);
-  background: rgb(var(--color-info-rgb) / 10%);
-  color: var(--color-info);
+.codex-subtitle {
+  color: var(--stage-text-secondary);
+
+  @apply mt-2 max-w-2xl text-sm leading-6;
 }
 
-.codex-action-row {
+.codex-command-actions {
   @apply flex flex-wrap gap-2 lg:justify-end;
 }
 
-.codex-hero-stats {
-  @apply grid grid-cols-1 gap-3 sm:grid-cols-3;
+.codex-command-meta {
+  @apply relative z-10 mt-5 grid grid-cols-1 gap-2 md:grid-cols-3;
 }
 
-.codex-stat-card {
+.codex-meta-chip {
   background: var(--stage-surface-soft);
   border: 1px solid var(--stage-border-soft);
 
-  @apply rounded-2xl px-4 py-3;
+  @apply flex min-w-0 items-center justify-between gap-3 rounded-2xl px-4 py-3;
 }
 
-.codex-stat-label {
+.codex-meta-chip span {
   color: var(--stage-text-quiet);
 
-  @apply mb-1 text-xs;
-
-  letter-spacing: 0.04em;
+  @apply shrink-0 text-xs font-medium uppercase tracking-[0.14em];
 }
 
-.codex-stat-value {
+.codex-meta-chip strong {
   color: var(--stage-text-primary);
 
-  @apply text-lg font-semibold;
+  @apply min-w-0 truncate text-sm font-semibold;
 }
 
-.codex-panel {
+.codex-section-heading {
+  @apply mb-4 flex flex-col gap-2 lg:flex-row lg:items-end lg:justify-between;
+}
+
+.codex-section-kicker {
+  color: var(--stage-text-quiet);
+
+  @apply text-xs font-semibold uppercase tracking-[0.18em];
+}
+
+.codex-section-title {
+  color: var(--stage-text-primary);
+
+  @apply mt-1 text-lg font-semibold tracking-[-0.02em];
+}
+
+.codex-section-description,
+.codex-console-subtitle {
+  color: var(--stage-text-secondary);
+
+  @apply max-w-xl text-sm leading-6;
+}
+
+.codex-readiness-board {
+  @apply p-4 lg:p-5;
+}
+
+.codex-readiness-grid {
+  @apply grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4;
+}
+
+.codex-readiness-item {
+  background: var(--stage-surface-soft);
+  border: 1px solid var(--stage-border-soft);
+
+  @apply relative flex min-h-[13rem] overflow-hidden rounded-3xl p-4 transition-all duration-200;
+}
+
+.codex-readiness-item:hover {
+  border-color: rgb(var(--color-accent-primary-rgb) / 22%);
+  transform: translateY(-1px);
+}
+
+.codex-readiness-item--danger,
+.codex-readiness-item--warning {
+  background: linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 94%), rgb(var(--color-bg-surface-rgb) / 86%));
+}
+
+.codex-readiness-item__axis {
+  @apply absolute inset-y-4 left-0 w-1 rounded-full;
+
+  background: var(--stage-border-default);
+}
+
+.codex-readiness-item--success .codex-readiness-item__axis {
+  background: var(--color-success);
+}
+
+.codex-readiness-item--warning .codex-readiness-item__axis {
+  background: var(--color-warning);
+}
+
+.codex-readiness-item--danger .codex-readiness-item__axis {
+  background: var(--color-danger);
+}
+
+.codex-readiness-item__body {
+  @apply flex min-w-0 flex-1 flex-col;
+}
+
+.codex-readiness-item__topline {
+  @apply mb-4 flex items-center justify-between gap-3;
+}
+
+.codex-readiness-status {
+  background: var(--stage-chip-neutral-bg);
+  border: 1px solid var(--stage-chip-neutral-border);
+  color: var(--stage-chip-neutral-text);
+
+  @apply rounded-full px-2.5 py-1 text-[0.68rem] font-semibold uppercase tracking-[0.12em];
+}
+
+.codex-readiness-label {
+  color: var(--stage-text-quiet);
+
+  @apply text-xs font-medium uppercase tracking-[0.14em];
+}
+
+.codex-readiness-value {
+  color: var(--stage-text-primary);
+
+  @apply mt-2 break-words text-lg font-semibold leading-snug;
+}
+
+.codex-readiness-detail {
+  color: var(--stage-text-secondary);
+
+  @apply mt-auto pt-3 text-sm leading-6;
+}
+
+.codex-readiness-arrow {
+  color: var(--stage-text-quiet);
+
+  @apply absolute right-4 top-4 opacity-0 transition-opacity duration-200;
+}
+
+.codex-readiness-item:hover .codex-readiness-arrow {
+  @apply opacity-100;
+}
+
+.codex-action-console {
+  @apply grid grid-cols-1 gap-4 xl:grid-cols-5;
+}
+
+.codex-console-card {
   @apply p-5;
 }
 
-.codex-panel--wide {
+.codex-console-card--actions {
+  @apply xl:col-span-3;
+}
+
+.codex-console-card--manage {
   @apply xl:col-span-2;
 }
 
-.codex-panel-header {
-  @apply mb-4 flex items-center gap-3;
+.codex-console-header {
+  @apply mb-4 flex items-start justify-between gap-3;
 }
 
-.codex-panel-title {
+.codex-console-header--compact {
+  @apply mb-3;
+}
+
+.codex-next-list {
+  @apply space-y-3;
+}
+
+.codex-next-item {
+  background: var(--stage-surface-soft);
+  border: 1px solid var(--stage-border-soft);
+
+  @apply relative grid grid-cols-[auto_auto_1fr_auto] items-start gap-3 rounded-3xl p-4 transition-all duration-200;
+}
+
+.codex-next-item:hover {
+  border-color: rgb(var(--color-accent-primary-rgb) / 22%);
+  transform: translateY(-1px);
+}
+
+.codex-next-item--danger {
+  border-color: rgb(var(--color-danger-rgb) / 20%);
+}
+
+.codex-next-item--warning {
+  border-color: rgb(var(--color-warning-rgb) / 18%);
+}
+
+.codex-next-index {
+  color: var(--stage-text-quiet);
+
+  @apply pt-2 text-xs font-semibold tracking-[0.14em];
+}
+
+.codex-next-copy {
+  @apply min-w-0;
+}
+
+.codex-next-copy h3 {
   color: var(--stage-text-primary);
 
   @apply text-base font-semibold;
 }
 
-.codex-panel-subtitle {
-  color: var(--stage-text-muted);
-
-  @apply text-xs;
-}
-
-.codex-panel-description {
-  color: var(--stage-text-muted);
-
-  @apply text-sm;
-}
-
-.codex-panel-icon {
-  @apply flex h-10 w-10 items-center justify-center rounded-xl border;
-}
-
-.codex-panel-icon--amber {
-  border-color: rgb(var(--color-warning-rgb) / 16%);
-  background: rgb(var(--color-warning-rgb) / 10%);
-}
-
-.codex-panel-icon--indigo {
-  border-color: rgb(var(--color-accent-primary-rgb) / 16%);
-  background: rgb(var(--color-accent-primary-rgb) / 10%);
-}
-
-.codex-stack {
-  @apply space-y-3;
-}
-
-.codex-action-card {
-  background: var(--stage-surface-soft);
-  border: 1px solid var(--stage-border-soft);
-
-  @apply block rounded-2xl p-4 transition-all duration-200;
-}
-
-.codex-action-card:hover {
-  border-color: rgb(var(--color-accent-primary-rgb) / 16%);
-}
-
-.codex-tone-icon {
-  @apply mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border;
-}
-
-.codex-tone-icon--success {
-  border-color: rgb(var(--color-success-rgb) / 16%);
-  background: rgb(var(--color-success-rgb) / 10%);
-  color: var(--color-success);
-}
-
-.codex-tone-icon--warning {
-  border-color: rgb(var(--color-warning-rgb) / 16%);
-  background: rgb(var(--color-warning-rgb) / 10%);
-  color: var(--color-warning);
-}
-
-.codex-tone-icon--danger {
-  border-color: rgb(var(--color-danger-rgb) / 16%);
-  background: rgb(var(--color-danger-rgb) / 10%);
-  color: var(--color-danger);
-}
-
-.codex-action-title {
-  color: var(--stage-text-primary);
-
-  @apply text-sm font-semibold;
-}
-
-.codex-action-arrow {
-  color: var(--stage-text-quiet);
-}
-
-.codex-action-description {
+.codex-next-copy p {
   color: var(--stage-text-secondary);
 
   @apply mt-1 text-sm leading-6;
 }
 
-.codex-tone-icon--neutral {
-  background: var(--stage-chip-neutral-bg);
-  border-color: var(--stage-chip-neutral-border);
-  color: var(--stage-chip-neutral-text);
+.codex-next-arrow {
+  color: var(--stage-text-quiet);
+
+  @apply mt-3;
+}
+
+.codex-usage-strip {
+  border: 1px solid var(--stage-border-soft);
+  background: var(--stage-surface-soft);
+
+  @apply mt-4 grid grid-cols-2 gap-2 rounded-3xl p-2 lg:grid-cols-4;
+}
+
+.codex-usage-strip__item {
+  @apply min-w-0 rounded-2xl px-3 py-2;
+}
+
+.codex-usage-strip__item span {
+  color: var(--stage-text-quiet);
+
+  @apply block text-[0.68rem] font-semibold uppercase tracking-[0.12em];
+}
+
+.codex-usage-strip__item strong {
+  color: var(--stage-text-primary);
+
+  @apply mt-1 block truncate text-sm font-semibold;
+}
+
+.codex-manage-list {
+  @apply space-y-2;
+}
+
+.codex-manage-row {
+  background: var(--stage-surface-soft);
+  border: 1px solid var(--stage-border-soft);
+
+  @apply flex items-center gap-3 rounded-2xl px-3 py-3 transition-all duration-200;
+}
+
+.codex-manage-row:hover {
+  border-color: rgb(var(--color-accent-primary-rgb) / 20%);
+  transform: translateX(1px);
+}
+
+.codex-manage-copy {
+  @apply min-w-0 flex-1;
+}
+
+.codex-manage-copy span {
+  color: var(--stage-text-primary);
+
+  @apply block truncate text-sm font-semibold;
+}
+
+.codex-manage-copy small {
+  color: var(--stage-text-muted);
+
+  @apply mt-0.5 block truncate text-xs;
+}
+
+.codex-manage-row strong {
+  color: var(--stage-text-secondary);
+
+  @apply max-w-[7rem] truncate text-sm font-semibold;
+}
+
+.codex-tone-icon {
+  @apply flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border;
 }
 
 .codex-tone-icon--large {
   @apply h-11 w-11;
 }
 
-.codex-health-card {
-  background: var(--stage-surface-medium);
-  border: 1px solid var(--stage-border-soft);
-
-  @apply h-full p-4;
+.codex-tone-icon--success {
+  border-color: rgb(var(--color-success-rgb) / 18%);
+  background: rgb(var(--color-success-rgb) / 10%);
+  color: var(--color-success);
 }
 
-.codex-health-eyebrow {
-  color: var(--stage-text-quiet);
-  font-size: 11px;
-  letter-spacing: 0.18em;
+.codex-tone-icon--warning {
+  border-color: rgb(var(--color-warning-rgb) / 20%);
+  background: rgb(var(--color-warning-rgb) / 11%);
+  color: var(--color-warning);
 }
 
-.codex-health-label {
-  color: var(--stage-text-quiet);
-
-  @apply mt-4 text-xs;
-
-  letter-spacing: 0.04em;
+.codex-tone-icon--danger {
+  border-color: rgb(var(--color-danger-rgb) / 20%);
+  background: rgb(var(--color-danger-rgb) / 11%);
+  color: var(--color-danger);
 }
 
-.codex-health-value {
-  color: var(--stage-text-primary);
-
-  @apply mt-1 break-words text-lg font-semibold;
-}
-
-.codex-health-detail {
-  color: var(--stage-text-secondary);
-
-  @apply mt-2 text-sm leading-6;
-}
-
-.codex-section-header {
-  @apply mb-4 flex items-center justify-between gap-3;
-}
-
-.codex-text-link {
-  @apply text-sm text-accent-primary transition-colors hover:text-accent-secondary;
-}
-
-.codex-link-card {
-  background: var(--stage-surface-medium);
-  border: 1px solid var(--stage-border-soft);
-
-  @apply h-full p-4;
-}
-
-.codex-link-card__header {
-  @apply mb-3 flex items-start justify-between gap-3;
-}
-
-.codex-link-badge {
+.codex-tone-icon--neutral {
+  border-color: var(--stage-chip-neutral-border);
   background: var(--stage-chip-neutral-bg);
-  border: 1px solid var(--stage-chip-neutral-border);
-  color: var(--stage-text-muted);
-
-  @apply rounded-full px-2.5 py-1;
-
-  font-size: 11px;
-}
-
-.codex-link-title {
-  color: var(--stage-text-primary);
-
-  @apply text-sm font-semibold transition-colors group-hover:text-accent-primary;
-}
-
-.codex-link-description {
-  color: var(--stage-text-secondary);
-
-  @apply mt-2 text-sm leading-6;
-}
-
-.codex-skeleton {
-  background: var(--stage-surface-soft);
-
-  @apply h-20 animate-pulse rounded-2xl;
-}
-
-.codex-skeleton--panel {
-  @apply h-24;
-}
-
-.codex-skeleton--icon {
-  @apply h-10 w-10 rounded-xl;
-}
-
-.codex-skeleton--line {
-  @apply h-5 w-3/4;
-}
-
-.codex-skeleton--detail {
-  @apply h-4 w-full;
-}
-
-.codex-summary-card {
-  background: var(--stage-surface-soft);
-  border: 1px solid var(--stage-border-soft);
-
-  @apply rounded-2xl p-4;
-}
-
-.codex-summary-label {
-  color: var(--stage-text-quiet);
-
-  @apply mb-1 text-xs;
-
-  letter-spacing: 0.04em;
-}
-
-.codex-summary-value {
-  color: var(--stage-text-primary);
-
-  @apply text-lg font-semibold;
-}
-
-.codex-summary-description {
-  color: var(--stage-text-secondary);
-
-  @apply mt-1 text-sm leading-6;
-}
-
-.codex-summary-description--compact {
-  color: var(--stage-text-secondary);
-}
-
-.codex-inventory-grid {
-  @apply mt-3 grid grid-cols-2 gap-3 text-sm;
-}
-
-.codex-inventory-key {
-  color: var(--stage-text-quiet);
-}
-
-.codex-inventory-value {
-  color: var(--stage-text-primary);
-
-  @apply font-semibold;
+  color: var(--stage-chip-neutral-text);
 }
 
 .codex-alert {
-  @apply rounded-2xl p-4 text-sm;
+  @apply mb-4 flex flex-col gap-3 rounded-3xl p-4 text-sm lg:flex-row lg:items-center lg:justify-between;
 }
 
 .codex-alert--danger {
@@ -958,6 +822,14 @@ onActivated(() => {
   border: 1px solid rgb(214 161 67 / 30%);
 }
 
+.codex-alert-title {
+  @apply font-semibold;
+}
+
+.codex-alert-message {
+  @apply mt-1 break-words;
+}
+
 [data-theme='dark'] .codex-alert--danger,
 :root[class~='dark'] .codex-alert--danger {
   color: rgb(255 225 233 / 92%);
@@ -970,5 +842,33 @@ onActivated(() => {
   color: rgb(255 242 213 / 90%);
   background: rgb(131 90 19 / 22%);
   border-color: rgb(225 180 91 / 28%);
+}
+
+.codex-skeleton {
+  background: var(--stage-surface-soft);
+
+  @apply animate-pulse rounded-3xl;
+}
+
+.codex-skeleton--readiness {
+  @apply h-52;
+}
+
+.codex-skeleton--next {
+  @apply h-28;
+}
+
+.codex-skeleton--manage {
+  @apply h-16;
+}
+
+@media (width <= 640px) {
+  .codex-next-item {
+    @apply grid-cols-[auto_1fr_auto];
+  }
+
+  .codex-next-index {
+    @apply hidden;
+  }
 }
 </style>

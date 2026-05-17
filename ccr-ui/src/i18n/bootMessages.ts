@@ -167,6 +167,164 @@ const zhCNBootMessages = {
     usageLastUpdatedNever: '尚未更新',
     notInstalled: '未安装',
   },
+
+  codex: {
+    status: {
+      checkingVersion: '检测中…',
+      retryVersionCheck: '重新检测',
+      notInstalled: '未安装',
+      installed: '已安装',
+      notSet: '未设置',
+    },
+    dashboard: {
+      header: {
+        eyebrow: 'Codex Command Center',
+        workflow: '任务导向工作台',
+        subtitle: '先判断能不能开工，再给出下一步和关键配置安全状态。',
+        refresh: '刷新',
+        version: '版本',
+        profile: 'Profile',
+        account: '账号',
+      },
+      statusLabels: {
+        ready: 'Ready',
+        blocked: 'Blocked',
+        attention: 'Attention',
+        checking: 'Checking',
+        idle: 'Idle',
+      },
+      readiness: {
+        eyebrow: 'Readiness Board',
+        title: '开工条件',
+        subtitle: '账号、Profile、安全策略和用量新鲜度只保留可行动信号。',
+        auth: {
+          title: '当前账号',
+          refreshed: '最近刷新 {time}',
+          ready: '已登录，可继续使用',
+          missing: '尚未登录 Codex 账号',
+        },
+        profiles: {
+          title: '当前 Profile',
+          detail: '共 {total} 个，启用 {enabled} 个',
+        },
+        config: {
+          title: '模型与权限',
+          noModel: '未配置模型',
+          noApproval: '未设置审批',
+          noSandbox: '未设置沙箱',
+          detail: '{approval} · {sandbox}',
+        },
+        usage: {
+          title: '用量新鲜度',
+          activity: '最近活动 {time}',
+          loadingDetail: '正在读取最近使用记录',
+          emptyDetail: '尚未发现最近活动记录',
+        },
+      },
+      usageFreshness: {
+        fresh: 'Fresh',
+        stale: 'Stale',
+        old: 'Old',
+        empty: 'Empty',
+      },
+      actionConsole: {
+        eyebrow: 'Action Console',
+        title: '下一步',
+        subtitle: '最多显示两个最重要动作，避免把配置入口伪装成待办事项。',
+      },
+      actions: {
+        login: {
+          title: '先完成账号登录',
+          description: '进入账号管理页，用 OAuth、API Key、Token JSON 或本地导入补齐可用账号。',
+        },
+        createProfile: {
+          title: '创建首个 Profile',
+          description: '先准备一个可切换的 Profile，把模型、鉴权和策略固定下来。',
+        },
+        selectProfile: {
+          title: '指定当前 Profile',
+          description: '已有配置但未激活当前 Profile，建议先切换到默认工作配置。',
+        },
+        completeSettings: {
+          title: '补齐 CLI 安全设置',
+          description: '检查模型、审批策略和沙箱模式，确保日常工作流可直接使用。',
+        },
+        addMcp: {
+          title: '接入 MCP 能力',
+          description: '如果你要把 Codex 接到本地工具链，现在可以添加第一个 MCP 服务器。',
+        },
+        openSessions: {
+          title: '回到最近会话',
+          description: '会话记录已经可用，可以直接从工作台继续查看上下文和导出记录。',
+        },
+        ready: {
+          title: '工作流已经就绪',
+          description: '账号、Profile 和核心配置都可用，可以直接开始日常使用或微调扩展能力。',
+        },
+        refresh: {
+          title: '重新读取状态',
+          description: '概览暂不可用，先刷新本地 Codex 状态。',
+        },
+      },
+      management: {
+        eyebrow: 'Manage',
+        title: '管理入口',
+        subtitle: '保留 Auth、Profiles、Settings、MCP、Agents、Sessions 六个入口，但降低视觉重量。',
+        auth: {
+          title: 'Auth',
+          description: '查看当前会话、保存账号和过期状态。',
+          badge: '{count} 个账号',
+        },
+        profiles: {
+          title: 'Profiles',
+          description: '管理默认工作配置，快速切换不同模型与策略。',
+          badge: '{count} 个 Profile',
+        },
+        settings: {
+          title: 'Settings',
+          description: '补齐模型、审批、沙箱和推理相关设置。',
+          badge: '{model}',
+        },
+        mcp: {
+          title: 'MCP',
+          description: '维护工具接入能力，把工作流扩展到本地或远端环境。',
+          badge: '{count} 个服务',
+        },
+        agents: {
+          title: 'Agents',
+          description: '复用现有 Agent 管理面板，维护 Codex 专用智能体。',
+          badge: '{count} 个 Agent',
+        },
+        sessions: {
+          title: 'Sessions',
+          description: '进入 Codex 会话工作台，查看上下文、导出记录和复制会话。',
+          badge: '{count} 个会话',
+        },
+      },
+      usage: {
+        requests: '请求',
+        tokens: 'Tokens',
+        model: '活跃模型',
+        lastActivity: '最近活动',
+        loading: '分析中',
+        unknownModel: '未识别',
+        noActivity: '暂无记录',
+      },
+      empty: {
+        readinessTitle: '暂时还没有开工状态',
+        readinessDescription: '概览数据尚未可用，可以先刷新一次重试。',
+        actionsTitle: '正在准备下一步动作',
+        actionsDescription: '概览数据尚未可用，可以先刷新一次重试。',
+        managementTitle: '暂时还没有管理入口数据',
+        managementDescription: '可以先刷新一次，或者进入 Auth / Profiles 页面补齐基础配置。',
+      },
+      error: {
+        title: '仪表盘概览加载失败',
+        usageTitle: '用量摘要加载失败',
+      },
+    },
+  },
+
   monitoring: {
     eyebrow: 'Operations Monitor',
     title: '运行监控',
@@ -439,6 +597,165 @@ const enUSBootMessages = {
     usageLastUpdatedNever: 'Not updated yet',
     notInstalled: 'Not Installed',
   },
+
+  codex: {
+    status: {
+      checkingVersion: 'Checking…',
+      retryVersionCheck: 'Check again',
+      notInstalled: 'Not installed',
+      installed: 'Installed',
+      notSet: 'Not Set',
+    },
+    dashboard: {
+      header: {
+        eyebrow: 'Codex Command Center',
+        workflow: 'task-first workbench',
+        subtitle: 'Answer whether Codex is ready, what to do next, and whether key safety settings are safe before opening details.',
+        refresh: 'Refresh',
+        version: 'Version',
+        profile: 'Profile',
+        account: 'Account',
+      },
+      statusLabels: {
+        ready: 'Ready',
+        blocked: 'Blocked',
+        attention: 'Attention',
+        checking: 'Checking',
+        idle: 'Idle',
+      },
+      readiness: {
+        eyebrow: 'Readiness Board',
+        title: 'Ready to start',
+        subtitle: 'Account, profile, safety policy, and usage freshness are reduced to actionable signals.',
+        auth: {
+          title: 'Current account',
+          refreshed: 'Refreshed {time}',
+          ready: 'Signed in and ready',
+          missing: 'No Codex account is signed in',
+        },
+        profiles: {
+          title: 'Current profile',
+          detail: '{total} total, {enabled} enabled',
+        },
+        config: {
+          title: 'Model and permissions',
+          noModel: 'No model configured',
+          noApproval: 'No approval policy',
+          noSandbox: 'No sandbox mode',
+          detail: '{approval} · {sandbox}',
+        },
+        usage: {
+          title: 'Usage freshness',
+          activity: 'Last activity {time}',
+          loadingDetail: 'Reading recent usage records',
+          emptyDetail: 'No recent activity found yet',
+        },
+      },
+      usageFreshness: {
+        fresh: 'Fresh',
+        stale: 'Stale',
+        old: 'Old',
+        empty: 'Empty',
+      },
+      actionConsole: {
+        eyebrow: 'Action Console',
+        title: 'Next step',
+        subtitle: 'Show only the two most important actions so management links do not masquerade as tasks.',
+      },
+      actions: {
+        login: {
+          title: 'Sign in first',
+          description: 'Open account management and add a usable account via OAuth, API key, token JSON, or local import.',
+        },
+        createProfile: {
+          title: 'Create the first profile',
+          description: 'Prepare a switchable profile so model, auth, and safety policy are pinned down.',
+        },
+        selectProfile: {
+          title: 'Select the current profile',
+          description: 'Profiles exist but none is active. Switch to the default work profile first.',
+        },
+        completeSettings: {
+          title: 'Complete CLI safety settings',
+          description: 'Review model, approval policy, and sandbox mode so the daily workflow can start safely.',
+        },
+        addMcp: {
+          title: 'Add MCP capability',
+          description: 'If Codex should reach local tools, add the first MCP server now.',
+        },
+        openSessions: {
+          title: 'Return to recent sessions',
+          description: 'Session history is available. Continue from the workbench, inspect context, or export records.',
+        },
+        ready: {
+          title: 'Workflow is ready',
+          description: 'Account, profile, and core settings are available. Start daily work or fine-tune extensions.',
+        },
+        refresh: {
+          title: 'Read status again',
+          description: 'Overview data is unavailable. Refresh the local Codex state first.',
+        },
+      },
+      management: {
+        eyebrow: 'Manage',
+        title: 'Management',
+        subtitle: 'Keep Auth, Profiles, Settings, MCP, Agents, and Sessions available with lower visual weight.',
+        auth: {
+          title: 'Auth',
+          description: 'Inspect the current session, saved accounts, and expiry state.',
+          badge: '{count} accounts',
+        },
+        profiles: {
+          title: 'Profiles',
+          description: 'Manage default work profiles and switch model or policy sets quickly.',
+          badge: '{count} profiles',
+        },
+        settings: {
+          title: 'Settings',
+          description: 'Complete model, approval, sandbox, and reasoning settings.',
+          badge: '{model}',
+        },
+        mcp: {
+          title: 'MCP',
+          description: 'Maintain tool connections for local or remote workflow capabilities.',
+          badge: '{count} servers',
+        },
+        agents: {
+          title: 'Agents',
+          description: 'Reuse the agent manager to maintain Codex-specific agents.',
+          badge: '{count} agents',
+        },
+        sessions: {
+          title: 'Sessions',
+          description: 'Open the Codex session workbench to inspect context, export, and copy sessions.',
+          badge: '{count} sessions',
+        },
+      },
+      usage: {
+        requests: 'Requests',
+        tokens: 'Tokens',
+        model: 'Active model',
+        lastActivity: 'Last activity',
+        loading: 'Analyzing',
+        unknownModel: 'Unknown',
+        noActivity: 'No record',
+      },
+      empty: {
+        readinessTitle: 'No readiness state yet',
+        readinessDescription: 'Overview data is not available yet. Refresh once to retry.',
+        actionsTitle: 'Preparing next actions',
+        actionsDescription: 'Overview data is not available yet. Refresh once to retry.',
+        managementTitle: 'No management data yet',
+        managementDescription: 'Refresh once, or open Auth / Profiles to complete the base configuration.',
+      },
+      error: {
+        title: 'Dashboard overview failed to load',
+        usageTitle: 'Usage summary failed to load',
+      },
+    },
+  },
+
+
   monitoring: {
     eyebrow: 'Operations Monitor',
     title: 'Operations Monitoring',
