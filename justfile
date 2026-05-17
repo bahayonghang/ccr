@@ -17,8 +17,8 @@ CLI_CRATE_PATH := "crates/ccr"
 OUTPUTS_DIR := "outputs"
 
 # 🧭 跨平台 Shell 配置
-# Windows 使用 PowerShell with UTF-8 encoding
-set windows-shell := ["pwsh.exe", "-NoLogo", "-NoProfile", "-Command", "[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; [Console]::InputEncoding = [System.Text.Encoding]::UTF8; $OutputEncoding = [System.Text.Encoding]::UTF8; chcp 65001 | Out-Null;"]
+# Windows 使用 PowerShell with UTF-8 encoding; -NoProfile 避免交互式配置污染 CI 输出
+set windows-shell := ["pwsh.exe", "-NoLogo", "-NoProfile", "-Command", "if (Get-Module PSReadLine) { Set-PSReadLineOption -PredictionViewStyle InlineView -ErrorAction SilentlyContinue; }; [Console]::OutputEncoding = [System.Text.Encoding]::UTF8; [Console]::InputEncoding = [System.Text.Encoding]::UTF8; $OutputEncoding = [System.Text.Encoding]::UTF8; chcp 65001 | Out-Null;"]
 
 # Unix-like 系统使用 bash
 set shell := ["bash", "-cu"]
