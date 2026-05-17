@@ -1,190 +1,189 @@
 <template>
   <div class="claude-view stage-page">
-    <!-- Enhanced Animated Background -->
     <AnimatedBackground
       contained
-      variant="aurora"
+      variant="minimal"
     />
 
     <div class="claude-shell">
-      <!-- HEADER -->
-      <header class="claude-header animate-slide-up">
-        <div class="claude-header__brand">
-          <div class="claude-header__icon">
+      <header class="claude-hero animate-slide-up">
+        <div class="claude-hero__copy">
+          <div class="claude-hero__eyebrow">
             <SIcon
-              name="Code2"
-              size="w-8 h-8"
-              class="text-accent-primary"
+              name="Terminal"
+              size="w-4 h-4"
             />
+            {{ $t('claudeCode.hero.eyebrow') }}
           </div>
-          <div>
-            <h1 class="claude-header__title">
-              Claude Code
-            </h1>
-            <p class="claude-header__subtitle">
-              {{ $t('claudeCode.subtitle') }}
-            </p>
+          <h1 class="claude-hero__title">
+            {{ $t('claudeCode.title') }}
+          </h1>
+          <p class="claude-hero__subtitle">
+            {{ $t('claudeCode.subtitle') }}
+          </p>
+          <div class="claude-hero__actions">
+            <RouterLink to="/claude-code/auth">
+              <Button class="claude-hero__button">
+                <SIcon
+                  name="KeyRound"
+                  size="w-4 h-4"
+                  class="mr-2"
+                />
+                {{ $t('claudeCode.hero.primaryAction') }}
+              </Button>
+            </RouterLink>
+            <RouterLink to="/claude-code/profiles">
+              <Button
+                variant="ghost"
+                class="claude-hero__button claude-hero__button--ghost"
+              >
+                <SIcon
+                  name="Settings"
+                  size="w-4 h-4"
+                  class="mr-2"
+                />
+                {{ $t('claudeCode.hero.secondaryAction') }}
+              </Button>
+            </RouterLink>
           </div>
         </div>
 
-        <div class="flex items-center gap-3">
-          <RouterLink to="/claude-code/auth">
-            <Button
-              variant="ghost"
-              class="group"
-            >
-              <SIcon
-                name="KeyRound"
-                size="w-4 h-4"
-                class="mr-2 group-hover:text-accent-primary transition-colors"
-              />
-              Auth
-            </Button>
-          </RouterLink>
-
-          <RouterLink to="/">
-            <Button
-              variant="ghost"
-              class="group"
-            >
-              <SIcon
-                name="Home"
-                size="w-4 h-4"
-                class="mr-2 group-hover:text-accent-primary transition-colors"
-              />
-              {{ $t('claudeCode.backToHome') }}
-            </Button>
-          </RouterLink>
+        <div class="claude-hero__console">
+          <div class="claude-terminal-card">
+            <div class="claude-terminal-card__bar">
+              <span />
+              <span />
+              <span />
+            </div>
+            <div class="claude-terminal-card__body">
+              <p class="claude-terminal-card__line">
+                <span>$</span> ccr current
+              </p>
+              <p class="claude-terminal-card__status">
+                {{ $t('claudeCode.hero.consoleStatus') }}
+              </p>
+              <div class="claude-terminal-card__chips">
+                <span
+                  v-for="chip in heroChips"
+                  :key="chip"
+                  class="claude-chip"
+                >
+                  {{ chip }}
+                </span>
+              </div>
+            </div>
+          </div>
         </div>
       </header>
 
-      <!-- FEATURES TAGS -->
-      <div
+      <section
         class="claude-tag-row animate-slide-up"
         style="animation-delay: 100ms"
+        aria-label="Claude Code capabilities"
       >
-        <div class="claude-tag claude-tag--primary">
-          <SIcon
-            name="Zap"
-            size="w-3 h-3"
-          /> {{ $t('claudeCode.features.mcpSupport') }}
-        </div>
-        <div class="claude-tag claude-tag--secondary">
-          <SIcon
-            name="Bot"
-            size="w-3 h-3"
-          /> {{ $t('claudeCode.features.aiAgents') }}
-        </div>
-        <div class="claude-tag claude-tag--info">
-          <SIcon
-            name="Cloud"
-            size="w-3 h-3"
-          /> {{ $t('claudeCode.features.cloudSync') }}
-        </div>
-      </div>
-
-      <!-- CORE MODULES (Grid) -->
-      <section
-        class="claude-core-grid animate-slide-up"
-      >
-        <RouterLink
-          to="/claude-code/profiles"
-          class="group h-full"
+        <span
+          v-for="feature in featureTags"
+          :key="feature.label"
+          class="claude-tag"
+          :class="feature.className"
         >
-          <Card
-            variant="glass"
-            hover
-            glow
-            class="claude-feature-card claude-feature-card--primary"
-          >
-            <!-- Decorative bg icon -->
-            <SIcon
-              name="Settings"
-              size="w-24 h-24 lg:w-28 lg:h-28"
-              class="claude-feature-card__watermark claude-feature-card__watermark--primary"
-            />
-
-            <div class="claude-feature-card__icon claude-feature-card__icon--primary">
-              <SIcon
-                name="Settings"
-                size="w-6 h-6"
-                class="text-accent-primary"
-              />
-            </div>
-            <div class="relative z-10">
-              <div class="claude-feature-card__title-row">
-                <h3 class="claude-feature-card__title claude-feature-card__title--primary">
-                  {{ $t('claudeCode.modules.configManagement.title') }}
-                </h3>
-                <span class="claude-feature-card__badge claude-feature-card__badge--primary">
-                  {{ $t('claudeCode.modules.configManagement.badge') }}
-                </span>
-              </div>
-              <p class="claude-feature-card__desc">
-                {{ $t('claudeCode.modules.configManagement.desc') }}
-              </p>
-            </div>
-          </Card>
-        </RouterLink>
-
-        <RouterLink
-          to="/sync"
-          class="group h-full"
-        >
-          <Card
-            variant="glass"
-            hover
-            glow
-            class="claude-feature-card claude-feature-card--secondary"
-          >
-            <!-- Decorative bg icon -->
-            <SIcon
-              name="Cloud"
-              size="w-24 h-24 lg:w-28 lg:h-28"
-              class="claude-feature-card__watermark claude-feature-card__watermark--secondary"
-            />
-
-            <div class="claude-feature-card__icon claude-feature-card__icon--secondary">
-              <SIcon
-                name="Cloud"
-                size="w-6 h-6"
-                class="text-accent-secondary"
-              />
-            </div>
-            <div class="relative z-10">
-              <div class="claude-feature-card__title-row">
-                <h3 class="claude-feature-card__title claude-feature-card__title--secondary">
-                  {{ $t('claudeCode.modules.cloudSync.title') }}
-                </h3>
-                <span class="claude-feature-card__badge claude-feature-card__badge--secondary">
-                  {{ $t('claudeCode.modules.cloudSync.badge') }}
-                </span>
-              </div>
-              <p class="claude-feature-card__desc">
-                {{ $t('claudeCode.modules.cloudSync.desc') }}
-              </p>
-            </div>
-          </Card>
-        </RouterLink>
+          <SIcon
+            :name="feature.icon"
+            size="w-3 h-3"
+          />
+          {{ feature.label }}
+        </span>
       </section>
 
-      <!-- EXTENDED MODULES -->
-      <section class="animate-slide-up">
+      <section
+        class="claude-section animate-slide-up"
+        style="animation-delay: 180ms"
+      >
+        <div class="claude-section-heading">
+          <SIcon
+            name="Zap"
+            size="w-5 h-5"
+            class="claude-section-heading__icon"
+          />
+          <div>
+            <p class="claude-section-heading__eyebrow">
+              {{ $t('claudeCode.modules.title') }}
+            </p>
+            <h2 class="claude-section-heading__title">
+              {{ $t('claudeCode.modules.coreTitle') }}
+            </h2>
+          </div>
+          <div class="claude-section-heading__rule" />
+        </div>
+
+        <div class="claude-core-grid">
+          <RouterLink
+            v-for="module in coreModules"
+            :key="module.to"
+            :to="module.to"
+            class="group h-full"
+          >
+            <Card
+              variant="glass"
+              hover
+              class="claude-action-card"
+              :class="module.cardClass"
+            >
+              <SIcon
+                :name="module.icon"
+                size="w-20 h-20 lg:w-24 lg:h-24"
+                class="claude-action-card__watermark"
+              />
+              <div class="claude-action-card__icon">
+                <SIcon
+                  :name="module.icon"
+                  size="w-6 h-6"
+                />
+              </div>
+              <div class="claude-action-card__copy">
+                <div class="claude-action-card__title-row">
+                  <h3 class="claude-action-card__title">
+                    {{ module.title }}
+                  </h3>
+                  <span class="claude-action-card__badge">
+                    {{ module.badge }}
+                  </span>
+                </div>
+                <p class="claude-action-card__desc">
+                  {{ module.desc }}
+                </p>
+              </div>
+            </Card>
+          </RouterLink>
+        </div>
+      </section>
+
+      <section
+        class="claude-section animate-slide-up"
+        style="animation-delay: 260ms"
+      >
         <div class="claude-section-heading">
           <SIcon
             name="Boxes"
             size="w-5 h-5"
             class="claude-section-heading__icon"
           />
-          <h2 class="claude-section-heading__title">
-            {{ $t('claudeCode.modules.extensionsTitle') }}
-          </h2>
+          <div>
+            <p class="claude-section-heading__eyebrow">
+              {{ $t('claudeCode.modules.extensionsEyebrow') }}
+            </p>
+            <h2 class="claude-section-heading__title">
+              {{ $t('claudeCode.modules.extensionsTitle') }}
+            </h2>
+          </div>
           <div class="claude-section-heading__rule" />
         </div>
 
         <div class="claude-extension-grid">
           <RouterLink
-            to="/mcp-manager"
+            v-for="module in extensionModules"
+            :key="module.to"
+            :to="module.to"
             class="group"
           >
             <Card
@@ -193,136 +192,23 @@
               class="claude-extension-card"
             >
               <div class="claude-extension-card__header">
-                <div class="claude-extension-card__icon claude-extension-card__icon--info">
+                <div
+                  class="claude-extension-card__icon"
+                  :class="module.iconClass"
+                >
                   <SIcon
-                    name="Server"
+                    :name="module.icon"
                     size="w-5 h-5"
                   />
                 </div>
-                <span class="claude-extension-card__eyebrow">MCP</span>
+                <span class="claude-extension-card__eyebrow">{{ module.badge }}</span>
               </div>
               <div>
-                <h3 class="claude-extension-card__title claude-extension-card__title--info">
-                  {{ $t('claudeCode.modules.mcpServers.title') }}
+                <h3 class="claude-extension-card__title">
+                  {{ module.title }}
                 </h3>
                 <p class="claude-extension-card__desc">
-                  {{ $t('claudeCode.modules.mcpServers.desc') }}
-                </p>
-              </div>
-            </Card>
-          </RouterLink>
-
-          <RouterLink
-            to="/agents"
-            class="group"
-          >
-            <Card
-              variant="elevated"
-              hover
-              class="claude-extension-card"
-            >
-              <div class="claude-extension-card__header">
-                <div class="claude-extension-card__icon claude-extension-card__icon--success">
-                  <SIcon
-                    name="Users"
-                    size="w-5 h-5"
-                  />
-                </div>
-                <span class="claude-extension-card__eyebrow">Agent</span>
-              </div>
-              <div>
-                <h3 class="claude-extension-card__title claude-extension-card__title--success">
-                  {{ $t('claudeCode.modules.agents.title') }}
-                </h3>
-                <p class="claude-extension-card__desc">
-                  {{ $t('claudeCode.modules.agents.desc') }}
-                </p>
-              </div>
-            </Card>
-          </RouterLink>
-
-          <RouterLink
-            to="/plugins"
-            class="group"
-          >
-            <Card
-              variant="elevated"
-              hover
-              class="claude-extension-card"
-            >
-              <div class="claude-extension-card__header">
-                <div class="claude-extension-card__icon claude-extension-card__icon--primary">
-                  <SIcon
-                    name="Puzzle"
-                    size="w-5 h-5"
-                  />
-                </div>
-                <span class="claude-extension-card__eyebrow">Plug</span>
-              </div>
-              <div>
-                <h3 class="claude-extension-card__title claude-extension-card__title--primary">
-                  {{ $t('claudeCode.modules.plugins.title') }}
-                </h3>
-                <p class="claude-extension-card__desc">
-                  {{ $t('claudeCode.modules.plugins.desc') }}
-                </p>
-              </div>
-            </Card>
-          </RouterLink>
-
-          <RouterLink
-            to="/slash-commands"
-            class="group"
-          >
-            <Card
-              variant="elevated"
-              hover
-              class="claude-extension-card"
-            >
-              <div class="claude-extension-card__header">
-                <div class="claude-extension-card__icon claude-extension-card__icon--warning">
-                  <SIcon
-                    name="Terminal"
-                    size="w-5 h-5"
-                  />
-                </div>
-                <span class="claude-extension-card__eyebrow">CMD</span>
-              </div>
-              <div>
-                <h3 class="claude-extension-card__title claude-extension-card__title--warning">
-                  {{ $t('claudeCode.modules.slashCommands.title') }}
-                </h3>
-                <p class="claude-extension-card__desc">
-                  {{ $t('claudeCode.modules.slashCommands.desc') }}
-                </p>
-              </div>
-            </Card>
-          </RouterLink>
-
-          <RouterLink
-            to="/claude-code/settings"
-            class="group"
-          >
-            <Card
-              variant="elevated"
-              hover
-              class="claude-extension-card"
-            >
-              <div class="claude-extension-card__header">
-                <div class="claude-extension-card__icon claude-extension-card__icon--secondary">
-                  <SIcon
-                    name="SlidersHorizontal"
-                    size="w-5 h-5"
-                  />
-                </div>
-                <span class="claude-extension-card__eyebrow">CFG</span>
-              </div>
-              <div>
-                <h3 class="claude-extension-card__title claude-extension-card__title--secondary">
-                  {{ $t('claudeCode.modules.settings.title') }}
-                </h3>
-                <p class="claude-extension-card__desc">
-                  {{ $t('claudeCode.modules.settings.desc') }}
+                  {{ module.desc }}
                 </p>
               </div>
             </Card>
@@ -330,12 +216,10 @@
         </div>
       </section>
 
-      <!-- BOTTOM GRID (Commands & Tips) -->
       <section
         class="claude-bottom-grid animate-slide-up"
-        style="animation-delay: 500ms"
+        style="animation-delay: 340ms"
       >
-        <!-- Common Commands -->
         <Card
           variant="glass"
           class="claude-panel"
@@ -344,32 +228,35 @@
             <SIcon
               name="Terminal"
               size="w-5 h-5"
-              class="text-accent-primary"
+              class="text-accent-warning"
             />
             {{ $t('claudeCode.quickActions.commonCommands') }}
           </h3>
+          <p class="claude-panel__desc">
+            {{ $t('claudeCode.quickActions.commonCommandsDesc') }}
+          </p>
           <div class="claude-stack">
-            <div
+            <button
               v-for="cmd in commonCommands"
               :key="cmd.cmd"
-              class="claude-command-row"
+              type="button"
+              class="claude-command-row group"
               @click="copyCommand(cmd.cmd)"
             >
               <span class="claude-command-row__label">{{ cmd.label }}</span>
-              <div class="flex items-center gap-2">
+              <span class="claude-command-row__command">
                 <code class="claude-command-row__code">{{ cmd.cmd }}</code>
                 <SIcon
                   name="Copy"
                   size="w-3 h-3"
                   class="claude-command-row__copy"
                 />
-              </div>
-            </div>
+              </span>
+            </button>
           </div>
         </Card>
 
-        <!-- Resources & Tips -->
-        <div class="space-y-6">
+        <div class="claude-resource-column">
           <Card
             variant="glass"
             class="claude-panel"
@@ -388,7 +275,8 @@
                 :key="res.url"
                 :href="res.url"
                 target="_blank"
-                class="claude-resource-link"
+                rel="noreferrer"
+                class="claude-resource-link group"
               >
                 <SIcon
                   :name="res.icon"
@@ -421,7 +309,7 @@
                 </h4>
                 <ul class="claude-tip-card__list">
                   <li>{{ $t('claudeCode.tips.tip1') }}</li>
-                  <li>{{ $t('claudeCode.tips.tip3') }}</li>
+                  <li>{{ $t('claudeCode.tips.tip2') }}</li>
                 </ul>
               </div>
             </div>
@@ -433,67 +321,226 @@
 </template>
 
 <script setup lang="ts">
-import SIcon from '@/components/ui/SIcon.vue'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { RouterLink } from 'vue-router'
-import Card from '@/components/ui/Card.vue'
-import Button from '@/components/ui/Button.vue'
 import AnimatedBackground from '@/components/common/AnimatedBackground.vue'
+import Button from '@/components/ui/Button.vue'
+import Card from '@/components/ui/Card.vue'
+import SIcon from '@/components/ui/SIcon.vue'
 
 const { t } = useI18n()
 
+const heroChips = computed(() => [
+  t('claudeCode.features.configManagement'),
+  t('claudeCode.features.authReady'),
+  t('claudeCode.features.localSettings'),
+])
+
+const featureTags = computed(() => [
+  { label: t('claudeCode.features.mcpSupport'), icon: 'Server', className: 'claude-tag--primary' },
+  { label: t('claudeCode.features.aiAgents'), icon: 'Bot', className: 'claude-tag--secondary' },
+  { label: t('claudeCode.features.slashCommands'), icon: 'Terminal', className: 'claude-tag--warning' },
+  { label: t('claudeCode.features.localSettings'), icon: 'SlidersHorizontal', className: 'claude-tag--neutral' },
+])
+
+const coreModules = computed(() => [
+  {
+    to: '/claude-code/profiles',
+    icon: 'Settings',
+    title: t('claudeCode.modules.profiles.title'),
+    desc: t('claudeCode.modules.profiles.desc'),
+    badge: t('claudeCode.modules.profiles.badge'),
+    cardClass: 'claude-action-card--primary',
+  },
+  {
+    to: '/claude-code/auth',
+    icon: 'KeyRound',
+    title: t('claudeCode.modules.auth.title'),
+    desc: t('claudeCode.modules.auth.desc'),
+    badge: t('claudeCode.modules.auth.badge'),
+    cardClass: 'claude-action-card--warning',
+  },
+  {
+    to: '/claude-code/settings',
+    icon: 'SlidersHorizontal',
+    title: t('claudeCode.modules.settings.title'),
+    desc: t('claudeCode.modules.settings.desc'),
+    badge: t('claudeCode.modules.settings.badge'),
+    cardClass: 'claude-action-card--secondary',
+  },
+])
+
+const extensionModules = computed(() => [
+  {
+    to: '/mcp-manager',
+    icon: 'Server',
+    title: t('claudeCode.modules.mcpServers.title'),
+    desc: t('claudeCode.modules.mcpServers.desc'),
+    badge: t('claudeCode.modules.mcpServers.badge'),
+    iconClass: 'claude-extension-card__icon--info',
+  },
+  {
+    to: '/agents',
+    icon: 'Users',
+    title: t('claudeCode.modules.agents.title'),
+    desc: t('claudeCode.modules.agents.desc'),
+    badge: t('claudeCode.modules.agents.badge'),
+    iconClass: 'claude-extension-card__icon--success',
+  },
+  {
+    to: '/plugins',
+    icon: 'Puzzle',
+    title: t('claudeCode.modules.plugins.title'),
+    desc: t('claudeCode.modules.plugins.desc'),
+    badge: t('claudeCode.modules.plugins.badge'),
+    iconClass: 'claude-extension-card__icon--primary',
+  },
+  {
+    to: '/slash-commands',
+    icon: 'Terminal',
+    title: t('claudeCode.modules.slashCommands.title'),
+    desc: t('claudeCode.modules.slashCommands.desc'),
+    badge: t('claudeCode.modules.slashCommands.badge'),
+    iconClass: 'claude-extension-card__icon--warning',
+  },
+])
+
 const commonCommands = computed(() => [
-   { label: t('claudeCode.quickActions.viewCurrentConfig'), cmd: 'ccr current' },
-   { label: t('claudeCode.quickActions.switchConfig'), cmd: 'ccr switch' },
-   { label: t('claudeCode.quickActions.listAllConfigs'), cmd: 'ccr list' },
+  { label: t('claudeCode.quickActions.viewCurrentConfig'), cmd: 'ccr current' },
+  { label: t('claudeCode.quickActions.switchConfig'), cmd: 'ccr switch' },
+  { label: t('claudeCode.quickActions.listAllConfigs'), cmd: 'ccr list' },
 ])
 
 const resources = computed(() => [
-   { label: t('claudeCode.quickActions.officialDocs'), url: 'https://docs.anthropic.com/claude/docs', icon: 'BookOpen' },
-   { label: t('claudeCode.quickActions.mcpProtocol'), url: 'https://modelcontextprotocol.io', icon: 'Server' },
-   { label: t('claudeCode.quickActions.sdkRepo'), url: 'https://github.com/anthropics/anthropic-sdk-typescript', icon: 'Github' },
+  { label: t('claudeCode.quickActions.officialDocs'), url: 'https://docs.anthropic.com/en/docs/claude-code', icon: 'BookOpen' },
+  { label: t('claudeCode.quickActions.mcpProtocol'), url: 'https://modelcontextprotocol.io', icon: 'Server' },
+  { label: t('claudeCode.quickActions.settingsReference'), url: 'https://docs.anthropic.com/en/docs/claude-code/settings', icon: 'SlidersHorizontal' },
 ])
 
 const copyCommand = (cmd: string) => {
   navigator.clipboard.writeText(cmd)
-  // Toast notification would go here
 }
 </script>
 
 <style scoped>
 .claude-view {
   @apply relative min-h-full overflow-hidden p-6 lg:p-10;
+
+  background:
+    radial-gradient(circle at 18% 0%, rgb(var(--color-accent-warning-rgb) / 8%), transparent 28%),
+    linear-gradient(180deg, rgb(var(--color-bg-base-rgb) / 96%), rgb(var(--color-bg-base-rgb)) 52%);
 }
 
 .claude-shell {
   @apply relative z-10 mx-auto max-w-7xl space-y-10;
 }
 
-.claude-header {
-  @apply flex flex-col justify-between gap-6 md:flex-row md:items-center;
+.claude-hero {
+  @apply grid gap-8 rounded-[2rem] border p-6 shadow-2xl md:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)] lg:p-8;
+
+  background: linear-gradient(135deg, rgb(var(--color-bg-elevated-rgb) / 92%), rgb(var(--color-bg-surface-rgb) / 74%));
+  border-color: rgb(var(--color-border-rgb) / 56%);
+  box-shadow: 0 24px 80px rgb(0 0 0 / 24%);
 }
 
-.claude-header__brand {
-  @apply flex items-center gap-5;
+.claude-hero__copy {
+  @apply flex flex-col justify-center;
 }
 
-.claude-header__icon {
-  @apply flex h-16 w-16 items-center justify-center rounded-2xl border border-accent-primary/30 shadow-lg backdrop-blur-md;
+.claude-hero__eyebrow {
+  color: var(--stage-text-muted);
 
-  background: linear-gradient(180deg, rgb(var(--color-accent-primary-rgb) / 14%), rgb(var(--color-accent-secondary-rgb) / 10%));
+  @apply mb-4 flex w-fit items-center gap-2 rounded-full border border-accent-warning/25 bg-accent-warning/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em];
 }
 
-.claude-header__title {
-  @apply mb-1 text-[2.6rem] font-semibold tracking-[-0.04em] text-text-primary;
-
+.claude-hero__title {
+  color: var(--stage-text-primary);
   font-family: var(--font-brand);
+
+  @apply text-[2.85rem] font-semibold leading-none tracking-[-0.05em] lg:text-6xl;
 }
 
-.claude-header__subtitle {
+.claude-hero__subtitle {
   color: var(--stage-text-secondary);
 
-  @apply text-lg;
+  @apply mt-4 max-w-3xl text-base leading-7 lg:text-lg;
+}
+
+.claude-hero__actions {
+  @apply mt-6 flex flex-wrap gap-3;
+}
+
+.claude-hero__button {
+  @apply border border-accent-warning/25 bg-accent-warning/15 text-accent-warning hover:border-accent-warning/40;
+}
+
+.claude-hero__button--ghost {
+  @apply border-border-subtle bg-transparent text-text-secondary;
+}
+
+.claude-hero__console {
+  @apply flex items-center;
+}
+
+.claude-terminal-card {
+  @apply w-full overflow-hidden rounded-2xl border font-mono;
+
+  background: linear-gradient(180deg, rgb(10 12 16 / 92%), rgb(7 9 12 / 96%));
+  border-color: rgb(var(--color-border-rgb) / 58%);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 4%);
+}
+
+.claude-terminal-card__bar {
+  @apply flex gap-2 border-b px-4 py-3;
+
+  border-color: rgb(var(--color-border-rgb) / 44%);
+}
+
+.claude-terminal-card__bar span {
+  @apply h-2.5 w-2.5 rounded-full;
+
+  background: rgb(var(--color-accent-warning-rgb) / 70%);
+}
+
+.claude-terminal-card__bar span:nth-child(2) {
+  background: rgb(var(--color-accent-secondary-rgb) / 62%);
+}
+
+.claude-terminal-card__bar span:nth-child(3) {
+  background: rgb(var(--color-accent-success-rgb) / 62%);
+}
+
+.claude-terminal-card__body {
+  @apply space-y-4 p-5;
+}
+
+.claude-terminal-card__line {
+  color: var(--stage-text-primary);
+
+  @apply text-sm;
+}
+
+.claude-terminal-card__line span {
+  @apply mr-2 text-accent-success;
+}
+
+.claude-terminal-card__status {
+  color: var(--stage-text-secondary);
+
+  @apply text-sm leading-6;
+}
+
+.claude-terminal-card__chips {
+  @apply flex flex-wrap gap-2;
+}
+
+.claude-chip {
+  color: var(--stage-text-secondary);
+  background: rgb(var(--color-bg-surface-rgb) / 64%);
+  border: 1px solid rgb(var(--color-border-rgb) / 48%);
+
+  @apply rounded-full px-2.5 py-1 text-[11px] font-semibold;
 }
 
 .claude-tag-row {
@@ -501,125 +548,122 @@ const copyCommand = (cmd: string) => {
 }
 
 .claude-tag {
-  @apply flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold;
+  @apply flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold;
 
   letter-spacing: 0.04em;
 }
 
 .claude-tag--primary {
-  @apply border border-accent-primary/30 bg-accent-primary/15 text-accent-primary;
+  @apply border-accent-info/30 bg-accent-info/10 text-accent-info;
 }
 
 .claude-tag--secondary {
-  @apply border border-accent-secondary/30 bg-accent-secondary/10 text-accent-secondary;
+  @apply border-accent-success/30 bg-accent-success/10 text-accent-success;
 }
 
-.claude-tag--info {
-  @apply border border-accent-info/30 bg-accent-info/10 text-accent-info;
+.claude-tag--warning {
+  @apply border-accent-warning/30 bg-accent-warning/10 text-accent-warning;
 }
 
-.claude-core-grid {
-  @apply grid grid-cols-1 gap-6 md:grid-cols-2;
-}
-
-.claude-feature-card {
-  @apply relative flex h-full items-start gap-5 overflow-hidden p-6;
-}
-
-.claude-feature-card--primary {
-  @apply border-accent-primary/20 hover:border-accent-primary/40;
-}
-
-.claude-feature-card--secondary {
-  @apply border-accent-secondary/20 hover:border-accent-secondary/40;
-}
-
-.claude-feature-card__watermark {
-  @apply absolute bottom-4 right-4 rotate-12 transition-colors;
-}
-
-.claude-feature-card__watermark--primary {
-  @apply text-accent-primary/5 group-hover:text-accent-primary/10;
-}
-
-.claude-feature-card__watermark--secondary {
-  @apply text-accent-secondary/5 group-hover:text-accent-secondary/10;
-}
-
-.claude-feature-card__icon {
-  @apply flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border transition-transform duration-300 group-hover:scale-110;
-}
-
-.claude-feature-card__icon--primary {
-  @apply border-accent-primary/30 bg-accent-primary/15;
-}
-
-.claude-feature-card__icon--secondary {
-  @apply border-accent-secondary/30 bg-accent-secondary/15;
-}
-
-.claude-feature-card__title-row {
-  @apply mb-2 flex items-center gap-2;
-}
-
-.claude-feature-card__title {
-  color: var(--stage-text-primary);
-
-  @apply text-xl font-bold transition-colors;
-}
-
-.claude-feature-card__title--primary {
-  @apply group-hover:text-accent-primary;
-}
-
-.claude-feature-card__title--secondary {
-  @apply group-hover:text-accent-secondary;
-}
-
-.claude-feature-card__badge {
-  @apply rounded px-2 py-0.5 font-bold;
-
-  font-size: 10px;
-}
-
-.claude-feature-card__badge--primary {
-  @apply border border-accent-primary/30 bg-accent-primary/20 text-accent-primary;
-}
-
-.claude-feature-card__badge--secondary {
-  @apply border border-accent-secondary/30 bg-accent-secondary/20 text-accent-secondary;
-}
-
-.claude-feature-card__desc {
+.claude-tag--neutral {
   color: var(--stage-text-secondary);
+  background: var(--stage-chip-neutral-bg);
+  border-color: var(--stage-chip-neutral-border);
+}
 
-  @apply leading-relaxed;
+.claude-section {
+  @apply space-y-5;
 }
 
 .claude-section-heading {
-  @apply mb-6 flex items-center gap-3;
+  @apply flex items-center gap-3;
+}
+
+.claude-section-heading__eyebrow {
+  color: var(--stage-text-muted);
+
+  @apply text-xs font-semibold uppercase tracking-[0.14em];
 }
 
 .claude-section-heading__title {
-  color: var(--stage-text-muted);
+  color: var(--stage-text-primary);
 
-  @apply text-sm font-semibold tracking-[0.08em];
+  @apply text-xl font-semibold;
 }
 
 .claude-section-heading__icon {
-  color: var(--stage-text-muted);
+  @apply text-accent-warning;
 }
 
 .claude-section-heading__rule {
   @apply h-px flex-1 bg-border-subtle;
 }
 
+.claude-core-grid {
+  @apply grid grid-cols-1 gap-4 lg:grid-cols-3;
+}
+
+.claude-action-card {
+  @apply relative flex h-full min-h-[190px] flex-col justify-between gap-5 overflow-hidden p-5 transition-transform duration-300 group-hover:-translate-y-1;
+
+  background: linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 86%), rgb(var(--color-bg-surface-rgb) / 72%));
+}
+
+.claude-action-card--primary {
+  @apply border-accent-info/20 hover:border-accent-info/40;
+}
+
+.claude-action-card--warning {
+  @apply border-accent-warning/20 hover:border-accent-warning/40;
+}
+
+.claude-action-card--secondary {
+  @apply border-accent-secondary/20 hover:border-accent-secondary/40;
+}
+
+.claude-action-card__watermark {
+  @apply absolute bottom-3 right-3 rotate-12 text-text-muted/5 transition-colors group-hover:text-text-muted/10;
+}
+
+.claude-action-card__icon {
+  border-color: var(--stage-border-soft);
+  background: var(--stage-surface-soft);
+
+  @apply flex h-12 w-12 items-center justify-center rounded-xl border text-accent-warning;
+}
+
+.claude-action-card__copy {
+  @apply relative z-10;
+}
+
+.claude-action-card__title-row {
+  @apply mb-2 flex flex-wrap items-center gap-2;
+}
+
+.claude-action-card__title {
+  color: var(--stage-text-primary);
+
+  @apply text-xl font-bold;
+}
+
+.claude-action-card__badge {
+  @apply rounded border border-accent-warning/25 bg-accent-warning/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.08em] text-accent-warning;
+}
+
+.claude-action-card__desc {
+  color: var(--stage-text-secondary);
+
+  @apply text-sm leading-6;
+}
+
 .claude-extension-grid {
-  @apply grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-6;
+  @apply grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4;
 }
 
 .claude-extension-card {
-  @apply flex h-full flex-col gap-4 p-4;
+  @apply flex h-full min-h-[150px] flex-col justify-between gap-4 p-4;
+
+  background: linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 76%), rgb(var(--color-bg-surface-rgb) / 68%));
 }
 
 .claude-extension-card__header {
@@ -627,7 +671,7 @@ const copyCommand = (cmd: string) => {
 }
 
 .claude-extension-card__icon {
-  @apply flex h-10 w-10 items-center justify-center rounded-lg transition-transform group-hover:scale-110;
+  @apply flex h-10 w-10 items-center justify-center rounded-lg transition-transform group-hover:scale-105;
 }
 
 .claude-extension-card__icon--info {
@@ -638,10 +682,6 @@ const copyCommand = (cmd: string) => {
   @apply bg-accent-success/10 text-accent-success;
 }
 
-.claude-extension-card__icon--danger {
-  @apply bg-accent-danger/10 text-accent-danger;
-}
-
 .claude-extension-card__icon--primary {
   @apply bg-accent-primary/10 text-accent-primary;
 }
@@ -650,68 +690,50 @@ const copyCommand = (cmd: string) => {
   @apply bg-accent-warning/10 text-accent-warning;
 }
 
-.claude-extension-card__icon--secondary {
-  @apply bg-accent-secondary/10 text-accent-secondary;
-}
-
 .claude-extension-card__eyebrow {
   color: var(--stage-text-muted);
   background: var(--stage-chip-neutral-bg);
   border: 1px solid var(--stage-chip-neutral-border);
 
-  @apply rounded px-2 py-1 font-semibold;
-
-  font-size: 10px;
+  @apply rounded px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em];
 }
 
 .claude-extension-card__title {
   color: var(--stage-text-primary);
 
-  @apply mb-1 font-bold transition-colors;
-}
-
-.claude-extension-card__title--info {
-  @apply group-hover:text-accent-info;
-}
-
-.claude-extension-card__title--success {
-  @apply group-hover:text-accent-success;
-}
-
-.claude-extension-card__title--danger {
-  @apply group-hover:text-accent-danger;
-}
-
-.claude-extension-card__title--primary {
-  @apply group-hover:text-accent-primary;
-}
-
-.claude-extension-card__title--warning {
-  @apply group-hover:text-accent-warning;
-}
-
-.claude-extension-card__title--secondary {
-  @apply group-hover:text-accent-secondary;
+  @apply mb-1 font-bold transition-colors group-hover:text-accent-warning;
 }
 
 .claude-extension-card__desc {
   color: var(--stage-text-muted);
 
-  @apply line-clamp-2 text-xs;
+  @apply text-xs leading-5;
 }
 
 .claude-bottom-grid {
   @apply grid grid-cols-1 gap-6 lg:grid-cols-2;
 }
 
+.claude-resource-column {
+  @apply space-y-6;
+}
+
 .claude-panel {
   @apply p-6;
+
+  background: linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 72%), rgb(var(--color-bg-surface-rgb) / 64%));
 }
 
 .claude-panel__title {
   color: var(--stage-text-primary);
 
-  @apply mb-4 flex items-center gap-2 text-lg font-semibold;
+  @apply mb-2 flex items-center gap-2 text-lg font-semibold;
+}
+
+.claude-panel__desc {
+  color: var(--stage-text-muted);
+
+  @apply mb-4 text-sm;
 }
 
 .claude-stack {
@@ -722,7 +744,7 @@ const copyCommand = (cmd: string) => {
   background: var(--stage-surface-soft);
   border: 1px solid var(--stage-border-soft);
 
-  @apply flex cursor-copy items-center justify-between rounded-xl p-3 transition-colors hover:border-accent-primary/20;
+  @apply flex w-full cursor-copy items-center justify-between gap-3 rounded-xl p-3 text-left transition-colors hover:border-accent-warning/25;
 }
 
 .claude-command-row__label {
@@ -731,12 +753,16 @@ const copyCommand = (cmd: string) => {
   @apply text-sm font-medium;
 }
 
+.claude-command-row__command {
+  @apply flex shrink-0 items-center gap-2;
+}
+
 .claude-command-row__code {
   color: var(--stage-text-muted);
   background: var(--stage-chip-neutral-bg);
   border: 1px solid var(--stage-chip-neutral-border);
 
-  @apply rounded px-2 py-1 text-xs font-mono transition-colors group-hover:text-accent-primary;
+  @apply rounded px-2 py-1 text-xs font-mono transition-colors group-hover:text-accent-warning;
 }
 
 .claude-command-row__copy {
@@ -746,14 +772,14 @@ const copyCommand = (cmd: string) => {
 }
 
 .claude-resource-grid {
-  @apply grid grid-cols-2 gap-3;
+  @apply grid grid-cols-1 gap-3 sm:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3;
 }
 
 .claude-resource-link {
   background: var(--stage-surface-soft);
   border: 1px solid var(--stage-border-soft);
 
-  @apply flex items-center gap-3 rounded-xl p-3 transition-colors;
+  @apply flex items-center gap-3 rounded-xl p-3 transition-colors hover:border-accent-secondary/25;
 }
 
 .claude-resource-link__icon {
@@ -775,7 +801,7 @@ const copyCommand = (cmd: string) => {
 }
 
 .claude-tip-card {
-  @apply border-accent-info/20 bg-accent-info/10 p-4;
+  @apply border-accent-warning/20 bg-accent-warning/10 p-4;
 }
 
 .claude-tip-card__content {
@@ -783,7 +809,7 @@ const copyCommand = (cmd: string) => {
 }
 
 .claude-tip-card__icon {
-  @apply mt-0.5 shrink-0 text-accent-info;
+  @apply mt-0.5 shrink-0 text-accent-warning;
 }
 
 .claude-tip-card__copy {
@@ -791,12 +817,12 @@ const copyCommand = (cmd: string) => {
 }
 
 .claude-tip-card__title {
-  @apply text-sm font-semibold text-accent-info;
+  @apply text-sm font-semibold text-accent-warning;
 }
 
 .claude-tip-card__list {
   color: var(--stage-text-secondary);
 
-  @apply list-inside list-disc space-y-1 text-xs;
+  @apply list-inside list-disc space-y-1 text-xs leading-5;
 }
 </style>
