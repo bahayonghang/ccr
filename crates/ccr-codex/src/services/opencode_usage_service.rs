@@ -65,16 +65,22 @@ impl OpenCodeUsageService {
 
         let mut statement = connection
             .prepare(
-                "SELECT session_id, time_updated, data
-             FROM message
-             ORDER BY time_updated ASC",
+                r#"
+                SELECT session_id, time_updated, data
+                FROM message
+                WHERE data LIKE ?1
+                  AND data LIKE '%providerID%'
+                  AND data LIKE '%assistant%'
+                ORDER BY time_updated ASC
+                "#,
             )
             .map_err(|err| {
                 CcrError::DatabaseError(format!("准备 OpenCode usage 查询失败: {err}"))
             })?;
 
+        let provider_pattern = format!("%{}%", provider_filter);
         let rows = statement
-            .query_map([], |row| {
+            .query_map([provider_pattern], |row| {
                 let session_id: String = row.get(0)?;
                 let time_updated: i64 = row.get(1)?;
                 let data: String = row.get(2)?;
@@ -291,5 +297,62 @@ mod tests {
                 .map(|stats| stats.total_tokens()),
             Some(240)
         );
+    }
+
+    #[test]
+    #[ignore]
+    fn benchmark_parse_provider_messages() {
+        for row_count in [1_000usize, 50_000] {
+            let (service, temp) = create_test_service();
+            let db_path = temp.path().join("opencode.db");
+            let mut conn = Connection::open(&db_path).unwrap();
+            create_message_table(&conn);
+
+            let now = Utc::now().timestamp_millis();
+            {
+                let tx = conn.transaction().unwrap();
+                {
+                    let mut stmt = tx
+                        .prepare(
+                            "INSERT INTO message (id, session_id, time_created, time_updated, data)
+                             VALUES (?1, ?2, ?3, ?4, ?5)",
+                        )
+                        .unwrap();
+                    for index in 0..row_count {
+                        let provider = if index % 2 == 0 {
+                            "openai"
+                        } else {
+                            "github-copilot"
+                        };
+                        stmt.execute((
+                            format!("msg-{index}"),
+                            format!("ses-{index}"),
+                            now,
+                            now + index as i64,
+                            serde_json::json!({
+                                "role": "assistant",
+                                "providerID": provider,
+                                "modelID": "gpt-5.4",
+                                "time": { "completed": now + index as i64 },
+                                "tokens": { "input": 1200, "output": 240 }
+                            })
+                            .to_string(),
+                        ))
+                        .unwrap();
+                    }
+                }
+                tx.commit().unwrap();
+            }
+
+            let start = std::time::Instant::now();
+            let records = service.parse_provider_messages("openai").unwrap();
+            let elapsed = start.elapsed();
+
+            assert_eq!(records.len(), row_count / 2);
+            eprintln!(
+                "opencode_parse_provider_messages: rows={row_count}, matched={}, elapsed={elapsed:?}",
+                records.len()
+            );
+        }
     }
 }
