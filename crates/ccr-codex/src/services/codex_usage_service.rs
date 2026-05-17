@@ -13,10 +13,12 @@ use ccr_core::core::error::Result;
 use chrono::{DateTime, Duration, Utc};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 use std::path::{Path, PathBuf};
+
+const CODEX_USAGE_CACHE_VERSION: u32 = 1;
 
 /// Codex 使用量记录
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -100,6 +102,19 @@ pub struct CodexUsageService {
     codex_dir: PathBuf,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+struct CodexUsageCache {
+    version: u32,
+    files: BTreeMap<String, CachedCodexUsageFile>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+struct CachedCodexUsageFile {
+    modified_ms: u64,
+    size_bytes: u64,
+    records: Vec<CodexUsageRecord>,
+}
+
 impl CodexUsageService {
     /// 创建新的服务实例
     pub fn new(codex_dir: PathBuf) -> Self {
@@ -109,6 +124,10 @@ impl CodexUsageService {
     /// 获取会话目录（Codex CLI 存储在 sessions/ 下）
     fn sessions_dir(&self) -> PathBuf {
         self.codex_dir.join("sessions")
+    }
+
+    fn usage_cache_path(&self) -> PathBuf {
+        self.codex_dir.join(".ccr-codex-usage-cache.json")
     }
 
     /// 递归收集目录下所有 .jsonl 文件
@@ -135,13 +154,50 @@ impl CodexUsageService {
             return Ok(Vec::new());
         }
 
+        let cache_path = self.usage_cache_path();
+        let existing_cache = Self::read_usage_cache(&cache_path).unwrap_or_default();
+        let mut next_cache = CodexUsageCache {
+            version: CODEX_USAGE_CACHE_VERSION,
+            files: BTreeMap::new(),
+        };
         let mut records = Vec::new();
 
         // 递归扫描 sessions/YYYY/MM/DD/ 下的 .jsonl 文件
         for path in Self::collect_jsonl_files(&sessions_dir) {
-            if let Ok(file_records) = self.parse_session_file(&path) {
-                records.extend(file_records);
-            }
+            let relative_path = path
+                .strip_prefix(&sessions_dir)
+                .ok()
+                .map(|value| value.to_string_lossy().replace('\\', "/"))
+                .unwrap_or_else(|| path.to_string_lossy().to_string());
+            let modified_ms = Self::metadata_modified_ms(&path);
+            let size_bytes = Self::metadata_size_bytes(&path);
+            let cached_file = existing_cache
+                .files
+                .get(&relative_path)
+                .filter(|file| file.modified_ms == modified_ms && file.size_bytes == size_bytes);
+
+            let file_records = if let Some(cached_file) = cached_file {
+                cached_file.records.clone()
+            } else {
+                match self.parse_session_file(&path) {
+                    Ok(file_records) => file_records,
+                    Err(_) => continue,
+                }
+            };
+
+            records.extend(file_records.clone());
+            next_cache.files.insert(
+                relative_path,
+                CachedCodexUsageFile {
+                    modified_ms,
+                    size_bytes,
+                    records: file_records,
+                },
+            );
+        }
+
+        if let Err(error) = Self::write_usage_cache(&cache_path, &next_cache) {
+            tracing::debug!("写入 Codex usage cache 失败: {}", error);
         }
 
         // 按时间排序
@@ -367,6 +423,41 @@ impl CodexUsageService {
         }
     }
 
+    fn metadata_modified_ms(path: &Path) -> u64 {
+        std::fs::metadata(path)
+            .ok()
+            .and_then(|metadata| metadata.modified().ok())
+            .and_then(|modified| modified.duration_since(std::time::UNIX_EPOCH).ok())
+            .map(|duration| duration.as_millis() as u64)
+            .unwrap_or(0)
+    }
+
+    fn metadata_size_bytes(path: &Path) -> u64 {
+        std::fs::metadata(path)
+            .map(|metadata| metadata.len())
+            .unwrap_or(0)
+    }
+
+    fn read_usage_cache(path: &Path) -> Result<CodexUsageCache> {
+        if !path.exists() {
+            return Ok(CodexUsageCache::default());
+        }
+
+        let content = std::fs::read_to_string(path)?;
+        let cache: CodexUsageCache = serde_json::from_str(&content)?;
+        if cache.version != CODEX_USAGE_CACHE_VERSION {
+            return Ok(CodexUsageCache::default());
+        }
+
+        Ok(cache)
+    }
+
+    fn write_usage_cache(path: &Path, cache: &CodexUsageCache) -> Result<()> {
+        let content = serde_json::to_string(cache)?;
+        std::fs::write(path, content)?;
+        Ok(())
+    }
+
     /// 计算滚动窗口使用量
     pub fn compute_rolling_usage(&self) -> Result<CodexRollingUsage> {
         let records = self.parse_all_logs()?;
@@ -537,6 +628,34 @@ mod tests {
     }
 
     #[test]
+    fn test_parse_all_logs_reuses_usage_cache_for_unchanged_file() {
+        let (service, temp_dir) = create_test_service();
+
+        let session_dir = temp_dir.path().join("sessions").join("2026/01/15");
+        std::fs::create_dir_all(&session_dir).unwrap();
+
+        let now = Utc::now();
+        let jsonl_content = format!(
+            r#"{{"session_id":"sess-cache","model":"gpt-5","created_at":"{}"}}
+{{"type":"turn.completed","usage":{{"input_tokens":100,"output_tokens":25}}}}
+"#,
+            now.to_rfc3339()
+        );
+        std::fs::write(session_dir.join("rollout-cache.jsonl"), jsonl_content).unwrap();
+
+        let first = service.parse_all_logs().unwrap();
+        assert_eq!(first[0].input_tokens, 100);
+
+        let mut cache = CodexUsageService::read_usage_cache(&service.usage_cache_path()).unwrap();
+        let cached_file = cache.files.values_mut().next().unwrap();
+        cached_file.records[0].input_tokens = 999;
+        CodexUsageService::write_usage_cache(&service.usage_cache_path(), &cache).unwrap();
+
+        let second = service.parse_all_logs().unwrap();
+        assert_eq!(second[0].input_tokens, 999);
+    }
+
+    #[test]
     fn test_parse_session_with_turn_completed() {
         let (service, temp_dir) = create_test_service();
 
@@ -687,5 +806,43 @@ mod tests {
             window_end: None,
         };
         assert_eq!(stats.total_tokens(), 150);
+    }
+
+    #[test]
+    #[ignore]
+    fn benchmark_compute_rolling_usage_cache() {
+        for file_count in [300usize, 2_000, 10_000] {
+            let (service, temp_dir) = create_test_service();
+            let session_dir = temp_dir.path().join("sessions").join("2026/03/16");
+            std::fs::create_dir_all(&session_dir).unwrap();
+
+            for index in 0..file_count {
+                let jsonl_content = format!(
+                    r#"{{"session_id":"usage-bench-{index}","model":"gpt-5","created_at":"2026-03-16T00:00:00Z"}}
+{{"timestamp":"2026-03-16T00:00:01Z","type":"turn.completed","usage":{{"input_tokens":100,"output_tokens":25}}}}
+{{"timestamp":"2026-03-16T00:00:02Z","type":"turn.completed","usage":{{"input_tokens":200,"output_tokens":50}}}}
+"#
+                );
+                std::fs::write(
+                    session_dir.join(format!("rollout-usage-bench-{index}.jsonl")),
+                    jsonl_content,
+                )
+                .unwrap();
+            }
+
+            let cold_start = std::time::Instant::now();
+            let cold = service.compute_rolling_usage().unwrap();
+            let cold_elapsed = cold_start.elapsed();
+
+            let warm_start = std::time::Instant::now();
+            let warm = service.compute_rolling_usage().unwrap();
+            let warm_elapsed = warm_start.elapsed();
+
+            assert_eq!(cold.all_time.total_requests, (file_count * 2) as u64);
+            assert_eq!(warm.all_time.total_requests, cold.all_time.total_requests);
+            eprintln!(
+                "codex_compute_rolling_usage: files={file_count}, cold={cold_elapsed:?}, warm={warm_elapsed:?}"
+            );
+        }
     }
 }
