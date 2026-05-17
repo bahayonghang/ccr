@@ -100,6 +100,19 @@ impl SessionIndexer {
             })
             .collect();
 
+        let file_path_strings: Vec<String> = file_hashes
+            .iter()
+            .map(|(file_path, _)| file_path.to_string_lossy().to_string())
+            .collect();
+        let stored_hashes = match store.get_file_hashes(&file_path_strings) {
+            Ok(hashes) => hashes,
+            Err(e) => {
+                warn!("批量查询文件哈希失败: {}", e);
+                stats.errors += 1;
+                std::collections::HashMap::new()
+            }
+        };
+
         let mut changed_files = Vec::new();
 
         for (file_path, hash_result) in file_hashes {
@@ -114,31 +127,36 @@ impl SessionIndexer {
 
             let file_path_str = file_path.to_string_lossy().to_string();
 
-            if let Ok(Some(existing_hash)) = store.get_file_hash(&file_path_str)
-                && existing_hash == current_hash
-            {
+            let existing_hash = stored_hashes.get(&file_path_str);
+
+            if existing_hash.is_some_and(|hash| hash == &current_hash) {
                 stats.files_skipped += 1;
                 continue;
             }
 
-            changed_files.push(file_path);
+            changed_files.push((file_path, current_hash, existing_hash.is_some()));
         }
 
-        let parse_results: Vec<(std::path::PathBuf, Result<Session>)> = changed_files
+        let parse_results: Vec<(std::path::PathBuf, bool, Result<Session>)> = changed_files
             .par_iter()
-            .map(|file_path| {
+            .map(|(file_path, file_hash, was_indexed)| {
                 (
                     file_path.clone(),
-                    SessionParser::parse_file(file_path, platform),
+                    *was_indexed,
+                    SessionParser::parse_file_with_hash(file_path, platform, file_hash.clone()),
                 )
             })
             .collect();
 
-        for (file_path, session_result) in parse_results {
+        let mut storage_sessions = Vec::new();
+        let mut parsed_added = 0u64;
+        let mut parsed_updated = 0u64;
+
+        for (file_path, was_indexed, session_result) in parse_results {
             match session_result {
                 Ok(session) => {
                     // 转换为 storage 格式
-                    let storage_session = crate::storage::session_store::Session {
+                    storage_sessions.push(crate::storage::session_store::Session {
                         id: session.id,
                         platform: session.platform,
                         title: session.title,
@@ -152,18 +170,30 @@ impl SessionIndexer {
                         assistant_message_count: session.assistant_message_count,
                         tool_use_count: session.tool_use_count,
                         indexed_at: session.indexed_at,
-                    };
+                    });
 
-                    if let Err(e) = store.upsert_sessions(&[storage_session]) {
-                        warn!("存储 session 失败: {}", e);
-                        stats.errors += 1;
+                    if was_indexed {
+                        parsed_updated += 1;
                     } else {
-                        stats.sessions_added += 1;
+                        parsed_added += 1;
                     }
                 }
                 Err(e) => {
                     warn!("解析文件失败 {}: {}", file_path.display(), e);
                     stats.errors += 1;
+                }
+            }
+        }
+
+        if !storage_sessions.is_empty() {
+            match store.upsert_sessions(&storage_sessions) {
+                Ok(_) => {
+                    stats.sessions_added += parsed_added;
+                    stats.sessions_updated += parsed_updated;
+                }
+                Err(e) => {
+                    warn!("批量存储 session 失败: {}", e);
+                    stats.errors += storage_sessions.len() as u64;
                 }
             }
         }
@@ -315,7 +345,8 @@ mod tests {
         let nested = session_dir.path().join("nested");
         fs::create_dir_all(&nested).expect("Failed to create nested dir");
 
-        write_session_file(session_dir.path(), "session-1.jsonl", "session-1");
+        let session_one_path =
+            write_session_file(session_dir.path(), "session-1.jsonl", "session-1");
         write_session_file(&nested, "session-2.jsonl", "session-2");
         fs::write(session_dir.path().join("note.txt"), "not a session")
             .expect("Failed to write noise file");
@@ -331,6 +362,7 @@ mod tests {
 
         assert_eq!(stats.files_scanned, 2);
         assert_eq!(stats.sessions_added, 2);
+        assert_eq!(stats.sessions_updated, 0);
         assert_eq!(stats.errors, 0);
 
         let store = SessionStore::new(db.as_ref());
@@ -338,5 +370,33 @@ mod tests {
             .list(StorageSessionFilter::default())
             .expect("Failed to list sessions");
         assert_eq!(list.len(), 2);
+
+        let skipped_stats = indexer
+            .index_platform_in_dir(Platform::Claude, session_dir.path())
+            .expect("Second indexing failed");
+        assert_eq!(skipped_stats.files_scanned, 2);
+        assert_eq!(skipped_stats.files_skipped, 2);
+        assert_eq!(skipped_stats.sessions_added, 0);
+        assert_eq!(skipped_stats.sessions_updated, 0);
+        assert_eq!(skipped_stats.errors, 0);
+
+        fs::write(
+            &session_one_path,
+            format!(
+                "{}{}",
+                session_content("session-1"),
+                r#"{"type": "user", "role": "user", "message": "Changed"}"#,
+            ),
+        )
+        .expect("Failed to update session file");
+
+        let updated_stats = indexer
+            .index_platform_in_dir(Platform::Claude, session_dir.path())
+            .expect("Third indexing failed");
+        assert_eq!(updated_stats.files_scanned, 2);
+        assert_eq!(updated_stats.files_skipped, 1);
+        assert_eq!(updated_stats.sessions_added, 0);
+        assert_eq!(updated_stats.sessions_updated, 1);
+        assert_eq!(updated_stats.errors, 0);
     }
 }

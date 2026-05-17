@@ -103,28 +103,46 @@ impl<'a> SessionStore<'a> {
     ///
     /// 使用 UPSERT 语义，根据 file_path 判断是否已存在。
     pub fn upsert_sessions(&self, sessions: &[Session]) -> Result<usize> {
-        let conn = self.db.conn()?;
+        if sessions.is_empty() {
+            return Ok(0);
+        }
+
+        let mut conn = self.db.conn()?;
+        let tx = conn
+            .transaction()
+            .map_err(|e| CcrError::DatabaseError(format!("开启 session 批量事务失败: {}", e)))?;
         let mut count = 0;
 
-        for session in sessions {
-            let result = conn.execute(
-                r#"
-                INSERT INTO sessions (
-                    id, platform, title, cwd, file_path, file_hash,
-                    created_at, updated_at, message_count,
-                    user_message_count, assistant_message_count, tool_use_count
-                ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)
-                ON CONFLICT(file_path) DO UPDATE SET
-                    title = excluded.title,
-                    file_hash = excluded.file_hash,
-                    updated_at = excluded.updated_at,
-                    message_count = excluded.message_count,
-                    user_message_count = excluded.user_message_count,
-                    assistant_message_count = excluded.assistant_message_count,
-                    tool_use_count = excluded.tool_use_count,
-                    indexed_at = datetime('now')
-                "#,
-                rusqlite::params![
+        {
+            let mut stmt = tx
+                .prepare(
+                    r#"
+                    INSERT INTO sessions (
+                        id, platform, title, cwd, file_path, file_hash,
+                        created_at, updated_at, message_count,
+                        user_message_count, assistant_message_count, tool_use_count
+                    ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)
+                    ON CONFLICT(file_path) DO UPDATE SET
+                        id = excluded.id,
+                        platform = excluded.platform,
+                        title = excluded.title,
+                        cwd = excluded.cwd,
+                        file_hash = excluded.file_hash,
+                        created_at = excluded.created_at,
+                        updated_at = excluded.updated_at,
+                        message_count = excluded.message_count,
+                        user_message_count = excluded.user_message_count,
+                        assistant_message_count = excluded.assistant_message_count,
+                        tool_use_count = excluded.tool_use_count,
+                        indexed_at = datetime('now')
+                    "#,
+                )
+                .map_err(|e| {
+                    CcrError::DatabaseError(format!("准备 session 批量写入失败: {}", e))
+                })?;
+
+            for session in sessions {
+                stmt.execute(rusqlite::params![
                     session.id,
                     session.platform.to_string(),
                     session.title,
@@ -137,19 +155,65 @@ impl<'a> SessionStore<'a> {
                     session.user_message_count,
                     session.assistant_message_count,
                     session.tool_use_count,
-                ],
-            );
-
-            match result {
-                Ok(_) => count += 1,
-                Err(e) => {
+                ])
+                .map_err(|e| {
                     debug!("插入 session {} 失败: {}", session.id, e);
+                    CcrError::DatabaseError(format!("写入 session {} 失败: {}", session.id, e))
+                })?;
+                count += 1;
+            }
+        }
+
+        tx.commit()
+            .map_err(|e| CcrError::DatabaseError(format!("提交 session 批量事务失败: {}", e)))?;
+
+        info!("已插入/更新 {} 个 session", count);
+        Ok(count)
+    }
+
+    /// 查询多个文件哈希（用于增量更新检查）。
+    pub fn get_file_hashes(
+        &self,
+        file_paths: &[String],
+    ) -> Result<std::collections::HashMap<String, String>> {
+        let conn = self.db.conn()?;
+        let mut hashes = std::collections::HashMap::new();
+
+        if file_paths.is_empty() {
+            return Ok(hashes);
+        }
+
+        for chunk in file_paths.chunks(500) {
+            let placeholders = (1..=chunk.len())
+                .map(|index| format!("?{}", index))
+                .collect::<Vec<_>>()
+                .join(",");
+            let sql = format!(
+                "SELECT file_path, file_hash FROM sessions WHERE file_path IN ({})",
+                placeholders
+            );
+            let mut stmt = conn
+                .prepare(&sql)
+                .map_err(|e| CcrError::DatabaseError(format!("准备文件哈希查询失败: {}", e)))?;
+            let rows = stmt
+                .query_map(rusqlite::params_from_iter(chunk.iter()), |row| {
+                    Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+                })
+                .map_err(|e| CcrError::DatabaseError(format!("执行文件哈希查询失败: {}", e)))?;
+
+            for row in rows {
+                match row {
+                    Ok((file_path, hash)) => {
+                        hashes.insert(file_path, hash);
+                    }
+                    Err(e) => {
+                        return Err(CcrError::DatabaseError(format!("读取文件哈希失败: {}", e)));
+                    }
                 }
             }
         }
 
-        info!("已插入/更新 {} 个 session", count);
-        Ok(count)
+        Ok(hashes)
     }
 
     /// 查询 Session 列表
@@ -468,6 +532,36 @@ mod tests {
 
         let list = store.list(SessionFilter::default()).unwrap();
         assert_eq!(list.len(), 2);
+    }
+
+    #[test]
+    fn test_upsert_sessions_updates_existing_file_path_in_batch() {
+        let db = create_test_db();
+        let store = SessionStore::new(&db);
+
+        let mut first = create_test_session("1", Platform::Claude);
+        first.file_path = PathBuf::from("/tmp/test/shared.jsonl");
+        first.file_hash = "hash-a".to_string();
+
+        let mut second = create_test_session("1", Platform::Claude);
+        second.file_path = PathBuf::from("/tmp/test/shared.jsonl");
+        second.file_hash = "hash-b".to_string();
+        second.message_count = 12;
+
+        assert_eq!(store.upsert_sessions(&[first]).unwrap(), 1);
+        assert_eq!(store.upsert_sessions(&[second]).unwrap(), 1);
+
+        let session = store.get("1").unwrap().unwrap();
+        assert_eq!(session.file_hash, "hash-b");
+        assert_eq!(session.message_count, 12);
+
+        let hashes = store
+            .get_file_hashes(&["/tmp/test/shared.jsonl".to_string()])
+            .unwrap();
+        assert_eq!(
+            hashes.get("/tmp/test/shared.jsonl").map(String::as_str),
+            Some("hash-b")
+        );
     }
 
     #[test]

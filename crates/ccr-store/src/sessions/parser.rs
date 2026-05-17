@@ -21,12 +21,25 @@ impl SessionParser {
     ///
     /// 自动检测平台格式并解析。
     pub fn parse_file(path: &Path, platform: Platform) -> Result<Session> {
+        let file_hash = Self::compute_file_hash(path)?;
+        Self::parse_file_with_hash(path, platform, file_hash)
+    }
+
+    /// 使用已计算的文件哈希解析 session 文件。
+    ///
+    /// 索引流程会先读取文件计算增量哈希；该入口复用同一个哈希，
+    /// 避免解析结束后再次全量读取文件。
+    pub fn parse_file_with_hash(
+        path: &Path,
+        platform: Platform,
+        file_hash: String,
+    ) -> Result<Session> {
         match platform {
-            Platform::Claude => Self::parse_claude(path),
-            Platform::Codex => Self::parse_codex(path),
-            Platform::Gemini => Self::parse_gemini(path),
-            Platform::Qwen => Self::parse_qwen(path),
-            Platform::Droid => Self::parse_generic(path, platform),
+            Platform::Claude => Self::parse_claude_with_hash(path, file_hash),
+            Platform::Codex => Self::parse_codex_with_hash(path, file_hash),
+            Platform::Gemini => Self::parse_gemini_with_hash(path, file_hash),
+            Platform::Qwen => Self::parse_qwen_with_hash(path, file_hash),
+            Platform::Droid => Self::parse_generic_with_hash(path, platform, file_hash),
         }
     }
 
@@ -34,6 +47,11 @@ impl SessionParser {
     ///
     /// Claude session 文件格式: JSONL，每行一个事件
     pub fn parse_claude(path: &Path) -> Result<Session> {
+        let file_hash = Self::compute_file_hash(path)?;
+        Self::parse_claude_with_hash(path, file_hash)
+    }
+
+    fn parse_claude_with_hash(path: &Path, file_hash: String) -> Result<Session> {
         let events = Self::read_jsonl(path)?;
 
         let session_id = Self::extract_session_id(&events)
@@ -57,8 +75,6 @@ impl SessionParser {
         let title = Self::extract_title(&events);
         let (created_at, updated_at) = Self::extract_timestamps(&events, path)?;
         let (user_count, assistant_count, tool_count) = Self::count_messages(&events);
-
-        let file_hash = Self::compute_file_hash(path)?;
 
         Ok(Session {
             id: session_id,
@@ -79,6 +95,11 @@ impl SessionParser {
 
     /// 解析 Codex session 文件
     pub fn parse_codex(path: &Path) -> Result<Session> {
+        let file_hash = Self::compute_file_hash(path)?;
+        Self::parse_codex_with_hash(path, file_hash)
+    }
+
+    fn parse_codex_with_hash(path: &Path, file_hash: String) -> Result<Session> {
         let events = Self::read_jsonl(path)?;
 
         let session_id = Self::extract_session_id(&events)
@@ -103,8 +124,6 @@ impl SessionParser {
         let (created_at, updated_at) = Self::extract_timestamps(&events, path)?;
         let (user_count, assistant_count, tool_count) = Self::count_messages(&events);
 
-        let file_hash = Self::compute_file_hash(path)?;
-
         Ok(Session {
             id: session_id,
             platform: Platform::Codex,
@@ -124,6 +143,11 @@ impl SessionParser {
 
     /// 解析 Gemini session 文件
     pub fn parse_gemini(path: &Path) -> Result<Session> {
+        let file_hash = Self::compute_file_hash(path)?;
+        Self::parse_gemini_with_hash(path, file_hash)
+    }
+
+    fn parse_gemini_with_hash(path: &Path, file_hash: String) -> Result<Session> {
         // Gemini 使用不同的格式，尝试解析
         let events = Self::read_jsonl(path).unwrap_or_else(|e| {
             debug!(
@@ -149,8 +173,6 @@ impl SessionParser {
         let (created_at, updated_at) = Self::extract_timestamps(&events, path)?;
         let (user_count, assistant_count, tool_count) = Self::count_messages(&events);
 
-        let file_hash = Self::compute_file_hash(path)?;
-
         Ok(Session {
             id: session_id,
             platform: Platform::Gemini,
@@ -169,7 +191,17 @@ impl SessionParser {
     }
 
     /// 解析通用格式（用于 Droid 等）
+    #[allow(dead_code)]
     fn parse_generic(path: &Path, platform: Platform) -> Result<Session> {
+        let file_hash = Self::compute_file_hash(path)?;
+        Self::parse_generic_with_hash(path, platform, file_hash)
+    }
+
+    fn parse_generic_with_hash(
+        path: &Path,
+        platform: Platform,
+        file_hash: String,
+    ) -> Result<Session> {
         let events = Self::read_jsonl(path).unwrap_or_else(|e| {
             debug!(
                 "{:?} session 文件解析失败，使用空事件列表: {} - {}",
@@ -195,8 +227,6 @@ impl SessionParser {
         let (created_at, updated_at) = Self::extract_timestamps(&events, path)?;
         let (user_count, assistant_count, tool_count) = Self::count_messages(&events);
 
-        let file_hash = Self::compute_file_hash(path)?;
-
         Ok(Session {
             id: session_id,
             platform,
@@ -215,7 +245,13 @@ impl SessionParser {
     }
 
     /// 解析 Qwen session 文件
+    #[allow(dead_code)]
     fn parse_qwen(path: &Path) -> Result<Session> {
+        let file_hash = Self::compute_file_hash(path)?;
+        Self::parse_qwen_with_hash(path, file_hash)
+    }
+
+    fn parse_qwen_with_hash(path: &Path, file_hash: String) -> Result<Session> {
         let events = Self::read_jsonl(path).unwrap_or_else(|e| {
             debug!(
                 "Qwen session 文件解析失败，使用空事件列表: {} - {}",
@@ -250,8 +286,6 @@ impl SessionParser {
         let title = Self::extract_title(&events);
         let (created_at, updated_at) = Self::extract_timestamps(&events, path)?;
         let (user_count, assistant_count, tool_count) = Self::count_messages(&events);
-
-        let file_hash = Self::compute_file_hash(path)?;
 
         Ok(Session {
             id: session_id,
