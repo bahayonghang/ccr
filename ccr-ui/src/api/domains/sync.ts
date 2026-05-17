@@ -8,6 +8,11 @@
 import { invoke } from '@tauri-apps/api/core'
 import type { UnknownRecord } from '../_shared'
 import type { CommandResultLike, SyncFolderItem, SyncStatusResponse } from '../tauri'
+import type {
+  WebDavConfigDetails,
+  WebDavConfigInput,
+  WebDavTestResult,
+} from '@/types/sync'
 
 /** 推送配置到远端 */
 export const pushSync = async <T = UnknownRecord>(force?: boolean): Promise<T> => {
@@ -55,4 +60,23 @@ export const updateSyncFolder = async <T = UnknownRecord>(
 /** 删除同步文件夹 */
 export const deleteSyncFolder = async <T = UnknownRecord>(id: string): Promise<T> => {
   return invoke('delete_sync_folder', { id })
+}
+
+/** 保存 WebDAV 账号（即启用） */
+export const setWebdavConfig = async (
+  payload: WebDavConfigInput,
+): Promise<WebDavConfigDetails> => {
+  return invoke('set_webdav_config', { payload })
+}
+
+/** 测试 WebDAV 连接（不持久化） */
+export const testWebdavConfig = async (
+  payload: WebDavConfigInput,
+): Promise<WebDavTestResult> => {
+  return invoke('test_webdav_config', { payload })
+}
+
+/** 断开 WebDAV 账号（物理删除 sync.toml） */
+export const clearWebdavConfig = async (): Promise<void> => {
+  return invoke('clear_webdav_config')
 }

@@ -88,7 +88,10 @@
         </div>
 
         <!-- 右侧信息区 (1 column) -->
-        <SyncInfoSidebar :sync-status="syncStatus" />
+        <SyncInfoSidebar
+          :sync-status="syncStatus"
+          @status-refresh="fetchSyncStatus"
+        />
       </div>
     </main>
   </div>

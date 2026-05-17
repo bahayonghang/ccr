@@ -264,6 +264,9 @@ export {
   addSyncFolder,
   updateSyncFolder,
   deleteSyncFolder,
+  setWebdavConfig,
+  testWebdavConfig,
+  clearWebdavConfig,
 } from './domains/sync'
 
 // ════════════════════════════════════════════════════════════

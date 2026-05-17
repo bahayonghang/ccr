@@ -55,6 +55,9 @@ macro_rules! generate_handler_common {
         sync::add_sync_folder,
         sync::update_sync_folder,
         sync::delete_sync_folder,
+        sync::set_webdav_config,
+        sync::test_webdav_config,
+        sync::clear_webdav_config,
         // —— Claude Code ——
         claude::claude_get_settings,
         claude::claude_update_settings,
