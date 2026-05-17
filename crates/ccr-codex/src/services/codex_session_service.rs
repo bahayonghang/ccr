@@ -18,7 +18,7 @@ use uuid::Uuid;
 const DEFAULT_DETAIL_MESSAGE_LIMIT: usize = 120;
 const DEFAULT_EXPORT_MESSAGE_LIMIT: usize = 200;
 const PREVIEW_MAX_CHARS: usize = 160;
-const SESSION_INVENTORY_CACHE_VERSION: u32 = 2;
+const SESSION_INVENTORY_CACHE_VERSION: u32 = 3;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CodexSessionInventory {
@@ -38,6 +38,16 @@ struct CachedSessionDir {
     signature: u64,
     session_count: usize,
     latest_session_modified_ms: Option<u64>,
+    #[serde(default)]
+    files: BTreeMap<String, CachedSessionFile>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+struct CachedSessionFile {
+    signature: u64,
+    modified_ms: u64,
+    size_bytes: u64,
+    summary: Option<CodexSessionSummary>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -150,13 +160,24 @@ impl CodexSessionService {
     }
 
     pub fn session_inventory(&self) -> Result<CodexSessionInventory> {
+        self.refresh_inventory_cache(false)
+            .map(|(_, inventory)| inventory)
+    }
+
+    fn refresh_inventory_cache(
+        &self,
+        populate_summaries: bool,
+    ) -> Result<(SessionInventoryCache, CodexSessionInventory)> {
         let sessions_dir = self.sessions_dir();
         if !sessions_dir.exists() {
-            return Ok(CodexSessionInventory {
-                total_sessions: 0,
-                signature: "empty".to_string(),
-                latest_session_modified_ms: None,
-            });
+            return Ok((
+                SessionInventoryCache::default(),
+                CodexSessionInventory {
+                    total_sessions: 0,
+                    signature: "empty".to_string(),
+                    latest_session_modified_ms: None,
+                },
+            ));
         }
 
         let cache_path = self.inventory_cache_path();
@@ -182,13 +203,11 @@ impl CodexSessionService {
                 .map(|value| value.to_string_lossy().replace('\\', "/"))
                 .filter(|value| !value.is_empty())
                 .unwrap_or_else(|| ".".to_string());
-            let current_snapshot = Self::scan_jsonl_files_in_dir(&directory);
-            let dir_snapshot = existing_cache
-                .directories
-                .get(&relative)
-                .filter(|entry| entry.signature == current_snapshot.signature)
-                .cloned()
-                .unwrap_or(current_snapshot);
+            let dir_snapshot = self.scan_jsonl_files_in_dir(
+                &directory,
+                existing_cache.directories.get(&relative),
+                populate_summaries,
+            );
 
             next_cache
                 .directories
@@ -206,11 +225,14 @@ impl CodexSessionService {
         let signature = format!("{:016x}", hasher.finish());
         Self::write_inventory_cache(&cache_path, &next_cache)?;
 
-        Ok(CodexSessionInventory {
-            total_sessions,
-            signature,
-            latest_session_modified_ms,
-        })
+        Ok((
+            next_cache,
+            CodexSessionInventory {
+                total_sessions,
+                signature,
+                latest_session_modified_ms,
+            },
+        ))
     }
 
     pub fn list_sessions(
@@ -228,23 +250,29 @@ impl CodexSessionService {
             .filter(|value| !value.is_empty())
             .map(|value| value.to_ascii_lowercase());
 
-        let mut files = Self::collect_jsonl_files(&sessions_dir);
-        files.sort_by_key(|path| Reverse(Self::metadata_time(path)));
+        let (cache, _) = self.refresh_inventory_cache(true)?;
+        let mut cached_summaries: Vec<(u64, CodexSessionSummary)> = cache
+            .directories
+            .values()
+            .flat_map(|directory| {
+                directory.files.values().filter_map(|file| {
+                    file.summary
+                        .clone()
+                        .map(|summary| (file.modified_ms, summary))
+                })
+            })
+            .collect();
+        cached_summaries.sort_by_key(|(modified_ms, _)| Reverse(*modified_ms));
 
         let mut sessions = Vec::new();
-        for path in files {
-            let parsed = match self.parse_session_file(&path, 0) {
-                Ok(parsed) => parsed,
-                Err(_) => continue,
-            };
-
+        for (_, summary) in cached_summaries {
             if let Some(query) = normalized_query.as_ref()
-                && !Self::matches_query(&parsed.summary, query)
+                && !Self::matches_query(&summary, query)
             {
                 continue;
             }
 
-            sessions.push(parsed.summary);
+            sessions.push(summary);
             if sessions.len() >= limit {
                 break;
             }
@@ -340,13 +368,15 @@ impl CodexSessionService {
         }
 
         fs::write(&target_path, format!("{}\n", output_lines.join("\n")))?;
-        self.parse_session_file(&target_path, 0)
-            .map(|parsed| parsed.summary)
+        let summary = self.parse_session_file(&target_path, 0)?.summary;
+        self.invalidate_inventory_cache()?;
+        Ok(summary)
     }
 
     pub fn delete_session(&self, file_path: &Path) -> Result<()> {
         let resolved = self.resolve_session_path(file_path)?;
         fs::remove_file(resolved)?;
+        self.invalidate_inventory_cache()?;
         Ok(())
     }
 
@@ -594,24 +624,6 @@ impl CodexSessionService {
         .any(|value| value.to_ascii_lowercase().contains(query))
     }
 
-    fn collect_jsonl_files(dir: &Path) -> Vec<PathBuf> {
-        let mut files = Vec::new();
-        let Ok(entries) = fs::read_dir(dir) else {
-            return files;
-        };
-
-        for entry in entries.flatten() {
-            let path = entry.path();
-            if path.is_dir() {
-                files.extend(Self::collect_jsonl_files(&path));
-            } else if path.extension().and_then(|value| value.to_str()) == Some("jsonl") {
-                files.push(path);
-            }
-        }
-
-        files
-    }
-
     fn collect_session_dirs(dir: &Path, directories: &mut Vec<PathBuf>) {
         let Ok(entries) = fs::read_dir(dir) else {
             return;
@@ -638,12 +650,18 @@ impl CodexSessionService {
         }
     }
 
-    fn scan_jsonl_files_in_dir(dir: &Path) -> CachedSessionDir {
+    fn scan_jsonl_files_in_dir(
+        &self,
+        dir: &Path,
+        existing_dir: Option<&CachedSessionDir>,
+        populate_summaries: bool,
+    ) -> CachedSessionDir {
         let Ok(entries) = fs::read_dir(dir) else {
             return CachedSessionDir::default();
         };
 
         let mut files = Vec::new();
+        let mut cached_files = BTreeMap::new();
         let mut count = 0usize;
         let mut latest_modified_ms = None;
 
@@ -651,15 +669,38 @@ impl CodexSessionService {
             let path = entry.path();
             if path.extension().and_then(|value| value.to_str()) == Some("jsonl") {
                 let modified_ms = Self::metadata_modified_ms(&path);
+                let size_bytes = Self::metadata_size_bytes(&path);
+                let file_name = path
+                    .file_name()
+                    .and_then(|value| value.to_str())
+                    .unwrap_or_default()
+                    .to_string();
+                let file_signature =
+                    Self::file_metadata_signature(&file_name, modified_ms, size_bytes);
+                let existing_file = existing_dir
+                    .and_then(|directory| directory.files.get(&file_name))
+                    .filter(|file| file.signature == file_signature);
+                let mut summary = existing_file.and_then(|file| file.summary.clone());
+
+                if summary.is_none() && populate_summaries {
+                    summary = self
+                        .parse_session_file(&path, 0)
+                        .ok()
+                        .map(|parsed| parsed.summary);
+                }
+
                 count += 1;
                 latest_modified_ms = latest_modified_ms.max(Some(modified_ms));
-                files.push((
-                    path.file_name()
-                        .and_then(|value| value.to_str())
-                        .unwrap_or_default()
-                        .to_string(),
-                    modified_ms,
-                ));
+                files.push((file_name.clone(), modified_ms, size_bytes));
+                cached_files.insert(
+                    file_name,
+                    CachedSessionFile {
+                        signature: file_signature,
+                        modified_ms,
+                        size_bytes,
+                        summary,
+                    },
+                );
             }
         }
 
@@ -667,16 +708,27 @@ impl CodexSessionService {
 
         let mut hasher = DefaultHasher::new();
         SESSION_INVENTORY_CACHE_VERSION.hash(&mut hasher);
-        for (name, modified_ms) in files {
+        for (name, modified_ms, size_bytes) in files {
             name.hash(&mut hasher);
             modified_ms.hash(&mut hasher);
+            size_bytes.hash(&mut hasher);
         }
 
         CachedSessionDir {
             signature: hasher.finish(),
             session_count: count,
             latest_session_modified_ms: latest_modified_ms,
+            files: cached_files,
         }
+    }
+
+    fn file_metadata_signature(file_name: &str, modified_ms: u64, size_bytes: u64) -> u64 {
+        let mut hasher = DefaultHasher::new();
+        SESSION_INVENTORY_CACHE_VERSION.hash(&mut hasher);
+        file_name.hash(&mut hasher);
+        modified_ms.hash(&mut hasher);
+        size_bytes.hash(&mut hasher);
+        hasher.finish()
     }
 
     fn metadata_modified_ms(path: &Path) -> u64 {
@@ -685,6 +737,12 @@ impl CodexSessionService {
             .and_then(|metadata| metadata.modified().ok())
             .and_then(|modified| modified.duration_since(std::time::UNIX_EPOCH).ok())
             .map(|duration| duration.as_millis() as u64)
+            .unwrap_or(0)
+    }
+
+    fn metadata_size_bytes(path: &Path) -> u64 {
+        fs::metadata(path)
+            .map(|metadata| metadata.len())
             .unwrap_or(0)
     }
 
@@ -999,6 +1057,33 @@ mod tests {
     }
 
     #[test]
+    fn list_sessions_reuses_cached_summary_for_unchanged_file() {
+        let (service, temp_dir) = create_service();
+        let content = r#"{"timestamp":"2026-03-26T06:37:24.013Z","type":"session_meta","payload":{"id":"sess-cache-summary","timestamp":"2026-03-26T06:37:24.013Z","cwd":"D:\\repo","model":"gpt-5"}}
+{"timestamp":"2026-03-26T06:37:50.000Z","type":"response_item","payload":{"type":"message","role":"user","content":[{"type":"input_text","text":"original preview"}]}}
+"#;
+        write_session(&temp_dir, "rollout-cache-summary.jsonl", content);
+
+        let first = service.list_sessions(10, None).unwrap();
+        assert_eq!(first[0].preview.as_deref(), Some("original preview"));
+
+        let mut cache =
+            CodexSessionService::read_inventory_cache(&service.inventory_cache_path()).unwrap();
+        let cached_file = cache
+            .directories
+            .values_mut()
+            .flat_map(|directory| directory.files.values_mut())
+            .next()
+            .unwrap();
+        cached_file.summary.as_mut().unwrap().preview = Some("cached preview".to_string());
+        CodexSessionService::write_inventory_cache(&service.inventory_cache_path(), &cache)
+            .unwrap();
+
+        let second = service.list_sessions(10, None).unwrap();
+        assert_eq!(second[0].preview.as_deref(), Some("cached preview"));
+    }
+
+    #[test]
     fn get_session_detail_clips_messages() {
         let (service, temp_dir) = create_service();
         let path = write_session(
@@ -1068,5 +1153,39 @@ mod tests {
         assert_eq!(second.total_sessions, 2);
         assert_ne!(first.signature, second.signature);
         assert!(second.latest_session_modified_ms.is_some());
+    }
+
+    #[test]
+    #[ignore]
+    fn benchmark_list_sessions_inventory_cache() {
+        for file_count in [300usize, 2_000, 10_000] {
+            let (service, temp_dir) = create_service();
+            for index in 0..file_count {
+                write_session(
+                    &temp_dir,
+                    &format!("rollout-bench-{index}.jsonl"),
+                    &format!(
+                        r#"{{"timestamp":"2026-03-26T06:37:24.013Z","type":"session_meta","payload":{{"id":"sess-bench-{index}","timestamp":"2026-03-26T06:37:24.013Z","cwd":"D:\\repo","model":"gpt-5"}}}}
+{{"timestamp":"2026-03-26T06:37:50.000Z","type":"response_item","payload":{{"type":"message","role":"user","content":[{{"type":"input_text","text":"bench request {index}"}}]}}}}
+{{"timestamp":"2026-03-26T06:38:10.000Z","type":"turn.completed","usage":{{"input_tokens":1200,"output_tokens":240}}}}
+"#
+                    ),
+                );
+            }
+
+            let cold_start = std::time::Instant::now();
+            let cold = service.list_sessions(120, None).unwrap();
+            let cold_elapsed = cold_start.elapsed();
+
+            let warm_start = std::time::Instant::now();
+            let warm = service.list_sessions(120, None).unwrap();
+            let warm_elapsed = warm_start.elapsed();
+
+            assert_eq!(cold.len(), 120.min(file_count));
+            assert_eq!(warm.len(), cold.len());
+            eprintln!(
+                "codex_list_sessions: files={file_count}, cold={cold_elapsed:?}, warm={warm_elapsed:?}"
+            );
+        }
     }
 }
