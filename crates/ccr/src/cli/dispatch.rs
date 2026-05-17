@@ -428,21 +428,27 @@ impl CommandDispatcher {
             }
             Some(CodexAction::SyncHistory {
                 provider,
+                bridge,
                 keep,
                 max_age_days,
+                all_history,
+                include_providers,
                 dry_run,
                 codex_home,
                 action,
             }) => match action {
                 None => {
-                    crate::commands::codex::sync_history::sync_command(
-                        provider.clone(),
-                        *keep,
-                        *max_age_days,
-                        *dry_run,
-                        codex_home.clone(),
-                    )
-                    .await
+                    let args = crate::commands::codex::sync_history::CodexSyncHistoryCommandArgs {
+                        provider: provider.clone(),
+                        bridge: bridge.clone(),
+                        keep: *keep,
+                        max_age_days: *max_age_days,
+                        all_history: *all_history,
+                        include_providers: include_providers.clone(),
+                        dry_run: *dry_run,
+                        codex_home: codex_home.clone(),
+                    };
+                    crate::commands::codex::sync_history::sync_command(args).await
                 }
                 Some(CodexSyncHistoryAction::Status { codex_home }) => {
                     crate::commands::codex::sync_history::status_command(codex_home.clone()).await

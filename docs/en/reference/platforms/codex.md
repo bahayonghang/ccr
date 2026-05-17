@@ -28,4 +28,11 @@ ccr codex profile off
 
 ## History sync note
 
-`ccr codex sync-history ...` still repairs history visibility after provider-namespace changes.
+`ccr codex sync-history ...` still repairs history visibility after provider-namespace changes. When moving between official and third-party profiles, prefer:
+
+```bash
+ccr codex sync-history --bridge official-custom --dry-run
+ccr codex sync-history --bridge official-custom --all-history
+```
+
+Bridge mode repairs list visibility only. If a history contains `encrypted_content`, CCR warns that it cannot re-encrypt it, so continue/compact may still be constrained by the original account/provider encryption boundary.

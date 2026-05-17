@@ -535,6 +535,7 @@ pub struct CleanBackupsArgs {
 #[allow(clippy::unwrap_used)]
 mod tests {
     use super::*;
+    use crate::cli::subcommands::CodexAction;
     use clap::Parser;
 
     #[test]
@@ -653,5 +654,62 @@ mod tests {
             }
             other => panic!("unexpected command: {:?}", other.map(|_| "other")),
         }
+    }
+
+    #[test]
+    fn codex_sync_history_bridge_flags_parse() {
+        let cli = Cli::try_parse_from([
+            "ccr",
+            "codex",
+            "sync-history",
+            "--bridge",
+            "official-custom",
+            "--all-history",
+            "--include-provider",
+            "duckcoding",
+            "--dry-run",
+        ])
+        .unwrap();
+
+        match cli.command {
+            Some(Commands::Codex {
+                action:
+                    Some(CodexAction::SyncHistory {
+                        provider,
+                        bridge,
+                        all_history,
+                        include_providers,
+                        dry_run,
+                        action,
+                        ..
+                    }),
+            }) => {
+                assert!(provider.is_none());
+                assert_eq!(bridge.as_deref(), Some("official-custom"));
+                assert!(all_history);
+                assert_eq!(include_providers, vec!["duckcoding".to_string()]);
+                assert!(dry_run);
+                assert!(action.is_none());
+            }
+            other => panic!("unexpected command: {:?}", other.map(|_| "other")),
+        }
+    }
+
+    #[test]
+    fn codex_sync_history_provider_conflicts_with_bridge() {
+        let err = match Cli::try_parse_from([
+            "ccr",
+            "codex",
+            "sync-history",
+            "--provider",
+            "custom",
+            "--bridge",
+            "official-custom",
+        ]) {
+            Ok(_) => panic!("expected provider/bridge conflict"),
+            Err(err) => err,
+        };
+
+        assert_eq!(err.kind(), clap::error::ErrorKind::ArgumentConflict);
     }
 }

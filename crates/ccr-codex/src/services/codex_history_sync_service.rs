@@ -24,6 +24,8 @@ use tempfile::NamedTempFile;
 use walkdir::WalkDir;
 
 const DEFAULT_PROVIDER: &str = "openai";
+const THIRD_PARTY_PROVIDER: &str = "custom";
+const BRIDGE_OFFICIAL_CUSTOM: &str = "official-custom";
 const DEFAULT_MAX_AGE_DAYS: u64 = 7;
 const BACKUP_NAMESPACE: &str = "codex_sync_history";
 const BACKUP_DIR_NAME: &str = "sync-history";
@@ -63,9 +65,36 @@ pub struct CodexHistorySyncStatus {
     pub current_provider_implicit: bool,
     pub rollout_counts: CodexHistoryProviderBuckets,
     pub recent_rollout_counts: CodexHistoryProviderBuckets,
+    pub encrypted_counts: CodexHistoryProviderBuckets,
     pub sqlite_counts: Option<CodexHistoryProviderBuckets>,
+    pub visibility: Option<CodexHistoryVisibilityDiagnostics>,
     pub backup_root: PathBuf,
     pub backup_summary: CodexHistoryBackupSummary,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct CodexHistoryVisibilityDiagnostics {
+    pub current_visibility_provider: String,
+    pub rollout_threads: usize,
+    pub sqlite_rows_for_rollouts: usize,
+    pub sqlite_missing_rows: usize,
+    pub provider_mismatch_rows: usize,
+    pub preview_column_present: bool,
+    pub preview_empty_rows: usize,
+    pub has_user_event_column_present: bool,
+    pub has_user_event_missing_rows: usize,
+    pub cwd_mismatch_rows: usize,
+    pub exact_cwd_matches: usize,
+    pub normalized_cwd_matches: usize,
+    pub verbatim_extended_cwd_rows: usize,
+    pub workspace_root_candidates: usize,
+    pub workspace_root_matches: usize,
+    pub desktop_first_page_limit: usize,
+    pub desktop_first_page_size: usize,
+    pub desktop_first_page_matching_rows: usize,
+    pub desktop_first_page_limited: bool,
+    pub rank_min: Option<usize>,
+    pub rank_max: Option<usize>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -73,10 +102,15 @@ pub struct CodexHistorySyncResult {
     pub codex_home: PathBuf,
     pub target_provider: String,
     pub previous_provider: String,
+    pub bridge: Option<String>,
+    pub bridge_all_history_recommended: bool,
     pub backup_dir: Option<PathBuf>,
     pub dry_run: bool,
+    pub all_history: bool,
     pub max_age_days: u64,
+    pub full_rollout_counts: CodexHistoryProviderBuckets,
     pub rollout_counts: CodexHistoryProviderBuckets,
+    pub encrypted_counts: CodexHistoryProviderBuckets,
     pub sqlite_counts: Option<CodexHistoryProviderBuckets>,
     pub changed_rollout_files: usize,
     pub added_sidebar_projects: usize,
@@ -97,8 +131,11 @@ pub struct CodexHistoryRestoreResult {
 #[derive(Debug, Clone)]
 pub struct CodexHistorySyncOptions {
     pub provider: Option<String>,
+    pub bridge: Option<String>,
     pub keep_count: usize,
     pub max_age_days: u64,
+    pub all_history: bool,
+    pub include_providers: Vec<String>,
     pub sqlite_busy_timeout: Duration,
     pub dry_run: bool,
 }
@@ -107,8 +144,11 @@ impl Default for CodexHistorySyncOptions {
     fn default() -> Self {
         Self {
             provider: None,
+            bridge: None,
             keep_count: DEFAULT_KEEP_COUNT,
             max_age_days: DEFAULT_MAX_AGE_DAYS,
+            all_history: false,
+            include_providers: Vec::new(),
             sqlite_busy_timeout: SQLITE_BUSY_TIMEOUT,
             dry_run: false,
         }
@@ -165,6 +205,7 @@ struct SessionChange {
 struct SessionScan {
     changes: Vec<SessionChange>,
     provider_counts: CodexHistoryProviderBuckets,
+    encrypted_counts: CodexHistoryProviderBuckets,
     thread_candidates: Vec<RolloutThreadCandidate>,
 }
 
@@ -186,6 +227,8 @@ struct RolloutThreadCandidate {
     path: PathBuf,
     archived: bool,
     updated_at: i64,
+    cwd: String,
+    provider_key: String,
 }
 
 #[derive(Debug, Clone)]
@@ -206,12 +249,40 @@ struct RolloutThreadInsert {
     archived_at: Option<i64>,
     cli_version: String,
     first_user_message: String,
+    preview: String,
     agent_nickname: Option<String>,
     agent_role: Option<String>,
     memory_mode: String,
     model: Option<String>,
     reasoning_effort: Option<String>,
     agent_path: Option<String>,
+}
+
+#[derive(Debug, Clone)]
+struct ThreadDbRow {
+    id: String,
+    model_provider: String,
+    archived: bool,
+    cwd: String,
+    preview: String,
+    has_user_event: bool,
+    updated_at: i64,
+}
+
+#[derive(Debug, Clone)]
+struct SqliteRepairPolicy {
+    broad_provider_repair: bool,
+    allowed_provider_keys: BTreeSet<String>,
+}
+
+#[derive(Debug, Clone)]
+struct SqliteRepairPlan {
+    provider_update_ids: BTreeSet<String>,
+    preview_updates: BTreeMap<String, String>,
+    has_user_event_update_ids: BTreeSet<String>,
+    cwd_updates: BTreeMap<String, String>,
+    missing_inserts: Vec<RolloutThreadInsert>,
+    affected_ids: BTreeSet<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -301,14 +372,18 @@ impl CodexHistorySyncService {
 
     pub fn status(&self) -> Result<CodexHistorySyncStatus> {
         let current = self.current_provider()?;
-        let rollout_counts = self
-            .scan_session_changes("__status_only__", None)?
-            .provider_counts;
+        let scan = self.scan_session_changes("__status_only__", None, None)?;
+        let rollout_counts = scan.provider_counts.clone();
         let recent_cutoff = Utc::now() - chrono::Duration::days(DEFAULT_MAX_AGE_DAYS as i64);
         let recent_rollout_counts = self
-            .scan_session_changes("__status_only__", Some(recent_cutoff))?
+            .scan_session_changes("__status_only__", Some(recent_cutoff), None)?
             .provider_counts;
         let sqlite_counts = self.read_sqlite_provider_counts()?;
+        let visibility = self.read_visibility_diagnostics(
+            &canonical_runtime_provider(&current),
+            &scan.thread_candidates,
+            self.load_workspace_root_keys_for_diagnostics(),
+        )?;
         let backup_summary = self.backup_summary()?;
 
         Ok(CodexHistorySyncStatus {
@@ -317,7 +392,9 @@ impl CodexHistorySyncService {
             current_provider_implicit: current.implicit,
             rollout_counts,
             recent_rollout_counts,
+            encrypted_counts: scan.encrypted_counts,
             sqlite_counts,
+            visibility,
             backup_root: self.backup_root(),
             backup_summary,
         })
@@ -339,24 +416,48 @@ impl CodexHistorySyncService {
             .lock_manager
             .lock_resource(LOCK_RESOURCE, LOCK_TIMEOUT)?;
 
+        if options.provider.is_some() && options.bridge.is_some() {
+            return Err(CcrError::ValidationError(
+                "--provider and --bridge cannot be used together".to_string(),
+            ));
+        }
+
         let current = self.current_provider()?;
+        let bridge = normalize_bridge_option(options.bridge.as_deref())?;
         let explicit_provider = options
             .provider
             .as_deref()
             .map(str::trim)
             .filter(|value| !value.is_empty());
-        if explicit_provider.is_none() && current.implicit {
+        if explicit_provider.is_none() && bridge.is_none() && current.implicit {
             return Err(CcrError::ValidationError(
                 "sync-history requires --provider when config.toml has no root model_provider; use --provider openai or --provider custom".to_string(),
             ));
         }
 
-        let target_provider = explicit_provider
-            .map(str::to_string)
-            .unwrap_or_else(|| current.provider.clone());
-        let cutoff = Utc::now() - chrono::Duration::days(options.max_age_days as i64);
+        let target_provider = if bridge.is_some() {
+            canonical_runtime_provider(&current)
+        } else {
+            explicit_provider
+                .map(str::to_string)
+                .unwrap_or_else(|| current.provider.clone())
+        };
+        let cutoff = if options.all_history {
+            None
+        } else {
+            Some(Utc::now() - chrono::Duration::days(options.max_age_days as i64))
+        };
+        let include_provider_keys = normalize_include_providers(&options.include_providers);
+        let rewrite_provider_keys = (bridge.is_some() || options.all_history)
+            .then(|| bridge_provider_keys(&include_provider_keys));
+        let sqlite_policy = SqliteRepairPolicy {
+            broad_provider_repair: options.all_history || bridge.is_some(),
+            allowed_provider_keys: bridge_provider_keys(&include_provider_keys),
+        };
 
-        let scan = self.scan_session_changes(&target_provider, Some(cutoff))?;
+        let full_scan = self.scan_session_changes("__status_only__", None, None)?;
+        let scan =
+            self.scan_session_changes(&target_provider, cutoff, rewrite_provider_keys.as_ref())?;
         let sidebar_plan = self.prepare_sidebar_sync(
             self.read_sqlite_project_paths(options.sqlite_busy_timeout, &scan.thread_candidates)?,
         )?;
@@ -364,6 +465,7 @@ impl CodexHistorySyncService {
             &target_provider,
             options.sqlite_busy_timeout,
             &scan.thread_candidates,
+            &sqlite_policy,
         )?;
         let sqlite_counts = self.read_sqlite_provider_counts()?;
         if options.dry_run {
@@ -371,10 +473,16 @@ impl CodexHistorySyncService {
                 codex_home: self.codex_home.clone(),
                 target_provider,
                 previous_provider: current.provider,
+                bridge,
+                bridge_all_history_recommended: rewrite_provider_keys.is_some()
+                    && !options.all_history,
                 backup_dir: None,
                 dry_run: true,
+                all_history: options.all_history,
                 max_age_days: options.max_age_days,
+                full_rollout_counts: full_scan.provider_counts,
                 rollout_counts: scan.provider_counts,
+                encrypted_counts: full_scan.encrypted_counts,
                 sqlite_counts,
                 changed_rollout_files: scan.changes.len(),
                 added_sidebar_projects: sidebar_plan.added_projects.len(),
@@ -404,6 +512,7 @@ impl CodexHistorySyncService {
                 &target_provider,
                 options.sqlite_busy_timeout,
                 &scan.thread_candidates,
+                &sqlite_policy,
             )?;
             Ok((apply_result, sqlite_result))
         })();
@@ -415,10 +524,16 @@ impl CodexHistorySyncService {
                     codex_home: self.codex_home.clone(),
                     target_provider,
                     previous_provider: current.provider,
+                    bridge,
+                    bridge_all_history_recommended: rewrite_provider_keys.is_some()
+                        && !options.all_history,
                     backup_dir: Some(backup_dir),
                     dry_run: false,
+                    all_history: options.all_history,
                     max_age_days: options.max_age_days,
+                    full_rollout_counts: full_scan.provider_counts,
                     rollout_counts: scan.provider_counts,
+                    encrypted_counts: full_scan.encrypted_counts,
                     sqlite_counts,
                     changed_rollout_files: apply_result.applied_changes.len(),
                     added_sidebar_projects: sidebar_plan.added_projects.len(),
@@ -552,9 +667,11 @@ impl CodexHistorySyncService {
         &self,
         target_provider: &str,
         cutoff: Option<DateTime<Utc>>,
+        rewrite_provider_keys: Option<&BTreeSet<String>>,
     ) -> Result<SessionScan> {
         let mut changes = Vec::new();
         let mut provider_counts = CodexHistoryProviderBuckets::default();
+        let mut encrypted_counts = CodexHistoryProviderBuckets::default();
         let mut thread_candidates = Vec::new();
 
         for scope in [SessionScope::Sessions, SessionScope::ArchivedSessions] {
@@ -583,13 +700,25 @@ impl CodexHistorySyncService {
                     continue;
                 }
 
-                let current_provider = payload
+                let current_provider_key = payload
                     .get("model_provider")
                     .and_then(|value| value.as_str())
-                    .filter(|value| !value.trim().is_empty())
-                    .unwrap_or("(missing)")
+                    .map(str::trim)
+                    .filter(|value| !value.is_empty())
+                    .unwrap_or_default()
                     .to_string();
+                let current_provider = provider_display_name(&current_provider_key);
                 increment_provider_count(&mut provider_counts, scope, &current_provider);
+                let has_encrypted_content = rollout_has_encrypted_content(&path)?;
+                if has_encrypted_content {
+                    increment_provider_count(&mut encrypted_counts, scope, &current_provider);
+                }
+
+                let cwd = payload
+                    .get("cwd")
+                    .and_then(JsonValue::as_str)
+                    .unwrap_or_default()
+                    .to_string();
 
                 if let Some(id) = payload
                     .get("id")
@@ -601,10 +730,18 @@ impl CodexHistorySyncService {
                         path: path.clone(),
                         archived: matches!(scope, SessionScope::ArchivedSessions),
                         updated_at,
+                        cwd,
+                        provider_key: current_provider_key.clone(),
                     });
                 }
 
-                if target_provider == "__status_only__" || current_provider == target_provider {
+                let rewrite_source_allowed = rewrite_provider_keys
+                    .map(|providers| providers.contains(&current_provider_key))
+                    .unwrap_or(true);
+                if target_provider == "__status_only__"
+                    || current_provider_key == target_provider
+                    || !rewrite_source_allowed
+                {
                     continue;
                 }
 
@@ -646,6 +783,7 @@ impl CodexHistorySyncService {
         Ok(SessionScan {
             changes,
             provider_counts,
+            encrypted_counts,
             thread_candidates,
         })
     }
@@ -722,6 +860,154 @@ impl CodexHistorySyncService {
         }
 
         Ok(Some(counts))
+    }
+
+    fn load_workspace_root_keys_for_diagnostics(&self) -> BTreeSet<String> {
+        let file_path = self.codex_home.join(GLOBAL_STATE_FILE_NAME);
+        let Ok(text) = fs::read_to_string(&file_path) else {
+            return BTreeSet::new();
+        };
+        let Ok(data) = serde_json::from_str::<JsonValue>(&text) else {
+            return BTreeSet::new();
+        };
+        collect_known_sidebar_projects(data.as_object(), &self.codex_home)
+            .into_iter()
+            .filter_map(|path| workspace_root_key(&path))
+            .collect()
+    }
+
+    fn read_visibility_diagnostics(
+        &self,
+        current_visibility_provider: &str,
+        thread_candidates: &[RolloutThreadCandidate],
+        workspace_root_keys: BTreeSet<String>,
+    ) -> Result<Option<CodexHistoryVisibilityDiagnostics>> {
+        let db_path = self.codex_home.join(SQLITE_FILE_NAME);
+        if !db_path.exists() {
+            return Ok(None);
+        }
+
+        let conn = Connection::open(&db_path)
+            .map_err(|err| CcrError::DatabaseError(format!("打开 state_5.sqlite 失败: {}", err)))?;
+        let columns = load_thread_columns(&conn)?;
+        let preview_column_present = columns.contains("preview");
+        let has_user_event_column_present = columns.contains("has_user_event");
+        let rows = load_thread_rows(&conn, &columns)?;
+        let rows_by_id = rows
+            .iter()
+            .map(|row| (row.id.clone(), row))
+            .collect::<BTreeMap<_, _>>();
+
+        let mut sqlite_rows_for_rollouts = 0usize;
+        let mut sqlite_missing_rows = 0usize;
+        let mut provider_mismatch_rows = 0usize;
+        let mut preview_empty_rows = 0usize;
+        let mut has_user_event_missing_rows = 0usize;
+        let mut cwd_mismatch_rows = 0usize;
+        let mut exact_cwd_matches = 0usize;
+        let mut normalized_cwd_matches = 0usize;
+        let mut workspace_root_matches = 0usize;
+
+        for candidate in thread_candidates {
+            let Some(row) = rows_by_id.get(&candidate.id) else {
+                sqlite_missing_rows += 1;
+                continue;
+            };
+            sqlite_rows_for_rollouts += 1;
+
+            if row.model_provider != current_visibility_provider {
+                provider_mismatch_rows += 1;
+            }
+            if preview_column_present && row.preview.trim().is_empty() {
+                preview_empty_rows += 1;
+            }
+            if has_user_event_column_present && !row.has_user_event {
+                has_user_event_missing_rows += 1;
+            }
+
+            let candidate_cwd = candidate.cwd.trim();
+            let row_cwd = row.cwd.trim();
+            if !candidate_cwd.is_empty() || !row_cwd.is_empty() {
+                if candidate_cwd == row_cwd {
+                    exact_cwd_matches += 1;
+                }
+                let candidate_key = workspace_root_key(candidate_cwd);
+                let row_key = workspace_root_key(row_cwd);
+                if candidate_key.is_some() && candidate_key == row_key {
+                    normalized_cwd_matches += 1;
+                } else {
+                    cwd_mismatch_rows += 1;
+                }
+            }
+
+            if let Some(row_key) = workspace_root_key(row_cwd)
+                && workspace_root_keys.contains(&row_key)
+            {
+                workspace_root_matches += 1;
+            }
+        }
+
+        let verbatim_extended_cwd_rows = rows
+            .iter()
+            .filter(|row| row.cwd.trim().starts_with(r"\\?\"))
+            .count();
+        let candidate_ids = thread_candidates
+            .iter()
+            .map(|candidate| candidate.id.as_str())
+            .collect::<BTreeSet<_>>();
+        let mut provider_rows = rows
+            .iter()
+            .filter(|row| !row.archived && row.model_provider == current_visibility_provider)
+            .collect::<Vec<_>>();
+        provider_rows.sort_by(|left, right| {
+            right
+                .updated_at
+                .cmp(&left.updated_at)
+                .then_with(|| left.id.cmp(&right.id))
+        });
+
+        const DESKTOP_FIRST_PAGE_LIMIT: usize = 50;
+        let desktop_first_page_size = provider_rows.len().min(DESKTOP_FIRST_PAGE_LIMIT);
+        let mut desktop_first_page_matching_rows = 0usize;
+        let mut rank_min = None::<usize>;
+        let mut rank_max = None::<usize>;
+        for (index, row) in provider_rows.iter().enumerate() {
+            if !candidate_ids.contains(row.id.as_str()) {
+                continue;
+            }
+            let rank = index + 1;
+            if rank <= DESKTOP_FIRST_PAGE_LIMIT {
+                desktop_first_page_matching_rows += 1;
+            }
+            rank_min = Some(rank_min.map_or(rank, |value| value.min(rank)));
+            rank_max = Some(rank_max.map_or(rank, |value| value.max(rank)));
+        }
+
+        Ok(Some(CodexHistoryVisibilityDiagnostics {
+            current_visibility_provider: current_visibility_provider.to_string(),
+            rollout_threads: thread_candidates.len(),
+            sqlite_rows_for_rollouts,
+            sqlite_missing_rows,
+            provider_mismatch_rows,
+            preview_column_present,
+            preview_empty_rows,
+            has_user_event_column_present,
+            has_user_event_missing_rows,
+            cwd_mismatch_rows,
+            exact_cwd_matches,
+            normalized_cwd_matches,
+            verbatim_extended_cwd_rows,
+            workspace_root_candidates: thread_candidates.len(),
+            workspace_root_matches,
+            desktop_first_page_limit: DESKTOP_FIRST_PAGE_LIMIT,
+            desktop_first_page_size,
+            desktop_first_page_matching_rows,
+            desktop_first_page_limited: rank_max
+                .map(|rank| rank > DESKTOP_FIRST_PAGE_LIMIT)
+                .unwrap_or(false),
+            rank_min,
+            rank_max,
+        }))
     }
 
     fn read_sqlite_project_paths(
@@ -1106,6 +1392,7 @@ impl CodexHistorySyncService {
         target_provider: &str,
         busy_timeout: Duration,
         thread_candidates: &[RolloutThreadCandidate],
+        repair_policy: &SqliteRepairPolicy,
     ) -> Result<SqliteUpdateResult> {
         let db_path = self.codex_home.join(SQLITE_FILE_NAME);
         if !db_path.exists() {
@@ -1122,39 +1409,18 @@ impl CodexHistorySyncService {
             CcrError::DatabaseError(format!("set SQLite busy timeout failed: {}", err))
         })?;
 
-        let candidate_ids: Vec<&str> = thread_candidates
-            .iter()
-            .map(|candidate| candidate.id.as_str())
-            .collect();
-        if candidate_ids.is_empty() {
-            return Ok(SqliteUpdateResult {
-                updated_rows: 0,
-                database_present: true,
-            });
-        }
-
-        let placeholders = std::iter::repeat_n("?", candidate_ids.len())
-            .collect::<Vec<_>>()
-            .join(", ");
-        let sql = format!(
-            "SELECT COUNT(*) FROM threads WHERE COALESCE(model_provider, '') <> ?1 AND id IN ({})",
-            placeholders
-        );
-        let params = std::iter::once(target_provider).chain(candidate_ids.iter().copied());
-        let existing_updates: i64 = conn
-            .query_row(&sql, params_from_iter(params), |row| row.get(0))
-            .map_err(|err| {
-                CcrError::DatabaseError(format!("preview SQLite provider update failed: {}", err))
-            })?;
-
-        let existing_ids = load_existing_thread_ids(&conn)?;
-        let missing_rows = thread_candidates
-            .iter()
-            .filter(|candidate| !existing_ids.contains(&candidate.id))
-            .count();
+        let columns = load_thread_columns(&conn)?;
+        let rows = load_thread_rows(&conn, &columns)?;
+        let plan = plan_sqlite_repairs(
+            target_provider,
+            &columns,
+            &rows,
+            thread_candidates,
+            repair_policy,
+        )?;
 
         Ok(SqliteUpdateResult {
-            updated_rows: existing_updates as usize + missing_rows,
+            updated_rows: plan.affected_ids.len(),
             database_present: true,
         })
     }
@@ -1164,6 +1430,7 @@ impl CodexHistorySyncService {
         target_provider: &str,
         busy_timeout: Duration,
         thread_candidates: &[RolloutThreadCandidate],
+        repair_policy: &SqliteRepairPolicy,
     ) -> Result<SqliteUpdateResult> {
         let db_path = self.codex_home.join(SQLITE_FILE_NAME);
         if !db_path.exists() {
@@ -1181,45 +1448,86 @@ impl CodexHistorySyncService {
         conn.execute_batch("BEGIN IMMEDIATE")
             .map_err(map_sqlite_busy_error)?;
 
-        let candidate_ids: Vec<&str> = thread_candidates
-            .iter()
-            .map(|candidate| candidate.id.as_str())
-            .collect();
-        let mut affected_rows = 0;
-        if !candidate_ids.is_empty() {
-            let placeholders = std::iter::repeat_n("?", candidate_ids.len())
-                .collect::<Vec<_>>()
-                .join(", ");
-            let sql = format!(
-                "UPDATE threads SET model_provider = ?1 WHERE COALESCE(model_provider, '') <> ?1 AND id IN ({})",
-                placeholders
-            );
-            let params = std::iter::once(target_provider).chain(candidate_ids.iter().copied());
-            let updated_rows = conn.execute(&sql, params_from_iter(params));
-            affected_rows = match updated_rows {
-                Ok(updated_rows) => updated_rows,
-                Err(err) => {
-                    let _ = conn.execute_batch("ROLLBACK");
-                    return Err(map_sqlite_busy_error(err));
-                }
-            };
+        let columns = match load_thread_columns(&conn) {
+            Ok(columns) => columns,
+            Err(err) => {
+                let _ = conn.execute_batch("ROLLBACK");
+                return Err(err);
+            }
+        };
+        let rows = match load_thread_rows(&conn, &columns) {
+            Ok(rows) => rows,
+            Err(err) => {
+                let _ = conn.execute_batch("ROLLBACK");
+                return Err(err);
+            }
+        };
+        let plan = match plan_sqlite_repairs(
+            target_provider,
+            &columns,
+            &rows,
+            thread_candidates,
+            repair_policy,
+        ) {
+            Ok(plan) => plan,
+            Err(err) => {
+                let _ = conn.execute_batch("ROLLBACK");
+                return Err(err);
+            }
+        };
+
+        for id in &plan.provider_update_ids {
+            if let Err(err) = conn.execute(
+                "UPDATE threads SET model_provider = ?1 WHERE id = ?2 AND COALESCE(model_provider, '') <> ?1",
+                [target_provider, id.as_str()],
+            ) {
+                let _ = conn.execute_batch("ROLLBACK");
+                return Err(map_sqlite_busy_error(err));
+            }
         }
 
-        let existing_ids = load_existing_thread_ids(&conn)?;
-        for candidate in thread_candidates {
-            if existing_ids.contains(&candidate.id) {
-                continue;
+        for (id, preview) in &plan.preview_updates {
+            if let Err(err) = conn.execute(
+                "UPDATE threads SET preview = ?1 WHERE id = ?2 AND TRIM(COALESCE(preview, '')) = ''",
+                [preview.as_str(), id.as_str()],
+            ) {
+                let _ = conn.execute_batch("ROLLBACK");
+                return Err(map_sqlite_busy_error(err));
             }
+        }
 
-            let record = build_rollout_thread_insert(candidate, target_provider)?;
-            affected_rows += insert_thread_row(&conn, &record)?;
+        for id in &plan.has_user_event_update_ids {
+            if let Err(err) = conn.execute(
+                "UPDATE threads SET has_user_event = 1 WHERE id = ?1 AND COALESCE(has_user_event, 0) = 0",
+                [id.as_str()],
+            ) {
+                let _ = conn.execute_batch("ROLLBACK");
+                return Err(map_sqlite_busy_error(err));
+            }
+        }
+
+        for (id, cwd) in &plan.cwd_updates {
+            if let Err(err) = conn.execute(
+                "UPDATE threads SET cwd = ?1 WHERE id = ?2 AND COALESCE(cwd, '') <> ?1",
+                [cwd.as_str(), id.as_str()],
+            ) {
+                let _ = conn.execute_batch("ROLLBACK");
+                return Err(map_sqlite_busy_error(err));
+            }
+        }
+
+        for record in &plan.missing_inserts {
+            if let Err(err) = insert_thread_row(&conn, record) {
+                let _ = conn.execute_batch("ROLLBACK");
+                return Err(err);
+            }
         }
 
         conn.execute_batch("COMMIT").map_err(|err| {
             CcrError::DatabaseError(format!("提交 SQLite provider 更新失败: {}", err))
         })?;
         Ok(SqliteUpdateResult {
-            updated_rows: affected_rows,
+            updated_rows: plan.affected_ids.len(),
             database_present: true,
         })
     }
@@ -1332,23 +1640,6 @@ fn parse_session_meta_record(
         .cloned()
         .ok_or_else(|| CcrError::ConfigError("session_meta.payload 不是 JSON object".into()))?;
     Ok(Some((parsed, payload)))
-}
-
-fn load_existing_thread_ids(conn: &Connection) -> Result<BTreeSet<String>> {
-    let mut stmt = conn
-        .prepare("SELECT id FROM threads")
-        .map_err(|err| CcrError::DatabaseError(format!("准备读取 thread ids 失败: {}", err)))?;
-    let rows = stmt
-        .query_map([], |row| row.get::<_, String>(0))
-        .map_err(|err| CcrError::DatabaseError(format!("读取 thread ids 失败: {}", err)))?;
-
-    let mut ids = BTreeSet::new();
-    for row in rows {
-        ids.insert(
-            row.map_err(|err| CcrError::DatabaseError(format!("读取 thread id 失败: {}", err)))?,
-        );
-    }
-    Ok(ids)
 }
 
 fn insert_thread_row(conn: &Connection, record: &RolloutThreadInsert) -> Result<usize> {
@@ -1468,6 +1759,13 @@ fn insert_thread_row(conn: &Connection, record: &RolloutThreadInsert) -> Result<
         "first_user_message",
         SqlValue::Text(record.first_user_message.clone()),
     );
+    push_thread_value(
+        &columns,
+        &mut selected_columns,
+        &mut values,
+        "preview",
+        SqlValue::Text(record.preview.clone()),
+    );
     push_thread_value_opt(
         &columns,
         &mut selected_columns,
@@ -1541,6 +1839,171 @@ fn load_thread_columns(conn: &Connection) -> Result<BTreeSet<String>> {
     Ok(columns)
 }
 
+fn load_thread_rows(conn: &Connection, columns: &BTreeSet<String>) -> Result<Vec<ThreadDbRow>> {
+    let model_provider_expr = if columns.contains("model_provider") {
+        "COALESCE(model_provider, '')"
+    } else {
+        "''"
+    };
+    let archived_expr = if columns.contains("archived") {
+        "COALESCE(archived, 0)"
+    } else {
+        "0"
+    };
+    let cwd_expr = if columns.contains("cwd") {
+        "COALESCE(cwd, '')"
+    } else {
+        "''"
+    };
+    let preview_expr = if columns.contains("preview") {
+        "COALESCE(preview, '')"
+    } else {
+        "''"
+    };
+    let has_user_event_expr = if columns.contains("has_user_event") {
+        "COALESCE(has_user_event, 0)"
+    } else {
+        "0"
+    };
+    let updated_at_expr = if columns.contains("updated_at") {
+        "COALESCE(updated_at, 0)"
+    } else {
+        "0"
+    };
+    let sql = format!(
+        "SELECT id, {model_provider_expr}, {archived_expr}, {cwd_expr}, {preview_expr}, {has_user_event_expr}, {updated_at_expr} FROM threads"
+    );
+    let mut stmt = conn
+        .prepare(&sql)
+        .map_err(|err| CcrError::DatabaseError(format!("准备读取 threads 行失败: {}", err)))?;
+    let rows = stmt
+        .query_map([], |row| {
+            Ok(ThreadDbRow {
+                id: row.get(0)?,
+                model_provider: row.get::<_, String>(1)?.trim().to_string(),
+                archived: row.get::<_, i64>(2)? != 0,
+                cwd: row.get(3)?,
+                preview: row.get(4)?,
+                has_user_event: row.get::<_, i64>(5)? != 0,
+                updated_at: row.get(6)?,
+            })
+        })
+        .map_err(|err| CcrError::DatabaseError(format!("查询 threads 行失败: {}", err)))?;
+
+    let mut result = Vec::new();
+    for row in rows {
+        result.push(
+            row.map_err(|err| CcrError::DatabaseError(format!("读取 threads 行失败: {}", err)))?,
+        );
+    }
+    Ok(result)
+}
+
+fn plan_sqlite_repairs(
+    target_provider: &str,
+    columns: &BTreeSet<String>,
+    rows: &[ThreadDbRow],
+    thread_candidates: &[RolloutThreadCandidate],
+    repair_policy: &SqliteRepairPolicy,
+) -> Result<SqliteRepairPlan> {
+    let rows_by_id = rows
+        .iter()
+        .map(|row| (row.id.clone(), row))
+        .collect::<BTreeMap<_, _>>();
+    let mut candidate_records = BTreeMap::<String, (RolloutThreadInsert, String)>::new();
+    for candidate in thread_candidates {
+        candidate_records.insert(
+            candidate.id.clone(),
+            (
+                build_rollout_thread_insert(candidate, target_provider)?,
+                candidate.provider_key.clone(),
+            ),
+        );
+    }
+
+    let mut provider_update_ids = BTreeSet::new();
+    let mut preview_updates = BTreeMap::new();
+    let mut has_user_event_update_ids = BTreeSet::new();
+    let mut cwd_updates = BTreeMap::new();
+    let mut missing_inserts = Vec::new();
+    let mut affected_ids = BTreeSet::new();
+
+    for row in rows {
+        let is_candidate = candidate_records.contains_key(&row.id);
+        let provider_key = row.model_provider.trim();
+        let row_allowed_by_broad_policy = repair_policy.broad_provider_repair
+            && repair_policy.allowed_provider_keys.contains(provider_key);
+        let candidate_allowed_by_broad_policy = candidate_records
+            .get(&row.id)
+            .map(|(_, candidate_provider_key)| {
+                repair_policy
+                    .allowed_provider_keys
+                    .contains(candidate_provider_key.as_str())
+            })
+            .unwrap_or(true);
+        let allowed_provider_update = if repair_policy.broad_provider_repair {
+            row_allowed_by_broad_policy && candidate_allowed_by_broad_policy
+        } else {
+            is_candidate
+        };
+        if allowed_provider_update && provider_key != target_provider {
+            provider_update_ids.insert(row.id.clone());
+            affected_ids.insert(row.id.clone());
+        }
+
+        let Some((record, _)) = candidate_records.get(&row.id) else {
+            continue;
+        };
+        if repair_policy.broad_provider_repair
+            && (!row_allowed_by_broad_policy || !candidate_allowed_by_broad_policy)
+        {
+            continue;
+        }
+        if columns.contains("preview")
+            && row.preview.trim().is_empty()
+            && !record.preview.trim().is_empty()
+        {
+            preview_updates.insert(row.id.clone(), record.preview.clone());
+            affected_ids.insert(row.id.clone());
+        }
+        if columns.contains("has_user_event") && !row.has_user_event && record.has_user_event {
+            has_user_event_update_ids.insert(row.id.clone());
+            affected_ids.insert(row.id.clone());
+        }
+        if columns.contains("cwd")
+            && !record.cwd.trim().is_empty()
+            && row.cwd.trim() != record.cwd.trim()
+        {
+            cwd_updates.insert(row.id.clone(), record.cwd.clone());
+            affected_ids.insert(row.id.clone());
+        }
+    }
+
+    for (id, (record, candidate_provider_key)) in candidate_records {
+        if rows_by_id.contains_key(&id) {
+            continue;
+        }
+        if repair_policy.broad_provider_repair
+            && !repair_policy
+                .allowed_provider_keys
+                .contains(candidate_provider_key.as_str())
+        {
+            continue;
+        }
+        affected_ids.insert(id);
+        missing_inserts.push(record);
+    }
+
+    Ok(SqliteRepairPlan {
+        provider_update_ids,
+        preview_updates,
+        has_user_event_update_ids,
+        cwd_updates,
+        missing_inserts,
+        affected_ids,
+    })
+}
+
 fn push_thread_value(
     available_columns: &BTreeSet<String>,
     selected_columns: &mut Vec<String>,
@@ -1581,6 +2044,7 @@ fn build_rollout_thread_insert(
     let mut approval_mode = String::new();
     let mut cli_version = String::new();
     let mut first_user_message = String::new();
+    let mut goal = String::new();
     let mut memory_mode = "enabled".to_string();
     let mut model = None;
     let mut reasoning_effort = None;
@@ -1626,6 +2090,11 @@ fn build_rollout_thread_insert(
                     .to_string();
                 cli_version = payload
                     .get("cli_version")
+                    .and_then(JsonValue::as_str)
+                    .unwrap_or_default()
+                    .to_string();
+                goal = payload
+                    .get("goal")
                     .and_then(JsonValue::as_str)
                     .unwrap_or_default()
                     .to_string();
@@ -1675,6 +2144,7 @@ fn build_rollout_thread_insert(
     if title.is_empty() {
         title = first_user_message.clone();
     }
+    let preview = choose_thread_preview(&first_user_message, &title, &goal);
 
     let (created_at, updated_at) = extract_rollout_time_bounds(&candidate.path)?;
 
@@ -1695,6 +2165,7 @@ fn build_rollout_thread_insert(
         archived_at: candidate.archived.then_some(candidate.updated_at),
         cli_version,
         first_user_message,
+        preview,
         agent_nickname,
         agent_role,
         memory_mode,
@@ -1799,6 +2270,27 @@ fn extract_first_user_message(value: &JsonValue) -> Option<String> {
     }
 
     None
+}
+
+fn choose_thread_preview(first_user_message: &str, title: &str, goal: &str) -> String {
+    const PREVIEW_MAX_CHARS: usize = 240;
+    for value in [first_user_message, title, goal] {
+        let trimmed = value.trim();
+        if !trimmed.is_empty() {
+            return truncate_chars(trimmed, PREVIEW_MAX_CHARS);
+        }
+    }
+    String::new()
+}
+
+fn truncate_chars(value: &str, max_chars: usize) -> String {
+    let mut chars = value.chars();
+    let truncated = chars.by_ref().take(max_chars).collect::<String>();
+    if chars.next().is_some() {
+        format!("{truncated}…")
+    } else {
+        truncated
+    }
 }
 
 fn increment_provider_count(
@@ -2018,6 +2510,87 @@ fn map_sqlite_busy_error(err: rusqlite::Error) -> CcrError {
             CcrError::DatabaseError(inner.to_string())
         }
         other => CcrError::DatabaseError(other.to_string()),
+    }
+}
+
+fn normalize_bridge_option(bridge: Option<&str>) -> Result<Option<String>> {
+    let Some(bridge) = bridge.map(str::trim).filter(|value| !value.is_empty()) else {
+        return Ok(None);
+    };
+    if bridge != BRIDGE_OFFICIAL_CUSTOM {
+        return Err(CcrError::ValidationError(format!(
+            "unsupported --bridge value '{bridge}'; supported value: {BRIDGE_OFFICIAL_CUSTOM}"
+        )));
+    }
+    Ok(Some(bridge.to_string()))
+}
+
+fn canonical_runtime_provider(current: &CurrentProvider) -> String {
+    if current.provider.trim() == DEFAULT_PROVIDER {
+        DEFAULT_PROVIDER.to_string()
+    } else {
+        THIRD_PARTY_PROVIDER.to_string()
+    }
+}
+
+fn normalize_include_providers(providers: &[String]) -> BTreeSet<String> {
+    providers
+        .iter()
+        .filter_map(|provider| {
+            let trimmed = provider.trim();
+            if trimmed.is_empty() {
+                None
+            } else if trimmed == "(missing)" {
+                Some(String::new())
+            } else {
+                Some(trimmed.to_string())
+            }
+        })
+        .collect()
+}
+
+fn bridge_provider_keys(extra_provider_keys: &BTreeSet<String>) -> BTreeSet<String> {
+    let mut providers = BTreeSet::from([
+        DEFAULT_PROVIDER.to_string(),
+        THIRD_PARTY_PROVIDER.to_string(),
+        String::new(),
+    ]);
+    providers.extend(extra_provider_keys.iter().cloned());
+    providers
+}
+
+fn provider_display_name(provider_key: &str) -> String {
+    if provider_key.trim().is_empty() {
+        "(missing)".to_string()
+    } else {
+        provider_key.to_string()
+    }
+}
+
+fn rollout_has_encrypted_content(path: &Path) -> Result<bool> {
+    let file = File::open(path).map_err(map_io_error)?;
+    let reader = BufReader::new(file);
+    for line_result in reader.lines() {
+        let line = line_result.map_err(map_io_error)?;
+        if !line.contains("encrypted_content") {
+            continue;
+        }
+        match serde_json::from_str::<JsonValue>(&line) {
+            Ok(value) if json_contains_key(&value, "encrypted_content") => return Ok(true),
+            Ok(_) => {}
+            Err(_) => return Ok(true),
+        }
+    }
+    Ok(false)
+}
+
+fn json_contains_key(value: &JsonValue, needle: &str) -> bool {
+    match value {
+        JsonValue::Object(map) => {
+            map.contains_key(needle) || map.values().any(|value| json_contains_key(value, needle))
+        }
+        JsonValue::Array(values) => values.iter().any(|value| json_contains_key(value, needle)),
+        _ => false,
     }
 }
 
@@ -2306,6 +2879,57 @@ mod tests {
         }
     }
 
+    fn write_state_db_with_visibility_columns(
+        codex_home: &Path,
+        rows: &[(&str, &str, bool, &str, &str, bool, i64)],
+    ) {
+        let conn = Connection::open(codex_home.join(SQLITE_FILE_NAME)).unwrap();
+        conn.execute_batch(
+            r#"
+            CREATE TABLE threads (
+                id TEXT PRIMARY KEY,
+                rollout_path TEXT,
+                model_provider TEXT,
+                archived INTEGER NOT NULL DEFAULT 0,
+                cwd TEXT,
+                preview TEXT NOT NULL DEFAULT '',
+                first_user_message TEXT NOT NULL DEFAULT '',
+                has_user_event INTEGER NOT NULL DEFAULT 0,
+                updated_at INTEGER NOT NULL DEFAULT 0
+            );
+            "#,
+        )
+        .unwrap();
+        for (id, provider, archived, cwd, preview, has_user_event, updated_at) in rows {
+            conn.execute(
+                "INSERT INTO threads (id, model_provider, archived, cwd, preview, has_user_event, updated_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+                params![
+                    id,
+                    provider,
+                    if *archived { 1 } else { 0 },
+                    cwd,
+                    preview,
+                    if *has_user_event { 1 } else { 0 },
+                    updated_at
+                ],
+            )
+            .unwrap();
+        }
+    }
+
+    fn write_rollout_with_encrypted_content(path: &Path, id: &str, provider: &str) {
+        let session_at = Utc::now() - chrono::Duration::days(1);
+        let content = format!(
+            "{{\"timestamp\":\"{}\",\"type\":\"session_meta\",\"payload\":{{\"id\":\"{}\",\"cwd\":\"E:\\\\Repo\",\"model_provider\":\"{}\"}}}}\n{{\"timestamp\":\"{}\",\"type\":\"response_item\",\"payload\":{{\"encrypted_content\":\"ciphertext\"}}}}\n{{\"timestamp\":\"{}\",\"type\":\"event_msg\",\"payload\":{{\"type\":\"user_message\",\"message\":\"hello\"}}}}\n",
+            format_test_timestamp(session_at),
+            id,
+            provider,
+            format_test_timestamp(session_at + chrono::Duration::seconds(1)),
+            format_test_timestamp(session_at + chrono::Duration::seconds(2)),
+        );
+        fs::write(path, content).unwrap();
+    }
+
     #[test]
     fn status_uses_implicit_openai_when_root_provider_missing() {
         let dir = tempdir().unwrap();
@@ -2390,6 +3014,165 @@ mod tests {
             )
             .unwrap();
         assert_eq!(provider, "custom");
+    }
+
+    #[test]
+    fn bridge_official_custom_targets_implicit_openai_without_provider() {
+        let dir = tempdir().unwrap();
+        let service = create_service(dir.path());
+        write_config(&service.codex_home, None);
+        write_global_state(
+            &service.codex_home,
+            r#"{"electron-saved-workspace-roots":[],"project-order":[],"thread-workspace-root-hints":{}}"#,
+        );
+        let session_path = service
+            .codex_home
+            .join("sessions/2026/04/09/rollout-bridge-openai.jsonl");
+        write_rollout(&session_path, "thread-bridge-openai", "custom");
+        write_state_db(
+            &service.codex_home,
+            &[("thread-bridge-openai", "custom", false, r"E:\Repo")],
+        );
+
+        let result = service
+            .sync(CodexHistorySyncOptions {
+                bridge: Some(BRIDGE_OFFICIAL_CUSTOM.to_string()),
+                ..Default::default()
+            })
+            .unwrap();
+
+        assert_eq!(result.target_provider, "openai");
+        assert_eq!(result.bridge.as_deref(), Some(BRIDGE_OFFICIAL_CUSTOM));
+        assert_eq!(result.changed_rollout_files, 1);
+        let rollout = fs::read_to_string(&session_path).unwrap();
+        assert!(rollout.contains(r#""model_provider":"openai""#));
+    }
+
+    #[test]
+    fn bridge_official_custom_targets_custom_for_third_party_runtime() {
+        let dir = tempdir().unwrap();
+        let service = create_service(dir.path());
+        write_config(&service.codex_home, Some("custom"));
+        write_global_state(
+            &service.codex_home,
+            r#"{"electron-saved-workspace-roots":[],"project-order":[],"thread-workspace-root-hints":{}}"#,
+        );
+        let session_path = service
+            .codex_home
+            .join("sessions/2026/04/09/rollout-bridge-custom.jsonl");
+        write_rollout(&session_path, "thread-bridge-custom", "openai");
+        write_state_db(
+            &service.codex_home,
+            &[("thread-bridge-custom", "openai", false, r"E:\Repo")],
+        );
+
+        let result = service
+            .sync(CodexHistorySyncOptions {
+                bridge: Some(BRIDGE_OFFICIAL_CUSTOM.to_string()),
+                ..Default::default()
+            })
+            .unwrap();
+
+        assert_eq!(result.target_provider, "custom");
+        assert_eq!(result.changed_rollout_files, 1);
+        let rollout = fs::read_to_string(&session_path).unwrap();
+        assert!(rollout.contains(r#""model_provider":"custom""#));
+    }
+
+    #[test]
+    fn bridge_skips_unknown_rollout_provider_without_include_provider() {
+        let dir = tempdir().unwrap();
+        let service = create_service(dir.path());
+        write_config(&service.codex_home, Some("openai"));
+        write_global_state(
+            &service.codex_home,
+            r#"{"electron-saved-workspace-roots":[],"project-order":[],"thread-workspace-root-hints":{}}"#,
+        );
+        let session_path = service
+            .codex_home
+            .join("sessions/2026/04/09/rollout-unknown.jsonl");
+        write_rollout(&session_path, "thread-unknown", "duckcoding");
+        write_state_db(
+            &service.codex_home,
+            &[("thread-unknown", "duckcoding", false, r"E:\Repo")],
+        );
+
+        let result = service
+            .sync(CodexHistorySyncOptions {
+                bridge: Some(BRIDGE_OFFICIAL_CUSTOM.to_string()),
+                ..Default::default()
+            })
+            .unwrap();
+
+        assert_eq!(result.changed_rollout_files, 0);
+        assert_eq!(result.sqlite_rows_updated, 0);
+        let rollout = fs::read_to_string(&session_path).unwrap();
+        assert!(rollout.contains(r#""model_provider":"duckcoding""#));
+    }
+
+    #[test]
+    fn bridge_skips_unknown_missing_sqlite_row_without_include_provider() {
+        let dir = tempdir().unwrap();
+        let service = create_service(dir.path());
+        write_config(&service.codex_home, Some("openai"));
+        write_global_state(
+            &service.codex_home,
+            r#"{"electron-saved-workspace-roots":[],"project-order":[],"thread-workspace-root-hints":{}}"#,
+        );
+        let session_path = service
+            .codex_home
+            .join("sessions/2026/04/09/rollout-unknown-missing-db.jsonl");
+        write_rollout(&session_path, "thread-unknown-missing-db", "duckcoding");
+        write_state_db(&service.codex_home, &[]);
+
+        let result = service
+            .sync(CodexHistorySyncOptions {
+                bridge: Some(BRIDGE_OFFICIAL_CUSTOM.to_string()),
+                ..Default::default()
+            })
+            .unwrap();
+
+        assert_eq!(result.changed_rollout_files, 0);
+        assert_eq!(result.sqlite_rows_updated, 0);
+        let rollout = fs::read_to_string(&session_path).unwrap();
+        assert!(rollout.contains(r#""model_provider":"duckcoding""#));
+        let conn = Connection::open(service.codex_home.join(SQLITE_FILE_NAME)).unwrap();
+        let row_count: i64 = conn
+            .query_row("SELECT COUNT(*) FROM threads", [], |row| row.get(0))
+            .unwrap();
+        assert_eq!(row_count, 0);
+    }
+
+    #[test]
+    fn bridge_include_provider_allows_unknown_rollout_and_sqlite_provider() {
+        let dir = tempdir().unwrap();
+        let service = create_service(dir.path());
+        write_config(&service.codex_home, Some("openai"));
+        write_global_state(
+            &service.codex_home,
+            r#"{"electron-saved-workspace-roots":[],"project-order":[],"thread-workspace-root-hints":{}}"#,
+        );
+        let session_path = service
+            .codex_home
+            .join("sessions/2026/04/09/rollout-include-provider.jsonl");
+        write_rollout(&session_path, "thread-include-provider", "duckcoding");
+        write_state_db(
+            &service.codex_home,
+            &[("thread-include-provider", "duckcoding", false, r"E:\Repo")],
+        );
+
+        let result = service
+            .sync(CodexHistorySyncOptions {
+                bridge: Some(BRIDGE_OFFICIAL_CUSTOM.to_string()),
+                include_providers: vec!["duckcoding".to_string()],
+                ..Default::default()
+            })
+            .unwrap();
+
+        assert_eq!(result.changed_rollout_files, 1);
+        assert_eq!(result.sqlite_rows_updated, 1);
+        let rollout = fs::read_to_string(&session_path).unwrap();
+        assert!(rollout.contains(r#""model_provider":"openai""#));
     }
 
     #[test]
@@ -2560,6 +3343,116 @@ mod tests {
     }
 
     #[test]
+    fn sync_backfills_missing_sqlite_threads_with_preview_when_column_exists() {
+        let dir = tempdir().unwrap();
+        let service = create_service(dir.path());
+        write_config(&service.codex_home, Some("openai"));
+        write_global_state(
+            &service.codex_home,
+            r#"{"electron-saved-workspace-roots":["E:\\Repo"],"project-order":["E:\\Repo"],"thread-workspace-root-hints":{}}"#,
+        );
+        let session_path = service
+            .codex_home
+            .join("sessions/2026/04/09/rollout-preview-insert.jsonl");
+        write_rollout(&session_path, "thread-preview-insert", "custom");
+        write_state_db_with_visibility_columns(&service.codex_home, &[]);
+
+        let result = service.sync(CodexHistorySyncOptions::default()).unwrap();
+        assert_eq!(result.sqlite_rows_updated, 1);
+
+        let conn = Connection::open(service.codex_home.join(SQLITE_FILE_NAME)).unwrap();
+        let row: (String, i64, String) = conn
+            .query_row(
+                "SELECT preview, has_user_event, first_user_message FROM threads WHERE id = 'thread-preview-insert'",
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+            )
+            .unwrap();
+        assert_eq!(row.0, "hello");
+        assert_eq!(row.1, 1);
+        assert_eq!(row.2, "hello");
+    }
+
+    #[test]
+    fn sync_repairs_existing_sqlite_preview_has_user_event_and_cwd() {
+        let dir = tempdir().unwrap();
+        let service = create_service(dir.path());
+        write_config(&service.codex_home, Some("openai"));
+        write_global_state(
+            &service.codex_home,
+            r#"{"electron-saved-workspace-roots":["E:\\Repo"],"project-order":["E:\\Repo"],"thread-workspace-root-hints":{}}"#,
+        );
+        let session_path = service
+            .codex_home
+            .join("sessions/2026/04/09/rollout-preview-repair.jsonl");
+        write_rollout(&session_path, "thread-preview-repair", "custom");
+        write_state_db_with_visibility_columns(
+            &service.codex_home,
+            &[(
+                "thread-preview-repair",
+                "custom",
+                false,
+                r"\\?\E:\Repo",
+                "",
+                false,
+                1,
+            )],
+        );
+
+        let result = service.sync(CodexHistorySyncOptions::default()).unwrap();
+        assert_eq!(result.sqlite_rows_updated, 1);
+
+        let conn = Connection::open(service.codex_home.join(SQLITE_FILE_NAME)).unwrap();
+        let row: (String, i64, String, String) = conn
+            .query_row(
+                "SELECT model_provider, has_user_event, preview, cwd FROM threads WHERE id = 'thread-preview-repair'",
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
+            )
+            .unwrap();
+        assert_eq!(row.0, "openai");
+        assert_eq!(row.1, 1);
+        assert_eq!(row.2, "hello");
+        assert_eq!(row.3, r"E:\Repo");
+    }
+
+    #[test]
+    fn status_reports_visibility_and_encrypted_diagnostics() {
+        let dir = tempdir().unwrap();
+        let service = create_service(dir.path());
+        write_config(&service.codex_home, Some("openai"));
+        write_global_state(
+            &service.codex_home,
+            r#"{"electron-saved-workspace-roots":["E:\\Repo"],"project-order":["E:\\Repo"],"thread-workspace-root-hints":{}}"#,
+        );
+        let session_path = service
+            .codex_home
+            .join("sessions/2026/04/09/rollout-encrypted.jsonl");
+        write_rollout_with_encrypted_content(&session_path, "thread-encrypted", "custom");
+        write_state_db_with_visibility_columns(
+            &service.codex_home,
+            &[(
+                "thread-encrypted",
+                "custom",
+                false,
+                r"\\?\E:\Repo",
+                "",
+                false,
+                10,
+            )],
+        );
+
+        let status = service.status().unwrap();
+        assert_eq!(status.encrypted_counts.sessions.get("custom"), Some(&1));
+        let visibility = status.visibility.unwrap();
+        assert_eq!(visibility.provider_mismatch_rows, 1);
+        assert_eq!(visibility.preview_empty_rows, 1);
+        assert_eq!(visibility.has_user_event_missing_rows, 1);
+        assert_eq!(visibility.normalized_cwd_matches, 1);
+        assert_eq!(visibility.verbatim_extended_cwd_rows, 1);
+    }
+
+    #[test]
     fn sync_defaults_to_recent_seven_days_only() {
         let dir = tempdir().unwrap();
         let service = create_service(dir.path());
@@ -2675,6 +3568,78 @@ mod tests {
 
         let old_rollout = fs::read_to_string(&old_path).unwrap();
         assert!(old_rollout.contains(r#""model_provider":"openai""#));
+    }
+
+    #[test]
+    fn sync_all_history_covers_old_rollouts_without_touching_unknown_sqlite_rows() {
+        let dir = tempdir().unwrap();
+        let service = create_service(dir.path());
+        write_config(&service.codex_home, Some("openai"));
+        write_global_state(
+            &service.codex_home,
+            r#"{"electron-saved-workspace-roots":[],"project-order":[],"thread-workspace-root-hints":{}}"#,
+        );
+
+        let old_path = service
+            .codex_home
+            .join("sessions/2026/04/09/rollout-old-all-history.jsonl");
+        let old_at = Utc::now() - chrono::Duration::days(20);
+        write_rollout_with_timestamps(
+            &old_path,
+            "thread-old-all-history",
+            "custom",
+            &format_test_timestamp(old_at),
+            &format_test_timestamp(old_at + chrono::Duration::seconds(1)),
+            r"E:\Old",
+        );
+        let unknown_path = service
+            .codex_home
+            .join("sessions/2026/04/09/rollout-old-unknown-all-history.jsonl");
+        write_rollout_with_timestamps(
+            &unknown_path,
+            "thread-old-unknown-all-history",
+            "duckcoding",
+            &format_test_timestamp(old_at),
+            &format_test_timestamp(old_at + chrono::Duration::seconds(1)),
+            r"E:\Unknown",
+        );
+        write_state_db(
+            &service.codex_home,
+            &[
+                ("thread-old-all-history", "custom", false, r"E:\Old"),
+                ("thread-unknown-db", "duckcoding", false, r"E:\Unknown"),
+            ],
+        );
+
+        let result = service
+            .sync(CodexHistorySyncOptions {
+                all_history: true,
+                ..Default::default()
+            })
+            .unwrap();
+        assert!(result.all_history);
+        assert_eq!(result.changed_rollout_files, 1);
+        assert_eq!(result.sqlite_rows_updated, 1);
+
+        let conn = Connection::open(service.codex_home.join(SQLITE_FILE_NAME)).unwrap();
+        let unknown_rollout = fs::read_to_string(&unknown_path).unwrap();
+        assert!(unknown_rollout.contains(r#""model_provider":"duckcoding""#));
+        let rows: Vec<(String, String)> = {
+            let mut stmt = conn
+                .prepare("SELECT id, model_provider FROM threads ORDER BY id")
+                .unwrap();
+            stmt.query_map([], |row| Ok((row.get(0)?, row.get(1)?)))
+                .unwrap()
+                .map(|row| row.unwrap())
+                .collect()
+        };
+        assert_eq!(
+            rows,
+            vec![
+                ("thread-old-all-history".to_string(), "openai".to_string()),
+                ("thread-unknown-db".to_string(), "duckcoding".to_string()),
+            ]
+        );
     }
 
     #[test]

@@ -73,12 +73,20 @@ pub enum CodexAction {
     /// 示例: ccr codex sync-history --provider custom --dry-run
     ///       ccr codex sync-history --provider custom
     ///       ccr codex sync-history --provider openai
+    ///       ccr codex sync-history --bridge official-custom --dry-run
+    ///       ccr codex sync-history --bridge official-custom --all-history
     ///       ccr codex sync-history --max-age-days 30
     ///       ccr codex sync-history status
     SyncHistory {
         /// 显式指定历史同步目标 provider；省略时使用当前 ~/.codex/config.toml 的根级 model_provider
-        #[arg(long)]
+        #[arg(long, conflicts_with = "bridge")]
         provider: Option<String>,
+
+        /// 将 official/custom 历史命名空间桥接到当前 runtime provider。
+        ///
+        /// 当前支持: official-custom。
+        #[arg(long, conflicts_with = "provider")]
+        bridge: Option<String>,
 
         /// 自动保留最近 N 份 sync-history 备份
         #[arg(long)]
@@ -87,6 +95,14 @@ pub enum CodexAction {
         /// 最大导入会话年龄（天）；默认仅同步最近 7 天内的对话
         #[arg(long, default_value_t = 7)]
         max_age_days: u64,
+
+        /// 扫描全部历史；默认同步仍只处理最近 7 天
+        #[arg(long)]
+        all_history: bool,
+
+        /// 在 bridge/all-history SQLite 修复中显式允许额外 provider（可重复）
+        #[arg(long = "include-provider")]
+        include_providers: Vec<String>,
 
         /// Preview rollout / SQLite changes without writing backups or state.
         #[arg(long)]

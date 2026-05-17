@@ -18,7 +18,7 @@ pub use codex_auth_service::{AuthReadSnapshot, CodexAuthService};
 pub use codex_history_sync_service::{
     CodexHistoryBackupPruneResult, CodexHistoryBackupSummary, CodexHistoryProviderBuckets,
     CodexHistoryRestoreResult, CodexHistorySyncOptions, CodexHistorySyncResult,
-    CodexHistorySyncService, CodexHistorySyncStatus,
+    CodexHistorySyncService, CodexHistorySyncStatus, CodexHistoryVisibilityDiagnostics,
 };
 pub use codex_model_provider_store::CodexModelProviderStoreService;
 pub use codex_oauth_token_service::{CodexOAuthTokenService, OAuthRepairOutcome};

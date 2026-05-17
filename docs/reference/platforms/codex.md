@@ -28,7 +28,14 @@ ccr codex profile off
 
 ## 历史同步补充
 
-`ccr codex sync-history ...` 仍用于修复 provider namespace 切换后旧历史不可见的问题。
+`ccr codex sync-history ...` 仍用于修复 provider namespace 切换后旧历史不可见的问题。跨官方/第三方 profile 迁移时优先使用：
+
+```bash
+ccr codex sync-history --bridge official-custom --dry-run
+ccr codex sync-history --bridge official-custom --all-history
+```
+
+bridge 模式只修复列表可见性；如果历史含 `encrypted_content`，CCR 会提示不能重加密，后续 continue/compact 仍可能受原账号/ provider 加密边界限制。
 
 ## 迁移提醒
 

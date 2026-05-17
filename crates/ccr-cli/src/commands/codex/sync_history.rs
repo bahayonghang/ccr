@@ -10,21 +10,30 @@ use ccr_core::core::error::Result;
 use ccr_core::core::logging::ColorOutput;
 use std::path::PathBuf;
 
-pub async fn sync_command(
-    provider: Option<String>,
-    keep: Option<usize>,
-    max_age_days: u64,
-    dry_run: bool,
-    codex_home: Option<String>,
-) -> Result<()> {
-    let service = build_service(codex_home)?;
+#[derive(Debug, Clone)]
+pub struct CodexSyncHistoryCommandArgs {
+    pub provider: Option<String>,
+    pub bridge: Option<String>,
+    pub keep: Option<usize>,
+    pub max_age_days: u64,
+    pub all_history: bool,
+    pub include_providers: Vec<String>,
+    pub dry_run: bool,
+    pub codex_home: Option<String>,
+}
+
+pub async fn sync_command(args: CodexSyncHistoryCommandArgs) -> Result<()> {
+    let service = build_service(args.codex_home)?;
     let mut options = CodexHistorySyncOptions {
-        provider,
-        max_age_days,
-        dry_run,
+        provider: args.provider,
+        bridge: args.bridge,
+        max_age_days: args.max_age_days,
+        all_history: args.all_history,
+        include_providers: args.include_providers,
+        dry_run: args.dry_run,
         ..Default::default()
     };
-    if let Some(keep) = keep {
+    if let Some(keep) = args.keep {
         options.keep_count = keep;
     }
 
@@ -123,6 +132,21 @@ fn print_status(status: &CodexHistorySyncStatus) {
         format_counts(&status.recent_rollout_counts.archived_sessions)
     );
     println!();
+    println!("Encrypted histories (all scanned history):");
+    println!(
+        "  sessions: {}",
+        format_counts(&status.encrypted_counts.sessions)
+    );
+    println!(
+        "  archived_sessions: {}",
+        format_counts(&status.encrypted_counts.archived_sessions)
+    );
+    if count_buckets(&status.encrypted_counts) > 0 {
+        println!(
+            "  warning: list visibility can be repaired, but encrypted content is not decrypted or re-encrypted."
+        );
+    }
+    println!();
     println!("SQLite state:");
     if let Some(sqlite_counts) = &status.sqlite_counts {
         println!("  sessions: {}", format_counts(&sqlite_counts.sessions));
@@ -138,13 +162,81 @@ fn print_status(status: &CodexHistorySyncStatus) {
         "Rollout / SQLite difference: {}",
         format_bucket_diff(&status.rollout_counts, status.sqlite_counts.as_ref())
     );
+    println!();
+    println!("Visibility diagnostics:");
+    if let Some(visibility) = &status.visibility {
+        println!("  provider mismatch: {}", visibility.provider_mismatch_rows);
+        println!("  SQLite row missing: {}", visibility.sqlite_missing_rows);
+        if visibility.preview_column_present {
+            println!("  preview empty: {}", visibility.preview_empty_rows);
+        } else {
+            println!("  preview empty: preview column not present");
+        }
+        println!(
+            "  has_user_event false: {}",
+            visibility.has_user_event_missing_rows
+        );
+        println!("  cwd mismatch: {}", visibility.cwd_mismatch_rows);
+        println!("  exact cwd matches: {}", visibility.exact_cwd_matches);
+        println!(
+            "  normalized cwd matches: {}",
+            visibility.normalized_cwd_matches
+        );
+        println!(
+            "  verbatim \\\\?\\ cwd rows: {}",
+            visibility.verbatim_extended_cwd_rows
+        );
+        println!(
+            "  workspace roots matched: {}/{}",
+            visibility.workspace_root_matches, visibility.workspace_root_candidates
+        );
+        let rank_range = match (visibility.rank_min, visibility.rank_max) {
+            (Some(min), Some(max)) => format!("{min}..{max}"),
+            _ => "(none)".to_string(),
+        };
+        println!("  rank range: {}", rank_range);
+        println!(
+            "  Desktop first page: {}/{} matching rollout row(s) in first {}",
+            visibility.desktop_first_page_matching_rows,
+            visibility.desktop_first_page_size,
+            visibility.desktop_first_page_limit
+        );
+        if visibility.desktop_first_page_limited {
+            println!(
+                "  Desktop first-page limitation: some matching rows are outside the first {} ranked rows.",
+                visibility.desktop_first_page_limit
+            );
+        }
+    } else {
+        println!("  state_5.sqlite not found");
+    }
 }
 
 fn print_sync_result(result: &CodexHistorySyncResult) {
     println!("Provider metadata target: {}", result.target_provider);
+    if let Some(bridge) = &result.bridge {
+        println!("Bridge: {}", bridge);
+        if result.bridge_all_history_recommended {
+            println!(
+                "Bridge note: use --all-history for a full official/custom visibility repair."
+            );
+        }
+    }
     println!("Mode: {}", if result.dry_run { "dry-run" } else { "write" });
-    println!("Max age filter: last {} day(s)", result.max_age_days);
+    if result.all_history {
+        println!("History filter: all history");
+    } else {
+        println!("History filter: last {} day(s)", result.max_age_days);
+    }
     println!("Codex home: {}", result.codex_home.display());
+    println!(
+        "All rollout sessions: {}",
+        format_counts(&result.full_rollout_counts.sessions)
+    );
+    println!(
+        "All rollout archived_sessions: {}",
+        format_counts(&result.full_rollout_counts.archived_sessions)
+    );
     println!(
         "Filtered rollout sessions: {}",
         format_counts(&result.rollout_counts.sessions)
@@ -193,6 +285,22 @@ fn print_sync_result(result: &CodexHistorySyncResult) {
         println!(
             "SQLite rows to update/insert: {} (state_5.sqlite not found)",
             result.sqlite_rows_updated
+        );
+    }
+
+    println!("Encrypted histories (all scanned history):");
+    println!(
+        "  sessions: {}",
+        format_counts(&result.encrypted_counts.sessions)
+    );
+    println!(
+        "  archived_sessions: {}",
+        format_counts(&result.encrypted_counts.archived_sessions)
+    );
+    let encrypted_total = count_buckets(&result.encrypted_counts);
+    if encrypted_total > 0 {
+        println!(
+            "Encrypted content warning: provider bridge can repair list visibility only; encrypted content is not decrypted or re-encrypted, so continue/compact may still fail under another account/provider."
         );
     }
 
@@ -268,6 +376,10 @@ fn format_bucket_diff(
     } else {
         diffs.join("; ")
     }
+}
+
+fn count_buckets(counts: &crate::services::CodexHistoryProviderBuckets) -> usize {
+    counts.sessions.values().sum::<usize>() + counts.archived_sessions.values().sum::<usize>()
 }
 
 fn append_count_diffs(
