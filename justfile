@@ -1177,23 +1177,38 @@ _tinstall-windows:
         $arguments = @()
     } elseif ($null -ne $msiInstaller) {
         $installer = $msiInstaller
-        $arguments = @('/i', $msiInstaller.FullName)
+        $arguments = @('/i', "`"$($msiInstaller.FullName)`"")
     } else {
         throw "未找到 Windows 安装包，请检查 $bundleRoot 下的 nsis/*.exe 或 msi/*.msi"
     }
 
     Write-Host "📦 安装包: $($installer.FullName)" -ForegroundColor Cyan
     if ($installer.Extension -ieq '.msi') {
-        $process = Start-Process -FilePath 'msiexec.exe' -ArgumentList $arguments -Wait -PassThru
+        $filePath = 'msiexec.exe'
     } else {
-        $process = Start-Process -FilePath $installer.FullName -Wait -PassThru
+        $filePath = $installer.FullName
     }
+
+    # Do not use Start-Process -Wait here. PowerShell waits for the whole process tree,
+    # and the Tauri/NSIS installer may auto-launch ccr-desktop.exe after installation,
+    # causing `just tinstall` to hang until the desktop app exits.
+    if ($arguments.Count -gt 0) {
+        $process = Start-Process -FilePath $filePath -ArgumentList $arguments -PassThru
+    } else {
+        $process = Start-Process -FilePath $filePath -PassThru
+    }
+    if ($null -eq $process) {
+        throw "无法启动安装程序: $filePath"
+    }
+    $process.WaitForExit()
+    $process.Refresh()
 
     if ($process.ExitCode -ne 0) {
         throw "安装程序退出码: $($process.ExitCode)"
     }
 
     Write-Host '✅ CCR UI Tauri 应用安装完成' -ForegroundColor Green
+    Write-Host 'ℹ️  如果安装器自动启动了 CCR Desktop，just tinstall 现在不会继续等待该应用退出。' -ForegroundColor DarkCyan
 
 [private]
 _tinstall-linux:
