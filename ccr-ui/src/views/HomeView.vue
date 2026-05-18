@@ -1,36 +1,47 @@
 <template>
   <main class="home-view">
     <div class="home-workbench">
-      <div class="home-workbench__top">
-        <HomeSystemPulse
+      <section class="home-section home-section--hero">
+        <HomeEditorialHero />
+      </section>
+
+      <section class="home-section home-section--status">
+        <HomeStatusBar
           :system-info="systemInfo"
           :installed-cli-count="installedCliCount"
           :runtime-cli-count="runtimeCliCount"
           :overview="overview"
           :usage-loading="usageLoading"
-          :actions="quickActions"
         />
+      </section>
+
+      <section class="home-section home-section--workbench">
+        <HomeQuickActions :actions="quickActions" />
         <HomeActivityStream
           :entries="logs"
           :limit="6"
         />
-      </div>
+      </section>
 
-      <HomePlatformRegistry
-        :platforms="platforms"
-        :cli-versions="cliVersions"
-        :overview="overview"
-        :installed-cli-count="installedCliCount"
-        :runtime-cli-count="runtimeCliCount"
-      />
+      <section class="home-section">
+        <HomePlatformRegistry
+          :platforms="platforms"
+          :cli-versions="cliVersions"
+          :overview="overview"
+          :installed-cli-count="installedCliCount"
+          :runtime-cli-count="runtimeCliCount"
+        />
+      </section>
 
-      <HomeUsageSnapshot
-        :overview="overview"
-        :loading="usageLoading"
-        :error="usageError"
-        :active-days="activeDays"
-        @change-days="loadUsageOverview"
-      />
+      <section class="home-section">
+        <HomeUsageSnapshot
+          :overview="overview"
+          :loading="usageLoading"
+          :error="usageError"
+          :active-days="activeDays"
+          @change-days="loadUsageOverview"
+        />
+      </section>
     </div>
   </main>
 </template>
@@ -40,8 +51,10 @@ import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { storeToRefs } from 'pinia'
 import HomeActivityStream from '@/components/home/HomeActivityStream.vue'
+import HomeEditorialHero from '@/components/home/HomeEditorialHero.vue'
 import HomePlatformRegistry from '@/components/home/HomePlatformRegistry.vue'
-import HomeSystemPulse from '@/components/home/HomeSystemPulse.vue'
+import HomeQuickActions from '@/components/home/HomeQuickActions.vue'
+import HomeStatusBar from '@/components/home/HomeStatusBar.vue'
 import HomeUsageSnapshot from '@/components/home/HomeUsageSnapshot.vue'
 import { getCliVersions, getSystemInfo } from '@/api/runtime/system'
 import { useMonitoringFeed } from '@/composables/useMonitoringFeed'
@@ -275,21 +288,45 @@ const installedCliCount = computed(() => (
 
 .home-workbench {
   display: grid;
-  gap: 1rem;
+  gap: var(--home-section-gap);
   width: min(100%, 1440px);
   margin: 0 auto;
 }
 
-.home-workbench__top {
+.home-section {
+  display: block;
+  min-width: 0;
+}
+
+.home-section--workbench {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(20rem, 0.34fr);
-  gap: 1rem;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: var(--home-section-gap-tight);
   align-items: stretch;
 }
 
-@media (width <= 1180px) {
-  .home-workbench__top {
-    grid-template-columns: 1fr;
+.home-section--workbench > * {
+  min-width: 0;
+}
+
+.home-section--workbench > :nth-child(1) {
+  grid-column: span 7;
+}
+
+.home-section--workbench > :nth-child(2) {
+  grid-column: span 5;
+}
+
+@media (width <= 1080px) {
+  .home-section--workbench > :nth-child(1),
+  .home-section--workbench > :nth-child(2) {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (width <= 960px) {
+  .home-workbench {
+    gap: var(--home-section-gap-tight);
   }
 }
 </style>

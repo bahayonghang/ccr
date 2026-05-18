@@ -1,0 +1,74 @@
+/* ============================================
+   Home Workbench — Editorial Workbench DNA
+   局部 token：home view 与 components/home/* 共享
+   不再硬编码字号 / 间距 / elevation / motion
+   ============================================ */
+
+:root {
+  /* === 字号梯度 === */
+  --home-text-display: clamp(1.625rem, 1.4rem + 0.7vw, 2rem);
+  --home-text-section: 1.0625rem;
+  --home-text-body: 0.875rem;
+  --home-text-meta: 0.6875rem;
+  --home-text-mono: 0.8125rem;
+  --home-text-mono-lg: 1.125rem;
+
+  /* === 行高 === */
+  --home-leading-display: 1.12;
+  --home-leading-body: 1.55;
+
+  /* === 字距 === */
+  --home-tracking-display: -0.022em;
+  --home-tracking-body: -0.014em;
+  --home-tracking-eyebrow: 0.14em;
+
+  /* === 节奏 / 容器 === */
+  --home-section-gap: 1.25rem;
+  --home-section-gap-tight: 0.75rem;
+  --home-card-pad: 1rem;
+  --home-card-pad-tight: 0.75rem;
+  --home-card-radius: 12px;
+  --home-divider-inset: 4rem;
+  --home-divider-anchor-width: 32px;
+
+  /* === Elevation 三档 === */
+  --home-elevation-base: 0 1px 0 rgb(var(--color-border-default-rgb) / 8%);
+  --home-elevation-raised: var(--shadow-sm);
+  --home-elevation-sunk: inset 0 1px 0 rgb(var(--color-border-default-rgb) / 6%);
+
+  /* === 表面 === */
+  --home-surface-base: rgb(var(--color-bg-base-rgb) / 100%);
+  --home-surface-card: rgb(var(--color-bg-elevated-rgb) / 92%);
+  --home-surface-card-hover: rgb(var(--color-bg-surface-rgb) / 98%);
+  --home-surface-sunk: rgb(var(--color-bg-overlay-rgb) / 56%);
+  --home-border-card: rgb(var(--color-border-default-rgb) / 14%);
+  --home-border-card-hover: rgb(var(--color-accent-primary-rgb) / 32%);
+  --home-border-hairline: rgb(var(--color-border-default-rgb) / 18%);
+
+  /* === 微交互合同 === */
+  --home-motion-duration: 140ms;
+  --home-motion-ease: var(--ease-out);
+  --home-motion-lift: -1px;
+  --home-focus-ring:
+    0 0 0 2px var(--color-bg-base),
+    0 0 0 4px rgb(var(--color-accent-primary-rgb) / 56%);
+
+  /* === Mono 数值字形（同源 MapleBright 下用 tabular + 字距/字重制造视觉差） === */
+  --home-mono-feature: 'tnum' 1, 'cv11' 1, 'ss01' 1;
+}
+
+[data-theme='dark'] {
+  --home-surface-card: rgb(var(--color-bg-elevated-rgb) / 78%);
+  --home-surface-card-hover: rgb(var(--color-bg-surface-rgb) / 84%);
+  --home-surface-sunk: rgb(var(--color-bg-overlay-rgb) / 48%);
+  --home-border-card: rgb(var(--color-border-default-rgb) / 16%);
+  --home-border-card-hover: rgb(var(--color-accent-primary-rgb) / 36%);
+  --home-border-hairline: rgb(var(--color-border-default-rgb) / 20%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --home-motion-duration: 0ms;
+    --home-motion-lift: 0px;
+  }
+}

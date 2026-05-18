@@ -308,6 +308,9 @@ macro_rules! generate_handler_common {
         command_exec::execute_ccr_command,
         command_exec::list_ccr_commands,
         command_exec::get_ccr_command_help,
+        command_exec::start_ccr_command_job,
+        command_exec::get_ccr_command_job_status,
+        command_exec::cancel_ccr_command_job,
         // —— 统计扩展 ——
         stats::get_cost_trend,
         stats::get_cost_by_model,

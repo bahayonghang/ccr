@@ -26,6 +26,7 @@
 
 import { invoke } from '@tauri-apps/api/core'
 import { isTauriRuntime } from '@/utils/tauriRuntime'
+import type { CommandJobSnapshot, StartCommandJobResponse } from '@/types'
 
 type UnknownRecord = Record<string, unknown>
 
@@ -663,6 +664,26 @@ export const listCommands = async <T = UnknownRecord>(_client?: string): Promise
 /** 获取命令帮助 */
 export const getCommandHelp = async <T = UnknownRecord>(command: string): Promise<T> => {
   return invoke('get_ccr_command_help', { command })
+}
+
+/** 启动 CCR 命令后台任务 */
+export const startCcrCommandJob = async (
+  payload: { command: string; args?: string[] },
+): Promise<StartCommandJobResponse> => {
+  return invoke('start_ccr_command_job', {
+    command: payload.command,
+    args: payload.args,
+  })
+}
+
+/** 获取 CCR 命令后台任务状态 */
+export const getCcrCommandJobStatus = async (jobId: string): Promise<CommandJobSnapshot> => {
+  return invoke('get_ccr_command_job_status', { jobId })
+}
+
+/** 取消 CCR 命令后台任务 */
+export const cancelCcrCommandJob = async (jobId: string): Promise<CommandJobSnapshot> => {
+  return invoke('cancel_ccr_command_job', { jobId })
 }
 
 /** 启用配置（等价于 switchConfig，直接 invoke 避免同文件 re-export 循环） */

@@ -4,43 +4,34 @@
     data-home-usage-preview
   >
     <header class="home-usage__header">
-      <div>
-        <p class="home-section-kicker">
+      <div class="home-usage__lede">
+        <p class="home-usage__eyebrow">
           {{ t('home.usageSnapshotEyebrow') }}
         </p>
-        <h2>{{ t('home.usageSnapshotTitle') }}</h2>
-        <p>{{ snapshotDescription }}</p>
+        <h2 class="home-usage__title">
+          {{ t('home.usageSnapshotTitle') }}
+        </h2>
+        <p class="home-usage__description">
+          {{ snapshotDescription }}
+        </p>
       </div>
 
-      <div class="home-usage__controls">
-        <div
-          class="home-usage__segmented"
-          :aria-label="t('home.usageRangeLabel')"
+      <div
+        class="home-usage__range"
+        role="group"
+        :aria-label="t('home.usageRangeLabel')"
+      >
+        <button
+          v-for="days in dayOptions"
+          :key="days"
+          type="button"
+          class="home-usage-range-btn"
+          :data-active="activeDays === days ? 'true' : 'false'"
+          :aria-pressed="activeDays === days"
+          @click="$emit('change-days', days)"
         >
-          <button
-            v-for="days in dayOptions"
-            :key="days"
-            type="button"
-            :class="{ 'is-active': activeDays === days }"
-            @click="$emit('change-days', days)"
-          >
-            {{ t(`home.usageRange${days}`) }}
-          </button>
-        </div>
-        <div
-          class="home-usage__segmented"
-          :aria-label="t('home.usageMetricSelectLabel')"
-        >
-          <button
-            v-for="metric in metricOptions"
-            :key="metric"
-            type="button"
-            :class="{ 'is-active': selectedMetric === metric }"
-            @click="selectedMetric = metric"
-          >
-            {{ getMetricLabel(metric) }}
-          </button>
-        </div>
+          {{ t(`home.usageRange${days}`) }}
+        </button>
       </div>
     </header>
 
@@ -51,43 +42,103 @@
           :key="item.label"
           class="home-usage-summary"
         >
-          <span>{{ item.label }}</span>
-          <strong>{{ item.value }}</strong>
+          <span class="home-usage-summary__label">{{ item.label }}</span>
+          <strong class="home-usage-summary__value">{{ item.value }}</strong>
         </div>
       </div>
 
-      <div
-        v-if="hasSeries"
-        class="home-usage__chart"
-        data-home-usage-bars
-      >
-        <span
-          v-for="point in chartPoints"
-          :key="point.key"
-          class="home-usage-bar"
-          :style="{ height: `${point.height}%` }"
-          :title="point.title"
-        />
-      </div>
+      <div class="home-usage__chartArea">
+        <div
+          class="home-usage__metric"
+          role="group"
+          :aria-label="t('home.usageMetricSelectLabel')"
+        >
+          <button
+            v-for="metric in metricOptions"
+            :key="metric"
+            type="button"
+            class="home-usage-metric-btn"
+            :data-active="selectedMetric === metric ? 'true' : 'false'"
+            :aria-pressed="selectedMetric === metric"
+            @click="selectedMetric = metric"
+          >
+            {{ getMetricLabel(metric) }}
+          </button>
+        </div>
 
-      <div
-        v-else
-        class="home-usage__empty"
-      >
-        <SIcon
-          name="BarChart3"
-          size="w-5 h-5"
-        />
-        <div>
-          <h3>{{ emptyTitle }}</h3>
-          <p>{{ emptyDescription }}</p>
+        <div
+          v-if="hasSeries"
+          class="home-usage__chart"
+          :class="{ 'home-usage__chart--ghost': !hasMeaningfulSeries }"
+          data-home-usage-bars
+          @mouseleave="hoveredKey = null"
+        >
+          <span
+            class="home-usage__chart-readout"
+            :data-visible="hoveredPoint ? 'true' : 'false'"
+            aria-live="polite"
+          >
+            <template v-if="hoveredPoint">
+              <span class="home-usage__chart-readout-date">{{ hoveredPoint.dateLabel }}</span>
+              <span class="home-usage__chart-readout-value">{{ hoveredPoint.valueLabel }}</span>
+              <span class="home-usage__chart-readout-metric">{{ getMetricLabel(selectedMetric) }}</span>
+            </template>
+            <template v-else>
+              <span class="home-usage__chart-readout-placeholder">
+                {{ t('home.usageSnapshotDescription') }}
+              </span>
+            </template>
+          </span>
+
+          <div
+            class="home-usage__chart-grid"
+            aria-hidden="true"
+          >
+            <span class="home-usage__chart-grid-line home-usage__chart-grid-line--top" />
+            <span class="home-usage__chart-grid-line home-usage__chart-grid-line--bottom" />
+          </div>
+
+          <div class="home-usage__chart-bars">
+            <button
+              v-for="point in chartPoints"
+              :key="point.key"
+              type="button"
+              class="home-usage-bar"
+              :data-active="hoveredKey === point.key ? 'true' : 'false'"
+              :style="{ height: `${point.height}%` }"
+              :title="point.title"
+              :aria-label="point.title"
+              @mouseenter="hoveredKey = point.key"
+              @focus="hoveredKey = point.key"
+              @blur="hoveredKey = null"
+            />
+          </div>
+        </div>
+
+        <div
+          v-else
+          class="home-usage__empty"
+        >
+          <span class="home-usage__empty-icon">
+            <SIcon
+              name="BarChart3"
+              size="w-5 h-5"
+            />
+          </span>
+          <div>
+            <h3>{{ emptyTitle }}</h3>
+            <p>{{ emptyDescription }}</p>
+          </div>
         </div>
       </div>
     </div>
 
     <footer class="home-usage__footer">
-      <span>{{ lastUpdatedLabel }}</span>
-      <RouterLink to="/usage">
+      <span class="home-usage__last">{{ lastUpdatedLabel }}</span>
+      <RouterLink
+        to="/usage"
+        class="home-usage__report-link"
+      >
         {{ t('home.fullReport') }}
         <SIcon
           name="ArrowRight"
@@ -122,9 +173,10 @@ const { t } = useI18n()
 const dayOptions = [7, 30, 90]
 const metricOptions: HomeUsageMetric[] = ['sessions', 'requests', 'tokens']
 const selectedMetric = ref<HomeUsageMetric>('requests')
+const hoveredKey = ref<string | null>(null)
 
 const formatCompact = (value?: number) => {
-  if (typeof value !== 'number') return '...'
+  if (typeof value !== 'number') return '…'
   return new Intl.NumberFormat(undefined, {
     notation: 'compact',
     maximumFractionDigits: 1,
@@ -142,6 +194,12 @@ const formatDateTime = (value?: string) => {
     hour: '2-digit',
     minute: '2-digit',
   }).format(date)
+}
+
+const formatDateLabel = (value: string) => {
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return value
+  return new Intl.DateTimeFormat(undefined, { month: 'short', day: '2-digit' }).format(date)
 }
 
 const getMetricLabel = (metric: HomeUsageMetric) => {
@@ -197,13 +255,23 @@ const chartPoints = computed(() => {
     const value = values[index] ?? 0
     return {
       key: item.date,
-      height: Math.max(8, Math.round((value / max) * 100)),
-      title: `${item.date}: ${formatCompact(value)} ${getMetricLabel(selectedMetric.value)}`,
+      date: item.date,
+      dateLabel: formatDateLabel(item.date),
+      value,
+      valueLabel: formatCompact(value),
+      height: Math.max(6, Math.round((value / max) * 100)),
+      title: `${formatDateLabel(item.date)} · ${formatCompact(value)} ${getMetricLabel(selectedMetric.value)}`,
     }
   })
 })
 
-const hasSeries = computed(() => chartPoints.value.length > 0 && chartPoints.value.some((point) => point.height > 8))
+const hasSeries = computed(() => chartPoints.value.length > 0)
+const hasMeaningfulSeries = computed(() => chartPoints.value.some((point) => point.value > 0))
+
+const hoveredPoint = computed(() => {
+  if (!hoveredKey.value) return null
+  return chartPoints.value.find((point) => point.key === hoveredKey.value) ?? null
+})
 
 const emptyTitle = computed(() => {
   if (props.error) return t('home.usageSnapshotUnavailableTitle')
@@ -243,11 +311,12 @@ const lastUpdatedLabel = computed(() => (
 <style scoped>
 .home-usage {
   display: grid;
-  gap: 1rem;
-  border: 1px solid rgb(var(--color-border-default-rgb) / 15%);
-  border-radius: 14px;
-  background: rgb(var(--color-bg-elevated-rgb) / 86%);
-  padding: 1rem;
+  gap: 0.85rem;
+  padding: var(--home-card-pad);
+  border: 1px solid var(--home-border-card);
+  border-radius: var(--home-card-radius);
+  background: var(--home-surface-card);
+  box-shadow: var(--home-elevation-raised);
 }
 
 .home-usage__header {
@@ -257,142 +326,319 @@ const lastUpdatedLabel = computed(() => (
   gap: 1rem;
 }
 
-.home-section-kicker {
+.home-usage__lede {
+  display: grid;
+  gap: 0.2rem;
+  min-width: 0;
+  max-width: 48rem;
+}
+
+.home-usage__eyebrow {
+  margin: 0;
   color: var(--color-text-muted);
-  font-size: 0.72rem;
+  font-size: var(--home-text-meta);
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: var(--home-tracking-eyebrow);
   text-transform: uppercase;
 }
 
-.home-usage h2,
-.home-usage h3 {
+.home-usage__title {
   margin: 0;
   color: var(--color-text-primary);
-  font-weight: 650;
-  letter-spacing: 0;
+  font-family: var(--font-brand);
+  font-size: var(--home-text-section);
+  font-weight: 620;
+  letter-spacing: var(--home-tracking-display);
 }
 
-.home-usage h2 {
-  margin-top: 0.25rem;
-  font-size: 1.2rem;
-}
-
-.home-usage__header p:not(.home-section-kicker) {
-  max-width: 46rem;
-  margin: 0.35rem 0 0;
+.home-usage__description {
+  margin: 0;
   color: var(--color-text-secondary);
-  font-size: 0.86rem;
-  line-height: 1.6;
+  font-size: var(--home-text-body);
+  letter-spacing: var(--home-tracking-body);
+  line-height: var(--home-leading-body);
 }
 
-.home-usage__controls {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: 0.5rem;
-}
-
-.home-usage__segmented {
+.home-usage__range {
   display: inline-flex;
-  gap: 1px;
-  overflow: hidden;
-  border: 1px solid rgb(var(--color-border-default-rgb) / 12%);
-  border-radius: 8px;
-  background: rgb(var(--color-border-default-rgb) / 8%);
+  gap: 0.2rem;
+  padding: 0.18rem;
+  border: 1px solid var(--home-border-hairline);
+  border-radius: 999px;
+  background: var(--home-surface-sunk);
+  box-shadow: var(--home-elevation-sunk);
 }
 
-.home-usage__segmented button {
+.home-usage-range-btn {
   border: 0;
-  background: rgb(var(--color-bg-surface-rgb) / 64%);
-  color: var(--color-text-secondary);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--color-text-muted);
   cursor: pointer;
-  font-size: 0.72rem;
+  font-family: var(--font-mono);
+  font-feature-settings: var(--home-mono-feature);
+  font-size: var(--home-text-meta);
   font-weight: 700;
-  padding: 0.44rem 0.58rem;
+  letter-spacing: var(--home-tracking-eyebrow);
+  padding: 0.32rem 0.7rem;
+  text-transform: uppercase;
+  transition:
+    background-color var(--home-motion-duration) var(--home-motion-ease),
+    color var(--home-motion-duration) var(--home-motion-ease);
 }
 
-.home-usage__segmented button.is-active {
+.home-usage-range-btn:hover {
+  color: var(--color-text-primary);
+}
+
+.home-usage-range-btn:focus-visible {
+  outline: 0;
+  box-shadow: var(--home-focus-ring);
+}
+
+.home-usage-range-btn[data-active='true'] {
   background: var(--color-accent-primary);
   color: var(--color-text-inverted);
 }
 
 .home-usage__body {
   display: grid;
-  grid-template-columns: minmax(12rem, 0.35fr) minmax(0, 1fr);
-  gap: 1rem;
+  grid-template-columns: minmax(0, 4fr) minmax(0, 8fr);
+  gap: 0.85rem;
   align-items: stretch;
 }
 
 .home-usage__summary {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.5rem;
+  align-content: start;
+  gap: 0.55rem;
 }
 
 .home-usage-summary {
   display: grid;
-  gap: 0.2rem;
-  border: 1px solid rgb(var(--color-border-default-rgb) / 11%);
+  gap: 0.18rem;
+  padding: 0.7rem 0.8rem;
+  border: 1px solid var(--home-border-hairline);
   border-radius: 10px;
-  background: rgb(var(--color-bg-surface-rgb) / 58%);
-  padding: 0.65rem;
+  background: rgb(var(--color-bg-surface-rgb) / 64%);
 }
 
-.home-usage-summary span {
+.home-usage-summary__label {
   color: var(--color-text-muted);
-  font-size: 0.68rem;
+  font-size: var(--home-text-meta);
   font-weight: 700;
-  letter-spacing: 0.07em;
+  letter-spacing: var(--home-tracking-eyebrow);
   text-transform: uppercase;
 }
 
-.home-usage-summary strong {
+.home-usage-summary__value {
   overflow: hidden;
   color: var(--color-text-primary);
   font-family: var(--font-mono);
-  font-size: 1rem;
+  font-feature-settings: var(--home-mono-feature);
+  font-size: var(--home-text-mono-lg);
+  font-weight: 700;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
+.home-usage__chartArea {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  gap: 0.55rem;
+  min-width: 0;
+}
+
+.home-usage__metric {
+  justify-self: end;
+  display: inline-flex;
+  gap: 0.2rem;
+  padding: 0.18rem;
+  border: 1px solid var(--home-border-hairline);
+  border-radius: 999px;
+  background: var(--home-surface-sunk);
+}
+
+.home-usage-metric-btn {
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  font-size: var(--home-text-meta);
+  font-weight: 700;
+  letter-spacing: var(--home-tracking-eyebrow);
+  padding: 0.28rem 0.6rem;
+  text-transform: uppercase;
+  transition:
+    background-color var(--home-motion-duration) var(--home-motion-ease),
+    color var(--home-motion-duration) var(--home-motion-ease);
+}
+
+.home-usage-metric-btn:hover {
+  color: var(--color-text-primary);
+}
+
+.home-usage-metric-btn:focus-visible {
+  outline: 0;
+  box-shadow: var(--home-focus-ring);
+}
+
+.home-usage-metric-btn[data-active='true'] {
+  background: rgb(var(--color-accent-primary-rgb) / 14%);
+  color: var(--color-accent-primary);
+}
+
 .home-usage__chart {
+  position: relative;
   display: flex;
   align-items: end;
   gap: 0.22rem;
-  min-height: 9.8rem;
-  border: 1px solid rgb(var(--color-border-default-rgb) / 10%);
+  min-height: 10rem;
+  padding: 1.5rem 0.75rem 0.5rem;
+  border: 1px solid var(--home-border-hairline);
   border-radius: 10px;
-  background:
-    linear-gradient(180deg, transparent 0%, rgb(var(--color-border-default-rgb) / 8%) 100%),
-    rgb(var(--color-bg-surface-rgb) / 54%);
-  padding: 0.75rem;
+  background: rgb(var(--color-bg-surface-rgb) / 48%);
+  overflow: hidden;
+}
+
+.home-usage__chart--ghost .home-usage-bar {
+  opacity: 0.34;
+}
+
+.home-usage__chart-readout {
+  position: absolute;
+  top: 0.4rem;
+  left: 0.75rem;
+  right: 0.75rem;
+  display: flex;
+  align-items: baseline;
+  justify-content: flex-start;
+  gap: 0.45rem;
+  color: var(--color-text-muted);
+  font-size: var(--home-text-meta);
+  font-weight: 700;
+  letter-spacing: var(--home-tracking-eyebrow);
+  text-transform: uppercase;
+  pointer-events: none;
+}
+
+.home-usage__chart-readout-placeholder {
+  color: var(--color-text-disabled);
+  font-size: var(--home-text-meta);
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.home-usage__chart-readout-date {
+  color: var(--color-text-muted);
+}
+
+.home-usage__chart-readout-value {
+  color: var(--color-text-primary);
+  font-family: var(--font-mono);
+  font-feature-settings: var(--home-mono-feature);
+  font-size: var(--home-text-mono);
+}
+
+.home-usage__chart-readout-metric {
+  color: var(--color-text-muted);
+}
+
+.home-usage__chart-grid {
+  position: absolute;
+  inset: 1.5rem 0.75rem 0.5rem;
+  pointer-events: none;
+}
+
+.home-usage__chart-grid-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 0;
+  border-top: 1px dashed rgb(var(--color-border-default-rgb) / 16%);
+}
+
+.home-usage__chart-grid-line--top { top: 0; }
+.home-usage__chart-grid-line--bottom { bottom: 0; }
+
+.home-usage__chart-bars {
+  position: relative;
+  display: flex;
+  align-items: end;
+  gap: 0.22rem;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
 }
 
 .home-usage-bar {
+  position: relative;
   flex: 1;
   min-width: 0.22rem;
-  border-radius: 999px 999px 3px 3px;
-  background: linear-gradient(180deg, var(--color-accent-primary), rgb(var(--color-accent-secondary-rgb) / 78%));
-  opacity: 0.86;
+  border: 0;
+  padding: 0;
+  border-radius: 4px 4px 2px 2px;
+  background: linear-gradient(
+    180deg,
+    var(--color-accent-primary) 0%,
+    rgb(var(--color-accent-secondary-rgb) / 72%) 100%
+  );
+  opacity: 0.7;
+  cursor: pointer;
+  transition:
+    opacity var(--home-motion-duration) var(--home-motion-ease),
+    transform var(--home-motion-duration) var(--home-motion-ease);
+}
+
+.home-usage-bar:hover,
+.home-usage-bar[data-active='true'] {
+  opacity: 1;
+}
+
+.home-usage-bar:focus-visible {
+  outline: 0;
+  box-shadow: 0 0 0 2px rgb(var(--color-accent-primary-rgb) / 56%);
+  opacity: 1;
 }
 
 .home-usage__empty {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  min-height: 9.8rem;
-  border: 1px dashed rgb(var(--color-border-default-rgb) / 22%);
+  min-height: 10rem;
+  padding: 1rem;
+  border: 1px dashed var(--home-border-hairline);
   border-radius: 10px;
+}
+
+.home-usage__empty-icon {
+  display: grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 999px;
+  background: rgb(var(--color-bg-surface-rgb) / 70%);
   color: var(--color-text-muted);
-  padding: 0.9rem;
+}
+
+.home-usage__empty h3 {
+  margin: 0;
+  color: var(--color-text-primary);
+  font-size: var(--home-text-body);
+  font-weight: 600;
 }
 
 .home-usage__empty p {
-  margin: 0.2rem 0 0;
+  margin: 0.15rem 0 0;
   color: var(--color-text-secondary);
-  font-size: 0.8rem;
-  line-height: 1.55;
+  font-size: var(--home-text-meta);
+  line-height: var(--home-leading-body);
 }
 
 .home-usage__footer {
@@ -400,36 +646,63 @@ const lastUpdatedLabel = computed(() => (
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  color: var(--color-text-muted);
-  font-size: 0.76rem;
+  padding-top: 0.4rem;
+  border-top: 1px solid var(--home-border-hairline);
 }
 
-.home-usage__footer a {
+.home-usage__last {
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+  font-feature-settings: var(--home-mono-feature);
+  font-size: var(--home-text-meta);
+  font-weight: 700;
+  letter-spacing: var(--home-tracking-eyebrow);
+  text-transform: uppercase;
+}
+
+.home-usage__report-link {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
   color: var(--color-text-secondary);
-  font-weight: 650;
+  font-size: var(--home-text-meta);
+  font-weight: 700;
+  letter-spacing: var(--home-tracking-eyebrow);
+  text-decoration: none;
+  text-transform: uppercase;
+  transition: color var(--home-motion-duration) var(--home-motion-ease),
+    transform var(--home-motion-duration) var(--home-motion-ease);
 }
 
-.home-usage__footer a:hover,
-.home-usage__footer a:focus-visible {
+.home-usage__report-link:hover,
+.home-usage__report-link:focus-visible {
   color: var(--color-accent-primary);
+  transform: translateX(2px);
+  outline: 0;
 }
 
 @media (width <= 960px) {
   .home-usage__header,
   .home-usage__footer {
-    align-items: flex-start;
     flex-direction: column;
-  }
-
-  .home-usage__controls {
-    justify-content: flex-start;
+    align-items: flex-start;
   }
 
   .home-usage__body {
     grid-template-columns: 1fr;
+  }
+
+  .home-usage__metric {
+    justify-self: start;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-usage-bar,
+  .home-usage-range-btn,
+  .home-usage-metric-btn,
+  .home-usage__report-link {
+    transition: none;
   }
 }
 </style>

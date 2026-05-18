@@ -23,6 +23,28 @@ export interface CommandInfo {
   category?: string;
 }
 
+export type CommandJobStatus = 'queued' | 'running' | 'success' | 'failed' | 'cancelled' | 'unavailable';
+
+export interface CommandJobSnapshot {
+  job_id: string;
+  command: string;
+  args: string[];
+  status: CommandJobStatus;
+  started_at: string;
+  finished_at?: string | null;
+  duration_ms?: number | null;
+  exit_code?: number | null;
+  stdout_lines: string[];
+  stderr_lines: string[];
+  system_lines: string[];
+  error?: string | null;
+}
+
+export interface StartCommandJobResponse {
+  job_id: string;
+  snapshot: CommandJobSnapshot;
+}
+
 // ============ Config Management Types ============
 
 export interface ConfigItem {

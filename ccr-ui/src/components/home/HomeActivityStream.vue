@@ -4,42 +4,56 @@
     data-home-activity
   >
     <header class="home-activity__header">
-      <div>
-        <p class="home-section-kicker">
+      <div class="home-activity__lede">
+        <p class="home-activity__eyebrow">
           {{ t('home.activityEyebrow') }}
         </p>
-        <h2>{{ t('home.activityTitle') }}</h2>
+        <h2 class="home-activity__title">
+          {{ t('home.activityTitle') }}
+        </h2>
       </div>
-      <RouterLink
-        to="/monitoring"
-        class="home-activity__link"
+      <div
+        class="home-activity__filters"
+        role="group"
+        :aria-label="t('home.activityTitle')"
       >
-        {{ t('home.activityOpenMonitoring') }}
-        <SIcon
-          name="ArrowRight"
-          size="w-4 h-4"
-        />
-      </RouterLink>
+        <button
+          v-for="option in filterOptions"
+          :key="option.id"
+          type="button"
+          class="home-activity-filter"
+          :data-active="filter === option.id ? 'true' : 'false'"
+          :aria-pressed="filter === option.id"
+          @click="filter = option.id"
+        >
+          {{ option.label }}
+          <span class="home-activity-filter__count">{{ option.count }}</span>
+        </button>
+      </div>
     </header>
 
     <ol
-      v-if="recentEntries.length > 0"
+      v-if="visibleEntries.length > 0"
       class="home-activity__list"
     >
       <li
-        v-for="entry in recentEntries"
+        v-for="entry in visibleEntries"
         :key="entry.id"
         class="home-activity-entry"
         :data-level="entry.level"
       >
-        <span class="home-activity-entry__dot" />
-        <div class="home-activity-entry__body">
-          <div class="home-activity-entry__meta">
-            <span>{{ entry.channel }}</span>
-            <span>{{ formatTime(entry.timestamp) }}</span>
-          </div>
-          <p>{{ entry.message }}</p>
-        </div>
+        <span class="home-activity-entry__time">{{ formatTime(entry.timestamp) }}</span>
+        <span
+          class="home-activity-entry__dot"
+          :aria-label="entry.level"
+        />
+        <span class="home-activity-entry__channel">{{ entry.channel }}</span>
+        <p
+          class="home-activity-entry__message"
+          :title="entry.message"
+        >
+          {{ entry.message }}
+        </p>
       </li>
     </ol>
 
@@ -47,20 +61,45 @@
       v-else
       class="home-activity__empty"
     >
-      <SIcon
-        name="History"
-        size="w-5 h-5"
-      />
-      <div>
+      <span class="home-activity__empty-icon">
+        <SIcon
+          name="History"
+          size="w-5 h-5"
+        />
+      </span>
+      <div class="home-activity__empty-copy">
         <h3>{{ t('home.activityEmptyTitle') }}</h3>
         <p>{{ t('home.activityEmptyDescription') }}</p>
       </div>
+      <RouterLink
+        to="/monitoring"
+        class="home-activity__empty-cta"
+      >
+        {{ t('home.activityViewAll') }}
+        <SIcon
+          name="ArrowRight"
+          size="w-4 h-4"
+        />
+      </RouterLink>
     </div>
+
+    <footer
+      v-if="visibleEntries.length > 0"
+      class="home-activity__footer"
+    >
+      <RouterLink to="/monitoring">
+        {{ t('home.activityOpenMonitoring') }}
+        <SIcon
+          name="ArrowRight"
+          size="w-4 h-4"
+        />
+      </RouterLink>
+    </footer>
   </section>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import SIcon from '@/components/ui/SIcon.vue'
 import type { MonitoringEntry } from '@/composables/useMonitoringFeed'
@@ -74,11 +113,29 @@ const props = withDefaults(defineProps<{
 
 const { t } = useI18n()
 
-const recentEntries = computed(() => {
-  return [...props.entries]
-    .sort((left, right) => new Date(right.timestamp).getTime() - new Date(left.timestamp).getTime())
-    .slice(0, props.limit)
+type FilterId = 'all' | 'warn' | 'error'
+
+const filter = ref<FilterId>('all')
+
+const sortedEntries = computed(() => {
+  return [...props.entries].sort((left, right) => new Date(right.timestamp).getTime() - new Date(left.timestamp).getTime())
 })
+
+const matchesFilter = (entry: MonitoringEntry, id: FilterId) => {
+  if (id === 'all') return true
+  if (id === 'warn') return entry.level === 'warn' || entry.level === 'error'
+  return entry.level === 'error'
+}
+
+const filteredEntries = computed(() => sortedEntries.value.filter((entry) => matchesFilter(entry, filter.value)))
+
+const visibleEntries = computed(() => filteredEntries.value.slice(0, props.limit))
+
+const filterOptions = computed(() => ([
+  { id: 'all' as const, label: t('home.activityFilterAll'), count: sortedEntries.value.length },
+  { id: 'warn' as const, label: t('home.activityFilterWarn'), count: sortedEntries.value.filter((entry) => matchesFilter(entry, 'warn')).length },
+  { id: 'error' as const, label: t('home.activityFilterError'), count: sortedEntries.value.filter((entry) => matchesFilter(entry, 'error')).length },
+]))
 
 const formatTime = (timestamp: string) => {
   const date = new Date(timestamp)
@@ -95,86 +152,143 @@ const formatTime = (timestamp: string) => {
 .home-activity {
   display: flex;
   flex-direction: column;
-  min-height: 100%;
-  gap: 0.9rem;
-  border: 1px solid rgb(var(--color-border-default-rgb) / 15%);
-  border-radius: 14px;
-  background: rgb(var(--color-bg-elevated-rgb) / 86%);
-  padding: 1rem;
+  height: 100%;
+  gap: 0.75rem;
+  padding: var(--home-card-pad);
+  border: 1px solid var(--home-border-card);
+  border-radius: var(--home-card-radius);
+  background: var(--home-surface-card);
+  box-shadow: var(--home-elevation-raised);
 }
 
 .home-activity__header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 1rem;
+  gap: 0.75rem;
 }
 
-.home-section-kicker {
+.home-activity__lede {
+  display: grid;
+  gap: 0.18rem;
+}
+
+.home-activity__eyebrow {
+  margin: 0;
   color: var(--color-text-muted);
-  font-size: 0.72rem;
+  font-size: var(--home-text-meta);
   font-weight: 700;
-  letter-spacing: 0.08em;
+  letter-spacing: var(--home-tracking-eyebrow);
   text-transform: uppercase;
 }
 
-.home-activity h2,
-.home-activity h3 {
+.home-activity__title {
   margin: 0;
   color: var(--color-text-primary);
-  font-weight: 650;
-  letter-spacing: 0;
+  font-family: var(--font-brand);
+  font-size: var(--home-text-section);
+  font-weight: 620;
+  letter-spacing: var(--home-tracking-display);
 }
 
-.home-activity h2 {
-  margin-top: 0.25rem;
-  font-size: 1rem;
+.home-activity__filters {
+  display: inline-flex;
+  gap: 0.25rem;
+  padding: 0.18rem;
+  border: 1px solid var(--home-border-hairline);
+  border-radius: 999px;
+  background: var(--home-surface-sunk);
+  box-shadow: var(--home-elevation-sunk);
 }
 
-.home-activity__link {
+.home-activity-filter {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  color: var(--color-text-secondary);
-  font-size: 0.76rem;
-  font-weight: 650;
-  white-space: nowrap;
+  padding: 0.22rem 0.65rem;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  font-size: var(--home-text-meta);
+  font-weight: 700;
+  letter-spacing: var(--home-tracking-eyebrow);
+  text-transform: uppercase;
+  transition:
+    background-color var(--home-motion-duration) var(--home-motion-ease),
+    color var(--home-motion-duration) var(--home-motion-ease);
 }
 
-.home-activity__link:hover,
-.home-activity__link:focus-visible {
+.home-activity-filter:hover {
+  color: var(--color-text-primary);
+}
+
+.home-activity-filter:focus-visible {
+  outline: 0;
+  box-shadow: var(--home-focus-ring);
+}
+
+.home-activity-filter[data-active='true'] {
+  background: rgb(var(--color-accent-primary-rgb) / 14%);
+  color: var(--color-accent-primary);
+}
+
+.home-activity-filter__count {
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+  font-feature-settings: var(--home-mono-feature);
+  font-size: var(--home-text-meta);
+  font-weight: 700;
+}
+
+.home-activity-filter[data-active='true'] .home-activity-filter__count {
   color: var(--color-accent-primary);
 }
 
 .home-activity__list {
   display: grid;
-  gap: 0.55rem;
+  gap: 0.2rem;
   margin: 0;
   padding: 0;
   list-style: none;
+  flex: 1;
+  min-height: 0;
 }
 
 .home-activity-entry {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: 0.65rem;
-  align-items: flex-start;
-  border: 1px solid rgb(var(--color-border-default-rgb) / 10%);
-  border-radius: 10px;
-  background: rgb(var(--color-bg-surface-rgb) / 64%);
-  padding: 0.65rem;
+  grid-template-columns: auto auto auto minmax(0, 1fr);
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.4rem 0.55rem;
+  border-radius: 8px;
+  transition: background-color var(--home-motion-duration) var(--home-motion-ease);
+}
+
+.home-activity-entry:hover {
+  background: rgb(var(--color-border-default-rgb) / 6%);
+}
+
+.home-activity-entry__time {
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+  font-feature-settings: var(--home-mono-feature);
+  font-size: var(--home-text-meta);
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  min-width: 2.8rem;
 }
 
 .home-activity-entry__dot {
-  width: 0.5rem;
-  height: 0.5rem;
-  margin-top: 0.35rem;
+  width: 0.42rem;
+  height: 0.42rem;
   border-radius: 999px;
-  background: var(--color-accent-info);
+  background: var(--color-info);
 }
 
 .home-activity-entry[data-level='warn'] .home-activity-entry__dot {
-  background: var(--accent-warning);
+  background: var(--color-warning);
 }
 
 .home-activity-entry[data-level='error'] .home-activity-entry__dot {
@@ -182,49 +296,141 @@ const formatTime = (timestamp: string) => {
 }
 
 .home-activity-entry[data-level='debug'] .home-activity-entry__dot {
-  background: var(--color-text-muted);
+  background: var(--color-text-disabled);
 }
 
-.home-activity-entry__body {
-  min-width: 0;
-}
-
-.home-activity-entry__meta {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.7rem;
+.home-activity-entry__channel {
+  padding: 0.1rem 0.4rem;
+  border: 1px solid var(--home-border-hairline);
+  border-radius: 4px;
+  background: rgb(var(--color-bg-surface-rgb) / 68%);
   color: var(--color-text-muted);
   font-family: var(--font-mono);
-  font-size: 0.68rem;
+  font-feature-settings: var(--home-mono-feature);
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
 }
 
-.home-activity-entry p {
-  display: -webkit-box;
+.home-activity-entry__message {
   overflow: hidden;
-  margin: 0.18rem 0 0;
+  margin: 0;
   color: var(--color-text-secondary);
-  font-size: 0.78rem;
-  line-height: 1.5;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
+  font-size: var(--home-text-body);
+  letter-spacing: var(--home-tracking-body);
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .home-activity__empty {
-  display: flex;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
-  gap: 0.75rem;
-  border: 1px dashed rgb(var(--color-border-default-rgb) / 22%);
+  gap: 0.85rem;
+  flex: 1;
+  min-height: 7rem;
+  padding: 1rem;
+  border: 1px dashed var(--home-border-hairline);
   border-radius: 10px;
-  color: var(--color-text-muted);
-  padding: 0.9rem;
 }
 
-.home-activity__empty p {
-  margin: 0.18rem 0 0;
+.home-activity__empty-icon {
+  display: grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 999px;
+  background: rgb(var(--color-bg-surface-rgb) / 70%);
+  color: var(--color-text-muted);
+}
+
+.home-activity__empty-copy h3 {
+  margin: 0;
+  color: var(--color-text-primary);
+  font-size: var(--home-text-body);
+  font-weight: 600;
+}
+
+.home-activity__empty-copy p {
+  margin: 0.15rem 0 0;
   color: var(--color-text-secondary);
-  font-size: 0.78rem;
-  line-height: 1.5;
+  font-size: var(--home-text-meta);
+  line-height: var(--home-leading-body);
+}
+
+.home-activity__empty-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.4rem 0.7rem;
+  border: 1px solid rgb(var(--color-accent-primary-rgb) / 36%);
+  border-radius: 999px;
+  background: rgb(var(--color-accent-primary-rgb) / 8%);
+  color: var(--color-accent-primary);
+  font-size: var(--home-text-meta);
+  font-weight: 700;
+  letter-spacing: var(--home-tracking-eyebrow);
+  text-decoration: none;
+  text-transform: uppercase;
+  transition:
+    background-color var(--home-motion-duration) var(--home-motion-ease),
+    transform var(--home-motion-duration) var(--home-motion-ease);
+}
+
+.home-activity__empty-cta:hover {
+  background: rgb(var(--color-accent-primary-rgb) / 16%);
+  transform: translateX(2px);
+}
+
+.home-activity__empty-cta:focus-visible {
+  outline: 0;
+  box-shadow: var(--home-focus-ring);
+}
+
+.home-activity__footer {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 0.4rem;
+  border-top: 1px solid var(--home-border-hairline);
+}
+
+.home-activity__footer a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--color-text-muted);
+  font-size: var(--home-text-meta);
+  font-weight: 700;
+  letter-spacing: var(--home-tracking-eyebrow);
+  text-decoration: none;
+  text-transform: uppercase;
+  transition: color var(--home-motion-duration) var(--home-motion-ease);
+}
+
+.home-activity__footer a:hover,
+.home-activity__footer a:focus-visible {
+  color: var(--color-accent-primary);
+  outline: 0;
+}
+
+@media (width <= 720px) {
+  .home-activity__header {
+    flex-direction: column;
+  }
+
+  .home-activity__empty {
+    grid-template-columns: 1fr;
+    text-align: left;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-activity-entry,
+  .home-activity-filter,
+  .home-activity__empty-cta,
+  .home-activity__footer a {
+    transition: none;
+  }
 }
 </style>
