@@ -22,6 +22,10 @@ pub enum Action {
     PrevPage,
     /// Go to next page
     NextPage,
+    /// Scroll the selected profile details upward
+    ScrollDetailsUp,
+    /// Scroll the selected profile details downward
+    ScrollDetailsDown,
     /// Apply the currently selected profile (stay in TUI)
     ApplySelected,
     /// Apply the currently selected profile and quit

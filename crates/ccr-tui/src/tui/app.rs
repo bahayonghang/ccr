@@ -131,6 +131,10 @@ pub struct App {
     pub header_area: Cell<Option<Rect>>,
     /// 🖱️ Cached profile list area for mouse hit-testing
     pub list_area: Cell<Option<Rect>>,
+    /// 🖱️ Cached profile detail area for mouse-wheel detail scrolling
+    pub detail_area: Cell<Option<Rect>>,
+    /// Vertical scroll offset for the selected profile detail panel
+    pub profile_detail_scroll: u16,
     /// 异步后台任务执行器
     pub(crate) task_executor: AsyncTaskExecutor,
 }
@@ -201,6 +205,10 @@ impl App {
         self.selected_profile_name = self.selected_profile().map(|profile| profile.name.clone());
     }
 
+    fn reset_profile_detail_scroll(&mut self) {
+        self.profile_detail_scroll = 0;
+    }
+
     fn current_profile_global_index(&self) -> Option<usize> {
         self.current_profiles()
             .iter()
@@ -258,6 +266,7 @@ impl App {
             self.current_page = 0;
             self.selected_index = 0;
             self.selected_profile_name = None;
+            self.reset_profile_detail_scroll();
             return;
         }
 
@@ -287,6 +296,7 @@ impl App {
         self.current_page = page_for_index(preferred_index, self.page_size);
         self.selected_index = super::pagination::index_in_page(preferred_index, self.page_size);
         self.remember_selected_profile();
+        self.reset_profile_detail_scroll();
     }
 
     /// Build the app with Claude + Codex tabs only.
@@ -433,6 +443,8 @@ impl App {
             last_opencode_action: None,
             header_area: Cell::new(None),
             list_area: Cell::new(None),
+            detail_area: Cell::new(None),
+            profile_detail_scroll: 0,
             task_executor,
         };
         app.sync_selection_to_profile_name();
@@ -499,6 +511,8 @@ impl App {
             KeyCode::Tab => Action::NextTab,
             KeyCode::Left | KeyCode::Char('h') => Action::PrevPage,
             KeyCode::Right | KeyCode::Char('l') => Action::NextPage,
+            KeyCode::PageUp => Action::ScrollDetailsUp,
+            KeyCode::PageDown => Action::ScrollDetailsDown,
             KeyCode::Up | KeyCode::Char('k') => Action::SelectPrev,
             KeyCode::Down | KeyCode::Char('j') => Action::SelectNext,
             KeyCode::Enter => Action::ApplyAndQuit,
@@ -519,6 +533,7 @@ impl App {
                     self.remember_selected_profile();
                     self.active_tab = (self.active_tab + 1) % self.tabs.len();
                     self.sync_selection_to_profile_name();
+                    self.reset_profile_detail_scroll();
                     self.notify_tab_activated();
                 }
             }
@@ -527,6 +542,7 @@ impl App {
                     self.remember_selected_profile();
                     self.active_tab = idx;
                     self.sync_selection_to_profile_name();
+                    self.reset_profile_detail_scroll();
                     self.notify_tab_activated();
                 }
             }
@@ -537,6 +553,7 @@ impl App {
                 if self.selected_index != next_index {
                     self.selected_index = next_index;
                     self.remember_selected_profile();
+                    self.reset_profile_detail_scroll();
                 }
             }
             Action::SelectNext => {
@@ -546,6 +563,7 @@ impl App {
                 if self.selected_index != next_index {
                     self.selected_index = next_index;
                     self.remember_selected_profile();
+                    self.reset_profile_detail_scroll();
                 }
             }
             Action::SelectAt(idx) => {
@@ -553,17 +571,26 @@ impl App {
                 if idx < page_len {
                     self.selected_index = idx;
                     self.remember_selected_profile();
+                    self.reset_profile_detail_scroll();
                 }
             }
             Action::PrevPage => {
                 if self.current_page > 0 {
                     self.move_to_page(self.current_page - 1);
+                    self.reset_profile_detail_scroll();
                 }
             }
             Action::NextPage => {
                 if self.current_page < self.total_pages() - 1 {
                     self.move_to_page(self.current_page + 1);
+                    self.reset_profile_detail_scroll();
                 }
+            }
+            Action::ScrollDetailsUp => {
+                self.scroll_profile_details(-3);
+            }
+            Action::ScrollDetailsDown => {
+                self.scroll_profile_details(3);
             }
             Action::ApplySelected => {
                 self.apply_selected();
@@ -578,6 +605,16 @@ impl App {
             }
         }
         Ok(false)
+    }
+
+    fn scroll_profile_details(&mut self, delta: i16) {
+        if delta.is_negative() {
+            self.profile_detail_scroll = self
+                .profile_detail_scroll
+                .saturating_sub(delta.unsigned_abs());
+        } else {
+            self.profile_detail_scroll = self.profile_detail_scroll.saturating_add(delta as u16);
+        }
     }
 
     fn apply_selected(&mut self) {
@@ -854,6 +891,13 @@ pub(crate) fn list_hit_test(area: Rect, mouse_row: u16, page_len: usize) -> Opti
     None
 }
 
+fn point_in_rect(area: Rect, row: u16, column: u16) -> bool {
+    row >= area.y
+        && row < area.y.saturating_add(area.height)
+        && column >= area.x
+        && column < area.x.saturating_add(area.width)
+}
+
 /// Calculate which tab was clicked based on mouse position and header area.
 /// Returns `None` if no tab switch should occur (same tab, single tab, or outside header).
 fn tab_hit_test(
@@ -988,6 +1032,11 @@ impl TuiApp for App {
                 if self.is_opencode_auth_tab() {
                     return self.delegate_mouse_to_opencode(mouse);
                 }
+                if let Some(area) = self.detail_area.get()
+                    && point_in_rect(area, mouse.row, mouse.column)
+                {
+                    return self.dispatch(Action::ScrollDetailsUp);
+                }
                 return self.dispatch(Action::SelectPrev);
             }
 
@@ -1001,6 +1050,11 @@ impl TuiApp for App {
                 }
                 if self.is_opencode_auth_tab() {
                     return self.delegate_mouse_to_opencode(mouse);
+                }
+                if let Some(area) = self.detail_area.get()
+                    && point_in_rect(area, mouse.row, mouse.column)
+                {
+                    return self.dispatch(Action::ScrollDetailsDown);
                 }
                 return self.dispatch(Action::SelectNext);
             }
@@ -1200,6 +1254,8 @@ mod tests {
             last_opencode_action: None,
             header_area: Cell::new(None),
             list_area: Cell::new(None),
+            detail_area: Cell::new(None),
+            profile_detail_scroll: 0,
             task_executor: AsyncTaskExecutor::from_current_or_test(),
         }
     }
@@ -1317,6 +1373,8 @@ mod tests {
             last_opencode_action: None,
             header_area: Cell::new(None),
             list_area: Cell::new(None),
+            detail_area: Cell::new(None),
+            profile_detail_scroll: 0,
             task_executor: AsyncTaskExecutor::from_current_or_test(),
         };
 
@@ -1373,6 +1431,8 @@ mod tests {
             last_opencode_action: None,
             header_area: Cell::new(None),
             list_area: Cell::new(None),
+            detail_area: Cell::new(None),
+            profile_detail_scroll: 0,
             task_executor: AsyncTaskExecutor::from_current_or_test(),
         }
         .with_claude_auth_tab();
@@ -1428,6 +1488,8 @@ mod tests {
             last_opencode_action: None,
             header_area: Cell::new(None),
             list_area: Cell::new(None),
+            detail_area: Cell::new(None),
+            profile_detail_scroll: 0,
             task_executor: AsyncTaskExecutor::from_current_or_test(),
         }
         .with_opencode_auth_tab();

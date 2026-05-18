@@ -15,7 +15,10 @@ use ratatui::{
     style::{Modifier, Style},
     symbols,
     text::{Line, Span},
-    widgets::{Block, Borders, List, ListItem, Padding, Paragraph, Tabs, Wrap},
+    widgets::{
+        Block, Borders, List, ListItem, Padding, Paragraph, Scrollbar, ScrollbarOrientation,
+        ScrollbarState, Tabs, Wrap,
+    },
 };
 
 // ═══════════════════════════════════════════════════════════
@@ -29,6 +32,7 @@ pub fn draw(f: &mut Frame, app: &mut App) {
 
     let area = f.area();
     let mode = theme::viewport_mode(area.width, area.height);
+    app.detail_area.set(None);
 
     let chunks = Layout::default()
         .direction(Direction::Vertical)
@@ -212,6 +216,20 @@ fn profile_list_rail_layout(area: Rect) -> (Rect, Rect) {
     (chunks[0], chunks[1])
 }
 
+fn compact_profile_workspace_layout(area: Rect) -> Option<(Rect, Rect)> {
+    if area.height < 12 {
+        return None;
+    }
+
+    let context_height = area.height.saturating_sub(6).clamp(6, 10);
+    let chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([Constraint::Min(5), Constraint::Length(context_height)])
+        .split(area);
+
+    Some((chunks[0], chunks[1]))
+}
+
 /// Calculate column widths for profile list (responsive to terminal width)
 /// Returns (name_width, desc_width) — desc_width is 0 when terminal is narrow
 fn column_widths(area_width: u16) -> (usize, usize) {
@@ -326,6 +344,7 @@ fn profile_list_row(
 /// Render header with dynamic platform tabs
 fn render_header(f: &mut Frame, app: &App, area: Rect) {
     // Build tab titles dynamically from loaded platforms
+    let compact_tabs = area.width < 100;
     let tab_titles: Vec<Line> = app
         .tabs
         .iter()
@@ -333,6 +352,11 @@ fn render_header(f: &mut Frame, app: &App, area: Rect) {
         .map(|(i, tab)| {
             let is_active = i == app.active_tab;
             let indicator = if is_active { "▸ " } else { "  " };
+            let label = if compact_tabs {
+                compact_tab_label(&tab.label)
+            } else {
+                tab.label.as_str()
+            };
             let style = if is_active {
                 theme::platform_style_for(tab.platform)
             } else {
@@ -341,7 +365,7 @@ fn render_header(f: &mut Frame, app: &App, area: Rect) {
             Line::from(vec![
                 Span::styled(indicator, style),
                 Span::raw(format!("{} ", tab.platform.icon())),
-                Span::styled(&tab.label, style),
+                Span::styled(label.to_string(), style),
             ])
         })
         .collect();
@@ -378,6 +402,17 @@ fn render_header(f: &mut Frame, app: &App, area: Rect) {
     f.render_widget(tabs, area);
 }
 
+fn compact_tab_label(label: &str) -> &str {
+    match label {
+        "Claude Auth" => "Auth",
+        "Claude Code" => "Claude",
+        "Codex Auth" => "CxAuth",
+        "OpenCode Auth" => "Open",
+        "Codex Profile" => "Codex",
+        _ => label,
+    }
+}
+
 // ═══════════════════════════════════════════════════════════
 // Profile list rendering
 // ═══════════════════════════════════════════════════════════
@@ -385,7 +420,12 @@ fn render_header(f: &mut Frame, app: &App, area: Rect) {
 fn render_profile_workspace(f: &mut Frame, app: &mut App, area: Rect, mode: theme::ViewportMode) {
     match mode {
         theme::ViewportMode::Compact => {
-            render_profile_list_panel(f, app, area);
+            if let Some((list_area, context_area)) = compact_profile_workspace_layout(area) {
+                render_profile_list_panel(f, app, list_area);
+                render_profile_context_workspace(f, app, context_area, mode);
+            } else {
+                render_profile_list_panel(f, app, area);
+            }
         }
         theme::ViewportMode::Standard => {
             let detail_height = area.height.saturating_sub(8).clamp(11, 14);
@@ -520,7 +560,7 @@ fn render_profile_meta_panel(f: &mut Frame, app: &App, area: Rect) {
 
 fn render_profile_context_workspace(
     f: &mut Frame,
-    app: &App,
+    app: &mut App,
     area: Rect,
     mode: theme::ViewportMode,
 ) {
@@ -557,6 +597,8 @@ fn render_profile_context_workspace(
         f.render_widget(paragraph, area);
         return;
     };
+    let profile_name = profile.name.clone();
+    let is_current = profile.is_current;
 
     if mode == theme::ViewportMode::Wide {
         let chunks = Layout::default()
@@ -568,35 +610,27 @@ fn render_profile_context_workspace(
             ])
             .split(area);
 
-        render_profile_summary_block(
-            f,
-            app,
-            chunks[0],
-            profile.name.as_str(),
-            config,
-            profile.is_current,
-        );
+        render_profile_summary_block(f, app, chunks[0], profile_name.as_str(), config, is_current);
         render_profile_details(f, app, chunks[1]);
-        render_profile_status_strip(f, app, chunks[2], profile.name.as_str());
+        render_profile_status_strip(f, app, chunks[2], profile_name.as_str());
     } else {
+        let summary_height = if mode == theme::ViewportMode::Compact {
+            5
+        } else {
+            7
+        };
         let chunks = Layout::default()
             .direction(Direction::Vertical)
-            .constraints([Constraint::Length(7), Constraint::Min(0)])
+            .constraints([Constraint::Length(summary_height), Constraint::Min(0)])
             .split(area);
 
-        render_profile_summary_block(
-            f,
-            app,
-            chunks[0],
-            profile.name.as_str(),
-            config,
-            profile.is_current,
-        );
+        render_profile_summary_block(f, app, chunks[0], profile_name.as_str(), config, is_current);
         render_profile_details(f, app, chunks[1]);
     }
 }
 
-fn render_profile_details(f: &mut Frame, app: &App, area: Rect) {
+fn render_profile_details(f: &mut Frame, app: &mut App, area: Rect) {
+    app.detail_area.set(Some(area));
     let platform = app.current_platform();
     let accent = theme::platform_color_for(platform);
     let block = Block::default()
@@ -633,10 +667,33 @@ fn render_profile_details(f: &mut Frame, app: &App, area: Rect) {
         generic_profile_detail_lines(profile.name.as_str(), config, profile.is_current)
     };
 
-    let paragraph = Paragraph::new(lines)
+    let inner_height = Block::default()
+        .borders(Borders::ALL)
+        .padding(Padding::horizontal(1))
+        .inner(area)
+        .height as usize;
+    let max_scroll = lines.len().saturating_sub(inner_height);
+    let scroll = (app.profile_detail_scroll as usize).min(max_scroll);
+    app.profile_detail_scroll = scroll as u16;
+
+    let paragraph = Paragraph::new(lines.clone())
         .block(block)
+        .scroll((scroll as u16, 0))
         .wrap(Wrap { trim: false });
     f.render_widget(paragraph, area);
+
+    if max_scroll > 0 {
+        let mut scrollbar_state = ScrollbarState::new(lines.len()).position(scroll);
+        f.render_stateful_widget(
+            Scrollbar::new(ScrollbarOrientation::VerticalRight)
+                .begin_symbol(Some("↑"))
+                .end_symbol(Some("↓"))
+                .thumb_symbol("█")
+                .track_symbol(Some("│")),
+            area,
+            &mut scrollbar_state,
+        );
+    }
 }
 
 fn render_profile_summary_block(
@@ -1204,8 +1261,9 @@ fn footer_text(app: &App) -> String {
         ""
     };
 
-    let shortcuts =
-        format!("Tab switch  │  {page_hint}↑↓/jk select  │  Enter apply  │  r reload  │  q quit");
+    let shortcuts = format!(
+        "Tab switch  │  {page_hint}↑↓/jk select  │  PgUp/PgDn details  │  Enter apply  │  r reload  │  q quit"
+    );
 
     if let Some(toast) = app.toasts.active() {
         format!("{}  │  {}", toast.message, shortcuts)
@@ -1306,6 +1364,8 @@ mod tests {
             last_opencode_action: None,
             header_area: Cell::new(None),
             list_area: Cell::new(None),
+            detail_area: Cell::new(None),
+            profile_detail_scroll: 0,
             task_executor: crate::tui::runtime::AsyncTaskExecutor::from_current_or_test(),
         }
     }
@@ -1332,6 +1392,18 @@ mod tests {
 
         assert_eq!(list_area.height, 14);
         assert_eq!(meta_area.height, 6);
+    }
+
+    #[test]
+    fn compact_profile_workspace_preserves_a_context_drawer() {
+        let Some((list_area, context_area)) =
+            compact_profile_workspace_layout(Rect::new(0, 0, 80, 12))
+        else {
+            panic!("80x12 compact profile workspace should include a context drawer");
+        };
+
+        assert_eq!(list_area.height, 6);
+        assert_eq!(context_area.height, 6);
     }
 
     #[test]
@@ -1454,16 +1526,74 @@ mod tests {
             Some("https://2capi.com/compatible-mode/openai/v1/chat/completions".to_string());
         config.model = Some("gpt-5.4-mini".to_string());
 
-        let app = sample_profile_app(profile, config);
+        let mut app = sample_profile_app(profile, config);
         let mut terminal = Terminal::new(TestBackend::new(32, 14)).unwrap();
 
         terminal
-            .draw(|frame| render_profile_details(frame, &app, frame.area()))
+            .draw(|frame| render_profile_details(frame, &mut app, frame.area()))
             .unwrap();
 
         let rendered = buffer_text(terminal.backend());
         assert!(rendered.contains("https://2capi.com"), "{rendered}");
         assert!(rendered.contains("compatible"), "{rendered}");
         assert!(rendered.contains("chat/complet"), "{rendered}");
+    }
+
+    #[test]
+    fn compact_codex_profile_draw_keeps_focus_context_and_scroll_hint_visible() {
+        let profile = ProfileItem {
+            name: "oneapi".to_string(),
+            description: Some("oneapi商业".to_string()),
+            is_current: false,
+        };
+        let mut config = ProfileConfig::new();
+        config.description = Some("oneapi商业".to_string());
+        config.provider = Some("oneapi".to_string());
+        config.provider_type = Some("openai".to_string());
+        config.base_url = Some("https://oneapi.example.com/v1".to_string());
+        config.model = Some("gpt-5.5".to_string());
+
+        let mut app = sample_profile_app(profile, config);
+        app.tabs[0].platform = Platform::Codex;
+        app.tabs[0].label = "Codex Profile".to_string();
+        app.selected_profile_name = Some("oneapi".to_string());
+
+        let mut terminal = Terminal::new(TestBackend::new(80, 20)).unwrap();
+        terminal.draw(|frame| draw(frame, &mut app)).unwrap();
+
+        let rendered = buffer_text(terminal.backend());
+        assert!(rendered.contains("Codex Profiles"), "{rendered}");
+        assert!(rendered.contains("Focus"), "{rendered}");
+        assert!(rendered.contains("Context"), "{rendered}");
+        assert!(rendered.contains("PgUp/PgDn details"), "{rendered}");
+    }
+
+    #[test]
+    fn profile_details_clamp_oversized_scroll_offsets() {
+        let profile = ProfileItem {
+            name: "long-codex".to_string(),
+            description: Some("long detail profile".to_string()),
+            is_current: false,
+        };
+        let mut config = ProfileConfig::new();
+        config.description = Some("long detail profile".to_string());
+        config.provider = Some("provider".to_string());
+        config.provider_type = Some("openai".to_string());
+        config.base_url = Some("https://example.com/very/long/path/for/rendering".to_string());
+        config.model = Some("gpt-5.5".to_string());
+        config.small_fast_model = Some("gpt-5.4-mini".to_string());
+        config.account = Some("account".to_string());
+
+        let mut app = sample_profile_app(profile, config);
+        app.tabs[0].platform = Platform::Codex;
+        app.profile_detail_scroll = 100;
+
+        let mut terminal = Terminal::new(TestBackend::new(48, 8)).unwrap();
+        terminal
+            .draw(|frame| render_profile_details(frame, &mut app, frame.area()))
+            .unwrap();
+
+        assert!(app.profile_detail_scroll < 100);
+        assert!(app.profile_detail_scroll > 0);
     }
 }
