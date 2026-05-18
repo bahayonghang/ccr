@@ -8,7 +8,8 @@ import {
   getHistory,
   addHistory,
   clearHistory as clearHistoryApi,
-  CCR_MODULES,
+  CCR_EXECUTABLE_COMMANDS,
+  isCcrCommandExecutable,
   type FavoriteCommand,
   type CommandHistory,
   type CcrModule,
@@ -20,6 +21,10 @@ import type { VersionInfo, UpdateCheckResponse } from '@/types'
 import { logger } from '@/utils/logger'
 
 export function useCcrControl() {
+  type ExecuteCommandOptions = {
+    confirmedDanger?: boolean
+  }
+
   // ===== 状态 =====
 
   // 版本信息
@@ -28,7 +33,7 @@ export function useCcrControl() {
   const loadingVersion = ref(false)
 
   // 模块和命令
-  const modules = ref<CcrModule[]>(CCR_MODULES)
+  const modules = ref<CcrModule[]>(CCR_EXECUTABLE_COMMANDS)
   const selectedModuleId = ref<string>('config')
   const selectedCommand = ref<CcrCommand | null>(null)
 
@@ -203,15 +208,34 @@ export function useCcrControl() {
     return args
   }
 
-  const executeCommand = async (command: CcrCommand) => {
+  const executeCommand = async (command: CcrCommand, options: ExecuteCommandOptions = {}) => {
     if (isExecuting.value) return
+
+    if (!isCcrCommandExecutable(command.command)) {
+      outputLines.value = [
+        `⚠️ ccr ${command.command}`,
+        'This command is not enabled in the local execution allowlist. It is shown for reference only and was not run.',
+      ]
+      lastExitCode.value = 1
+      return
+    }
+
+    if (command.dangerous && !options.confirmedDanger) {
+      selectedCommand.value = command
+      outputLines.value = [
+        `⚠️ ccr ${command.command}`,
+        'This command is marked dangerous. Review the command details and confirm before running.',
+      ]
+      lastExitCode.value = 1
+      return
+    }
 
     isExecuting.value = true
     outputLines.value = []
     lastExitCode.value = null
 
-    // 创建新的 AbortController
-    abortController.value = new AbortController()
+    // Tauri command execution is non-streaming; no real backend cancellation is wired here.
+    abortController.value = null
 
     const startTime = Date.now()
 
@@ -285,25 +309,19 @@ export function useCcrControl() {
     } catch (err: unknown) {
       const duration = Date.now() - startTime
 
-      // 检查是否是用户取消
-      if (err instanceof Error && err.name === 'AbortError') {
-        appendOutputLines(['', '⏹️ 命令已取消'])
-        lastExitCode.value = 1
-      } else {
-        const errorMessage = err instanceof Error ? err.message : '未知错误'
-        appendOutputLines([`❌ 执行错误: ${errorMessage}`])
-        lastExitCode.value = 1
+      const errorMessage = err instanceof Error ? err.message : '未知错误'
+      appendOutputLines([`❌ 执行错误: ${errorMessage}`])
+      lastExitCode.value = 1
 
-        // 记录失败历史
-        await addHistory({
-          command: command.command,
-          args: [],
-          success: false,
-          duration_ms: duration,
-        })
+      // 记录失败历史
+      await addHistory({
+        command: command.command,
+        args: [],
+        success: false,
+        duration_ms: duration,
+      })
 
-        await loadHistory()
-      }
+      await loadHistory()
     } finally {
       isExecuting.value = false
       abortController.value = null
@@ -311,10 +329,7 @@ export function useCcrControl() {
   }
 
   const cancelCommand = () => {
-    if (abortController.value) {
-      abortController.value.abort()
-      appendOutputLines(['⏹️ 正在取消命令...'])
-    }
+    appendOutputLines(['⚠️ 当前 CCR 执行使用非流式结果模式，暂不支持可靠取消。'])
   }
 
   const executeFromFavorite = async (favorite: FavoriteCommand) => {

@@ -118,7 +118,33 @@ export interface CcrCommand {
   args?: CcrCommandArg[]
   flags?: CcrCommandFlag[]
   dangerous?: boolean
+  executable?: boolean
 }
+
+export const CCR_ALLOWED_COMMANDS = new Set([
+  'list',
+  'switch',
+  'add',
+  'delete',
+  'rename',
+  'duplicate',
+  'show',
+  'validate',
+  'export',
+  'import',
+  'history',
+  'version',
+  'help',
+  'backup',
+  'restore',
+  'diff',
+  'status',
+])
+
+export const getCcrMainCommand = (command: string) => command.trim().split(/\s+/)[0] ?? ''
+
+export const isCcrCommandExecutable = (command: string) => CCR_ALLOWED_COMMANDS.has(getCcrMainCommand(command))
+
 
 /** 命令参数 */
 export interface CcrCommandArg {
@@ -446,3 +472,11 @@ export const CCR_MODULES: CcrModule[] = [
     ]
   }
 ]
+
+export const CCR_EXECUTABLE_COMMANDS = CCR_MODULES.map((module) => ({
+  ...module,
+  commands: module.commands.map((command) => ({
+    ...command,
+    executable: isCcrCommandExecutable(command.command),
+  })),
+})) satisfies CcrModule[]

@@ -11,6 +11,15 @@ const command: CcrCommand = {
   command: 'init',
   description: 'Create config template',
   dangerous: true,
+  executable: false,
+}
+
+const executableDangerousCommand: CcrCommand = {
+  name: 'Import',
+  command: 'import',
+  description: 'Import config file',
+  dangerous: true,
+  executable: true,
 }
 
 const modules = ref<CcrModule[]>([{
@@ -18,7 +27,7 @@ const modules = ref<CcrModule[]>([{
   name: 'Config',
   icon: 'Settings',
   description: 'Config commands',
-  commands: [command],
+  commands: [command, executableDangerousCommand],
 }])
 const selectedModuleId = ref('config')
 const selectedCommand = ref<CcrCommand | null>(null)
@@ -125,6 +134,7 @@ describe('CcrControlView accessibility semantics', () => {
       expect(commandButton).toBeTruthy()
       commandButton?.click()
       expect(ccrControlMock.selectCommand).toHaveBeenCalledWith(command)
+      ccrControlMock.selectCommand.mockClear()
 
       const favoriteTab = [...el.querySelectorAll('button')].find((button) => button.textContent?.includes('Favorites')) as HTMLButtonElement | undefined
       expect(favoriteTab).toBeTruthy()
@@ -135,7 +145,9 @@ describe('CcrControlView accessibility semantics', () => {
       const favoriteButton = el.querySelector('button[aria-label^="Run favorite command"]') as HTMLButtonElement | null
       expect(favoriteButton).toBeTruthy()
       favoriteButton?.click()
-      expect(ccrControlMock.executeFromFavorite).toHaveBeenCalledWith(favorites.value[0])
+      expect(ccrControlMock.selectCommand).toHaveBeenCalledWith(command)
+      expect(ccrControlMock.executeFromFavorite).not.toHaveBeenCalled()
+      ccrControlMock.selectCommand.mockClear()
 
       const historyTab = [...el.querySelectorAll('button')].find((button) => button.textContent?.includes('History')) as HTMLButtonElement | undefined
       expect(historyTab).toBeTruthy()
@@ -146,7 +158,48 @@ describe('CcrControlView accessibility semantics', () => {
       const historyButton = el.querySelector('button[aria-label^="Run history command"]') as HTMLButtonElement | null
       expect(historyButton).toBeTruthy()
       historyButton?.click()
-      expect(ccrControlMock.executeFromHistory).toHaveBeenCalledWith(history.value[0])
+      expect(ccrControlMock.selectCommand).toHaveBeenCalledWith(command)
+      expect(ccrControlMock.executeFromHistory).not.toHaveBeenCalled()
+    } finally {
+      unmount()
+    }
+  })
+
+  it('disables unsupported catalog commands instead of executing them', async () => {
+    const { el, unmount } = await mountView()
+
+    try {
+      const commandButton = el.querySelector('button[aria-label="Select command Init: ccr init"]') as HTMLButtonElement | null
+      commandButton?.click()
+      await nextTick()
+
+      expect(el.textContent).toContain('Unsupported')
+      expect(el.textContent).toContain('local Rust allowlist')
+      const executeButton = el.querySelector('button[aria-label="Execute ccr init"]') as HTMLButtonElement | null
+      expect(executeButton?.disabled).toBe(true)
+    } finally {
+      unmount()
+    }
+  })
+
+  it('requires explicit confirmation before executing supported dangerous commands', async () => {
+    const { el, unmount } = await mountView()
+
+    try {
+      const commandButton = el.querySelector('button[aria-label="Select command Import: ccr import"]') as HTMLButtonElement | null
+      commandButton?.click()
+      await nextTick()
+
+      const executeButton = el.querySelector('button[aria-label="Execute ccr import"]') as HTMLButtonElement | null
+      expect(executeButton?.disabled).toBe(true)
+
+      const checkbox = el.querySelector('input[type="checkbox"]') as HTMLInputElement | null
+      checkbox?.click()
+      await nextTick()
+      expect(executeButton?.disabled).toBe(false)
+
+      executeButton?.click()
+      expect(ccrControlMock.executeCommand).toHaveBeenCalledWith(executableDangerousCommand, { confirmedDanger: true })
     } finally {
       unmount()
     }
