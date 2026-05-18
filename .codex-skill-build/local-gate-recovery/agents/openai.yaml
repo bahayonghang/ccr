@@ -1,0 +1,4 @@
+interface:
+  display_name: "Local Gate Recovery"
+  short_description: "Debug local repo gates from failing output"
+  default_prompt: "Use -gate-recovery to fix the current just ci or local verification failure."

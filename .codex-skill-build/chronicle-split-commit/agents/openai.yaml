@@ -1,0 +1,4 @@
+interface:
+  display_name: "Chronicle Split Commit"
+  short_description: "Memory-backed local split commit workflow"
+  default_prompt: "Use -split-commit to split and commit all current changes in Chinese with emoji."

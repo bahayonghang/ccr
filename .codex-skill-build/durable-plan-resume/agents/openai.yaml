@@ -1,0 +1,4 @@
+interface:
+  display_name: "Durable Plan Resume"
+  short_description: "Resume and update repo planning files"
+  default_prompt: "Use -plan-resume to continue the existing task_plan.md workflow."
