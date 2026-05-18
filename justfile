@@ -1145,6 +1145,66 @@ tauri-build:
 tauri-build-debug:
     @just _ui-run tauri-build-debug
 
+# 🪟 Windows: 构建并安装 CCR UI Tauri 桌面应用
+tinstall:
+    @just _tinstall-{{os()}}
+
+[private]
+_tinstall-windows:
+    #!pwsh.exe
+    $ErrorActionPreference = 'Stop'
+    [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+    chcp 65001 | Out-Null
+
+    Write-Host '🏗️  构建 CCR UI Tauri 桌面应用...' -ForegroundColor Cyan
+    just tauri-build
+    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+    $bundleRoot = 'ccr-ui/src-tauri/target/release/bundle'
+    if (-not (Test-Path $bundleRoot)) {
+        throw "未找到 Tauri bundle 目录: $bundleRoot"
+    }
+
+    $nsisInstaller = Get-ChildItem -Path (Join-Path $bundleRoot 'nsis') -Filter '*setup.exe' -File -ErrorAction SilentlyContinue |
+        Sort-Object LastWriteTime -Descending |
+        Select-Object -First 1
+    $msiInstaller = Get-ChildItem -Path (Join-Path $bundleRoot 'msi') -Filter '*.msi' -File -ErrorAction SilentlyContinue |
+        Sort-Object LastWriteTime -Descending |
+        Select-Object -First 1
+
+    if ($null -ne $nsisInstaller) {
+        $installer = $nsisInstaller
+        $arguments = @()
+    } elseif ($null -ne $msiInstaller) {
+        $installer = $msiInstaller
+        $arguments = @('/i', $msiInstaller.FullName)
+    } else {
+        throw "未找到 Windows 安装包，请检查 $bundleRoot 下的 nsis/*.exe 或 msi/*.msi"
+    }
+
+    Write-Host "📦 安装包: $($installer.FullName)" -ForegroundColor Cyan
+    if ($installer.Extension -ieq '.msi') {
+        $process = Start-Process -FilePath 'msiexec.exe' -ArgumentList $arguments -Wait -PassThru
+    } else {
+        $process = Start-Process -FilePath $installer.FullName -Wait -PassThru
+    }
+
+    if ($process.ExitCode -ne 0) {
+        throw "安装程序退出码: $($process.ExitCode)"
+    }
+
+    Write-Host '✅ CCR UI Tauri 应用安装完成' -ForegroundColor Green
+
+[private]
+_tinstall-linux:
+    @echo "❌ tinstall 仅支持 Windows；请在 Windows 上运行 just tinstall"
+    @exit 1
+
+[private]
+_tinstall-macos:
+    @echo "❌ tinstall 仅支持 Windows；请在 Windows 上运行 just tinstall"
+    @exit 1
+
 tauri-verify-release-window:
     @just _ui-run tauri-verify-release-window
 
