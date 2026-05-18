@@ -1,4 +1,0 @@
-interface:
-  display_name: "Safe Local Repair"
-  short_description: "Repair local config and data safely"
-  default_prompt: "Use -local-repair to minimally repair the local config parse error with a backup."
