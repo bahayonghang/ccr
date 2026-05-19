@@ -1259,6 +1259,83 @@ fn refresh_usage_daily_agg(conn: &Connection) -> MigrationResult<()> {
     Ok(())
 }
 
+/*
+ * ========================================================================
+ * 步骤14：claude_observer 模块持久化结构
+ * ========================================================================
+ * 目标表：
+ * 1) user_settings              通用键值表，承载订阅模式/月费等 UI 偏好
+ * 2) claude_tool_calls          Claude Code JSONL 中的工具调用事件
+ * 3) claude_tool_calls_ingest_state
+ *                                每个 jsonl 文件的增量游标 (mtime + offset)
+ * 操作：
+ * 1) 一次性建好三表，CREATE TABLE IF NOT EXISTS 保证可重入
+ * 2) 给热点查询加复合索引（按时间窗口聚合 + 按 tool_name 排序）
+ */
+pub fn run_migration_v14(conn: &Connection) -> MigrationResult<()> {
+    if is_migration_applied(conn, 14)? {
+        debug!("Migration v14 already applied, skipping");
+        return Ok(());
+    }
+
+    info!("Running migration v14: claude_observer tables");
+
+    // 14.1 通用键值表（首批用于订阅模式 / 月费）
+    conn.execute_batch(
+        "CREATE TABLE IF NOT EXISTS user_settings (
+            key TEXT PRIMARY KEY,
+            value TEXT NOT NULL,
+            updated_at TEXT NOT NULL
+        );",
+    )
+    .map_err(|e| MigrationError::Database(e.to_string()))?;
+
+    // 14.2 工具调用事实表
+    conn.execute_batch(
+        "CREATE TABLE IF NOT EXISTS claude_tool_calls (
+            session_id TEXT NOT NULL,
+            seq INTEGER NOT NULL,
+            ts TEXT NOT NULL,
+            tool_name TEXT NOT NULL,
+            success INTEGER,
+            duration_ms INTEGER,
+            cost_usd REAL,
+            project_path TEXT,
+            PRIMARY KEY (session_id, seq)
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_claude_tool_calls_ts
+            ON claude_tool_calls (ts DESC);
+        CREATE INDEX IF NOT EXISTS idx_claude_tool_calls_tool_name_ts
+            ON claude_tool_calls (tool_name, ts DESC);
+        CREATE INDEX IF NOT EXISTS idx_claude_tool_calls_project_ts
+            ON claude_tool_calls (project_path, ts DESC);",
+    )
+    .map_err(|e| MigrationError::Database(e.to_string()))?;
+
+    // 14.3 jsonl 文件增量游标
+    conn.execute_batch(
+        "CREATE TABLE IF NOT EXISTS claude_tool_calls_ingest_state (
+            file_path TEXT PRIMARY KEY,
+            file_mtime_ns INTEGER NOT NULL,
+            last_offset INTEGER NOT NULL DEFAULT 0,
+            updated_at TEXT NOT NULL
+        );",
+    )
+    .map_err(|e| MigrationError::Database(e.to_string()))?;
+
+    // 14.4 写入迁移标记
+    let now = Utc::now().to_rfc3339();
+    conn.execute(
+        INSERT_MIGRATION_SQL,
+        rusqlite::params![14, "claude_observer_tables", now],
+    )
+    .map_err(|e| MigrationError::Database(e.to_string()))?;
+
+    info!("Migration v14 completed successfully");
+    Ok(())
+}
+
 fn table_exists(conn: &Connection, table_name: &str) -> MigrationResult<bool> {
     let count: i64 = conn
         .query_row(
@@ -1305,6 +1382,9 @@ pub fn run_all_migrations(conn: &Connection, home_dir: &Path) -> MigrationResult
 
     // Step 1.14: Run v11 migration (usage archive durability tables)
     run_migration_v11(conn)?;
+
+    // Step 1.15: Run v14 migration (claude_observer tables: user_settings, claude_tool_calls)
+    run_migration_v14(conn)?;
 
     // Step 2: Import legacy data if not done and files exist
     if !is_legacy_migration_done(conn)? {

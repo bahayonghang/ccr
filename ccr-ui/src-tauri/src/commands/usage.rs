@@ -304,6 +304,113 @@ async fn emit_session_index_job_snapshot(
     }
 }
 
+/// Tauri 事件 `claude_observer:updated` 的 payload。
+/// 字段命名与 `claude_observer::scanner::IngestReport` 对齐，仅用 bool 暴露 errors 状态，
+/// 避免把内部错误字符串数组泄漏到前端。
+#[derive(Debug, Clone, Serialize)]
+struct ClaudeObserverUpdatedPayload {
+    files_scanned: usize,
+    files_changed: usize,
+    calls_inserted: usize,
+    has_errors: bool,
+}
+
+/// 在 usage 导入收尾后，异步触发一次 `claude_observer` 增量解析。
+///
+/// 设计要点：
+/// 1) 与用户感知到的 usage 导入响应解耦 —— 用 `tokio::spawn` + `spawn_blocking`
+///    托管，调用方立即返回，不阻塞 UI。
+/// 2) 解析完成后无论是否有错误，都发 `claude_observer:updated` 事件，让前端
+///    `claudeObserver` store 刷新；errors 仅以 `has_errors` 暴露。
+/// 3) 失败信息只走 tracing，避免把内部 IO 错误带到前端。
+///
+/// `scope_label` 用于日志识别触发来源（如 `"import_all"`、`"job_finished"`）。
+fn spawn_claude_observer_ingest_tail(
+    app_handle: AppHandle,
+    state: &AppState,
+    scope_label: &'static str,
+) {
+    /* ====================================================================
+     * 步骤1：克隆 db_pool 句柄，把所有权移交后台任务
+     * ====================================================================
+     */
+    let db_pool = state.db_pool.clone();
+    tracing::info!(
+        scope = scope_label,
+        "[claude_observer] 触发增量解析 tail-hook"
+    );
+
+    tokio::spawn(async move {
+        /* ====================================================================
+         * 步骤2：spawn_blocking 中执行 ingest_incremental
+         * ====================================================================
+         * - 取 db_pool 连接（短期持有，跑完即归还）
+         * - 解析 ~/.claude/projects 下的 jsonl 增量行
+         */
+        let join = tokio::task::spawn_blocking(move || {
+            let conn = match db_pool.get() {
+                Ok(conn) => conn,
+                Err(error) => {
+                    return Err(format!("db pool error: {error}"));
+                }
+            };
+            // 把 PooledConnection 解引用为 &mut Connection 给 scanner 使用
+            let mut conn = conn;
+            let report = crate::claude_observer::scanner::ingest_incremental(&mut conn);
+            Ok(report)
+        })
+        .await;
+
+        let report = match join {
+            Ok(Ok(report)) => report,
+            Ok(Err(error)) => {
+                tracing::warn!(
+                    scope = scope_label,
+                    error = %error,
+                    "[claude_observer] ingest 跳过（DB 不可用）"
+                );
+                return;
+            }
+            Err(error) => {
+                tracing::warn!(
+                    scope = scope_label,
+                    ?error,
+                    "[claude_observer] ingest 后台任务异常退出"
+                );
+                return;
+            }
+        };
+
+        /* ====================================================================
+         * 步骤3：info 级日志 + 发 Tauri 事件 `claude_observer:updated`
+         * ====================================================================
+         */
+        let has_errors = !report.errors.is_empty();
+        tracing::info!(
+            scope = scope_label,
+            "claude_observer ingest: files_scanned={} files_changed={} calls_inserted={} errors={}",
+            report.files_scanned,
+            report.files_changed,
+            report.calls_inserted,
+            report.errors.len()
+        );
+
+        let payload = ClaudeObserverUpdatedPayload {
+            files_scanned: report.files_scanned,
+            files_changed: report.files_changed,
+            calls_inserted: report.calls_inserted,
+            has_errors,
+        };
+        if let Err(error) = app_handle.emit("claude_observer:updated", payload) {
+            tracing::warn!(
+                scope = scope_label,
+                ?error,
+                "Failed to emit claude_observer:updated"
+            );
+        }
+    });
+}
+
 fn session_index_platforms() -> [Platform; 3] {
     [Platform::Claude, Platform::Codex, Platform::Gemini]
 }
@@ -665,6 +772,13 @@ async fn finish_llmusage_import_job(
     .await;
 
     emit_usage_import_job_snapshot(app_handle, "usage:job-finished", &final_snapshot).await;
+
+    // 步骤N: 流式 usage 导入任务收尾时，触发 claude_observer 增量解析。
+    // 与 `import_all_usage_v2` 共用同一份 tail-hook 工具方法；events 链路也共用
+    // `claude_observer:updated`，前端只需订阅这一个事件。
+    let state = app_handle.state::<AppState>();
+    spawn_claude_observer_ingest_tail(app_handle.clone(), &state, "usage_job_finished");
+
     Ok(())
 }
 
@@ -1600,6 +1714,13 @@ pub async fn import_usage_v2(
     )
     .await;
 
+    // 步骤N: 单平台导入完成后，仅当目标平台是 claude 时跑一次 claude_observer 增量解析。
+    // 其他平台（codex / gemini / opencode / droid）的 JSONL 不在
+    // `~/.claude/projects/` 树下，scanner 跑出来也是 0 文件，没必要发事件。
+    if source.as_str() == "claude" {
+        spawn_claude_observer_ingest_tail(app_handle.clone(), &state, "import_usage_v2");
+    }
+
     serde_json::to_value(result).map_err(|e| format!("Serialize error: {e}"))
 }
 
@@ -1626,6 +1747,11 @@ pub async fn import_all_usage_v2(
         persist,
     )
     .await;
+
+    // 步骤N: usage 导入完成后顺带跑一次 claude_observer 增量解析。
+    // 该任务异步进行，不会阻塞当前 IPC 响应；完成后发 `claude_observer:updated`
+    // 让前端 Pinia store 刷新工具调用维度数据。
+    spawn_claude_observer_ingest_tail(app_handle.clone(), &state, "import_all_usage_v2");
 
     let response = ImportAllUsageResponse { summary, results };
 

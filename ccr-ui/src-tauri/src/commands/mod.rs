@@ -6,6 +6,7 @@ pub mod builtin_prompts;
 pub mod checkin;
 pub mod claude;
 pub mod claude_mcp_config;
+pub mod claude_observer;
 pub mod codex;
 pub mod command_exec;
 pub mod config;
@@ -357,6 +358,16 @@ macro_rules! generate_handler_common {
         install::llmusage_install_recent,
         install::llmusage_install_manual_catalog,
         install::llmusage_install_check,
+        // —— Claude Observer ——
+        claude_observer::claude_observer_get_insight,
+        claude_observer::claude_observer_daily_trend,
+        claude_observer::claude_observer_cost_breakdown,
+        claude_observer::claude_observer_cache_stats,
+        claude_observer::claude_observer_top_sessions,
+        claude_observer::claude_observer_tool_heatmap,
+        claude_observer::claude_observer_top_tools,
+        claude_observer::claude_observer_subscription_get,
+        claude_observer::claude_observer_subscription_set,
         $($extra,)*
         ]
     };

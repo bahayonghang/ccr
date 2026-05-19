@@ -77,6 +77,14 @@
       </header>
 
       <section
+        class="claude-section animate-slide-up claude-section--observer"
+        style="animation-delay: 80ms"
+        aria-label="Claude Code usage insight"
+      >
+        <UsageInsightPanel />
+      </section>
+
+      <section
         class="claude-tag-row animate-slide-up"
         style="animation-delay: 100ms"
         aria-label="Claude Code capabilities"
@@ -321,13 +329,19 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, defineAsyncComponent } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { RouterLink } from 'vue-router'
 import AnimatedBackground from '@/components/common/AnimatedBackground.vue'
 import Button from '@/components/ui/Button.vue'
 import Card from '@/components/ui/Card.vue'
 import SIcon from '@/components/ui/SIcon.vue'
+
+// 用量洞察面板较重，按需异步加载，避免拖慢 Claude Code 首屏
+const UsageInsightPanel = defineAsyncComponent({
+  loader: () => import('@/components/claude-observer/UsageInsightPanel.vue'),
+  suspensible: false,
+})
 
 const { t } = useI18n()
 

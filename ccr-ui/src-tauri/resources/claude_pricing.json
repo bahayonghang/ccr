@@ -1,0 +1,29 @@
+{
+  "version": "2026-05-15",
+  "models": [
+    {
+      "model_id": "claude-opus-4-7",
+      "valid_from": "2026-01-01",
+      "input_per_mtok": 15.0,
+      "output_per_mtok": 75.0,
+      "cache_read_per_mtok": 1.5,
+      "cache_write_per_mtok": 18.75
+    },
+    {
+      "model_id": "claude-sonnet-4-6",
+      "valid_from": "2025-09-01",
+      "input_per_mtok": 3.0,
+      "output_per_mtok": 15.0,
+      "cache_read_per_mtok": 0.3,
+      "cache_write_per_mtok": 3.75
+    },
+    {
+      "model_id": "claude-haiku-4-5",
+      "valid_from": "2025-10-01",
+      "input_per_mtok": 0.8,
+      "output_per_mtok": 4.0,
+      "cache_read_per_mtok": 0.08,
+      "cache_write_per_mtok": 1.0
+    }
+  ]
+}

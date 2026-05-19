@@ -2,6 +2,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 mod checkin_jobs;
+mod claude_observer;
 mod commands;
 mod desktop_shell;
 mod events;
