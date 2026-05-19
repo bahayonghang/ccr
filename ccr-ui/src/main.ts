@@ -22,6 +22,13 @@ import './styles/index.css'
 
 type DeferredStyleRel = 'preload' | 'stylesheet'
 
+const deferredFontStyles = [
+  '/fonts/maplebright/MapleBright-Regular/result.css',
+  '/fonts/maplebright/MapleBright-Medium/result.css',
+  '/fonts/maplebright/MapleBright-Italic/result.css',
+  '/fonts/maplebright/MapleBright-MediumItalic/result.css',
+] as const
+
 const ensureDeferredStyleLink = (href: string, key: string, rel: DeferredStyleRel) => {
   if (typeof document === 'undefined') return null
 
@@ -58,6 +65,12 @@ const applyDeferredStyle = (href: string, key: string) => {
     link.rel = 'stylesheet'
     link.removeAttribute('as')
   }
+}
+
+const applyDeferredFontStyles = () => {
+  deferredFontStyles.forEach((href, index) => {
+    applyDeferredStyle(href, `deferred-fonts-${index}`)
+  })
 }
 
 initPerfTelemetry()
@@ -107,6 +120,11 @@ const scheduleDeferredStartupTasks = (disposeStartupErrorHandlers: () => void) =
     }).finally(() => {
       perfMark('app:icons-deferred-register-end')
     })
+
+    scheduleWhenIdle(() => {
+      applyDeferredFontStyles()
+      perfMark('app:fonts-deferred-applied')
+    }, { timeout: 1800, fallbackDelay: 900 })
 
     scheduleWhenIdle(() => {
       applyDeferredStyle(deferredDecorationsHref, 'deferred-decorations')
