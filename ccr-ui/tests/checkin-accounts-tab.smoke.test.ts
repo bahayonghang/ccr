@@ -257,6 +257,42 @@ describe('CheckinAccountsTab smoke', () => {
     }
   })
 
+  it('keeps the account editor as a readable credential workbench with form-backed footer actions', async () => {
+    mockedGetCheckinAccountCookies.mockResolvedValue({
+      cookies_json: '{"session":"abc123"}',
+      api_user: '67890',
+    })
+
+    const { el, unmount } = await mountTab()
+
+    try {
+      await openAccountEditor(el)
+
+      const modalBody = document.body.querySelector<HTMLElement>('.checkin-accounts-tab__modal-body')
+      const identitySection = document.body.querySelector<HTMLElement>(
+        '.checkin-accounts-tab__form-section--identity'
+      )
+      const credentialSection = document.body.querySelector<HTMLElement>(
+        '.checkin-accounts-tab__form-section--credentials'
+      )
+      const credentialTextarea = document.body.querySelector<HTMLTextAreaElement>(
+        '.checkin-accounts-tab__control--credential'
+      )
+      const footer = document.body.querySelector<HTMLElement>('.checkin-accounts-tab__modal-footer')
+      const submitButton = footer?.querySelector<HTMLButtonElement>('button[type="submit"]')
+
+      expect(modalBody).not.toBeNull()
+      expect(identitySection).not.toBeNull()
+      expect(credentialSection).not.toBeNull()
+      expect(credentialTextarea).not.toBeNull()
+      expect(credentialTextarea?.getAttribute('rows')).toBe('7')
+      expect(submitButton).not.toBeNull()
+      expect(submitButton?.getAttribute('form')).toBe('checkin-account-form')
+    } finally {
+      unmount()
+    }
+  })
+
   it('preserves full cookies JSON when opening editor for an existing account', async () => {
     const fullCookiesJson = '{"session":"abc123","cf_clearance":"token-1"}'
     mockedGetCheckinAccountCookies.mockResolvedValue({

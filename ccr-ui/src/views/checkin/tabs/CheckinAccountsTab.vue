@@ -314,257 +314,265 @@
       </div>
     </template>
 
-    <div class="checkin-accounts-tab__modal-intro">
-      <span class="checkin-accounts-tab__modal-intro-pill">{{ t('checkin.accounts.modal.introSession') }}</span>
-      <span class="checkin-accounts-tab__modal-intro-pill">{{ t('checkin.accounts.modal.introApiUser') }}</span>
-      <span class="checkin-accounts-tab__modal-intro-pill">{{ t('checkin.accounts.modal.introNoOverwrite') }}</span>
-    </div>
+    <div class="checkin-accounts-tab__modal-body">
+      <div class="checkin-accounts-tab__modal-intro">
+        <span class="checkin-accounts-tab__modal-intro-pill">{{ t('checkin.accounts.modal.introSession') }}</span>
+        <span class="checkin-accounts-tab__modal-intro-pill">{{ t('checkin.accounts.modal.introApiUser') }}</span>
+        <span class="checkin-accounts-tab__modal-intro-pill">{{ t('checkin.accounts.modal.introNoOverwrite') }}</span>
+      </div>
 
-    <div class="checkin-accounts-tab__modal-scroll">
-      <form
-        id="checkin-account-form"
-        class="checkin-accounts-tab__form"
-        @submit.prevent="saveAccount"
-      >
-        <!-- 提供商选择 -->
-        <div class="checkin-accounts-tab__field">
-          <label class="checkin-accounts-tab__label">
-            <span class="text-red-500">*</span> {{ t('checkin.accounts.fields.provider') }}
-          </label>
-          <select
-            v-model="accountForm.provider_id"
-            required
-            :disabled="!!editingAccount"
-            class="checkin-accounts-tab__control"
-          >
-            <option value="">
-              {{ t('checkin.accounts.fields.selectProvider') }}
-            </option>
-            <option
-              v-for="p in providers"
-              :key="p.id"
-              :value="p.id"
-            >
-              {{ p.name }}
-            </option>
-          </select>
-        </div>
+      <div class="checkin-accounts-tab__modal-scroll">
+        <form
+          id="checkin-account-form"
+          class="checkin-accounts-tab__form"
+          @submit.prevent="saveAccount"
+        >
+          <section class="checkin-accounts-tab__form-section checkin-accounts-tab__form-section--identity">
+            <div class="checkin-accounts-tab__form-grid">
+              <!-- 提供商选择 -->
+              <div class="checkin-accounts-tab__field">
+                <label class="checkin-accounts-tab__label">
+                  <span class="text-red-500">*</span> {{ t('checkin.accounts.fields.provider') }}
+                </label>
+                <select
+                  v-model="accountForm.provider_id"
+                  required
+                  :disabled="!!editingAccount"
+                  class="checkin-accounts-tab__control"
+                >
+                  <option value="">
+                    {{ t('checkin.accounts.fields.selectProvider') }}
+                  </option>
+                  <option
+                    v-for="p in providers"
+                    :key="p.id"
+                    :value="p.id"
+                  >
+                    {{ p.name }}
+                  </option>
+                </select>
+              </div>
 
-        <!-- 账号名称 -->
-        <div class="checkin-accounts-tab__field">
-          <label class="checkin-accounts-tab__label">
-            <span class="text-red-500">*</span> {{ t('checkin.accounts.fields.accountName') }}
-          </label>
-          <input
-            v-model="accountForm.name"
-            type="text"
-            required
-            class="checkin-accounts-tab__control"
-            :placeholder="t('checkin.accounts.fields.accountNamePlaceholder')"
-          >
-        </div>
+              <!-- 账号名称 -->
+              <div class="checkin-accounts-tab__field">
+                <label class="checkin-accounts-tab__label">
+                  <span class="text-red-500">*</span> {{ t('checkin.accounts.fields.accountName') }}
+                </label>
+                <input
+                  v-model="accountForm.name"
+                  type="text"
+                  required
+                  class="checkin-accounts-tab__control"
+                  :placeholder="t('checkin.accounts.fields.accountNamePlaceholder')"
+                >
+              </div>
+            </div>
+          </section>
 
-        <!-- Session 输入 -->
-        <div class="checkin-accounts-tab__field">
-          <label class="checkin-accounts-tab__label">
-            <span
-              v-if="!editingAccount"
-              class="text-red-500"
-            >*</span> Session / Cookies
-            <span
-              v-if="editingAccount"
-              class="text-text-muted font-normal"
-            >{{ t('checkin.accounts.fields.leaveBlank') }}</span>
-          </label>
-          <textarea
-            v-model="accountForm.session"
-            :required="!editingAccount"
-            rows="5"
-            class="checkin-accounts-tab__control checkin-accounts-tab__control--textarea checkin-accounts-tab__control--mono"
-            :placeholder="t('checkin.accounts.fields.sessionPlaceholder')"
-          />
-          <p class="checkin-accounts-tab__hint checkin-accounts-tab__hint--with-icon">
-            <svg
-              class="checkin-accounts-tab__hint-icon"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+          <section class="checkin-accounts-tab__form-section checkin-accounts-tab__form-section--credentials">
+            <!-- Session 输入 -->
+            <div class="checkin-accounts-tab__field checkin-accounts-tab__field--credential">
+              <label class="checkin-accounts-tab__label">
+                <span
+                  v-if="!editingAccount"
+                  class="text-red-500"
+                >*</span> Session / Cookies
+                <span
+                  v-if="editingAccount"
+                  class="text-text-muted font-normal"
+                >{{ t('checkin.accounts.fields.leaveBlank') }}</span>
+              </label>
+              <textarea
+                v-model="accountForm.session"
+                :required="!editingAccount"
+                rows="7"
+                class="checkin-accounts-tab__control checkin-accounts-tab__control--textarea checkin-accounts-tab__control--mono checkin-accounts-tab__control--credential"
+                :placeholder="t('checkin.accounts.fields.sessionPlaceholder')"
               />
-            </svg>
-            {{ t('checkin.accounts.fields.sessionHint') }}
-          </p>
-        </div>
+              <p class="checkin-accounts-tab__hint checkin-accounts-tab__hint--with-icon checkin-accounts-tab__hint--credential">
+                <svg
+                  class="checkin-accounts-tab__hint-icon"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+                {{ t('checkin.accounts.fields.sessionHint') }}
+              </p>
+            </div>
 
-        <!-- API User -->
-        <div class="checkin-accounts-tab__field">
-          <label class="checkin-accounts-tab__label">
-            <span class="text-red-500">*</span> API User
-          </label>
-          <input
-            v-model="accountForm.api_user"
-            type="text"
-            required
-            class="checkin-accounts-tab__control checkin-accounts-tab__control--mono"
-            placeholder="12345"
+            <!-- API User -->
+            <div class="checkin-accounts-tab__field">
+              <label class="checkin-accounts-tab__label">
+                <span class="text-red-500">*</span> API User
+              </label>
+              <input
+                v-model="accountForm.api_user"
+                type="text"
+                required
+                class="checkin-accounts-tab__control checkin-accounts-tab__control--mono"
+                placeholder="12345"
+              >
+              <p class="checkin-accounts-tab__hint">
+                <i18n-t
+                  keypath="checkin.accounts.fields.apiUserHint"
+                  scope="global"
+                  tag="span"
+                >
+                  <template #userId>
+                    <code>user.id</code>
+                  </template>
+                  <template #header>
+                    <code>new-api-user</code>
+                  </template>
+                </i18n-t>
+              </p>
+            </div>
+          </section>
+
+          <div
+            v-if="selectedBuiltinProvider?.requires_waf_bypass"
+            class="checkin-accounts-tab__notice checkin-accounts-tab__notice--warning"
           >
-          <p class="checkin-accounts-tab__hint">
-            <i18n-t
-              keypath="checkin.accounts.fields.apiUserHint"
-              scope="global"
-              tag="span"
+            <p class="checkin-accounts-tab__notice-title checkin-accounts-tab__notice-title--warning">
+              {{ t('checkin.accounts.waf.title', { provider: selectedBuiltinProvider.name }) }}
+            </p>
+            <ol class="checkin-accounts-tab__notice-list checkin-accounts-tab__notice-list--warning">
+              <li>{{ t('checkin.accounts.waf.stepSave') }}</li>
+              <li>{{ t('checkin.accounts.waf.stepProviders', { provider: selectedBuiltinProvider.name }) }}</li>
+              <li>{{ t('checkin.accounts.waf.stepProxy') }}</li>
+            </ol>
+          </div>
+
+          <!-- CDK 配置区域（仅当提供商支持 CDK 时显示） -->
+          <div
+            v-if="selectedProviderCdkConfig"
+            class="checkin-accounts-tab__notice checkin-accounts-tab__notice--amber"
+          >
+            <p class="checkin-accounts-tab__notice-title checkin-accounts-tab__notice-title--amber">
+              {{ t('checkin.accounts.cdk.title') }}
+              <span class="checkin-accounts-tab__notice-title-meta">
+                {{ t('checkin.accounts.cdk.typeOptional', { type: selectedProviderCdkConfig.cdk_type }) }}
+              </span>
+            </p>
+            <p class="checkin-accounts-tab__notice-copy">
+              {{ t('checkin.accounts.cdk.description') }}
+            </p>
+
+            <!-- runawaytime: fuli cookies -->
+            <div
+              v-if="selectedProviderCdkConfig.cdk_type === 'runawaytime'"
+              class="checkin-accounts-tab__field"
             >
-              <template #userId>
-                <code>user.id</code>
-              </template>
-              <template #header>
-                <code>new-api-user</code>
-              </template>
-            </i18n-t>
-          </p>
-        </div>
+              <label class="checkin-accounts-tab__label checkin-accounts-tab__label--amber">
+                fuli.hxi.me Cookies
+              </label>
+              <textarea
+                v-model="accountForm.fuli_cookies"
+                rows="3"
+                class="checkin-accounts-tab__control checkin-accounts-tab__control--amber checkin-accounts-tab__control--textarea checkin-accounts-tab__control--mono checkin-accounts-tab__control--compact"
+                placeholder="{&quot;session&quot;: &quot;xxx&quot;, &quot;token&quot;: &quot;xxx&quot;}"
+              />
+              <p class="checkin-accounts-tab__hint checkin-accounts-tab__hint--amber">
+                {{ t('checkin.accounts.cdk.cookiesHint', { site: 'fuli.hxi.me' }) }}
+              </p>
+            </div>
 
-        <div
-          v-if="selectedBuiltinProvider?.requires_waf_bypass"
-          class="checkin-accounts-tab__notice checkin-accounts-tab__notice--warning"
-        >
-          <p class="checkin-accounts-tab__notice-title checkin-accounts-tab__notice-title--warning">
-            {{ t('checkin.accounts.waf.title', { provider: selectedBuiltinProvider.name }) }}
-          </p>
-          <ol class="checkin-accounts-tab__notice-list checkin-accounts-tab__notice-list--warning">
-            <li>{{ t('checkin.accounts.waf.stepSave') }}</li>
-            <li>{{ t('checkin.accounts.waf.stepProviders', { provider: selectedBuiltinProvider.name }) }}</li>
-            <li>{{ t('checkin.accounts.waf.stepProxy') }}</li>
-          </ol>
-        </div>
+            <!-- b4u: cdk cookies -->
+            <div
+              v-if="selectedProviderCdkConfig.cdk_type === 'b4u'"
+              class="checkin-accounts-tab__field"
+            >
+              <label class="checkin-accounts-tab__label checkin-accounts-tab__label--amber">
+                tw.b4u.qzz.io Cookies
+              </label>
+              <textarea
+                v-model="accountForm.b4u_cdk_cookies"
+                rows="3"
+                class="checkin-accounts-tab__control checkin-accounts-tab__control--amber checkin-accounts-tab__control--textarea checkin-accounts-tab__control--mono checkin-accounts-tab__control--compact"
+                placeholder="{&quot;session&quot;: &quot;xxx&quot;}"
+              />
+              <p class="checkin-accounts-tab__hint checkin-accounts-tab__hint--amber">
+                {{ t('checkin.accounts.cdk.cookiesHint', { site: 'tw.b4u.qzz.io' }) }}
+              </p>
+            </div>
 
-        <!-- CDK 配置区域（仅当提供商支持 CDK 时显示） -->
-        <div
-          v-if="selectedProviderCdkConfig"
-          class="checkin-accounts-tab__notice checkin-accounts-tab__notice--amber"
-        >
-          <p class="checkin-accounts-tab__notice-title checkin-accounts-tab__notice-title--amber">
-            {{ t('checkin.accounts.cdk.title') }}
-            <span class="checkin-accounts-tab__notice-title-meta">
-              {{ t('checkin.accounts.cdk.typeOptional', { type: selectedProviderCdkConfig.cdk_type }) }}
-            </span>
-          </p>
-          <p class="checkin-accounts-tab__notice-copy">
-            {{ t('checkin.accounts.cdk.description') }}
-          </p>
-
-          <!-- runawaytime: fuli cookies -->
-          <div
-            v-if="selectedProviderCdkConfig.cdk_type === 'runawaytime'"
-            class="checkin-accounts-tab__field"
-          >
-            <label class="checkin-accounts-tab__label checkin-accounts-tab__label--amber">
-              fuli.hxi.me Cookies
-            </label>
-            <textarea
-              v-model="accountForm.fuli_cookies"
-              rows="3"
-              class="checkin-accounts-tab__control checkin-accounts-tab__control--amber checkin-accounts-tab__control--textarea checkin-accounts-tab__control--mono checkin-accounts-tab__control--compact"
-              placeholder="{&quot;session&quot;: &quot;xxx&quot;, &quot;token&quot;: &quot;xxx&quot;}"
-            />
-            <p class="checkin-accounts-tab__hint checkin-accounts-tab__hint--amber">
-              {{ t('checkin.accounts.cdk.cookiesHint', { site: 'fuli.hxi.me' }) }}
-            </p>
+            <!-- x666: access_token -->
+            <div
+              v-if="selectedProviderCdkConfig.cdk_type === 'x666'"
+              class="checkin-accounts-tab__field"
+            >
+              <label class="checkin-accounts-tab__label checkin-accounts-tab__label--amber">
+                Access Token (JWT)
+              </label>
+              <input
+                v-model="accountForm.x666_access_token"
+                type="text"
+                class="checkin-accounts-tab__control checkin-accounts-tab__control--amber checkin-accounts-tab__control--mono checkin-accounts-tab__control--compact"
+                placeholder="eyJhbGciOiJIUzI1NiIs..."
+              >
+              <p class="checkin-accounts-tab__hint checkin-accounts-tab__hint--amber">
+                {{ t('checkin.accounts.cdk.accessTokenHint', { site: 'up.x666.me' }) }}
+              </p>
+            </div>
           </div>
 
-          <!-- b4u: cdk cookies -->
-          <div
-            v-if="selectedProviderCdkConfig.cdk_type === 'b4u'"
-            class="checkin-accounts-tab__field"
-          >
-            <label class="checkin-accounts-tab__label checkin-accounts-tab__label--amber">
-              tw.b4u.qzz.io Cookies
-            </label>
-            <textarea
-              v-model="accountForm.b4u_cdk_cookies"
-              rows="3"
-              class="checkin-accounts-tab__control checkin-accounts-tab__control--amber checkin-accounts-tab__control--textarea checkin-accounts-tab__control--mono checkin-accounts-tab__control--compact"
-              placeholder="{&quot;session&quot;: &quot;xxx&quot;}"
-            />
-            <p class="checkin-accounts-tab__hint checkin-accounts-tab__hint--amber">
-              {{ t('checkin.accounts.cdk.cookiesHint', { site: 'tw.b4u.qzz.io' }) }}
+          <!-- 帮助提示 -->
+          <div class="checkin-accounts-tab__notice checkin-accounts-tab__notice--info checkin-accounts-tab__notice--help">
+            <p class="checkin-accounts-tab__notice-title checkin-accounts-tab__notice-title--info">
+              <svg
+                class="checkin-accounts-tab__notice-icon"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
+                />
+              </svg>
+              {{ t('checkin.accounts.help.title') }}
             </p>
+            <ol class="checkin-accounts-tab__notice-list checkin-accounts-tab__notice-list--info">
+              <li>{{ t('checkin.accounts.help.stepOpenDevtools') }}</li>
+              <li>
+                {{ t('checkin.accounts.help.stepApplicationCookies') }}
+              </li>
+              <li>
+                {{ t('checkin.accounts.help.stepFindSession') }}
+              </li>
+              <li>{{ t('checkin.accounts.help.stepCopySession') }}</li>
+              <li>
+                {{ t('checkin.accounts.help.stepApiUser') }}
+              </li>
+            </ol>
           </div>
 
-          <!-- x666: access_token -->
-          <div
-            v-if="selectedProviderCdkConfig.cdk_type === 'x666'"
-            class="checkin-accounts-tab__field"
-          >
-            <label class="checkin-accounts-tab__label checkin-accounts-tab__label--amber">
-              Access Token (JWT)
-            </label>
+          <!-- 启用开关 -->
+          <div class="checkin-accounts-tab__toggle">
             <input
-              v-model="accountForm.x666_access_token"
-              type="text"
-              class="checkin-accounts-tab__control checkin-accounts-tab__control--amber checkin-accounts-tab__control--mono checkin-accounts-tab__control--compact"
-              placeholder="eyJhbGciOiJIUzI1NiIs..."
+              id="account-enabled"
+              v-model="accountForm.enabled"
+              type="checkbox"
+              class="checkin-accounts-tab__checkbox"
             >
-            <p class="checkin-accounts-tab__hint checkin-accounts-tab__hint--amber">
-              {{ t('checkin.accounts.cdk.accessTokenHint', { site: 'up.x666.me' }) }}
-            </p>
+            <label
+              for="account-enabled"
+              class="checkin-accounts-tab__checkbox-label"
+            >
+              {{ t('checkin.accounts.fields.enabled') }}
+            </label>
           </div>
-        </div>
-
-        <!-- 帮助提示 -->
-        <div class="checkin-accounts-tab__notice checkin-accounts-tab__notice--info">
-          <p class="checkin-accounts-tab__notice-title checkin-accounts-tab__notice-title--info">
-            <svg
-              class="checkin-accounts-tab__notice-icon"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
-              />
-            </svg>
-            {{ t('checkin.accounts.help.title') }}
-          </p>
-          <ol class="checkin-accounts-tab__notice-list checkin-accounts-tab__notice-list--info">
-            <li>{{ t('checkin.accounts.help.stepOpenDevtools') }}</li>
-            <li>
-              {{ t('checkin.accounts.help.stepApplicationCookies') }}
-            </li>
-            <li>
-              {{ t('checkin.accounts.help.stepFindSession') }}
-            </li>
-            <li>{{ t('checkin.accounts.help.stepCopySession') }}</li>
-            <li>
-              {{ t('checkin.accounts.help.stepApiUser') }}
-            </li>
-          </ol>
-        </div>
-
-        <!-- 启用开关 -->
-        <div class="checkin-accounts-tab__toggle">
-          <input
-            id="account-enabled"
-            v-model="accountForm.enabled"
-            type="checkbox"
-            class="checkin-accounts-tab__checkbox"
-          >
-          <label
-            for="account-enabled"
-            class="checkin-accounts-tab__checkbox-label"
-          >
-            {{ t('checkin.accounts.fields.enabled') }}
-          </label>
-        </div>
-      </form>
+        </form>
+      </div>
     </div>
 
     <template #footer>
@@ -1005,6 +1013,8 @@ onUnmounted(() => {
 <style scoped>
 .checkin-accounts-tab,
 .checkin-accounts-tab__form,
+.checkin-accounts-tab__modal-body,
+.checkin-accounts-tab__form-section,
 .checkin-accounts-tab__field,
 .checkin-accounts-tab__result,
 .checkin-accounts-tab__notice,
@@ -1555,41 +1565,108 @@ onUnmounted(() => {
   color: rgb(var(--color-warning-rgb) / 96%);
 }
 
+.checkin-accounts-tab__modal-body {
+  gap: 0.85rem;
+}
+
 .checkin-accounts-tab__modal-intro {
   flex-wrap: wrap;
   gap: 0.55rem;
-  padding-top: 0.5rem;
+  border: 1px solid rgb(var(--color-border-default-rgb) / 58%);
+  border-radius: 1rem;
+  background:
+    linear-gradient(135deg, rgb(var(--color-bg-surface-rgb) / 72%), transparent),
+    rgb(var(--color-bg-elevated-rgb) / 54%);
+  padding: 0.75rem;
 }
 
 .checkin-accounts-tab__modal-intro-pill {
-  background: rgb(var(--color-bg-surface-rgb) / 78%);
+  background: rgb(var(--color-bg-surface-rgb) / 82%);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 9%);
 }
 
 .checkin-accounts-tab__modal-scroll {
-  max-height: min(62vh, 640px);
+  max-height: min(60vh, 620px);
   overflow-y: auto;
-  padding-right: 0.15rem;
+  padding: 0.15rem 0.35rem 0.35rem 0.05rem;
+  scrollbar-gutter: stable;
 }
 
 .checkin-accounts-tab__modal-footer {
+  width: 100%;
   justify-content: flex-end;
   gap: 0.75rem;
+  border: 1px solid rgb(var(--color-border-default-rgb) / 58%);
+  border-radius: 1rem;
+  background:
+    linear-gradient(
+      180deg,
+      rgb(var(--color-bg-elevated-rgb) / 88%),
+      rgb(var(--color-bg-surface-rgb) / 72%)
+    );
+  padding: 0.65rem;
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 9%),
+    0 14px 30px rgb(15 23 42 / 10%);
 }
 
 .checkin-accounts-tab__form {
-  gap: 1rem;
-  padding: 0.75rem 0 0.25rem;
+  gap: 0.95rem;
+  padding: 0.05rem 0 0.25rem;
+}
+
+.checkin-accounts-tab__form-section {
+  gap: 0.9rem;
+  border: 1px solid rgb(var(--color-border-default-rgb) / 54%);
+  border-radius: 1.1rem;
+  background:
+    linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 78%), rgb(var(--color-bg-surface-rgb) / 58%));
+  padding: 1rem;
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 8%),
+    0 12px 28px rgb(15 23 42 / 7%);
+}
+
+.checkin-accounts-tab__form-section--credentials {
+  border-color: rgb(var(--color-accent-primary-rgb) / 24%);
+  background:
+    radial-gradient(circle at 100% 0%, rgb(var(--color-accent-primary-rgb) / 10%), transparent 32%),
+    linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 84%), rgb(var(--color-bg-surface-rgb) / 60%));
+}
+
+.checkin-accounts-tab__form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.9rem;
 }
 
 .checkin-accounts-tab__field {
-  gap: 0.375rem;
+  gap: 0.5rem;
+}
+
+.checkin-accounts-tab__field--credential {
+  gap: 0.65rem;
 }
 
 .checkin-accounts-tab__account-modal {
+  width: min(calc(100vw - 2rem), 54rem);
+  max-width: min(calc(100vw - 2rem), 54rem);
+  max-height: min(92vh, 920px);
   border-color: rgb(var(--color-border-strong-rgb) / 72%);
   box-shadow:
     0 28px 80px rgb(15 23 42 / 28%),
     0 0 0 1px rgb(var(--color-accent-primary-rgb) / 10%);
+}
+
+:deep(.checkin-accounts-tab__account-modal > div:nth-child(2)) {
+  padding-top: 0.75rem;
+  padding-bottom: 0.75rem;
+}
+
+:deep(.checkin-accounts-tab__account-modal > div:last-child) {
+  border-top-color: rgb(var(--color-border-strong-rgb) / 58%);
+  background:
+    linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 96%), rgb(var(--color-bg-surface-rgb) / 92%));
 }
 
 .checkin-accounts-tab__label {
@@ -1643,6 +1720,16 @@ onUnmounted(() => {
   min-height: 120px;
 }
 
+.checkin-accounts-tab__control--credential {
+  min-height: 11.5rem;
+  max-height: 19rem;
+  padding: 0.95rem 1rem;
+  overflow: auto;
+  font-size: 0.8125rem;
+  line-height: 1.6;
+  tab-size: 2;
+}
+
 .checkin-accounts-tab__control--compact {
   padding-block: 0.5rem;
   font-size: 0.75rem;
@@ -1660,6 +1747,7 @@ onUnmounted(() => {
     rgb(var(--color-bg-base-rgb) / 94%),
     rgb(var(--color-bg-elevated-rgb) / 92%)
   );
+  letter-spacing: 0.01em;
 }
 
 .checkin-accounts-tab__control--amber {
@@ -1688,6 +1776,13 @@ onUnmounted(() => {
   gap: 0.25rem;
 }
 
+.checkin-accounts-tab__hint--credential {
+  align-items: flex-start;
+  border-radius: 0.85rem;
+  background: rgb(var(--color-bg-base-rgb) / 38%);
+  padding: 0.6rem 0.7rem;
+}
+
 .checkin-accounts-tab__hint-icon,
 .checkin-accounts-tab__notice-icon {
   width: 0.875rem;
@@ -1704,7 +1799,7 @@ onUnmounted(() => {
 
 .checkin-accounts-tab__notice {
   gap: 1rem;
-  border-radius: 0.5rem;
+  border-radius: 0.9rem;
   border: 1px solid;
   padding: 1rem;
 }
@@ -1737,6 +1832,14 @@ onUnmounted(() => {
 .dark .checkin-accounts-tab__notice--info {
   border-color: rgb(30 64 175 / 50%);
   background: linear-gradient(to right, rgb(30 64 175 / 20%), rgb(55 48 163 / 20%));
+}
+
+.checkin-accounts-tab__notice--help {
+  gap: 0.7rem;
+  border-color: rgb(var(--color-border-default-rgb) / 54%);
+  background:
+    linear-gradient(135deg, rgb(var(--color-accent-primary-rgb) / 8%), transparent),
+    rgb(var(--color-bg-elevated-rgb) / 44%);
 }
 
 .checkin-accounts-tab__notice-title {
@@ -1846,10 +1949,13 @@ onUnmounted(() => {
 }
 
 .checkin-accounts-tab__form-button {
+  min-height: 42px;
   border-radius: 0.9rem;
-  padding: 0.5rem 1rem;
+  padding: 0.6rem 1.05rem;
   font-size: 0.875rem;
-  font-weight: 500;
+  font-weight: 650;
+  line-height: 1.2;
+  white-space: nowrap;
 }
 
 .checkin-accounts-tab__form-button--secondary {
@@ -1865,12 +1971,16 @@ onUnmounted(() => {
 }
 
 .checkin-accounts-tab__form-button--primary {
+  min-width: 9.5rem;
+  color: white;
   background: linear-gradient(
     135deg,
     rgb(var(--color-accent-primary-rgb) / 96%),
     rgb(var(--color-accent-secondary-rgb) / 92%)
   );
-  box-shadow: 0 16px 28px rgb(var(--color-accent-primary-rgb) / 24%);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 16%),
+    0 16px 28px rgb(var(--color-accent-primary-rgb) / 24%);
 }
 
 .checkin-accounts-tab__form-button--primary:hover {
@@ -1917,8 +2027,31 @@ onUnmounted(() => {
     flex-direction: column;
   }
 
+  .checkin-accounts-tab__modal-intro,
+  .checkin-accounts-tab__modal-intro-pill,
+  .checkin-accounts-tab__modal-footer {
+    width: 100%;
+  }
+
+  .checkin-accounts-tab__modal-intro-pill {
+    justify-content: center;
+  }
+
   .checkin-accounts-tab__modal-scroll {
     max-height: min(58vh, 560px);
+  }
+
+  .checkin-accounts-tab__form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .checkin-accounts-tab__form-section {
+    padding: 0.85rem;
+  }
+
+  .checkin-accounts-tab__control--credential {
+    min-height: 10rem;
+    max-height: 15rem;
   }
 
   .checkin-accounts-tab__form-button {
