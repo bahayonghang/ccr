@@ -635,21 +635,14 @@ impl AppState {
     }
 
     /// 登记 cancel token；当前 job 启动子进程前调用一次。
-    pub async fn register_usage_import_cancel_token(
-        &self,
-        job_id: &str,
-        token: CancellationToken,
-    ) {
+    pub async fn register_usage_import_cancel_token(&self, job_id: &str, token: CancellationToken) {
         let mut tokens = self.usage_import_cancel_tokens.write().await;
         tokens.insert(job_id.to_string(), token);
     }
 
     /// 移除并取出 cancel token；cancel 命令调用以触发子进程退出，
     /// 子进程自然结束的清理路径也会调用以避免泄漏。
-    pub async fn take_usage_import_cancel_token(
-        &self,
-        job_id: &str,
-    ) -> Option<CancellationToken> {
+    pub async fn take_usage_import_cancel_token(&self, job_id: &str) -> Option<CancellationToken> {
         let mut tokens = self.usage_import_cancel_tokens.write().await;
         tokens.remove(job_id)
     }

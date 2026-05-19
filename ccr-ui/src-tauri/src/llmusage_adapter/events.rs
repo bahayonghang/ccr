@@ -155,15 +155,10 @@ mod tests {
 
     #[test]
     fn noise_between_legal_events_does_not_break_stream() {
-        let started = parse_ndjson_event(
-            r#"{"event":"started","job_id":"cli","files_total":0}"#,
-        )
-        .unwrap()
-        .expect("started event should parse");
-        let noise = parse_ndjson_event(
-            "\u{1b}[32m INFO\u{1b}[0m 准备解析 codex 真源",
-        )
-        .unwrap();
+        let started = parse_ndjson_event(r#"{"event":"started","job_id":"cli","files_total":0}"#)
+            .unwrap()
+            .expect("started event should parse");
+        let noise = parse_ndjson_event("\u{1b}[32m INFO\u{1b}[0m 准备解析 codex 真源").unwrap();
         let finished = parse_ndjson_event(
             r#"{"event":"finished","summary":{"sources":1,"total_seen":3,"total_inserted":3}}"#,
         )

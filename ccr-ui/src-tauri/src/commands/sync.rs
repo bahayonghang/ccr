@@ -358,9 +358,7 @@ fn build_sync_config(payload: WebDavConfigInput) -> SyncConfig {
 
 /// 持久化 WebDAV 账号，保存即启用。
 #[tauri::command]
-pub async fn set_webdav_config(
-    payload: WebDavConfigInput,
-) -> Result<WebDavConfigDetails, String> {
+pub async fn set_webdav_config(payload: WebDavConfigInput) -> Result<WebDavConfigDetails, String> {
     let saved = tokio::task::spawn_blocking(move || {
         let manager = SyncConfigManager::with_default()
             .map_err(|e| format!("Failed to create SyncConfigManager: {e}"))?;
