@@ -1,8 +1,8 @@
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
+import { computed, onActivated, onDeactivated, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useUsageStore } from '@/stores/usage'
 import { ensureLocaleLoaded } from '@/i18n'
-import type { ModelStat, Platform, UsageFeatureCapability, UsageUnsupportedReason } from '@/types/usage'
+import type { Platform, UsageFeatureCapability, UsageUnsupportedReason } from '@/types/usage'
 import { isTauriRuntime } from '@/utils/tauriRuntime'
 import {
   aggregateDailyTrends,
@@ -13,140 +13,44 @@ import {
   type ModelDistributionSlice,
   type TrendGranularity,
 } from './usageDashboardPresentation'
+import { getLocalDateWindow } from './dateWindow'
+import {
+  buildChartTheme,
+  buildTrendTooltipHtml,
+  formatTrendAxisLabel,
+  formatTrendTooltipLabel,
+  getTrendTickAmount,
+  type ApexCustomTooltipContext,
+  type ApexFormatterContext,
+  type ChartThemeState,
+  type ModelDistributionMetric,
+} from './usageChartOptions'
+import {
+  buildUsageDiagnosticsSummary,
+  type UsageDiagnosticsSummary,
+} from './usageDiagnostics'
+import {
+  buildSummarySparklinePoints,
+  buildUsageSummaryCards,
+  formatCost,
+  formatTokens,
+  type UsageSummaryCard,
+} from './usageSummaryCards'
+import {
+  buildDashboardMetaItems,
+  buildOverviewHighlights,
+  buildSelectedPlatformLabel,
+  buildSelectedWindowLabel,
+  buildTopModelRankings,
+  buildTopProjectRankings,
+  shortenPath,
+  type DashboardMetaItem,
+  type OverviewRankItem,
+} from './usageOverviewInsights'
 
-export type UsageSummaryCardTone = 'rose' | 'violet' | 'sky' | 'amber'
-type UsageSummaryCardDeltaTone = 'up' | 'down' | 'flat'
-type UsageSummaryCardMetric = 'requests' | 'tokens' | 'cost' | 'cache'
-
-export type UsageSparklinePoint = {
-  label: string
-  value: number
-}
-
-/**
- * ApexCharts formatter callback 上下文。
- *
- * ApexCharts 自带 `ApexTooltip` / `ApexDataLabels` type 把第二个参数 `opts` 标成 `any`，
- * 等于让所有调用方手写 `any`。这里收口为最小可用形态——只列我们实际访问的字段，
- * 让 TypeScript 在 build 期发现错字 / 调错 API；对其余字段的访问保持 fail-fast。
- *
- * 字段都是 optional：donut 图没有 `dataPointIndex`，bar 图也不一定有 `globals.seriesTotals`，
- * 调用方按需 narrow。
- */
-interface ApexFormatterContext {
-  dataPointIndex?: number
-  seriesIndex?: number
-  globals?: {
-    seriesTotals?: number[]
-  }
-}
-
-interface ApexCustomTooltipContext {
-  dataPointIndex?: number
-  series?: number[][]
-  w?: {
-    globals?: {
-      colors?: string[]
-      seriesNames?: string[]
-    }
-  }
-}
-
-export type UsageSummaryCard = {
-  id: UsageSummaryCardMetric
-  label: string
-  value: string
-  detail: string
-  icon: string
-  tone: UsageSummaryCardTone
-  sparkline: UsageSparklinePoint[]
-  sparklineLabel: string
-  averageLabel: string
-  peakLabel: string
-  deltaLabel: string
-  deltaTone: UsageSummaryCardDeltaTone
-}
-
-type DashboardMetaItem = {
-  id: string
-  label: string
-  value: string
-}
-
-type OverviewRankItem = {
-  id: string
-  label: string
-  title: string
-  detail: string
-  value: string
-  share: number
-}
-
-type ChartThemeState = {
-  mode: 'light' | 'dark'
-  primary: string
-  secondary: string
-  tertiary: string
-  quaternary: string
-  textPrimary: string
-  textSecondary: string
-  textMuted: string
-  grid: string
-  border: string
-}
-
-type ModelDistributionMetric = 'cost' | 'tokens'
-
-type UsageDiagnosticsSummary = {
-  totalRecords: string
-  latestRecordAt: string
-  healthLabel: string
-  healthDetail: string
-  repairRecommended: boolean
-  canRepairCodex: boolean
-}
-
-const formatTokens = (value: number) =>
-  value >= 1e6
-    ? `${(value / 1e6).toFixed(1)}M`
-    : value >= 1e3
-      ? `${(value / 1e3).toFixed(1)}K`
-      : value.toString()
-
-const formatCost = (value: number) => (value >= 1 ? `$${value.toFixed(2)}` : `$${value.toFixed(4)}`)
-
-const formatPercent = (value: number) => `${(value * 100).toFixed(1)}%`
-const formatCompactCount = (value: number) =>
-  value >= 1e6
-    ? `${(value / 1e6).toFixed(1)}M`
-    : value >= 1e3
-      ? `${(value / 1e3).toFixed(1)}K`
-      : Number.isInteger(value)
-        ? value.toLocaleString()
-        : value.toFixed(1)
-const formatDateTime = (value: string, locale: string) => new Date(value).toLocaleString(locale)
-const modelCost = (model: ModelStat) => model.cost_with_cache ?? 0
 const outputSeriesName = 'Output'
 
-const escapeTooltipText = (value: string) =>
-  value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;')
-
 const hasTemplatePlaceholder = (value: string) => /\{[a-zA-Z_][a-zA-Z0-9_]*\}/.test(value)
-
-const shortenPath = (path: string) => {
-  const parts = path.replace(/\\/g, '/').split('/')
-  return parts.length > 2 ? `.../${parts.slice(-2).join('/')}` : path
-}
-
-const formatArchiveTimestamp = (value: string | null | undefined, locale: string) => {
-  if (!value) return '—'
-  return formatDateTime(value, locale)
-}
 
 const normalizeUnsupportedReason = (reason: UsageUnsupportedReason | null | undefined) => {
   if (
@@ -164,100 +68,7 @@ const normalizeUnsupportedReason = (reason: UsageUnsupportedReason | null | unde
   return 'waiting_for_llmusage'
 }
 
-export const formatLocalDate = (date: Date) => {
-  const year = date.getFullYear()
-  const month = `${date.getMonth() + 1}`.padStart(2, '0')
-  const day = `${date.getDate()}`.padStart(2, '0')
-  return `${year}-${month}-${day}`
-}
-
-export const getLocalDateWindow = (days: number, endDate = new Date()) => {
-  const normalizedDays = Math.max(1, Math.floor(days))
-  const end = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate())
-  const start = new Date(end)
-  start.setDate(end.getDate() - (normalizedDays - 1))
-  return { start: formatLocalDate(start), end: formatLocalDate(end) }
-}
-
 const getTimeRange = getLocalDateWindow
-
-const parseUtcDate = (value: string) => {
-  const [year, month, day] = value.split('-').map(Number)
-  return new Date(Date.UTC(year, (month || 1) - 1, day || 1))
-}
-
-const buildDateFormatters = (locale: string) => ({
-  day: new Intl.DateTimeFormat(locale, { month: 'short', day: 'numeric', timeZone: 'UTC' }),
-  month: new Intl.DateTimeFormat(locale, { month: 'short', year: 'numeric', timeZone: 'UTC' }),
-})
-
-const formatTrendAxisLabel = (value: number, granularity: TrendGranularity, locale: string) => {
-  const formatters = buildDateFormatters(locale)
-  const date = new Date(value)
-
-  if (Number.isNaN(date.getTime())) return ''
-  if (granularity === 'month') return formatters.month.format(date)
-  return formatters.day.format(date)
-}
-
-const formatTrendTooltipLabel = (
-  startDate: string,
-  endDate: string,
-  granularity: TrendGranularity,
-  locale: string
-) => {
-  const formatters = buildDateFormatters(locale)
-  const start = parseUtcDate(startDate)
-  const end = parseUtcDate(endDate)
-
-  if (granularity === 'month') {
-    return formatters.month.format(start)
-  }
-
-  const startLabel = formatters.day.format(start)
-  const endLabel = formatters.day.format(end)
-  return startLabel === endLabel ? startLabel : `${startLabel} - ${endLabel}`
-}
-
-const getTrendTickAmount = (pointCount: number) => {
-  if (pointCount <= 0) return undefined
-  if (pointCount <= 8) return pointCount
-  if (pointCount <= 16) return 8
-  return 6
-}
-
-const readCssVar = (name: string, fallback: string) => {
-  if (typeof window === 'undefined' || typeof document === 'undefined') {
-    return fallback
-  }
-
-  const value = getComputedStyle(document.documentElement).getPropertyValue(name).trim()
-  return value || fallback
-}
-
-const detectThemeMode = (): 'light' | 'dark' => {
-  if (typeof document === 'undefined') {
-    return 'light'
-  }
-
-  return document.documentElement.getAttribute('data-theme') === 'dark' ||
-    document.documentElement.classList.contains('dark')
-    ? 'dark'
-    : 'light'
-}
-
-const buildChartTheme = (): ChartThemeState => ({
-  mode: detectThemeMode(),
-  primary: readCssVar('--color-accent-primary', '#0071E3'),
-  secondary: readCssVar('--color-accent-secondary', '#2997FF'),
-  tertiary: readCssVar('--color-info', '#5AC8FA'),
-  quaternary: readCssVar('--color-warning', '#FF9F0A'),
-  textPrimary: readCssVar('--color-text-primary', '#1D1D1F'),
-  textSecondary: readCssVar('--color-text-secondary', '#424245'),
-  textMuted: readCssVar('--color-text-muted', '#6E6E73'),
-  grid: readCssVar('--color-border-subtle', 'rgb(29 29 31 / 8%)'),
-  border: readCssVar('--color-border-default', 'rgb(29 29 31 / 12%)'),
-})
 
 export const useUsageDashboardState = () => {
   const { t, locale } = useI18n()
@@ -371,88 +182,26 @@ export const useUsageDashboardState = () => {
     void hydrateUsageLocale()
   })
 
-  const selectedPlatformLabel = computed(() => {
-    if (!selectedPlatform.value) {
-      return translateDashboardText('usage.dashboard.allPlatforms', undefined, 'All Platforms')
-    }
+  const selectedPlatformLabel = computed(() =>
+    buildSelectedPlatformLabel(selectedPlatform.value, translateDashboardText)
+  )
 
-    const fallbackLabels: Record<string, string> = {
-      claude: 'Claude',
-      codex: 'Codex',
-      gemini: 'Gemini',
-      opencode: 'OpenCode',
-    }
-
-    return translateDashboardText(
-      `usage.platforms.${selectedPlatform.value}`,
-      undefined,
-      fallbackLabels[selectedPlatform.value] ?? selectedPlatform.value
-    )
-  })
-
-  const selectedWindowLabel = computed(() => {
-    const labels: Record<number, { key: string; fallback: string }> = {
-      7: { key: 'usage.dashboard.days7', fallback: '7 Days' },
-      30: { key: 'usage.dashboard.days30', fallback: '30 Days' },
-      90: { key: 'usage.dashboard.days90', fallback: '90 Days' },
-      365: { key: 'usage.dashboard.days365', fallback: '365 Days' },
-    }
-
-    const selected = labels[selectedDays.value]
-    if (!selected) return `${selectedDays.value}d`
-
-    return translateDashboardText(selected.key, undefined, selected.fallback)
-  })
+  const selectedWindowLabel = computed(() =>
+    buildSelectedWindowLabel(selectedDays.value, translateDashboardText)
+  )
 
   const dashboardMetaItems = computed<DashboardMetaItem[]>(() => {
     if (!dashboardReady.value) return []
 
-    const archive = store.archive
-
-    return [
-      {
-        id: 'scope',
-        label: translateDashboardText('usage.dashboard.meta.scope', undefined, 'Scope'),
-        value: selectedPlatformLabel.value,
-      },
-      {
-        id: 'window',
-        label: translateDashboardText('usage.dashboard.meta.window', undefined, 'Window'),
-        value: selectedWindowLabel.value,
-      },
-      {
-        id: 'models',
-        label: translateDashboardText('usage.dashboard.meta.models', undefined, 'Models'),
-        value: store.modelStats.length.toLocaleString(),
-      },
-      {
-        id: 'projects',
-        label: translateDashboardText('usage.dashboard.meta.projects', undefined, 'Projects'),
-        value: store.projectStats.length.toLocaleString(),
-      },
-      {
-        id: 'archive',
-        label: 'Archive',
-        value: archive
-          ? `L ${archive.live_sources} · M ${archive.missing_sources} · D ${archive.deleted_sources}`
-          : '—',
-      },
-      {
-        id: 'archive-root',
-        label: 'Archive Root',
-        value: archive ? shortenPath(archive.archive_root) : '—',
-      },
-      {
-        id: 'archive-time',
-        label: 'Last Sync',
-        value: archive
-          ? formatArchiveTimestamp(
-              archive.history_completed_at ?? archive.recent_completed_at,
-              locale.value
-            )
-          : '—',
-      },
-    ]
+    return buildDashboardMetaItems({
+      archive: store.archive,
+      locale: locale.value,
+      modelCount: store.modelStats.length,
+      projectCount: store.projectStats.length,
+      selectedPlatformLabel: selectedPlatformLabel.value,
+      selectedWindowLabel: selectedWindowLabel.value,
+      translate: translateDashboardText,
+    })
   })
 
   const trendGranularity = computed(() => selectTrendGranularity(selectedDays.value))
@@ -464,75 +213,7 @@ export const useUsageDashboardState = () => {
     }))
   )
 
-  const summarySparklinePoints = computed<Record<UsageSummaryCardMetric, UsageSparklinePoint[]>>(() => {
-    const buckets = trendBuckets.value
-    const requestPoints = buckets.map((item) => ({ label: item.startDate, value: item.requestCount }))
-    const tokenPoints = buckets.map((item) => ({ label: item.startDate, value: item.totalTokens }))
-    const costPoints = buckets.map((item) => ({ label: item.startDate, value: item.costUsd }))
-    const cachePoints = buckets.map((item) => {
-      const denominator = item.inputTokens + item.cacheReadTokens
-      return {
-        label: item.startDate,
-        value: denominator > 0 ? item.cacheReadTokens / denominator : 0,
-      }
-    })
-
-    return {
-      requests: requestPoints,
-      tokens: tokenPoints,
-      cost: costPoints,
-      cache: cachePoints,
-    }
-  })
-
-  const buildMetricStats = (
-    metric: UsageSummaryCardMetric,
-    formatter: (value: number) => string,
-  ) => {
-    const points = summarySparklinePoints.value[metric]
-    if (points.length === 0) {
-      return {
-        averageLabel: formatter(0),
-        peakLabel: formatter(0),
-        deltaLabel: '0%',
-        deltaTone: 'flat' as UsageSummaryCardDeltaTone,
-      }
-    }
-
-    const values = points.map((point) => point.value)
-    const average = values.reduce((sum, value) => sum + value, 0) / values.length
-    const peak = Math.max(...values)
-    const first = values[0] ?? 0
-    const last = values.at(-1) ?? 0
-    const delta = first > 0 ? (last - first) / first : last > 0 ? 1 : 0
-    const deltaTone: UsageSummaryCardDeltaTone = delta > 0.005 ? 'up' : delta < -0.005 ? 'down' : 'flat'
-    const sign = delta > 0 ? '+' : ''
-
-    return {
-      averageLabel: formatter(average),
-      peakLabel: formatter(peak),
-      deltaLabel: `${sign}${(delta * 100).toFixed(0)}%`,
-      deltaTone,
-    }
-  }
-
-  const buildSummaryCard = (
-    card: Omit<UsageSummaryCard, 'sparkline' | 'sparklineLabel' | 'averageLabel' | 'peakLabel' | 'deltaLabel' | 'deltaTone'>,
-    formatter: (value: number) => string,
-  ): UsageSummaryCard => {
-    const stats = buildMetricStats(card.id, formatter)
-
-    return {
-      ...card,
-      sparkline: summarySparklinePoints.value[card.id],
-      sparklineLabel: translateDashboardText(
-        'usage.dashboard.cards.sparklineLabel',
-        { metric: card.label, window: selectedWindowLabel.value },
-        `${card.label} trend for ${selectedWindowLabel.value}`,
-      ),
-      ...stats,
-    }
-  }
+  const summarySparklinePoints = computed(() => buildSummarySparklinePoints(trendBuckets.value))
 
   const summaryCards = computed<UsageSummaryCard[]>(() => {
     if (!dashboardReady.value) return []
@@ -540,96 +221,14 @@ export const useUsageDashboardState = () => {
     const summary = store.summary
     if (!summary) return []
 
-    const averageCostPerRequest =
-      summary.total_requests > 0
-        ? formatCost(summary.total_cost_usd / summary.total_requests)
-        : formatCost(0)
-
-    return [
-      buildSummaryCard(
-        {
-          id: 'requests',
-          label: translateDashboardText(
-            'usage.dashboard.cards.totalRequests',
-            undefined,
-            'Total Requests',
-          ),
-          value: summary.total_requests.toLocaleString(),
-          detail: translateDashboardText(
-            'usage.dashboard.cards.requestsDetail',
-            {
-              models: store.modelStats.length,
-              projects: store.projectStats.length,
-            },
-            `${store.modelStats.length} models · ${store.projectStats.length} projects`,
-          ),
-          icon: 'Activity',
-          tone: 'rose',
-        },
-        formatCompactCount,
-      ),
-      buildSummaryCard(
-        {
-          id: 'tokens',
-          label: translateDashboardText(
-            'usage.dashboard.cards.totalTokens',
-            undefined,
-            'Total Tokens',
-          ),
-          value: formatTokens(summary.total_tokens),
-          detail: translateDashboardText(
-            'usage.dashboard.cards.tokensDetail',
-            {
-              input: formatTokens(summary.total_input_tokens),
-              output: formatTokens(summary.total_output_tokens),
-              cache: formatTokens(summary.total_cache_read_tokens),
-            },
-            `${formatTokens(summary.total_input_tokens)} in · ${formatTokens(summary.total_output_tokens)} out · ${formatTokens(summary.total_cache_read_tokens)} cache read`,
-          ),
-          icon: 'Layers',
-          tone: 'violet',
-        },
-        formatTokens,
-      ),
-      buildSummaryCard(
-        {
-          id: 'cost',
-          label: translateDashboardText('usage.dashboard.cards.totalCost', undefined, 'Total Cost'),
-          value: formatCost(summary.total_cost_usd),
-          detail: translateDashboardText(
-            'usage.dashboard.cards.costDetail',
-            {
-              average: averageCostPerRequest,
-            },
-            `${averageCostPerRequest} per request`,
-          ),
-          icon: 'Wallet',
-          tone: 'sky',
-        },
-        formatCost,
-      ),
-      buildSummaryCard(
-        {
-          id: 'cache',
-          label: translateDashboardText(
-            'usage.dashboard.cards.cacheEfficiency',
-            undefined,
-            'Cache Reuse Rate',
-          ),
-          value: formatPercent(summary.cache_efficiency),
-          detail: translateDashboardText(
-            'usage.dashboard.cards.cacheDetail',
-            {
-              tokens: formatTokens(summary.total_cache_read_tokens),
-            },
-            `cache read / (input + cache read) · ${formatTokens(summary.total_cache_read_tokens)} cache read`,
-          ),
-          icon: 'Cpu',
-          tone: 'amber',
-        },
-        formatPercent,
-      ),
-    ]
+    return buildUsageSummaryCards({
+      summary,
+      modelCount: store.modelStats.length,
+      projectCount: store.projectStats.length,
+      sparklinePoints: summarySparklinePoints.value,
+      selectedWindowLabel: selectedWindowLabel.value,
+      translate: translateDashboardText,
+    })
   })
 
   const trendSeries = computed(() => {
@@ -765,26 +364,17 @@ export const useUsageDashboardState = () => {
       shared: true,
       intersect: false,
       custom: (context: ApexCustomTooltipContext) => {
-        const index = context.dataPointIndex ?? -1
-        const bucket = trendBuckets.value[index]
-        if (!bucket) return ''
-
-        const label = formatTrendTooltipLabel(
-          bucket.startDate,
-          bucket.displayEndDate,
-          trendGranularity.value,
-          locale.value,
-        )
-        const colors = context.w?.globals?.colors ?? []
-        const names = context.w?.globals?.seriesNames ?? []
-        const rows = (context.series ?? []).map((series, seriesIndex) => {
-          const name = escapeTooltipText(names[seriesIndex] ?? trendSeries.value[seriesIndex]?.name ?? '')
-          const value = formatTokens(series[index] ?? 0)
-          const color = colors[seriesIndex] ?? chartTheme.value.primary
-          return `<div class="usage-chart-tooltip__row"><span><i style="background:${color}"></i>${name}</span><strong>${value}</strong></div>`
-        }).join('')
-
-        return `<div class="usage-chart-tooltip"><div class="usage-chart-tooltip__title">${escapeTooltipText(label)}</div>${rows}<div class="usage-chart-tooltip__row usage-chart-tooltip__row--cost"><span>${escapeTooltipText(translateDashboardText('usage.dashboard.table.cost', undefined, 'Cost'))}</span><strong>${formatCost(bucket.costUsd)}</strong></div></div>`
+        return buildTrendTooltipHtml({
+          context,
+          buckets: trendBuckets.value,
+          granularity: trendGranularity.value,
+          locale: locale.value,
+          seriesNames: trendSeries.value.map((series) => series.name),
+          fallbackColor: chartTheme.value.primary,
+          costLabel: translateDashboardText('usage.dashboard.table.cost', undefined, 'Cost'),
+          formatTokens,
+          formatCost,
+        })
       },
       x: {
         // ApexCharts 把 formatter 的 context 类型标成 any，这里收口到本地 ApexFormatterContext。
@@ -968,122 +558,25 @@ export const useUsageDashboardState = () => {
   const overviewHighlights = computed(() => {
     if (!dashboardReady.value) return []
 
-    const topModel = store.modelStats[0]
-    const topProject = store.projectStats[0]
-
-    return [
-      {
-        id: 'density',
-        label: translateDashboardText(
-          'usage.dashboard.highlights.density',
-          undefined,
-          'Trend Density'
-        ),
-        value: trendGranularityLabel.value,
-        detail: translateDashboardText(
-          'usage.dashboard.highlights.densityDetail',
-          {
-            points: trendBuckets.value.length,
-            window: selectedWindowLabel.value,
-          },
-          `${trendBuckets.value.length} points across ${selectedWindowLabel.value}`
-        ),
-      },
-      {
-        id: 'top-model',
-        label: translateDashboardText(
-          'usage.dashboard.highlights.topModel',
-          undefined,
-          'Top Model'
-        ),
-        value:
-          topModel?.model ??
-          translateDashboardText('usage.dashboard.table.noData', undefined, 'No data'),
-        detail: topModel
-          ? `${formatCost(modelCost(topModel))} · ${formatTokens(topModel.total_tokens)}`
-          : translateDashboardText('usage.dashboard.table.noData', undefined, 'No data'),
-      },
-      {
-        id: 'top-project',
-        label: translateDashboardText(
-          'usage.dashboard.highlights.topProject',
-          undefined,
-          'Top Project'
-        ),
-        value: topProject
-          ? shortenPath(topProject.project_path)
-          : translateDashboardText('usage.dashboard.table.noData', undefined, 'No data'),
-        detail: topProject
-          ? `${formatCost(topProject.total_cost)} · ${topProject.request_count.toLocaleString()} ${translateDashboardText('usage.dashboard.table.requests', undefined, 'requests')}`
-          : translateDashboardText('usage.dashboard.table.noData', undefined, 'No data'),
-      },
-      {
-        id: 'cache',
-        label: translateDashboardText(
-          'usage.dashboard.highlights.cacheRead',
-          undefined,
-          'Cache Read'
-        ),
-        value: store.summary
-          ? formatTokens(store.summary.total_cache_read_tokens)
-          : translateDashboardText('usage.dashboard.table.noData', undefined, 'No data'),
-        detail: store.summary
-          ? translateDashboardText(
-              'usage.dashboard.highlights.cacheReadDetail',
-              {
-                percent: formatPercent(store.summary.cache_efficiency),
-              },
-              `Cache reuse ${formatPercent(store.summary.cache_efficiency)}`
-            )
-          : translateDashboardText('usage.dashboard.table.noData', undefined, 'No data'),
-      },
-    ]
+    return buildOverviewHighlights({
+      modelStats: store.modelStats,
+      projectStats: store.projectStats,
+      summary: store.summary,
+      trendBuckets: trendBuckets.value,
+      trendGranularityLabel: trendGranularityLabel.value,
+      selectedWindowLabel: selectedWindowLabel.value,
+      translate: translateDashboardText,
+    })
   })
 
   const topModelRankings = computed<OverviewRankItem[]>(() => {
     if (!dashboardReady.value) return []
-
-    const totalCost = store.modelStats.reduce((sum, item) => sum + modelCost(item), 0)
-
-    return [...store.modelStats]
-      .sort(
-        (left, right) =>
-          modelCost(right) - modelCost(left) ||
-          right.total_tokens - left.total_tokens ||
-          right.request_count - left.request_count
-      )
-      .slice(0, 5)
-      .map((item) => ({
-        id: item.model,
-        label: item.model,
-        title: item.model,
-        detail: `${item.request_count.toLocaleString()} ${translateDashboardText('usage.dashboard.table.requests', undefined, 'requests')} · ${formatTokens(item.total_tokens)}`,
-        value: formatCost(modelCost(item)),
-        share: totalCost > 0 ? modelCost(item) / totalCost : 0,
-      }))
+    return buildTopModelRankings(store.modelStats, translateDashboardText)
   })
 
   const topProjectRankings = computed<OverviewRankItem[]>(() => {
     if (!dashboardReady.value) return []
-
-    const totalCost = store.projectStats.reduce((sum, item) => sum + item.total_cost, 0)
-
-    return [...store.projectStats]
-      .sort(
-        (left, right) =>
-          right.total_cost - left.total_cost ||
-          right.total_tokens - left.total_tokens ||
-          right.request_count - left.request_count
-      )
-      .slice(0, 5)
-      .map((item) => ({
-        id: item.project_path,
-        label: shortenPath(item.project_path),
-        title: item.project_path,
-        detail: `${formatTokens(item.total_tokens)} · ${item.request_count.toLocaleString()} ${translateDashboardText('usage.dashboard.table.requests', undefined, 'requests')}`,
-        value: formatCost(item.total_cost),
-        share: totalCost > 0 ? item.total_cost / totalCost : 0,
-      }))
+    return buildTopProjectRankings(store.projectStats, translateDashboardText)
   })
 
   const logsRecords = computed(() => store.logs?.records ?? [])
@@ -1091,45 +584,24 @@ export const useUsageDashboardState = () => {
     () => store.modelStats.find((item) => item.model === 'unknown') ?? null
   )
   const logsTotalCount = computed(() => store.logs?.total ?? logsRecords.value.length)
-  const latestLogTimestamp = computed(() => logsRecords.value[0]?.recorded_at ?? null)
-  const codexRepairRecommended = computed(() => {
-    if (selectedPlatform.value !== 'codex') return false
-    const summary = store.summary
-    if (!summary || summary.total_requests <= 0) return false
-
-    return (unknownModelStat.value?.request_count ?? 0) > 0 || summary.total_cost_usd === 0
-  })
-  const diagnosticsSummary = computed<UsageDiagnosticsSummary>(() => {
-    const latestRecordAt = latestLogTimestamp.value
-      ? formatDateTime(latestLogTimestamp.value, locale.value)
-      : t('usage.dashboard.diagnostics.noRecentRecord')
-    const archive = store.archive
-    const archiveDetail = archive
-      ? `Archive ${archive.archived_sessions} · L ${archive.live_sources} / M ${archive.missing_sources} / D ${archive.deleted_sources}`
-      : t('usage.dashboard.diagnostics.rawLogsHint')
-
-    if (codexRepairRecommended.value) {
-      return {
-        totalRecords: logsTotalCount.value.toLocaleString(),
-        latestRecordAt,
-        healthLabel: t('usage.dashboard.diagnostics.repairNeeded'),
-        healthDetail: `${t('usage.dashboard.diagnostics.codexRepairHint', {
-          unknown: (unknownModelStat.value?.request_count ?? 0).toLocaleString(),
-        })} · ${archiveDetail}`,
-        repairRecommended: true,
-        canRepairCodex: true,
-      }
-    }
-
-    return {
-        totalRecords: logsTotalCount.value.toLocaleString(),
-        latestRecordAt,
-        healthLabel: t('usage.dashboard.diagnostics.healthy'),
-        healthDetail: archiveDetail,
-        repairRecommended: false,
-        canRepairCodex: selectedPlatform.value === 'codex',
-      }
-  })
+  const diagnosticsSummary = computed<UsageDiagnosticsSummary>(() =>
+    buildUsageDiagnosticsSummary({
+      selectedPlatform: selectedPlatform.value as Platform | '',
+      summary: store.summary,
+      logsRecords: logsRecords.value,
+      logsTotalCount: logsTotalCount.value,
+      unknownModelStat: unknownModelStat.value,
+      archive: store.archive,
+      locale: locale.value,
+      messages: {
+        noRecentRecord: t('usage.dashboard.diagnostics.noRecentRecord'),
+        rawLogsHint: t('usage.dashboard.diagnostics.rawLogsHint'),
+        repairNeeded: t('usage.dashboard.diagnostics.repairNeeded'),
+        codexRepairHint: (unknown) => t('usage.dashboard.diagnostics.codexRepairHint', { unknown }),
+        healthy: t('usage.dashboard.diagnostics.healthy'),
+      },
+    })
+  )
   const diagnosticsEmptyMessage = computed(() =>
     logModelFilter.value
       ? t('usage.dashboard.diagnostics.filteredNoResults')
@@ -1272,6 +744,31 @@ export const useUsageDashboardState = () => {
     chartTheme.value = buildChartTheme()
   }
 
+  let dashboardAutoRefreshActive = false
+
+  const startDashboardAutoRefresh = () => {
+    if (runtimeUnavailable.value) {
+      stopDashboardAutoRefresh(true)
+      return
+    }
+
+    if (dashboardAutoRefreshActive) {
+      return
+    }
+
+    store.startAutoRefresh()
+    dashboardAutoRefreshActive = true
+  }
+
+  const stopDashboardAutoRefresh = (force = false) => {
+    if (!dashboardAutoRefreshActive && !force) {
+      return
+    }
+
+    store.stopAutoRefresh()
+    dashboardAutoRefreshActive = false
+  }
+
   onMounted(async () => {
     syncChartTheme()
     if (typeof MutationObserver !== 'undefined') {
@@ -1297,11 +794,21 @@ export const useUsageDashboardState = () => {
       end,
     })
     dashboardBootstrapped.value = true
-    store.startAutoRefresh()
+    startDashboardAutoRefresh()
+  })
+
+  onActivated(() => {
+    if (dashboardBootstrapped.value) {
+      startDashboardAutoRefresh()
+    }
+  })
+
+  onDeactivated(() => {
+    stopDashboardAutoRefresh()
   })
 
   onUnmounted(() => {
-    store.stopAutoRefresh()
+    stopDashboardAutoRefresh()
     themeObserver?.disconnect()
   })
 

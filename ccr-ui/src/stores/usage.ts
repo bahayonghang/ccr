@@ -20,10 +20,8 @@ import type {
   ProjectStat,
   StartUsageImportJobResponse,
   UsageCapabilityReport,
-  UsageDashboardResponse,
   UsageImportJobSnapshot,
   UsageImportSummary,
-  UsageLogsQuery,
   UsageSummary,
 } from '@/types/usage'
 import {
@@ -41,6 +39,22 @@ import {
   startUsageImportJobV2,
 } from '@/api'
 import { usePolledData } from '@/composables/usePolledData'
+import {
+  buildDashboardCachePayload,
+  buildDashboardFetchKey,
+  buildUsageLogsQuery,
+  isCapabilityUnsupported,
+  normalizeDashboardPayload,
+  normalizePaginatedLogs,
+  parseEnvFlag,
+  type UsageDashboardCacheEntry,
+  type UsageDashboardPayload,
+} from './usageDashboardPayload'
+import {
+  buildImportSummary,
+  normalizeImportResponse,
+  normalizeUserVisibleImportJob,
+} from './usageImportNormalization'
 import { logger } from '@/utils/logger'
 import { isTauriRuntime } from '@/utils/tauriRuntime'
 
@@ -51,11 +65,6 @@ const HEATMAP_DAYS = 365
 const IMPORT_PROGRESS_REFRESH_INTERVAL_MS = 2_000
 const DASHBOARD_CACHE_TTL_MS = 30_000
 
-const parseEnvFlag = (value: string | undefined, defaultValue: boolean): boolean => {
-  if (value == null || value === '') return defaultValue
-  return ['1', 'true', 'yes', 'on'].includes(value.toLowerCase())
-}
-
 const USE_DASHBOARD_API = parseEnvFlag(
   import.meta.env.VITE_USAGE_DASHBOARD_AGGREGATED_API,
   true,
@@ -63,39 +72,6 @@ const USE_DASHBOARD_API = parseEnvFlag(
 const LAZY_HEATMAP_LOAD = parseEnvFlag(import.meta.env.VITE_PERF_HEATMAP_LAZY_LOAD, true)
 
 const nowMs = () => (typeof performance !== 'undefined' ? performance.now() : Date.now())
-
-/**
- * optional source（如 OpenCode 缺安装）的导入结果应被前端视为"正常未导入"，
- * 不显示成失败。后端 `UsageImportResultV2.is_optional_absent` 给出 typed 标志，
- * 这里直接读，不要嗅探 error message。
- *
- * 后端 push_warning 之前已过滤 absent，所以 job.warnings 里也不会再出现 absent
- * 文案；前端无需再做 warning 过滤。
- */
-const isOptionalAbsentImportResult = (result: ImportResult): boolean =>
-  result.is_optional_absent === true
-
-const toUserVisibleImportResult = (result: ImportResult): ImportResult => {
-  if (!isOptionalAbsentImportResult(result)) return result
-
-  return {
-    ...result,
-    completed: true,
-    error: null,
-  }
-}
-
-const normalizeUserVisibleImportResults = (results: ImportResult[]): ImportResult[] =>
-  results.map(toUserVisibleImportResult)
-
-const normalizeUserVisibleImportJob = (job: UsageImportJobSnapshot): UsageImportJobSnapshot => {
-  const results = normalizeUserVisibleImportResults(job.results)
-
-  return {
-    ...job,
-    results,
-  }
-}
 
 const recordPerfMetric = (
   name: string,
@@ -117,24 +93,6 @@ interface FetchOptions {
   preserveError?: boolean
   background?: boolean
   force?: boolean
-}
-
-type UsageDashboardPayload = Omit<UsageDashboardResponse, 'heatmap' | 'generated_at' | 'archive'> & {
-  archive?: UsageArchiveDiagnostics | null
-  heatmap?: HeatmapResponse
-  by_model?: ModelStat[]
-  by_project?: ProjectStat[]
-}
-
-type UsageDashboardCacheEntry = {
-  payload: UsageDashboardPayload
-  ts: number
-}
-
-const isImportAllUsageResponse = (
-  payload: ImportResult | ImportAllUsageResponse,
-): payload is ImportAllUsageResponse => {
-  return 'results' in payload && Array.isArray(payload.results)
 }
 
 type IdleCapableWindow = Window & {
@@ -217,29 +175,17 @@ export const useUsageStore = defineStore('usage', () => {
   const hasNoUsageData = computed(() => !loading.value && !error.value && !hasUsageData.value)
   const dashboardCapability = computed(() => usageCapabilities.value?.features.overview ?? null)
   const syncCapability = computed(() => usageCapabilities.value?.features.sync_json_events ?? null)
-  const dashboardUnsupported = computed(() => {
-    const capability = dashboardCapability.value
-    return Boolean(capability && !capability.supported)
-  })
+  const dashboardUnsupported = computed(() => isCapabilityUnsupported(dashboardCapability.value))
 
-  const buildFetchKey = (includeHeatmap: boolean) =>
-    [
-      platform.value ?? 'all',
-      timeRange.value.start ?? '',
-      timeRange.value.end ?? '',
-      includeHeatmap ? 'heatmap' : 'core',
-    ].join('|')
-
-   
   const applyDashboardPayload = (data: UsageDashboardPayload, includeHeatmap: boolean) => {
-    summary.value = data.summary ?? null
-    trends.value = data.trends ?? []
-    // 兼容后端 "by_model" / "model_stats" 两种字段名
-    modelStats.value = data.model_stats ?? data.by_model ?? []
-    projectStats.value = data.project_stats ?? data.by_project ?? []
-    archive.value = data.archive ?? null
-    if (includeHeatmap && data.heatmap) {
-      heatmap.value = data.heatmap
+    const normalized = normalizeDashboardPayload(data, includeHeatmap)
+    summary.value = normalized.summary
+    trends.value = normalized.trends
+    modelStats.value = normalized.modelStats
+    projectStats.value = normalized.projectStats
+    archive.value = normalized.archive
+    if (normalized.heatmap !== undefined) {
+      heatmap.value = normalized.heatmap
     }
   }
 
@@ -280,49 +226,6 @@ export const useUsageStore = defineStore('usage', () => {
   const resetProgressRefreshState = () => {
     lastProgressRefreshAt = 0
     lastProgressRefreshRecords = 0
-  }
-
-  const buildImportSummary = (results: ImportResult[]): UsageImportSummary => {
-    const successCount = results.filter(result => !result.error).length
-    const failureCount = results.length - successCount
-    const importedRecords = results.reduce((sum, result) => sum + result.records_imported, 0)
-    const processedFiles = results.reduce((sum, result) => sum + result.files_processed, 0)
-    const hasPartial = results.some(result =>
-      Boolean(result.error)
-      || !result.completed
-      || (result.files_processed > 0 && result.records_imported === 0 && result.records_skipped > 0),
-    )
-
-    return {
-      success_count: successCount,
-      failure_count: failureCount,
-      imported_records: importedRecords,
-      processed_files: processedFiles,
-      has_partial: hasPartial,
-    }
-  }
-
-  const normalizeImportResponse = (
-    payload: ImportResult | ImportAllUsageResponse,
-    platformOverride?: Platform,
-  ): ImportAllUsageResponse => {
-    if (isImportAllUsageResponse(payload)) {
-      const results = normalizeUserVisibleImportResults(payload.results)
-      return {
-        ...payload,
-        results,
-        summary: buildImportSummary(results),
-      }
-    }
-
-    const result: ImportResult = platformOverride
-      ? { ...payload, platform: platformOverride }
-      : payload
-    const results = normalizeUserVisibleImportResults([result])
-    return {
-      results,
-      summary: buildImportSummary(results),
-    }
   }
 
   const isTerminalImportJob = (job: UsageImportJobSnapshot | null | undefined) =>
@@ -510,7 +413,12 @@ export const useUsageStore = defineStore('usage', () => {
     const background = options.background ?? false
     const force = options.force ?? false
     const startedAt = nowMs()
-    const key = buildFetchKey(includeHeatmap)
+    const key = buildDashboardFetchKey({
+      platform: platform.value,
+      start: timeRange.value.start,
+      end: timeRange.value.end,
+      includeHeatmap,
+    })
     const cached = dashboardCache.get(key)
     const hasFreshCache = cached && Date.now() - cached.ts < DASHBOARD_CACHE_TTL_MS
 
@@ -589,14 +497,15 @@ export const useUsageStore = defineStore('usage', () => {
             scheduleHeatmapLoad(`${reason}-lazy-heatmap`)
           }
           dashboardCache.set(key, {
-            payload: {
+            payload: buildDashboardCachePayload({
               summary: summaryData ?? null,
               trends: trendsData ?? [],
-              model_stats: modelData ?? [],
-              project_stats: projectData ?? [],
-              archive: archive.value ?? undefined,
-              heatmap: includeHeatmap ? heatmap.value ?? undefined : undefined,
-            },
+              modelStats: modelData ?? [],
+              projectStats: projectData ?? [],
+              archive: archive.value,
+              heatmap: heatmap.value,
+              includeHeatmap,
+            }),
             ts: Date.now(),
           })
         }
@@ -656,26 +565,17 @@ export const useUsageStore = defineStore('usage', () => {
       const previousTotal = logs.value?.total ?? null
       logsPage.value = targetPage
 
-      const prepareQuery = (): UsageLogsQuery => ({
+      const result = await getUsageLogsV2<PaginatedLogs>(buildUsageLogsQuery({
         platform: platform.value,
         model: logsModelFilter.value,
-        start_date: timeRange.value.start,
-        end_date: timeRange.value.end,
+        startDate: timeRange.value.start,
+        endDate: timeRange.value.end,
         page: targetPage,
-        page_size: logsPageSize.value,
-        cursor: currentCursor ?? undefined,
-        include_total: targetPage === 1 && previousTotal == null,
-        mode: 'cursor',
-      })
-
-      const result = await getUsageLogsV2<PaginatedLogs>(prepareQuery())
-      logs.value = {
-        ...result,
-        total: result.total ?? previousTotal,
-        page: targetPage,
-        page_size: result.page_size ?? logsPageSize.value,
-        mode: 'cursor',
-      }
+        pageSize: logsPageSize.value,
+        cursor: currentCursor,
+        includeTotal: targetPage === 1 && previousTotal == null,
+      }))
+      logs.value = normalizePaginatedLogs(result, targetPage, logsPageSize.value, previousTotal)
     } catch (e) {
       error.value = e instanceof Error ? e.message : String(e)
     } finally {

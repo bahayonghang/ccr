@@ -274,6 +274,7 @@ import { ref, computed, watch, nextTick, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { listen, type UnlistenFn } from '@tauri-apps/api/event'
 import BaseModal from '@/components/common/BaseModal.vue'
+import { logger } from '@/utils/logger'
 import {
   llmusageInstallCheck,
   llmusageInstallPlan,
@@ -429,7 +430,7 @@ async function startCheck() {
 
     state.value = 'absent-choice'
   } catch (e) {
-    console.error('[install-dialog] check failed:', e)
+    logger.error('[install-dialog] check failed', e)
     state.value = 'absent-choice'
   }
 }

@@ -1,4 +1,4 @@
-import { createApp, defineComponent, h, nextTick, reactive } from 'vue'
+import { createApp, defineComponent, h, KeepAlive, nextTick, reactive, ref } from 'vue'
 import type { DailyTrend, UsageSummary } from '@/types/usage'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -186,6 +186,43 @@ const mountComposable = async () => {
   }
 }
 
+const mountKeepAliveComposable = async () => {
+  const { useUsageDashboardState } = await import('@/views/usage/useUsageDashboardState')
+  let state: ReturnType<typeof useUsageDashboardState> | null = null
+  const active = ref(true)
+  const el = document.createElement('div')
+  document.body.appendChild(el)
+
+  const DashboardHarness = defineComponent({
+    name: 'UsageDashboardView',
+    setup() {
+      state = useUsageDashboardState()
+      return () => h('div')
+    },
+  })
+
+  const app = createApp(
+    defineComponent({
+      setup() {
+        return () => h(KeepAlive, null, () => (active.value ? h(DashboardHarness) : null))
+      },
+    })
+  )
+
+  app.mount(el)
+  await flushPromises()
+
+  return {
+    active,
+    el,
+    state: state!,
+    unmount: () => {
+      app.unmount()
+      el.remove()
+    },
+  }
+}
+
 beforeEach(() => {
   tauriRuntime = false
   localeHydrated = false
@@ -237,6 +274,30 @@ describe('usage dashboard state smoke', () => {
     }
 
     expect(usageStore.stopAutoRefresh).toHaveBeenCalledTimes(1)
+  })
+
+  it('pauses auto refresh while keep-alive deactivates the usage page and resumes on activation', async () => {
+    tauriRuntime = true
+    const { active, unmount } = await mountKeepAliveComposable()
+
+    try {
+      await vi.waitFor(() => {
+        expect(usageStore.initializeDashboard).toHaveBeenCalledTimes(1)
+        expect(usageStore.startAutoRefresh).toHaveBeenCalledTimes(1)
+      })
+
+      active.value = false
+      await nextTick()
+      expect(usageStore.stopAutoRefresh).toHaveBeenCalledTimes(1)
+
+      active.value = true
+      await nextTick()
+      expect(usageStore.startAutoRefresh).toHaveBeenCalledTimes(2)
+    } finally {
+      unmount()
+    }
+
+    expect(usageStore.stopAutoRefresh).toHaveBeenCalledTimes(2)
   })
 
   it('loads logs when the logs tab becomes active', async () => {

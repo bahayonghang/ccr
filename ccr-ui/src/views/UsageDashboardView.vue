@@ -230,7 +230,6 @@
 <script setup lang="ts">
 import { computed, defineAsyncComponent } from 'vue'
 import AsyncStatePanel from '@/components/ui/AsyncStatePanel.vue'
-import LlmusageInstallDialog from '@/components/usage/LlmusageInstallDialog.vue'
 import UsageDashboardToolbar from '@/components/usage/UsageDashboardToolbar.vue'
 import UsageLogsTab from '@/components/usage/UsageLogsTab.vue'
 import UsageMetricCard from '@/components/usage/UsageMetricCard.vue'
@@ -243,6 +242,11 @@ import { useUsageDashboardState } from './usage/useUsageDashboardState'
 const apexchart = defineAsyncComponent(async () => {
   const module = await import('vue3-apexcharts')
   return module.default
+})
+
+const LlmusageInstallDialog = defineAsyncComponent({
+  loader: () => import('@/components/usage/LlmusageInstallDialog.vue'),
+  suspensible: false,
 })
 
 const {

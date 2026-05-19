@@ -51,7 +51,7 @@
 <script setup lang="ts">
 import SIcon from '@/components/ui/SIcon.vue'
 import UsageSparkline from './UsageSparkline.vue'
-import type { UsageSummaryCard } from '@/views/usage/useUsageDashboardState'
+import type { UsageSummaryCard } from '@/views/usage/usageSummaryCards'
 
 interface Props {
   card: UsageSummaryCard
