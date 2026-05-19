@@ -1934,6 +1934,22 @@ import {
   codexSaveModelProvider,
   codexDeleteModelProvider,
 } from '@/api'
+import {
+  canCustomizeAccountName,
+  canSubmitAccountRename,
+  detectImportPayloadNamingState,
+  filterAndSortCodexAccounts,
+  getAccountNameValidationMessage,
+  getLoginStateIcon,
+  getLoginStateIconClass,
+  getLoginStateTone,
+  normalizeAccountNameInput,
+  usesOpenAiAuthMode,
+  type AccountPlanFilter,
+  type AccountSort,
+  type AccountStatusFilter,
+  type ImportPayloadNamingState,
+} from './codex/codexAuthAccounts'
 import type {
   CodexAccountQuota,
   CodexAddApiKeyAuthPayload,
@@ -1950,7 +1966,6 @@ import type {
   CodexOAuthStartResponse,
   CodexProfile,
   CodexProfilesResponse,
-  CodexProfileAuthMode,
   LoginState,
 } from '@/types'
 import { logger } from '@/utils/logger'
@@ -1962,12 +1977,8 @@ defineOptions({ name: 'CodexAuthView' })
 const { t } = useI18n()
 const uiStore = useUIStore()
 
-type AccountStatusFilter = 'all' | 'current' | 'virtual' | 'attention'
-type AccountPlanFilter = 'all' | 'plus' | 'pro' | 'team' | 'unknown'
-type AccountSort = 'saved_desc' | 'used_desc' | 'name_asc'
 type ManagerTab = 'accounts' | 'providers'
 type AddMethod = 'oauth' | 'token' | 'api' | 'local'
-type ImportPayloadNamingState = 'empty' | 'single' | 'multiple' | 'bundle' | 'invalid'
 type UnlistenFn = () => void | Promise<void>
 
 const loading = ref(false)
@@ -2063,10 +2074,6 @@ const statusFilter = ref<AccountStatusFilter>('all')
 const planFilter = ref<AccountPlanFilter>('all')
 const sortBy = ref<AccountSort>('saved_desc')
 
-const usesOpenAiAuthMode = (authMode?: CodexProfileAuthMode | null) => {
-  return authMode === 'openai_chatgpt' || authMode === 'openai_api_key'
-}
-
 const tf = (
   key: string,
   fallback: string,
@@ -2088,32 +2095,28 @@ const extractErrorMessage = (error: unknown) => {
   return null
 }
 
-const normalizeAccountNameInput = (value: string) => {
-  const trimmed = value.trim()
-  return trimmed.length > 0 ? trimmed : null
-}
-
 const validateAccountNameInput = (value: string | null) => {
-  if (!value) return null
-  if (value.toLowerCase() === 'default') {
-    return tf(
-      'codex.auth.naming.validation.reserved',
-      '"default" is reserved. Please choose another account name.'
-    )
+  const validationMessage = getAccountNameValidationMessage(value)
+  switch (validationMessage) {
+    case 'reserved':
+      return tf(
+        'codex.auth.naming.validation.reserved',
+        '"default" is reserved. Please choose another account name.'
+      )
+    case 'length':
+      return tf(
+        'codex.auth.naming.validation.length',
+        'Account names must stay within 32 characters.'
+      )
+    case 'charset':
+      return tf(
+        'codex.auth.naming.validation.charset',
+        'Use letters, numbers, underscores, and hyphens only.'
+      )
+    case null:
+    default:
+      return null
   }
-  if (value.length > 32) {
-    return tf(
-      'codex.auth.naming.validation.length',
-      'Account names must stay within 32 characters.'
-    )
-  }
-  if (!/^[A-Za-z0-9_-]+$/.test(value)) {
-    return tf(
-      'codex.auth.naming.validation.charset',
-      'Use letters, numbers, underscores, and hyphens only.'
-    )
-  }
-  return null
 }
 
 const currentAccount = computed(() => accounts.value.find((account) => account.is_current))
@@ -2140,30 +2143,13 @@ const activeAddTabLabel = computed(() => {
   )
 })
 
-const importPayloadNamingState = computed<ImportPayloadNamingState>(() => {
-  const raw = importForm.content.trim()
-  if (!raw) return 'empty'
+const importPayloadNamingState = computed<ImportPayloadNamingState>(() =>
+  detectImportPayloadNamingState(importForm.content)
+)
 
-  try {
-    const parsed = JSON.parse(raw)
-    if (Array.isArray(parsed)) {
-      return parsed.length === 1 ? 'single' : 'multiple'
-    }
-    if (parsed && typeof parsed === 'object') {
-      return Object.prototype.hasOwnProperty.call(parsed, 'accounts') ? 'bundle' : 'single'
-    }
-    return 'invalid'
-  } catch {
-    return 'invalid'
-  }
-})
-
-const canCustomizePreferredAccountName = computed(() => {
-  return (
-    activeAddMethod.value !== 'token' ||
-    (importPayloadNamingState.value !== 'multiple' && importPayloadNamingState.value !== 'bundle')
-  )
-})
+const canCustomizePreferredAccountName = computed(() =>
+  canCustomizeAccountName(activeAddMethod.value, importPayloadNamingState.value)
+)
 
 const normalizedPreferredAccountName = computed(() => {
   return normalizeAccountNameInput(addAccountDraft.preferredAccountName)
@@ -2272,56 +2258,11 @@ const canSave = computed(() => {
   )
 })
 
-const loginStateColor = computed(() => {
-  switch (loginState.value.type) {
-    case 'LoggedInSaved':
-      return 'success'
-    case 'LoggedInUnsaved':
-      return 'warning'
-    case 'ApiKeyActive':
-      return 'primary'
-    case 'ProviderKeyActive':
-      return 'primary'
-    case 'Unknown':
-      return 'warning'
-    default:
-      return 'danger'
-  }
-})
+const loginStateColor = computed(() => getLoginStateTone(loginState.value))
 
-const loginStateIcon = computed(() => {
-  switch (loginState.value.type) {
-    case 'LoggedInSaved':
-      return 'UserCheck'
-    case 'LoggedInUnsaved':
-      return 'LogIn'
-    case 'ApiKeyActive':
-      return 'KeyRound'
-    case 'ProviderKeyActive':
-      return 'KeyRound'
-    case 'Unknown':
-      return 'AlertTriangle'
-    default:
-      return 'LogOut'
-  }
-})
+const loginStateIcon = computed(() => getLoginStateIcon(loginState.value))
 
-const loginStateIconClass = computed(() => {
-  switch (loginState.value.type) {
-    case 'LoggedInSaved':
-      return 'bg-emerald-500/10 text-emerald-500'
-    case 'LoggedInUnsaved':
-      return 'bg-yellow-500/10 text-yellow-500'
-    case 'ApiKeyActive':
-      return 'bg-blue-500/10 text-blue-500'
-    case 'ProviderKeyActive':
-      return 'bg-blue-500/10 text-blue-500'
-    case 'Unknown':
-      return 'bg-yellow-500/10 text-yellow-500'
-    default:
-      return 'bg-red-500/10 text-red-500'
-  }
-})
+const loginStateIconClass = computed(() => getLoginStateIconClass(loginState.value))
 
 const loginStateText = computed(() => {
   switch (loginState.value.type) {
@@ -2376,48 +2317,16 @@ const hasActiveFilters = computed(() => {
   )
 })
 
-const filteredAccounts = computed(() => {
-  const query = searchQuery.value.trim().toLowerCase()
-  const items = accounts.value.filter((account) => {
-    if (query) {
-      const haystack = [
-        account.name,
-        account.email,
-        account.description,
-        account.api_provider_name,
-        account.api_base_url,
-      ]
-        .filter(Boolean)
-        .join(' ')
-        .toLowerCase()
-      if (!haystack.includes(query)) {
-        return false
-      }
-    }
-
-    if (statusFilter.value === 'current' && !account.is_current) return false
-    if (statusFilter.value === 'virtual' && !account.is_virtual) return false
-    if (statusFilter.value === 'attention' && !isAttentionAccount(account)) return false
-
-    if (planFilter.value !== 'all' && resolvePlanType(account) !== planFilter.value) {
-      return false
-    }
-
-    return true
+const filteredAccounts = computed(() =>
+  filterAndSortCodexAccounts({
+    accounts: accounts.value,
+    quotaMap: quotaMap.value,
+    searchQuery: searchQuery.value,
+    statusFilter: statusFilter.value,
+    planFilter: planFilter.value,
+    sortBy: sortBy.value,
   })
-
-  return items.sort((left, right) => {
-    switch (sortBy.value) {
-      case 'used_desc':
-        return compareDateDesc(left.last_used, right.last_used)
-      case 'name_asc':
-        return left.name.localeCompare(right.name)
-      case 'saved_desc':
-      default:
-        return compareDateDesc(left.saved_at, right.saved_at)
-    }
-  })
-})
+)
 
 const filtersResultsCount = computed(() =>
   tf('codex.auth.filters.resultsCount', '{shown} / {total} accounts', {
@@ -2470,26 +2379,6 @@ const ensurePreferredAccountNameIsValid = () => {
     return false
   }
   return true
-}
-
-const resolvePlanType = (account: CodexAuthAccountItem): AccountPlanFilter => {
-  const planType = quotaMap.value.get(account.name)?.quota?.plan_type?.trim().toLowerCase()
-  if (planType === 'plus' || planType === 'pro' || planType === 'team') {
-    return planType
-  }
-  return 'unknown'
-}
-
-const isAttentionAccount = (account: CodexAuthAccountItem) => {
-  return Boolean(quotaMap.value.get(account.name)?.error)
-}
-
-const compareDateDesc = (left?: string | null, right?: string | null) => {
-  const leftTime =
-    left && !Number.isNaN(Date.parse(left)) ? Date.parse(left) : Number.NEGATIVE_INFINITY
-  const rightTime =
-    right && !Number.isNaN(Date.parse(right)) ? Date.parse(right) : Number.NEGATIVE_INFINITY
-  return rightTime - leftTime
 }
 
 const loadCurrentProfile = async () => {
@@ -2747,14 +2636,8 @@ const renameForm = reactive({
   force: false,
 })
 
-const RENAME_NAME_REGEX = /^[A-Za-z0-9_-]+$/
-
 const canSubmitRename = computed(() => {
-  const next = renameForm.newName.trim()
-  if (!next) return false
-  if (next === renameForm.oldName) return false
-  if (next.length > 32) return false
-  return RENAME_NAME_REGEX.test(next)
+  return canSubmitAccountRename(renameForm.oldName, renameForm.newName)
 })
 
 const handleRename = (name: string) => {
