@@ -172,9 +172,13 @@ const CLEAN_AFTER_LONG_HELP: &str = "\
     打开菜单: ccr clean
     自动执行默认编号: ccr -y clean
 
-  清理当前目录下的规划文件
-    先预览: ccr clean planfiles --dry-run
-    执行清理: ccr clean planfiles
+  清理当前目录根层的规划文件
+    先预览根目录规划文件: ccr clean planfiles --dry-run
+    执行默认根目录清理: ccr clean
+
+  递归清理所有规划文件
+    递归预览所有规划文件: ccr clean planfiles --all --dry-run
+    递归清理所有规划文件: ccr clean --all
 
   清理旧备份
     先预览: ccr clean backups --dry-run
@@ -185,9 +189,10 @@ const CLEAN_AFTER_LONG_HELP: &str = "\
     ccr clean --days 30
 
 边界:
-  - 裸 `ccr clean` 显示编号菜单，回车默认执行 1.planfiles，输入 q 取消
-  - `ccr clean planfiles` 只处理 task_plan.md / findings.md / progress.md
-  - `ccr clean planfiles` 默认不跟随符号链接目录
+  - 裸 `ccr clean` 显示编号菜单，回车默认执行 1.planfiles（仅当前目录根层），输入 q 取消
+  - `ccr clean --all` 递归处理当前目录及子目录中的 task_plan.md / findings.md / progress.md
+  - `ccr clean planfiles` 默认只处理当前目录根层的 task_plan.md / findings.md / progress.md
+  - `ccr clean planfiles --all` 默认不跟随符号链接目录
   - `ccr clean backups` 只处理 ~/.claude/backups 下的 .bak 文件";
 
 pub fn build_cli_command() -> Command {

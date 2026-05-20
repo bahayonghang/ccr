@@ -10,6 +10,7 @@
 
 ```bash
 ccr clean
+ccr clean --all
 ccr clean planfiles [OPTIONS]
 ccr clean backups [OPTIONS]
 ```
@@ -31,7 +32,8 @@ ccr clean --force
 
 ### 规划文件清理
 
-- `planfiles`: 递归清理当前目录及子目录里的规划文件
+- `planfiles`: 默认只清理当前工作目录根层的规划文件
+- `--all`: 递归检索当前目录及子目录里的规划文件
 - `--dry-run`: 预览清理操作但不实际删除
 - `--force`: 跳过确认提示，直接删除命中的规划文件
 
@@ -45,13 +47,14 @@ ccr clean --force
 ## 功能特性
 
 - 裸命令提供交互式清理菜单
-- 递归清理 `planning-with-files` 生成的规划文件
+- 默认只清理当前工作目录根层的 `planning-with-files` 规划文件
+- `ccr clean --all` / `ccr clean planfiles --all` 递归清理所有同名规划文件
 - 自动清理旧备份文件
 - 可配置备份保留期限(默认 7 天)
 - 预览模式可先查看将删除的文件
 - 显示释放的磁盘空间
 - `planfiles` 仅删除 `task_plan.md`、`findings.md`、`progress.md`
-- `planfiles` 默认不跟随符号链接目录
+- `planfiles --all` 默认不跟随符号链接目录
 - `backups` 仅删除 `~/.claude/backups/` 中的 `.bak` 文件
 - **智能备份管理**：自动保留最近10个备份
 
@@ -64,11 +67,17 @@ ccr clean
 # 自动执行默认编号并跳过确认
 ccr -y clean
 
-# 预览当前目录下的规划文件清理
+# 预览当前目录根层的规划文件清理
 ccr clean planfiles --dry-run
 
-# 直接清理当前目录下的规划文件
+# 直接清理当前目录根层的规划文件
 ccr clean planfiles --force
+
+# 递归清理当前目录及子目录中的规划文件
+ccr clean --all
+
+# 递归预览所有规划文件
+ccr clean planfiles --all --dry-run
 
 # 预览旧备份清理
 ccr clean backups --dry-run
@@ -96,7 +105,7 @@ ccr clean backups --days 30
 - `findings.md`
 - `progress.md`
 
-命令会从当前工作目录开始递归扫描子目录，输出命中路径、命中数量和空间统计。它不会跟随符号链接目录。
+默认命令只检查当前工作目录根层，输出命中路径、命中数量和空间统计。需要递归扫描子目录时，使用 `ccr clean --all` 或 `ccr clean planfiles --all`；递归模式不会跟随符号链接目录。
 
 ### 规划文件清理输出
 
@@ -107,6 +116,26 @@ $ ccr clean planfiles --dry-run
 
 [INFO] 扫描目录: /path/to/project
 [INFO] 目标文件: task_plan.md, findings.md, progress.md
+[INFO] 扫描范围: 仅当前目录根层；如需递归扫描请使用 --all
+[WARN] ⚠ 模拟运行模式(不会实际删除文件)
+
+[STEP] 命中文件
+[INFO] 命中: task_plan.md
+
+[INFO] 命中数量: 1 个
+[INFO] 预计释放空间: 0.01 MB
+```
+
+递归预览示例：
+
+```bash
+$ ccr clean planfiles --all --dry-run
+清理规划文件
+============
+
+[INFO] 扫描目录: /path/to/project
+[INFO] 目标文件: task_plan.md, findings.md, progress.md
+[INFO] 扫描范围: 当前目录及所有子目录 (--all)
 [WARN] ⚠ 模拟运行模式(不会实际删除文件)
 
 [STEP] 命中文件

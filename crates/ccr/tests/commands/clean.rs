@@ -62,7 +62,7 @@ fn write_old_backup(home: &Path, name: &str) -> std::path::PathBuf {
 }
 
 #[test]
-fn clean_planfiles_dry_run_keeps_nested_files() {
+fn clean_planfiles_dry_run_defaults_to_root_files_only() {
     let temp_dir = tempfile::tempdir().unwrap();
     let home_dir = tempfile::tempdir().unwrap();
     let nested = temp_dir.path().join("nested").join("child");
@@ -85,7 +85,9 @@ fn clean_planfiles_dry_run_keeps_nested_files() {
         stdout,
         String::from_utf8_lossy(&output.stderr)
     );
-    assert!(stdout.contains("命中数量: 3 个"));
+    assert!(stdout.contains("命中数量: 1 个"));
+    assert!(stdout.contains("命中: task_plan.md"));
+    assert!(!stdout.contains("nested"));
     assert!(temp_dir.path().join("task_plan.md").exists());
     assert!(nested.join("findings.md").exists());
     assert!(nested.join("progress.md").exists());
@@ -93,7 +95,37 @@ fn clean_planfiles_dry_run_keeps_nested_files() {
 }
 
 #[test]
-fn clean_planfiles_yes_removes_only_target_files() {
+fn clean_planfiles_all_dry_run_finds_nested_files() {
+    let temp_dir = tempfile::tempdir().unwrap();
+    let home_dir = tempfile::tempdir().unwrap();
+    let nested = temp_dir.path().join("nested").join("child");
+
+    write_file(&temp_dir.path().join("task_plan.md"), "root task");
+    write_file(&nested.join("findings.md"), "nested findings");
+    write_file(&nested.join("progress.md"), "nested progress");
+
+    let output = run_clean(
+        &["clean", "planfiles", "--all", "--dry-run"],
+        temp_dir.path(),
+        home_dir.path(),
+    );
+    let stdout = String::from_utf8_lossy(&output.stdout);
+
+    assert!(
+        output.status.success(),
+        "stdout:\n{}\nstderr:\n{}",
+        stdout,
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert!(stdout.contains("命中数量: 3 个"));
+    assert!(stdout.contains("nested"));
+    assert!(temp_dir.path().join("task_plan.md").exists());
+    assert!(nested.join("findings.md").exists());
+    assert!(nested.join("progress.md").exists());
+}
+
+#[test]
+fn clean_planfiles_yes_removes_only_root_target_files() {
     let temp_dir = tempfile::tempdir().unwrap();
     let home_dir = tempfile::tempdir().unwrap();
     let nested = temp_dir.path().join("nested");
@@ -116,6 +148,37 @@ fn clean_planfiles_yes_removes_only_target_files() {
         stdout,
         String::from_utf8_lossy(&output.stderr)
     );
+    assert!(stdout.contains("已删除文件: 1 个"));
+    assert!(!temp_dir.path().join("task_plan.md").exists());
+    assert!(nested.join("findings.md").exists());
+    assert!(nested.join("progress.md").exists());
+    assert!(nested.join("notes.md").exists());
+}
+
+#[test]
+fn clean_planfiles_all_yes_removes_nested_target_files() {
+    let temp_dir = tempfile::tempdir().unwrap();
+    let home_dir = tempfile::tempdir().unwrap();
+    let nested = temp_dir.path().join("nested");
+
+    write_file(&temp_dir.path().join("task_plan.md"), "root task");
+    write_file(&nested.join("findings.md"), "nested findings");
+    write_file(&nested.join("progress.md"), "nested progress");
+    write_file(&nested.join("notes.md"), "keep");
+
+    let output = run_clean(
+        &["-y", "clean", "planfiles", "--all"],
+        temp_dir.path(),
+        home_dir.path(),
+    );
+    let stdout = String::from_utf8_lossy(&output.stdout);
+
+    assert!(
+        output.status.success(),
+        "stdout:\n{}\nstderr:\n{}",
+        stdout,
+        String::from_utf8_lossy(&output.stderr)
+    );
     assert!(stdout.contains("已删除文件: 3 个"));
     assert!(!temp_dir.path().join("task_plan.md").exists());
     assert!(!nested.join("findings.md").exists());
@@ -124,7 +187,7 @@ fn clean_planfiles_yes_removes_only_target_files() {
 }
 
 #[test]
-fn clean_planfiles_dry_run_includes_hidden_and_ignored_dirs() {
+fn clean_planfiles_dry_run_defaults_to_root_only_for_hidden_and_ignored_dirs() {
     let temp_dir = tempfile::tempdir().unwrap();
     let home_dir = tempfile::tempdir().unwrap();
     let hidden = temp_dir.path().join(".hidden");
@@ -136,6 +199,35 @@ fn clean_planfiles_dry_run_includes_hidden_and_ignored_dirs() {
 
     let output = run_clean(
         &["clean", "planfiles", "--dry-run"],
+        temp_dir.path(),
+        home_dir.path(),
+    );
+    let stdout = String::from_utf8_lossy(&output.stdout);
+
+    assert!(
+        output.status.success(),
+        "stdout:\n{}\nstderr:\n{}",
+        stdout,
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert!(stdout.contains("没有找到需要清理的规划文件"));
+    assert!(hidden.join("task_plan.md").exists());
+    assert!(ignored.join("findings.md").exists());
+}
+
+#[test]
+fn clean_planfiles_all_dry_run_includes_hidden_and_ignored_dirs() {
+    let temp_dir = tempfile::tempdir().unwrap();
+    let home_dir = tempfile::tempdir().unwrap();
+    let hidden = temp_dir.path().join(".hidden");
+    let ignored = temp_dir.path().join("ignored");
+
+    write_file(&temp_dir.path().join(".gitignore"), "ignored/\n");
+    write_file(&hidden.join("task_plan.md"), "hidden task");
+    write_file(&ignored.join("findings.md"), "ignored findings");
+
+    let output = run_clean(
+        &["clean", "planfiles", "--all", "--dry-run"],
         temp_dir.path(),
         home_dir.path(),
     );
@@ -206,7 +298,7 @@ fn clean_menu_default_number_runs_planfiles_target() {
     assert!(stdout.contains("2.backups -"));
     assert!(stdout.contains("确认执行规划文件清理操作? (Y/n):"));
     assert!(!temp_dir.path().join("task_plan.md").exists());
-    assert!(!nested.join("findings.md").exists());
+    assert!(nested.join("findings.md").exists());
     assert!(nested.join("notes.md").exists());
     assert!(old_backup.exists());
 }
@@ -257,9 +349,11 @@ fn clean_menu_can_cancel_without_running_target() {
 fn clean_menu_auto_yes_runs_default_planfiles_target() {
     let temp_dir = tempfile::tempdir().unwrap();
     let home_dir = tempfile::tempdir().unwrap();
+    let nested = temp_dir.path().join("nested");
     let old_backup = write_old_backup(home_dir.path(), "old.bak");
 
     write_file(&temp_dir.path().join("task_plan.md"), "root task");
+    write_file(&nested.join("findings.md"), "nested findings");
 
     let output = run_clean(&["-y", "clean"], temp_dir.path(), home_dir.path());
     let stdout = String::from_utf8_lossy(&output.stdout);
@@ -271,6 +365,34 @@ fn clean_menu_auto_yes_runs_default_planfiles_target() {
         String::from_utf8_lossy(&output.stderr)
     );
     assert!(!temp_dir.path().join("task_plan.md").exists());
+    assert!(nested.join("findings.md").exists());
+    assert!(old_backup.exists());
+}
+
+#[test]
+fn clean_all_runs_recursive_planfiles_without_menu() {
+    let temp_dir = tempfile::tempdir().unwrap();
+    let home_dir = tempfile::tempdir().unwrap();
+    let nested = temp_dir.path().join("nested");
+    let old_backup = write_old_backup(home_dir.path(), "old.bak");
+
+    write_file(&temp_dir.path().join("task_plan.md"), "root task");
+    write_file(&nested.join("findings.md"), "nested findings");
+
+    let output = run_clean(&["-y", "clean", "--all"], temp_dir.path(), home_dir.path());
+    let stdout = String::from_utf8_lossy(&output.stdout);
+
+    assert!(
+        output.status.success(),
+        "stdout:\n{}\nstderr:\n{}",
+        stdout,
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert!(stdout.contains("扫描范围"));
+    assert!(stdout.contains("--all"));
+    assert!(!stdout.contains("清理内容（输入编号执行"));
+    assert!(!temp_dir.path().join("task_plan.md").exists());
+    assert!(!nested.join("findings.md").exists());
     assert!(old_backup.exists());
 }
 

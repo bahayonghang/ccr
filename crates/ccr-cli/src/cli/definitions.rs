@@ -472,6 +472,10 @@ pub struct CleanArgs {
     /// 兼容入口：跳过备份清理确认提示，直接清理（危险操作）
     #[arg(short, long)]
     pub force: bool,
+
+    /// 默认规划文件清理入口：递归检索当前目录下所有相关规划文件
+    #[arg(long)]
+    pub all: bool,
 }
 
 /// 当前状态命令参数
@@ -496,7 +500,7 @@ impl CleanArgs {
 /// 🧹 clean 子命令枚举
 #[derive(Subcommand, Debug, Clone)]
 pub enum CleanAction {
-    /// 递归清理当前目录及子目录中的规划文件
+    /// 清理当前目录中的规划文件，使用 --all 递归扫描子目录
     Planfiles(CleanPlanfilesArgs),
 
     /// 显式清理旧备份文件
@@ -513,6 +517,10 @@ pub struct CleanPlanfilesArgs {
     /// 跳过确认提示，直接清理（危险操作）
     #[arg(short, long)]
     pub force: bool,
+
+    /// 递归检索当前目录及子目录中的规划文件
+    #[arg(long)]
+    pub all: bool,
 }
 
 /// 🧹 clean backups 命令参数
@@ -548,6 +556,7 @@ mod tests {
                 assert_eq!(args.days, None);
                 assert!(!args.dry_run);
                 assert!(!args.force);
+                assert!(!args.all);
                 assert!(!args.has_legacy_backup_flags());
             }
             other => panic!("unexpected command: {:?}", other.map(|_| "other")),
@@ -564,7 +573,22 @@ mod tests {
                 assert_eq!(args.days, Some(30));
                 assert!(args.dry_run);
                 assert!(!args.force);
+                assert!(!args.all);
                 assert!(args.has_legacy_backup_flags());
+            }
+            other => panic!("unexpected command: {:?}", other.map(|_| "other")),
+        }
+    }
+
+    #[test]
+    fn clean_all_parses_as_planfiles_all_not_legacy_backups() {
+        let cli = Cli::try_parse_from(["ccr", "clean", "--all"]).unwrap();
+
+        match cli.command {
+            Some(Commands::Clean(args)) => {
+                assert!(args.action.is_none());
+                assert!(args.all);
+                assert!(!args.has_legacy_backup_flags());
             }
             other => panic!("unexpected command: {:?}", other.map(|_| "other")),
         }
@@ -577,6 +601,24 @@ mod tests {
         match cli.command {
             Some(Commands::Clean(args)) => match args.action {
                 Some(CleanAction::Planfiles(planfiles)) => {
+                    assert!(planfiles.dry_run);
+                    assert!(!planfiles.force);
+                    assert!(!planfiles.all);
+                }
+                other => panic!("unexpected clean action: {:?}", other.map(|_| "other")),
+            },
+            other => panic!("unexpected command: {:?}", other.map(|_| "other")),
+        }
+    }
+
+    #[test]
+    fn clean_planfiles_all_subcommand_parses() {
+        let cli = Cli::try_parse_from(["ccr", "clean", "planfiles", "--all", "--dry-run"]).unwrap();
+
+        match cli.command {
+            Some(Commands::Clean(args)) => match args.action {
+                Some(CleanAction::Planfiles(planfiles)) => {
+                    assert!(planfiles.all);
                     assert!(planfiles.dry_run);
                     assert!(!planfiles.force);
                 }

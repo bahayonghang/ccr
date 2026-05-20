@@ -80,6 +80,7 @@ impl CommandDispatcher {
                     crate::commands::clean_planfiles_command(
                         planfiles_args.dry_run,
                         auto_yes || planfiles_args.force,
+                        planfiles_args.all,
                     )
                     .await
                 }
@@ -99,6 +100,8 @@ impl CommandDispatcher {
                             auto_yes || args.force,
                         )
                         .await
+                    } else if args.all {
+                        crate::commands::clean_planfiles_command(false, auto_yes, true).await
                     } else {
                         crate::commands::clean_menu_command(auto_yes).await
                     }

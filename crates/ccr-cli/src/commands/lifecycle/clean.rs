@@ -222,18 +222,19 @@ pub async fn clean_backups_command(days: u64, dry_run: bool, force: bool) -> Res
     Ok(())
 }
 
-/// 🧹 递归清理当前目录下的规划文件
-pub async fn clean_planfiles_command(dry_run: bool, force: bool) -> Result<()> {
+/// 🧹 清理当前目录下的规划文件，使用 --all 递归扫描子目录
+pub async fn clean_planfiles_command(dry_run: bool, force: bool, all: bool) -> Result<()> {
     /*
      * ========================================================================
      * 步骤1：扫描规划文件
      * ========================================================================
      * 目标目录：当前工作目录
      * 操作：
-     * 1) 递归扫描 task_plan.md、findings.md、progress.md
-     * 2) 汇总命中路径和空间占用
+     * 1) 默认仅检查当前目录根层的 task_plan.md、findings.md、progress.md
+     * 2) --all 模式递归扫描子目录中的同名规划文件
+     * 3) 汇总命中路径和空间占用
      */
-    tracing::info!(dry_run, force, "开始扫描规划文件");
+    tracing::info!(dry_run, force, all, "开始扫描规划文件");
 
     let current_dir = std::env::current_dir()
         .map_err(|e| CcrError::FileIoError(format!("获取当前目录失败: {}", e)))?;
@@ -242,12 +243,21 @@ pub async fn clean_planfiles_command(dry_run: bool, force: bool) -> Result<()> {
     println!();
     ColorOutput::info(&format!("扫描目录: {}", current_dir.display()));
     ColorOutput::info("目标文件: task_plan.md, findings.md, progress.md");
+    if all {
+        ColorOutput::info("扫描范围: 当前目录及所有子目录 (--all)");
+    } else {
+        ColorOutput::info("扫描范围: 仅当前目录根层；如需递归扫描请使用 --all");
+    }
 
     if dry_run {
         ColorOutput::warning("⚠ 模拟运行模式(不会实际删除文件)");
     }
 
-    let result = scan_planfiles(&current_dir)?;
+    let result = if all {
+        scan_all_planfiles(&current_dir)?
+    } else {
+        scan_root_planfiles(&current_dir)?
+    };
     tracing::info!(
         matched = result.matched_count(),
         total_size = result.total_size,
@@ -300,7 +310,11 @@ pub async fn clean_planfiles_command(dry_run: bool, force: bool) -> Result<()> {
     // 1.2 非 dry-run 模式下确认删除
     if !dry_run && !force {
         println!();
-        ColorOutput::warning("⚠️  警告: 即将删除当前目录下的规划文件！");
+        if all {
+            ColorOutput::warning("⚠️  警告: 即将递归删除当前目录下的规划文件！");
+        } else {
+            ColorOutput::warning("⚠️  警告: 即将删除当前目录根层的规划文件！");
+        }
         ColorOutput::info("提示: 使用 --dry-run 参数可以先预览将要删除的文件");
         println!();
 
@@ -312,7 +326,8 @@ pub async fn clean_planfiles_command(dry_run: bool, force: bool) -> Result<()> {
 
     if dry_run {
         println!();
-        ColorOutput::info("提示: 运行 'ccr clean planfiles' 执行实际清理");
+        let rerun_hint = if all { "ccr clean --all" } else { "ccr clean" };
+        ColorOutput::info(&format!("提示: 运行 '{rerun_hint}' 执行实际清理"));
         tracing::info!(matched = result.matched_count(), "规划文件预览完成");
         return Ok(());
     }
@@ -371,7 +386,7 @@ pub async fn clean_planfiles_command(dry_run: bool, force: bool) -> Result<()> {
 
 async fn run_clean_target(target: CleanTarget, force: bool) -> Result<()> {
     match target {
-        CleanTarget::Planfiles => clean_planfiles_command(false, force).await,
+        CleanTarget::Planfiles => clean_planfiles_command(false, force, false).await,
         CleanTarget::Backups => {
             clean_backups_command(DEFAULT_CLEAN_BACKUP_DAYS, false, force).await
         }
@@ -493,7 +508,38 @@ fn parse_yes_no_answer(input: &str, default_yes: bool) -> bool {
     false
 }
 
-fn scan_planfiles(root: &Path) -> Result<PlanfilesCleanResult> {
+fn scan_root_planfiles(root: &Path) -> Result<PlanfilesCleanResult> {
+    let scan_started = Instant::now();
+    let mut matches = Vec::new();
+    let mut total_size = 0_u64;
+    let mut stats = PlanfilesScanStats {
+        visited_dirs: 1,
+        ..PlanfilesScanStats::default()
+    };
+
+    for target in PLANFILES_TARGETS {
+        stats.candidate_checks += 1;
+        let candidate_started = Instant::now();
+        let candidate = root.join(target);
+
+        if let Some(planfile_match) = read_planfile_candidate(candidate)? {
+            total_size += planfile_match.size;
+            matches.push(planfile_match);
+        }
+
+        stats.candidate_elapsed += candidate_started.elapsed();
+    }
+
+    matches.sort_by(|left, right| left.path.cmp(&right.path));
+    stats.scan_elapsed = scan_started.elapsed();
+    Ok(PlanfilesCleanResult {
+        matches,
+        total_size,
+        stats,
+    })
+}
+
+fn scan_all_planfiles(root: &Path) -> Result<PlanfilesCleanResult> {
     let scan_started = Instant::now();
     let mut matches = Vec::new();
     let mut total_size = 0_u64;
@@ -600,7 +646,7 @@ mod tests {
     use tempfile::tempdir;
 
     #[test]
-    fn scan_planfiles_matches_nested_targets() {
+    fn scan_root_planfiles_matches_only_root_targets() {
         let temp_dir = tempdir().unwrap();
         let nested = temp_dir.path().join("nested").join("child");
         fs::create_dir_all(&nested).unwrap();
@@ -610,7 +656,26 @@ mod tests {
         fs::write(nested.join("progress.md"), "nested progress").unwrap();
         fs::write(temp_dir.path().join("README.md"), "keep").unwrap();
 
-        let result = scan_planfiles(temp_dir.path()).unwrap();
+        let result = scan_root_planfiles(temp_dir.path()).unwrap();
+
+        assert_eq!(result.matched_count(), 1);
+        assert_eq!(result.matches[0].path, temp_dir.path().join("task_plan.md"));
+        assert_eq!(result.stats.visited_dirs, 1);
+        assert_eq!(result.stats.candidate_checks, 3);
+    }
+
+    #[test]
+    fn scan_all_planfiles_matches_nested_targets() {
+        let temp_dir = tempdir().unwrap();
+        let nested = temp_dir.path().join("nested").join("child");
+        fs::create_dir_all(&nested).unwrap();
+
+        fs::write(temp_dir.path().join("task_plan.md"), "root task").unwrap();
+        fs::write(nested.join("findings.md"), "nested findings").unwrap();
+        fs::write(nested.join("progress.md"), "nested progress").unwrap();
+        fs::write(temp_dir.path().join("README.md"), "keep").unwrap();
+
+        let result = scan_all_planfiles(temp_dir.path()).unwrap();
 
         assert_eq!(result.matched_count(), 3);
         assert_eq!(
@@ -640,7 +705,7 @@ mod tests {
         fs::write(nested.join("progress.md"), "nested progress").unwrap();
         fs::write(ignored.join("README.md"), "keep").unwrap();
 
-        let result = scan_planfiles(temp_dir.path()).unwrap();
+        let result = scan_all_planfiles(temp_dir.path()).unwrap();
         let actual_paths = result
             .matches
             .iter()
@@ -681,7 +746,7 @@ mod tests {
         )
         .unwrap();
 
-        let result = scan_planfiles(temp_dir.path()).unwrap();
+        let result = scan_all_planfiles(temp_dir.path()).unwrap();
 
         assert_eq!(result.matched_count(), 3);
         assert_eq!(result.stats.visited_dirs, 41);
@@ -698,7 +763,7 @@ mod tests {
         fs::write(nested.join("findings.md"), "nested findings").unwrap();
         fs::write(nested.join("notes.md"), "keep").unwrap();
 
-        let result = scan_planfiles(temp_dir.path()).unwrap();
+        let result = scan_all_planfiles(temp_dir.path()).unwrap();
         delete_planfiles(&result).unwrap();
 
         assert!(!temp_dir.path().join("task_plan.md").exists());
@@ -859,7 +924,7 @@ mod tests {
         fs::write(external_dir.path().join("task_plan.md"), "outside task").unwrap();
         symlink(external_dir.path(), &linked).unwrap();
 
-        let result = scan_planfiles(temp_dir.path()).unwrap();
+        let result = scan_all_planfiles(temp_dir.path()).unwrap();
 
         assert_eq!(result.matched_count(), 0);
         assert!(external_dir.path().join("task_plan.md").exists());
