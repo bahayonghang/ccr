@@ -3849,6 +3849,78 @@ export default {
     },
   },
 
+  platformUsage: {
+    eyebrow: 'Usage Insight',
+    window30: '30 days',
+    source: 'V2 usage aggregate',
+    openDashboard: 'Open Usage dashboard',
+    retry: 'Refresh usage',
+    generatedAt: 'Generated',
+    errorTitle: 'Usage insight unavailable',
+    tabs: {
+      cost: 'Cost trend',
+      tokens: 'Token detail',
+      requests: 'Requests',
+      breakdown: 'Models & projects',
+    },
+    cards: {
+      cost: 'Window cost',
+      tokens: 'Token volume',
+      requests: 'Requests',
+    },
+    metrics: {
+      cost: 'Cost',
+      tokens: 'Tokens',
+      requests: 'Requests',
+      input: 'Input',
+      output: 'Output',
+      cacheRead: 'Cache read',
+      cacheCreation: 'Cache write',
+      models: 'Models',
+      projects: 'Projects',
+      topModel: 'Top model',
+      topProject: 'Top project',
+    },
+    rank: {
+      models: 'Model attribution',
+      projects: 'Project attribution',
+    },
+    units: {
+      requests: 'requests',
+      models: 'models',
+      projects: 'projects',
+    },
+    empty: {
+      noModel: 'Unknown model',
+      noProject: 'Unknown project',
+      pricingUnavailable: 'Pricing unavailable',
+      tokenOnly: 'Token only',
+    },
+    platforms: {
+      codex: {
+        label: 'Codex',
+        title: 'Codex Usage Insight',
+        description: 'Track local Codex requests, token volume, pricing coverage, and project/model attribution without blocking readiness checks.',
+        emptyTitle: 'No Codex usage logs yet',
+        emptyDescription: 'Import usage from the full Usage dashboard when local Codex logs are available. The homepage will not show synthetic zeroes.',
+      },
+      antigravity: {
+        label: 'Antigravity CLI',
+        title: 'Antigravity Usage Insight',
+        description: 'Reads the legacy gemini usage key while presenting the current Antigravity CLI brand and compatibility boundary.',
+        emptyTitle: 'No Antigravity usage imported',
+        emptyDescription: 'Antigravity still uses the legacy gemini platform key; import usage logs from the Usage dashboard when available.',
+      },
+      opencode: {
+        label: 'OpenCode',
+        title: 'OpenCode Usage Insight',
+        description: 'Keep token/cost analytics separate from live provider and MCP counts so optional source gaps never hide operational state.',
+        emptyTitle: 'No OpenCode usage source yet',
+        emptyDescription: 'OpenCode usage data is optional. Provider, MCP, agent, command, and plugin counts remain visible even when usage import is absent.',
+      },
+    },
+  },
+
   // Usage Stats Dashboard
   usageStats: {
     title: 'Workspace Overview',

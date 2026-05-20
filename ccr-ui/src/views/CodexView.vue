@@ -78,6 +78,14 @@
         </div>
       </section>
 
+      <PlatformUsageInsightPanel
+        :spec="codexUsageSpec"
+        :state="codexUsagePresentation"
+        :loading="codexUsage.loading.value"
+        :error="codexUsage.error.value"
+        @refresh="codexUsage.refresh()"
+      />
+
       <section class="codex-readiness-board">
         <div class="codex-section-heading">
           <div>
@@ -363,13 +371,22 @@
 
 <script setup lang="ts">
 import { computed, onActivated, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import Button from '@/components/ui/Button.vue'
 import Card from '@/components/ui/Card.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
 import SIcon from '@/components/ui/SIcon.vue'
+import PlatformUsageInsightPanel from '@/components/platform-usage/PlatformUsageInsightPanel.vue'
 import { useCodexDashboard, type CodexDashboardTone } from '@/composables/useCodexDashboard'
+import { usePlatformUsageInsight } from '@/composables/usePlatformUsageInsight'
+import {
+  buildPlatformUsageI18nLabels,
+  buildPlatformUsageSpec,
+} from '@/views/platform-usage/platformUsageSpecs'
 
 defineOptions({ name: 'CodexView' })
+
+const { t } = useI18n()
 
 const {
   overview,
@@ -391,6 +408,15 @@ const {
   formatDateTime,
   refresh,
 } = useCodexDashboard()
+
+const codexUsageLabels = computed(() => buildPlatformUsageI18nLabels(t))
+const codexUsage = usePlatformUsageInsight({
+  platform: 'codex',
+  labels: codexUsageLabels,
+  tone: 'codex',
+})
+const codexUsageSpec = computed(() => buildPlatformUsageSpec(t, 'codex'))
+const codexUsagePresentation = computed(() => codexUsage.presentation.value)
 
 const toneClassMap: Record<CodexDashboardTone, string> = {
   success: 'codex-tone-icon--success',

@@ -1,21 +1,5 @@
 <template>
   <div class="gemini-view stage-page">
-    <AnimatedBackground
-      contained
-      variant="complex"
-    />
-
-    <div
-      class="gemini-constellation"
-      aria-hidden="true"
-    >
-      <span class="gemini-orbit gemini-orbit--one" />
-      <span class="gemini-orbit gemini-orbit--two" />
-      <span class="gemini-star gemini-star--one" />
-      <span class="gemini-star gemini-star--two" />
-      <span class="gemini-star gemini-star--three" />
-    </div>
-
     <div class="gemini-shell">
       <section class="gemini-hero animate-slide-up">
         <div class="gemini-hero__copy">
@@ -166,6 +150,14 @@
         </Card>
       </section>
 
+      <PlatformUsageInsightPanel
+        :spec="antigravityUsageSpec"
+        :state="antigravityUsagePresentation"
+        :loading="antigravityUsage.loading.value"
+        :error="antigravityUsage.error.value"
+        @refresh="antigravityUsage.refresh()"
+      />
+
       <section
         class="gemini-module-section animate-slide-up"
         style="animation-delay: 120ms"
@@ -282,9 +274,14 @@ import { computed, onBeforeUnmount, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import SIcon from '@/components/ui/SIcon.vue'
-import AnimatedBackground from '@/components/common/AnimatedBackground.vue'
 import Card from '@/components/ui/Card.vue'
 import Button from '@/components/ui/Button.vue'
+import PlatformUsageInsightPanel from '@/components/platform-usage/PlatformUsageInsightPanel.vue'
+import { usePlatformUsageInsight } from '@/composables/usePlatformUsageInsight'
+import {
+  buildPlatformUsageI18nLabels,
+  buildPlatformUsageSpec,
+} from '@/views/platform-usage/platformUsageSpecs'
 
 type ModuleTone = 'gemini' | 'command' | 'capability' | 'plugin'
 type TagTone = 'gemini' | 'command' | 'neutral' | 'capability'
@@ -325,6 +322,15 @@ interface QuickInfoCard {
 const { t } = useI18n({ useScope: 'global' })
 const copiedCommand = ref<string | null>(null)
 let copyResetTimer: number | undefined
+
+const antigravityUsageLabels = computed(() => buildPlatformUsageI18nLabels(t))
+const antigravityUsage = usePlatformUsageInsight({
+  platform: 'gemini',
+  labels: antigravityUsageLabels,
+  tone: 'antigravity',
+})
+const antigravityUsageSpec = computed(() => buildPlatformUsageSpec(t, 'gemini'))
+const antigravityUsagePresentation = computed(() => antigravityUsage.presentation.value)
 
 const heroTags = computed<HeroTag[]>(() => [
   {
@@ -501,60 +507,9 @@ onBeforeUnmount(() => {
   @apply relative min-h-full overflow-hidden p-5 md:p-8 lg:p-10;
 
   background:
-    radial-gradient(circle at 18% 12%, rgb(var(--color-platform-gemini-rgb) / 16%) 0, transparent 28rem),
-    radial-gradient(circle at 82% 8%, rgb(var(--color-info-rgb) / 10%) 0, transparent 24rem),
+    radial-gradient(circle at 18% 12%, rgb(var(--color-info-rgb) / 8%) 0, transparent 28rem),
+    radial-gradient(circle at 82% 8%, rgb(var(--color-warning-rgb) / 7%) 0, transparent 24rem),
     linear-gradient(145deg, rgb(var(--color-bg-base-rgb) / 96%), rgb(var(--color-bg-surface-rgb) / 90%));
-}
-
-.gemini-constellation {
-  @apply pointer-events-none absolute inset-0 overflow-hidden;
-}
-
-.gemini-orbit {
-  @apply absolute rounded-full border;
-
-  border-color: rgb(var(--color-platform-gemini-rgb) / 10%);
-  box-shadow: inset 0 0 26px rgb(var(--color-platform-gemini-rgb) / 4%);
-}
-
-.gemini-orbit--one {
-  width: 44rem;
-  height: 44rem;
-  top: -19rem;
-  right: -9rem;
-  transform: rotate(-18deg) scaleX(1.35);
-}
-
-.gemini-orbit--two {
-  width: 30rem;
-  height: 30rem;
-  bottom: 8rem;
-  left: -16rem;
-  transform: rotate(24deg) scaleX(1.5);
-}
-
-.gemini-star {
-  @apply absolute h-1.5 w-1.5 rounded-full;
-
-  background: var(--platform-gemini);
-  box-shadow: 0 0 18px rgb(var(--color-platform-gemini-rgb) / 55%);
-}
-
-.gemini-star--one {
-  top: 12%;
-  right: 18%;
-}
-
-.gemini-star--two {
-  top: 38%;
-  left: 8%;
-  opacity: 0.62;
-}
-
-.gemini-star--three {
-  right: 34%;
-  bottom: 14%;
-  opacity: 0.72;
 }
 
 .gemini-shell {

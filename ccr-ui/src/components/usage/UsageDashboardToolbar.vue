@@ -29,7 +29,7 @@
             Codex
           </option>
           <option value="gemini">
-            Gemini
+            Antigravity CLI
           </option>
           <option value="opencode">
             OpenCode

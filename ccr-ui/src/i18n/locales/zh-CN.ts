@@ -3849,6 +3849,78 @@ export default {
     },
   },
 
+  platformUsage: {
+    eyebrow: 'Usage Insight',
+    window30: '30 天',
+    source: 'V2 usage 聚合',
+    openDashboard: '打开完整 Usage 面板',
+    retry: '刷新 usage',
+    generatedAt: '生成于',
+    errorTitle: 'Usage insight 暂不可用',
+    tabs: {
+      cost: '费用趋势',
+      tokens: 'Token 明细',
+      requests: '请求数',
+      breakdown: '模型与项目',
+    },
+    cards: {
+      cost: '窗口费用',
+      tokens: 'Token 总量',
+      requests: '请求数',
+    },
+    metrics: {
+      cost: '费用',
+      tokens: 'Tokens',
+      requests: '请求',
+      input: '输入',
+      output: '输出',
+      cacheRead: '缓存读取',
+      cacheCreation: '缓存写入',
+      models: '模型',
+      projects: '项目',
+      topModel: 'Top 模型',
+      topProject: 'Top 项目',
+    },
+    rank: {
+      models: '模型归因',
+      projects: '项目归因',
+    },
+    units: {
+      requests: '次请求',
+      models: '个模型',
+      projects: '个项目',
+    },
+    empty: {
+      noModel: '未知模型',
+      noProject: '未知项目',
+      pricingUnavailable: '定价不可用',
+      tokenOnly: '仅 Token',
+    },
+    platforms: {
+      codex: {
+        label: 'Codex',
+        title: 'Codex Usage Insight',
+        description: '在不阻塞 readiness 检查的前提下，追踪本地 Codex 请求、Token、定价覆盖与项目/模型归因。',
+        emptyTitle: '暂无 Codex usage 日志',
+        emptyDescription: '本地 Codex 日志可用后可在完整 Usage 面板导入；首页不会显示误导性的假 0。',
+      },
+      antigravity: {
+        label: 'Antigravity CLI',
+        title: 'Antigravity Usage Insight',
+        description: '读取 legacy gemini usage key，同时在展示层保持 Antigravity CLI 品牌与兼容边界。',
+        emptyTitle: '暂无 Antigravity usage 导入',
+        emptyDescription: 'Antigravity 仍使用 legacy gemini platform key；可用时从 Usage 面板导入 usage 日志。',
+      },
+      opencode: {
+        label: 'OpenCode',
+        title: 'OpenCode Usage Insight',
+        description: '将 token/cost 统计与 provider、MCP live counts 隔离，确保 optional source 缺失不遮挡运维状态。',
+        emptyTitle: '暂无 OpenCode usage 来源',
+        emptyDescription: 'OpenCode usage 数据是可选来源；即使导入缺失，Providers、MCP、Agents、Commands、Plugins 计数仍保持可见。',
+      },
+    },
+  },
+
   // Usage Stats Dashboard
   usageStats: {
     title: '工作区概览',

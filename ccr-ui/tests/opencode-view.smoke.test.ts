@@ -10,9 +10,16 @@ const apiMocks = vi.hoisted(() => ({
   listOpenCodeCommands: vi.fn(),
   listOpenCodePlugins: vi.fn(),
   listOpenCodeLocalPlugins: vi.fn(),
+  getUsageDashboardV2: vi.fn(),
 }))
 
 vi.mock('@/api', () => apiMocks)
+
+vi.mock('vue-i18n', () => ({
+  useI18n: () => ({
+    t: (key: string) => key,
+  }),
+}))
 
 vi.mock('vue-router', async () => {
   const { defineComponent, h } = await vi.importActual<typeof import('vue')>('vue')
@@ -71,6 +78,46 @@ const resetApiMocks = () => {
   apiMocks.listOpenCodeLocalPlugins.mockResolvedValue([
     { name: 'local-a', scope: 'project', path: '.opencode/plugins/local-a.ts' },
   ])
+  apiMocks.getUsageDashboardV2.mockResolvedValue({
+    generated_at: '2026-05-20T12:00:00.000Z',
+    summary: {
+      total_requests: 6,
+      total_tokens: 9_000,
+      total_input_tokens: 3_000,
+      total_output_tokens: 4_000,
+      total_cache_read_tokens: 2_000,
+      total_cost_usd: 1.2,
+      cache_efficiency: 0.4,
+    },
+    trends: [
+      {
+        date: '2026-05-20',
+        request_count: 6,
+        total_tokens: 9_000,
+        input_tokens: 3_000,
+        output_tokens: 4_000,
+        cache_read_tokens: 2_000,
+        cache_creation_tokens: 0,
+        cost_usd: 1.2,
+      },
+    ],
+    model_stats: [
+      {
+        model: 'anthropic/claude-sonnet-4',
+        request_count: 6,
+        total_tokens: 9_000,
+        total_cost: 1.2,
+      },
+    ],
+    project_stats: [
+      {
+        project_path: 'D:/repo/opencode',
+        request_count: 6,
+        total_tokens: 9_000,
+        total_cost: 1.2,
+      },
+    ],
+  })
 }
 
 const mountView = async () => {
@@ -122,6 +169,13 @@ describe('OpenCodeView smoke', () => {
       expect(el.textContent).toContain('Settings')
       expect(el.textContent).toContain('Runtime intelligence')
       expect(el.textContent).toContain('opencode agent')
+      expect(apiMocks.getUsageDashboardV2).toHaveBeenCalledWith(
+        'opencode',
+        expect.any(String),
+        expect.any(String),
+        0,
+        false,
+      )
     } finally {
       unmount()
     }
@@ -190,6 +244,7 @@ describe('OpenCodeView smoke', () => {
       expect(el.textContent).toContain('2 live')
       expect(el.textContent).toContain('mcp warning')
       expect(el.textContent).toContain('1 degraded source(s)')
+      expect(el.textContent).toContain('platformUsage.platforms.opencode.title')
     } finally {
       unmount()
     }

@@ -131,6 +131,14 @@
         </div>
       </Card>
 
+      <PlatformUsageInsightPanel
+        :spec="opencodeUsageSpec"
+        :state="opencodeUsagePresentation"
+        :loading="opencodeUsage.loading.value"
+        :error="opencodeUsage.error.value"
+        @refresh="opencodeUsage.refresh()"
+      />
+
       <section
         class="opencode-capability-grid"
         aria-label="OpenCode capability entries"
@@ -294,8 +302,10 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import Card from '@/components/ui/Card.vue'
 import SIcon from '@/components/ui/SIcon.vue'
+import PlatformUsageInsightPanel from '@/components/platform-usage/PlatformUsageInsightPanel.vue'
 import {
   getOpenCodeConfig,
   getOpenCodeTuiSettings,
@@ -322,11 +332,26 @@ import type {
   OpenCodeProviderConfig,
   OpenCodeTuiConfig,
 } from '@/types'
+import { usePlatformUsageInsight } from '@/composables/usePlatformUsageInsight'
+import {
+  buildPlatformUsageI18nLabels,
+  buildPlatformUsageSpec,
+} from '@/views/platform-usage/platformUsageSpecs'
+
+const { t } = useI18n({ useScope: 'global' })
 
 const loading = ref(false)
 const loadedOnce = ref(false)
 const loadErrors = ref<Record<string, string>>({})
 const activeInspector = ref('runtime')
+const opencodeUsageLabels = computed(() => buildPlatformUsageI18nLabels(t))
+const opencodeUsage = usePlatformUsageInsight({
+  platform: 'opencode',
+  labels: opencodeUsageLabels,
+  tone: 'opencode',
+})
+const opencodeUsageSpec = computed(() => buildPlatformUsageSpec(t, 'opencode'))
+const opencodeUsagePresentation = computed(() => opencodeUsage.presentation.value)
 const config = ref<OpenCodeConfig>({})
 const tui = ref<OpenCodeTuiConfig>({})
 const providers = ref<OpenCodeProviderConfig[]>([])
