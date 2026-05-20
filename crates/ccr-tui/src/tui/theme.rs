@@ -33,16 +33,16 @@ pub fn footer_height(mode: ViewportMode) -> u16 {
 // ═══════════════════════════════════════════════════════════
 
 /// Brand color - Claude amber
-pub const CLAUDE_PRIMARY: Color = Color::Rgb(245, 158, 11); // #f59e0b
+pub const CLAUDE_PRIMARY: Color = Color::Rgb(180, 83, 9); // #b45309
 
 /// Brand color - Codex indigo
 pub const CODEX_PRIMARY: Color = Color::Rgb(99, 102, 241); // #6366f1
 
 /// Brand color - Gemini blue
-pub const GEMINI_PRIMARY: Color = Color::Rgb(66, 133, 244); // #4285f4
+pub const GEMINI_PRIMARY: Color = Color::Rgb(37, 99, 235); // #2563eb
 
 /// Brand color - Droid emerald
-pub const DROID_PRIMARY: Color = Color::Rgb(16, 185, 129); // #10b981
+pub const DROID_PRIMARY: Color = Color::Rgb(5, 150, 105); // #059669
 
 /// Foreground colors
 pub const FG_PRIMARY: Color = Color::Rgb(248, 250, 252); // #f8fafc - pure white
@@ -50,10 +50,10 @@ pub const FG_SECONDARY: Color = Color::Rgb(148, 163, 184); // #94a3b8 - blue gra
 pub const FG_MUTED: Color = Color::Rgb(100, 116, 139); // #64748b - dark gray
 
 /// Semantic colors
-pub const FG_SUCCESS: Color = Color::Rgb(34, 197, 94); // #22c55e - green
-pub const FG_WARNING: Color = Color::Rgb(234, 179, 8); // #eab308 - yellow
-pub const FG_ERROR: Color = Color::Rgb(239, 68, 68); // #ef4444 - red
-pub const FG_INFO: Color = Color::Rgb(56, 189, 248); // #38bdf8 - sky blue
+pub const FG_SUCCESS: Color = Color::Rgb(21, 128, 61); // #15803d - green
+pub const FG_WARNING: Color = Color::Rgb(161, 98, 7); // #a16207 - amber
+pub const FG_ERROR: Color = Color::Rgb(220, 38, 38); // #dc2626 - red
+pub const FG_INFO: Color = Color::Rgb(3, 105, 161); // #0369a1 - blue
 
 /// Background color (for selected items)
 pub const BG_PRIMARY: Color = Color::Rgb(15, 23, 42); // #0f172a - deep blue black
@@ -106,6 +106,17 @@ pub fn platform_color_for(platform: Platform) -> Color {
     }
 }
 
+/// Get a brighter platform accent for selected-row backgrounds.
+pub fn platform_selection_color_for(platform: Platform) -> Color {
+    match platform {
+        Platform::Claude => Color::Rgb(251, 191, 36), // #fbbf24
+        Platform::Codex => Color::Rgb(129, 140, 248), // #818cf8
+        Platform::Gemini => Color::Rgb(96, 165, 250), // #60a5fa
+        Platform::Droid => Color::Rgb(52, 211, 153),  // #34d399
+        _ => Color::Rgb(129, 140, 248),
+    }
+}
+
 /// Get the bold style for a platform variant
 pub fn platform_style_for(platform: Platform) -> Style {
     Style::default()
@@ -137,10 +148,41 @@ pub fn platform_style(platform: &str) -> Style {
 // General style functions
 // ═══════════════════════════════════════════════════════════
 
+/// Primary body text style.
+///
+/// Keep the foreground unset so transparent TUI backgrounds inherit the
+/// terminal theme's readable default foreground instead of forcing near-white.
+pub fn primary_text_style() -> Style {
+    Style::default()
+}
+
+/// Primary emphasized body text style.
+pub fn primary_text_emphasis_style() -> Style {
+    primary_text_style().add_modifier(Modifier::BOLD)
+}
+
+/// Secondary body text style.
+///
+/// Uses the terminal default foreground with a lightweight dim modifier so it
+/// remains legible on both light and dark transparent backgrounds.
+pub fn secondary_text_style() -> Style {
+    Style::default().add_modifier(Modifier::DIM)
+}
+
+/// Secondary emphasized body text style.
+pub fn secondary_text_emphasis_style() -> Style {
+    secondary_text_style().add_modifier(Modifier::BOLD)
+}
+
+/// Muted/hint body text style.
+pub fn muted_text_style() -> Style {
+    Style::default().add_modifier(Modifier::DIM | Modifier::ITALIC)
+}
+
 /// Title style
 #[allow(dead_code)]
 pub fn title_style() -> Style {
-    Style::default().fg(FG_PRIMARY).add_modifier(Modifier::BOLD)
+    primary_text_emphasis_style()
 }
 
 /// Tab highlight style (for selected tab)
@@ -152,7 +194,7 @@ pub fn tab_highlight_style() -> Style {
 
 /// Tab normal style
 pub fn tab_normal_style() -> Style {
-    Style::default().fg(FG_SECONDARY)
+    secondary_text_style()
 }
 
 /// List item selected style (default fallback with Codex accent)
@@ -171,7 +213,7 @@ pub fn list_current_style() -> Style {
 
 /// List item normal style
 pub fn list_normal_style() -> Style {
-    Style::default().fg(FG_PRIMARY)
+    primary_text_style()
 }
 
 /// List item description style
@@ -182,7 +224,7 @@ pub fn list_description_style(is_selected: bool, is_current: bool) -> Style {
     } else if is_current {
         list_current_style()
     } else {
-        Style::default().fg(FG_MUTED)
+        muted_style()
     }
 }
 
@@ -208,7 +250,7 @@ pub fn info_style() -> Style {
 
 /// Muted secondary text style
 pub fn muted_style() -> Style {
-    Style::default().fg(FG_MUTED)
+    muted_text_style()
 }
 
 /// Empty state hint style
@@ -258,7 +300,7 @@ pub fn quota_color(percentage: i32) -> Color {
 pub fn selected_row_style() -> Style {
     Style::default()
         .bg(ACCENT_PURPLE)
-        .fg(Color::White)
+        .fg(BG_PRIMARY)
         .add_modifier(Modifier::BOLD)
 }
 
@@ -271,4 +313,24 @@ pub fn card_block_style() -> Style {
 #[allow(dead_code)]
 pub fn separator_style() -> Style {
     Style::default().fg(BORDER_LIGHT)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn transparent_text_styles_inherit_terminal_foreground() {
+        assert_eq!(primary_text_style().fg, None);
+        assert_eq!(secondary_text_style().fg, None);
+        assert_eq!(muted_style().fg, None);
+        assert_eq!(background_style().bg, None);
+    }
+
+    #[test]
+    fn secondary_and_muted_styles_use_modifiers_for_hierarchy() {
+        assert!(secondary_text_style().add_modifier.contains(Modifier::DIM));
+        assert!(muted_style().add_modifier.contains(Modifier::DIM));
+        assert!(muted_style().add_modifier.contains(Modifier::ITALIC));
+    }
 }

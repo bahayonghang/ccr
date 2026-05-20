@@ -132,16 +132,14 @@ fn render_codex_runtime_banner(
     let (mode_label, mode_style, profile_label, auth_label) = if let Some(summary) = summary {
         (
             summary.mode.label().to_string(),
-            Style::default()
-                .fg(runtime_mode_color(summary.mode))
-                .add_modifier(Modifier::BOLD),
+            runtime_mode_style(summary.mode),
             summary.profile_label(),
             summary.auth_label(),
         )
     } else {
         (
             "未解析".to_string(),
-            Style::default().fg(theme::FG_MUTED),
+            theme::muted_style(),
             "-".to_string(),
             "-".to_string(),
         )
@@ -149,20 +147,20 @@ fn render_codex_runtime_banner(
 
     let lines = if compact {
         vec![Line::from(vec![
-            Span::styled(" 当前驱动: ", Style::default().fg(theme::FG_SECONDARY)),
+            Span::styled(" 当前驱动: ", theme::secondary_text_style()),
             Span::styled(mode_label, mode_style),
         ])]
     } else {
         vec![
             Line::from(vec![
-                Span::styled(" 当前驱动: ", Style::default().fg(theme::FG_SECONDARY)),
+                Span::styled(" 当前驱动: ", theme::secondary_text_style()),
                 Span::styled(mode_label, mode_style),
             ]),
             Line::from(vec![
-                Span::styled(" Profile: ", Style::default().fg(theme::FG_SECONDARY)),
-                Span::styled(profile_label, Style::default().fg(theme::FG_PRIMARY)),
+                Span::styled(" Profile: ", theme::secondary_text_style()),
+                Span::styled(profile_label, theme::primary_text_style()),
                 Span::styled("  │  ", Style::default().fg(theme::BORDER)),
-                Span::styled("Auth: ", Style::default().fg(theme::FG_SECONDARY)),
+                Span::styled("Auth: ", theme::secondary_text_style()),
                 Span::styled(auth_label, Style::default().fg(theme::FG_SUCCESS)),
             ]),
         ]
@@ -182,13 +180,13 @@ fn render_codex_runtime_banner(
     f.render_widget(banner, area);
 }
 
-fn runtime_mode_color(mode: crate::models::CodexRuntimeMode) -> ratatui::style::Color {
+fn runtime_mode_style(mode: crate::models::CodexRuntimeMode) -> Style {
     match mode {
-        crate::models::CodexRuntimeMode::ProfileOnly => theme::FG_SUCCESS,
-        crate::models::CodexRuntimeMode::ProfileWithAuth => theme::FG_WARNING,
-        crate::models::CodexRuntimeMode::ProfilePendingAuth => theme::FG_WARNING,
-        crate::models::CodexRuntimeMode::RuntimeOnly => theme::FG_SECONDARY,
-        crate::models::CodexRuntimeMode::Unresolved => theme::FG_MUTED,
+        crate::models::CodexRuntimeMode::ProfileOnly => theme::success_style(),
+        crate::models::CodexRuntimeMode::ProfileWithAuth
+        | crate::models::CodexRuntimeMode::ProfilePendingAuth => theme::warning_style(),
+        crate::models::CodexRuntimeMode::RuntimeOnly => theme::secondary_text_emphasis_style(),
+        crate::models::CodexRuntimeMode::Unresolved => theme::muted_style(),
     }
 }
 
@@ -319,11 +317,9 @@ fn profile_list_row(
         let desc_style = if is_selected {
             selected_style
         } else if profile.is_current {
-            Style::default()
-                .fg(theme::FG_SECONDARY)
-                .add_modifier(Modifier::BOLD)
+            theme::secondary_text_emphasis_style()
         } else {
-            Style::default().fg(theme::FG_MUTED)
+            theme::muted_style()
         };
         vec![
             Span::styled(name_cell, name_style),
@@ -466,7 +462,7 @@ fn render_profile_list_panel(f: &mut Frame, app: &mut App, area: Rect) {
     let all_profiles = app.current_profiles();
     let platform = app.current_platform();
     let platform_name = platform.display_name();
-    let accent = theme::platform_color_for(platform);
+    let accent = theme::platform_selection_color_for(platform);
 
     let total_pages = app.total_pages();
     let total_profiles = all_profiles.len();
@@ -537,11 +533,7 @@ fn render_profile_meta_panel(f: &mut Frame, app: &App, area: Rect) {
         .border_set(symbols::border::ROUNDED)
         .border_style(Style::default().fg(theme::BORDER))
         .title(" Selection ")
-        .title_style(
-            Style::default()
-                .fg(theme::FG_SECONDARY)
-                .add_modifier(Modifier::BOLD),
-        )
+        .title_style(theme::secondary_text_emphasis_style())
         .padding(Padding::horizontal(1));
 
     let lines: Vec<Line> = profile_meta_strings(
@@ -733,11 +725,7 @@ fn render_profile_status_strip(f: &mut Frame, app: &App, area: Rect, profile_nam
         .borders(Borders::TOP)
         .border_style(Style::default().fg(theme::BORDER))
         .title(" Status ")
-        .title_style(
-            Style::default()
-                .fg(theme::FG_SECONDARY)
-                .add_modifier(Modifier::BOLD),
-        );
+        .title_style(theme::secondary_text_emphasis_style());
 
     let mut text = footer_text(app);
     if let Some(action) = last_apply_message(profile_name, app.last_applied.as_ref()) {
@@ -915,12 +903,10 @@ fn claude_profile_detail_lines(
 
 fn section_line(title: &str) -> Line<'static> {
     Line::from(vec![
-        Span::styled("▌ ", Style::default().fg(theme::FG_INFO)),
+        Span::styled("▌ ", theme::info_style()),
         Span::styled(
             title.to_string(),
-            Style::default()
-                .fg(theme::FG_SECONDARY)
-                .add_modifier(Modifier::BOLD | Modifier::UNDERLINED),
+            theme::secondary_text_emphasis_style().add_modifier(Modifier::UNDERLINED),
         ),
     ])
 }
@@ -929,9 +915,7 @@ fn detail_line(label: &str, value: String) -> Line<'static> {
     Line::from(vec![
         Span::styled(
             format!("{label:<16}"),
-            Style::default()
-                .fg(theme::FG_SECONDARY)
-                .add_modifier(Modifier::BOLD),
+            theme::secondary_text_emphasis_style(),
         ),
         Span::styled(value.clone(), detail_value_style(label, &value)),
     ])
@@ -967,18 +951,13 @@ fn detail_value_style(label: &str, value: &str) -> Style {
         return theme::info_style();
     }
 
-    Style::default().fg(theme::FG_PRIMARY)
+    theme::primary_text_style()
 }
 
 fn profile_summary_line(text: String) -> Line<'static> {
     if let Some((label, value)) = text.split_once(':') {
         return Line::from(vec![
-            Span::styled(
-                format!("{label}: "),
-                Style::default()
-                    .fg(theme::FG_SECONDARY)
-                    .add_modifier(Modifier::BOLD),
-            ),
+            Span::styled(format!("{label}: "), theme::secondary_text_emphasis_style()),
             Span::styled(
                 value.trim().to_string(),
                 detail_value_style(label, value.trim()),
@@ -986,7 +965,7 @@ fn profile_summary_line(text: String) -> Line<'static> {
         ]);
     }
 
-    Line::from(Span::styled(text, Style::default().fg(theme::FG_PRIMARY)))
+    Line::from(Span::styled(text, theme::primary_text_style()))
 }
 
 fn opt_text(value: Option<&str>) -> String {
@@ -1140,17 +1119,14 @@ fn render_empty_state(f: &mut Frame, app: &App, area: Rect, block: Block) {
             Line::from(""),
             Line::from(Span::styled(
                 "CCR could not read the profile source below:".to_string(),
-                Style::default().fg(theme::FG_SECONDARY),
+                theme::secondary_text_style(),
             )),
             Line::from(""),
-            Line::from(Span::styled(
-                error.to_string(),
-                Style::default().fg(theme::FG_PRIMARY),
-            )),
+            Line::from(Span::styled(error.to_string(), theme::primary_text_style())),
             Line::from(""),
             Line::from(Span::styled(
                 "Fix the file content or path, then press 'r' to reload.".to_string(),
-                Style::default().fg(theme::FG_MUTED),
+                theme::muted_style(),
             )),
         ];
 
@@ -1172,12 +1148,12 @@ fn render_empty_state(f: &mut Frame, app: &App, area: Rect, block: Block) {
         Line::from(""),
         Line::from(Span::styled(
             format!("Run 'ccr platform init {}' to initialize", short_name),
-            Style::default().fg(theme::FG_SECONDARY),
+            theme::secondary_text_style(),
         )),
         Line::from(""),
         Line::from(Span::styled(
             "Or 'ccr add' to create a new configuration".to_string(),
-            Style::default().fg(theme::FG_MUTED),
+            theme::muted_style(),
         )),
     ];
 
@@ -1196,10 +1172,7 @@ fn profile_status_text(app: &App) -> Vec<Line<'static>> {
                 theme::empty_hint_style(),
             )),
             Line::from(""),
-            Line::from(Span::styled(
-                error.to_string(),
-                Style::default().fg(theme::FG_PRIMARY),
-            )),
+            Line::from(Span::styled(error.to_string(), theme::primary_text_style())),
         ];
     }
 
@@ -1210,10 +1183,7 @@ fn profile_status_text(app: &App) -> Vec<Line<'static>> {
                 theme::empty_hint_style(),
             )),
             Line::from(""),
-            Line::from(Span::styled(
-                error.to_string(),
-                Style::default().fg(theme::FG_PRIMARY),
-            )),
+            Line::from(Span::styled(error.to_string(), theme::primary_text_style())),
         ];
     }
 
@@ -1242,12 +1212,9 @@ fn render_footer(f: &mut Frame, app: &App, area: Rect) {
                 .border_style(Style::default().fg(theme::BORDER))
                 .title(" Keys ")
                 .title_alignment(Alignment::Center)
-                .title_style(
-                    Style::default()
-                        .fg(theme::FG_MUTED)
-                        .add_modifier(Modifier::ITALIC),
-                ),
+                .title_style(theme::muted_style()),
         )
+        .style(theme::secondary_text_style())
         .alignment(Alignment::Center)
         .wrap(Wrap { trim: true });
 
@@ -1279,10 +1246,8 @@ fn render_toast(f: &mut Frame, app: &App, area: Rect) {
         let style = match toast.kind {
             ToastKind::Success => theme::success_style(),
             ToastKind::Error => theme::error_style(),
-            ToastKind::Warning => Style::default()
-                .fg(theme::FG_WARNING)
-                .add_modifier(Modifier::BOLD),
-            ToastKind::Info => Style::default().fg(theme::FG_SECONDARY),
+            ToastKind::Warning => theme::warning_style(),
+            ToastKind::Info => theme::secondary_text_style(),
         };
 
         let status = Paragraph::new(Span::styled(toast.message.as_str(), style))
@@ -1431,6 +1396,62 @@ mod tests {
 
         assert!(rendered.contains("anyrouter_temp"), "{rendered}");
         assert!(rendered.contains("AnyRouter temp profile"), "{rendered}");
+    }
+
+    #[test]
+    fn unselected_profile_row_inherits_terminal_foreground_for_plain_text() {
+        let profile = ProfileItem {
+            name: "default".to_string(),
+            description: Some("Default profile".to_string()),
+            is_current: false,
+        };
+
+        let line = profile_list_row(&profile, false, theme::CLAUDE_PRIMARY, 18, 24);
+
+        assert_eq!(line.spans[0].style.fg, None);
+        assert_eq!(line.spans[0].style.bg, None);
+        assert_ne!(line.spans[0].style.fg, Some(theme::FG_PRIMARY));
+        assert_eq!(line.spans[2].style.fg, None);
+        assert_eq!(line.spans[2].style.bg, None);
+        assert_ne!(line.spans[2].style.fg, Some(theme::FG_MUTED));
+    }
+
+    #[test]
+    fn summary_and_detail_plain_values_inherit_terminal_foreground() {
+        let summary = profile_summary_line("Name: fovts".to_string());
+        assert_eq!(summary.spans[0].style.fg, None);
+        assert_eq!(summary.spans[1].style.fg, None);
+        assert_ne!(summary.spans[1].style.fg, Some(theme::FG_PRIMARY));
+
+        let detail = detail_line("usage_count", "42".to_string());
+        assert_eq!(detail.spans[0].style.fg, None);
+        assert_eq!(detail.spans[1].style.fg, None);
+        assert_ne!(detail.spans[1].style.fg, Some(theme::FG_PRIMARY));
+    }
+
+    #[test]
+    fn footer_uses_terminal_foreground_with_modifier_hierarchy() {
+        let profile = ProfileItem {
+            name: "default".to_string(),
+            description: Some("Default profile".to_string()),
+            is_current: false,
+        };
+        let app = sample_profile_app(profile, ProfileConfig::new());
+        let mut terminal = Terminal::new(TestBackend::new(72, 3)).unwrap();
+
+        terminal
+            .draw(|frame| render_footer(frame, &app, frame.area()))
+            .unwrap();
+
+        let buffer = terminal.backend().buffer();
+        let footer_cell = buffer
+            .content()
+            .iter()
+            .find(|cell| cell.symbol() == "T")
+            .expect("footer should render Tab switch shortcut");
+
+        assert_eq!(footer_cell.fg, ratatui::style::Color::Reset);
+        assert_ne!(footer_cell.fg, theme::FG_PRIMARY);
     }
 
     #[test]
