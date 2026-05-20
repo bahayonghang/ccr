@@ -16,17 +16,6 @@ const confirmMock = vi.hoisted(() => vi.fn())
 
 vi.mock('@/api', () => apiMocks)
 
-vi.mock('vue-i18n', () => ({
-  useI18n: () => ({
-    t: (key: string) => {
-      const labels: Record<string, string> = {
-        'mcp.searchServers': 'Search MCP servers',
-      }
-      return labels[key] ?? key
-    },
-  }),
-}))
-
 const flushPromises = async () => {
   await Promise.resolve()
   await Promise.resolve()
@@ -111,6 +100,8 @@ const createMcpResponse = () => ({
 
 const mountMcpManager = async () => {
   const McpManagerView = (await import('@/views/mcp/McpManagerView.vue')).default
+  const i18nModule = await import('@/i18n')
+  await i18nModule.setLocale('zh-CN')
   const el = document.createElement('div')
   document.body.appendChild(el)
   const pinia = createPinia()
@@ -121,12 +112,7 @@ const mountMcpManager = async () => {
     },
   }))
   app.use(pinia)
-  app.config.globalProperties.$t = (key: string) => {
-    const labels: Record<string, string> = {
-      'mcp.searchServers': 'Search MCP servers',
-    }
-    return labels[key] ?? key
-  }
+  app.use(i18nModule.default)
   app.mount(el)
   await flushPromises()
 
@@ -163,12 +149,14 @@ describe('MCP manager smoke', () => {
     try {
       expect(apiMocks.listUnifiedMcp).toHaveBeenCalledTimes(1)
       expect(el.textContent).toContain('exa')
-      expect(el.textContent).toContain('Effective config')
-      expect(el.textContent).toContain('Source & precedence')
+      expect(el.textContent).toContain('生效配置')
+      expect(el.textContent).toContain('来源与优先级')
       expect(el.textContent).toContain('C:/Users/test/.claude.json')
-      expect(el.textContent).toContain('Hidden by local:exa')
+      expect(el.textContent).toContain('被 local:exa 覆盖')
       expect(el.textContent).toContain('Bearer••••cret')
-      expect(el.textContent).not.toContain('No MCP servers configured')
+      expect(el.textContent).not.toContain('暂无 MCP 服务器配置')
+      expect(el.textContent).not.toContain('Effective config')
+      expect(el.textContent).not.toContain('Source & precedence')
       expect(el.textContent).not.toContain('[object Object]')
     } finally {
       unmount()
@@ -180,7 +168,7 @@ describe('MCP manager smoke', () => {
 
     try {
       const hiddenButton = Array.from(el.querySelectorAll('button'))
-        .find(button => button.textContent?.includes('Hidden')) as HTMLButtonElement
+        .find(button => button.textContent?.includes('已隐藏')) as HTMLButtonElement
       hiddenButton.click()
       await nextTick()
 
@@ -190,7 +178,7 @@ describe('MCP manager smoke', () => {
       await nextTick()
 
       expect(el.textContent).toContain('memory')
-      expect(el.textContent).toContain('Pending')
+      expect(el.textContent).toContain('待批准')
       expect(el.textContent).toContain('D:/repo/.mcp.json')
       expect(el.textContent).toContain('Matched Claude local project key')
     } finally {
@@ -208,7 +196,7 @@ describe('MCP manager smoke', () => {
 
     try {
       const importButton = Array.from(el.querySelectorAll('button'))
-        .find(button => button.textContent?.includes('Import')) as HTMLButtonElement
+        .find(button => button.textContent?.includes('导入')) as HTMLButtonElement
       importButton.click()
       await nextTick()
 
@@ -223,7 +211,7 @@ describe('MCP manager smoke', () => {
       await nextTick()
 
       const submitButton = Array.from(el.querySelectorAll('button'))
-        .find(button => button.textContent?.includes('Import 2 server')) as HTMLButtonElement
+        .find(button => button.textContent?.includes('导入 2 个服务器')) as HTMLButtonElement
       submitButton.click()
       await flushPromises()
 
@@ -243,7 +231,7 @@ describe('MCP manager smoke', () => {
         }),
       ])
       expect(apiMocks.listUnifiedMcp).toHaveBeenCalledTimes(2)
-      expect(useUIStore(pinia).toasts.at(-1)?.message).toContain('failed: bad: invalid config')
+      expect(useUIStore(pinia).toasts.at(-1)?.message).toContain('失败：bad: invalid config')
     } finally {
       unmount()
     }

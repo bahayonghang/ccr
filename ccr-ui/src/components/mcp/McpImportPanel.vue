@@ -2,7 +2,7 @@
   <div class="mcp-import-panel">
     <div class="form-panel-header">
       <h2 class="form-panel-header__title">
-        Import from JSON
+        {{ t('mcp.manager.import.title') }}
       </h2>
       <button
         type="button"
@@ -18,12 +18,13 @@
 
     <div class="import-body">
       <p class="import-hint">
-        Paste MCP server configuration in JSON format. Supports the standard
-        <code>mcpServers</code> format used by Claude, Codex, and other tools.
+        {{ t('mcp.manager.import.hintPrefix') }}
+        <code>mcpServers</code>
+        {{ t('mcp.manager.import.hintSuffix') }}
       </p>
 
       <div class="form-field">
-        <label class="form-field__label">Target platform</label>
+        <label class="form-field__label">{{ t('mcp.manager.form.targetPlatform') }}</label>
         <select
           v-model="targetPlatform"
           class="form-field__input"
@@ -42,25 +43,25 @@
         v-if="targetPlatform === 'claude'"
         class="form-field"
       >
-        <label class="form-field__label">Claude scope</label>
+        <label class="form-field__label">{{ t('mcp.manager.form.claudeScope') }}</label>
         <select
           v-model="targetScope"
           class="form-field__input"
         >
           <option value="user">
-            User — ~/.claude.json
+            {{ t('mcp.manager.scopes.user') }} — ~/.claude.json
           </option>
           <option value="local">
-            Local — current project entry
+            {{ t('mcp.manager.scopes.local') }} — {{ t('mcp.manager.form.currentProjectEntry') }}
           </option>
           <option value="project">
-            Project — repository .mcp.json
+            {{ t('mcp.manager.scopes.project') }} — {{ t('mcp.manager.form.repositoryMcpJson') }}
           </option>
         </select>
       </div>
 
       <div class="form-field">
-        <label class="form-field__label">JSON configuration</label>
+        <label class="form-field__label">{{ t('mcp.manager.import.jsonLabel') }}</label>
         <textarea
           v-model="jsonInput"
           class="import-textarea"
@@ -85,7 +86,7 @@
         class="import-preview"
       >
         <h3 class="form-field__label">
-          Preview ({{ parsedServers.length }} server(s))
+          {{ t('mcp.manager.import.previewTitle', { count: parsedServers.length }) }}
         </h3>
         <div
           v-for="server in parsedServers"
@@ -109,7 +110,7 @@
         class="import-btn"
         @click="$emit('cancel')"
       >
-        Cancel
+        {{ t('common.cancel') }}
       </button>
       <button
         type="button"
@@ -121,7 +122,7 @@
           name="Download"
           size="w-4 h-4"
         />
-        <span>Import {{ parsedServers.length }} server(s)</span>
+        <span>{{ t('mcp.manager.import.submit', { count: parsedServers.length }) }}</span>
       </button>
     </div>
   </div>
@@ -129,6 +130,7 @@
 
 <script setup lang="ts">
 import { ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import SIcon from '@/components/ui/SIcon.vue'
 import type { PlatformMeta, UnifiedMcpPlatform } from '@/types/unifiedMcp'
 
@@ -146,6 +148,8 @@ const props = defineProps<{
   platforms: UnifiedMcpPlatform[]
   platformMeta: Record<string, PlatformMeta>
 }>()
+
+const { t } = useI18n({ useScope: 'global' })
 
 const emit = defineEmits<{
   cancel: []
@@ -169,7 +173,7 @@ watch(jsonInput, (value) => {
     const mcpServers = parsed.mcpServers ?? parsed
 
     if (typeof mcpServers !== 'object' || mcpServers === null) {
-      parseError.value = 'Invalid format: expected an object with server definitions'
+      parseError.value = t('mcp.manager.import.errors.invalidFormat')
       return
     }
 
@@ -180,7 +184,7 @@ watch(jsonInput, (value) => {
       const hasUrl = typeof cfg.url === 'string'
 
       if (!hasCommand && !hasUrl) {
-        parseError.value = `Server "${name}": must have either "command" or "url"`
+        parseError.value = t('mcp.manager.import.errors.missingCommandOrUrl', { name })
         return
       }
 
@@ -201,7 +205,7 @@ watch(jsonInput, (value) => {
 
     parsedServers.value = servers
   } catch {
-    parseError.value = 'Invalid JSON syntax'
+    parseError.value = t('mcp.manager.import.errors.invalidJson')
   }
 })
 

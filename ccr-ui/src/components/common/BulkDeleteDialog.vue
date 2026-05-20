@@ -1,7 +1,7 @@
 <template>
   <BaseModal
     :model-value="isOpen"
-    title="Confirm Delete"
+    :title="title"
     :close-on-backdrop="true"
     :close-on-escape="true"
     :show-close="true"
@@ -42,7 +42,7 @@
         v-else-if="items.length > 10"
         class="bulk-delete__overflow"
       >
-        ... 以及其他 {{ items.length - 10 }} 项
+        {{ overflowMessage || `... 以及其他 ${items.length - 10} 项` }}
       </p>
     </div>
 
@@ -52,7 +52,7 @@
         class="bulk-delete__btn bulk-delete__btn--cancel"
         @click="$emit('cancel')"
       >
-        Cancel
+        {{ cancelLabel || 'Cancel' }}
       </button>
       <button
         type="button"
@@ -71,7 +71,7 @@
           name="Trash2"
           size="w-4 h-4"
         />
-        <span>Delete {{ items.length }}</span>
+        <span>{{ confirmLabel || `Delete ${items.length}` }}</span>
       </button>
     </template>
   </BaseModal>
@@ -90,17 +90,25 @@ export interface BulkDeleteItem {
 withDefaults(defineProps<{
   /** 对话框是否打开 */
   isOpen: boolean
+  title?: string
   /** 待删除项列表 */
   items: BulkDeleteItem[]
   /** 资源类型标签 */
   resourceLabel?: string
   /** 自定义消息 */
   message?: string
+  overflowMessage?: string
+  cancelLabel?: string
+  confirmLabel?: string
   /** 加载状态 */
   loading?: boolean
 }>(), {
+  title: 'Confirm Delete',
   resourceLabel: '项',
   message: undefined,
+  overflowMessage: undefined,
+  cancelLabel: undefined,
+  confirmLabel: undefined,
   loading: false,
 })
 

@@ -2,7 +2,7 @@
   <div class="mcp-form-panel">
     <div class="form-panel-header">
       <h2 class="form-panel-header__title">
-        {{ isEditing ? 'Edit MCP Server' : 'Add MCP Server' }}
+        {{ isEditing ? $t('mcp.manager.form.editTitle') : $t('mcp.manager.form.addTitle') }}
       </h2>
       <button
         type="button"
@@ -22,7 +22,7 @@
     >
       <!-- 目标平台 -->
       <div class="form-field">
-        <label class="form-field__label">Target platform</label>
+        <label class="form-field__label">{{ $t('mcp.manager.form.targetPlatform') }}</label>
         <select
           :value="formData.platform"
           class="form-field__input"
@@ -43,33 +43,35 @@
         v-if="formData.platform === 'claude'"
         class="form-field"
       >
-        <label class="form-field__label">Claude scope</label>
+        <label class="form-field__label">{{ $t('mcp.manager.form.claudeScope') }}</label>
         <select
           :value="formData.scope ?? 'user'"
           class="form-field__input"
           @change="updateField('scope', ($event.target as HTMLSelectElement).value)"
         >
           <option value="user">
-            User — ~/.claude.json
+            {{ $t('mcp.manager.scopes.user') }} — ~/.claude.json
           </option>
           <option value="local">
-            Local — current project entry
+            {{ $t('mcp.manager.scopes.local') }} — {{ $t('mcp.manager.form.currentProjectEntry') }}
           </option>
           <option value="project">
-            Project — repository .mcp.json
+            {{ $t('mcp.manager.scopes.project') }} — {{ $t('mcp.manager.form.repositoryMcpJson') }}
           </option>
         </select>
         <p
           v-if="formData.scope === 'project'"
           class="form-field__hint form-field__hint--warning"
         >
-          Project scope writes to <code>.mcp.json</code> and can be committed with this repository.
+          {{ $t('mcp.manager.form.projectScopeWarningPrefix') }}
+          <code>.mcp.json</code>
+          {{ $t('mcp.manager.form.projectScopeWarningSuffix') }}
         </p>
       </div>
 
       <!-- 名称 -->
       <div class="form-field">
-        <label class="form-field__label">Name <span class="text-red-400">*</span></label>
+        <label class="form-field__label">{{ $t('mcp.manager.form.nameLabel') }} <span class="text-red-400">*</span></label>
         <input
           :value="formData.name ?? ''"
           type="text"
@@ -82,7 +84,7 @@
 
       <!-- 协议切换 -->
       <div class="form-field">
-        <label class="form-field__label">Protocol</label>
+        <label class="form-field__label">{{ $t('mcp.manager.form.protocolLabel') }}</label>
         <div class="protocol-toggle">
           <button
             type="button"
@@ -116,7 +118,7 @@
         v-if="!isHttpMode"
         class="form-field"
       >
-        <label class="form-field__label">Command <span class="text-red-400">*</span></label>
+        <label class="form-field__label">{{ $t('mcp.manager.detail.commandLabel') }} <span class="text-red-400">*</span></label>
         <input
           :value="formData.command ?? ''"
           type="text"
@@ -131,7 +133,7 @@
         v-if="isHttpMode"
         class="form-field"
       >
-        <label class="form-field__label">URL <span class="text-red-400">*</span></label>
+        <label class="form-field__label">{{ $t('mcp.manager.detail.urlLabel') }} <span class="text-red-400">*</span></label>
         <input
           :value="formData.url ?? ''"
           type="text"
@@ -146,7 +148,7 @@
         v-if="!isHttpMode"
         class="form-field"
       >
-        <label class="form-field__label">Args (space-separated)</label>
+        <label class="form-field__label">{{ $t('mcp.manager.form.argsLabel') }}</label>
         <input
           :value="argInput"
           type="text"
@@ -161,7 +163,7 @@
         v-if="!isHttpMode"
         class="form-field"
       >
-        <label class="form-field__label">Environment Variables</label>
+        <label class="form-field__label">{{ $t('mcp.manager.form.envLabel') }}</label>
         <div class="kv-editor">
           <div
             v-for="(value, key) in (formData.env ?? {})"
@@ -186,14 +188,14 @@
               :value="envKey"
               type="text"
               class="form-field__input"
-              placeholder="KEY"
+              :placeholder="$t('mcp.manager.form.envKeyPlaceholder')"
               @input="$emit('update:envKey', ($event.target as HTMLInputElement).value)"
             >
             <input
               :value="envValue"
               type="text"
               class="form-field__input"
-              placeholder="value"
+              :placeholder="$t('mcp.manager.form.envValuePlaceholder')"
               @input="$emit('update:envValue', ($event.target as HTMLInputElement).value)"
             >
             <button
@@ -216,7 +218,7 @@
         v-if="isHttpMode"
         class="form-field"
       >
-        <label class="form-field__label">Headers</label>
+        <label class="form-field__label">{{ $t('mcp.manager.form.headersLabel') }}</label>
         <div class="kv-editor">
           <div
             v-for="(value, key) in (formData.headers ?? {})"
@@ -273,7 +275,7 @@
           class="detail-btn"
           @click="$emit('cancel')"
         >
-          Cancel
+          {{ $t('common.cancel') }}
         </button>
         <button
           type="submit"
@@ -283,7 +285,7 @@
             name="Check"
             size="w-4 h-4"
           />
-          <span>{{ isEditing ? 'Save' : 'Create' }}</span>
+          <span>{{ isEditing ? $t('common.save') : $t('mcp.manager.form.create') }}</span>
         </button>
       </div>
     </form>

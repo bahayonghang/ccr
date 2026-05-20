@@ -8,8 +8,8 @@
         name="Server"
         size="w-8 h-8"
       />
-      <p>No MCP server selected</p>
-      <span>Use the left rail to inspect effective configuration and precedence.</span>
+      <p>{{ t('mcp.manager.detail.emptyTitle') }}</p>
+      <span>{{ t('mcp.manager.detail.emptySubtitle') }}</span>
     </div>
 
     <template v-else-if="primaryServer">
@@ -23,13 +23,13 @@
           </div>
           <div>
             <p class="detail-header__eyebrow">
-              {{ primaryServer.scope ?? 'global' }} scope · {{ primaryServer.effective === false ? 'not effective' : 'effective' }}
+              {{ scopeLabel(primaryServer.scope ?? 'global') }} {{ t('mcp.manager.detail.scopeSuffix') }} · {{ stateLabel(primaryServer) }}
             </p>
             <h2 class="detail-header__title">
               {{ group.name }}
             </h2>
             <p class="detail-header__sub">
-              {{ group.transportType.toUpperCase() }} · {{ group.items.length }} instance(s)
+              {{ group.transportType.toUpperCase() }} · {{ t('mcp.manager.detail.instanceCount', { count: group.items.length }) }}
             </p>
           </div>
         </div>
@@ -43,7 +43,7 @@
               name="Pencil"
               size="w-4 h-4"
             />
-            <span>Edit</span>
+            <span>{{ t('common.edit') }}</span>
           </button>
           <button
             type="button"
@@ -54,7 +54,7 @@
               name="Trash2"
               size="w-4 h-4"
             />
-            <span>Delete</span>
+            <span>{{ t('common.delete') }}</span>
           </button>
         </div>
       </div>
@@ -62,7 +62,7 @@
       <section class="detail-section detail-section--effective">
         <div class="detail-section__heading">
           <h3 class="detail-section__title">
-            Effective config
+            {{ t('mcp.manager.detail.effectiveTitle') }}
           </h3>
           <span
             class="state-pill"
@@ -73,32 +73,34 @@
         </div>
         <div class="detail-grid">
           <div class="detail-field">
-            <span class="detail-field__label">Type</span>
+            <span class="detail-field__label">{{ t('mcp.manager.detail.typeLabel') }}</span>
             <span class="detail-field__value">{{ group.transportType }}</span>
           </div>
           <div class="detail-field detail-field--wide">
-            <span class="detail-field__label">{{ group.transportType === 'stdio' ? 'Command' : 'URL' }}</span>
+            <span class="detail-field__label">
+              {{ group.transportType === 'stdio' ? t('mcp.manager.detail.commandLabel') : t('mcp.manager.detail.urlLabel') }}
+            </span>
             <span class="detail-field__value detail-field__value--mono">{{ group.transportLabel || '—' }}</span>
           </div>
           <div
             v-if="primaryServer.args?.length"
             class="detail-field detail-field--wide"
           >
-            <span class="detail-field__label">Args</span>
+            <span class="detail-field__label">{{ t('mcp.manager.detail.argsLabel') }}</span>
             <span class="detail-field__value detail-field__value--mono">{{ primaryServer.args.join(' ') }}</span>
           </div>
           <div
             v-if="primaryServer.timeout"
             class="detail-field"
           >
-            <span class="detail-field__label">Timeout</span>
+            <span class="detail-field__label">{{ t('mcp.manager.detail.timeoutLabel') }}</span>
             <span class="detail-field__value">{{ primaryServer.timeout }}ms</span>
           </div>
           <div
             v-if="primaryServer.cwd"
             class="detail-field detail-field--wide"
           >
-            <span class="detail-field__label">CWD</span>
+            <span class="detail-field__label">{{ t('mcp.manager.detail.cwdLabel') }}</span>
             <span class="detail-field__value detail-field__value--mono">{{ primaryServer.cwd }}</span>
           </div>
         </div>
@@ -106,7 +108,7 @@
 
       <section class="detail-section">
         <h3 class="detail-section__title">
-          Source & precedence
+          {{ t('mcp.manager.detail.precedenceTitle') }}
         </h3>
         <div class="precedence-stack">
           <div
@@ -117,10 +119,10 @@
           >
             <span class="precedence-row__dot" />
             <div class="precedence-row__body">
-              <strong>{{ item.scope ?? item.platform }}</strong>
-              <span>{{ item.source_path ?? 'source path unavailable' }}</span>
-              <em v-if="item.hidden_by">Hidden by {{ item.hidden_by }}</em>
-              <em v-else-if="item.approval_state">Approval: {{ item.approval_state }}</em>
+              <strong>{{ scopeLabel(item.scope ?? item.platform) }}</strong>
+              <span>{{ item.source_path ?? t('mcp.manager.detail.sourceUnavailable') }}</span>
+              <em v-if="item.hidden_by">{{ t('mcp.manager.detail.hiddenBy', { hiddenBy: item.hidden_by }) }}</em>
+              <em v-else-if="item.approval_state">{{ t('mcp.manager.detail.approvalState', { state: approvalLabel(item.approval_state) }) }}</em>
             </div>
             <span
               class="state-pill"
@@ -137,7 +139,7 @@
         class="detail-section"
       >
         <h3 class="detail-section__title">
-          Env / Headers
+          {{ t('mcp.manager.detail.envHeadersTitle') }}
         </h3>
         <div
           v-if="hasEnvVars"
@@ -169,14 +171,14 @@
 
       <section class="detail-section">
         <h3 class="detail-section__title">
-          Raw config preview
+          {{ t('mcp.manager.detail.rawConfigTitle') }}
         </h3>
         <pre class="raw-config-preview">{{ rawConfigPreview }}</pre>
       </section>
 
       <section class="detail-section">
         <h3 class="detail-section__title">
-          Instances
+          {{ t('mcp.manager.detail.instancesTitle') }}
         </h3>
         <div class="detail-agent-list">
           <div
@@ -188,12 +190,12 @@
               :agents="[item.platform]"
               :compact="false"
             />
-            <span class="detail-agent-scope">{{ item.scope ?? 'global' }}</span>
+            <span class="detail-agent-scope">{{ scopeLabel(item.scope ?? 'global') }}</span>
             <span
               class="detail-agent-status"
               :class="item.disabled ? 'detail-agent-status--disabled' : 'detail-agent-status--active'"
             >
-              {{ item.disabled ? 'Disabled' : 'Enabled' }}
+              {{ item.disabled ? t('mcp.manager.state.disabled') : t('mcp.manager.state.enabled') }}
             </span>
             <button
               type="button"
@@ -214,7 +216,7 @@
         class="detail-section detail-section--diagnostics"
       >
         <h3 class="detail-section__title">
-          Source diagnostics
+          {{ t('mcp.manager.detail.diagnosticsTitle') }}
         </h3>
         <div class="diagnostic-list">
           <div
@@ -237,13 +239,14 @@
         name="AlertCircle"
         size="w-8 h-8"
       />
-      <p>Configuration exists but no readable instance was returned</p>
+      <p>{{ t('mcp.manager.detail.noReadableInstance') }}</p>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import AgentIcons from '@/components/common/AgentIcons.vue'
 import SIcon from '@/components/ui/SIcon.vue'
 import type { McpGroup } from '@/types/mcpManager'
@@ -253,6 +256,8 @@ const props = defineProps<{
   group: McpGroup | null
   diagnostics?: UnifiedMcpDiagnostic[]
 }>()
+
+const { t } = useI18n({ useScope: 'global' })
 
 defineEmits<{
   edit: [groupName: string]
@@ -310,12 +315,12 @@ const hasHeaders = computed(() => {
 })
 
 function stateLabel(server: UnifiedMcpServer): string {
-  if (server.hidden_by) return 'Overridden'
-  if (server.disabled) return 'Disabled'
-  if (server.approval_state === 'pending') return 'Pending'
-  if (server.approval_state === 'disabled') return 'Not approved'
-  if (server.effective === false) return 'Hidden'
-  return 'Effective'
+  if (server.hidden_by) return t('mcp.manager.state.overridden')
+  if (server.disabled) return t('mcp.manager.state.disabled')
+  if (server.approval_state === 'pending') return t('mcp.manager.state.pending')
+  if (server.approval_state === 'disabled') return t('mcp.manager.state.notApproved')
+  if (server.effective === false) return t('mcp.manager.state.hidden')
+  return t('mcp.manager.state.effective')
 }
 
 function statePillClass(server: UnifiedMcpServer): string {
@@ -323,6 +328,18 @@ function statePillClass(server: UnifiedMcpServer): string {
   if (server.disabled || server.approval_state === 'disabled') return 'state-pill--danger'
   if (server.approval_state === 'pending') return 'state-pill--warning'
   return 'state-pill--ok'
+}
+
+function scopeLabel(scope: string): string {
+  const key = `mcp.manager.scopes.${scope}`
+  const label = t(key)
+  return label === key ? scope : label
+}
+
+function approvalLabel(state: string): string {
+  const key = `mcp.manager.approvals.${state}`
+  const label = t(key)
+  return label === key ? state : label
 }
 
 function maskValue(value: string): string {

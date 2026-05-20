@@ -12,7 +12,7 @@
       class="multi-select-bar"
     >
       <span class="multi-select-bar__count">
-        {{ selectedCount }} / {{ totalCount }} selected
+        {{ countLabel || `${selectedCount} / ${totalCount} selected` }}
       </span>
 
       <div class="multi-select-bar__actions">
@@ -21,14 +21,14 @@
           v-if="showDelete"
           type="button"
           class="multi-select-bar__btn multi-select-bar__btn--danger"
-          :aria-label="`Delete ${selectedCount} items`"
+          :aria-label="deleteAriaLabel || `Delete ${selectedCount} items`"
           @click="$emit('delete')"
         >
           <SIcon
             name="Trash2"
             size="w-4 h-4"
           />
-          <span>Delete</span>
+          <span>{{ deleteLabel || 'Delete' }}</span>
         </button>
       </div>
     </div>
@@ -45,8 +45,14 @@ withDefaults(defineProps<{
   totalCount: number
   /** 是否显示删除按钮 */
   showDelete?: boolean
+  countLabel?: string
+  deleteLabel?: string
+  deleteAriaLabel?: string
 }>(), {
   showDelete: true,
+  countLabel: undefined,
+  deleteLabel: undefined,
+  deleteAriaLabel: undefined,
 })
 
 defineEmits<{

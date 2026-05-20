@@ -11,8 +11,8 @@
         type="button"
         class="list-action-btn"
         :class="{ 'list-action-btn--active': isMultiSelectMode }"
-        :aria-label="isMultiSelectMode ? 'Done selecting' : 'Multi-select'"
-        :title="isMultiSelectMode ? 'Done selecting' : 'Multi-select'"
+        :aria-label="isMultiSelectMode ? t('mcp.manager.list.doneSelecting') : t('mcp.manager.list.multiSelect')"
+        :title="isMultiSelectMode ? t('mcp.manager.list.doneSelecting') : t('mcp.manager.list.multiSelect')"
         @click="$emit('toggleMultiSelect')"
       >
         <SIcon
@@ -26,7 +26,7 @@
         <button
           type="button"
           class="list-action-btn"
-          aria-label="Add MCP server"
+          :aria-label="t('mcp.manager.actions.addServer')"
           @click="showAddMenu = !showAddMenu"
         >
           <SIcon
@@ -52,14 +52,14 @@
               class="add-menu__item"
               @click="$emit('create')"
             >
-              Manual creation
+              {{ t('mcp.manager.list.manualCreation') }}
             </button>
             <button
               type="button"
               class="add-menu__item"
               @click="$emit('import')"
             >
-              Import from JSON
+              {{ t('mcp.manager.import.title') }}
             </button>
           </div>
         </Transition>
@@ -69,7 +69,7 @@
       <button
         type="button"
         class="list-action-btn"
-        aria-label="Refresh"
+        :aria-label="t('common.refresh')"
         @click="$emit('refresh')"
       >
         <SIcon
@@ -86,7 +86,7 @@
         v-if="groups.length === 0 && !loading"
         class="mcp-list-panel__empty"
       >
-        {{ searchQuery ? 'No servers match your search' : 'No MCP servers configured' }}
+        {{ searchQuery ? t('mcp.manager.list.noSearchResults') : t('mcp.manager.list.empty') }}
       </div>
 
       <button
@@ -112,12 +112,12 @@
               v-if="group.hiddenCount"
               class="mcp-list-item__hidden-count"
             >
-              +{{ group.hiddenCount }} hidden
+              {{ t('mcp.manager.list.hiddenCount', { count: group.hiddenCount }) }}
             </span>
           </span>
           <span class="mcp-list-item__transport">{{ shortenLabel(group.transportLabel) }}</span>
           <span class="mcp-list-item__scopes">
-            {{ (group.scopes ?? []).join(' / ') }}
+            {{ formatScopeList(group.scopes ?? []) }}
           </span>
         </div>
         <AgentIcons
@@ -131,6 +131,9 @@
     <MultiSelectFloatingBar
       :selected-count="selectedKeys.size"
       :total-count="groups.length"
+      :count-label="t('mcp.manager.list.multiSelectCount', { selected: selectedKeys.size, total: groups.length })"
+      :delete-label="t('common.delete')"
+      :delete-aria-label="t('mcp.manager.list.deleteSelectedAria', { count: selectedKeys.size })"
       @delete="$emit('bulkDelete')"
     />
   </div>
@@ -138,11 +141,14 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import ListSearchHeader from '@/components/common/ListSearchHeader.vue'
 import MultiSelectFloatingBar from '@/components/common/MultiSelectFloatingBar.vue'
 import AgentIcons from '@/components/common/AgentIcons.vue'
 import SIcon from '@/components/ui/SIcon.vue'
 import type { McpGroup } from '@/types/mcpManager'
+
+const { t } = useI18n({ useScope: 'global' })
 
 defineProps<{
   /** 过滤后的 MCP 分组列表 */
@@ -173,6 +179,16 @@ const showAddMenu = ref(false)
 function shortenLabel(label: string, max = 40): string {
   if (label.length <= max) return label
   return label.slice(0, max).trimEnd() + '...'
+}
+
+function formatScopeList(scopes: string[]): string {
+  return scopes
+    .map(scope => {
+      const key = `mcp.manager.scopes.${scope}`
+      const label = t(key)
+      return label === key ? scope : label
+    })
+    .join(' / ')
 }
 </script>
 

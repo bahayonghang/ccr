@@ -3,12 +3,11 @@
     <header class="mcp-manager-hero">
       <div class="mcp-manager-hero__copy">
         <p class="mcp-manager-hero__eyebrow">
-          Claude Code / MCP workbench
+          {{ t('mcp.manager.hero.eyebrow') }}
         </p>
-        <h1>MCP Manager</h1>
+        <h1>{{ t('mcp.manager.hero.title') }}</h1>
         <p>
-          Audit effective servers, scope precedence, and project approval state without hiding
-          overridden configuration.
+          {{ t('mcp.manager.hero.subtitle') }}
         </p>
       </div>
       <div class="mcp-manager-hero__actions">
@@ -22,7 +21,7 @@
             size="w-4 h-4"
             :class="{ 'animate-spin': loading }"
           />
-          Refresh
+          {{ t('common.refresh') }}
         </button>
         <button
           type="button"
@@ -33,7 +32,7 @@
             name="Download"
             size="w-4 h-4"
           />
-          Import
+          {{ t('common.import') }}
         </button>
         <button
           type="button"
@@ -44,14 +43,14 @@
             name="Plus"
             size="w-4 h-4"
           />
-          Add server
+          {{ t('mcp.manager.actions.addServer') }}
         </button>
       </div>
       <div class="mcp-manager-hero__metrics">
-        <span><strong>{{ scopeCounts.effective }}</strong> effective</span>
-        <span><strong>{{ scopeCounts.local }}</strong> local</span>
-        <span><strong>{{ scopeCounts.project }}</strong> project</span>
-        <span><strong>{{ scopeCounts.user }}</strong> user</span>
+        <span><strong>{{ scopeCounts.effective }}</strong> {{ t('mcp.manager.metrics.effective') }}</span>
+        <span><strong>{{ scopeCounts.local }}</strong> {{ t('mcp.manager.metrics.local') }}</span>
+        <span><strong>{{ scopeCounts.project }}</strong> {{ t('mcp.manager.metrics.project') }}</span>
+        <span><strong>{{ scopeCounts.user }}</strong> {{ t('mcp.manager.metrics.user') }}</span>
       </div>
     </header>
 
@@ -60,8 +59,8 @@
       @toggle="showPresetsDrawer = ($event.target as HTMLDetailsElement).open"
     >
       <summary>
-        <span>Install presets</span>
-        <em>Optional quick install and cross-platform sync helpers</em>
+        <span>{{ t('mcp.manager.presetsDrawer.title') }}</span>
+        <em>{{ t('mcp.manager.presetsDrawer.subtitle') }}</em>
       </summary>
       <div
         v-if="showPresetsDrawer"
@@ -81,7 +80,7 @@
         :class="{ 'mcp-scope-chip--active': filterScope === scope.value }"
         @click="filterScope = scope.value"
       >
-        <span>{{ scope.label }}</span>
+        <span>{{ t(scope.labelKey) }}</span>
         <strong>{{ scopeCounts[scope.value] }}</strong>
       </button>
     </div>
@@ -193,7 +192,11 @@
     <BulkDeleteDialog
       :is-open="showBulkDeleteDialog"
       :items="bulkDeleteItems"
-      resource-label="MCP server"
+      :title="t('mcp.manager.bulkDelete.title')"
+      :message="bulkDeleteMessage"
+      :cancel-label="t('common.cancel')"
+      :confirm-label="t('mcp.manager.bulkDelete.confirm', { count: bulkDeleteItems.length })"
+      :overflow-message="bulkDeleteOverflowMessage"
       :loading="bulkDeleting"
       @confirm="confirmBulkDelete"
       @cancel="showBulkDeleteDialog = false"
@@ -203,6 +206,7 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import MasterDetailLayout from '@/components/common/MasterDetailLayout.vue'
 import BulkDeleteDialog from '@/components/common/BulkDeleteDialog.vue'
 import type { BulkDeleteItem } from '@/components/common/BulkDeleteDialog.vue'
@@ -220,6 +224,7 @@ import type { McpGroup } from '@/types/mcpManager'
 import type { McpScopeFilter, UnifiedMcpRequest, UnifiedMcpServer } from '@/types/unifiedMcp'
 
 const uiStore = useUIStore()
+const { t } = useI18n({ useScope: 'global' })
 const showPresetsDrawer = ref(false)
 
 const {
@@ -261,12 +266,12 @@ const {
   toggleServer,
 } = useMcpManager()
 
-const scopeFilterOptions: Array<{ value: McpScopeFilter; label: string }> = [
-  { value: 'effective', label: 'Effective' },
-  { value: 'local', label: 'Local' },
-  { value: 'project', label: 'Project' },
-  { value: 'user', label: 'User' },
-  { value: 'hidden', label: 'Hidden' },
+const scopeFilterOptions: Array<{ value: McpScopeFilter; labelKey: string }> = [
+  { value: 'effective', labelKey: 'mcp.manager.scopes.effective' },
+  { value: 'local', labelKey: 'mcp.manager.scopes.local' },
+  { value: 'project', labelKey: 'mcp.manager.scopes.project' },
+  { value: 'user', labelKey: 'mcp.manager.scopes.user' },
+  { value: 'hidden', labelKey: 'mcp.manager.scopes.hidden' },
 ]
 
 // 批量删除状态
@@ -277,8 +282,16 @@ const bulkDeleteItems = computed<BulkDeleteItem[]>(() =>
   selectedGroups.value.map(g => ({
     key: g.name,
     label: g.name,
-    badge: `${g.platforms.length} agent(s)`,
+    badge: t('mcp.manager.bulkDelete.badge', { count: g.platforms.length }),
   })),
+)
+
+const bulkDeleteMessage = computed(() =>
+  t('mcp.manager.bulkDelete.message', { count: bulkDeleteItems.value.length }),
+)
+
+const bulkDeleteOverflowMessage = computed(() =>
+  t('mcp.manager.bulkDelete.overflow', { count: Math.max(bulkDeleteItems.value.length - 10, 0) }),
 )
 
 function handleUpdateField(field: keyof UnifiedMcpRequest, value: unknown) {
@@ -288,7 +301,7 @@ function handleUpdateField(field: keyof UnifiedMcpRequest, value: unknown) {
 async function handleSubmit() {
   if (formData.value.scope === 'project') {
     const confirmed = window.confirm(
-      'Project scope writes to .mcp.json in this repository. Continue?',
+      t('mcp.manager.confirm.projectScopeWrite'),
     )
     if (!confirmed) return
   }
@@ -305,7 +318,7 @@ async function confirmBulkDelete() {
   try {
     await bulkDelete()
     showBulkDeleteDialog.value = false
-    uiStore.showSuccess('Deleted selected servers')
+    uiStore.showSuccess(t('mcp.manager.messages.deletedSelected'))
   } catch (err) {
     uiStore.showError(err instanceof Error ? err.message : String(err))
   } finally {
@@ -315,13 +328,13 @@ async function confirmBulkDelete() {
 
 async function handleDeleteGroup(group: McpGroup) {
   const confirmed = window.confirm(
-    `Delete all ${group.items.length} instance(s) of "${group.name}" across visible scopes?`,
+    t('mcp.manager.confirm.deleteGroup', { count: group.items.length, name: group.name }),
   )
   if (!confirmed) return
 
   try {
     await deleteGroup(group)
-    uiStore.showSuccess(`Deleted ${group.name}`)
+    uiStore.showSuccess(t('mcp.manager.messages.deletedServer', { name: group.name }))
   } catch (err) {
     uiStore.showError(err instanceof Error ? err.message : String(err))
   }
@@ -338,7 +351,7 @@ async function handleImportServers(
 ) {
   if (scope === 'project') {
     const confirmed = window.confirm(
-      'Project scope import writes to .mcp.json in this repository. Continue?',
+      t('mcp.manager.confirm.projectScopeImport'),
     )
     if (!confirmed) return
   }
@@ -357,11 +370,18 @@ async function handleImportServers(
   const results = await importUnifiedMcpServers(requests)
   const failed = results.filter(result => !result.ok)
   if (failed.length > 0) {
-    uiStore.showError(`Imported ${results.length - failed.length}/${results.length}; failed: ${
-      failed.map(item => `${item.name}: ${item.error ?? 'unknown error'}`).join('; ')
-    }`)
+    uiStore.showError(t('mcp.manager.messages.importPartialFailed', {
+      success: results.length - failed.length,
+      total: results.length,
+      failures: failed.map(item =>
+        `${item.name}: ${item.error ?? t('mcp.manager.messages.unknownError')}`,
+      ).join('; '),
+    }))
   } else {
-    uiStore.showSuccess(`Imported ${results.length} server(s) to ${platform}`)
+    uiStore.showSuccess(t('mcp.manager.messages.importSuccess', {
+      count: results.length,
+      platform: PLATFORM_META[platform as keyof typeof PLATFORM_META]?.label ?? platform,
+    }))
   }
   closePanel()
   await refresh()
