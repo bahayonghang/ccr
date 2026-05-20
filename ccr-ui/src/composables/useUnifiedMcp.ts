@@ -47,7 +47,7 @@ function toSuccessMessage(raw: unknown, fallback: string): string {
 export const PLATFORM_META: Record<UnifiedMcpPlatform, PlatformMeta> = {
     claude: { id: 'claude', label: 'Claude Code', color: '#d97706', icon: 'terminal' },
     codex: { id: 'codex', label: 'Codex', color: '#10b981', icon: 'code' },
-    gemini: { id: 'gemini', label: 'Gemini CLI', color: '#8b5cf6', icon: 'sparkles' },
+    gemini: { id: 'gemini', label: 'Antigravity CLI', color: '#8b5cf6', icon: 'sparkles' },
 }
 
 export const ALL_PLATFORMS: UnifiedMcpPlatform[] = ['claude', 'codex', 'gemini']

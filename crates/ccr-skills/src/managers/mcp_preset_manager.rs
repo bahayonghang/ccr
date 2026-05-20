@@ -106,7 +106,7 @@ impl McpPresetManager {
         let platform_dir = match platform {
             Platform::Claude => home.join(".claude"),
             Platform::Codex => home.join(".codex"),
-            Platform::Gemini => home.join(".gemini"),
+            Platform::Gemini => home.join(".gemini").join("antigravity-cli"),
             Platform::Qwen => home.join(".qwen"),
             Platform::Droid => home.join(".factory"),
         };
@@ -224,12 +224,12 @@ impl McpPresetManager {
         Ok(())
     }
 
-    /// 安装到 Gemini (~/.gemini/settings.json)
+    /// 安装到 Antigravity CLI (~/.gemini/antigravity-cli/mcp_config.json)
     fn install_to_gemini(&self, id: &str, spec: &McpServerSpec) -> Result<()> {
-        let config_path = self.platform_dir.join("settings.json");
+        let config_path = self.platform_dir.join("mcp_config.json");
         let mut config = self.load_json_config(&config_path)?;
 
-        // Gemini 使用 mcpServers 字段
+        // Antigravity CLI 使用 mcp_config.json#mcpServers 字段
         let mcp_servers = config
             .as_object_mut()
             .ok_or_else(|| CcrError::ConfigError("Invalid Gemini config format".into()))?
@@ -243,7 +243,7 @@ impl McpPresetManager {
             .insert(id.to_string(), server_config);
 
         self.save_json_config(&config_path, &config)?;
-        tracing::info!("Installed MCP preset '{}' to Gemini", id);
+        tracing::info!("Installed MCP preset '{}' to Antigravity CLI", id);
         Ok(())
     }
 
@@ -319,8 +319,26 @@ impl McpPresetManager {
 
     /// 将 McpServerSpec 转换为 Gemini JSON 格式
     fn spec_to_gemini_format(&self, spec: &McpServerSpec) -> serde_json::Value {
-        // Gemini 格式与 Claude 基本相同
-        self.spec_to_claude_format(spec)
+        let mut obj = serde_json::Map::new();
+
+        if let Some(ref cmd) = spec.command {
+            obj.insert("command".to_string(), serde_json::json!(cmd));
+        }
+
+        if !spec.args.is_empty() {
+            obj.insert("args".to_string(), serde_json::json!(spec.args));
+        }
+
+        if !spec.env.is_empty() {
+            obj.insert("env".to_string(), serde_json::json!(spec.env));
+        }
+
+        if let Some(ref url) = spec.url {
+            obj.insert("serverUrl".to_string(), serde_json::json!(url));
+            obj.insert("type".to_string(), serde_json::json!(spec.server_type));
+        }
+
+        serde_json::Value::Object(obj)
     }
 
     /// 将 McpServerSpec 转换为 Codex TOML 格式

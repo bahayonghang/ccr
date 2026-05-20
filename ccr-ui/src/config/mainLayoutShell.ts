@@ -45,7 +45,7 @@ export const mainLayoutNavSections: MainLayoutNavSection[] = [
         iconClass: 'text-platform-codex/90 group-hover:text-platform-codex transition-colors',
       },
       {
-        to: '/gemini-cli',
+        to: '/antigravity',
         labelKey: 'nav.gemini',
         icon: 'Sparkles',
         iconClass: 'text-platform-gemini/90 group-hover:text-platform-gemini transition-colors',
@@ -89,6 +89,7 @@ export const mainLayoutRouteTitleMap: Record<string, string> = {
   'codex-slash-commands': 'nav.slashCommands',
   'codex-auth': 'nav.auth',
   'codex-settings': 'common.settings',
+  antigravity: 'nav.gemini',
   'gemini-cli': 'nav.gemini',
   'gemini-mcp': 'nav.mcp',
   'gemini-agents': 'nav.agents',

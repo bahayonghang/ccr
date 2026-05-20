@@ -8,7 +8,7 @@ This page is the single platform-status reference for CCR. Home pages, command d
 |----------|--------|--------------|-----------------|-------|
 | Claude Code | Implemented | `~/.ccr/platforms/claude/profiles.toml` | `~/.claude/settings.json` | default primary platform |
 | Codex | Implemented | `~/.ccr/platforms/codex/profiles.toml` | `~/.codex/config.toml` | also exposes `ccr codex auth` |
-| Gemini CLI | Implemented | `~/.ccr/platforms/gemini/profiles.toml` | `~/.ccr/platforms/gemini/settings.json` | managed in Unified Mode |
+| Antigravity CLI | Implemented | `~/.ccr/platforms/gemini/profiles.toml` | `~/.gemini/antigravity-cli/settings.json`; MCP: `~/.gemini/antigravity-cli/mcp_config.json` | internal key remains `gemini`; `agy`/`antigravity` are aliases |
 | Factory Droid | Implemented | `~/.ccr/platforms/droid/profiles.toml` | `~/.factory/settings.json` | separate settings structure |
 | Qwen CLI | Reserved / Stub | `~/.ccr/platforms/qwen/profiles.toml` | `~/.ccr/platforms/qwen/settings.json` | core implementation currently reports unsupported |
 
@@ -20,14 +20,14 @@ This page is the single platform-status reference for CCR. Home pages, command d
 ccr platform list
 ccr platform switch claude
 ccr platform info droid
-ccr platform init gemini
+ccr platform init gemini  # Antigravity CLI compatibility key
 ```
 
 ## Implemented Platform Guides
 
 - [Claude Code](./claude)
 - [Codex](./codex)
-- [Gemini CLI](./gemini)
+- [Antigravity CLI](./gemini)
 - [Factory Droid](./droid)
 
 ## Reserved Platforms

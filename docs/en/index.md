@@ -96,7 +96,7 @@ ccr validate
 |----------|--------|-------|
 | Claude Code | ✅ Implemented | dual official-auth + profile runtime surface |
 | Codex | ✅ Implemented | auth, profile, and sync-history all supported |
-| Gemini CLI | ✅ Implemented | still part of the broader platform and data domain |
+| Antigravity CLI | ✅ Implemented | internal key remains `gemini`; legacy Gemini session import stays compatible |
 | Factory Droid | ✅ Implemented | still present in the broader platform domain |
 | Qwen CLI | 🚧 Reserved / Partial | reserved key plus partial data-domain support |
 

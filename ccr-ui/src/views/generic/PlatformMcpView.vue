@@ -373,7 +373,7 @@ const {
 /** 侧边栏模块名称 */
 const sidebarModule = computed(() => {
   const moduleMap: Record<PlatformType, string> = {
-    gemini: 'gemini-cli',
+    gemini: 'antigravity',
   }
   return moduleMap[props.platform]
 })

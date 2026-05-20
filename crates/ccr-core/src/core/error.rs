@@ -301,7 +301,7 @@ impl CcrError {
                     可用平台:\n\
                     • claude  - Claude Code (✅ 已实现)\n\
                     • codex   - Codex CLI (✅ 已实现)\n\
-                    • gemini  - Google Gemini CLI (✅ 已实现)\n\
+                    • gemini  - Antigravity CLI (key: gemini, ✅ 已实现)\n\
                     • qwen    - Alibaba Qwen CLI (🚧 计划中)\n\n\
                     建议:\n\
                     • 运行 'ccr platform list' 查看所有平台\n\
@@ -316,7 +316,7 @@ impl CcrError {
                     当前已实现的平台:\n\
                     • claude  - Claude Code\n\
                     • codex   - Codex CLI\n\
-                    • gemini  - Google Gemini CLI\n\n\
+                    • gemini  - Antigravity CLI (key: gemini)\n\n\
                     计划中的平台:\n\
                     • qwen    - Alibaba Qwen CLI\n\n\
                     建议:\n\

@@ -226,11 +226,11 @@ impl SkillsService {
             ),
             platform(
                 "gemini",
-                "Gemini CLI",
-                ".gemini/skills",
+                "Antigravity CLI",
+                ".gemini/antigravity-cli/skills",
                 None,
                 SkillInstallStrategy::ManagedCopy,
-                Some("gemini-cli"),
+                Some("antigravity"),
                 Some("primary"),
                 30,
             ),
@@ -257,7 +257,7 @@ impl SkillsService {
             platform(
                 "droid",
                 "Droid",
-                ".gemini/antigravity/skills",
+                ".factory/skills",
                 None,
                 SkillInstallStrategy::ManagedCopy,
                 None,
@@ -586,7 +586,7 @@ impl SkillsService {
             ),
             platform(
                 "gemini-cli",
-                "Gemini CLI (alt)",
+                "Gemini CLI legacy/shared",
                 ".gemini/skills",
                 Some("gemini-shared"),
                 SkillInstallStrategy::ManagedCopy,

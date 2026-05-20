@@ -117,7 +117,7 @@ impl Session {
         match self.platform {
             Platform::Claude => format!("claude --resume {}", self.id),
             Platform::Codex => format!("codex resume {}", self.id),
-            Platform::Gemini => format!("gemini --continue {}", self.id),
+            Platform::Gemini => format!("agy --continue {}", self.id),
             Platform::Qwen => format!("qwen --resume {}", self.id),
             Platform::Droid => format!("droid --resume {}", self.id),
         }
@@ -363,5 +363,26 @@ mod tests {
         };
 
         assert!(tool_event.is_tool_use());
+    }
+
+    #[test]
+    fn gemini_resume_command_uses_antigravity_binary() {
+        let session = Session {
+            id: "session-123".to_string(),
+            platform: Platform::Gemini,
+            title: None,
+            cwd: PathBuf::from("/tmp"),
+            file_path: PathBuf::from("/tmp/session.json"),
+            file_hash: "hash".to_string(),
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+            message_count: 0,
+            user_message_count: 0,
+            assistant_message_count: 0,
+            tool_use_count: 0,
+            indexed_at: Utc::now(),
+        };
+
+        assert_eq!(session.resume_command(), "agy --continue session-123");
     }
 }

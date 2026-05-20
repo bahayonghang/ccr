@@ -5,7 +5,7 @@ export interface GenericPlatformFeatureRoute {
 
 export interface GenericPlatformDescriptor {
   id: 'gemini'
-  rootPath: 'gemini-cli'
+  rootPath: 'antigravity'
   color: string
   mcp: GenericPlatformFeatureRoute & {
     i18nPrefix: string
@@ -15,14 +15,14 @@ export interface GenericPlatformDescriptor {
   }
   plugins?: GenericPlatformFeatureRoute & {
     i18nPrefix: string
-    sidebarModule: 'gemini-cli'
+    sidebarModule: 'antigravity'
   }
 }
 
 export const genericPlatformDescriptors = {
   gemini: {
     id: 'gemini',
-    rootPath: 'gemini-cli',
+    rootPath: 'antigravity',
     color: '#8b5cf6',
     mcp: {
       path: 'mcp',
@@ -38,7 +38,7 @@ export const genericPlatformDescriptors = {
       path: 'plugins',
       name: 'gemini-plugins',
       i18nPrefix: 'gemini.plugins',
-      sidebarModule: 'gemini-cli',
+      sidebarModule: 'antigravity',
     },
   },
 } as const satisfies Record<string, GenericPlatformDescriptor>
@@ -46,5 +46,5 @@ export const genericPlatformDescriptors = {
 export type GenericPlatformId = keyof typeof genericPlatformDescriptors
 
 export const genericPlatformDescriptorList: GenericPlatformDescriptor[] = Object.values(
-  genericPlatformDescriptors,
+  genericPlatformDescriptors
 )

@@ -23,7 +23,7 @@ use std::str::FromStr;
 /// ## 支持状态
 /// - ✅ **Claude**: 完全支持（Claude Code）
 /// - ✅ **Codex**: 完全支持（Codex CLI）
-/// - ✅ **Gemini**: 完全支持（Gemini CLI）
+/// - ✅ **Gemini**: 完全支持（Antigravity CLI，内部 key 保持 gemini）
 /// - 🚧 **Qwen**: 计划支持（阿里通义千问 CLI）
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -32,7 +32,7 @@ pub enum Platform {
     Claude,
     /// Codex - Codex CLI
     Codex,
-    /// Gemini CLI - Google Gemini CLI
+    /// Antigravity CLI - Google Gemini CLI successor. Persisted key remains `gemini`.
     Gemini,
     /// Qwen CLI - 阿里通义千问 CLI (未实现)
     Qwen,
@@ -46,7 +46,7 @@ impl Platform {
         match self {
             Platform::Claude => "Claude Code",
             Platform::Codex => "Codex",
-            Platform::Gemini => "Gemini CLI",
+            Platform::Gemini => "Antigravity CLI",
             Platform::Qwen => "Qwen CLI",
             Platform::Droid => "Factory Droid",
         }
@@ -123,7 +123,9 @@ impl FromStr for Platform {
         match s.to_lowercase().as_str() {
             "claude" => Ok(Platform::Claude),
             "codex" => Ok(Platform::Codex),
-            "gemini" => Ok(Platform::Gemini),
+            "gemini" | "gemini-cli" | "antigravity" | "antigravity-cli" | "agy" => {
+                Ok(Platform::Gemini)
+            }
             "qwen" => Ok(Platform::Qwen),
             "droid" | "factory" => Ok(Platform::Droid),
             _ => Err(ccr_core::core::error::CcrError::PlatformNotFound(
@@ -541,6 +543,12 @@ mod tests {
         assert_eq!(Platform::from_str("claude").unwrap(), Platform::Claude);
         assert_eq!(Platform::from_str("CODEX").unwrap(), Platform::Codex);
         assert_eq!(Platform::from_str("Gemini").unwrap(), Platform::Gemini);
+        assert_eq!(Platform::from_str("antigravity").unwrap(), Platform::Gemini);
+        assert_eq!(
+            Platform::from_str("antigravity-cli").unwrap(),
+            Platform::Gemini
+        );
+        assert_eq!(Platform::from_str("agy").unwrap(), Platform::Gemini);
         assert!(Platform::from_str("invalid").is_err());
     }
 

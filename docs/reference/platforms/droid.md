@@ -337,7 +337,7 @@ max_output_tokens = 8192  # Claude limit
 
 - [Claude Platform](claude.md) - Anthropic Claude Code CLI
 - [Codex Platform](codex.md) - Codex CLI
-- [Gemini Platform](gemini.md) - Google Gemini CLI
+- [Antigravity Platform](gemini.md) - Google Antigravity CLI (`gemini` key)
 - [Migration Guide](migration.md) - Cross-platform migration
 
 ---

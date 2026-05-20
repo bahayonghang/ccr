@@ -57,7 +57,7 @@
 |------|------|-------------|----------|
 | Claude | 已实现 | `~/.ccr/platforms/claude/profiles.toml` | `~/.claude/settings.json` |
 | Codex | 已实现 | `~/.ccr/platforms/codex/profiles.toml` | `~/.codex/config.toml` |
-| Gemini | 已实现 | `~/.ccr/platforms/gemini/profiles.toml` | `~/.ccr/platforms/gemini/settings.json` |
+| Antigravity CLI (`gemini` key) | 已实现 | `~/.ccr/platforms/gemini/profiles.toml` | `~/.gemini/antigravity-cli/settings.json`；MCP: `~/.gemini/antigravity-cli/mcp_config.json` |
 | Droid | 已实现 | `~/.ccr/platforms/droid/profiles.toml` | `~/.factory/settings.json` |
 | Qwen | 预留 / Stub | `~/.ccr/platforms/qwen/profiles.toml` | `~/.ccr/platforms/qwen/settings.json` |
 

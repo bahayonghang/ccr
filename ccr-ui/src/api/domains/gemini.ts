@@ -1,9 +1,9 @@
 /**
- * Gemini Domain —— Gemini CLI 配置 / MCP / Slash 命令 / Extensions API
+ * Gemini Domain —— Antigravity CLI 配置 / MCP / Slash 命令 / Extensions API
  *
  * 真迁移自 tauri.ts 第 6 分组。对应后端 commands::gemini::* 命令。
  *
- * Gemini 平台后端不支持 Agents 与 Plugins，保留相应的桩函数返回"不支持"信号，
+ * Antigravity/Gemini 平台后端不支持 Agents 与 Plugins，保留相应的桩函数返回"不支持"信号，
  * 业务方按统一接口调用不会报错。
  */
 
@@ -12,24 +12,24 @@ import { resolveName, resolveNameAndConfig, type UnknownRecord } from '../_share
 
 // ── Settings ──
 
-/** 获取 Gemini 配置 */
+/** 获取 Antigravity CLI 配置（内部 invoke 仍为 gemini） */
 export const getGeminiConfig = async <T = UnknownRecord>(): Promise<T> => {
   return invoke('gemini_get_settings')
 }
 
-/** 更新 Gemini 配置 */
+/** 更新 Antigravity CLI 配置（内部 invoke 仍为 gemini） */
 export const updateGeminiConfig = async <T = UnknownRecord>(settings: unknown): Promise<T> => {
   return invoke('gemini_update_settings', { settings })
 }
 
 // ── MCP ──
 
-/** 列出 Gemini MCP 服务器 */
+/** 列出 Antigravity MCP 服务器（内部 invoke 仍为 gemini） */
 export const listGeminiMcpServers = async <T = UnknownRecord>(): Promise<T> => {
   return invoke('gemini_list_mcp_servers')
 }
 
-/** 添加 Gemini MCP 服务器 */
+/** 添加 Antigravity MCP 服务器（内部 invoke 仍为 gemini） */
 export const addGeminiMcpServer = async <T = UnknownRecord>(
   nameOrRequest: string | object,
   config?: unknown,
@@ -38,7 +38,7 @@ export const addGeminiMcpServer = async <T = UnknownRecord>(
   return invoke('gemini_add_mcp_server', { name, config: resolvedConfig })
 }
 
-/** 更新 Gemini MCP 服务器 */
+/** 更新 Antigravity MCP 服务器（内部 invoke 仍为 gemini） */
 export const updateGeminiMcpServer = async <T = UnknownRecord>(
   nameOrRequest: string | object,
   config?: unknown,
@@ -47,7 +47,7 @@ export const updateGeminiMcpServer = async <T = UnknownRecord>(
   return invoke('gemini_update_mcp_server', { name, config: resolvedConfig })
 }
 
-/** 删除 Gemini MCP 服务器 */
+/** 删除 Antigravity MCP 服务器（内部 invoke 仍为 gemini） */
 export const deleteGeminiMcpServer = async <T = UnknownRecord>(
   nameOrRequest: string | object,
 ): Promise<T> => {
@@ -57,12 +57,12 @@ export const deleteGeminiMcpServer = async <T = UnknownRecord>(
 
 // ── Slash Commands ──
 
-/** 列出 Gemini 斜杠命令 */
+/** 列出 Antigravity/Gemini legacy 斜杠命令 */
 export const listGeminiSlashCommands = async <T = UnknownRecord>(): Promise<T> => {
   return invoke('gemini_list_slash_commands')
 }
 
-/** 添加 Gemini 斜杠命令 */
+/** 添加 Antigravity/Gemini legacy 斜杠命令 */
 export const addGeminiSlashCommand = async <T = UnknownRecord>(
   name: string,
   config: unknown,
@@ -70,7 +70,7 @@ export const addGeminiSlashCommand = async <T = UnknownRecord>(
   return invoke('gemini_add_slash_command', { name, config })
 }
 
-/** 更新 Gemini 斜杠命令 */
+/** 更新 Antigravity/Gemini legacy 斜杠命令 */
 export const updateGeminiSlashCommand = async <T = UnknownRecord>(
   name: string,
   config: unknown,
@@ -78,12 +78,12 @@ export const updateGeminiSlashCommand = async <T = UnknownRecord>(
   return invoke('gemini_update_slash_command', { name, config })
 }
 
-/** 删除 Gemini 斜杠命令 */
+/** 删除 Antigravity/Gemini legacy 斜杠命令 */
 export const deleteGeminiSlashCommand = async <T = UnknownRecord>(name: string): Promise<T> => {
   return invoke('gemini_delete_slash_command', { name })
 }
 
-/** 切换 Gemini 斜杠命令启用/禁用 */
+/** 切换 Antigravity/Gemini legacy 斜杠命令启用/禁用 */
 export const toggleGeminiSlashCommand = async <T = UnknownRecord>(
   name: string,
   enabled: boolean,
@@ -93,14 +93,14 @@ export const toggleGeminiSlashCommand = async <T = UnknownRecord>(
 
 // ── Extensions ──
 
-/** 列出 Gemini Extensions */
+/** 列出 Antigravity Extensions */
 export const listGeminiExtensions = async <T = UnknownRecord>(): Promise<T> => {
   return invoke('gemini_list_extensions')
 }
 
 // ── 平台限制 —— 未实现能力的安全桩 ──
 
-/** 列出 Gemini Agents（后端暂不支持） */
+/** 列出 Antigravity Agents（后端暂不支持） */
 export const listGeminiAgents = async <T = UnknownRecord>(): Promise<T> => {
   return { agents: [] } as T
 }
@@ -109,27 +109,27 @@ export const addGeminiAgent = async <T = UnknownRecord>(
   _nameOrRequest: string | object,
   _config?: unknown,
 ): Promise<T> => {
-  return { success: false, message: 'Gemini 平台暂不支持 Agents' } as T
+  return { success: false, message: 'Antigravity 平台暂不支持 Agents' } as T
 }
 
 export const updateGeminiAgent = async <T = UnknownRecord>(
   _nameOrRequest: string | object,
   _config?: unknown,
 ): Promise<T> => {
-  return { success: false, message: 'Gemini 平台暂不支持 Agents' } as T
+  return { success: false, message: 'Antigravity 平台暂不支持 Agents' } as T
 }
 
 export const deleteGeminiAgent = async <T = UnknownRecord>(
   _nameOrRequest: string | object,
 ): Promise<T> => {
-  return { success: false, message: 'Gemini 平台暂不支持 Agents' } as T
+  return { success: false, message: 'Antigravity 平台暂不支持 Agents' } as T
 }
 
 export const toggleGeminiAgent = async <T = UnknownRecord>(
   _nameOrRequest: string | object,
   _enabled?: boolean,
 ): Promise<T> => {
-  return { success: false, message: 'Gemini 平台暂不支持 Agents' } as T
+  return { success: false, message: 'Antigravity 平台暂不支持 Agents' } as T
 }
 
 export const listGeminiPlugins = async <T = UnknownRecord>(): Promise<T> => {
@@ -140,25 +140,25 @@ export const addGeminiPlugin = async <T = UnknownRecord>(
   _nameOrRequest: string | object,
   _config?: unknown,
 ): Promise<T> => {
-  return { success: false, message: 'Gemini 平台暂不支持 Plugins' } as T
+  return { success: false, message: 'Antigravity 平台暂不支持 Plugins' } as T
 }
 
 export const updateGeminiPlugin = async <T = UnknownRecord>(
   _nameOrRequest: string | object,
   _config?: unknown,
 ): Promise<T> => {
-  return { success: false, message: 'Gemini 平台暂不支持 Plugins' } as T
+  return { success: false, message: 'Antigravity 平台暂不支持 Plugins' } as T
 }
 
 export const deleteGeminiPlugin = async <T = UnknownRecord>(
   _nameOrRequest: string | object,
 ): Promise<T> => {
-  return { success: false, message: 'Gemini 平台暂不支持 Plugins' } as T
+  return { success: false, message: 'Antigravity 平台暂不支持 Plugins' } as T
 }
 
 export const toggleGeminiPlugin = async <T = UnknownRecord>(
   _nameOrRequest: string | object,
   _enabled?: boolean,
 ): Promise<T> => {
-  return { success: false, message: 'Gemini 平台暂不支持 Plugins' } as T
+  return { success: false, message: 'Antigravity 平台暂不支持 Plugins' } as T
 }

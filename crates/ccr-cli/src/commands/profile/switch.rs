@@ -330,7 +330,7 @@ pub async fn switch_command_for_platform(config_name: &str, platform_name: &str)
     let restart_hint = match platform {
         Platform::Claude => "建议重启 Claude Code 以确保配置完全生效",
         Platform::Codex => "建议重启 Codex CLI 以确保配置完全生效",
-        Platform::Gemini => "建议重启 Gemini CLI 以确保配置完全生效",
+        Platform::Gemini => "建议重启 Antigravity CLI 以确保配置完全生效",
         _ => "建议重启对应 CLI 以确保配置完全生效",
     };
     ColorOutput::info(&format!("🔄 {}", restart_hint));

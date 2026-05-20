@@ -967,31 +967,37 @@ impl DoctorService {
                 let content = match fs::read_to_string(settings_path) {
                     Ok(content) => content,
                     Err(error) => {
-                        return DoctorCheck::fail(id, "Gemini settings file could not be read.")
-                            .with_path(settings_path.display().to_string())
-                            .with_detail(error.to_string());
+                        return DoctorCheck::fail(
+                            id,
+                            "Antigravity settings file could not be read.",
+                        )
+                        .with_path(settings_path.display().to_string())
+                        .with_detail(error.to_string());
                     }
                 };
 
                 match serde_json::from_str::<GeminiSettings>(&content) {
                     Ok(settings) => match settings.validate() {
-                        Ok(_) => DoctorCheck::ok(id, "Gemini settings file is valid.")
+                        Ok(_) => DoctorCheck::ok(id, "Antigravity settings file is valid.")
                             .with_path(settings_path.display().to_string()),
-                        Err(error) => DoctorCheck::fail(id, "Gemini settings file is invalid.")
-                            .with_path(settings_path.display().to_string())
-                            .with_detail(error.to_string())
-                            .with_recommendation(
-                                "Fix the Gemini settings JSON or re-apply the active profile.",
-                            ),
+                        Err(error) => DoctorCheck::fail(
+                            id,
+                            "Antigravity settings file is invalid.",
+                        )
+                        .with_path(settings_path.display().to_string())
+                        .with_detail(error.to_string())
+                        .with_recommendation(
+                            "Fix the Antigravity settings JSON or re-apply the active profile.",
+                        ),
                     },
                     Err(error) => DoctorCheck::fail(
                         id,
-                        "Gemini settings file could not be parsed.",
+                        "Antigravity settings file could not be parsed.",
                     )
                     .with_path(settings_path.display().to_string())
                     .with_detail(error.to_string())
                     .with_recommendation(
-                        "Fix ~/.ccr/platforms/gemini/settings.json before rerunning doctor.",
+                        "Fix ~/.gemini/antigravity-cli/settings.json before rerunning doctor.",
                     ),
                 }
             }
@@ -1124,7 +1130,7 @@ impl DoctorService {
             }
             Platform::Gemini => DoctorCheck::ok(
                 id,
-                "Gemini local runtime health is covered by profile and settings validation.",
+                "Antigravity local runtime health is covered by profile and settings validation.",
             ),
             Platform::Droid => DoctorCheck::ok(
                 id,

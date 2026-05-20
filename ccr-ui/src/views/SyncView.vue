@@ -191,8 +191,8 @@ const optionalItems = ref<SyncSelectableItem[]>([
   },
   {
     key: 'gemini',
-    name: 'Gemini CLI',
-    description: 'Google Gemini CLI 配置和数据',
+    name: 'Antigravity CLI',
+    description: 'Google Antigravity CLI 配置和数据（保留 gemini key 兼容）',
     icon: 'Cloud',
     localPath: '~/.gemini/',
     remotePath: '',

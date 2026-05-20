@@ -80,7 +80,7 @@ impl SshEnvironment {
         let dir = match platform {
             "claude" => format!("{home}/.claude"),
             "codex" => format!("{home}/.codex"),
-            "gemini" => format!("{home}/.gemini"),
+            "gemini" => format!("{home}/.gemini/antigravity-cli"),
             "opencode" => format!("{home}/.opencode"),
             _ => return Err(EnvError::PlatformNotSupported(platform.to_string())),
         };
@@ -140,7 +140,7 @@ impl ExecutionEnvironment for SshEnvironment {
                 display_name: match s.name.as_str() {
                     "claude" => "Claude Code",
                     "codex" => "Codex CLI",
-                    "gemini" => "Gemini CLI",
+                    "gemini" => "Antigravity CLI",
                     "opencode" => "OpenCode",
                     _ => s.name.as_str(),
                 }
@@ -232,15 +232,22 @@ impl ExecutionEnvironment for SshEnvironment {
     }
 
     async fn detect_cli_status(&self) -> Result<Vec<CliStatus>, EnvError> {
-        let tools = ["claude", "codex", "gemini", "opencode"];
+        let tools = [
+            ("claude", "claude"),
+            ("codex", "codex"),
+            ("gemini", "agy"),
+            ("opencode", "opencode"),
+        ];
         let mut result = Vec::new();
 
-        for tool in tools {
-            let output = self.run_ssh(&format!("command -v {tool} || true")).await?;
+        for (platform, command) in tools {
+            let output = self
+                .run_ssh(&format!("command -v {command} || true"))
+                .await?;
 
             let path = String::from_utf8_lossy(&output.stdout).trim().to_string();
             result.push(CliStatus {
-                name: tool.to_string(),
+                name: platform.to_string(),
                 installed: !path.is_empty(),
                 path: if path.is_empty() { None } else { Some(path) },
                 version: None,

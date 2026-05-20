@@ -1,8 +1,13 @@
-//! Gemini CLI 命令 — Settings/MCP/Slash Commands/Extensions。
+//! Antigravity CLI 命令 — Settings/MCP/Slash Commands/Extensions。
 //!
-//! Config file: ~/.gemini/settings.json
-//! Slash commands: ~/.gemini/commands/*.toml  (user-level)
-//!                 {project_root}/.gemini/commands/*.toml  (project-level)
+//! Persisted platform key and Tauri command names remain `gemini` for CCR
+//! compatibility. Antigravity stores its CLI config under
+//! `~/.gemini/antigravity-cli/`.
+//!
+//! Settings file: ~/.gemini/antigravity-cli/settings.json
+//! MCP file:      ~/.gemini/antigravity-cli/mcp_config.json
+//! Slash commands remain legacy-compatible until Antigravity publishes a stable
+//! replacement path: ~/.gemini/commands/*.toml and project .gemini/commands.
 
 use serde_json::{Value, json};
 use std::collections::HashMap;
@@ -11,33 +16,43 @@ use std::path::PathBuf;
 
 // ── Config file helpers ──
 
-/// 定位 ~/.gemini/settings.json
-fn gemini_config_path() -> Result<PathBuf, String> {
+fn antigravity_cli_dir() -> Result<PathBuf, String> {
     let home = dirs::home_dir().ok_or_else(|| "无法获取用户主目录".to_string())?;
-    let dir = home.join(".gemini");
+    let dir = home.join(".gemini").join("antigravity-cli");
     if !dir.exists() {
-        std::fs::create_dir_all(&dir).map_err(|e| format!("创建 .gemini 目录失败: {e}"))?;
+        std::fs::create_dir_all(&dir)
+            .map_err(|e| format!("创建 Antigravity CLI 配置目录失败: {e}"))?;
     }
-    Ok(dir.join("settings.json"))
+    Ok(dir)
 }
 
-/// 读取 Gemini settings.json，不存在时返回空对象
+/// 定位 ~/.gemini/antigravity-cli/settings.json
+fn gemini_config_path() -> Result<PathBuf, String> {
+    Ok(antigravity_cli_dir()?.join("settings.json"))
+}
+
+/// 定位 ~/.gemini/antigravity-cli/mcp_config.json
+fn gemini_mcp_config_path() -> Result<PathBuf, String> {
+    Ok(antigravity_cli_dir()?.join("mcp_config.json"))
+}
+
+/// 读取 Antigravity CLI settings.json，不存在时返回空对象
 fn read_gemini_config() -> Result<Value, String> {
     let path = gemini_config_path()?;
     if !path.exists() {
         return Ok(json!({}));
     }
     let content =
-        std::fs::read_to_string(&path).map_err(|e| format!("读取 Gemini 配置文件失败: {e}"))?;
-    serde_json::from_str(&content).map_err(|e| format!("解析 Gemini JSON 失败: {e}"))
+        std::fs::read_to_string(&path).map_err(|e| format!("读取 Antigravity CLI 配置文件失败: {e}"))?;
+    serde_json::from_str(&content).map_err(|e| format!("解析 Antigravity CLI JSON 失败: {e}"))
 }
 
-/// 原子写入 Gemini settings.json
+/// 原子写入 Antigravity CLI settings.json
 fn write_gemini_config(config: &Value) -> Result<(), String> {
     let path = gemini_config_path()?;
     let parent = path.parent().ok_or_else(|| "无法获取父目录".to_string())?;
     let json_str =
-        serde_json::to_string_pretty(config).map_err(|e| format!("序列化 Gemini 配置失败: {e}"))?;
+        serde_json::to_string_pretty(config).map_err(|e| format!("序列化 Antigravity CLI 配置失败: {e}"))?;
     let mut tmp =
         tempfile::NamedTempFile::new_in(parent).map_err(|e| format!("创建临时文件失败: {e}"))?;
     tmp.write_all(json_str.as_bytes())
@@ -45,6 +60,66 @@ fn write_gemini_config(config: &Value) -> Result<(), String> {
     tmp.persist(&path)
         .map_err(|e| format!("持久化配置文件失败: {e}"))?;
     Ok(())
+}
+
+/// 读取 Antigravity CLI mcp_config.json，不存在时返回空对象
+fn read_gemini_mcp_config() -> Result<Value, String> {
+    let path = gemini_mcp_config_path()?;
+    if !path.exists() {
+        return Ok(json!({}));
+    }
+    let content =
+        std::fs::read_to_string(&path).map_err(|e| format!("读取 Antigravity MCP 配置失败: {e}"))?;
+    serde_json::from_str(&content).map_err(|e| format!("解析 Antigravity MCP JSON 失败: {e}"))
+}
+
+/// 原子写入 Antigravity CLI mcp_config.json
+fn write_gemini_mcp_config(config: &Value) -> Result<(), String> {
+    let path = gemini_mcp_config_path()?;
+    let parent = path.parent().ok_or_else(|| "无法获取父目录".to_string())?;
+    let json_str = serde_json::to_string_pretty(config)
+        .map_err(|e| format!("序列化 Antigravity MCP 配置失败: {e}"))?;
+    let mut tmp =
+        tempfile::NamedTempFile::new_in(parent).map_err(|e| format!("创建临时文件失败: {e}"))?;
+    tmp.write_all(json_str.as_bytes())
+        .map_err(|e| format!("写入临时文件失败: {e}"))?;
+    tmp.persist(&path)
+        .map_err(|e| format!("持久化配置文件失败: {e}"))?;
+    Ok(())
+}
+
+fn normalize_mcp_server_for_write(mut config: Value) -> Value {
+    let Some(obj) = config.as_object_mut() else {
+        return config;
+    };
+
+    obj.remove("name");
+
+    let remote_url = obj
+        .remove("serverUrl")
+        .or_else(|| obj.remove("url"))
+        .or_else(|| obj.remove("httpUrl"));
+
+    if let Some(url) = remote_url {
+        obj.insert("serverUrl".to_string(), url);
+    }
+
+    config
+}
+
+fn normalize_mcp_server_for_read(name: String, server: Value) -> Value {
+    let mut obj = server.as_object().cloned().unwrap_or_default();
+    if !obj.contains_key("url") {
+        if let Some(url) = obj
+            .get("serverUrl")
+            .or_else(|| obj.get("httpUrl"))
+            .cloned()
+        {
+            obj.insert("url".to_string(), url);
+        }
+    }
+    obj.insert("name".to_string(), json!(name));
+    Value::Object(obj)
 }
 
 // ── Slash command helpers ──
@@ -194,7 +269,7 @@ pub async fn gemini_get_settings() -> Result<Value, String> {
 pub async fn gemini_update_settings(settings: Value) -> Result<Value, String> {
     tokio::task::spawn_blocking(move || {
         write_gemini_config(&settings)?;
-        Ok(json!({ "message": "Gemini 配置更新成功" }))
+        Ok(json!({ "message": "Antigravity CLI 配置更新成功" }))
     })
     .await
     .map_err(|e| format!("任务执行失败: {e}"))?
@@ -205,7 +280,7 @@ pub async fn gemini_update_settings(settings: Value) -> Result<Value, String> {
 #[tauri::command]
 pub async fn gemini_list_mcp_servers() -> Result<Value, String> {
     tokio::task::spawn_blocking(|| {
-        let config = read_gemini_config()?;
+        let config = read_gemini_mcp_config()?;
         let servers = config
             .get("mcpServers")
             .and_then(|v| v.as_object())
@@ -213,11 +288,7 @@ pub async fn gemini_list_mcp_servers() -> Result<Value, String> {
             .unwrap_or_default();
         let list: Vec<Value> = servers
             .into_iter()
-            .map(|(name, server)| {
-                let mut obj = server.as_object().cloned().unwrap_or_default();
-                obj.insert("name".to_string(), json!(name));
-                Value::Object(obj)
-            })
+            .map(|(name, server)| normalize_mcp_server_for_read(name, server))
             .collect();
         Ok(json!(list))
     })
@@ -228,7 +299,7 @@ pub async fn gemini_list_mcp_servers() -> Result<Value, String> {
 #[tauri::command]
 pub async fn gemini_add_mcp_server(name: String, config: Value) -> Result<Value, String> {
     tokio::task::spawn_blocking(move || {
-        let mut full = read_gemini_config()?;
+        let mut full = read_gemini_mcp_config()?;
         let servers = full
             .as_object_mut()
             .ok_or_else(|| "配置不是对象".to_string())?
@@ -239,8 +310,8 @@ pub async fn gemini_add_mcp_server(name: String, config: Value) -> Result<Value,
         if servers.contains_key(&name) {
             return Err(format!("MCP 服务器 '{name}' 已存在"));
         }
-        servers.insert(name.clone(), config);
-        write_gemini_config(&full)?;
+        servers.insert(name.clone(), normalize_mcp_server_for_write(config));
+        write_gemini_mcp_config(&full)?;
         Ok(json!({ "message": format!("MCP 服务器 '{name}' 添加成功") }))
     })
     .await
@@ -250,7 +321,7 @@ pub async fn gemini_add_mcp_server(name: String, config: Value) -> Result<Value,
 #[tauri::command]
 pub async fn gemini_update_mcp_server(name: String, config: Value) -> Result<Value, String> {
     tokio::task::spawn_blocking(move || {
-        let mut full = read_gemini_config()?;
+        let mut full = read_gemini_mcp_config()?;
         let servers = full
             .as_object_mut()
             .ok_or_else(|| "配置不是对象".to_string())?
@@ -261,8 +332,8 @@ pub async fn gemini_update_mcp_server(name: String, config: Value) -> Result<Val
         if !servers.contains_key(&name) {
             return Err(format!("MCP 服务器 '{name}' 不存在"));
         }
-        servers.insert(name.clone(), config);
-        write_gemini_config(&full)?;
+        servers.insert(name.clone(), normalize_mcp_server_for_write(config));
+        write_gemini_mcp_config(&full)?;
         Ok(json!({ "message": format!("MCP 服务器 '{name}' 更新成功") }))
     })
     .await
@@ -272,7 +343,7 @@ pub async fn gemini_update_mcp_server(name: String, config: Value) -> Result<Val
 #[tauri::command]
 pub async fn gemini_delete_mcp_server(name: String) -> Result<String, String> {
     tokio::task::spawn_blocking(move || {
-        let mut full = read_gemini_config()?;
+        let mut full = read_gemini_mcp_config()?;
         let servers = full
             .as_object_mut()
             .ok_or_else(|| "配置不是对象".to_string())?
@@ -282,7 +353,7 @@ pub async fn gemini_delete_mcp_server(name: String) -> Result<String, String> {
         if servers.remove(&name).is_none() {
             return Err(format!("MCP 服务器 '{name}' 不存在"));
         }
-        write_gemini_config(&full)?;
+        write_gemini_mcp_config(&full)?;
         Ok(format!("MCP 服务器 '{name}' 删除成功"))
     })
     .await
@@ -384,10 +455,9 @@ pub async fn gemini_delete_slash_command(name: String) -> Result<String, String>
 
 #[tauri::command]
 pub async fn gemini_list_extensions() -> Result<Value, String> {
-    // Gemini CLI extensions 通过 ~/.gemini/extensions/ 目录管理
+    // Antigravity plugins/extensions 通过 ~/.gemini/antigravity-cli/extensions/ 目录管理
     tokio::task::spawn_blocking(|| {
-        let home = dirs::home_dir().ok_or_else(|| "无法获取用户主目录".to_string())?;
-        let ext_dir = home.join(".gemini").join("extensions");
+        let ext_dir = antigravity_cli_dir()?.join("extensions");
         if !ext_dir.exists() {
             return Ok(json!([]));
         }

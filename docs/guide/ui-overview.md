@@ -41,7 +41,7 @@ ccr ui -p 15173 --backend-port 38081
 
 ## 当前 UI 覆盖的能力面
 
-- 平台模块：Claude Code、Codex、Gemini CLI、Droid，以及保留中的 Qwen 分组
+- 平台模块：Claude Code、Codex、Antigravity CLI（内部 key `gemini`）、Droid，以及保留中的 Qwen 分组
 - 配置与扩展：configs、mcp、slash-commands、agents、plugins、hooks、statusline、output-styles
 - 数据与运营：usage、monitoring、budget、pricing
 - 工具与环境：commands、converter、sync、checkin、opencode、WSL、SSH、skills / market

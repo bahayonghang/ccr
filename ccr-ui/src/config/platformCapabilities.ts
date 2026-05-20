@@ -31,7 +31,7 @@ export const platformCapabilities = {
   },
   gemini: {
     id: 'gemini',
-    displayName: 'Gemini CLI',
+    displayName: 'Antigravity CLI',
     implemented: true,
     supportsProfiles: true,
     supportsMcp: true,

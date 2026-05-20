@@ -213,7 +213,7 @@ const syncResults = ref<Record<string, SyncResult[]>>({})
 // Available platforms (excluding Claude as it's the source)
 const platforms = [
   { id: 'codex', name: 'Codex', icon: '💻' },
-  { id: 'gemini', name: 'Gemini', icon: '✨' },
+  { id: 'gemini', name: 'Antigravity CLI', icon: '✨' },
 ]
 
 // Toggle platform selection

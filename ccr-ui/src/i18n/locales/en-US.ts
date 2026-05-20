@@ -167,7 +167,7 @@ export default {
     usage: 'Usage Stats',
     claudeCode: 'Claude Code',
     codex: 'Codex',
-    gemini: 'Gemini',
+    gemini: 'Antigravity',
     mcp: 'MCP Servers',
     mcpManager: 'MCP Manager',
     agents: 'Agents',
@@ -494,8 +494,8 @@ export default {
     codexDesc: 'Manage auth, profiles, MCP, and global settings.',
     codexStats: 'AI Coding',
 
-    geminiTitle: 'Gemini',
-    geminiDesc: 'Manage Gemini CLI config, MCP, commands, and plugins.',
+    geminiTitle: 'Antigravity',
+    geminiDesc: 'Manage Antigravity CLI config, MCP, skills, and plugin migration.',
     geminiStats: 'Google AI',
 
     opencodeTitle: 'OpenCode',
@@ -1729,7 +1729,7 @@ export default {
     formatDescriptions: {
       claudeCode: 'Claude Code CLI configuration (JSON)',
       codex: 'OpenAI Codex CLI configuration (TOML)',
-      gemini: 'Google Gemini CLI configuration',
+      gemini: 'Google Antigravity CLI configuration (legacy key: gemini)',
     },
     usageNotes: {
       supportedPathsTitle: 'Supported Conversion Paths',
@@ -1774,8 +1774,8 @@ export default {
         'CCR provider configuration (API URLs, keys, etc.), mandatory sync for consistency',
       claudeCode: 'Claude Code',
       claudeDescription: 'Anthropic Claude Code CLI configuration and data',
-      gemini: 'Gemini CLI',
-      geminiDescription: 'Google Gemini CLI configuration and data',
+      gemini: 'Antigravity CLI',
+      geminiDescription: 'Google Antigravity CLI configuration and data (legacy key: gemini)',
     },
 
     // Custom folder section
@@ -3439,17 +3439,17 @@ export default {
   },
 
   // ===================================
-  // Gemini CLI Platform
+  // Antigravity CLI Platform (legacy key: gemini)
   // ===================================
   gemini: {
     // Overview module
     overview: {
-      title: 'Gemini CLI Management',
-      subtitle: 'Manage Google Gemini CLI configuration',
-      breadcrumb: 'Gemini CLI',
-      pageTitle: 'Gemini CLI Management Center',
-      description: 'Google Frontier AI · Multimodal Support · Smart Assistant',
-      welcome: 'Gemini Features',
+      title: 'Antigravity CLI Management',
+      subtitle: 'Manage Google Antigravity CLI configuration',
+      breadcrumb: 'Antigravity CLI',
+      pageTitle: 'Antigravity CLI Management Center',
+      description: 'Google agentic CLI · agy command · Gemini CLI migration',
+      welcome: 'Antigravity Features',
       quickActions: 'Quick Actions',
       viewConfig: 'View Config',
       viewMcp: 'Manage MCP',
@@ -3467,10 +3467,10 @@ export default {
         plugins: 'Plugins',
       },
       hero: {
-        eyebrow: 'Gemini Constellation Console',
+        eyebrow: 'Antigravity Migration Console',
         subtitle: 'CLI configuration and capability entrypoints',
         description:
-          'A compact console for Gemini CLI MCP, slash commands, and local configuration paths. Agents and Plugins stay visible while clearly marked by the current backend support boundary.',
+          'A compact console for Antigravity CLI MCP, skills, plugin migration, and local configuration paths. Legacy Gemini CLI routes stay import-compatible while session import waits for upstream log-format confirmation.',
         primaryAction: 'Manage MCP',
         secondaryAction: 'Open commands',
       },
@@ -3485,26 +3485,28 @@ export default {
         title: 'Terminal quick checks',
         helpLabel: 'Read CLI help',
         versionLabel: 'Confirm installed version',
-        mcpLabel: 'Inspect MCP subcommands',
-        settingsPath: 'Gemini settings',
-        commandsPath: 'Commands directory',
+        importLabel: 'Import Gemini plugins',
+        settingsPath: 'Antigravity settings',
+        mcpPath: 'Antigravity MCP config',
         copy: 'Copy',
         copied: 'Copied',
+        skillsPath: 'Antigravity Skills',
+        workspacePath: 'Workspace config',
         copyCommand: 'Copy safe command: {command}',
       },
       modules: {
         eyebrow: 'Capability map',
         title: 'High-frequency modules',
-        subtitle: 'Editable capabilities stay up front, while Gemini platform areas without full backend support remain visible with honest status.',
+        subtitle: 'Editable Antigravity capabilities stay up front while Gemini legacy/import-compatible boundaries remain explicit.',
         supportedBadge: 'Connected',
         boundaryBadge: 'Boundary',
-        mcpDescription: 'Manage Gemini CLI MCP servers, launch commands, arguments, and environment variables in one place.',
+        mcpDescription: 'Manage Antigravity CLI MCP servers in mcp_config.json with serverUrl semantics for remote servers.',
         mcpHint: 'Config file entry',
         mcpStatus: 'Editable',
         commandsDescription: 'Browse and maintain project-level and user-level slash commands for faster local workflows.',
         commandsHint: 'Command templates',
         commandsStatus: 'Editable',
-        agentsDescription: 'Keep the Gemini Agents entrypoint visible; the current backend reports unsupported instead of faking full capability.',
+        agentsDescription: 'Keep the Antigravity Agents entrypoint visible; session/log import and unconfirmed formats remain marked as pending.',
         agentsHint: 'Platform placeholder',
         agentsStatus: 'Awaiting backend',
         pluginsDescription: 'Expose the Plugins management entrypoint with its real support boundary, ready for a future stable backend contract.',
@@ -3519,23 +3521,23 @@ export default {
         pathSkills: 'Capabilities: Agents / Plugins stay visible without pretending full backend support exists.',
         configKicker: 'Config map',
         configTitle: 'Configuration locations',
-        configSettings: 'Settings usually live at ~/.gemini/settings.json.',
-        configProjectCommands: 'Project commands belong in the current repo under .gemini/commands.',
-        configUserCommands: 'User commands can live in ~/.gemini/commands for reuse.',
+        configSettings: 'Antigravity settings live at ~/.gemini/antigravity-cli/settings.json.',
+        configProjectCommands: 'Workspace MCP and skills use .agents/mcp_config.json and .agents/skills.',
+        configUserCommands: 'Old .gemini/commands and ~/.gemini/skills remain Gemini legacy/shared sources.',
         tipsKicker: 'Operator notes',
         tipsTitle: 'Usage tips',
         tipSafeCommands: 'Terminal previews only copy safe inspection commands; they never execute automatically.',
         tipBoundaries: 'Unsupported areas are explained in status copy instead of hidden or fabricated.',
-        tipNoBackendChange: 'This page only improves frontend entrypoints and copy; it does not change Tauri backend APIs.',
+        tipNoBackendChange: 'The internal platform key and Tauri invokes remain gemini to preserve history, usage, and sync data.',
       },
     },
 
     // MCP module
     mcp: {
       title: 'MCP Servers',
-      subtitle: 'Manage Gemini MCP server configuration',
+      subtitle: 'Manage Antigravity CLI MCP server configuration',
       breadcrumb: 'MCP Management',
-      pageTitle: 'Gemini MCP Server Management',
+      pageTitle: 'Antigravity MCP Server Management',
       backToHome: 'Back to Home',
       addServer: 'Add Server',
       editServer: 'Edit Server',
@@ -3583,9 +3585,9 @@ export default {
     // Agents module
     agents: {
       title: 'Agents Management',
-      subtitle: 'Manage Gemini AI Agent configuration',
+      subtitle: 'Manage Antigravity Agent configuration',
       breadcrumb: 'Agents Management',
-      pageTitle: 'Gemini Agents Management',
+      pageTitle: 'Antigravity Agents Management',
       backToHome: 'Back to Home',
       addAgent: 'Add Agent',
       editAgent: 'Edit Agent',
@@ -3631,9 +3633,9 @@ export default {
     // Slash Commands module
     slashCommands: {
       title: 'Slash Commands',
-      subtitle: 'Manage Gemini slash commands',
+      subtitle: 'Manage Antigravity / legacy Gemini slash commands',
       breadcrumb: 'Slash Commands',
-      pageTitle: 'Gemini Slash Commands Management',
+      pageTitle: 'Antigravity Slash Commands Management',
       backToHome: 'Back to Home',
       addCommandShort: 'Add Command',
       editCommandShort: 'Edit Command',
@@ -3676,9 +3678,9 @@ export default {
     // Plugins module
     plugins: {
       title: 'Plugins Management',
-      subtitle: 'Manage Gemini plugin ecosystem',
+      subtitle: 'Manage Antigravity plugin ecosystem',
       breadcrumb: 'Plugins Management',
-      pageTitle: 'Gemini Plugins Management',
+      pageTitle: 'Antigravity Plugins Management',
       backToHome: 'Back to Home',
       addPlugin: 'Add Plugin',
       editPlugin: 'Edit Plugin',

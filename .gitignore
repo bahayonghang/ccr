@@ -69,6 +69,8 @@ cmake-build-*/
 .workflow/
 .opencode/
 .trellis/
+.antigravitycli/
+
 
 
 # File-based planning artifacts

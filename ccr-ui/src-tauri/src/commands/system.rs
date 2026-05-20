@@ -360,7 +360,7 @@ fn cli_command_name(tool: &str) -> Option<&'static str> {
         "ccr" => Some("ccr"),
         "claude" => Some("claude"),
         "codex" => Some("codex"),
-        "gemini" => Some("gemini"),
+        "gemini" => Some("agy"),
         _ => None,
     }
 }
@@ -522,8 +522,9 @@ fn normalize_cli_tool(tool: &str) -> Option<&'static str> {
     match tool.trim().to_ascii_lowercase().as_str() {
         "ccr" => Some("ccr"),
         "claude" => Some("claude"),
+        "claude-code" => Some("claude"),
         "codex" => Some("codex"),
-        "gemini" => Some("gemini"),
+        "gemini" | "gemini-cli" | "antigravity" | "antigravity-cli" | "agy" => Some("gemini"),
         _ => None,
     }
 }

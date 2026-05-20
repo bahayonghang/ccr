@@ -123,7 +123,10 @@ impl ConflictChecker {
         let settings_path = match platform {
             Platform::Claude => home.join(".claude").join("settings.json"),
             Platform::Codex => home.join(".codex").join("settings.json"),
-            Platform::Gemini => home.join(".gemini").join("config.json"),
+            Platform::Gemini => home
+                .join(".gemini")
+                .join("antigravity-cli")
+                .join("settings.json"),
             _ => {
                 return Err(CcrError::PlatformNotSupported(platform.to_string()));
             }

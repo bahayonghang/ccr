@@ -480,7 +480,11 @@ impl SyncFolderManager {
         // 4.2 检测并添加平台目录
         let platforms = vec![
             ("claude", "~/.claude", "Claude Code 配置"),
-            ("gemini", "~/.gemini", "Gemini CLI 配置"),
+            (
+                "gemini",
+                "~/.gemini",
+                "Antigravity CLI 配置（保留 gemini key 兼容）",
+            ),
             ("codex", "~/.codex", "Codex CLI 配置"),
         ];
 

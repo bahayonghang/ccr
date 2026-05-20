@@ -103,6 +103,13 @@ fn home_dir() -> Result<PathBuf, String> {
     dirs::home_dir().ok_or_else(|| "Cannot determine home directory".to_string())
 }
 
+fn antigravity_mcp_config_path() -> Result<PathBuf, String> {
+    Ok(home_dir()?
+        .join(".gemini")
+        .join("antigravity-cli")
+        .join("mcp_config.json"))
+}
+
 fn value_string_array(value: Option<&Value>) -> Vec<String> {
     value
         .and_then(Value::as_array)
@@ -159,13 +166,14 @@ fn list_codex_mcp() -> Result<Vec<UnifiedMcpServer>, String> {
 }
 
 fn list_gemini_mcp() -> Result<Vec<UnifiedMcpServer>, String> {
-    let path = home_dir()?.join(".gemini").join("settings.json");
+    let path = antigravity_mcp_config_path()?;
     if !path.exists() {
         return Ok(vec![]);
     }
-    let content = fs::read_to_string(&path).map_err(|e| format!("Read gemini settings: {e}"))?;
+    let content =
+        fs::read_to_string(&path).map_err(|e| format!("Read antigravity mcp config: {e}"))?;
     let config: Value =
-        serde_json::from_str(&content).map_err(|e| format!("Parse gemini settings: {e}"))?;
+        serde_json::from_str(&content).map_err(|e| format!("Parse antigravity mcp config: {e}"))?;
 
     let Some(servers) = config.get("mcpServers").and_then(Value::as_object) else {
         return Ok(vec![]);
@@ -177,7 +185,12 @@ fn list_gemini_mcp() -> Result<Vec<UnifiedMcpServer>, String> {
             platform: "gemini".into(),
             name: name.clone(),
             command: v.get("command").and_then(Value::as_str).map(String::from),
-            url: None,
+            url: v
+                .get("serverUrl")
+                .or_else(|| v.get("url"))
+                .or_else(|| v.get("httpUrl"))
+                .and_then(Value::as_str)
+                .map(String::from),
             args: value_string_array(v.get("args")),
             env: v
                 .get("env")
@@ -224,7 +237,7 @@ fn capabilities() -> Vec<PlatformMcpCapability> {
         PlatformMcpCapability {
             platform: "gemini".into(),
             supports_toggle: false,
-            supports_url: false,
+            supports_url: true,
             supports_headers: false,
             supports_timeout: false,
             supports_cwd: false,
@@ -348,7 +361,12 @@ fn request_to_config(request: &UnifiedMcpRequest) -> Value {
         if request.platform == "claude" {
             config.insert("type".into(), Value::String("http".into()));
         }
-        config.insert("url".into(), Value::String(url.to_string()));
+        let url_key = if request.platform == "gemini" {
+            "serverUrl"
+        } else {
+            "url"
+        };
+        config.insert(url_key.into(), Value::String(url.to_string()));
     } else if request.platform == "claude" && has_command {
         config.insert("type".into(), Value::Null);
         config.insert("url".into(), Value::Null);
@@ -532,7 +550,7 @@ fn platform_config_info(platform: &str) -> Result<(PathBuf, String), String> {
             "mcp_servers".into(),
         )),
         "gemini" => Ok((
-            home.join(".gemini").join("settings.json"),
+            antigravity_mcp_config_path()?,
             "mcpServers".into(),
         )),
         _ => Err(format!("Unknown platform: {platform}")),

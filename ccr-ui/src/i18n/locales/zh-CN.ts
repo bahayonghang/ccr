@@ -168,7 +168,7 @@ export default {
     usage: '使用统计',
     claudeCode: 'Claude Code',
     codex: 'Codex',
-    gemini: 'Gemini',
+    gemini: 'Antigravity',
     mcp: 'MCP 服务器',
     mcpManager: 'MCP 管理中心',
     agents: 'Agents',
@@ -494,8 +494,8 @@ export default {
     codexDesc: '管理认证、Profiles、MCP 与全局设置。',
     codexStats: 'AI 编程',
 
-    geminiTitle: 'Gemini',
-    geminiDesc: '管理 Gemini CLI 的配置、MCP、命令与插件。',
+    geminiTitle: 'Antigravity',
+    geminiDesc: '管理 Antigravity CLI 的配置、MCP、skills 与插件迁移。',
     geminiStats: 'Google AI',
 
     opencodeTitle: 'OpenCode',
@@ -1723,7 +1723,7 @@ export default {
     formatDescriptions: {
       claudeCode: 'Claude Code CLI configuration (JSON)',
       codex: 'OpenAI Codex CLI configuration (TOML)',
-      gemini: 'Google Gemini CLI configuration',
+      gemini: 'Google Antigravity CLI configuration (legacy key: gemini)',
     },
     usageNotes: {
       supportedPathsTitle: '支持的转换路径',
@@ -1767,8 +1767,8 @@ export default {
       configDescription: 'CCR 供应商配置（API地址、密钥等），强制同步保证配置一致性',
       claudeCode: 'Claude Code',
       claudeDescription: 'Anthropic Claude Code CLI 配置和数据',
-      gemini: 'Gemini CLI',
-      geminiDescription: 'Google Gemini CLI 配置和数据',
+      gemini: 'Antigravity CLI',
+      geminiDescription: 'Google Antigravity CLI 配置和数据（保留 gemini key 兼容）',
     },
 
     // Custom folder section
@@ -3439,17 +3439,17 @@ export default {
   },
 
   // ===================================
-  // Gemini CLI Platform
+  // Antigravity CLI Platform (legacy key: gemini)
   // ===================================
   gemini: {
     // Overview module
     overview: {
-      title: 'Gemini CLI 管理',
-      subtitle: '管理 Google Gemini CLI 配置',
-      breadcrumb: 'Gemini CLI',
-      pageTitle: 'Gemini CLI 管理中心',
-      description: 'Google 前沿 AI · 多模态支持 · 智能助手',
-      welcome: 'Gemini 特性',
+      title: 'Antigravity CLI 管理',
+      subtitle: '管理 Google Antigravity CLI 配置',
+      breadcrumb: 'Antigravity CLI',
+      pageTitle: 'Antigravity CLI 管理中心',
+      description: 'Google agentic CLI · agy 命令 · Gemini CLI 迁移',
+      welcome: 'Antigravity 特性',
       quickActions: '快速操作',
       viewConfig: '查看配置',
       viewMcp: '管理 MCP',
@@ -3467,10 +3467,10 @@ export default {
         plugins: '插件',
       },
       hero: {
-        eyebrow: 'Gemini 星图控制台',
+        eyebrow: 'Antigravity 迁移控制台',
         subtitle: 'CLI 配置与能力入口',
         description:
-          '以紧凑操作台聚合 Gemini CLI 的 MCP、斜杠命令与配置路径；Agents 与 Plugins 保持入口可见，并明确标注当前后端支持边界。',
+          '以紧凑操作台聚合 Antigravity CLI 的 MCP、skills、插件迁移与配置路径；旧 Gemini CLI 路径保留为兼容入口，session import 等待上游格式确认。',
         primaryAction: '管理 MCP',
         secondaryAction: '打开命令',
       },
@@ -3485,26 +3485,28 @@ export default {
         title: '终端快速校验',
         helpLabel: '查看 CLI 帮助',
         versionLabel: '确认安装版本',
-        mcpLabel: '检查 MCP 子命令',
-        settingsPath: 'Gemini 设置',
-        commandsPath: '命令目录',
+        importLabel: '导入 Gemini 插件',
+        settingsPath: 'Antigravity 设置',
+        mcpPath: 'Antigravity MCP 配置',
         copy: '复制',
         copied: '已复制',
+        skillsPath: 'Antigravity Skills',
+        workspacePath: 'Workspace 配置',
         copyCommand: '复制安全命令：{command}',
       },
       modules: {
         eyebrow: 'Capability map',
         title: '高频模块入口',
-        subtitle: '把可编辑能力放在前排，把未完整支持的 Gemini 平台能力保留为诚实的可见状态。',
+        subtitle: '把 Antigravity 的可编辑能力放在前排，并对 Gemini legacy/import-compatible 边界保持诚实。',
         supportedBadge: '已接入',
         boundaryBadge: '边界状态',
-        mcpDescription: '集中管理 Gemini CLI MCP Server、启动命令、参数与环境变量。',
+        mcpDescription: '集中管理 Antigravity CLI MCP Server，写入 mcp_config.json 并使用 serverUrl 语义。',
         mcpHint: '配置文件入口',
         mcpStatus: '可编辑',
         commandsDescription: '浏览与维护项目级、用户级斜杠命令，让常用工作流更快触达。',
         commandsHint: '命令模板',
         commandsStatus: '可编辑',
-        agentsDescription: '保留 Gemini Agents 能力入口；当前后端返回不支持状态，避免伪造完整功能。',
+        agentsDescription: '保留 Antigravity Agents 能力入口；当前 session/log import 等格式未确认的能力保持待支持状态。',
         agentsHint: '平台能力占位',
         agentsStatus: '待后端支持',
         pluginsDescription: '展示 Plugins 管理入口并标注真实支持边界，后续可接入稳定后端契约。',
@@ -3519,23 +3521,23 @@ export default {
         pathSkills: '能力入口：Agents / Plugins 保持可见，但不会假装已有完整后端。',
         configKicker: 'Config map',
         configTitle: '配置位置',
-        configSettings: '设置文件通常位于 ~/.gemini/settings.json。',
-        configProjectCommands: '项目命令优先放在当前仓库的 .gemini/commands。',
-        configUserCommands: '用户命令可放在 ~/.gemini/commands 复用。',
+        configSettings: 'Antigravity settings 位于 ~/.gemini/antigravity-cli/settings.json。',
+        configProjectCommands: 'Workspace MCP 与 skills 优先使用 .agents/mcp_config.json 与 .agents/skills。',
+        configUserCommands: '旧 .gemini/commands 与 ~/.gemini/skills 作为 Gemini legacy/shared 来源保留兼容。',
         tipsKicker: 'Operator notes',
         tipsTitle: '使用提示',
         tipSafeCommands: '终端预览只复制安全查询命令，不自动执行。',
         tipBoundaries: '未支持能力用状态文案说明，不隐藏也不造假。',
-        tipNoBackendChange: '本页仅优化前端入口与文案，不改变 Tauri 后端 API。',
+        tipNoBackendChange: '内部平台 key 与 Tauri invoke 仍为 gemini，避免破坏历史配置、用量与同步数据。',
       },
     },
 
     // MCP module
     mcp: {
       title: 'MCP 服务器',
-      subtitle: '管理 Gemini MCP 服务器配置',
+      subtitle: '管理 Antigravity CLI MCP 服务器配置',
       breadcrumb: 'MCP 管理',
-      pageTitle: 'Gemini MCP 服务器管理',
+      pageTitle: 'Antigravity MCP 服务器管理',
       backToHome: '返回首页',
       addServer: '添加服务器',
       editServer: '编辑服务器',
@@ -3583,9 +3585,9 @@ export default {
     // Agents module
     agents: {
       title: 'Agents 管理',
-      subtitle: '管理 Gemini AI Agent 配置',
+      subtitle: '管理 Antigravity Agent 配置',
       breadcrumb: 'Agents 管理',
-      pageTitle: 'Gemini Agents 管理',
+      pageTitle: 'Antigravity Agents 管理',
       backToHome: '返回首页',
       addAgent: '添加 Agent',
       editAgent: '编辑 Agent',
@@ -3631,9 +3633,9 @@ export default {
     // Slash Commands module
     slashCommands: {
       title: 'Slash Commands',
-      subtitle: '管理 Gemini 斜杠命令',
+      subtitle: '管理 Antigravity / legacy Gemini 斜杠命令',
       breadcrumb: 'Slash Commands',
-      pageTitle: 'Gemini Slash Commands 管理',
+      pageTitle: 'Antigravity Slash Commands 管理',
       backToHome: '返回首页',
       addCommandShort: '添加 Command',
       editCommandShort: '编辑 Command',
@@ -3676,9 +3678,9 @@ export default {
     // Plugins module
     plugins: {
       title: 'Plugins 管理',
-      subtitle: '管理 Gemini 插件生态',
+      subtitle: '管理 Antigravity 插件生态',
       breadcrumb: 'Plugins 管理',
-      pageTitle: 'Gemini Plugins 管理',
+      pageTitle: 'Antigravity Plugins 管理',
       backToHome: '返回首页',
       addPlugin: '添加插件',
       editPlugin: '编辑插件',

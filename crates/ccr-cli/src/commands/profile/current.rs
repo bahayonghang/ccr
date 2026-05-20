@@ -450,7 +450,7 @@ async fn current_command_verbose() -> Result<()> {
         let platform_display = match platform {
             Platform::Claude => "Claude Code",
             Platform::Codex => "Codex",
-            Platform::Gemini => "Gemini",
+            Platform::Gemini => "Antigravity CLI",
             Platform::Qwen => "Qwen",
             Platform::Droid => "Factory Droid",
         };

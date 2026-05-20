@@ -50,7 +50,7 @@ impl ExecutionEnvironment for LocalEnvironment {
             },
             PlatformInfo {
                 name: "gemini".to_string(),
-                display_name: "Gemini CLI".to_string(),
+                display_name: "Antigravity CLI".to_string(),
                 installed: true,
                 version: None,
             },
@@ -91,13 +91,18 @@ impl ExecutionEnvironment for LocalEnvironment {
     }
 
     async fn detect_cli_status(&self) -> Result<Vec<CliStatus>, EnvError> {
-        let tools = ["claude", "codex", "gemini", "opencode"];
+        let tools = [
+            ("claude", "claude"),
+            ("codex", "codex"),
+            ("gemini", "agy"),
+            ("opencode", "opencode"),
+        ];
         let mut statuses = Vec::new();
 
-        for tool in &tools {
-            let installed = which_tool(tool).await;
+        for (platform, command) in &tools {
+            let installed = which_tool(command).await;
             statuses.push(CliStatus {
-                name: tool.to_string(),
+                name: platform.to_string(),
                 installed: installed.is_some(),
                 path: installed.clone(),
                 version: None,
@@ -119,7 +124,7 @@ fn resolve_config_path(
     let base = match platform {
         "claude" => home.join(".claude"),
         "codex" => home.join(".codex"),
-        "gemini" => home.join(".gemini"),
+        "gemini" => home.join(".gemini").join("antigravity-cli"),
         "opencode" => home.join(".opencode"),
         _ => return Err(EnvError::PlatformNotSupported(platform.to_string())),
     };

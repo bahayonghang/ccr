@@ -278,7 +278,7 @@ const installing = ref(false)
 const platforms = [
   { id: 'claude', name: 'Claude', icon: '🤖' },
   { id: 'codex', name: 'Codex', icon: '💻' },
-  { id: 'gemini', name: 'Gemini', icon: '✨' },
+  { id: 'gemini', name: 'Antigravity CLI', icon: '✨' },
 ]
 
 // Load presets

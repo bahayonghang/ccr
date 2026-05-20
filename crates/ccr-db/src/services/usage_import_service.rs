@@ -1418,9 +1418,9 @@ impl UsageImportService {
         }
     }
 
-    /// Read and parse a Gemini CLI session JSON file.
+    /// Read and parse a legacy Gemini CLI session JSON file.
     ///
-    /// Gemini CLI stores session transcripts under ~/.gemini/tmp/*/chats/session-*.json.
+    /// Legacy Gemini CLI stores session transcripts under ~/.gemini/tmp/*/chats/session-*.json. Antigravity import waits for confirmed local log format.
     /// The assistant-side message objects may contain either:
     /// - tokens.{input,output,cached,...}
     /// - usageMetadata / usage_metadata from API responses

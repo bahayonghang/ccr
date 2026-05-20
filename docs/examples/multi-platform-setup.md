@@ -8,7 +8,7 @@
 |------|------|---------------|--------------|------|
 | **Claude** | ✅ 已启用 | 16 | husan | Claude Code AI Assistant |
 | **Codex** | ✅ 已启用 | 3 | default | Codex CLI |
-| **Gemini** | ✅ 已启用 | 6 | google | Google Gemini CLI |
+| **Antigravity CLI** | ✅ 已启用 | 6 | google | Google Antigravity CLI（内部 key: gemini） |
 | **Qwen** | ⏸️ 未启用 | 0 | - | Alibaba Qwen CLI (计划中) |
 
 ### 目录结构
@@ -48,7 +48,7 @@ ccr platform list
 ╞════════╪══════════╪══════╪══════════════╪══════════════════════════╡
 │ ▶ 当前 ┆ claude   ┆ ✓    ┆ husan        ┆ Claude Code AI Assistant │
 │        ┆ codex    ┆ ✓    ┆ default      ┆ Codex CLI                │
-│        ┆ gemini   ┆ ✓    ┆ google       ┆ Google Gemini CLI        │
+│        ┆ gemini   ┆ ✓    ┆ google       ┆ Antigravity CLI          │
 └────────┴──────────┴──────┴──────────────┴──────────────────────────┘
 ```
 
@@ -58,7 +58,7 @@ ccr platform list
 # 切换到 Codex CLI
 ccr platform switch codex
 
-# 切换到 Gemini
+# 切换到 Antigravity CLI（内部 key 仍为 gemini）
 ccr platform switch gemini
 
 # 切换回 Claude
@@ -126,7 +126,7 @@ ccr current
 **默认配置**: default
 **当前配置**: default
 
-## ✨ Gemini 平台配置 (6 Profiles)
+## ✨ Antigravity CLI 平台配置 (6 Profiles，内部 key: gemini)
 
 | Profile | 描述 | Model | Provider |
 |---------|------|-------|----------|
@@ -175,7 +175,7 @@ ccr switch siliconflow
 ccr platform switch codex
 ccr current
 
-# 切换到 Google Gemini
+# 切换到 Antigravity CLI / Google Gemini API
 ccr platform switch gemini
 ccr current
 
@@ -220,7 +220,7 @@ last_used = "2025-10-25T15:23:43.182209794+00:00"
 [gemini]
 enabled = true
 current_profile = "google"
-description = "Google Gemini CLI"
+description = "Antigravity CLI (legacy key: gemini)"
 last_used = "2025-10-25T15:18:58.727924189+00:00"
 ```
 
@@ -348,7 +348,7 @@ provider = "Google"
 - OpenAI 官方：default
 - 中转站配置：duckcoding、88code 等
 
-**Gemini Platform**:
+**Antigravity CLI (`gemini` key)**:
 - Google 官方：google
 - 测试配置：profile-1, profile-2, etc.
 
@@ -437,7 +437,7 @@ ccr list
 - 第三方模型: 4 个 (15%)
 - 测试配置: 11 个 (41%)
 
-**活跃平台**: 3 个 (Claude, Codex, Gemini)
+**活跃平台**: 3 个 (Claude, Codex, Antigravity/Gemini key)
 **计划平台**: 1 个 (Qwen)
 
 ## 🎉 总结

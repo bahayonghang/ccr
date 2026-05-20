@@ -238,7 +238,9 @@
               />
               <div>
                 <strong>{{ t('commands.clientUnavailableTitle') }}</strong>
-                <p>{{ t('commands.clientUnavailableDescription', { client: selectedClientLabel }) }}</p>
+                <p>
+                  {{ t('commands.clientUnavailableDescription', { client: selectedClientLabel }) }}
+                </p>
               </div>
             </div>
 
@@ -262,8 +264,7 @@
               </div>
               <div class="command-preview__body">
                 <span class="command-preview__prompt">➜</span>
-                <span class="command-preview__binary">{{ commandBinary }}</span>
-                <span class="command-preview__command">{{ selectedCommand || '<command>' }}</span>
+                <span class="command-preview__binary">{{ commandPreview }}</span>
                 <span
                   v-if="args.trim()"
                   class="command-preview__args"
@@ -295,7 +296,11 @@
                   v-model="args"
                   type="text"
                   :disabled="!canEditArgs"
-                  :placeholder="selectedCommandInfo?.requiresArgs ? t('commands.requiredArgsPlaceholder') : t('commands.argsPlaceholder')"
+                  :placeholder="
+                    selectedCommandInfo?.requiresArgs
+                      ? t('commands.requiredArgsPlaceholder')
+                      : t('commands.argsPlaceholder')
+                  "
                   @keydown.enter="canExecuteSelected && handleExecute()"
                 >
               </label>
@@ -363,9 +368,14 @@
               v-if="currentSnapshot"
               class="commands-ledger__meta"
             >
-              <span>{{ t('commands.jobStatus') }} <strong :class="statusClass(currentSnapshot.status)">{{ statusLabel(currentSnapshot.status) }}</strong></span>
-              <span>{{ t('commands.duration') }} <strong>{{ formatDuration(currentSnapshot.duration_ms) }}</strong></span>
-              <span>{{ t('commands.exitCode') }} <strong>{{ currentSnapshot.exit_code ?? '—' }}</strong></span>
+              <span>{{ t('commands.jobStatus') }}
+                <strong :class="statusClass(currentSnapshot.status)">{{
+                  statusLabel(currentSnapshot.status)
+                }}</strong></span>
+              <span>{{ t('commands.duration') }}
+                <strong>{{ formatDuration(currentSnapshot.duration_ms) }}</strong></span>
+              <span>{{ t('commands.exitCode') }}
+                <strong>{{ currentSnapshot.exit_code ?? '—' }}</strong></span>
               <span>{{ t('commands.linesCount', { count: outputLineCount }) }}</span>
             </div>
 
@@ -455,12 +465,32 @@ const runtimeCopy = computed(() => getRuntimeUnavailableCopy('commands'))
 const CLI_CLIENTS: CommandClient[] = [
   { id: 'ccr', name: 'CCR', icon: 'Zap', executable: true },
   { id: 'claude', name: 'Claude Code', icon: 'Code2', executable: false },
-  { id: 'gemini', name: 'Gemini', icon: 'Gem', executable: false },
+  { id: 'gemini', name: 'Antigravity CLI', icon: 'Sparkles', executable: false },
 ]
 
 const dangerousCommands = new Set(['delete', 'import', 'restore'])
-const writeCommands = new Set(['switch', 'add', 'delete', 'rename', 'duplicate', 'import', 'backup', 'restore'])
-const argsCommands = new Set(['switch', 'add', 'delete', 'rename', 'duplicate', 'show', 'export', 'import', 'restore', 'diff'])
+const writeCommands = new Set([
+  'switch',
+  'add',
+  'delete',
+  'rename',
+  'duplicate',
+  'import',
+  'backup',
+  'restore',
+])
+const argsCommands = new Set([
+  'switch',
+  'add',
+  'delete',
+  'rename',
+  'duplicate',
+  'show',
+  'export',
+  'import',
+  'restore',
+  'diff',
+])
 const allowedCommands = new Set([
   'list',
   'switch',
@@ -494,26 +524,93 @@ const unlisteners: UnlistenFn[] = []
 
 const fallbackCommandRegistry: Record<CliClient, CommandInfo[]> = {
   ccr: [
-    { name: 'status', description: 'Inspect current CCR status.', usage: 'ccr status', examples: ['ccr status'], category: 'read' },
-    { name: 'switch', description: 'Switch to a saved CCR configuration.', usage: 'ccr switch <name>', examples: ['ccr switch default'], category: 'write' },
-    { name: 'version', description: 'Inspect the installed CCR version.', usage: 'ccr version', examples: ['ccr version'], category: 'read' },
+    {
+      name: 'status',
+      description: 'Inspect current CCR status.',
+      usage: 'ccr status',
+      examples: ['ccr status'],
+      category: 'read',
+    },
+    {
+      name: 'switch',
+      description: 'Switch to a saved CCR configuration.',
+      usage: 'ccr switch <name>',
+      examples: ['ccr switch default'],
+      category: 'write',
+    },
+    {
+      name: 'version',
+      description: 'Inspect the installed CCR version.',
+      usage: 'ccr version',
+      examples: ['ccr version'],
+      category: 'read',
+    },
   ],
   claude: [
-    { name: 'help', description: 'Preview only. Claude Code execution is not wired to the CCR whitelist.', usage: 'claude --help', examples: ['claude --help'], category: 'blocked' },
-    { name: 'version', description: 'Preview only. Claude Code execution is not wired to the CCR whitelist.', usage: 'claude --version', examples: ['claude --version'], category: 'blocked' },
+    {
+      name: 'help',
+      description: 'Preview only. Claude Code execution is not wired to the CCR whitelist.',
+      usage: 'claude --help',
+      examples: ['claude --help'],
+      category: 'blocked',
+    },
+    {
+      name: 'version',
+      description: 'Preview only. Claude Code execution is not wired to the CCR whitelist.',
+      usage: 'claude --version',
+      examples: ['claude --version'],
+      category: 'blocked',
+    },
   ],
   gemini: [
-    { name: 'help', description: 'Preview only. Gemini execution is not wired to the CCR whitelist.', usage: 'gemini --help', examples: ['gemini --help'], category: 'blocked' },
-    { name: 'version', description: 'Preview only. Gemini execution is not wired to the CCR whitelist.', usage: 'gemini --version', examples: ['gemini --version'], category: 'blocked' },
+    {
+      name: 'help',
+      description: 'Preview only. Antigravity CLI execution is not wired to the CCR whitelist.',
+      usage: 'agy --help',
+      examples: ['agy --help'],
+      category: 'blocked',
+    },
+    {
+      name: 'version',
+      description: 'Preview only. Antigravity CLI execution is not wired to the CCR whitelist.',
+      usage: 'agy --version',
+      examples: ['agy --version'],
+      category: 'blocked',
+    },
+    {
+      name: 'plugin-import-gemini',
+      description: 'Preview only. Antigravity migration import is not wired to the CCR whitelist.',
+      usage: 'agy plugin import gemini',
+      examples: ['agy plugin import gemini'],
+      category: 'blocked',
+    },
   ],
 }
 
-const selectedClientInfo = computed(() => CLI_CLIENTS.find((client) => client.id === selectedClient.value) ?? CLI_CLIENTS[0])
+const selectedClientInfo = computed(
+  () => CLI_CLIENTS.find((client) => client.id === selectedClient.value) ?? CLI_CLIENTS[0]
+)
 const selectedClientLabel = computed(() => selectedClientInfo.value.name)
-const commandBinary = computed(() => selectedClient.value)
-const selectedCommandInfo = computed(() => commands.value.find((command) => command.name === selectedCommand.value))
-const executableCommandCount = computed(() => commands.value.filter((command) => command.executable).length)
-const isRunning = computed(() => currentSnapshot.value?.status === 'queued' || currentSnapshot.value?.status === 'running')
+const selectedCommandInfo = computed(() =>
+  commands.value.find((command) => command.name === selectedCommand.value)
+)
+const commandPreview = computed(() => {
+  const command = selectedCommandInfo.value
+  if (!command)
+    return selectedClient.value === 'gemini' ? 'agy <command>' : `${selectedClient.value} <command>`
+
+  const usage = command.usage?.trim()
+  if (usage) return usage
+
+  const binary = selectedClient.value === 'gemini' ? 'agy' : selectedClient.value
+  return `${binary} ${command.name}`
+})
+const executableCommandCount = computed(
+  () => commands.value.filter((command) => command.executable).length
+)
+const isRunning = computed(
+  () => currentSnapshot.value?.status === 'queued' || currentSnapshot.value?.status === 'running'
+)
 const canRun = computed(() => !runtimeUnavailable.value && selectedClient.value === 'ccr')
 const readinessLabel = computed(() => {
   if (runtimeUnavailable.value) return t('commands.runtimeWeb')
@@ -521,7 +618,9 @@ const readinessLabel = computed(() => {
   if (isRunning.value) return t('commands.runtimeRunning')
   return t('commands.runtimeReady')
 })
-const canEditArgs = computed(() => canRun.value && Boolean(selectedCommandInfo.value?.executable) && !isRunning.value)
+const canEditArgs = computed(
+  () => canRun.value && Boolean(selectedCommandInfo.value?.executable) && !isRunning.value
+)
 const canExecuteSelected = computed(() => {
   const command = selectedCommandInfo.value
   if (!canEditArgs.value || !command) return false
@@ -531,17 +630,21 @@ const canExecuteSelected = computed(() => {
 })
 
 const categoryTabs = computed(() => {
-  const categories = Array.from(new Set(commands.value.map((command) => command.category || 'other')))
+  const categories = Array.from(
+    new Set(commands.value.map((command) => command.category || 'other'))
+  )
   return ['all', ...categories]
 })
 
 const filteredCommands = computed(() => {
   const query = searchQuery.value.trim().toLowerCase()
   return commands.value.filter((command) => {
-    const matchesCategory = activeCategory.value === 'all' || command.category === activeCategory.value
-    const matchesQuery = !query
-      || command.name.toLowerCase().includes(query)
-      || command.description.toLowerCase().includes(query)
+    const matchesCategory =
+      activeCategory.value === 'all' || command.category === activeCategory.value
+    const matchesQuery =
+      !query ||
+      command.name.toLowerCase().includes(query) ||
+      command.description.toLowerCase().includes(query)
     return matchesCategory && matchesQuery
   })
 })
@@ -557,7 +660,8 @@ const hasLedgerOutput = computed(() => outputLineCount.value > 0)
 const ledgerLines = computed(() => {
   const snapshot = currentSnapshot.value
   if (!snapshot) return []
-  const build = (channel: LedgerChannel, lines: string[]) => lines.map((text, index) => ({ channel, text, index }))
+  const build = (channel: LedgerChannel, lines: string[]) =>
+    lines.map((text, index) => ({ channel, text, index }))
   return [
     ...build('system', snapshot.system_lines),
     ...build('stdout', snapshot.stdout_lines),
@@ -583,15 +687,21 @@ const readinessCards = computed(() => [
     tone: runtimeUnavailable.value ? 'warning' : 'success',
     label: t('commands.cardRuntimeLabel'),
     value: runtimeUnavailable.value ? t('commands.runtimeWeb') : t('commands.runtimeDesktop'),
-    detail: runtimeUnavailable.value ? t('commands.cardRuntimeWebDetail') : t('commands.cardRuntimeDesktopDetail'),
+    detail: runtimeUnavailable.value
+      ? t('commands.cardRuntimeWebDetail')
+      : t('commands.cardRuntimeDesktopDetail'),
   },
   {
     key: 'job',
     icon: isRunning.value ? 'Loader2' : 'Clock',
     tone: isRunning.value ? 'info' : 'neutral',
     label: t('commands.cardJobLabel'),
-    value: currentSnapshot.value ? statusLabel(currentSnapshot.value.status) : t('commands.cardJobIdle'),
-    detail: currentSnapshot.value ? `ccr ${currentSnapshot.value.command}` : t('commands.cardJobIdleDetail'),
+    value: currentSnapshot.value
+      ? statusLabel(currentSnapshot.value.status)
+      : t('commands.cardJobIdle'),
+    detail: currentSnapshot.value
+      ? `ccr ${currentSnapshot.value.command}`
+      : t('commands.cardJobIdleDetail'),
   },
   {
     key: 'trust',
@@ -610,9 +720,10 @@ const normalizeCommand = (command: CommandInfo, client: CliClient): CommandUiInf
   const readOnly = !writeCommands.has(name)
   const category = command.category || (dangerous ? 'danger' : readOnly ? 'read' : 'write')
   const clientLabel = CLI_CLIENTS.find((item) => item.id === client)?.name ?? client
-  const description = client === 'ccr'
-    ? t(`commands.catalog.${name}`)
-    : t('commands.clientPreviewCommandDescription', { client: clientLabel })
+  const description =
+    client === 'ccr'
+      ? t(`commands.catalog.${name}`)
+      : t('commands.clientPreviewCommandDescription', { client: clientLabel })
   return {
     ...command,
     description,
@@ -628,7 +739,10 @@ const normalizeCommand = (command: CommandInfo, client: CliClient): CommandUiInf
 
 const applyCommandList = (client: CliClient, list = fallbackCommandRegistry[client]) => {
   commands.value = list.map((command) => normalizeCommand(command, client))
-  if (!selectedCommand.value || !commands.value.some((command) => command.name === selectedCommand.value)) {
+  if (
+    !selectedCommand.value ||
+    !commands.value.some((command) => command.name === selectedCommand.value)
+  ) {
     selectedCommand.value = commands.value[0]?.name ?? ''
   }
   if (!categoryTabs.value.includes(activeCategory.value)) {
@@ -638,10 +752,7 @@ const applyCommandList = (client: CliClient, list = fallbackCommandRegistry[clie
 
 const loadConfigs = async () => {
   if (runtimeUnavailable.value) {
-    configs.value = [
-      { name: 'default' } as ConfigItem,
-      { name: 'workspace' } as ConfigItem,
-    ]
+    configs.value = [{ name: 'default' } as ConfigItem, { name: 'workspace' } as ConfigItem]
     return
   }
 
@@ -704,7 +815,7 @@ watch(
     if (client && client !== selectedClient.value) {
       selectedClient.value = client
     }
-  },
+  }
 )
 
 watch(selectedClient, () => {
@@ -733,10 +844,11 @@ const setSelectedCommand = (command: string) => {
   selectedCommand.value = command
 }
 
-const splitArgs = (value: string): string[] => value
-  .split(' ')
-  .map((arg) => arg.trim())
-  .filter((arg) => arg.length > 0)
+const splitArgs = (value: string): string[] =>
+  value
+    .split(' ')
+    .map((arg) => arg.trim())
+    .filter((arg) => arg.length > 0)
 
 const handleExecute = async () => {
   if (!canExecuteSelected.value || !selectedCommandInfo.value) return
@@ -823,7 +935,7 @@ const badgeLabel = (badge: CommandBadge) => {
 }
 
 const statusClass = (status: CommandJobStatus) => `commands-status--${status}`
-const formatDuration = (duration?: number | null) => duration == null ? '—' : `${duration}ms`
+const formatDuration = (duration?: number | null) => (duration == null ? '—' : `${duration}ms`)
 </script>
 
 <style scoped>

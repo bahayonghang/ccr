@@ -1,4 +1,4 @@
-// Gemini CLI configuration type definitions
+// Antigravity CLI configuration type definitions (legacy key: gemini)
 
 // ============ Gemini MCP Server Types ============
 

@@ -700,7 +700,7 @@ impl SettingsManager {
     /// 支持的平台:
     /// - claude: ~/.claude/settings.json
     /// - codex: ~/.ccr/platforms/codex/settings.json (unified mode)
-    /// - gemini: ~/.ccr/platforms/gemini/settings.json (unified mode)
+    /// - gemini: ~/.gemini/antigravity-cli/settings.json (Antigravity CLI; internal key remains gemini)
     ///
     /// 参数:
     /// - platform_name: 平台名称 ("claude", "codex", "gemini" 等)
@@ -762,6 +762,19 @@ impl SettingsManager {
                     home.join(".claude").join("backups"),
                 ));
             }
+        }
+
+        if matches!(
+            platform_name,
+            "gemini" | "gemini-cli" | "antigravity" | "antigravity-cli" | "agy"
+        ) {
+            let home = dirs::home_dir()
+                .ok_or_else(|| CcrError::SettingsError("无法获取用户主目录".into()))?;
+            let platform_dir = home.join(".gemini").join("antigravity-cli");
+            return Ok((
+                platform_dir.join("settings.json"),
+                platform_dir.join("backups"),
+            ));
         }
 
         // 其他平台都使用统一模式路径
@@ -1106,6 +1119,16 @@ mod tests {
             loaded.env.get("ANTHROPIC_BASE_URL"),
             Some(&"https://api.test.com".to_string())
         );
+    }
+
+    #[test]
+    fn test_gemini_platform_paths_use_antigravity_cli_dir() {
+        let (settings_path, backup_dir) = SettingsManager::get_platform_paths("gemini").unwrap();
+        let settings = settings_path.to_string_lossy().replace('\\', "/");
+        let backups = backup_dir.to_string_lossy().replace('\\', "/");
+
+        assert!(settings.ends_with(".gemini/antigravity-cli/settings.json"));
+        assert!(backups.ends_with(".gemini/antigravity-cli/backups"));
     }
 
     #[test]

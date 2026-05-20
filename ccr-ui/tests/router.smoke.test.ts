@@ -7,7 +7,11 @@ describe('router smoke', () => {
       'home',
       'settings',
       'codex',
+      'antigravity',
       'gemini-mcp',
+      'gemini-agents',
+      'gemini-slash-commands',
+      'gemini-plugins',
       'usage',
       'monitoring',
       'mcp',
@@ -27,20 +31,42 @@ describe('router smoke', () => {
   })
 
   it('keeps /stats redirected to /usage', () => {
-    const statsRoute = router.getRoutes().find(route => route.path === '/stats')
+    const statsRoute = router.getRoutes().find((route) => route.path === '/stats')
 
     expect(statsRoute?.redirect).toBe('/usage')
   })
 
+  it('keeps legacy Gemini CLI routes redirected to Antigravity', () => {
+    const homeRoute = router.getRoutes().find((route) => route.path === '/gemini-cli')
+    const mcpRoute = router.getRoutes().find((route) => route.path === '/gemini-cli/mcp')
+    const commandsRoute = router
+      .getRoutes()
+      .find((route) => route.path === '/gemini-cli/slash-commands')
+    const agentsRoute = router.getRoutes().find((route) => route.path === '/gemini-cli/agents')
+    const pluginsRoute = router.getRoutes().find((route) => route.path === '/gemini-cli/plugins')
+
+    expect(homeRoute?.redirect).toBe('/antigravity')
+    expect(mcpRoute?.redirect).toBe('/antigravity/mcp')
+    expect(commandsRoute?.redirect).toBe('/antigravity/slash-commands')
+    expect(agentsRoute?.redirect).toBe('/antigravity/agents')
+    expect(pluginsRoute?.redirect).toBe('/antigravity/plugins')
+  })
+
   it('redirects skills legacy entrypoints to the migration bridge', () => {
-    const skillsRoute = router.getRoutes().find(route => route.path === '/skills')
-    const marketRoute = router.getRoutes().find(route => route.path === '/market')
-    const skillsAddRoute = router.getRoutes().find(route => route.path === '/skills/add')
-    const skillsHubRoute = router.getRoutes().find(route => route.path === '/skills/hub')
-    const skillsDetailRoute = router.getRoutes().find(route => route.path === '/skills/:platform/:name')
-    const skillsManagerRoute = router.getRoutes().find(route => route.path === '/skills-manager')
-    const skillportManagerRoute = router.getRoutes().find(route => route.path === '/skillport-manager')
-    const opencodeSkillsRoute = router.getRoutes().find(route => route.path === '/opencode/skills')
+    const skillsRoute = router.getRoutes().find((route) => route.path === '/skills')
+    const marketRoute = router.getRoutes().find((route) => route.path === '/market')
+    const skillsAddRoute = router.getRoutes().find((route) => route.path === '/skills/add')
+    const skillsHubRoute = router.getRoutes().find((route) => route.path === '/skills/hub')
+    const skillsDetailRoute = router
+      .getRoutes()
+      .find((route) => route.path === '/skills/:platform/:name')
+    const skillsManagerRoute = router.getRoutes().find((route) => route.path === '/skills-manager')
+    const skillportManagerRoute = router
+      .getRoutes()
+      .find((route) => route.path === '/skillport-manager')
+    const opencodeSkillsRoute = router
+      .getRoutes()
+      .find((route) => route.path === '/opencode/skills')
 
     expect(skillsRoute?.redirect).toBeUndefined()
     expect(marketRoute?.redirect).toBe('/skills')
@@ -55,7 +81,10 @@ describe('router smoke', () => {
   it('preserves generated platform child route paths', () => {
     const routePaths = router.getRoutes().map((route) => route.path)
 
-    expect(routePaths).toContain('/gemini-cli/mcp')
+    expect(routePaths).toContain('/antigravity/mcp')
+    expect(routePaths).toContain('/antigravity/agents')
+    expect(routePaths).toContain('/antigravity/slash-commands')
+    expect(routePaths).toContain('/antigravity/plugins')
     expect(routePaths).not.toContain('/droid')
     expect(routePaths).not.toContain('/droid/mcp')
   })
@@ -70,6 +99,7 @@ describe('router smoke', () => {
   it('hides the global background on routes with page-level decorative backgrounds', () => {
     const routeNames = [
       'claude-code',
+      'antigravity',
       'gemini-cli',
       'sync',
       'configs',

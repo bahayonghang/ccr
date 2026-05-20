@@ -12,9 +12,10 @@
 - 主平台页
 - MCP、profiles、slash commands、auth、settings
 
-### Gemini CLI
-- 主平台页
+### Antigravity CLI
+- 主平台页（新路由 `/antigravity`，旧 `/gemini-cli` 保留兼容）
 - MCP、agents、slash commands、plugins
+- MCP 写入 `~/.gemini/antigravity-cli/mcp_config.json`，workspace 优先 `.agents/*`；session/log import 等上游格式确认后再声明支持
 
 ### Factory Droid
 - 主平台页

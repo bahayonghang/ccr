@@ -646,7 +646,7 @@ const { t } = useI18n({ useScope: 'global' })
 const CLI_DEFINITIONS: { value: CliType; label: string; descriptionKey: string }[] = [
   { value: 'claude-code', label: 'Claude Code', descriptionKey: 'converter.formatDescriptions.claudeCode' },
   { value: 'codex', label: 'Codex', descriptionKey: 'converter.formatDescriptions.codex' },
-  { value: 'gemini', label: 'Gemini', descriptionKey: 'converter.formatDescriptions.gemini' },
+  { value: 'gemini', label: 'Antigravity CLI', descriptionKey: 'converter.formatDescriptions.gemini' },
 ]
 
 const cliTypes = computed(() =>

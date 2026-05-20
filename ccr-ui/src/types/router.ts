@@ -1,6 +1,7 @@
 // Router parameter type definitions for CCR UI
 
-// CLI client type
+// CLI client type. The persisted Antigravity/Gemini client id remains
+// `gemini` so command bookmarks and usage keys stay compatible.
 export type CliClient = 'ccr' | 'claude' | 'gemini'
 
 // Route parameter interfaces
@@ -34,7 +35,7 @@ export function extractStringParam(param: string | string[] | undefined): string
 
 /**
  * Normalize CLI client parameter from route.
- * Handles 'claude-code' -> 'claude' alias and validates client type.
+ * Handles legacy/platform aliases and validates client type.
  * @param clientParam - The route parameter value
  * @returns The normalized CliClient or null if invalid
  */
@@ -43,9 +44,19 @@ export function normalizeCliClient(clientParam: string | string[] | undefined): 
   if (!client) return null
 
   // Handle alias
-  if (client === 'claude-code') return 'claude'
+  const normalized = client.toLowerCase()
+
+  if (normalized === 'claude-code') return 'claude'
+  if (
+    normalized === 'agy' ||
+    normalized === 'antigravity' ||
+    normalized === 'antigravity-cli' ||
+    normalized === 'gemini-cli'
+  ) {
+    return 'gemini'
+  }
 
   // Validate
   const validClients: CliClient[] = ['ccr', 'claude', 'gemini']
-  return validClients.includes(client as CliClient) ? (client as CliClient) : null
+  return validClients.includes(normalized as CliClient) ? (normalized as CliClient) : null
 }

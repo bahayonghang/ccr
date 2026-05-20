@@ -16,17 +16,21 @@ pub struct PromptsManager {
     platform_dir: PathBuf,
 }
 
+fn platform_prompt_dir(home: &std::path::Path, platform: Platform) -> PathBuf {
+    match platform {
+        Platform::Claude => home.join(".claude"),
+        Platform::Codex => home.join(".codex"),
+        Platform::Gemini => home.join(".gemini").join("antigravity-cli"),
+        p => home.join(".ccr").join("platforms").join(p.short_name()),
+    }
+}
+
 impl PromptsManager {
     pub fn new(platform: Platform) -> Result<Self> {
         let home = dirs::home_dir()
             .ok_or_else(|| CcrError::ConfigError("Cannot find home directory".into()))?;
 
-        let platform_dir = match platform {
-            Platform::Claude => home.join(".claude"),
-            Platform::Codex => home.join(".codex"),
-            Platform::Gemini => home.join(".gemini"),
-            p => home.join(".ccr").join("platforms").join(p.short_name()),
-        };
+        let platform_dir = platform_prompt_dir(&home, platform);
 
         let config_path = home
             .join(".ccr")
@@ -133,5 +137,20 @@ impl PromptsManager {
         }
 
         fs::read_to_string(&target_file).map_err(CcrError::IoError)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::path::Path;
+
+    #[test]
+    fn gemini_prompt_dir_uses_antigravity_cli() {
+        let dir = platform_prompt_dir(Path::new("/home/test"), Platform::Gemini)
+            .to_string_lossy()
+            .replace('\\', "/");
+
+        assert_eq!(dir, "/home/test/.gemini/antigravity-cli");
     }
 }

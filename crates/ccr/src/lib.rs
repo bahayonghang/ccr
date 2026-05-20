@@ -6,7 +6,7 @@
 //!
 //! - **Claude Code**: Anthropic 官方 CLI ([`platforms::ClaudePlatform`])
 //! - **Codex**: Codex CLI ([`platforms::CodexPlatform`])
-//! - **Gemini**: Google Gemini CLI ([`platforms::GeminiPlatform`])
+//! - **Gemini**: Antigravity CLI（内部 key 保持 `gemini`）([`platforms::GeminiPlatform`])
 //! - **Qwen**: 阿里通义千问 CLI (计划中)
 //!
 //! ## 核心特性

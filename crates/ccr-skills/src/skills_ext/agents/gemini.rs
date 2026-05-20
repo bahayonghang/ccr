@@ -1,5 +1,9 @@
-//! Gemini CLI agent locator。
-//! 约定路径：`~/.gemini/skills` (全局)。
+//! Antigravity CLI agent locator。
+//!
+//! Internal agent id remains `gemini` for CCR compatibility. Antigravity uses
+//! `.agents/skills` in workspaces and `~/.gemini/antigravity-cli/skills`
+//! globally, while older `~/.gemini/skills` remains readable as a legacy/shared
+//! source.
 
 use std::path::{Path, PathBuf};
 
@@ -13,7 +17,7 @@ impl AgentLocator for GeminiLocator {
     }
 
     fn display_name(&self) -> &'static str {
-        "Gemini CLI"
+        "Antigravity CLI"
     }
 
     fn icon(&self) -> &'static str {
@@ -21,10 +25,13 @@ impl AgentLocator for GeminiLocator {
     }
 
     fn global_paths(&self, home: &Path) -> Vec<PathBuf> {
-        vec![home.join(".gemini").join("skills")]
+        vec![
+            home.join(".gemini").join("antigravity-cli").join("skills"),
+            home.join(".gemini").join("skills"),
+        ]
     }
 
-    fn project_paths(&self, _project_root: &Path) -> Vec<PathBuf> {
-        Vec::new()
+    fn project_paths(&self, project_root: &Path) -> Vec<PathBuf> {
+        vec![project_root.join(".agents").join("skills")]
     }
 }

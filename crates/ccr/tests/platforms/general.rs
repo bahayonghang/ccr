@@ -80,7 +80,7 @@ fn test_platform_implemented() {
 fn test_platform_display_name() {
     assert_eq!(Platform::Claude.display_name(), "Claude Code");
     assert_eq!(Platform::Codex.display_name(), "Codex");
-    assert_eq!(Platform::Gemini.display_name(), "Gemini CLI");
+    assert_eq!(Platform::Gemini.display_name(), "Antigravity CLI");
     assert_eq!(Platform::Qwen.display_name(), "Qwen CLI");
 }
 

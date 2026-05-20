@@ -1,9 +1,9 @@
-// ✨ Gemini Platform 实现
-// 📦 Google Gemini CLI 平台配置管理
+// ✨ Antigravity Platform 实现 (legacy key: gemini)
+// 📦 Google Antigravity CLI 平台配置管理
 //
 // 核心职责:
-// - 📋 管理 Gemini profiles
-// - ⚙️ 操作 Gemini settings.json
+// - 📋 管理 Antigravity profiles（CCR 内部 platform key 仍为 gemini）
+// - ⚙️ 操作 Antigravity settings.json
 // - 🔐 验证 Google API key 格式
 // - 💾 仅支持 Unified 模式
 
@@ -16,24 +16,25 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
 
-/// Gemini字段提取结果: (api_key, region, language, context_length)
+/// Antigravity 字段提取结果: (api_key, project_id, region, api_version)
 type GeminiFields = (String, Option<String>, Option<String>, Option<String>);
 
-/// ✨ Gemini Platform 实现
+/// ✨ Antigravity Platform 实现
 ///
 /// ## 配置文件
 /// - Profiles: `~/.ccr/platforms/gemini/profiles.toml`
-/// - Settings: `~/.ccr/platforms/gemini/settings.json`
+/// - Settings: `~/.gemini/antigravity-cli/settings.json`
 ///
 /// ## Google API Key 格式
 /// Google API keys 通常以 `AIza` 开头
 pub struct GeminiPlatform {
     paths: PlatformPaths,
+    settings_path: PathBuf,
 }
 
-/// ✨ Gemini 设置结构
+/// ✨ Antigravity 设置结构
 ///
-/// Gemini settings.json 格式
+/// Antigravity settings.json 格式
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GeminiSettings {
     /// Google 配置
@@ -60,10 +61,24 @@ pub struct GoogleConfig {
 }
 
 impl GeminiPlatform {
-    /// 🏗️ 创建新的 Gemini Platform 实例
+    /// 🏗️ 创建新的 Antigravity Platform 实例
     pub fn new() -> Result<Self> {
         let paths = PlatformPaths::new(Platform::Gemini)?;
-        Ok(Self { paths })
+        let settings_path = Self::default_settings_path()?;
+        Ok(Self {
+            paths,
+            settings_path,
+        })
+    }
+
+    fn default_cli_dir() -> Result<PathBuf> {
+        let home =
+            dirs::home_dir().ok_or_else(|| CcrError::ConfigError("无法获取用户主目录".into()))?;
+        Ok(home.join(".gemini").join("antigravity-cli"))
+    }
+
+    fn default_settings_path() -> Result<PathBuf> {
+        Ok(Self::default_cli_dir()?.join("settings.json"))
     }
 
     /// 📋 从 TOML 文件加载 profiles
@@ -76,38 +91,47 @@ impl GeminiPlatform {
         base::save_profiles_to_toml(&self.paths.profiles_file, profiles, "gemini", &self.paths)
     }
 
-    /// 📖 加载 Gemini settings
+    /// 📖 加载 Antigravity settings
     #[expect(dead_code)]
     fn load_settings(&self) -> Result<GeminiSettings> {
-        if !self.paths.settings_file.exists() {
+        if !self.settings_path.exists() {
             return Err(CcrError::SettingsMissing(
-                self.paths.settings_file.display().to_string(),
+                self.settings_path.display().to_string(),
             ));
         }
 
-        let content = fs::read_to_string(&self.paths.settings_file)
-            .map_err(|e| CcrError::SettingsError(format!("读取 Gemini 设置失败: {}", e)))?;
+        let content = fs::read_to_string(&self.settings_path)
+            .map_err(|e| CcrError::SettingsError(format!("读取 Antigravity 设置失败: {}", e)))?;
 
         let settings: GeminiSettings = serde_json::from_str(&content)
-            .map_err(|e| CcrError::SettingsError(format!("解析 Gemini 设置失败: {}", e)))?;
+            .map_err(|e| CcrError::SettingsError(format!("解析 Antigravity 设置失败: {}", e)))?;
 
         Ok(settings)
     }
 
-    /// 💾 保存 Gemini settings
+    /// 💾 保存 Antigravity settings
     fn save_settings(&self, settings: &GeminiSettings) -> Result<()> {
-        // 确保目录存在
         self.paths.ensure_directories()?;
+        Self::ensure_antigravity_dir(&self.settings_path)?;
 
         // 序列化为 JSON
         let content = serde_json::to_string_pretty(settings)
-            .map_err(|e| CcrError::SettingsError(format!("序列化 Gemini 设置失败: {}", e)))?;
+            .map_err(|e| CcrError::SettingsError(format!("序列化 Antigravity 设置失败: {}", e)))?;
 
         // 写入文件
-        fs::write(&self.paths.settings_file, content)
-            .map_err(|e| CcrError::SettingsError(format!("写入 Gemini 设置失败: {}", e)))?;
+        fs::write(&self.settings_path, content)
+            .map_err(|e| CcrError::SettingsError(format!("写入 Antigravity 设置失败: {}", e)))?;
 
-        tracing::info!("✅ 已保存 Gemini settings: {:?}", self.paths.settings_file);
+        tracing::info!("✅ 已保存 Antigravity settings: {:?}", self.settings_path);
+        Ok(())
+    }
+
+    fn ensure_antigravity_dir(settings_path: &std::path::Path) -> Result<()> {
+        if let Some(parent) = settings_path.parent() {
+            fs::create_dir_all(parent).map_err(|e| {
+                CcrError::SettingsError(format!("创建 Antigravity 设置目录失败: {}", e))
+            })?;
+        }
         Ok(())
     }
 
@@ -130,7 +154,7 @@ impl GeminiPlatform {
         Ok(())
     }
 
-    /// 📋 从 ProfileConfig 提取 Gemini 特定字段
+    /// 📋 从 ProfileConfig 提取 Antigravity 特定字段
     fn extract_gemini_fields(profile: &ProfileConfig) -> Result<GeminiFields> {
         let api_key = profile
             .auth_token
@@ -199,7 +223,7 @@ impl PlatformConfig for GeminiPlatform {
     }
 
     fn get_settings_path(&self) -> PathBuf {
-        self.paths.settings_file.clone()
+        self.settings_path.clone()
     }
 
     fn apply_profile(&self, name: &str) -> Result<()> {
@@ -212,7 +236,7 @@ impl PlatformConfig for GeminiPlatform {
         // 验证
         self.validate_profile(profile)?;
 
-        // 提取 Gemini 特定字段
+        // 提取 Antigravity 特定字段
         let (api_key, project_id, region, api_version) = Self::extract_gemini_fields(profile)?;
 
         // 构建 settings
@@ -231,14 +255,14 @@ impl PlatformConfig for GeminiPlatform {
         // 使用 base 模块更新注册表
         base::update_registry_current_profile("gemini", name)?;
 
-        tracing::info!("✅ 已应用 Gemini profile: {}", name);
+        tracing::info!("✅ 已应用 Antigravity profile: {}", name);
         Ok(())
     }
 
     fn validate_profile(&self, profile: &ProfileConfig) -> Result<()> {
         // 检查必需字段：API key
         let api_key = profile.auth_token.as_ref().ok_or_else(|| {
-            CcrError::ValidationError("Gemini profile 缺少 auth_token (API key)".into())
+            CcrError::ValidationError("Antigravity profile 缺少 auth_token (API key)".into())
         })?;
         Self::validate_api_key(api_key)?;
 
@@ -303,9 +327,20 @@ mod tests {
                     .get_settings_path()
                     .to_str()
                     .unwrap()
-                    .contains("gemini")
+                    .contains("antigravity-cli")
             );
         }
+    }
+
+    #[test]
+    fn test_default_settings_path_uses_antigravity_cli_dir() {
+        let path = GeminiPlatform::default_settings_path()
+            .unwrap()
+            .to_string_lossy()
+            .replace('\\', "/");
+
+        assert!(path.ends_with(".gemini/antigravity-cli/settings.json"));
+        assert!(!path.contains(".ccr/platforms/gemini/settings.json"));
     }
 
     #[test]
@@ -314,7 +349,7 @@ mod tests {
 
         // 有效的 profile
         let valid_profile = ProfileConfig {
-            description: Some("Google Gemini".to_string()),
+            description: Some("Google Antigravity".to_string()),
             base_url: None,
             auth_token: Some("AIzaSyDtWl5vKg1234567890abcdefgh".to_string()),
             model: Some("gemini-pro".to_string()),

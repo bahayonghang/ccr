@@ -116,9 +116,15 @@ const routes: RouteRecordRaw[] = [
         meta: { cache: true, cacheKey: 'CodexView', depth: 1, group: 'codex' },
       },
       {
+        path: 'antigravity',
+        name: 'antigravity',
+        component: () => import('@/views/GeminiCliView.vue'),
+        meta: { depth: 1, group: 'gemini', hideGlobalBackground: true },
+      },
+      {
         path: 'gemini-cli',
         name: 'gemini-cli',
-        component: () => import('@/views/GeminiCliView.vue'),
+        redirect: '/antigravity',
         meta: { depth: 1, group: 'gemini', hideGlobalBackground: true },
       },
       // 工具中心 (depth: 1, group: 'tools')
@@ -151,7 +157,13 @@ const routes: RouteRecordRaw[] = [
         path: 'configs',
         name: 'configs',
         component: () => import('@/views/ConfigsView.vue'),
-        meta: { cache: true, cacheKey: 'ConfigsView', depth: 1, group: 'config', hideGlobalBackground: true },
+        meta: {
+          cache: true,
+          cacheKey: 'ConfigsView',
+          depth: 1,
+          group: 'config',
+          hideGlobalBackground: true,
+        },
       },
       {
         path: 'stats',
@@ -174,7 +186,13 @@ const routes: RouteRecordRaw[] = [
         path: 'usage',
         name: 'usage',
         component: () => import('@/views/UsageDashboardView.vue'),
-        meta: { cache: true, cacheKey: 'UsageDashboardView', depth: 1, group: 'data', hideGlobalBackground: true },
+        meta: {
+          cache: true,
+          cacheKey: 'UsageDashboardView',
+          depth: 1,
+          group: 'data',
+          hideGlobalBackground: true,
+        },
       },
       {
         path: 'monitoring',
@@ -341,11 +359,31 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/CodexSettingsView.vue'),
         meta: { depth: 2, group: 'codex' },
       },
-      // Gemini CLI 子页面 (depth: 2, group: 'gemini')
+      // Antigravity CLI 子页面 (depth: 2, group: 'gemini')
       {
-        path: 'gemini-cli/slash-commands',
+        path: 'antigravity/slash-commands',
         name: 'gemini-slash-commands',
         component: () => import('@/views/GeminiSlashCommandsView.vue'),
+        meta: { depth: 2, group: 'gemini' },
+      },
+      {
+        path: 'gemini-cli/slash-commands',
+        redirect: '/antigravity/slash-commands',
+        meta: { depth: 2, group: 'gemini' },
+      },
+      {
+        path: 'gemini-cli/mcp',
+        redirect: '/antigravity/mcp',
+        meta: { depth: 2, group: 'gemini' },
+      },
+      {
+        path: 'gemini-cli/agents',
+        redirect: '/antigravity/agents',
+        meta: { depth: 2, group: 'gemini' },
+      },
+      {
+        path: 'gemini-cli/plugins',
+        redirect: '/antigravity/plugins',
         meta: { depth: 2, group: 'gemini' },
       },
       // OpenCode 子页面 (depth: 2, group: 'opencode')
@@ -452,14 +490,15 @@ if (perfEnabled) {
 
     if (navStartMs === null) return
 
-    const endMs = typeof performance !== 'undefined' && typeof performance.now === 'function'
-      ? performance.now()
-      : Date.now()
+    const endMs =
+      typeof performance !== 'undefined' && typeof performance.now === 'function'
+        ? performance.now()
+        : Date.now()
 
     recordRouteTiming(
       navFrom || (from.fullPath ?? String(from.path ?? '')),
       navTo || (to.fullPath ?? String(to.path ?? '')),
-      endMs - navStartMs,
+      endMs - navStartMs
     )
     navStartMs = null
     navFrom = ''
@@ -477,7 +516,7 @@ export default router
  * 此函数保证 cachedViews 来自路由单一事实源，不再依赖视图硬编码数组。
  */
 export function collectCachedComponentNames(
-  source: ReadonlyArray<RouteRecordRaw> = routes,
+  source: ReadonlyArray<RouteRecordRaw> = routes
 ): string[] {
   const names = new Set<string>()
   const walk = (records: ReadonlyArray<RouteRecordRaw>): void => {

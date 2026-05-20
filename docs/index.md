@@ -96,7 +96,7 @@ ccr validate
 |------|------|------|
 | Claude Code | ✅ Implemented | official auth + profile runtime 双路径 |
 | Codex | ✅ Implemented | auth、profile、sync-history 均已实现 |
-| Gemini CLI | ✅ Implemented | 保留在平台域与同步/数据域中 |
+| Antigravity CLI | ✅ Implemented | 内部 key 保持 `gemini`；旧 Gemini session import 保留兼容 |
 | Factory Droid | ✅ Implemented | 保留在 broader platform domain 中 |
 | Qwen CLI | 🚧 Reserved / Partial | 保留平台键与部分数据域支持 |
 

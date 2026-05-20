@@ -1,157 +1,74 @@
-# Gemini CLI Platform Guide
+# Antigravity CLI 平台指南
 
-## Overview
+## 概览
 
-Gemini CLI is Google's command-line interface for the Gemini AI model. CCR provides full support for managing Gemini configurations and profiles.
+CCR 继续把持久化平台 key 保持为 `gemini`，但面向用户的 Google CLI 集成现在指向 **Antigravity CLI**。这样可以保留既有 CCR profiles、历史记录、用量聚合、同步目录和 UI 书签，同时跟随 Google 从 Gemini CLI 迁移到 Antigravity CLI 的路径。
 
-## Platform Information
+官方迁移参考：
 
-- **Platform Name**: `gemini`
-- **Display Name**: Gemini CLI
-- **Icon**: ✨
-- **Status**: ✅ Fully Implemented
-- **Settings Path**: `~/.gemini/settings.json`
-- **Profiles Path**: `~/.ccr/platforms/gemini/profiles.toml`
+- Google Developers Blog: <https://developers.googleblog.com/an-important-update-transitioning-gemini-cli-to-antigravity-cli/>
+- Antigravity CLI Overview: <https://antigravity.google/docs/cli-overview>
+- Gemini CLI migration docs: <https://antigravity.google/docs/gcli-migration>
 
-## Prerequisites
+## 平台信息
 
-- Google Cloud account or Google AI Studio access
-- Google API Key for Gemini
-- Gemini CLI installed (if using settings synchronization)
+| 项目 | 值 |
+|------|----|
+| CCR platform key | `gemini` |
+| 显示名称 | Antigravity CLI |
+| 推荐二进制 | `agy` |
+| Profiles 文件 | `~/.ccr/platforms/gemini/profiles.toml` |
+| Antigravity settings | `~/.gemini/antigravity-cli/settings.json` |
+| Antigravity MCP 配置 | `~/.gemini/antigravity-cli/mcp_config.json` |
+| 全局 skills | `~/.gemini/antigravity-cli/skills` |
+| Gemini legacy/shared skills | `~/.gemini/skills` |
+| Workspace MCP | `.agents/mcp_config.json` |
+| Workspace skills | `.agents/skills` |
 
-## API Key Format
+旧 `/gemini-cli` UI 路由和 `gemini` platform key 会继续作为兼容入口保留。新文档和可见 UI 应优先使用 Antigravity CLI 与 `/antigravity` 路由。
 
-Gemini uses Google API Keys in the following format:
+## 前置条件
 
-```
-AIzaSyXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-```
+- 使用本地 CLI runtime 时，需要已安装 Antigravity CLI（`agy --help`、`agy --version`）。
+- 账号侧应具备合适的 Google API key、Enterprise / Standard / Google Cloud 或 paid API key 访问路径。
+- 既有 CCR `gemini` profiles 可以继续复用；不要把平台 key 重命名为 `antigravity`。
 
-**Characteristics:**
-- Starts with `AIzaSy`
-- 39 characters total
-- Alphanumeric characters
-
-**How to Generate:**
-
-### Option 1: Google AI Studio (Recommended for Quick Start)
-
-1. Go to [Google AI Studio](https://makersuite.google.com/app/apikey)
-2. Click "Get API key" or "Create API key"
-3. Select existing project or create new project
-4. Copy the generated API key
-
-### Option 2: Google Cloud Console (For Production)
-
-1. Go to [Google Cloud Console](https://console.cloud.google.com/)
-2. Navigate to "APIs & Services" → "Credentials"
-3. Click "Create Credentials" → "API key"
-4. Restrict the key (recommended):
-   - API restrictions: Select "Generative Language API"
-   - Application restrictions: Set IP or HTTP referrer restrictions
-5. Copy the API key
-
-## Quick Start
-
-### Initialize Gemini Platform
+## 快速开始
 
 ```bash
-# Initialize Gemini platform (creates directory structure)
+# 初始化兼容平台命名空间
 ccr platform init gemini
 
-# Switch to Gemini platform
+# 切换到 Google / Antigravity profile 命名空间
 ccr platform switch gemini
 
-# Verify current platform
-ccr platform current
-```
-
-### Add Your First Profile
-
-```bash
-# Interactive mode
+# 添加或编辑 profile
 ccr add
 
-# Follow prompts to enter:
-# - Profile name (e.g., "google-official")
-# - Description (optional)
-# - Base URL (default: https://generativelanguage.googleapis.com/v1beta)
-# - API Key (AIzaSy...)
-# - Model (default: gemini-pro)
+# 在 CCR 外验证本地 Antigravity CLI 二进制
+agy --version
 ```
 
-### Configuration Example
+Antigravity 官方迁移命令预览：
 
-Create a profile in `~/.ccr/platforms/gemini/profiles.toml`:
+```bash
+agy plugin import gemini
+```
+
+## Profile 配置
+
+CCR profiles 仍位于 `~/.ccr/platforms/gemini/profiles.toml`：
 
 ```toml
 [google-official]
-description = "Google AI Studio API"
+description = "Google Antigravity / Gemini API"
 base_url = "https://generativelanguage.googleapis.com/v1beta"
 auth_token = "AIzaSyXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
 model = "gemini-2.0-flash-exp"
 small_fast_model = "gemini-1.5-flash"
-
-[google-cloud]
-description = "Google Cloud Vertex AI"
-base_url = "https://us-central1-aiplatform.googleapis.com/v1"
-auth_token = "AIzaSyYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY"
-model = "gemini-2.0-flash-exp"
-small_fast_model = "gemini-1.5-flash"
-
-[gemini-pro]
-description = "Gemini Pro Model"
-base_url = "https://generativelanguage.googleapis.com/v1beta"
-auth_token = "AIzaSyZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZZ"
-model = "gemini-pro"
-small_fast_model = "gemini-pro"
 ```
 
-## Profile Management
-
-### List Profiles
-
-```bash
-# Switch to Gemini platform first
-ccr platform switch gemini
-
-# List all Gemini profiles
-ccr list
-```
-
-### Switch Between Profiles
-
-```bash
-# Switch to specific Gemini profile
-ccr switch google-official
-
-# Or use shorthand
-ccr google-official
-```
-
-### Update Profile
-
-```bash
-# Edit profiles.toml manually
-vim ~/.ccr/platforms/gemini/profiles.toml
-
-# Validate changes
-ccr validate
-```
-
-### Delete Profile
-
-```bash
-# Interactive deletion with confirmation
-ccr delete google-cloud
-
-# Force deletion (skip confirmation)
-ccr delete google-cloud --force
-```
-
-## Environment Variables
-
-When a Gemini profile is active, CCR manages these environment variables in `~/.gemini/settings.json`:
+profile 生效后，CCR 会把 Antigravity settings 写入 `~/.gemini/antigravity-cli/settings.json`：
 
 ```json
 {
@@ -164,426 +81,100 @@ When a Gemini profile is active, CCR manages these environment variables in `~/.
 }
 ```
 
-**Variable Mapping:**
-
-| TOML Field | Environment Variable | Description |
-|------------|---------------------|-------------|
+| TOML 字段 | 环境变量 | 说明 |
+|-----------|----------|------|
 | `base_url` | `GOOGLE_API_BASE_URL` | API endpoint |
-| `auth_token` | `GOOGLE_API_KEY` | Google API key (masked in logs) |
-| `model` | `GEMINI_MODEL` | Default model |
-| `small_fast_model` | `GEMINI_SMALL_FAST_MODEL` | Fast model (optional) |
+| `auth_token` | `GOOGLE_API_KEY` | Google API key，正常输出中会被掩码 |
+| `model` | `GEMINI_MODEL` | 默认模型 |
+| `small_fast_model` | `GEMINI_SMALL_FAST_MODEL` | 可选快速模型 |
 
-## Available Models
+## MCP、Skills 与 Workspace 路径
 
-### Gemini 2.0 Models (Latest, Recommended)
+Antigravity MCP servers 与 settings 分文件存储：
 
-```toml
-# Gemini 2.0 Flash Experimental (fastest, multimodal)
-model = "gemini-2.0-flash-exp"
-small_fast_model = "gemini-2.0-flash-exp"
-
-# Gemini 2.0 Flash Thinking Experimental (reasoning)
-model = "gemini-2.0-flash-thinking-exp-1219"
+```text
+~/.gemini/antigravity-cli/mcp_config.json
 ```
 
-### Gemini 1.5 Models (Stable)
+CCR 写入远程 MCP servers 时使用 `serverUrl`，读取时继续兼容 legacy `url` / `httpUrl` 字段：
 
-```toml
-# Gemini 1.5 Pro (best quality, 2M token context)
-model = "gemini-1.5-pro"
-small_fast_model = "gemini-1.5-flash"
-
-# Gemini 1.5 Flash (fast, 1M token context)
-model = "gemini-1.5-flash"
-small_fast_model = "gemini-1.5-flash"
-
-# Gemini 1.5 Flash-8B (ultra-fast, cost-efficient)
-model = "gemini-1.5-flash-8b"
+```json
+{
+  "mcpServers": {
+    "example": {
+      "serverUrl": "https://example.com/mcp",
+      "type": "http"
+    }
+  }
+}
 ```
 
-### Gemini 1.0 Models (Legacy)
+Skills 查找顺序包括：
 
-```toml
-# Gemini Pro (original)
-model = "gemini-pro"
+1. Workspace `.agents/skills`
+2. Antigravity 全局 `~/.gemini/antigravity-cli/skills`
+3. Gemini legacy/shared `~/.gemini/skills`
 
-# Gemini Pro Vision (multimodal)
-model = "gemini-pro-vision"
-```
+需要项目级 Antigravity MCP 配置时，workspace MCP 应使用 `.agents/mcp_config.json`。
 
-## Common Use Cases
+## Sessions 与用量导入
 
-### Development Workflow
+CCR 会继续把历史 Gemini session 和用量数据聚合到内部 `gemini` platform key 下。旧 Gemini CLI logs（`~/.gemini/tmp/*/chats/session-*.json`）保持 import-compatible。
+
+Antigravity session/log import 会在上游本地日志格式确认后再声明支持。不要仅凭 Gemini legacy parser 声称已经支持 Antigravity session import。
+
+## 故障排查
+
+### Settings 文件没有变化
+
+检查 Antigravity 路径，而不是旧 Gemini 根目录 settings 文件：
 
 ```bash
-# Morning: Start with AI Studio API
+ls -la ~/.gemini/antigravity-cli/settings.json
+chmod 600 ~/.gemini/antigravity-cli/settings.json
+```
+
+然后确认 CCR profile 状态：
+
+```bash
 ccr platform switch gemini
-ccr switch google-official
-
-# Afternoon: Test with production Vertex AI
-ccr switch google-cloud
-
-# View operation history
-ccr history
-```
-
-### Model Testing
-
-```bash
-# Test with different models
-[flash-2]
-description = "Gemini 2.0 Flash"
-auth_token = "AIzaSy..."
-model = "gemini-2.0-flash-exp"
-
-[pro-15]
-description = "Gemini 1.5 Pro"
-auth_token = "AIzaSy..."
-model = "gemini-1.5-pro"
-
-[flash-8b]
-description = "Gemini 1.5 Flash-8B"
-auth_token = "AIzaSy..."
-model = "gemini-1.5-flash-8b"
-
-# Quick switch between models
-ccr switch flash-2   # Use 2.0 Flash
-ccr switch pro-15    # Use 1.5 Pro
-ccr switch flash-8b  # Use 8B for speed
-```
-
-### Multi-Project Management
-
-```bash
-# Project A API key
-[project-a]
-description = "Project A - Gemini API"
-base_url = "https://generativelanguage.googleapis.com/v1beta"
-auth_token = "AIzaSyProjectA_key_here"
-model = "gemini-2.0-flash-exp"
-
-# Project B API key
-[project-b]
-description = "Project B - Gemini API"
-base_url = "https://generativelanguage.googleapis.com/v1beta"
-auth_token = "AIzaSyProjectB_key_here"
-model = "gemini-1.5-pro"
-
-# Switch between projects
-ccr switch project-a  # Work on Project A
-ccr switch project-b  # Work on Project B
-```
-
-### Testing Free Quota
-
-```bash
-# Use temporary API key (doesn't modify profiles.toml)
-ccr temp-token set AIzaSyTestKeyXXXXXXXXXXXXXXXXXXXXXXXX \
-  --base-url https://generativelanguage.googleapis.com/v1beta \
-  --model gemini-1.5-flash
-
-# Verify temporary config
-ccr temp-token show
-
-# Apply and auto-clear
-ccr switch google-official
-
-# Next switch uses permanent config
-ccr switch google-official
-```
-
-## Platform-Specific Features
-
-### API Key Validation
-
-CCR validates Gemini API keys automatically:
-
-```bash
-# Validate all Gemini profiles
+ccr current
 ccr validate
-
-# Output includes:
-# ✅ Valid Google API key format (AIzaSy...)
-# ❌ Invalid API key format
-# ⚠️ API key format correct but not verified active
 ```
 
-### Backup and Restore
+### MCP server 缺失
+
+检查 `mcp_config.json`：
 
 ```bash
-# Automatic backup before profile switch
-ccr switch new-profile
-# → Creates a backup under ~/.ccr/platforms/gemini/backups/
-
-# Review recent write activity
-ccr history --platform gemini
-
-# Clean old backups when needed
-ccr clean backups --days 30 --dry-run
+cat ~/.gemini/antigravity-cli/mcp_config.json
 ```
 
-### History Tracking
+远程 servers 应优先使用 `serverUrl`；旧 `url` 和 `httpUrl` 只作为读取兼容字段保留。
+
+### 旧 Gemini 路径仍然出现
+
+部分旧路径会有意保留为 legacy/import-compatible 来源：
+
+- `~/.gemini/skills`：共享 legacy skills
+- `~/.gemini/commands` 与项目 `.gemini/commands`：legacy slash-command 文件
+- `~/.gemini/tmp/*/chats/session-*.json`：legacy session import
+
+它们不应再被文档为 Antigravity settings 或 MCP 的主路径。
+
+## 安全说明
+
+- `~/.ccr/platforms/gemini/profiles.toml` 中的 API keys 是明文；请保持严格文件权限。
+- CCR 会在正常输出与历史记录中掩码 API keys，但 backups 仍可能包含 secrets。
+- 分享 profile 示例时优先使用 `ccr export --no-secrets`。
+
+## 相关命令
 
 ```bash
-# View Gemini-specific history
-ccr history --platform gemini
-
-# View recent 10 operations
-ccr history -l 10
-
-# Filter by operation type
-ccr history -t switch
-```
-
-## API Endpoints
-
-### Google AI Studio (Free Tier)
-
-```toml
-base_url = "https://generativelanguage.googleapis.com/v1beta"
-```
-
-**Characteristics:**
-- Free tier with rate limits
-- Good for development and testing
-- Easier setup (no GCP project required)
-
-### Google Cloud Vertex AI (Production)
-
-```toml
-base_url = "https://us-central1-aiplatform.googleapis.com/v1"
-# Or other regions:
-# base_url = "https://europe-west1-aiplatform.googleapis.com/v1"
-# base_url = "https://asia-northeast1-aiplatform.googleapis.com/v1"
-```
-
-**Characteristics:**
-- Production-grade SLA
-- Advanced quotas
-- Regional deployment
-- Requires GCP billing account
-
-## Migration Guide
-
-### From Claude to Gemini
-
-```bash
-# Initialize Gemini platform
 ccr platform init gemini
-
-# Export structure from the source platform
-ccr platform switch claude
-ccr export -o claude-profiles.toml --no-secrets
-
-# Import into Gemini and then update API keys manually
 ccr platform switch gemini
-ccr import claude-profiles.toml --merge --backup
-vim ~/.ccr/platforms/gemini/profiles.toml
-```
-
-### From Manual Configuration
-
-If you were manually managing Gemini settings:
-
-```bash
-# Old manual setup
-export GOOGLE_API_KEY="AIzaSy..."
-export GEMINI_MODEL="gemini-pro"
-
-# Migrate to CCR
-ccr platform switch gemini
-ccr add  # Enter API key and model
-
-# CCR now manages settings automatically
-```
-
-## Troubleshooting
-
-### Issue: API Key Invalid
-
-**Symptoms:**
-```
-❌ Invalid Google API key format
-```
-
-**Solution:**
-1. Verify key starts with `AIzaSy` and is 39 characters
-2. Regenerate key on Google AI Studio or Cloud Console
-3. Update profile with new key
-
-### Issue: Quota Exceeded
-
-**Symptoms:**
-```
-HTTP 429: Resource exhausted
-```
-
-**Solution:**
-1. Check quota limits in Google Cloud Console
-2. Wait for quota reset (usually per minute)
-3. Upgrade to paid tier for higher quotas
-4. Switch to different profile/project with available quota
-
-### Issue: Model Not Available
-
-**Symptoms:**
-```
-HTTP 404: Model not found
-```
-
-**Solution:**
-1. Verify model name spelling
-2. Check model availability in your region
-3. Ensure API is enabled in Google Cloud Console
-4. Use stable model names (avoid experimental suffixes if needed)
-
-### Issue: Settings Not Updating
-
-**Symptoms:**
-Profile switch succeeds but `~/.gemini/settings.json` unchanged
-
-**Solution:**
-```bash
-# Check file permissions
-ls -la ~/.gemini/settings.json
-
-# Fix permissions if needed
-chmod 600 ~/.gemini/settings.json
-
-# Verify lock files
-ls -la ~/.ccr/platforms/gemini/.locks/
-
-# Clean stale locks if present
-rm -rf ~/.ccr/platforms/gemini/.locks/*
-```
-
-## Advanced Configuration
-
-### Custom API Endpoints
-
-```toml
-[vertex-custom]
-description = "Vertex AI Custom Endpoint"
-base_url = "https://custom-endpoint.googleapis.com/v1"
-auth_token = "AIzaSy..."
-model = "gemini-2.0-flash-exp"
-```
-
-### Model Parameters
-
-```toml
-[creative]
-description = "Creative Writing (high temperature)"
-auth_token = "AIzaSy..."
-model = "gemini-1.5-pro"
-# Note: Temperature and other parameters are typically
-# set at API call time, not in CCR config
-```
-
-### Multi-Region Setup
-
-```toml
-[us-central]
-description = "US Central Region"
-base_url = "https://us-central1-aiplatform.googleapis.com/v1"
-auth_token = "AIzaSy..."
-model = "gemini-2.0-flash-exp"
-
-[europe]
-description = "Europe West Region"
-base_url = "https://europe-west1-aiplatform.googleapis.com/v1"
-auth_token = "AIzaSy..."
-model = "gemini-2.0-flash-exp"
-
-[asia]
-description = "Asia Northeast Region"
-base_url = "https://asia-northeast1-aiplatform.googleapis.com/v1"
-auth_token = "AIzaSy..."
-model = "gemini-2.0-flash-exp"
-```
-
-### WebDAV Sync
-
-```bash
-# Configure sync for Gemini profiles
-ccr sync config
-
-# Push Gemini profiles to cloud
-ccr platform switch gemini
-ccr sync push
-
-# Pull on another machine
-ccr platform switch gemini
-ccr sync pull
-```
-
-## Security Best Practices
-
-1. **API Key Storage**: API keys are stored in plaintext in `~/.ccr/platforms/gemini/profiles.toml`
-   ```bash
-   # Ensure proper file permissions
-   chmod 600 ~/.ccr/platforms/gemini/profiles.toml
-   ```
-
-2. **API Key Masking**: CCR automatically masks keys in:
-   - Console output
-   - History logs
-   - Error messages
-
-3. **Backup Security**: Backups also contain API keys
-   ```bash
-   # Secure backup directory
-   chmod 700 ~/.ccr/platforms/gemini/backups
-   ```
-
-4. **Export Without Secrets**:
-   ```bash
-   # Export profiles without API keys (for sharing)
-   ccr export -o gemini-profiles.toml --no-secrets
-   ```
-
-5. **API Key Rotation**: Regularly rotate Google API keys
-   ```bash
-   # Delete old key on Google Cloud Console
-   # Create new key
-   # Update profile
-   vim ~/.ccr/platforms/gemini/profiles.toml
-   ccr validate  # Verify format
-   ```
-
-6. **API Key Restrictions** (Recommended):
-   - Restrict by API (only allow Generative Language API)
-   - Restrict by IP address (if using from fixed location)
-   - Restrict by HTTP referrer (if using from web app)
-
-## Related Commands
-
-```bash
-# Platform management
-ccr platform list           # List all platforms
-ccr platform switch gemini  # Switch to Gemini
-ccr platform current        # Show current platform
-
-# Profile management
-ccr list                    # List Gemini profiles
-ccr switch <name>           # Switch Gemini profile
-ccr add                     # Add new profile
-ccr delete <name>           # Delete profile
-
-# Validation and diagnostics
-ccr validate                # Validate all profiles
-ccr history                 # View operation history
-
-# Backup review
+ccr list
+ccr switch <profile>
+ccr validate
 ccr history --platform gemini
-ccr clean backups --days 30 --dry-run
 ```
-
-## See Also
-
-- [Migration Guide](./migration.md) - Migrating between platforms
-- [Codex Platform Guide](./codex.md) - Codex CLI configuration
-- [Main README](../../README.md) - CCR overview
-- [Google AI Studio](https://makersuite.google.com/) - Get API keys
-- [Gemini API Docs](https://ai.google.dev/docs) - Official Gemini API documentation
-- [Vertex AI Docs](https://cloud.google.com/vertex-ai/docs) - Google Cloud Vertex AI documentation

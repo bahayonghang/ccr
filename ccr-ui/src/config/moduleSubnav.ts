@@ -23,11 +23,17 @@ const moduleSubnavMap: Record<string, ModuleSubnavItem[]> = {
     { label: 'Agents', href: '/codex/agents', icon: 'Bot' },
     { label: 'Sessions', href: '/codex/sessions', icon: 'MessagesSquare' },
   ],
+  antigravity: [
+    { label: 'MCP', href: '/antigravity/mcp', icon: 'Server' },
+    { label: 'Agents', href: '/antigravity/agents', icon: 'Bot' },
+    { label: 'Slash Commands', href: '/antigravity/slash-commands', icon: 'Command' },
+    { label: 'Plugins', href: '/antigravity/plugins', icon: 'Puzzle' },
+  ],
   'gemini-cli': [
-    { label: 'MCP', href: '/gemini-cli/mcp', icon: 'Server' },
-    { label: 'Agents', href: '/gemini-cli/agents', icon: 'Bot' },
-    { label: 'Slash Commands', href: '/gemini-cli/slash-commands', icon: 'Command' },
-    { label: 'Plugins', href: '/gemini-cli/plugins', icon: 'Puzzle' },
+    { label: 'MCP', href: '/antigravity/mcp', icon: 'Server' },
+    { label: 'Agents', href: '/antigravity/agents', icon: 'Bot' },
+    { label: 'Slash Commands', href: '/antigravity/slash-commands', icon: 'Command' },
+    { label: 'Plugins', href: '/antigravity/plugins', icon: 'Puzzle' },
   ],
   opencode: [
     { label: 'Providers', href: '/opencode/providers', icon: 'Layers' },

@@ -17,5 +17,5 @@ description = "Codex CLI"
 [gemini]
 enabled = true
 current_profile = "google"
-description = "Gemini CLI"
+description = "Antigravity CLI (legacy key: gemini)"
 

@@ -532,7 +532,7 @@ impl WslEnvironment {
         let dir = match platform {
             "claude" => format!("{home}/.claude"),
             "codex" => format!("{home}/.codex"),
-            "gemini" => format!("{home}/.gemini"),
+            "gemini" => format!("{home}/.gemini/antigravity-cli"),
             "opencode" => format!("{home}/.opencode"),
             _ => return Err(EnvError::PlatformNotSupported(platform.to_string())),
         };
@@ -564,7 +564,7 @@ impl ExecutionEnvironment for WslEnvironment {
                     "-d", &distro,
                     "--",
                     "sh", "-c",
-                    "which claude 2>/dev/null; which codex 2>/dev/null; which gemini 2>/dev/null; which opencode 2>/dev/null",
+                    "which claude 2>/dev/null; which codex 2>/dev/null; which agy 2>/dev/null; which opencode 2>/dev/null",
                 ])
                 .output()
         })
@@ -576,16 +576,16 @@ impl ExecutionEnvironment for WslEnvironment {
         let found_paths: Vec<&str> = stdout.lines().map(str::trim).collect();
 
         let platforms = [
-            ("claude", "Claude Code"),
-            ("codex", "Codex CLI"),
-            ("gemini", "Gemini CLI"),
-            ("opencode", "OpenCode"),
+            ("claude", "Claude Code", "claude"),
+            ("codex", "Codex CLI", "codex"),
+            ("gemini", "Antigravity CLI", "agy"),
+            ("opencode", "OpenCode", "opencode"),
         ];
 
         let result = platforms
             .iter()
-            .map(|(name, display)| {
-                let installed = found_paths.iter().any(|p| p.contains(name));
+            .map(|(name, display, command)| {
+                let installed = found_paths.iter().any(|p| p.contains(command));
                 PlatformInfo {
                     name: name.to_string(),
                     display_name: display.to_string(),
@@ -696,13 +696,18 @@ impl ExecutionEnvironment for WslEnvironment {
 
     async fn detect_cli_status(&self) -> Result<Vec<CliStatus>, EnvError> {
         let distro = self.distro.name.clone();
-        let tools = ["claude", "codex", "gemini", "opencode"];
+        let tools = [
+            ("claude", "claude"),
+            ("codex", "codex"),
+            ("gemini", "agy"),
+            ("opencode", "opencode"),
+        ];
 
         let mut statuses = Vec::new();
 
-        for tool in &tools {
+        for (platform, command) in &tools {
             let distro_clone = distro.clone();
-            let tool_str = tool.to_string();
+            let tool_str = command.to_string();
 
             let result = tokio::task::spawn_blocking(move || {
                 std_command("wsl")
@@ -721,7 +726,7 @@ impl ExecutionEnvironment for WslEnvironment {
             };
 
             statuses.push(CliStatus {
-                name: tool.to_string(),
+                name: platform.to_string(),
                 installed,
                 path,
                 version: None,
@@ -793,14 +798,17 @@ pub fn sync_config_blocking(
     let local_dir = match platform {
         "claude" => local_home.join(".claude"),
         "codex" => local_home.join(".codex"),
-        "gemini" => local_home.join(".gemini"),
+        "gemini" => local_home.join(".gemini").join("antigravity-cli"),
         "opencode" => local_home.join(".opencode"),
         _ => return Err(EnvError::PlatformNotSupported(platform.to_string())),
     };
 
     // 获取 WSL 用户名以构造路径
     let username = get_wsl_username(distro).unwrap_or_else(|_| "user".to_string());
-    let wsl_dir = format!("/home/{}/.{}", username, platform);
+    let wsl_dir = match platform {
+        "gemini" => format!("/home/{}/.gemini/antigravity-cli", username),
+        _ => format!("/home/{}/.{}", username, platform),
+    };
     let unc_dir = format!(
         "\\\\wsl$\\{}\\{}",
         distro,

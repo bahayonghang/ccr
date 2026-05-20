@@ -8,7 +8,7 @@
 |------|------|----------|----------|------|
 | Claude Code | 已实现 | `~/.ccr/platforms/claude/profiles.toml` | `~/.claude/settings.json` | 默认主线平台 |
 | Codex | 已实现 | `~/.ccr/platforms/codex/profiles.toml` | `~/.codex/config.toml` | 同时支持 `ccr codex auth` |
-| Gemini CLI | 已实现 | `~/.ccr/platforms/gemini/profiles.toml` | `~/.ccr/platforms/gemini/settings.json` | Unified Mode 管理 |
+| Antigravity CLI | 已实现 | `~/.ccr/platforms/gemini/profiles.toml` | `~/.gemini/antigravity-cli/settings.json`；MCP: `~/.gemini/antigravity-cli/mcp_config.json` | 内部 key 保持 `gemini`；`agy`/`antigravity` 为别名 |
 | Factory Droid | 已实现 | `~/.ccr/platforms/droid/profiles.toml` | `~/.factory/settings.json` | 独立 settings 结构 |
 | Qwen CLI | 预留 / Stub | `~/.ccr/platforms/qwen/profiles.toml` | `~/.ccr/platforms/qwen/settings.json` | 当前核心实现返回未支持 |
 
@@ -20,14 +20,14 @@
 ccr platform list
 ccr platform switch claude
 ccr platform info droid
-ccr platform init gemini
+ccr platform init gemini  # Antigravity CLI compatibility key
 ```
 
 ## 已实现平台
 
 - [Claude Code](./claude)
 - [Codex](./codex)
-- [Gemini CLI](./gemini)
+- [Antigravity CLI](./gemini)
 - [Factory Droid](./droid)
 
 ## 预留平台

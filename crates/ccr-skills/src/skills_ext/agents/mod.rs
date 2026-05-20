@@ -1,6 +1,6 @@
 //! Agent 注册表：抽象各 AI CLI 的 skills 目录约定。
 //!
-//! 当前仅实现 ccr-ui 已支持的 5 家（Claude Code / Codex / Gemini / Droid / OpenCode）。
+//! 当前仅实现 ccr-ui 已支持的 5 家（Claude Code / Codex / Antigravity / Droid / OpenCode）。
 //! 通过 `trait AgentLocator` 预留 42 agent 扩展位 — skill-hub 的完整注册表
 //! 可在未来按需迁入，无需重构调用方。
 //!
@@ -45,7 +45,7 @@ impl AgentId {
         match s.as_str() {
             "claude-code" | "claude" | "claudecode" => Self::ClaudeCode,
             "codex" => Self::Codex,
-            "gemini" | "gemini-cli" => Self::Gemini,
+            "gemini" | "gemini-cli" | "antigravity" | "antigravity-cli" | "agy" => Self::Gemini,
             "droid" => Self::Droid,
             "opencode" | "open-code" => Self::OpenCode,
             _ => Self::Unknown,

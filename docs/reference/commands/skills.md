@@ -182,7 +182,8 @@ ccr skills list --platform gemini
 
 - Claude: `~/.claude/skills/`
 - Codex: `~/.agents/skills/`
-- Gemini: `~/.gemini/skills/`
+- Antigravity CLI (`gemini` key): `~/.gemini/antigravity-cli/skills/`
+- Gemini legacy/shared: `~/.gemini/skills/`
 
 > 说明：这里描述的是 `ccr skills` 管理的用户目录安装位置。仓库内给 GitHub Copilot 复用的共享 project skills 见 [GitHub Copilot 工作区支持](/guide/github-copilot-workspace)。
 

@@ -2,9 +2,21 @@ import type { PlatformConfig } from '@/types/platform'
 import type { SlashCommand, SlashCommandRequest } from '@/types/platform'
 
 import {
-  listSlashCommands, addSlashCommand, updateSlashCommand, deleteSlashCommand, toggleSlashCommand,
-  listCodexSlashCommands, addCodexSlashCommand, updateCodexSlashCommand, deleteCodexSlashCommand, toggleCodexSlashCommand,
-  listGeminiSlashCommands, addGeminiSlashCommand, updateGeminiSlashCommand, deleteGeminiSlashCommand, toggleGeminiSlashCommand,
+  listSlashCommands,
+  addSlashCommand,
+  updateSlashCommand,
+  deleteSlashCommand,
+  toggleSlashCommand,
+  listCodexSlashCommands,
+  addCodexSlashCommand,
+  updateCodexSlashCommand,
+  deleteCodexSlashCommand,
+  toggleCodexSlashCommand,
+  listGeminiSlashCommands,
+  addGeminiSlashCommand,
+  updateGeminiSlashCommand,
+  deleteGeminiSlashCommand,
+  toggleGeminiSlashCommand,
 } from '@/api'
 
 type UnknownRecord = Record<string, unknown>
@@ -14,14 +26,17 @@ function asRecord(value: unknown): UnknownRecord {
 }
 
 function asStringArray(value: unknown): string[] {
-  return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : []
+  return Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === 'string')
+    : []
 }
 
 function normalizeSlashCommand(value: unknown): SlashCommand {
   const source = asRecord(value)
-  const enabled = typeof source.enabled === 'boolean'
-    ? source.enabled
-    : !(typeof source.disabled === 'boolean' ? source.disabled : false)
+  const enabled =
+    typeof source.enabled === 'boolean'
+      ? source.enabled
+      : !(typeof source.disabled === 'boolean' ? source.disabled : false)
 
   return {
     name: String(source.name ?? ''),
@@ -61,29 +76,29 @@ export const claudeCodeConfig: PlatformConfig = {
     toggle: async (name: string) => {
       // TODO: toggleSlashCommand 需要 enabled 参数，此处默认传 true（后端应处理 toggle 逻辑）
       await toggleSlashCommand(name, true)
-    }
+    },
   },
   i18n: {
     prefix: 'slashCommands',
     breadcrumb: {
       home: 'slashCommands.breadcrumb.home',
       platform: 'slashCommands.breadcrumb.claudeCode',
-      current: 'slashCommands.breadcrumb.slashCommands'
-    }
+      current: 'slashCommands.breadcrumb.slashCommands',
+    },
   },
   theme: 'claude-code',
   route: {
     homePath: '/claude-code',
-    module: 'claude-code'
+    module: 'claude-code',
   },
   platform: {
     name: 'claude-code',
-    displayName: 'Claude Code'
+    displayName: 'Claude Code',
   },
   features: {
     breadcrumb: true,
-    glassEffect: true
-  }
+    glassEffect: true,
+  },
 }
 
 // Codex 平台配置
@@ -103,27 +118,27 @@ export const codexConfig: PlatformConfig = {
     },
     toggle: async (name: string) => {
       await toggleCodexSlashCommand(name, true)
-    }
+    },
   },
   i18n: {
-    prefix: 'codex.slashCommands'
+    prefix: 'codex.slashCommands',
   },
   theme: 'css-variable',
   route: {
     homePath: '/codex',
-    module: 'codex'
+    module: 'codex',
   },
   platform: {
     name: 'codex',
-    displayName: 'Codex'
+    displayName: 'Codex',
   },
   features: {
     breadcrumb: false,
-    glassEffect: false
-  }
+    glassEffect: false,
+  },
 }
 
-// Gemini CLI 平台配置
+// Antigravity CLI 平台配置（内部 key 仍为 gemini）
 export const geminiConfig: PlatformConfig = {
   api: {
     list: async () => {
@@ -140,33 +155,34 @@ export const geminiConfig: PlatformConfig = {
     },
     toggle: async (name: string) => {
       await toggleGeminiSlashCommand(name, true)
-    }
+    },
   },
   i18n: {
-    prefix: 'gemini.slashCommands'
+    prefix: 'gemini.slashCommands',
   },
   theme: 'css-variable',
   route: {
-    homePath: '/gemini-cli',
-    module: 'gemini-cli'
+    homePath: '/antigravity',
+    module: 'antigravity',
   },
   platform: {
-    name: 'gemini-cli',
-    displayName: 'Gemini CLI'
+    name: 'antigravity',
+    displayName: 'Antigravity CLI',
   },
   features: {
     breadcrumb: false,
-    glassEffect: false
-  }
+    glassEffect: false,
+  },
 }
 
 // 配置映射
 export const platformConfigs = {
   'claude-code': claudeCodeConfig,
-  'codex': codexConfig,
+  codex: codexConfig,
+  antigravity: geminiConfig,
   'gemini-cli': geminiConfig,
 } as const
 
 // 类型导出
 export type PlatformName = keyof typeof platformConfigs
-export type SlashCommandsConfig = typeof platformConfigs[PlatformName]
+export type SlashCommandsConfig = (typeof platformConfigs)[PlatformName]

@@ -34,7 +34,7 @@
             </div>
             <div>
               <h1 class="gemini-title">
-                Gemini CLI
+                Antigravity CLI
               </h1>
               <p class="gemini-subtitle">
                 {{ t('gemini.overview.hero.subtitle') }}
@@ -62,7 +62,7 @@
           </div>
 
           <div class="gemini-hero-actions">
-            <RouterLink to="/gemini-cli/mcp">
+            <RouterLink to="/antigravity/mcp">
               <Button
                 variant="primary"
                 size="md"
@@ -76,7 +76,7 @@
                 {{ t('gemini.overview.hero.primaryAction') }}
               </Button>
             </RouterLink>
-            <RouterLink to="/gemini-cli/slash-commands">
+            <RouterLink to="/antigravity/slash-commands">
               <Button
                 variant="glass"
                 size="md"
@@ -356,33 +356,41 @@ const heroTags = computed<HeroTag[]>(() => [
 const terminalSnippets = computed<TerminalSnippet[]>(() => [
   {
     label: t('gemini.overview.terminal.helpLabel'),
-    command: 'gemini --help',
+    command: 'agy --help',
   },
   {
     label: t('gemini.overview.terminal.versionLabel'),
-    command: 'gemini --version',
+    command: 'agy --version',
   },
   {
-    label: t('gemini.overview.terminal.mcpLabel'),
-    command: 'gemini mcp --help',
+    label: t('gemini.overview.terminal.importLabel'),
+    command: 'agy plugin import gemini',
   },
 ])
 
 const configPreview = computed(() => [
   {
     label: t('gemini.overview.terminal.settingsPath'),
-    value: '~/.gemini/settings.json',
+    value: '~/.gemini/antigravity-cli/settings.json',
   },
   {
-    label: t('gemini.overview.terminal.commandsPath'),
-    value: '~/.gemini/commands/*.toml',
+    label: t('gemini.overview.terminal.mcpPath'),
+    value: '~/.gemini/antigravity-cli/mcp_config.json',
+  },
+  {
+    label: t('gemini.overview.terminal.skillsPath'),
+    value: '~/.gemini/antigravity-cli/skills',
+  },
+  {
+    label: t('gemini.overview.terminal.workspacePath'),
+    value: '.agents/{mcp_config.json,skills}',
   },
 ])
 
 const moduleCards = computed<ModuleCard[]>(() => [
   {
     key: 'mcp',
-    to: '/gemini-cli/mcp',
+    to: '/antigravity/mcp',
     icon: 'Server',
     tone: 'gemini',
     spotlight: true,
@@ -394,7 +402,7 @@ const moduleCards = computed<ModuleCard[]>(() => [
   },
   {
     key: 'slash-commands',
-    to: '/gemini-cli/slash-commands',
+    to: '/antigravity/slash-commands',
     icon: 'Command',
     tone: 'command',
     spotlight: true,
@@ -406,7 +414,7 @@ const moduleCards = computed<ModuleCard[]>(() => [
   },
   {
     key: 'agents',
-    to: '/gemini-cli/agents',
+    to: '/antigravity/agents',
     icon: 'Bot',
     tone: 'capability',
     title: t('gemini.agents.title'),
@@ -417,7 +425,7 @@ const moduleCards = computed<ModuleCard[]>(() => [
   },
   {
     key: 'plugins',
-    to: '/gemini-cli/plugins',
+    to: '/antigravity/plugins',
     icon: 'Puzzle',
     tone: 'plugin',
     title: t('gemini.plugins.title'),

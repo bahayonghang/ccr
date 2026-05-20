@@ -291,6 +291,8 @@ const getPlatformMetric = (platform: HomePlatformRecord, metric: HomeUsageMetric
 
 .home-platform--claude-code .home-platform__accent { background: var(--color-platform-claude); }
 .home-platform--codex .home-platform__accent { background: var(--color-platform-codex); }
+
+.home-platform--antigravity .home-platform__accent,
 .home-platform--gemini-cli .home-platform__accent { background: var(--color-platform-gemini); }
 .home-platform--opencode .home-platform__accent { background: var(--color-info); }
 

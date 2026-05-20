@@ -57,7 +57,7 @@ Older registries may still contain `default_platform` / `current_platform`, but 
 |----------|--------|--------------|-----------------|
 | Claude | Implemented | `~/.ccr/platforms/claude/profiles.toml` | `~/.claude/settings.json` |
 | Codex | Implemented | `~/.ccr/platforms/codex/profiles.toml` | `~/.codex/config.toml` |
-| Gemini | Implemented | `~/.ccr/platforms/gemini/profiles.toml` | `~/.ccr/platforms/gemini/settings.json` |
+| Antigravity CLI (`gemini` key) | Implemented | `~/.ccr/platforms/gemini/profiles.toml` | `~/.gemini/antigravity-cli/settings.json`; MCP: `~/.gemini/antigravity-cli/mcp_config.json` |
 | Droid | Implemented | `~/.ccr/platforms/droid/profiles.toml` | `~/.factory/settings.json` |
 | Qwen | Reserved / Stub | `~/.ccr/platforms/qwen/profiles.toml` | `~/.ccr/platforms/qwen/settings.json` |
 

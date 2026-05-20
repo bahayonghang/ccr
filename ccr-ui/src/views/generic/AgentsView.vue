@@ -518,7 +518,7 @@ const PAGE_SIZE = 20
 
 const moduleNavModule = computed(() => {
   if (props.module === 'agents') return 'claude-code'
-  return 'gemini-cli'
+  return 'antigravity'
 })
 
 // Reload agents when module changes

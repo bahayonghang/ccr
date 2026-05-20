@@ -52,24 +52,36 @@ fn claude_code_paths_follow_convention() {
 }
 
 #[test]
-fn codex_and_gemini_have_only_global_paths() {
+fn codex_has_only_global_path() {
     let home = PathBuf::from("/h");
     let project = PathBuf::from("/p");
+    let locator = locator_for(AgentId::Codex).expect("Codex 必须在注册表中");
 
-    for id in [AgentId::Codex, AgentId::Gemini] {
-        let locator = locator_for(id).expect("Codex/Gemini 必须在注册表中");
-        assert_eq!(
-            locator.global_paths(&home).len(),
-            1,
-            "{:?} 全局路径应为 1 条",
-            id
-        );
-        assert!(
-            locator.project_paths(&project).is_empty(),
-            "{:?} 不应有项目级路径",
-            id
-        );
-    }
+    assert_eq!(locator.global_paths(&home).len(), 1);
+    assert!(locator.project_paths(&project).is_empty());
+}
+
+#[test]
+fn gemini_locator_tracks_antigravity_and_legacy_paths() {
+    let home = PathBuf::from("/h");
+    let project = PathBuf::from("/p");
+    let locator = locator_for(AgentId::Gemini).expect("Gemini/Antigravity 必须在注册表中");
+
+    assert_eq!(locator.display_name(), "Antigravity CLI");
+    assert_eq!(
+        locator.global_paths(&home),
+        vec![
+            PathBuf::from("/h")
+                .join(".gemini")
+                .join("antigravity-cli")
+                .join("skills"),
+            PathBuf::from("/h").join(".gemini").join("skills"),
+        ]
+    );
+    assert_eq!(
+        locator.project_paths(&project),
+        vec![PathBuf::from("/p").join(".agents").join("skills")]
+    );
 }
 
 #[test]
@@ -108,6 +120,9 @@ fn agent_id_parse_handles_aliases() {
     assert_eq!(AgentId::parse("Claude"), AgentId::ClaudeCode);
     assert_eq!(AgentId::parse("CLAUDECODE"), AgentId::ClaudeCode);
     assert_eq!(AgentId::parse("gemini-cli"), AgentId::Gemini);
+    assert_eq!(AgentId::parse("antigravity"), AgentId::Gemini);
+    assert_eq!(AgentId::parse("antigravity-cli"), AgentId::Gemini);
+    assert_eq!(AgentId::parse("agy"), AgentId::Gemini);
     assert_eq!(AgentId::parse("OPENCODE"), AgentId::OpenCode);
     assert_eq!(AgentId::parse("  codex  "), AgentId::Codex);
     assert_eq!(AgentId::parse("nonesuch"), AgentId::Unknown);

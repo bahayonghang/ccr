@@ -154,7 +154,7 @@ describe('platform target pruning smoke', () => {
     try {
       expect(el.textContent).toContain('Claude Code')
       expect(el.textContent).toContain('Codex')
-      expect(el.textContent).toContain('Gemini')
+      expect(el.textContent).toContain('Antigravity CLI')
       expect(el.textContent).not.toContain('Droid')
     } finally {
       unmount()
@@ -172,7 +172,7 @@ describe('platform target pruning smoke', () => {
 
     try {
       expect(syncMount.el.textContent).toContain('Codex')
-      expect(syncMount.el.textContent).toContain('Gemini')
+      expect(syncMount.el.textContent).toContain('Antigravity CLI')
       expect(syncMount.el.textContent).not.toContain('Droid')
 
       const presetCard = presetMount.el.querySelector('div[class*="cursor-pointer"]')
@@ -181,7 +181,7 @@ describe('platform target pruning smoke', () => {
 
       expect(presetMount.el.textContent).toContain('Claude')
       expect(presetMount.el.textContent).toContain('Codex')
-      expect(presetMount.el.textContent).toContain('Gemini')
+      expect(presetMount.el.textContent).toContain('Antigravity CLI')
       expect(presetMount.el.textContent).not.toContain('Droid')
     } finally {
       syncMount.unmount()
