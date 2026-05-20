@@ -442,7 +442,7 @@ const copyCommand = (cmd: string) => {
   @apply relative min-h-full overflow-hidden p-6 lg:p-10;
 
   background:
-    radial-gradient(circle at 18% 0%, rgb(var(--color-accent-warning-rgb) / 8%), transparent 28%),
+    radial-gradient(circle at 18% 0%, rgb(var(--color-warning-rgb) / 8%), transparent 28%),
     linear-gradient(180deg, rgb(var(--color-bg-base-rgb) / 96%), rgb(var(--color-bg-base-rgb)) 52%);
 }
 
@@ -498,23 +498,48 @@ const copyCommand = (cmd: string) => {
 }
 
 .claude-terminal-card {
-  @apply w-full overflow-hidden rounded-2xl border font-mono;
+  --claude-terminal-bg:
+    radial-gradient(circle at 86% 0%, rgb(var(--color-warning-rgb) / 12%), transparent 30%),
+    linear-gradient(145deg, rgb(var(--color-bg-elevated-rgb) / 96%), rgb(var(--color-bg-surface-rgb) / 86%));
+  --claude-terminal-border: rgb(var(--color-border-strong-rgb) / 18%);
+  --claude-terminal-rule: rgb(var(--color-border-default-rgb) / 12%);
+  --claude-terminal-shadow:
+    0 24px 58px rgb(var(--color-bg-base-rgb) / 32%),
+    0 1px 0 rgb(255 255 255 / 72%) inset;
+  --claude-terminal-command: var(--stage-text-primary);
+  --claude-terminal-status: var(--stage-text-secondary);
+  --claude-terminal-chip-bg: rgb(var(--color-bg-overlay-rgb) / 64%);
+  --claude-terminal-chip-border: rgb(var(--color-border-default-rgb) / 16%);
+  --claude-terminal-chip-text: var(--stage-chip-neutral-text);
 
-  background: linear-gradient(180deg, rgb(10 12 16 / 92%), rgb(7 9 12 / 96%));
-  border-color: rgb(var(--color-border-rgb) / 58%);
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 4%);
+  @apply relative w-full overflow-hidden rounded-2xl border font-mono;
+
+  background: var(--claude-terminal-bg);
+  border-color: var(--claude-terminal-border);
+  box-shadow: var(--claude-terminal-shadow);
+}
+
+.claude-terminal-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, rgb(var(--color-warning-rgb) / 10%), transparent 32%),
+    repeating-linear-gradient(0deg, transparent 0 2.85rem, rgb(var(--color-border-default-rgb) / 4%) 2.85rem 2.9rem);
+  mask-image: linear-gradient(90deg, #000, transparent 84%);
+  pointer-events: none;
 }
 
 .claude-terminal-card__bar {
-  @apply flex gap-2 border-b px-4 py-3;
+  @apply relative z-10 flex gap-2 border-b px-4 py-3;
 
-  border-color: rgb(var(--color-border-rgb) / 44%);
+  border-color: var(--claude-terminal-rule);
 }
 
 .claude-terminal-card__bar span {
   @apply h-2.5 w-2.5 rounded-full;
 
-  background: rgb(var(--color-accent-warning-rgb) / 70%);
+  background: rgb(var(--color-warning-rgb) / 70%);
 }
 
 .claude-terminal-card__bar span:nth-child(2) {
@@ -522,15 +547,15 @@ const copyCommand = (cmd: string) => {
 }
 
 .claude-terminal-card__bar span:nth-child(3) {
-  background: rgb(var(--color-accent-success-rgb) / 62%);
+  background: rgb(var(--color-success-rgb) / 62%);
 }
 
 .claude-terminal-card__body {
-  @apply space-y-4 p-5;
+  @apply relative z-10 space-y-4 p-5;
 }
 
 .claude-terminal-card__line {
-  color: var(--stage-text-primary);
+  color: var(--claude-terminal-command);
 
   @apply text-sm;
 }
@@ -540,7 +565,7 @@ const copyCommand = (cmd: string) => {
 }
 
 .claude-terminal-card__status {
-  color: var(--stage-text-secondary);
+  color: var(--claude-terminal-status);
 
   @apply text-sm leading-6;
 }
@@ -550,11 +575,33 @@ const copyCommand = (cmd: string) => {
 }
 
 .claude-chip {
-  color: var(--stage-text-secondary);
-  background: rgb(var(--color-bg-surface-rgb) / 64%);
-  border: 1px solid rgb(var(--color-border-rgb) / 48%);
+  color: var(--claude-terminal-chip-text);
+  background: var(--claude-terminal-chip-bg);
+  border: 1px solid var(--claude-terminal-chip-border);
 
   @apply rounded-full px-2.5 py-1 text-[11px] font-semibold;
+}
+
+:global([data-theme='dark'] .claude-terminal-card) {
+  --claude-terminal-bg:
+    radial-gradient(circle at 82% 4%, rgb(var(--color-warning-rgb) / 14%), transparent 28%),
+    linear-gradient(180deg, rgb(10 12 16 / 92%), rgb(7 9 12 / 96%));
+  --claude-terminal-border: rgb(255 255 255 / 10%);
+  --claude-terminal-rule: rgb(255 255 255 / 8%);
+  --claude-terminal-shadow:
+    0 22px 56px rgb(0 0 0 / 30%),
+    0 1px 0 rgb(255 255 255 / 5%) inset;
+  --claude-terminal-command: rgb(245 238 228 / 94%);
+  --claude-terminal-status: rgb(218 203 188 / 72%);
+  --claude-terminal-chip-bg: rgb(255 255 255 / 7%);
+  --claude-terminal-chip-border: rgb(255 255 255 / 10%);
+  --claude-terminal-chip-text: rgb(218 203 188 / 82%);
+}
+
+:global([data-theme='dark'] .claude-terminal-card::before) {
+  background:
+    linear-gradient(90deg, rgb(var(--color-warning-rgb) / 8%), transparent 34%),
+    repeating-linear-gradient(0deg, transparent 0 2.85rem, rgb(255 255 255 / 3%) 2.85rem 2.9rem);
 }
 
 .claude-tag-row {
