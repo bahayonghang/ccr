@@ -1,0 +1,643 @@
+import type { IconName } from '@/config/icons'
+import type { MonitoringEntry } from '@/composables/useMonitoringFeed'
+import type { CliVersionEntry, SystemInfo } from '@/types'
+import type { HomeOverviewPlatformStats, HomeUsageOverviewResponse } from '@/types/usage'
+
+export type DashboardTone = 'neutral' | 'success' | 'warning' | 'danger' | 'accent'
+export type DashboardActionTone =
+  | 'command'
+  | 'config'
+  | 'sync'
+  | 'usage'
+  | 'monitoring'
+  | 'platform'
+  | 'system'
+
+export type DashboardReadinessStatus =
+  | 'ready'
+  | 'attention'
+  | 'warming'
+  | 'web-preview'
+  | 'unknown'
+
+export type DashboardBackendStatus = 'unsupported' | 'unknown' | 'checking' | 'ok' | 'error'
+export type DashboardPlatformMode = 'cli' | 'managed'
+export type DashboardPlatformState = 'ready' | 'scanning' | 'attention' | 'managed'
+export type DashboardUsageMetric = 'sessions' | 'requests' | 'tokens'
+
+export interface DashboardPlatformSource {
+  title: string
+  desc: string
+  path: string
+  icon: IconName
+  iconClass: string
+  platformKey: string
+  usageKey?: 'claude' | 'codex' | 'gemini' | 'opencode'
+  role: string
+  mode: DashboardPlatformMode
+  isRuntimeCli: boolean
+}
+
+export interface DashboardMetricValue {
+  labelKey: string
+  value?: string
+  valueKey?: string
+}
+
+export interface DashboardPlatformRow extends DashboardPlatformSource {
+  state: DashboardPlatformState
+  stateKey: string
+  version?: string
+  versionKey?: string
+  metrics: DashboardMetricValue[]
+}
+
+export interface DashboardStatusMetric {
+  id: string
+  labelKey: string
+  value?: string
+  valueKey?: string
+  hint?: string
+  hintKey?: string
+  tone: DashboardTone
+}
+
+export interface DashboardReadiness {
+  status: DashboardReadinessStatus
+  tone: DashboardTone
+  labelKey: string
+  titleKey: string
+  descriptionKey: string
+  reasonKeys: string[]
+}
+
+export interface DashboardAction {
+  id: string
+  titleKey: string
+  descKey: string
+  path: string
+  icon: IconName
+  tone: DashboardActionTone
+  priority: number
+  detail?: string
+}
+
+export interface DashboardSignalCounts {
+  total: number
+  warnings: number
+  errors: number
+}
+
+export interface DashboardPresentationInput {
+  backendStatus: DashboardBackendStatus
+  isNativeRuntime: boolean
+  systemInfo: SystemInfo | null
+  cliVersions: Map<string, CliVersionEntry>
+  cliVersionsLoaded: boolean
+  platforms: DashboardPlatformSource[]
+  overview: HomeUsageOverviewResponse | null
+  usageLoading: boolean
+  usageError: string | null
+  logs: MonitoringEntry[]
+}
+
+export interface DashboardPresentation {
+  readiness: DashboardReadiness
+  actions: DashboardAction[]
+  statusMetrics: DashboardStatusMetric[]
+  platformRows: DashboardPlatformRow[]
+  signalCounts: DashboardSignalCounts
+  installedCliCount: number
+  runtimeCliCount: number
+}
+
+const DASHBOARD_DEFAULT_ACTIONS: DashboardAction[] = [
+  {
+    id: 'command-runner',
+    titleKey: 'dashboard.actions.commandRunnerTitle',
+    descKey: 'dashboard.actions.commandRunnerDesc',
+    path: '/commands',
+    icon: 'Terminal',
+    tone: 'command',
+    priority: 80,
+  },
+  {
+    id: 'config-manager',
+    titleKey: 'dashboard.actions.configManagerTitle',
+    descKey: 'dashboard.actions.configManagerDesc',
+    path: '/configs',
+    icon: 'Settings',
+    tone: 'config',
+    priority: 90,
+  },
+  {
+    id: 'cloud-sync',
+    titleKey: 'dashboard.actions.cloudSyncTitle',
+    descKey: 'dashboard.actions.cloudSyncDesc',
+    path: '/sync',
+    icon: 'Cloud',
+    tone: 'sync',
+    priority: 100,
+  },
+  {
+    id: 'usage-stats',
+    titleKey: 'dashboard.actions.usageStatsTitle',
+    descKey: 'dashboard.actions.usageStatsDesc',
+    path: '/usage',
+    icon: 'Activity',
+    tone: 'usage',
+    priority: 110,
+  },
+]
+
+const formatCompact = (value?: number) => {
+  if (typeof value !== 'number' || Number.isNaN(value)) return '…'
+  return new Intl.NumberFormat(undefined, {
+    notation: 'compact',
+    maximumFractionDigits: 1,
+  }).format(value)
+}
+
+const formatPercent = (value?: number) => {
+  if (typeof value !== 'number' || Number.isNaN(value)) return '…'
+  return `${value.toFixed(1)}%`
+}
+
+const formatFixed = (value?: number) => {
+  if (typeof value !== 'number' || Number.isNaN(value)) return '…'
+  return value.toFixed(1)
+}
+
+const isRuntimeCliInstalled = (
+  platform: DashboardPlatformSource,
+  cliVersions: Map<string, CliVersionEntry>,
+  cliVersionsLoaded: boolean,
+) => {
+  if (!platform.isRuntimeCli) return false
+  const entry = cliVersions.get(platform.platformKey)
+  if (!entry && !cliVersionsLoaded) return false
+
+  return Boolean(entry?.installed && entry.status !== 'error' && entry.status !== 'timeout' && entry.status !== 'not_installed')
+}
+
+const getPlatformState = (
+  platform: DashboardPlatformSource,
+  cliVersions: Map<string, CliVersionEntry>,
+  cliVersionsLoaded: boolean,
+): DashboardPlatformState => {
+  if (platform.mode === 'managed') return 'managed'
+
+  const entry = cliVersions.get(platform.platformKey)
+  if (!entry) return cliVersionsLoaded ? 'attention' : 'scanning'
+  if (entry.status === 'timeout') return 'scanning'
+  if (entry.status === 'error' || entry.status === 'not_installed' || !entry.installed) return 'attention'
+  return 'ready'
+}
+
+const getPlatformStateKey = (state: DashboardPlatformState) => {
+  switch (state) {
+    case 'managed':
+      return 'dashboard.platforms.stateManaged'
+    case 'scanning':
+      return 'dashboard.platforms.stateScanning'
+    case 'attention':
+      return 'dashboard.platforms.stateAttention'
+    default:
+      return 'dashboard.platforms.stateReady'
+  }
+}
+
+const getVersionValue = (
+  platform: DashboardPlatformSource,
+  cliVersions: Map<string, CliVersionEntry>,
+): Pick<DashboardPlatformRow, 'version' | 'versionKey'> => {
+  if (platform.mode === 'managed') {
+    return { versionKey: 'dashboard.platforms.managedLabel' }
+  }
+
+  const entry = cliVersions.get(platform.platformKey)
+  if (!entry || entry.status === 'timeout' || entry.status === 'error') {
+    return { versionKey: 'dashboard.platforms.stateScanning' }
+  }
+  if (entry.status === 'not_installed' || !entry.installed) {
+    return { versionKey: 'dashboard.platforms.notInstalled' }
+  }
+  return { version: entry.version ? `v${entry.version}` : undefined, versionKey: entry.version ? undefined : 'common.installed' }
+}
+
+const getPlatformMetric = (
+  stats: HomeOverviewPlatformStats | undefined,
+  metric: DashboardUsageMetric,
+): Pick<DashboardMetricValue, 'value' | 'valueKey'> => {
+  if (!stats) return { valueKey: 'dashboard.platforms.untracked' }
+  return { value: formatCompact(stats[metric]) }
+}
+
+const buildPlatformRows = (input: DashboardPresentationInput): DashboardPlatformRow[] => {
+  return input.platforms.map((platform) => {
+    const state = getPlatformState(platform, input.cliVersions, input.cliVersionsLoaded)
+    const stats = platform.usageKey ? input.overview?.by_platform[platform.usageKey] : undefined
+
+    return {
+      ...platform,
+      state,
+      stateKey: getPlatformStateKey(state),
+      ...getVersionValue(platform, input.cliVersions),
+      metrics: [
+        {
+          labelKey: 'dashboard.platforms.metrics.requests',
+          ...getPlatformMetric(stats, 'requests'),
+        },
+        {
+          labelKey: 'dashboard.platforms.metrics.sessions',
+          ...getPlatformMetric(stats, 'sessions'),
+        },
+        {
+          labelKey: 'dashboard.platforms.metrics.tokens',
+          ...getPlatformMetric(stats, 'tokens'),
+        },
+      ],
+    }
+  })
+}
+
+const countSignals = (logs: MonitoringEntry[]): DashboardSignalCounts => {
+  const errors = logs.filter((entry) => entry.level === 'error').length
+  const warnings = logs.filter((entry) => entry.level === 'warn').length
+
+  return {
+    total: logs.length,
+    warnings,
+    errors,
+  }
+}
+
+const getUsageReasonKey = (input: DashboardPresentationInput) => {
+  if (input.usageError) return 'dashboard.readiness.reasons.usageError'
+  if (input.usageLoading) return 'dashboard.readiness.reasons.usageLoading'
+  if (!input.overview) return 'dashboard.readiness.reasons.usageLoading'
+  if (input.overview.empty_reason) return 'dashboard.readiness.reasons.usageEmpty'
+  if (input.overview.bootstrap.needs_session_index || input.overview.bootstrap.needs_usage_import || !input.overview.bootstrap.is_warm) {
+    return 'dashboard.readiness.reasons.usageWarmup'
+  }
+  return 'dashboard.readiness.reasons.usageReady'
+}
+
+const buildReadiness = (
+  input: DashboardPresentationInput,
+  platformRows: DashboardPlatformRow[],
+  signalCounts: DashboardSignalCounts,
+): DashboardReadiness => {
+  const runtimeRows = platformRows.filter((platform) => platform.isRuntimeCli)
+  const missingRuntimeRows = runtimeRows.filter((platform) => platform.state === 'attention')
+  const scanningRuntimeRows = runtimeRows.filter((platform) => platform.state === 'scanning')
+  const usageReasonKey = getUsageReasonKey(input)
+  const reasonKeys = [
+    input.backendStatus === 'unsupported'
+      ? 'dashboard.readiness.reasons.backendUnsupported'
+      : input.backendStatus === 'error'
+        ? 'dashboard.readiness.reasons.backendError'
+        : input.backendStatus === 'ok'
+          ? 'dashboard.readiness.reasons.backendOk'
+          : 'dashboard.readiness.reasons.backendChecking',
+    missingRuntimeRows.length > 0
+      ? 'dashboard.readiness.reasons.cliMissing'
+      : scanningRuntimeRows.length > 0
+        ? 'dashboard.readiness.reasons.cliScanning'
+        : 'dashboard.readiness.reasons.allCliReady',
+    usageReasonKey,
+    signalCounts.errors > 0
+      ? 'dashboard.readiness.reasons.signalsError'
+      : signalCounts.warnings > 0
+        ? 'dashboard.readiness.reasons.signalsWarn'
+        : 'dashboard.readiness.reasons.signalsQuiet',
+  ]
+
+  if (!input.isNativeRuntime || input.backendStatus === 'unsupported') {
+    return {
+      status: 'web-preview',
+      tone: 'accent',
+      labelKey: 'dashboard.readiness.webPreviewLabel',
+      titleKey: 'dashboard.readiness.webPreviewTitle',
+      descriptionKey: 'dashboard.readiness.webPreviewDescription',
+      reasonKeys,
+    }
+  }
+
+  if (input.backendStatus === 'error'
+    || input.usageError
+    || signalCounts.errors > 0
+    || missingRuntimeRows.length > 0
+    || input.overview?.empty_reason
+    || input.overview?.bootstrap.needs_session_index
+    || input.overview?.bootstrap.needs_usage_import
+  ) {
+    return {
+      status: 'attention',
+      tone: 'warning',
+      labelKey: 'dashboard.readiness.attentionLabel',
+      titleKey: 'dashboard.readiness.attentionTitle',
+      descriptionKey: 'dashboard.readiness.attentionDescription',
+      reasonKeys,
+    }
+  }
+
+  if (input.backendStatus === 'checking'
+    || input.backendStatus === 'unknown'
+    || scanningRuntimeRows.length > 0
+    || input.usageLoading
+    || !input.overview
+    || input.overview.bootstrap.is_warm === false
+  ) {
+    return {
+      status: 'warming',
+      tone: 'neutral',
+      labelKey: 'dashboard.readiness.warmingLabel',
+      titleKey: 'dashboard.readiness.warmingTitle',
+      descriptionKey: 'dashboard.readiness.warmingDescription',
+      reasonKeys,
+    }
+  }
+
+  if (signalCounts.warnings > 0) {
+    return {
+      status: 'attention',
+      tone: 'warning',
+      labelKey: 'dashboard.readiness.attentionLabel',
+      titleKey: 'dashboard.readiness.attentionTitle',
+      descriptionKey: 'dashboard.readiness.attentionDescription',
+      reasonKeys,
+    }
+  }
+
+  return {
+    status: 'ready',
+    tone: 'success',
+    labelKey: 'dashboard.readiness.readyLabel',
+    titleKey: 'dashboard.readiness.readyTitle',
+    descriptionKey: 'dashboard.readiness.readyDescription',
+    reasonKeys,
+  }
+}
+
+const addUniqueAction = (actions: DashboardAction[], action: DashboardAction) => {
+  if (actions.some((candidate) => candidate.id === action.id)) return
+  actions.push(action)
+}
+
+const buildActions = (
+  input: DashboardPresentationInput,
+  platformRows: DashboardPlatformRow[],
+  signalCounts: DashboardSignalCounts,
+): DashboardAction[] => {
+  const actions: DashboardAction[] = []
+  const missingCliRows = platformRows.filter((platform) => platform.isRuntimeCli && platform.state === 'attention')
+
+  if (!input.isNativeRuntime || input.backendStatus === 'unsupported') {
+    addUniqueAction(actions, {
+      id: 'web-preview-boundary',
+      titleKey: 'dashboard.actions.webPreviewTitle',
+      descKey: 'dashboard.actions.webPreviewDesc',
+      path: '/usage',
+      icon: 'Monitor',
+      tone: 'system',
+      priority: 10,
+    })
+  }
+
+  if (input.backendStatus === 'error') {
+    addUniqueAction(actions, {
+      id: 'backend-health',
+      titleKey: 'dashboard.actions.backendTitle',
+      descKey: 'dashboard.actions.backendDesc',
+      path: '/monitoring',
+      icon: 'AlertTriangle',
+      tone: 'monitoring',
+      priority: 20,
+    })
+  }
+
+  if (missingCliRows.length > 0) {
+    addUniqueAction(actions, {
+      id: 'install-runtime-cli',
+      titleKey: 'dashboard.actions.installCliTitle',
+      descKey: 'dashboard.actions.installCliDesc',
+      path: missingCliRows[0]?.path ?? '/configs',
+      icon: missingCliRows[0]?.icon ?? 'Terminal',
+      tone: 'platform',
+      priority: 30,
+      detail: missingCliRows.map((platform) => platform.title).join(' · '),
+    })
+  }
+
+  if (input.usageError
+    || input.usageLoading
+    || !input.overview
+    || input.overview.empty_reason
+    || input.overview.bootstrap.needs_session_index
+    || input.overview.bootstrap.needs_usage_import
+  ) {
+    addUniqueAction(actions, {
+      id: 'open-usage',
+      titleKey: 'dashboard.actions.openUsageTitle',
+      descKey: 'dashboard.actions.openUsageDesc',
+      path: '/usage',
+      icon: 'Activity',
+      tone: 'usage',
+      priority: 40,
+    })
+  }
+
+  if (signalCounts.errors > 0 || signalCounts.warnings > 0) {
+    addUniqueAction(actions, {
+      id: 'open-monitoring',
+      titleKey: 'dashboard.actions.openMonitoringTitle',
+      descKey: 'dashboard.actions.openMonitoringDesc',
+      path: '/monitoring',
+      icon: 'AlertCircle',
+      tone: 'monitoring',
+      priority: 50,
+      detail: `${signalCounts.errors} / ${signalCounts.warnings}`,
+    })
+  }
+
+  for (const action of DASHBOARD_DEFAULT_ACTIONS) {
+    addUniqueAction(actions, action)
+  }
+
+  return actions
+    .sort((left, right) => left.priority - right.priority)
+    .slice(0, 4)
+}
+
+const getBackendMetric = (status: DashboardBackendStatus): DashboardStatusMetric => {
+  switch (status) {
+    case 'unsupported':
+      return {
+        id: 'backend',
+        labelKey: 'dashboard.metrics.backend',
+        valueKey: 'dashboard.metrics.backendUnsupported',
+        hintKey: 'dashboard.readiness.reasons.backendUnsupported',
+        tone: 'accent',
+      }
+    case 'checking':
+      return {
+        id: 'backend',
+        labelKey: 'dashboard.metrics.backend',
+        valueKey: 'dashboard.metrics.backendChecking',
+        hintKey: 'dashboard.readiness.reasons.backendChecking',
+        tone: 'neutral',
+      }
+    case 'error':
+      return {
+        id: 'backend',
+        labelKey: 'dashboard.metrics.backend',
+        valueKey: 'dashboard.metrics.backendError',
+        hintKey: 'dashboard.readiness.reasons.backendError',
+        tone: 'danger',
+      }
+    case 'ok':
+      return {
+        id: 'backend',
+        labelKey: 'dashboard.metrics.backend',
+        valueKey: 'dashboard.metrics.backendReady',
+        hintKey: 'dashboard.readiness.reasons.backendOk',
+        tone: 'success',
+      }
+    default:
+      return {
+        id: 'backend',
+        labelKey: 'dashboard.metrics.backend',
+        valueKey: 'dashboard.metrics.backendUnknown',
+        hintKey: 'dashboard.readiness.reasons.backendChecking',
+        tone: 'neutral',
+      }
+  }
+}
+
+const buildStatusMetrics = (
+  input: DashboardPresentationInput,
+  signalCounts: DashboardSignalCounts,
+  installedCliCount: number,
+  runtimeCliCount: number,
+  missingCliTitles: string[],
+): DashboardStatusMetric[] => {
+  const systemMetric: DashboardStatusMetric = input.systemInfo
+    ? {
+        id: 'system',
+        labelKey: 'dashboard.metrics.system',
+        value: `${formatPercent(input.systemInfo.cpu_usage)} / ${formatPercent(input.systemInfo.memory_usage_percent)}`,
+        hint: `${input.systemInfo.hostname || 'host'} · ${formatFixed(input.systemInfo.used_memory_gb)} / ${formatFixed(input.systemInfo.total_memory_gb)} GB`,
+        tone: input.systemInfo.cpu_usage >= 90 || input.systemInfo.memory_usage_percent >= 92
+          ? 'danger'
+          : input.systemInfo.cpu_usage >= 70 || input.systemInfo.memory_usage_percent >= 78
+            ? 'warning'
+            : 'neutral',
+      }
+    : {
+        id: 'system',
+        labelKey: 'dashboard.metrics.system',
+        value: '…',
+        hintKey: 'dashboard.metrics.systemPending',
+        tone: 'neutral',
+      }
+
+  const usageMetric: DashboardStatusMetric = input.usageError
+    ? {
+        id: 'usage',
+        labelKey: 'dashboard.metrics.usage',
+        valueKey: 'dashboard.metrics.usageUnavailable',
+        hint: input.usageError,
+        tone: 'warning',
+      }
+    : input.usageLoading || !input.overview
+      ? {
+          id: 'usage',
+          labelKey: 'dashboard.metrics.usage',
+          valueKey: 'dashboard.metrics.usagePreparing',
+          hintKey: 'dashboard.readiness.reasons.usageLoading',
+          tone: 'neutral',
+        }
+      : input.overview.empty_reason
+        ? {
+            id: 'usage',
+            labelKey: 'dashboard.metrics.usage',
+            valueKey: 'dashboard.metrics.usageMissing',
+            hintKey: 'dashboard.readiness.reasons.usageEmpty',
+            tone: 'warning',
+          }
+        : {
+            id: 'usage',
+            labelKey: 'dashboard.metrics.usage',
+            value: formatCompact(input.overview.summary.total_requests),
+            hintKey: 'dashboard.readiness.reasons.usageReady',
+            tone: 'accent',
+          }
+
+  const signalMetric: DashboardStatusMetric = signalCounts.errors > 0
+    ? {
+        id: 'signals',
+        labelKey: 'dashboard.metrics.signals',
+        value: `${signalCounts.errors}/${signalCounts.warnings}`,
+        hintKey: 'dashboard.metrics.signalsError',
+        tone: 'danger',
+      }
+    : signalCounts.warnings > 0
+      ? {
+          id: 'signals',
+          labelKey: 'dashboard.metrics.signals',
+          value: `${signalCounts.errors}/${signalCounts.warnings}`,
+          hintKey: 'dashboard.metrics.signalsWarn',
+          tone: 'warning',
+        }
+      : {
+          id: 'signals',
+          labelKey: 'dashboard.metrics.signals',
+          value: String(signalCounts.total),
+          hintKey: 'dashboard.metrics.signalsQuiet',
+          tone: 'neutral',
+        }
+
+  return [
+    systemMetric,
+    getBackendMetric(input.backendStatus),
+    {
+      id: 'cli',
+      labelKey: 'dashboard.metrics.cli',
+      value: `${installedCliCount}/${runtimeCliCount}`,
+      hint: missingCliTitles.length > 0 ? missingCliTitles.join(' · ') : undefined,
+      hintKey: missingCliTitles.length > 0 ? undefined : 'dashboard.readiness.reasons.allCliReady',
+      tone: runtimeCliCount === 0
+        ? 'neutral'
+        : installedCliCount === runtimeCliCount
+          ? 'success'
+          : 'warning',
+    },
+    usageMetric,
+    signalMetric,
+  ]
+}
+
+export const buildDashboardPresentation = (input: DashboardPresentationInput): DashboardPresentation => {
+  const signalCounts = countSignals(input.logs)
+  const platformRows = buildPlatformRows(input)
+  const runtimeRows = input.platforms.filter((platform) => platform.isRuntimeCli)
+  const runtimeCliCount = runtimeRows.length
+  const installedCliCount = runtimeRows.filter((platform) => (
+    isRuntimeCliInstalled(platform, input.cliVersions, input.cliVersionsLoaded)
+  )).length
+  const missingCliTitles = platformRows
+    .filter((platform) => platform.isRuntimeCli && platform.state === 'attention')
+    .map((platform) => platform.title)
+
+  return {
+    readiness: buildReadiness(input, platformRows, signalCounts),
+    actions: buildActions(input, platformRows, signalCounts),
+    statusMetrics: buildStatusMetrics(input, signalCounts, installedCliCount, runtimeCliCount, missingCliTitles),
+    platformRows,
+    signalCounts,
+    installedCliCount,
+    runtimeCliCount,
+  }
+}
+

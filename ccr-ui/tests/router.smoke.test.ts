@@ -4,7 +4,7 @@ import router from '@/router'
 describe('router smoke', () => {
   it('keeps critical named routes registered', () => {
     const requiredRoutes = [
-      'home',
+      'dashboard',
       'settings',
       'codex',
       'antigravity',
@@ -34,6 +34,13 @@ describe('router smoke', () => {
     const statsRoute = router.getRoutes().find((route) => route.path === '/stats')
 
     expect(statsRoute?.redirect).toBe('/usage')
+  })
+
+  it('keeps the root route registered as the cached dashboard', () => {
+    const dashboardRoute = router.getRoutes().find((route) => route.name === 'dashboard')
+
+    expect(dashboardRoute?.path).toBe('/')
+    expect(dashboardRoute?.meta.cacheKey).toBe('DashboardView')
   })
 
   it('keeps legacy Gemini CLI routes redirected to Antigravity', () => {

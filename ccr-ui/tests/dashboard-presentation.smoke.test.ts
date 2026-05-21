@@ -1,0 +1,226 @@
+import { describe, expect, it } from 'vitest'
+import {
+  buildDashboardPresentation,
+  type DashboardPlatformSource,
+} from '@/views/dashboard/dashboardPresentation'
+import type { CliVersionEntry, SystemInfo } from '@/types'
+import type { MonitoringEntry } from '@/composables/useMonitoringFeed'
+import type { HomeUsageOverviewResponse } from '@/types/usage'
+
+const platforms: DashboardPlatformSource[] = [
+  {
+    title: 'Claude Code',
+    desc: 'Claude runtime',
+    path: '/claude-code',
+    icon: 'Code2',
+    iconClass: 'text-platform-claude',
+    platformKey: 'claude-code',
+    usageKey: 'claude',
+    role: 'Core CLI',
+    mode: 'cli',
+    isRuntimeCli: true,
+  },
+  {
+    title: 'Codex',
+    desc: 'Codex runtime',
+    path: '/codex',
+    icon: 'Settings',
+    iconClass: 'text-platform-codex',
+    platformKey: 'codex',
+    usageKey: 'codex',
+    role: 'Core CLI',
+    mode: 'cli',
+    isRuntimeCli: true,
+  },
+  {
+    title: 'Antigravity',
+    desc: 'Antigravity runtime',
+    path: '/antigravity',
+    icon: 'Sparkles',
+    iconClass: 'text-platform-gemini',
+    platformKey: 'antigravity',
+    usageKey: 'gemini',
+    role: 'Core CLI',
+    mode: 'cli',
+    isRuntimeCli: true,
+  },
+  {
+    title: 'OpenCode',
+    desc: 'Managed runtime',
+    path: '/opencode',
+    icon: 'TerminalSquare',
+    iconClass: 'text-accent-info',
+    platformKey: 'opencode',
+    usageKey: 'opencode',
+    role: 'Managed',
+    mode: 'managed',
+    isRuntimeCli: false,
+  },
+]
+
+const systemInfo: SystemInfo = {
+  hostname: 'workstation',
+  os: 'windows',
+  os_version: '11',
+  kernel_version: '10.0',
+  cpu_brand: 'Test CPU',
+  cpu_cores: 12,
+  cpu_usage: 11.4,
+  total_memory_gb: 64,
+  used_memory_gb: 17.5,
+  memory_usage_percent: 27.3,
+  total_swap_gb: 0,
+  used_swap_gb: 0,
+  uptime_seconds: 1200,
+}
+
+const cliEntry = (platform: string, overrides: Partial<CliVersionEntry> = {}): CliVersionEntry => ({
+  platform,
+  installed: true,
+  version: '1.0.0',
+  status: 'ok',
+  ...overrides,
+})
+
+const createCliMap = (entries: CliVersionEntry[] = [
+  cliEntry('claude-code'),
+  cliEntry('codex'),
+  cliEntry('antigravity'),
+]) => new Map(entries.map((entry) => [entry.platform, entry]))
+
+const overview = (overrides: Partial<HomeUsageOverviewResponse> = {}): HomeUsageOverviewResponse => ({
+  summary: {
+    total_sessions: 18,
+    total_requests: 1240,
+    total_tokens: 980000,
+    active_days: 30,
+    platforms: 4,
+  },
+  by_platform: {
+    claude: { sessions: 8, requests: 520, tokens: 420000 },
+    codex: { sessions: 7, requests: 640, tokens: 510000 },
+    gemini: { sessions: 3, requests: 80, tokens: 50000 },
+    opencode: { sessions: 0, requests: 40, tokens: 15000 },
+  },
+  series: [],
+  archive: {
+    archive_root: 'C:/Users/test/.ccr/analytics/usage.db',
+    live_sources: 3,
+    missing_sources: 0,
+    deleted_sources: 0,
+    archived_sessions: 18,
+    recent_completed_at: null,
+    history_completed_at: null,
+  },
+  bootstrap: {
+    usage_import_attempted: false,
+    usage_imported_records: 0,
+    session_reindex_attempted: false,
+    indexed_sessions: 0,
+    usage_job_id: null,
+    session_job_id: null,
+    needs_usage_import: false,
+    needs_session_index: false,
+    is_warm: true,
+  },
+  empty_reason: undefined,
+  last_updated: '2026-04-29T09:00:00Z',
+  ...overrides,
+})
+
+const createLog = (level: MonitoringEntry['level']): MonitoringEntry => ({
+  id: `event-${level}`,
+  timestamp: '2026-04-29T09:15:00Z',
+  level,
+  channel: 'usage',
+  eventType: 'usage.import',
+  source: 'test',
+  message: `${level} event`,
+})
+
+const baseInput = () => ({
+  backendStatus: 'ok' as const,
+  isNativeRuntime: true,
+  systemInfo,
+  cliVersions: createCliMap(),
+  cliVersionsLoaded: true,
+  platforms,
+  overview: overview(),
+  usageLoading: false,
+  usageError: null,
+  logs: [] as MonitoringEntry[],
+})
+
+describe('dashboard presentation', () => {
+  it('reports ready when backend, CLI, usage, and signals are healthy', () => {
+    const presentation = buildDashboardPresentation(baseInput())
+
+    expect(presentation.readiness.status).toBe('ready')
+    expect(presentation.installedCliCount).toBe(3)
+    expect(presentation.runtimeCliCount).toBe(3)
+    expect(presentation.actions[0]?.id).toBe('command-runner')
+    expect(presentation.platformRows.every((row) => row.state === 'ready' || row.state === 'managed')).toBe(true)
+  })
+
+  it('prioritizes web-preview capability boundaries outside native runtime', () => {
+    const presentation = buildDashboardPresentation({
+      ...baseInput(),
+      backendStatus: 'unsupported',
+      isNativeRuntime: false,
+      systemInfo: null,
+      cliVersions: new Map(),
+      overview: null,
+    })
+
+    expect(presentation.readiness.status).toBe('web-preview')
+    expect(presentation.actions[0]?.id).toBe('web-preview-boundary')
+  })
+
+  it('surfaces missing CLI as an attention blocker and routes to that platform', () => {
+    const presentation = buildDashboardPresentation({
+      ...baseInput(),
+      cliVersions: createCliMap([
+        cliEntry('claude-code'),
+        cliEntry('codex', { installed: false, status: 'not_installed', version: undefined }),
+        cliEntry('antigravity'),
+      ]),
+    })
+
+    expect(presentation.readiness.status).toBe('attention')
+    expect(presentation.actions[0]).toMatchObject({
+      id: 'install-runtime-cli',
+      path: '/codex',
+      detail: 'Codex',
+    })
+  })
+
+  it('routes usage warmup and empty states to the usage dashboard without fake readiness', () => {
+    const presentation = buildDashboardPresentation({
+      ...baseInput(),
+      overview: overview({
+        empty_reason: 'no_usage_and_sessions',
+        bootstrap: {
+          ...overview().bootstrap,
+          needs_usage_import: true,
+          is_warm: false,
+        },
+      }),
+    })
+
+    expect(presentation.readiness.status).toBe('attention')
+    expect(presentation.readiness.reasonKeys).toContain('dashboard.readiness.reasons.usageEmpty')
+    expect(presentation.actions.some((action) => action.id === 'open-usage')).toBe(true)
+  })
+
+  it('prioritizes recent errors before default actions', () => {
+    const presentation = buildDashboardPresentation({
+      ...baseInput(),
+      logs: [createLog('info'), createLog('warn'), createLog('error')],
+    })
+
+    expect(presentation.readiness.status).toBe('attention')
+    expect(presentation.signalCounts).toMatchObject({ errors: 1, warnings: 1, total: 3 })
+    expect(presentation.actions[0]?.id).toBe('open-monitoring')
+  })
+})
+

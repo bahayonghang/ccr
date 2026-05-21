@@ -13,8 +13,8 @@ export interface MainLayoutNavSection {
 
 export const mainLayoutNavSections: MainLayoutNavSection[] = [
   {
-    id: 'home',
-    items: [{ to: '/', labelKey: 'nav.home', icon: 'Home' }],
+    id: 'dashboard',
+    items: [{ to: '/', labelKey: 'nav.dashboard', icon: 'Activity' }],
   },
   {
     id: 'workspace',
@@ -72,7 +72,7 @@ export const mainLayoutNavSections: MainLayoutNavSection[] = [
 ]
 
 export const mainLayoutRouteTitleMap: Record<string, string> = {
-  home: 'nav.home',
+  dashboard: 'nav.dashboard',
   settings: 'nav.settings',
   configs: 'nav.configs',
   skills: 'nav.skillsMigration',
@@ -140,7 +140,7 @@ export const mainLayoutGroupTitleMap: Record<string, string> = {
 }
 
 export const mainLayoutCachedViews = [
-  'HomeView',
+  'DashboardView',
   'ConfigsView',
   'CommandsView',
   'ClaudeCodeView',

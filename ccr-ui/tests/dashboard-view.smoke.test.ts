@@ -26,9 +26,7 @@ const monitoringState = vi.hoisted(() => ({
 }))
 
 const translationTemplates = vi.hoisted(() => ({
-  'home.systemMetricHost': '主机：{host}',
-  'home.systemMetricMemory': '已用 {used} / {total} GB',
-  'home.usageLastUpdated': '更新于 {time}',
+  'dashboard.usage.lastUpdated': '更新于 {time}',
 }))
 
 vi.mock('vue-router', () => ({
@@ -192,14 +190,14 @@ const flushPromises = async () => {
   await nextTick()
 }
 
-const mountHomeView = async () => {
-  const HomeView = (await import('@/views/HomeView.vue')).default
+const mountDashboardView = async () => {
+  const DashboardView = (await import('@/views/DashboardView.vue')).default
   const el = document.createElement('div')
   document.body.appendChild(el)
 
   const app = createApp(defineComponent({
     setup() {
-      return () => h(HomeView)
+      return () => h(DashboardView)
     },
   }))
 
@@ -256,23 +254,22 @@ afterEach(() => {
   document.body.innerHTML = ''
 })
 
-describe('HomeView smoke', () => {
+describe('DashboardView smoke', () => {
   it('renders the workbench sections with real system, CLI, activity, and usage data', async () => {
-    const { el, unmount } = await mountHomeView()
+    const { el, unmount } = await mountDashboardView()
 
     try {
-      expect(el.querySelector('[data-home-hero]')).not.toBeNull()
-      expect(el.querySelector('[data-home-actions]')).not.toBeNull()
-      expect(el.querySelector('[data-home-activity]')).not.toBeNull()
-      expect(el.querySelector('[data-home-platforms]')).not.toBeNull()
-      expect(el.querySelector('[data-home-usage-preview]')).not.toBeNull()
+      expect(el.querySelector('[data-dashboard-hero]')).not.toBeNull()
+      expect(el.querySelector('[data-dashboard-actions]')).not.toBeNull()
+      expect(el.querySelector('[data-dashboard-signals]')).not.toBeNull()
+      expect(el.querySelector('[data-dashboard-platforms]')).not.toBeNull()
+      expect(el.querySelector('[data-dashboard-usage-movement]')).not.toBeNull()
       expect(el.querySelector('.home-poster')).toBeNull()
       expect(el.querySelector('.page-header-card')).toBeNull()
       expect(el.textContent).toContain('11.4%')
       expect(el.textContent).toContain('27.3%')
       expect(el.textContent).toContain('3/3')
-      expect(el.textContent).toContain('主机：workstation')
-      expect(el.textContent).toContain('已用 17.5 / 64.0 GB')
+      expect(el.textContent).toContain('workstation · 17.5 / 64.0 GB')
       expect(el.textContent).toContain('Usage archive refreshed')
       expect(el.textContent).toContain('1.2K')
       expect(el.textContent).toContain('更新于')
@@ -287,42 +284,44 @@ describe('HomeView smoke', () => {
     monitoringState.logs = []
     apiMocks.getHomeUsageOverviewV2.mockResolvedValue(createOverview({ empty: true }))
 
-    const { el, unmount } = await mountHomeView()
+    const { el, unmount } = await mountDashboardView()
 
     try {
-      expect(el.textContent).toContain('home.activityEmptyTitle')
+      expect(el.textContent).toContain('dashboard.signals.emptyTitle')
       expect(el.textContent).toContain('usageStats.noUsageAndSessions')
-      expect(el.textContent).toContain('home.opencodeTitle')
-      expect(el.textContent).toContain('home.platformStatRequests0')
+      expect(el.textContent).toContain('dashboard.platforms.opencodeTitle')
+      expect(el.querySelector('[data-dashboard-usage-bars]')).toBeNull()
     } finally {
       unmount()
     }
   })
 
-  it('uses professional home copy in locales and boot messages', async () => {
+  it('uses professional dashboard copy in locales and boot messages', async () => {
     const [{ default: zhCN }, { default: enUS }, { bootLocaleMessages }] = await Promise.all([
       import('@/i18n/locales/zh-CN'),
       import('@/i18n/locales/en-US'),
       import('@/i18n/bootMessages'),
     ])
 
-    expect(zhCN.home.workbenchTitle).toBe('运行态势')
-    expect(zhCN.home.activityTitle).toBe('事件流')
-    expect(zhCN.home.platformUsageUntracked).toBe('未追踪')
-    expect(enUS.home.workbenchTitle).toBe('Operational Workbench')
-    expect(enUS.home.activityTitle).toBe('Event Stream')
-    expect(enUS.home.platformUsageUntracked).toBe('Untracked')
-    expect(bootLocaleMessages['zh-CN'].home.workbenchTitle).toBe('运行态势')
-    expect(bootLocaleMessages['en-US'].home.workbenchTitle).toBe('Operational Workbench')
+    expect(zhCN.nav.dashboard).toBe('Dashboard')
+    expect(zhCN.dashboard.title).toBe('运行态势工作台')
+    expect(zhCN.dashboard.signals.title).toBe('事件信号')
+    expect(zhCN.dashboard.platforms.untracked).toBe('未追踪')
+    expect(enUS.nav.dashboard).toBe('Dashboard')
+    expect(enUS.dashboard.title).toBe('Operations Dashboard')
+    expect(enUS.dashboard.signals.title).toBe('Signal stream')
+    expect(enUS.dashboard.platforms.untracked).toBe('Untracked')
+    expect(bootLocaleMessages['zh-CN'].dashboard.title).toBe('运行态势工作台')
+    expect(bootLocaleMessages['en-US'].dashboard.title).toBe('Operations Dashboard')
 
-    const homeCopy = [
-      ...collectStrings(zhCN.home),
-      ...collectStrings(enUS.home),
-      ...collectStrings(bootLocaleMessages['zh-CN'].home),
-      ...collectStrings(bootLocaleMessages['en-US'].home),
+    const dashboardCopy = [
+      ...collectStrings(zhCN.dashboard),
+      ...collectStrings(enUS.dashboard),
+      ...collectStrings(bootLocaleMessages['zh-CN'].dashboard),
+      ...collectStrings(bootLocaleMessages['en-US'].dashboard),
     ].join('\n')
 
-    expect(homeCopy).not.toMatch(/喵|meow|脉冲|pulse/i)
-    expect(homeCopy).not.toMatch(/Factory Droid|Droids/i)
+    expect(dashboardCopy).not.toMatch(/喵|meow|脉冲|pulse/i)
+    expect(dashboardCopy).not.toMatch(/Factory Droid|Droids/i)
   })
 })

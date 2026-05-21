@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest'
 
 const migratedViewPaths = [
   '../src/components/MainLayout.vue',
-  '../src/views/HomeView.vue',
+  '../src/views/DashboardView.vue',
   '../src/views/UsageDashboardView.vue',
   '../src/views/CodexView.vue',
 ]

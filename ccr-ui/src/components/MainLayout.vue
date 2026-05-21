@@ -331,14 +331,14 @@ const { theme, effectiveTheme, locale } = storeToRefs(shellPreferencesStore)
 const currentPageTitle = computed(() => {
   const name = route.name as string
   const key = mainLayoutRouteTitleMap[name]
-  return key ? t(key) : t('nav.home')
+  return key ? t(key) : t('nav.dashboard')
 })
 
 const currentSectionTitle = computed(() => {
   const group = route.meta.group as string | undefined
-  if (!group) return t('nav.home')
+  if (!group) return t('nav.dashboard')
   const key = mainLayoutGroupTitleMap[group]
-  return key ? t(key) : t('nav.home')
+  return key ? t(key) : t('nav.dashboard')
 })
 
 const shouldUseThemeStage = computed(() => Boolean(route.meta.hideGlobalBackground))

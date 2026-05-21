@@ -74,9 +74,9 @@ const routes: RouteRecordRaw[] = [
     children: [
       {
         path: '',
-        name: 'home',
-        component: () => import('@/views/HomeView.vue'),
-        meta: { cache: true, cacheKey: 'HomeView', depth: 0 },
+        name: 'dashboard',
+        component: () => import('@/views/DashboardView.vue'),
+        meta: { cache: true, cacheKey: 'DashboardView', depth: 0 },
       },
       {
         path: 'settings',

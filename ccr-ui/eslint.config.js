@@ -20,6 +20,7 @@ export default [
       '**/storybook-static/**',
       '**/coverage/**',
       '**/node_modules/**',
+      '**/ref/**',
       '**/src-tauri/target/**',
       '**/src-tauri/gen/**',
       '**/.vite/**',

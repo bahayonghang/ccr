@@ -210,7 +210,7 @@ describe('MainLayout theme stage smoke', () => {
   })
 
   it('skips theme-stage classes when the route keeps the global background', async () => {
-    routeState.name = 'home'
+    routeState.name = 'dashboard'
     routeState.fullPath = '/'
     routeState.meta.group = undefined
     routeState.meta.hideGlobalBackground = false
@@ -279,7 +279,7 @@ describe('MainLayout theme stage smoke', () => {
   })
 
   it('renders the settings dock as the bottom sidebar entry without legacy theme or language toggles', async () => {
-    routeState.name = 'home'
+    routeState.name = 'dashboard'
     routeState.fullPath = '/'
     routeState.meta.group = undefined
     routeState.meta.hideGlobalBackground = false
