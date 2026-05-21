@@ -74,10 +74,9 @@ defineProps<Props>()
   border: 1px solid rgb(var(--color-border-default-rgb) / 14%);
   padding: 0.92rem 1rem 0.95rem;
   background:
-    linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 78%), rgb(var(--color-bg-surface-rgb) / 56%)),
-    radial-gradient(circle at 82% 0%, rgb(var(--usage-metric-rgb) / 13%), transparent 44%);
-  box-shadow: var(--elevation-1), inset 0 1px 0 rgb(255 255 255 / 10%);
-  backdrop-filter: var(--surface-card-blur);
+    linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 90%), rgb(var(--color-bg-surface-rgb) / 74%)),
+    radial-gradient(circle at 82% 0%, rgb(var(--usage-metric-rgb) / 8%), transparent 48%);
+  box-shadow: var(--elevation-1), inset 0 1px 0 rgb(255 255 255 / 8%);
   transition:
     border-color var(--motion-subtle-duration) var(--motion-subtle-ease),
     box-shadow var(--motion-subtle-duration) var(--motion-subtle-ease),
@@ -123,8 +122,7 @@ defineProps<Props>()
   width: 9rem;
   height: 9rem;
   border-radius: 9999px;
-  background: rgb(var(--usage-metric-rgb) / 16%);
-  filter: blur(42px);
+  background: radial-gradient(circle, rgb(var(--usage-metric-rgb) / 10%), transparent 62%);
 }
 
 .usage-metric-card__topline,

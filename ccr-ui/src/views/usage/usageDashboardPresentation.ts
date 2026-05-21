@@ -1,4 +1,18 @@
-import type { DailyTrend, ModelStat } from '@/types/usage'
+import type { DailyTrend, ModelStat, ProjectStat, UsageSummary } from '@/types/usage'
+import {
+  buildOverviewHighlights,
+  buildTopModelRankings,
+  buildTopProjectRankings,
+  type OverviewHighlightItem,
+  type OverviewRankItem,
+  type UsageDashboardTranslate,
+} from './usageOverviewInsights'
+import {
+  buildSummarySparklinePoints,
+  buildUsageSummaryCards,
+  type UsageSummaryCard,
+  type UsageSummarySparklinePoints,
+} from './usageSummaryCards'
 
 export type TrendGranularity = 'day' | 'week' | 'month'
 
@@ -190,6 +204,29 @@ const groupModelsByMetric = (
   return slices
 }
 
+export interface DisplayUsageTrendBucket extends UsageTrendBucket {
+  displayEndDate: string
+}
+
+export interface UsageTrendSeriesItem {
+  name: string
+  data: Array<{ x: string; y: number }>
+}
+
+export interface UsageDashboardPresentation {
+  trendBuckets: DisplayUsageTrendBucket[]
+  summarySparklinePoints: UsageSummarySparklinePoints
+  summaryCards: UsageSummaryCard[]
+  trendSeries: UsageTrendSeriesItem[]
+  modelDistribution: ModelDistributionSlice[]
+  modelTokenDistribution: ModelDistributionSlice[]
+  pieSeries: number[]
+  modelTokenPieSeries: number[]
+  overviewHighlights: OverviewHighlightItem[]
+  topModelRankings: OverviewRankItem[]
+  topProjectRankings: OverviewRankItem[]
+}
+
 export const groupModelDistribution = (
   modelStats: ModelStat[],
   maxVisible = 6,
@@ -199,3 +236,93 @@ export const groupModelTokenDistribution = (
   modelStats: ModelStat[],
   maxVisible = 6,
 ): ModelDistributionSlice[] => groupModelsByMetric(modelStats, maxVisible, 'tokens')
+
+export const buildUsageDashboardPresentation = ({
+  modelStats,
+  projectStats,
+  selectedWindowLabel,
+  summary,
+  translate,
+  trendGranularity,
+  trendGranularityLabel,
+  trends,
+}: {
+  modelStats: ModelStat[]
+  projectStats: ProjectStat[]
+  selectedWindowLabel: string
+  summary: UsageSummary | null
+  translate: UsageDashboardTranslate
+  trendGranularity: TrendGranularity
+  trendGranularityLabel: string
+  trends: DailyTrend[]
+}): UsageDashboardPresentation => {
+  const trendBuckets = aggregateDailyTrends(trends, trendGranularity).map((bucket) => ({
+    ...bucket,
+    displayEndDate: expandTrendBucketEnd(bucket, trendGranularity),
+  }))
+  const summarySparklinePoints = buildSummarySparklinePoints(trendBuckets)
+  const inputName = translate('usage.dashboard.chart.input', undefined, 'Input')
+  const outputName = translate('usage.dashboard.chart.output', undefined, 'Output')
+  const cacheName = translate('usage.dashboard.chart.cache', undefined, 'Cache Read')
+  const localizeOther = (item: ModelDistributionSlice): ModelDistributionSlice => ({
+    ...item,
+    label: item.isOther
+      ? translate('usage.dashboard.chart.others', undefined, 'Others')
+      : item.label,
+  })
+  const modelDistribution = groupModelDistribution(modelStats, 6).map(localizeOther)
+  const modelTokenDistribution = groupModelTokenDistribution(modelStats, 6).map(localizeOther)
+
+  return {
+    trendBuckets,
+    summarySparklinePoints,
+    summaryCards: summary
+      ? buildUsageSummaryCards({
+          summary,
+          modelCount: modelStats.length,
+          projectCount: projectStats.length,
+          sparklinePoints: summarySparklinePoints,
+          selectedWindowLabel,
+          translate,
+        })
+      : [],
+    trendSeries: [
+      {
+        name: inputName,
+        data: trendBuckets.map((item) => ({
+          x: `${item.startDate}T00:00:00Z`,
+          y: item.inputTokens,
+        })),
+      },
+      {
+        name: outputName,
+        data: trendBuckets.map((item) => ({
+          x: `${item.startDate}T00:00:00Z`,
+          y: item.outputTokens,
+        })),
+      },
+      {
+        name: cacheName,
+        data: trendBuckets.map((item) => ({
+          x: `${item.startDate}T00:00:00Z`,
+          y: item.cacheReadTokens,
+        })),
+      },
+    ],
+    modelDistribution,
+    modelTokenDistribution,
+    pieSeries: modelDistribution.map((item) => item.totalCost),
+    modelTokenPieSeries: modelTokenDistribution.map((item) => item.totalTokens),
+    overviewHighlights: buildOverviewHighlights({
+      modelStats,
+      projectStats,
+      summary,
+      trendBuckets,
+      trendGranularityLabel,
+      selectedWindowLabel,
+      translate,
+    }),
+    topModelRankings: buildTopModelRankings(modelStats, translate),
+    topProjectRankings: buildTopProjectRankings(projectStats, translate),
+  }
+}

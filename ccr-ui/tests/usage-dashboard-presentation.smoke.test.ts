@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { DailyTrend, ModelStat } from '@/types/usage'
 import {
   aggregateDailyTrends,
+  buildUsageDashboardPresentation,
   groupModelDistribution,
   groupModelTokenDistribution,
   selectTrendGranularity,
@@ -125,5 +126,76 @@ describe('usage dashboard presentation helpers', () => {
       id: 'cheap-large',
       share: 10000 / 11000,
     })
+  })
+
+  it('builds centralized dashboard presentation without repeating chart derivations', () => {
+    const presentation = buildUsageDashboardPresentation({
+      modelStats: [
+        {
+          model: 'expensive-small',
+          request_count: 3,
+          total_tokens: 1000,
+          total_cost: 100,
+          cost_with_cache: 100,
+        },
+        {
+          model: 'cheap-large',
+          request_count: 2,
+          total_tokens: 10000,
+          total_cost: 1,
+          cost_with_cache: 1,
+        },
+      ],
+      projectStats: [
+        {
+          project_path: 'D:/repo/usage-dashboard',
+          request_count: 5,
+          total_tokens: 11000,
+          total_cost: 101,
+        },
+      ],
+      selectedWindowLabel: '30 Days',
+      summary: {
+        total_requests: 5,
+        total_tokens: 11000,
+        total_input_tokens: 7000,
+        total_output_tokens: 3000,
+        total_cache_read_tokens: 1000,
+        total_cost_usd: 101,
+        cache_efficiency: 0.125,
+      },
+      translate: (_key, _values, fallback) => fallback,
+      trendGranularity: 'day',
+      trendGranularityLabel: 'Daily',
+      trends: [
+        buildTrend('2026-01-05', 1),
+        buildTrend('2026-01-06', 2),
+      ],
+    })
+
+    expect(presentation.trendBuckets).toHaveLength(2)
+    expect(presentation.summaryCards.map((card) => card.id)).toEqual([
+      'requests',
+      'tokens',
+      'cost',
+      'cache',
+    ])
+    expect(presentation.trendSeries.map((series) => series.name)).toEqual([
+      'Input',
+      'Output',
+      'Cache Read',
+    ])
+    expect(presentation.modelDistribution[0]?.label).toBe('expensive-small')
+    expect(presentation.modelTokenDistribution[0]?.label).toBe('cheap-large')
+    expect(presentation.pieSeries).toEqual([100, 1])
+    expect(presentation.modelTokenPieSeries).toEqual([10000, 1000])
+    expect(presentation.overviewHighlights.map((item) => item.id)).toEqual([
+      'density',
+      'top-model',
+      'top-project',
+      'cache',
+    ])
+    expect(presentation.topModelRankings[0]?.label).toBe('expensive-small')
+    expect(presentation.topProjectRankings[0]?.title).toBe('D:/repo/usage-dashboard')
   })
 })

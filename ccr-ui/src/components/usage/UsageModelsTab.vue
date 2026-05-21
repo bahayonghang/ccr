@@ -8,7 +8,7 @@
       :pie-colors="pieColors"
       :pie-options="pieOptions"
       :pie-series="pieSeries"
-      :should-load-charts="shouldLoadCharts"
+      :should-render-chart="shouldRenderChart"
       :subtitle="distributionSubtitle"
       metric="tokens"
       :title="$t('usage.dashboard.chart.tokensByModel')"
@@ -184,7 +184,7 @@ import UsageModelDistributionCard from './UsageModelDistributionCard.vue'
 
 interface Props {
   chartComponent: Component
-  shouldLoadCharts: boolean
+  shouldRenderChart: boolean
   pieSeries: number[]
   pieOptions: object
   pieColors: string[]

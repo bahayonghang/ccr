@@ -40,6 +40,12 @@
           :series="pieSeries"
         />
         <div
+          v-else-if="hasDeferredData"
+          class="distribution-card__empty distribution-card__empty--deferred"
+        >
+          {{ $t('usage.dashboard.chart.preparingDistribution') }}
+        </div>
+        <div
           v-else
           class="distribution-card__empty"
         >
@@ -115,7 +121,7 @@ interface Props {
   title: string
   subtitle?: string
   chartComponent: Component
-  shouldLoadCharts: boolean
+  shouldRenderChart: boolean
   pieSeries: number[]
   pieOptions: object
   pieColors: string[]
@@ -132,12 +138,19 @@ const props = withDefaults(defineProps<Props>(), {
 })
 
 const hasData = computed(() => {
-  if (!props.shouldLoadCharts || props.modelDistribution.length === 0) {
+  if (!props.shouldRenderChart || props.modelDistribution.length === 0) {
     return false
   }
 
   return props.pieSeries.some((value) => value > 0)
 })
+
+const hasDeferredData = computed(
+  () =>
+    !props.shouldRenderChart &&
+    props.modelDistribution.length > 0 &&
+    props.pieSeries.some((value) => value > 0),
+)
 
 const chartHeight = computed(() => (props.variant === 'embedded' ? 196 : 240))
 

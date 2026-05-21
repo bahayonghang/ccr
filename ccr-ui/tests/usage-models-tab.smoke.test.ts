@@ -25,16 +25,17 @@ const translations: Record<string, string> = {
   'usage.dashboard.table.statusPriced': 'Priced',
   'usage.dashboard.table.statusLegacyAlias': 'Legacy Alias',
   'usage.dashboard.table.statusUnpriced': 'Unpriced',
+  'usage.dashboard.chart.preparingDistribution': 'Preparing distribution chart…',
 }
 
 const ChartStub = defineComponent({
   name: 'ChartStub',
   setup() {
-    return () => h('div')
+    return () => h('div', { class: 'chart-stub' }, 'chart')
   },
 })
 
-const mountModelsTab = async (modelStats: ModelStat[]) => {
+const mountModelsTab = async (modelStats: ModelStat[], shouldRenderChart = false) => {
   const el = document.createElement('div')
   document.body.appendChild(el)
 
@@ -51,8 +52,8 @@ const mountModelsTab = async (modelStats: ModelStat[]) => {
 
   const app = createApp(UsageModelsTab, {
     chartComponent: ChartStub,
-    shouldLoadCharts: false,
-    pieSeries: [],
+    shouldRenderChart,
+    pieSeries: modelDistribution.map((slice) => slice.totalTokens),
     pieOptions: {},
     pieColors: ['#4f46e5'],
     distributionSubtitle: 'Distribution',
@@ -209,6 +210,35 @@ describe('UsageModelsTab smoke', () => {
       expect(text).toContain('$10.00')
       expect(text).toContain('$0.00')
       expect(text).not.toContain('$6.00')
+    } finally {
+      mounted.unmount()
+    }
+  })
+
+  it('defers the model distribution chart behind a preparing placeholder', async () => {
+    const mounted = await mountModelsTab([
+      {
+        model: 'deferred-model',
+        request_count: 1,
+        total_tokens: 100,
+        total_cost: 9,
+        input_tokens: 60,
+        output_tokens: 40,
+        cache_read_tokens: 0,
+        cache_creation_tokens: 0,
+        cost_with_cache: 4,
+        cost_without_cache: 10,
+        cache_savings: 0,
+        pricing_status: 'priced',
+        pricing_source: 'official',
+        pricing_rate: '1/2',
+      },
+    ])
+
+    try {
+      expect(mounted.el.querySelector('.chart-stub')).toBeNull()
+      expect(mounted.el.textContent).toContain('Preparing distribution chart…')
+      expect(mounted.el.textContent).not.toContain('No Data')
     } finally {
       mounted.unmount()
     }

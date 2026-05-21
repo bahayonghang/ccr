@@ -1,9 +1,13 @@
 import { setActivePinia, createPinia } from 'pinia'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ImportAllUsageResponse, UsageSummary } from '@/types/usage'
 
 const tauriRuntimeMock = vi.fn(() => false)
 const eventListeners = new Map<string, (event: { payload: unknown }) => void>()
+const perfEvents: Array<Record<string, unknown>> = []
+const perfEventListener = ((event: Event) => {
+  perfEvents.push((event as CustomEvent<Record<string, unknown>>).detail)
+}) as EventListener
 const listenMock = vi.fn(async (eventName: string, callback: (event: { payload: unknown }) => void) => {
   eventListeners.set(eventName, callback)
   return () => {
@@ -106,7 +110,14 @@ describe('usage store smoke', () => {
     vi.resetModules()
     tauriRuntimeMock.mockReturnValue(false)
     eventListeners.clear()
+    perfEvents.length = 0
     listenMock.mockClear()
+    vi.useRealTimers()
+    window.addEventListener('ccr:perf', perfEventListener)
+  })
+
+  afterEach(() => {
+    window.removeEventListener('ccr:perf', perfEventListener)
     vi.useRealTimers()
   })
 
@@ -642,5 +653,53 @@ describe('usage store smoke', () => {
     await flushPromises()
 
     expect(api.getUsageDashboardV2).toHaveBeenCalledTimes(2)
+  })
+
+  it('keeps auto refresh idle for fresh cache resume and refreshes stale cache immediately', async () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-04-01T00:00:00Z'))
+
+    const api = await import('@/api')
+    const { useUsageStore } = await import('@/stores/usage')
+    const store = useUsageStore()
+
+    store.lastUpdated = new Date('2026-04-01T00:00:00Z')
+    store.startAutoRefresh()
+    await flushPromises()
+
+    expect(api.getUsageDashboardV2).not.toHaveBeenCalled()
+    expect(perfEvents.at(-1)).toMatchObject({
+      name: 'usage_auto_refresh_resume',
+      immediate: false,
+    })
+
+    store.stopAutoRefresh()
+    store.lastUpdated = new Date('2026-03-31T23:59:20Z')
+    store.startAutoRefresh()
+    await flushPromises()
+
+    expect(api.getUsageDashboardV2).toHaveBeenCalledTimes(1)
+    expect(perfEvents.some((event) =>
+      event.name === 'usage_auto_refresh_resume' && event.immediate === true
+    )).toBe(true)
+  })
+
+  it('can resume auto refresh without an immediate fetch when requested', async () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-04-01T00:00:00Z'))
+
+    const api = await import('@/api')
+    const { useUsageStore } = await import('@/stores/usage')
+    const store = useUsageStore()
+
+    store.lastUpdated = new Date('2026-03-31T23:59:00Z')
+    store.startAutoRefresh({ immediate: false })
+    await flushPromises()
+
+    expect(api.getUsageDashboardV2).not.toHaveBeenCalled()
+    expect(perfEvents.at(-1)).toMatchObject({
+      name: 'usage_auto_refresh_resume',
+      immediate: false,
+    })
   })
 })

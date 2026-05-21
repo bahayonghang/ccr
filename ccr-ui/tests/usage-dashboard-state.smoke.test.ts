@@ -3,6 +3,7 @@ import type { DailyTrend, UsageSummary } from '@/types/usage'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 let localeHydrated = false
+const perfMarks: string[] = []
 
 const usageStore = reactive({
   summary: null as UsageSummary | null,
@@ -66,6 +67,13 @@ vi.mock('@/i18n', () => ({
     localeHydrated = true
     return 'en-US'
   }),
+}))
+
+vi.mock('@/utils/perfTelemetry', () => ({
+  perfMark: vi.fn((name: string) => {
+    perfMarks.push(name)
+  }),
+  perfMeasure: vi.fn(),
 }))
 
 const translationTemplates: Record<string, string> = {
@@ -250,6 +258,7 @@ beforeEach(() => {
   usageStore.startImportJob.mockClear()
   usageStore.triggerImport.mockClear()
   usageStore.fetchLogs.mockClear()
+  perfMarks.length = 0
 })
 
 afterEach(() => {
@@ -268,6 +277,7 @@ describe('usage dashboard state smoke', () => {
         expect(usageStore.initializeDashboard).toHaveBeenCalledTimes(1)
         expect(usageStore.startAutoRefresh).toHaveBeenCalledTimes(1)
       })
+      expect(usageStore.startAutoRefresh).toHaveBeenCalledWith({ immediate: false })
       expect(addEventListenerSpy).not.toHaveBeenCalledWith('visibilitychange', expect.any(Function))
     } finally {
       unmount()
@@ -293,6 +303,7 @@ describe('usage dashboard state smoke', () => {
       active.value = true
       await nextTick()
       expect(usageStore.startAutoRefresh).toHaveBeenCalledTimes(2)
+      expect(usageStore.startAutoRefresh).toHaveBeenLastCalledWith()
     } finally {
       unmount()
     }
@@ -309,6 +320,32 @@ describe('usage dashboard state smoke', () => {
       await nextTick()
 
       expect(usageStore.fetchLogs).toHaveBeenCalledWith('reset')
+    } finally {
+      unmount()
+    }
+  })
+
+  it('keeps logs refresh scoped to logs activation and keep-alive resume', async () => {
+    tauriRuntime = true
+    const { active, state, unmount } = await mountKeepAliveComposable()
+
+    try {
+      await vi.waitFor(() => {
+        expect(usageStore.initializeDashboard).toHaveBeenCalledTimes(1)
+      })
+
+      expect(usageStore.fetchLogs).not.toHaveBeenCalled()
+
+      state.activeTab.value = 'logs'
+      await nextTick()
+      expect(usageStore.fetchLogs).toHaveBeenCalledWith('reset')
+
+      active.value = false
+      await nextTick()
+      active.value = true
+      await nextTick()
+
+      expect(usageStore.fetchLogs).toHaveBeenLastCalledWith('same')
     } finally {
       unmount()
     }
@@ -497,6 +534,79 @@ describe('usage dashboard state smoke', () => {
       expect(state.topProjectRankings.value[0]?.title).toBe('D:/workspace/heavy-project')
     } finally {
       unmount()
+    }
+  })
+
+  it('defers chart gates until after dashboard content is ready', async () => {
+    vi.useFakeTimers()
+    tauriRuntime = true
+    usageStore.summary = {
+      total_requests: 120,
+      total_tokens: 69000,
+      total_input_tokens: 42000,
+      total_output_tokens: 18000,
+      total_cache_read_tokens: 9000,
+      total_cost_usd: 24.5,
+      cache_efficiency: 0.375,
+    }
+    usageStore.trends = [
+      {
+        date: '2026-03-01',
+        request_count: 8,
+        total_tokens: 2120,
+        input_tokens: 1200,
+        output_tokens: 600,
+        cache_read_tokens: 300,
+        cache_creation_tokens: 20,
+        cost_usd: 1.2,
+      },
+    ]
+    usageStore.modelStats = [
+      { model: 'claude-opus', request_count: 72, total_tokens: 30000, total_cost: 18.4 },
+    ]
+
+    const { state, unmount } = await mountComposable()
+
+    try {
+      expect(state.shouldRenderTrendChart.value).toBe(false)
+      expect(state.shouldRenderDistributionChart.value).toBe(false)
+      expect(perfMarks).not.toContain('usage_first_content_ready')
+
+      vi.advanceTimersByTime(180)
+      await nextTick()
+      vi.advanceTimersByTime(180)
+      await nextTick()
+      expect(state.shouldRenderTrendChart.value).toBe(true)
+      expect(state.shouldRenderDistributionChart.value).toBe(false)
+      expect(perfMarks).toContain('usage_first_content_ready')
+
+      vi.advanceTimersByTime(180)
+      await nextTick()
+      expect(state.shouldRenderDistributionChart.value).toBe(true)
+      expect(perfMarks).toContain('usage_trend_chart_gate_ready')
+      expect(perfMarks).toContain('usage_distribution_chart_gate_ready')
+    } finally {
+      unmount()
+      vi.useRealTimers()
+    }
+  })
+
+  it('does not hydrate charts for true empty usage data', async () => {
+    vi.useFakeTimers()
+    tauriRuntime = true
+    usageStore.hasNoUsageData = true
+
+    const { state, unmount } = await mountComposable()
+
+    try {
+      vi.advanceTimersByTime(500)
+      await nextTick()
+      expect(state.shouldRenderTrendChart.value).toBe(false)
+      expect(state.shouldRenderDistributionChart.value).toBe(false)
+      expect(perfMarks).not.toContain('usage_trend_chart_gate_ready')
+    } finally {
+      unmount()
+      vi.useRealTimers()
     }
   })
 

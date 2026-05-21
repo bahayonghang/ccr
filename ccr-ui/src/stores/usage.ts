@@ -64,6 +64,7 @@ const FILTER_DEBOUNCE_MS = 300
 const HEATMAP_DAYS = 365
 const IMPORT_PROGRESS_REFRESH_INTERVAL_MS = 2_000
 const DASHBOARD_CACHE_TTL_MS = 30_000
+const AUTO_REFRESH_FRESHNESS_MS = DASHBOARD_CACHE_TTL_MS
 
 const USE_DASHBOARD_API = parseEnvFlag(
   import.meta.env.VITE_USAGE_DASHBOARD_AGGREGATED_API,
@@ -85,6 +86,13 @@ const recordPerfMetric = (
   if (import.meta.env.DEV) {
     logger.debug('[usage-perf]', detail)
   }
+}
+
+const recordPerfMark = (
+  name: string,
+  extra: Record<string, string | number | boolean> = {},
+) => {
+  recordPerfMetric(name, 0, extra)
 }
 
 interface FetchOptions {
@@ -766,11 +774,13 @@ export const useUsageStore = defineStore('usage', () => {
   /** 启动自动刷新 */
   const coreAutoRefresh = usePolledData(
     async () => {
+      recordPerfMark('usage_auto_refresh_start')
       await fetchAll({
         includeHeatmap: false,
         reason: 'auto-refresh-core',
         preserveError: Boolean(error.value && !hasUsageData.value),
       })
+      recordPerfMark('usage_auto_refresh_end')
       return lastUpdated.value?.toISOString() ?? null
     },
     {
@@ -778,11 +788,6 @@ export const useUsageStore = defineStore('usage', () => {
       intervalMs: REFRESH_INTERVAL,
       pauseWhenHidden: true,
       immediate: false,
-      onVisibilityResume: async () => {
-        if (logs.value) {
-          await fetchLogs('same')
-        }
-      },
     },
   )
 
@@ -801,10 +806,17 @@ export const useUsageStore = defineStore('usage', () => {
         },
       )
 
-  function startAutoRefresh() {
+  const shouldAutoRefreshImmediately = () => {
+    if (!lastUpdated.value) return true
+    return Date.now() - lastUpdated.value.getTime() >= AUTO_REFRESH_FRESHNESS_MS
+  }
+
+  function startAutoRefresh(options: { immediate?: boolean } = {}) {
     stopAutoRefresh()
-    coreAutoRefresh.resume()
-    heatmapAutoRefresh?.resume()
+    const immediate = options.immediate ?? shouldAutoRefreshImmediately()
+    recordPerfMark('usage_auto_refresh_resume', { immediate })
+    coreAutoRefresh.resume({ immediate })
+    heatmapAutoRefresh?.resume({ immediate })
   }
 
   /** 停止自动刷新 */

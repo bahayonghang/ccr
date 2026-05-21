@@ -42,13 +42,19 @@
         <div class="overview-tab__trend-shell">
           <component
             :is="chartComponent"
-            v-if="shouldLoadCharts && hasRenderableTrendData"
+            v-if="shouldRenderTrendChart && hasRenderableTrendData"
             class="overview-tab__chart"
             type="area"
             height="100%"
             :options="trendOptions"
             :series="trendSeries"
           />
+          <div
+            v-else-if="hasRenderableTrendData"
+            class="overview-tab__empty overview-tab__empty--trend overview-tab__empty--deferred"
+          >
+            {{ $t('usage.dashboard.chart.preparingTrend') }}
+          </div>
           <div
             v-else
             class="overview-tab__empty overview-tab__empty--trend"
@@ -67,7 +73,7 @@
           :pie-colors="pieColors"
           :pie-options="pieOptions"
           :pie-series="pieSeries"
-          :should-load-charts="shouldLoadCharts"
+          :should-render-chart="shouldRenderDistributionChart"
           :subtitle="distributionSubtitle"
           :title="$t('usage.dashboard.chart.costByModel')"
           variant="embedded"
@@ -269,7 +275,8 @@ type OverviewRankItem = {
 
 interface Props {
   chartComponent: Component
-  shouldLoadCharts: boolean
+  shouldRenderTrendChart: boolean
+  shouldRenderDistributionChart: boolean
   hasRenderableTrendData: boolean
   trendSeries: TrendSeriesItem[]
   trendOptions: object

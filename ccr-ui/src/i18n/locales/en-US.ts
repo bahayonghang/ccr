@@ -2516,6 +2516,8 @@ export default {
         statusLegacyAlias: 'Legacy',
         statusUnpriced: 'Unpriced',
         noTrend: 'No trend data',
+        preparingTrend: 'Preparing trend chart…',
+        preparingDistribution: 'Preparing distribution chart…',
         costByModel: 'Cost by Model',
         tokensByModel: 'Token Usage by Model',
         distributionSubtitle: 'Showing the top {visible} models; the remaining {total} are grouped into Others',

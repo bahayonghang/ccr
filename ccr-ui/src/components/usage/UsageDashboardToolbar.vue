@@ -116,11 +116,10 @@ const emitDays = (value: number) => {
   border-radius: 1.45rem;
   border: 1px solid rgb(var(--color-border-default-rgb) / 13%);
   background:
-    linear-gradient(135deg, rgb(var(--color-bg-elevated-rgb) / 76%), rgb(var(--color-bg-surface-rgb) / 52%)),
-    radial-gradient(circle at 12% 0%, rgb(var(--color-accent-primary-rgb) / 12%), transparent 38%);
+    linear-gradient(135deg, rgb(var(--color-bg-elevated-rgb) / 88%), rgb(var(--color-bg-surface-rgb) / 70%)),
+    radial-gradient(circle at 12% 0%, rgb(var(--color-accent-primary-rgb) / 8%), transparent 38%);
   padding: 1rem 1.08rem;
-  box-shadow: var(--elevation-1), inset 0 1px 0 rgb(255 255 255 / 10%);
-  backdrop-filter: var(--surface-workspace-blur);
+  box-shadow: var(--elevation-1), inset 0 1px 0 rgb(255 255 255 / 8%);
 }
 
 .usage-dashboard-toolbar__copy {

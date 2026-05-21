@@ -22,7 +22,8 @@ const mountOverviewTab = async () => {
       render() {
         return h(UsageOverviewTab, {
           chartComponent: ChartStub,
-          shouldLoadCharts: true,
+          shouldRenderTrendChart: true,
+          shouldRenderDistributionChart: true,
           hasRenderableTrendData: true,
           trendSeries: [
             {
@@ -164,6 +165,78 @@ describe('usage overview tab smoke', () => {
       )
     } finally {
       unmount()
+    }
+  })
+
+  it('shows deferred chart placeholders before rendering Apex stubs', async () => {
+    const el = document.createElement('div')
+    document.body.appendChild(el)
+
+    const app = createApp(
+      defineComponent({
+        render() {
+          return h(UsageOverviewTab, {
+            chartComponent: ChartStub,
+            shouldRenderTrendChart: false,
+            shouldRenderDistributionChart: false,
+            hasRenderableTrendData: true,
+            trendSeries: [
+              {
+                name: 'Input',
+                data: [{ x: '2026-03-01T00:00:00Z', y: 1200 }],
+              },
+            ],
+            trendOptions: {},
+            trendSubtitle: '30 day desktop window',
+            trendGranularityLabel: 'Daily',
+            pieSeries: [82],
+            pieOptions: {},
+            pieColors: ['#CA8FD1'],
+            distributionSubtitle: '1 model visible',
+            modelDistribution: [
+              {
+                id: 'primary',
+                label: 'claude-opus',
+                totalCost: 82,
+                totalTokens: 64000,
+                requestCount: 96,
+                share: 1,
+                childCount: 1,
+                isOther: false,
+              },
+            ],
+            modelStats: [],
+            projectStats: [],
+            overviewHighlights: [],
+            topModelRankings: [],
+            topProjectRankings: [],
+            formatCost: (value: number) => `$${value.toFixed(2)}`,
+            formatTokens: (value: number) => `${value}`,
+            shortenPath: (value: string) => value,
+          })
+        },
+      })
+    )
+
+    app.config.globalProperties.$t = (key: string) => ({
+      'usage.dashboard.chart.preparingTrend': 'Preparing trend chart…',
+      'usage.dashboard.chart.preparingDistribution': 'Preparing distribution chart…',
+    })[key] ?? key
+    app.mount(el)
+    await nextTick()
+    await nextTick()
+
+    try {
+      expect(el.querySelector('.chart-stub')).toBeNull()
+      expect(el.textContent).toContain('Preparing trend chart…')
+      expect(el.textContent).toContain('Preparing distribution chart…')
+      const trendShell = el.querySelector('.overview-tab__trend-shell')
+      const distributionCard = el.querySelector('.distribution-card')
+      expect(trendShell?.textContent).not.toContain('usage.dashboard.chart.noTrend')
+      expect(distributionCard?.textContent).not.toContain('usage.dashboard.table.noData')
+    } finally {
+      app.unmount()
+      el.remove()
     }
   })
 })

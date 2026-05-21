@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { ModelStat, UsageArchiveDiagnostics, UsageRecordV2, UsageSummary } from '@/types/usage'
 import {
+  buildChartTheme,
   buildTrendTooltipHtml,
   escapeTooltipText,
   formatTrendAxisLabel,
@@ -43,6 +44,13 @@ const logRecord = (recordedAt: string): UsageRecordV2 => ({
 })
 
 describe('usage chart and diagnostics helpers', () => {
+  it('builds chart theme tokens without enabling resize or animation defaults', () => {
+    document.documentElement.setAttribute('data-theme', 'dark')
+    expect(buildChartTheme()).toMatchObject({ mode: 'dark' })
+    document.documentElement.setAttribute('data-theme', 'light')
+    expect(buildChartTheme()).toMatchObject({ mode: 'light' })
+  })
+
   it('keeps trend axis and tooltip labels deterministic', () => {
     expect(getTrendTickAmount(0)).toBeUndefined()
     expect(getTrendTickAmount(8)).toBe(8)

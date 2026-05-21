@@ -2510,6 +2510,8 @@ export default {
         statusUnpriced: '未定价',
         cache: '缓存读取',
         noTrend: '暂无趋势数据',
+        preparingTrend: '趋势图准备中…',
+        preparingDistribution: '分布图准备中…',
         costByModel: '模型费用分布',
         tokensByModel: '模型用量分布',
         distributionSubtitle: '前 {visible} 个模型单独显示，其余 {total} 个归入 Others',

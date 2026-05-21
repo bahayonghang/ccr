@@ -4,11 +4,9 @@ import { useUsageStore } from '@/stores/usage'
 import { ensureLocaleLoaded } from '@/i18n'
 import type { Platform, UsageFeatureCapability, UsageUnsupportedReason } from '@/types/usage'
 import { isTauriRuntime } from '@/utils/tauriRuntime'
+import { perfMark, perfMeasure } from '@/utils/perfTelemetry'
 import {
-  aggregateDailyTrends,
-  expandTrendBucketEnd,
-  groupModelDistribution,
-  groupModelTokenDistribution,
+  buildUsageDashboardPresentation,
   selectTrendGranularity,
   type ModelDistributionSlice,
   type TrendGranularity,
@@ -30,25 +28,24 @@ import {
   type UsageDiagnosticsSummary,
 } from './usageDiagnostics'
 import {
-  buildSummarySparklinePoints,
-  buildUsageSummaryCards,
   formatCost,
   formatTokens,
-  type UsageSummaryCard,
 } from './usageSummaryCards'
 import {
   buildDashboardMetaItems,
-  buildOverviewHighlights,
   buildSelectedPlatformLabel,
   buildSelectedWindowLabel,
-  buildTopModelRankings,
-  buildTopProjectRankings,
   shortenPath,
   type DashboardMetaItem,
   type OverviewRankItem,
 } from './usageOverviewInsights'
 
-const outputSeriesName = 'Output'
+const USAGE_CHART_DEFER_MS = 180
+
+type IdleCapableWindow = Window & {
+  requestIdleCallback?: (callback: () => void, options?: { timeout: number }) => number
+  cancelIdleCallback?: (handle: number) => void
+}
 
 const hasTemplatePlaceholder = (value: string) => /\{[a-zA-Z_][a-zA-Z0-9_]*\}/.test(value)
 
@@ -70,6 +67,56 @@ const normalizeUnsupportedReason = (reason: UsageUnsupportedReason | null | unde
 
 const getTimeRange = getLocalDateWindow
 
+const scheduleAfterPaint = (callback: () => void): (() => void) => {
+  if (
+    typeof window === 'undefined' ||
+    typeof window.requestAnimationFrame !== 'function' ||
+    typeof window.cancelAnimationFrame !== 'function'
+  ) {
+    callback()
+    return () => {}
+  }
+
+  let cancelled = false
+  const frame = window.requestAnimationFrame(() => {
+    window.requestAnimationFrame(() => {
+      if (!cancelled) callback()
+    })
+  })
+
+  return () => {
+    cancelled = true
+    window.cancelAnimationFrame(frame)
+  }
+}
+
+const scheduleWhenIdle = (callback: () => void, timeout = 900): (() => void) => {
+  if (typeof window === 'undefined') {
+    callback()
+    return () => {}
+  }
+
+  const win = window as IdleCapableWindow
+  let cancelled = false
+  const run = () => {
+    if (!cancelled) callback()
+  }
+
+  if (typeof win.requestIdleCallback === 'function') {
+    const handle = win.requestIdleCallback(run, { timeout })
+    return () => {
+      cancelled = true
+      win.cancelIdleCallback?.(handle)
+    }
+  }
+
+  const timer = window.setTimeout(run, USAGE_CHART_DEFER_MS)
+  return () => {
+    cancelled = true
+    window.clearTimeout(timer)
+  }
+}
+
 export const useUsageDashboardState = () => {
   const { t, locale } = useI18n()
   const store = useUsageStore()
@@ -84,11 +131,21 @@ export const useUsageDashboardState = () => {
   const translationRevision = ref(0)
   const runtimeUnavailable = computed(() => !isTauriRuntime())
   const chartTheme = ref<ChartThemeState>(buildChartTheme())
+  const trendChartReady = ref(false)
+  const distributionChartReady = ref(false)
+  const modelsChartVisited = ref(false)
+  const cleanups: Array<() => void> = []
   let themeObserver: MutationObserver | null = null
+  let firstContentMarked = false
 
   const dashboardReady = computed(() => localeReady.value && dashboardBootstrapped.value)
-  const shouldLoadCharts = computed(
-    () => activeTab.value === 'overview' || activeTab.value === 'models'
+  const shouldRenderTrendChart = computed(
+    () => activeTab.value === 'overview' && trendChartReady.value
+  )
+  const shouldRenderDistributionChart = computed(
+    () =>
+      (activeTab.value === 'overview' && distributionChartReady.value) ||
+      (activeTab.value === 'models' && modelsChartVisited.value && distributionChartReady.value)
   )
 
   const translateDashboardText = (
@@ -113,8 +170,40 @@ export const useUsageDashboardState = () => {
   const hydrateUsageLocale = async () => {
     localeReady.value = false
     await ensureLocaleLoaded(locale.value)
+    perfMark('usage_locale_ready')
     translationRevision.value += 1
     localeReady.value = true
+  }
+
+  const markFirstContentReadyAfterPaint = () => {
+    if (firstContentMarked) return
+
+    cleanups.push(scheduleAfterPaint(() => {
+      if (firstContentMarked) return
+      firstContentMarked = true
+      perfMark('usage_first_content_ready')
+    }))
+  }
+
+  const scheduleChartHydration = () => {
+    if (!dashboardReady.value || store.dashboardUnsupported || store.hasNoUsageData) {
+      return
+    }
+
+    if (trendChartReady.value && distributionChartReady.value) {
+      return
+    }
+
+    cleanups.push(scheduleAfterPaint(() => {
+      cleanups.push(scheduleWhenIdle(() => {
+        trendChartReady.value = true
+        perfMark('usage_trend_chart_gate_ready')
+        cleanups.push(scheduleWhenIdle(() => {
+          distributionChartReady.value = true
+          perfMark('usage_distribution_chart_gate_ready')
+        }))
+      }))
+    }))
   }
 
   const onFilterChange = () => {
@@ -176,10 +265,31 @@ export const useUsageDashboardState = () => {
     if (tab === 'logs') {
       void loadLogs('reset')
     }
+
+    if (tab === 'models') {
+      const firstVisit = !modelsChartVisited.value
+      modelsChartVisited.value = true
+      if (!distributionChartReady.value && dashboardReady.value) {
+        cleanups.push(scheduleWhenIdle(() => {
+          distributionChartReady.value = true
+          perfMark('usage_models_distribution_chart_gate_ready')
+        }))
+      } else if (firstVisit && dashboardReady.value) {
+        perfMark('usage_models_distribution_chart_gate_ready')
+      }
+    }
   })
 
   watch(locale, () => {
     void hydrateUsageLocale()
+  })
+
+  watch([dashboardReady, () => store.dashboardUnsupported, () => store.hasNoUsageData], ([ready]) => {
+    if (ready) {
+      perfMark('usage_dashboard_ready')
+      markFirstContentReadyAfterPaint()
+      scheduleChartHydration()
+    }
   })
 
   const selectedPlatformLabel = computed(() =>
@@ -206,61 +316,6 @@ export const useUsageDashboardState = () => {
 
   const trendGranularity = computed(() => selectTrendGranularity(selectedDays.value))
 
-  const trendBuckets = computed(() =>
-    aggregateDailyTrends(store.trends, trendGranularity.value).map((bucket) => ({
-      ...bucket,
-      displayEndDate: expandTrendBucketEnd(bucket, trendGranularity.value),
-    }))
-  )
-
-  const summarySparklinePoints = computed(() => buildSummarySparklinePoints(trendBuckets.value))
-
-  const summaryCards = computed<UsageSummaryCard[]>(() => {
-    if (!dashboardReady.value) return []
-
-    const summary = store.summary
-    if (!summary) return []
-
-    return buildUsageSummaryCards({
-      summary,
-      modelCount: store.modelStats.length,
-      projectCount: store.projectStats.length,
-      sparklinePoints: summarySparklinePoints.value,
-      selectedWindowLabel: selectedWindowLabel.value,
-      translate: translateDashboardText,
-    })
-  })
-
-  const trendSeries = computed(() => {
-    const inputName = translateDashboardText('usage.dashboard.chart.input', undefined, 'Input')
-    const outputName = translateDashboardText('usage.dashboard.chart.output', undefined, outputSeriesName)
-    const cacheName = translateDashboardText('usage.dashboard.chart.cache', undefined, 'Cache Read')
-
-    return [
-      {
-        name: inputName,
-        data: trendBuckets.value.map((item) => ({
-          x: `${item.startDate}T00:00:00Z`,
-          y: item.inputTokens,
-        })),
-      },
-      {
-        name: outputName,
-        data: trendBuckets.value.map((item) => ({
-          x: `${item.startDate}T00:00:00Z`,
-          y: item.outputTokens,
-        })),
-      },
-      {
-        name: cacheName,
-        data: trendBuckets.value.map((item) => ({
-          x: `${item.startDate}T00:00:00Z`,
-          y: item.cacheReadTokens,
-        })),
-      },
-    ]
-  })
-
   const trendGranularityLabel = computed(() => {
     const fallbacks: Record<TrendGranularity, string> = {
       day: 'Daily',
@@ -274,6 +329,23 @@ export const useUsageDashboardState = () => {
       fallbacks[trendGranularity.value]
     )
   })
+
+  const dashboardPresentation = computed(() =>
+    buildUsageDashboardPresentation({
+      modelStats: dashboardReady.value ? store.modelStats : [],
+      projectStats: dashboardReady.value ? store.projectStats : [],
+      selectedWindowLabel: selectedWindowLabel.value,
+      summary: dashboardReady.value ? store.summary : null,
+      translate: translateDashboardText,
+      trendGranularity: trendGranularity.value,
+      trendGranularityLabel: trendGranularityLabel.value,
+      trends: dashboardReady.value ? store.trends : [],
+    })
+  )
+
+  const trendBuckets = computed(() => dashboardPresentation.value.trendBuckets)
+  const summaryCards = computed(() => dashboardPresentation.value.summaryCards)
+  const trendSeries = computed(() => dashboardPresentation.value.trendSeries)
 
   const hasRenderableTrendData = computed(
     () => dashboardReady.value && trendSeries.value.some((series) => series.data.length > 0)
@@ -293,19 +365,19 @@ export const useUsageDashboardState = () => {
     )
   })
 
+  const chartBaseOptions = () => ({
+    background: 'transparent',
+    fontFamily: 'inherit',
+    parentHeightOffset: 0,
+    redrawOnParentResize: false,
+    redrawOnWindowResize: false,
+    animations: { enabled: false },
+  })
+
   const trendOptions = computed(() => ({
     chart: {
-      background: 'transparent',
+      ...chartBaseOptions(),
       toolbar: { show: false },
-      fontFamily: 'inherit',
-      parentHeightOffset: 0,
-      redrawOnParentResize: true,
-      redrawOnWindowResize: true,
-      animations: {
-        enabled: true,
-        speed: 220,
-        easing: 'easeinout',
-      },
     },
     theme: { mode: chartTheme.value.mode },
     colors: [chartTheme.value.primary, chartTheme.value.secondary, chartTheme.value.tertiary],
@@ -405,28 +477,10 @@ export const useUsageDashboardState = () => {
     },
   }))
 
-  const modelDistribution = computed(() =>
-    groupModelDistribution(store.modelStats, 6).map((item) => ({
-      ...item,
-      label: item.isOther
-        ? translateDashboardText('usage.dashboard.chart.others', undefined, 'Others')
-        : item.label,
-    }))
-  )
-
-  const modelTokenDistribution = computed(() =>
-    groupModelTokenDistribution(store.modelStats, 6).map((item) => ({
-      ...item,
-      label: item.isOther
-        ? translateDashboardText('usage.dashboard.chart.others', undefined, 'Others')
-        : item.label,
-    }))
-  )
-
-  const pieSeries = computed(() => modelDistribution.value.map((item) => item.totalCost))
-  const modelTokenPieSeries = computed(() =>
-    modelTokenDistribution.value.map((item) => item.totalTokens)
-  )
+  const modelDistribution = computed(() => dashboardPresentation.value.modelDistribution)
+  const modelTokenDistribution = computed(() => dashboardPresentation.value.modelTokenDistribution)
+  const pieSeries = computed(() => dashboardPresentation.value.pieSeries)
+  const modelTokenPieSeries = computed(() => dashboardPresentation.value.modelTokenPieSeries)
 
   const pieColors = computed(() => {
     const palette = [
@@ -473,7 +527,7 @@ export const useUsageDashboardState = () => {
     metric: ModelDistributionMetric,
     distribution: ModelDistributionSlice[],
   ) => ({
-    chart: { background: 'transparent', fontFamily: 'inherit' },
+    chart: chartBaseOptions(),
     theme: { mode: chartTheme.value.mode },
     colors: pieColors.value,
     labels: distribution.map((item) => item.label),
@@ -555,30 +609,15 @@ export const useUsageDashboardState = () => {
     buildDistributionPieOptions('tokens', modelTokenDistribution.value)
   )
 
-  const overviewHighlights = computed(() => {
-    if (!dashboardReady.value) return []
+  const overviewHighlights = computed(() => dashboardPresentation.value.overviewHighlights)
 
-    return buildOverviewHighlights({
-      modelStats: store.modelStats,
-      projectStats: store.projectStats,
-      summary: store.summary,
-      trendBuckets: trendBuckets.value,
-      trendGranularityLabel: trendGranularityLabel.value,
-      selectedWindowLabel: selectedWindowLabel.value,
-      translate: translateDashboardText,
-    })
-  })
+  const topModelRankings = computed<OverviewRankItem[]>(() =>
+    dashboardPresentation.value.topModelRankings
+  )
 
-  const topModelRankings = computed<OverviewRankItem[]>(() => {
-    if (!dashboardReady.value) return []
-    return buildTopModelRankings(store.modelStats, translateDashboardText)
-  })
-
-  const topProjectRankings = computed<OverviewRankItem[]>(() => {
-    if (!dashboardReady.value) return []
-    return buildTopProjectRankings(store.projectStats, translateDashboardText)
-  })
-
+  const topProjectRankings = computed<OverviewRankItem[]>(() =>
+    dashboardPresentation.value.topProjectRankings
+  )
   const logsRecords = computed(() => store.logs?.records ?? [])
   const unknownModelStat = computed(
     () => store.modelStats.find((item) => item.model === 'unknown') ?? null
@@ -746,7 +785,7 @@ export const useUsageDashboardState = () => {
 
   let dashboardAutoRefreshActive = false
 
-  const startDashboardAutoRefresh = () => {
+  const startDashboardAutoRefresh = (options?: { immediate?: boolean }) => {
     if (runtimeUnavailable.value) {
       stopDashboardAutoRefresh(true)
       return
@@ -756,7 +795,11 @@ export const useUsageDashboardState = () => {
       return
     }
 
-    store.startAutoRefresh()
+    if (options) {
+      store.startAutoRefresh(options)
+    } else {
+      store.startAutoRefresh()
+    }
     dashboardAutoRefreshActive = true
   }
 
@@ -770,6 +813,7 @@ export const useUsageDashboardState = () => {
   }
 
   onMounted(async () => {
+    perfMark('usage_route_mounted')
     syncChartTheme()
     if (typeof MutationObserver !== 'undefined') {
       themeObserver = new MutationObserver(syncChartTheme)
@@ -793,13 +837,18 @@ export const useUsageDashboardState = () => {
       start,
       end,
     })
+    perfMark('usage_dashboard_data_ready')
+    perfMeasure('usage_dashboard_boot_ms', 'usage_route_mounted', 'usage_dashboard_data_ready')
     dashboardBootstrapped.value = true
-    startDashboardAutoRefresh()
+    startDashboardAutoRefresh({ immediate: false })
   })
 
   onActivated(() => {
     if (dashboardBootstrapped.value) {
       startDashboardAutoRefresh()
+      if (activeTab.value === 'logs') {
+        void loadLogs('same')
+      }
     }
   })
 
@@ -809,6 +858,7 @@ export const useUsageDashboardState = () => {
 
   onUnmounted(() => {
     stopDashboardAutoRefresh()
+    cleanups.splice(0).forEach((cleanup) => cleanup())
     themeObserver?.disconnect()
   })
 
@@ -850,7 +900,8 @@ export const useUsageDashboardState = () => {
     repairCodexButtonLabel,
     repairCodexLogs,
     shortenPath,
-    shouldLoadCharts,
+    shouldRenderDistributionChart,
+    shouldRenderTrendChart,
     showEmptyState,
     showInstallDialog,
     store,

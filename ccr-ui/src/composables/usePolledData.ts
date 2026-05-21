@@ -28,8 +28,8 @@ export interface UsePolledDataReturn<T> {
   refresh: () => Promise<void>
   /** 暂停轮询 */
   pause: () => void
-  /** 恢复轮询 */
-  resume: () => void
+  /** 恢复轮询；默认恢复时立即刷新，可通过 immediate=false 只重启定时器 */
+  resume: (options?: { immediate?: boolean }) => void
   /** 轮询是否活跃 */
   isActive: Ref<boolean>
 }
@@ -142,11 +142,13 @@ export function usePolledData<T>(
     detachVisibilityListener()
   }
 
-  const resume = (): void => {
+  const resume = (resumeOptions: { immediate?: boolean } = {}): void => {
     attachVisibilityListener()
     if (shouldPause()) return
     isActive.value = true
-    void doFetch()
+    if (resumeOptions.immediate ?? true) {
+      void doFetch()
+    }
     startTimer()
   }
 

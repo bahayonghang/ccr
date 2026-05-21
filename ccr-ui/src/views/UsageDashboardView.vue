@@ -159,7 +159,8 @@
               :pie-series="pieSeries"
               :project-stats="store.projectStats"
               :shorten-path="shortenPath"
-              :should-load-charts="shouldLoadCharts"
+              :should-render-distribution-chart="shouldRenderDistributionChart"
+              :should-render-trend-chart="shouldRenderTrendChart"
               :top-model-rankings="topModelRankings"
               :top-project-rankings="topProjectRankings"
               :trend-granularity-label="trendGranularityLabel"
@@ -180,7 +181,7 @@
               :pie-colors="pieColors"
               :pie-options="modelTokenPieOptions"
               :pie-series="modelTokenPieSeries"
-              :should-load-charts="shouldLoadCharts"
+              :should-render-chart="shouldRenderDistributionChart"
             />
           </template>
 
@@ -236,11 +237,15 @@ import UsageMetricCard from '@/components/usage/UsageMetricCard.vue'
 import UsageModelsTab from '@/components/usage/UsageModelsTab.vue'
 import UsageOverviewTab from '@/components/usage/UsageOverviewTab.vue'
 import UsageProjectsTab from '@/components/usage/UsageProjectsTab.vue'
+import { perfMark, perfMeasure } from '@/utils/perfTelemetry'
 import { getRuntimeUnavailableCopy } from '@/utils/runtimeState'
 import { useUsageDashboardState } from './usage/useUsageDashboardState'
 
 const apexchart = defineAsyncComponent(async () => {
+  perfMark('usage_chart_import_start')
   const module = await import('vue3-apexcharts')
+  perfMark('usage_chart_import_end')
+  perfMeasure('usage_chart_import_ms', 'usage_chart_import_start', 'usage_chart_import_end')
   return module.default
 })
 
@@ -283,7 +288,8 @@ const {
   repairCodexButtonLabel,
   repairCodexLogs,
   shortenPath,
-  shouldLoadCharts,
+  shouldRenderDistributionChart,
+  shouldRenderTrendChart,
   showEmptyState,
   showInstallDialog,
   store,
@@ -332,8 +338,8 @@ const updateSelectedDays = (value: number) => {
   pointer-events: none;
   background:
     radial-gradient(circle at 12% 0%, rgb(var(--color-accent-primary-rgb) / 8%), transparent 28%),
-    radial-gradient(circle at 100% 18%, rgb(var(--color-premium-blue-rgb) / 80%), transparent 30%);
-  opacity: 1;
+    radial-gradient(circle at 100% 18%, rgb(var(--color-premium-blue-rgb) / 18%), transparent 34%);
+  opacity: 0.7;
 }
 
 .usage-shell {
@@ -362,7 +368,6 @@ const updateSelectedDays = (value: number) => {
   background: rgb(var(--color-bg-elevated-rgb) / 66%);
   padding: 0.28rem 0.7rem;
   color: var(--color-text-secondary);
-  backdrop-filter: blur(10px);
 }
 
 .usage-header-meta__label {
@@ -391,9 +396,9 @@ const updateSelectedDays = (value: number) => {
   border-radius: 1.35rem;
   border: 1px solid rgb(var(--color-border-default-rgb) / 14%);
   padding: 0.58rem 0.65rem;
-  background: var(--surface-workspace-bg);
-  backdrop-filter: var(--surface-workspace-blur);
-  box-shadow: var(--elevation-2);
+  background:
+    linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 86%), rgb(var(--color-bg-surface-rgb) / 72%));
+  box-shadow: var(--elevation-1);
 }
 
 .usage-workspace-switcher__summary {
@@ -457,6 +462,14 @@ const updateSelectedDays = (value: number) => {
 
 td {
   font-variant-numeric: tabular-nums;
+}
+
+.usage-page :deep(.glass-panel) {
+  border-color: rgb(var(--color-border-default-rgb) / 14%);
+  background:
+    linear-gradient(180deg, rgb(var(--color-bg-elevated-rgb) / 90%), rgb(var(--color-bg-surface-rgb) / 72%));
+  backdrop-filter: none;
+  box-shadow: var(--elevation-1), inset 0 1px 0 rgb(255 255 255 / 6%);
 }
 
 @media (width < 1280px) {

@@ -139,7 +139,6 @@ const lastPoint = computed(() => normalizedPoints.value.at(-1) ?? null)
   stroke-width: 2.4;
   stroke-linecap: round;
   stroke-linejoin: round;
-  filter: drop-shadow(0 4px 8px rgb(var(--usage-sparkline-rgb) / 18%));
 }
 
 .usage-sparkline__dot {
