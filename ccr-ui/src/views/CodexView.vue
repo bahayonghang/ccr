@@ -59,6 +59,36 @@
                 {{ primaryAction.title }}
               </Button>
             </RouterLink>
+
+            <RouterLink to="/codex/auth">
+              <Button
+                variant="glass"
+                size="md"
+                class="codex-command-actions__config"
+              >
+                <SIcon
+                  name="KeyRound"
+                  size="w-4 h-4"
+                  class="mr-2"
+                />
+                {{ $t('codex.dashboard.header.authConfig') }}
+              </Button>
+            </RouterLink>
+
+            <RouterLink to="/codex/profiles">
+              <Button
+                variant="glass"
+                size="md"
+                class="codex-command-actions__config"
+              >
+                <SIcon
+                  name="Folders"
+                  size="w-4 h-4"
+                  class="mr-2"
+                />
+                {{ $t('codex.dashboard.header.profileConfig') }}
+              </Button>
+            </RouterLink>
           </div>
         </div>
 
@@ -528,6 +558,10 @@ onActivated(() => {
 
 .codex-command-actions {
   @apply flex flex-wrap gap-2 lg:justify-end;
+}
+
+.codex-command-actions__config {
+  color: var(--stage-text-secondary);
 }
 
 .codex-command-meta {

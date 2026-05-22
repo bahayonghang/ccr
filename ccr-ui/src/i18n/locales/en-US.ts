@@ -2940,6 +2940,8 @@ export default {
         workflow: 'task-first workbench',
         subtitle: 'Answer whether Codex is ready, what to do next, and whether the key safety settings are safe before opening details.',
         refresh: 'Refresh',
+        authConfig: 'Auth config',
+        profileConfig: 'Profile config',
         version: 'Version',
         profile: 'Profile',
         account: 'Account',

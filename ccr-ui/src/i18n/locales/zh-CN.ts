@@ -2942,6 +2942,8 @@ export default {
         workflow: '任务导向工作台',
         subtitle: '先判断能不能开工，再给出下一步和关键配置安全状态。',
         refresh: '刷新',
+        authConfig: 'Auth 配置',
+        profileConfig: 'Profile 配置',
         version: '版本',
         profile: 'Profile',
         account: '账号',
