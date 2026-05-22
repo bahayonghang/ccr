@@ -549,10 +549,7 @@ fn platform_config_info(platform: &str) -> Result<(PathBuf, String), String> {
             home.join(".codex").join("config.toml"),
             "mcp_servers".into(),
         )),
-        "gemini" => Ok((
-            antigravity_mcp_config_path()?,
-            "mcpServers".into(),
-        )),
+        "gemini" => Ok((antigravity_mcp_config_path()?, "mcpServers".into())),
         _ => Err(format!("Unknown platform: {platform}")),
     }
 }
