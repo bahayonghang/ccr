@@ -6,7 +6,6 @@ import {
   buildSummarySparklinePoints,
   buildUsageSummaryCards,
   formatCost,
-  formatPercent,
 } from '@/views/usage/usageSummaryCards'
 
 const buildBucket = (
@@ -66,7 +65,7 @@ describe('usage summary card helpers', () => {
     })
   })
 
-  it('builds cache ratio sparklines from cache read over input plus cache read', () => {
+  it('builds active-day sparklines from token-bearing buckets', () => {
     const sparklines = buildSummarySparklinePoints([
       buildBucket('2026-05-01', {
         requestCount: 4,
@@ -79,6 +78,7 @@ describe('usage summary card helpers', () => {
         requestCount: 2,
         inputTokens: 0,
         cacheReadTokens: 0,
+        totalTokens: 0,
       }),
     ])
 
@@ -86,8 +86,8 @@ describe('usage summary card helpers', () => {
       { label: '2026-05-01', value: 4 },
       { label: '2026-05-02', value: 2 },
     ])
-    expect(sparklines.cache).toEqual([
-      { label: '2026-05-01', value: 1 / 3 },
+    expect(sparklines.activeDays).toEqual([
+      { label: '2026-05-01', value: 1 },
       { label: '2026-05-02', value: 0 },
     ])
   })
@@ -114,6 +114,7 @@ describe('usage summary card helpers', () => {
 
     const cards = buildUsageSummaryCards({
       summary: buildSummary(),
+      activeDays: 2,
       modelCount: 2,
       projectCount: 1,
       sparklinePoints,
@@ -123,9 +124,9 @@ describe('usage summary card helpers', () => {
 
     const requests = cards.find((card) => card.id === 'requests')
     const cost = cards.find((card) => card.id === 'cost')
-    const cache = cards.find((card) => card.id === 'cache')
+    const activeDays = cards.find((card) => card.id === 'activeDays')
 
-    expect(cards.map((card) => card.id)).toEqual(['requests', 'tokens', 'cost', 'cache'])
+    expect(cards.map((card) => card.id)).toEqual(['tokens', 'cost', 'activeDays', 'requests'])
     expect(requests).toMatchObject({
       label: 'Total Requests',
       value: '30',
@@ -142,9 +143,12 @@ describe('usage summary card helpers', () => {
       averageLabel: '$3.00',
       peakLabel: '$4.00',
     })
-    expect(cache).toMatchObject({
-      value: formatPercent(0.2857),
-      detail: 'cache read / (input + cache read) · 1.2K cache read',
+    expect(activeDays).toMatchObject({
+      label: 'Active Days',
+      value: '2',
+      detail: 'Days with token activity in 30 Days',
+      averageLabel: '1',
+      peakLabel: '1',
     })
   })
 })

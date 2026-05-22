@@ -5,12 +5,12 @@
     <div class="usage-shell">
       <UsageDashboardToolbar
         :selected-platform="selectedPlatform"
-        :selected-days="selectedDays"
+        :selected-range="selectedRange"
         :import-button-label="importButtonLabel"
         :importing="store.importing"
         :runtime-unavailable="runtimeUnavailable"
         @update:selected-platform="updateSelectedPlatform"
-        @update:selected-days="updateSelectedDays"
+        @update:selected-range="updateSelectedRange"
         @import="doImport"
       />
 
@@ -49,6 +49,12 @@
             :card="card"
           />
         </section>
+
+        <UsageTokenBreakdownStrip
+          v-if="dashboardReady && store.summary"
+          :summary="store.summary"
+          :cache-creation-tokens="cacheCreationTokens"
+        />
 
         <div class="usage-workspace-switcher">
           <div class="usage-tabs">
@@ -145,6 +151,15 @@
           />
 
           <template v-else-if="activeTab === 'overview'">
+            <UsageSourceSummaryCard
+              v-if="sourceStats.length > 0"
+              :format-cost="formatCost"
+              :format-tokens="formatTokens"
+              :selected-platform="selectedPlatform"
+              :source-stats="sourceStats"
+              @select-source="updateSelectedPlatform"
+            />
+
             <UsageOverviewTab
               :chart-component="apexchart"
               :distribution-subtitle="distributionSubtitle"
@@ -167,6 +182,26 @@
               :trend-options="trendOptions"
               :trend-series="trendSeries"
               :trend-subtitle="trendSubtitle"
+            />
+          </template>
+
+          <template v-else-if="activeTab === 'tokens'">
+            <UsageTokensTab
+              :chart-component="apexchart"
+              :format-tokens="formatTokens"
+              :trends="store.trends"
+            />
+          </template>
+
+          <template v-else-if="activeTab === 'cost'">
+            <UsageCostTab
+              :chart-component="apexchart"
+              :format-cost="formatCost"
+              :format-tokens="formatTokens"
+              :model-stats="store.modelStats"
+              :source-stats="sourceStats"
+              :summary="store.summary"
+              :trends="store.trends"
             />
           </template>
 
@@ -237,6 +272,9 @@ import UsageMetricCard from '@/components/usage/UsageMetricCard.vue'
 import UsageModelsTab from '@/components/usage/UsageModelsTab.vue'
 import UsageOverviewTab from '@/components/usage/UsageOverviewTab.vue'
 import UsageProjectsTab from '@/components/usage/UsageProjectsTab.vue'
+import UsageSourceSummaryCard from '@/components/usage/UsageSourceSummaryCard.vue'
+import UsageTokenBreakdownStrip from '@/components/usage/UsageTokenBreakdownStrip.vue'
+import type { UsageRangePreset } from './usage/dateWindow'
 import { perfMark, perfMeasure } from '@/utils/perfTelemetry'
 import { getRuntimeUnavailableCopy } from '@/utils/runtimeState'
 import { useUsageDashboardState } from './usage/useUsageDashboardState'
@@ -254,8 +292,19 @@ const LlmusageInstallDialog = defineAsyncComponent({
   suspensible: false,
 })
 
+const UsageTokensTab = defineAsyncComponent({
+  loader: () => import('@/components/usage/UsageTokensTab.vue'),
+  suspensible: false,
+})
+
+const UsageCostTab = defineAsyncComponent({
+  loader: () => import('@/components/usage/UsageCostTab.vue'),
+  suspensible: false,
+})
+
 const {
   activeTab,
+  cacheCreationTokens,
   dashboardReady,
   dashboardMetaItems,
   doImport,
@@ -281,9 +330,9 @@ const {
   pieOptions,
   pieSeries,
   runtimeUnavailable,
-  selectedDays,
   selectedPlatformLabel,
   selectedPlatform,
+  selectedRange,
   selectedWindowLabel,
   repairCodexButtonLabel,
   repairCodexLogs,
@@ -292,6 +341,7 @@ const {
   shouldRenderTrendChart,
   showEmptyState,
   showInstallDialog,
+  sourceStats,
   store,
   trendSubtitle,
   summaryCards,
@@ -320,8 +370,8 @@ const updateSelectedPlatform = (value: string) => {
   onFilterChange()
 }
 
-const updateSelectedDays = (value: number) => {
-  selectedDays.value = value
+const updateSelectedRange = (value: UsageRangePreset) => {
+  selectedRange.value = value
   onFilterChange()
 }
 </script>

@@ -23,6 +23,7 @@ export interface UsageTrendBucket {
   requestCount: number
   inputTokens: number
   outputTokens: number
+  reasoningOutputTokens: number
   totalTokens: number
   cacheReadTokens: number
   cacheCreationTokens: number
@@ -77,9 +78,9 @@ const toBucketKey = (date: string, granularity: TrendGranularity) => {
   return formatUtcDate(parsed)
 }
 
-export const selectTrendGranularity = (days: number): TrendGranularity => {
-  if (days >= 365) return 'month'
-  if (days >= 90) return 'week'
+export const selectTrendGranularity = (spanDays: number): TrendGranularity => {
+  if (spanDays >= 365) return 'month'
+  if (spanDays >= 90) return 'week'
   return 'day'
 }
 
@@ -99,6 +100,7 @@ export const aggregateDailyTrends = (
       existing.totalTokens += item.total_tokens
       existing.inputTokens += item.input_tokens
       existing.outputTokens += item.output_tokens
+      existing.reasoningOutputTokens += item.reasoning_output_tokens
       existing.cacheReadTokens += item.cache_read_tokens
       existing.cacheCreationTokens += item.cache_creation_tokens
       existing.costUsd += item.cost_usd
@@ -113,6 +115,7 @@ export const aggregateDailyTrends = (
       totalTokens: item.total_tokens,
       inputTokens: item.input_tokens,
       outputTokens: item.output_tokens,
+      reasoningOutputTokens: item.reasoning_output_tokens,
       cacheReadTokens: item.cache_read_tokens,
       cacheCreationTokens: item.cache_creation_tokens,
       costUsd: item.cost_usd,
@@ -260,6 +263,7 @@ export const buildUsageDashboardPresentation = ({
     ...bucket,
     displayEndDate: expandTrendBucketEnd(bucket, trendGranularity),
   }))
+  const activeDays = trends.filter((item) => item.total_tokens > 0).length
   const summarySparklinePoints = buildSummarySparklinePoints(trendBuckets)
   const inputName = translate('usage.dashboard.chart.input', undefined, 'Input')
   const outputName = translate('usage.dashboard.chart.output', undefined, 'Output')
@@ -279,6 +283,7 @@ export const buildUsageDashboardPresentation = ({
     summaryCards: summary
       ? buildUsageSummaryCards({
           summary,
+          activeDays,
           modelCount: modelStats.length,
           projectCount: projectStats.length,
           sparklinePoints: summarySparklinePoints,

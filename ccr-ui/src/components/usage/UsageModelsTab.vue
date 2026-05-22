@@ -231,15 +231,43 @@ const inputTokens = (model: ModelStat) => model.input_tokens ?? model.total_toke
 const outputTokens = (model: ModelStat) => model.output_tokens ?? 0
 const cacheReadTokens = (model: ModelStat) => model.cache_read_tokens ?? 0
 const cacheCreationTokens = (model: ModelStat) => model.cache_creation_tokens ?? 0
-const costWithCache = (model: ModelStat) => model.cost_with_cache ?? 0
+type PricingStatus =
+  | 'priced'
+  | 'static'
+  | 'snapshot'
+  | 'mixed'
+  | 'unpriced'
+  | 'legacy_alias'
+
+const costWithCache = (model: ModelStat) => model.cost_with_cache ?? model.total_cost
 const costWithoutCache = (model: ModelStat) =>
-  model.cost_without_cache ?? 0
+  model.cost_without_cache ?? costWithCache(model)
 const cacheSavings = (model: ModelStat) =>
-  model.cache_savings ?? 0
+  Math.max(costWithoutCache(model) - costWithCache(model), 0)
 const pricingRate = (model: ModelStat) => model.pricing_rate || '-'
-const pricingStatus = (model: ModelStat) => model.pricing_status || 'priced'
+const pricingStatus = (model: ModelStat): PricingStatus => {
+  switch (model.pricing_status) {
+    case 'static':
+    case 'snapshot':
+    case 'mixed':
+    case 'unpriced':
+    case 'legacy_alias':
+    case 'priced':
+      return model.pricing_status
+    case 'unknown':
+      return 'unpriced'
+    default:
+      return 'priced'
+  }
+}
 const pricingStatusKey = (model: ModelStat) => {
   switch (pricingStatus(model)) {
+    case 'static':
+      return 'usage.dashboard.table.statusStatic'
+    case 'snapshot':
+      return 'usage.dashboard.table.statusSnapshot'
+    case 'mixed':
+      return 'usage.dashboard.table.statusMixed'
     case 'unpriced':
       return 'usage.dashboard.table.statusUnpriced'
     case 'legacy_alias':
@@ -391,27 +419,39 @@ const formatShare = (value: number) => {
 }
 
 .models-tab__status {
+  --models-status-rgb: var(--color-success-rgb);
+
   display: inline-flex;
   align-items: center;
   justify-content: center;
   min-width: 4.8rem;
   border-radius: 999px;
   padding: 0.2rem 0.55rem;
-  background: rgb(var(--color-success-rgb) / 10%);
-  color: var(--color-success);
+  border: 1px solid rgb(var(--models-status-rgb) / 16%);
+  background: rgb(var(--models-status-rgb) / 10%);
+  color: var(--color-text-primary);
   font-size: 0.74rem;
   font-weight: 700;
   white-space: nowrap;
 }
 
+.models-tab__status--static {
+  --models-status-rgb: var(--color-accent-secondary-rgb);
+}
+
+.models-tab__status--snapshot {
+  --models-status-rgb: var(--color-info-rgb);
+}
+
+.models-tab__status--mixed,
 .models-tab__status--legacy_alias {
-  background: rgb(var(--color-warning-rgb) / 12%);
-  color: var(--color-warning);
+  --models-status-rgb: var(--color-warning-rgb);
 }
 
 .models-tab__status--unpriced {
-  background: rgb(var(--color-danger-rgb) / 10%);
-  color: var(--color-danger);
+  --models-status-rgb: var(--color-border-default-rgb);
+
+  color: var(--color-text-secondary);
 }
 
 .models-tab__table .is-right {

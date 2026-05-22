@@ -52,7 +52,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 
-export type UsageSparklineTone = 'rose' | 'violet' | 'sky' | 'amber'
+export type UsageSparklineTone = 'rose' | 'sand' | 'sky' | 'amber'
 
 export interface UsageSparklinePoint {
   label: string
@@ -117,7 +117,7 @@ const lastPoint = computed(() => normalizedPoints.value.at(-1) ?? null)
   --usage-sparkline-rgb: var(--color-accent-primary-rgb);
 }
 
-.usage-sparkline--violet {
+.usage-sparkline--sand {
   --usage-sparkline-rgb: var(--color-accent-secondary-rgb);
 }
 

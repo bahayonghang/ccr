@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { DailyTrend, ModelStat, PaginatedLogs, ProjectStat, UsageArchiveDiagnostics, UsageSummary } from '@/types/usage'
+import type { DailyTrend, ModelStat, PaginatedLogs, ProjectStat, SourceBreakdown, UsageArchiveDiagnostics, UsageSummary } from '@/types/usage'
 import {
   buildDashboardCachePayload,
   buildDashboardFetchKey,
@@ -27,6 +27,7 @@ const trend: DailyTrend = {
   total_tokens: 10,
   input_tokens: 4,
   output_tokens: 3,
+  reasoning_output_tokens: 1,
   cache_read_tokens: 3,
   cache_creation_tokens: 0,
   cost_usd: 0.01,
@@ -45,6 +46,16 @@ const project: ProjectStat = {
   request_count: 1,
   total_tokens: 10,
   total_cost: 0.01,
+}
+
+const source: SourceBreakdown = {
+  source: 'codex',
+  event_count: 1,
+  total_tokens: 10,
+  total_cost: 0.01,
+  active_days: 1,
+  share_tokens: 1,
+  share_cost: 1,
 }
 
 const archive: UsageArchiveDiagnostics = {
@@ -75,6 +86,7 @@ describe('usage dashboard payload helpers', () => {
       trends: [trend],
       by_model: [model],
       by_project: [project],
+      source_stats: [source],
       archive,
       heatmap: { data: { '2026-05-19': 1 } },
     }
@@ -84,6 +96,7 @@ describe('usage dashboard payload helpers', () => {
       trends: [trend],
       modelStats: [model],
       projectStats: [project],
+      sourceStats: [source],
       archive,
       heatmap: { data: { '2026-05-19': 1 } },
     })
@@ -96,6 +109,7 @@ describe('usage dashboard payload helpers', () => {
       trends: [trend],
       modelStats: [model],
       projectStats: [project],
+      sourceStats: [source],
       archive,
       heatmap: { data: { '2026-05-19': 1 } },
       includeHeatmap: false,
@@ -104,6 +118,7 @@ describe('usage dashboard payload helpers', () => {
       trends: [trend],
       model_stats: [model],
       project_stats: [project],
+      source_stats: [source],
       archive,
       heatmap: undefined,
     })

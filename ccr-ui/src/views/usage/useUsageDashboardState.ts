@@ -11,7 +11,14 @@ import {
   type ModelDistributionSlice,
   type TrendGranularity,
 } from './usageDashboardPresentation'
-import { getLocalDateWindow } from './dateWindow'
+import {
+  DEFAULT_USAGE_RANGE_PRESET,
+  getLocalDateRangeWindow,
+  getUsageRangePresetImportDays,
+  getUsageRangePresetSpanDays,
+  coerceLegacyDaysToUsageRangePreset,
+  type UsageRangePreset,
+} from './dateWindow'
 import {
   buildChartTheme,
   buildTrendTooltipHtml,
@@ -65,7 +72,7 @@ const normalizeUnsupportedReason = (reason: UsageUnsupportedReason | null | unde
   return 'waiting_for_llmusage'
 }
 
-const getTimeRange = getLocalDateWindow
+const getTimeRange = getLocalDateRangeWindow
 
 const scheduleAfterPaint = (callback: () => void): (() => void) => {
   if (
@@ -121,10 +128,16 @@ export const useUsageDashboardState = () => {
   const { t, locale } = useI18n()
   const store = useUsageStore()
 
-  const tabKeys = ['overview', 'models', 'projects', 'logs'] as const
+  const tabKeys = ['overview', 'tokens', 'cost', 'models', 'projects', 'logs'] as const
   const activeTab = ref<string>('overview')
   const selectedPlatform = ref('')
-  const selectedDays = ref(30)
+  const selectedRange = ref<UsageRangePreset>(DEFAULT_USAGE_RANGE_PRESET)
+  const selectedDays = computed({
+    get: () => getUsageRangePresetImportDays(selectedRange.value),
+    set: (value: number) => {
+      selectedRange.value = coerceLegacyDaysToUsageRangePreset(value)
+    },
+  })
   const logModelFilter = ref('')
   const localeReady = ref(false)
   const dashboardBootstrapped = ref(false)
@@ -207,7 +220,7 @@ export const useUsageDashboardState = () => {
   }
 
   const onFilterChange = () => {
-    const { start, end } = getTimeRange(selectedDays.value)
+    const { start, end } = getTimeRange(selectedRange.value)
     store.setFilters({
       platform: (selectedPlatform.value || undefined) as Platform | undefined,
       start,
@@ -239,7 +252,7 @@ export const useUsageDashboardState = () => {
     await store.startImportJob({
       platform: undefined,
       reason: 'manual',
-      recentDays: selectedDays.value,
+      recentDays: getUsageRangePresetImportDays(selectedRange.value),
     })
   }
 
@@ -248,7 +261,7 @@ export const useUsageDashboardState = () => {
     await store.startImportJob({
       platform: undefined,
       reason: 'manual',
-      recentDays: selectedDays.value,
+      recentDays: getUsageRangePresetImportDays(selectedRange.value),
     })
   }
 
@@ -297,7 +310,7 @@ export const useUsageDashboardState = () => {
   )
 
   const selectedWindowLabel = computed(() =>
-    buildSelectedWindowLabel(selectedDays.value, translateDashboardText)
+    buildSelectedWindowLabel(selectedRange.value, translateDashboardText)
   )
 
   const dashboardMetaItems = computed<DashboardMetaItem[]>(() => {
@@ -314,7 +327,14 @@ export const useUsageDashboardState = () => {
     })
   })
 
-  const trendGranularity = computed(() => selectTrendGranularity(selectedDays.value))
+  const trendRangeSpanDays = computed(() =>
+    getUsageRangePresetSpanDays(
+      selectedRange.value,
+      store.trends.map((item) => item.date),
+    )
+  )
+
+  const trendGranularity = computed(() => selectTrendGranularity(trendRangeSpanDays.value))
 
   const trendGranularityLabel = computed(() => {
     const fallbacks: Record<TrendGranularity, string> = {
@@ -346,6 +366,12 @@ export const useUsageDashboardState = () => {
   const trendBuckets = computed(() => dashboardPresentation.value.trendBuckets)
   const summaryCards = computed(() => dashboardPresentation.value.summaryCards)
   const trendSeries = computed(() => dashboardPresentation.value.trendSeries)
+  const cacheCreationTokens = computed(() =>
+    (dashboardReady.value ? store.trends : []).reduce(
+      (sum, item) => sum + item.cache_creation_tokens,
+      0,
+    )
+  )
 
   const hasRenderableTrendData = computed(
     () => dashboardReady.value && trendSeries.value.some((series) => series.data.length > 0)
@@ -380,7 +406,11 @@ export const useUsageDashboardState = () => {
       toolbar: { show: false },
     },
     theme: { mode: chartTheme.value.mode },
-    colors: [chartTheme.value.primary, chartTheme.value.secondary, chartTheme.value.tertiary],
+    colors: [
+      chartTheme.value.inputToken,
+      chartTheme.value.outputToken,
+      chartTheme.value.cacheReadToken,
+    ],
     xaxis: {
       type: 'datetime' as const,
       tickAmount: getTrendTickAmount(trendBuckets.value.length),
@@ -488,10 +518,10 @@ export const useUsageDashboardState = () => {
       chartTheme.value.secondary,
       chartTheme.value.tertiary,
       chartTheme.value.quaternary,
-      '#D8B4FE',
-      '#FDA4AF',
-      '#2DD4BF',
-      '#93C5FD',
+      chartTheme.value.success,
+      chartTheme.value.info,
+      chartTheme.value.warning,
+      chartTheme.value.muted,
     ]
 
     return palette.slice(
@@ -618,6 +648,7 @@ export const useUsageDashboardState = () => {
   const topProjectRankings = computed<OverviewRankItem[]>(() =>
     dashboardPresentation.value.topProjectRankings
   )
+  const sourceStats = computed(() => (dashboardReady.value ? store.sourceStats : []))
   const logsRecords = computed(() => store.logs?.records ?? [])
   const unknownModelStat = computed(
     () => store.modelStats.find((item) => item.model === 'unknown') ?? null
@@ -662,7 +693,7 @@ export const useUsageDashboardState = () => {
     await store.startImportJob({
       platform: 'codex',
       reason: 'manual',
-      recentDays: selectedDays.value,
+      recentDays: getUsageRangePresetImportDays(selectedRange.value),
       resetSources: true,
     })
   }
@@ -831,7 +862,7 @@ export const useUsageDashboardState = () => {
       return
     }
 
-    const { start, end } = getTimeRange(selectedDays.value)
+    const { start, end } = getTimeRange(selectedRange.value)
     await store.initializeDashboard({
       platform: (selectedPlatform.value || undefined) as Platform | undefined,
       start,
@@ -864,6 +895,7 @@ export const useUsageDashboardState = () => {
 
   return {
     activeTab,
+    cacheCreationTokens,
     dashboardReady,
     dashboardMetaItems,
     doImport,
@@ -896,6 +928,7 @@ export const useUsageDashboardState = () => {
     selectedDays,
     selectedPlatformLabel,
     selectedPlatform,
+    selectedRange,
     selectedWindowLabel,
     repairCodexButtonLabel,
     repairCodexLogs,
@@ -904,6 +937,7 @@ export const useUsageDashboardState = () => {
     shouldRenderTrendChart,
     showEmptyState,
     showInstallDialog,
+    sourceStats,
     store,
     trendSubtitle,
     summaryCards,

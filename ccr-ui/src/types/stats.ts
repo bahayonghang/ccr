@@ -139,9 +139,28 @@ export interface ModelPricing {
   cache_write_price?: number;
 }
 
+export interface PricingListItem {
+  model: string;
+  pricing: ModelPricing;
+}
+
 export interface PricingListResponse {
-  pricings: ModelPricing[];
-  default_pricing: ModelPricing;
+  /**
+   * Current Tauri command shape from `get_pricing_list`.
+   */
+  items?: PricingListItem[];
+  total?: number;
+
+  /**
+   * Legacy frontend shape kept for older callers and fixtures.
+   */
+  pricings?: ModelPricing[];
+  default_pricing?: ModelPricing | null;
+
+  /**
+   * Full config shape returned by set/reset commands.
+   */
+  models?: Record<string, ModelPricing>;
 }
 
 export interface SetPricingRequest {

@@ -23,6 +23,9 @@ const translations: Record<string, string> = {
   'usage.dashboard.table.share': 'Share',
   'usage.dashboard.table.noData': 'No Data',
   'usage.dashboard.table.statusPriced': 'Priced',
+  'usage.dashboard.table.statusStatic': 'Static',
+  'usage.dashboard.table.statusSnapshot': 'Snapshot',
+  'usage.dashboard.table.statusMixed': 'Mixed',
   'usage.dashboard.table.statusLegacyAlias': 'Legacy Alias',
   'usage.dashboard.table.statusUnpriced': 'Unpriced',
   'usage.dashboard.chart.preparingDistribution': 'Preparing distribution chart…',
@@ -182,7 +185,7 @@ describe('UsageModelsTab smoke', () => {
     }
   })
 
-  it('renders zero cache savings without deriving from cost delta', async () => {
+  it('derives cache savings from the cost delta for display consistency', async () => {
     const mounted = await mountModelsTab([
       {
         model: 'zero-saving-model',
@@ -208,8 +211,73 @@ describe('UsageModelsTab smoke', () => {
       expect(text).toContain('zero-saving-model')
       expect(text).toContain('$4.00')
       expect(text).toContain('$10.00')
-      expect(text).toContain('$0.00')
-      expect(text).not.toContain('$6.00')
+      expect(text).toContain('$6.00')
+    } finally {
+      mounted.unmount()
+    }
+  })
+
+  it('renders non-blocking pricing status variants with subdued badges', async () => {
+    const mounted = await mountModelsTab([
+      {
+        model: 'mixed-model',
+        request_count: 1,
+        total_tokens: 100,
+        total_cost: 1,
+        input_tokens: 60,
+        output_tokens: 40,
+        cache_read_tokens: 0,
+        cache_creation_tokens: 0,
+        cost_with_cache: 1,
+        cost_without_cache: 1,
+        cache_savings: 0,
+        pricing_status: 'mixed',
+        pricing_source: 'mixed',
+        pricing_rate: 'mixed',
+      },
+      {
+        model: 'snapshot-model',
+        request_count: 1,
+        total_tokens: 90,
+        total_cost: 0.8,
+        input_tokens: 50,
+        output_tokens: 40,
+        cache_read_tokens: 0,
+        cache_creation_tokens: 0,
+        cost_with_cache: 0.8,
+        cost_without_cache: 0.8,
+        cache_savings: 0,
+        pricing_status: 'snapshot',
+        pricing_source: 'litellm',
+        pricing_rate: 'snapshot',
+      },
+      {
+        model: 'static-model',
+        request_count: 1,
+        total_tokens: 80,
+        total_cost: 0.7,
+        input_tokens: 40,
+        output_tokens: 40,
+        cache_read_tokens: 0,
+        cache_creation_tokens: 0,
+        cost_with_cache: 0.7,
+        cost_without_cache: 0.7,
+        cache_savings: 0,
+        pricing_status: 'static',
+        pricing_source: 'static',
+        pricing_rate: 'static',
+      },
+    ])
+
+    try {
+      const text = mounted.el.textContent ?? ''
+
+      expect(text).toContain('Mixed')
+      expect(text).toContain('Snapshot')
+      expect(text).toContain('Static')
+      expect(mounted.el.querySelector('.models-tab__status--mixed')).not.toBeNull()
+      expect(mounted.el.querySelector('.models-tab__status--snapshot')).not.toBeNull()
+      expect(mounted.el.querySelector('.models-tab__status--static')).not.toBeNull()
     } finally {
       mounted.unmount()
     }

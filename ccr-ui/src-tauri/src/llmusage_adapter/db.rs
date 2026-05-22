@@ -10,7 +10,7 @@ use super::{
     queries::{
         DailyTrendDto, HeatmapPoint, HomeOverviewPayload, HomeOverviewPlatformStats,
         HomeOverviewSeriesItem, HomeOverviewSummary, ModelBreakdown, OverviewPayload,
-        ProjectBreakdown, TokenSummary, UsageRecordDto,
+        ProjectBreakdown, SourceBreakdownDto, TokenSummary, UsageRecordDto,
     },
     source::{SourceKind, parse_source_filter},
 };
@@ -144,6 +144,17 @@ impl QueryFilter {
             filter.push(format!("{prefix}project_hash = ?"), project_hash);
         }
         filter
+    }
+
+    fn without_source(&self) -> Self {
+        Self {
+            source: None,
+            model: self.model.clone(),
+            since: self.since,
+            until: self.until,
+            project_hash: self.project_hash.clone(),
+            timezone: self.timezone,
+        }
     }
 }
 
@@ -283,6 +294,7 @@ impl Dashboard {
                 COALESCE(SUM(cache_read_tokens), 0),
                 COALESCE(SUM(cache_creation_tokens), 0),
                 COALESCE(SUM(output_tokens), 0) + COALESCE(SUM(reasoning_output_tokens), 0),
+                COALESCE(SUM(reasoning_output_tokens), 0),
                 COALESCE(SUM(total_tokens), 0),
                 COALESCE(SUM(event_count), 0),
                 COALESCE(SUM(cost_with_cache_usd), 0.0)
@@ -301,9 +313,10 @@ impl Dashboard {
                 cache_read_tokens: row.get(2)?,
                 cache_creation_tokens: row.get(3)?,
                 output_tokens: row.get(4)?,
-                total_tokens: row.get(5)?,
-                request_count: row.get(6)?,
-                cost_usd: row.get(7)?,
+                reasoning_output_tokens: row.get(5)?,
+                total_tokens: row.get(6)?,
+                request_count: row.get(7)?,
+                cost_usd: row.get(8)?,
             })
         })?;
         Ok(rows.collect::<rusqlite::Result<Vec<_>>>()?)
@@ -416,6 +429,74 @@ impl Dashboard {
             })
         })?;
         Ok(rows.collect::<rusqlite::Result<Vec<_>>>()?)
+    }
+
+    pub fn source_breakdown(
+        &self,
+        filter: &QueryFilter,
+    ) -> Result<Vec<SourceBreakdownDto>, LlmusageAdapterError> {
+        ensure_feature(&self.paths, FeatureKey::HomeOverview)?;
+        let source_filter = filter.without_source();
+        let sql_filter = source_filter.bucket_filter(None);
+        let modifier = source_filter.local_time_modifier();
+        let sql = format!(
+            r#"
+            SELECT
+                source,
+                COALESCE(SUM(event_count), 0),
+                COALESCE(SUM(total_tokens), 0),
+                COALESCE(SUM(cost_with_cache_usd), 0.0),
+                COUNT(DISTINCT date(hour_start, '{modifier}'))
+            FROM usage_bucket_30m
+            {}
+            GROUP BY source
+            ORDER BY SUM(total_tokens) DESC, source ASC
+        "#,
+            sql_filter.where_sql()
+        );
+        let mut stmt = self.conn.prepare(&sql)?;
+        let raw_rows = stmt
+            .query_map(params_from_iter(sql_filter.param_refs()), |row| {
+                Ok(SourceBreakdownDto {
+                    source: row.get(0)?,
+                    event_count: row.get(1)?,
+                    total_tokens: row.get(2)?,
+                    total_cost: row.get(3)?,
+                    active_days: row.get(4)?,
+                    share_tokens: 0.0,
+                    share_cost: 0.0,
+                })
+            })?
+            .collect::<rusqlite::Result<Vec<_>>>()?;
+
+        let canonical_rows = raw_rows
+            .into_iter()
+            .filter(|row| {
+                matches!(
+                    row.source.as_str(),
+                    "claude" | "codex" | "gemini" | "opencode"
+                )
+            })
+            .collect::<Vec<_>>();
+        let total_tokens: i64 = canonical_rows.iter().map(|row| row.total_tokens).sum();
+        let total_cost: f64 = canonical_rows.iter().map(|row| row.total_cost).sum();
+
+        Ok(canonical_rows
+            .into_iter()
+            .map(|mut row| {
+                row.share_tokens = if total_tokens > 0 {
+                    row.total_tokens as f64 / total_tokens as f64
+                } else {
+                    0.0
+                };
+                row.share_cost = if total_cost > 0.0 {
+                    row.total_cost / total_cost
+                } else {
+                    0.0
+                };
+                row
+            })
+            .collect())
     }
 
     pub fn heatmap(
@@ -838,6 +919,7 @@ fn decode_cursor(cursor: &str) -> Option<(String, String)> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use rusqlite::Connection;
 
     #[test]
     fn build_filter_rejects_invalid_dates() {
@@ -948,5 +1030,107 @@ mod tests {
         assert!(event.where_sql().contains("project_hash = ?"));
         assert_eq!(bucket.params, vec!["hash-xyz".to_string()]);
         assert_eq!(event.params, vec!["hash-xyz".to_string()]);
+    }
+
+    #[test]
+    fn trends_daily_keeps_output_compatible_and_exposes_reasoning() {
+        let temp = tempfile::TempDir::new().expect("temp dir should be created");
+        let db_path = temp.path().join("llmusage.db");
+        let conn = Connection::open(&db_path).expect("test db should open");
+        conn.execute_batch(
+            r#"
+            CREATE TABLE meta(key TEXT PRIMARY KEY, value TEXT NOT NULL);
+            INSERT INTO meta(key, value) VALUES ('schema_version', '10');
+            CREATE TABLE usage_bucket_30m(
+                source TEXT NOT NULL,
+                hour_start TEXT NOT NULL,
+                input_tokens INTEGER NOT NULL,
+                cache_read_tokens INTEGER NOT NULL,
+                cache_creation_tokens INTEGER NOT NULL,
+                output_tokens INTEGER NOT NULL,
+                reasoning_output_tokens INTEGER NOT NULL,
+                total_tokens INTEGER NOT NULL,
+                event_count INTEGER NOT NULL,
+                cost_with_cache_usd REAL NOT NULL
+            );
+            INSERT INTO usage_bucket_30m VALUES
+              ('codex', '2026-05-21T00:00:00Z', 40, 10, 5, 20, 7, 82, 2, 0.12),
+              ('codex', '2026-05-21T12:00:00Z', 30, 8, 3, 10, 4, 55, 1, 0.08),
+              ('codex', '2026-05-22T00:00:00Z', 5, 1, 0, 2, 1, 9, 1, 0.01);
+            "#,
+        )
+        .expect("test schema should be created");
+        drop(conn);
+
+        let dashboard = Dashboard::open(AppPaths::from_root_for_test(temp.path()))
+            .expect("dashboard should open test db");
+        let trends = dashboard
+            .trends_daily(&QueryFilter::default())
+            .expect("daily trends should query");
+
+        assert_eq!(trends.len(), 2);
+        assert_eq!(trends[0].date, "2026-05-21");
+        assert_eq!(trends[0].output_tokens, 41);
+        assert_eq!(trends[0].reasoning_output_tokens, 11);
+        assert_eq!(trends[0].total_tokens, 137);
+    }
+
+    #[test]
+    fn source_breakdown_respects_date_range_and_ignores_source_filter() {
+        let temp = tempfile::TempDir::new().expect("temp dir should be created");
+        let db_path = temp.path().join("llmusage.db");
+        let conn = Connection::open(&db_path).expect("test db should open");
+        conn.execute_batch(
+            r#"
+            CREATE TABLE meta(key TEXT PRIMARY KEY, value TEXT NOT NULL);
+            INSERT INTO meta(key, value) VALUES ('schema_version', '10');
+            CREATE TABLE usage_bucket_30m(
+                source TEXT NOT NULL,
+                hour_start TEXT NOT NULL,
+                input_tokens INTEGER NOT NULL,
+                cache_read_tokens INTEGER NOT NULL,
+                cache_creation_tokens INTEGER NOT NULL,
+                output_tokens INTEGER NOT NULL,
+                reasoning_output_tokens INTEGER NOT NULL,
+                total_tokens INTEGER NOT NULL,
+                event_count INTEGER NOT NULL,
+                cost_with_cache_usd REAL NOT NULL
+            );
+            INSERT INTO usage_bucket_30m VALUES
+              ('claude', '2026-05-20T00:00:00Z', 10, 0, 0, 5, 0, 15, 1, 0.30),
+              ('codex', '2026-05-20T12:00:00Z', 20, 0, 0, 10, 0, 30, 2, 0.70),
+              ('gemini', '2026-05-21T00:00:00Z', 40, 0, 0, 20, 0, 60, 3, 1.00),
+              ('legacy', '2026-05-21T12:00:00Z', 400, 0, 0, 200, 0, 600, 5, 9.00),
+              ('codex', '2026-05-22T00:00:00Z', 80, 0, 0, 40, 0, 120, 4, 5.00);
+            "#,
+        )
+        .expect("test schema should be created");
+        drop(conn);
+
+        let dashboard = Dashboard::open(AppPaths::from_root_for_test(temp.path()))
+            .expect("dashboard should open test db");
+        let stats = dashboard
+            .source_breakdown(&QueryFilter {
+                source: Some(SourceKind::Claude),
+                since: NaiveDate::from_ymd_opt(2026, 5, 20),
+                until: NaiveDate::from_ymd_opt(2026, 5, 21),
+                ..QueryFilter::default()
+            })
+            .expect("source breakdown should query");
+
+        assert_eq!(
+            stats.iter().map(|row| row.source.as_str()).collect::<Vec<_>>(),
+            vec!["gemini", "codex", "claude"]
+        );
+        assert_eq!(stats.iter().map(|row| row.total_tokens).sum::<i64>(), 105);
+        assert_eq!(stats.iter().find(|row| row.source == "codex").unwrap().event_count, 2);
+        assert!(
+            (stats.iter().map(|row| row.share_tokens).sum::<f64>() - 1.0).abs() < f64::EPSILON
+        );
+        assert!(
+            stats
+                .iter()
+                .all(|row| row.source != "opencode" && row.total_cost < 5.0)
+        );
     }
 }

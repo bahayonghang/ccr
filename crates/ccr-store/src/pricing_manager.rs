@@ -4,7 +4,9 @@
 use crate::models::{ModelPricing, PricingConfig};
 use ccr_core::core::error::{CcrError, Result};
 use std::fs;
+use std::io::Write;
 use std::path::{Path, PathBuf};
+use tempfile::NamedTempFile;
 
 /// 💰 价格表管理器
 pub struct PricingManager {
@@ -83,7 +85,18 @@ impl PricingManager {
             fs::create_dir_all(parent)?;
         }
 
-        fs::write(&self.config_path, content)?;
+        let parent = self
+            .config_path
+            .parent()
+            .ok_or_else(|| CcrError::ConfigError("价格表配置路径缺少父目录".to_string()))?;
+
+        let mut temp_file = NamedTempFile::new_in(parent)?;
+        temp_file.write_all(content.as_bytes())?;
+        temp_file.flush()?;
+        temp_file.as_file_mut().sync_all()?;
+        temp_file
+            .persist(&self.config_path)
+            .map_err(|error| CcrError::IoError(error.error))?;
         Ok(())
     }
 
@@ -409,6 +422,50 @@ mod tests {
         let manager = PricingManager::new(config_path).unwrap();
         assert_eq!(manager.model_count(), 1);
         assert!(manager.get_pricing("test-model").is_some());
+    }
+
+    #[test]
+    fn test_persistence_rewrites_existing_file() {
+        let temp_dir = TempDir::new().unwrap();
+        let config_path = temp_dir.path().join("pricing.toml");
+
+        let mut manager = PricingManager::new(config_path.clone()).unwrap();
+        manager.clear_all().unwrap();
+        manager
+            .set_pricing(
+                "first-model".to_string(),
+                ModelPricing {
+                    model: "first-model".to_string(),
+                    input_price: 1.0,
+                    output_price: 2.0,
+                    cache_read_price: None,
+                    cache_write_price: None,
+                },
+            )
+            .unwrap();
+
+        assert!(config_path.exists());
+
+        manager
+            .set_pricing(
+                "second-model".to_string(),
+                ModelPricing {
+                    model: "second-model".to_string(),
+                    input_price: 3.0,
+                    output_price: 4.0,
+                    cache_read_price: Some(0.3),
+                    cache_write_price: Some(0.4),
+                },
+            )
+            .unwrap();
+
+        let reloaded = PricingManager::new(config_path).unwrap();
+        assert!(reloaded.get_pricing("first-model").is_some());
+        assert!(reloaded.get_pricing("second-model").is_some());
+        assert_eq!(
+            reloaded.get_pricing("second-model").unwrap().output_price,
+            4.0
+        );
     }
 
     #[test]

@@ -59,7 +59,9 @@ pub struct DailyTrendDto {
     pub request_count: i64,
     pub total_tokens: i64,
     pub input_tokens: i64,
+    /// Compatibility field: assistant output plus reasoning output.
     pub output_tokens: i64,
+    pub reasoning_output_tokens: i64,
     pub cache_read_tokens: i64,
     pub cache_creation_tokens: i64,
     pub cost_usd: f64,
@@ -99,6 +101,17 @@ pub struct ModelStatDto {
     pub pricing_status: String,
     pub pricing_source: Option<String>,
     pub pricing_rate: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, PartialEq)]
+pub struct SourceBreakdownDto {
+    pub source: String,
+    pub event_count: i64,
+    pub total_tokens: i64,
+    pub total_cost: f64,
+    pub active_days: i64,
+    pub share_tokens: f64,
+    pub share_cost: f64,
 }
 
 #[derive(Debug, Clone, Serialize, PartialEq)]
@@ -322,6 +335,27 @@ mod tests {
         assert_eq!(summary.total_output_tokens, 23);
         assert_eq!(summary.total_cache_read_tokens, 5);
         assert_eq!(summary.total_cost_usd, 0.42);
+    }
+
+    #[test]
+    fn serializes_daily_trend_reasoning_without_changing_output_contract() {
+        let trend = DailyTrendDto {
+            date: "2026-05-21".to_string(),
+            request_count: 2,
+            total_tokens: 100,
+            input_tokens: 40,
+            output_tokens: 30,
+            reasoning_output_tokens: 8,
+            cache_read_tokens: 20,
+            cache_creation_tokens: 10,
+            cost_usd: 0.42,
+        };
+
+        let value = serde_json::to_value(&trend).expect("daily trend must serialize");
+
+        assert_eq!(value["output_tokens"], 30);
+        assert_eq!(value["reasoning_output_tokens"], 8);
+        assert_eq!(value["total_tokens"], 100);
     }
 
     #[test]

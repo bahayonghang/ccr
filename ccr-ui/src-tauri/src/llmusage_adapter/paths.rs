@@ -43,6 +43,11 @@ impl AppPaths {
             exports_dir,
         }
     }
+
+    #[cfg(test)]
+    pub(crate) fn from_root_for_test(root_dir: impl Into<PathBuf>) -> Self {
+        Self::from_root(root_dir.into())
+    }
 }
 
 pub fn discover_llmusage_paths() -> Result<AppPaths, String> {

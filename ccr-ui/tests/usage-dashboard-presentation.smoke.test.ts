@@ -14,6 +14,7 @@ const buildTrend = (date: string, multiplier: number): DailyTrend => ({
   total_tokens: multiplier * 20,
   input_tokens: multiplier * 10,
   output_tokens: multiplier * 5,
+  reasoning_output_tokens: multiplier,
   cache_read_tokens: multiplier * 2,
   cache_creation_tokens: multiplier * 3,
   cost_usd: multiplier,
@@ -39,6 +40,7 @@ describe('usage dashboard presentation helpers', () => {
       totalTokens: 60,
       inputTokens: 30,
       outputTokens: 15,
+      reasoningOutputTokens: 3,
       cacheReadTokens: 6,
       cacheCreationTokens: 9,
     })
@@ -63,6 +65,7 @@ describe('usage dashboard presentation helpers', () => {
       endDate: '2026-01-18',
       totalTokens: 60,
       inputTokens: 30,
+      reasoningOutputTokens: 3,
       cacheCreationTokens: 9,
     })
     expect(buckets[1]).toMatchObject({
@@ -70,6 +73,7 @@ describe('usage dashboard presentation helpers', () => {
       endDate: '2026-02-27',
       totalTokens: 140,
       inputTokens: 70,
+      reasoningOutputTokens: 7,
       cacheCreationTokens: 21,
     })
   })
@@ -175,11 +179,12 @@ describe('usage dashboard presentation helpers', () => {
 
     expect(presentation.trendBuckets).toHaveLength(2)
     expect(presentation.summaryCards.map((card) => card.id)).toEqual([
-      'requests',
       'tokens',
       'cost',
-      'cache',
+      'activeDays',
+      'requests',
     ])
+    expect(presentation.summaryCards.find((card) => card.id === 'activeDays')?.value).toBe('2')
     expect(presentation.trendSeries.map((series) => series.name)).toEqual([
       'Input',
       'Output',

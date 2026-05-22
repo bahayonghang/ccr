@@ -93,7 +93,7 @@ defineProps<Props>()
   --usage-metric-rgb: var(--color-accent-primary-rgb);
 }
 
-.usage-metric-card--violet {
+.usage-metric-card--sand {
   --usage-metric-rgb: var(--color-accent-secondary-rgb);
 }
 

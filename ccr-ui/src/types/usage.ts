@@ -17,7 +17,13 @@ export interface DailyTrend {
   request_count: number
   total_tokens: number
   input_tokens: number
+  /**
+   * Compatibility field from the backend: assistant output plus reasoning output.
+   * Use `Math.max(0, output_tokens - reasoning_output_tokens)` when a view needs
+   * assistant-only output.
+   */
   output_tokens: number
+  reasoning_output_tokens: number
   cache_read_tokens: number
   cache_creation_tokens: number
   cost_usd: number
@@ -47,6 +53,17 @@ export interface ProjectStat {
   request_count: number
   total_tokens: number
   total_cost: number
+}
+
+/** Source/platform 聚合统计 */
+export interface SourceBreakdown {
+  source: Platform
+  event_count: number
+  total_tokens: number
+  total_cost: number
+  active_days: number
+  share_tokens: number
+  share_cost: number
 }
 
 /** 使用记录（v2，含提取列） */
@@ -114,6 +131,7 @@ export interface UsageDashboardResponse {
   trends: DailyTrend[]
   model_stats: ModelStat[]
   project_stats: ProjectStat[]
+  source_stats: SourceBreakdown[]
   archive: UsageArchiveDiagnostics
   heatmap: HeatmapResponse
   generated_at: string

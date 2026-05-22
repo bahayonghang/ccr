@@ -27,6 +27,15 @@ export type ChartThemeState = {
   secondary: string
   tertiary: string
   quaternary: string
+  success: string
+  info: string
+  warning: string
+  reasoningToken: string
+  muted: string
+  inputToken: string
+  outputToken: string
+  cacheReadToken: string
+  cacheCreationToken: string
   textPrimary: string
   textSecondary: string
   textMuted: string
@@ -35,6 +44,41 @@ export type ChartThemeState = {
 }
 
 export type ModelDistributionMetric = 'cost' | 'tokens'
+export type UsageTokenCategory = 'input' | 'output' | 'cacheRead' | 'cacheCreation' | 'reasoning'
+
+export type UsageTokenCategoryColor = {
+  cssVar: string
+  rgbVar: string
+  fallback: string
+}
+
+export const usageTokenCategoryColors: Record<UsageTokenCategory, UsageTokenCategoryColor> = {
+  input: {
+    cssVar: '--color-success',
+    rgbVar: '--color-success-rgb',
+    fallback: '#5B8A62',
+  },
+  output: {
+    cssVar: '--color-info',
+    rgbVar: '--color-info-rgb',
+    fallback: '#7D97B6',
+  },
+  cacheRead: {
+    cssVar: '--color-accent-secondary',
+    rgbVar: '--color-accent-secondary-rgb',
+    fallback: '#B99666',
+  },
+  cacheCreation: {
+    cssVar: '--color-warning',
+    rgbVar: '--color-warning-rgb',
+    fallback: '#BC8540',
+  },
+  reasoning: {
+    cssVar: '--color-accent-primary',
+    rgbVar: '--color-accent-primary-rgb',
+    fallback: '#8A7D66',
+  },
+}
 
 const parseUtcDate = (value: string) => {
   const [year, month, day] = value.split('-').map(Number)
@@ -119,6 +163,30 @@ export const buildChartTheme = (): ChartThemeState => ({
   secondary: readCssVar('--color-accent-secondary', '#2997FF'),
   tertiary: readCssVar('--color-info', '#5AC8FA'),
   quaternary: readCssVar('--color-warning', '#FF9F0A'),
+  success: readCssVar('--color-success', '#5B8A62'),
+  info: readCssVar('--color-info', '#7D97B6'),
+  warning: readCssVar('--color-warning', '#BC8540'),
+  reasoningToken: readCssVar(
+    usageTokenCategoryColors.reasoning.cssVar,
+    usageTokenCategoryColors.reasoning.fallback,
+  ),
+  muted: readCssVar('--color-text-muted', '#6E6E73'),
+  inputToken: readCssVar(
+    usageTokenCategoryColors.input.cssVar,
+    usageTokenCategoryColors.input.fallback,
+  ),
+  outputToken: readCssVar(
+    usageTokenCategoryColors.output.cssVar,
+    usageTokenCategoryColors.output.fallback,
+  ),
+  cacheReadToken: readCssVar(
+    usageTokenCategoryColors.cacheRead.cssVar,
+    usageTokenCategoryColors.cacheRead.fallback,
+  ),
+  cacheCreationToken: readCssVar(
+    usageTokenCategoryColors.cacheCreation.cssVar,
+    usageTokenCategoryColors.cacheCreation.fallback,
+  ),
   textPrimary: readCssVar('--color-text-primary', '#1D1D1F'),
   textSecondary: readCssVar('--color-text-secondary', '#424245'),
   textMuted: readCssVar('--color-text-muted', '#6E6E73'),

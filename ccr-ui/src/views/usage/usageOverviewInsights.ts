@@ -1,5 +1,6 @@
 import type { ModelStat, ProjectStat, UsageArchiveDiagnostics, UsageSummary } from '@/types/usage'
 import type { UsageTrendBucket } from './usageDashboardPresentation'
+import type { UsageRangePreset } from './dateWindow'
 import { formatCost, formatPercent, formatTokens } from './usageSummaryCards'
 
 export type UsageDashboardTranslate = (
@@ -66,16 +67,20 @@ export const buildSelectedPlatformLabel = (
   )
 }
 
-export const buildSelectedWindowLabel = (selectedDays: number, translate: UsageDashboardTranslate) => {
-  const labels: Record<number, { key: string; fallback: string }> = {
-    7: { key: 'usage.dashboard.days7', fallback: '7 Days' },
-    30: { key: 'usage.dashboard.days30', fallback: '30 Days' },
-    90: { key: 'usage.dashboard.days90', fallback: '90 Days' },
-    365: { key: 'usage.dashboard.days365', fallback: '365 Days' },
+export const buildSelectedWindowLabel = (
+  selectedRange: UsageRangePreset,
+  translate: UsageDashboardTranslate,
+) => {
+  const labels: Record<UsageRangePreset, { key: string; fallback: string }> = {
+    today: { key: 'usage.dashboard.range.today', fallback: 'Today' },
+    this_week: { key: 'usage.dashboard.range.thisWeek', fallback: 'This Week' },
+    this_month: { key: 'usage.dashboard.range.thisMonth', fallback: 'This Month' },
+    last_30d: { key: 'usage.dashboard.range.last30', fallback: 'Last 30 Days' },
+    all_time: { key: 'usage.dashboard.range.allTime', fallback: 'All Time' },
   }
 
-  const selected = labels[selectedDays]
-  if (!selected) return `${selectedDays}d`
+  const selected = labels[selectedRange]
+  if (!selected) return selectedRange
 
   return translate(selected.key, undefined, selected.fallback)
 }

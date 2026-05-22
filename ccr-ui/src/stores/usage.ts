@@ -18,6 +18,7 @@ import type {
   PaginatedLogs,
   Platform,
   ProjectStat,
+  SourceBreakdown,
   StartUsageImportJobResponse,
   UsageCapabilityReport,
   UsageImportJobSnapshot,
@@ -113,6 +114,7 @@ export const useUsageStore = defineStore('usage', () => {
   const trends = ref<DailyTrend[]>([])
   const modelStats = ref<ModelStat[]>([])
   const projectStats = ref<ProjectStat[]>([])
+  const sourceStats = ref<SourceBreakdown[]>([])
   const heatmap = ref<HeatmapResponse | null>(null)
   const logs = ref<PaginatedLogs | null>(null)
   const archive = ref<UsageArchiveDiagnostics | null>(null)
@@ -191,6 +193,7 @@ export const useUsageStore = defineStore('usage', () => {
     trends.value = normalized.trends
     modelStats.value = normalized.modelStats
     projectStats.value = normalized.projectStats
+    sourceStats.value = normalized.sourceStats
     archive.value = normalized.archive
     if (normalized.heatmap !== undefined) {
       heatmap.value = normalized.heatmap
@@ -202,6 +205,7 @@ export const useUsageStore = defineStore('usage', () => {
     trends.value = []
     modelStats.value = []
     projectStats.value = []
+    sourceStats.value = []
     heatmap.value = null
     logs.value = null
     archive.value = null
@@ -499,6 +503,7 @@ export const useUsageStore = defineStore('usage', () => {
           trends.value = trendsData ?? []
           modelStats.value = modelData ?? []
           projectStats.value = projectData ?? []
+          sourceStats.value = []
           if (includeHeatmap) {
             await fetchHeatmap(reason)
           } else if (LAZY_HEATMAP_LOAD) {
@@ -510,6 +515,7 @@ export const useUsageStore = defineStore('usage', () => {
               trends: trendsData ?? [],
               modelStats: modelData ?? [],
               projectStats: projectData ?? [],
+              sourceStats: [],
               archive: archive.value,
               heatmap: heatmap.value,
               includeHeatmap,
@@ -835,6 +841,7 @@ export const useUsageStore = defineStore('usage', () => {
     trends,
     modelStats,
     projectStats,
+    sourceStats,
     heatmap,
     logs,
     archive,

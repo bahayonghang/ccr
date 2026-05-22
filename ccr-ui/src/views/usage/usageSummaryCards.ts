@@ -1,9 +1,9 @@
 import type { UsageSummary } from '@/types/usage'
 import type { UsageTrendBucket } from './usageDashboardPresentation'
 
-export type UsageSummaryCardTone = 'rose' | 'violet' | 'sky' | 'amber'
+export type UsageSummaryCardTone = 'rose' | 'sand' | 'sky' | 'amber'
 export type UsageSummaryCardDeltaTone = 'up' | 'down' | 'flat'
-export type UsageSummaryCardMetric = 'requests' | 'tokens' | 'cost' | 'cache'
+export type UsageSummaryCardMetric = 'tokens' | 'cost' | 'activeDays' | 'requests'
 
 export type UsageSparklinePoint = {
   label: string
@@ -40,6 +40,7 @@ type UsageDashboardTranslator = (
 
 export type BuildUsageSummaryCardsInput = {
   summary: UsageSummary
+  activeDays: number
   modelCount: number
   projectCount: number
   sparklinePoints: UsageSummarySparklinePoints
@@ -74,13 +75,10 @@ export const buildSummarySparklinePoints = (
   requests: buckets.map((item) => ({ label: item.startDate, value: item.requestCount })),
   tokens: buckets.map((item) => ({ label: item.startDate, value: item.totalTokens })),
   cost: buckets.map((item) => ({ label: item.startDate, value: item.costUsd })),
-  cache: buckets.map((item) => {
-    const denominator = item.inputTokens + item.cacheReadTokens
-    return {
-      label: item.startDate,
-      value: denominator > 0 ? item.cacheReadTokens / denominator : 0,
-    }
-  }),
+  activeDays: buckets.map((item) => ({
+    label: item.startDate,
+    value: item.totalTokens > 0 ? 1 : 0,
+  })),
 })
 
 export const buildMetricStats = (
@@ -133,6 +131,7 @@ const buildSummaryCard = (
 
 export const buildUsageSummaryCards = ({
   summary,
+  activeDays,
   modelCount,
   projectCount,
   sparklinePoints,
@@ -145,27 +144,6 @@ export const buildUsageSummaryCards = ({
       : formatCost(0)
 
   return [
-    buildSummaryCard(
-      {
-        id: 'requests',
-        label: translate('usage.dashboard.cards.totalRequests', undefined, 'Total Requests'),
-        value: summary.total_requests.toLocaleString(),
-        detail: translate(
-          'usage.dashboard.cards.requestsDetail',
-          {
-            models: modelCount,
-            projects: projectCount,
-          },
-          `${modelCount} models · ${projectCount} projects`,
-        ),
-        icon: 'Activity',
-        tone: 'rose',
-      },
-      sparklinePoints,
-      selectedWindowLabel,
-      translate,
-      formatCompactCount,
-    ),
     buildSummaryCard(
       {
         id: 'tokens',
@@ -181,7 +159,7 @@ export const buildUsageSummaryCards = ({
           `${formatTokens(summary.total_input_tokens)} in · ${formatTokens(summary.total_output_tokens)} out · ${formatTokens(summary.total_cache_read_tokens)} cache read`,
         ),
         icon: 'Layers',
-        tone: 'violet',
+        tone: 'rose',
       },
       sparklinePoints,
       selectedWindowLabel,
@@ -201,7 +179,7 @@ export const buildUsageSummaryCards = ({
           `${averageCostPerRequest} per request`,
         ),
         icon: 'Wallet',
-        tone: 'sky',
+        tone: 'sand',
       },
       sparklinePoints,
       selectedWindowLabel,
@@ -210,27 +188,44 @@ export const buildUsageSummaryCards = ({
     ),
     buildSummaryCard(
       {
-        id: 'cache',
-        label: translate(
-          'usage.dashboard.cards.cacheEfficiency',
-          undefined,
-          'Cache Reuse Rate',
-        ),
-        value: formatPercent(summary.cache_efficiency),
+        id: 'activeDays',
+        label: translate('usage.dashboard.cards.activeDays', undefined, 'Active Days'),
+        value: activeDays.toLocaleString(),
         detail: translate(
-          'usage.dashboard.cards.cacheDetail',
+          'usage.dashboard.cards.activeDaysDetail',
           {
-            tokens: formatTokens(summary.total_cache_read_tokens),
+            window: selectedWindowLabel,
           },
-          `cache read / (input + cache read) · ${formatTokens(summary.total_cache_read_tokens)} cache read`,
+          `Days with token activity in ${selectedWindowLabel}`,
         ),
-        icon: 'Cpu',
+        icon: 'Calendar',
+        tone: 'sky',
+      },
+      sparklinePoints,
+      selectedWindowLabel,
+      translate,
+      formatCompactCount,
+    ),
+    buildSummaryCard(
+      {
+        id: 'requests',
+        label: translate('usage.dashboard.cards.totalRequests', undefined, 'Total Requests'),
+        value: summary.total_requests.toLocaleString(),
+        detail: translate(
+          'usage.dashboard.cards.requestsDetail',
+          {
+            models: modelCount,
+            projects: projectCount,
+          },
+          `${modelCount} models · ${projectCount} projects`,
+        ),
+        icon: 'Activity',
         tone: 'amber',
       },
       sparklinePoints,
       selectedWindowLabel,
       translate,
-      formatPercent,
+      formatCompactCount,
     ),
   ]
 }

@@ -328,16 +328,16 @@ const trendLegendItems = computed<TrendLegendItem[]>(() =>
   }))
 )
 
-type InsightTone = 'violet' | 'rose' | 'sky' | 'amber'
+type InsightTone = 'sand' | 'rose' | 'sky' | 'amber'
 
 const insightToneById: Record<string, InsightTone> = {
-  density: 'violet',
+  density: 'sand',
   'top-model': 'rose',
   'top-project': 'sky',
   cache: 'amber',
 }
 
-const getInsightTone = (id: string): InsightTone => insightToneById[id] ?? 'violet'
+const getInsightTone = (id: string): InsightTone => insightToneById[id] ?? 'sand'
 </script>
 
 <style scoped>
@@ -587,7 +587,7 @@ const getInsightTone = (id: string): InsightTone => insightToneById[id] ?? 'viol
   --overview-insight-rgb: var(--color-accent-primary-rgb);
 }
 
-.overview-tab__insight-tile--violet {
+.overview-tab__insight-tile--sand {
   --overview-insight-rgb: var(--color-accent-secondary-rgb);
 }
 

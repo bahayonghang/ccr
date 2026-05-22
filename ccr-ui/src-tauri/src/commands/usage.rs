@@ -1486,6 +1486,9 @@ pub async fn get_usage_dashboard_v2(
             .project_breakdown(&filter)
             .map(queries::to_project_stats)
             .map_err(|e| format!("Project stats query error: {e}"))?;
+        let source_stats = dashboard
+            .source_breakdown(&filter)
+            .map_err(|e| format!("Source stats query error: {e}"))?;
         let archive = load_llmusage_archive_diagnostics(
             &dashboard,
             count_archived_sessions(&usage_db_pool)?,
@@ -1506,6 +1509,7 @@ pub async fn get_usage_dashboard_v2(
             "trends": trends,
             "model_stats": model_stats,
             "project_stats": project_stats,
+            "source_stats": source_stats,
             "archive": archive,
             "heatmap": heatmap,
             "generated_at": queries::generated_at(),

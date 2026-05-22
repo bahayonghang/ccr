@@ -41,17 +41,24 @@
         <span>{{ $t('usage.dashboard.toolbar.window') }}</span>
         <div class="usage-dashboard-toolbar__segments">
           <button
-            v-for="option in dayOptions"
+            v-for="option in rangeOptions"
             :key="option.value"
             type="button"
             class="usage-dashboard-toolbar__segment"
-            :class="{ 'usage-dashboard-toolbar__segment--active': selectedDays === option.value }"
-            @click="emitDays(option.value)"
+            :class="{ 'usage-dashboard-toolbar__segment--active': selectedRange === option.value }"
+            @click="emitRange(option.value)"
           >
             {{ $t(option.key) }}
           </button>
         </div>
       </div>
+
+      <a
+        class="usage-dashboard-toolbar__pricing-link"
+        href="/pricing"
+      >
+        {{ $t('usage.dashboard.toolbar.pricing') }}
+      </a>
 
       <Button
         variant="glass"
@@ -70,10 +77,11 @@
 
 <script setup lang="ts">
 import Button from '@/components/ui/Button.vue'
+import type { UsageRangePreset } from '@/views/usage/dateWindow'
 
 interface Props {
   selectedPlatform: string
-  selectedDays: number
+  selectedRange: UsageRangePreset
   importButtonLabel: string
   importing: boolean
   runtimeUnavailable: boolean
@@ -83,15 +91,16 @@ const props = defineProps<Props>()
 
 const emit = defineEmits<{
   'update:selectedPlatform': [value: string]
-  'update:selectedDays': [value: number]
+  'update:selectedRange': [value: UsageRangePreset]
   import: []
 }>()
 
-const dayOptions = [
-  { value: 7, key: 'usage.dashboard.days7' },
-  { value: 30, key: 'usage.dashboard.days30' },
-  { value: 90, key: 'usage.dashboard.days90' },
-  { value: 365, key: 'usage.dashboard.days365' },
+const rangeOptions: Array<{ value: UsageRangePreset; key: string }> = [
+  { value: 'today', key: 'usage.dashboard.range.today' },
+  { value: 'this_week', key: 'usage.dashboard.range.thisWeek' },
+  { value: 'this_month', key: 'usage.dashboard.range.thisMonth' },
+  { value: 'last_30d', key: 'usage.dashboard.range.last30' },
+  { value: 'all_time', key: 'usage.dashboard.range.allTime' },
 ]
 
 const emitPlatform = (value: string) => {
@@ -100,9 +109,9 @@ const emitPlatform = (value: string) => {
   }
 }
 
-const emitDays = (value: number) => {
-  if (value !== props.selectedDays) {
-    emit('update:selectedDays', value)
+const emitRange = (value: UsageRangePreset) => {
+  if (value !== props.selectedRange) {
+    emit('update:selectedRange', value)
   }
 }
 </script>
@@ -222,6 +231,30 @@ const emitDays = (value: number) => {
   box-shadow: inset 0 0 0 1px rgb(var(--color-accent-primary-rgb) / 16%);
 }
 
+.usage-dashboard-toolbar__pricing-link {
+  display: inline-flex;
+  min-height: 2.5rem;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgb(var(--color-border-default-rgb) / 14%);
+  border-radius: 9999px;
+  background: rgb(var(--color-bg-elevated-rgb) / 46%);
+  color: var(--color-text-secondary);
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 0 0.72rem;
+  text-decoration: none;
+  transition:
+    color var(--motion-subtle-duration) var(--motion-subtle-ease),
+    background-color var(--motion-subtle-duration) var(--motion-subtle-ease),
+    border-color var(--motion-subtle-duration) var(--motion-subtle-ease);
+}
+
+.usage-dashboard-toolbar__pricing-link:hover {
+  border-color: rgb(var(--color-accent-primary-rgb) / 18%);
+  color: var(--color-text-primary);
+}
+
 @media (width < 1180px) {
   .usage-dashboard-toolbar {
     align-items: flex-start;
@@ -238,7 +271,8 @@ const emitDays = (value: number) => {
   .usage-dashboard-toolbar__field,
   .usage-dashboard-toolbar__field--segmented,
   .usage-dashboard-toolbar__select,
-  .usage-dashboard-toolbar__segments {
+  .usage-dashboard-toolbar__segments,
+  .usage-dashboard-toolbar__pricing-link {
     width: 100%;
   }
 

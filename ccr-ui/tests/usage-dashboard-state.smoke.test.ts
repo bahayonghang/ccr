@@ -10,6 +10,7 @@ const usageStore = reactive({
   trends: [] as DailyTrend[],
   modelStats: [],
   projectStats: [],
+  sourceStats: [],
   logs: null as null | {
     records: unknown[]
     total?: number | null
@@ -82,12 +83,25 @@ const translationTemplates: Record<string, string> = {
   'usage.dashboard.days30': '30 Days',
   'usage.dashboard.days90': '90 Days',
   'usage.dashboard.days365': '365 Days',
+  'usage.dashboard.range.today': 'Today',
+  'usage.dashboard.range.thisWeek': 'This Week',
+  'usage.dashboard.range.thisMonth': 'This Month',
+  'usage.dashboard.range.last30': 'Last 30 Days',
+  'usage.dashboard.range.allTime': 'All Time',
+  'usage.dashboard.tabs.overview': 'Overview',
+  'usage.dashboard.tabs.tokens': 'Tokens',
+  'usage.dashboard.tabs.cost': 'Cost',
+  'usage.dashboard.tabs.models': 'Models',
+  'usage.dashboard.tabs.projects': 'Projects',
+  'usage.dashboard.tabs.logs': 'Diagnostics',
   'usage.dashboard.cards.totalRequests': 'Total Requests',
   'usage.dashboard.cards.requestsDetail': '{models} models · {projects} projects',
   'usage.dashboard.cards.totalTokens': 'Total Tokens',
   'usage.dashboard.cards.tokensDetail': '{input} in · {output} out · {cache} cache read',
   'usage.dashboard.cards.totalCost': 'Total Cost',
   'usage.dashboard.cards.costDetail': '{average} per request',
+  'usage.dashboard.cards.activeDays': 'Active Days',
+  'usage.dashboard.cards.activeDaysDetail': 'Days with token activity in {window}',
   'usage.dashboard.cards.cacheEfficiency': 'Cache Reuse Rate',
   'usage.dashboard.cards.cacheDetail': 'cache read / (input + cache read) · {tokens} cache read',
   'usage.dashboard.chart.input': 'Input',
@@ -239,6 +253,7 @@ beforeEach(() => {
   usageStore.trends = []
   usageStore.modelStats = []
   usageStore.projectStats = []
+  usageStore.sourceStats = []
   usageStore.logs = null
   usageStore.logsLoading = false
   usageStore.archive = null
@@ -366,18 +381,29 @@ describe('usage dashboard state smoke', () => {
     expect(usageStore.stopAutoRefresh).toHaveBeenCalled()
   })
 
-  it('starts a background import job with the current recent-days window', async () => {
+  it('orders tokens immediately after overview in the dashboard tabs', async () => {
     tauriRuntime = true
     const { state, unmount } = await mountComposable()
 
     try {
-      state.selectedDays.value = 90
+      expect([...state.tabKeys]).toEqual(['overview', 'tokens', 'cost', 'models', 'projects', 'logs'])
+    } finally {
+      unmount()
+    }
+  })
+
+  it('starts a background import job with the safe preset import window', async () => {
+    tauriRuntime = true
+    const { state, unmount } = await mountComposable()
+
+    try {
+      state.selectedRange.value = 'all_time'
       await state.doImport()
 
       expect(usageStore.startImportJob).toHaveBeenCalledWith({
         platform: undefined,
         reason: 'manual',
-        recentDays: 90,
+        recentDays: 30,
       })
     } finally {
       unmount()
@@ -478,6 +504,28 @@ describe('usage dashboard state smoke', () => {
     }
   })
 
+  it('maps this-month repair imports to the bounded current month span', async () => {
+    await withFakeNow('2026-05-21T10:00:00+08:00', async () => {
+      tauriRuntime = true
+      const { state, unmount } = await mountComposable()
+
+      try {
+        state.selectedPlatform.value = 'codex'
+        state.selectedRange.value = 'this_month'
+        await state.repairCodexLogs()
+
+        expect(usageStore.startImportJob).toHaveBeenCalledWith({
+          platform: 'codex',
+          reason: 'manual',
+          recentDays: 21,
+          resetSources: true,
+        })
+      } finally {
+        unmount()
+      }
+    })
+  })
+
   it('builds dashboard meta and summary cards from the loaded usage data', async () => {
     tauriRuntime = true
     usageStore.summary = {
@@ -515,11 +563,12 @@ describe('usage dashboard state smoke', () => {
 
     try {
       expect(state.summaryCards.value.map((card) => card.id)).toEqual([
-        'requests',
         'tokens',
         'cost',
-        'cache',
+        'activeDays',
+        'requests',
       ])
+      expect(state.summaryCards.value[2]?.label).toBe('Active Days')
       expect(state.dashboardMetaItems.value).toHaveLength(7)
       expect(state.dashboardMetaItems.value.map((item) => item.id)).toEqual([
         'scope',
@@ -556,6 +605,7 @@ describe('usage dashboard state smoke', () => {
         total_tokens: 2120,
         input_tokens: 1200,
         output_tokens: 600,
+        reasoning_output_tokens: 0,
         cache_read_tokens: 300,
         cache_creation_tokens: 20,
         cost_usd: 1.2,
@@ -670,6 +720,7 @@ describe('usage dashboard state smoke', () => {
         total_tokens: 2120,
         input_tokens: 1200,
         output_tokens: 600,
+        reasoning_output_tokens: 0,
         cache_read_tokens: 300,
         cache_creation_tokens: 20,
         cost_usd: 1.2,
@@ -680,9 +731,10 @@ describe('usage dashboard state smoke', () => {
 
     try {
       expect(state.dashboardReady.value).toBe(true)
-      expect(state.summaryCards.value[0]?.detail).toBe('2 models · 1 projects')
-      expect(state.trendSubtitle.value).toBe('30 Days, aggregated by Daily, 1 key points')
-      expect(state.overviewHighlights.value[0]?.detail).toBe('1 key points across 30 Days')
+      expect(state.summaryCards.value.find((card) => card.id === 'requests')?.detail)
+        .toBe('2 models · 1 projects')
+      expect(state.trendSubtitle.value).toBe('Last 30 Days, aggregated by Daily, 1 key points')
+      expect(state.overviewHighlights.value[0]?.detail).toBe('1 key points across Last 30 Days')
 
       const renderedCopy = [
         state.summaryCards.value[0]?.detail,
@@ -709,10 +761,10 @@ describe('usage dashboard state smoke', () => {
       const { state, unmount } = await mountComposable()
 
       try {
-        state.selectedDays.value = 7
-        state.onFilterChange()
+      state.selectedRange.value = 'this_week'
+      state.onFilterChange()
 
-        expect(usageStore.setFilters).toHaveBeenLastCalledWith(
+      expect(usageStore.setFilters).toHaveBeenLastCalledWith(
           expect.objectContaining({
             start: '2026-05-04',
             end: '2026-05-10',
@@ -724,7 +776,7 @@ describe('usage dashboard state smoke', () => {
     })
   })
 
-  it('renders total token card from backend total_tokens and keeps cache formula copy visible', async () => {
+  it('renders total token card from backend total_tokens and leaves cache KPI to the token strip', async () => {
     tauriRuntime = true
     usageStore.summary = {
       total_requests: 3,
@@ -740,12 +792,10 @@ describe('usage dashboard state smoke', () => {
 
     try {
       const tokenCard = state.summaryCards.value.find((card) => card.id === 'tokens')
-      const cacheCard = state.summaryCards.value.find((card) => card.id === 'cache')
 
       expect(tokenCard?.value).toBe('195')
       expect(tokenCard?.detail).toContain('30 cache read')
-      expect(cacheCard?.label).toBe('Cache Reuse Rate')
-      expect(cacheCard?.detail).toContain('cache read / (input + cache read)')
+      expect(state.summaryCards.value.some((card) => card.id === 'cache')).toBe(false)
     } finally {
       unmount()
     }
@@ -760,6 +810,7 @@ describe('usage dashboard state smoke', () => {
         total_tokens: 15110,
         input_tokens: 10000,
         output_tokens: 10,
+        reasoning_output_tokens: 0,
         cache_read_tokens: 5000,
         cache_creation_tokens: 100,
         cost_usd: 0.1,

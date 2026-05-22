@@ -64,8 +64,8 @@ describe('usage overview insight helpers', () => {
     expect(buildSelectedPlatformLabel('', translate)).toBe('All Platforms')
     expect(buildSelectedPlatformLabel('codex', translate)).toBe('Codex')
     expect(buildSelectedPlatformLabel('custom', translate)).toBe('custom')
-    expect(buildSelectedWindowLabel(30, translate)).toBe('30 Days')
-    expect(buildSelectedWindowLabel(14, translate)).toBe('14d')
+    expect(buildSelectedWindowLabel('last_30d', translate)).toBe('Last 30 Days')
+    expect(buildSelectedWindowLabel('all_time', translate)).toBe('All Time')
     expect(shortenPath('D:/workspace/a/b/c')).toBe('.../b/c')
 
     const archive: UsageArchiveDiagnostics = {

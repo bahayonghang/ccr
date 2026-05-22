@@ -1,359 +1,373 @@
 <template>
   <div class="pricing-view">
-    <!-- 页面标题 -->
-    <div class="pricing-header">
-      <div>
-        <h1 class="pricing-title text-text-primary">
-          💲 定价管理
-        </h1>
-        <p class="pricing-subtitle text-text-secondary">
-          配置各个模型的价格和默认定价策略
+    <header class="pricing-hero">
+      <div class="pricing-hero__copy">
+        <p class="pricing-hero__eyebrow">
+          {{ t('pricing.eyebrow') }}
+        </p>
+        <div class="pricing-hero__title-row">
+          <h1>{{ t('pricing.title') }}</h1>
+          <span class="pricing-badge">{{ t('pricing.legacyBadge') }}</span>
+        </div>
+        <p class="pricing-hero__subtitle">
+          {{ t('pricing.subtitle') }}
         </p>
       </div>
-      <button
-        :disabled="loading"
-        class="pricing-action-button pricing-action-button--primary"
-        @click="loadData"
-      >
-        <svg
-          class="pricing-action-button__icon"
-          :class="{ 'animate-spin': loading }"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
+
+      <div class="pricing-hero__actions">
+        <a
+          class="pricing-button pricing-button--secondary"
+          href="/usage"
         >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+          {{ t('pricing.actions.openUsage') }}
+        </a>
+        <button
+          type="button"
+          :disabled="loading"
+          class="pricing-button pricing-button--primary"
+          @click="loadData"
+        >
+          <span
+            class="pricing-button__spinner"
+            :class="{ 'pricing-button__spinner--active': loading }"
+            aria-hidden="true"
           />
-        </svg>
-        <span>刷新</span>
-      </button>
-    </div>
+          {{ t('pricing.actions.refresh') }}
+        </button>
+      </div>
+    </header>
 
-    <!-- 加载状态 -->
-    <div
-      v-if="loading"
-      class="pricing-loading"
+    <section
+      class="pricing-boundary"
+      :aria-label="t('pricing.boundary.title')"
     >
-      <div class="pricing-loading__spinner animate-spin" />
+      <article class="pricing-boundary__item">
+        <span>{{ t('pricing.boundary.sourceLabel') }}</span>
+        <strong>~/.claude/pricing.toml</strong>
+        <p>{{ t('pricing.boundary.sourceCopy') }}</p>
+      </article>
+      <article class="pricing-boundary__item">
+        <span>{{ t('pricing.boundary.effectLabel') }}</span>
+        <strong>{{ t('pricing.boundary.effectTitle') }}</strong>
+        <p>{{ t('pricing.boundary.effectCopy') }}</p>
+      </article>
+      <article class="pricing-boundary__item">
+        <span>{{ t('pricing.boundary.unitLabel') }}</span>
+        <strong>{{ t('pricing.unitPerMtok') }}</strong>
+        <p>{{ t('pricing.boundary.unitCopy') }}</p>
+      </article>
+    </section>
+
+    <div
+      v-if="statusMessage"
+      class="pricing-status pricing-status--success"
+      role="status"
+      aria-live="polite"
+    >
+      {{ statusMessage }}
     </div>
 
-    <!-- 错误提示 -->
     <div
       v-if="error"
-      class="pricing-error"
+      class="pricing-status pricing-status--error"
+      role="alert"
     >
-      <div class="pricing-error__layout">
-        <svg
-          class="pricing-error__icon"
-          fill="currentColor"
-          viewBox="0 0 20 20"
-        >
-          <path
-            fill-rule="evenodd"
-            d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-            clip-rule="evenodd"
-          />
-        </svg>
-        <div class="pricing-error__content">
-          <h3 class="pricing-error__title">
-            加载失败
-          </h3>
-          <p class="pricing-error__message">
-            {{ error }}
-          </p>
-        </div>
-      </div>
+      <strong>{{ t('pricing.states.errorTitle') }}</strong>
+      <span>{{ error }}</span>
     </div>
 
-    <!-- 定价内容 -->
     <div
-      v-if="!loading && !error && pricingData"
+      v-if="loading && !pricingData"
+      class="pricing-loading"
+    >
+      <span
+        class="pricing-loading__spinner"
+        aria-hidden="true"
+      />
+      <span>{{ t('pricing.states.loading') }}</span>
+    </div>
+
+    <main
+      v-else
       class="pricing-content"
     >
-      <!-- 默认定价卡片 -->
-      <div class="pricing-card">
-        <h2 class="pricing-section-title text-text-primary">
-          默认定价策略
-        </h2>
-        <div class="pricing-default-grid">
-          <div class="pricing-metric-card pricing-metric-card--blue">
-            <p class="pricing-metric-card__label text-text-secondary">
-              输入价格
+      <section
+        v-if="normalizedData.defaultPricing"
+        class="pricing-card"
+      >
+        <div class="pricing-section-heading">
+          <div>
+            <p class="pricing-section-heading__eyebrow">
+              {{ t('pricing.default.eyebrow') }}
             </p>
-            <p class="pricing-metric-card__value text-text-primary">
-              ${{ pricingData.default_pricing.input_price.toFixed(4) }}
-            </p>
-            <p class="pricing-metric-card__meta text-text-muted">
-              / 1K tokens
-            </p>
+            <h2>{{ t('pricing.default.title') }}</h2>
           </div>
-          <div class="pricing-metric-card pricing-metric-card--green">
-            <p class="pricing-metric-card__label text-text-secondary">
-              输出价格
-            </p>
-            <p class="pricing-metric-card__value text-text-primary">
-              ${{ pricingData.default_pricing.output_price.toFixed(4) }}
-            </p>
-            <p class="pricing-metric-card__meta text-text-muted">
-              / 1K tokens
-            </p>
-          </div>
-          <div class="pricing-metric-card pricing-metric-card--purple">
-            <p class="pricing-metric-card__label text-text-secondary">
-              缓存读取
-            </p>
-            <p class="pricing-metric-card__value text-text-primary">
-              ${{ (pricingData.default_pricing.cache_read_price || 0).toFixed(4) }}
-            </p>
-            <p class="pricing-metric-card__meta text-text-muted">
-              / 1K tokens
-            </p>
-          </div>
-          <div class="pricing-metric-card pricing-metric-card--orange">
-            <p class="pricing-metric-card__label text-text-secondary">
-              缓存写入
-            </p>
-            <p class="pricing-metric-card__value text-text-primary">
-              ${{ (pricingData.default_pricing.cache_write_price || 0).toFixed(4) }}
-            </p>
-            <p class="pricing-metric-card__meta text-text-muted">
-              / 1K tokens
-            </p>
-          </div>
+          <span class="pricing-pill">{{ t('pricing.unitPerMtok') }}</span>
         </div>
-      </div>
+        <div class="pricing-metric-grid">
+          <article
+            v-for="metric in priceMetrics(normalizedData.defaultPricing)"
+            :key="metric.key"
+            class="pricing-metric"
+          >
+            <span>{{ metric.label }}</span>
+            <strong>{{ metric.value }}</strong>
+            <small>{{ t('pricing.unitPerMtok') }}</small>
+          </article>
+        </div>
+      </section>
 
-      <!-- 模型定价列表 -->
-      <div class="pricing-card">
-        <div class="pricing-section-header">
-          <h2 class="pricing-section-title text-text-primary">
-            模型定价配置
-          </h2>
+      <section class="pricing-card pricing-card--models">
+        <div class="pricing-section-heading pricing-section-heading--split">
+          <div>
+            <p class="pricing-section-heading__eyebrow">
+              {{ t('pricing.models.eyebrow') }}
+            </p>
+            <h2>{{ t('pricing.models.title') }}</h2>
+            <p>{{ t('pricing.models.subtitle', { count: normalizedData.items.length }) }}</p>
+          </div>
           <button
-            class="pricing-action-button pricing-action-button--success pricing-action-button--compact"
+            type="button"
+            class="pricing-button pricing-button--primary"
             @click="showAddForm"
           >
-            ➕ 添加模型定价
+            {{ t('pricing.actions.add') }}
           </button>
         </div>
 
-        <!-- 定价列表 -->
         <div
-          v-if="pricingData.pricings.length > 0"
+          v-if="normalizedData.items.length > 0"
           class="pricing-list"
         >
-          <div
-            v-for="pricing in pricingData.pricings"
+          <article
+            v-for="pricing in normalizedData.items"
             :key="pricing.model"
-            class="pricing-list-item"
+            class="pricing-row"
           >
-            <div class="pricing-list-item__body">
-              <h3 class="pricing-list-item__title text-text-primary">
-                {{ pricing.model }}
-              </h3>
-              <div class="pricing-list-item__metrics">
-                <div>
-                  <span class="text-text-secondary">输入:</span>
-                  <span class="pricing-list-item__value text-text-primary">
-                    ${{ pricing.input_price.toFixed(4) }}
-                  </span>
-                </div>
-                <div>
-                  <span class="text-text-secondary">输出:</span>
-                  <span class="pricing-list-item__value text-text-primary">
-                    ${{ pricing.output_price.toFixed(4) }}
-                  </span>
-                </div>
-                <div>
-                  <span class="text-text-secondary">缓存读:</span>
-                  <span class="pricing-list-item__value text-text-primary">
-                    ${{ (pricing.cache_read_price || 0).toFixed(4) }}
-                  </span>
-                </div>
-                <div>
-                  <span class="text-text-secondary">缓存写:</span>
-                  <span class="pricing-list-item__value text-text-primary">
-                    ${{ (pricing.cache_write_price || 0).toFixed(4) }}
-                  </span>
-                </div>
+            <div class="pricing-row__main">
+              <div class="pricing-row__title-line">
+                <h3>{{ pricing.model }}</h3>
+                <span class="pricing-row__tag">{{ t('pricing.models.configuredRow') }}</span>
+              </div>
+              <div class="pricing-row__metrics">
+                <span
+                  v-for="metric in priceMetrics(pricing)"
+                  :key="metric.key"
+                >
+                  <small>{{ metric.label }}</small>
+                  <strong>{{ metric.value }}</strong>
+                  <em>{{ t('pricing.unitShort') }}</em>
+                </span>
               </div>
             </div>
-            <div class="pricing-list-item__actions">
+            <div class="pricing-row__actions">
               <button
-                class="pricing-action-button pricing-action-button--primary pricing-action-button--small"
+                type="button"
+                class="pricing-button pricing-button--secondary pricing-button--compact"
                 @click="editPricing(pricing)"
               >
-                编辑
+                {{ t('pricing.actions.edit') }}
               </button>
               <button
-                class="pricing-action-button pricing-action-button--danger pricing-action-button--small"
-                @click="deletePricing(pricing.model)"
+                type="button"
+                class="pricing-button pricing-button--ghost-danger pricing-button--compact"
+                @click="requestDelete(pricing.model)"
               >
-                删除
+                {{ t('pricing.actions.remove') }}
               </button>
             </div>
-          </div>
+          </article>
         </div>
 
-        <!-- 空状态 -->
         <div
           v-else
-          class="pricing-empty text-text-muted"
+          class="pricing-empty"
         >
-          暂无模型定价配置，点击上方按钮添加
+          <strong>{{ t('pricing.empty.title') }}</strong>
+          <p>{{ t('pricing.empty.subtitle') }}</p>
         </div>
-      </div>
+      </section>
 
-      <!-- 添加/编辑表单 -->
-      <div
+      <section
         v-if="showForm"
         class="pricing-card"
       >
-        <h2 class="pricing-section-title text-text-primary">
-          {{ isEditing ? '编辑模型定价' : '添加模型定价' }}
-        </h2>
+        <div class="pricing-section-heading">
+          <p class="pricing-section-heading__eyebrow">
+            {{ isEditing ? t('pricing.form.editEyebrow') : t('pricing.form.addEyebrow') }}
+          </p>
+          <h2>{{ isEditing ? t('pricing.form.editTitle') : t('pricing.form.addTitle') }}</h2>
+          <p>{{ t('pricing.form.unitHint') }}</p>
+        </div>
+
         <form
           class="pricing-form"
           @submit.prevent="savePricing"
         >
-          <!-- 模型名称 -->
-          <div>
-            <label class="pricing-label text-text-secondary">
-              模型名称 *
-            </label>
+          <label class="pricing-field">
+            <span>{{ t('pricing.form.model') }}</span>
             <input
-              v-model="form.model"
-              :disabled="isEditing"
+              v-model.trim="form.model"
+              :disabled="isEditing || saving"
               type="text"
               required
               class="pricing-input"
-              placeholder="例如: claude-sonnet-4-5"
+              :placeholder="t('pricing.form.modelPlaceholder')"
             >
+          </label>
+
+          <div class="pricing-form__grid">
+            <label
+              v-for="field in priceFields"
+              :key="field.key"
+              class="pricing-field"
+            >
+              <span>{{ field.label }}</span>
+              <input
+                v-model.number="form[field.key]"
+                :required="field.required"
+                :disabled="saving"
+                type="number"
+                step="0.000001"
+                min="0"
+                class="pricing-input"
+                :placeholder="t('pricing.form.pricePlaceholder')"
+              >
+            </label>
           </div>
 
-          <!-- 价格输入 -->
-          <div class="pricing-form-grid">
-            <div>
-              <label class="pricing-label text-text-secondary">
-                输入价格 ($) *
-              </label>
-              <input
-                v-model.number="form.input_price"
-                type="number"
-                step="0.000001"
-                min="0"
-                required
-                class="pricing-input"
-                placeholder="每1K tokens价格"
-              >
-            </div>
-            <div>
-              <label class="pricing-label text-text-secondary">
-                输出价格 ($) *
-              </label>
-              <input
-                v-model.number="form.output_price"
-                type="number"
-                step="0.000001"
-                min="0"
-                required
-                class="pricing-input"
-                placeholder="每1K tokens价格"
-              >
-            </div>
-          </div>
-
-          <div class="pricing-form-grid">
-            <div>
-              <label class="pricing-label text-text-secondary">
-                缓存读取价格 ($)
-              </label>
-              <input
-                v-model.number="form.cache_read_price"
-                type="number"
-                step="0.000001"
-                min="0"
-                class="pricing-input"
-                placeholder="可选"
-              >
-            </div>
-            <div>
-              <label class="pricing-label text-text-secondary">
-                缓存写入价格 ($)
-              </label>
-              <input
-                v-model.number="form.cache_write_price"
-                type="number"
-                step="0.000001"
-                min="0"
-                class="pricing-input"
-                placeholder="可选"
-              >
-            </div>
-          </div>
-
-          <!-- 按钮 -->
-          <div class="pricing-form-actions">
+          <div class="pricing-form__actions">
             <button
               type="submit"
               :disabled="saving"
-              class="pricing-action-button pricing-action-button--primary pricing-action-button--wide"
+              class="pricing-button pricing-button--primary"
             >
-              {{ saving ? '保存中...' : '保存' }}
+              {{ saving ? t('pricing.actions.saving') : t('pricing.actions.save') }}
             </button>
             <button
               type="button"
               :disabled="saving"
-              class="pricing-action-button pricing-action-button--neutral pricing-action-button--wide"
+              class="pricing-button pricing-button--secondary"
               @click="cancelForm"
             >
-              取消
+              {{ t('pricing.actions.cancel') }}
             </button>
           </div>
         </form>
-      </div>
+      </section>
 
-      <!-- 操作按钮 -->
-      <div class="pricing-card">
-        <h2 class="pricing-section-title text-text-primary">
-          批量操作
-        </h2>
-        <button
-          :disabled="saving"
-          class="pricing-action-button pricing-action-button--danger pricing-action-button--wide"
-          @click="handleReset"
-        >
-          重置所有定价为默认值
-        </button>
-      </div>
-    </div>
+      <section
+        v-if="normalizedData.items.length > 0"
+        class="pricing-card pricing-card--operations"
+      >
+        <div class="pricing-section-heading pricing-section-heading--split">
+          <div>
+            <p class="pricing-section-heading__eyebrow">
+              {{ t('pricing.operations.eyebrow') }}
+            </p>
+            <h2>{{ t('pricing.operations.title') }}</h2>
+            <p>{{ t('pricing.operations.subtitle') }}</p>
+          </div>
+          <button
+            type="button"
+            :disabled="saving"
+            class="pricing-button pricing-button--ghost-danger"
+            @click="requestReset"
+          >
+            {{ t('pricing.actions.reset') }}
+          </button>
+        </div>
+      </section>
+
+      <section
+        v-if="pendingAction"
+        class="pricing-confirm"
+        role="dialog"
+        aria-modal="false"
+        :aria-label="confirmTitle"
+      >
+        <div>
+          <p class="pricing-confirm__eyebrow">
+            {{ t('pricing.confirm.eyebrow') }}
+          </p>
+          <h2>{{ confirmTitle }}</h2>
+          <p>{{ confirmCopy }}</p>
+        </div>
+        <div class="pricing-confirm__actions">
+          <button
+            type="button"
+            :disabled="saving"
+            class="pricing-button pricing-button--danger"
+            @click="confirmPendingAction"
+          >
+            {{ saving ? t('pricing.actions.saving') : t('pricing.confirm.confirm') }}
+          </button>
+          <button
+            type="button"
+            :disabled="saving"
+            class="pricing-button pricing-button--secondary"
+            @click="pendingAction = null"
+          >
+            {{ t('pricing.actions.cancel') }}
+          </button>
+        </div>
+      </section>
+    </main>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import { getPricingList, setPricing, removePricing, resetPricing } from '@/api'
-import type { PricingListResponse, ModelPricing, SetPricingRequest } from '@/types'
+import { computed, onMounted, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { getPricingList, removePricing, resetPricing, setPricing } from '@/api'
+import type { ModelPricing, SetPricingRequest } from '@/types'
 import { logger } from '@/utils/logger'
 
-const pricingData = ref<PricingListResponse | null>(null)
-const loading = ref(false)
-const saving = ref(false)
-const error = ref<string | null>(null)
-const showForm = ref(false)
-const isEditing = ref(false)
+type PriceFormKey = 'input_price' | 'output_price' | 'cache_read_price' | 'cache_write_price'
 
-const form = ref<{
+type PriceForm = {
   model: string
   input_price: number
   output_price: number
   cache_read_price: number | null
   cache_write_price: number | null
-}>({
+}
+
+type RawPricingListItem = {
+  model?: string
+  pricing?: Partial<ModelPricing>
+}
+
+type RawPricingListResponse = {
+  items?: RawPricingListItem[]
+  pricings?: Partial<ModelPricing>[]
+  models?: Record<string, Partial<ModelPricing>>
+  default_pricing?: Partial<ModelPricing> | null
+  total?: number
+}
+
+type NormalizedPricingList = {
+  items: ModelPricing[]
+  defaultPricing: ModelPricing | null
+  total: number
+}
+
+type PendingAction =
+  | { type: 'delete'; model: string }
+  | { type: 'reset' }
+
+const { t } = useI18n()
+
+const pricingData = ref<RawPricingListResponse | null>(null)
+const loading = ref(false)
+const saving = ref(false)
+const error = ref<string | null>(null)
+const statusMessage = ref<string | null>(null)
+const showForm = ref(false)
+const isEditing = ref(false)
+const pendingAction = ref<PendingAction | null>(null)
+
+const createEmptyForm = (): PriceForm => ({
   model: '',
   input_price: 0,
   output_price: 0,
@@ -361,479 +375,693 @@ const form = ref<{
   cache_write_price: null,
 })
 
-const loadData = async () => {
+const form = ref<PriceForm>(createEmptyForm())
+
+const normalizePricing = (model: string, pricing: Partial<ModelPricing> | undefined): ModelPricing => ({
+  model: pricing?.model || model,
+  input_price: Number(pricing?.input_price ?? 0),
+  output_price: Number(pricing?.output_price ?? 0),
+  cache_read_price: pricing?.cache_read_price ?? undefined,
+  cache_write_price: pricing?.cache_write_price ?? undefined,
+})
+
+const normalizePricingList = (response: RawPricingListResponse | null): NormalizedPricingList => {
+  if (!response) {
+    return { items: [], defaultPricing: null, total: 0 }
+  }
+
+  const items = Array.isArray(response.items)
+    ? response.items.map((item) => normalizePricing(item.model ?? item.pricing?.model ?? '', item.pricing))
+    : Array.isArray(response.pricings)
+      ? response.pricings.map((pricing) => normalizePricing(pricing.model ?? '', pricing))
+      : response.models
+        ? Object.entries(response.models).map(([model, pricing]) => normalizePricing(model, pricing))
+        : []
+
+  const sortedItems = items
+    .filter((pricing) => pricing.model.length > 0)
+    .sort((a, b) => a.model.localeCompare(b.model))
+
+  return {
+    items: sortedItems,
+    defaultPricing: response.default_pricing
+      ? normalizePricing(response.default_pricing.model ?? 'default', response.default_pricing)
+      : null,
+    total: typeof response.total === 'number' ? response.total : sortedItems.length,
+  }
+}
+
+const normalizedData = computed(() => normalizePricingList(pricingData.value))
+
+const priceFields: Array<{ key: PriceFormKey; label: string; required: boolean }> = [
+  { key: 'input_price', label: t('pricing.fields.input'), required: true },
+  { key: 'output_price', label: t('pricing.fields.output'), required: true },
+  { key: 'cache_read_price', label: t('pricing.fields.cacheRead'), required: false },
+  { key: 'cache_write_price', label: t('pricing.fields.cacheWrite'), required: false },
+]
+
+const priceMetrics = (pricing: ModelPricing) => [
+  { key: 'input', label: t('pricing.fields.input'), value: formatPrice(pricing.input_price) },
+  { key: 'output', label: t('pricing.fields.output'), value: formatPrice(pricing.output_price) },
+  { key: 'cache-read', label: t('pricing.fields.cacheRead'), value: formatPrice(pricing.cache_read_price) },
+  { key: 'cache-write', label: t('pricing.fields.cacheWrite'), value: formatPrice(pricing.cache_write_price) },
+]
+
+const confirmTitle = computed(() => {
+  if (!pendingAction.value) {
+    return ''
+  }
+
+  return pendingAction.value.type === 'delete'
+    ? t('pricing.confirm.deleteTitle', { model: pendingAction.value.model })
+    : t('pricing.confirm.resetTitle')
+})
+
+const confirmCopy = computed(() => {
+  if (!pendingAction.value) {
+    return ''
+  }
+
+  return pendingAction.value.type === 'delete'
+    ? t('pricing.confirm.deleteCopy')
+    : t('pricing.confirm.resetCopy')
+})
+
+function formatPrice(value?: number | null): string {
+  return typeof value === 'number' ? `$${value.toFixed(4)}` : '—'
+}
+
+function humanizeError(value: unknown): string {
+  return value instanceof Error ? value.message : String(value || t('pricing.messages.unknownError'))
+}
+
+async function loadData() {
   loading.value = true
   error.value = null
 
   try {
-    pricingData.value = await getPricingList()
-  } catch (e) {
-    error.value = (e instanceof Error ? e.message : "Error") || '加载失败'
-    logger.error('Failed to load pricing:', e)
+    pricingData.value = await getPricingList<RawPricingListResponse>()
+  } catch (value) {
+    error.value = humanizeError(value)
+    logger.error('Failed to load legacy CCR pricing:', value)
   } finally {
     loading.value = false
   }
 }
 
-const showAddForm = () => {
+function showAddForm() {
+  statusMessage.value = null
+  error.value = null
+  pendingAction.value = null
   isEditing.value = false
-  form.value = {
-    model: '',
-    input_price: 0,
-    output_price: 0,
-    cache_read_price: null,
-    cache_write_price: null,
-  }
+  form.value = createEmptyForm()
   showForm.value = true
 }
 
-const editPricing = (pricing: ModelPricing) => {
+function editPricing(pricing: ModelPricing) {
+  statusMessage.value = null
+  error.value = null
+  pendingAction.value = null
   isEditing.value = true
   form.value = {
     model: pricing.model,
     input_price: pricing.input_price,
     output_price: pricing.output_price,
-    cache_read_price: pricing.cache_read_price || null,
-    cache_write_price: pricing.cache_write_price || null,
+    cache_read_price: pricing.cache_read_price ?? null,
+    cache_write_price: pricing.cache_write_price ?? null,
   }
   showForm.value = true
 }
 
-const savePricing = async () => {
+function cancelForm() {
+  showForm.value = false
+  error.value = null
+}
+
+async function savePricing() {
+  const model = form.value.model.trim()
+  if (!model) {
+    error.value = t('pricing.messages.modelRequired')
+    return
+  }
+
   saving.value = true
+  error.value = null
+  statusMessage.value = null
+
+  const request: SetPricingRequest = {
+    model,
+    input_price: form.value.input_price,
+    output_price: form.value.output_price,
+    cache_read_price: form.value.cache_read_price ?? undefined,
+    cache_write_price: form.value.cache_write_price ?? undefined,
+  }
 
   try {
-    const request: SetPricingRequest = {
-      model: form.value.model,
-      input_price: form.value.input_price,
-      output_price: form.value.output_price,
-      cache_read_price: form.value.cache_read_price ?? undefined,
-      cache_write_price: form.value.cache_write_price ?? undefined,
-    }
-
     await setPricing(request)
     await loadData()
     showForm.value = false
-
-    alert(isEditing.value ? '定价已更新' : '定价已添加')
-  } catch (e) {
-    alert('保存失败: ' + ((e instanceof Error ? e.message : "Error") || '未知错误'))
-    logger.error('Failed to save pricing:', e)
+    statusMessage.value = isEditing.value
+      ? t('pricing.messages.updated', { model })
+      : t('pricing.messages.created', { model })
+  } catch (value) {
+    error.value = t('pricing.messages.saveFailed', { error: humanizeError(value) })
+    logger.error('Failed to save legacy CCR pricing:', value)
   } finally {
     saving.value = false
   }
 }
 
-const deletePricing = async (model: string) => {
-  if (!confirm(`确定要删除模型 "${model}" 的定价吗？`)) return
-
-  saving.value = true
-
-  try {
-    await removePricing(model)
-    await loadData()
-
-    alert('定价已删除')
-  } catch (e) {
-    alert('删除失败: ' + ((e instanceof Error ? e.message : "Error") || '未知错误'))
-    logger.error('Failed to delete pricing:', e)
-  } finally {
-    saving.value = false
-  }
-}
-
-const cancelForm = () => {
+function requestDelete(model: string) {
+  statusMessage.value = null
+  error.value = null
   showForm.value = false
+  pendingAction.value = { type: 'delete', model }
 }
 
-const handleReset = async () => {
-  if (!confirm('确定要重置所有模型定价为默认值吗？此操作不可撤销！')) return
+function requestReset() {
+  statusMessage.value = null
+  error.value = null
+  showForm.value = false
+  pendingAction.value = { type: 'reset' }
+}
+
+async function confirmPendingAction() {
+  if (!pendingAction.value) {
+    return
+  }
 
   saving.value = true
+  error.value = null
+  statusMessage.value = null
+
+  const action = pendingAction.value
 
   try {
-    await resetPricing()
-    await loadData()
+    if (action.type === 'delete') {
+      await removePricing(action.model)
+      statusMessage.value = t('pricing.messages.removed', { model: action.model })
+    } else {
+      await resetPricing()
+      statusMessage.value = t('pricing.messages.reset')
+    }
 
-    alert('所有定价已重置为默认值')
-  } catch (e) {
-    alert('重置失败: ' + ((e instanceof Error ? e.message : "Error") || '未知错误'))
-    logger.error('Failed to reset pricing:', e)
+    pendingAction.value = null
+    await loadData()
+  } catch (value) {
+    error.value = action.type === 'delete'
+      ? t('pricing.messages.removeFailed', { error: humanizeError(value) })
+      : t('pricing.messages.resetFailed', { error: humanizeError(value) })
+    logger.error('Failed to apply legacy CCR pricing action:', value)
   } finally {
     saving.value = false
   }
 }
 
 onMounted(() => {
-  loadData()
+  void loadData()
 })
 </script>
 
 <style scoped>
-.pricing-view,
-.pricing-content,
-.pricing-form,
-.pricing-list {
-  display: flex;
-  flex-direction: column;
-}
-
 .pricing-view {
-  gap: 1.5rem;
-  padding: 1.5rem;
+  display: grid;
+  gap: 1rem;
+  padding: 1.1rem;
 }
 
-.pricing-content,
-.pricing-form,
-.pricing-list {
-  gap: 1.5rem;
+.pricing-hero,
+.pricing-boundary,
+.pricing-card,
+.pricing-confirm,
+.pricing-status,
+.pricing-loading {
+  border: 1px solid rgb(var(--color-border-default-rgb) / 14%);
+  background: rgb(var(--color-bg-elevated-rgb) / 78%);
+  box-shadow: var(--elevation-1), inset 0 1px 0 rgb(255 255 255 / 7%);
 }
 
-.pricing-header,
-.pricing-section-header,
-.pricing-list-item,
-.pricing-list-item__actions,
-.pricing-form-actions,
-.pricing-action-button {
+.pricing-hero {
   display: flex;
-  align-items: center;
-}
-
-.pricing-header,
-.pricing-section-header,
-.pricing-list-item {
+  align-items: flex-end;
   justify-content: space-between;
   gap: 1rem;
+  border-radius: 1.45rem;
+  background:
+    linear-gradient(135deg, rgb(var(--color-bg-elevated-rgb) / 90%), rgb(var(--color-bg-surface-rgb) / 72%)),
+    radial-gradient(circle at 12% 0%, rgb(var(--color-accent-primary-rgb) / 7%), transparent 38%);
+  padding: 1rem 1.08rem;
 }
 
-.pricing-title,
-.pricing-section-title,
-.pricing-list-item__title {
-  font-weight: 700;
+.pricing-hero__copy {
+  display: grid;
+  gap: 0.28rem;
+  max-width: 54rem;
 }
 
-.pricing-title {
-  font-size: 1.875rem;
+.pricing-hero__eyebrow,
+.pricing-section-heading__eyebrow,
+.pricing-confirm__eyebrow,
+.pricing-boundary__item span,
+.pricing-field span {
+  color: var(--color-text-muted);
+  font-size: 0.66rem;
+  font-weight: 760;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
 }
 
-.pricing-subtitle {
-  margin-top: 0.5rem;
-  font-size: 0.875rem;
+.pricing-hero__title-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.55rem;
 }
 
-.pricing-card {
-  border-radius: 0.75rem;
-  background: white;
-  padding: 1.5rem;
-  box-shadow: 0 8px 24px rgb(15 23 42 / 8%);
+.pricing-hero h1 {
+  color: var(--color-text-primary);
+  font-size: clamp(1.45rem, 1.1vw + 1rem, 2.05rem);
+  font-weight: 780;
+  letter-spacing: -0.04em;
+  line-height: 1.05;
 }
 
-:global(.dark) .pricing-card {
-  background: rgb(31 41 55);
+.pricing-hero__subtitle,
+.pricing-section-heading p,
+.pricing-boundary__item p,
+.pricing-confirm p,
+.pricing-empty p {
+  color: var(--color-text-secondary);
+  font-size: 0.88rem;
+  line-height: 1.5;
 }
 
-.pricing-section-title {
-  margin-bottom: 1rem;
-  font-size: 1.25rem;
-  line-height: 1.3;
-}
-
-.pricing-action-button {
-  justify-content: center;
-  gap: 0.5rem;
-  border-radius: 0.5rem;
-  color: white;
-  font-weight: 500;
-  transition: background-color 0.2s ease, opacity 0.2s ease;
-}
-
-.pricing-action-button:disabled {
-  opacity: 0.5;
-}
-
-.pricing-action-button--primary {
-  background: rgb(37 99 235);
-}
-
-.pricing-action-button--primary:hover:not(:disabled) {
-  background: rgb(29 78 216);
-}
-
-.pricing-action-button--success {
-  background: rgb(22 163 74);
-}
-
-.pricing-action-button--success:hover:not(:disabled) {
-  background: rgb(21 128 61);
-}
-
-.pricing-action-button--danger {
-  background: rgb(220 38 38);
-}
-
-.pricing-action-button--danger:hover:not(:disabled) {
-  background: rgb(185 28 28);
-}
-
-.pricing-action-button--neutral {
-  background: rgb(107 114 128);
-}
-
-.pricing-action-button--neutral:hover:not(:disabled) {
-  background: rgb(75 85 99);
-}
-
-.pricing-action-button--primary,
-.pricing-action-button--success,
-.pricing-action-button--neutral,
-.pricing-action-button--danger {
-  padding: 0.5rem 1rem;
-}
-
-.pricing-action-button--compact {
-  font-size: 0.875rem;
-}
-
-.pricing-action-button--small {
-  padding: 0.25rem 0.75rem;
-  font-size: 0.875rem;
-}
-
-.pricing-action-button--wide {
-  padding: 0.5rem 1.5rem;
-}
-
-.pricing-action-button__icon {
-  width: 1.25rem;
-  height: 1.25rem;
-}
-
-.pricing-loading {
+.pricing-hero__actions,
+.pricing-section-heading--split,
+.pricing-form__actions,
+.pricing-confirm__actions,
+.pricing-row__actions,
+.pricing-row__title-line {
   display: flex;
   align-items: center;
-  justify-content: center;
-  padding: 3rem 0;
+  gap: 0.55rem;
 }
 
-.pricing-loading__spinner {
-  width: 3rem;
-  height: 3rem;
+.pricing-hero__actions,
+.pricing-row__actions {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.pricing-badge,
+.pricing-pill,
+.pricing-row__tag {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  border: 1px solid rgb(var(--color-border-default-rgb) / 16%);
   border-radius: 9999px;
-  border-bottom: 2px solid rgb(37 99 235);
+  background: rgb(var(--color-bg-surface-rgb) / 58%);
+  color: var(--color-text-secondary);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
 }
 
-.pricing-error {
-  border: 1px solid rgb(254 202 202);
-  border-radius: 0.5rem;
-  background: rgb(254 242 242);
-  padding: 1rem;
+.pricing-badge,
+.pricing-pill {
+  padding: 0.28rem 0.58rem;
 }
 
-:global(.dark) .pricing-error {
-  border-color: rgb(153 27 27);
-  background: rgb(127 29 29 / 20%);
+.pricing-row__tag {
+  padding: 0.18rem 0.48rem;
 }
 
-.pricing-error__layout {
-  display: flex;
+.pricing-button {
+  display: inline-flex;
+  min-height: 2.35rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.42rem;
+  border: 1px solid transparent;
+  border-radius: 9999px;
+  padding: 0 0.82rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-decoration: none;
+  transition:
+    background-color var(--motion-subtle-duration) var(--motion-subtle-ease),
+    border-color var(--motion-subtle-duration) var(--motion-subtle-ease),
+    color var(--motion-subtle-duration) var(--motion-subtle-ease),
+    opacity var(--motion-subtle-duration) var(--motion-subtle-ease);
 }
 
-.pricing-error__icon {
-  width: 1.25rem;
-  height: 1.25rem;
-  color: rgb(248 113 113);
+.pricing-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
 }
 
-.pricing-error__content {
-  margin-left: 0.75rem;
+.pricing-button--primary {
+  border-color: rgb(var(--color-accent-primary-rgb) / 22%);
+  background: rgb(var(--color-accent-primary-rgb) / 14%);
+  color: var(--color-text-primary);
 }
 
-.pricing-error__title {
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: rgb(153 27 27);
+.pricing-button--primary:hover:not(:disabled) {
+  background: rgb(var(--color-accent-primary-rgb) / 19%);
 }
 
-:global(.dark) .pricing-error__title {
-  color: rgb(254 202 202);
+.pricing-button--secondary {
+  border-color: rgb(var(--color-border-default-rgb) / 18%);
+  background: rgb(var(--color-bg-elevated-rgb) / 58%);
+  color: var(--color-text-secondary);
 }
 
-.pricing-error__message {
-  margin-top: 0.5rem;
-  font-size: 0.875rem;
-  color: rgb(185 28 28);
+.pricing-button--secondary:hover:not(:disabled) {
+  color: var(--color-text-primary);
 }
 
-:global(.dark) .pricing-error__message {
-  color: rgb(252 165 165);
+.pricing-button--danger,
+.pricing-button--ghost-danger {
+  border-color: rgb(185 93 75 / 25%);
+  color: rgb(150 62 46);
 }
 
-.pricing-default-grid,
-.pricing-form-grid,
-.pricing-list-item__metrics {
+.pricing-button--danger {
+  background: rgb(185 93 75 / 14%);
+}
+
+.pricing-button--ghost-danger {
+  background: rgb(185 93 75 / 7%);
+}
+
+:global(.dark) .pricing-button--danger,
+:global(.dark) .pricing-button--ghost-danger {
+  color: rgb(244 173 153);
+}
+
+.pricing-button--compact {
+  min-height: 2rem;
+  padding: 0 0.68rem;
+  font-size: 0.76rem;
+}
+
+.pricing-button__spinner,
+.pricing-loading__spinner {
+  width: 0.9rem;
+  height: 0.9rem;
+  border: 2px solid currentcolor;
+  border-top-color: transparent;
+  border-radius: 9999px;
+  opacity: 0;
+}
+
+.pricing-button__spinner--active,
+.pricing-loading__spinner {
+  animation: pricing-spin 0.8s linear infinite;
+  opacity: 0.8;
+}
+
+.pricing-boundary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+  border-radius: 1.2rem;
+  padding: 0.78rem;
+}
+
+.pricing-boundary__item {
+  display: grid;
+  gap: 0.34rem;
+  border-radius: 1rem;
+  background: rgb(var(--color-bg-surface-rgb) / 48%);
+  padding: 0.82rem;
+}
+
+.pricing-boundary__item strong {
+  color: var(--color-text-primary);
+  font-size: 0.98rem;
+}
+
+.pricing-content {
   display: grid;
   gap: 1rem;
 }
 
-.pricing-default-grid {
-  grid-template-columns: repeat(1, minmax(0, 1fr));
-}
-
-.pricing-metric-card,
-.pricing-list-item {
-  border-radius: 0.5rem;
+.pricing-card,
+.pricing-confirm,
+.pricing-status,
+.pricing-loading {
+  border-radius: 1.2rem;
   padding: 1rem;
 }
 
-.pricing-metric-card--blue {
-  background: rgb(239 246 255);
+.pricing-card {
+  display: grid;
+  gap: 0.95rem;
 }
 
-.pricing-metric-card--green {
-  background: rgb(240 253 244);
+.pricing-section-heading {
+  display: grid;
+  gap: 0.32rem;
 }
 
-.pricing-metric-card--purple {
-  background: rgb(250 245 255);
+.pricing-section-heading--split {
+  justify-content: space-between;
 }
 
-.pricing-metric-card--orange {
-  background: rgb(255 247 237);
+.pricing-section-heading h2,
+.pricing-confirm h2 {
+  color: var(--color-text-primary);
+  font-size: 1.05rem;
+  font-weight: 760;
+  letter-spacing: -0.02em;
 }
 
-:global(.dark) .pricing-metric-card--blue {
-  background: rgb(30 58 138 / 20%);
+.pricing-metric-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.65rem;
 }
 
-:global(.dark) .pricing-metric-card--green {
-  background: rgb(20 83 45 / 20%);
+.pricing-metric,
+.pricing-row {
+  border: 1px solid rgb(var(--color-border-default-rgb) / 12%);
+  border-radius: 1rem;
+  background: rgb(var(--color-bg-surface-rgb) / 52%);
 }
 
-:global(.dark) .pricing-metric-card--purple {
-  background: rgb(88 28 135 / 20%);
+.pricing-metric {
+  display: grid;
+  gap: 0.2rem;
+  padding: 0.78rem;
 }
 
-:global(.dark) .pricing-metric-card--orange {
-  background: rgb(154 52 18 / 20%);
-}
-
-.pricing-metric-card__label {
-  font-size: 0.875rem;
-}
-
-.pricing-metric-card__value {
-  margin-top: 0.5rem;
-  font-size: 1.5rem;
+.pricing-metric span,
+.pricing-row__metrics small {
+  color: var(--color-text-muted);
+  font-size: 0.72rem;
   font-weight: 700;
 }
 
-.pricing-metric-card__meta {
-  margin-top: 0.25rem;
-  font-size: 0.75rem;
+.pricing-metric strong,
+.pricing-row__metrics strong {
+  color: var(--color-text-primary);
+  font-size: 1rem;
+}
+
+.pricing-metric small,
+.pricing-row__metrics em {
+  color: var(--color-text-muted);
+  font-size: 0.68rem;
+  font-style: normal;
 }
 
 .pricing-list {
-  gap: 0.75rem;
+  display: grid;
+  gap: 0.62rem;
 }
 
-.pricing-list-item {
-  background: rgb(249 250 251);
+.pricing-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 0.82rem;
 }
 
-:global(.dark) .pricing-list-item {
-  background: rgb(55 65 81 / 50%);
+.pricing-row__main {
+  display: grid;
+  gap: 0.58rem;
+  min-width: 0;
 }
 
-.pricing-list-item__body {
-  flex: 1;
+.pricing-row__title-line {
+  flex-wrap: wrap;
 }
 
-.pricing-list-item__title {
-  font-size: 1.125rem;
+.pricing-row h3 {
+  overflow: hidden;
+  color: var(--color-text-primary);
+  font-size: 0.96rem;
+  font-weight: 760;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.pricing-list-item__metrics {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  margin-top: 0.5rem;
-  gap: 0.75rem;
-  font-size: 0.875rem;
+.pricing-row__metrics,
+.pricing-form__grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.55rem;
 }
 
-.pricing-list-item__value {
-  margin-left: 0.5rem;
-  font-weight: 600;
-}
-
-.pricing-list-item__actions,
-.pricing-form-actions {
-  gap: 0.5rem;
-}
-
-.pricing-list-item__actions {
-  margin-left: 1rem;
+.pricing-row__metrics span {
+  display: grid;
+  gap: 0.15rem;
+  min-width: 0;
 }
 
 .pricing-empty {
-  padding: 2rem 0;
+  display: grid;
+  gap: 0.25rem;
+  border: 1px dashed rgb(var(--color-border-default-rgb) / 22%);
+  border-radius: 1rem;
+  padding: 1.2rem;
   text-align: center;
 }
 
-.pricing-label {
-  display: block;
-  font-size: 0.875rem;
-  font-weight: 500;
+.pricing-empty strong {
+  color: var(--color-text-primary);
+}
+
+.pricing-form {
+  display: grid;
+  gap: 0.78rem;
+}
+
+.pricing-field {
+  display: grid;
+  gap: 0.32rem;
 }
 
 .pricing-input {
-  display: block;
+  min-height: 2.55rem;
   width: 100%;
-  margin-top: 0.25rem;
-  padding: 0.5rem 0.75rem;
-  border: 1px solid rgb(209 213 219);
-  border-radius: 0.5rem;
-  background: white;
-  color: rgb(17 24 39);
+  border: 1px solid rgb(var(--color-border-default-rgb) / 17%);
+  border-radius: 0.82rem;
+  background: rgb(var(--color-bg-surface-rgb) / 68%);
+  color: var(--color-text-primary);
+  font-size: 0.9rem;
+  outline: none;
+  padding: 0 0.78rem;
 }
 
-:global(.dark) .pricing-input {
-  border-color: rgb(75 85 99);
-  background: rgb(55 65 81);
-  color: white;
+.pricing-input:focus {
+  border-color: rgb(var(--color-accent-primary-rgb) / 28%);
+  box-shadow: 0 0 0 3px rgb(var(--color-accent-primary-rgb) / 9%);
 }
 
 .pricing-input:disabled {
-  opacity: 0.5;
+  opacity: 0.62;
 }
 
-@media (width >= 768px) {
-  .pricing-default-grid {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+.pricing-status {
+  display: flex;
+  gap: 0.45rem;
+  align-items: center;
+  font-size: 0.86rem;
+}
+
+.pricing-status--success {
+  border-color: rgb(86 128 94 / 18%);
+  background: rgb(86 128 94 / 10%);
+  color: rgb(59 104 69);
+}
+
+.pricing-status--error {
+  border-color: rgb(185 93 75 / 24%);
+  background: rgb(185 93 75 / 10%);
+  color: rgb(139 56 43);
+}
+
+:global(.dark) .pricing-status--success {
+  color: rgb(174 218 181);
+}
+
+:global(.dark) .pricing-status--error {
+  color: rgb(244 173 153);
+}
+
+.pricing-loading {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  min-height: 8rem;
+  color: var(--color-text-secondary);
+}
+
+.pricing-loading__spinner {
+  opacity: 0.75;
+}
+
+.pricing-confirm {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  border-color: rgb(185 93 75 / 20%);
+  background: rgb(185 93 75 / 8%);
+}
+
+@keyframes pricing-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (width < 1080px) {
+  .pricing-hero,
+  .pricing-confirm,
+  .pricing-row,
+  .pricing-section-heading--split {
+    align-items: flex-start;
+    grid-template-columns: 1fr;
+    flex-direction: column;
   }
 
-  .pricing-form-grid,
-  .pricing-list-item__metrics {
+  .pricing-boundary,
+  .pricing-metric-grid,
+  .pricing-row__metrics,
+  .pricing-form__grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
-}
 
-@media (width >= 900px) {
-  .pricing-list-item__metrics {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+  .pricing-hero__actions,
+  .pricing-row__actions,
+  .pricing-confirm__actions {
+    justify-content: flex-start;
   }
 }
 
-@media (width <= 767px) {
-  .pricing-header,
-  .pricing-section-header,
-  .pricing-list-item {
-    flex-direction: column;
-    align-items: flex-start;
+@media (width < 680px) {
+  .pricing-view {
+    padding: 0.75rem;
   }
 
-  .pricing-list-item__actions,
-  .pricing-form-actions {
+  .pricing-boundary,
+  .pricing-metric-grid,
+  .pricing-row__metrics,
+  .pricing-form__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .pricing-hero__actions,
+  .pricing-form__actions,
+  .pricing-confirm__actions,
+  .pricing-button {
     width: 100%;
-    flex-wrap: wrap;
   }
 }
 </style>
