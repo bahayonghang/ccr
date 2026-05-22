@@ -38,7 +38,10 @@
       <button
         type="button"
         class="cp-btn cp-btn--ghost"
+        :class="{ 'cp-btn--palette-open': paletteOpen }"
         :disabled="loading"
+        :aria-pressed="paletteOpen"
+        aria-haspopup="dialog"
         :title="$t('codex.profiles.commandPaletteShortcut')"
         @click="emit('openPalette')"
       >
@@ -100,11 +103,13 @@ import { RouterLink } from 'vue-router'
 interface Props {
   loading?: boolean
   exporting?: boolean
+  paletteOpen?: boolean
 }
 
 withDefaults(defineProps<Props>(), {
   loading: false,
   exporting: false,
+  paletteOpen: false,
 })
 
 const emit = defineEmits<{
@@ -200,6 +205,19 @@ const emit = defineEmits<{
   background: transparent;
   border-color: var(--cp-line);
   color: var(--cp-ink-2);
+}
+
+.cp-btn--palette-open {
+  background: var(--cp-accent-soft);
+  border-color: var(--cp-accent-line);
+  color: var(--cp-accent);
+  box-shadow: inset 0 0 0 1px var(--cp-accent-line);
+}
+
+.cp-btn--palette-open .cp-btn__kbd {
+  border-color: var(--cp-accent-line);
+  color: var(--cp-accent);
+  background: rgb(var(--color-accent-primary-rgb) / 10%);
 }
 
 .cp-btn--primary {

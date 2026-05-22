@@ -3469,8 +3469,12 @@ export default {
       },
       commandPalette: {
         title: 'Command palette',
+        eyebrow: 'Codex Profiles',
         placeholder: 'Type a command or profile name…',
         itemsHint: '{count} items · ↑↓ select · Enter run',
+        resultSummary: '{commands} commands · {profiles} profiles',
+        groupCommands: 'Common commands',
+        groupProfiles: 'Switch Profile',
         execute: 'Run',
         select: 'Select',
         close: 'Close',

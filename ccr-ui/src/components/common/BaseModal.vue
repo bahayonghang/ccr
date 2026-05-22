@@ -113,7 +113,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch, useSlots } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch, useSlots } from 'vue'
 import { useFocusTrap, useEscapeKey, useUniqueId, focusUtils } from '@/composables/useAccessibility'
 
 // Props interface
@@ -312,6 +312,19 @@ watch(() => props.modelValue, (isOpen) => {
     document.body.style.overflow = 'hidden'
   } else {
     // 恢复 body 滚动
+    document.body.style.overflow = ''
+  }
+})
+
+onMounted(() => {
+  if (props.modelValue) {
+    focusStore.save()
+    document.body.style.overflow = 'hidden'
+  }
+})
+
+onUnmounted(() => {
+  if (props.modelValue) {
     document.body.style.overflow = ''
   }
 })

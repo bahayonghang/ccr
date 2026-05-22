@@ -13,6 +13,7 @@
         <ProfilesHeader
           :loading="loading"
           :exporting="exporting"
+          :palette-open="paletteOpen"
           @add="handleAdd"
           @export="handleExportProfiles"
           @reload="reloadProfiles"

@@ -3469,8 +3469,12 @@ export default {
       },
       commandPalette: {
         title: '命令面板',
+        eyebrow: 'Codex Profiles',
         placeholder: '输入命令或 profile 名称…',
         itemsHint: '{count} 项 · ↑↓ 选择 · Enter 执行',
+        resultSummary: '{commands} 个命令 · {profiles} 个 Profile',
+        groupCommands: '常用命令',
+        groupProfiles: '切换 Profile',
         execute: '执行',
         select: '选择',
         close: '关闭',
