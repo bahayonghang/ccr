@@ -86,13 +86,27 @@ perfMark('app:styles-preloaded')
 const configureAppErrorHandler = (app: ReturnType<typeof createApp>) => {
   // 全局错误处理：兜底未捕获的 Vue 组件异常
   app.config.errorHandler = (err, _instance, info) => {
-    logger.error('[Vue Error]', { info, err })
+    const errorDetails = {
+      info,
+      name: err instanceof Error ? err.name : typeof err,
+      message: getErrorMessage(err, '未知错误') || '未知错误',
+      stack: err instanceof Error ? err.stack : undefined,
+      code:
+        err && typeof err === 'object' && 'code' in err
+          ? String((err as { code?: unknown }).code)
+          : undefined,
+    }
+
+    logger.error('[Vue Error]', errorDetails)
 
     // Pinia 已在上方初始化，store 可安全使用
     try {
       const ui = useUIStore()
-      const message = getErrorMessage(err, '未知错误') || '未知错误'
-      ui.showError(`应用错误: ${message}`)
+      const prefix = errorDetails.name && errorDetails.name !== 'object'
+        ? `${errorDetails.name}: `
+        : ''
+      const suffix = errorDetails.code ? ` (code: ${errorDetails.code})` : ''
+      ui.showError(`应用错误: ${prefix}${errorDetails.message}${suffix}`)
     } catch {
       // Store 异常时静默降级到 console
     }
