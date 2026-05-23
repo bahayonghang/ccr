@@ -1,0 +1,4 @@
+- [x] 删除droid
+- [x] 补充opencode的用量统计
+- [x] 优化使用统计逻辑，使用llmusage替代现有逻辑
+- [ ]
