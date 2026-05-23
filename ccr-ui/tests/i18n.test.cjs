@@ -29,6 +29,8 @@
 
 const fs = require('fs');
 const path = require('path');
+const ts = require('typescript');
+const { baseCompile } = require('@intlify/message-compiler');
 
 // ============================================================================
 // ANSI Color Codes for Pretty Terminal Output
@@ -255,6 +257,101 @@ function checkBalancedBraces(content) {
  */
 function hasExportDefault(content) {
   return /export\s+default\s+\{/.test(content);
+}
+
+/**
+ * Extract all leaf string messages from a locale export default object.
+ */
+function extractLocaleMessages(content, fileName) {
+  const sourceFile = ts.createSourceFile(
+    fileName,
+    content,
+    ts.ScriptTarget.Latest,
+    true,
+    ts.ScriptKind.TS
+  );
+  const messages = [];
+  const stack = [];
+
+  function getPropertyName(node) {
+    if (ts.isIdentifier(node) || ts.isStringLiteral(node) || ts.isNumericLiteral(node)) {
+      return node.text;
+    }
+
+    return null;
+  }
+
+  function visitProperty(node) {
+    if (!ts.isPropertyAssignment(node)) return;
+
+    const propertyName = getPropertyName(node.name);
+    if (!propertyName) return;
+
+    const initializer = node.initializer;
+    if (ts.isObjectLiteralExpression(initializer)) {
+      stack.push(propertyName);
+      initializer.properties.forEach(visitProperty);
+      stack.pop();
+      return;
+    }
+
+    if (ts.isStringLiteral(initializer) || ts.isNoSubstitutionTemplateLiteral(initializer)) {
+      const position = sourceFile.getLineAndCharacterOfPosition(initializer.getStart(sourceFile));
+      messages.push({
+        key: [...stack, propertyName].join('.'),
+        value: initializer.text,
+        line: position.line + 1,
+      });
+    }
+  }
+
+  function visit(node) {
+    if (ts.isExportAssignment(node) && ts.isObjectLiteralExpression(node.expression)) {
+      node.expression.properties.forEach(visitProperty);
+      return;
+    }
+
+    ts.forEachChild(node, visit);
+  }
+
+  visit(sourceFile);
+  return messages;
+}
+
+/**
+ * Validate messages with the same compiler used by vue-i18n at runtime.
+ */
+function findMessageCompilerIssues(content, fileName) {
+  const issues = [];
+  const messages = extractLocaleMessages(content, fileName);
+
+  for (const message of messages) {
+    const compileErrors = [];
+    try {
+      baseCompile(message.value, {
+        onError(error) {
+          compileErrors.push({
+            code: error.code,
+            message: error.message,
+          });
+        },
+      });
+    } catch (error) {
+      compileErrors.push({
+        code: error && typeof error === 'object' && 'code' in error ? error.code : 'unknown',
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
+
+    if (compileErrors.length > 0) {
+      issues.push({
+        ...message,
+        errors: compileErrors,
+      });
+    }
+  }
+
+  return issues;
 }
 
 /**
@@ -755,10 +852,55 @@ function testAtLiteralSafety() {
 }
 
 /**
- * Test 8: Placeholder Binding Validation
+ * Test 8: Vue-i18n Message Compiler Validation
+ */
+function testMessageCompilerValidation() {
+  printHeader('Test 8: Vue-i18n Message Compiler Validation');
+
+  const localeFiles = [
+    { name: 'zh-CN.ts', path: ZH_CN_FILE },
+    { name: 'en-US.ts', path: EN_US_FILE },
+  ];
+
+  for (const localeFile of localeFiles) {
+    const content = readFileSafe(localeFile.path);
+    if (!content) {
+      printTest(`Read ${localeFile.name} for compiler validation`, false, 'Cannot read file content', true);
+      continue;
+    }
+
+    const issues = findMessageCompilerIssues(content, localeFile.name);
+    printTest(
+      `${localeFile.name} messages compile with vue-i18n`,
+      issues.length === 0,
+      issues.length === 0
+        ? 'All locale strings passed the message compiler'
+        : `Found ${issues.length} invalid message(s)`,
+      true
+    );
+
+    if (issues.length > 0) {
+      const maxPreview = 12;
+      issues.slice(0, maxPreview).forEach((issue) => {
+        const details = issue.errors
+          .map((compileError) => `${compileError.message} (code: ${compileError.code})`)
+          .join('; ');
+        console.log(error(
+          `    line ${issue.line}, key ${issue.key}: ${details} | ${JSON.stringify(issue.value)}`
+        ));
+      });
+      if (issues.length > maxPreview) {
+        console.log(error(`    ... and ${issues.length - maxPreview} more`));
+      }
+    }
+  }
+}
+
+/**
+ * Test 9: Placeholder Binding Validation
  */
 function testPlaceholderBindings() {
-  printHeader('Test 8: Placeholder Binding Validation');
+  printHeader('Test 9: Placeholder Binding Validation');
 
   const zhContent = readFileSafe(ZH_CN_FILE);
   if (!zhContent) {
@@ -792,10 +934,10 @@ function testPlaceholderBindings() {
 }
 
 /**
- * Test 9: Coverage Statistics
+ * Test 10: Coverage Statistics
  */
 function testCoverageStats() {
-  printHeader('Test 9: Coverage Statistics');
+  printHeader('Test 10: Coverage Statistics');
 
   const zhContent = readFileSafe(ZH_CN_FILE);
   const enContent = readFileSafe(EN_US_FILE);
@@ -866,6 +1008,7 @@ function main() {
   testPlaceholders();
   testSyntax();
   testAtLiteralSafety();
+  testMessageCompilerValidation();
   testPlaceholderBindings();
   testCoverageStats();
 
