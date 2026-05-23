@@ -868,7 +868,15 @@ const openAccountModal = async (account?: AccountInfo) => {
         x666_access_token: existingExtra.x666_access_token || '',
       }
     } catch (e: unknown) {
-      logger.error('Failed to get cookies:', e)
+      logger.error('Failed to get cookies for check-in account', {
+        account: {
+          id: account.id,
+          provider_id: account.provider_id,
+          provider_name: getProviderName(account.provider_id),
+          name: account.name,
+        },
+        err: e,
+      })
       accountForm.value = {
         provider_id: account.provider_id,
         name: account.name,
