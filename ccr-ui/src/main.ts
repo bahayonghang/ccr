@@ -86,12 +86,12 @@ perfMark('app:styles-preloaded')
 const configureAppErrorHandler = (app: ReturnType<typeof createApp>) => {
   // 全局错误处理：兜底未捕获的 Vue 组件异常
   app.config.errorHandler = (err, _instance, info) => {
-    logger.error(`[Vue Error] ${info}`, err)
+    logger.error('[Vue Error]', { info, err })
 
     // Pinia 已在上方初始化，store 可安全使用
     try {
       const ui = useUIStore()
-      const message = getErrorMessage(err, '未知错误')
+      const message = getErrorMessage(err, '未知错误') || '未知错误'
       ui.showError(`应用错误: ${message}`)
     } catch {
       // Store 异常时静默降级到 console

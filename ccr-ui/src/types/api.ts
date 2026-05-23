@@ -275,16 +275,44 @@ export function hasMessage(value: unknown): value is { message: string } {
   )
 }
 
+const DEFAULT_ERROR_MESSAGE = '未知错误'
+
+const normalizeMessage = (value: string): string => value.trim()
+
+const normalizeFallback = (fallback: string): string =>
+  normalizeMessage(fallback) || DEFAULT_ERROR_MESSAGE
+
+const getNonGenericErrorName = (value: unknown): string => {
+  if (
+    typeof value === 'object' &&
+    value !== null &&
+    'name' in value &&
+    typeof (value as { name: unknown }).name === 'string'
+  ) {
+    const name = normalizeMessage((value as { name: string }).name)
+    return name && name !== 'Error' ? name : ''
+  }
+
+  return ''
+}
+
 /** 从 unknown 错误中提取错误消息 */
 export function getErrorMessage(error: unknown, fallback: string = '未知错误'): string {
+  const fallbackMessage = normalizeFallback(fallback)
+
   if (isError(error)) {
-    return error.message
+    const message = normalizeMessage(error.message)
+    return message || getNonGenericErrorName(error) || fallbackMessage
   }
+
   if (hasMessage(error)) {
-    return error.message
+    const message = normalizeMessage(error.message)
+    return message || getNonGenericErrorName(error) || fallbackMessage
   }
+
   if (typeof error === 'string') {
-    return error
+    return normalizeMessage(error) || fallbackMessage
   }
-  return fallback
+
+  return fallbackMessage
 }
