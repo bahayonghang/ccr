@@ -54,6 +54,7 @@ cmake-build-*/
 .windsurf/
 .claude/
 .codex/
+!.codex/skills/
 .agent/
 .agents/
 .gemini/

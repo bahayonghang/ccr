@@ -20,6 +20,8 @@ Frontend and extension code use 2-space indentation, single quotes, and no semic
 ## Testing Guidelines
 Keep Rust integration tests under `crates/*/tests` and group them by feature area. UI smoke tests belong in `ccr-ui/tests/*.smoke.test.ts`. VS Code tests live beside source as `*.test.ts`. Run the narrowest relevant command while iterating, then finish with `just ci`, `just frontend-check`, or `just vscode-ci`.
 
+Project-local Codex skills live under `.codex/skills/`; prefer the narrowest failing gate first before escalating to full `just ci`.
+
 ## Commit & Pull Request Guidelines
 Recent history uses Chinese Conventional Commits with scopes and emoji, for example `feat(认证TUI): ✨ ...`, `docs(帮助文档): 📝 ...`, and `chore(release): 🔧 ...`. Keep commits atomic and scoped to one surface.
 
